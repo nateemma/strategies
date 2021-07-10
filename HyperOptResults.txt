@@ -1,0 +1,100 @@
+1. Optimize ROI etc (not buy params)
+------------------------------------
+2021-06-29 21:00:51,194 - freqtrade.optimize.hyperopt - INFO - 100 epochs saved to '/Users/pprice/Documents/Nateemma/Crypto/freqtrade/user_data/hyperopt_results/strategy_BuyDips_2021-06-29_20-33-14.fthypt'.
+
+Best result:
+
+    83/100:    319 trades. 201/97/21 Wins/Draws/Losses. Avg profit   1.13%. Median profit   1.60%. Total profit  360.83995108 USD (  36.08%). Avg duration 3:16:00 min. Objective: 1.04062
+
+
+    # Buy hyperspace params:
+    buy_params = {
+        "buy_bb_gain": 0.08,  # value loaded from strategy
+        "buy_bb_gain_enabled": True,  # value loaded from strategy
+        "buy_mfi": 28,  # value loaded from strategy
+        "buy_mfi_enabled": False,  # value loaded from strategy
+        "buy_neg_macd_enabled": False,  # value loaded from strategy
+    }
+
+    # Sell hyperspace params:
+    sell_params = {
+        "sell_mfi": 97,  # value loaded from strategy
+    }
+
+    # ROI table:
+    minimal_roi = {
+        "0": 0.243,
+        "15": 0.055,
+        "30": 0.016,
+        "64": 0
+    }
+
+    # Stoploss:
+    stoploss = -0.233
+
+    # Trailing stop:
+    trailing_stop = True
+    trailing_stop_positive = 0.243
+    trailing_stop_positive_offset = 0.307
+    trailing_only_offset_is_reached = False
+
+2. Optimise all
+---------------
+
+    buy_mfi = DecimalParameter(10, 30, decimals=0, default=28, space="buy")
+    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.08, space="buy")
+    buy_mfi_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_bb_gain_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_neg_macd_enabled = CategoricalParameter([True, False], default=False, space="buy")
+
+   minimal_roi = {
+        "0": 0.106,
+        "16": 0.068,
+        "27": 0.035,
+        "83": 0
+    }
+
+    # Optimal stoploss designed for the strategy
+    # This attribute will be overridden if the config file contains "stoploss"
+    stoploss = -0.345
+
+    # trailing stoploss
+    trailing_stop = True
+    trailing_stop_positive = 0.138
+    trailing_stop_positive_offset = 0.201
+    trailing_only_offset_is_reached = True
+
+
+    87/100:    581 trades. 367/154/60 Wins/Draws/Losses. Avg profit   0.55%. Median profit   1.40%. Total profit  318.73912150 USD (  31.87%). Avg duration 6:58:00 min. Objective: 1.15014
+
+
+    # Buy hyperspace params:
+    buy_params = {
+        "buy_bb_gain": 0.06,
+        "buy_bb_gain_enabled": True,
+        "buy_mfi": 17.0,
+        "buy_mfi_enabled": False,
+        "buy_neg_macd_enabled": False,
+    }
+
+    # Sell hyperspace params:
+    sell_params = {
+        "sell_mfi": 97,  # value loaded from strategy
+    }
+
+    # ROI table:
+    minimal_roi = {
+        "0": 0.135,
+        "37": 0.029,
+        "96": 0.014,
+        "187": 0
+    }
+
+    # Stoploss:
+    stoploss = -0.337
+
+    # Trailing stop:
+    trailing_stop = True
+    trailing_stop_positive = 0.019
+    trailing_stop_positive_offset = 0.073
+    trailing_only_offset_is_reached = False
