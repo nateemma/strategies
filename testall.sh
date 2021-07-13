@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # list of strategies (only the decent ones, in rough order of performance)
-slist="NDrop NSeq EMABounce  Strategy003  BTCNDrop BTCEMABounce BBBHold Squeeze001 BBKCBounce BuyDips MACDCross "
-slist+="KeltnerBounce SimpleBollinger SqueezeOff BollingerBounce Squeeze002"
+slist="ComboHold NDrop NSeq EMABounce  Strategy003  BTCNDrop BTCEMABounce BBBHold Squeeze001 BBKCBounce BuyDips MACDCross "
+slist+="KeltnerBounce SimpleBollinger SqueezeOff BollingerBounce Squeeze002 Patterns"
 
 
 timerange="20210501-"

@@ -35,7 +35,7 @@ class SqueezeOff(IStrategy):
     buy_sar_enabled = CategoricalParameter([True, False], default=False, space="buy")
     buy_fisher_enabled = CategoricalParameter([True, False], default=True, space="buy")
 
-    sell_hold = CategoricalParameter([True, False], default=False, space="sell")
+    sell_hold = CategoricalParameter([True, False], default=True, space="sell")
     sell_abort = CategoricalParameter([True, False], default=False, space="sell")
 
     # set the startup candles count to the longest average used (SMA, EMA etc)
@@ -51,19 +51,19 @@ class SqueezeOff(IStrategy):
 
     # ROI table:
     minimal_roi = {
-        "0": 0.232,
-        "14": 0.044,
-        "25": 0.012,
-        "138": 0
+        "0": 0.229,
+        "17": 0.038,
+        "30": 0.016,
+        "40": 0
     }
 
     # Stoploss:
-    stoploss = -0.117
+    stoploss = -0.088
 
     # Trailing stop:
     trailing_stop = True
-    trailing_stop_positive = 0.314
-    trailing_stop_positive_offset = 0.344
+    trailing_stop_positive = 0.258
+    trailing_stop_positive_offset = 0.265
     trailing_only_offset_is_reached = True
 
     # Optimal timeframe for the strategy

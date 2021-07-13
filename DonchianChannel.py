@@ -27,21 +27,37 @@ class DonchianChannel(IStrategy):
     buy_mfi = DecimalParameter(1, 99, decimals=0, default=50, space="buy")
     buy_fisher = DecimalParameter(-1.0, 1.0, decimals=2, default=0.99, space="buy")
 
-    buy_adx_enabled = CategoricalParameter([True, False], default=True, space="buy")
-    buy_dm_enabled = CategoricalParameter([True, False], default=True, space="buy")
-    buy_mfi_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    # buy_adx_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    # buy_dm_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    # buy_mfi_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    # buy_sma_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    # buy_ema_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    # buy_sar_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    # buy_macd_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    # buy_fisher_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    #
+    # sell_adx_enabled = CategoricalParameter([True, False], default=False, space="sell")
+    # sell_dm_enabled = CategoricalParameter([True, False], default=True, space="sell")
+    # sell_sma_enabled = CategoricalParameter([True, False], default=True, space="sell")
+    # sell_ema_enabled = CategoricalParameter([True, False], default=True, space="sell")
+    # sell_sar_enabled = CategoricalParameter([True, False], default=True, space="sell")
+    # sell_macd_enabled = CategoricalParameter([True, False], default=True, space="sell")
+
+    buy_adx_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_dm_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_mfi_enabled = CategoricalParameter([True, False], default=False, space="buy")
     buy_sma_enabled = CategoricalParameter([True, False], default=False, space="buy")
     buy_ema_enabled = CategoricalParameter([True, False], default=False, space="buy")
     buy_sar_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_macd_enabled = CategoricalParameter([True, False], default=True, space="buy")
-    buy_fisher_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_macd_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_fisher_enabled = CategoricalParameter([True, False], default=False, space="buy")
 
     sell_adx_enabled = CategoricalParameter([True, False], default=False, space="sell")
-    sell_dm_enabled = CategoricalParameter([True, False], default=True, space="sell")
-    sell_sma_enabled = CategoricalParameter([True, False], default=True, space="sell")
-    sell_ema_enabled = CategoricalParameter([True, False], default=True, space="sell")
-    sell_sar_enabled = CategoricalParameter([True, False], default=True, space="sell")
-    sell_macd_enabled = CategoricalParameter([True, False], default=True, space="sell")
+    sell_dm_enabled = CategoricalParameter([True, False], default=False, space="sell")
+    sell_sma_enabled = CategoricalParameter([True, False], default=False, space="sell")
+    sell_ema_enabled = CategoricalParameter([True, False], default=False, space="sell")
+    sell_sar_enabled = CategoricalParameter([True, False], default=False, space="sell")
+    sell_macd_enabled = CategoricalParameter([True, False], default=False, space="sell")
 
     # set the startup candles count to the longest average used (SMA, EMA etc)
     startup_candle_count = 20
@@ -50,20 +66,20 @@ class DonchianChannel(IStrategy):
 
     # ROI table:
     minimal_roi = {
-        "0": 0.049,
-        "34": 0.035,
-        "88": 0.022,
-        "148": 0
+        "0": 0.169,
+        "19": 0.076,
+        "41": 0.04,
+        "150": 0
     }
 
     # Stoploss:
-    stoploss = -0.02
+    stoploss = -0.023
 
     # Trailing stop:
     trailing_stop = True
-    trailing_stop_positive = 0.345
-    trailing_stop_positive_offset = 0.391
-    trailing_only_offset_is_reached = False
+    trailing_stop_positive = 0.193
+    trailing_stop_positive_offset = 0.285
+    trailing_only_offset_is_reached = True
 
 
     # Optimal timeframe for the strategy
@@ -208,6 +224,9 @@ class DonchianChannel(IStrategy):
         # TRIGGERS
 
         # 2 green candles, one crosses or jumps above high band
+        #level = 'dc_hf'
+        level = 'dc_upper'
+
         conditions.append(
             (dataframe['dc_hf'].notnull()) &
             (
@@ -215,18 +234,18 @@ class DonchianChannel(IStrategy):
                     (dataframe['close'].shift(1) >= dataframe['open'].shift(1)) &
                     (
                             ( # current candle crosses HF band
-                                     (qtpylib.crossed_above(dataframe['close'], dataframe['dc_hf']))
+                                     (qtpylib.crossed_above(dataframe['close'], dataframe[level]))
                             ) |
                             ( # previous candle crosses HF band
-                                    (qtpylib.crossed_above(dataframe['close'].shift(1), dataframe['dc_hf'].shift(1)))
+                                    (qtpylib.crossed_above(dataframe['close'].shift(1), dataframe[level].shift(1)))
                             ) |
                             ( # current candle jumped higher than HF band (but may noy have crossed)
-                                    (dataframe['close'] >= dataframe['dc_hf']) &
-                                    (dataframe['close'].shift(1) < dataframe['dc_hf'].shift(1))
+                                    (dataframe['close'] >= dataframe[level]) &
+                                    (dataframe['close'].shift(1) < dataframe[level].shift(1))
                             ) |
                             ( # 2 candles close above HF band
-                                    (dataframe['close'] >= dataframe['dc_hf']) &
-                                    (dataframe['close'].shift(1) >= dataframe['dc_hf'].shift(1))
+                                    (dataframe['close'] >= dataframe[level]) &
+                                    (dataframe['close'].shift(1) >= dataframe[level].shift(1))
                             )
                     )
             )
@@ -249,6 +268,8 @@ class DonchianChannel(IStrategy):
         """
 
         conditions = []
+        #level = 'dc_lf'
+        level = 'dc_lower'
 
         # red candle crosses or any candles jump below low band
         conditions.append(
@@ -256,11 +277,11 @@ class DonchianChannel(IStrategy):
             (
                     (
                             (dataframe['close'] < dataframe['open']) &
-                            (qtpylib.crossed_below(dataframe['close'], dataframe['dc_lf']))
+                            (qtpylib.crossed_below(dataframe['close'], dataframe[level]))
                     ) |
                     (
-                            (dataframe['close'] <= dataframe['dc_lf']) &
-                            (dataframe['close'].shift(1) > dataframe['dc_lf'].shift(1))
+                            (dataframe['close'] <= dataframe[level]) &
+                            (dataframe['close'].shift(1) > dataframe[level].shift(1))
                     )
             )
         )

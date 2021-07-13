@@ -24,6 +24,11 @@ class ComboHold(IStrategy):
 
     # Hyperparameters
 
+    buy_ndrop_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_nseq_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_emabounce_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_strat3_enabled = CategoricalParameter([True, False], default=False, space="buy")
+
     # NDrop parameters:
     buy_ndrop_num_candles = IntParameter(2, 9, default=2, space="buy")
     buy_ndrop_drop = DecimalParameter(0.01, 0.06, decimals=3, default=0.025, space="buy")
@@ -46,6 +51,18 @@ class ComboHold(IStrategy):
     buy_emabounce_long_period = IntParameter(20, 100, default=50, space="buy")
     buy_emabounce_short_period = IntParameter(5, 15, default=10, space="buy")
     buy_emabounce_diff = DecimalParameter(0.01, 0.10, decimals=3, default=0.065, space="buy")
+
+    # Strategy003 Parameters
+
+    buy_strat3_rsi = DecimalParameter(0, 50, decimals=0, default=15, space="buy")
+    buy_strat3_mfi = DecimalParameter(0, 50, decimals=0, default=24, space="buy")
+    buy_strat3_fisher = DecimalParameter(-1, 1, decimals=2, default=-0.28, space="buy")
+    buy_strat3_rsi_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_strat3_sma_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_strat3_ema_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_strat3_mfi_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_strat3_fastd_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_strat3_fisher_enabled = CategoricalParameter([True, False], default=False, space="buy")
 
 
     # ROI table:
@@ -226,19 +243,58 @@ class ComboHold(IStrategy):
 
         return conditions
 
+    def Strat3_conditions(self, dataframe: DataFrame):
+        conditions = []
+
+        # GUARDS AND TRENDS
+        if self.buy_strat3_rsi_enabled.value:
+            conditions.append(
+                (dataframe['rsi'] < self.buy_strat3_rsi.value) &
+                (dataframe['rsi'] > 0)
+            )
+
+        if self.buy_strat3_sma_enabled.value:
+            conditions.append(dataframe['close'] < dataframe['sma'])
+
+        if self.buy_strat3_fisher_enabled.value:
+            conditions.append(dataframe['fisher_rsi'] < self.buy_strat3_fisher.value)
+
+        if self.buy_strat3_mfi_enabled.value:
+            conditions.append(dataframe['mfi'] <= self.buy_strat3_mfi.value)
+
+        if self.buy_strat3_ema_enabled.value:
+            conditions.append(
+                (dataframe['ema50'] > dataframe['ema100']) |
+                (qtpylib.crossed_above(dataframe['ema5'], dataframe['ema10']))
+            )
+
+        if self.buy_strat3_fastd_enabled.value:
+            conditions.append(
+                (dataframe['fastd'] > dataframe['fastk']) &
+                (dataframe['fastd'] > 0)
+            )
+
+        return conditions
+
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
 
-        # Call the various strategies
-        c1 = self.NDrop_conditions(dataframe)
-        c2 = self.NSeq_conditions(dataframe)
-        c3 = self.EMABounce_conditions(dataframe)
 
         # build the dataframe using the conditions
-        # AND together the conditions for each strategy, then OR them together
+        # AND together the conditions for each strategy
         conditions = []
-        conditions.append(reduce(lambda x, y: x & y, c1))
-        conditions.append(reduce(lambda x, y: x & y, c2))
-        conditions.append(reduce(lambda x, y: x & y, c3))
+        if self.buy_ndrop_enabled.value:
+            conditions.append(reduce(lambda x, y: x & y, self.NDrop_conditions(dataframe)))
+
+        if self.buy_nseq_enabled.value:
+            conditions.append(reduce(lambda x, y: x & y, self.NSeq_conditions(dataframe)))
+
+        if self.buy_emabounce_enabled.value:
+            conditions.append(reduce(lambda x, y: x & y, self.EMABounce_conditions(dataframe)))
+
+        if self.buy_strat3_enabled.value:
+            conditions.append(reduce(lambda x, y: x & y, self.Strat3_conditions(dataframe)))
+
+        # OR them together
         if conditions:
             dataframe.loc[reduce(lambda x, y: x | y, conditions), 'buy'] = 1
 
