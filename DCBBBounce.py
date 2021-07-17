@@ -13,17 +13,16 @@ from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, Int
 
 
 
-class DonchianBounce(IStrategy):
+class DCBBBounce(IStrategy):
     """
-    Simple strategy based on Contrarian Donchian Channel Bounce from the bottom band
+    Simple strategy based on Contrarian Donchian Channels crossing Bollinger Bands
 
     How to use it?
-    > python3 ./freqtrade/main.py -s DonchianBounce.py
+    > python3 ./freqtrade/main.py -s DCBBBounce.py
     """
 
     # Hyperparameters
-    buy_dc_period = IntParameter(10, 120, default=20, space="buy")
-    buy_dc_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.04, space="buy")
+    buy_period = IntParameter(10, 120, default=60, space="buy")
 
     buy_adx = DecimalParameter(1, 99, decimals=0, default=25, space="buy")
     buy_sma_enabled = CategoricalParameter([True, False], default=False, space="buy")
@@ -31,30 +30,29 @@ class DonchianBounce(IStrategy):
     buy_adx_enabled = CategoricalParameter([True, False], default=False, space="buy")
     buy_sar_enabled = CategoricalParameter([True, False], default=False, space="buy")
 
-    sell_sar_enabled = CategoricalParameter([True, False], default=False, space="sell")
     sell_hold_enabled = CategoricalParameter([True, False], default=False, space="sell")
 
     # set the startup candles count to the longest average used (SMA, EMA etc)
-    startup_candle_count = 200
+    startup_candle_count = buy_period.value
 
     # The ROI, Stoploss and Trailing Stop values are typically found using hyperopt
 
     # ROI table:
     minimal_roi = {
-        "0": 0.051,
-        "10": 0.032,
-        "25": 0.01,
-        "54": 0
+        "0": 0.261,
+        "40": 0.087,
+        "95": 0.023,
+        "192": 0
     }
 
     # Stoploss:
-    stoploss = -0.347
+    stoploss = -0.33
 
     # Trailing stop:
     trailing_stop = True
-    trailing_stop_positive = 0.055
-    trailing_stop_positive_offset = 0.155
-    trailing_only_offset_is_reached = True
+    trailing_stop_positive = 0.168
+    trailing_stop_positive_offset = 0.253
+    trailing_only_offset_is_reached = False
 
 
     # Optimal timeframe for the strategy
@@ -100,25 +98,15 @@ class DonchianBounce(IStrategy):
         """
         bollinger = qtpylib.weighted_bollinger_bands(qtpylib.typical_price(dataframe), window=20, stds=2)
         dataframe['bb_upperband'] = bollinger['upper']
-        dataframe['bb_middleband'] = bollinger['mid']
         dataframe['bb_lowerband'] = bollinger['lower']
 
         # Donchian Channels
-        dataframe['dc_upper'] = ta.MAX(dataframe['high'], timeperiod=self.buy_dc_period.value)
-        dataframe['dc_lower'] = ta.MIN(dataframe['low'], timeperiod=self.buy_dc_period.value)
-        dataframe['dc_mid'] = ((dataframe['dc_upper'] + dataframe['dc_lower']) / 2)
-        dataframe["dc_gain"] = ((dataframe["dc_upper"] - dataframe["close"]) / dataframe["close"])
+        dataframe['dc_upper'] = ta.MAX(dataframe['high'], timeperiod=self.buy_period.value)
+        dataframe['dc_lower'] = ta.MIN(dataframe['low'], timeperiod=self.buy_period.value)
 
-        # Fibonacci Levels (of Donchian Channel)
-        dataframe['dc_dist'] = (dataframe['dc_upper']  - dataframe['dc_lower'])
-        dataframe['dc_hf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.236 # Highest Fib
-        dataframe['dc_chf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.382 # Centre High Fib
-        dataframe['dc_clf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.618 # Centre Low Fib
-        dataframe['dc_lf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.764 # Low Fib
+        dataframe["dcbb_diff_upper"] = (dataframe["dc_upper"] - dataframe['bb_upperband'])
+        dataframe["dcbb_diff_lower"] = (dataframe["dc_lower"] - dataframe['bb_lowerband'])
 
-        #print("\nupper: ", dataframe['dc_upper'])
-        #print("\nlower: ", dataframe['dc_lower'])
-        #print("\nmid: ", dataframe['dc_mid'])
 
         # ADX
         dataframe['adx'] = ta.ADX(dataframe)
@@ -168,7 +156,7 @@ class DonchianBounce(IStrategy):
         # conditions.append(dataframe['volume'] > 0)
 
         # during back testing, data can be undefined, so check
-        conditions.append(dataframe['dc_hf'].notnull())
+        conditions.append(dataframe['dc_upper'].notnull())
 
         if self.buy_sar_enabled.value:
             conditions.append(dataframe['sar'].notnull())
@@ -189,31 +177,15 @@ class DonchianBounce(IStrategy):
                 (dataframe['dm_plus'] >= dataframe['dm_minus'])
             )
 
-        # Potential gain greater than goal
-        conditions.append(dataframe['dc_gain'] >= self.buy_dc_gain.value)
-
-
         # TRIGGERS
         # closing price above SAR
         #conditions.append(dataframe['sar'] < dataframe['close'])
 
-        # price crosses or jumps above lower band, green candle
+        # gren candle, Lower Bollinger goes below Donchian
         conditions.append(
-            (dataframe['dc_lower'].notnull()) &
-            # (dataframe['close'] >= dataframe['open']) &
-            # (
-            #         (dataframe['close'] >= dataframe['dc_lower']) &
-            #         (dataframe['low'] <= dataframe['dc_lower'])
-            # )
+            (dataframe['dcbb_diff_lower'].notnull()) &
             (dataframe['close'] >= dataframe['open']) &
-            (
-                (qtpylib.crossed_above(dataframe['close'], dataframe['dc_lower'])) |
-                (
-                        (dataframe['close'] >= dataframe['dc_lower']) &
-                        (dataframe['close'].shift(1) < dataframe['dc_lower'].shift(1))
-                )
-            )
-
+            (qtpylib.crossed_above(dataframe['dcbb_diff_lower'], 0))
         )
 
         # build the dataframe using the conditions
@@ -238,23 +210,12 @@ class DonchianBounce(IStrategy):
         else:
 
             conditions = []
-
-            # price crosses or jumps below high band, red candle
+            # Upper Bollinger goes above Donchian
             conditions.append(
-                (dataframe['dc_upper'].notnull()) &
-                (dataframe['close'] < dataframe['open']) &
-                (
-                        (qtpylib.crossed_below(dataframe['close'], dataframe['dc_upper'])) |
-                        (
-                                (dataframe['close'] <= dataframe['dc_upper']) &
-                                (dataframe['close'].shift(1) > dataframe['dc_upper'].shift(1))
-                        )
-                )
+                (dataframe['dcbb_diff_upper'].notnull()) &
+                #(dataframe['close'] <= dataframe['open']) &
+                (qtpylib.crossed_below(dataframe['dcbb_diff_upper'], 0))
             )
-
-            if self.sell_sar_enabled.value:
-                conditions.append(dataframe['sar'].notnull())
-            conditions.append(dataframe['close'] < dataframe['sar'])
 
             # build the dataframe using the conditions
             if conditions:

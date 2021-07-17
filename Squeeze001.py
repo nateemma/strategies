@@ -32,6 +32,7 @@ class Squeeze001(IStrategy):
 
     buy_adx_enabled = CategoricalParameter([True, False], default=True, space="buy")
 
+    sell_hold_enabled = CategoricalParameter([True, False], default=False, space="sell")
 
     # set the startup candles count to the longest average used (EMA, EMA etc)
     startup_candle_count = buy_period.value
@@ -45,12 +46,12 @@ class Squeeze001(IStrategy):
     }
 
     # Stoploss:
-    stoploss = -0.318
+    stoploss = -0.332
 
     # Trailing stop:
     trailing_stop = True
-    trailing_stop_positive = 0.092
-    trailing_stop_positive_offset = 0.107
+    trailing_stop_positive = 0.105
+    trailing_stop_positive_offset = 0.19
     trailing_only_offset_is_reached = False
 
     # Optimal timeframe for the strategy
@@ -213,33 +214,39 @@ class Squeeze001(IStrategy):
 
         """
 
-        conditions = []
-        # GUARDS AND TRENDS
-        # check that volume is not 0 (can happen in testing, or if there are issues with exchange data)
-        conditions.append(dataframe['volume'] > 0)
+        # if hold, then don't set a sell signal
+        if self.sell_hold_enabled.value:
+            dataframe.loc[(dataframe['close'].notnull() ), 'sell'] = 0
 
-        # during back testing, data can be undefined, so check
-        conditions.append(dataframe['sqz_upper'].notnull())
+        else:
 
-        # We can (try to) predict an upcoming swing (down) by looking for a reversal during an 'on' period
-            #conditions.append(dataframe['sqz_on'])
+            conditions = []
+            # GUARDS AND TRENDS
+            # check that volume is not 0 (can happen in testing, or if there are issues with exchange data)
+            conditions.append(dataframe['volume'] > 0)
 
-        # don't sell if below EMA
-        #conditions.append(dataframe['close'] >= dataframe['ema5'])
+            # during back testing, data can be undefined, so check
+            conditions.append(dataframe['sqz_upper'].notnull())
 
-        # TRIGGERS
-        # squeeze values are +ve but turning around
-        conditions.append(
-            (dataframe['sqz_val'] > self.buy_sqz_band.value) &
-            (dataframe['sqz_val'] < dataframe['sqz_val'].shift(1)) &
-            (dataframe['sqz_val'].shift(1) >= dataframe['sqz_val'].shift(2))
-            # (dataframe['sqz_val'].shift(1) < dataframe['sqz_val'].shift(2)) &
-            # (dataframe['sqz_val'].shift(3) > dataframe['sqz_val'].shift(2))
-        )
+            # We can (try to) predict an upcoming swing (down) by looking for a reversal during an 'on' period
+            # conditions.append(dataframe['sqz_on'])
 
-        if conditions:
-            dataframe.loc[
-                reduce(lambda x, y: x & y, conditions),
-                'sell'] = 1
+            # don't sell if below EMA
+            # conditions.append(dataframe['close'] >= dataframe['ema5'])
+
+            # TRIGGERS
+            # squeeze values are +ve but turning around
+            conditions.append(
+                (dataframe['sqz_val'] > self.buy_sqz_band.value) &
+                (dataframe['sqz_val'] < dataframe['sqz_val'].shift(1)) &
+                (dataframe['sqz_val'].shift(1) >= dataframe['sqz_val'].shift(2))
+                # (dataframe['sqz_val'].shift(1) < dataframe['sqz_val'].shift(2)) &
+                # (dataframe['sqz_val'].shift(3) > dataframe['sqz_val'].shift(2))
+            )
+
+            if conditions:
+                dataframe.loc[
+                    reduce(lambda x, y: x & y, conditions),
+                    'sell'] = 1
 
         return dataframe

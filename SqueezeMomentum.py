@@ -231,7 +231,7 @@ class SqueezeMomentum(IStrategy):
 
             # TRIGGERS
 
-            # squeeze values are +ve but turning around
+            # squeeze values are -ve but turning around
             conditions.append(dataframe['sqz_val'] < -self.buy_sqz_band.value)
             conditions.append(qtpylib.crossed_above(dataframe['sqz_angle'], 0))
             # conditions.append(

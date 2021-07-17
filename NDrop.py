@@ -38,23 +38,39 @@ class NDrop(IStrategy):
     buy_mfi_enabled = CategoricalParameter([True, False], default=False, space="buy")
     buy_bb_enabled = CategoricalParameter([True, False], default=False, space="buy")
 
+    # # ROI table:
+    # minimal_roi = {
+    #     "0": 0.152,
+    #     "14": 0.039,
+    #     "45": 0.011,
+    #     "145": 0
+    # }
+    #
+    # # Stoploss:
+    # stoploss = -0.315
+    #
+    # # Trailing stop:
+    # trailing_stop = True
+    # trailing_stop_positive = 0.345
+    # trailing_stop_positive_offset = 0.434
+    # trailing_only_offset_is_reached = False
+
     # ROI table:
     minimal_roi = {
-        "0": 0.152,
-        "14": 0.039,
-        "45": 0.011,
-        "145": 0
+        "0": 0.278,
+        "39": 0.087,
+        "124": 0.038,
+        "135": 0
     }
 
     # Stoploss:
-    stoploss = -0.315
+    stoploss = -0.333
 
     # Trailing stop:
     trailing_stop = True
-    trailing_stop_positive = 0.345
-    trailing_stop_positive_offset = 0.434
+    trailing_stop_positive = 0.172
+    trailing_stop_positive_offset = 0.212
     trailing_only_offset_is_reached = False
-
     # Optimal timeframe for the strategy
     timeframe = '5m'
 

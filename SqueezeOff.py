@@ -62,8 +62,8 @@ class SqueezeOff(IStrategy):
 
     # Trailing stop:
     trailing_stop = True
-    trailing_stop_positive = 0.258
-    trailing_stop_positive_offset = 0.265
+    trailing_stop_positive = 0.107
+    trailing_stop_positive_offset = 0.116
     trailing_only_offset_is_reached = True
 
     # Optimal timeframe for the strategy

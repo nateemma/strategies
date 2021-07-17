@@ -20,31 +20,68 @@ class Patterns(IStrategy):
     > python3 ./freqtrade/main.py -s Patterns
     """
 
-    buy_pattern_strength = IntParameter(0, 100, default=90, space="buy")
-    buy_rsi = DecimalParameter(0, 50, decimals=0, default=15, space="buy")
-    buy_mfi = DecimalParameter(0, 50, decimals=0, default=24, space="buy")
-    buy_fisher = DecimalParameter(-1, 1, decimals=2, default=-0.28, space="buy")
 
-    buy_rsi_enabled = CategoricalParameter([True, False], default=True, space="buy")
-    buy_sma_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_ema_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_mfi_enabled = CategoricalParameter([True, False], default=True, space="buy")
-    buy_fastd_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_fisher_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    pattern_strength = 13
+    rsi_limit = 20
+    mfi_limit = 25
+
+    # flags to enable/disable each pattern
+    buy_CDLHAMMER_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_CDLINVERTEDHAMMER_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_CDLDRAGONFLYDOJI_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_CDLPIERCING_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_CDLMORNINGSTAR_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_CDL3WHITESOLDIERS_enabled = CategoricalParameter([True, False], default=True, space="buy")
+
+    buy_CDL3LINESTRIKE_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_CDLSPINNINGTOP_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_CDLENGULFING_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_CDLHARAMI_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_CDL3OUTSIDE_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_CDL3INSIDE_enabled = CategoricalParameter([True, False], default=False, space="buy")
+
+    # Sell hyperspace params:
+    sell_params = {
+        "sell_CDL3INSIDE_enabled": True,
+        "sell_CDL3LINESTRIKE_enabled": True,
+        "sell_CDL3OUTSIDE_enabled": True,
+        "sell_CDLDARKCLOUDCOVER_enabled": False,
+        "sell_CDLENGULFING_enabled": False,
+        "sell_CDLEVENINGDOJISTAR_enabled": True,
+        "sell_CDLEVENINGSTAR_enabled": True,
+        "sell_CDLGRAVESTONEDOJI_enabled": True,
+        "sell_CDLHANGINGMAN_enabled": True,
+        "sell_CDLHARAMI_enabled": True,
+        "sell_CDLSHOOTINGSTAR_enabled": True,
+        "sell_CDLSPINNINGTOP_enabled": True,
+        "sell_hold_enabled": False,
+    }
+    sell_CDL3LINESTRIKE_enabled = CategoricalParameter([True, False], default=True, space="sell")
+    sell_CDLSPINNINGTOP_enabled = CategoricalParameter([True, False], default=True, space="sell")
+    sell_CDLENGULFING_enabled = CategoricalParameter([True, False], default=True, space="sell")
+    sell_CDLHARAMI_enabled = CategoricalParameter([True, False], default=True, space="sell")
+    sell_CDL3OUTSIDE_enabled = CategoricalParameter([True, False], default=True, space="sell")
+    sell_CDL3INSIDE_enabled = CategoricalParameter([True, False], default=True, space="sell")
+
+    sell_CDLHANGINGMAN_enabled = CategoricalParameter([True, False], default=True, space="sell")
+    sell_CDLSHOOTINGSTAR_enabled = CategoricalParameter([True, False], default=True, space="sell")
+    sell_CDLGRAVESTONEDOJI_enabled = CategoricalParameter([True, False], default=True, space="sell")
+    sell_CDLDARKCLOUDCOVER_enabled = CategoricalParameter([True, False], default=False, space="sell")
+    sell_CDLEVENINGDOJISTAR_enabled = CategoricalParameter([True, False], default=True, space="sell")
+    sell_CDLEVENINGSTAR_enabled = CategoricalParameter([True, False], default=True, space="sell")
 
     sell_hold_enabled = CategoricalParameter([True, False], default=False, space="sell")
 
     # ROI table:
     minimal_roi = {
-        "0": 0.263,
-        "39": 0.079,
-        "55": 0.025,
-        "166": 0
+        "0": 0.296,
+        "26": 0.104,
+        "36": 0.037,
+        "65": 0
     }
 
-
     # Stoploss:
-    stoploss = -0.266
+    stoploss = -0.284
 
     # Trailing stop:
     trailing_stop = True
@@ -181,52 +218,46 @@ class Patterns(IStrategy):
 
         # GUARDS AND TRENDS
         gconditions = []
-        if self.buy_rsi_enabled.value:
-            gconditions.append(
-                (dataframe['rsi'] < self.buy_rsi.value) &
-                (dataframe['rsi'] > 0)
-            )
+        gconditions.append(
+            (dataframe['rsi'] < self.rsi_limit) &
+            (dataframe['rsi'] > 0)
+        )
 
-        if self.buy_sma_enabled.value:
-            gconditions.append(dataframe['close'] < dataframe['sma'])
+        gconditions.append(dataframe['close'] < dataframe['sma'])
 
-        if self.buy_fisher_enabled.value:
-            gconditions.append(dataframe['fisher_rsi'] < self.buy_fisher.value)
-
-        if self.buy_mfi_enabled.value:
-            gconditions.append(dataframe['mfi'] <= self.buy_mfi.value)
-
-        if self.buy_ema_enabled.value:
-            gconditions.append(
-                (dataframe['ema50'] > dataframe['ema100']) |
-                (qtpylib.crossed_above(dataframe['ema5'], dataframe['ema10']))
-            )
-
-        if self.buy_fastd_enabled.value:
-            gconditions.append(
-                (dataframe['fastd'] > dataframe['fastk']) &
-                (dataframe['fastd'] > 0)
-            )
+        gconditions.append(dataframe['mfi'] <= self.mfi_limit)
 
         # reset array for pattern conditions
         conditions = []
 
         # Bullish candlestick patterns
         # ordered by strength
-        conditions.append(dataframe['CDL3WHITESOLDIERS'] >= self.buy_pattern_strength.value)
-        #conditions.append(dataframe['CDLMORNINGSTAR'] >= self.buy_pattern_strength.value)
-        #conditions.append(dataframe['CDL3LINESTRIKE'] >= self.buy_pattern_strength.value)
-        #conditions.append(dataframe['CDL3OUTSIDE'] >= self.buy_pattern_strength.value)
+        if self.buy_CDL3WHITESOLDIERS_enabled.value:
+            conditions.append(dataframe['CDL3WHITESOLDIERS'] >= self.pattern_strength)
+        if self.buy_CDLMORNINGSTAR_enabled.value:
+            conditions.append(dataframe['CDLMORNINGSTAR'] >= self.pattern_strength)
+        if self.buy_CDL3LINESTRIKE_enabled.value:
+            conditions.append(dataframe['CDL3LINESTRIKE'] >= self.pattern_strength)
+        if self.buy_CDL3OUTSIDE_enabled.value:
+            conditions.append(dataframe['CDL3OUTSIDE'] >= self.pattern_strength)
 
-        # conditions.append(dataframe['CDLHAMMER'] >= self.buy_pattern_strength.value)
-        # conditions.append(dataframe['CDLINVERTEDHAMMER'] >= self.buy_pattern_strength.value)
-        # conditions.append(dataframe['CDLDRAGONFLYDOJI'] >= self.buy_pattern_strength.value)
-        # conditions.append(dataframe['CDLPIERCING'] >= self.buy_pattern_strength.value)
-        #
-        # conditions.append(dataframe['CDLSPINNINGTOP'] >= self.buy_pattern_strength.value)
-        # conditions.append(dataframe['CDLENGULFING'] >= self.buy_pattern_strength.value)
-        # conditions.append(dataframe['CDLHARAMI'] >= self.buy_pattern_strength.value)
-        # conditions.append(dataframe['CDL3INSIDE'] >= self.buy_pattern_strength.value)
+        if self.buy_CDLHAMMER_enabled.value:
+            conditions.append(dataframe['CDLHAMMER'] >= self.pattern_strength)
+        if self.buy_CDLINVERTEDHAMMER_enabled.value:
+            conditions.append(dataframe['CDLINVERTEDHAMMER'] >= self.pattern_strength)
+        if self.buy_CDLDRAGONFLYDOJI_enabled.value:
+            conditions.append(dataframe['CDLDRAGONFLYDOJI'] >= self.pattern_strength)
+        if self.buy_CDLPIERCING_enabled.value:
+            conditions.append(dataframe['CDLPIERCING'] >= self.pattern_strength)
+
+        if self.buy_CDLSPINNINGTOP_enabled.value:
+            conditions.append(dataframe['CDLSPINNINGTOP'] >= self.pattern_strength)
+        if self.buy_CDLENGULFING_enabled.value:
+            conditions.append(dataframe['CDLENGULFING'] >= self.pattern_strength)
+        if self.buy_CDLHARAMI_enabled.value:
+            conditions.append(dataframe['CDLHARAMI'] >= self.pattern_strength)
+        if self.buy_CDL3INSIDE_enabled.value:
+            conditions.append(dataframe['CDL3INSIDE'] >= self.pattern_strength)
 
         # build the dataframe using the guard and pattern results
 
@@ -257,22 +288,35 @@ class Patterns(IStrategy):
             dataframe.loc[(dataframe['close'].notnull() ), 'sell'] = 0
 
         else:
-            # Pattern Recognition - Bearish candlestick patterns 
-            # conditions.append(dataframe['CDLEVENINGSTAR'] >= self.buy_pattern_strength.value)
-            conditions.append(dataframe['CDL3LINESTRIKE'] >= self.buy_pattern_strength.value)
-            # conditions.append(dataframe['CDLEVENINGDOJISTAR'] >= self.buy_pattern_strength.value)
-            # conditions.append(dataframe['CDL3LINESTRIKE'] <= -self.buy_pattern_strength.value)
-            # conditions.append(dataframe['CDL3OUTSIDE'] <= -self.buy_pattern_strength.value)
- 
-            # conditions.append(dataframe['CDLHANGINGMAN'] >= self.buy_pattern_strength.value)
-            # conditions.append(dataframe['CDLSHOOTINGSTAR'] >= self.buy_pattern_strength.value)
-            conditions.append(dataframe['CDLGRAVESTONEDOJI'] >= self.buy_pattern_strength.value)
-            # conditions.append(dataframe['CDLDARKCLOUDCOVER'] >= self.buy_pattern_strength.value)
-            #
-            conditions.append(dataframe['CDLSPINNINGTOP'] <= -self.buy_pattern_strength.value)
-            conditions.append(dataframe['CDLENGULFING'] <= -self.buy_pattern_strength.value)
-            # conditions.append(dataframe['CDLHARAMI'] <= -self.buy_pattern_strength.value)
-            # conditions.append(dataframe['CDL3INSIDE'] <= -self.buy_pattern_strength.value)
+            # Pattern Recognition - Bearish candlestick patterns
+            if self.sell_CDLEVENINGSTAR_enabled.value:
+                conditions.append(dataframe['CDLEVENINGSTAR'] >= self.pattern_strength)
+            if self.sell_CDL3LINESTRIKE_enabled.value:
+                conditions.append(dataframe['CDL3LINESTRIKE'] >= self.pattern_strength)
+            if self.sell_CDLEVENINGDOJISTAR_enabled.value:
+                conditions.append(dataframe['CDLEVENINGDOJISTAR'] >= self.pattern_strength)
+            if self.sell_CDL3LINESTRIKE_enabled.value:
+                conditions.append(dataframe['CDL3LINESTRIKE'] <= -self.pattern_strength)
+            if self.sell_CDL3OUTSIDE_enabled.value:
+                conditions.append(dataframe['CDL3OUTSIDE'] <= -self.pattern_strength)
+
+            if self.sell_CDLHANGINGMAN_enabled.value:
+                conditions.append(dataframe['CDLHANGINGMAN'] >= self.pattern_strength)
+            if self.sell_CDLSHOOTINGSTAR_enabled.value:
+                conditions.append(dataframe['CDLSHOOTINGSTAR'] >= self.pattern_strength)
+            if self.sell_CDLGRAVESTONEDOJI_enabled.value:
+                conditions.append(dataframe['CDLGRAVESTONEDOJI'] >= self.pattern_strength)
+            if self.sell_CDLDARKCLOUDCOVER_enabled.value:
+                conditions.append(dataframe['CDLDARKCLOUDCOVER'] >= self.pattern_strength)
+
+            if self.sell_CDLSPINNINGTOP_enabled.value:
+                conditions.append(dataframe['CDLSPINNINGTOP'] <= -self.pattern_strength)
+            if self.sell_CDLENGULFING_enabled.value:
+                conditions.append(dataframe['CDLENGULFING'] <= -self.pattern_strength)
+            if self.sell_CDLHARAMI_enabled.value:
+                conditions.append(dataframe['CDLHARAMI'] <= -self.pattern_strength)
+            if self.sell_CDL3INSIDE_enabled.value:
+                conditions.append(dataframe['CDL3INSIDE'] <= -self.pattern_strength)
 
             dataframe.loc[reduce(lambda x, y: x | y, conditions), 'sell'] = 1
 
