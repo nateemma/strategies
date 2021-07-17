@@ -11,6 +11,7 @@ import freqtrade.vendor.qtpylib.indicators as qtpylib
 import numpy # noqa
 from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, IntParameter
 import math
+from freqtrade.optimize.space import Categorical, Dimension, Integer, SKDecimal, Real  # noqa
 
 
 class ComboHold(IStrategy):
@@ -67,19 +68,19 @@ class ComboHold(IStrategy):
 
     # ROI table:
     minimal_roi = {
-        "0": 0.217,
-        "40": 0.061,
-        "82": 0.039,
-        "125": 0
+        "0": 0.278,
+        "39": 0.087,
+        "124": 0.038,
+        "135": 0
     }
 
     # Stoploss:
-    stoploss = -0.349
+    stoploss = -0.333
 
     # Trailing stop:
     trailing_stop = True
-    trailing_stop_positive = 0.304
-    trailing_stop_positive_offset = 0.333
+    trailing_stop_positive = 0.172
+    trailing_stop_positive_offset = 0.212
     trailing_only_offset_is_reached = False
 
     # Optimal timeframe for the strategy
@@ -100,6 +101,19 @@ class ComboHold(IStrategy):
         'stoploss': 'market',
         'stoploss_on_exchange': False
     }
+
+    # Define custom ROI ranges
+    class HyperOpt:
+        # Define a custom ROI space.
+        def roi_space() -> List[Dimension]:
+            return [
+                Integer(10, 240, name='roi_t1'),
+                Integer(10, 120, name='roi_t2'),
+                Integer(10, 80, name='roi_t3'),
+                SKDecimal(0.01, 0.04, decimals=3, name='roi_p1'),
+                SKDecimal(0.01, 0.07, decimals=3, name='roi_p2'),
+                SKDecimal(0.01, 0.20, decimals=3, name='roi_p3'),
+            ]
 
     def informative_pairs(self):
         """
@@ -282,17 +296,26 @@ class ComboHold(IStrategy):
         # build the dataframe using the conditions
         # AND together the conditions for each strategy
         conditions = []
+        c = []
         if self.buy_ndrop_enabled.value:
-            conditions.append(reduce(lambda x, y: x & y, self.NDrop_conditions(dataframe)))
+            c = self.NDrop_conditions(dataframe)
+            if c:
+                conditions.append(reduce(lambda x, y: x & y, c))
 
         if self.buy_nseq_enabled.value:
-            conditions.append(reduce(lambda x, y: x & y, self.NSeq_conditions(dataframe)))
+            c = self.NSeq_conditions(dataframe)
+            if c:
+                conditions.append(reduce(lambda x, y: x & y, c))
 
         if self.buy_emabounce_enabled.value:
-            conditions.append(reduce(lambda x, y: x & y, self.EMABounce_conditions(dataframe)))
+            c = self.EMABounce_conditions(dataframe)
+            if c:
+                conditions.append(reduce(lambda x, y: x & y, c))
 
         if self.buy_strat3_enabled.value:
-            conditions.append(reduce(lambda x, y: x & y, self.Strat3_conditions(dataframe)))
+            c = self.Strat3_conditions(dataframe)
+            if c:
+                conditions.append(reduce(lambda x, y: x & y, c))
 
         # OR them together
         if conditions:
