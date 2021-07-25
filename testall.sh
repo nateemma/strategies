@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # list of strategies (only the decent ones, in rough order of performance)
-slist="ComboHold NDrop BigDrop NSeq EMABounce  Strategy003 MFI2 SqueezeOff BollingerBounce BBBHold Squeeze001  "
-slist+="MACDCross DonchianBounce TEMABounce BBKCBounce BuyDips Hammer SARCross ADXDM "
-slist+="SqueezeMomentum Patterns2 KeltnerBounce SimpleBollinger Squeeze002 DonchianChannel "
-slist+="KeltnerChannels MACDTurn MFIRSICross "
+slist="ComboHold MFI2 NDrop BigDrop NSeq EMABounce  Strategy003 SqueezeOff BollingerBounce Squeeze002 BBBHold "
+slist+="TEMABounce Hammer SARCross Squeeze001  MACDCross DonchianBounce BBKCBounce ADXDM BuyDips "
+slist+="SqueezeMomentum Patterns2 KeltnerBounce SimpleBollinger DonchianChannel "
+slist+="KeltnerChannels MACDTurn "
 
 
 timerange="20210501-"

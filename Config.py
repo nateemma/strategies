@@ -16,20 +16,20 @@
 
 # ROI table:
 minimal_roi = {
-    "0": 0.159,
-    "11": 0.043,
-    "42": 0.014,
-    "145": 0
+    "0": 0.037,
+    "15": 0.021,
+    "47": 0.011,
+    "86": 0
 }
 
 # Trailing stop:
 trailing_stop = True
-trailing_stop_positive = 0.027
-trailing_stop_positive_offset = 0.099
+trailing_stop_positive = 0.105
+trailing_stop_positive_offset = 0.144
 trailing_only_offset_is_reached = True
 
 # Stoploss:
-stoploss = -0.333
+stoploss = -0.349
 
 # Optimal timeframe for the strategy
 timeframe = '5m'
