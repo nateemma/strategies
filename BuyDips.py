@@ -12,6 +12,8 @@ import talib.abstract as ta
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 import numpy # noqa
 
+from user_data.strategies import Config
+
 
 class BuyDips(IStrategy):
     """
@@ -20,18 +22,27 @@ class BuyDips(IStrategy):
     How to use it?
     > python3 ./freqtrade/main.py -s BuyDips
     """
+
+    # Buy hyperspace params:
+    buy_params = {
+        "buy_bb_gain": 0.07,
+        "buy_bb_gain_enabled": True,
+        "buy_mfi": 54.0,
+        "buy_mfi_enabled": True,
+        "buy_neg_macd_enabled": False,
+    }
+
     # MFI (Money Flow Indicator) buy limit
-    buy_mfi = DecimalParameter(10, 100, decimals=0, default=21, space="buy")
+    buy_mfi = DecimalParameter(10, 100, decimals=0, default=54, space="buy")
 
     # Bollinger Band 'gain' (% difference between current price and upper band).
     # Since we are looking for potential swings of >2%, we look for potential of more than that
-    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.1, space="buy")
+    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.07, space="buy")
 
     # Categorical parameters that control whether a trend/check is used or not
-    buy_mfi_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_mfi_enabled = CategoricalParameter([True, False], default=True, space="buy")
     buy_bb_gain_enabled = CategoricalParameter([True, False], default=True, space="buy")
     buy_neg_macd_enabled = CategoricalParameter([True, False], default=False, space="buy")
-
 
     sell_fisher = DecimalParameter(-1, 1, decimals=2, default=0.3, space="sell")
 
@@ -40,50 +51,22 @@ class BuyDips(IStrategy):
     sell_hold_enabled = CategoricalParameter([True, False], default=True, space="sell")
 
 
-    # the following values were generated using hyperopt
+    # set the startup candles count to the longest average used (EMA, EMA etc)
+    startup_candle_count = 20
 
-    # Minimal ROI designed for the strategy.
-    # This attribute will be overridden if the config file contains "minimal_roi"
-    # For this strategy, this is set fairly low because we want to take advantage of modest upswings
-    # i.e. don't get too greedy
-
-    # ROI table:
-    minimal_roi = {
-        "0": 0.152,
-        "39": 0.079,
-        "63": 0.015,
-        "95": 0
-    }
-
-    # Stoploss:
-    stoploss = -0.024
-
-    # Trailing stop:
-    trailing_stop = True
-    trailing_stop_positive = 0.321
-    trailing_stop_positive_offset = 0.329
-    trailing_only_offset_is_reached = True
-
-
-
-    # Optimal timeframe for the strategy
-    timeframe = '5m'
-
-    # run "populate_indicators" only for new candle
-    process_only_new_candles = False
-
-    # Experimental settings (configuration will overide these if set)
-    use_sell_signal = True
-    sell_profit_only = True
-    ignore_roi_if_buy_signal = False
-
-    # Optional order type mapping
-    order_types = {
-        'buy': 'limit',
-        'sell': 'limit',
-        'stoploss': 'market',
-        'stoploss_on_exchange': False
-    }
+    # set common parameters
+    minimal_roi = Config.minimal_roi
+    trailing_stop = Config.trailing_stop
+    trailing_stop_positive = Config.trailing_stop_positive
+    trailing_stop_positive_offset = Config.trailing_stop_positive_offset
+    trailing_only_offset_is_reached = Config.trailing_only_offset_is_reached
+    stoploss = Config.stoploss
+    timeframe = Config.timeframe
+    process_only_new_candles = Config.process_only_new_candles
+    use_sell_signal = Config.use_sell_signal
+    sell_profit_only = Config.sell_profit_only
+    ignore_roi_if_buy_signal = Config.ignore_roi_if_buy_signal
+    order_types = Config.order_types
 
     def informative_pairs(self):
         """

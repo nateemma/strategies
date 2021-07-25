@@ -9,6 +9,7 @@ from pandas import DataFrame
 import talib.abstract as ta
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 import numpy # noqa
+from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, IntParameter
 
 
 class EMA003(IStrategy):
@@ -18,23 +19,26 @@ class EMA003(IStrategy):
     How to use it?
     > python3 ./freqtrade/main.py -s EMA003
     """
+    sell_hold = CategoricalParameter([True, False], default=True, space="sell")
+
+
 
     # ROI table:
     minimal_roi = {
-        "0": 0.225,
-        "30": 0.08,
-        "80": 0.038,
-        "195": 0
+        "0": 0.278,
+        "39": 0.087,
+        "124": 0.038,
+        "135": 0
     }
-
-    # Stoploss:
-    stoploss = -0.348
 
     # Trailing stop:
     trailing_stop = True
-    trailing_stop_positive = 0.337
-    trailing_stop_positive_offset = 0.364
-    trailing_only_offset_is_reached = True
+    trailing_stop_positive = 0.172
+    trailing_stop_positive_offset = 0.212
+    trailing_only_offset_is_reached = False
+
+    # Stoploss:
+    stoploss = -0.333
 
     # run "populate_indicators" only for new candle
     process_only_new_candles = False
@@ -126,6 +130,11 @@ class EMA003(IStrategy):
         :param dataframe: DataFrame
         :return: DataFrame with buy column
         """
+        # if hold, then don't set a sell signal
+        if self.sell_hold.value:
+            dataframe.loc[(dataframe['close'].notnull() ), 'sell'] = 0
+            return dataframe
+
         dataframe.loc[
             (
                 (dataframe['sar'] > dataframe['close']) &

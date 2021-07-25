@@ -11,6 +11,8 @@ import freqtrade.vendor.qtpylib.indicators as qtpylib
 import numpy # noqa
 from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, IntParameter
 
+from user_data.strategies import Config
+
 
 
 class BollingerBounce(IStrategy):
@@ -22,53 +24,46 @@ class BollingerBounce(IStrategy):
     """
 
     # Hyperparameters
-    buy_mfi = DecimalParameter(10, 40, decimals=0, default=23.0, space="buy")
-    buy_fisher = DecimalParameter(-1, 1, decimals=2, default=-0.30, space="buy")
+    # Buy hyperspace params:
+    buy_params = {
+        "buy_bb_gain": 0.04,
+        "buy_fisher": -0.81,
+        "buy_fisher_enabled": True,
+        "buy_mfi": 13.0,
+        "buy_mfi_enabled": False,
+    }
+
+
+    buy_mfi = DecimalParameter(10, 40, decimals=0, default=37.0, space="buy")
+    buy_fisher = DecimalParameter(-1, 1, decimals=2, default=0.15, space="buy")
     # Bollinger Band 'gain' (% difference between current price and upper band).
     # Since we are looking for potential swings of >2%, we look for potential of more than that
-    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.10, space="buy")
+    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.05, space="buy")
 
     # Categorical parameters that control whether a trend/check is used or not
-    buy_mfi_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_fisher_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_mfi_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_fisher_enabled = CategoricalParameter([True, False], default=True, space="buy")
 
     sell_fisher = DecimalParameter(-1, 1, decimals=2, default=-0.62, space="sell")
 
-    # ROI table:
-    minimal_roi = {
-        "0": 0.2,
-        "39": 0.089,
-        "97": 0.036,
-        "199": 0
-    }
+    sell_hold = CategoricalParameter([True, False], default=True, space="sell")
 
-    # Stoploss:
-    stoploss = -0.254
+    # set the startup candles count to the longest average used (SMA, EMA etc)
+    startup_candle_count = 20
 
-    # Trailing stop:
-    trailing_stop = True
-    trailing_stop_positive = 0.206
-    trailing_stop_positive_offset = 0.29
-    trailing_only_offset_is_reached = True
-
-    # Optimal timeframe for the strategy
-    timeframe = '5m'
-
-    # run "populate_indicators" only for new candle
-    process_only_new_candles = False
-
-    # Experimental settings (configuration will overide these if set)
-    use_sell_signal = True
-    sell_profit_only = True
-    ignore_roi_if_buy_signal = False
-
-    # Optional order type mapping
-    order_types = {
-        'buy': 'limit',
-        'sell': 'limit',
-        'stoploss': 'market',
-        'stoploss_on_exchange': False
-    }
+    # set common parameters
+    minimal_roi = Config.minimal_roi
+    trailing_stop = Config.trailing_stop
+    trailing_stop_positive = Config.trailing_stop_positive
+    trailing_stop_positive_offset = Config.trailing_stop_positive_offset
+    trailing_only_offset_is_reached = Config.trailing_only_offset_is_reached
+    stoploss = Config.stoploss
+    timeframe = Config.timeframe
+    process_only_new_candles = Config.process_only_new_candles
+    use_sell_signal = Config.use_sell_signal
+    sell_profit_only = Config.sell_profit_only
+    ignore_roi_if_buy_signal = Config.ignore_roi_if_buy_signal
+    order_types = Config.order_types
 
     def informative_pairs(self):
         """
@@ -178,6 +173,11 @@ class BollingerBounce(IStrategy):
         :return: DataFrame with buy column
 
         """
+
+        if self.sell_hold.value:
+            dataframe.loc[(dataframe['close'].notnull() ), 'sell'] = 0
+            return dataframe
+
         # Exit long position if price is above upper band or strong sell signal
         dataframe.loc[
             (

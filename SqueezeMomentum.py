@@ -11,6 +11,8 @@ import freqtrade.vendor.qtpylib.indicators as qtpylib
 import numpy # noqa
 from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, IntParameter
 
+from user_data.strategies import Config
+
 
 
 class SqueezeMomentum(IStrategy):
@@ -22,17 +24,37 @@ class SqueezeMomentum(IStrategy):
     """
 
     # Hyperparameters
-    buy_period = IntParameter(3, 20, default=5, space="buy")
-    buy_adx = DecimalParameter(1, 99, decimals=0, default=25, space="buy")
-    buy_sqz_band = DecimalParameter(0.003, 0.02, decimals=4, default=0.05, space="buy")
+    # Buy hyperspace params:
+    buy_params = {
+        "buy_accel_enabled": True,
+        "buy_adx": 14.0,
+        "buy_adx_enabled": True,
+        "buy_bb_enabled": False,
+        "buy_bb_gain": 0.03,
+        "buy_ema_enabled": True,
+        "buy_macd_enabled": True,
+        "buy_mfi": 6.0,
+        "buy_mfi_enabled": False,
+        "buy_period": 11,
+        "buy_predict_enabled": True,
+        "buy_sqz_band": 0.0112,
+    }
 
-    buy_sqz_enabled = CategoricalParameter([True, False], default=True, space="buy")
-    buy_macd_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_period = IntParameter(3, 20, default=16, space="buy")
+    buy_adx = DecimalParameter(1, 99, decimals=0, default=21, space="buy")
+    buy_mfi = DecimalParameter(1, 30, decimals=0, default=14, space="buy")
+    buy_sqz_band = DecimalParameter(0.003, 0.02, decimals=4, default=0.0165, space="buy")
+    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.08, space="buy")
+
+    buy_bb_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    # buy_sqz_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_macd_enabled = CategoricalParameter([True, False], default=True, space="buy")
     buy_adx_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_mfi_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_sar_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_dc_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_mfi_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_ema_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    # buy_dc_enabled = CategoricalParameter([True, False], default=False, space="buy")
     buy_predict_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_accel_enabled = CategoricalParameter([True, False], default=True, space="buy")
 
     sell_sar_enabled = CategoricalParameter([True, False], default=False, space="sell")
     sell_dc_enabled = CategoricalParameter([True, False], default=False, space="sell")
@@ -42,43 +64,21 @@ class SqueezeMomentum(IStrategy):
 
 
     # set the startup candles count to the longest average used (EMA, EMA etc)
-    startup_candle_count = max(buy_period.value, 10)
+    startup_candle_count = max(buy_period.value, 20)
 
-    # ROI table:
-    minimal_roi = {
-        "0": 0.072,
-        "27": 0.059,
-        "69": 0.037,
-        "110": 0
-    }
-
-    # Stoploss:
-    stoploss = -0.056
-
-    # Trailing stop:
-    trailing_stop = True
-    trailing_stop_positive = 0.251
-    trailing_stop_positive_offset = 0.333
-    trailing_only_offset_is_reached = True
-
-    # Optimal timeframe for the strategy
-    timeframe = '5m'
-
-    # run "populate_indicators" only for new candle
-    process_only_new_candles = False
-
-    # Experimental settings (configuration will overide these if set)
-    use_sell_signal = True
-    sell_profit_only = True
-    ignore_roi_if_buy_signal = True
-
-    # Optional order type mapping
-    order_types = {
-        'buy': 'limit',
-        'sell': 'limit',
-        'stoploss': 'market',
-        'stoploss_on_exchange': False
-    }
+    # set common parameters
+    minimal_roi = Config.minimal_roi
+    trailing_stop = Config.trailing_stop
+    trailing_stop_positive = Config.trailing_stop_positive
+    trailing_stop_positive_offset = Config.trailing_stop_positive_offset
+    trailing_only_offset_is_reached = Config.trailing_only_offset_is_reached
+    stoploss = Config.stoploss
+    timeframe = Config.timeframe
+    process_only_new_candles = Config.process_only_new_candles
+    use_sell_signal = Config.use_sell_signal
+    sell_profit_only = Config.sell_profit_only
+    ignore_roi_if_buy_signal = Config.ignore_roi_if_buy_signal
+    order_types = Config.order_types
 
     def informative_pairs(self):
         """
@@ -109,6 +109,7 @@ class SqueezeMomentum(IStrategy):
         dataframe['tema'] = ta.TEMA(dataframe, timeperiod=self.buy_period.value)
         dataframe['ema3'] = ta.EMA(dataframe, timeperiod=3)
         dataframe['ema5'] = ta.EMA(dataframe, timeperiod=5)
+        dataframe['ema10'] = ta.EMA(dataframe, timeperiod=10)
 
         # MACD
         macd = ta.MACD(dataframe)
@@ -123,6 +124,7 @@ class SqueezeMomentum(IStrategy):
         dataframe['adx'] = ta.ADX(dataframe)
         dataframe['dm_plus'] = ta.PLUS_DM(dataframe)
         dataframe['dm_minus'] = ta.MINUS_DM(dataframe)
+        dataframe['dm_delta'] = dataframe['dm_plus'] - dataframe['dm_minus']
 
         # SAR Parabolic
         dataframe['sar'] = ta.SAR(dataframe)
@@ -135,11 +137,12 @@ class SqueezeMomentum(IStrategy):
         dataframe['fisher_rsi'] = (numpy.exp(2 * rsi) - 1) / (numpy.exp(2 * rsi) + 1)
 
         # Bollinger Bands
-        bollinger = qtpylib.bollinger_bands(qtpylib.typical_price(dataframe), window=self.buy_period.value, stds=2)
-        #bollinger = qtpylib.weighted_bollinger_bands(qtpylib.typical_price(dataframe), window=self.buy_period.value, stds=2)
+        # bollinger = qtpylib.bollinger_bands(qtpylib.typical_price(dataframe), window=self.buy_period.value, stds=2)
+        bollinger = qtpylib.weighted_bollinger_bands(qtpylib.typical_price(dataframe), window=20, stds=2)
         dataframe['bb_upperband'] = bollinger['upper']
         dataframe['bb_mid'] = bollinger['mid']
         dataframe['bb_lowerband'] = bollinger['lower']
+        dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
 
         # Keltner Channel
         keltner = qtpylib.keltner_channel(dataframe)
@@ -181,6 +184,8 @@ class SqueezeMomentum(IStrategy):
         # the angle will show turnaround points (at 0). Use just a little averaging to avoid 'wiggles'
         #dataframe['sqz_angle'] = ta.LINEARREG_ANGLE(dataframe['sqz_delta'], timeperiod=3)
         dataframe['sqz_angle'] = ta.LINEARREG_SLOPE(dataframe['sqz_delta'], timeperiod=3)
+        dataframe['sqz_a'] = ta.LINEARREG(dataframe['sqz_angle'], timeperiod=3)
+        dataframe['sqz_accel'] = ta.LINEARREG_SLOPE(dataframe['sqz_a'], timeperiod=3)
 
         return dataframe
 
@@ -188,40 +193,46 @@ class SqueezeMomentum(IStrategy):
         conditions = []
         # GUARDS AND TRENDS
         # check that volume is not 0 (can happen in testing, or if there are issues with exchange data)
-        #conditions.append(dataframe['volume'] > 0)
+        # conditions.append(dataframe['volume'] > 0)
 
-       # ADX with DM+ > DM- indicates uptrend
+        # ADX with DM+ > DM- indicates uptrend
         if self.buy_adx_enabled.value:
             conditions.append(
-                (dataframe['adx'] > self.buy_adx.value)
-                #(dataframe['adx'] > self.buy_adx.value) &
-                #(dataframe['dm_plus'] >= dataframe['dm_minus'])
+                # (dataframe['adx'] > self.buy_adx.value)
+                (dataframe['adx'] >= self.buy_adx.value) &
+                (dataframe['dm_plus'] >= dataframe['dm_minus'])
             )
 
         if self.buy_mfi_enabled.value:
-                conditions.append(dataframe['mfi'] > 30)
+            conditions.append(dataframe['mfi'] <= self.buy_mfi.value)
 
-        # only buy if close is below SAR
-        if self.buy_sar_enabled.value:
-                conditions.append(dataframe['close'] < dataframe['sar'])
+        # only buy if close is below EMA
+        if self.buy_ema_enabled.value:
+            conditions.append(dataframe['close'] < dataframe['ema'])
 
         # only buy if close above High Fibonacci (i.e. potential breakout)
-        if self.buy_dc_enabled.value:
-                conditions.append(
-                    (dataframe['close'] >= dataframe['dc_hf']) |
-                    (dataframe['open'] >= dataframe['dc_hf'])
-                )
+        # if self.buy_dc_enabled.value:
+        #         conditions.append(
+        #             (dataframe['close'] >= dataframe['dc_hf']) |
+        #             (dataframe['open'] >= dataframe['dc_hf'])
+        #         )
 
-        # MACD +ve
+        # MACD -ve (this is the opposite of common sense, because it is a lagging indicator)
         if self.buy_macd_enabled.value:
-            conditions.append(dataframe['macd'] > dataframe['macdsignal'])
+            conditions.append(dataframe['macd'] <= 0)
+            conditions.append(dataframe['macd'] <= dataframe['macdsignal'])
+
+        # potential gain > goal
+        if self.buy_bb_enabled.value:
+            conditions.append(dataframe['bb_gain'] >= self.buy_bb_gain.value)
+
 
         # squeeze is 'on'
-        if self.buy_sqz_enabled.value:
-            conditions.append(dataframe['sqz_on'])
+        # if self.buy_sqz_enabled.value:
+        #     conditions.append(dataframe['sqz_on'])
 
         # We can (try to) predict an upcoming swing (up) by looking for a reversal during an 'off' period
-        if self.buy_predict_enabled:
+        if self.buy_predict_enabled.value:
 
             # check for startup issue
             conditions.append(
@@ -229,37 +240,28 @@ class SqueezeMomentum(IStrategy):
                 (dataframe['sqz_val'].shift(5).notnull())
             )
 
+            # Green candle
+            conditions.append(dataframe['close'] > dataframe['open'])
+
             # TRIGGERS
 
             # squeeze values are -ve but turning around
             conditions.append(dataframe['sqz_val'] < -self.buy_sqz_band.value)
-            conditions.append(qtpylib.crossed_above(dataframe['sqz_angle'], 0))
-            # conditions.append(
-            #     (dataframe['sqz_val'] < -self.buy_sqz_band.value) &
-            #     (dataframe['sqz_val'] >= dataframe['sqz_val'].shift(1)) &
-            #     (dataframe['sqz_val'].shift(1) <= dataframe['sqz_val'].shift(2)) &
-            #     (dataframe['sqz_val'].shift(2) <= dataframe['sqz_val'].shift(3)) &
-            #     (dataframe['sqz_val'].shift(3) <= dataframe['sqz_val'].shift(4)) &
-            #     (dataframe['sqz_val'].shift(3) <= dataframe['sqz_val'].shift(5))
-            # )
+            if self.buy_accel_enabled.value:
+                conditions.append(qtpylib.crossed_above(dataframe['sqz_accel'], 0))
+            else:
+                conditions.append(qtpylib.crossed_above(dataframe['sqz_angle'], 0))
 
         else:
-            # during back testing, data can be undefined, so check
-            conditions.append(dataframe['sqz_upper'].notnull())
+             # during back testing, data can be undefined, so check
+            # conditions.append(dataframe['sqz_upper'].notnull())
 
             # TRIGGERS
             # Momentum goes positive , and is increasing
             conditions.append(qtpylib.crossed_above(dataframe['sqz_val'], 0))
-            #conditions.append(
-            #    (dataframe['sqz_val'] > 0) &
-            #    (dataframe['sqz_val'].shift(1) > 0) &
-            #    (dataframe['sqz_val'] > dataframe['sqz_val'].shift(1)) &
-            #    (dataframe['sqz_val'].shift(2) <= 0)
-            #)
 
             # current candle is green
             # conditions.append(dataframe['close'] > dataframe['open'])
-
 
         # build the dataframe using the conditions
         if conditions:
@@ -299,8 +301,8 @@ class SqueezeMomentum(IStrategy):
             conditions.append(dataframe['close'] <= dataframe['dc_lf'])
 
         # squeeze is 'off'
-        if self.buy_sqz_enabled.value:
-            conditions.append(dataframe['sqz_on'] != True)
+        # if self.buy_sqz_enabled.value:
+        #     conditions.append(dataframe['sqz_on'] != True)
 
         # We can (try to) predict an upcoming swing (down) by looking for a reversal during an 'on' period
         if self.buy_predict_enabled:
@@ -308,7 +310,8 @@ class SqueezeMomentum(IStrategy):
             # TRIGGERS
             # squeeze values are +ve but turning around
             conditions.append(dataframe['sqz_val'] > self.buy_sqz_band.value)
-            conditions.append(qtpylib.crossed_below(dataframe['sqz_angle'], 0))
+            #conditions.append(qtpylib.crossed_below(dataframe['sqz_angle'], 0))
+            conditions.append(qtpylib.crossed_below(dataframe['sqz_accel'], 0))
             # conditions.append(
             #     (dataframe['sqz_val'].shift(1) > self.buy_sqz_band.value) &
             #     (dataframe['sqz_val'] < dataframe['sqz_val'].shift(1)) &

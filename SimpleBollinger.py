@@ -12,6 +12,8 @@ import freqtrade.vendor.qtpylib.indicators as qtpylib
 import numpy # noqa
 from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, IntParameter
 
+from user_data.strategies import Config
+
 
 class SimpleBollinger(IStrategy):
     """
@@ -22,52 +24,41 @@ class SimpleBollinger(IStrategy):
     """
 
     # HYPERPARAMETERS
-    buy_mfi = DecimalParameter(10, 40, decimals=0, default=20.0, space="buy")
-    sell_mfi = DecimalParameter(10, 40, decimals=0, default=80.0, space="sell")
+    # Buy hyperspace params:
+    buy_params = {
+        "buy_macd_enabled": True,
+        "buy_adx": 65.0,
+        "buy_mfi": 25.0,
+        "buy_mfi_enabled": True,
+    }
+    buy_adx = DecimalParameter(10, 95, decimals=0, default=80.0, space="buy")
+    buy_mfi = DecimalParameter(10, 99, decimals=0, default=60.0, space="buy")
 
-    # Categorical parameters that control whether a trend/check is used or not
+    buy_adx_enabled = CategoricalParameter([True, False], default=True, space="buy")
     buy_mfi_enabled = CategoricalParameter([True, False], default=True, space="buy")
     buy_macd_enabled = CategoricalParameter([True, False], default=True, space="buy")
+
+    sell_mfi = DecimalParameter(10, 40, decimals=0, default=80.0, space="sell")
     sell_mfi_enabled = CategoricalParameter([True, False], default=True, space="sell")
+    sell_hold = CategoricalParameter([True, False], default=True, space="sell")
 
-    # Minimal ROI designed for the strategy.
-    # This attribute will be overridden if the config file contains "minimal_roi"
+    # set the startup candles count to the longest average used (SMA, EMA etc)
+    startup_candle_count = 20
 
-    # ROI table:
-    minimal_roi = {
-        "0": 0.173,
-        "19": 0.05,
-        "77": 0.04,
-        "155": 0
-    }
+    # set common parameters
+    minimal_roi = Config.minimal_roi
+    trailing_stop = Config.trailing_stop
+    trailing_stop_positive = Config.trailing_stop_positive
+    trailing_stop_positive_offset = Config.trailing_stop_positive_offset
+    trailing_only_offset_is_reached = Config.trailing_only_offset_is_reached
+    stoploss = Config.stoploss
+    timeframe = Config.timeframe
+    process_only_new_candles = Config.process_only_new_candles
+    use_sell_signal = Config.use_sell_signal
+    sell_profit_only = Config.sell_profit_only
+    ignore_roi_if_buy_signal = Config.ignore_roi_if_buy_signal
+    order_types = Config.order_types
 
-    # Stoploss:
-    stoploss = -0.102
-
-    # Trailing stop:
-    trailing_stop = True
-    trailing_stop_positive = 0.318
-    trailing_stop_positive_offset = 0.345
-    trailing_only_offset_is_reached = True
-
-    # run "populate_indicators" only for new candle
-    process_only_new_candles = False
-
-    # Experimental settings (configuration will overide these if set)
-    use_sell_signal = True
-    sell_profit_only = True
-    ignore_roi_if_buy_signal = False
-
-    # Optimal timeframe for the strategy
-    timeframe = '5m'
-
-    # Optional order type mapping
-    order_types = {
-        'buy': 'limit',
-        'sell': 'limit',
-        'stoploss': 'market',
-        'stoploss_on_exchange': False
-    }
 
     def informative_pairs(self):
         """
@@ -90,6 +81,8 @@ class SimpleBollinger(IStrategy):
         you are using. Let uncomment only the indicator you are using in your strategies
         or your hyperopt configuration, otherwise you will waste your memory and CPU usage.
         """
+        # ADX
+        dataframe['adx'] = ta.ADX(dataframe)
 
         # MFI
         dataframe['mfi'] = ta.MFI(dataframe)
@@ -141,8 +134,11 @@ class SimpleBollinger(IStrategy):
         conditions = []
 
         # GUARDS AND TRENDS
+        if self.buy_adx_enabled.value:
+            conditions.append(dataframe['adx'] >= self.buy_adx.value)
+
         if self.buy_mfi_enabled.value:
-            conditions.append(dataframe['mfi'] <= self.buy_mfi.value)
+            conditions.append(dataframe['mfi'] >= self.buy_mfi.value)
 
         if self.buy_macd_enabled.value:
             conditions.append(dataframe['macd'] > dataframe['macdsignal'])
@@ -167,6 +163,10 @@ class SimpleBollinger(IStrategy):
 
         close if price is below  lower band
         """
+
+        if self.sell_hold.value:
+            dataframe.loc[(dataframe['close'].notnull() ), 'sell'] = 0
+            return dataframe
 
         conditions = []
 

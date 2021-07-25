@@ -11,6 +11,8 @@ import freqtrade.vendor.qtpylib.indicators as qtpylib
 import numpy # noqa
 from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, IntParameter
 
+from user_data.strategies import Config
+
 
 class Strategy003(IStrategy):
     """
@@ -22,29 +24,29 @@ class Strategy003(IStrategy):
     > python3 ./freqtrade/main.py -s Strategy003
     """
 
-    # # Buy hyperspace params:
-    # buy_params = {
-    #     "buy_ema_enabled": False,
-    #     "buy_fastd_enabled": False,
-    #     "buy_fisher": -0.28,
-    #     "buy_fisher_enabled": False,
-    #     "buy_mfi": 24.0,
-    #     "buy_mfi_enabled": True,
-    #     "buy_rsi": 15.0,
-    #     "buy_rsi_enabled": True,
-    #     "buy_sma_enabled": False,
-    # }
+    # Buy hyperspace params:
+    buy_params = {
+        "buy_ema_enabled": False,
+        "buy_fastd_enabled": True,
+        "buy_fisher": 0.01,
+        "buy_fisher_enabled": True,
+        "buy_mfi": 30.0,
+        "buy_mfi_enabled": True,
+        "buy_rsi": 11.0,
+        "buy_rsi_enabled": True,
+        "buy_sma_enabled": False,
+    }
 
-    buy_rsi = DecimalParameter(0, 50, decimals=0, default=15, space="buy")
-    buy_mfi = DecimalParameter(0, 50, decimals=0, default=24, space="buy")
-    buy_fisher = DecimalParameter(-1, 1, decimals=2, default=-0.28, space="buy")
+    buy_rsi = DecimalParameter(0, 50, decimals=0, default=11, space="buy")
+    buy_mfi = DecimalParameter(0, 50, decimals=0, default=30, space="buy")
+    buy_fisher = DecimalParameter(-1, 1, decimals=2, default=0.01, space="buy")
 
     buy_rsi_enabled = CategoricalParameter([True, False], default=True, space="buy")
     buy_sma_enabled = CategoricalParameter([True, False], default=False, space="buy")
     buy_ema_enabled = CategoricalParameter([True, False], default=False, space="buy")
     buy_mfi_enabled = CategoricalParameter([True, False], default=True, space="buy")
-    buy_fastd_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_fisher_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_fastd_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_fisher_enabled = CategoricalParameter([True, False], default=True, space="buy")
 
     sell_fisher = DecimalParameter(-1, 1, decimals=2, default=0.3, space="sell")
 
@@ -52,41 +54,23 @@ class Strategy003(IStrategy):
     sell_sar_enabled = CategoricalParameter([True, False], default=True, space="sell")
     sell_hold_enabled = CategoricalParameter([True, False], default=True, space="sell")
 
-    # ROI table:
-    minimal_roi = {
-        "0": 0.21,
-        "25": 0.069,
-        "35": 0.011,
-        "52": 0
-    }
 
-    # Stoploss:
-    stoploss = -0.214
+    # set the startup candles count to the longest average used (EMA, EMA etc)
+    startup_candle_count = 20
 
-    # Trailing stop:
-    trailing_stop = True
-    trailing_stop_positive = 0.138
-    trailing_stop_positive_offset = 0.22
-    trailing_only_offset_is_reached = True
-
-    # Optimal timeframe for the strategy
-    timeframe = '5m'
-
-    # run "populate_indicators" only for new candle
-    process_only_new_candles = False
-
-    # Experimental settings (configuration will overide these if set)
-    use_sell_signal = True
-    sell_profit_only = True
-    ignore_roi_if_buy_signal = False
-
-    # Optional order type mapping
-    order_types = {
-        'buy': 'limit',
-        'sell': 'limit',
-        'stoploss': 'market',
-        'stoploss_on_exchange': False
-    }
+    # set common parameters
+    minimal_roi = Config.minimal_roi
+    trailing_stop = Config.trailing_stop
+    trailing_stop_positive = Config.trailing_stop_positive
+    trailing_stop_positive_offset = Config.trailing_stop_positive_offset
+    trailing_only_offset_is_reached = Config.trailing_only_offset_is_reached
+    stoploss = Config.stoploss
+    timeframe = Config.timeframe
+    process_only_new_candles = Config.process_only_new_candles
+    use_sell_signal = Config.use_sell_signal
+    sell_profit_only = Config.sell_profit_only
+    ignore_roi_if_buy_signal = Config.ignore_roi_if_buy_signal
+    order_types = Config.order_types
 
     def informative_pairs(self):
         """

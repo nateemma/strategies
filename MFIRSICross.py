@@ -14,45 +14,25 @@ from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, Int
 from user_data.strategies import Config
 
 
-
-class NDrop(IStrategy):
+class MFIRSICross(IStrategy):
     """
-    Simple strategy that looks for N consecutive drops and then buys
-    This version doesn't issue a sell signal, just holds until ROI or stoploss kicks in
+    Simple strategy based on MFI (Volume-weighted Strength)
 
     How to use it?
-    > python3 ./freqtrade/main.py -s NDrop
+    > python3 ./freqtrade/main.py -s MFIRSICross
     """
 
-    # Hyperparameters
+    buy_period = IntParameter(3, 20, default=3, space="buy")
 
-    # Buy hyperspace params:
-    buy_params = {
-        "buy_bb_enabled": False,
-        "buy_drop": 0.029,
-        "buy_fisher": -0.23,
-        "buy_fisher_enabled": True,
-        "buy_mfi": 38.0,
-        "buy_mfi_enabled": False,
-        "buy_num_candles": 3,
-    }
+    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.04, space="buy")
+    buy_bb_enabled = CategoricalParameter([True, False], default=True, space="buy")
 
-    # Bollinger Band 'gain' (% difference between current price and upper band).
-    # Since we are looking for potential swings of >2%, we look for potential of more than that
-    buy_num_candles = IntParameter(2, 9, default=3, space="buy")
-    buy_drop = DecimalParameter(0.01, 0.06, decimals=3, default=0.029, space="buy")
-
-    buy_fisher = DecimalParameter(-1, 1, decimals=2, default=-0.23, space="buy")
-    buy_mfi = DecimalParameter(10, 40, decimals=0, default=38.0, space="buy")
-
-    # Categorical parameters that control whether a trend/check is used or not
-    buy_fisher_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_mfi = DecimalParameter(10, 100, decimals=0, default=86, space="buy")
     buy_mfi_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_bb_enabled = CategoricalParameter([True, False], default=False, space="buy")
 
+    sell_hold_enabled = CategoricalParameter([True, False], default=True, space="sell")
 
-    # set the startup candles count to the longest average used (EMA, EMA etc)
-    startup_candle_count = 20
+    startup_candle_count = max(2*buy_period.value, 40)
 
     # set common parameters
     minimal_roi = Config.minimal_roi
@@ -67,7 +47,6 @@ class NDrop(IStrategy):
     sell_profit_only = Config.sell_profit_only
     ignore_roi_if_buy_signal = Config.ignore_roi_if_buy_signal
     order_types = Config.order_types
-
 
     def informative_pairs(self):
         """
@@ -94,14 +73,6 @@ class NDrop(IStrategy):
         # MFI
         dataframe['mfi'] = ta.MFI(dataframe)
 
-        # SMA - Simple Moving Average
-        dataframe['sma'] = ta.SMA(dataframe, timeperiod=40)
-
-        # MACD
-        macd = ta.MACD(dataframe)
-        dataframe['macd'] = macd['macd']
-        dataframe['macdsignal'] = macd['macdsignal']
-
         # Stoch fast
         stoch_fast = ta.STOCHF(dataframe)
         dataframe['fastd'] = stoch_fast['fastd']
@@ -110,63 +81,54 @@ class NDrop(IStrategy):
         # RSI
         dataframe['rsi'] = ta.RSI(dataframe)
 
+        # Smoothed averages
+        dataframe['mfi_ave'] = ta.TEMA(dataframe['mfi'], timeperiod=self.buy_period.value)
+        dataframe['rsi_ave'] = ta.TEMA(dataframe['rsi'], timeperiod=self.buy_period.value)
+        dataframe['mfi_rsi_diff'] = dataframe['mfi_ave'] - dataframe['rsi_ave']
+        dataframe['mfi_rsi_slope'] = ta.LINEARREG_SLOPE(dataframe['mfi_rsi_diff'], timeperiod=self.buy_period.value)
+        dataframe['mfi_rsi_accel'] = ta.LINEARREG_SLOPE(dataframe['mfi_rsi_slope'], timeperiod=self.buy_period.value)
+
         # Inverse Fisher transform on RSI, values [-1.0, 1.0] (https://goo.gl/2JGGoy)
         rsi = 0.1 * (dataframe['rsi'] - 50)
         dataframe['fisher_rsi'] = (numpy.exp(2 * rsi) - 1) / (numpy.exp(2 * rsi) + 1)
 
         # Bollinger bands
-        #bollinger = qtpylib.bollinger_bands(qtpylib.typical_price(dataframe), window=20, stds=2)
-        bollinger = qtpylib.weighted_bollinger_bands(qtpylib.typical_price(dataframe), window=20, stds=2)
-        # A little different than normal - adjust band values based on buy_bb_ratio
-        #dataframe['bb_upperband'] = bollinger['mid'] + (bollinger['upper']-bollinger['mid'])*self.buy_bb_uratio.value
-        #dataframe['bb_middleband'] = bollinger['mid']
-        #dataframe['bb_lowerband'] = bollinger['mid'] - (bollinger['mid']-bollinger['lower'])*self.buy_bb_lratio.value
+        bollinger = qtpylib.bollinger_bands(qtpylib.typical_price(dataframe), window=20, stds=2)
         dataframe['bb_upperband'] = bollinger['upper']
-        dataframe['bb_middleband'] = bollinger['mid']
         dataframe['bb_lowerband'] = bollinger['lower']
         dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
 
         # EMA - Exponential Moving Average
         dataframe['ema5'] = ta.EMA(dataframe, timeperiod=5)
         dataframe['ema10'] = ta.EMA(dataframe, timeperiod=10)
-        dataframe['ema50'] = ta.EMA(dataframe, timeperiod=50)
-        dataframe['ema100'] = ta.EMA(dataframe, timeperiod=100)
+        # dataframe['ema50'] = ta.EMA(dataframe, timeperiod=50)
+        # dataframe['ema100'] = ta.EMA(dataframe, timeperiod=100)
 
         # SAR Parabol
         dataframe['sar'] = ta.SAR(dataframe)
 
+        # SMA - Simple Moving Average
+        dataframe['sma'] = ta.SMA(dataframe, timeperiod=40)
+
         return dataframe
 
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        """
+        Based on TA indicators, populates the buy signal for the given dataframe
+        :param dataframe: DataFrame
+        :return: DataFrame with buy column
+        """
         conditions = []
-        # GUARDS AND TRENDS
+
+        conditions.append(dataframe['mfi_rsi_accel'].notnull())
+
         if self.buy_mfi_enabled.value:
             conditions.append(dataframe['mfi'] <= self.buy_mfi.value)
 
-        if self.buy_fisher_enabled.value:
-            conditions.append(dataframe['fisher_rsi'] < self.buy_fisher.value)
+        conditions.append(qtpylib.crossed_above(dataframe['mfi_rsi_accel'], 0))
 
-        if self.buy_bb_enabled.value:
-            conditions.append(dataframe['close'] <= dataframe['bb_lowerband'])
-
-        # TRIGGERS
-
-
-        # N red candles
-        if self.buy_num_candles.value >= 1:
-            for i in range(self.buy_num_candles.value):
-                conditions.append(dataframe['close'].shift(i) <= dataframe['open'].shift(i))
-
-        # big enough drop?
-        conditions.append(
-            (((dataframe['open'].shift(self.buy_num_candles.value-1) - dataframe['close']) /
-            dataframe['open'].shift(self.buy_num_candles.value-1)) >= self.buy_drop.value)
-        )
-        # build the dataframe using the conditions
         if conditions:
-            dataframe.loc[
-                reduce(lambda x, y: x & y, conditions),
-                'buy'] = 1
+            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
 
         return dataframe
 
@@ -175,8 +137,18 @@ class NDrop(IStrategy):
         Based on TA indicators, populates the sell signal for the given dataframe
         :param dataframe: DataFrame
         :return: DataFrame with buy column
-
         """
-        # Don't sell (have to set something in 'sell' column)
-        dataframe.loc[(dataframe['close'] >= 0), 'sell'] = 0
+        conditions = []
+
+        if self.sell_hold_enabled.value:
+            dataframe.loc[(dataframe['close'].notnull() ), 'sell'] = 0
+
+        else:
+            conditions.append(dataframe['mfi_ave'].notnull())
+            conditions.append(dataframe['mfi'] >= 80)
+            conditions.append(qtpylib.crossed_below(dataframe['mfi_rsi_accel'], 0))
+
+            if conditions:
+                dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1
+
         return dataframe

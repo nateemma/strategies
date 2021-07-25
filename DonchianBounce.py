@@ -11,6 +11,8 @@ import freqtrade.vendor.qtpylib.indicators as qtpylib
 import numpy # noqa
 from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, IntParameter
 
+from user_data.strategies import Config
+
 
 
 class DonchianBounce(IStrategy):
@@ -22,60 +24,45 @@ class DonchianBounce(IStrategy):
     """
 
     # Hyperparameters
-    buy_dc_period = IntParameter(10, 120, default=20, space="buy")
-    buy_dc_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.04, space="buy")
+    # Buy hyperspace params:
+    buy_params = {
+        "buy_adx": 43.0,
+        "buy_adx_enabled": False,
+        "buy_dc_gain": 0.05,
+        "buy_dc_period": 60,
+        "buy_ema_enabled": False,
+        "buy_sar_enabled": False,
+        "buy_sma_enabled": True,
+    }
 
-    buy_adx = DecimalParameter(1, 99, decimals=0, default=25, space="buy")
-    buy_sma_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_dc_period = IntParameter(10, 120, default=43, space="buy")
+    buy_dc_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.05, space="buy")
+
+    buy_adx = DecimalParameter(1, 99, decimals=0, default=60, space="buy")
+    buy_sma_enabled = CategoricalParameter([True, False], default=True, space="buy")
     buy_ema_enabled = CategoricalParameter([True, False], default=False, space="buy")
     buy_adx_enabled = CategoricalParameter([True, False], default=False, space="buy")
     buy_sar_enabled = CategoricalParameter([True, False], default=False, space="buy")
 
     sell_sar_enabled = CategoricalParameter([True, False], default=False, space="sell")
-    sell_hold_enabled = CategoricalParameter([True, False], default=False, space="sell")
+    sell_hold = CategoricalParameter([True, False], default=True, space="sell")
 
-    # set the startup candles count to the longest average used (SMA, EMA etc)
-    startup_candle_count = 200
+    # set the startup candles count to the longest average used (EMA, EMA etc)
+    startup_candle_count = max(buy_dc_period.value, 20)
 
-    # The ROI, Stoploss and Trailing Stop values are typically found using hyperopt
-
-    # ROI table:
-    minimal_roi = {
-        "0": 0.051,
-        "10": 0.032,
-        "25": 0.01,
-        "54": 0
-    }
-
-    # Stoploss:
-    stoploss = -0.347
-
-    # Trailing stop:
-    trailing_stop = True
-    trailing_stop_positive = 0.055
-    trailing_stop_positive_offset = 0.155
-    trailing_only_offset_is_reached = True
-
-
-    # Optimal timeframe for the strategy
-    timeframe = '5m'
-
-
-    # run "populate_indicators" only for new candle
-    process_only_new_candles = False
-
-    # Experimental settings (configuration will overide these if set)
-    use_sell_signal = True
-    sell_profit_only = True
-    ignore_roi_if_buy_signal = True
-
-    # Optional order type mapping
-    order_types = {
-        'buy': 'limit',
-        'sell': 'limit',
-        'stoploss': 'market',
-        'stoploss_on_exchange': True
-    }
+    # set common parameters
+    minimal_roi = Config.minimal_roi
+    trailing_stop = Config.trailing_stop
+    trailing_stop_positive = Config.trailing_stop_positive
+    trailing_stop_positive_offset = Config.trailing_stop_positive_offset
+    trailing_only_offset_is_reached = Config.trailing_only_offset_is_reached
+    stoploss = Config.stoploss
+    timeframe = Config.timeframe
+    process_only_new_candles = Config.process_only_new_candles
+    use_sell_signal = Config.use_sell_signal
+    sell_profit_only = Config.sell_profit_only
+    ignore_roi_if_buy_signal = Config.ignore_roi_if_buy_signal
+    order_types = Config.order_types
 
     def informative_pairs(self):
         """
@@ -185,8 +172,9 @@ class DonchianBounce(IStrategy):
         # ADX with DM+ > DM- indicates uptrend
         if self.buy_adx_enabled.value:
             conditions.append(
-                (dataframe['adx'] > self.buy_adx.value) &
-                (dataframe['dm_plus'] >= dataframe['dm_minus'])
+                (dataframe['adx'] > self.buy_adx.value)
+                # (dataframe['adx'] > self.buy_adx.value) &
+                # (dataframe['dm_plus'] >= dataframe['dm_minus'])
             )
 
         # Potential gain greater than goal
@@ -232,7 +220,7 @@ class DonchianBounce(IStrategy):
 
         """
         # if hold, then don't set a sell signal
-        if self.sell_hold_enabled.value:
+        if self.sell_hold.value:
             dataframe.loc[(dataframe['close'].notnull() ), 'sell'] = 0
 
         else:

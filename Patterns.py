@@ -21,7 +21,7 @@ class Patterns(IStrategy):
     """
 
 
-    pattern_strength = 13
+    pattern_strength = 90
     rsi_limit = 20
     mfi_limit = 25
 
@@ -70,24 +70,42 @@ class Patterns(IStrategy):
     sell_CDLEVENINGDOJISTAR_enabled = CategoricalParameter([True, False], default=True, space="sell")
     sell_CDLEVENINGSTAR_enabled = CategoricalParameter([True, False], default=True, space="sell")
 
-    sell_hold_enabled = CategoricalParameter([True, False], default=False, space="sell")
+    sell_hold_enabled = CategoricalParameter([True, False], default=True, space="sell")
 
-    # ROI table:
-    minimal_roi = {
-        "0": 0.296,
-        "26": 0.104,
-        "36": 0.037,
-        "65": 0
-    }
+    if sell_hold_enabled.value:
+        # ROI table:
+        minimal_roi = {
+            "0": 0.278,
+            "39": 0.087,
+            "124": 0.038,
+            "135": 0
+        }
 
-    # Stoploss:
-    stoploss = -0.284
+        # Trailing stop:
+        trailing_stop = True
+        trailing_stop_positive = 0.172
+        trailing_stop_positive_offset = 0.212
+        trailing_only_offset_is_reached = False
 
-    # Trailing stop:
-    trailing_stop = True
-    trailing_stop_positive = 0.183
-    trailing_stop_positive_offset = 0.274
-    trailing_only_offset_is_reached = True
+        # Stoploss:
+        stoploss = -0.333
+    else:
+        # ROI table:
+        minimal_roi = {
+            "0": 0.296,
+            "26": 0.104,
+            "36": 0.037,
+            "65": 0
+        }
+
+        # Stoploss:
+        stoploss = -0.284
+
+        # Trailing stop:
+        trailing_stop = True
+        trailing_stop_positive = 0.183
+        trailing_stop_positive_offset = 0.274
+        trailing_only_offset_is_reached = True
 
     # Optimal timeframe for the strategy
     timeframe = '5m'
@@ -267,7 +285,9 @@ class Patterns(IStrategy):
             pr = False
             if conditions:
                 pr = reduce(lambda x, y: x | y, conditions)
-            dataframe.loc[(gr | pr), 'buy'] = 1
+            # dataframe.loc[(gr | pr), 'buy'] = 1
+            dataframe.loc[(gr & pr), 'buy'] = 1
+
         else:
             if conditions:
                 dataframe.loc[reduce(lambda x, y: x | y, conditions), 'buy'] = 1

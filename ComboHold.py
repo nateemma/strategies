@@ -13,6 +13,7 @@ from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, Int
 import math
 from freqtrade.optimize.space import Categorical, Dimension, Integer, SKDecimal, Real  # noqa
 
+from user_data.strategies import Config
 
 class ComboHold(IStrategy):
     """
@@ -24,83 +25,102 @@ class ComboHold(IStrategy):
     """
 
     # Hyperparameters
+    # Buy hyperspace params:
+    buy_params = {
+        "buy_bigdrop_enabled": True,
+        "buy_emabounce_enabled": True,
+        "buy_mfi2_enabled": True,
+        "buy_ndrop_enabled": True,
+        "buy_nseq_enabled": True,
+        "buy_strat3_enabled": False,
+    }
 
     buy_ndrop_enabled = CategoricalParameter([True, False], default=True, space="buy")
-    buy_nseq_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_nseq_enabled = CategoricalParameter([True, False], default=False, space="buy")
     buy_emabounce_enabled = CategoricalParameter([True, False], default=True, space="buy")
     buy_strat3_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_bigdrop_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_mfi2_enabled = CategoricalParameter([True, False], default=True, space="buy")
+
+    # The following were hyperparameters for each individual strategy, but we are just making them constants here
+    # This is so that we can run hyperopt and stand a chance of getting decent results (otherwise the search space
+    # is too large)
 
     # NDrop parameters:
-    buy_ndrop_num_candles = IntParameter(2, 9, default=2, space="buy")
-    buy_ndrop_drop = DecimalParameter(0.01, 0.06, decimals=3, default=0.025, space="buy")
-    buy_ndrop_fisher = DecimalParameter(-1, 1, decimals=2, default=-0.02, space="buy")
-    buy_ndrop_mfi = DecimalParameter(10, 40, decimals=0, default=11.0, space="buy")
-    buy_ndrop_fisher_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_ndrop_mfi_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_ndrop_bb_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_ndrop_num_candles = 3
+    buy_ndrop_drop = 0.029
+    buy_ndrop_fisher = -0.23
+    buy_ndrop_mfi = 38.0
+    buy_ndrop_fisher_enabled = True
+    buy_ndrop_mfi_enabled = False
+    buy_ndrop_bb_enabled = False
 
     # NSeq parameters:
-    buy_nseq_num_candles = IntParameter(3, 9, default=3, space="buy")
-    buy_nseq_drop = DecimalParameter(0.005, 0.06, decimals=3, default=0.011, space="buy")
-    buy_nseq_fisher = DecimalParameter(-1, 1, decimals=2, default=0.96, space="buy")
-    buy_nseq_mfi = DecimalParameter(10, 40, decimals=0, default=15.0, space="buy")
-    buy_nseq_fisher_enabled = CategoricalParameter([True, False], default=True, space="buy")
-    buy_nseq_mfi_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_nseq_bb_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_nseq_num_candles = 3
+    buy_nseq_drop = 0.021
+    buy_nseq_fisher = -0.5
+    buy_nseq_mfi = 39.0
+    buy_nseq_fisher_enabled = True
+    buy_nseq_mfi_enabled = True
+    buy_nseq_bb_enabled = False
 
     # EMABounce parameters
-    buy_emabounce_long_period = IntParameter(20, 100, default=50, space="buy")
-    buy_emabounce_short_period = IntParameter(5, 15, default=10, space="buy")
-    buy_emabounce_diff = DecimalParameter(0.01, 0.10, decimals=3, default=0.065, space="buy")
+    buy_emabounce_long_period = 50
+    buy_emabounce_short_period = 10
+    buy_emabounce_diff = 0.065
 
     # Strategy003 Parameters
+    buy_strat3_rsi = 11.0
+    buy_strat3_mfi = 30.0
+    buy_strat3_fisher = 0.01
+    buy_strat3_rsi_enabled = True
+    buy_strat3_sma_enabled = False
+    buy_strat3_ema_enabled = False
+    buy_strat3_mfi_enabled = True
+    buy_strat3_fastd_enabled = True
+    buy_strat3_fisher_enabled = True
 
-    buy_strat3_rsi = DecimalParameter(0, 50, decimals=0, default=15, space="buy")
-    buy_strat3_mfi = DecimalParameter(0, 50, decimals=0, default=24, space="buy")
-    buy_strat3_fisher = DecimalParameter(-1, 1, decimals=2, default=-0.28, space="buy")
-    buy_strat3_rsi_enabled = CategoricalParameter([True, False], default=True, space="buy")
-    buy_strat3_sma_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_strat3_ema_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_strat3_mfi_enabled = CategoricalParameter([True, False], default=True, space="buy")
-    buy_strat3_fastd_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_strat3_fisher_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    # BigDrop parameters:
+    buy_bigdrop_num_candles = 9
+    buy_bigdrop_drop = 0.06
+    buy_bigdrop_fisher = -0.23
+    buy_bigdrop_mfi = 31.0
+    buy_bigdrop_fisher_enabled = True
+    buy_bigdrop_mfi_enabled = False
+    buy_bigdrop_bb_enabled = False
 
+    # MFI2 parameters:
+    buy_mfi2_adx = 38.0
+    buy_mfi2_adx_enabled = False
+    buy_mfi2_bb_enabled = True
+    buy_mfi2_bb_gain = 0.09
+    buy_mfi2_dm_enabled = False
+    buy_mfi2_ema_enabled = False
+    buy_mfi2_fisher = -0.01
+    buy_mfi2_fisher_enabled = True
+    buy_mfi2_mfi = 4.9
+    buy_mfi2_mfi_enabled = False
+    buy_mfi2_neg_macd_enabled = False
+    buy_mfi2_rsi = 24.8
+    buy_mfi2_rsi_enabled = False
+    buy_mfi2_sar_enabled = False
 
-    # ROI table:
-    minimal_roi = {
-        "0": 0.278,
-        "39": 0.087,
-        "124": 0.038,
-        "135": 0
-    }
+    # set the startup candles count to the longest average used (EMA, EMA etc)
+    startup_candle_count = max(buy_emabounce_long_period, 20)
 
-    # Stoploss:
-    stoploss = -0.333
-
-    # Trailing stop:
-    trailing_stop = True
-    trailing_stop_positive = 0.172
-    trailing_stop_positive_offset = 0.212
-    trailing_only_offset_is_reached = False
-
-    # Optimal timeframe for the strategy
-    timeframe = '5m'
-
-    # run "populate_indicators" only for new candle
-    process_only_new_candles = False
-
-    # Experimental settings (configuration will overide these if set)
-    use_sell_signal = True
-    sell_profit_only = True
-    ignore_roi_if_buy_signal = False
-
-    # Optional order type mapping
-    order_types = {
-        'buy': 'limit',
-        'sell': 'limit',
-        'stoploss': 'market',
-        'stoploss_on_exchange': False
-    }
+    # set common parameters
+    minimal_roi = Config.minimal_roi
+    trailing_stop = Config.trailing_stop
+    trailing_stop_positive = Config.trailing_stop_positive
+    trailing_stop_positive_offset = Config.trailing_stop_positive_offset
+    trailing_only_offset_is_reached = Config.trailing_only_offset_is_reached
+    stoploss = Config.stoploss
+    timeframe = Config.timeframe
+    process_only_new_candles = Config.process_only_new_candles
+    use_sell_signal = Config.use_sell_signal
+    sell_profit_only = Config.sell_profit_only
+    ignore_roi_if_buy_signal = Config.ignore_roi_if_buy_signal
+    order_types = Config.order_types
 
     # Define custom ROI ranges
     class HyperOpt:
@@ -174,12 +194,12 @@ class ComboHold(IStrategy):
         dataframe['ema50'] = ta.EMA(dataframe, timeperiod=50)
         dataframe['ema100'] = ta.EMA(dataframe, timeperiod=100)
 
-        dataframe['ema'] = ta.EMA(dataframe, timeperiod=self.buy_emabounce_long_period.value)
-        dataframe['ema_short'] = ta.EMA(dataframe, timeperiod=self.buy_emabounce_short_period.value)
+        dataframe['ema'] = ta.EMA(dataframe, timeperiod=self.buy_emabounce_long_period)
+        dataframe['ema_short'] = ta.EMA(dataframe, timeperiod=self.buy_emabounce_short_period)
         dataframe['ema_angle'] = ta.LINEARREG_SLOPE(dataframe['ema_short'], timeperiod=3) / (2.0 * math.pi)
         dataframe['ema_diff'] = (((dataframe['ema'] - dataframe['close']) /
                                       dataframe['ema'])) \
-                                    - self.buy_emabounce_diff.value
+                                    - self.buy_emabounce_diff
 
         # SAR Parabol
         dataframe['sar'] = ta.SAR(dataframe)
@@ -190,26 +210,26 @@ class ComboHold(IStrategy):
         conditions = []
 
         # GUARDS AND TRENDS
-        if self.buy_ndrop_mfi_enabled.value:
-            conditions.append(dataframe['mfi'] <= self.buy_ndrop_mfi.value)
+        if self.buy_ndrop_mfi_enabled:
+            conditions.append(dataframe['mfi'] <= self.buy_ndrop_mfi)
 
-        if self.buy_ndrop_fisher_enabled.value:
-            conditions.append(dataframe['fisher_rsi'] < self.buy_ndrop_fisher.value)
+        if self.buy_ndrop_fisher_enabled:
+            conditions.append(dataframe['fisher_rsi'] < self.buy_ndrop_fisher)
 
-        if self.buy_ndrop_bb_enabled.value:
+        if self.buy_ndrop_bb_enabled:
             conditions.append(dataframe['close'] <= dataframe['bb_lowerband'])
 
         # TRIGGERS
 
         # N red candles
-        if self.buy_ndrop_num_candles.value >= 1:
-            for i in range(self.buy_ndrop_num_candles.value):
+        if self.buy_ndrop_num_candles >= 1:
+            for i in range(self.buy_ndrop_num_candles):
                 conditions.append(dataframe['close'].shift(i) <= dataframe['open'].shift(i))
 
         # big enough drop?
         conditions.append(
-            (((dataframe['open'].shift(self.buy_ndrop_num_candles.value - 1) - dataframe['close']) /
-              dataframe['open'].shift(self.buy_ndrop_num_candles.value - 1)) >= self.buy_ndrop_drop.value)
+            (((dataframe['open'].shift(self.buy_ndrop_num_candles - 1) - dataframe['close']) /
+              dataframe['open'].shift(self.buy_ndrop_num_candles - 1)) >= self.buy_ndrop_drop)
         )
         return conditions
 
@@ -217,13 +237,13 @@ class ComboHold(IStrategy):
     def NSeq_conditions(self, dataframe: DataFrame):
         conditions = []
         # GUARDS AND TRENDS
-        if self.buy_nseq_mfi_enabled.value:
-            conditions.append(dataframe['mfi'] <= self.buy_nseq_mfi.value)
+        if self.buy_nseq_mfi_enabled:
+            conditions.append(dataframe['mfi'] <= self.buy_nseq_mfi)
 
-        if self.buy_nseq_fisher_enabled.value:
-            conditions.append(dataframe['fisher_rsi'] < self.buy_nseq_fisher.value)
+        if self.buy_nseq_fisher_enabled:
+            conditions.append(dataframe['fisher_rsi'] < self.buy_nseq_fisher)
 
-        if self.buy_nseq_bb_enabled.value:
+        if self.buy_nseq_bb_enabled:
             conditions.append(dataframe['close'] <= dataframe['bb_lowerband'])
 
         # TRIGGERS
@@ -232,14 +252,14 @@ class ComboHold(IStrategy):
         conditions.append(dataframe['close'] >= dataframe['open'])
 
         # N red candles
-        if self.buy_nseq_num_candles.value >= 1:
-            for i in range(self.buy_nseq_num_candles.value):
+        if self.buy_nseq_num_candles >= 1:
+            for i in range(self.buy_nseq_num_candles):
                 conditions.append(dataframe['close'].shift(i+1) <= dataframe['open'].shift(i+1))
 
         # big enough drop?
         conditions.append(
-            (((dataframe['open'].shift(self.buy_nseq_num_candles.value) - dataframe['close']) /
-            dataframe['open'].shift(self.buy_nseq_num_candles.value)) >= self.buy_nseq_drop.value)
+            (((dataframe['open'].shift(self.buy_nseq_num_candles) - dataframe['close']) /
+            dataframe['open'].shift(self.buy_nseq_num_candles)) >= self.buy_nseq_drop)
         )
         return conditions
 
@@ -261,28 +281,28 @@ class ComboHold(IStrategy):
         conditions = []
 
         # GUARDS AND TRENDS
-        if self.buy_strat3_rsi_enabled.value:
+        if self.buy_strat3_rsi_enabled:
             conditions.append(
-                (dataframe['rsi'] < self.buy_strat3_rsi.value) &
+                (dataframe['rsi'] < self.buy_strat3_rsi) &
                 (dataframe['rsi'] > 0)
             )
 
-        if self.buy_strat3_sma_enabled.value:
+        if self.buy_strat3_sma_enabled:
             conditions.append(dataframe['close'] < dataframe['sma'])
 
-        if self.buy_strat3_fisher_enabled.value:
-            conditions.append(dataframe['fisher_rsi'] < self.buy_strat3_fisher.value)
+        if self.buy_strat3_fisher_enabled:
+            conditions.append(dataframe['fisher_rsi'] < self.buy_strat3_fisher)
 
-        if self.buy_strat3_mfi_enabled.value:
-            conditions.append(dataframe['mfi'] <= self.buy_strat3_mfi.value)
+        if self.buy_strat3_mfi_enabled:
+            conditions.append(dataframe['mfi'] <= self.buy_strat3_mfi)
 
-        if self.buy_strat3_ema_enabled.value:
+        if self.buy_strat3_ema_enabled:
             conditions.append(
                 (dataframe['ema50'] > dataframe['ema100']) |
                 (qtpylib.crossed_above(dataframe['ema5'], dataframe['ema10']))
             )
 
-        if self.buy_strat3_fastd_enabled.value:
+        if self.buy_strat3_fastd_enabled:
             conditions.append(
                 (dataframe['fastd'] > dataframe['fastk']) &
                 (dataframe['fastd'] > 0)
@@ -290,8 +310,66 @@ class ComboHold(IStrategy):
 
         return conditions
 
-    def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
 
+    def BigDrop_conditions(self, dataframe: DataFrame):
+        conditions = []
+
+        # GUARDS AND TRENDS
+        if self.buy_bigdrop_mfi_enabled:
+            conditions.append(dataframe['mfi'] <= self.buy_bigdrop_mfi)
+
+        if self.buy_bigdrop_fisher_enabled:
+            conditions.append(dataframe['fisher_rsi'] < self.buy_bigdrop_fisher)
+
+        if self.buy_bigdrop_bb_enabled:
+            conditions.append(dataframe['close'] <= dataframe['bb_lowerband'])
+
+        # TRIGGERS
+
+        # big enough drop?
+        conditions.append(
+            (((dataframe['open'].shift(self.buy_bigdrop_num_candles - 1) - dataframe['close']) /
+              dataframe['open'].shift(self.buy_bigdrop_num_candles - 1)) >= self.buy_bigdrop_drop)
+        )
+        return conditions
+
+    def MFI2_conditions(self, dataframe: DataFrame):
+        conditions = []
+
+        # GUARDS AND TRENDS
+        if self.buy_mfi2_ema_enabled:
+            conditions.append(dataframe['close'] < dataframe['ema5'])
+
+        if self.buy_mfi2_rsi_enabled:
+            conditions.append(dataframe['rsi'] > self.buy_mfi2_rsi)
+
+        if self.buy_mfi2_dm_enabled:
+            conditions.append(dataframe['dm_delta'] > 0)
+
+        if self.buy_mfi2_mfi_enabled:
+            conditions.append(dataframe['mfi'] <= self.buy_mfi2_mfi)
+
+        # only buy if close is below SAR
+        if self.buy_mfi2_sar_enabled:
+            conditions.append(dataframe['close'] < dataframe['sar'])
+
+        if self.buy_mfi2_fisher_enabled:
+            conditions.append(dataframe['fisher_rsi'] < self.buy_mfi2_fisher)
+
+        if self.buy_mfi2_neg_macd_enabled:
+            conditions.append(dataframe['macd'] < 0.0)
+
+        # potential gain > goal
+        if self.buy_mfi2_bb_enabled:
+            conditions.append(dataframe['bb_gain'] >= self.buy_mfi2_bb_gain)
+
+        # TRIGGERS
+        # none for this strategy, just guards
+
+        return conditions
+
+
+    def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
 
         # build the dataframe using the conditions
         # AND together the conditions for each strategy
@@ -314,6 +392,16 @@ class ComboHold(IStrategy):
 
         if self.buy_strat3_enabled.value:
             c = self.Strat3_conditions(dataframe)
+            if c:
+                conditions.append(reduce(lambda x, y: x & y, c))
+
+        if self.buy_bigdrop_enabled.value:
+            c = self.BigDrop_conditions(dataframe)
+            if c:
+                conditions.append(reduce(lambda x, y: x & y, c))
+
+        if self.buy_mfi2_enabled.value:
+            c = self.MFI2_conditions(dataframe)
             if c:
                 conditions.append(reduce(lambda x, y: x & y, c))
 

@@ -52,28 +52,29 @@ class EMA50(IStrategy):
     sell_fisher = DecimalParameter(-1, 1, decimals=2, default=-0.30, space="sell")
     sell_standard_triggers = CategoricalParameter([True, False], default=False, space="sell")
     sell_hold = CategoricalParameter([True, False], default=True, space="sell")
-    sell_hold = CategoricalParameter([True, False], default=False, space="sell")
+    sell_hold = CategoricalParameter([True, False], default=True, space="sell")
 
     # Strategy interface version - allow new iterations of the strategy interface.
     # Check the documentation or the Sample strategy to get the latest version.
     INTERFACE_VERSION = 2
 
+
     # ROI table:
     minimal_roi = {
-        "0": 0.089,
-        "19": 0.049,
-        "40": 0.03,
-        "55": 0
+        "0": 0.278,
+        "39": 0.087,
+        "124": 0.038,
+        "135": 0
     }
-
-    # Stoploss:
-    stoploss = -0.046
 
     # Trailing stop:
     trailing_stop = True
-    trailing_stop_positive = 0.3
-    trailing_stop_positive_offset = 0.372
+    trailing_stop_positive = 0.172
+    trailing_stop_positive_offset = 0.212
     trailing_only_offset_is_reached = False
+
+    # Stoploss:
+    stoploss = -0.333
 
     # Optimal timeframe for the strategy.
     timeframe = '5m'

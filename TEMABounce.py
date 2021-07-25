@@ -13,55 +13,48 @@ from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, Int
 import talib.abstract as ta
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 import numpy # noqa
-# --------------------------------
-# Add your lib to import here
-from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, IntParameter
+import math
 
 from user_data.strategies import Config
 
+# --------------------------------
+# Add your lib to import here
 
-class MACDTurn(IStrategy):
+
+class TEMABounce(IStrategy):
     """
-    Detects a direction change in the MACD Histogram
-    More information in https://www.freqtrade.io/en/latest/strategy-customization/
+    Simple strategy that looks for prices falling a sepcificed distance below a long-term TEMA
 
-    You can:
-        :return: a Dataframe with all mandatory indicators for the strategies
-    - Rename the class name (Do not forget to update class_name)
-    - Add any methods you want to build your strategy
-    - Add any lib you need to build your strategy
-
-    You must keep:
-    - the lib in the section "Do not remove these libs"
-    - the methods: populate_indicators, populate_buy_trend, populate_sell_trend
-    You should keep:
-    - timeframe, minimal_roi, stoploss, trailing_*
     """
 
+    buy_params = {
+        "buy_bb_enabled": True,
+        "buy_bb_gain": 0.1,
+        "buy_diff": 0.094,
+        "buy_long_period": 80,
+        "buy_macd_enabled": False,
+        "buy_short_period": 13,
+    }
 
-    buy_mfi = DecimalParameter(10, 100, decimals=0, default=79, space="buy")
-    buy_adx = DecimalParameter(1, 99, decimals=0, default=1, space="buy")
-    buy_fisher = DecimalParameter(-1, 1, decimals=2, default=0.18, space="buy")
+    buy_long_period = IntParameter(20, 100, default=80, space="buy")
+    buy_short_period = IntParameter(5, 15, default=13, space="buy")
 
-    buy_period = IntParameter(3, 20, default=16, space="buy")
-    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.04, space="buy")
+    buy_diff = DecimalParameter(0.01, 0.10, decimals=3, default=0.094, space="buy")
+    buy_macd_enabled = CategoricalParameter([True, False], default=False, space="buy")
+
+    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.1, space="buy")
     buy_bb_enabled = CategoricalParameter([True, False], default=True, space="buy")
 
-    buy_neg_macd_enabled = CategoricalParameter([True, False], default=True, space="buy")
-    buy_adx_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_dm_enabled = CategoricalParameter([True, False], default=True, space="buy")
-    buy_mfi_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_sar_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_fisher_enabled = CategoricalParameter([True, False], default=True, space="buy")
-
+    sell_diff = DecimalParameter(0.01, 0.10, decimals=3, default=0.057, space="sell")
     sell_hold = CategoricalParameter([True, False], default=True, space="sell")
-    sell_macd_enabled = CategoricalParameter([True, False], default=False, space="sell")
 
     # Strategy interface version - allow new iterations of the strategy interface.
     # Check the documentation or the Sample strategy to get the latest version.
     INTERFACE_VERSION = 2
+    
 
-    startup_candle_count = max(2*buy_period.value, 40)
+    # set the startup candles count to the longest average used (EMA, EMA etc)
+    startup_candle_count = max(buy_long_period.value, 20)
 
     # set common parameters
     minimal_roi = Config.minimal_roi
@@ -106,17 +99,17 @@ class MACDTurn(IStrategy):
         # ------------------------------------
 
         # ADX
-        dataframe['adx'] = ta.ADX(dataframe)
+        # dataframe['adx'] = ta.ADX(dataframe)
 
         # Plus Directional Indicator / Movement
-        dataframe['dm_plus'] = ta.PLUS_DM(dataframe)
-        dataframe['di_plus'] = ta.PLUS_DI(dataframe)
+        # dataframe['dm_plus'] = ta.PLUS_DM(dataframe)
+        # dataframe['di_plus'] = ta.PLUS_DI(dataframe)
 
         # Minus Directional Indicator / Movement
-        dataframe['dm_minus'] = ta.MINUS_DM(dataframe)
-        dataframe['di_minus'] = ta.MINUS_DI(dataframe)
-        dataframe['dm_delta'] = dataframe['dm_plus'] - dataframe['dm_minus']
-        dataframe['di_delta'] = dataframe['di_plus'] - dataframe['di_minus']
+        # dataframe['dm_minus'] = ta.MINUS_DM(dataframe)
+        # dataframe['di_minus'] = ta.MINUS_DI(dataframe)
+        # dataframe['dm_delta'] = dataframe['dm_plus'] - dataframe['dm_minus']
+        # dataframe['di_delta'] = dataframe['di_plus'] - dataframe['di_minus']
 
         # # Aroon, Aroon Oscillator
         # aroon = ta.AROON(dataframe)
@@ -151,11 +144,11 @@ class MACDTurn(IStrategy):
 
 
         # Inverse Fisher transform on RSI, values [-1.0, 1.0] (https://goo.gl/2JGGoy)
-        rsi = 0.1 * (dataframe['rsi'] - 50)
-        dataframe['fisher_rsi'] = (numpy.exp(2 * rsi) - 1) / (numpy.exp(2 * rsi) + 1)
+        # rsi = 0.1 * (dataframe['rsi'] - 50)
+        # dataframe['fisher_rsi'] = (numpy.exp(2 * rsi) - 1) / (numpy.exp(2 * rsi) + 1)
 
         # Inverse Fisher transform on RSI normalized: values [0.0, 100.0] (https://goo.gl/2JGGoy)
-        dataframe['fisher_rsi_norma'] = 50 * (dataframe['fisher_rsi'] + 1)
+        # dataframe['fisher_rsi_norma'] = 50 * (dataframe['fisher_rsi'] + 1)
 
         # # Stochastic Slow
         # stoch = ta.STOCH(dataframe)
@@ -163,9 +156,9 @@ class MACDTurn(IStrategy):
         # dataframe['slowk'] = stoch['slowk']
 
         # Stochastic Fast
-        stoch_fast = ta.STOCHF(dataframe)
-        dataframe['fastd'] = stoch_fast['fastd']
-        dataframe['fastk'] = stoch_fast['fastk']
+        # stoch_fast = ta.STOCHF(dataframe)
+        # dataframe['fastd'] = stoch_fast['fastd']
+        # dataframe['fastk'] = stoch_fast['fastk']
 
         # # Stochastic RSI
         # Please read https://github.com/freqtrade/freqtrade/issues/2961 before using this.
@@ -179,13 +172,9 @@ class MACDTurn(IStrategy):
         dataframe['macd'] = macd['macd']
         dataframe['macdsignal'] = macd['macdsignal']
         dataframe['macdhist'] = macd['macdhist']
-        dataframe['macdhist_ave'] = ta.LINEARREG(ta.TEMA(macd['macdhist'], timeperiod=self.buy_period.value),
-                                                 timeperiod=self.buy_period.value
-                                                 )
-        dataframe['macdhist_slope'] = ta.LINEARREG_SLOPE(dataframe['macdhist_ave'], timeperiod=3)
 
         # MFI
-        dataframe['mfi'] = ta.MFI(dataframe)
+        # dataframe['mfi'] = ta.MFI(dataframe)
 
         # # ROC
         # dataframe['roc'] = ta.ROC(dataframe)
@@ -227,14 +216,28 @@ class MACDTurn(IStrategy):
         # dataframe['ema5'] = ta.EMA(dataframe, timeperiod=5)
         # dataframe['ema10'] = ta.EMA(dataframe, timeperiod=10)
         # dataframe['ema21'] = ta.EMA(dataframe, timeperiod=21)
-        #dataframe['ema50'] = ta.EMA(dataframe, timeperiod=50)
+        # dataframe['ema50'] = ta.EMA(dataframe, timeperiod=50)
         # dataframe['ema100'] = ta.EMA(dataframe, timeperiod=100)
         #dataframe['ema200'] = ta.EMA(dataframe, timeperiod=200)
 
-        dataframe['ema7'] = ta.EMA(dataframe, timeperiod=7)
-        dataframe['ema25'] = ta.EMA(dataframe, timeperiod=25)
+        # dataframe['ema7'] = ta.EMA(dataframe, timeperiod=7)
+        # dataframe['ema25'] = ta.EMA(dataframe, timeperiod=25)
+        
+        dataframe['tema'] = ta.TEMA(dataframe, timeperiod=self.buy_long_period.value)
+        dataframe['tema_short'] = ta.TEMA(dataframe, timeperiod=self.buy_short_period.value)
+        dataframe['tema_angle'] = ta.LINEARREG_SLOPE(dataframe['tema_short'], timeperiod=3) / (2.0 * math.pi)
+        dataframe['tema_diff'] = (((dataframe['tema'] - dataframe['close']) /
+                                      dataframe['close'])) \
+                                    - self.buy_diff.value
+
+        # use a shorter frame EMA to find turnaround point
+        dataframe['tema_angle'] = ta.LINEARREG_SLOPE(dataframe['tema_short'], timeperiod=3) / (2.0 * math.pi)
+
+        # zero-based %age diff relative to goal (easier to visualise)
+        # dataframe['tema_diff'] = (((dataframe['tema'] - dataframe['close']) / dataframe['close'])) - self.buy_diff.value
 
         # # SMA - Simple Moving Average
+        dataframe['sma'] = ta.SMA(dataframe, timeperiod=self.buy_long_period.value)
         # dataframe['sma3'] = ta.SMA(dataframe, timeperiod=3)
         # dataframe['sma5'] = ta.SMA(dataframe, timeperiod=5)
         # dataframe['sma10'] = ta.SMA(dataframe, timeperiod=10)
@@ -246,7 +249,7 @@ class MACDTurn(IStrategy):
         dataframe['sar'] = ta.SAR(dataframe)
 
         # TEMA - Triple Exponential Moving Average
-        dataframe['tema'] = ta.TEMA(dataframe, timeperiod=9)
+        # dataframe['tema'] = ta.TEMA(dataframe, timeperiod=9)
 
         # Cycle Indicator
         # ------------------------------------
@@ -327,24 +330,16 @@ class MACDTurn(IStrategy):
 
         # GUARDS AND TRENDS
 
-        if self.buy_adx_enabled.value:
-            conditions.append(dataframe['adx'] >= self.buy_adx.value)
 
-        if self.buy_dm_enabled.value:
-            conditions.append(dataframe['dm_delta'] > 0)
+        # check that volume is not 0
+        conditions.append(dataframe['volume'] > 0)
 
-        if self.buy_mfi_enabled.value:
-            conditions.append(dataframe['mfi'] > self.buy_mfi.value)
+        # MACD OK?
+        if self.buy_macd_enabled.value:
+            conditions.append(dataframe['macdhist'] >= 0)
 
-        # only buy if close is below SAR
-        if self.buy_sar_enabled.value:
-            conditions.append(dataframe['close'] < dataframe['sar'])
-
-        if self.buy_fisher_enabled.value:
-            conditions.append(dataframe['fisher_rsi'] < self.buy_fisher.value)
-
-        if self.buy_neg_macd_enabled.value:
-            conditions.append(dataframe['macd'] < 0.0)
+        # price is far enough below EMA
+        conditions.append(dataframe['tema_diff'] > 0.0)
 
         # potential gain > goal
         if self.buy_bb_enabled.value:
@@ -352,30 +347,8 @@ class MACDTurn(IStrategy):
 
         # TRIGGERS
 
-        # -ve macdhist
-        conditions.append(dataframe['macdhist'] < 0.0)
-
-        # averaged value, so check it exists
-        conditions.append(dataframe['macdhist_slope'].notnull())
-
-        # check for a transition from down to up
-        conditions.append(qtpylib.crossed_above(dataframe['macdhist_slope'], 0))
-        #
-        #
-        # # n_post candles going up (plus current candle)
-        # if self.buy_num_post.value >= 1:
-        #     for i in range((self.buy_num_post.value+1)):
-        #         conditions.append(dataframe['macdhist_ave'].shift(i) > dataframe['macdhist_ave'].shift(i+1))
-        #
-        # # n_pre candles going down
-        # # n_post candles going up (plus current candle)
-        # if self.buy_num_pre.value >= 1:
-        #     for i in range((self.buy_num_pre.value)):
-        #         j = i + self.buy_num_post.value + 1
-        #         conditions.append(dataframe['macdhist_ave'].shift(j) < dataframe['macdhist_ave'].shift(j+1))
-
-        # check that volume is not 0
-        #conditions.append(dataframe['volume'] > 0)
+        # TEMA flattened?
+        conditions.append(qtpylib.crossed_above(dataframe['tema_angle'], 0))
 
         # build the dataframe using the conditions
         if conditions:
@@ -397,9 +370,15 @@ class MACDTurn(IStrategy):
             dataframe.loc[(dataframe['close'].notnull() ), 'sell'] = 0
 
         else:
-            # check for transition from up to down
-            if self.sell_macd_enabled:
-                conditions.append((dataframe['macd'] > 0.0))
+
+            # EMA flattened?
+            conditions.append(qtpylib.crossed_below(dataframe['tema_angle'], 0))
+
+            # price above EMA
+            conditions.append(dataframe['close'] > dataframe['tema'])
+
+            # sell if price is far enough above EMA
+            conditions.append(dataframe['tema_diff'] >= -self.sell_diff.value)
 
             if conditions:
                 dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1

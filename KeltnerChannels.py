@@ -9,6 +9,9 @@ from pandas import DataFrame
 import talib.abstract as ta
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 import numpy # noqa
+from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, IntParameter
+
+from user_data.strategies import Config
 
 
 class KeltnerChannels(IStrategy):
@@ -19,41 +22,52 @@ class KeltnerChannels(IStrategy):
     > python3 ./freqtrade/main.py -s KeltnerChannels
     """
 
-    # ROI table:
-    minimal_roi = {
-        "0": 0.085,
-        "10": 0.036,
-        "48": 0.011,
-        "114": 0
+    buy_params = {
+        "buy_adx": 47.0,
+        "buy_adx_enabled": True,
+        "buy_dm_enabled": True,
+        "buy_ema_enabled": False,
+        "buy_fisher": 0.95,
+        "buy_fisher_enabled": False,
+        "buy_macd_enabled": False,
+        "buy_mfi": 44.0,
+        "buy_mfi_enabled": True,
+        "buy_sar_enabled": True,
+        "buy_sma_enabled": False,
     }
 
-    # Stoploss:
-    stoploss = -0.021
+    buy_adx = DecimalParameter(1, 99, decimals=0, default=30, space="buy")
+    buy_mfi = DecimalParameter(1, 99, decimals=0, default=50, space="buy")
+    buy_fisher = DecimalParameter(-1.0, 1.0, decimals=2, default=0.81, space="buy")
 
-    # Trailing stop:
-    trailing_stop = True
-    trailing_stop_positive = 0.339
-    trailing_stop_positive_offset = 0.373
-    trailing_only_offset_is_reached = False
+    buy_adx_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_dm_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_mfi_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_sma_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_ema_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_sar_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_macd_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_fisher_enabled = CategoricalParameter([True, False], default=True, space="buy")
 
-    # Optimal timeframe for the strategy
-    timeframe = '5m'
+    sell_hold = CategoricalParameter([True, False], default=True, space="sell")
 
-    # run "populate_indicators" only for new candle
-    process_only_new_candles = False
+    # set the startup candles count to the longest average used (SMA, EMA etc)
+    startup_candle_count = 50
 
-    # Experimental settings (configuration will overide these if set)
-    use_sell_signal = True
-    sell_profit_only = True
-    ignore_roi_if_buy_signal = False
+    # set common parameters
+    minimal_roi = Config.minimal_roi
+    trailing_stop = Config.trailing_stop
+    trailing_stop_positive = Config.trailing_stop_positive
+    trailing_stop_positive_offset = Config.trailing_stop_positive_offset
+    trailing_only_offset_is_reached = Config.trailing_only_offset_is_reached
+    stoploss = Config.stoploss
+    timeframe = Config.timeframe
+    process_only_new_candles = Config.process_only_new_candles
+    use_sell_signal = Config.use_sell_signal
+    sell_profit_only = Config.sell_profit_only
+    ignore_roi_if_buy_signal = Config.ignore_roi_if_buy_signal
+    order_types = Config.order_types
 
-    # Optional order type mapping
-    order_types = {
-        'buy': 'limit',
-        'sell': 'limit',
-        'stoploss': 'market',
-        'stoploss_on_exchange': False
-    }
 
     def informative_pairs(self):
         """
@@ -77,8 +91,20 @@ class KeltnerChannels(IStrategy):
         or your hyperopt configuration, otherwise you will waste your memory and CPU usage.
         """
 
+        # ADX
+        dataframe['adx'] = ta.ADX(dataframe)
+        dataframe['dm_plus'] = ta.PLUS_DM(dataframe)
+        dataframe['dm_minus'] = ta.MINUS_DM(dataframe)
+        dataframe['dm_delta'] = dataframe['dm_plus'] - dataframe['dm_minus']
+
         # MFI
         dataframe['mfi'] = ta.MFI(dataframe)
+
+        # MACD
+        macd = ta.MACD(dataframe)
+        dataframe['macd'] = macd['macd']
+        dataframe['macdsignal'] = macd['macdsignal']
+        dataframe['macdhist'] = macd['macdhist']
 
         # # Keltner Channel
         keltner = qtpylib.keltner_channel(dataframe)
@@ -92,6 +118,7 @@ class KeltnerChannels(IStrategy):
         dataframe["kc_width"] = (
             (dataframe["kc_upperband"] - dataframe["kc_lowerband"]) / dataframe["kc_middleband"]
         )
+        dataframe['kc_diff'] = (dataframe['kc_upperband'] - dataframe['close'])
 
         # Stoch fast
         stoch_fast = ta.STOCHF(dataframe)
@@ -132,12 +159,46 @@ class KeltnerChannels(IStrategy):
         long position when close is above 200 SMA and close is above upper band
 
         """
-        dataframe.loc[
-            (
-                (dataframe['close'] > dataframe['ema100']) &
-                (dataframe['close'] > dataframe['kc_upperband'])
-            ),
-            'buy'] = 1
+        conditions = []
+
+        if self.buy_sar_enabled.value:
+            conditions.append(dataframe['sar'].notnull())
+            conditions.append(dataframe['close'] < dataframe['sar'])
+
+        if self.buy_sma_enabled.value:
+            conditions.append(dataframe['sma'].notnull())
+            conditions.append(dataframe['close'] > dataframe['sma'])
+
+        if self.buy_ema_enabled.value:
+            conditions.append(dataframe['ema50'].notnull())
+            conditions.append(dataframe['close'] > dataframe['ema50'])
+
+        if self.buy_mfi_enabled.value:
+            conditions.append(dataframe['mfi'].notnull())
+            conditions.append(dataframe['mfi'] >= self.buy_mfi.value)
+
+        # ADX with DM+ > DM- indicates uptrend
+        if self.buy_adx_enabled.value:
+            conditions.append(dataframe['adx'] >= self.buy_adx.value)
+
+        if self.buy_dm_enabled.value:
+            conditions.append(dataframe['dm_delta'] > 0)
+
+        if self.buy_macd_enabled.value:
+            conditions.append(dataframe['macd'] > dataframe['macdsignal'])
+
+        if self.buy_fisher_enabled.value:
+            conditions.append(dataframe['fisher_rsi']  < self.buy_fisher.value)
+
+        # TRIGGERS
+        conditions.append(
+            (dataframe['close'] >= dataframe['kc_upperband']) &
+            (dataframe['close'].shift(1) < dataframe['kc_upperband'].shift(1))
+        )
+
+        # build the dataframe using the conditions
+        if conditions:
+            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
 
         return dataframe
 
@@ -149,6 +210,11 @@ class KeltnerChannels(IStrategy):
 
         close if price is below Keltner lower band
         """
+        # if hold, then don't set a sell signal
+        if self.sell_hold.value:
+            dataframe.loc[(dataframe['close'].notnull() ), 'sell'] = 0
+            return dataframe
+
         # Exit long position if price is above sma(5) or MFI > 90
         dataframe.loc[
             (

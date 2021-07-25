@@ -9,6 +9,9 @@ from pandas import DataFrame
 import talib.abstract as ta
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 import numpy # noqa
+from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, IntParameter
+
+from user_data.strategies import Config
 
 
 class MFI2(IStrategy):
@@ -18,42 +21,57 @@ class MFI2(IStrategy):
     How to use it?
     > python3 ./freqtrade/main.py -s MFI2
     """
-
-    # ROI table:
-    minimal_roi = {
-        "0": 0.237,
-        "33": 0.066,
-        "45": 0.033,
-        "135": 0
+    buy_params = {
+        "buy_adx": 38.0,
+        "buy_adx_enabled": False,
+        "buy_bb_enabled": True,
+        "buy_bb_gain": 0.09,
+        "buy_dm_enabled": False,
+        "buy_ema_enabled": False,
+        "buy_fisher": -0.01,
+        "buy_fisher_enabled": True,
+        "buy_mfi": 4.9,
+        "buy_mfi_enabled": False,
+        "buy_neg_macd_enabled": False,
+        "buy_rsi": 24.8,
+        "buy_rsi_enabled": False,
+        "buy_sar_enabled": False,
     }
+    buy_rsi = DecimalParameter(0.1, 25, decimals=1, default=20, space="buy")
+    buy_mfi = DecimalParameter(0.1, 10, decimals=1, default=2, space="buy")
+    buy_adx = DecimalParameter(1, 99, decimals=0, default=1, space="buy")
+    buy_fisher = DecimalParameter(-1, 1, decimals=2, default=0.18, space="buy")
 
-    # Stoploss:
-    stoploss = -0.31
+    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.04, space="buy")
+    buy_bb_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_neg_macd_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_rsi_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_ema_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_adx_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_dm_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_mfi_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_sar_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_fisher_enabled = CategoricalParameter([True, False], default=True, space="buy")
 
-    # Trailing stop:
-    trailing_stop = True
-    trailing_stop_positive = 0.195
-    trailing_stop_positive_offset = 0.226
-    trailing_only_offset_is_reached = True
+    sell_mfi = DecimalParameter(80, 100, decimals=0, default=95, space="sell")
+    sell_hold_enabled = CategoricalParameter([True, False], default=True, space="sell")
 
-    # Optimal timeframe for the strategy
-    timeframe = '5m'
 
-    # run "populate_indicators" only for new candle
-    process_only_new_candles = False
+    startup_candle_count = 20
 
-    # Experimental settings (configuration will overide these if set)
-    use_sell_signal = True
-    sell_profit_only = True
-    ignore_roi_if_buy_signal = False
-
-    # Optional order type mapping
-    order_types = {
-        'buy': 'limit',
-        'sell': 'limit',
-        'stoploss': 'market',
-        'stoploss_on_exchange': False
-    }
+    # set common parameters
+    minimal_roi = Config.minimal_roi
+    trailing_stop = Config.trailing_stop
+    trailing_stop_positive = Config.trailing_stop_positive
+    trailing_stop_positive_offset = Config.trailing_stop_positive_offset
+    trailing_only_offset_is_reached = Config.trailing_only_offset_is_reached
+    stoploss = Config.stoploss
+    timeframe = Config.timeframe
+    process_only_new_candles = Config.process_only_new_candles
+    use_sell_signal = Config.use_sell_signal
+    sell_profit_only = Config.sell_profit_only
+    ignore_roi_if_buy_signal = Config.ignore_roi_if_buy_signal
+    order_types = Config.order_types
 
     def informative_pairs(self):
         """
@@ -77,8 +95,27 @@ class MFI2(IStrategy):
         or your hyperopt configuration, otherwise you will waste your memory and CPU usage.
         """
 
+        # ADX
+        dataframe['adx'] = ta.ADX(dataframe)
+
+        # Plus Directional Indicator / Movement
+        dataframe['dm_plus'] = ta.PLUS_DM(dataframe)
+        dataframe['di_plus'] = ta.PLUS_DI(dataframe)
+
+        # Minus Directional Indicator / Movement
+        dataframe['dm_minus'] = ta.MINUS_DM(dataframe)
+        dataframe['di_minus'] = ta.MINUS_DI(dataframe)
+        dataframe['dm_delta'] = dataframe['dm_plus'] - dataframe['dm_minus']
+        dataframe['di_delta'] = dataframe['di_plus'] - dataframe['di_minus']
+
         # MFI
         dataframe['mfi'] = ta.MFI(dataframe)
+
+        # MACD
+        macd = ta.MACD(dataframe)
+        dataframe['macd'] = macd['macd']
+        dataframe['macdsignal'] = macd['macdsignal']
+        dataframe['macdhist'] = macd['macdhist']
 
         # Stoch fast
         stoch_fast = ta.STOCHF(dataframe)
@@ -95,6 +132,8 @@ class MFI2(IStrategy):
         # Bollinger bands
         bollinger = qtpylib.bollinger_bands(qtpylib.typical_price(dataframe), window=20, stds=2)
         dataframe['bb_lowerband'] = bollinger['lower']
+        dataframe['bb_upperband'] = bollinger['upper']
+        dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
 
         # EMA - Exponential Moving Average
         dataframe['ema5'] = ta.EMA(dataframe, timeperiod=5)
@@ -116,12 +155,38 @@ class MFI2(IStrategy):
         :param dataframe: DataFrame
         :return: DataFrame with buy column
         """
-        dataframe.loc[
-            (
-                #(dataframe['close'] > dataframe['ema100']) &
-                (dataframe['mfi'] <= 10.0)
-            ),
-            'buy'] = 1
+        conditions = []
+
+        # GUARDS AND TRENDS
+
+        if self.buy_ema_enabled.value:
+            conditions.append(dataframe['close'] < dataframe['ema5'])
+
+        if self.buy_rsi_enabled.value:
+            conditions.append(dataframe['rsi'] > self.buy_rsi.value)
+
+        if self.buy_dm_enabled.value:
+            conditions.append(dataframe['dm_delta'] > 0)
+
+        if self.buy_mfi_enabled.value:
+            conditions.append(dataframe['mfi'] <= self.buy_mfi.value)
+
+        # only buy if close is below SAR
+        if self.buy_sar_enabled.value:
+            conditions.append(dataframe['close'] < dataframe['sar'])
+
+        if self.buy_fisher_enabled.value:
+            conditions.append(dataframe['fisher_rsi'] < self.buy_fisher.value)
+
+        if self.buy_neg_macd_enabled.value:
+            conditions.append(dataframe['macd'] < 0.0)
+
+        # potential gain > goal
+        if self.buy_bb_enabled.value:
+            conditions.append(dataframe['bb_gain'] >= self.buy_bb_gain.value)
+
+        if conditions:
+            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
 
         return dataframe
 
@@ -131,11 +196,16 @@ class MFI2(IStrategy):
         :param dataframe: DataFrame
         :return: DataFrame with buy column
         """
-        # Exit long position if price is above sma(5) or MFI > 90
-        dataframe.loc[
-            (
-                #(dataframe['close'] > dataframe['ema5']) |
-                (dataframe['mfi'] >= 90.0)
-            ),
-            'sell'] = 1
+        if self.sell_hold_enabled.value:
+            dataframe.loc[(dataframe['close'].notnull() ), 'sell'] = 0
+
+        else:
+            # Exit long position if price is above sma(5) or MFI > 90
+            dataframe.loc[
+                (
+                    (dataframe['close'] > dataframe['ema5']) &
+                    (dataframe['mfi'] > self.sell_mfi.value)
+                ),
+                'sell'] = 1
+
         return dataframe

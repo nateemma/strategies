@@ -16,6 +16,8 @@ import numpy # noqa
 # --------------------------------
 # Add your lib to import here
 
+from user_data.strategies import Config
+
 
 class MACDCross(IStrategy):
     """
@@ -35,17 +37,37 @@ class MACDCross(IStrategy):
     - timeframe, minimal_roi, stoploss, trailing_*
     """
 
+    # Buy hyperspace params:
+    buy_params = {
+        "buy_adx": 1.0,
+        "buy_adx_enabled": False,
+        "buy_bb_enabled": True,
+        "buy_bb_gain": 0.04,
+        "buy_dm_enabled": True,
+        "buy_fisher": 0.18,
+        "buy_fisher_enabled": True,
+        "buy_mfi": 79.0,
+        "buy_mfi_enabled": False,
+        "buy_neg_macd_enabled": True,
+        "buy_period": 16,
+        "buy_sar_enabled": False,
+    }
+
+
+    buy_mfi = DecimalParameter(10, 100, decimals=0, default=79, space="buy")
+    buy_adx = DecimalParameter(1, 99, decimals=0, default=1, space="buy")
+    buy_fisher = DecimalParameter(-1, 1, decimals=2, default=0.18, space="buy")
+
+    buy_period = IntParameter(3, 20, default=16, space="buy")
+    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.04, space="buy")
+    buy_bb_enabled = CategoricalParameter([True, False], default=True, space="buy")
+
     buy_neg_macd_enabled = CategoricalParameter([True, False], default=True, space="buy")
-
-    buy_mfi = DecimalParameter(10, 100, decimals=0, default=86, space="buy")
-    buy_adx = DecimalParameter(1, 99, decimals=0, default=20, space="buy")
-    buy_fisher = DecimalParameter(-1, 1, decimals=2, default=-0.37, space="buy")
-
     buy_adx_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_dm_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_mfi_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_dm_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_mfi_enabled = CategoricalParameter([True, False], default=False, space="buy")
     buy_sar_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_fisher_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_fisher_enabled = CategoricalParameter([True, False], default=True, space="buy")
 
     sell_hold = CategoricalParameter([True, False], default=True, space="sell")
     sell_pos_macd_enabled = CategoricalParameter([True, False], default=True, space="sell")
@@ -54,71 +76,25 @@ class MACDCross(IStrategy):
     # Check the documentation or the Sample strategy to get the latest version.
     INTERFACE_VERSION = 2
 
-    # ROI table:
-    minimal_roi = {
-        "0": 0.089,
-        "19": 0.049,
-        "40": 0.03,
-        "55": 0
-    }
 
-    # Stoploss:
-    stoploss = -0.046
+    # set the startup candles count to the longest average used (EMA, EMA etc)
+    startup_candle_count = max(buy_period.value, 20)
 
-    # Trailing stop:
-    trailing_stop = True
-    trailing_stop_positive = 0.3
-    trailing_stop_positive_offset = 0.372
-    trailing_only_offset_is_reached = False
+    # set common parameters
+    minimal_roi = Config.minimal_roi
+    trailing_stop = Config.trailing_stop
+    trailing_stop_positive = Config.trailing_stop_positive
+    trailing_stop_positive_offset = Config.trailing_stop_positive_offset
+    trailing_only_offset_is_reached = Config.trailing_only_offset_is_reached
+    stoploss = Config.stoploss
+    timeframe = Config.timeframe
+    process_only_new_candles = Config.process_only_new_candles
+    use_sell_signal = Config.use_sell_signal
+    sell_profit_only = Config.sell_profit_only
+    ignore_roi_if_buy_signal = Config.ignore_roi_if_buy_signal
+    order_types = Config.order_types
 
-    # Optimal timeframe for the strategy.
-    timeframe = '5m'
 
-    # Run "populate_indicators()" only for new candle.
-    process_only_new_candles = False
-
-    # These values can be overridden in the "ask_strategy" section in the config.
-    use_sell_signal = True
-    sell_profit_only = True
-    ignore_roi_if_buy_signal = False
-
-    # Number of candles the strategy requires before producing valid signals
-    startup_candle_count: int = 30
-
-    # Optional order type mapping.
-    order_types = {
-        'buy': 'limit',
-        'sell': 'limit',
-        'stoploss': 'market',
-        'stoploss_on_exchange': False
-    }
-
-    # Optional order time in force.
-    order_time_in_force = {
-        'buy': 'gtc',
-        'sell': 'gtc'
-    }
-    
-    plot_config = {
-        # Main plot indicators (Moving averages, ...)
-        'main_plot': {
-            'tema': {},
-            'sar': {'color': 'white'},
-        },
-        'subplots': {
-            # Subplots - each dict defines one additional plot
-            "MACD": {
-                'macd': {'color': 'blue'},
-                'macdsignal': {'color': 'orange'},
-            },
-            "RSI": {
-                'rsi': {'color': 'red'},
-            },
-            "MFI": {
-                'mfi': {'color': 'green'},
-            }
-        }
-    }
     def informative_pairs(self):
         """
         Define additional, informative pair/interval combinations to be cached from the exchange.
@@ -243,6 +219,8 @@ class MACDCross(IStrategy):
         dataframe["bb_width"] = (
             (dataframe["bb_upperband"] - dataframe["bb_lowerband"]) / dataframe["bb_middleband"]
         )
+
+        dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
 
         # Bollinger Bands - Weighted (EMA based instead of SMA)
         # weighted_bollinger = qtpylib.weighted_bollinger_bands(
@@ -382,6 +360,10 @@ class MACDCross(IStrategy):
 
         if self.buy_neg_macd_enabled.value:
             conditions.append(dataframe['macd'] < 0.0)
+
+        # potential gain > goal
+        if self.buy_bb_enabled.value:
+            conditions.append(dataframe['bb_gain'] >= self.buy_bb_gain.value)
 
         # Triggers
         conditions.append(qtpylib.crossed_above(dataframe['macd'], dataframe['macdsignal']))

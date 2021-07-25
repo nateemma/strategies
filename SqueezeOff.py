@@ -11,6 +11,8 @@ import freqtrade.vendor.qtpylib.indicators as qtpylib
 import numpy # noqa
 from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, IntParameter
 
+from user_data.strategies import Config
+
 
 
 class SqueezeOff(IStrategy):
@@ -22,68 +24,55 @@ class SqueezeOff(IStrategy):
     """
 
     # Hyperparameters
+    # Buy hyperspace params:
+    buy_params = {
+        "buy_adx": 22.0,
+        "buy_adx_enabled": False,
+        "buy_bb_enabled": True,
+        "buy_bb_gain": 0.09,
+        "buy_dm_enabled": False,
+        "buy_fisher": -0.97,
+        "buy_fisher_enabled": False,
+        "buy_macd_enabled": False,
+        "buy_mfi": 9.0,
+        "buy_mfi_enabled": False,
+        "buy_period": 6,
+        "buy_sar_enabled": True,
+    }
+    buy_period = IntParameter(3, 20, default=6, space="buy")
+    buy_adx = DecimalParameter(1, 99, decimals=0, default=22, space="buy")
+    buy_mfi = DecimalParameter(1, 99, decimals=0, default=9, space="buy")
+    buy_fisher = DecimalParameter(-1, 1, decimals=2, default=-0.97, space="buy")
+    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.09, space="buy")
 
-    buy_period = IntParameter(3, 20, default=15, space="buy")
-    buy_adx = DecimalParameter(1, 99, decimals=0, default=28, space="buy")
-    buy_mfi = DecimalParameter(1, 99, decimals=0, default=30, space="buy")
-    buy_fisher = DecimalParameter(-1, 1, decimals=2, default=-0.72, space="buy")
-
-    buy_adx_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_bb_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_adx_enabled = CategoricalParameter([True, False], default=False, space="buy")
     buy_dm_enabled = CategoricalParameter([True, False], default=False, space="buy")
     buy_macd_enabled = CategoricalParameter([True, False], default=False, space="buy")
     buy_mfi_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_sar_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_fisher_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_sar_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_fisher_enabled = CategoricalParameter([True, False], default=False, space="buy")
 
     sell_hold = CategoricalParameter([True, False], default=True, space="sell")
     sell_abort = CategoricalParameter([True, False], default=False, space="sell")
 
     # set the startup candles count to the longest average used (SMA, EMA etc)
-    startup_candle_count = max(buy_period.value, 10)
+    startup_candle_count = max(buy_period.value, 20)
 
-    # ROI table:
-    # minimal_roi = {
-    #     "0": 0.233,
-    #     "40": 0.044,
-    #     "75": 0.019,
-    #     "195": 0
-    # }
+    # set common parameters
+    minimal_roi = Config.minimal_roi
+    trailing_stop = Config.trailing_stop
+    trailing_stop_positive = Config.trailing_stop_positive
+    trailing_stop_positive_offset = Config.trailing_stop_positive_offset
+    trailing_only_offset_is_reached = Config.trailing_only_offset_is_reached
+    stoploss = Config.stoploss
+    timeframe = Config.timeframe
+    process_only_new_candles = Config.process_only_new_candles
+    use_sell_signal = Config.use_sell_signal
+    sell_profit_only = Config.sell_profit_only
+    ignore_roi_if_buy_signal = Config.ignore_roi_if_buy_signal
+    order_types = Config.order_types
 
-    # ROI table:
-    minimal_roi = {
-        "0": 0.229,
-        "17": 0.038,
-        "30": 0.016,
-        "40": 0
-    }
-
-    # Stoploss:
-    stoploss = -0.088
-
-    # Trailing stop:
-    trailing_stop = True
-    trailing_stop_positive = 0.107
-    trailing_stop_positive_offset = 0.116
-    trailing_only_offset_is_reached = True
-
-    # Optimal timeframe for the strategy
-    timeframe = '5m'
-
-    # run "populate_indicators" only for new candle
-    process_only_new_candles = False
-
-    # Experimental settings (configuration will overide these if set)
-    use_sell_signal = True
-    sell_profit_only = True
-    ignore_roi_if_buy_signal = True
-
-    # Optional order type mapping
-    order_types = {
-        'buy': 'limit',
-        'sell': 'limit',
-        'stoploss': 'market',
-        'stoploss_on_exchange': False
-    }
 
     def informative_pairs(self):
         """
@@ -141,11 +130,12 @@ class SqueezeOff(IStrategy):
         dataframe['fisher_rsi'] = (numpy.exp(2 * rsi) - 1) / (numpy.exp(2 * rsi) + 1)
 
         # Bollinger Bands
-        bollinger = qtpylib.bollinger_bands(qtpylib.typical_price(dataframe), window=self.buy_period.value, stds=2)
+        bollinger = qtpylib.bollinger_bands(qtpylib.typical_price(dataframe), window=20, stds=2)
         #bollinger = qtpylib.weighted_bollinger_bands(qtpylib.typical_price(dataframe), window=self.buy_period.value, stds=2)
         dataframe['bb_upperband'] = bollinger['upper']
         dataframe['bb_mid'] = bollinger['mid']
         dataframe['bb_lowerband'] = bollinger['lower']
+        dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
 
         # Keltner Channel
         keltner = qtpylib.keltner_channel(dataframe)
@@ -212,6 +202,10 @@ class SqueezeOff(IStrategy):
 
         if self.buy_fisher_enabled.value:
             conditions.append(dataframe['fisher_rsi'] < self.buy_fisher.value)
+
+        # potential gain > goal
+        if self.buy_bb_enabled.value:
+            conditions.append(dataframe['bb_gain'] >= self.buy_bb_gain.value)
 
         # green candle
         #conditions.append(dataframe['close'] > dataframe['open'])

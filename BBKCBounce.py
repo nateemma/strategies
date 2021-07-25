@@ -11,6 +11,8 @@ import freqtrade.vendor.qtpylib.indicators as qtpylib
 import numpy # noqa
 from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, IntParameter
 
+from user_data.strategies import Config
+
 
 
 class BBKCBounce(IStrategy):
@@ -21,75 +23,53 @@ class BBKCBounce(IStrategy):
     > python3 ./freqtrade/main.py -s BBKCBounce
     """
 
-    # Hyperparameters
-
     # Buy hyperspace params:
-    # buy_params = {
-    #     "buy_adx": 38.0,
-    #     "buy_adx_enabled": True,
-    #     "buy_dm_enabled": True,
-    #     "buy_fisher": -0.37,
-    #     "buy_fisher_enabled": False,
-    #     "buy_macd_enabled": False,
-    #     "buy_mfi": 73.0,
-    #     "buy_mfi_enabled": False,
-    #     "buy_period": 17,
-    #     "buy_sar_enabled": False,
-    # }
+    buy_params = {
+        "buy_adx": 43.0,
+        "buy_adx_enabled": False,
+        "buy_dm_enabled": False,
+        "buy_fisher": -0.41,
+        "buy_fisher_enabled": True,
+        "buy_kc_gain": 0.05,
+        "buy_macd_enabled": False,
+        "buy_mfi": 6.0,
+        "buy_mfi_enabled": True,
+        "buy_period": 16,
+        "buy_sar_enabled": True,
+    }
 
-    buy_period = IntParameter(3, 20, default=11, space="buy")
-    buy_adx = DecimalParameter(1, 99, decimals=0, default=38, space="buy")
-    buy_mfi = DecimalParameter(1, 99, decimals=0, default=73, space="buy")
-    buy_fisher = DecimalParameter(-1, 1, decimals=2, default=-0.37, space="buy")
+    buy_period = IntParameter(3, 20, default=16, space="buy")
+    buy_kc_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.05, space="buy")
+    buy_adx = DecimalParameter(1, 99, decimals=0, default=43, space="buy")
+    buy_mfi = DecimalParameter(1, 99, decimals=0, default=6, space="buy")
+    buy_fisher = DecimalParameter(-1, 1, decimals=2, default=-0.41, space="buy")
 
-    buy_adx_enabled = CategoricalParameter([True, False], default=True, space="buy")
-    buy_dm_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_adx_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_dm_enabled = CategoricalParameter([True, False], default=False, space="buy")
     buy_macd_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_mfi_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_sar_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_fisher_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_mfi_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_sar_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_fisher_enabled = CategoricalParameter([True, False], default=True, space="buy")
 
-    sell_hold = CategoricalParameter([True, False], default=False, space="sell")
-    sell_upper_band = CategoricalParameter([True, False], default=True, space="sell")
+    sell_hold = CategoricalParameter([True, False], default=True, space="sell")
+    sell_upper_band = CategoricalParameter([True, False], default=False, space="sell")
 
     # set the startup candles count to the longest average used (SMA, EMA etc)
-    startup_candle_count = max(buy_period.value, 10)
+    startup_candle_count = max(buy_period.value, 20)
 
-    # ROI table:
-    minimal_roi = {
-        "0": 0.269,
-        "12": 0.104,
-        "72": 0.038,
-        "90": 0
-    }
-
-    # Stoploss:
-    stoploss = -0.065
-
-    # Trailing stop:
-    trailing_stop = True
-    trailing_stop_positive = 0.261
-    trailing_stop_positive_offset = 0.339
-    trailing_only_offset_is_reached = True
-
-    # Optimal timeframe for the strategy
-    timeframe = '5m'
-
-    # run "populate_indicators" only for new candle
-    process_only_new_candles = False
-
-    # Experimental settings (configuration will overide these if set)
-    use_sell_signal = True
-    sell_profit_only = True
-    ignore_roi_if_buy_signal = True
-
-    # Optional order type mapping
-    order_types = {
-        'buy': 'limit',
-        'sell': 'limit',
-        'stoploss': 'market',
-        'stoploss_on_exchange': False
-    }
+    # set common parameters
+    minimal_roi = Config.minimal_roi
+    trailing_stop = Config.trailing_stop
+    trailing_stop_positive = Config.trailing_stop_positive
+    trailing_stop_positive_offset = Config.trailing_stop_positive_offset
+    trailing_only_offset_is_reached = Config.trailing_only_offset_is_reached
+    stoploss = Config.stoploss
+    timeframe = Config.timeframe
+    process_only_new_candles = Config.process_only_new_candles
+    use_sell_signal = Config.use_sell_signal
+    sell_profit_only = Config.sell_profit_only
+    ignore_roi_if_buy_signal = Config.ignore_roi_if_buy_signal
+    order_types = Config.order_types
 
     def informative_pairs(self):
         """
@@ -147,7 +127,7 @@ class BBKCBounce(IStrategy):
         dataframe['fisher_rsi'] = (numpy.exp(2 * rsi) - 1) / (numpy.exp(2 * rsi) + 1)
 
         # Bollinger Bands
-        bollinger = qtpylib.bollinger_bands(qtpylib.typical_price(dataframe), window=self.buy_period.value, stds=2)
+        bollinger = qtpylib.bollinger_bands(qtpylib.typical_price(dataframe), window=20, stds=2)
         #bollinger = qtpylib.weighted_bollinger_bands(qtpylib.typical_price(dataframe), window=self.buy_period.value, stds=2)
         dataframe['bb_upperband'] = bollinger['upper']
         dataframe['bb_mid'] = bollinger['mid']
@@ -158,38 +138,39 @@ class BBKCBounce(IStrategy):
         dataframe["kc_upper"] = keltner["upper"]
         dataframe["kc_lower"] = keltner["lower"]
         dataframe["kc_middle"] = keltner["mid"]
+        dataframe["kc_gain"] = ((dataframe["kc_upper"] - dataframe["close"]) / dataframe["close"])
 
-        # Donchian Channels
-        dataframe['dc_upper'] = ta.MAX(dataframe['high'], timeperiod=self.buy_period.value)
-        dataframe['dc_lower'] = ta.MIN(dataframe['low'], timeperiod=self.buy_period.value)
-        dataframe['dc_mid'] = ta.TEMA(((dataframe['dc_upper'] + dataframe['dc_lower']) / 2),
-                                     timeperiod=self.buy_period.value)
-        # Fibonacci Levels (of Donchian Channel)
-        dataframe['dc_dist'] = (dataframe['dc_upper']  - dataframe['dc_lower'])
-        dataframe['dc_hf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.236 # Highest Fib
-        dataframe['dc_chf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.382 # Centre High Fib
-        dataframe['dc_clf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.618 # Centre Low Fib
-        dataframe['dc_lf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.764 # Low Fib
-
-        # Squeeze Indicators.
-        #   'on'  means Bollinger Band lies completely within the Keltner Channel
-        #   'off' means Keltner Channel lies completely within the Bollinger Band
-        #   Booleans are funky with dataframes, so just do an intermediate calculation
-        dataframe['sqz_upper'] = (dataframe['bb_upperband'] - dataframe["kc_upper"])
-        dataframe['sqz_lower'] = (dataframe['bb_lowerband'] - dataframe["kc_lower"])
-        dataframe['sqz_on'] = ((dataframe['sqz_upper'] < 0) & (dataframe['sqz_lower'] > 0))
-        dataframe['sqz_off'] = ((dataframe['sqz_upper'] > 0) & (dataframe['sqz_lower'] < 0))
-
-        # Momentum
-        # value is: Close - Moving Average( (Donchian midline + EMA) / 2 )
-
-        # get momentum value by running linear regression on delta
-        dataframe['sqz_ave'] = ta.TEMA(((dataframe['dc_mid'] + dataframe['tema']) / 2),
-                                      timeperiod=self.buy_period.value)
-        dataframe['sqz_delta'] = ta.TEMA((dataframe['close'] - dataframe['sqz_ave']),
-                                      timeperiod=30)
-        #                               timeperiod = self.buy_period.value)
-        dataframe['sqz_val'] = ta.LINEARREG(dataframe['sqz_delta'], timeperiod=self.buy_period.value)
+        # # Donchian Channels
+        # dataframe['dc_upper'] = ta.MAX(dataframe['high'], timeperiod=self.buy_period.value)
+        # dataframe['dc_lower'] = ta.MIN(dataframe['low'], timeperiod=self.buy_period.value)
+        # dataframe['dc_mid'] = ta.TEMA(((dataframe['dc_upper'] + dataframe['dc_lower']) / 2),
+        #                              timeperiod=self.buy_period.value)
+        # # Fibonacci Levels (of Donchian Channel)
+        # dataframe['dc_dist'] = (dataframe['dc_upper']  - dataframe['dc_lower'])
+        # dataframe['dc_hf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.236 # Highest Fib
+        # dataframe['dc_chf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.382 # Centre High Fib
+        # dataframe['dc_clf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.618 # Centre Low Fib
+        # dataframe['dc_lf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.764 # Low Fib
+        #
+        # # Squeeze Indicators.
+        # #   'on'  means Bollinger Band lies completely within the Keltner Channel
+        # #   'off' means Keltner Channel lies completely within the Bollinger Band
+        # #   Booleans are funky with dataframes, so just do an intermediate calculation
+        # dataframe['sqz_upper'] = (dataframe['bb_upperband'] - dataframe["kc_upper"])
+        # dataframe['sqz_lower'] = (dataframe['bb_lowerband'] - dataframe["kc_lower"])
+        # dataframe['sqz_on'] = ((dataframe['sqz_upper'] < 0) & (dataframe['sqz_lower'] > 0))
+        # dataframe['sqz_off'] = ((dataframe['sqz_upper'] > 0) & (dataframe['sqz_lower'] < 0))
+        #
+        # # Momentum
+        # # value is: Close - Moving Average( (Donchian midline + EMA) / 2 )
+        #
+        # # get momentum value by running linear regression on delta
+        # dataframe['sqz_ave'] = ta.TEMA(((dataframe['dc_mid'] + dataframe['tema']) / 2),
+        #                               timeperiod=self.buy_period.value)
+        # dataframe['sqz_delta'] = ta.TEMA((dataframe['close'] - dataframe['sqz_ave']),
+        #                               timeperiod=30)
+        # #                               timeperiod = self.buy_period.value)
+        # dataframe['sqz_val'] = ta.LINEARREG(dataframe['sqz_delta'], timeperiod=self.buy_period.value)
 
         return dataframe
 
@@ -220,6 +201,9 @@ class BBKCBounce(IStrategy):
 
         # green candle
         conditions.append(dataframe['close'] > dataframe['open'])
+
+        # Potential gain greater than goal
+        conditions.append(dataframe['kc_gain'] >= self.buy_kc_gain.value)
 
         # TRIGGERS
         # candle crossed either BB or KC lower band and ended up above both

@@ -22,37 +22,65 @@ class DCBBBounce(IStrategy):
     """
 
     # Hyperparameters
-    buy_period = IntParameter(10, 120, default=60, space="buy")
+    # Buy hyperspace params:
+    buy_params = {
+        "buy_adx": 25.0,
+        "buy_adx_enabled": True,
+        "buy_ema_enabled": False,
+        "buy_period": 52,
+        "buy_sar_enabled": True,
+        "buy_sma_enabled": False,
+    }
+
+    buy_period = IntParameter(10, 120, default=52, space="buy")
 
     buy_adx = DecimalParameter(1, 99, decimals=0, default=25, space="buy")
     buy_sma_enabled = CategoricalParameter([True, False], default=False, space="buy")
     buy_ema_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_adx_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_sar_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_adx_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_sar_enabled = CategoricalParameter([True, False], default=True, space="buy")
 
-    sell_hold_enabled = CategoricalParameter([True, False], default=False, space="sell")
+    sell_hold = CategoricalParameter([True, False], default=True, space="sell")
 
     # set the startup candles count to the longest average used (SMA, EMA etc)
     startup_candle_count = buy_period.value
 
     # The ROI, Stoploss and Trailing Stop values are typically found using hyperopt
+    # if hold enabled, then use the 'common' ROI params
+    if sell_hold.value:
+        # ROI table:
+        minimal_roi = {
+            "0": 0.278,
+            "39": 0.087,
+            "124": 0.038,
+            "135": 0
+        }
 
-    # ROI table:
-    minimal_roi = {
-        "0": 0.261,
-        "40": 0.087,
-        "95": 0.023,
-        "192": 0
-    }
+        # Trailing stop:
+        trailing_stop = True
+        trailing_stop_positive = 0.172
+        trailing_stop_positive_offset = 0.212
+        trailing_only_offset_is_reached = False
 
-    # Stoploss:
-    stoploss = -0.33
+        # Stoploss:
+        stoploss = -0.333
+    else:
+        # ROI table:
+        minimal_roi = {
+            "0": 0.261,
+            "40": 0.087,
+            "95": 0.023,
+            "192": 0
+        }
 
-    # Trailing stop:
-    trailing_stop = True
-    trailing_stop_positive = 0.168
-    trailing_stop_positive_offset = 0.253
-    trailing_only_offset_is_reached = False
+        # Stoploss:
+        stoploss = -0.33
+
+        # Trailing stop:
+        trailing_stop = True
+        trailing_stop_positive = 0.168
+        trailing_stop_positive_offset = 0.253
+        trailing_only_offset_is_reached = False
 
 
     # Optimal timeframe for the strategy
@@ -181,7 +209,7 @@ class DCBBBounce(IStrategy):
         # closing price above SAR
         #conditions.append(dataframe['sar'] < dataframe['close'])
 
-        # gren candle, Lower Bollinger goes below Donchian
+        # green candle, Lower Bollinger goes below Donchian
         conditions.append(
             (dataframe['dcbb_diff_lower'].notnull()) &
             (dataframe['close'] >= dataframe['open']) &
@@ -204,7 +232,7 @@ class DCBBBounce(IStrategy):
 
         """
         # if hold, then don't set a sell signal
-        if self.sell_hold_enabled.value:
+        if self.sell_hold.value:
             dataframe.loc[(dataframe['close'].notnull() ), 'sell'] = 0
 
         else:

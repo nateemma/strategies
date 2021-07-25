@@ -9,6 +9,9 @@ from pandas import DataFrame
 import talib.abstract as ta
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 import numpy # noqa
+from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, IntParameter
+
+from user_data.strategies import Config
 
 
 class KeltnerBounce(IStrategy):
@@ -18,42 +21,41 @@ class KeltnerBounce(IStrategy):
     How to use it?
     > python3 ./freqtrade/main.py -s KeltnerBounce
     """
-
-    # ROI table:
-    minimal_roi = {
-        "0": 0.173,
-        "35": 0.106,
-        "84": 0.038,
-        "189": 0
+    # Buy hyperspace params:
+    buy_params = {
+        "buy_bb_enabled": True,
+        "buy_bb_gain": 0.09,
+        "buy_fisher": 0.24,
+        "buy_fisher_enabled": False,
+        "buy_mfi": 15.0,
+        "buy_mfi_enabled": True,
     }
 
-    # Stoploss:
-    stoploss = -0.037
+    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.03, space="buy")
+    buy_bb_enabled = CategoricalParameter([True, False], default=True, space="buy")
 
-    # Trailing stop:
-    trailing_stop = True
-    trailing_stop_positive = 0.18
-    trailing_stop_positive_offset = 0.224
-    trailing_only_offset_is_reached = False
+    buy_mfi = DecimalParameter(10, 100, decimals=0, default=63, space="buy")
+    buy_fisher = DecimalParameter(-1, 1, decimals=2, default=0.1, space="buy")
 
-    # Optimal timeframe for the strategy
-    timeframe = '5m'
+    buy_mfi_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_fisher_enabled = CategoricalParameter([True, False], default=True, space="buy")
 
-    # run "populate_indicators" only for new candle
-    process_only_new_candles = False
+    # set the startup candles count to the longest average used (SMA, EMA etc)
+    startup_candle_count = 20
 
-    # Experimental settings (configuration will overide these if set)
-    use_sell_signal = True
-    sell_profit_only = True
-    ignore_roi_if_buy_signal = False
-
-    # Optional order type mapping
-    order_types = {
-        'buy': 'limit',
-        'sell': 'limit',
-        'stoploss': 'market',
-        'stoploss_on_exchange': False
-    }
+    # set common parameters
+    minimal_roi = Config.minimal_roi
+    trailing_stop = Config.trailing_stop
+    trailing_stop_positive = Config.trailing_stop_positive
+    trailing_stop_positive_offset = Config.trailing_stop_positive_offset
+    trailing_only_offset_is_reached = Config.trailing_only_offset_is_reached
+    stoploss = Config.stoploss
+    timeframe = Config.timeframe
+    process_only_new_candles = Config.process_only_new_candles
+    use_sell_signal = Config.use_sell_signal
+    sell_profit_only = Config.sell_profit_only
+    ignore_roi_if_buy_signal = Config.ignore_roi_if_buy_signal
+    order_types = Config.order_types
 
     def informative_pairs(self):
         """
@@ -103,6 +105,11 @@ class KeltnerBounce(IStrategy):
         dataframe["kc_lowerband"] = keltner["lower"]
         dataframe["kc_middleband"] = keltner["mid"]
 
+        bollinger = qtpylib.bollinger_bands(qtpylib.typical_price(dataframe), window=20, stds=2)
+        dataframe['bb_upperband'] = bollinger['upper']
+        dataframe['bb_lowerband'] = bollinger['lower']
+        dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
+
         # EMA - Exponential Moving Average
         dataframe['ema5'] = ta.EMA(dataframe, timeperiod=5)
         dataframe['ema10'] = ta.EMA(dataframe, timeperiod=10)
@@ -126,26 +133,44 @@ class KeltnerBounce(IStrategy):
         buy when candle comes into lower keltner band and is green
 
         """
-        dataframe.loc[
+        conditions = []
+        # GUARDS AND TRENDS
+        # check that volume is not 0 (can happen in testing, or if there are issues with exchange data)
+        conditions.append(dataframe['volume'] > 0)
+
+
+        if self.buy_mfi_enabled.value:
+            conditions.append(dataframe['mfi'] <= self.buy_mfi.value)
+
+        if self.buy_fisher_enabled.value:
+            conditions.append(dataframe['fisher_rsi'] <= self.buy_fisher.value)
+
+        # potential gain > goal
+        if self.buy_bb_enabled.value:
+            conditions.append(dataframe['bb_gain'] >= self.buy_bb_gain.value)
+
+        # TRIGGERS
+        # squeeze values are -ve but turning around
+        conditions.append(
             (
-                (
-                        (dataframe['open'] > dataframe['kc_lowerband']) &
-                        (dataframe['open'] < dataframe['kc_middleband']) &
-                        (dataframe['close'] > dataframe['kc_lowerband']) &
-                        (dataframe['close'] < dataframe['kc_middleband'])
-                ) &
-                (dataframe['close'] > dataframe['open']) &
-                (
+                    (dataframe['open'] > dataframe['kc_lowerband']) &
+                    (dataframe['open'] < dataframe['kc_middleband']) &
+                    (dataframe['close'] > dataframe['kc_lowerband']) &
+                    (dataframe['close'] < dataframe['kc_middleband'])
+            ) &
+            (dataframe['close'] > dataframe['open']) &
+            (
                     (dataframe['open'].shift(1) <= dataframe['kc_lowerband']) |
                     (dataframe['close'].shift(1) <= dataframe['kc_lowerband'])
-                ) &
-                (dataframe['mfi'] <= 16) &
-                (dataframe['fisher_rsi'] < -0.94)
+            )
+        )
 
-            ),
-            'buy'] = 1
+        # build the dataframe using the conditions
+        if conditions:
+            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
 
         return dataframe
+
 
     def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         """

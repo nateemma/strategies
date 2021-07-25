@@ -43,22 +43,23 @@ class EMABreakout(IStrategy):
     # Check the documentation or the Sample strategy to get the latest version.
     INTERFACE_VERSION = 2
 
+
     # ROI table:
     minimal_roi = {
-        "0": 0.125,
-        "40": 0.062,
-        "100": 0.039,
-        "219": 0
+        "0": 0.278,
+        "39": 0.087,
+        "124": 0.038,
+        "135": 0
     }
-
-    # Stoploss:
-    stoploss = -0.19
 
     # Trailing stop:
     trailing_stop = True
-    trailing_stop_positive = 0.278
-    trailing_stop_positive_offset = 0.368
+    trailing_stop_positive = 0.172
+    trailing_stop_positive_offset = 0.212
     trailing_only_offset_is_reached = False
+
+    # Stoploss:
+    stoploss = -0.333
 
     # Optimal timeframe for the strategy.
     timeframe = '5m'

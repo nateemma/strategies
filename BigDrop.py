@@ -15,36 +15,36 @@ from user_data.strategies import Config
 
 
 
-class BBBHold(IStrategy):
+class BigDrop(IStrategy):
     """
-    Simple strategy based on Bollinger Band Bounce from bottom
+    Simple strategy that looks for a big drop and then buys
     This version doesn't issue a sell signal, just holds until ROI or stoploss kicks in
 
     How to use it?
-    > python3 ./freqtrade/main.py -s BBBHold
+    > python3 ./freqtrade/main.py -s BigDrop
     """
 
     # Hyperparameters
     # Buy hyperspace params:
     buy_params = {
-        "buy_bb_gain": 0.06,
-        "buy_fisher": 1.0,
+        "buy_bb_enabled": False,
+        "buy_drop": 0.06,
+        "buy_fisher": -0.23,
         "buy_fisher_enabled": True,
-        "buy_mfi": 30.0,
+        "buy_mfi": 31.0,
         "buy_mfi_enabled": False,
+        "buy_num_candles": 9,
     }
+    buy_num_candles = IntParameter(2, 9, default=9, space="buy")
+    buy_drop = DecimalParameter(0.01, 0.06, decimals=3, default=0.06, space="buy")
 
-    # Bollinger Band 'gain' (% difference between current price and upper band).
-    # Since we are looking for potential swings of >2%, we look for potential of more than that
-    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.06, space="buy")
-    buy_fisher = DecimalParameter(-1, 1, decimals=2, default=-0.53, space="buy")
-    buy_mfi = DecimalParameter(10, 40, decimals=0, default=15.0, space="buy")
+    buy_fisher = DecimalParameter(-1, 1, decimals=2, default=-0.23, space="buy")
+    buy_mfi = DecimalParameter(10, 40, decimals=0, default=31.0, space="buy")
 
     # Categorical parameters that control whether a trend/check is used or not
     buy_fisher_enabled = CategoricalParameter([True, False], default=True, space="buy")
     buy_mfi_enabled = CategoricalParameter([True, False], default=False, space="buy")
-
-    sell_hold = CategoricalParameter([True, False], default=True, space="sell")
+    buy_bb_enabled = CategoricalParameter([True, False], default=False, space="buy")
 
     # set the startup candles count to the longest average used (EMA, EMA etc)
     startup_candle_count = 20
@@ -96,10 +96,10 @@ class BBBHold(IStrategy):
         dataframe['macd'] = macd['macd']
         dataframe['macdsignal'] = macd['macdsignal']
 
-        # # Stoch fast
-        # stoch_fast = ta.STOCHF(dataframe)
-        # dataframe['fastd'] = stoch_fast['fastd']
-        # dataframe['fastk'] = stoch_fast['fastk']
+        # Stoch fast
+        stoch_fast = ta.STOCHF(dataframe)
+        dataframe['fastd'] = stoch_fast['fastd']
+        dataframe['fastk'] = stoch_fast['fastk']
 
         # RSI
         dataframe['rsi'] = ta.RSI(dataframe)
@@ -120,14 +120,14 @@ class BBBHold(IStrategy):
         dataframe['bb_lowerband'] = bollinger['lower']
         dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
 
-        # # EMA - Exponential Moving Average
-        # dataframe['ema5'] = ta.EMA(dataframe, timeperiod=5)
-        # dataframe['ema10'] = ta.EMA(dataframe, timeperiod=10)
-        # dataframe['ema50'] = ta.EMA(dataframe, timeperiod=50)
-        # dataframe['ema100'] = ta.EMA(dataframe, timeperiod=100)
+        # EMA - Exponential Moving Average
+        dataframe['ema5'] = ta.EMA(dataframe, timeperiod=5)
+        dataframe['ema10'] = ta.EMA(dataframe, timeperiod=10)
+        dataframe['ema50'] = ta.EMA(dataframe, timeperiod=50)
+        dataframe['ema100'] = ta.EMA(dataframe, timeperiod=100)
 
-        # # SAR Parabol
-        # dataframe['sar'] = ta.SAR(dataframe)
+        # SAR Parabol
+        dataframe['sar'] = ta.SAR(dataframe)
 
         return dataframe
 
@@ -140,22 +140,16 @@ class BBBHold(IStrategy):
         if self.buy_fisher_enabled.value:
             conditions.append(dataframe['fisher_rsi'] < self.buy_fisher.value)
 
+        if self.buy_bb_enabled.value:
+            conditions.append(dataframe['close'] <= dataframe['bb_lowerband'])
+
         # TRIGGERS
-        # potential gain > goal
-        conditions.append(dataframe['bb_gain'] >= self.buy_bb_gain.value)
 
-        # current candle is green
-        conditions.append(dataframe['close'] > dataframe['open'])
-
-        # candle crosses lower BB boundary
+        # big enough drop?
         conditions.append(
-            (dataframe['open'] < dataframe['bb_lowerband']) &
-            (dataframe['close'] >= dataframe['bb_lowerband'])
+            (((dataframe['open'].shift(self.buy_num_candles.value-1) - dataframe['close']) /
+            dataframe['open'].shift(self.buy_num_candles.value-1)) >= self.buy_drop.value)
         )
-
-        # check that volume is not 0
-        conditions.append(dataframe['volume'] > 0)
-
         # build the dataframe using the conditions
         if conditions:
             dataframe.loc[

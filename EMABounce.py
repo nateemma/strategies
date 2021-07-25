@@ -18,6 +18,8 @@ import math
 # --------------------------------
 # Add your lib to import here
 
+from user_data.strategies import Config
+
 
 class EMABounce(IStrategy):
     """
@@ -37,80 +39,37 @@ class EMABounce(IStrategy):
     - timeframe, minimal_roi, stoploss, trailing_*
     """
 
-    buy_period = CategoricalParameter([20, 30, 30, 50, 60, 70, 80, 90, 100], default=50, space="buy")
-    #buy_period = CategoricalParameter([50, 60], default=50, space="buy")
+    buy_long_period = IntParameter(20, 100, default=50, space="buy")
+    buy_short_period = IntParameter(5, 15, default=10, space="buy")
     buy_diff = DecimalParameter(0.01, 0.10, decimals=3, default=0.065, space="buy")
     buy_macd_enabled = CategoricalParameter([True, False], default=False, space="buy")
 
     sell_diff = DecimalParameter(0.01, 0.10, decimals=3, default=0.057, space="sell")
-    sell_hold = CategoricalParameter([True, False], default=False, space="sell")
+    sell_hold = CategoricalParameter([True, False], default=True, space="sell")
 
     # Strategy interface version - allow new iterations of the strategy interface.
     # Check the documentation or the Sample strategy to get the latest version.
     INTERFACE_VERSION = 2
 
-    # ROI table:
-    minimal_roi = {
-        "0": 0.215,
-        "20": 0.078,
-        "70": 0.01,
-        "146": 0
-    }
+    sell_hold = CategoricalParameter([True, False], default=True, space="sell")
 
-    # Stoploss:
-    stoploss = -0.296
 
-    # Trailing stop:
-    trailing_stop = True
-    trailing_stop_positive = 0.191
-    trailing_stop_positive_offset = 0.25
-    trailing_only_offset_is_reached = True
+    # set the startup candles count to the longest average used (EMA, EMA etc)
+    startup_candle_count = max(buy_long_period.value, 20)
 
-    # Optimal timeframe for the strategy.
-    timeframe = '5m'
-
-    # Run "populate_indicators()" only for new candle.
-    process_only_new_candles = False
-
-    # These values can be overridden in the "ask_strategy" section in the config.
-    use_sell_signal = True
-    sell_profit_only = True
-    ignore_roi_if_buy_signal = False
-
-    # Number of candles the strategy requires before producing valid signals
-    startup_candle_count: int = 30
-
-    # Optional order type mapping.
-    order_types = {
-        'buy': 'limit',
-        'sell': 'limit',
-        'stoploss': 'market',
-        'stoploss_on_exchange': False
-    }
-
-    # Optional order time in force.
-    order_time_in_force = {
-        'buy': 'gtc',
-        'sell': 'gtc'
-    }
-    
-    plot_config = {
-        # Main plot indicators (Moving averages, ...)
-        'main_plot': {
-            'ema': {},
-            'sma': {},
-            'sar': {'color': 'white'},
-        },
-        'subplots': {
-            # Subplots - each dict defines one additional plot
-            "MACD": {
-                'macdhist': {'color': 'blue'}
-            },
-            "RSI": {
-                'rsi': {'color': 'red'},
-            },
-        }
-    }
+    # set common parameters
+    minimal_roi = Config.minimal_roi
+    trailing_stop = Config.trailing_stop
+    trailing_stop_positive = Config.trailing_stop_positive
+    trailing_stop_positive_offset = Config.trailing_stop_positive_offset
+    trailing_only_offset_is_reached = Config.trailing_only_offset_is_reached
+    stoploss = Config.stoploss
+    timeframe = Config.timeframe
+    process_only_new_candles = Config.process_only_new_candles
+    use_sell_signal = Config.use_sell_signal
+    sell_profit_only = Config.sell_profit_only
+    ignore_roi_if_buy_signal = Config.ignore_roi_if_buy_signal
+    order_types = Config.order_types
 
     def informative_pairs(self):
         """
@@ -255,7 +214,7 @@ class EMABounce(IStrategy):
         # # EMA - Exponential Moving Average
         # dataframe['ema3'] = ta.EMA(dataframe, timeperiod=3)
         # dataframe['ema5'] = ta.EMA(dataframe, timeperiod=5)
-        dataframe['ema10'] = ta.EMA(dataframe, timeperiod=10)
+        # dataframe['ema10'] = ta.EMA(dataframe, timeperiod=10)
         # dataframe['ema21'] = ta.EMA(dataframe, timeperiod=21)
         # dataframe['ema50'] = ta.EMA(dataframe, timeperiod=50)
         # dataframe['ema100'] = ta.EMA(dataframe, timeperiod=100)
@@ -263,16 +222,17 @@ class EMABounce(IStrategy):
 
         # dataframe['ema7'] = ta.EMA(dataframe, timeperiod=7)
         # dataframe['ema25'] = ta.EMA(dataframe, timeperiod=25)
-        dataframe['ema'] = ta.EMA(dataframe, timeperiod=self.buy_period.value)
+        dataframe['ema'] = ta.EMA(dataframe, timeperiod=self.buy_long_period.value)
+        dataframe['ema_short'] = ta.EMA(dataframe, timeperiod=self.buy_short_period.value)
 
         # use a shorter frame EMA to find turnaround point
-        dataframe['ema_angle'] = ta.LINEARREG_SLOPE(dataframe['ema10'], timeperiod=3) / (2.0 * math.pi)
+        dataframe['ema_angle'] = ta.LINEARREG_SLOPE(dataframe['ema_short'], timeperiod=3) / (2.0 * math.pi)
 
         # zero-based %age diff relative to goal (easier to visualise)
         dataframe['ema_diff'] = (((dataframe['ema'] - dataframe['close']) / dataframe['ema'])) - self.buy_diff.value
 
         # # SMA - Simple Moving Average
-        dataframe['sma'] = ta.SMA(dataframe, timeperiod=self.buy_period.value)
+        dataframe['sma'] = ta.SMA(dataframe, timeperiod=self.buy_long_period.value)
         # dataframe['sma3'] = ta.SMA(dataframe, timeperiod=3)
         # dataframe['sma5'] = ta.SMA(dataframe, timeperiod=5)
         # dataframe['sma10'] = ta.SMA(dataframe, timeperiod=10)

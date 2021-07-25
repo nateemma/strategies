@@ -11,6 +11,8 @@ import freqtrade.vendor.qtpylib.indicators as qtpylib
 import numpy # noqa
 from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, IntParameter
 
+from user_data.strategies import Config
+
 
 
 class Squeeze001(IStrategy):
@@ -22,56 +24,44 @@ class Squeeze001(IStrategy):
     """
 
     # Hyperparameters
-    buy_period = IntParameter(1, 50, default=20, space="buy")
-    buy_adx = DecimalParameter(1, 99, decimals=0, default=25, space="buy")
-    buy_sqz_band = DecimalParameter(0.002, 0.02, decimals=4, default=0.0059, space="buy")
 
-    # buy_period = IntParameter(1, 50, default=45, space="buy")
-    # buy_adx = DecimalParameter(1, 99, decimals=0, default=23, space="buy")
-    # buy_sqz_band = DecimalParameter(0.002, 0.02, decimals=4, default=0.0022, space="buy")
+    # Buy hyperspace params:
+    buy_params = {
+        "buy_adx": 11.0,
+        "buy_adx_enabled": False,
+        "buy_bb_enabled": True,
+        "buy_bb_gain": 0.02,
+        "buy_ema_enabled": True,
+        "buy_period": 36,
+        "buy_sqz_band": 0.004,
+    }
+    buy_period = IntParameter(3, 50, default=36, space="buy")
+    buy_adx = DecimalParameter(10, 50, decimals=0, default=11, space="buy")
+    buy_sqz_band = DecimalParameter(0.002, 0.02, decimals=4, default=0.004, space="buy")
+    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.02, space="buy")
 
-    buy_adx_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_bb_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_ema_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_adx_enabled = CategoricalParameter([True, False], default=False, space="buy")
 
-    sell_hold_enabled = CategoricalParameter([True, False], default=False, space="sell")
+    sell_hold_enabled = CategoricalParameter([True, False], default=True, space="sell")
 
     # set the startup candles count to the longest average used (EMA, EMA etc)
-    startup_candle_count = buy_period.value
+    startup_candle_count = max(buy_period.value, 20)
 
-    # ROI table:
-    minimal_roi = {
-        "0": 0.195,
-        "38": 0.094,
-        "85": 0.04,
-        "175": 0
-    }
-
-    # Stoploss:
-    stoploss = -0.332
-
-    # Trailing stop:
-    trailing_stop = True
-    trailing_stop_positive = 0.105
-    trailing_stop_positive_offset = 0.19
-    trailing_only_offset_is_reached = False
-
-    # Optimal timeframe for the strategy
-    timeframe = '5m'
-
-    # run "populate_indicators" only for new candle
-    process_only_new_candles = False
-
-    # Experimental settings (configuration will overide these if set)
-    use_sell_signal = True
-    sell_profit_only = True
-    ignore_roi_if_buy_signal = True
-
-    # Optional order type mapping
-    order_types = {
-        'buy': 'limit',
-        'sell': 'limit',
-        'stoploss': 'market',
-        'stoploss_on_exchange': False
-    }
+    # set common parameters
+    minimal_roi = Config.minimal_roi
+    trailing_stop = Config.trailing_stop
+    trailing_stop_positive = Config.trailing_stop_positive
+    trailing_stop_positive_offset = Config.trailing_stop_positive_offset
+    trailing_only_offset_is_reached = Config.trailing_only_offset_is_reached
+    stoploss = Config.stoploss
+    timeframe = Config.timeframe
+    process_only_new_candles = Config.process_only_new_candles
+    use_sell_signal = Config.use_sell_signal
+    sell_profit_only = Config.sell_profit_only
+    ignore_roi_if_buy_signal = Config.ignore_roi_if_buy_signal
+    order_types = Config.order_types
 
     def informative_pairs(self):
         """
@@ -124,11 +114,12 @@ class Squeeze001(IStrategy):
         dataframe['fisher_rsi'] = (numpy.exp(2 * rsi) - 1) / (numpy.exp(2 * rsi) + 1)
 
         # Bollinger Bands
-        bollinger = qtpylib.bollinger_bands(qtpylib.typical_price(dataframe), window=self.buy_period.value, stds=2)
+        bollinger = qtpylib.bollinger_bands(qtpylib.typical_price(dataframe), window=20, stds=2)
         #bollinger = qtpylib.weighted_bollinger_bands(qtpylib.typical_price(dataframe), window=self.buy_period.value, stds=2)
         dataframe['bb_upperband'] = bollinger['upper']
         dataframe['bb_mid'] = bollinger['mid']
         dataframe['bb_lowerband'] = bollinger['lower']
+        dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
 
         # Keltner Channel
         keltner = qtpylib.keltner_channel(dataframe)
@@ -184,8 +175,13 @@ class Squeeze001(IStrategy):
         # conditions.append(dataframe['sqz_off'])
 
         # don't buy if above EMA
-        conditions.append(dataframe['close'] < dataframe['ema'])
+        if self.buy_ema_enabled.value:
+            conditions.append(dataframe['close'] < dataframe['ema'])
         # conditions.append(dataframe['close'] < dataframe['ema5'])
+
+        # potential gain > goal
+        if self.buy_bb_enabled.value:
+            conditions.append(dataframe['bb_gain'] >= self.buy_bb_gain.value)
 
         # TRIGGERS
         # squeeze values are -ve but turning around
