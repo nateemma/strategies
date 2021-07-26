@@ -54,11 +54,6 @@ class EMA50(IStrategy):
     sell_hold = CategoricalParameter([True, False], default=True, space="sell")
     sell_hold = CategoricalParameter([True, False], default=True, space="sell")
 
-    # Strategy interface version - allow new iterations of the strategy interface.
-    # Check the documentation or the Sample strategy to get the latest version.
-    INTERFACE_VERSION = 2
-
-
     # ROI table:
     minimal_roi = {
         "0": 0.278,

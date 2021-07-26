@@ -49,10 +49,6 @@ class BTCEMABounce(IStrategy):
     sell_diff = DecimalParameter(0.01, 0.10, decimals=3, default=0.057, space="sell")
     sell_hold = CategoricalParameter([True, False], default=False, space="sell")
 
-    # Strategy interface version - allow new iterations of the strategy interface.
-    # Check the documentation or the Sample strategy to get the latest version.
-    INTERFACE_VERSION = 2
-
     # ROI table:
     minimal_roi = {
         "0": 0.161,

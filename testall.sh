@@ -7,7 +7,8 @@ slist+="SqueezeMomentum Patterns2 KeltnerBounce SimpleBollinger DonchianChannel 
 slist+="KeltnerChannels MACDTurn "
 
 
-timerange="20210501-"
+#timerange="20210501-"
+timerange="20210601-"
 
 echo "Downloading latest data..."
 echo "freqtrade download-data  --timerange=${timerange}"

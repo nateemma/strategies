@@ -72,11 +72,6 @@ class MACDCross(IStrategy):
     sell_hold = CategoricalParameter([True, False], default=True, space="sell")
     sell_pos_macd_enabled = CategoricalParameter([True, False], default=True, space="sell")
 
-    # Strategy interface version - allow new iterations of the strategy interface.
-    # Check the documentation or the Sample strategy to get the latest version.
-    INTERFACE_VERSION = 2
-
-
     # set the startup candles count to the longest average used (EMA, EMA etc)
     startup_candle_count = max(buy_period.value, 20)
 

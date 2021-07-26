@@ -37,9 +37,6 @@ class EMACross(IStrategy):
     You should keep:
     - timeframe, minimal_roi, stoploss, trailing_*
     """
-    # Strategy interface version - allow new iterations of the strategy interface.
-    # Check the documentation or the Sample strategy to get the latest version.
-    INTERFACE_VERSION = 2
 
     # Hyperopt params that define the duration of the short and long EMA periods
     buy_ema_short = IntParameter(3, 50, default=5)

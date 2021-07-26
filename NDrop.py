@@ -29,12 +29,12 @@ class NDrop(IStrategy):
     # Buy hyperspace params:
     buy_params = {
         "buy_bb_enabled": False,
-        "buy_drop": 0.029,
-        "buy_fisher": -0.23,
-        "buy_fisher_enabled": True,
-        "buy_mfi": 38.0,
-        "buy_mfi_enabled": False,
-        "buy_num_candles": 3,
+        "buy_drop": 0.023,
+        "buy_fisher": -0.81,
+        "buy_fisher_enabled": False,
+        "buy_mfi": 16.0,
+        "buy_mfi_enabled": True,
+        "buy_num_candles": 7,
     }
 
     # Bollinger Band 'gain' (% difference between current price and upper band).

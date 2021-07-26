@@ -45,15 +45,26 @@ class ComboHold(IStrategy):
     # The following were hyperparameters for each individual strategy, but we are just making them constants here
     # This is so that we can run hyperopt and stand a chance of getting decent results (otherwise the search space
     # is too large)
+    # NOTE: the strategies run differently in combination, so sometimes the best settings for the individual
+    #       strategy do not work well when used here
 
     # NDrop parameters:
-    buy_ndrop_num_candles = 3
-    buy_ndrop_drop = 0.029
-    buy_ndrop_fisher = -0.23
-    buy_ndrop_mfi = 38.0
-    buy_ndrop_fisher_enabled = True
-    buy_ndrop_mfi_enabled = False
     buy_ndrop_bb_enabled = False
+    buy_ndrop_drop = 0.023
+    buy_ndrop_fisher = -0.81
+    buy_ndrop_fisher_enabled = False
+    buy_ndrop_mfi = 16.0
+    buy_ndrop_mfi_enabled = True
+    buy_ndrop_num_candles = 7
+
+    # These seem to work best in combination, not necessarily in the individual strategy:
+    # buy_ndrop_bb_enabled = False
+    # buy_ndrop_drop = 0.023
+    # buy_ndrop_fisher = -0.81
+    # buy_ndrop_fisher_enabled = False
+    # buy_ndrop_mfi = 16.0
+    # buy_ndrop_mfi_enabled = True
+    # buy_ndrop_num_candles = 7
 
     # NSeq parameters:
     buy_nseq_num_candles = 3
@@ -81,11 +92,11 @@ class ComboHold(IStrategy):
     buy_strat3_fisher_enabled = True
 
     # BigDrop parameters:
-    buy_bigdrop_num_candles = 9
-    buy_bigdrop_drop = 0.06
-    buy_bigdrop_fisher = -0.23
-    buy_bigdrop_mfi = 31.0
-    buy_bigdrop_fisher_enabled = True
+    buy_bigdrop_num_candles = 8
+    buy_bigdrop_drop = 0.052
+    buy_bigdrop_fisher = -0.72
+    buy_bigdrop_mfi = 32.0
+    buy_bigdrop_fisher_enabled = False
     buy_bigdrop_mfi_enabled = False
     buy_bigdrop_bb_enabled = False
 
@@ -104,6 +115,22 @@ class ComboHold(IStrategy):
     buy_mfi2_rsi = 24.8
     buy_mfi2_rsi_enabled = False
     buy_mfi2_sar_enabled = False
+
+    # These seem to work best in combination, not necessarily in the individual strategy:
+    # buy_mfi2_adx = 38.0
+    # buy_mfi2_adx_enabled = False
+    # buy_mfi2_bb_enabled = True
+    # buy_mfi2_bb_gain = 0.09
+    # buy_mfi2_dm_enabled = False
+    # buy_mfi2_ema_enabled = False
+    # buy_mfi2_fisher = -0.01
+    # buy_mfi2_fisher_enabled = True
+    # buy_mfi2_mfi = 4.9
+    # buy_mfi2_mfi_enabled = False
+    # buy_mfi2_neg_macd_enabled = False
+    # buy_mfi2_rsi = 24.8
+    # buy_mfi2_rsi_enabled = False
+    # buy_mfi2_sar_enabled = False
 
     # set the startup candles count to the longest average used (EMA, EMA etc)
     startup_candle_count = max(buy_emabounce_long_period, 20)

@@ -57,10 +57,6 @@ class MACDTurn(IStrategy):
     sell_hold = CategoricalParameter([True, False], default=True, space="sell")
     sell_macd_enabled = CategoricalParameter([True, False], default=False, space="sell")
 
-    # Strategy interface version - allow new iterations of the strategy interface.
-    # Check the documentation or the Sample strategy to get the latest version.
-    INTERFACE_VERSION = 2
-
     startup_candle_count = max(2*buy_period.value, 40)
 
     # set common parameters

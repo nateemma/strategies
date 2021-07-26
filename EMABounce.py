@@ -38,7 +38,13 @@ class EMABounce(IStrategy):
     You should keep:
     - timeframe, minimal_roi, stoploss, trailing_*
     """
-
+    # Buy hyperspace params:
+    buy_params = {
+        "buy_diff": 0.065,
+        "buy_long_period": 50,
+        "buy_macd_enabled": False,
+        "buy_short_period": 10,
+    }
     buy_long_period = IntParameter(20, 100, default=50, space="buy")
     buy_short_period = IntParameter(5, 15, default=10, space="buy")
     buy_diff = DecimalParameter(0.01, 0.10, decimals=3, default=0.065, space="buy")
@@ -46,10 +52,6 @@ class EMABounce(IStrategy):
 
     sell_diff = DecimalParameter(0.01, 0.10, decimals=3, default=0.057, space="sell")
     sell_hold = CategoricalParameter([True, False], default=True, space="sell")
-
-    # Strategy interface version - allow new iterations of the strategy interface.
-    # Check the documentation or the Sample strategy to get the latest version.
-    INTERFACE_VERSION = 2
 
     sell_hold = CategoricalParameter([True, False], default=True, space="sell")
 

@@ -14,22 +14,41 @@
 # trailing_stop_positive_offset = 0.212
 # trailing_only_offset_is_reached = False
 
+
 # ROI table:
 minimal_roi = {
-    "0": 0.037,
-    "15": 0.021,
-    "47": 0.011,
-    "86": 0
+    "0": 0.223,
+    "17": 0.034,
+    "127": 0.013,
+    "305": 0
 }
 
 # Trailing stop:
 trailing_stop = True
-trailing_stop_positive = 0.105
-trailing_stop_positive_offset = 0.144
-trailing_only_offset_is_reached = True
+trailing_stop_positive = 0.346
+trailing_stop_positive_offset = 0.364
+trailing_only_offset_is_reached = False
 
 # Stoploss:
-stoploss = -0.349
+stoploss = -0.34
+
+# Previous params (best performance over longer periods):
+# # ROI table:
+# minimal_roi = {
+#     "0": 0.037,
+#     "15": 0.021,
+#     "47": 0.011,
+#     "86": 0
+# }
+#
+# # Trailing stop:
+# trailing_stop = True
+# trailing_stop_positive = 0.105
+# trailing_stop_positive_offset = 0.144
+# trailing_only_offset_is_reached = True
+#
+# # Stoploss:
+# stoploss = -0.349
 
 # Optimal timeframe for the strategy
 timeframe = '5m'

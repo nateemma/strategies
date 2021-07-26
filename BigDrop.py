@@ -28,12 +28,12 @@ class BigDrop(IStrategy):
     # Buy hyperspace params:
     buy_params = {
         "buy_bb_enabled": False,
-        "buy_drop": 0.06,
-        "buy_fisher": -0.23,
-        "buy_fisher_enabled": True,
-        "buy_mfi": 31.0,
+        "buy_drop": 0.052,
+        "buy_fisher": -0.72,
+        "buy_fisher_enabled": False,
+        "buy_mfi": 32.0,
         "buy_mfi_enabled": False,
-        "buy_num_candles": 9,
+        "buy_num_candles": 8,
     }
     buy_num_candles = IntParameter(2, 9, default=9, space="buy")
     buy_drop = DecimalParameter(0.01, 0.06, decimals=3, default=0.06, space="buy")

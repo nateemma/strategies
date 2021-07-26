@@ -39,11 +39,6 @@ class EMABreakout(IStrategy):
     buy_macd_enabled = CategoricalParameter([True, False], default=True, space="buy")
     sell_hold = CategoricalParameter([True, False], default=False, space="sell")
 
-    # Strategy interface version - allow new iterations of the strategy interface.
-    # Check the documentation or the Sample strategy to get the latest version.
-    INTERFACE_VERSION = 2
-
-
     # ROI table:
     minimal_roi = {
         "0": 0.278,
