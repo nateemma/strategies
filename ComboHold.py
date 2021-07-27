@@ -12,6 +12,7 @@ import numpy # noqa
 from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, IntParameter
 import math
 from freqtrade.optimize.space import Categorical, Dimension, Integer, SKDecimal, Real  # noqa
+from freqtrade.strategy.strategy_helper import merge_informative_pair
 
 from user_data.strategies import Config
 
@@ -27,20 +28,26 @@ class ComboHold(IStrategy):
     # Hyperparameters
     # Buy hyperspace params:
     buy_params = {
+        "buy_bbbhold_enabled": True,
         "buy_bigdrop_enabled": True,
-        "buy_emabounce_enabled": True,
-        "buy_mfi2_enabled": True,
+        "buy_btcndrop_enabled": True,
+        "buy_btcnseq_enabled": True,
+        "buy_emabounce_enabled": False,
+        "buy_macdcross_enabled": True,
+        "buy_fisherbb_enabled": True,
         "buy_ndrop_enabled": True,
-        "buy_nseq_enabled": True,
-        "buy_strat3_enabled": False,
+        "buy_nseq_enabled": False,
     }
 
+    buy_bbbhold_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_bigdrop_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_btcndrop_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_btcnseq_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_emabounce_enabled = CategoricalParameter([True, False], default=True, space="buy")
+    buy_macdcross_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_fisherbb_enabled = CategoricalParameter([True, False], default=True, space="buy")
     buy_ndrop_enabled = CategoricalParameter([True, False], default=True, space="buy")
     buy_nseq_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_emabounce_enabled = CategoricalParameter([True, False], default=True, space="buy")
-    buy_strat3_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_bigdrop_enabled = CategoricalParameter([True, False], default=False, space="buy")
-    buy_mfi2_enabled = CategoricalParameter([True, False], default=True, space="buy")
 
     # The following were hyperparameters for each individual strategy, but we are just making them constants here
     # This is so that we can run hyperopt and stand a chance of getting decent results (otherwise the search space
@@ -50,12 +57,12 @@ class ComboHold(IStrategy):
 
     # NDrop parameters:
     buy_ndrop_bb_enabled = False
-    buy_ndrop_drop = 0.023
-    buy_ndrop_fisher = -0.81
-    buy_ndrop_fisher_enabled = False
-    buy_ndrop_mfi = 16.0
-    buy_ndrop_mfi_enabled = True
-    buy_ndrop_num_candles = 7
+    buy_ndrop_drop = 0.029
+    buy_ndrop_fisher = -0.23
+    buy_ndrop_fisher_enabled = True
+    buy_ndrop_mfi = 38.0
+    buy_ndrop_mfi_enabled = False
+    buy_ndrop_num_candles = 3
 
     # These seem to work best in combination, not necessarily in the individual strategy:
     # buy_ndrop_bb_enabled = False
@@ -67,12 +74,23 @@ class ComboHold(IStrategy):
     # buy_ndrop_num_candles = 7
 
     # NSeq parameters:
+    """
+        buy_params = {
+        "buy_bb_enabled": False,
+        "buy_drop": 0.026,
+        "buy_fisher": -0.68,
+        "buy_fisher_enabled": False,
+        "buy_mfi": 35.0,
+        "buy_mfi_enabled": False,
+        "buy_num_candles": 3,
+    }
+    """
     buy_nseq_num_candles = 3
     buy_nseq_drop = 0.021
     buy_nseq_fisher = -0.5
     buy_nseq_mfi = 39.0
-    buy_nseq_fisher_enabled = True
-    buy_nseq_mfi_enabled = True
+    buy_nseq_fisher_enabled = False
+    buy_nseq_mfi_enabled = False
     buy_nseq_bb_enabled = False
 
     # EMABounce parameters
@@ -80,57 +98,113 @@ class ComboHold(IStrategy):
     buy_emabounce_short_period = 10
     buy_emabounce_diff = 0.065
 
-    # Strategy003 Parameters
-    buy_strat3_rsi = 11.0
-    buy_strat3_mfi = 30.0
-    buy_strat3_fisher = 0.01
-    buy_strat3_rsi_enabled = True
-    buy_strat3_sma_enabled = False
-    buy_strat3_ema_enabled = False
-    buy_strat3_mfi_enabled = True
-    buy_strat3_fastd_enabled = True
-    buy_strat3_fisher_enabled = True
+    # MACDCross Parameters
+    """
+        buy_params = {
+        "buy_adx": 1.0,
+        "buy_adx_enabled": False,
+        "buy_bb_enabled": True,
+        "buy_bb_gain": 0.04,
+        "buy_dm_enabled": True,
+        "buy_fisher": 0.18,
+        "buy_fisher_enabled": True,
+        "buy_mfi": 79.0,
+        "buy_mfi_enabled": False,
+        "buy_neg_macd_enabled": True,
+        "buy_period": 16,
+        "buy_sar_enabled": False,
+    }
+    """
+    
+    buy_macdcross_adx = 1.0
+    buy_macdcross_adx_enabled = False
+    buy_macdcross_bb_enabled = True
+    buy_macdcross_bb_gain = 0.04
+    buy_macdcross_dm_enabled = True
+    buy_macdcross_fisher = 0.18
+    buy_macdcross_fisher_enabled = True
+    buy_macdcross_mfi = 79.0
+    buy_macdcross_mfi_enabled = False
+    buy_macdcross_neg_macd_enabled = True
+    buy_macdcross_period = 16
+    buy_macdcross_sar_enabled = False
 
     # BigDrop parameters:
-    buy_bigdrop_num_candles = 8
-    buy_bigdrop_drop = 0.052
-    buy_bigdrop_fisher = -0.72
-    buy_bigdrop_mfi = 32.0
-    buy_bigdrop_fisher_enabled = False
-    buy_bigdrop_mfi_enabled = False
+    """
+        buy_params = {
+        "buy_bb_enabled": False,
+        "buy_drop": 0.038,
+        "buy_fisher": 0.12,
+        "buy_fisher_enabled": True,
+        "buy_mfi": 14.0,
+        "buy_mfi_enabled": False,
+        "buy_num_candles": 8,
+    }
+    """
     buy_bigdrop_bb_enabled = False
+    buy_bigdrop_drop = 0.06
+    buy_bigdrop_fisher = -0.23
+    buy_bigdrop_fisher_enabled = True
+    buy_bigdrop_mfi = 31.0
+    buy_bigdrop_mfi_enabled = False
+    buy_bigdrop_num_candles = 9
 
-    # MFI2 parameters:
-    buy_mfi2_adx = 38.0
-    buy_mfi2_adx_enabled = False
-    buy_mfi2_bb_enabled = True
-    buy_mfi2_bb_gain = 0.09
-    buy_mfi2_dm_enabled = False
-    buy_mfi2_ema_enabled = False
-    buy_mfi2_fisher = -0.01
-    buy_mfi2_fisher_enabled = True
-    buy_mfi2_mfi = 4.9
-    buy_mfi2_mfi_enabled = False
-    buy_mfi2_neg_macd_enabled = False
-    buy_mfi2_rsi = 24.8
-    buy_mfi2_rsi_enabled = False
-    buy_mfi2_sar_enabled = False
+    # FisherBB parameters:
 
-    # These seem to work best in combination, not necessarily in the individual strategy:
-    # buy_mfi2_adx = 38.0
-    # buy_mfi2_adx_enabled = False
-    # buy_mfi2_bb_enabled = True
-    # buy_mfi2_bb_gain = 0.09
-    # buy_mfi2_dm_enabled = False
-    # buy_mfi2_ema_enabled = False
-    # buy_mfi2_fisher = -0.01
-    # buy_mfi2_fisher_enabled = True
-    # buy_mfi2_mfi = 4.9
-    # buy_mfi2_mfi_enabled = False
-    # buy_mfi2_neg_macd_enabled = False
-    # buy_mfi2_rsi = 24.8
-    # buy_mfi2_rsi_enabled = False
-    # buy_mfi2_sar_enabled = False
+    buy_fisherbb_bb_gain = 0.09
+    buy_fisherbb_fisher = -0.01
+
+    # BBBHold parameters:
+    """
+        buy_params = {
+        "buy_bb_gain": 0.06,
+        "buy_fisher": 0.52,
+        "buy_fisher_enabled": True,
+        "buy_mfi": 28.0,
+        "buy_mfi_enabled": False,
+    }
+    """
+    buy_bbbhold_bb_gain = 0.06
+    buy_bbbhold_fisher = 0.52
+    buy_bbbhold_fisher_enabled = True
+    buy_bbbhold_mfi = 28.0
+    buy_bbbhold_mfi_enabled = False
+
+    # BTCNDrop Parameters
+    """
+    buy_params = {
+
+    }
+    """
+    buy_btcndrop_bb_enabled = False
+    buy_btcndrop_drop = 0.14
+    buy_btcndrop_fisher = -0.02
+    buy_btcndrop_fisher_enabled = False
+    buy_btcndrop_mfi = 11.0
+    buy_btcndrop_mfi_enabled = False
+    buy_btcndrop_num_candles = 3
+
+    # BTCNSeq Parameters
+    """
+    buy_params = {
+        "buy_bb_enabled": True,
+        "buy_bb_gain": 0.08,
+        "buy_drop": 0.016,
+        "buy_fisher": -0.06,
+        "buy_fisher_enabled": True,
+        "buy_num_candles": 3,
+    }
+    """
+    buy_btcnseq_bb_enabled = True
+    buy_btcnseq_bb_gain = 0.08
+    buy_btcnseq_drop = 0.016
+    buy_btcnseq_fisher = -0.06
+    buy_btcnseq_fisher_enabled = True
+    buy_btcnseq_num_candles = 3
+
+
+
+    # Strategy Configuration
 
     # set the startup candles count to the longest average used (EMA, EMA etc)
     startup_candle_count = max(buy_emabounce_long_period, 20)
@@ -183,6 +257,33 @@ class ComboHold(IStrategy):
         you are using. Let uncomment only the indicator you are using in your strategies
         or your hyperopt configuration, otherwise you will waste your memory and CPU usage.
         """
+
+        # BTC data
+
+        # NOTE: we are applying this to the BTC/USD dataframe, not the normal dataframe (or in addition to anyway)
+        if not self.dp:
+            # Don't do anything if DataProvider is not available.
+            return dataframe
+
+        # get BTC dataframe
+        inf_tf = '5m'
+        btc_dataframe = self.dp.get_pair_dataframe(pair="BTC/USD", timeframe=inf_tf)
+
+        # merge into main dataframe. This will create columns with a "_5m" suffix for the BTC data
+        dataframe = merge_informative_pair(dataframe, btc_dataframe, self.timeframe, "5m", ffill=True)
+
+        # ADX
+        dataframe['adx'] = ta.ADX(dataframe)
+
+        # Plus Directional Indicator / Movement
+        dataframe['dm_plus'] = ta.PLUS_DM(dataframe)
+        dataframe['di_plus'] = ta.PLUS_DI(dataframe)
+
+        # Minus Directional Indicator / Movement
+        dataframe['dm_minus'] = ta.MINUS_DM(dataframe)
+        dataframe['di_minus'] = ta.MINUS_DI(dataframe)
+        dataframe['dm_delta'] = dataframe['dm_plus'] - dataframe['dm_minus']
+        dataframe['di_delta'] = dataframe['di_plus'] - dataframe['di_minus']
 
         # MFI
         dataframe['mfi'] = ta.MFI(dataframe)
@@ -304,36 +405,39 @@ class ComboHold(IStrategy):
 
         return conditions
 
-    def Strat3_conditions(self, dataframe: DataFrame):
+    def MACDCross_conditions(self, dataframe: DataFrame):
         conditions = []
 
         # GUARDS AND TRENDS
-        if self.buy_strat3_rsi_enabled:
-            conditions.append(
-                (dataframe['rsi'] < self.buy_strat3_rsi) &
-                (dataframe['rsi'] > 0)
-            )
 
-        if self.buy_strat3_sma_enabled:
-            conditions.append(dataframe['close'] < dataframe['sma'])
+        if self.buy_macdcross_adx_enabled:
+            conditions.append(dataframe['adx'] >= self.buy_macdcross_adx)
 
-        if self.buy_strat3_fisher_enabled:
-            conditions.append(dataframe['fisher_rsi'] < self.buy_strat3_fisher)
+        if self.buy_macdcross_dm_enabled:
+            conditions.append(dataframe['dm_delta'] > 0)
 
-        if self.buy_strat3_mfi_enabled:
-            conditions.append(dataframe['mfi'] <= self.buy_strat3_mfi)
+        if self.buy_macdcross_mfi_enabled:
+            conditions.append(dataframe['mfi'] > self.buy_macdcross_mfi)
 
-        if self.buy_strat3_ema_enabled:
-            conditions.append(
-                (dataframe['ema50'] > dataframe['ema100']) |
-                (qtpylib.crossed_above(dataframe['ema5'], dataframe['ema10']))
-            )
+        # only buy if close is below SAR
+        if self.buy_macdcross_sar_enabled:
+            conditions.append(dataframe['close'] < dataframe['sar'])
 
-        if self.buy_strat3_fastd_enabled:
-            conditions.append(
-                (dataframe['fastd'] > dataframe['fastk']) &
-                (dataframe['fastd'] > 0)
-            )
+        if self.buy_macdcross_fisher_enabled:
+            conditions.append(dataframe['fisher_rsi'] < self.buy_macdcross_fisher)
+
+        if self.buy_macdcross_neg_macd_enabled:
+            conditions.append(dataframe['macd'] < 0.0)
+
+        # potential gain > goal
+        if self.buy_macdcross_bb_enabled:
+            conditions.append(dataframe['bb_gain'] >= self.buy_macdcross_bb_gain)
+
+        # Triggers
+        conditions.append(qtpylib.crossed_above(dataframe['macd'], dataframe['macdsignal']))
+
+        # check that volume is not 0
+        conditions.append(dataframe['volume'] > 0)
 
         return conditions
 
@@ -360,38 +464,104 @@ class ComboHold(IStrategy):
         )
         return conditions
 
-    def MFI2_conditions(self, dataframe: DataFrame):
+
+    def FisherBB_conditions(self, dataframe: DataFrame):
         conditions = []
 
         # GUARDS AND TRENDS
-        if self.buy_mfi2_ema_enabled:
-            conditions.append(dataframe['close'] < dataframe['ema5'])
 
-        if self.buy_mfi2_rsi_enabled:
-            conditions.append(dataframe['rsi'] > self.buy_mfi2_rsi)
-
-        if self.buy_mfi2_dm_enabled:
-            conditions.append(dataframe['dm_delta'] > 0)
-
-        if self.buy_mfi2_mfi_enabled:
-            conditions.append(dataframe['mfi'] <= self.buy_mfi2_mfi)
-
-        # only buy if close is below SAR
-        if self.buy_mfi2_sar_enabled:
-            conditions.append(dataframe['close'] < dataframe['sar'])
-
-        if self.buy_mfi2_fisher_enabled:
-            conditions.append(dataframe['fisher_rsi'] < self.buy_mfi2_fisher)
-
-        if self.buy_mfi2_neg_macd_enabled:
-            conditions.append(dataframe['macd'] < 0.0)
-
-        # potential gain > goal
-        if self.buy_mfi2_bb_enabled:
-            conditions.append(dataframe['bb_gain'] >= self.buy_mfi2_bb_gain)
+        conditions.append(dataframe['fisher_rsi'] <= self.buy_fisherbb_fisher)
+        conditions.append(dataframe['bb_gain'] >= self.buy_fisherbb_bb_gain)
 
         # TRIGGERS
         # none for this strategy, just guards
+
+        return conditions
+
+
+    def BBBHold_conditions(self, dataframe: DataFrame):
+        conditions = []
+
+        # GUARDS AND TRENDS
+        if self.buy_bbbhold_mfi_enabled:
+            conditions.append(dataframe['mfi'] <= self.buy_bbbhold_mfi)
+
+        if self.buy_bbbhold_fisher_enabled:
+            conditions.append(dataframe['fisher_rsi'] < self.buy_bbbhold_fisher)
+
+        # check that volume is not 0
+        conditions.append(dataframe['volume'] > 0)
+
+        # TRIGGERS
+        # potential gain > goal
+        conditions.append(dataframe['bb_gain'] >= self.buy_bbbhold_bb_gain)
+
+        # current candle is green
+        conditions.append(dataframe['close'] > dataframe['open'])
+
+        # candle crosses lower BB boundary
+        conditions.append(
+            (dataframe['open'] < dataframe['bb_lowerband']) &
+            (dataframe['close'] >= dataframe['bb_lowerband'])
+        )
+
+        return conditions
+
+
+    def BTCNDrop_conditions(self, dataframe: DataFrame):
+        conditions = []
+
+        # GUARDS AND TRENDS
+        if self.buy_btcndrop_mfi_enabled:
+            conditions.append(dataframe['mfi'] <= self.buy_btcndrop_mfi)
+
+        if self.buy_btcndrop_fisher_enabled:
+            conditions.append(dataframe['fisher_rsi'] <= self.buy_btcndrop_fisher)
+
+        if self.buy_btcndrop_bb_enabled:
+            conditions.append(dataframe['close'] <= dataframe['bb_lowerband'])
+
+        # TRIGGERS
+
+        # N red candles in BTC (not the current pair)
+        if self.buy_btcndrop_num_candles >= 1:
+            for i in range(self.buy_btcndrop_num_candles):
+                conditions.append(dataframe['close_5m'].shift(i) <= dataframe['open_5m'].shift(i))
+
+        # big enough drop?
+        conditions.append(
+            (((dataframe['open_5m'].shift(self.buy_btcndrop_num_candles-1) - dataframe['close_5m']) /
+            dataframe['open_5m'].shift(self.buy_btcndrop_num_candles-1)) >= self.buy_btcndrop_drop)
+        )
+
+        return conditions
+
+
+    def BTCNSeq_conditions(self, dataframe: DataFrame):
+        conditions = []
+
+        # GUARDS AND TRENDS
+
+        if self.buy_btcnseq_fisher_enabled:
+            conditions.append(dataframe['fisher_rsi'] <= self.buy_btcnseq_fisher)
+
+        if self.buy_btcnseq_bb_enabled:
+            conditions.append(dataframe['bb_gain'] >= self.buy_btcnseq_bb_gain)
+
+        # TRIGGERS
+
+
+        # Green candle preceeded by N red candles in BTC (not the current pair)
+        conditions.append(dataframe['close_5m'] > dataframe['open_5m'])
+        if self.buy_btcnseq_num_candles >= 1:
+            for i in range(self.buy_btcnseq_num_candles):
+                conditions.append(dataframe['close_5m'].shift(i+1) <= dataframe['open_5m'].shift(i+1))
+
+        # big enough drop?
+        conditions.append(
+            (((dataframe['open_5m'].shift(self.buy_btcnseq_num_candles-1) - dataframe['close_5m']) /
+            dataframe['open_5m'].shift(self.buy_btcnseq_num_candles-1)) >= self.buy_btcnseq_drop)
+        )
 
         return conditions
 
@@ -417,8 +587,8 @@ class ComboHold(IStrategy):
             if c:
                 conditions.append(reduce(lambda x, y: x & y, c))
 
-        if self.buy_strat3_enabled.value:
-            c = self.Strat3_conditions(dataframe)
+        if self.buy_macdcross_enabled.value:
+            c = self.MACDCross_conditions(dataframe)
             if c:
                 conditions.append(reduce(lambda x, y: x & y, c))
 
@@ -427,10 +597,26 @@ class ComboHold(IStrategy):
             if c:
                 conditions.append(reduce(lambda x, y: x & y, c))
 
-        if self.buy_mfi2_enabled.value:
-            c = self.MFI2_conditions(dataframe)
+        if self.buy_fisherbb_enabled.value:
+            c = self.FisherBB_conditions(dataframe)
             if c:
                 conditions.append(reduce(lambda x, y: x & y, c))
+
+        if self.buy_bbbhold_enabled.value:
+            c = self.BBBHold_conditions(dataframe)
+            if c:
+                conditions.append(reduce(lambda x, y: x & y, c))
+
+        if self.buy_btcndrop_enabled.value:
+            c = self.BTCNDrop_conditions(dataframe)
+            if c:
+                conditions.append(reduce(lambda x, y: x & y, c))
+
+        if self.buy_btcnseq_enabled.value:
+            c = self.BTCNSeq_conditions(dataframe)
+            if c:
+                conditions.append(reduce(lambda x, y: x & y, c))
+
 
         # OR them together
         if conditions:

@@ -12,6 +12,8 @@ import numpy # noqa
 from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, IntParameter
 from freqtrade.strategy.strategy_helper import merge_informative_pair
 
+from user_data.strategies import Config
+
 
 
 class BTCNDrop(IStrategy):
@@ -38,41 +40,22 @@ class BTCNDrop(IStrategy):
     buy_mfi_enabled = CategoricalParameter([True, False], default=False, space="buy")
     buy_bb_enabled = CategoricalParameter([True, False], default=False, space="buy")
 
-    # ROI table:
-    minimal_roi = {
-        "0": 0.152,
-        "30": 0.085,
-        "85": 0.027,
-        "140": 0
-    }
 
-    # Stoploss:
-    stoploss = -0.02
+    startup_candle_count = 20
 
-    # Trailing stop:
-    trailing_stop = True
-    trailing_stop_positive = 0.175
-    trailing_stop_positive_offset = 0.254
-    trailing_only_offset_is_reached = True
-
-    # Optimal timeframe for the strategy
-    timeframe = '5m'
-
-    # run "populate_indicators" only for new candle
-    process_only_new_candles = False
-
-    # Experimental settings (configuration will overide these if set)
-    use_sell_signal = True
-    sell_profit_only = True
-    ignore_roi_if_buy_signal = False
-
-    # Optional order type mapping
-    order_types = {
-        'buy': 'limit',
-        'sell': 'limit',
-        'stoploss': 'market',
-        'stoploss_on_exchange': False
-    }
+    # set common parameters
+    minimal_roi = Config.minimal_roi
+    trailing_stop = Config.trailing_stop
+    trailing_stop_positive = Config.trailing_stop_positive
+    trailing_stop_positive_offset = Config.trailing_stop_positive_offset
+    trailing_only_offset_is_reached = Config.trailing_only_offset_is_reached
+    stoploss = Config.stoploss
+    timeframe = Config.timeframe
+    process_only_new_candles = Config.process_only_new_candles
+    use_sell_signal = Config.use_sell_signal
+    sell_profit_only = Config.sell_profit_only
+    ignore_roi_if_buy_signal = Config.ignore_roi_if_buy_signal
+    order_types = Config.order_types
 
     def informative_pairs(self):
         """

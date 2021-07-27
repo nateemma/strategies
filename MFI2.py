@@ -25,18 +25,35 @@ class MFI2(IStrategy):
         "buy_adx": 89.0,
         "buy_adx_enabled": False,
         "buy_bb_enabled": True,
-        "buy_bb_gain": 0.07,
+        "buy_bb_gain": 0.09,
         "buy_dm_enabled": False,
         "buy_ema_enabled": False,
-        "buy_fisher": 0.83,
-        "buy_fisher_enabled": False,
+        "buy_fisher": -0.01,
+        "buy_fisher_enabled": True,
         "buy_mfi": 3.1,
         "buy_mfi_enabled": False,
-        "buy_neg_macd_enabled": True,
+        "buy_neg_macd_enabled": False,
         "buy_rsi": 17.1,
-        "buy_rsi_enabled": True,
-        "buy_sar_enabled": True,
+        "buy_rsi_enabled": False,
+        "buy_sar_enabled": False,
     }
+
+    # buy_params = {
+    #     "buy_adx": 89.0,
+    #     "buy_adx_enabled": False,
+    #     "buy_bb_enabled": True,
+    #     "buy_bb_gain": 0.07,
+    #     "buy_dm_enabled": False,
+    #     "buy_ema_enabled": False,
+    #     "buy_fisher": 0.83,
+    #     "buy_fisher_enabled": False,
+    #     "buy_mfi": 3.1,
+    #     "buy_mfi_enabled": False,
+    #     "buy_neg_macd_enabled": True,
+    #     "buy_rsi": 17.1,
+    #     "buy_rsi_enabled": True,
+    #     "buy_sar_enabled": True,
+    # }
     buy_rsi = DecimalParameter(0.1, 25, decimals=1, default=20, space="buy")
     buy_mfi = DecimalParameter(0.1, 10, decimals=1, default=2, space="buy")
     buy_adx = DecimalParameter(1, 99, decimals=0, default=1, space="buy")

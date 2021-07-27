@@ -22,16 +22,17 @@ class BigDrop(IStrategy):
 
     How to use it?
     > python3 ./freqtrade/main.py -s BigDrop
+
     """
 
     # Hyperparameters
     # Buy hyperspace params:
     buy_params = {
         "buy_bb_enabled": False,
-        "buy_drop": 0.052,
-        "buy_fisher": -0.72,
-        "buy_fisher_enabled": False,
-        "buy_mfi": 32.0,
+        "buy_drop": 0.038,
+        "buy_fisher": 0.12,
+        "buy_fisher_enabled": True,
+        "buy_mfi": 14.0,
         "buy_mfi_enabled": False,
         "buy_num_candles": 8,
     }

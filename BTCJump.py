@@ -10,45 +10,46 @@ import talib.abstract as ta
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 import numpy # noqa
 from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, IntParameter
+from freqtrade.strategy.strategy_helper import merge_informative_pair
 
 from user_data.strategies import Config
 
 
 
-class NSeq(IStrategy):
+class BTCJump(IStrategy):
     """
-    Simple strategy that looks for N consecutive drops followed by a green candle
+    Simple strategy that looks for jumps in BTC and buys if the current pair has not yet risen as much
     This version doesn't issue a sell signal, just holds until ROI or stoploss kicks in
 
     How to use it?
-    > python3 ./freqtrade/main.py -s NSeq
+    > python3 ./freqtrade/main.py -s BTCJump
     """
 
     # Hyperparameters
-
     # Buy hyperspace params:
     buy_params = {
-        "buy_bb_enabled": False,
-        "buy_drop": 0.026,
-        "buy_fisher": -0.68,
-        "buy_fisher_enabled": False,
-        "buy_mfi": 35.0,
-        "buy_mfi_enabled": False,
-        "buy_num_candles": 3,
+        "buy_bb_gain": 0.09,
+        "buy_btc_jump": 0.005,
+        "buy_fisher": -0.12,
     }
 
-    buy_num_candles = IntParameter(3, 9, default=3, space="buy")
-    buy_drop = DecimalParameter(0.005, 0.06, decimals=3, default=0.021, space="buy")
+    # buy_params = {
+    #     "buy_bb_enabled": True,
+    #     "buy_bb_gain": 0.09,
+    #     "buy_btc_jump": 0.009,
+    #     "buy_dm_enabled": False,
+    #     "buy_fisher": -0.16,
+    #     "buy_fisher_enabled": True,
+    #     "buy_mfi": 33.0,
+    #     "buy_mfi_enabled": False,
+    # }
 
-    buy_fisher = DecimalParameter(-1, 1, decimals=2, default=-0.5, space="buy")
-    buy_mfi = DecimalParameter(10, 40, decimals=0, default=39.0, space="buy")
+    # note that these params refer to BTC, not the current pair
+    buy_btc_jump = DecimalParameter(0.005, 0.015, decimals=3, default=0.009, space="buy")
 
-    # Categorical parameters that control whether a trend/check is used or not
-    buy_fisher_enabled = CategoricalParameter([True, False], default=True, space="buy")
-    buy_mfi_enabled = CategoricalParameter([True, False], default=True, space="buy")
-    buy_bb_enabled = CategoricalParameter([True, False], default=False, space="buy")
-
-    sell_hold = CategoricalParameter([True, False], default=True, space="sell")
+    # these are for the current pair
+    buy_bb_gain = DecimalParameter(0.01, 0.12, decimals=2, default=0.09, space="buy")
+    buy_fisher = DecimalParameter(-1, 1, decimals=2, default=-0.12, space="buy")
 
     # set the startup candles count to the longest average used (EMA, EMA etc)
     startup_candle_count = 20
@@ -88,6 +89,35 @@ class NSeq(IStrategy):
         you are using. Let uncomment only the indicator you are using in your strategies
         or your hyperopt configuration, otherwise you will waste your memory and CPU usage.
         """
+
+        # NOTE: we are applying this to the BTC/USD dataframe, not the normal dataframe (or in addition to anyway)
+        if not self.dp:
+            # Don't do anything if DataProvider is not available.
+            return dataframe
+
+        # get BTC dataframe
+        inf_tf = '5m'
+        btc_dataframe = self.dp.get_pair_dataframe(pair="BTC/USD", timeframe=inf_tf)
+
+        # merge into main dataframe. This will create columns with a "_5m" suffix for the BTC data
+        dataframe = merge_informative_pair(dataframe, btc_dataframe, self.timeframe, "5m", ffill=True)
+
+        # BTC gain
+        dataframe['btc_gain'] = (dataframe['close_5m'] - dataframe['open_5m']) / dataframe['open_5m']
+        dataframe['btc_zgain'] = dataframe['btc_gain'] - self.buy_btc_jump.value
+
+        # ADX
+        dataframe['adx'] = ta.ADX(dataframe)
+
+        # Plus Directional Indicator / Movement
+        dataframe['dm_plus'] = ta.PLUS_DM(dataframe)
+        dataframe['di_plus'] = ta.PLUS_DI(dataframe)
+
+        # Minus Directional Indicator / Movement
+        dataframe['dm_minus'] = ta.MINUS_DM(dataframe)
+        dataframe['di_minus'] = ta.MINUS_DI(dataframe)
+        dataframe['dm_delta'] = dataframe['dm_plus'] - dataframe['dm_minus']
+        dataframe['di_delta'] = dataframe['di_plus'] - dataframe['di_minus']
 
         # MFI
         dataframe['mfi'] = ta.MFI(dataframe)
@@ -137,36 +167,19 @@ class NSeq(IStrategy):
 
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         conditions = []
+
         # GUARDS AND TRENDS
-        if self.buy_mfi_enabled.value:
-            conditions.append(dataframe['mfi'] <= self.buy_mfi.value)
-
-        if self.buy_fisher_enabled.value:
-            conditions.append(dataframe['fisher_rsi'] < self.buy_fisher.value)
-
-        if self.buy_bb_enabled.value:
-            conditions.append(dataframe['close'] <= dataframe['bb_lowerband'])
+        conditions.append(dataframe['fisher_rsi'] <= self.buy_fisher.value)
+        conditions.append(dataframe['bb_gain'] >= self.buy_bb_gain.value)
 
         # TRIGGERS
 
-        # current candle is green
-        conditions.append(dataframe['close'] >= dataframe['open'])
+        # did BTC gain exceed target?
+        conditions.append(qtpylib.crossed_above(dataframe['btc_zgain'], 0))
 
-        # N red candles
-        if self.buy_num_candles.value >= 1:
-            for i in range(self.buy_num_candles.value):
-                conditions.append(dataframe['close'].shift(i+1) <= dataframe['open'].shift(i+1))
-
-        # big enough drop?
-        conditions.append(
-            (((dataframe['open'].shift(self.buy_num_candles.value) - dataframe['close']) /
-            dataframe['open'].shift(self.buy_num_candles.value)) >= self.buy_drop.value)
-        )
         # build the dataframe using the conditions
         if conditions:
-            dataframe.loc[
-                reduce(lambda x, y: x & y, conditions),
-                'buy'] = 1
+            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
 
         return dataframe
 

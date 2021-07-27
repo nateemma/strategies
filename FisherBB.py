@@ -14,39 +14,21 @@ from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, Int
 from user_data.strategies import Config
 
 
-
-class BBBHold(IStrategy):
+class FisherBB(IStrategy):
     """
-    Simple strategy based on Bollinger Band Bounce from bottom
-    This version doesn't issue a sell signal, just holds until ROI or stoploss kicks in
+    Simple strategy based on Inverse Fisher Transform and Bollinger Bands
 
     How to use it?
-    > python3 ./freqtrade/main.py -s BBBHold
+    > python3 ./freqtrade/main.py -s FisherBB
     """
-
-    # Hyperparameters
-    # Buy hyperspace params:
     buy_params = {
-        "buy_bb_gain": 0.06,
-        "buy_fisher": 0.52,
-        "buy_fisher_enabled": True,
-        "buy_mfi": 28.0,
-        "buy_mfi_enabled": False,
+        "buy_bb_gain": 0.09,
+        "buy_fisher": 0.06,
     }
 
-    # Bollinger Band 'gain' (% difference between current price and upper band).
-    # Since we are looking for potential swings of >2%, we look for potential of more than that
-    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.06, space="buy")
-    buy_fisher = DecimalParameter(-1, 1, decimals=2, default=-0.53, space="buy")
-    buy_mfi = DecimalParameter(10, 40, decimals=0, default=15.0, space="buy")
+    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.09, space="buy")
+    buy_fisher = DecimalParameter(-1, 1, decimals=2, default=-0.01, space="buy")
 
-    # Categorical parameters that control whether a trend/check is used or not
-    buy_fisher_enabled = CategoricalParameter([True, False], default=True, space="buy")
-    buy_mfi_enabled = CategoricalParameter([True, False], default=False, space="buy")
-
-    sell_hold = CategoricalParameter([True, False], default=True, space="sell")
-
-    # set the startup candles count to the longest average used (EMA, EMA etc)
     startup_candle_count = 20
 
     # set common parameters
@@ -85,16 +67,27 @@ class BBBHold(IStrategy):
         or your hyperopt configuration, otherwise you will waste your memory and CPU usage.
         """
 
-        # MFI
-        dataframe['mfi'] = ta.MFI(dataframe)
-
-        # SMA - Simple Moving Average
-        dataframe['sma'] = ta.SMA(dataframe, timeperiod=40)
+        # # ADX
+        # dataframe['adx'] = ta.ADX(dataframe)
+        #
+        # # Plus Directional Indicator / Movement
+        # dataframe['dm_plus'] = ta.PLUS_DM(dataframe)
+        # dataframe['di_plus'] = ta.PLUS_DI(dataframe)
+        #
+        # # Minus Directional Indicator / Movement
+        # dataframe['dm_minus'] = ta.MINUS_DM(dataframe)
+        # dataframe['di_minus'] = ta.MINUS_DI(dataframe)
+        # dataframe['dm_delta'] = dataframe['dm_plus'] - dataframe['dm_minus']
+        # dataframe['di_delta'] = dataframe['di_plus'] - dataframe['di_minus']
+        #
+        # # MFI
+        # dataframe['mfi'] = ta.MFI(dataframe)
 
         # MACD
         macd = ta.MACD(dataframe)
         dataframe['macd'] = macd['macd']
         dataframe['macdsignal'] = macd['macdsignal']
+        dataframe['macdhist'] = macd['macdhist']
 
         # # Stoch fast
         # stoch_fast = ta.STOCHF(dataframe)
@@ -109,15 +102,9 @@ class BBBHold(IStrategy):
         dataframe['fisher_rsi'] = (numpy.exp(2 * rsi) - 1) / (numpy.exp(2 * rsi) + 1)
 
         # Bollinger bands
-        #bollinger = qtpylib.bollinger_bands(qtpylib.typical_price(dataframe), window=20, stds=2)
-        bollinger = qtpylib.weighted_bollinger_bands(qtpylib.typical_price(dataframe), window=20, stds=2)
-        # A little different than normal - adjust band values based on buy_bb_ratio
-        #dataframe['bb_upperband'] = bollinger['mid'] + (bollinger['upper']-bollinger['mid'])*self.buy_bb_uratio.value
-        #dataframe['bb_middleband'] = bollinger['mid']
-        #dataframe['bb_lowerband'] = bollinger['mid'] - (bollinger['mid']-bollinger['lower'])*self.buy_bb_lratio.value
-        dataframe['bb_upperband'] = bollinger['upper']
-        dataframe['bb_middleband'] = bollinger['mid']
+        bollinger = qtpylib.bollinger_bands(qtpylib.typical_price(dataframe), window=20, stds=2)
         dataframe['bb_lowerband'] = bollinger['lower']
+        dataframe['bb_upperband'] = bollinger['upper']
         dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
 
         # # EMA - Exponential Moving Average
@@ -125,42 +112,33 @@ class BBBHold(IStrategy):
         # dataframe['ema10'] = ta.EMA(dataframe, timeperiod=10)
         # dataframe['ema50'] = ta.EMA(dataframe, timeperiod=50)
         # dataframe['ema100'] = ta.EMA(dataframe, timeperiod=100)
-
+        #
         # # SAR Parabol
         # dataframe['sar'] = ta.SAR(dataframe)
+
+        # SMA - Simple Moving Average
+        dataframe['sma'] = ta.SMA(dataframe, timeperiod=40)
 
         return dataframe
 
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        """
+        Based on TA indicators, populates the buy signal for the given dataframe
+        :param dataframe: DataFrame
+        :return: DataFrame with buy column
+        """
         conditions = []
+
         # GUARDS AND TRENDS
-        if self.buy_mfi_enabled.value:
-            conditions.append(dataframe['mfi'] <= self.buy_mfi.value)
 
-        if self.buy_fisher_enabled.value:
-            conditions.append(dataframe['fisher_rsi'] < self.buy_fisher.value)
 
-        # TRIGGERS
+        conditions.append(dataframe['fisher_rsi'] <= self.buy_fisher.value)
+
         # potential gain > goal
         conditions.append(dataframe['bb_gain'] >= self.buy_bb_gain.value)
 
-        # current candle is green
-        conditions.append(dataframe['close'] > dataframe['open'])
-
-        # candle crosses lower BB boundary
-        conditions.append(
-            (dataframe['open'] < dataframe['bb_lowerband']) &
-            (dataframe['close'] >= dataframe['bb_lowerband'])
-        )
-
-        # check that volume is not 0
-        conditions.append(dataframe['volume'] > 0)
-
-        # build the dataframe using the conditions
         if conditions:
-            dataframe.loc[
-                reduce(lambda x, y: x & y, conditions),
-                'buy'] = 1
+            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
 
         return dataframe
 
@@ -169,8 +147,7 @@ class BBBHold(IStrategy):
         Based on TA indicators, populates the sell signal for the given dataframe
         :param dataframe: DataFrame
         :return: DataFrame with buy column
-
         """
-        # Don't sell (have to set something in 'sell' column)
-        dataframe.loc[(dataframe['close'] >= 0), 'sell'] = 0
+        dataframe.loc[(dataframe['close'].notnull() ), 'sell'] = 0
+
         return dataframe

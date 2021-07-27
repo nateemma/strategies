@@ -1,38 +1,12 @@
 # Common configuration items to be used across Strategies
 
-# # ROI table:
-# minimal_roi = {
-#     "0": 0.278,
-#     "39": 0.087,
-#     "124": 0.038,
-#     "135": 0
-# }
-#
-# # Trailing stop:
-# trailing_stop = True
-# trailing_stop_positive = 0.172
-# trailing_stop_positive_offset = 0.212
-# trailing_only_offset_is_reached = False
-
-
-# ROI table:
 minimal_roi = {
-    "0": 0.223,
-    "17": 0.034,
-    "127": 0.013,
-    "305": 0
+    "0": 0.038,
+    "20": 0.026,
+    "117": 0.016,
+    "286": 0
 }
 
-# Trailing stop:
-trailing_stop = True
-trailing_stop_positive = 0.346
-trailing_stop_positive_offset = 0.364
-trailing_only_offset_is_reached = False
-
-# Stoploss:
-stoploss = -0.34
-
-# Previous params (best performance over longer periods):
 # # ROI table:
 # minimal_roi = {
 #     "0": 0.037,
@@ -40,15 +14,20 @@ stoploss = -0.34
 #     "47": 0.011,
 #     "86": 0
 # }
-#
+
+trailing_stop = True
+trailing_stop_positive = 0.034
+trailing_stop_positive_offset = 0.037
+trailing_only_offset_is_reached = True
+
 # # Trailing stop:
 # trailing_stop = True
 # trailing_stop_positive = 0.105
 # trailing_stop_positive_offset = 0.144
 # trailing_only_offset_is_reached = True
-#
-# # Stoploss:
-# stoploss = -0.349
+
+# Stoploss:
+stoploss = -0.349
 
 # Optimal timeframe for the strategy
 timeframe = '5m'
