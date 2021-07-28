@@ -30,6 +30,7 @@ class ComboHold(IStrategy):
     buy_params = {
         "buy_bbbhold_enabled": True,
         "buy_bigdrop_enabled": True,
+        "buy_btcjump_enabled": True,
         "buy_btcndrop_enabled": True,
         "buy_btcnseq_enabled": True,
         "buy_emabounce_enabled": False,
@@ -41,6 +42,7 @@ class ComboHold(IStrategy):
 
     buy_bbbhold_enabled = CategoricalParameter([True, False], default=True, space="buy")
     buy_bigdrop_enabled = CategoricalParameter([True, False], default=False, space="buy")
+    buy_btcjump_enabled = CategoricalParameter([True, False], default=False, space="buy")
     buy_btcndrop_enabled = CategoricalParameter([True, False], default=False, space="buy")
     buy_btcnseq_enabled = CategoricalParameter([True, False], default=False, space="buy")
     buy_emabounce_enabled = CategoricalParameter([True, False], default=True, space="buy")
@@ -203,6 +205,17 @@ class ComboHold(IStrategy):
     buy_btcnseq_num_candles = 3
 
 
+    # BTCJump Parameters
+    """
+    buy_params = {
+        "buy_bb_gain": 0.09,
+        "buy_btc_jump": 0.005,
+        "buy_fisher": -0.12,
+    }
+    """
+    buy_btcjump_bb_gain = 0.09
+    buy_btcjump_btc_jump = 0.005
+    buy_btcjump_fisher = -0.12
 
     # Strategy Configuration
 
@@ -271,6 +284,10 @@ class ComboHold(IStrategy):
 
         # merge into main dataframe. This will create columns with a "_5m" suffix for the BTC data
         dataframe = merge_informative_pair(dataframe, btc_dataframe, self.timeframe, "5m", ffill=True)
+
+        # BTC gain
+        dataframe['btc_gain'] = (dataframe['close_5m'] - dataframe['open_5m']) / dataframe['open_5m']
+        dataframe['btc_zgain'] = dataframe['btc_gain'] - self.buy_btcjump_btc_jump
 
         # ADX
         dataframe['adx'] = ta.ADX(dataframe)
@@ -566,6 +583,20 @@ class ComboHold(IStrategy):
         return conditions
 
 
+    def BTCJump_conditions(self, dataframe: DataFrame):
+        conditions = []
+
+        # GUARDS AND TRENDS
+        conditions.append(dataframe['fisher_rsi'] <= self.buy_btcjump_fisher)
+        conditions.append(dataframe['bb_gain'] >= self.buy_btcjump_bb_gain)
+
+        # TRIGGERS
+
+        # did BTC gain exceed target?
+        conditions.append(qtpylib.crossed_above(dataframe['btc_zgain'], 0))
+
+        return conditions
+
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
 
         # build the dataframe using the conditions
@@ -614,6 +645,11 @@ class ComboHold(IStrategy):
 
         if self.buy_btcnseq_enabled.value:
             c = self.BTCNSeq_conditions(dataframe)
+            if c:
+                conditions.append(reduce(lambda x, y: x & y, c))
+
+        if self.buy_btcjump_enabled.value:
+            c = self.BTCJump_conditions(dataframe)
             if c:
                 conditions.append(reduce(lambda x, y: x & y, c))
 
