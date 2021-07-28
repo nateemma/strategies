@@ -21,11 +21,15 @@ class FisherBB(IStrategy):
     How to use it?
     > python3 ./freqtrade/main.py -s FisherBB
     """
+    # buy_params = {
+    #     "buy_bb_gain": 0.09,
+    #     "buy_fisher": 0.06,
+    # }
+    
     buy_params = {
-        "buy_bb_gain": 0.09,
-        "buy_fisher": 0.06,
+        "buy_bb_gain": 0.07,
+        "buy_fisher": -0.22,
     }
-
     buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.09, space="buy")
     buy_fisher = DecimalParameter(-1, 1, decimals=2, default=-0.01, space="buy")
 

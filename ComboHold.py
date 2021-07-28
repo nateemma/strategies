@@ -32,12 +32,12 @@ class ComboHold(IStrategy):
         "buy_bigdrop_enabled": True,
         "buy_btcjump_enabled": True,
         "buy_btcndrop_enabled": False,
-        "buy_btcnseq_enabled": False,
-        "buy_emabounce_enabled": False,
+        "buy_btcnseq_enabled": True,
+        "buy_emabounce_enabled": True,
         "buy_fisherbb_enabled": True,
         "buy_macdcross_enabled": True,
-        "buy_ndrop_enabled": True,
-        "buy_nseq_enabled": False,
+        "buy_ndrop_enabled": False,
+        "buy_nseq_enabled": True,
     }
 
     buy_bbbhold_enabled = CategoricalParameter([True, False], default=True, space="buy")
