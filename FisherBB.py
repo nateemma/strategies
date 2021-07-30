@@ -25,7 +25,7 @@ class FisherBB(IStrategy):
     #     "buy_bb_gain": 0.09,
     #     "buy_fisher": 0.06,
     # }
-    
+
     buy_params = {
         "buy_bb_gain": 0.07,
         "buy_fisher": -0.22,
