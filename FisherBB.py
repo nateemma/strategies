@@ -26,10 +26,18 @@ class FisherBB(IStrategy):
     #     "buy_fisher": 0.06,
     # }
 
+    # best, as of 8/12/21, for last month
     buy_params = {
-        "buy_bb_gain": 0.07,
-        "buy_fisher": -0.22,
+        "buy_bb_gain": 0.05,
+        "buy_fisher": -0.57,
     }
+
+    # # best, as of 8/10/21, for last 3 months
+    # buy_params = {
+    #     "buy_bb_gain": 0.07,
+    #     "buy_fisher": -0.22,
+    # }
+
     buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.09, space="buy")
     buy_fisher = DecimalParameter(-1, 1, decimals=2, default=-0.01, space="buy")
 

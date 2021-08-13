@@ -6,8 +6,9 @@ slist+="Squeeze002 TEMABounce Hammer SARCross Squeeze001  MACDCross DonchianBoun
 slist+="BuyDips SqueezeMomentum KeltnerBounce "
 
 
-timerange="20210501-"
+#timerange="20210501-"
 #timerange="20210601-"
+timerange="20210701-"
 
 echo "Downloading latest data..."
 echo "freqtrade download-data  --timerange=${timerange}"

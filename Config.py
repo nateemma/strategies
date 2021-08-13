@@ -14,6 +14,21 @@ trailing_only_offset_is_reached = True
 
 # Stoploss:
 stoploss = -0.349
+#
+# minimal_roi = {
+#     "0": 0.038,
+#     "20": 0.026,
+#     "117": 0.016,
+#     "286": 0
+# }
+#
+# trailing_stop = True
+# trailing_stop_positive = 0.034
+# trailing_stop_positive_offset = 0.037
+# trailing_only_offset_is_reached = True
+#
+# # Stoploss:
+# stoploss = -0.349
 
 # Optimal timeframe for the strategy
 timeframe = '5m'
