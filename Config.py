@@ -1,19 +1,21 @@
 # Common configuration items to be used across Strategies
 
+# ROI table:
 minimal_roi = {
-    "0": 0.038,
-    "20": 0.026,
-    "117": 0.016,
-    "286": 0
+    "0": 0.098,
+    "62": 0.084,
+    "140": 0.035,
+    "375": 0
 }
 
+# Trailing stop:
 trailing_stop = True
-trailing_stop_positive = 0.034
-trailing_stop_positive_offset = 0.037
-trailing_only_offset_is_reached = True
+trailing_stop_positive = 0.288
+trailing_stop_positive_offset = 0.302
+trailing_only_offset_is_reached = False
 
 # Stoploss:
-stoploss = -0.349
+stoploss = -0.343
 #
 # minimal_roi = {
 #     "0": 0.038,
