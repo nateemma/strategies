@@ -29,12 +29,12 @@ class NSeq(IStrategy):
     # Buy hyperspace params:
     buy_params = {
         "buy_bb_enabled": False,
-        "buy_drop": 0.026,
-        "buy_fisher": -0.68,
+        "buy_drop": 0.017,
+        "buy_fisher": 0.19,
         "buy_fisher_enabled": False,
-        "buy_mfi": 35.0,
+        "buy_mfi": 18.0,
         "buy_mfi_enabled": False,
-        "buy_num_candles": 3,
+        "buy_num_candles": 8,
     }
 
     buy_num_candles = IntParameter(3, 9, default=3, space="buy")

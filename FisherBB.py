@@ -26,10 +26,10 @@ class FisherBB(IStrategy):
     #     "buy_fisher": 0.06,
     # }
 
-    # best, as of 8/12/21, for last month
+    # best, as of 8/13/21, for last month
     buy_params = {
         "buy_bb_gain": 0.05,
-        "buy_fisher": -0.57,
+        "buy_fisher": -0.5,
     }
 
     # # best, as of 8/10/21, for last 3 months

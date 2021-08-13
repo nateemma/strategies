@@ -31,12 +31,12 @@ class ComboHold(IStrategy):
         "buy_bbbhold_enabled": True,
         "buy_bigdrop_enabled": True,
         "buy_btcjump_enabled": True,
-        "buy_btcndrop_enabled": False,
+        "buy_btcndrop_enabled": True,
         "buy_btcnseq_enabled": True,
-        "buy_emabounce_enabled": True,
+        "buy_emabounce_enabled": False,
         "buy_fisherbb_enabled": True,
-        "buy_macdcross_enabled": True,
-        "buy_ndrop_enabled": False,
+        "buy_macdcross_enabled": False,
+        "buy_ndrop_enabled": True,
         "buy_nseq_enabled": True,
     }
 
@@ -77,23 +77,23 @@ class ComboHold(IStrategy):
 
     # NSeq parameters:
     """
-        buy_params = {
+    buy_params = {
         "buy_bb_enabled": False,
-        "buy_drop": 0.026,
-        "buy_fisher": -0.68,
+        "buy_drop": 0.017,
+        "buy_fisher": 0.19,
         "buy_fisher_enabled": False,
-        "buy_mfi": 35.0,
+        "buy_mfi": 18.0,
         "buy_mfi_enabled": False,
-        "buy_num_candles": 3,
+        "buy_num_candles": 8,
     }
     """
-    buy_nseq_num_candles = 3
-    buy_nseq_drop = 0.021
-    buy_nseq_fisher = -0.5
-    buy_nseq_mfi = 39.0
-    buy_nseq_fisher_enabled = False
-    buy_nseq_mfi_enabled = False
     buy_nseq_bb_enabled = False
+    buy_nseq_drop = 0.017
+    buy_nseq_fisher = 0.19
+    buy_nseq_fisher_enabled = False
+    buy_nseq_mfi = 18.0
+    buy_nseq_mfi_enabled = False
+    buy_nseq_num_candles = 8
 
     # EMABounce parameters
     buy_emabounce_long_period = 50
@@ -102,74 +102,74 @@ class ComboHold(IStrategy):
 
     # MACDCross Parameters
     """
-        buy_params = {
-        "buy_adx": 1.0,
+    buy_params = {
+        "buy_adx": 16.0,
         "buy_adx_enabled": False,
         "buy_bb_enabled": True,
-        "buy_bb_gain": 0.04,
-        "buy_dm_enabled": True,
-        "buy_fisher": 0.18,
+        "buy_bb_gain": 0.01,
+        "buy_dm_enabled": False,
+        "buy_fisher": -0.56,
         "buy_fisher_enabled": True,
-        "buy_mfi": 79.0,
+        "buy_mfi": 55.0,
         "buy_mfi_enabled": False,
         "buy_neg_macd_enabled": True,
-        "buy_period": 16,
+        "buy_period": 17,
         "buy_sar_enabled": False,
     }
     """
     
-    buy_macdcross_adx = 1.0
+    buy_macdcross_adx = 16.0
     buy_macdcross_adx_enabled = False
     buy_macdcross_bb_enabled = True
-    buy_macdcross_bb_gain = 0.04
-    buy_macdcross_dm_enabled = True
-    buy_macdcross_fisher = 0.18
+    buy_macdcross_bb_gain = 0.01
+    buy_macdcross_dm_enabled = False
+    buy_macdcross_fisher = -0.56
     buy_macdcross_fisher_enabled = True
-    buy_macdcross_mfi = 79.0
+    buy_macdcross_mfi = 55.0
     buy_macdcross_mfi_enabled = False
     buy_macdcross_neg_macd_enabled = True
-    buy_macdcross_period = 16
+    buy_macdcross_period = 17
     buy_macdcross_sar_enabled = False
 
     # BigDrop parameters:
     """
-        buy_params = {
+    buy_params = {
         "buy_bb_enabled": False,
-        "buy_drop": 0.038,
-        "buy_fisher": 0.12,
-        "buy_fisher_enabled": True,
-        "buy_mfi": 14.0,
-        "buy_mfi_enabled": False,
-        "buy_num_candles": 8,
+        "buy_drop": 0.03,
+        "buy_fisher": 0.33,
+        "buy_fisher_enabled": False,
+        "buy_mfi": 39.0,
+        "buy_mfi_enabled": True,
+        "buy_num_candles": 9,
     }
     """
     buy_bigdrop_bb_enabled = False
-    buy_bigdrop_drop = 0.06
-    buy_bigdrop_fisher = -0.23
-    buy_bigdrop_fisher_enabled = True
-    buy_bigdrop_mfi = 31.0
-    buy_bigdrop_mfi_enabled = False
+    buy_bigdrop_drop = 0.03
+    buy_bigdrop_fisher = 0.33
+    buy_bigdrop_fisher_enabled = False
+    buy_bigdrop_mfi = 39.0
+    buy_bigdrop_mfi_enabled = True
     buy_bigdrop_num_candles = 9
 
     # FisherBB parameters:
 
-    buy_fisherbb_bb_gain = 0.09
-    buy_fisherbb_fisher = -0.01
+    buy_fisherbb_bb_gain = 0.05
+    buy_fisherbb_fisher = -0.5
 
     # BBBHold parameters:
     """
-        buy_params = {
-        "buy_bb_gain": 0.06,
-        "buy_fisher": 0.52,
-        "buy_fisher_enabled": True,
-        "buy_mfi": 28.0,
+    buy_params = {
+        "buy_bb_gain": 0.02,
+        "buy_fisher": -0.09,
+        "buy_fisher_enabled": False,
+        "buy_mfi": 37.0,
         "buy_mfi_enabled": False,
     }
     """
-    buy_bbbhold_bb_gain = 0.06
-    buy_bbbhold_fisher = 0.52
-    buy_bbbhold_fisher_enabled = True
-    buy_bbbhold_mfi = 28.0
+    buy_bbbhold_bb_gain = 0.02
+    buy_bbbhold_fisher = -0.09
+    buy_bbbhold_fisher_enabled = False
+    buy_bbbhold_mfi = 37.0
     buy_bbbhold_mfi_enabled = False
 
     # BTCNDrop Parameters
@@ -189,33 +189,33 @@ class ComboHold(IStrategy):
     # BTCNSeq Parameters
     """
     buy_params = {
-        "buy_bb_enabled": True,
-        "buy_bb_gain": 0.08,
-        "buy_drop": 0.016,
-        "buy_fisher": -0.06,
-        "buy_fisher_enabled": True,
-        "buy_num_candles": 3,
+        "buy_bb_enabled": False,
+        "buy_bb_gain": 0.07,
+        "buy_drop": 0.01,
+        "buy_fisher": -0.75,
+        "buy_fisher_enabled": False,
+        "buy_num_candles": 6,
     }
     """
-    buy_btcnseq_bb_enabled = True
-    buy_btcnseq_bb_gain = 0.08
-    buy_btcnseq_drop = 0.016
-    buy_btcnseq_fisher = -0.06
-    buy_btcnseq_fisher_enabled = True
-    buy_btcnseq_num_candles = 3
+    buy_btcnseq_bb_enabled = False
+    buy_btcnseq_bb_gain = 0.07
+    buy_btcnseq_drop = 0.01
+    buy_btcnseq_fisher = -0.75
+    buy_btcnseq_fisher_enabled = False
+    buy_btcnseq_num_candles = 6
 
 
     # BTCJump Parameters
     """
     buy_params = {
-        "buy_bb_gain": 0.09,
-        "buy_btc_jump": 0.005,
-        "buy_fisher": -0.12,
+        "buy_bb_gain": 0.01,
+        "buy_btc_jump": 0.015,
+        "buy_fisher": 1.0,
     }
     """
-    buy_btcjump_bb_gain = 0.09
-    buy_btcjump_btc_jump = 0.005
-    buy_btcjump_fisher = -0.12
+    buy_btcjump_bb_gain = 0.01
+    buy_btcjump_btc_jump = 0.015
+    buy_btcjump_fisher = 1.0
 
     # Strategy Configuration
 

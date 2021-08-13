@@ -27,10 +27,10 @@ class BBBHold(IStrategy):
     # Hyperparameters
     # Buy hyperspace params:
     buy_params = {
-        "buy_bb_gain": 0.06,
-        "buy_fisher": 0.52,
-        "buy_fisher_enabled": True,
-        "buy_mfi": 28.0,
+        "buy_bb_gain": 0.02,
+        "buy_fisher": -0.09,
+        "buy_fisher_enabled": False,
+        "buy_mfi": 37.0,
         "buy_mfi_enabled": False,
     }
 

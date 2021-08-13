@@ -28,12 +28,12 @@ class BTCNSeq(IStrategy):
     # Hyperparameters
 
     buy_params = {
-        "buy_bb_enabled": True,
-        "buy_bb_gain": 0.08,
-        "buy_drop": 0.016,
-        "buy_fisher": -0.06,
-        "buy_fisher_enabled": True,
-        "buy_num_candles": 3,
+        "buy_bb_enabled": False,
+        "buy_bb_gain": 0.07,
+        "buy_drop": 0.01,
+        "buy_fisher": -0.75,
+        "buy_fisher_enabled": False,
+        "buy_num_candles": 6,
     }
 
     # note that the num_candles and drop params refer to BTC, not the current pair
