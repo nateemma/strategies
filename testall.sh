@@ -1,14 +1,16 @@
 #!/bin/bash
 
-# list of strategies (only the decent ones, in rough order of performance)
-slist="ComboHold FisherBB NDrop BigDrop NSeq EMABounce  Strategy003 BBBHold BTCJump BTCNSeq SqueezeOff "
-slist+="Squeeze002 TEMABounce Hammer SARCross Squeeze001  MACDCross DonchianBounce BBKCBounce "
-slist+="BuyDips SqueezeMomentum KeltnerBounce "
+# list of strategies (only the ones in ComboHold)
+slist="ComboHold BBBHold BigDrop BTCJump BTCNDrop BTCNSeq EMABounce FisherBB MACDCross NDrop NSeq "
 
+
+#get date from 30 days ago (MacOS-specific)
+start_date=$(date -j -v-30d +"%Y%m%d")
 
 #timerange="20210501-"
 #timerange="20210601-"
-timerange="20210701-"
+#timerange="20210701-"
+timerange="${start_date}-"
 
 echo "Downloading latest data..."
 echo "freqtrade download-data  --timerange=${timerange}"

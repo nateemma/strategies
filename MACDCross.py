@@ -39,18 +39,18 @@ class MACDCross(IStrategy):
 
     # Buy hyperspace params:
     buy_params = {
-        "buy_adx": 16.0,
-        "buy_adx_enabled": False,
+        "buy_adx": 9.0,
+        "buy_adx_enabled": True,
         "buy_bb_enabled": True,
         "buy_bb_gain": 0.01,
         "buy_dm_enabled": False,
-        "buy_fisher": -0.56,
-        "buy_fisher_enabled": True,
-        "buy_mfi": 55.0,
+        "buy_fisher": -0.94,
+        "buy_fisher_enabled": False,
+        "buy_mfi": 14.0,
         "buy_mfi_enabled": False,
-        "buy_neg_macd_enabled": True,
-        "buy_period": 17,
-        "buy_sar_enabled": False,
+        "buy_neg_macd_enabled": False,
+        "buy_period": 6,
+        "buy_sar_enabled": True,
     }
 
 

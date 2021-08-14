@@ -5,15 +5,17 @@
 #    )
 
 declare -a list=(
-    "ComboHold" "FisherBB" "NDrop" "BigDrop" "NSeq" "EMABounce" "BBBHold" "BTCJump" "BTCNSeq" "BTCDrop" "MACDCross"
-    )
+  "ComboHold" "BBBHold" "BigDrop" "BTCJump" "BTCNDrop" "BTCNSeq" "EMABounce" "FisherBB" "MACDCross" "NDrop" "NSeq"
+)
 
-#freqtrade backtesting --timerange=20210501- --strategy-list "${list}"
+#get date from 30 days ago (MacOS-specific)
+start_date=$(date -j -v-30d +"%Y%m%d")
 
-timerange="20210701-"
+timerange="${start_date}-"
+#timerange="20210701-"
 
 echo "" >hyperoptall.log
-echo "Time range: ${timerange}" >> hyperoptall.log
+echo "Time range: ${timerange}" >>hyperoptall.log
 echo "" >>hyperoptall.log
 
 for s in "${list[@]}"; do
