@@ -5,7 +5,8 @@
 #    )
 
 declare -a list=(
-  "ComboHold" "BBBHold" "BigDrop" "BTCJump" "BTCNDrop" "BTCNSeq" "EMABounce" "FisherBB" "MACDCross" "NDrop" "NSeq"
+  "ComboHold" "BBBHold" "BigDrop" "BTCBigDrop" "BTCJump" "BTCNDrop" "BTCNSeq" "EMABounce" "FisherBB" FisherBB2
+  "MACDCross" "NDrop" "NSeq"
 )
 
 #get date from 30 days ago (MacOS-specific)
@@ -28,6 +29,6 @@ for s in "${list[@]}"; do
   echo "$s" >>hyperoptall.log
   echo ============================== >>hyperoptall.log
   freqtrade hyperopt --space buy --hyperopt-loss OnlyProfitHyperOptLoss --timerange=${timerange} \
-    -s $s >>hyperoptall.log
+    -s $s --no-color >>hyperoptall.log
 
 done

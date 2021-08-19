@@ -14,16 +14,22 @@ from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, Int
 from user_data.strategies import Config
 
 
-class FisherBB(IStrategy):
+class FisherBB2(IStrategy):
     """
     Simple strategy based on Inverse Fisher Transform and Bollinger Bands
 
     How to use it?
-    > python3 ./freqtrade/main.py -s FisherBB
+    > python3 ./freqtrade/main.py -s FisherBB2
     """
+    # buy_params = {
+    #     "buy_bb_gain": 0.09,
+    #     "buy_fisher": 0.06,
+    # }
+
+    # best, as of 8/13/21, for last month
     buy_params = {
         "buy_bb_gain": 0.03,
-        "buy_fisher": 0.56,
+        "buy_fisher": 0.75,
     }
 
     # # best, as of 8/10/21, for last 3 months
@@ -137,11 +143,15 @@ class FisherBB(IStrategy):
 
         # GUARDS AND TRENDS
 
+        conditions.append(dataframe['fisher_rsi'].shift(1) <= self.buy_fisher.value)
+        conditions.append(dataframe['bb_gain'].shift(1) >= self.buy_bb_gain.value)
 
-        conditions.append(dataframe['fisher_rsi'] <= self.buy_fisher.value)
+        # conditions.append(qtpylib.crossed_below(dataframe['fisher_rsi'], self.buy_fisher.value))
 
-        # potential gain > goal
-        conditions.append(dataframe['bb_gain'] >= self.buy_bb_gain.value)
+        conditions.append(
+            (dataframe['fisher_rsi'] > self.buy_fisher.value) |
+            (dataframe['bb_gain'] < self.buy_bb_gain.value)
+        )
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1

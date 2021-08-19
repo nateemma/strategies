@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # list of strategies (only the ones in ComboHold)
-slist="ComboHold BBBHold BigDrop BTCJump BTCNDrop BTCNSeq EMABounce FisherBB MACDCross NDrop NSeq "
+slist="ComboHold BBBHold BigDrop BTCBigDrop BTCJump BTCNDrop BTCNSeq EMABounce FisherBB FisherBB2 MACDCross NDrop NSeq "
 
 
 #get date from 30 days ago (MacOS-specific)
