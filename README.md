@@ -39,17 +39,21 @@ In this context, the performance ratings are:
 |        Strategy | Performance |   Description                                 | 
 |-----------------|-------------|-----------------------------------------------|
 | ComboHold | Good |Combines the best of the strategies below|
+| BigDrop | Good |Looks for a minimum %age total drop over a specified time|
 | NDrop | Good |Looks for N consecutive 'drops', with a minimum %age total drop|
 | NSeq | Good |Looks for N consecutive down candles followed by an up candle|
-| EMABounce | Good |Looks for situations where the current price is a specified %age below the 20 day EMA, and the short term EMA is changing direction (up)|
-| Strategy003 | Good |This is from the freqtrade samples|
-| BTCNDrop | Good |Like NDrop, but triggers on BTC/USD (the assumption is BTC/USD moves ahead of other pairs)|
-| BTCEMABounce | Good |Like EMABounce, but triggers on BTC/USD|
 | BBBHold | Good |Buys when the close crosses below the lower Bollinger Band and holds|
-| Squeeze001 | Good |This is a variation of SqueezeMomentum from Lazy Bear, but with hyperopt-generated parameters. It works well, but I can't explain why!|
-| BBKCBounce | Good |Buys when a candle crosses back above both the lower Bollinger and Keltner bands|
+| BTCNDrop | Good |Like BigDrop, but triggers on BTC/USD (the assumption is BTC/USD moves ahead of other pairs)|
+| MACDCross | Good |Classic MACD crossing MACDSignal|
+| BTCJump | Good |triggers on a big jump in BTC/USD (the assumption is BTC/USD moves ahead of other pairs)|
+| BTCNDrop | Good |Like NDrop, but triggers on BTC/USD (the assumption is BTC/USD moves ahead of other pairs)|
+| BTCNSeq | Good |Like NSeq, but triggers on BTC/USD (the assumption is BTC/USD moves ahead of other pairs)|
+| EMABounce | Good |Looks for situations where the current price is a specified %age below the 20 day EMA, and the short term EMA is changing direction (up). Does not trigger often, but very reliable|
+| Strategy003 | OK |This is from the freqtrade samples|
+| BTCEMABounce | OK |Like EMABounce, but triggers on BTC/USD|
+| Squeeze001 | OK |This is a variation of SqueezeMomentum from Lazy Bear, but with hyperopt-generated parameters. It works well, but I can't explain why!|
+| BBKCBounce | OK |Buys when a candle crosses back above both the lower Bollinger and Keltner bands|
 | BuyDips | OK |Buys on perceived dips and holds|
-| MACDCross | OK |Classic MACD crossing MACDSignal|
 | KeltnerBounce | OK |Buy when price crosses lower Donchian band and hold|
 | SimpleBollinger | OK |Buy when price crosses upper Bollinger band, sell when it crosses the lower band|
 | SqueezeOff | OK |Buys when Squeeze Momentum transitions to 'off'|
@@ -85,7 +89,8 @@ Before you can backtest, you must download data for testing. You do this using a
 
 >freqtrade download-data  --timerange=_\<timerange\>_
 
-It is recommended that you update fairly often (e.g. once per day).
+It is recommended that you update fairly often (e.g. once per week) and on a limited time range (e.g. the last month). 
+Optimising results for the past year or 6 months doesn't really help you perform better with the current market conditions.
 
 Backtesting can be done using the following command:
 
@@ -95,9 +100,7 @@ Backtesting can be done using the following command:
 
 Run the hyperopt command to search for 'optimal' parameters in your strategy. 
 
-Note that performance is _dramatically_ affected by the ROI parameters (and timeframe, but to a lesser extent). 
-
-In my case, I tend to just run this on ComboHold, since that is what I actually use to trade.
+Note that performance is _dramatically_ affected by the ROI parameters and timeframe. 
 
 >freqtrade hyperopt --strategy _\<strategy\>_  --space _\<space\>_ --hyperopt-loss _\<loss algorithm\>_   --timerange=_\<timerange\>_
 
@@ -105,11 +108,17 @@ where:
 
 _\<space\>_ specifies which space to try and optimise. It is recommended to try these combinations in order:
 
-1. roi trailing 
-1. stoploss
+1. roi stoploss  
+1. trailing
 1. buy
 
 If you try to optimise them all at once, you don't get good results
+
+
+In my case, I tend to just run all of these spaces only on ComboHold, since that is what I actually use to trade. 
+I also run the _buy_ space on all of the strategies that go into ComboHold, since it changes a lot week-to-week.
+
+
 
 If the run gets better results than before, update your strategy with the suggested parameters (roi table etc). Note that _hyperopt-loss_ does not always provide better results
 
