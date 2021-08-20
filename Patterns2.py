@@ -23,12 +23,12 @@ class Patterns2(IStrategy):
     """
     # Buy hyperspace params:
     buy_params = {
-        "buy_bb_enabled": True,
-        "buy_bb_gain": 0.02,
-        "buy_mfi": 50.0,
+        "buy_bb_enabled": False,
+        "buy_bb_gain": 0.01,
+        "buy_mfi": 19.0,
         "buy_mfi_enabled": True,
-        "buy_rsi": 31.0,
-        "buy_rsi_enabled": True,
+        "buy_rsi": 4.0,
+        "buy_rsi_enabled": False,
         "buy_sma_enabled": True,
     }
     pattern_strength = 90

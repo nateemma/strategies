@@ -12,6 +12,7 @@ import numpy # noqa
 from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, IntParameter
 
 from user_data.strategies import Config
+from freqtrade.optimize.space import Categorical, Dimension, Integer, SKDecimal, Real  # noqa
 
 
 class FisherBB(IStrategy):
@@ -50,6 +51,21 @@ class FisherBB(IStrategy):
     sell_profit_only = Config.sell_profit_only
     ignore_roi_if_buy_signal = Config.ignore_roi_if_buy_signal
     order_types = Config.order_types
+
+
+    # Define custom ROI ranges
+    class HyperOpt:
+        # Define a custom ROI space.
+        def roi_space() -> List[Dimension]:
+            return [
+                Integer(10, 240, name='roi_t1'),
+                Integer(10, 120, name='roi_t2'),
+                Integer(10, 80, name='roi_t3'),
+                SKDecimal(0.01, 0.04, decimals=3, name='roi_p1'),
+                SKDecimal(0.01, 0.07, decimals=3, name='roi_p2'),
+                SKDecimal(0.01, 0.20, decimals=3, name='roi_p3'),
+            ]
+
 
     def informative_pairs(self):
         """

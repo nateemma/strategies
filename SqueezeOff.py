@@ -26,19 +26,20 @@ class SqueezeOff(IStrategy):
     # Hyperparameters
     # Buy hyperspace params:
     buy_params = {
-        "buy_adx": 22.0,
+        "buy_accel_enabled": False,
+        "buy_adx": 6.0,
         "buy_adx_enabled": False,
-        "buy_bb_enabled": True,
-        "buy_bb_gain": 0.09,
-        "buy_dm_enabled": False,
-        "buy_fisher": -0.97,
-        "buy_fisher_enabled": False,
+        "buy_bb_enabled": False,
+        "buy_bb_gain": 0.01,
+        "buy_ema_enabled": False,
         "buy_macd_enabled": False,
-        "buy_mfi": 9.0,
+        "buy_mfi": 2.0,
         "buy_mfi_enabled": False,
-        "buy_period": 6,
-        "buy_sar_enabled": True,
+        "buy_period": 20,
+        "buy_predict_enabled": False,
+        "buy_sqz_band": 0.0171,
     }
+
     buy_period = IntParameter(3, 20, default=6, space="buy")
     buy_adx = DecimalParameter(1, 99, decimals=0, default=22, space="buy")
     buy_mfi = DecimalParameter(1, 99, decimals=0, default=9, space="buy")

@@ -25,14 +25,14 @@ class Squeeze002(IStrategy):
 
     # Hyperparameters
     buy_params = {
-        "buy_adx": 23.0,
-        "buy_adx_enabled": False,
-        "buy_bb_enabled": True,
-        "buy_bb_gain": 0.06,
-        "buy_macd_enabled": True,
+        "buy_adx": 27.0,
+        "buy_adx_enabled": True,
+        "buy_bb_enabled": False,
+        "buy_bb_gain": 0.09,
+        "buy_macd_enabled": False,
         "buy_mfi_enabled": True,
-        "buy_period": 6,
-        "buy_sar_enabled": True,
+        "buy_period": 19,
+        "buy_sar_enabled": False,
     }
     buy_period = IntParameter(3, 20, default=9, space="buy")
     buy_adx = DecimalParameter(1, 99, decimals=0, default=53, space="buy")

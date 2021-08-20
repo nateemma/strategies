@@ -2,11 +2,14 @@
 
 # ROI table:
 minimal_roi = {
-    "0": 0.098,
-    "62": 0.084,
-    "140": 0.035,
-    "375": 0
+    "0": 0.155,
+    "65": 0.075,
+    "87": 0.039,
+    "305": 0
 }
+
+# Stoploss:
+stoploss = -0.253
 
 # Trailing stop:
 trailing_stop = True
@@ -14,8 +17,23 @@ trailing_stop_positive = 0.288
 trailing_stop_positive_offset = 0.302
 trailing_only_offset_is_reached = False
 
-# Stoploss:
-stoploss = -0.343
+# Old best 08/19/21:
+# # ROI table:
+# minimal_roi = {
+#     "0": 0.098,
+#     "62": 0.084,
+#     "140": 0.035,
+#     "375": 0
+# }
+#
+# # Trailing stop:
+# trailing_stop = True
+# trailing_stop_positive = 0.288
+# trailing_stop_positive_offset = 0.302
+# trailing_only_offset_is_reached = False
+#
+# # Stoploss:
+# stoploss = -0.343
 #
 # minimal_roi = {
 #     "0": 0.038,
