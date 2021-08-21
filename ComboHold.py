@@ -15,6 +15,7 @@ from freqtrade.optimize.space import Categorical, Dimension, Integer, SKDecimal,
 from freqtrade.strategy.strategy_helper import merge_informative_pair
 
 from user_data.strategies import Config
+from user_data.strategies import ComboHoldParams
 
 class ComboHold(IStrategy):
     """
@@ -27,18 +28,7 @@ class ComboHold(IStrategy):
 
     # Hyperparameters
     # Buy hyperspace params:
-    buy_params = {
-        "buy_bbbhold_enabled": True,
-        "buy_bigdrop_enabled": False,
-        "buy_btcjump_enabled": False,
-        "buy_btcndrop_enabled": True,
-        "buy_btcnseq_enabled": False,
-        "buy_emabounce_enabled": True,
-        "buy_fisherbb_enabled": False,
-        "buy_macdcross_enabled": False,
-        "buy_ndrop_enabled": True,
-        "buy_nseq_enabled": False,
-    }
+    buy_params = ComboHoldParams.strategyParameters["ComboHold"]
 
     buy_bbbhold_enabled = CategoricalParameter([True, False], default=True, space="buy")
     buy_bigdrop_enabled = CategoricalParameter([True, False], default=False, space="buy")
@@ -57,170 +47,87 @@ class ComboHold(IStrategy):
     # NOTE: the strategies run differently in combination, so sometimes the best settings for the individual
     #       strategy do not work well when used here
     # Organise alphabetically, so that it's easier to update based on hyperopt runs
-    # To update strategy parameters, just cut&paste the "buy_params" contents from the strategy into the body of the
-    # "xxx_buy_params" dictionary. It's done this way to make it easier to update (frequently)
+    # parameters are defined in ComboHoldParams for easier update
 
-    # BBHold
-    bbhold_buy_params = {
-        "buy_bb_gain": 0.01,
-        "buy_fisher": -0.15,
-        "buy_fisher_enabled": True,
-        "buy_mfi": 20.0,
-        "buy_mfi_enabled": False,
-    }
 
-    buy_bbbhold_bb_gain = bbhold_buy_params["buy_bb_gain"]
-    buy_bbbhold_fisher = bbhold_buy_params["buy_fisher"]
-    buy_bbbhold_fisher_enabled = bbhold_buy_params["buy_fisher_enabled"]
-    buy_bbbhold_mfi = bbhold_buy_params["buy_mfi"]
-    buy_bbbhold_mfi_enabled = bbhold_buy_params["buy_mfi_enabled"]
+    # BBBHold
+    buy_bbbhold_bb_gain = ComboHoldParams.strategyParameters["BBBHold"]["buy_bb_gain"]
+    buy_bbbhold_fisher = ComboHoldParams.strategyParameters["BBBHold"]["buy_fisher"]
+    buy_bbbhold_fisher_enabled = ComboHoldParams.strategyParameters["BBBHold"]["buy_fisher_enabled"]
+    buy_bbbhold_mfi = ComboHoldParams.strategyParameters["BBBHold"]["buy_mfi"]
+    buy_bbbhold_mfi_enabled = ComboHoldParams.strategyParameters["BBBHold"]["buy_mfi_enabled"]
 
     # BigDrop
-    bigdrop_buy_params = {
-        "buy_bb_enabled": False,
-        "buy_drop": 0.016,
-        "buy_fisher": -0.44,
-        "buy_fisher_enabled": True,
-        "buy_mfi": 16.0,
-        "buy_mfi_enabled": False,
-        "buy_num_candles": 7,
-    }
-
-    buy_bigdrop_bb_enabled = bigdrop_buy_params["buy_bb_enabled"]
-    buy_bigdrop_drop = bigdrop_buy_params["buy_drop"]
-    buy_bigdrop_fisher = bigdrop_buy_params["buy_fisher"]
-    buy_bigdrop_fisher_enabled = bigdrop_buy_params["buy_fisher_enabled"]
-    buy_bigdrop_mfi = bigdrop_buy_params["buy_mfi"]
-    buy_bigdrop_mfi_enabled = bigdrop_buy_params["buy_mfi_enabled"]
-    buy_bigdrop_num_candles = bigdrop_buy_params["buy_num_candles"]
+    buy_bigdrop_bb_enabled = ComboHoldParams.strategyParameters["BigDrop"]["buy_bb_enabled"]
+    buy_bigdrop_drop = ComboHoldParams.strategyParameters["BigDrop"]["buy_drop"]
+    buy_bigdrop_fisher = ComboHoldParams.strategyParameters["BigDrop"]["buy_fisher"]
+    buy_bigdrop_fisher_enabled = ComboHoldParams.strategyParameters["BigDrop"]["buy_fisher_enabled"]
+    buy_bigdrop_mfi = ComboHoldParams.strategyParameters["BigDrop"]["buy_mfi"]
+    buy_bigdrop_mfi_enabled = ComboHoldParams.strategyParameters["BigDrop"]["buy_mfi_enabled"]
+    buy_bigdrop_num_candles = ComboHoldParams.strategyParameters["BigDrop"]["buy_num_candles"]
 
     # BTCJump
-    btcjump_buy_params = {
-        "buy_bb_gain": 0.01,
-        "buy_btc_jump": 0.015,
-        "buy_fisher": 0.97,
-    }
-
-    buy_btcjump_bb_gain = btcjump_buy_params["buy_bb_gain"]
-    buy_btcjump_btc_jump = btcjump_buy_params["buy_btc_jump"]
-    buy_btcjump_fisher = btcjump_buy_params["buy_fisher"]
+    buy_btcjump_bb_gain = ComboHoldParams.strategyParameters["BTCJump"]["buy_bb_gain"]
+    buy_btcjump_btc_jump = ComboHoldParams.strategyParameters["BTCJump"]["buy_btc_jump"]
+    buy_btcjump_fisher = ComboHoldParams.strategyParameters["BTCJump"]["buy_fisher"]
 
     # BTCNDrop
-    btc_ndrop_buy_params = {
-        "buy_bb_enabled": False,
-        "buy_drop": 0.01,
-        "buy_fisher": 0.48,
-        "buy_fisher_enabled": False,
-        "buy_mfi": 31.0,
-        "buy_mfi_enabled": False,
-        "buy_num_candles": 3,
-    }
-
-    buy_btcndrop_bb_enabled = btc_ndrop_buy_params["buy_bb_enabled"]
-    buy_btcndrop_drop = btc_ndrop_buy_params["buy_drop"]
-    buy_btcndrop_fisher = btc_ndrop_buy_params["buy_fisher"]
-    buy_btcndrop_fisher_enabled = btc_ndrop_buy_params["buy_fisher_enabled"]
-    buy_btcndrop_mfi = btc_ndrop_buy_params["buy_mfi"]
-    buy_btcndrop_mfi_enabled = btc_ndrop_buy_params["buy_mfi_enabled"]
-    buy_btcndrop_num_candles = btc_ndrop_buy_params["buy_num_candles"]
+    buy_btcndrop_bb_enabled = ComboHoldParams.strategyParameters["BTCNDrop"]["buy_bb_enabled"]
+    buy_btcndrop_drop = ComboHoldParams.strategyParameters["BTCNDrop"]["buy_drop"]
+    buy_btcndrop_fisher = ComboHoldParams.strategyParameters["BTCNDrop"]["buy_fisher"]
+    buy_btcndrop_fisher_enabled = ComboHoldParams.strategyParameters["BTCNDrop"]["buy_fisher_enabled"]
+    buy_btcndrop_mfi = ComboHoldParams.strategyParameters["BTCNDrop"]["buy_mfi"]
+    buy_btcndrop_mfi_enabled = ComboHoldParams.strategyParameters["BTCNDrop"]["buy_mfi_enabled"]
+    buy_btcndrop_num_candles = ComboHoldParams.strategyParameters["BTCNDrop"]["buy_num_candles"]
 
     # BTCNSeq
-
-    btc_nseq_buy_params = {
-        "buy_bb_enabled": False,
-        "buy_bb_gain": 0.09,
-        "buy_drop": 0.011,
-        "buy_fisher": 0.54,
-        "buy_fisher_enabled": False,
-        "buy_num_candles": 7,
-    }
-
-    buy_btcnseq_bb_enabled = btc_nseq_buy_params["buy_bb_enabled"]
-    buy_btcnseq_bb_gain = btc_nseq_buy_params["buy_bb_gain"]
-    buy_btcnseq_drop = btc_nseq_buy_params["buy_drop"]
-    buy_btcnseq_fisher = btc_nseq_buy_params["buy_fisher"]
-    buy_btcnseq_fisher_enabled = btc_nseq_buy_params["buy_fisher_enabled"]
-    buy_btcnseq_num_candles = btc_nseq_buy_params["buy_num_candles"]
+    buy_btcnseq_bb_enabled = ComboHoldParams.strategyParameters["BTCNSeq"]["buy_bb_enabled"]
+    buy_btcnseq_bb_gain = ComboHoldParams.strategyParameters["BTCNSeq"]["buy_bb_gain"]
+    buy_btcnseq_drop = ComboHoldParams.strategyParameters["BTCNSeq"]["buy_drop"]
+    buy_btcnseq_fisher = ComboHoldParams.strategyParameters["BTCNSeq"]["buy_fisher"]
+    buy_btcnseq_fisher_enabled = ComboHoldParams.strategyParameters["BTCNSeq"]["buy_fisher_enabled"]
+    buy_btcnseq_num_candles = ComboHoldParams.strategyParameters["BTCNSeq"]["buy_num_candles"]
 
     # EMABounce
-    buy_emabounce_long_period = 50
-    buy_emabounce_short_period = 10
-    buy_emabounce_diff = 0.065
+    buy_emabounce_long_period = ComboHoldParams.strategyParameters["EMABounce"]["buy_long_period"]
+    buy_emabounce_short_period = ComboHoldParams.strategyParameters["EMABounce"]["buy_short_period"]
+    buy_emabounce_diff = ComboHoldParams.strategyParameters["EMABounce"]["buy_diff"]
 
     # FisherBB
-    fisherbb_buy_params = {
-        "buy_bb_gain": 0.02,
-        "buy_fisher": 0.73,
-    }
-
-    buy_fisherbb_bb_gain = fisherbb_buy_params["buy_bb_gain"]
-    buy_fisherbb_fisher = fisherbb_buy_params["buy_fisher"]
+    buy_fisherbb_bb_gain = ComboHoldParams.strategyParameters["FisherBB"]["buy_bb_gain"]
+    buy_fisherbb_fisher = ComboHoldParams.strategyParameters["FisherBB"]["buy_fisher"]
 
     # MACDCross
-    macdcross_buy_params = {
-        "buy_adx": 28.0,
-        "buy_adx_enabled": True,
-        "buy_bb_enabled": False,
-        "buy_bb_gain": 0.08,
-        "buy_dm_enabled": False,
-        "buy_fisher": 0.93,
-        "buy_fisher_enabled": False,
-        "buy_mfi": 21.0,
-        "buy_mfi_enabled": True,
-        "buy_neg_macd_enabled": False,
-        "buy_period": 5,
-        "buy_sar_enabled": False,
-    }
-
-    buy_macdcross_adx = macdcross_buy_params["buy_adx"]
-    buy_macdcross_adx_enabled = macdcross_buy_params["buy_adx_enabled"]
-    buy_macdcross_bb_enabled = macdcross_buy_params["buy_bb_enabled"]
-    buy_macdcross_bb_gain = macdcross_buy_params["buy_bb_gain"]
-    buy_macdcross_dm_enabled = macdcross_buy_params["buy_dm_enabled"]
-    buy_macdcross_fisher = macdcross_buy_params["buy_fisher"]
-    buy_macdcross_fisher_enabled = macdcross_buy_params["buy_fisher_enabled"]
-    buy_macdcross_mfi = macdcross_buy_params["buy_mfi"]
-    buy_macdcross_mfi_enabled = macdcross_buy_params["buy_mfi_enabled"]
-    buy_macdcross_neg_macd_enabled = macdcross_buy_params["buy_neg_macd_enabled"]
-    buy_macdcross_period = macdcross_buy_params["buy_period"]
-    buy_macdcross_sar_enabled = macdcross_buy_params["buy_sar_enabled"]
+    buy_macdcross_adx = ComboHoldParams.strategyParameters["MACDCross"]["buy_adx"]
+    buy_macdcross_adx_enabled = ComboHoldParams.strategyParameters["MACDCross"]["buy_adx_enabled"]
+    buy_macdcross_bb_enabled = ComboHoldParams.strategyParameters["MACDCross"]["buy_bb_enabled"]
+    buy_macdcross_bb_gain = ComboHoldParams.strategyParameters["MACDCross"]["buy_bb_gain"]
+    buy_macdcross_dm_enabled = ComboHoldParams.strategyParameters["MACDCross"]["buy_dm_enabled"]
+    buy_macdcross_fisher = ComboHoldParams.strategyParameters["MACDCross"]["buy_fisher"]
+    buy_macdcross_fisher_enabled = ComboHoldParams.strategyParameters["MACDCross"]["buy_fisher_enabled"]
+    buy_macdcross_mfi = ComboHoldParams.strategyParameters["MACDCross"]["buy_mfi"]
+    buy_macdcross_mfi_enabled = ComboHoldParams.strategyParameters["MACDCross"]["buy_mfi_enabled"]
+    buy_macdcross_neg_macd_enabled = ComboHoldParams.strategyParameters["MACDCross"]["buy_neg_macd_enabled"]
+    buy_macdcross_period = ComboHoldParams.strategyParameters["MACDCross"]["buy_period"]
+    buy_macdcross_sar_enabled = ComboHoldParams.strategyParameters["MACDCross"]["buy_sar_enabled"]
 
     # NDrop
-    ndrop_buy_params = {
-        "buy_bb_enabled": False,
-        "buy_drop": 0.01,
-        "buy_fisher": 0.21,
-        "buy_fisher_enabled": True,
-        "buy_mfi": 31.0,
-        "buy_mfi_enabled": False,
-        "buy_num_candles": 3,
-    }
-
-    buy_ndrop_bb_enabled = ndrop_buy_params["buy_bb_enabled"]
-    buy_ndrop_drop = ndrop_buy_params["buy_drop"]
-    buy_ndrop_fisher = ndrop_buy_params["buy_fisher"]
-    buy_ndrop_fisher_enabled = ndrop_buy_params["buy_fisher_enabled"]
-    buy_ndrop_mfi = ndrop_buy_params["buy_mfi"]
-    buy_ndrop_mfi_enabled = ndrop_buy_params["buy_mfi_enabled"]
-    buy_ndrop_num_candles = ndrop_buy_params["buy_num_candles"]
+    buy_ndrop_bb_enabled = ComboHoldParams.strategyParameters["NDrop"]["buy_bb_enabled"]
+    buy_ndrop_drop = ComboHoldParams.strategyParameters["NDrop"]["buy_drop"]
+    buy_ndrop_fisher = ComboHoldParams.strategyParameters["NDrop"]["buy_fisher"]
+    buy_ndrop_fisher_enabled = ComboHoldParams.strategyParameters["NDrop"]["buy_fisher_enabled"]
+    buy_ndrop_mfi = ComboHoldParams.strategyParameters["NDrop"]["buy_mfi"]
+    buy_ndrop_mfi_enabled = ComboHoldParams.strategyParameters["NDrop"]["buy_mfi_enabled"]
+    buy_ndrop_num_candles = ComboHoldParams.strategyParameters["NDrop"]["buy_num_candles"]
 
     # NSeq
-    nseq_buy_params = {
-        "buy_bb_enabled": False,
-        "buy_drop": 0.01,
-        "buy_fisher": 0.99,
-        "buy_fisher_enabled": False,
-        "buy_mfi": 39.0,
-        "buy_mfi_enabled": False,
-        "buy_num_candles": 3,
-    }
-    buy_nseq_bb_enabled = nseq_buy_params["buy_bb_enabled"]
-    buy_nseq_drop = nseq_buy_params["buy_drop"]
-    buy_nseq_fisher = nseq_buy_params["buy_fisher"]
-    buy_nseq_fisher_enabled = nseq_buy_params["buy_fisher_enabled"]
-    buy_nseq_mfi = nseq_buy_params["buy_mfi"]
-    buy_nseq_mfi_enabled = nseq_buy_params["buy_mfi_enabled"]
-    buy_nseq_num_candles = nseq_buy_params["buy_num_candles"]
+    buy_nseq_bb_enabled = ComboHoldParams.strategyParameters["NSeq"]["buy_bb_enabled"]
+    buy_nseq_drop = ComboHoldParams.strategyParameters["NSeq"]["buy_drop"]
+    buy_nseq_fisher = ComboHoldParams.strategyParameters["NSeq"]["buy_fisher"]
+    buy_nseq_fisher_enabled = ComboHoldParams.strategyParameters["NSeq"]["buy_fisher_enabled"]
+    buy_nseq_mfi = ComboHoldParams.strategyParameters["NSeq"]["buy_mfi"]
+    buy_nseq_mfi_enabled = ComboHoldParams.strategyParameters["NSeq"]["buy_mfi_enabled"]
+    buy_nseq_num_candles = ComboHoldParams.strategyParameters["NSeq"]["buy_num_candles"]
 
 
 

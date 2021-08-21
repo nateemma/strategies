@@ -1,8 +1,5 @@
-#declare -a list=(
-#    "ComboHold" "FisherBB" "NDrop" "BigDrop" "NSeq" "EMABounce" "BBBHold" "BTCJump" "BTCNSeq" "SqueezeOff"
-#    "Squeeze002" "TEMABounce" "Hammer" "SARCross" "Squeeze001" "MACDCross" "DonchianBounce" "BBKCBounce"
-#    "BuyDips" "SqueezeMomentum" "KeltnerBounce"
-#    )
+
+
 
 declare -a list=(
   "ComboHold" "BBBHold" "BigDrop" "BTCBigDrop" "BTCJump" "BTCNDrop" "BTCNSeq" "EMABounce" "FisherBB" FisherBB2
@@ -28,7 +25,14 @@ for s in "${list[@]}"; do
   echo ""
   echo "$s" >>hyperoptall.log
   echo ============================== >>hyperoptall.log
+
+  # remove hyperopt file (we want the strategy to use the coded values)
+  hypfile = "user_data/strategies/${s}.json"
+  if [ -f "${hypfile}" ]; then
+    rm "${hypfile}"
+  fi
+
   freqtrade hyperopt --space buy --hyperopt-loss OnlyProfitHyperOptLoss --timerange=${timerange} \
-    -s $s --no-color >>hyperoptall.log
+    -s $s --no-color --disable-param-export >>hyperoptall.log
 
 done

@@ -17,6 +17,7 @@ trailing_stop_positive = 0.288
 trailing_stop_positive_offset = 0.302
 trailing_only_offset_is_reached = False
 
+
 # Old best 08/19/21:
 # # ROI table:
 # minimal_roi = {

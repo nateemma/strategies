@@ -3,6 +3,12 @@
 # list of strategies (only the ones in ComboHold)
 slist="ComboHold BBBHold BigDrop BTCBigDrop BTCJump BTCNDrop BTCNSeq EMABounce FisherBB FisherBB2 MACDCross NDrop NSeq "
 
+# remove any hyperopt files (we want the strategies to use the coded values)
+for entry in user_data/strategies/*.json
+do
+  echo "removing $entry"
+  rm ${entry}
+done
 
 #get date from 30 days ago (MacOS-specific)
 start_date=$(date -j -v-30d +"%Y%m%d")

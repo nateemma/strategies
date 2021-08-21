@@ -21,15 +21,9 @@ class FisherBB2(IStrategy):
     How to use it?
     > python3 ./freqtrade/main.py -s FisherBB2
     """
-    # buy_params = {
-    #     "buy_bb_gain": 0.09,
-    #     "buy_fisher": 0.06,
-    # }
-
-    # best, as of 8/13/21, for last month
     buy_params = {
-        "buy_bb_gain": 0.03,
-        "buy_fisher": 0.75,
+        "buy_bb_gain": 0.02,
+        "buy_fisher": 0.29,
     }
 
     # # best, as of 8/10/21, for last 3 months
