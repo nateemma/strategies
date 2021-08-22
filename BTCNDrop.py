@@ -26,15 +26,8 @@ class BTCNDrop(IStrategy):
     """
 
     # Hyperparameters
-    buy_params = {
-        "buy_bb_enabled": False,
-        "buy_drop": 0.01,
-        "buy_fisher": -0.41,
-        "buy_fisher_enabled": False,
-        "buy_mfi": 36.0,
-        "buy_mfi_enabled": True,
-        "buy_num_candles": 5,
-    }
+    buy_params = Config.strategyParameters["BTCNDrop"]
+
 
     # note that the num_candles and drop params refer to BTC, not the current pair
     buy_num_candles = IntParameter(2, 9, default=3, space="buy")

@@ -26,15 +26,7 @@ class BTCBigDrop(IStrategy):
     """
 
     # Hyperparameters
-    buy_params = {
-        "buy_bb_enabled": True,
-        "buy_drop": 0.01,
-        "buy_fisher": 0.25,
-        "buy_fisher_enabled": True,
-        "buy_mfi": 38.0,
-        "buy_mfi_enabled": True,
-        "buy_num_candles": 8,
-    }
+    buy_params = Config.strategyParameters["BTCBigDrop"]
     
     # note that the num_candles and drop params refer to BTC, not the current pair
     buy_num_candles = IntParameter(2, 9, default=3, space="buy")

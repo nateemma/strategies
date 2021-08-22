@@ -22,10 +22,8 @@ class FisherBB(IStrategy):
     How to use it?
     > python3 ./freqtrade/main.py -s FisherBB
     """
-    buy_params = {
-        "buy_bb_gain": 0.03,
-        "buy_fisher": 0.56,
-    }
+    buy_params = Config.strategyParameters["FisherBB"]
+
 
     # # best, as of 8/10/21, for last 3 months
     # buy_params = {

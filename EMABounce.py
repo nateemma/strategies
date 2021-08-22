@@ -39,12 +39,8 @@ class EMABounce(IStrategy):
     - timeframe, minimal_roi, stoploss, trailing_*
     """
     # Buy hyperspace params:
-    buy_params = {
-        "buy_diff": 0.065,
-        "buy_long_period": 50,
-        "buy_macd_enabled": False,
-        "buy_short_period": 10,
-    }
+    buy_params = Config.strategyParameters["EMABounce"]
+
     buy_long_period = IntParameter(20, 100, default=50, space="buy")
     buy_short_period = IntParameter(5, 15, default=10, space="buy")
     buy_diff = DecimalParameter(0.01, 0.10, decimals=3, default=0.065, space="buy")

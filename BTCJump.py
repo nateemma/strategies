@@ -27,11 +27,8 @@ class BTCJump(IStrategy):
 
     # Hyperparameters
     # Buy hyperspace params:
-    buy_params = {
-        "buy_bb_gain": 0.01,
-        "buy_btc_jump": 0.015,
-        "buy_fisher": 1.0,
-    }
+    buy_params = Config.strategyParameters["BTCJump"]
+
 
     # buy_params = {
     #     "buy_bb_enabled": True,

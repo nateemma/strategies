@@ -27,15 +27,8 @@ class NDrop(IStrategy):
     # Hyperparameters
 
     # Buy hyperspace params:
-    buy_params = {
-        "buy_bb_enabled": False,
-        "buy_drop": 0.011,
-        "buy_fisher": 0.68,
-        "buy_fisher_enabled": True,
-        "buy_mfi": 24.0,
-        "buy_mfi_enabled": True,
-        "buy_num_candles": 4,
-    }
+    buy_params = Config.strategyParameters["NDrop"]
+
 
     # Bollinger Band 'gain' (% difference between current price and upper band).
     # Since we are looking for potential swings of >2%, we look for potential of more than that

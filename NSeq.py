@@ -27,15 +27,8 @@ class NSeq(IStrategy):
     # Hyperparameters
 
     # Buy hyperspace params:
-    buy_params = {
-        "buy_bb_enabled": False,
-        "buy_drop": 0.005,
-        "buy_fisher": 0.62,
-        "buy_fisher_enabled": True,
-        "buy_mfi": 37.0,
-        "buy_mfi_enabled": False,
-        "buy_num_candles": 6,
-    }
+    buy_params = Config.strategyParameters["NSeq"]
+
 
     buy_num_candles = IntParameter(3, 9, default=3, space="buy")
     buy_drop = DecimalParameter(0.005, 0.06, decimals=3, default=0.021, space="buy")

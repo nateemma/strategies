@@ -26,13 +26,7 @@ class BBBHold(IStrategy):
 
     # Hyperparameters
     # Buy hyperspace params:
-    buy_params = {
-        "buy_bb_gain": 0.01,
-        "buy_fisher": 0.94,
-        "buy_fisher_enabled": True,
-        "buy_mfi": 25.0,
-        "buy_mfi_enabled": False,
-    }
+    buy_params = Config.strategyParameters["BBBHold"]
 
     # Bollinger Band 'gain' (% difference between current price and upper band).
     # Since we are looking for potential swings of >2%, we look for potential of more than that

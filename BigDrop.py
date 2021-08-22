@@ -27,15 +27,8 @@ class BigDrop(IStrategy):
 
     # Hyperparameters
     # Buy hyperspace params:
-    buy_params = {
-        "buy_bb_enabled": False,
-        "buy_drop": 0.026,
-        "buy_fisher": -0.07,
-        "buy_fisher_enabled": False,
-        "buy_mfi": 13.0,
-        "buy_mfi_enabled": False,
-        "buy_num_candles": 7,
-    }
+    buy_params = Config.strategyParameters["BigDrop"]
+
 
     buy_num_candles = IntParameter(2, 9, default=9, space="buy")
     buy_drop = DecimalParameter(0.01, 0.06, decimals=3, default=0.06, space="buy")
