@@ -11,43 +11,57 @@ import freqtrade.vendor.qtpylib.indicators as qtpylib
 import numpy # noqa
 from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, IntParameter
 
-import Config
 
 
-class FisherBB2(IStrategy):
+class FisherBBLong(IStrategy):
     """
     Simple strategy based on Inverse Fisher Transform and Bollinger Bands
+    This is a self-contained version tuned over a long period of time
 
     How to use it?
-    > python3 ./freqtrade/main.py -s FisherBB2
+    > python3 ./freqtrade/main.py -s FisherBBLong
     """
-    buy_params = Config.strategyParameters["FisherBB2"]
 
+    # Buy hyperspace params:
+    buy_params = {
+        "buy_bb_gain": 0.1,
+        "buy_fisher": -0.45,
+    }
 
-    # # best, as of 8/10/21, for last 3 months
-    # buy_params = {
-    #     "buy_bb_gain": 0.07,
-    #     "buy_fisher": -0.22,
-    # }
+    # ROI table:
+    minimal_roi = {
+        "0": 0.086,
+        "10": 0.076,
+        "25": 0.014,
+        "65": 0
+    }
+
+    # Stoploss:
+    stoploss = -0.327
+
+    # Trailing stop:
+    trailing_stop = True
+    trailing_stop_positive = 0.011
+    trailing_stop_positive_offset = 0.054
+    trailing_only_offset_is_reached = True
 
     buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.09, space="buy")
     buy_fisher = DecimalParameter(-1, 1, decimals=2, default=-0.01, space="buy")
 
     startup_candle_count = 20
 
-    # set common parameters
-    minimal_roi = Config.minimal_roi
-    trailing_stop = Config.trailing_stop
-    trailing_stop_positive = Config.trailing_stop_positive
-    trailing_stop_positive_offset = Config.trailing_stop_positive_offset
-    trailing_only_offset_is_reached = Config.trailing_only_offset_is_reached
-    stoploss = Config.stoploss
-    timeframe = Config.timeframe
-    process_only_new_candles = Config.process_only_new_candles
-    use_sell_signal = Config.use_sell_signal
-    sell_profit_only = Config.sell_profit_only
-    ignore_roi_if_buy_signal = Config.ignore_roi_if_buy_signal
-    order_types = Config.order_types
+    # Optimal timeframe for the strategy
+    timeframe = '5m'
+
+    # run "populate_indicators" only for new candle
+    process_only_new_candles = False
+
+    # Experimental settings (configuration will overide these if set)
+    use_sell_signal = True
+    sell_profit_only = True
+    ignore_roi_if_buy_signal = False
+
+
 
     def informative_pairs(self):
         """
@@ -134,16 +148,21 @@ class FisherBB2(IStrategy):
         conditions = []
 
         # GUARDS AND TRENDS
+        conditions.append(dataframe['volume'] > 0)
+        conditions.append(dataframe['fisher_rsi'].notnull())
+        conditions.append(dataframe['bb_gain'].notnull())
 
-        conditions.append(dataframe['fisher_rsi'].shift(1) <= self.buy_fisher.value)
-        conditions.append(dataframe['bb_gain'].shift(1) >= self.buy_bb_gain.value)
+        # FisherBB way (lots of triggers)
+        conditions.append(dataframe['fisher_rsi'] <= self.buy_fisher.value)
+        conditions.append(dataframe['bb_gain'] >= self.buy_bb_gain.value)
 
-        # conditions.append(qtpylib.crossed_below(dataframe['fisher_rsi'], self.buy_fisher.value))
-
-        conditions.append(
-            (dataframe['fisher_rsi'] > self.buy_fisher.value) |
-            (dataframe['bb_gain'] < self.buy_bb_gain.value)
-        )
+        # # FisherBB2 way (single trigger, but may be late)
+        # conditions.append(dataframe['fisher_rsi'].shift(1) <= self.buy_fisher.value)
+        # conditions.append(dataframe['bb_gain'].shift(1) >= self.buy_bb_gain.value)
+        # conditions.append(
+        #     (dataframe['fisher_rsi'] > self.buy_fisher.value) |
+        #     (dataframe['bb_gain'] < self.buy_bb_gain.value)
+        # )
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1

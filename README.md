@@ -1,8 +1,29 @@
-# Phil's Custom Crypto Trading Strategies
+# Phil's Custom freqtrade Crypto Trading Strategies
 
 This folder contains the code for a variety of custom trading strategies for use with the [freqtrade](https://www.freqtrade.io/) framework.
 
-Other examples may be found in the [freqtrade-strategies](https://github.com/freqtrade/freqtrade-strategies) git repo.
+Other examples may be found in various github repositories:
+
+https://github.com/freqtrade/freqtrade-strategies
+<br>
+https://github.com/i1ya/freqtrade-strategies
+<br>
+https://github.com/ntsd/freqtrade-configs
+<br>
+https://github.com/froggleston/cryptofrog-strategies
+<br>
+https://github.com/werkkrew/freqtrade-strategies
+<br>
+https://github.com/brookmiles/freqtrade-stuff
+<br>
+https://github.com/hansen1015/freqtrade_strategy/blob/main/heikin.py
+
+Note: as of August 28th, 2021, I modified the code and scripts to support multiple exchanges. 
+This means that there are some exchange-specific directories and files. 
+If you only plan to use one exchange, then just set up your config.json file appropriately and modify the Config.py in 
+the strategy directory to match your hyperopt results.
+<br>
+See the section on [Multiple Exchanges](multi-exchange-support) for more info
 
 ## Disclaimer
 
@@ -26,6 +47,7 @@ time period being tested, which exchange you are using, and which pairs you are 
 
 Note: I am pursuing a "buy on dips, sell at a profit" approach, so most of these strategies
 do not issue sell signals at all. Instead, they use the ROI and stoploss mechanisms of freqtrade to sell (hopefully at a profit).
+I started off trying to issue sell signals, but performance was bad and I've had far better results just holding.
 
 Also, I now use the same ROI/stoploss parameters across all strategies (they are defined in Config.py). 
 This is because my goal is to combine the best individual strategies into a combined strategy (ComboHold.py)
@@ -108,11 +130,12 @@ where:
 
 _\<space\>_ specifies which space to try and optimise. It is recommended to try these combinations in order:
 
-1. roi stoploss  
-1. trailing
-1. buy
+1. buy (using SharpeHyperOptLossDaily)
+2. roi stoploss  (using OnlyProfitHyperOptLoss)
+3. trailing  (using OnlyProfitHyperOptLoss)
 
-If you try to optimise them all at once, you don't get good results
+
+If you try to optimise them all at once, you don't get good results. Also, not the use of different loss functions above
 
 
 In my case, I tend to just run all of these spaces only on ComboHold, since that is what I actually use to trade. 
@@ -125,6 +148,7 @@ If the run gets better results than before, update your strategy with the sugges
 _\<loss algorithm\>_ is one of:
 
 - ShortTradeDurHyperOptLoss
+- OnlyProfitHyperOptLoss
 - SharpeHyperOptLoss
 - SharpeHyperOptLossDaily
 - SortinoHyperOptLoss
@@ -152,7 +176,8 @@ Easy. In a command window, just run:
 
 >freqtrade trade --dry-run --strategy _\<strategy\>_
 
-If you install freqUI (instructions [here](https://www.freqtrade.io/en/stable/rest-api/)), then you can monitor the trades on a web page at http://127.0.0.1:8080/
+If you install freqUI (instructions [here](https://www.freqtrade.io/en/stable/rest-api/)), then you can 
+monitor the trades on a web page at http://127.0.0.1:8080/ (or whatever address you specify in config.json)
 
 ## Live Trading
 
@@ -166,3 +191,35 @@ In a command window, just run:
 You can monitor trades from the UI (see above), and from the exchange website/app
 
 Note that you need your computer synched up to an NTP time source to do this.
+
+## Multi Exchange Support
+Exchanges have different pairlists, different base currencies and different histories, so you really need different 
+parameters for each exchange. The way I address this is by putting exchange-specific code in a subdirectory below the 
+strategy directory whose name matches the exchange tag used by freqtrade (e.g. binanceus, kucoin, coinbasepro). 
+<br>
+If you look, you will find files such as Config.py in each subdirectory. These files contain exchange-specific code, 
+which is usually the set of hyperparameters for the strategies rolled into ComboHold plus the ROI, stoploss and 
+trailing parameters.
+
+Because of this, you have to manage the _PYTHON_PATH_ environment variable or import statements will not find the 
+correct  files (python is the only language I know of that doesn't have the concept of importing from the same 
+directory, you have to know the structure relative to where the main code is running - which is a very bad design 
+if you ask me).
+
+To help with this. I added a bunch of shell scripts in the _user_data/strategies/scripts_ directory:
+
+| Script | Description |
+|-----------|------------------------------------------|
+|testrat.sh|Usage: _bash teststrat.sh <exchange> <srategy> <args>_<br>Tests an individual strategy for the specified exchange. You can add additional parameters (for _freqtrade backtest_) in the 3rd argument (enclose in quotes if you need to use multiple")|
+|hypstrat.sh||
+|testall.sh||
+|hyperall.sh||
+|compareResults.sh||
+|genParams.sh||
+|overnight.sh||
+
+
+Please note that these scripts all expect thre to be a config file for the exchange that is named in the form:  
+_config\_<exchange>.json_ (e.g. _config_binanceus.json_)
+
+Note: if you only use 1 exchange, then just use the Config.py that is in the main _user_data/strategies_ directory.

@@ -11,7 +11,7 @@ import freqtrade.vendor.qtpylib.indicators as qtpylib
 import numpy # noqa
 from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, IntParameter
 
-from user_data.strategies import Config
+import Config
 
 
 class Patterns2(IStrategy):

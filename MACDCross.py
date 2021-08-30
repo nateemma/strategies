@@ -16,7 +16,7 @@ import numpy # noqa
 # --------------------------------
 # Add your lib to import here
 
-from user_data.strategies import Config
+import Config
 
 
 class MACDCross(IStrategy):

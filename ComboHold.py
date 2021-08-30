@@ -14,7 +14,8 @@ import math
 from freqtrade.optimize.space import Categorical, Dimension, Integer, SKDecimal, Real  # noqa
 from freqtrade.strategy.strategy_helper import merge_informative_pair
 
-from user_data.strategies import Config
+#from user_data.strategies import Config
+import Config
 
 class ComboHold(IStrategy):
     """
@@ -28,6 +29,7 @@ class ComboHold(IStrategy):
     # Hyperparameters
     # Buy hyperspace params:
     buy_params = Config.strategyParameters["ComboHold"]
+    print("Exchange: ", Config.exchange_name)
 
     buy_bbbhold_enabled = CategoricalParameter([True, False], default=True, space="buy")
     buy_bigdrop_enabled = CategoricalParameter([True, False], default=False, space="buy")
@@ -193,7 +195,7 @@ class ComboHold(IStrategy):
 
         # get BTC dataframe
         inf_tf = '5m'
-        btc_dataframe = self.dp.get_pair_dataframe(pair="BTC/USD", timeframe=inf_tf)
+        btc_dataframe = self.dp.get_pair_dataframe(pair=Config.informative_pair, timeframe=inf_tf)
 
         # merge into main dataframe. This will create columns with a "_5m" suffix for the BTC data
         dataframe = merge_informative_pair(dataframe, btc_dataframe, self.timeframe, "5m", ffill=True)
