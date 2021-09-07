@@ -2,10 +2,10 @@
 
 # runs a single strategy
 
-if [[ $# -ne 2 ]] ; then
+if [[ $# -lt 2 ]] ; then
   script=$(basename $BASH_SOURCE)
   echo "Usage: bash $script <exchange> <strategy> [<args>]"
-  return 0
+  exit 0
 fi
 
 exchange=$1
@@ -36,18 +36,16 @@ oldpath=${PYTHONPATH}
 export PYTHONPATH="./${exchange_dir}:./${strat_dir}:${PYTHONPATH}"
 
 # remove any hyperopt files (we want the strategies to use the coded values)
-hypfile="${exchange_dir}/${strategy}.json"
-if [ -f $hypfile ]; then
-  echo "removing $hypfile"
-  rm $hypfile
-fi
+#hypfile="${exchange_dir}/${strategy}.json"
+#if [ -f $hypfile ]; then
+#  echo "removing $hypfile"
+#  rm $hypfile
+#fi
 
-#get date from 30 days ago (MacOS-specific)
-start_date=$(date -j -v-30d +"%Y%m%d")
+#get date from 120 days ago (MacOS-specific)
+#start_date=$(date -j -v-120d +"%Y%m%d")
+start_date="20210501"
 
-#timerange="20210501-"
-#timerange="20210601-"
-#timerange="20210701-"
 timerange="${start_date}-"
 
 today=`date`

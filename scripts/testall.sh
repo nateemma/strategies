@@ -46,7 +46,9 @@ timerange="${start_date}-"
 
 echo "Downloading latest data..."
 echo "freqtrade download-data  --timerange=${timerange}"
-freqtrade download-data  --timerange=${timerange} -c ${config_file}
+freqtrade download-data  -t 1m 5m --timerange=${timerange} -c ${config_file}
+freqtrade download-data  -t 1m 5m --timerange=${timerange} -p BTC/USD
+#freqtrade download-data  -t 1m 5m 1h --timerange=${timerange} -p ETH/USD
 
 today=`date`
 echo $today

@@ -40,7 +40,8 @@ spaces="buy"
 
 #get date from 30 days ago (MacOS-specific)
 num_days=30
-start_date=$(date -j -v-30d +"%Y%m%d")
+#start_date=$(date -j -v-30d +"%Y%m%d")
+start_date="20210501"
 timerange="${start_date}-"
 
 # process options
@@ -129,7 +130,7 @@ freqtrade hyperopt -j 6 --space ${spaces} --hyperopt-loss ${loss} --timerange=${
 
 END
 
-freqtrade hyperopt -j 6 --space ${spaces} --hyperopt-loss ${loss} --timerange=${timerange} --epochs ${epochs} \
+freqtrade hyperopt  --space ${spaces} --hyperopt-loss ${loss} --timerange=${timerange} --epochs ${epochs} \
     -c ${config_file} --strategy-path ${exchange_dir}  \
     -s ${strategy} --no-color ${export}
 

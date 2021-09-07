@@ -30,14 +30,14 @@ class FisherBBLong(IStrategy):
 
     # ROI table:
     minimal_roi = {
-        "0": 0.086,
-        "10": 0.076,
-        "25": 0.014,
-        "65": 0
+        "0": 0.14,
+        "39": 0.036,
+        "97": 0.014,
+        "192": 0
     }
 
     # Stoploss:
-    stoploss = -0.327
+    stoploss = -0.286
 
     # Trailing stop:
     trailing_stop = True

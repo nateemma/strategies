@@ -3,23 +3,26 @@
 # test strategies, run buy parameter hyperopt and compare results for each exchange
 # Run overnight, this will take many hours!
 
-echo "=================="
-echo "Testing Strategies"
-echo "=================="
-bash user_data/strategies/scripts/testall.sh binanceus
-bash user_data/strategies/scripts/testall.sh kucoin
-bash user_data/strategies/scripts/testall.sh coinbasepro
+declare -a elist=( "binanceus" "kucoin" "coinbasepro")
+#declare -a elist=( "binanceus" )
 
-echo "=============================="
-echo "Running Hyperopt on Strategies"
-echo "=============================="
-bash user_data/strategies/scripts/hyperall.sh binanceus
-bash user_data/strategies/scripts/hyperall.sh kucoin
-bash user_data/strategies/scripts/hyperall.sh coinbasepro
 
-echo "=========================================="
-echo "Comparing Test Results to Hyperopt Results"
-echo "=========================================="
-bash user_data/strategies/scripts/compareResults binanceus
-bash user_data/strategies/scripts/compareResults kucoin
-bash user_data/strategies/scripts/compareResults coinbasepro
+for exc in "${elist[@]}"; do
+  echo "=================="
+  echo "$exc"
+  echo "=================="
+  bash user_data/strategies/scripts/testall.sh $exc
+
+  echo "=============================="
+  echo "Hyperopt on $exc"
+  echo "=============================="
+  bash user_data/strategies/scripts/hyperall.sh $exc
+
+  echo "=========================================="
+  echo "Comparing Test Results to Hyperopt Results"
+  echo "=========================================="
+  bash user_data/strategies/scripts/compareResults $exc
+  echo ""
+  echo ""
+  echo ""
+done

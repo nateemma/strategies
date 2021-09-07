@@ -24,16 +24,16 @@ class FisherBBLong(IStrategy):
 
     # Buy hyperspace params:
     buy_params = {
-        "buy_bb_gain": 0.07,
-        "buy_fisher": 0.1,
+        "buy_bb_gain": 0.1,
+        "buy_fisher": 0.02
     }
 
     # ROI table:
     minimal_roi = {
-        "0": 0.152,
-        "36": 0.101,
-        "96": 0.034,
-        "208": 0
+        "0": 0.051,
+        "10": 0.033,
+        "38": 0.021,
+        "125": 0
     }
 
     # Stoploss:
@@ -41,12 +41,12 @@ class FisherBBLong(IStrategy):
 
     # Trailing stop:
     trailing_stop = True
-    trailing_stop_positive = 0.143
-    trailing_stop_positive_offset = 0.178
-    trailing_only_offset_is_reached = False
+    trailing_stop_positive = 0.01
+    trailing_stop_positive_offset = 0.05
+    trailing_only_offset_is_reached = True
 
-    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.09, space="buy")
-    buy_fisher = DecimalParameter(-1, 1, decimals=2, default=-0.01, space="buy")
+    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.10, space="buy")
+    buy_fisher = DecimalParameter(-1, 1, decimals=2, default=0.02, space="buy")
 
     startup_candle_count = 20
 

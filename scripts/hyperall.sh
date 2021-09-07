@@ -31,13 +31,11 @@ echo ""
 echo "Using config file: ${config_file} and Strategy dir: ${exchange_dir}"
 echo ""
 
-#declare -a list=(
-#  "ComboHold" "BBBHold" "BigDrop" "BTCBigDrop" "BTCJump" "BTCNDrop" "BTCNSeq" "EMABounce" "FisherBB" "FisherBB2"
-#  "MACDCross" "NDrop" "NSeq"
-#)
 declare -a list=(
-  "FisherBB2" "MACDCross" "NDrop" "NSeq"
+  "ComboHold" "BBBHold" "BigDrop" "BTCBigDrop" "BTCJump" "BTCNDrop" "BTCNSeq" "EMABounce" "FisherBB" "FisherBB2"
+  "MACDCross" "NDrop" "NSeq"
 )
+
 
 #get date from 120 days ago (MacOS-specific)
 start_date=$(date -j -v-120d +"%Y%m%d")
@@ -69,7 +67,7 @@ for s in "${list[@]}"; do
   #               SortinoHyperOptLoss SortinoHyperOptLossDaily
   loss="SharpeHyperOptLoss"
   freqtrade hyperopt -j 6 --space buy --hyperopt-loss ${loss} --timerange=${timerange} \
-    -c ${config_file} --strategy-path ${exchange_dir}  --epochs 300 \
+    -c ${config_file} --strategy-path ${exchange_dir}  --epochs 200 \
     -s $s --no-color --disable-param-export >>$logfile
 
 done

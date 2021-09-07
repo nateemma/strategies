@@ -17,25 +17,45 @@ import freqtrade.vendor.qtpylib.indicators as qtpylib
 from freqtrade.exchange import timeframe_to_minutes
 from freqtrade.persistence import Trade
 from skopt.space import Dimension
+from freqtrade.optimize.space import Categorical, Dimension, Integer, SKDecimal, Real  # noqa
+
 
 
 class CryptoFrog(IStrategy):
-    # ROI table - this strat REALLY benefits from roi and trailing hyperopt:
+
+    # Sell hyperspace params:
+    sell_params = {
+        "cstp_bail_how": "time",
+        "cstp_bail_roc": -0.046,
+        "cstp_bail_time": 773,
+        "cstp_threshold": -0.005,
+        "droi_pullback": True,
+        "droi_pullback_amount": 0.005,
+        "droi_pullback_respect_table": False,
+        "droi_trend_type": "any",
+    }
+
+    buy_params = {
+        "buy_bb_gain": 0.07,
+        "buy_fisher": -0.38,
+    }
+
+    # ROI table:
     minimal_roi = {
-        "0": 0.213,
-        "39": 0.103,
-        "96": 0.037,
-        "166": 0
+        "0": 0.265,
+        "73": 0.066,
+        "95": 0.013,
+        "319": 0
     }
 
     # Stoploss:
-    stoploss = -0.085
+    stoploss = -0.264
 
     # Trailing stop:
     trailing_stop = True
     trailing_stop_positive = 0.01
-    trailing_stop_positive_offset = 0.047
-    trailing_only_offset_is_reached = False
+    trailing_stop_positive_offset = 0.068
+    trailing_only_offset_is_reached = True
 
     use_custom_stoploss = True
     custom_stop = {
@@ -58,6 +78,10 @@ class CryptoFrog(IStrategy):
         'pos-threshold': 0.005,  # trail after how far positive
         'pos-trail-dist': 0.015  # how far behind to place the trail
     }
+    # Buy params
+    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.07, space="buy")
+    buy_fisher = DecimalParameter(-1, 1, decimals=2, default=-0.38, space="buy")
+
 
     # Dynamic ROI
     droi_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any'], default='any', space='sell', optimize=True)
@@ -262,6 +286,17 @@ class CryptoFrog(IStrategy):
         dataframe['candle-up'] = np.where(dataframe['close'] >= dataframe['close'].shift(), 1, 0)
         dataframe['candle-up-trend'] = np.where(dataframe['candle-up'].rolling(5).sum() >= 3, 1, 0)
 
+
+        # RSI
+        dataframe['rsi'] = ta.RSI(dataframe)
+
+        # Inverse Fisher transform on RSI, values [-1.0, 1.0] (https://goo.gl/2JGGoy)
+        rsi = 0.1 * (dataframe['rsi'] - 50)
+        dataframe['fisher_rsi'] = (np.exp(2 * rsi) - 1) / (np.exp(2 * rsi) + 1)
+
+        # Bollinger bands
+        dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
+
         return dataframe
 
     ## stolen from Obelisk's Ichi strat code and backtest blog post, and Solipsis4
@@ -309,60 +344,68 @@ class CryptoFrog(IStrategy):
         dataframe.loc[
             (
                     (
-                        ## close ALWAYS needs to be lower than the heiken low at 5m
-                            (dataframe['close'] < dataframe['Smooth_HA_L'])
-                            &
-                            ## Hansen's HA EMA at informative timeframe
-                            (dataframe['emac_1h'] < dataframe['emao_1h'])
-                    )
-                    &
-                    (
-                            (
-                                ## potential uptick incoming so buy
-                                    (dataframe['bbw_expansion'] == 1) & (dataframe['sqzmi'] == False)
-                                    &
-                                    (
-                                            (dataframe['mfi'] < 20)
-                                            |
-                                            (dataframe['dmi_minus'] > 30)
-                                    )
-                            )
-                            |
-                            (
-                                # this tries to find extra buys in undersold regions
-                                    (dataframe['close'] < dataframe['sar'])
-                                    &
-                                    ((dataframe['srsi_d'] >= dataframe['srsi_k']) & (dataframe['srsi_d'] < 30))
-                                    &
-                                    ((dataframe['fastd'] > dataframe['fastk']) & (dataframe['fastd'] < 23))
-                                    &
-                                    (dataframe['mfi'] < 30)
-                            )
-                            |
-                            (
-                                # find smaller temporary dips in sideways
-                                    (
-                                            ((dataframe['dmi_minus'] > 30) & qtpylib.crossed_above(
-                                                dataframe['dmi_minus'], dataframe['dmi_plus']))
-                                            &
-                                            (dataframe['close'] < dataframe['bb_lowerband'])
-                                    )
-                                    |
-                                    (
-                                        ## if nothing else is making a buy signal
-                                        ## just throw in any old SQZMI shit based fastd
-                                        ## this needs work!
-                                            (dataframe['sqzmi'] == True)
-                                            &
-                                            ((dataframe['fastd'] > dataframe['fastk']) & (dataframe['fastd'] < 20))
-                                    )
-                            )
-                            ## volume sanity checks
-                            &
-                            (dataframe['vfi'] < 0.0)
-                            &
-                            (dataframe['volume'] > 0)
-                    )
+                            (dataframe['fisher_rsi'] <= self.buy_fisher.value) &
+                            (dataframe['bb_gain'] >= self.buy_bb_gain.value)
+                     ) &
+                    ## volume sanity checks
+                    (dataframe['vfi'] < 0.0) &
+                    (dataframe['volume'] > 0)
+                    # (
+                    #     ## close ALWAYS needs to be lower than the heiken low at 5m
+                    #         (dataframe['close'] < dataframe['Smooth_HA_L'])
+                    #         &
+                    #         ## Hansen's HA EMA at informative timeframe
+                    #         (dataframe['emac_1h'] < dataframe['emao_1h'])
+                    # )
+                    # &
+                    # (
+                    #         (
+                    #             ## potential uptick incoming so buy
+                    #                 (dataframe['bbw_expansion'] == 1) & (dataframe['sqzmi'] == False)
+                    #                 &
+                    #                 (
+                    #                         (dataframe['mfi'] < 20)
+                    #                         |
+                    #                         (dataframe['dmi_minus'] > 30)
+                    #                 )
+                    #         )
+                    #         |
+                    #         (
+                    #             # this tries to find extra buys in undersold regions
+                    #                 (dataframe['close'] < dataframe['sar'])
+                    #                 &
+                    #                 ((dataframe['srsi_d'] >= dataframe['srsi_k']) & (dataframe['srsi_d'] < 30))
+                    #                 &
+                    #                 ((dataframe['fastd'] > dataframe['fastk']) & (dataframe['fastd'] < 23))
+                    #                 &
+                    #                 (dataframe['mfi'] < 30)
+                    #         )
+                    #         |
+                    #         (
+                    #             # find smaller temporary dips in sideways
+                    #                 (
+                    #                         ((dataframe['dmi_minus'] > 30) & qtpylib.crossed_above(
+                    #                             dataframe['dmi_minus'], dataframe['dmi_plus']))
+                    #                         &
+                    #                         (dataframe['close'] < dataframe['bb_lowerband'])
+                    #                 )
+                    #                 |
+                    #                 (
+                    #                     ## if nothing else is making a buy signal
+                    #                     ## just throw in any old SQZMI shit based fastd
+                    #                     ## this needs work!
+                    #                         (dataframe['sqzmi'] == True)
+                    #                         &
+                    #                         ((dataframe['fastd'] > dataframe['fastk']) & (dataframe['fastd'] < 20))
+                    #
+                    #                 )
+                    #         )
+                    #         ## volume sanity checks
+                    #         &
+                    #         (dataframe['vfi'] < 0.0)
+                    #         &
+                    #         (dataframe['volume'] > 0)
+                    # )
             ),
             'buy'] = 1
 
@@ -552,7 +595,27 @@ class CryptoFrog(IStrategy):
         # sell indicator space when hyperopting for all spaces
         @staticmethod
         def indicator_space() -> List[Dimension]:
-            return []
+            return [
+                # Buy params
+                SKDecimal(0.01, 0.10, decimals=2, name='buy_bb_gain'),
+                SKDecimal(-1.0, 1.0, decimals=2, name='buy_fisher'),
+            ]
+
+        @staticmethod
+        def sell_indicator_space() -> List[Dimension]:
+            return [
+                # Dynamic ROI
+                Categorical(['rmi', 'ssl', 'candle', 'any'], name='droi_trend_type'),
+                Categorical([True, False], name='droi_pullback'),
+                SKDecimal(0.005, 0.02, decimals=3, name='droi_pullback_amount'),
+                Categorical([True, False], name='droi_pullback_respect_table'),
+
+                # Custom Stoploss
+                SKDecimal(-0.05, 0, decimals=2, name='cstp_threshold'),
+                Categorical(['roc', 'time', 'any'], name='cstp_bail_how'),
+                SKDecimal(-0.05, -0.01, decimals=2, name='cstp_bail_roc'),
+                Integer(720, 1440, name='cstp_bail_time')
+            ]
 
 
 ## goddamnit
