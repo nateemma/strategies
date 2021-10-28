@@ -24,8 +24,8 @@ class FisherBBExp(IStrategy):
 
     # Buy hyperspace params:
     buy_params = {
-        "buy_bb_gain": 0.09,
-        "buy_fisher": -0.02,
+        "buy_bb_gain": 0.1,
+        "buy_fisher": -0.33,
         "buy_trigger": "entry",
     }
 

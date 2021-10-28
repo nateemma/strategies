@@ -17,9 +17,9 @@
       "trailing_only_offset_is_reached": true
     },
     "buy": {
-      "buy_bb_gain": 0.03,
-      "buy_fisher": 0.45,
-      "buy_trigger": "none"
+        "buy_bb_gain": 0.1,
+        "buy_fisher": -0.33,
+        "buy_trigger": "entry"
     },
     "sell": {},
     "protection": {}
