@@ -13,41 +13,42 @@ from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, Int
 
 
 
-class FisherBBLong(IStrategy):
+class FisherBBExp(IStrategy):
     """
     Simple strategy based on Inverse Fisher Transform and Bollinger Bands
-    This is a self-contained version tuned over a long period of time
+    This is a self-contained version tuned for Expectancy (see freqtrade edge page)
 
     How to use it?
-    > python3 ./freqtrade/main.py -s FisherBBLong
+    > python3 ./freqtrade/main.py -s FisherBBExp
     """
 
     # Buy hyperspace params:
-    # Buy hyperspace params:
     buy_params = {
-        "buy_bb_gain": 0.09,
-        "buy_fisher": 1.0,
+        "buy_bb_gain": 0.1,
+        "buy_fisher": 0.03,
+        "buy_trigger": "none",
     }
 
     # ROI table:
     minimal_roi = {
-        "0": 0.116,
-        "30": 0.057,
-        "40": 0.01,
-        "160": 0
+        "0": 0.133,
+        "16": 0.08,
+        "30": 0.01,
+        "97": 0
     }
 
     # Stoploss:
-    stoploss = -0.1
+    stoploss = -0.071
 
     # Trailing stop:
-    trailing_stop = True  
-    trailing_stop_positive = 0.066  
-    trailing_stop_positive_offset = 0.083  
-    trailing_only_offset_is_reached = True  
+    trailing_stop = True
+    trailing_stop_positive = 0.01
+    trailing_stop_positive_offset = 0.036
+    trailing_only_offset_is_reached = True
 
     buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.10, space="buy")
     buy_fisher = DecimalParameter(-1, 1, decimals=2, default=0.02, space="buy")
+    buy_trigger = CategoricalParameter(["entry", "none", "exit"], default="none", space="buy")
 
     startup_candle_count = 20
 
@@ -151,8 +152,29 @@ class FisherBBLong(IStrategy):
         # GUARDS AND TRENDS
 
         # FisherBB way (lots of triggers)
-        conditions.append(dataframe['fisher_rsi'] <= self.buy_fisher.value)
-        conditions.append(dataframe['bb_gain'] >= self.buy_bb_gain.value)
+
+        if self.buy_trigger.value == "entry":
+            # previous values not in range
+            conditions.append(
+                (dataframe['fisher_rsi'].shift(1) > self.buy_fisher.value) |
+                (dataframe['bb_gain'].shift(1) < self.buy_bb_gain.value)
+            )
+            # current values in range
+            conditions.append(dataframe['fisher_rsi'] <= self.buy_fisher.value)
+            conditions.append(dataframe['bb_gain'] >= self.buy_bb_gain.value)
+        elif self.buy_trigger.value == "exit":
+            # previous values in range
+            conditions.append(dataframe['fisher_rsi'].shift(1) <= self.buy_fisher.value)
+            conditions.append(dataframe['bb_gain'].shift(1) >= self.buy_bb_gain.value)
+            # current values not in range
+            conditions.append(
+                (dataframe['fisher_rsi'] > self.buy_fisher.value) |
+                (dataframe['bb_gain'] < self.buy_bb_gain.value)
+            )
+        else:
+            # current values in range
+            conditions.append(dataframe['fisher_rsi'] <= self.buy_fisher.value)
+            conditions.append(dataframe['bb_gain'] >= self.buy_bb_gain.value)
 
         # # FisherBB2 way (single trigger, but may be late)
         # conditions.append(dataframe['fisher_rsi'].shift(1) <= self.buy_fisher.value)

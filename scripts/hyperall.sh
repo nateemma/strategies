@@ -31,11 +31,14 @@ echo ""
 echo "Using config file: ${config_file} and Strategy dir: ${exchange_dir}"
 echo ""
 
-declare -a list=(
-  "ComboHold" "BBBHold" "BigDrop" "BTCBigDrop" "BTCJump" "BTCNDrop" "BTCNSeq" "EMABounce" "FisherBB" "FisherBB2"
-  "MACDCross" "NDrop" "NSeq"
-)
+#declare -a list=(
+#  "ComboHold" "BBBHold" "BigDrop" "BTCBigDrop" "BTCJump" "BTCNDrop" "BTCNSeq" "EMABounce" "FisherBB" "FisherBB2"
+#  "MACDCross" "NDrop" "NSeq" "FisherBBLong"
+#)
 
+declare -a list=(
+  "FisherBBExp" "FisherBBLong" "FisherBBQuick"
+)
 
 #get date from 120 days ago (MacOS-specific)
 start_date=$(date -j -v-120d +"%Y%m%d")
@@ -59,15 +62,16 @@ for s in "${list[@]}"; do
 
   # remove hyperopt file (we want the strategy to use the coded values)
   hypfile="${exchange_dir}/${s}.json"
-  if [ -f "${hypfile}" ]; then
-    rm "${hypfile}"
-  fi
+#  if [ -f "${hypfile}" ]; then
+#    rm "${hypfile}"
+#  fi
 
   # loss options: ShortTradeDurHyperOptLoss OnlyProfitHyperOptLoss SharpeHyperOptLoss SharpeHyperOptLossDaily
   #               SortinoHyperOptLoss SortinoHyperOptLossDaily
-  loss="SharpeHyperOptLoss"
+#  loss="WeightedProfitHyperOptLoss"
+  loss="QuickProfitHyperOptLoss"
   freqtrade hyperopt -j 6 --space buy --hyperopt-loss ${loss} --timerange=${timerange} \
     -c ${config_file} --strategy-path ${exchange_dir}  --epochs 200 \
-    -s $s --no-color --disable-param-export >>$logfile
+    -s $s --no-color >>$logfile
 
 done

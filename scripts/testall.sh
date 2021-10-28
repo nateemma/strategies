@@ -30,14 +30,15 @@ oldpath=${PYTHONPATH}
 export PYTHONPATH="./${exchange_dir}:./${strat_dir}:${PYTHONPATH}"
 
 # list of strategies (only the ones in ComboHold)
-slist="ComboHold BBBHold BigDrop BTCBigDrop BTCJump BTCNDrop BTCNSeq EMABounce FisherBB FisherBB2 MACDCross NDrop NSeq "
+#slist="ComboHold BBBHold BigDrop BTCBigDrop BTCJump BTCNDrop BTCNSeq EMABounce FisherBB FisherBB2 MACDCross NDrop NSeq FisherBBLong"
+slist="FisherBBExp FisherBBLong FisherBBQuick"
 
 # remove any hyperopt files (we want the strategies to use the coded values)
-for entry in $exchange_dir/*.json
-do
-  echo "removing $entry"
-  rm ${entry}
-done
+#for entry in $exchange_dir/*.json
+#do
+#  echo "removing $entry"
+#  rm ${entry}
+#done
 
 #get date from 120 days ago (MacOS-specific)
 start_date=$(date -j -v-120d +"%Y%m%d")
@@ -46,8 +47,8 @@ timerange="${start_date}-"
 
 echo "Downloading latest data..."
 echo "freqtrade download-data  --timerange=${timerange}"
-freqtrade download-data  -t 1m 5m --timerange=${timerange} -c ${config_file}
-freqtrade download-data  -t 1m 5m --timerange=${timerange} -p BTC/USD
+freqtrade download-data  -t 5m --timerange=${timerange} -c ${config_file}
+#freqtrade download-data  -t 1m 5m --timerange=${timerange} -p BTC/USD
 #freqtrade download-data  -t 1m 5m 1h --timerange=${timerange} -p ETH/USD
 
 today=`date`

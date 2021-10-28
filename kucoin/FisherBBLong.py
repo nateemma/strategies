@@ -16,11 +16,13 @@ from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, Int
 class FisherBBLong(IStrategy):
     """
     Simple strategy based on Inverse Fisher Transform and Bollinger Bands
-    This is a self-contained version tuned over a long period of time
+    This is a self-contained version tuned for profit over a long period of time
 
     How to use it?
     > python3 ./freqtrade/main.py -s FisherBBLong
     """
+
+    INTERFACE_VERSION = 2
 
     # Buy hyperspace params:
     buy_params = {
@@ -30,19 +32,19 @@ class FisherBBLong(IStrategy):
 
     # ROI table:
     minimal_roi = {
-        "0": 0.051,
-        "10": 0.033,
-        "38": 0.021,
-        "125": 0
+        "0": 0.193,
+        "20": 0.026,
+        "45": 0.011,
+        "127": 0
     }
 
     # Stoploss:
-    stoploss = -0.31
+    stoploss = -0.076
 
     # Trailing stop:
     trailing_stop = True
     trailing_stop_positive = 0.01
-    trailing_stop_positive_offset = 0.05
+    trailing_stop_positive_offset = 0.051
     trailing_only_offset_is_reached = True
 
     buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.10, space="buy")

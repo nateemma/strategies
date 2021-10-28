@@ -130,7 +130,7 @@ freqtrade hyperopt -j 6 --space ${spaces} --hyperopt-loss ${loss} --timerange=${
 
 END
 
-freqtrade hyperopt  --space ${spaces} --hyperopt-loss ${loss} --timerange=${timerange} --epochs ${epochs} \
+freqtrade hyperopt  -j 6 --space ${spaces} --hyperopt-loss ${loss} --timerange=${timerange} --epochs ${epochs} \
     -c ${config_file} --strategy-path ${exchange_dir}  \
     -s ${strategy} --no-color ${export}
 
