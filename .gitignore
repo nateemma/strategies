@@ -1,5 +1,4 @@
 # Freqtrade rules
-config*.json
 *.sqlite
 
 # Byte-compiled / optimized / DLL files
