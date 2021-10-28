@@ -1,0 +1,29 @@
+{
+  "strategy_name": "FisherBBExp",
+  "params": {
+    "roi": {
+      "0": 0.14,
+      "16": 0.068,
+      "35": 0.012,
+      "123": 0
+    },
+    "stoploss": {
+      "stoploss": -0.308
+    },
+    "trailing": {
+      "trailing_stop": true,
+      "trailing_stop_positive": 0.01,
+      "trailing_stop_positive_offset": 0.062,
+      "trailing_only_offset_is_reached": true
+    },
+    "buy": {
+      "buy_bb_gain": 0.03,
+      "buy_fisher": 0.45,
+      "buy_trigger": "none"
+    },
+    "sell": {},
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2021-10-28 21:16:20.403761+00:00"
+}

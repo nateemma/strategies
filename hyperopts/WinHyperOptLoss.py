@@ -1,10 +1,7 @@
 """
-ExpectancyHyperOptLoss
+WinHyperOptLoss
 
-This module is a custom HyperoptLoss class
-
-The goal is to use Expectancy as a metric, but also filters out bad scenarios (losing, not enough tradees etc)
-For details on Expectancy, refere to: https://www.freqtrade.io/en/stable/edge/
+This module is a custom HyperoptLoss class based on Profit and Win/Loss ratio
 
 To deploy this, copy the file to the <freqtrade>/user_data/hyperopts directory
 """
@@ -17,18 +14,18 @@ from datetime import datetime
 import numpy as np
 from typing import Any, Dict
 
-# Contstants to allow evaluation in cases where thre is insufficient (or nonexistent) info in the configuration
 
+# Contstants to allow evaluation in cases where thre is insufficient (or nonexistent) info in the configuration
 EXPECTED_TRADES_PER_DAY = 10          # used to set target goals
 MIN_TRADES_PER_DAY = 2                # used to filter out scenarios where there are not enough trades
 EXPECTED_PROFIT_PER_TRADE = 0.010     # be realistic. Setting this too high will eliminate potentially good solutions
 EXPECTED_AVE_PROFIT = 0.050           # used to assess actual profit vs desired profit. OK to set high
-EXPECTED_TRADE_DURATION = 120         # goal for duration (or shorter) in seconds
+EXPECTED_TRADE_DURATION = 180         # goal for duration (or shorter) in seconds
 MAX_TRADE_DURATION = 300              # max allowable duration
 
-UNDESIRED_SOLUTION = 2.0             # indicates that we don't want this solution (so hyperopt will avoid)
+UNDESIRED_SOLUTION = 20.0             # indicates that we don't want this solution (so hyperopt will avoid)
 
-class ExpectancyHyperOptLoss(IHyperOptLoss):
+class WinHyperOptLoss(IHyperOptLoss):
     """
     Defines a custom loss function for hyperopt
     """
@@ -43,13 +40,13 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
         debug_on = False # displays (more) messages if True
 
         # define weights
-        weight_num_trades = 1.0
+        weight_num_trades = 0.5
         weight_duration = 1.0
         weight_abs_profit = 1.0
         weight_exp_profit = 0.0
         weight_day_profit = 0.0
-        weight_expectancy = 2.0
-        weight_win_loss_ratio = 1.0
+        weight_expectancy = 0.0
+        weight_win_loss_ratio = 2.0
         weight_sharp_ratio = 0.0
         weight_sortino_ratio = 0.0
 
@@ -59,14 +56,14 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
                 # so, reduce influence of absolute profit and no. of trades (and sharpe/sortino)
                 # the goal is reduce the number of losing and highly risky trades (the cost is some loss of profits)
                 weight_num_trades = 0.1
-                weight_duration = 1.0
+                weight_duration = 2.0
                 weight_abs_profit = 0.1
                 weight_exp_profit = 0.0
                 weight_day_profit = 0.0
-                weight_expectancy = 2.0
-                weight_win_loss_ratio = 1.0
+                weight_expectancy = 0.0
+                weight_win_loss_ratio = 4.0
                 weight_sharp_ratio = 0.0
-                weight_sortino_ratio = 0.00
+                weight_sortino_ratio = 0.0
 
 
         days_period = (max_date - min_date).days

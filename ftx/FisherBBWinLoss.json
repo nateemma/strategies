@@ -1,0 +1,28 @@
+{
+  "strategy_name": "FisherBBWinLoss",
+  "params": {
+    "trailing": {
+      "trailing_stop": true,
+      "trailing_stop_positive": 0.066,
+      "trailing_stop_positive_offset": 0.083,
+      "trailing_only_offset_is_reached": true
+    },
+    "buy": {
+      "buy_bb_gain": 0.09,
+      "buy_fisher": 0.14
+    },
+    "sell": {},
+    "protection": {},
+    "roi": {
+      "0": 0.14300000000000002,
+      "19": 0.074,
+      "30": 0.01,
+      "140": 0
+    },
+    "stoploss": {
+      "stoploss": -0.344
+    }
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2021-10-24 17:07:04.961191+00:00"
+}

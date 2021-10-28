@@ -1,0 +1,29 @@
+{
+  "strategy_name": "FisherBBPED",
+  "params": {
+    "roi": {
+      "0": 0.245,
+      "25": 0.05,
+      "35": 0.01,
+      "152": 0
+    },
+    "trailing": {
+      "trailing_stop": true,
+      "trailing_stop_positive": 0.011,
+      "trailing_stop_positive_offset": 0.047,
+      "trailing_only_offset_is_reached": true
+    },
+    "buy": {
+      "buy_bb_gain": 0.09,
+      "buy_fisher": -0.29,
+      "buy_trigger": "entry"
+    },
+    "sell": {},
+    "protection": {},
+    "stoploss": {
+      "stoploss": -0.138
+    }
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2021-10-28 00:06:22.097753+00:00"
+}
