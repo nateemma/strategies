@@ -3,7 +3,7 @@
 # test strategies, run buy parameter hyperopt and compare results for each exchange
 # Run overnight, this will take many hours!
 
-declare -a elist=( "kucoin" "ftx" "binanceus" "binance")
+declare -a elist=( "binanceus" "ftx" "kucoin" "ascendex" )
 #declare -a elist=( "binanceus" )
 
 
@@ -11,12 +11,12 @@ for exc in "${elist[@]}"; do
   echo "=================="
   echo "$exc"
   echo "=================="
-  bash user_data/strategies/scripts/testall.sh $exc
+  bash user_data/strategies/scripts/test_exchange.sh $exc
 
   echo "=============================="
   echo "Hyperopt on $exc"
   echo "=============================="
-  bash user_data/strategies/scripts/hyperall.sh $exc
+  bash user_data/strategies/scripts/hyp_exchange.sh $exc
 
   echo "=========================================="
   echo "Comparing Test Results to Hyperopt Results"

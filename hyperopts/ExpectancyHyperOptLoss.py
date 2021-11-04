@@ -24,9 +24,10 @@ MIN_TRADES_PER_DAY = 2                # used to filter out scenarios where there
 EXPECTED_PROFIT_PER_TRADE = 0.010     # be realistic. Setting this too high will eliminate potentially good solutions
 EXPECTED_AVE_PROFIT = 0.050           # used to assess actual profit vs desired profit. OK to set high
 EXPECTED_TRADE_DURATION = 120         # goal for duration (or shorter) in seconds
-MAX_TRADE_DURATION = 300              # max allowable duration
+MAX_TRADE_DURATION = 600              # max allowable duration (don't set too low)
 
 UNDESIRED_SOLUTION = 2.0             # indicates that we don't want this solution (so hyperopt will avoid)
+
 
 class ExpectancyHyperOptLoss(IHyperOptLoss):
     """
@@ -42,7 +43,7 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
 
         debug_on = False # displays (more) messages if True
 
-        # define weights
+        # define weights (values are based on trial & error). Goal is for anything -ve to be a decent solution
         weight_num_trades = 1.0
         weight_duration = 1.0
         weight_abs_profit = 1.0
@@ -54,7 +55,7 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
         weight_sortino_ratio = 0.0
 
         if config['exchange']['name']:
-            if (config['exchange']['name'] == 'kucoin'):
+            if (config['exchange']['name'] == 'kucoin') or (config['exchange']['name'] == 'ascendex'):
                 # kucoin is extremely volatile, with v.high profits in backtesting (but not in real markets)
                 # so, reduce influence of absolute profit and no. of trades (and sharpe/sortino)
                 # the goal is reduce the number of losing and highly risky trades (the cost is some loss of profits)
@@ -72,7 +73,7 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
         days_period = (max_date - min_date).days
         # target_trades = days_period*EXPECTED_TRADES_PER_DAY
         if config['max_open_trades']:
-            target_trades = 2.0 * days_period * config['max_open_trades']
+            target_trades = days_period * config['max_open_trades']
         else:
             target_trades = days_period * EXPECTED_TRADES_PER_DAY
 
@@ -211,10 +212,10 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
             sortino_ratio_loss = 2.0 * sortino_ratio_loss
 
 
-        # weight the results (values are based on trial & error). Goal is for anything -ve to be a decent  solution
+        # weight the results
+        abs_profit_loss     = weight_abs_profit * abs_profit_loss
         num_trades_loss     = weight_num_trades * num_trades_loss
         duration_loss       = weight_duration * duration_loss
-        abs_profit_loss     = weight_abs_profit * abs_profit_loss
         exp_profit_loss     = weight_exp_profit * exp_profit_loss
         day_profit_loss     = weight_day_profit * day_profit_loss
         expectancy_loss     = weight_expectancy * expectancy_loss
@@ -224,7 +225,7 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
 
 
         result = abs_profit_loss + num_trades_loss + duration_loss + exp_profit_loss + day_profit_loss + \
-                 win_loss_ratio_loss + expectancy_loss + sharp_ratio_loss + sortino_ratio_loss
+                 expectancy_loss + win_loss_ratio_loss + sharp_ratio_loss + sortino_ratio_loss
 
         if (result < 0.0) or debug_on:
             print(" \tprof:{:.3f} n:{:.3f} dur:{:.3f} w/l:{:.3f} " \

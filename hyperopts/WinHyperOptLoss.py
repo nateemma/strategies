@@ -21,11 +21,14 @@ MIN_TRADES_PER_DAY = 2                # used to filter out scenarios where there
 EXPECTED_PROFIT_PER_TRADE = 0.010     # be realistic. Setting this too high will eliminate potentially good solutions
 EXPECTED_AVE_PROFIT = 0.050           # used to assess actual profit vs desired profit. OK to set high
 EXPECTED_TRADE_DURATION = 180         # goal for duration (or shorter) in seconds
-MAX_TRADE_DURATION = 300              # max allowable duration
+MAX_TRADE_DURATION = 600              # max allowable duration
 
-UNDESIRED_SOLUTION = 20.0             # indicates that we don't want this solution (so hyperopt will avoid)
+UNDESIRED_SOLUTION = 2.0             # indicates that we don't want this solution (so hyperopt will avoid)
+
 
 class WinHyperOptLoss(IHyperOptLoss):
+
+
     """
     Defines a custom loss function for hyperopt
     """
@@ -40,28 +43,28 @@ class WinHyperOptLoss(IHyperOptLoss):
         debug_on = False # displays (more) messages if True
 
         # define weights
-        weight_num_trades = 0.5
+        weight_num_trades = 0.0
         weight_duration = 1.0
         weight_abs_profit = 1.0
         weight_exp_profit = 0.0
         weight_day_profit = 0.0
-        weight_expectancy = 0.0
-        weight_win_loss_ratio = 2.0
+        weight_expectancy = 0.5
+        weight_win_loss_ratio = 1.0
         weight_sharp_ratio = 0.0
         weight_sortino_ratio = 0.0
 
         if config['exchange']['name']:
-            if (config['exchange']['name'] == 'kucoin'):
+            if (config['exchange']['name'] == 'kucoin') or (config['exchange']['name'] == 'ascendex'):
                 # kucoin is extremely volatile, with v.high profits in backtesting (but not in real markets)
                 # so, reduce influence of absolute profit and no. of trades (and sharpe/sortino)
                 # the goal is reduce the number of losing and highly risky trades (the cost is some loss of profits)
-                weight_num_trades = 0.1
-                weight_duration = 2.0
+                weight_num_trades = 0.0
+                weight_duration = 1.0
                 weight_abs_profit = 0.1
                 weight_exp_profit = 0.0
                 weight_day_profit = 0.0
-                weight_expectancy = 0.0
-                weight_win_loss_ratio = 4.0
+                weight_expectancy = 0.5
+                weight_win_loss_ratio = 2.0
                 weight_sharp_ratio = 0.0
                 weight_sortino_ratio = 0.0
 
@@ -69,7 +72,7 @@ class WinHyperOptLoss(IHyperOptLoss):
         days_period = (max_date - min_date).days
         # target_trades = days_period*EXPECTED_TRADES_PER_DAY
         if config['max_open_trades']:
-            target_trades = 2.0 * days_period * config['max_open_trades']
+            target_trades = days_period * config['max_open_trades']
         else:
             target_trades = days_period * EXPECTED_TRADES_PER_DAY
 
@@ -92,7 +95,7 @@ class WinHyperOptLoss(IHyperOptLoss):
         if profit_sum < 0.0:
             if debug_on:
                 print(" \tProfit too low: {:.3f}".format(profit_sum))
-            return UNDESIRED_SOLUTION # if -ve profit, just return
+            return 2.0*UNDESIRED_SOLUTION # if -ve profit, just return
 
         if config['dry_run_wallet']:
             abs_profit_loss = profit_sum / config['dry_run_wallet']
@@ -180,7 +183,7 @@ class WinHyperOptLoss(IHyperOptLoss):
         # punish if below goal
         if win_loss_ratio_loss > 0.0:
             if debug_on:
-                print(" \tEWin/Loss Ratio below goal: {:.3f}".format(win_loss_ratio_loss))
+                print(" \tWin/Loss Ratio below goal: {:.3f}".format(win_loss_ratio_loss))
             return UNDESIRED_SOLUTION
 
         # Sharpe Ratio
@@ -190,16 +193,18 @@ class WinHyperOptLoss(IHyperOptLoss):
             # calculate Sharpe ratio, but scale down to match other parameters
             sharp_ratio_loss = 0.01 - (expected_returns_mean / up_stdev * np.sqrt(365)) / 100.0
         else:
-            # Define high (negative) sharpe ratio to be clear that this is NOT optimal.
-            sharp_ratio_loss = 2.0
+            if debug_on:
+                print(" \tSharpe Ratio below goal: {:.3f}".format(win_loss_ratio_loss))
+            return UNDESIRED_SOLUTION
 
         # Sortino Ratio
         down_stdev = np.std(results['downside_returns'])
         if down_stdev != 0:
             sortino_ratio_loss = -1.0 * (expected_returns_mean / down_stdev * np.sqrt(365)) / 10000.0
         else:
-            # Define high (negative) sortino ratio to be clear that this is NOT optimal.
-            sortino_ratio_loss = 2.0
+            if debug_on:
+                print(" \tSortino Ratio below goal: {:.3f}".format(win_loss_ratio_loss))
+            return UNDESIRED_SOLUTION
 
         # amplify if both Sharpe and Sortino are -ve or both +ve
         if ((sharp_ratio_loss < 0.0) and (sortino_ratio_loss < 0.0)) or \
@@ -208,10 +213,10 @@ class WinHyperOptLoss(IHyperOptLoss):
             sortino_ratio_loss = 2.0 * sortino_ratio_loss
 
 
-        # weight the results (values are based on trial & error). Goal is for anything -ve to be a decent  solution
+        # weight the results
+        abs_profit_loss     = weight_abs_profit * abs_profit_loss
         num_trades_loss     = weight_num_trades * num_trades_loss
         duration_loss       = weight_duration * duration_loss
-        abs_profit_loss     = weight_abs_profit * abs_profit_loss
         exp_profit_loss     = weight_exp_profit * exp_profit_loss
         day_profit_loss     = weight_day_profit * day_profit_loss
         expectancy_loss     = weight_expectancy * expectancy_loss
@@ -221,7 +226,7 @@ class WinHyperOptLoss(IHyperOptLoss):
 
 
         result = abs_profit_loss + num_trades_loss + duration_loss + exp_profit_loss + day_profit_loss + \
-                 win_loss_ratio_loss + expectancy_loss + sharp_ratio_loss + sortino_ratio_loss
+                 expectancy_loss + win_loss_ratio_loss + sharp_ratio_loss + sortino_ratio_loss
 
         if (result < 0.0) or debug_on:
             print(" \tprof:{:.3f} n:{:.3f} dur:{:.3f} w/l:{:.3f} " \

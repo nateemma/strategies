@@ -32,7 +32,7 @@ END
 loss="OnlyProfitHyperOptLoss"
 
 export="--disable-param-export"
-save_json=0
+save_json=1
 clean=0
 epochs=100
 
@@ -80,8 +80,8 @@ exchange=$1
 strategy=$2
 
 strat_dir="user_data/strategies"
-exchange_dir="user_data/strategies/${exchange}"
-config_file="config_${exchange}.json"
+exchange_dir="${strat_dir}/${exchange}"
+config_file="${exchange_dir}/config_${exchange}.json"
 
 if [ ! -f ${config_file} ]; then
     echo "config file not found: ${config_file}"

@@ -248,8 +248,8 @@ if [[ $# -eq 0 ]] ; then
 fi
 
 exchange=$1
-testfile="testall_${exchange}.log"
-hyperfile="hyperall_${exchange}.log"
+testfile="test_${exchange}.log"
+hyperfile="hyp_${exchange}.log"
 
 # check that files exist
 if [ ! -f ${testfile} ]; then

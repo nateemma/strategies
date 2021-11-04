@@ -13,9 +13,9 @@ strategy=$2
 args=$3
 
 strat_dir="user_data/strategies"
-exchange_dir="user_data/strategies/${exchange}"
-config_file="config_${exchange}.json"
-logfile="testall_${exchange}.log"
+exchange_dir="${strat_dir}/${exchange}"
+config_file="${exchange_dir}/config_${exchange}.json"
+logfile="test_${exchange}.log"
 
 if [ ! -f ${config_file} ]; then
     echo "config file not found: ${config_file}"

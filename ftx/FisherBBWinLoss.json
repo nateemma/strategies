@@ -3,26 +3,26 @@
   "params": {
     "trailing": {
       "trailing_stop": true,
-      "trailing_stop_positive": 0.066,
-      "trailing_stop_positive_offset": 0.083,
+      "trailing_stop_positive": 0.012,
+      "trailing_stop_positive_offset": 0.092,
       "trailing_only_offset_is_reached": true
     },
     "buy": {
-      "buy_bb_gain": 0.09,
-      "buy_fisher": 0.14
+      "buy_bb_gain": 0.1,
+      "buy_fisher": -0.32
     },
     "sell": {},
     "protection": {},
     "roi": {
-      "0": 0.14300000000000002,
-      "19": 0.074,
-      "30": 0.01,
-      "140": 0
+      "0": 0.227,
+      "10": 0.027000000000000003,
+      "49": 0.01,
+      "167": 0
     },
     "stoploss": {
-      "stoploss": -0.344
+      "stoploss": -0.333
     }
   },
   "ft_stratparam_v": 1,
-  "export_time": "2021-10-24 17:07:04.961191+00:00"
+  "export_time": "2021-11-04 02:39:27.706849+00:00"
 }

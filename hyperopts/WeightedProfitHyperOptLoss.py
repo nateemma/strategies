@@ -25,7 +25,7 @@ EXPECTED_AVE_PROFIT = 0.050           # used to assess actual profit vs desired 
 EXPECTED_TRADE_DURATION = 240         # goal for duration (or shorter) in seconds
 MAX_TRADE_DURATION = 10.0*60.0*60.0   # max allowable duration
 
-UNDESIRED_SOLUTION = 20.0             # indicates that we don't want this solution (so hyperopt will avoid)
+UNDESIRED_SOLUTION = 2.0             # indicates that we don't want this solution (so hyperopt will avoid)
 
 class WeightedProfitHyperOptLoss(IHyperOptLoss):
     """
@@ -53,7 +53,7 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         weight_sortino_ratio = 0.25
 
         if config['exchange']['name']:
-            if (config['exchange']['name'] == 'kucoin'):
+            if (config['exchange']['name'] == 'kucoin') or (config['exchange']['name'] == 'ascendex'):
                 # kucoin is extremely volatile, with v.high profits in backtesting (but not in real markets)
                 # so, reduce influence of absolute profit and no. of trades (and sharpe/sortino)
                 # the goal is reduce the number of losing and highly risky trades (the cost is some loss of profits)
@@ -71,7 +71,7 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         days_period = (max_date - min_date).days
         # target_trades = days_period*EXPECTED_TRADES_PER_DAY
         if config['max_open_trades']:
-            target_trades = 2.0 * days_period * config['max_open_trades']
+            target_trades = days_period * config['max_open_trades']
         else:
             target_trades = days_period * EXPECTED_TRADES_PER_DAY
 
