@@ -1,6 +1,6 @@
 #!/bin/bash
 
-declare -a list=( "binanceus" "ftx" "kucoin" "ascendex" )
+declare -a list=( "binanceus" "ftx" "kucoin" "ascendex" "binance")
 
 for exchange in "${list[@]}"; do
   echo ""

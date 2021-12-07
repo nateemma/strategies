@@ -24,7 +24,7 @@ create_test_file () {
 
 }
 
-}
+
 # func to parse the test file
 scan_test_file () {
   # states

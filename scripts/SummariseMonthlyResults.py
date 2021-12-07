@@ -67,18 +67,19 @@ def main():
                 else:
                     items = line.split("|")
                     strategy = items[1].strip()
+                    if not (strategy in stratParams.keys()):
+                        stratParams[strategy] = {"profit":[], "winPct":[], "draw":[]}
+
                     # print("items: ", items)
                     profitPct = float(items[6].strip())
                     tmp = items[8].split()
                     winPct = float(tmp[3].strip())
+                    tmp = items[9].split()
+                    draw = float(tmp[2].strip().replace("%", ""))
 
-                    if strategy in stratParams.keys():
-                        stratParams[strategy]["profit"].append(profitPct)
-                        stratParams[strategy]["winPct"].append(winPct)
-                    else:
-                        stratParams[strategy] ={"profit":[], "winPct":[]}
-                        stratParams[strategy]["profit"].append(profitPct)
-                        stratParams[strategy]["winPct"].append(winPct)
+                    stratParams[strategy]["profit"].append(profitPct)
+                    stratParams[strategy]["winPct"].append(winPct)
+                    stratParams[strategy]["draw"].append(draw)
 
             else:
                 print ("Invalid state: ", state)
@@ -111,7 +112,11 @@ def main():
             wmax = max(stratParams[strategy]["winPct"])
             wave = statistics.mean(stratParams[strategy]["winPct"])
             wmed = statistics.median(stratParams[strategy]["winPct"])
-            stratStats.append([strategy, pmin, pmax, pave, pmed, wmin, wmax, wave, wmed, 0.0, 0.0])
+            dmin = min(stratParams[strategy]["draw"])
+            dmax = max(stratParams[strategy]["draw"])
+            dave = statistics.mean(stratParams[strategy]["draw"])
+            dmed = statistics.median(stratParams[strategy]["draw"])
+            stratStats.append([strategy, pmin, pmax, pave, pmed, wmin, wmax, wave, wmed, dmin, dmax, dave, dmed, 0.0, 0.0])
             # print("| {:<18s} | {:>8.2f}{:>8.2f}{:>8.2f}{:>8.2f} | {:>8.2f}{:>8.2f}{:>8.2f}{:>8.2f} |".format(strategy,
             #                                                                         pmin, pmax, pave, pmed,
             #                                                                         wmin, wmax, wave, wmed
@@ -121,18 +126,26 @@ def main():
 
 
         # create dataframe
-        df = pandas.DataFrame(stratStats, columns=["Strategy", "pmin", "pmax", "pave", "pmed", "wmin", "wmax", "wave", "wmed", "Score", "Rank"])
+        df = pandas.DataFrame(stratStats, columns=["Strategy",
+                                                   "pmin", "pmax", "pave", "pmed",
+                                                   "wmin", "wmax", "wave", "wmed",
+                                                   "dmin", "dmax", "dave", "dmed",
+                                                   "Score", "Rank"])
 
-        # calculate score. Weight profit higher, expecially median scores
-        df["Score"] = df["pmin"].rank(pct=True) + df["pmax"].rank(pct=True) + \
-                      df["pave"].rank(pct=True) + 1.25*df["pmed"].rank(pct=True) + \
-                      0.5*df["wmin"].rank(pct=True) + 0.5*df["wmax"].rank(pct=True) + \
-                      0.5*df["wave"].rank(pct=True) + 0.75*df["wmed"].rank(pct=True)
+        # calculate score. Weight profit higher, and median scores
+        df["Score"] = 2.00 * ( df["pmin"].rank(pct=True) + df["pmax"].rank(pct=True) + df["pave"].rank(pct=True) + 1.5*df["pmed"].rank(pct=True) ) + \
+                      0.50 * ( df["wmin"].rank(pct=True) + df["wmax"].rank(pct=True) + df["wave"].rank(pct=True) + 1.5*df["wmed"].rank(pct=True) ) + \
+                      0.25 * ( df["dmin"].rank(ascending=False, pct=True) + df["dmax"].rank(ascending=False, pct=True) +
+                               df["dave"].rank(ascending=False, pct=True) + 1.5 * df["dmed"].rank(ascending=False, pct=True) )
+
         df["Rank"] = df["Score"].rank(ascending=False, method='min')
+
         pandas.set_option('display.precision', 2)
-        print("                                 Profit                               Win%                        Rank")
-        hdrs=["Strategy", "Min", "Max", "Ave", "Med", "Min", "Max", "Ave", "Med", "Score", "Rank"]
+        print ("")
+        print("                                 Profit                        |                Win%                |          Drawdown                  |         Rank")
+        hdrs=["Strategy", "PMin", "PMax", "PAve", "PMed", "WMin", "WMax", "WAve", "WMed", "DMin", "DMax", "DAve", "DMed", "Score", "Rank"]
         print(tabulate(df, showindex="never", headers=hdrs, tablefmt='psql'))
+        print ("")
         # print(tabulate(data, headers=["Name", "User ID", "Roll. No."]))
         # print(divider)
 

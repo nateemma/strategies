@@ -10,20 +10,20 @@
     "stoploss": {
       "stoploss": -0.13
     },
-    "buy": {
-      "buy_bb_gain": 0.1,
-      "buy_fisher": -0.05,
-      "buy_trigger": "none"
-    },
-    "sell": {},
-    "protection": {},
     "trailing": {
       "trailing_stop": true,
       "trailing_stop_positive": 0.01,
       "trailing_stop_positive_offset": 0.058,
       "trailing_only_offset_is_reached": true
-    }
+    },
+    "buy": {
+      "buy_bb_gain": 0.125,
+      "buy_fisher": 0.103,
+      "buy_num_candles": 1
+    },
+    "sell": {},
+    "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2021-11-03 06:08:26.471797+00:00"
+  "export_time": "2021-11-05 00:17:44.496368+00:00"
 }

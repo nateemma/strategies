@@ -52,82 +52,7 @@
       "rateLimit": 240
     },
     "pair_whitelist": [
-      "1INCH/USD",
-      "AAVE/USD",
-      "AGLD/USD",
-      "ALCX/USD",
-      "ALICE/USD",
-      "ALPHA/USD",
-      "ATLAS/USD",
-      "AUDIO/USD",
-      "AXS/USD",
-      "BADGER/USD",
-      "BAL/USD",
-      "BAND/USD",
-      "BAT/USD",
-      "BCH/USD",
-      "BNT/USD",
-      "C98/USD",
-      "CEL/USD",
-      "CLV/USD",
-      "COMP/USD",
-      "COPE/USD",
-      "CQT/USD",
-      "CREAM/USD",
-      "CRO/USD",
-      "CRV/USD",
-      "DAWN/USD",
-      "DODO/USD",
-      "DOGE/USD",
-      "EDEN/USD",
-      "ENJ/USD",
-      "FIDA/USD",
-      "FTM/USD",
-      "FTT/USD",
-      "GRT/USD",
-      "HT/USD",
-      "HUM/USD",
-      "KIN/USD",
-      "KNC/USD",
-      "LEO/USD",
-      "LINA/USD",
-      "LINK/USD",
-      "LTC/USD",
-      "MATIC/USD",
-      "MKR/USD",
-      "MNGO/USD",
-      "MTA/USD",
-      "OKB/USD",
-      "OMG/USD",
-      "PERP/USD",
-      "POLIS/USD",
-      "PUNDIX/USD",
-      "RAY/USD",
-      "REEF/USD",
-      "REN/USD",
-      "ROOK/USD",
-      "RSR/USD",
-      "RUNE/USD",
-      "SAND/USD",
-      "SLRS/USD",
-      "SNX/USD",
-      "SOL/USD",
-      "SRM/USD",
-      "STEP/USD",
-      "STMX/USD",
-      "STORJ/USD",
-      "SUSHI/USD",
-      "SXP/USD",
-      "TOMO/USD",
-      "TRU/USD",
-      "TRX/USD",
-      "TSLA/USD",
-      "UNI/USD",
-      "WAVES/USD",
-      "WRX/USD",
-      "XRP/USD",
-      "YFI/USD",
-      "ZRX/USD"
+
     ],
     "pair_blacklist": [
       ".*(BNB)/.*",
@@ -144,30 +69,44 @@
       "method": "StaticPairList"
     },
     //    {
-    //        "method": "VolumePairList",
-    //        "number_assets": 100,
-    //        "sort_key": "quoteVolume",
-    //        "refresh_period": 300
+    //      "method": "VolumePairList",
+    //      "number_assets": 80,
+    //      "sort_key": "quoteVolume",
+    //      "refresh_period": 1800
     //    },
-
     {
       "method": "AgeFilter",
-      "min_days_listed": 30
-    },
-    //    {"method": "PrecisionFilter"},
-    {
-      "method": "PriceFilter",
-      "low_price_ratio": 0.002
+      "min_days_listed": 14
     },
     {
       "method": "SpreadFilter",
       "max_spread_ratio": 0.005
     },
     {
+      "method": "PriceFilter",
+      "low_price_ratio": 0.002
+    },
+    {
       "method": "RangeStabilityFilter",
       "lookback_days": 3,
-      "min_rate_of_change": 0.1,
-      "refresh_period": 360
+      "min_rate_of_change": 0.05,
+      "refresh_period": 1800
+    },
+    {
+      "method": "VolatilityFilter",
+      "lookback_days": 3,
+      "min_volatility": 0.02,
+      "max_volatility": 0.75,
+      "refresh_period": 43200
+    },
+    //    {
+    //        "method": "VolumePairList",
+    //        "number_assets": 80,
+    //        "sort_key": "quoteVolume",
+    //        "refresh_period": 1800
+    //    },
+    {
+      "method": "ShuffleFilter"
     }
   ],
   "protections": [

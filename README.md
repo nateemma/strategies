@@ -2,7 +2,28 @@
 
 This folder contains the code for a variety of custom trading strategies for use with the [freqtrade](https://www.freqtrade.io/) framework.
 
-Other examples may be found in various github repositories:
+
+Note: as of November 2021, I abondoned work on the "Combo" strategies, which have been moved to the _archived/_ folder<br>
+Instead, I now focus on strategies derived from the FisherBB strategy, which uses a very simple buy signal based on the 
+Fisher indicator and Bollinger Bands.
+
+
+
+## Disclaimer
+
+These strategies are for educational purposes only
+
+
+Do not risk money which you are afraid to lose. USE THE SOFTWARE AT YOUR OWN RISK. THE AUTHORS AND ALL AFFILIATES ASSUME 
+NO RESPONSIBILITY FOR YOUR TRADING RESULTS.
+
+Always start by testing strategies using backtesting then run the trading bot in Dry-run. 
+Do not engage money before you understand how it works and what profit/loss you should expect. 
+Also, do not backtest the strategies in a period of huge growth (like 2020 for example), 
+when any strategy would do well. I recommend including May 2021, which includes a pretty big crash (-50%).
+
+## Reference repositories
+I either used or learned from strategies in the github repositories below:
 
 https://github.com/freqtrade/freqtrade-strategies
 <br>
@@ -17,106 +38,104 @@ https://github.com/werkkrew/freqtrade-strategies
 https://github.com/brookmiles/freqtrade-stuff
 <br>
 https://github.com/hansen1015/freqtrade_strategy/blob/main/heikin.py
-
-Note: as of August 28th, 2021, I modified the code and scripts to support multiple exchanges. 
-This means that there are some exchange-specific directories and files. 
-If you only plan to use one exchange, then just set up your config.json file appropriately and modify the Config.py in 
-the strategy directory to match your hyperopt results.
 <br>
-See the section on [Multiple Exchanges](multi-exchange-support) for more info
+https://github.com/Foxel05/freqtrade-stuff
 
-## Disclaimer
 
-These strategies are for educational purposes only
+## Multi Exchange Support
+Exchanges have different pairlists, different base currencies and different behaviours, so you really need different 
+parameters for each exchange. The way I address this is by putting exchange-specific code in a subdirectory below the 
+strategy directory whose name matches the exchange tag used by freqtrade (e.g. binanceus, kucoin, ftx). 
+<br>
+If you look, you will find files such as FisherBBWtdProfit.py in each subdirectory. These files contain exchange-specific code, 
+which is usually the set of hyperparameters for the strategies, plus the ROI, stoploss and 
+trailing parameters.
 
-Please note that the performance of some of these strategies is really bad (usually the most hyped ones).
-I leave them here as templates for future work.
+Because the FisherBB base class is in the user_data/strategies directory, you have to manage the _PYTHON_PATH_ environment 
+variable or import statements will not find the correct files. 
+<br>
+To help with this, I added a bunch of shell scripts in the _user_data/strategies/scripts_ directory:
 
-Do not risk money which you are afraid to lose. USE THE SOFTWARE AT YOUR OWN RISK. THE AUTHORS AND ALL AFFILIATES ASSUME NO RESPONSIBILITY FOR YOUR TRADING RESULTS.
+| Script | Description |
+|-----------|------------------------------------------|
+|test_strat.sh|Tests an individual strategy for the specified exchange |
+|test_exchange.sh|Tests all of the currently active strategies for the specified exchange |
+|test_monthly.sh| Runs test_exchange.sh over a monthly interval for the past 6 months, shows average performance, and ranks the strategies |
+|hyp_strat.sh|runs hyperopt on an individual strategy for the specified exchange |
+|hyp_exchange.sh|Runs hyp_strat.sh for all of the currently active strategies for the specified exchange |
+|hyp_all.sh| Runs hyp_exchange.sh for all currently active exchanges (takes a *_very_* long time) |
+|run_strat.sh| Runs a strategy live on the specified exchange, takes care of PYTHONPATH, db-url etc |
+|dryrun_strat.sh| Dry-runs a strategy on the specified exchange, takes care of PYTHONPATH, db-url etc |
 
-Always start by testing strategies using backtesting then run the trading bot in Dry-run. 
-Do not engage money before you understand how it works and what profit/loss you should expect. 
-Also, do not backtest the strategies in a period of huge growth (like 2020 for example), 
-when any strategy would do well. I recommend including May 2021, which includes a pretty big crash (-50%).
 
-## List of Strategies
+Specify the -h option for help.
 
-The following is a list of (most of) my custom strategies and a rough assessment of performance. 
-They are listed in order of relative performance, good to bad, but please note that performance depends a lot upon the 
-time period being tested, which exchange you are using, and which pairs you are trading.
+Please note that all of the _test__\*.sh and _hyp__\*.sh scripts all expect there to be a config file in the exchange directory that is named in the form:  
+_config\_<exchange>.json_ (e.g. _config_binanceus.json_)
+<br>
+The _run_strat.sh_.sh and _dryrun_strat.sh_ scripts expect a 'real' config file that should specify volume filters etc.
 
-Note: I am pursuing a "buy on dips, sell at a profit" approach, so most of these strategies
-do not issue sell signals at all. Instead, they use the ROI and stoploss mechanisms of freqtrade to sell (hopefully at a profit).
-I started off trying to issue sell signals, but performance was bad and I've had far better results just holding.
+I include reference config files for each exchange (in each exchange folder). These use static pairlists since VolumePairlist does not work for backtesting or hyperopt. 
+<br>To generate a candidate pairlist use a command such as the following:
 
-Also, I now use the same ROI/stoploss parameters across all strategies (they are defined in Config.py). 
-This is because my goal is to combine the best individual strategies into a combined strategy (ComboHold.py)
+>freqtrade test-pairlist -c _\<config\>_
 
-In this context, the performance ratings are:
+where _\<config\>_ is the 'real' config file that would be used for live or dry runs.
+<br>
+the command will give a list of pairs that pass the filters. You can then cut&paste the list into your test config file. 
+Remember to change single quotes (\') to double quotes (\") though.
 
-- Good: usually makes a profit
-- OK: can make a slight profit or loss, depending upon the market conditions and pairs being traded
-- Bad: usually loses money (often a lot)
 
-|        Strategy | Performance |   Description                                 | 
-|-----------------|-------------|-----------------------------------------------|
-| ComboHold | Good |Combines the best of the strategies below|
-| BigDrop | Good |Looks for a minimum %age total drop over a specified time|
-| NDrop | Good |Looks for N consecutive 'drops', with a minimum %age total drop|
-| NSeq | Good |Looks for N consecutive down candles followed by an up candle|
-| BBBHold | Good |Buys when the close crosses below the lower Bollinger Band and holds|
-| BTCNDrop | Good |Like BigDrop, but triggers on BTC/USD (the assumption is BTC/USD moves ahead of other pairs)|
-| MACDCross | Good |Classic MACD crossing MACDSignal|
-| BTCJump | Good |triggers on a big jump in BTC/USD (the assumption is BTC/USD moves ahead of other pairs)|
-| BTCNDrop | Good |Like NDrop, but triggers on BTC/USD (the assumption is BTC/USD moves ahead of other pairs)|
-| BTCNSeq | Good |Like NSeq, but triggers on BTC/USD (the assumption is BTC/USD moves ahead of other pairs)|
-| EMABounce | Good |Looks for situations where the current price is a specified %age below the 20 day EMA, and the short term EMA is changing direction (up). Does not trigger often, but very reliable|
-| Strategy003 | OK |This is from the freqtrade samples|
-| BTCEMABounce | OK |Like EMABounce, but triggers on BTC/USD|
-| Squeeze001 | OK |This is a variation of SqueezeMomentum from Lazy Bear, but with hyperopt-generated parameters. It works well, but I can't explain why!|
-| BBKCBounce | OK |Buys when a candle crosses back above both the lower Bollinger and Keltner bands|
-| BuyDips | OK |Buys on perceived dips and holds|
-| KeltnerBounce | OK |Buy when price crosses lower Donchian band and hold|
-| SimpleBollinger | OK |Buy when price crosses upper Bollinger band, sell when it crosses the lower band|
-| SqueezeOff | OK |Buys when Squeeze Momentum transitions to 'off'|
-| BollingerBounce | OK |Buy when price crosses lower Bollinger band and hold|
-| Squeeze002 | OK |The classic LazyBear Squeeze Momentum|
-| Patterns2 | OK |Looks for buy/sell candle patterns|
-| ADXDM | Bad |Trade based on ADX value, plus DM+/-|
-| DonchianChannel | Bad |Buy when price crosses upper Donchian band, sell when it crosses the lower band|
-| DonchianBounce | Bad |Buy when price crosses lower Donchian band and hold|
-| EMA50 | Bad |Classic fast and slow EMAs crossing |
-| EMABreakout | Bad |Buy when price crosses above EMA|
-| EMACross | Bad |Classic price crossing above/below EMA|
-| KeltnerChannels | Bad |Buy when price crosses upper Keltner band, sell when it crosses the lower band|
-| MACDTurn | Bad |Like MACDCross, but looks for a change in direction of the MACD Histogram to try and predict a trend before it happens (and fails miserably)|
-| MFI2 | Bad |Buy/sell based on Money Flow Index (MFI)|
-| SARCross | Bad |Classic price crossing above/below SAR|
+Also, 
+
 
 ## Setting Up Your Configuration
 
-See the freqtrade docs, but basically, run the setup script and edit the config.json file to modify the list of pairs that you will use. Look at the website for the exchange you are using to se which pairs are supported (note that the default configuration generated is wrong)
+See the [freqtrade docs](https://www.freqtrade.io/en/stable/configuration/) for generic instructions. 
+
+My environment is set up for multiple exchanges, so it's a bit different. My scripts expect the following:
+
+* an exchange-specific config file in the root _freqtrade_ directory of the form config\_\<exchange\>.json 
+(or config_\<exchange\>_\<port\>.json if you want to run multiple strategies on the same exchange)
+* an exchange-specific config file in the user_data/strategies/\<exchange\> directory of the form config\_\<exchange\>.json
+
+Note: do *_not_* put any exchange trading keys or passwords in the user_data/strategies/\<exchange\> files, as you are quite likely to share these or put them into github
+
+## Downloading Test Data
+To run backtest and hyperopt, you need to download data to your local environment.
+<br>
+ou do this using a command like this:
+
+>freqtrade download-data  --timerange=_\<timerange\>_ -c _\<config\>_-t 5m 15m 1h 1d
+
+Or, for a specific pair (e.g. BTC/USDT):
+
+>freqtrade download-data  --timerange=_\<timerange\>_ -c _\<config\>_-t 5m 15m 1h 1d -p BTC/USDT
+
+Most of the FisherBB strategies only need 15m data, but some of the more advanced sell logic also requires 15m, 1h and 1d data, 
+plus also data for BTC/USD or BTC/USDT (whatever your exchanges uses)
+
+I typicaly download for the timerange 20210501- (May 1st, 2021 to present)
+
 
 ## Backtesting
 
 Backtesting is where you run your strategy on historical data to see how it would gave performed.
 
-In all command/shell examples, _\<strategy\>_ is the name of the strategy being used, and _\<timeframe\>_ is the timeframe (duh).
+In all command/shell examples, _\<strategy\>_ is the name of the strategy being used, and _\<timerange\>_ is the range of time to use for testing (duh).
 
-Examples of _\<timeframe\>_ might be:
+Examples of _\<timerange\>_ might be:
 - _20210501-_       May 1st, 2021 until present date
 - _20210603-20210605_   June 3rd 2021 until June 5th 2021
 
-Before you can backtest, you must download data for testing. You do this using a command like this:
-
->freqtrade download-data  --timerange=_\<timerange\>_
+Before you can backtest, you must download data for testing. 
 
 It is recommended that you update fairly often (e.g. once per week) and on a limited time range (e.g. the last month). 
 Optimising results for the past year or 6 months doesn't really help you perform better with the current market conditions.
 
 Backtesting can be done using the following command:
 
->freqtrade backtesting --strategy _\<strategy\>_  --timerange=_\<timerange\>_
+>freqtrade backtesting  -c _\<config\>_ --strategy _\<strategy\>_  --timerange=_\<timerange\>_
 
 ## Hyper-Parameter Optimisation
 
@@ -124,7 +143,7 @@ Run the hyperopt command to search for 'optimal' parameters in your strategy.
 
 Note that performance is _dramatically_ affected by the ROI parameters and timeframe. 
 
->freqtrade hyperopt --strategy _\<strategy\>_  --space _\<space\>_ --hyperopt-loss _\<loss algorithm\>_   --timerange=_\<timerange\>_
+>freqtrade hyperopt  -c _\<config\>_ --strategy _\<strategy\>_  --space _\<space\>_ --hyperopt-loss _\<loss algorithm\>_   --timerange=_\<timerange\>_
 
 where:
 
@@ -135,7 +154,7 @@ _\<space\>_ specifies which space to try and optimise. It is recommended to try 
 3. trailing  (using OnlyProfitHyperOptLoss)
 
 
-If you try to optimise them all at once, you don't get good results. Also, not the use of different loss functions above
+If you try to optimise them all at once, you don't get good results. Also, note the use of different loss functions above
 
 
 In my case, I tend to just run all of these spaces only on ComboHold, since that is what I actually use to trade. 
@@ -155,6 +174,8 @@ _\<loss algorithm\>_ is one of:
 - SortinoHyperOptLossDaily
 
 Run them in that order and see if you get different results
+
+## Custom Hyperopt Loss Functions
 
 ## Plotting Results
 
@@ -192,34 +213,32 @@ You can monitor trades from the UI (see above), and from the exchange website/ap
 
 Note that you need your computer synched up to an NTP time source to do this.
 
-## Multi Exchange Support
-Exchanges have different pairlists, different base currencies and different histories, so you really need different 
-parameters for each exchange. The way I address this is by putting exchange-specific code in a subdirectory below the 
-strategy directory whose name matches the exchange tag used by freqtrade (e.g. binanceus, kucoin, coinbasepro). 
+## List of Strategies
+
+The following is a list of (most of) my custom strategies and a rough assessment of performance. 
+They are listed in order of relative performance, good to bad, but please note that performance depends a lot upon the 
+time period being tested, which exchange you are using, and which pairs you are trading.
+
 <br>
-If you look, you will find files such as Config.py in each subdirectory. These files contain exchange-specific code, 
-which is usually the set of hyperparameters for the strategies rolled into ComboHold plus the ROI, stoploss and 
-trailing parameters.
+Most of the strategies are contained in exchange-specific folders (binance/ etc.) because the hyperparameters are very 
+specific for each exchnage.
 
-Because of this, you have to manage the _PYTHON_PATH_ environment variable or import statements will not find the 
-correct  files (python is the only language I know of that doesn't have the concept of importing from the same 
-directory, you have to know the structure relative to where the main code is running - which is a very bad design 
-if you ask me).
+Note: I am pursuing a "buy on dips, sell at a profit" approach, so most of these strategies
+do not issue sell signals at all. Instead, they use the ROI and stoploss mechanisms of freqtrade to sell (hopefully at a profit).
+I started off trying to issue sell signals, but performance was bad and I've had far better results just holding.<br>
+FYI, this makes the strategies *very* dependent upon the exchange and pairlist 
 
-To help with this. I added a bunch of shell scripts in the _user_data/strategies/scripts_ directory:
-
-| Script | Description |
-|-----------|------------------------------------------|
-|testrat.sh|Usage: _bash teststrat.sh <exchange> <srategy> <args>_<br>Tests an individual strategy for the specified exchange. You can add additional parameters (for _freqtrade backtest_) in the 3rd argument (enclose in quotes if you need to use multiple")|
-|hypstrat.sh||
-|testall.sh||
-|hyperall.sh||
-|compareResults.sh||
-|genParams.sh||
-|overnight.sh||
+Most of the different strategies are actually just the FisherBB strategy 'tuned' for a specific exzchange, and using a 
+different hyperopt loss function (See the section [Custom Hyperopt Loss Functions](#custom-hyperopt-loss-functions))
 
 
-Please note that these scripts all expect thre to be a config file for the exchange that is named in the form:  
-_config\_<exchange>.json_ (e.g. _config_binanceus.json_)
-
-Note: if you only use 1 exchange, then just use the Config.py that is in the main _user_data/strategies_ directory.
+|        Strategy |    Description                                 | 
+|-----------------|------------------------------------------------|
+| FisherBB | Base class that implements the buy logic for the Fisher and Bollinger Band indicators<br>Other _FisherBB*_ strategies usually derive from this and just change parameters |
+| FisherBBWtdProfit | FisherBB tuned using the WeightedProfitHyperOptLoss function |
+| FisherBBQuick |  FisherBB tuned using the QuickProfitHyperOptLoss function |
+| FisherBBExp |  FisherBB tuned using the ExpectancyHyperOptLoss function |
+| FisherBBPED |  FisherBB tuned using the PEDHyperOptLoss function |
+| FisherBBWinLoss |  FisherBB tuned using the WinHyperOptLoss function |
+| FisherBBDynamic | A merge of FisherBB (buy) and the dynamic ROI logic adapted from MacheteV8b (see [Foxel05](https://github.com/Foxel05/freqtrade-stuff) repo)|
+| FisherBBSolipsis | A merge of FisherBB (buy) and the custom sell logic adapted from Solipsis_V5 (see [werkkrew](https://github.com/werkkrew/freqtrade-strategies) repo)|

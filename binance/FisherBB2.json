@@ -1,0 +1,38 @@
+{
+  "strategy_name": "FisherBB2",
+  "params": {
+    "roi": {
+      "0": 0.039,
+      "10": 0.023,
+      "60": 0.011,
+      "174": 0
+    },
+    "stoploss": {
+      "stoploss": -0.34
+    },
+    "buy": {
+      "buy_bb_gain": 0.08,
+      "buy_enable_signal_fisher_bb": true,
+      "buy_enable_signal_wr": true,
+      "buy_fisher": 0.25,
+      "buy_wr": -92.0,
+      "inf_pct_adr": 0.903,
+      "xbtc_base_rmi": 67,
+      "xbtc_guard": "none",
+      "xtra_base_fiat_rmi": 58,
+      "xtra_base_stake_rmi": 22
+    },
+    "sell": {
+      "sell_bb_gain": 1.13
+    },
+    "protection": {},
+    "trailing": {
+      "trailing_stop": true,
+      "trailing_stop_positive": 0.168,
+      "trailing_stop_positive_offset": 0.268,
+      "trailing_only_offset_is_reached": true
+    }
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2021-12-04 00:07:55.538528+00:00"
+}

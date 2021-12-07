@@ -7,7 +7,7 @@ strat_dir="user_data/strategies"
 logfile="hyperall.log"
 
 
-declare -a elist=("binanceus" "ftx" "kucoin" "ascendex")
+declare -a elist=("binanceus" "ftx" "kucoin" "ascendex" "binance")
 
 timerange="20210501-"
 
@@ -38,27 +38,12 @@ for exchange in "${elist[@]}"; do
 
   echo "" >>$logfile
   echo ============================== >>$logfile
-  echo "\t\t FisherBBLong" >>$logfile
+  echo "\t\t FisherBBWtdProfit" >>$logfile
   echo ============================== >>$logfile
   freqtrade hyperopt --space buy roi stoploss --hyperopt-loss WeightedProfitHyperOptLoss  --timerange=${timerange} \
     -c ${config_file} --strategy-path ${exchange_dir}  --epochs 200 \
-    -s FisherBBLong --no-color >>$logfile
+    -s FisherBBWtdProfit --no-color >>$logfile
 
-  echo "" >>$logfile
-  echo ============================== >>$logfile
-  echo "\t\t FisherBBQuick" >>$logfile
-  echo ============================== >>$logfile
-  freqtrade hyperopt --space buy roi stoploss --hyperopt-loss QuickProfitHyperOptLoss  --timerange=${timerange} \
-    -c ${config_file} --strategy-path ${exchange_dir}  --epochs 200 \
-    -s FisherBBQuick --no-color >>$logfile
-
-  echo "" >>$logfile
-  echo ============================== >>$logfile
-  echo "\t\t FisherBBExp" >>$logfile
-  echo ============================== >>$logfile
-  freqtrade hyperopt --space buy roi stoploss --hyperopt-loss ExpectancyHyperOptLoss  --timerange=${timerange} \
-    -c ${config_file} --strategy-path ${exchange_dir}  --epochs 200 \
-    -s FisherBBExp --no-color >>$logfile
 
   echo "" >>$logfile
   echo ============================== >>$logfile
@@ -70,11 +55,11 @@ for exchange in "${elist[@]}"; do
 
   echo "" >>$logfile
   echo ============================== >>$logfile
-  echo "\t\t FisherBBWinLoss" >>$logfile
+  echo "\t\t FisherBBDynamic" >>$logfile
   echo ============================== >>$logfile
   freqtrade hyperopt --space buy roi stoploss --hyperopt-loss WinHyperOptLoss  --timerange=${timerange} \
     -c ${config_file} --strategy-path ${exchange_dir}  --epochs 200 \
-    -s FisherBBWinLoss --no-color >>$logfile
+    -s FisherBBDynamic --no-color >>$logfile
 
 
 done

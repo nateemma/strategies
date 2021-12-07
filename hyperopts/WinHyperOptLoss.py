@@ -228,7 +228,7 @@ class WinHyperOptLoss(IHyperOptLoss):
         result = abs_profit_loss + num_trades_loss + duration_loss + exp_profit_loss + day_profit_loss + \
                  expectancy_loss + win_loss_ratio_loss + sharp_ratio_loss + sortino_ratio_loss
 
-        if (result < 0.0) or debug_on:
+        if (result < 0.0) and debug_on:
             print(" \tprof:{:.3f} n:{:.3f} dur:{:.3f} w/l:{:.3f} " \
                   "expy:{:.3f}  sharpe:{:.3f} sortino:{:.3f} " \
                   " Total:{:.3f}"\

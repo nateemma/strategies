@@ -1,0 +1,43 @@
+{
+  "strategy_name": "FisherBBDynamic",
+  "params": {
+    "roi": {
+      "0": 0.243,
+      "39": 0.07100000000000001,
+      "94": 0.038,
+      "214": 0
+    },
+    "stoploss": {
+      "stoploss": -0.038
+    },
+    "buy": {
+      "buy_bb_gain": 0.03,
+      "buy_enable_signal_fisher_bb": true,
+      "buy_enable_signal_fisher_hull": true,
+      "buy_fisher": 0.86
+    },
+    "sell": {
+      "sell_cstp_bail_how": "time",
+      "sell_cstp_bail_roc": -0.048,
+      "sell_cstp_bail_time": 760,
+      "sell_cstp_bb_trailing_input": "bb_lowerband_trend_inf",
+      "sell_cstp_threshold": -0.001,
+      "sell_cstp_trailing_max_stoploss": 0.05,
+      "sell_cstp_trailing_only_offset_is_reached": 0.027,
+      "sell_cstp_trailing_stop_profit_devider": 2,
+      "sell_droi_pullback": true,
+      "sell_droi_pullback_amount": 0.005,
+      "sell_droi_pullback_respect_table": false,
+      "sell_droi_trend_type": "any"
+    },
+    "protection": {},
+    "trailing": {
+      "trailing_stop": true,
+      "trailing_stop_positive": 0.052,
+      "trailing_stop_positive_offset": 0.137,
+      "trailing_only_offset_is_reached": true
+    }
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2021-11-19 03:05:38.023444+00:00"
+}

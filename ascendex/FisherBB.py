@@ -13,40 +13,24 @@ from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, Int
 
 
 
-class FisherBBLong(IStrategy):
+class FisherBB(IStrategy):
     """
     Simple strategy based on Inverse Fisher Transform and Bollinger Bands
-    This is a self-contained version tuned over a long period of time
+    Note that this is a base class, i.e. the concrete class must derive from this
 
     How to use it?
-    > python3 ./freqtrade/main.py -s FisherBBLong
+    > python3 ./freqtrade/main.py -s FisherBBWtdProfit
     """
 
-    # Buy hyperspace params:
-    buy_params = {
-        "buy_bb_gain": 0.119,
-        "buy_fisher": -0.114,
-    }
-
-    # ROI table:
-    minimal_roi = {
-        "0": 0.048,
-        "16": 0.023,
-        "27": 0.011,
-        "145": 0
-    }
-
-    # Stoploss:
-    stoploss = -0.28
-
-    # Trailing stop:
-    trailing_stop = True
-    trailing_stop_positive = 0.011
-    trailing_stop_positive_offset = 0.046
-    trailing_only_offset_is_reached = True
-
+    """
+    Derived class must declare the following:
+    
     buy_bb_gain = DecimalParameter(0.01, 0.20, decimals=3, default=0.070, space="buy")
     buy_fisher = DecimalParameter(-1.0, 1.0, decimals=3, default=-0.280, space="buy")
+    buy_num_candles = IntParameter(0, 12, default=2, space="buy")
+    
+    Cannot declare them here because of python scoping rules (the base class vars will be used instead of the child class)
+    """
 
     startup_candle_count = 20
 
@@ -148,13 +132,14 @@ class FisherBBLong(IStrategy):
         conditions.append(dataframe['fisher_rsi'] <= self.buy_fisher.value)
         conditions.append(dataframe['bb_gain'] >= self.buy_bb_gain.value)
 
-        # # FisherBB2 way (single trigger, but may be late)
-        # conditions.append(dataframe['fisher_rsi'].shift(1) <= self.buy_fisher.value)
-        # conditions.append(dataframe['bb_gain'].shift(1) >= self.buy_bb_gain.value)
-        # conditions.append(
-        #     (dataframe['fisher_rsi'] > self.buy_fisher.value) |
-        #     (dataframe['bb_gain'] < self.buy_bb_gain.value)
-        # )
+        # check for sequence of triggers
+        if self.buy_num_candles.value > 0:
+            for i in range(self.buy_num_candles.value):
+                conditions.append(
+                    (dataframe['fisher_rsi'].shift(i) <= self.buy_fisher.value) &
+                    (dataframe['bb_gain'].shift(i) >= self.buy_bb_gain.value)
+                )
+
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
