@@ -287,10 +287,11 @@ class FisherBB2(IStrategy):
 
 
         # FisherBB triggers
-        conditions.append(
-            (self.get_buy_signal_fisher_bb(dataframe) == True) &
-            (self.get_buy_signal_wr(dataframe) == True)
-        )
+        if self.buy_enable_signal_fisher_bb:
+            conditions.append(self.get_buy_signal_fisher_bb(dataframe))
+
+        if self.buy_enable_signal_wr:
+            conditions.append(self.get_buy_signal_wr(dataframe))
 
 
         # Additional informative

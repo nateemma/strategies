@@ -68,7 +68,7 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
                 weight_exp_profit = 0.5
                 weight_ave_profit = 2.0
                 weight_expectancy = 1.0
-                weight_win_loss_ratio = 1.0
+                weight_win_loss_ratio = 0.75
                 weight_sharp_ratio = 0.25
                 weight_sortino_ratio = 0.05
 
@@ -210,7 +210,8 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
             win_loss_ratio_loss = -abs(abs_profit_loss)
 
         # don't let win/loss ratio have more influence than absolute profit
-        win_loss_ratio_loss = max(abs_profit_loss, win_loss_ratio_loss)
+        win_loss_ratio_loss = max(weight_abs_profit*abs_profit_loss, weight_win_loss_ratio*win_loss_ratio_loss) / \
+                              weight_win_loss_ratio
 
         # # punish if below goal
         # if win_loss_ratio_loss > 0.0:

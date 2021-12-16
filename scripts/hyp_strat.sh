@@ -10,7 +10,7 @@ Usage: bash $script [options] <exchange> <strategy>
 
 [options]:  -c | --clean       Remove hyperopt .json file before running
             -e | --epochs      Number of epochs to run. Default 100
-            -j | --save-json   Saves hyperopt json file (for cumulative runs)
+            -j | --jobs        Number of parallel jobs
             -l | --loss        { ShortTradeDurHyperOptLoss | OnlyProfitHyperOptLoss | SharpeHyperOptLoss |
                                SharpeHyperOptLossDaily | SortinoHyperOptLoss | SortinoHyperOptLossDaily }
             -n | --ndays       Number of days of backtesting. Defaults to 30
@@ -29,12 +29,11 @@ END
 
 # loss options: ShortTradeDurHyperOptLoss OnlyProfitHyperOptLoss SharpeHyperOptLoss SharpeHyperOptLossDaily
 #               SortinoHyperOptLoss SortinoHyperOptLossDaily
-loss="OnlyProfitHyperOptLoss"
+loss="WeightedProfitHyperOptLoss"
 
-export="--disable-param-export"
-save_json=1
 clean=0
 epochs=100
+jarg=""
 
 spaces="buy"
 
@@ -48,7 +47,7 @@ timerange="${start_date}-"
 die() { echo "$*" >&2; exit 2; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
-while getopts :ce:jl:n:s:t:-: OPT; do
+while getopts :ce:j:l:n:s:t:-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
@@ -59,7 +58,7 @@ while getopts :ce:jl:n:s:t:-: OPT; do
     c | clean )      clean=1 ;;
     e | epochs )     needs_arg; epochs="$OPTARG" ;;
     l | loss )       needs_arg; loss="$OPTARG" ;;
-    j | save-json )  save_json=1 ;;
+    j | jobs )       needs_arg; jarg="-j $OPTARG" ;;
     n | ndays )      needs_arg; num_days="$OPTARG"; timerange="$(date -j -v-${num_days}d +"%Y%m%d")-" ;;
     s | spaces )     needs_arg; spaces="$OPTARG" ;;
     t | timeframe )  needs_arg; timerange="$OPTARG" ;;
@@ -111,11 +110,6 @@ if [ ${clean} -eq 1 ]; then
   fi
 fi
 
-if [ ${save_json} -eq 1 ]; then
-  # save output.json file
-  echo "hyperopt output file (${hypfile} will be saved"
-  export=""
-fi
 
 today=`date`
 echo $today
@@ -123,16 +117,16 @@ echo "Optimising strategy:$strategy for exchange:$exchange..."
 
 cat << END
 
-freqtrade hyperopt -j 6 --space ${spaces} --hyperopt-loss ${loss} --timerange=${timerange} --epochs ${epochs} \
+freqtrade hyperopt ${jarg} --space ${spaces} --hyperopt-loss ${loss} --timerange=${timerange} --epochs ${epochs} \
 -c ${config_file} --strategy-path ${exchange_dir}  \
--s ${strategy} --no-color ${export}
+-s ${strategy} --no-color
 
 
 END
 
-freqtrade hyperopt  --space ${spaces} --hyperopt-loss ${loss} --timerange=${timerange} --epochs ${epochs} \
+freqtrade hyperopt ${jarg} --space ${spaces} --hyperopt-loss ${loss} --timerange=${timerange} --epochs ${epochs} \
     -c ${config_file} --strategy-path ${exchange_dir}  \
-    -s ${strategy} --no-color ${export}
+    -s ${strategy} --no-color
 
 echo -en "\007" # beep
 echo ""

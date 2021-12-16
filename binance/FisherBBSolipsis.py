@@ -53,34 +53,37 @@ NOTE: it takes a long time for hyperopt to find profitable solutions, you need a
 class FisherBBSolipsis(IStrategy):
 
     # Buy hyperspace params:
+    # Buy hyperspace params:
     buy_params = {
-        "buy_bb_gain": 0.08,
+        "buy_bb_gain": 0.07,
         "buy_enable_signal_fisher_bb": True,
-        "buy_enable_signal_fisher_hull": False,
-        "buy_fisher": 0.39,
-        "inf_pct_adr": 0.907,
-        "xbtc_base_rmi": 30,
+        "buy_enable_signal_fisher_hull": True,
+        "buy_enable_signal_wr": True,
+        "buy_fisher": 0.35,
+        "buy_wr": -90.0,
+        "inf_pct_adr": 0.885,
+        "xbtc_base_rmi": 42,
         "xbtc_guard": "none",
-        "xtra_base_fiat_rmi": 57,
-        "xtra_base_stake_rmi": 31,
+        "xtra_base_fiat_rmi": 34,
+        "xtra_base_stake_rmi": 47,
     }
 
     # Sell hyperspace params:
     sell_params = {
-        "csell_endtrend_respect_roi": True,
-        "csell_pullback": False,
-        "csell_pullback_amount": 0.027,
-        "csell_pullback_respect_roi": True,
-        "csell_roi_end": 0.006,
-        "csell_roi_start": 0.023,
-        "csell_roi_time": 1389,
-        "csell_roi_type": "decay",
-        "csell_trend_type": "none",
-        "cstop_bail_how": "time",
-        "cstop_bail_roc": -1.299,
-        "cstop_bail_time": 1433,
-        "cstop_bail_time_trend": False,
-        "cstop_loss_threshold": -0.023,
+        "csell_endtrend_respect_roi": True,  # value loaded from strategy
+        "csell_pullback": False,  # value loaded from strategy
+        "csell_pullback_amount": 0.019,  # value loaded from strategy
+        "csell_pullback_respect_roi": False,  # value loaded from strategy
+        "csell_roi_end": 0.009,  # value loaded from strategy
+        "csell_roi_start": 0.011,  # value loaded from strategy
+        "csell_roi_time": 1354,  # value loaded from strategy
+        "csell_roi_type": "decay",  # value loaded from strategy
+        "csell_trend_type": "none",  # value loaded from strategy
+        "cstop_bail_how": "time",  # value loaded from strategy
+        "cstop_bail_roc": -3.272,  # value loaded from strategy
+        "cstop_bail_time": 1271,  # value loaded from strategy
+        "cstop_bail_time_trend": True,  # value loaded from strategy
+        "cstop_loss_threshold": -0.042,  # value loaded from strategy
     }
 
     # ROI table: 
@@ -102,8 +105,10 @@ class FisherBBSolipsis(IStrategy):
     # FisherBB hyperparams
     buy_enable_signal_fisher_hull = CategoricalParameter([True, False], default=False, space='buy', load=True, optimize=True)
     buy_enable_signal_fisher_bb = CategoricalParameter([True, False], default=True, space='buy', load=True, optimize=True)
+    buy_enable_signal_wr = CategoricalParameter([True, False], default=True, space='buy', load=True, optimize=True)
     buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.09, space="buy", load=True, optimize=True)
     buy_fisher = DecimalParameter(-0.99, 0.99, decimals=2, default=0.99, space="buy", load=True, optimize=True)
+    buy_wr = DecimalParameter(-99, 0, decimals=0, default=-80, space="buy", load=True, optimize=True)
 
     # Base Pair Params
     # base_mp = IntParameter(10, 50, default=30, space='buy', load=True, optimize=True)
@@ -265,6 +270,9 @@ class FisherBBSolipsis(IStrategy):
         dataframe['hma'] = hull_moving_average(dataframe, 14, 'close')
         dataframe['cci'] = ta.CCI(dataframe, timeperiod=14)
 
+        # Williams %R
+        dataframe['wr'] = williams_r(dataframe, period=14)
+
         # Base pair informative timeframe indicators
         informative = self.dp.get_pair_dataframe(pair=metadata['pair'], timeframe=self.inf_timeframe)
 
@@ -330,10 +338,15 @@ class FisherBBSolipsis(IStrategy):
         # )
 
         # FisherBB triggers
-        conditions.append(
-            (self.get_buy_signal_fisher_bb(dataframe) == True) |
-            (self.get_buy_signal_fisher_hull(dataframe) == True)
-        )
+        if self.buy_enable_signal_fisher_bb:
+            conditions.append(self.get_buy_signal_fisher_bb(dataframe))
+
+        if self.buy_enable_signal_fisher_hull:
+            conditions.append(self.get_buy_signal_fisher_hull(dataframe))
+
+        if self.buy_enable_signal_wr:
+            conditions.append(self.get_buy_signal_wr(dataframe))
+
 
         # # Base Timeframe Trigger
         # if self.base_trigger.value == 'pcc':
@@ -499,3 +512,28 @@ class FisherBBSolipsis(IStrategy):
         )
         return signal
 
+    def get_buy_signal_wr(self, dataframe: DataFrame):
+        signal = (
+            (self.buy_enable_signal_wr.value == True) &
+            (qtpylib.crossed_below(dataframe['wr'], self.buy_wr.value))
+        )
+        return signal
+
+# Williams %R
+def williams_r(dataframe: DataFrame, period: int = 14) -> Series:
+    """Williams %R, or just %R, is a technical analysis oscillator showing the current closing price in relation to the high and low
+        of the past N days (for a given N). It was developed by a publisher and promoter of trading materials, Larry Williams.
+        Its purpose is to tell whether a stock or commodity market is trading near the high or the low, or somewhere in between,
+        of its recent trading range.
+        The oscillator is on a negative scale, from −100 (lowest) up to 0 (highest).
+    """
+
+    highest_high = dataframe["high"].rolling(center=False, window=period).max()
+    lowest_low = dataframe["low"].rolling(center=False, window=period).min()
+
+    WR = Series(
+        (highest_high - dataframe["close"]) / (highest_high - lowest_low),
+        name=f"{period} Williams %R",
+        )
+
+    return WR * -100

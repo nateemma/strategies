@@ -54,47 +54,50 @@ class FisherBB2(IStrategy):
 
     # Buy hyperspace params:
     buy_params = {
-        "buy_bb_gain": 0.02,
+        "buy_bb_gain": 0.08,
         "buy_enable_signal_fisher_bb": True,
-        "buy_enable_signal_fisher_hull": False,
-        "buy_fisher": -0.55,
-        "inf_pct_adr": 0.731,
-        "xbtc_base_rmi": 39,
+        "buy_enable_signal_wr": True,
+        "buy_fisher": 0.25,
+        "buy_wr": -92.0,
+        "inf_pct_adr": 0.903,
+        "xbtc_base_rmi": 67,
         "xbtc_guard": "none",
-        "xtra_base_fiat_rmi": 39,
-        "xtra_base_stake_rmi": 33
+        "xtra_base_fiat_rmi": 58,
+        "xtra_base_stake_rmi": 22,
     }
 
     # Sell hyperspace params:
     sell_params = {
-        "sell_bb_gain": 0.89
+        "sell_bb_gain": 1.13,
     }
 
-    # ROI table: 
+    # ROI table:
     minimal_roi = {
-        "0": 0.25,
-        "40": 0.055,
-        "62": 0.028,
-        "171": 0
+        "0": 0.036,
+        "31": 0.022,
+        "79": 0.011,
+        "144": 0
     }
 
     # Stoploss:
-    stoploss = -0.13
+    stoploss = -0.201
 
     # Trailing stop:
-    trailing_stop = True 
-    trailing_stop_positive = 0.168 
-    trailing_stop_positive_offset = 0.268 
-    trailing_only_offset_is_reached = True 
+    trailing_stop = True
+    trailing_stop_positive = 0.168
+    trailing_stop_positive_offset = 0.268
+    trailing_only_offset_is_reached = True
 
 
     ## Buy Space Hyperopt Variables
 
     # FisherBB hyperparams
-    buy_enable_signal_fisher_hull = CategoricalParameter([True, False], default=False, space='buy', load=True, optimize=True)
     buy_enable_signal_fisher_bb = CategoricalParameter([True, False], default=True, space='buy', load=True, optimize=True)
+    buy_enable_signal_wr = CategoricalParameter([True, False], default=True, space='buy', load=True, optimize=True)
+
     buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.09, space="buy", load=True, optimize=True)
     buy_fisher = DecimalParameter(-0.99, 0.99, decimals=2, default=0.99, space="buy", load=True, optimize=True)
+    buy_wr = DecimalParameter(-99, 0, decimals=0, default=-80, space="buy", load=True, optimize=True)
 
     inf_pct_adr = DecimalParameter(0.70, 0.99, default=0.80, space='buy', load=True, optimize=True)
 
@@ -110,8 +113,7 @@ class FisherBB2(IStrategy):
 
     sell_bb_gain = DecimalParameter(0.7, 1.3, decimals=2, default=0.8, space="sell", load=True, optimize=True)
 
-    # timeframe = '5m'
-    timeframe = '1m'
+    timeframe = '5m'
     inf_timeframe = '1h'
 
     use_custom_stoploss = False
@@ -225,9 +227,8 @@ class FisherBB2(IStrategy):
         dataframe['bb_upperband'] = bollinger['upper']
         dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
 
-        # get_buy_signal_fisher_hull
-        dataframe['hma'] = hull_moving_average(dataframe, 14, 'close')
-        dataframe['cci'] = ta.CCI(dataframe, timeperiod=14)
+        # Williams %R
+        dataframe['wr'] = williams_r(dataframe, period=14)
 
         # Base pair informative timeframe indicators
         informative = self.dp.get_pair_dataframe(pair=metadata['pair'], timeframe=self.inf_timeframe)
@@ -287,10 +288,12 @@ class FisherBB2(IStrategy):
 
         # FisherBB triggers
         conditions.append(
-            (self.get_buy_signal_fisher_bb(dataframe) == True) |
-            (self.get_buy_signal_fisher_hull(dataframe) == True)
+            (self.get_buy_signal_fisher_bb(dataframe) == True) &
+            (self.get_buy_signal_wr(dataframe) == True)
         )
 
+
+        # Additional informative
         if self.custom_btc_inf:
             if self.xbtc_guard.value == 'strict':
                 conditions.append(
@@ -326,7 +329,7 @@ class FisherBB2(IStrategy):
         dataframe.loc[
             (
                 ## sell if above target
-                (dataframe['close'] > dataframe['bb_upperband'] * self.sell_bb_gain.value) &
+                (qtpylib.crossed_above(dataframe['close'], (dataframe['bb_upperband'] * self.sell_bb_gain.value))) &
                 (dataframe['volume'] > 0)  # Make sure Volume is not 0
             ),
             'sell'] = 1
@@ -345,12 +348,28 @@ class FisherBB2(IStrategy):
         return signal
 
 
-    def get_buy_signal_fisher_hull(self, dataframe: DataFrame):
+    def get_buy_signal_wr(self, dataframe: DataFrame):
         signal = (
-            (self.buy_enable_signal_fisher_hull.value == True) &
-            (dataframe['hma'] < dataframe['hma'].shift()) &
-            (dataframe['cci'] <= -50.0) &
-            (dataframe['fisher_rsi'] < -0.5)
+            (self.buy_enable_signal_wr.value == True) &
+            (qtpylib.crossed_below(dataframe['wr'], self.buy_wr.value))
         )
         return signal
 
+# Williams %R
+def williams_r(dataframe: DataFrame, period: int = 14) -> Series:
+    """Williams %R, or just %R, is a technical analysis oscillator showing the current closing price in relation to the high and low
+        of the past N days (for a given N). It was developed by a publisher and promoter of trading materials, Larry Williams.
+        Its purpose is to tell whether a stock or commodity market is trading near the high or the low, or somewhere in between,
+        of its recent trading range.
+        The oscillator is on a negative scale, from −100 (lowest) up to 0 (highest).
+    """
+
+    highest_high = dataframe["high"].rolling(center=False, window=period).max()
+    lowest_low = dataframe["low"].rolling(center=False, window=period).min()
+
+    WR = Series(
+        (highest_high - dataframe["close"]) / (highest_high - lowest_low),
+        name=f"{period} Williams %R",
+        )
+
+    return WR * -100

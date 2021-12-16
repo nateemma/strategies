@@ -1,6 +1,12 @@
 {
   "strategy_name": "FisherBBSolipsis",
   "params": {
+    "roi": {
+      "0": 100
+    },
+    "stoploss": {
+      "stoploss": -0.99
+    },
     "trailing": {
       "trailing_stop": false,
       "trailing_stop_positive": null,
@@ -21,27 +27,21 @@
     "sell": {
       "csell_endtrend_respect_roi": false,
       "csell_pullback": false,
-      "csell_pullback_amount": 0.024,
-      "csell_pullback_respect_roi": false,
-      "csell_roi_end": 0.005,
-      "csell_roi_start": 0.012,
-      "csell_roi_time": 918,
-      "csell_roi_type": "static",
+      "csell_pullback_amount": 0.01,
+      "csell_pullback_respect_roi": true,
+      "csell_roi_end": 0.0,
+      "csell_roi_start": 0.018,
+      "csell_roi_time": 798,
+      "csell_roi_type": "decay",
       "csell_trend_type": "none",
       "cstop_bail_how": "time",
-      "cstop_bail_roc": -3.94,
-      "cstop_bail_time": 790,
-      "cstop_bail_time_trend": false,
-      "cstop_loss_threshold": -0.035
+      "cstop_bail_roc": -1.24,
+      "cstop_bail_time": 809,
+      "cstop_bail_time_trend": true,
+      "cstop_loss_threshold": -0.048
     },
-    "protection": {},
-    "roi": {
-      "0": 100
-    },
-    "stoploss": {
-      "stoploss": -0.99
-    }
+    "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2021-12-06 01:45:40.545043+00:00"
+  "export_time": "2021-12-15 19:15:54.778442+00:00"
 }
