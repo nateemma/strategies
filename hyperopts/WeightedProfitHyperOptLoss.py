@@ -257,6 +257,15 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         sharp_ratio_loss    = weight_sharp_ratio * sharp_ratio_loss
         sortino_ratio_loss  = weight_sortino_ratio * sortino_ratio_loss
 
+        # don't let anything outweigh profit
+        num_trades_loss     = max(num_trades_loss, abs_profit_loss)
+        duration_loss       = max(duration_loss, abs_profit_loss)
+        exp_profit_loss     = max(exp_profit_loss, abs_profit_loss)
+        ave_profit_loss     = max(ave_profit_loss, abs_profit_loss)
+        expectancy_loss     = max(expectancy_loss, abs_profit_loss)
+        win_loss_ratio_loss = max(win_loss_ratio_loss, abs_profit_loss)
+        sharp_ratio_loss    = max(sharp_ratio_loss, abs_profit_loss)
+        sortino_ratio_loss  = max(sortino_ratio_loss, abs_profit_loss)
 
         result = abs_profit_loss + num_trades_loss + duration_loss + exp_profit_loss + ave_profit_loss + \
                  win_loss_ratio_loss + expectancy_loss + sharp_ratio_loss + sortino_ratio_loss

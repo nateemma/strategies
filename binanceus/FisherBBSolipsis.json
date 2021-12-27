@@ -14,34 +14,34 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "buy_bb_gain": 0.09,
+      "buy_bb_gain": 0.08,
       "buy_enable_signal_fisher_bb": true,
       "buy_enable_signal_fisher_hull": false,
-      "buy_fisher": 0.91,
-      "inf_pct_adr": 0.735,
-      "xbtc_base_rmi": 38,
+      "buy_fisher": 0.65,
+      "inf_pct_adr": 0.737,
+      "xbtc_base_rmi": 62,
       "xbtc_guard": "none",
-      "xtra_base_fiat_rmi": 70,
-      "xtra_base_stake_rmi": 38
+      "xtra_base_fiat_rmi": 58,
+      "xtra_base_stake_rmi": 16
     },
     "sell": {
-      "csell_endtrend_respect_roi": false,
+      "csell_endtrend_respect_roi": true,
       "csell_pullback": false,
-      "csell_pullback_amount": 0.01,
-      "csell_pullback_respect_roi": true,
-      "csell_roi_end": 0.0,
-      "csell_roi_start": 0.018,
-      "csell_roi_time": 798,
-      "csell_roi_type": "decay",
-      "csell_trend_type": "none",
-      "cstop_bail_how": "time",
-      "cstop_bail_roc": -1.24,
-      "cstop_bail_time": 809,
+      "csell_pullback_amount": 0.021,
+      "csell_pullback_respect_roi": false,
+      "csell_roi_end": 0.003,
+      "csell_roi_start": 0.03,
+      "csell_roi_time": 837,
+      "csell_roi_type": "step",
+      "csell_trend_type": "rmi",
+      "cstop_bail_how": "none",
+      "cstop_bail_roc": -1.807,
+      "cstop_bail_time": 1191,
       "cstop_bail_time_trend": true,
-      "cstop_loss_threshold": -0.048
+      "cstop_loss_threshold": -0.019
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2021-12-15 19:15:54.778442+00:00"
+  "export_time": "2021-12-20 01:53:31.901521+00:00"
 }

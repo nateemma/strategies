@@ -2,28 +2,28 @@
   "strategy_name": "FisherBBWtdProfit",
   "params": {
     "roi": {
-      "0": 0.195,
-      "35": 0.063,
-      "45": 0.012,
-      "164": 0
+      "0": 0.143,
+      "30": 0.021,
+      "47": 0.011,
+      "133": 0
     },
     "stoploss": {
-      "stoploss": -0.321
+      "stoploss": -0.1
     },
     "buy": {
-      "buy_bb_gain": 0.112,
-      "buy_fisher": 0.402,
-      "buy_num_candles": 1
+      "buy_bb_gain": 0.117,
+      "buy_fisher": 0.754,
+      "buy_num_candles": 0
     },
     "sell": {},
     "protection": {},
     "trailing": {
       "trailing_stop": true,
-      "trailing_stop_positive": 0.024,
-      "trailing_stop_positive_offset": 0.10500000000000001,
+      "trailing_stop_positive": 0.09,
+      "trailing_stop_positive_offset": 0.129,
       "trailing_only_offset_is_reached": true
     }
   },
   "ft_stratparam_v": 1,
-  "export_time": "2021-12-15 04:04:10.797714+00:00"
+  "export_time": "2021-12-18 16:13:03.519987+00:00"
 }

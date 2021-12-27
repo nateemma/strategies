@@ -8,7 +8,7 @@
       "171": 0
     },
     "stoploss": {
-      "stoploss": -0.13
+      "stoploss": -0.1
     },
     "trailing": {
       "trailing_stop": true,
@@ -17,15 +17,16 @@
       "trailing_only_offset_is_reached": true
     },
     "buy": {
-      "buy_bb_gain": 0.04,
+      "buy_bb_gain": 0.05,
       "buy_enable_signal_fisher_bb": true,
-      "buy_enable_signal_fisher_hull": false,
-      "buy_fisher": -0.81,
-      "inf_pct_adr": 0.705,
-      "xbtc_base_rmi": 28,
+      "buy_enable_signal_wr": true,
+      "buy_fisher": -0.92,
+      "buy_wr": -87.0,
+      "inf_pct_adr": 0.802,
+      "xbtc_base_rmi": 29,
       "xbtc_guard": "none",
-      "xtra_base_fiat_rmi": 63,
-      "xtra_base_stake_rmi": 11
+      "xtra_base_fiat_rmi": 69,
+      "xtra_base_stake_rmi": 20
     },
     "sell": {
       "sell_bb_gain": 1.01
@@ -33,5 +34,5 @@
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2021-12-08 21:13:44.457627+00:00"
+  "export_time": "2021-12-26 08:15:14.062699+00:00"
 }

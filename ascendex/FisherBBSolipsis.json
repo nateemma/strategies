@@ -7,41 +7,41 @@
     "stoploss": {
       "stoploss": -0.99
     },
-    "buy": {
-      "buy_bb_gain": 0.09,
-      "buy_enable_signal_fisher_bb": true,
-      "buy_enable_signal_fisher_hull": true,
-      "buy_fisher": 0.32,
-      "inf_pct_adr": 0.728,
-      "xbtc_base_rmi": 65,
-      "xbtc_guard": "strict",
-      "xtra_base_fiat_rmi": 69,
-      "xtra_base_stake_rmi": 27
-    },
-    "sell": {
-      "csell_endtrend_respect_roi": false,
-      "csell_pullback": false,
-      "csell_pullback_amount": 0.007,
-      "csell_pullback_respect_roi": true,
-      "csell_roi_end": 0.008,
-      "csell_roi_start": 0.027,
-      "csell_roi_time": 894,
-      "csell_roi_type": "decay",
-      "csell_trend_type": "candle",
-      "cstop_bail_how": "roc",
-      "cstop_bail_roc": -1.306,
-      "cstop_bail_time": 129,
-      "cstop_bail_time_trend": false,
-      "cstop_loss_threshold": -0.012
-    },
-    "protection": {},
     "trailing": {
       "trailing_stop": true,
       "trailing_stop_positive": 0.109,
       "trailing_stop_positive_offset": 0.11,
       "trailing_only_offset_is_reached": true
-    }
+    },
+    "buy": {
+      "buy_bb_gain": 0.04,
+      "buy_enable_signal_fisher_bb": true,
+      "buy_enable_signal_fisher_hull": false,
+      "buy_fisher": 0.44,
+      "inf_pct_adr": 0.713,
+      "xbtc_base_rmi": 70,
+      "xbtc_guard": "none",
+      "xtra_base_fiat_rmi": 32,
+      "xtra_base_stake_rmi": 18
+    },
+    "sell": {
+      "csell_endtrend_respect_roi": true,
+      "csell_pullback": false,
+      "csell_pullback_amount": 0.027,
+      "csell_pullback_respect_roi": false,
+      "csell_roi_end": 0.007,
+      "csell_roi_start": 0.01,
+      "csell_roi_time": 922,
+      "csell_roi_type": "decay",
+      "csell_trend_type": "none",
+      "cstop_bail_how": "time",
+      "cstop_bail_roc": -4.194,
+      "cstop_bail_time": 340,
+      "cstop_bail_time_trend": false,
+      "cstop_loss_threshold": -0.011
+    },
+    "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2021-11-21 14:15:53.422136+00:00"
+  "export_time": "2021-12-24 16:01:56.831034+00:00"
 }

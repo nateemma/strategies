@@ -8,11 +8,10 @@ show_usage () {
 
 Usage: bash $script [options] <exchange> <strategy>
 
-[options]:  -c | --clean       Remove hyperopt .json file before running
+[options]:  -c | --config      path to config file (default: user_data/strategies/<exchange>/config_<exchange>.json
             -e | --epochs      Number of epochs to run. Default 100
             -j | --jobs        Number of parallel jobs
-            -l | --loss        { ShortTradeDurHyperOptLoss | OnlyProfitHyperOptLoss | SharpeHyperOptLoss |
-                               SharpeHyperOptLossDaily | SortinoHyperOptLoss | SortinoHyperOptLossDaily }
+            -l | --loss        Loss function to use (default WeightedProfitHyperOptLoss)
             -n | --ndays       Number of days of backtesting. Defaults to 30
             -s | --spaces      Optimisation spaces (any of: buy, roi, trailing, stoploss, sell)
             -t | --timeframe   Timeframe (YYYMMDD-[YYYMMDD]). Defaults to last 30 days
@@ -34,20 +33,20 @@ loss="WeightedProfitHyperOptLoss"
 clean=0
 epochs=100
 jarg=""
+config_file=""
 
 spaces="buy"
 
 #get date from 30 days ago (MacOS-specific)
-num_days=30
-#start_date=$(date -j -v-30d +"%Y%m%d")
-start_date="20210501"
+num_days=180
+start_date=$(date -j -v-${num_days}d +"%Y%m%d")
 timerange="${start_date}-"
 
 # process options
 die() { echo "$*" >&2; exit 2; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
-while getopts :ce:j:l:n:s:t:-: OPT; do
+while getopts :c:e:j:l:n:s:t:-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
@@ -55,7 +54,7 @@ while getopts :ce:j:l:n:s:t:-: OPT; do
     OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
   fi
   case "$OPT" in
-    c | clean )      clean=1 ;;
+    c | config )     needs_arg; config_file="$OPTARG" ;;
     e | epochs )     needs_arg; epochs="$OPTARG" ;;
     l | loss )       needs_arg; loss="$OPTARG" ;;
     j | jobs )       needs_arg; jarg="-j $OPTARG" ;;
@@ -80,7 +79,9 @@ strategy=$2
 
 strat_dir="user_data/strategies"
 exchange_dir="${strat_dir}/${exchange}"
-config_file="${exchange_dir}/config_${exchange}.json"
+if [ -z "${config_file}" ] ; then
+  config_file="${exchange_dir}/config_${exchange}.json"
+fi
 
 if [ ! -f ${config_file} ]; then
     echo "config file not found: ${config_file}"

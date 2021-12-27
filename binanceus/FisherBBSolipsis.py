@@ -138,7 +138,7 @@ class FisherBBSolipsis(IStrategy):
 
     # Custom Stoploss
     cstop_loss_threshold = DecimalParameter(-0.05, -0.01, default=-0.03, space='sell', load=True, optimize=True)
-    cstop_bail_how = CategoricalParameter(['roc', 'time', 'any', 'none'], default='none', space='sell', load=True,
+    cstop_bail_how = CategoricalParameter(['roc', 'time', 'any', 'strict', 'none'], default='none', space='sell', load=True,
                                           optimize=True)
     cstop_bail_roc = DecimalParameter(-5.0, -1.0, default=-3.0, space='sell', load=True, optimize=True)
     cstop_bail_time = IntParameter(60, 1440, default=720, space='sell', load=True, optimize=True)
@@ -395,6 +395,9 @@ class FisherBBSolipsis(IStrategy):
 
         # Determine how we sell when we are in a loss
         if current_profit < self.cstop_loss_threshold.value:
+            if self.cstop_bail_how.value == 'strict':
+                # strict sell at threshold value, ragradless of trends etc.
+                return 0.01
             if self.cstop_bail_how.value == 'roc' or self.cstop_bail_how.value == 'any':
                 # Dynamic bailout based on rate of change
                 if last_candle['sroc'] <= self.cstop_bail_roc.value:

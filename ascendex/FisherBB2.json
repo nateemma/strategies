@@ -1,38 +1,38 @@
 {
   "strategy_name": "FisherBB2",
   "params": {
-    "roi": {
-      "0": 0.25,
-      "40": 0.055,
-      "62": 0.028,
-      "171": 0
-    },
     "stoploss": {
-      "stoploss": -0.13
+      "stoploss": -0.1
     },
     "trailing": {
       "trailing_stop": true,
-      "trailing_stop_positive": 0.168,
-      "trailing_stop_positive_offset": 0.268,
+      "trailing_stop_positive": 0.342,
+      "trailing_stop_positive_offset": 0.34700000000000003,
       "trailing_only_offset_is_reached": true
     },
     "buy": {
-      "buy_bb_gain": 0.1,
+      "buy_bb_gain": 0.04,
       "buy_enable_signal_fisher_bb": true,
       "buy_enable_signal_wr": true,
-      "buy_fisher": -0.9,
-      "buy_wr": -12.0,
-      "inf_pct_adr": 0.735,
-      "xbtc_base_rmi": 27,
-      "xbtc_guard": "lazy",
-      "xtra_base_fiat_rmi": 37,
-      "xtra_base_stake_rmi": 25
+      "buy_fisher": 0.1,
+      "buy_wr": -76.0,
+      "inf_pct_adr": 0.829,
+      "xbtc_base_rmi": 57,
+      "xbtc_guard": "none",
+      "xtra_base_fiat_rmi": 47,
+      "xtra_base_stake_rmi": 10
     },
     "sell": {
-      "sell_bb_gain": 0.89
+      "sell_bb_gain": 1.17
     },
-    "protection": {}
+    "protection": {},
+    "roi": {
+      "0": 0.096,
+      "5": 0.039,
+      "15": 0.015,
+      "38": 0
+    }
   },
   "ft_stratparam_v": 1,
-  "export_time": "2021-12-10 23:11:03.745687+00:00"
+  "export_time": "2021-12-24 21:50:57.502683+00:00"
 }
