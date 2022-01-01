@@ -113,7 +113,7 @@ class FisherBB2(IStrategy):
 
     sell_bb_gain = DecimalParameter(0.7, 1.3, decimals=2, default=0.8, space="sell", load=True, optimize=True)
 
-    timeframe = '5m'
+    timeframe = '1m'
     inf_timeframe = '1h'
 
     use_custom_stoploss = False

@@ -2,7 +2,7 @@
 
 # exchange list
 # make sure kucoin is at the end because it's ...w..a..y...  slower than the others
-declare -a list=("binanceus" "binance" "ftx" "ascendex" "kucoin")
+declare -a list=("binanceus" "binance" "ftx" "kucoin")
 
 timerange="20210501-"
 

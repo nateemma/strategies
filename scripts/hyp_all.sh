@@ -7,7 +7,7 @@ strat_dir="user_data/strategies"
 logfile="hyperall.log"
 
 
-declare -a elist=("binanceus" "ftx" "kucoin" "ascendex" "binance")
+declare -a elist=("binanceus"  "binance" "ftx" "kucoin")
 
 timerange="20210501-"
 

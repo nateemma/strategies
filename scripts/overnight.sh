@@ -3,7 +3,7 @@
 # test strategies, run buy parameter hyperopt and compare results for each exchange
 # Run overnight, this will take many hours!
 
-declare -a elist=( "binanceus" "ftx" "kucoin" "ascendex" "binance")
+declare -a elist=( "binanceus" "ftx" "kucoin" "binance")
 #declare -a elist=( "binanceus" )
 
 

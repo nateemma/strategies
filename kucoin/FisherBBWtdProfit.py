@@ -48,6 +48,7 @@ class FisherBBWtdProfit(FisherBB):
     trailing_stop_positive_offset = 0.337
     trailing_only_offset_is_reached = True
 
+    timeframe = '1m'
 
 
     buy_bb_gain = DecimalParameter(0.01, 0.20, decimals=3, default=0.070, space="buy")
