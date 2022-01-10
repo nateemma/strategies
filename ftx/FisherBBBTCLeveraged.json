@@ -1,0 +1,34 @@
+{
+  "strategy_name": "FisherBBBTCLeveraged",
+  "params": {
+    "stoploss": {
+      "stoploss": -0.1
+    },
+    "trailing": {
+      "trailing_stop": true,
+      "trailing_stop_positive": 0.349,
+      "trailing_stop_positive_offset": 0.431,
+      "trailing_only_offset_is_reached": true
+    },
+    "buy": {
+      "buy_bb_gain": 0.03,
+      "buy_enable_signal_fisher_bb": true,
+      "buy_enable_signal_wr": true,
+      "buy_fisher": -0.33,
+      "buy_wr": -21.0,
+      "inf_pct_adr": 0.782
+    },
+    "sell": {
+      "sell_bb_gain": 0.97
+    },
+    "protection": {},
+    "roi": {
+      "0": 0.11199999999999999,
+      "35": 0.071,
+      "90": 0.011,
+      "187": 0
+    }
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2022-01-10 02:22:43.602384+00:00"
+}
