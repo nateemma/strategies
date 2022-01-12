@@ -39,25 +39,25 @@ For 'bear' pairs, it will buy if BTC is in a down trend (and other signals are m
 
 class FisherBBLeveraged(IStrategy):
     # Buy hyperspace params:
-    buy_bull_params = {
-        "buy_bull_bb_gain": 0.03,
-        "buy_bull_fisher": 0.68,
-        "buy_bull_wr": 0.0,
-        "buy_bear_bb_gain": 0.03,
-        "buy_bear_fisher": 0.68,
-        "buy_bear_wr": 0.0,
+    buy_params = {
+        "buy_bear_bb_gain": 0.07,
+        "buy_bear_fisher": 0.13,
+        "buy_bear_wr": -76.0,
+        "buy_bull_bb_gain": 0.07,
+        "buy_bull_fisher": 0.04,
+        "buy_bull_wr": -41.0
     }
 
     # Sell hyperspace params:
-    sell_bull_params = {
+    sell_params = {
     }
 
     # ROI table:
     minimal_roi = {
-        "0": 0.068,
-        "7": 0.029,
-        "18": 0.011,
-        "32": 0
+        "0": 0.148,
+        "20": 0.024,
+        "65": 0.01,
+        "183": 0
     }
 
     # Stoploss:
@@ -90,11 +90,11 @@ class FisherBBLeveraged(IStrategy):
 
     # Recommended
     use_sell_signal = True
-    sell_profit_only = False
+    sell_profit_only = True
     ignore_roi_if_buy_signal = True
 
     # Required
-    startup_candle_count: int = 50
+    startup_candle_count: int = 24
     process_only_new_candles = False
 
     # Strategy Specific Variable Storage
@@ -116,8 +116,8 @@ class FisherBBLeveraged(IStrategy):
 
         ## Base Timeframe / Pair
 
-        # Kaufmann Adaptive Moving Average
-        dataframe['kama'] = ta.KAMA(dataframe, length=233)
+        # # Kaufmann Adaptive Moving Average
+        # dataframe['kama'] = ta.KAMA(dataframe, length=233)
 
         # FisherBB indicators
         # RSI

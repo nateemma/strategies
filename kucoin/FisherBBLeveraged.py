@@ -39,25 +39,25 @@ For 'bear' pairs, it will buy if BTC is in a down trend (and other signals are m
 
 class FisherBBLeveraged(IStrategy):
     # Buy hyperspace params:
-    buy_bull_params = {
-        "buy_bear_bb_gain": 0.05,
-        "buy_bear_fisher": 0.04,
-        "buy_bear_wr": 0.0,
-        "buy_bull_bb_gain": 0.07,
-        "buy_bull_fisher": 0.44,
-        "buy_bull_wr": -38.0
+    buy_params = {
+        "buy_bear_bb_gain": 0.09,
+        "buy_bear_fisher": -0.17,
+        "buy_bear_wr": -52.0,
+        "buy_bull_bb_gain": 0.08,
+        "buy_bull_fisher": -0.07,
+        "buy_bull_wr": -48.0
     }
 
     # Sell hyperspace params:
-    sell_bull_params = {
+    sell_params = {
     }
 
     # ROI table:
     minimal_roi = {
-        "0": 0.215,
-        "38": 0.067,
-        "97": 0.023,
-        "205": 0
+        "0": 0.195,
+        "30": 0.025,
+        "70": 0.012,
+        "158": 0
     }
 
     # Stoploss:

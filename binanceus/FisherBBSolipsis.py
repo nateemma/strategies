@@ -44,71 +44,74 @@ the community. Also, please don't nag me with a million questions and especially
 I take no responsibility for any success or failure you have using this strategy.
 
 VERSION: 5.2.1
+
+NOTE: it takes a long time for hyperopt to find profitable solutions, you need at least 500 epochs if running for the "buy sell" space.
+      Do not run hyperopt on the roi, stoploss or trailing spaces (because that would negate the sell logic)
 """
 
 
 class FisherBBSolipsis(IStrategy):
 
     # Buy hyperspace params:
+    # Buy hyperspace params:
     buy_params = {
-        "buy_bb_gain": 0.09,  # value loaded from strategy
-        "buy_enable_signal_fisher_bb": True,  # value loaded from strategy
-        "buy_enable_signal_fisher_hull": False,  # value loaded from strategy
-        "buy_fisher": 0.91,  # value loaded from strategy
-        "inf_pct_adr": 0.735,  # value loaded from strategy
-        "xbtc_base_rmi": 38,  # value loaded from strategy
-        "xbtc_guard": "none",  # value loaded from strategy
-        "xtra_base_fiat_rmi": 70,  # value loaded from strategy
-        "xtra_base_stake_rmi": 38,  # value loaded from strategy
+        "buy_bb_gain": 0.07,
+        "buy_fisher": 0.35,
+        "buy_wr": -90.0,
+        "inf_pct_adr": 0.885,
+        "xbtc_base_rmi": 42,
+        "xbtc_guard": "none",
+        "xtra_base_fiat_rmi": 34,
+        "xtra_base_stake_rmi": 47,
     }
 
     # Sell hyperspace params:
     sell_params = {
-        "csell_endtrend_respect_roi": False,
-        "csell_pullback": False,
-        "csell_pullback_amount": 0.024,
-        "csell_pullback_respect_roi": False,
-        "csell_roi_end": 0.005,
-        "csell_roi_start": 0.012,
-        "csell_roi_time": 918,
-        "csell_roi_type": "static",
-        "csell_trend_type": "none",
-        "cstop_bail_how": "time",
-        "cstop_bail_roc": -3.94,
-        "cstop_bail_time": 790,
-        "cstop_bail_time_trend": False,
-        "cstop_loss_threshold": -0.035,
+        "csell_endtrend_respect_roi": True,  # value loaded from strategy
+        "csell_pullback": False,  # value loaded from strategy
+        "csell_pullback_amount": 0.019,  # value loaded from strategy
+        "csell_pullback_respect_roi": False,  # value loaded from strategy
+        "csell_roi_end": 0.009,  # value loaded from strategy
+        "csell_roi_start": 0.011,  # value loaded from strategy
+        "csell_roi_time": 1354,  # value loaded from strategy
+        "csell_roi_type": "decay",  # value loaded from strategy
+        "csell_trend_type": "none",  # value loaded from strategy
+        "cstop_bail_how": "time",  # value loaded from strategy
+        "cstop_bail_roc": -3.272,  # value loaded from strategy
+        "cstop_bail_time": 1271,  # value loaded from strategy
+        "cstop_bail_time_trend": True,  # value loaded from strategy
+        "cstop_loss_threshold": -0.042,  # value loaded from strategy
     }
 
-    # ROI table: 
+    # ROI table:
     minimal_roi = {
         "0": 100
     }
 
     # Stoploss:
-    stoploss = -0.99 
+    stoploss = -0.99
 
     # Trailing stop:
-    trailing_stop = False 
-    trailing_stop_positive = None 
-    trailing_stop_positive_offset = 0.0 
-    trailing_only_offset_is_reached = False 
+    trailing_stop = False
+    trailing_stop_positive = None
+    trailing_stop_positive_offset = 0.0
+    trailing_only_offset_is_reached = False
 
     ## Buy Space Hyperopt Variables
 
     # FisherBB hyperparams
-    buy_enable_signal_fisher_hull = CategoricalParameter([True, False], default=False, space='buy', optimize=True)
-    buy_enable_signal_fisher_bb = CategoricalParameter([True, False], default=True, space='buy', optimize=True)
-    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.09, space="buy")
-    buy_fisher = DecimalParameter(-0.99, 0.99, decimals=2, default=0.99, space="buy")
+    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.09, space="buy", load=True, optimize=True)
+    buy_fisher = DecimalParameter(-0.99, 0.99, decimals=2, default=0.99, space="buy", load=True, optimize=True)
+    buy_wr = DecimalParameter(-99, 0, decimals=0, default=-80, space="buy", load=True, optimize=True)
 
-    # Base Pair Params
+    # # Base Pair Params
     # base_mp = IntParameter(10, 50, default=30, space='buy', load=True, optimize=True)
     # base_rmi_max = IntParameter(30, 60, default=50, space='buy', load=True, optimize=True)
     # base_rmi_min = IntParameter(0, 30, default=20, space='buy', load=True, optimize=True)
     # base_ma_streak = IntParameter(1, 4, default=1, space='buy', load=True, optimize=True)
     # base_rmi_streak = IntParameter(3, 8, default=3, space='buy', load=True, optimize=True)
     # base_trigger = CategoricalParameter(['pcc', 'rmi', 'none'], default='rmi', space='buy', load=True, optimize=True)
+
     inf_pct_adr = DecimalParameter(0.70, 0.99, default=0.80, space='buy', load=True, optimize=True)
 
     # BTC Informative
@@ -138,11 +141,12 @@ class FisherBBSolipsis(IStrategy):
 
     # Custom Stoploss
     cstop_loss_threshold = DecimalParameter(-0.05, -0.01, default=-0.03, space='sell', load=True, optimize=True)
-    cstop_bail_how = CategoricalParameter(['roc', 'time', 'any', 'strict', 'none'], default='none', space='sell', load=True,
+    cstop_bail_how = CategoricalParameter(['roc', 'time', 'any', 'none'], default='none', space='sell', load=True,
                                           optimize=True)
     cstop_bail_roc = DecimalParameter(-5.0, -1.0, default=-3.0, space='sell', load=True, optimize=True)
     cstop_bail_time = IntParameter(60, 1440, default=720, space='sell', load=True, optimize=True)
     cstop_bail_time_trend = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+    cstop_max_stoploss =  DecimalParameter(-0.30, -0.01, default=-0.10, space='sell', load=True, optimize=True)
 
     timeframe = '5m'
     inf_timeframe = '1h'
@@ -151,7 +155,7 @@ class FisherBBSolipsis(IStrategy):
 
     # Recommended
     use_sell_signal = True
-    sell_profit_only = True
+    sell_profit_only = False
     ignore_roi_if_buy_signal = True
 
     # Required
@@ -262,6 +266,9 @@ class FisherBBSolipsis(IStrategy):
         dataframe['hma'] = hull_moving_average(dataframe, 14, 'close')
         dataframe['cci'] = ta.CCI(dataframe, timeperiod=14)
 
+        # Williams %R
+        dataframe['wr'] = williams_r(dataframe, period=14)
+
         # Base pair informative timeframe indicators
         informative = self.dp.get_pair_dataframe(pair=metadata['pair'], timeframe=self.inf_timeframe)
 
@@ -309,6 +316,8 @@ class FisherBBSolipsis(IStrategy):
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         conditions = []
 
+        conditions.append(dataframe['volume'] > 0)
+
         # Informative Timeframe Guards
         conditions.append(
             (dataframe['close'] <= dataframe[f"1d-low_{self.inf_timeframe}"] +
@@ -318,17 +327,17 @@ class FisherBBSolipsis(IStrategy):
         # # Base Timeframe Guards
         # conditions.append(
         #     (dataframe['rmi-dn-count'] >= self.base_rmi_streak.value) &
-        #     (dataframe['streak-bo-count'] >= self.base_ma_streak.value) #&
+        #     (dataframe['streak-bo-count'] >= self.base_ma_streak.value) &
         #     (dataframe['rmi'] <= self.base_rmi_max.value) &
         #     (dataframe['rmi'] >= self.base_rmi_min.value) &
         #     (dataframe['mp'] <= self.base_mp.value)
         # )
 
-        # FisherBB trigers
-        conditions.append(
-            (self.get_buy_signal_fisher_bb(dataframe) == True) |
-            (self.get_buy_signal_fisher_hull(dataframe) == True)
-        )
+        # FisherBB triggers
+        conditions.append(self.get_buy_signal_fisher_bb(dataframe))
+
+        conditions.append(self.get_buy_signal_wr(dataframe))
+
 
         # # Base Timeframe Trigger
         # if self.base_trigger.value == 'pcc':
@@ -393,11 +402,12 @@ class FisherBBSolipsis(IStrategy):
         trade_dur = int((current_time.timestamp() - trade.open_date_utc.timestamp()) // 60)
         in_trend = self.custom_trade_info[trade.pair]['had-trend']
 
+        # limit stoploss
+        if current_profit <  self.cstop_max_stoploss.value:
+            return 0.01
+
         # Determine how we sell when we are in a loss
         if current_profit < self.cstop_loss_threshold.value:
-            if self.cstop_bail_how.value == 'strict':
-                # strict sell at threshold value, ragradless of trends etc.
-                return 0.01
             if self.cstop_bail_how.value == 'roc' or self.cstop_bail_how.value == 'any':
                 # Dynamic bailout based on rate of change
                 if last_candle['sroc'] <= self.cstop_bail_roc.value:
@@ -481,7 +491,6 @@ class FisherBBSolipsis(IStrategy):
 
     def get_buy_signal_fisher_bb(self, dataframe: DataFrame):
         signal = (
-            (self.buy_enable_signal_fisher_bb.value == True) &
             (dataframe['fisher_rsi'] <= self.buy_fisher.value) &
             (dataframe['bb_gain'] >= self.buy_bb_gain.value)
         )
@@ -490,10 +499,33 @@ class FisherBBSolipsis(IStrategy):
 
     def get_buy_signal_fisher_hull(self, dataframe: DataFrame):
         signal = (
-            (self.buy_enable_signal_fisher_hull.value == True) &
             (dataframe['hma'] < dataframe['hma'].shift()) &
             (dataframe['cci'] <= -50.0) &
             (dataframe['fisher_rsi'] < -0.5)
         )
         return signal
 
+    def get_buy_signal_wr(self, dataframe: DataFrame):
+        signal = (
+            (qtpylib.crossed_below(dataframe['wr'], self.buy_wr.value))
+        )
+        return signal
+
+# Williams %R
+def williams_r(dataframe: DataFrame, period: int = 14) -> Series:
+    """Williams %R, or just %R, is a technical analysis oscillator showing the current closing price in relation to the high and low
+        of the past N days (for a given N). It was developed by a publisher and promoter of trading materials, Larry Williams.
+        Its purpose is to tell whether a stock or commodity market is trading near the high or the low, or somewhere in between,
+        of its recent trading range.
+        The oscillator is on a negative scale, from −100 (lowest) up to 0 (highest).
+    """
+
+    highest_high = dataframe["high"].rolling(center=False, window=period).max()
+    lowest_low = dataframe["low"].rolling(center=False, window=period).min()
+
+    WR = Series(
+        (highest_high - dataframe["close"]) / (highest_high - lowest_low),
+        name=f"{period} Williams %R",
+        )
+
+    return WR * -100

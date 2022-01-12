@@ -1,0 +1,31 @@
+{
+  "strategy_name": "FisherBB2Sqz",
+  "params": {
+    "roi": {
+      "0": 0.111,
+      "38": 0.075,
+      "95": 0.021,
+      "150": 0
+    },
+    "stoploss": {
+      "stoploss": -0.1
+    },
+    "trailing": {
+      "trailing_stop": true,
+      "trailing_stop_positive": 0.018,
+      "trailing_stop_positive_offset": 0.118,
+      "trailing_only_offset_is_reached": true
+    },
+    "buy": {
+      "buy_bb_gain": 0.06,
+      "buy_fisher_wr": 0.58
+    },
+    "sell": {
+      "sell_bb_gain": 1.26,
+      "sell_fisher_wr": -0.04
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2022-01-12 15:10:12.107643+00:00"
+}

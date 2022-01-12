@@ -183,7 +183,7 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         losing_count = trade_count - winning_count
 
         # if winning_count < (2.0 * losing_count):
-        if winning_count < (1.5 * losing_count):
+        if winning_count < (1.2 * losing_count):
             if debug_level > 1:
                 print(" \tWinning count below goal: {:.3f} vs {:.3f}".format(winning_count, losing_count))
             return UNDESIRED_SOLUTION

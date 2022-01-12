@@ -43,9 +43,9 @@ export PYTHONPATH="./${exchange_dir}:./${strat_dir}:${PYTHONPATH}"
 #fi
 
 #get date from 120 days ago (MacOS-specific)
-#start_date=$(date -j -v-120d +"%Y%m%d")
-start_date="20210501"
 
+num_days=180
+start_date=$(date -j -v-${num_days}d +"%Y%m%d")
 timerange="${start_date}-"
 
 today=`date`

@@ -96,7 +96,7 @@ class FisherBBBTCLeveraged(IStrategy):
 
     # Recommended
     use_sell_signal = True
-    sell_profit_only = False
+    sell_profit_only = True
     ignore_roi_if_buy_signal = True
 
     # Required

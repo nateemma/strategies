@@ -58,7 +58,7 @@
       ".*DOWN/USDT"
     ],
     "pair_blacklist": [
-      "XTZDOWN/.*", // big spike, not good for hyperopt
+      "(XTZDOWN|LTCDOWN)/.*", // big spike, not good for hyperopt
       ".*(BNB)/.*",
       ".*(BTC|ETH)/.*",
       "(BULL|BEAR)/.*",
@@ -92,12 +92,12 @@
     //      "method": "PriceFilter",
     //      "low_price_ratio": 0.002
     //    },
-    //    {
-    //      "method": "RangeStabilityFilter",
-    //      "lookback_days": 3,
-    //      "min_rate_of_change": 0.05,
-    //      "refresh_period": 1800
-    //    },
+        {
+          "method": "RangeStabilityFilter",
+          "lookback_days": 3,
+          "min_rate_of_change": 0.05,
+          "refresh_period": 1800
+        },
     //    {
     //      "method": "VolatilityFilter",
     //      "lookback_days": 3,
