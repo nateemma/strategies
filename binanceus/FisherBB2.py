@@ -52,32 +52,9 @@ NOTE: it takes a long time for hyperopt to find profitable solutions, you need a
 
 class FisherBB2(IStrategy):
 
-    # Buy hyperspace params:
-    buy_params = {
-        "buy_bb_gain": 0.08,
-        "buy_enable_signal_fisher_bb": True,
-        "buy_enable_signal_wr": True,
-        "buy_fisher": 0.25,
-        "buy_wr": -92.0,
-        "inf_pct_adr": 0.903,
-        "xbtc_base_rmi": 67,
-        "xbtc_guard": "none",
-        "xtra_base_fiat_rmi": 58,
-        "xtra_base_stake_rmi": 22,
-    }
-
-    # Sell hyperspace params:
-    sell_params = {
-        "sell_bb_gain": 1.13,
-    }
-
-    # ROI table:
-    minimal_roi = {
-        "0": 0.036,
-        "31": 0.022,
-        "79": 0.011,
-        "144": 0
-    }
+    # NOTE: hyperspace parameters are in the associated .json file (<clasname>.json)
+    #       Values in that file will override the default values in the variable definitions below
+    #       If the .json file does not exist, you will need to run hyperopt to generate it
 
     # Stoploss:
     stoploss = -0.201
@@ -92,12 +69,10 @@ class FisherBB2(IStrategy):
     ## Buy Space Hyperopt Variables
 
     # FisherBB hyperparams
-    buy_enable_signal_fisher_bb = CategoricalParameter([True, False], default=True, space='buy', load=True, optimize=True)
-    buy_enable_signal_wr = CategoricalParameter([True, False], default=True, space='buy', load=True, optimize=True)
-
-    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.09, space="buy", load=True, optimize=True)
-    buy_fisher = DecimalParameter(-0.99, 0.99, decimals=2, default=0.99, space="buy", load=True, optimize=True)
-    buy_wr = DecimalParameter(-99, 0, decimals=0, default=-80, space="buy", load=True, optimize=True)
+    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.09, space='buy', load=True, optimize=True)
+    buy_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=-0.75, space='buy', load=True, optimize=True)
+    buy_force_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=-0.99, space='buy', load=True, optimize=True)
+    buy_strong_only = CategoricalParameter([True, False], default=False, space='buy', load=True, optimize=True)
 
     inf_pct_adr = DecimalParameter(0.70, 0.99, default=0.80, space='buy', load=True, optimize=True)
 
@@ -111,7 +86,9 @@ class FisherBB2(IStrategy):
 
     ## Sell Space Hyperopt Variables
 
-    sell_bb_gain = DecimalParameter(0.7, 1.3, decimals=2, default=0.8, space="sell", load=True, optimize=True)
+    sell_bb_gain = DecimalParameter(0.7, 1.3, decimals=2, default=0.8, space='sell', load=True, optimize=True)
+    sell_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=0.75, space='sell', load=True, optimize=True)
+    sell_force_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=0.99, space='sell', load=True, optimize=True)
 
     timeframe = '5m'
     inf_timeframe = '1h'
@@ -230,6 +207,9 @@ class FisherBB2(IStrategy):
         # Williams %R
         dataframe['wr'] = williams_r(dataframe, period=14)
 
+        # Combined Fisher RSI and Williams %R
+        dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
+
         # Base pair informative timeframe indicators
         informative = self.dp.get_pair_dataframe(pair=metadata['pair'], timeframe=self.inf_timeframe)
 
@@ -287,10 +267,29 @@ class FisherBB2(IStrategy):
 
 
         # FisherBB triggers
-        conditions.append(
-            (self.get_buy_signal_fisher_bb(dataframe) == True) &
-            (self.get_buy_signal_wr(dataframe) == True)
+        fbb_cond = (
+            # Fisher RSI
+                (dataframe['fisher_wr'] <= self.buy_fisher_wr.value) &
+
+                # Bollinger Band
+                (dataframe['bb_gain'] >= self.buy_bb_gain.value)
+
         )
+
+        strong_buy_cond = (
+                (
+                        qtpylib.crossed_above(dataframe['bb_gain'], 1.5 * self.buy_bb_gain.value) |
+                        qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_force_fisher_wr.value)
+                ) &
+                (
+                    (dataframe['bb_gain'] > 0.02)  # make sure there is some potential gain
+                )
+        )
+
+        if self.buy_strong_only.value:
+            conditions.append(strong_buy_cond)
+        else:
+            conditions.append(fbb_cond | strong_buy_cond)
 
 
         # Additional informative
@@ -326,34 +325,35 @@ class FisherBB2(IStrategy):
 
     def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
 
-        dataframe.loc[
-            (
-                ## sell if above target
-                (qtpylib.crossed_above(dataframe['close'], (dataframe['bb_upperband'] * self.sell_bb_gain.value))) &
-                (dataframe['volume'] > 0)  # Make sure Volume is not 0
-            ),
-            'sell'] = 1
+        conditions = []
+
+        # FisherBB triggers
+        fbb_cond = (
+            # Fisher RSI
+                (dataframe['fisher_wr'] > self.sell_fisher_wr.value) &
+
+                # Bollinger Band
+                (dataframe['close'] >= (dataframe['bb_upperband'] * self.sell_bb_gain.value))
+        )
+
+        strong_sell_cond = (
+            qtpylib.crossed_above(dataframe['fisher_wr'], self.sell_force_fisher_wr.value) #&
+            # (dataframe['close'] > dataframe['bb_upperband'] * self.sell_bb_gain.value)
+        )
+
+        if self.buy_strong_only.value:
+            conditions.append(strong_sell_cond)
+        else:
+            conditions.append(fbb_cond | strong_sell_cond)
+
+        if conditions:
+            dataframe.loc[
+                reduce(lambda x, y: x & y, conditions),
+                'sell'] = 1
+
 
         return dataframe
 
-
-
-
-    def get_buy_signal_fisher_bb(self, dataframe: DataFrame):
-        signal = (
-            (self.buy_enable_signal_fisher_bb.value == True) &
-            (dataframe['fisher_rsi'] <= self.buy_fisher.value) &
-            (dataframe['bb_gain'] >= self.buy_bb_gain.value)
-        )
-        return signal
-
-
-    def get_buy_signal_wr(self, dataframe: DataFrame):
-        signal = (
-            (self.buy_enable_signal_wr.value == True) &
-            (qtpylib.crossed_below(dataframe['wr'], self.buy_wr.value))
-        )
-        return signal
 
 # Williams %R
 def williams_r(dataframe: DataFrame, period: int = 14) -> Series:

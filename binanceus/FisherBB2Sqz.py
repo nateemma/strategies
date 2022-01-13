@@ -29,30 +29,17 @@ import custom_indicators as cta
 
 '''
 
-FisherBB2  combined with Squeeze Momentum
+FisherBB2  combined with Squeeze Momentum (adapted from the CrazyBear script on TradingView.com
+
 '''
 
 
 class FisherBB2Sqz(IStrategy):
-    # Buy hyperspace params:
-    buy_params = {
-        'buy_bb_gain': 0.08,
-        'buy_fisher_wr': 0.25
-    }
 
-    # Sell hyperspace params:
-    sell_params = {
-        'sell_bb_gain': 1.13,
-        'sell_fisher_wr': 0.75
-    }
+    # NOTE: hyperspace parameters are in the associated .json file (<clasname>.json)
+    #       Values in that file will override the default values in the variable definitions below
+    #       If the .json file does not exist, you will need to run hyperopt to generate it
 
-    # ROI table:
-    minimal_roi = {
-        '0': 0.036,
-        '31': 0.022,
-        '79': 0.011,
-        '144': 0
-    }
 
     # Stoploss:
     stoploss = -0.201

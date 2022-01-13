@@ -104,6 +104,7 @@ def main():
         stratStats=[]
         # calculate stats for each strategy
         for strategy in stratParams:
+            ptot = sum(stratParams[strategy]["profit"])
             pmin = min(stratParams[strategy]["profit"])
             pmax = max(stratParams[strategy]["profit"])
             pave = statistics.mean(stratParams[strategy]["profit"])
@@ -116,7 +117,11 @@ def main():
             dmax = max(stratParams[strategy]["draw"])
             dave = statistics.mean(stratParams[strategy]["draw"])
             dmed = statistics.median(stratParams[strategy]["draw"])
-            stratStats.append([strategy, pmin, pmax, pave, pmed, wmin, wmax, wave, wmed, dmin, dmax, dave, dmed, 0.0, 0.0])
+            empty = ""
+            stratStats.append([strategy, ptot, pmin, pmax, pave, pmed, empty,
+                               wmin, wmax, wave, wmed,  empty,
+                               dmin, dmax, dave, dmed,  empty,
+                               0.0, 0.0])
             # print("| {:<18s} | {:>8.2f}{:>8.2f}{:>8.2f}{:>8.2f} | {:>8.2f}{:>8.2f}{:>8.2f}{:>8.2f} |".format(strategy,
             #                                                                         pmin, pmax, pave, pmed,
             #                                                                         wmin, wmax, wave, wmed
@@ -127,14 +132,16 @@ def main():
 
         # create dataframe
         df = pandas.DataFrame(stratStats, columns=["Strategy",
-                                                   "pmin", "pmax", "pave", "pmed",
-                                                   "wmin", "wmax", "wave", "wmed",
-                                                   "dmin", "dmax", "dave", "dmed",
+                                                   "ptot", "pmin", "pmax", "pave", "pmed", "",
+                                                   "wmin", "wmax", "wave", "wmed", "",
+                                                   "dmin", "dmax", "dave", "dmed", "",
                                                    "Score", "Rank"])
 
         # calculate score. Weight profit higher, and median scores
-        df["Score"] = 2.00 * ( df["pmin"].rank(pct=True) + df["pmax"].rank(pct=True) + df["pave"].rank(pct=True) + 1.5*df["pmed"].rank(pct=True) ) + \
-                      0.50 * ( df["wmin"].rank(pct=True) + df["wmax"].rank(pct=True) + df["wave"].rank(pct=True) + 1.5*df["wmed"].rank(pct=True) ) + \
+        df["Score"] = 2.00 * ( df["ptot"].rank(pct=True) + df["pmin"].rank(pct=True) + df["pmax"].rank(pct=True) +
+                               df["pave"].rank(pct=True) + 1.5*df["pmed"].rank(pct=True) ) + \
+                      0.50 * ( df["wmin"].rank(pct=True) + df["wmax"].rank(pct=True) + df["wave"].rank(pct=True) +
+                               1.5*df["wmed"].rank(pct=True) ) + \
                       0.25 * ( df["dmin"].rank(ascending=False, pct=True) + df["dmax"].rank(ascending=False, pct=True) +
                                df["dave"].rank(ascending=False, pct=True) + 1.5 * df["dmed"].rank(ascending=False, pct=True) )
 
@@ -142,8 +149,12 @@ def main():
 
         pandas.set_option('display.precision', 2)
         print ("")
-        print("                                 Profit                        |                Win%                |          Drawdown                  |         Rank")
-        hdrs=["Strategy", "PMin", "PMax", "PAve", "PMed", "WMin", "WMax", "WAve", "WMed", "DMin", "DMax", "DAve", "DMed", "Score", "Rank"]
+        print("                                         Profit                         ",
+              "                 Win%                                 Drawdown                              Rank")
+        hdrs=["Strategy", "PTot", "PMin", "PMax", "PAve", "PMed", "",
+              "WMin", "WMax", "WAve", "WMed", ""
+            , "DMin", "DMax", "DAve", "DMed", ""
+            , "Score", "Rank"]
         print(tabulate(df, showindex="never", headers=hdrs, tablefmt='psql'))
         print ("")
         # print(tabulate(data, headers=["Name", "User ID", "Roll. No."]))

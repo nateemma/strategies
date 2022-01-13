@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# list of strategies to test
+slist="FisherBBROI FisherBB2 FisherBB2Sqz FisherBBSolipsis"
 
 # default values
 
@@ -87,10 +89,6 @@ echo ""
 oldpath=${PYTHONPATH}
 export PYTHONPATH="./${exchange_dir}:./${strat_dir}:${PYTHONPATH}"
 
-# list of strategies (only the ones in ComboHold)
-#slist="ComboHold BBBHold BigDrop BTCBigDrop BTCJump BTCNDrop BTCNSeq EMABounce FisherBB FisherBB2 MACDCross NDrop NSeq FisherBBWtdProfit"
-#slist="FisherBBWtdProfit FisherBBQuick FisherBBExp FisherBBPED FisherBBWinLoss FisherBBDynamic"
-slist="FisherBBWtdProfit FisherBB2 FisherBBSolipsis"
 
 # remove any hyperopt files (we want the strategies to use the coded values)
 #for entry in $exchange_dir/*.json

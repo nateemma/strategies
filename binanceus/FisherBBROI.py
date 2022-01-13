@@ -1,41 +1,37 @@
-
-# --- Do not remove these libs ---
-from freqtrade.strategy.interface import IStrategy
-from typing import Dict, List
-from functools import reduce
-from pandas import DataFrame
-# --------------------------------
-
+import numpy as np
 import talib.abstract as ta
 import freqtrade.vendor.qtpylib.indicators as qtpylib
-import numpy # noqa
-from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, IntParameter
+import arrow
 
+from freqtrade.strategy import (IStrategy, merge_informative_pair, stoploss_from_open,
+                                IntParameter, DecimalParameter, CategoricalParameter)
+
+from typing import Dict, List, Optional, Tuple, Union
+from pandas import DataFrame, Series
+from functools import reduce
+from datetime import datetime, timedelta
+from freqtrade.persistence import Trade
+
+# Get rid of pandas warnings during backtesting
+import pandas as pd
 from freqtrade.optimize.space import Categorical, Dimension, Integer, SKDecimal, Real  # noqa
+
 
 
 class FisherBBROI(IStrategy):
     """
-    Simple strategy based on Inverse Fisher Transform and Bollinger Bands
+    Simple strategy based on Inverse Fisher Transform and Bollinger Bands (and Williams %R)
+
+    Note that there are no sell parameters, it just relies on the ROI/stoploss mechanism to sell
 
     How to use it?
-    > python3 ./freqtrade/main.py -s FisherBBROI
+    > freqtrade backtest -c <config file> --strategy-path <path to strategy> -s FisherBBROI
     """
 
-    # Buy hyperspace params:
-    buy_params = {
-        "buy_bb_gain": 0.177,
-        "buy_fisher": 0.449,
-        "buy_num_candles": 6,
-    }
+    # NOTE: hyperspace parameters are in the associated .json file (<clasname>.json)
+    #       Values in that file will override the default values in the variable definitions below
+    #       If the .json file does not exist, you will need to run hyperopt to generate it
 
-    # ROI table:
-    minimal_roi = {
-        "0": 0.072,
-        "30": 0.049,
-        "116": 0.036,
-        "347": 0
-    }
 
     # Stoploss:
     stoploss = -0.10
@@ -46,11 +42,9 @@ class FisherBBROI(IStrategy):
     trailing_stop_positive_offset = 0.105
     trailing_only_offset_is_reached = True
 
-
     # FisherBB hyperparams
     buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.09, space='buy', load=True, optimize=True)
     buy_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=-0.75, space='buy', load=True, optimize=True)
-
 
     use_custom_stoploss = False
 
@@ -62,7 +56,6 @@ class FisherBBROI(IStrategy):
     # Required
     process_only_new_candles = False
     startup_candle_count = 20
-
 
     # Define custom ROI ranges
     class HyperOpt:
@@ -76,7 +69,6 @@ class FisherBBROI(IStrategy):
                 SKDecimal(0.01, 0.07, decimals=3, name='roi_p2'),
                 SKDecimal(0.01, 0.20, decimals=3, name='roi_p3'),
             ]
-
 
     def informative_pairs(self):
         """
@@ -119,7 +111,6 @@ class FisherBBROI(IStrategy):
         # Combined Fisher RSI and Williams %R
         dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
 
-
         return dataframe
 
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
@@ -148,6 +139,26 @@ class FisherBBROI(IStrategy):
         :param dataframe: DataFrame
         :return: DataFrame with buy column
         """
-        dataframe.loc[(dataframe['close'].notnull() ), 'sell'] = 0
+        dataframe.loc[(dataframe['close'].notnull()), 'sell'] = 0
 
         return dataframe
+
+
+# Williams %R
+def williams_r(dataframe: DataFrame, period: int = 14) -> Series:
+    '''Williams %R, or just %R, is a technical analysis oscillator showing the current closing price in relation to the high and low
+        of the past N days (for a given N). It was developed by a publisher and promoter of trading materials, Larry Williams.
+        Its purpose is to tell whether a stock or commodity market is trading near the high or the low, or somewhere in between,
+        of its recent trading range.
+        The oscillator is on a negative scale, from −100 (lowest) up to 0 (highest).
+    '''
+
+    highest_high = dataframe['high'].rolling(center=False, window=period).max()
+    lowest_low = dataframe['low'].rolling(center=False, window=period).min()
+
+    WR = Series(
+        (highest_high - dataframe['close']) / (highest_high - lowest_low),
+        name=f'{period} Williams %R',
+    )
+
+    return WR * -100

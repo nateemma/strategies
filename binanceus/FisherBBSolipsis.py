@@ -52,37 +52,14 @@ NOTE: it takes a long time for hyperopt to find profitable solutions, you need a
 
 class FisherBBSolipsis(IStrategy):
 
-    # Buy hyperspace params:
-    # Buy hyperspace params:
-    buy_params = {
-        "buy_bb_gain": 0.07,
-        "buy_fisher": 0.35,
-        "buy_wr": -90.0,
-        "inf_pct_adr": 0.885,
-        "xbtc_base_rmi": 42,
-        "xbtc_guard": "none",
-        "xtra_base_fiat_rmi": 34,
-        "xtra_base_stake_rmi": 47,
-    }
 
-    # Sell hyperspace params:
-    sell_params = {
-        "csell_endtrend_respect_roi": True,  # value loaded from strategy
-        "csell_pullback": False,  # value loaded from strategy
-        "csell_pullback_amount": 0.019,  # value loaded from strategy
-        "csell_pullback_respect_roi": False,  # value loaded from strategy
-        "csell_roi_end": 0.009,  # value loaded from strategy
-        "csell_roi_start": 0.011,  # value loaded from strategy
-        "csell_roi_time": 1354,  # value loaded from strategy
-        "csell_roi_type": "decay",  # value loaded from strategy
-        "csell_trend_type": "none",  # value loaded from strategy
-        "cstop_bail_how": "time",  # value loaded from strategy
-        "cstop_bail_roc": -3.272,  # value loaded from strategy
-        "cstop_bail_time": 1271,  # value loaded from strategy
-        "cstop_bail_time_trend": True,  # value loaded from strategy
-        "cstop_loss_threshold": -0.042,  # value loaded from strategy
-    }
+    # NOTE: hyperspace parameters are in the associated .json file (<clasname>.json)
+    #       Values in that file will override the default values in the variable definitions below
+    #       If the .json file does not exist, you will need to run hyperopt to generate it
 
+
+    # Do *not* hyperopt for the roi and stoploss spaces
+    
     # ROI table:
     minimal_roi = {
         "0": 100
