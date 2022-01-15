@@ -147,14 +147,14 @@ strategyParameters["EMABounce"] = {
         "buy_short_period": 14,
 }
 
-# FisherBB
-strategyParameters["FisherBB"] = {
+# FBB_
+strategyParameters["FBB_"] = {
         "buy_bb_gain": 0.06,
         "buy_fisher": 0.01,
 }
 
-# FisherBB2
-strategyParameters["FisherBB2"] = {
+# FBB_2
+strategyParameters["FBB_2"] = {
         "buy_bb_gain": 0.06,
         "buy_fisher": -0.68,
 }

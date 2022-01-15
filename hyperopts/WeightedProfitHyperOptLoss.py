@@ -43,7 +43,7 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         debug_level = 0 # displays (more) messages if higher
 
         # if (debug_level > 1) and backtest_stats:
-        #     print(" backtest_stats: profit_total: {:.3f} profit_mean: {:.3f} wins: {:.3f}".format(backtest_stats['profit_total'],
+        #     print(" backtest_stats: profit_total: {:.2f} profit_mean: {:.2f} wins: {:.2f}".format(backtest_stats['profit_total'],
         #                                                                                           backtest_stats['profit_mean'], backtest_stats['wins']))
 
         # define weights
@@ -93,7 +93,7 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         else:
             # just return a large number if insufficient trades. Makes other calculations easier/safer
             if debug_level > 1:
-                print(" \tTrade count too low:{:.3f}".format(trade_count))
+                print(" \tTrade count too low:{:.0f}".format(trade_count))
             return UNDESIRED_SOLUTION
 
         # Absolute Profit
@@ -104,8 +104,8 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
             profit_sum = results["profit_abs"].sum()
 
         if profit_sum < 0.0:
-            if debug_level > 1:
-                print(" \tProfit too low: {:.3f}".format(profit_sum))
+            if debug_level > 2:
+                print(" \tProfit too low: {:.2f}".format(profit_sum))
             if backtest_stats['profit_total']:
                 return 1.0 - backtest_stats['profit_total']
             else:
@@ -129,7 +129,7 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         # # punish if below goal
         # if abs_profit_loss > 0.0:
         #     if debug_level > 1:
-        #         print(" \tProfit loss below goal: {:.3f}".format(abs_profit_loss))
+        #         print(" \tProfit loss below goal: {:.2f}".format(abs_profit_loss))
         #     return abs_profit_loss
 
 
@@ -154,7 +154,7 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         exp_profit_loss = (expected_sum - profit_sum) / expected_sum
 
         # if num_trades_loss < 0.0:
-        #     print("profit_sum:{:.3f} expected_sum:{:.3f} ave_profit_loss:{:.3f} exp_profit_loss:{:.3f}" \
+        #     print("profit_sum:{:.2f} expected_sum:{:.2f} ave_profit_loss:{:.2f} exp_profit_loss:{:.2f}" \
         #           .format(profit_sum, expected_sum, ave_profit_loss, exp_profit_loss))
 
         # trade duration (taken from default loss function)
@@ -164,7 +164,7 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         # punish if below goal
         if trade_duration > MAX_TRADE_DURATION:
             if debug_level > 1:
-                print(" \tTrade duration below goal: {:.3f}".format(trade_duration))
+                print(" \tTrade duration below goal: {:.2f}".format(trade_duration))
             return UNDESIRED_SOLUTION
 
         # Winning trades
@@ -185,7 +185,7 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         # if winning_count < (2.0 * losing_count):
         if winning_count < (1.0 * losing_count):
             if debug_level > 1:
-                print(" \tWinning count below goal: {:.3f} vs {:.3f}".format(winning_count, losing_count))
+                print(" \tWinning count below goal: {:.0f} vs {:.0f}".format(winning_count, losing_count))
             return UNDESIRED_SOLUTION
 
         # Expectancy (refer to freqtrade edge page for info)
@@ -204,7 +204,7 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         expectancy_loss = -e
         if expectancy_loss > 0.0:
             if debug_level > 1:
-                print(" \tExpectancy Loss below goal: {:.3f}".format(expectancy_loss))
+                print(" \tExpectancy Loss below goal: {:.2f}".format(expectancy_loss))
             return expectancy_loss
 
         # Win/Loss ratio (losses here are draws & losses)
@@ -216,7 +216,7 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         # # punish if below goal
         # if win_loss_ratio_loss > 0.0:
         #     if debug_level > 1:
-        #         print(" \tWin/Loss Ratio below goal: {:.3f}".format(win_loss_ratio_loss))
+        #         print(" \tWin/Loss Ratio below goal: {:.2f}".format(win_loss_ratio_loss))
         #     return UNDESIRED_SOLUTION
 
         # Sharpe Ratio
@@ -282,9 +282,9 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
                  win_loss_ratio_loss + expectancy_loss + sharp_ratio_loss + sortino_ratio_loss + drawdown_loss
 
         if (result < 0.0) and (debug_level > 0):
-            print(" \tPabs:{:.3f} Pave:{:.3f} n:{:.3f} dur:{:.3f} w/l:{:.3f} " \
-                  "expy:{:.3f}  sharpe:{:.3f} sortino:{:.3f} draw:{:.3f}" \
-                  " Total:{:.3f}"\
+            print(" \tPabs:{:.2f} Pave:{:.2f} n:{:.2f} dur:{:.2f} w/l:{:.2f} " \
+                  "expy:{:.2f}  sharpe:{:.2f} sortino:{:.2f} draw:{:.2f}" \
+                  " Total:{:.2f}"\
                   .format(abs_profit_loss, ave_profit_loss, num_trades_loss, duration_loss,  win_loss_ratio_loss, \
                           expectancy_loss, sharp_ratio_loss, sortino_ratio_loss, drawdown_loss, \
                           result))
@@ -413,7 +413,7 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
   'timeframe_detail': '',
   'timerange': '20211113-',
   'enable_protections': False,
-  'strategy_name': 'FisherBBDynamic',
+  'strategy_name': 'FBB_Dynamic',
   'stoploss': -0.345,
   'trailing_stop': True,
   'trailing_stop_positive': 0.109,

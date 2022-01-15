@@ -434,7 +434,7 @@ class PEDHyperOptLoss(IHyperOptLoss):
   'timeframe_detail': '',
   'timerange': '20211113-',
   'enable_protections': False,
-  'strategy_name': 'FisherBBDynamic',
+  'strategy_name': 'FBB_Dynamic',
   'stoploss': -0.345,
   'trailing_stop': True,
   'trailing_stop_positive': 0.109,

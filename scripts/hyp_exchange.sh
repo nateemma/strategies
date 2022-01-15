@@ -118,10 +118,10 @@ echo "Date/time: ${today}" > $logfile
 echo "Time range: ${timerange}" >> $logfile
 
 declare -a sargs=( \
- "--hyperopt-loss WeightedProfitHyperOptLoss -s FisherBBWtdProfit" \
- "--hyperopt-loss PEDHyperOptLoss -s FisherBBPED" \
- "--hyperopt-loss WeightedProfitHyperOptLoss -s FisherBBDynamic" \
- "--hyperopt-loss WeightedProfitHyperOptLoss -s FisherBBSolipsis" \
+ "--hyperopt-loss WeightedProfitHyperOptLoss -s FBB_WtdProfit" \
+ "--hyperopt-loss PEDHyperOptLoss -s FBB_PED" \
+ "--hyperopt-loss WeightedProfitHyperOptLoss -s FBB_Dynamic" \
+ "--hyperopt-loss WeightedProfitHyperOptLoss -s FBB_Solipsis" \
 )
 
 hargs="--space ${spaces} --timerange=${timerange} --epochs ${epochs} -c ${config_file} \

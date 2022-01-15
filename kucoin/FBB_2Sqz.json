@@ -1,0 +1,33 @@
+{
+  "strategy_name": "FBB_2Sqz",
+  "params": {
+    "roi": {
+      "0": 0.046,
+      "5": 0.03,
+      "16": 0.011,
+      "40": 0
+    },
+    "stoploss": {
+      "stoploss": -0.1
+    },
+    "buy": {
+      "buy_bb_gain": 0.07,
+      "buy_fisher_wr": -0.32,
+      "buy_force_fisher_wr": -0.66
+    },
+    "sell": {
+      "sell_bb_gain": 0.92,
+      "sell_fisher_wr": 0.94,
+      "sell_force_fisher_wr": 0.72
+    },
+    "protection": {},
+    "trailing": {
+      "trailing_stop": true,
+      "trailing_stop_positive": 0.01,
+      "trailing_stop_positive_offset": 0.031,
+      "trailing_only_offset_is_reached": true
+    }
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2022-01-15 13:59:27.785805+00:00"
+}

@@ -1,0 +1,28 @@
+{
+  "strategy_name": "FBB_ROI",
+  "params": {
+    "roi": {
+      "0": 0.042,
+      "11": 0.03,
+      "44": 0.013,
+      "71": 0
+    },
+    "stoploss": {
+      "stoploss": -0.1
+    },
+    "buy": {
+      "buy_bb_gain": 0.04,
+      "buy_fisher_wr": -0.64
+    },
+    "sell": {},
+    "protection": {},
+    "trailing": {
+      "trailing_stop": true,
+      "trailing_stop_positive": 0.01,
+      "trailing_stop_positive_offset": 0.057,
+      "trailing_only_offset_is_reached": true
+    }
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2022-01-14 23:07:47.096604+00:00"
+}

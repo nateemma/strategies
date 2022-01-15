@@ -1,0 +1,39 @@
+{
+  "strategy_name": "FBB_2",
+  "params": {
+    "roi": {
+      "0": 0.198,
+      "26": 0.104,
+      "62": 0.04,
+      "175": 0
+    },
+    "stoploss": {
+      "stoploss": -0.1
+    },
+    "buy": {
+      "buy_bb_gain": 0.04,
+      "buy_fisher_wr": 0.54,
+      "buy_force_fisher_wr": -0.56,
+      "buy_strong_only": false,
+      "inf_pct_adr": 0.832,
+      "xbtc_base_rmi": 36,
+      "xbtc_guard": "none",
+      "xtra_base_fiat_rmi": 56,
+      "xtra_base_stake_rmi": 41
+    },
+    "sell": {
+      "sell_bb_gain": 1.04,
+      "sell_fisher_wr": -0.49,
+      "sell_force_fisher_wr": -0.53
+    },
+    "protection": {},
+    "trailing": {
+      "trailing_stop": true,
+      "trailing_stop_positive": 0.01,
+      "trailing_stop_positive_offset": 0.086,
+      "trailing_only_offset_is_reached": true
+    }
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2022-01-14 13:31:02.443981+00:00"
+}

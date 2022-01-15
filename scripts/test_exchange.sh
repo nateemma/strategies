@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # list of strategies to test
-slist="FisherBBROI FisherBB2 FisherBB2Sqz FisherBBSolipsis"
+slist="FBB_ROI FBB_2 FBB_2Sqz FBB_Solipsis"
 
 # default values
 
