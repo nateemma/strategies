@@ -47,22 +47,23 @@ class WinHyperOptLoss(IHyperOptLoss):
 
         debug_level = 2 # displays (more) messages if higher
 
-        # define weights
+        # define weights (determined throug trial & error)
         weight_num_trades = 0.0
         weight_duration = 0.0
-        weight_abs_profit = 0.0
+        weight_abs_profit = 1.0
         weight_exp_profit = 0.0
-        weight_ave_profit = 1.0
+        weight_ave_profit = 0.0
         weight_expectancy = 1.0
         weight_win_loss_ratio = 1.0
         weight_sharp_ratio = 0.0
         weight_sortino_ratio = 0.0
         weight_drawdown = 1.0
-        weight_profit_approx = 1.0
+        weight_profit_approx = 0.5
 
         if config['exchange']['name']:
             if (config['exchange']['name'] == 'kucoin') or (config['exchange']['name'] == 'ascendex'):
                 # kucoin is extremely volatile, with v.high profits in backtesting (but not in real markets)
+                weight_abs_profit = 0.2
                 weight_expectancy = 0.5
                 weight_win_loss_ratio = 2.0
 
@@ -242,17 +243,16 @@ class WinHyperOptLoss(IHyperOptLoss):
             drawdown_loss = (backtest_stats['max_drawdown'] - 1.0)
 
         # Approximate Profit
-        if results['stoploss']:
-            stoploss = abs(results['stoploss'])
+        if backtest_stats['stoploss']:
+            stoploss = abs(backtest_stats['stoploss'])
         else:
             stoploss = abs(ave_loss)
 
         if stoploss > 0.9: # custom stoploss probably used
-            stoploss = max(abs(ave_loss), 0.01)
+            stoploss = max(abs(ave_loss), 0.1)
 
         profit_approx_loss = ( (winning_count * ave_profit) - (act_losing_count * stoploss) ) / days_period / 100.0
         profit_approx_loss = EXPECTED_AVE_PROFIT - profit_approx_loss
-        profit_approx_loss = profit_approx_loss * 100.0
 
         # weight the results (values are based on trial & error). Goal is for anything -ve to be a decent  solution
         num_trades_loss = weight_num_trades * num_trades_loss
@@ -273,28 +273,38 @@ class WinHyperOptLoss(IHyperOptLoss):
                 abs_profit_loss = max(abs_profit_loss, -20.0)
                 debug_level = 1
 
-            # don't let anything outweigh profit
+        # don't let anything outweigh profit
+        if num_trades_loss > 0.0:
             num_trades_loss = max(num_trades_loss, abs_profit_loss)
+        if duration_loss > 0.0:
             duration_loss = max(duration_loss, abs_profit_loss)
+        if exp_profit_loss > 0.0:
             exp_profit_loss = max(exp_profit_loss, abs_profit_loss)
+        if ave_profit_loss > 0.0:
             ave_profit_loss = max(ave_profit_loss, abs_profit_loss)
+        if expectancy_loss > 0.0:
             expectancy_loss = max(expectancy_loss, abs_profit_loss)
+        if win_loss_ratio_loss > 0.0:
             win_loss_ratio_loss = max(win_loss_ratio_loss, abs_profit_loss)
+        if sharp_ratio_loss > 0.0:
             sharp_ratio_loss = max(sharp_ratio_loss, abs_profit_loss)
+        if sortino_ratio_loss > 0.0:
             sortino_ratio_loss = max(sortino_ratio_loss, abs_profit_loss)
+        if drawdown_loss > 0.0:
             drawdown_loss = max(drawdown_loss, abs_profit_loss)
 
         result = abs_profit_loss + num_trades_loss + duration_loss + exp_profit_loss + ave_profit_loss + \
                  win_loss_ratio_loss + expectancy_loss + sharp_ratio_loss + sortino_ratio_loss + drawdown_loss + \
                  profit_approx_loss
 
-        if (result < 0.0) and (debug_level > 0):
+        # if (result < 0.0) and (debug_level > 0):
+        if (debug_level > 0):
             print(" \tPabs:{:.2f} Pave:{:.2f} n:{:.2f} dur:{:.2f} w/l:{:.2f} " \
-                  "expy:{:.2f}  sharpe:{:.2f} sortino:{:.2f} draw:{:.2f} Papr:{:.2f}" \
-                  " Total:{:.2f}" \
-                  .format(abs_profit_loss, ave_profit_loss, num_trades_loss, duration_loss, win_loss_ratio_loss, \
-                          expectancy_loss, sharp_ratio_loss, sortino_ratio_loss, drawdown_loss, profit_approx_loss, \
-                          result))
+              "expy:{:.2f}  sharpe:{:.2f} sortino:{:.2f} draw:{:.2f} Papr:{:.2f}" \
+              " Total:{:.2f}" \
+              .format(abs_profit_loss, ave_profit_loss, num_trades_loss, duration_loss, win_loss_ratio_loss, \
+                      expectancy_loss, sharp_ratio_loss, sortino_ratio_loss, drawdown_loss, profit_approx_loss, \
+                      result))
 
         return result
 
