@@ -39,6 +39,24 @@ Also, do not backtest the strategies in a period of huge growth (like 2020 for e
 when any strategy would do well. I recommend including periods where the market performed poorly (e.g. May, Nov and Dec 2021)
 
 
+## List of Strategies
+
+The following is a list of my custom strategies that I am currently testing. 
+
+| Strategy         | Description                                                                                                                                                                               | 
+|------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| FBB_ROI          | buy logic using the Fisher and Bollinger Band indicators (and recently Williams %R). <br>Most other strategies here use the same buy signals                                              |                                                                        |
+| FBB_2            | FBB buy signals, combined with some correlation to BTC, and sell signals based on Fisher RSI and Bollinger Bands.<br>(the "2" is meant indicate 'squared", i.e. FBB on both buy and sell. | |
+| FBB_2Sqz         | FBB_2 with addition of SqueezeMomentum indicators.<br>Based on TradingView strategy by LazyBear                                                                                           |
+| FBB_Leveraged    | FBB applied to leveraged pairs (e.g. ADABULL, ADABEAR).                                                                                                                                   |
+| FBB_BTCLeveraged | Same as FBB_Leveraged, but uses signals based on BTC up/down trends                                                                                                                       |
+| FBB_Solipsis     | A merge of FBB_ (buy) and the custom sell logic adapted from Solipsis_V5 (see [werkkrew](https://github.com/werkkrew/freqtrade-strategies) repo)                                          |
+
+Please note that you will need both the _.py_ *and* the _.json_ file.
+
+If you know what you are doing, go ahead and use these (but read the section on muliple exchanges first). 
+If not, please read through the gneral freqtrade documentation and the guidelines below...
+
 ## Reference repositories
 I either used or learned from strategies in the github repositories below:
 
@@ -297,16 +315,3 @@ The script helper is:
 You can monitor trades from the UI (see above), and from the exchange website/app
 
 Note that you need your computer synched up to an NTP time source to do this.
-
-## List of Strategies
-
-The following is a list of my custom strategies that I am currently testing. 
-
-| Strategy         | Description                                                                                                                                                                               | 
-|------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| FBB_ROI          | buy logic using the Fisher and Bollinger Band indicators (and recently Williams %R). <br>Most other strategies here use the same buy signals                                              |                                                                        |
-| FBB_2            | FBB buy signals, combined with some correlation to BTC, and sell signals based on Fisher RSI and Bollinger Bands.<br>(the "2" is meant indicate 'squared", i.e. FBB on both buy and sell. | |
-| FBB_2Sqz         | FBB_2 with addition of SqueezeMomentum indicators.<br>Based on TradingView strategy by LazyBear                                                                                           |
-| FBB_Leveraged    | FBB applied to leveraged pairs (e.g. ADABULL, ADABEAR).                                                                                                                                   |
-| FBB_BTCLeveraged | Same as FBB_Leveraged, but uses signals based on BTC up/down trends                                                                                                                       |
-| FBB_Solipsis     | A merge of FBB_ (buy) and the custom sell logic adapted from Solipsis_V5 (see [werkkrew](https://github.com/werkkrew/freqtrade-strategies) repo)                                          |

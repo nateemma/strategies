@@ -16,7 +16,7 @@ from typing import Any, Dict
 
 
 # Contstants to allow evaluation in cases where thre is insufficient (or nonexistent) info in the configuration
-EXPECTED_TRADES_PER_DAY = 2                         # used to set target goals
+EXPECTED_TRADES_PER_DAY = 3                         # used to set target goals
 MIN_TRADES_PER_DAY = EXPECTED_TRADES_PER_DAY / 2    # used to filter out scenarios where there are not enough trades
 EXPECTED_PROFIT_PER_TRADE = 0.010                   # be realistic. Setting this too high will eliminate potentially good solutions
 EXPECTED_AVE_PROFIT = 0.050                         # used to assess actual profit vs desired profit. OK to set high
@@ -45,7 +45,7 @@ class WinHyperOptLoss(IHyperOptLoss):
                                backtest_stats: Dict[str, Any],
                                *args, **kwargs) -> float:
 
-        debug_level = 2 # displays (more) messages if higher
+        debug_level = 0 # displays (more) messages if higher
 
         # define weights (determined throug trial & error)
         weight_num_trades = 0.0
@@ -297,8 +297,7 @@ class WinHyperOptLoss(IHyperOptLoss):
                  win_loss_ratio_loss + expectancy_loss + sharp_ratio_loss + sortino_ratio_loss + drawdown_loss + \
                  profit_approx_loss
 
-        # if (result < 0.0) and (debug_level > 0):
-        if (debug_level > 0):
+        if (abs_profit_loss < 0.0) & (result < 0.0) and (debug_level > 0):
             print(" \tPabs:{:.2f} Pave:{:.2f} n:{:.2f} dur:{:.2f} w/l:{:.2f} " \
               "expy:{:.2f}  sharpe:{:.2f} sortino:{:.2f} draw:{:.2f} Papr:{:.2f}" \
               " Total:{:.2f}" \
