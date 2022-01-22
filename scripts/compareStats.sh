@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 
 declare -a list=( "binance" "binanceus" "ftx" "kucoin" )
 

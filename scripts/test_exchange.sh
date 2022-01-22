@@ -1,7 +1,7 @@
-#!/bin/bash
+#!/bin/zsh
 
 # list of strategies to test
-slist="FBB_ROI FBB_2 FBB_2Sqz FBB_Solipsis"
+slist="FBB_ROI FBB_2 FBB_RPB_TSL_RNG FBB_Solipsis"
 
 # default values
 
@@ -13,7 +13,7 @@ jobs=0
 
 
 show_usage () {
-    script=$(basename $BASH_SOURCE)
+    script=$(basename $ZSH_SOURCE)
     cat << END
 
 Usage: bash $script [options] <exchange>
@@ -29,7 +29,7 @@ Usage: bash $script [options] <exchange>
 END
 }
 
-
+#set -x
 # process options
 die() { echo "$*" >&2; exit 2; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
@@ -52,7 +52,7 @@ while getopts d:j:n:t:-: OPT; do
   esac
 done
 shift $((OPTIND-1)) # remove parsed options and args from $@ list
-
+#set +x
 
 if [[ $# -ne 1 ]] ; then
   echo "ERR: Missing arguments"
@@ -100,9 +100,10 @@ export PYTHONPATH="./${exchange_dir}:./${strat_dir}:${PYTHONPATH}"
 
 
 if [ ${download} -eq 1 ]; then
-    echo "Downloading latest data..."
-    echo "freqtrade download-data -t 5m --timerange=${timerange} -c ${config_file}"
-    freqtrade download-data  -t 5m --timerange=${timerange} -c ${config_file}
+  echo "Downloading latest data..."
+  cmd="freqtrade download-data -t 5m --timerange=${timerange} -c ${config_file}"
+  echo "${cmd}"
+  eval ${cmd}
 fi
 
 jarg=""
@@ -118,8 +119,9 @@ echo "List: ${slist}"
 echo "Date/time: ${today}" > $logfile
 echo "Time range: ${timerange}" >> $logfile
 
-echo "freqtrade backtesting ${jarg} --timerange=${timerange} -c ${config_file} --strategy-path ${exchange_dir} --strategy-list ${slist} >> $logfile"
-freqtrade backtesting ${jarg} --timerange=${timerange} -c ${config_file} --strategy-path ${exchange_dir} --strategy-list ${slist} >> $logfile
+cmd="freqtrade backtesting ${jarg} --timerange=${timerange} -c ${config_file} --strategy-path ${exchange_dir} --strategy-list ${slist} >> $logfile"
+echo "${cmd}"
+eval ${cmd}
 
 echo ""
 echo "$logfile:"

@@ -1,4 +1,4 @@
-#!/usr/local/bin/bash
+#!/usr/local/bin/zsh
 
 # script to run tests over 30 day periods and summarise the results
 # makes use of test_exchange.sh
@@ -19,8 +19,9 @@ create_test_file () {
     sdate=$(date -j -v-${t1}d +"%Y%m%d")
     edate=$(date -j -v-${t2}d +"%Y%m%d")
     timeframe="${sdate}-${edate}"
-    echo "bash user_data/strategies/scripts/test_exchange.sh --timeframe ${timeframe} ${exchange}"
-    bash user_data/strategies/scripts/test_exchange.sh  --timeframe="${timeframe}" ${exchange}
+    cmd="zsh user_data/strategies/scripts/test_exchange.sh --timeframe=${timeframe} ${exchange}"
+    echo "${cmd}"
+    eval ${cmd}
 
 }
 
@@ -133,8 +134,8 @@ for (( i=0; i<${nperiods}; i++ )); do
 #    sdate=$(date -j -v-${t1}d +"%Y%m%d")
 #    edate=$(date -j -v-${t2}d +"%Y%m%d")
 #    timeframe="${sdate}-${edate}"
-#    echo "bash user_data/strategies/scripts/test_exchange.sh --timeframe ${timeframe} ${exchange}"
-#    bash user_data/strategies/scripts/test_exchange.sh  --timeframe="${timeframe}" ${exchange}
+#    echo "zsh user_data/strategies/scripts/test_exchange.sh --timeframe ${timeframe} ${exchange}"
+#    zsh user_data/strategies/scripts/test_exchange.sh  --timeframe="${timeframe}" ${exchange}
 
 
     # check that files exist

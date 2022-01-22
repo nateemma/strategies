@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/bin/zsh
 
-declare -a list=(  "binance" "binanceus" "kucoin" "ftx" )
+declare -a list=(  "binance" "binanceus" "ftx" "kucoin" )
 
 
 for exchange in "${list[@]}"; do
@@ -9,8 +9,10 @@ for exchange in "${list[@]}"; do
   echo "    ${exchange}"
   echo "========================"
   echo ""
-  bash user_data/strategies/scripts/test_monthly.sh ${exchange}
+  zsh user_data/strategies/scripts/test_monthly.sh ${exchange}
   echo ""
 done
+
+zsh user_data/strategies/scripts/compareStats.sh
 
 

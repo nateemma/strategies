@@ -1,29 +1,45 @@
-#!/bin/bash
+#!/bin/zsh
 
 # This script runs hyperopt on all of the main strategies for the specified exchange, using the appropriate
 # hyperopt loss function
 
+# Strategy list, and associated hyperopt spaces
+declare -A slist=( [FBB_ROI]="buy sell" [FBB_2]="buy sell" [FBB_RPB_TSL_RNG]="buy sell" [FBB_Solipsis]="buy sell" )
+
+# define whether or strategy can optimise for trailing
+declare -A trlist=( [FBB_ROI]=false [FBB_2]=false [FBB_RPB_TSL_RNG]=false [FBB_Solipsis]=false )
 
 # default values
-epochs=100
-spaces="buy"
+epochs=2000
+spaces=""
 num_days=180
 start_date=$(date -j -v-${num_days}d +"%Y%m%d")
-#start_date="20210701"
 timerange="${start_date}-"
 download=0
 jobs=0
+lossf="WinHyperOptLoss"
+
+# get the number of cores
+num_cores=`sysctl -n hw.ncpu`
+min_cores=$((num_cores - 2))
+
+run_cmd () {
+  cmd="${1}"
+  echo "${cmd}"
+  eval ${cmd}
+}
 
 
 show_usage () {
-    script=$(basename $BASH_SOURCE)
+    script=$(basename $ZSH_SOURCE)
     cat << END
 
-Usage: bash $script [options] <exchange>
+Usage: zsh $script [options] <exchange>
 
 [options]:  -d | --download    Downloads latest market data before running hyperopt. Default is ${download}
             -e | --epochs      Number of epochs to run. Default: ${epochs}
             -j | --jobs        Number of parallel jobs to run
+            -l | --loss        Loss function to use (default: ${lossf})
             -n | --ndays       Number of days of backtesting. Defaults to ${num_days}
             -s | --spaces      Optimisation spaces (any of: buy, roi, trailing, stoploss, sell). Use quotes for multiple
             -t | --timeframe   Timeframe (YYYMMDD-[YYYMMDD]). Defaults to last ${num_days} days
@@ -34,13 +50,44 @@ Usage: bash $script [options] <exchange>
 END
 }
 
+check_shell () {
+  is_zsh= ; : | is_zsh=1
+  if [[ "${is_zsh}" != "1" ]]; then
+    echo""
+    echo "ERR: Must use zsh for this script"
+    exit 0
+  fi
+}
 
+# echo a line to both stdout and the logfile
+add_line () {
+        echo "${1}" >> $logfile
+        echo "${1}"
+}
+
+# run the hyperopt command using the supplied arguments ($1)
+run_hyperopt () {
+      add_line ""
+      add_line "freqtrade hyperopt ${1}"
+      add_line ""
+#      set -x
+      cmd="freqtrade hyperopt ${1} --no-color >> $logfile"
+      eval ${cmd}
+#      set +x
+}
 
 # process options
 die() { echo "$*" >&2; exit 2; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
-while getopts d:e:j:n:s:t:-: OPT; do
+
+#-------------------
+# Main code
+#-------------------
+
+check_shell
+
+while getopts d:e:j:l:n:s:t:-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
@@ -51,8 +98,9 @@ while getopts d:e:j:n:s:t:-: OPT; do
     d | download )   download=1 ;;
     e | epochs )     needs_arg; epochs="$OPTARG" ;;
     j | jobs )       needs_arg; jobs="$OPTARG" ;;
+    l | loss )       needs_arg; lossf="$OPTARG" ;;
     n | ndays )      needs_arg; num_days="$OPTARG"; timerange="$(date -j -v-${num_days}d +"%Y%m%d")-" ;;
-    s | spaces )     needs_arg; spaces="$OPTARG" ;;
+    s | spaces )     needs_arg; spaces="${OPTARG}" ;;
     t | timeframe )  needs_arg; timerange="$OPTARG" ;;
     \? )             show_usage; die "Illegal option --$OPT" ;;
     ??* )            show_usage; die "Illegal option --$OPT" ;;  # bad long option
@@ -89,9 +137,16 @@ if [ ! -d ${exchange_dir} ]; then
     exit 0
 fi
 
-echo ""
-echo "Using config file: ${config_file} and Strategy dir: ${exchange_dir}"
-echo ""
+echo "" >$logfile
+add_line ""
+today=`date`
+add_line "============================================="
+add_line "Running hyperopt for exchange: ${exchange}..."
+add_line "Date/time: ${today}"
+add_line "Time range: ${timerange}"
+add_line "Config file: ${config_file}"
+add_line "Strategy dir: ${exchange_dir}"
+add_line ""
 
 # set up path
 oldpath=${PYTHONPATH}
@@ -100,39 +155,41 @@ export PYTHONPATH="./${exchange_dir}:./${strat_dir}:${PYTHONPATH}"
 
 
 if [ ${download} -eq 1 ]; then
-    echo "Downloading latest data..."
-    echo "freqtrade download-data -t 5m --timerange=${timerange} -c ${config_file}"
-    freqtrade download-data  -t 5m --timerange=${timerange} -c ${config_file}
+    add_line "Downloading latest data..."
+    run_cmd "freqtrade download-data  -t 5m --timerange=${timerange} -c ${config_file}"
 fi
 
 jarg=""
 if [ ${jobs} -gt 0 ]; then
     jarg="-j ${jobs}"
+else
+  # for kucoin, reduce number of jobs
+    if [ "$exchange" = "kucoin" ]; then
+      jarg="-j ${min_cores}"
+    fi
 fi
 
-echo ""
-today=`date`
-echo $today
-echo "Running hyperopt for exchange: ${exchange}..."
-echo "Date/time: ${today}" > $logfile
-echo "Time range: ${timerange}" >> $logfile
 
-declare -a sargs=( \
- "--hyperopt-loss WeightedProfitHyperOptLoss -s FBB_WtdProfit" \
- "--hyperopt-loss PEDHyperOptLoss -s FBB_PED" \
- "--hyperopt-loss WeightedProfitHyperOptLoss -s FBB_Dynamic" \
- "--hyperopt-loss WeightedProfitHyperOptLoss -s FBB_Solipsis" \
-)
+hargs=" -c ${config_file} ${jarg} --strategy-path ${exchange_dir} --timerange=${timerange} --hyperopt-loss ${lossf}"
 
-hargs="--space ${spaces} --timerange=${timerange} --epochs ${epochs} -c ${config_file} \
-${jarg} --strategy-path ${exchange_dir}"
+for strat space in ${(kv)slist}; do
+  add_line ""
+  add_line "----------------------"
+  add_line "${strat}"
+  add_line "----------------------"
 
-for sarg in "${sargs[@]}"; do
-    echo "" >> $logfile
-    echo "freqtrade hyperopt ${hargs} ${sarg}" >> $logfile
-    echo "freqtrade hyperopt ${hargs} ${sarg}"
-    echo "" >> $logfile
-    freqtrade hyperopt ${hargs}  ${sarg} --no-color >> $logfile
+  if [[ "${spaces}" == "" ]]; then
+    spaces=$space
+  fi
+  # run main hyperopt
+  args="${hargs} --epochs ${epochs} --space ${spaces} -s ${strat}"
+  run_hyperopt ${args}
+
+  # run hyperopt for trailing space, if allowed
+  if $trlist[$strat]; then
+    args="${hargs} --epochs 200 --space trailing -s ${strat}"
+    run_hyperopt ${args}
+  fi
 done
 
 
@@ -144,4 +201,3 @@ echo ""
 
 # restore PYTHONPATH
 export PYTHONPATH="${oldpath}"
-

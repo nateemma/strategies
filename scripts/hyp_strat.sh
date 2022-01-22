@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 
 # runs hyperopt on a single strategy
 
@@ -28,14 +28,15 @@ END
 
 # loss options: ShortTradeDurHyperOptLoss OnlyProfitHyperOptLoss SharpeHyperOptLoss SharpeHyperOptLossDaily
 #               SortinoHyperOptLoss SortinoHyperOptLossDaily
-loss="WeightedProfitHyperOptLoss"
+#loss="WeightedProfitHyperOptLoss"
+loss="WinHyperOptLoss"
 
 clean=0
 epochs=100
 jarg=""
 config_file=""
 
-spaces="buy"
+spaces="buy sell"
 
 #get date from 30 days ago (MacOS-specific)
 num_days=180
@@ -59,7 +60,7 @@ while getopts :c:e:j:l:n:s:t:-: OPT; do
     l | loss )       needs_arg; loss="$OPTARG" ;;
     j | jobs )       needs_arg; jarg="-j $OPTARG" ;;
     n | ndays )      needs_arg; num_days="$OPTARG"; timerange="$(date -j -v-${num_days}d +"%Y%m%d")-" ;;
-    s | spaces )     needs_arg; spaces="$OPTARG" ;;
+    s | spaces )     needs_arg; spaces="${OPTARG}" ;;
     t | timeframe )  needs_arg; timerange="$OPTARG" ;;
     ??* )            show_usage; die "Illegal option --$OPT" ;;  # bad long option
     ? )              show_usage; die "Illegal option --$OPT" ;;  # bad short option (error reported via getopts)
@@ -118,16 +119,20 @@ echo "Optimising strategy:$strategy for exchange:$exchange..."
 
 cat << END
 
-freqtrade hyperopt ${jarg} --space ${spaces} --hyperopt-loss ${loss} --timerange=${timerange} --epochs ${epochs} \
+freqtrade hyperopt ${jarg} --spaces ${spaces} --hyperopt-loss ${loss} --timerange=${timerange} --epochs ${epochs} \
 -c ${config_file} --strategy-path ${exchange_dir}  \
 -s ${strategy} --no-color
 
 
 END
 
-freqtrade hyperopt ${jarg} --space ${spaces} --hyperopt-loss ${loss} --timerange=${timerange} --epochs ${epochs} \
+#set -x
+args="${jarg} --spaces ${spaces} --hyperopt-loss ${loss} --timerange=${timerange} --epochs ${epochs} \
     -c ${config_file} --strategy-path ${exchange_dir}  \
-    -s ${strategy} --no-color
+    -s ${strategy}"
+cmd="freqtrade hyperopt ${args} --no-color"
+eval ${cmd}
+#set +x
 
 echo -en "\007" # beep
 echo ""
