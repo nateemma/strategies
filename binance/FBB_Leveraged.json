@@ -2,31 +2,34 @@
   "strategy_name": "FBB_Leveraged",
   "params": {
     "roi": {
-      "0": 0.094,
-      "25": 0.03,
-      "77": 0.012,
-      "192": 0
+      "0": 0.1
     },
     "stoploss": {
-      "stoploss": -0.1
+      "stoploss": -0.99
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "buy_bear_bb_gain": 0.07,
-      "buy_bear_fisher": -0.21,
-      "buy_bear_wr": -36.0,
-      "buy_bull_bb_gain": 0.05,
-      "buy_bull_fisher": -0.02,
-      "buy_bull_wr": -91.0
+      "buy_bear_bb_gain": 0.01,
+      "buy_bear_fisher_wr": 0.93,
+      "buy_bear_force_fisher_wr": -0.76,
+      "buy_bull_bb_gain": 0.01,
+      "buy_bull_fisher_wr": 0.99,
+      "buy_bull_force_fisher_wr": -0.93
     },
-    "sell": {},
-    "protection": {},
-    "trailing": {
-      "trailing_stop": true,
-      "trailing_stop_positive": 0.24,
-      "trailing_stop_positive_offset": 0.32999999999999996,
-      "trailing_only_offset_is_reached": true
-    }
+    "sell": {
+      "pHSL": -0.143,
+      "pPF_1": 0.009,
+      "pPF_2": 0.076,
+      "pSL_1": 0.011,
+      "pSL_2": 0.069
+    },
+    "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-01-18 01:16:13.510007+00:00"
+  "export_time": "2022-01-24 02:11:04.816089+00:00"
 }

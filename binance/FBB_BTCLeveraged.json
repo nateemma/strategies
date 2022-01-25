@@ -2,35 +2,38 @@
   "strategy_name": "FBB_BTCLeveraged",
   "params": {
     "roi": {
-      "0": 0.218,
-      "19": 0.039,
-      "65": 0.011,
-      "175": 0
+      "0": 0.1
     },
     "stoploss": {
-      "stoploss": -0.1
+      "stoploss": -0.99
     },
     "trailing": {
-      "trailing_stop": true,
-      "trailing_stop_positive": 0.029,
-      "trailing_stop_positive_offset": 0.128,
-      "trailing_only_offset_is_reached": true
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
     },
     "buy": {
       "buy_bear_bb_gain": 0.09,
-      "buy_bear_fisher": 0.14,
-      "buy_bear_wr": -15.0,
+      "buy_bear_fisher_wr": 0.09,
+      "buy_bear_force_fisher_wr": -0.94,
+      "buy_btc_check": "trend",
       "buy_bull_bb_gain": 0.02,
-      "buy_bull_fisher": -0.03,
-      "buy_bull_wr": -81.0,
-      "buy_trend_method": "price"
+      "buy_bull_fisher_wr": 0.8,
+      "buy_bull_force_fisher_wr": -0.92,
+      "buy_trend_method": "kama"
     },
     "sell": {
-      "sell_bear_bb_gain": 1.18,
-      "sell_bull_bb_gain": 0.96
+      "pHSL": -0.181,
+      "pPF_1": 0.017,
+      "pPF_2": 0.083,
+      "pSL_1": 0.019,
+      "pSL_2": 0.063,
+      "sell_bear_bb_gain": 1.25,
+      "sell_bull_bb_gain": 1.3
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-01-18 03:29:05.595099+00:00"
+  "export_time": "2022-01-24 06:12:04.356156+00:00"
 }

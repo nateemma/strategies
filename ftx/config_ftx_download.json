@@ -1,6 +1,6 @@
 {
   "max_open_trades": 3,
-  "stake_currency": "USDT",
+  "stake_currency": "USD",
   "dry_run_wallet": 10000,
   "stake_amount": 3300,
   "tradable_balance_ratio": 0.99,
@@ -14,14 +14,15 @@
     "unit": "minutes"
   },
   "order_types": {
-    "buy": "market",
+    "buy": "limit",
     "sell": "market",
     "emergencysell": "market",
     "forcebuy": "market",
     "forcesell": "market",
     "stoploss": "market",
-    "stoploss_on_exchange": false,
-    "stoploss_on_exchange_interval": 60
+    "stoploss_on_exchange": true,
+    "stoploss_on_exchange_interval": 60,
+    "stoploss_on_exchange_limit_ratio": 0.99
   },
   "bid_strategy": {
     "price_side": "ask",
@@ -40,25 +41,20 @@
     "order_book_max": 1
   },
   "exchange": {
-    "name": "kucoin",
+    "name": "ftx",
     "key": "",
     "secret": "",
-    "password": "",
     "ccxt_config": {
       "enableRateLimit": true
     },
     "ccxt_async_config": {
       "enableRateLimit": true,
-      "rateLimit": 334
+      "rateLimit": 240
     },
     "pair_whitelist": [
-      ".*[1235][SL]/USDT"
+      ".*/USD"
     ],
     "pair_blacklist": [
-      "(BUSD|CUSDT|DAI|PAX|PAXG|SUSD|TUSD|USDC|USDT|VAI).*/.*", // currency futures
-      "(BULL|BEAR|ETH3S)/.*", // specific pairs
-      ".*(KCS)/.*",
-      ".*(BTC|ETH)/.*",
       ".*(_PREMIUM|HALF|HEDGE)/.*",
       ".*(AUD|BRZ|CAD|CHF|EUR|GBP|HKD|IDRT|JPY|NGN|RUB|SGD|TRY|UAH|USD|ZAR)/.*",
       ".*(BUSD|CUSDT|DAI|PAX|PAXG|SUSD|TUSD|USDC|USDT|VAI)/.*",
@@ -69,46 +65,6 @@
   "pairlists": [
     {
       "method": "StaticPairList"
-    },
-    //    {
-    //      "method": "VolumePairList",
-    //      "number_assets": 80,
-    //      "sort_key": "quoteVolume",
-    //      "refresh_period": 1800
-    //    },
-//    {
-//      "method": "AgeFilter",
-//      "min_days_listed": 14
-//    },
-//    {
-//      "method": "SpreadFilter",
-//      "max_spread_ratio": 0.005
-//    },
-//    {
-//      "method": "PriceFilter",
-//      "low_price_ratio": 0.002
-//    },
-    {
-      "method": "RangeStabilityFilter",
-      "lookback_days": 3,
-      "min_rate_of_change": 0.05,
-      "refresh_period": 1800
-    },
-//    {
-//      "method": "VolatilityFilter",
-//      "lookback_days": 3,
-//      "min_volatility": 0.02,
-//      "max_volatility": 0.75,
-//      "refresh_period": 43200
-//    },
-    //    {
-    //        "method": "VolumePairList",
-    //        "number_assets": 80,
-    //        "sort_key": "quoteVolume",
-    //        "refresh_period": 1800
-    //    },
-    {
-      "method": "ShuffleFilter"
     }
   ],
   "protections": [
@@ -146,7 +102,7 @@
   "api_server": {
     "enabled": true,
     "listen_ip_address": "127.0.0.1",
-    "listen_port": 8081,
+    "listen_port": 8082,
     "verbosity": "error",
     "enable_openapi": false,
     "jwt_secret_key": "",
@@ -154,7 +110,7 @@
     "username": "",
     "password": ""
   },
-  "bot_name": "freqtrade_kucoin",
+  "bot_name": "freqtrade_ftx",
   "initial_state": "running",
   "forcebuy_enable": false,
   "internals": {

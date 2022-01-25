@@ -2,27 +2,31 @@
   "strategy_name": "FBB_ROI",
   "params": {
     "roi": {
-      "0": 0.23,
-      "52": 0.06,
-      "65": 0.029,
-      "80": 0
+      "0": 0.1
     },
     "stoploss": {
-      "stoploss": -0.1
+      "stoploss": -0.99
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "buy_bb_gain": 0.06,
-      "buy_fisher_wr": -0.11
+      "buy_bb_gain": 0.05,
+      "buy_fisher_wr": 0.05,
+      "buy_force_fisher_wr": -0.96
     },
-    "sell": {},
-    "protection": {},
-    "trailing": {
-      "trailing_stop": true,
-      "trailing_stop_positive": 0.01,
-      "trailing_stop_positive_offset": 0.056,
-      "trailing_only_offset_is_reached": true
-    }
+    "sell": {
+      "pHSL": -0.179,
+      "pPF_1": 0.009,
+      "pPF_2": 0.1,
+      "pSL_1": 0.009,
+      "pSL_2": 0.027
+    },
+    "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-01-14 16:41:08.163182+00:00"
+  "export_time": "2022-01-24 00:46:19.058233+00:00"
 }

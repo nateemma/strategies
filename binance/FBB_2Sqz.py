@@ -53,14 +53,14 @@ class FBB_2Sqz(IStrategy):
     ## Buy Space Hyperopt Variables
 
     # FBB_ hyperparams
-    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.09, space='buy', load=True, optimize=True)
+    buy_bb_gain = DecimalParameter(0.01, 0.20, decimals=2, default=0.09, space='buy', load=True, optimize=True)
     buy_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=-0.75, space='buy', load=True, optimize=True)
-    buy_force_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=-0.99, space='buy', load=True, optimize=True)
+    buy_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.99, space='buy', load=True, optimize=True)
 
     ## Sell Space Hyperopt Variables
 
     sell_bb_gain = DecimalParameter(0.7, 1.3, decimals=2, default=0.8, space='sell', load=True, optimize=True)
-    sell_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=0.75, space='sell', load=True, optimize=True)
+    sell_fisher_wr = DecimalParameter(0.75, 0.99, decimals=2, default=0.75, space='sell', load=True, optimize=True)
     sell_force_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=0.99, space='sell', load=True, optimize=True)
 
     timeframe = '5m'
@@ -151,6 +151,7 @@ class FBB_2Sqz(IStrategy):
 
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         conditions = []
+        dataframe.loc[:, 'buy_tag'] = ''
 
         conditions.append(dataframe['volume'] > 0)
 
@@ -160,18 +161,17 @@ class FBB_2Sqz(IStrategy):
                 (dataframe['fisher_wr'] <= self.buy_fisher_wr.value) &
 
                 # Bollinger Band
-                (dataframe['bb_gain'] >= self.buy_bb_gain.value) &
+                (dataframe['bb_gain'] >= self.buy_bb_gain.value)
+        )
 
-                # Williams %R
-                # (dataframe['wr'] <= self.buy_wr.value) &
-
-                # Squeeze Momentum (Trigger)
-                (
-                    # (qtpylib.crossed_above(dataframe['sqz_val'], 0))
-                    #     (qtpylib.crossed_below(dataframe['sqz_slope'], 0)) &
+        sqz_cond = (
+            # Squeeze Momentum (Trigger)
+            (
+                # (qtpylib.crossed_above(dataframe['sqz_val'], 0))
+                #     (qtpylib.crossed_below(dataframe['sqz_slope'], 0)) &
                     (qtpylib.crossed_above(dataframe['sqz_off'], 0.5)) &
                     (dataframe['sqz_val'] < 0)
-                )
+            )
         )
 
         strong_buy_cond = (
@@ -184,7 +184,12 @@ class FBB_2Sqz(IStrategy):
                 )
         )
 
-        conditions.append(fbb_cond | strong_buy_cond)
+        conditions.append((fbb_cond & sqz_cond) | strong_buy_cond)
+
+        # set buy tags
+        dataframe.loc[fbb_cond, 'buy_tag'] += 'fisher_bb '
+        dataframe.loc[strong_buy_cond, 'buy_tag'] += 'strong_buy '
+        dataframe.loc[sqz_cond, 'buy_tag'] += 'squeeze '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
@@ -197,6 +202,7 @@ class FBB_2Sqz(IStrategy):
 
     def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         conditions = []
+        dataframe.loc[:, 'exit_tag'] = ''
 
         # FBB_ triggers
         fbb_cond = (
@@ -204,19 +210,18 @@ class FBB_2Sqz(IStrategy):
                 (dataframe['fisher_wr'] > self.sell_fisher_wr.value) &
 
                 # Bollinger Band
-                (dataframe['close'] >= (dataframe['bb_upperband'] * self.sell_bb_gain.value)) &
+                (dataframe['close'] >= (dataframe['bb_upperband'] * self.sell_bb_gain.value))
+        )
 
-                # Williams %R
-                # (dataframe['wr'] > self.sell_wr.value) &
-
-                # Squeeze Momentum (Trigger)
-                (
-                    # qtpylib.crossed_below(dataframe['sqz_val'], 0)
-                    # (qtpylib.crossed_above(dataframe['sqz_val'], 0))
-                    #     (qtpylib.crossed_above(dataframe['sqz_slope'], 0)) &
-                        (qtpylib.crossed_above(dataframe['sqz_on'], 0.5)) &
-                        (dataframe['sqz_val'] > 0)
-                )
+        sqz_cond = (
+            # Squeeze Momentum (Trigger)
+            (
+                # qtpylib.crossed_below(dataframe['sqz_val'], 0)
+                # (qtpylib.crossed_above(dataframe['sqz_val'], 0))
+                #     (qtpylib.crossed_above(dataframe['sqz_slope'], 0)) &
+                    (qtpylib.crossed_above(dataframe['sqz_on'], 0.5)) &
+                    (dataframe['sqz_val'] > 0)
+            )
         )
 
         strong_sell_cond = (
@@ -224,7 +229,12 @@ class FBB_2Sqz(IStrategy):
             # (dataframe['close'] > dataframe['bb_upperband'] * self.sell_bb_gain.value)
         )
 
-        conditions.append(fbb_cond | strong_sell_cond)
+        conditions.append((fbb_cond & sqz_cond) | strong_sell_cond)
+
+        # set exit tags
+        dataframe.loc[fbb_cond, 'exit_tag'] += 'fisher_bb '
+        dataframe.loc[strong_sell_cond, 'exit_tag'] += 'strong_sell '
+        dataframe.loc[sqz_cond, 'exit_tag'] += 'squeeze '
 
         if conditions:
             dataframe.loc[

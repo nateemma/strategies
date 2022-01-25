@@ -2,10 +2,7 @@
   "strategy_name": "FBB_Solipsis",
   "params": {
     "roi": {
-      "0": 0.086,
-      "19": 0.038,
-      "43": 0.013,
-      "119": 0
+      "0": 100.0
     },
     "stoploss": {
       "stoploss": -0.99
@@ -17,34 +14,34 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "buy_bb_gain": 0.03,
-      "buy_fisher": -0.08,
-      "buy_wr": -74.0,
-      "inf_pct_adr": 0.798,
-      "xbtc_base_rmi": 69,
+      "buy_bb_gain": 0.08,
+      "buy_fisher_wr": -0.97,
+      "buy_force_fisher_wr": -0.79,
+      "inf_pct_adr": 0.731,
+      "xbtc_base_rmi": 24,
       "xbtc_guard": "none",
-      "xtra_base_fiat_rmi": 46,
-      "xtra_base_stake_rmi": 20
+      "xtra_base_fiat_rmi": 68,
+      "xtra_base_stake_rmi": 43
     },
     "sell": {
       "csell_endtrend_respect_roi": true,
-      "csell_pullback": true,
-      "csell_pullback_amount": 0.015,
+      "csell_pullback": false,
+      "csell_pullback_amount": 0.007,
       "csell_pullback_respect_roi": true,
-      "csell_roi_end": 0.001,
+      "csell_roi_end": 0.01,
       "csell_roi_start": 0.012,
-      "csell_roi_time": 1114,
-      "csell_roi_type": "decay",
+      "csell_roi_time": 987,
+      "csell_roi_type": "static",
       "csell_trend_type": "none",
-      "cstop_bail_how": "time",
-      "cstop_bail_roc": -4.958,
-      "cstop_bail_time": 98,
+      "cstop_bail_how": "none",
+      "cstop_bail_roc": -2.208,
+      "cstop_bail_time": 327,
       "cstop_bail_time_trend": false,
-      "cstop_loss_threshold": -0.016,
-      "cstop_max_stoploss": -0.273
+      "cstop_loss_threshold": -0.049,
+      "cstop_max_stoploss": -0.149
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-01-15 22:35:41.394933+00:00"
+  "export_time": "2022-01-21 19:38:18.908346+00:00"
 }

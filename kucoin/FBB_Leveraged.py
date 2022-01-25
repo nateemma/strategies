@@ -31,67 +31,60 @@ import re
 """
 
 This strategy is intended to work with leveraged pairs.
-It uses the buy/sell signals from FBB_2, and checks against BTC
-For 'bull' pairs, it will  buy if BTC is in an uptrend (and other signals are met)
-For 'bear' pairs, it will buy if BTC is in a down trend (and other signals are met)
+It uses the buy/sell signals from FBB_2, looking for both uptrends and downtrends
+For 'bull' pairs, it will  buy  in an uptrend (and other signals are met)
+For 'bear' pairs, it will buy in a down trend (and other signals are met)
 """
 
 
 class FBB_Leveraged(IStrategy):
-    # Buy hyperspace params:
-    buy_params = {
-        "buy_bear_bb_gain": 0.09,
-        "buy_bear_fisher": -0.17,
-        "buy_bear_wr": -52.0,
-        "buy_bull_bb_gain": 0.08,
-        "buy_bull_fisher": -0.07,
-        "buy_bull_wr": -48.0
-    }
 
-    # Sell hyperspace params:
-    sell_params = {
-    }
-
-    # ROI table:
-    minimal_roi = {
-        "0": 0.195,
-        "30": 0.025,
-        "70": 0.012,
-        "158": 0
-    }
-
-    # Stoploss:
-    stoploss = -0.1
-
-    # Trailing stop:
-    trailing_stop = True
-    trailing_stop_positive = 0.013
-    trailing_stop_positive_offset = 0.072
-    trailing_only_offset_is_reached = True
+    # NOTE: hyperspace parameters are in the associated .json file (<clasname>.json)
+    #       Values in that file will override the default values in the variable definitions below
+    #       If the .json file does not exist, you will need to run hyperopt to generate it
 
     ## Buy Space Hyperopt Variables
 
     # FBB_ hyperparams
 
     buy_bull_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.09, space="buy", load=True, optimize=True)
-    buy_bull_fisher = DecimalParameter(-0.99, 0.99, decimals=2, default=0.99, space="buy", load=True, optimize=True)
-    buy_bull_wr = DecimalParameter(-99, 0, decimals=0, default=-80, space="buy", load=True, optimize=True)
+    buy_bull_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=-0.75, space="buy", load=True, optimize=True)
+    buy_bull_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.96, space='buy', load=True, optimize=True)
 
     buy_bear_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.09, space="buy", load=True, optimize=True)
-    buy_bear_fisher = DecimalParameter(-0.99, 0.99, decimals=2, default=0.99, space="buy", load=True, optimize=True)
-    buy_bear_wr = DecimalParameter(-99, 0, decimals=0, default=-80, space="buy", load=True, optimize=True)
+    buy_bear_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=-0.65, space="buy", load=True, optimize=True)
+    buy_bear_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.96, space='buy', load=True, optimize=True)
 
     ## Sell Space Hyperopt Variables
+
+    # (none)
+
+    ## Trailing params
+
+    # hard stoploss profit
+    pHSL = DecimalParameter(-0.200, -0.040, default=-0.08, decimals=3, space='sell', load=True)
+    # profit threshold 1, trigger point, SL_1 is used
+    pPF_1 = DecimalParameter(0.008, 0.020, default=0.016, decimals=3, space='sell', load=True)
+    pSL_1 = DecimalParameter(0.008, 0.020, default=0.011, decimals=3, space='sell', load=True)
+
+    # profit threshold 2, SL_2 is used
+    pPF_2 = DecimalParameter(0.040, 0.100, default=0.080, decimals=3, space='sell', load=True)
+    pSL_2 = DecimalParameter(0.020, 0.070, default=0.040, decimals=3, space='sell', load=True)
+
+    # stoploss
+    use_custom_stoploss = True
+
 
     timeframe = '5m'
     inf_timeframe = '5m'
 
-    use_custom_stoploss = False
 
     # Recommended
     use_sell_signal = True
-    sell_profit_only = False
+    sell_profit_only = True
     ignore_roi_if_buy_signal = True
+    sell_profit_offset = 0.001 # just to guarantee there is a minimal profit.
+
 
     # Required
     startup_candle_count: int = 24
@@ -101,12 +94,16 @@ class FBB_Leveraged(IStrategy):
     custom_trade_info = {}
     custom_fiat = "USDT"  # Only relevant if stake is BTC or ETH
 
+    ############################################################################
+
     """
     Informative Pair Definitions
     """
 
     def informative_pairs(self):
         return []
+
+    ############################################################################
 
     """
     Indicator Definitions
@@ -136,7 +133,12 @@ class FBB_Leveraged(IStrategy):
         # Williams %R
         dataframe['wr'] = williams_r(dataframe, period=14)
 
+        # Combined Fisher RSI and Williams %R
+        dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
+
         return dataframe
+
+    ############################################################################
 
     """
     Buy Signal
@@ -144,36 +146,76 @@ class FBB_Leveraged(IStrategy):
 
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         conditions = []
+        dataframe.loc[:, 'buy_tag'] = ''
+
 
         # volume check
         conditions.append(dataframe['volume'] > 0)
 
         # FBB_ Triggers
         if self.isBear(metadata['pair']):
-            conditions.append(
-                (dataframe['fisher_rsi'] <= self.buy_bear_fisher.value) &
-                (dataframe['bb_gain'] >= self.buy_bear_bb_gain.value)
+
+            bear_fbb_cond = (
+                    (dataframe['fisher_wr'] <= self.buy_bear_fisher_wr.value) &
+                    (dataframe['bb_gain'] >= self.buy_bear_bb_gain.value)
             )
-            conditions.append(
-                (qtpylib.crossed_below(dataframe['wr'], self.buy_bear_wr.value))
+
+            bear_wr_cross_cond = (
+                (qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_bear_fisher_wr.value))
             )
+
+            bear_strong_buy_cond = (
+                    (
+                            qtpylib.crossed_above(dataframe['bb_gain'], 1.5 * self.buy_bear_fisher_wr.value) |
+                            qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_bear_force_fisher_wr.value)
+                    ) &
+                    (
+                        (dataframe['bb_gain'] > 0.02)  # make sure there is some potential gain
+                    )
+            )
+
+            conditions.append((bear_fbb_cond & bear_wr_cross_cond) | (bear_fbb_cond & bear_strong_buy_cond))
+
+            # set buy tags
+            dataframe.loc[bear_fbb_cond, 'buy_tag'] += 'bear_fbb '
+            dataframe.loc[bear_wr_cross_cond, 'buy_tag'] += 'bear_wr_cross '
+            dataframe.loc[bear_strong_buy_cond, 'buy_tag'] += 'bear_strong buy '
 
         else:
             # bull or neither
-            conditions.append(
-                (dataframe['fisher_rsi'] <= self.buy_bull_fisher.value) &
-                (dataframe['bb_gain'] >= self.buy_bull_bb_gain.value)
+            bull_fbb_cond = (
+                    (dataframe['fisher_wr'] <= self.buy_bull_fisher_wr.value) &
+                    (dataframe['bb_gain'] >= self.buy_bull_bb_gain.value)
             )
-            conditions.append(
-                (qtpylib.crossed_below(dataframe['wr'], self.buy_bull_wr.value))
+
+            bull_wr_cross_cond = (
+                (qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_bull_fisher_wr.value))
             )
+
+            bull_strong_buy_cond = (
+                    (
+                            qtpylib.crossed_above(dataframe['bb_gain'], 1.5 * self.buy_bull_fisher_wr.value) |
+                            qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_bull_force_fisher_wr.value)
+                    ) &
+                    (
+                        (dataframe['bb_gain'] > 0.02)  # make sure there is some potential gain
+                    )
+            )
+
+            conditions.append((bull_fbb_cond & bull_wr_cross_cond) | (bull_fbb_cond & bull_strong_buy_cond))
+
+            # set buy tags
+            dataframe.loc[bull_fbb_cond, 'buy_tag'] += 'bull_fbb '
+            dataframe.loc[bull_wr_cross_cond, 'buy_tag'] += 'bull_wr_cross '
+            dataframe.loc[bull_strong_buy_cond, 'buy_tag'] += 'bull_strong buy '
+
 
         if conditions:
-            dataframe.loc[
-                reduce(lambda x, y: x & y, conditions),
-                'buy'] = 1
+            dataframe.loc[ reduce(lambda x, y: x & y, conditions), 'buy'] = 1
 
         return dataframe
+
+    ############################################################################
 
     """
     Sell Signal
@@ -186,12 +228,45 @@ class FBB_Leveraged(IStrategy):
 
         return dataframe
 
+    ############################################################################
+
+    ## Custom Trailing stoploss ( credit to Perkmeister for this custom stoploss to help the strategy ride a green candle )
+    def custom_stoploss(self, pair: str, trade: 'Trade', current_time: datetime,
+                        current_rate: float, current_profit: float, **kwargs) -> float:
+
+        # hard stoploss profit
+        HSL = self.pHSL.value
+        PF_1 = self.pPF_1.value
+        SL_1 = self.pSL_1.value
+        PF_2 = self.pPF_2.value
+        SL_2 = self.pSL_2.value
+
+        # For profits between PF_1 and PF_2 the stoploss (sl_profit) used is linearly interpolated
+        # between the values of SL_1 and SL_2. For all profits above PL_2 the sl_profit value
+        # rises linearly with current profit, for profits below PF_1 the hard stoploss profit is used.
+
+        if (current_profit > PF_2):
+            sl_profit = SL_2 + (current_profit - PF_2)
+        elif (current_profit > PF_1):
+            sl_profit = SL_1 + ((current_profit - PF_1) * (SL_2 - SL_1) / (PF_2 - PF_1))
+        else:
+            sl_profit = HSL
+
+        # Only for hyperopt invalid return
+        if (sl_profit >= current_profit):
+            return -0.99
+
+        return min(-0.01, max(stoploss_from_open(sl_profit, current_profit), -0.99))
+
+    ############################################################################
+
     def isBull(self, pair):
         return re.search(".*(BULL|UP|[235]L)", pair)
 
     def isBear(self, pair):
         return re.search(".*(BEAR|DOWN|[235]S)", pair)
 
+    ############################################################################
 
 # Williams %R
 def williams_r(dataframe: DataFrame, period: int = 14) -> Series:

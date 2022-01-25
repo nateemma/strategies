@@ -269,24 +269,24 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
                 debug_level = 1
 
             # don't let anything outweigh profit
-        if num_trades_loss > 0.0:
-            num_trades_loss = max(num_trades_loss, abs_profit_loss)
-        if duration_loss > 0.0:
-            duration_loss = max(duration_loss, abs_profit_loss)
-        if exp_profit_loss > 0.0:
-            exp_profit_loss = max(exp_profit_loss, abs_profit_loss)
-        if ave_profit_loss > 0.0:
-            ave_profit_loss = max(ave_profit_loss, abs_profit_loss)
-        if expectancy_loss > 0.0:
-            expectancy_loss = max(expectancy_loss, abs_profit_loss)
-        if win_loss_ratio_loss > 0.0:
-            win_loss_ratio_loss = max(win_loss_ratio_loss, abs_profit_loss)
-        if sharp_ratio_loss > 0.0:
-            sharp_ratio_loss = max(sharp_ratio_loss, abs_profit_loss)
-        if sortino_ratio_loss > 0.0:
-            sortino_ratio_loss = max(sortino_ratio_loss, abs_profit_loss)
-        if drawdown_loss > 0.0:
-            drawdown_loss = max(drawdown_loss, abs_profit_loss)
+            if weight_num_trades > 0.0:
+                num_trades_loss = max(num_trades_loss, abs_profit_loss)
+            if weight_duration > 0.0:
+                duration_loss = max(duration_loss, abs_profit_loss)
+            if weight_exp_profit > 0.0:
+                exp_profit_loss = max(exp_profit_loss, abs_profit_loss)
+            if weight_ave_profit > 0.0:
+                ave_profit_loss = max(ave_profit_loss, abs_profit_loss)
+            if weight_expectancy > 0.0:
+                expectancy_loss = max(expectancy_loss, abs_profit_loss)
+            if weight_win_loss_ratio > 0.0:
+                win_loss_ratio_loss = max(win_loss_ratio_loss, abs_profit_loss)
+            if weight_sharp_ratio > 0.0:
+                sharp_ratio_loss = max(sharp_ratio_loss, abs_profit_loss)
+            if weight_sortino_ratio > 0.0:
+                sortino_ratio_loss = max(sortino_ratio_loss, abs_profit_loss)
+            if weight_drawdown > 0.0:
+                drawdown_loss = max(drawdown_loss, abs_profit_loss)
 
         result = abs_profit_loss + num_trades_loss + duration_loss + exp_profit_loss + ave_profit_loss + \
                  win_loss_ratio_loss + expectancy_loss + sharp_ratio_loss + sortino_ratio_loss + drawdown_loss

@@ -1,0 +1,63 @@
+{
+  "strategy_name": "FBB_RPB_TSL_RNG",
+  "params": {
+    "roi": {
+      "0": 0.1
+    },
+    "stoploss": {
+      "stoploss": -0.99
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "buy": {
+      "buy_bb_factor": 0.999,
+      "buy_is_break_enabled": true,
+      "buy_is_dip_enabled": true,
+      "buy_rsi": 35,
+      "buy_rsi_fast": 45,
+      "buy_adx": 28,
+      "buy_bb_delta": 0.073,
+      "buy_bb_gain": 0.18,
+      "buy_bb_width": 0.159,
+      "buy_btc_safe": -4,
+      "buy_btc_safe_1d": -0.065,
+      "buy_cci": -98,
+      "buy_cci_length": 34,
+      "buy_closedelta": 12.263,
+      "buy_ema_cofi": 0.969,
+      "buy_ema_diff": 0.022,
+      "buy_ema_high": 0.963,
+      "buy_ema_high_2": 1.101,
+      "buy_ema_low": 0.934,
+      "buy_ema_low_2": 0.977,
+      "buy_ewo": 0.848,
+      "buy_ewo_high": 2.252,
+      "buy_fastd": 27,
+      "buy_fastk": 25,
+      "buy_fisher_wr": -0.75,
+      "buy_force_fisher_wr": -0.88,
+      "buy_rmi": 34,
+      "buy_rmi_length": 19,
+      "buy_srsi_fk": 39,
+      "buy_threshold": 0.005
+    },
+    "sell": {
+      "base_nb_candles_sell": 39,
+      "high_offset": 1.041,
+      "high_offset_2": 1.175,
+      "pHSL": -0.198,
+      "pPF_1": 0.014,
+      "pPF_2": 0.081,
+      "pSL_1": 0.019,
+      "pSL_2": 0.07,
+      "sell_btc_safe": -338
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2022-01-22 12:27:36.315686+00:00"
+}

@@ -33,20 +33,39 @@ class FBB_ROI(IStrategy):
     #       If the .json file does not exist, you will need to run hyperopt to generate it
 
 
-    # Stoploss:
-    stoploss = -0.10
-
-    # Trailing stop:
-    trailing_stop = True
-    trailing_stop_positive = 0.01
-    trailing_stop_positive_offset = 0.105
-    trailing_only_offset_is_reached = True
-
     # FBB_ hyperparams
-    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.09, space='buy', load=True, optimize=True)
+    buy_bb_gain = DecimalParameter(0.01, 0.20, decimals=2, default=0.09, space='buy', load=True, optimize=True)
     buy_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=-0.75, space='buy', load=True, optimize=True)
+    buy_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.99, space='buy', load=True, optimize=True)
 
-    use_custom_stoploss = False
+    ## Trailing params
+
+    # hard stoploss profit
+    pHSL = DecimalParameter(-0.200, -0.040, default=-0.08, decimals=3, space='sell', load=True)
+    # profit threshold 1, trigger point, SL_1 is used
+    pPF_1 = DecimalParameter(0.008, 0.020, default=0.016, decimals=3, space='sell', load=True)
+    pSL_1 = DecimalParameter(0.008, 0.020, default=0.011, decimals=3, space='sell', load=True)
+
+    # profit threshold 2, SL_2 is used
+    pPF_2 = DecimalParameter(0.040, 0.100, default=0.080, decimals=3, space='sell', load=True)
+    pSL_2 = DecimalParameter(0.020, 0.070, default=0.040, decimals=3, space='sell', load=True)
+
+    # stoploss
+    use_custom_stoploss = True
+
+    # # Trailing stop:
+    # if use_custom_stoploss:
+    #     stoploss = -0.99
+    #     trailing_stop = False
+    #     trailing_stop_positive = None
+    #     trailing_stop_positive_offset = 0.0
+    #     trailing_only_offset_is_reached = False
+    # else:
+    #     stoploss = -0.10
+    #     trailing_stop = True
+    #     trailing_stop_positive = 0.01
+    #     trailing_stop_positive_offset = 0.105
+    #     trailing_only_offset_is_reached = True
 
     # Recommended
     use_sell_signal = True
@@ -56,6 +75,8 @@ class FBB_ROI(IStrategy):
     # Required
     process_only_new_candles = False
     startup_candle_count = 20
+
+    ############################################################################
 
     # Define custom ROI ranges
     class HyperOpt:
@@ -70,6 +91,8 @@ class FBB_ROI(IStrategy):
                 SKDecimal(0.01, 0.20, decimals=3, name='roi_p3'),
             ]
 
+    ############################################################################
+
     def informative_pairs(self):
         """
         Define additional, informative pair/interval combinations to be cached from the exchange.
@@ -82,6 +105,8 @@ class FBB_ROI(IStrategy):
                             ]
         """
         return []
+
+    ############################################################################
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         """
@@ -113,6 +138,8 @@ class FBB_ROI(IStrategy):
 
         return dataframe
 
+    ############################################################################
+
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         """
         Based on TA indicators, populates the buy signal for the given dataframe
@@ -120,18 +147,42 @@ class FBB_ROI(IStrategy):
         :return: DataFrame with buy column
         """
         conditions = []
+        dataframe.loc[:, 'buy_tag'] = ''
 
         # GUARDS AND TRENDS
 
-        conditions.append(dataframe['fisher_wr'] <= self.buy_fisher_wr.value)
+        fbb_cond = (
+            # Fisher RSI
+                (dataframe['fisher_wr'] <= self.buy_fisher_wr.value) &
 
-        # potential gain > goal
-        conditions.append(dataframe['bb_gain'] >= self.buy_bb_gain.value)
+                # Bollinger Band
+                (dataframe['bb_gain'] >= self.buy_bb_gain.value)
+
+        )
+
+        strong_buy_cond = (
+                (
+                        qtpylib.crossed_above(dataframe['bb_gain'], 1.5 * self.buy_bb_gain.value) |
+                        qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_force_fisher_wr.value)
+                ) &
+                (
+                    (dataframe['bb_gain'] > 0.02)  # make sure there is some potential gain
+                )
+        )
+
+        conditions.append(fbb_cond | strong_buy_cond)
+
+        # set buy tags
+        dataframe.loc[fbb_cond, 'buy_tag'] += 'fisher_bb '
+        dataframe.loc[strong_buy_cond, 'buy_tag'] += 'strong_buy '
+
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
 
         return dataframe
+
+    ############################################################################
 
     def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         """
@@ -142,6 +193,38 @@ class FBB_ROI(IStrategy):
         dataframe.loc[(dataframe['close'].notnull()), 'sell'] = 0
 
         return dataframe
+
+    ############################################################################
+
+    ## Custom Trailing stoploss ( credit to Perkmeister for this custom stoploss to help the strategy ride a green candle )
+    def custom_stoploss(self, pair: str, trade: 'Trade', current_time: datetime,
+                        current_rate: float, current_profit: float, **kwargs) -> float:
+
+        # hard stoploss profit
+        HSL = self.pHSL.value
+        PF_1 = self.pPF_1.value
+        SL_1 = self.pSL_1.value
+        PF_2 = self.pPF_2.value
+        SL_2 = self.pSL_2.value
+
+        # For profits between PF_1 and PF_2 the stoploss (sl_profit) used is linearly interpolated
+        # between the values of SL_1 and SL_2. For all profits above PL_2 the sl_profit value
+        # rises linearly with current profit, for profits below PF_1 the hard stoploss profit is used.
+
+        if (current_profit > PF_2):
+            sl_profit = SL_2 + (current_profit - PF_2)
+        elif (current_profit > PF_1):
+            sl_profit = SL_1 + ((current_profit - PF_1) * (SL_2 - SL_1) / (PF_2 - PF_1))
+        else:
+            sl_profit = HSL
+
+        # Only for hyperopt invalid return
+        if (sl_profit >= current_profit):
+            return -0.99
+
+        return max(stoploss_from_open(sl_profit, current_profit), -1)
+
+   ############################################################################
 
 
 # Williams %R

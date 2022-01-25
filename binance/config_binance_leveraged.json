@@ -58,7 +58,7 @@
       ".*DOWN/USDT"
     ],
     "pair_blacklist": [
-      "(XTZDOWN|LTCDOWN)/.*", // big spike, not good for hyperopt
+      "(XTZDOWN|LTCDOWN|DOTDOWN)/.*", // big spike, not good for hyperopt
       ".*(BNB)/.*",
       ".*(BTC|ETH)/.*",
       "(BULL|BEAR)/.*",

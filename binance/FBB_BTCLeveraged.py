@@ -38,61 +38,43 @@ For 'bear' pairs, it will buy if BTC is in a down trend (and other signals are m
 
 
 class FBB_BTCLeveraged(IStrategy):
-    # Buy hyperspace params:
-    buy_bull_params = {
-        "buy_bull_bb_gain": 0.03,
-        "buy_bull_fisher": 0.68,
-        "buy_bull_wr": 0.0,
-        "buy_bear_bb_gain": 0.03,
-        "buy_bear_fisher": 0.68,
-        "buy_bear_wr": 0.0,
-    }
 
-    # Sell hyperspace params:
-    sell_bull_params = {
-        "sell_bull_bb_gain": 0.97,
-        "sell_bear_bb_gain": 0.97,
-    }
-
-    # ROI table:
-    minimal_roi = {
-        "0": 0.068,
-        "7": 0.029,
-        "18": 0.011,
-        "32": 0
-    }
-
-    # Stoploss:
-    stoploss = -0.1
-
-    # Trailing stop:
-    trailing_stop = True
-    trailing_stop_positive = 0.013
-    trailing_stop_positive_offset = 0.072
-    trailing_only_offset_is_reached = True
 
     ## Buy Space Hyperopt Variables
 
     # FBB_ hyperparams
     buy_trend_method = CategoricalParameter(['price', 'ssl', 'kama', 'supertrend', 'sqzmom'],
                                             default='ssl', space='buy', load=True, optimize=True)
+    buy_btc_check = CategoricalParameter(['transition', 'trend'], default='transition', space='buy', load=True, optimize=True)
 
     buy_bull_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.09, space="buy", load=True, optimize=True)
-    buy_bull_fisher = DecimalParameter(-0.99, 0.99, decimals=2, default=0.99, space="buy", load=True, optimize=True)
-    buy_bull_wr = DecimalParameter(-99, 0, decimals=0, default=-80, space="buy", load=True, optimize=True)
+    buy_bull_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=-0.75, space="buy", load=True, optimize=True)
+    buy_bull_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.96, space='buy', load=True, optimize=True)
+
     buy_bear_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.09, space="buy", load=True, optimize=True)
-    buy_bear_fisher = DecimalParameter(-0.99, 0.99, decimals=2, default=0.99, space="buy", load=True, optimize=True)
-    buy_bear_wr = DecimalParameter(-99, 0, decimals=0, default=-80, space="buy", load=True, optimize=True)
+    buy_bear_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=-0.65, space="buy", load=True, optimize=True)
+    buy_bear_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.96, space='buy', load=True, optimize=True)
 
     ## Sell Space Hyperopt Variables
 
     sell_bull_bb_gain = DecimalParameter(0.7, 1.3, decimals=2, default=0.8, space="sell", load=True, optimize=True)
     sell_bear_bb_gain = DecimalParameter(0.7, 1.3, decimals=2, default=0.8, space="sell", load=True, optimize=True)
+    ## Trailing params
+
+    # hard stoploss profit
+    pHSL = DecimalParameter(-0.200, -0.040, default=-0.08, decimals=3, space='sell', load=True)
+    # profit threshold 1, trigger point, SL_1 is used
+    pPF_1 = DecimalParameter(0.008, 0.020, default=0.016, decimals=3, space='sell', load=True)
+    pSL_1 = DecimalParameter(0.008, 0.020, default=0.011, decimals=3, space='sell', load=True)
+
+    # profit threshold 2, SL_2 is used
+    pPF_2 = DecimalParameter(0.040, 0.100, default=0.080, decimals=3, space='sell', load=True)
+    pSL_2 = DecimalParameter(0.020, 0.070, default=0.040, decimals=3, space='sell', load=True)
 
     timeframe = '5m'
     inf_timeframe = '5m'
 
-    use_custom_stoploss = False
+    use_custom_stoploss = True
 
     # Recommended
     use_sell_signal = True
@@ -107,6 +89,8 @@ class FBB_BTCLeveraged(IStrategy):
     custom_trade_info = {}
     custom_fiat = "USDT"  # Only relevant if stake is BTC or ETH
 
+    ############################################################################
+
     """
     Informative Pair Definitions
     """
@@ -115,6 +99,8 @@ class FBB_BTCLeveraged(IStrategy):
         # just using BTC here
         btc_stake = f"BTC/{self.config['stake_currency']}"
         return [(btc_stake, self.timeframe)]
+
+    ############################################################################
 
     """
     Indicator Definitions
@@ -188,6 +174,9 @@ class FBB_BTCLeveraged(IStrategy):
         # Williams %R
         dataframe['wr'] = williams_r(dataframe, period=14)
 
+        # Combined Fisher RSI and Williams %R
+        dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
+
         # Base pair informative timeframe indicators
         informative = self.dp.get_pair_dataframe(pair=metadata['pair'], timeframe=self.inf_timeframe)
 
@@ -260,12 +249,15 @@ class FBB_BTCLeveraged(IStrategy):
 
         return dataframe
 
+    ############################################################################
+
     """
     Buy Signal
     """
 
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         conditions = []
+        dataframe.loc[:, 'buy_tag'] = ''
 
         # volume check
         conditions.append(dataframe['volume'] > 0)
@@ -274,39 +266,87 @@ class FBB_BTCLeveraged(IStrategy):
         if self.isBull(metadata['pair']):
             # print(metadata['pair'], ": BULL")
             # check that BTC is in an uptrend
-            # conditions.append(self.inUptrend(dataframe))
-            conditions.append(self.newUptrend(dataframe))
+            if self.buy_btc_check.value == "transition":
+                uptrend = self.newUptrend(dataframe)
+            else:
+                uptrend = self.inUptrend(dataframe)
+            conditions.append(uptrend)
 
         elif self.isBear(metadata['pair']):
-            # conditions.append(self.inDowntrend(dataframe))
-            conditions.append(self.newDowntrend(dataframe))
+            if self.buy_btc_check.value == "transition":
+                conditions.append(self.newDowntrend(dataframe))
+            else:
+                conditions.append(self.inDowntrend(dataframe))
 
-            # FBB_ Triggers
+        # FBB_ Triggers
         if self.isBear(metadata['pair']):
-            conditions.append(
-                (dataframe['fisher_rsi'] <= self.buy_bear_fisher.value) &
-                (dataframe['bb_gain'] >= self.buy_bear_bb_gain.value)
+            bear_fbb_cond = (
+                    (dataframe['fisher_wr'] <= self.buy_bear_fisher_wr.value) &
+                    (dataframe['bb_gain'] >= self.buy_bear_bb_gain.value)
             )
-            conditions.append(
-                (qtpylib.crossed_below(dataframe['wr'], self.buy_bear_wr.value))
+
+            bear_wr_cross_cond = (
+                (qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_bear_fisher_wr.value))
             )
+
+            bear_strong_buy_cond = (
+                    (
+                            qtpylib.crossed_above(dataframe['bb_gain'], 1.5 * self.buy_bear_fisher_wr.value) |
+                            qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_bear_force_fisher_wr.value)
+                    ) &
+                    (
+                        (dataframe['bb_gain'] > 0.02)  # make sure there is some potential gain
+                    )
+            )
+
+            if self.buy_btc_check.value == "transition":
+                conditions.append((bear_fbb_cond) | (bear_fbb_cond & bear_strong_buy_cond))
+            else:
+                conditions.append((bear_fbb_cond & bear_wr_cross_cond) | (bear_fbb_cond & bear_strong_buy_cond))
+
+            # set buy tags
+            dataframe.loc[bear_fbb_cond, 'buy_tag'] += 'bear_fbb '
+            dataframe.loc[bear_wr_cross_cond, 'buy_tag'] += 'bear_wr_cross '
+            dataframe.loc[bear_strong_buy_cond, 'buy_tag'] += 'bear_strong buy '
 
         else:
             # bull or neither
-            conditions.append(
-                (dataframe['fisher_rsi'] <= self.buy_bull_fisher.value) &
-                (dataframe['bb_gain'] >= self.buy_bull_bb_gain.value)
+            bull_fbb_cond = (
+                    (dataframe['fisher_wr'] <= self.buy_bull_fisher_wr.value) &
+                    (dataframe['bb_gain'] >= self.buy_bull_bb_gain.value)
             )
-            conditions.append(
-                (qtpylib.crossed_below(dataframe['wr'], self.buy_bull_wr.value))
+
+            bull_wr_cross_cond = (
+                (qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_bull_fisher_wr.value))
             )
+
+            bull_strong_buy_cond = (
+                    (
+                            qtpylib.crossed_above(dataframe['bb_gain'], 1.5 * self.buy_bull_fisher_wr.value) |
+                            qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_bull_force_fisher_wr.value)
+                    ) &
+                    (
+                        (dataframe['bb_gain'] > 0.02)  # make sure there is some potential gain
+                    )
+            )
+
+            if self.buy_btc_check.value == "transition":
+                conditions.append((bull_fbb_cond) | (bull_fbb_cond & bull_strong_buy_cond))
+            else:
+                conditions.append((bull_fbb_cond & bull_wr_cross_cond) | (bull_fbb_cond & bull_strong_buy_cond))
+
+
+            # set buy tags
+            dataframe.loc[bull_fbb_cond, 'buy_tag'] += 'bull_fbb '
+            dataframe.loc[bull_wr_cross_cond, 'buy_tag'] += 'bull_wr_cross '
+            dataframe.loc[bull_strong_buy_cond, 'buy_tag'] += 'bull_strong buy '
 
         if conditions:
-            dataframe.loc[
-                reduce(lambda x, y: x & y, conditions),
-                'buy'] = 1
+            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
 
         return dataframe
+
+    ############################################################################
 
     """
     Sell Signal
@@ -315,6 +355,7 @@ class FBB_BTCLeveraged(IStrategy):
     def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
 
         conditions = []
+        # dataframe.loc[:, 'exit_tag'] = ''
 
         # Volume check
         conditions.append(dataframe['volume'] > 0)
@@ -322,14 +363,17 @@ class FBB_BTCLeveraged(IStrategy):
         # Trend checks
         if self.isBull(metadata['pair']):
             # check that BTC is in a downtrend
-            # conditions.append(self.inDowntrend(dataframe))
-            conditions.append(self.newDowntrend(dataframe))
-
+            if self.buy_btc_check.value == "transition":
+                conditions.append(self.newDowntrend(dataframe))
+            else:
+                conditions.append(self.inDowntrend(dataframe))
 
         elif self.isBear(metadata['pair']):
             # check that BTC is in an uptrend
-            # conditions.append(self.inUptrend(dataframe))
-            conditions.append(self.newUptrend(dataframe))
+            if self.buy_btc_check.value == "transition":
+                conditions.append(self.newUptrend(dataframe))
+            else:
+                conditions.append(self.inUptrend(dataframe))
 
         # Bollinger band check
         if self.isBear(metadata['pair']):
@@ -347,6 +391,8 @@ class FBB_BTCLeveraged(IStrategy):
 
         return dataframe
 
+    ############################################################################
+
     def isBull(self, pair):
         return re.search(".*(BULL|UP|[235]L)", pair)
 
@@ -356,14 +402,19 @@ class FBB_BTCLeveraged(IStrategy):
     def inUptrend(self, dataframe: DataFrame):
         if self.buy_trend_method.value == 'price':
             result = (dataframe['BTC_up_trend'] == 1)
+            dataframe.loc[result, 'buy_tag'] += 'price_uptrend '
         elif self.buy_trend_method.value == 'ssl':
             result = (dataframe['BTC_ssl_dir'] == 'up')
+            dataframe.loc[result, 'buy_tag'] += 'ssl_uptrend '
         elif self.buy_trend_method.value == 'kama':
             result = (dataframe['BTC_kama_up_trend'] == 1)
+            dataframe.loc[result, 'buy_tag'] += 'kama_uptrend '
         elif self.buy_trend_method.value == 'supertrend':
             result = (dataframe['BTC_st_trend'] == 'up')
+            dataframe.loc[result, 'buy_tag'] += 'super_uptrend '
         elif self.buy_trend_method.value == 'sqzmom':
             result = (dataframe['BTC_sqz_val'] > 0)
+            dataframe.loc[result, 'buy_tag'] += 'sqz_uptrend '
         else:
             print("ERR: buy_trend_method is: ", self.buy_trend_method.value)
         return result
@@ -371,14 +422,19 @@ class FBB_BTCLeveraged(IStrategy):
     def inDowntrend(self, dataframe: DataFrame):
         if self.buy_trend_method.value == 'price':
             result = (dataframe['BTC_down_trend'] == 1)
+            dataframe.loc[result, 'buy_tag'] += 'price_downtrend '
         elif self.buy_trend_method.value == 'ssl':
             result = (dataframe['BTC_ssl_dir'] == 'down')
+            dataframe.loc[result, 'buy_tag'] += 'ssl_downtrend '
         elif self.buy_trend_method.value == 'kama':
             result = (dataframe['BTC_kama_down_trend'] == 1)
+            dataframe.loc[result, 'buy_tag'] += 'kama_downtrend '
         elif self.buy_trend_method.value == 'supertrend':
             result = (dataframe['BTC_st_trend'] == 'down')
+            dataframe.loc[result, 'buy_tag'] += 'super_downtrend '
         elif self.buy_trend_method.value == 'sqzmom':
             result = (dataframe['BTC_sqz_val'] < 0)
+            dataframe.loc[result, 'buy_tag'] += 'sqz_downtrend '
         else:
             print("ERR: buy_trend_method is: ", self.buy_trend_method.value)
         return result
@@ -386,28 +442,70 @@ class FBB_BTCLeveraged(IStrategy):
     def newUptrend(self, dataframe: DataFrame):
         if self.buy_trend_method.value == 'price':
             result = ((dataframe['BTC_up_trend'] == 1) & (dataframe['BTC_up_trend'].shift(1) != 1))
+            dataframe.loc[result, 'buy_tag'] += 'price_up '
         elif self.buy_trend_method.value == 'ssl':
             result = (qtpylib.crossed_above(dataframe['BTC_ssl_up'], dataframe['BTC_ssl_down']))
+            dataframe.loc[result, 'buy_tag'] += 'ssl_up '
         elif self.buy_trend_method.value == 'kama':
             result = ((dataframe['BTC_kama_up_trend'] == 1) & (dataframe['BTC_kama_up_trend'].shift(1) != 1))
+            dataframe.loc[result, 'buy_tag'] += 'kama_up '
         elif self.buy_trend_method.value == 'supertrend':
             result = ((dataframe['BTC_st_trend'] == 'up') & (dataframe['BTC_st_trend'].shift(1) != 'up'))
+            dataframe.loc[result, 'buy_tag'] += 'super_up '
         elif self.buy_trend_method.value == 'sqzmom':
             result = (qtpylib.crossed_above(dataframe['BTC_sqz_val'], 0))
+            dataframe.loc[result, 'buy_tag'] += 'sqz_up '
         return result
 
     def newDowntrend(self, dataframe: DataFrame):
         if self.buy_trend_method.value == 'price':
             result = ((dataframe['BTC_down_trend'] == 1) & (dataframe['BTC_down_trend'].shift(1) != 1))
+            dataframe.loc[result, 'buy_tag'] += 'price_down '
         elif self.buy_trend_method.value == 'ssl':
             result = (qtpylib.crossed_below(dataframe['BTC_ssl_up'], dataframe['BTC_ssl_down']))
+            dataframe.loc[result, 'buy_tag'] += 'ssl_down '
         elif self.buy_trend_method.value == 'kama':
             result = ((dataframe['BTC_kama_down_trend'] == 1) & (dataframe['BTC_kama_down_trend'].shift(1) != 1))
+            dataframe.loc[result, 'buy_tag'] += 'kama_down '
         elif self.buy_trend_method.value == 'supertrend':
             result = ((dataframe['BTC_st_trend'] == 'down') & (dataframe['BTC_st_trend'].shift(1) != 'down'))
+            dataframe.loc[result, 'buy_tag'] += 'super_down '
         elif self.buy_trend_method.value == 'sqzmom':
             result = (qtpylib.crossed_below(dataframe['BTC_sqz_val'], 0))
+            dataframe.loc[result, 'buy_tag'] += 'sqz_down '
         return result
+
+    ############################################################################
+
+    ## Custom Trailing stoploss ( credit to Perkmeister for this custom stoploss to help the strategy ride a green candle )
+    def custom_stoploss(self, pair: str, trade: 'Trade', current_time: datetime,
+                        current_rate: float, current_profit: float, **kwargs) -> float:
+
+        # hard stoploss profit
+        HSL = self.pHSL.value
+        PF_1 = self.pPF_1.value
+        SL_1 = self.pSL_1.value
+        PF_2 = self.pPF_2.value
+        SL_2 = self.pSL_2.value
+
+        # For profits between PF_1 and PF_2 the stoploss (sl_profit) used is linearly interpolated
+        # between the values of SL_1 and SL_2. For all profits above PL_2 the sl_profit value
+        # rises linearly with current profit, for profits below PF_1 the hard stoploss profit is used.
+
+        if (current_profit > PF_2):
+            sl_profit = SL_2 + (current_profit - PF_2)
+        elif (current_profit > PF_1):
+            sl_profit = SL_1 + ((current_profit - PF_1) * (SL_2 - SL_1) / (PF_2 - PF_1))
+        else:
+            sl_profit = HSL
+
+        # Only for hyperopt invalid return
+        if (sl_profit >= current_profit):
+            return -0.99
+
+        return max(stoploss_from_open(sl_profit, current_profit), -1)
+
+    ############################################################################
 
 
 # Williams %R

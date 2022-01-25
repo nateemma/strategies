@@ -111,7 +111,6 @@ exchange=$1
 summary_file="test_monthly_${exchange}.log"
 
 
-
 echo "" >${summary_file}
 echo "              ========================" >>${summary_file}
 echo "                  ${exchange}" >>${summary_file}

@@ -1,39 +1,40 @@
 {
   "strategy_name": "FBB_2",
   "params": {
+    "roi": {
+      "0": 0.1
+    },
     "stoploss": {
-      "stoploss": -0.1
+      "stoploss": -0.99
     },
     "trailing": {
-      "trailing_stop": true,
-      "trailing_stop_positive": 0.028,
-      "trailing_stop_positive_offset": 0.104,
-      "trailing_only_offset_is_reached": true
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "buy_bb_gain": 0.09,
-      "buy_fisher_wr": 0.63,
-      "buy_force_fisher_wr": -0.34,
-      "buy_strong_only": false,
-      "inf_pct_adr": 0.768,
-      "xbtc_base_rmi": 58,
-      "xbtc_guard": "lazy",
-      "xtra_base_fiat_rmi": 52,
-      "xtra_base_stake_rmi": 40
+      "buy_bb_gain": 0.12,
+      "buy_fisher_wr": -0.36,
+      "buy_force_fisher_wr": -0.84,
+      "inf_pct_adr": 0.93,
+      "xbtc_base_rmi": 51,
+      "xbtc_guard": "none",
+      "xtra_base_fiat_rmi": 67,
+      "xtra_base_stake_rmi": 32
     },
     "sell": {
-      "sell_bb_gain": 1.27,
-      "sell_fisher_wr": 0.05,
-      "sell_force_fisher_wr": -0.41
+      "pHSL": -0.17,
+      "pPF_1": 0.019,
+      "pPF_2": 0.056,
+      "pSL_1": 0.016,
+      "pSL_2": 0.056,
+      "sell_bb_gain": 1.29,
+      "sell_fisher_wr": 0.96,
+      "sell_force_fisher_wr": 0.77
     },
-    "protection": {},
-    "roi": {
-      "0": 0.233,
-      "21": 0.067,
-      "38": 0.018,
-      "60": 0
-    }
+    "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-01-14 01:36:57.623511+00:00"
+  "export_time": "2022-01-22 10:04:46.755177+00:00"
 }

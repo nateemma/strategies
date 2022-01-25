@@ -56,22 +56,30 @@ class FBB_2(IStrategy):
     #       Values in that file will override the default values in the variable definitions below
     #       If the .json file does not exist, you will need to run hyperopt to generate it
 
-    # Stoploss:
-    stoploss = -0.201
+    # stoploss
+    use_custom_stoploss = True
 
-    # Trailing stop:
-    trailing_stop = True
-    trailing_stop_positive = 0.01
-    trailing_stop_positive_offset = 0.11
-    trailing_only_offset_is_reached = True
+    # # Trailing stop:
+    # if use_custom_stoploss:
+    #     stoploss = -0.99
+    #     trailing_stop = False
+    #     trailing_stop_positive = None
+    #     trailing_stop_positive_offset = 0.0
+    #     trailing_only_offset_is_reached = False
+    # else:
+    #     stoploss = -0.10
+    #     trailing_stop = True
+    #     trailing_stop_positive = 0.01
+    #     trailing_stop_positive_offset = 0.11
+    #     trailing_only_offset_is_reached = True
 
 
     ## Buy Space Hyperopt Variables
 
     # FBB_ hyperparams
-    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.09, space='buy', load=True, optimize=True)
+    buy_bb_gain = DecimalParameter(0.01, 0.20, decimals=2, default=0.09, space='buy', load=True, optimize=True)
     buy_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=-0.75, space='buy', load=True, optimize=True)
-    buy_force_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=-0.99, space='buy', load=True, optimize=True)
+    buy_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.99, space='buy', load=True, optimize=True)
 
     inf_pct_adr = DecimalParameter(0.70, 0.99, default=0.80, space='buy', load=True, optimize=True)
 
@@ -87,12 +95,24 @@ class FBB_2(IStrategy):
 
     sell_bb_gain = DecimalParameter(0.7, 1.3, decimals=2, default=0.8, space='sell', load=True, optimize=True)
     sell_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=0.75, space='sell', load=True, optimize=True)
-    sell_force_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=0.99, space='sell', load=True, optimize=True)
+    sell_force_fisher_wr = DecimalParameter(0.75, 0.99, decimals=2, default=0.99, space='sell', load=True, optimize=True)
+
+    ## Trailing params
+
+    # hard stoploss profit
+    pHSL = DecimalParameter(-0.200, -0.040, default=-0.08, decimals=3, space='sell', load=True)
+    # profit threshold 1, trigger point, SL_1 is used
+    pPF_1 = DecimalParameter(0.008, 0.020, default=0.016, decimals=3, space='sell', load=True)
+    pSL_1 = DecimalParameter(0.008, 0.020, default=0.011, decimals=3, space='sell', load=True)
+
+    # profit threshold 2, SL_2 is used
+    pPF_2 = DecimalParameter(0.040, 0.100, default=0.080, decimals=3, space='sell', load=True)
+    pSL_2 = DecimalParameter(0.020, 0.070, default=0.040, decimals=3, space='sell', load=True)
 
     timeframe = '5m'
     inf_timeframe = '1h'
 
-    use_custom_stoploss = False
+    use_custom_stoploss = True
 
     # Recommended
     use_sell_signal = True
@@ -107,6 +127,8 @@ class FBB_2(IStrategy):
     custom_trade_info = {}
     custom_fiat = "USDT"  # Only relevant if stake is BTC or ETH
     custom_btc_inf = False  # Don't change this.
+
+    ############################################################################
 
     """
     Informative Pair Definitions
@@ -133,6 +155,8 @@ class FBB_2(IStrategy):
                 informative_pairs += [(btc_stake, self.timeframe)]
 
         return informative_pairs
+
+    ############################################################################
 
     """
     Indicator Definitions
@@ -249,20 +273,25 @@ class FBB_2(IStrategy):
 
         return dataframe
 
+    ############################################################################
+
     """
     Buy Signal
     """
 
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         conditions = []
+        dataframe.loc[:, 'buy_tag'] = ''
 
         conditions.append(dataframe['volume'] > 0)
 
         # Informative Timeframe Guards
-        conditions.append(
+        inf_cond = (
             (dataframe['close'] <= dataframe[f"1d-low_{self.inf_timeframe}"] +
-             (self.inf_pct_adr.value * dataframe[f"adr_{self.inf_timeframe}"]))
+             (self.inf_pct_adr.value * dataframe[f"adr_{self.inf_timeframe}"])
+             )
         )
+        conditions.append(inf_cond)
 
 
         # FBB_ triggers
@@ -287,25 +316,32 @@ class FBB_2(IStrategy):
 
         conditions.append(fbb_cond | strong_buy_cond)
 
+        # set buy tags
+        dataframe.loc[fbb_cond, 'buy_tag'] += 'fisher_bb '
+        dataframe.loc[strong_buy_cond, 'buy_tag'] += 'strong_buy '
+        # dataframe.loc[inf_cond, 'buy_tag'] += 'informative ' # always to true on buy, so omit
+
 
         # Additional informative
         if self.custom_btc_inf:
             if self.xbtc_guard.value == 'strict':
-                conditions.append(
-                    (
-                            (dataframe['BTC_rmi'] > self.xbtc_base_rmi.value) &
-                            (dataframe['BTC_close'] > dataframe['BTC_kama'])
-                    )
+                xbtc_strict_cond = (
+                        (dataframe['BTC_rmi'] > self.xbtc_base_rmi.value) &
+                        (dataframe['BTC_close'] > dataframe['BTC_kama'])
                 )
+                conditions.append(xbtc_strict_cond)
+                dataframe.loc[xbtc_strict_cond, 'buy_tag'] += 'xbtc_strict '
+
             if self.xbtc_guard.value == 'lazy':
-                conditions.append(
-                    (dataframe['close'] > dataframe['kama']) |
-                    (
-                            (dataframe['BTC_rmi'] > self.xbtc_base_rmi.value) &
-                            (dataframe['BTC_close'] > dataframe['BTC_kama'])
-                    )
+                xbtc_lazy_cond = (
+                        (dataframe['close'] > dataframe['kama']) |
+                        (
+                                (dataframe['BTC_rmi'] > self.xbtc_base_rmi.value) &
+                                (dataframe['BTC_close'] > dataframe['BTC_kama'])
+                        )
                 )
-        conditions.append(dataframe['volume'].gt(0))
+                conditions.append(xbtc_lazy_cond)
+                dataframe.loc[xbtc_lazy_cond, 'buy_tag'] += 'xbtc_strict '
 
         if conditions:
             dataframe.loc[
@@ -319,9 +355,12 @@ class FBB_2(IStrategy):
     Sell Signal
     """
 
+    ############################################################################
+
     def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
 
         conditions = []
+        dataframe.loc[:, 'exit_tag'] = ''
 
         # FBB_ triggers
         fbb_cond = (
@@ -339,6 +378,10 @@ class FBB_2(IStrategy):
 
         conditions.append(fbb_cond | strong_sell_cond)
 
+        # set exit tags
+        dataframe.loc[fbb_cond, 'exit_tag'] += 'fisher_bb '
+        dataframe.loc[strong_sell_cond, 'exit_tag'] += 'strong_sell '
+
         if conditions:
             dataframe.loc[
                 reduce(lambda x, y: x & y, conditions),
@@ -346,6 +389,38 @@ class FBB_2(IStrategy):
 
 
         return dataframe
+
+    ############################################################################
+
+    ## Custom Trailing stoploss ( credit to Perkmeister for this custom stoploss to help the strategy ride a green candle )
+    def custom_stoploss(self, pair: str, trade: 'Trade', current_time: datetime,
+                        current_rate: float, current_profit: float, **kwargs) -> float:
+
+        # hard stoploss profit
+        HSL = self.pHSL.value
+        PF_1 = self.pPF_1.value
+        SL_1 = self.pSL_1.value
+        PF_2 = self.pPF_2.value
+        SL_2 = self.pSL_2.value
+
+        # For profits between PF_1 and PF_2 the stoploss (sl_profit) used is linearly interpolated
+        # between the values of SL_1 and SL_2. For all profits above PL_2 the sl_profit value
+        # rises linearly with current profit, for profits below PF_1 the hard stoploss profit is used.
+
+        if (current_profit > PF_2):
+            sl_profit = SL_2 + (current_profit - PF_2)
+        elif (current_profit > PF_1):
+            sl_profit = SL_1 + ((current_profit - PF_1) * (SL_2 - SL_1) / (PF_2 - PF_1))
+        else:
+            sl_profit = HSL
+
+        # Only for hyperopt invalid return
+        if (sl_profit >= current_profit):
+            return -0.99
+
+        return max(stoploss_from_open(sl_profit, current_profit), -1)
+
+   ############################################################################
 
 
 # Williams %R

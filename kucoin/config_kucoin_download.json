@@ -14,7 +14,7 @@
     "unit": "minutes"
   },
   "order_types": {
-    "buy": "market",
+    "buy": "limit",
     "sell": "market",
     "emergencysell": "market",
     "forcebuy": "market",
@@ -52,13 +52,9 @@
       "rateLimit": 334
     },
     "pair_whitelist": [
-      ".*[1235][SL]/USDT"
+      ".*/USDT"
     ],
     "pair_blacklist": [
-      "(BUSD|CUSDT|DAI|PAX|PAXG|SUSD|TUSD|USDC|USDT|VAI).*/.*", // currency futures
-      "(BULL|BEAR|ETH3S)/.*", // specific pairs
-      ".*(KCS)/.*",
-      ".*(BTC|ETH)/.*",
       ".*(_PREMIUM|HALF|HEDGE)/.*",
       ".*(AUD|BRZ|CAD|CHF|EUR|GBP|HKD|IDRT|JPY|NGN|RUB|SGD|TRY|UAH|USD|ZAR)/.*",
       ".*(BUSD|CUSDT|DAI|PAX|PAXG|SUSD|TUSD|USDC|USDT|VAI)/.*",
@@ -69,46 +65,6 @@
   "pairlists": [
     {
       "method": "StaticPairList"
-    },
-    //    {
-    //      "method": "VolumePairList",
-    //      "number_assets": 80,
-    //      "sort_key": "quoteVolume",
-    //      "refresh_period": 1800
-    //    },
-//    {
-//      "method": "AgeFilter",
-//      "min_days_listed": 14
-//    },
-//    {
-//      "method": "SpreadFilter",
-//      "max_spread_ratio": 0.005
-//    },
-//    {
-//      "method": "PriceFilter",
-//      "low_price_ratio": 0.002
-//    },
-    {
-      "method": "RangeStabilityFilter",
-      "lookback_days": 3,
-      "min_rate_of_change": 0.05,
-      "refresh_period": 1800
-    },
-//    {
-//      "method": "VolatilityFilter",
-//      "lookback_days": 3,
-//      "min_volatility": 0.02,
-//      "max_volatility": 0.75,
-//      "refresh_period": 43200
-//    },
-    //    {
-    //        "method": "VolumePairList",
-    //        "number_assets": 80,
-    //        "sort_key": "quoteVolume",
-    //        "refresh_period": 1800
-    //    },
-    {
-      "method": "ShuffleFilter"
     }
   ],
   "protections": [

@@ -5,7 +5,7 @@
   "stake_amount": 3300,
   "tradable_balance_ratio": 0.99,
   "fiat_display_currency": "USD",
-  "timeframe": "1m",
+  "timeframe": "5m",
   "dry_run": true,
   "cancel_open_orders_on_exit": false,
   "unfilledtimeout": {
@@ -14,7 +14,7 @@
     "unit": "minutes"
   },
   "order_types": {
-    "buy": "limit",
+    "buy": "market",
     "sell": "market",
     "emergencysell": "market",
     "forcebuy": "market",
@@ -39,18 +39,35 @@
     "order_book_min": 1,
     "order_book_max": 1
   },
-  "exchange": {
-    "name": "kucoin",
-    "key": "",
-    "secret": "",
-    "password": "",
-    "ccxt_config": {
-      "enableRateLimit": true
+      "exchange": {
+        "name": "kucoin",
+        "key": "",
+        "secret": "",
+        "ccxt_config": {
+            "enableRateLimit": false,
+            "urls": {
+                "api": {
+                    "public": "http://127.0.0.1:8200/kucoin",
+                    "private": "http://127.0.0.1:8200/kucoin"
+                }
+            }
+        },
+        "ccxt_async_config": {
+            "enableRateLimit": false
+//        }
     },
-    "ccxt_async_config": {
-      "enableRateLimit": true,
-      "rateLimit": 334
-    },
+//  "exchange": {
+//    "name": "kucoin",
+//    "key": "",
+//    "secret": "",
+//    "password": "",
+//    "ccxt_config": {
+//      "enableRateLimit": true
+//    },
+//    "ccxt_async_config": {
+//      "enableRateLimit": true,
+//      "rateLimit": 334
+//    },
     "pair_whitelist": [
       "JAR/USDT",
       "SAND/USDT",

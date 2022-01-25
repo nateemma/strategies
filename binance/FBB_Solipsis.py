@@ -77,9 +77,9 @@ class FBB_Solipsis(IStrategy):
     ## Buy Space Hyperopt Variables
 
     # FBB_ hyperparams
-    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.09, space="buy", load=True, optimize=True)
-    buy_fisher = DecimalParameter(-0.99, 0.99, decimals=2, default=0.99, space="buy", load=True, optimize=True)
-    buy_wr = DecimalParameter(-99, 0, decimals=0, default=-80, space="buy", load=True, optimize=True)
+    buy_bb_gain = DecimalParameter(0.01, 0.20, decimals=2, default=0.09, space='buy', load=True, optimize=True)
+    buy_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=-0.75, space='buy', load=True, optimize=True)
+    buy_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.99, space='buy', load=True, optimize=True)
 
     # # Base Pair Params
     # base_mp = IntParameter(10, 50, default=30, space='buy', load=True, optimize=True)
@@ -246,6 +246,9 @@ class FBB_Solipsis(IStrategy):
         # Williams %R
         dataframe['wr'] = williams_r(dataframe, period=14)
 
+        # Combined Fisher RSI and Williams %R
+        dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
+
         # Base pair informative timeframe indicators
         informative = self.dp.get_pair_dataframe(pair=metadata['pair'], timeframe=self.inf_timeframe)
 
@@ -292,6 +295,7 @@ class FBB_Solipsis(IStrategy):
 
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         conditions = []
+        dataframe.loc[:, 'buy_tag'] = ''
 
         conditions.append(dataframe['volume'] > 0)
 
@@ -311,9 +315,30 @@ class FBB_Solipsis(IStrategy):
         # )
 
         # FBB_ triggers
-        conditions.append(self.get_buy_signal_fisher_bb(dataframe))
+        fbb_cond = (
+            # Fisher RSI
+                (dataframe['fisher_wr'] <= self.buy_fisher_wr.value) &
 
-        conditions.append(self.get_buy_signal_wr(dataframe))
+                # Bollinger Band
+                (dataframe['bb_gain'] >= self.buy_bb_gain.value)
+
+        )
+
+        strong_buy_cond = (
+                (
+                        qtpylib.crossed_above(dataframe['bb_gain'], 1.5 * self.buy_bb_gain.value) |
+                        qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_force_fisher_wr.value)
+                ) &
+                (
+                    (dataframe['bb_gain'] > 0.02)  # make sure there is some potential gain
+                )
+        )
+
+        conditions.append(fbb_cond | strong_buy_cond)
+
+        # set buy tags
+        dataframe.loc[fbb_cond, 'buy_tag'] += 'fisher_bb '
+        dataframe.loc[strong_buy_cond, 'buy_tag'] += 'strong_buy '
 
 
         # # Base Timeframe Trigger
@@ -325,30 +350,36 @@ class FBB_Solipsis(IStrategy):
 
         # Extra conditions for */BTC and */ETH stakes on additional informative pairs
         if self.config['stake_currency'] in ('BTC', 'ETH'):
-            conditions.append(
-                (dataframe[f"{self.custom_fiat}_rmi"] > self.xtra_base_fiat_rmi.value) |
-                (dataframe[f"{self.config['stake_currency']}_rmi"] < self.xtra_base_stake_rmi.value)
+            base_fiat_cond = (
+                    (dataframe[f"{self.custom_fiat}_rmi"] > self.xtra_base_fiat_rmi.value) |
+                    (dataframe[f"{self.config['stake_currency']}_rmi"] < self.xtra_base_stake_rmi.value)
             )
+            conditions.append(base_fiat_cond)
+            dataframe.loc[base_fiat_cond, 'buy_tag'] += 'base_fiat '
+
+
         # Extra conditions for BTC/STAKE if not in whitelist
         else:
             if self.custom_btc_inf:
                 if self.xbtc_guard.value == 'strict':
-                    conditions.append(
-                        (
-                                (dataframe['BTC_rmi'] > self.xbtc_base_rmi.value) &
-                                (dataframe['BTC_close'] > dataframe['BTC_kama'])
-                        )
+                    xbtc_strict_cond = (
+                            (dataframe['BTC_rmi'] > self.xbtc_base_rmi.value) &
+                            (dataframe['BTC_close'] > dataframe['BTC_kama'])
                     )
-                if self.xbtc_guard.value == 'lazy':
-                    conditions.append(
-                        (dataframe['close'] > dataframe['kama']) |
-                        (
-                                (dataframe['BTC_rmi'] > self.xbtc_base_rmi.value) &
-                                (dataframe['BTC_close'] > dataframe['BTC_kama'])
-                        )
-                    )
+                    conditions.append(xbtc_strict_cond)
+                    dataframe.loc[xbtc_strict_cond, 'buy_tag'] += 'xbtc_strict '
 
-        conditions.append(dataframe['volume'].gt(0))
+                if self.xbtc_guard.value == 'lazy':
+                    xbtc_lazy_cond = (
+                            (dataframe['close'] > dataframe['kama']) |
+                            (
+                                    (dataframe['BTC_rmi'] > self.xbtc_base_rmi.value) &
+                                    (dataframe['BTC_close'] > dataframe['BTC_kama'])
+                            )
+                    )
+                    conditions.append(xbtc_lazy_cond)
+                    dataframe.loc[xbtc_lazy_cond, 'buy_tag'] += 'xbtc_strict '
+
 
         if conditions:
             dataframe.loc[
