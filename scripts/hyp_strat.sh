@@ -6,7 +6,7 @@ show_usage () {
     script=$(basename $BASH_SOURCE)
     cat << END
 
-Usage: bash $script [options] <exchange> <strategy>
+Usage: zsh $script [options] <exchange> <strategy>
 
 [options]:  -c | --config      path to config file (default: user_data/strategies/<exchange>/config_<exchange>.json
             -e | --epochs      Number of epochs to run. Default 100
@@ -38,7 +38,7 @@ config_file=""
 
 spaces="buy sell"
 
-#get date from 30 days ago (MacOS-specific)
+#get date from 180 days ago (MacOS-specific)
 num_days=180
 start_date=$(date -j -v-${num_days}d +"%Y%m%d")
 timerange="${start_date}-"
@@ -134,7 +134,7 @@ cmd="freqtrade hyperopt ${args} --no-color"
 eval ${cmd}
 #set +x
 
-echo -en "\007" # beep
+#echo -en "\007" # beep
 echo ""
 
 # restore PYTHONPATH

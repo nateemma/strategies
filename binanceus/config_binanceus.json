@@ -13,6 +13,17 @@
     "sell": 30,
     "unit": "minutes"
   },
+  "order_types": {
+    "buy": "limit",
+    "sell": "market",
+    "emergencysell": "market",
+    "forcebuy": "market",
+    "forcesell": "market",
+    "stoploss": "market",
+    "stoploss_on_exchange": true,
+    "stoploss_on_exchange_interval": 60,
+    "stoploss_on_exchange_limit_ratio": 0.99
+  },
   "bid_strategy": {
     "price_side": "ask",
     "ask_last_balance": 0.0,
@@ -116,6 +127,7 @@
     },
     {
       "method": "PriceFilter",
+      "min_price": 0.0001,
       "low_price_ratio": 0.002
     },
     {
@@ -130,15 +142,15 @@
       "min_volatility": 0.02,
       "max_volatility": 0.75,
       "refresh_period": 43200
-    //    },
-    //    {
-    //        "method": "VolumePairList",
-    //        "number_assets": 80,
-    //        "sort_key": "quoteVolume",
-    //        "refresh_period": 1800
-    //    },
-    //    {
-    //      "method": "ShuffleFilter"
+      //    },
+      //    {
+      //        "method": "VolumePairList",
+      //        "number_assets": 80,
+      //        "sort_key": "quoteVolume",
+      //        "refresh_period": 1800
+      //    },
+      //    {
+      //      "method": "ShuffleFilter"
     }
   ],
   "edge": {

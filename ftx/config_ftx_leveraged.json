@@ -20,7 +20,7 @@
     "forcebuy": "market",
     "forcesell": "market",
     "stoploss": "market",
-    "stoploss_on_exchange": true,
+    "stoploss_on_exchange": false,
     "stoploss_on_exchange_interval": 60,
     "stoploss_on_exchange_limit_ratio": 0.99
   },
@@ -52,14 +52,52 @@
       "rateLimit": 240
     },
     "pair_whitelist": [
-      ".*BULL/USD",
-      ".*UP/USD",
-      ".*BEAR/USD",
-      ".*DOWN/USD"
+      // For live config:
+      //            ".*BULL/USD",
+      //            ".*UP/USD",
+      //            ".*BEAR/USD",
+      //            ".*DOWN/USD"
+      // for backtest or hyperopt (generated using freqtrade test-pairlist):
+      "DOGEBULL/USD",
+      "XTZBULL/USD",
+      "SXPBULL/USD",
+      "DEFIBEAR/USD",
+      "COMPBULL/USD",
+      "ALTBULL/USD",
+      "HTBEAR/USD",
+      "ADABULL/USD",
+      "KNCBULL/USD",
+      "VETBULL/USD",
+      "XLMBEAR/USD",
+      "GRTBEAR/USD",
+      "XLMBULL/USD",
+      "BCHBEAR/USD",
+      "LINKBULL/USD",
+      "MATICBULL/USD",
+      "MIDBEAR/USD",
+      "MKRBULL/USD",
+      "XRPBULL/USD",
+      "ZECBULL/USD",
+      "LTCBULL/USD",
+      "ZECBEAR/USD",
+      "UNISWAPBEAR/USD",
+      "DRGNBULL/USD",
+      "HTBULL/USD",
+      "LTCBEAR/USD",
+      "UNISWAPBULL/USD",
+      "GRTBULL/USD",
+      "ETHBULL/USD",
+      "MKRBEAR/USD",
+      "MIDBULL/USD",
+      "BCHBULL/USD",
+      "DEFIBULL/USD",
+      "THETABULL/USD"
     ],
     "pair_blacklist": [
-      "(TRYB|ALGO|SUSHI|ATOM|BNB).*/.*", // consistent candle issues
-      "(EXCH|ASD|BSV|TRX|BAL|PRIV|LEO|OKB|XAUT|ETC).*/.*", // suspicious-looking charts
+      "(TRYB|ALGO|SUSHI|ATOM|BNB).*/.*",
+      // consistent candle issues
+      "(EXCH|ASD|BSV|TRX|BAL|PRIV|LEO|OKB|XAUT|ETC).*/.*",
+      // suspicious-looking charts
       "(BULL|BEAR|ETHBEAR)/.*",
       "(BUSD|CUSDT|DAI|PAX|PAXG|SUSD|TUSD|USDC|USDT|VAI).*/.*",
       ".*(BNB)/.*",
@@ -89,16 +127,17 @@
     //      "method": "SpreadFilter",
     //      "max_spread_ratio": 0.005
     //    },
-    //    {
-    //      "method": "PriceFilter",
-    //      "low_price_ratio": 0.002
-    //    },
-        {
-          "method": "RangeStabilityFilter",
-          "lookback_days": 3,
-          "min_rate_of_change": 0.05,
-          "refresh_period": 1800
-        },
+    {
+      "method": "PriceFilter",
+      "min_price": 0.0001,
+      "low_price_ratio": 0.002
+    },
+    {
+      "method": "RangeStabilityFilter",
+      "lookback_days": 3,
+      "min_rate_of_change": 0.05,
+      "refresh_period": 1800
+    },
     //    {
     //      "method": "VolatilityFilter",
     //      "lookback_days": 3,

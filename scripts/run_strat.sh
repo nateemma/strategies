@@ -1,12 +1,12 @@
-#!/bin/bash
+#!/bin/zsh
 
 # (live) run a  strategy. Takes care of python path, database spec, config file etc.
 
 show_usage () {
-    script=$(basename $BASH_SOURCE)
+    script=$(basename $0)
     cat << END
 
-Usage: bash $script [options] <exchange> <strategy>
+Usage: zsh $script [options] <exchange> <strategy>
 
 [options]:  -k | --keep-db   saves the existing database. Removed by default
             -p | --port      port number (used for naming). Optional
@@ -35,7 +35,7 @@ timerange="${start_date}-"
 die() { echo "$*" >&2; exit 2; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
-while getopts k:p:-: OPT; do
+while getopts kp:-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
@@ -43,7 +43,7 @@ while getopts k:p:-: OPT; do
     OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
   fi
   case "$OPT" in
-    k | keep_db )    keep_db=1 ;;
+    k | keep-db )    keep_db=1 ;;
     p | port )       needs_arg; port="_$OPTARG" ;;
     ??* )            show_usage; die "Illegal option --$OPT" ;;  # bad long option
     ? )              show_usage; die "Illegal option --$OPT" ;;  # bad short option (error reported via getopts)
@@ -98,18 +98,20 @@ today=`date`
 echo $today
 echo "Optimising strategy:$strategy for exchange:$exchange..."
 
+cmd="freqtrade trade  -c ${config_file}  --db-url sqlite:///${db_url} --strategy-path ${exchange_dir} -s ${strategy}"
+
 cat << END
 
 LIVE RUN!
 
 -------------------------
-freqtrade trade  -c ${config_file}  --db-url sqlite:///${db_url} --strategy-path ${exchange_dir} -s ${strategy}
+${cmd}
 -------------------------
 
 END
 
-freqtrade trade  -c ${config_file}  --db-url sqlite:///${db_url} --strategy-path ${exchange_dir} -s ${strategy}
 
+eval ${cmd}
 
 echo -en "\007" # beep
 echo ""

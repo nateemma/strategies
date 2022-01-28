@@ -34,6 +34,7 @@ EXPECTED_WINLOSS_RATIO = 2.0
 UNDESIRED_SOLUTION = 2.0             # indicates that we don't want this solution (so hyperopt will avoid)
 
 
+
 class ExpectancyHyperOptLoss(IHyperOptLoss):
 
 
@@ -48,19 +49,19 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
                                backtest_stats: Dict[str, Any],
                                *args, **kwargs) -> float:
 
-        debug_level = 0 # displays (more) messages if higher
+        debug_level = 1 # displays (more) messages if higher
 
         # define weights (values are based on trial & error). Goal is for anything -ve to be a decent solution
-        weight_num_trades = 1.0
-        weight_duration = 1.0
+        weight_num_trades = 0.2
+        weight_duration = 0.2
         weight_abs_profit = 1.0
         weight_exp_profit = 0.0
         weight_ave_profit = 0.0
-        weight_expectancy = 2.0
-        weight_win_loss_ratio = 1.0
+        weight_expectancy = 5.0
+        weight_win_loss_ratio = 0.0
         weight_sharp_ratio = 0.0
         weight_sortino_ratio = 0.0
-        weight_drawdown = 1.0
+        weight_drawdown = 0.5
         weight_profit_approx = 0.0
 
         if config['exchange']['name']:
@@ -69,13 +70,10 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
                 # so, reduce influence of absolute profit and no. of trades (and sharpe/sortino)
                 # the goal is reduce the number of losing and highly risky trades (the cost is some loss of profits)
                 weight_num_trades = 0.1
-                weight_duration = 1.0
                 weight_abs_profit = 0.1
-                weight_exp_profit = 0.0
-                weight_expectancy = 2.0
-                weight_win_loss_ratio = 1.0
-                weight_sharp_ratio = 0.0
-                weight_sortino_ratio = 0.00
+            elif (config['exchange']['name'] == 'ftx'):
+                weight_num_trades = 0.1
+                weight_abs_profit = 0.1
 
 
         days_period = (max_date - min_date).days
@@ -186,10 +184,11 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
 
 
         # if winning_count < (2.0 * losing_count):
-        if winning_count < (1.0 * losing_count):
-            if debug_level > 1:
-                print(" \tWinning count below goal: {:.0f} vs {:.0f}".format(winning_count, losing_count))
-            return UNDESIRED_SOLUTION
+        if weight_win_loss_ratio > 0.0:
+            if winning_count < (1.0 * losing_count):
+                if debug_level > 1:
+                    print(" \tWinning count below goal: {:.0f} vs {:.0f}".format(winning_count, losing_count))
+                return UNDESIRED_SOLUTION
 
         # Expectancy (refer to freqtrade edge page for info)
         w = winning_count / trade_count
@@ -284,25 +283,35 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
                 abs_profit_loss = max(abs_profit_loss, -20.0)
                 debug_level = 1
 
-        # don't let anything outweigh profit
+        # don't let anything outweigh profit too much
+        limit:float = 1.5 * min(abs_profit_loss, profit_approx_loss)
         if weight_num_trades > 0.0:
-            num_trades_loss = max(num_trades_loss, abs_profit_loss)
+            if num_trades_loss < limit:
+                num_trades_loss = limit
         if weight_duration > 0.0:
-            duration_loss = max(duration_loss, abs_profit_loss)
+            if duration_loss < limit:
+                duration_loss = limit
         if weight_exp_profit > 0.0:
-            exp_profit_loss = max(exp_profit_loss, abs_profit_loss)
+            if exp_profit_loss < limit:
+                exp_profit_loss = limit
         if weight_ave_profit > 0.0:
-            ave_profit_loss = max(ave_profit_loss, abs_profit_loss)
+            if ave_profit_loss < limit:
+                ave_profit_loss = limit
         if weight_expectancy > 0.0:
-            expectancy_loss = max(expectancy_loss, abs_profit_loss)
+            if expectancy_loss < limit:
+                expectancy_loss = limit
         if weight_win_loss_ratio > 0.0:
-            win_loss_ratio_loss = max(win_loss_ratio_loss, abs_profit_loss)
+            if win_loss_ratio_loss < limit:
+                win_loss_ratio_loss = limit
         if weight_sharp_ratio > 0.0:
-            sharp_ratio_loss = max(sharp_ratio_loss, abs_profit_loss)
+            if sharp_ratio_loss < limit:
+                sharp_ratio_loss = limit
         if weight_sortino_ratio > 0.0:
-            sortino_ratio_loss = max(sortino_ratio_loss, abs_profit_loss)
+            if sortino_ratio_loss < limit:
+                sortino_ratio_loss = limit
         if weight_drawdown > 0.0:
-            drawdown_loss = max(drawdown_loss, abs_profit_loss)
+            if drawdown_loss < limit:
+                drawdown_loss = limit
 
         result = abs_profit_loss + num_trades_loss + duration_loss + exp_profit_loss + ave_profit_loss + \
                  win_loss_ratio_loss + expectancy_loss + sharp_ratio_loss + sortino_ratio_loss + drawdown_loss + \
@@ -310,11 +319,11 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
 
         if (abs_profit_loss < 0.0) & (result < 0.0) and (debug_level > 0):
             print(" \tPabs:{:.2f} Pave:{:.2f} n:{:.2f} dur:{:.2f} w/l:{:.2f} " \
-              "expy:{:.2f}  sharpe:{:.2f} sortino:{:.2f} draw:{:.2f} Papr:{:.2f}" \
-              " Total:{:.2f}" \
+              "expy:{:.2f}  sharpe:{:.2f} sortino:{:.2f} draw:{:.2f} Papx:{:.2f}" \
+              " limit:{:.2f} Total:{:.2f}" \
               .format(abs_profit_loss, ave_profit_loss, num_trades_loss, duration_loss, win_loss_ratio_loss, \
                       expectancy_loss, sharp_ratio_loss, sortino_ratio_loss, drawdown_loss, profit_approx_loss, \
-                      result))
+                      limit, result))
 
         return result
 

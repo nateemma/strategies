@@ -14,7 +14,7 @@
     "unit": "minutes"
   },
   "order_types": {
-    "buy": "market",
+    "buy": "limit",
     "sell": "market",
     "emergencysell": "market",
     "forcebuy": "market",
@@ -52,11 +52,45 @@
       "rateLimit": 334
     },
     "pair_whitelist": [
-      ".*[1235][SL]/USDT"
+      // For live config:
+      //      ".*[1235][SL]/USDT"
+      // for backtest or hyperopt (generated using freqtrade test-pairlist):
+      "XRP3L/USDT",
+      "VET3L/USDT",
+      "ATOM3S/USDT",
+      "BNB3L/USDT",
+      "AXS3S/USDT",
+      "MANA3S/USDT",
+      "LINK3L/USDT",
+      "MANA3L/USDT",
+      "LTC3L/USDT",
+      "ADA3L/USDT",
+      "BTC3L/USDT",
+      "H3RO3S/USDT",
+      "NEAR3S/USDT",
+      "FTM3L/USDT",
+      "ETH3L/USDT",
+      "SAND3L/USDT",
+      "LTC3S/USDT",
+      "FTM3S/USDT",
+      "LINK3S/USDT",
+      "NEAR3L/USDT",
+      "AVAX3S/USDT",
+      "BTC3S/USDT",
+      "DOT3S/USDT",
+      "MATIC3L/USDT",
+      "ADA3S/USDT",
+      "EOS3S/USDT",
+      "MATIC3S/USDT",
+      "LUNA3S/USDT",
+      "GALAX3L/USDT",
+      "LUNA3L/USDT"
     ],
     "pair_blacklist": [
-      "(BUSD|CUSDT|DAI|PAX|PAXG|SUSD|TUSD|USDC|USDT|VAI).*/.*", // currency futures
-      "(BULL|BEAR|ETH3S)/.*", // specific pairs
+      "(BUSD|CUSDT|DAI|PAX|PAXG|SUSD|TUSD|USDC|USDT|VAI).*/.*",
+      // currency futures
+      "(BULL|BEAR|ETH3S)/.*",
+      // specific pairs
       ".*(KCS)/.*",
       ".*(BTC|ETH)/.*",
       ".*(_PREMIUM|HALF|HEDGE)/.*",
@@ -76,31 +110,32 @@
     //      "sort_key": "quoteVolume",
     //      "refresh_period": 1800
     //    },
-//    {
-//      "method": "AgeFilter",
-//      "min_days_listed": 14
-//    },
-//    {
-//      "method": "SpreadFilter",
-//      "max_spread_ratio": 0.005
-//    },
-//    {
-//      "method": "PriceFilter",
-//      "low_price_ratio": 0.002
-//    },
+    //    {
+    //      "method": "AgeFilter",
+    //      "min_days_listed": 14
+    //    },
+    {
+      "method": "SpreadFilter",
+      "max_spread_ratio": 0.005
+    },
+    {
+      "method": "PriceFilter",
+      "min_price": 0.0001,
+      "low_price_ratio": 0.002
+    },
     {
       "method": "RangeStabilityFilter",
       "lookback_days": 3,
       "min_rate_of_change": 0.05,
       "refresh_period": 1800
     },
-//    {
-//      "method": "VolatilityFilter",
-//      "lookback_days": 3,
-//      "min_volatility": 0.02,
-//      "max_volatility": 0.75,
-//      "refresh_period": 43200
-//    },
+    //    {
+    //      "method": "VolatilityFilter",
+    //      "lookback_days": 3,
+    //      "min_volatility": 0.02,
+    //      "max_volatility": 0.75,
+    //      "refresh_period": 43200
+    //    },
     //    {
     //        "method": "VolumePairList",
     //        "number_assets": 80,

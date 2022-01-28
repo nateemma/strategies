@@ -52,13 +52,31 @@
       "rateLimit": 240
     },
     "pair_whitelist": [
-      ".*BULL/USDT",
-      ".*UP/USDT",
-      ".*BEAR/USDT",
-      ".*DOWN/USDT"
+      // For live config:
+      //      ".*BULL/USDT",
+      //      ".*UP/USDT",
+      //      ".*BEAR/USDT",
+      //      ".*DOWN/USDT"
+      // for backtest or hyperopt (generated using freqtrade test-pairlist):
+      "BNBDOWN/USDT",
+      "DOTUP/USDT",
+      "ETHDOWN/USDT",
+      "LINKDOWN/USDT",
+      "LINKUP/USDT",
+      "ETHUP/USDT",
+      "ADADOWN/USDT",
+      "XRPDOWN/USDT",
+      "BNBUP/USDT",
+      "TRXDOWN/USDT",
+      "BTCDOWN/USDT",
+      "TRXUP/USDT",
+      "BTCUP/USDT",
+      "ADAUP/USDT",
+      "XRPUP/USDT"
     ],
     "pair_blacklist": [
-      "(XTZDOWN|LTCDOWN|DOTDOWN)/.*", // big spike, not good for hyperopt
+      "(XTZDOWN|LTCDOWN|DOTDOWN)/.*",
+      // big spike, not good for hyperopt
       ".*(BNB)/.*",
       ".*(BTC|ETH)/.*",
       "(BULL|BEAR)/.*",
@@ -88,16 +106,17 @@
     //      "method": "SpreadFilter",
     //      "max_spread_ratio": 0.005
     //    },
-    //    {
-    //      "method": "PriceFilter",
-    //      "low_price_ratio": 0.002
-    //    },
-        {
-          "method": "RangeStabilityFilter",
-          "lookback_days": 3,
-          "min_rate_of_change": 0.05,
-          "refresh_period": 1800
-        },
+    {
+      "method": "PriceFilter",
+      "min_price": 0.0001,
+      "low_price_ratio": 0.002
+    },
+    {
+      "method": "RangeStabilityFilter",
+      "lookback_days": 3,
+      "min_rate_of_change": 0.05,
+      "refresh_period": 1800
+    },
     //    {
     //      "method": "VolatilityFilter",
     //      "lookback_days": 3,

@@ -1,7 +1,8 @@
 #!/bin/zsh
 
 # list of strategies to test
-slist="FBB_ROI FBB_2 FBB_RPB_TSL_RNG FBB_Solipsis"
+strat_list="FBB_ROI FBB_2 FBB_RPB_TSL_RNG FBB_Solipsis"
+lev_list="FBB_Leveraged FBB_BTCLeveraged"
 
 # default values
 
@@ -10,16 +11,18 @@ start_date=$(date -j -v-${num_days}d +"%Y%m%d")
 timerange="${start_date}-"
 download=0
 jobs=0
-
+test_list=${strat_list}
+leveraged=0
 
 show_usage () {
     script=$(basename $ZSH_SOURCE)
     cat << END
 
-Usage: bash $script [options] <exchange>
+Usage: zsh $script [options] <exchange>
 
 [options]:  -d | --download    Downloads latest market data before running hyperopt. Default is ${download}
             -j | --jobs        Number of parallel jobs to run
+            -l | --leveraged   Test leveraged strategies
             -n | --ndays       Number of days of backtesting. Defaults to ${num_days}
             -t | --timeframe   Timeframe (YYYMMDD-[YYYMMDD]). Defaults to last ${num_days} days
 
@@ -34,7 +37,7 @@ END
 die() { echo "$*" >&2; exit 2; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
-while getopts d:j:n:t:-: OPT; do
+while getopts dj:ln:t:-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
@@ -44,6 +47,7 @@ while getopts d:j:n:t:-: OPT; do
   case "$OPT" in
     d | download )   download=1 ;;
     j | jobs )       needs_arg; jobs="$OPTARG" ;;
+    l | leveraged )  leveraged=1;;
     n | ndays )      needs_arg; num_days="$OPTARG"; timerange="$(date -j -v-${num_days}d +"%Y%m%d")-" ;;
     t | timeframe )  needs_arg; timerange="$OPTARG" ;;
     \? )             show_usage; die "Illegal option --$OPT" ;;
@@ -53,6 +57,18 @@ while getopts d:j:n:t:-: OPT; do
 done
 shift $((OPTIND-1)) # remove parsed options and args from $@ list
 #set +x
+
+
+exchange=$1
+strat_dir="user_data/strategies"
+exchange_dir="${strat_dir}/${exchange}"
+config_file="${exchange_dir}/config_${exchange}.json"
+logfile="test_${exchange}.log"
+
+if [ ${leveraged} -eq 1 ]; then
+  test_list=${lev_list}
+  config_file="${exchange_dir}/config_${exchange}_leveraged.json"
+fi
 
 if [[ $# -ne 1 ]] ; then
   echo "ERR: Missing arguments"
@@ -64,12 +80,6 @@ if [[ $# -eq 0 ]] ; then
     echo 'please specify exchange'
     exit 0
 fi
-
-exchange=$1
-strat_dir="user_data/strategies"
-exchange_dir="${strat_dir}/${exchange}"
-config_file="${exchange_dir}/config_${exchange}.json"
-logfile="test_${exchange}.log"
 
 if [ ! -f ${config_file} ]; then
     echo "config file not found: ${config_file}"
@@ -119,7 +129,7 @@ echo "List: ${slist}"
 echo "Date/time: ${today}" > $logfile
 echo "Time range: ${timerange}" >> $logfile
 
-cmd="freqtrade backtesting ${jarg} --timerange=${timerange} -c ${config_file} --strategy-path ${exchange_dir} --strategy-list ${slist} >> $logfile"
+cmd="freqtrade backtesting ${jarg} --timerange=${timerange} -c ${config_file} --strategy-path ${exchange_dir} --strategy-list ${test_list} > $logfile"
 echo "${cmd}"
 eval ${cmd}
 

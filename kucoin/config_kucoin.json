@@ -14,7 +14,7 @@
     "unit": "minutes"
   },
   "order_types": {
-    "buy": "market",
+    "buy": "limit",
     "sell": "market",
     "emergencysell": "market",
     "forcebuy": "market",
@@ -156,6 +156,7 @@
     },
     {
       "method": "PriceFilter",
+      "min_price": 0.0001,
       "low_price_ratio": 0.002
     },
     {

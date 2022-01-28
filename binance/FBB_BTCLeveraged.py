@@ -503,7 +503,7 @@ class FBB_BTCLeveraged(IStrategy):
         if (sl_profit >= current_profit):
             return -0.99
 
-        return max(stoploss_from_open(sl_profit, current_profit), -1)
+        return min(-0.01, max(stoploss_from_open(sl_profit, current_profit), -0.99))
 
     ############################################################################
 

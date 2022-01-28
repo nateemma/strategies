@@ -3,10 +3,10 @@
 # dry run a  strategy. Takes care of python path, database spec, config file etc.
 
 show_usage () {
-    script=$(basename $BASH_SOURCE)
+    script=$(basename $0)
     cat << END
 
-Usage: bash $script [options] <exchange> <strategy>
+Usage: zsh $script [options] <exchange> <strategy>
 
 [options]:  -k | --keep-db   saves the existing database. Removed by default
             -p | --port      port number (used for naming). Optional
@@ -20,6 +20,11 @@ If port is specified, then the script will look for both config_<exchange>.json 
 END
 }
 
+run_cmd() {
+  cmd="${1}"
+  echo "${cmd}"
+  eval ${cmd}
+}
 
 # Defaults
 keep_db=0
@@ -29,7 +34,7 @@ port=""
 die() { echo "$*" >&2; exit 2; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
-while getopts k:p:-: OPT; do
+while getopts kp:-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
@@ -102,17 +107,17 @@ fi
 
 today=`date`
 
+cmd="freqtrade trade --dry-run -c ${config}  --db-url sqlite:///${db_url} --strategy-path ${exchange_dir} -s ${strategy}"
+
 cat << END
 
-$today    Dry-run strategy:$strategy for exchange:$exchange...
-
 -------------------------
-freqtrade trade --dry-run -c ${config}  --db-url sqlite:///${db_url} --strategy-path ${exchange_dir} -s ${strategy}
+$today    Dry-run strategy:$strategy for exchange:$exchange...
 -------------------------
 
 END
 
-freqtrade trade --dry-run -c ${config}  --db-url sqlite:///${db_url} --strategy-path ${exchange_dir} -s ${strategy}
+run_cmd cmd
 
 
 echo -en "\007" # beep
