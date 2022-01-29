@@ -8,8 +8,7 @@ show_usage () {
 
 Usage: zsh $script [options] <exchange> <strategy>
 
-[options]:  -k | --keep-db   saves the existing database. Removed by default
-            -p | --port      port number (used for naming). Optional
+[options]:  -p | --port      port number (used for naming). Optional
 
 <exchange>  Name of exchange (binanceus, kucoin, etc)
 
@@ -25,7 +24,6 @@ END
 
 
 loss="OnlyProfitHyperOptLoss"
-keep_db=0
 port=""
 
 
@@ -43,7 +41,6 @@ while getopts kp:-: OPT; do
     OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
   fi
   case "$OPT" in
-    k | keep-db )    keep_db=1 ;;
     p | port )       needs_arg; port="_$OPTARG" ;;
     ??* )            show_usage; die "Illegal option --$OPT" ;;  # bad long option
     ? )              show_usage; die "Illegal option --$OPT" ;;  # bad short option (error reported via getopts)
@@ -86,13 +83,6 @@ export PYTHONPATH="./${exchange_dir}:./${strat_dir}:${PYTHONPATH}"
 
 hypfile="${exchange_dir}/${strategy}.json"
 
-if [ ${keep_db} -ne 1 ]; then
-  # remove existing database
-  if [ -f ${db_url} ]; then
-    echo "removing ${db_url}"
-    rm ${db_url}
-  fi
-fi
 
 today=`date`
 echo $today

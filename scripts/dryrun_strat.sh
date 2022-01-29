@@ -117,7 +117,7 @@ $today    Dry-run strategy:$strategy for exchange:$exchange...
 
 END
 
-run_cmd cmd
+run_cmd "${cmd}"
 
 
 echo -en "\007" # beep
