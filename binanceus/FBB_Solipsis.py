@@ -77,7 +77,7 @@ class FBB_Solipsis(IStrategy):
     ## Buy Space Hyperopt Variables
 
     # FBB_ hyperparams
-    buy_bb_gain = DecimalParameter(0.01, 0.20, decimals=2, default=0.09, space='buy', load=True, optimize=True)
+    buy_bb_gain = DecimalParameter(0.01, 0.50, decimals=2, default=0.09, space='buy', load=True, optimize=True)
     buy_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=-0.75, space='buy', load=True, optimize=True)
     buy_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.99, space='buy', load=True, optimize=True)
 
@@ -244,7 +244,7 @@ class FBB_Solipsis(IStrategy):
         dataframe['cci'] = ta.CCI(dataframe, timeperiod=14)
 
         # Williams %R
-        dataframe['wr'] = williams_r(dataframe, period=14)
+        dataframe['wr'] = 0.02 * (williams_r(dataframe, period=14) + 50.0)
 
         # Combined Fisher RSI and Williams %R
         dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0

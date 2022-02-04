@@ -38,22 +38,24 @@ For 'bear' pairs, it will buy if BTC is in a down trend (and other signals are m
 
 
 class FBB_BTCLeveraged(IStrategy):
-
-
     ## Buy Space Hyperopt Variables
 
     # FBB_ hyperparams
-    buy_trend_method = CategoricalParameter(['price', 'ssl', 'kama', 'supertrend', 'sqzmom'],
+    # buy_trend_method = CategoricalParameter(['price', 'ssl', 'kama', 'supertrend', 'sqzmom', 'macd'],
+    buy_trend_method = CategoricalParameter(['price', 'ssl', 'kama', 'sqzmom', 'macd'],
                                             default='ssl', space='buy', load=True, optimize=True)
-    buy_btc_check = CategoricalParameter(['transition', 'trend'], default='transition', space='buy', load=True, optimize=True)
+    buy_btc_check = CategoricalParameter(['transition', 'trend'], default='transition', space='buy', load=True,
+                                         optimize=True)
 
-    buy_bull_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.09, space="buy", load=True, optimize=True)
-    buy_bull_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=-0.75, space="buy", load=True, optimize=True)
-    buy_bull_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.96, space='buy', load=True, optimize=True)
+    buy_bull_bb_gain = DecimalParameter(0.01, 0.50, decimals=2, default=0.09, space="buy", load=True, optimize=True)
+    buy_bull_fisher_wr = DecimalParameter(-0.99, -0.3, decimals=2, default=-0.75, space="buy", load=True, optimize=True)
+    buy_bull_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.96, space='buy', load=True,
+                                                optimize=True)
 
-    buy_bear_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.09, space="buy", load=True, optimize=True)
-    buy_bear_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=-0.65, space="buy", load=True, optimize=True)
-    buy_bear_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.96, space='buy', load=True, optimize=True)
+    buy_bear_bb_gain = DecimalParameter(0.01, 0.50, decimals=2, default=0.09, space="buy", load=True, optimize=True)
+    buy_bear_fisher_wr = DecimalParameter(-0.99, -0.3, decimals=2, default=-0.65, space="buy", load=True, optimize=True)
+    buy_bear_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.96, space='buy', load=True,
+                                                optimize=True)
 
     ## Sell Space Hyperopt Variables
 
@@ -78,7 +80,7 @@ class FBB_BTCLeveraged(IStrategy):
 
     # Recommended
     use_sell_signal = True
-    sell_profit_only = True
+    sell_profit_only = False
     ignore_roi_if_buy_signal = True
 
     # Required
@@ -172,7 +174,7 @@ class FBB_BTCLeveraged(IStrategy):
         dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
 
         # Williams %R
-        dataframe['wr'] = williams_r(dataframe, period=14)
+        dataframe['wr'] = 0.02 * (williams_r(dataframe, period=14) + 50.0)
 
         # Combined Fisher RSI and Williams %R
         dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
@@ -230,7 +232,7 @@ class FBB_BTCLeveraged(IStrategy):
         dataframe['BTC_sqz_ave'] = ta.TEMA(((dataframe['BTC_dc_mid'] + dataframe['BTC_tema']) / 2), timeperiod=21)
         dataframe['BTC_sqz_delta'] = ta.TEMA((dataframe['BTC_close'] - dataframe['BTC_sqz_ave']), timeperiod=21)
         dataframe['BTC_sqz_val'] = ta.LINEARREG(dataframe['BTC_sqz_delta'], timeperiod=21)
-        
+
         # Supertrend
         # computationally intensive, so only calculate if needed
         if self.dp.runmode.value in ('hyperopt'):
@@ -246,6 +248,12 @@ class FBB_BTCLeveraged(IStrategy):
             else:
                 dataframe['BTC_st'] = 0.0
                 dataframe['BTC_st_trend'] = ''
+
+        # MACD
+        btc_macd = ta.MACD(btc_dataframe)
+        dataframe['BTC_macd'] = btc_macd['macd']
+        dataframe['BTC_macdsignal'] = btc_macd['macdsignal']
+        dataframe['BTC_macdhist'] = btc_macd['macdhist']
 
         return dataframe
 
@@ -282,11 +290,7 @@ class FBB_BTCLeveraged(IStrategy):
         if self.isBear(metadata['pair']):
             bear_fbb_cond = (
                     (dataframe['fisher_wr'] <= self.buy_bear_fisher_wr.value) &
-                    (dataframe['bb_gain'] >= self.buy_bear_bb_gain.value)
-            )
-
-            bear_wr_cross_cond = (
-                (qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_bear_fisher_wr.value))
+                    (qtpylib.crossed_above(dataframe['bb_gain'], self.buy_bear_bb_gain.value))
             )
 
             bear_strong_buy_cond = (
@@ -299,25 +303,17 @@ class FBB_BTCLeveraged(IStrategy):
                     )
             )
 
-            if self.buy_btc_check.value == "transition":
-                conditions.append((bear_fbb_cond) | (bear_fbb_cond & bear_strong_buy_cond))
-            else:
-                conditions.append((bear_fbb_cond & bear_wr_cross_cond) | (bear_fbb_cond & bear_strong_buy_cond))
+            conditions.append(bear_fbb_cond & bear_strong_buy_cond)
 
             # set buy tags
             dataframe.loc[bear_fbb_cond, 'buy_tag'] += 'bear_fbb '
-            dataframe.loc[bear_wr_cross_cond, 'buy_tag'] += 'bear_wr_cross '
-            dataframe.loc[bear_strong_buy_cond, 'buy_tag'] += 'bear_strong buy '
+            dataframe.loc[bear_strong_buy_cond, 'buy_tag'] += 'bear_strong_buy '
 
         else:
             # bull or neither
             bull_fbb_cond = (
                     (dataframe['fisher_wr'] <= self.buy_bull_fisher_wr.value) &
-                    (dataframe['bb_gain'] >= self.buy_bull_bb_gain.value)
-            )
-
-            bull_wr_cross_cond = (
-                (qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_bull_fisher_wr.value))
+                    (qtpylib.crossed_above(dataframe['bb_gain'], self.buy_bull_bb_gain.value))
             )
 
             bull_strong_buy_cond = (
@@ -330,16 +326,11 @@ class FBB_BTCLeveraged(IStrategy):
                     )
             )
 
-            if self.buy_btc_check.value == "transition":
-                conditions.append((bull_fbb_cond) | (bull_fbb_cond & bull_strong_buy_cond))
-            else:
-                conditions.append((bull_fbb_cond & bull_wr_cross_cond) | (bull_fbb_cond & bull_strong_buy_cond))
-
+            conditions.append(bull_fbb_cond | bull_strong_buy_cond)
 
             # set buy tags
             dataframe.loc[bull_fbb_cond, 'buy_tag'] += 'bull_fbb '
-            dataframe.loc[bull_wr_cross_cond, 'buy_tag'] += 'bull_wr_cross '
-            dataframe.loc[bull_strong_buy_cond, 'buy_tag'] += 'bull_strong buy '
+            dataframe.loc[bull_strong_buy_cond, 'buy_tag'] += 'bull_strong_buy '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
@@ -415,6 +406,9 @@ class FBB_BTCLeveraged(IStrategy):
         elif self.buy_trend_method.value == 'sqzmom':
             result = (dataframe['BTC_sqz_val'] > 0)
             dataframe.loc[result, 'buy_tag'] += 'sqz_uptrend '
+        elif self.buy_trend_method.value == 'macd':
+            result = (dataframe['BTC_macd'] > dataframe['BTC_macdsignal'])
+            dataframe.loc[result, 'buy_tag'] += 'macd_uptrend '
         else:
             print("ERR: buy_trend_method is: ", self.buy_trend_method.value)
         return result
@@ -435,6 +429,9 @@ class FBB_BTCLeveraged(IStrategy):
         elif self.buy_trend_method.value == 'sqzmom':
             result = (dataframe['BTC_sqz_val'] < 0)
             dataframe.loc[result, 'buy_tag'] += 'sqz_downtrend '
+        elif self.buy_trend_method.value == 'macd':
+            result = (dataframe['BTC_macd'] < dataframe['BTC_macdsignal'])
+            dataframe.loc[result, 'buy_tag'] += 'macd_downtrend '
         else:
             print("ERR: buy_trend_method is: ", self.buy_trend_method.value)
         return result
@@ -455,6 +452,12 @@ class FBB_BTCLeveraged(IStrategy):
         elif self.buy_trend_method.value == 'sqzmom':
             result = (qtpylib.crossed_above(dataframe['BTC_sqz_val'], 0))
             dataframe.loc[result, 'buy_tag'] += 'sqz_up '
+        elif self.buy_trend_method.value == 'macd':
+            result = (
+                    (dataframe['BTC_macd'] < 0.0) &
+                    (qtpylib.crossed_above(dataframe['BTC_macd'], dataframe['BTC_macdsignal']))
+            )
+            dataframe.loc[result, 'buy_tag'] += 'macd_up '
         return result
 
     def newDowntrend(self, dataframe: DataFrame):
@@ -473,6 +476,13 @@ class FBB_BTCLeveraged(IStrategy):
         elif self.buy_trend_method.value == 'sqzmom':
             result = (qtpylib.crossed_below(dataframe['BTC_sqz_val'], 0))
             dataframe.loc[result, 'buy_tag'] += 'sqz_down '
+        elif self.buy_trend_method.value == 'macd':
+            result = (
+                    (dataframe['BTC_macd'] > 0.0) &
+                    (qtpylib.crossed_below(dataframe['BTC_macd'], dataframe['BTC_macdsignal']))
+            )
+            dataframe.loc[result, 'buy_tag'] += 'macd_down '
+
         return result
 
     ############################################################################

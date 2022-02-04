@@ -34,7 +34,7 @@ class FBB_ROI(IStrategy):
 
 
     # FBB_ hyperparams
-    buy_bb_gain = DecimalParameter(0.01, 0.20, decimals=2, default=0.09, space='buy', load=True, optimize=True)
+    buy_bb_gain = DecimalParameter(0.01, 0.50, decimals=2, default=0.09, space='buy', load=True, optimize=True)
     buy_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=-0.75, space='buy', load=True, optimize=True)
     buy_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.99, space='buy', load=True, optimize=True)
 
@@ -222,9 +222,10 @@ class FBB_ROI(IStrategy):
         if (sl_profit >= current_profit):
             return -0.99
 
-        return max(stoploss_from_open(sl_profit, current_profit), -1)
+        return min(-0.01, max(stoploss_from_open(sl_profit, current_profit), -0.99))
 
-   ############################################################################
+
+############################################################################
 
 
 # Williams %R

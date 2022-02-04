@@ -14,22 +14,22 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "buy_bear_bb_gain": 0.04,
-      "buy_bear_fisher_wr": 0.32,
-      "buy_bear_force_fisher_wr": -0.95,
-      "buy_bull_bb_gain": 0.1,
-      "buy_bull_fisher_wr": 0.36,
-      "buy_bull_force_fisher_wr": -0.89
+      "buy_bear_bb_gain": 0.03,
+      "buy_bear_fisher_wr": 0.16,
+      "buy_bear_force_fisher_wr": -0.78,
+      "buy_bull_bb_gain": 0.09,
+      "buy_bull_fisher_wr": 0.41,
+      "buy_bull_force_fisher_wr": -0.98
     },
     "sell": {
-      "pHSL": -0.171,
-      "pPF_1": 0.019,
-      "pPF_2": 0.067,
+      "pHSL": -0.163,
+      "pPF_1": 0.011,
+      "pPF_2": 0.087,
       "pSL_1": 0.02,
-      "pSL_2": 0.054
+      "pSL_2": 0.066
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-01-28 20:57:38.846404+00:00"
+  "export_time": "2022-01-29 21:54:19.204485+00:00"
 }

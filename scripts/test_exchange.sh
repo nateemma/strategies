@@ -1,8 +1,8 @@
 #!/bin/zsh
 
 # list of strategies to test
-strat_list="FBB_ROI FBB_2 FBB_RPB_TSL_RNG FBB_Solipsis"
-lev_list="FBB_Leveraged FBB_BTCLeveraged"
+strat_list="FBB_ROI FBB_CryptoFrog NostalgiaForInfinityX FBB_Solipsis"
+lev_list="FBB_Leveraged FBB_BTCLeveraged FBB_BTCJump_Leveraged FBB_BTCNSeq_Leveraged"
 
 # default values
 
@@ -24,6 +24,7 @@ Usage: zsh $script [options] <exchange>
             -j | --jobs        Number of parallel jobs to run
             -l | --leveraged   Test leveraged strategies
             -n | --ndays       Number of days of backtesting. Defaults to ${num_days}
+            -s | --strategy    Test a specific strategy (or list of strategies). Overrides the default list
             -t | --timeframe   Timeframe (YYYMMDD-[YYYMMDD]). Defaults to last ${num_days} days
 
 <exchange>  Name of exchange (binanceus, ftx, kucoin, etc)
@@ -37,7 +38,7 @@ END
 die() { echo "$*" >&2; exit 2; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
-while getopts dj:ln:t:-: OPT; do
+while getopts dj:ln:s:t:-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
@@ -49,6 +50,7 @@ while getopts dj:ln:t:-: OPT; do
     j | jobs )       needs_arg; jobs="$OPTARG" ;;
     l | leveraged )  leveraged=1;;
     n | ndays )      needs_arg; num_days="$OPTARG"; timerange="$(date -j -v-${num_days}d +"%Y%m%d")-" ;;
+    s | strategy )   needs_arg; test_list="$OPTARG" ;;
     t | timeframe )  needs_arg; timerange="$OPTARG" ;;
     \? )             show_usage; die "Illegal option --$OPT" ;;
     ??* )            show_usage; die "Illegal option --$OPT" ;;  # bad long option
@@ -68,6 +70,7 @@ logfile="test_${exchange}.log"
 if [ ${leveraged} -eq 1 ]; then
   test_list=${lev_list}
   config_file="${exchange_dir}/config_${exchange}_leveraged.json"
+  logfile="test_leveraged_${exchange}.log"
 fi
 
 if [[ $# -ne 1 ]] ; then

@@ -77,9 +77,9 @@ class FBB_2(IStrategy):
     ## Buy Space Hyperopt Variables
 
     # FBB_ hyperparams
-    buy_bb_gain = DecimalParameter(0.01, 0.20, decimals=2, default=0.09, space='buy', load=True, optimize=True)
+    buy_bb_gain = DecimalParameter(0.01, 0.50, decimals=2, default=0.09, space='buy', load=True, optimize=True)
     buy_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=-0.75, space='buy', load=True, optimize=True)
-    buy_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.99, space='buy', load=True, optimize=True)
+    # buy_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.99, space='buy', load=True, optimize=True)
 
     inf_pct_adr = DecimalParameter(0.70, 0.99, default=0.80, space='buy', load=True, optimize=True)
 
@@ -135,6 +135,9 @@ class FBB_2(IStrategy):
     """
 
     def informative_pairs(self):
+
+        '''
+
         # add all whitelisted pairs on informative timeframe
         pairs = self.dp.current_whitelist()
         informative_pairs = [(pair, self.inf_timeframe) for pair in pairs]
@@ -153,6 +156,10 @@ class FBB_2(IStrategy):
             btc_stake = f"BTC/{self.config['stake_currency']}"
             if not btc_stake in pairs:
                 informative_pairs += [(btc_stake, self.timeframe)]
+        '''
+
+        btc_stake = f"BTC/{self.config['stake_currency']}"
+        return [(btc_stake, self.timeframe)]
 
         return informative_pairs
 
@@ -228,7 +235,7 @@ class FBB_2(IStrategy):
         dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
 
         # Williams %R
-        dataframe['wr'] = williams_r(dataframe, period=14)
+        dataframe['wr'] = 0.02 * (williams_r(dataframe, period=14) + 50.0)
 
         # Combined Fisher RSI and Williams %R
         dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
@@ -271,7 +278,8 @@ class FBB_2(IStrategy):
                 dataframe['BTC_close'] = btc_stake_tf['close']
                 dataframe['BTC_kama'] = ta.KAMA(btc_stake_tf, length=144)
 
-        return dataframe
+        df = dataframe.copy() # remove fragmentation
+        return df
 
     ############################################################################
 
@@ -296,29 +304,26 @@ class FBB_2(IStrategy):
 
         # FBB_ triggers
         fbb_cond = (
-            # Fisher RSI
                 (dataframe['fisher_wr'] <= self.buy_fisher_wr.value) &
-
-                # Bollinger Band
-                (dataframe['bb_gain'] >= self.buy_bb_gain.value)
-
+                (qtpylib.crossed_above(dataframe['bb_gain'], self.buy_bb_gain.value))
         )
 
-        strong_buy_cond = (
-                (
-                        qtpylib.crossed_above(dataframe['bb_gain'], 1.5 * self.buy_bb_gain.value) |
-                        qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_force_fisher_wr.value)
-                ) &
-                (
-                    (dataframe['bb_gain'] > 0.02)  # make sure there is some potential gain
-                )
-        )
+        # strong_buy_cond = (
+        #         (
+        #                 qtpylib.crossed_above(dataframe['bb_gain'], 1.5 * self.buy_bb_gain.value) |
+        #                 qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_force_fisher_wr.value)
+        #         ) &
+        #         (
+        #             (dataframe['bb_gain'] > 0.02)  # make sure there is some potential gain
+        #         )
+        # )
 
-        conditions.append(fbb_cond | strong_buy_cond)
+        conditions.append(fbb_cond)
+        # conditions.append(fbb_cond | strong_buy_cond)
 
         # set buy tags
         dataframe.loc[fbb_cond, 'buy_tag'] += 'fisher_bb '
-        dataframe.loc[strong_buy_cond, 'buy_tag'] += 'strong_buy '
+        # dataframe.loc[strong_buy_cond, 'buy_tag'] += 'strong_buy '
         # dataframe.loc[inf_cond, 'buy_tag'] += 'informative ' # always to true on buy, so omit
 
 
@@ -418,7 +423,7 @@ class FBB_2(IStrategy):
         if (sl_profit >= current_profit):
             return -0.99
 
-        return max(stoploss_from_open(sl_profit, current_profit), -1)
+        return min(-0.01, max(stoploss_from_open(sl_profit, current_profit), -0.99))
 
    ############################################################################
 

@@ -11,6 +11,7 @@ declare -a strategies
 logfile=""
 leveraged=0
 lev_arg=""
+strat_arg=""
 
 show_usage () {
     script=$(basename $0)
@@ -19,6 +20,7 @@ show_usage () {
 Usage: zsh $script [options] <exchange>
 
 [options]:  -l | --leveraged   Test leveraged strategies
+            -s | --strategy    Test a specific strategy (or list of strategies in quotes). Overrides the default list
 
 <exchange>  Name of exchange (binanceus, ftx, kucoin, etc)
 
@@ -36,7 +38,7 @@ create_test_file () {
     sdate=$(date -j -v-${t1}d +"%Y%m%d")
     edate=$(date -j -v-${t2}d +"%Y%m%d")
     timeframe="${sdate}-${edate}"
-    cmd="zsh user_data/strategies/scripts/test_exchange.sh ${lev_arg} --timeframe=${timeframe} ${exchange}"
+    cmd="zsh user_data/strategies/scripts/test_exchange.sh ${lev_arg} ${strat_arg} --timeframe=${timeframe} ${exchange}"
     echo "${cmd}"
     eval ${cmd}
 
@@ -119,7 +121,7 @@ scan_test_file () {
 die() { echo "$*" >&2; exit 2; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
-while getopts l-: OPT; do
+while getopts l:s:-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
@@ -128,6 +130,7 @@ while getopts l-: OPT; do
   fi
   case "$OPT" in
     l | leveraged )  leveraged=1;;
+    s | strategy )   needs_arg; strat_arg="-s \"$OPTARG\"" ;;
     \? )             show_usage; die "Illegal option --$OPT" ;;
     ??* )            show_usage; die "Illegal option --$OPT" ;;  # bad long option
     ? )              show_usage; die "Illegal option --$OPT" ;;  # bad short option (error reported via getopts)
@@ -145,7 +148,18 @@ if [[ $# -eq 0 ]] ; then
 fi
 
 exchange=$1
+nperiods=6
+dur=30
+start=$nperiods*$dur
+
 summary_file="test_monthly_${exchange}.log"
+logfile="test_${exchange}.log"
+
+if [ ${leveraged} -eq 1 ]; then
+  lev_arg="--leveraged"
+  logfile="test_leveraged_${exchange}.log"
+  summary_file="test_monthly_leveraged_${exchange}.log"
+fi
 
 
 echo "" >${summary_file}
@@ -154,17 +168,6 @@ echo "                  ${exchange}" >>${summary_file}
 echo "              ========================" >>${summary_file}
 echo "" >>${summary_file}
 
-nperiods=6
-dur=30
-start=$nperiods*$dur
-
-
-logfile="test_monthly_${exchange}.log"
-
-if [ ${leveraged} -eq 1 ]; then
-  lev_arg="--leveraged"
-  logfile="test_monthly_leveraged_${exchange}.log"
-fi
 
 
 for (( i=0; i<${nperiods}; i++ )); do
@@ -174,20 +177,13 @@ for (( i=0; i<${nperiods}; i++ )); do
 
     create_test_file $t1 $t2
 
-#    sdate=$(date -j -v-${t1}d +"%Y%m%d")
-#    edate=$(date -j -v-${t2}d +"%Y%m%d")
-#    timeframe="${sdate}-${edate}"
-#    echo "zsh user_data/strategies/scripts/test_exchange.sh --timeframe ${timeframe} ${exchange}"
-#    zsh user_data/strategies/scripts/test_exchange.sh  --timeframe="${timeframe}" ${exchange}
-
-
-    # check that files exist
+    # check that test iles exists
     if [ ! -f ${logfile} ]; then
         echo "test log file not found: ${logfile}"
         exit 0
     fi
 
-
+    # scan the test results and append to the summary file
     scan_test_file >>${summary_file}
 
 done

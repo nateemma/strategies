@@ -47,13 +47,15 @@ class FBB_Leveraged(IStrategy):
 
     # FBB_ hyperparams
 
-    buy_bull_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.09, space="buy", load=True, optimize=True)
-    buy_bull_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=-0.75, space="buy", load=True, optimize=True)
-    buy_bull_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.96, space='buy', load=True, optimize=True)
+    buy_bull_bb_gain = DecimalParameter(0.01, 0.50, decimals=2, default=0.09, space="buy", load=True, optimize=True)
+    buy_bull_fisher_wr = DecimalParameter(-0.99, -0.3, decimals=2, default=-0.75, space="buy", load=True, optimize=True)
+    buy_bull_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.96, space='buy', load=True,
+                                                optimize=True)
 
-    buy_bear_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.09, space="buy", load=True, optimize=True)
-    buy_bear_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=-0.65, space="buy", load=True, optimize=True)
-    buy_bear_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.96, space='buy', load=True, optimize=True)
+    buy_bear_bb_gain = DecimalParameter(0.01, 0.50, decimals=2, default=0.09, space="buy", load=True, optimize=True)
+    buy_bear_fisher_wr = DecimalParameter(-0.99, -0.3, decimals=2, default=-0.65, space="buy", load=True, optimize=True)
+    buy_bear_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.96, space='buy', load=True,
+                                                optimize=True)
 
     ## Sell Space Hyperopt Variables
 
@@ -81,7 +83,7 @@ class FBB_Leveraged(IStrategy):
 
     # Recommended
     use_sell_signal = True
-    sell_profit_only = True
+    sell_profit_only = False
     ignore_roi_if_buy_signal = True
 
     # Required
@@ -129,7 +131,7 @@ class FBB_Leveraged(IStrategy):
         dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
 
         # Williams %R
-        dataframe['wr'] = williams_r(dataframe, period=14)
+        dataframe['wr'] = 0.02 * (williams_r(dataframe, period=14) + 50.0)
 
         # Combined Fisher RSI and Williams %R
         dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
@@ -155,11 +157,7 @@ class FBB_Leveraged(IStrategy):
 
             bear_fbb_cond = (
                     (dataframe['fisher_wr'] <= self.buy_bear_fisher_wr.value) &
-                    (dataframe['bb_gain'] >= self.buy_bear_bb_gain.value)
-            )
-
-            bear_wr_cross_cond = (
-                (qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_bear_fisher_wr.value))
+                    (qtpylib.crossed_above(dataframe['bb_gain'], self.buy_bear_bb_gain.value))
             )
 
             bear_strong_buy_cond = (
@@ -172,22 +170,18 @@ class FBB_Leveraged(IStrategy):
                     )
             )
 
-            conditions.append((bear_fbb_cond & bear_wr_cross_cond) | (bear_fbb_cond & bear_strong_buy_cond))
+            # conditions.append(bear_fbb_cond | bear_strong_buy_cond)
+            conditions.append(bear_fbb_cond)
 
             # set buy tags
             dataframe.loc[bear_fbb_cond, 'buy_tag'] += 'bear_fbb '
-            dataframe.loc[bear_wr_cross_cond, 'buy_tag'] += 'bear_wr_cross '
             dataframe.loc[bear_strong_buy_cond, 'buy_tag'] += 'bear_strong buy '
 
         else:
             # bull or neither
             bull_fbb_cond = (
                     (dataframe['fisher_wr'] <= self.buy_bull_fisher_wr.value) &
-                    (dataframe['bb_gain'] >= self.buy_bull_bb_gain.value)
-            )
-
-            bull_wr_cross_cond = (
-                (qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_bull_fisher_wr.value))
+                    (qtpylib.crossed_above(dataframe['bb_gain'], self.buy_bull_bb_gain.value))
             )
 
             bull_strong_buy_cond = (
@@ -200,11 +194,11 @@ class FBB_Leveraged(IStrategy):
                     )
             )
 
-            conditions.append((bull_fbb_cond & bull_wr_cross_cond) | (bull_fbb_cond & bull_strong_buy_cond))
+            # conditions.append(bull_fbb_cond | bull_strong_buy_cond)
+            conditions.append(bull_fbb_cond)
 
             # set buy tags
             dataframe.loc[bull_fbb_cond, 'buy_tag'] += 'bull_fbb '
-            dataframe.loc[bull_wr_cross_cond, 'buy_tag'] += 'bull_wr_cross '
             dataframe.loc[bull_strong_buy_cond, 'buy_tag'] += 'bull_strong buy '
 
 

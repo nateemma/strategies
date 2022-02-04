@@ -21,14 +21,14 @@ from typing import Any, Dict
 EXPECTED_TRADES_PER_DAY = 2                         # used to set target goals
 MIN_TRADES_PER_DAY = EXPECTED_TRADES_PER_DAY/3.0    # used to filter out scenarios where there are not enough trades
 EXPECTED_PROFIT_PER_TRADE = 0.003                   # be realistic. Setting this too high will eliminate potentially good solutions
-EXPECTED_AVE_PROFIT = 0.004                         # used to assess actual profit vs desired profit. Typical is 0.4% (0.004)
+EXPECTED_AVE_PROFIT = 0.001                         # used to assess actual profit vs desired profit. Typical is 0.4% (0.004)
 EXPECTED_MONTHLY_PROFIT = 0.15                      # used to assess actual profit vs desired profit. Typical is 15% (0.15)
 EXPECTED_TRADE_DURATION = 240                       # goal for duration (or shorter) in seconds
 MAX_TRADE_DURATION = 10.0*60.0*60.0                 # max allowable duration
 
 UNDESIRED_SOLUTION = 2.0                            # indicates that we don't want this solution (so hyperopt will avoid)
 
-class WeightedProfitHyperOptLoss(IHyperOptLoss):
+class MedianProfitHyperOptLoss(IHyperOptLoss):
     """
     Defines a custom loss function for hyperopt
     """
@@ -40,23 +40,24 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
                                backtest_stats: Dict[str, Any],
                                *args, **kwargs) -> float:
 
-        debug_level = 0 # displays (more) messages if higher
+        debug_level = 1 # displays (more) messages if higher
 
         # if (debug_level > 1) and backtest_stats:
         #     print(" backtest_stats: profit_total: {:.2f} profit_mean: {:.2f} wins: {:.2f}".format(backtest_stats['profit_total'],
         #                                                                                           backtest_stats['profit_mean'], backtest_stats['wins']))
 
         # define weights
-        weight_num_trades = 0.25
-        weight_duration = 0.25
-        weight_abs_profit = 2.0
-        weight_exp_profit = 0.5
-        weight_ave_profit = 1.0
+        weight_num_trades = 0.0
+        weight_duration = 0.0
+        weight_abs_profit = 0.1
+        weight_exp_profit = 0.0
+        weight_ave_profit = 0.0
         weight_expectancy = 1.0
-        weight_win_loss_ratio = 2.0
-        weight_sharp_ratio = 1.0
-        weight_sortino_ratio = 0.25
+        weight_win_loss_ratio = 0.0
+        weight_sharp_ratio = 0.0
+        weight_sortino_ratio = 0.0
         weight_drawdown = 1.0
+        weight_med_profit = 1.0
 
         if config['exchange']['name']:
             if (config['exchange']['name'] == 'kucoin') or (config['exchange']['name'] == 'ascendex'):
@@ -66,15 +67,9 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
                 weight_num_trades = 0.1
                 weight_duration = 0.25
                 weight_abs_profit = 0.1
-                weight_exp_profit = 0.5
-                weight_ave_profit = 1.0
-                weight_expectancy = 1.0
-                weight_win_loss_ratio = 0.75
-                weight_sharp_ratio = 0.25
-                weight_sortino_ratio = 0.05
             elif (config['exchange']['name'] == 'ftx'):
                 weight_abs_profit = 0.2
-                weight_win_loss_ratio = 4.0
+                weight_win_loss_ratio = 1.0
 
 
         days_period = (max_date - min_date).days
@@ -183,10 +178,11 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         losing_count = trade_count - winning_count
 
         # if winning_count < (2.0 * losing_count):
-        if winning_count < (1.0 * losing_count):
-            if debug_level > 1:
-                print(" \tWinning count below goal: {:.0f} vs {:.0f}".format(winning_count, losing_count))
-            return UNDESIRED_SOLUTION
+        if weight_win_loss_ratio > 0.0:
+            if winning_count < (1.0 * losing_count):
+                if debug_level > 1:
+                    print(" \tWinning count below goal: {:.0f} vs {:.0f}".format(winning_count, losing_count))
+                return UNDESIRED_SOLUTION
 
         # Expectancy (refer to freqtrade edge page for info)
         w = winning_count / trade_count
@@ -250,6 +246,11 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         if backtest_stats['max_drawdown']:
             drawdown_loss = (backtest_stats['max_drawdown'] - 1.0)
 
+        # Profit Median
+        if backtest_stats['profit_median']:
+            med_profit_loss = -(backtest_stats['profit_median']/EXPECTED_AVE_PROFIT)
+
+
         # weight the results (values are based on trial & error). Goal is for anything -ve to be a decent  solution
         num_trades_loss     = weight_num_trades * num_trades_loss
         duration_loss       = weight_duration * duration_loss
@@ -261,6 +262,7 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         sharp_ratio_loss    = weight_sharp_ratio * sharp_ratio_loss
         sortino_ratio_loss  = weight_sortino_ratio * sortino_ratio_loss
         drawdown_loss       = weight_drawdown * drawdown_loss
+        med_profit_loss     = weight_med_profit * med_profit_loss
 
         if weight_abs_profit > 0.0:
             # sometimes spikes happen, so cap it and turn on debug
@@ -289,14 +291,15 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
                 drawdown_loss = max(drawdown_loss, abs_profit_loss)
 
         result = abs_profit_loss + num_trades_loss + duration_loss + exp_profit_loss + ave_profit_loss + \
-                 win_loss_ratio_loss + expectancy_loss + sharp_ratio_loss + sortino_ratio_loss + drawdown_loss
+                 win_loss_ratio_loss + expectancy_loss + sharp_ratio_loss + sortino_ratio_loss + drawdown_loss + \
+                 med_profit_loss
 
-        if (result < 0.0) and (debug_level > 0):
+        if ((result < 0.0) and (debug_level > 0)) or (debug_level > 1):
             print(" \tPabs:{:.2f} Pave:{:.2f} n:{:.2f} dur:{:.2f} w/l:{:.2f} " \
-                  "expy:{:.2f}  sharpe:{:.2f} sortino:{:.2f} draw:{:.2f}" \
+                  "expy:{:.2f}  sharpe:{:.2f} sortino:{:.2f} draw:{:.2f} med:{:.2f}" \
                   " Total:{:.2f}"\
                   .format(abs_profit_loss, ave_profit_loss, num_trades_loss, duration_loss,  win_loss_ratio_loss, \
-                          expectancy_loss, sharp_ratio_loss, sortino_ratio_loss, drawdown_loss, \
+                          expectancy_loss, sharp_ratio_loss, sortino_ratio_loss, drawdown_loss, med_profit_loss, \
                           result))
 
         return result

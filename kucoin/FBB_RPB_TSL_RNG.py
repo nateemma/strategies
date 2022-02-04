@@ -117,6 +117,7 @@ class FBB_RPB_TSL_RNG(IStrategy):
     # Custom stoploss
     use_custom_stoploss = True
     use_sell_signal = True
+    sell_profit_only = False
 
     process_only_new_candles = True
 
@@ -168,7 +169,7 @@ class FBB_RPB_TSL_RNG(IStrategy):
     buy_is_break_enabled = CategoricalParameter([True, False], default=True, space='buy', optimize=False, load=True)
 
     # FBB_ hyperparams
-    buy_bb_gain = DecimalParameter(0.01, 0.20, decimals=2, default=0.09, space='buy', load=True, optimize=True)
+    buy_bb_gain = DecimalParameter(0.01, 0.50, decimals=2, default=0.09, space='buy', load=True, optimize=True)
     buy_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=-0.75, space='buy', load=True, optimize=True)
     buy_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.99, space='buy', load=True, optimize=True)
 
@@ -227,7 +228,7 @@ class FBB_RPB_TSL_RNG(IStrategy):
         if (sl_profit >= current_profit):
             return -0.99
 
-        return stoploss_from_open(sl_profit, current_profit)
+        return min(-0.01, max(stoploss_from_open(sl_profit, current_profit), -0.99))
 
     ############################################################################
 
@@ -354,7 +355,8 @@ class FBB_RPB_TSL_RNG(IStrategy):
         dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
 
         # Combined Fisher RSI and Williams %R
-        dataframe['fisher_wr'] = (dataframe['r_14'] + dataframe['fisher_rsi']) / 2.0
+        dataframe['wr'] = 0.02 * (dataframe['r_14'] + 50.0)
+        dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
 
 
         # Calculate all ma_sell values
@@ -501,10 +503,8 @@ class FBB_RPB_TSL_RNG(IStrategy):
         conditions.append(is_nfi_33)  # ~0.11 100%
         dataframe.loc[is_nfi_33, 'buy_tag'] += 'nfi 33 '
 
-        conditions.append(fbb_cond)
+        conditions.append(fbb_cond | strong_buy_cond)
         dataframe.loc[fbb_cond, 'buy_tag'] += 'fisher_bb '
-
-        conditions.append(strong_buy_cond)
         dataframe.loc[strong_buy_cond, 'buy_tag'] += 'strong_buy '
 
         if conditions:

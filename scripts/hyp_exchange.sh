@@ -4,10 +4,10 @@
 # hyperopt loss function
 
 # Strategy list, and associated hyperopt spaces
-declare -A slist=( [FBB_ROI]="buy sell" [FBB_2]="buy sell" [FBB_RPB_TSL_RNG]="buy sell" [FBB_Solipsis]="buy sell" )
+declare -A slist=( [FBB_ROI]="buy sell" [FBB_CryptoFrog]="buy sell" [NostalgiaForInfinityX]="buy sell" [FBB_Solipsis]="buy sell" )
 
 # define whether or strategy can optimise for trailing
-declare -A trlist=( [FBB_ROI]=false [FBB_2]=false [FBB_RPB_TSL_RNG]=false [FBB_Solipsis]=false )
+declare -A trlist=( [FBB_ROI]=false [FBB_CryptoFrog]=false [NostalgiaForInfinityX]=false [FBB_Solipsis]=false )
 
 # default values
 epochs=2000
