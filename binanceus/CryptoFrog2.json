@@ -14,41 +14,41 @@
       "trailing_only_offset_is_reached": true
     },
     "buy": {
-      "adx_buy": 34,
       "bbw_exp_buy": true,
-      "buy_triggers": "flexiabs",
-      "dmi_minus": 36,
-      "fast_d_buy": 18,
       "ha_buy_check": true,
-      "mfi_buy": 23,
-      "msq_normabs_buy": 1.283,
-      "msq_normabs_buy_loosener": 0.069,
-      "srsi_d_buy": 15,
-      "vfi_buy": 0
+      "vfi_buy": 0,
+      "adx_buy": 75,
+      "buy_triggers": "flexiabs",
+      "dmi_minus": 17,
+      "fast_d_buy": 19,
+      "mfi_buy": 10,
+      "msq_normabs_buy": 4.519,
+      "msq_normabs_buy_loosener": 0.326,
+      "srsi_d_buy": 46
     },
     "sell": {
       "bbw_exp_sell": true,
       "ha_sell_check": true,
       "sell_triggers": "superabs",
       "vfi_sell": 0,
-      "adx_sell": 23,
+      "adx_sell": 21,
       "cstp_bail_how": "time",
-      "cstp_bail_roc": -0.013,
-      "cstp_bail_time": 838,
-      "cstp_threshold": -0.017,
-      "dmi_plus": 15,
+      "cstp_bail_roc": -0.05,
+      "cstp_bail_time": 1183,
+      "cstp_threshold": -0.05,
+      "dmi_plus": 21,
       "droi_pullback": false,
-      "droi_pullback_amount": 0.006,
+      "droi_pullback_amount": 0.012,
       "droi_pullback_respect_table": true,
-      "droi_trend_type": "any",
+      "droi_trend_type": "rmi",
       "fast_d_sell": 60,
-      "mfi_sell": 72,
-      "msq_normabs_sell": 2.154,
-      "srsi_d_sell": 100,
-      "stoploss_method": "simpletime"
+      "mfi_sell": 75,
+      "msq_normabs_sell": 1.763,
+      "srsi_d_sell": 93,
+      "stoploss_method": "riskreward"
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-02-05 16:14:13.027594+00:00"
+  "export_time": "2022-02-05 18:08:43.439118+00:00"
 }

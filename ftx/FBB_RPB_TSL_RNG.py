@@ -462,23 +462,19 @@ class FBB_RPB_TSL_RNG(IStrategy):
 
         # FBB_ triggers
         fbb_cond = (
-            # Fisher RSI
                 (dataframe['fisher_wr'] <= self.buy_fisher_wr.value) &
-
-                # Bollinger Band
-                (dataframe['bb_gain'] >= self.buy_bb_gain.value)
-
+                (qtpylib.crossed_above(dataframe['bb_gain'], self.buy_bb_gain.value))
         )
 
-        strong_buy_cond = (
-                (
-                        qtpylib.crossed_above(dataframe['bb_gain'], 1.5 * self.buy_bb_gain.value) |
-                        qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_force_fisher_wr.value)
-                ) &
-                (
-                    (dataframe['bb_gain'] > 0.02)  # make sure there is some potential gain
-                )
-        )
+        # strong_buy_cond = (
+        #         (
+        #                 qtpylib.crossed_above(dataframe['bb_gain'], 1.5 * self.buy_bb_gain.value) |
+        #                 qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_force_fisher_wr.value)
+        #         ) &
+        #         (
+        #             (dataframe['bb_gain'] > 0.02)  # make sure there is some potential gain
+        #         )
+        # )
 
 
         ## condition append
@@ -503,9 +499,10 @@ class FBB_RPB_TSL_RNG(IStrategy):
         conditions.append(is_nfi_33)  # ~0.11 100%
         dataframe.loc[is_nfi_33, 'buy_tag'] += 'nfi 33 '
 
-        conditions.append(fbb_cond | strong_buy_cond)
+        # conditions.append(fbb_cond | strong_buy_cond)
+        conditions.append(fbb_cond)
         dataframe.loc[fbb_cond, 'buy_tag'] += 'fisher_bb '
-        dataframe.loc[strong_buy_cond, 'buy_tag'] += 'strong_buy '
+        # dataframe.loc[strong_buy_cond, 'buy_tag'] += 'strong_buy '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x | y, conditions), 'buy'] = 1

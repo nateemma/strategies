@@ -17,7 +17,6 @@ import pandas as pd
 from freqtrade.optimize.space import Categorical, Dimension, Integer, SKDecimal, Real  # noqa
 
 
-
 class FBB_ROI(IStrategy):
     """
     Simple strategy based on Inverse Fisher Transform and Bollinger Bands (and Williams %R)
@@ -32,11 +31,11 @@ class FBB_ROI(IStrategy):
     #       Values in that file will override the default values in the variable definitions below
     #       If the .json file does not exist, you will need to run hyperopt to generate it
 
-
     # FBB_ hyperparams
-    buy_bb_gain = DecimalParameter(0.01, 0.50, decimals=2, default=0.09, space='buy', load=True, optimize=True)
-    buy_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=-0.75, space='buy', load=True, optimize=True)
-    buy_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.99, space='buy', load=True, optimize=True)
+    buy_bb_gain = DecimalParameter(0.01, 0.25, decimals=2, default=0.09, space='buy', load=True, optimize=True)
+    buy_fisher_wr = DecimalParameter(-0.99, 0.0, decimals=2, default=-0.75, space='buy', load=True, optimize=True)
+    # buy_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.99, space='buy', load=True,
+    #                                        optimize=True)
 
     ## Trailing params
 
@@ -53,43 +52,15 @@ class FBB_ROI(IStrategy):
     # stoploss
     use_custom_stoploss = True
 
-    # # Trailing stop:
-    # if use_custom_stoploss:
-    #     stoploss = -0.99
-    #     trailing_stop = False
-    #     trailing_stop_positive = None
-    #     trailing_stop_positive_offset = 0.0
-    #     trailing_only_offset_is_reached = False
-    # else:
-    #     stoploss = -0.10
-    #     trailing_stop = True
-    #     trailing_stop_positive = 0.01
-    #     trailing_stop_positive_offset = 0.105
-    #     trailing_only_offset_is_reached = True
-
     # Recommended
     use_sell_signal = True
-    sell_profit_only = False
+    sell_profit_only = True
     ignore_roi_if_buy_signal = True
 
     # Required
     process_only_new_candles = False
     startup_candle_count = 20
 
-    ############################################################################
-
-    # Define custom ROI ranges
-    class HyperOpt:
-        # Define a custom ROI space.
-        def roi_space() -> List[Dimension]:
-            return [
-                Integer(10, 240, name='roi_t1'),
-                Integer(10, 120, name='roi_t2'),
-                Integer(10, 80, name='roi_t3'),
-                SKDecimal(0.01, 0.04, decimals=3, name='roi_p1'),
-                SKDecimal(0.01, 0.07, decimals=3, name='roi_p2'),
-                SKDecimal(0.01, 0.20, decimals=3, name='roi_p3'),
-            ]
 
     ############################################################################
 
@@ -127,8 +98,11 @@ class FBB_ROI(IStrategy):
         # Bollinger bands
         bollinger = qtpylib.bollinger_bands(qtpylib.typical_price(dataframe), window=20, stds=2)
         dataframe['bb_lowerband'] = bollinger['lower']
+        dataframe['bb_midband'] = bollinger['mid']
         dataframe['bb_upperband'] = bollinger['upper']
         dataframe['bb_gain'] = ((dataframe['bb_upperband'] - dataframe['close']) / dataframe['close'])
+        dataframe['bb_width'] = ((dataframe['bb_upperband'] - dataframe['bb_lowerband']) / dataframe['bb_midband'])
+
         #
         # Williams %R (scaled to match fisher_rsi)
         dataframe['wr'] = 0.02 * (williams_r(dataframe, period=14) + 50.0)
@@ -136,46 +110,45 @@ class FBB_ROI(IStrategy):
         # Combined Fisher RSI and Williams %R
         dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
 
+        # the following are mostly for display/debugging
+        dataframe['trigger_bb'] = np.where((dataframe['bb_gain'] >= self.buy_bb_gain.value), 1, 0)
+        dataframe['trigger_fwr'] = np.where((dataframe['fisher_wr'] >= self.buy_fisher_wr.value), 1, 0)
+        # dataframe['trigger_force'] = np.where((dataframe['fisher_wr'] >= self.buy_force_fisher_wr.value), 1, 0)
+
         return dataframe
 
     ############################################################################
 
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        """
-        Based on TA indicators, populates the buy signal for the given dataframe
-        :param dataframe: DataFrame
-        :return: DataFrame with buy column
-        """
+
         conditions = []
         dataframe.loc[:, 'buy_tag'] = ''
 
         # GUARDS AND TRENDS
 
         fbb_cond = (
-            # Fisher RSI
                 (dataframe['fisher_wr'] <= self.buy_fisher_wr.value) &
-
-                # Bollinger Band
-                (dataframe['bb_gain'] >= self.buy_bb_gain.value)
-
+                (qtpylib.crossed_above(dataframe['bb_gain'], self.buy_bb_gain.value))
         )
 
-        strong_buy_cond = (
-                (
-                        qtpylib.crossed_above(dataframe['bb_gain'], 1.5 * self.buy_bb_gain.value) |
-                        qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_force_fisher_wr.value)
-                ) &
-                (
-                    (dataframe['bb_gain'] > 0.02)  # make sure there is some potential gain
-                )
-        )
+        # strong_buy_cond = (
+        #     # (
+        #     #     # qtpylib.crossed_above(dataframe['bb_gain'], 1.5 * self.buy_bb_gain.value) |
+        #     #     qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_force_fisher_wr.value)
+        #     # ) &
+        #     # (
+        #     #     (dataframe['bb_gain'] > 0.03)  # make sure there is some potential gain
+        #     # )
+        #         (qtpylib.crossed_below(dataframe['close'], dataframe['bb_lowerband'])) &
+        #         (dataframe['fisher_wr'] <= self.buy_force_fisher_wr.value)
+        # )
 
-        conditions.append(fbb_cond | strong_buy_cond)
+        # conditions.append(fbb_cond | strong_buy_cond)
+        conditions.append(fbb_cond)
 
         # set buy tags
         dataframe.loc[fbb_cond, 'buy_tag'] += 'fisher_bb '
-        dataframe.loc[strong_buy_cond, 'buy_tag'] += 'strong_buy '
-
+        # dataframe.loc[strong_buy_cond, 'buy_tag'] += 'strong_buy '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1

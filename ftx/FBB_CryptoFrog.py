@@ -94,7 +94,7 @@ class FBB_CryptoFrog(IStrategy):
 
     # FBB_ hyperparams
     buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.06, space="buy", load=True, optimize=True)
-    buy_fisher = DecimalParameter(-0.99, 0.99, decimals=2, default=0.34, space="buy", load=True, optimize=True)
+    buy_fisher = DecimalParameter(-0.99, 0.0, decimals=2, default=-0.75, space="buy", load=True, optimize=True)
 
     # Dynamic ROI
     droi_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any'], default='any', space='sell', optimize=True)
