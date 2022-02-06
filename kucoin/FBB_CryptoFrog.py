@@ -580,7 +580,7 @@ class FBB_CryptoFrog(IStrategy):
             if active_trade:
                 # get current price and update the min/max rate
                 current_rate = self.get_current_price(pair, True)
-                active_trade[0].adjust_min_max_rates(current_rate)
+                active_trade[0].adjust_min_max_rates(current_rate, current_rate)
 
         return trade_data
 

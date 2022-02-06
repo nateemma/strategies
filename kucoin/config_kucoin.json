@@ -39,92 +39,118 @@
     "order_book_min": 1,
     "order_book_max": 1
   },
-      "exchange": {
-        "name": "kucoin",
-        "key": "",
-        "secret": "",
-        "ccxt_config": {
-            "enableRateLimit": false,
-            "urls": {
-                "api": {
-                    "public": "http://127.0.0.1:8200/kucoin",
-                    "private": "http://127.0.0.1:8200/kucoin"
-                }
-            }
-        },
-        "ccxt_async_config": {
-            "enableRateLimit": false
-//        }
+  // kucoin proxy:
+  "exchange": {
+    "name": "kucoin",
+    "key": "",
+    "secret": "",
+    "ccxt_config": {
+      "enableRateLimit": false,
+      "urls": {
+        "api": {
+          "public": "http://127.0.0.1:8200/kucoin",
+          "private": "http://127.0.0.1:8200/kucoin"
+        }
+      }
     },
-//  "exchange": {
-//    "name": "kucoin",
-//    "key": "",
-//    "secret": "",
-//    "password": "",
-//    "ccxt_config": {
-//      "enableRateLimit": true
-//    },
-//    "ccxt_async_config": {
-//      "enableRateLimit": true,
-//      "rateLimit": 334
-//    },
+    "ccxt_async_config": {
+      "enableRateLimit": false
+      //        }
+    },
+    // real exchange:
+    //  "exchange": {
+    //    "name": "kucoin",
+    //    "key": "",
+    //    "secret": "",
+    //    "password": "",
+    //    "ccxt_config": {
+    //      "enableRateLimit": true
+    //    },
+    //    "ccxt_async_config": {
+    //      "enableRateLimit": true,
+    //      "rateLimit": 334
+    //    },
     "pair_whitelist": [
-      "JAR/USDT",
-      "SAND/USDT",
-      "TLOS/USDT",
-      "SWASH/USDT",
-      "GLQ/USDT",
-      "WXT/USDT",
-      "FTG/USDT",
-      "GMEE/USDT",
-      "PMON/USDT",
-      "GHX/USDT",
-      "ALBT/USDT",
-      "FLAME/USDT",
-      "TVK/USDT",
+      "LUNA/USDT",
+      "FTM/USDT",
+      "ATOM/USDT",
+      "SOL/USDT",
+      "NEAR/USDT",
+      "MANA/USDT",
+      "AVAX/USDT",
+      "XRP/USDT",
+      "VRA/USDT",
+      "MATIC/USDT",
+      "ADA/USDT",
+      "GALAX/USDT",
+      "ONE/USDT",
+      "BNB/USDT",
+      "KDA/USDT",
+      "ROSE/USDT",
+      "FLUX/USDT",
+      "LTC/USDT",
+      "AXS/USDT",
+      "LINK/USDT",
+      "JASMY/USDT",
+      "PEOPLE/USDT",
+      "LRC/USDT",
+      "PYR/USDT",
+      "RNDR/USDT",
+      "ICP/USDT",
+      "CRO/USDT",
+      "VET/USDT",
+      "XLM/USDT",
+      "FLOW/USDT",
+      "QRDO/USDT",
+      "WIN/USDT",
+      "VR/USDT",
+      "TRX/USDT",
+      "ALGO/USDT",
+      "GLMR/USDT",
+      "THETA/USDT",
+      "ENJ/USDT",
       "RUNE/USDT",
-      "TRB/USDT",
-      "KEEP/USDT",
-      "CTI/USDT",
-      "UOS/USDT",
-      "LYM/USDT",
-      "DOT/USDT",
-      "GAS/USDT",
-      "PRE/USDT",
-      "CWAR/USDT",
-      "YLD/USDT",
-      "AGLD/USDT",
-      "NGM/USDT",
-      "DPET/USDT",
-      "ENS/USDT",
-      "HYDRA/USDT",
-      "NEO/USDT",
-      "GSPI/USDT",
-      "AAVE/USDT",
-      "HAI/USDT",
-      "DATA/USDT",
-      "UBX/USDT",
-      "ERG/USDT",
-      "GMB/USDT",
-      "PDEX/USDT",
-      "SENSO/USDT",
-      "FEAR/USDT",
-      "CFG/USDT",
-      "TARA/USDT",
-      "LPT/USDT",
-      "NKN/USDT",
-      "IOST/USDT",
-      "ZEE/USDT",
-      "CGG/USDT",
-      "SUN/USDT",
-      "REVV/USDT",
-      "MITX/USDT",
-      "HTR/USDT",
       "ALICE/USDT",
-      "DOGE/USDT",
-      "RFOX/USDT",
-      "LABS/USDT",
-      "CELO/USDT"
+      "MOVR/USDT",
+      "QNT/USDT",
+      "EGLD/USDT",
+      "IMX/USDT",
+      "CLH/USDT",
+      "RMRK/USDT",
+      "CRV/USDT",
+      "BLOK/USDT",
+      "SOUL/USDT",
+      "WAXP/USDT",
+      "JST/USDT",
+      "ZEC/USDT",
+      "CHR/USDT",
+      "WOO/USDT",
+      "DYDX/USDT",
+      "FIL/USDT",
+      "TLM/USDT",
+      "USDJ/USDT",
+      "DODO/USDT",
+      "AOA/USDT",
+      "TEL/USDT",
+      "CIX100/USDT",
+      "EOS/USDT",
+      "ROUTE/USDT",
+      "ANT/USDT",
+      "MTV/USDT",
+      "CIRUS/USDT",
+      "SUSHI/USDT",
+      "YGG/USDT",
+      "NAKA/USDT",
+      "DREAMS/USDT",
+      "COTI/USDT",
+      "XPR/USDT",
+      "SFUND/USDT",
+      "TRIAS/USDT",
+      "ILA/USDT",
+      "UNI/USDT",
+      "BCH/USDT",
+      "XTZ/USDT",
+      "XMR/USDT"
     ],
     "pair_blacklist": [
       ".*(KCS)/.*",
@@ -171,15 +197,15 @@
       "min_volatility": 0.02,
       "max_volatility": 0.75,
       "refresh_period": 43200
-//    },
-    //    {
-    //        "method": "VolumePairList",
-    //        "number_assets": 80,
-    //        "sort_key": "quoteVolume",
-    //        "refresh_period": 1800
-    //    },
-//    {
-//      "method": "ShuffleFilter"
+      //    },
+      //    {
+      //      "method": "VolumePairList",
+      //      "number_assets": 80,
+      //      "sort_key": "quoteVolume",
+      //      "refresh_period": 1800
+      //    },
+      //    {
+      //      "method": "ShuffleFilter"
     }
   ],
   "protections": [
