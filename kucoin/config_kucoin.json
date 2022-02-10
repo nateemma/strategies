@@ -39,37 +39,37 @@
     "order_book_min": 1,
     "order_book_max": 1
   },
-  // kucoin proxy:
-  //  "exchange": {
-  //    "name": "kucoin",
-  //    "key": "",
-  //    "secret": "",
-  //    "ccxt_config": {
-  //      "enableRateLimit": false,
-  //      "urls": {
-  //        "api": {
-  //          "public": "http://127.0.0.1:8200/kucoin",
-  //          "private": "http://127.0.0.1:8200/kucoin"
-  //        }
-  //      }
-  //    },
-  //    "ccxt_async_config": {
-  //      "enableRateLimit": false
-  //      //        }
-  //    },
-  // real exchange:
+  // kucoin proxy (use for backtesting/hyperopt):
   "exchange": {
     "name": "kucoin",
     "key": "",
     "secret": "",
-    "password": "",
     "ccxt_config": {
-      "enableRateLimit": true
+      "enableRateLimit": false,
+      "urls": {
+        "api": {
+          "public": "http://127.0.0.1:8200/kucoin",
+          "private": "http://127.0.0.1:8200/kucoin"
+        }
+      }
     },
     "ccxt_async_config": {
-      "enableRateLimit": true,
-      "rateLimit": 334
+      "enableRateLimit": false
+      //        }
     },
+    // real exchange (use for download):
+    //  "exchange": {
+    //    "name": "kucoin",
+    //    "key": "",
+    //    "secret": "",
+    //    "password": "",
+    //    "ccxt_config": {
+    //      "enableRateLimit": true
+    //    },
+    //    "ccxt_async_config": {
+    //      "enableRateLimit": true,
+    //      "rateLimit": 334
+    //    },
     "pair_whitelist": [
       "LUNA/USDT",
       "ENJ/USDT",
@@ -132,10 +132,11 @@
     //      "sort_key": "quoteVolume",
     //      "refresh_period": 1800
     //    },
-    {
-      "method": "AgeFilter",
-      "min_days_listed": 14
-    },
+    //    {
+    // // do not use AgeFilter if running a proxy
+    //      "method": "AgeFilter",
+    //      "min_days_listed": 14
+    //    },
     {
       "method": "SpreadFilter",
       "max_spread_ratio": 0.005

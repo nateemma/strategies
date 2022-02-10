@@ -4,10 +4,10 @@
 # hyperopt loss function
 
 # Strategy list, and associated hyperopt spaces
-declare -A slist=( [FBB_ROI]="buy sell" [FBB_CryptoFrog]="buy sell" [NostalgiaForInfinityX]="buy sell" [FBB_Solipsis]="buy sell" )
+declare -A strat_list=( [FBB_NFIX]="buy" [FBB_CryptoFrog]="buy sell" [NostalgiaForInfinityX]="buy sell" )
 
-# define whether or strategy can optimise for trailing
-declare -A trlist=( [FBB_ROI]=false [FBB_CryptoFrog]=false [NostalgiaForInfinityX]=false [FBB_Solipsis]=false )
+# define whether or strategy can optimise for sell
+declare -A trlist=( [FBB_NFIX]=false [FBB_CryptoFrog]=false  [FBB_Solipsis]=false )
 
 # default values
 epochs=2000
@@ -172,7 +172,7 @@ fi
 
 hargs=" -c ${config_file} ${jarg} --strategy-path ${exchange_dir} --timerange=${timerange} --hyperopt-loss ${lossf}"
 
-for strat space in ${(kv)slist}; do
+for strat space in ${(kv)strat_list}; do
   add_line ""
   add_line "----------------------"
   add_line "${strat}"

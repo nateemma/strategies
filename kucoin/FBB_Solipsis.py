@@ -78,8 +78,8 @@ class FBB_Solipsis(IStrategy):
 
     # FBB_ hyperparams
     buy_bb_gain = DecimalParameter(0.01, 0.50, decimals=2, default=0.09, space='buy', load=True, optimize=True)
-    buy_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=-0.75, space='buy', load=True, optimize=True)
-    buy_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.99, space='buy', load=True, optimize=True)
+    buy_fisher_wr = DecimalParameter(-0.99, -0.50, decimals=2, default=-0.75, space='buy', load=True, optimize=True)
+    # buy_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.99, space='buy', load=True, optimize=True)
 
     # # Base Pair Params
     # base_mp = IntParameter(10, 50, default=30, space='buy', load=True, optimize=True)
@@ -316,29 +316,26 @@ class FBB_Solipsis(IStrategy):
 
         # FBB_ triggers
         fbb_cond = (
-            # Fisher RSI
-                (dataframe['fisher_wr'] <= self.buy_fisher_wr.value) &
-
-                # Bollinger Band
+                qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_fisher_wr.value) &
                 (dataframe['bb_gain'] >= self.buy_bb_gain.value)
-
         )
 
-        strong_buy_cond = (
-                (
-                        qtpylib.crossed_above(dataframe['bb_gain'], 1.5 * self.buy_bb_gain.value) |
-                        qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_force_fisher_wr.value)
-                ) &
-                (
-                    (dataframe['bb_gain'] > 0.02)  # make sure there is some potential gain
-                )
-        )
+        # strong_buy_cond = (
+        #         (
+        #                 qtpylib.crossed_above(dataframe['bb_gain'], 1.5 * self.buy_bb_gain.value) |
+        #                 qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_force_fisher_wr.value)
+        #         ) &
+        #         (
+        #             (dataframe['bb_gain'] > 0.02)  # make sure there is some potential gain
+        #         )
+        # )
 
-        conditions.append(fbb_cond | strong_buy_cond)
+        # conditions.append(fbb_cond | strong_buy_cond)
+        conditions.append(fbb_cond)
 
         # set buy tags
         dataframe.loc[fbb_cond, 'buy_tag'] += 'fisher_bb '
-        dataframe.loc[strong_buy_cond, 'buy_tag'] += 'strong_buy '
+        # dataframe.loc[strong_buy_cond, 'buy_tag'] += 'strong_buy '
 
 
         # # Base Timeframe Trigger

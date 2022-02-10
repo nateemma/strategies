@@ -102,6 +102,7 @@ class FBB_ROI(IStrategy):
         dataframe['bb_upperband'] = bollinger['upper']
         dataframe['bb_gain'] = ((dataframe['bb_upperband'] - dataframe['close']) / dataframe['close'])
         dataframe['bb_width'] = ((dataframe['bb_upperband'] - dataframe['bb_lowerband']) / dataframe['bb_midband'])
+        dataframe['bbw_expansion'] = dataframe['bb_width'].rolling(window=4).apply(self.bbw_expansion)
 
         #
         # Williams %R (scaled to match fisher_rsi)
@@ -112,8 +113,16 @@ class FBB_ROI(IStrategy):
 
         # the following are mostly for display/debugging
         dataframe['trigger_bb'] = np.where((dataframe['bb_gain'] >= self.buy_bb_gain.value), 1, 0)
-        dataframe['trigger_fwr'] = np.where((dataframe['fisher_wr'] >= self.buy_fisher_wr.value), 1, 0)
-        # dataframe['trigger_force'] = np.where((dataframe['fisher_wr'] >= self.buy_force_fisher_wr.value), 1, 0)
+        dataframe['trigger_fwr'] = np.where(
+            (
+                (dataframe['fisher_wr'] <= self.buy_fisher_wr.value) &
+                (dataframe['fisher_wr'].shift(1) <= self.buy_fisher_wr.value)
+            ), 1, 0)
+        dataframe['trigger_fbb'] = np.where(
+            (
+                    (dataframe['trigger_fwr'] > 0) &
+                    (dataframe['trigger_bb'] > 0)
+            ), 1, 0)
 
         return dataframe
 
@@ -126,10 +135,8 @@ class FBB_ROI(IStrategy):
 
         # GUARDS AND TRENDS
 
-        fbb_cond = (
-                (dataframe['fisher_wr'] <= self.buy_fisher_wr.value) &
-                (qtpylib.crossed_above(dataframe['bb_gain'], self.buy_bb_gain.value))
-        )
+        # Fisher/wR indicates oversold, wide BB gain indicates downtrend
+        fbb_cond = ( qtpylib.crossed_above(dataframe['trigger_fbb'], 0.5) )
 
         # strong_buy_cond = (
         #     # (
@@ -197,7 +204,20 @@ class FBB_ROI(IStrategy):
 
         return min(-0.01, max(stoploss_from_open(sl_profit, current_profit), -0.99))
 
+    ############################################################################
 
+    ## detect BB width expansion to indicate possible volatility
+    def bbw_expansion(self, bbw_rolling, mult=1.1):
+        bbw = list(bbw_rolling)
+
+        m = 0.0
+        for i in range(len(bbw) - 1):
+            if bbw[i] > m:
+                m = bbw[i]
+
+        if (bbw[-1] > (m * mult)):
+            return 1
+        return 0
 ############################################################################
 
 

@@ -1,0 +1,25 @@
+{
+  "strategy_name": "FBB_NFIX",
+  "params": {
+    "roi": {
+      "0": 100.0
+    },
+    "stoploss": {
+      "stoploss": -0.99
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": 0.01,
+      "trailing_stop_positive_offset": 0.03,
+      "trailing_only_offset_is_reached": true
+    },
+    "buy": {
+      "buy_bb_gain": 0.18,
+      "buy_fisher_wr": -0.87
+    },
+    "sell": {},
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2022-02-10 00:36:58.761359+00:00"
+}

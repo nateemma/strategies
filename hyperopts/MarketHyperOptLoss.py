@@ -1,10 +1,7 @@
 """
-ExpectancyHyperOptLoss
+MarketHyperOptLoss
 
-This module is a custom HyperoptLoss class
-
-The goal is to use Expectancy as a metric, but also filters out bad scenarios (losing, not enough tradees etc)
-For details on Expectancy, refere to: https://www.freqtrade.io/en/stable/edge/
+This module is a custom HyperoptLoss class based on performance relative to the overall market
 
 To deploy this, copy the file to the <freqtrade>/user_data/hyperopts directory
 """
@@ -19,13 +16,12 @@ from typing import Any, Dict
 
 
 # Contstants to allow evaluation in cases where thre is insufficient (or nonexistent) info in the configuration
-EXPECTED_TRADES_PER_DAY = 3                         # used to set target goals
-MIN_TRADES_PER_DAY = EXPECTED_TRADES_PER_DAY / 3    # used to filter out scenarios where there are not enough trades
+EXPECTED_TRADES_PER_DAY = 2                         # used to set target goals
+MIN_TRADES_PER_DAY = EXPECTED_TRADES_PER_DAY / 8    # used to filter out scenarios where there are not enough trades
 UNDESIRED_SOLUTION = 2.0             # indicates that we don't want this solution (so hyperopt will avoid)
 
 
-
-class ExpectancyHyperOptLoss(IHyperOptLoss):
+class MarketHyperOptLoss(IHyperOptLoss):
 
 
     """
@@ -39,7 +35,8 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
                                backtest_stats: Dict[str, Any],
                                *args, **kwargs) -> float:
 
-        debug_level = 0 # displays (more) messages if higher
+        debug_level = 1 # displays (more) messages if higher
+
 
         days_period = (max_date - min_date).days
         # target_trades = days_period*EXPECTED_TRADES_PER_DAY
@@ -60,32 +57,26 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
                 print(" \tTrade count too low:{:.0f}".format(trade_count))
             return UNDESIRED_SOLUTION
 
+
+        # Compare to the overall market performance
+
         total_profit = results["profit_abs"]
-
-        # Winning trades
-        results['upside_returns'] = 0
-        results.loc[total_profit > 0.0001, 'upside_returns'] = 1.0
-
-        if backtest_stats['wins']:
-            winning_count = backtest_stats['wins']
+        if ('market_change' in results):
+            market_profit = results["market_change"]
+        elif ('market_change' in backtest_stats):
+            market_profit = backtest_stats["market_change"]
         else:
-            winning_count = results['upside_returns'].sum()
+            print("Market performance not available")
+            market_profit = results["profit_abs"]
 
-        # Losing trades
-        results['downside_returns'] = 0
-        results.loc[total_profit < 0, 'downside_returns'] = 1.0
+        market_loss = 10.0 * (market_profit - total_profit)
 
+        # use drawdown as a tie-breaker
+        drawdown_loss = 0.0
+        if backtest_stats['max_drawdown']:
+            drawdown_loss = (backtest_stats['max_drawdown'] - 1.0)
 
-        # Expectancy (refer to freqtrade edge page for info)
-        w = winning_count / trade_count
-        l = 1.0 - w
-        results['net_gain'] = results['profit_abs'] * results['upside_returns']
-        results['net_loss'] = results['profit_abs'] * results['downside_returns']
-        ave_profit = results['net_gain'].sum() / trade_count
-        ave_loss = results['net_loss'].sum() / trade_count
-        if abs(ave_loss) < 0.001:
-            ave_loss = 0.001
-        r = ave_profit / abs(ave_loss)
-        e = r * w - l
+        result = market_loss + drawdown_loss
 
-        return -e
+        return result
+
