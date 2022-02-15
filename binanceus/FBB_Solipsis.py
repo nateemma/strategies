@@ -78,16 +78,16 @@ class FBB_Solipsis(IStrategy):
 
     # FBB_ hyperparams
     buy_bb_gain = DecimalParameter(0.01, 0.50, decimals=2, default=0.09, space='buy', load=True, optimize=True)
-    buy_fisher_wr = DecimalParameter(-0.99, 0.99, decimals=2, default=-0.75, space='buy', load=True, optimize=True)
+    buy_fisher_wr = DecimalParameter(-0.99, 0.0, decimals=2, default=-0.75, space='buy', load=True, optimize=True)
     buy_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.99, space='buy', load=True, optimize=True)
 
     # # Base Pair Params
-    # base_mp = IntParameter(10, 50, default=30, space='buy', load=True, optimize=True)
-    # base_rmi_max = IntParameter(30, 60, default=50, space='buy', load=True, optimize=True)
-    # base_rmi_min = IntParameter(0, 30, default=20, space='buy', load=True, optimize=True)
-    # base_ma_streak = IntParameter(1, 4, default=1, space='buy', load=True, optimize=True)
-    # base_rmi_streak = IntParameter(3, 8, default=3, space='buy', load=True, optimize=True)
-    # base_trigger = CategoricalParameter(['pcc', 'rmi', 'none'], default='rmi', space='buy', load=True, optimize=True)
+    base_mp = IntParameter(10, 50, default=30, space='buy', load=True, optimize=True)
+    base_rmi_max = IntParameter(30, 60, default=50, space='buy', load=True, optimize=True)
+    base_rmi_min = IntParameter(0, 30, default=20, space='buy', load=True, optimize=True)
+    base_ma_streak = IntParameter(1, 4, default=1, space='buy', load=True, optimize=True)
+    base_rmi_streak = IntParameter(3, 8, default=3, space='buy', load=True, optimize=True)
+    base_trigger = CategoricalParameter(['pcc', 'rmi', 'none'], default='rmi', space='buy', load=True, optimize=True)
 
     inf_pct_adr = DecimalParameter(0.70, 0.99, default=0.80, space='buy', load=True, optimize=True)
 
@@ -306,22 +306,18 @@ class FBB_Solipsis(IStrategy):
         )
 
         # # Base Timeframe Guards
-        # conditions.append(
-        #     (dataframe['rmi-dn-count'] >= self.base_rmi_streak.value) &
-        #     (dataframe['streak-bo-count'] >= self.base_ma_streak.value) &
-        #     (dataframe['rmi'] <= self.base_rmi_max.value) &
-        #     (dataframe['rmi'] >= self.base_rmi_min.value) &
-        #     (dataframe['mp'] <= self.base_mp.value)
-        # )
+        conditions.append(
+            (dataframe['rmi-dn-count'] >= self.base_rmi_streak.value) &
+            (dataframe['streak-bo-count'] >= self.base_ma_streak.value) &
+            (dataframe['rmi'] <= self.base_rmi_max.value) &
+            (dataframe['rmi'] >= self.base_rmi_min.value) &
+            (dataframe['mp'] <= self.base_mp.value)
+        )
 
         # FBB_ triggers
         fbb_cond = (
-            # Fisher RSI
-                (dataframe['fisher_wr'] <= self.buy_fisher_wr.value) &
-
-                # Bollinger Band
+                qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_fisher_wr.value) &
                 (dataframe['bb_gain'] >= self.buy_bb_gain.value)
-
         )
 
         strong_buy_cond = (
@@ -337,7 +333,7 @@ class FBB_Solipsis(IStrategy):
         conditions.append(fbb_cond | strong_buy_cond)
 
         # set buy tags
-        dataframe.loc[fbb_cond, 'buy_tag'] += 'fisher_bb '
+        dataframe.loc[fbb_cond, 'buy_tag'] += 'fbb '
         dataframe.loc[strong_buy_cond, 'buy_tag'] += 'strong_buy '
 
 

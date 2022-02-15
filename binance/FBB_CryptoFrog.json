@@ -5,7 +5,7 @@
       "0": 100.0
     },
     "stoploss": {
-      "stoploss": -0.99
+      "stoploss": -0.085
     },
     "trailing": {
       "trailing_stop": false,
@@ -14,13 +14,14 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "buy_bb_gain": 0.09,
-      "buy_fisher": -0.43
+      "buy_bb_gain": 0.06,
+      "buy_fisher_wr": -0.48,
+      "buy_force_fisher_wr": -0.88
     },
     "sell": {
       "cstp_bail_how": "time",
-      "cstp_bail_roc": -0.025,
-      "cstp_bail_time": 1075,
+      "cstp_bail_roc": -0.03,
+      "cstp_bail_time": 969,
       "cstp_threshold": -0.042,
       "droi_pullback": true,
       "droi_pullback_amount": 0.005,
@@ -30,5 +31,5 @@
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-02-04 21:57:55.608202+00:00"
+  "export_time": "2022-02-15 08:00:39.633845+00:00"
 }

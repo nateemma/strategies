@@ -14,21 +14,22 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "buy_bb_gain": 0.09,
-      "buy_fisher": -0.19
+      "buy_bb_gain": 0.04,
+      "buy_fisher_wr": -0.56,
+      "buy_force_fisher_wr": -0.92
     },
     "sell": {
       "cstp_bail_how": "time",
-      "cstp_bail_roc": -0.047,
-      "cstp_bail_time": 951,
-      "cstp_threshold": -0.049,
+      "cstp_bail_roc": -0.034,
+      "cstp_bail_time": 942,
+      "cstp_threshold": -0.033,
       "droi_pullback": true,
-      "droi_pullback_amount": 0.005,
+      "droi_pullback_amount": 0.006,
       "droi_pullback_respect_table": false,
       "droi_trend_type": "any"
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-02-07 05:26:19.420331+00:00"
+  "export_time": "2022-02-13 20:28:10.019069+00:00"
 }

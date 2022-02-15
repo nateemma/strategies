@@ -1,7 +1,7 @@
 #!/bin/zsh
 
 # list of strategies to test
-strat_list="FBB_CryptoFrog FBB_Solipsis FBB_NFIX NostalgiaForInfinityX"
+strat_list="FBB_CryptoFrog FBB_Solipsis FBB_MacheteV8b NostalgiaForInfinityX"
 lev_list="FBB_Leveraged FBB_BTCLeveraged FBB_BTCJump_Leveraged FBB_BTCNSeq_Leveraged"
 
 # default values

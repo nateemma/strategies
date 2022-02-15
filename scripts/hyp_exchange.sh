@@ -4,10 +4,7 @@
 # hyperopt loss function
 
 # Strategy list, and associated hyperopt spaces
-declare -A strat_list=( [FBB_NFIX]="buy" [FBB_CryptoFrog]="buy sell" [NostalgiaForInfinityX]="buy sell" )
-
-# define whether or strategy can optimise for sell
-declare -A trlist=( [FBB_NFIX]=false [FBB_CryptoFrog]=false  [FBB_Solipsis]=false )
+declare -A strat_list=( [FBB_MacheteV8b]="buy sell" [FBB_CryptoFrog]="buy sell" [NostalgiaForInfinityX]="buy sell" )
 
 # default values
 epochs=2000
@@ -185,11 +182,6 @@ for strat space in ${(kv)strat_list}; do
   args="${hargs} --epochs ${epochs} --space ${spaces} -s ${strat}"
   run_hyperopt ${args}
 
-  # run hyperopt for trailing space, if allowed
-  if $trlist[$strat]; then
-    args="${hargs} --epochs 200 --space trailing -s ${strat}"
-    run_hyperopt ${args}
-  fi
 done
 
 

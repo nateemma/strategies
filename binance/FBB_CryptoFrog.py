@@ -2,8 +2,10 @@ from typing import Dict, List, Optional, Tuple
 from datetime import datetime, timedelta
 from cachetools import TTLCache
 
+from functools import reduce
+
 ## I hope you know what these are already
-from pandas import DataFrame
+from pandas import DataFrame, Series
 import numpy as np
 
 ## Indicator libs
@@ -11,18 +13,20 @@ import talib.abstract as ta
 from finta import TA as fta
 
 ## FT stuffs
-from freqtrade.strategy import IStrategy, merge_informative_pair, stoploss_from_open, IntParameter, DecimalParameter, CategoricalParameter
+from freqtrade.strategy import IStrategy, merge_informative_pair, stoploss_from_open, IntParameter, DecimalParameter, \
+    CategoricalParameter
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 from freqtrade.exchange import timeframe_to_minutes
 from freqtrade.persistence import Trade
 from skopt.space import Dimension
-
 
 '''
 
 Buy signals from FBB_ combined with other logic from CryptoFrog
 
 '''
+
+
 class FBB_CryptoFrog(IStrategy):
     # ROI table - this strat REALLY benefits from roi and trailing hyperopt:
     # minimal_roi = {
@@ -44,7 +48,7 @@ class FBB_CryptoFrog(IStrategy):
     # Buy hyperspace params:
     buy_params = {
         "buy_bb_gain": 0.08,
-        "buy_fisher": 0.69,
+        "buy_fisher": -0.80,
     }
 
     # Sell hyperspace params:
@@ -60,11 +64,11 @@ class FBB_CryptoFrog(IStrategy):
     }
 
     minimal_roi = {
-        "0": 100.0
+        "0": 10.0
     }
 
     # Stoploss:
-    stoploss = -0.085
+    stoploss = -0.99
 
     # Trailing stop:
     trailing_stop = False
@@ -75,13 +79,16 @@ class FBB_CryptoFrog(IStrategy):
     use_custom_stoploss = True
     custom_stop = {
         # Linear Decay Parameters
-        'decay-time': 166,  # minutes to reach end, I find it works well to match this to the final ROI value - default 1080
+        'decay-time': 166,
+        # minutes to reach end, I find it works well to match this to the final ROI value - default 1080
         'decay-delay': 0,  # minutes to wait before decay starts
-        'decay-start': -0.085,  # -0.32118, # -0.07163,     # starting value: should be the same or smaller than initial stoploss - default -0.30
+        'decay-start': -0.085,
+        # -0.32118, # -0.07163,     # starting value: should be the same or smaller than initial stoploss - default -0.30
         'decay-end': -0.02,  # ending value - default -0.03
         # Profit and TA
         'cur-min-diff': 0.03,  # diff between current and minimum profit to move stoploss up to min profit point
-        'cur-threshold': -0.02,  # how far negative should current profit be before we consider moving it up based on cur/min or roc
+        'cur-threshold': -0.02,
+        # how far negative should current profit be before we consider moving it up based on cur/min or roc
         'roc-bail': -0.03,  # value for roc to use for dynamic bailout
         'rmi-trend': 50,  # rmi-slow value to pause stoploss decay
         'bail-how': 'immediate',  # set the stoploss to the atr offset below current price, or immediate
@@ -91,10 +98,10 @@ class FBB_CryptoFrog(IStrategy):
         'pos-trail-dist': 0.015  # how far behind to place the trail
     }
 
-
-    # FBB_ hyperparams
-    buy_bb_gain = DecimalParameter(0.01, 0.10, decimals=2, default=0.06, space="buy", load=True, optimize=True)
-    buy_fisher = DecimalParameter(-0.99, 0.0, decimals=2, default=-0.75, space="buy", load=True, optimize=True)
+    # Fisher/Bollinger/Williams hyperparams
+    buy_bb_gain = DecimalParameter(0.01, 0.50, decimals=2, default=0.09, space='buy', load=True, optimize=True)
+    buy_fisher_wr = DecimalParameter(-0.99, 0.0, decimals=2, default=-0.75, space='buy', load=True, optimize=True)
+    buy_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.98, space='buy', load=True, optimize=True)
 
     # Dynamic ROI
     droi_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any'], default='any', space='sell', optimize=True)
@@ -209,11 +216,13 @@ class FBB_CryptoFrog(IStrategy):
         dataframe = informative_df.copy()
 
         dataframe['hhclose'] = (dataframe['open'] + dataframe['high'] + dataframe['low'] + dataframe['close']) / 4
-        dataframe['hhopen'] = ((dataframe['open'].shift(2) + dataframe['close'].shift(2)) / 2)  # it is not the same as real heikin ashi since I found that this is better.
+        dataframe['hhopen'] = ((dataframe['open'].shift(2) + dataframe['close'].shift(
+            2)) / 2)  # it is not the same as real heikin ashi since I found that this is better.
         dataframe['hhhigh'] = dataframe[['open', 'close', 'high']].max(axis=1)
         dataframe['hhlow'] = dataframe[['open', 'close', 'low']].min(axis=1)
 
-        dataframe['emac'] = ta.SMA(dataframe['hhclose'], timeperiod=period)  # to smooth out the data and thus less noise.
+        dataframe['emac'] = ta.SMA(dataframe['hhclose'],
+                                   timeperiod=period)  # to smooth out the data and thus less noise.
         dataframe['emao'] = ta.SMA(dataframe['hhopen'], timeperiod=period)
 
         return {'emac': dataframe['emac'], 'emao': dataframe['emao']}
@@ -243,7 +252,8 @@ class FBB_CryptoFrog(IStrategy):
         smoothD = 3
         SmoothK = 3
         dataframe['rsi'] = ta.RSI(dataframe, timeperiod=14)
-        stochrsi = (dataframe['rsi'] - dataframe['rsi'].rolling(period).min()) / (dataframe['rsi'].rolling(period).max() - dataframe['rsi'].rolling(period).min())
+        stochrsi = (dataframe['rsi'] - dataframe['rsi'].rolling(period).min()) / (
+                    dataframe['rsi'].rolling(period).max() - dataframe['rsi'].rolling(period).min())
         dataframe['srsi_k'] = stochrsi.rolling(SmoothK).mean() * 100
         dataframe['srsi_d'] = dataframe['srsi_k'].rolling(smoothD).mean()
 
@@ -283,7 +293,6 @@ class FBB_CryptoFrog(IStrategy):
         dataframe['dmi_minus'] = dmi['DI-']
         dataframe['adx'] = fta.ADX(dataframe, period=14)
 
-
         # FBB_ indicators
 
         # Inverse Fisher transform on RSI, values [-1.0, 1.0] (https://goo.gl/2JGGoy)
@@ -292,6 +301,12 @@ class FBB_CryptoFrog(IStrategy):
 
         # Bollinger bands
         dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
+
+        # Williams %R
+        dataframe['wr'] = 0.02 * (williams_r(dataframe, period=14) + 50.0)
+
+        # Combined Fisher RSI and Williams %R (Range -1..+1)
+        dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
 
 
         ## for stoploss - all from Solipsis4
@@ -327,79 +342,111 @@ class FBB_CryptoFrog(IStrategy):
 
             informative = self.do_indicators(informative.copy(), metadata)
 
-            dataframe = merge_informative_pair(dataframe, informative, self.timeframe, self.informative_timeframe, ffill=True)
+            dataframe = merge_informative_pair(dataframe, informative, self.timeframe, self.informative_timeframe,
+                                               ffill=True)
 
-            skip_columns = [(s + "_" + self.informative_timeframe) for s in ['date', 'open', 'high', 'low', 'close', 'volume', 'emac', 'emao']]
-            dataframe.rename(columns=lambda s: s.replace("_{}".format(self.informative_timeframe), "") if (not s in skip_columns) else s, inplace=True)
+            skip_columns = [(s + "_" + self.informative_timeframe) for s in
+                            ['date', 'open', 'high', 'low', 'close', 'volume', 'emac', 'emao']]
+            dataframe.rename(columns=lambda s: s.replace("_{}".format(self.informative_timeframe), "") if (
+                not s in skip_columns) else s, inplace=True)
 
         # Slam some indicators into the trade_info dict so we can dynamic roi and custom stoploss in backtest
         if self.dp.runmode.value in ('backtest', 'hyperopt'):
             self.custom_trade_info[metadata['pair']]['roc'] = dataframe[['date', 'roc']].copy().set_index('date')
             self.custom_trade_info[metadata['pair']]['atr'] = dataframe[['date', 'atr']].copy().set_index('date')
             self.custom_trade_info[metadata['pair']]['sroc'] = dataframe[['date', 'sroc']].copy().set_index('date')
-            self.custom_trade_info[metadata['pair']]['ssl-dir'] = dataframe[['date', 'ssl-dir']].copy().set_index('date')
-            self.custom_trade_info[metadata['pair']]['rmi-up-trend'] = dataframe[['date', 'rmi-up-trend']].copy().set_index('date')
-            self.custom_trade_info[metadata['pair']]['candle-up-trend'] = dataframe[['date', 'candle-up-trend']].copy().set_index('date')
+            self.custom_trade_info[metadata['pair']]['ssl-dir'] = dataframe[['date', 'ssl-dir']].copy().set_index(
+                'date')
+            self.custom_trade_info[metadata['pair']]['rmi-up-trend'] = dataframe[
+                ['date', 'rmi-up-trend']].copy().set_index('date')
+            self.custom_trade_info[metadata['pair']]['candle-up-trend'] = dataframe[
+                ['date', 'candle-up-trend']].copy().set_index('date')
 
         return dataframe
 
     ## FBB_CryptoFrog signals
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        dataframe.loc[
+
+        conditions = []
+        dataframe.loc[:, 'buy_tag'] = ''
+
+        cond_guard = (
+            ## close ALWAYS needs to be lower than the heiken low at 5m
             (
-                    (
-                        ## close ALWAYS needs to be lower than the heiken low at 5m
-                            (dataframe['close'] < dataframe['Smooth_HA_L'])
-                            &
-                            ## Hansen's HA EMA at informative timeframe
-                            (dataframe['emac_1h'] < dataframe['emao_1h'])
-                    )
+                    (dataframe['close'] < dataframe['Smooth_HA_L'])
+                    &
+                    ## Hansen's HA EMA at informative timeframe
+                    (dataframe['emac_1h'] < dataframe['emao_1h'])
+            )
+        )
+
+        cond_uptick = (
+            ## potential uptick incoming so buy
+            (
+                    (dataframe['bbw_expansion'] == 1) & (dataframe['sqzmi'] == False)
                     &
                     (
-                            (
-                                ## potential uptick incoming so buy
-                                    (dataframe['bbw_expansion'] == 1) & (dataframe['sqzmi'] == False)
-                                    &
-                                    (
-                                            (dataframe['mfi'] < 20)
-                                            |
-                                            (dataframe['dmi_minus'] > 30)
-                                    )
-                            )
+                            (dataframe['mfi'] < 20)
                             |
-                            (
-                                # this tries to find extra buys in undersold regions
-                                    (dataframe['close'] < dataframe['sar'])
-                                    &
-                                    ((dataframe['srsi_d'] >= dataframe['srsi_k']) & (dataframe['srsi_d'] < 30))
-                                    &
-                                    ((dataframe['fastd'] > dataframe['fastk']) & (dataframe['fastd'] < 23))
-                                    &
-                                    (dataframe['mfi'] < 30)
-                            )
-                            |
-                            (
-                                # find smaller temporary dips in sideways
-                                    (
-                                            ((dataframe['dmi_minus'] > 30) & qtpylib.crossed_above(dataframe['dmi_minus'], dataframe['dmi_plus']))
-                                            &
-                                            (dataframe['close'] < dataframe['bb_lowerband'])
-                                    )
-                                    |
-                                    (
-                                        ## if nothing else is making a buy signal, use FBB_ triggers
-                                            (dataframe['fisher_rsi'] <= self.buy_fisher.value) &
-                                            (dataframe['bb_gain'] >= self.buy_bb_gain.value)
-                                    )
-                            )
-                            ## volume sanity checks
-                            &
-                            (dataframe['vfi'] < 0.0)
-                            &
-                            (dataframe['volume'] > 0)
+                            (dataframe['dmi_minus'] > 30)
                     )
-            ),
-            'buy'] = 1
+            )
+        )
+
+        cond_undersold = (
+            # this tries to find extra buys in undersold regions
+            (
+                    (dataframe['close'] < dataframe['sar'])
+                    &
+                    ((dataframe['srsi_d'] >= dataframe['srsi_k']) & (dataframe['srsi_d'] < 30))
+                    &
+                    ((dataframe['fastd'] > dataframe['fastk']) & (dataframe['fastd'] < 23))
+                    &
+                    (dataframe['mfi'] < 30)
+            )
+        )
+
+        cond_sideways = (
+            # find smaller temporary dips in sideways
+            (
+                    ((dataframe['dmi_minus'] > 30) & qtpylib.crossed_above(dataframe['dmi_minus'],
+                                                                           dataframe['dmi_plus']))
+                    &
+                    (dataframe['close'] < dataframe['bb_lowerband'])
+            )
+        )
+
+        cond_fbb = (
+                qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_fisher_wr.value) &
+                (dataframe['bb_gain'] >= self.buy_bb_gain.value)
+        )
+
+        cond_strong_buy = (
+                (
+                        qtpylib.crossed_above(dataframe['bb_gain'], 1.5 * self.buy_bb_gain.value) |
+                        qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_force_fisher_wr.value)
+                ) &
+                (
+                    (dataframe['bb_gain'] > 0.02)  # make sure there is some potential gain
+                )
+        )
+
+        conditions.append(cond_guard)
+        conditions.append(cond_uptick | cond_undersold | cond_sideways | cond_fbb | cond_strong_buy)
+
+        # add buy tags
+        dataframe.loc[cond_uptick, 'buy_tag'] += 'uptick '
+        dataframe.loc[cond_undersold, 'buy_tag'] += 'undersold '
+        dataframe.loc[cond_sideways, 'buy_tag'] += 'sideways '
+        dataframe.loc[cond_fbb, 'buy_tag'] += 'fbb '
+        dataframe.loc[cond_strong_buy, 'buy_tag'] += 'strong '
+
+        ## volume sanity checks
+        conditions.append(dataframe['vfi'] < 0.0)
+        conditions.append(dataframe['volume'] > 0)
+
+        if conditions:
+            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
 
         return dataframe
 
@@ -432,13 +479,13 @@ class FBB_CryptoFrog(IStrategy):
                             &
                             (dataframe['volume'] > 0)
                     )
-                    # |
-                    # (
-                    #     ## sell if far enough above Bollinger midline
-                    #         (dataframe['close'] > dataframe['bb_upperband'] * 0.9) &  # Don't be greedy, sell fast
-                    #         (dataframe['vfi'] > 0.0) &
-                    #         (dataframe['volume'] > 0)  # Make sure Volume is not 0
-                    # )
+                # |
+                # (
+                #     ## sell if far enough above Bollinger midline
+                #         (dataframe['close'] > dataframe['bb_upperband'] * 0.9) &  # Don't be greedy, sell fast
+                #         (dataframe['vfi'] > 0.0) &
+                #         (dataframe['volume'] > 0)  # Make sure Volume is not 0
+                # )
             ),
             'sell'] = 1
         return dataframe
@@ -449,7 +496,8 @@ class FBB_CryptoFrog(IStrategy):
     Custom Stoploss 
     """
 
-    def custom_stoploss(self, pair: str, trade: 'Trade', current_time: datetime, current_rate: float, current_profit: float, **kwargs) -> float:
+    def custom_stoploss(self, pair: str, trade: 'Trade', current_time: datetime, current_rate: float,
+                        current_profit: float, **kwargs) -> float:
         trade_dur = int((current_time.timestamp() - trade.open_date_utc.timestamp()) // 60)
 
         if self.config['runmode'].value in ('live', 'dry_run'):
@@ -475,7 +523,8 @@ class FBB_CryptoFrog(IStrategy):
     Freqtrade ROI Overload for dynamic ROI functionality
     """
 
-    def min_roi_reached_dynamic(self, trade: Trade, current_profit: float, current_time: datetime, trade_dur: int) -> Tuple[Optional[int], Optional[float]]:
+    def min_roi_reached_dynamic(self, trade: Trade, current_profit: float, current_time: datetime, trade_dur: int) -> \
+    Tuple[Optional[int], Optional[float]]:
 
         minimal_roi = self.minimal_roi
         _, table_roi = self.min_roi_reached_entry(trade_dur)
@@ -490,7 +539,8 @@ class FBB_CryptoFrog(IStrategy):
             # If in backtest or hyperopt, get the indicator values out of the trades dict (Thanks @JoeSchr!)
             else:
                 rmi_trend = self.custom_trade_info[trade.pair]['rmi-up-trend'].loc[current_time]['rmi-up-trend']
-                candle_trend = self.custom_trade_info[trade.pair]['candle-up-trend'].loc[current_time]['candle-up-trend']
+                candle_trend = self.custom_trade_info[trade.pair]['candle-up-trend'].loc[current_time][
+                    'candle-up-trend']
                 ssl_dir = self.custom_trade_info[trade.pair]['ssl-dir'].loc[current_time]['ssl-dir']
 
             min_roi = table_roi
@@ -641,3 +691,22 @@ def SROC(dataframe, roclen=21, emalen=13, smooth=21):
     sroc = ta.ROC(ema, timeperiod=smooth)
 
     return sroc
+
+# Williams %R
+def williams_r(dataframe: DataFrame, period: int = 14) -> Series:
+    """Williams %R, or just %R, is a technical analysis oscillator showing the current closing price in relation to the high and low
+        of the past N days (for a given N). It was developed by a publisher and promoter of trading materials, Larry Williams.
+        Its purpose is to tell whether a stock or commodity market is trading near the high or the low, or somewhere in between,
+        of its recent trading range.
+        The oscillator is on a negative scale, from −100 (lowest) up to 0 (highest).
+    """
+
+    highest_high = dataframe["high"].rolling(center=False, window=period).max()
+    lowest_low = dataframe["low"].rolling(center=False, window=period).min()
+
+    WR = Series(
+        (highest_high - dataframe["close"]) / (highest_high - lowest_low),
+        name=f"{period} Williams %R",
+        )
+
+    return WR * -100

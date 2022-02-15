@@ -14,12 +14,12 @@
       "trailing_only_offset_is_reached": true
     },
     "buy": {
-      "buy_bb_gain": 0.05,
-      "buy_fisher_wr": -0.94
+      "buy_bb_gain": 0.07,
+      "buy_fisher_wr": -0.99
     },
     "sell": {},
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-02-09 23:37:46.443143+00:00"
+  "export_time": "2022-02-09 22:06:30.530822+00:00"
 }

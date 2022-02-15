@@ -1,0 +1,56 @@
+{
+  "strategy_name": "FBB_MacheteV8b",
+  "params": {
+    "roi": {
+      "0": 100.0
+    },
+    "stoploss": {
+      "stoploss": -0.1
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "buy": {
+      "buy_bb_gain": 0.06,
+      "buy_enable_adx_momentum": true,
+      "buy_enable_adx_smas": false,
+      "buy_enable_asdts_rockwelltrading": false,
+      "buy_enable_averages_strategy": false,
+      "buy_enable_awesome_macd": true,
+      "buy_enable_fisher_hull": false,
+      "buy_enable_gettin_moist": false,
+      "buy_enable_hlhb": true,
+      "buy_enable_macd_strategy": false,
+      "buy_enable_macd_strategy_crossed": false,
+      "buy_enable_pmax": true,
+      "buy_enable_quickie": false,
+      "buy_enable_scalp": false,
+      "buy_enable_simple": true,
+      "buy_enable_strategy001": false,
+      "buy_enable_technical_example_strategy": false,
+      "buy_enable_tema_rsi_strategy": false,
+      "buy_fisher_wr": -0.62,
+      "buy_force_fisher_wr": -0.75
+    },
+    "sell": {
+      "cstp_bail_how": "time",
+      "cstp_bail_roc": -0.028,
+      "cstp_bail_time": 1280,
+      "cstp_bb_trailing_input": "bb_lowerband_trend_inf",
+      "cstp_threshold": -0.007,
+      "cstp_trailing_max_stoploss": 0.046,
+      "cstp_trailing_only_offset_is_reached": 0.06,
+      "cstp_trailing_stop_profit_devider": 2,
+      "droi_pullback": true,
+      "droi_pullback_amount": 0.006,
+      "droi_pullback_respect_table": false,
+      "droi_trend_type": "any"
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2022-02-15 00:58:23.708435+00:00"
+}

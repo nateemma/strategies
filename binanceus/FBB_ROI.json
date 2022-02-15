@@ -14,8 +14,8 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "buy_bb_gain": 0.16,
-      "buy_fisher_wr": -0.92
+      "buy_bb_gain": 0.04,
+      "buy_fisher_wr": -0.95
     },
     "sell": {
       "pHSL": -0.052,

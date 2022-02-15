@@ -14,27 +14,27 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "buy_bb_gain": 0.05,
-      "buy_fisher_wr": 0.45,
-      "buy_force_fisher_wr": -0.96,
-      "inf_pct_adr": 0.899,
-      "xbtc_base_rmi": 59,
-      "xbtc_guard": "none",
-      "xtra_base_fiat_rmi": 41,
-      "xtra_base_stake_rmi": 15
+      "buy_bb_gain": 0.43,
+      "buy_fisher_wr": -0.94,
+      "buy_force_fisher_wr": -0.76,
+      "inf_pct_adr": 0.736,
+      "xbtc_base_rmi": 68,
+      "xbtc_guard": "lazy",
+      "xtra_base_fiat_rmi": 58,
+      "xtra_base_stake_rmi": 37
     },
     "sell": {
-      "pHSL": -0.2,
+      "pHSL": -0.199,
       "pPF_1": 0.009,
-      "pPF_2": 0.062,
+      "pPF_2": 0.072,
       "pSL_1": 0.008,
       "pSL_2": 0.061,
-      "sell_bb_gain": 0.78,
-      "sell_fisher_wr": 0.3,
-      "sell_force_fisher_wr": 0.92
+      "sell_bb_gain": 1.1,
+      "sell_fisher_wr": 0.38,
+      "sell_force_fisher_wr": 0.99
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-01-25 07:21:48.456779+00:00"
+  "export_time": "2022-02-03 12:49:17.508994+00:00"
 }
