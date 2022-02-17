@@ -35,8 +35,7 @@ class FBB_MacheteV8b(IStrategy):
         "buy_enable_adx_smas": False, 
         "buy_enable_asdts_rockwelltrading": False, 
         "buy_enable_averages_strategy": False, 
-        "buy_enable_awesome_macd": True, 
-        "buy_enable_fisher_hull": False, 
+        "buy_enable_awesome_macd": True,
         "buy_enable_gettin_moist": False, 
         "buy_enable_hlhb": True, 
         "buy_enable_macd_strategy": False, 
@@ -97,7 +96,6 @@ class FBB_MacheteV8b(IStrategy):
     buy_enable_adx_smas = CategoricalParameter([True, False], default=buy_params['buy_enable_adx_smas'], space='buy', optimize=True)
     buy_enable_asdts_rockwelltrading = CategoricalParameter([True, False], default=buy_params['buy_enable_asdts_rockwelltrading'], space='buy', optimize=True)
     buy_enable_averages_strategy = CategoricalParameter([True, False], default=buy_params['buy_enable_averages_strategy'], space='buy', optimize=True)
-    buy_enable_fisher_hull = CategoricalParameter([True, False], default=buy_params['buy_enable_fisher_hull'], space='buy', optimize=True)
     buy_enable_gettin_moist = CategoricalParameter([True, False], default=buy_params['buy_enable_gettin_moist'], space='buy', optimize=True)
     buy_enable_hlhb = CategoricalParameter([True, False], default=buy_params['buy_enable_hlhb'], space='buy', optimize=True)
     buy_enable_macd_strategy_crossed = CategoricalParameter([True, False], default=buy_params['buy_enable_macd_strategy_crossed'], space='buy', optimize=True)
@@ -466,7 +464,6 @@ class FBB_MacheteV8b(IStrategy):
                 | (self.get_buy_signal_adx_smas(dataframe) == True)
                 | (self.get_buy_signal_asdts_rockwelltrading(dataframe) == True)
                 | (self.get_buy_signal_averages_strategy(dataframe) == True)
-                | (self.get_buy_signal_fisher_hull(dataframe) == True)
                 | (self.get_buy_signal_gettin_moist(dataframe) == True)
                 | (self.get_buy_signal_hlhb(dataframe) == True)
                 | (self.get_buy_signal_macd_strategy_crossed(dataframe) == True)
@@ -539,7 +536,6 @@ class FBB_MacheteV8b(IStrategy):
 
     def get_buy_signal_fisher_hull(self, dataframe: DataFrame):
         signal = (
-            (self.buy_enable_fisher_hull.value == True) &
             (dataframe['hma'] < dataframe['hma'].shift()) &
             (dataframe['cci'] <= -50.0) &
             (dataframe['fisher_rsi'] < -0.5)
@@ -670,12 +666,9 @@ class FBB_MacheteV8b(IStrategy):
             & (
                 (qtpylib.crossed_below(dataframe['tenkan_sen_inf'], dataframe['kijun_sen_inf']))
                 |(qtpylib.crossed_below(dataframe['close_inf'], dataframe['kijun_sen_inf']))
-            ) #&
-
-            # NOTE: I keep the volume checks of feels like it has not much benifit when trading leverage tokens, maybe im wrong!?
-            #(dataframe['vfi'] < 0.0) &
-            #(dataframe['volume'] > 0)
-
+            ) &
+            (dataframe['vfi'] < 0.0) &
+            (dataframe['volume'] > 0)
         ,'sell'] = 1
 
         return dataframe
@@ -825,7 +818,7 @@ class FBB_MacheteV8b(IStrategy):
             if active_trade:
                 # get current price and update the min/max rate
                 current_rate = self.get_current_price(pair, True)
-                active_trade[0].adjust_min_max_rates(current_rate)
+                active_trade[0].adjust_min_max_rates(current_rate, current_rate)
 
         return trade_data
 
