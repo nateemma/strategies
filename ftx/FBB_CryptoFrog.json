@@ -20,9 +20,9 @@
     },
     "sell": {
       "cstp_bail_how": "time",
-      "cstp_bail_roc": -0.024,
-      "cstp_bail_time": 1237,
-      "cstp_threshold": -0.034,
+      "cstp_bail_roc": -0.022,
+      "cstp_bail_time": 1228,
+      "cstp_threshold": -0.004,
       "droi_pullback": true,
       "droi_pullback_amount": 0.005,
       "droi_pullback_respect_table": false,
@@ -31,5 +31,5 @@
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-02-17 17:49:20.856676+00:00"
+  "export_time": "2022-02-17 18:44:27.638903+00:00"
 }
