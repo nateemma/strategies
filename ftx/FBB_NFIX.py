@@ -197,6 +197,7 @@ class FBB_NFIX(IStrategy):
     # Fisher/BB hyper parameters
     buy_bb_gain = DecimalParameter(0.01, 0.20, decimals=2, default=0.09, space='buy', load=True, optimize=True)
     buy_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.80, space='buy', load=True, optimize=True)
+    buy_force_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.99, space='buy', load=True, optimize=True)
 
     #############################################################
 
@@ -10179,10 +10180,6 @@ class FBB_NFIX(IStrategy):
 
                 # Condition #66 - Fisher/Bollinger Band
                 elif index == 66:
-                    # # Confirm uptrend - Heikin-Ashi
-                    # item_buy_logic.append(dataframe['open_sha_1d'] < dataframe['close_sha_1d'])
-                    # item_buy_logic.append(dataframe['open_sha_1d'].shift(288) < dataframe['close_sha_1d'].shift(288))
-                    # item_buy_logic.append(dataframe['pivot_1d'] > dataframe['pivot_1d'].shift(288) * 0.95)
                     # Non-Standard protections
                     item_buy_logic.append(dataframe['close'] > (dataframe['sup_level_1h'] * 0.92))
 
@@ -10190,6 +10187,18 @@ class FBB_NFIX(IStrategy):
                             qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_fisher_wr.value) &
                             (dataframe['bb_gain'] >= self.buy_bb_gain.value)
                     )
+
+                    strong_buy_cond = (
+                            (
+                                    qtpylib.crossed_above(dataframe['bb_gain'], 1.5 * self.buy_bb_gain.value) |
+                                    qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_force_fisher_wr.value)
+                            ) &
+                            (
+                                (dataframe['bb_gain'] > 0.02)  # make sure there is some potential gain
+                            )
+                    )
+
+                    conditions.append(fbb_cond | strong_buy_cond)
                     item_buy_logic.append(fbb_cond)
 
                 item_buy_logic.append(dataframe['volume'] > 0)
