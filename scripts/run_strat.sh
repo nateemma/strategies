@@ -16,14 +16,14 @@ Usage: zsh $script [options] <exchange> <strategy>
 
 If port is specified, then the script will look for config_<exchange>_<port>.json
 
+NOTE: if the database already exists, it will be re-used, i.e. any previously opened trades should be found
+
 END
 }
 
 
 # Defaults
 
-
-loss="OnlyProfitHyperOptLoss"
 port=""
 
 
@@ -33,7 +33,7 @@ timerange="${start_date}-"
 die() { echo "$*" >&2; exit 2; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
-while getopts kp:-: OPT; do
+while getopts p:-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
@@ -61,7 +61,7 @@ strategy=$2
 strat_dir="user_data/strategies"
 exchange_dir="${strat_dir}/${exchange}"
 config_file="config_${exchange}${port}.json"
-db_url="tradesv3_${exchange}${port}.dryrun.sqlite"
+db_url="tradesv3_${exchange}${port}.sqlite"
 
 if [ ! -f ${config_file} ]; then
     echo "config file not found: ${config_file}"

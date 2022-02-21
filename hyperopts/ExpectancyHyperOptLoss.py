@@ -41,6 +41,11 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
 
         debug_level = 0 # displays (more) messages if higher
 
+        # if debug_level >= 2:
+        #     profit_cols = [col for col in results.columns if 'profit' in col]
+        #     print("Profit columns:")
+        #     print(profit_cols)
+
         days_period = (max_date - min_date).days
         # target_trades = days_period*EXPECTED_TRADES_PER_DAY
         if config['max_open_trades']:
@@ -60,7 +65,8 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
                 print(" \tTrade count too low:{:.0f}".format(trade_count))
             return UNDESIRED_SOLUTION
 
-        total_profit = results["profit_abs"]
+        stake = backtest_stats['stake_amount']
+        total_profit = results["profit_abs"] / (stake)
 
         # Winning trades
         results['upside_returns'] = 0
@@ -79,13 +85,19 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
         # Expectancy (refer to freqtrade edge page for info)
         w = winning_count / trade_count
         l = 1.0 - w
-        results['net_gain'] = results['profit_abs'] * results['upside_returns']
-        results['net_loss'] = results['profit_abs'] * results['downside_returns']
+        # results['net_gain'] = results['profit_abs'] * results['upside_returns']
+        # results['net_loss'] = results['profit_abs'] * results['downside_returns']
+        results['net_gain'] = total_profit * results['upside_returns']
+        results['net_loss'] = total_profit * results['downside_returns']
         ave_profit = results['net_gain'].sum() / trade_count
         ave_loss = results['net_loss'].sum() / trade_count
-        if abs(ave_loss) < 0.001:
-            ave_loss = 0.001
+
+        if abs(ave_loss) < 0.01:
+            ave_loss = 0.01  # set min loss = 1%, otherwise results can be wildly skewed
         r = ave_profit / abs(ave_loss)
         e = r * w - l
+
+        if (debug_level>0) & (e > 1.0):
+            print(" n:{:.0f} r:{:.2f} w:{:.2f} l:{:.2f} e:-{:.2f} ".format(trade_count, r, w, l, e))
 
         return -e
