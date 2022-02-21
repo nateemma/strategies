@@ -15,8 +15,6 @@ from freqtrade.persistence import Trade
 # Get rid of pandas warnings during backtesting
 import pandas as pd
 
-from pykalman import KalmanFilter
-
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -26,7 +24,23 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent))
 
+import logging
+import warnings
+log = logging.getLogger(__name__)
+#log.setLevel(logging.DEBUG)
+warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
+
 import custom_indicators as cta
+
+try:
+    from pykalman import KalmanFilter
+except ImportError:
+    log.error(
+        "IMPORTANT - please install the pykalman python module which is needed for this strategy. "
+        "pip install pykalman"
+    )
+else:
+    log.info("pykalman successfully imported")
 
 """
 
@@ -35,6 +49,9 @@ Kalman - use a Kalman Filter to estimate future price movements
 Note that this necessarily requires a 'long' timeframe because predicting a short-term swing is pretty useless - by the
 time a trade was executed, the estimate would be outdated.
 So, I use informative pairs that match the whitelist at 1h intervals to predict movements
+
+Custom sell/stoploss logic shamnelessly copied from Solipsis by @werkkrew (https://github.com/werkkrew/freqtrade-strategies)
+
 """
 
 
@@ -49,7 +66,7 @@ class Kalman(IStrategy):
     }
 
     # Stoploss:
-    stoploss = -0.99
+    stoploss = -0.10
 
     # Trailing stop:
     trailing_stop = False
@@ -60,8 +77,8 @@ class Kalman(IStrategy):
     ## Buy Space Hyperopt Variables
 
     # Kalman Filter limits
-    buy_kf_gain = DecimalParameter(0.001, 0.05, decimals=3, default=0.015, space='buy', load=True, optimize=True)
-    sell_kf_loss = DecimalParameter(-0.05, 0.00, decimals=3, default=-0.005, space='sell', load=True, optimize=True)
+    buy_kf_gain = DecimalParameter(0.000, 0.050, decimals=3, default=0.015, space='buy', load=True, optimize=True)
+    sell_kf_loss = DecimalParameter(-0.050, 0.000, decimals=3, default=-0.005, space='sell', load=True, optimize=True)
 
 
     ## Sell Space Params are being used for both custom_stoploss and custom_sell
@@ -124,7 +141,7 @@ class Kalman(IStrategy):
     def informative_pairs(self):
 
         pairs = self.dp.current_whitelist()
-        informative_pairs = [(pair, self.informative_timeframe) for pair in pairs]
+        informative_pairs = [(pair, self.inf_timeframe) for pair in pairs]
         return informative_pairs
 
     """
@@ -139,30 +156,30 @@ class Kalman(IStrategy):
 
         ## Base Timeframe / Pair
 
-        # Kaufmann Adaptive Moving Average
-        dataframe['kama'] = ta.KAMA(dataframe, length=233)
+        # # Kaufmann Adaptive Moving Average
+        # dataframe['kama'] = ta.KAMA(dataframe, length=233)
 
         # RMI: https://www.tradingview.com/script/kwIt9OgQ-Relative-Momentum-Index/
         dataframe['rmi'] = cta.RMI(dataframe, length=24, mom=5)
 
-        # Momentum Pinball: https://www.tradingview.com/script/fBpVB1ez-Momentum-Pinball-Indicator/
-        dataframe['roc-mp'] = ta.ROC(dataframe, timeperiod=1)
-        dataframe['mp'] = ta.RSI(dataframe['roc-mp'], timeperiod=3)
+        # # Momentum Pinball: https://www.tradingview.com/script/fBpVB1ez-Momentum-Pinball-Indicator/
+        # dataframe['roc-mp'] = ta.ROC(dataframe, timeperiod=1)
+        # dataframe['mp'] = ta.RSI(dataframe['roc-mp'], timeperiod=3)
 
         # MA Streak: https://www.tradingview.com/script/Yq1z7cIv-MA-Streak-Can-Show-When-a-Run-Is-Getting-Long-in-the-Tooth/
         dataframe['mastreak'] = cta.mastreak(dataframe, period=4)
 
-        # Percent Change Channel: https://www.tradingview.com/script/6wwAWXA1-MA-Streak-Change-Channel/
-        upper, mid, lower = cta.pcc(dataframe, period=40, mult=3)
-        dataframe['pcc-lowerband'] = lower
-        dataframe['pcc-upperband'] = upper
+        # # Percent Change Channel: https://www.tradingview.com/script/6wwAWXA1-MA-Streak-Change-Channel/
+        # upper, mid, lower = cta.pcc(dataframe, period=40, mult=3)
+        # dataframe['pcc-lowerband'] = lower
+        # dataframe['pcc-upperband'] = upper
 
-        lookup_idxs = dataframe.index.values - (abs(dataframe['mastreak'].values) + 1)
-        valid_lookups = lookup_idxs >= 0
-        dataframe['sbc'] = np.nan
-        dataframe.loc[valid_lookups, 'sbc'] = dataframe['close'].to_numpy()[lookup_idxs[valid_lookups].astype(int)]
+        # lookup_idxs = dataframe.index.values - (abs(dataframe['mastreak'].values) + 1)
+        # valid_lookups = lookup_idxs >= 0
+        # dataframe['sbc'] = np.nan
+        # dataframe.loc[valid_lookups, 'sbc'] = dataframe['close'].to_numpy()[lookup_idxs[valid_lookups].astype(int)]
 
-        dataframe['streak-roc'] = 100 * (dataframe['close'] - dataframe['sbc']) / dataframe['sbc']
+        # dataframe['streak-roc'] = 100 * (dataframe['close'] - dataframe['sbc']) / dataframe['sbc']
 
         # Trends, Peaks and Crosses
         dataframe['candle-up'] = np.where(dataframe['close'] >= dataframe['open'], 1, 0)
@@ -174,8 +191,8 @@ class Kalman(IStrategy):
         dataframe['rmi-dn'] = np.where(dataframe['rmi'] <= dataframe['rmi'].shift(), 1, 0)
         dataframe['rmi-dn-count'] = dataframe['rmi-dn'].rolling(8).sum()
 
-        dataframe['streak-bo'] = np.where(dataframe['streak-roc'] < dataframe['pcc-lowerband'], 1, 0)
-        dataframe['streak-bo-count'] = dataframe['streak-bo'].rolling(8).sum()
+        # dataframe['streak-bo'] = np.where(dataframe['streak-roc'] < dataframe['pcc-lowerband'], 1, 0)
+        # dataframe['streak-bo-count'] = dataframe['streak-bo'].rolling(8).sum()
 
         # Indicators used only for ROI and Custom Stoploss
         ssldown, sslup = cta.SSLChannels_ATR(dataframe, length=21)
@@ -194,7 +211,7 @@ class Kalman(IStrategy):
 
         # Kalman filter
 
-        # update filter
+        # update filter (note: this is slow)
         self.kalman_filter = self.kalman_filter.em(informative['close'], n_iter=6)
 
         # current trend

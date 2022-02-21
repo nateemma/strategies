@@ -14,28 +14,28 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "buy_kf_gain": 0.027
+      "buy_kf_gain": 0.047
     },
     "sell": {
       "csell_endtrend_respect_roi": true,
-      "csell_pullback": true,
-      "csell_pullback_amount": 0.03,
-      "csell_pullback_respect_roi": true,
-      "csell_roi_end": 0.0,
-      "csell_roi_start": 0.05,
-      "csell_roi_time": 1309,
+      "csell_pullback": false,
+      "csell_pullback_amount": 0.01,
+      "csell_pullback_respect_roi": false,
+      "csell_roi_end": 0.008,
+      "csell_roi_start": 0.048,
+      "csell_roi_time": 1430,
       "csell_roi_type": "static",
       "csell_trend_type": "any",
       "cstop_bail_how": "none",
-      "cstop_bail_roc": -1.889,
-      "cstop_bail_time": 585,
-      "cstop_bail_time_trend": false,
-      "cstop_loss_threshold": -0.04,
-      "cstop_max_stoploss": -0.283,
-      "sell_kf_loss": -0.02
+      "cstop_bail_roc": -1.981,
+      "cstop_bail_time": 196,
+      "cstop_bail_time_trend": true,
+      "cstop_loss_threshold": -0.039,
+      "cstop_max_stoploss": -0.292,
+      "sell_kf_loss": -0.044
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-02-21 19:41:16.939687+00:00"
+  "export_time": "2022-02-21 17:09:32.548127+00:00"
 }

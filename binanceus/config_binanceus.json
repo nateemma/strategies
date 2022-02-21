@@ -51,6 +51,7 @@
       "rateLimit": 200
     },
     "pair_whitelist": [
+      //      ".*/USD",
       "KNC/USD",
       "GRT/USD",
       "XTZ/USD",
@@ -153,33 +154,33 @@
       //      "method": "ShuffleFilter"
     }
   ],
-      "protections": [
+  "protections": [
     {
-        "method": "CooldownPeriod",
-        "stop_duration_candles": 1
+      "method": "CooldownPeriod",
+      "stop_duration_candles": 1
     },
     {
-        "method": "StoplossGuard",
-        "lookback_period_candles": 48,
-        "trade_limit": 2,
-        "stop_duration_candles": 24,
-        "only_per_pair": true
+      "method": "StoplossGuard",
+      "lookback_period_candles": 48,
+      "trade_limit": 2,
+      "stop_duration_candles": 24,
+      "only_per_pair": true
     },
     {
-        "method": "LowProfitPairs",
-        "lookback_period_candles": 3,
-        "trade_limit": 2,
-        "stop_duration_candles": 4,
-        "required_profit": 0.015
+      "method": "LowProfitPairs",
+      "lookback_period_candles": 3,
+      "trade_limit": 2,
+      "stop_duration_candles": 4,
+      "required_profit": 0.015
     },
     {
-        "method": "LowProfitPairs",
-        "lookback_period_candles": 24,
-        "trade_limit": 3,
-        "stop_duration_candles": 12,
-        "required_profit": 0.01
+      "method": "LowProfitPairs",
+      "lookback_period_candles": 24,
+      "trade_limit": 3,
+      "stop_duration_candles": 12,
+      "required_profit": 0.01
     }
-    ],
+  ],
   "edge": {
     "enabled": false,
     "process_throttle_secs": 3600,

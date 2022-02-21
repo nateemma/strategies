@@ -5,7 +5,7 @@
       "0": 100.0
     },
     "stoploss": {
-      "stoploss": -0.99
+      "stoploss": -0.10
     },
     "trailing": {
       "trailing_stop": false,

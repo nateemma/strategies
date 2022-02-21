@@ -40,7 +40,7 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
                                backtest_stats: Dict[str, Any],
                                *args, **kwargs) -> float:
 
-        debug_level = 0 # displays (more) messages if higher
+        debug_level = 1 # displays (more) messages if higher
 
         # if (debug_level > 1) and backtest_stats:
         #     print(" backtest_stats: profit_total: {:.2f} profit_mean: {:.2f} wins: {:.2f}".format(backtest_stats['profit_total'],
@@ -146,8 +146,8 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         # note that we don't have enough info to calculate profit % because we don't know the original investment
         # so, we approximate
         stake = backtest_stats['stake_amount']
-        total_profit = results["profit_abs"] / (stake)
-        # total_profit = results["profit_abs"]
+        total_profit_pct = results["profit_abs"] / (stake)
+        total_profit = results["profit_abs"]
 
         if backtest_stats['starting_balance']:
             expected_sum = backtest_stats['starting_balance'] * (1.0 + EXPECTED_MONTHLY_PROFIT * num_months)
@@ -193,12 +193,12 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         # Expectancy (refer to freqtrade edge page for info)
         w = winning_count / trade_count
         l = 1.0 - w
-        results['net_gain'] = results['profit_abs'] * results['upside_returns']
-        results['net_loss'] = results['profit_abs'] * results['downside_returns']
+        results['net_gain'] = total_profit_pct * results['upside_returns']
+        results['net_loss'] = total_profit_pct * results['downside_returns']
         ave_profit = results['net_gain'].sum() / trade_count
         ave_loss = results['net_loss'].sum() / trade_count
-        if abs(ave_loss) < 0.001:
-            ave_loss = 0.001
+        if abs(ave_loss) < 0.01:
+            ave_loss = 0.01
         r = ave_profit / abs(ave_loss)
         e = r*w - l
 
