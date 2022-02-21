@@ -145,7 +145,9 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
 
         # note that we don't have enough info to calculate profit % because we don't know the original investment
         # so, we approximate
-        total_profit = results["profit_abs"]
+        stake = backtest_stats['stake_amount']
+        total_profit = results["profit_abs"] / (stake)
+        # total_profit = results["profit_abs"]
 
         if backtest_stats['starting_balance']:
             expected_sum = backtest_stats['starting_balance'] * (1.0 + EXPECTED_MONTHLY_PROFIT * num_months)
@@ -262,10 +264,12 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         sortino_ratio_loss  = weight_sortino_ratio * sortino_ratio_loss
         drawdown_loss       = weight_drawdown * drawdown_loss
 
+        limit_profit_loss = -100.0
+
         if weight_abs_profit > 0.0:
             # sometimes spikes happen, so cap it and turn on debug
-            if abs_profit_loss < -20.0:
-                abs_profit_loss = max(abs_profit_loss, -20.0)
+            if abs_profit_loss < limit_profit_loss:
+                abs_profit_loss = max(abs_profit_loss, limit_profit_loss)
                 debug_level = 1
 
             # don't let anything outweigh profit

@@ -124,7 +124,7 @@ class Kalman(IStrategy):
     def informative_pairs(self):
 
         pairs = self.dp.current_whitelist()
-        informative_pairs = [(pair, self.informative_timeframe) for pair in pairs]
+        informative_pairs = [(pair, self.inf_timeframe) for pair in pairs]
         return informative_pairs
 
     """
