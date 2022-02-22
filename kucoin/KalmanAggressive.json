@@ -1,11 +1,11 @@
 {
-  "strategy_name": "Kalman",
+  "strategy_name": "KalmanAggressive",
   "params": {
     "roi": {
       "0": 100
     },
     "stoploss": {
-      "stoploss": -0.10
+      "stoploss": -0.1
     },
     "trailing": {
       "trailing_stop": false,
@@ -14,28 +14,28 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "buy_kf_gain": 0.029
+      "buy_kf_gain": 0.015
     },
     "sell": {
       "csell_endtrend_respect_roi": true,
       "csell_pullback": false,
-      "csell_pullback_amount": 0.007,
+      "csell_pullback_amount": 0.021,
       "csell_pullback_respect_roi": false,
-      "csell_roi_end": 0.01,
-      "csell_roi_start": 0.037,
+      "csell_roi_end": 0.0,
+      "csell_roi_start": 0.046,
       "csell_roi_time": 1282,
-      "csell_roi_type": "step",
+      "csell_roi_type": "static",
       "csell_trend_type": "any",
-      "cstop_bail_how": "any",
-      "cstop_bail_roc": -1.008,
-      "cstop_bail_time": 388,
+      "cstop_bail_how": "time",
+      "cstop_bail_roc": -2.296,
+      "cstop_bail_time": 1274,
       "cstop_bail_time_trend": false,
-      "cstop_loss_threshold": -0.043,
-      "cstop_max_stoploss": -0.246,
-      "sell_kf_loss": -0.02
+      "cstop_loss_threshold": -0.027,
+      "cstop_max_stoploss": -0.286,
+      "sell_kf_loss": -0.004
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-02-22 00:56:33.545365+00:00"
+  "export_time": "2022-02-22 15:55:33.009101+00:00"
 }

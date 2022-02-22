@@ -40,7 +40,7 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
                                backtest_stats: Dict[str, Any],
                                *args, **kwargs) -> float:
 
-        debug_level = 1 # displays (more) messages if higher
+        debug_level = 0 # displays (more) messages if higher
 
         # if (debug_level > 1) and backtest_stats:
         #     print(" backtest_stats: profit_total: {:.2f} profit_mean: {:.2f} wins: {:.2f}".format(backtest_stats['profit_total'],
@@ -264,7 +264,7 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         sortino_ratio_loss  = weight_sortino_ratio * sortino_ratio_loss
         drawdown_loss       = weight_drawdown * drawdown_loss
 
-        limit_profit_loss = -100.0
+        limit_profit_loss = -200.0
 
         if weight_abs_profit > 0.0:
             # sometimes spikes happen, so cap it and turn on debug

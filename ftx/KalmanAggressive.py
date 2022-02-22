@@ -55,6 +55,31 @@ class KalmanAggressive(Kalman):
     trailing_stop_positive_offset = 0.0
     trailing_only_offset_is_reached = False
 
+    # Buy hyperspace params:
+    buy_params = {
+        "buy_kf_gain": 0.011,
+    }
+
+    # Sell hyperspace params:
+    sell_params = {
+        "csell_endtrend_respect_roi": True,
+        "csell_pullback": True,
+        "csell_pullback_amount": 0.014,
+        "csell_pullback_respect_roi": False,
+        "csell_roi_end": 0.003,
+        "csell_roi_start": 0.05,
+        "csell_roi_time": 799,
+        "csell_roi_type": "step",
+        "csell_trend_type": "none",
+        "cstop_bail_how": "none",
+        "cstop_bail_roc": -3.384,
+        "cstop_bail_time": 582,
+        "cstop_bail_time_trend": True,
+        "cstop_loss_threshold": -0.039,
+        "cstop_max_stoploss": -0.107,
+        "sell_kf_loss": -0.001,
+    }
+
     ## Buy Space Hyperopt Variables
 
     # Kalman Filter limits

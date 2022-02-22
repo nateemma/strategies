@@ -1,0 +1,26 @@
+{
+  "strategy_name": "KalmanSimple",
+  "params": {
+    "roi": {
+      "0": 100
+    },
+    "stoploss": {
+      "stoploss": -0.1
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "buy": {
+      "buy_kf_gain": 0.012
+    },
+    "sell": {
+      "sell_kf_loss": -0.001
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2022-02-22 16:57:39.286476+00:00"
+}
