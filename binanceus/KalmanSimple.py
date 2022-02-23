@@ -43,8 +43,8 @@ else:
     log.info("pykalman successfully imported")
 
 """
-
-Kalman - use a Kalman Filter to estimate future price movements
+####################################################################################
+KalmanSimple - use a Kalman Filter to estimate future price movements
 
 This is the 'simple' version, which basically removes all custom sell/stoploss logic and relies on the Kalman filter
 sell signal.
@@ -53,9 +53,11 @@ Note that this necessarily requires a 'long' timeframe because predicting a shor
 time a trade was executed, the estimate would be outdated. Also, updating the Kalman Filter is expensive and runs
 too slowly if you update every candle.
 
-So, I use informative pairs that match the whitelist at 1h intervals to predict movements. 
+So, I use informative pairs that match the whitelist at 1h intervals to predict movements. The downside of this
+is that the strategy can only trade once every hour 
 Results actually seem to be better with the longer timeframe anyway
 
+####################################################################################
 """
 
 
@@ -88,7 +90,7 @@ class KalmanSimple(IStrategy):
 
     # Required
     startup_candle_count: int = 40
-    process_only_new_candles = False
+    process_only_new_candles = True
 
     ###################################
 
@@ -106,7 +108,7 @@ class KalmanSimple(IStrategy):
                                  initial_state_mean=0,
                                  initial_state_covariance=1,
                                  observation_covariance=1,
-                                 transition_covariance=0.0001)
+                                 transition_covariance=0.001)
 
     ###################################
 
@@ -134,7 +136,8 @@ class KalmanSimple(IStrategy):
         # Kalman filter
 
         # update filter (note: this is slow, which is why we run it on the slower timeframe)
-        self.kalman_filter = self.kalman_filter.em(informative['close'], n_iter=6)
+        lookback_len = 8
+        self.kalman_filter = self.kalman_filter.em(informative['close'][:-lookback_len], n_iter=4)
 
         # current trend (if filter.em() is too slow, comment that out and enable the code below. Not as accurate though)
         # mean, cov = self.kalman_filter.filter(informative['close'])

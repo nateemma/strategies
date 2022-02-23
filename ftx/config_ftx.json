@@ -181,19 +181,6 @@
 //      "method": "ShuffleFilter"
     }
   ],
-  "protections": [
-    {
-      "method": "CooldownPeriod",
-      "stop_duration_candles": 1
-    },
-    {
-      "method": "StoplossGuard",
-      "lookback_period_candles": 6,
-      "trade_limit": 2,
-      "stop_duration_candles": 1440,
-      "only_per_pair": true
-    }
-  ],
   "edge": {
     "enabled": false,
     "process_throttle_secs": 3600,
