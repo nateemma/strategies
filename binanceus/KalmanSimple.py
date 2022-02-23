@@ -205,10 +205,18 @@ class KalmanSimple(IStrategy):
             qtpylib.crossed_below(dataframe['kf_predict_diff'], self.sell_kf_loss.value)
         )
 
-        conditions.append(kalman_cond)
+        # 'latch' the result (it sometimes gets missed in live run, probably takes too long)
+        latch_cond = (
+                (dataframe['kf_predict_diff'].shift(1) < self.sell_kf_loss.value) &
+                (dataframe['kf_predict_diff'].shift(2) > self.sell_kf_loss.value)
+        )
+
+
+        conditions.append(kalman_cond | latch_cond)
 
         # set buy tags
-        dataframe.loc[kalman_cond, 'exit_tag'] += 'kf '
+        dataframe.loc[kalman_cond, 'exit_tag'] += 'kf_sell '
+        dataframe.loc[latch_cond, 'exit_tag'] += 'kf_latch '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1

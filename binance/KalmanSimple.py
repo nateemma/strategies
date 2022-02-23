@@ -136,7 +136,7 @@ class KalmanSimple(IStrategy):
         # Kalman filter
 
         # update filter (note: this is slow, which is why we run it on the slower timeframe)
-        lookback_len = 16
+        lookback_len = 8
         self.kalman_filter = self.kalman_filter.em(informative['close'][:-lookback_len], n_iter=4)
 
         # current trend (if filter.em() is too slow, comment that out and enable the code below. Not as accurate though)
@@ -205,10 +205,18 @@ class KalmanSimple(IStrategy):
             qtpylib.crossed_below(dataframe['kf_predict_diff'], self.sell_kf_loss.value)
         )
 
-        conditions.append(kalman_cond)
+        # 'latch' the result (it sometimes gets missed, probably takes too long)
+        latch_cond = (
+                (dataframe['kf_predict_diff'].shift(1) < self.sell_kf_loss.value) &
+                (dataframe['kf_predict_diff'].shift(2) > self.sell_kf_loss.value)
+        )
+
+
+        conditions.append(kalman_cond | latch_cond)
 
         # set buy tags
-        dataframe.loc[kalman_cond, 'exit_tag'] += 'kf '
+        dataframe.loc[kalman_cond, 'exit_tag'] += 'kf_sell '
+        dataframe.loc[latch_cond, 'exit_tag'] += 'kf_latch '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1
