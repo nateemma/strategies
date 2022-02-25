@@ -112,7 +112,7 @@ class KalmanSimple2(IStrategy):
     #                              observation_covariance=1,
     #                              transition_covariance=0.001)
 
-    lookback_len = 16
+    lookback_len = 10
     kalman_filter = simdkalman.KalmanFilter(
         state_transition=np.array([[1,1],[0,1]]),
         process_noise=np.diag([0.1, 0.01]),
@@ -154,20 +154,22 @@ class KalmanSimple2(IStrategy):
 
         # smooth and explain existing data
         smoothed = self.kalman_filter.smooth(data)
+        mean = pd.Series(smoothed.states.mean[:,0])
+        informative['kf_mean'] = mean
 
+        ''' I can't get this to work...
         # predict new data
         length = len(data)
         # length = 1
         pred = self.kalman_filter.predict(data, length)
 
-        mean = pd.Series(smoothed.states.mean[:,0])
         predict = pd.Series(pred.observations.mean[0])
         # print (predict)
-        informative['kf_mean'] = mean
         informative['kf_predict'] = predict
+        '''
+        informative['kf_predict'] = informative['kf_mean'] # just use the smoothed model for now
 
-        # informative['kf_predict_diff'] = (informative['kf_predict'] - informative['close']) / informative['close']
-        informative['kf_predict_diff'] = (informative['kf_mean'] - informative['close']) / informative['close']
+        informative['kf_predict_diff'] = (informative['kf_predict'] - informative['close']) / informative['close']
 
         dataframe = merge_informative_pair(dataframe, informative, self.timeframe, self.inf_timeframe, ffill=True)
 
@@ -190,7 +192,7 @@ class KalmanSimple2(IStrategy):
         dataframe.loc[:, 'buy_tag'] = ''
 
         conditions.append(dataframe['volume'] > 0)
-        
+
         # Kalman triggers
         kalman_cond = (
             qtpylib.crossed_above(dataframe['kf_predict_diff'], self.buy_kf_gain.value)

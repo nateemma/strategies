@@ -108,7 +108,7 @@ class KalmanSimple(IStrategy):
                                  initial_state_mean=0,
                                  initial_state_covariance=1,
                                  observation_covariance=1,
-                                 transition_covariance=0.001)
+                                 transition_covariance=0.01)
 
     ###################################
 
@@ -137,24 +137,31 @@ class KalmanSimple(IStrategy):
 
         # update filter (note: this is slow, which is why we run it on the slower timeframe)
         lookback_len = 6
-        self.kalman_filter = self.kalman_filter.em(informative['close'][:-lookback_len], n_iter=4)
+        data = informative['close'][:-lookback_len]
+        self.kalman_filter = self.kalman_filter.em(data, n_iter=4)
 
-        # current trend (if filter.em() is too slow, comment that out and enable the code below. Not as accurate though)
-        # mean, cov = self.kalman_filter.filter(informative['close'])
-        # informative['kf_mean'] = mean.squeeze()
-        # # informative['kf_std'] = np.std(cov.squeeze())
-        # informative['kf_diff'] = (informative['kf_mean'] - informative['close']) / informative['close']
+        informative['kf_predict'] = informative['close']
+        informative['kf_mean'] = informative['close']
 
         # predict next close
-        pr_mean, pr_cov = self.kalman_filter.smooth(informative['close'])
-        informative['kf_predict'] = pr_mean.squeeze()
+        pr_mean, pr_cov = self.kalman_filter.smooth(data)
+        informative['kf_predict'][:-lookback_len] = pd.Series(pr_mean.squeeze())
         # informative['kf_predict_cov'] = np.std(pr_cov.squeeze())
+
+        mean, cov = self.kalman_filter.filter(data)
+        informative['kf_mean'][:-lookback_len] = pd.Series(mean.squeeze())
+        # # informative['kf_std'] = np.std(cov.squeeze())
+
+        # %change prediction relative to current close
         informative['kf_predict_diff'] = (informative['kf_predict'] - informative['close']) / informative['close']
-        # informative['kf_err'] = (informative['kf_predict'].shift(1) - informative['close']) / informative['close'].shift(1)
+
+        # % Difference between prediction and smoothed model
+        informative['kf_delta'] = (informative['kf_predict'] - informative['kf_mean']) / informative['kf_mean']
 
         dataframe = merge_informative_pair(dataframe, informative, self.timeframe, self.inf_timeframe, ffill=True)
 
         # copy informative into main timeframe, just to make accessing easier (and to allow further manipulation)
+        dataframe['kf_delta'] = dataframe[f"kf_delta_{self.inf_timeframe}"]
         dataframe['kf_predict'] = dataframe[f"kf_predict_{self.inf_timeframe}"]
         dataframe['kf_predict_diff'] = dataframe[f"kf_predict_diff_{self.inf_timeframe}"]
 
@@ -185,12 +192,17 @@ class KalmanSimple(IStrategy):
                 (dataframe['kf_predict_diff'].shift(2) < self.buy_kf_gain.value)
         )
 
+        delta_cond = (
+            (dataframe['kf_delta'] > 0)
+        )
 
+        conditions.append(delta_cond)
         conditions.append(kalman_cond | latch_cond)
 
         # set buy tags
         dataframe.loc[kalman_cond, 'buy_tag'] += 'kf_buy '
-        dataframe.loc[latch_cond, 'buy_tag'] += 'kf_latch '
+        dataframe.loc[latch_cond, 'buy_tag'] += 'kf_buy2 '
+        dataframe.loc[delta_cond, 'buy_tag'] += 'kf_delta '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
@@ -219,12 +231,17 @@ class KalmanSimple(IStrategy):
                 (dataframe['kf_predict_diff'].shift(2) > self.sell_kf_loss.value)
         )
 
+        # delta_cond = (
+        #     (dataframe['kf_delta'] < 0)
+        # )
+        #
+        # conditions.append(delta_cond)
 
         conditions.append(kalman_cond | latch_cond)
 
         # set buy tags
         dataframe.loc[kalman_cond, 'exit_tag'] += 'kf_sell '
-        dataframe.loc[latch_cond, 'exit_tag'] += 'kf_latch '
+        dataframe.loc[latch_cond, 'exit_tag'] += 'kf_sell2 '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1
