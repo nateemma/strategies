@@ -108,7 +108,7 @@ class KalmanSimple(IStrategy):
                                  initial_state_mean=0,
                                  initial_state_covariance=1,
                                  observation_covariance=1,
-                                 transition_covariance=0.001)
+                                 transition_covariance=0.01)
 
     ###################################
 
@@ -117,7 +117,6 @@ class KalmanSimple(IStrategy):
     """
 
     def informative_pairs(self):
-
         pairs = self.dp.current_whitelist()
         informative_pairs = [(pair, self.inf_timeframe) for pair in pairs]
         return informative_pairs
@@ -129,7 +128,6 @@ class KalmanSimple(IStrategy):
     """
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-
         # Base pair informative timeframe indicators
         informative = self.dp.get_pair_dataframe(pair=metadata['pair'], timeframe=self.inf_timeframe)
 
@@ -137,20 +135,41 @@ class KalmanSimple(IStrategy):
 
         # update filter (note: this is slow, which is why we run it on the slower timeframe)
         lookback_len = 6
-        data = informative['close'][:-lookback_len]
+        data = informative['close']
         self.kalman_filter = self.kalman_filter.em(data, n_iter=4)
 
-        informative['kf_predict'] = informative['close']
-        informative['kf_mean'] = informative['close']
+        if 'kf_predict' not in informative:
+            informative['kf_predict'] = informative['close']
+        if 'kf_mean' not in informative:
+            informative['kf_mean'] = informative['close']
 
         # predict next close
         pr_mean, pr_cov = self.kalman_filter.smooth(data)
-        informative['kf_predict'][:-lookback_len] = pd.Series(pr_mean.squeeze())
+        informative['kf_predict'] = pd.Series(pr_mean.squeeze())
         # informative['kf_predict_cov'] = np.std(pr_cov.squeeze())
 
         mean, cov = self.kalman_filter.filter(data)
-        informative['kf_mean'][:-lookback_len] = pd.Series(mean.squeeze())
+        informative['kf_mean'] = pd.Series(mean.squeeze())
         # # informative['kf_std'] = np.std(cov.squeeze())
+
+        '''
+         data = informative['close'].tail(lookback_len)
+         self.kalman_filter = self.kalman_filter.em(data, n_iter=4)
+    
+         if 'kf_predict' not in informative:
+             informative['kf_predict'] = informative['close']
+         if 'kf_mean' not in informative:
+             informative['kf_mean'] = informative['close']
+    
+         # predict next close
+         pr_mean, pr_cov = self.kalman_filter.smooth(data)
+         pr_means = pd.Series(pr_mean.squeeze())
+         informative['kf_predict'].iloc[-len(pr_means):] = np.array(pr_means)
+    
+         mean, cov = self.kalman_filter.filter(data)
+         means = pd.Series(mean.squeeze())
+         informative['kf_mean'].iloc[-len(means):] = np.array(means)
+         '''
 
         # %change prediction relative to current close
         informative['kf_predict_diff'] = (informative['kf_predict'] - informative['close']) / informative['close']
@@ -169,17 +188,19 @@ class KalmanSimple(IStrategy):
 
         return dataframe
 
+
     ###################################
 
     """
     Buy Signal
     """
 
+
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         conditions = []
         dataframe.loc[:, 'buy_tag'] = ''
 
-        conditions.append(dataframe['volume'] > 0)
+        # conditions.append(dataframe['volume'] > 0)
 
         # Kalman triggers
         kalman_cond = (
@@ -209,14 +230,15 @@ class KalmanSimple(IStrategy):
 
         return dataframe
 
+
     ###################################
 
     """
     Sell Signal
     """
 
-    def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
 
+    def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         conditions = []
         dataframe.loc[:, 'exit_tag'] = ''
 
