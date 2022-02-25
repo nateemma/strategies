@@ -33,18 +33,20 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 import custom_indicators as cta
 
 try:
-    from pykalman import KalmanFilter
+    import  simdkalman
 except ImportError:
     log.error(
-        "IMPORTANT - please install the pykalman python module which is needed for this strategy. "
+        "IMPORTANT - please install the import simdkalman python module which is needed for this strategy. "
         "pip install pykalman"
     )
 else:
-    log.info("pykalman successfully imported")
+    log.info("import simdkalman successfully imported")
 
-"""
+'''
 ####################################################################################
-KalmanSimple - use a Kalman Filter to estimate future price movements
+KalmanSimple2 - use a Kalman Filter to estimate future price movements
+
+Version using simdkalman instead of pykalman 
 
 This is the 'simple' version, which basically removes all custom sell/stoploss logic and relies on the Kalman filter
 sell signal.
@@ -58,10 +60,10 @@ is that the strategy can only trade once every hour
 Results actually seem to be better with the longer timeframe anyway
 
 ####################################################################################
-"""
+'''
 
 
-class KalmanSimple(IStrategy):
+class KalmanSimple2(IStrategy):
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # ROI table:
@@ -103,12 +105,20 @@ class KalmanSimple(IStrategy):
     sell_kf_loss = DecimalParameter(-0.050, 0.000, decimals=3, default=-0.005, space='sell', load=True, optimize=True)
 
     # Kalman Filter
-    kalman_filter = KalmanFilter(transition_matrices=[1],
-                                 observation_matrices=[1],
-                                 initial_state_mean=0,
-                                 initial_state_covariance=1,
-                                 observation_covariance=1,
-                                 transition_covariance=0.01)
+    # kalman_filter = KalmanFilter(transition_matrices=[1],
+    #                              observation_matrices=[1],
+    #                              initial_state_mean=0,
+    #                              initial_state_covariance=1,
+    #                              observation_covariance=1,
+    #                              transition_covariance=0.001)
+
+    lookback_len = 10
+    kalman_filter = simdkalman.KalmanFilter(
+        state_transition=np.array([[1,1],[0,1]]),
+        process_noise=np.diag([0.1, 0.01]),
+        observation_model=np.array([[1,0]]),
+        observation_noise=1.0
+    )
 
     ###################################
 
@@ -117,6 +127,7 @@ class KalmanSimple(IStrategy):
     """
 
     def informative_pairs(self):
+
         pairs = self.dp.current_whitelist()
         informative_pairs = [(pair, self.inf_timeframe) for pair in pairs]
         return informative_pairs
@@ -128,59 +139,41 @@ class KalmanSimple(IStrategy):
     """
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+
         # Base pair informative timeframe indicators
         informative = self.dp.get_pair_dataframe(pair=metadata['pair'], timeframe=self.inf_timeframe)
 
         # Kalman filter
 
-        # update filter (note: this is slow, which is why we run it on the slower timeframe)
-        lookback_len = 6
+
+        # data = informative['close'][:-self.lookback_len]
         data = informative['close']
-        self.kalman_filter = self.kalman_filter.em(data, n_iter=4)
 
-        if 'kf_predict' not in informative:
-            informative['kf_predict'] = informative['close']
-        if 'kf_mean' not in informative:
-            informative['kf_mean'] = informative['close']
+        # fit noise parameters to data with the EM algorithm (optional)
+        kalman_filter = self.kalman_filter.em(data, n_iter=self.lookback_len)
 
-        # predict next close
-        pr_mean, pr_cov = self.kalman_filter.smooth(data)
-        informative['kf_predict'] = pd.Series(pr_mean.squeeze())
-        # informative['kf_predict_cov'] = np.std(pr_cov.squeeze())
+        # smooth and explain existing data
+        smoothed = self.kalman_filter.smooth(data)
+        mean = pd.Series(smoothed.states.mean[:,0])
+        informative['kf_mean'] = mean
 
-        mean, cov = self.kalman_filter.filter(data)
-        informative['kf_mean'] = pd.Series(mean.squeeze())
-        # # informative['kf_std'] = np.std(cov.squeeze())
+        ''' I can't get this to work...
+        # predict new data
+        length = len(data)
+        # length = 1
+        pred = self.kalman_filter.predict(data, length)
 
+        predict = pd.Series(pred.observations.mean[0])
+        # print (predict)
+        informative['kf_predict'] = predict
         '''
-         data = informative['close'].tail(lookback_len)
-         self.kalman_filter = self.kalman_filter.em(data, n_iter=4)
-    
-         if 'kf_predict' not in informative:
-             informative['kf_predict'] = informative['close']
-         if 'kf_mean' not in informative:
-             informative['kf_mean'] = informative['close']
-    
-         # predict next close
-         pr_mean, pr_cov = self.kalman_filter.smooth(data)
-         pr_means = pd.Series(pr_mean.squeeze())
-         informative['kf_predict'].iloc[-len(pr_means):] = np.array(pr_means)
-    
-         mean, cov = self.kalman_filter.filter(data)
-         means = pd.Series(mean.squeeze())
-         informative['kf_mean'].iloc[-len(means):] = np.array(means)
-         '''
+        informative['kf_predict'] = informative['kf_mean'] # just use the smoothed model for now
 
-        # %change prediction relative to current close
         informative['kf_predict_diff'] = (informative['kf_predict'] - informative['close']) / informative['close']
-
-        # % Difference between prediction and smoothed model
-        informative['kf_delta'] = (informative['kf_predict'] - informative['kf_mean']) / informative['kf_mean']
 
         dataframe = merge_informative_pair(dataframe, informative, self.timeframe, self.inf_timeframe, ffill=True)
 
         # copy informative into main timeframe, just to make accessing easier (and to allow further manipulation)
-        dataframe['kf_delta'] = dataframe[f"kf_delta_{self.inf_timeframe}"]
         dataframe['kf_predict'] = dataframe[f"kf_predict_{self.inf_timeframe}"]
         dataframe['kf_predict_diff'] = dataframe[f"kf_predict_diff_{self.inf_timeframe}"]
 
@@ -188,13 +181,11 @@ class KalmanSimple(IStrategy):
 
         return dataframe
 
-
     ###################################
 
     """
     Buy Signal
     """
-
 
     def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         conditions = []
@@ -213,23 +204,16 @@ class KalmanSimple(IStrategy):
                 (dataframe['kf_predict_diff'].shift(2) < self.buy_kf_gain.value)
         )
 
-        delta_cond = (
-            (dataframe['kf_delta'] > 0)
-        )
-
-        conditions.append(delta_cond)
         conditions.append(kalman_cond | latch_cond)
 
         # set buy tags
         dataframe.loc[kalman_cond, 'buy_tag'] += 'kf_buy '
         dataframe.loc[latch_cond, 'buy_tag'] += 'kf_buy2 '
-        dataframe.loc[delta_cond, 'buy_tag'] += 'kf_delta '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
 
         return dataframe
-
 
     ###################################
 
@@ -237,8 +221,8 @@ class KalmanSimple(IStrategy):
     Sell Signal
     """
 
-
     def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+
         conditions = []
         dataframe.loc[:, 'exit_tag'] = ''
 
@@ -252,12 +236,6 @@ class KalmanSimple(IStrategy):
                 (dataframe['kf_predict_diff'].shift(1) < self.sell_kf_loss.value) &
                 (dataframe['kf_predict_diff'].shift(2) > self.sell_kf_loss.value)
         )
-
-        # delta_cond = (
-        #     (dataframe['kf_delta'] < 0)
-        # )
-        #
-        # conditions.append(delta_cond)
 
         conditions.append(kalman_cond | latch_cond)
 
