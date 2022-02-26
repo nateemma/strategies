@@ -191,7 +191,7 @@ class KalmanSimple2(IStrategy):
         conditions = []
         dataframe.loc[:, 'buy_tag'] = ''
 
-        conditions.append(dataframe['volume'] > 0)
+        # conditions.append(dataframe['volume'] > 0)
 
         # Kalman triggers
         kalman_cond = (
