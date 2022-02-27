@@ -20,14 +20,14 @@
     "forcebuy": "market",
     "forcesell": "market",
     "stoploss": "market",
-    "stoploss_on_exchange": true,
+    "stoploss_on_exchange": false,
     "stoploss_on_exchange_interval": 60,
     "stoploss_on_exchange_limit_ratio": 0.99
   },
   "bid_strategy": {
     "price_side": "ask",
     "ask_last_balance": 0.0,
-    "use_order_book": true,
+    "use_order_book": false,
     "order_book_top": 1,
     "check_depth_of_market": {
       "enabled": false,

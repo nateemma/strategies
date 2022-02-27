@@ -89,7 +89,7 @@ class KalmanSimple(IStrategy):
     ignore_roi_if_buy_signal = True
 
     # Required
-    startup_candle_count: int = 40
+    startup_candle_count: int = 12
     process_only_new_candles = True
 
     ###################################
@@ -129,7 +129,8 @@ class KalmanSimple(IStrategy):
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         # Base pair informative timeframe indicators
-        informative = self.dp.get_pair_dataframe(pair=metadata['pair'], timeframe=self.inf_timeframe)
+        # informative = self.dp.get_pair_dataframe(pair=metadata['pair'], timeframe=self.inf_timeframe)
+        informative = self.dp.get_pair_dataframe(pair=metadata['pair'], timeframe=self.inf_timeframe)[: -1]  # drop last candle, it seems to cause problems
 
         # Kalman filter
 
@@ -152,25 +153,6 @@ class KalmanSimple(IStrategy):
         informative['kf_mean'] = pd.Series(mean.squeeze())
         # # informative['kf_std'] = np.std(cov.squeeze())
 
-        '''
-         data = informative['close'].tail(lookback_len)
-         self.kalman_filter = self.kalman_filter.em(data, n_iter=4)
-    
-         if 'kf_predict' not in informative:
-             informative['kf_predict'] = informative['close']
-         if 'kf_mean' not in informative:
-             informative['kf_mean'] = informative['close']
-    
-         # predict next close
-         pr_mean, pr_cov = self.kalman_filter.smooth(data)
-         pr_means = pd.Series(pr_mean.squeeze())
-         informative['kf_predict'].iloc[-len(pr_means):] = np.array(pr_means)
-    
-         mean, cov = self.kalman_filter.filter(data)
-         means = pd.Series(mean.squeeze())
-         informative['kf_mean'].iloc[-len(means):] = np.array(means)
-         '''
-
         # %change prediction relative to current close
         informative['kf_predict_diff'] = (informative['kf_predict'] - informative['close']) / informative['close']
 
@@ -181,6 +163,7 @@ class KalmanSimple(IStrategy):
 
         # copy informative into main timeframe, just to make accessing easier (and to allow further manipulation)
         dataframe['kf_delta'] = dataframe[f"kf_delta_{self.inf_timeframe}"]
+        dataframe['kf_mean'] = dataframe[f"kf_mean_{self.inf_timeframe}"]
         dataframe['kf_predict'] = dataframe[f"kf_predict_{self.inf_timeframe}"]
         dataframe['kf_predict_diff'] = dataframe[f"kf_predict_diff_{self.inf_timeframe}"]
 
@@ -207,10 +190,18 @@ class KalmanSimple(IStrategy):
             qtpylib.crossed_above(dataframe['kf_predict_diff'], self.buy_kf_gain.value)
         )
 
-        # 'latch' the result (it sometimes gets missed in live run, probably takes too long)
+        # 'latch' the result (it sometimes gets missed in dry/live run)
+        # This could  be because the Kalman filter acts on 'close', which may change during a candle
+        # in dryrun/live modes, so note that the 'latch' conditions do not reference the current 'close'
         latch_cond = (
                 (dataframe['kf_predict_diff'].shift(1) >= self.buy_kf_gain.value) &
                 (dataframe['kf_predict_diff'].shift(2) < self.buy_kf_gain.value)
+        )
+
+        latch2_cond = (
+                (dataframe['kf_predict_diff'].shift(1) >= self.buy_kf_gain.value) &
+                (dataframe['kf_predict_diff'].shift(2) >= self.buy_kf_gain.value) &
+                (dataframe['kf_predict_diff'].shift(3) < self.buy_kf_gain.value)
         )
 
         delta_cond = (
@@ -218,12 +209,13 @@ class KalmanSimple(IStrategy):
         )
 
         conditions.append(delta_cond)
-        conditions.append(kalman_cond | latch_cond)
+        conditions.append(kalman_cond | latch_cond | latch2_cond )
 
         # set buy tags
-        dataframe.loc[kalman_cond, 'buy_tag'] += 'kf_buy '
-        dataframe.loc[latch_cond, 'buy_tag'] += 'kf_buy2 '
-        dataframe.loc[delta_cond, 'buy_tag'] += 'kf_delta '
+        dataframe.loc[kalman_cond, 'buy_tag'] += 'kf_buy_1 '
+        dataframe.loc[latch_cond, 'buy_tag'] += 'kf_buy_2 '
+        dataframe.loc[latch2_cond, 'buy_tag'] += 'kf_buy_3 '
+        # dataframe.loc[delta_cond, 'buy_tag'] += 'kf_delta '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
@@ -262,8 +254,8 @@ class KalmanSimple(IStrategy):
         conditions.append(kalman_cond | latch_cond)
 
         # set buy tags
-        dataframe.loc[kalman_cond, 'exit_tag'] += 'kf_sell '
-        dataframe.loc[latch_cond, 'exit_tag'] += 'kf_sell2 '
+        dataframe.loc[kalman_cond, 'exit_tag'] += 'kf_sell_1 '
+        dataframe.loc[latch_cond, 'exit_tag'] += 'kf_sell_2 '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1
