@@ -91,7 +91,7 @@ class KalmanSimple2(IStrategy):
     ignore_roi_if_buy_signal = True
 
     # Required
-    startup_candle_count: int = 40
+    startup_candle_count: int = 16
     process_only_new_candles = True
 
     ###################################

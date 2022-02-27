@@ -79,8 +79,7 @@ class KalmanSimple(IStrategy):
     trailing_only_offset_is_reached = False
 
     timeframe = '5m'
-    # inf_timeframe = '1h'
-    inf_timeframe = '15m'
+    inf_timeframe = '1h'
 
     use_custom_stoploss = False
 
@@ -104,12 +103,18 @@ class KalmanSimple(IStrategy):
     sell_kf_loss = DecimalParameter(-0.050, 0.000, decimals=3, default=-0.005, space='sell', load=True, optimize=True)
 
     # Kalman Filter
-    kalman_filter = KalmanFilter(transition_matrices=[1],
-                                 observation_matrices=[1],
-                                 initial_state_mean=0,
-                                 initial_state_covariance=1,
-                                 observation_covariance=1,
-                                 transition_covariance=0.01)
+    # kalman_filter = KalmanFilter(transition_matrices=[1],
+    #                              observation_matrices=[1],
+    #                              initial_state_mean=0,
+    #                              initial_state_covariance=1,
+    #                              observation_covariance=1,
+    #                              transition_covariance=0.01)
+    kalman_filter = KalmanFilter(transition_matrices=1.0,
+                                 observation_matrices=1.0,
+                                 initial_state_mean=0.0,
+                                 initial_state_covariance=1.0,
+                                 observation_covariance=1.0,
+                                 transition_covariance=0.1)
 
     ###################################
 

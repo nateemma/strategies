@@ -4,7 +4,7 @@
 # hyperopt loss function
 
 # Strategy list, and associated hyperopt spaces
-declare -A strat_list=( [FBB_MacheteV8b]="buy sell" [KalmanSimple]="buy sell" [FNN_Solipsis]="buy sell" )
+declare -A strat_list=( [FBB_MacheteV8b]="buy sell" [KalmanSimple2]="buy sell" [FNN_Solipsis]="buy sell" )
 
 # default values
 epochs=2000
@@ -14,7 +14,7 @@ start_date=$(date -j -v-${num_days}d +"%Y%m%d")
 timerange="${start_date}-"
 download=0
 jobs=0
-lossf="WinHyperOptLoss"
+lossf="WeightedProfitHyperOptLoss"
 
 # get the number of cores
 num_cores=`sysctl -n hw.ncpu`

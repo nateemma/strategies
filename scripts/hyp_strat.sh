@@ -28,8 +28,9 @@ END
 
 # loss options: ShortTradeDurHyperOptLoss OnlyProfitHyperOptLoss SharpeHyperOptLoss SharpeHyperOptLossDaily
 #               SortinoHyperOptLoss SortinoHyperOptLossDaily
-#loss="WeightedProfitHyperOptLoss"
-loss="WinHyperOptLoss"
+
+loss="WeightedProfitHyperOptLoss"
+#loss="WinHyperOptLoss"
 
 clean=0
 epochs=100
