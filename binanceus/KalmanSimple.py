@@ -149,14 +149,15 @@ class KalmanSimple(IStrategy):
         if 'kf_mean' not in informative:
             informative['kf_mean'] = informative['close']
 
+        # update model
+        mean, cov = self.kalman_filter.filter(data)
+        informative['kf_mean'] = pd.Series(mean.squeeze())
+        # # informative['kf_std'] = np.std(cov.squeeze())
+
         # predict next close
         pr_mean, pr_cov = self.kalman_filter.smooth(data)
         informative['kf_predict'] = pd.Series(pr_mean.squeeze())
         # informative['kf_predict_cov'] = np.std(pr_cov.squeeze())
-
-        mean, cov = self.kalman_filter.filter(data)
-        informative['kf_mean'] = pd.Series(mean.squeeze())
-        # # informative['kf_std'] = np.std(cov.squeeze())
 
         # %change prediction relative to current close
         informative['kf_predict_diff'] = (informative['kf_predict'] - informative['close']) / informative['close']
@@ -204,7 +205,7 @@ class KalmanSimple(IStrategy):
         )
 
         latch2_cond = (
-                (dataframe['kf_predict_diff'].shift(1) >= self.buy_kf_gain.value) &
+                # (dataframe['kf_predict_diff'].shift(1) >= self.buy_kf_gain.value) &
                 (dataframe['kf_predict_diff'].shift(2) >= self.buy_kf_gain.value) &
                 (dataframe['kf_predict_diff'].shift(3) < self.buy_kf_gain.value)
         )

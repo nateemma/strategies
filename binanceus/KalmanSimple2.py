@@ -113,10 +113,16 @@ class KalmanSimple2(IStrategy):
     #                              transition_covariance=0.001)
 
     lookback_len = 10
+    # kalman_filter = simdkalman.KalmanFilter(
+    #     state_transition=np.array([[1,1],[0,1]]),
+    #     process_noise=np.diag([0.1, 0.01]),
+    #     observation_model=np.array([[1,0]]),
+    #     observation_noise=1.0
+    # )
     kalman_filter = simdkalman.KalmanFilter(
-        state_transition=np.array([[1,1],[0,1]]),
-        process_noise=np.diag([0.1, 0.01]),
-        observation_model=np.array([[1,0]]),
+        state_transition=1.0,
+        process_noise=0.1,
+        observation_model=1.0,
         observation_noise=1.0
     )
 
@@ -198,17 +204,27 @@ class KalmanSimple2(IStrategy):
             qtpylib.crossed_above(dataframe['kf_predict_diff'], self.buy_kf_gain.value)
         )
 
-        # 'latch' the result (it sometimes gets missed in live run, probably takes too long)
+
+        # 'latch' the result (it sometimes gets missed in dry/live run)
+        # This could  be because the Kalman filter acts on 'close', which may change during a candle
+        # in dryrun/live modes, so note that the 'latch' conditions do not reference the current 'close'
         latch_cond = (
                 (dataframe['kf_predict_diff'].shift(1) >= self.buy_kf_gain.value) &
                 (dataframe['kf_predict_diff'].shift(2) < self.buy_kf_gain.value)
         )
 
-        conditions.append(kalman_cond | latch_cond)
+        latch2_cond = (
+                # (dataframe['kf_predict_diff'].shift(1) >= self.buy_kf_gain.value) &
+                (dataframe['kf_predict_diff'].shift(2) >= self.buy_kf_gain.value) &
+                (dataframe['kf_predict_diff'].shift(3) < self.buy_kf_gain.value)
+        )
+
+        conditions.append(kalman_cond | latch_cond | latch2_cond)
 
         # set buy tags
-        dataframe.loc[kalman_cond, 'buy_tag'] += 'kf_buy '
-        dataframe.loc[latch_cond, 'buy_tag'] += 'kf_buy2 '
+        dataframe.loc[kalman_cond, 'buy_tag'] += 'kf_buy_1 '
+        dataframe.loc[latch_cond, 'buy_tag'] += 'kf_buy_2 '
+        dataframe.loc[latch2_cond, 'buy_tag'] += 'kf_buy_3 '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
@@ -237,11 +253,17 @@ class KalmanSimple2(IStrategy):
                 (dataframe['kf_predict_diff'].shift(2) > self.sell_kf_loss.value)
         )
 
-        conditions.append(kalman_cond | latch_cond)
+        latch2_cond = (
+                (dataframe['kf_predict_diff'].shift(2) < self.sell_kf_loss.value) &
+                (dataframe['kf_predict_diff'].shift(3) > self.sell_kf_loss.value)
+        )
+
+        conditions.append(kalman_cond | latch_cond | latch2_cond)
 
         # set buy tags
-        dataframe.loc[kalman_cond, 'exit_tag'] += 'kf_sell '
-        dataframe.loc[latch_cond, 'exit_tag'] += 'kf_sell2 '
+        dataframe.loc[kalman_cond, 'exit_tag'] += 'kf_sell_1 '
+        dataframe.loc[latch_cond, 'exit_tag'] += 'kf_sell_2 '
+        dataframe.loc[latch2_cond, 'exit_tag'] += 'kf_sell_3 '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1
