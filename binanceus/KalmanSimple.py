@@ -79,7 +79,8 @@ class KalmanSimple(IStrategy):
     trailing_only_offset_is_reached = False
 
     timeframe = '5m'
-    inf_timeframe = '1h'
+    # inf_timeframe = '1h'
+    inf_timeframe = '15m'
 
     use_custom_stoploss = False
 
@@ -129,8 +130,7 @@ class KalmanSimple(IStrategy):
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         # Base pair informative timeframe indicators
-        # informative = self.dp.get_pair_dataframe(pair=metadata['pair'], timeframe=self.inf_timeframe)
-        informative = self.dp.get_pair_dataframe(pair=metadata['pair'], timeframe=self.inf_timeframe)[: -1]  # drop last candle, it seems to cause problems
+        informative = self.dp.get_pair_dataframe(pair=metadata['pair'], timeframe=self.inf_timeframe)
 
         # Kalman filter
 
