@@ -3,6 +3,7 @@ import talib.abstract as ta
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 import arrow
 
+from freqtrade.exchange import timeframe_to_minutes
 from freqtrade.strategy import (IStrategy, merge_informative_pair, stoploss_from_open,
                                 IntParameter, DecimalParameter, CategoricalParameter)
 
@@ -91,7 +92,7 @@ class KalmanSimple2(IStrategy):
     ignore_roi_if_buy_signal = True
 
     # Required
-    startup_candle_count: int = 16
+    startup_candle_count: int = 10
     process_only_new_candles = True
 
     ###################################
@@ -112,7 +113,7 @@ class KalmanSimple2(IStrategy):
     #                              observation_covariance=1,
     #                              transition_covariance=0.001)
 
-    lookback_len = 10
+    lookback_len = 8
     # kalman_filter = simdkalman.KalmanFilter(
     #     state_transition=np.array([[1,1],[0,1]]),
     #     process_noise=np.diag([0.1, 0.01]),
