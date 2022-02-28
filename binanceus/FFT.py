@@ -99,25 +99,15 @@ class FFT(IStrategy):
     """
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        # Base pair informative timeframe indicators
-        informative = self.dp.get_pair_dataframe(pair=metadata['pair'], timeframe=self.inf_timeframe)
 
         # FFT
-
-        if 'fft_predict' not in informative:
-            informative['fft_predict'] = informative['close']
-        if 'fft_mean' not in informative:
-            informative['fft_mean'] = informative['close']
 
         # get the FFT
         yf = scipy.fft.rfft(np.array(dataframe['close']))
 
-        # zero out top 2/3
-        length:int = len(yf)
-        cutoff:int = int(length / 6)
+        # zero out frequencies beyond 'cutoff'
+        cutoff:int = int(len(yf) / 6)
         yf[(cutoff-1):] = 0
-        # for i in range(int(cutoff-1), int(length-1)):
-        #     yf[i] = 0
         
         # inverse transform
         dataframe['ifft'] = pd.Series(scipy.fft.irfft(yf))
