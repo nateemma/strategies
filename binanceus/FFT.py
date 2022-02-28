@@ -70,7 +70,7 @@ class FFT(IStrategy):
     ignore_roi_if_buy_signal = True
 
     # Required
-    startup_candle_count: int = 48
+    startup_candle_count: int = 12
     process_only_new_candles = True
 
     ###################################
