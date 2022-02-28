@@ -89,7 +89,7 @@ class KalmanSimple(IStrategy):
     ignore_roi_if_buy_signal = True
 
     # Required
-    startup_candle_count: int = 12
+    startup_candle_count: int = 48
     process_only_new_candles = True
 
     ###################################
@@ -142,7 +142,7 @@ class KalmanSimple(IStrategy):
         # update filter (note: this is slow, which is why we run it on the slower timeframe)
         lookback_len = 6
         data = informative['close']
-        self.kalman_filter = self.kalman_filter.em(data, n_iter=4)
+        self.kalman_filter = self.kalman_filter.em(data, n_iter=6)
 
         if 'kf_predict' not in informative:
             informative['kf_predict'] = informative['close']
@@ -160,20 +160,20 @@ class KalmanSimple(IStrategy):
         # informative['kf_predict_cov'] = np.std(pr_cov.squeeze())
 
         # %change prediction relative to current close
-        informative['kf_predict_diff'] = (informative['kf_predict'] - informative['close']) / informative['close']
+        # informative['kf_predict_diff'] = (informative['kf_predict'] - informative['close']) / informative['close']
 
         # % Difference between prediction and smoothed model
-        informative['kf_delta'] = (informative['kf_predict'] - informative['kf_mean']) / informative['kf_mean']
+        # informative['kf_delta'] = (informative['kf_predict'] - informative['kf_mean']) / informative['kf_mean']
 
         dataframe = merge_informative_pair(dataframe, informative, self.timeframe, self.inf_timeframe, ffill=True)
 
-        # copy informative into main timeframe, just to make accessing easier (and to allow further manipulation)
-        dataframe['kf_delta'] = dataframe[f"kf_delta_{self.inf_timeframe}"]
-        dataframe['kf_mean'] = dataframe[f"kf_mean_{self.inf_timeframe}"]
-        dataframe['kf_predict'] = dataframe[f"kf_predict_{self.inf_timeframe}"]
-        dataframe['kf_predict_diff'] = dataframe[f"kf_predict_diff_{self.inf_timeframe}"]
+        # calculate predictive indicators in shorter timeframe (not informative)
 
-        # NOTE: I played with 'upscaling' the predicted data, but the results were much worse for some reason
+        dataframe['kf_mean'] = ta.LINEARREG(dataframe[f"kf_mean_{self.inf_timeframe}"], timeperiod=48)
+        dataframe['kf_predict'] = ta.LINEARREG(dataframe[f"kf_predict_{self.inf_timeframe}"], timeperiod=48)
+
+        dataframe['kf_predict_diff'] = (dataframe['kf_predict'] - dataframe['close']) / dataframe['close']
+        dataframe['kf_delta'] = (dataframe['kf_predict'] - dataframe['kf_mean']) / dataframe['kf_mean']
 
         return dataframe
 
