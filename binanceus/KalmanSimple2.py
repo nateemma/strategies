@@ -219,8 +219,8 @@ class KalmanSimple2(IStrategy):
                 (dataframe['kf_predict_diff'].shift(3) < self.buy_kf_gain.value)
         )
 
-        conditions.append(kalman_cond | latch_cond | latch2_cond)
-        # conditions.append(kalman_cond)
+        # conditions.append(kalman_cond | latch_cond | latch2_cond)
+        conditions.append(kalman_cond)
 
         # set buy tags
         dataframe.loc[kalman_cond, 'buy_tag'] += 'kf_buy_1 '
@@ -259,8 +259,8 @@ class KalmanSimple2(IStrategy):
                 (dataframe['kf_predict_diff'].shift(3) > self.sell_kf_loss.value)
         )
 
-        conditions.append(kalman_cond | latch_cond | latch2_cond)
-        # conditions.append(kalman_cond)
+        # conditions.append(kalman_cond | latch_cond | latch2_cond)
+        conditions.append(kalman_cond)
 
         # set buy tags
         dataframe.loc[kalman_cond, 'exit_tag'] += 'kf_sell_1 '

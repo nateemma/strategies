@@ -1,5 +1,5 @@
 {
-  "strategy_name": "KalmanSimple2",
+  "strategy_name": "FFT",
   "params": {
     "roi": {
       "0": 100
@@ -14,13 +14,13 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "buy_kf_gain": 0.018
+      "buy_fft_gain": 0.006
     },
     "sell": {
-      "sell_kf_loss": -0.005
+      "sell_fft_loss": -0.001
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-02-28 21:37:21.879528+00:00"
+  "export_time": "2022-02-28 22:45:53.224365+00:00"
 }

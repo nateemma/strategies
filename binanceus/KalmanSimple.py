@@ -215,7 +215,8 @@ class KalmanSimple(IStrategy):
         )
 
         conditions.append(delta_cond)
-        conditions.append(kalman_cond | latch_cond | latch2_cond )
+        # conditions.append(kalman_cond | latch_cond | latch2_cond )
+        conditions.append(kalman_cond )
 
         # set buy tags
         dataframe.loc[kalman_cond, 'buy_tag'] += 'kf_buy_1 '
@@ -257,7 +258,8 @@ class KalmanSimple(IStrategy):
         #
         # conditions.append(delta_cond)
 
-        conditions.append(kalman_cond | latch_cond)
+        # conditions.append(kalman_cond | latch_cond)
+        conditions.append(kalman_cond )
 
         # set buy tags
         dataframe.loc[kalman_cond, 'exit_tag'] += 'kf_sell_1 '

@@ -14,13 +14,13 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "buy_kf_gain": 0.012
+      "buy_kf_gain": 0.007
     },
     "sell": {
-      "sell_kf_loss": 0.0
+      "sell_kf_loss": -0.001
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-02-28 19:59:43.301653+00:00"
+  "export_time": "2022-02-28 21:22:49.075991+00:00"
 }
