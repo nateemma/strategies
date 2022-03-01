@@ -14,13 +14,14 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "buy_fft_gain": 0.006
+      "buy_fft_cutoff": 0.12,
+      "buy_fft_gain": 0.007
     },
     "sell": {
-      "sell_fft_loss": -0.001
+      "sell_fft_loss": 0.0
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-02-28 22:45:53.224365+00:00"
+  "export_time": "2022-03-01 07:34:55.365880+00:00"
 }

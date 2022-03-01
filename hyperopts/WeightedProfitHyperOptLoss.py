@@ -252,6 +252,11 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         if backtest_stats['max_drawdown']:
             drawdown_loss = (backtest_stats['max_drawdown'] - 1.0)
 
+        if expectancy_loss > -1.0:
+            limit_profit_loss = -50.0
+        else:
+            limit_profit_loss = -200.0
+
         # weight the results (values are based on trial & error). Goal is for anything -ve to be a decent  solution
         num_trades_loss     = weight_num_trades * num_trades_loss
         duration_loss       = weight_duration * duration_loss
@@ -263,8 +268,6 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         sharp_ratio_loss    = weight_sharp_ratio * sharp_ratio_loss
         sortino_ratio_loss  = weight_sortino_ratio * sortino_ratio_loss
         drawdown_loss       = weight_drawdown * drawdown_loss
-
-        limit_profit_loss = -200.0
 
         if weight_abs_profit > 0.0:
             # sometimes spikes happen, so cap it and turn on debug

@@ -2,7 +2,7 @@
 
 # list of strategies to test
 #strat_list="Kalman FBB_Solipsis FBB_MacheteV8b NostalgiaForInfinityX"
-strat_list="KalmanSimple2 FBB_Solipsis FBB_MacheteV8b NostalgiaForInfinityX"
+strat_list="KalmanSimple2 FBB_Solipsis FBB_MacheteV8b NostalgiaForInfinityX KalmanSimple FFT"
 lev_list="FBB_Leveraged FBB_BTCLeveraged FBB_BTCJump_Leveraged FBB_BTCNSeq_Leveraged"
 
 # default values

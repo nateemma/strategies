@@ -81,6 +81,7 @@ class FFT(IStrategy):
 
     # FFT limits
     buy_fft_gain = DecimalParameter(0.000, 0.050, decimals=3, default=0.015, space='buy', load=True, optimize=True)
+    buy_fft_cutoff = DecimalParameter(1/8.0, 1/2.0, decimals=2, default=1/6.0, space='buy', load=True, optimize=True)
     sell_fft_loss = DecimalParameter(-0.050, 0.000, decimals=3, default=-0.005, space='sell', load=True, optimize=True)
 
     ###################################
@@ -106,14 +107,16 @@ class FFT(IStrategy):
         yf = scipy.fft.rfft(np.array(dataframe['close']))
 
         # zero out frequencies beyond 'cutoff'
-        cutoff:int = int(len(yf) / 6)
+        cutoff:int = int(len(yf) * self.buy_fft_cutoff.value)
         yf[(cutoff-1):] = 0
         
         # inverse transform
         dataframe['ifft'] = pd.Series(scipy.fft.irfft(yf))
 
         dataframe['fft_mean'] = dataframe['ifft']
-        dataframe['fft_predict'] = dataframe['ifft']
+        # predict next candle (simple linear extrapolation for now)
+        # Note: use the 'mean' values because we expect prices to oscillate around that model
+        dataframe['fft_predict'] = dataframe['fft_mean'] + dataframe['fft_mean'].shift(1) - dataframe['fft_mean'].shift(2)
 
         dataframe['fft_predict_diff'] = (dataframe['fft_predict'] - dataframe['close']) / dataframe['close']
 
@@ -133,12 +136,15 @@ class FFT(IStrategy):
 
         # conditions.append(dataframe['volume'] > 0)
 
-        # Kalman triggers
+        # FFT triggers
         fft_cond = (
             qtpylib.crossed_above(dataframe['fft_predict_diff'], self.buy_fft_gain.value)
         )
 
         conditions.append(fft_cond)
+
+        # going up?
+        conditions.append(dataframe['fft_predict'] > dataframe['fft_mean'])
 
         # set buy tags
         dataframe.loc[fft_cond, 'buy_tag'] += 'fft_buy_1 '
@@ -160,7 +166,7 @@ class FFT(IStrategy):
         conditions = []
         dataframe.loc[:, 'exit_tag'] = ''
 
-        # Kalman triggers
+        # FFT triggers
         fft_cond = (
             qtpylib.crossed_below(dataframe['fft_predict_diff'], self.sell_fft_loss.value)
         )
