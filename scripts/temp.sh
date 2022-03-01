@@ -20,8 +20,8 @@ for exchange in "${elist[@]}"; do
   echo "=============================="
   echo ""
 
-  zsh user_data/strategies/scripts/hyp_strat.sh -e 1000  -l WeightedProfitHyperOptLoss -s "buy sell" ${exchange}  KalmanSimple
-  zsh user_data/strategies/scripts/hyp_strat.sh -e 1000  -l WeightedProfitHyperOptLoss -s "buy sell" ${exchange}  KalmanSimple2
+  zsh user_data/strategies/scripts/hyp_strat.sh -e 1000  -l WeightedProfitHyperOptLoss -s "buy sell" ${exchange}  Kalman_1
+  zsh user_data/strategies/scripts/hyp_strat.sh -e 1000  -l WeightedProfitHyperOptLoss -s "buy sell" ${exchange}  Kalman_2
   zsh user_data/strategies/scripts/hyp_strat.sh -e 1000  -l WeightedProfitHyperOptLoss -s "buy sell" ${exchange}  FFT
   zsh user_data/strategies/scripts/test_monthly.sh  ${exchange}
 

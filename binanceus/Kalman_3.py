@@ -55,7 +55,7 @@ Custom sell/stoploss logic shamnelessly copied from Solipsis by @werkkrew (https
 """
 
 
-class Kalman(IStrategy):
+class Kalman_3(IStrategy):
 
 
     # Do *not* hyperopt for the roi and stoploss spaces
@@ -118,8 +118,8 @@ class Kalman(IStrategy):
     ignore_roi_if_buy_signal = True
 
     # Required
-    startup_candle_count: int = 40
-    process_only_new_candles = False
+    startup_candle_count: int = 48
+    process_only_new_candles = True
 
     # Strategy Specific Variable Storage
     custom_trade_info = {}
@@ -127,12 +127,12 @@ class Kalman(IStrategy):
     custom_btc_inf = False  # Don't change this.
 
     # Kalman Filter
-    kalman_filter = KalmanFilter(transition_matrices=[1],
-                                 observation_matrices=[1],
-                                 initial_state_mean=0,
-                                 initial_state_covariance=1,
-                                 observation_covariance=1,
-                                 transition_covariance=0.0001)
+    kalman_filter = KalmanFilter(transition_matrices=1.0,
+                                 observation_matrices=1.0,
+                                 initial_state_mean=0.0,
+                                 initial_state_covariance=1.0,
+                                 observation_covariance=1.0,
+                                 transition_covariance=0.1)
 
     """
     Informative Pair Definitions
@@ -211,24 +211,35 @@ class Kalman(IStrategy):
 
         # Kalman filter
 
-        # update filter (note: this is slow)
-        self.kalman_filter = self.kalman_filter.em(informative['close'], n_iter=6)
+        # update filter (note: this is slow, which is why we run it on the slower timeframe)
+        lookback_len = 6
+        data = informative['close']
+        self.kalman_filter = self.kalman_filter.em(data, n_iter=6)
 
-        # current trend
-        # mean, cov = self.kalman_filter.filter(informative['close'])
-        # informative['kf_mean'] = mean.squeeze()
+        if 'kf_predict' not in informative:
+            informative['kf_predict'] = informative['close']
+        if 'kf_mean' not in informative:
+            informative['kf_mean'] = informative['close']
+
+        # update model
+        mean, cov = self.kalman_filter.filter(data)
+        informative['kf_mean'] = pd.Series(mean.squeeze())
         # # informative['kf_std'] = np.std(cov.squeeze())
-        # informative['kf_diff'] = (informative['kf_mean'] - informative['close']) / informative['close']
 
         # predict next close
-        pr_mean, pr_cov = self.kalman_filter.smooth(informative['close'])
-        informative['kf_predict'] = pr_mean.squeeze()
+        pr_mean, pr_cov = self.kalman_filter.smooth(data)
+        informative['kf_predict'] = pd.Series(pr_mean.squeeze())
         # informative['kf_predict_cov'] = np.std(pr_cov.squeeze())
-        informative['kf_predict_diff'] = (informative['kf_predict'] - informative['close']) / informative['close']
-        # informative['kf_err'] = (informative['kf_predict'].shift(1) - informative['close']) / informative['close'].shift(1)
-
 
         dataframe = merge_informative_pair(dataframe, informative, self.timeframe, self.inf_timeframe, ffill=True)
+
+        # calculate predictive indicators in shorter timeframe (not informative)
+
+        dataframe['kf_mean'] = ta.LINEARREG(dataframe[f"kf_mean_{self.inf_timeframe}"], timeperiod=48)
+        dataframe['kf_predict'] = ta.LINEARREG(dataframe[f"kf_predict_{self.inf_timeframe}"], timeperiod=48)
+
+        dataframe['kf_predict_diff'] = (dataframe['kf_predict'] - dataframe['close']) / dataframe['close']
+        dataframe['kf_delta'] = (dataframe['kf_predict'] - dataframe['kf_mean']) / dataframe['kf_mean']
 
         return dataframe
 
@@ -244,19 +255,22 @@ class Kalman(IStrategy):
 
         # Kalman triggers
         kalman_cond = (
-                qtpylib.crossed_above(dataframe[f"kf_predict_diff_{self.inf_timeframe}"], self.buy_kf_gain.value)
+                qtpylib.crossed_above(dataframe['kf_predict_diff'], self.buy_kf_gain.value)
         )
 
+        delta_cond = (
+            (dataframe['kf_delta'] > 0)
+        )
+
+        conditions.append(delta_cond)
         conditions.append(kalman_cond)
 
         # set buy tags
-        dataframe.loc[kalman_cond, 'buy_tag'] += 'kf '
+        dataframe.loc[kalman_cond, 'buy_tag'] += 'kf_buy_1 '
 
 
         if conditions:
-            dataframe.loc[
-                reduce(lambda x, y: x & y, conditions),
-                'buy'] = 1
+            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
 
         return dataframe
 
@@ -272,13 +286,13 @@ class Kalman(IStrategy):
         # dataframe['sell'] = 0
         # Kalman triggers
         kalman_cond = (
-                qtpylib.crossed_below(dataframe[f"kf_predict_diff_{self.inf_timeframe}"], self.sell_kf_loss.value)
+                qtpylib.crossed_below(dataframe['kf_predict_diff'], self.sell_kf_loss.value)
         )
 
         conditions.append(kalman_cond)
 
         # set buy tags
-        dataframe.loc[kalman_cond, 'exit_tag'] += 'kf '
+        dataframe.loc[kalman_cond, 'exit_tag'] += 'kf_sell_1 '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1

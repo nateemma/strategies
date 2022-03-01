@@ -4,7 +4,7 @@
 # hyperopt loss function
 
 # Strategy list, and associated hyperopt spaces
-declare -A strat_list=( [FBB_MacheteV8b]="buy sell" [KalmanSimple2]="buy sell" [FNN_Solipsis]="buy sell" )
+declare -A strat_list=( [FBB_MacheteV8b]="buy sell" [Kalman_2]="buy sell" [FNN_Solipsis]="buy sell" )
 
 # default values
 epochs=2000

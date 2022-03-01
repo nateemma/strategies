@@ -252,6 +252,7 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         if backtest_stats['max_drawdown']:
             drawdown_loss = (backtest_stats['max_drawdown'] - 1.0)
 
+        # limit profit loss value if (unweighted) expectancy < -1.0 (i.e. generally profitable)
         if expectancy_loss > -1.0:
             limit_profit_loss = -50.0
         else:
@@ -273,7 +274,7 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
             # sometimes spikes happen, so cap it and turn on debug
             if abs_profit_loss < limit_profit_loss:
                 abs_profit_loss = max(abs_profit_loss, limit_profit_loss)
-                debug_level = 1
+                # debug_level = 1
 
             # don't let anything outweigh profit
             if weight_num_trades > 0.0:

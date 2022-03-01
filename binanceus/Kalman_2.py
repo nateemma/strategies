@@ -45,7 +45,7 @@ else:
 
 '''
 ####################################################################################
-KalmanSimple2 - use a Kalman Filter to estimate future price movements
+Kalman_2 - use a Kalman Filter to estimate future price movements
 
 Version using simdkalman instead of pykalman 
 
@@ -64,7 +64,7 @@ Results actually seem to be better with the longer timeframe anyway
 '''
 
 
-class KalmanSimple2(IStrategy):
+class Kalman_2(IStrategy):
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # ROI table:
@@ -92,7 +92,7 @@ class KalmanSimple2(IStrategy):
     ignore_roi_if_buy_signal = True
 
     # Required
-    startup_candle_count: int = 10
+    startup_candle_count: int = 48
     process_only_new_candles = True
 
     ###################################
@@ -176,15 +176,14 @@ class KalmanSimple2(IStrategy):
         '''
         informative['kf_predict'] = informative['kf_mean'] # just use the smoothed model for now
 
-        informative['kf_predict_diff'] = (informative['kf_predict'] - informative['close']) / informative['close']
+        # informative['kf_predict_diff'] = (informative['kf_predict'] - informative['close']) / informative['close']
 
         dataframe = merge_informative_pair(dataframe, informative, self.timeframe, self.inf_timeframe, ffill=True)
 
-        # copy informative into main timeframe, just to make accessing easier (and to allow further manipulation)
-        dataframe['kf_predict'] = dataframe[f"kf_predict_{self.inf_timeframe}"]
-        dataframe['kf_predict_diff'] = dataframe[f"kf_predict_diff_{self.inf_timeframe}"]
+        # calculate predictive indicators in shorter timeframe (not informative)
 
-        # NOTE: I played with 'upscaling' the predicted data, but the results were much worse for some reason
+        dataframe['kf_predict'] = ta.LINEARREG(dataframe[f"kf_predict_{self.inf_timeframe}"], timeperiod=48)
+        dataframe['kf_predict_diff'] = (dataframe['kf_predict'] - dataframe['close']) / dataframe['close']
 
         return dataframe
 
@@ -220,7 +219,8 @@ class KalmanSimple2(IStrategy):
                 (dataframe['kf_predict_diff'].shift(3) < self.buy_kf_gain.value)
         )
 
-        conditions.append(kalman_cond | latch_cond | latch2_cond)
+        # conditions.append(kalman_cond | latch_cond | latch2_cond)
+        conditions.append(kalman_cond)
 
         # set buy tags
         dataframe.loc[kalman_cond, 'buy_tag'] += 'kf_buy_1 '
@@ -259,7 +259,8 @@ class KalmanSimple2(IStrategy):
                 (dataframe['kf_predict_diff'].shift(3) > self.sell_kf_loss.value)
         )
 
-        conditions.append(kalman_cond | latch_cond | latch2_cond)
+        # conditions.append(kalman_cond | latch_cond | latch2_cond)
+        conditions.append(kalman_cond)
 
         # set buy tags
         dataframe.loc[kalman_cond, 'exit_tag'] += 'kf_sell_1 '
