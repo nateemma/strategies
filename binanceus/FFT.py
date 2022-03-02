@@ -29,7 +29,7 @@ import logging
 import warnings
 
 log = logging.getLogger(__name__)
-# log.setLevel(logging.DEBUG)
+log.setLevel(logging.DEBUG)
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 
@@ -47,7 +47,7 @@ class FFT(IStrategy):
 
     # ROI table:
     minimal_roi = {
-        "0": 100
+        "0": 10
     }
 
     # Stoploss:
@@ -71,7 +71,7 @@ class FFT(IStrategy):
 
     # Required
     startup_candle_count: int = 12
-    process_only_new_candles = True
+    process_only_new_candles = False
 
     ###################################
 
@@ -149,7 +149,8 @@ class FFT(IStrategy):
 
         # FFT triggers
         fft_cond = (
-            qtpylib.crossed_above(dataframe['fft_predict_diff'], self.buy_fft_gain.value)
+                (dataframe['fft_predict_diff'] >= self.buy_fft_gain.value) &
+                (dataframe['fft_predict_diff'].shift(1) < self.buy_fft_gain.value)
         )
 
         latch_cond = (
@@ -185,11 +186,12 @@ class FFT(IStrategy):
 
         # FFT triggers
         fft_cond = (
-            qtpylib.crossed_below(dataframe['fft_predict_diff'], self.sell_fft_loss.value)
+                (dataframe['fft_predict_diff'] <= self.sell_fft_loss.value) &
+                (dataframe['fft_predict_diff'].shift(1) > self.sell_fft_loss.value)
         )
 
         latch_cond = (
-                (dataframe['fft_predict_diff'].shift(1) < self.sell_fft_loss.value) &
+                (dataframe['fft_predict_diff'].shift(1) <= self.sell_fft_loss.value) &
                 (dataframe['fft_predict_diff'].shift(2) > self.sell_fft_loss.value)
         )
 

@@ -154,7 +154,8 @@ class FFT_3(IStrategy):
         # FFT triggers
 
         angle_cond = (
-            qtpylib.crossed_above(dataframe['fft_angle'], 0)
+            (dataframe['fft_angle'] >= 0.0) &
+            (dataframe['fft_angle'].shift(1) < 0.0)
         )
 
         conditions.append(angle_cond)
@@ -182,7 +183,8 @@ class FFT_3(IStrategy):
         # FFT triggers
 
         angle_cond = (
-            qtpylib.crossed_below(dataframe['fft_angle'], 0)
+            (dataframe['fft_angle'] <= 0.0) &
+            (dataframe['fft_angle'].shift(1) > 0.0)
         )
 
         conditions.append(angle_cond)

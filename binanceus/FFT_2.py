@@ -49,7 +49,7 @@ class FFT_2(IStrategy):
 
     # ROI table:
     minimal_roi = {
-        "0": 100
+        "0": 10
     }
 
     # Stoploss:
@@ -108,8 +108,10 @@ class FFT_2(IStrategy):
         length = len(dataframe['close'])
         nsteps = self.buy_fft_predict.value
         prediction = self.fourierExtrapolation(np.array(dataframe['close']), nsteps)
+        dataframe['fft_mean'] = prediction[:length]
         dataframe['fft_predict'] = prediction[nsteps:]
         dataframe['fft_predict_diff'] = (dataframe['fft_predict'] - dataframe['close']) / dataframe['close']
+        dataframe['fft_delta'] = (dataframe['fft_predict'] - dataframe['fft_mean']) / dataframe['fft_mean']
 
         return dataframe
 
@@ -153,7 +155,8 @@ class FFT_2(IStrategy):
 
         # FFT triggers
         fft_cond = (
-            qtpylib.crossed_above(dataframe['fft_predict_diff'], self.buy_fft_gain.value)
+                (dataframe['fft_predict_diff'] >= self.buy_fft_gain.value) &
+                (dataframe['fft_predict_diff'].shift(1) < self.buy_fft_gain.value)
         )
 
         conditions.append(fft_cond)
@@ -180,7 +183,8 @@ class FFT_2(IStrategy):
 
         # FFT triggers
         fft_cond = (
-            qtpylib.crossed_below(dataframe['fft_predict_diff'], self.sell_fft_loss.value)
+                (dataframe['fft_predict_diff'] <= self.sell_fft_loss.value) &
+                (dataframe['fft_predict_diff'].shift(1) > self.sell_fft_loss.value)
         )
 
         conditions.append(fft_cond)

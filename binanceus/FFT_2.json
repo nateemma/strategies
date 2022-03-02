@@ -2,7 +2,7 @@
   "strategy_name": "FFT_2",
   "params": {
     "roi": {
-      "0": 100
+      "0": 10
     },
     "stoploss": {
       "stoploss": -0.1
@@ -14,7 +14,7 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "buy_fft_gain": 0.037,
+      "buy_fft_gain": 0.02,
       "buy_fft_predict": 2
     },
     "sell": {

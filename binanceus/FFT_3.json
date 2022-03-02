@@ -2,7 +2,7 @@
   "strategy_name": "FFT_3",
   "params": {
     "roi": {
-      "0": 100
+      "0": 10
     },
     "stoploss": {
       "stoploss": -0.1
