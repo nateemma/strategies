@@ -15,7 +15,7 @@
     },
     "buy": {
       "buy_fft_gain": 0.02,
-      "buy_fft_predict": 2
+      "buy_fft_predict": 13
     },
     "sell": {
       "sell_fft_loss": -0.004
@@ -23,5 +23,5 @@
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-03-02 01:13:22.993653+00:00"
+  "export_time": "2022-03-02 17:27:50.005051+00:00"
 }

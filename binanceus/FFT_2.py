@@ -69,11 +69,13 @@ class FFT_2(IStrategy):
     # Recommended
     use_sell_signal = True
     sell_profit_only = False
-    ignore_roi_if_buy_signal = True
+    ignore_roi_if_buy_signal = False
+    ignore_buying_expired_candle_after = 25
 
     # Required
     startup_candle_count: int = 12
-    process_only_new_candles = True
+    process_only_new_candles = False
+
 
     ###################################
 
@@ -187,7 +189,12 @@ class FFT_2(IStrategy):
                 (dataframe['fft_predict_diff'].shift(1) > self.sell_fft_loss.value)
         )
 
-        conditions.append(fft_cond)
+        latch_cond = (
+                (dataframe['fft_predict_diff'].shift(1) <= self.sell_fft_loss.value) &
+                (dataframe['fft_predict_diff'].shift(2) > self.sell_fft_loss.value)
+        )
+
+        conditions.append(fft_cond | latch_cond)
 
         # set sell tags
         dataframe.loc[fft_cond, 'exit_tag'] += 'fft_sell_1 '

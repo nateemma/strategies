@@ -67,11 +67,13 @@ class FFT(IStrategy):
     # Recommended
     use_sell_signal = True
     sell_profit_only = False
-    ignore_roi_if_buy_signal = True
+    ignore_roi_if_buy_signal = False
 
     # Required
     startup_candle_count: int = 12
     process_only_new_candles = False
+
+    ignore_buying_expired_candle_after = 25
 
     ###################################
 
@@ -124,6 +126,7 @@ class FFT(IStrategy):
             dataframe['fft_mean'][(lc-lm):] = model
         else:
             dataframe['fft_mean'] = model[(lm-lc):]
+            print("*** model len > close len")
 
         # predict next candle (simple linear extrapolation for now)
         # Note: use the 'mean' values because we expect prices to oscillate around that model
