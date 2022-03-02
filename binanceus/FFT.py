@@ -152,13 +152,19 @@ class FFT(IStrategy):
             qtpylib.crossed_above(dataframe['fft_predict_diff'], self.buy_fft_gain.value)
         )
 
-        conditions.append(fft_cond)
+        latch_cond = (
+                (dataframe['fft_predict_diff'].shift(1) >= self.buy_fft_gain.value) &
+                (dataframe['fft_predict_diff'].shift(2) < self.buy_fft_gain.value)
+        )
+
+        conditions.append(fft_cond | latch_cond)
 
         # going up?
         conditions.append(dataframe['fft_predict'] > dataframe['fft_mean'])
 
         # set buy tags
         dataframe.loc[fft_cond, 'buy_tag'] += 'fft_buy_1 '
+        dataframe.loc[latch_cond, 'buy_tag'] += 'fft_buy_2 '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
@@ -182,13 +188,16 @@ class FFT(IStrategy):
             qtpylib.crossed_below(dataframe['fft_predict_diff'], self.sell_fft_loss.value)
         )
 
-        conditions.append(fft_cond)
+        latch_cond = (
+                (dataframe['fft_predict_diff'].shift(1) < self.sell_fft_loss.value) &
+                (dataframe['fft_predict_diff'].shift(2) > self.sell_fft_loss.value)
+        )
 
-        # going down?
-        # conditions.append(dataframe['fft_predict'] < dataframe['fft_mean'])
+        conditions.append(fft_cond | latch_cond)
 
         # set buy tags
         dataframe.loc[fft_cond, 'exit_tag'] += 'fft_sell_1 '
+        dataframe.loc[latch_cond, 'exit_tag'] += 'fft_sell_2 '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1

@@ -1,6 +1,5 @@
 import numpy as np
 import scipy.fft
-from scipy.fft import rfft, irfft
 import talib.abstract as ta
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 import arrow
