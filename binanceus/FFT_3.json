@@ -1,5 +1,5 @@
 {
-  "strategy_name": "FFT",
+  "strategy_name": "FFT_3",
   "params": {
     "roi": {
       "0": 100
@@ -14,14 +14,11 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "buy_fft_cutoff": 0.12,
-      "buy_fft_gain": 0.011
+      "buy_fft_predict": 14
     },
-    "sell": {
-      "sell_fft_loss": 0.0
-    },
+    "sell": {},
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-03-01 19:39:24.246910+00:00"
+  "export_time": "2022-03-02 01:04:54.711346+00:00"
 }

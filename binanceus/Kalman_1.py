@@ -151,12 +151,12 @@ class Kalman_1(IStrategy):
 
         # update model
         mean, cov = self.kalman_filter.filter(data)
-        informative['kf_mean'] = pd.Series(mean.squeeze())
+        informative['kf_mean'] = mean.squeeze()
         # # informative['kf_std'] = np.std(cov.squeeze())
 
         # predict next close
         pr_mean, pr_cov = self.kalman_filter.smooth(data)
-        informative['kf_predict'] = pd.Series(pr_mean.squeeze())
+        informative['kf_predict'] = pr_mean.squeeze()
         # informative['kf_predict_cov'] = np.std(pr_cov.squeeze())
 
         dataframe = merge_informative_pair(dataframe, informative, self.timeframe, self.inf_timeframe, ffill=True)
