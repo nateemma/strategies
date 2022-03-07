@@ -1,4 +1,6 @@
 import numpy as np
+import scipy.fft
+from scipy.fft import rfft, irfft
 import talib.abstract as ta
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 import arrow
@@ -15,7 +17,6 @@ from freqtrade.persistence import Trade
 # Get rid of pandas warnings during backtesting
 import pandas as pd
 
-
 pd.options.mode.chained_assignment = None  # default='warn'
 
 # Strategy specific imports, files must reside in same folder as strategy
@@ -26,43 +27,31 @@ sys.path.append(str(Path(__file__).parent))
 
 import logging
 import warnings
+
 log = logging.getLogger(__name__)
-#log.setLevel(logging.DEBUG)
+# log.setLevel(logging.DEBUG)
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 import custom_indicators as cta
 
-try:
-    from pykalman import KalmanFilter
-except ImportError:
-    log.error(
-        "IMPORTANT - please install the pykalman python module which is needed for this strategy. "
-        "pip install pykalman"
-    )
-else:
-    log.info("pykalman successfully imported")
+
 
 """
+####################################################################################
+FFT - use a Fast Fourier Transform (FFT) to estimate future price movements
 
-Kalman - use a Kalman Filter to estimate future price movements
+This variant uses the FFT to predict ahead several steps (candles)
 
-Note that this necessarily requires a 'long' timeframe because predicting a short-term swing is pretty useless - by the
-time a trade was executed, the estimate would be outdated.
-So, I use informative pairs that match the whitelist at 1h intervals to predict movements
-
-Custom sell/stoploss logic shamnelessly copied from Solipsis by @werkkrew (https://github.com/werkkrew/freqtrade-strategies)
-
+####################################################################################
 """
 
 
-class Kalman_3(IStrategy):
-
-
+class FFT_4(IStrategy):
     # Do *not* hyperopt for the roi and stoploss spaces
-    
+
     # ROI table:
     minimal_roi = {
-        "0": 100
+        "0": 10
     }
 
     # Stoploss:
@@ -74,14 +63,41 @@ class Kalman_3(IStrategy):
     trailing_stop_positive_offset = 0.0
     trailing_only_offset_is_reached = False
 
-    ## Buy Space Hyperopt Variables
+    timeframe = '5m'
+    inf_timeframe = '15m'
 
-    # Kalman Filter limits
-    buy_kf_gain = DecimalParameter(0.000, 0.050, decimals=3, default=0.015, space='buy', load=True, optimize=True)
-    sell_kf_loss = DecimalParameter(-0.050, 0.000, decimals=3, default=-0.005, space='sell', load=True, optimize=True)
+    use_custom_stoploss = True
+
+    # Recommended
+    use_sell_signal = True
+    sell_profit_only = False
+    ignore_roi_if_buy_signal = True
+
+    # Required
+    startup_candle_count: int = 128
+    process_only_new_candles = True
+
+    custom_trade_info = {}
+
+    ###################################
+
+    # Strategy Specific Variable Storage
+
+    ## Hyperopt Variables
+
+    # FFT limits
+    buy_fft_diff = DecimalParameter(0.000, 0.050, decimals=3, default=0.020, space='buy', load=True, optimize=True)
+    buy_fft_cutoff = DecimalParameter(1/16.0, 1/3.0, decimals=2, default=1/5.0, space='buy', load=True, optimize=True)
+    # buy_fft_nharmonics = IntParameter(6, 16, default=8, space='buy', load=True, optimize=True)
+    # buy_fft_window = IntParameter(1, 128, default=64, space='buy', load=True, optimize=True)
+    # buy_fft_predict = IntParameter(0, 32, default=4, space='buy', load=True, optimize=True)
+
+    fft_window = 128
+    fft_predict = 0
+
+    sell_fft_diff = DecimalParameter(-0.050, 0.000, decimals=3, default=-0.010, space='sell', load=True, optimize=True)
 
 
-    ## Sell Space Params are being used for both custom_stoploss and custom_sell
 
     # Custom Sell Profit (formerly Dynamic ROI)
     csell_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
@@ -107,79 +123,49 @@ class Kalman_3(IStrategy):
     cstop_bail_time_trend = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
     cstop_max_stoploss =  DecimalParameter(-0.30, -0.01, default=-0.10, space='sell', load=True, optimize=True)
 
-    timeframe = '5m'
-    inf_timeframe = '1h'
-
-    use_custom_stoploss = True
-
-    # Recommended
-    use_sell_signal = True
-    sell_profit_only = False
-    ignore_roi_if_buy_signal = True
-
-    # Required
-    startup_candle_count: int = 48
-    process_only_new_candles = True
-
-    # Strategy Specific Variable Storage
-    custom_trade_info = {}
-    custom_fiat = "USD"  # Only relevant if stake is BTC or ETH
-    custom_btc_inf = False  # Don't change this.
-
-    # Kalman Filter
-    kalman_filter = KalmanFilter(transition_matrices=1.0,
-                                 observation_matrices=1.0,
-                                 initial_state_mean=0.0,
-                                 initial_state_covariance=1.0,
-                                 observation_covariance=1.0,
-                                 transition_covariance=0.1)
+    ###################################
 
     """
     Informative Pair Definitions
     """
 
     def informative_pairs(self):
-
         pairs = self.dp.current_whitelist()
         informative_pairs = [(pair, self.inf_timeframe) for pair in pairs]
         return informative_pairs
+
+    ###################################
 
     """
     Indicator Definitions
     """
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+
+        # Base pair informative timeframe indicators
+        curr_pair = metadata['pair']
+        informative = self.dp.get_pair_dataframe(pair=curr_pair, timeframe=self.inf_timeframe)
+
+        informative['fft_predict'] = informative['close'].rolling(window=self.fft_window).apply(self.predict)
+        # informative['fft_predict'] = informative['close'].rolling(window=self.buy_fft_window.value).apply(self.model)
+
+        # merge into normal timeframe
+        dataframe = merge_informative_pair(dataframe, informative, self.timeframe, self.inf_timeframe, ffill=True)
+        
+        dataframe['fft_predict'] = dataframe[f"fft_predict_{self.inf_timeframe}"]
+        dataframe['fft_predict_diff'] = (dataframe['fft_predict'] - dataframe['close']) / dataframe['close']
+
+        # Custom Stoploss
         if not metadata['pair'] in self.custom_trade_info:
             self.custom_trade_info[metadata['pair']] = {}
             if not 'had-trend' in self.custom_trade_info[metadata["pair"]]:
                 self.custom_trade_info[metadata['pair']]['had-trend'] = False
 
-        ## Base Timeframe / Pair
-
-        # # Kaufmann Adaptive Moving Average
-        # dataframe['kama'] = ta.KAMA(dataframe, length=233)
-
         # RMI: https://www.tradingview.com/script/kwIt9OgQ-Relative-Momentum-Index/
         dataframe['rmi'] = cta.RMI(dataframe, length=24, mom=5)
 
-        # # Momentum Pinball: https://www.tradingview.com/script/fBpVB1ez-Momentum-Pinball-Indicator/
-        # dataframe['roc-mp'] = ta.ROC(dataframe, timeperiod=1)
-        # dataframe['mp'] = ta.RSI(dataframe['roc-mp'], timeperiod=3)
-
         # MA Streak: https://www.tradingview.com/script/Yq1z7cIv-MA-Streak-Can-Show-When-a-Run-Is-Getting-Long-in-the-Tooth/
         dataframe['mastreak'] = cta.mastreak(dataframe, period=4)
-
-        # # Percent Change Channel: https://www.tradingview.com/script/6wwAWXA1-MA-Streak-Change-Channel/
-        # upper, mid, lower = cta.pcc(dataframe, period=40, mult=3)
-        # dataframe['pcc-lowerband'] = lower
-        # dataframe['pcc-upperband'] = upper
-
-        # lookup_idxs = dataframe.index.values - (abs(dataframe['mastreak'].values) + 1)
-        # valid_lookups = lookup_idxs >= 0
-        # dataframe['sbc'] = np.nan
-        # dataframe.loc[valid_lookups, 'sbc'] = dataframe['close'].to_numpy()[lookup_idxs[valid_lookups].astype(int)]
-
-        # dataframe['streak-roc'] = 100 * (dataframe['close'] - dataframe['sbc']) / dataframe['sbc']
 
         # Trends, Peaks and Crosses
         dataframe['candle-up'] = np.where(dataframe['close'] >= dataframe['open'], 1, 0)
@@ -191,113 +177,61 @@ class Kalman_3(IStrategy):
         dataframe['rmi-dn'] = np.where(dataframe['rmi'] <= dataframe['rmi'].shift(), 1, 0)
         dataframe['rmi-dn-count'] = dataframe['rmi-dn'].rolling(8).sum()
 
-        # dataframe['streak-bo'] = np.where(dataframe['streak-roc'] < dataframe['pcc-lowerband'], 1, 0)
-        # dataframe['streak-bo-count'] = dataframe['streak-bo'].rolling(8).sum()
-
         # Indicators used only for ROI and Custom Stoploss
         ssldown, sslup = cta.SSLChannels_ATR(dataframe, length=21)
         dataframe['sroc'] = cta.SROC(dataframe, roclen=21, emalen=13, smooth=21)
         dataframe['ssl-dir'] = np.where(sslup > ssldown, 'up', 'down')
 
 
-
-        # Base pair informative timeframe indicators
-        informative = self.dp.get_pair_dataframe(pair=metadata['pair'], timeframe=self.inf_timeframe)
-
-        # # Get the "average day range" between the 1d high and 1d low to set up guards
-        # informative['1d-high'] = informative['close'].rolling(24).max()
-        # informative['1d-low'] = informative['close'].rolling(24).min()
-        # informative['adr'] = informative['1d-high'] - informative['1d-low']
-
-        # Kalman filter
-
-        # update filter (note: this is slow, which is why we run it on the slower timeframe)
-        lookback_len = 6
-        data = informative['close']
-        self.kalman_filter = self.kalman_filter.em(data, n_iter=6)
-
-        if 'kf_predict' not in informative:
-            informative['kf_predict'] = informative['close']
-        if 'kf_mean' not in informative:
-            informative['kf_mean'] = informative['close']
-
-        # update model
-        mean, cov = self.kalman_filter.filter(data)
-        informative['kf_mean'] = pd.Series(mean.squeeze())
-        # # informative['kf_std'] = np.std(cov.squeeze())
-
-        # predict next close
-        pr_mean, pr_cov = self.kalman_filter.smooth(data)
-        informative['kf_predict'] = pd.Series(pr_mean.squeeze())
-        # informative['kf_predict_cov'] = np.std(pr_cov.squeeze())
-
-        dataframe = merge_informative_pair(dataframe, informative, self.timeframe, self.inf_timeframe, ffill=True)
-
-        # calculate predictive indicators in shorter timeframe (not informative)
-
-        dataframe['kf_mean'] = ta.LINEARREG(dataframe[f"kf_mean_{self.inf_timeframe}"], timeperiod=48)
-        dataframe['kf_predict'] = ta.LINEARREG(dataframe[f"kf_predict_{self.inf_timeframe}"], timeperiod=48)
-
-        dataframe['kf_predict_diff'] = (dataframe['kf_predict'] - dataframe['close']) / dataframe['close']
-        dataframe['kf_delta'] = (dataframe['kf_predict'] - dataframe['kf_mean']) / dataframe['kf_mean']
-
         return dataframe
 
-    """
-    Buy Signal
-    """
 
-    def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        conditions = []
-        dataframe.loc[:, 'buy_tag'] = ''
+    def model(self, a: np.ndarray) -> np.float:
+        #must return scalar, so just calculate prediction and take last value
+        npredict = self.buy_fft_predict.value
+        model = self.fourierModel(np.array(a))
+        length = len(model)
+        return model[length-1]
 
-        conditions.append(dataframe['volume'] > 0)
+    def fourierModel(self, x):
 
-        # Kalman triggers
-        kalman_cond = (
-                qtpylib.crossed_above(dataframe['kf_predict_diff'], self.buy_kf_gain.value)
-        )
+        n = x.size
+        t = np.arange(0, n)
+        p = np.polyfit(t, x, 1)  # find linear trend in x
+        x_notrend = x - p[0] * t  # detrended x
+        yf = scipy.fft.rfft(x_notrend)  # detrended x in frequency domain
 
-        delta_cond = (
-            (dataframe['kf_delta'] > 0)
-        )
+        # zero out frequencies beyond 'cutoff'
+        cutoff: int = int(len(yf) * self.buy_fft_cutoff.value)
+        yf[(cutoff - 1):] = 0
 
-        conditions.append(delta_cond)
-        conditions.append(kalman_cond)
+        # inverse transform
+        restored_sig = scipy.fft.irfft(yf)
+        model = restored_sig + p[0] * t
 
-        # set buy tags
-        dataframe.loc[kalman_cond, 'buy_tag'] += 'kf_buy_1 '
+        return model
+
+    def predict(self, a: np.ndarray) -> np.float:
+        #must return scalar, so just calculate prediction and take last value
+        npredict = self.fft_predict
+        # y = self.fourierExtrapolation(np.array(a), 0)
+        y = self.fourierModel(np.array(a))
+
+        length = len(y)
+        if npredict == 0:
+            predict = y[length-1]
+        else:
+            # Note: extrapolation is notoriously fickle. Be careful
+            x = np.arange(length)
+            f = scipy.interpolate.UnivariateSpline(x, y, k=3)
+
+            predict = f(length-1+npredict)
+
+        return predict
 
 
-        if conditions:
-            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
+    ###################################
 
-        return dataframe
-
-    """
-    Sell Signal
-    """
-
-    def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-
-        conditions = []
-        dataframe.loc[:, 'exit_tag'] = ''
-
-        # dataframe['sell'] = 0
-        # Kalman triggers
-        kalman_cond = (
-                qtpylib.crossed_below(dataframe['kf_predict_diff'], self.sell_kf_loss.value)
-        )
-
-        conditions.append(kalman_cond)
-
-        # set buy tags
-        dataframe.loc[kalman_cond, 'exit_tag'] += 'kf_sell_1 '
-
-        if conditions:
-            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1
-
-        return dataframe
 
     """
     Custom Stoploss
@@ -397,4 +331,58 @@ class Kalman_3(IStrategy):
         else:
             return None
 
+    ###################################
 
+    """
+    Buy Signal
+    """
+
+
+    def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        conditions = []
+        dataframe.loc[:, 'buy_tag'] = ''
+
+        # conditions.append(dataframe['volume'] > 0)
+
+        # FFT triggers
+        fft_cond = (
+                qtpylib.crossed_above(dataframe['fft_predict_diff'], self.buy_fft_diff.value)
+        )
+
+        conditions.append(fft_cond)
+
+        # set buy tags
+        dataframe.loc[fft_cond, 'buy_tag'] += 'fft_buy_1 '
+
+        if conditions:
+            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
+
+        return dataframe
+
+
+    ###################################
+
+    """
+    Sell Signal
+    """
+
+
+    def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        conditions = []
+        dataframe.loc[:, 'exit_tag'] = ''
+
+        # FFT triggers
+        fft_cond = (
+                qtpylib.crossed_below(dataframe['fft_predict_diff'], self.sell_fft_diff.value)
+        )
+
+        # conditions.append(fft_cond | latch_cond)
+        conditions.append(fft_cond)
+
+        # set sell tags
+        dataframe.loc[fft_cond, 'exit_tag'] += 'fft_sell_1 '
+
+        if conditions:
+            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1
+
+        return dataframe

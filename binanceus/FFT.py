@@ -70,7 +70,7 @@ class FFT(IStrategy):
     ignore_roi_if_buy_signal = False
 
     # Required
-    startup_candle_count: int = 12
+    startup_candle_count: int = 128
     process_only_new_candles = False
 
     ignore_buying_expired_candle_after = 25
@@ -83,8 +83,11 @@ class FFT(IStrategy):
 
     # FFT limits
     buy_fft_gain = DecimalParameter(0.000, 0.050, decimals=3, default=0.015, space='buy', load=True, optimize=True)
-    buy_fft_cutoff = DecimalParameter(1/16.0, 1/4.0, decimals=2, default=1/6.0, space='buy', load=True, optimize=True)
+    # buy_fft_cutoff = DecimalParameter(1/16.0, 1/4.0, decimals=2, default=1/6.0, space='buy', load=True, optimize=True)
     sell_fft_loss = DecimalParameter(-0.050, 0.000, decimals=3, default=-0.005, space='sell', load=True, optimize=True)
+
+    fft_cutoff = 1/5.0
+    window_size = 128
 
     ###################################
 
@@ -109,12 +112,10 @@ class FFT(IStrategy):
         yf = scipy.fft.rfft(np.array(dataframe['close']))
 
         # zero out frequencies beyond 'cutoff'
-        cutoff:int = int(len(yf) * self.buy_fft_cutoff.value)
+        cutoff:int = int(len(yf) * self.fft_cutoff)
         yf[(cutoff-1):] = 0
         
         # inverse transform
-        # dataframe['ifft'] = pd.Series(scipy.fft.irfft(yf)[:-1])
-
         dataframe['fft_mean'] = dataframe['close']
         model = scipy.fft.irfft(yf)
 

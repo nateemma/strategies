@@ -61,7 +61,7 @@ class FFT_3(IStrategy):
     trailing_only_offset_is_reached = False
 
     timeframe = '5m'
-    inf_timeframe = '1h'
+    inf_timeframe = '5m'
 
     use_custom_stoploss = False
 
@@ -81,7 +81,10 @@ class FFT_3(IStrategy):
     ## Hyperopt Variables
 
     # FFT limits
+    buy_fft_window = IntParameter(1, 128, default=64, space='buy', load=True, optimize=True)
+    buy_fft_nharmonics = IntParameter(6, 16, default=8, space='buy', load=True, optimize=True)
     buy_fft_predict = IntParameter(1, 16, default=4, space='buy', load=True, optimize=True)
+    buy_fft_invert = CategoricalParameter([True, False], default=False, space="buy")
 
     ###################################
 
@@ -102,21 +105,30 @@ class FFT_3(IStrategy):
 
         # FFT
 
-        length = len(dataframe['close'])
-        nsteps = self.buy_fft_predict.value
-        prediction = self.fourierExtrapolation(np.array(dataframe['close']), nsteps)
-        dataframe['fft_predict'] = prediction[nsteps:]
-
-        dataframe['fft_predict_diff'] = (dataframe['fft_predict'] - dataframe['close']) / dataframe['close']
-
+        dataframe['fft_predict'] = dataframe['close'].rolling(window=self.buy_fft_window.value).apply(self.runFourier)
         dataframe['fft_angle'] = ta.LINEARREG_SLOPE(dataframe['fft_predict'], timeperiod=3)
 
+        if self.buy_fft_invert.value:
+            dataframe['buy_region'] = np.where(qtpylib.crossed_below(dataframe['fft_angle'], 0), 1, 0)
+            dataframe['sell_region'] = np.where(qtpylib.crossed_above(dataframe['fft_angle'], 0), 1, 0)
+        else:
+            dataframe['buy_region'] = np.where(qtpylib.crossed_above(dataframe['fft_angle'], 0), 1, 0)
+            dataframe['sell_region'] = np.where(qtpylib.crossed_below(dataframe['fft_angle'], 0), 1, 0)
+
         return dataframe
+
+
+    def runFourier(self, a: np.ndarray) -> np.float:
+        #must return scalar, so just calculate prediction and take last value
+        npredict = self.buy_fft_predict.value
+        prediction = self.fourierExtrapolation(np.array(a),npredict )
+        length = len(prediction)
+        return prediction[length-1]
 
     # function to predict future steps. x is the raw data, not the FFT
     def fourierExtrapolation(self, x, n_predict):
         n = x.size
-        n_harm = 64  # number of harmonics in model
+        n_harm = self.buy_fft_nharmonics.value  # number of harmonics in model
         t = np.arange(0, n)
         p = np.polyfit(t, x, 1)  # find linear trend in x
         x_notrend = x - p[0] * t  # detrended x
@@ -153,15 +165,14 @@ class FFT_3(IStrategy):
 
         # FFT triggers
 
-        angle_cond = (
-            (dataframe['fft_angle'] >= 0.0) &
-            (dataframe['fft_angle'].shift(1) < 0.0)
+        buy_cond = (
+            qtpylib.crossed_above(dataframe['buy_region'], 0.9)
         )
 
-        conditions.append(angle_cond)
+        conditions.append(buy_cond)
 
         # set buy tags
-        dataframe.loc[angle_cond, 'buy_tag'] += 'fft_buy_low '
+        dataframe.loc[buy_cond, 'buy_tag'] += 'fft_buy_low '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
@@ -182,15 +193,14 @@ class FFT_3(IStrategy):
 
         # FFT triggers
 
-        angle_cond = (
-            (dataframe['fft_angle'] <= 0.0) &
-            (dataframe['fft_angle'].shift(1) > 0.0)
+        sell_cond = (
+            qtpylib.crossed_above(dataframe['sell_region'], 0.9)
         )
 
-        conditions.append(angle_cond)
+        conditions.append(sell_cond)
 
         # set sell tags
-        dataframe.loc[angle_cond, 'exit_tag'] += 'fft_sell_high '
+        dataframe.loc[sell_cond, 'exit_tag'] += 'fft_sell_high '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1

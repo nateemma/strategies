@@ -1,8 +1,8 @@
 {
-  "strategy_name": "FFT_3",
+  "strategy_name": "Kalman_5",
   "params": {
     "roi": {
-      "0": 10
+      "0": 100
     },
     "stoploss": {
       "stoploss": -0.1
@@ -14,14 +14,15 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "buy_fft_invert": true,
-      "buy_fft_nharmonics": 8,
-      "buy_fft_predict": 8,
-      "buy_fft_window": 49
+      "buy_kf_diff": 0.005,
+      "buy_kf_lookahead": 50,
+      "buy_kf_window": 126
     },
-    "sell": {},
+    "sell": {
+      "sell_kf_diff": -0.03
+    },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-03-05 17:39:55.201931+00:00"
+  "export_time": "2022-03-04 18:03:09.414469+00:00"
 }
