@@ -1,0 +1,26 @@
+{
+  "strategy_name": "DWT_4",
+  "params": {
+    "roi": {
+      "0": 10
+    },
+    "stoploss": {
+      "stoploss": -0.1
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "buy": {
+      "buy_dwt_diff": 0.035
+    },
+    "sell": {
+      "sell_dwt_diff": -0.016
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2022-03-07 01:57:01.593182+00:00"
+}
