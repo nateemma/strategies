@@ -1,8 +1,8 @@
 {
-  "strategy_name": "DWT_4",
+  "strategy_name": "Kalman_7",
   "params": {
     "roi": {
-      "0": 10
+      "0": 100
     },
     "stoploss": {
       "stoploss": -0.1
@@ -14,13 +14,13 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "buy_dwt_diff": 0.038
+      "buy_kf_diff": 0.008
     },
     "sell": {
-      "sell_dwt_diff": -0.015
+      "sell_kf_diff": -0.027
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-03-09 21:44:35.667063+00:00"
+  "export_time": "2022-03-08 23:21:54.976828+00:00"
 }

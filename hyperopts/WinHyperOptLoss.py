@@ -74,7 +74,7 @@ class WinHyperOptLoss(IHyperOptLoss):
 
         # use drawdown as a tie-breaker
         drawdown_loss = 0.0
-        if backtest_stats['max_drawdown']:
+        if 'max_drawdown' in backtest_stats:
             drawdown_loss = (backtest_stats['max_drawdown'] - 1.0)
 
         result = win_ratio_loss + drawdown_loss

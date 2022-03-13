@@ -1,5 +1,5 @@
 {
-  "strategy_name": "DWT_4",
+  "strategy_name": "FBB_DWT",
   "params": {
     "roi": {
       "0": 10
@@ -14,13 +14,19 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "buy_dwt_diff": 0.038
+      "buy_bb_gain": 0.14,
+      "buy_dwt_diff": 0.039,
+      "buy_fisher_wr": -0.94,
+      "buy_force_fisher_wr": -0.98
     },
     "sell": {
-      "sell_dwt_diff": -0.015
+      "sell_bb_gain": 1.26,
+      "sell_dwt_diff": -0.037,
+      "sell_fisher_wr": 0.95,
+      "sell_force_fisher_wr": 0.86
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-03-09 21:44:35.667063+00:00"
+  "export_time": "2022-03-10 17:02:35.951756+00:00"
 }

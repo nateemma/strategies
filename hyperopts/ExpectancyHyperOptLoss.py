@@ -66,11 +66,11 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
             return UNDESIRED_SOLUTION
 
         stake = backtest_stats['stake_amount']
-        total_profit = results["profit_abs"] / (stake)
+        total_profit_pct = results["profit_abs"] / stake
 
         # Winning trades
         results['upside_returns'] = 0
-        results.loc[total_profit > 0.0001, 'upside_returns'] = 1.0
+        results.loc[total_profit_pct > 0.0001, 'upside_returns'] = 1.0
 
         if backtest_stats['wins']:
             winning_count = backtest_stats['wins']
@@ -79,16 +79,14 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
 
         # Losing trades
         results['downside_returns'] = 0
-        results.loc[total_profit < 0, 'downside_returns'] = 1.0
+        results.loc[total_profit_pct < 0, 'downside_returns'] = 1.0
 
 
         # Expectancy (refer to freqtrade edge page for info)
         w = winning_count / trade_count
         l = 1.0 - w
-        # results['net_gain'] = results['profit_abs'] * results['upside_returns']
-        # results['net_loss'] = results['profit_abs'] * results['downside_returns']
-        results['net_gain'] = total_profit * results['upside_returns']
-        results['net_loss'] = total_profit * results['downside_returns']
+        results['net_gain'] = total_profit_pct * results['upside_returns']
+        results['net_loss'] = total_profit_pct * results['downside_returns']
         ave_profit = results['net_gain'].sum() / trade_count
         ave_loss = results['net_loss'].sum() / trade_count
 
@@ -97,7 +95,16 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
         r = ave_profit / abs(ave_loss)
         e = r * w - l
 
+        expectancy_loss = 1.0 - e  # goal is <1.0
+        
         if (debug_level>0) & (e > 1.0):
             print(" n:{:.0f} r:{:.2f} w:{:.2f} l:{:.2f} e:-{:.2f} ".format(trade_count, r, w, l, e))
 
-        return -e
+        # use drawdown as a tie-breaker
+        drawdown_loss = 0.0
+        if 'max_drawdown' in backtest_stats:
+            drawdown_loss = (backtest_stats['max_drawdown'] - 1.0)
+
+        result = expectancy_loss + drawdown_loss / 2.0
+
+        return result

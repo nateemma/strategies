@@ -49,7 +49,7 @@ class Kalman_7(IStrategy):
 
     # ROI table:
     minimal_roi = {
-        "0": 0.1
+        "0": 100
     }
 
     # Stoploss:
@@ -85,7 +85,7 @@ class Kalman_7(IStrategy):
     buy_kf_diff = DecimalParameter(0.000, 0.050, decimals=3, default=0.017, space='buy', load=True, optimize=True)
     # buy_kf_window = IntParameter(8, 164, default=32, space='buy', load=True, optimize=True)
     # buy_kf_lookahead = IntParameter(0, 64, default=8, space='buy', load=True, optimize=True)
-    kf_window = 32
+    kf_window = 128
     kf_lookahead = 0
 
     sell_kf_diff = DecimalParameter(-0.050, 0.000, decimals=3, default=-0.01, space='sell', load=True, optimize=True)
@@ -128,9 +128,9 @@ class Kalman_7(IStrategy):
         if not curr_pair in self.filter_list:
             self.filter_list[curr_pair] = kalman_filter = simdkalman.KalmanFilter(
                 state_transition=1.0,
-                process_noise=2.0,
+                process_noise=0.1,
                 observation_model=1.0,
-                observation_noise=0.5
+                observation_noise=1.0
             )
 
         # set current filter (can't pass parameter to apply())
