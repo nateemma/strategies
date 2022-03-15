@@ -39,16 +39,16 @@ import pywt
 
 """
 ####################################################################################
-FBB_DWT - use a Discreet Wavelet Transform to estimate future price movements,
+FBB_FFT - use a Fast Fourier Transform to estimate future price movements,
           and Fisher/Williams/Bollinger buy/sell signals
-          The DWT is good at detecting swings, while the FBB checks are to try and keep
+          The FFT is good at detecting swings, while the FBB checks are to try and keep
           trades within oversold/overbought regions
 
 ####################################################################################
 """
 
 
-class FBB_DWT(IStrategy):
+class FBB_FFT(IStrategy):
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # ROI table:
@@ -97,15 +97,16 @@ class FBB_DWT(IStrategy):
     sell_force_fisher_wr = DecimalParameter(0.85, 0.99, decimals=2, default=0.99, space='sell', load=True, optimize=True)
 
 
-    # DWT  hyperparams
-    buy_dwt_diff = DecimalParameter(0.000, 0.050, decimals=3, default=0.01, space='buy', load=True, optimize=True)
-    # buy_dwt_window = IntParameter(8, 164, default=64, space='buy', load=True, optimize=True)
-    # buy_dwt_lookahead = IntParameter(0, 64, default=0, space='buy', load=True, optimize=True)
+    # FFT  hyperparams
+    buy_fft_diff = DecimalParameter(0.000, 0.050, decimals=3, default=0.01, space='buy', load=True, optimize=True)
+    buy_fft_cutoff = DecimalParameter(1/16.0, 1/3.0, decimals=2, default=1/5.0, space='buy', load=True, optimize=True)
+    # buy_fft_window = IntParameter(8, 164, default=64, space='buy', load=True, optimize=True)
+    # buy_fft_lookahead = IntParameter(0, 64, default=0, space='buy', load=True, optimize=True)
 
-    dwt_window = 128
-    dwt_lookahead = 0
+    fft_window = 128
+    fft_lookahead = 0
 
-    sell_dwt_diff = DecimalParameter(-0.050, 0.000, decimals=3, default=-0.01, space='sell', load=True, optimize=True)
+    sell_fft_diff = DecimalParameter(-0.050, 0.000, decimals=3, default=-0.01, space='sell', load=True, optimize=True)
 
 
     # Custom Sell Profit (formerly Dynamic ROI)
@@ -156,11 +157,11 @@ class FBB_DWT(IStrategy):
         curr_pair = metadata['pair']
         informative = self.dp.get_pair_dataframe(pair=curr_pair, timeframe=self.inf_timeframe)
 
-        # DWT
+        # FFT
 
-        # dataframe['dwt_model'] = dataframe['close'].rolling(window=self.buy_dwt_window.value).apply(self.model)
-        # informative['dwt_predict'] = informative['close'].rolling(window=self.buy_dwt_window.value).apply(self.predict)
-        informative['dwt_predict'] = informative['close'].rolling(window=self.dwt_window).apply(self.predict)
+        # dataframe['fft_model'] = dataframe['close'].rolling(window=self.buy_fft_window.value).apply(self.model)
+        # informative['fft_lookahead'] = informative['close'].rolling(window=self.buy_fft_window.value).apply(self.predict)
+        informative['fft_lookahead'] = informative['close'].rolling(window=self.fft_window).apply(self.predict)
 
 
         # merge into normal timeframe
@@ -168,11 +169,11 @@ class FBB_DWT(IStrategy):
 
         # calculate predictive indicators in shorter timeframe (not informative)
 
-        # dataframe['dwt_predict'] = ta.LINEARREG(dataframe[f"dwt_predict_{self.inf_timeframe}"], timeperiod=12)
-        dataframe['dwt_predict'] = dataframe[f"dwt_predict_{self.inf_timeframe}"]
-        # dataframe['dwt_model'] = dataframe[f"dwt_model_{self.inf_timeframe}"]
-        # dataframe['dwt_predict_diff'] = (dataframe['dwt_predict'] - dataframe['dwt_model']) / dataframe['dwt_model']
-        dataframe['dwt_predict_diff'] = (dataframe['dwt_predict'] - dataframe['close']) / dataframe['close']
+        # dataframe['fft_lookahead'] = ta.LINEARREG(dataframe[f"fft_lookahead_{self.inf_timeframe}"], timeperiod=12)
+        dataframe['fft_lookahead'] = dataframe[f"fft_lookahead_{self.inf_timeframe}"]
+        # dataframe['fft_model'] = dataframe[f"fft_model_{self.inf_timeframe}"]
+        # dataframe['fft_lookahead_diff'] = (dataframe['fft_lookahead'] - dataframe['fft_model']) / dataframe['fft_model']
+        dataframe['fft_lookahead_diff'] = (dataframe['fft_lookahead'] - dataframe['close']) / dataframe['close']
 
 
         # FisherBB
@@ -227,64 +228,49 @@ class FBB_DWT(IStrategy):
     ###################################
 
 
-    def madev(self, d, axis=None):
-        """ Mean absolute deviation of a signal """
-        return np.mean(np.absolute(d - np.mean(d, axis)), axis)
+    def model(self, a: np.ndarray) -> np.float:
+        #must return scalar, so just calculate prediction and take last value
+        npredict = self.buy_fft_lookahead.value
+        model = self.fourierModel(np.array(a))
+        length = len(model)
+        return model[length-1]
 
-    def dwtModel(self, data):
+    def fourierModel(self, x):
 
-        # the choice of wavelet makes a big difference
-        # for an overview, check out: https://www.kaggle.com/theoviel/denoising-with-direct-wavelet-transform
-        # wavelet = 'db1'
-        # wavelet = 'bior1.1'
-        wavelet = 'haar' # deals well with harsh transitions
-        level = 1
-        wmode = "smooth"
-        length = len(data)
-
-        # de-trend the data
-        n = data.size
+        n = x.size
         t = np.arange(0, n)
-        p = np.polyfit(t, data, 1)  # find linear trend in data
-        x_notrend = data - p[0] * t  # detrended data
+        p = np.polyfit(t, x, 1)  # find linear trend in x
+        x_notrend = x - p[0] * t  # detrended x
+        yf = scipy.fft.rfft(x_notrend)  # detrended x in frequency domain
 
-        coeff = pywt.wavedec(x_notrend, wavelet, mode=wmode)
-
-        # remove higher harmonics
-        sigma = (1 / 0.6745) * self.madev(coeff[-level])
-        uthresh = sigma * np.sqrt(2 * np.log(length))
-        coeff[1:] = (pywt.threshold(i, value=uthresh, mode='hard') for i in coeff[1:])
+        # zero out frequencies beyond 'cutoff'
+        cutoff: int = int(len(yf) * self.buy_fft_cutoff.value)
+        yf[(cutoff - 1):] = 0
 
         # inverse transform
-        restored_sig = pywt.waverec(coeff, wavelet, mode=wmode)
-
-        # re-trend the data
+        restored_sig = scipy.fft.irfft(yf)
         model = restored_sig + p[0] * t
 
         return model
 
-    def model(self, a: np.ndarray) -> np.float:
-        #must return scalar, so just calculate prediction and take last value
-        model = self.dwtModel(np.array(a))
-        length = len(model)
-        return model[length-1]
-
     def predict(self, a: np.ndarray) -> np.float:
         #must return scalar, so just calculate prediction and take last value
-        # npredict = self.buy_dwt_lookahead.value
-        npredict = self.dwt_lookahead
+        npredict = self.fft_lookahead
+        # y = self.fourierExtrapolation(np.array(a), 0)
+        y = self.fourierModel(np.array(a))
 
-        y = self.dwtModel(np.array(a))
         length = len(y)
         if npredict == 0:
             predict = y[length-1]
         else:
+            # Note: extrapolation is notoriously fickle. Be careful
             x = np.arange(length)
             f = scipy.interpolate.UnivariateSpline(x, y, k=3)
 
             predict = f(length-1+npredict)
 
         return predict
+
 
     # Williams %R
     def williams_r(self, dataframe: DataFrame, period: int = 14) -> Series:
@@ -318,20 +304,20 @@ class FBB_DWT(IStrategy):
         # conditions.append(dataframe['volume'] > 0)
 
         # FFT triggers
-        dwt_cond = (
-                qtpylib.crossed_above(dataframe['dwt_predict_diff'], self.buy_dwt_diff.value)
+        fft_cond = (
+                qtpylib.crossed_above(dataframe['fft_lookahead_diff'], self.buy_fft_diff.value)
         )
 
-        conditions.append(dwt_cond)
+        conditions.append(fft_cond)
 
-        # DWTs will spike on big gains, so try to constrain
+        # FFTs will spike on big gains, so try to constrain
         spike_cond = (
-                dataframe['dwt_predict_diff'] < 2.0 * self.buy_dwt_diff.value
+                dataframe['fft_lookahead_diff'] < 2.0 * self.buy_fft_diff.value
         )
         conditions.append(spike_cond)
 
         # set buy tags
-        dataframe.loc[dwt_cond, 'buy_tag'] += 'dwt_buy '
+        dataframe.loc[fft_cond, 'buy_tag'] += 'fft_buy '
 
 
         # FBB_ triggers
@@ -371,15 +357,15 @@ class FBB_DWT(IStrategy):
         dataframe.loc[:, 'exit_tag'] = ''
 
         # FFT triggers
-        dwt_cond = (
-                qtpylib.crossed_below(dataframe['dwt_predict_diff'], self.sell_dwt_diff.value)
+        fft_cond = (
+                qtpylib.crossed_below(dataframe['fft_lookahead_diff'], self.sell_fft_diff.value)
         )
 
-        conditions.append(dwt_cond)
+        conditions.append(fft_cond)
 
-        # DWTs will spike on big gains, so try to constrain
+        # FFTs will spike on big gains, so try to constrain
         spike_cond = (
-                dataframe['dwt_predict_diff'] > 2.0 * self.sell_dwt_diff.value
+                dataframe['fft_lookahead_diff'] > 2.0 * self.sell_fft_diff.value
         )
         conditions.append(spike_cond)
 
@@ -401,7 +387,7 @@ class FBB_DWT(IStrategy):
         dataframe.loc[strong_sell_cond, 'exit_tag'] += 'strong_sell '
 
         # set sell tags
-        dataframe.loc[dwt_cond, 'exit_tag'] += 'dwt_sell '
+        dataframe.loc[fft_cond, 'exit_tag'] += 'fft_sell '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1

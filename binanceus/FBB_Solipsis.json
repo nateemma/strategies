@@ -14,40 +14,40 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "base_ma_streak": 2,
-      "base_mp": 22,
-      "base_rmi_max": 56,
-      "base_rmi_min": 24,
+      "base_ma_streak": 3,
+      "base_mp": 26,
+      "base_rmi_max": 45,
+      "base_rmi_min": 27,
       "base_rmi_streak": 8,
       "base_trigger": "none",
-      "buy_bb_gain": 0.21,
-      "buy_fisher_wr": -0.73,
-      "buy_force_fisher_wr": -0.86,
-      "inf_pct_adr": 0.959,
-      "xbtc_base_rmi": 57,
+      "buy_bb_gain": 0.22,
+      "buy_fisher_wr": -0.75,
+      "buy_force_fisher_wr": -0.85,
+      "inf_pct_adr": 0.866,
+      "xbtc_base_rmi": 49,
       "xbtc_guard": "none",
-      "xtra_base_fiat_rmi": 30,
-      "xtra_base_stake_rmi": 38
+      "xtra_base_fiat_rmi": 57,
+      "xtra_base_stake_rmi": 27
     },
     "sell": {
-      "csell_endtrend_respect_roi": false,
+      "csell_endtrend_respect_roi": true,
       "csell_pullback": true,
-      "csell_pullback_amount": 0.024,
-      "csell_pullback_respect_roi": true,
+      "csell_pullback_amount": 0.017,
+      "csell_pullback_respect_roi": false,
       "csell_roi_end": 0.009,
-      "csell_roi_start": 0.012,
-      "csell_roi_time": 738,
+      "csell_roi_start": 0.023,
+      "csell_roi_time": 1075,
       "csell_roi_type": "step",
       "csell_trend_type": "none",
       "cstop_bail_how": "roc",
-      "cstop_bail_roc": -3.359,
-      "cstop_bail_time": 1069,
-      "cstop_bail_time_trend": true,
-      "cstop_loss_threshold": -0.037,
-      "cstop_max_stoploss": -0.236
+      "cstop_bail_roc": -3.553,
+      "cstop_bail_time": 779,
+      "cstop_bail_time_trend": false,
+      "cstop_loss_threshold": -0.036,
+      "cstop_max_stoploss": -0.174
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-03-05 17:09:24.603653+00:00"
+  "export_time": "2022-03-14 00:25:37.211164+00:00"
 }

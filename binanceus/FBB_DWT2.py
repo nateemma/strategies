@@ -35,20 +35,25 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 import custom_indicators as cta
 
 import pywt
+import RollingStandardScaler
+import RollingDWT
 
 
 """
 ####################################################################################
-FBB_DWT - use a Discreet Wavelet Transform to estimate future price movements,
+FBB_DWT2 - use a Discreet Wavelet Transform to estimate future price movements,
           and Fisher/Williams/Bollinger buy/sell signals
           The DWT is good at detecting swings, while the FBB checks are to try and keep
           trades within oversold/overbought regions
+          
+          This version uses de-trended data. 
+          See: https://medium.com/swlh/5-tips-for-working-with-time-series-in-python-d889109e676d
 
 ####################################################################################
 """
 
 
-class FBB_DWT(IStrategy):
+class FBB_DWT2(IStrategy):
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # ROI table:
@@ -76,10 +81,18 @@ class FBB_DWT(IStrategy):
     ignore_roi_if_buy_signal = True
 
     # Required
-    startup_candle_count: int = 128
+    startup_candle_count: int = 1024 # must be power of 2
     process_only_new_candles = True
 
     custom_trade_info = {}
+
+    dwt_window = startup_candle_count
+    dwt_lookahead = 0
+
+    rolling_scaler = RollingStandardScaler.RollingStandardScaler(window=dwt_window)
+    rolling_scaler_inf = RollingStandardScaler.RollingStandardScaler(window=int(dwt_window))
+    rolling_dwt_inf = RollingDWT.RollingDWT(window=int(dwt_window*4))
+    rolling_dwt = RollingDWT.RollingDWT(window=int(dwt_window))
 
     ###################################
 
@@ -98,14 +111,11 @@ class FBB_DWT(IStrategy):
 
 
     # DWT  hyperparams
-    buy_dwt_diff = DecimalParameter(0.000, 0.050, decimals=3, default=0.01, space='buy', load=True, optimize=True)
+    buy_dwt_diff = DecimalParameter(0.000, 1.0, decimals=2, default=0.01, space='buy', load=True, optimize=True)
     # buy_dwt_window = IntParameter(8, 164, default=64, space='buy', load=True, optimize=True)
     # buy_dwt_lookahead = IntParameter(0, 64, default=0, space='buy', load=True, optimize=True)
 
-    dwt_window = 128
-    dwt_lookahead = 0
-
-    sell_dwt_diff = DecimalParameter(-0.050, 0.000, decimals=3, default=-0.01, space='sell', load=True, optimize=True)
+    sell_dwt_diff = DecimalParameter(-1.0, 0.000, decimals=2, default=-0.01, space='sell', load=True, optimize=True)
 
 
     # Custom Sell Profit (formerly Dynamic ROI)
@@ -158,9 +168,13 @@ class FBB_DWT(IStrategy):
 
         # DWT
 
-        # dataframe['dwt_model'] = dataframe['close'].rolling(window=self.buy_dwt_window.value).apply(self.model)
-        # informative['dwt_predict'] = informative['close'].rolling(window=self.buy_dwt_window.value).apply(self.predict)
-        informative['dwt_predict'] = informative['close'].rolling(window=self.dwt_window).apply(self.predict)
+        # self.rolling_scaler_inf.fit(informative['close'])
+        # informative['scaled'] = self.rolling_scaler_inf.transform(informative['close'])
+
+        # self.rolling_dwt_inf.fit(informative['close'])
+        informative['dwt_predict'] = self.rolling_dwt_inf.model(informative['close'])
+        # informative['dwt_scaled'] = self.dwtModel(informative['scaled'])
+        # informative['dwt_predict'] = self.rolling_scaler_inf.inverse_transform(informative['close'])
 
 
         # merge into normal timeframe
@@ -168,11 +182,17 @@ class FBB_DWT(IStrategy):
 
         # calculate predictive indicators in shorter timeframe (not informative)
 
-        # dataframe['dwt_predict'] = ta.LINEARREG(dataframe[f"dwt_predict_{self.inf_timeframe}"], timeperiod=12)
+        self.rolling_scaler.fit(dataframe['close'])
+        dataframe['scaled'] = self.rolling_scaler.transform(dataframe['close'])
+        # dataframe['returns'] = self.compute_returns(dataframe['scaled'], log=True)
+
+        # dataframe['dwt_predict2'] = self.rolling_dwt.model(dataframe['close'])
+
         dataframe['dwt_predict'] = dataframe[f"dwt_predict_{self.inf_timeframe}"]
-        # dataframe['dwt_model'] = dataframe[f"dwt_model_{self.inf_timeframe}"]
-        # dataframe['dwt_predict_diff'] = (dataframe['dwt_predict'] - dataframe['dwt_model']) / dataframe['dwt_model']
-        dataframe['dwt_predict_diff'] = (dataframe['dwt_predict'] - dataframe['close']) / dataframe['close']
+
+        dataframe['dwt_predict_diff'] = (dataframe['dwt_predict'] - dataframe['scaled']) / 10.0
+        # dataframe['dwt_predict_diff2'] = (dataframe['dwt_predict2'] - dataframe['scaled']) / 10.0
+        # dataframe['predict_diff2'] = dataframe['predict_diff2'].clip(-5.0, 5.0)
 
 
         # FisherBB
@@ -259,7 +279,8 @@ class FBB_DWT(IStrategy):
         restored_sig = pywt.waverec(coeff, wavelet, mode=wmode)
 
         # re-trend the data
-        model = restored_sig + p[0] * t
+        ldiff = len(restored_sig) - len(data)
+        model = restored_sig[ldiff:] + p[0] * t
 
         return model
 
@@ -304,6 +325,56 @@ class FBB_DWT(IStrategy):
         )
 
         return WR * -100
+
+    def compute_returns(self, data, periods=1, log=False, relative=True):
+        """Computes returns.
+
+        Calculates the returns of a given dataframe for the given period. The
+        returns can be computed as log returns or as arithmetic returns
+
+        Parameters
+        ----------
+        data : pandas.DataFrame or pandas.Series
+            The data to calculate returns of.
+        periods : int
+            The period difference to compute returns.
+        log : bool, optional, default: False
+            Whether to compute log returns (True) or not (False).
+        relative : bool, optional, default: True
+            Whether to compute relative returns (True) or not
+            (False).
+
+        Returns
+        -------
+        ret : pandas.DataFrame or pandas.Series
+            The computed returns.
+
+        """
+        if log:
+            if not relative:
+                raise ValueError("Log returns are relative by definition.")
+            else:
+                ret = self._log_returns(data, periods)
+        else:
+            ret = self._arithmetic_returns(data, periods, relative)
+
+        return ret
+
+    def _arithmetic_returns(self, data, periods, relative):
+        """Arithmetic returns."""
+        # to avoid computing it twice
+        shifted = data.shift(periods)
+        ret = (data - shifted)
+
+        if relative:
+            return ret / shifted
+        else:
+            return ret
+
+    def _log_returns(self, data, periods):
+        """Log returns."""
+        return np.log(data / data.shift(periods))
+
     ###################################
 
     """
@@ -323,12 +394,6 @@ class FBB_DWT(IStrategy):
         )
 
         conditions.append(dwt_cond)
-
-        # DWTs will spike on big gains, so try to constrain
-        spike_cond = (
-                dataframe['dwt_predict_diff'] < 2.0 * self.buy_dwt_diff.value
-        )
-        conditions.append(spike_cond)
 
         # set buy tags
         dataframe.loc[dwt_cond, 'buy_tag'] += 'dwt_buy '
@@ -376,12 +441,6 @@ class FBB_DWT(IStrategy):
         )
 
         conditions.append(dwt_cond)
-
-        # DWTs will spike on big gains, so try to constrain
-        spike_cond = (
-                dataframe['dwt_predict_diff'] > 2.0 * self.sell_dwt_diff.value
-        )
-        conditions.append(spike_cond)
 
         # FBB_ triggers
         fbb_cond = (

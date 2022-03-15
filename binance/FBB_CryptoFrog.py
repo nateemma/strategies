@@ -442,8 +442,8 @@ class FBB_CryptoFrog(IStrategy):
         dataframe.loc[cond_strong_buy, 'buy_tag'] += 'strong '
 
         ## volume sanity checks
-        conditions.append(dataframe['vfi'] < 0.0)
-        conditions.append(dataframe['volume'] > 0)
+        # conditions.append(dataframe['vfi'] < 0.0)
+        # conditions.append(dataframe['volume'] > 0)
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
@@ -473,11 +473,11 @@ class FBB_CryptoFrog(IStrategy):
                                             (dataframe['dmi_plus'] > 30)
                                     )
                             )
-                            ## volume sanity checks
-                            &
-                            (dataframe['vfi'] > 0.0)
-                            &
-                            (dataframe['volume'] > 0)
+                            # ## volume sanity checks
+                            # &
+                            # (dataframe['vfi'] > 0.0)
+                            # &
+                            # (dataframe['volume'] > 0)
                     )
                 # |
                 # (
