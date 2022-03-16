@@ -242,11 +242,14 @@ class FBB_DWT(IStrategy):
         wmode = "smooth"
         length = len(data)
 
-        # de-trend the data
-        n = data.size
-        t = np.arange(0, n)
-        p = np.polyfit(t, data, 1)  # find linear trend in data
-        x_notrend = data - p[0] * t  # detrended data
+        # # de-trend the data
+        # n = data.size
+        # t = np.arange(0, n)
+        # p = np.polyfit(t, data, 1)  # find linear trend in data
+        # x_notrend = data - p[0] * t  # detrended data
+        w_mean = data.mean()
+        w_std = data.std()
+        x_notrend = (data - w_mean) / w_std
 
         coeff = pywt.wavedec(x_notrend, wavelet, mode=wmode)
 
@@ -259,13 +262,15 @@ class FBB_DWT(IStrategy):
         restored_sig = pywt.waverec(coeff, wavelet, mode=wmode)
 
         # re-trend the data
-        model = restored_sig + p[0] * t
+        # model = restored_sig + p[0] * t
+        model = (restored_sig * w_std) + w_mean
 
         return model
 
     def model(self, a: np.ndarray) -> np.float:
         #must return scalar, so just calculate prediction and take last value
-        model = self.dwtModel(np.array(a))
+        # model = self.dwtModel(np.array(a))
+        model = self.dwtModel(a)
         length = len(model)
         return model[length-1]
 

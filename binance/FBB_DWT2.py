@@ -90,9 +90,9 @@ class FBB_DWT2(IStrategy):
     dwt_lookahead = 0
 
     rolling_scaler = RollingStandardScaler.RollingStandardScaler(window=dwt_window)
-    rolling_scaler_inf = RollingStandardScaler.RollingStandardScaler(window=dwt_window)
-    rolling_dwt_inf = RollingDWT.RollingDWT(window=dwt_window)
-    rolling_dwt = RollingDWT.RollingDWT(window=dwt_window)
+    rolling_scaler_inf = RollingStandardScaler.RollingStandardScaler(window=int(dwt_window))
+    rolling_dwt_inf = RollingDWT.RollingDWT(window=int(dwt_window*4))
+    rolling_dwt = RollingDWT.RollingDWT(window=int(dwt_window))
 
     ###################################
 
