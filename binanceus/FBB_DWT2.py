@@ -81,7 +81,7 @@ class FBB_DWT2(IStrategy):
     ignore_roi_if_buy_signal = True
 
     # Required
-    startup_candle_count: int = 1024 # must be power of 2
+    startup_candle_count: int = 512 # must be power of 2
     process_only_new_candles = True
 
     custom_trade_info = {}

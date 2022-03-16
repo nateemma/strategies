@@ -81,7 +81,7 @@ class FBB_DWT2(IStrategy):
     ignore_roi_if_buy_signal = True
 
     # Required
-    startup_candle_count: int = 1024 # must be power of 2
+    startup_candle_count: int = 512 # must be power of 2
     process_only_new_candles = True
 
     custom_trade_info = {}
@@ -90,9 +90,9 @@ class FBB_DWT2(IStrategy):
     dwt_lookahead = 0
 
     rolling_scaler = RollingStandardScaler.RollingStandardScaler(window=dwt_window)
-    rolling_scaler_inf = RollingStandardScaler.RollingStandardScaler(window=int(dwt_window))
-    rolling_dwt_inf = RollingDWT.RollingDWT(window=int(dwt_window*4))
-    rolling_dwt = RollingDWT.RollingDWT(window=int(dwt_window))
+    rolling_scaler_inf = RollingStandardScaler.RollingStandardScaler(window=dwt_window)
+    rolling_dwt_inf = RollingDWT.RollingDWT(window=dwt_window)
+    rolling_dwt = RollingDWT.RollingDWT(window=dwt_window)
 
     ###################################
 
