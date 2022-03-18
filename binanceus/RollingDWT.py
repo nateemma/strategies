@@ -74,12 +74,12 @@ class RollingDWT(BaseEstimator, TransformerMixin):
         standardized : array-like of shape (n_shape, n_features)
             Transformed data.
         """
-        if not self.__fitted__:
-            self.fit(X)
+        self.fit(X)
 
         # scale the input data
         standardized = X.copy()
         scaled = (standardized - self.w_mean) / self.w_std
+        scaled.fillna(0, inplace=True)
 
         # model using a DWT
         dwt_model = self.dwtModel(scaled)
@@ -88,7 +88,7 @@ class RollingDWT(BaseEstimator, TransformerMixin):
 
         # unscale
         if ldiff != 0:
-            print("len(dwt_model):", len(dwt_model), " len(w_std):", len(self.w_std))
+            # print("len(dwt_model):", len(dwt_model), " len(w_std):", len(self.w_std))
             return (dwt_model[ldiff:] * self.w_std) + self.w_mean
         else:
             return (dwt_model * self.w_std) + self.w_mean
@@ -119,15 +119,33 @@ class RollingDWT(BaseEstimator, TransformerMixin):
         #
         # coeff = pywt.wavedec(x_notrend, wavelet, mode=wmode)
 
-        coeff = pywt.wavedec(data, wavelet, mode=wmode)
+        # coeff = pywt.wavedec(data, wavelet, mode=wmode)
+        #
+        # # remove higher harmonics
+        # sigma = (1 / 0.6745) * self.madev(coeff[-level])
+        # uthresh = sigma * np.sqrt(2 * np.log(length))
+        # coeff[1:] = (pywt.threshold(i, value=uthresh, mode='hard') for i in coeff[1:])
+        #
+        # # inverse transform
+        # restored_sig = pywt.waverec(coeff, wavelet, mode=wmode)
 
-        # remove higher harmonics
-        sigma = (1 / 0.6745) * self.madev(coeff[-level])
-        uthresh = sigma * np.sqrt(2 * np.log(length))
-        coeff[1:] = (pywt.threshold(i, value=uthresh, mode='hard') for i in coeff[1:])
+        (ca, cd) = pywt.dwt(data, wavelet)
 
-        # inverse transform
-        restored_sig = pywt.waverec(coeff, wavelet, mode=wmode)
+        # siga = 0.6745 * self.madev(ca)
+        # sigd = 0.6745 * self.madev(cd)
+        # scale = np.sqrt(2 * np.log(length)) / 2.0
+        # tha = siga * scale
+        # thd = sigd * scale
+
+        tha2 = np.std(ca)/2.0
+        thd2 = np.std(cd)/2.0
+
+        # print ("tha:", tha, "thd:", thd, " tha2:", tha2, "thd2:", thd2)
+
+        cat = pywt.threshold(ca, tha2, mode='soft')
+        cdt = pywt.threshold(cd, thd2, mode='soft')
+
+        restored_sig = pywt.idwt(cat, cdt, wavelet)
 
         # print("l1:", len(data), " l2:", len(restored_sig))
 

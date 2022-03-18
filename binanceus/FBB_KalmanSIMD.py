@@ -34,31 +34,28 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 import custom_indicators as cta
 
-import pywt
+from  simdkalman import KalmanFilter
 import RollingStandardScaler
-import RollingDWT
+import RollingKalmanSIMD
 
 
 """
 ####################################################################################
-FBB_DWT2 - use a Discreet Wavelet Transform to estimate future price movements,
+FBB_KalmanSIMD - use a Kalmqn Filter to estimate future price movements,
           and Fisher/Williams/Bollinger buy/sell signals
           The DWT is good at detecting swings, while the FBB checks are to try and keep
           trades within oversold/overbought regions
-          
-          This version uses de-trended data. 
-          See: https://medium.com/swlh/5-tips-for-working-with-time-series-in-python-d889109e676d
 
 ####################################################################################
 """
 
 
-class FBB_DWT2(IStrategy):
+class FBB_KalmanSIMD(IStrategy):
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # ROI table:
     minimal_roi = {
-        "0": 0.1
+        "0": 10
     }
 
     # Stoploss:
@@ -71,7 +68,7 @@ class FBB_DWT2(IStrategy):
     trailing_only_offset_is_reached = False
 
     timeframe = '5m'
-    inf_timeframe = '15m'
+    inf_timeframe = '1h'
 
     use_custom_stoploss = True
 
@@ -81,22 +78,25 @@ class FBB_DWT2(IStrategy):
     ignore_roi_if_buy_signal = True
 
     # Required
-    startup_candle_count: int = 512 # must be power of 2
+    startup_candle_count: int = 128
     process_only_new_candles = True
 
     custom_trade_info = {}
+    filter_list = {}
 
     ###################################
 
     # Strategy Specific Variable Storage
 
-    dwt_window = startup_candle_count
-    dwt_lookahead = 0
 
-    rolling_scaler = RollingStandardScaler.RollingStandardScaler(window=dwt_window)
-    rolling_scaler_inf = RollingStandardScaler.RollingStandardScaler(window=dwt_window)
-    rolling_dwt_inf = RollingDWT.RollingDWT(window=dwt_window)
-    rolling_dwt = RollingDWT.RollingDWT(window=dwt_window)
+    # Strategy Specific Variable Storage
+
+    kf_window = startup_candle_count
+    kf_predict = 0
+
+    rolling_scaler = RollingStandardScaler.RollingStandardScaler(window=kf_window)
+    rolling_scaler_inf = RollingStandardScaler.RollingStandardScaler(window=kf_window)
+    rolling_kf_inf = RollingKalmanSIMD.RollingKalmanSIMD(window=kf_window)
 
     ## Hyperopt Variables
 
@@ -105,17 +105,21 @@ class FBB_DWT2(IStrategy):
     buy_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.75, space='buy', load=True, optimize=True)
     buy_force_fisher_wr = DecimalParameter(-0.99, -0.85, decimals=2, default=-0.99, space='buy', load=True, optimize=True)
 
+    # DWT  hyperparams
+    buy_kf_diff = DecimalParameter(0.000, 0.050, decimals=3, default=0.01, space='buy', load=True, optimize=True)
+    # buy_kf_window = IntParameter(8, 164, default=64, space='buy', load=True, optimize=True)
+    # buy_kf_lookahead = IntParameter(0, 64, default=0, space='buy', load=True, optimize=True)
+
+    kf_window = 32
+    kf_lookahead = 0
+    lookback_len = 8
+
+
+    sell_kf_diff = DecimalParameter(-0.050, 0.000, decimals=3, default=-0.01, space='sell', load=True, optimize=True)
+
     sell_bb_gain = DecimalParameter(0.7, 1.5, decimals=2, default=0.8, space='sell', load=True, optimize=True)
     sell_fisher_wr = DecimalParameter(0.75, 0.99, decimals=2, default=0.9, space='sell', load=True, optimize=True)
     sell_force_fisher_wr = DecimalParameter(0.85, 0.99, decimals=2, default=0.99, space='sell', load=True, optimize=True)
-
-
-    # DWT  hyperparams
-    buy_dwt_diff = DecimalParameter(0.000, 1.0, decimals=2, default=0.01, space='buy', load=True, optimize=True)
-    # buy_dwt_window = IntParameter(8, 164, default=64, space='buy', load=True, optimize=True)
-    # buy_dwt_lookahead = IntParameter(0, 64, default=0, space='buy', load=True, optimize=True)
-
-    sell_dwt_diff = DecimalParameter(-1.0, 0.000, decimals=2, default=-0.01, space='sell', load=True, optimize=True)
 
 
     # Custom Sell Profit (formerly Dynamic ROI)
@@ -166,16 +170,23 @@ class FBB_DWT2(IStrategy):
         curr_pair = metadata['pair']
         informative = self.dp.get_pair_dataframe(pair=curr_pair, timeframe=self.inf_timeframe)
 
-        # DWT
+        # Kalman Filter
 
-        # self.rolling_scaler_inf.fit(informative['close'])
-        # informative['scaled'] = self.rolling_scaler_inf.transform(informative['close'])
+        # get filter for current pair
 
-        # self.rolling_dwt_inf.fit(informative['close'])
-        informative['dwt_predict'] = self.rolling_dwt_inf.model(informative['close'])
-        # informative['dwt_scaled'] = self.dwtModel(informative['scaled'])
-        # informative['dwt_predict'] = self.rolling_scaler_inf.inverse_transform(informative['close'])
+        # create if not already done
+        if not curr_pair in self.filter_list:
+            self.filter_list[curr_pair] = kalman_filter = KalmanFilter(
+                state_transition=1.0,
+                process_noise=2.0,
+                observation_model=1.0,
+                observation_noise=0.5
+            )
 
+        # set current filter (can't pass parameter to apply())
+
+        self.rolling_kf_inf.fit(dataframe['close'])
+        informative['kf_predict'] = self.rolling_kf_inf.model(informative['close'], kfilter=self.filter_list[curr_pair])
 
         # merge into normal timeframe
         dataframe = merge_informative_pair(dataframe, informative, self.timeframe, self.inf_timeframe, ffill=True)
@@ -184,16 +195,8 @@ class FBB_DWT2(IStrategy):
 
         self.rolling_scaler.fit(dataframe['close'])
         dataframe['scaled'] = self.rolling_scaler.transform(dataframe['close'])
-        # dataframe['returns'] = self.compute_returns(dataframe['scaled'], log=True)
-
-        # dataframe['dwt_predict2'] = self.rolling_dwt.model(dataframe['close'])
-
-        dataframe['dwt_predict'] = dataframe[f"dwt_predict_{self.inf_timeframe}"]
-
-        dataframe['dwt_predict_diff'] = (dataframe['dwt_predict'] - dataframe['scaled']) / 10.0
-        # dataframe['dwt_predict_diff2'] = (dataframe['dwt_predict2'] - dataframe['scaled']) / 10.0
-        # dataframe['predict_diff2'] = dataframe['predict_diff2'].clip(-5.0, 5.0)
-
+        dataframe['kf_predict'] = dataframe[f"kf_predict_{self.inf_timeframe}"]
+        dataframe['kf_predict_diff'] = (dataframe['kf_predict'] - dataframe['scaled']) / 10.0
 
         # FisherBB
 
@@ -212,7 +215,6 @@ class FBB_DWT2(IStrategy):
 
         # Combined Fisher RSI and Williams %R
         dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
-
 
         # Custom Stoploss
 
@@ -247,72 +249,40 @@ class FBB_DWT2(IStrategy):
     ###################################
 
 
-    def madev(self, d, axis=None):
-        """ Mean absolute deviation of a signal """
-        return np.mean(np.absolute(d - np.mean(d, axis)), axis)
 
-    def dwtModel(self, data):
+    def model(self, a: np.ndarray) -> np.float:
+        # must return scalar, so just calculate prediction and take last value
+        model = self.kalmanModel(np.array(a))
+        length = len(model)
+        return model[length - 1]
 
-        # the choice of wavelet makes a big difference
-        # for an overview, check out: https://www.kaggle.com/theoviel/denoising-with-direct-wavelet-transform
-        # wavelet = 'db1'
-        # wavelet = 'bior1.1'
-        wavelet = 'haar' # deals well with harsh transitions
-        level = 1
-        wmode = "smooth"
-        length = len(data)
-
-        # de-trend the data
-        n = data.size
-        t = np.arange(0, n)
-        p = np.polyfit(t, data, 1)  # find linear trend in data
-        x_notrend = data - p[0] * t  # detrended data
-
-        # coeff = pywt.wavedec(x_notrend, wavelet, mode=wmode)
-        #
-        # # remove higher harmonics
-        # sigma = (1 / 0.6745) * self.madev(coeff[-level])
-        # uthresh = sigma * np.sqrt(2 * np.log(length))
-        # coeff[1:] = (pywt.threshold(i, value=uthresh, mode='hard') for i in coeff[1:])
-        #
-        # # inverse transform
-        # restored_sig = pywt.waverec(coeff, wavelet, mode=wmode)
-
-        (ca, cd) = pywt.dwt(data, wavelet)
-
-        cat = pywt.threshold(ca, np.std(ca) / 2, mode='hard')
-        cdt = pywt.threshold(cd, np.std(cd) / 2, mode='hard')
-
-        restored_sig = pywt.idwt(cat, cdt, wavelet)
-
-        # re-trend the data
-        ldiff = len(restored_sig) - len(data)
-        model = restored_sig[ldiff:] + p[0] * t
+    def kalmanModel(self, data):
+        smoothed = self.kalman_filter.smooth(data)
+        model = smoothed.states.mean[:,0]
 
         return model
 
-    def model(self, a: np.ndarray) -> np.float:
-        #must return scalar, so just calculate prediction and take last value
-        model = self.dwtModel(np.array(a))
-        length = len(model)
-        return model[length-1]
-
     def predict(self, a: np.ndarray) -> np.float:
-        #must return scalar, so just calculate prediction and take last value
-        # npredict = self.buy_dwt_lookahead.value
-        npredict = self.dwt_lookahead
+        # must return scalar, so just calculate prediction and take last value
 
-        y = self.dwtModel(np.array(a))
-        length = len(y)
+        # kf = self.kalman_filter.em(np.array(a), n_iter=self.lookback_len)
+
+        npredict = self.kf_lookahead
         if npredict == 0:
-            predict = y[length-1]
+            model = self.kalmanModel(np.array(a))
+            prediction = model[len(model)-1]
         else:
-            x = np.arange(length)
-            f = scipy.interpolate.UnivariateSpline(x, y, k=3)
+            prediction = self.kalmanExtrapolation(np.array(a), npredict)
+        return prediction
 
-            predict = f(length-1+npredict)
+    def kalmanExtrapolation(self, data, n_predict):
+        prediction = self.kalman_filter.predict(data, self.kf_lookahead)
+        # print ("predicted: ", predicted.observations.mean)
 
-        return predict
+        predict = prediction.observations.mean
+        # print (predict)
+
+        return predict[len(predict)-1]
 
     # Williams %R
     def williams_r(self, dataframe: DataFrame, period: int = 14) -> Series:
@@ -332,56 +302,6 @@ class FBB_DWT2(IStrategy):
         )
 
         return WR * -100
-
-    def compute_returns(self, data, periods=1, log=False, relative=True):
-        """Computes returns.
-
-        Calculates the returns of a given dataframe for the given period. The
-        returns can be computed as log returns or as arithmetic returns
-
-        Parameters
-        ----------
-        data : pandas.DataFrame or pandas.Series
-            The data to calculate returns of.
-        periods : int
-            The period difference to compute returns.
-        log : bool, optional, default: False
-            Whether to compute log returns (True) or not (False).
-        relative : bool, optional, default: True
-            Whether to compute relative returns (True) or not
-            (False).
-
-        Returns
-        -------
-        ret : pandas.DataFrame or pandas.Series
-            The computed returns.
-
-        """
-        if log:
-            if not relative:
-                raise ValueError("Log returns are relative by definition.")
-            else:
-                ret = self._log_returns(data, periods)
-        else:
-            ret = self._arithmetic_returns(data, periods, relative)
-
-        return ret
-
-    def _arithmetic_returns(self, data, periods, relative):
-        """Arithmetic returns."""
-        # to avoid computing it twice
-        shifted = data.shift(periods)
-        ret = (data - shifted)
-
-        if relative:
-            return ret / shifted
-        else:
-            return ret
-
-    def _log_returns(self, data, periods):
-        """Log returns."""
-        return np.log(data / data.shift(periods))
-
     ###################################
 
     """
@@ -396,14 +316,14 @@ class FBB_DWT2(IStrategy):
         # conditions.append(dataframe['volume'] > 0)
 
         # FFT triggers
-        dwt_cond = (
-                qtpylib.crossed_above(dataframe['dwt_predict_diff'], self.buy_dwt_diff.value)
+        kf_cond = (
+                qtpylib.crossed_above(dataframe['kf_predict_diff'], self.buy_kf_diff.value)
         )
 
-        conditions.append(dwt_cond)
+        conditions.append(kf_cond)
 
         # set buy tags
-        dataframe.loc[dwt_cond, 'buy_tag'] += 'dwt_buy '
+        dataframe.loc[kf_cond, 'buy_tag'] += 'kf_buy_1 '
 
 
         # FBB_ triggers
@@ -422,7 +342,7 @@ class FBB_DWT2(IStrategy):
                 )
         )
         conditions.append(fbb_cond | strong_buy_cond)
-        dataframe.loc[fbb_cond, 'buy_tag'] += 'fbb_buy '
+        dataframe.loc[fbb_cond, 'buy_tag'] += 'fbb '
         dataframe.loc[strong_buy_cond, 'buy_tag'] += 'strong '
 
         if conditions:
@@ -443,11 +363,11 @@ class FBB_DWT2(IStrategy):
         dataframe.loc[:, 'exit_tag'] = ''
 
         # FFT triggers
-        dwt_cond = (
-                qtpylib.crossed_below(dataframe['dwt_predict_diff'], self.sell_dwt_diff.value)
+        kf_cond = (
+                qtpylib.crossed_below(dataframe['kf_predict_diff'], self.sell_kf_diff.value)
         )
 
-        conditions.append(dwt_cond)
+        conditions.append(kf_cond)
 
         # FBB_ triggers
         fbb_cond = (
@@ -467,12 +387,13 @@ class FBB_DWT2(IStrategy):
         dataframe.loc[strong_sell_cond, 'exit_tag'] += 'strong_sell '
 
         # set sell tags
-        dataframe.loc[dwt_cond, 'exit_tag'] += 'dwt_sell '
+        dataframe.loc[kf_cond, 'exit_tag'] += 'kf_sell_1 '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1
 
         return dataframe
+
 
 
     ###################################
@@ -576,4 +497,3 @@ class FBB_DWT2(IStrategy):
                 return 'notrend_roi'
         else:
             return None
-
