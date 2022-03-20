@@ -16,7 +16,7 @@ from typing import Any, Dict
 
 
 # Contstants to allow evaluation in cases where thre is insufficient (or nonexistent) info in the configuration
-EXPECTED_TRADES_PER_DAY = 2                         # used to set target goals
+EXPECTED_TRADES_PER_DAY = 1                         # used to set target goals
 MIN_TRADES_PER_DAY = EXPECTED_TRADES_PER_DAY / 8    # used to filter out scenarios where there are not enough trades
 UNDESIRED_SOLUTION = 2.0             # indicates that we don't want this solution (so hyperopt will avoid)
 
@@ -36,7 +36,6 @@ class WinHyperOptLoss(IHyperOptLoss):
                                *args, **kwargs) -> float:
 
         debug_level = 1 # displays (more) messages if higher
-
 
         days_period = (max_date - min_date).days
         # target_trades = days_period*EXPECTED_TRADES_PER_DAY
@@ -72,12 +71,19 @@ class WinHyperOptLoss(IHyperOptLoss):
         # calculate win ratio loss. Scale so that 0.0 equates to 50% win/loss ratio
         win_ratio_loss = 10.0 * (0.5 - winning_count / trade_count)
 
-        # use drawdown as a tie-breaker
+        # use profit and drawdown as a tie-breaker
+
+        # profitable?
+        profit_loss = -backtest_stats['profit_total']
+        if profit_loss > 0:
+            # print("profit: {:.2f}".format(profit_loss))
+            return UNDESIRED_SOLUTION + abs(profit_loss)
+
         drawdown_loss = 0.0
         if 'max_drawdown' in backtest_stats:
             drawdown_loss = (backtest_stats['max_drawdown'] - 1.0)
 
-        result = win_ratio_loss + drawdown_loss
+        result = win_ratio_loss + drawdown_loss + profit_loss
 
         return result
 

@@ -73,7 +73,8 @@ class RollingStandardScaler(BaseEstimator, TransformerMixin):
         standardized : array-like of shape (n_shape, n_features)
             Transformed data.
         """
-        self._check_fitted()
+        # self._check_fitted()
+        self.fit(X)
 
         standardized = X.copy()
         return (standardized - self.w_mean) / self.w_std

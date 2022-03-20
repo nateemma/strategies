@@ -18,13 +18,13 @@ from typing import Any, Dict
 
 # Constants to allow evaluation in cases where there is insufficient (or nonexistent) info in the configuration
 
-EXPECTED_TRADES_PER_DAY = 2                         # used to set target goals
+EXPECTED_TRADES_PER_DAY = 1                         # used to set target goals
 MIN_TRADES_PER_DAY = EXPECTED_TRADES_PER_DAY/3.0    # used to filter out scenarios where there are not enough trades
 EXPECTED_PROFIT_PER_TRADE = 0.003                   # be realistic. Setting this too high will eliminate potentially good solutions
 EXPECTED_AVE_PROFIT = 0.004                         # used to assess actual profit vs desired profit. Typical is 0.4% (0.004)
 EXPECTED_MONTHLY_PROFIT = 0.15                      # used to assess actual profit vs desired profit. Typical is 15% (0.15)
 EXPECTED_TRADE_DURATION = 240                       # goal for duration (or shorter) in seconds
-MAX_TRADE_DURATION = 10.0*60.0*60.0                 # max allowable duration
+MAX_TRADE_DURATION = 24.0*60.0*60.0                 # max allowable duration
 
 UNDESIRED_SOLUTION = 2.0                            # indicates that we don't want this solution (so hyperopt will avoid)
 
@@ -47,8 +47,8 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         #                                                                                           backtest_stats['profit_mean'], backtest_stats['wins']))
 
         # define weights
-        weight_num_trades = 0.25
-        weight_duration = 0.25
+        weight_num_trades = 0.1
+        weight_duration = 0.1
         weight_abs_profit = 2.0
         weight_exp_profit = 0.5
         weight_ave_profit = 1.0

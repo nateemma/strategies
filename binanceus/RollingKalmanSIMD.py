@@ -107,10 +107,13 @@ class RollingKalmanSIMD(BaseEstimator, TransformerMixin):
 
         # kfilter = kfilter.em(x, n_iter=6)
 
-        smoothed = kfilter.smooth(x)
-        restored_sig = smoothed.states.mean[:,0]
+        r = kfilter.compute(data, 1);
+        smoothed = r.smoothed.states.mean[:,0];
+        pred = r.predicted.observations.mean
 
-        # prediction doesn't seem to work for simdkalman
+        # add predictions to the end of the model
+        # restored_sig = np.append(smoothed,  pred)
+        restored_sig = smoothed
 
         ldiff = len(restored_sig) - len(x)
         model = restored_sig[ldiff:]

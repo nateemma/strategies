@@ -34,23 +34,19 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 import custom_indicators as cta
 
-from  simdkalman import KalmanFilter
 import RollingStandardScaler
-import RollingKalmanSIMD
 
 
 """
 ####################################################################################
-FBB_KalmanSIMD - use a Kalmqn Filter to estimate future price movements,
+FBB_Scaler - use a Rolling Window scaled approximation to estimate future price movements,
           and Fisher/Williams/Bollinger buy/sell signals
-          The DWT is good at detecting swings, while the FBB checks are to try and keep
-          trades within oversold/overbought regions
 
 ####################################################################################
 """
 
 
-class FBB_KalmanSIMD(IStrategy):
+class FBB_Scaler(IStrategy):
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # ROI table:
@@ -91,12 +87,10 @@ class FBB_KalmanSIMD(IStrategy):
 
     # Strategy Specific Variable Storage
 
-    kf_window = startup_candle_count
-    kf_predict = 0
+    window = startup_candle_count
 
-    rolling_scaler = RollingStandardScaler.RollingStandardScaler(window=kf_window)
-    rolling_scaler_inf = RollingStandardScaler.RollingStandardScaler(window=kf_window)
-    rolling_kf_inf = RollingKalmanSIMD.RollingKalmanSIMD(window=kf_window)
+    rolling_scaler = RollingStandardScaler.RollingStandardScaler(window=window)
+    rolling_scaler_inf = RollingStandardScaler.RollingStandardScaler(window=window)
 
     ## Hyperopt Variables
 
@@ -105,12 +99,12 @@ class FBB_KalmanSIMD(IStrategy):
     buy_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.75, space='buy', load=True, optimize=True)
     buy_force_fisher_wr = DecimalParameter(-0.99, -0.85, decimals=2, default=-0.99, space='buy', load=True, optimize=True)
 
+    # Scaler  hyperparams
+    buy_diff = DecimalParameter(0.000, 0.050, decimals=3, default=0.3, space='buy', load=True, optimize=True)
+    sell_diff = DecimalParameter(-0.050, 0.000, decimals=3, default=-0.2, space='sell', load=True, optimize=True)
+
     sell_bb_gain = DecimalParameter(0.7, 1.5, decimals=2, default=0.8, space='sell', load=True, optimize=True)
     sell_fisher_wr = DecimalParameter(0.75, 0.99, decimals=2, default=0.9, space='sell', load=True, optimize=True)
-
-    # DWT  hyperparams
-    buy_kf_diff = DecimalParameter(0.000, 0.050, decimals=3, default=0.01, space='buy', load=True, optimize=True)
-    sell_kf_diff = DecimalParameter(-0.050, 0.000, decimals=3, default=-0.01, space='sell', load=True, optimize=True)
     sell_force_fisher_wr = DecimalParameter(0.85, 0.99, decimals=2, default=0.99, space='sell', load=True, optimize=True)
 
 
@@ -162,23 +156,10 @@ class FBB_KalmanSIMD(IStrategy):
         curr_pair = metadata['pair']
         informative = self.dp.get_pair_dataframe(pair=curr_pair, timeframe=self.inf_timeframe)
 
-        # Kalman Filter
-
-        # get filter for current pair
-
-        # create if not already done
-        if not curr_pair in self.filter_list:
-            self.filter_list[curr_pair]  = KalmanFilter(
-                state_transition=1.0,
-                process_noise=2.0,
-                observation_model=1.0,
-                observation_noise=0.5
-            )
-
         # set current filter (can't pass parameter to apply())
 
-        self.rolling_kf_inf.fit(dataframe['close'])
-        informative['kf_predict'] = self.rolling_kf_inf.model(informative['close'], kfilter=self.filter_list[curr_pair])
+        self.rolling_scaler_inf.fit(dataframe['close'])
+        informative['predict'] = self.rolling_scaler_inf.transform(informative['close'])
 
         # merge into normal timeframe
         dataframe = merge_informative_pair(dataframe, informative, self.timeframe, self.inf_timeframe, ffill=True)
@@ -187,8 +168,8 @@ class FBB_KalmanSIMD(IStrategy):
 
         self.rolling_scaler.fit(dataframe['close'])
         dataframe['scaled'] = self.rolling_scaler.transform(dataframe['close'])
-        dataframe['kf_predict'] = dataframe[f"kf_predict_{self.inf_timeframe}"]
-        dataframe['kf_predict_diff'] = (dataframe['kf_predict'] - dataframe['scaled']) / 10.0
+        dataframe['predict'] = dataframe[f"predict_{self.inf_timeframe}"]
+        dataframe['predict_diff'] = (dataframe['predict'] - dataframe['scaled']) / 10.0
 
         # FisherBB
 
@@ -241,6 +222,41 @@ class FBB_KalmanSIMD(IStrategy):
     ###################################
 
 
+
+    def model(self, a: np.ndarray) -> np.float:
+        # must return scalar, so just calculate prediction and take last value
+        model = self.kalmanModel(np.array(a))
+        length = len(model)
+        return model[length - 1]
+
+    def kalmanModel(self, data):
+        smoothed = self.kalman_filter.smooth(data)
+        model = smoothed.states.mean[:,0]
+
+        return model
+
+    def predict(self, a: np.ndarray) -> np.float:
+        # must return scalar, so just calculate prediction and take last value
+
+        # kf = self.kalman_filter.em(np.array(a), n_iter=self.lookback_len)
+
+        npredict = self.lookahead
+        if npredict == 0:
+            model = self.kalmanModel(np.array(a))
+            prediction = model[len(model)-1]
+        else:
+            prediction = self.kalmanExtrapolation(np.array(a), npredict)
+        return prediction
+
+    def kalmanExtrapolation(self, data, n_predict):
+        prediction = self.kalman_filter.predict(data, self.lookahead)
+        # print ("predicted: ", predicted.observations.mean)
+
+        predict = prediction.observations.mean
+        # print (predict)
+
+        return predict[len(predict)-1]
+
     # Williams %R
     def williams_r(self, dataframe: DataFrame, period: int = 14) -> Series:
         """Williams %R, or just %R, is a technical analysis oscillator showing the current closing price in relation to the high and low
@@ -273,12 +289,12 @@ class FBB_KalmanSIMD(IStrategy):
         # conditions.append(dataframe['volume'] > 0)
 
         # Kalman triggers
-        kf_cond = (
-                qtpylib.crossed_above(dataframe['kf_predict_diff'], self.buy_kf_diff.value)
+        cond = (
+                qtpylib.crossed_above(dataframe['predict_diff'], self.buy_diff.value)
         )
 
         # set buy tags
-        dataframe.loc[kf_cond, 'buy_tag'] += 'kf_buy_1 '
+        dataframe.loc[cond, 'buy_tag'] += 'buy_1 '
 
         # FBB_ triggers
         fbb_cond = (
@@ -300,7 +316,7 @@ class FBB_KalmanSIMD(IStrategy):
 
         conditions.append(
             (
-                    kf_cond &
+                    cond &
                     (fbb_cond | strong_buy_cond)
             )
         )
@@ -325,8 +341,8 @@ class FBB_KalmanSIMD(IStrategy):
         dataframe.loc[:, 'exit_tag'] = ''
 
         # Kalman triggers
-        kf_cond = (
-                qtpylib.crossed_below(dataframe['kf_predict_diff'], self.sell_kf_diff.value)
+        cond = (
+                qtpylib.crossed_below(dataframe['predict_diff'], self.sell_diff.value)
         )
 
         # FBB_ triggers
@@ -343,11 +359,11 @@ class FBB_KalmanSIMD(IStrategy):
         # set exit tags
         dataframe.loc[fbb_cond, 'exit_tag'] += 'fbb_sell '
         dataframe.loc[strong_sell_cond, 'exit_tag'] += 'strong_sell '
-        dataframe.loc[kf_cond, 'exit_tag'] += 'kf_sell_1 '
+        dataframe.loc[cond, 'exit_tag'] += 'sell_1 '
 
         conditions.append(
             (
-                    kf_cond &
+                    cond &
                     (fbb_cond | strong_sell_cond)
             )
         )
