@@ -60,11 +60,17 @@ strategy=$2
 
 strat_dir="user_data/strategies"
 exchange_dir="${strat_dir}/${exchange}"
-config_file="config_${exchange}${port}.json"
-db_url="tradesv3_${exchange}${port}.sqlite"
+base_config="config_${exchange}.json"
+port_config="config_${exchange}${port}.json"
+db_url="tradesv3_${exchange}${port}.dryrun.sqlite"
 
-if [ ! -f ${config_file} ]; then
-    echo "config file not found: ${config_file}"
+if [ ! -f ${base_config} ]; then
+    echo "Base config file not found: ${base_config}"
+    exit 0
+fi
+
+if [ ! -f ${port_config} ]; then
+    echo "Port config file not found: ${port_config}"
     exit 0
 fi
 
@@ -73,22 +79,27 @@ if [ ! -d ${exchange_dir} ]; then
     exit 0
 fi
 
+# set up config file chain (if port specified)
+config="${base_config}"
+if [[ ${port} == "" ]]; then
+  config="${base_config}"
+else
+  config="${base_config} -c ${port_config}"
+fi
+
 echo ""
-echo "Using config file: ${config_file} and Strategy dir: ${exchange_dir}"
+echo "Using config file: ${base_config} and Strategy dir: ${exchange_dir}"
 echo ""
 
 # set up path
 oldpath=${PYTHONPATH}
 export PYTHONPATH="./${exchange_dir}:./${strat_dir}:${PYTHONPATH}"
 
-hypfile="${exchange_dir}/${strategy}.json"
-
-
 today=`date`
 echo $today
 echo "Optimising strategy:$strategy for exchange:$exchange..."
 
-cmd="freqtrade trade  -c ${config_file}  --db-url sqlite:///${db_url} --strategy-path ${exchange_dir} -s ${strategy}"
+cmd="freqtrade trade  -c ${config}  --db-url sqlite:///${db_url} --strategy-path ${exchange_dir} -s ${strategy}"
 
 cat << END
 

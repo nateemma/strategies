@@ -41,6 +41,10 @@ import RollingStandardScaler
 ####################################################################################
 FBB_Scaler - use a Rolling Window scaled approximation to estimate future price movements,
           and Fisher/Williams/Bollinger buy/sell signals
+          
+          NOTE: this is not intended as a 'real' strategy. It is a baseline for comparison
+          with other similar strategies that model/predict in a similar (rolling window) fashion.
+          In other words, if a strategy does not do better than this one, it is not good.
 
 ####################################################################################
 """
