@@ -113,7 +113,6 @@ class FBB_FFT2(IStrategy):
     # buy_fft_window = IntParameter(8, 164, default=64, space='buy', load=True, optimize=True)
     # buy_fft_predict = IntParameter(0, 64, default=0, space='buy', load=True, optimize=True)
 
-    fft_window = 128
     fft_predict = 0
 
     sell_fft_diff = DecimalParameter(-0.050, 0.000, decimals=3, default=-0.01, space='sell', load=True, optimize=True)

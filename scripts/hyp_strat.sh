@@ -95,6 +95,23 @@ if [ ! -d ${exchange_dir} ]; then
     exit 0
 fi
 
+# calculate min trades
+# extract start & end dates from timerange
+a=("${(@s/-/)timerange}")
+start=${a[1]} # don't know why it's reversed
+end=${a[0]}
+if [ -z "$end" ]; then
+  end="$(date "+%Y%m%d")"
+fi
+
+#echo "timerange:${timerange} start:${start} end:${end}"
+
+# calculate diff
+zmodload zsh/datetime
+diff=$(( ( $(strftime -r %Y%m%d "$end") - $(strftime -r %Y%m%d "$start") ) / 86400 ))
+min_trades=$((diff / 2))
+
+
 echo ""
 echo "Using config file: ${config_file} and Strategy dir: ${exchange_dir}"
 echo ""
@@ -118,20 +135,18 @@ today=`date`
 echo $today
 echo "Optimising strategy:$strategy for exchange:$exchange..."
 
-cat << END
-
-freqtrade hyperopt ${jarg} --spaces ${spaces} --hyperopt-loss ${loss} --timerange=${timerange} --epochs ${epochs} \
--c ${config_file} --strategy-path ${exchange_dir}  \
--s ${strategy} --no-color
-
-
-END
 
 #set -x
 args="${jarg} --spaces ${spaces} --hyperopt-loss ${loss} --timerange=${timerange} --epochs ${epochs} \
     -c ${config_file} --strategy-path ${exchange_dir}  \
-    -s ${strategy}"
+    -s ${strategy} --min-trades ${min_trades}"
 cmd="freqtrade hyperopt ${args} --no-color"
+
+cat << END
+
+${cmd}
+
+END
 eval ${cmd}
 #set +x
 

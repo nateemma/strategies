@@ -5,24 +5,31 @@
 echo ""
 echo ""
 
-declare -a elist=("binanceus"  "binance" "ftx" "kucoin")
+#declare -a elist=("binanceus"  "binance" "ftx" "kucoin")
+declare -a elist=("ftx")
+
+declare -a strat_list=("FBB_DWT" "FBB_DWT2" "FBB_Kalman2" "FBB_KalmanSIMD")
+
 
 logfile="temp.log"
 
 zsh user_data/strategies/scripts/download.sh
 
-zsh user_data/strategies/scripts/
 for exchange in "${elist[@]}"; do
-  logfile="hyp_${exchange}.log"
   echo ""
   echo "=============================="
   echo "${exchange}"
   echo "=============================="
   echo ""
 
-  zsh user_data/strategies/scripts/hyp_strat.sh -e 1000  -l WeightedProfitHyperOptLoss -s "buy sell" ${exchange}  Kalman_1
-  zsh user_data/strategies/scripts/hyp_strat.sh -e 1000  -l WeightedProfitHyperOptLoss -s "buy sell" ${exchange}  Kalman_2
-  zsh user_data/strategies/scripts/hyp_strat.sh -e 1000  -l WeightedProfitHyperOptLoss -s "buy sell" ${exchange}  FFT
+  for strat in "${strat_list[@]}"; do
+    echo ""
+    echo "${strat}"
+    echo ""
+    zsh user_data/strategies/scripts/hyp_strat.sh -e 1000  -l ExpectancyHyperOptLoss -s "buy" ${exchange}  ${strat}
+    zsh user_data/strategies/scripts/hyp_strat.sh -e 1000  -l ExpectancyHyperOptLoss -s "sell" ${exchange}  ${strat}
+    zsh user_data/strategies/scripts/hyp_strat.sh -e 1000  -l ExpectancyHyperOptLoss -s "buy" ${exchange}  ${strat}
+  done
   zsh user_data/strategies/scripts/test_monthly.sh  ${exchange}
 
   echo ""
