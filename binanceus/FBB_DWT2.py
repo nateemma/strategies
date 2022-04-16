@@ -94,28 +94,27 @@ class FBB_DWT2(IStrategy):
     dwt_lookahead = 0
 
     rolling_scaler = RollingStandardScaler.RollingStandardScaler(window=dwt_window)
-    rolling_scaler_inf = RollingStandardScaler.RollingStandardScaler(window=dwt_window)
     rolling_dwt_inf = RollingDWT.RollingDWT(window=dwt_window)
-    rolling_dwt = RollingDWT.RollingDWT(window=dwt_window)
 
     ## Hyperopt Variables
 
     # FBB_ hyperparams
     buy_bb_gain = DecimalParameter(0.01, 0.50, decimals=2, default=0.09, space='buy', load=True, optimize=True)
     buy_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.75, space='buy', load=True, optimize=True)
-    buy_force_fisher_wr = DecimalParameter(-0.99, -0.85, decimals=2, default=-0.99, space='buy', load=True, optimize=True)
+    # buy_force_fisher_wr = DecimalParameter(-0.99, -0.85, decimals=2, default=-0.99, space='buy', load=True, optimize=True)
 
     sell_bb_gain = DecimalParameter(0.7, 1.5, decimals=2, default=0.8, space='sell', load=True, optimize=True)
     sell_fisher_wr = DecimalParameter(0.75, 0.99, decimals=2, default=0.9, space='sell', load=True, optimize=True)
-    sell_force_fisher_wr = DecimalParameter(0.85, 0.99, decimals=2, default=0.99, space='sell', load=True, optimize=True)
+    # sell_force_fisher_wr = DecimalParameter(0.85, 0.99, decimals=2, default=0.99, space='sell', load=True, optimize=True)
 
 
     # DWT  hyperparams
-    buy_dwt_diff = DecimalParameter(0.000, 1.0, decimals=2, default=0.01, space='buy', load=True, optimize=True)
-    # buy_dwt_window = IntParameter(8, 164, default=64, space='buy', load=True, optimize=True)
-    # buy_dwt_lookahead = IntParameter(0, 64, default=0, space='buy', load=True, optimize=True)
 
-    sell_dwt_diff = DecimalParameter(-1.0, 0.000, decimals=2, default=-0.01, space='sell', load=True, optimize=True)
+    buy_dwt_diff = DecimalParameter(0.0, 5.0, decimals=1, default=-1.0, space='buy', load=True, optimize=True)
+    buy_dwt_dev = DecimalParameter(-4.0, 0.00, decimals=1, default=-0.1, space='buy', load=True, optimize=True)
+
+    sell_dwt_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-0.01, space='sell', load=True, optimize=True)
+    sell_dwt_dev = DecimalParameter(0.00, 4.0, decimals=1, default=1.0, space='sell', load=True, optimize=True)
 
 
     # Custom Sell Profit (formerly Dynamic ROI)
@@ -168,31 +167,20 @@ class FBB_DWT2(IStrategy):
 
         # DWT
 
-        # self.rolling_scaler_inf.fit(informative['close'])
-        # informative['scaled'] = self.rolling_scaler_inf.transform(informative['close'])
-
-        # self.rolling_dwt_inf.fit(informative['close'])
-        informative['dwt_predict'] = self.rolling_dwt_inf.model(informative['close'])
-        # informative['dwt_scaled'] = self.dwtModel(informative['scaled'])
-        # informative['dwt_predict'] = self.rolling_scaler_inf.inverse_transform(informative['close'])
-
+        self.rolling_dwt_inf.fit(dataframe['close'])
+        # informative['dwt_predict'] = self.rolling_dwt_inf.model(informative['close'])
+        informative['dwt_dev'] = self.rolling_dwt_inf.scaledModel(informative['close'])
+        informative['dwt_slope'] = ta.LINEARREG_SLOPE(informative['dwt_dev'], timeperiod=3)
 
         # merge into normal timeframe
         dataframe = merge_informative_pair(dataframe, informative, self.timeframe, self.inf_timeframe, ffill=True)
 
         # calculate predictive indicators in shorter timeframe (not informative)
 
-        self.rolling_scaler.fit(dataframe['close'])
         dataframe['scaled'] = self.rolling_scaler.transform(dataframe['close'])
-        # dataframe['returns'] = self.compute_returns(dataframe['scaled'], log=True)
-
-        # dataframe['dwt_predict2'] = self.rolling_dwt.model(dataframe['close'])
-
-        dataframe['dwt_predict'] = dataframe[f"dwt_predict_{self.inf_timeframe}"]
-
-        dataframe['dwt_predict_diff'] = (dataframe['dwt_predict'] - dataframe['scaled']) / 10.0
-        # dataframe['dwt_predict_diff2'] = (dataframe['dwt_predict2'] - dataframe['scaled']) / 10.0
-        # dataframe['predict_diff2'] = dataframe['predict_diff2'].clip(-5.0, 5.0)
+        dataframe['dwt_dev'] = dataframe[f"dwt_dev_{self.inf_timeframe}"]
+        dataframe['dwt_slope'] = dataframe[f"dwt_slope_{self.inf_timeframe}"]
+        dataframe['dwt_dev_diff'] =  (dataframe['dwt_dev'] - dataframe['scaled'])
 
 
         # FisherBB
@@ -245,74 +233,6 @@ class FBB_DWT2(IStrategy):
         return dataframe
 
     ###################################
-
-
-    def madev(self, d, axis=None):
-        """ Mean absolute deviation of a signal """
-        return np.mean(np.absolute(d - np.mean(d, axis)), axis)
-
-    def dwtModel(self, data):
-
-        # the choice of wavelet makes a big difference
-        # for an overview, check out: https://www.kaggle.com/theoviel/denoising-with-direct-wavelet-transform
-        # wavelet = 'db1'
-        # wavelet = 'bior1.1'
-        wavelet = 'haar' # deals well with harsh transitions
-        level = 1
-        wmode = "smooth"
-        length = len(data)
-
-        # de-trend the data
-        n = data.size
-        t = np.arange(0, n)
-        p = np.polyfit(t, data, 1)  # find linear trend in data
-        x_notrend = data - p[0] * t  # detrended data
-
-        # coeff = pywt.wavedec(x_notrend, wavelet, mode=wmode)
-        #
-        # # remove higher harmonics
-        # sigma = (1 / 0.6745) * self.madev(coeff[-level])
-        # uthresh = sigma * np.sqrt(2 * np.log(length))
-        # coeff[1:] = (pywt.threshold(i, value=uthresh, mode='hard') for i in coeff[1:])
-        #
-        # # inverse transform
-        # restored_sig = pywt.waverec(coeff, wavelet, mode=wmode)
-
-        (ca, cd) = pywt.dwt(data, wavelet)
-
-        cat = pywt.threshold(ca, np.std(ca) / 2, mode='hard')
-        cdt = pywt.threshold(cd, np.std(cd) / 2, mode='hard')
-
-        restored_sig = pywt.idwt(cat, cdt, wavelet)
-
-        # re-trend the data
-        ldiff = len(restored_sig) - len(data)
-        model = restored_sig[ldiff:] + p[0] * t
-
-        return model
-
-    def model(self, a: np.ndarray) -> np.float:
-        #must return scalar, so just calculate prediction and take last value
-        model = self.dwtModel(np.array(a))
-        length = len(model)
-        return model[length-1]
-
-    def predict(self, a: np.ndarray) -> np.float:
-        #must return scalar, so just calculate prediction and take last value
-        # npredict = self.buy_dwt_lookahead.value
-        npredict = self.dwt_lookahead
-
-        y = self.dwtModel(np.array(a))
-        length = len(y)
-        if npredict == 0:
-            predict = y[length-1]
-        else:
-            x = np.arange(length)
-            f = scipy.interpolate.UnivariateSpline(x, y, k=3)
-
-            predict = f(length-1+npredict)
-
-        return predict
 
     # Williams %R
     def williams_r(self, dataframe: DataFrame, period: int = 14) -> Series:
@@ -397,7 +317,9 @@ class FBB_DWT2(IStrategy):
 
         # FFT triggers
         dwt_cond = (
-                qtpylib.crossed_above(dataframe['dwt_predict_diff'], self.buy_dwt_diff.value)
+                (dataframe['dwt_slope'] >= 0.0) &
+                (dataframe['dwt_dev'] < self.buy_dwt_dev.value) &
+                (qtpylib.crossed_above(dataframe['dwt_dev_diff'], self.buy_dwt_diff.value))
         )
 
         conditions.append(dwt_cond)
@@ -412,18 +334,20 @@ class FBB_DWT2(IStrategy):
                 (dataframe['bb_gain'] >= self.buy_bb_gain.value)
         )
 
-        strong_buy_cond = (
-                (
-                        (dataframe['bb_gain'] >= 1.5 * self.buy_bb_gain.value) |
-                        (dataframe['fisher_wr'] < self.buy_force_fisher_wr.value)
-                ) &
-                (
-                    (dataframe['bb_gain'] > 0.02)  # make sure there is some potential gain
-                )
-        )
-        conditions.append(fbb_cond | strong_buy_cond)
+        # strong_buy_cond = (
+        #         (
+        #                 (dataframe['bb_gain'] >= 1.5 * self.buy_bb_gain.value) |
+        #                 (dataframe['fisher_wr'] < self.buy_force_fisher_wr.value)
+        #         ) &
+        #         (
+        #             (dataframe['bb_gain'] > 0.02)  # make sure there is some potential gain
+        #         )
+        # )
+        # conditions.append(fbb_cond | strong_buy_cond)
+
+        conditions.append(fbb_cond)
         dataframe.loc[fbb_cond, 'buy_tag'] += 'fbb_buy '
-        dataframe.loc[strong_buy_cond, 'buy_tag'] += 'strong '
+        # dataframe.loc[strong_buy_cond, 'buy_tag'] += 'strong '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
@@ -444,7 +368,9 @@ class FBB_DWT2(IStrategy):
 
         # FFT triggers
         dwt_cond = (
-                qtpylib.crossed_below(dataframe['dwt_predict_diff'], self.sell_dwt_diff.value)
+                (dataframe['dwt_slope'] <= 0.0) &
+                (dataframe['dwt_dev'] > self.sell_dwt_dev.value) &
+                (qtpylib.crossed_below(dataframe['dwt_dev_diff'], self.sell_dwt_diff.value))
         )
 
         conditions.append(dwt_cond)
@@ -455,16 +381,17 @@ class FBB_DWT2(IStrategy):
                 (dataframe['close'] >= (dataframe['bb_upperband'] * self.sell_bb_gain.value))
         )
 
-        strong_sell_cond = (
-            qtpylib.crossed_above(dataframe['fisher_wr'], self.sell_force_fisher_wr.value) #&
-            # (dataframe['close'] > dataframe['bb_upperband'] * self.sell_bb_gain.value)
-        )
-
-        conditions.append(fbb_cond | strong_sell_cond)
+        # strong_sell_cond = (
+        #     qtpylib.crossed_above(dataframe['fisher_wr'], self.sell_force_fisher_wr.value) #&
+        #     # (dataframe['close'] > dataframe['bb_upperband'] * self.sell_bb_gain.value)
+        # )
+        #
+        # conditions.append(fbb_cond | strong_sell_cond)
+        conditions.append(fbb_cond)
 
         # set exit tags
         dataframe.loc[fbb_cond, 'exit_tag'] += 'fbb_sell '
-        dataframe.loc[strong_sell_cond, 'exit_tag'] += 'strong_sell '
+        # dataframe.loc[strong_sell_cond, 'exit_tag'] += 'strong_sell '
 
         # set sell tags
         dataframe.loc[dwt_cond, 'exit_tag'] += 'dwt_sell '

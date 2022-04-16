@@ -96,6 +96,39 @@ class RollingFFT(BaseEstimator, TransformerMixin):
         else:
             return (model * self.w_std) + self.w_mean
 
+    def scaledModel(self, X):
+        """Models the data using scaling and FFT.
+
+        Scale features of X according to the window mean and standard
+        deviation.
+
+        Paramaters
+        ----------
+        X : array-like of shape (n_shape, n_features)
+            Input data that will be transformed.
+
+        Returns
+        -------
+        standardized : array-like of shape (n_shape, n_features)
+            Transformed data.
+        """
+        # if not self.__fitted__:
+        #     self.fit(X)
+        self.fit(X)
+
+        # scale the input data
+        standardized = X.copy()
+        # standardized = X.fillna(self.w_mean)
+        scaled = (standardized - self.w_mean) / self.w_std
+        scaled.fillna(0, inplace=True)
+
+        # model using a FFT
+        model = self.FFTModel(scaled)
+
+        ldiff = len(model) - len(self.w_std)
+
+        return model[ldiff:]
+
 
     def FFTModel(self, data):
 

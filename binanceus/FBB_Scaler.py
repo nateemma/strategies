@@ -104,8 +104,8 @@ class FBB_Scaler(IStrategy):
     buy_force_fisher_wr = DecimalParameter(-0.99, -0.85, decimals=2, default=-0.99, space='buy', load=True, optimize=True)
 
     # Scaler  hyperparams
-    buy_diff = DecimalParameter(0.000, 0.050, decimals=3, default=0.3, space='buy', load=True, optimize=True)
-    sell_diff = DecimalParameter(-0.050, 0.000, decimals=3, default=-0.2, space='sell', load=True, optimize=True)
+    buy_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=0.3, space='buy', load=True, optimize=True)
+    sell_diff = DecimalParameter(0.0, 5.0, decimals=1, default=-0.2, space='sell', load=True, optimize=True)
 
     sell_bb_gain = DecimalParameter(0.7, 1.5, decimals=2, default=0.8, space='sell', load=True, optimize=True)
     sell_fisher_wr = DecimalParameter(0.75, 0.99, decimals=2, default=0.9, space='sell', load=True, optimize=True)
@@ -155,25 +155,8 @@ class FBB_Scaler(IStrategy):
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
 
-
-        # Base pair informative timeframe indicators
-        curr_pair = metadata['pair']
-        informative = self.dp.get_pair_dataframe(pair=curr_pair, timeframe=self.inf_timeframe)
-
-        # set current filter (can't pass parameter to apply())
-
-        self.rolling_scaler_inf.fit(dataframe['close'])
-        informative['predict'] = self.rolling_scaler_inf.transform(informative['close'])
-
-        # merge into normal timeframe
-        dataframe = merge_informative_pair(dataframe, informative, self.timeframe, self.inf_timeframe, ffill=True)
-
-        # calculate predictive indicators in shorter timeframe (not informative)
-
         self.rolling_scaler.fit(dataframe['close'])
         dataframe['scaled'] = self.rolling_scaler.transform(dataframe['close'])
-        dataframe['predict'] = dataframe[f"predict_{self.inf_timeframe}"]
-        dataframe['predict_diff'] = (dataframe['predict'] - dataframe['scaled']) / 10.0
 
         # FisherBB
 
@@ -294,11 +277,9 @@ class FBB_Scaler(IStrategy):
 
         # Kalman triggers
         cond = (
-                qtpylib.crossed_above(dataframe['predict_diff'], self.buy_diff.value)
+                qtpylib.crossed_below(dataframe['scaled'], self.buy_diff.value)
         )
 
-        # set buy tags
-        dataframe.loc[cond, 'buy_tag'] += 'buy_1 '
 
         # FBB_ triggers
         fbb_cond = (
@@ -306,24 +287,12 @@ class FBB_Scaler(IStrategy):
                 (dataframe['bb_gain'] >= self.buy_bb_gain.value)
         )
 
-        strong_buy_cond = (
-                (
-                        (dataframe['bb_gain'] >= 1.5 * self.buy_bb_gain.value) |
-                        (dataframe['fisher_wr'] < self.buy_force_fisher_wr.value)
-                ) &
-                (
-                    (dataframe['bb_gain'] > 0.02)  # make sure there is some potential gain
-                )
-        )
+        # set buy tags
+        dataframe.loc[cond, 'buy_tag'] += 'buy_1 '
         dataframe.loc[fbb_cond, 'buy_tag'] += 'fbb '
-        dataframe.loc[strong_buy_cond, 'buy_tag'] += 'strong '
 
-        conditions.append(
-            (
-                    cond &
-                    (fbb_cond | strong_buy_cond)
-            )
-        )
+        conditions.append(fbb_cond)
+        conditions.append(cond)
 
 
 
@@ -346,7 +315,7 @@ class FBB_Scaler(IStrategy):
 
         # Kalman triggers
         cond = (
-                qtpylib.crossed_below(dataframe['predict_diff'], self.sell_diff.value)
+                qtpylib.crossed_above(dataframe['scaled'], self.sell_diff.value)
         )
 
         # FBB_ triggers
@@ -355,22 +324,13 @@ class FBB_Scaler(IStrategy):
                 (dataframe['close'] >= (dataframe['bb_upperband'] * self.sell_bb_gain.value))
         )
 
-        strong_sell_cond = (
-            qtpylib.crossed_above(dataframe['fisher_wr'], self.sell_force_fisher_wr.value) #&
-            # (dataframe['close'] > dataframe['bb_upperband'] * self.sell_bb_gain.value)
-        )
 
         # set exit tags
         dataframe.loc[fbb_cond, 'exit_tag'] += 'fbb_sell '
-        dataframe.loc[strong_sell_cond, 'exit_tag'] += 'strong_sell '
         dataframe.loc[cond, 'exit_tag'] += 'sell_1 '
 
-        conditions.append(
-            (
-                    cond &
-                    (fbb_cond | strong_sell_cond)
-            )
-        )
+        conditions.append(cond)
+        # conditions.append(fbb_cond)
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1

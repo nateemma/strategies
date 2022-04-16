@@ -105,6 +105,8 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
         if 'max_drawdown' in backtest_stats:
             drawdown_loss = (backtest_stats['max_drawdown'] - 1.0)
 
-        result = expectancy_loss + drawdown_loss / 2.0
+        abs_profit_loss = -backtest_stats['profit_total']
+
+        result = expectancy_loss + drawdown_loss + abs_profit_loss
 
         return result

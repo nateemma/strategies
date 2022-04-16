@@ -58,6 +58,36 @@ class RollingDWT(BaseEstimator, TransformerMixin):
 
         return self
 
+    def scaledModel(self, X):
+        """Models the data using scaling and DWT.
+
+        Scale features of X according to the window mean and standard
+        deviation.
+
+        Paramaters
+        ----------
+        X : array-like of shape (n_shape, n_features)
+            Input data that will be transformed.
+
+        Returns
+        -------
+        standardized : array-like of shape (n_shape, n_features)
+            Transformed data.
+        """
+        self.fit(X)
+
+        # scale the input data
+        standardized = X.copy()
+        scaled = (standardized - self.w_mean) / self.w_std
+        scaled.fillna(0, inplace=True)
+
+        # model using a DWT
+        dwt_model = self.dwtModel(scaled)
+
+        ldiff = len(dwt_model) - len(self.w_std)
+
+        return (dwt_model[ldiff:])
+
     def model(self, X):
         """Models the data using scaling and DWT.
 
