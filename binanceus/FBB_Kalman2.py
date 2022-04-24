@@ -273,24 +273,41 @@ class FBB_Kalman2(IStrategy):
 
         # conditions.append(dataframe['volume'] > 0)
 
-        # FFT triggers
-        kf_cond = (
+        # Kalman triggers
+        kf_guard = (
+                (dataframe['kf_slope'] >= 0.0) &
+                (dataframe['kf_dev'] < self.buy_kf_dev.value)
+        )
+
+        kf_trigger = (
                 (dataframe['kf_slope'] >= 0.0) &
                 (dataframe['kf_dev'] < self.buy_kf_dev.value) &
                 (qtpylib.crossed_above(dataframe['kf_dev_diff'], self.buy_kf_diff.value))
         )
 
-        conditions.append(kf_cond)
-
-        # set buy tags
-        dataframe.loc[kf_cond, 'buy_tag'] += 'kf_buy_1 '
-
-
-        # FBB_ triggers
-        fbb_cond = (
+        # FBB triggers
+        fbb_guard = (
                 (dataframe['fisher_wr'] <= self.buy_fisher_wr.value) &
                 (dataframe['bb_gain'] >= self.buy_bb_gain.value)
         )
+
+        fbb_trigger = (
+                qtpylib.crossed_below(dataframe['fisher_wr'], self.buy_fisher_wr.value) &
+                (dataframe['bb_gain'] >= self.buy_bb_gain.value)
+        )
+
+        # add conditions
+        conditions.append(
+            # (kf_guard & fbb_trigger) |
+            (kf_trigger & fbb_guard)
+        )
+
+        # set buy tags
+        dataframe.loc[kf_guard, 'buy_tag'] += 'kf_guard '
+        dataframe.loc[kf_trigger, 'buy_tag'] += 'kf_trigger '
+        dataframe.loc[fbb_guard, 'buy_tag'] += 'fbb_guard '
+        dataframe.loc[fbb_trigger, 'buy_tag'] += 'fbb_trigger '
+
 
         # strong_buy_cond = (
         #         (
@@ -303,10 +320,6 @@ class FBB_Kalman2(IStrategy):
         # )
         # conditions.append(fbb_cond | strong_buy_cond)
 
-        conditions.append(fbb_cond)
-
-        dataframe.loc[fbb_cond, 'buy_tag'] += 'fbb '
-        # dataframe.loc[strong_buy_cond, 'buy_tag'] += 'strong '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
@@ -325,36 +338,72 @@ class FBB_Kalman2(IStrategy):
         conditions = []
         dataframe.loc[:, 'exit_tag'] = ''
 
-        # FFT triggers
-        kf_cond = (
+        # # FFT triggers
+        # kf_cond = (
+        #         (dataframe['kf_slope'] <= 0.0) &
+        #         (dataframe['kf_dev'] > self.sell_kf_dev.value) &
+        #         (qtpylib.crossed_below(dataframe['kf_dev_diff'], self.sell_kf_diff.value))
+        # )
+        #
+        # conditions.append(kf_cond)
+        #
+        # # FBB_ triggers
+        # fbb_cond = (
+        #         (dataframe['fisher_wr'] > self.sell_fisher_wr.value) &
+        #         (dataframe['close'] >= (dataframe['bb_upperband'] * self.sell_bb_gain.value))
+        # )
+        #
+        # # strong_sell_cond = (
+        # #     qtpylib.crossed_above(dataframe['fisher_wr'], self.sell_force_fisher_wr.value) #&
+        # #     # (dataframe['close'] > dataframe['bb_upperband'] * self.sell_bb_gain.value)
+        # # )
+        # #
+        # # conditions.append(fbb_cond | strong_sell_cond)
+        #
+        # conditions.append(fbb_cond)
+        #
+        # # set exit tags
+        # dataframe.loc[fbb_cond, 'exit_tag'] += 'fbb_sell '
+        # # dataframe.loc[strong_sell_cond, 'exit_tag'] += 'strong_sell '
+        #
+        # # set sell tags
+        # dataframe.loc[kf_cond, 'exit_tag'] += 'kf_sell_1 '
+
+
+        # Kalman triggers
+        kf_guard = (
                 (dataframe['kf_slope'] <= 0.0) &
-                (dataframe['kf_dev'] > self.sell_kf_dev.value) &
+                (dataframe['kf_dev'] >= self.sell_kf_dev.value)
+        )
+
+        kf_trigger = (
+                (dataframe['kf_slope'] <= 0.0) &
+                (dataframe['kf_dev'] >= self.sell_kf_dev.value) &
                 (qtpylib.crossed_below(dataframe['kf_dev_diff'], self.sell_kf_diff.value))
         )
 
-        conditions.append(kf_cond)
-
-        # FBB_ triggers
-        fbb_cond = (
-                (dataframe['fisher_wr'] > self.sell_fisher_wr.value) &
-                (dataframe['close'] >= (dataframe['bb_upperband'] * self.sell_bb_gain.value))
+        # FBB triggers
+        fbb_guard = (
+                (dataframe['fisher_wr'] >= self.sell_fisher_wr.value) &
+                (dataframe['close'] >= dataframe['bb_upperband'] * self.sell_bb_gain.value)
         )
 
-        # strong_sell_cond = (
-        #     qtpylib.crossed_above(dataframe['fisher_wr'], self.sell_force_fisher_wr.value) #&
-        #     # (dataframe['close'] > dataframe['bb_upperband'] * self.sell_bb_gain.value)
-        # )
-        #
-        # conditions.append(fbb_cond | strong_sell_cond)
+        fbb_trigger = (
+                qtpylib.crossed_above(dataframe['fisher_wr'], self.sell_fisher_wr.value) &
+                (dataframe['close'] >= dataframe['bb_upperband'] * self.sell_bb_gain.value)
+        )
 
-        conditions.append(fbb_cond)
+        # add conditions
+        conditions.append(
+            # (kf_guard & fbb_trigger) |
+            (kf_trigger & fbb_guard)
+        )
 
-        # set exit tags
-        dataframe.loc[fbb_cond, 'exit_tag'] += 'fbb_sell '
-        # dataframe.loc[strong_sell_cond, 'exit_tag'] += 'strong_sell '
-
-        # set sell tags
-        dataframe.loc[kf_cond, 'exit_tag'] += 'kf_sell_1 '
+        # set buy tags
+        dataframe.loc[kf_guard, 'exit_tag'] += 'kf_guard '
+        dataframe.loc[kf_trigger, 'exit_tag'] += 'kf_trigger '
+        dataframe.loc[fbb_guard, 'exit_tag'] += 'fbb_guard '
+        dataframe.loc[fbb_trigger, 'exit_tag'] += 'fbb_trigger '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1

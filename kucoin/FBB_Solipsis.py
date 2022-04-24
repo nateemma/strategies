@@ -297,7 +297,7 @@ class FBB_Solipsis(IStrategy):
         conditions = []
         dataframe.loc[:, 'buy_tag'] = ''
 
-        conditions.append(dataframe['volume'] > 0)
+        # conditions.append(dataframe['volume'] > 0)
 
         # Informative Timeframe Guards
         conditions.append(

@@ -78,7 +78,7 @@ class FBB_KalmanSIMD(IStrategy):
     ignore_roi_if_buy_signal = True
 
     # Required
-    startup_candle_count: int = 128
+    startup_candle_count: int = 32
     process_only_new_candles = True
 
     custom_trade_info = {}

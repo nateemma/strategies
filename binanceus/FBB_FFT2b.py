@@ -33,29 +33,29 @@ log = logging.getLogger(__name__)
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 import custom_indicators as cta
-
-from  simdkalman import KalmanFilter
+import RollingFFT
 import RollingStandardScaler
-import RollingKalmanSIMD
+
+import pywt
 
 
 """
 ####################################################################################
-FBB_KalmanSIMD - use a Kalmqn Filter to estimate future price movements,
+FBB_FFT2b - use a Fast Fourier Transform to estimate future price movements,
           and Fisher/Williams/Bollinger buy/sell signals
-          The DWT is good at detecting swings, while the FBB checks are to try and keep
+          The FFT is good at detecting swings, while the FBB checks are to try and keep
           trades within oversold/overbought regions
 
 ####################################################################################
 """
 
 
-class FBB_KalmanSIMD(IStrategy):
+class FBB_FFT2b(IStrategy):
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # ROI table:
     minimal_roi = {
-        "0": 10
+        "0": 0.1
     }
 
     # Stoploss:
@@ -68,7 +68,7 @@ class FBB_KalmanSIMD(IStrategy):
     trailing_only_offset_is_reached = False
 
     timeframe = '5m'
-    inf_timeframe = '15m'
+    inf_timeframe = '1h'
 
     use_custom_stoploss = True
 
@@ -78,42 +78,40 @@ class FBB_KalmanSIMD(IStrategy):
     ignore_roi_if_buy_signal = True
 
     # Required
-    startup_candle_count: int = 32
+    startup_candle_count: int = 128
     process_only_new_candles = True
 
     custom_trade_info = {}
-    filter_list = {}
 
     ###################################
 
     # Strategy Specific Variable Storage
 
+    fft_window = startup_candle_count
+    fft_predict = 0
 
-    # Strategy Specific Variable Storage
+    rolling_scaler = RollingStandardScaler.RollingStandardScaler(window=fft_window)
+    rolling_scaler_inf = RollingStandardScaler.RollingStandardScaler(window=fft_window)
+    rolling_fft_inf = RollingFFT.RollingFFT(window=fft_window)
 
-    kf_window = startup_candle_count
-    kf_predict = 0
-
-    rolling_scaler = RollingStandardScaler.RollingStandardScaler(window=kf_window)
-    rolling_kf_inf = RollingKalmanSIMD.RollingKalmanSIMD(window=kf_window)
 
     ## Hyperopt Variables
 
     # FBB_ hyperparams
     buy_bb_gain = DecimalParameter(0.01, 0.50, decimals=2, default=0.09, space='buy', load=True, optimize=True)
     buy_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.75, space='buy', load=True, optimize=True)
-    # buy_force_fisher_wr = DecimalParameter(-0.99, -0.85, decimals=2, default=-0.99, space='buy', load=True, optimize=True)
 
     sell_bb_gain = DecimalParameter(0.7, 1.5, decimals=2, default=0.8, space='sell', load=True, optimize=True)
     sell_fisher_wr = DecimalParameter(0.75, 0.99, decimals=2, default=0.9, space='sell', load=True, optimize=True)
-    # sell_force_fisher_wr = DecimalParameter(0.85, 0.99, decimals=2, default=0.99, space='sell', load=True, optimize=True)
 
-    # Kalman  hyperparams
-    buy_kf_diff = DecimalParameter(0.0, 5.0, decimals=1, default=-1.0, space='buy', load=True, optimize=True)
-    buy_kf_dev = DecimalParameter(-4.0, 0.00, decimals=1, default=-0.1, space='buy', load=True, optimize=True)
 
-    sell_kf_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-0.01, space='sell', load=True, optimize=True)
-    sell_kf_dev = DecimalParameter(0.00, 4.0, decimals=1, default=1.0, space='sell', load=True, optimize=True)
+    # FFT  hyperparams
+    buy_fft_diff = DecimalParameter(0.0, 5.0, decimals=1, default=-1.0, space='buy', load=True, optimize=True)
+    buy_fft_dev = DecimalParameter(-4.0, 0.00, decimals=1, default=-0.1, space='buy', load=True, optimize=True)
+    buy_fft_cutoff = DecimalParameter(1/16.0, 1/3.0, decimals=2, default=1/5.0, space='buy', load=True, optimize=True)
+
+    sell_fft_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-0.01, space='sell', load=True, optimize=True)
+    sell_fft_dev = DecimalParameter(0.00, 4.0, decimals=1, default=1.0, space='sell', load=True, optimize=True)
 
 
     # Custom Sell Profit (formerly Dynamic ROI)
@@ -164,32 +162,28 @@ class FBB_KalmanSIMD(IStrategy):
         curr_pair = metadata['pair']
         informative = self.dp.get_pair_dataframe(pair=curr_pair, timeframe=self.inf_timeframe)
 
-        # Kalman Filter
+        # FFT
 
-        # get filter for current pair
-
-        # create if not already done
-        if not curr_pair in self.filter_list:
-            self.filter_list[curr_pair]  = KalmanFilter(
-                state_transition=1.0,
-                process_noise=2.0,
-                observation_model=1.0,
-                observation_noise=0.5
-            )
-
-        self.rolling_kf_inf.fit(dataframe['close'])
-        informative['kf_dev'] = self.rolling_kf_inf.scaledModel(informative['close'], kfilter=self.filter_list[curr_pair])
-        informative['kf_slope'] = ta.LINEARREG_SLOPE(informative['kf_dev'], timeperiod=3)
+        self.rolling_fft_inf.fit(dataframe['close'])
+        # informative['fft_predict'] = self.rolling_fft_inf.model(informative['close'])
+        informative['fft_dev'] = self.rolling_fft_inf.scaledModel(informative['close'])
+        informative['fft_slope'] = ta.LINEARREG_SLOPE(informative['fft_dev'], timeperiod=3)
 
         # merge into normal timeframe
         dataframe = merge_informative_pair(dataframe, informative, self.timeframe, self.inf_timeframe, ffill=True)
 
         # calculate predictive indicators in shorter timeframe (not informative)
 
+        # self.rolling_scaler.fit(dataframe['close'])
         dataframe['scaled'] = self.rolling_scaler.transform(dataframe['close'])
-        dataframe['kf_dev'] = dataframe[f"kf_dev_{self.inf_timeframe}"]
-        dataframe['kf_slope'] = dataframe[f"kf_slope_{self.inf_timeframe}"]
-        dataframe['kf_dev_diff'] =  (dataframe['kf_dev'] - dataframe['scaled'])
+        # dataframe['fft_predict'] = dataframe[f"fft_predict_{self.inf_timeframe}"]
+        # dataframe['fft_predict_diff'] = (dataframe['fft_predict'] - dataframe['scaled']) / 10.0
+        # dataframe['fft_predict_diff'] = 100.0 * ((dataframe['fft_predict'] - dataframe['close']) / dataframe['close'])
+
+        dataframe['fft_dev'] = dataframe[f"fft_dev_{self.inf_timeframe}"]
+        dataframe['fft_slope'] = dataframe[f"fft_slope_{self.inf_timeframe}"]
+        dataframe['fft_dev_diff'] =  (dataframe['fft_dev'] - dataframe['scaled'])
+
 
         # FisherBB
 
@@ -208,6 +202,7 @@ class FBB_KalmanSIMD(IStrategy):
 
         # Combined Fisher RSI and Williams %R
         dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
+
 
         # Custom Stoploss
 
@@ -273,15 +268,20 @@ class FBB_KalmanSIMD(IStrategy):
 
         # conditions.append(dataframe['volume'] > 0)
 
-        # Kalman triggers
-        kf_cond = (
-                (dataframe['kf_slope'] >= 0.0) &
-                (dataframe['kf_dev'] < self.buy_kf_dev.value) &
-                (qtpylib.crossed_above(dataframe['kf_dev_diff'], self.buy_kf_diff.value))
+        # FFT triggers
+        fft_cond = (
+            # (qtpylib.crossed_below(dataframe['fft_slope'], 0.0)) &
+                (dataframe['fft_slope'] >= 0.0) &
+                (dataframe['fft_dev'] < self.buy_fft_dev.value) &
+                (qtpylib.crossed_above(dataframe['fft_dev_diff'], self.buy_fft_diff.value))
         )
 
-        # set buy tags
-        dataframe.loc[kf_cond, 'buy_tag'] += 'kf_buy_1 '
+        # # FFTs will spike on big gains, so try to constrain
+        # spike_cond = (
+        #         dataframe['fft_predict_diff'] < 2.0 * self.buy_fft_diff.value
+        # )
+        # conditions.append(spike_cond)
+
 
         # FBB_ triggers
         fbb_cond = (
@@ -290,21 +290,19 @@ class FBB_KalmanSIMD(IStrategy):
         )
 
         # strong_buy_cond = (
-        #         (
-        #                 (dataframe['bb_gain'] >= 1.5 * self.buy_bb_gain.value) |
-        #                 (dataframe['fisher_wr'] < self.buy_force_fisher_wr.value)
-        #         ) &
-        #         (
-        #             (dataframe['bb_gain'] > 0.02)  # make sure there is some potential gain
-        #         )
+        #         (qtpylib.crossed_below(dataframe['fft_dev'], -3.0))
         # )
-        dataframe.loc[fbb_cond, 'buy_tag'] += 'fbb '
-        # dataframe.loc[strong_buy_cond, 'buy_tag'] += 'strong '
 
-        conditions.append(kf_cond)
         conditions.append(fbb_cond)
+        # conditions.append(fft_cond | strong_buy_cond)
+        conditions.append(fft_cond)
 
+        # conditions.append(fbb_cond | strong_buy_cond)
 
+        # set buy tags
+        dataframe.loc[fft_cond, 'buy_tag'] += 'fft_buy '
+        dataframe.loc[fbb_cond, 'buy_tag'] += 'fbb_buy '
+        # dataframe.loc[strong_buy_cond, 'buy_tag'] += 'strong_buy '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
@@ -323,12 +321,18 @@ class FBB_KalmanSIMD(IStrategy):
         conditions = []
         dataframe.loc[:, 'exit_tag'] = ''
 
-        # Kalman triggers
-        kf_cond = (
-                (dataframe['kf_slope'] <= 0.0) &
-                (dataframe['kf_dev'] > self.sell_kf_dev.value) &
-                (qtpylib.crossed_below(dataframe['kf_dev_diff'], self.sell_kf_diff.value))
+        # FFT triggers
+        fft_cond = (
+                (dataframe['fft_slope'] <= 0.0) &
+                (dataframe['fft_dev'] > self.sell_fft_dev.value) &
+                (qtpylib.crossed_below(dataframe['fft_dev_diff'], self.sell_fft_diff.value))
         )
+
+        # # FFTs will spike on big gains, so try to constrain
+        # spike_cond = (
+        #         dataframe['fft_predict_diff'] > 2.0 * self.sell_fft_diff.value
+        # )
+        # conditions.append(spike_cond)
 
         # FBB_ triggers
         fbb_cond = (
@@ -336,24 +340,22 @@ class FBB_KalmanSIMD(IStrategy):
                 (dataframe['close'] >= (dataframe['bb_upperband'] * self.sell_bb_gain.value))
         )
 
-        # strong_sell_cond = (
-        #     qtpylib.crossed_above(dataframe['fisher_wr'], self.sell_force_fisher_wr.value) #&
-        #     # (dataframe['close'] > dataframe['bb_upperband'] * self.sell_bb_gain.value)
-        # )
+        strong_sell_cond = (
+                (qtpylib.crossed_above(dataframe['fft_dev'], 3.0))
+        )
 
-        conditions.append(kf_cond)
         conditions.append(fbb_cond)
+        conditions.append(fft_cond | strong_sell_cond)
 
         # set exit tags
+        dataframe.loc[fft_cond, 'exit_tag'] += 'fft_sell '
         dataframe.loc[fbb_cond, 'exit_tag'] += 'fbb_sell '
-        # dataframe.loc[strong_sell_cond, 'exit_tag'] += 'strong_sell '
-        dataframe.loc[kf_cond, 'exit_tag'] += 'kf_sell_1 '
+        dataframe.loc[strong_sell_cond, 'exit_tag'] += 'strong_sell '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1
 
         return dataframe
-
 
 
     ###################################
@@ -457,3 +459,4 @@ class FBB_KalmanSIMD(IStrategy):
                 return 'notrend_roi'
         else:
             return None
+

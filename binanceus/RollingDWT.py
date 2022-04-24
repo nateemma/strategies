@@ -82,7 +82,8 @@ class RollingDWT(BaseEstimator, TransformerMixin):
         scaled.fillna(0, inplace=True)
 
         # model using a DWT
-        dwt_model = self.dwtModel(scaled)
+        # dwt_model = self.dwtModel(scaled)
+        dwt_model = self.dwtModel2(scaled)
 
         ldiff = len(dwt_model) - len(self.w_std)
 
@@ -112,7 +113,8 @@ class RollingDWT(BaseEstimator, TransformerMixin):
         scaled.fillna(0, inplace=True)
 
         # model using a DWT
-        dwt_model = self.dwtModel(scaled)
+        # dwt_model = self.dwtModel(scaled)
+        dwt_model = self.dwtModel2(scaled)
 
         ldiff = len(dwt_model) - len(self.w_std)
 
@@ -182,6 +184,32 @@ class RollingDWT(BaseEstimator, TransformerMixin):
         # for some reason, returns longer array (by +1)
         # # re-trend the data
         # model = restored_sig[1:] + p[0] * t
+
+        ldiff = len(restored_sig) - len(data)
+        model = restored_sig[ldiff:]
+
+        return model
+
+    def dwtModel2(self, data):
+
+        # the choice of wavelet makes a big difference
+        # for an overview, check out: https://www.kaggle.com/theoviel/denoising-with-direct-wavelet-transform
+
+        wavelet = 'haar' # deals well with harsh transitions
+        level = 1
+        wmode = "smooth"
+        length = len(data)
+
+        coeff = pywt.wavedec(data, wavelet, mode=wmode)
+
+        # remove higher harmonics
+        sigma = (1 / 0.6745) * self.madev(coeff[-level])
+        uthresh = sigma * np.sqrt(2 * np.log(length))
+        coeff[1:] = (pywt.threshold(i, value=uthresh, mode='hard') for i in coeff[1:])
+
+        # inverse transform
+        restored_sig = pywt.waverec(coeff, wavelet, mode=wmode)
+
 
         ldiff = len(restored_sig) - len(data)
         model = restored_sig[ldiff:]

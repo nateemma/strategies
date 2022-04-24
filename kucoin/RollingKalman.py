@@ -58,6 +58,42 @@ class RollingKalman(BaseEstimator, TransformerMixin):
 
         return self
 
+    def scaledModel(self, X, kfilter: KalmanFilter):
+        """Models the data using scaling and Kalman.
+
+        Scale features of X according to the window mean and standard
+        deviation.
+
+        Paramaters
+        ----------
+        X : array-like of shape (n_shape, n_features)
+            Input data that will be transformed.
+
+        kfilter: kalman filter object.
+                 Passed as an arg because it should be re-used for each window, and a different filter
+                 should be used for each data set (not info to do that here)
+
+        Returns
+        -------
+        standardized : array-like of shape (n_shape, n_features)
+            Transformed data.
+        """
+        # re-fit for this window
+        self.fit(X)
+
+        # scale the input data
+        standardized = X.copy()
+        # standardized = X.fillna(self.w_mean)
+        scaled = (standardized - self.w_mean) / self.w_std
+        scaled.fillna(0, inplace=True)
+
+        # model using a Kalman
+        model = self.KalmanModel(scaled, kfilter=kfilter)
+
+        ldiff = len(model) - len(self.w_std)
+
+        return (model[ldiff:])
+
     def model(self, X, kfilter: KalmanFilter):
         """Models the data using scaling and Kalman.
 

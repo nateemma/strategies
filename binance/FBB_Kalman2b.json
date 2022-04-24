@@ -1,0 +1,47 @@
+{
+  "strategy_name": "FBB_Kalman2b",
+  "params": {
+    "roi": {
+      "0": 10
+    },
+    "stoploss": {
+      "stoploss": -0.1
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "buy": {
+      "buy_bb_gain": 0.01,
+      "buy_fisher_wr": -0.8,
+      "buy_kf_dev": 2.0,
+      "buy_kf_diff": 3.0
+    },
+    "sell": {
+      "csell_endtrend_respect_roi": true,
+      "csell_pullback": true,
+      "csell_pullback_amount": 0.008,
+      "csell_pullback_respect_roi": true,
+      "csell_roi_end": 0.004,
+      "csell_roi_start": 0.036,
+      "csell_roi_time": 1364,
+      "csell_roi_type": "decay",
+      "csell_trend_type": "none",
+      "cstop_bail_how": "time",
+      "cstop_bail_roc": -4.125,
+      "cstop_bail_time": 201,
+      "cstop_bail_time_trend": false,
+      "cstop_loss_threshold": -0.03,
+      "cstop_max_stoploss": -0.197,
+      "sell_bb_gain": 0.75,
+      "sell_fisher_wr": 0.97,
+      "sell_kf_dev": 0.3,
+      "sell_kf_diff": 0.0
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2022-04-23 22:13:12.812195+00:00"
+}

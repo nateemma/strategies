@@ -34,14 +34,14 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 import custom_indicators as cta
 
-from  simdkalman import KalmanFilter
+from  pykalman import KalmanFilter
 import RollingStandardScaler
-import RollingKalmanSIMD
+import RollingKalman
 
 
 """
 ####################################################################################
-FBB_KalmanSIMD - use a Kalmqn Filter to estimate future price movements,
+FBB_Kalman2 - use a Kalmqn Filter to estimate future price movements,
           and Fisher/Williams/Bollinger buy/sell signals
           The DWT is good at detecting swings, while the FBB checks are to try and keep
           trades within oversold/overbought regions
@@ -50,7 +50,7 @@ FBB_KalmanSIMD - use a Kalmqn Filter to estimate future price movements,
 """
 
 
-class FBB_KalmanSIMD(IStrategy):
+class FBB_Kalman2b(IStrategy):
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # ROI table:
@@ -68,7 +68,7 @@ class FBB_KalmanSIMD(IStrategy):
     trailing_only_offset_is_reached = False
 
     timeframe = '5m'
-    inf_timeframe = '15m'
+    inf_timeframe = '1h'
 
     use_custom_stoploss = True
 
@@ -88,16 +88,21 @@ class FBB_KalmanSIMD(IStrategy):
 
     # Strategy Specific Variable Storage
 
-
-    # Strategy Specific Variable Storage
-
     kf_window = startup_candle_count
-    kf_predict = 0
 
     rolling_scaler = RollingStandardScaler.RollingStandardScaler(window=kf_window)
-    rolling_kf_inf = RollingKalmanSIMD.RollingKalmanSIMD(window=kf_window)
+    rolling_kf_inf = RollingKalman.RollingKalman(window=kf_window)
+
 
     ## Hyperopt Variables
+    
+    # Kalman  hyperparams
+    buy_kf_diff = DecimalParameter(0.0, 5.0, decimals=1, default=-1.0, space='buy', load=True, optimize=True)
+    buy_kf_dev = DecimalParameter(-4.0, 0.00, decimals=1, default=-0.1, space='buy', load=True, optimize=True)
+
+    sell_kf_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-0.01, space='sell', load=True, optimize=True)
+    sell_kf_dev = DecimalParameter(0.00, 4.0, decimals=1, default=1.0, space='sell', load=True, optimize=True)
+
 
     # FBB_ hyperparams
     buy_bb_gain = DecimalParameter(0.01, 0.50, decimals=2, default=0.09, space='buy', load=True, optimize=True)
@@ -107,13 +112,6 @@ class FBB_KalmanSIMD(IStrategy):
     sell_bb_gain = DecimalParameter(0.7, 1.5, decimals=2, default=0.8, space='sell', load=True, optimize=True)
     sell_fisher_wr = DecimalParameter(0.75, 0.99, decimals=2, default=0.9, space='sell', load=True, optimize=True)
     # sell_force_fisher_wr = DecimalParameter(0.85, 0.99, decimals=2, default=0.99, space='sell', load=True, optimize=True)
-
-    # Kalman  hyperparams
-    buy_kf_diff = DecimalParameter(0.0, 5.0, decimals=1, default=-1.0, space='buy', load=True, optimize=True)
-    buy_kf_dev = DecimalParameter(-4.0, 0.00, decimals=1, default=-0.1, space='buy', load=True, optimize=True)
-
-    sell_kf_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-0.01, space='sell', load=True, optimize=True)
-    sell_kf_dev = DecimalParameter(0.00, 4.0, decimals=1, default=1.0, space='sell', load=True, optimize=True)
 
 
     # Custom Sell Profit (formerly Dynamic ROI)
@@ -170,11 +168,13 @@ class FBB_KalmanSIMD(IStrategy):
 
         # create if not already done
         if not curr_pair in self.filter_list:
-            self.filter_list[curr_pair]  = KalmanFilter(
-                state_transition=1.0,
-                process_noise=2.0,
-                observation_model=1.0,
-                observation_noise=0.5
+            self.filter_list[curr_pair] = kalman_filter = KalmanFilter(
+                transition_matrices=1.0,
+                observation_matrices=1.0,
+                initial_state_mean=0.0,
+                initial_state_covariance=1.0,
+                observation_covariance=0.1,
+                transition_covariance=0.1
             )
 
         self.rolling_kf_inf.fit(dataframe['close'])
@@ -273,15 +273,18 @@ class FBB_KalmanSIMD(IStrategy):
 
         # conditions.append(dataframe['volume'] > 0)
 
-        # Kalman triggers
+        # FFT triggers
         kf_cond = (
                 (dataframe['kf_slope'] >= 0.0) &
                 (dataframe['kf_dev'] < self.buy_kf_dev.value) &
                 (qtpylib.crossed_above(dataframe['kf_dev_diff'], self.buy_kf_diff.value))
         )
 
+        conditions.append(kf_cond)
+
         # set buy tags
         dataframe.loc[kf_cond, 'buy_tag'] += 'kf_buy_1 '
+
 
         # FBB_ triggers
         fbb_cond = (
@@ -298,13 +301,12 @@ class FBB_KalmanSIMD(IStrategy):
         #             (dataframe['bb_gain'] > 0.02)  # make sure there is some potential gain
         #         )
         # )
-        dataframe.loc[fbb_cond, 'buy_tag'] += 'fbb '
-        # dataframe.loc[strong_buy_cond, 'buy_tag'] += 'strong '
+        # conditions.append(fbb_cond | strong_buy_cond)
 
-        conditions.append(kf_cond)
         conditions.append(fbb_cond)
 
-
+        dataframe.loc[fbb_cond, 'buy_tag'] += 'fbb '
+        # dataframe.loc[strong_buy_cond, 'buy_tag'] += 'strong '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
@@ -323,12 +325,14 @@ class FBB_KalmanSIMD(IStrategy):
         conditions = []
         dataframe.loc[:, 'exit_tag'] = ''
 
-        # Kalman triggers
+        # FFT triggers
         kf_cond = (
                 (dataframe['kf_slope'] <= 0.0) &
                 (dataframe['kf_dev'] > self.sell_kf_dev.value) &
                 (qtpylib.crossed_below(dataframe['kf_dev_diff'], self.sell_kf_diff.value))
         )
+
+        conditions.append(kf_cond)
 
         # FBB_ triggers
         fbb_cond = (
@@ -340,13 +344,16 @@ class FBB_KalmanSIMD(IStrategy):
         #     qtpylib.crossed_above(dataframe['fisher_wr'], self.sell_force_fisher_wr.value) #&
         #     # (dataframe['close'] > dataframe['bb_upperband'] * self.sell_bb_gain.value)
         # )
+        #
+        # conditions.append(fbb_cond | strong_sell_cond)
 
-        conditions.append(kf_cond)
         conditions.append(fbb_cond)
 
         # set exit tags
         dataframe.loc[fbb_cond, 'exit_tag'] += 'fbb_sell '
         # dataframe.loc[strong_sell_cond, 'exit_tag'] += 'strong_sell '
+
+        # set sell tags
         dataframe.loc[kf_cond, 'exit_tag'] += 'kf_sell_1 '
 
         if conditions:

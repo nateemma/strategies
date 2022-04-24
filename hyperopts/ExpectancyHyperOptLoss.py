@@ -56,14 +56,14 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
         # Calculate trade loss metric first, because this is used elsewhere
         # Several other metrics are misleading if there are not enough trades
 
-        # trade loss
-        if trade_count > MIN_TRADES_PER_DAY * days_period:
-            num_trades_loss = (target_trades - trade_count) / target_trades
-        else:
-            # just return a large number if insufficient trades. Makes other calculations easier/safer
-            if debug_level > 1:
-                print(" \tTrade count too low:{:.0f}".format(trade_count))
-            return UNDESIRED_SOLUTION
+        # # trade loss
+        # if trade_count > MIN_TRADES_PER_DAY * days_period:
+        #     num_trades_loss = (target_trades - trade_count) / target_trades
+        # else:
+        #     # just return a large number if insufficient trades. Makes other calculations easier/safer
+        #     if debug_level > 1:
+        #         print(" \tTrade count too low:{:.0f}".format(trade_count))
+        #     return UNDESIRED_SOLUTION
 
         stake = backtest_stats['stake_amount']
         total_profit_pct = results["profit_abs"] / stake
@@ -96,17 +96,17 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
         e = r * w - l
 
         expectancy_loss = 1.0 - e  # goal is <1.0
-        
-        if (debug_level>0) & (e > 1.0):
-            print(" n:{:.0f} r:{:.2f} w:{:.2f} l:{:.2f} e:-{:.2f} ".format(trade_count, r, w, l, e))
 
         # use drawdown as a tie-breaker
         drawdown_loss = 0.0
         if 'max_drawdown' in backtest_stats:
-            drawdown_loss = (backtest_stats['max_drawdown'] - 1.0)
+            drawdown_loss = (backtest_stats['max_drawdown'] - 1.0) / 2.0
 
-        abs_profit_loss = -backtest_stats['profit_total']
+        abs_profit_loss = -backtest_stats['profit_total'] / 2.0
 
         result = expectancy_loss + drawdown_loss + abs_profit_loss
+
+        if (debug_level>0):
+            print("{:.2f} exp:{:.2f} drw:{:.2f} prf:{:.2f} ".format(result, expectancy_loss, drawdown_loss, abs_profit_loss))
 
         return result

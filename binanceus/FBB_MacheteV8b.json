@@ -14,42 +14,42 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "buy_bb_gain": 0.44,
+      "buy_bb_gain": 0.25,
       "buy_enable_adx_momentum": true,
       "buy_enable_adx_smas": false,
       "buy_enable_asdts_rockwelltrading": true,
       "buy_enable_averages_strategy": false,
       "buy_enable_awesome_macd": true,
       "buy_enable_gettin_moist": false,
-      "buy_enable_hlhb": false,
-      "buy_enable_macd_strategy": false,
-      "buy_enable_macd_strategy_crossed": false,
-      "buy_enable_pmax": false,
+      "buy_enable_hlhb": true,
+      "buy_enable_macd_strategy": true,
+      "buy_enable_macd_strategy_crossed": true,
+      "buy_enable_pmax": true,
       "buy_enable_quickie": false,
       "buy_enable_scalp": false,
       "buy_enable_simple": true,
       "buy_enable_strategy001": true,
       "buy_enable_technical_example_strategy": false,
-      "buy_enable_tema_rsi_strategy": false,
-      "buy_fisher_wr": -0.88,
-      "buy_force_fisher_wr": -0.75
+      "buy_enable_tema_rsi_strategy": true,
+      "buy_fisher_wr": -0.56,
+      "buy_force_fisher_wr": -0.79
     },
     "sell": {
       "cstp_bail_how": "time",
-      "cstp_bail_roc": -0.028,
-      "cstp_bail_time": 1418,
+      "cstp_bail_roc": -0.039,
+      "cstp_bail_time": 1330,
       "cstp_bb_trailing_input": "bb_lowerband_trend_inf",
-      "cstp_threshold": -0.046,
-      "cstp_trailing_max_stoploss": 0.037,
-      "cstp_trailing_only_offset_is_reached": 0.056,
-      "cstp_trailing_stop_profit_devider": 4,
+      "cstp_threshold": -0.009,
+      "cstp_trailing_max_stoploss": 0.053,
+      "cstp_trailing_only_offset_is_reached": 0.037,
+      "cstp_trailing_stop_profit_devider": 3,
       "droi_pullback": true,
-      "droi_pullback_amount": 0.005,
+      "droi_pullback_amount": 0.006,
       "droi_pullback_respect_table": false,
       "droi_trend_type": "ssl"
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-04-09 05:46:00.549738+00:00"
+  "export_time": "2022-04-21 19:12:49.187807+00:00"
 }
