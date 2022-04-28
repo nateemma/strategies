@@ -41,16 +41,15 @@ import pywt
 
 """
 ####################################################################################
-FBB_FFT2 - use a Fast Fourier Transform to estimate future price movements,
-          and Fisher/Williams/Bollinger buy/sell signals
-          The FFT is good at detecting swings, while the FBB checks are to try and keep
-          trades within oversold/overbought regions
+FFT2 - use a Fast Fourier Transform to estimate future price movements,
+          but *without*  Fisher/Williams/Bollinger buy/sell signals
+          The FFT is good at detecting swings, but will resuklt in many bad buys
 
 ####################################################################################
 """
 
 
-class FBB_FFT2(IStrategy):
+class FFT2(IStrategy):
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # ROI table:
@@ -97,12 +96,12 @@ class FBB_FFT2(IStrategy):
 
     ## Hyperopt Variables
 
-    # FBB_ hyperparams
-    buy_bb_gain = DecimalParameter(0.01, 0.50, decimals=2, default=0.09, space='buy', load=True, optimize=True)
-    buy_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.75, space='buy', load=True, optimize=True)
-
-    sell_bb_gain = DecimalParameter(0.7, 1.5, decimals=2, default=0.8, space='sell', load=True, optimize=True)
-    sell_fisher_wr = DecimalParameter(0.75, 0.99, decimals=2, default=0.9, space='sell', load=True, optimize=True)
+    # # FBB_ hyperparams
+    # buy_bb_gain = DecimalParameter(0.01, 0.50, decimals=2, default=0.09, space='buy', load=True, optimize=True)
+    # buy_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.75, space='buy', load=True, optimize=True)
+    #
+    # sell_bb_gain = DecimalParameter(0.7, 1.5, decimals=2, default=0.8, space='sell', load=True, optimize=True)
+    # sell_fisher_wr = DecimalParameter(0.75, 0.99, decimals=2, default=0.9, space='sell', load=True, optimize=True)
 
 
     # FFT  hyperparams
@@ -186,23 +185,23 @@ class FBB_FFT2(IStrategy):
         dataframe['fft_dev_diff'] =  (dataframe['fft_dev'] - dataframe['scaled'])
 
 
-        # FisherBB
-
-        dataframe['rsi'] = ta.RSI(dataframe, timeperiod=14)
-        rsi = 0.1 * (dataframe['rsi'] - 50)
-        dataframe['fisher_rsi'] = (np.exp(2 * rsi) - 1) / (np.exp(2 * rsi) + 1)
-
-        bollinger = qtpylib.bollinger_bands(dataframe['close'], window=20, stds=2)
-        dataframe['bb_lowerband'] = bollinger['lower']
-        dataframe['bb_middleband'] = bollinger['mid']
-        dataframe['bb_upperband'] = bollinger['upper']
-        dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
-
-        # Williams %R
-        dataframe['wr'] = 0.02 * (self.williams_r(dataframe, period=14) + 50.0)
-
-        # Combined Fisher RSI and Williams %R
-        dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
+        # # FisherBB
+        #
+        # dataframe['rsi'] = ta.RSI(dataframe, timeperiod=14)
+        # rsi = 0.1 * (dataframe['rsi'] - 50)
+        # dataframe['fisher_rsi'] = (np.exp(2 * rsi) - 1) / (np.exp(2 * rsi) + 1)
+        #
+        # bollinger = qtpylib.bollinger_bands(dataframe['close'], window=20, stds=2)
+        # dataframe['bb_lowerband'] = bollinger['lower']
+        # dataframe['bb_middleband'] = bollinger['mid']
+        # dataframe['bb_upperband'] = bollinger['upper']
+        # dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
+        #
+        # # Williams %R
+        # dataframe['wr'] = 0.02 * (self.williams_r(dataframe, period=14) + 50.0)
+        #
+        # # Combined Fisher RSI and Williams %R
+        # dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
 
 
         # Custom Stoploss
@@ -284,17 +283,17 @@ class FBB_FFT2(IStrategy):
         # conditions.append(spike_cond)
 
 
-        # FBB_ triggers
-        fbb_cond = (
-                (dataframe['fisher_wr'] <= self.buy_fisher_wr.value) &
-                (dataframe['bb_gain'] >= self.buy_bb_gain.value)
-        )
+        # # FBB_ triggers
+        # fbb_cond = (
+        #         (dataframe['fisher_wr'] <= self.buy_fisher_wr.value) &
+        #         (dataframe['bb_gain'] >= self.buy_bb_gain.value)
+        # )
 
         # strong_buy_cond = (
         #         (qtpylib.crossed_below(dataframe['fft_dev'], -3.0))
         # )
 
-        conditions.append(fbb_cond)
+        # conditions.append(fbb_cond)
         # conditions.append(fft_cond | strong_buy_cond)
         conditions.append(fft_cond)
 
@@ -302,7 +301,7 @@ class FBB_FFT2(IStrategy):
 
         # set buy tags
         dataframe.loc[fft_cond, 'buy_tag'] += 'fft_buy '
-        dataframe.loc[fbb_cond, 'buy_tag'] += 'fbb_buy '
+        # dataframe.loc[fbb_cond, 'buy_tag'] += 'fbb_buy '
         # dataframe.loc[strong_buy_cond, 'buy_tag'] += 'strong_buy '
 
         if conditions:
@@ -335,22 +334,22 @@ class FBB_FFT2(IStrategy):
         # )
         # conditions.append(spike_cond)
 
-        # FBB_ triggers
-        fbb_cond = (
-                (dataframe['fisher_wr'] > self.sell_fisher_wr.value) &
-                (dataframe['close'] >= (dataframe['bb_upperband'] * self.sell_bb_gain.value))
-        )
+        # # FBB_ triggers
+        # fbb_cond = (
+        #         (dataframe['fisher_wr'] > self.sell_fisher_wr.value) &
+        #         (dataframe['close'] >= (dataframe['bb_upperband'] * self.sell_bb_gain.value))
+        # )
 
         strong_sell_cond = (
                 (qtpylib.crossed_above(dataframe['fft_dev'], 3.0))
         )
 
-        conditions.append(fbb_cond)
+        # conditions.append(fbb_cond)
         conditions.append(fft_cond | strong_sell_cond)
 
         # set exit tags
         dataframe.loc[fft_cond, 'exit_tag'] += 'fft_sell '
-        dataframe.loc[fbb_cond, 'exit_tag'] += 'fbb_sell '
+        # dataframe.loc[fbb_cond, 'exit_tag'] += 'fbb_sell '
         dataframe.loc[strong_sell_cond, 'exit_tag'] += 'strong_sell '
 
         if conditions:

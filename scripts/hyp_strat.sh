@@ -103,6 +103,7 @@ end=${a[0]}
 if [ -z "$end" ]; then
   end="$(date "+%Y%m%d")"
 fi
+timerange="${start}-${end}"
 
 #echo "timerange:${timerange} start:${start} end:${end}"
 

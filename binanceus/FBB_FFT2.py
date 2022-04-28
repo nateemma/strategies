@@ -167,6 +167,7 @@ class FBB_FFT2(IStrategy):
         self.rolling_fft_inf.fit(dataframe['close'])
         # informative['fft_predict'] = self.rolling_fft_inf.model(informative['close'])
         informative['fft_dev'] = self.rolling_fft_inf.scaledModel(informative['close'])
+        informative['fft_dev'].fillna(0, inplace=True) # missing data can cause issue with ta functions
         informative['fft_slope'] = ta.LINEARREG_SLOPE(informative['fft_dev'], timeperiod=3)
 
         # merge into normal timeframe

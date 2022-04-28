@@ -12,7 +12,9 @@ spaces="buy sell"
 #get date from 30 days ago (MacOS-specific)
 num_days=180
 start_date=$(date -j -v-${num_days}d +"%Y%m%d")
-timerange="${start_date}-"
+end_date="$(date "+%Y%m%d")"
+
+timerange="${start_date}-${end_date}"
 
 show_usage () {
     script=$(basename $BASH_SOURCE)
@@ -89,6 +91,16 @@ if [ ! -f  ${strat_file} ]; then
     exit 0
 fi
 
+# adjust timerange to make sure there is an end date (which enables caching of data in backtesting)
+a=("${(@s/-/)timerange}")
+start=${a[1]} # don't know why it's reversed
+end=${a[0]}
+if [ -z "$end" ]; then
+  end="$(date "+%Y%m%d")"
+fi
+timerange="${start}-${end}"
+
+
 echo ""
 echo "Using config file: ${config_file} and Strategy dir: ${exchange_dir}"
 echo ""
@@ -102,7 +114,7 @@ echo $today
 echo "Testing strategy:$strategy for exchange:$exchange..."
 
 
-cmd="freqtrade backtesting --timerange=${timerange} -c ${config_file} --strategy-path ${exchange_dir} --strategy-list ${strategy}"
+cmd="freqtrade backtesting --cache none --timerange=${timerange} -c ${config_file} --strategy-path ${exchange_dir} --strategy-list ${strategy}"
 echo ${cmd}
 eval ${cmd}
 

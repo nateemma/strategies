@@ -1,0 +1,48 @@
+{
+  "strategy_name": "FBB_FFT2",
+  "params": {
+    "roi": {
+      "0": 0.1
+    },
+    "stoploss": {
+      "stoploss": -0.1
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "buy": {
+      "buy_bb_gain": 0.02,
+      "buy_fft_cutoff": 0.31,
+      "buy_fft_dev": -0.1,
+      "buy_fft_diff": 1.2,
+      "buy_fisher_wr": -0.87
+    },
+    "sell": {
+      "csell_endtrend_respect_roi": false,
+      "csell_pullback": true,
+      "csell_pullback_amount": 0.02,
+      "csell_pullback_respect_roi": false,
+      "csell_roi_end": 0.006,
+      "csell_roi_start": 0.045,
+      "csell_roi_time": 753,
+      "csell_roi_type": "step",
+      "csell_trend_type": "none",
+      "cstop_bail_how": "none",
+      "cstop_bail_roc": -1.196,
+      "cstop_bail_time": 363,
+      "cstop_bail_time_trend": true,
+      "cstop_loss_threshold": -0.022,
+      "cstop_max_stoploss": -0.138,
+      "sell_bb_gain": 1.21,
+      "sell_fft_dev": 3.4,
+      "sell_fft_diff": -1.4,
+      "sell_fisher_wr": 0.84
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2022-04-26 02:26:51.790120+00:00"
+}

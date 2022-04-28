@@ -95,18 +95,28 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
         r = ave_profit / abs(ave_loss)
         e = r * w - l
 
-        expectancy_loss = 1.0 - e  # goal is <1.0
-
-        # use drawdown as a tie-breaker
+        # expectancy_loss = 1.0 - e  # goal is <1.0
+        expectancy_loss = -e
         drawdown_loss = 0.0
-        if 'max_drawdown' in backtest_stats:
-            drawdown_loss = (backtest_stats['max_drawdown'] - 1.0) / 2.0
+        abs_profit_loss = 0.0
 
-        abs_profit_loss = -backtest_stats['profit_total'] / 2.0
+        if (expectancy_loss <= 0.0):
+            # use drawdown and profit as a tie-breaker
+            if 'max_drawdown' in backtest_stats:
+                drawdown_loss = (backtest_stats['max_drawdown'] - 1.0) / 2.0
+
+            if 'profit_total' in backtest_stats:
+                abs_profit_loss = -backtest_stats['profit_total'] / 2.0
+
+            # # don't allow drawdown or profit to outweigh expectancy
+            # if (drawdown_loss < 0.0):
+            #     drawdown_loss = max(drawdown_loss, expectancy_loss)
+            # if (abs_profit_loss < 0.0):
+            #     abs_profit_loss = max(abs_profit_loss, expectancy_loss)
 
         result = expectancy_loss + drawdown_loss + abs_profit_loss
 
-        if (debug_level>0):
+        if ((debug_level == 1) & (result<0.0)) | (debug_level > 1):
             print("{:.2f} exp:{:.2f} drw:{:.2f} prf:{:.2f} ".format(result, expectancy_loss, drawdown_loss, abs_profit_loss))
 
         return result

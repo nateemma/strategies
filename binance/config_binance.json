@@ -9,36 +9,37 @@
   "dry_run": true,
   "cancel_open_orders_on_exit": false,
   "unfilledtimeout": {
-    "buy": 10,
-    "sell": 30,
+    "entry": 10,
+    "exit": 10,
+    "exit_timeout_count": 0,
     "unit": "minutes"
   },
-  "order_types": {
-    "buy": "limit",
-    "sell": "market",
-    "emergencysell": "market",
-    "forcebuy": "market",
-    "forcesell": "market",
-    "stoploss": "market",
-    "stoploss_on_exchange": true,
-    "stoploss_on_exchange_interval": 60,
-    "stoploss_on_exchange_limit_ratio": 0.99
-  },
-  "bid_strategy": {
-    "price_side": "ask",
-    "ask_last_balance": 0.0,
+  "entry_pricing": {
+    "price_side": "same",
     "use_order_book": true,
     "order_book_top": 1,
+    "price_last_balance": 0.0,
     "check_depth_of_market": {
       "enabled": false,
       "bids_to_ask_delta": 1
     }
   },
-  "ask_strategy": {
-    "price_side": "bid",
+  "exit_pricing": {
+    "price_side": "same",
     "use_order_book": true,
     "order_book_top": 1
   },
+  //  "order_types": {
+  //    "buy": "limit",
+  //    "sell": "market",
+  //    "emergencysell": "market",
+  //    "forcebuy": "market",
+  //    "forcesell": "market",
+  //    "stoploss": "market",
+  //    "stoploss_on_exchange": true,
+  //    "stoploss_on_exchange_interval": 60,
+  //    "stoploss_on_exchange_limit_ratio": 0.99
+  //  },
   "exchange": {
     "name": "binance",
     "key": "",
@@ -181,7 +182,7 @@
   },
   "bot_name": "freqtrade",
   "initial_state": "running",
-  "forcebuy_enable": false,
+  "force_enter_enable": false,
   "internals": {
     "process_throttle_secs": 5
   }

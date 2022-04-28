@@ -14,34 +14,34 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "buy_bb_gain": 0.03,
-      "buy_fisher_wr": -0.91,
-      "buy_kf_dev": -0.3,
-      "buy_kf_diff": 1.2
+      "buy_bb_gain": 0.04,
+      "buy_fisher_wr": -0.78,
+      "buy_kf_dev": 0.0,
+      "buy_kf_diff": 0.9
     },
     "sell": {
       "csell_endtrend_respect_roi": true,
       "csell_pullback": false,
-      "csell_pullback_amount": 0.018,
+      "csell_pullback_amount": 0.02,
       "csell_pullback_respect_roi": true,
-      "csell_roi_end": 0.002,
-      "csell_roi_start": 0.033,
-      "csell_roi_time": 1422,
+      "csell_roi_end": 0.009,
+      "csell_roi_start": 0.012,
+      "csell_roi_time": 1203,
       "csell_roi_type": "decay",
       "csell_trend_type": "any",
       "cstop_bail_how": "roc",
-      "cstop_bail_roc": -4.508,
-      "cstop_bail_time": 952,
-      "cstop_bail_time_trend": false,
-      "cstop_loss_threshold": -0.025,
-      "cstop_max_stoploss": -0.173,
-      "sell_bb_gain": 1.41,
-      "sell_fisher_wr": 0.93,
-      "sell_kf_dev": 0.5,
-      "sell_kf_diff": -0.4
+      "cstop_bail_roc": -4.081,
+      "cstop_bail_time": 904,
+      "cstop_bail_time_trend": true,
+      "cstop_loss_threshold": -0.038,
+      "cstop_max_stoploss": -0.113,
+      "sell_bb_gain": 0.87,
+      "sell_fisher_wr": 0.86,
+      "sell_kf_dev": 1.8,
+      "sell_kf_diff": -3.0
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-04-20 18:44:26.777430+00:00"
+  "export_time": "2022-04-25 17:25:57.934722+00:00"
 }

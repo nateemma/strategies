@@ -9,25 +9,35 @@
   "dry_run": true,
   "cancel_open_orders_on_exit": false,
   "unfilledtimeout": {
-    "entry": 10,
-    "exit": 10,
-    "exit_timeout_count": 0,
+    "buy": 5,
+    "sell": 5,
     "unit": "minutes"
   },
-  "entry_pricing": {
-    "price_side": "same",
-    "use_order_book": true,
+  "order_types": {
+    "buy": "limit",
+    "sell": "market",
+    "emergencysell": "market",
+    "forcebuy": "market",
+    "forcesell": "market",
+    "stoploss": "market",
+    "stoploss_on_exchange": false,
+    "stoploss_on_exchange_interval": 60
+  },
+  "bid_strategy": {
+    "price_side": "ask",
+    "ask_last_balance": 0.0,
+    "use_order_book": false,
     "order_book_top": 1,
-    "price_last_balance": 0.0,
     "check_depth_of_market": {
       "enabled": false,
       "bids_to_ask_delta": 1
     }
   },
-  "exit_pricing": {
-    "price_side": "same",
-    "use_order_book": true,
-    "order_book_top": 1
+  "ask_strategy": {
+    "price_side": "bid",
+    "use_order_book": false,
+    "order_book_min": 1,
+    "order_book_max": 1
   },
   // kucoin proxy (use for backtesting/hyperopt):
   "exchange": {
@@ -60,44 +70,7 @@
     //      "rateLimit": 334
     //    },
     "pair_whitelist": [
-      "WAVES/USDT",
-      "TITAN/USDT",
-      "MTL/USDT",
-      "XPR/USDT",
-      "ZIL/USDT",
-      "QNT/USDT",
-      "HAWK/USDT",
-      "GMT/USDT",
-      "KOK/USDT",
-      "FXS/USDT",
-      "XCN/USDT",
-      "DOT/USDT",
-      "MTRG/USDT",
-      "JST/USDT",
-      "ZEC/USDT",
-      "DODO/USDT",
-      "VR/USDT",
-      "FIL/USDT",
-      "TEL/USDT",
-      "SNX/USDT",
-      "ASTR/USDT",
-      "GLMR/USDT",
-      "CFX/USDT",
-      "RUNE/USDT",
-      "XMR/USDT",
-      "IMX/USDT",
-      "SAND/USDT",
-      "TRIAS/USDT",
-      "AAVE/USDT",
-      "MOVR/USDT",
-      "WAXP/USDT",
-      "ETC/USDT",
-      "CRV/USDT",
-      "KAVA/USDT",
-      "APE/USDT",
-      "SUN/USDT",
-      "SUSHI/USDT",
-      "HTR/USDT"
+      ".*/USDT"
     ],
     "pair_blacklist": [
       ".*(KCS)/.*",
@@ -113,12 +86,12 @@
     {
       "method": "StaticPairList"
     },
-    //    {
-    //      "method": "VolumePairList",
-    //      "number_assets": 80,
-    //      "sort_key": "quoteVolume",
-    //      "refresh_period": 1800
-    //    },
+    {
+      "method": "VolumePairList",
+      "number_assets": 80,
+      "sort_key": "quoteVolume",
+      "refresh_period": 1800
+    },
     //    {
     // // do not use AgeFilter if running a proxy
     //      "method": "AgeFilter",
@@ -145,15 +118,15 @@
       "min_volatility": 0.02,
       "max_volatility": 0.75,
       "refresh_period": 43200
-      //    },
-      //    {
-      //      "method": "VolumePairList",
-      //      "number_assets": 40,
-      //      "sort_key": "quoteVolume",
-      //      "refresh_period": 1800
-      //    },
-      //    {
-      //      "method": "ShuffleFilter"
+    },
+    {
+      "method": "VolumePairList",
+      "number_assets": 40,
+      "sort_key": "quoteVolume",
+      "refresh_period": 1800
+    },
+    {
+      "method": "ShuffleFilter"
     }
   ],
   "edge": {
@@ -188,7 +161,7 @@
   },
   "bot_name": "freqtrade_kucoin",
   "initial_state": "running",
-  "force_enter_enable": false,
+  "forcebuy_enable": false,
   "internals": {
     "process_throttle_secs": 5
   }

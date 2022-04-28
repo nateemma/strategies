@@ -28,7 +28,8 @@ for exchange in "${elist[@]}"; do
     echo "${strat}"
     echo ""
     cp user_data/strategies/${exchange}/${strat}.json user_data/strategies/${exchange}/${strat}.json.sav
-    zsh user_data/strategies/scripts/hyp_strat.sh -e 2000  -l ExpectancyHyperOptLoss -s "buy sell" ${exchange}  ${strat}
+#    zsh user_data/strategies/scripts/hyp_strat.sh -e 2000  -l ExpectancyHyperOptLoss -s "buy sell" ${exchange}  ${strat}
+    zsh user_data/strategies/scripts/hyp_strat.sh -e 500  -l ExpectancyHyperOptLoss -s "sell" ${exchange}  ${strat}
   done
   zsh user_data/strategies/scripts/test_monthly.sh  ${exchange}
 
