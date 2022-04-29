@@ -88,25 +88,25 @@ class FBB_FFT(IStrategy):
     ## Hyperopt Variables
 
     # FBB_ hyperparams
-    buy_bb_gain = DecimalParameter(0.01, 0.50, decimals=2, default=0.09, space='buy', load=True, optimize=True)
-    buy_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.75, space='buy', load=True, optimize=True)
+    buy_bb_gain = DecimalParameter(0.01, 0.50, decimals=2, default=0.03, space='buy', load=True, optimize=True)
+    buy_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.5, space='buy', load=True, optimize=True)
     buy_force_fisher_wr = DecimalParameter(-0.99, -0.85, decimals=2, default=-0.99, space='buy', load=True, optimize=True)
 
     sell_bb_gain = DecimalParameter(0.7, 1.5, decimals=2, default=0.8, space='sell', load=True, optimize=True)
-    sell_fisher_wr = DecimalParameter(0.75, 0.99, decimals=2, default=0.9, space='sell', load=True, optimize=True)
+    sell_fisher_wr = DecimalParameter(0.75, 0.99, decimals=2, default=0.75, space='sell', load=True, optimize=True)
     sell_force_fisher_wr = DecimalParameter(0.85, 0.99, decimals=2, default=0.99, space='sell', load=True, optimize=True)
 
 
     # FFT  hyperparams
-    buy_fft_diff = DecimalParameter(0.000, 0.050, decimals=3, default=0.01, space='buy', load=True, optimize=True)
-    buy_fft_cutoff = DecimalParameter(1/16.0, 1/3.0, decimals=2, default=1/5.0, space='buy', load=True, optimize=True)
-    # buy_fft_window = IntParameter(8, 164, default=64, space='buy', load=True, optimize=True)
-    # buy_fft_lookahead = IntParameter(0, 64, default=0, space='buy', load=True, optimize=True)
+    buy_fft_diff = DecimalParameter(0.0, 5.0, decimals=1, default=-1.0, space='buy', load=True, optimize=True)
+    buy_fft_dev = DecimalParameter(-4.0, 0.00, decimals=1, default=-0.1, space='buy', load=True, optimize=True)
+    # buy_fft_cutoff = DecimalParameter(1/16.0, 1/3.0, decimals=2, default=1/5.0, space='buy', load=True, optimize=True)
+
+    sell_fft_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-0.01, space='sell', load=True, optimize=True)
+    sell_fft_dev = DecimalParameter(0.00, 4.0, decimals=1, default=1.0, space='sell', load=True, optimize=True)
 
     fft_window = 128
     fft_lookahead = 0
-
-    sell_fft_diff = DecimalParameter(-0.050, 0.000, decimals=3, default=-0.01, space='sell', load=True, optimize=True)
 
 
     # Custom Sell Profit (formerly Dynamic ROI)
@@ -159,9 +159,11 @@ class FBB_FFT(IStrategy):
 
         # FFT
 
-        # dataframe['fft_model'] = dataframe['close'].rolling(window=self.buy_fft_window.value).apply(self.model)
-        # informative['fft_lookahead'] = informative['close'].rolling(window=self.buy_fft_window.value).apply(self.predict)
-        informative['fft_lookahead'] = informative['close'].rolling(window=self.fft_window).apply(self.predict)
+        # informative['fft_lookahead'] = informative['close'].rolling(window=self.fft_window).apply(self.predict)
+
+        informative['fft_dev'] = informative['close'].rolling(window=self.fft_window).apply(self.scaledModel)
+        informative['fft_dev'].fillna(0, inplace=True) # missing data can cause issue with ta functions
+        informative['fft_slope'] = ta.LINEARREG_SLOPE(informative['fft_dev'], timeperiod=3)
 
 
         # merge into normal timeframe
@@ -169,11 +171,14 @@ class FBB_FFT(IStrategy):
 
         # calculate predictive indicators in shorter timeframe (not informative)
 
-        # dataframe['fft_lookahead'] = ta.LINEARREG(dataframe[f"fft_lookahead_{self.inf_timeframe}"], timeperiod=12)
-        dataframe['fft_lookahead'] = dataframe[f"fft_lookahead_{self.inf_timeframe}"]
-        # dataframe['fft_model'] = dataframe[f"fft_model_{self.inf_timeframe}"]
-        # dataframe['fft_lookahead_diff'] = (dataframe['fft_lookahead'] - dataframe['fft_model']) / dataframe['fft_model']
-        dataframe['fft_lookahead_diff'] = (dataframe['fft_lookahead'] - dataframe['close']) / dataframe['close']
+        # dataframe['fft_lookahead'] = dataframe[f"fft_lookahead_{self.inf_timeframe}"]
+        # dataframe['fft_lookahead_diff'] = (dataframe['fft_lookahead'] - dataframe['close']) / dataframe['close']
+
+        dataframe['scaled'] = dataframe['close'].rolling(window=self.fft_window).apply(self.scaledData)
+
+        dataframe['fft_dev'] = dataframe[f"fft_dev_{self.inf_timeframe}"]
+        dataframe['fft_slope'] = dataframe[f"fft_slope_{self.inf_timeframe}"]
+        dataframe['fft_dev_diff'] =  (dataframe['fft_dev'] - dataframe['scaled'])
 
 
         # FisherBB
@@ -237,27 +242,73 @@ class FBB_FFT(IStrategy):
 
     def fourierModel(self, x):
 
-        n = x.size
-        t = np.arange(0, n)
-        p = np.polyfit(t, x, 1)  # find linear trend in x
-        x_notrend = x - p[0] * t  # detrended x
-        yf = scipy.fft.rfft(x_notrend)  # detrended x in frequency domain
+        n = len(x)
+        xa = np.array(x)
 
-        # zero out frequencies beyond 'cutoff'
-        cutoff: int = int(len(yf) * self.buy_fft_cutoff.value)
-        yf[(cutoff - 1):] = 0
 
-        # inverse transform
-        restored_sig = scipy.fft.irfft(yf)
-        model = restored_sig + p[0] * t
+        # compute the fft
+        fft = scipy.fft.fft(xa, n)
+
+        # compute power spectrum density
+        # squared magnitude of each fft coefficient
+        psd = fft * np.conj(fft) / n
+        threshold = 20
+        fft = np.where(psd<threshold, 0, fft)
+
+        # inverse fourier transform
+        ifft = scipy.fft.ifft(fft)
+
+        ifft = ifft.real
+
+        ldiff = len(ifft) - len(xa)
+        model = ifft[ldiff:]
 
         return model
+
+    def scaledModel(self, a: np.ndarray) -> np.float:
+
+        # scale the data
+        standardized = a.copy()
+        w_mean = np.mean(standardized)
+        w_std = np.std(standardized)
+        scaled = (standardized - w_mean) / w_std
+        scaled.fillna(0, inplace=True)
+
+        # get the Fourier model
+        model = self.fourierModel(scaled)
+
+        length = len(model)
+        return model[length-1]
+
+    def scaledData(self, a: np.ndarray) -> np.float:
+
+        # scale the data
+        standardized = a.copy()
+        w_mean = np.mean(standardized)
+        w_std = np.std(standardized)
+        scaled = (standardized - w_mean) / w_std
+        scaled.fillna(0, inplace=True)
+
+        length = len(scaled)
+        return scaled.ravel()[length-1]
 
     def predict(self, a: np.ndarray) -> np.float:
         #must return scalar, so just calculate prediction and take last value
         npredict = self.fft_lookahead
         # y = self.fourierExtrapolation(np.array(a), 0)
-        y = self.fourierModel(np.array(a))
+
+        # scale the data
+        standardized = a.copy()
+        w_mean = np.mean(standardized)
+        w_std = np.std(standardized)
+        scaled = (standardized - w_mean) / w_std
+        scaled.fillna(0, inplace=True)
+
+        # get the Fourier model
+        ys = self.fourierModel(scaled)
+
+        # restore the data
+        y = (ys * w_std) + w_mean
 
         length = len(y)
         if npredict == 0:
@@ -305,16 +356,13 @@ class FBB_FFT(IStrategy):
 
         # FFT triggers
         fft_cond = (
-                qtpylib.crossed_above(dataframe['fft_lookahead_diff'], self.buy_fft_diff.value)
+                # qtpylib.crossed_above(dataframe['fft_lookahead_diff'], self.buy_fft_diff.value)
+                (dataframe['fft_slope'] >= 0.0) &
+                (dataframe['fft_dev'] < self.buy_fft_dev.value) &
+                (qtpylib.crossed_above(dataframe['fft_dev_diff'], self.buy_fft_diff.value))
         )
 
         conditions.append(fft_cond)
-
-        # FFTs will spike on big gains, so try to constrain
-        spike_cond = (
-                dataframe['fft_lookahead_diff'] < 2.0 * self.buy_fft_diff.value
-        )
-        conditions.append(spike_cond)
 
         # set buy tags
         dataframe.loc[fft_cond, 'buy_tag'] += 'fft_buy '
@@ -358,16 +406,13 @@ class FBB_FFT(IStrategy):
 
         # FFT triggers
         fft_cond = (
-                qtpylib.crossed_below(dataframe['fft_lookahead_diff'], self.sell_fft_diff.value)
+                # qtpylib.crossed_below(dataframe['fft_lookahead_diff'], self.sell_fft_diff.value)
+                (dataframe['fft_slope'] <= 0.0) &
+                (dataframe['fft_dev'] > self.sell_fft_dev.value) &
+                (qtpylib.crossed_below(dataframe['fft_dev_diff'], self.sell_fft_diff.value))
         )
 
         conditions.append(fft_cond)
-
-        # FFTs will spike on big gains, so try to constrain
-        spike_cond = (
-                dataframe['fft_lookahead_diff'] > 2.0 * self.sell_fft_diff.value
-        )
-        conditions.append(spike_cond)
 
         # FBB_ triggers
         fbb_cond = (

@@ -1,8 +1,8 @@
 {
-  "strategy_name": "FFT2",
+  "strategy_name": "Deviance",
   "params": {
     "roi": {
-      "0": 0.1
+      "0": 10
     },
     "stoploss": {
       "stoploss": -0.1
@@ -14,31 +14,28 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "buy_fft_cutoff": 0.31,
-      "buy_fft_dev": 3.0,
-      "buy_fft_diff": 2.0
+      "buy_dev": -3.2
     },
     "sell": {
       "csell_endtrend_respect_roi": true,
       "csell_pullback": false,
-      "csell_pullback_amount": 0.009,
+      "csell_pullback_amount": 0.03,
       "csell_pullback_respect_roi": false,
-      "csell_roi_end": 0.002,
-      "csell_roi_start": 0.042,
-      "csell_roi_time": 883,
+      "csell_roi_end": 0.008,
+      "csell_roi_start": 0.049,
+      "csell_roi_time": 912,
       "csell_roi_type": "decay",
       "csell_trend_type": "ssl",
-      "cstop_bail_how": "time",
-      "cstop_bail_roc": -4.36,
-      "cstop_bail_time": 197,
+      "cstop_bail_how": "any",
+      "cstop_bail_roc": -1.511,
+      "cstop_bail_time": 797,
       "cstop_bail_time_trend": false,
-      "cstop_loss_threshold": -0.013,
-      "cstop_max_stoploss": -0.187,
-      "sell_fft_dev": 0.1,
-      "sell_fft_diff": 0.0
+      "cstop_loss_threshold": -0.033,
+      "cstop_max_stoploss": -0.061,
+      "sell_dev": 2.8
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-04-28 13:35:16.351926+00:00"
+  "export_time": "2022-04-26 18:44:40.185981+00:00"
 }

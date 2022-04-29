@@ -39,13 +39,13 @@ import pywt
 
 """
 ####################################################################################
-FFT - use a Fast Fourier Transform to estimate future price movements,
+DWT - use a Discreet Wavelet Transform to estimate future price movements
 
 ####################################################################################
 """
 
 
-class FFT(IStrategy):
+class DWT(IStrategy):
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # ROI table:
@@ -73,7 +73,8 @@ class FFT(IStrategy):
     ignore_roi_if_buy_signal = True
 
     # Required
-    startup_candle_count: int = 128
+    startup_candle_count: int = 128 # must be power of 2
+
     process_only_new_candles = True
 
     custom_trade_info = {}
@@ -82,16 +83,13 @@ class FFT(IStrategy):
 
     # Strategy Specific Variable Storage
 
-
-    fft_window = startup_candle_count
-    fft_lookahead = 0
-
     ## Hyperopt Variables
 
-    # FFT  hyperparams
-    buy_fft_diff = DecimalParameter(0.0, 5.0, decimals=1, default=-1.0, space='buy', load=True, optimize=True)
+    dwt_window = startup_candle_count
 
-    sell_fft_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-0.01, space='sell', load=True, optimize=True)
+    # DWT  hyperparams
+    buy_dwt_diff = DecimalParameter(0.0, 5.0, decimals=1, default=1.0, space='buy', load=True, optimize=True)
+    sell_dwt_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-1.0, space='sell', load=True, optimize=True)
 
 
     # Custom Sell Profit (formerly Dynamic ROI)
@@ -142,18 +140,17 @@ class FFT(IStrategy):
         curr_pair = metadata['pair']
         informative = self.dp.get_pair_dataframe(pair=curr_pair, timeframe=self.inf_timeframe)
 
-        # FFT
+        # DWT
 
-        informative['fft_predict'] = informative['close'].rolling(window=self.fft_window).apply(self.model)
+        informative['dwt_predict'] = informative['close'].rolling(window=self.dwt_window).apply(self.model)
 
         # merge into normal timeframe
         dataframe = merge_informative_pair(dataframe, informative, self.timeframe, self.inf_timeframe, ffill=True)
 
         # calculate predictive indicators in shorter timeframe (not informative)
 
-        dataframe['fft_predict'] = dataframe[f"fft_predict_{self.inf_timeframe}"]
-        dataframe['fft_predict_diff'] = 100.0 * (dataframe['fft_predict'] - dataframe['close']) / dataframe['close']
-
+        dataframe['dwt_predict'] = dataframe[f"dwt_predict_{self.inf_timeframe}"]
+        dataframe['dwt_predict_diff'] = 100.0 * (dataframe['dwt_predict'] - dataframe['close']) / dataframe['close']
 
         # Custom Stoploss
 
@@ -188,59 +185,62 @@ class FFT(IStrategy):
     ###################################
 
 
+    def madev(self, d, axis=None):
+        """ Mean absolute deviation of a signal """
+        return np.mean(np.absolute(d - np.mean(d, axis)), axis)
+
+    def dwtModel(self, data):
+
+        # the choice of wavelet makes a big difference
+        # for an overview, check out: https://www.kaggle.com/theoviel/denoising-with-direct-wavelet-transform
+        # wavelet = 'db1'
+        # wavelet = 'bior1.1'
+        wavelet = 'haar' # deals well with harsh transitions
+        level = 1
+        wmode = "smooth"
+        length = len(data)
+
+        coeff = pywt.wavedec(data, wavelet, mode=wmode)
+
+        # remove higher harmonics
+        sigma = (1 / 0.6745) * self.madev(coeff[-level])
+        uthresh = sigma * np.sqrt(2 * np.log(length))
+        coeff[1:] = (pywt.threshold(i, value=uthresh, mode='hard') for i in coeff[1:])
+
+        # inverse transform
+        model = pywt.waverec(coeff, wavelet, mode=wmode)
+
+        return model
+
     def model(self, a: np.ndarray) -> np.float:
         #must return scalar, so just calculate prediction and take last value
+        # model = self.dwtModel(np.array(a))
 
-        # scale the data
-        standardized = a.copy()
-        w_mean = np.mean(standardized)
-        w_std = np.std(standardized)
-        scaled = (standardized - w_mean) / w_std
+        # de-trend the data
+        w_mean = a.mean()
+        w_std = a.std()
+        x_notrend = (a - w_mean) / w_std
 
-        ys = self.fourierModel(scaled)
+        # get DWT model of data
+        restored_sig = self.dwtModel(x_notrend)
 
-        # restore the data
-        model = (ys * w_std) + w_mean
+        # re-trend
+        model = (restored_sig * w_std) + w_mean
 
         length = len(model)
         return model[length-1]
 
-    def fourierModel(self, x):
-
-        n = len(x)
-        xa = np.array(x)
-
-
-        # compute the fft
-        fft = scipy.fft.fft(xa, n)
-
-        # compute power spectrum density
-        # squared magnitude of each fft coefficient
-        psd = fft * np.conj(fft) / n
-        threshold = 10
-        fft = np.where(psd<threshold, 0, fft)
-
-        # inverse fourier transform
-        ifft = scipy.fft.ifft(fft)
-
-        ifft = ifft.real
-
-        ldiff = len(ifft) - len(xa)
-        model = ifft[ldiff:]
-
-        return model
-
     def scaledModel(self, a: np.ndarray) -> np.float:
+        #must return scalar, so just calculate prediction and take last value
+        # model = self.dwtModel(np.array(a))
 
-        # scale the data
-        standardized = a.copy()
-        w_mean = np.mean(standardized)
-        w_std = np.std(standardized)
-        scaled = (standardized - w_mean) / w_std
-        scaled.fillna(0, inplace=True)
+        # de-trend the data
+        w_mean = a.mean()
+        w_std = a.std()
+        x_notrend = (a - w_mean) / w_std
 
-        # get the Fourier model
-        model = self.fourierModel(scaled)
+        # get DWT model of data
+        model = self.dwtModel(x_notrend)
 
         length = len(model)
         return model[length-1]
@@ -252,60 +252,11 @@ class FFT(IStrategy):
         w_mean = np.mean(standardized)
         w_std = np.std(standardized)
         scaled = (standardized - w_mean) / w_std
-        scaled.fillna(0, inplace=True)
+        # scaled.fillna(0, inplace=True)
 
         length = len(scaled)
         return scaled.ravel()[length-1]
 
-    def predict(self, a: np.ndarray) -> np.float:
-        #must return scalar, so just calculate prediction and take last value
-        npredict = self.fft_lookahead
-        # y = self.fourierExtrapolation(np.array(a), 0)
-
-        # scale the data
-        standardized = a.copy()
-        w_mean = np.mean(standardized)
-        w_std = np.std(standardized)
-        scaled = (standardized - w_mean) / w_std
-        scaled.fillna(0, inplace=True)
-
-        # get the Fourier model
-        ys = self.fourierModel(scaled)
-
-        # restore the data
-        y = (ys * w_std) + w_mean
-
-        length = len(y)
-        if npredict == 0:
-            predict = y[length-1]
-        else:
-            # Note: extrapolation is notoriously fickle. Be careful
-            x = np.arange(length)
-            f = scipy.interpolate.UnivariateSpline(x, y, k=3)
-
-            predict = f(length-1+npredict)
-
-        return predict
-
-
-    # # Williams %R
-    # def williams_r(self, dataframe: DataFrame, period: int = 14) -> Series:
-    #     """Williams %R, or just %R, is a technical analysis oscillator showing the current closing price in relation to the high and low
-    #         of the past N days (for a given N). It was developed by a publisher and promoter of trading materials, Larry Williams.
-    #         Its purpose is to tell whether a stock or commodity market is trading near the high or the low, or somewhere in between,
-    #         of its recent trading range.
-    #         The oscillator is on a negative scale, from −100 (lowest) up to 0 (highest).
-    #     """
-    # 
-    #     highest_high = dataframe["high"].rolling(center=False, window=period).max()
-    #     lowest_low = dataframe["low"].rolling(center=False, window=period).min()
-    # 
-    #     WR = Series(
-    #         (highest_high - dataframe["close"]) / (highest_high - lowest_low),
-    #         name=f"{period} Williams %R",
-    #     )
-    # 
-    #     return WR * -100
     ###################################
 
     """
@@ -319,23 +270,21 @@ class FFT(IStrategy):
 
         # conditions.append(dataframe['volume'] > 0)
 
-
         # DWT triggers
-        fft_cond = (
-                qtpylib.crossed_above(dataframe['fft_predict_diff'], self.buy_fft_diff.value)
+        dwt_cond = (
+                qtpylib.crossed_above(dataframe['dwt_predict_diff'], self.buy_dwt_diff.value)
         )
 
-        conditions.append(fft_cond)
+        conditions.append(dwt_cond)
 
         # DWTs will spike on big gains, so try to constrain
         spike_cond = (
-                dataframe['fft_predict_diff'] < 2.0 * self.buy_fft_diff.value
+                dataframe['dwt_predict_diff'] < 2.0 * self.buy_dwt_diff.value
         )
         conditions.append(spike_cond)
 
         # set buy tags
-        dataframe.loc[fft_cond, 'buy_tag'] += 'fft_buy '
-
+        dataframe.loc[dwt_cond, 'buy_tag'] += 'dwt_buy '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
@@ -355,21 +304,21 @@ class FFT(IStrategy):
         dataframe.loc[:, 'exit_tag'] = ''
 
         # FFT triggers
-        fft_cond = (
-                qtpylib.crossed_below(dataframe['fft_predict_diff'], self.sell_fft_diff.value)
+        dwt_cond = (
+                qtpylib.crossed_below(dataframe['dwt_predict_diff'], self.sell_dwt_diff.value)
         )
 
-        conditions.append(fft_cond)
+        conditions.append(dwt_cond)
 
         # DWTs will spike on big gains, so try to constrain
         spike_cond = (
-                dataframe['fft_predict_diff'] > 2.0 * self.sell_fft_diff.value
+                dataframe['dwt_predict_diff'] > 2.0 * self.sell_dwt_diff.value
         )
         conditions.append(spike_cond)
 
         # set sell tags
-        dataframe.loc[fft_cond, 'exit_tag'] += 'fft_sell '
-        
+        dataframe.loc[dwt_cond, 'exit_tag'] += 'dwt_sell '
+
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1
 

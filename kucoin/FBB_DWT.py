@@ -322,7 +322,7 @@ class FBB_DWT(IStrategy):
 
         # conditions.append(dataframe['volume'] > 0)
 
-        # FFT triggers
+        # DWT triggers
         dwt_cond = (
                 qtpylib.crossed_above(dataframe['dwt_predict_diff'], self.buy_dwt_diff.value)
         )

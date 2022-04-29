@@ -34,23 +34,24 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 import custom_indicators as cta
 
-import pywt
 
 
 """
 ####################################################################################
-FFT - use a Fast Fourier Transform to estimate future price movements,
+Deviance - very simple strategy that checks the current price against the moving
+            average and buys/sells when it goes above/below a ceratin number
+            of standard deviations away from the mean
 
 ####################################################################################
 """
 
 
-class FFT(IStrategy):
+class Deviance(IStrategy):
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # ROI table:
     minimal_roi = {
-        "0": 0.1
+        "0": 10
     }
 
     # Stoploss:
@@ -63,7 +64,7 @@ class FFT(IStrategy):
     trailing_only_offset_is_reached = False
 
     timeframe = '5m'
-    inf_timeframe = '15m'
+    inf_timeframe = '1h'
 
     use_custom_stoploss = True
 
@@ -73,7 +74,7 @@ class FFT(IStrategy):
     ignore_roi_if_buy_signal = True
 
     # Required
-    startup_candle_count: int = 128
+    startup_candle_count: int = 64
     process_only_new_candles = True
 
     custom_trade_info = {}
@@ -82,16 +83,15 @@ class FFT(IStrategy):
 
     # Strategy Specific Variable Storage
 
+    dev_window = startup_candle_count
 
-    fft_window = startup_candle_count
-    fft_lookahead = 0
 
     ## Hyperopt Variables
+    
+    # Deviance  hyperparams
+    buy_dev = DecimalParameter(-5.0, 0.0, decimals=1, default=-3.0, space='buy', load=True, optimize=True)
 
-    # FFT  hyperparams
-    buy_fft_diff = DecimalParameter(0.0, 5.0, decimals=1, default=-1.0, space='buy', load=True, optimize=True)
-
-    sell_fft_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-0.01, space='sell', load=True, optimize=True)
+    sell_dev = DecimalParameter(0.00, 5.0, decimals=1, default=3.0, space='sell', load=True, optimize=True)
 
 
     # Custom Sell Profit (formerly Dynamic ROI)
@@ -125,9 +125,7 @@ class FFT(IStrategy):
     """
 
     def informative_pairs(self):
-        pairs = self.dp.current_whitelist()
-        informative_pairs = [(pair, self.inf_timeframe) for pair in pairs]
-        return informative_pairs
+        return []
     
     ###################################
 
@@ -137,23 +135,28 @@ class FFT(IStrategy):
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
 
-
-        # Base pair informative timeframe indicators
-        curr_pair = metadata['pair']
-        informative = self.dp.get_pair_dataframe(pair=curr_pair, timeframe=self.inf_timeframe)
-
-        # FFT
-
-        informative['fft_predict'] = informative['close'].rolling(window=self.fft_window).apply(self.model)
-
-        # merge into normal timeframe
-        dataframe = merge_informative_pair(dataframe, informative, self.timeframe, self.inf_timeframe, ffill=True)
-
         # calculate predictive indicators in shorter timeframe (not informative)
 
-        dataframe['fft_predict'] = dataframe[f"fft_predict_{self.inf_timeframe}"]
-        dataframe['fft_predict_diff'] = 100.0 * (dataframe['fft_predict'] - dataframe['close']) / dataframe['close']
+        dataframe['cl_dev'] = dataframe['close'].rolling(window=self.dev_window).apply(self.scaledData)
 
+
+        # # FisherBB
+        #
+        # dataframe['rsi'] = ta.RSI(dataframe, timeperiod=14)
+        # rsi = 0.1 * (dataframe['rsi'] - 50)
+        # dataframe['fisher_rsi'] = (np.exp(2 * rsi) - 1) / (np.exp(2 * rsi) + 1)
+        #
+        # bollinger = qtpylib.bollinger_bands(dataframe['close'], window=20, stds=2)
+        # dataframe['bb_lowerband'] = bollinger['lower']
+        # dataframe['bb_middleband'] = bollinger['mid']
+        # dataframe['bb_upperband'] = bollinger['upper']
+        # dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
+        #
+        # # Williams %R
+        # dataframe['wr'] = 0.02 * (self.williams_r(dataframe, period=14) + 50.0)
+        #
+        # # Combined Fisher RSI and Williams %R
+        # dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
 
         # Custom Stoploss
 
@@ -187,64 +190,6 @@ class FFT(IStrategy):
 
     ###################################
 
-
-    def model(self, a: np.ndarray) -> np.float:
-        #must return scalar, so just calculate prediction and take last value
-
-        # scale the data
-        standardized = a.copy()
-        w_mean = np.mean(standardized)
-        w_std = np.std(standardized)
-        scaled = (standardized - w_mean) / w_std
-
-        ys = self.fourierModel(scaled)
-
-        # restore the data
-        model = (ys * w_std) + w_mean
-
-        length = len(model)
-        return model[length-1]
-
-    def fourierModel(self, x):
-
-        n = len(x)
-        xa = np.array(x)
-
-
-        # compute the fft
-        fft = scipy.fft.fft(xa, n)
-
-        # compute power spectrum density
-        # squared magnitude of each fft coefficient
-        psd = fft * np.conj(fft) / n
-        threshold = 10
-        fft = np.where(psd<threshold, 0, fft)
-
-        # inverse fourier transform
-        ifft = scipy.fft.ifft(fft)
-
-        ifft = ifft.real
-
-        ldiff = len(ifft) - len(xa)
-        model = ifft[ldiff:]
-
-        return model
-
-    def scaledModel(self, a: np.ndarray) -> np.float:
-
-        # scale the data
-        standardized = a.copy()
-        w_mean = np.mean(standardized)
-        w_std = np.std(standardized)
-        scaled = (standardized - w_mean) / w_std
-        scaled.fillna(0, inplace=True)
-
-        # get the Fourier model
-        model = self.fourierModel(scaled)
-
-        length = len(model)
-        return model[length-1]
-
     def scaledData(self, a: np.ndarray) -> np.float:
 
         # scale the data
@@ -257,55 +202,27 @@ class FFT(IStrategy):
         length = len(scaled)
         return scaled.ravel()[length-1]
 
-    def predict(self, a: np.ndarray) -> np.float:
-        #must return scalar, so just calculate prediction and take last value
-        npredict = self.fft_lookahead
-        # y = self.fourierExtrapolation(np.array(a), 0)
 
-        # scale the data
-        standardized = a.copy()
-        w_mean = np.mean(standardized)
-        w_std = np.std(standardized)
-        scaled = (standardized - w_mean) / w_std
-        scaled.fillna(0, inplace=True)
+    ###################################
 
-        # get the Fourier model
-        ys = self.fourierModel(scaled)
+    # Williams %R
+    def williams_r(self, dataframe: DataFrame, period: int = 14) -> Series:
+        """Williams %R, or just %R, is a technical analysis oscillator showing the current closing price in relation to the high and low
+            of the past N days (for a given N). It was developed by a publisher and promoter of trading materials, Larry Williams.
+            Its purpose is to tell whether a stock or commodity market is trading near the high or the low, or somewhere in between,
+            of its recent trading range.
+            The oscillator is on a negative scale, from −100 (lowest) up to 0 (highest).
+        """
 
-        # restore the data
-        y = (ys * w_std) + w_mean
+        highest_high = dataframe["high"].rolling(center=False, window=period).max()
+        lowest_low = dataframe["low"].rolling(center=False, window=period).min()
 
-        length = len(y)
-        if npredict == 0:
-            predict = y[length-1]
-        else:
-            # Note: extrapolation is notoriously fickle. Be careful
-            x = np.arange(length)
-            f = scipy.interpolate.UnivariateSpline(x, y, k=3)
+        WR = Series(
+            (highest_high - dataframe["close"]) / (highest_high - lowest_low),
+            name=f"{period} Williams %R",
+        )
 
-            predict = f(length-1+npredict)
-
-        return predict
-
-
-    # # Williams %R
-    # def williams_r(self, dataframe: DataFrame, period: int = 14) -> Series:
-    #     """Williams %R, or just %R, is a technical analysis oscillator showing the current closing price in relation to the high and low
-    #         of the past N days (for a given N). It was developed by a publisher and promoter of trading materials, Larry Williams.
-    #         Its purpose is to tell whether a stock or commodity market is trading near the high or the low, or somewhere in between,
-    #         of its recent trading range.
-    #         The oscillator is on a negative scale, from −100 (lowest) up to 0 (highest).
-    #     """
-    # 
-    #     highest_high = dataframe["high"].rolling(center=False, window=period).max()
-    #     lowest_low = dataframe["low"].rolling(center=False, window=period).min()
-    # 
-    #     WR = Series(
-    #         (highest_high - dataframe["close"]) / (highest_high - lowest_low),
-    #         name=f"{period} Williams %R",
-    #     )
-    # 
-    #     return WR * -100
+        return WR * -100
     ###################################
 
     """
@@ -317,25 +234,16 @@ class FFT(IStrategy):
         conditions = []
         dataframe.loc[:, 'buy_tag'] = ''
 
-        # conditions.append(dataframe['volume'] > 0)
 
-
-        # DWT triggers
-        fft_cond = (
-                qtpylib.crossed_above(dataframe['fft_predict_diff'], self.buy_fft_diff.value)
+        # scaled data goes below  below target
+        conf_1 = (
+            (qtpylib.crossed_below(dataframe['cl_dev'], self.buy_dev.value))
         )
 
-        conditions.append(fft_cond)
-
-        # DWTs will spike on big gains, so try to constrain
-        spike_cond = (
-                dataframe['fft_predict_diff'] < 2.0 * self.buy_fft_diff.value
-        )
-        conditions.append(spike_cond)
+        conditions.append(conf_1)
 
         # set buy tags
-        dataframe.loc[fft_cond, 'buy_tag'] += 'fft_buy '
-
+        dataframe.loc[conf_1, 'buy_tag'] += 'dev_buy_1 '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
@@ -354,26 +262,22 @@ class FFT(IStrategy):
         conditions = []
         dataframe.loc[:, 'exit_tag'] = ''
 
-        # FFT triggers
-        fft_cond = (
-                qtpylib.crossed_below(dataframe['fft_predict_diff'], self.sell_fft_diff.value)
+        # scaled data goes abover target
+        conf_1 = (
+            (qtpylib.crossed_above(dataframe['cl_dev'], self.sell_dev.value))
         )
 
-        conditions.append(fft_cond)
+        conditions.append(conf_1)
 
-        # DWTs will spike on big gains, so try to constrain
-        spike_cond = (
-                dataframe['fft_predict_diff'] > 2.0 * self.sell_fft_diff.value
-        )
-        conditions.append(spike_cond)
+        # set buy tags
+        dataframe.loc[conf_1, 'exit_tag'] += 'dev_sell_1 '
 
-        # set sell tags
-        dataframe.loc[fft_cond, 'exit_tag'] += 'fft_sell '
-        
+
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1
 
         return dataframe
+
 
 
     ###################################
@@ -477,4 +381,3 @@ class FFT(IStrategy):
                 return 'notrend_roi'
         else:
             return None
-

@@ -1,5 +1,5 @@
 {
-  "strategy_name": "FFT2",
+  "strategy_name": "FBB_FFT",
   "params": {
     "roi": {
       "0": 0.1
@@ -21,24 +21,24 @@
     "sell": {
       "csell_endtrend_respect_roi": true,
       "csell_pullback": false,
-      "csell_pullback_amount": 0.009,
-      "csell_pullback_respect_roi": false,
-      "csell_roi_end": 0.002,
-      "csell_roi_start": 0.042,
-      "csell_roi_time": 883,
-      "csell_roi_type": "decay",
+      "csell_pullback_amount": 0.022,
+      "csell_pullback_respect_roi": true,
+      "csell_roi_end": 0.0,
+      "csell_roi_start": 0.046,
+      "csell_roi_time": 786,
+      "csell_roi_type": "step",
       "csell_trend_type": "ssl",
       "cstop_bail_how": "time",
-      "cstop_bail_roc": -4.36,
-      "cstop_bail_time": 197,
+      "cstop_bail_roc": -3.609,
+      "cstop_bail_time": 501,
       "cstop_bail_time_trend": false,
-      "cstop_loss_threshold": -0.013,
-      "cstop_max_stoploss": -0.187,
-      "sell_fft_dev": 0.1,
-      "sell_fft_diff": 0.0
+      "cstop_loss_threshold": -0.016,
+      "cstop_max_stoploss": -0.174,
+      "sell_fft_dev": 0.0,
+      "sell_fft_diff": -0.4
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-04-28 13:35:16.351926+00:00"
+  "export_time": "2022-04-28 02:00:20.761589+00:00"
 }
