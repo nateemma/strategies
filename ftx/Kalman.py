@@ -35,8 +35,6 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 import custom_indicators as cta
 
 from  pykalman import KalmanFilter
-import RollingStandardScaler
-import RollingKalman
 
 
 """

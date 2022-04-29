@@ -34,7 +34,6 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 import custom_indicators as cta
 
-import pywt
 
 
 """
