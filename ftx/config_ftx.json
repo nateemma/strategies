@@ -8,27 +8,38 @@
   "timeframe": "5m",
   "dry_run": true,
   "cancel_open_orders_on_exit": false,
-    "unfilledtimeout": {
-        "entry": 10,
-        "exit": 10,
-        "exit_timeout_count": 0,
-        "unit": "minutes"
-    },
-    "entry_pricing": {
-        "price_side": "same",
-        "use_order_book": true,
-        "order_book_top": 1,
-        "price_last_balance": 0.0,
-        "check_depth_of_market": {
-            "enabled": false,
-            "bids_to_ask_delta": 1
-        }
-    },
-    "exit_pricing": {
-        "price_side": "same",
-        "use_order_book": true,
-        "order_book_top": 1
-    },
+  "unfilledtimeout": {
+    "entry": 10,
+    "exit": 10,
+    "exit_timeout_count": 0,
+    "unit": "minutes"
+  },
+  "entry_pricing": {
+    "price_side": "same",
+    "use_order_book": true,
+    "order_book_top": 1,
+    "price_last_balance": 0.0,
+    "check_depth_of_market": {
+      "enabled": false,
+      "bids_to_ask_delta": 1
+    }
+  },
+  "exit_pricing": {
+    "price_side": "same",
+    "use_order_book": true,
+    "order_book_top": 1
+  },
+  "order_types": {
+    "entry": "limit",
+    "exit": "limit",
+    "emergency_exit": "market",
+    "force_exit": "market",
+    "force_entry": "market",
+    "stoploss": "market",
+    "stoploss_on_exchange": false,
+    "stoploss_on_exchange_interval": 60,
+    "stoploss_on_exchange_limit_ratio": 0.99
+  },
   "exchange": {
     "name": "ftx",
     "key": "",
@@ -159,15 +170,15 @@
       "min_volatility": 0.02,
       "max_volatility": 0.75,
       "refresh_period": 43200
-//    },
-    //    {
-    //        "method": "VolumePairList",
-    //        "number_assets": 80,
-    //        "sort_key": "quoteVolume",
-    //        "refresh_period": 1800
-    //    },
-//    {
-//      "method": "ShuffleFilter"
+      //    },
+      //    {
+      //        "method": "VolumePairList",
+      //        "number_assets": 80,
+      //        "sort_key": "quoteVolume",
+      //        "refresh_period": 1800
+      //    },
+      //    {
+      //      "method": "ShuffleFilter"
     }
   ],
   "edge": {

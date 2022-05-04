@@ -8,13 +8,11 @@ Note: I have tried many different strategies, most of which perform quite badly 
 The abandoned strategies are in the _archived/_ folder<br> for reference (I sometimes cut & paste pieces of them into 
 new strategies).
 
-Currently, I now focus on strategies derived from a single buy strategy, which uses a very simple buy signal based on the 
-Fisher RSI indicator, Bollinger Bands and Williams %R indicator. I typically combine the base buy signals with various 
-guards, triggers and sell approaches. Where I use code from someone else's strategy, I will reference that in the 
-comments, and there is a list of useful strategy repositories below if you need more ideas. I tend to use a naming 
-convention of "FBB_" followed by the sell strategy. For example, FBB_ROI indicates Fisher/Bollinger Band buy signals 
-with an ROI sell signal (meaning just using the ROI mechanism to determine sell points). Similarly FBB_Solipsis uses (some of) the
-sell approach from the Solipsis strategy (by werkrew).
+Currently, I now focus on strategies that revolve around creating a model of the expected behaviour and comparing it to 
+the actual behaviour. If the model projects a higher price (above a certain margin) then buy, similarly sell if the 
+model predicts a lower price.
+
+Currently, all of these stratgeies use the custom sell/stoploss  approach from the Solipsis strategy (by werkrew).
 
 
 
@@ -43,19 +41,18 @@ when any strategy would do well. I recommend including periods where the market 
 
 The following is a list of my custom strategies that I am currently testing. 
 
-| Strategy         | Description                                                                                                                                                                               | 
-|------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| FBB_ROI          | buy logic using the Fisher and Bollinger Band indicators (and recently Williams %R). <br>Most other strategies here use the same buy signals                                              |                                                                        |
-| FBB_2            | FBB buy signals, combined with some correlation to BTC, and sell signals based on Fisher RSI and Bollinger Bands.<br>(the "2" is meant indicate 'squared", i.e. FBB on both buy and sell. | |
-| FBB_2Sqz         | FBB_2 with addition of SqueezeMomentum indicators.<br>Based on TradingView strategy by LazyBear                                                                                           |
-| FBB_Leveraged    | FBB applied to leveraged pairs (e.g. ADABULL, ADABEAR).                                                                                                                                   |
-| FBB_BTCLeveraged | Same as FBB_Leveraged, but uses signals based on BTC up/down trends                                                                                                                       |
-| FBB_Solipsis     | A merge of FBB_ (buy) and the custom sell logic adapted from Solipsis_V5 (see [werkkrew](https://github.com/werkkrew/freqtrade-strategies) repo)                                          |
+| Strategy   | Description                                           | 
+|------------|-------------------------------------------------------|
+| DWT        | Model behaviour using a Digital Wavelet Transform (DWT) |
+| FFT        | Model behaviour using a Fast Fourier Transform (FFT)  |
+| Kalman     | Model behaviour using a Kalman Filter (from pykalman) |
+| KalmanSIMD | Model behaviour using a Kalman Filter (from simdkalman) |
+
 
 Please note that you will need both the _.py_ *and* the _.json_ file.
 
 If you know what you are doing, go ahead and use these (but read the section on muliple exchanges first). 
-If not, please read through the gneral freqtrade documentation and the guidelines below...
+If not, please read through the general freqtrade documentation and the guidelines below...
 
 ## Reference repositories
 I either used or learned from strategies in the github repositories below:
@@ -181,6 +178,15 @@ Or, you can use a script:
 
 Use the -h option for options. 
 
+*NOTE*: if you get really good results in backtesting (100% or more) then it is highly likely that your strategy is 
+performing lookahead (using future data). This is remarkably easy to do, since the entire set of test data is present 
+in the dataframe when your strategy is calculating indicators. So, if you do something like take a mean, find a min/max 
+etc. then you are operating on the entire data set, not just the older data. To avoid this, either use the TA-lib functions 
+or process the data through the _rolling_ mechanism.
+
+See [here](https://www.freqtrade.io/en/latest/strategy-customization/#common-mistakes-when-developing-strategies) for (a little) more information
+
+Also, some example strategies with subtle lookahead bias can be viewed (with an explanation) at: https://github.com/freqtrade/freqtrade-strategies/tree/master/user_data/strategies/lookahead_bias
 ## Hyper-Parameter Optimisation
 
 Run the hyperopt command to search for 'optimal' parameters in your strategy. 
@@ -254,16 +260,16 @@ For example:
 
 The available custom loss functions are:
 
-| Loss Function               | Description |
-|-----------------------------|------------------------------------------|
-| ExpectancyHyperOptLoss      | Optimises based primarily on Expectancy (projected profit per trade) |
-| PEDHyperOptLoss             | Optimises based equally on Profit, Expectancy and Duration |
-| QuickHyperOptLoss           | Optimises based primarily on average duration of trades (shorter is better) |
-| WinHyperOptLoss             | Optimises based primarily on Win/Loss ratio |
-|  WeightedProfitHyperOptLoss | Optimises based primarily on profit |
+| Loss Function              | Description |
+|----------------------------|------------------------------------------|
+| ExpectancyHyperOptLoss     | Optimises based primarily on Expectancy (projected profit per trade) |
+| PEDHyperOptLoss            | Optimises based equally on Profit, Expectancy and Duration |
+| QuickHyperOptLoss          | Optimises based primarily on average duration of trades (shorter is better) |
+| WinHyperOptLoss            | Optimises based primarily on Win/Loss ratio |
+| WeightedProfitHyperOptLoss | Optimises based primarily on profit |
 
 All of these functions take multiple parameters into account, they just use different weightings. 
-They also require a minum profit, number of trades and win/loss ratio.
+They also require a minimum profit, number of trades and win/loss ratio.
 
 The best general purpose loss function is _WeightedProfitHyperOptLoss_, and this is the default used by the 
 _hyp\_strat.sh_ script

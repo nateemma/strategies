@@ -14,28 +14,28 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "buy_fft_diff": 1.0
+      "entry_fft_diff": 4.6
     },
     "sell": {
-      "csell_endtrend_respect_roi": true,
-      "csell_pullback": false,
-      "csell_pullback_amount": 0.019,
-      "csell_pullback_respect_roi": true,
-      "csell_roi_end": 0.007,
-      "csell_roi_start": 0.044,
-      "csell_roi_time": 1411,
-      "csell_roi_type": "static",
-      "csell_trend_type": "none",
-      "cstop_bail_how": "roc",
-      "cstop_bail_roc": -3.757,
-      "cstop_bail_time": 166,
-      "cstop_bail_time_trend": false,
-      "cstop_loss_threshold": -0.042,
-      "cstop_max_stoploss": -0.053,
-      "sell_fft_diff": -3.7
+      "cexit_endtrend_respect_roi": true,
+      "cexit_pullback": false,
+      "cexit_pullback_amount": 0.029,
+      "cexit_pullback_respect_roi": true,
+      "cexit_roi_end": 0.007,
+      "cexit_roi_start": 0.021,
+      "cexit_roi_time": 819,
+      "cexit_roi_type": "static",
+      "cexit_trend_type": "any",
+      "cstop_bail_how": "time",
+      "cstop_bail_roc": -1.988,
+      "cstop_bail_time": 78,
+      "cstop_bail_time_trend": true,
+      "cstop_loss_threshold": -0.03,
+      "cstop_max_stoploss": -0.256,
+      "exit_fft_diff": -0.9
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-04-29 23:22:41.666440+00:00"
+  "export_time": "2022-05-01 22:43:35.955590+00:00"
 }

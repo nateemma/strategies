@@ -216,7 +216,7 @@ class FFT(IStrategy):
         # compute power spectrum density
         # squared magnitude of each fft coefficient
         psd = fft * np.conj(fft) / n
-        threshold = 10
+        threshold = 20
         fft = np.where(psd<threshold, 0, fft)
 
         # inverse fourier transform

@@ -35,6 +35,7 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 import custom_indicators as cta
 
 import pywt
+import scipy
 
 
 """
@@ -142,15 +143,18 @@ class DWT(IStrategy):
 
         # DWT
 
-        informative['dwt_predict'] = informative['close'].rolling(window=self.dwt_window).apply(self.model)
+        informative['dwt_model'] = informative['close'].rolling(window=self.dwt_window).apply(self.model)
+        # informative['dwt_predict'] = informative['dwt_model'].rolling(window=self.dwt_window).apply(self.predict)
 
         # merge into normal timeframe
         dataframe = merge_informative_pair(dataframe, informative, self.timeframe, self.inf_timeframe, ffill=True)
 
         # calculate predictive indicators in shorter timeframe (not informative)
 
-        dataframe['dwt_predict'] = dataframe[f"dwt_predict_{self.inf_timeframe}"]
-        dataframe['dwt_predict_diff'] = 100.0 * (dataframe['dwt_predict'] - dataframe['close']) / dataframe['close']
+        dataframe['dwt_model'] = dataframe[f"dwt_model_{self.inf_timeframe}"]
+        dataframe['dwt_model_diff'] = 100.0 * (dataframe['dwt_model'] - dataframe['close']) / dataframe['close']
+        # dataframe['dwt_predict'] = dataframe[f"dwt_predict_{self.inf_timeframe}"]
+        # dataframe['dwt_predict_diff'] = 100.0 * (dataframe['dwt_predict'] - dataframe['dwt_model']) / dataframe['dwt_model']
 
         # Custom Stoploss
 
@@ -257,6 +261,22 @@ class DWT(IStrategy):
         length = len(scaled)
         return scaled.ravel()[length-1]
 
+    def predict(self, a: np.ndarray) -> np.float:
+
+        # predicts the next value using polynomial extrapolation
+
+        # a.fillna(0)
+
+        # fit the supplied data
+        # Note: extrapolation is notoriously fickle. Be careful
+        length = len(a)
+        x = np.arange(length)
+        f = scipy.interpolate.UnivariateSpline(x, a, k=5)
+
+        predict = f(length)
+
+        return predict
+
     ###################################
 
     """
@@ -272,14 +292,14 @@ class DWT(IStrategy):
 
         # DWT triggers
         dwt_cond = (
-                qtpylib.crossed_above(dataframe['dwt_predict_diff'], self.buy_dwt_diff.value)
+                qtpylib.crossed_above(dataframe['dwt_model_diff'], self.buy_dwt_diff.value)
         )
 
         conditions.append(dwt_cond)
 
         # DWTs will spike on big gains, so try to constrain
         spike_cond = (
-                dataframe['dwt_predict_diff'] < 2.0 * self.buy_dwt_diff.value
+                dataframe['dwt_model_diff'] < 2.0 * self.buy_dwt_diff.value
         )
         conditions.append(spike_cond)
 
@@ -305,14 +325,14 @@ class DWT(IStrategy):
 
         # FFT triggers
         dwt_cond = (
-                qtpylib.crossed_below(dataframe['dwt_predict_diff'], self.sell_dwt_diff.value)
+                qtpylib.crossed_below(dataframe['dwt_model_diff'], self.sell_dwt_diff.value)
         )
 
         conditions.append(dwt_cond)
 
         # DWTs will spike on big gains, so try to constrain
         spike_cond = (
-                dataframe['dwt_predict_diff'] > 2.0 * self.sell_dwt_diff.value
+                dataframe['dwt_model_diff'] > 2.0 * self.sell_dwt_diff.value
         )
         conditions.append(spike_cond)
 

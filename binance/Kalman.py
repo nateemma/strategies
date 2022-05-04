@@ -78,13 +78,15 @@ class Kalman(IStrategy):
     process_only_new_candles = True
 
     custom_trade_info = {}
-    filter_list = {}
 
     ###################################
 
     # Strategy Specific Variable Storage
 
     kf_window = startup_candle_count
+    filter_list = {}
+    filter_init_list = {}
+
     kalman_filter = KalmanFilter(
                 transition_matrices=1.0,
                 observation_matrices=1.0,
@@ -93,6 +95,7 @@ class Kalman(IStrategy):
                 observation_covariance=0.1,
                 transition_covariance=0.1
             )
+    current_pair = ""
 
 
     ## Hyperopt Variables
@@ -165,6 +168,8 @@ class Kalman(IStrategy):
 
         # get filter for current pair
 
+        self.current_pair = curr_pair
+
         # create if not already done
         if not curr_pair in self.filter_list:
             self.filter_list[curr_pair] = kalman_filter = KalmanFilter(
@@ -175,7 +180,7 @@ class Kalman(IStrategy):
                 observation_covariance=0.1,
                 transition_covariance=0.1
             )
-            self.filter_list[curr_pair] = self.filter_list[curr_pair].em(informative['close'], n_iter=6)
+            self.filter_init_list[curr_pair] = False
 
 
         # set current filter (can't pass parameter to apply())
@@ -232,7 +237,12 @@ class Kalman(IStrategy):
         scaled = (standardized - w_mean) / w_std
         scaled.fillna(0, inplace=True)
 
-        # get the Fourier model
+        # init filter if needed
+        if not self.filter_init_list[self.current_pair]:
+            self.filter_init_list[self.current_pair] = True
+            self.filter_list[self.current_pair] = self.filter_list[self.current_pair].em(scaled, n_iter=6)
+
+        # get the Kalman model
         restored_sig = self.kalmanModel(scaled, self.kalman_filter)
 
         # re-trend
