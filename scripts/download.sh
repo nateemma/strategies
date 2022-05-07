@@ -25,8 +25,6 @@ for exchange in "${list[@]}"; do
   echo ""
   echo "${exchange}"
   echo ""
-  # Note: this expects a 'special' config file for download, because you don't want the same filters,
-  #       plus you might need to bypass any proxies for downloading data
 #  config_file="user_data/strategies/${exchange}/config_${exchange}_download.json"
   config_file="user_data/strategies/${exchange}/config_${exchange}.json"
   run_cmd "freqtrade download-data  -c ${config_file}  --timerange=${timerange} -t 5m 15m 1h 1d"

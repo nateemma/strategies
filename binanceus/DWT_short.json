@@ -1,0 +1,44 @@
+{
+  "strategy_name": "DWT_short",
+  "params": {
+    "roi": {
+      "0": 0.1
+    },
+    "stoploss": {
+      "stoploss": -0.1
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "buy": {
+      "entry_long_dwt_diff": 4.8,
+      "entry_short_dwt_diff": -0.4,
+      "entry_trend_type": "candle"
+    },
+    "sell": {
+      "cexit_endtrend_respect_roi": false,
+      "cexit_pullback": false,
+      "cexit_pullback_amount": 0.021,
+      "cexit_pullback_respect_roi": false,
+      "cexit_roi_end": 0.003,
+      "cexit_roi_start": 0.022,
+      "cexit_roi_time": 1081,
+      "cexit_roi_type": "static",
+      "cexit_trend_type": "none",
+      "cstop_bail_how": "none",
+      "cstop_bail_roc": -4.299,
+      "cstop_bail_time": 1354,
+      "cstop_bail_time_trend": false,
+      "cstop_loss_threshold": -0.03,
+      "cstop_max_stoploss": -0.211,
+      "exit_long_dwt_diff": -4.1,
+      "exit_short_dwt_diff": 2.9
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2022-05-07 12:00:46.857764+00:00"
+}

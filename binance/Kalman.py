@@ -69,9 +69,9 @@ class Kalman(IStrategy):
     use_custom_stoploss = True
 
     # Recommended
-    use_sell_signal = True
-    sell_profit_only = False
-    ignore_roi_if_buy_signal = True
+    use_exit_signal = True
+    exit_profit_only = False
+    ignore_roi_if_entry_signal = True
 
     # Required
     startup_candle_count: int = 32
@@ -101,9 +101,9 @@ class Kalman(IStrategy):
     ## Hyperopt Variables
     
     # Kalman  hyperparams
-    buy_kf_diff = DecimalParameter(0.0, 5.0, decimals=1, default=1.0, space='buy', load=True, optimize=True)
+    entry_kf_diff = DecimalParameter(0.0, 5.0, decimals=1, default=1.0, space='buy', load=True, optimize=True)
 
-    sell_kf_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-0.1, space='sell', load=True, optimize=True)
+    exit_kf_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-0.1, space='sell', load=True, optimize=True)
 
 
     # # FBB_ hyperparams
@@ -111,24 +111,24 @@ class Kalman(IStrategy):
     # buy_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.75, space='buy', load=True, optimize=True)
     # # buy_force_fisher_wr = DecimalParameter(-0.99, -0.85, decimals=2, default=-0.99, space='buy', load=True, optimize=True)
     #
-    # sell_bb_gain = DecimalParameter(0.7, 1.5, decimals=2, default=0.8, space='sell', load=True, optimize=True)
-    # sell_fisher_wr = DecimalParameter(0.75, 0.99, decimals=2, default=0.9, space='sell', load=True, optimize=True)
-    # # sell_force_fisher_wr = DecimalParameter(0.85, 0.99, decimals=2, default=0.99, space='sell', load=True, optimize=True)
+    # exit_bb_gain = DecimalParameter(0.7, 1.5, decimals=2, default=0.8, space='sell', load=True, optimize=True)
+    # exit_fisher_wr = DecimalParameter(0.75, 0.99, decimals=2, default=0.9, space='sell', load=True, optimize=True)
+    # # exit_force_fisher_wr = DecimalParameter(0.85, 0.99, decimals=2, default=0.99, space='sell', load=True, optimize=True)
 
 
     # Custom Sell Profit (formerly Dynamic ROI)
-    csell_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
+    cexit_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
                                           optimize=True)
-    csell_roi_time = IntParameter(720, 1440, default=720, space='sell', load=True, optimize=True)
-    csell_roi_start = DecimalParameter(0.01, 0.05, default=0.01, space='sell', load=True, optimize=True)
-    csell_roi_end = DecimalParameter(0.0, 0.01, default=0, space='sell', load=True, optimize=True)
-    csell_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any', 'none'], default='any', space='sell',
+    cexit_roi_time = IntParameter(720, 1440, default=720, space='sell', load=True, optimize=True)
+    cexit_roi_start = DecimalParameter(0.01, 0.05, default=0.01, space='sell', load=True, optimize=True)
+    cexit_roi_end = DecimalParameter(0.0, 0.01, default=0, space='sell', load=True, optimize=True)
+    cexit_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any', 'none'], default='any', space='sell',
                                             load=True, optimize=True)
-    csell_pullback = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
-    csell_pullback_amount = DecimalParameter(0.005, 0.03, default=0.01, space='sell', load=True, optimize=True)
-    csell_pullback_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
+    cexit_pullback = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+    cexit_pullback_amount = DecimalParameter(0.005, 0.03, default=0.01, space='sell', load=True, optimize=True)
+    cexit_pullback_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
                                                       optimize=True)
-    csell_endtrend_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
+    cexit_endtrend_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
                                                       optimize=True)
 
     # Custom Stoploss
@@ -329,31 +329,31 @@ class Kalman(IStrategy):
     """
 
 
-    def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         conditions = []
-        dataframe.loc[:, 'buy_tag'] = ''
+        dataframe.loc[:, 'enter_tag'] = ''
 
         # conditions.append(dataframe['volume'] > 0)
 
 
         # Kalman triggers
         kf_cond = (
-                qtpylib.crossed_above(dataframe['kf_predict_diff'], self.buy_kf_diff.value)
+                qtpylib.crossed_above(dataframe['kf_predict_diff'], self.entry_kf_diff.value)
         )
 
         conditions.append(kf_cond)
 
         # Model will spike on big gains, so try to constrain
         spike_cond = (
-                dataframe['kf_predict_diff'] < 2.0 * self.buy_kf_diff.value
+                dataframe['kf_predict_diff'] < 2.0 * self.entry_kf_diff.value
         )
         conditions.append(spike_cond)
 
         # set buy tags
-        dataframe.loc[kf_cond, 'buy_tag'] += 'kf_buy '
+        dataframe.loc[kf_cond, 'enter_tag'] += 'kf_buy '
 
         if conditions:
-            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
+            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'enter_long'] = 1
 
         return dataframe
 
@@ -365,20 +365,20 @@ class Kalman(IStrategy):
     """
 
 
-    def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+    def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         conditions = []
         dataframe.loc[:, 'exit_tag'] = ''
 
         # Kalman triggers
         kf_cond = (
-                qtpylib.crossed_below(dataframe['kf_predict_diff'], self.sell_kf_diff.value)
+                qtpylib.crossed_below(dataframe['kf_predict_diff'], self.exit_kf_diff.value)
         )
 
         conditions.append(kf_cond)
 
         # DWTs will spike on big gains, so try to constrain
         spike_cond = (
-                dataframe['kf_predict_diff'] > 2.0 * self.sell_kf_diff.value
+                dataframe['kf_predict_diff'] > 2.0 * self.exit_kf_diff.value
         )
         conditions.append(spike_cond)
 
@@ -388,7 +388,7 @@ class Kalman(IStrategy):
 
 
         if conditions:
-            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1
+            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'exit_long'] = 1
 
         return dataframe
 
@@ -441,29 +441,29 @@ class Kalman(IStrategy):
 
         trade_dur = int((current_time.timestamp() - trade.open_date_utc.timestamp()) // 60)
         max_profit = max(0, trade.calc_profit_ratio(trade.max_rate))
-        pullback_value = max(0, (max_profit - self.csell_pullback_amount.value))
+        pullback_value = max(0, (max_profit - self.cexit_pullback_amount.value))
         in_trend = False
 
         # Determine our current ROI point based on the defined type
-        if self.csell_roi_type.value == 'static':
-            min_roi = self.csell_roi_start.value
-        elif self.csell_roi_type.value == 'decay':
-            min_roi = cta.linear_decay(self.csell_roi_start.value, self.csell_roi_end.value, 0,
-                                       self.csell_roi_time.value, trade_dur)
-        elif self.csell_roi_type.value == 'step':
-            if trade_dur < self.csell_roi_time.value:
-                min_roi = self.csell_roi_start.value
+        if self.cexit_roi_type.value == 'static':
+            min_roi = self.cexit_roi_start.value
+        elif self.cexit_roi_type.value == 'decay':
+            min_roi = cta.linear_decay(self.cexit_roi_start.value, self.cexit_roi_end.value, 0,
+                                       self.cexit_roi_time.value, trade_dur)
+        elif self.cexit_roi_type.value == 'step':
+            if trade_dur < self.cexit_roi_time.value:
+                min_roi = self.cexit_roi_start.value
             else:
-                min_roi = self.csell_roi_end.value
+                min_roi = self.cexit_roi_end.value
 
         # Determine if there is a trend
-        if self.csell_trend_type.value == 'rmi' or self.csell_trend_type.value == 'any':
+        if self.cexit_trend_type.value == 'rmi' or self.cexit_trend_type.value == 'any':
             if last_candle['rmi-up-trend'] == 1:
                 in_trend = True
-        if self.csell_trend_type.value == 'ssl' or self.csell_trend_type.value == 'any':
+        if self.cexit_trend_type.value == 'ssl' or self.cexit_trend_type.value == 'any':
             if last_candle['ssl-dir'] == 'up':
                 in_trend = True
-        if self.csell_trend_type.value == 'candle' or self.csell_trend_type.value == 'any':
+        if self.cexit_trend_type.value == 'candle' or self.cexit_trend_type.value == 'any':
             if last_candle['candle-up-trend'] == 1:
                 in_trend = True
 
@@ -472,10 +472,10 @@ class Kalman(IStrategy):
             # Record that we were in a trend for this trade/pair for a more useful sell message later
             self.custom_trade_info[trade.pair]['had-trend'] = True
             # If pullback is enabled and profit has pulled back allow a sell, maybe
-            if self.csell_pullback.value == True and (current_profit <= pullback_value):
-                if self.csell_pullback_respect_roi.value == True and current_profit > min_roi:
+            if self.cexit_pullback.value == True and (current_profit <= pullback_value):
+                if self.cexit_pullback_respect_roi.value == True and current_profit > min_roi:
                     return 'intrend_pullback_roi'
-                elif self.csell_pullback_respect_roi.value == False:
+                elif self.cexit_pullback_respect_roi.value == False:
                     if current_profit > min_roi:
                         return 'intrend_pullback_roi'
                     else:
@@ -488,7 +488,7 @@ class Kalman(IStrategy):
                 if current_profit > min_roi:
                     self.custom_trade_info[trade.pair]['had-trend'] = False
                     return 'trend_roi'
-                elif self.csell_endtrend_respect_roi.value == False:
+                elif self.cexit_endtrend_respect_roi.value == False:
                     self.custom_trade_info[trade.pair]['had-trend'] = False
                     return 'trend_noroi'
             elif current_profit > min_roi:

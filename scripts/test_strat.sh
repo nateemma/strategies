@@ -6,6 +6,7 @@ clean=0
 epochs=100
 jarg=""
 config_file=""
+short=0
 
 spaces="buy sell"
 
@@ -51,6 +52,7 @@ while getopts :c:e:j:l:n:s:t:-: OPT; do
     j | jobs )       needs_arg; jarg="-j $OPTARG" ;;
     n | ndays )      needs_arg; num_days="$OPTARG"; timerange="$(date -j -v-${num_days}d +"%Y%m%d")-" ;;
     s | spaces )     needs_arg; spaces="${OPTARG}" ;;
+        short )      short=1 ;;
     t | timeframe )  needs_arg; timerange="$OPTARG" ;;
     ??* )            show_usage; die "Illegal option --$OPT" ;;  # bad long option
     ? )              show_usage; die "Illegal option --$OPT" ;;  # bad short option (error reported via getopts)
@@ -91,6 +93,10 @@ if [ ! -f  ${strat_file} ]; then
     exit 0
 fi
 
+if [[ $short -ne 0 ]] ; then
+    config_file="${exchange_dir}/config_${exchange}_short.json"
+fi
+
 # adjust timerange to make sure there is an end date (which enables caching of data in backtesting)
 a=("${(@s/-/)timerange}")
 start=${a[1]} # don't know why it's reversed
@@ -114,7 +120,7 @@ echo $today
 echo "Testing strategy:$strategy for exchange:$exchange..."
 
 
-cmd="freqtrade backtesting --cache none --timerange=${timerange} -c ${config_file} --strategy-path ${exchange_dir} --strategy-list ${strategy}"
+cmd="freqtrade backtesting --cache none  --breakdown month --timerange=${timerange} -c ${config_file} --strategy-path ${exchange_dir} --strategy-list ${strategy}"
 echo ${cmd}
 eval ${cmd}
 

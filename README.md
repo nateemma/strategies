@@ -41,11 +41,12 @@ when any strategy would do well. I recommend including periods where the market 
 
 The following is a list of my custom strategies that I am currently testing. 
 
-| Strategy   | Description                                           | 
-|------------|-------------------------------------------------------|
+| Strategy   | Description                                             | 
+|------------|---------------------------------------------------------|
 | DWT        | Model behaviour using a Digital Wavelet Transform (DWT) |
-| FFT        | Model behaviour using a Fast Fourier Transform (FFT)  |
-| Kalman     | Model behaviour using a Kalman Filter (from pykalman) |
+| DWT_short  | Same as DWT, but with shorting added                    |
+| FFT        | Model behaviour using a Fast Fourier Transform (FFT)    |
+| Kalman     | Model behaviour using a Kalman Filter (from pykalman)   |
 | KalmanSIMD | Model behaviour using a Kalman Filter (from simdkalman) |
 
 
@@ -130,7 +131,45 @@ My environment is set up for multiple exchanges, so it's a bit different. My scr
 (or config_\<exchange\>_\<port\>.json if you want to run multiple strategies on the same exchange)
 * an exchange-specific config file in the user_data/strategies/\<exchange\> directory of the form config\_\<exchange\>.json
 
+For short strategies, you need to use a different set of pairs. My procedure is to have a separate config file
+named _config\_\<exchange\>\_short.json_ Also, see later section
+
 Note: do *_not_* put any exchange trading keys or passwords in the user_data/strategies/\<exchange\> files, as you are quite likely to share these or put them into github
+
+### Configuration for Short Strategies
+Shorting has just (at the time of writing this) been introduced to freqtrade, and requires a 
+different set of pairs and a different configuration
+
+Copy your working _user_data/strategies/\<exchange\>/config\_\<exchange\>.json_ to _config\_\<exchange\>_short.json_
+
+Add the following lines in the main section of your configuration:
+
+>  "trading_mode": "futures",
+> 
+>  "margin_mode": "isolated",
+
+You can only use pairs that support margin trading. To find these, run the following command:
+
+> freqtrade list-pairs --exchange _\<exchange\>_ --trading-mode futures
+
+This will give a table of all of the supported pairs. Pay attention to the _Quote_ column and choose the base coin 
+you want to use (probably _USDT_). Change the _stake_currency_ prameter in your config file to match.
+<br>
+Now, look at the _Leverage_ column at the end of the table. 
+You can only short pairs where Leverage is > 1, so you have to remove those from your list (otherwise freqtrade will exit).
+To do that, try this command:
+
+> freqtrade list-pairs --exchange binanceus --trading-mode futures | grep USDT | awk '$16>1 {print "\""$4"\","}'
+
+But obviously changing USDT and binanceus to whatever you are using
+
+Now, copy  that list into your config file _pair\_whitelist_ entry, enable any filters (e.g. _VolumePairList_)
+and run:
+
+> freqtrade test-pairlist -c user_data/strategies/binanceus/config_binanceus_short.json
+
+Then, take the output of that and replace the _pair\_whitelist_ entry, disable the filters (i.e. use _StaticPairList_) and start backtesting
+
 
 ## Downloading Test Data
 To run backtest and hyperopt, you need to download data to your local environment.
@@ -143,14 +182,18 @@ Or, for a specific pair (e.g. BTC/USDT):
 
 >freqtrade download-data  --timerange=_\<timerange\>_ -c _\<config\>_-t 5m 15m 1h 1d -p BTC/USDT
 
-Most of the FBB_ strategies only need 5m data, but some of the more advanced sell logic also requires 15m, 1h and 1d data, 
+Most of the strategies  need 5m and 15m data, but some of the more advanced sell logic also requires 15m, 1h and 1d data, 
 plus also data for BTC/USD or BTC/USDT (whatever your exchanges uses)
 
 I typically download for the past 180 days, which is the default used by the various scripts.
 
 For convenience, you can also just run :
 
->bash user_data/strategies/scripts/download.sh
+>zsh user_data/strategies/scripts/download.sh \[\<exchange\>\]
+
+For short data, you need to specify an additional parameter (--trading-mode futures):
+
+>freqtrade download-data --trading-mode futures --timerange=_\<timerange\>_ -c _\<config\>_-t 5m 15m 1h 1d
 
 
 ## Backtesting
@@ -174,7 +217,7 @@ Backtesting can be done using the following command:
 
 Or, you can use a script:
 
->bash user_data/strategies/scripts/test_strat.sh _\<exchange\>_ _\<strategy\>_
+>zsh user_data/strategies/scripts/test_strat.sh _\<exchange\>_ _\<strategy\>_
 
 Use the -h option for options. 
 
@@ -213,7 +256,7 @@ dynamic ROI or a custom stoploss (e.g. FBB_Solipsis)
 
 Or, you can use a script:
 
->bash user_data/strategies/scripts/hyp_strat.sh -s "buy sell roi" _\<exchange\>_ _\<strategy\>_
+>zsh user_data/strategies/scripts/hyp_strat.sh -s "buy sell roi" _\<exchange\>_ _\<strategy\>_
 
 If you have a fast computer, try _--space buy sell roi_ and then _--spaces trailing_, but if you have a slower computer, try them in sequence.
 
@@ -256,7 +299,7 @@ To use them, you have to copy them to the _freqtrade/user\_data/hyperopts direct
 
 For example:
 
->bash user_data/strategies/scripts/hyp_strat.sh -l WeightedProfitHyperoptLoss binance FBB_ROI
+>zsh user_data/strategies/scripts/hyp_strat.sh -l WeightedProfitHyperoptLoss binance FBB_ROI
 
 The available custom loss functions are:
 
@@ -299,7 +342,7 @@ monitor the trades on a web page at http://127.0.0.1:8080/ (or whatever address 
 
 The script helper is:
 
->bash user_data/strategies/scripts/dryrun_strat -p _\<port\>_ _\<exchange\>_ _\<strategy\>_
+>zsh user_data/strategies/scripts/dryrun_strat -p _\<port\>_ _\<exchange\>_ _\<strategy\>_
 
 The -p is optional, but if you want to run multiple strategies on the same exchange you need to use this. 
 In such cases, there needs to be a matching config file in the base _freqtrade_ directory of the form _config\_\<exchange\>\_\<port\>.json_,
@@ -316,7 +359,7 @@ In a command window, just run:
 
 The script helper is:
 
->bash user_data/strategies/scripts/run_strat -p _\<port\>_ _\<exchange\>_ _\<strategy\>_
+>zsh user_data/strategies/scripts/run_strat -p _\<port\>_ _\<exchange\>_ _\<strategy\>_
 
 You can monitor trades from the UI (see above), and from the exchange website/app
 

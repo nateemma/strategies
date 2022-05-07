@@ -69,9 +69,9 @@ class DWT(IStrategy):
     use_custom_stoploss = True
 
     # Recommended
-    use_sell_signal = True
-    sell_profit_only = False
-    ignore_roi_if_buy_signal = True
+    use_exit_signal = True
+    exit_profit_only = False
+    ignore_roi_if_entry_signal = True
 
     # Required
     startup_candle_count: int = 128 # must be power of 2
@@ -89,23 +89,23 @@ class DWT(IStrategy):
     dwt_window = startup_candle_count
 
     # DWT  hyperparams
-    buy_dwt_diff = DecimalParameter(0.0, 5.0, decimals=1, default=1.0, space='buy', load=True, optimize=True)
-    sell_dwt_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-1.0, space='sell', load=True, optimize=True)
+    entry_dwt_diff = DecimalParameter(0.0, 5.0, decimals=1, default=1.0, space='buy', load=True, optimize=True)
+    exit_dwt_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-1.0, space='sell', load=True, optimize=True)
 
 
-    # Custom Sell Profit (formerly Dynamic ROI)
-    csell_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
+    # Custom exit Profit (formerly Dynamic ROI)
+    cexit_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
                                           optimize=True)
-    csell_roi_time = IntParameter(720, 1440, default=720, space='sell', load=True, optimize=True)
-    csell_roi_start = DecimalParameter(0.01, 0.05, default=0.01, space='sell', load=True, optimize=True)
-    csell_roi_end = DecimalParameter(0.0, 0.01, default=0, space='sell', load=True, optimize=True)
-    csell_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any', 'none'], default='any', space='sell',
+    cexit_roi_time = IntParameter(720, 1440, default=720, space='sell', load=True, optimize=True)
+    cexit_roi_start = DecimalParameter(0.01, 0.05, default=0.01, space='sell', load=True, optimize=True)
+    cexit_roi_end = DecimalParameter(0.0, 0.01, default=0, space='sell', load=True, optimize=True)
+    cexit_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any', 'none'], default='any', space='sell',
                                             load=True, optimize=True)
-    csell_pullback = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
-    csell_pullback_amount = DecimalParameter(0.005, 0.03, default=0.01, space='sell', load=True, optimize=True)
-    csell_pullback_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
+    cexit_pullback = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+    cexit_pullback_amount = DecimalParameter(0.005, 0.03, default=0.01, space='sell', load=True, optimize=True)
+    cexit_pullback_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
                                                       optimize=True)
-    csell_endtrend_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
+    cexit_endtrend_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
                                                       optimize=True)
 
     # Custom Stoploss
@@ -145,6 +145,7 @@ class DWT(IStrategy):
 
         informative['dwt_model'] = informative['close'].rolling(window=self.dwt_window).apply(self.model)
         # informative['dwt_predict'] = informative['dwt_model'].rolling(window=self.dwt_window).apply(self.predict)
+        # informative['stddev'] = informative['close'].rolling(window=self.dwt_window).std()
 
         # merge into normal timeframe
         dataframe = merge_informative_pair(dataframe, informative, self.timeframe, self.inf_timeframe, ffill=True)
@@ -152,7 +153,9 @@ class DWT(IStrategy):
         # calculate predictive indicators in shorter timeframe (not informative)
 
         dataframe['dwt_model'] = dataframe[f"dwt_model_{self.inf_timeframe}"]
+        # dataframe['stddev'] = dataframe[f"stddev_{self.inf_timeframe}"]
         dataframe['dwt_model_diff'] = 100.0 * (dataframe['dwt_model'] - dataframe['close']) / dataframe['close']
+        # dataframe['dwt_model_diff2'] = (dataframe['dwt_model'] - dataframe['close']) / dataframe['stddev']
         # dataframe['dwt_predict'] = dataframe[f"dwt_predict_{self.inf_timeframe}"]
         # dataframe['dwt_predict_diff'] = 100.0 * (dataframe['dwt_predict'] - dataframe['dwt_model']) / dataframe['dwt_model']
 
@@ -280,34 +283,34 @@ class DWT(IStrategy):
     ###################################
 
     """
-    Buy Signal
+    entry Signal
     """
 
 
-    def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         conditions = []
-        dataframe.loc[:, 'buy_tag'] = ''
+        dataframe.loc[:, 'enter_tag'] = ''
 
         # conditions.append(dataframe['volume'] > 0)
 
         # DWT triggers
         dwt_cond = (
-                qtpylib.crossed_above(dataframe['dwt_model_diff'], self.buy_dwt_diff.value)
+                qtpylib.crossed_above(dataframe['dwt_model_diff'], self.entry_dwt_diff.value)
         )
 
         conditions.append(dwt_cond)
 
         # DWTs will spike on big gains, so try to constrain
         spike_cond = (
-                dataframe['dwt_model_diff'] < 2.0 * self.buy_dwt_diff.value
+                dataframe['dwt_model_diff'] < 2.0 * self.entry_dwt_diff.value
         )
         conditions.append(spike_cond)
 
-        # set buy tags
-        dataframe.loc[dwt_cond, 'buy_tag'] += 'dwt_buy '
+        # set entry tags
+        dataframe.loc[dwt_cond, 'enter_tag'] += 'dwt_entry '
 
         if conditions:
-            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
+            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'enter_long'] = 1
 
         return dataframe
 
@@ -315,32 +318,32 @@ class DWT(IStrategy):
     ###################################
 
     """
-    Sell Signal
+    exit Signal
     """
 
 
-    def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+    def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         conditions = []
         dataframe.loc[:, 'exit_tag'] = ''
 
         # FFT triggers
         dwt_cond = (
-                qtpylib.crossed_below(dataframe['dwt_model_diff'], self.sell_dwt_diff.value)
+                qtpylib.crossed_below(dataframe['dwt_model_diff'], self.exit_dwt_diff.value)
         )
 
         conditions.append(dwt_cond)
 
         # DWTs will spike on big gains, so try to constrain
         spike_cond = (
-                dataframe['dwt_model_diff'] > 2.0 * self.sell_dwt_diff.value
+                dataframe['dwt_model_diff'] > 2.0 * self.exit_dwt_diff.value
         )
         conditions.append(spike_cond)
 
-        # set sell tags
-        dataframe.loc[dwt_cond, 'exit_tag'] += 'dwt_sell '
+        # set exit tags
+        dataframe.loc[dwt_cond, 'exit_tag'] += 'dwt_exit '
 
         if conditions:
-            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1
+            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'exit_long'] = 1
 
         return dataframe
 
@@ -363,7 +366,7 @@ class DWT(IStrategy):
         if current_profit <  self.cstop_max_stoploss.value:
             return 0.01
 
-        # Determine how we sell when we are in a loss
+        # Determine how we exit when we are in a loss
         if current_profit < self.cstop_loss_threshold.value:
             if self.cstop_bail_how.value == 'roc' or self.cstop_bail_how.value == 'any':
                 # Dynamic bailout based on rate of change
@@ -381,10 +384,10 @@ class DWT(IStrategy):
     ###################################
 
     """
-    Custom Sell
+    Custom exit
     """
 
-    def custom_sell(self, pair: str, trade: 'Trade', current_time: 'datetime', current_rate: float,
+    def custom_exit(self, pair: str, trade: 'Trade', current_time: 'datetime', current_rate: float,
                     current_profit: float, **kwargs):
 
         dataframe, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
@@ -392,41 +395,41 @@ class DWT(IStrategy):
 
         trade_dur = int((current_time.timestamp() - trade.open_date_utc.timestamp()) // 60)
         max_profit = max(0, trade.calc_profit_ratio(trade.max_rate))
-        pullback_value = max(0, (max_profit - self.csell_pullback_amount.value))
+        pullback_value = max(0, (max_profit - self.cexit_pullback_amount.value))
         in_trend = False
 
         # Determine our current ROI point based on the defined type
-        if self.csell_roi_type.value == 'static':
-            min_roi = self.csell_roi_start.value
-        elif self.csell_roi_type.value == 'decay':
-            min_roi = cta.linear_decay(self.csell_roi_start.value, self.csell_roi_end.value, 0,
-                                       self.csell_roi_time.value, trade_dur)
-        elif self.csell_roi_type.value == 'step':
-            if trade_dur < self.csell_roi_time.value:
-                min_roi = self.csell_roi_start.value
+        if self.cexit_roi_type.value == 'static':
+            min_roi = self.cexit_roi_start.value
+        elif self.cexit_roi_type.value == 'decay':
+            min_roi = cta.linear_decay(self.cexit_roi_start.value, self.cexit_roi_end.value, 0,
+                                       self.cexit_roi_time.value, trade_dur)
+        elif self.cexit_roi_type.value == 'step':
+            if trade_dur < self.cexit_roi_time.value:
+                min_roi = self.cexit_roi_start.value
             else:
-                min_roi = self.csell_roi_end.value
+                min_roi = self.cexit_roi_end.value
 
         # Determine if there is a trend
-        if self.csell_trend_type.value == 'rmi' or self.csell_trend_type.value == 'any':
+        if self.cexit_trend_type.value == 'rmi' or self.cexit_trend_type.value == 'any':
             if last_candle['rmi-up-trend'] == 1:
                 in_trend = True
-        if self.csell_trend_type.value == 'ssl' or self.csell_trend_type.value == 'any':
+        if self.cexit_trend_type.value == 'ssl' or self.cexit_trend_type.value == 'any':
             if last_candle['ssl-dir'] == 'up':
                 in_trend = True
-        if self.csell_trend_type.value == 'candle' or self.csell_trend_type.value == 'any':
+        if self.cexit_trend_type.value == 'candle' or self.cexit_trend_type.value == 'any':
             if last_candle['candle-up-trend'] == 1:
                 in_trend = True
 
-        # Don't sell if we are in a trend unless the pullback threshold is met
+        # Don't exit if we are in a trend unless the pullback threshold is met
         if in_trend == True and current_profit > 0:
-            # Record that we were in a trend for this trade/pair for a more useful sell message later
+            # Record that we were in a trend for this trade/pair for a more useful exit message later
             self.custom_trade_info[trade.pair]['had-trend'] = True
-            # If pullback is enabled and profit has pulled back allow a sell, maybe
-            if self.csell_pullback.value == True and (current_profit <= pullback_value):
-                if self.csell_pullback_respect_roi.value == True and current_profit > min_roi:
+            # If pullback is enabled and profit has pulled back allow a exit, maybe
+            if self.cexit_pullback.value == True and (current_profit <= pullback_value):
+                if self.cexit_pullback_respect_roi.value == True and current_profit > min_roi:
                     return 'intrend_pullback_roi'
-                elif self.csell_pullback_respect_roi.value == False:
+                elif self.cexit_pullback_respect_roi.value == False:
                     if current_profit > min_roi:
                         return 'intrend_pullback_roi'
                     else:
@@ -439,7 +442,7 @@ class DWT(IStrategy):
                 if current_profit > min_roi:
                     self.custom_trade_info[trade.pair]['had-trend'] = False
                     return 'trend_roi'
-                elif self.csell_endtrend_respect_roi.value == False:
+                elif self.cexit_endtrend_respect_roi.value == False:
                     self.custom_trade_info[trade.pair]['had-trend'] = False
                     return 'trend_noroi'
             elif current_profit > min_roi:
