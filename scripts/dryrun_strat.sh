@@ -10,12 +10,15 @@ Usage: zsh $script [options] <exchange> <strategy>
 
 [options]:  -k | --keep-db   saves the existing database. Removed by default
             -p | --port      port number (used for naming). Optional
+            -s | --short     Use 'short' config file. Optional
 
 <exchange>  Name of exchange (binanceus, kucoin, etc)
 
 <strategy>  Name of Strategy
 
 If port is specified, then the script will look for both config_<exchange>.json and config_<exchange>_<port>.json
+
+If short is specified, then the script will look for config_<exchange>_short.json
 
 END
 }
@@ -29,12 +32,13 @@ run_cmd() {
 # Defaults
 keep_db=0
 port=""
+short=0
 
 # process options
 die() { echo "$*" >&2; exit 2; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
-while getopts kp:-: OPT; do
+while getopts kp:s-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
@@ -44,6 +48,7 @@ while getopts kp:-: OPT; do
   case "$OPT" in
     k | keep-db )    keep_db=1 ;;
     p | port )       needs_arg; port="_$OPTARG" ;;
+    s | short )      short=1 ;;
     ??* )            show_usage; die "Illegal option --$OPT" ;;  # bad long option
     ? )              show_usage; die "Illegal option --$OPT" ;;  # bad short option (error reported via getopts)
   esac
@@ -65,6 +70,12 @@ exchange_dir="${strat_dir}/${exchange}"
 base_config="config_${exchange}.json"
 port_config="config_${exchange}${port}.json"
 db_url="tradesv3_${exchange}${port}.dryrun.sqlite"
+
+
+if [ ${short} -eq 1 ]; then
+  base_config="config_${exchange}_short.json"
+  db_url="tradesv3_${exchange}_short${port}.dryrun.sqlite"
+fi
 
 if [ ! -f ${base_config} ]; then
     echo "Base config file not found: ${base_config}"

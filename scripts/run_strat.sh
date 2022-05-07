@@ -9,12 +9,15 @@ show_usage () {
 Usage: zsh $script [options] <exchange> <strategy>
 
 [options]:  -p | --port      port number (used for naming). Optional
+            -s | --short     Use 'short' config file. Optional
 
 <exchange>  Name of exchange (binanceus, kucoin, etc)
 
 <strategy>  Name of Strategy
 
 If port is specified, then the script will look for config_<exchange>_<port>.json
+
+If short is specified, the script will look for config_<exchange>_short_<port>.json
 
 NOTE: if the database already exists, it will be re-used, i.e. any previously opened trades should be found
 
@@ -25,6 +28,7 @@ END
 # Defaults
 
 port=""
+short=0
 
 
 timerange="${start_date}-"
@@ -33,7 +37,7 @@ timerange="${start_date}-"
 die() { echo "$*" >&2; exit 2; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
-while getopts p:-: OPT; do
+while getopts p:s-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
@@ -42,6 +46,7 @@ while getopts p:-: OPT; do
   fi
   case "$OPT" in
     p | port )       needs_arg; port="_$OPTARG" ;;
+    s | short )      short=1 ;;
     ??* )            show_usage; die "Illegal option --$OPT" ;;  # bad long option
     ? )              show_usage; die "Illegal option --$OPT" ;;  # bad short option (error reported via getopts)
   esac
@@ -62,7 +67,12 @@ strat_dir="user_data/strategies"
 exchange_dir="${strat_dir}/${exchange}"
 base_config="config_${exchange}.json"
 port_config="config_${exchange}${port}.json"
-db_url="tradesv3_${exchange}${port}.dryrun.sqlite"
+db_url="tradesv3_${exchange}${port}.sqlite"
+
+if [ ${short} -eq 1 ]; then
+  base_config="config_${exchange}_short.json"
+  db_url="tradesv3_${exchange}_short${port}.sqlite"
+fi
 
 if [ ! -f ${base_config} ]; then
     echo "Base config file not found: ${base_config}"
@@ -77,6 +87,10 @@ fi
 if [ ! -d ${exchange_dir} ]; then
     echo "Strategy dir not found: ${exchange_dir}"
     exit 0
+fi
+
+if [ -f ${db_url} ]; then
+    echo "Re-using database: ${db_url}"
 fi
 
 # set up config file chain (if port specified)
