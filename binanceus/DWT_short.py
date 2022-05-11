@@ -342,6 +342,9 @@ class DWT_short(IStrategy):
         if short_conditions:
             dataframe.loc[reduce(lambda x, y: x & y, short_conditions), 'enter_short'] = 1
 
+        # apparently, have to set something in 'enter_long' column
+        dataframe.loc[(dataframe['close'].notnull() ), 'enter_long'] = 0
+
         return dataframe
 
     ###################################
@@ -375,6 +378,9 @@ class DWT_short(IStrategy):
 
         if short_conditions:
             dataframe.loc[reduce(lambda x, y: x & y, short_conditions), 'exit_short'] = 1
+
+        # apparently, have to set something in 'enter_long' column
+        dataframe.loc[(dataframe['close'].notnull() ), 'exit_long'] = 0
 
         return dataframe
 
