@@ -1,0 +1,44 @@
+{
+  "strategy_name": "KalmanSIMD_short",
+  "params": {
+    "roi": {
+      "0": 0.1
+    },
+    "stoploss": {
+      "stoploss": -0.1
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "buy": {
+      "entry_long_kf_diff": 5.0,
+      "entry_short_kf_diff": -0.1,
+      "entry_trend_type": "ssl"
+    },
+    "sell": {
+      "cexit_endtrend_respect_roi": true,
+      "cexit_pullback": false,
+      "cexit_pullback_amount": 0.01,
+      "cexit_pullback_respect_roi": false,
+      "cexit_roi_end": 0.01,
+      "cexit_roi_start": 0.049,
+      "cexit_roi_time": 1198,
+      "cexit_roi_type": "step",
+      "cexit_trend_type": "ssl",
+      "cstop_bail_how": "none",
+      "cstop_bail_roc": -3.505,
+      "cstop_bail_time": 129,
+      "cstop_bail_time_trend": false,
+      "cstop_loss_threshold": -0.025,
+      "cstop_max_stoploss": -0.092,
+      "exit_long_kf_diff": -1.5,
+      "exit_short_kf_diff": 3.7
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2022-05-09 18:58:09.867561+00:00"
+}

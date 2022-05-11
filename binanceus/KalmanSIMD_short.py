@@ -34,20 +34,20 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 import custom_indicators as cta
 
-import pywt
+from  simdkalman import KalmanFilter
 import scipy
 
 
 """
 ####################################################################################
-DWT_short - use a Discreet Wavelet Transform (DWT) to estimate future price movements
+KalmanSIMD_short - use a DKalman Filter (from simdkalman) to estimate future price movements
             This version will enter both long and short positions
 
 ####################################################################################
 """
 
 
-class DWT_short(IStrategy):
+class KalmanSIMD_short(IStrategy):
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # ROI table:
@@ -65,7 +65,7 @@ class DWT_short(IStrategy):
     trailing_only_offset_is_reached = False
 
     timeframe = '5m'
-    inf_timeframe = '15m'
+    inf_timeframe = '1h'  # 15m takes too long
 
     use_custom_stoploss = True
 
@@ -91,13 +91,25 @@ class DWT_short(IStrategy):
 
     ## Hyperopt Variables
 
-    dwt_window = startup_candle_count
+    kf_window = startup_candle_count
+    filter_list = {}
+    filter_init_list = {}
 
-    # DWT  hyperparams
-    entry_short_dwt_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-2.0, space='buy', load=True, optimize=True)
-    exit_short_dwt_diff = DecimalParameter(0.0, 5.0, decimals=1, default=-2.0, space='sell', load=True, optimize=True)
+    kalman_filter = KalmanFilter(
+                state_transition=1.0,
+                process_noise=2.0,
+                observation_model=1.0,
+                observation_noise=0.5
+            )
+    current_pair = ""
 
-    entry_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'macd', 'none'], default='none', space='buy',
+    # Kalman  hyperparams
+    entry_long_kf_diff = DecimalParameter(0.0, 5.0, decimals=1, default=2.0, space='buy', load=True, optimize=True)
+    entry_short_kf_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-2.0, space='buy', load=True, optimize=True)
+    exit_long_kf_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-2.0, space='sell', load=True, optimize=True)
+    exit_short_kf_diff = DecimalParameter(0.0, 5.0, decimals=1, default=-2.0, space='sell', load=True, optimize=True)
+
+    entry_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'macd', 'none'], default='candle', space='buy',
                                             load=True, optimize=True)
 
 
@@ -149,23 +161,39 @@ class DWT_short(IStrategy):
         curr_pair = metadata['pair']
         informative = self.dp.get_pair_dataframe(pair=curr_pair, timeframe=self.inf_timeframe)
 
-        # DWT
+        # Kalman Filter
+        
+        self.current_pair = curr_pair
 
-        informative['dwt_model'] = informative['close'].rolling(window=self.dwt_window).apply(self.model)
-        # informative['dwt_predict'] = informative['dwt_model'].rolling(window=self.dwt_window).apply(self.predict)
-        # informative['stddev'] = informative['close'].rolling(window=self.dwt_window).std()
+        # create if not already done
+        if not curr_pair in self.filter_list:
+            self.filter_list[curr_pair] = kalman_filter = KalmanFilter(
+                state_transition=1.0,
+                process_noise=2.0,
+                observation_model=1.0,
+                observation_noise=0.5
+            )
+            self.filter_init_list[curr_pair] = False
+
+
+        # set current filter (can't pass parameter to apply())
+        self.kalman_filter = self.filter_list[curr_pair]
+
+        informative['kf_model'] = informative['close'].rolling(window=self.kf_window).apply(self.model)
+        # informative['kf_predict'] = informative['kf_model'].rolling(window=self.kf_window).apply(self.predict)
+        # informative['stddev'] = informative['close'].rolling(window=self.kf_window).std()
 
         # merge into normal timeframe
         dataframe = merge_informative_pair(dataframe, informative, self.timeframe, self.inf_timeframe, ffill=True)
 
         # calculate predictive indicators in shorter timeframe (not informative)
 
-        dataframe['dwt_model'] = dataframe[f"dwt_model_{self.inf_timeframe}"]
+        dataframe['kf_model'] = dataframe[f"kf_model_{self.inf_timeframe}"]
         # dataframe['stddev'] = dataframe[f"stddev_{self.inf_timeframe}"]
-        dataframe['dwt_model_diff'] = 100.0 * (dataframe['dwt_model'] - dataframe['close']) / dataframe['close']
-        # dataframe['dwt_model_diff2'] = (dataframe['dwt_model'] - dataframe['close']) / dataframe['stddev']
-        # dataframe['dwt_predict'] = dataframe[f"dwt_predict_{self.inf_timeframe}"]
-        # dataframe['dwt_predict_diff'] = 100.0 * (dataframe['dwt_predict'] - dataframe['dwt_model']) / dataframe['dwt_model']
+        dataframe['kf_model_diff'] = 100.0 * (dataframe['kf_model'] - dataframe['close']) / dataframe['close']
+        # dataframe['kf_model_diff2'] = (dataframe['kf_model'] - dataframe['close']) / dataframe['stddev']
+        # dataframe['kf_predict'] = dataframe[f"kf_predict_{self.inf_timeframe}"]
+        # dataframe['kf_predict_diff'] = 100.0 * (dataframe['kf_predict'] - dataframe['kf_model']) / dataframe['kf_model']
 
         # MACD
         macd = ta.MACD(dataframe)
@@ -180,27 +208,21 @@ class DWT_short(IStrategy):
             if not 'had-trend' in self.custom_trade_info[metadata["pair"]]:
                 self.custom_trade_info[metadata['pair']]['had-trend'] = False
 
-        # MA Streak: https://www.tradingview.com/script/Yq1z7cIv-MA-Streak-Can-Show-When-a-Run-Is-Getting-Long-in-the-Tooth/
-        # dataframe['mastreak'] = cta.mastreak(dataframe, period=4)
-
-        # Trends
-
-        dataframe['candle-up'] = np.where(dataframe['close'] >= dataframe['open'], 1, 0)
-        dataframe['candle-up-trend'] = np.where(dataframe['candle-up'].rolling(5).sum() >= 3, 1, 0)
-        dataframe['candle-dn-trend'] = np.where(dataframe['candle-up'].rolling(5).sum() <= 2, 1, 0)
-
-
         # RMI: https://www.tradingview.com/script/kwIt9OgQ-Relative-Momentum-Index/
         dataframe['rmi'] = cta.RMI(dataframe, length=24, mom=5)
+
+        # MA Streak: https://www.tradingview.com/script/Yq1z7cIv-MA-Streak-Can-Show-When-a-Run-Is-Getting-Long-in-the-Tooth/
+        dataframe['mastreak'] = cta.mastreak(dataframe, period=4)
+
+        # Trends, Peaks and Crosses
+        dataframe['candle-up'] = np.where(dataframe['close'] >= dataframe['open'], 1, 0)
+        dataframe['candle-up-trend'] = np.where(dataframe['candle-up'].rolling(5).sum() >= 3, 1, 0)
+
         dataframe['rmi-up'] = np.where(dataframe['rmi'] >= dataframe['rmi'].shift(), 1, 0)
         dataframe['rmi-up-trend'] = np.where(dataframe['rmi-up'].rolling(5).sum() >= 3, 1, 0)
-        dataframe['rmi-dn-trend'] = np.where(dataframe['rmi-up'].rolling(5).sum() <= 2, 1, 0)
 
-        # dataframe['rmi-dn'] = np.where(dataframe['rmi'] <= dataframe['rmi'].shift(), 1, 0)
-        # dataframe['rmi-dn-count'] = dataframe['rmi-dn'].rolling(8).sum()
-        #
-        # dataframe['rmi-up'] = np.where(dataframe['rmi'] > dataframe['rmi'].shift(), 1, 0)
-        # dataframe['rmi-up-count'] = dataframe['rmi-up'].rolling(8).sum()
+        dataframe['rmi-dn'] = np.where(dataframe['rmi'] <= dataframe['rmi'].shift(), 1, 0)
+        dataframe['rmi-dn-count'] = dataframe['rmi-dn'].rolling(8).sum()
 
         # Indicators used only for ROI and Custom Stoploss
         ssldown, sslup = cta.SSLChannels_ATR(dataframe, length=21)
@@ -216,40 +238,22 @@ class DWT_short(IStrategy):
         """ Mean absolute deviation of a signal """
         return np.mean(np.absolute(d - np.mean(d, axis)), axis)
 
-    def dwtModel(self, data):
-
-        # the choice of wavelet makes a big difference
-        # for an overview, check out: https://www.kaggle.com/theoviel/denoising-with-direct-wavelet-transform
-        # wavelet = 'db1'
-        # wavelet = 'bior1.1'
-        wavelet = 'haar' # deals well with harsh transitions
-        level = 1
-        wmode = "smooth"
-        length = len(data)
-
-        coeff = pywt.wavedec(data, wavelet, mode=wmode)
-
-        # remove higher harmonics
-        sigma = (1 / 0.6745) * self.madev(coeff[-level])
-        uthresh = sigma * np.sqrt(2 * np.log(length))
-        coeff[1:] = (pywt.threshold(i, value=uthresh, mode='hard') for i in coeff[1:])
-
-        # inverse transform
-        model = pywt.waverec(coeff, wavelet, mode=wmode)
-
-        return model
 
     def model(self, a: np.ndarray) -> np.float:
-        #must return scalar, so just calculate prediction and take last value
-        # model = self.dwtModel(np.array(a))
+        # scale the data
+        standardized = a.copy()
+        w_mean = np.mean(standardized)
+        w_std = np.std(standardized)
+        scaled = (standardized - w_mean) / w_std
+        scaled.fillna(0, inplace=True)
 
-        # de-trend the data
-        w_mean = a.mean()
-        w_std = a.std()
-        x_notrend = (a - w_mean) / w_std
+        # init filter if needed
+        if not self.filter_init_list[self.current_pair]:
+            self.filter_init_list[self.current_pair] = True
+            self.filter_list[self.current_pair] = self.filter_list[self.current_pair].em(scaled, n_iter=6)
 
-        # get DWT model of data
-        restored_sig = self.dwtModel(x_notrend)
+        # get the Kalman model
+        restored_sig = self.kalmanModel(scaled, self.kalman_filter)
 
         # re-trend
         model = (restored_sig * w_std) + w_mean
@@ -259,15 +263,15 @@ class DWT_short(IStrategy):
 
     def scaledModel(self, a: np.ndarray) -> np.float:
         #must return scalar, so just calculate prediction and take last value
-        # model = self.dwtModel(np.array(a))
+        # model = self.KalmanModel(np.array(a))
 
         # de-trend the data
         w_mean = a.mean()
         w_std = a.std()
         x_notrend = (a - w_mean) / w_std
 
-        # get DWT model of data
-        model = self.dwtModel(x_notrend)
+        # get Kalman model of data
+        model = self.KalmanModel(x_notrend)
 
         length = len(model)
         return model[length-1]
@@ -284,6 +288,31 @@ class DWT_short(IStrategy):
         length = len(scaled)
         return scaled.ravel()[length-1]
 
+    def kalmanModel(self, data, kfilter: KalmanFilter):
+
+        n = len(data)
+        x = np.array(data)
+
+        # kfilter = kfilter.em(data, n_iter=6)
+
+        # mean, cov = kfilter.filter(x)
+        # kfilter.filter_update(mean[0], cov[0])
+        #
+        # mean = mean.squeeze()
+        # print("model(", len(mean), "): ", mean)
+
+        # predict next close
+        smoothed = kfilter.smooth(x)
+        pr_mean = smoothed.observations.mean
+        restored_sig = pr_mean.squeeze()
+        # print ("Predict(", len(restored_sig), "): ", restored_sig)
+
+
+        ldiff = len(restored_sig) - len(x)
+        model = restored_sig[ldiff:]
+
+        return model
+    
     def predict(self, a: np.ndarray) -> np.float:
 
         # predicts the next value using polynomial extrapolation
@@ -310,6 +339,7 @@ class DWT_short(IStrategy):
 
     def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         short_conditions = []
+        long_conditions = []
         dataframe.loc[:, 'enter_tag'] = ''
 
         # checks for long/short conditions
@@ -317,35 +347,61 @@ class DWT_short(IStrategy):
 
             # short if uptrend, long if downtrend (contrarian)
             if (self.entry_trend_type.value != 'rmi'):
+                long_cond = (dataframe['rmi-up-trend'] != 1)
                 short_cond = (dataframe['rmi-up-trend'] == 1)
             elif (self.entry_trend_type.value != 'ssl'):
+                long_cond = (dataframe['ssl-dir'] == 'down')
                 short_cond = (dataframe['ssl-dir'] == 'up')
             elif (self.entry_trend_type.value != 'candle'):
+                long_cond = (dataframe['candle-up-trend'] != 1)
                 short_cond = (dataframe['candle-up-trend'] == 1)
             elif (self.entry_trend_type.value != 'macd'):
-                 short_cond = (dataframe['macdhist'] > 0.0)
+                long_cond = (dataframe['macdhist'] < 0.0)
+                short_cond = (dataframe['macdhist'] > 0.0)
 
+            long_conditions.append(long_cond)
             short_conditions.append(short_cond)
 
 
+        # Long Processing
+
+        # Kalman triggers
+        long_kf_cond = (
+                qtpylib.crossed_above(dataframe['kf_model_diff'], self.entry_long_kf_diff.value)
+        )
+
+        # Kalmans will spike on big gains, so try to constrain
+        long_spike_cond = (
+                dataframe['kf_model_diff'] < 2.0 * self.entry_long_kf_diff.value
+        )
+
+        long_conditions.append(long_kf_cond)
+        long_conditions.append(long_spike_cond)
+
+        # set entry tags
+        dataframe.loc[long_kf_cond, 'enter_tag'] += 'long_kf_entry '
+
+        if long_conditions:
+            dataframe.loc[reduce(lambda x, y: x & y, long_conditions), 'enter_long'] = 1
+
         # Short Processing
 
-        # DWT triggers
-        short_dwt_cond = (
-                qtpylib.crossed_below(dataframe['dwt_model_diff'], self.entry_short_dwt_diff.value)
+        # Kalman triggers
+        short_kf_cond = (
+                qtpylib.crossed_below(dataframe['kf_model_diff'], self.entry_short_kf_diff.value)
         )
 
 
-        # DWTs will spike on big gains, so try to constrain
+        # Kalmans will spike on big gains, so try to constrain
         short_spike_cond = (
-                dataframe['dwt_model_diff'] > 2.0 * self.entry_short_dwt_diff.value
+                dataframe['kf_model_diff'] > 2.0 * self.entry_short_kf_diff.value
         )
 
-        short_conditions.append(short_dwt_cond)
+        short_conditions.append(short_kf_cond)
         short_conditions.append(short_spike_cond)
 
         # set entry tags
-        dataframe.loc[short_dwt_cond, 'enter_tag'] += 'short_dwt_entry '
+        dataframe.loc[short_kf_cond, 'enter_tag'] += 'short_kf_entry '
 
         if short_conditions:
             dataframe.loc[reduce(lambda x, y: x & y, short_conditions), 'enter_short'] = 1
@@ -362,27 +418,50 @@ class DWT_short(IStrategy):
 
     def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         short_conditions = []
+        long_conditions = []
         dataframe.loc[:, 'exit_tag'] = ''
+
+        # Long Processing
+
+        # Kalman triggers
+        long_kf_cond = (
+                qtpylib.crossed_below(dataframe['kf_model_diff'], self.exit_long_kf_diff.value)
+        )
+
+        # Kalmans will spike on big gains, so try to constrain
+        long_spike_cond = (
+                dataframe['kf_model_diff'] > 2.0 * self.exit_long_kf_diff.value
+        )
+
+        long_conditions.append(long_kf_cond)
+        long_conditions.append(long_spike_cond)
+
+        # set exit tags
+        dataframe.loc[long_kf_cond, 'exit_tag'] += 'long_kf_exit '
+
+        if long_conditions:
+            dataframe.loc[reduce(lambda x, y: x & y, long_conditions), 'exit_long'] = 1
+
 
         # Short Processing
 
-        # DWT triggers
-        short_dwt_cond = (
-            qtpylib.crossed_above(dataframe['dwt_model_diff'], self.exit_short_dwt_diff.value)
+        # Kalman triggers
+        short_kf_cond = (
+            qtpylib.crossed_above(dataframe['kf_model_diff'], self.exit_short_kf_diff.value)
         )
 
 
-        # DWTs will spike on big gains, so try to constrain
+        # Kalmans will spike on big gains, so try to constrain
         short_spike_cond = (
-                dataframe['dwt_model_diff'] < 2.0 * self.exit_short_dwt_diff.value
+                dataframe['kf_model_diff'] < 2.0 * self.exit_short_kf_diff.value
         )
 
         # conditions.append(long_cond)
-        short_conditions.append(short_dwt_cond)
+        short_conditions.append(short_kf_cond)
         short_conditions.append(short_spike_cond)
 
         # set exit tags
-        dataframe.loc[short_dwt_cond, 'exit_tag'] += 'short_dwt_exit '
+        dataframe.loc[short_kf_cond, 'exit_tag'] += 'short_kf_exit '
 
         if short_conditions:
             dataframe.loc[reduce(lambda x, y: x & y, short_conditions), 'exit_short'] = 1
@@ -456,13 +535,13 @@ class DWT_short(IStrategy):
 
         # Determine if there is a trend
         if self.cexit_trend_type.value == 'rmi' or self.cexit_trend_type.value == 'any':
-            if last_candle['rmi-dn-trend'] == 1:
+            if last_candle['rmi-up-trend'] == 1:
                 in_trend = True
         if self.cexit_trend_type.value == 'ssl' or self.cexit_trend_type.value == 'any':
-            if last_candle['ssl-dir'] == 'down':
+            if last_candle['ssl-dir'] == 'up':
                 in_trend = True
         if self.cexit_trend_type.value == 'candle' or self.cexit_trend_type.value == 'any':
-            if last_candle['candle-dn-trend'] == 1:
+            if last_candle['candle-up-trend'] == 1:
                 in_trend = True
 
         # Don't exit if we are in a trend unless the pullback threshold is met

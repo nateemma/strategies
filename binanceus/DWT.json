@@ -4,9 +4,6 @@
     "roi": {
       "0": 0.1
     },
-    "stoploss": {
-      "stoploss": -0.1
-    },
     "trailing": {
       "trailing_stop": false,
       "trailing_stop_positive": null,
@@ -34,8 +31,11 @@
       "cstop_max_stoploss": -0.13,
       "exit_dwt_diff": -4.7
     },
-    "protection": {}
+    "protection": {},
+    "stoploss": {
+      "stoploss": -0.10
+    }
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-04-30 15:49:04.823889+00:00"
+  "export_time": "2022-05-08 21:12:29.900416+00:00"
 }

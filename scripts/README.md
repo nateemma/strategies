@@ -39,3 +39,9 @@ Remember to change single quotes (\') to double quotes (\") though.
 
 I find that I need to refresh the list every few weeks.
 
+##Short Trading
+Shorting requires the use of a separate config file and (curently) static pairlists. 
+The scripts have been updated to accept a _--short_ argument that will then use the config file 
+config\_<exchange>_short.json, which must be in the exchange directory.
+
+Note that download and hyperopt for short-based strategies is *much* slower

@@ -25,6 +25,7 @@ Usage: zsh $script [options] <exchange> <strategy>
 
 [options]:  -c | --config      path to config file (default: user_data/strategies/<exchange>/config_<exchange>.json
             -n | --ndays       Number of days of backtesting. Defaults to ${ndays}
+                 --short       Use 'short' config file
             -t | --timeframe   Timeframe (YYYMMDD-[YYYMMDD]). Defaults to last ${ndays} days (${timerange})
 
 <exchange>  Name of exchange (binanceus, coinbasepro, kucoin, etc)
@@ -78,6 +79,10 @@ if [ -z "${config_file}" ] ; then
   config_file="${exchange_dir}/config_${exchange}.json"
 fi
 
+if [[ $short -ne 0 ]] ; then
+    config_file="${exchange_dir}/config_${exchange}_short.json"
+fi
+
 if [ ! -f ${config_file} ]; then
     echo "config file not found: ${config_file}"
     exit 0
@@ -93,9 +98,6 @@ if [ ! -f  ${strat_file} ]; then
     exit 0
 fi
 
-if [[ $short -ne 0 ]] ; then
-    config_file="${exchange_dir}/config_${exchange}_short.json"
-fi
 
 # adjust timerange to make sure there is an end date (which enables caching of data in backtesting)
 a=("${(@s/-/)timerange}")

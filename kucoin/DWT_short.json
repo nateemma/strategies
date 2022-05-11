@@ -14,29 +14,31 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
+      "entry_long_dwt_diff": 4.8,
       "entry_short_dwt_diff": -0.4,
       "entry_trend_type": "candle"
     },
     "sell": {
       "cexit_endtrend_respect_roi": true,
-      "cexit_pullback": false,
-      "cexit_pullback_amount": 0.026,
+      "cexit_pullback": true,
+      "cexit_pullback_amount": 0.017,
       "cexit_pullback_respect_roi": true,
       "cexit_roi_end": 0.006,
-      "cexit_roi_start": 0.028,
-      "cexit_roi_time": 1036,
+      "cexit_roi_start": 0.018,
+      "cexit_roi_time": 1115,
       "cexit_roi_type": "static",
-      "cexit_trend_type": "none",
+      "cexit_trend_type": "rmi",
       "cstop_bail_how": "none",
-      "cstop_bail_roc": -4.07,
-      "cstop_bail_time": 1396,
+      "cstop_bail_roc": -4.395,
+      "cstop_bail_time": 408,
       "cstop_bail_time_trend": true,
-      "cstop_loss_threshold": -0.032,
-      "cstop_max_stoploss": -0.089,
+      "cstop_loss_threshold": -0.046,
+      "cstop_max_stoploss": -0.241,
+      "exit_long_dwt_diff": -3.8,
       "exit_short_dwt_diff": 3.4
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-05-11 04:13:21.896295+00:00"
+  "export_time": "2022-05-07 18:16:26.961410+00:00"
 }
