@@ -15,6 +15,7 @@ from freqtrade.optimize.hyperopt import IHyperOptLoss
 from datetime import datetime
 import numpy as np
 from typing import Any, Dict
+import statistics
 
 # Constants to allow evaluation in cases where there is insufficient (or nonexistent) info in the configuration
 
@@ -247,9 +248,7 @@ class MedianProfitHyperOptLoss(IHyperOptLoss):
             drawdown_loss = (backtest_stats['max_drawdown'] - 1.0)
 
         # Profit Median
-        if backtest_stats['profit_median']:
-            med_profit_loss = -(backtest_stats['profit_median']/EXPECTED_AVE_PROFIT)
-
+        med_profit_loss = statistics.median(results['profit_abs'])
 
         # weight the results (values are based on trial & error). Goal is for anything -ve to be a decent  solution
         num_trades_loss     = weight_num_trades * num_trades_loss

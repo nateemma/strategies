@@ -19,8 +19,9 @@ This script downloads historical data
 
 Usage: zsh $script [options] [<exchange>]
 
-[options]:  -h | --help      print this text
-            -s | --short     Use 'short' config file. Optional
+[options]:  -h | --help       print this text
+            -l | --leveraged  Use 'leveraged' config file. Optional
+            -s | --short      Use 'short' config file. Optional
 
 <exchange>  Name of exchange (binanceus, kucoin, etc). Optional
 
@@ -34,13 +35,14 @@ start_date=$(date -j -v-${num_days}d +"%Y%m%d")
 timerange="${start_date}-"
 fixed_args="-t 5m 15m 1h 1d"
 short=0
+leveraged=0
 
 
 # process options
 die() { echo "$*" >&2; exit 2; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
-while getopts hs-: OPT; do
+while getopts hls-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
@@ -49,6 +51,7 @@ while getopts hs-: OPT; do
   fi
   case "$OPT" in
     h | help )       show_usage; exit 0 ;;
+    l | leveraged )  leveraged=1 ;;
     s | short )      short=1 ;;
     ??* )            show_usage; die "Illegal option --$OPT" ;;  # bad long option
     ? )              show_usage; die "Illegal option --$OPT" ;;  # bad short option (error reported via getopts)
@@ -61,21 +64,21 @@ if [[ $# -gt 0 ]] ; then
   list=(${1})
 fi
 
-
-if [ ${short} -eq 1 ]; then
-  fixed_args="--trading-mode futures ${fixed_args}"
-  base_config="config_${exchange}_short.json"
-fi
-
 for exchange in "${list[@]}"; do
   echo ""
   echo "${exchange}"
   echo ""
-  #  config_file="user_data/strategies/${exchange}/config_${exchange}_download.json"
+
+  strat_dir="user_data/strategies/${exchange}"
+  config_file="${strat_dir}/config_${exchange}.json"
+
   if [ ${short} -eq 1 ]; then
-    config_file="user_data/strategies/${exchange}/config_${exchange}_short.json"
-  else
-    config_file="user_data/strategies/${exchange}/config_${exchange}.json"
+    fixed_args="--trading-mode futures ${fixed_args}"
+    config_file="${strat_dir}/config_${exchange}_short.json"
+  fi
+
+  if [ ${leveraged} -eq 1 ]; then
+    config_file="${strat_dir}/config_${exchange}_leveraged.json"
   fi
 
   run_cmd "freqtrade download-data  -c ${config_file}  --timerange=${timerange} ${fixed_args}"

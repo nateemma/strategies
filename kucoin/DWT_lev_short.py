@@ -34,19 +34,21 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 import custom_indicators as cta
 
+import re
+
 import pywt
 import scipy
 
 """
 ####################################################################################
-DWT_short - use a Discreet Wavelet Transform (DWT) to estimate future price movements
-            This version enters short positions (not long)
+DWT - use a Discreet Wavelet Transform to estimate future price movements
+    This version only trades with lveraged/short pairs
 
 ####################################################################################
 """
 
 
-class DWT_short(IStrategy):
+class DWT_lev_short(IStrategy):
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # ROI table:
@@ -78,10 +80,6 @@ class DWT_short(IStrategy):
 
     process_only_new_candles = True
 
-    trading_mode = "futures"
-    margin_mode = "isolated"
-    can_short = True
-
     custom_trade_info = {}
 
     ###################################
@@ -93,11 +91,8 @@ class DWT_short(IStrategy):
     dwt_window = startup_candle_count
 
     # DWT  hyperparams
-    entry_short_dwt_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-2.0, space='buy', load=True, optimize=True)
-    exit_short_dwt_diff = DecimalParameter(0.0, 5.0, decimals=1, default=-2.0, space='sell', load=True, optimize=True)
-
-    entry_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'macd', 'none'], default='none', space='buy',
-                                            load=True, optimize=True)
+    entry_dwt_diff = DecimalParameter(0.0, 5.0, decimals=1, default=1.0, space='buy', load=True, optimize=True)
+    exit_dwt_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-1.0, space='sell', load=True, optimize=True)
 
     # Custom exit Profit (formerly Dynamic ROI)
     cexit_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
@@ -123,6 +118,15 @@ class DWT_short(IStrategy):
     cstop_bail_time_trend = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
     cstop_max_stoploss = DecimalParameter(-0.30, -0.01, default=-0.10, space='sell', load=True, optimize=True)
 
+
+    ############################################################################
+
+    def isBull(self, pair):
+        return re.search(".*(BULL|UP|[235]L)", pair)
+
+    def isBear(self, pair):
+        return re.search(".*(BEAR|DOWN|[235]S)", pair)
+
     ###################################
 
     """
@@ -144,64 +148,56 @@ class DWT_short(IStrategy):
 
         # Base pair informative timeframe indicators
         curr_pair = metadata['pair']
-        informative = self.dp.get_pair_dataframe(pair=curr_pair, timeframe=self.inf_timeframe)
 
-        # DWT
+        # only process if bear/short pair
+        if self.isBear(curr_pair):
+            informative = self.dp.get_pair_dataframe(pair=curr_pair, timeframe=self.inf_timeframe)
 
-        informative['dwt_model'] = informative['close'].rolling(window=self.dwt_window).apply(self.model)
-        # informative['dwt_predict'] = informative['dwt_model'].rolling(window=self.dwt_window).apply(self.predict)
-        # informative['stddev'] = informative['close'].rolling(window=self.dwt_window).std()
+            # DWT
 
-        # merge into normal timeframe
-        dataframe = merge_informative_pair(dataframe, informative, self.timeframe, self.inf_timeframe, ffill=True)
+            informative['dwt_model'] = informative['close'].rolling(window=self.dwt_window).apply(self.model)
+            # informative['dwt_predict'] = informative['dwt_model'].rolling(window=self.dwt_window).apply(self.predict)
+            # informative['stddev'] = informative['close'].rolling(window=self.dwt_window).std()
 
-        # calculate predictive indicators in shorter timeframe (not informative)
+            # merge into normal timeframe
+            dataframe = merge_informative_pair(dataframe, informative, self.timeframe, self.inf_timeframe, ffill=True)
 
-        dataframe['dwt_model'] = dataframe[f"dwt_model_{self.inf_timeframe}"]
-        # dataframe['stddev'] = dataframe[f"stddev_{self.inf_timeframe}"]
-        dataframe['dwt_model_diff'] = 100.0 * (dataframe['dwt_model'] - dataframe['close']) / dataframe['close']
-        # dataframe['dwt_model_diff2'] = (dataframe['dwt_model'] - dataframe['close']) / dataframe['stddev']
-        # dataframe['dwt_predict'] = dataframe[f"dwt_predict_{self.inf_timeframe}"]
-        # dataframe['dwt_predict_diff'] = 100.0 * (dataframe['dwt_predict'] - dataframe['dwt_model']) / dataframe['dwt_model']
+            # calculate predictive indicators in shorter timeframe (not informative)
 
-        # MACD
-        macd = ta.MACD(dataframe)
-        dataframe['macd'] = macd['macd']
-        dataframe['macdsignal'] = macd['macdsignal']
-        dataframe['macdhist'] = macd['macdhist']
+            dataframe['dwt_model'] = dataframe[f"dwt_model_{self.inf_timeframe}"]
+            # dataframe['stddev'] = dataframe[f"stddev_{self.inf_timeframe}"]
+            dataframe['dwt_model_diff'] = 100.0 * (dataframe['dwt_model'] - dataframe['close']) / dataframe['close']
+            # dataframe['dwt_model_diff2'] = (dataframe['dwt_model'] - dataframe['close']) / dataframe['stddev']
+            # dataframe['dwt_predict'] = dataframe[f"dwt_predict_{self.inf_timeframe}"]
+            # dataframe['dwt_predict_diff'] = 100.0 * (dataframe['dwt_predict'] - dataframe['dwt_model']) / dataframe['dwt_model']
 
-        # Custom Stoploss
+            # Custom Stoploss
 
-        if not metadata['pair'] in self.custom_trade_info:
-            self.custom_trade_info[metadata['pair']] = {}
-            if not 'had-trend' in self.custom_trade_info[metadata["pair"]]:
-                self.custom_trade_info[metadata['pair']]['had-trend'] = False
+            if not metadata['pair'] in self.custom_trade_info:
+                self.custom_trade_info[metadata['pair']] = {}
+                if not 'had-trend' in self.custom_trade_info[metadata["pair"]]:
+                    self.custom_trade_info[metadata['pair']]['had-trend'] = False
 
-        # MA Streak: https://www.tradingview.com/script/Yq1z7cIv-MA-Streak-Can-Show-When-a-Run-Is-Getting-Long-in-the-Tooth/
-        # dataframe['mastreak'] = cta.mastreak(dataframe, period=4)
+            # RMI: https://www.tradingview.com/script/kwIt9OgQ-Relative-Momentum-Index/
+            dataframe['rmi'] = cta.RMI(dataframe, length=24, mom=5)
 
-        # Trends
+            # MA Streak: https://www.tradingview.com/script/Yq1z7cIv-MA-Streak-Can-Show-When-a-Run-Is-Getting-Long-in-the-Tooth/
+            dataframe['mastreak'] = cta.mastreak(dataframe, period=4)
 
-        dataframe['candle-up'] = np.where(dataframe['close'] >= dataframe['open'], 1, 0)
-        dataframe['candle-up-trend'] = np.where(dataframe['candle-up'].rolling(5).sum() >= 3, 1, 0)
-        dataframe['candle-dn-trend'] = np.where(dataframe['candle-up'].rolling(5).sum() <= 2, 1, 0)
+            # Trends, Peaks and Crosses
+            dataframe['candle-up'] = np.where(dataframe['close'] >= dataframe['open'], 1, 0)
+            dataframe['candle-up-trend'] = np.where(dataframe['candle-up'].rolling(5).sum() >= 3, 1, 0)
 
-        # RMI: https://www.tradingview.com/script/kwIt9OgQ-Relative-Momentum-Index/
-        dataframe['rmi'] = cta.RMI(dataframe, length=24, mom=5)
-        dataframe['rmi-up'] = np.where(dataframe['rmi'] >= dataframe['rmi'].shift(), 1, 0)
-        dataframe['rmi-up-trend'] = np.where(dataframe['rmi-up'].rolling(5).sum() >= 3, 1, 0)
-        dataframe['rmi-dn-trend'] = np.where(dataframe['rmi-up'].rolling(5).sum() <= 2, 1, 0)
+            dataframe['rmi-up'] = np.where(dataframe['rmi'] >= dataframe['rmi'].shift(), 1, 0)
+            dataframe['rmi-up-trend'] = np.where(dataframe['rmi-up'].rolling(5).sum() >= 3, 1, 0)
 
-        # dataframe['rmi-dn'] = np.where(dataframe['rmi'] <= dataframe['rmi'].shift(), 1, 0)
-        # dataframe['rmi-dn-count'] = dataframe['rmi-dn'].rolling(8).sum()
-        #
-        # dataframe['rmi-up'] = np.where(dataframe['rmi'] > dataframe['rmi'].shift(), 1, 0)
-        # dataframe['rmi-up-count'] = dataframe['rmi-up'].rolling(8).sum()
+            dataframe['rmi-dn'] = np.where(dataframe['rmi'] <= dataframe['rmi'].shift(), 1, 0)
+            dataframe['rmi-dn-count'] = dataframe['rmi-dn'].rolling(8).sum()
 
-        # Indicators used only for ROI and Custom Stoploss
-        ssldown, sslup = cta.SSLChannels_ATR(dataframe, length=21)
-        dataframe['sroc'] = cta.SROC(dataframe, roclen=21, emalen=13, smooth=21)
-        dataframe['ssl-dir'] = np.where(sslup > ssldown, 'up', 'down')
+            # Indicators used only for ROI and Custom Stoploss
+            ssldown, sslup = cta.SSLChannels_ATR(dataframe, length=21)
+            dataframe['sroc'] = cta.SROC(dataframe, roclen=21, emalen=13, smooth=21)
+            dataframe['ssl-dir'] = np.where(sslup > ssldown, 'up', 'down')
 
         return dataframe
 
@@ -291,7 +287,6 @@ class DWT_short(IStrategy):
         x = np.arange(length)
         f = scipy.interpolate.UnivariateSpline(x, a, k=5)
 
-        # predict 1 step ahead
         predict = f(length)
 
         return predict
@@ -303,47 +298,30 @@ class DWT_short(IStrategy):
     """
 
     def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        short_conditions = []
+        conditions = []
         dataframe.loc[:, 'enter_tag'] = ''
 
-        # checks for long/short conditions
-        if (self.entry_trend_type.value != 'none'):
+        if self.isBear(metadata['pair']):
+            conditions.append(dataframe['volume'] > 0)
 
-            # short if uptrend, long if downtrend (contrarian)
-            if (self.entry_trend_type.value != 'rmi'):
-                short_cond = (dataframe['rmi-up-trend'] == 1)
-            elif (self.entry_trend_type.value != 'ssl'):
-                short_cond = (dataframe['ssl-dir'] == 'up')
-            elif (self.entry_trend_type.value != 'candle'):
-                short_cond = (dataframe['candle-up-trend'] == 1)
-            elif (self.entry_trend_type.value != 'macd'):
-                short_cond = (dataframe['macdhist'] > 0.0)
+            # DWT triggers
+            dwt_cond = (
+                qtpylib.crossed_above(dataframe['dwt_model_diff'], self.entry_dwt_diff.value)
+            )
 
-            short_conditions.append(short_cond)
+            conditions.append(dwt_cond)
 
-        # Short Processing
+            # DWTs will spike on big gains, so try to constrain
+            spike_cond = (
+                    dataframe['dwt_model_diff'] < 2.0 * self.entry_dwt_diff.value
+            )
+            conditions.append(spike_cond)
 
-        # DWT triggers
-        short_dwt_cond = (
-            qtpylib.crossed_below(dataframe['dwt_model_diff'], self.entry_short_dwt_diff.value)
-        )
+            # set entry tags
+            dataframe.loc[dwt_cond, 'enter_tag'] += 'dwt_entry '
 
-        # DWTs will spike on big gains, so try to constrain
-        short_spike_cond = (
-                dataframe['dwt_model_diff'] > 2.0 * self.entry_short_dwt_diff.value
-        )
-
-        short_conditions.append(short_dwt_cond)
-        short_conditions.append(short_spike_cond)
-
-        # set entry tags
-        dataframe.loc[short_dwt_cond, 'enter_tag'] += 'short_dwt_entry '
-
-        if short_conditions:
-            dataframe.loc[reduce(lambda x, y: x & y, short_conditions), 'enter_short'] = 1
-
-        # apparently, have to set something in 'enter_long' column
-        dataframe.loc[(dataframe['close'].notnull() ), 'enter_long'] = 0
+            if conditions:
+                dataframe.loc[reduce(lambda x, y: x & y, conditions), 'enter_long'] = 1
 
         return dataframe
 
@@ -354,39 +332,32 @@ class DWT_short(IStrategy):
     """
 
     def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        short_conditions = []
+        conditions = []
         dataframe.loc[:, 'exit_tag'] = ''
 
-        # Short Processing
+        if self.isBear(metadata['pair']):
+            # DWT triggers
+            dwt_cond = (
+                qtpylib.crossed_below(dataframe['dwt_model_diff'], self.exit_dwt_diff.value)
+            )
 
-        # DWT triggers
-        short_dwt_cond = (
-            qtpylib.crossed_above(dataframe['dwt_model_diff'], self.exit_short_dwt_diff.value)
-        )
+            conditions.append(dwt_cond)
 
-        # DWTs will spike on big gains, so try to constrain
-        short_spike_cond = (
-                dataframe['dwt_model_diff'] < 2.0 * self.exit_short_dwt_diff.value
-        )
+            # DWTs will spike on big gains, so try to constrain
+            spike_cond = (
+                    dataframe['dwt_model_diff'] > 2.0 * self.exit_dwt_diff.value
+            )
+            conditions.append(spike_cond)
 
-        # conditions.append(long_cond)
-        short_conditions.append(short_dwt_cond)
-        short_conditions.append(short_spike_cond)
+            # set exit tags
+            dataframe.loc[dwt_cond, 'exit_tag'] += 'dwt_exit '
 
-        # set exit tags
-        dataframe.loc[short_dwt_cond, 'exit_tag'] += 'short_dwt_exit '
-
-        if short_conditions:
-            dataframe.loc[reduce(lambda x, y: x & y, short_conditions), 'exit_short'] = 1
-
-        # apparently, have to set something in 'enter_long' column
-        dataframe.loc[(dataframe['close'].notnull() ), 'exit_long'] = 0
+            if conditions:
+                dataframe.loc[reduce(lambda x, y: x & y, conditions), 'exit_long'] = 1
 
         return dataframe
 
     ###################################
-
-    # the custom stoploss/exit logic is adapted from Solipsis by werkkrew (https://github.com/werkkrew/freqtrade-strategies)
 
     """
     Custom Stoploss
@@ -450,13 +421,13 @@ class DWT_short(IStrategy):
 
         # Determine if there is a trend
         if self.cexit_trend_type.value == 'rmi' or self.cexit_trend_type.value == 'any':
-            if last_candle['rmi-dn-trend'] == 1:
+            if last_candle['rmi-up-trend'] == 1:
                 in_trend = True
         if self.cexit_trend_type.value == 'ssl' or self.cexit_trend_type.value == 'any':
-            if last_candle['ssl-dir'] == 'down':
+            if last_candle['ssl-dir'] == 'up':
                 in_trend = True
         if self.cexit_trend_type.value == 'candle' or self.cexit_trend_type.value == 'any':
-            if last_candle['candle-dn-trend'] == 1:
+            if last_candle['candle-up-trend'] == 1:
                 in_trend = True
 
         # Don't exit if we are in a trend unless the pullback threshold is met
