@@ -9,6 +9,7 @@ show_usage () {
 Usage: zsh $script [options] <exchange> <strategy>
 
 [options]:  -k | --keep-db   saves the existing database. Removed by default
+            -l | --leveraged   Use 'leveraged' config file
             -p | --port      port number (used for naming). Optional
             -s | --short     Use 'short' config file. Optional
 
@@ -33,12 +34,13 @@ run_cmd() {
 keep_db=0
 port=""
 short=0
+leveraged=0
 
 # process options
 die() { echo "$*" >&2; exit 2; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
-while getopts kp:s-: OPT; do
+while getopts klp:s-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
@@ -47,6 +49,7 @@ while getopts kp:s-: OPT; do
   fi
   case "$OPT" in
     k | keep-db )    keep_db=1 ;;
+    l | leveraged )  leveraged=1 ;;
     p | port )       needs_arg; port="_$OPTARG" ;;
     s | short )      short=1 ;;
     ??* )            show_usage; die "Illegal option --$OPT" ;;  # bad long option
@@ -74,7 +77,10 @@ db_url="tradesv3_${exchange}${port}.dryrun.sqlite"
 
 if [ ${short} -eq 1 ]; then
   base_config="config_${exchange}_short.json"
-  db_url="tradesv3_${exchange}_short${port}.dryrun.sqlite"
+fi
+
+if [[ leveraged -ne 0 ]] ; then
+    base_config="config_${exchange}_leveraged.json"
 fi
 
 if [ ! -f ${base_config} ]; then
@@ -136,4 +142,3 @@ echo ""
 
 # restore PYTHONPATH
 export PYTHONPATH="${oldpath}"
-

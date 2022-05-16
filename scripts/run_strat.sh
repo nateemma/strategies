@@ -9,6 +9,7 @@ show_usage () {
 Usage: zsh $script [options] <exchange> <strategy>
 
 [options]:  -p | --port      port number (used for naming). Optional
+            -l | --leveraged   Use 'leveraged' config file
             -s | --short     Use 'short' config file. Optional
 
 <exchange>  Name of exchange (binanceus, kucoin, etc)
@@ -17,7 +18,9 @@ Usage: zsh $script [options] <exchange> <strategy>
 
 If port is specified, then the script will look for config_<exchange>_<port>.json
 
-If short is specified, the script will look for config_<exchange>_short_<port>.json
+If short is specified, the script will look for config_<exchange>_short.json
+
+If leverage is specified, the script will look for config_<exchange>_leverage.json
 
 NOTE: if the database already exists, it will be re-used, i.e. any previously opened trades should be found
 
@@ -29,6 +32,7 @@ END
 
 port=""
 short=0
+leveraged=0
 
 
 timerange="${start_date}-"
@@ -37,7 +41,7 @@ timerange="${start_date}-"
 die() { echo "$*" >&2; exit 2; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
-while getopts p:s-: OPT; do
+while getopts lp:s-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
@@ -45,6 +49,7 @@ while getopts p:s-: OPT; do
     OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
   fi
   case "$OPT" in
+    l | leveraged )  leveraged=1 ;;
     p | port )       needs_arg; port="_$OPTARG" ;;
     s | short )      short=1 ;;
     ??* )            show_usage; die "Illegal option --$OPT" ;;  # bad long option
@@ -71,7 +76,10 @@ db_url="tradesv3_${exchange}${port}.sqlite"
 
 if [ ${short} -eq 1 ]; then
   base_config="config_${exchange}_short.json"
-  db_url="tradesv3_${exchange}_short${port}.sqlite"
+fi
+
+if [[ leveraged -ne 0 ]] ; then
+    base_config="config_${exchange}_leveraged.json"
 fi
 
 if [ ! -f ${base_config} ]; then

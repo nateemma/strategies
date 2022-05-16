@@ -41,7 +41,7 @@ END
 die() { echo "$*" >&2; exit 2; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
-while getopts :c:e:j:l:n:s:t:-: OPT; do
+while getopts :c:e:j:ln:st:-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
@@ -136,4 +136,3 @@ echo ""
 
 # restore PYTHONPATH
 export PYTHONPATH="${oldpath}"
-

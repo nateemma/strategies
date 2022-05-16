@@ -100,19 +100,13 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
         drawdown_loss = 0.0
         abs_profit_loss = 0.0
 
-        if (expectancy_loss <= 0.0):
-            # use drawdown and profit as a tie-breaker
-            if 'max_drawdown' in backtest_stats:
-                drawdown_loss = (backtest_stats['max_drawdown'] - 1.0) / 2.0
+        # if (expectancy_loss <= 0.0):
+        # use drawdown and profit as a tie-breaker
+        if 'max_drawdown' in backtest_stats:
+            drawdown_loss = (backtest_stats['max_drawdown'] - 1.0) / 2.0
 
-            if 'profit_total' in backtest_stats:
-                abs_profit_loss = -backtest_stats['profit_total'] / 2.0
-
-            # # don't allow drawdown or profit to outweigh expectancy
-            # if (drawdown_loss < 0.0):
-            #     drawdown_loss = max(drawdown_loss, expectancy_loss)
-            # if (abs_profit_loss < 0.0):
-            #     abs_profit_loss = max(abs_profit_loss, expectancy_loss)
+        if 'profit_total' in backtest_stats:
+            abs_profit_loss = -backtest_stats['profit_total'] / 2.0
 
         result = expectancy_loss + drawdown_loss + abs_profit_loss
 
