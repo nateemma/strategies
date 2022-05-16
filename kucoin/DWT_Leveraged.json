@@ -14,39 +14,39 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "entry_long_dwt_diff": 3.5,
-      "entry_short_dwt_diff": -0.2
+      "entry_long_dwt_diff": 0.0,
+      "entry_short_dwt_diff": -0.3
     },
     "sell": {
       "cexit_long_endtrend_respect_roi": false,
-      "cexit_long_pullback": true,
-      "cexit_long_pullback_amount": 0.021,
-      "cexit_long_pullback_respect_roi": false,
-      "cexit_long_roi_end": 0.004,
-      "cexit_long_roi_start": 0.022,
-      "cexit_long_roi_time": 1427,
+      "cexit_long_pullback": false,
+      "cexit_long_pullback_amount": 0.011,
+      "cexit_long_pullback_respect_roi": true,
+      "cexit_long_roi_end": 0.007,
+      "cexit_long_roi_start": 0.03,
+      "cexit_long_roi_time": 1374,
       "cexit_long_roi_type": "decay",
       "cexit_long_trend_type": "none",
       "cexit_short_endtrend_respect_roi": true,
-      "cexit_short_pullback": true,
-      "cexit_short_pullback_amount": 0.012,
+      "cexit_short_pullback": false,
+      "cexit_short_pullback_amount": 0.011,
       "cexit_short_pullback_respect_roi": false,
-      "cexit_short_roi_end": 0.008,
-      "cexit_short_roi_start": 0.025,
-      "cexit_short_roi_time": 1043,
-      "cexit_short_roi_type": "step",
-      "cexit_short_trend_type": "rmi",
-      "cstop_bail_how": "any",
-      "cstop_bail_roc": -2.317,
-      "cstop_bail_time": 1231,
+      "cexit_short_roi_end": 0.001,
+      "cexit_short_roi_start": 0.03,
+      "cexit_short_roi_time": 785,
+      "cexit_short_roi_type": "decay",
+      "cexit_short_trend_type": "candle",
+      "cstop_bail_how": "time",
+      "cstop_bail_roc": -1.718,
+      "cstop_bail_time": 587,
       "cstop_bail_time_trend": false,
-      "cstop_loss_threshold": -0.017,
-      "cstop_max_stoploss": -0.086,
-      "exit_long_dwt_diff": -4.1,
-      "exit_short_dwt_diff": 2.7
+      "cstop_loss_threshold": -0.026,
+      "cstop_max_stoploss": -0.182,
+      "exit_long_dwt_diff": -3.7,
+      "exit_short_dwt_diff": 3.0
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-05-16 18:35:19.008553+00:00"
+  "export_time": "2022-05-16 22:10:42.079282+00:00"
 }
