@@ -158,9 +158,9 @@ class DWT_Leveraged(IStrategy):
             if (inf_pair != ""):
                 infs[inf_pair] = (inf_pair, self.inf_timeframe)
 
-        informative_pairs = infs.values()
+        informative_pairs = list(infs.values())
 
-        print("informative_pairs: ", informative_pairs)
+        # print("informative_pairs: ", informative_pairs)
 
         return informative_pairs
 
