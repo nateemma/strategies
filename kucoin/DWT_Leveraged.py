@@ -87,15 +87,15 @@ class DWT_Leveraged(IStrategy):
 
     ## Buy Space Hyperopt Variables
 
-    entry_long_dwt_diff = DecimalParameter(0.0, 5.0, decimals=1, default=2.0, space='buy', load=True, optimize=True)
-    entry_short_dwt_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-2.0, space='buy', load=True, optimize=True)
+    entry_long_dwt_diff = DecimalParameter(0.1, 5.0, decimals=1, default=2.0, space='buy', load=True, optimize=True)
+    entry_short_dwt_diff = DecimalParameter(-5.0, -0.1, decimals=1, default=-2.0, space='buy', load=True, optimize=True)
     # entry_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'macd', 'adx', 'none'], default='none', space='buy',
     #                                         load=True, optimize=True)
 
     ## Sell Space Hyperopt Variables
 
-    exit_long_dwt_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-2.0, space='sell', load=True, optimize=True)
-    exit_short_dwt_diff = DecimalParameter(0.0, 5.0, decimals=1, default=2.0, space='sell', load=True, optimize=True)
+    exit_long_dwt_diff = DecimalParameter(-5.0, -0.1, decimals=1, default=-2.0, space='sell', load=True, optimize=True)
+    exit_short_dwt_diff = DecimalParameter(0.1, 5.0, decimals=1, default=2.0, space='sell', load=True, optimize=True)
 
     # Custom exit Profit (formerly Dynamic ROI)
 
