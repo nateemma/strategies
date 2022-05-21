@@ -78,8 +78,8 @@
       "AAVE3L/USDT",
       "AAVE3S/USDT",
       "SOL3L/USDT",
-      "ADA3L/USDT",
-      "VET3L/USDT",
+//      "ADA3L/USDT",
+//      "VET3L/USDT",
       "LINK3L/USDT",
       "ATOM3L/USDT",
       "XRP3L/USDT",
@@ -92,7 +92,7 @@
       "LTC3L/USDT",
       "UNI3L/USDT",
       "LINK3S/USDT",
-      "EOS3L/USDT",
+//      "EOS3L/USDT",
       "MATIC3S/USDT",
       "LTC3S/USDT",
       "VET3S/USDT",
@@ -135,7 +135,7 @@
   "pairlists": [
     {
       "method": "StaticPairList"
-    },
+//    },
     //    {
     //      "method": "VolumePairList",
     //      "number_assets": 80,
@@ -150,32 +150,32 @@
     //      "method": "SpreadFilter",
     //      "max_spread_ratio": 0.005
     //    },
-    {
-      "method": "PriceFilter",
-      "min_price": 0.0001,
-      "low_price_ratio": 0.002
-    },
-    {
-      "method": "RangeStabilityFilter",
-      "lookback_days": 3,
-      "min_rate_of_change": 0.05,
-      "refresh_period": 1800
-    },
-    {
-      "method": "VolatilityFilter",
-      "lookback_days": 3,
-      "min_volatility": 0.02,
-      "max_volatility": 1.0,
-      "refresh_period": 43200
-    },
+//    {
+//      "method": "PriceFilter",
+//      "min_price": 0.0001,
+//      "low_price_ratio": 0.002
+//    },
+//    {
+//      "method": "RangeStabilityFilter",
+//      "lookback_days": 3,
+//      "min_rate_of_change": 0.05,
+//      "refresh_period": 1800
+//    },
+//    {
+//      "method": "VolatilityFilter",
+//      "lookback_days": 3,
+//      "min_volatility": 0.02,
+//      "max_volatility": 1.0,
+//      "refresh_period": 43200
+//    },
     //    {
     //        "method": "VolumePairList",
     //        "number_assets": 80,
     //        "sort_key": "quoteVolume",
     //        "refresh_period": 1800
     //    },
-    {
-      "method": "ShuffleFilter"
+//    {
+//      "method": "ShuffleFilter"
     }
   ],
   "edge": {

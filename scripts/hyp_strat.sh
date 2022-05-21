@@ -154,7 +154,7 @@ echo "Optimising strategy:$strategy for exchange:$exchange..."
 #set -x
 args="${jarg} --spaces ${spaces} --hyperopt-loss ${loss} --timerange=${timerange} --epochs ${epochs} \
     -c ${config_file} --strategy-path ${exchange_dir}  \
-    -s ${strategy} --min-trades ${min_trades}"
+    -s ${strategy} --min-trades ${min_trades} "
 cmd="freqtrade hyperopt ${args} --no-color"
 
 cat << END
