@@ -45,7 +45,7 @@ For example, ADA3S/USDT and ADA3L/USDT would be leveraged short/long pairs, and 
 """
 
 
-class DWT_Leveraged_recent(IStrategy):
+class DWT_Leveraged(IStrategy):
 
     INTERFACE_VERSION = 3
 

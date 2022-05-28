@@ -1,8 +1,8 @@
 {
-  "strategy_name": "DWT_lev_simple",
+  "strategy_name": "SARIMAX",
   "params": {
     "roi": {
-      "0": 0.1
+      "0": 10
     },
     "stoploss": {
       "stoploss": -0.1
@@ -14,28 +14,28 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "entry_dwt_diff": 1.0
+      "entry_smax_diff": 4.5
     },
     "sell": {
       "cexit_endtrend_respect_roi": true,
       "cexit_pullback": true,
       "cexit_pullback_amount": 0.007,
       "cexit_pullback_respect_roi": false,
-      "cexit_roi_end": 0.006,
-      "cexit_roi_start": 0.039,
-      "cexit_roi_time": 1311,
-      "cexit_roi_type": "decay",
-      "cexit_trend_type": "rmi",
-      "cstop_bail_how": "time",
-      "cstop_bail_roc": -4.663,
-      "cstop_bail_time": 918,
+      "cexit_roi_end": 0.001,
+      "cexit_roi_start": 0.017,
+      "cexit_roi_time": 1420,
+      "cexit_roi_type": "static",
+      "cexit_trend_type": "none",
+      "cstop_bail_how": "none",
+      "cstop_bail_roc": -1.014,
+      "cstop_bail_time": 908,
       "cstop_bail_time_trend": false,
-      "cstop_loss_threshold": -0.044,
-      "cstop_max_stoploss": -0.115,
-      "exit_dwt_diff": -3.4
+      "cstop_loss_threshold": -0.02,
+      "cstop_max_stoploss": -0.13,
+      "exit_smax_diff": -3.3
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-05-27 14:27:50.991596+00:00"
+  "export_time": "2022-05-21 00:29:45.764075+00:00"
 }

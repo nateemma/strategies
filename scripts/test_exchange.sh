@@ -4,7 +4,7 @@
 #strat_list="FBB_Solipsis FBB_MacheteV8b NostalgiaForInfinityX"
 #strat_list="FBB_MacheteV8b NostalgiaForInfinityX FBB_DWT FBB_DWT2 FBB_Kalman2 FBB_KalmanSIMD"
 strat_list="DWT FFT Kalman KalmanSIMD"
-lev_list="FBB_Leveraged FBB_BTCLeveraged FBB_BTCJump_Leveraged FBB_BTCNSeq_Leveraged"
+lev_list="DWT_Leveraged DWT_lev_short DWT_Leveraged_recent DWT_lev_simple"
 
 # default values
 
@@ -52,7 +52,7 @@ while getopts dj:ln:s:t:-: OPT; do
     j | jobs )       needs_arg; jobs="$OPTARG" ;;
     l | leveraged )  leveraged=1;;
     n | ndays )      needs_arg; num_days="$OPTARG"; timerange="$(date -j -v-${num_days}d +"%Y%m%d")-" ;;
-    s | strategy )   needs_arg; test_list="$OPTARG" ;;
+    s | strategy )   needs_arg; test_list="$OPTARG"; lev_list="$OPTARG" ;;
     t | timeframe )  needs_arg; timerange="$OPTARG" ;;
     \? )             show_usage; die "Illegal option --$OPT" ;;
     ??* )            show_usage; die "Illegal option --$OPT" ;;  # bad long option

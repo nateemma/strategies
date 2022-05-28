@@ -72,7 +72,15 @@
       "TRXUP/USDT",
       "BTCUP/USDT",
       "ADAUP/USDT",
-      "XRPUP/USDT"
+      "XRPUP/USDT",
+      "BNB/USDT",
+      "DOT/USDT",
+      "ETH/USDT",
+      "LINK/USDT",
+      "ADA/USDT",
+      "XRP/USDT",
+      "TRX/USDT",
+      "BTC/USDT"
     ],
     "pair_blacklist": [
       "(XTZDOWN|LTCDOWN|DOTDOWN)/.*",
