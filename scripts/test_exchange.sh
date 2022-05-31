@@ -4,7 +4,7 @@
 #strat_list="FBB_Solipsis FBB_MacheteV8b NostalgiaForInfinityX"
 #strat_list="FBB_MacheteV8b NostalgiaForInfinityX FBB_DWT FBB_DWT2 FBB_Kalman2 FBB_KalmanSIMD"
 strat_list="DWT FFT Kalman KalmanSIMD"
-lev_list="DWT_Leveraged DWT_lev_short DWT_Leveraged_recent DWT_lev_simple"
+lev_list="DWT_Leveraged DWT_lev_short DWT_Leveraged_recent DWT_Leveraged2"
 
 # default values
 
