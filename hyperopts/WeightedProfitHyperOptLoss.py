@@ -58,23 +58,23 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         weight_sortino_ratio = 0.25
         weight_drawdown = 1.0
 
-        if config['exchange']['name']:
-            if (config['exchange']['name'] == 'kucoin') or (config['exchange']['name'] == 'ascendex'):
-                # kucoin is extremely volatile, with v.high profits in backtesting (but not in real markets)
-                # so, reduce influence of absolute profit and no. of trades (and sharpe/sortino)
-                # the goal is reduce the number of losing and highly risky trades (the cost is some loss of profits)
-                weight_num_trades = 0.1
-                weight_duration = 0.25
-                weight_abs_profit = 0.1
-                weight_exp_profit = 0.5
-                weight_ave_profit = 1.0
-                weight_expectancy = 1.0
-                weight_win_loss_ratio = 0.75
-                weight_sharp_ratio = 0.25
-                weight_sortino_ratio = 0.05
-            elif (config['exchange']['name'] == 'ftx'):
-                weight_abs_profit = 0.2
-                weight_win_loss_ratio = 4.0
+        # if config['exchange']['name']:
+        #     if (config['exchange']['name'] == 'kucoin') or (config['exchange']['name'] == 'ascendex'):
+        #         # kucoin is extremely volatile, with v.high profits in backtesting (but not in real markets)
+        #         # so, reduce influence of absolute profit and no. of trades (and sharpe/sortino)
+        #         # the goal is reduce the number of losing and highly risky trades (the cost is some loss of profits)
+        #         weight_num_trades = 0.1
+        #         weight_duration = 0.25
+        #         weight_abs_profit = 0.1
+        #         weight_exp_profit = 0.5
+        #         weight_ave_profit = 1.0
+        #         weight_expectancy = 1.0
+        #         weight_win_loss_ratio = 0.75
+        #         weight_sharp_ratio = 0.25
+        #         weight_sortino_ratio = 0.05
+        #     elif (config['exchange']['name'] == 'ftx'):
+        #         weight_abs_profit = 0.2
+        #         weight_win_loss_ratio = 4.0
 
 
         days_period = (max_date - min_date).days

@@ -2,10 +2,13 @@
   "strategy_name": "DWT_Leveraged",
   "params": {
     "roi": {
-      "0": 0.1
+      "0": 0.273,
+      "39": 0.081,
+      "98": 0.037,
+      "210": 0.01
     },
     "stoploss": {
-      "stoploss": -0.1
+      "stoploss": -0.245
     },
     "trailing": {
       "trailing_stop": false,
@@ -14,39 +17,39 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "entry_long_dwt_diff": 2.8,
+      "entry_long_dwt_diff": 4.3,
       "entry_short_dwt_diff": -0.2
     },
     "sell": {
-      "cexit_long_endtrend_respect_roi": false,
+      "cexit_long_endtrend_respect_roi": true,
       "cexit_long_pullback": true,
-      "cexit_long_pullback_amount": 0.014,
+      "cexit_long_pullback_amount": 0.027,
       "cexit_long_pullback_respect_roi": false,
-      "cexit_long_roi_end": 0.004,
-      "cexit_long_roi_start": 0.011,
-      "cexit_long_roi_time": 1259,
-      "cexit_long_roi_type": "decay",
-      "cexit_long_trend_type": "rmi",
+      "cexit_long_roi_end": 0.005,
+      "cexit_long_roi_start": 0.042,
+      "cexit_long_roi_time": 1134,
+      "cexit_long_roi_type": "static",
+      "cexit_long_trend_type": "none",
       "cexit_short_endtrend_respect_roi": true,
       "cexit_short_pullback": false,
-      "cexit_short_pullback_amount": 0.022,
+      "cexit_short_pullback_amount": 0.014,
       "cexit_short_pullback_respect_roi": false,
-      "cexit_short_roi_end": 0.002,
-      "cexit_short_roi_start": 0.046,
-      "cexit_short_roi_time": 1436,
-      "cexit_short_roi_type": "step",
-      "cexit_short_trend_type": "any",
+      "cexit_short_roi_end": 0.008,
+      "cexit_short_roi_start": 0.023,
+      "cexit_short_roi_time": 834,
+      "cexit_short_roi_type": "static",
+      "cexit_short_trend_type": "candle",
       "cstop_bail_how": "none",
-      "cstop_bail_roc": -3.334,
-      "cstop_bail_time": 612,
+      "cstop_bail_roc": -1.326,
+      "cstop_bail_time": 176,
       "cstop_bail_time_trend": false,
-      "cstop_loss_threshold": -0.041,
-      "cstop_max_stoploss": -0.085,
-      "exit_long_dwt_diff": -2.7,
-      "exit_short_dwt_diff": 4.8
+      "cstop_loss_threshold": -0.045,
+      "cstop_max_stoploss": -0.292,
+      "exit_long_dwt_diff": -4.9,
+      "exit_short_dwt_diff": 3.6
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-05-28 00:11:55.791826+00:00"
+  "export_time": "2022-06-04 21:13:44.680877+00:00"
 }

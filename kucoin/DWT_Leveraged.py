@@ -192,6 +192,11 @@ class DWT_Leveraged(IStrategy):
             inf_fast['candle-up-trend'] = np.where(inf_fast['candle-up'].rolling(5).sum() >= 3, 1, 0)
             inf_fast['candle-dn-trend'] = np.where(inf_fast['candle-up'].rolling(5).sum() <= 2, 1, 0)
 
+            inf_fast['sroc'] = cta.SROC(inf_fast, roclen=21, emalen=13, smooth=21)
+            inf_fast['sroc-up'] = np.where(inf_fast['sroc'] > 0.0, 1, 0)
+            inf_fast['sroc-up-trend'] = np.where(inf_fast['sroc-up'].rolling(5).sum() >= 3, 1, 0)
+            inf_fast['sroc-dn-trend'] = np.where(inf_fast['sroc-up'].rolling(5).sum() <= 2, 1, 0)
+
             # merge into normal timeframe
             dataframe = merge_informative_pair(dataframe, inf_slow, self.timeframe, self.inf_timeframe, ffill=True)
             dataframe = merge_informative_pair(dataframe, inf_fast, self.timeframe, self.timeframe, ffill=True)
@@ -206,6 +211,10 @@ class DWT_Leveraged(IStrategy):
 
             dataframe['inf_candle-up-trend'] = dataframe[f"candle-up-trend_{self.timeframe}"]
             dataframe['inf_candle-dn-trend'] = dataframe[f"candle-dn-trend_{self.timeframe}"]
+
+            dataframe['inf_sroc-up-trend'] = dataframe[f"sroc-up-trend_{self.timeframe}"]
+            dataframe['inf_sroc-dn-trend'] = dataframe[f"sroc-dn-trend_{self.timeframe}"]
+
 
             # MACD
             macd = ta.MACD(dataframe)
@@ -316,7 +325,7 @@ class DWT_Leveraged(IStrategy):
     Buy Signal
     """
 
-    def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
 
         short_conditions = []
         long_conditions = []
@@ -329,7 +338,8 @@ class DWT_Leveraged(IStrategy):
             long_conditions.append(dataframe['volume'] > 0)
 
             # Trend
-            long_conditions.append(dataframe['inf_candle-dn-trend'] == 1)
+            # long_conditions.append(dataframe['inf_candle-dn-trend'] == 1)
+            long_conditions.append(dataframe['inf_sroc-dn-trend'] == 1)
 
             # DWT triggers
             long_dwt_cond = (
@@ -357,7 +367,8 @@ class DWT_Leveraged(IStrategy):
             short_conditions.append(dataframe['volume'] > 0)
 
             # Trend
-            short_conditions.append(dataframe['inf_candle-up-trend'] == 1)
+            # short_conditions.append(dataframe['inf_candle-up-trend'] == 1)
+            short_conditions.append(dataframe['inf_sroc-up-trend'] == 1)
 
             # DWT triggers
             short_dwt_cond = (
@@ -390,7 +401,7 @@ class DWT_Leveraged(IStrategy):
     Sell Signal
     """
 
-    def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+    def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
 
         short_conditions = []
         long_conditions = []
