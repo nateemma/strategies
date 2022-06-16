@@ -2,13 +2,10 @@
   "strategy_name": "DWT_Leveraged",
   "params": {
     "roi": {
-      "0": 0.273,
-      "39": 0.081,
-      "98": 0.037,
-      "210": 0.01
+      "0": 0.99
     },
     "stoploss": {
-      "stoploss": -0.245
+      "stoploss": -0.1
     },
     "trailing": {
       "trailing_stop": false,
@@ -17,39 +14,39 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "entry_long_dwt_diff": 4.3,
-      "entry_short_dwt_diff": -0.2
+      "entry_long_dwt_diff": 3.7,
+      "entry_short_dwt_diff": -3.9
     },
     "sell": {
-      "cexit_long_endtrend_respect_roi": true,
-      "cexit_long_pullback": true,
-      "cexit_long_pullback_amount": 0.027,
-      "cexit_long_pullback_respect_roi": false,
-      "cexit_long_roi_end": 0.005,
-      "cexit_long_roi_start": 0.042,
-      "cexit_long_roi_time": 1134,
-      "cexit_long_roi_type": "static",
-      "cexit_long_trend_type": "none",
+      "cexit_long_endtrend_respect_roi": false,
+      "cexit_long_pullback": false,
+      "cexit_long_pullback_amount": 0.014,
+      "cexit_long_pullback_respect_roi": true,
+      "cexit_long_roi_end": 0.008,
+      "cexit_long_roi_start": 0.048,
+      "cexit_long_roi_time": 828,
+      "cexit_long_roi_type": "step",
+      "cexit_long_trend_type": "candle",
       "cexit_short_endtrend_respect_roi": true,
-      "cexit_short_pullback": false,
-      "cexit_short_pullback_amount": 0.014,
-      "cexit_short_pullback_respect_roi": false,
-      "cexit_short_roi_end": 0.008,
-      "cexit_short_roi_start": 0.023,
-      "cexit_short_roi_time": 834,
+      "cexit_short_pullback": true,
+      "cexit_short_pullback_amount": 0.029,
+      "cexit_short_pullback_respect_roi": true,
+      "cexit_short_roi_end": 0.005,
+      "cexit_short_roi_start": 0.01,
+      "cexit_short_roi_time": 1393,
       "cexit_short_roi_type": "static",
-      "cexit_short_trend_type": "candle",
-      "cstop_bail_how": "none",
-      "cstop_bail_roc": -1.326,
-      "cstop_bail_time": 176,
+      "cexit_short_trend_type": "ssl",
+      "cstop_bail_how": "time",
+      "cstop_bail_roc": -4.336,
+      "cstop_bail_time": 561,
       "cstop_bail_time_trend": false,
-      "cstop_loss_threshold": -0.045,
-      "cstop_max_stoploss": -0.292,
-      "exit_long_dwt_diff": -4.9,
-      "exit_short_dwt_diff": 3.6
+      "cstop_loss_threshold": -0.043,
+      "cstop_max_stoploss": -0.179,
+      "exit_long_dwt_diff": -0.8,
+      "exit_short_dwt_diff": 1.4
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-06-04 21:13:44.680877+00:00"
+  "export_time": "2022-06-16 05:06:46.019002+00:00"
 }
