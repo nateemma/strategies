@@ -90,11 +90,11 @@ class FBB_DWT(IStrategy):
     # FBB_ hyperparams
     buy_bb_gain = DecimalParameter(0.01, 0.50, decimals=2, default=0.09, space='buy', load=True, optimize=True)
     buy_fisher_wr = DecimalParameter(-0.99, -0.75, decimals=2, default=-0.75, space='buy', load=True, optimize=True)
-    buy_force_fisher_wr = DecimalParameter(-0.99, -0.85, decimals=2, default=-0.99, space='buy', load=True, optimize=True)
+    # buy_force_fisher_wr = DecimalParameter(-0.99, -0.85, decimals=2, default=-0.99, space='buy', load=True, optimize=True)
 
     sell_bb_gain = DecimalParameter(0.7, 1.5, decimals=2, default=0.8, space='sell', load=True, optimize=True)
     sell_fisher_wr = DecimalParameter(0.75, 0.99, decimals=2, default=0.9, space='sell', load=True, optimize=True)
-    sell_force_fisher_wr = DecimalParameter(0.85, 0.99, decimals=2, default=0.99, space='sell', load=True, optimize=True)
+    # sell_force_fisher_wr = DecimalParameter(0.85, 0.99, decimals=2, default=0.99, space='sell', load=True, optimize=True)
 
 
     # DWT  hyperparams
@@ -345,18 +345,19 @@ class FBB_DWT(IStrategy):
                 (dataframe['bb_gain'] >= self.buy_bb_gain.value)
         )
 
-        strong_buy_cond = (
-                (
-                        (dataframe['bb_gain'] >= 1.5 * self.buy_bb_gain.value) |
-                        (dataframe['fisher_wr'] < self.buy_force_fisher_wr.value)
-                ) &
-                (
-                    (dataframe['bb_gain'] > 0.02)  # make sure there is some potential gain
-                )
-        )
-        conditions.append(fbb_cond | strong_buy_cond)
+        # strong_buy_cond = (
+        #         (
+        #                 (dataframe['bb_gain'] >= 1.5 * self.buy_bb_gain.value) |
+        #                 (dataframe['fisher_wr'] < self.buy_force_fisher_wr.value)
+        #         ) &
+        #         (
+        #             (dataframe['bb_gain'] > 0.02)  # make sure there is some potential gain
+        #         )
+        # )
+        # conditions.append(fbb_cond | strong_buy_cond)
+        conditions.append(fbb_cond)
         dataframe.loc[fbb_cond, 'buy_tag'] += 'fbb_buy '
-        dataframe.loc[strong_buy_cond, 'buy_tag'] += 'strong '
+        # dataframe.loc[strong_buy_cond, 'buy_tag'] += 'strong '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
@@ -394,18 +395,17 @@ class FBB_DWT(IStrategy):
                 (dataframe['close'] >= (dataframe['bb_upperband'] * self.sell_bb_gain.value))
         )
 
-        strong_sell_cond = (
-            qtpylib.crossed_above(dataframe['fisher_wr'], self.sell_force_fisher_wr.value) #&
-            # (dataframe['close'] > dataframe['bb_upperband'] * self.sell_bb_gain.value)
-        )
+        # strong_sell_cond = (
+        #     qtpylib.crossed_above(dataframe['fisher_wr'], self.sell_force_fisher_wr.value) #&
+        #     # (dataframe['close'] > dataframe['bb_upperband'] * self.sell_bb_gain.value)
+        # )
 
-        conditions.append(fbb_cond | strong_sell_cond)
+        # conditions.append(fbb_cond | strong_sell_cond)
+        conditions.append(fbb_cond)
 
         # set exit tags
         dataframe.loc[fbb_cond, 'exit_tag'] += 'fbb_sell '
-        dataframe.loc[strong_sell_cond, 'exit_tag'] += 'strong_sell '
-
-        # set sell tags
+        # dataframe.loc[strong_sell_cond, 'exit_tag'] += 'strong_sell '
         dataframe.loc[dwt_cond, 'exit_tag'] += 'dwt_sell '
 
         if conditions:

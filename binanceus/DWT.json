@@ -18,24 +18,24 @@
     },
     "sell": {
       "cexit_endtrend_respect_roi": true,
-      "cexit_pullback": true,
-      "cexit_pullback_amount": 0.015,
+      "cexit_pullback": false,
+      "cexit_pullback_amount": 0.022,
       "cexit_pullback_respect_roi": false,
-      "cexit_roi_end": 0.007,
+      "cexit_roi_end": 0.005,
       "cexit_roi_start": 0.01,
-      "cexit_roi_time": 808,
+      "cexit_roi_time": 1300,
       "cexit_roi_type": "decay",
       "cexit_trend_type": "none",
-      "cstop_bail_how": "none",
-      "cstop_bail_roc": -1.382,
-      "cstop_bail_time": 408,
-      "cstop_bail_time_trend": true,
-      "cstop_loss_threshold": -0.047,
-      "cstop_max_stoploss": -0.073,
-      "exit_dwt_diff": -0.3
+      "cstop_bail_how": "time",
+      "cstop_bail_roc": -2.533,
+      "cstop_bail_time": 148,
+      "cstop_bail_time_trend": false,
+      "cstop_loss_threshold": -0.034,
+      "cstop_max_stoploss": -0.072,
+      "exit_dwt_diff": -1.3
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-06-17 07:47:09.209554+00:00"
+  "export_time": "2022-06-28 16:31:17.399612+00:00"
 }
