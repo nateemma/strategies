@@ -98,14 +98,14 @@ class FBB_DWT(IStrategy):
 
 
     # DWT  hyperparams
-    buy_dwt_diff = DecimalParameter(0.000, 0.050, decimals=3, default=0.01, space='buy', load=True, optimize=True)
+    buy_dwt_diff = DecimalParameter(0.000, 0.090, decimals=3, default=0.01, space='buy', load=True, optimize=True)
     # buy_dwt_window = IntParameter(8, 164, default=64, space='buy', load=True, optimize=True)
     # buy_dwt_lookahead = IntParameter(0, 64, default=0, space='buy', load=True, optimize=True)
 
     dwt_window = 128
     dwt_lookahead = 0
 
-    sell_dwt_diff = DecimalParameter(-0.050, 0.000, decimals=3, default=-0.01, space='sell', load=True, optimize=True)
+    sell_dwt_diff = DecimalParameter(-0.090, 0.000, decimals=3, default=-0.01, space='sell', load=True, optimize=True)
 
 
     # Custom Sell Profit (formerly Dynamic ROI)

@@ -113,4 +113,7 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
         if ((debug_level == 1) & (result<0.0)) | (debug_level > 1):
             print("{:.2f} exp:{:.2f} drw:{:.2f} prf:{:.2f} ".format(result, expectancy_loss, drawdown_loss, abs_profit_loss))
 
+        if abs_profit_loss < -100.0:
+            result = UNDESIRED_SOLUTION
+
         return result

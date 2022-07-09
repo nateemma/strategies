@@ -14,39 +14,39 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "entry_long_dwt_diff": 1.9,
-      "entry_short_dwt_diff": -0.3
+      "entry_long_dwt_diff": 2.0,
+      "entry_short_dwt_diff": -1.4
     },
     "sell": {
-        "cexit_long_endtrend_respect_roi": false,
-        "cexit_long_pullback": false,
-        "cexit_long_pullback_amount": 0.03,
+        "cexit_long_endtrend_respect_roi": true,
+        "cexit_long_pullback": true,
+        "cexit_long_pullback_amount": 0.018,
         "cexit_long_pullback_respect_roi": true,
-        "cexit_long_roi_end": 0.01,
-        "cexit_long_roi_start": 0.037,
-        "cexit_long_roi_time": 1428,
+        "cexit_long_roi_end": 0.009,
+        "cexit_long_roi_start": 0.045,
+        "cexit_long_roi_time": 1383,
         "cexit_long_roi_type": "decay",
         "cexit_long_trend_type": "none",
         "cexit_short_endtrend_respect_roi": true,
         "cexit_short_pullback": false,
-        "cexit_short_pullback_amount": 0.01,
+        "cexit_short_pullback_amount": 0.026,
         "cexit_short_pullback_respect_roi": false,
-        "cexit_short_roi_end": 0.002,
-        "cexit_short_roi_start": 0.019,
-        "cexit_short_roi_time": 1248,
-        "cexit_short_roi_type": "step",
+        "cexit_short_roi_end": 0.006,
+        "cexit_short_roi_start": 0.049,
+        "cexit_short_roi_time": 1185,
+        "cexit_short_roi_type": "static",
         "cexit_short_trend_type": "any",
         "cstop_bail_how": "time",
-        "cstop_bail_roc": -3.046,
-        "cstop_bail_time": 380,
+        "cstop_bail_roc": -1.645,
+        "cstop_bail_time": 178,
         "cstop_bail_time_trend": true,
-        "cstop_loss_threshold": -0.047,
-        "cstop_max_stoploss": -0.131,
-        "exit_long_dwt_diff": -4.1,
-        "exit_short_dwt_diff": 3.4
+        "cstop_loss_threshold": -0.049,
+        "cstop_max_stoploss": -0.247,
+        "exit_long_dwt_diff": -1.0,
+        "exit_short_dwt_diff": 4.0
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-06-19 18:16:14.537565+00:00"
+  "export_time": "2022-07-06 03:45:28.690369+00:00"
 }

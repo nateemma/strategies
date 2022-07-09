@@ -299,6 +299,9 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         result = abs_profit_loss + num_trades_loss + duration_loss + exp_profit_loss + ave_profit_loss + \
                  win_loss_ratio_loss + expectancy_loss + sharp_ratio_loss + sortino_ratio_loss + drawdown_loss
 
+        if abs_profit_loss < -100.0:
+            result = UNDESIRED_SOLUTION
+
         if (result < 0.0) and (debug_level > 0):
             print(" \tPabs:{:.2f} Pave:{:.2f} n:{:.2f} dur:{:.2f} w/l:{:.2f} " \
                   "expy:{:.2f}  sharpe:{:.2f} sortino:{:.2f} draw:{:.2f}" \
