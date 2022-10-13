@@ -1,0 +1,38 @@
+{
+  "strategy_name": "PCA",
+  "params": {
+    "roi": {
+      "0": 0.99
+    },
+    "stoploss": {
+      "stoploss": -0.1
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "buy": {},
+    "sell": {
+      "csell_endtrend_respect_roi": true,
+      "csell_pullback": false,
+      "csell_pullback_amount": 0.023,
+      "csell_pullback_respect_roi": false,
+      "csell_roi_end": 0.005,
+      "csell_roi_start": 0.011,
+      "csell_roi_time": 754,
+      "csell_roi_type": "step",
+      "csell_trend_type": "none",
+      "cstop_bail_how": "time",
+      "cstop_bail_roc": -1.515,
+      "cstop_bail_time": 634,
+      "cstop_bail_time_trend": true,
+      "cstop_loss_threshold": -0.05,
+      "cstop_max_stoploss": -0.068
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2022-10-13 15:31:13.444091+00:00"
+}

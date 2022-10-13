@@ -17,17 +17,13 @@ from datetime import datetime
 import numpy as np
 from typing import Any, Dict
 
-
 # Contstants to allow evaluation in cases where thre is insufficient (or nonexistent) info in the configuration
-EXPECTED_TRADES_PER_DAY = 3                         # used to set target goals
-MIN_TRADES_PER_DAY = EXPECTED_TRADES_PER_DAY / 3    # used to filter out scenarios where there are not enough trades
-UNDESIRED_SOLUTION = 2.0             # indicates that we don't want this solution (so hyperopt will avoid)
-
+EXPECTED_TRADES_PER_DAY = 3  # used to set target goals
+MIN_TRADES_PER_DAY = EXPECTED_TRADES_PER_DAY / 3  # used to filter out scenarios where there are not enough trades
+UNDESIRED_SOLUTION = 2.0  # indicates that we don't want this solution (so hyperopt will avoid)
 
 
 class ExpectancyHyperOptLoss(IHyperOptLoss):
-
-
     """
     Defines a custom loss function for hyperopt
     """
@@ -39,7 +35,7 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
                                backtest_stats: Dict[str, Any],
                                *args, **kwargs) -> float:
 
-        debug_level = 0 # displays (more) messages if higher
+        debug_level = 0  # displays (more) messages if higher
 
         # if debug_level >= 2:
         #     profit_cols = [col for col in results.columns if 'profit' in col]
@@ -81,7 +77,6 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
         results['downside_returns'] = 0
         results.loc[total_profit_pct < 0, 'downside_returns'] = 1.0
 
-
         # Expectancy (refer to freqtrade edge page for info)
         w = winning_count / trade_count
         l = 1.0 - w
@@ -110,10 +105,13 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
 
         result = expectancy_loss + drawdown_loss + abs_profit_loss
 
-        if ((debug_level == 1) & (result<0.0)) | (debug_level > 1):
-            print("{:.2f} exp:{:.2f} drw:{:.2f} prf:{:.2f} ".format(result, expectancy_loss, drawdown_loss, abs_profit_loss))
-
         if abs_profit_loss < -100.0:
             result = UNDESIRED_SOLUTION
+        elif abs_profit_loss > 0.0:
+            result = result + 1.0 # penalise -ve profit
+
+        if ((debug_level == 1) & (result < 0.0)) | (debug_level > 1):
+            print("{:.2f} exp:{:.2f} drw:{:.2f} prf:{:.2f} ".format(result, expectancy_loss, drawdown_loss,
+                                                                    abs_profit_loss))
 
         return result
