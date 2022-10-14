@@ -223,12 +223,6 @@ class PCA(IStrategy):
 
         inf = self.dp.get_pair_dataframe(pair=curr_pair, timeframe=self.inf_timeframe)
 
-        # add in gain column
-        # Note that we deliberately look ahead here. We can do this with historical data, but not real-time data
-
-        # TODO: only do rolling calculations if in backtest or hyperopt modes?!
-        # if self.dp.runmode.value in ('live', 'dry_run'):
-
         # Calculate all technical indicators.
         # # This is done on the inf dataframe because that is what we will use to create the model
 
@@ -239,12 +233,19 @@ class PCA(IStrategy):
         self.curr_lookahead = self.inf_lookahead
 
         print("    processing historical data...")
+
+
         # inf['gain'] = inf['close'].rolling(self.startup_candle_count).apply(self.roll_future_gain)
         # inf['buy_signal'] = inf['gain'].rolling(self.startup_candle_count).apply(self.roll_buy_signal).fillna(0)
         # inf['sell_signal'] = inf['gain'].rolling(self.startup_candle_count).apply(self.roll_sell_signal).fillna(0)
         inf['buy_signal'] = 0
         inf['sell_signal'] = 0
-        inf['temp'] = inf['close'].rolling(self.curr_lookahead + 1).apply(self.roll_add_signals, raw=False)
+
+        # only do rolling calculations if in backtest or hyperopt modes?!
+        if self.dp.runmode.value in ('live', 'dry_run'):
+            inf = self.add_signals(inf)
+        else:
+            inf['temp'] = inf['close'].rolling(self.curr_lookahead + 1).apply(self.roll_add_signals, raw=False)
 
         inf = inf.iloc[:-self.inf_lookahead]  # drop last group (because there cannot be a prediction)
 
@@ -262,16 +263,15 @@ class PCA(IStrategy):
         self.curr_lookahead = self.inf_lookahead * self.inf_ratio
 
         # fill in historical buy/sell signals (this is mainly for debug/display)
-        # dataframe['gain'] = dataframe['close'].rolling(self.startup_candle_count).apply(self.roll_future_gain)
-        # dataframe['buy_signal'] = dataframe['gain'].rolling(self.startup_candle_count).apply(
-        #     self.roll_buy_signal).fillna(0)
-        # dataframe['sell_signal'] = dataframe['gain'].rolling(self.startup_candle_count).apply(
-        #     self.roll_sell_signal).fillna(0)
 
         dataframe['buy_signal'] = 0
         dataframe['sell_signal'] = 0
-        dataframe['temp'] = dataframe['close'].rolling(self.curr_lookahead + 1).apply(self.roll_add_signals, raw=False)
-
+        # only do rolling calculations if in backtest or hyperopt modes?!
+        if self.dp.runmode.value in ('live', 'dry_run'):
+            dataframe = self.add_signals(dataframe)
+        else:
+            dataframe['temp'] = dataframe['close'].rolling(self.curr_lookahead + 1).apply(self.roll_add_signals,
+                                                                                          raw=False)
         print("    running predictions...")
 
         dataframe['predict_buy'] = 0
@@ -529,6 +529,28 @@ class PCA(IStrategy):
 
         return dataframe
 
+    # add buy/sell signals based on historical data. Used for training and debug
+    def add_signals(self, dataframe: DataFrame) -> DataFrame:
+
+        lookahead = self.curr_lookahead
+
+        # buy signals
+        dataframe['buy_signal'] = np.where(
+            (
+                # (dataframe['close'].shift(-lookahead) > dataframe['bb_upperband'])
+                    (dataframe['close'] < dataframe['tema']) &
+                    (dataframe['close'].shift(-lookahead) > dataframe['tema'].shift(-lookahead))
+            ), 1, 0)
+
+        # sell signals
+        dataframe['sell_signal'] = np.where(
+            (
+                # (dataframe['close'].shift(-lookahead) < dataframe['bb_lowerband'])
+                    (dataframe['close'] > dataframe['tema']) &
+                    (dataframe['close'].shift(-lookahead) < dataframe['tema'].shift(-lookahead))
+            ), 1, 0)
+
+        return dataframe
 
     # routine(s) to calculate future gain - for use in a rolling calculation
     def roll_future_gain(self, col: np.ndarray) -> np.float:
@@ -593,25 +615,10 @@ class PCA(IStrategy):
     def roll_add_signals(self, col) -> np.float:
         # reference the subset of the current dataframe based on the index of the supplied column
         view = self.curr_df.iloc[col.index]
-        lookahead = self.curr_lookahead
 
-        # buy signals
-        view['buy_signal'] = np.where(
-            (
-                # (view['close'].shift(-lookahead) > view['bb_upperband'])
-                    (view['close'] < view['tema']) &
-                    (view['close'].shift(-lookahead) > view['tema'].shift(-lookahead))
-            ), 1, 0)
-
-        # sell signals
-        view['sell_signal'] = np.where(
-            (
-                # (view['close'].shift(-lookahead) < view['bb_lowerband'])
-                    (view['close'] > view['tema']) &
-                    (view['close'].shift(-lookahead) < view['tema'].shift(-lookahead))
-            ), 1, 0)
-
+        view = self.add_signals(view)
         self.curr_df.iloc[col.index] = view
+
         return 1
 
     # add predictions in a rolling fashion
