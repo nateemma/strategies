@@ -33,8 +33,10 @@ log = logging.getLogger(__name__)
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 import custom_indicators as cta
+from finta import TA as fta
 
-from sklearn.model_selection import RandomizedSearchCV
+
+from sklearn.model_selection import RandomizedSearchCV, train_test_split
 from sklearn.metrics import classification_report
 from sklearn.metrics import ConfusionMatrixDisplay
 from sklearn.preprocessing import StandardScaler
@@ -224,11 +226,10 @@ class PCA(IStrategy):
         # add in gain column
         # Note that we deliberately look ahead here. We can do this with historical data, but not real-time data
 
-        #TODO: only do rolling calculations if in backtest or hyperopt modes?!
-        #if self.dp.runmode.value in ('live', 'dry_run'):
+        # TODO: only do rolling calculations if in backtest or hyperopt modes?!
+        # if self.dp.runmode.value in ('live', 'dry_run'):
 
-
-        # Calculate all technical indicators. 
+        # Calculate all technical indicators.
         # # This is done on the inf dataframe because that is what we will use to create the model
 
         inf = self.add_indicators(inf)
@@ -237,14 +238,13 @@ class PCA(IStrategy):
         self.curr_df = inf
         self.curr_lookahead = self.inf_lookahead
 
-        
         print("    processing historical data...")
         # inf['gain'] = inf['close'].rolling(self.startup_candle_count).apply(self.roll_future_gain)
         # inf['buy_signal'] = inf['gain'].rolling(self.startup_candle_count).apply(self.roll_buy_signal).fillna(0)
         # inf['sell_signal'] = inf['gain'].rolling(self.startup_candle_count).apply(self.roll_sell_signal).fillna(0)
         inf['buy_signal'] = 0
         inf['sell_signal'] = 0
-        inf['temp'] = inf['close'].rolling(self.curr_lookahead+1).apply(self.roll_add_signals, raw=False)
+        inf['temp'] = inf['close'].rolling(self.curr_lookahead + 1).apply(self.roll_add_signals, raw=False)
 
         inf = inf.iloc[:-self.inf_lookahead]  # drop last group (because there cannot be a prediction)
 
@@ -270,7 +270,7 @@ class PCA(IStrategy):
 
         dataframe['buy_signal'] = 0
         dataframe['sell_signal'] = 0
-        dataframe['temp'] = dataframe['close'].rolling(self.curr_lookahead+1).apply(self.roll_add_signals, raw=False)
+        dataframe['temp'] = dataframe['close'].rolling(self.curr_lookahead + 1).apply(self.roll_add_signals, raw=False)
 
         print("    running predictions...")
 
@@ -284,7 +284,8 @@ class PCA(IStrategy):
             #     self.roll_predict_buy).fillna(0)
             # dataframe['predict_sell'] = dataframe['sell_signal'].rolling(self.startup_candle_count).apply(
             #     self.roll_predict_sell).fillna(0)
-            dataframe['temp'] = dataframe['close'].rolling(self.curr_lookahead+1).apply(self.roll_add_predictions, raw=False)
+            dataframe['temp'] = dataframe['close'].rolling(self.curr_lookahead + 1).apply(self.roll_add_predictions,
+                                                                                          raw=False)
 
         # Custom Stoploss
         self.add_stoploss_indicators(dataframe, curr_pair)
@@ -294,16 +295,11 @@ class PCA(IStrategy):
     ###################################
 
     # populate dataframe with desired technical indicators
+    # NOTE: OK to thriow anything in here, just add it to the parameter list
+    # The whole idea is to create a dimension-reduced mapping anyway
     def add_indicators(self, dataframe: DataFrame) -> DataFrame:
 
-        self.param_list = ['rsi', 'fisher_rsi', 'bb_width', 'bb_gain', 'wr',
-                           'fisher_wr', 'rsi_14',
-                           'ema_12', 'ema_20', 'ema_25', 'ema_35', 'ema_50', 'ema_100', 'ema_200',
-                           'sma_200', 'sma_200_dec_20', 'sma_200_dec_24', 'cmf', 'cti', 'crsi',
-                           'r_14', 'r_480', 'ewo', 'roc_9', 't3_avg', 'res_level', 'res_hlevel',
-                           'sup_level', 'hl_pct_change_48', 'hl_pct_change_36', 'hl_pct_change_24',
-                           'hl_pct_change_12', 'hl_pct_change_6']
-
+        self.param_list = []
 
         # these averages are used internally, do not remove!
         dataframe['sma'] = ta.SMA(dataframe, timeperiod=self.startup_candle_count)
@@ -311,37 +307,76 @@ class PCA(IStrategy):
         dataframe['tema'] = ta.TEMA(dataframe, timeperiod=self.startup_candle_count)
         self.param_list += ['sma', 'ema', 'tema']
 
-        # FisherBB
-
+        # RSI
+        period = 14
+        smoothD = 3
+        SmoothK = 3
         dataframe['rsi'] = ta.RSI(dataframe, timeperiod=14)
-        rsi = 0.1 * (dataframe['rsi'] - 50)
-        dataframe['fisher_rsi'] = (np.exp(2 * rsi) - 1) / (np.exp(2 * rsi) + 1)
+        stochrsi = (dataframe['rsi'] - dataframe['rsi'].rolling(period).min()) / (
+                    dataframe['rsi'].rolling(period).max() - dataframe['rsi'].rolling(period).min())
+        dataframe['srsi_k'] = stochrsi.rolling(SmoothK).mean() * 100
+        dataframe['srsi_d'] = dataframe['srsi_k'].rolling(smoothD).mean()
+        self.param_list += ['rsi', 'srsi_k', 'srsi_d']
 
-        # Bollinger Bands
+        # Bollinger Bands (must include these)
         bollinger = qtpylib.bollinger_bands(dataframe['close'], window=20, stds=2)
         dataframe['bb_lowerband'] = bollinger['lower']
         dataframe['bb_middleband'] = bollinger['mid']
         dataframe['bb_upperband'] = bollinger['upper']
         dataframe['bb_width'] = ((dataframe['bb_upperband'] - dataframe['bb_lowerband']) / dataframe['bb_middleband'])
         dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
+        self.param_list += ['bb_lowerband', 'bb_middleband', 'bb_upperband', 'bb_width', 'bb_gain']
 
         # Donchian Channels
         dataframe['dc_upper'] = ta.MAX(dataframe['high'], timeperiod=20)
         dataframe['dc_lower'] = ta.MIN(dataframe['low'], timeperiod=20)
+        dataframe['dc_mid'] = ta.TEMA(((dataframe['dc_upper'] + dataframe['dc_lower']) / 2), timeperiod=20)
+        self.param_list += ["dc_upper", "dc_lower", "dc_mid"]
 
-        dataframe["dcbb_diff_upper"] = (dataframe["dc_upper"] - dataframe['bb_upperband'])
-        dataframe["dcbb_diff_lower"] = (dataframe["dc_lower"] - dataframe['bb_lowerband'])
+        dataframe["dcbb_dist_upper"] = (dataframe["dc_upper"] - dataframe['bb_upperband'])
+        dataframe["dcbb_dist_lower"] = (dataframe["dc_lower"] - dataframe['bb_lowerband'])
+        self.param_list += ["dcbb_dist_upper", "dcbb_dist_lower"]
 
-        self.param_list += ["dcbb_diff_upper", "dcbb_diff_lower"]
+        # Fibonacci Levels (of Donchian Channel)
+        dataframe['dc_dist'] = (dataframe['dc_upper'] - dataframe['dc_lower'])
+        dataframe['dc_hf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.236 # Highest Fib
+        dataframe['dc_chf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.382 # Centre High Fib
+        dataframe['dc_clf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.618 # Centre Low Fib
+        dataframe['dc_lf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.764 # Low Fib
+        self.param_list += ["dc_dist", "dc_hf", 'dc_chf', 'dc_clf', 'dc_lf']
+
+        # Keltner Channels
+        keltner = qtpylib.keltner_channel(dataframe)
+        dataframe["kc_upper"] = keltner["upper"]
+        dataframe["kc_lower"] = keltner["lower"]
+        dataframe["kc_mid"] = keltner["mid"]
+        dataframe["kc_percent"] = (
+            (dataframe["close"] - dataframe["kc_lower"]) /
+            (dataframe["kc_upper"] - dataframe["kc_lower"])
+        )
+        dataframe["kc_width"] = (
+            (dataframe["kc_upper"] - dataframe["kc_lower"]) / dataframe["kc_mid"]
+        )
+        dataframe['kc_dist'] = (dataframe['kc_upper'] - dataframe['close'])
+        self.param_list += ["kc_upper", "kc_lower", 'kc_mid', 'kc_percent', 'kc_width', 'kc_dist']
+
 
         # Williams %R
         dataframe['wr'] = 0.02 * (williams_r(dataframe, period=14) + 50.0)
+        self.param_list += ['wr']
+
+        # Fisher RSI
+        rsi = 0.1 * (dataframe['rsi'] - 50)
+        dataframe['fisher_rsi'] = (np.exp(2 * rsi) - 1) / (np.exp(2 * rsi) + 1)
+        self.param_list += ['fisher_rsi']
 
         # Combined Fisher RSI and Williams %R
         dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
+        self.param_list += ['fisher_wr']
 
         # RSI
         dataframe['rsi_14'] = ta.RSI(dataframe, timeperiod=14)
+        self.param_list += ['rsi_14']
 
         # EMAs
         dataframe['ema_12'] = ta.EMA(dataframe, timeperiod=12)
@@ -351,18 +386,22 @@ class PCA(IStrategy):
         dataframe['ema_50'] = ta.EMA(dataframe, timeperiod=50)
         dataframe['ema_100'] = ta.EMA(dataframe, timeperiod=100)
         dataframe['ema_200'] = ta.EMA(dataframe, timeperiod=200)
+        self.param_list += ['ema_12', 'ema_20', 'ema_25', 'ema_35', 'ema_50', 'ema_100', 'ema_200']
 
         # SMA
         dataframe['sma_200'] = ta.SMA(dataframe, timeperiod=200)
 
         dataframe['sma_200_dec_20'] = dataframe['sma_200'] < dataframe['sma_200'].shift(20)
         dataframe['sma_200_dec_24'] = dataframe['sma_200'] < dataframe['sma_200'].shift(24)
+        self.param_list += ['sma_200', 'sma_200_dec_20', 'sma_200_dec_24']
 
         # CMF
         dataframe['cmf'] = chaikin_money_flow(dataframe, 20)
+        self.param_list += ['cmf']
 
         # CTI
         dataframe['cti'] = pta.cti(dataframe["close"], length=20)
+        self.param_list += ['cti']
 
         # CRSI (3, 2, 100)
         crsi_closechange = dataframe['close'] / dataframe['close'].shift(1)
@@ -370,19 +409,24 @@ class PCA(IStrategy):
         dataframe['crsi'] = (ta.RSI(dataframe['close'], timeperiod=3) + ta.RSI(crsi_updown, timeperiod=2) + ta.ROC(
             dataframe['close'],
             100)) / 3
+        self.param_list += ['crsi']
 
         # Williams %R
         dataframe['r_14'] = williams_r(dataframe, period=14)
         dataframe['r_480'] = williams_r(dataframe, period=480)
+        self.param_list += ['r_14', 'r_480']
 
         # EWO
         dataframe['ewo'] = ewo(dataframe, 50, 200)
+        self.param_list += ['ewo']
 
         # ROC
         dataframe['roc_9'] = ta.ROC(dataframe, timeperiod=9)
+        self.param_list += ['roc_9']
 
         # T3 Average
         dataframe['t3_avg'] = t3_average(dataframe)
+        self.param_list += ['t3_avg']
 
         # S/R
         res_series = dataframe['high'].rolling(window=5, center=True).apply(lambda row: is_resistance(row),
@@ -398,6 +442,7 @@ class PCA(IStrategy):
             np.where(sup_series,
                      np.where(dataframe['close'] < dataframe['open'], dataframe['close'], dataframe['open']),
                      float('NaN'))).ffill()
+        self.param_list += ['res_level', 'res_hlevel', 'sup_level']
 
         # Pump protections
         dataframe['hl_pct_change_48'] = range_percent_change(dataframe, 'HL', 48)
@@ -405,16 +450,16 @@ class PCA(IStrategy):
         dataframe['hl_pct_change_24'] = range_percent_change(dataframe, 'HL', 24)
         dataframe['hl_pct_change_12'] = range_percent_change(dataframe, 'HL', 12)
         dataframe['hl_pct_change_6'] = range_percent_change(dataframe, 'HL', 6)
+        self.param_list += ['hl_pct_change_6', 'hl_pct_change_12', 'hl_pct_change_24', 'hl_pct_change_36',
+                            'hl_pct_change_48']
 
         # ADX
         dataframe['adx'] = ta.ADX(dataframe)
-
         self.param_list += ["adx"]
 
         # Plus Directional Indicator / Movement
         dataframe['dm_plus'] = ta.PLUS_DM(dataframe)
         dataframe['di_plus'] = ta.PLUS_DI(dataframe)
-
         self.param_list += ['dm_plus', 'di_plus']
 
         # Minus Directional Indicator / Movement
@@ -422,12 +467,10 @@ class PCA(IStrategy):
         dataframe['di_minus'] = ta.MINUS_DI(dataframe)
         dataframe['dm_delta'] = dataframe['dm_plus'] - dataframe['dm_minus']
         dataframe['di_delta'] = dataframe['di_plus'] - dataframe['di_minus']
-
         self.param_list += ['dm_minus', 'di_minus', 'dm_delta', 'di_delta']
 
         # MFI
         dataframe['mfi'] = ta.MFI(dataframe)
-
         self.param_list += ['mfi']
 
         # MACD
@@ -435,19 +478,16 @@ class PCA(IStrategy):
         dataframe['macd'] = macd['macd']
         dataframe['macdsignal'] = macd['macdsignal']
         dataframe['macdhist'] = macd['macdhist']
-
         self.param_list += ['macd', 'macdsignal', 'macdhist']
 
         # Stoch fast
         stoch_fast = ta.STOCHF(dataframe)
         dataframe['fastd'] = stoch_fast['fastd']
         dataframe['fastk'] = stoch_fast['fastk']
-
         self.param_list += ['fastd', 'fastk']
 
         # SAR Parabol
         dataframe['sar'] = ta.SAR(dataframe)
-
         self.param_list += ['sar']
 
         dataframe['mom'] = ta.MOM(dataframe, timeperiod=14)
@@ -461,7 +501,6 @@ class PCA(IStrategy):
         dataframe['in-the-mood'] = dataframe['rsi_7'] > dataframe['rsi_7'].rolling(12).mean()
         dataframe['moist'] = qtpylib.crossed_above(dataframe['macd'], dataframe['macdsignal'])
         dataframe['throbbing'] = dataframe['roc_6'] > dataframe['roc_6'].rolling(12).mean()
-
         self.param_list += ['color', 'primed', 'in-the-mood', 'moist', 'throbbing']
 
         # candle up/down trends
@@ -476,7 +515,20 @@ class PCA(IStrategy):
         self.param_list += ['candle-up', 'candle-up-trend', 'candle-up-seq', 'candle-dn', 'candle-dn-trend',
                             'candle-dn-seq']
 
+        ## sqzmi to detect quiet periods
+        dataframe['sqzmi'] = fta.SQZMI(dataframe)  # , MA=hansencalc['emac'])
+        self.param_list += ['sqzmi']
+
+        # Volume Flow Indicator (MFI) for volume based on the direction of price movement
+        dataframe['vfi'] = fta.VFI(dataframe, period=14)
+        self.param_list += ['vfi']
+
+        #ATR
+        dataframe['atr'] = ta.ATR(dataframe, timeperiod=14)
+        self.param_list += ['atr']
+
         return dataframe
+
 
     # routine(s) to calculate future gain - for use in a rolling calculation
     def roll_future_gain(self, col: np.ndarray) -> np.float:
@@ -497,8 +549,8 @@ class PCA(IStrategy):
             # currently below TEMA but above TEMA in future
             signal = np.where(
                 (
-                    (view['close'] < view['tema']) &
-                    (view['close'].shift(-lookahead) > view['tema'].shift(-lookahead))
+                        (view['close'] < view['tema']) &
+                        (view['close'].shift(-lookahead) > view['tema'].shift(-lookahead))
                 ), 1, 0)
         else:
             # method 2: compare to mean/stddev
@@ -524,8 +576,8 @@ class PCA(IStrategy):
             # currently above TEMA but below TEMA in future
             signal = np.where(
                 (
-                    (view['close'] > view['tema']) &
-                    (view['close'].shift(-lookahead) < view['tema'].shift(-lookahead))
+                        (view['close'] > view['tema']) &
+                        (view['close'].shift(-lookahead) < view['tema'].shift(-lookahead))
                 ), 1, 0)
 
         else:
@@ -547,14 +599,14 @@ class PCA(IStrategy):
         view['buy_signal'] = np.where(
             (
                 # (view['close'].shift(-lookahead) > view['bb_upperband'])
-                (view['close'] < view['tema']) &
-                (view['close'].shift(-lookahead) > view['tema'].shift(-lookahead))
+                    (view['close'] < view['tema']) &
+                    (view['close'].shift(-lookahead) > view['tema'].shift(-lookahead))
             ), 1, 0)
 
         # sell signals
         view['sell_signal'] = np.where(
             (
-                    # (view['close'].shift(-lookahead) < view['bb_lowerband'])
+                # (view['close'].shift(-lookahead) < view['bb_lowerband'])
                     (view['close'] > view['tema']) &
                     (view['close'].shift(-lookahead) < view['tema'].shift(-lookahead))
             ), 1, 0)
@@ -586,7 +638,6 @@ class PCA(IStrategy):
 
         preds = self.predict_sell(view, self.curr_pair)
         return preds.ravel()[0]
-
 
     def roll_add_predictions(self, col) -> np.float:
         # reference the subset of the current dataframe based on the index of the supplied column
@@ -638,28 +689,25 @@ class PCA(IStrategy):
 
     def train_models(self, dataframe: DataFrame, curr_pair):
 
-        # gains = dataframe['trade_signal']
-
-        # lab_enc = preprocessing.LabelEncoder()
-        # gains = lab_enc.fit_transform(dataframe['trade_signal'])
-
-        # normalise the data (required by the PCA libraries)
-        # dataframe_norm = (dataframe - dataframe.mean()) / dataframe.std()
-        # dataframe_norm = dataframe.fillna(0) # copy and replace NaNs
-        df = dataframe[self.param_list].fillna(0)
+        # if in non-run mode, reduce size of dataframe to match run-time buffer size (500)
+        if self.dp.runmode.value in ('live', 'dry_run'):
+            df_train = dataframe
+        else:
+            test_size = int(min(500, dataframe.shape[0]))
+            random_st = 27  # use fixed number for reproducibility
+            df_train, _ = train_test_split(dataframe, train_size=test_size, random_state=random_st)
 
         # extract buy/sell signals
-        buys = dataframe['buy_signal'].fillna(0)
-        sells = dataframe['sell_signal'].fillna(0)
+        buys = df_train['buy_signal'].fillna(0)
+        sells = df_train['sell_signal'].fillna(0)
 
+        # extract (only) indicator columns
+        df = df_train[self.param_list].fillna(0)
+
+        # normalise the data (required by the PCA/Classifier libraries)
         df_norm = (df - df.mean()) / df.std()
-        for i in df_norm.columns[df_norm.isnull().any(axis=0)]:  # ---Applying Only on variables with NaN values
-            df_norm[i].fillna(df_norm[i].mean(), inplace=True)
         df_norm.fillna(0, inplace=True)
 
-        #TODO: use train/test split function in backtest/hyperopt?
-        # shouldn't really train on future data
-        
         # create the PCA analysis model
 
         pca = self.get_pca(df_norm)
@@ -668,7 +716,7 @@ class PCA(IStrategy):
 
         # DEBUG:
         # print("")
-        print("    ", curr_pair, " - input: ", df_norm.shape, " -> pca: ", df_norm_pca.shape)
+        print("   ", curr_pair, " - input: ", df_norm.shape, " -> pca: ", df_norm_pca.shape)
 
         # Create a classifier for the model
 
@@ -709,6 +757,8 @@ class PCA(IStrategy):
         if (ncols != df_norm.shape[1]):
             # pca = skd.PCA(n_components=ncols, svd_solver="randomized", whiten=True).fit(df_norm)
             pca = skd.PCA(n_components=ncols).fit(df_norm)
+
+        #TODO: print matrix of weightings for selected components
 
         return pca
 
@@ -1030,7 +1080,7 @@ def chaikin_money_flow(dataframe, n=20, fillna=False) -> Series:
         pandas.Series: New feature generated.
     """
     mfv = ((dataframe['close'] - dataframe['low']) - (dataframe['high'] - dataframe['close'])) / (
-                dataframe['high'] - dataframe['low'])
+            dataframe['high'] - dataframe['low'])
     mfv = mfv.fillna(0.0)  # float division by zero
     mfv *= dataframe['volume']
     cmf = (mfv.rolling(n, min_periods=0).sum()
