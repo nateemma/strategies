@@ -66,6 +66,8 @@ from sklearn.metrics import recall_score
 from sklearn.metrics import f1_score
 from sklearn.model_selection import cross_validate
 
+import random
+
 """
 ####################################################################################
 PCA - uses Principal Component Analysis to try and reduce the total set of indicators
@@ -106,24 +108,6 @@ class PCA(IStrategy):
 
     inf_timeframe = '5m'
 
-    lookahead_hours = 2
-
-    if inf_timeframe == '5m':
-        inf_lookahead = 12 * lookahead_hours
-        inf_ratio = 1  # dataframe vs informative time ratio: 5m / 5m
-    elif inf_timeframe == '15m':
-        inf_lookahead = 4 * lookahead_hours
-        inf_ratio = 3  # dataframe vs informative time ratio: 15m / 5m
-    elif inf_timeframe == '1h':
-        inf_lookahead = lookahead_hours
-        inf_ratio = 12  # dataframe vs informative time ratio: 1h / 5m
-    else:
-        print("Unsupported informative timeframe: ", inf_timeframe)
-        inf_timeframe = '1h'
-        inf_lookahead = 3
-        inf_ratio = 12  # dataframe vs informative time ratio: 1h / 5m
-        print("  resetting to: ", inf_timeframe)
-
     use_custom_stoploss = True
 
     # Recommended
@@ -135,19 +119,41 @@ class PCA(IStrategy):
     startup_candle_count: int = 128
     process_only_new_candles = True
 
-    curr_pair = ""
-    custom_trade_info = {}
-    curr_df: DataFrame = None
-    first_time = True
+    # Strategy-specific global vars
+
+    #TODO: convert timeframe to seconds/minutes and automate the calcs
+    if inf_timeframe == '5m':
+        inf_ratio = 1  # dataframe vs informative time ratio: 5m / 5m
+    elif inf_timeframe == '15m':
+        inf_ratio = 3  # dataframe vs informative time ratio: 15m / 5m
+    elif inf_timeframe == '1h':
+        inf_ratio = 12  # dataframe vs informative time ratio: 1h / 5m
+    else:
+        print("Unsupported informative timeframe: ", inf_timeframe)
+        inf_timeframe = '1h'
+        inf_ratio = 12  # dataframe vs informative time ratio: 1h / 5m
+        print("  resetting to: ", inf_timeframe)
+
+    lookahead_hours = 2
+    inf_lookahead = int((12 / inf_ratio) * lookahead_hours)
     curr_lookahead = inf_lookahead
 
-    pca_model = {}  # list of PCA models per pair
+    curr_pair = ""
+    custom_trade_info = {}
+    
+    curr_df: DataFrame = None
+    first_time = True
 
-    # Classifiers for buy and sell
-    clf_buy_model = {}
-    clf_sell_model = {}
+    # pca_model = {}  # list of PCA models per pair
+    #
+    # # Classifiers for buy and sell
+    # clf_buy_model = {}
+    # clf_sell_model = {}
 
-    scan_clasifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
+    num_pairs = 0
+    pair_model_info = {} # holds model-related info for each pair
+
+    scan_classifiers = True  # if True, scan all viable classifiers and choose the best. Very slow!
 
     param_list = []  # list of parameters to use (technical indicators)
 
@@ -193,6 +199,7 @@ class PCA(IStrategy):
     """
 
     def inf_pairs(self):
+        # all pairs in the whitelist are also in the informative list
         pairs = self.dp.current_whitelist()
         inf_pairs = [(pair, self.inf_timeframe) for pair in pairs]
         return inf_pairs
@@ -220,6 +227,18 @@ class PCA(IStrategy):
 
         print("")
         print(curr_pair)
+
+        # if first time through for this pair, add entry to pair_model_info
+        if not (curr_pair in self.pair_model_info):
+            self.pair_model_info[curr_pair] = {
+                'interval': 0,
+                'pca_model': None,
+                'clf_buy_model': None,
+                'clf_sell_model': None
+            }
+        else:
+            # decrement interval. When this reaches 0 it will trigger re-fitting of the data
+            self.pair_model_info[curr_pair]['interval'] = self.pair_model_info[curr_pair]['interval'] - 1
 
         inf = self.dp.get_pair_dataframe(pair=curr_pair, timeframe=self.inf_timeframe)
 
@@ -264,6 +283,7 @@ class PCA(IStrategy):
 
         # fill in historical buy/sell signals (this is mainly for debug/display)
 
+        print("    populating signals...")
         dataframe['buy_signal'] = 0
         dataframe['sell_signal'] = 0
         # only do rolling calculations if in backtest or hyperopt modes?!
@@ -537,18 +557,20 @@ class PCA(IStrategy):
         # buy signals
         dataframe['buy_signal'] = np.where(
             (
-                # (dataframe['close'].shift(-lookahead) > dataframe['bb_upperband'])
+                    (dataframe['close'] < dataframe['close'].shift(-lookahead)) & # went up
+                    # (dataframe['close'].shift(-lookahead) > dataframe['bb_upperband'])
                     (dataframe['close'] < dataframe['tema']) &
                     (dataframe['close'].shift(-lookahead) > dataframe['tema'].shift(-lookahead))
-            ), 1, 0)
+            ), 1.0, 0.0)
 
         # sell signals
         dataframe['sell_signal'] = np.where(
             (
-                # (dataframe['close'].shift(-lookahead) < dataframe['bb_lowerband'])
+                    (dataframe['close'] > dataframe['close'].shift(-lookahead)) & # went down
+                    # (dataframe['close'].shift(-lookahead) < dataframe['bb_lowerband'])
                     (dataframe['close'] > dataframe['tema']) &
                     (dataframe['close'].shift(-lookahead) < dataframe['tema'].shift(-lookahead))
-            ), 1, 0)
+            ), 1.0, 0.0)
 
         return dataframe
 
@@ -696,24 +718,33 @@ class PCA(IStrategy):
 
     def train_models(self, dataframe: DataFrame, curr_pair):
 
-        # if in non-run mode, reduce size of dataframe to match run-time buffer size (500)
+        # only run if interval reaches 0
+        count = self.pair_model_info[curr_pair]['interval']
+        if (count > 0):
+            self.pair_model_info[curr_pair]['interval'] = count - 1
+            return
+        else:
+            # reset interval to a random number between 1 and the amount of lookahead
+            self.pair_model_info[curr_pair]['interval'] = random.randint(1, self.inf_lookahead)
+
+        # if in non-run mode, reduce size of dataframe to match run-time buffer size (975)
         if self.dp.runmode.value in ('live', 'dry_run'):
             df_train = dataframe
         else:
-            test_size = int(min(500, dataframe.shape[0]))
+            train_size = int(min(975, dataframe.shape[0]))
             random_st = 27  # use fixed number for reproducibility
-            df_train, _ = train_test_split(dataframe, train_size=test_size, random_state=random_st)
+            df_train, df_test = train_test_split(dataframe, train_size=train_size, random_state=random_st)
 
         # extract buy/sell signals
-        buys = df_train['buy_signal'].fillna(0)
-        sells = df_train['sell_signal'].fillna(0)
+        buys = df_train['buy_signal'].fillna(0.0)
+        sells = df_train['sell_signal'].fillna(0.0)
 
         # extract (only) indicator columns
-        df = df_train[self.param_list].fillna(0)
+        df = df_train[self.param_list].fillna(0.0)
 
         # normalise the data (required by the PCA/Classifier libraries)
         df_norm = (df - df.mean()) / df.std()
-        df_norm.fillna(0, inplace=True)
+        df_norm.fillna(0.0, inplace=True)
 
         # create the PCA analysis model
 
@@ -725,28 +756,36 @@ class PCA(IStrategy):
         # print("")
         print("   ", curr_pair, " - input: ", df_norm.shape, " -> pca: ", df_norm_pca.shape)
 
-        # Create a classifier for the model
+        # Create buy/sell classifiers for the model
 
         buy_clf = self.get_classifier(df_norm_pca, buys)
         sell_clf = self.get_classifier(df_norm_pca, sells)
 
-        if self.scan_clasifiers:
-            # DEBUG: check the accuracy
-            print("")
-            print("Train - Buy:")
-            preds = buy_clf.predict(df_norm_pca)
-            print(classification_report(df_norm_pca, buys))
-
-            print("")
-            print("Train - Sell:")
-            # DEBUG: check the accuracy
-            preds = sell_clf.predict(df_norm_pca)
-            print(classification_report(df_norm_pca, sells))
-
         # save the models
-        self.pca_model[curr_pair] = pca
-        self.clf_buy_model[curr_pair] = buy_clf
-        self.clf_sell_model[curr_pair] = sell_clf
+
+        self.pair_model_info[curr_pair]['pca_model'] = pca
+        self.pair_model_info[curr_pair]['clf_buy_model'] = buy_clf
+        self.pair_model_info[curr_pair]['clf_sell_model'] = sell_clf
+
+        # if scan specified, test against the original dataframe
+        if self.scan_classifiers:
+            buys = dataframe['buy_signal'].fillna(0.0)
+            sells = dataframe['sell_signal'].fillna(0.0)
+            df = dataframe[self.param_list].fillna(0.0)
+            df_norm = (df - df.mean()) / df.std()
+            df_norm.fillna(0.0, inplace=True)
+            df_norm_pca = DataFrame(pca.transform(df_norm))
+            pred_buys = buy_clf.predict(df_norm_pca)
+            print("")
+            print("Predict - Buy Signals")
+            print(classification_report(buys, pred_buys))
+            print("")
+
+            pred_sells = sell_clf.predict(df_norm_pca)
+            print("")
+            print("Predict - Sell Signals")
+            print(classification_report(sells, pred_sells))
+            print("")
 
     # get the PCA model for the supplied dataframe (dataframe must be normalised)
     def get_pca(self, df_norm: DataFrame):
@@ -772,11 +811,16 @@ class PCA(IStrategy):
     # get a classifier for the supplied dataframe (normalised) and known results
     def get_classifier(self, df_norm: DataFrame, results):
 
-        if self.scan_clasifiers:
-            clf = self.find_best_classifier(df_norm, results)
-        else:
-            clf = self.classifier_factory('RandomForest')  # best based on testing
+        # If already done, just get previous result and re-fit
+        if self.pair_model_info[self.curr_pair]['clf_buy_model']:
+            clf = self.pair_model_info[self.curr_pair]['clf_buy_model']
             clf = clf.fit(df_norm, results)
+        else:
+            if self.scan_classifiers:
+                clf = self.find_best_classifier(df_norm, results)
+            else:
+                clf = self.classifier_factory('RandomForest')  # best based on testing
+                clf = clf.fit(df_norm, results)
 
         return clf
 
@@ -856,7 +900,7 @@ class PCA(IStrategy):
         # predict = 0
         predict = None
 
-        pca = self.pca_model[pair]
+        pca = self.pair_model_info[pair]['pca_model']
 
         if clf:
             df = dataframe[self.param_list].fillna(0)
@@ -872,32 +916,32 @@ class PCA(IStrategy):
         return predict
 
     def predict_buy(self, df, pair):
-        predict = self.predict(df, pair, self.clf_buy_model[pair])
+        predict = self.predict(df, pair, self.pair_model_info[pair]['clf_buy_model'])
 
-        if self.scan_clasifiers:
-            # DEBUG: check accuracy
-            signals = df['buy_signal']
-            acc = accuracy_score(signals, predict)
-            f1 = f1_score(signals, predict, average=None)
-            print("")
-            print("Predict - Buy Signals")
-            print(classification_report(predict, signals))
-            print("")
+        # if self.scan_classifiers:
+        #     # DEBUG: check accuracy
+        #     signals = df['buy_signal']
+        #     acc = accuracy_score(signals, predict)
+        #     f1 = f1_score(signals, predict, average=None)
+        #     print("")
+        #     print("Predict - Buy Signals")
+        #     print(classification_report(predict, signals))
+        #     print("")
 
         return predict
 
     def predict_sell(self, df, pair):
-        predict = self.predict(df, pair, self.clf_sell_model[pair])
+        predict = self.predict(df, pair, self.pair_model_info[pair]['clf_sell_model'])
 
-        if self.scan_clasifiers:
-            # DEBUG: check accuracy
-            signals = df['sell_signal']
-            acc = accuracy_score(signals, predict)
-            f1 = f1_score(signals, predict, average=None)
-            print("")
-            print("Predict - Sell Signals")
-            print(classification_report(predict, signals))
-            print("")
+        # if self.scan_classifiers:
+        #     # DEBUG: check accuracy
+        #     signals = df['sell_signal']
+        #     acc = accuracy_score(signals, predict)
+        #     f1 = f1_score(signals, predict, average=None)
+        #     print("")
+        #     print("Predict - Sell Signals")
+        #     print(classification_report(predict, signals))
+        #     print("")
 
         return predict
 
