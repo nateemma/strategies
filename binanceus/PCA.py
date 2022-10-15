@@ -282,6 +282,7 @@ class PCA(IStrategy):
         self.curr_lookahead = self.inf_lookahead * self.inf_ratio
 
         # fill in historical buy/sell signals (this is mainly for debug/display)
+        '''
 
         print("    populating signals...")
         dataframe['buy_signal'] = 0
@@ -292,6 +293,8 @@ class PCA(IStrategy):
         else:
             dataframe['temp'] = dataframe['close'].rolling(self.curr_lookahead + 1).apply(self.roll_add_signals,
                                                                                           raw=False)
+        '''
+
         print("    running predictions...")
 
         dataframe['predict_buy'] = 0
@@ -322,9 +325,9 @@ class PCA(IStrategy):
         self.param_list = []
 
         # these averages are used internally, do not remove!
-        dataframe['sma'] = ta.SMA(dataframe, timeperiod=self.startup_candle_count)
-        dataframe['ema'] = ta.EMA(dataframe, timeperiod=self.startup_candle_count)
-        dataframe['tema'] = ta.TEMA(dataframe, timeperiod=self.startup_candle_count)
+        dataframe['sma'] = ta.SMA(dataframe, timeperiod=20)
+        dataframe['ema'] = ta.EMA(dataframe, timeperiod=20)
+        dataframe['tema'] = ta.TEMA(dataframe, timeperiod=20)
         self.param_list += ['sma', 'ema', 'tema']
 
         # RSI
@@ -960,12 +963,14 @@ class PCA(IStrategy):
 
         conditions.append(dataframe['volume'] > 0)
 
-        # PCA triggers
+        # only buy if currently below TEMA
+        conditions.append(dataframe['close'] < dataframe['tema'])
 
+
+        # PCA triggers
         pca_cond = (
             (qtpylib.crossed_above(dataframe['predict_buy'], 0))
         )
-
         conditions.append(pca_cond)
 
         # set entry tags
@@ -988,6 +993,9 @@ class PCA(IStrategy):
         curr_pair = metadata['pair']
 
         # conditions.append(dataframe['volume'] > 0)
+
+        # only buy if currently above TEMA
+        conditions.append(dataframe['close'] > dataframe['tema'])
 
         # PCA triggers
         pca_cond = (
