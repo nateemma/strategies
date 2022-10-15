@@ -153,7 +153,7 @@ class PCA(IStrategy):
     num_pairs = 0
     pair_model_info = {} # holds model-related info for each pair
 
-    scan_classifiers = True  # if True, scan all viable classifiers and choose the best. Very slow!
+    scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
 
     param_list = []  # list of parameters to use (technical indicators)
 
@@ -819,7 +819,8 @@ class PCA(IStrategy):
             if self.scan_classifiers:
                 clf = self.find_best_classifier(df_norm, results)
             else:
-                clf = self.classifier_factory('RandomForest')  # best based on testing
+                # clf = self.classifier_factory('RandomForest')  # best based on testing
+                clf = self.classifier_factory('KNeighbors')  # best based on testing
                 clf = clf.fit(df_norm, results)
 
         return clf
