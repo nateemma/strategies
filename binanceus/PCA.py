@@ -46,11 +46,11 @@ from sklearn.utils.fixes import loguniform
 from sklearn import preprocessing
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import GridSearchCV
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.naive_bayes import GaussianNB
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.naive_bayes import GaussianNB, MultinomialNB
 from sklearn.neural_network import MLPClassifier
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, SGDClassifier
 from sklearn.svm import LinearSVC
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
@@ -144,11 +144,8 @@ class PCA(IStrategy):
     curr_df: DataFrame = None
     first_time = True
 
-    # pca_model = {}  # list of PCA models per pair
-    #
-    # # Classifiers for buy and sell
-    # clf_buy_model = {}
-    # clf_sell_model = {}
+    profit_goal = -0.1 # delibeartely invalid
+    loss_goal = +0.1
 
     num_pairs = 0
     pair_model_info = {} # holds model-related info for each pair
@@ -245,26 +242,15 @@ class PCA(IStrategy):
         # Calculate all technical indicators.
         # # This is done on the inf dataframe because that is what we will use to create the model
 
-        inf = self.add_indicators(inf)
+        inf = self.add_indicators(inf).fillna(0.0)
 
         # set global vars for use by rolling functions
         self.curr_df = inf
         self.curr_lookahead = self.inf_lookahead
 
-        print("    processing historical data...")
+        print("    generating training data...")
 
-
-        # inf['gain'] = inf['close'].rolling(self.startup_candle_count).apply(self.roll_future_gain)
-        # inf['buy_signal'] = inf['gain'].rolling(self.startup_candle_count).apply(self.roll_buy_signal).fillna(0)
-        # inf['sell_signal'] = inf['gain'].rolling(self.startup_candle_count).apply(self.roll_sell_signal).fillna(0)
-        inf['buy_signal'] = 0
-        inf['sell_signal'] = 0
-
-        # only do rolling calculations if in backtest or hyperopt modes?!
-        if self.dp.runmode.value in ('live', 'dry_run'):
-            inf = self.add_signals(inf)
-        else:
-            inf['temp'] = inf['close'].rolling(self.curr_lookahead + 1).apply(self.roll_add_signals, raw=False)
+        inf = self.create_training_data(inf)
 
         inf = inf.iloc[:-self.inf_lookahead]  # drop last group (because there cannot be a prediction)
 
@@ -281,19 +267,7 @@ class PCA(IStrategy):
         self.curr_df = dataframe  # used by rolling predictions
         self.curr_lookahead = self.inf_lookahead * self.inf_ratio
 
-        # fill in historical buy/sell signals (this is mainly for debug/display)
-        '''
-
-        print("    populating signals...")
-        dataframe['buy_signal'] = 0
-        dataframe['sell_signal'] = 0
-        # only do rolling calculations if in backtest or hyperopt modes?!
-        if self.dp.runmode.value in ('live', 'dry_run'):
-            dataframe = self.add_signals(dataframe)
-        else:
-            dataframe['temp'] = dataframe['close'].rolling(self.curr_lookahead + 1).apply(self.roll_add_signals,
-                                                                                          raw=False)
-        '''
+        dataframe = self.create_training_data(dataframe)
 
         print("    running predictions...")
 
@@ -303,14 +277,15 @@ class PCA(IStrategy):
             dataframe['predict_buy'] = self.predict_buy(dataframe, curr_pair)
             dataframe['predict_sell'] = self.predict_sell(dataframe, curr_pair)
         else:
-            # dataframe['predict_buy'] = dataframe['buy_signal'].rolling(self.startup_candle_count).apply(
-            #     self.roll_predict_buy).fillna(0)
-            # dataframe['predict_sell'] = dataframe['sell_signal'].rolling(self.startup_candle_count).apply(
-            #     self.roll_predict_sell).fillna(0)
-            dataframe['temp'] = dataframe['close'].rolling(self.curr_lookahead + 1).apply(self.roll_add_predictions,
-                                                                                          raw=False)
+            # I think we can just apply - check against rolling solution
+            dataframe['predict_buy'] = self.predict_buy(dataframe, curr_pair)
+            dataframe['predict_sell'] = self.predict_sell(dataframe, curr_pair)
+
+            # dataframe['temp'] = dataframe['close'].rolling(window=self.curr_lookahead*2).apply(self.roll_add_predictions,
+            #                                                                               raw=False)
 
         # Custom Stoploss
+        print("    updating stoploss data...")
         self.add_stoploss_indicators(dataframe, curr_pair)
 
         return dataframe
@@ -325,9 +300,9 @@ class PCA(IStrategy):
         self.param_list = []
 
         # these averages are used internally, do not remove!
-        dataframe['sma'] = ta.SMA(dataframe, timeperiod=20)
-        dataframe['ema'] = ta.EMA(dataframe, timeperiod=20)
-        dataframe['tema'] = ta.TEMA(dataframe, timeperiod=20)
+        dataframe['sma'] = ta.SMA(dataframe, timeperiod=self.curr_lookahead)
+        dataframe['ema'] = ta.EMA(dataframe, timeperiod=self.curr_lookahead)
+        dataframe['tema'] = ta.TEMA(dataframe, timeperiod=self.curr_lookahead)
         self.param_list += ['sma', 'ema', 'tema']
 
         # RSI
@@ -438,11 +413,6 @@ class PCA(IStrategy):
         dataframe['r_14'] = williams_r(dataframe, period=14)
         dataframe['r_480'] = williams_r(dataframe, period=480)
         self.param_list += ['r_14', 'r_480']
-
-        # EWO
-        dataframe['ewo'] = ewo(dataframe, 50, 200)
-        self.param_list += ['ewo']
-
         # ROC
         dataframe['roc_9'] = ta.ROC(dataframe, timeperiod=9)
         self.param_list += ['roc_9']
@@ -492,10 +462,6 @@ class PCA(IStrategy):
         dataframe['di_delta'] = dataframe['di_plus'] - dataframe['di_minus']
         self.param_list += ['dm_minus', 'di_minus', 'dm_delta', 'di_delta']
 
-        # MFI
-        dataframe['mfi'] = ta.MFI(dataframe)
-        self.param_list += ['mfi']
-
         # MACD
         macd = ta.MACD(dataframe)
         dataframe['macd'] = macd['macd']
@@ -539,137 +505,201 @@ class PCA(IStrategy):
                             'candle-dn-seq']
 
         ## sqzmi to detect quiet periods
-        dataframe['sqzmi'] = fta.SQZMI(dataframe)  # , MA=hansencalc['emac'])
+        dataframe['sqzmi'] = fta.SQZMI(dataframe)
         self.param_list += ['sqzmi']
+
+        # MFI
+        dataframe['mfi'] = ta.MFI(dataframe)
+        dataframe['mfi_norm'] = self.norm_column(dataframe['mfi'])
+        dataframe['mfi_buy'] = np.where((dataframe['mfi_norm'] > 0.5), 1.0, 0.0)
+        dataframe['mfi_sell'] = np.where((dataframe['mfi_norm'] < -0.5), 1.0, 0.0)
+        dataframe['mfi_signal'] = dataframe['mfi_buy'] - dataframe['mfi_sell']
+        self.param_list += ['mfi', 'mfi_signal']
 
         # Volume Flow Indicator (MFI) for volume based on the direction of price movement
         dataframe['vfi'] = fta.VFI(dataframe, period=14)
-        self.param_list += ['vfi']
+        dataframe['vfi_norm'] = self.norm_column(dataframe['vfi'])
+        dataframe['vfi_buy'] = np.where((dataframe['vfi_norm'] > 0.5), 1.0, 0.0)
+        dataframe['vfi_sell'] = np.where((dataframe['vfi_norm'] < -0.5), 1.0, 0.0)
+        dataframe['vfi_signal'] = dataframe['vfi_buy'] - dataframe['vfi_sell']
+        self.param_list += ['vfi', 'vfi_signal']
 
         #ATR
         dataframe['atr'] = ta.ATR(dataframe, timeperiod=14)
-        self.param_list += ['atr']
+        dataframe['atr_norm'] = self.norm_column(dataframe['atr'])
+        dataframe['atr_buy'] = np.where((dataframe['atr_norm'] > 0.5), 1.0, 0.0)
+        dataframe['atr_sell'] = np.where((dataframe['atr_norm'] < -0.5), 1.0, 0.0)
+        dataframe['atr_signal'] = dataframe['atr_buy'] - dataframe['atr_sell']
+        self.param_list += ['atr', 'atr_signal']
+
+        # Hilbert Transform Indicator - SineWave
+        hilbert = ta.HT_SINE(dataframe)
+        dataframe['htsine'] = hilbert['sine']
+        dataframe['htleadsine'] = hilbert['leadsine']
+        self.param_list += ['htsine', 'htleadsine']
+
+        # Oscillators
+
+        # EWO
+        dataframe['ewo'] = ewo(dataframe, 50, 200)
+        self.param_list += ['ewo']
+
+        # Ultimate Oscillator
+        dataframe['uo'] = ta.ULTOSC(dataframe)
+        self.param_list += ['uo']
+
+        # Aroon, Aroon Oscillator
+        aroon = ta.AROON(dataframe)
+        dataframe['aroonup'] = aroon['aroonup']
+        dataframe['aroondown'] = aroon['aroondown']
+        dataframe['aroonosc'] = ta.AROONOSC(dataframe)
+        self.param_list += ['aroonup', 'aroondown', 'aroonosc']
+
+        # Awesome Oscillator
+        dataframe['ao'] = qtpylib.awesome_oscillator(dataframe)
+        self.param_list += ['ao']
+
+        # Commodity Channel Index: values [Oversold:-100, Overbought:100]
+        dataframe['cci'] = ta.CCI(dataframe)
+        self.param_list += ['cci']
 
         return dataframe
 
-    # add buy/sell signals based on historical data. Used for training and debug
-    def add_signals(self, dataframe: DataFrame) -> DataFrame:
+    def create_training_data(self, dataframe: DataFrame) -> DataFrame:
 
-        lookahead = self.curr_lookahead
+        dataframe['buy_signal'] = 0.0
+        dataframe['sell_signal'] = 0.0
+        dataframe['future_gain'] = 0.0
+        dataframe['future_profit'] = 0.0
+        dataframe['future_loss'] = 0.0
 
-        # buy signals
+        # calculate future gains!
+        if self.dp.runmode.value in ('live', 'dry_run'):
+            dataframe = self.add_future_gains(dataframe)
+        else:
+            dataframe['future_gain'] = dataframe['tema'].rolling(window=self.curr_lookahead).apply(
+                self.roll_add_future_gains)
+        # set targets based on data just generated
+        self.set_gain_targets(dataframe)
+
+        # set the buy and sell signals used for training
         dataframe['buy_signal'] = np.where(
             (
-                    (dataframe['close'] < dataframe['close'].shift(-lookahead)) & # went up
-                    # (dataframe['close'].shift(-lookahead) > dataframe['bb_upperband'])
-                    (dataframe['close'] < dataframe['tema']) &
-                    (dataframe['close'].shift(-lookahead) > dataframe['tema'].shift(-lookahead))
+                (  # price went up greater than mean profit
+                    (dataframe['future_gain'] > self.profit_goal) &
+                    (dataframe['future_gain'].shift(-1) > self.profit_goal)
+                )
+            ), 1.0, 0.0)
+        dataframe['sell_signal'] = np.where(
+            (
+                (  # price went up greater than mean profit
+                    (dataframe['future_gain'] < self.loss_goal) &
+                    (dataframe['future_gain'].shift(-1) < self.loss_goal)
+                )
+            ), 1.0, 0.0)
+
+        return dataframe
+
+
+    # calculate future gains. Used for setting targets
+    def add_future_gains(self, dataframe: DataFrame) -> DataFrame:
+
+        # yes, we lookahead in the data!
+        lookahead = self.curr_lookahead
+
+        # calculate future gains
+        # dataframe['future_gain'] = (dataframe['tema'].shift(-lookahead) - dataframe['tema']) / dataframe['tema']
+        dataframe['future_gain'] = (dataframe['tema'].shift(-lookahead) - dataframe['tema'])
+        dataframe['future_gain'].fillna(0.0, inplace=True)
+
+        return dataframe
+
+    # calculate profit/loss targets for training
+    def set_gain_targets(self, dataframe: DataFrame) -> DataFrame:
+        dataframe['future_profit'] = dataframe['future_gain'].apply(lambda x: x if x > 0.0 else 0.0)
+        dataframe['future_loss'] = dataframe['future_gain'].apply(lambda x: x if x < 0.0 else 0.0)
+
+        dataframe['future_profit'].fillna(0.0, inplace=True)
+        dataframe['future_loss'].fillna(0.0, inplace=True)
+
+        #TODO: divide by mean to (somewhat) normalise?!
+        gmean = dataframe['future_gain'].mean()
+        pmean = dataframe['future_profit'].mean()
+        lmean = dataframe['future_loss'].mean()
+        dataframe['future_gain'] = dataframe['future_gain'] / abs(gmean)
+        dataframe['future_profit'] = dataframe['future_profit'] / abs(pmean)
+        dataframe['future_loss'] = dataframe['future_loss'] / abs(lmean)
+
+        # print("mean:", dataframe['future_profit'].mean(), " std:", dataframe['future_profit'].std())
+        self.profit_goal = dataframe['future_profit'].mean() + 0.0 * dataframe['future_profit'].std()
+        self.loss_goal = dataframe['future_loss'].mean() - 0.0 * dataframe['future_loss'].std()
+        print("Gain Targets - profit:", self.profit_goal, " loss:", self.loss_goal)
+
+        return dataframe
+
+    # add buy/sell signals based on historical data. Used for training prediction models
+    def add_training_signals(self, dataframe: DataFrame) -> DataFrame:
+
+        # yes, we lookahead in the data!
+        lookahead = self.curr_lookahead
+
+        # identify what should have been good buy signals
+        # Note: keep this simple, don't try to combine indicators, that's what PCA will do for you
+        dataframe['buy_signal'] = np.where(
+            (
+                    (  # price went up greater than mean profit
+                        (dataframe['future_gain'] > self.profit_goal)
+                    # ) &
+                    # (  # green candle
+                    #     (dataframe['close'].shift(-lookahead) > dataframe['open'].shift(-lookahead))
+                    # ) &
+                    # (  # went from below TEMA to above TEMA
+                    #         (dataframe['close'] < dataframe['tema']) &
+                    #         (dataframe['close'].shift(-lookahead) > dataframe['tema'].shift(-lookahead))
+                    )
             ), 1.0, 0.0)
 
         # sell signals
         dataframe['sell_signal'] = np.where(
             (
-                    (dataframe['close'] > dataframe['close'].shift(-lookahead)) & # went down
-                    # (dataframe['close'].shift(-lookahead) < dataframe['bb_lowerband'])
-                    (dataframe['close'] > dataframe['tema']) &
-                    (dataframe['close'].shift(-lookahead) < dataframe['tema'].shift(-lookahead))
+                    (  # price went down at least x%
+                        (dataframe['future_gain'] < self.loss_goal)
+                    # ) &
+                    # (  # red candle
+                    #     (dataframe['close'].shift(-lookahead) < dataframe['open'].shift(-lookahead))
+                    # ) &
+                    # (  # went from below TEMA to above TEMA
+                    #         (dataframe['close'] > dataframe['tema']) &
+                    #         (dataframe['close'].shift(-lookahead) < dataframe['tema'].shift(-lookahead))
+                    )
             ), 1.0, 0.0)
 
         return dataframe
 
-    # routine(s) to calculate future gain - for use in a rolling calculation
-    def roll_future_gain(self, col: np.ndarray) -> np.float:
-        gain = 0.0
-        gain = ((col.shift(-self.curr_lookahead) - col) / col) * 100.0
-        return gain.ravel()[0]
+    # routine(s) for use in a rolling calculation
 
-    def roll_buy_signal(self, gain: np.ndarray) -> np.float:
-        signal = 0
-        # get reference to entire dataframe for current rolling window
-        view = self.curr_df.iloc[gain.index]
+    def roll_add_future_gains(self, col: np.ndarray) -> np.float:
 
-        # Method 1, compare to Bollinger bands
-        if 'bb_upperband' in view.columns:
-            lookahead = self.curr_lookahead
-            # future close is above current upper bollinger band
-            # signal = np.where((view['close'].shift(-lookahead) > view['bb_upperband']), 1, 0)
-            # currently below TEMA but above TEMA in future
-            signal = np.where(
-                (
-                        (view['close'] < view['tema']) &
-                        (view['close'].shift(-lookahead) > view['tema'].shift(-lookahead))
-                ), 1, 0)
-        else:
-            # method 2: compare to mean/stddev
-            up_gain = np.where((gain > 0.0), gain, 0)
-            mean = np.mean(up_gain)
-            std = np.std(up_gain)
-            threshold = mean + 2.0 * std
-            signal = np.where((gain > threshold), 1, 0)
+        a = np.asarray(col)
+        lookahead = self.curr_lookahead
+        c0 = a[0]
+        cl = a[lookahead-1]
+        # gain = (cl - c0) / c0
+        gain = (cl - c0)
 
-        # print (signal)
-        return signal.ravel()[0]
+        return gain
 
-    def roll_sell_signal(self, gain: np.ndarray) -> np.float:
-        signal = 0
-        # get reference to entire dataframe for current rolling window
-        view = self.curr_df.iloc[gain.index]
-
-        # Method 1, compare to Bollinger bands
-        if 'bb_lowerband' in view.columns:
-            lookahead = self.curr_lookahead
-            # future close is below current lower bollinger band
-            # signal = np.where((view['close'].shift(-lookahead) < view['bb_lowerband']), 1, 0)
-            # currently above TEMA but below TEMA in future
-            signal = np.where(
-                (
-                        (view['close'] > view['tema']) &
-                        (view['close'].shift(-lookahead) < view['tema'].shift(-lookahead))
-                ), 1, 0)
-
-        else:
-            # method 2: compare to mean/stddev
-            dn_gain = np.where((gain < 0.0), gain, 0)
-            mean = np.mean(dn_gain)
-            std = np.std(dn_gain)
-            threshold = mean - 2.0 * std
-            signal = np.where((gain < threshold), 1, 0)
-
-        return signal.ravel()[0]
-
-    def roll_add_signals(self, col) -> np.float:
+    def roll_add_training_signals(self, col) -> np.float:
         # reference the subset of the current dataframe based on the index of the supplied column
         view = self.curr_df.iloc[col.index]
 
-        view = self.add_signals(view)
+        view = Series(self.add_training_signals(view))
+        print(view)
         self.curr_df.iloc[col.index] = view
 
         return 1
 
     # add predictions in a rolling fashion
-    def roll_predict_buy(self, col) -> np.float:
-        # this is a little tricky, since we need to access the entire dataframe but we are only passed a column
-
-        # we need a global ref to the current dataframe to do this, so calling code must set this up first
-        # (self.curr_df = dataframe in populate_indicators)
-
-        # reference the subset of the current dataframe based on the index of the supplied column
-        view = self.curr_df.iloc[col.index]
-
-        preds = self.predict_buy(view, self.curr_pair)
-        return preds.ravel()[0]
-
-    def roll_predict_sell(self, col) -> np.float:
-        # this is a little tricky, since we need to access the entire dataframe but we are only passed a column
-
-        # we need a global ref to the current dataframe to do this, so calling code must set this up first
-        # (self.curr_df = dataframe in populate_indicators)
-
-        # reference the subset of the current dataframe based on the index of the supplied column
-        view = self.curr_df.iloc[col.index]
-
-        preds = self.predict_sell(view, self.curr_pair)
-        return preds.ravel()[0]
 
     def roll_add_predictions(self, col) -> np.float:
         # reference the subset of the current dataframe based on the index of the supplied column
@@ -717,6 +747,14 @@ class PCA(IStrategy):
 
         return dataframe
 
+    # normalises a column. Data is in units of 1 stddev, i.e. a value of 1.0 represents 1 stdev above mean
+    def norm_column(self, col:Series) -> Series:
+        return (col - col.mean()) / col.std()
+
+    # applies MinMax scaling to a column. Returns all data in range [0,1]
+    def scale_column(self, col:Series) -> Series:
+        return (col - col.min()) / (col.max() - col.min())
+
     # train the reduction and classification models
 
     def train_models(self, dataframe: DataFrame, curr_pair):
@@ -734,7 +772,7 @@ class PCA(IStrategy):
         if self.dp.runmode.value in ('live', 'dry_run'):
             df_train = dataframe
         else:
-            train_size = int(min(975, dataframe.shape[0]))
+            train_size = int(min(975, 0.66*dataframe.shape[0]))
             random_st = 27  # use fixed number for reproducibility
             df_train, df_test = train_test_split(dataframe, train_size=train_size, random_state=random_st)
 
@@ -780,6 +818,7 @@ class PCA(IStrategy):
             df_norm_pca = DataFrame(pca.transform(df_norm))
             pred_buys = buy_clf.predict(df_norm_pca)
             print("")
+            print("# buys: ", buys.sum())
             print("Predict - Buy Signals")
             print(classification_report(buys, pred_buys))
             print("")
@@ -799,7 +838,7 @@ class PCA(IStrategy):
 
         # scan variance and only take if column contributes >1.5%
         ncols = 1
-        while ((pca.explained_variance_ratio_[ncols] > 0.02) & (ncols < len(pca.explained_variance_ratio_))):
+        while ((pca.explained_variance_ratio_[ncols] > 0.01) & (ncols < len(pca.explained_variance_ratio_))):
             ncols = ncols + 1
 
         # if necessary, re-calculate pca with reduced column set
@@ -807,9 +846,53 @@ class PCA(IStrategy):
             # pca = skd.PCA(n_components=ncols, svd_solver="randomized", whiten=True).fit(df_norm)
             pca = skd.PCA(n_components=ncols).fit(df_norm)
 
-        #TODO: print matrix of weightings for selected components
+        # self.analyse_pca(pca, df_norm)
 
         return pca
+
+    def analyse_pca(self, pca, df):
+        print("")
+        print("Variance Ratios:")
+        ratios = pca.explained_variance_ratio_
+        print(ratios)
+        print("")
+
+        # print matrix of weightings for selected components
+        loadings = pd.DataFrame(pca.components_.T, index=df.columns.values)
+        l2 = loadings.abs()
+        # l3 = loadings.mul(ratios)
+        ranks = loadings.rank()
+
+        loadings['Score'] = l2.sum(axis=1)
+        loadings['Score0'] = loadings[loadings.columns.values[0]].abs()
+        loadings['Rank'] = loadings['Score'].rank(ascending=False)
+        loadings['Rank0'] = loadings['Score0'].rank(ascending=False)
+        print("Loadings, by PC0:")
+        print(loadings.sort_values('Rank0').head(n=30))
+        print("")
+        print("Loadings, by All Columns:")
+        print(loadings.sort_values('Rank').head(n=30))
+        print("")
+
+        # # weighted by variance ratios
+        # l3a = l3.abs()
+        # l3['Score'] = l3a.sum(axis=1)
+        # l3['Rank'] = loadings['Score'].rank(ascending=False)
+        # print("Loadings, Weighted by Variance Ratio")
+        # print (l3.sort_values('Rank').head(n=20))
+
+        # # rankings per column
+        ranks['Score'] = ranks.sum(axis=1)
+        ranks['Rank'] = ranks['Score'].rank(ascending=True)
+        print("Rankings per column")
+        print(ranks.sort_values('Rank', ascending=True).head(n=30))
+
+        # print(loadings.head())
+        # print(l3.head())
+
+        # TODO: rank indicators by each column, then rank by sum of ranks?!
+        # TODO: maybe record rank of each indicator for all pairs, then rank at the end (once populate_buy_trend runs)
+
 
     # get a classifier for the supplied dataframe (normalised) and known results
     def get_classifier(self, df_norm: DataFrame, results):
@@ -832,7 +915,8 @@ class PCA(IStrategy):
     classifier_list = [
         # 'LogisticRegression', 'LinearSVC', 'DecisionTree', 'RandomForest', 'GaussianNB',
         # 'MLP', 'KNeighbors'
-        'LinearSVC', 'RandomForest', 'GaussianNB', 'KNeighbors'
+        'KNeighbors', 'DecisionTree', 'RandomForest', 'GaussianNB', 'SGD',
+        'GradientBoosting'
     ]
 
     # factory to create classifier based on name
@@ -853,6 +937,11 @@ class PCA(IStrategy):
             clf = MLPClassifier(alpha=1, max_iter=1000)
         elif name == 'KNeighbors':
             clf = KNeighborsClassifier(3)
+        elif name == 'SGD':
+            clf = SGDClassifier()
+        elif name == 'GradientBoosting':
+            clf = GradientBoostingClassifier()
+
         else:
             print("Unknown classifier: ", name)
             clf = None
@@ -860,6 +949,8 @@ class PCA(IStrategy):
 
     # tries different types of classifiers and returns the best one
     def find_best_classifier(self, df, results):
+
+        print("       Evaluating classifiers...")
 
         # Define dictionary with CLF and performance metrics
         scoring = {'accuracy': make_scorer(accuracy_score),
@@ -874,27 +965,36 @@ class PCA(IStrategy):
         best_score = -0.1
         best_classifier = ""
 
+        #split into test/train for evaluation, then re-fit once selected
+        df_train, df_test, res_train, res_test = train_test_split(df, results, train_size=0.5)
+        # print("df_train:",  df_train.shape, " df_test:", df_test.shape,
+        #       "res_train:", res_train.shape, "res_test:", res_test.shape)
+
         for cname in self.classifier_list:
             clf = self.classifier_factory(cname)
 
             if clf is not None:
-                # save the classifier model
+                # fit to the training data
                 clf_dict[cname] = clf
-                clf = clf.fit(df, results)
+                clf = clf.fit(df_train, res_train)
 
-                prediction = clf.predict(df)
+                # assess using the test data. Do *not* use the training data for testing
+                pred_test = clf.predict(df_test)
                 # score = f1_score(results, prediction, average=None)[1]
-                score = f1_score(results, prediction, average='macro')
+                score = f1_score(res_test, pred_test, average='macro')
                 print("    ", cname, ": ", score)
-                # print(classification_report(prediction, results))
+                # print(classification_report(pred_test, res_test))
 
                 if score > best_score:
                     best_score = score
                     best_classifier = cname
 
         clf = clf_dict[best_classifier]
+        clf = clf.fit(df, results)
 
-        print("    Model selected: ", best_classifier)
+        print("")
+        print("       Model selected: ", best_classifier)
+        print("")
 
         return clf
 
@@ -922,30 +1022,31 @@ class PCA(IStrategy):
     def predict_buy(self, df, pair):
         predict = self.predict(df, pair, self.pair_model_info[pair]['clf_buy_model'])
 
-        # if self.scan_classifiers:
-        #     # DEBUG: check accuracy
-        #     signals = df['buy_signal']
-        #     acc = accuracy_score(signals, predict)
-        #     f1 = f1_score(signals, predict, average=None)
-        #     print("")
-        #     print("Predict - Buy Signals")
-        #     print(classification_report(predict, signals))
-        #     print("")
+        if self.scan_classifiers:
+            # DEBUG: check accuracy
+            signals = df['buy_signal']
+            print("No. signals: ", signals.sum())
+            acc = accuracy_score(signals, predict)
+            f1 = f1_score(signals, predict, average=None)
+            print("")
+            print("Predict - Buy Signals")
+            print(classification_report(predict, signals))
+            print("")
 
         return predict
 
     def predict_sell(self, df, pair):
         predict = self.predict(df, pair, self.pair_model_info[pair]['clf_sell_model'])
 
-        # if self.scan_classifiers:
-        #     # DEBUG: check accuracy
-        #     signals = df['sell_signal']
-        #     acc = accuracy_score(signals, predict)
-        #     f1 = f1_score(signals, predict, average=None)
-        #     print("")
-        #     print("Predict - Sell Signals")
-        #     print(classification_report(predict, signals))
-        #     print("")
+        if self.scan_classifiers:
+            # DEBUG: check accuracy
+            signals = df['sell_signal']
+            acc = accuracy_score(signals, predict)
+            f1 = f1_score(signals, predict, average=None)
+            print("")
+            print("Predict - Sell Signals")
+            print(classification_report(predict, signals))
+            print("")
 
         return predict
 
@@ -961,11 +1062,13 @@ class PCA(IStrategy):
 
         curr_pair = metadata['pair']
 
-        conditions.append(dataframe['volume'] > 0)
+        # conditions.append(dataframe['volume'] > 0)
 
-        # only buy if currently below TEMA
-        conditions.append(dataframe['close'] < dataframe['tema'])
+        # # currently below TEMA
+        # conditions.append(dataframe['close'] < dataframe['tema'])
 
+        # # ATR in buy range
+        # conditions.append(dataframe['atr_signal'] > 0.0)
 
         # PCA triggers
         pca_cond = (
@@ -994,8 +1097,11 @@ class PCA(IStrategy):
 
         # conditions.append(dataframe['volume'] > 0)
 
-        # only buy if currently above TEMA
-        conditions.append(dataframe['close'] > dataframe['tema'])
+        # # only sell if currently above TEMA
+        # conditions.append(dataframe['close'] > dataframe['tema'])
+
+        # # ATR in sell range
+        # conditions.append(dataframe['atr_signal'] <= 0.0)
 
         # PCA triggers
         pca_cond = (
