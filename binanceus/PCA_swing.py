@@ -78,14 +78,14 @@ import random
 ####################################################################################
 PCA - uses Principal Component Analysis to try and reduce the total set of indicators
       to more manageable dimensions, and predict the next gain step.
-      
+
       This works by creating a PCA model of the available technical indicators. This produces a 
       mapping of the indicators and how they affect the outcome (buy/sell/hold). We choose only the
       mappings that have a signficant effect and ignore the others. This significantly reduces the size
       of the problem.
       We then train a classifier model to predict buy or sell signals based on the known outcome in the
       informative data, and use it to predict buy/sell signals based on the real-time dataframe.
-      
+
       Note that this is very sow to start up. This is mostly because we have to build the data on a rolling
       basis to avoid lookahead bias.
 
@@ -93,7 +93,7 @@ PCA - uses Principal Component Analysis to try and reduce the total set of indic
 """
 
 
-class PCA(IStrategy):
+class PCA_swing(IStrategy):
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # ROI table:
@@ -621,6 +621,8 @@ class PCA(IStrategy):
         dataframe['dwt_smooth'] = gaussian_filter1d(dataframe['dwt'], 8)
 
         dataframe['dwt_deriv'] = np.gradient(dataframe['dwt_smooth'])
+        dataframe['dwt_top'] = np.where(qtpylib.crossed_below(dataframe['dwt_deriv'], 0.0), 1, 0)
+        dataframe['dwt_bottom'] = np.where(qtpylib.crossed_above(dataframe['dwt_deriv'], 0.0), 1, 0)
 
         dataframe['dwt_diff'] = 100.0 * (dataframe['dwt'] - dataframe['close']) / dataframe['close']
 
@@ -671,7 +673,6 @@ class PCA(IStrategy):
         # # these are clues for the ML algorithm:
         dataframe['dwt_at_min'] = np.where(dataframe['dwt_smooth'] <= dataframe['dwt_recent_min'], 1.0, 0.0)
         dataframe['dwt_at_max'] = np.where(dataframe['dwt_smooth'] >= dataframe['dwt_recent_max'], 1.0, 0.0)
-
 
         # TODO: remove any columns that contain 'inf'
         self.check_inf(dataframe)
@@ -753,7 +754,7 @@ class PCA(IStrategy):
         future_df['dwt_dir_dn'] = np.where(dataframe['dwt'].diff() < 0, 1, 0)
 
         # build forward-looking sum of up/down trends
-        indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=int(win_size)) # don't use a big window
+        indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=int(win_size))  # don't use a big window
         future_df['future_nseq'] = future_df['curr_trend'].rolling(window=indexer, min_periods=1).sum()
 
         # future_df['future_nseq_up'] = 0.0
@@ -805,40 +806,36 @@ class PCA(IStrategy):
             print("    Loss threshold {:.4f} -> {:.4f}".format(self.loss_threshold, newval))
             self.loss_threshold = newval
 
-
         return future_df
 
-    # subclasses should oiverride the following 2 functions - this is here as an example
-
-    # Note: try to combine current/historical data (from populate_indicators) with future data
-    #       If you only use future data, the ML training is just guessing
+    ################################
 
     def get_train_buy_signals(self, future_df: DataFrame):
 
-        print("!!! WARNING: using default (buy) training implementation !!!")
-
-        series = np.where(
+        buys = np.where(
             (
-                    (future_df['volume'] > 0) & # volume check
-                    (future_df['dwt'] < future_df['dwt_mean']) & # below mean of previous window
-                    (qtpylib.crossed_above(future_df['future_gain'], future_df['profit_threshold']))
+                    # (future_df['volume'] > 0) & # volume check
+                    (future_df['future_gain'] > self.profit_threshold) &  # future gain
+                    (future_df['dwt_bottom'] > 0)   # future gain
+                    # (qtpylib.crossed_above(future_df['dwt_deriv'], 0.0)) # start of upswing
+
             ), 1.0, 0.0)
 
-        return series
+        return buys
 
     def get_train_sell_signals(self, future_df: DataFrame):
 
-        print("!!! WARNING: using default (sell) training implementation !!!")
-
-        series = np.where(
+        sells = np.where(
             (
-                    (future_df['volume'] > 0) & # volume check
-                    (future_df['dwt'] > future_df['dwt_mean']) &  # above mean of previous window
-                    (qtpylib.crossed_below(future_df['future_gain'], future_df['loss_threshold']))
+                    # (future_df['volume'] > 0) & # volume check
+                    (future_df['future_gain'] < self.loss_threshold) & # future loss
+                    (future_df['dwt_top'] > 0)  # future loss
+                    # (qtpylib.crossed_below(future_df['dwt_deriv'], 0.0)) # start of downswing
             ), 1.0, 0.0)
 
-        return series
+        return sells
 
+    ################################
 
     # creates the buy/sell labels absed on looking ahead into the supplied dataframe
     def create_training_data(self, dataframe: DataFrame):
@@ -852,9 +849,13 @@ class PCA(IStrategy):
         future_df['%train_buy'] = self.get_train_buy_signals(future_df)
         future_df['%train_sell'] = self.get_train_sell_signals(future_df)
 
-
         buys = future_df['%train_buy'].copy()
+        if buys.sum() < 3:
+            print("OOPS! <3 ({:.0f}) buy signals generated. Check training criteria".format(buys.sum()))
+
         sells = future_df['%train_sell'].copy()
+        if buys.sum() < 3:
+            print("OOPS! <3 ({:.0f}) sell signals generated. Check training criteria".format(sells.sum()))
 
         self.save_debug_data(future_df)
 
@@ -1079,6 +1080,44 @@ class PCA(IStrategy):
             s = sells
         return df2, b, s
 
+
+    # build a 'viable' dataframe sample set. Needed because the positive labels are sparse
+    def build_viable_dataset(self, size: int, df_norm: DataFrame, buys, sells):
+
+        # copy and combine the data into one dataframe
+        df = df_norm.copy()
+        df['%train_buy'] = buys.copy()
+        df['%train_sell'] = sells.copy()
+
+        # df_buy = df[( (df['%train_buy'] > 0) ).all(axis=1)]
+        # df_sell = df[((df['%train_sell'] > 0)).all(axis=1)]
+        # df_nosig = df[((df['%train_buy'] == 0) & (df['%train_sell'] == 0)).all(axis=1)]
+
+        df_buy = df.loc[df['%train_buy'] == 1]
+        df_sell = df.loc[df['%train_sell'] == 1]
+        df_nosig = df.loc[(df['%train_buy'] == 0) & (df['%train_sell'] == 0)]
+
+        # extract enough rows to fill the requested size
+        fill_size = size - df_buy.shape[0] - df_sell.shape[0]
+        df_nosig, _ = train_test_split(df_nosig, train_size=(fill_size), shuffle=True)
+        # print("viable df - buys:{} sells:{} fill:{}".format(df_buy.shape[0], df_sell.shape[0], df_nosig.shape[0]))
+
+        # concatenate the dataframes
+        frames = [df_buy, df_sell, df_nosig]
+        df2 = pd.concat(frames)
+
+        # shuffle rows
+        df2 = df2.sample(frac=1)
+
+        # separate out the data, buys & sells
+        b = df2['%train_buy'].copy()
+        s = df2['%train_sell'].copy()
+        df2.drop('%train_buy', axis=1, inplace=True)
+        df2.drop('%train_sell', axis=1, inplace=True)
+        df2.reindex()
+
+        return df2, b, s
+
     # map column into [0,1]
     def get_binary_labels(self, col):
         binary_encoder = LabelEncoder().fit([min(col), max(col)])
@@ -1108,6 +1147,7 @@ class PCA(IStrategy):
         # check input - need at least 2 samples or classifiers will not train
         if buys.sum() < 2:
             print("*** ERR: insufficient buys in expected results. Check training data")
+            # print(buys)
             return
 
         if sells.sum() < 2:
@@ -1127,36 +1167,40 @@ class PCA(IStrategy):
             #     print("full_df_norm cols: ", full_df_norm.columns.values)
 
             # reduce size of dataframe to match run-time buffer size (975)
-            train_size = int(0.75 * min(975, clean_df_norm.shape[0]))
+            train_size = int(0.6 * min(975, clean_df_norm.shape[0]))
             test_size = int(min(975, dataframe.shape[0]))
 
             df_train, _, train_buys, _, train_sells, _, = train_test_split(clean_df_norm,
                                                                            clean_buys,
                                                                            clean_sells,
                                                                            train_size=train_size,
-                                                                           random_state=rand_st,
+                                                                           # random_state=rand_st,
                                                                            shuffle=False)
             _, df_test, _, test_buys, _, test_sells, = train_test_split(full_df_norm,
                                                                         buys,
                                                                         sells,
                                                                         test_size=test_size,
-                                                                        random_state=rand_st,
+                                                                        # random_state=rand_st,
                                                                         shuffle=False)
         else:
             # scale instead of normalising
             # full_df_norm = self.scale_dataframe(dataframe)
             # full_df_norm = self.norm_dataframe(dataframe)
             full_df_norm = self.norm_dataframe(dataframe).clip(lower=-3.0, upper=3.0)  # supress outliers
-            train_size = int(0.66 * min(975, full_df_norm.shape[0]))
 
-            df_train, df_test, train_buys, test_buys, train_sells, test_sells, = train_test_split(full_df_norm,
-                                                                                                  buys,
-                                                                                                  sells,
+            data_size = int(min(975, full_df_norm.shape[0]))
+            v_df_norm, v_buys, v_sells = self.build_viable_dataset(data_size, full_df_norm, buys, sells)
+
+            train_size = int(0.6 * data_size)
+
+            df_train, df_test, train_buys, test_buys, train_sells, test_sells, = train_test_split(v_df_norm,
+                                                                                                  v_buys,
+                                                                                                  v_sells,
                                                                                                   train_size=train_size,
-                                                                                                  random_state=rand_st,
+                                                                                                  # random_state=rand_st,
                                                                                                   shuffle=False)
         if self.dbg_verbose:
-            print("     dataframe:", full_df_norm.shape, ' -> train:', df_train.shape, " + test:", df_test.shape)
+            print("     dataframe:", v_df_norm.shape, ' -> train:', df_train.shape, " + test:", df_test.shape)
             print("     buys:", buys.shape, ' -> train:', train_buys.shape, " + test:", test_buys.shape)
             print("     sells:", sells.shape, ' -> train:', train_sells.shape, " + test:", test_sells.shape)
 
@@ -1191,14 +1235,14 @@ class PCA(IStrategy):
 
         # check that we have enough positives to train
         buy_ratio = 100.0 * (train_buys.sum() / len(train_buys))
-        if (buy_ratio < 1.0):
+        if (buy_ratio < 0.5):
             print("*** ERR: insufficient number of positive buy labels ({:.2f}%)".format(buy_ratio))
             return
 
         buy_clf = self.get_buy_classifier(df_train_pca, train_buy_labels)
 
         sell_ratio = 100.0 * (train_sells.sum() / len(train_sells))
-        if (sell_ratio < 1.0):
+        if (sell_ratio < 0.5):
             print("*** ERR: insufficient number of positive sell labels ({:.2f}%)".format(sell_ratio))
             return
 
@@ -1452,17 +1496,17 @@ class PCA(IStrategy):
 
         # split into test/train for evaluation, then re-fit once selected
         # df_train, df_test, res_train, res_test = train_test_split(df, results, train_size=0.5)
-        df_train, df_test, res_train, res_test = train_test_split(df, labels, train_size=0.5, random_state=27,
+        df_train, df_test, res_train, res_test = train_test_split(df, labels, train_size=0.6,
                                                                   shuffle=False)
         # print("df_train:",  df_train.shape, " df_test:", df_test.shape,
         #       "res_train:", res_train.shape, "res_test:", res_test.shape)
 
         # check there are enough training samples
-        if res_train.sum() <= 2:
+        if res_train.sum() < 2:
             print("    Insufficient +ve (train) results to fit: ", res_train.sum())
             return None
 
-        if res_test.sum() <= 2:
+        if res_test.sum() < 2:
             print("    Insufficient +ve (test) results: ", res_test.sum())
             return None
 
@@ -2009,3 +2053,6 @@ def range_percent_change(dataframe: DataFrame, method, length: int) -> float:
             'close'].rolling(length).min()
     else:
         raise ValueError(f"Method {method} not defined!")
+
+
+

@@ -78,14 +78,14 @@ import random
 ####################################################################################
 PCA - uses Principal Component Analysis to try and reduce the total set of indicators
       to more manageable dimensions, and predict the next gain step.
-      
+
       This works by creating a PCA model of the available technical indicators. This produces a 
       mapping of the indicators and how they affect the outcome (buy/sell/hold). We choose only the
       mappings that have a signficant effect and ignore the others. This significantly reduces the size
       of the problem.
       We then train a classifier model to predict buy or sell signals based on the known outcome in the
       informative data, and use it to predict buy/sell signals based on the real-time dataframe.
-      
+
       Note that this is very sow to start up. This is mostly because we have to build the data on a rolling
       basis to avoid lookahead bias.
 
@@ -93,7 +93,7 @@ PCA - uses Principal Component Analysis to try and reduce the total set of indic
 """
 
 
-class PCA(IStrategy):
+class PCA_minmax(IStrategy):
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # ROI table:
@@ -672,7 +672,6 @@ class PCA(IStrategy):
         dataframe['dwt_at_min'] = np.where(dataframe['dwt_smooth'] <= dataframe['dwt_recent_min'], 1.0, 0.0)
         dataframe['dwt_at_max'] = np.where(dataframe['dwt_smooth'] >= dataframe['dwt_recent_max'], 1.0, 0.0)
 
-
         # TODO: remove any columns that contain 'inf'
         self.check_inf(dataframe)
 
@@ -753,7 +752,7 @@ class PCA(IStrategy):
         future_df['dwt_dir_dn'] = np.where(dataframe['dwt'].diff() < 0, 1, 0)
 
         # build forward-looking sum of up/down trends
-        indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=int(win_size)) # don't use a big window
+        indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=int(win_size))  # don't use a big window
         future_df['future_nseq'] = future_df['curr_trend'].rolling(window=indexer, min_periods=1).sum()
 
         # future_df['future_nseq_up'] = 0.0
@@ -805,40 +804,38 @@ class PCA(IStrategy):
             print("    Loss threshold {:.4f} -> {:.4f}".format(self.loss_threshold, newval))
             self.loss_threshold = newval
 
-
         return future_df
 
-    # subclasses should oiverride the following 2 functions - this is here as an example
 
-    # Note: try to combine current/historical data (from populate_indicators) with future data
-    #       If you only use future data, the ML training is just guessing
+    ###################################
+
+    # Override the training signals
 
     def get_train_buy_signals(self, future_df: DataFrame):
-
-        print("!!! WARNING: using default (buy) training implementation !!!")
 
         series = np.where(
             (
                     (future_df['volume'] > 0) & # volume check
-                    (future_df['dwt'] < future_df['dwt_mean']) & # below mean of previous window
-                    (qtpylib.crossed_above(future_df['future_gain'], future_df['profit_threshold']))
+                    # (future_df['dwt_at_min'] > 0) & # at min of previous window
+                    (future_df['dwt_smooth'] <= future_df['dwt_recent_min']) & # at min of previous window
+                    (future_df['dwt_smooth'] <= future_df['future_min']) # at min of future window
             ), 1.0, 0.0)
 
         return series
 
     def get_train_sell_signals(self, future_df: DataFrame):
 
-        print("!!! WARNING: using default (sell) training implementation !!!")
-
         series = np.where(
             (
                     (future_df['volume'] > 0) & # volume check
-                    (future_df['dwt'] > future_df['dwt_mean']) &  # above mean of previous window
-                    (qtpylib.crossed_below(future_df['future_gain'], future_df['loss_threshold']))
+                    # (future_df['dwt_at_max'] > 0) & # at max of previous window
+                    (future_df['dwt_smooth'] >= future_df['dwt_recent_max']) &  # at min of previous window
+                    (future_df['dwt_smooth'] >= future_df['future_max']) # at max of future window
             ), 1.0, 0.0)
 
         return series
 
+    ###################################
 
     # creates the buy/sell labels absed on looking ahead into the supplied dataframe
     def create_training_data(self, dataframe: DataFrame):
@@ -851,7 +848,6 @@ class PCA(IStrategy):
         # use seqquence trends as criteria
         future_df['%train_buy'] = self.get_train_buy_signals(future_df)
         future_df['%train_sell'] = self.get_train_sell_signals(future_df)
-
 
         buys = future_df['%train_buy'].copy()
         sells = future_df['%train_sell'].copy()
@@ -2009,3 +2005,6 @@ def range_percent_change(dataframe: DataFrame, method, length: int) -> float:
             'close'].rolling(length).min()
     else:
         raise ValueError(f"Method {method} not defined!")
+
+
+
