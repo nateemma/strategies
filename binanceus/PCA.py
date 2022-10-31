@@ -92,6 +92,8 @@ PCA - uses Principal Component Analysis to try and reduce the total set of indic
 ####################################################################################
 """
 
+first_run = True  # used to identify first time through buy/sell populate funcs
+
 
 class PCA(IStrategy):
     # Do *not* hyperopt for the roi and stoploss spaces
@@ -137,7 +139,7 @@ class PCA(IStrategy):
     lookahead_hours = 0.5
     n_profit_stddevs = 0.0
     n_loss_stddevs = 0.0
-    min_f1_score = 0.48
+    min_f1_score = 0.51
 
     indicator_list = []  # list of parameters to use (technical indicators)
 
@@ -159,12 +161,13 @@ class PCA(IStrategy):
 
     num_pairs = 0
     pair_model_info = {}  # holds model-related info for each pair
+    classifier_stats = {} # holds statistics for each type of classifier (useful to rank classifiers
 
     # debug flags
     first_time = True  # mostly for debug
-    first_run = True  # used to identify first time through buy/sell populate funcs
+    # first_run = True  # used to identify first time through buy/sell populate funcs
 
-    dbg_scan_classifiers = True  # if True, scan all viable classifiers and choose the best. Very slow!
+    dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
     dbg_test_classifier = True  # test clasifiers after fitting
     dbg_analyse_pca = False  # analyze PCA weights
     dbg_verbose = False  # controls debug output
@@ -212,7 +215,45 @@ class PCA(IStrategy):
     cstop_bail_time_trend = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
     cstop_max_stoploss = DecimalParameter(-0.30, -0.01, default=-0.10, space='sell', load=True, optimize=True)
 
-    ###################################
+    ################################
+
+    # subclasses should oiverride the following 2 functions - this is here as an example
+
+    # Note: try to combine current/historical data (from populate_indicators) with future data
+    #       If you only use future data, the ML training is just guessing
+    #       Also, try to identify buy/sell ranges, rather than transitions - it gives the algorithms more chances
+    #       to find a correlation. The framework will select the first one anyway.
+    #       In other words, avoid using qtpylib.crossed_above() and qtpylib.crossed_below()
+    #       Proably OK not to check volume, because we are just looking for patterns
+
+    def get_train_buy_signals(self, future_df: DataFrame):
+
+        print("!!! WARNING: using default (buy) training implementation !!!")
+
+        series = np.where(
+            (
+                    # (future_df['volume'] > 0) & # volume check
+                    (future_df['dwt'] < future_df['dwt_mean']) & # below mean of previous window
+                    (future_df['future_gain'] > future_df['profit_threshold'])
+            ), 1.0, 0.0)
+
+        return series
+
+    def get_train_sell_signals(self, future_df: DataFrame):
+
+        print("!!! WARNING: using default (sell) training implementation !!!")
+
+        series = np.where(
+            (
+                    # (future_df['volume'] > 0) & # volume check
+                    (future_df['dwt'] > future_df['dwt_mean']) &  # above mean of previous window
+                    (future_df['future_gain'] < future_df['loss_threshold'])
+            ), 1.0, 0.0)
+
+        return series
+
+    ################################
+
 
     """
     inf Pair Definitions
@@ -621,8 +662,11 @@ class PCA(IStrategy):
         dataframe['dwt_smooth'] = gaussian_filter1d(dataframe['dwt'], 8)
 
         dataframe['dwt_deriv'] = np.gradient(dataframe['dwt_smooth'])
+        dataframe['dwt_top'] = np.where(qtpylib.crossed_below(dataframe['dwt_deriv'], 0.0), 1, 0)
+        dataframe['dwt_bottom'] = np.where(qtpylib.crossed_above(dataframe['dwt_deriv'], 0.0), 1, 0)
 
         dataframe['dwt_diff'] = 100.0 * (dataframe['dwt'] - dataframe['close']) / dataframe['close']
+        dataframe['dwt_smooth_diff'] = 100.0 * (dataframe['dwt'] - dataframe['dwt_smooth']) / dataframe['dwt_smooth']
 
         # up/down direction
         dataframe['dwt_dir'] = 0.0
@@ -663,17 +707,20 @@ class PCA(IStrategy):
         dataframe['dwt_nseq_buy'] = np.where(dataframe['dwt_nseq_dn'] < dataframe['dwt_nseq_dn_thresh'], 1.0, 0.0)
 
         # Recent min/max
-        # dataframe['dwt_recent_min'] = dataframe['dwt'].rolling(window=win_size).min()
-        # dataframe['dwt_recent_max'] = dataframe['dwt'].rolling(window=win_size).max()
         dataframe['dwt_recent_min'] = dataframe['dwt_smooth'].rolling(window=win_size).min()
         dataframe['dwt_recent_max'] = dataframe['dwt_smooth'].rolling(window=win_size).max()
 
-        # # these are clues for the ML algorithm:
+        # longer term high/low
+        dataframe['dwt_low'] = dataframe['dwt_smooth'].rolling(window=self.startup_candle_count).min()
+        dataframe['dwt_high'] = dataframe['dwt_smooth'].rolling(window=self.startup_candle_count).max()
+
+        # # these are (primarily) clues for the ML algorithm:
         dataframe['dwt_at_min'] = np.where(dataframe['dwt_smooth'] <= dataframe['dwt_recent_min'], 1.0, 0.0)
         dataframe['dwt_at_max'] = np.where(dataframe['dwt_smooth'] >= dataframe['dwt_recent_max'], 1.0, 0.0)
+        dataframe['dwt_at_low'] = np.where(dataframe['dwt_smooth'] <= dataframe['dwt_low'], 1.0, 0.0)
+        dataframe['dwt_at_high'] = np.where(dataframe['dwt_smooth'] >= dataframe['dwt_high'], 1.0, 0.0)
 
-
-        # TODO: remove any columns that contain 'inf'
+        # TODO: remove/fix any columns that contain 'inf'
         self.check_inf(dataframe)
 
         # TODO: fix NaNs
@@ -709,19 +756,21 @@ class PCA(IStrategy):
         future_df['future_close'] = future_df[price_col].shift(-lookahead)
 
         future_df['future_gain'] = 100.0 * (future_df['future_close'] - future_df[price_col]) / future_df[price_col]
-        future_df['future_gain'].clip(lower=-4.0, upper=4.0, inplace=True)
+        future_df['future_gain'].clip(lower=-5.0, upper=5.0, inplace=True)
 
-        future_df['is_profit'] = np.where(future_df['future_gain'] > 0.0, 1.0, 0.0)
-        future_df['is_loss'] = np.where(future_df['future_gain'] < 0.0, 1.0, 0.0)
+        future_df['future_profit'] = future_df['future_gain'].clip(lower=0.0)
+        future_df['future_loss'] = future_df['future_gain'].clip(upper=0.0)
 
-        future_df['future_profit'] = future_df['future_gain'] * future_df['is_profit']
-        future_df['future_loss'] = future_df['future_gain'] * future_df['is_loss']
-
-        # get rolling mean & stddev so that we have a localised estimate of (recent) activity
+        # get rolling mean & stddev so that we have a localised estimate of (recent) future activity
+        # Note: window in past because we already looked forward
         future_df['profit_mean'] = future_df['future_profit'].rolling(win_size).mean()
         future_df['profit_std'] = future_df['future_profit'].rolling(win_size).std()
+        future_df['profit_max'] = future_df['future_profit'].rolling(win_size).max()
+        future_df['profit_min'] = future_df['future_profit'].rolling(win_size).min()
         future_df['loss_mean'] = future_df['future_loss'].rolling(win_size).mean()
         future_df['loss_std'] = future_df['future_loss'].rolling(win_size).std()
+        future_df['loss_max'] = future_df['future_loss'].rolling(win_size).max()
+        future_df['loss_min'] = future_df['future_loss'].rolling(win_size).min()
 
         # future_df['profit_threshold'] = future_df['profit_mean'] + self.n_profit_stddevs * abs(future_df['profit_std'])
         # future_df['loss_threshold'] = future_df['loss_mean'] - self.n_loss_stddevs * abs(future_df['loss_std'])
@@ -733,8 +782,8 @@ class PCA(IStrategy):
         future_df['profit_diff'] = (future_df['future_profit'] - future_df['profit_threshold']) * 10.0
         future_df['loss_diff'] = (future_df['future_loss'] - future_df['loss_threshold']) * 10.0
 
-        future_df['buy_signal'] = np.where(future_df['profit_diff'] > 0.0, 1.0, 0.0)
-        future_df['sell_signal'] = np.where(future_df['loss_diff'] < 0.0, -1.0, 0.0)
+        # future_df['buy_signal'] = np.where(future_df['profit_diff'] > 0.0, 1.0, 0.0)
+        # future_df['sell_signal'] = np.where(future_df['loss_diff'] < 0.0, -1.0, 0.0)
 
         # these explicitly uses dwt
         future_df['future_dwt'] = future_df['full_dwt'].shift(-lookahead)
@@ -753,8 +802,9 @@ class PCA(IStrategy):
         future_df['dwt_dir_dn'] = np.where(dataframe['dwt'].diff() < 0, 1, 0)
 
         # build forward-looking sum of up/down trends
-        indexer = pd.api.indexers.FixedForwardWindowIndexer(window_size=int(win_size)) # don't use a big window
-        future_df['future_nseq'] = future_df['curr_trend'].rolling(window=indexer, min_periods=1).sum()
+        future_win = pd.api.indexers.FixedForwardWindowIndexer(window_size=int(win_size))  # don't use a big window
+
+        future_df['future_nseq'] = future_df['curr_trend'].rolling(window=future_win, min_periods=1).sum()
 
         # future_df['future_nseq_up'] = 0.0
         # future_df['future_nseq_up'] = np.where(
@@ -764,8 +814,8 @@ class PCA(IStrategy):
         # )
         future_df['future_nseq_up'] = future_df['future_nseq'].clip(lower=0.0)
 
-        future_df['future_nseq_up_mean'] = future_df['future_nseq_up'].rolling(window=win_size).mean()
-        future_df['future_nseq_up_std'] = future_df['future_nseq_up'].rolling(window=win_size).std()
+        future_df['future_nseq_up_mean'] = future_df['future_nseq_up'].rolling(window=future_win).mean()
+        future_df['future_nseq_up_std'] = future_df['future_nseq_up'].rolling(window=future_win).std()
         future_df['future_nseq_up_thresh'] = future_df['future_nseq_up_mean'] + self.n_profit_stddevs * future_df[
             'future_nseq_up_std']
 
@@ -777,16 +827,16 @@ class PCA(IStrategy):
         # print(future_df['future_nseq_dn'])
         future_df['future_nseq_dn'] = future_df['future_nseq'].clip(upper=0.0)
 
-        future_df['future_nseq_dn_mean'] = future_df['future_nseq_dn'].rolling(win_size).mean()
-        future_df['future_nseq_dn_std'] = future_df['future_nseq_dn'].rolling(win_size).std()
+        future_df['future_nseq_dn_mean'] = future_df['future_nseq_dn'].rolling(future_win).mean()
+        future_df['future_nseq_dn_std'] = future_df['future_nseq_dn'].rolling(future_win).std()
         future_df['future_nseq_dn_thresh'] = future_df['future_nseq_dn_mean'] \
                                              - self.n_loss_stddevs * future_df['future_nseq_dn_std']
 
         # Recent min/max
-        # future_df['future_min'] = future_df[price_col].rolling(window=indexer).min()
-        # future_df['future_max'] = future_df[price_col].rolling(window=indexer).max()
-        future_df['future_min'] = future_df['dwt_smooth'].rolling(window=indexer).min()
-        future_df['future_max'] = future_df['dwt_smooth'].rolling(window=indexer).max()
+        # future_df['future_min'] = future_df[price_col].rolling(window=future_win).min()
+        # future_df['future_max'] = future_df[price_col].rolling(window=future_win).max()
+        future_df['future_min'] = future_df['dwt_smooth'].rolling(window=future_win).min()
+        future_df['future_max'] = future_df['dwt_smooth'].rolling(window=future_win).max()
 
         # get average gain & stddev
         profit_mean = future_df['future_profit'].mean()
@@ -805,92 +855,65 @@ class PCA(IStrategy):
             print("    Loss threshold {:.4f} -> {:.4f}".format(self.loss_threshold, newval))
             self.loss_threshold = newval
 
-
         return future_df
 
-    # subclasses should oiverride the following 2 functions - this is here as an example
-
-    # Note: try to combine current/historical data (from populate_indicators) with future data
-    #       If you only use future data, the ML training is just guessing
-
-    def get_train_buy_signals(self, future_df: DataFrame):
-
-        print("!!! WARNING: using default (buy) training implementation !!!")
-
-        series = np.where(
-            (
-                    (future_df['volume'] > 0) & # volume check
-                    (future_df['dwt'] < future_df['dwt_mean']) & # below mean of previous window
-                    (qtpylib.crossed_above(future_df['future_gain'], future_df['profit_threshold']))
-            ), 1.0, 0.0)
-
-        return series
-
-    def get_train_sell_signals(self, future_df: DataFrame):
-
-        print("!!! WARNING: using default (sell) training implementation !!!")
-
-        series = np.where(
-            (
-                    (future_df['volume'] > 0) & # volume check
-                    (future_df['dwt'] > future_df['dwt_mean']) &  # above mean of previous window
-                    (qtpylib.crossed_below(future_df['future_gain'], future_df['loss_threshold']))
-            ), 1.0, 0.0)
-
-        return series
-
+    ################################
 
     # creates the buy/sell labels absed on looking ahead into the supplied dataframe
     def create_training_data(self, dataframe: DataFrame):
 
         future_df = self.add_future_data(dataframe.copy())
 
-        future_df['%train_buy'] = 0.0
-        future_df['%train_sell'] = 0.0
+        future_df['train_buy'] = 0.0
+        future_df['train_sell'] = 0.0
 
         # use seqquence trends as criteria
-        future_df['%train_buy'] = self.get_train_buy_signals(future_df)
-        future_df['%train_sell'] = self.get_train_sell_signals(future_df)
+        future_df['train_buy'] = self.get_train_buy_signals(future_df)
+        future_df['train_sell'] = self.get_train_sell_signals(future_df)
 
+        buys = future_df['train_buy'].copy()
+        if buys.sum() < 3:
+            print("OOPS! <3 ({:.0f}) buy signals generated. Check training criteria".format(buys.sum()))
 
-        buys = future_df['%train_buy'].copy()
-        sells = future_df['%train_sell'].copy()
+        sells = future_df['train_sell'].copy()
+        if buys.sum() < 3:
+            print("OOPS! <3 ({:.0f}) sell signals generated. Check training criteria".format(sells.sum()))
 
         self.save_debug_data(future_df)
+        self.save_debug_indicators(future_df)
 
         return buys, sells
 
     def save_debug_data(self, future_df: DataFrame):
 
-        # # # TEMP DEBUG, remove
-        # prefix any debug data with '%', it'll be removed when normalising
+        # Debug support: add commonly used indicators so that they can be viewed
+        # the list below is available for any subclass. Subclasses themselves can add more by overriding
+        # the func save_debug_indicators()
 
-        self.dbg_curr_df['%future_gain'] = future_df['future_gain']
-        # self.dbg_curr_df['%future_loss'] = future_df['future_loss']
-        # self.dbg_curr_df['%loss_diff'] = future_df['loss_diff']
+        dbg_list = [
+            'full_dwt', 'train_buy', 'train_sell',
+            'future_gain', 'future_min', 'future_max',
+            'profit_min', 'profit_max', 'profit_threshold',
+            'loss_min', 'loss_max', 'loss_threshold',
+        ]
 
-        self.dbg_curr_df['%profit_threshold'] = future_df['profit_threshold']
-
-        self.dbg_curr_df['%full_dwt'] = future_df['full_dwt']
-        self.dbg_curr_df['%buy_signal'] = future_df['buy_signal']
-        self.dbg_curr_df['%sell_signal'] = future_df['sell_signal']
-
-        self.dbg_curr_df['%curr_trend'] = future_df['curr_trend']
-        self.dbg_curr_df['%future_trend'] = future_df['future_trend']
-
-        self.dbg_curr_df['%train_buy'] = future_df['%train_buy']
-        self.dbg_curr_df['%train_sell'] = future_df['%train_sell']
-
-        # Up/down sequences
-        self.dbg_curr_df['%future_nseq'] = future_df['future_nseq']
-        self.dbg_curr_df['%future_nseq_dn'] = future_df['future_nseq_dn']
-        self.dbg_curr_df['%future_nseq_dn_thresh'] = future_df['future_nseq_dn_thresh']
-
-        # min/max
-        self.dbg_curr_df['%future_max'] = future_df['future_max']
-        self.dbg_curr_df['%future_min'] = future_df['future_min']
+        if len(dbg_list) > 0:
+            for indicator in dbg_list:
+                self.add_debug_indicator(future_df, indicator)
 
         return
+
+    # empty func. Meant to be overridden by subclass
+    def save_debug_indicators(self, future_df: DataFrame):
+        pass
+        return
+
+    # adds an indicator to the main frame for debug (e.g. plotting). Column will be prefixed with '%', which will
+    # cause it to be removed before normalisation and fitting of models
+    def add_debug_indicator(self, future_df: DataFrame, indicator):
+        dbg_indicator = '%' + indicator
+        if not (dbg_indicator in self.dbg_curr_df):
+            self.dbg_curr_df[dbg_indicator] = future_df[indicator]
 
     ###################
 
@@ -1055,17 +1078,17 @@ class PCA(IStrategy):
         #         df_norm = df_norm[(df_norm[col] <= 3.0)]
         # return df_norm
         df = df_norm.copy()
-        df['%train_buy'] = buys.copy()
-        df['%train_sell'] = sells.copy()
+        df['%temp_buy'] = buys.copy()
+        df['%temp_sell'] = sells.copy()
         #
         df2 = df[((df >= -3.0) & (df <= 3.0)).all(axis=1)]
         # df_out = df[~((df >= -3.0) & (df <= 3.0)).all(axis=1)] # for debug
         ndrop = df_norm.shape[0] - df2.shape[0]
         if ndrop > 0:
-            b = df2['%train_buy'].copy()
-            s = df2['%train_sell'].copy()
-            df2.drop('%train_buy', axis=1, inplace=True)
-            df2.drop('%train_sell', axis=1, inplace=True)
+            b = df2['%temp_buy'].copy()
+            s = df2['%temp_sell'].copy()
+            df2.drop('%temp_buy', axis=1, inplace=True)
+            df2.drop('%temp_sell', axis=1, inplace=True)
             df2.reindex()
             # if self.dbg_verbose:
             print("    Removed ", ndrop, " outliers")
@@ -1077,6 +1100,61 @@ class PCA(IStrategy):
             df2 = df_norm
             b = buys
             s = sells
+        return df2, b, s
+
+
+    # build a 'viable' dataframe sample set. Needed because the positive labels are sparse
+    def build_viable_dataset(self, size: int, df_norm: DataFrame, buys, sells):
+
+        # copy and combine the data into one dataframe
+        df = df_norm.copy()
+        df['%temp_buy'] = buys.copy()
+        df['%temp_sell'] = sells.copy()
+
+        # df_buy = df[( (df['%temp_buy'] > 0) ).all(axis=1)]
+        # df_sell = df[((df['%temp_sell'] > 0)).all(axis=1)]
+        # df_nosig = df[((df['%temp_buy'] == 0) & (df['%temp_sell'] == 0)).all(axis=1)]
+
+        df_buy = df.loc[df['%temp_buy'] == 1]
+        df_sell = df.loc[df['%temp_sell'] == 1]
+        df_nosig = df.loc[(df['%temp_buy'] == 0) & (df['%temp_sell'] == 0)]
+
+        # make sure there aren't too many buys & sells
+        # We are aiming for a roughly even split between buys, sells, and 'no signal' (no buy or sell)
+        max_signals = int(2*size/3)
+        if ((df_buy.shape[0] + df_sell.shape[0]) > max_signals):
+            # both exceed max?
+            sig_size = int(size/3)
+            if (df_buy.shape[0] > sig_size) & (df_sell.shape[0] > sig_size):
+                # resize both buy & sell to 1/3 of requested size
+                df_buy, _ = train_test_split(df_buy, train_size=sig_size, shuffle=True)
+                df_sell, _ = train_test_split(df_sell, train_size=sig_size, shuffle=True)
+            else:
+                # only one them is too big, so figure out which
+                if (df_buy.shape[0] > df_sell.shape[0]):
+                    df_buy, _ = train_test_split(df_buy, train_size=max_signals-df_sell.shape[0], shuffle=True)
+                else:
+                    df_sell, _ = train_test_split(df_sell, train_size=max_signals-df_buy.shape[0], shuffle=True)
+
+        # extract enough rows to fill the requested size
+        fill_size = size - min(df_buy.shape[0], int(size/3)) - min(df_sell.shape[0], int(size/3))
+        df_nosig, _ = train_test_split(df_nosig, train_size=fill_size, shuffle=True)
+        # print("viable df - buys:{} sells:{} fill:{}".format(df_buy.shape[0], df_sell.shape[0], df_nosig.shape[0]))
+
+        # concatenate the dataframes
+        frames = [df_buy, df_sell, df_nosig]
+        df2 = pd.concat(frames)
+
+        # shuffle rows
+        df2 = df2.sample(frac=1)
+
+        # separate out the data, buys & sells
+        b = df2['%temp_buy'].copy()
+        s = df2['%temp_sell'].copy()
+        df2.drop('%temp_buy', axis=1, inplace=True)
+        df2.drop('%temp_sell', axis=1, inplace=True)
+        df2.reindex()
+
         return df2, b, s
 
     # map column into [0,1]
@@ -1108,6 +1186,7 @@ class PCA(IStrategy):
         # check input - need at least 2 samples or classifiers will not train
         if buys.sum() < 2:
             print("*** ERR: insufficient buys in expected results. Check training data")
+            # print(buys)
             return
 
         if sells.sum() < 2:
@@ -1120,47 +1199,33 @@ class PCA(IStrategy):
         if remove_outliers:
             # norm dataframe before splitting, otherwise variances are skewed
             full_df_norm = self.norm_dataframe(dataframe)
-            clean_df_norm, clean_buys, clean_sells = self.remove_outliers(full_df_norm, buys, sells)
-
-            # if self.dbg_verbose:
-            #     print("Dataframe cols: ", dataframe.columns.values)
-            #     print("full_df_norm cols: ", full_df_norm.columns.values)
-
-            # reduce size of dataframe to match run-time buffer size (975)
-            train_size = int(0.75 * min(975, clean_df_norm.shape[0]))
-            test_size = int(min(975, dataframe.shape[0]))
-
-            df_train, _, train_buys, _, train_sells, _, = train_test_split(clean_df_norm,
-                                                                           clean_buys,
-                                                                           clean_sells,
-                                                                           train_size=train_size,
-                                                                           random_state=rand_st,
-                                                                           shuffle=False)
-            _, df_test, _, test_buys, _, test_sells, = train_test_split(full_df_norm,
-                                                                        buys,
-                                                                        sells,
-                                                                        test_size=test_size,
-                                                                        random_state=rand_st,
-                                                                        shuffle=False)
+            full_df_norm, buys, sells = self.remove_outliers(full_df_norm, buys, sells)
         else:
-            # scale instead of normalising
-            # full_df_norm = self.scale_dataframe(dataframe)
-            # full_df_norm = self.norm_dataframe(dataframe)
             full_df_norm = self.norm_dataframe(dataframe).clip(lower=-3.0, upper=3.0)  # supress outliers
-            train_size = int(0.66 * min(975, full_df_norm.shape[0]))
 
-            df_train, df_test, train_buys, test_buys, train_sells, test_sells, = train_test_split(full_df_norm,
-                                                                                                  buys,
-                                                                                                  sells,
-                                                                                                  train_size=train_size,
-                                                                                                  random_state=rand_st,
-                                                                                                  shuffle=False)
+        # constrain size to what will be available in run modes
+        data_size = int(min(975, full_df_norm.shape[0]))
+
+        # get 'viable' data set (includes all buys/sells)
+        v_df_norm, v_buys, v_sells = self.build_viable_dataset(data_size, full_df_norm, buys, sells)
+
+        train_size = int(0.6 * data_size)
+        test_size = data_size - train_size
+
+        df_train, df_test, train_buys, test_buys, train_sells, test_sells, = train_test_split(v_df_norm,
+                                                                                              v_buys,
+                                                                                              v_sells,
+                                                                                              train_size=train_size,
+                                                                                              # random_state=rand_st,
+                                                                                              shuffle=False)
         if self.dbg_verbose:
-            print("     dataframe:", full_df_norm.shape, ' -> train:', df_train.shape, " + test:", df_test.shape)
+            print("     dataframe:", v_df_norm.shape, ' -> train:', df_train.shape, " + test:", df_test.shape)
             print("     buys:", buys.shape, ' -> train:', train_buys.shape, " + test:", test_buys.shape)
             print("     sells:", sells.shape, ' -> train:', train_sells.shape, " + test:", test_sells.shape)
 
-        print("    #training samples:", len(buys), " #buys:", int(train_buys.sum()), ' #sells:', int(train_sells.sum()))
+        print("    #training samples:", len(df_train), " #buys:", int(train_buys.sum()), ' #sells:', int(train_sells.sum()))
+
+        #TODO: if low number of buys/sells, try k-fold sampling
 
         buy_labels = self.get_binary_labels(buys)
         sell_labels = self.get_binary_labels(sells)
@@ -1191,14 +1256,14 @@ class PCA(IStrategy):
 
         # check that we have enough positives to train
         buy_ratio = 100.0 * (train_buys.sum() / len(train_buys))
-        if (buy_ratio < 1.0):
+        if (buy_ratio < 0.5):
             print("*** ERR: insufficient number of positive buy labels ({:.2f}%)".format(buy_ratio))
             return
 
         buy_clf = self.get_buy_classifier(df_train_pca, train_buy_labels)
 
         sell_ratio = 100.0 * (train_sells.sum() / len(train_sells))
-        if (sell_ratio < 1.0):
+        if (sell_ratio < 0.5):
             print("*** ERR: insufficient number of positive sell labels ({:.2f}%)".format(sell_ratio))
             return
 
@@ -1316,7 +1381,7 @@ class PCA(IStrategy):
             if self.dbg_scan_classifiers:
                 if self.dbg_verbose:
                     print("    Finding best buy classifier:")
-                clf = self.find_best_classifier(df_norm, labels)
+                clf = self.find_best_classifier(df_norm, labels, tag="buy")
             else:
                 clf = self.classifier_factory(self.default_classifier, df_norm, labels)
                 clf = clf.fit(df_norm, labels)
@@ -1342,7 +1407,7 @@ class PCA(IStrategy):
             if self.dbg_scan_classifiers:
                 if self.dbg_verbose:
                     print("    Finding best sell classifier:")
-                clf = self.find_best_classifier(df_norm, labels)
+                clf = self.find_best_classifier(df_norm, labels, tag="sell")
             else:
                 clf = self.classifier_factory(self.default_classifier, df_norm, labels)
                 clf = clf.fit(df_norm, labels)
@@ -1350,15 +1415,13 @@ class PCA(IStrategy):
         return clf
 
     # default classifier
-    default_classifier = 'SGD'  # select based on testing
+    default_classifier = 'LDA'  # select based on testing
 
     # list of potential classifier types - set to the list that you want to compare
     classifier_list = [
-        # 'LogisticRegression', 'LinearSVC', 'DecisionTree', 'RandomForest', 'GaussianNB',
-        # 'MLP', 'KNeighbors'
-        'LogisticRegression', 'KNeighbors', 'DecisionTree', 'RandomForest', 'GaussianNB', 'SGD',
-        'GradientBoosting', 'AdaBoost', 'QDA', 'linearSVC', 'gaussianSVC', 'polySVC', 'sigmoidSVC',
-        'LDA', 'QDA', 'MLP'
+        'LogisticRegression', 'GaussianNB', 'SGD',
+        'GradientBoosting', 'AdaBoost', 'linearSVC', 'sigmoidSVC',
+        'LDA'
     ]
 
     # factory to create classifier based on name
@@ -1430,7 +1493,8 @@ class PCA(IStrategy):
         return clf
 
     # tries different types of classifiers and returns the best one
-    def find_best_classifier(self, df, results):
+    # tag parameter identifies where to save performance stats (default is not to save)
+    def find_best_classifier(self, df, results, tag=""):
 
         if self.dbg_verbose:
             print("      Evaluating classifiers...")
@@ -1452,17 +1516,18 @@ class PCA(IStrategy):
 
         # split into test/train for evaluation, then re-fit once selected
         # df_train, df_test, res_train, res_test = train_test_split(df, results, train_size=0.5)
-        df_train, df_test, res_train, res_test = train_test_split(df, labels, train_size=0.5, random_state=27,
+        df_train, df_test, res_train, res_test = train_test_split(df, labels, train_size=0.6,
                                                                   shuffle=False)
         # print("df_train:",  df_train.shape, " df_test:", df_test.shape,
         #       "res_train:", res_train.shape, "res_test:", res_test.shape)
 
         # check there are enough training samples
-        if res_train.sum() <= 2:
+        #TODO: if low train/test samples, use k-fold sampling nstead
+        if res_train.sum() < 2:
             print("    Insufficient +ve (train) results to fit: ", res_train.sum())
             return None
 
-        if res_test.sum() <= 2:
+        if res_test.sum() < 2:
             print("    Insufficient +ve (test) results: ", res_test.sum())
             return None
 
@@ -1487,6 +1552,19 @@ class PCA(IStrategy):
                     best_score = score
                     best_classifier = cname
 
+                # update classifier stats
+                if tag:
+                    if not (tag in self.classifier_stats):
+                        self.classifier_stats[tag] = {}
+
+                    if not (cname in self.classifier_stats[tag]):
+                        self.classifier_stats[tag][cname] = { 'count': 0, 'score': 0.0, 'selected': 0}
+
+                    curr_count = self.classifier_stats[tag][cname]['count']
+                    curr_score = self.classifier_stats[tag][cname]['score']
+                    self.classifier_stats[tag][cname]['count'] = curr_count + 1
+                    self.classifier_stats[tag][cname]['score'] = (curr_score * curr_count + score) / (curr_count + 1)
+
         if best_score <= 0.0:
             print("   No classifier found")
             return None
@@ -1502,7 +1580,14 @@ class PCA(IStrategy):
             print("!!!")
             return None
 
-        print("       Model selected: ", best_classifier, " Score:{:.3f}".format(best_score))
+
+        # update stats for selected classifier
+        if tag:
+            if best_classifier in self.classifier_stats[tag]:
+                self.classifier_stats[tag][best_classifier]['selected'] = self.classifier_stats[tag][best_classifier] \
+                                                                              ['selected'] + 1
+
+        print("       ", tag, " model selected: ", best_classifier, " Score:{:.3f}".format(best_score))
         # print("")
 
         return clf
@@ -1608,11 +1693,49 @@ class PCA(IStrategy):
         return self.curr_state[pair]
 
     def show_debug_info(self, pair):
-
-        print("")
+        # print("")
         # print("pair_model_info:")
         print("  ", pair, ": ", self.pair_model_info[pair])
+        # print("")
+
+    def show_all_debug_info(self):
         print("")
+        print("Model Info:")
+        print("----------")
+        for pair in self.pair_model_info:
+            self.show_debug_info(pair)
+        print("")
+
+        if len(self.classifier_stats) > 0:
+            print("Classifier Statistics:")
+            print("---------------------")
+            print("")
+            print("Buy")
+            unused_list = []
+            for cls in self.classifier_stats['buy']:
+                if self.classifier_stats['buy'][cls]['selected'] > 0:
+                    print("      {0:<20}: ".format(cls), self.classifier_stats['buy'][cls] )
+                else:
+                    unused_list.append(cls)
+            print("")
+            if len(unused_list) > 0:
+                print("      Unused:", unused_list)
+                print("")
+
+            print("Sell")
+            unused_list = []
+            for cls in self.classifier_stats['sell']:
+                if self.classifier_stats['sell'][cls]['selected'] > 0:
+                    print("      {0:<20}: ".format(cls), self.classifier_stats['sell'][cls] )
+                else:
+                    unused_list.append(cls)
+            print("")
+            if len(unused_list) > 0:
+                print("      Unused:", unused_list)
+                print("")
+
+            print("")
+
 
     ###################################
 
@@ -1625,11 +1748,13 @@ class PCA(IStrategy):
         dataframe.loc[:, 'enter_tag'] = ''
         curr_pair = metadata['pair']
 
-        # TODO: only run once in hyperopt mode
-        if not self.dp.runmode.value in ('hyperopt'):
-            if self.get_state(curr_pair) != self.State.RUNNING:
-                self.set_state(curr_pair, self.State.RUNNING)
-                self.show_debug_info(curr_pair)
+        self.set_state(curr_pair, self.State.RUNNING)
+
+        # if not self.dp.runmode.value in ('hyperopt'):
+        if PCA.first_run:
+            PCA.first_run = False # note use of clas variable, not instance variable
+            # self.show_debug_info(curr_pair)
+            self.show_all_debug_info()
 
         conditions.append(dataframe['volume'] > 0)
 
@@ -1667,10 +1792,12 @@ class PCA(IStrategy):
         dataframe.loc[:, 'exit_tag'] = ''
         curr_pair = metadata['pair']
 
-        if not self.dp.runmode.value in ('hyperopt'):
-            if self.get_state(curr_pair) != self.State.RUNNING:
-                self.set_state(curr_pair, self.State.RUNNING)
-                self.show_debug_info(curr_pair)
+        self.set_state(curr_pair, self.State.RUNNING)
+
+        if PCA.first_run:
+            PCA.first_run = False  # note use of clas variable, not instance variable
+            # self.show_debug_info(curr_pair)
+            self.show_all_debug_info()
 
         conditions.append(dataframe['volume'] > 0)
 
@@ -2009,3 +2136,4 @@ def range_percent_change(dataframe: DataFrame, method, length: int) -> float:
             'close'].rolling(length).min()
     else:
         raise ValueError(f"Method {method} not defined!")
+

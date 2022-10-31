@@ -1,5 +1,5 @@
 {
-  "strategy_name": "PCA_minmax",
+  "strategy_name": "PCA_sqzmom",
   "params": {
     "roi": {
       "0": 0.1
@@ -17,22 +17,22 @@
     "sell": {
       "csell_endtrend_respect_roi": true,
       "csell_pullback": false,
-      "csell_pullback_amount": 0.027,
+      "csell_pullback_amount": 0.005,
       "csell_pullback_respect_roi": false,
-      "csell_roi_end": 0.0,
-      "csell_roi_start": 0.04,
-      "csell_roi_time": 748,
-      "csell_roi_type": "step",
-      "csell_trend_type": "ssl",
-      "cstop_bail_how": "time",
-      "cstop_bail_roc": -3.043,
-      "cstop_bail_time": 305,
-      "cstop_bail_time_trend": true,
-      "cstop_loss_threshold": -0.045,
-      "cstop_max_stoploss": -0.013
+      "csell_roi_end": 0.002,
+      "csell_roi_start": 0.031,
+      "csell_roi_time": 751,
+      "csell_roi_type": "decay",
+      "csell_trend_type": "rmi",
+      "cstop_bail_how": "roc",
+      "cstop_bail_roc": -2.247,
+      "cstop_bail_time": 1141,
+      "cstop_bail_time_trend": false,
+      "cstop_loss_threshold": -0.019,
+      "cstop_max_stoploss": -0.026
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-10-30 06:07:55.655559+00:00"
+  "export_time": "2022-10-30 18:05:17.997078+00:00"
 }

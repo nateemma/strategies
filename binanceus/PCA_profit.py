@@ -43,21 +43,22 @@ from PCA import PCA
 
 """
 ####################################################################################
-PCA_swing:
+PCA_profit:
     This is a subclass of PCA, which provides a framework for deriving a dimensionally-reduced model
-    This class trains the model based on detecting swings in smoothed/average price, followed
-    by a profit (for buys) or loss (for sells)
+    This class trains the model based on projecting that the future price will exced the previous window
+    and profit will exceed historical average
 
 ####################################################################################
 """
 
 
-class PCA_swing(PCA):
-
+class PCA_profit(PCA):
     # Do *not* hyperopt for the roi and stoploss spaces
 
+    # Have to re-declare globals, so that we can change them without affecting (or having to change) the base class,
+    # and also avoiding affecting other subclasses of PCA
 
-    # Have to re-decalre globals, so that we can change them without affecting (or having to change) the base class
+
     # ROI table:
     minimal_roi = {
         "0": 0.1
@@ -97,8 +98,8 @@ class PCA_swing(PCA):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     lookahead_hours = 0.5
-    n_profit_stddevs = 0.0
-    n_loss_stddevs = 0.0
+    n_profit_stddevs = 2.0
+    n_loss_stddevs = 2.0
     min_f1_score = 0.51
 
     indicator_list = []  # list of parameters to use (technical indicators)
@@ -129,7 +130,7 @@ class PCA_swing(PCA):
     dbg_scan_classifiers = True  # if True, scan all viable classifiers and choose the best. Very slow!
     dbg_test_classifier = True  # test clasifiers after fitting
     dbg_analyse_pca = False  # analyze PCA weights
-    dbg_verbose = True  # controls debug output
+    dbg_verbose = False  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
 
     ###################################
@@ -169,38 +170,44 @@ class PCA_swing(PCA):
 
     ###################################
 
-    # override the default training signal generation
+    # Override the training signals
 
-    # detect points where smoothed estimate is at a top/bottom and there is a direction change
+    # find where future price is higher/lower than previous window max/min and exceeds threshold
 
     def get_train_buy_signals(self, future_df: DataFrame):
-
-        buys = np.where(
+        series = np.where(
             (
-                    # (future_df['volume'] > 0) & # volume check
-                    (future_df['future_gain'] > self.profit_threshold) &  # future gain
-                    (future_df['dwt_bottom'] > 0)   # bottom of trend
-                    # (qtpylib.crossed_above(future_df['dwt_deriv'], 0.0)) # start of upswing
-
+                # (future_df['volume'] > 0) & # volume check
+                # future profit exceeds threshold
+                    (future_df['profit_max'] >= future_df['profit_threshold']) &
+                    #     # future window max exceeds prior window max
+                    (future_df['future_max'] > future_df['dwt_recent_max'])
             ), 1.0, 0.0)
 
-        return buys
+        return series
 
     def get_train_sell_signals(self, future_df: DataFrame):
-
-        sells = np.where(
+        series = np.where(
             (
-                    # (future_df['volume'] > 0) & # volume check
-                    (future_df['future_gain'] < self.loss_threshold) & # future loss
-                    (future_df['dwt_top'] > 0)  # top of trend
-                    # (qtpylib.crossed_below(future_df['dwt_deriv'], 0.0)) # start of downswing
+                # (future_df['volume'] > 0) & # volume check
+                # future loss exceeds threshold
+                    (future_df['loss_min'] <= future_df['loss_threshold']) &
+                    # future window max exceeds prior window max
+                    (future_df['future_min'] < future_df['dwt_recent_min'])
             ), 1.0, 0.0)
 
-        return sells
+        return series
 
     # save the indicators used here so that we can see them in plots (prefixed by '%')
     def save_debug_indicators(self, future_df: DataFrame):
-        self.add_debug_indicator(future_df, 'future_gain')
+
+        self.add_debug_indicator(future_df, 'profit_max')
+        self.add_debug_indicator(future_df, 'profit_threshold')
+        self.add_debug_indicator(future_df, 'future_max')
+        self.add_debug_indicator(future_df, 'loss_min')
+        self.add_debug_indicator(future_df, 'loss_threshold')
+        self.add_debug_indicator(future_df, 'future_min')
 
         return
 
+    ###################################

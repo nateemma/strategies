@@ -1,8 +1,8 @@
 {
-  "strategy_name": "PCA_nseq",
+  "strategy_name": "PCA_highlow",
   "params": {
     "roi": {
-      "0": 0.99
+      "0": 0.1
     },
     "stoploss": {
       "stoploss": -0.1
@@ -17,22 +17,22 @@
     "sell": {
       "csell_endtrend_respect_roi": true,
       "csell_pullback": false,
-      "csell_pullback_amount": 0.03,
+      "csell_pullback_amount": 0.014,
       "csell_pullback_respect_roi": true,
-      "csell_roi_end": 0.005,
-      "csell_roi_start": 0.013,
-      "csell_roi_time": 1058,
+      "csell_roi_end": 0.003,
+      "csell_roi_start": 0.048,
+      "csell_roi_time": 774,
       "csell_roi_type": "decay",
-      "csell_trend_type": "any",
+      "csell_trend_type": "rmi",
       "cstop_bail_how": "time",
-      "cstop_bail_roc": -4.686,
-      "cstop_bail_time": 541,
+      "cstop_bail_roc": -2.343,
+      "cstop_bail_time": 1003,
       "cstop_bail_time_trend": false,
-      "cstop_loss_threshold": -0.019,
-      "cstop_max_stoploss": -0.145
+      "cstop_loss_threshold": -0.033,
+      "cstop_max_stoploss": -0.048
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-10-30 00:41:11.151089+00:00"
+  "export_time": "2022-10-30 11:46:19.100283+00:00"
 }
