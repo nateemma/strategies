@@ -92,9 +92,6 @@ PCA - uses Principal Component Analysis to try and reduce the total set of indic
 ####################################################################################
 """
 
-first_run = True  # used to identify first time through buy/sell populate funcs
-
-
 class PCA(IStrategy):
     # Do *not* hyperopt for the roi and stoploss spaces
 
@@ -165,7 +162,7 @@ class PCA(IStrategy):
 
     # debug flags
     first_time = True  # mostly for debug
-    # first_run = True  # used to identify first time through buy/sell populate funcs
+    first_run = True  # used to identify first time through buy/sell populate funcs
 
     dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
     dbg_test_classifier = True  # test clasifiers after fitting
