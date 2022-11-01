@@ -706,6 +706,8 @@ class PCA(IStrategy):
         # Recent min/max
         dataframe['dwt_recent_min'] = dataframe['dwt_smooth'].rolling(window=win_size).min()
         dataframe['dwt_recent_max'] = dataframe['dwt_smooth'].rolling(window=win_size).max()
+        dataframe['dwt_maxmin'] = 100.0 * (dataframe['dwt_recent_max'] - dataframe['dwt_recent_min']) / \
+                                  dataframe['dwt_recent_max']
 
         # longer term high/low
         dataframe['dwt_low'] = dataframe['dwt_smooth'].rolling(window=self.startup_candle_count).min()
@@ -1329,7 +1331,7 @@ class PCA(IStrategy):
         # print matrix of weightings for selected components
         loadings = pd.DataFrame(pca.components_.T, index=df.columns.values)
         l2 = loadings.abs()
-        # l3 = loadings.mul(ratios)
+        l3 = loadings.mul(ratios)
         ranks = loadings.rank()
 
         loadings['Score'] = l2.sum(axis=1)
@@ -1339,16 +1341,16 @@ class PCA(IStrategy):
         print("Loadings, by PC0:")
         print(loadings.sort_values('Rank0').head(n=30))
         print("")
-        print("Loadings, by All Columns:")
-        print(loadings.sort_values('Rank').head(n=30))
-        print("")
+        # print("Loadings, by All Columns:")
+        # print(loadings.sort_values('Rank').head(n=30))
+        # print("")
 
-        # # weighted by variance ratios
-        # l3a = l3.abs()
-        # l3['Score'] = l3a.sum(axis=1)
-        # l3['Rank'] = loadings['Score'].rank(ascending=False)
-        # print("Loadings, Weighted by Variance Ratio")
-        # print (l3.sort_values('Rank').head(n=20))
+        # weighted by variance ratios
+        l3a = l3.abs()
+        l3['Score'] = l3a.sum(axis=1)
+        l3['Rank'] = loadings['Score'].rank(ascending=False)
+        print("Loadings, Weighted by Variance Ratio")
+        print (l3.sort_values('Rank').head(n=20))
 
         # # rankings per column
         ranks['Score'] = ranks.sum(axis=1)
@@ -1707,29 +1709,31 @@ class PCA(IStrategy):
             print("Classifier Statistics:")
             print("---------------------")
             print("")
-            print("Buy")
-            unused_list = []
-            for cls in self.classifier_stats['buy']:
-                if self.classifier_stats['buy'][cls]['selected'] > 0:
-                    print("      {0:<20}: ".format(cls), self.classifier_stats['buy'][cls] )
-                else:
-                    unused_list.append(cls)
-            print("")
-            if len(unused_list) > 0:
-                print("      Unused:", unused_list)
+            if 'buy' in self.classifier_stats:
+                print("Buy")
+                unused_list = []
+                for cls in self.classifier_stats['buy']:
+                    if self.classifier_stats['buy'][cls]['selected'] > 0:
+                        print("      {0:<20}: ".format(cls), self.classifier_stats['buy'][cls] )
+                    else:
+                        unused_list.append(cls)
                 print("")
+                if len(unused_list) > 0:
+                    print("      Unused:", unused_list)
+                    print("")
 
-            print("Sell")
-            unused_list = []
-            for cls in self.classifier_stats['sell']:
-                if self.classifier_stats['sell'][cls]['selected'] > 0:
-                    print("      {0:<20}: ".format(cls), self.classifier_stats['sell'][cls] )
-                else:
-                    unused_list.append(cls)
-            print("")
-            if len(unused_list) > 0:
-                print("      Unused:", unused_list)
+            if 'sell' in self.classifier_stats:
+                print("Sell")
+                unused_list = []
+                for cls in self.classifier_stats['sell']:
+                    if self.classifier_stats['sell'][cls]['selected'] > 0:
+                        print("      {0:<20}: ".format(cls), self.classifier_stats['sell'][cls] )
+                    else:
+                        unused_list.append(cls)
                 print("")
+                if len(unused_list) > 0:
+                    print("      Unused:", unused_list)
+                    print("")
 
             print("")
 
@@ -1747,11 +1751,11 @@ class PCA(IStrategy):
 
         self.set_state(curr_pair, self.State.RUNNING)
 
-        # if not self.dp.runmode.value in ('hyperopt'):
-        if PCA.first_run:
-            PCA.first_run = False # note use of clas variable, not instance variable
-            # self.show_debug_info(curr_pair)
-            self.show_all_debug_info()
+        if not self.dp.runmode.value in ('hyperopt'):
+            if PCA.first_run:
+                PCA.first_run = False # note use of clas variable, not instance variable
+                # self.show_debug_info(curr_pair)
+                self.show_all_debug_info()
 
         conditions.append(dataframe['volume'] > 0)
 
@@ -1775,6 +1779,8 @@ class PCA(IStrategy):
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
+        else:
+            dataframe['buy'] = 0
 
         return dataframe
 
@@ -1791,10 +1797,11 @@ class PCA(IStrategy):
 
         self.set_state(curr_pair, self.State.RUNNING)
 
-        if PCA.first_run:
-            PCA.first_run = False  # note use of clas variable, not instance variable
-            # self.show_debug_info(curr_pair)
-            self.show_all_debug_info()
+        if not self.dp.runmode.value in ('hyperopt'):
+            if PCA.first_run:
+                PCA.first_run = False # note use of clas variable, not instance variable
+                # self.show_debug_info(curr_pair)
+                self.show_all_debug_info()
 
         conditions.append(dataframe['volume'] > 0)
 
@@ -1818,6 +1825,8 @@ class PCA(IStrategy):
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1
+        else:
+            dataframe['sell'] = 0
 
         return dataframe
 

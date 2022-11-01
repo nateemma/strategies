@@ -43,16 +43,15 @@ from PCA import PCA
 
 """
 ####################################################################################
-PCA_profit:
+PCA_jump:
     This is a subclass of PCA, which provides a framework for deriving a dimensionally-reduced model
-    This class trains the model based on projecting that the future price will exced the previous window
-    and profit will exceed historical average
+    This class trains the model based on detecting big 'jumps' up/down followed by a reversal
 
 ####################################################################################
 """
 
 
-class PCA_profit(PCA):
+class PCA_jump(PCA):
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # Have to re-declare globals, so that we can change them without affecting (or having to change) the base class,
@@ -128,9 +127,9 @@ class PCA_profit(PCA):
     first_run = True  # used to identify first time through buy/sell populate funcs
 
     dbg_scan_classifiers = True  # if True, scan all viable classifiers and choose the best. Very slow!
-    dbg_test_classifier = True  # test clasifiers after fitting
-    dbg_analyse_pca = True  # analyze PCA weights
-    dbg_verbose = True  # controls debug output
+    dbg_test_classifier = True  # test classifiers after fitting
+    dbg_analyse_pca = False  # analyze PCA weights
+    dbg_verbose = False  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
 
     ###################################
@@ -172,16 +171,21 @@ class PCA_profit(PCA):
 
     # Override the training signals
 
-    # find where future price is higher/lower than previous window max/min and exceeds threshold
+    # find local min/max within past & future window
+    # This is pretty cool because it doesn't care about 'jitter' within the window, or any measure of profit/loss
+    # Note that this will find a lot of results, may want to add a few more guards
 
     def get_train_buy_signals(self, future_df: DataFrame):
         series = np.where(
             (
-                # (future_df['volume'] > 0) & # volume check
-                # future profit exceeds threshold
-                    (future_df['profit_max'] >= future_df['profit_threshold']) &
-                    #     # future window max exceeds prior window max
-                    (future_df['future_max'] > future_df['dwt_recent_max'])
+                # drop in previous window exceeded loss threshold
+                    (future_df['dwt_maxmin'] >= abs(future_df['loss_threshold'])) &
+                    # overall direction was down
+                    (future_df['dwt_nseq'] < 0) &
+                    # at min of previous window
+                    # (future_df['dwt_at_min'] > 0) &
+                    # at min of future window
+                    (future_df['dwt_smooth'] <= future_df['future_min'])
             ), 1.0, 0.0)
 
         return series
@@ -189,24 +193,23 @@ class PCA_profit(PCA):
     def get_train_sell_signals(self, future_df: DataFrame):
         series = np.where(
             (
-                # (future_df['volume'] > 0) & # volume check
-                # future loss exceeds threshold
-                    (future_df['loss_min'] <= future_df['loss_threshold']) &
-                    # future window max exceeds prior window max
-                    (future_df['future_min'] < future_df['dwt_recent_min'])
+                # gain in previous window exceeded profit threshold
+                    (future_df['dwt_maxmin'] >= future_df['profit_threshold']) &
+                    # overall direction was up
+                    (future_df['dwt_nseq'] > 0) &
+                    # at max of previous window
+                    # (future_df['dwt_at_max'] > 0) &
+                    # at min of future window
+                    (future_df['dwt_smooth'] >= future_df['future_max'])  # at max of future window
             ), 1.0, 0.0)
 
         return series
 
+
     # save the indicators used here so that we can see them in plots (prefixed by '%')
     def save_debug_indicators(self, future_df: DataFrame):
-
-        self.add_debug_indicator(future_df, 'profit_max')
-        self.add_debug_indicator(future_df, 'profit_threshold')
-        self.add_debug_indicator(future_df, 'future_max')
-        self.add_debug_indicator(future_df, 'loss_min')
-        self.add_debug_indicator(future_df, 'loss_threshold')
         self.add_debug_indicator(future_df, 'future_min')
+        self.add_debug_indicator(future_df, 'future_max')
 
         return
 
