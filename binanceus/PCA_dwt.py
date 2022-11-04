@@ -79,9 +79,9 @@ class PCA_dwt(PCA):
     use_custom_stoploss = True
 
     # Recommended
-    use_sell_signal = True
-    sell_profit_only = False
-    ignore_roi_if_buy_signal = True
+    use_entry_signal = True
+    entry_profit_only = False
+    ignore_roi_if_entry_signal = True
 
     # Required
     startup_candle_count: int = 128  # must be power of 2

@@ -3,14 +3,16 @@
 # list of strategies to test
 #strat_list="FBB_Solipsis FBB_MacheteV8b NostalgiaForInfinityX"
 #strat_list="FBB_MacheteV8b NostalgiaForInfinityX FBB_DWT FBB_DWT2 FBB_Kalman2 FBB_KalmanSIMD"
-strat_list="DWT FFT Kalman KalmanSIMD"
+#strat_list="DWT FFT Kalman KalmanSIMD"
 lev_list="DWT_Leveraged DWT_lev_short DWT_Leveraged_recent DWT_Leveraged2"
+strat_list="PCA_nseq PCA_dwt PCA_profit PCA_swing PCA_jump PCA_highlow PCA_minmax"
 
 # default values
 
 num_days=180
 start_date=$(date -j -v-${num_days}d +"%Y%m%d")
-timerange="${start_date}-"
+today=$(date +"%Y%m%d")
+timerange="${start_date}-${today}"
 download=0
 jobs=0
 test_list=${strat_list}
@@ -51,7 +53,7 @@ while getopts dj:ln:s:t:-: OPT; do
     d | download )   download=1 ;;
     j | jobs )       needs_arg; jobs="$OPTARG" ;;
     l | leveraged )  leveraged=1;;
-    n | ndays )      needs_arg; num_days="$OPTARG"; timerange="$(date -j -v-${num_days}d +"%Y%m%d")-" ;;
+    n | ndays )      needs_arg; num_days="$OPTARG"; timerange="$(date -j -v-${num_days}d +"%Y%m%d")-${today}" ;;
     s | strategy )   needs_arg; test_list="$OPTARG"; lev_list="$OPTARG" ;;
     t | timeframe )  needs_arg; timerange="$OPTARG" ;;
     \? )             show_usage; die "Illegal option --$OPT" ;;

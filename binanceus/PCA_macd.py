@@ -43,54 +43,20 @@ from PCA import PCA
 
 """
 ####################################################################################
-PCA_sqzmom:
+PCA_macd:
     This is a subclass of PCA, which provides a framework for deriving a dimensionally-reduced model
-    Looks jumps up/down while 'squeeze' is active
+    This class trains the model based on detecting swings in MACD History, followed
+    by a profit (for buys) or loss (for sells)
 
 ####################################################################################
 """
 
 
-class PCA_sqzmom(PCA):
+class PCA_macd(PCA):
 
     # Do *not* hyperopt for the roi and stoploss spaces
 
-
-    # Have to re-decalre globals, so that we can change them without affecting (or having to change) the base class
-    # ROI table:
-    minimal_roi = {
-        "0": 0.1
-    }
-
-    # Stoploss:
-    stoploss = -0.10
-
-    # Trailing stop:
-    trailing_stop = False
-    trailing_stop_positive = None
-    trailing_stop_positive_offset = 0.0
-    trailing_only_offset_is_reached = False
-
-    timeframe = '5m'
-
-    inf_timeframe = '5m'
-
-    use_custom_stoploss = True
-
-    # Recommended
-    use_sell_signal = True
-    sell_profit_only = False
-    ignore_roi_if_buy_signal = True
-
-    # Required
-    startup_candle_count: int = 128  # must be power of 2
-    process_only_new_candles = True
-
-    # Strategy-specific global vars
-
-    inf_mins = timeframe_to_minutes(inf_timeframe)
-    data_mins = timeframe_to_minutes(timeframe)
-    inf_ratio = int(inf_mins / data_mins)
+    # Have to re-declare any globals that we need to modify
 
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
@@ -100,30 +66,7 @@ class PCA_sqzmom(PCA):
     n_loss_stddevs = 0.0
     min_f1_score = 0.51
 
-    indicator_list = []  # list of parameters to use (technical indicators)
-
-    inf_lookahead = int((12 / inf_ratio) * lookahead_hours)
-    curr_lookahead = inf_lookahead
-
-    curr_pair = ""
     custom_trade_info = {}
-
-    # profit/loss thresholds used for assessing buy/sell signals. Keep these realistic!
-    # Note: if self.dynamic_gain_thresholds is True, these will be adjusted for each pair, based on historical mean
-    default_profit_threshold = 0.3
-    default_loss_threshold = -0.3
-    profit_threshold = default_profit_threshold
-    loss_threshold = default_loss_threshold
-    dynamic_gain_thresholds = True  # dynamically adjust gain thresholds based on actual mean (beware, training data could be bad)
-
-    dwt_window = startup_candle_count
-
-    num_pairs = 0
-    pair_model_info = {}  # holds model-related info for each pair
-
-    # debug flags
-    first_time = True  # mostly for debug
-    first_run = True  # used to identify first time through buy/sell populate funcs
 
     dbg_scan_classifiers = True  # if True, scan all viable classifiers and choose the best. Very slow!
     dbg_test_classifier = True  # test clasifiers after fitting
@@ -170,18 +113,17 @@ class PCA_sqzmom(PCA):
 
     # override the default training signal generation
 
-    # find swings when squeeze is active
-    # If a squeeze is active, it generally means the market is readying to jump up or down
+    # detect points where MACD History changes direction
 
     def get_train_buy_signals(self, future_df: DataFrame):
-
         buys = np.where(
             (
-                    (future_df['sqzmi'] > 0) & # squeeze active
-                    (future_df['future_max'] > future_df['dwt_recent_max']) & # jumps above recent max
-                    (future_df['dwt_smooth'] <= future_df['future_max'])  # there is a profit
-                # (future_df['dwt_bottom'] > 0)   # bottom of trend
-
+                    # MACD turns around -ve to +ve
+                    (future_df['macdhist'] < 0) &
+                    (future_df['macdhist'].shift(-self.curr_lookahead) > 0) &
+                    # future profit
+                    (future_df['profit_max'] >= future_df['profit_threshold']) &
+                    (future_df['future_gain'] > 0)
             ), 1.0, 0.0)
 
         return buys
@@ -190,18 +132,21 @@ class PCA_sqzmom(PCA):
 
         sells = np.where(
             (
-                    (future_df['sqzmi'] > 0) & # squeeze active
-                    (future_df['future_min'] < future_df['dwt_recent_min']) & # jumps below recent min
-                    (future_df['dwt_smooth'] >= future_df['future_min']) # at min of future window
-                    # (future_df['dwt_top'] > 0)  # top of trend
+                    # MACD turns around +ve to -ve
+                    (future_df['macdhist'] > 0) &
+                    (future_df['macdhist'].shift(-self.curr_lookahead) < 0) &
+                    # future loss
+                    (future_df['loss_min'] <= future_df['loss_threshold']) &
+                    (future_df['future_gain'] < 0)
             ), 1.0, 0.0)
 
         return sells
 
     # save the indicators used here so that we can see them in plots (prefixed by '%')
     def save_debug_indicators(self, future_df: DataFrame):
-        self.add_debug_indicator(future_df, 'future_max')
-        self.add_debug_indicator(future_df, 'future_min')
+        self.add_debug_indicator(future_df, 'future_gain')
+        self.add_debug_indicator(future_df, 'profit_max')
+        self.add_debug_indicator(future_df, 'loss_min')
 
         return
 

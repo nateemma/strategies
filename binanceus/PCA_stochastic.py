@@ -43,16 +43,17 @@ from PCA import PCA
 
 """
 ####################################################################################
-PCA_nseq:
+PCA_stochastic:
     This is a subclass of PCA, which provides a framework for deriving a dimensionally-reduced model
-    This class trains the model based on detecting long-ish sequences of up/down followed by a longish sequence
-    in the opposite direction
+    This class trains the model based on detecting swings in the fast stochastic indicator, followed
+    by a profit (for buys) or loss (for sells)
 
 ####################################################################################
 """
 
 
-class PCA_nseq(PCA):
+class PCA_stochastic(PCA):
+
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # Have to re-declare any globals that we need to modify
@@ -61,8 +62,8 @@ class PCA_nseq(PCA):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     lookahead_hours = 0.5
-    n_profit_stddevs = 0.0
-    n_loss_stddevs = 0.0
+    n_profit_stddevs = 2.0
+    n_loss_stddevs = 2.0
     min_f1_score = 0.51
 
     custom_trade_info = {}
@@ -110,39 +111,46 @@ class PCA_nseq(PCA):
 
     ###################################
 
-    # Override the default training signals
+    # override the default training signal generation
+
+    # detect points where fast stochastic (%K) changes direction
+    # above 80 implies sell, below 20 implies buy
 
     def get_train_buy_signals(self, future_df: DataFrame):
-        series = np.where(
+        buys = np.where(
             (
-                    # (future_df['volume'] > 0) & # volume check
-                    #  prior down seq followed by future up sequence
-                    (future_df['dwt_nseq_dn'] >= future_df['dwt_nseq_dn_thresh']) &
-                    (future_df['future_nseq_up'] > future_df['future_nseq_up_thresh'])
+                # stochastics show overbought condition
+                #     ((future_df['fastk'] > 80) & (future_df['fastk'].shift(-self.curr_lookahead) <= 80)) &
+                #     ((future_df['fastd'] > 80) & (future_df['fastd'].shift(-self.curr_lookahead) <= 80)) &
+                    ((future_df['fast_diff'] > 0) & (future_df['fast_diff'].shift(-self.curr_lookahead) <= 0)) &
+
+                    # future profit
+                    (future_df['profit_max'] >= future_df['profit_threshold']) &
+                    (future_df['future_gain'] > 0)
             ), 1.0, 0.0)
 
-        return series
+        return buys
 
     def get_train_sell_signals(self, future_df: DataFrame):
-
-        series = np.where(
+        sells = np.where(
             (
-                    # (future_df['volume'] > 0) & # volume check
-                    # prior up seq followed by future down sequence
-                    (future_df['dwt_nseq_up'] <= future_df['dwt_nseq_up_thresh']) &
-                    (future_df['future_nseq_dn'] < future_df['future_nseq_dn_thresh'])
+                # stochastics show oversold condition
+                #     ((future_df['fastk'] < 20) & (future_df['fastk'].shift(-self.curr_lookahead) >= 20)) &
+                #     ((future_df['fastd'] < 20) & (future_df['fastd'].shift(-self.curr_lookahead) >= 20)) &
+                    ((future_df['fast_diff'] < 0) & (future_df['fast_diff'].shift(-self.curr_lookahead) >= 0)) &
+
+                    # future loss
+                    (future_df['loss_min'] <= future_df['loss_threshold']) &
+                    (future_df['future_gain'] < 0)
             ), 1.0, 0.0)
 
-        return series
+        return sells
 
     # save the indicators used here so that we can see them in plots (prefixed by '%')
     def save_debug_indicators(self, future_df: DataFrame):
-        self.add_debug_indicator(future_df, 'future_nseq_up')
-        self.add_debug_indicator(future_df, 'future_nseq_up_thresh')
-        self.add_debug_indicator(future_df, 'future_nseq_dn')
-        self.add_debug_indicator(future_df, 'future_nseq_dn_thresh')
+        self.add_debug_indicator(future_df, 'future_gain')
+        self.add_debug_indicator(future_df, 'profit_max')
+        self.add_debug_indicator(future_df, 'loss_min')
 
         return
-
-    ###################################
 

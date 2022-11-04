@@ -129,6 +129,7 @@ echo "Testing strategy:$strategy for exchange:$exchange..."
 
 
 cmd="freqtrade backtesting --cache none  --breakdown month --timerange=${timerange} -c ${config_file} --strategy-path ${exchange_dir} --strategy-list ${strategy}"
+#cmd="freqtrade backtesting --breakdown month --timerange=${timerange} -c ${config_file} --strategy-path ${exchange_dir} --strategy-list ${strategy}"
 echo ${cmd}
 eval ${cmd}
 

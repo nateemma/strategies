@@ -55,44 +55,7 @@ PCA_minmax:
 class PCA_minmax(PCA):
     # Do *not* hyperopt for the roi and stoploss spaces
 
-    # Have to re-declare globals, so that we can change them without affecting (or having to change) the base class,
-    # and also avoiding affecting other subclasses of PCA
-
-
-    # ROI table:
-    minimal_roi = {
-        "0": 0.1
-    }
-
-    # Stoploss:
-    stoploss = -0.10
-
-    # Trailing stop:
-    trailing_stop = False
-    trailing_stop_positive = None
-    trailing_stop_positive_offset = 0.0
-    trailing_only_offset_is_reached = False
-
-    timeframe = '5m'
-
-    inf_timeframe = '5m'
-
-    use_custom_stoploss = True
-
-    # Recommended
-    use_sell_signal = True
-    sell_profit_only = False
-    ignore_roi_if_buy_signal = True
-
-    # Required
-    startup_candle_count: int = 128  # must be power of 2
-    process_only_new_candles = True
-
-    # Strategy-specific global vars
-
-    inf_mins = timeframe_to_minutes(inf_timeframe)
-    data_mins = timeframe_to_minutes(timeframe)
-    inf_ratio = int(inf_mins / data_mins)
+    # Have to re-declare any globals that we need to modify
 
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
@@ -102,30 +65,7 @@ class PCA_minmax(PCA):
     n_loss_stddevs = 0.0
     min_f1_score = 0.51
 
-    indicator_list = []  # list of parameters to use (technical indicators)
-
-    inf_lookahead = int((12 / inf_ratio) * lookahead_hours)
-    curr_lookahead = inf_lookahead
-
-    curr_pair = ""
     custom_trade_info = {}
-
-    # profit/loss thresholds used for assessing buy/sell signals. Keep these realistic!
-    # Note: if self.dynamic_gain_thresholds is True, these will be adjusted for each pair, based on historical mean
-    default_profit_threshold = 0.3
-    default_loss_threshold = -0.3
-    profit_threshold = default_profit_threshold
-    loss_threshold = default_loss_threshold
-    dynamic_gain_thresholds = True  # dynamically adjust gain thresholds based on actual mean (beware, training data could be bad)
-
-    dwt_window = startup_candle_count
-
-    num_pairs = 0
-    pair_model_info = {}  # holds model-related info for each pair
-
-    # debug flags
-    first_time = True  # mostly for debug
-    first_run = True  # used to identify first time through buy/sell populate funcs
 
     dbg_scan_classifiers = True  # if True, scan all viable classifiers and choose the best. Very slow!
     dbg_test_classifier = True  # test classifiers after fitting
