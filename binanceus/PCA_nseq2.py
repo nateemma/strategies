@@ -43,17 +43,16 @@ from PCA import PCA
 
 """
 ####################################################################################
-PCA_macd:
+PCA_nseq2:
     This is a subclass of PCA, which provides a framework for deriving a dimensionally-reduced model
-    This class trains the model based on detecting swings in MACD History, followed
-    by a profit (for buys) or loss (for sells)
+    This class trains the model based on detecting long-ish sequences of up/down followed by a longish sequence
+    in the opposite direction
 
 ####################################################################################
 """
 
 
-class PCA_macd(PCA):
-
+class PCA_nseq2(PCA):
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # Have to re-declare any globals that we need to modify
@@ -111,43 +110,39 @@ class PCA_macd(PCA):
 
     ###################################
 
-    # override the default training signal generation
-
-    # detect points where MACD History changes direction
+    # Override the default training signals
 
     def get_train_buy_signals(self, future_df: DataFrame):
-        buys = np.where(
+        series = np.where(
             (
-                    # MACD turns around -ve to +ve
-                    (future_df['macdhist'] < 0) &
-                    (future_df['macdhist'].shift(-self.curr_lookahead) > 0) &
-                    (future_df['dwt_nseq'] < 0)
-                    # # future profit
-                    # (future_df['profit_max'] >= future_df['profit_threshold']) &
-                    # (future_df['future_gain'] > 0)
+                    # (future_df['volume'] > 0) & # volume check
+                    #  prior down seq followed by future up sequence
+                    (future_df['dwt_nseq_dn'] <= -10) &
+                    (future_df['future_nseq_up'] > 5)
             ), 1.0, 0.0)
 
-        return buys
+        return series
 
     def get_train_sell_signals(self, future_df: DataFrame):
 
-        sells = np.where(
+        series = np.where(
             (
-                    # MACD turns around +ve to -ve
-                    (future_df['macdhist'] > 0) &
-                    (future_df['macdhist'].shift(-self.curr_lookahead) < 0) #&
-                    # # future loss
-                    # (future_df['loss_min'] <= future_df['loss_threshold']) &
-                    # (future_df['future_gain'] < 0)
+                    # (future_df['volume'] > 0) & # volume check
+                    # prior up seq followed by future down sequence
+                    (future_df['dwt_nseq_up'] >= 10) &
+                    (future_df['future_nseq_dn'] < -5)
             ), 1.0, 0.0)
 
-        return sells
+        return series
 
     # save the indicators used here so that we can see them in plots (prefixed by '%')
     def save_debug_indicators(self, future_df: DataFrame):
-        self.add_debug_indicator(future_df, 'future_gain')
-        self.add_debug_indicator(future_df, 'profit_max')
-        self.add_debug_indicator(future_df, 'loss_min')
+        self.add_debug_indicator(future_df, 'future_nseq_up')
+        self.add_debug_indicator(future_df, 'future_nseq_up_thresh')
+        self.add_debug_indicator(future_df, 'future_nseq_dn')
+        self.add_debug_indicator(future_df, 'future_nseq_dn_thresh')
 
         return
+
+    ###################################
 

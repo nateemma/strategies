@@ -1,11 +1,8 @@
 #!/bin/zsh
 
 # list of strategies to test
-#strat_list="FBB_Solipsis FBB_MacheteV8b NostalgiaForInfinityX"
-#strat_list="FBB_MacheteV8b NostalgiaForInfinityX FBB_DWT FBB_DWT2 FBB_Kalman2 FBB_KalmanSIMD"
-#strat_list="DWT FFT Kalman KalmanSIMD"
 lev_list="DWT_Leveraged DWT_lev_short DWT_Leveraged_recent DWT_Leveraged2"
-strat_list="PCA_nseq PCA_dwt PCA_profit PCA_swing PCA_jump PCA_highlow PCA_minmax"
+strat_list="PCA_nseq PCA_dwt PCA_profit PCA_swing PCA_jump PCA_highlow PCA_minmax PCA_macd PCA_stochastic"
 
 # default values
 

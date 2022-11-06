@@ -64,7 +64,7 @@ class PCA_stochastic(PCA):
     lookahead_hours = 0.5
     n_profit_stddevs = 2.0
     n_loss_stddevs = 2.0
-    min_f1_score = 0.51
+    min_f1_score = 0.70
 
     custom_trade_info = {}
 

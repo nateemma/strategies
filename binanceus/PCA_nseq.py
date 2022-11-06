@@ -63,7 +63,7 @@ class PCA_nseq(PCA):
     lookahead_hours = 0.5
     n_profit_stddevs = 0.0
     n_loss_stddevs = 0.0
-    min_f1_score = 0.51
+    min_f1_score = 0.70
 
     custom_trade_info = {}
 
@@ -117,7 +117,7 @@ class PCA_nseq(PCA):
             (
                     # (future_df['volume'] > 0) & # volume check
                     #  prior down seq followed by future up sequence
-                    (future_df['dwt_nseq_dn'] >= future_df['dwt_nseq_dn_thresh']) &
+                    (future_df['dwt_nseq_dn'] <= future_df['dwt_nseq_dn_thresh']) &
                     (future_df['future_nseq_up'] > future_df['future_nseq_up_thresh'])
             ), 1.0, 0.0)
 
@@ -129,7 +129,7 @@ class PCA_nseq(PCA):
             (
                     # (future_df['volume'] > 0) & # volume check
                     # prior up seq followed by future down sequence
-                    (future_df['dwt_nseq_up'] <= future_df['dwt_nseq_up_thresh']) &
+                    (future_df['dwt_nseq_up'] >= future_df['dwt_nseq_up_thresh']) &
                     (future_df['future_nseq_dn'] < future_df['future_nseq_dn_thresh'])
             ), 1.0, 0.0)
 

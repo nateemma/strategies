@@ -43,16 +43,15 @@ from PCA import PCA
 
 """
 ####################################################################################
-PCA_macd:
+PCA_over:
     This is a subclass of PCA, which provides a framework for deriving a dimensionally-reduced model
-    This class trains the model based on detecting swings in MACD History, followed
-    by a profit (for buys) or loss (for sells)
+    This class trains the model based on overbought/oversold conditions
 
 ####################################################################################
 """
 
 
-class PCA_macd(PCA):
+class PCA_over(PCA):
 
     # Do *not* hyperopt for the roi and stoploss spaces
 
@@ -62,8 +61,8 @@ class PCA_macd(PCA):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     lookahead_hours = 0.5
-    n_profit_stddevs = 0.0
-    n_loss_stddevs = 0.0
+    n_profit_stddevs = 1.0
+    n_loss_stddevs = 1.0
     min_f1_score = 0.70
 
     custom_trade_info = {}
@@ -113,32 +112,40 @@ class PCA_macd(PCA):
 
     # override the default training signal generation
 
-    # detect points where MACD History changes direction
+    # uses various overbought/oversold indicators, combined with future los/gain
 
     def get_train_buy_signals(self, future_df: DataFrame):
         buys = np.where(
             (
-                    # MACD turns around -ve to +ve
-                    (future_df['macdhist'] < 0) &
-                    (future_df['macdhist'].shift(-self.curr_lookahead) > 0) &
-                    (future_df['dwt_nseq'] < 0)
-                    # # future profit
-                    # (future_df['profit_max'] >= future_df['profit_threshold']) &
-                    # (future_df['future_gain'] > 0)
+                # various overbought condition
+                    (future_df['fastk'] >= 80) &
+                    (future_df['rsi'] >= 70) &
+                    (future_df['atr_buy'] > 0) &
+                    (future_df['mfi_buy'] > 0) &
+                    (future_df['vfi_buy'] > 0) &
+                    # (future_df['fisher_wr'] < -0.5) &
+
+                    # future profit
+                    (future_df['profit_max'] >= self.profit_threshold) &
+                    (future_df['future_gain'] > 0)
             ), 1.0, 0.0)
 
         return buys
 
     def get_train_sell_signals(self, future_df: DataFrame):
-
         sells = np.where(
             (
-                    # MACD turns around +ve to -ve
-                    (future_df['macdhist'] > 0) &
-                    (future_df['macdhist'].shift(-self.curr_lookahead) < 0) #&
-                    # # future loss
-                    # (future_df['loss_min'] <= future_df['loss_threshold']) &
-                    # (future_df['future_gain'] < 0)
+                # stochastics show oversold condition
+                    (future_df['fastk'] <= 20) &
+                    (future_df['rsi'] <= 30) &
+                    (future_df['atr_sell'] > 0) &
+                    (future_df['mfi_sell'] > 0) &
+                    (future_df['vfi_sell'] > 0) &
+                    # (future_df['fisher_wr'] > 0.5) &
+
+                    # future loss
+                    (future_df['loss_min'] <= self.loss_threshold) &
+                    (future_df['future_gain'] < 0)
             ), 1.0, 0.0)
 
         return sells

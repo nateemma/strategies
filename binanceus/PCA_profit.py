@@ -63,14 +63,14 @@ class PCA_profit(PCA):
     lookahead_hours = 0.5
     n_profit_stddevs = 2.0
     n_loss_stddevs = 2.0
-    min_f1_score = 0.51
+    min_f1_score = 0.70
 
     custom_trade_info = {}
 
     dbg_scan_classifiers = True  # if True, scan all viable classifiers and choose the best. Very slow!
     dbg_test_classifier = True  # test clasifiers after fitting
-    dbg_analyse_pca = True  # analyze PCA weights
-    dbg_verbose = True  # controls debug output
+    dbg_analyse_pca = False  # analyze PCA weights
+    dbg_verbose = False  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
 
     ###################################

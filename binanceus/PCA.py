@@ -140,7 +140,7 @@ class PCA(IStrategy):
     lookahead_hours = 0.5
     n_profit_stddevs = 0.0
     n_loss_stddevs = 0.0
-    min_f1_score = 0.51
+    min_f1_score = 0.70
 
     inf_lookahead = int((12 / inf_ratio) * lookahead_hours)
     curr_lookahead = inf_lookahead
@@ -386,6 +386,7 @@ class PCA(IStrategy):
         dataframe['bb_upperband'] = bollinger['upper']
         dataframe['bb_width'] = ((dataframe['bb_upperband'] - dataframe['bb_lowerband']) / dataframe['bb_middleband'])
         dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
+        dataframe["bb_loss"] = ((dataframe["bb_lowerband"] - dataframe["close"]) / dataframe["close"])
 
         # Donchian Channels
         dataframe['dc_upper'] = ta.MAX(dataframe['high'], timeperiod=win_size)
@@ -617,9 +618,11 @@ class PCA(IStrategy):
         # DWT model
         # get rolling DWT. Probably OK to just apply to the whole dataframe, but be careful anyway
         dataframe['dwt'] = dataframe['close'].rolling(window=self.dwt_window).apply(self.roll_get_dwt)
+        dataframe['smooth'] = dataframe['close'].rolling(window=self.dwt_window).apply(self.roll_smooth)
+        dataframe['dwt_smooth'] = dataframe['dwt'].rolling(window=self.dwt_window).apply(self.roll_smooth)
 
         # smoothed version - useful for trends
-        dataframe['dwt_smooth'] = gaussian_filter1d(dataframe['dwt'], 8)
+        # dataframe['dwt_smooth'] = gaussian_filter1d(dataframe['dwt'], 8)
 
         dataframe['dwt_deriv'] = np.gradient(dataframe['dwt_smooth'])
         dataframe['dwt_top'] = np.where(qtpylib.crossed_below(dataframe['dwt_deriv'], 0.0), 1, 0)
@@ -878,6 +881,19 @@ class PCA(IStrategy):
 
     ###################
 
+    # returns (rolling) smoothed version of input column
+    def roll_smooth(self, col) -> np.float:
+        # must return scalar, so just calculate prediction and take last value
+
+        smooth = gaussian_filter1d(col, 4)
+
+        length = len(smooth)
+        if length > 0:
+            return smooth[length - 1]
+        else:
+            print("model:", smooth)
+            return 0.0
+
     def get_dwt(self, col):
 
         a = np.array(col)
@@ -905,8 +921,8 @@ class PCA(IStrategy):
         if length > 0:
             return model[length - 1]
         else:
-            print("model:", model)
-            return 0.0
+            # cannot calculate DWT (e.g. at startup), just return original value
+            return col[len(col)-1]
 
     def dwtModel(self, data):
 
@@ -1274,8 +1290,8 @@ class PCA(IStrategy):
         # scan variance and only take if column contributes >x%
         ncols = 0
         var_sum = 0.0
-        # variance_threshold = 0.999
-        variance_threshold = 0.99
+        variance_threshold = 0.999
+        # variance_threshold = 0.99
         while ((var_sum < variance_threshold) & (ncols < len(pca.explained_variance_ratio_))):
             var_sum = var_sum + pca.explained_variance_ratio_[ncols]
             ncols = ncols + 1
@@ -1302,6 +1318,7 @@ class PCA(IStrategy):
         var_big = np.where(ratios >= 0.5)[0]
         if len(var_big) > 0:
             print("    !!! high variance in columns: ", var_big)
+            print("    !!! variances: ", ratios)
 
         var_0  = np.where(ratios == 0)[0]
         if len(var_0) > 0:
