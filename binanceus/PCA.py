@@ -1200,8 +1200,8 @@ class PCA(IStrategy):
                                                                                               v_buys,
                                                                                               v_sells,
                                                                                               train_size=train_size,
-                                                                                              # random_state=rand_st,
-                                                                                              shuffle=False)
+                                                                                              random_state=rand_st,
+                                                                                              shuffle=True)
         if self.dbg_verbose:
             print("     dataframe:", v_df_norm.shape, ' -> train:', df_train.shape, " + test:", df_test.shape)
             print("     buys:", buys.shape, ' -> train:', train_buys.shape, " + test:", test_buys.shape)
@@ -1518,7 +1518,7 @@ class PCA(IStrategy):
         else:
             print("Unknown classifier: ", name)
             clf = None
-        return clf
+        return clf, name
 
     # tries different types of classifiers and returns the best one
     # tag parameter identifies where to save performance stats (default is not to save)
@@ -1544,8 +1544,8 @@ class PCA(IStrategy):
 
         # split into test/train for evaluation, then re-fit once selected
         # df_train, df_test, res_train, res_test = train_test_split(df, results, train_size=0.5)
-        df_train, df_test, res_train, res_test = train_test_split(df, labels, train_size=0.6,
-                                                                  shuffle=False)
+        df_train, df_test, res_train, res_test = train_test_split(df, labels, train_size=0.8,
+                                                                  random_state=27, shuffle=True)
         # print("df_train:",  df_train.shape, " df_test:", df_test.shape,
         #       "res_train:", res_train.shape, "res_test:", res_test.shape)
 
@@ -1815,12 +1815,12 @@ class PCA(IStrategy):
         conditions.append(dataframe['volume'] > 0)
 
         # Fisher RSI + Williams combo
-        conditions.append(dataframe['fisher_wr'] < -0.5)
+        conditions.append(dataframe['fisher_wr'] < -0.7)
 
         # below Bollinger mid-point
         conditions.append(dataframe['close'] < dataframe['bb_middleband'])
 
-        # PCA triggers
+        # PCA/Classifier triggers
         pca_cond = (
             (qtpylib.crossed_above(dataframe['predict_buy'], 0.5))
         )
