@@ -112,18 +112,18 @@ class PCA_fbb(PCA):
 
     # override the default training signal generation
 
-    # uses various overbought/oversold indicators, combined with future los/gain
+    # uses various fisher_wr and bollinger band indicators, combined with future los/gain
 
     def get_train_buy_signals(self, future_df: DataFrame):
         buys = np.where(
             (
-                # various overbought condition
+                # overbought condition with high potential profit
                     (future_df['fisher_wr'] < -0.9) &
                     # (future_df['bb_gain'] >= future_df['profit_threshold']/100.0) &
                     (future_df['bb_gain'] >= self.profit_threshold / 100.0) &
 
                     # future profit
-                    (future_df['profit_max'] >= future_df['profit_threshold']) &
+                    (future_df['profit_max'] >= self.profit_threshold) &
                     (future_df['future_gain'] > 0)
             ), 1.0, 0.0)
 
@@ -132,13 +132,13 @@ class PCA_fbb(PCA):
     def get_train_sell_signals(self, future_df: DataFrame):
         sells = np.where(
             (
-                # stochastics show oversold condition
+                # oversold condition with high potential loss
                     (future_df['fisher_wr'] > 0.8) &
                     # (future_df['bb_loss'] <= future_df['loss_threshold']/100.0) &
                     (future_df['bb_loss'] <= self.loss_threshold / 100.0) &
 
                     # future loss
-                    (future_df['loss_min'] <= future_df['loss_threshold']) &
+                    (future_df['loss_min'] <= self.loss_threshold) &
                     (future_df['future_gain'] < 0)
             ), 1.0, 0.0)
 

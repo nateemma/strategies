@@ -6,7 +6,6 @@ from enum import Enum
 import pywt
 import talib.abstract as ta
 from scipy.ndimage import gaussian_filter1d
-from statsmodels.discrete.discrete_model import Probit
 
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 import arrow
@@ -63,8 +62,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.preprocessing import LabelEncoder, StandardScaler
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA, QuadraticDiscriminantAnalysis, \
-    LinearDiscriminantAnalysis
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis, LinearDiscriminantAnalysis
 from sklearn.linear_model import LogisticRegression
 
 from sklearn.metrics import make_scorer
@@ -90,14 +88,19 @@ PCA - uses Principal Component Analysis to try and reduce the total set of indic
       We then train a classifier model to predict buy or sell signals based on the known outcome in the
       informative data, and use it to predict buy/sell signals based on the real-time dataframe.
       
-      Note that this is very sow to start up. This is mostly because we have to build the data on a rolling
+      Note that this is very slow to start up. This is mostly because we have to build the data on a rolling
       basis to avoid lookahead bias.
+      
+      In addition to the normal freqtrade packages, these strategies also require the installation of:
+        random
+        prettytable
+        finta
 
 ####################################################################################
 """
 
 class PCA(IStrategy):
-    # Do *not* hyperopt for the roi and stoploss spaces
+    # Do *not* hyperopt for the roi and stoploss spaces (unless you turn off custom stoploss)
 
     # ROI table:
     minimal_roi = {
@@ -142,8 +145,7 @@ class PCA(IStrategy):
     n_loss_stddevs = 0.0
     min_f1_score = 0.70
 
-    inf_lookahead = int((12 / inf_ratio) * lookahead_hours)
-    curr_lookahead = inf_lookahead
+    curr_lookahead = int(12 * lookahead_hours)
 
     curr_pair = ""
     custom_trade_info = {}
@@ -281,6 +283,15 @@ class PCA(IStrategy):
         curr_pair = metadata['pair']
         self.curr_pair = curr_pair
 
+
+        self.set_state(curr_pair, self.State.POPULATE)
+        self.curr_lookahead = int(12 * self.lookahead_hours)
+        self.dbg_curr_df = dataframe
+
+        # reset profit/loss thresholds
+        self.profit_threshold = self.default_profit_threshold
+        self.loss_threshold = self.default_loss_threshold
+
         if PCA.first_time:
             PCA.first_time = False
             print("")
@@ -288,20 +299,13 @@ class PCA(IStrategy):
             print("** Warning: startup can be very slow **")
             print("***************************************")
 
-            print("    Lookahead: ", self.inf_lookahead, " candles (", self.lookahead_hours, " hours)")
+            print("    Lookahead: ", self.curr_lookahead, " candles (", self.lookahead_hours, " hours)")
             print("    Thresholds - Profit:{:.2f}% Loss:{:.2f}%".format(self.profit_threshold,
                                                                         self.loss_threshold))
 
         print("")
         print(curr_pair)
 
-        self.set_state(curr_pair, self.State.POPULATE)
-
-        self.dbg_curr_df = dataframe
-
-        # reset profit/loss thresholds
-        self.profit_threshold = self.default_profit_threshold
-        self.loss_threshold = self.default_loss_threshold
 
         # if first time through for this pair, add entry to pair_model_info
         if not (curr_pair in self.pair_model_info):
@@ -319,7 +323,6 @@ class PCA(IStrategy):
             self.pair_model_info[curr_pair]['interval'] = self.pair_model_info[curr_pair]['interval'] - 1
 
         # populate the normal dataframe
-        self.curr_lookahead = self.inf_lookahead * self.inf_ratio
         dataframe = self.add_indicators(dataframe)
 
         buys, sells = self.create_training_data(dataframe)
@@ -885,7 +888,8 @@ class PCA(IStrategy):
     def roll_smooth(self, col) -> np.float:
         # must return scalar, so just calculate prediction and take last value
 
-        smooth = gaussian_filter1d(col, 4)
+        # smooth = gaussian_filter1d(col, 4)
+        smooth = gaussian_filter1d(col, 2)
 
         length = len(smooth)
         if length > 0:
@@ -1153,7 +1157,7 @@ class PCA(IStrategy):
             return
         else:
             # reset interval to a random number between 1 and the amount of lookahead
-            self.pair_model_info[curr_pair]['interval'] = random.randint(1, self.inf_lookahead)
+            self.pair_model_info[curr_pair]['interval'] = random.randint(1, self.curr_lookahead)
 
         # Reset models for this pair. Makes it safe to just return on error
         self.pair_model_info[curr_pair]['pca_size'] = 0
@@ -1505,8 +1509,6 @@ class PCA(IStrategy):
             c3 = self.classifier_factory('KNeighbors', data, labels)
             c4 = self.classifier_factory('DecisionTree', data, labels)
             clf = VotingClassifier(estimators=[('c1', c1), ('c2', c2), ('c3', c3), ('c4', c4)], voting='hard')
-        elif name == 'Probit':
-            clf = Probit(labels, data)
         elif name == 'LDA':
             clf = LinearDiscriminantAnalysis()
         elif name == 'QDA':
@@ -1600,7 +1602,7 @@ class PCA(IStrategy):
         # print("")
         if best_score < self.min_f1_score:
             print("!!!")
-            print("!!! WARNING: F1 score below 50% ({:.3f})".format(best_score))
+            print("!!! WARNING: F1 score below threshold ({:.3f})".format(best_score))
             print("!!!")
             return None, ""
 
@@ -1804,11 +1806,16 @@ class PCA(IStrategy):
 
         conditions.append(dataframe['volume'] > 0)
 
-        # # currently below TEMA
-        # conditions.append(dataframe['close'] < dataframe['dwt'])
+        # add some fairly loose guards, to help prevent 'bad' predictions
 
         # # ATR in buy range
         # conditions.append(dataframe['atr_signal'] > 0.0)
+
+        # some trading volume
+        conditions.append(dataframe['volume'] > 0)
+
+        # Fisher RSI + Williams combo
+        conditions.append(dataframe['fisher_wr'] < -0.5)
 
         # below Bollinger mid-point
         conditions.append(dataframe['close'] < dataframe['bb_middleband'])
@@ -1850,14 +1857,14 @@ class PCA(IStrategy):
 
         conditions.append(dataframe['volume'] > 0)
 
-        # # only sell if currently above DWT
-        # conditions.append(dataframe['close'] > dataframe['dwt'])
-
         # # ATR in sell range
         # conditions.append(dataframe['atr_signal'] <= 0.0)
 
         # above Bollinger mid-point
         conditions.append(dataframe['close'] > dataframe['bb_middleband'])
+
+        # Fisher RSI + Williams combo
+        conditions.append(dataframe['fisher_wr'] > 0.5)
 
         # PCA triggers
         pca_cond = (

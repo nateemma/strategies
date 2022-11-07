@@ -8,11 +8,23 @@ Note: I have tried many different strategies, most of which perform quite badly 
 The abandoned strategies are in the _archived/_ folder<br> for reference (I sometimes cut & paste pieces of them into 
 new strategies).
 
-I currently focus on strategies that revolve around creating a model of the expected behaviour and comparing it to 
-the actual behaviour. If the model projects a higher price (above a certain margin) then buy, similarly sell if the 
-model predicts a lower price.
+I currently focus on strategies that revolve around one of 2 approaches:
 
-All of these stratgeies use the custom sell/stoploss  approach from the Solipsis strategy (by werkrew).
+1. creating a model of the expected behaviour and comparing it to 
+the actual behaviour. If the model projects a higher price (above a certain margin) then buy, similarly sell if the 
+model predicts a lower price. There are variants that use Discrete Wavelet Transforms (DWT), Fast Fourier 
+Transforms (FFTs) and Kalman filters. The DWT variants seem to perform the best (and are the fastest).
+2. Use Principal Component Analysis (PCA) to reduce the dimensions of the dataframe columns, then use that to train 
+classifiers, which are then used to predict buys and sells. The PCA analysis because you just add indicators and let the 
+PCA reduction figure out which of them are actually important.
+Note that this is quite similar in approach to freqAI, but I started it before I knew about that, so just kept going 
+(because I find it interesting).<br>
+All of the PCA logic is contained in a base class named PCA. There are several variants (prefixed with PCA_) that try 
+out different approaches to identify buy/sell signals that are used for training the classifiers.
+
+All of these strategies use the custom sell/stoploss  approach from the Solipsis strategy (by werkrew). 
+This makes a huge difference in performance, but the downside is that each strategy requires a lot of hyperopt-ing 
+to get decent performance
 
 
 
@@ -27,7 +39,7 @@ NO RESPONSIBILITY FOR YOUR TRADING RESULTS.
 Always start by testing strategies using backtesting then run the trading bot in Dry-run mode (live data but simulated trades). 
 Some instructions on how to do this are provided below.
 <br>Never, _ever_, go to live trading without first going through a dry-run - it is not at all uncommon for a strategy to 
-achieve fantastic results in backtetsting, only to perform very badly in a live situation. 
+achieve fantastic results in backtesting, only to perform very badly in a live situation. 
 The main reason for this is that the backtesting simulation cannot reproduce the behaviour of the live environment. 
 For example, real trades take a relatively long time and the price can move significantly during that time. Also, market 
 conditions such as trading volume, spreads, volatility etc. cannot be reproduced from the historical data provided by the exchanges
@@ -41,13 +53,15 @@ when any strategy would do well. I recommend including periods where the market 
 
 The following is a list of my custom strategies that I am currently testing. 
 
-| Strategy   | Description                                             | 
-|------------|---------------------------------------------------------|
-| DWT        | Model behaviour using a Digital Wavelet Transform (DWT) |
-| DWT_short  | Same as DWT, but with shorting added                    |
-| FFT        | Model behaviour using a Fast Fourier Transform (FFT)    |
-| Kalman     | Model behaviour using a Kalman Filter (from pykalman)   |
-| KalmanSIMD | Model behaviour using a Kalman Filter (from simdkalman) |
+| Strategy   | Description                                                                                                                                                             | 
+|------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| DWT        | Model behaviour using a Digital Wavelet Transform (DWT)                                                                                                                 |
+| DWT_short  | Same as DWT, but with shorting added                                                                                                                                    |
+| FFT        | Model behaviour using a Fast Fourier Transform (FFT)                                                                                                                    |
+| FBB_*      | Adds Fisher/Bollinger band filtering to DWT/FFT/Kalman                                                                                                                  |
+| Kalman     | Model behaviour using a Kalman Filter (from pykalman)                                                                                                                   |
+| KalmanSIMD | Model behaviour using a Kalman Filter (from simdkalman)                                                                                                                 |
+| PCA_*      | Uses Principal Component Analysis (PCA) and classifiers trained on prior data to predict buy/sells. Each PCA_* variant uses a different approach to predict buys/sells. |
 
 
 Please note that you will need both the _.py_ *and* the _.json_ file.
@@ -117,6 +131,9 @@ where _\<config\>_ is the 'real' config file that would be used for live or dry 
 <br>
 the command will give a list of pairs that pass the filters. You can then cut&paste the list into your test config file. 
 Remember to change single quotes (\') to double quotes (\") though.
+
+I do *not* provide example config files for dryrun and live modes, because those have to contain your API keys to 
+use the exchange. You not include those either if you copy any of this and put it on github.
 
 
 

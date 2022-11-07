@@ -4,12 +4,12 @@
 # hyperopt loss function
 
 # Strategy list, and associated hyperopt spaces
-declare -A strat_list=( [DWT2]="buy sell", [PCA_nseq]="sell" [PCA_dwt]="sell" [PCA_profit]="sell" \
-[PCA_swing]="sell" [PCA_jump]="sell" [PCA_highlow]="sell" [PCA_minmax]="sell" [PCA_macd]="sell" \
+declare -A strat_list=( [DWT2]="buy sell", [PCA_nseq]="sell" [PCA_profit]="sell" \
+[PCA_swing]="sell" [PCA_jump]="sell" [PCA_highlow]="sell" [PCA_minmax]="sell" \
 [PCA_stochastic]="sell" )
 
 # default values
-epochs=1000
+epochs=500
 spaces=""
 num_days=180
 start_date=$(date -j -v-${num_days}d +"%Y%m%d")
@@ -18,7 +18,7 @@ timerange="${start_date}-${today}"
 download=0
 jobs=0
 #lossf="WeightedProfitHyperOptLoss"
-lossf="ExpectancyHyperOptLoss"
+lossf="SharpeHyperOptLoss"
 
 # get the number of cores
 num_cores=`sysctl -n hw.ncpu`

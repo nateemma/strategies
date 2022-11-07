@@ -47,6 +47,7 @@ PCA_minmax:
     This is a subclass of PCA, which provides a framework for deriving a dimensionally-reduced model
     This class trains the model based on detecting points which are either the max (sell) or min (buy)
     of both the past window and the future window
+    Note: this strat should benefit from wider windows, otherwise it'll tag evry local peak/valley
 
 ####################################################################################
 """
@@ -60,7 +61,7 @@ class PCA_minmax(PCA):
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
-    lookahead_hours = 0.5
+    lookahead_hours = 4.0
     n_profit_stddevs = 0.0
     n_loss_stddevs = 0.0
     min_f1_score = 0.70
