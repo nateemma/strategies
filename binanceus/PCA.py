@@ -1504,10 +1504,10 @@ class PCA(IStrategy):
             clf = SVC(kernel='sigmoid')
         elif name == 'Voting':
             # choose 4 decent classifiers
-            c1 = self.classifier_factory('AdaBoost', data, labels)
-            c2 = self.classifier_factory('GaussianNB', data, labels)
-            c3 = self.classifier_factory('KNeighbors', data, labels)
-            c4 = self.classifier_factory('DecisionTree', data, labels)
+            c1, _ = self.classifier_factory('AdaBoost', data, labels)
+            c2, _ = self.classifier_factory('GaussianNB', data, labels)
+            c3, _ = self.classifier_factory('KNeighbors', data, labels)
+            c4, _ = self.classifier_factory('DecisionTree', data, labels)
             clf = VotingClassifier(estimators=[('c1', c1), ('c2', c2), ('c3', c3), ('c4', c4)], voting='hard')
         elif name == 'LDA':
             clf = LinearDiscriminantAnalysis()
@@ -1560,7 +1560,7 @@ class PCA(IStrategy):
             return None, ""
 
         for cname in self.classifier_list:
-            clf = self.classifier_factory(cname, df_train, res_train)
+            clf, _ = self.classifier_factory(cname, df_train, res_train)
 
             if clf is not None:
 
