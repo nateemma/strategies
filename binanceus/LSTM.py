@@ -48,19 +48,19 @@ from keras import layers
 
 """
 ####################################################################################
-LSTM - uses Principal Component Analysis to try and reduce the total set of indicators
-      to more manageable dimensions, and predict the next gain step.
+LSTM - uses a Long-Short Term Memory neural network to try and predict the future stock price
       
-      This works by creating a LSTM model that we train on the historical close data, then use that model to predict 
+      This works by creating a LSTM model that we train on the historical data, then use that model to predict 
       future values
       
-      Note that this is very slow to start up. This is mostly because we have to build the data on a rolling
-      basis to avoid lookahead bias. It should be faster when running live
+      Note that this is very slow because we are training and running a neural network. 
+      This strategy is likely not viable on a configuration of more than a few pairs, and even then needs
+      a fast computer, preferably with a GPU
       
       In addition to the normal freqtrade packages, these strategies also require the installation of:
-        random
-        prettytable
         finta
+        keras
+        tensorflow
 
 ####################################################################################
 """
@@ -71,7 +71,7 @@ class LSTM(IStrategy):
     plot_config = {
         'main_plot': {
             'close': {'color': 'green'},
-            'predict': {'color': 'lightpink'},
+            'predict': {'color': 'lightgreen'},
         },
         'subplots': {
             "Diff": {
@@ -479,22 +479,8 @@ class LSTM(IStrategy):
 
         win_size = max(self.curr_lookahead, 14)
 
-        if self.dp.runmode.value in ('hyperopt', 'backtest', 'plot'):
-            debug = True
-            if debug:
-                print("    Debug: adding predictions in batch mode. Unrealistic results...")
-                # dataframe['predict'] = self.get_predictions(dataframe)  # debug
-                dataframe['predict'] = self.batch_predictions(dataframe)  # debug
-            else:
-                print("    adding predictions in rolling mode. This could take a while...")
-                dataframe['predict'] = dataframe['close'].rolling(window=win_size).apply(self.roll_get_prediction)
-                dataframe['predict_smooth'] = dataframe['predict'].rolling(window=win_size).apply(self.roll_strong_smooth)
-        else:
-            print("    adding predictions in batch mode.")
-            #TODO: maybe manually add sliding window, could be faster
-            dataframe['predict'] = self.get_predictions(dataframe)
-            dataframe['predict_smooth'] = gaussian_filter1d(dataframe['predict'], 6)
-
+        dataframe['predict'] = self.batch_predictions(dataframe)
+        dataframe['predict_smooth'] = dataframe['predict'].rolling(window=win_size).apply(self.roll_strong_smooth)
 
         dataframe['predict_diff'] = 100.0 * (dataframe['predict'] - dataframe['close']) / dataframe['close']
 
@@ -584,15 +570,15 @@ class LSTM(IStrategy):
     def get_lstm(self, nfeatures:int):
         model = keras.Sequential()
 
-        # # complex model:
-        # model.add(layers.LSTM(32, return_sequences=True, input_shape=(1, nfeatures)))
-        # model.add(layers.Dropout(rate=0.5))
-        # model.add(layers.LSTM(32, return_sequences=True))
-        # model.add(layers.Dropout(rate=0.5))
-        # model.add(layers.LSTM(32, return_sequences=False))
-        # model.add(layers.Dropout(rate=0.5))
-        # model.add(layers.Dense(8))
-        # model.add(layers.Dense(1))
+        # complex model:
+        model.add(layers.LSTM(32, return_sequences=True, input_shape=(1, nfeatures)))
+        model.add(layers.Dropout(rate=0.2))
+        model.add(layers.LSTM(32, return_sequences=True))
+        model.add(layers.Dropout(rate=0.2))
+        model.add(layers.LSTM(32, return_sequences=False))
+        model.add(layers.Dropout(rate=0.2))
+        model.add(layers.Dense(8))
+        model.add(layers.Dense(1))
 
         # model.add(layers.LSTM(128, return_sequences=True, input_shape=(1, nfeatures)))
         # # model.add(layers.Dropout(rate=0.5))
@@ -604,8 +590,8 @@ class LSTM(IStrategy):
         # model.add(layers.Dense(1))
 
         # simplest possible model:
-        model.add(layers.LSTM(32, return_sequences=True, input_shape=(1, nfeatures)))
-        model.add(layers.Dense(1, activation='linear'))
+        # model.add(layers.LSTM(32, return_sequences=True, input_shape=(1, nfeatures)))
+        # model.add(layers.Dense(1, activation='linear'))
 
         # model.summary()
         model.compile(optimizer='adam',
@@ -654,7 +640,10 @@ class LSTM(IStrategy):
 
         return predictions
 
+    # run prediction in batches over the entire history
     def batch_predictions(self, dataframe:DataFrame):
+        # prediction does not work well when run over a large dataset, so divide into chunks and predict for each one
+        # then concatenate the results and return
         predictions: np.array = []
         batch_size = 64
         nruns = int(dataframe.shape[0] / batch_size)
