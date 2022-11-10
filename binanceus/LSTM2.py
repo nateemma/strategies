@@ -67,7 +67,7 @@ LSTM - uses a Long-Short Term Memory neural network to try and predict the futur
 ####################################################################################
 """
 
-class LSTM(IStrategy):
+class LSTM2(IStrategy):
 
 
     plot_config = {
@@ -87,7 +87,10 @@ class LSTM(IStrategy):
 
     # ROI table:
     minimal_roi = {
-        "0": 0.1
+        "0": 0.15,
+        "65": 0.075,
+        "87": 0.039,
+        "305": 0
     }
 
     # Stoploss:
@@ -171,28 +174,24 @@ class LSTM(IStrategy):
     # LSTM hyperparams
 
     # Custom Sell Profit (formerly Dynamic ROI)
-    csell_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
-                                          optimize=True)
-    csell_roi_time = IntParameter(720, 1440, default=720, space='sell', load=True, optimize=True)
-    csell_roi_start = DecimalParameter(0.01, 0.05, default=0.01, space='sell', load=True, optimize=True)
-    csell_roi_end = DecimalParameter(0.0, 0.01, default=0, space='sell', load=True, optimize=True)
-    csell_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any', 'none'], default='any', space='sell',
-                                            load=True, optimize=True)
-    csell_pullback = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
-    csell_pullback_amount = DecimalParameter(0.005, 0.03, default=0.01, space='sell', load=True, optimize=True)
-    csell_pullback_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
-                                                      optimize=True)
-    csell_endtrend_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
-                                                      optimize=True)
 
-    # Custom Stoploss
-    cstop_loss_threshold = DecimalParameter(-0.05, -0.01, default=-0.03, space='sell', load=True, optimize=True)
-    cstop_bail_how = CategoricalParameter(['roc', 'time', 'any', 'none'], default='none', space='sell', load=True,
-                                          optimize=True)
-    cstop_bail_roc = DecimalParameter(-5.0, -1.0, default=-3.0, space='sell', load=True, optimize=True)
-    cstop_bail_time = IntParameter(60, 1440, default=720, space='sell', load=True, optimize=True)
-    cstop_bail_time_trend = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
-    cstop_max_stoploss = DecimalParameter(-0.30, -0.01, default=-0.10, space='sell', load=True, optimize=True)
+    sell_params = {
+        "pHSL": -0.186,
+        "pPF_1": 0.011,
+        "pPF_2": 0.071,
+        "pSL_1": 0.02,
+        "pSL_2": 0.063
+    }
+
+    # hard stoploss profit
+    pHSL = DecimalParameter(-0.200, -0.040, default=-0.08, decimals=3, space='sell', load=True)
+    # profit threshold 1, trigger point, SL_1 is used
+    pPF_1 = DecimalParameter(0.008, 0.020, default=0.016, decimals=3, space='sell', load=True)
+    pSL_1 = DecimalParameter(0.008, 0.020, default=0.011, decimals=3, space='sell', load=True)
+
+    # profit threshold 2, SL_2 is used
+    pPF_2 = DecimalParameter(0.040, 0.100, default=0.080, decimals=3, space='sell', load=True)
+    pSL_2 = DecimalParameter(0.020, 0.070, default=0.040, decimals=3, space='sell', load=True)
 
 
     ################################
@@ -233,8 +232,8 @@ class LSTM(IStrategy):
         self.profit_threshold = self.default_profit_threshold
         self.loss_threshold = self.default_loss_threshold
 
-        if LSTM.first_time:
-            LSTM.first_time = False
+        if LSTM2.first_time:
+            LSTM2.first_time = False
             print("")
             print("***************************************")
             print("** Warning: startup can be very slow **")
@@ -451,42 +450,42 @@ class LSTM(IStrategy):
 
 
     def add_stoploss_indicators(self, dataframe: DataFrame, pair) -> DataFrame:
-
-        if not pair in self.custom_trade_info:
-            self.custom_trade_info[pair] = {}
-            if not 'had_trend' in self.custom_trade_info[pair]:
-                self.custom_trade_info[pair]['had_trend'] = False
-
-        # Indicators used for ROI and Custom Stoploss
-
-        # RMI: https://www.tradingview.com/script/kwIt9OgQ-Relative-Momentum-Index/
-        dataframe['rmi'] = cta.RMI(dataframe, length=24, mom=5)
-
-        # Trends
-        dataframe['candle_up'] = np.where(dataframe['close'] >= dataframe['close'].shift(), 1.0, -1.0)
-        dataframe['candle_up_trend'] = np.where(dataframe['candle_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
-        dataframe['candle_up_seq'] = dataframe['candle_up'].rolling(5).sum()
-
-        dataframe['candle_dn'] = np.where(dataframe['close'] < dataframe['close'].shift(), 1.0, -1.0)
-        dataframe['candle_dn_trend'] = np.where(dataframe['candle_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
-        dataframe['candle_dn_seq'] = dataframe['candle_up'].rolling(5).sum()
-
-        dataframe['rmi_up'] = np.where(dataframe['rmi'] >= dataframe['rmi'].shift(), 1.0, -1.0)
-        dataframe['rmi_up_trend'] = np.where(dataframe['rmi_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
-
-        dataframe['rmi_dn'] = np.where(dataframe['rmi'] <= dataframe['rmi'].shift(), 1.0, -1.0)
-        dataframe['rmi_dn_count'] = dataframe['rmi_dn'].rolling(8).sum()
-
-        ssldown, sslup = cta.SSLChannels_ATR(dataframe, length=21)
-        dataframe['sroc'] = cta.SROC(dataframe, roclen=21, emalen=13, smooth=21)
-        dataframe['ssl_dir'] = 0
-        dataframe['ssl_dir'] = np.where(sslup > ssldown, 1.0, -1.0)
-
-        # TODO: remove/fix any columns that contain 'inf'
-        self.check_inf(dataframe)
-
-        # TODO: fix NaNs
-        dataframe.fillna(0.0, inplace=True)
+        #
+        # if not pair in self.custom_trade_info:
+        #     self.custom_trade_info[pair] = {}
+        #     if not 'had_trend' in self.custom_trade_info[pair]:
+        #         self.custom_trade_info[pair]['had_trend'] = False
+        #
+        # # Indicators used for ROI and Custom Stoploss
+        #
+        # # RMI: https://www.tradingview.com/script/kwIt9OgQ-Relative-Momentum-Index/
+        # dataframe['rmi'] = cta.RMI(dataframe, length=24, mom=5)
+        #
+        # # Trends
+        # dataframe['candle_up'] = np.where(dataframe['close'] >= dataframe['close'].shift(), 1.0, -1.0)
+        # dataframe['candle_up_trend'] = np.where(dataframe['candle_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
+        # dataframe['candle_up_seq'] = dataframe['candle_up'].rolling(5).sum()
+        #
+        # dataframe['candle_dn'] = np.where(dataframe['close'] < dataframe['close'].shift(), 1.0, -1.0)
+        # dataframe['candle_dn_trend'] = np.where(dataframe['candle_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
+        # dataframe['candle_dn_seq'] = dataframe['candle_up'].rolling(5).sum()
+        #
+        # dataframe['rmi_up'] = np.where(dataframe['rmi'] >= dataframe['rmi'].shift(), 1.0, -1.0)
+        # dataframe['rmi_up_trend'] = np.where(dataframe['rmi_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
+        #
+        # dataframe['rmi_dn'] = np.where(dataframe['rmi'] <= dataframe['rmi'].shift(), 1.0, -1.0)
+        # dataframe['rmi_dn_count'] = dataframe['rmi_dn'].rolling(8).sum()
+        #
+        # ssldown, sslup = cta.SSLChannels_ATR(dataframe, length=21)
+        # dataframe['sroc'] = cta.SROC(dataframe, roclen=21, emalen=13, smooth=21)
+        # dataframe['ssl_dir'] = 0
+        # dataframe['ssl_dir'] = np.where(sslup > ssldown, 1.0, -1.0)
+        #
+        # # TODO: remove/fix any columns that contain 'inf'
+        # self.check_inf(dataframe)
+        #
+        # # TODO: fix NaNs
+        # dataframe.fillna(0.0, inplace=True)
 
         return dataframe
 
@@ -855,98 +854,98 @@ class LSTM(IStrategy):
     def custom_stoploss(self, pair: str, trade: 'Trade', current_time: datetime, current_rate: float,
                         current_profit: float, **kwargs) -> float:
 
-        dataframe, last_updated = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
-        last_candle = dataframe.iloc[-1].squeeze()
-        trade_dur = int((current_time.timestamp() - trade.open_date_utc.timestamp()) // 60)
-        in_trend = self.custom_trade_info[trade.pair]['had_trend']
+        # hard stoploss profit
+        HSL = self.pHSL.value
+        PF_1 = self.pPF_1.value
+        SL_1 = self.pSL_1.value
+        PF_2 = self.pPF_2.value
+        SL_2 = self.pSL_2.value
 
-        # limit stoploss
-        if current_profit < self.cstop_max_stoploss.value:
-            return 0.01
+        # For profits between PF_1 and PF_2 the stoploss (sl_profit) used is linearly interpolated
+        # between the values of SL_1 and SL_2. For all profits above PL_2 the sl_profit value
+        # rises linearly with current profit, for profits below PF_1 the hard stoploss profit is used.
 
-        # Determine how we sell when we are in a loss
-        if current_profit < self.cstop_loss_threshold.value:
-            if self.cstop_bail_how.value == 'roc' or self.cstop_bail_how.value == 'any':
-                # Dynamic bailout based on rate of change
-                if last_candle['sroc'] <= self.cstop_bail_roc.value:
-                    return 0.01
-            if self.cstop_bail_how.value == 'time' or self.cstop_bail_how.value == 'any':
-                # Dynamic bailout based on time, unless time_trend is true and there is a potential reversal
-                if trade_dur > self.cstop_bail_time.value:
-                    if self.cstop_bail_time_trend.value == True and in_trend == True:
-                        return 1
-                    else:
-                        return 0.01
-        return 1
+        if (current_profit > PF_2):
+            sl_profit = SL_2 + (current_profit - PF_2)
+        elif (current_profit > PF_1):
+            sl_profit = SL_1 + ((current_profit - PF_1) * (SL_2 - SL_1) / (PF_2 - PF_1))
+        else:
+            sl_profit = HSL
+
+        # Only for hyperopt invalid return
+        if (sl_profit >= current_profit):
+            return -0.99
+
+        return min(-0.01, max(stoploss_from_open(sl_profit, current_profit), -0.99))
 
     ###################################
-
-    """
-    Custom Sell
-    """
-
-    def custom_sell(self, pair: str, trade: 'Trade', current_time: 'datetime', current_rate: float,
-                    current_profit: float, **kwargs):
-
-        dataframe, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
-        last_candle = dataframe.iloc[-1].squeeze()
-
-        trade_dur = int((current_time.timestamp() - trade.open_date_utc.timestamp()) // 60)
-        max_profit = max(0, trade.calc_profit_ratio(trade.max_rate))
-        pullback_value = max(0, (max_profit - self.csell_pullback_amount.value))
-        in_trend = False
-
-        # Determine our current ROI point based on the defined type
-        if self.csell_roi_type.value == 'static':
-            min_roi = self.csell_roi_start.value
-        elif self.csell_roi_type.value == 'decay':
-            min_roi = cta.linear_decay(self.csell_roi_start.value, self.csell_roi_end.value, 0,
-                                       self.csell_roi_time.value, trade_dur)
-        elif self.csell_roi_type.value == 'step':
-            if trade_dur < self.csell_roi_time.value:
-                min_roi = self.csell_roi_start.value
-            else:
-                min_roi = self.csell_roi_end.value
-
-        # Determine if there is a trend
-        if self.csell_trend_type.value == 'rmi' or self.csell_trend_type.value == 'any':
-            if last_candle['rmi_up_trend'] == 1:
-                in_trend = True
-        if self.csell_trend_type.value == 'ssl' or self.csell_trend_type.value == 'any':
-            if last_candle['ssl_dir'] == 1:
-                in_trend = True
-        if self.csell_trend_type.value == 'candle' or self.csell_trend_type.value == 'any':
-            if last_candle['candle_up_trend'] == 1:
-                in_trend = True
-
-        # Don't sell if we are in a trend unless the pullback threshold is met
-        if in_trend == True and current_profit > 0:
-            # Record that we were in a trend for this trade/pair for a more useful sell message later
-            self.custom_trade_info[trade.pair]['had_trend'] = True
-            # If pullback is enabled and profit has pulled back allow a sell, maybe
-            if self.csell_pullback.value == True and (current_profit <= pullback_value):
-                if self.csell_pullback_respect_roi.value == True and current_profit > min_roi:
-                    return 'intrend_pullback_roi'
-                elif self.csell_pullback_respect_roi.value == False:
-                    if current_profit > min_roi:
-                        return 'intrend_pullback_roi'
-                    else:
-                        return 'intrend_pullback_noroi'
-            # We are in a trend and pullback is disabled or has not happened or various criteria were not met, hold
-            return None
-        # If we are not in a trend, just use the roi value
-        elif in_trend == False:
-            if self.custom_trade_info[trade.pair]['had_trend']:
-                if current_profit > min_roi:
-                    self.custom_trade_info[trade.pair]['had_trend'] = False
-                    return 'trend_roi'
-                elif self.csell_endtrend_respect_roi.value == False:
-                    self.custom_trade_info[trade.pair]['had_trend'] = False
-                    return 'trend_noroi'
-            elif current_profit > min_roi:
-                return 'notrend_roi'
-        else:
-            return None
+    #
+    # """
+    # Custom Sell
+    # """
+    #
+    # def custom_sell(self, pair: str, trade: 'Trade', current_time: 'datetime', current_rate: float,
+    #                 current_profit: float, **kwargs):
+    #
+    #     dataframe, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
+    #     last_candle = dataframe.iloc[-1].squeeze()
+    #
+    #     trade_dur = int((current_time.timestamp() - trade.open_date_utc.timestamp()) // 60)
+    #     max_profit = max(0, trade.calc_profit_ratio(trade.max_rate))
+    #     pullback_value = max(0, (max_profit - self.csell_pullback_amount.value))
+    #     in_trend = False
+    #
+    #     # Determine our current ROI point based on the defined type
+    #     if self.csell_roi_type.value == 'static':
+    #         min_roi = self.csell_roi_start.value
+    #     elif self.csell_roi_type.value == 'decay':
+    #         min_roi = cta.linear_decay(self.csell_roi_start.value, self.csell_roi_end.value, 0,
+    #                                    self.csell_roi_time.value, trade_dur)
+    #     elif self.csell_roi_type.value == 'step':
+    #         if trade_dur < self.csell_roi_time.value:
+    #             min_roi = self.csell_roi_start.value
+    #         else:
+    #             min_roi = self.csell_roi_end.value
+    #
+    #     # Determine if there is a trend
+    #     if self.csell_trend_type.value == 'rmi' or self.csell_trend_type.value == 'any':
+    #         if last_candle['rmi_up_trend'] == 1:
+    #             in_trend = True
+    #     if self.csell_trend_type.value == 'ssl' or self.csell_trend_type.value == 'any':
+    #         if last_candle['ssl_dir'] == 1:
+    #             in_trend = True
+    #     if self.csell_trend_type.value == 'candle' or self.csell_trend_type.value == 'any':
+    #         if last_candle['candle_up_trend'] == 1:
+    #             in_trend = True
+    #
+    #     # Don't sell if we are in a trend unless the pullback threshold is met
+    #     if in_trend == True and current_profit > 0:
+    #         # Record that we were in a trend for this trade/pair for a more useful sell message later
+    #         self.custom_trade_info[trade.pair]['had_trend'] = True
+    #         # If pullback is enabled and profit has pulled back allow a sell, maybe
+    #         if self.csell_pullback.value == True and (current_profit <= pullback_value):
+    #             if self.csell_pullback_respect_roi.value == True and current_profit > min_roi:
+    #                 return 'intrend_pullback_roi'
+    #             elif self.csell_pullback_respect_roi.value == False:
+    #                 if current_profit > min_roi:
+    #                     return 'intrend_pullback_roi'
+    #                 else:
+    #                     return 'intrend_pullback_noroi'
+    #         # We are in a trend and pullback is disabled or has not happened or various criteria were not met, hold
+    #         return None
+    #     # If we are not in a trend, just use the roi value
+    #     elif in_trend == False:
+    #         if self.custom_trade_info[trade.pair]['had_trend']:
+    #             if current_profit > min_roi:
+    #                 self.custom_trade_info[trade.pair]['had_trend'] = False
+    #                 return 'trend_roi'
+    #             elif self.csell_endtrend_respect_roi.value == False:
+    #                 self.custom_trade_info[trade.pair]['had_trend'] = False
+    #                 return 'trend_noroi'
+    #         elif current_profit > min_roi:
+    #             return 'notrend_roi'
+    #     else:
+    #         return None
 
 
 #######################
