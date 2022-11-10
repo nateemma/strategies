@@ -1,0 +1,28 @@
+{
+  "strategy_name": "PCA2",
+  "params": {
+    "roi": {
+      "0": 0.1
+    },
+    "stoploss": {
+      "stoploss": -0.1
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "buy": {},
+    "sell": {
+      "pHSL": -0.053,
+      "pPF_1": 0.008,
+      "pPF_2": 0.046,
+      "pSL_1": 0.014,
+      "pSL_2": 0.069
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2022-11-07 20:46:02.984716+00:00"
+}

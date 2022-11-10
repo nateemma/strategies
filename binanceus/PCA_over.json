@@ -1,5 +1,5 @@
 {
-  "strategy_name": "PCA_profit",
+  "strategy_name": "PCA_over",
   "params": {
     "roi": {
       "0": 0.1
@@ -15,24 +15,24 @@
     },
     "buy": {},
     "sell": {
-      "csell_endtrend_respect_roi": true,
+      "csell_endtrend_respect_roi": false,
       "csell_pullback": false,
-      "csell_pullback_amount": 0.022,
+      "csell_pullback_amount": 0.03,
       "csell_pullback_respect_roi": true,
-      "csell_roi_end": 0.01,
-      "csell_roi_start": 0.043,
-      "csell_roi_time": 816,
+      "csell_roi_end": 0.008,
+      "csell_roi_start": 0.026,
+      "csell_roi_time": 826,
       "csell_roi_type": "step",
-      "csell_trend_type": "none",
-      "cstop_bail_how": "roc",
-      "cstop_bail_roc": -1.372,
-      "cstop_bail_time": 84,
+      "csell_trend_type": "rmi",
+      "cstop_bail_how": "time",
+      "cstop_bail_roc": -1.627,
+      "cstop_bail_time": 1211,
       "cstop_bail_time_trend": false,
-      "cstop_loss_threshold": -0.024,
-      "cstop_max_stoploss": -0.011
+      "cstop_loss_threshold": -0.013,
+      "cstop_max_stoploss": -0.061
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-11-09 19:32:36.485220+00:00"
+  "export_time": "2022-11-08 20:37:56.787882+00:00"
 }

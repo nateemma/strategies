@@ -63,7 +63,7 @@ class PCA_profit(PCA):
     lookahead_hours = 0.5
     n_profit_stddevs = 2.0
     n_loss_stddevs = 2.0
-    min_f1_score = 0.70
+    min_f1_score = 0.60
 
     custom_trade_info = {}
 

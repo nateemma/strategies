@@ -211,8 +211,7 @@ class DWT2(IStrategy):
         if length > 0:
             return model[length - 1]
         else:
-            print("model:", model)
-            return 0.0
+            return col[len(col) - 1]
 
     def dwtModel(self, data):
 
@@ -260,8 +259,7 @@ class DWT2(IStrategy):
         if length > 0:
             return smooth[length - 1]
         else:
-            print("model:", smooth)
-            return 0.0
+            return col[len(col) - 1]
 
     ###################################
 
