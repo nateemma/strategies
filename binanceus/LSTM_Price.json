@@ -1,8 +1,8 @@
 {
-  "strategy_name": "LSTM2",
+  "strategy_name": "LSTM_Price",
   "params": {
     "roi": {
-      "0": 0.05
+      "0": 0.1
     },
     "stoploss": {
       "stoploss": -0.1
@@ -17,22 +17,22 @@
     "sell": {
       "csell_endtrend_respect_roi": true,
       "csell_pullback": false,
-      "csell_pullback_amount": 0.008,
-      "csell_pullback_respect_roi": true,
-      "csell_roi_end": 0.002,
-      "csell_roi_start": 0.049,
-      "csell_roi_time": 1231,
+      "csell_pullback_amount": 0.021,
+      "csell_pullback_respect_roi": false,
+      "csell_roi_end": 0.001,
+      "csell_roi_start": 0.032,
+      "csell_roi_time": 898,
       "csell_roi_type": "decay",
-      "csell_trend_type": "candle",
+      "csell_trend_type": "rmi",
       "cstop_bail_how": "time",
-      "cstop_bail_roc": -1.878,
-      "cstop_bail_time": 988,
+      "cstop_bail_roc": -4.252,
+      "cstop_bail_time": 1071,
       "cstop_bail_time_trend": false,
-      "cstop_loss_threshold": -0.05,
-      "cstop_max_stoploss": -0.063
+      "cstop_loss_threshold": -0.04,
+      "cstop_max_stoploss": -0.011
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-11-11 19:02:14.793348+00:00"
+  "export_time": "2022-11-10 14:53:48.929672+00:00"
 }

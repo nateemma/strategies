@@ -99,15 +99,12 @@ PCA - uses Principal Component Analysis to try and reduce the total set of indic
 ####################################################################################
 """
 
-class PCA2(IStrategy):
+class PCA3(IStrategy):
     # Do *not* hyperopt for the roi and stoploss spaces (unless you turn off custom stoploss)
 
     # ROI table:
     minimal_roi = {
-        "0": 0.15,
-        "65": 0.075,
-        "87": 0.039,
-        "305": 0
+        "0": 0.1
     }
 
     # Stoploss:
@@ -144,8 +141,8 @@ class PCA2(IStrategy):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     lookahead_hours = 1.0
-    n_profit_stddevs = 1.0
-    n_loss_stddevs = 1.0
+    n_profit_stddevs = 2.0
+    n_loss_stddevs = 2.0
     min_f1_score = 0.70
 
     curr_lookahead = int(12 * lookahead_hours)
@@ -190,23 +187,29 @@ class PCA2(IStrategy):
 
     ## Hyperopt Variables
 
-    sell_params = {
-        "pHSL": -0.068,
-        "pPF_1": 0.008,
-        "pPF_2": 0.098,
-        "pSL_1": 0.02,
-        "pSL_2": 0.065,
-    }
+    # Custom Sell Profit (formerly Dynamic ROI)
+    csell_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
+                                          optimize=True)
+    csell_roi_time = IntParameter(720, 1440, default=720, space='sell', load=True, optimize=True)
+    csell_roi_start = DecimalParameter(0.01, 0.05, default=0.01, space='sell', load=True, optimize=True)
+    csell_roi_end = DecimalParameter(0.0, 0.01, default=0, space='sell', load=True, optimize=True)
+    csell_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any', 'none'], default='any', space='sell',
+                                            load=True, optimize=True)
+    csell_pullback = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+    csell_pullback_amount = DecimalParameter(0.005, 0.03, default=0.01, space='sell', load=True, optimize=True)
+    csell_pullback_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
+                                                      optimize=True)
+    csell_endtrend_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
+                                                      optimize=True)
 
-    # hard stoploss profit
-    pHSL = DecimalParameter(-0.200, -0.040, default=-0.08, decimals=3, space='sell', load=True)
-    # profit threshold 1, trigger point, SL_1 is used
-    pPF_1 = DecimalParameter(0.008, 0.020, default=0.016, decimals=3, space='sell', load=True)
-    pSL_1 = DecimalParameter(0.008, 0.020, default=0.011, decimals=3, space='sell', load=True)
-
-    # profit threshold 2, SL_2 is used
-    pPF_2 = DecimalParameter(0.040, 0.100, default=0.080, decimals=3, space='sell', load=True)
-    pSL_2 = DecimalParameter(0.020, 0.070, default=0.040, decimals=3, space='sell', load=True)
+    # Custom Stoploss
+    cstop_loss_threshold = DecimalParameter(-0.05, -0.01, default=-0.03, space='sell', load=True, optimize=True)
+    cstop_bail_how = CategoricalParameter(['roc', 'time', 'any', 'none'], default='none', space='sell', load=True,
+                                          optimize=True)
+    cstop_bail_roc = DecimalParameter(-5.0, -1.0, default=-3.0, space='sell', load=True, optimize=True)
+    cstop_bail_time = IntParameter(60, 1440, default=720, space='sell', load=True, optimize=True)
+    cstop_bail_time_trend = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+    cstop_max_stoploss = DecimalParameter(-0.30, -0.01, default=-0.10, space='sell', load=True, optimize=True)
 
     ################################
 
@@ -225,10 +228,11 @@ class PCA2(IStrategy):
 
         series = np.where(
             (
-                    # (future_df['rsi'] >= 80) & # classic oversold threshold
-                    # (future_df['future_gain'] > future_df['profit_threshold'])
-                    (future_df['dwt_at_low'] > 0) &  # at low of full window
-                    (future_df['dwt_smooth'] <= future_df['future_min'])  # at min of future window
+                    (future_df['dwt_maxmin'] >= abs(future_df['loss_threshold'])) &
+                    # overall direction was down
+                    (future_df['dwt_nseq'] < 0) &
+                    # at min of future window
+                    (future_df['dwt_smooth'] <= future_df['future_min'])
             ), 1.0, 0.0)
 
         return series
@@ -239,9 +243,10 @@ class PCA2(IStrategy):
 
         series = np.where(
             (
-                    # (future_df['rsi'] <= 20) &  # classic overbought threshold
-                    # (future_df['future_gain'] < future_df['loss_threshold'])
-                    (future_df['dwt_at_high'] > 0) &  # at high of full window
+                    (future_df['dwt_maxmin'] >= future_df['profit_threshold']) &
+                    # overall direction was up
+                    (future_df['dwt_nseq'] > 0) &
+                    # at min of future window
                     (future_df['dwt_smooth'] >= future_df['future_max'])  # at max of future window
             ), 1.0, 0.0)
 
@@ -286,8 +291,8 @@ class PCA2(IStrategy):
         self.profit_threshold = self.default_profit_threshold
         self.loss_threshold = self.default_loss_threshold
 
-        if PCA2.first_time:
-            PCA2.first_time = False
+        if PCA3.first_time:
+            PCA3.first_time = False
             print("")
             print("***************************************")
             print("** Warning: startup can be very slow **")
@@ -419,36 +424,6 @@ class PCA2(IStrategy):
         # # Combined Fisher RSI and Williams %R
         # dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
         #
-        # # RSI
-        # # dataframe['rsi'] = ta.RSI(dataframe, timeperiod=win_size)
-        # dataframe['rsi_14'] = ta.RSI(dataframe, timeperiod=14)
-        #
-        # # RMI: https://www.tradingview.com/script/kwIt9OgQ-Relative-Momentum-Index/
-        # dataframe['rmi'] = cta.RMI(dataframe, length=24, mom=5)
-        #
-        # # MA Streak: https://www.tradingview.com/script/Yq1z7cIv-MA-Streak-Can-Show-When-a-Run-Is-Getting-Long-in-the-Tooth/
-        # dataframe['mastreak'] = cta.mastreak(dataframe, period=4)
-        #
-        # # Trends
-        # dataframe['candle_up'] = np.where(dataframe['close'] >= dataframe['close'].shift(), 1.0, -1.0)
-        # dataframe['candle_up_trend'] = np.where(dataframe['candle_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
-        # dataframe['candle_up_seq'] = dataframe['candle_up'].rolling(5).sum()
-        #
-        # dataframe['candle_dn'] = np.where(dataframe['close'] < dataframe['close'].shift(), 1.0, -1.0)
-        # dataframe['candle_dn_trend'] = np.where(dataframe['candle_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
-        # dataframe['candle_dn_seq'] = dataframe['candle_up'].rolling(5).sum()
-        #
-        # dataframe['rmi_up'] = np.where(dataframe['rmi'] >= dataframe['rmi'].shift(), 1.0, -1.0)
-        # dataframe['rmi_up_trend'] = np.where(dataframe['rmi_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
-        #
-        # dataframe['rmi_dn'] = np.where(dataframe['rmi'] <= dataframe['rmi'].shift(), 1.0, -1.0)
-        # dataframe['rmi_dn_count'] = dataframe['rmi_dn'].rolling(8).sum()
-        #
-        # # Indicators used only for ROI and Custom Stoploss
-        # ssldown, sslup = cta.SSLChannels_ATR(dataframe, length=21)
-        # dataframe['sroc'] = cta.SROC(dataframe, roclen=21, emalen=13, smooth=21)
-        # dataframe['ssl_dir'] = 0
-        # dataframe['ssl_dir'] = np.where(sslup > ssldown, 1.0, -1.0)
         #
         # # EMAs
         # dataframe['ema_12'] = ta.EMA(dataframe, timeperiod=12)
@@ -470,84 +445,84 @@ class PCA2(IStrategy):
         # # # CTI
         # # dataframe['cti'] = pta.cti(dataframe["close"], length=20)
         #
-        # # CRSI (3, 2, 100)
-        # crsi_closechange = dataframe['close'] / dataframe['close'].shift(1)
-        # crsi_updown = np.where(crsi_closechange.gt(1), 1.0, np.where(crsi_closechange.lt(1), -1.0, -1.0))
-        # dataframe['crsi'] = (ta.RSI(dataframe['close'], timeperiod=3) + ta.RSI(crsi_updown, timeperiod=2) + ta.ROC(
-        #     dataframe['close'],
-        #     100)) / 3
+        # CRSI (3, 2, 100)
+        crsi_closechange = dataframe['close'] / dataframe['close'].shift(1)
+        crsi_updown = np.where(crsi_closechange.gt(1), 1.0, np.where(crsi_closechange.lt(1), -1.0, -1.0))
+        dataframe['crsi'] = (ta.RSI(dataframe['close'], timeperiod=3) + ta.RSI(crsi_updown, timeperiod=2) + ta.ROC(
+            dataframe['close'],
+            100)) / 3
         #
         # # Williams %R
         # dataframe['r_14'] = williams_r(dataframe, period=14)
         # dataframe['r_480'] = williams_r(dataframe, period=480)
         #
-        # # ROC
-        # dataframe['roc_9'] = ta.ROC(dataframe, timeperiod=9)
+        # ROC
+        dataframe['roc_9'] = ta.ROC(dataframe, timeperiod=9)
+
+        # T3 Average
+        dataframe['t3_avg'] = t3_average(dataframe)
         #
-        # # T3 Average
-        # dataframe['t3_avg'] = t3_average(dataframe)
-        #
-        # # S/R
-        # res_series = dataframe['high'].rolling(window=5, center=True).apply(lambda row: is_resistance(row),
-        #                                                                     raw=True).shift(2)
-        # sup_series = dataframe['low'].rolling(window=5, center=True).apply(lambda row: is_support(row),
-        #                                                                    raw=True).shift(2)
-        # dataframe['res_level'] = Series(
-        #     np.where(res_series,
-        #              np.where(dataframe['close'] > dataframe['open'], dataframe['close'], dataframe['open']),
-        #              float('NaN'))).ffill()
-        # dataframe['res_hlevel'] = Series(np.where(res_series, dataframe['high'], float('NaN'))).ffill()
-        # dataframe['sup_level'] = Series(
-        #     np.where(sup_series,
-        #              np.where(dataframe['close'] < dataframe['open'], dataframe['close'], dataframe['open']),
-        #              float('NaN'))).ffill()
-        #
-        # # Pump protections
-        # dataframe['hl_pct_change_48'] = range_percent_change(dataframe, 'HL', 48)
-        # dataframe['hl_pct_change_36'] = range_percent_change(dataframe, 'HL', 36)
-        # dataframe['hl_pct_change_24'] = range_percent_change(dataframe, 'HL', 24)
-        # dataframe['hl_pct_change_12'] = range_percent_change(dataframe, 'HL', 12)
-        # dataframe['hl_pct_change_6'] = range_percent_change(dataframe, 'HL', 6)
-        #
-        # # ADX
-        # dataframe['adx'] = ta.ADX(dataframe)
-        #
-        # # Plus Directional Indicator / Movement
-        # dataframe['dm_plus'] = ta.PLUS_DM(dataframe)
-        # dataframe['di_plus'] = ta.PLUS_DI(dataframe)
-        #
-        # # Minus Directional Indicator / Movement
-        # dataframe['dm_minus'] = ta.MINUS_DM(dataframe)
-        # dataframe['di_minus'] = ta.MINUS_DI(dataframe)
-        # dataframe['dm_delta'] = dataframe['dm_plus'] - dataframe['dm_minus']
-        # dataframe['di_delta'] = dataframe['di_plus'] - dataframe['di_minus']
-        #
-        # # MACD
-        # macd = ta.MACD(dataframe)
-        # dataframe['macd'] = macd['macd']
-        # dataframe['macdsignal'] = macd['macdsignal']
-        # dataframe['macdhist'] = macd['macdhist']
-        #
-        # # Stoch fast
-        # stoch_fast = ta.STOCHF(dataframe)
-        # dataframe['fastd'] = stoch_fast['fastd']
-        # dataframe['fastk'] = stoch_fast['fastk']
-        # dataframe['fast_diff'] = dataframe['fastd'] - dataframe['fastk']
-        #
-        # # SAR Parabol
-        # dataframe['sar'] = ta.SAR(dataframe)
-        #
-        # dataframe['mom'] = ta.MOM(dataframe, timeperiod=14)
-        #
-        # # priming indicators
-        # dataframe['color'] = np.where((dataframe['close'] > dataframe['open']), 1.0, -1.0)
-        # dataframe['rsi_7'] = ta.RSI(dataframe, timeperiod=7)
-        # dataframe['roc_6'] = ta.ROC(dataframe, timeperiod=6)
-        # dataframe['primed'] = np.where(dataframe['color'].rolling(3).sum() == 3.0, 1.0, -1.0)
-        # dataframe['in_the_mood'] = np.where(dataframe['rsi_7'] > dataframe['rsi_7'].rolling(12).mean(), 1.0, -1.0)
-        # dataframe['moist'] = np.where(qtpylib.crossed_above(dataframe['macd'], dataframe['macdsignal']), 1.0, -1.0)
-        # dataframe['throbbing'] = np.where(dataframe['roc_6'] > dataframe['roc_6'].rolling(12).mean(), 1.0, -1.0)
-        #
+        # S/R
+        res_series = dataframe['high'].rolling(window=5, center=True).apply(lambda row: is_resistance(row),
+                                                                            raw=True).shift(2)
+        sup_series = dataframe['low'].rolling(window=5, center=True).apply(lambda row: is_support(row),
+                                                                           raw=True).shift(2)
+        dataframe['res_level'] = Series(
+            np.where(res_series,
+                     np.where(dataframe['close'] > dataframe['open'], dataframe['close'], dataframe['open']),
+                     float('NaN'))).ffill()
+        dataframe['res_hlevel'] = Series(np.where(res_series, dataframe['high'], float('NaN'))).ffill()
+        dataframe['sup_level'] = Series(
+            np.where(sup_series,
+                     np.where(dataframe['close'] < dataframe['open'], dataframe['close'], dataframe['open']),
+                     float('NaN'))).ffill()
+
+        # Pump protections
+        dataframe['hl_pct_change_48'] = range_percent_change(dataframe, 'HL', 48)
+        dataframe['hl_pct_change_36'] = range_percent_change(dataframe, 'HL', 36)
+        dataframe['hl_pct_change_24'] = range_percent_change(dataframe, 'HL', 24)
+        dataframe['hl_pct_change_12'] = range_percent_change(dataframe, 'HL', 12)
+        dataframe['hl_pct_change_6'] = range_percent_change(dataframe, 'HL', 6)
+
+        # ADX
+        dataframe['adx'] = ta.ADX(dataframe)
+
+        # Plus Directional Indicator / Movement
+        dataframe['dm_plus'] = ta.PLUS_DM(dataframe)
+        dataframe['di_plus'] = ta.PLUS_DI(dataframe)
+
+        # Minus Directional Indicator / Movement
+        dataframe['dm_minus'] = ta.MINUS_DM(dataframe)
+        dataframe['di_minus'] = ta.MINUS_DI(dataframe)
+        dataframe['dm_delta'] = dataframe['dm_plus'] - dataframe['dm_minus']
+        dataframe['di_delta'] = dataframe['di_plus'] - dataframe['di_minus']
+
+        # MACD
+        macd = ta.MACD(dataframe)
+        dataframe['macd'] = macd['macd']
+        dataframe['macdsignal'] = macd['macdsignal']
+        dataframe['macdhist'] = macd['macdhist']
+
+        # Stoch fast
+        stoch_fast = ta.STOCHF(dataframe)
+        dataframe['fastd'] = stoch_fast['fastd']
+        dataframe['fastk'] = stoch_fast['fastk']
+        dataframe['fast_diff'] = dataframe['fastd'] - dataframe['fastk']
+
+        # SAR Parabol
+        dataframe['sar'] = ta.SAR(dataframe)
+
+        dataframe['mom'] = ta.MOM(dataframe, timeperiod=14)
+
+        # priming indicators
+        dataframe['color'] = np.where((dataframe['close'] > dataframe['open']), 1.0, -1.0)
+        dataframe['rsi_7'] = ta.RSI(dataframe, timeperiod=7)
+        dataframe['roc_6'] = ta.ROC(dataframe, timeperiod=6)
+        dataframe['primed'] = np.where(dataframe['color'].rolling(3).sum() == 3.0, 1.0, -1.0)
+        dataframe['in_the_mood'] = np.where(dataframe['rsi_7'] > dataframe['rsi_7'].rolling(12).mean(), 1.0, -1.0)
+        dataframe['moist'] = np.where(qtpylib.crossed_above(dataframe['macd'], dataframe['macdsignal']), 1.0, -1.0)
+        dataframe['throbbing'] = np.where(dataframe['roc_6'] > dataframe['roc_6'].rolling(12).mean(), 1.0, -1.0)
+
         # ## sqzmi to detect quiet periods
         # dataframe['sqzmi'] = np.where(fta.SQZMI(dataframe), 1.0, -1.0)
         # dataframe['sqz_on'] = np.where(
@@ -1033,6 +1008,31 @@ class PCA2(IStrategy):
             if not 'had_trend' in self.custom_trade_info[pair]:
                 self.custom_trade_info[pair]['had_trend'] = False
 
+        # Indicators used for ROI and Custom Stoploss
+
+        # RMI: https://www.tradingview.com/script/kwIt9OgQ-Relative-Momentum-Index/
+        dataframe['rmi'] = cta.RMI(dataframe, length=24, mom=5)
+
+        # Trends
+        dataframe['candle_up'] = np.where(dataframe['close'] >= dataframe['close'].shift(), 1.0, -1.0)
+        dataframe['candle_up_trend'] = np.where(dataframe['candle_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
+        dataframe['candle_up_seq'] = dataframe['candle_up'].rolling(5).sum()
+
+        dataframe['candle_dn'] = np.where(dataframe['close'] < dataframe['close'].shift(), 1.0, -1.0)
+        dataframe['candle_dn_trend'] = np.where(dataframe['candle_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
+        dataframe['candle_dn_seq'] = dataframe['candle_up'].rolling(5).sum()
+
+        dataframe['rmi_up'] = np.where(dataframe['rmi'] >= dataframe['rmi'].shift(), 1.0, -1.0)
+        dataframe['rmi_up_trend'] = np.where(dataframe['rmi_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
+
+        dataframe['rmi_dn'] = np.where(dataframe['rmi'] <= dataframe['rmi'].shift(), 1.0, -1.0)
+        dataframe['rmi_dn_count'] = dataframe['rmi_dn'].rolling(8).sum()
+
+        ssldown, sslup = cta.SSLChannels_ATR(dataframe, length=21)
+        dataframe['sroc'] = cta.SROC(dataframe, roclen=21, emalen=13, smooth=21)
+        dataframe['ssl_dir'] = 0
+        dataframe['ssl_dir'] = np.where(sslup > ssldown, 1.0, -1.0)
+
         return dataframe
 
     def norm_column(self, col):
@@ -1384,7 +1384,9 @@ class PCA2(IStrategy):
         var_big = np.where(ratios >= 0.5)[0]
         if len(var_big) > 0:
             print("    !!! high variance in columns: ", var_big)
-            print("    !!! variances: ", ratios)
+            # print("    !!! variances: ", ratios)
+            # if not self.dbg_analyse_pca: # don't show if it's going to be analysed anyway
+            #     self.analyse_pca(pca, df)
 
         var_0  = np.where(ratios == 0)[0]
         if len(var_0) > 0:
@@ -1867,8 +1869,8 @@ class PCA2(IStrategy):
         self.set_state(curr_pair, self.State.RUNNING)
 
         # if not self.dp.runmode.value in ('hyperopt'):
-        #     if PCA2.first_run:
-        #         PCA2.first_run = False # note use of clas variable, not instance variable
+        #     if PCA3.first_run:
+        #         PCA3.first_run = False # note use of clas variable, not instance variable
         #         # self.show_debug_info(curr_pair)
         #         self.show_all_debug_info()
 
@@ -1918,8 +1920,8 @@ class PCA2(IStrategy):
         self.set_state(curr_pair, self.State.RUNNING)
 
         # if not self.dp.runmode.value in ('hyperopt'):
-        #     if PCA2.first_run:
-        #         PCA2.first_run = False # note use of clas variable, not instance variable
+        #     if PCA3.first_run:
+        #         PCA3.first_run = False # note use of clas variable, not instance variable
         #         # self.show_debug_info(curr_pair)
         #         self.show_all_debug_info()
 
@@ -1950,64 +1952,111 @@ class PCA2(IStrategy):
 
         return dataframe
 
-    ###################################
+        ###################################
 
-    ## Custom Trailing stoploss ( credit to Perkmeister for this custom stoploss to help the strategy ride a green candle )
-    def custom_stoploss(self, pair: str, trade: 'Trade', current_time: datetime,
-                        current_rate: float, current_profit: float, **kwargs) -> float:
+        """
+        Custom Stoploss
+        """
 
-        # hard stoploss profit
-        HSL = self.pHSL.value
-        PF_1 = self.pPF_1.value
-        SL_1 = self.pSL_1.value
-        PF_2 = self.pPF_2.value
-        SL_2 = self.pSL_2.value
+        def custom_stoploss(self, pair: str, trade: 'Trade', current_time: datetime, current_rate: float,
+                            current_profit: float, **kwargs) -> float:
 
-        # For profits between PF_1 and PF_2 the stoploss (sl_profit) used is linearly interpolated
-        # between the values of SL_1 and SL_2. For all profits above PL_2 the sl_profit value
-        # rises linearly with current profit, for profits below PF_1 the hard stoploss profit is used.
+            # self.set_state(pair, self.State.STOPLOSS)
 
-        if (current_profit > PF_2):
-            sl_profit = SL_2 + (current_profit - PF_2)
-        elif (current_profit > PF_1):
-            sl_profit = SL_1 + ((current_profit - PF_1) * (SL_2 - SL_1) / (PF_2 - PF_1))
-        else:
-            sl_profit = HSL
+            dataframe, last_updated = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
+            last_candle = dataframe.iloc[-1].squeeze()
+            trade_dur = int((current_time.timestamp() - trade.open_date_utc.timestamp()) // 60)
+            in_trend = self.custom_trade_info[trade.pair]['had_trend']
 
-        # Only for hyperopt invalid return
-        if (sl_profit >= current_profit):
-            return -0.99
+            # limit stoploss
+            if current_profit < self.cstop_max_stoploss.value:
+                return 0.01
 
-        return min(-0.01, max(stoploss_from_open(sl_profit, current_profit), -0.99))
+            # Determine how we sell when we are in a loss
+            if current_profit < self.cstop_loss_threshold.value:
+                if self.cstop_bail_how.value == 'roc' or self.cstop_bail_how.value == 'any':
+                    # Dynamic bailout based on rate of change
+                    if last_candle['sroc'] <= self.cstop_bail_roc.value:
+                        return 0.01
+                if self.cstop_bail_how.value == 'time' or self.cstop_bail_how.value == 'any':
+                    # Dynamic bailout based on time, unless time_trend is true and there is a potential reversal
+                    if trade_dur > self.cstop_bail_time.value:
+                        if self.cstop_bail_time_trend.value == True and in_trend == True:
+                            return 1
+                        else:
+                            return 0.01
+            return 1
 
+        ###################################
 
-    ###################################
+        """
+        Custom Sell
+        """
 
-    """
-    Custom Sell
-    """
+        def custom_sell(self, pair: str, trade: 'Trade', current_time: 'datetime', current_rate: float,
+                        current_profit: float, **kwargs):
 
-    def custom_sell(self, pair: str, trade: 'Trade', current_time: 'datetime', current_rate: float,
-                    current_profit: float, **kwargs):
+            dataframe, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
+            last_candle = dataframe.iloc[-1].squeeze()
 
-        dataframe, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
-        last_candle = dataframe.iloc[-1].squeeze()
+            trade_dur = int((current_time.timestamp() - trade.open_date_utc.timestamp()) // 60)
+            max_profit = max(0, trade.calc_profit_ratio(trade.max_rate))
+            pullback_value = max(0, (max_profit - self.csell_pullback_amount.value))
+            in_trend = False
 
-        # Above 20% profit, sell when rsi < 80
-        if current_profit > 0.2:
-            if last_candle['rsi'] < 80:
-                return 'rsi_below_80'
+            # Determine our current ROI point based on the defined type
+            if self.csell_roi_type.value == 'static':
+                min_roi = self.csell_roi_start.value
+            elif self.csell_roi_type.value == 'decay':
+                min_roi = cta.linear_decay(self.csell_roi_start.value, self.csell_roi_end.value, 0,
+                                           self.csell_roi_time.value, trade_dur)
+            elif self.csell_roi_type.value == 'step':
+                if trade_dur < self.csell_roi_time.value:
+                    min_roi = self.csell_roi_start.value
+                else:
+                    min_roi = self.csell_roi_end.value
 
-        # Between 2% and 10%, sell if EMA-long above EMA-short
-        if 0.02 < current_profit < 0.1:
-            if last_candle['emalong'] > last_candle['emashort']:
-                return 'ema_long_below_80'
+            # Determine if there is a trend
+            if self.csell_trend_type.value == 'rmi' or self.csell_trend_type.value == 'any':
+                if last_candle['rmi_up_trend'] == 1:
+                    in_trend = True
+            if self.csell_trend_type.value == 'ssl' or self.csell_trend_type.value == 'any':
+                if last_candle['ssl_dir'] == 1:
+                    in_trend = True
+            if self.csell_trend_type.value == 'candle' or self.csell_trend_type.value == 'any':
+                if last_candle['candle_up_trend'] == 1:
+                    in_trend = True
 
-        # Sell any positions at a loss if they are held for more than one day.
-        if current_profit < 0.0 and (current_time - trade.open_date_utc).days >= 1:
-            return 'unclog'
+            # Don't sell if we are in a trend unless the pullback threshold is met
+            if in_trend == True and current_profit > 0:
+                # Record that we were in a trend for this trade/pair for a more useful sell message later
+                self.custom_trade_info[trade.pair]['had_trend'] = True
+                # If pullback is enabled and profit has pulled back allow a sell, maybe
+                if self.csell_pullback.value == True and (current_profit <= pullback_value):
+                    if self.csell_pullback_respect_roi.value == True and current_profit > min_roi:
+                        return 'intrend_pullback_roi'
+                    elif self.csell_pullback_respect_roi.value == False:
+                        if current_profit > min_roi:
+                            return 'intrend_pullback_roi'
+                        else:
+                            return 'intrend_pullback_noroi'
+                # We are in a trend and pullback is disabled or has not happened or various criteria were not met, hold
+                return None
+            # If we are not in a trend, just use the roi value
+            elif in_trend == False:
+                if self.custom_trade_info[trade.pair]['had_trend']:
+                    if current_profit > min_roi:
+                        self.custom_trade_info[trade.pair]['had_trend'] = False
+                        return 'trend_roi'
+                    elif self.csell_endtrend_respect_roi.value == False:
+                        self.custom_trade_info[trade.pair]['had_trend'] = False
+                        return 'trend_noroi'
+                elif current_profit > min_roi:
+                    return 'notrend_roi'
+            else:
+                return None
 
-#######################
+    #######################
 
 # Utility functions
 

@@ -168,7 +168,7 @@ class PCA(IStrategy):
     first_time = True  # mostly for debug
     first_run = True  # used to identify first time through buy/sell populate funcs
 
-    dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
+    dbg_scan_classifiers = True  # if True, scan all viable classifiers and choose the best. Very slow!
     dbg_test_classifier = True  # test clasifiers after fitting
     dbg_analyse_pca = False  # analyze PCA weights
     dbg_verbose = False  # controls debug output
@@ -1455,7 +1455,7 @@ class PCA(IStrategy):
     classifier_list = [
         'LogisticRegression', 'GaussianNB', 'SGD',
         'GradientBoosting', 'AdaBoost', 'linearSVC', 'sigmoidSVC',
-        'LDA'
+        'LDA', 'MLP'
     ]
 
     # factory to create classifier based on name
@@ -1479,7 +1479,7 @@ class PCA(IStrategy):
                 'alpha': [0.0001, 0.05],
                 'learning_rate': ['constant', 'adaptive'],
             }
-            clf = MLPClassifier(hidden_layer_sizes=(16, 4, 2),
+            clf = MLPClassifier(hidden_layer_sizes=(128, 32, 8, 1),
                                 max_iter=50,
                                 activation='relu',
                                 learning_rate='adaptive',
