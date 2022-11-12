@@ -148,6 +148,7 @@ class LSTM_Price(IStrategy):
     pair_model_info = {}  # holds model-related info for each pair
     curr_dataframe:DataFrame = None
     normalise_data = True
+    seq_len = 32
 
     # debug flags
     first_time = True  # mostly for debug
@@ -525,13 +526,16 @@ class LSTM_Price(IStrategy):
 
     def train_model(self, dataframe: DataFrame, pair) -> DataFrame:
 
+
+        nfeatures = dataframe.shape[1]
+
         # if first time through for this pair, add entry to pair_model_info
         if not (pair in self.pair_model_info):
             self.pair_model_info[pair] = { 'model': None }
 
         if self.pair_model_info[pair]['model'] == None:
-            print("    Creating LSTM model for: ", pair)
-            self.pair_model_info[pair]['model'] = self.get_lstm(dataframe.shape[1])
+            print("    Creating LSTM model for: ", pair, " seq_len:", nfeatures)
+            self.pair_model_info[pair]['model'] = self.get_lstm(nfeatures, self.seq_len)
 
         model = self.pair_model_info[pair]['model']
 
@@ -542,7 +546,7 @@ class LSTM_Price(IStrategy):
         # get a mormalised version, then extract data
         # df_norm = self.norm_dataframe(dataframe)
         df = dataframe.copy()
-        df = df.shift(-self.startup_candle_count) # don't use data from startup period
+        # df = df.shift(-self.startup_candle_count) # don't use data from startup period
         df = self.convert_date(df)
         # tgt_col = df.columns.get_loc("gain")
         tgt_col = df.columns.get_loc("close")
@@ -574,25 +578,29 @@ class LSTM_Price(IStrategy):
         test_df_norm = df_norm[test_start:test_start+test_size, :]
         test_results_norm = df_norm[test_result_start:test_result_start+test_size, tgt_col]
 
+        train_df_chunk = self.chunkify(train_df_norm, self.seq_len)
+        test_df_chunk = self.chunkify(test_df_norm, self.seq_len)
+
         # re-shape into format expected by LSTM model
-        train_df_norm = np.reshape(np.array(train_df_norm), (train_df_norm.shape[0], 1, train_df_norm.shape[1]))
-        test_df_norm = np.reshape(np.array(test_df_norm), (test_df_norm.shape[0], 1, test_df_norm.shape[1]))
+        # train_df_norm = np.reshape(np.array(train_df_norm), (train_df_norm.shape[0], self.seq_len, train_df_norm.shape[1]))
+        # test_df_norm = np.reshape(np.array(test_df_norm), (test_df_norm.shape[0], self.seq_len, test_df_norm.shape[1]))
+        train_df_chunk = np.reshape(train_df_chunk, (train_size, self.seq_len, nfeatures))
+        test_df_chunk = np.reshape(test_df_chunk, (test_size, self.seq_len, nfeatures))
         train_results_norm = np.array(train_results_norm).reshape(-1, 1)
         test_results_norm = np.array(test_results_norm).reshape(-1, 1)
 
-
         print("")
-        print("    train_data:", train_df_norm.shape, " train_results:", train_results_norm.shape)
-        print("    test_data: ", test_df_norm.shape, " test_results: ", test_results_norm.shape)
+        print("    train data:", np.shape(train_df_chunk), " train results:", train_results_norm.shape)
+        print("    test data: ", np.shape(test_df_chunk), " test results: ", test_results_norm.shape)
         print("")
-
-        # TODO: use sequence length > 1, divide up input into batches of len seq_len
 
         # train the model
         print("    fitting model...")
         print("")
-        fhis = model.fit(train_df_norm, train_results_norm, batch_size=32, epochs=nepochs,
-                         validation_data=(test_df_norm, test_results_norm), verbose=1)
+        # fhis = model.fit(train_df_norm, train_results_norm, batch_size=32, epochs=nepochs,
+        #                  validation_data=(test_df_norm, test_results_norm), verbose=1)
+        fhis = model.fit(train_df_chunk, train_results_norm, batch_size=32, epochs=nepochs,
+                         validation_data=(test_df_chunk, test_results_norm), verbose=1)
         # print("")
         # print(fhis.history)
         print("")
@@ -604,14 +612,22 @@ class LSTM_Price(IStrategy):
 
         return dataframe
 
-    def chunkify(self, data: np.array, seq_len: int):
-        chunked_array: np.array = []
-        for i in range(seq_len, len(data)):
-            chunked_array.append(data[i - seq_len:i])
+    def chunkify(self, data, seq_len):
+
+        # input format = [nrows, nfeatures] output = [nrows, seq_len, nfeatures]
+        chunked_array = []
+        # print("Data:{}, len:{}".format(np.shape(data), seq_len))
+        for row in range(np.shape(data)[0]):
+            chunked_array.append([])
+            for seq in range(seq_len):
+                chunked_array[row].append(data[row-seq])
         return chunked_array
 
-    def get_lstm(self, nfeatures:int, seq_len: int=1):
+    def get_lstm(self, nfeatures:int, seq_len: int):
         model = keras.Sequential()
+
+        # print("Creating model. nfeatures:{} seq_len:{}".format(nfeatures, seq_len))
+
 
         # # complex model:
         # model.add(layers.LSTM(32, return_sequences=True, input_shape=(seq_len, nfeatures)))
@@ -627,7 +643,7 @@ class LSTM_Price(IStrategy):
         # model.add(layers.LSTM(32, return_sequences=True, input_shape=(seq_len, nfeatures)))
         # model.add(layers.Dense(1, activation='linear'))
 
-        # simplest possible model:
+        # intermediate model:
         model.add(layers.GRU(32, return_sequences=True, input_shape=(seq_len, nfeatures)))
         model.add(layers.Dropout(rate=0.4))
         model.add(layers.Bidirectional(layers.LSTM(32)))
@@ -654,7 +670,9 @@ class LSTM_Price(IStrategy):
         scaler = RobustScaler().fit(df)
         df_norm = scaler.transform(df)
 
-        df_norm3 = np.reshape(np.array(df_norm), (df_norm.shape[0], 1, df_norm.shape[1]))
+        df_chunk = self.chunkify(df_norm, self.seq_len)
+
+        df_norm3 = np.reshape(np.array(df_chunk), (dataframe.shape[0], self.seq_len, dataframe.shape[1]))
 
         # # df_norm = np.array(df_norm)
         # df_norm = df_norm.to_numpy()
