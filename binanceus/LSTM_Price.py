@@ -6,7 +6,7 @@ from enum import Enum
 import pywt
 import talib.abstract as ta
 from scipy.ndimage import gaussian_filter1d
-from sklearn.preprocessing import RobustScaler
+from sklearn.preprocessing import RobustScaler, MinMaxScaler, StandardScaler
 
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 import arrow
@@ -29,6 +29,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 # Strategy specific imports, files must reside in same folder as strategy
 import sys
+import os
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent))
@@ -68,12 +69,12 @@ LSTM_Price - uses a Long-Short Term Memory neural network to try and predict the
 ####################################################################################
 """
 
+
 class LSTM_Price(IStrategy):
-
-
     plot_config = {
         'main_plot': {
             'close': {'color': 'green'},
+            'smooth': {'color': 'teal'},
             'predict': {'color': 'lightpink'},
         },
         'subplots': {
@@ -82,7 +83,6 @@ class LSTM_Price(IStrategy):
             },
         }
     }
-
 
     # Do *not* hyperopt for the roi and stoploss spaces (unless you turn off custom stoploss)
 
@@ -125,7 +125,7 @@ class LSTM_Price(IStrategy):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     # lookahead_hours = 1.0
-    lookahead_hours = 1.0
+    lookahead_hours = 0.4
     n_profit_stddevs = 0.0
     n_loss_stddevs = 0.0
     min_f1_score = 0.70
@@ -143,12 +143,16 @@ class LSTM_Price(IStrategy):
     loss_threshold = default_loss_threshold
     dynamic_gain_thresholds = True  # dynamically adjust gain thresholds based on actual mean (beware, training data could be bad)
 
-
     num_pairs = 0
     pair_model_info = {}  # holds model-related info for each pair
-    curr_dataframe:DataFrame = None
+    curr_dataframe: DataFrame = None
     normalise_data = True
-    seq_len = 32
+
+    # the following affect training of the model. Bigger numbers give better model, but take longer and use more memory
+    seq_len = 8 # 'depth' of training sequence
+    num_epochs = 64 # number of iterations for training
+    batch_size = 512 # batch size for training
+    predict_batch_size = 256
 
     # debug flags
     first_time = True  # mostly for debug
@@ -196,9 +200,7 @@ class LSTM_Price(IStrategy):
     cstop_bail_time_trend = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
     cstop_max_stoploss = DecimalParameter(-0.30, -0.01, default=-0.10, space='sell', load=True, optimize=True)
 
-
     ################################
-
 
     """
     inf Pair Definitions
@@ -283,29 +285,34 @@ class LSTM_Price(IStrategy):
 
         win_size = max(self.curr_lookahead, 14)
 
+        dataframe['mid'] = (dataframe['open'] + dataframe['close']) / 2.0
+
         # % gain relative to previous candle
         dataframe['gain'] = (dataframe['close'] - dataframe['close'].shift(1)) / dataframe['close'].shift(1)
 
-        dataframe['smooth'] = dataframe['close'].rolling(window=win_size).apply(self.roll_smooth)
+        # smoothed version, for trends
+        # dataframe['smooth'] = dataframe['close'].rolling(window=win_size).apply(self.roll_smooth)
+        # dataframe['smooth'] = dataframe['mid'].rolling(window=win_size).apply(self.roll_smooth)
+        dataframe['smooth'] = dataframe['mid'].rolling(window=win_size).apply(self.roll_strong_smooth)
 
-        dataframe['tema'] = ta.TEMA(dataframe, timeperiod=win_size)
+        # dataframe['tema'] = ta.TEMA(dataframe, timeperiod=win_size)
 
         # RSI
-        dataframe['rsi'] = ta.RSI(dataframe, timeperiod=win_size)
+        # dataframe['rsi'] = ta.RSI(dataframe, timeperiod=win_size)
 
         # MFI
         dataframe['mfi'] = ta.MFI(dataframe)
-
-        # VFI
-        dataframe['vfi'] = fta.VFI(dataframe, period=win_size)
-
-        # ATR
-        dataframe['atr'] = ta.ATR(dataframe, timeperiod=win_size)
-
-        # Hilbert Transform Indicator - SineWave
-        hilbert = ta.HT_SINE(dataframe)
-        dataframe['htsine'] = hilbert['sine']
-        dataframe['htleadsine'] = hilbert['leadsine']
+        # #
+        # # # VFI
+        # # dataframe['vfi'] = fta.VFI(dataframe, period=win_size)
+        # #
+        # # ATR
+        # dataframe['atr'] = ta.ATR(dataframe, timeperiod=win_size)
+        #
+        # # Hilbert Transform Indicator - SineWave
+        # hilbert = ta.HT_SINE(dataframe)
+        # dataframe['htsine'] = hilbert['sine']
+        # dataframe['htleadsine'] = hilbert['leadsine']
 
         # # Stoch fast
         # stoch_fast = ta.STOCHF(dataframe)
@@ -313,7 +320,7 @@ class LSTM_Price(IStrategy):
         # dataframe['fastk'] = stoch_fast['fastk']
         # dataframe['fast_diff'] = dataframe['fastd'] - dataframe['fastk']
 
-        # ADX
+        # # # ADX
         dataframe['adx'] = ta.ADX(dataframe)
 
         # Plus Directional Indicator / Movement
@@ -336,7 +343,6 @@ class LSTM_Price(IStrategy):
 
         return dataframe
 
-
     # populate dataframe with desired technical indicators
     # NOTE: OK to throw (almost) anything in here, just add it to the parameter list
     # The whole idea is to create a dimension-reduced mapping anyway
@@ -349,11 +355,11 @@ class LSTM_Price(IStrategy):
         dataframe['sma'] = ta.SMA(dataframe, timeperiod=win_size)
         dataframe['ema'] = ta.EMA(dataframe, timeperiod=win_size)
         # dataframe['tema'] = ta.TEMA(dataframe, timeperiod=win_size)
-        dataframe['tema_stddev'] = dataframe['tema'].rolling(win_size).std()
+        # dataframe['tema_stddev'] = dataframe['tema'].rolling(win_size).std()
         # dataframe['rsi'] = ta.RSI(dataframe, timeperiod=win_size)
 
         # these are here for reference. Uncomment anything you want to use
- 
+
         # # MACD
         # macd = ta.MACD(dataframe)
         # dataframe['macd'] = macd['macd']
@@ -467,7 +473,6 @@ class LSTM_Price(IStrategy):
 
         return dataframe
 
-
     def add_stoploss_indicators(self, dataframe: DataFrame, pair) -> DataFrame:
 
         if not pair in self.custom_trade_info:
@@ -526,12 +531,11 @@ class LSTM_Price(IStrategy):
 
     def train_model(self, dataframe: DataFrame, pair) -> DataFrame:
 
-
         nfeatures = dataframe.shape[1]
 
         # if first time through for this pair, add entry to pair_model_info
         if not (pair in self.pair_model_info):
-            self.pair_model_info[pair] = { 'model': None }
+            self.pair_model_info[pair] = {'model': None}
 
         if self.pair_model_info[pair]['model'] == None:
             print("    Creating LSTM model for: ", pair, " seq_len:", nfeatures)
@@ -541,22 +545,20 @@ class LSTM_Price(IStrategy):
 
         # set up training and test data
 
-        nepochs = 4
-
         # get a mormalised version, then extract data
-        # df_norm = self.norm_dataframe(dataframe)
         df = dataframe.copy()
-        # df = df.shift(-self.startup_candle_count) # don't use data from startup period
+        df = df.shift(-self.startup_candle_count)  # don't use data from startup period
         df = self.convert_date(df)
-        # tgt_col = df.columns.get_loc("gain")
-        tgt_col = df.columns.get_loc("close")
-        scaler = RobustScaler()
-        df_norm = scaler.fit_transform(df)
+        tgt_col = df.columns.get_loc("smooth")
+        # tgt_col = df.columns.get_loc("close")
+        scaler = self.get_scaler()
 
+        df_norm = scaler.fit_transform(df)
 
         # constrain size to what will be available in run modes
         df_size = df_norm.shape[0]
-        data_size = int(min(975, df_size))
+        # data_size = int(min(975, df_size))
+        data_size = df_size # temp dbg
         train_size = int(0.8 * data_size) - self.curr_lookahead
         test_size = data_size - train_size - self.curr_lookahead
 
@@ -569,14 +571,14 @@ class LSTM_Price(IStrategy):
         # print("dtrain_start:{} train_result_start:{} test_start:{} test_result_start:{} "
         #       .format(train_start, train_result_start, test_start, test_result_start))
 
-        train_df_norm = df_norm[train_start:train_start+train_size, :]
-        train_results_norm = df_norm[train_result_start:train_result_start+train_size, tgt_col]
+        train_df_norm = df_norm[train_start:train_start + train_size, :]
+        train_results_norm = df_norm[train_result_start:train_result_start + train_size, tgt_col]
 
         # print(train_df_norm[:, tgt_col])
         # print(train_results_norm)
 
-        test_df_norm = df_norm[test_start:test_start+test_size, :]
-        test_results_norm = df_norm[test_result_start:test_result_start+test_size, tgt_col]
+        test_df_norm = df_norm[test_start:test_start + test_size, :]
+        test_results_norm = df_norm[test_result_start:test_result_start + test_size, tgt_col]
 
         train_df_chunk = self.chunkify(train_df_norm, self.seq_len)
         test_df_chunk = self.chunkify(test_df_norm, self.seq_len)
@@ -597,10 +599,68 @@ class LSTM_Price(IStrategy):
         # train the model
         print("    fitting model...")
         print("")
-        # fhis = model.fit(train_df_norm, train_results_norm, batch_size=32, epochs=nepochs,
-        #                  validation_data=(test_df_norm, test_results_norm), verbose=1)
-        fhis = model.fit(train_df_chunk, train_results_norm, batch_size=32, epochs=nepochs,
-                         validation_data=(test_df_chunk, test_results_norm), verbose=1)
+
+
+        # curr_dir = os.getcwd()
+        # curr_class = self.__class__.__name__
+        # model_name = "/tmp/checkpoint" + curr_class + "_" + self.curr_pair.replace("/", "_")
+        # file = curr_dir + "/" + curr_class + "_" + self.curr_pair
+        #
+        # # load the previous run
+        # if os.path.exists(model_name):
+        #     print("   loading previous run")
+        #     model = keras.models.load_model(model_name)
+
+        # create checkpoint location based on class and pair
+        # Note that keras expects it to be called 'checkpoint'
+        checkpoint_dir = '/tmp'
+        curr_class = self.__class__.__name__
+        model_name = checkpoint_dir + "/" + curr_class + "/" + self.curr_pair.replace("/", "_") + "/checkpoint"
+        # if checkpoint already exists, load it as a starting point
+        if os.path.exists(model_name):
+            print("    Loading existing model ({})...".format(model_name))
+            model.load_weights(model_name)
+        else:
+            print("    model not found ({})...".format(model_name))
+
+
+
+        # callback to control early exit on plateau of results
+        early_callback = keras.callbacks.EarlyStopping(
+            monitor="loss",
+            mode="min",
+            patience=8,
+            verbose=1)
+
+        plateau_callback = keras.callbacks.ReduceLROnPlateau(
+            monitor='loss',
+            factor=0.1,
+            epsilon=0.0001,
+            patience=4,
+            verbose=0)
+
+        # callback to control saving of 'best' model
+        model_checkpoint_callback = keras.callbacks.ModelCheckpoint(
+            filepath=model_name,
+            save_weights_only=True,
+            monitor='loss',
+            mode='min',
+            save_best_only=True,
+            verbose=0)
+
+        # Model weights are saved at the end of every epoch, if it's the best seen so far.
+        fhis = model.fit(train_df_chunk, train_results_norm,
+                         batch_size=self.batch_size,
+                         epochs=self.num_epochs,
+                         callbacks=[model_checkpoint_callback, plateau_callback, early_callback],
+                         validation_data=(test_df_chunk, test_results_norm),
+                         verbose=1)
+
+        # The model weights (that are considered the best) are loaded into th model.
+        model.load_weights(model_name)
+
+        # model.save(model_name)
+
         # print("")
         # print(fhis.history)
         print("")
@@ -612,44 +672,81 @@ class LSTM_Price(IStrategy):
 
         return dataframe
 
-    def chunkify(self, data, seq_len):
+    # get a scaler for scaling/normalising the data (in a func because I change it routinely)
+    def get_scaler(self):
+        # uncomment the one yu want
+        return StandardScaler()
+        # return RobustScaler()
+        # return MinMaxScaler()
 
+    def chunkify(self, data, seq_len):
         # input format = [nrows, nfeatures] output = [nrows, seq_len, nfeatures]
-        chunked_array = []
-        # print("Data:{}, len:{}".format(np.shape(data), seq_len))
-        for row in range(np.shape(data)[0]):
-            chunked_array.append([])
+        nrows = np.shape(data)[0]
+        nfeatures = np.shape(data)[1]
+        chunked_array = np.zeros((nrows, seq_len, nfeatures), dtype=float)
+        zero_row = np.zeros((nfeatures), dtype=float)
+        # chunked_array = []
+
+        reverse = True
+
+        # fill the first part (0..seqlen rows), which are only sparsely populated
+        for row in range(seq_len):
             for seq in range(seq_len):
-                chunked_array[row].append(data[row-seq])
+                if seq >= (seq_len - row - 1):
+                    chunked_array[row][seq] = data[(row + seq) - seq_len + 1]
+                else:
+                    chunked_array[row][seq] = zero_row
+            if reverse:
+                chunked_array[row] = np.flipud(chunked_array[row])
+
+        # fill the rest
+        # print("Data:{}, len:{}".format(np.shape(data), seq_len))
+        for row in range(seq_len, nrows):
+            chunked_array[row] = data[(row - seq_len) + 1:row + 1]
+            if reverse:
+                chunked_array[row] = np.flipud(chunked_array[row])
+
+        # print("data: ", data)
+        # print("chunked: ", chunked_array)
+        print("data:{} chunked:{}".format(np.shape(data), np.shape(chunked_array)))
         return chunked_array
 
-    def get_lstm(self, nfeatures:int, seq_len: int):
+    def get_lstm(self, nfeatures: int, seq_len: int):
         model = keras.Sequential()
 
         # print("Creating model. nfeatures:{} seq_len:{}".format(nfeatures, seq_len))
 
-
         # # complex model:
-        # model.add(layers.LSTM(32, return_sequences=True, input_shape=(seq_len, nfeatures)))
-        # model.add(layers.Dropout(rate=0.2))
+        # model.add(layers.GRU(64, return_sequences=True, input_shape=(seq_len, nfeatures)))
+        # model.add(layers.LSTM(64, return_sequences=True))
+        # model.add(layers.Dense(32))
+        # model.add(layers.Dropout(rate=0.5))
         # model.add(layers.LSTM(32, return_sequences=True))
-        # model.add(layers.Dropout(rate=0.2))
+        # model.add(layers.Dropout(rate=0.5))
+        # model.add(layers.LSTM(32, return_sequences=True))
+        # model.add(layers.Dropout(rate=0.5))
+        # model.add(layers.LSTM(32, return_sequences=True))
+        # model.add(layers.Dropout(rate=0.5))
         # model.add(layers.LSTM(32, return_sequences=False))
-        # model.add(layers.Dropout(rate=0.2))
+        # model.add(layers.Dropout(rate=0.4))
         # model.add(layers.Dense(8))
-        # model.add(layers.Dense(1))
-
-        # # simplest possible model:
-        # model.add(layers.LSTM(32, return_sequences=True, input_shape=(seq_len, nfeatures)))
         # model.add(layers.Dense(1, activation='linear'))
 
-        # intermediate model:
-        model.add(layers.GRU(32, return_sequences=True, input_shape=(seq_len, nfeatures)))
-        model.add(layers.Dropout(rate=0.4))
-        model.add(layers.Bidirectional(layers.LSTM(32)))
+        # simplest possible model:
+        model.add(layers.LSTM(64, return_sequences=True, input_shape=(seq_len, nfeatures)))
+        # model.add(layers.BatchNormalization())
         model.add(layers.Dense(1, activation='linear'))
 
-        model.summary() # helps keep track of which model is running, while making changes
+        # # intermediate model:
+        # model.add(layers.GRU(64, return_sequences=True, input_shape=(seq_len, nfeatures)))
+        # model.add(layers.Dropout(rate=0.4))
+        # # model.add(layers.Bidirectional(layers.LSTM(64, return_sequences=True)))
+        # # model.add(layers.Dropout(rate=0.4))
+        # model.add(layers.Bidirectional(layers.LSTM(64)))
+        # model.add(layers.Dropout(rate=0.4))
+        # model.add(layers.Dense(1, activation='linear'))
+
+        model.summary()  # helps keep track of which model is running, while making changes
         model.compile(optimizer='adam',
                       loss='mean_squared_error',
                       metrics=[keras.metrics.MeanAbsoluteError()])
@@ -657,42 +754,65 @@ class LSTM_Price(IStrategy):
 
     ################################
 
-    def get_predictions(self, dataframe):
+    # get predictions. Note that the input must already be in 'chunked' (tensor) format
+    def get_predictions(self, df_chunk: np.array):
 
         # get the model
         model = self.pair_model_info[self.curr_pair]['model']
 
-        # scale/normalise
-        # df_norm = self.norm_dataframe(dataframe)
-        df = self.convert_date(dataframe)
-        tgt_col = df.columns.get_loc("close")
-        # tgt_col = df.columns.get_loc("gain")
-        scaler = RobustScaler().fit(df)
-        df_norm = scaler.transform(df)
-
-        df_chunk = self.chunkify(df_norm, self.seq_len)
-
-        df_norm3 = np.reshape(np.array(df_chunk), (dataframe.shape[0], self.seq_len, dataframe.shape[1]))
-
-        # # df_norm = np.array(df_norm)
-        # df_norm = df_norm.to_numpy()
-
         # run the prediction
-        preds_notrend = model.predict(df_norm3, verbose=0)
+        preds_notrend = model.predict(df_chunk, verbose=0)
         preds_notrend = np.array(preds_notrend[:, 0]).reshape(-1, 1)
 
-        # re-trend
-        # predictions = self.denorm_column(preds_notrend, dataframe['close'])
+        return preds_notrend[:, 0]
 
+    # run prediction in batches over the entire history
+    def batch_predictions(self, dataframe: DataFrame):
+
+        # scale/normalise
+        df = self.convert_date(dataframe)
+        # tgt_col = df.columns.get_loc("close")
+        tgt_col = df.columns.get_loc("smooth")
+        scaler = self.get_scaler()
+
+        scaler = scaler.fit(df)
+        df_norm = scaler.transform(df)
+
+        # df_norm3 = np.reshape(df_chunk, (np.shape(df_chunk)[0], self.seq_len, np.shape(df_chunk)[1]))
+
+        # convert dataframe to tensor
+        df_chunked = self.chunkify(df_norm, self.seq_len)
+
+        # prediction does not work well when run over a large dataset, so divide into chunks and predict for each one
+        # then concatenate the results and return
+        preds_notrend: np.array = []
+        batch_size = self.predict_batch_size
+        nruns = int(dataframe.shape[0] / batch_size)
+        for i in tqdm(range(nruns), desc="    Predicting…", ascii=True, ncols=75):
+            # for i in range(nruns):
+            start = i * batch_size
+            end = start + batch_size
+            # print("start:{} end:{}".format(start, end))
+            chunk = df_chunked[start:end]
+            # print(chunk)
+            preds = self.get_predictions(chunk)
+            # print(preds)
+            preds_notrend = np.concatenate((preds_notrend, preds))
+
+        # copy whatever is leftover
+        start = nruns * batch_size
+        end = dataframe.shape[0]
+        # print("start:{} end:{}".format(start, end))
+        if end > start:
+            chunk = df_chunked[start:end]
+            preds = self.get_predictions(chunk)
+            preds_notrend = np.concatenate((preds_notrend, preds))
+
+        # re-scale the predictions
         # slight cheat - replace 'gain' column with predictions, then inverse scale
         cl_col = df_norm[:, tgt_col]
 
-        # n1 = int(len(cl_col)/2)
-        # n2 = n1-self.curr_lookahead
-        # print('close:  ', cl_col[n1:n1+16])
-        # print('predict:', preds_notrend[n2:n2+16, 0])
-
-        df_norm[:, tgt_col] = preds_notrend[:, 0]
+        df_norm[:, tgt_col] = preds_notrend
         inv_y = scaler.inverse_transform(df_norm)
         # print("preds_notrend:", preds_notrend.shape, " df_norm:", df_norm.shape, " inv_y:", inv_y.shape)
         predictions = inv_y[:, tgt_col]
@@ -700,52 +820,9 @@ class LSTM_Price(IStrategy):
         if tgt_col == 'gain':
             # using gain rather than price, so add gain to current price
             predictions = (1.0 + predictions) * dataframe['close']
-        return predictions
-
-    # run prediction in batches over the entire history
-    def batch_predictions(self, dataframe:DataFrame):
-        # prediction does not work well when run over a large dataset, so divide into chunks and predict for each one
-        # then concatenate the results and return
-        predictions: np.array = []
-        batch_size = 64
-        nruns = int(dataframe.shape[0] / batch_size)
-        for i in tqdm(range(nruns), desc="    Predicting…", ascii=True, ncols=75):
-            # for i in range(nruns):
-            start = i*batch_size
-            end = start + batch_size
-            # print("start:{} end:{}".format(start, end))
-            df = dataframe.iloc[start : end].copy()
-            # print(df)
-            preds = self.get_predictions(df)
-            # print(preds)
-            predictions = np.concatenate((predictions, preds))
-
-
-        size_left = dataframe.shape[0] - (nruns * batch_size)
-        if size_left > 0:
-            df = dataframe.iloc[-size_left:]
-            preds = self.get_predictions(df)
-            predictions = np.concatenate((predictions, preds))
 
         print("runs:{} predictions:{}".format(nruns, len(predictions)))
         return predictions
-
-    def roll_get_prediction(self, col) -> np.float:
-        # must return scalar, so just calculate prediction and take last value
-
-        # print(col.index)
-        # get reference to slice of dataframe using the index of the supplied column
-        df = self.curr_dataframe.loc[col.index]
-
-        predictions = self.get_predictions(df)
-
-        length = len(predictions)
-        if length > 0:
-            return predictions[length - 1]
-        else:
-            # cannot calculate (e.g. at startup), just return original value
-            return col[len(col)-1]
-
 
     # returns (rolling) smoothed version of input column
     def roll_smooth(self, col) -> np.float:
@@ -771,7 +848,6 @@ class LSTM_Price(IStrategy):
         else:
             return col[len(col) - 1]
 
-
     ################################
 
     clip_outliers = False
@@ -784,34 +860,6 @@ class LSTM_Price(IStrategy):
             df.set_index('date')
             df.reindex()
         return df
-
-    # Normalise a dataframe
-    def norm_dataframe(self, dataframe: DataFrame) -> DataFrame:
-        self.check_inf(dataframe)
-
-        df = self.convert_date(dataframe)
-
-        df = ((df - df.mean()) / df.std())
-        if self.clip_outliers:
-            df = df.clip(lower=-3.0, upper=3.0)
-        return df
-
-    # normalises a column. Data is in units of 1 stddev, i.e. a value of 1.0 represents 1 stdev above mean
-    def norm_column(self, col):
-        a = np.array(col)
-        norm = (a - a.mean()) / a.std()
-        if self.clip_outliers:
-            norm = norm.clip(min=-3.0, max=3.0)
-        return norm
-
-    # denormalise a column, based on the supplied (not normalised) reference column
-    def denorm_column(self, col, refcol):
-        a = np.array(refcol)
-        s = a.std()
-        if self.clip_outliers:
-            s = s.clip(min=-3.0, max=3.0)
-        m = a.mean()
-        return (col * s) + m
 
     def check_inf(self, dataframe: DataFrame):
         col_name = dataframe.columns.to_series()[np.isinf(dataframe).any()]
@@ -1211,4 +1259,3 @@ def range_percent_change(dataframe: DataFrame, method, length: int) -> float:
             'close'].rolling(length).min()
     else:
         raise ValueError(f"Method {method} not defined!")
-
