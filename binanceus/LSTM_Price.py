@@ -47,6 +47,7 @@ from finta import TA as fta
 import keras
 from keras import layers
 from tqdm import tqdm
+import random
 import time
 
 """
@@ -531,17 +532,30 @@ class LSTM_Price(IStrategy):
 
     def train_model(self, dataframe: DataFrame, pair) -> DataFrame:
 
+
+
         nfeatures = dataframe.shape[1]
 
         # if first time through for this pair, add entry to pair_model_info
         if not (pair in self.pair_model_info):
-            self.pair_model_info[pair] = {'model': None}
+            self.pair_model_info[pair] = {'model': None, 'interval':0}
 
         if self.pair_model_info[pair]['model'] == None:
             print("    Creating LSTM model for: ", pair, " seq_len:", nfeatures)
             self.pair_model_info[pair]['model'] = self.get_lstm(nfeatures, self.seq_len)
 
         model = self.pair_model_info[pair]['model']
+
+
+        # only run if interval reaches 0 (no point retraining every camdle)
+        count = self.pair_model_info[pair]['interval']
+        if (count > 0):
+            self.pair_model_info[pair]['interval'] = count - 1
+            return dataframe
+        else:
+            # reset interval to a random number between 1 and the amount of lookahead
+            # self.pair_model_info[curr_pair]['interval'] = random.randint(1, self.curr_lookahead)
+            self.pair_model_info[pair]['interval'] = random.randint(2, max(64, self.curr_lookahead))
 
         # set up training and test data
 
@@ -629,13 +643,13 @@ class LSTM_Price(IStrategy):
         early_callback = keras.callbacks.EarlyStopping(
             monitor="loss",
             mode="min",
-            patience=8,
+            patience=4,
             verbose=1)
 
         plateau_callback = keras.callbacks.ReduceLROnPlateau(
             monitor='loss',
             factor=0.1,
-            epsilon=0.0001,
+            min_delta=0.0001,
             patience=4,
             verbose=0)
 
