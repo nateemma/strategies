@@ -47,6 +47,8 @@ from finta import TA as fta
 import keras
 from keras import layers
 from tqdm import tqdm
+from tqdm.keras import TqdmCallback
+
 import random
 import time
 
@@ -589,7 +591,7 @@ class LSTM_Price(IStrategy):
             train_start = int((df_size - (train_size + test_size + self.curr_lookahead)) / 2)
             test_start = train_start + train_size + 1
         elif test_option == 1:
-            # take the end (better fit for recent data) end for training, earlier section for testing
+            # take the end for training (better fit for recent data), earlier section for testing
             train_start = int(data_size - (train_size + pad))
             test_start = 0
         elif test_option == 2:
@@ -664,16 +666,7 @@ class LSTM_Price(IStrategy):
         print("    fitting model...")
         print("")
 
-
-        # curr_dir = os.getcwd()
-        # curr_class = self.__class__.__name__
-        # model_name = "/tmp/checkpoint" + curr_class + "_" + self.curr_pair.replace("/", "_")
-        # file = curr_dir + "/" + curr_class + "_" + self.curr_pair
-        #
-        # # load the previous run
-        # if os.path.exists(model_name):
-        #     print("   loading previous run")
-        #     model = keras.models.load_model(model_name)
+        #TODO: save full model to current path?!
 
         # create checkpoint location based on class and pair
         # Note that keras expects it to be called 'checkpoint'
@@ -704,7 +697,7 @@ class LSTM_Price(IStrategy):
             verbose=0)
 
         # callback to control saving of 'best' model
-        model_checkpoint_callback = keras.callbacks.ModelCheckpoint(
+        checkpoint_callback = keras.callbacks.ModelCheckpoint(
             filepath=model_name,
             save_weights_only=True,
             monitor='loss',
@@ -712,11 +705,13 @@ class LSTM_Price(IStrategy):
             save_best_only=True,
             verbose=0)
 
+        # TqdmCallback displays a progress bar instead of the default keras output
+
         # Model weights are saved at the end of every epoch, if it's the best seen so far.
         fhis = model.fit(train_df_chunk, train_results_norm,
                          batch_size=self.batch_size,
                          epochs=self.num_epochs,
-                         callbacks=[model_checkpoint_callback, plateau_callback, early_callback],
+                         callbacks=[checkpoint_callback, plateau_callback, early_callback],
                          validation_data=(test_df_chunk, test_results_norm),
                          verbose=1)
 
@@ -730,10 +725,17 @@ class LSTM_Price(IStrategy):
         # print(fhis.history)
         print("")
 
-        # # test the model
-        # print("Evaluate on test data...")
-        # results = model.evaluate(test_df_norm, test_results_norm, batch_size=32)
+        # test the model
+        print("    checking model with test data...")
+        results = model.evaluate(test_df_chunk, test_results_norm,
+                                 batch_size=self.batch_size, verbose=0)
         # print("results:", results)
+
+        if results[0] > 0.15:
+            print("WARNING: high loss: {:.3f}".format(results[0]))
+            self.pair_model_info[pair]['model'] = None
+        else:
+            self.pair_model_info[pair]['model'] = model
 
         return dataframe
 
@@ -773,7 +775,7 @@ class LSTM_Price(IStrategy):
 
         # print("data: ", data)
         # print("chunked: ", chunked_array)
-        print("data:{} chunked:{}".format(np.shape(data), np.shape(chunked_array)))
+        # print("data:{} chunked:{}".format(np.shape(data), np.shape(chunked_array)))
         return chunked_array
 
     def get_lstm(self, nfeatures: int, seq_len: int):
@@ -840,6 +842,11 @@ class LSTM_Price(IStrategy):
 
     # run prediction in batches over the entire history
     def batch_predictions(self, dataframe: DataFrame):
+
+        if self.pair_model_info[self.curr_pair]['model'] == None:
+            print("*** No model for pair ", self.curr_pair)
+            predictions = dataframe['close']
+            return predictions
 
         # scale/normalise
         df = self.convert_date(dataframe)
