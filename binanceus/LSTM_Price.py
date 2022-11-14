@@ -114,7 +114,7 @@ class LSTM_Price(IStrategy):
 
     # Required
     startup_candle_count: int = 128  # must be power of 2
-    process_only_new_candles = False
+    process_only_new_candles = True # this strat is very resource intensive, do not set to False
 
     # Strategy-specific global vars
 
@@ -551,6 +551,7 @@ class LSTM_Price(IStrategy):
         count = self.pair_model_info[pair]['interval']
         if (count > 0):
             self.pair_model_info[pair]['interval'] = count - 1
+            print ("Skipping re-train for {} candles".format(self.pair_model_info[pair]['interval']))
             return dataframe
         else:
             # reset interval to a random number between 1 and the amount of lookahead
@@ -560,8 +561,8 @@ class LSTM_Price(IStrategy):
         # set up training and test data
 
         # get a mormalised version, then extract data
-        df = dataframe.copy()
-        df = df.shift(-self.startup_candle_count)  # don't use data from startup period
+        df = dataframe.fillna(0.0)
+        # df = df.shift(-self.startup_candle_count)  # don't use data from startup period
         df = self.convert_date(df)
         tgt_col = df.columns.get_loc("smooth")
         # tgt_col = df.columns.get_loc("close")
@@ -572,30 +573,79 @@ class LSTM_Price(IStrategy):
         # constrain size to what will be available in run modes
         df_size = df_norm.shape[0]
         # data_size = int(min(975, df_size))
-        data_size = df_size # temp dbg
-        train_size = int(0.8 * data_size) - self.curr_lookahead
-        test_size = data_size - train_size - self.curr_lookahead
+        data_size = df_size # For backtest/hyperopt/plot, this will be big. Normal size for run modes
 
-        # take the middle part of the full dataframe
-        train_start = int((df_size - (train_size + test_size + self.curr_lookahead)) / 2)
+        # trying different test options. For some reason, results vary quite dramatically based on the approach
+
+        pad = self.curr_lookahead # have to allow for future results to be in range
+        train_ratio = 0.8
+        test_ratio = 1.0 - train_ratio
+        train_size = int(train_ratio * (data_size - pad)) - 1
+        test_size = int(test_ratio * (data_size - pad)) - 1
+
+        test_option = 1
+        if test_option == 0:
+            # take the middle part of the full dataframe
+            train_start = int((df_size - (train_size + test_size + self.curr_lookahead)) / 2)
+            test_start = train_start + train_size + 1
+        elif test_option == 1:
+            # take the end (better fit for recent data) end for training, earlier section for testing
+            train_start = int(data_size - (train_size + pad))
+            test_start = 0
+        elif test_option == 2:
+            # use the whole dataset for training, last section for testing (yes, I know this is not good)
+            train_start = 0
+            train_size = data_size - pad - 1
+            test_start = data_size - (test_size + pad)
+        else:
+            # the 'classic' - first part train, last part test
+            train_start = 0
+            test_start = data_size - (test_size + pad) - 1
+
         train_result_start = train_start + self.curr_lookahead
-        test_start = train_start + train_size
         test_result_start = test_start + self.curr_lookahead
 
-        # print("dtrain_start:{} train_result_start:{} test_start:{} test_result_start:{} "
-        #       .format(train_start, train_result_start, test_start, test_result_start))
+        # just double-check ;-)
+        if (train_size + test_size + self.curr_lookahead) > data_size:
+            print("ERR: invalid train/test sizes")
+            print("     train_size:{} test_size:{} data_size:{}".format(train_size, test_size, data_size))
 
-        train_df_norm = df_norm[train_start:train_start + train_size, :]
+        if (train_result_start + train_size) > data_size:
+            print("ERR: invalid train result config")
+            print("     train_result_start:{} train_size:{} data_size:{}".format(train_result_start,
+                                                                                 train_size, data_size))
+
+        if (test_result_start + test_size) > data_size:
+            print("ERR: invalid test result config")
+            print("     test_result_start:{} train_size:{} data_size:{}".format(test_result_start,
+                                                                                test_size, data_size))
+
+        print("df:{} train:[{}:{}] train_result:[{}:{}] test:[{}:{}] test_result:[{}:{}] "
+              .format(data_size,
+                      train_start, (train_start+train_size),
+                      train_result_start, (train_result_start+train_size),
+                      test_start, (test_start+test_size),
+                      test_result_start, (test_result_start+test_size)
+                      ))
+
+        # chunkify dataframe before extracting train/test data (avoid edge effects)
+        df_chunked = self.chunkify(df_norm, self.seq_len)
+        # train_df_norm = df_norm[train_start:train_start + train_size, :]
+        # train_results_norm = df_norm[train_result_start:train_result_start + train_size, tgt_col]
+        train_df_norm = df_chunked[train_start:train_start + train_size]
         train_results_norm = df_norm[train_result_start:train_result_start + train_size, tgt_col]
+
+        test_df_norm = df_chunked[test_start:test_start + test_size]
+        test_results_norm = df_norm[test_result_start:test_result_start + test_size, tgt_col]
 
         # print(train_df_norm[:, tgt_col])
         # print(train_results_norm)
 
-        test_df_norm = df_norm[test_start:test_start + test_size, :]
-        test_results_norm = df_norm[test_result_start:test_result_start + test_size, tgt_col]
 
-        train_df_chunk = self.chunkify(train_df_norm, self.seq_len)
-        test_df_chunk = self.chunkify(test_df_norm, self.seq_len)
+        # train_df_chunk = self.chunkify(train_df_norm, self.seq_len)
+        # test_df_chunk = self.chunkify(test_df_norm, self.seq_len)
+        train_df_chunk = train_df_norm
+        test_df_chunk = test_df_norm
 
         # re-shape into format expected by LSTM model
         # train_df_norm = np.reshape(np.array(train_df_norm), (train_df_norm.shape[0], self.seq_len, train_df_norm.shape[1]))
@@ -671,7 +721,8 @@ class LSTM_Price(IStrategy):
                          verbose=1)
 
         # The model weights (that are considered the best) are loaded into th model.
-        model.load_weights(model_name)
+        if os.path.exists(model_name):
+            model.load_weights(model_name)
 
         # model.save(model_name)
 
@@ -730,35 +781,42 @@ class LSTM_Price(IStrategy):
 
         # print("Creating model. nfeatures:{} seq_len:{}".format(nfeatures, seq_len))
 
-        # # complex model:
-        # model.add(layers.GRU(64, return_sequences=True, input_shape=(seq_len, nfeatures)))
-        # model.add(layers.LSTM(64, return_sequences=True))
-        # model.add(layers.Dense(32))
-        # model.add(layers.Dropout(rate=0.5))
-        # model.add(layers.LSTM(32, return_sequences=True))
-        # model.add(layers.Dropout(rate=0.5))
-        # model.add(layers.LSTM(32, return_sequences=True))
-        # model.add(layers.Dropout(rate=0.5))
-        # model.add(layers.LSTM(32, return_sequences=True))
-        # model.add(layers.Dropout(rate=0.5))
-        # model.add(layers.LSTM(32, return_sequences=False))
-        # model.add(layers.Dropout(rate=0.4))
-        # model.add(layers.Dense(8))
-        # model.add(layers.Dense(1, activation='linear'))
-
-        # simplest possible model:
-        model.add(layers.LSTM(64, return_sequences=True, input_shape=(seq_len, nfeatures)))
-        # model.add(layers.BatchNormalization())
-        model.add(layers.Dense(1, activation='linear'))
-
-        # # intermediate model:
-        # model.add(layers.GRU(64, return_sequences=True, input_shape=(seq_len, nfeatures)))
-        # model.add(layers.Dropout(rate=0.4))
-        # # model.add(layers.Bidirectional(layers.LSTM(64, return_sequences=True)))
-        # # model.add(layers.Dropout(rate=0.4))
-        # model.add(layers.Bidirectional(layers.LSTM(64)))
-        # model.add(layers.Dropout(rate=0.4))
-        # model.add(layers.Dense(1, activation='linear'))
+        # trying different models...
+        model_type = 0
+        if model_type == 0:
+            # simplest possible model:
+            model.add(layers.LSTM(64, return_sequences=True, input_shape=(seq_len, nfeatures)))
+            # model.add(layers.Dropout(rate=0.4))
+            model.add(layers.Dense(1, activation='linear'))
+        elif model_type == 1:
+            # intermediate model:
+            model.add(layers.GRU(64, return_sequences=True, input_shape=(seq_len, nfeatures)))
+            model.add(layers.Dropout(rate=0.4))
+            # model.add(layers.Bidirectional(layers.LSTM(64, return_sequences=True)))
+            # model.add(layers.Dropout(rate=0.4))
+            model.add(layers.Bidirectional(layers.LSTM(64)))
+            model.add(layers.Dropout(rate=0.4))
+            model.add(layers.Dense(1, activation='linear'))
+        elif model_type == 2:
+            # complex model:
+            model.add(layers.GRU(64, return_sequences=True, input_shape=(seq_len, nfeatures)))
+            model.add(layers.LSTM(64, return_sequences=True))
+            model.add(layers.Dense(32))
+            model.add(layers.Dropout(rate=0.5))
+            model.add(layers.LSTM(32, return_sequences=True))
+            model.add(layers.Dropout(rate=0.5))
+            model.add(layers.LSTM(32, return_sequences=True))
+            model.add(layers.Dropout(rate=0.5))
+            model.add(layers.LSTM(32, return_sequences=True))
+            model.add(layers.Dropout(rate=0.5))
+            model.add(layers.LSTM(32, return_sequences=False))
+            model.add(layers.Dropout(rate=0.4))
+            model.add(layers.Dense(8))
+            model.add(layers.Dense(1, activation='linear'))
+        else:
+            # simplest possible model:
+            model.add(layers.LSTM(64, return_sequences=True, input_shape=(seq_len, nfeatures)))
+            model.add(layers.Dense(1, activation='linear'))
 
         model.summary()  # helps keep track of which model is running, while making changes
         model.compile(optimizer='adam',
@@ -923,6 +981,9 @@ class LSTM_Price(IStrategy):
         else:
             dataframe['buy'] = 0
 
+        # set first (startup) period to 0
+        dataframe['buy'].iloc[0:self.startup_candle_count] = 0
+
         return dataframe
 
     ###################################
@@ -960,6 +1021,9 @@ class LSTM_Price(IStrategy):
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1
         else:
             dataframe['sell'] = 0
+
+        # set first (startup) period to 0
+        dataframe['sell'].iloc[0:self.startup_candle_count] = 0
 
         return dataframe
 
