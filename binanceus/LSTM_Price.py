@@ -982,7 +982,7 @@ class LSTM_Price(IStrategy):
             dataframe['buy'] = 0
 
         # set first (startup) period to 0
-        dataframe['buy'].iloc[0:self.startup_candle_count] = 0
+        dataframe.loc[dataframe.index[:self.startup_candle_count], 'buy'] = 0
 
         return dataframe
 
@@ -1023,7 +1023,7 @@ class LSTM_Price(IStrategy):
             dataframe['sell'] = 0
 
         # set first (startup) period to 0
-        dataframe['sell'].iloc[0:self.startup_candle_count] = 0
+        dataframe.loc[dataframe.index[:self.startup_candle_count], 'sell'] = 0
 
         return dataframe
 
