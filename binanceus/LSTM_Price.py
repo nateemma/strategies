@@ -50,7 +50,9 @@ from tqdm import tqdm
 from tqdm.keras import TqdmCallback
 
 import random
-import time
+import Time2Vector
+import Transformer
+import Attention
 
 """
 ####################################################################################
@@ -657,10 +659,10 @@ class LSTM_Price(IStrategy):
         train_results_norm = np.array(train_results_norm).reshape(-1, 1)
         test_results_norm = np.array(test_results_norm).reshape(-1, 1)
 
-        print("")
-        print("    train data:", np.shape(train_df_chunk), " train results:", train_results_norm.shape)
-        print("    test data: ", np.shape(test_df_chunk), " test results: ", test_results_norm.shape)
-        print("")
+        # print("")
+        # print("    train data:", np.shape(train_df_chunk), " train results:", train_results_norm.shape)
+        # print("    test data: ", np.shape(test_df_chunk), " test results: ", test_results_norm.shape)
+        # print("")
 
         # train the model
         print("    fitting model...")
@@ -679,8 +681,8 @@ class LSTM_Price(IStrategy):
             model.load_weights(model_name)
         else:
             print("    model not found ({})...".format(model_name))
-
-
+            if self.dp.runmode.value not in ('hyperopt', 'backtest', 'plot'):
+                print("*** ERR: no existing model. You should run backtest first!")
 
         # callback to control early exit on plateau of results
         early_callback = keras.callbacks.EarlyStopping(
@@ -788,8 +790,9 @@ class LSTM_Price(IStrategy):
         if model_type == 0:
             # simplest possible model:
             model.add(layers.LSTM(64, return_sequences=True, input_shape=(seq_len, nfeatures)))
-            # model.add(layers.Dropout(rate=0.4))
+            # model.add(layers.Dropout(rate=0.2))
             model.add(layers.Dense(1, activation='linear'))
+
         elif model_type == 1:
             # intermediate model:
             model.add(layers.GRU(64, return_sequences=True, input_shape=(seq_len, nfeatures)))
@@ -799,6 +802,7 @@ class LSTM_Price(IStrategy):
             model.add(layers.Bidirectional(layers.LSTM(64)))
             model.add(layers.Dropout(rate=0.4))
             model.add(layers.Dense(1, activation='linear'))
+
         elif model_type == 2:
             # complex model:
             model.add(layers.GRU(64, return_sequences=True, input_shape=(seq_len, nfeatures)))
@@ -815,6 +819,17 @@ class LSTM_Price(IStrategy):
             model.add(layers.Dropout(rate=0.4))
             model.add(layers.Dense(8))
             model.add(layers.Dense(1, activation='linear'))
+
+        elif model_type == 3:
+            # Attention/Transformer
+            model.add(layers.LSTM(128, return_sequences=True, input_shape=(seq_len, nfeatures)))
+            model.add(layers.Dropout(0.2))
+            model.add(layers.BatchNormalization())
+            model.add(Attention.Attention(seq_len))
+            model.add(layers.Dense(32, activation="relu"))
+            model.add(layers.Dropout(0.2))
+            model.add(layers.Dense(1, activation='linear'))
+
         else:
             # simplest possible model:
             model.add(layers.LSTM(64, return_sequences=True, input_shape=(seq_len, nfeatures)))
