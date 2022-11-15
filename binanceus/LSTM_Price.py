@@ -553,15 +553,15 @@ class LSTM_Price(IStrategy):
         model = self.pair_model_info[pair]['model']
 
 
-        # only run if interval reaches 0 (no point retraining every camdle)
+    # only run if interval reaches 0 (no point retraining every camdle)
         count = self.pair_model_info[pair]['interval']
-        if (count > 0):
-            self.pair_model_info[pair]['interval'] = count - 1
-            print ("Skipping re-train for {} candles".format(self.pair_model_info[pair]['interval']))
-            return dataframe
-        else:
-            # reset interval to a random number between 1 and the amount of lookahead
-            self.pair_model_info[pair]['interval'] = random.randint(2, max(12, self.curr_lookahead))
+        # if (count > 0):
+        #     self.pair_model_info[pair]['interval'] = count - 1
+        #     print ("Skipping re-train for {} candles".format(self.pair_model_info[pair]['interval']))
+        #     return dataframe
+        # else:
+        #     # reset interval to a random number between 1 and the amount of lookahead
+        #     self.pair_model_info[pair]['interval'] = random.randint(2, max(12, self.curr_lookahead))
 
         # set up training and test data
 
@@ -680,10 +680,18 @@ class LSTM_Price(IStrategy):
         if os.path.exists(model_name):
             print("    Loading existing model ({})...".format(model_name))
             model.load_weights(model_name)
+
+            # TEMP HACK
+            # don't retrain if in 'run' mode
+            if self.dp.runmode.value not in ('hyperopt', 'backtest', 'plot'):
+                print("    Using existing model (no re-train)")
+                return dataframe
+
         else:
             print("    model not found ({})...".format(model_name))
             if self.dp.runmode.value not in ('hyperopt', 'backtest', 'plot'):
                 print("*** ERR: no existing model. You should run backtest first!")
+
 
         # callback to control early exit on plateau of results
         early_callback = keras.callbacks.EarlyStopping(
