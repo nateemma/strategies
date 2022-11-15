@@ -134,6 +134,7 @@ class LSTM_Price(IStrategy):
     n_profit_stddevs = 0.0
     n_loss_stddevs = 0.0
     min_f1_score = 0.70
+    max_train_loss = 0.15
 
     curr_lookahead = int(12 * lookahead_hours)
 
@@ -254,7 +255,7 @@ class LSTM_Price(IStrategy):
                                                                         self.loss_threshold))
 
         print("")
-        print(curr_pair)
+        print(self.curr_pair)
 
         # populate the training indicators
         dataframe = self.add_training_indicators(dataframe)
@@ -263,19 +264,19 @@ class LSTM_Price(IStrategy):
         if self.dbg_verbose:
             print("    training model...")
 
-        dataframe = self.train_model(dataframe, curr_pair)
+        dataframe = self.train_model(dataframe, self.curr_pair)
 
         # add predictions
         if self.dbg_verbose:
             print("    running predictions...")
 
-        dataframe = self.add_predictions(dataframe, curr_pair)
+        dataframe = self.add_predictions(dataframe, self.curr_pair)
 
         # Custom Stoploss
         if self.dbg_verbose:
             print("    updating stoploss data...")
         dataframe = self.add_indicators(dataframe)
-        dataframe = self.add_stoploss_indicators(dataframe, curr_pair)
+        dataframe = self.add_stoploss_indicators(dataframe,self.curr_pair)
 
         return dataframe
 
@@ -542,11 +543,12 @@ class LSTM_Price(IStrategy):
 
         # if first time through for this pair, add entry to pair_model_info
         if not (pair in self.pair_model_info):
-            self.pair_model_info[pair] = {'model': None, 'interval':0}
+            self.pair_model_info[pair] = {'model': None, 'interval':0, 'score':0.0}
 
         if self.pair_model_info[pair]['model'] == None:
-            print("    Creating LSTM model for: ", pair, " seq_len:", nfeatures)
+            print("    Creating model for: ", pair, " seq_len:", nfeatures)
             self.pair_model_info[pair]['model'] = self.get_lstm(nfeatures, self.seq_len)
+            self.pair_model_info[pair]['interval'] = 0
 
         model = self.pair_model_info[pair]['model']
 
@@ -559,8 +561,7 @@ class LSTM_Price(IStrategy):
             return dataframe
         else:
             # reset interval to a random number between 1 and the amount of lookahead
-            # self.pair_model_info[curr_pair]['interval'] = random.randint(1, self.curr_lookahead)
-            self.pair_model_info[pair]['interval'] = random.randint(2, max(64, self.curr_lookahead))
+            self.pair_model_info[pair]['interval'] = random.randint(2, max(12, self.curr_lookahead))
 
         # set up training and test data
 
@@ -579,13 +580,13 @@ class LSTM_Price(IStrategy):
         # data_size = int(min(975, df_size))
         data_size = df_size # For backtest/hyperopt/plot, this will be big. Normal size for run modes
 
-        # trying different test options. For some reason, results vary quite dramatically based on the approach
-
         pad = self.curr_lookahead # have to allow for future results to be in range
         train_ratio = 0.8
         test_ratio = 1.0 - train_ratio
         train_size = int(train_ratio * (data_size - pad)) - 1
         test_size = int(test_ratio * (data_size - pad)) - 1
+
+        # trying different test options. For some reason, results vary quite dramatically based on the approach
 
         test_option = 1
         if test_option == 0:
@@ -624,8 +625,8 @@ class LSTM_Price(IStrategy):
             print("     test_result_start:{} train_size:{} data_size:{}".format(test_result_start,
                                                                                 test_size, data_size))
 
-        print("df:{} train:[{}:{}] train_result:[{}:{}] test:[{}:{}] test_result:[{}:{}] "
-              .format(data_size,
+        print("    data:[{}:{}] train:[{}:{}] train_result:[{}:{}] test:[{}:{}] test_result:[{}:{}] "
+              .format(0, data_size-1,
                       train_start, (train_start+train_size),
                       train_result_start, (train_result_start+train_size),
                       test_start, (test_start+test_size),
@@ -733,11 +734,10 @@ class LSTM_Price(IStrategy):
                                  batch_size=self.batch_size, verbose=0)
         # print("results:", results)
 
-        if results[0] > 0.15:
-            print("WARNING: high loss: {:.3f}".format(results[0]))
-            self.pair_model_info[pair]['model'] = None
-        else:
-            self.pair_model_info[pair]['model'] = model
+        self.pair_model_info[pair]['model'] = model
+        self.pair_model_info[pair]['score'] = results[0]
+        if results[0] > self.max_train_loss:
+            print("    WARNING: high loss: {:.3f}".format(results[0]))
 
         return dataframe
 
@@ -858,8 +858,16 @@ class LSTM_Price(IStrategy):
     # run prediction in batches over the entire history
     def batch_predictions(self, dataframe: DataFrame):
 
+        # check that model exists
         if self.pair_model_info[self.curr_pair]['model'] == None:
             print("*** No model for pair ", self.curr_pair)
+            predictions = dataframe['close']
+            return predictions
+
+        # check that model score is good enough
+        # check that model exists
+        if self.pair_model_info[self.curr_pair]['score'] > self.max_train_loss:
+            print("*** Model loss above threshold. Not predicting for: ", self.curr_pair)
             predictions = dataframe['close']
             return predictions
 
