@@ -83,7 +83,7 @@ PCA - uses Principal Component Analysis to try and reduce the total set of indic
       
       This works by creating a PCA model of the available technical indicators. This produces a 
       mapping of the indicators and how they affect the outcome (buy/sell/hold). We choose only the
-      mappings that have a signficant effect and ignore the others. This significantly reduces the size
+      mappings that have a significant effect and ignore the others. This significantly reduces the size
       of the problem.
       We then train a classifier model to predict buy or sell signals based on the known outcome in the
       informative data, and use it to predict buy/sell signals based on the real-time dataframe.

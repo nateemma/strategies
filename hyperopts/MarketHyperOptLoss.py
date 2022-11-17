@@ -1,7 +1,7 @@
 """
-MarketHyperOptLoss
+WinHyperOptLoss
 
-This module is a custom HyperoptLoss class based on performance relative to the overall market
+This module is a custom HyperoptLoss class based on Profit and Win/Loss ratio
 
 To deploy this, copy the file to the <freqtrade>/user_data/hyperopts directory
 """
@@ -21,7 +21,7 @@ MIN_TRADES_PER_DAY = EXPECTED_TRADES_PER_DAY / 8    # used to filter out scenari
 UNDESIRED_SOLUTION = 2.0             # indicates that we don't want this solution (so hyperopt will avoid)
 
 
-class MarketHyperOptLoss(IHyperOptLoss):
+class WinHyperOptLoss(IHyperOptLoss):
 
 
     """
@@ -58,25 +58,26 @@ class MarketHyperOptLoss(IHyperOptLoss):
             return UNDESIRED_SOLUTION
 
 
-        # Compare to the overall market performance
+        # Winning trades
 
         total_profit = results["profit_abs"]
-        if ('market_change' in results):
-            market_profit = results["market_change"]
-        elif ('market_change' in backtest_stats):
-            market_profit = backtest_stats["market_change"]
-        else:
-            print("Market performance not available")
-            market_profit = results["profit_abs"]
 
-        market_loss = 10.0 * (market_profit - total_profit)
+        if backtest_stats['wins']:
+            winning_count = backtest_stats['wins']
+        else:
+            results['upside_returns'] = 0
+            results.loc[total_profit > 0.0001, 'upside_returns'] = 1.0
+            winning_count = results['upside_returns'].sum()
+
+        # calculate win ratio loss. Scale so that 0.0 equates to 50% win/loss ratio
+        win_ratio_loss = 10.0 * (0.5 - winning_count / trade_count)
 
         # use drawdown as a tie-breaker
         drawdown_loss = 0.0
         if backtest_stats['max_drawdown']:
             drawdown_loss = (backtest_stats['max_drawdown'] - 1.0)
 
-        result = market_loss + drawdown_loss
+        result = win_ratio_loss + drawdown_loss
 
         return result
 

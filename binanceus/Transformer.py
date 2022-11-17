@@ -55,7 +55,7 @@ class MultiAttention(Layer):
             self.attn_heads.append(SingleAttention(self.d_k, self.d_v))
 
             # input_shape[0]=(batch, seq_len, 7), input_shape[0][-1]=7
-        self.linear = Dense(input_shape[0][-1],
+        self.linear = Dense(input_shape[-1],
                             input_shape=input_shape,
                             kernel_initializer='glorot_uniform',
                             bias_initializer='glorot_uniform')
@@ -86,13 +86,16 @@ class TransformerEncoder(Layer):
 
         self.ff_conv1D_1 = Conv1D(filters=self.ff_dim, kernel_size=1, activation='relu')
         # input_shape[0]=(batch, seq_len, 7), input_shape[0][-1] = 7
-        self.ff_conv1D_2 = Conv1D(filters=input_shape[0][-1], kernel_size=1)
+        # print("input_shape:", input_shape)
+        # self.ff_conv1D_2 = Conv1D(filters=input_shape[0][-1], kernel_size=1)
+        self.ff_conv1D_2 = Conv1D(filters=self.d_k, kernel_size=1)
         self.ff_dropout = Dropout(self.dropout_rate)
         self.ff_normalize = LayerNormalization(input_shape=input_shape, epsilon=1e-6)
 
     def call(self, inputs):  # inputs = (in_seq, in_seq, in_seq)
         attn_layer = self.attn_multi(inputs)
         attn_layer = self.attn_dropout(attn_layer)
+        print("attn_layer:", attn_layer)
         attn_layer = self.attn_normalize(inputs[0] + attn_layer)
 
         ff_layer = self.ff_conv1D_1(attn_layer)

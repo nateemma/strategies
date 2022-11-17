@@ -56,7 +56,7 @@ import Attention
 
 """
 ####################################################################################
-LSTM_Price - uses a Long-Short Term Memory neural network to try and predict the future stock price
+Predict_LSTM - uses a Long-Short Term Memory neural network to try and predict the future stock price
       
       This works by creating a LSTM model that we train on the historical data, then use that model to predict 
       future values
@@ -75,7 +75,7 @@ LSTM_Price - uses a Long-Short Term Memory neural network to try and predict the
 """
 
 
-class LSTM_Price(IStrategy):
+class Predict_LSTM(IStrategy):
     plot_config = {
         'main_plot': {
             'close': {'color': 'green'},
@@ -97,7 +97,7 @@ class LSTM_Price(IStrategy):
     }
 
     # Stoploss:
-    stoploss = -0.10
+    stoploss = -0.05
 
     # Trailing stop:
     trailing_stop = False
@@ -243,8 +243,8 @@ class LSTM_Price(IStrategy):
         self.profit_threshold = self.default_profit_threshold
         self.loss_threshold = self.default_loss_threshold
 
-        if LSTM_Price.first_time:
-            LSTM_Price.first_time = False
+        if Predict_LSTM.first_time:
+            Predict_LSTM.first_time = False
             print("")
             print("***************************************")
             print("** Warning: startup can be very slow **")
@@ -550,18 +550,29 @@ class LSTM_Price(IStrategy):
             self.pair_model_info[pair]['model'] = self.get_lstm(nfeatures, self.seq_len)
             self.pair_model_info[pair]['interval'] = 0
 
+
         model = self.pair_model_info[pair]['model']
 
+        # if in a run mode, then periodically load weights and just return
+        if self.dp.runmode.value not in ('hyperopt', 'backtest', 'plot'):
 
-    # only run if interval reaches 0 (no point retraining every camdle)
-        count = self.pair_model_info[pair]['interval']
-        # if (count > 0):
-        #     self.pair_model_info[pair]['interval'] = count - 1
-        #     print ("Skipping re-train for {} candles".format(self.pair_model_info[pair]['interval']))
-        #     return dataframe
-        # else:
-        #     # reset interval to a random number between 1 and the amount of lookahead
-        #     self.pair_model_info[pair]['interval'] = random.randint(2, max(12, self.curr_lookahead))
+            # only run if interval reaches 0 (no point retraining every camdle)
+            count = self.pair_model_info[pair]['interval']
+            if (count > 0):
+                self.pair_model_info[pair]['interval'] = count - 1
+                print("Skipping re-train for {} candles".format(self.pair_model_info[pair]['interval']))
+
+            else:
+                # reset interval to a random number between 1 and the amount of lookahead
+                self.pair_model_info[pair]['interval'] = random.randint(2, max(12, self.curr_lookahead))
+
+                # reload the existing weights, if present
+                self.pair_model_info[pair]['model'] = self.get_model_weights(model)
+
+            # return without training
+            return dataframe
+
+        model = self.get_model_weights(model)
 
         # set up training and test data
 
@@ -671,28 +682,6 @@ class LSTM_Price(IStrategy):
 
         #TODO: save full model to current path?!
 
-        # create checkpoint location based on class and pair
-        # Note that keras expects it to be called 'checkpoint'
-        checkpoint_dir = '/tmp'
-        curr_class = self.__class__.__name__
-        model_name = checkpoint_dir + "/" + curr_class + "/" + self.curr_pair.replace("/", "_") + "/checkpoint"
-        # if checkpoint already exists, load it as a starting point
-        if os.path.exists(model_name):
-            print("    Loading existing model ({})...".format(model_name))
-            model.load_weights(model_name)
-
-            # TEMP HACK
-            # don't retrain if in 'run' mode
-            if self.dp.runmode.value not in ('hyperopt', 'backtest', 'plot'):
-                print("    Using existing model (no re-train)")
-                return dataframe
-
-        else:
-            print("    model not found ({})...".format(model_name))
-            if self.dp.runmode.value not in ('hyperopt', 'backtest', 'plot'):
-                print("*** ERR: no existing model. You should run backtest first!")
-
-
         # callback to control early exit on plateau of results
         early_callback = keras.callbacks.EarlyStopping(
             monitor="loss",
@@ -703,9 +692,11 @@ class LSTM_Price(IStrategy):
         plateau_callback = keras.callbacks.ReduceLROnPlateau(
             monitor='loss',
             factor=0.1,
-            min_delta=0.0001,
+            min_delta=0.001,
             patience=4,
             verbose=0)
+
+        model_name = self.get_model_name()
 
         # callback to control saving of 'best' model
         checkpoint_callback = keras.callbacks.ModelCheckpoint(
@@ -727,8 +718,7 @@ class LSTM_Price(IStrategy):
                          verbose=1)
 
         # The model weights (that are considered the best) are loaded into th model.
-        if os.path.exists(model_name):
-            model.load_weights(model_name)
+        model = self.get_model_weights(model)
 
         # model.save(model_name)
 
@@ -742,12 +732,37 @@ class LSTM_Price(IStrategy):
                                  batch_size=self.batch_size, verbose=0)
         # print("results:", results)
 
+        # update the pair info
         self.pair_model_info[pair]['model'] = model
         self.pair_model_info[pair]['score'] = results[0]
         if results[0] > self.max_train_loss:
             print("    WARNING: high loss: {:.3f}".format(results[0]))
 
         return dataframe
+
+    def get_model_name(self):
+        # Note that keras expects it to be called 'checkpoint'
+        checkpoint_dir = '/tmp'
+        curr_class = self.__class__.__name__
+        model_name = checkpoint_dir + "/" + curr_class + "/" + self.curr_pair.replace("/", "_") + "/checkpoint"
+        return model_name
+
+    def get_model_weights(self, model):
+
+        model_name = self.get_model_name()
+
+        # if checkpoint already exists, load it as a starting point
+        if os.path.exists(model_name):
+            print("    Loading existing model ({})...".format(model_name))
+            try:
+                model.load_weights(model_name)
+            except:
+                print("Error loading weights from {}. Check whether model format changed".format(model_name))
+        else:
+            print("    model not found ({})...".format(model_name))
+            if self.dp.runmode.value not in ('hyperopt', 'backtest', 'plot'):
+                print("*** ERR: no existing model. You should run backtest first!")
+        return model
 
     # get a scaler for scaling/normalising the data (in a func because I change it routinely)
     def get_scaler(self):
@@ -829,7 +844,7 @@ class LSTM_Price(IStrategy):
             model.add(layers.Dense(1, activation='linear'))
 
         elif model_type == 3:
-            # Attention/Transformer
+            # Attention (Single Head)
             model.add(layers.LSTM(128, return_sequences=True, input_shape=(seq_len, nfeatures)))
             model.add(layers.Dropout(0.2))
             model.add(layers.BatchNormalization())
