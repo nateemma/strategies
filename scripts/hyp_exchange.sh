@@ -4,9 +4,9 @@
 # hyperopt loss function
 
 # Strategy list, and associated hyperopt spaces
-declare -A strat_list=( [DWT2]="buy sell", [PCA_nseq]="sell" [PCA_profit]="sell" \
-[PCA_swing]="sell" [PCA_jump]="sell" [PCA_highlow]="sell" [PCA_minmax]="sell" \
-[PCA_stochastic]="sell" )
+declare -A strat_list=( [PCA_nseq]="sell trailing" [PCA_profit]="sell trailing" \
+[PCA_swing]="sell trailing" [PCA_jump]="sell trailing" [PCA_highlow]="sell trailing" [PCA_minmax]="sell trailing" \
+[Predict_LSTM]="sell trailing" )
 
 # default values
 epochs=500

@@ -149,7 +149,7 @@ class Predict_Transformer(Predict_LSTM):
 
         input_shape = (seq_len, nfeatures)
 
-        # Attention (Single Head)
+        # Transformer architecture
         model.add(layers.LSTM(128, return_sequences=True, input_shape=(seq_len, nfeatures)))
         model.add(layers.Dropout(0.2))
         model.add(layers.Dense(nfeatures))

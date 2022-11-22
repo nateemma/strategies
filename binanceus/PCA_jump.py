@@ -52,6 +52,20 @@ PCA_jump:
 
 
 class PCA_jump(PCA):
+
+    plot_config = {
+        'main_plot': {
+            'close': {'color': 'palegreen'},
+            '%future_min': {'color': 'salmon'},
+            '%future_max': {'color': 'cadetblue'},
+        },
+        'subplots': {
+            "Diff": {
+                '%dwt_maxmin': {'color': 'green'},
+            },
+        }
+    }
+
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # Have to re-declare any globals that we need to modify
@@ -66,7 +80,7 @@ class PCA_jump(PCA):
 
     custom_trade_info = {}
 
-    dbg_scan_classifiers = True  # if True, scan all viable classifiers and choose the best. Very slow!
+    dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
     dbg_test_classifier = True  # test classifiers after fitting
     dbg_analyse_pca = False  # analyze PCA weights
     dbg_verbose = False  # controls debug output
@@ -147,6 +161,7 @@ class PCA_jump(PCA):
     def save_debug_indicators(self, future_df: DataFrame):
         self.add_debug_indicator(future_df, 'future_min')
         self.add_debug_indicator(future_df, 'future_max')
+        self.add_debug_indicator(future_df, 'dwt_maxmin')
 
         return
 

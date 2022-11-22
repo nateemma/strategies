@@ -40,21 +40,39 @@ def main():
 
     nrows = 12
     nfeatures = 6
+    seq_len = 4
 
-    test_array = np.zeros((nrows, nfeatures), dtype=float)
+    arr1 = np.zeros((nrows, nfeatures), dtype=float)
 
     for i in range(nrows):
         for j in range(nfeatures):
-            test_array[i][j] = float(i+1)
+            arr1[i][j] = float(i+1)
 
-    chunky = chunkify(test_array, 4)
+    chunky = chunkify(arr1, seq_len)
 
-    print("test_array:")
-    print(test_array)
-    print("chunky:")
+    print("")
+    print("array:", np.shape(arr1))
+    print(arr1)
+    print("chunky:", np.shape(chunky))
     for i in range(nrows):
         print("[", i, "]")
         print(chunky[i])
+
+    arr2 = np.zeros(nrows, dtype=float)
+    for i in range(len(arr2)):
+        if (i % seq_len) == 0:
+            arr2[i] = 1.0
+
+    arr2 = arr2.reshape(-1, 1)
+    chunk2 = chunkify(arr2, seq_len)
+    print("")
+    print("array:", np.shape(arr2))
+    print(arr2)
+    print("chunky:", np.shape(chunk2))
+    for i in range(nrows):
+        print(i, ":")
+        print(chunk2[i])
+    print("")
 
 if __name__ == '__main__':
     main()

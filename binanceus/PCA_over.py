@@ -67,7 +67,7 @@ class PCA_over(PCA):
 
     custom_trade_info = {}
 
-    dbg_scan_classifiers = True  # if True, scan all viable classifiers and choose the best. Very slow!
+    dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
     dbg_test_classifier = True  # test clasifiers after fitting
     dbg_analyse_pca = False  # analyze PCA weights
     dbg_verbose = False  # controls debug output
@@ -118,12 +118,11 @@ class PCA_over(PCA):
         buys = np.where(
             (
                 # various overbought condition
-                    (future_df['fastk'] >= 80) &
-                    (future_df['rsi'] >= 70) &
-                    (future_df['atr_buy'] > 0) &
-                    (future_df['mfi_buy'] > 0) &
-                    (future_df['vfi_buy'] > 0) &
-                    # (future_df['fisher_wr'] < -0.5) &
+                    (future_df['fastk'] < 30) &
+                    (future_df['rsi'] < 30) &
+                    (future_df['mfi'] < 30) &
+                    # (future_df['vfi'] < 50) &
+                    (future_df['fisher_wr'] < -0.5) &
 
                     # future profit
                     (future_df['profit_max'] >= self.profit_threshold) &
@@ -136,12 +135,11 @@ class PCA_over(PCA):
         sells = np.where(
             (
                 # stochastics show oversold condition
-                    (future_df['fastk'] <= 20) &
-                    (future_df['rsi'] <= 30) &
-                    (future_df['atr_sell'] > 0) &
-                    (future_df['mfi_sell'] > 0) &
-                    (future_df['vfi_sell'] > 0) &
-                    # (future_df['fisher_wr'] > 0.5) &
+                    (future_df['fastk'] > 70) &
+                    (future_df['rsi'] > 70) &
+                    (future_df['mfi'] > 70) &
+                    # (future_df['vfi'] > 50) &
+                    (future_df['fisher_wr'] > 0.5) &
 
                     # future loss
                     (future_df['loss_min'] <= self.loss_threshold) &

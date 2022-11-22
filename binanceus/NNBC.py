@@ -47,24 +47,7 @@ from sklearn.metrics import classification_report
 from sklearn.metrics import ConfusionMatrixDisplay
 from sklearn.preprocessing import StandardScaler, RobustScaler
 import sklearn.decomposition as skd
-from sklearn.svm import SVC, SVR
-from sklearn.utils.fixes import loguniform
-from sklearn import preprocessing
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.model_selection import GridSearchCV
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier, VotingClassifier
-from sklearn.naive_bayes import GaussianNB, MultinomialNB
-from sklearn.neural_network import MLPClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.linear_model import LogisticRegression, SGDClassifier
-from sklearn.svm import LinearSVC
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.naive_bayes import GaussianNB
-from sklearn.preprocessing import LabelEncoder, StandardScaler
-from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis, LinearDiscriminantAnalysis
-from sklearn.linear_model import LogisticRegression
-from sklearn.manifold import LocallyLinearEmbedding
+from sklearn.preprocessing import LabelEncoder, StandardScaler, MinMaxScaler
 
 from sklearn.metrics import make_scorer
 from sklearn.metrics import accuracy_score
@@ -77,30 +60,69 @@ import random
 
 from prettytable import PrettyTable
 
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+os.environ['TF_DETERMINISTIC_OPS'] = '1'
+
+import tensorflow as tf
+seed = 42
+os.environ['PYTHONHASHSEED'] = str(seed)
+random.seed(seed)
+tf.random.set_seed(seed)
+np.random.seed(seed)
+
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
+
+
+import keras
+from keras import layers
+from tqdm import tqdm
+import Attention
+import RBM
+
 """
 ####################################################################################
-PCA - uses Principal Component Analysis to try and reduce the total set of indicators
-      to more manageable dimensions, and predict the next gain step.
+NNBC - Neural Net Binary Classifier
+    Combines Dimensionality Reduction using Principal Component Analysis (PCA) and various
+    Neural Networks set up as binary classifiers.
       
-      This works by creating a PCA model of the available technical indicators. This produces a 
-      mapping of the indicators and how they affect the outcome (buy/sell/hold). We choose only the
-      mappings that have a significant effect and ignore the others. This significantly reduces the size
-      of the problem.
-      We then train a classifier model to predict buy or sell signals based on the known outcome in the
-      informative data, and use it to predict buy/sell signals based on the real-time dataframe.
+    This works by creating a PCA model of the available technical indicators. This produces a 
+    mapping of the indicators and how they affect the outcome (buy/sell/hold). We choose only the
+    mappings that have a significant effect and ignore the others. This significantly reduces the size
+    of the problem.
+    We then train a classifier model to predict buy or sell signals based on the known outcome in the
+    informative data, and use it to predict buy/sell signals based on the real-time dataframe.
+    Several different Neural Network types are available, and they can either all be tested, or a pre-configured
+    classifier can be used.
       
-      Note that this is very slow to start up. This is mostly because we have to build the data on a rolling
-      basis to avoid lookahead bias.
+    Note that this is very slow to start up. This is mostly because we have to build the data on a rolling
+    basis to avoid lookahead bias.
       
-      In addition to the normal freqtrade packages, these strategies also require the installation of:
+    In addition to the normal freqtrade packages, these strategies also require the installation of:
         random
         prettytable
         finta
+        sklearn
 
 ####################################################################################
 """
 
-class PCA(IStrategy):
+
+class NNBC(IStrategy):
+    plot_config = {
+        'main_plot': {
+            'close': {'color': 'teal'},
+        },
+        'subplots': {
+            "Diff": {
+                '%train_buy': {'color': 'green'},
+                'predict_buy': {'color': 'blue'},
+                '%train_sell': {'color': 'red'},
+                'predict_sell': {'color': 'orange'},
+            },
+        }
+    }
+
     # Do *not* hyperopt for the roi and stoploss spaces (unless you turn off custom stoploss)
 
     # ROI table:
@@ -130,12 +152,9 @@ class PCA(IStrategy):
 
     # Required
     startup_candle_count: int = 128  # must be power of 2
-    process_only_new_candles = False
-
+    process_only_new_candles = True
 
     # Strategy-specific global vars
-
-    dwt_window = startup_candle_count
 
     inf_mins = timeframe_to_minutes(inf_timeframe)
     data_mins = timeframe_to_minutes(timeframe)
@@ -145,9 +164,9 @@ class PCA(IStrategy):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     lookahead_hours = 1.0
-    n_profit_stddevs = 0.0
-    n_loss_stddevs = 0.0
-    min_f1_score = 0.70
+    n_profit_stddevs = 1.0
+    n_loss_stddevs = 1.0
+    min_f1_score = 0.5
 
     curr_lookahead = int(12 * lookahead_hours)
 
@@ -162,19 +181,31 @@ class PCA(IStrategy):
     loss_threshold = default_loss_threshold
     dynamic_gain_thresholds = True  # dynamically adjust gain thresholds based on actual mean (beware, training data could be bad)
 
+    # the following affect training of the model. Bigger numbers give better model, but take longer and use more memory
+    seq_len = 8  # 'depth' of training sequence
+    num_epochs = 512  # number of iterations for training
+    batch_size = 1024  # batch size for training
+
+    cherrypick_data = False
+    preload_model = True # don't set to true if you are changing buy/sell conditions or tweaking models
+    use_full_dataset = False # use the entire dataset for training (in backtest/hyperopt)
+
+    buy_tag = 'buy'
+    sell_tag = 'sell'
+
+    dwt_window = startup_candle_count
 
     num_pairs = 0
     pair_model_info = {}  # holds model-related info for each pair
-    classifier_stats = {} # holds statistics for each type of classifier (useful to rank classifiers
+    classifier_stats = {}  # holds statistics for each type of classifier (useful to rank classifiers
 
     # debug flags
     first_time = True  # mostly for debug
     first_run = True  # used to identify first time through buy/sell populate funcs
 
-    dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
+    dbg_scan_classifiers = True  # if True, scan all viable classifiers and choose the best. Very slow!
     dbg_test_classifier = True  # test clasifiers after fitting
-    dbg_analyse_pca = False  # analyze PCA weights
-    dbg_verbose = False  # controls debug output
+    dbg_verbose = True  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
 
     # variables to track state
@@ -190,10 +221,10 @@ class PCA(IStrategy):
 
     ## Hyperopt Variables
 
-    # PCA hyperparams
-    # buy_pca_gain = IntParameter(1, 50, default=4, space='buy', load=True, optimize=True)
+    #  hyperparams
+    # buy_gain = IntParameter(1, 50, default=4, space='buy', load=True, optimize=True)
     #
-    # sell_pca_gain = IntParameter(-1, -15, default=-4, space='sell', load=True, optimize=True)
+    # sell_gain = IntParameter(-1, -15, default=-4, space='sell', load=True, optimize=True)
 
     # Custom Sell Profit (formerly Dynamic ROI)
     csell_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
@@ -236,8 +267,8 @@ class PCA(IStrategy):
 
         series = np.where(
             (
-                    (future_df['mfi'] >= 80) & # classic oversold threshold
-                    (future_df['dwt'] <= future_df['future_min']) # at min of future window
+                    (future_df['rsi'] >= 80) &  # classic oversold threshold
+                    (future_df['future_max'] > future_df['dwt_recent_max'])
             ), 1.0, 0.0)
 
         return series
@@ -248,14 +279,13 @@ class PCA(IStrategy):
 
         series = np.where(
             (
-                    (future_df['mfi'] <= 20) &  # classic overbought threshold
-                    (future_df['dwt'] >= future_df['future_max'])  # at max of future window
+                    (future_df['rsi'] <= 20) &  # classic overbought threshold
+                    (future_df['future_min'] < future_df['dwt_recent_min'])
             ), 1.0, 0.0)
 
         return series
 
     ################################
-
 
     """
     inf Pair Definitions
@@ -276,14 +306,9 @@ class PCA(IStrategy):
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
 
-        # TODO: add in classifiers from statsmodels
-        # TODO; do grid search for MLP hyperparams
-        # TODO: keeps stats on classifier performance and selection
-
         # Base pair inf timeframe indicators
         curr_pair = metadata['pair']
         self.curr_pair = curr_pair
-
 
         self.set_state(curr_pair, self.State.POPULATE)
         self.curr_lookahead = int(12 * self.lookahead_hours)
@@ -293,8 +318,8 @@ class PCA(IStrategy):
         self.profit_threshold = self.default_profit_threshold
         self.loss_threshold = self.default_loss_threshold
 
-        if PCA.first_time:
-            PCA.first_time = False
+        if NNBC.first_time:
+            NNBC.first_time = False
             print("")
             print("***************************************")
             print("** Warning: startup can be very slow **")
@@ -307,13 +332,10 @@ class PCA(IStrategy):
         print("")
         print(curr_pair)
 
-
         # if first time through for this pair, add entry to pair_model_info
         if not (curr_pair in self.pair_model_info):
             self.pair_model_info[curr_pair] = {
                 'interval': 0,
-                'pca_size': 0,
-                'pca': None,
                 'clf_buy_name': "",
                 'clf_buy': None,
                 'clf_sell_name': "",
@@ -426,33 +448,6 @@ class PCA(IStrategy):
         # RSI
         # dataframe['rsi'] = ta.RSI(dataframe, timeperiod=win_size)
         dataframe['rsi_14'] = ta.RSI(dataframe, timeperiod=14)
-
-        # RMI: https://www.tradingview.com/script/kwIt9OgQ-Relative-Momentum-Index/
-        dataframe['rmi'] = cta.RMI(dataframe, length=24, mom=5)
-
-        # MA Streak: https://www.tradingview.com/script/Yq1z7cIv-MA-Streak-Can-Show-When-a-Run-Is-Getting-Long-in-the-Tooth/
-        dataframe['mastreak'] = cta.mastreak(dataframe, period=4)
-
-        # Trends
-        dataframe['candle_up'] = np.where(dataframe['close'] >= dataframe['close'].shift(), 1.0, -1.0)
-        dataframe['candle_up_trend'] = np.where(dataframe['candle_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
-        dataframe['candle_up_seq'] = dataframe['candle_up'].rolling(5).sum()
-
-        dataframe['candle_dn'] = np.where(dataframe['close'] < dataframe['close'].shift(), 1.0, -1.0)
-        dataframe['candle_dn_trend'] = np.where(dataframe['candle_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
-        dataframe['candle_dn_seq'] = dataframe['candle_up'].rolling(5).sum()
-
-        dataframe['rmi_up'] = np.where(dataframe['rmi'] >= dataframe['rmi'].shift(), 1.0, -1.0)
-        dataframe['rmi_up_trend'] = np.where(dataframe['rmi_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
-
-        dataframe['rmi_dn'] = np.where(dataframe['rmi'] <= dataframe['rmi'].shift(), 1.0, -1.0)
-        dataframe['rmi_dn_count'] = dataframe['rmi_dn'].rolling(8).sum()
-
-        # Indicators used only for ROI and Custom Stoploss
-        ssldown, sslup = cta.SSLChannels_ATR(dataframe, length=21)
-        dataframe['sroc'] = cta.SROC(dataframe, roclen=21, emalen=13, smooth=21)
-        dataframe['ssl_dir'] = 0
-        dataframe['ssl_dir'] = np.where(sslup > ssldown, 1.0, -1.0)
 
         # # EMAs
         # dataframe['ema_12'] = ta.EMA(dataframe, timeperiod=12)
@@ -643,11 +638,16 @@ class PCA(IStrategy):
         # up/down direction
         dataframe['dwt_dir'] = 0.0
         # dataframe['dwt_dir'] = np.where(dataframe['dwt'].diff() >= 0, 1.0, -1.0)
-        dataframe['dwt_dir'] = np.where(dataframe['dwt_smooth'].diff() >= 0, 1.0, -1.0)
+        dataframe['dwt_dir'] = np.where(dataframe['dwt_smooth'].diff() > 0, 1.0, -1.0)
 
         dataframe['dwt_trend'] = np.where(dataframe['dwt_dir'].rolling(5).sum() > 0.0, 1.0, -1.0)
 
         dataframe['dwt_gain'] = 100.0 * (dataframe['dwt'] - dataframe['dwt'].shift()) / dataframe['dwt'].shift()
+
+        # gain from beginning of window to end of window
+        dataframe['dwt_win_gain'] = 100.0 * (dataframe['dwt'] - dataframe['dwt'].shift(self.curr_lookahead)) / \
+                                    dataframe['dwt'].shift(self.curr_lookahead)
+
 
         dataframe['dwt_profit'] = dataframe['dwt_gain'].clip(lower=0.0)
         dataframe['dwt_loss'] = dataframe['dwt_gain'].clip(upper=0.0)
@@ -731,6 +731,10 @@ class PCA(IStrategy):
         future_df['future_gain'] = 100.0 * (future_df['future_close'] - future_df[price_col]) / future_df[price_col]
         future_df['future_gain'].clip(lower=-5.0, upper=5.0, inplace=True)
 
+        # gain from beginning of window to end of window
+        future_df['future_win_gain'] = 100.0 * (future_df['dwt'].shift(self.curr_lookahead) - future_df['dwt'] /
+                                             future_df['dwt'])
+
         future_df['future_profit'] = future_df['future_gain'].clip(lower=0.0)
         future_df['future_loss'] = future_df['future_gain'].clip(upper=0.0)
 
@@ -806,10 +810,10 @@ class PCA(IStrategy):
                                              - self.n_loss_stddevs * future_df['future_nseq_dn_std']
 
         # Recent min/max
-        # future_df['future_min'] = future_df[price_col].rolling(window=future_win).min()
-        # future_df['future_max'] = future_df[price_col].rolling(window=future_win).max()
         future_df['future_min'] = future_df['dwt_smooth'].rolling(window=future_win).min()
         future_df['future_max'] = future_df['dwt_smooth'].rolling(window=future_win).max()
+        future_df['future_maxmin'] = 100.0 * (future_df['future_max'] - future_df['future_min']) / \
+                                  future_df['future_max']
 
         # get average gain & stddev
         profit_mean = future_df['future_profit'].mean()
@@ -932,7 +936,7 @@ class PCA(IStrategy):
             return model[length - 1]
         else:
             # cannot calculate DWT (e.g. at startup), just return original value
-            return col[len(col)-1]
+            return col[len(col) - 1]
 
     def dwtModel(self, data):
 
@@ -977,7 +981,32 @@ class PCA(IStrategy):
             if not 'had_trend' in self.custom_trade_info[pair]:
                 self.custom_trade_info[pair]['had_trend'] = False
 
+        # Indicators used for ROI and Custom Stoploss
+
+        # RMI: https://www.tradingview.com/script/kwIt9OgQ-Relative-Momentum-Index/
+        dataframe['rmi'] = cta.RMI(dataframe, length=24, mom=5)
+
+        # Trends
+        dataframe['candle_up'] = np.where(dataframe['close'] >= dataframe['close'].shift(), 1.0, -1.0)
+        dataframe['candle_up_trend'] = np.where(dataframe['candle_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
+        dataframe['candle_up_seq'] = dataframe['candle_up'].rolling(5).sum()
+
+        dataframe['candle_dn'] = np.where(dataframe['close'] < dataframe['close'].shift(), 1.0, -1.0)
+        dataframe['candle_dn_trend'] = np.where(dataframe['candle_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
+        dataframe['candle_dn_seq'] = dataframe['candle_up'].rolling(5).sum()
+
+        dataframe['rmi_up'] = np.where(dataframe['rmi'] >= dataframe['rmi'].shift(), 1.0, -1.0)
+        dataframe['rmi_up_trend'] = np.where(dataframe['rmi_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
+
+        dataframe['rmi_dn'] = np.where(dataframe['rmi'] <= dataframe['rmi'].shift(), 1.0, -1.0)
+        dataframe['rmi_dn_count'] = dataframe['rmi_dn'].rolling(8).sum()
+
+        ssldown, sslup = cta.SSLChannels_ATR(dataframe, length=21)
+        dataframe['sroc'] = cta.SROC(dataframe, roclen=21, emalen=13, smooth=21)
+        dataframe['ssl_dir'] = 0
+        dataframe['ssl_dir'] = np.where(sslup > ssldown, 1.0, -1.0)
         return dataframe
+
 
     def norm_column(self, col):
         return self.zscore_column(col)
@@ -1033,7 +1062,9 @@ class PCA(IStrategy):
         temp.set_index('date')
         temp.reindex()
 
-        return self.zscore_dataframe(temp).fillna(0.0)
+        scaler = self.get_scaler()
+
+        return scaler.fit_transform(temp)
 
     # Normalise a dataframe using Z-Score normalisation (mean=0, stddev=1)
     def zscore_dataframe(self, dataframe: DataFrame) -> DataFrame:
@@ -1089,88 +1120,265 @@ class PCA(IStrategy):
             s = sells
         return df2, b, s
 
-
     # build a 'viable' dataframe sample set. Needed because the positive labels are sparse
-    def build_viable_dataset(self, size: int, df_norm: DataFrame, buys, sells):
-        # if self.dbg_verbose:
-        #     print("     df_norm:{} size:{} buys:{} sells:{}".format(df_norm.shape, size, buys.shape[0], sells.shape[0]))
+    # Not entirely sure this works with Neural Nets because they look at sequences
+    def build_viable_dataset(self, size: int, df_norm, buys, sells):
 
         # copy and combine the data into one dataframe
         df = df_norm.copy()
-        df['%temp_buy'] = buys.copy()
-        df['%temp_sell'] = sells.copy()
 
-        # df_buy = df[( (df['%temp_buy'] > 0) ).all(axis=1)]
-        # df_sell = df[((df['%temp_sell'] > 0)).all(axis=1)]
-        # df_nosig = df[((df['%temp_buy'] == 0) & (df['%temp_sell'] == 0)).all(axis=1)]
+        df_type = type(df).__name__
+        if 'array' in df_type:
+            # np.array
+            buy_col = np.shape(df)[1]
+            sell_col = buy_col + 1
+            df = np.hstack((df, np.array(buys).reshape(-1,1), np.array(sells).reshape(-1,1)))
 
-        df_buy = df.loc[df['%temp_buy'] == 1]
-        df_sell = df.loc[df['%temp_sell'] == 1]
-        df_nosig = df.loc[(df['%temp_buy'] == 0) & (df['%temp_sell'] == 0)]
+        else:
+            # dataframe
+            df['%temp_buy'] = buys.copy()
+            df['%temp_sell'] = sells.copy()
+            buy_col = df.columns.get_loc('%temp_buy')
+            sell_col = df.columns.get_loc('%temp_sell')
+
+
+        tensor = self.df_to_tensor(df, self.seq_len)
+
+        # print("df_norm:{} df:{} tensor:{}".format(np.shape(df_norm), np.shape(df), np.shape(tensor)))
+        # print("buy_col:{} sell_col:{}".format(buy_col, sell_col))
+
+        buy_idx = np.array([], dtype=int)
+        sell_idx = np.array([], dtype=int)
+        nosig_idx = np.array([], dtype=int)
+        buy_tensor = np.array([], dtype=float)
+        sell_tensor = np.array([], dtype=float)
+        nosig_tensor = np.array([], dtype=float)
+
+        # identify buys, sells, no signal (probably a fast way to this)
+        for row in range(np.shape(tensor)[0]):
+            if tensor[row][0][buy_col] == 1:
+                buy_idx = np.append(buy_idx, row)
+            if tensor[row][0][sell_col] == 1:
+                sell_idx = np.append(sell_idx, row)
+            if (tensor[row][0][buy_col] == 0) & (tensor[row][0][sell_col] == 0):
+                nosig_idx = np.append(nosig_idx, row)
+
+        buy_tensor = tensor[buy_idx].copy()
+        sell_tensor = tensor[sell_idx].copy()
+        nosig_tensor = tensor[nosig_idx].copy()
+
+        num_buys = np.shape(buy_tensor)[0]
+        num_sells = np.shape(sell_tensor)[0]
+        num_nosig = np.shape(nosig_tensor)[0]
+        # print("df:{} num_buys:{} num_sells:{} num_nosig:{}".format(np.shape(tensor)[0], num_buys, num_sells, num_nosig))
+
+        # print("raw:")
+        # print("tensor:{} buy_tensor:{}, sell_tensor:{}, nosig_tensor:{}".format(np.shape(tensor),
+        #                                                                         np.shape(buy_tensor),
+        #                                                                         np.shape(sell_tensor),
+        #                                                                         np.shape(nosig_tensor)))
+        # print(sell_tensor)
+
+        # DEBUG
+        for row in range(np.shape(sell_tensor)[0]):
+            if buy_tensor[row][0][buy_col] != 1:
+                print("invalid buy entry ({:.2f}) in row {}".format(buy_tensor[row][0][buy_col], row))
+                print(sell_tensor[row][0])
+
+            if sell_tensor[row][0][sell_col] != 1:
+                print("invalid sell entry ({:.2f}) in row {}".format(sell_tensor[row][0][sell_col], row))
+                print(sell_tensor[row][0])
+
+            if (nosig_tensor[row][0][buy_col] != 0) & (sell_tensor[row][0][sell_col] != 0):
+                print("invalid nosig entry ({:.2f}) in row {}".format(nosig_tensor[row][0][sell_col], row))
+                print(sell_tensor[row][0])
 
         # make sure there aren't too many buys & sells
         # We are aiming for a roughly even split between buys, sells, and 'no signal' (no buy or sell)
         max_signals = int(2 * size / 3)
-        buy_train_size = df_buy.shape[0]
-        sell_train_size = df_sell.shape[0]
-
-        if max_signals > df_nosig.shape[0]:
-            max_signals = int((size - df_nosig.shape[0])) - 1
-
-        if ((df_buy.shape[0] + df_sell.shape[0]) > max_signals):
+        if ((num_buys + num_sells) > max_signals):
             # both exceed max?
-            sig_size = int(max_signals / 2)
-            # if self.dbg_verbose:
-            #     print("     sig_size:{} max_signals:{} buys:{} sells:{}".format(sig_size, max_signals, df_buy.shape[0],
-            #                                                                     df_sell.shape[0]))
-
-            if (df_buy.shape[0] > sig_size) & (df_sell.shape[0] > sig_size):
+            sig_size = int(size / 3)
+            if (num_buys > sig_size) & (num_sells > sig_size):
                 # resize both buy & sell to 1/3 of requested size
-                buy_train_size = sig_size
-                sell_train_size = sig_size
+                buy_tensor, _ = train_test_split(buy_tensor, train_size=sig_size, shuffle=True)
+                sell_tensor, _ = train_test_split(sell_tensor, train_size=sig_size, shuffle=True)
             else:
                 # only one them is too big, so figure out which
-                if (df_buy.shape[0] > df_sell.shape[0]):
-                    buy_train_size = max_signals - df_sell.shape[0]
+                if (num_buys > num_sells):
+                    buy_tensor, _ = train_test_split(buy_tensor, train_size=max_signals - num_sells, shuffle=True)
                 else:
-                    sell_train_size = max_signals - df_buy.shape[0]
-
-            # if self.dbg_verbose:
-            #     print("     buy_train_size:{} sell_train_size:{}".format(buy_train_size, sell_train_size))
-
-        if buy_train_size < df_buy.shape[0]:
-            df_buy, _ = train_test_split(df_buy, train_size=buy_train_size, shuffle=True)
-        if sell_train_size < df_sell.shape[0]:
-            df_sell, _ = train_test_split(df_sell, train_size=sell_train_size, shuffle=True)
+                    sell_tensor, _ = train_test_split(sell_tensor, train_size=max_signals - num_buys, shuffle=True)
 
         # extract enough rows to fill the requested size
-        fill_size = size - buy_train_size - sell_train_size - 1
-        # if self.dbg_verbose:
-        #     print("     df_nosig:{} fill_size:{}".format(df_nosig.shape, fill_size))
-
-        if fill_size < df_nosig.shape[0]:
-            df_nosig, _ = train_test_split(df_nosig, train_size=fill_size, shuffle=True)
-
+        fill_size = size - min(num_buys, int(size / 3)) - min(num_sells, int(size / 3))
+        nosig_tensor, _ = train_test_split(nosig_tensor, train_size=fill_size, shuffle=True)
         # print("viable df - buys:{} sells:{} fill:{}".format(df_buy.shape[0], df_sell.shape[0], df_nosig.shape[0]))
 
-        # concatenate the dataframes
-        frames = [df_buy, df_sell, df_nosig]
-        df2 = pd.concat(frames)
+        # concatenate the arrays
+        t2 = np.concatenate((buy_tensor, sell_tensor, nosig_tensor))
 
-        # shuffle rows
-        df2 = df2.sample(frac=1)
+        # shuffle rows, so that buys, sells & nothing are intermixed
+        np.random.shuffle(t2)
+        # np.random.shuffle(t2)
+
+        # print("trimmed:")
+        # print("buy_tensor:{}, sell_tensor:{}, nosig_tensor:{} t2:{}".format(np.shape(buy_tensor),
+        #                                                                     np.shape(sell_tensor),
+        #                                                                     np.shape(nosig_tensor),
+        #                                                                     np.shape(t2)))
+        # print(t2)
 
         # separate out the data, buys & sells
-        b = df2['%temp_buy'].copy()
-        s = df2['%temp_sell'].copy()
-        df2.drop('%temp_buy', axis=1, inplace=True)
-        df2.drop('%temp_sell', axis=1, inplace=True)
-        df2.reindex()
+        b = t2[:, :, buy_col].copy()
+        s = t2[:, :, sell_col].copy()
 
-        if self.dbg_verbose:
-            print("     df2:", df2.shape, " b:", b.shape, " s:", s.shape)
+        # print("b:{:.0f} s:{:.0f}".format(b[:, 0].sum(), s[:, 0].sum()))
 
-        return df2, b, s
+        t3 = np.zeros((np.shape(t2)[0], np.shape(t2)[1], np.shape(t2)[2] - 2), dtype=float)
+        for row in range(np.shape(t2)[0]):
+            for seq in range(np.shape(t2)[1]):
+                features = np.delete(t2[row][seq], [buy_col, sell_col])
+                t3[row][seq] = features
+
+        return t3, b, s
+
+    # build a dataset that mimics 'live' runs
+    def build_standard_dataset(self, size: int, df_norm: DataFrame, buys, sells):
+
+        # constrain size to what will be available in run modes
+        # df_size = df_norm.shape[0]
+        df_size = df_norm.shape[0]
+        # data_size = int(min(975, size))
+        data_size = size
+
+        pad = self.curr_lookahead # have to allow for future results to be in range
+
+        # trying different test options. For some reason, results vary quite dramatically based on the approach
+
+        test_option = 0
+        if test_option == 0:
+            # take the end  (better fit for recent data). The most realistic option
+            start = int(df_size - (data_size + pad))
+        elif test_option == 1:
+            # take the middle part of the full dataframe
+            start = int((df_size - (data_size + self.curr_lookahead)) / 2)
+        elif test_option == 2:
+            # use the front part of the data
+            start = 0
+        elif test_option == 3:
+            #search buys array to find window with most buys? Cheating?!
+            start = 0
+            num_iter = df_size - data_size
+            if num_iter > 0:
+                max_buys = 0
+                for i in range(num_iter):
+                    num_buys = buys[i:i+data_size-1].sum()
+                    if num_buys > max_buys:
+                        start = i
+        else:
+            # take the end  (better fit for recent data)
+            start = int(df_size - (data_size + pad))
+
+        result_start = start + self.curr_lookahead
+
+        # just double-check ;-)
+        if (data_size + self.curr_lookahead) > df_size:
+            print("ERR: invalid data size")
+            print("     df:{} data_size:{}".format(df_size, data_size))
+
+        # print("    df:[{}:{}] start:{} end:{} length:{}]".format(0, (data_size - 1),
+        #                                                          start, (start + data_size), data_size))
+
+        # convert dataframe to tensor before extracting train/test data (avoid edge effects)
+        tensor = self.df_to_tensor(df_norm, self.seq_len)
+        buy_tensor = self.df_to_tensor(np.array(buys).reshape(-1, 1), self.seq_len)
+        sell_tensor = self.df_to_tensor(np.array(sells).reshape(-1, 1), self.seq_len)
+
+        # extract desired rows
+        t = tensor[start:start + data_size]
+        b = buy_tensor[start:start + data_size]
+        s = sell_tensor[start:start + data_size]
+
+        return t, b, s
+
+    # splits the data, buys & sells into train & test
+    # this sort of emulates train_test_split, but with different options for selecting data
+    def split_data(self, tensor, buys, sells, ratio):
+
+        # constrain size to what will be available in run modes
+        # df_size = df_norm.shape[0]
+        data_size = int(np.shape(tensor)[0])
+
+        pad = self.curr_lookahead  # have to allow for future results to be in range
+        train_ratio = ratio
+        test_ratio = 1.0 - train_ratio
+        train_size = int(train_ratio * (data_size - pad)) - 1
+        test_size = int(test_ratio * (data_size - pad)) - 1
+
+        # trying different test options. For some reason, results vary quite dramatically based on the approach
+
+        test_option = 1
+        if test_option == 0:
+            # take the middle part of the full dataframe
+            train_start = int((data_size - (train_size + test_size + self.curr_lookahead)) / 2)
+            test_start = train_start + train_size + 1
+        elif test_option == 1:
+            # take the end for training (better fit for recent data), earlier section for testing
+            train_start = int(data_size - (train_size + pad))
+            test_start = 0
+        elif test_option == 2:
+            # use the whole dataset for training, last section for testing (yes, I know this is not good)
+            train_start = 0
+            train_size = data_size - pad - 1
+            test_start = data_size - (test_size + pad)
+        else:
+            # the 'classic' - first part train, last part test
+            train_start = 0
+            test_start = data_size - (test_size + pad) - 1
+
+        train_result_start = train_start + self.curr_lookahead
+        test_result_start = test_start + self.curr_lookahead
+
+        # just double-check ;-)
+        if (train_size + test_size + self.curr_lookahead) > data_size:
+            print("ERR: invalid train/test sizes")
+            print("     train_size:{} test_size:{} data_size:{}".format(train_size, test_size, data_size))
+
+        if (train_result_start + train_size) > data_size:
+            print("ERR: invalid train result config")
+            print("     train_result_start:{} train_size:{} data_size:{}".format(train_result_start,
+                                                                                 train_size, data_size))
+
+        if (test_result_start + test_size) > data_size:
+            print("ERR: invalid test result config")
+            print("     test_result_start:{} train_size:{} data_size:{}".format(test_result_start,
+                                                                                test_size, data_size))
+
+        # print("    data:[{}:{}] train:[{}:{}] train_result:[{}:{}] test:[{}:{}] test_result:[{}:{}] "
+        #       .format(0, data_size - 1,
+        #               train_start, (train_start + train_size),
+        #               train_result_start, (train_result_start + train_size),
+        #               test_start, (test_start + test_size),
+        #               test_result_start, (test_result_start + test_size)
+        #               ))
+
+        # extract desired rows
+        train_tensor = tensor[train_start:train_start + train_size]
+        train_buys_tensor = buys[train_result_start:train_result_start + train_size]
+        train_sells_tensor = sells[train_result_start:train_result_start + train_size]
+
+        test_tensor = tensor[test_start:test_start + test_size]
+        test_buys_tensor = buys[test_result_start:test_result_start + test_size]
+        test_sells_tensor = sells[test_result_start:test_result_start + test_size]
+
+        num_buys = train_buys_tensor[:, 0].sum()
+        num_sells = train_sells_tensor[:, 0].sum()
+        if (num_buys <= 2) or (num_sells <= 2):
+            print("   WARNING - low number of buys/sells in training data")
+            print("   training #buys:{} #sells:{} ".format(num_buys, num_sells))
+
+        return train_tensor, test_tensor, train_buys_tensor, test_buys_tensor, train_sells_tensor, test_sells_tensor
 
     # map column into [0,1]
     def get_binary_labels(self, col):
@@ -1192,11 +1400,9 @@ class PCA(IStrategy):
         else:
             # reset interval to a random number between 1 and the amount of lookahead
             # self.pair_model_info[curr_pair]['interval'] = random.randint(1, self.curr_lookahead)
-            self.pair_model_info[curr_pair]['interval'] = random.randint(2, max(32, self.curr_lookahead))
+            self.pair_model_info[curr_pair]['interval'] = random.randint(2, max(12, self.curr_lookahead))
 
         # Reset models for this pair. Makes it safe to just return on error
-        self.pair_model_info[curr_pair]['pca_size'] = 0
-        self.pair_model_info[curr_pair]['pca'] = None
         self.pair_model_info[curr_pair]['clf_buy_name'] = ""
         self.pair_model_info[curr_pair]['clf_buy'] = None
         self.pair_model_info[curr_pair]['clf_sell_name'] = ""
@@ -1220,274 +1426,101 @@ class PCA(IStrategy):
             full_df_norm = self.norm_dataframe(dataframe)
             full_df_norm, buys, sells = self.remove_outliers(full_df_norm, buys, sells)
         else:
-            full_df_norm = self.norm_dataframe(dataframe).clip(lower=-3.0, upper=3.0)  # supress outliers
+            # full_df_norm = self.norm_dataframe(dataframe).clip(lower=-3.0, upper=3.0)  # supress outliers
+            full_df_norm = self.norm_dataframe(dataframe)
 
         # constrain size to what will be available in run modes
-        data_size = int(min(975, full_df_norm.shape[0]))
+        if self.use_full_dataset:
+            data_size = int(0.9 * full_df_norm.shape[0])
+        else:
+            data_size = int(min(975, full_df_norm.shape[0]))
 
-        # get 'viable' data set (includes all buys/sells)
-        v_df_norm, v_buys, v_sells = self.build_viable_dataset(data_size, full_df_norm, buys, sells)
+        # get training dataset
+        # Note: this returns tensors, not dataframes
 
-        train_size = int(0.8 * data_size)
-        test_size = data_size - train_size
+        if self.cherrypick_data:
+            # get 'viable' data set (includes all buys/sells)
+            v_tensor, v_buys, v_sells = self.build_viable_dataset(data_size, full_df_norm, buys, sells)
+        else:
+            v_tensor, v_buys, v_sells = self.build_standard_dataset(data_size, full_df_norm, buys, sells)
 
-        df_train, df_test, train_buys, test_buys, train_sells, test_sells, = train_test_split(v_df_norm,
-                                                                                              v_buys,
-                                                                                              v_sells,
-                                                                                              train_size=train_size,
-                                                                                              random_state=rand_st,
-                                                                                              shuffle=True)
+        tsr_train, tsr_test, train_buys, test_buys, train_sells, test_sells, = self.split_data(v_tensor, v_buys, v_sells, 0.8)
+
+        num_buys = int(train_buys[:,0].sum())
+        num_sells = int(train_sells[:,0].sum())
+
         if self.dbg_verbose:
-            print("     dataframe:", v_df_norm.shape, ' -> train:', df_train.shape, " + test:", df_test.shape)
-            print("     buys:", buys.shape, ' -> train:', train_buys.shape, " + test:", test_buys.shape)
-            print("     sells:", sells.shape, ' -> train:', train_sells.shape, " + test:", test_sells.shape)
+            # print("     df_norm:", df_norm.shape, ' v_tensor:', v_tensor.shape)
+            print("     tensor:", v_tensor.shape, ' -> train:', tsr_train.shape, " + test:", tsr_test.shape)
+            print("     buys:", v_buys.shape, ' -> train:', train_buys.shape, " + test:", test_buys.shape)
+            print("     sells:", v_sells.shape, ' -> train:', train_sells.shape, " + test:", test_sells.shape)
 
-        print("    #training samples:", len(df_train), " #buys:", int(train_buys.sum()), ' #sells:', int(train_sells.sum()))
+        print("    #training samples:", len(tsr_train), " #buys:", num_buys, ' #sells:', num_sells)
 
-        #TODO: if low number of buys/sells, try k-fold sampling
+        # TODO: if low number of buys/sells, try k-fold sampling
 
         buy_labels = self.get_binary_labels(buys)
         sell_labels = self.get_binary_labels(sells)
-        train_buy_labels = self.get_binary_labels(train_buys)
-        train_sell_labels = self.get_binary_labels(train_sells)
-        test_buy_labels = self.get_binary_labels(test_buys)
-        test_sell_labels = self.get_binary_labels(test_sells)
+        # train_buy_labels = self.get_binary_labels(train_buys)
+        # train_sell_labels = self.get_binary_labels(train_sells)
+        # test_buy_labels = self.get_binary_labels(test_buys)
+        # test_sell_labels = self.get_binary_labels(test_sells)
 
-        # create the PCA analysis model
-
-        pca = self.get_pca(df_train)
-
-        df_train_pca = DataFrame(pca.transform(df_train))
-
-        # DEBUG:
-        # print("")
-        print("   ", curr_pair, " - input: ", df_train.shape, " -> pca: ", df_train_pca.shape)
-
-        if df_train_pca.shape[1] <= 1:
-            print("***")
-            print("** ERR: PCA reduced to 1. Must be training data still in dataframe!")
-            print("df_train columns: ", df_train.columns.values)
-            print("df_train_pca columns: ", df_train_pca.columns.values)
-            print("***")
-            return
+        train_buy_labels = train_buys
+        train_sell_labels = train_sells
+        test_buy_labels = test_buys
+        test_sell_labels = test_sells
 
         # Create buy/sell classifiers for the model
 
         # check that we have enough positives to train
-        buy_ratio = 100.0 * (train_buys.sum() / len(train_buys))
+        buy_ratio = 100.0 * (num_buys / len(train_buys))
         if (buy_ratio < 0.5):
             print("*** ERR: insufficient number of positive buy labels ({:.2f}%)".format(buy_ratio))
             return
 
-        buy_clf, buy_clf_name = self.get_buy_classifier(df_train_pca, train_buy_labels)
+        buy_clf, buy_clf_name = self.get_buy_classifier(tsr_train, train_buy_labels, tsr_test, test_buy_labels)
 
-        sell_ratio = 100.0 * (train_sells.sum() / len(train_sells))
+        sell_ratio = 100.0 * (num_sells / len(train_sells))
         if (sell_ratio < 0.5):
             print("*** ERR: insufficient number of positive sell labels ({:.2f}%)".format(sell_ratio))
             return
 
-        sell_clf, sell_clf_name = self.get_sell_classifier(df_train_pca, train_sell_labels)
+        sell_clf, sell_clf_name = self.get_sell_classifier(tsr_train, train_sell_labels, tsr_test, test_sell_labels)
 
         # save the models
 
-        self.pair_model_info[curr_pair]['pca'] = pca
-        self.pair_model_info[curr_pair]['pca_size'] = df_train_pca.shape[1]
         self.pair_model_info[curr_pair]['clf_buy_name'] = buy_clf_name
         self.pair_model_info[curr_pair]['clf_buy'] = buy_clf
         self.pair_model_info[curr_pair]['clf_sell_name'] = sell_clf_name
         self.pair_model_info[curr_pair]['clf_sell'] = sell_clf
 
-        # if scan specified, test against the test dataframe
-        if self.dbg_test_classifier and self.dbg_verbose:
 
-            df_test_pca = DataFrame(pca.transform(df_test))
+
+        # if scan specified, test against the test dataframe
+        if self.dbg_test_classifier:
+
             if not (buy_clf is None):
-                pred_buys = buy_clf.predict(df_test_pca)
+                pred_buys = self.get_classifier_predictions(buy_clf, tsr_test)
                 print("")
-                print("Predict - Buy Signals (", type(buy_clf).__name__, ")")
-                print(classification_report(test_buy_labels, pred_buys))
+                print("Testing Buy Classifier (", buy_clf_name, ")")
+                print(classification_report(test_buy_labels[:, 0], pred_buys))
                 print("")
 
             if not (sell_clf is None):
-                pred_sells = sell_clf.predict(df_test_pca)
+                pred_sells = self.get_classifier_predictions(sell_clf, tsr_test)
                 print("")
-                print("Predict - Sell Signals (", type(sell_clf).__name__, ")")
-                print(classification_report(test_sell_labels, pred_sells))
+                print("Testing Sell Classifier (", sell_clf_name, ")")
+                print(classification_report(test_sell_labels[:, 0], pred_sells))
                 print("")
 
-    # get the PCA model for the supplied dataframe (dataframe must be normalised)
-    def get_pca(self, df_norm: DataFrame):
-
-        ncols = df_norm.shape[1]  # allow all components to get the full variance matrix
-        whiten = True
-
-        pca_type = 0
-
-        # there are various types of PCA, plus alternatives like ICA and Feature Extraction
-        if pca_type == 0:
-            pca = skd.PCA(n_components=ncols, whiten=whiten, svd_solver='full').fit(df_norm)
-            var_ratios = pca.explained_variance_ratio_
-
-            # if self.dbg_verbose:
-            #     print ("PCA variance_ratio: ", pca.explained_variance_ratio_)
-
-            # scan variance and only take if column contributes >x%
-            ncols = 0
-            var_sum = 0.0
-            variance_threshold = 0.999
-            # variance_threshold = 0.99
-            while ((var_sum < variance_threshold) & (ncols < len(var_ratios))):
-                var_sum = var_sum + var_ratios[ncols]
-                ncols = ncols + 1
-
-            # if necessary, re-calculate pca with reduced column set
-            if (ncols != df_norm.shape[1]):
-                # pca = skd.PCA(n_components=ncols, svd_solver="randomized", whiten=True).fit(df_norm)
-                pca = skd.PCA(n_components=ncols, whiten=whiten, svd_solver='full').fit(df_norm)
-
-            self.check_pca(pca, df_norm)
-
-            if self.dbg_analyse_pca and self.dbg_verbose:
-                self.analyse_pca(pca, df_norm)
-
-        elif pca_type == 1:
-            # accurate, but slow
-            print("    Using KernelPCA...")
-            pca = skd.KernelPCA(n_components=ncols, remove_zero_eig=True).fit(df_norm)
-            eigenvalues = pca.eigenvalues_
-            # print(var_ratios)
-            # Note: eigenvalues are not bounded, so just have to go by min value
-            ncols = 0
-            val_threshold = 0.5
-            while ((eigenvalues[ncols] > val_threshold) & (ncols < len(eigenvalues))):
-                ncols = ncols + 1
-
-            # if necessary, re-calculate pca with reduced column set
-            if (ncols != df_norm.shape[1]):
-                # pca = skd.PCA(n_components=ncols, svd_solver="randomized", whiten=True).fit(df_norm)
-                pca = pca = skd.KernelPCA(n_components=ncols, remove_zero_eig=True).fit(df_norm)
-
-        elif pca_type == 2:
-            print("    Using FactorAnalysis...")
-            # Note: this is SUPER slow, do not recommend using it :-(
-            # it is useful to run this once, and check to see which indicators are useful or not
-            pca = skd.FactorAnalysis(n_components=ncols).fit(df_norm)
-            var_ratios = pca.noise_variance_
-            # print(var_ratios)
-
-            # if self.dbg_verbose:
-            #     print ("PCA variance_ratio: ", pca.explained_variance_ratio_)
-
-            # scan variance and only take if column contributes >x%
-            ncols = 0
-            variance_threshold = 0.09
-            col_names = df_norm.columns
-            for i in range(len(var_ratios)):
-                if var_ratios[i] > variance_threshold:
-                    c = '#' if (var_ratios[i] > 0.5) else '+'
-                    print("    {} ({:.3f}) {:<24}".format(c, var_ratios[i], col_names[i]))
-                    ncols = ncols + 1
-                else:
-                    c = '!' if (var_ratios[i] < 0.05) else '-'
-                    print("                                {} ({:.3f}) {:<20}".format(c, var_ratios[i], col_names[i]))
-
-            # if necessary, re-calculate pca with reduced column set
-            if (ncols != df_norm.shape[1]):
-                # pca = skd.PCA(n_components=ncols, svd_solver="randomized", whiten=True).fit(df_norm)
-                pca = skd.FactorAnalysis(n_components=ncols).fit(df_norm)
-
-        elif pca_type == 3:
-            # fast, but not as accurate
-            print("    Using Locally Linear Embedding...")
-            # pca = LocallyLinearEmbedding(n_components=4, eigen_solver='dense', method="modified").fit(df_norm)
-            pca = LocallyLinearEmbedding(method="modified").fit(df_norm)
-
-        else:
-            print("*** ERR - unknown PCA type ***")
-            pca = None
-
-        return pca
-
-    # does a quick for suspicious values. Separate func because we always want to call this
-    def check_pca(self, pca, df):
-
-        ratios = pca.explained_variance_ratio_
-        loadings = pd.DataFrame(pca.components_.T, index=df.columns.values)
-
-        # check variance ratios
-        var_big = np.where(ratios >= 0.5)[0]
-        if len(var_big) > 0:
-            print("    !!! high variance in columns: ", var_big)
-            print("    !!! variances: ", ratios)
-
-        var_0  = np.where(ratios == 0)[0]
-        if len(var_0) > 0:
-            print("    !!! zero variance in columns: ", var_0)
-
-        # check PCA rows
-        inf_rows = loadings[(np.isinf(loadings)).any(axis=1)].index.values.tolist()
-
-        if len(inf_rows) > 0:
-            print("    !!! inf values in rows: ", inf_rows)
-
-        na_rows = loadings[loadings.isna().any(axis=1)].index.values.tolist()
-        if len(na_rows) > 0:
-            print("    !!! na values in rows: ", na_rows)
-
-        zero_rows = loadings[(loadings == 0).any(axis=1)].index.values.tolist()
-        if len(zero_rows) > 0:
-            print("    !!! zero values in rows (remove indicator?!) : ", zero_rows)
-
-        return
-
-
-    def analyse_pca(self, pca, df):
-        print("")
-        print("Variance Ratios:")
-        ratios = pca.explained_variance_ratio_
-        print(ratios)
-        print("")
-
-        # print matrix of weightings for selected components
-        loadings = pd.DataFrame(pca.components_.T, index=df.columns.values)
-
-        l2 = loadings.abs()
-        l3 = loadings.mul(ratios)
-        ranks = loadings.rank()
-
-        loadings['Score'] = l2.sum(axis=1)
-        loadings['Score0'] = loadings[loadings.columns.values[0]].abs()
-        loadings['Rank'] = loadings['Score'].rank(ascending=False)
-        loadings['Rank0'] = loadings['Score0'].rank(ascending=False)
-        print("Loadings, by PC0:")
-        print(loadings.sort_values('Rank0').head(n=30))
-        print("")
-        # print("Loadings, by All Columns:")
-        # print(loadings.sort_values('Rank').head(n=30))
-        # print("")
-
-        # weighted by variance ratios
-        l3a = l3.abs()
-        l3['Score'] = l3a.sum(axis=1)
-        l3['Rank'] = loadings['Score'].rank(ascending=False)
-        print("Loadings, Weighted by Variance Ratio")
-        print (l3.sort_values('Rank').head(n=20))
-
-        # # rankings per column
-        ranks['Score'] = ranks.sum(axis=1)
-        ranks['Rank'] = ranks['Score'].rank(ascending=True)
-        print("Rankings per column")
-        print(ranks.sort_values('Rank', ascending=True).head(n=30))
-
-        # print(loadings.head())
-        # print(l3.head())
-
-    # get a classifier for the supplied dataframe (normalised) and known results
-    def get_buy_classifier(self, df_norm: DataFrame, results):
+    # get a classifier for the supplied normalised dataframe and known results
+    def get_buy_classifier(self, tensor, results, test_tensor, test_labels):
 
         clf = None
         name = ""
-        labels = self.get_binary_labels(results)
+        # labels = self.get_binary_labels(results)
+        labels = results
 
         if results.sum() <= 2:
             print("***")
@@ -1498,25 +1531,26 @@ class PCA(IStrategy):
         # If already done, just get previous result and re-fit
         if self.pair_model_info[self.curr_pair]['clf_buy']:
             clf = self.pair_model_info[self.curr_pair]['clf_buy']
-            clf = clf.fit(df_norm, labels)
             name = self.pair_model_info[self.curr_pair]['clf_buy_name']
+            clf = self.fit_classifier(clf, name, self.buy_tag, tensor, labels, test_tensor, test_labels)
         else:
             if self.dbg_scan_classifiers:
                 if self.dbg_verbose:
                     print("    Finding best buy classifier:")
-                clf, name = self.find_best_classifier(df_norm, labels, tag="buy")
+                clf, name = self.find_best_classifier(tensor, labels, tag="buy")
             else:
-                clf, name = self.classifier_factory(self.default_classifier, df_norm, labels)
-                clf = clf.fit(df_norm, labels)
+                clf, name = self.classifier_factory(self.default_classifier, tensor, labels)
+                clf = self.fit_classifier(clf, name, self.buy_tag, tensor, labels, test_tensor, test_labels)
 
         return clf, name
 
-    # get a classifier for the supplied dataframe (normalised) and known results
-    def get_sell_classifier(self, df_norm: DataFrame, results):
+    # get a classifier for the supplied normalised dataframe and known results
+    def get_sell_classifier(self, tensor, results, test_tensor, test_labels):
 
         clf = None
         name = ""
-        labels = self.get_binary_labels(results)
+        # labels = self.get_binary_labels(results)
+        labels = results
 
         if results.sum() <= 2:
             print("***")
@@ -1527,98 +1561,401 @@ class PCA(IStrategy):
         # If already done, just get previous result and re-fit
         if self.pair_model_info[self.curr_pair]['clf_sell']:
             clf = self.pair_model_info[self.curr_pair]['clf_sell']
-            clf = clf.fit(df_norm, labels)
             name = self.pair_model_info[self.curr_pair]['clf_sell_name']
+            clf = self.fit_classifier(clf, name, self.sell_tag, tensor, labels, test_tensor, test_labels)
+
         else:
             if self.dbg_scan_classifiers:
                 if self.dbg_verbose:
                     print("    Finding best sell classifier:")
-                clf, name = self.find_best_classifier(df_norm, labels, tag="sell")
+                clf, name = self.find_best_classifier(tensor, labels, tag="sell")
             else:
-                clf, name = self.classifier_factory(self.default_classifier, df_norm, labels)
-                clf = clf.fit(df_norm, labels)
+                clf, name = self.classifier_factory(self.default_classifier, tensor, labels)
+                clf = self.fit_classifier(clf, name, self.sell_tag, tensor, labels, test_tensor, test_labels)
 
         return clf, name
 
     # default classifier
-    default_classifier = 'LDA'  # select based on testing
+    default_classifier = 'RBM'  # select based on testing
 
     # list of potential classifier types - set to the list that you want to compare
     classifier_list = [
-        'LogisticRegression', 'GaussianNB', 'SGD',
-        'GradientBoosting', 'AdaBoost', 'linearSVC', 'sigmoidSVC',
-        'LDA'
+        # 'MLP', 'LSTM', 'Attention', 'Multihead'
+        'MLP', 'MLP2', 'LSTM', 'Multihead', 'RBM'
     ]
 
     # factory to create classifier based on name
-    def classifier_factory(self, name, data, labels):
+    def classifier_factory(self, name, tensor, labels):
         clf = None
 
-        if name == 'LogisticRegression':
-            clf = LogisticRegression(max_iter=10000)
-        elif name == 'DecisionTree':
-            clf = DecisionTreeClassifier()
-        elif name == 'RandomForest':
-            clf = RandomForestClassifier()
-        elif name == 'GaussianNB':
-            clf = GaussianNB()
-        elif name == 'MLP':
-            param_grid = {
-                'hidden_layer_sizes': [(30, 2), (30, 80, 2), (30, 60, 30, 2)],
-                'max_iter': [50, 100, 150],
-                'activation': ['tanh', 'relu'],
-                'solver': ['sgd', 'adam', 'lbfgs'],
-                'alpha': [0.0001, 0.05],
-                'learning_rate': ['constant', 'adaptive'],
-            }
-            clf = MLPClassifier(hidden_layer_sizes=(64, 32, 1),
-                                max_iter=50,
-                                activation='relu',
-                                learning_rate='adaptive',
-                                alpha=1e-5,
-                                solver='lbfgs',
-                                verbose=0)
+        # nfeatures = df_norm.shape[1]
 
+        nfeatures = np.shape(tensor)[2]
 
-        elif name == 'KNeighbors':
-            clf = KNeighborsClassifier(n_neighbors=3)
-        elif name == 'SGD':
-            clf = SGDClassifier()
-        elif name == 'GradientBoosting':
-            clf = GradientBoostingClassifier()
-        elif name == 'AdaBoost':
-            clf = AdaBoostClassifier()
-        elif name == 'QDA':
-            clf = QuadraticDiscriminantAnalysis()
-        elif name == 'linearSVC':
-            clf = LinearSVC(dual=False)
-        elif name == 'gaussianSVC':
-            clf = SVC(kernel='rbf')
-        elif name == 'polySVC':
-            clf = SVC(kernel='poly')
-        elif name == 'sigmoidSVC':
-            clf = SVC(kernel='sigmoid')
-        elif name == 'Voting':
-            # choose 4 decent classifiers
-            c1, _ = self.classifier_factory('AdaBoost', data, labels)
-            c2, _ = self.classifier_factory('GaussianNB', data, labels)
-            c3, _ = self.classifier_factory('KNeighbors', data, labels)
-            c4, _ = self.classifier_factory('DecisionTree', data, labels)
-            clf = VotingClassifier(estimators=[('c1', c1), ('c2', c2), ('c3', c3), ('c4', c4)], voting='hard')
-        elif name == 'LDA':
-            clf = LinearDiscriminantAnalysis()
-        elif name == 'QDA':
-            clf = QuadraticDiscriminantAnalysis()
-
+        if name == 'MLP':
+            clf = self.build_model_MLP(nfeatures, self.seq_len)
+        elif name == 'MLP2':
+            clf = self.build_model_MLP2(nfeatures, self.seq_len)
+        elif name == 'LSTM':
+            clf = self.build_model_LSTM(nfeatures, self.seq_len)
+        elif name == 'LSTM2':
+            clf = self.build_model_LSTM2(nfeatures, self.seq_len)
+        elif name == 'Attention':
+            clf = self.build_model_Attention(nfeatures, self.seq_len)
+        elif name == 'Multihead':
+            clf = self.build_model_Multihead(nfeatures, self.seq_len)
+        elif name == 'RBM':
+            clf = self.build_model_RBM(nfeatures, self.seq_len)
 
         else:
             print("Unknown classifier: ", name)
             clf = None
         return clf, name
 
+    #######################################
+
+    # get a scaler for scaling/normalising the data (in a func because I change it routinely)
+    def get_scaler(self):
+        # uncomment the one yu want
+        # return StandardScaler()
+        # return RobustScaler()
+        return MinMaxScaler()
+
+    def df_to_tensor(self, df, seq_len):
+        # input format = [nrows, nfeatures], output = [nrows, seq_len, nfeatures]
+        # print("df type:", type(df))
+        if not isinstance(df, type([np.ndarray, np.array])):
+            data = np.array(df)
+        else:
+            data = df
+
+        nrows = np.shape(data)[0]
+        nfeatures = np.shape(data)[1]
+        tensor_arr = np.zeros((nrows, seq_len, nfeatures), dtype=float)
+        zero_row = np.zeros((nfeatures), dtype=float)
+        # tensor_arr = []
+
+        # print("data:{} tensor:{}".format(np.shape(data), np.shape(tensor_arr)))
+        # print("nrows:{} nfeatures:{}".format(nrows, nfeatures))
+
+        reverse = True
+
+        # fill the first part (0..seqlen rows), which are only sparsely populated
+        for row in range(seq_len):
+            for seq in range(seq_len):
+                if seq >= (seq_len - row - 1):
+                    src_row = (row + seq) - seq_len + 1
+                    tensor_arr[row][seq] = data[src_row]
+                else:
+                    tensor_arr[row][seq] = zero_row
+            if reverse:
+                tensor_arr[row] = np.flipud(tensor_arr[row])
+
+        # fill the rest
+        # print("Data:{}, len:{}".format(np.shape(data), seq_len))
+        for row in range(seq_len, nrows):
+            tensor_arr[row] = data[(row - seq_len) + 1:row + 1]
+            if reverse:
+                tensor_arr[row] = np.flipud(tensor_arr[row])
+
+        # print("data: ", data)
+        # print("tensor: ", tensor_arr)
+        # print("data:{} tensor:{}".format(np.shape(data), np.shape(tensor_arr)))
+        return tensor_arr
+
+    #######################################
+
+
+    def get_model_name(self, clf_name, tag):
+        # Note that keras expects it to be called 'checkpoint'
+        checkpoint_dir = '/tmp'
+        curr_class = self.__class__.__name__
+        prefix = checkpoint_dir + "/" + curr_class + "/" + self.curr_pair.replace("/", "_")
+        suffix = "_" + clf_name
+        if (len(tag) > 0):
+            suffix = suffix + "_" + tag
+
+        model_name = prefix + suffix + "/checkpoint"
+        return model_name
+
+    def get_model_weights(self, model, clf_name, tag):
+
+        model_name = self.get_model_name(clf_name, tag)
+
+        # if checkpoint already exists, load it as a starting point
+        if os.path.exists(model_name):
+            print("    Loading existing model ({})...".format(model_name))
+            try:
+                model.load_weights(model_name)
+            except:
+                print("Error loading weights from {}. Check whether model format changed".format(model_name))
+        else:
+            print("    model not found ({})...".format(model_name))
+            if self.dp.runmode.value not in ('hyperopt', 'backtest', 'plot'):
+                print("*** ERR: no existing model. You should run backtest first!")
+        return model
+
+
+    def fit_classifier(self, classifier, name, tag, tensor, labels, test_tensor, test_labels):
+
+        # load existing model, if it exists
+        model_name = self.get_model_name(name, tag)
+
+        if self.preload_model:
+            classifier = self.get_model_weights(classifier, name, tag)
+
+        # print("    fit_classifier() tensor:{} labels:{}".format(np.shape(tensor), np.shape(labels)))
+
+        # callback to control early exit on plateau of results
+        early_callback = keras.callbacks.EarlyStopping(
+            monitor="loss",
+            mode="min",
+            patience=9,
+            verbose=0)
+
+        plateau_callback = keras.callbacks.ReduceLROnPlateau(
+            monitor='loss',
+            factor=0.1,
+            min_delta=0.0001,
+            patience=4,
+            verbose=0)
+
+        # callback to control saving of 'best' model
+        # Note that we use validation loss as the metric, not training loss
+        checkpoint_callback = keras.callbacks.ModelCheckpoint(
+            filepath=model_name,
+            save_weights_only=True,
+            monitor='loss',
+            mode='min',
+            save_best_only=True,
+            verbose=0)
+
+        # df_tensor = np.reshape(df_tensor, (np.shape(df_tensor)[0], np.shape(df_tensor)[1], np.shape(df_tensor)[2]))
+        # lbl_tensor = np.array(lbl_tensor).reshape(np.shape(df_tensor)[0], np.shape(df_tensor)[1], np.shape(df_tensor)[2]))
+
+        print("    training {} model: {}...".format(tag, name))
+        # Model weights are saved at the end of every epoch, if it's the best seen so far.
+        fhis = classifier.fit(tensor, labels,
+                              batch_size=self.batch_size,
+                              epochs=self.num_epochs,
+                              callbacks=[plateau_callback, early_callback, checkpoint_callback],
+                              validation_data=(test_tensor, test_labels),
+                              verbose=0)
+
+        # The model weights (that are considered the best) are loaded into th model.
+        classifier = self.get_model_weights(classifier, name, tag)
+
+        return classifier
+
+    def get_classifier_predictions(self, classifier, data):
+
+        if not isinstance(data, (np.ndarray, np.array)):
+            # convert dataframe to tensor
+            df_tensor = self.df_to_tensor(data, self.seq_len)
+        else:
+            df_tensor = data
+
+        if classifier == None:
+            print("    no classifier for predictions")
+            predictions = np.zeros(np.shape(df_tensor)[0], dtype=float)
+            return predictions
+
+        # run the prediction
+        preds = classifier.predict(df_tensor, verbose=0)
+
+        # re-shape into a vector
+        preds = np.array(preds[:, 0]).reshape(-1, 1)
+        preds = preds[:, 0]
+
+        # convert softmax result into a binary value
+        # predictions = np.argmax(preds) # softmax output
+        # predictions = tf.round(tf.nn.sigmoid(preds)) # linear output
+        predictions = np.where(preds > 0.5, 1.0, 0.0) # sigmoid output
+
+        # print(predictions)
+
+        return predictions
+
+    # Classifier Models
+
+    # These all return binary 'softmax' values that should be evaluated using np.argmax(result) to convert to 0 or 1
+
+    # Multi-Layer Perceptron
+    def build_model_MLP(self, nfeatures: int, seq_len: int):
+
+        model = keras.Sequential()
+
+        # simplest possible model:
+        model.add(layers.Dense(96, input_shape=(seq_len, nfeatures)))
+        model.add(layers.Dropout(rate=0.2))
+        model.add(layers.Dense(32))
+        model.add(layers.Dropout(rate=0.2))
+
+        # model.add(layers.Dense(1, activation='linear'))
+        model.add(layers.Dense(1, activation='sigmoid'))
+
+        # model.summary()  # helps keep track of which model is running, while making changes
+        opt = keras.optimizers.Adam(learning_rate=0.0001)
+        model.compile(optimizer=opt,
+                      loss='binary_crossentropy',
+                      metrics=['accuracy'])
+        return model
+
+    # Multi-Layer Perceptron
+    def build_model_MLP2(self, nfeatures: int, seq_len: int):
+
+        model = keras.Sequential()
+
+        # simplest possible model:
+        model.add(layers.Dense(128, input_shape=(seq_len, nfeatures)))
+        model.add(layers.Dropout(rate=0.2))
+        model.add(layers.Dense(512))
+        model.add(layers.Dropout(rate=0.2))
+        model.add(layers.Dense(64))
+        model.add(layers.Dropout(rate=0.2))
+        model.add(layers.Dense(32))
+        model.add(layers.Dropout(rate=0.2))
+
+        # model.add(layers.Dense(1, activation='linear'))
+        model.add(layers.Dense(1, activation='sigmoid'))
+
+        # model.summary()  # helps keep track of which model is running, while making changes
+        opt = keras.optimizers.Adam(learning_rate=0.0001)
+        model.compile(optimizer=opt,
+                      loss='binary_crossentropy',
+                      metrics=['accuracy', 'mse'])
+        return model
+
+    # Long/Short Term Memory
+    def build_model_LSTM(self, nfeatures: int, seq_len: int):
+
+        # print("    build_model_LSTM - nfeatures: ", nfeatures)
+        model = keras.Sequential()
+
+        # simplest possible model:
+        model.add(layers.LSTM(128, return_sequences=True, input_shape=(seq_len, nfeatures)))
+        model.add(layers.Dropout(rate=0.1))
+
+        # model.add(layers.Dense(1, activation='linear'))
+        model.add(layers.Dense(1, activation='sigmoid'))
+
+        # model.summary()  # helps keep track of which model is running, while making changes
+        opt = keras.optimizers.Adam(learning_rate=0.0001)
+        model.compile(optimizer=opt,
+                      loss='binary_crossentropy',
+                      metrics=['accuracy', 'mse'])
+        return model
+
+    # Long/Short Term Memory #2
+    def build_model_LSTM2(self, nfeatures: int, seq_len: int):
+
+        model = keras.Sequential()
+
+        # model.add(layers.LSTM(128, return_sequences=True, input_shape=(seq_len, nfeatures)))
+        model.add(layers.LSTM(128, input_shape=(seq_len, nfeatures)))
+        model.add(layers.Dropout(rate=0.1))
+        model.add(layers.LSTM(64))
+        model.add(layers.Dropout(rate=0.1))
+
+        # model.add(layers.Dense(1, activation='linear'))
+        model.add(layers.Dense(1, activation='sigmoid'))
+
+        model.summary()  # helps keep track of which model is running, while making changes
+        opt = keras.optimizers.Adam(learning_rate=0.0001)
+        model.compile(optimizer=opt,
+                      loss='binary_crossentropy',
+                      metrics=['accuracy', 'mse'])
+        return model
+
+    # Self-Attention
+    def build_model_Attention(self, nfeatures: int, seq_len: int):
+
+        model = keras.Sequential()
+
+        # Attention (Single Head)
+        model.add(layers.LSTM(128, return_sequences=True, input_shape=(seq_len, nfeatures)))
+        model.add(layers.Dropout(0.2))
+        model.add(layers.BatchNormalization())
+        model.add(Attention.Attention(seq_len))
+        model.add(layers.Dense(32, activation="relu"))
+        model.add(layers.Dropout(0.2))
+
+        # model.add(layers.Dense(1, activation='linear'))
+        model.add(layers.Dense(1, activation='sigmoid'))
+
+        model.summary()  # helps keep track of which model is running, while making changes
+        opt = keras.optimizers.Adam(learning_rate=0.0001)
+        model.compile(optimizer=opt,
+                      loss='binary_crossentropy',
+                      metrics=['accuracy', 'mse'])
+        return model
+
+    # Multihead Attention
+    def build_model_Multihead(self, nfeatures: int, seq_len: int):
+
+        dropout = 0.1
+
+        input_shape = (seq_len, nfeatures)
+        inputs = keras.Input(shape=input_shape)
+        x = inputs
+        x = layers.LSTM(128, return_sequences=True, input_shape=input_shape)(x)
+        x = layers.Dropout(dropout)(x)
+        x = layers.Dense(nfeatures)(x)
+        x = layers.LayerNormalization(epsilon=1e-6)(x)
+
+        # "ATTENTION LAYER"
+        x = layers.MultiHeadAttention(key_dim=nfeatures, num_heads=3, dropout=dropout)(x, x, x)
+        x = layers.Dropout(0.1)(x)
+        res = x + inputs
+
+        # FEED FORWARD Part - you can stick anything here or just delete the whole section - it will still work.
+        x = layers.LayerNormalization(epsilon=1e-6)(res)
+        x = layers.Conv1D(filters=seq_len, kernel_size=1, activation="relu")(x)
+        x = layers.Dropout(dropout)(x)
+        x = layers.Conv1D(filters=nfeatures, kernel_size=1)(x)
+        x = x + res
+
+        # outputs = layers.Dense(1, activation="linear")(x)
+        outputs = layers.Dense(1, activation="sigmoid")(x)
+
+        model = keras.Model(inputs, outputs)
+
+        # model.summary()  # helps keep track of which model is running, while making changes
+        opt = keras.optimizers.Adam(learning_rate=0.0001)
+        model.compile(optimizer=opt,
+                      loss='binary_crossentropy',
+                      metrics=['accuracy', 'mse'])
+        return model
+
+
+    # Reduced Boltzmann Machine
+    def build_model_RBM(self, nfeatures: int, seq_len: int):
+
+        model = keras.Sequential()
+
+        model.add(layers.GRU(64, return_sequences=True, input_shape=(seq_len, nfeatures)))
+
+        model.add(RBM.RBM())
+        model.add(layers.LSTM(128, return_sequences=True))
+        model.add(layers.Dropout(0.2))
+
+        # model.add(layers.Dense(1, activation='linear'))
+        model.add(layers.Dense(1, activation='sigmoid'))
+
+        model.summary()  # helps keep track of which model is running, while making changes
+        opt = keras.optimizers.Adam(learning_rate=0.0001)
+        model.compile(optimizer=opt,
+                      loss='binary_crossentropy',
+                      metrics=['accuracy', 'mse'])
+        return model
+
+    # TODO: Support Vector Regression, Deep Boltzmann Machine
+
+    #######################################
+
     # tries different types of classifiers and returns the best one
     # tag parameter identifies where to save performance stats (default is not to save)
-    def find_best_classifier(self, df, results, tag=""):
+    def find_best_classifier(self, tensor, results, tag=""):
 
         if self.dbg_verbose:
             print("      Evaluating classifiers...")
@@ -1636,17 +1973,20 @@ class PCA(IStrategy):
         best_score = -0.1
         best_classifier = ""
 
-        labels = self.get_binary_labels(results)
+        # labels = self.get_binary_labels(results)
+        labels = results
+
+        #TODO: replace train_test_spli?!
 
         # split into test/train for evaluation, then re-fit once selected
-        # df_train, df_test, res_train, res_test = train_test_split(df, results, train_size=0.5)
-        df_train, df_test, res_train, res_test = train_test_split(df, labels, train_size=0.8,
-                                                                  random_state=27, shuffle=True)
-        # print("df_train:",  df_train.shape, " df_test:", df_test.shape,
+        # tsr_train, df_test, res_train, res_test = train_test_split(df, results, train_size=0.5)
+        tsr_train, tsr_test, res_train, res_test = train_test_split(tensor, labels, train_size=0.8,
+                                                                    random_state=27, shuffle=False)
+        # print("tsr_train:", tsr_train.shape, " tsr_test:", tsr_test.shape,
         #       "res_train:", res_train.shape, "res_test:", res_test.shape)
 
         # check there are enough training samples
-        #TODO: if low train/test samples, use k-fold sampling nstead
+        # TODO: if low train/test samples, use k-fold sampling nstead
         if res_train.sum() < 2:
             print("    Insufficient +ve (train) results to fit: ", res_train.sum())
             return None, ""
@@ -1656,18 +1996,19 @@ class PCA(IStrategy):
             return None, ""
 
         for cname in self.classifier_list:
-            clf, _ = self.classifier_factory(cname, df_train, res_train)
+            clf, _ = self.classifier_factory(cname, tsr_train, res_train)
 
             if clf is not None:
 
                 # fit to the training data
                 clf_dict[cname] = clf
-                clf = clf.fit(df_train, res_train)
+                clf = self.fit_classifier(clf, cname, tag, tsr_train, res_train, tsr_test, res_test)
 
                 # assess using the test data. Do *not* use the training data for testing
-                pred_test = clf.predict(df_test)
+                pred_test = self.get_classifier_predictions(clf, tsr_test)
+
                 # score = f1_score(results, prediction, average=None)[1]
-                score = f1_score(res_test, pred_test, average='macro')
+                score = f1_score(res_test[:, 0], pred_test, average='macro')
 
                 if self.dbg_verbose:
                     print("      {0:<20}: {1:.3f}".format(cname, score))
@@ -1682,7 +2023,7 @@ class PCA(IStrategy):
                         self.classifier_stats[tag] = {}
 
                     if not (cname in self.classifier_stats[tag]):
-                        self.classifier_stats[tag][cname] = { 'count': 0, 'score': 0.0, 'selected': 0}
+                        self.classifier_stats[tag][cname] = {'count': 0, 'score': 0.0, 'selected': 0}
 
                     curr_count = self.classifier_stats[tag][cname]['count']
                     curr_score = self.classifier_stats[tag][cname]['score']
@@ -1702,7 +2043,6 @@ class PCA(IStrategy):
             print("!!!")
             return None, ""
 
-
         # update stats for selected classifier
         if tag:
             if best_classifier in self.classifier_stats[tag]:
@@ -1720,13 +2060,11 @@ class PCA(IStrategy):
         # predict = 0
         predict = None
 
-        pca = self.pair_model_info[pair]['pca']
-
-        if clf:
+        if clf is not None:
             # print("    predicting... - dataframe:", dataframe.shape)
             df_norm = self.norm_dataframe(dataframe)
-            df_norm_pca = pca.transform(df_norm)
-            predict = clf.predict(df_norm_pca)
+            df_tensor = self.df_to_tensor(df_norm, self.seq_len)
+            predict = self.get_classifier_predictions(clf, df_tensor)
 
         else:
             print("Null CLF for pair: ", pair)
@@ -1827,16 +2165,14 @@ class PCA(IStrategy):
         if (len(self.pair_model_info) > 0):
             # print("Model Info:")
             # print("----------")
-            table = PrettyTable(["Pair", "PCA Size", "Buy Classifier", "Sell Classifier"])
+            table = PrettyTable(["Pair", "Buy Classifier", "Sell Classifier"])
             table.title = "Model Information"
             table.align = "l"
-            table.align["PCA Size"] = "c"
             table.reversesort = False
             table.sortby = 'Pair'
 
             for pair in self.pair_model_info:
                 table.add_row([pair,
-                               self.pair_model_info[pair]['pca_size'],
                                self.pair_model_info[pair]['clf_buy_name'],
                                self.pair_model_info[pair]['clf_sell_name']
                                ])
@@ -1847,41 +2183,39 @@ class PCA(IStrategy):
             # print("Classifier Statistics:")
             # print("---------------------")
             print("")
-            if 'buy' in self.classifier_stats:
+            if self.buy_tag in self.classifier_stats:
                 print("")
                 table = PrettyTable(["Classifier", "Mean Score", "Selected"])
                 table.title = "Buy Classifiers"
                 table.align["Classifier"] = "l"
                 table.align["Mean Score"] = "c"
                 table.float_format = '.4'
-                for cls in self.classifier_stats['buy']:
+                for cls in self.classifier_stats[self.buy_tag]:
                     table.add_row([cls,
-                                   self.classifier_stats['buy'][cls]['score'],
-                                   self.classifier_stats['buy'][cls]['selected']])
+                                   self.classifier_stats[self.buy_tag][cls]['score'],
+                                   self.classifier_stats[self.buy_tag][cls]['selected']])
                 table.reversesort = True
                 # table.sortby = 'Mean Score'
                 print(table.get_string(sort_key=operator.itemgetter(2, 1), sortby="Selected"))
                 print("")
 
-            if 'sell' in self.classifier_stats:
+            if self.sell_tag in self.classifier_stats:
                 print("")
                 table = PrettyTable(["Classifier", "Mean Score", "Selected"])
                 table.title = "Sell Classifiers"
                 table.align["Classifier"] = "l"
                 table.align["Mean Score"] = "c"
                 table.float_format = '.4'
-                for cls in self.classifier_stats['sell']:
-                        table.add_row([cls,
-                                       self.classifier_stats['sell'][cls]['score'],
-                                       self.classifier_stats['sell'][cls]['selected']])
+                for cls in self.classifier_stats[self.sell_tag]:
+                    table.add_row([cls,
+                                   self.classifier_stats[self.sell_tag][cls]['score'],
+                                   self.classifier_stats[self.sell_tag][cls]['selected']])
                 table.reversesort = True
                 # table.sortby = 'Mean Score'
                 print(table.get_string(sort_key=operator.itemgetter(2, 1), sortby="Selected"))
                 print("")
 
-
             print("")
-
 
     ###################################
 
@@ -1897,8 +2231,8 @@ class PCA(IStrategy):
         self.set_state(curr_pair, self.State.RUNNING)
 
         if not self.dp.runmode.value in ('hyperopt'):
-            if PCA.first_run:
-                PCA.first_run = False # note use of clas variable, not instance variable
+            if NNBC.first_run:
+                NNBC.first_run = False  # note use of clas variable, not instance variable
                 # self.show_debug_info(curr_pair)
                 self.show_all_debug_info()
 
@@ -1918,14 +2252,14 @@ class PCA(IStrategy):
         # below Bollinger mid-point
         conditions.append(dataframe['close'] < dataframe['bb_middleband'])
 
-        # PCA/Classifier triggers
-        pca_cond = (
+        # Classifier triggers
+        predict_cond = (
             (qtpylib.crossed_above(dataframe['predict_buy'], 0.5))
         )
-        conditions.append(pca_cond)
+        conditions.append(predict_cond)
 
         # set entry tags
-        dataframe.loc[pca_cond, 'enter_tag'] += 'pca_entry '
+        dataframe.loc[predict_cond, 'enter_tag'] += 'predict_entry '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
@@ -1948,8 +2282,8 @@ class PCA(IStrategy):
         self.set_state(curr_pair, self.State.RUNNING)
 
         if not self.dp.runmode.value in ('hyperopt'):
-            if PCA.first_run:
-                PCA.first_run = False # note use of clas variable, not instance variable
+            if NNBC.first_run:
+                NNBC.first_run = False  # note use of clas variable, not instance variable
                 # self.show_debug_info(curr_pair)
                 self.show_all_debug_info()
 
@@ -1965,13 +2299,13 @@ class PCA(IStrategy):
         conditions.append(dataframe['fisher_wr'] > 0.5)
 
         # PCA triggers
-        pca_cond = (
+        predict_cond = (
             qtpylib.crossed_above(dataframe['predict_sell'], 0.5)
         )
 
-        conditions.append(pca_cond)
+        conditions.append(predict_cond)
 
-        dataframe.loc[pca_cond, 'exit_tag'] += 'pca_exit '
+        dataframe.loc[predict_cond, 'exit_tag'] += 'predict_exit '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1
@@ -2292,4 +2626,3 @@ def range_percent_change(dataframe: DataFrame, method, length: int) -> float:
             'close'].rolling(length).min()
     else:
         raise ValueError(f"Method {method} not defined!")
-

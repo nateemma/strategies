@@ -644,36 +644,36 @@ class Predict_LSTM(IStrategy):
                       test_result_start, (test_result_start+test_size)
                       ))
 
-        # chunkify dataframe before extracting train/test data (avoid edge effects)
-        df_chunked = self.chunkify(df_norm, self.seq_len)
+        # convert dataframe to tensor before extracting train/test data (avoid edge effects)
+        df_tensor = self.df_to_tensor(df_norm, self.seq_len)
         # train_df_norm = df_norm[train_start:train_start + train_size, :]
         # train_results_norm = df_norm[train_result_start:train_result_start + train_size, tgt_col]
-        train_df_norm = df_chunked[train_start:train_start + train_size]
+        train_df_norm = df_tensor[train_start:train_start + train_size]
         train_results_norm = df_norm[train_result_start:train_result_start + train_size, tgt_col]
 
-        test_df_norm = df_chunked[test_start:test_start + test_size]
+        test_df_norm = df_tensor[test_start:test_start + test_size]
         test_results_norm = df_norm[test_result_start:test_result_start + test_size, tgt_col]
 
         # print(train_df_norm[:, tgt_col])
         # print(train_results_norm)
 
 
-        # train_df_chunk = self.chunkify(train_df_norm, self.seq_len)
-        # test_df_chunk = self.chunkify(test_df_norm, self.seq_len)
-        train_df_chunk = train_df_norm
-        test_df_chunk = test_df_norm
+        # train_tensor = self.df_to_tensor(train_df_norm, self.seq_len)
+        # test_tensor = self.df_to_tensor(test_df_norm, self.seq_len)
+        train_tensor = train_df_norm
+        test_tensor = test_df_norm
 
         # re-shape into format expected by LSTM model
         # train_df_norm = np.reshape(np.array(train_df_norm), (train_df_norm.shape[0], self.seq_len, train_df_norm.shape[1]))
         # test_df_norm = np.reshape(np.array(test_df_norm), (test_df_norm.shape[0], self.seq_len, test_df_norm.shape[1]))
-        train_df_chunk = np.reshape(train_df_chunk, (train_size, self.seq_len, nfeatures))
-        test_df_chunk = np.reshape(test_df_chunk, (test_size, self.seq_len, nfeatures))
+        train_tensor = np.reshape(train_tensor, (train_size, self.seq_len, nfeatures))
+        test_tensor = np.reshape(test_tensor, (test_size, self.seq_len, nfeatures))
         train_results_norm = np.array(train_results_norm).reshape(-1, 1)
         test_results_norm = np.array(test_results_norm).reshape(-1, 1)
 
         # print("")
-        # print("    train data:", np.shape(train_df_chunk), " train results:", train_results_norm.shape)
-        # print("    test data: ", np.shape(test_df_chunk), " test results: ", test_results_norm.shape)
+        # print("    train data:", np.shape(train_tensor), " train results:", train_results_norm.shape)
+        # print("    test data: ", np.shape(test_tensor), " test results: ", test_results_norm.shape)
         # print("")
 
         # train the model
@@ -699,10 +699,11 @@ class Predict_LSTM(IStrategy):
         model_name = self.get_model_name()
 
         # callback to control saving of 'best' model
+        # Note that we use validation loss as the metric, not training loss
         checkpoint_callback = keras.callbacks.ModelCheckpoint(
             filepath=model_name,
             save_weights_only=True,
-            monitor='loss',
+            monitor='val_loss',
             mode='min',
             save_best_only=True,
             verbose=0)
@@ -710,11 +711,11 @@ class Predict_LSTM(IStrategy):
         # TqdmCallback displays a progress bar instead of the default keras output
 
         # Model weights are saved at the end of every epoch, if it's the best seen so far.
-        fhis = model.fit(train_df_chunk, train_results_norm,
+        fhis = model.fit(train_tensor, train_results_norm,
                          batch_size=self.batch_size,
                          epochs=self.num_epochs,
                          callbacks=[checkpoint_callback, plateau_callback, early_callback],
-                         validation_data=(test_df_chunk, test_results_norm),
+                         validation_data=(test_tensor, test_results_norm),
                          verbose=1)
 
         # The model weights (that are considered the best) are loaded into th model.
@@ -728,7 +729,7 @@ class Predict_LSTM(IStrategy):
 
         # test the model
         print("    checking model with test data...")
-        results = model.evaluate(test_df_chunk, test_results_norm,
+        results = model.evaluate(test_tensor, test_results_norm,
                                  batch_size=self.batch_size, verbose=0)
         # print("results:", results)
 
@@ -771,13 +772,13 @@ class Predict_LSTM(IStrategy):
         # return RobustScaler()
         # return MinMaxScaler()
 
-    def chunkify(self, data, seq_len):
+    def df_to_tensor(self, data, seq_len):
         # input format = [nrows, nfeatures] output = [nrows, seq_len, nfeatures]
         nrows = np.shape(data)[0]
         nfeatures = np.shape(data)[1]
-        chunked_array = np.zeros((nrows, seq_len, nfeatures), dtype=float)
+        tensor_arr = np.zeros((nrows, seq_len, nfeatures), dtype=float)
         zero_row = np.zeros((nfeatures), dtype=float)
-        # chunked_array = []
+        # tensor_arr = []
 
         reverse = True
 
@@ -785,23 +786,23 @@ class Predict_LSTM(IStrategy):
         for row in range(seq_len):
             for seq in range(seq_len):
                 if seq >= (seq_len - row - 1):
-                    chunked_array[row][seq] = data[(row + seq) - seq_len + 1]
+                    tensor_arr[row][seq] = data[(row + seq) - seq_len + 1]
                 else:
-                    chunked_array[row][seq] = zero_row
+                    tensor_arr[row][seq] = zero_row
             if reverse:
-                chunked_array[row] = np.flipud(chunked_array[row])
+                tensor_arr[row] = np.flipud(tensor_arr[row])
 
         # fill the rest
         # print("Data:{}, len:{}".format(np.shape(data), seq_len))
         for row in range(seq_len, nrows):
-            chunked_array[row] = data[(row - seq_len) + 1:row + 1]
+            tensor_arr[row] = data[(row - seq_len) + 1:row + 1]
             if reverse:
-                chunked_array[row] = np.flipud(chunked_array[row])
+                tensor_arr[row] = np.flipud(tensor_arr[row])
 
         # print("data: ", data)
-        # print("chunked: ", chunked_array)
-        # print("data:{} chunked:{}".format(np.shape(data), np.shape(chunked_array)))
-        return chunked_array
+        # print("tensor: ", tensor_arr)
+        # print("data:{} tensor:{}".format(np.shape(data), np.shape(tensor_arr)))
+        return tensor_arr
 
     def get_lstm(self, nfeatures: int, seq_len: int):
         model = keras.Sequential()
@@ -866,7 +867,7 @@ class Predict_LSTM(IStrategy):
 
     ################################
 
-    # get predictions. Note that the input must already be in 'chunked' (tensor) format
+    # get predictions. Note that the input must already be in tensor format
     def get_predictions(self, df_chunk: np.array):
 
         # get the model
@@ -906,7 +907,7 @@ class Predict_LSTM(IStrategy):
         # df_norm3 = np.reshape(df_chunk, (np.shape(df_chunk)[0], self.seq_len, np.shape(df_chunk)[1]))
 
         # convert dataframe to tensor
-        df_chunked = self.chunkify(df_norm, self.seq_len)
+        df_tensor = self.df_to_tensor(df_norm, self.seq_len)
 
         # prediction does not work well when run over a large dataset, so divide into chunks and predict for each one
         # then concatenate the results and return
@@ -918,7 +919,7 @@ class Predict_LSTM(IStrategy):
             start = i * batch_size
             end = start + batch_size
             # print("start:{} end:{}".format(start, end))
-            chunk = df_chunked[start:end]
+            chunk = df_tensor[start:end]
             # print(chunk)
             preds = self.get_predictions(chunk)
             # print(preds)
@@ -929,7 +930,7 @@ class Predict_LSTM(IStrategy):
         end = dataframe.shape[0]
         # print("start:{} end:{}".format(start, end))
         if end > start:
-            chunk = df_chunked[start:end]
+            chunk = df_tensor[start:end]
             preds = self.get_predictions(chunk)
             preds_notrend = np.concatenate((preds_notrend, preds))
 
