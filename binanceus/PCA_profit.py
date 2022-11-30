@@ -67,8 +67,8 @@ class PCA_profit(PCA):
 
     custom_trade_info = {}
 
-    dbg_scan_classifiers = True  # if True, scan all viable classifiers and choose the best. Very slow!
-    dbg_test_classifier = True  # test clasifiers after fitting
+    dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
+    dbg_test_classifier = False  # test clasifiers after fitting
     dbg_analyse_pca = False  # analyze PCA weights
     dbg_verbose = True  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
@@ -117,11 +117,8 @@ class PCA_profit(PCA):
     def get_train_buy_signals(self, future_df: DataFrame):
         series = np.where(
             (
-                # (future_df['volume'] > 0) & # volume check
-                # future profit exceeds threshold
-                    (future_df['profit_max'] >= future_df['profit_threshold']) &
-                    #     # future window max exceeds prior window max
-                    (future_df['future_max'] > future_df['dwt_recent_max'])
+                    (future_df['profit_max'] >= future_df['profit_threshold']) & # future profit exceeds threshold
+                    (future_df['future_max'] > future_df['dwt_recent_max']) # future window max exceeds prior window max
             ), 1.0, 0.0)
 
         return series
@@ -129,11 +126,8 @@ class PCA_profit(PCA):
     def get_train_sell_signals(self, future_df: DataFrame):
         series = np.where(
             (
-                # (future_df['volume'] > 0) & # volume check
-                # future loss exceeds threshold
-                    (future_df['loss_min'] <= future_df['loss_threshold']) &
-                    # future window max exceeds prior window max
-                    (future_df['future_min'] < future_df['dwt_recent_min'])
+                    (future_df['loss_min'] <= future_df['loss_threshold']) & # future loss exceeds threshold
+                    (future_df['future_min'] < future_df['dwt_recent_min']) # future window max exceeds prior window max
             ), 1.0, 0.0)
 
         return series

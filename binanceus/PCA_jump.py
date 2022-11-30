@@ -62,6 +62,8 @@ class PCA_jump(PCA):
         'subplots': {
             "Diff": {
                 '%dwt_maxmin': {'color': 'green'},
+                '%train_buy': {'color': 'cadetblue'},
+                'predict_buy': {'color': 'salmon'},
             },
         }
     }
@@ -162,6 +164,8 @@ class PCA_jump(PCA):
         self.add_debug_indicator(future_df, 'future_min')
         self.add_debug_indicator(future_df, 'future_max')
         self.add_debug_indicator(future_df, 'dwt_maxmin')
+        self.add_debug_indicator(future_df, 'train_buy')
+        self.add_debug_indicator(future_df, 'train_sell')
 
         return
 

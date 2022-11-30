@@ -45,26 +45,9 @@ from finta import TA as fta
 from sklearn.model_selection import RandomizedSearchCV, train_test_split
 from sklearn.metrics import classification_report
 from sklearn.metrics import ConfusionMatrixDisplay
-from sklearn.preprocessing import StandardScaler, RobustScaler, MinMaxScaler
+from sklearn.preprocessing import StandardScaler, RobustScaler
 import sklearn.decomposition as skd
-from sklearn.svm import SVC, SVR
-from sklearn.utils.fixes import loguniform
-from sklearn import preprocessing
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.model_selection import GridSearchCV
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier, VotingClassifier
-from sklearn.naive_bayes import GaussianNB, MultinomialNB
-from sklearn.neural_network import MLPClassifier, BernoulliRBM
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.linear_model import LogisticRegression, SGDClassifier
-from sklearn.svm import LinearSVC
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.naive_bayes import GaussianNB
-from sklearn.preprocessing import LabelEncoder, StandardScaler
-from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis, LinearDiscriminantAnalysis
-from sklearn.linear_model import LogisticRegression
-from sklearn.manifold import LocallyLinearEmbedding
+from sklearn.preprocessing import LabelEncoder, StandardScaler, MinMaxScaler
 
 from sklearn.metrics import make_scorer
 from sklearn.metrics import accuracy_score
@@ -77,36 +60,64 @@ import random
 
 from prettytable import PrettyTable
 
-from AutoEncoder import AutoEncoder
-from RBMEncoder import RBMEncoder
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+os.environ['TF_DETERMINISTIC_OPS'] = '1'
 
-from LSTMAutoEncoder import LSTMAutoEncoder
-from LSTM2AutoEncoder import LSTM2AutoEncoder
+import tensorflow as tf
+seed = 42
+os.environ['PYTHONHASHSEED'] = str(seed)
+random.seed(seed)
+tf.random.set_seed(seed)
+np.random.seed(seed)
+
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
+
+
+import keras
+from keras import layers
+from tqdm import tqdm
+from AnomalyDetector import AnomalyDetector
 
 """
 ####################################################################################
-PCA - uses Principal Component Analysis to try and reduce the total set of indicators
-      to more manageable dimensions, and predict the next gain step.
+Anomaly - Anomaly Detection Classifier
+    
+    This strategy uses anomaly detection as a means to identify buys/sells
+    The theory is that there are many more non-buy or non-sell signals that buy/sell signals
+    So, we train an autoencoder on the 'normal' data, and any anomalies detected are then buy or sell signals.
+    
+    Note that the anomaly detection classifiers will look for a pre-trained model and load that if present. This
+    means you can pre-train models in backtesting and use then in live runs
       
-      This works by creating a PCA model of the available technical indicators. This produces a 
-      mapping of the indicators and how they affect the outcome (buy/sell/hold). We choose only the
-      mappings that have a significant effect and ignore the others. This significantly reduces the size
-      of the problem.
-      We then train a classifier model to predict buy or sell signals based on the known outcome in the
-      informative data, and use it to predict buy/sell signals based on the real-time dataframe.
+    Note that this is very slow to start up, especially if a pre-trained model is not present. 
+    This is mostly because we have to build the data on a rolling basis to avoid lookahead bias.
       
-      Note that this is very slow to start up. This is mostly because we have to build the data on a rolling
-      basis to avoid lookahead bias.
-      
-      In addition to the normal freqtrade packages, these strategies also require the installation of:
+    In addition to the normal freqtrade packages, these strategies also require the installation of:
         random
         prettytable
         finta
+        sklearn
 
 ####################################################################################
 """
 
-class PCA(IStrategy):
+
+class Anomaly(IStrategy):
+    plot_config = {
+        'main_plot': {
+            'close': {'color': 'darkcyan'},
+            '%recon': {'color': 'salmon'},
+        },
+        'subplots': {
+            "Diff": {
+                '%train_buy': {'color': 'green'},
+                'predict_buy': {'color': 'blue'},
+                '%train_sell': {'color': 'red'},
+                'predict_sell': {'color': 'orange'},
+            },
+        }
+    }
     # Do *not* hyperopt for the roi and stoploss spaces (unless you turn off custom stoploss)
 
     # ROI table:
@@ -138,7 +149,6 @@ class PCA(IStrategy):
     startup_candle_count: int = 128  # must be power of 2
     process_only_new_candles = False
 
-
     # Strategy-specific global vars
 
     dwt_window = startup_candle_count
@@ -168,19 +178,17 @@ class PCA(IStrategy):
     loss_threshold = default_loss_threshold
     dynamic_gain_thresholds = True  # dynamically adjust gain thresholds based on actual mean (beware, training data could be bad)
 
-
     num_pairs = 0
-    pair_model_info = {}  # holds model-related info for each pair
-    classifier_stats = {} # holds statistics for each type of classifier (useful to rank classifiers
+    buy_classifier = None
+    sell_classifier = None
 
     # debug flags
     first_time = True  # mostly for debug
     first_run = True  # used to identify first time through buy/sell populate funcs
 
     dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
-    dbg_test_classifier = True  # test clasifiers after fitting
-    dbg_analyse_pca = False  # analyze PCA weights
-    dbg_verbose = False  # controls debug output
+    dbg_test_classifier = False  # test clasifiers after fitting
+    dbg_verbose = True  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
 
     # variables to track state
@@ -238,30 +246,31 @@ class PCA(IStrategy):
 
     def get_train_buy_signals(self, future_df: DataFrame):
 
-        print("!!! WARNING: using base class (buy) training implementation !!!")
+        # print("!!! WARNING: using base class (buy) training implementation !!!")
 
         series = np.where(
             (
-                    (future_df['mfi'] >= 80) & # classic oversold threshold
-                    (future_df['dwt'] <= future_df['future_min']) # at min of future window
+                    (future_df['mfi'] >= 60) &  # classic oversold threshold
+                    (future_df['future_gain'] > self.profit_threshold) &  # future gain
+                    (future_df['dwt_bottom'] > 0)   # bottom of trend
             ), 1.0, 0.0)
 
         return series
 
     def get_train_sell_signals(self, future_df: DataFrame):
 
-        print("!!! WARNING: using base class (sell) training implementation !!!")
+        # print("!!! WARNING: using base class (sell) training implementation !!!")
 
         series = np.where(
             (
-                    (future_df['mfi'] <= 20) &  # classic overbought threshold
-                    (future_df['dwt'] >= future_df['future_max'])  # at max of future window
+                    (future_df['mfi'] <= 40) &  # classic overbought threshold
+                    (future_df['future_gain'] < self.loss_threshold) & # future loss
+                    (future_df['dwt_top'] > 0)  # top of trend
             ), 1.0, 0.0)
 
         return series
 
     ################################
-
 
     """
     inf Pair Definitions
@@ -290,7 +299,6 @@ class PCA(IStrategy):
         curr_pair = metadata['pair']
         self.curr_pair = curr_pair
 
-
         self.set_state(curr_pair, self.State.POPULATE)
         self.curr_lookahead = int(12 * self.lookahead_hours)
         self.dbg_curr_df = dataframe
@@ -299,8 +307,8 @@ class PCA(IStrategy):
         self.profit_threshold = self.default_profit_threshold
         self.loss_threshold = self.default_loss_threshold
 
-        if PCA.first_time:
-            PCA.first_time = False
+        if Anomaly.first_time:
+            Anomaly.first_time = False
             print("")
             print("***************************************")
             print("** Warning: startup can be very slow **")
@@ -313,22 +321,6 @@ class PCA(IStrategy):
         print("")
         print(curr_pair)
 
-
-        # if first time through for this pair, add entry to pair_model_info
-        if not (curr_pair in self.pair_model_info):
-            self.pair_model_info[curr_pair] = {
-                'interval': 0,
-                'pca_size': 0,
-                'pca': None,
-                'clf_buy_name': "",
-                'clf_buy': None,
-                'clf_sell_name': "",
-                'clf_sell': None
-            }
-        else:
-            # decrement interval. When this reaches 0 it will trigger re-fitting of the data
-            self.pair_model_info[curr_pair]['interval'] = self.pair_model_info[curr_pair]['interval'] - 1
-
         # populate the normal dataframe
         dataframe = self.add_indicators(dataframe)
 
@@ -339,12 +331,11 @@ class PCA(IStrategy):
         buys = buys.iloc[:-self.curr_lookahead]
         sells = sells.iloc[:-self.curr_lookahead]
 
-        # Principal Component Analysis of inf data
-
         # train the models on the informative data
         if self.dbg_verbose:
             print("    training models...")
-        self.train_models(curr_pair, df, buys, sells)
+        df = self.train_models(curr_pair, df, buys, sells)
+
         # add predictions
 
         if self.dbg_verbose:
@@ -356,10 +347,21 @@ class PCA(IStrategy):
         dataframe['predict_buy'] = pred_buys
         dataframe['predict_sell'] = pred_sells
 
+        if self.dp.runmode.value in ('plot'):
+            dataframe['%recon'] = df['%recon']
+
         # Custom Stoploss
         if self.dbg_verbose:
             print("    updating stoploss data...")
         self.add_stoploss_indicators(dataframe, curr_pair)
+
+        if self.dbg_verbose:
+            print("    saving models...")
+        if self.buy_classifier:
+            self.buy_classifier.save()
+        if self.sell_classifier:
+            self.sell_classifier.save()
+
 
         return dataframe
 
@@ -400,7 +402,6 @@ class PCA(IStrategy):
         dataframe['ssl_dir'] = np.where(sslup > ssldown, 1.0, -1.0)
 
         return dataframe
-
 
     # populate dataframe with desired technical indicators
     # NOTE: OK to throw (almost) anything in here, just add it to the parameter list
@@ -469,7 +470,6 @@ class PCA(IStrategy):
         # RSI
         # dataframe['rsi'] = ta.RSI(dataframe, timeperiod=win_size)
         dataframe['rsi_14'] = ta.RSI(dataframe, timeperiod=14)
-
 
         # # EMAs
         # dataframe['ema_12'] = ta.EMA(dataframe, timeperiod=12)
@@ -919,7 +919,7 @@ class PCA(IStrategy):
             return model[length - 1]
         else:
             # cannot calculate DWT (e.g. at startup), just return original value
-            return col[len(col)-1]
+            return col[len(col) - 1]
 
     def dwtModel(self, data):
 
@@ -957,7 +957,6 @@ class PCA(IStrategy):
         """ Mean absolute deviation of a signal """
         return np.mean(np.absolute(d - np.mean(d, axis)), axis)
 
-
     ############################
 
     # get a scaler for scaling/normalising the data (in a func because I change it routinely)
@@ -969,29 +968,6 @@ class PCA(IStrategy):
 
     def norm_column(self, col):
         return self.zscore_column(col)
-
-    # normalises a column. Data is in units of 1 stddev, i.e. a value of 1.0 represents 1 stdev above mean
-    def zscore_column(self, col):
-        return (col - col.mean()) / col.std()
-
-    # applies MinMax scaling to a column. Returns all data in range [0,1]
-    def minmax_column(self, col):
-        result = col
-        # print(col)
-
-        if (col.dtype == 'str') or (col.dtype == 'object'):
-            result = 0.0
-        else:
-            result = col
-            cmax = max(col)
-            cmin = min(col)
-            denom = float(cmax - cmin)
-            if denom == 0.0:
-                result = 0.0
-            else:
-                result = (col - col.min()) / denom
-
-        return result
 
     def check_inf(self, dataframe):
         col_name = dataframe.columns.to_series()[np.isinf(dataframe).any()]
@@ -1008,10 +984,13 @@ class PCA(IStrategy):
             dataframe.reindex()
         return dataframe
 
+    scaler = None
+
     # Normalise a dataframe
     def norm_dataframe(self, dataframe: DataFrame) -> DataFrame:
         self.check_inf(dataframe)
 
+        # TODO: remove date column?!
         temp = dataframe.copy()
         if 'date' in temp.columns:
             temp['date'] = pd.to_datetime(temp['date']).astype('int64')
@@ -1022,33 +1001,37 @@ class PCA(IStrategy):
         temp.reindex()
 
         cols = temp.columns
-        scaler = self.get_scaler()
+        self.scaler = self.get_scaler()
 
-        temp = pd.DataFrame(scaler.fit_transform(temp), columns=cols)
+        temp = pd.DataFrame(self.scaler.fit_transform(temp), columns=cols)
 
         return temp
 
-    # Normalise a dataframe using Z-Score normalisation (mean=0, stddev=1)
-    def zscore_dataframe(self, dataframe: DataFrame) -> DataFrame:
-        self.check_inf(dataframe)
-        return ((dataframe - dataframe.mean()) / dataframe.std())
 
-    # Scale a dataframe using sklearn builtin scaler
-    def scale_dataframe(self, dataframe: DataFrame) -> DataFrame:
-        self.check_inf(dataframe)
+    # De-Normalise a dataframe - note this relies on the scaler still being valid
+    def denorm_dataframe(self, dataframe: DataFrame) -> DataFrame:
 
         temp = dataframe.copy()
-        if 'date' in temp.columns:
-            temp['date'] = pd.to_datetime(temp['date']).astype('int64')
 
-        temp = self.remove_debug_columns(temp)
+        cols = temp.columns
 
-        temp.reindex()
+        df = pd.DataFrame(self.scaler.inverse_transform(dataframe), columns=cols)
 
-        scaler = RobustScaler()
-        scaler = scaler.fit(temp)
-        temp = scaler.transform(temp)
-        return temp
+        return df
+
+    # slit a dataframe into two, based on the supplied ratio
+    def split_dataframe(self, dataframe: DataFrame, ratio: float) -> (DataFrame, DataFrame):
+        split_row = int(ratio * dataframe.shape[0])
+        df1 = dataframe.iloc[0:split_row].copy()
+        df2 = dataframe.iloc[split_row+1:].copy()
+        return df1, df2
+
+    # slit an array into two, based on the supplied ratio
+    def split_array(self, array, ratio: float) -> (DataFrame, DataFrame):
+        split_row = int(ratio * np.shape(array)[0])
+        a1 = array[0:split_row].copy()
+        a2 = array[split_row+1:].copy()
+        return a1, a2
 
     # remove outliers from normalised dataframe
     def remove_outliers(self, df_norm: DataFrame, buys, sells):
@@ -1081,7 +1064,6 @@ class PCA(IStrategy):
             b = buys
             s = sells
         return df2, b, s
-
 
     # build a 'viable' dataframe sample set. Needed because the positive labels are sparse
     def build_viable_dataset(self, size: int, df_norm: DataFrame, buys, sells):
@@ -1132,9 +1114,9 @@ class PCA(IStrategy):
             #     print("     buy_train_size:{} sell_train_size:{}".format(buy_train_size, sell_train_size))
 
         if buy_train_size < df_buy.shape[0]:
-            df_buy, _ = train_test_split(df_buy, train_size=buy_train_size, shuffle=True)
+            df_buy, _ = train_test_split(df_buy, train_size=buy_train_size, shuffle=False)
         if sell_train_size < df_sell.shape[0]:
-            df_sell, _ = train_test_split(df_sell, train_size=sell_train_size, shuffle=True)
+            df_sell, _ = train_test_split(df_sell, train_size=sell_train_size, shuffle=False)
 
         # extract enough rows to fill the requested size
         fill_size = size - buy_train_size - sell_train_size - 1
@@ -1142,7 +1124,7 @@ class PCA(IStrategy):
         #     print("     df_nosig:{} fill_size:{}".format(df_nosig.shape, fill_size))
 
         if fill_size < df_nosig.shape[0]:
-            df_nosig, _ = train_test_split(df_nosig, train_size=fill_size, shuffle=True)
+            df_nosig, _ = train_test_split(df_nosig, train_size=fill_size, shuffle=False)
 
         # print("viable df - buys:{} sells:{} fill:{}".format(df_buy.shape[0], df_sell.shape[0], df_nosig.shape[0]))
 
@@ -1150,8 +1132,8 @@ class PCA(IStrategy):
         frames = [df_buy, df_sell, df_nosig]
         df2 = pd.concat(frames)
 
-        # shuffle rows
-        df2 = df2.sample(frac=1)
+        # # shuffle rows
+        # df2 = df2.sample(frac=1)
 
         # separate out the data, buys & sells
         b = df2['%temp_buy'].copy()
@@ -1175,25 +1157,7 @@ class PCA(IStrategy):
 
     # train the PCA reduction and classification models
 
-    def train_models(self, curr_pair, dataframe: DataFrame, buys, sells):
-
-        # only run if interval reaches 0 (no point retraining every camdle)
-        count = self.pair_model_info[curr_pair]['interval']
-        if (count > 0):
-            self.pair_model_info[curr_pair]['interval'] = count - 1
-            return
-        else:
-            # reset interval to a random number between 1 and the amount of lookahead
-            # self.pair_model_info[curr_pair]['interval'] = random.randint(1, self.curr_lookahead)
-            self.pair_model_info[curr_pair]['interval'] = random.randint(2, max(32, self.curr_lookahead))
-
-        # Reset models for this pair. Makes it safe to just return on error
-        self.pair_model_info[curr_pair]['pca_size'] = 0
-        self.pair_model_info[curr_pair]['pca'] = None
-        self.pair_model_info[curr_pair]['clf_buy_name'] = ""
-        self.pair_model_info[curr_pair]['clf_buy'] = None
-        self.pair_model_info[curr_pair]['clf_sell_name'] = ""
-        self.pair_model_info[curr_pair]['clf_sell'] = None
+    def train_models(self, curr_pair, dataframe: DataFrame, buys, sells) -> DataFrame:
 
         # check input - need at least 2 samples or classifiers will not train
         if buys.sum() < 2:
@@ -1207,521 +1171,80 @@ class PCA(IStrategy):
 
         rand_st = 27  # use fixed number for reproducibility
 
-        remove_outliers = False
-        if remove_outliers:
-            # norm dataframe before splitting, otherwise variances are skewed
-            full_df_norm = self.norm_dataframe(dataframe)
-            full_df_norm, buys, sells = self.remove_outliers(full_df_norm, buys, sells)
-        else:
-            full_df_norm = self.norm_dataframe(dataframe).clip(lower=-3.0, upper=3.0)  # supress outliers
+        full_df_norm = self.norm_dataframe(dataframe)
 
         # constrain size to what will be available in run modes
         data_size = int(min(975, full_df_norm.shape[0]))
 
-        # get 'viable' data set (includes all buys/sells)
-        v_df_norm, v_buys, v_sells = self.build_viable_dataset(data_size, full_df_norm, buys, sells)
-
-        train_size = int(0.8 * data_size)
+        train_ratio = 0.8
+        train_size = int(train_ratio * data_size)
         test_size = data_size - train_size
 
-        df_train, df_test, train_buys, test_buys, train_sells, test_sells, = train_test_split(v_df_norm,
-                                                                                              v_buys,
-                                                                                              v_sells,
-                                                                                              train_size=train_size,
-                                                                                              random_state=rand_st,
-                                                                                              shuffle=True)
+        # df_train, df_test, train_buys, test_buys, train_sells, test_sells, = train_test_split(full_df_norm,
+        #                                                                                       buys,
+        #                                                                                       sells,
+        #                                                                                       train_size=train_size,
+        #                                                                                       random_state=rand_st,
+        #                                                                                       shuffle=False)
+        # use the back portion of data for training, front for testing
+        df_test, df_train = self.split_dataframe(full_df_norm, (1.0-train_ratio))
+        test_buys, train_buys = self.split_array(buys, (1.0-train_ratio))
+        test_sells, train_sells = self.split_array(sells, (1.0-train_ratio))
+
         if self.dbg_verbose:
-            print("     dataframe:", v_df_norm.shape, ' -> train:', df_train.shape, " + test:", df_test.shape)
+            print("     dataframe:", full_df_norm.shape, ' -> train:', df_train.shape, " + test:", df_test.shape)
             print("     buys:", buys.shape, ' -> train:', train_buys.shape, " + test:", test_buys.shape)
             print("     sells:", sells.shape, ' -> train:', train_sells.shape, " + test:", test_sells.shape)
 
-        print("    #training samples:", len(df_train), " #buys:", int(train_buys.sum()), ' #sells:', int(train_sells.sum()))
+        print("    #training samples:", len(df_train), " #buys:", int(train_buys.sum()), ' #sells:',
+              int(train_sells.sum()))
 
-        #TODO: if low number of buys/sells, try k-fold sampling
-
-        buy_labels = self.get_binary_labels(buys)
-        sell_labels = self.get_binary_labels(sells)
         train_buy_labels = self.get_binary_labels(train_buys)
         train_sell_labels = self.get_binary_labels(train_sells)
         test_buy_labels = self.get_binary_labels(test_buys)
         test_sell_labels = self.get_binary_labels(test_sells)
 
-        # create the PCA analysis model
+        # create classifiers, if necessary
+        if self.buy_classifier is None:
+            print("    Creating Anomaly Detector Buy classifier...")
+            self.buy_classifier = AnomalyDetector("BuyAnomalyDetector", df_train.shape[1])
+            
+        if self.sell_classifier is None:
+            print("    Creating Anomaly Detector Buy classifier...")
+            self.sell_classifier = AnomalyDetector("SellAnomalyDetector", df_train.shape[1])
 
-        pca = self.get_pca(df_train)
-
-        df_train_pca = DataFrame(pca.transform(df_train))
-
-        # DEBUG:
-        # print("")
-        print("   ", curr_pair, " - input: ", df_train.shape, " -> pca: ", df_train_pca.shape)
-
-        if df_train_pca.shape[1] <= 1:
-            print("***")
-            print("** ERR: PCA reduced to 1. Must be training data still in dataframe!")
-            print("df_train columns: ", df_train.columns.values)
-            print("df_train_pca columns: ", df_train_pca.columns.values)
-            print("***")
-            return
-
-        # Create buy/sell classifiers for the model
-
-        # check that we have enough positives to train
-        buy_ratio = 100.0 * (train_buys.sum() / len(train_buys))
-        if (buy_ratio < 0.5):
-            print("*** ERR: insufficient number of positive buy labels ({:.2f}%)".format(buy_ratio))
-            return
-
-        buy_clf, buy_clf_name = self.get_buy_classifier(df_train_pca, train_buy_labels)
-
-        sell_ratio = 100.0 * (train_sells.sum() / len(train_sells))
-        if (sell_ratio < 0.5):
-            print("*** ERR: insufficient number of positive sell labels ({:.2f}%)".format(sell_ratio))
-            return
-
-        sell_clf, sell_clf_name = self.get_sell_classifier(df_train_pca, train_sell_labels)
-
-        # save the models
-
-        self.pair_model_info[curr_pair]['pca'] = pca
-        self.pair_model_info[curr_pair]['pca_size'] = df_train_pca.shape[1]
-        self.pair_model_info[curr_pair]['clf_buy_name'] = buy_clf_name
-        self.pair_model_info[curr_pair]['clf_buy'] = buy_clf
-        self.pair_model_info[curr_pair]['clf_sell_name'] = sell_clf_name
-        self.pair_model_info[curr_pair]['clf_sell'] = sell_clf
+        if self.dp.runmode.value not in ('plot'):
+            # train/fit the classifiers (note, this is cumulative)
+            # if not self.buy_classifier.model_is_trained():
+            self.buy_classifier.train(df_train, df_test, train_buys, test_buys)
+            # if not self.sell_classifier.model_is_trained():
+            self.sell_classifier.train(df_train, df_test, train_sells, test_sells)
 
         # if scan specified, test against the test dataframe
-        if self.dbg_test_classifier and self.dbg_verbose:
+        if self.dbg_test_classifier:
 
-            df_test_pca = DataFrame(pca.transform(df_test))
-            if not (buy_clf is None):
-                pred_buys = buy_clf.predict(df_test_pca)
+            if not (self.buy_classifier is None):
+                pred_buys = self.buy_classifier.predict(df_test)
                 print("")
-                print("Predict - Buy Signals (", type(buy_clf).__name__, ")")
+                print("Testing - Buy Signals (", type(self.buy_classifier).__name__, ")")
                 print(classification_report(test_buy_labels, pred_buys))
                 print("")
 
-            if not (sell_clf is None):
-                pred_sells = sell_clf.predict(df_test_pca)
+            if not (self.sell_classifier is None):
+                pred_sells = self.sell_classifier.predict(df_test)
                 print("")
-                print("Predict - Sell Signals (", type(sell_clf).__name__, ")")
+                print("Testing - Sell Signals (", type(self.sell_classifier).__name__, ")")
                 print(classification_report(test_sell_labels, pred_sells))
                 print("")
 
-    autoencoder = None
+        if self.dp.runmode.value in ('plot'):
+            # debug: get reconstructed dataframe and save 'close' as a comparison
+            tmp = self.norm_dataframe(dataframe) # this just resets the scaler
+            df_recon_norm = self.buy_classifier.reconstruct(full_df_norm)
+            df_recon = self.denorm_dataframe(df_recon_norm)
+            dataframe['%recon'] = df_recon['close']
+        return dataframe
 
-    # get the PCA model for the supplied dataframe (dataframe must be normalised)
-    def get_pca(self, df_norm: DataFrame):
-
-        ncols = df_norm.shape[1]  # allow all components to get the full variance matrix
-        whiten = True
-
-        pca_type = 0
-
-        # there are various types of PCA, plus alternatives like ICA and Feature Extraction
-        if pca_type == 0:
-            pca = skd.PCA(n_components=ncols, whiten=whiten, svd_solver='full').fit(df_norm)
-            var_ratios = pca.explained_variance_ratio_
-
-            # if self.dbg_verbose:
-            #     print ("PCA variance_ratio: ", pca.explained_variance_ratio_)
-
-            # scan variance and only take if column contributes >x%
-            ncols = 0
-            var_sum = 0.0
-            variance_threshold = 0.999
-            # variance_threshold = 0.99
-            while ((var_sum < variance_threshold) & (ncols < len(var_ratios))):
-                var_sum = var_sum + var_ratios[ncols]
-                ncols = ncols + 1
-
-            # if necessary, re-calculate pca with reduced column set
-            if (ncols != df_norm.shape[1]):
-                # pca = skd.PCA(n_components=ncols, svd_solver="randomized", whiten=True).fit(df_norm)
-                pca = skd.PCA(n_components=ncols, whiten=whiten, svd_solver='full').fit(df_norm)
-
-            self.check_pca(pca, df_norm)
-
-            if self.dbg_analyse_pca and self.dbg_verbose:
-                self.analyse_pca(pca, df_norm)
-
-        elif pca_type == 1:
-            # accurate, but slow
-            print("    Using KernelPCA...")
-            pca = skd.KernelPCA(n_components=ncols, remove_zero_eig=True).fit(df_norm)
-            eigenvalues = pca.eigenvalues_
-            # print(var_ratios)
-            # Note: eigenvalues are not bounded, so just have to go by min value
-            ncols = 0
-            val_threshold = 0.5
-            while ((eigenvalues[ncols] > val_threshold) & (ncols < len(eigenvalues))):
-                ncols = ncols + 1
-
-            # if necessary, re-calculate pca with reduced column set
-            if (ncols != df_norm.shape[1]):
-                # pca = skd.PCA(n_components=ncols, svd_solver="randomized", whiten=True).fit(df_norm)
-                pca = skd.KernelPCA(n_components=ncols, remove_zero_eig=True).fit(df_norm)
-
-        elif pca_type == 2:
-            print("    Using FactorAnalysis...")
-            # Note: this is SUPER slow, do not recommend using it :-(
-            # it is useful to run this once, and check to see which indicators are useful or not
-            pca = skd.FactorAnalysis(n_components=ncols).fit(df_norm)
-            var_ratios = pca.noise_variance_
-            # print(var_ratios)
-
-            # if self.dbg_verbose:
-            #     print ("PCA variance_ratio: ", pca.explained_variance_ratio_)
-
-            # scan variance and only take if column contributes >x%
-            ncols = 0
-            variance_threshold = 0.09
-            col_names = df_norm.columns
-            for i in range(len(var_ratios)):
-                if var_ratios[i] > variance_threshold:
-                    c = '#' if (var_ratios[i] > 0.5) else '+'
-                    print("    {} ({:.3f}) {:<24}".format(c, var_ratios[i], col_names[i]))
-                    ncols = ncols + 1
-                else:
-                    c = '!' if (var_ratios[i] < 0.05) else '-'
-                    print("                                {} ({:.3f}) {:<20}".format(c, var_ratios[i], col_names[i]))
-
-            # if necessary, re-calculate pca with reduced column set
-            if (ncols != df_norm.shape[1]):
-                # pca = skd.PCA(n_components=ncols, svd_solver="randomized", whiten=True).fit(df_norm)
-                pca = skd.FactorAnalysis(n_components=ncols).fit(df_norm)
-
-        elif pca_type == 3:
-            # fast, but not as accurate
-            print("    Using Locally Linear Embedding...")
-            pca = LocallyLinearEmbedding(n_components=4, eigen_solver='dense', method="modified").fit(df_norm)
-
-        elif pca_type == 4:
-            # a bit slow, still debugging...
-            print("    Using Autoencoder...")
-            # pca = LocallyLinearEmbedding(n_components=4, eigen_solver='dense', method="modified").fit(df_norm)
-            if self.autoencoder is None:
-                # self.autoencoder = AutoEncoder(df_norm.shape[1])
-                self.autoencoder = AutoEncoder(df_norm.shape[1])
-            pca = self.autoencoder
-
-        elif pca_type == 5:
-            # Restricted Boltzmann Machine
-            print("    Using Restricted Boltzmann Machine...")
-            pca = RBMEncoder()
-
-
-        else:
-            print("*** ERR - unknown PCA type ***")
-            pca = None
-
-        return pca
-
-    # does a quick for suspicious values. Separate func because we always want to call this
-    def check_pca(self, pca, df):
-
-        ratios = pca.explained_variance_ratio_
-        loadings = pd.DataFrame(pca.components_.T, index=df.columns.values)
-
-        # check variance ratios
-        var_big = np.where(ratios >= 0.5)[0]
-        if len(var_big) > 0:
-            print("    !!! high variance in columns: ", var_big)
-            print("    !!! variances: ", ratios)
-
-        var_0  = np.where(ratios == 0)[0]
-        if len(var_0) > 0:
-            print("    !!! zero variance in columns: ", var_0)
-
-        # check PCA rows
-        inf_rows = loadings[(np.isinf(loadings)).any(axis=1)].index.values.tolist()
-
-        if len(inf_rows) > 0:
-            print("    !!! inf values in rows: ", inf_rows)
-
-        na_rows = loadings[loadings.isna().any(axis=1)].index.values.tolist()
-        if len(na_rows) > 0:
-            print("    !!! na values in rows: ", na_rows)
-
-        zero_rows = loadings[(loadings == 0).any(axis=1)].index.values.tolist()
-        if len(zero_rows) > 0:
-            print("    !!! zero values in rows (remove indicator?!) : ", zero_rows)
-
-        return
-
-
-    def analyse_pca(self, pca, df):
-        print("")
-        print("Variance Ratios:")
-        ratios = pca.explained_variance_ratio_
-        print(ratios)
-        print("")
-
-        # print matrix of weightings for selected components
-        loadings = pd.DataFrame(pca.components_.T, index=df.columns.values)
-
-        l2 = loadings.abs()
-        l3 = loadings.mul(ratios)
-        ranks = loadings.rank()
-
-        loadings['Score'] = l2.sum(axis=1)
-        loadings['Score0'] = loadings[loadings.columns.values[0]].abs()
-        loadings['Rank'] = loadings['Score'].rank(ascending=False)
-        loadings['Rank0'] = loadings['Score0'].rank(ascending=False)
-        print("Loadings, by PC0:")
-        print(loadings.sort_values('Rank0').head(n=30))
-        print("")
-        # print("Loadings, by All Columns:")
-        # print(loadings.sort_values('Rank').head(n=30))
-        # print("")
-
-        # weighted by variance ratios
-        l3a = l3.abs()
-        l3['Score'] = l3a.sum(axis=1)
-        l3['Rank'] = loadings['Score'].rank(ascending=False)
-        print("Loadings, Weighted by Variance Ratio")
-        print (l3.sort_values('Rank').head(n=20))
-
-        # # rankings per column
-        ranks['Score'] = ranks.sum(axis=1)
-        ranks['Rank'] = ranks['Score'].rank(ascending=True)
-        print("Rankings per column")
-        print(ranks.sort_values('Rank', ascending=True).head(n=30))
-
-        # print(loadings.head())
-        # print(l3.head())
-
-    # get a classifier for the supplied dataframe (normalised) and known results
-    def get_buy_classifier(self, df_norm: DataFrame, results):
-
-        clf = None
-        name = ""
-        labels = self.get_binary_labels(results)
-
-        if results.sum() <= 2:
-            print("***")
-            print("*** ERR: insufficient positive results in buy data")
-            print("***")
-            return clf, name
-
-        # If already done, just get previous result and re-fit
-        if self.pair_model_info[self.curr_pair]['clf_buy']:
-            clf = self.pair_model_info[self.curr_pair]['clf_buy']
-            clf = clf.fit(df_norm, labels)
-            name = self.pair_model_info[self.curr_pair]['clf_buy_name']
-        else:
-            if self.dbg_scan_classifiers:
-                if self.dbg_verbose:
-                    print("    Finding best buy classifier:")
-                clf, name = self.find_best_classifier(df_norm, labels, tag="buy")
-            else:
-                clf, name = self.classifier_factory(self.default_classifier, df_norm, labels)
-                clf = clf.fit(df_norm, labels)
-
-        return clf, name
-
-    # get a classifier for the supplied dataframe (normalised) and known results
-    def get_sell_classifier(self, df_norm: DataFrame, results):
-
-        clf = None
-        name = ""
-        labels = self.get_binary_labels(results)
-
-        if results.sum() <= 2:
-            print("***")
-            print("*** ERR: insufficient positive results in sell data")
-            print("***")
-            return clf, name
-
-        # If already done, just get previous result and re-fit
-        if self.pair_model_info[self.curr_pair]['clf_sell']:
-            clf = self.pair_model_info[self.curr_pair]['clf_sell']
-            clf = clf.fit(df_norm, labels)
-            name = self.pair_model_info[self.curr_pair]['clf_sell_name']
-        else:
-            if self.dbg_scan_classifiers:
-                if self.dbg_verbose:
-                    print("    Finding best sell classifier:")
-                clf, name = self.find_best_classifier(df_norm, labels, tag="sell")
-            else:
-                clf, name = self.classifier_factory(self.default_classifier, df_norm, labels)
-                clf = clf.fit(df_norm, labels)
-
-        return clf, name
-
-    # default classifier
-    default_classifier = 'LDA'  # select based on testing
-
-    # list of potential classifier types - set to the list that you want to compare
-    classifier_list = [
-        'LogisticRegression', 'GaussianNB', 'SGD',
-        'GradientBoosting', 'AdaBoost', 'linearSVC', 'sigmoidSVC',
-        'LDA'
-    ]
-
-    # factory to create classifier based on name
-    def classifier_factory(self, name, data, labels):
-        clf = None
-
-        if name == 'LogisticRegression':
-            clf = LogisticRegression(max_iter=10000)
-        elif name == 'DecisionTree':
-            clf = DecisionTreeClassifier()
-        elif name == 'RandomForest':
-            clf = RandomForestClassifier()
-        elif name == 'GaussianNB':
-            clf = GaussianNB()
-        elif name == 'MLP':
-            param_grid = {
-                'hidden_layer_sizes': [(30, 2), (30, 80, 2), (30, 60, 30, 2)],
-                'max_iter': [50, 100, 150],
-                'activation': ['tanh', 'relu'],
-                'solver': ['sgd', 'adam', 'lbfgs'],
-                'alpha': [0.0001, 0.05],
-                'learning_rate': ['constant', 'adaptive'],
-            }
-            clf = MLPClassifier(hidden_layer_sizes=(64, 32, 1),
-                                max_iter=50,
-                                activation='relu',
-                                learning_rate='adaptive',
-                                alpha=1e-5,
-                                solver='lbfgs',
-                                verbose=0)
-
-
-        elif name == 'KNeighbors':
-            clf = KNeighborsClassifier(n_neighbors=3)
-        elif name == 'SGD':
-            clf = SGDClassifier()
-        elif name == 'GradientBoosting':
-            clf = GradientBoostingClassifier()
-        elif name == 'AdaBoost':
-            clf = AdaBoostClassifier()
-        elif name == 'QDA':
-            clf = QuadraticDiscriminantAnalysis()
-        elif name == 'linearSVC':
-            clf = LinearSVC(dual=False)
-        elif name == 'gaussianSVC':
-            clf = SVC(kernel='rbf')
-        elif name == 'polySVC':
-            clf = SVC(kernel='poly')
-        elif name == 'sigmoidSVC':
-            clf = SVC(kernel='sigmoid')
-        elif name == 'Voting':
-            # choose 4 decent classifiers
-            c1, _ = self.classifier_factory('AdaBoost', data, labels)
-            c2, _ = self.classifier_factory('GaussianNB', data, labels)
-            c3, _ = self.classifier_factory('KNeighbors', data, labels)
-            c4, _ = self.classifier_factory('DecisionTree', data, labels)
-            clf = VotingClassifier(estimators=[('c1', c1), ('c2', c2), ('c3', c3), ('c4', c4)], voting='hard')
-        elif name == 'LDA':
-            clf = LinearDiscriminantAnalysis()
-        elif name == 'QDA':
-            clf = QuadraticDiscriminantAnalysis()
-
-
-        else:
-            print("Unknown classifier: ", name)
-            clf = None
-        return clf, name
-
-    # tries different types of classifiers and returns the best one
-    # tag parameter identifies where to save performance stats (default is not to save)
-    def find_best_classifier(self, df, results, tag=""):
-
-        if self.dbg_verbose:
-            print("      Evaluating classifiers...")
-
-        # Define dictionary with CLF and performance metrics
-        scoring = {'accuracy': make_scorer(accuracy_score),
-                   'precision': make_scorer(precision_score),
-                   'recall': make_scorer(recall_score),
-                   'f1_score': make_scorer(f1_score)}
-
-        folds = 5
-        clf_dict = {}
-        models_scores_table = pd.DataFrame(index=['Accuracy', 'Precision', 'Recall', 'F1'])
-
-        best_score = -0.1
-        best_classifier = ""
-
-        labels = self.get_binary_labels(results)
-
-        # split into test/train for evaluation, then re-fit once selected
-        # df_train, df_test, res_train, res_test = train_test_split(df, results, train_size=0.5)
-        df_train, df_test, res_train, res_test = train_test_split(df, labels, train_size=0.8,
-                                                                  random_state=27, shuffle=True)
-        # print("df_train:",  df_train.shape, " df_test:", df_test.shape,
-        #       "res_train:", res_train.shape, "res_test:", res_test.shape)
-
-        # check there are enough training samples
-        #TODO: if low train/test samples, use k-fold sampling nstead
-        if res_train.sum() < 2:
-            print("    Insufficient +ve (train) results to fit: ", res_train.sum())
-            return None, ""
-
-        if res_test.sum() < 2:
-            print("    Insufficient +ve (test) results: ", res_test.sum())
-            return None, ""
-
-        for cname in self.classifier_list:
-            clf, _ = self.classifier_factory(cname, df_train, res_train)
-
-            if clf is not None:
-
-                # fit to the training data
-                clf_dict[cname] = clf
-                clf = clf.fit(df_train, res_train)
-
-                # assess using the test data. Do *not* use the training data for testing
-                pred_test = clf.predict(df_test)
-                # score = f1_score(results, prediction, average=None)[1]
-                score = f1_score(res_test, pred_test, average='macro')
-
-                if self.dbg_verbose:
-                    print("      {0:<20}: {1:.3f}".format(cname, score))
-
-                if score > best_score:
-                    best_score = score
-                    best_classifier = cname
-
-                # update classifier stats
-                if tag:
-                    if not (tag in self.classifier_stats):
-                        self.classifier_stats[tag] = {}
-
-                    if not (cname in self.classifier_stats[tag]):
-                        self.classifier_stats[tag][cname] = { 'count': 0, 'score': 0.0, 'selected': 0}
-
-                    curr_count = self.classifier_stats[tag][cname]['count']
-                    curr_score = self.classifier_stats[tag][cname]['score']
-                    self.classifier_stats[tag][cname]['count'] = curr_count + 1
-                    self.classifier_stats[tag][cname]['score'] = (curr_score * curr_count + score) / (curr_count + 1)
-
-        if best_score <= 0.0:
-            print("   No classifier found")
-            return None, ""
-
-        clf = clf_dict[best_classifier]
-
-        # print("")
-        if best_score < self.min_f1_score:
-            print("!!!")
-            print("!!! WARNING: F1 score below threshold ({:.3f})".format(best_score))
-            print("!!!")
-            return None, ""
-
-
-        # update stats for selected classifier
-        if tag:
-            if best_classifier in self.classifier_stats[tag]:
-                self.classifier_stats[tag][best_classifier]['selected'] = self.classifier_stats[tag][best_classifier] \
-                                                                              ['selected'] + 1
-
-        print("       ", tag, " model selected: ", best_classifier, " Score:{:.3f}".format(best_score))
-        # print("")
-
-        return clf, best_classifier
 
     # make predictions for supplied dataframe (returns column)
     def predict(self, dataframe: DataFrame, pair, clf):
@@ -1729,13 +1252,10 @@ class PCA(IStrategy):
         # predict = 0
         predict = None
 
-        pca = self.pair_model_info[pair]['pca']
-
         if clf:
             # print("    predicting... - dataframe:", dataframe.shape)
             df_norm = self.norm_dataframe(dataframe)
-            df_norm_pca = pca.transform(df_norm)
-            predict = clf.predict(df_norm_pca)
+            predict = clf.predict(df_norm)
 
         else:
             print("Null CLF for pair: ", pair)
@@ -1744,11 +1264,10 @@ class PCA(IStrategy):
         return predict
 
     def predict_buy(self, df: DataFrame, pair):
-        clf = self.pair_model_info[pair]['clf_buy']
+        clf = self.buy_classifier
 
         if clf is None:
             print("    No Buy Classifier for pair ", pair, " -Skipping predictions")
-            self.pair_model_info[pair]['interval'] = min(self.pair_model_info[pair]['interval'], 4)
             predict = df['close'].copy()  # just to get the size
             predict = 0.0
             return predict
@@ -1756,55 +1275,18 @@ class PCA(IStrategy):
         print("    predicting buys...")
         predict = self.predict(df, pair, clf)
 
-        # if self.dbg_test_classifier:
-        #     # DEBUG: check accuracy
-        #     signals = df['train_buy_signal']
-        #     labels = self.get_binary_labels(signals)
-        #
-        #     if  self.dbg_verbose:
-        #         print("")
-        #         print("Predict - Buy Signals (", type(clf).__name__, ")")
-        #         print(classification_report(labels, predict))
-        #         print("")
-        #
-        #     score = f1_score(labels, predict, average='macro')
-        #     if score <= 0.5:
-        #         print("")
-        #         print("!!! WARNING: (buy) F1 score below 51% ({:.3f})".format(score))
-        #         print("    Classifier:", type(clf).__name__)
-        #         print("")
-
         return predict
 
     def predict_sell(self, df: DataFrame, pair):
-        clf = self.pair_model_info[pair]['clf_sell']
+        clf = self.sell_classifier
         if clf is None:
             print("    No Sell Classifier for pair ", pair, " -Skipping predictions")
-            self.pair_model_info[pair]['interval'] = min(self.pair_model_info[pair]['interval'], 4)
             predict = df['close']  # just to get the size
             predict = 0.0
             return predict
 
         print("    predicting sells...")
         predict = self.predict(df, pair, clf)
-
-        # if self.dbg_test_classifier:
-        #     # DEBUG: check accuracy
-        #     signals = df['train_sell_signal']
-        #     labels = self.get_binary_labels(signals)
-        #
-        #     if self.dbg_verbose:
-        #         print("")
-        #         print("Predict - Sell Signals (", type(clf).__name__, ")")
-        #         print(classification_report(labels, predict))
-        #         print("")
-        #
-        #     score = f1_score(labels, predict, average='macro')
-        #     if score <= 0.5:
-        #         print("")
-        #         print("!!! WARNING: (buy) F1 score below 51% ({:.3f})".format(score))
-        #         print("    Classifier:", type(clf).__name__)
-        #         print("")
 
         return predict
 
@@ -1826,71 +1308,10 @@ class PCA(IStrategy):
         return self.curr_state[pair]
 
     def show_debug_info(self, pair):
-        # print("")
-        # print("pair_model_info:")
-        print("  ", pair, ": ", self.pair_model_info[pair])
-        # print("")
+        print("")
 
     def show_all_debug_info(self):
         print("")
-        if (len(self.pair_model_info) > 0):
-            # print("Model Info:")
-            # print("----------")
-            table = PrettyTable(["Pair", "PCA Size", "Buy Classifier", "Sell Classifier"])
-            table.title = "Model Information"
-            table.align = "l"
-            table.align["PCA Size"] = "c"
-            table.reversesort = False
-            table.sortby = 'Pair'
-
-            for pair in self.pair_model_info:
-                table.add_row([pair,
-                               self.pair_model_info[pair]['pca_size'],
-                               self.pair_model_info[pair]['clf_buy_name'],
-                               self.pair_model_info[pair]['clf_sell_name']
-                               ])
-
-            print(table)
-
-        if len(self.classifier_stats) > 0:
-            # print("Classifier Statistics:")
-            # print("---------------------")
-            print("")
-            if 'buy' in self.classifier_stats:
-                print("")
-                table = PrettyTable(["Classifier", "Mean Score", "Selected"])
-                table.title = "Buy Classifiers"
-                table.align["Classifier"] = "l"
-                table.align["Mean Score"] = "c"
-                table.float_format = '.4'
-                for cls in self.classifier_stats['buy']:
-                    table.add_row([cls,
-                                   self.classifier_stats['buy'][cls]['score'],
-                                   self.classifier_stats['buy'][cls]['selected']])
-                table.reversesort = True
-                # table.sortby = 'Mean Score'
-                print(table.get_string(sort_key=operator.itemgetter(2, 1), sortby="Selected"))
-                print("")
-
-            if 'sell' in self.classifier_stats:
-                print("")
-                table = PrettyTable(["Classifier", "Mean Score", "Selected"])
-                table.title = "Sell Classifiers"
-                table.align["Classifier"] = "l"
-                table.align["Mean Score"] = "c"
-                table.float_format = '.4'
-                for cls in self.classifier_stats['sell']:
-                        table.add_row([cls,
-                                       self.classifier_stats['sell'][cls]['score'],
-                                       self.classifier_stats['sell'][cls]['selected']])
-                table.reversesort = True
-                # table.sortby = 'Mean Score'
-                print(table.get_string(sort_key=operator.itemgetter(2, 1), sortby="Selected"))
-                print("")
-
-
-            print("")
-
 
     ###################################
 
@@ -1906,8 +1327,8 @@ class PCA(IStrategy):
         self.set_state(curr_pair, self.State.RUNNING)
 
         if not self.dp.runmode.value in ('hyperopt'):
-            if PCA.first_run:
-                PCA.first_run = False # note use of clas variable, not instance variable
+            if Anomaly.first_run:
+                Anomaly.first_run = False  # note use of clas variable, not instance variable
                 # self.show_debug_info(curr_pair)
                 self.show_all_debug_info()
 
@@ -1923,6 +1344,9 @@ class PCA(IStrategy):
 
         # Fisher RSI + Williams combo
         conditions.append(dataframe['fisher_wr'] < -0.7)
+
+        # # MFI
+        # conditions.append(dataframe['mfi'] > 60.0)
 
         # below Bollinger mid-point
         conditions.append(dataframe['close'] < dataframe['bb_middleband'])
@@ -1957,8 +1381,8 @@ class PCA(IStrategy):
         self.set_state(curr_pair, self.State.RUNNING)
 
         if not self.dp.runmode.value in ('hyperopt'):
-            if PCA.first_run:
-                PCA.first_run = False # note use of clas variable, not instance variable
+            if Anomaly.first_run:
+                Anomaly.first_run = False  # note use of clas variable, not instance variable
                 # self.show_debug_info(curr_pair)
                 self.show_all_debug_info()
 
@@ -1972,6 +1396,9 @@ class PCA(IStrategy):
 
         # Fisher RSI + Williams combo
         conditions.append(dataframe['fisher_wr'] > 0.5)
+
+        # # MFI
+        # conditions.append(dataframe['mfi'] < 30.0)
 
         # PCA triggers
         pca_cond = (

@@ -53,6 +53,24 @@ PCA_nseq:
 
 
 class PCA_nseq(PCA):
+
+    plot_config = {
+        'main_plot': {
+            'close': {'color': 'darkcyan'},
+        },
+        'subplots': {
+            "Diff": {
+                '%future_nseq_up': {'color': 'salmon'},
+                'dwt_nseq_up': {'color': 'tomato'},
+                '%future_nseq_dn': {'color': 'cadetblue'},
+                'dwt_nseq_dn': {'color': 'mediumslateblue'},
+                '%train_buy': {'color': 'darkseagreen'},
+                'predict_buy': {'color': 'dodgerblue'},
+            },
+        }
+    }
+
+
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # Have to re-declare any globals that we need to modify
@@ -67,10 +85,10 @@ class PCA_nseq(PCA):
 
     custom_trade_info = {}
 
-    dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
-    dbg_test_classifier = True  # test clasifiers after fitting
+    dbg_scan_classifiers = True  # if True, scan all viable classifiers and choose the best. Very slow!
+    dbg_test_classifier = True  # test classifiers after fitting
     dbg_analyse_pca = False  # analyze PCA weights
-    dbg_verbose = False  # controls debug output
+    dbg_verbose = True  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
 
     ###################################
@@ -115,10 +133,15 @@ class PCA_nseq(PCA):
     def get_train_buy_signals(self, future_df: DataFrame):
         series = np.where(
             (
-                    # (future_df['volume'] > 0) & # volume check
+                    (future_df['mfi'] < 40) & # loose guard
+
                     #  prior down seq followed by future up sequence
-                    (future_df['dwt_nseq_dn'] <= future_df['dwt_nseq_dn_thresh']) &
-                    (future_df['future_nseq_up'] > future_df['future_nseq_up_thresh'])
+                    # (future_df['dwt_nseq_dn'] <= future_df['dwt_nseq_dn_thresh']) &
+                    # (future_df['future_nseq_up'] >= future_df['future_nseq_up_thresh']) &
+                    (future_df['dwt_nseq_dn'] <= -10) &
+                    (future_df['future_nseq_up'] >= 10) &
+
+                    (future_df['profit_max'] >= future_df['profit_threshold'])   # future profit exceeds threshold
             ), 1.0, 0.0)
 
         return series
@@ -127,10 +150,15 @@ class PCA_nseq(PCA):
 
         series = np.where(
             (
-                    # (future_df['volume'] > 0) & # volume check
+                    (future_df['mfi'] > 60) & # loose guard
+
                     # prior up seq followed by future down sequence
-                    (future_df['dwt_nseq_up'] >= future_df['dwt_nseq_up_thresh']) &
-                    (future_df['future_nseq_dn'] < future_df['future_nseq_dn_thresh'])
+                    # (future_df['dwt_nseq_up'] >= future_df['dwt_nseq_up_thresh']) &
+                    # (future_df['future_nseq_dn'] <= future_df['future_nseq_dn_thresh']) &
+                    (future_df['dwt_nseq_up'] >= 10) &
+                    (future_df['future_nseq_dn'] <= -10) &
+
+                    (future_df['loss_min'] <= future_df['loss_threshold'])   # future loss exceeds threshold
             ), 1.0, 0.0)
 
         return series
@@ -138,9 +166,9 @@ class PCA_nseq(PCA):
     # save the indicators used here so that we can see them in plots (prefixed by '%')
     def save_debug_indicators(self, future_df: DataFrame):
         self.add_debug_indicator(future_df, 'future_nseq_up')
-        self.add_debug_indicator(future_df, 'future_nseq_up_thresh')
+        # self.add_debug_indicator(future_df, 'future_nseq_up_thresh')
         self.add_debug_indicator(future_df, 'future_nseq_dn')
-        self.add_debug_indicator(future_df, 'future_nseq_dn_thresh')
+        # self.add_debug_indicator(future_df, 'future_nseq_dn_thresh')
 
         return
 
