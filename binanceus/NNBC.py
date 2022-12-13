@@ -111,7 +111,7 @@ NNBC - Neural Net Binary Classifier
 class NNBC(IStrategy):
     plot_config = {
         'main_plot': {
-            'close': {'color': 'teal'},
+            'dwt_smooth': {'color': 'teal'},
         },
         'subplots': {
             "Diff": {
@@ -119,6 +119,9 @@ class NNBC(IStrategy):
                 'predict_buy': {'color': 'blue'},
                 '%train_sell': {'color': 'red'},
                 'predict_sell': {'color': 'orange'},
+                'dwt_bottom': {'color': 'magenta'},
+                'dwt_top': {'color': 'cyan'},
+                'mfi': {'color': 'purple'},
             },
         }
     }
@@ -127,7 +130,7 @@ class NNBC(IStrategy):
 
     # ROI table:
     minimal_roi = {
-        "0": 0.1
+        "0": 0.05
     }
 
     # Stoploss:
@@ -163,7 +166,7 @@ class NNBC(IStrategy):
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
-    lookahead_hours = 1.0
+    lookahead_hours = 0.5
     n_profit_stddevs = 1.0
     n_loss_stddevs = 1.0
     min_f1_score = 0.5
@@ -267,8 +270,8 @@ class NNBC(IStrategy):
 
         series = np.where(
             (
-                    (future_df['rsi'] >= 80) &  # classic oversold threshold
-                    (future_df['future_max'] > future_df['dwt_recent_max'])
+                    # (future_df['mfi'] <= 30) &  # loose oversold threshold
+                    (future_df['future_gain'] >= self.profit_threshold)  # future gain above threshold
             ), 1.0, 0.0)
 
         return series
@@ -279,8 +282,8 @@ class NNBC(IStrategy):
 
         series = np.where(
             (
-                    (future_df['rsi'] <= 20) &  # classic overbought threshold
-                    (future_df['future_min'] < future_df['dwt_recent_min'])
+                    # (future_df['mfi'] >= 70) &  # loose overbought threshold
+                    (future_df['future_gain'] <= self.loss_threshold)  # future loss above threshold
             ), 1.0, 0.0)
 
         return series
@@ -628,7 +631,8 @@ class NNBC(IStrategy):
         # smoothed version - useful for trends
         # dataframe['dwt_smooth'] = gaussian_filter1d(dataframe['dwt'], 8)
 
-        dataframe['dwt_deriv'] = np.gradient(dataframe['dwt_smooth'])
+        # dataframe['dwt_deriv'] = np.gradient(dataframe['dwt_smooth'])
+        dataframe['dwt_deriv'] = np.gradient(dataframe['dwt'])
         dataframe['dwt_top'] = np.where(qtpylib.crossed_below(dataframe['dwt_deriv'], 0.0), 1, 0)
         dataframe['dwt_bottom'] = np.where(qtpylib.crossed_above(dataframe['dwt_deriv'], 0.0), 1, 0)
 
@@ -1576,12 +1580,12 @@ class NNBC(IStrategy):
         return clf, name
 
     # default classifier
-    default_classifier = 'RBM'  # select based on testing
+    default_classifier = 'MLP'  # select based on testing
 
     # list of potential classifier types - set to the list that you want to compare
     classifier_list = [
         # 'MLP', 'LSTM', 'Attention', 'Multihead'
-        'MLP', 'MLP2', 'LSTM', 'Multihead', 'RBM'
+        'MLP', 'MLP2', 'LSTM', 'Multihead'
     ]
 
     # factory to create classifier based on name

@@ -810,7 +810,7 @@ class Predict_LSTM(IStrategy):
         # print("Creating model. nfeatures:{} seq_len:{}".format(nfeatures, seq_len))
 
         # trying different models...
-        model_type = 0
+        model_type = 2
         if model_type == 0:
             # simplest possible model:
             model.add(layers.LSTM(64, return_sequences=True, input_shape=(seq_len, nfeatures)))
@@ -829,17 +829,17 @@ class Predict_LSTM(IStrategy):
 
         elif model_type == 2:
             # complex model:
-            model.add(layers.GRU(64, return_sequences=True, input_shape=(seq_len, nfeatures)))
-            model.add(layers.LSTM(64, return_sequences=True))
+            model.add(layers.GRU(64, return_sequences=True, activation='tanh', input_shape=(seq_len, nfeatures)))
+            model.add(layers.LSTM(64, activation='tanh', return_sequences=True))
             model.add(layers.Dense(32))
             model.add(layers.Dropout(rate=0.5))
-            model.add(layers.LSTM(32, return_sequences=True))
+            model.add(layers.LSTM(32, activation='tanh', return_sequences=True))
             model.add(layers.Dropout(rate=0.5))
-            model.add(layers.LSTM(32, return_sequences=True))
+            model.add(layers.LSTM(32, activation='tanh', return_sequences=True))
             model.add(layers.Dropout(rate=0.5))
-            model.add(layers.LSTM(32, return_sequences=True))
+            model.add(layers.LSTM(32, activation='tanh', return_sequences=True))
             model.add(layers.Dropout(rate=0.5))
-            model.add(layers.LSTM(32, return_sequences=False))
+            model.add(layers.LSTM(32, activation='tanh', return_sequences=False))
             model.add(layers.Dropout(rate=0.4))
             model.add(layers.Dense(8))
             model.add(layers.Dense(1, activation='linear'))
@@ -859,10 +859,14 @@ class Predict_LSTM(IStrategy):
             model.add(layers.LSTM(64, return_sequences=True, input_shape=(seq_len, nfeatures)))
             model.add(layers.Dense(1, activation='linear'))
 
+        # model.compile(optimizer='adam',
+        #               loss='mean_squared_error',
+        #               metrics=['accuracy', keras.metrics.MeanAbsoluteError()])
+        optimizer = keras.optimizers.Adam(learning_rate=0.01)
+        model.compile(metrics=['accuracy', 'mse'], loss='mse', optimizer=optimizer)
+
         model.summary()  # helps keep track of which model is running, while making changes
-        model.compile(optimizer='adam',
-                      loss='mean_squared_error',
-                      metrics=[keras.metrics.MeanAbsoluteError()])
+
         return model
 
     ################################

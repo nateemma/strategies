@@ -44,9 +44,9 @@ from keras import layers
 
 import h5py
 
-class AnomalyDetector():
+class AnomalyDetector_AEnc():
 
-    dbg_ignore_load_failure = False
+    dbg_ignore_load_failure = True # creates model if not present
     dbg_verbose = 1
     first_run = True
 
@@ -56,8 +56,11 @@ class AnomalyDetector():
 
     # these will be overwritten by the specific autoencoder
     name = "AnomalyDetector"
-    latent_dim = 96
-    num_features = 128
+    inner_dim = 4
+    compression_ratio = 4
+    outer_dim = compression_ratio * inner_dim
+    num_features = 16
+
     checkpoint_path = ""
     model_path = ""
     tag = ""
@@ -69,16 +72,23 @@ class AnomalyDetector():
     num_epochs = 512  # number of iterations for training
     batch_size = 1024  # batch size for training
 
-    def __init__(self, name, num_features, tag=""):
+    def __init__(self, name, num_features, inner_dim=4, tag=""):
         super().__init__()
 
-        self.name = name
         self.num_features = num_features
+        self.inner_dim = inner_dim
+        self.outer_dim = self.compression_ratio * self.inner_dim
+        # use dimensions in name to avoid conflict with other autoencoders
+        self.name = tag + self.__class__.__name__ + "_" + str(self.num_features) + "_" + str(self.inner_dim)
+
         self.tag = tag
         self.checkpoint_path = self.get_checkpoint_path()
         self.model_path = self.get_model_path()
 
-        # TODO: load saved model if present?!
+        if self.num_features < (self.outer_dim):
+            print("WARNING: num_features ({}) less than expected (<{})".format(self.num_features, self.outer_dim))
+
+        # load saved model if present
         if os.path.exists(self.model_path):
             self.autoencoder = self.load()
             if self.autoencoder == None:
@@ -98,82 +108,27 @@ class AnomalyDetector():
     # override the build_model function in subclasses
     def build_model(self):
 
-        # Note that these are very 'loose' models. We don't really care about compression etc. we just need to
-        # establish a pattern such that an anomaly is more easily detected
-        model_type = 0
+        self.autoencoder = keras.Sequential(name=self.name)
 
-        if model_type == 0:
-            # default autoencoder is a (fairly) simple set of dense layers
-            self.autoencoder = keras.Sequential(name=self.name)
+        # Encoder
+        self.autoencoder.add(layers.Dense(self.outer_dim, activation='relu', input_shape=(1, self.num_features)))
+        # self.autoencoder.add(layers.Dropout(rate=0.2))
+        self.autoencoder.add(layers.Dense(2*self.outer_dim, activation='relu'))
+        # self.autoencoder.add(layers.Dropout(rate=0.2))
+        # self.autoencoder.add(layers.Dense(32, activation='elu'))
+        # self.autoencoder.add(layers.Dropout(rate=0.2))
+        self.autoencoder.add(layers.Dense(self.inner_dim, activation='relu', name='encoder_output'))
 
-            # Encoder
-            self.autoencoder.add(layers.Dense(96, activation='elu', input_shape=(1, self.num_features)))
-            # self.autoencoder.add(layers.Dropout(rate=0.2))
-            self.autoencoder.add(layers.Dense(96, activation='elu'))
-            # self.autoencoder.add(layers.Dropout(rate=0.2))
-            # self.autoencoder.add(layers.Dense(32, activation='elu'))
-            # self.autoencoder.add(layers.Dropout(rate=0.2))
-            self.autoencoder.add(layers.Dense(self.latent_dim, activation='elu', name='encoder_output'))
-
-            # Decoder
-            self.autoencoder.add(layers.Dense(96, activation='elu', input_shape=(1, self.latent_dim)))
-            # self.autoencoder.add(layers.Dropout(rate=0.2))
-            self.autoencoder.add(layers.Dense(96, activation='elu'))
-            # self.autoencoder.add(layers.Dropout(rate=0.2))
-            # self.autoencoder.add(layers.Dense(128, activation='elu'))
-            self.autoencoder.add(layers.Dense(self.num_features, activation=None))
-
-        elif model_type == 1:
-            # LSTM
-            self.autoencoder = keras.Sequential(name=self.name)
-
-            # Encoder
-            self.autoencoder.add(layers.Dense(96, activation='elu', input_shape=(1, self.num_features)))
-            self.autoencoder.add(layers.Dropout(rate=0.4))
-            self.autoencoder.add(layers.LSTM(96, return_sequences=True, activation='elu'))
-            # self.autoencoder.add(layers.LSTM(64, return_sequences=True, activation='elu'))
-            # self.autoencoder.add(layers.Dropout(rate=0.4))
-            # self.autoencoder.add(layers.LSTM(48, return_sequences=True, activation='elu'))
-            # self.autoencoder.add(layers.Dropout(rate=0.4))
-            self.autoencoder.add(layers.Dense(self.latent_dim, activation='elu', name='encoder_output'))
-
-            # Decoder
-            self.autoencoder.add(layers.LSTM(96, return_sequences=True, activation='elu', input_shape=(1, self.latent_dim)))
-            self.autoencoder.add(layers.Dropout(rate=0.4))
-            # self.autoencoder.add(layers.LSTM(64, return_sequences=True, activation='elu'))
-            # self.autoencoder.add(layers.Dropout(rate=0.4))
-            # self.autoencoder.add(layers.LSTM(96, return_sequences=True, activation='elu'))
-            # self.autoencoder.add(layers.Dropout(rate=0.4))
-            self.autoencoder.add(layers.Dense(self.num_features, activation=None))
-
-        elif model_type == 2:
-            # Convolutional
-            self.autoencoder = keras.Sequential(name=self.name)
-
-            # Encoder
-            self.autoencoder.add(layers.Conv1D(filters=64, kernel_size=7, padding="same", input_shape=(1, self.num_features)))
-            self.autoencoder.add(layers.Dropout(rate=0.2))
-            self.autoencoder.add(layers.Conv1D(filters=32, kernel_size=7, padding="same"))
-            self.autoencoder.add(layers.Dropout(rate=0.2))
-            self.autoencoder.add(layers.Conv1D(filters=16, kernel_size=7, padding="same", name='encoder_output'))
-
-            # Decoder
-            self.autoencoder.add(layers.Conv1DTranspose(filters=16, kernel_size=7, padding="same", input_shape=(1, self.num_features)))
-            self.autoencoder.add(layers.Dropout(rate=0.2))
-            self.autoencoder.add(layers.Conv1DTranspose(filters=32, kernel_size=7, padding="same"))
-            self.autoencoder.add(layers.Dropout(rate=0.2))
-            self.autoencoder.add(layers.Conv1DTranspose(filters=64, kernel_size=7, padding="same"))
-
-            self.autoencoder.add(layers.Dense(self.num_features, activation=None))
-
-        else:
-            print("ERR: unknown model_type")
-            self.autoencoder = None
-            return
-
+        # Decoder
+        self.autoencoder.add(layers.Dense(2*self.outer_dim, activation='relu', input_shape=(1, self.inner_dim)))
+        # self.autoencoder.add(layers.Dropout(rate=0.2))
+        self.autoencoder.add(layers.Dense(self.outer_dim, activation='relu'))
+        # self.autoencoder.add(layers.Dropout(rate=0.2))
+        # self.autoencoder.add(layers.Dense(128, activation='elu'))
+        self.autoencoder.add(layers.Dense(self.num_features, activation=None))
 
         # optimizer = keras.optimizers.Adam()
-        optimizer = keras.optimizers.Adam(learning_rate=0.001)
+        optimizer = keras.optimizers.Adam(learning_rate=0.01)
 
         self.autoencoder.compile(metrics=['accuracy', 'mse'], loss='mse', optimizer=optimizer)
 
@@ -217,7 +172,7 @@ class AnomalyDetector():
             early_patience = 32
             plateau_patience = 6
         else:
-            early_patience = 12
+            early_patience = 8
             plateau_patience = 4
 
         # callback to control early exit on plateau of results
@@ -378,14 +333,14 @@ class AnomalyDetector():
     def get_checkpoint_path(self):
         # Note that keras expects it to be called 'checkpoint'
         checkpoint_dir = '/tmp'
-        model_path = checkpoint_dir + "/" + self.tag + self.name + "/" + "checkpoint"
+        model_path = checkpoint_dir + "/" + self.name + "/" + "checkpoint"
         return model_path
 
     def get_model_path(self):
         # path to 'full' model file
         # TODO: include input/output sizes in name, to help prevent mismatches?!
         save_dir = './'
-        model_path = save_dir + self.tag + self.name + ".h5"
+        model_path = save_dir + self.name + ".h5"
         return model_path
 
     def update_model_weights(self):

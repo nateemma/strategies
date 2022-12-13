@@ -1,6 +1,5 @@
-# class that implements an Anomaly detection autoencoder
-# The idea is to train the autoencoder on data that does NOT contain the signal you are looking for (buy/sell)
-# Then when the autoencoder tries to predict the transform, anything with unusual error is considered to be an 'anomoly'
+# class that implements an Anomaly detection autoencoder, based on an LSTM model
+# This version uses sequences of data, so do not feed it 'point' data, it must be time ordered
 
 
 import numpy as np
@@ -44,11 +43,12 @@ from keras import layers
 
 import h5py
 
-class AnomalyDetector():
+class AnomalyDetector_LSTM():
 
-    dbg_ignore_load_failure = False
+    dbg_ignore_load_failure = True # creates model if not present
     dbg_verbose = 1
     first_run = True
+    # first_run = False # TEMP DBG
 
     encoder: keras.Model = None
     decoder: keras.Model = None
@@ -56,29 +56,41 @@ class AnomalyDetector():
 
     # these will be overwritten by the specific autoencoder
     name = "AnomalyDetector"
-    latent_dim = 96
-    num_features = 128
+    inner_dim = 16
+    compression_ratio = 2
+    outer_dim = compression_ratio * inner_dim
+    num_features = 32
+
     checkpoint_path = ""
     model_path = ""
-    tag = ""
+    # tag = ""
     is_trained = False
     clean_data_required = False # training data can contain anomalies
 
     # the following affect training of the model.
     seq_len = 8  # 'depth' of training sequence
-    num_epochs = 512  # number of iterations for training
+    # num_epochs = 512  # number of iterations for training
+    num_epochs = 256  # number of iterations for training
+    # num_epochs = 32 # TEMP FOR DEBUG ONLY
     batch_size = 1024  # batch size for training
 
-    def __init__(self, name, num_features, tag=""):
+    def __init__(self, num_features, pair):
         super().__init__()
 
-        self.name = name
         self.num_features = num_features
-        self.tag = tag
+        self.outer_dim = self.compression_ratio * self.inner_dim
+        # use dimensions in name to avoid conflict with other autoencoders
+        cname = pair.split("/")[0]
+        self.name =  self.__class__.__name__ + "_" + str(self.num_features) + "_" + str(self.inner_dim) + "_" + cname
+
+
         self.checkpoint_path = self.get_checkpoint_path()
         self.model_path = self.get_model_path()
 
-        # TODO: load saved model if present?!
+        if self.num_features < (self.outer_dim):
+            print("WARNING: num_features ({}) less than expected (<{})".format(self.num_features, self.outer_dim))
+
+        # load saved model if present
         if os.path.exists(self.model_path):
             self.autoencoder = self.load()
             if self.autoencoder == None:
@@ -88,6 +100,7 @@ class AnomalyDetector():
                 else:
                     print("    Failed to load model ({})".format(self.model_path))
         else:
+            print("    Model file not found ({}). Creating new model...".format(self.model_path))
             self.build_model()
 
         if self.autoencoder == None:
@@ -98,82 +111,36 @@ class AnomalyDetector():
     # override the build_model function in subclasses
     def build_model(self):
 
-        # Note that these are very 'loose' models. We don't really care about compression etc. we just need to
-        # establish a pattern such that an anomaly is more easily detected
-        model_type = 0
+        self.autoencoder = keras.Sequential(name=self.name)
 
-        if model_type == 0:
-            # default autoencoder is a (fairly) simple set of dense layers
-            self.autoencoder = keras.Sequential(name=self.name)
+        #NOTE: don't use relu with LSTMs, cannot use GPU if you do (much slower)
 
-            # Encoder
-            self.autoencoder.add(layers.Dense(96, activation='elu', input_shape=(1, self.num_features)))
-            # self.autoencoder.add(layers.Dropout(rate=0.2))
-            self.autoencoder.add(layers.Dense(96, activation='elu'))
-            # self.autoencoder.add(layers.Dropout(rate=0.2))
-            # self.autoencoder.add(layers.Dense(32, activation='elu'))
-            # self.autoencoder.add(layers.Dropout(rate=0.2))
-            self.autoencoder.add(layers.Dense(self.latent_dim, activation='elu', name='encoder_output'))
+        # Encoder
+        self.autoencoder.add(layers.Bidirectional(
+            layers.LSTM(self.outer_dim, return_sequences=True, activation='tanh'), input_shape=(self.seq_len, self.num_features)
+        ))
+        # self.autoencoder.add(layers.RepeatVector(self.num_features))
 
-            # Decoder
-            self.autoencoder.add(layers.Dense(96, activation='elu', input_shape=(1, self.latent_dim)))
-            # self.autoencoder.add(layers.Dropout(rate=0.2))
-            self.autoencoder.add(layers.Dense(96, activation='elu'))
-            # self.autoencoder.add(layers.Dropout(rate=0.2))
-            # self.autoencoder.add(layers.Dense(128, activation='elu'))
-            self.autoencoder.add(layers.Dense(self.num_features, activation=None))
+        # self.autoencoder.add(layers.Dropout(rate=0.2))
+        self.autoencoder.add(layers.Bidirectional(
+        layers.LSTM(int(self.outer_dim/2), return_sequences=True, activation='tanh')
+        ))
+        # self.autoencoder.add(layers.Dropout(rate=0.2))
+        self.autoencoder.add(layers.Dense(self.inner_dim, activation='tanh', name='encoder_output'))
 
-        elif model_type == 1:
-            # LSTM
-            self.autoencoder = keras.Sequential(name=self.name)
-
-            # Encoder
-            self.autoencoder.add(layers.Dense(96, activation='elu', input_shape=(1, self.num_features)))
-            self.autoencoder.add(layers.Dropout(rate=0.4))
-            self.autoencoder.add(layers.LSTM(96, return_sequences=True, activation='elu'))
-            # self.autoencoder.add(layers.LSTM(64, return_sequences=True, activation='elu'))
-            # self.autoencoder.add(layers.Dropout(rate=0.4))
-            # self.autoencoder.add(layers.LSTM(48, return_sequences=True, activation='elu'))
-            # self.autoencoder.add(layers.Dropout(rate=0.4))
-            self.autoencoder.add(layers.Dense(self.latent_dim, activation='elu', name='encoder_output'))
-
-            # Decoder
-            self.autoencoder.add(layers.LSTM(96, return_sequences=True, activation='elu', input_shape=(1, self.latent_dim)))
-            self.autoencoder.add(layers.Dropout(rate=0.4))
-            # self.autoencoder.add(layers.LSTM(64, return_sequences=True, activation='elu'))
-            # self.autoencoder.add(layers.Dropout(rate=0.4))
-            # self.autoencoder.add(layers.LSTM(96, return_sequences=True, activation='elu'))
-            # self.autoencoder.add(layers.Dropout(rate=0.4))
-            self.autoencoder.add(layers.Dense(self.num_features, activation=None))
-
-        elif model_type == 2:
-            # Convolutional
-            self.autoencoder = keras.Sequential(name=self.name)
-
-            # Encoder
-            self.autoencoder.add(layers.Conv1D(filters=64, kernel_size=7, padding="same", input_shape=(1, self.num_features)))
-            self.autoencoder.add(layers.Dropout(rate=0.2))
-            self.autoencoder.add(layers.Conv1D(filters=32, kernel_size=7, padding="same"))
-            self.autoencoder.add(layers.Dropout(rate=0.2))
-            self.autoencoder.add(layers.Conv1D(filters=16, kernel_size=7, padding="same", name='encoder_output'))
-
-            # Decoder
-            self.autoencoder.add(layers.Conv1DTranspose(filters=16, kernel_size=7, padding="same", input_shape=(1, self.num_features)))
-            self.autoencoder.add(layers.Dropout(rate=0.2))
-            self.autoencoder.add(layers.Conv1DTranspose(filters=32, kernel_size=7, padding="same"))
-            self.autoencoder.add(layers.Dropout(rate=0.2))
-            self.autoencoder.add(layers.Conv1DTranspose(filters=64, kernel_size=7, padding="same"))
-
-            self.autoencoder.add(layers.Dense(self.num_features, activation=None))
-
-        else:
-            print("ERR: unknown model_type")
-            self.autoencoder = None
-            return
-
+        # Decoder
+        self.autoencoder.add(layers.Bidirectional(
+            layers.LSTM(int(self.outer_dim/2), return_sequences=True, activation='tanh', input_shape=(1, self.inner_dim))
+        ))
+        # self.autoencoder.add(layers.Dropout(rate=0.2))
+        self.autoencoder.add(layers.Bidirectional(
+            layers.LSTM(self.outer_dim, return_sequences=True, activation='tanh')
+        ))
+        # self.autoencoder.add(layers.Dropout(rate=0.2))
+        self.autoencoder.add(layers.Dense(self.num_features, activation=None))
 
         # optimizer = keras.optimizers.Adam()
-        optimizer = keras.optimizers.Adam(learning_rate=0.001)
+        optimizer = keras.optimizers.Adam(learning_rate=0.01)
 
         self.autoencoder.compile(metrics=['accuracy', 'mse'], loss='mse', optimizer=optimizer)
 
@@ -199,8 +166,11 @@ class AnomalyDetector():
         df2 = df1[(df1['%labels'] < 0.1)]
         df_test = df2.drop('%labels', axis=1)
 
-        train_tensor = np.array(df_train).reshape(df_train.shape[0], 1, df_train.shape[1])
-        test_tensor = np.array(df_test).reshape(df_test.shape[0], 1, df_test.shape[1])
+        # train_tensor = np.array(df_train).reshape(df_train.shape[0], 1, df_train.shape[1])
+        # test_tensor = np.array(df_test).reshape(df_test.shape[0], 1, df_test.shape[1])
+
+        train_tensor = self.df_to_tensor(df_train, self.seq_len)
+        test_tensor = self.df_to_tensor(df_test, self.seq_len)
 
 
         # if self.dbg_verbose > 0:
@@ -211,20 +181,23 @@ class AnomalyDetector():
         monitor_field = 'loss'
         monitor_mode = "min"
 
-        # if first run, loosen constraints
-        if self.first_run:
-            self.first_run = False
-            early_patience = 32
-            plateau_patience = 6
-        else:
-            early_patience = 12
-            plateau_patience = 4
+        # # if first run, loosen constraints
+        # if self.first_run:
+        #     self.first_run = False
+        #     early_patience = 8
+        #     plateau_patience = 6
+        # else:
+        #     early_patience = 4
+        #     plateau_patience = 4
+        early_patience = 4
+        plateau_patience = 4
 
         # callback to control early exit on plateau of results
         early_callback = keras.callbacks.EarlyStopping(
             monitor=monitor_field,
             mode=monitor_mode,
             patience=early_patience,
+            min_delta=0.0001,
             verbose=1)
 
         plateau_callback = keras.callbacks.ReduceLROnPlateau(
@@ -264,13 +237,17 @@ class AnomalyDetector():
         # The model weights (that are considered the best) are loaded into th model.
         self.update_model_weights()
 
+        self.save()
+        self.is_trained = True
+
         return
 
     # evaluate model using the supplied (normalised) dataframe as test data.
     def evaluate(self, df_norm: DataFrame):
 
         # train_tensor = np.array(df_train).reshape(df_train.shape[0], 1, df_train.shape[1])
-        test_tensor = np.array(df_norm).reshape(df_norm.shape[0], 1, df_norm.shape[1])
+        # test_tensor = np.array(df_norm).reshape(df_norm.shape[0], 1, df_norm.shape[1])
+        test_tensor = self.df_to_tensor(df_norm, self.seq_len)
 
         print("    Predicting...")
         preds = self.autoencoder.predict(test_tensor, verbose=1)
@@ -281,7 +258,7 @@ class AnomalyDetector():
         # print("tensors equal: ", (test_tensor == preds))
 
         loss = tf.keras.metrics.mean_squared_error(test_tensor, preds)
-        # print("    loss:{} {}".format(np.shape(loss), loss))
+        print("    loss:{} {}".format(np.shape(loss), loss))
         loss = np.array(loss[0])
         print("    loss:")
         print("        sum:{:.3f} min:{:.3f} max:{:.3f} mean:{:.3f} std:{:.3f}".format(loss.sum(),
@@ -292,16 +269,22 @@ class AnomalyDetector():
     # 'recosnstruct' a dataframe by passing it through the autoencoder
     def reconstruct(self, df_norm:DataFrame) -> DataFrame:
         cols = df_norm.columns
-        tensor = np.array(df_norm).reshape(df_norm.shape[0], 1, df_norm.shape[1])
+        # tensor = np.array(df_norm).reshape(df_norm.shape[0], 1, df_norm.shape[1])
+        tensor = self.df_to_tensor(df_norm, self.seq_len)
         encoded_tensor = self.autoencoder.predict(tensor, verbose=1)
-        encoded_array = encoded_tensor.reshape(np.shape(encoded_tensor)[0], np.shape(encoded_tensor)[2])
+        print("    encoded_tensor:{}".format(np.shape(encoded_tensor)))
+        encode_array = encoded_tensor[:, 0, :]
+        encoded_array = encode_array.reshape(np.shape(encoded_tensor)[0], np.shape(encoded_tensor)[2])
+        print("    encoded_array:{}".format(np.shape(encoded_array)))
+
 
         return pd.DataFrame(encoded_array, columns=cols)
 
     # transform supplied (normalised) dataframe into a lower dimension version
     def transform(self, df_norm: DataFrame) -> DataFrame:
         cols = df_norm.columns
-        tensor = np.array(df_norm).reshape(df_norm.shape[0], 1, df_norm.shape[1])
+        # tensor = np.array(df_norm).reshape(df_norm.shape[0], 1, df_norm.shape[1])
+        tensor = self.df_to_tensor(df_norm, self.seq_len)
         encoded_tensor = self.encoder.predict(tensor, verbose=1)
         encoded_array = encoded_tensor.reshape(np.shape(encoded_tensor)[0], np.shape(encoded_tensor)[2])
 
@@ -311,18 +294,20 @@ class AnomalyDetector():
     # only need to override/define the predict function
     def predict(self, df_norm: DataFrame):
 
-        # convert to tensor format and
-        # run the autoencoder
-        tensor = np.array(df_norm).reshape(df_norm.shape[0], 1, df_norm.shape[1])
+        # convert to tensor format and run the autoencoder
+        # tensor = np.array(df_norm).reshape(df_norm.shape[0], 1, df_norm.shape[1])
+        tensor = self.df_to_tensor(df_norm, self.seq_len)
+
         predict_tensor = self.autoencoder.predict(tensor, verbose=1)
 
         # not sure why, but predict sometimes returns an odd length
-        if len(predict_tensor) != np.shape(tensor)[0]:
+        if np.shape(predict_tensor)[0] != np.shape(tensor)[0]:
             print("    ERR: prediction length mismatch ({} vs {})".format(len(predict_tensor), np.shape(tensor)[0]))
             predictions = np.zeros(df_norm.shape[0], dtype=float)
         else:
             # get losses by comparing input to output
             msle = tf.keras.losses.msle(predict_tensor, tensor)
+            msle = msle[:, 0]
 
             # # mean + stddev method
             # # threshold for anomaly scores
@@ -378,14 +363,14 @@ class AnomalyDetector():
     def get_checkpoint_path(self):
         # Note that keras expects it to be called 'checkpoint'
         checkpoint_dir = '/tmp'
-        model_path = checkpoint_dir + "/" + self.tag + self.name + "/" + "checkpoint"
+        model_path = checkpoint_dir + "/" + self.name + "/" + "checkpoint"
         return model_path
 
     def get_model_path(self):
         # path to 'full' model file
         # TODO: include input/output sizes in name, to help prevent mismatches?!
-        save_dir = './'
-        model_path = save_dir + self.tag + self.name + ".h5"
+        save_dir = self.__class__.__name__ + '/'
+        model_path = save_dir + self.name + ".h5"
         return model_path
 
     def update_model_weights(self):
@@ -417,3 +402,46 @@ class AnomalyDetector():
 
     def needs_clean_data(self) -> bool:
         return self.clean_data_required
+
+
+    def df_to_tensor(self, df, seq_len):
+        # input format = [nrows, nfeatures], output = [nrows, seq_len, nfeatures]
+        # print("df type:", type(df))
+        if not isinstance(df, type([np.ndarray, np.array])):
+            data = np.array(df)
+        else:
+            data = df
+
+        nrows = np.shape(data)[0]
+        nfeatures = np.shape(data)[1]
+        tensor_arr = np.zeros((nrows, seq_len, nfeatures), dtype=float)
+        zero_row = np.zeros((nfeatures), dtype=float)
+        # tensor_arr = []
+
+        # print("data:{} tensor:{}".format(np.shape(data), np.shape(tensor_arr)))
+        # print("nrows:{} nfeatures:{}".format(nrows, nfeatures))
+
+        reverse = True
+
+        # fill the first part (0..seqlen rows), which are only sparsely populated
+        for row in range(seq_len):
+            for seq in range(seq_len):
+                if seq >= (seq_len - row - 1):
+                    src_row = (row + seq) - seq_len + 1
+                    tensor_arr[row][seq] = data[src_row]
+                else:
+                    tensor_arr[row][seq] = zero_row
+            if reverse:
+                tensor_arr[row] = np.flipud(tensor_arr[row])
+
+        # fill the rest
+        # print("Data:{}, len:{}".format(np.shape(data), seq_len))
+        for row in range(seq_len, nrows):
+            tensor_arr[row] = data[(row - seq_len) + 1:row + 1]
+            if reverse:
+                tensor_arr[row] = np.flipud(tensor_arr[row])
+
+        # print("data: ", data)
+        # print("tensor: ", tensor_arr)
+        # print("data:{} tensor:{}".format(np.shape(data), np.shape(tensor_arr)))
+        return tensor_arr

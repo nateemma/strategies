@@ -78,6 +78,7 @@ import random
 from prettytable import PrettyTable
 
 from AutoEncoder import AutoEncoder
+from CompressionAutoEncoder import CompressionAutoEncoder
 from RBMEncoder import RBMEncoder
 
 from LSTMAutoEncoder import LSTMAutoEncoder
@@ -605,7 +606,7 @@ class PCA(IStrategy):
 
         # DWT model
         # if in backtest or hyperopt, then we have to do rolling calculations
-        if self.dp.runmode.value in ('hyperopt', 'backtest'):
+        if self.dp.runmode.value in ('hyperopt', 'backtest', 'plot'):
             dataframe['dwt'] = dataframe['close'].rolling(window=self.dwt_window).apply(self.roll_get_dwt)
             dataframe['smooth'] = dataframe['close'].rolling(window=self.dwt_window).apply(self.roll_smooth)
             dataframe['dwt_smooth'] = dataframe['dwt'].rolling(window=self.dwt_window).apply(self.roll_smooth)
@@ -618,6 +619,7 @@ class PCA(IStrategy):
         # dataframe['dwt_smooth'] = gaussian_filter1d(dataframe['dwt'], 8)
 
         dataframe['dwt_deriv'] = np.gradient(dataframe['dwt_smooth'])
+        # dataframe['dwt_deriv'] = np.gradient(dataframe['dwt'])
         dataframe['dwt_top'] = np.where(qtpylib.crossed_below(dataframe['dwt_deriv'], 0.0), 1, 0)
         dataframe['dwt_bottom'] = np.where(qtpylib.crossed_above(dataframe['dwt_deriv'], 0.0), 1, 0)
 
@@ -1402,7 +1404,7 @@ class PCA(IStrategy):
             # pca = LocallyLinearEmbedding(n_components=4, eigen_solver='dense', method="modified").fit(df_norm)
             if self.autoencoder is None:
                 # self.autoencoder = AutoEncoder(df_norm.shape[1])
-                self.autoencoder = AutoEncoder(df_norm.shape[1])
+                self.autoencoder = CompressionAutoEncoder(df_norm.shape[1], tag="Buy")
             pca = self.autoencoder
 
         elif pca_type == 5:

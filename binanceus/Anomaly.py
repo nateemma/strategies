@@ -6,6 +6,7 @@ from enum import Enum
 import pywt
 import talib.abstract as ta
 from scipy.ndimage import gaussian_filter1d
+from sklearn.manifold import LocallyLinearEmbedding
 
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 import arrow
@@ -61,10 +62,12 @@ import random
 from prettytable import PrettyTable
 
 import os
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 os.environ['TF_DETERMINISTIC_OPS'] = '1'
 
 import tensorflow as tf
+
 seed = 42
 os.environ['PYTHONHASHSEED'] = str(seed)
 random.seed(seed)
@@ -73,11 +76,21 @@ np.random.seed(seed)
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
-
 import keras
 from keras import layers
 from tqdm import tqdm
-from AnomalyDetector import AnomalyDetector
+
+from CompressionAutoEncoder import CompressionAutoEncoder
+
+from AnomalyDetector_AEnc import AnomalyDetector_AEnc
+from AnomalyDetector_LOF import AnomalyDetector_LOF
+from AnomalyDetector_KMeans import AnomalyDetector_KMeans
+from AnomalyDetector_IFOR import AnomalyDetector_IFOR
+from AnomalyDetector_EE import AnomalyDetector_EE
+from AnomalyDetector_SVM import AnomalyDetector_SVM
+from AnomalyDetector_PCA import AnomalyDetector_PCA
+
+from AnomalyDetector_LSTM import AnomalyDetector_LSTM
 
 """
 ####################################################################################
@@ -106,8 +119,8 @@ Anomaly - Anomaly Detection Classifier
 class Anomaly(IStrategy):
     plot_config = {
         'main_plot': {
-            'close': {'color': 'darkcyan'},
-            '%recon': {'color': 'salmon'},
+            'close': {'color': 'cornflowerblue'},
+            '%recon': {'color': 'lightsalmon'},
         },
         'subplots': {
             "Diff": {
@@ -122,7 +135,7 @@ class Anomaly(IStrategy):
 
     # ROI table:
     minimal_roi = {
-        "0": 0.05
+        "0": 0.03
     }
 
     # Stoploss:
@@ -130,8 +143,8 @@ class Anomaly(IStrategy):
 
     # Trailing stop:
     trailing_stop = False
-    trailing_stop_positive = None
-    trailing_stop_positive_offset = 0.0
+    trailing_stop_positive = 0.00
+    trailing_stop_positive_offset = 0.00
     trailing_only_offset_is_reached = False
 
     timeframe = '5m'
@@ -139,6 +152,7 @@ class Anomaly(IStrategy):
     inf_timeframe = '5m'
 
     use_custom_stoploss = True
+    use_simpler_custom_stoploss = True
 
     # Recommended
     use_entry_signal = True
@@ -147,7 +161,7 @@ class Anomaly(IStrategy):
 
     # Required
     startup_candle_count: int = 128  # must be power of 2
-    process_only_new_candles = False
+    process_only_new_candles = True
 
     # Strategy-specific global vars
 
@@ -160,15 +174,18 @@ class Anomaly(IStrategy):
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
-    lookahead_hours = 1.0
-    n_profit_stddevs = 0.0
-    n_loss_stddevs = 0.0
-    min_f1_score = 0.70
+    lookahead_hours = 0.5
+    n_profit_stddevs = 1.0
+    n_loss_stddevs = 1.0
+    min_f1_score = 0.50
 
     curr_lookahead = int(12 * lookahead_hours)
 
     curr_pair = ""
     custom_trade_info = {}
+
+    compressor = None
+    compress_data = True
 
     # profit/loss thresholds used for assessing buy/sell signals. Keep these realistic!
     # Note: if self.dynamic_gain_thresholds is True, these will be adjusted for each pair, based on historical mean
@@ -181,13 +198,15 @@ class Anomaly(IStrategy):
     num_pairs = 0
     buy_classifier = None
     sell_classifier = None
+    buy_classifier_list = {}
+    sell_classifier_list = {}
 
     # debug flags
     first_time = True  # mostly for debug
     first_run = True  # used to identify first time through buy/sell populate funcs
 
     dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
-    dbg_test_classifier = False  # test clasifiers after fitting
+    dbg_test_classifier = True  # test clasifiers after fitting
     dbg_verbose = True  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
 
@@ -204,38 +223,56 @@ class Anomaly(IStrategy):
 
     ## Hyperopt Variables
 
-    # PCA hyperparams
-    # buy_pca_gain = IntParameter(1, 50, default=4, space='buy', load=True, optimize=True)
-    #
-    # sell_pca_gain = IntParameter(-1, -15, default=-4, space='sell', load=True, optimize=True)
+    if use_simpler_custom_stoploss:
+        sell_params = {
+            "pHSL": -0.068,
+            "pPF_1": 0.008,
+            "pPF_2": 0.098,
+            "pSL_1": 0.02,
+            "pSL_2": 0.065,
+        }
 
-    # Custom Sell Profit (formerly Dynamic ROI)
-    csell_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
-                                          optimize=True)
-    csell_roi_time = IntParameter(720, 1440, default=720, space='sell', load=True, optimize=True)
-    csell_roi_start = DecimalParameter(0.01, 0.05, default=0.01, space='sell', load=True, optimize=True)
-    csell_roi_end = DecimalParameter(0.0, 0.01, default=0, space='sell', load=True, optimize=True)
-    csell_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any', 'none'], default='any', space='sell',
-                                            load=True, optimize=True)
-    csell_pullback = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
-    csell_pullback_amount = DecimalParameter(0.005, 0.03, default=0.01, space='sell', load=True, optimize=True)
-    csell_pullback_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
-                                                      optimize=True)
-    csell_endtrend_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
-                                                      optimize=True)
+        # hard stoploss profit
+        pHSL = DecimalParameter(-0.200, -0.010, default=-0.08, decimals=3, space='sell', load=True)
 
-    # Custom Stoploss
-    cstop_loss_threshold = DecimalParameter(-0.05, -0.01, default=-0.03, space='sell', load=True, optimize=True)
-    cstop_bail_how = CategoricalParameter(['roc', 'time', 'any', 'none'], default='none', space='sell', load=True,
-                                          optimize=True)
-    cstop_bail_roc = DecimalParameter(-5.0, -1.0, default=-3.0, space='sell', load=True, optimize=True)
-    cstop_bail_time = IntParameter(60, 1440, default=720, space='sell', load=True, optimize=True)
-    cstop_bail_time_trend = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
-    cstop_max_stoploss = DecimalParameter(-0.30, -0.01, default=-0.10, space='sell', load=True, optimize=True)
+        # profit threshold 1, trigger point, SL_1 is used
+        pPF_1 = DecimalParameter(0.008, 0.020, default=0.016, decimals=3, space='sell', load=True)
+        pSL_1 = DecimalParameter(0.008, 0.020, default=0.011, decimals=3, space='sell', load=True)
+
+        # profit threshold 2, SL_2 is used
+        pPF_2 = DecimalParameter(0.040, 0.100, default=0.080, decimals=3, space='sell', load=True)
+        pSL_2 = DecimalParameter(0.020, 0.070, default=0.040, decimals=3, space='sell', load=True)
+
+    else:
+
+        # Custom Sell Profit (formerly Dynamic ROI)
+        csell_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
+                                              optimize=True)
+        csell_roi_time = IntParameter(720, 1440, default=720, space='sell', load=True, optimize=True)
+        csell_roi_start = DecimalParameter(0.01, 0.05, default=0.01, space='sell', load=True, optimize=True)
+        csell_roi_end = DecimalParameter(0.0, 0.01, default=0, space='sell', load=True, optimize=True)
+        csell_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any', 'none'], default='any', space='sell',
+                                                load=True, optimize=True)
+        csell_pullback = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+        csell_pullback_amount = DecimalParameter(0.005, 0.03, default=0.01, space='sell', load=True, optimize=True)
+        csell_pullback_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
+                                                          optimize=True)
+        csell_endtrend_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
+                                                          optimize=True)
+
+        # Custom Stoploss
+        cstop_loss_threshold = DecimalParameter(-0.05, -0.01, default=-0.03, space='sell', load=True, optimize=True)
+        cstop_bail_how = CategoricalParameter(['roc', 'time', 'any', 'none'], default='none', space='sell', load=True,
+                                              optimize=True)
+        cstop_bail_roc = DecimalParameter(-5.0, -1.0, default=-3.0, space='sell', load=True, optimize=True)
+        cstop_bail_time = IntParameter(60, 1440, default=720, space='sell', load=True, optimize=True)
+        cstop_bail_time_trend = CategoricalParameter([True, False], default=True, space='sell', load=True,
+                                                     optimize=True)
+        cstop_max_stoploss = DecimalParameter(-0.30, -0.01, default=-0.10, space='sell', load=True, optimize=True)
 
     ################################
 
-    # subclasses should oiverride the following 2 functions - this is here as an example
+    # subclasses should override the following 2 functions - this is here as an example
 
     # Note: try to combine current/historical data (from populate_indicators) with future data
     #       If you only use future data, the ML training is just guessing
@@ -250,9 +287,11 @@ class Anomaly(IStrategy):
 
         series = np.where(
             (
-                    (future_df['mfi'] >= 60) &  # classic oversold threshold
-                    (future_df['future_gain'] > self.profit_threshold) &  # future gain
-                    (future_df['dwt_bottom'] > 0)   # bottom of trend
+                    (future_df['mfi'] <= 20) &  # loose oversold threshold
+                    (future_df['close'] < future_df['tema']) &  # below average
+                    # (future_df['close'] < future_df['close'].shift(self.curr_lookahead)) &
+                    (future_df['future_gain'] >= self.profit_threshold) #&  # future gain above threshold
+                    # (future_df['dwt_bottom'] > 0)  # bottom of trend
             ), 1.0, 0.0)
 
         return series
@@ -263,9 +302,11 @@ class Anomaly(IStrategy):
 
         series = np.where(
             (
-                    (future_df['mfi'] <= 40) &  # classic overbought threshold
-                    (future_df['future_gain'] < self.loss_threshold) & # future loss
-                    (future_df['dwt_top'] > 0)  # top of trend
+                    (future_df['mfi'] >= 80) &  # loose overbought threshold
+                    (future_df['close'] > future_df['tema']) &  # above average
+                    # (future_df['close'] > future_df['close'].shift(self.curr_lookahead)) &
+                    (future_df['future_gain'] <= self.loss_threshold) #&  # future loss above threshold
+                    # (future_df['dwt_top'] > 0)  # top of trend
             ), 1.0, 0.0)
 
         return series
@@ -355,13 +396,12 @@ class Anomaly(IStrategy):
             print("    updating stoploss data...")
         self.add_stoploss_indicators(dataframe, curr_pair)
 
-        if self.dbg_verbose:
-            print("    saving models...")
-        if self.buy_classifier:
-            self.buy_classifier.save()
-        if self.sell_classifier:
-            self.sell_classifier.save()
-
+        # if self.dbg_verbose:
+        #     print("    saving models...")
+        # if self.buy_classifier:
+        #     self.buy_classifier.save()
+        # if self.sell_classifier:
+        #     self.sell_classifier.save()
 
         return dataframe
 
@@ -617,7 +657,8 @@ class Anomaly(IStrategy):
         # smoothed version - useful for trends
         # dataframe['dwt_smooth'] = gaussian_filter1d(dataframe['dwt'], 8)
 
-        dataframe['dwt_deriv'] = np.gradient(dataframe['dwt_smooth'])
+        # dataframe['dwt_deriv'] = np.gradient(dataframe['dwt_smooth'])
+        dataframe['dwt_deriv'] = np.gradient(dataframe['dwt'])
         dataframe['dwt_top'] = np.where(qtpylib.crossed_below(dataframe['dwt_deriv'], 0.0), 1, 0)
         dataframe['dwt_bottom'] = np.where(qtpylib.crossed_above(dataframe['dwt_deriv'], 0.0), 1, 0)
 
@@ -959,6 +1000,40 @@ class Anomaly(IStrategy):
 
     ############################
 
+    def get_classifier(self, nfeatures, tag):
+        clf = None
+        clf_type = 4
+
+        if clf_type == 0:
+            # NOTE: have to be careful about dimensions (must match training)
+            # ONLY use this option to train the compression autoencoder
+            if self.compress_data:
+                print("WARNING: self.compress_data should be False")
+            clf = CompressionAutoEncoder(nfeatures, tag=tag)
+        elif clf_type == 1:
+            clf = AnomalyDetector_AEnc("BuyAnomalyDetector", nfeatures, tag=tag)
+        elif clf_type == 2:
+            clf = AnomalyDetector_LOF()
+        elif clf_type == 3:
+            clf = AnomalyDetector_KMeans()
+        elif clf_type == 4:
+            clf = AnomalyDetector_IFOR()
+        elif clf_type == 5:
+            clf = AnomalyDetector_EE()
+        elif clf_type == 6:
+            clf = AnomalyDetector_SVM()
+        elif clf_type == 7:
+            clf = AnomalyDetector_PCA(nfeatures)
+        elif clf_type == 8:
+            clf = AnomalyDetector_LSTM(nfeatures, self.curr_pair)
+
+        else:
+            print("    ERR: unknown classifier type ({})".format(clf_type))
+
+        return clf
+
+    ############################
+
     # get a scaler for scaling/normalising the data (in a func because I change it routinely)
     def get_scaler(self):
         # uncomment the one yu want
@@ -990,7 +1065,6 @@ class Anomaly(IStrategy):
     def norm_dataframe(self, dataframe: DataFrame) -> DataFrame:
         self.check_inf(dataframe)
 
-        # TODO: remove date column?!
         temp = dataframe.copy()
         if 'date' in temp.columns:
             temp['date'] = pd.to_datetime(temp['date']).astype('int64')
@@ -1007,7 +1081,6 @@ class Anomaly(IStrategy):
 
         return temp
 
-
     # De-Normalise a dataframe - note this relies on the scaler still being valid
     def denorm_dataframe(self, dataframe: DataFrame) -> DataFrame:
 
@@ -1023,14 +1096,14 @@ class Anomaly(IStrategy):
     def split_dataframe(self, dataframe: DataFrame, ratio: float) -> (DataFrame, DataFrame):
         split_row = int(ratio * dataframe.shape[0])
         df1 = dataframe.iloc[0:split_row].copy()
-        df2 = dataframe.iloc[split_row+1:].copy()
+        df2 = dataframe.iloc[split_row + 1:].copy()
         return df1, df2
 
     # slit an array into two, based on the supplied ratio
     def split_array(self, array, ratio: float) -> (DataFrame, DataFrame):
         split_row = int(ratio * np.shape(array)[0])
         a1 = array[0:split_row].copy()
-        a2 = array[split_row+1:].copy()
+        a2 = array[split_row + 1:].copy()
         return a1, a2
 
     # remove outliers from normalised dataframe
@@ -1173,7 +1246,15 @@ class Anomaly(IStrategy):
 
         full_df_norm = self.norm_dataframe(dataframe)
 
-        # constrain size to what will be available in run modes
+        if self.compress_data:
+            old_size = full_df_norm.shape[1]
+            full_df_norm = self.compress_dataframe(full_df_norm)
+            print("    Compressed data {} -> {} (features)".format(old_size, full_df_norm.shape[1]))
+        else:
+            if self.dbg_verbose:
+                print("    Not compressing data")
+
+        # constrain sample size to what will be available in run modes
         data_size = int(min(975, full_df_norm.shape[0]))
 
         train_ratio = 0.8
@@ -1187,9 +1268,9 @@ class Anomaly(IStrategy):
         #                                                                                       random_state=rand_st,
         #                                                                                       shuffle=False)
         # use the back portion of data for training, front for testing
-        df_test, df_train = self.split_dataframe(full_df_norm, (1.0-train_ratio))
-        test_buys, train_buys = self.split_array(buys, (1.0-train_ratio))
-        test_sells, train_sells = self.split_array(sells, (1.0-train_ratio))
+        df_test, df_train = self.split_dataframe(full_df_norm, (1.0 - train_ratio))
+        test_buys, train_buys = self.split_array(buys, (1.0 - train_ratio))
+        test_sells, train_sells = self.split_array(sells, (1.0 - train_ratio))
 
         if self.dbg_verbose:
             print("     dataframe:", full_df_norm.shape, ' -> train:', df_train.shape, " + test:", df_test.shape)
@@ -1204,21 +1285,31 @@ class Anomaly(IStrategy):
         test_buy_labels = self.get_binary_labels(test_buys)
         test_sell_labels = self.get_binary_labels(test_sells)
 
-        # create classifiers, if necessary
-        if self.buy_classifier is None:
-            print("    Creating Anomaly Detector Buy classifier...")
-            self.buy_classifier = AnomalyDetector("BuyAnomalyDetector", df_train.shape[1])
-            
-        if self.sell_classifier is None:
-            print("    Creating Anomaly Detector Buy classifier...")
-            self.sell_classifier = AnomalyDetector("SellAnomalyDetector", df_train.shape[1])
+        # Buy Classifier
 
-        if self.dp.runmode.value not in ('plot'):
-            # train/fit the classifiers (note, this is cumulative)
-            # if not self.buy_classifier.model_is_trained():
-            self.buy_classifier.train(df_train, df_test, train_buys, test_buys)
-            # if not self.sell_classifier.model_is_trained():
-            self.sell_classifier.train(df_train, df_test, train_sells, test_sells)
+        # # create classifiers, if necessary
+
+        if self.curr_pair not in self.buy_classifier_list:
+            self.buy_classifier = self.get_classifier(full_df_norm.shape[1], "Buy")
+            self.buy_classifier_list[self.curr_pair] = self.buy_classifier
+        else:
+            self.buy_classifier = self.buy_classifier_list[self.curr_pair]
+
+        # if self.dp.runmode.value not in ('plot'):
+        # train/fit the classifiers (note, this is cumulative)
+        force_train = True if (self.dp.runmode.value in ('backtest')) else False
+
+        self.buy_classifier.train(df_train, df_test, train_buys, test_buys, force_train=force_train)
+
+        # Sell Classifier
+
+        if self.curr_pair not in self.sell_classifier_list:
+            self.sell_classifier = self.get_classifier(full_df_norm.shape[1], "Sell")
+            self.sell_classifier_list[self.curr_pair] = self.sell_classifier
+        else:
+            self.sell_classifier = self.sell_classifier_list[self.curr_pair]
+
+        self.sell_classifier.train(df_train, df_test, train_sells, test_sells, force_train=force_train)
 
         # if scan specified, test against the test dataframe
         if self.dbg_test_classifier:
@@ -1237,14 +1328,112 @@ class Anomaly(IStrategy):
                 print(classification_report(test_sell_labels, pred_sells))
                 print("")
 
+        # if running 'plot', reconstruct the original dataframe for display
         if self.dp.runmode.value in ('plot'):
-            # debug: get reconstructed dataframe and save 'close' as a comparison
-            tmp = self.norm_dataframe(dataframe) # this just resets the scaler
-            df_recon_norm = self.buy_classifier.reconstruct(full_df_norm)
-            df_recon = self.denorm_dataframe(df_recon_norm)
-            dataframe['%recon'] = df_recon['close']
+            if self.compress_data:
+                df_norm = self.norm_dataframe(dataframe)  # this also resets the scaler
+                df_compressed = self.compress_dataframe(df_norm)
+                df_recon_compressed = self.buy_classifier.reconstruct(df_compressed)
+                df_recon_norm = self.compressor.inverse_transform(df_recon_compressed)
+                df_recon_norm = pd.DataFrame(df_recon_norm, columns=df_norm.columns)
+                df_recon = self.denorm_dataframe(df_recon_norm)
+                dataframe['%recon'] = df_recon['close']
+            else:
+                # debug: get reconstructed dataframe and save 'close' as a comparison
+                tmp = self.norm_dataframe(dataframe)  # this just resets the scaler
+                df_recon_norm = self.buy_classifier.reconstruct(tmp)
+                df_recon = self.denorm_dataframe(df_recon_norm)
+                dataframe['%recon'] = df_recon['close']
         return dataframe
 
+    # remove any rows thatr are buys or sells from training data (needed by some classifiers)
+    def clean_training_data(self, df_train, train_buys, train_sells) -> DataFrame:
+
+        # print("    removing anomalies from training data")
+        df = df_train.copy()
+        df['%buys'] = train_buys
+        df['%sells'] = train_sells
+        df = df[((df['%buys'] < 1.0) & (df['%sells'] < 1.0))]
+        df = df.drop(['%buys', '%sells'], axis=1)
+
+        return df
+
+    # compress the suplied dataframe
+    def compress_dataframe(self, dataframe: DataFrame) -> DataFrame:
+        if not self.compressor:
+            self.compressor = self.get_compressor(dataframe)
+        return pd.DataFrame(self.compressor.transform(dataframe))
+
+    # get the compressor model for the supplied dataframe (dataframe must be normalised)
+    # use .transform() to compress the dataframe
+    def get_compressor(self, df_norm: DataFrame):
+
+        ncols = df_norm.shape[1]  # allow all components to get the full variance matrix
+        whiten = True
+
+        compressor_type = 0
+
+        # there are various types of PCA, plus alternatives like ICA and Feature Extraction
+        if compressor_type == 0:
+            '''
+            compressor = skd.PCA(n_components=ncols, whiten=whiten, svd_solver='full').fit(df_norm)
+            var_ratios = compressor.explained_variance_ratio_
+
+            # if self.dbg_verbose:
+            #     print ("PCA variance_ratio: ", compressor.explained_variance_ratio_)
+
+            # scan variance and only take if column contributes >x%
+            ncols = 0
+            var_sum = 0.0
+            variance_threshold = 0.98  # bias towards compression rather than accuracy
+            # variance_threshold = 0.99
+            while ((var_sum < variance_threshold) & (ncols < len(var_ratios))):
+                var_sum = var_sum + var_ratios[ncols]
+                ncols = ncols + 1
+
+            # if necessary, re-calculate compressor with reduced column set
+            if (ncols != df_norm.shape[1]):
+                # compressor = skd.PCA(n_components=ncols, svd_solver="randomized", whiten=True).fit(df_norm)
+                compressor = skd.PCA(n_components=ncols, whiten=whiten, svd_solver='full').fit(df_norm)
+            '''
+            # just use fixed size PCA (easier for classifiers to deal with)
+            ncols = 64
+            compressor = skd.PCA(n_components=ncols, whiten=True, svd_solver='full').fit(df_norm)
+
+        elif compressor_type == 1:
+            # accurate, but slow
+            print("    Using KernelPCA...")
+            compressor = skd.KernelPCA(n_components=ncols, remove_zero_eig=True).fit(df_norm)
+            eigenvalues = compressor.eigenvalues_
+            # print(var_ratios)
+            # Note: eigenvalues are not bounded, so just have to go by min value
+            ncols = 0
+            val_threshold = 0.5
+            while ((eigenvalues[ncols] > val_threshold) & (ncols < len(eigenvalues))):
+                ncols = ncols + 1
+
+            # if necessary, re-calculate compressor with reduced column set
+            if (ncols != df_norm.shape[1]):
+                # compressor = skd.PCA(n_components=ncols, svd_solver="randomized", whiten=True).fit(df_norm)
+                compressor = skd.KernelPCA(n_components=ncols, remove_zero_eig=True).fit(df_norm)
+
+        elif compressor_type == 2:
+            # fast, but not as accurate
+            print("    Using Locally Linear Embedding...")
+            # compressor = LocallyLinearEmbedding(n_neighbors=32, n_components=16, eigen_solver='dense',
+            #                              method="modified").fit(df_norm)
+            compressor = LocallyLinearEmbedding().fit(df_norm)
+
+        elif compressor_type == 3:
+            # a bit slow, still debugging...
+            print("    Using Autoencoder...")
+            compressor = CompressionAutoEncoder(df_norm.shape[1], tag="Buy")
+
+        else:
+            print("*** ERR - unknown PCA type ***")
+            compressor = None
+
+        return compressor
 
     # make predictions for supplied dataframe (returns column)
     def predict(self, dataframe: DataFrame, pair, clf):
@@ -1255,6 +1444,8 @@ class Anomaly(IStrategy):
         if clf:
             # print("    predicting... - dataframe:", dataframe.shape)
             df_norm = self.norm_dataframe(dataframe)
+            if self.compress_data:
+                df_norm = self.compress_dataframe(df_norm)
             predict = clf.predict(df_norm)
 
         else:
@@ -1332,8 +1523,6 @@ class Anomaly(IStrategy):
                 # self.show_debug_info(curr_pair)
                 self.show_all_debug_info()
 
-        conditions.append(dataframe['volume'] > 0)
-
         # add some fairly loose guards, to help prevent 'bad' predictions
 
         # # ATR in buy range
@@ -1342,28 +1531,28 @@ class Anomaly(IStrategy):
         # some trading volume
         conditions.append(dataframe['volume'] > 0)
 
-        # Fisher RSI + Williams combo
-        conditions.append(dataframe['fisher_wr'] < -0.7)
+        # # Fisher RSI + Williams combo
+        # conditions.append(dataframe['fisher_wr'] < -0.7)
 
-        # # MFI
-        # conditions.append(dataframe['mfi'] > 60.0)
+        # MFI
+        conditions.append(dataframe['mfi'] < 20.0)
 
-        # below Bollinger mid-point
-        conditions.append(dataframe['close'] < dataframe['bb_middleband'])
+        # below TEMA
+        conditions.append(dataframe['close'] < dataframe['tema'])
 
         # PCA/Classifier triggers
-        pca_cond = (
+        anomaly_cond = (
             (qtpylib.crossed_above(dataframe['predict_buy'], 0.5))
         )
-        conditions.append(pca_cond)
+        conditions.append(anomaly_cond)
 
         # set entry tags
-        dataframe.loc[pca_cond, 'enter_tag'] += 'pca_entry '
+        dataframe.loc[anomaly_cond, 'enter_tag'] += 'anom_entry '
 
         if conditions:
-            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
+            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'enter_long'] = 1
         else:
-            dataframe['buy'] = 0
+            dataframe['enter_long'] = 0
 
         return dataframe
 
@@ -1394,25 +1583,25 @@ class Anomaly(IStrategy):
         # above Bollinger mid-point
         conditions.append(dataframe['close'] > dataframe['bb_middleband'])
 
-        # Fisher RSI + Williams combo
-        conditions.append(dataframe['fisher_wr'] > 0.5)
+        # # Fisher RSI + Williams combo
+        # conditions.append(dataframe['fisher_wr'] > 0.5)
 
-        # # MFI
-        # conditions.append(dataframe['mfi'] < 30.0)
+        # MFI
+        conditions.append(dataframe['mfi'] > 80.0)
 
         # PCA triggers
-        pca_cond = (
+        anomaly_cond = (
             qtpylib.crossed_above(dataframe['predict_sell'], 0.5)
         )
 
-        conditions.append(pca_cond)
+        conditions.append(anomaly_cond)
 
-        dataframe.loc[pca_cond, 'exit_tag'] += 'pca_exit '
+        dataframe.loc[anomaly_cond, 'exit_tag'] += 'anom_exit '
 
         if conditions:
-            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1
+            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'exit_long'] = 1
         else:
-            dataframe['sell'] = 0
+            dataframe['exit_long'] = 0
 
         return dataframe
 
@@ -1424,6 +1613,14 @@ class Anomaly(IStrategy):
 
     def custom_stoploss(self, pair: str, trade: 'Trade', current_time: datetime, current_rate: float,
                         current_profit: float, **kwargs) -> float:
+
+        if self.use_simpler_custom_stoploss:
+            return self.simpler_custom_stoploss(pair, trade, current_time, current_rate, current_profit)
+        else:
+            return self.complex_custom_stoploss(pair, trade, current_time, current_rate, current_profit)
+
+    def complex_custom_stoploss(self, pair: str, trade: 'Trade', current_time: datetime, current_rate: float,
+                                current_profit: float) -> float:
 
         # self.set_state(pair, self.State.STOPLOSS)
 
@@ -1451,6 +1648,43 @@ class Anomaly(IStrategy):
                         return 0.01
         return 1
 
+    ## Custom Trailing stoploss ( credit to Perkmeister for this custom stoploss to help the strategy ride a green candle )
+    def simpler_custom_stoploss(self, pair: str, trade: 'Trade', current_time: datetime,
+                                current_rate: float, current_profit: float) -> float:
+
+        # # hard stoploss profit
+        # HSL = self.pHSL.value
+        # PF_1 = self.pPF_1.value
+        # SL_1 = self.pSL_1.value
+        # PF_2 = self.pPF_2.value
+        # SL_2 = self.pSL_2.value
+        #
+        # # For profits between PF_1 and PF_2 the stoploss (sl_profit) used is linearly interpolated
+        # # between the values of SL_1 and SL_2. For all profits above PL_2 the sl_profit value
+        # # rises linearly with current profit, for profits below PF_1 the hard stoploss profit is used.
+        #
+        # if (current_profit > PF_2):
+        #     sl_profit = SL_2 + (current_profit - PF_2)
+        # elif (current_profit > PF_1):
+        #     sl_profit = SL_1 + ((current_profit - PF_1) * (SL_2 - SL_1) / (PF_2 - PF_1))
+        # else:
+        #     sl_profit = HSL
+        #
+        # # Only for hyperopt invalid return
+        # if (sl_profit >= current_profit):
+        #     return -0.99
+        #
+        # return min(-0.01, max(stoploss_from_open(sl_profit, current_profit), -0.99))
+
+        if current_profit < 0.02:
+            return -1  # return a value bigger than the initial stoploss to keep using the initial stoploss
+
+        # After reaching the desired offset, allow the stoploss to trail by half the profit
+        desired_stoploss = current_profit / 2
+
+        # Use a minimum of 1% and a maximum of 8%
+        return max(min(desired_stoploss, 0.08), 0.01)
+
     ###################################
 
     """
@@ -1459,6 +1693,13 @@ class Anomaly(IStrategy):
 
     def custom_sell(self, pair: str, trade: 'Trade', current_time: 'datetime', current_rate: float,
                     current_profit: float, **kwargs):
+        if self.use_simpler_custom_stoploss:
+            return self.simpler_custom_sell(pair, trade, current_time, current_rate, current_profit)
+        else:
+            return self.complex_custom_sell(pair, trade, current_time, current_rate, current_profit)
+
+    def complex_custom_sell(self, pair: str, trade: 'Trade', current_time: 'datetime', current_rate: float,
+                            current_profit: float):
 
         dataframe, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
         last_candle = dataframe.iloc[-1].squeeze()
@@ -1467,6 +1708,12 @@ class Anomaly(IStrategy):
         max_profit = max(0, trade.calc_profit_ratio(trade.max_rate))
         pullback_value = max(0, (max_profit - self.csell_pullback_amount.value))
         in_trend = False
+
+        # Mod: just take the profit:
+        # Above 3%, sell if MFA > 90
+        if current_profit > 0.03:
+            if last_candle['mfi'] > 90:
+                return 'mfi_90'
 
         # Determine our current ROI point based on the defined type
         if self.csell_roi_type.value == 'static':
@@ -1519,6 +1766,26 @@ class Anomaly(IStrategy):
                 return 'notrend_roi'
         else:
             return None
+
+    def simpler_custom_sell(self, pair: str, trade: 'Trade', current_time: 'datetime', current_rate: float,
+                            current_profit: float):
+        dataframe, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
+        last_candle = dataframe.iloc[-1].squeeze()
+
+        # Above 5% profit, sell
+        if current_profit > 0.05:
+            return 'profit_5'
+
+        # Above 2%, sell if MFA > 90
+        if current_profit > 0.02:
+            if last_candle['mfi'] > 90:
+                return 'mfi_90'
+
+        # Sell any positions at a loss if they are held for more than one day.
+        if current_profit < 0.0 and (current_time - trade.open_date_utc).days >= 2:
+            return 'unclog'
+
+        return None
 
 
 #######################
@@ -1728,4 +1995,3 @@ def range_percent_change(dataframe: DataFrame, method, length: int) -> float:
             'close'].rolling(length).min()
     else:
         raise ValueError(f"Method {method} not defined!")
-

@@ -39,20 +39,19 @@ log = logging.getLogger(__name__)
 # log.setLevel(logging.DEBUG)
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
-from PCA import PCA
+from NNBC import NNBC
 
 """
 ####################################################################################
-PCA_over:
-    This is a subclass of PCA, which provides a framework for deriving a dimensionally-reduced model
-    This class trains the model based on overbought/oversold conditions
+NNBC_jump:
+    This is a subclass of NNBC, which provides a framework for deriving a dimensionally-reduced model
+    This class trains the model based on MFI indicator and top/bottom of trend (using lookahead)
 
 ####################################################################################
 """
 
 
-class PCA_over(PCA):
-
+class NNBC_mfi(NNBC):
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # Have to re-declare any globals that we need to modify
@@ -60,17 +59,20 @@ class PCA_over(PCA):
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
-    lookahead_hours = 0.5
+    lookahead_hours = 1.0
     n_profit_stddevs = 1.0
     n_loss_stddevs = 1.0
-    min_f1_score = 0.70
+    min_f1_score = 0.5
+
+    cherrypick_data = False
+    preload_model = True # don't set to true if you are changing buy/sell conditions or tweaking models
+
 
     custom_trade_info = {}
 
     dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
-    dbg_test_classifier = True  # test clasifiers after fitting
-    dbg_analyse_pca = False  # analyze PCA weights
-    dbg_verbose = False  # controls debug output
+    dbg_test_classifier = True  # test classifiers after fitting
+    dbg_verbose = True  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
 
     ###################################
@@ -80,9 +82,6 @@ class PCA_over(PCA):
     ## Hyperopt Variables
 
     # PCA hyperparams
-    # buy_pca_gain = IntParameter(1, 50, default=4, space='buy', load=True, optimize=True)
-    #
-    # sell_pca_gain = IntParameter(-1, -15, default=-4, space='sell', load=True, optimize=True)
 
     # Custom Sell Profit (formerly Dynamic ROI)
     csell_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
@@ -110,56 +109,37 @@ class PCA_over(PCA):
 
     ###################################
 
-    # override the default training signal generation
+    # Override the training signals
 
-    # uses various overbought/oversold indicators, combined with future los/gain
+    # find local min/max within past & future window
+    # This is pretty cool because it doesn't care about 'jitter' within the window, or any measure of profit/loss
+    # Note that this will find a lot of results, may want to add a few more guards
 
     def get_train_buy_signals(self, future_df: DataFrame):
-        buys = np.where(
+        series = np.where(
             (
-                # # various overbought condition
-                #     (future_df['fastk'] < 30) &
-                #     (future_df['rsi'] < 30) &
-                #     (future_df['mfi'] < 30) &
-                #     # (future_df['vfi'] < 50) &
-                #     (future_df['fisher_wr'] < -0.5) &
-                #
-                #     # future profit
-                #     (future_df['profit_max'] >= self.profit_threshold) &
-                #     (future_df['future_gain'] > 0)
-
-                    (future_df['mfi'] < 30) &
+                    # (future_df['mfi'] < 40) &
                     (future_df['dwt_bottom'] > 0)
             ), 1.0, 0.0)
 
-        return buys
+        return series
 
+    # this is a pretty generic sell condition. Can't be too picky
     def get_train_sell_signals(self, future_df: DataFrame):
-        sells = np.where(
+        series = np.where(
             (
-                # # stochastics show oversold condition
-                #     (future_df['fastk'] > 70) &
-                #     (future_df['rsi'] > 70) &
-                #     (future_df['mfi'] > 70) &
-                #     # (future_df['vfi'] > 50) &
-                #     (future_df['fisher_wr'] > 0.5) &
-                #
-                #     # future loss
-                #     (future_df['loss_min'] <= self.loss_threshold) &
-                #     (future_df['future_gain'] < 0)
-
-                    (future_df['mfi'] > 80) &
+                    # (future_df['mfi'] > 60) &
                     (future_df['dwt_top'] > 0)
-
             ), 1.0, 0.0)
 
-        return sells
+        return series
+
 
     # save the indicators used here so that we can see them in plots (prefixed by '%')
     def save_debug_indicators(self, future_df: DataFrame):
-        self.add_debug_indicator(future_df, 'future_gain')
-        self.add_debug_indicator(future_df, 'profit_max')
-        self.add_debug_indicator(future_df, 'loss_min')
+        self.add_debug_indicator(future_df, 'future_min')
+        self.add_debug_indicator(future_df, 'future_max')
 
         return
 
+    ###################################

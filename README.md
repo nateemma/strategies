@@ -8,23 +8,40 @@ Note: I have tried many different strategies, most of which perform quite badly 
 The abandoned strategies are in the _archived/_ folder<br> for reference (I sometimes cut & paste pieces of them into 
 new strategies).
 
-I currently focus on strategies that revolve around one of 2 approaches:
+I currently focus on strategies that revolve around one of several approaches:
 
 1. creating a model of the expected behaviour and comparing it to 
 the actual behaviour. If the model projects a higher price (above a certain margin) then buy, similarly sell if the 
 model predicts a lower price. There are variants that use Discrete Wavelet Transforms (DWT), Fast Fourier 
 Transforms (FFTs) and Kalman filters. The DWT variants seem to perform the best (and are the fastest).
 2. Use Principal Component Analysis (PCA) to reduce the dimensions of the dataframe columns, then use that to train 
-classifiers, which are then used to predict buys and sells. The PCA analysis because you just add indicators and let the 
-PCA reduction figure out which of them are actually important.
+classifiers, which are then used to predict buys and sells. The PCA analysis is pretty cool because you just add 
+indicators and let the PCA reduction figure out which of them are actually important.<br>
 Note that this is quite similar in approach to freqAI, but I started it before I knew about that, so just kept going 
 (because I find it interesting).<br>
 All of the PCA logic is contained in a base class named PCA. There are several variants (prefixed with PCA_) that try 
 out different approaches to identify buy/sell signals that are used for training the classifiers.
+3. Use Neural Networks to create binary classifers that return a buy/sell prediction.<br>
+Logic is very similar to the PCA classes, and the base class is NNBC (Neural Network Binary Classifier). 
+The internals are a little more complex because the Neural Network code works with 'tensors' rather than dataframes.
+Currently, performnce is not great, mostly because there are not enough buy/sell events to train the models properly. 
+At some point I will train them on loinger timeperiods and then save/load the resulting models
+4. Neural Network prediction models (Predict_*.py)<br>
+SImilar to NNBC, but predicts an actual price, rather than a buy/sell recommendation. Same issues as NNBC
+5. Anomaly Detection (Anomaly.py)<br>
+The main issue with using neural networks is that there are not many buy/sell recommendations relative to the number
+of samples (typically about 1%). This approach uses various anomaly detection algorithms by training them on historical 
+data, which will mostly model the normal cases (no buy or sell). Then we run it against actual data and anything identified
+as an 'anomaly' should be a buy or sell.<br>
+6. I also combine this with various compression techniques, such as PCA, to make the anomaly detection algorithms more 
+efficient. As an aside, I should also try this with the other neural network approaches.
 
 All of these strategies use the custom sell/stoploss  approach from the Solipsis strategy (by werkrew). 
 This makes a huge difference in performance, but the downside is that each strategy requires a lot of hyperopt-ing 
-to get decent performance
+to get decent performance. Also, I am suspicious that the custom stoploss code is over-fitting, because it has such a 
+drastic effect on performance and because it doesn'tr seem to work the same way in dry runs.<br>
+I am currently trying to find a simpler custom stoploss approach that transfers better to a live environment 
+(look in Anomaly.py)
 
 
 
