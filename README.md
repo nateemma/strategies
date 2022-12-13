@@ -17,8 +17,8 @@ Transforms (FFTs) and Kalman filters. The DWT variants seem to perform the best 
 2. Use Principal Component Analysis (PCA) to reduce the dimensions of the dataframe columns, then use that to train 
 classifiers, which are then used to predict buys and sells. The PCA analysis is pretty cool because you just add 
 indicators and let the PCA reduction figure out which of them are actually important.<br>
-Note that this is quite similar in approach to freqAI, but I started it before I knew about that, so just kept going 
-(because I find it interesting).<br>
+Note that this is quite similar in approach to [freqAI](https://www.freqtrade.io/en/stable/freqai/), 
+but I started it before I knew about that, so just kept going (because I find it interesting).<br>
 All of the PCA logic is contained in a base class named PCA. There are several variants (prefixed with PCA_) that try 
 out different approaches to identify buy/sell signals that are used for training the classifiers.
 3. Use Neural Networks to create binary classifers that return a buy/sell prediction.<br>
@@ -33,7 +33,7 @@ The main issue with using neural networks is that there are not many buy/sell re
 of samples (typically about 1%). This approach uses various anomaly detection algorithms by training them on historical 
 data, which will mostly model the normal cases (no buy or sell). Then we run it against actual data and anything identified
 as an 'anomaly' should be a buy or sell.<br>
-6. I also combine this with various compression techniques, such as PCA, to make the anomaly detection algorithms more 
+I also combine this with various compression techniques, such as PCA, to make the anomaly detection algorithms more 
 efficient. As an aside, I should also try this with the other neural network approaches.
 
 All of these strategies use the custom sell/stoploss  approach from the Solipsis strategy (by werkrew). 
@@ -79,6 +79,10 @@ The following is a list of my custom strategies that I am currently testing.
 | Kalman     | Model behaviour using a Kalman Filter (from pykalman)                                                                                                                   |
 | KalmanSIMD | Model behaviour using a Kalman Filter (from simdkalman)                                                                                                                 |
 | PCA_*      | Uses Principal Component Analysis (PCA) and classifiers trained on prior data to predict buy/sells. Each PCA_* variant uses a different approach to predict buys/sells. |
+| NNBC_*     | Neural Network Binary Classifiers - approaches to predict buy/sell events |                                                                                              |
+| Predict_*  | Uses neural network approaches to predict price changes |
+| Anomaly* | USe anomaly detection algorithms to identify buys/sells. Anomaly.py is the main logic, Anomaly_*.py contain the algorithms |
+
 
 
 Please note that you will need both the _.py_ *and* the _.json_ file.
