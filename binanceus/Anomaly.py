@@ -1016,7 +1016,7 @@ class Anomaly(IStrategy):
         elif clf_type == 3:
             clf = AnomalyDetector_KMeans()
         elif clf_type == 4:
-            clf = AnomalyDetector_IFOR()
+            clf = AnomalyDetector_IFOR(self.curr_pair, tag=tag)
         elif clf_type == 5:
             clf = AnomalyDetector_EE()
         elif clf_type == 6:

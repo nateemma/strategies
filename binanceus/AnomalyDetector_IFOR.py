@@ -52,13 +52,15 @@ class AnomalyDetector_IFOR():
     num_estimators = 10
     name = ""
     model_path = ""
-    use_saved_model = False
+    use_saved_model = True
 
-    def __init__(self, tag=""):
+    def __init__(self, pair, tag=""):
         super().__init__()
 
         #TODO: add nium_features, use to modify model_path
-        self.name = tag + self.__class__.__name__
+        cname = pair.split("/")[0]
+
+        self.name = tag + "_" + self.__class__.__name__ + "_" + cname
         self.model_path = self.get_model_path()
 
         # load saved model if present
@@ -69,7 +71,10 @@ class AnomalyDetector_IFOR():
         else:
             # self.classifier = IsolationForest(contamination=.01)
             # self.classifier = IsolationForest(n_estimators=self.num_estimators, warm_start=True)
-            self.classifier = IsolationForest(warm_start=True)  # produces a warning, but seems to work better
+            if self.use_saved_model:
+                self.classifier = IsolationForest()
+            else:
+                self.classifier = IsolationForest(warm_start=True)  # produces a warning, but seems to work better
 
     # update training using the suplied (normalised) dataframe. Training is cumulative
     # the 'labels' args should contain 0.0 for normal results, '1.0' for anomalies (buy or sell)
@@ -91,6 +96,9 @@ class AnomalyDetector_IFOR():
         # self.num_estimators = self.num_estimators + 1
         # self.classifier.set_params(n_estimators=self.num_estimators)
         self.classifier = self.classifier.fit(df_train)
+
+        self.save()
+
         return
 
 
@@ -117,7 +125,9 @@ class AnomalyDetector_IFOR():
 
     def get_model_path(self):
         # path to 'full' model file
-        save_dir = './'
+        save_dir = self.__class__.__name__ + '/'
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
         model_path = save_dir + self.name + ".sav"
         return model_path
 
