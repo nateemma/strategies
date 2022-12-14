@@ -130,7 +130,7 @@ class Predict_LSTM(IStrategy):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     # lookahead_hours = 1.0
-    lookahead_hours = 0.4
+    lookahead_hours = 1.0
     n_profit_stddevs = 0.0
     n_loss_stddevs = 0.0
     min_f1_score = 0.70
@@ -155,7 +155,7 @@ class Predict_LSTM(IStrategy):
     normalise_data = True
 
     # the following affect training of the model. Bigger numbers give better model, but take longer and use more memory
-    seq_len = 8 # 'depth' of training sequence
+    seq_len = 4 # 'depth' of training sequence
     num_epochs = 64 # number of iterations for training
     batch_size = 512 # batch size for training
     predict_batch_size = 256
@@ -547,7 +547,7 @@ class Predict_LSTM(IStrategy):
 
         if self.pair_model_info[pair]['model'] == None:
             print("    Creating model for: ", pair, " seq_len:", nfeatures)
-            self.pair_model_info[pair]['model'] = self.get_lstm(nfeatures, self.seq_len)
+            self.pair_model_info[pair]['model'] = self.get_model(nfeatures, self.seq_len)
             self.pair_model_info[pair]['interval'] = 0
 
 
@@ -580,8 +580,8 @@ class Predict_LSTM(IStrategy):
         df = dataframe.fillna(0.0)
         # df = df.shift(-self.startup_candle_count)  # don't use data from startup period
         df = self.convert_date(df)
-        tgt_col = df.columns.get_loc("smooth")
-        # tgt_col = df.columns.get_loc("close")
+        # tgt_col = df.columns.get_loc("smooth")
+        tgt_col = df.columns.get_loc("close")
         scaler = self.get_scaler()
 
         df_norm = scaler.fit_transform(df)
@@ -686,6 +686,7 @@ class Predict_LSTM(IStrategy):
         early_callback = keras.callbacks.EarlyStopping(
             monitor="loss",
             mode="min",
+            min_delta=0.0001,
             patience=4,
             verbose=1)
 
@@ -703,7 +704,7 @@ class Predict_LSTM(IStrategy):
         checkpoint_callback = keras.callbacks.ModelCheckpoint(
             filepath=model_name,
             save_weights_only=True,
-            monitor='val_loss',
+            monitor='loss',
             mode='min',
             save_best_only=True,
             verbose=0)
@@ -804,16 +805,16 @@ class Predict_LSTM(IStrategy):
         # print("data:{} tensor:{}".format(np.shape(data), np.shape(tensor_arr)))
         return tensor_arr
 
-    def get_lstm(self, nfeatures: int, seq_len: int):
+    def get_model(self, nfeatures: int, seq_len: int):
         model = keras.Sequential()
 
         # print("Creating model. nfeatures:{} seq_len:{}".format(nfeatures, seq_len))
 
         # trying different models...
-        model_type = 2
+        model_type = 0
         if model_type == 0:
             # simplest possible model:
-            model.add(layers.LSTM(64, return_sequences=True, input_shape=(seq_len, nfeatures)))
+            model.add(layers.LSTM(64, return_sequences=True, activation='tanh', input_shape=(seq_len, nfeatures)))
             # model.add(layers.Dropout(rate=0.2))
             model.add(layers.Dense(1, activation='linear'))
 
@@ -1009,7 +1010,7 @@ class Predict_LSTM(IStrategy):
         dataframe.loc[:, 'enter_tag'] = ''
         curr_pair = metadata['pair']
 
-        conditions.append(dataframe['volume'] > 0)
+        # conditions.append(dataframe['volume'] > 0)
 
         # add some fairly loose guards, to help prevent 'bad' predictions
 
@@ -1027,7 +1028,7 @@ class Predict_LSTM(IStrategy):
 
         # LSTM/Classifier triggers
         lstm_cond = (
-            (qtpylib.crossed_above(dataframe['predict_diff'], 2.0))
+            (qtpylib.crossed_above(dataframe['predict_diff'], 1.0))
         )
         conditions.append(lstm_cond)
 
@@ -1068,7 +1069,7 @@ class Predict_LSTM(IStrategy):
 
         # LSTM triggers
         lstm_cond = (
-            qtpylib.crossed_below(dataframe['predict_diff'], -2.0)
+            qtpylib.crossed_below(dataframe['predict_diff'], -1.0)
         )
 
         conditions.append(lstm_cond)

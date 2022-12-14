@@ -1,6 +1,9 @@
 {
   "strategy_name": "Anomaly",
   "params": {
+    "roi": {
+      "0": 0.035
+    },
     "stoploss": {
       "stoploss": -0.05
     },
@@ -12,12 +15,24 @@
     },
     "buy": {},
     "sell": {
+      "csell_endtrend_respect_roi": true,
+      "csell_pullback": false,
+      "csell_pullback_amount": 0.015,
+      "csell_pullback_respect_roi": true,
+      "csell_roi_end": 0.003,
+      "csell_roi_start": 0.025,
+      "csell_roi_time": 1418,
+      "csell_roi_type": "step",
+      "csell_trend_type": "rmi",
+      "cstop_bail_how": "any",
+      "cstop_bail_roc": -4.577,
+      "cstop_bail_time": 927,
+      "cstop_bail_time_trend": false,
+      "cstop_loss_threshold": -0.02,
+      "cstop_max_stoploss": -0.173
     },
-    "protection": {},
-    "roi": {
-      "0": 0.035
-    }
+    "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-12-08 17:06:51.522565+00:00"
+  "export_time": "2022-12-14 01:08:25.286293+00:00"
 }

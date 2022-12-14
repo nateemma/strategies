@@ -135,11 +135,11 @@ class Anomaly(IStrategy):
 
     # ROI table:
     minimal_roi = {
-        "0": 0.03
+        "0": 0.04
     }
 
     # Stoploss:
-    stoploss = -0.05
+    stoploss = -0.06
 
     # Trailing stop:
     trailing_stop = False
@@ -152,7 +152,7 @@ class Anomaly(IStrategy):
     inf_timeframe = '5m'
 
     use_custom_stoploss = True
-    use_simpler_custom_stoploss = True
+    use_simpler_custom_stoploss = False
 
     # Recommended
     use_entry_signal = True
@@ -174,10 +174,10 @@ class Anomaly(IStrategy):
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
-    lookahead_hours = 0.5
+    lookahead_hours = 1.0
     n_profit_stddevs = 1.0
     n_loss_stddevs = 1.0
-    min_f1_score = 0.50
+    min_f1_score = 0.49
 
     curr_lookahead = int(12 * lookahead_hours)
 
@@ -185,7 +185,7 @@ class Anomaly(IStrategy):
     custom_trade_info = {}
 
     compressor = None
-    compress_data = True
+    compress_data = False
 
     # profit/loss thresholds used for assessing buy/sell signals. Keep these realistic!
     # Note: if self.dynamic_gain_thresholds is True, these will be adjusted for each pair, based on historical mean
@@ -287,11 +287,11 @@ class Anomaly(IStrategy):
 
         series = np.where(
             (
-                    (future_df['mfi'] <= 20) &  # loose oversold threshold
-                    (future_df['close'] < future_df['tema']) &  # below average
+                    # (future_df['mfi'] <= 20) &  # loose oversold threshold
+                    # (future_df['close'] < future_df['tema']) &  # below average
                     # (future_df['close'] < future_df['close'].shift(self.curr_lookahead)) &
-                    (future_df['future_gain'] >= self.profit_threshold) #&  # future gain above threshold
-                    # (future_df['dwt_bottom'] > 0)  # bottom of trend
+                    (future_df['future_gain'] >= self.profit_threshold) &  # future gain above threshold
+                    (future_df['dwt_bottom'] > 0)  # bottom of trend
             ), 1.0, 0.0)
 
         return series
@@ -302,11 +302,11 @@ class Anomaly(IStrategy):
 
         series = np.where(
             (
-                    (future_df['mfi'] >= 80) &  # loose overbought threshold
-                    (future_df['close'] > future_df['tema']) &  # above average
+                    # (future_df['mfi'] >= 80) &  # loose overbought threshold
+                    # (future_df['close'] > future_df['tema']) &  # above average
                     # (future_df['close'] > future_df['close'].shift(self.curr_lookahead)) &
-                    (future_df['future_gain'] <= self.loss_threshold) #&  # future loss above threshold
-                    # (future_df['dwt_top'] > 0)  # top of trend
+                    (future_df['future_gain'] <= self.loss_threshold) &  # future loss above threshold
+                    (future_df['dwt_top'] > 0)  # top of trend
             ), 1.0, 0.0)
 
         return series
@@ -348,6 +348,12 @@ class Anomaly(IStrategy):
         self.profit_threshold = self.default_profit_threshold
         self.loss_threshold = self.default_loss_threshold
 
+        print("")
+        print(curr_pair)
+
+        # populate the normal dataframe
+        dataframe = self.add_indicators(dataframe)
+
         if Anomaly.first_time:
             Anomaly.first_time = False
             print("")
@@ -356,15 +362,8 @@ class Anomaly(IStrategy):
             print("***************************************")
 
             print("    Lookahead: ", self.curr_lookahead, " candles (", self.lookahead_hours, " hours)")
-            print("    Thresholds - Profit:{:.2f}% Loss:{:.2f}%".format(self.profit_threshold,
-                                                                        self.loss_threshold))
 
-        print("")
-        print(curr_pair)
-
-        # populate the normal dataframe
-        dataframe = self.add_indicators(dataframe)
-
+        # create labels used for training
         buys, sells = self.create_training_data(dataframe)
 
         # drop last group (because there cannot be a prediction)
@@ -1680,10 +1679,10 @@ class Anomaly(IStrategy):
             return -1  # return a value bigger than the initial stoploss to keep using the initial stoploss
 
         # After reaching the desired offset, allow the stoploss to trail by half the profit
-        desired_stoploss = current_profit / 2
+        desired_stoploss = current_profit / 4
 
-        # Use a minimum of 1% and a maximum of 8%
-        return max(min(desired_stoploss, 0.08), 0.01)
+        # Use a minimum of 1% and a maximum of 10%
+        return max(min(desired_stoploss, 0.10), 0.01)
 
     ###################################
 
@@ -1714,6 +1713,10 @@ class Anomaly(IStrategy):
         if current_profit > 0.03:
             if last_candle['mfi'] > 90:
                 return 'mfi_90'
+
+        # Sell any positions at a loss if they are held for more than one day.
+        if current_profit < 0.0 and (current_time - trade.open_date_utc).days >= 2:
+            return 'unclog'
 
         # Determine our current ROI point based on the defined type
         if self.csell_roi_type.value == 'static':

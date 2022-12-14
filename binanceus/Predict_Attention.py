@@ -144,7 +144,7 @@ class Predict_Attention(Predict_LSTM):
 
     ################################
 
-    def get_lstm(self, nfeatures: int, seq_len: int):
+    def get_model(self, nfeatures: int, seq_len: int):
         model = keras.Sequential()
 
         input_shape = (seq_len, nfeatures)
