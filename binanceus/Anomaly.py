@@ -18,7 +18,7 @@ from freqtrade.strategy import (IStrategy, merge_informative_pair, stoploss_from
 from typing import Dict, List, Optional, Tuple, Union
 from pandas import DataFrame, Series
 from functools import reduce
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from freqtrade.persistence import Trade
 
 # Get rid of pandas warnings during backtesting
@@ -1064,28 +1064,37 @@ class Anomaly(IStrategy):
     def norm_dataframe(self, dataframe: DataFrame) -> DataFrame:
         self.check_inf(dataframe)
 
-        temp = dataframe.copy()
-        if 'date' in temp.columns:
-            temp['date'] = pd.to_datetime(temp['date']).astype('int64')
+        df = dataframe.copy()
+        if 'date' in df.columns:
+            dates = pd.to_datetime(df['date'], utc=True)
+            # dates = pd.to_datetime(df['date'])
+            start_date = datetime(2020, 1, 1).astimezone(timezone.utc)
+            df['date'] = dates.astype('int64')
+            df['days_from_start'] = (dates - start_date).dt.days
+            df['day_of_week'] = dates.dt.dayofweek
+            df['day_of_month'] = dates.dt.day
+            df['week_of_year'] = dates.dt.isocalendar().week
+            df['month'] = dates.dt.month
+            # df['year'] = dates.dt.year
 
-        temp = self.remove_debug_columns(temp)
+        df = self.remove_debug_columns(df)
 
-        temp.set_index('date')
-        temp.reindex()
+        df.set_index('date')
+        df.reindex()
 
-        cols = temp.columns
+        cols = df.columns
         self.scaler = self.get_scaler()
 
-        temp = pd.DataFrame(self.scaler.fit_transform(temp), columns=cols)
+        df = pd.DataFrame(self.scaler.fit_transform(df), columns=cols)
 
-        return temp
+        return df
 
     # De-Normalise a dataframe - note this relies on the scaler still being valid
     def denorm_dataframe(self, dataframe: DataFrame) -> DataFrame:
 
-        temp = dataframe.copy()
+        df = dataframe.copy()
 
-        cols = temp.columns
+        cols = df.columns
 
         df = pd.DataFrame(self.scaler.inverse_transform(dataframe), columns=cols)
 

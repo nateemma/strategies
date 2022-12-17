@@ -57,12 +57,11 @@ class PCA_nseq(PCA):
     plot_config = {
         'main_plot': {
             'close': {'color': 'darkcyan'},
+            'dwt': {'color': 'salmon'},
         },
         'subplots': {
             "Diff": {
                 '%future_nseq_up': {'color': 'salmon'},
-                'dwt_nseq_up': {'color': 'tomato'},
-                '%future_nseq_dn': {'color': 'cadetblue'},
                 'dwt_nseq_dn': {'color': 'mediumslateblue'},
                 '%train_buy': {'color': 'darkseagreen'},
                 'predict_buy': {'color': 'dodgerblue'},
@@ -78,17 +77,17 @@ class PCA_nseq(PCA):
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
-    lookahead_hours = 2.0
-    n_profit_stddevs = 2.0
+    lookahead_hours = 1.0
+    n_profit_stddevs = 1.0
     n_loss_stddevs = 2.0
     min_f1_score = 0.6
 
     custom_trade_info = {}
 
-    dbg_scan_classifiers = True  # if True, scan all viable classifiers and choose the best. Very slow!
+    dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
     dbg_test_classifier = True  # test classifiers after fitting
     dbg_analyse_pca = False  # analyze PCA weights
-    dbg_verbose = True  # controls debug output
+    dbg_verbose = False  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
 
     ###################################
@@ -97,10 +96,9 @@ class PCA_nseq(PCA):
 
     ## Hyperopt Variables
 
-    # PCA hyperparams
-    # buy_pca_gain = IntParameter(1, 50, default=4, space='buy', load=True, optimize=True)
-    #
-    # sell_pca_gain = IntParameter(-1, -15, default=-4, space='sell', load=True, optimize=True)
+    # buy/sell hyperparams
+    buy_nseq_dn = IntParameter(2, 20, default=6, space='buy', load=True, optimize=True)
+    sell_nseq_up = IntParameter(2, 20, default=10, space='sell', load=True, optimize=True)
 
     # Custom Sell Profit (formerly Dynamic ROI)
     csell_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
@@ -133,13 +131,9 @@ class PCA_nseq(PCA):
     def get_train_buy_signals(self, future_df: DataFrame):
         series = np.where(
             (
-                    (future_df['mfi'] < 40) & # loose guard
-
-                    #  prior down seq followed by future up sequence
-                    # (future_df['dwt_nseq_dn'] <= future_df['dwt_nseq_dn_thresh']) &
-                    # (future_df['future_nseq_up'] >= future_df['future_nseq_up_thresh']) &
-                    (future_df['dwt_nseq_dn'] <= -10) &
-                    (future_df['future_nseq_up'] >= 10) &
+                    (future_df['mfi'] < 30) & # loose guard
+                    (future_df['dwt_nseq_dn'] >= 6) &
+                    # (future_df['future_nseq_up'] >= 4) &
 
                     (future_df['profit_max'] >= future_df['profit_threshold'])   # future profit exceeds threshold
             ), 1.0, 0.0)
@@ -150,13 +144,9 @@ class PCA_nseq(PCA):
 
         series = np.where(
             (
-                    (future_df['mfi'] > 60) & # loose guard
-
-                    # prior up seq followed by future down sequence
-                    # (future_df['dwt_nseq_up'] >= future_df['dwt_nseq_up_thresh']) &
-                    # (future_df['future_nseq_dn'] <= future_df['future_nseq_dn_thresh']) &
+                    (future_df['mfi'] > 70) & # loose guard
                     (future_df['dwt_nseq_up'] >= 10) &
-                    (future_df['future_nseq_dn'] <= -10) &
+                    # (future_df['future_nseq_dn'] >= 4) &
 
                     (future_df['loss_min'] <= future_df['loss_threshold'])   # future loss exceeds threshold
             ), 1.0, 0.0)
@@ -174,3 +164,22 @@ class PCA_nseq(PCA):
 
     ###################################
 
+    # callbacks to add conditions to main buy/sell decision (rather than trainng)
+
+    def get_strategy_buy_conditions(self, dataframe: DataFrame):
+        cond = np.where(
+            (
+                # N down sequences
+                (dataframe['dwt_nseq_dn'] >= self.buy_nseq_dn.value)
+            ), 1.0, 0.0)
+        return cond
+
+    def get_strategy_sell_conditions(self, dataframe: DataFrame):
+        cond = np.where(
+            (
+                # N up sequences
+                ( dataframe['dwt_nseq_up'] >= self.sell_nseq_up.value)
+            ), 1.0, 0.0)
+        return cond
+
+    ###################################

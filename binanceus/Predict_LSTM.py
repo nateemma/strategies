@@ -18,7 +18,7 @@ from freqtrade.strategy import (IStrategy, merge_informative_pair, stoploss_from
 from typing import Dict, List, Optional, Tuple, Union
 from pandas import DataFrame, Series
 from functools import reduce
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from freqtrade.persistence import Trade
 
 # Get rid of pandas warnings during backtesting

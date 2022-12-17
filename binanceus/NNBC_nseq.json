@@ -1,0 +1,41 @@
+{
+  "strategy_name": "NNBC_nseq",
+  "params": {
+    "roi": {
+      "0": 0.05
+    },
+    "stoploss": {
+      "stoploss": -0.05
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "buy": {
+      "buy_nseq_dn": 4
+    },
+    "sell": {
+      "csell_endtrend_respect_roi": true,
+      "csell_pullback": false,
+      "csell_pullback_amount": 0.029,
+      "csell_pullback_respect_roi": false,
+      "csell_roi_end": 0.004,
+      "csell_roi_start": 0.028,
+      "csell_roi_time": 908,
+      "csell_roi_type": "static",
+      "csell_trend_type": "rmi",
+      "cstop_bail_how": "any",
+      "cstop_bail_roc": -2.374,
+      "cstop_bail_time": 418,
+      "cstop_bail_time_trend": false,
+      "cstop_loss_threshold": -0.049,
+      "cstop_max_stoploss": -0.09,
+      "sell_nseq_up": 18
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2022-12-17 08:35:46.235314+00:00"
+}

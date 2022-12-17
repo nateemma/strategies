@@ -39,36 +39,19 @@ log = logging.getLogger(__name__)
 # log.setLevel(logging.DEBUG)
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
-from NNBC import NNBC
+from PCA import PCA
 
 """
 ####################################################################################
-NNBC_jump:
+PCA_over:
     This is a subclass of PCA, which provides a framework for deriving a dimensionally-reduced model
-    This class trains the model based on detecting big 'jumps' up/down followed by a reversal
+    This class trains the model based on overbought/oversold conditions using MFI (Money Flow Indicator)
 
 ####################################################################################
 """
 
 
-class NNBC_jump(NNBC):
-
-
-    plot_config = {
-        'main_plot': {
-            'close': {'color': 'mediumseagreen'},
-        },
-        'subplots': {
-            "Diff": {
-                'dwt_delta_max': {'color': 'green'},
-                '%future_delta_max': {'color': 'blue'},
-                'dwt_delta_min': {'color': 'lightcoral'},
-                '%future_delta_min': {'color': 'lavender'},
-                '%train_buy': {'color': 'cadetblue'},
-                'predict_buy': {'color': 'salmon'},
-            },
-        }
-    }
+class PCA_mfi(PCA):
 
     # Do *not* hyperopt for the roi and stoploss spaces
 
@@ -77,20 +60,17 @@ class NNBC_jump(NNBC):
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
-    lookahead_hours = 1.0
-    n_profit_stddevs = 2.0
-    n_loss_stddevs = 2.0
-    min_f1_score = 0.5
-
-    cherrypick_data = False
-    preload_model = True # don't set to true if you are changing buy/sell conditions or tweaking models
-
+    lookahead_hours = 0.5
+    n_profit_stddevs = 1.0
+    n_loss_stddevs = 1.0
+    min_f1_score = 0.70
 
     custom_trade_info = {}
 
     dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
-    dbg_test_classifier = True  # test classifiers after fitting
-    dbg_verbose = True  # controls debug output
+    dbg_test_classifier = True  # test clasifiers after fitting
+    dbg_analyse_pca = False  # analyze PCA weights
+    dbg_verbose = False  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
 
     ###################################
@@ -100,6 +80,9 @@ class NNBC_jump(NNBC):
     ## Hyperopt Variables
 
     # PCA hyperparams
+    # buy_pca_gain = IntParameter(1, 50, default=4, space='buy', load=True, optimize=True)
+    #
+    # sell_pca_gain = IntParameter(-1, -15, default=-4, space='sell', load=True, optimize=True)
 
     # Custom Sell Profit (formerly Dynamic ROI)
     csell_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
@@ -127,75 +110,37 @@ class NNBC_jump(NNBC):
 
     ###################################
 
-    # Override the training signals
+    # override the default training signal generation
 
-    # find local min/max within past & future window
-    # This is pretty cool because it doesn't care about 'jitter' within the window, or any measure of profit/loss
-    # Note that this will find a lot of results, may want to add a few more guards
+    # uses various overbought/oversold indicators, combined with future los/gain
 
     def get_train_buy_signals(self, future_df: DataFrame):
-        series = np.where(
+        buys = np.where(
             (
-                    (future_df['mfi'] < 30) &  # loose guard
+                # overbought condition
+                    (future_df['mfi'] <= 10) &
 
-                    # drop from high of previous window exceeded loss threshold
-                    (future_df['dwt_delta_max'] > 0.0) &
-                    (future_df['dwt_delta_max'] >= abs(future_df['loss_threshold'])) &
-
-                    # upcoming window exceeds profit threshold
-                    (future_df['future_delta_max'] >= self.profit_threshold)
-                    # (future_df['future_delta_max'] >= 5.0)
-
+                    # future profit
+                    (future_df['future_gain'] > self.profit_threshold)
             ), 1.0, 0.0)
 
-        return series
+        return buys
 
     def get_train_sell_signals(self, future_df: DataFrame):
-        series = np.where(
+        sells = np.where(
             (
-                    (future_df['mfi'] > 70) &  # loose guard
+                # oversold condition
+                    (future_df['mfi'] >= 90) &
 
-                    # gain in previous window exceeded profit threshold
-                    (future_df['dwt_delta_min'] < 0.0) &
-                    (abs(future_df['dwt_delta_min']) >= future_df['profit_threshold']) &
-
-                    # upcoming window exceeds loss threshold
-                    (future_df['future_delta_min'] <= self.loss_threshold)
-                    # (future_df['future_delta_min'] <= -4.0)
+                    # future loss
+                    (future_df['future_gain'] < self.loss_threshold)
             ), 1.0, 0.0)
 
-        return series
-
-
-    def get_strategy_buy_conditions(self, dataframe: DataFrame):
-        cond = np.where(
-            (
-                    # drop from high of previous window exceeded loss threshold
-                    (dataframe['dwt_delta_max'] > 0.0) &
-                    (dataframe['dwt_delta_max'] >= abs(self.loss_threshold))
-            ), 1.0, 0.0)
-        return cond
-
-    def get_strategy_sell_conditions(self, dataframe: DataFrame):
-        cond = np.where(
-            (
-                # gain in previous window exceeded profit threshold
-                    (dataframe['dwt_delta_min'] < 0.0) &
-                    (abs(dataframe['dwt_delta_min']) >= self.profit_threshold)
-            ), 1.0, 0.0)
-        return cond
-
+        return sells
 
     # save the indicators used here so that we can see them in plots (prefixed by '%')
     def save_debug_indicators(self, future_df: DataFrame):
-        self.add_debug_indicator(future_df, 'future_min')
-        self.add_debug_indicator(future_df, 'future_max')
-        self.add_debug_indicator(future_df, 'future_delta_min')
-        self.add_debug_indicator(future_df, 'future_delta_max')
-
-        self.add_debug_indicator(future_df, 'train_buy')
-        self.add_debug_indicator(future_df, 'train_sell')
+        self.add_debug_indicator(future_df, 'future_gain')
 
         return
 
-    ###################################

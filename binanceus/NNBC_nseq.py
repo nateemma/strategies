@@ -44,28 +44,26 @@ from NNBC import NNBC
 """
 ####################################################################################
 NNBC_jump:
-    This is a subclass of PCA, which provides a framework for deriving a dimensionally-reduced model
-    This class trains the model based on detecting big 'jumps' up/down followed by a reversal
+    This is a subclass of NNBC, which provides a framework for deriving a neural network model
+    This class trains the model based on consecutive sequences of up/down candles, followed by big profit/loss
 
 ####################################################################################
 """
 
 
-class NNBC_jump(NNBC):
-
+class NNBC_nseq(NNBC):
 
     plot_config = {
         'main_plot': {
-            'close': {'color': 'mediumseagreen'},
+            'close': {'color': 'darkcyan'},
+            'dwt': {'color': 'salmon'},
         },
         'subplots': {
             "Diff": {
-                'dwt_delta_max': {'color': 'green'},
-                '%future_delta_max': {'color': 'blue'},
-                'dwt_delta_min': {'color': 'lightcoral'},
-                '%future_delta_min': {'color': 'lavender'},
-                '%train_buy': {'color': 'cadetblue'},
-                'predict_buy': {'color': 'salmon'},
+                '%future_nseq_up': {'color': 'salmon'},
+                'dwt_nseq_dn': {'color': 'mediumslateblue'},
+                '%train_buy': {'color': 'darkseagreen'},
+                'predict_buy': {'color': 'dodgerblue'},
             },
         }
     }
@@ -78,7 +76,7 @@ class NNBC_jump(NNBC):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     lookahead_hours = 1.0
-    n_profit_stddevs = 2.0
+    n_profit_stddevs = 1.0
     n_loss_stddevs = 2.0
     min_f1_score = 0.5
 
@@ -99,7 +97,9 @@ class NNBC_jump(NNBC):
 
     ## Hyperopt Variables
 
-    # PCA hyperparams
+    # buy/sell hyperparams
+    buy_nseq_dn = IntParameter(2, 20, default=6, space='buy', load=True, optimize=True)
+    sell_nseq_up = IntParameter(2, 20, default=10, space='sell', load=True, optimize=True)
 
     # Custom Sell Profit (formerly Dynamic ROI)
     csell_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
@@ -136,66 +136,54 @@ class NNBC_jump(NNBC):
     def get_train_buy_signals(self, future_df: DataFrame):
         series = np.where(
             (
-                    (future_df['mfi'] < 30) &  # loose guard
+                    (future_df['mfi'] < 30) & # loose guard
+                    (future_df['dwt_nseq_dn'] >= 6) &
+                    # (future_df['future_nseq_up'] >= 4) &
 
-                    # drop from high of previous window exceeded loss threshold
-                    (future_df['dwt_delta_max'] > 0.0) &
-                    (future_df['dwt_delta_max'] >= abs(future_df['loss_threshold'])) &
-
-                    # upcoming window exceeds profit threshold
-                    (future_df['future_delta_max'] >= self.profit_threshold)
-                    # (future_df['future_delta_max'] >= 5.0)
-
+                    (future_df['profit_max'] >= future_df['profit_threshold'])   # future profit exceeds threshold
             ), 1.0, 0.0)
 
         return series
 
     def get_train_sell_signals(self, future_df: DataFrame):
+
         series = np.where(
             (
-                    (future_df['mfi'] > 70) &  # loose guard
+                    (future_df['mfi'] > 70) & # loose guard
+                    (future_df['dwt_nseq_up'] >= 10) &
+                    # (future_df['future_nseq_dn'] >= 4) &
 
-                    # gain in previous window exceeded profit threshold
-                    (future_df['dwt_delta_min'] < 0.0) &
-                    (abs(future_df['dwt_delta_min']) >= future_df['profit_threshold']) &
-
-                    # upcoming window exceeds loss threshold
-                    (future_df['future_delta_min'] <= self.loss_threshold)
-                    # (future_df['future_delta_min'] <= -4.0)
+                    (future_df['loss_min'] <= future_df['loss_threshold'])   # future loss exceeds threshold
             ), 1.0, 0.0)
 
         return series
 
 
+    # save the indicators used here so that we can see them in plots (prefixed by '%')
+    def save_debug_indicators(self, future_df: DataFrame):
+        self.add_debug_indicator(future_df, 'future_nseq_dn')
+        self.add_debug_indicator(future_df, 'future_nseq_up')
+
+        return
+
+    ###################################
+
+    # callbacks to add conditions to main buy/sell decision (rather than trainng)
+
     def get_strategy_buy_conditions(self, dataframe: DataFrame):
         cond = np.where(
             (
-                    # drop from high of previous window exceeded loss threshold
-                    (dataframe['dwt_delta_max'] > 0.0) &
-                    (dataframe['dwt_delta_max'] >= abs(self.loss_threshold))
+                # N down sequences
+                (dataframe['dwt_nseq_dn'] >= self.buy_nseq_dn.value)
             ), 1.0, 0.0)
         return cond
 
     def get_strategy_sell_conditions(self, dataframe: DataFrame):
         cond = np.where(
             (
-                # gain in previous window exceeded profit threshold
-                    (dataframe['dwt_delta_min'] < 0.0) &
-                    (abs(dataframe['dwt_delta_min']) >= self.profit_threshold)
+                # N up sequences
+                ( dataframe['dwt_nseq_up'] >= self.sell_nseq_up.value)
             ), 1.0, 0.0)
         return cond
-
-
-    # save the indicators used here so that we can see them in plots (prefixed by '%')
-    def save_debug_indicators(self, future_df: DataFrame):
-        self.add_debug_indicator(future_df, 'future_min')
-        self.add_debug_indicator(future_df, 'future_max')
-        self.add_debug_indicator(future_df, 'future_delta_min')
-        self.add_debug_indicator(future_df, 'future_delta_max')
-
-        self.add_debug_indicator(future_df, 'train_buy')
-        self.add_debug_indicator(future_df, 'train_sell')
-
-        return
 
     ###################################
