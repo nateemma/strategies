@@ -163,23 +163,23 @@ class PCA_jump(PCA):
         return series
 
 
-    def get_strategy_buy_conditions(self, dataframe: DataFrame):
-        cond = np.where(
-            (
-                    # drop from high of previous window exceeded loss threshold
-                    (dataframe['dwt_delta_max'] > 0.0) &
-                    (dataframe['dwt_delta_max'] >= abs(self.loss_threshold))
-            ), 1.0, 0.0)
-        return cond
-
-    def get_strategy_sell_conditions(self, dataframe: DataFrame):
-        cond = np.where(
-            (
-                # gain in previous window exceeded profit threshold
-                    (dataframe['dwt_delta_min'] < 0.0) &
-                    (abs(dataframe['dwt_delta_min']) >= self.profit_threshold)
-            ), 1.0, 0.0)
-        return cond
+    # def get_strategy_buy_conditions(self, dataframe: DataFrame):
+    #     cond = np.where(
+    #         (
+    #                 # drop from high of previous window exceeded loss threshold
+    #                 (dataframe['dwt_delta_max'] > 0.0) &
+    #                 (dataframe['dwt_delta_max'] >= abs(self.loss_threshold))
+    #         ), 1.0, 0.0)
+    #     return cond
+    #
+    # def get_strategy_sell_conditions(self, dataframe: DataFrame):
+    #     cond = np.where(
+    #         (
+    #             # gain in previous window exceeded profit threshold
+    #                 (dataframe['dwt_delta_min'] < 0.0) &
+    #                 (abs(dataframe['dwt_delta_min']) >= self.profit_threshold)
+    #         ), 1.0, 0.0)
+    #     return cond
 
 
     # save the indicators used here so that we can see them in plots (prefixed by '%')

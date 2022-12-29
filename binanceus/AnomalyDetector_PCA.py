@@ -64,6 +64,8 @@ class AnomalyDetector_PCA():
         super().__init__()
         self.num_features = num_features
         self.classifier = None # created in train()  func
+        self.name = self.__class__.__name__ + "_" + tag
+
 
 
     # update training using the suplied (normalised) dataframe. Training is cumulative
@@ -223,7 +225,7 @@ class AnomalyDetector_PCA():
     def load(self, path=""):
         return self.classifier
 
-    def model_is_trained(self) -> bool:
+    def is_trained(self) -> bool:
         return False
 
     def needs_clean_data(self) -> bool:

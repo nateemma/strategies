@@ -78,9 +78,9 @@ class NNBC_jump(NNBC):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     lookahead_hours = 1.0
-    n_profit_stddevs = 2.0
-    n_loss_stddevs = 2.0
-    min_f1_score = 0.5
+    n_profit_stddevs = 1.0
+    n_loss_stddevs = 1.0
+    min_f1_score = 0.4
 
     cherrypick_data = False
     preload_model = True # don't set to true if you are changing buy/sell conditions or tweaking models
@@ -98,6 +98,22 @@ class NNBC_jump(NNBC):
     # Strategy Specific Variable Storage
 
     ## Hyperopt Variables
+
+    plot_config = {
+        'main_plot': {
+            'close': {'color': 'mediumseagreen'},
+        },
+        'subplots': {
+            "Diff": {
+                'dwt_delta_max': {'color': 'green'},
+                '%future_delta_max': {'color': 'blue'},
+                'dwt_delta_min': {'color': 'lightcoral'},
+                '%future_delta_min': {'color': 'lavender'},
+                '%train_buy': {'color': 'cadetblue'},
+                'predict_buy': {'color': 'salmon'},
+            },
+        }
+    }
 
     # PCA hyperparams
 

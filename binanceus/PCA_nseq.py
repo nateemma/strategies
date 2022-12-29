@@ -97,8 +97,8 @@ class PCA_nseq(PCA):
     ## Hyperopt Variables
 
     # buy/sell hyperparams
-    buy_nseq_dn = IntParameter(2, 20, default=6, space='buy', load=True, optimize=True)
-    sell_nseq_up = IntParameter(2, 20, default=10, space='sell', load=True, optimize=True)
+    buy_nseq_dn = IntParameter(0, 10, default=4, space='buy', load=True, optimize=True)
+    sell_nseq_up = IntParameter(0, 10, default=4, space='sell', load=True, optimize=True)
 
     # Custom Sell Profit (formerly Dynamic ROI)
     csell_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
@@ -133,7 +133,7 @@ class PCA_nseq(PCA):
             (
                     (future_df['mfi'] < 30) & # loose guard
                     (future_df['dwt_nseq_dn'] >= 6) &
-                    # (future_df['future_nseq_up'] >= 4) &
+                    (future_df['future_nseq_up'] >= 4) &
 
                     (future_df['profit_max'] >= future_df['profit_threshold'])   # future profit exceeds threshold
             ), 1.0, 0.0)

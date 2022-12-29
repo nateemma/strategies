@@ -53,6 +53,23 @@ PCA_fbb:
 
 class PCA_fbb(PCA):
 
+    plot_config = {
+        'main_plot': {
+            # 'dwt': {'color': 'darkcyan'},
+            # '%future_min': {'color': 'salmon'},
+            # '%future_max': {'color': 'cadetblue'},
+        },
+        'subplots': {
+            "Diff": {
+                '%train_buy': {'color': 'salmon'},
+                'predict_buy': {'color': 'cadetblue'},
+                'fisher_wr': {'color': 'plum'},
+                'bb_gain': {'color': 'sandybrown'},
+                'bb_loss': {'color': 'rosybrown'},
+            },
+        }
+    }
+
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # Have to re-declare any globals that we need to modify
@@ -60,17 +77,17 @@ class PCA_fbb(PCA):
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
-    lookahead_hours = 0.5
+    lookahead_hours = 1.0
     n_profit_stddevs = 1.5
-    n_loss_stddevs = 1.0
+    n_loss_stddevs = 2.0
     min_f1_score = 0.70
 
     custom_trade_info = {}
 
-    dbg_scan_classifiers = True  # if True, scan all viable classifiers and choose the best. Very slow!
+    dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
     dbg_test_classifier = True  # test clasifiers after fitting
     dbg_analyse_pca = False  # analyze PCA weights
-    dbg_verbose = False  # controls debug output
+    dbg_verbose = True  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
 
     ###################################
@@ -118,7 +135,7 @@ class PCA_fbb(PCA):
         buys = np.where(
             (
                 # overbought condition with high potential profit
-                    (future_df['fisher_wr'] < -0.9) &
+                    (future_df['fisher_wr'] < -0.8) &
                     # (future_df['bb_gain'] >= future_df['profit_threshold']/100.0) &
                     (future_df['bb_gain'] >= self.profit_threshold / 100.0) &
 
@@ -138,8 +155,7 @@ class PCA_fbb(PCA):
                     (future_df['bb_loss'] <= self.loss_threshold / 100.0) &
 
                     # future loss
-                    (future_df['loss_min'] <= self.loss_threshold) &
-                    (future_df['future_gain'] < 0)
+                    (future_df['future_gain'] <= self.loss_threshold)
             ), 1.0, 0.0)
 
         return sells

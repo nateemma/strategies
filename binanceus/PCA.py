@@ -6,6 +6,7 @@ from enum import Enum
 import pywt
 import talib.abstract as ta
 from scipy.ndimage import gaussian_filter1d
+from xgboost import XGBClassifier
 
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 import arrow
@@ -622,6 +623,38 @@ class PCA(IStrategy):
         # dataframe['dwt_smooth'] = gaussian_filter1d(dataframe['dwt'], 8)
         # dataframe['mid'] = abs((dataframe['close'] - dataframe['open']) / 2.0)
 
+        dataframe['dwt_gain'] = 100.0 * (dataframe['dwt'] - dataframe['dwt'].shift()) / dataframe['dwt'].shift()
+        dataframe['dwt_profit'] = dataframe['dwt_gain'].clip(lower=0.0)
+        dataframe['dwt_loss'] = dataframe['dwt_gain'].clip(upper=0.0)
+
+        # Sequences of consecutive up/downs
+        dataframe['dwt_dir'] = 0.0
+        dataframe['dwt_dir'] = np.where(dataframe['dwt_smooth'].diff() > 0, 1.0, -1.0)
+
+        dataframe['dwt_dir_up'] = dataframe['dwt_dir'].clip(lower=0.0)
+        dataframe['dwt_nseq_up'] = dataframe['dwt_dir_up'] * (dataframe['dwt_dir_up'].groupby(
+            (dataframe['dwt_dir_up'] != dataframe['dwt_dir_up'].shift()).cumsum()).cumcount() + 1)
+        dataframe['dwt_nseq_up'] = dataframe['dwt_nseq_up'].clip(lower=0.0, upper=20.0) # removes startup artifacts
+
+        dataframe['dwt_dir_dn'] = abs(dataframe['dwt_dir'].clip(upper=0.0))
+        dataframe['dwt_nseq_dn'] = dataframe['dwt_dir_dn'] * (dataframe['dwt_dir_dn'].groupby(
+            (dataframe['dwt_dir_dn'] != dataframe['dwt_dir_dn'].shift()).cumsum()).cumcount() + 1)
+        dataframe['dwt_nseq_dn'] = dataframe['dwt_nseq_dn'].clip(lower=0.0, upper=20.0)
+
+
+        # TODO: remove/fix any columns that contain 'inf'
+        self.check_inf(dataframe)
+
+        # TODO: fix NaNs
+        dataframe.fillna(0.0, inplace=True)
+
+        return dataframe
+
+    # 'hidden' indicators. These are ostensibly backward looking, but may inadvertently use means etc.
+    def add_hidden_indicators(self, dataframe: DataFrame) -> DataFrame:
+
+        win_size = max(self.curr_lookahead, 14)
+
         dataframe['dwt_deriv'] = np.gradient(dataframe['dwt_smooth'])
         # dataframe['dwt_deriv'] = np.gradient(dataframe['dwt'])
         dataframe['dwt_top'] = np.where(qtpylib.crossed_below(dataframe['dwt_deriv'], 0.0), 1, 0)
@@ -630,19 +663,8 @@ class PCA(IStrategy):
         dataframe['dwt_diff'] = 100.0 * (dataframe['dwt'] - dataframe['close']) / dataframe['close']
         dataframe['dwt_smooth_diff'] = 100.0 * (dataframe['dwt'] - dataframe['dwt_smooth']) / dataframe['dwt_smooth']
 
-        # up/down direction
-        dataframe['dwt_dir'] = 0.0
-        # dataframe['dwt_dir'] = np.where(dataframe['dwt'].diff() >= 0, 1.0, -1.0)
-        # dataframe['dwt_dir'] = np.where(dataframe['mid'].diff() >= 0, 1.0, -1.0)
-        # dataframe['dwt_dir'] = np.where(dataframe['close'] > dataframe['open'], 1.0, -1.0)
-        dataframe['dwt_dir'] = np.where(dataframe['dwt_smooth'].diff() > 0, 1.0, -1.0)
-
         dataframe['dwt_trend'] = np.where(dataframe['dwt_dir'].rolling(5).sum() > 3.0, 1.0, -1.0)
 
-        dataframe['dwt_gain'] = 100.0 * (dataframe['dwt'] - dataframe['dwt'].shift()) / dataframe['dwt'].shift()
-
-        dataframe['dwt_profit'] = dataframe['dwt_gain'].clip(lower=0.0)
-        dataframe['dwt_loss'] = dataframe['dwt_gain'].clip(upper=0.0)
 
         # get rolling mean & stddev so that we have a localised estimate of (recent) activity
         dataframe['dwt_mean'] = dataframe['dwt'].rolling(win_size).mean()
@@ -651,33 +673,6 @@ class PCA(IStrategy):
         dataframe['dwt_profit_std'] = dataframe['dwt_profit'].rolling(win_size).std()
         dataframe['dwt_loss_mean'] = dataframe['dwt_loss'].rolling(win_size).mean()
         dataframe['dwt_loss_std'] = dataframe['dwt_loss'].rolling(win_size).std()
-
-        # Sequences of consecutive up/downs
-        # dataframe['dwt_nseq'] = dataframe['dwt_dir'].rolling(window=win_size, min_periods=1).sum()
-        # dataframe['dwt_nseq'] = dataframe['dwt_trend'].rolling(window=win_size, min_periods=1).sum()
-
-        dataframe['dwt_dir_up'] = dataframe['dwt_dir'].clip(lower=0.0)
-        dataframe['dwt_nseq_up'] = dataframe['dwt_dir_up'] * (dataframe['dwt_dir_up'].groupby(
-            (dataframe['dwt_dir_up'] != dataframe['dwt_dir_up'].shift()).cumsum()).cumcount() + 1)
-        dataframe['dwt_nseq_up'] = dataframe['dwt_nseq_up'].clip(lower=0.0, upper=20.0) # removes startup artifacts
-
-        # dataframe['dwt_nseq_up_mean'] = dataframe['dwt_nseq_up'].rolling(window=win_size).mean()
-        # dataframe['dwt_nseq_up_std'] = dataframe['dwt_nseq_up'].rolling(window=win_size).std()
-        # dataframe['dwt_nseq_up_thresh'] = dataframe['dwt_nseq_up_mean'] + \
-        #                                   self.n_profit_stddevs * dataframe['dwt_nseq_up_std']
-        # dataframe['dwt_nseq_sell'] = np.where(dataframe['dwt_nseq_up'] > dataframe['dwt_nseq_up_thresh'], 1.0, 0.0)
-
-        dataframe['dwt_dir_dn'] = abs(dataframe['dwt_dir'].clip(upper=0.0))
-        dataframe['dwt_nseq_dn'] = dataframe['dwt_dir_dn'] * (dataframe['dwt_dir_dn'].groupby(
-            (dataframe['dwt_dir_dn'] != dataframe['dwt_dir_dn'].shift()).cumsum()).cumcount() + 1)
-        dataframe['dwt_nseq_dn'] = dataframe['dwt_nseq_dn'].clip(lower=0.0, upper=20.0)
-
-        # # dataframe['dwt_nseq_dn'] = dataframe['dwt_nseq'].clip(upper=0.0)
-        # dataframe['dwt_nseq_dn_mean'] = dataframe['dwt_nseq_dn'].rolling(window=win_size).mean()
-        # dataframe['dwt_nseq_dn_std'] = dataframe['dwt_nseq_dn'].rolling(window=win_size).std()
-        # dataframe['dwt_nseq_dn_thresh'] = dataframe['dwt_nseq_dn_mean'] - self.n_loss_stddevs * dataframe[
-        #     'dwt_nseq_dn_std']
-        # dataframe['dwt_nseq_buy'] = np.where(dataframe['dwt_nseq_dn'] < dataframe['dwt_nseq_dn_thresh'], 1.0, 0.0)
 
         # Recent min/max
         dataframe['dwt_recent_min'] = dataframe['dwt'].rolling(window=win_size).min()
@@ -693,16 +688,10 @@ class PCA(IStrategy):
         dataframe['dwt_high'] = dataframe['dwt_smooth'].rolling(window=self.startup_candle_count).max()
 
         # # these are (primarily) clues for the ML algorithm:
-        dataframe['dwt_at_min'] = np.where(dataframe['dwt_smooth'] <= dataframe['dwt_recent_min'], 1.0, 0.0)
-        dataframe['dwt_at_max'] = np.where(dataframe['dwt_smooth'] >= dataframe['dwt_recent_max'], 1.0, 0.0)
+        # dataframe['dwt_at_min'] = np.where(dataframe['dwt_smooth'] <= dataframe['dwt_recent_min'], 1.0, 0.0)
+        # dataframe['dwt_at_max'] = np.where(dataframe['dwt_smooth'] >= dataframe['dwt_recent_max'], 1.0, 0.0)
         dataframe['dwt_at_low'] = np.where(dataframe['dwt_smooth'] <= dataframe['dwt_low'], 1.0, 0.0)
         dataframe['dwt_at_high'] = np.where(dataframe['dwt_smooth'] >= dataframe['dwt_high'], 1.0, 0.0)
-
-        # TODO: remove/fix any columns that contain 'inf'
-        self.check_inf(dataframe)
-
-        # TODO: fix NaNs
-        dataframe.fillna(0.0, inplace=True)
 
         return dataframe
 
@@ -783,7 +772,7 @@ class PCA(IStrategy):
         # build forward-looking sum of up/down trends
         future_win = pd.api.indexers.FixedForwardWindowIndexer(window_size=int(win_size))  # don't use a big window
 
-        future_df['future_nseq'] = future_df['curr_trend'].rolling(window=future_win, min_periods=1).sum()
+        # future_df['future_nseq'] = future_df['curr_trend'].rolling(window=future_win, min_periods=1).sum()
 
         # future_df['future_nseq_up'] = 0.0
         # future_df['future_nseq_up'] = np.where(
@@ -791,7 +780,8 @@ class PCA(IStrategy):
         #     future_df.groupby(future_df["dwt_dir_up"].ne(future_df["dwt_dir_up"].shift(1)).cumsum()).cumcount() + 1,
         #     0.0
         # )
-        future_df['future_nseq_up'] = future_df['future_nseq'].clip(lower=0.0)
+        # future_df['future_nseq_up'] = future_df['future_nseq'].clip(lower=0.0)
+        future_df['future_nseq_up'] = future_df['dwt_nseq_up'].shift(-win_size)
 
         future_df['future_nseq_up_mean'] = future_df['future_nseq_up'].rolling(window=future_win).mean()
         future_df['future_nseq_up_std'] = future_df['future_nseq_up'].rolling(window=future_win).std()
@@ -804,7 +794,8 @@ class PCA(IStrategy):
         #     0.0
         # )
         # print(future_df['future_nseq_dn'])
-        future_df['future_nseq_dn'] = future_df['future_nseq'].clip(upper=0.0)
+        # future_df['future_nseq_dn'] = future_df['future_nseq'].clip(upper=0.0)
+        future_df['future_nseq_dn'] = future_df['dwt_nseq_dn'].shift(-win_size)
 
         future_df['future_nseq_dn_mean'] = future_df['future_nseq_dn'].rolling(future_win).mean()
         future_df['future_nseq_dn_std'] = future_df['future_nseq_dn'].rolling(future_win).std()
@@ -852,7 +843,8 @@ class PCA(IStrategy):
     # creates the buy/sell labels absed on looking ahead into the supplied dataframe
     def create_training_data(self, dataframe: DataFrame):
 
-        future_df = self.add_future_data(dataframe.copy())
+        future_df = self.add_hidden_indicators(dataframe.copy())
+        future_df = self.add_future_data(future_df)
 
         future_df['train_buy'] = 0.0
         future_df['train_sell'] = 0.0
@@ -1594,7 +1586,7 @@ class PCA(IStrategy):
     classifier_list = [
         'LogisticRegression', 'GaussianNB', 'SGD',
         'GradientBoosting', 'AdaBoost', 'linearSVC', 'sigmoidSVC',
-        'LDA'
+        'LDA', 'XGBoost'
     ]
 
     # factory to create classifier based on name
@@ -1649,14 +1641,15 @@ class PCA(IStrategy):
             # choose 4 decent classifiers
             c1, _ = self.classifier_factory('AdaBoost', data, labels)
             c2, _ = self.classifier_factory('GaussianNB', data, labels)
-            c3, _ = self.classifier_factory('KNeighbors', data, labels)
-            c4, _ = self.classifier_factory('DecisionTree', data, labels)
+            c3, _ = self.classifier_factory('LDA', data, labels)
+            c4, _ = self.classifier_factory('sigmoidSVC', data, labels)
             clf = VotingClassifier(estimators=[('c1', c1), ('c2', c2), ('c3', c3), ('c4', c4)], voting='hard')
         elif name == 'LDA':
             clf = LinearDiscriminantAnalysis()
         elif name == 'QDA':
             clf = QuadraticDiscriminantAnalysis()
-
+        elif name == 'XGBoost':
+            clf = XGBClassifier()
 
         else:
             print("Unknown classifier: ", name)
@@ -1955,7 +1948,7 @@ class PCA(IStrategy):
         conditions.append(dataframe['volume'] > 0)
 
         # MFI
-        conditions.append(dataframe['mfi'] < 20.0)
+        conditions.append(dataframe['mfi'] < 30.0)
 
         # below TEMA
         conditions.append(dataframe['close'] < dataframe['tema'])
@@ -2003,7 +1996,7 @@ class PCA(IStrategy):
         conditions.append(dataframe['volume'] > 0)
 
         # MFI
-        conditions.append(dataframe['mfi'] > 80.0)
+        conditions.append(dataframe['mfi'] > 70.0)
 
         # above TEMA
         conditions.append(dataframe['close'] > dataframe['tema'])

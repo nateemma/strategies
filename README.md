@@ -1,5 +1,19 @@
 # Phil's Custom freqtrade Crypto Trading Strategies
+## Current Status
+I've been getting some questions on the various strategies here, so I thought I'd better clarify 
+what I am currently working on...
 
+Right now, I am only active in the 'binanceus' directory (user_data/strategies/binanceus). 
+I am testing and modifying code in the following types of strategies:
+
+- PCA
+- NNBC
+- Predict
+- Anomaly
+
+I am on a path to providing pre-trained models for these, but I'm not there yet...
+
+## Intro
 This folder contains the code for a variety of custom trading strategies for use with the [freqtrade](https://www.freqtrade.io/) framework.
 
 Please read through the instructions at https://www.freqtrade.io before attempting to use this software.
@@ -21,13 +35,13 @@ Note that this is quite similar in approach to [freqAI](https://www.freqtrade.io
 but I started it before I knew about that, so just kept going (because I find it interesting).<br>
 All of the PCA logic is contained in a base class named PCA. There are several variants (prefixed with PCA_) that try 
 out different approaches to identify buy/sell signals that are used for training the classifiers.
-3. Use Neural Networks to create binary classifers that return a buy/sell prediction.<br>
+3. Use Neural Networks to create binary classifiers that return a buy/sell prediction.<br>
 Logic is very similar to the PCA classes, and the base class is NNBC (Neural Network Binary Classifier). 
 The internals are a little more complex because the Neural Network code works with 'tensors' rather than dataframes.
-Currently, performnce is not great, mostly because there are not enough buy/sell events to train the models properly. 
-At some point I will train them on loinger timeperiods and then save/load the resulting models
+Currently, performance is not great, mostly because there are not enough buy/sell events to train the models properly. 
+At some point I will train them on longer timeperiods and then save/load the resulting models (I'm working on this)
 4. Neural Network prediction models (Predict_*.py)<br>
-SImilar to NNBC, but predicts an actual price, rather than a buy/sell recommendation. Same issues as NNBC
+Similar to NNBC, but predicts an actual price, rather than a buy/sell recommendation. Same issues as NNBC
 5. Anomaly Detection (Anomaly.py)<br>
 The main issue with using neural networks is that there are not many buy/sell recommendations relative to the number
 of samples (typically about 1%). This approach uses various anomaly detection algorithms by training them on historical 
@@ -39,7 +53,7 @@ efficient. As an aside, I should also try this with the other neural network app
 All of these strategies use the custom sell/stoploss  approach from the Solipsis strategy (by werkrew). 
 This makes a huge difference in performance, but the downside is that each strategy requires a lot of hyperopt-ing 
 to get decent performance. Also, I am suspicious that the custom stoploss code is over-fitting, because it has such a 
-drastic effect on performance and because it doesn'tr seem to work the same way in dry runs.<br>
+drastic effect on performance and because it doesn't seem to work the same way in dry runs.<br>
 I am currently trying to find a simpler custom stoploss approach that transfers better to a live environment 
 (look in Anomaly.py)
 
@@ -139,7 +153,7 @@ To help with this, I added a bunch of shell scripts in the _user_data/strategies
 Specify the -h option for help.
 
 Please note that all of the _test__\*.sh and _hyp__\*.sh scripts all expect there to be a config file in the exchange directory that is named in the form:  
-_config\_<exchange>.json_ (e.g. _config_binanceus.json_)
+_config\_\<exchange\>.json_ (e.g. _config_binanceus.json_)
 <br>
 The _run_strat.sh_.sh and _dryrun_strat.sh_ scripts expect a 'real' config file that should specify volume filters etc.
 

@@ -40,64 +40,17 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 import keras
 from keras import layers
 from sklearn.cluster import KMeans
+from AnomalyDetectorSklearn import AnomalyDetectorSklearn
 
 import h5py
 
-class AnomalyDetector_KMeans():
+class AnomalyDetector_KMeans(AnomalyDetectorSklearn):
 
     classifier = None
     clean_data_required = False # training data should not contain anomalies
 
-    def __init__(self, tag=""):
-        super().__init__()
-        self.classifier = KMeans(n_clusters=2)
 
+    def create_classifier(self):
+        classifier = KMeans(n_clusters=2)
+        return classifier
 
-    # update training using the suplied (normalised) dataframe. Training is cumulative
-    # the 'labels' args should contain 0.0 for normal results, '1.0' for anomalies (buy or sell)
-    def train(self, df_train_norm: DataFrame, df_test_norm: DataFrame, train_labels, test_labels, force_train=False):
-
-        if self.is_trained and not force_train:
-            return
-
-        print("    fitting classifier: ", self.__class__.__name__)
-        self.classifier = self.classifier.fit(df_train_norm)
-        return
-
-
-    # evaluate model using the supplied (normalised) dataframe as test data.
-    def evaluate(self, df_norm: DataFrame):
-        return
-
-    # 'recosnstruct' a dataframe by passing it through the classifier
-    def reconstruct(self, df_norm:DataFrame) -> DataFrame:
-        return df_norm
-
-    # transform supplied (normalised) dataframe into a lower dimension version
-    def transform(self, df_norm: DataFrame) -> DataFrame:
-        return df_norm
-
-
-    # only need to override/define the predict function
-    def predict(self, df_norm: DataFrame):
-
-        labels = self.classifier.predict(df_norm)
-        predictions = pd.Series(np.where((labels > 0.0), 1.0, 0.0))
-
-        # print("df_norm: {} labels: {} predictions: {}".format(df_norm.shape, np.shape(labels), np.shape(predictions)))
-        # print(labels)
-
-        return predictions
-
-    def save(self, path=""):
-        return
-
-    def load(self, path=""):
-        return self.classifier
-
-    def model_is_trained(self) -> bool:
-        return False
-
-    def needs_clean_data(self) -> bool:
-        # print("    clean_data_required: ", self.clean_data_required)
-        return self.clean_data_required

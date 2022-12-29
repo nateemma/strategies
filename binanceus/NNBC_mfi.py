@@ -118,8 +118,8 @@ class NNBC_mfi(NNBC):
     def get_train_buy_signals(self, future_df: DataFrame):
         series = np.where(
             (
-                    # (future_df['mfi'] < 40) &
-                    (future_df['dwt_bottom'] > 0)
+                    (future_df['mfi'] < 20) &
+                    (future_df['future_gain'] >= self.profit_threshold)
             ), 1.0, 0.0)
 
         return series
@@ -128,8 +128,8 @@ class NNBC_mfi(NNBC):
     def get_train_sell_signals(self, future_df: DataFrame):
         series = np.where(
             (
-                    # (future_df['mfi'] > 60) &
-                    (future_df['dwt_top'] > 0)
+                    (future_df['mfi'] > 80) &
+                    (future_df['future_gain'] <= self.loss_threshold)
             ), 1.0, 0.0)
 
         return series
@@ -137,8 +137,8 @@ class NNBC_mfi(NNBC):
 
     # save the indicators used here so that we can see them in plots (prefixed by '%')
     def save_debug_indicators(self, future_df: DataFrame):
-        self.add_debug_indicator(future_df, 'future_min')
-        self.add_debug_indicator(future_df, 'future_max')
+        # self.add_debug_indicator(future_df, 'future_min')
+        # self.add_debug_indicator(future_df, 'future_max')
 
         return
 

@@ -2,7 +2,7 @@
 
 # list of strategies to test
 lev_list="DWT_Leveraged DWT_lev_short DWT_Leveraged_recent DWT_Leveraged2"
-strat_list="PCA_profit PCA_swing PCA_jump NNBC_jump Anomaly"
+strat_list="PCA_dwt PCA_fbb PCA_highlow PCA_jump PCA_macd PCA_mfi PCA_minmax PCA_nseq PCA_over PCA_profit PCA_stochastic PCA_swing"
 
 # default values
 

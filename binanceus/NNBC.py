@@ -95,6 +95,22 @@ NNBC - Neural Net Binary Classifier
     informative data, and use it to predict buy/sell signals based on the real-time dataframe.
     Several different Neural Network types are available, and they can either all be tested, or a pre-configured
     classifier can be used.
+    
+    Notes: 
+    - Neural Nets need lots of data to train, and there are typically not enough buy/sell events
+    in the 'normal' buffer (975 samples) to do that training sufficiently well. So, we only train in backtest mode,
+    then save the resulting model. Other modes (hyperopt, plot etc.) will just load the saved model and use it.
+    This means that you should run backtest with a (very) long time period (I suggest a full year).
+    
+    - To help avoid over-fitting, I train a single classifier across all pairs (obe for buy, another for sell). This
+    should provide a more general model
+    
+    - models are saved in the models/ directory, relative to the current path. You will likely need to copy the models
+    to the location whre you run your strategies
+    
+    - This is intended as a base class. Actual strategis will inherit from this class and then modify the
+    buy and sell criteria
+    
       
     Note that this is very slow to start up. This is mostly because we have to build the data on a rolling
     basis to avoid lookahead bias.
@@ -110,19 +126,17 @@ NNBC - Neural Net Binary Classifier
 
 
 class NNBC(IStrategy):
+
     plot_config = {
         'main_plot': {
-            'dwt_smooth': {'color': 'teal'},
+            'close': {'color': 'cornflowerblue'},
         },
         'subplots': {
             "Diff": {
-                '%train_buy': {'color': 'green'},
-                'predict_buy': {'color': 'blue'},
-                '%train_sell': {'color': 'red'},
+                '%train_buy': {'color': 'mediumaquamarine'},
+                'predict_buy': {'color': 'cornflowerblue'},
+                '%train_sell': {'color': 'salmon'},
                 'predict_sell': {'color': 'orange'},
-                'dwt_bottom': {'color': 'magenta'},
-                'dwt_top': {'color': 'cyan'},
-                'mfi': {'color': 'purple'},
             },
         }
     }
@@ -158,6 +172,7 @@ class NNBC(IStrategy):
     startup_candle_count: int = 128  # must be power of 2
     process_only_new_candles = True
 
+    #------------------------------
     # Strategy-specific global vars
 
     inf_mins = timeframe_to_minutes(inf_timeframe)
@@ -171,6 +186,13 @@ class NNBC(IStrategy):
     n_profit_stddevs = 1.0
     n_loss_stddevs = 1.0
     min_f1_score = 0.5
+
+    compressor = None
+    compress_data = True
+    # classifier_name = 'Transformer'  # select based on testing
+    classifier_name = 'Multihead'  # select based on testing
+    buy_classifier = None
+    sell_classifier = None
 
     curr_lookahead = int(12 * lookahead_hours)
 
@@ -191,7 +213,7 @@ class NNBC(IStrategy):
     batch_size = 1024  # batch size for training
 
     cherrypick_data = False
-    preload_model = True  # don't set to true if you are changing buy/sell conditions or tweaking models
+    refit_model = True  # only set to True when training. If False, then existing model is used, if present
     use_full_dataset = True  # use the entire dataset for training (in backtest/hyperopt)
 
     buy_tag = 'buy'
@@ -200,8 +222,8 @@ class NNBC(IStrategy):
     dwt_window = startup_candle_count
 
     num_pairs = 0
-    pair_model_info = {}  # holds model-related info for each pair
-    classifier_stats = {}  # holds statistics for each type of classifier (useful to rank classifiers
+    # pair_model_info = {}  # holds model-related info for each pair
+    # classifier_stats = {}  # holds statistics for each type of classifier (useful to rank classifiers
 
     # debug flags
     first_time = True  # mostly for debug
@@ -341,21 +363,18 @@ class NNBC(IStrategy):
             print("    Thresholds - Profit:{:.2f}% Loss:{:.2f}%".format(self.profit_threshold,
                                                                         self.loss_threshold))
 
+        # make sure we only retrain in backtest modes
+        if self.dp.runmode.value not in ('backtest'):
+            self.refit_model = False
+
+        if self.buy_classifier is None:
+            self.buy_classifier = self.load_model(self.classifier_name, self.buy_tag)
+
+        if self.sell_classifier is None:
+            self.sell_classifier = self.load_model(self.classifier_name, self.sell_tag)
+
         print("")
         print(curr_pair)
-
-        # if first time through for this pair, add entry to pair_model_info
-        if not (curr_pair in self.pair_model_info):
-            self.pair_model_info[curr_pair] = {
-                'interval': 0,
-                'clf_buy_name': "",
-                'clf_buy': None,
-                'clf_sell_name': "",
-                'clf_sell': None
-            }
-        else:
-            # decrement interval. When this reaches 0 it will trigger re-fitting of the data
-            self.pair_model_info[curr_pair]['interval'] = self.pair_model_info[curr_pair]['interval'] - 1
 
         # populate the normal dataframe
         dataframe = self.add_indicators(dataframe)
@@ -628,7 +647,7 @@ class NNBC(IStrategy):
 
         # DWT model
         # if in backtest or hyperopt, then we have to do rolling calculations
-        if self.dp.runmode.value in ('hyperopt', 'backtest'):
+        if self.dp.runmode.value in ('plot', 'hyperopt', 'backtest'):
             dataframe['dwt'] = dataframe['close'].rolling(window=self.dwt_window).apply(self.roll_get_dwt)
             dataframe['smooth'] = dataframe['close'].rolling(window=self.dwt_window).apply(self.roll_smooth)
             dataframe['dwt_smooth'] = dataframe['dwt'].rolling(window=self.dwt_window).apply(self.roll_smooth)
@@ -637,13 +656,11 @@ class NNBC(IStrategy):
             dataframe['smooth'] = gaussian_filter1d(dataframe['close'], 2)
             dataframe['dwt_smooth'] = gaussian_filter1d(dataframe['dwt'], 2)
 
+        # dataframe['dwt_smooth'] = dataframe['dwt_smooth'].clip(lower=dataframe['dwt'].min()) # avoid startup artifacts
+        dataframe['dwt_smooth'].replace(0, dataframe['dwt'].min(), inplace=True)
+
         # smoothed version - useful for trends
         # dataframe['dwt_smooth'] = gaussian_filter1d(dataframe['dwt'], 8)
-
-        # dataframe['dwt_deriv'] = np.gradient(dataframe['dwt_smooth'])
-        dataframe['dwt_deriv'] = np.gradient(dataframe['dwt'])
-        dataframe['dwt_top'] = np.where(qtpylib.crossed_below(dataframe['dwt_deriv'], 0.0), 1, 0)
-        dataframe['dwt_bottom'] = np.where(qtpylib.crossed_above(dataframe['dwt_deriv'], 0.0), 1, 0)
 
         dataframe['dwt_diff'] = 100.0 * (dataframe['dwt'] - dataframe['close']) / dataframe['close']
         dataframe['dwt_smooth_diff'] = 100.0 * (dataframe['dwt'] - dataframe['dwt_smooth']) / dataframe['dwt_smooth']
@@ -686,7 +703,7 @@ class NNBC(IStrategy):
         dataframe['dwt_dir_dn'] = abs(dataframe['dwt_dir'].clip(upper=0.0))
         dataframe['dwt_nseq_dn'] = dataframe['dwt_dir_dn'] * (dataframe['dwt_dir_dn'].groupby(
             (dataframe['dwt_dir_dn'] != dataframe['dwt_dir_dn'].shift()).cumsum()).cumcount() + 1)
-        dataframe['dwt_nseq_dn'] = dataframe['dwt_nseq_dn'].clip(lower=0.0, upper=20.0)
+        dataframe['dwt_nseq_dn'] = dataframe['dwt_nseq_dn'].clip(lower=0.0, upper=30.0)
 
         # # dataframe['dwt_nseq_dn'] = dataframe['dwt_nseq'].clip(upper=0.0)
         # dataframe['dwt_nseq_dn_mean'] = dataframe['dwt_nseq_dn'].rolling(window=win_size).mean()
@@ -711,11 +728,11 @@ class NNBC(IStrategy):
         dataframe['dwt_low'] = dataframe['dwt_smooth'].rolling(window=self.startup_candle_count).min()
         dataframe['dwt_high'] = dataframe['dwt_smooth'].rolling(window=self.startup_candle_count).max()
 
-        # # these are (primarily) clues for the ML algorithm:
-        dataframe['dwt_at_min'] = np.where(dataframe['dwt_smooth'] <= dataframe['dwt_recent_min'], 1.0, 0.0)
-        dataframe['dwt_at_max'] = np.where(dataframe['dwt_smooth'] >= dataframe['dwt_recent_max'], 1.0, 0.0)
-        dataframe['dwt_at_low'] = np.where(dataframe['dwt_smooth'] <= dataframe['dwt_low'], 1.0, 0.0)
-        dataframe['dwt_at_high'] = np.where(dataframe['dwt_smooth'] >= dataframe['dwt_high'], 1.0, 0.0)
+        # # # these are (primarily) clues for the ML algorithm:
+        # dataframe['dwt_at_min'] = np.where(dataframe['dwt_smooth'] <= dataframe['dwt_recent_min'], 1.0, 0.0)
+        # dataframe['dwt_at_max'] = np.where(dataframe['dwt_smooth'] >= dataframe['dwt_recent_max'], 1.0, 0.0)
+        # dataframe['dwt_at_low'] = np.where(dataframe['dwt_smooth'] <= dataframe['dwt_low'], 1.0, 0.0)
+        # dataframe['dwt_at_high'] = np.where(dataframe['dwt_smooth'] >= dataframe['dwt_high'], 1.0, 0.0)
 
         # TODO: remove/fix any columns that contain 'inf'
         self.check_inf(dataframe)
@@ -749,6 +766,13 @@ class NNBC(IStrategy):
             price_col = 'close'
             future_df['full_dwt'] = 0.0
 
+
+        # these look backward, but are here to be safe
+        # dataframe['dwt_deriv'] = np.gradient(dataframe['dwt_smooth'])
+        future_df['dwt_deriv'] = np.gradient(future_df['dwt'])
+        future_df['dwt_top'] = np.where(qtpylib.crossed_below(future_df['dwt_deriv'], 0.0), 1, 0)
+        future_df['dwt_bottom'] = np.where(qtpylib.crossed_above(future_df['dwt_deriv'], 0.0), 1, 0)
+
         # calculate future gains
         future_df['future_close'] = future_df[price_col].shift(-lookahead)
 
@@ -756,7 +780,7 @@ class NNBC(IStrategy):
         future_df['future_gain'].clip(lower=-5.0, upper=5.0, inplace=True)
 
         # gain from beginning of window to end of window
-        future_df['future_win_gain'] = 100.0 * (future_df['dwt'].shift(self.curr_lookahead) - future_df['dwt'] /
+        future_df['future_win_gain'] = 100.0 * (future_df['dwt'].shift(-self.curr_lookahead) - future_df['dwt'] /
                                                 future_df['dwt'])
 
         future_df['future_profit'] = future_df['future_gain'].clip(lower=0.0)
@@ -806,6 +830,7 @@ class NNBC(IStrategy):
         future_win = pd.api.indexers.FixedForwardWindowIndexer(window_size=int(win_size))  # don't use a big window
 
         future_df['future_nseq'] = future_df['curr_trend'].rolling(window=future_win, min_periods=1).sum()
+        # future_df['future_nseq'] = future_df['dwt_nseq'].shift(-lookahead)
 
         # future_df['future_nseq_up'] = 0.0
         # future_df['future_nseq_up'] = np.where(
@@ -813,7 +838,7 @@ class NNBC(IStrategy):
         #     future_df.groupby(future_df["dwt_dir_up"].ne(future_df["dwt_dir_up"].shift(1)).cumsum()).cumcount() + 1,
         #     0.0
         # )
-        future_df['future_nseq_up'] = future_df['future_nseq'].clip(lower=0.0)
+        future_df['future_nseq_up'] = future_df['dwt_nseq_up'].shift(-lookahead)
 
         future_df['future_nseq_up_mean'] = future_df['future_nseq_up'].rolling(window=future_win).mean()
         future_df['future_nseq_up_std'] = future_df['future_nseq_up'].rolling(window=future_win).std()
@@ -826,7 +851,7 @@ class NNBC(IStrategy):
         #     0.0
         # )
         # print(future_df['future_nseq_dn'])
-        future_df['future_nseq_dn'] = future_df['future_nseq'].clip(upper=0.0)
+        future_df['future_nseq_dn'] = future_df['dwt_nseq_dn'].shift(-lookahead)
 
         future_df['future_nseq_dn_mean'] = future_df['future_nseq_dn'].rolling(future_win).mean()
         future_df['future_nseq_dn_std'] = future_df['future_nseq_dn'].rolling(future_win).std()
@@ -881,7 +906,7 @@ class NNBC(IStrategy):
             print("OOPS! <3 ({:.0f}) buy signals generated. Check training criteria".format(buys.sum()))
 
         sells = future_df['train_sell'].copy()
-        if buys.sum() < 3:
+        if sells.sum() < 3:
             print("OOPS! <3 ({:.0f}) sell signals generated. Check training criteria".format(sells.sum()))
 
         self.save_debug_data(future_df)
@@ -1075,6 +1100,12 @@ class NNBC(IStrategy):
                 dataframe = dataframe.drop(col, axis=1)
             dataframe.reindex()
         return dataframe
+
+    # compress the supplied dataframe
+    def compress_dataframe(self, dataframe: DataFrame) -> DataFrame:
+        if not self.compressor:
+            self.compressor = self.get_compressor(dataframe)
+        return pd.DataFrame(self.compressor.transform(dataframe))
 
     # Normalise a dataframe
     def norm_dataframe(self, dataframe: DataFrame) -> DataFrame:
@@ -1427,21 +1458,8 @@ class NNBC(IStrategy):
 
     def train_models(self, curr_pair, dataframe: DataFrame, buys, sells):
 
-        # only run if interval reaches 0 (no point retraining every camdle)
-        count = self.pair_model_info[curr_pair]['interval']
-        if (count > 0):
-            self.pair_model_info[curr_pair]['interval'] = count - 1
+        if self.dp.runmode.value not in ('backtest'):
             return
-        else:
-            # reset interval to a random number between 1 and the amount of lookahead
-            # self.pair_model_info[curr_pair]['interval'] = random.randint(1, self.curr_lookahead)
-            self.pair_model_info[curr_pair]['interval'] = random.randint(2, max(12, self.curr_lookahead))
-
-        # Reset models for this pair. Makes it safe to just return on error
-        self.pair_model_info[curr_pair]['clf_buy_name'] = ""
-        self.pair_model_info[curr_pair]['clf_buy'] = None
-        self.pair_model_info[curr_pair]['clf_sell_name'] = ""
-        self.pair_model_info[curr_pair]['clf_sell'] = None
 
         # check input - need at least 2 samples or classifiers will not train
         if buys.sum() < 2:
@@ -1449,9 +1467,9 @@ class NNBC(IStrategy):
             # print(buys)
             return
 
-        if sells.sum() < 2:
-            print("*** ERR: insufficient sells in expected results. Check training data")
-            return
+        # if sells.sum() < 2:
+        #     print("*** ERR: insufficient sells in expected results. Check training data")
+        #     return
 
         rand_st = 27  # use fixed number for reproducibility
 
@@ -1463,6 +1481,13 @@ class NNBC(IStrategy):
         else:
             # full_df_norm = self.norm_dataframe(dataframe).clip(lower=-3.0, upper=3.0)  # supress outliers
             full_df_norm = self.norm_dataframe(dataframe)
+
+
+        # compress data
+        if self.compress_data:
+            old_size = full_df_norm.shape[1]
+            full_df_norm = self.compress_dataframe(full_df_norm)
+            print("    Compressed data {} -> {} (features)".format(old_size, full_df_norm.shape[1]))
 
         # constrain size to what will be available in run modes
         if self.use_full_dataset:
@@ -1511,9 +1536,9 @@ class NNBC(IStrategy):
 
         # check that we have enough positives to train
         buy_ratio = 100.0 * (num_buys / len(train_buys))
-        if (buy_ratio < 0.5):
-            print("*** ERR: insufficient number of positive buy labels ({:.2f}%)".format(buy_ratio))
-            return
+        # if (buy_ratio < 0.5):
+        #     print("*** ERR: insufficient number of positive buy labels ({:.2f}%)".format(buy_ratio))
+        #     return
 
         buy_clf, buy_clf_name = self.get_buy_classifier(tsr_train, train_buy_labels, tsr_test, test_buy_labels)
 
@@ -1525,11 +1550,8 @@ class NNBC(IStrategy):
         sell_clf, sell_clf_name = self.get_sell_classifier(tsr_train, train_sell_labels, tsr_test, test_sell_labels)
 
         # save the models
-
-        self.pair_model_info[curr_pair]['clf_buy_name'] = buy_clf_name
-        self.pair_model_info[curr_pair]['clf_buy'] = buy_clf
-        self.pair_model_info[curr_pair]['clf_sell_name'] = sell_clf_name
-        self.pair_model_info[curr_pair]['clf_sell'] = sell_clf
+        self.buy_classifier = buy_clf
+        self.sell_classifier = sell_clf
 
         # if scan specified, test against the test dataframe
         if self.dbg_test_classifier:
@@ -1552,28 +1574,23 @@ class NNBC(IStrategy):
     def get_buy_classifier(self, tensor, results, test_tensor, test_labels):
 
         clf = None
-        name = ""
+        name = self.classifier_name
+
         # labels = self.get_binary_labels(results)
         labels = results
 
-        if results.sum() <= 2:
-            print("***")
-            print("*** ERR: insufficient positive results in buy data")
-            print("***")
-            return clf, name
+        # if results.sum() <= 2:
+        #     print("***")
+        #     print("*** ERR: insufficient positive results in buy data")
+        #     print("***")
+        #     return clf, name
 
-        # If already done, just get previous result and re-fit
-        if self.pair_model_info[self.curr_pair]['clf_buy']:
-            clf = self.pair_model_info[self.curr_pair]['clf_buy']
-            name = self.pair_model_info[self.curr_pair]['clf_buy_name']
-            clf = self.fit_classifier(clf, name, self.buy_tag, tensor, labels, test_tensor, test_labels)
-        else:
-            if self.dbg_scan_classifiers:
-                if self.dbg_verbose:
-                    print("    Finding best buy classifier:")
-                clf, name = self.find_best_classifier(tensor, labels, tag="buy")
+        if self.dp.runmode.value in ('backtest'):
+            # If already done, just  re-fit
+            if self.buy_classifier:
+                clf = self.fit_classifier(clf, name, self.buy_tag, tensor, labels, test_tensor, test_labels)
             else:
-                clf, name = self.classifier_factory(self.default_classifier, tensor, labels)
+                clf, name = self.classifier_factory(self.classifier_name, tensor, labels)
                 clf = self.fit_classifier(clf, name, self.buy_tag, tensor, labels, test_tensor, test_labels)
 
         return clf, name
@@ -1582,71 +1599,34 @@ class NNBC(IStrategy):
     def get_sell_classifier(self, tensor, results, test_tensor, test_labels):
 
         clf = None
-        name = ""
+        name = self.classifier_name
         # labels = self.get_binary_labels(results)
         labels = results
 
-        if results.sum() <= 2:
-            print("***")
-            print("*** ERR: insufficient positive results in sell data")
-            print("***")
-            return clf, name
+        # if results.sum() <= 2:
+        #     print("***")
+        #     print("*** ERR: insufficient positive results in sell data")
+        #     print("***")
+        #     return clf, name
 
-        # If already done, just get previous result and re-fit
-        if self.pair_model_info[self.curr_pair]['clf_sell']:
-            clf = self.pair_model_info[self.curr_pair]['clf_sell']
-            name = self.pair_model_info[self.curr_pair]['clf_sell_name']
-            clf = self.fit_classifier(clf, name, self.sell_tag, tensor, labels, test_tensor, test_labels)
-
-        else:
-            if self.dbg_scan_classifiers:
-                if self.dbg_verbose:
-                    print("    Finding best sell classifier:")
-                clf, name = self.find_best_classifier(tensor, labels, tag="sell")
+        if self.dp.runmode.value in ('backtest'):
+            # If already done, just  re-fit
+            if self.sell_classifier:
+                clf = self.fit_classifier(clf, name, self.sell_tag, tensor, labels, test_tensor, test_labels)
             else:
-                clf, name = self.classifier_factory(self.default_classifier, tensor, labels)
+                clf, name = self.classifier_factory(self.classifier_name, tensor, labels)
                 clf = self.fit_classifier(clf, name, self.sell_tag, tensor, labels, test_tensor, test_labels)
 
         return clf, name
 
-    # default classifier
-    default_classifier = 'Multihead'  # select based on testing
-
-    # list of potential classifier types - set to the list that you want to compare
-    classifier_list = [
-        # 'MLP', 'LSTM', 'Attention', 'Multihead'
-        'MLP', 'MLP2', 'LSTM', 'Multihead'
-    ]
-
-    # factory to create classifier based on name
-    def classifier_factory(self, name, tensor, labels):
-        clf = None
-
-        # nfeatures = df_norm.shape[1]
-
-        nfeatures = np.shape(tensor)[2]
-
-        if name == 'MLP':
-            clf = self.build_model_MLP(nfeatures, self.seq_len)
-        elif name == 'MLP2':
-            clf = self.build_model_MLP2(nfeatures, self.seq_len)
-        elif name == 'LSTM':
-            clf = self.build_model_LSTM(nfeatures, self.seq_len)
-        elif name == 'LSTM2':
-            clf = self.build_model_LSTM2(nfeatures, self.seq_len)
-        elif name == 'Attention':
-            clf = self.build_model_Attention(nfeatures, self.seq_len)
-        elif name == 'Multihead':
-            clf = self.build_model_Multihead(nfeatures, self.seq_len)
-        elif name == 'RBM':
-            clf = self.build_model_RBM(nfeatures, self.seq_len)
-
-        else:
-            print("Unknown classifier: ", name)
-            clf = None
-        return clf, name
 
     #######################################
+
+    def get_compressor(self, df_norm: DataFrame):
+        # just use fixed size PCA (easier for classifiers to deal with)
+        ncols = 64
+        compressor = skd.PCA(n_components=ncols, whiten=True, svd_solver='full').fit(df_norm)
+        return compressor
 
     # get a scaler for scaling/normalising the data (in a func because I change it routinely)
     def get_scaler(self):
@@ -1699,23 +1679,31 @@ class NNBC(IStrategy):
 
     #######################################
 
-    def get_checkpoint_path(self, tag):
-        # Note that keras expects it to be called 'checkpoint'
+    def get_checkpoint_path(self, clf_name, tag):
         checkpoint_dir = '/tmp'
         curr_class = self.__class__.__name__
-        checkpoint_path = checkpoint_dir + "/" + curr_class + "/" + tag + self.curr_pair.replace("/", "_") + "/checkpoint"
+        # checkpoint_path = checkpoint_dir + "/" + curr_class + "/" + tag + self.curr_pair.replace("/", "_") + "/checkpoint"
+        if self.compress_data:
+            checkpoint_path = checkpoint_dir + "/" + curr_class + "/" + clf_name + "_" + tag + "_cmp" + "/checkpoint.h5"
+        else:
+            checkpoint_path = checkpoint_dir + "/" + curr_class + "/" + clf_name + "_" + tag + "/checkpoint.h5"
 
         return checkpoint_path
 
-    def get_model_path(self, tag):
-        model_dir = '/tmp'
+    def get_model_path(self, clf_name, tag):
         curr_class = self.__class__.__name__
-        model_path = model_dir + "/" + curr_class + "/" + tag + self.curr_pair.replace("/", "_") + ".h5"
+        model_dir = './models/' + curr_class + "/"
+        # model_path = model_dir + tag + self.curr_pair.replace("/", "_") + ".h5"
+        if self.compress_data:
+            model_path = model_dir + curr_class + "_" + clf_name + "_" + tag + "_cmp" + ".h5"
+        else:
+            model_path = model_dir + curr_class + "_" + clf_name + "_" + tag  + ".h5"
 
         return model_path
 
-    def load_model(self, model, tag):
-        model_path = self.get_model_path(tag)
+    def load_model(self, clf_name, tag):
+        model = None
+        model_path = self.get_model_path(clf_name, tag)
 
         # load saved model if present
         if os.path.exists(model_path):
@@ -1730,14 +1718,16 @@ class NNBC(IStrategy):
             except Exception as e:
                 print("    ", str(e))
                 print("    Error loading model from {}. Check whether model format changed".format(model_path))
+                self.is_trained = False
         else:
             print("    model not found ({})...".format(model_path))
+            self.is_trained = False
 
         return model
 
     def get_model_weights(self, model, clf_name, tag):
 
-        model_name = self.get_checkpoint_path(tag)
+        model_name = self.get_checkpoint_path(clf_name, tag)
 
         # if checkpoint already exists, load it as a starting point
         if os.path.exists(model_name):
@@ -1748,28 +1738,41 @@ class NNBC(IStrategy):
                 print("Error loading weights from {}. Check whether model format changed".format(model_name))
         else:
             print("    model not found ({})...".format(model_name))
-            if self.dp.runmode.value not in ('hyperopt', 'backtest', 'plot'):
+            if self.dp.runmode.value not in ('backtest'):
                 print("*** ERR: no existing model. You should run backtest first!")
         return model
 
     def fit_classifier(self, classifier, name, tag, tensor, labels, test_tensor, test_labels):
 
         # load existing model, if it exists
-        checkpoint = self.get_checkpoint_path(tag)
+        checkpoint = self.get_checkpoint_path(name, tag)
 
-        if self.preload_model:
-            # classifier = self.get_model_weights(classifier, checkpoint, tag)
-            classifier = self.load_model(classifier, tag)
+        classifier = self.load_model(name, tag)
 
-        #TODO: just return if loaded (need flag per classifier)
+        # print("is_trained:{} refit_model:{}".format(self.is_trained, self.refit_model))
+        if (classifier is not None) and self.is_trained and (not self.refit_model):
+            print("    Using loaded model...")
+            return classifier
 
-        # print("    fit_classifier() tensor:{} labels:{}".format(np.shape(tensor), np.shape(labels)))
+        if classifier is None:
+            classifier, _ = self.classifier_factory(name, tensor, labels)
+
+        if classifier is None:
+            print("    Could not create classifier")
+            return None
+
+        num_samples = np.shape(tensor)[0]
+        num_events = labels[:, 0, 0].sum()
+        exp_acc = (num_samples - num_events) / num_samples
+        print("    train: samples:{} events:{} exp. acc:{:.4f}".format(num_samples, num_events, exp_acc))
 
         # callback to control early exit on plateau of results
         early_callback = keras.callbacks.EarlyStopping(
             monitor="loss",
             mode="min",
-            patience=9,
+            min_delta=0.0001,
+            patience=6,
+            restore_best_weights = True,
             verbose=0)
 
         plateau_callback = keras.callbacks.ReduceLROnPlateau(
@@ -1783,7 +1786,8 @@ class NNBC(IStrategy):
         # Note that we use validation loss as the metric, not training loss
         checkpoint_callback = keras.callbacks.ModelCheckpoint(
             filepath=checkpoint,
-            save_weights_only=True,
+            # save_weights_only=True,
+            save_weights_only=False,
             monitor='loss',
             mode='min',
             save_best_only=True,
@@ -1792,7 +1796,8 @@ class NNBC(IStrategy):
         # df_tensor = np.reshape(df_tensor, (np.shape(df_tensor)[0], np.shape(df_tensor)[1], np.shape(df_tensor)[2]))
         # lbl_tensor = np.array(lbl_tensor).reshape(np.shape(df_tensor)[0], np.shape(df_tensor)[1], np.shape(df_tensor)[2]))
 
-        print("    training {} model: {}...".format(tag, name))
+        print("    training {} classifier: {}...".format(tag, name))
+
         # Model weights are saved at the end of every epoch, if it's the best seen so far.
         fhis = classifier.fit(tensor, labels,
                               batch_size=self.batch_size,
@@ -1801,11 +1806,13 @@ class NNBC(IStrategy):
                               validation_data=(test_tensor, test_labels),
                               verbose=1)
 
-        # The model weights (that are considered the best) are loaded into th model.
-        classifier = self.get_model_weights(classifier, checkpoint, tag)
+        # # The model weights (that are considered the best) are loaded into th model.
+        # classifier = self.get_model_weights(classifier, name, tag)
 
         # save the model
-        keras.models.save_model(classifier, filepath=self.get_model_path(tag))
+        keras.models.save_model(classifier, filepath=self.get_model_path(name, tag))
+
+        self.is_trained = True
 
         return classifier
 
@@ -1829,6 +1836,10 @@ class NNBC(IStrategy):
         preds = np.array(preds[:, 0]).reshape(-1, 1)
         preds = preds[:, 0]
 
+        nz_preds = preds[preds > 0.001]
+        if len(nz_preds == 0):
+            nz_preds = preds
+
         # convert softmax result into a binary value
         # predictions = np.argmax(preds) # softmax output
         # predictions = tf.round(tf.nn.sigmoid(preds)) # linear output
@@ -1836,20 +1847,59 @@ class NNBC(IStrategy):
         # it looks like (sometimes) the predictions are scaled down, so cheat a little and use a threshold based on the
         # mean and standard deviation
         # TODO: figure out scaling factor based on dataframe normalisation
-        if preds.max() > 0.5:
+        if preds.max() > 0.75:
+            threshold = 0.75
+        elif preds.max() > 0.5:
             threshold = 0.5
         else:
-            threshold = preds.mean() + 2.0 * preds.std()
+            threshold = nz_preds.mean() + 2.0 * nz_preds.std()
+        threshold = max(threshold, 0.8)
+
         predictions = np.where(preds > threshold, 1.0, 0.0)  # sigmoid output
 
-        # print("preds sum:{} mean: {:.4f} min: {:.4f} max: {:.4f} std: {:.4f}".format(predictions.sum(),
-        #                                                                              preds.mean(),
-        #                                                                              preds.min(),
-        #                                                                              preds.max(),
-        #                                                                              preds.std()
+        # print("preds events:{} mean: {:.4f} min: {:.4f} max: {:.4f} std: {:.4f}".format(len(nz_preds),
+        #                                                                              nz_preds.mean(),
+        #                                                                              nz_preds.min(),
+        #                                                                              nz_preds.max(),
+        #                                                                              nz_preds.std()
         #                                                                              ))
-
         return predictions
+
+    #################################
+
+    # list of potential classifier types - set to the list that you want to compare
+    classifier_list = [
+        # 'MLP', 'LSTM', 'Attention', 'Multihead'
+        'MLP', 'MLP2', 'LSTM', 'Multihead', 'Transformer'
+    ]
+
+    # factory to create classifier based on name
+    def classifier_factory(self, name, tensor, labels):
+        clf = None
+
+        nfeatures = np.shape(tensor)[2]
+
+        if name == 'MLP':
+            clf = self.build_model_MLP(nfeatures, self.seq_len)
+        elif name == 'MLP2':
+            clf = self.build_model_MLP2(nfeatures, self.seq_len)
+        elif name == 'LSTM':
+            clf = self.build_model_LSTM(nfeatures, self.seq_len)
+        elif name == 'LSTM2':
+            clf = self.build_model_LSTM2(nfeatures, self.seq_len)
+        elif name == 'Attention':
+            clf = self.build_model_Attention(nfeatures, self.seq_len)
+        elif name == 'Multihead':
+            clf = self.build_model_Multihead(nfeatures, self.seq_len)
+        elif name == 'Transformer':
+            clf = self.build_model_Transformer(nfeatures, self.seq_len)
+        elif name == 'RBM':
+            clf = self.build_model_RBM(nfeatures, self.seq_len)
+
+        else:
+            print("Unknown classifier: ", name)
+            clf = None
+        return clf, name
 
     # Classifier Models
 
@@ -1926,11 +1976,15 @@ class NNBC(IStrategy):
 
         model = keras.Sequential()
 
-        # model.add(layers.LSTM(128, return_sequences=True, input_shape=(seq_len, nfeatures)))
-        model.add(layers.LSTM(128, input_shape=(seq_len, nfeatures)))
-        model.add(layers.Dropout(rate=0.1))
-        model.add(layers.LSTM(64))
-        model.add(layers.Dropout(rate=0.1))
+        # model.add(layers.LSTM(64, return_sequences=True, input_shape=(seq_len, nfeatures)))
+        model.add(layers.LSTM(64, activation='tanh', return_sequences=True, input_shape=(seq_len, nfeatures)))
+        model.add(layers.Dropout(rate=0.2))
+        model.add(layers.LSTM(64, return_sequences=True, activation='tanh'))
+        model.add(layers.Dropout(rate=0.2))
+        model.add(layers.LSTM(32, return_sequences=True, activation='tanh'))
+        model.add(layers.Dropout(rate=0.2))
+        model.add(layers.LSTM(16, return_sequences=True, activation='tanh'))
+        model.add(layers.Dropout(rate=0.2))
 
         # model.add(layers.Dense(1, activation='linear'))
         model.add(layers.Dense(1, activation='sigmoid'))
@@ -2002,6 +2056,60 @@ class NNBC(IStrategy):
                       metrics=['accuracy', 'mse'])
         return model
 
+    def transformer_encoder(self, inputs, head_size, num_heads, dropout, ff_dim):
+
+        # Normalization and Attention
+        x = layers.LayerNormalization(epsilon=1e-6)(inputs)
+        x = layers.MultiHeadAttention(key_dim=head_size, num_heads=num_heads, dropout=dropout)(x, x)
+        x = layers.Dropout(dropout)(x)
+
+        res = x + inputs
+
+        # Feed Forward Part
+        x = layers.LayerNormalization(epsilon=1e-6)(res)
+        x = layers.Conv1D(filters=ff_dim, kernel_size=1, activation="relu")(x)
+        x = layers.Dropout(dropout)(x)
+        # x = layers.Conv1D(filters=inputs.shape[-1], kernel_size=1)(x)
+        x = layers.Conv1D(filters=head_size, kernel_size=1)(x)
+        return x + res
+
+    def  build_model_Transformer(self, nfeatures: int, seq_len: int):
+
+        # head_size = 256
+        head_size = nfeatures
+        num_heads = 4
+        # ff_dim = 4
+        ff_dim = seq_len
+        num_transformer_blocks = 4
+        mlp_units = [128]
+        mlp_dropout = 0.4
+        dropout = 0.25
+
+        inputs = keras.Input(shape=(seq_len, nfeatures))
+        x = inputs
+        for _ in range(num_transformer_blocks):
+            x = self.transformer_encoder(x, head_size, num_heads, dropout, ff_dim)
+
+        x = layers.GlobalAveragePooling1D(keepdims=True, data_format="channels_first")(x)
+        for dim in mlp_units:
+            # x = layers.Dense(dim, activation="relu")(x)
+            x = layers.Dense(dim)(x)
+            x = layers.Dropout(mlp_dropout)(x)
+
+        # output layer
+        # x = layers.Dense(seq_len)(x)
+        outputs = layers.Dense(1, activation="sigmoid")(x)
+
+        model = keras.Model(inputs, outputs)
+
+        # model.summary()  # helps keep track of which model is running, while making changes
+        opt = keras.optimizers.Adam(learning_rate=0.0001)
+        model.compile(optimizer=opt,
+                      loss='binary_crossentropy',
+                      metrics=['accuracy', 'mse'])
+        return model
+
+
     # Reduced Boltzmann Machine
     def build_model_RBM(self, nfeatures: int, seq_len: int):
 
@@ -2069,14 +2177,14 @@ class NNBC(IStrategy):
             print("    Insufficient +ve (test) results: ", res_test.sum())
             return None, ""
 
-        for cname in self.classifier_list:
-            clf, _ = self.classifier_factory(cname, tsr_train, res_train)
+        for clf_name in self.classifier_list:
+            clf, _ = self.classifier_factory(clf_name, tsr_train, res_train)
 
             if clf is not None:
 
                 # fit to the training data
-                clf_dict[cname] = clf
-                clf = self.fit_classifier(clf, cname, tag, tsr_train, res_train, tsr_test, res_test)
+                clf_dict[clf_name] = clf
+                clf = self.fit_classifier(clf, clf_name, tag, tsr_train, res_train, tsr_test, res_test)
 
                 # assess using the test data. Do *not* use the training data for testing
                 pred_test = self.get_classifier_predictions(clf, tsr_test)
@@ -2085,24 +2193,11 @@ class NNBC(IStrategy):
                 score = f1_score(res_test[:, 0], pred_test, average='macro')
 
                 if self.dbg_verbose:
-                    print("      {0:<20}: {1:.3f}".format(cname, score))
+                    print("      {0:<20}: {1:.3f}".format(clf_name, score))
 
                 if score > best_score:
                     best_score = score
-                    best_classifier = cname
-
-                # update classifier stats
-                if tag:
-                    if not (tag in self.classifier_stats):
-                        self.classifier_stats[tag] = {}
-
-                    if not (cname in self.classifier_stats[tag]):
-                        self.classifier_stats[tag][cname] = {'count': 0, 'score': 0.0, 'selected': 0}
-
-                    curr_count = self.classifier_stats[tag][cname]['count']
-                    curr_score = self.classifier_stats[tag][cname]['score']
-                    self.classifier_stats[tag][cname]['count'] = curr_count + 1
-                    self.classifier_stats[tag][cname]['score'] = (curr_score * curr_count + score) / (curr_count + 1)
+                    best_classifier = clf_name
 
         if best_score <= 0.0:
             print("   No classifier found")
@@ -2116,12 +2211,6 @@ class NNBC(IStrategy):
             print("!!! WARNING: F1 score below threshold ({:.3f})".format(best_score))
             print("!!!")
             return None, ""
-
-        # update stats for selected classifier
-        if tag:
-            if best_classifier in self.classifier_stats[tag]:
-                self.classifier_stats[tag][best_classifier]['selected'] = self.classifier_stats[tag][best_classifier] \
-                                                                              ['selected'] + 1
 
         print("       ", tag, " model selected: ", best_classifier, " Score:{:.3f}".format(best_score))
         # print("")
@@ -2137,6 +2226,9 @@ class NNBC(IStrategy):
         if clf is not None:
             # print("    predicting... - dataframe:", dataframe.shape)
             df_norm = self.norm_dataframe(dataframe)
+            if self.compress_data:
+                df_norm = self.compress_dataframe(df_norm)
+
             df_tensor = self.df_to_tensor(df_norm, self.seq_len)
             predict = self.get_classifier_predictions(clf, df_tensor)
 
@@ -2147,11 +2239,10 @@ class NNBC(IStrategy):
         return predict
 
     def predict_buy(self, df: DataFrame, pair):
-        clf = self.pair_model_info[pair]['clf_buy']
+        clf = self.buy_classifier
 
         if clf is None:
             print("    No Buy Classifier for pair ", pair, " -Skipping predictions")
-            self.pair_model_info[pair]['interval'] = min(self.pair_model_info[pair]['interval'], 4)
             predict = df['close'].copy()  # just to get the size
             predict = 0.0
             return predict
@@ -2180,10 +2271,9 @@ class NNBC(IStrategy):
         return predict
 
     def predict_sell(self, df: DataFrame, pair):
-        clf = self.pair_model_info[pair]['clf_sell']
+        clf = self.sell_classifier
         if clf is None:
             print("    No Sell Classifier for pair ", pair, " -Skipping predictions")
-            self.pair_model_info[pair]['interval'] = min(self.pair_model_info[pair]['interval'], 4)
             predict = df['close']  # just to get the size
             predict = 0.0
             return predict
@@ -2229,67 +2319,11 @@ class NNBC(IStrategy):
         return self.curr_state[pair]
 
     def show_debug_info(self, pair):
-        # print("")
-        # print("pair_model_info:")
-        print("  ", pair, ": ", self.pair_model_info[pair])
-        # print("")
+        print("")
 
     def show_all_debug_info(self):
         print("")
-        if (len(self.pair_model_info) > 0):
-            # print("Model Info:")
-            # print("----------")
-            table = PrettyTable(["Pair", "Buy Classifier", "Sell Classifier"])
-            table.title = "Model Information"
-            table.align = "l"
-            table.reversesort = False
-            table.sortby = 'Pair'
 
-            for pair in self.pair_model_info:
-                table.add_row([pair,
-                               self.pair_model_info[pair]['clf_buy_name'],
-                               self.pair_model_info[pair]['clf_sell_name']
-                               ])
-
-            print(table)
-
-        if len(self.classifier_stats) > 0:
-            # print("Classifier Statistics:")
-            # print("---------------------")
-            print("")
-            if self.buy_tag in self.classifier_stats:
-                print("")
-                table = PrettyTable(["Classifier", "Mean Score", "Selected"])
-                table.title = "Buy Classifiers"
-                table.align["Classifier"] = "l"
-                table.align["Mean Score"] = "c"
-                table.float_format = '.4'
-                for cls in self.classifier_stats[self.buy_tag]:
-                    table.add_row([cls,
-                                   self.classifier_stats[self.buy_tag][cls]['score'],
-                                   self.classifier_stats[self.buy_tag][cls]['selected']])
-                table.reversesort = True
-                # table.sortby = 'Mean Score'
-                print(table.get_string(sort_key=operator.itemgetter(2, 1), sortby="Selected"))
-                print("")
-
-            if self.sell_tag in self.classifier_stats:
-                print("")
-                table = PrettyTable(["Classifier", "Mean Score", "Selected"])
-                table.title = "Sell Classifiers"
-                table.align["Classifier"] = "l"
-                table.align["Mean Score"] = "c"
-                table.float_format = '.4'
-                for cls in self.classifier_stats[self.sell_tag]:
-                    table.add_row([cls,
-                                   self.classifier_stats[self.sell_tag][cls]['score'],
-                                   self.classifier_stats[self.sell_tag][cls]['selected']])
-                table.reversesort = True
-                # table.sortby = 'Mean Score'
-                print(table.get_string(sort_key=operator.itemgetter(2, 1), sortby="Selected"))
-                print("")
-
-            print("")
 
     ###################################
 
@@ -2317,10 +2351,10 @@ class NNBC(IStrategy):
         conditions.append(dataframe['volume'] > 0)
 
         # MFI
-        conditions.append(dataframe['mfi'] < 20.0)
+        conditions.append(dataframe['mfi'] < 30.0)
 
-        # below TEMA
-        conditions.append(dataframe['close'] < dataframe['tema'])
+        # above TEMA
+        conditions.append(dataframe['dwt'] > dataframe['tema'])
 
 
         # Classifier triggers
@@ -2367,10 +2401,10 @@ class NNBC(IStrategy):
         conditions.append(dataframe['volume'] > 0)
 
         # MFI
-        conditions.append(dataframe['mfi'] > 80.0)
+        conditions.append(dataframe['mfi'] > 70.0)
 
-        # above TEMA
-        conditions.append(dataframe['close'] > dataframe['tema'])
+        # below TEMA
+        conditions.append(dataframe['dwt'] < dataframe['tema'])
 
 
         # PCA triggers

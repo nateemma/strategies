@@ -55,8 +55,8 @@ class NNBC_nseq(NNBC):
 
     plot_config = {
         'main_plot': {
-            'close': {'color': 'darkcyan'},
-            'dwt': {'color': 'salmon'},
+            'tema': {'color': 'darkcyan'},
+            'dwt_smooth': {'color': 'salmon'},
         },
         'subplots': {
             "Diff": {
@@ -64,6 +64,8 @@ class NNBC_nseq(NNBC):
                 'dwt_nseq_dn': {'color': 'mediumslateblue'},
                 '%train_buy': {'color': 'darkseagreen'},
                 'predict_buy': {'color': 'dodgerblue'},
+                '%train_sell': {'color': 'lightcoral'},
+                'predict_sell': {'color': 'mediumvioletred'},
             },
         }
     }
@@ -76,9 +78,9 @@ class NNBC_nseq(NNBC):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     lookahead_hours = 1.0
-    n_profit_stddevs = 1.0
-    n_loss_stddevs = 2.0
-    min_f1_score = 0.5
+    n_profit_stddevs = 0.0
+    n_loss_stddevs = 0.0
+    min_f1_score = 0.4
 
     cherrypick_data = False
     preload_model = True # don't set to true if you are changing buy/sell conditions or tweaking models
@@ -98,8 +100,8 @@ class NNBC_nseq(NNBC):
     ## Hyperopt Variables
 
     # buy/sell hyperparams
-    buy_nseq_dn = IntParameter(2, 20, default=6, space='buy', load=True, optimize=True)
-    sell_nseq_up = IntParameter(2, 20, default=10, space='sell', load=True, optimize=True)
+    buy_nseq_dn = IntParameter(0, 10, default=4, space='buy', load=True, optimize=True)
+    sell_nseq_up = IntParameter(0, 10, default=8, space='sell', load=True, optimize=True)
 
     # Custom Sell Profit (formerly Dynamic ROI)
     csell_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
@@ -136,11 +138,16 @@ class NNBC_nseq(NNBC):
     def get_train_buy_signals(self, future_df: DataFrame):
         series = np.where(
             (
-                    (future_df['mfi'] < 30) & # loose guard
-                    (future_df['dwt_nseq_dn'] >= 6) &
-                    # (future_df['future_nseq_up'] >= 4) &
+                    # (future_df['mfi'] < 30) & # loose guard
 
-                    (future_df['profit_max'] >= future_df['profit_threshold'])   # future profit exceeds threshold
+                    # down...
+                    (future_df['dwt_nseq_dn'] >= 4) &
+                    (future_df['dwt_win_gain'] <= self.loss_threshold) &
+
+                    # then up...
+                    (future_df['future_nseq_up'] >= 8) &
+                    (future_df['future_win_gain'] >= self.profit_threshold) #&  # future gain
+                    # (future_df['profit_max'] >= future_df['profit_threshold'])   # future profit exceeds threshold
             ), 1.0, 0.0)
 
         return series
@@ -149,11 +156,17 @@ class NNBC_nseq(NNBC):
 
         series = np.where(
             (
-                    (future_df['mfi'] > 70) & # loose guard
-                    (future_df['dwt_nseq_up'] >= 10) &
-                    # (future_df['future_nseq_dn'] >= 4) &
+                    # (future_df['mfi'] > 60) & # loose guard
 
-                    (future_df['loss_min'] <= future_df['loss_threshold'])   # future loss exceeds threshold
+                    # up...
+                    (future_df['dwt_nseq_up'] >= 4) &
+                    (future_df['dwt_win_gain'] >= self.profit_threshold) &
+
+                    # then down...
+                    (future_df['future_nseq_dn'] >= 8) &
+                    # (future_df['future_win_gain'] <= self.loss_threshold) #&
+                    (future_df['future_gain'] <= self.loss_threshold) #&
+                    # (future_df['loss_min'] <= future_df['loss_threshold'])   # future loss exceeds threshold
             ), 1.0, 0.0)
 
         return series
@@ -174,7 +187,9 @@ class NNBC_nseq(NNBC):
         cond = np.where(
             (
                 # N down sequences
-                (dataframe['dwt_nseq_dn'] >= self.buy_nseq_dn.value)
+                (dataframe['dwt_nseq_dn'] >= self.buy_nseq_dn.value) #&
+                # loss above threshold
+                # (dataframe['dwt_win_gain'] <= self.loss_threshold)
             ), 1.0, 0.0)
         return cond
 
@@ -182,7 +197,9 @@ class NNBC_nseq(NNBC):
         cond = np.where(
             (
                 # N up sequences
-                ( dataframe['dwt_nseq_up'] >= self.sell_nseq_up.value)
+                (dataframe['dwt_nseq_up'] >= self.sell_nseq_up.value) #&
+                # profit above threshold
+                # (dataframe['dwt_win_gain'] >= self.profit_threshold)
             ), 1.0, 0.0)
         return cond
 

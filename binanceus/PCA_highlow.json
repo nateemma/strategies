@@ -7,32 +7,32 @@
     "stoploss": {
       "stoploss": -0.05
     },
-    "buy": {},
-    "sell": {
-      "csell_endtrend_respect_roi": true,
-      "csell_pullback": true,
-      "csell_pullback_amount": 0.014,
-      "csell_pullback_respect_roi": true,
-      "csell_roi_end": 0.003,
-      "csell_roi_start": 0.024,
-      "csell_roi_time": 975,
-      "csell_roi_type": "static",
-      "csell_trend_type": "none",
-      "cstop_bail_how": "any",
-      "cstop_bail_roc": -3.876,
-      "cstop_bail_time": 920,
-      "cstop_bail_time_trend": true,
-      "cstop_loss_threshold": -0.047,
-      "cstop_max_stoploss": -0.233
-    },
-    "protection": {},
     "trailing": {
       "trailing_stop": true,
       "trailing_stop_positive": 0.347,
       "trailing_stop_positive_offset": 0.349,
       "trailing_only_offset_is_reached": true
-    }
+    },
+    "buy": {},
+    "sell": {
+      "csell_endtrend_respect_roi": true,
+      "csell_pullback": false,
+      "csell_pullback_amount": 0.02,
+      "csell_pullback_respect_roi": true,
+      "csell_roi_end": 0.002,
+      "csell_roi_start": 0.026,
+      "csell_roi_time": 1431,
+      "csell_roi_type": "step",
+      "csell_trend_type": "ssl",
+      "cstop_bail_how": "time",
+      "cstop_bail_roc": -2.921,
+      "cstop_bail_time": 176,
+      "cstop_bail_time_trend": true,
+      "cstop_loss_threshold": -0.039,
+      "cstop_max_stoploss": -0.282
+    },
+    "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-11-22 18:38:06.752013+00:00"
+  "export_time": "2022-12-23 23:15:00.301364+00:00"
 }

@@ -118,10 +118,10 @@ class PCA_mfi(PCA):
         buys = np.where(
             (
                 # overbought condition
-                    (future_df['mfi'] <= 10) &
+                    (future_df['mfi'] <= 20) &
 
                     # future profit
-                    (future_df['future_gain'] > self.profit_threshold)
+                    (future_df['future_gain'] >= self.profit_threshold)
             ), 1.0, 0.0)
 
         return buys
@@ -130,10 +130,10 @@ class PCA_mfi(PCA):
         sells = np.where(
             (
                 # oversold condition
-                    (future_df['mfi'] >= 90) &
+                    (future_df['mfi'] >= 80) &
 
                     # future loss
-                    (future_df['future_gain'] < self.loss_threshold)
+                    (future_df['future_gain'] <= self.loss_threshold)
             ), 1.0, 0.0)
 
         return sells
