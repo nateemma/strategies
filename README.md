@@ -11,7 +11,8 @@ I am testing and modifying code in the following types of strategies:
 - Predict
 - Anomaly
 
-I am on a path to providing pre-trained models for these, but I'm not there yet...
+*NOTE*: I am currently re-factoring to move common code to separate files, isolate any potentially 
+forward-looking indicators, and to use pre-trained models
 
 ## Intro
 This folder contains the code for a variety of custom trading strategies for use with the [freqtrade](https://www.freqtrade.io/) framework.
