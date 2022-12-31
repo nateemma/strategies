@@ -296,7 +296,7 @@ class DWT_Leveraged2(IStrategy):
     Buy Signal
     """
 
-    def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
 
         short_conditions = []
         long_conditions = []
@@ -370,7 +370,7 @@ class DWT_Leveraged2(IStrategy):
     Sell Signal
     """
 
-    def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+    def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
 
         short_conditions = []
         long_conditions = []

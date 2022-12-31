@@ -34,7 +34,7 @@ class BTCEMABounce(IStrategy):
 
     You must keep:
     - the lib in the section "Do not remove these libs"
-    - the methods: populate_indicators, populate_buy_trend, populate_sell_trend
+    - the methods: populate_indicators, populate_entry_trend, populate_exit_trend
     You should keep:
     - timeframe, minimal_roi, stoploss, trailing_*
     """
@@ -382,7 +382,7 @@ class BTCEMABounce(IStrategy):
 
         return dataframe
 
-    def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         """
         Based on TA indicators, populates the buy signal for the given dataframe
         :param dataframe: DataFrame populated with indicators
@@ -416,7 +416,7 @@ class BTCEMABounce(IStrategy):
 
         return dataframe
 
-    def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+    def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         """
         Based on TA indicators, populates the sell signal for the given dataframe
         :param dataframe: DataFrame populated with indicators
