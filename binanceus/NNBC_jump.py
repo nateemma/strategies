@@ -52,6 +52,24 @@ NNBC_jump:
 
 
 class NNBC_jump(NNBC):
+
+
+    plot_config = {
+        'main_plot': {
+            'close': {'color': 'mediumseagreen'},
+        },
+        'subplots': {
+            "Diff": {
+                'dwt_delta_max': {'color': 'green'},
+                '%future_delta_max': {'color': 'blue'},
+                'dwt_delta_min': {'color': 'lightcoral'},
+                '%future_delta_min': {'color': 'lavender'},
+                '%train_buy': {'color': 'cadetblue'},
+                'predict_buy': {'color': 'salmon'},
+            },
+        }
+    }
+
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # Have to re-declare any globals that we need to modify
@@ -62,7 +80,7 @@ class NNBC_jump(NNBC):
     lookahead_hours = 1.0
     n_profit_stddevs = 1.0
     n_loss_stddevs = 1.0
-    min_f1_score = 0.5
+    min_f1_score = 0.4
 
     cherrypick_data = False
     preload_model = True # don't set to true if you are changing buy/sell conditions or tweaking models
@@ -80,6 +98,22 @@ class NNBC_jump(NNBC):
     # Strategy Specific Variable Storage
 
     ## Hyperopt Variables
+
+    plot_config = {
+        'main_plot': {
+            'close': {'color': 'mediumseagreen'},
+        },
+        'subplots': {
+            "Diff": {
+                'dwt_delta_max': {'color': 'green'},
+                '%future_delta_max': {'color': 'blue'},
+                'dwt_delta_min': {'color': 'lightcoral'},
+                '%future_delta_min': {'color': 'lavender'},
+                '%train_buy': {'color': 'cadetblue'},
+                'predict_buy': {'color': 'salmon'},
+            },
+        }
+    }
 
     # PCA hyperparams
 
@@ -118,51 +152,65 @@ class NNBC_jump(NNBC):
     def get_train_buy_signals(self, future_df: DataFrame):
         series = np.where(
             (
-                    # (future_df['mfi'] < 50) &  # loose guard
-                    # (future_df['dwt_trend'] < 0) & # previous downtrend
-                    # (future_df['dwt_win_gain'] <= self.loss_threshold) & # big drop
-                    #
-                    # (future_df['future_win_gain'] >= self.profit_threshold)  # big jump
+                    (future_df['mfi'] < 30) &  # loose guard
 
-                    # drop in previous window exceeded loss threshold
-                    (future_df['dwt_maxmin'] >= abs(future_df['loss_threshold'])) &
-                    # overall direction was down
-                    (future_df['dwt_nseq'] < 0) &
-                    # at min of previous window
-                    # (future_df['dwt_at_min'] > 0) &
-                    # at min of future window
-                    (future_df['dwt_smooth'] <= future_df['future_min'])
-        ), 1.0, 0.0)
+                    # drop from high of previous window exceeded loss threshold
+                    (future_df['dwt_delta_max'] > 0.0) &
+                    (future_df['dwt_delta_max'] >= abs(future_df['loss_threshold'])) &
 
-        return series
-
-    # this is a pretty generic sell condition. Can't be too picky
-    def get_train_sell_signals(self, future_df: DataFrame):
-        series = np.where(
-            (
-                    # (future_df['mfi'] > 50) &  # loose guard
-                    #
-                    # (future_df['future_trend'] < 0) & # future downtrend
-                    # (future_df['future_win_gain'] <= future_df['loss_threshold'])  # big drop
-
-                    # gain in previous window exceeded profit threshold
-                    (future_df['dwt_maxmin'] >= future_df['profit_threshold']) &
-                    # overall direction was up
-                    (future_df['dwt_nseq'] > 0) &
-                    # at max of previous window
-                    # (future_df['dwt_at_max'] > 0) &
-                    # at min of future window
-                    (future_df['dwt_smooth'] >= future_df['future_max'])  # at max of future window
+                    # upcoming window exceeds profit threshold
+                    (future_df['future_delta_max'] >= self.profit_threshold)
+                    # (future_df['future_delta_max'] >= 5.0)
 
             ), 1.0, 0.0)
 
         return series
+
+    def get_train_sell_signals(self, future_df: DataFrame):
+        series = np.where(
+            (
+                    (future_df['mfi'] > 70) &  # loose guard
+
+                    # gain in previous window exceeded profit threshold
+                    (future_df['dwt_delta_min'] < 0.0) &
+                    (abs(future_df['dwt_delta_min']) >= future_df['profit_threshold']) &
+
+                    # upcoming window exceeds loss threshold
+                    (future_df['future_delta_min'] <= self.loss_threshold)
+                    # (future_df['future_delta_min'] <= -4.0)
+            ), 1.0, 0.0)
+
+        return series
+
+
+    def get_strategy_buy_conditions(self, dataframe: DataFrame):
+        cond = np.where(
+            (
+                    # drop from high of previous window exceeded loss threshold
+                    (dataframe['dwt_delta_max'] > 0.0) &
+                    (dataframe['dwt_delta_max'] >= abs(self.loss_threshold))
+            ), 1.0, 0.0)
+        return cond
+
+    def get_strategy_sell_conditions(self, dataframe: DataFrame):
+        cond = np.where(
+            (
+                # gain in previous window exceeded profit threshold
+                    (dataframe['dwt_delta_min'] < 0.0) &
+                    (abs(dataframe['dwt_delta_min']) >= self.profit_threshold)
+            ), 1.0, 0.0)
+        return cond
 
 
     # save the indicators used here so that we can see them in plots (prefixed by '%')
     def save_debug_indicators(self, future_df: DataFrame):
         self.add_debug_indicator(future_df, 'future_min')
         self.add_debug_indicator(future_df, 'future_max')
+        self.add_debug_indicator(future_df, 'future_delta_min')
+        self.add_debug_indicator(future_df, 'future_delta_max')
+
+        self.add_debug_indicator(future_df, 'train_buy')
+        self.add_debug_indicator(future_df, 'train_sell')
 
         return
 

@@ -4,9 +4,20 @@
 # hyperopt loss function
 
 # Strategy list, and associated hyperopt spaces
-declare -A strat_list=( [PCA_nseq]="sell trailing" [PCA_profit]="sell trailing" \
-[PCA_swing]="sell trailing" [PCA_jump]="sell trailing" [PCA_highlow]="sell trailing" [PCA_minmax]="sell trailing" \
-[Predict_LSTM]="sell trailing" )
+declare -A strat_list=( \
+[PCA_dwt]="sell" \
+[PCA_fbb]="sell" \
+[PCA_highlow]="sell" \
+[PCA_jump]="sell" \
+[PCA_macd]="sell" \
+[PCA_mfi]="sell" \
+[PCA_minmax]="sell" \
+[PCA_nseq]="buy sell" \
+[PCA_over]="sell" \
+[PCA_profit]="sell" \
+[PCA_stochastic]="sell" \
+[PCA_swing]="sell" \
+)
 
 # default values
 epochs=500
@@ -17,8 +28,9 @@ today=$(date +"%Y%m%d")
 timerange="${start_date}-${today}"
 download=0
 jobs=0
-#lossf="WeightedProfitHyperOptLoss"
-lossf="SharpeHyperOptLoss"
+lossf="WeightedProfitHyperOptLoss"
+#lossf="SharpeHyperOptLoss"
+random_state=$RANDOM
 
 # get the number of cores
 num_cores=`sysctl -n hw.ncpu`
@@ -172,6 +184,9 @@ fi
 
 
 hargs=" -c ${config_file} ${jarg} --strategy-path ${exchange_dir} --timerange=${timerange} --hyperopt-loss ${lossf}"
+
+# add a random state so that each strat starts in the same place
+hargs="${hargs} --random-state ${random_state}"
 
 for strat space in ${(kv)strat_list}; do
   add_line ""

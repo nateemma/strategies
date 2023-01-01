@@ -1,5 +1,20 @@
 # Phil's Custom freqtrade Crypto Trading Strategies
+## Current Status
+I've been getting some questions on the various strategies here, so I thought I'd better clarify 
+what I am currently working on...
 
+Right now, I am only active in the 'binanceus' directory (user_data/strategies/binanceus). 
+I am testing and modifying code in the following types of strategies:
+
+- PCA
+- NNBC
+- Predict
+- Anomaly
+
+*NOTE*: I am currently re-factoring to move common code to separate files, isolate any potentially 
+forward-looking indicators, and to use pre-trained models
+
+## Intro
 This folder contains the code for a variety of custom trading strategies for use with the [freqtrade](https://www.freqtrade.io/) framework.
 
 Please read through the instructions at https://www.freqtrade.io before attempting to use this software.
@@ -8,23 +23,40 @@ Note: I have tried many different strategies, most of which perform quite badly 
 The abandoned strategies are in the _archived/_ folder<br> for reference (I sometimes cut & paste pieces of them into 
 new strategies).
 
-I currently focus on strategies that revolve around one of 2 approaches:
+I currently focus on strategies that revolve around one of several approaches:
 
 1. creating a model of the expected behaviour and comparing it to 
 the actual behaviour. If the model projects a higher price (above a certain margin) then buy, similarly sell if the 
 model predicts a lower price. There are variants that use Discrete Wavelet Transforms (DWT), Fast Fourier 
 Transforms (FFTs) and Kalman filters. The DWT variants seem to perform the best (and are the fastest).
 2. Use Principal Component Analysis (PCA) to reduce the dimensions of the dataframe columns, then use that to train 
-classifiers, which are then used to predict buys and sells. The PCA analysis because you just add indicators and let the 
-PCA reduction figure out which of them are actually important.
-Note that this is quite similar in approach to freqAI, but I started it before I knew about that, so just kept going 
-(because I find it interesting).<br>
+classifiers, which are then used to predict buys and sells. The PCA analysis is pretty cool because you just add 
+indicators and let the PCA reduction figure out which of them are actually important.<br>
+Note that this is quite similar in approach to [freqAI](https://www.freqtrade.io/en/stable/freqai/), 
+but I started it before I knew about that, so just kept going (because I find it interesting).<br>
 All of the PCA logic is contained in a base class named PCA. There are several variants (prefixed with PCA_) that try 
 out different approaches to identify buy/sell signals that are used for training the classifiers.
+3. Use Neural Networks to create binary classifiers that return a buy/sell prediction.<br>
+Logic is very similar to the PCA classes, and the base class is NNBC (Neural Network Binary Classifier). 
+The internals are a little more complex because the Neural Network code works with 'tensors' rather than dataframes.
+Currently, performance is not great, mostly because there are not enough buy/sell events to train the models properly. 
+At some point I will train them on longer timeperiods and then save/load the resulting models (I'm working on this)
+4. Neural Network prediction models (Predict_*.py)<br>
+Similar to NNBC, but predicts an actual price, rather than a buy/sell recommendation. Same issues as NNBC
+5. Anomaly Detection (Anomaly.py)<br>
+The main issue with using neural networks is that there are not many buy/sell recommendations relative to the number
+of samples (typically about 1%). This approach uses various anomaly detection algorithms by training them on historical 
+data, which will mostly model the normal cases (no buy or sell). Then we run it against actual data and anything identified
+as an 'anomaly' should be a buy or sell.<br>
+I also combine this with various compression techniques, such as PCA, to make the anomaly detection algorithms more 
+efficient. As an aside, I should also try this with the other neural network approaches.
 
 All of these strategies use the custom sell/stoploss  approach from the Solipsis strategy (by werkrew). 
 This makes a huge difference in performance, but the downside is that each strategy requires a lot of hyperopt-ing 
-to get decent performance
+to get decent performance. Also, I am suspicious that the custom stoploss code is over-fitting, because it has such a 
+drastic effect on performance and because it doesn't seem to work the same way in dry runs.<br>
+I am currently trying to find a simpler custom stoploss approach that transfers better to a live environment 
+(look in Anomaly.py)
 
 
 
@@ -62,6 +94,10 @@ The following is a list of my custom strategies that I am currently testing.
 | Kalman     | Model behaviour using a Kalman Filter (from pykalman)                                                                                                                   |
 | KalmanSIMD | Model behaviour using a Kalman Filter (from simdkalman)                                                                                                                 |
 | PCA_*      | Uses Principal Component Analysis (PCA) and classifiers trained on prior data to predict buy/sells. Each PCA_* variant uses a different approach to predict buys/sells. |
+| NNBC_*     | Neural Network Binary Classifiers - approaches to predict buy/sell events |                                                                                              |
+| Predict_*  | Uses neural network approaches to predict price changes |
+| Anomaly* | USe anomaly detection algorithms to identify buys/sells. Anomaly.py is the main logic, Anomaly_*.py contain the algorithms |
+
 
 
 Please note that you will need both the _.py_ *and* the _.json_ file.
@@ -118,7 +154,7 @@ To help with this, I added a bunch of shell scripts in the _user_data/strategies
 Specify the -h option for help.
 
 Please note that all of the _test__\*.sh and _hyp__\*.sh scripts all expect there to be a config file in the exchange directory that is named in the form:  
-_config\_<exchange>.json_ (e.g. _config_binanceus.json_)
+_config\_\<exchange\>.json_ (e.g. _config_binanceus.json_)
 <br>
 The _run_strat.sh_.sh and _dryrun_strat.sh_ scripts expect a 'real' config file that should specify volume filters etc.
 

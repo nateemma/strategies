@@ -6,6 +6,7 @@ from enum import Enum
 import pywt
 import talib.abstract as ta
 from scipy.ndimage import gaussian_filter1d
+from xgboost import XGBClassifier
 
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 import arrow
@@ -17,7 +18,7 @@ from freqtrade.strategy import (IStrategy, merge_informative_pair, stoploss_from
 from typing import Dict, List, Optional, Tuple, Union
 from pandas import DataFrame, Series
 from functools import reduce
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from freqtrade.persistence import Trade
 
 # Get rid of pandas warnings during backtesting
@@ -45,7 +46,7 @@ from finta import TA as fta
 from sklearn.model_selection import RandomizedSearchCV, train_test_split
 from sklearn.metrics import classification_report
 from sklearn.metrics import ConfusionMatrixDisplay
-from sklearn.preprocessing import StandardScaler, RobustScaler
+from sklearn.preprocessing import StandardScaler, RobustScaler, MinMaxScaler
 import sklearn.decomposition as skd
 from sklearn.svm import SVC, SVR
 from sklearn.utils.fixes import loguniform
@@ -54,7 +55,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier, VotingClassifier
 from sklearn.naive_bayes import GaussianNB, MultinomialNB
-from sklearn.neural_network import MLPClassifier
+from sklearn.neural_network import MLPClassifier, BernoulliRBM
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression, SGDClassifier
 from sklearn.svm import LinearSVC
@@ -76,6 +77,13 @@ from sklearn.model_selection import cross_validate
 import random
 
 from prettytable import PrettyTable
+
+from AutoEncoder import AutoEncoder
+from CompressionAutoEncoder import CompressionAutoEncoder
+from RBMEncoder import RBMEncoder
+
+from LSTMAutoEncoder import LSTMAutoEncoder
+from LSTM2AutoEncoder import LSTM2AutoEncoder
 
 """
 ####################################################################################
@@ -100,12 +108,13 @@ PCA - uses Principal Component Analysis to try and reduce the total set of indic
 ####################################################################################
 """
 
+
 class PCA(IStrategy):
     # Do *not* hyperopt for the roi and stoploss spaces (unless you turn off custom stoploss)
 
     # ROI table:
     minimal_roi = {
-        "0": 0.1
+        "0": 0.05
     }
 
     # Stoploss:
@@ -131,7 +140,6 @@ class PCA(IStrategy):
     # Required
     startup_candle_count: int = 128  # must be power of 2
     process_only_new_candles = False
-
 
     # Strategy-specific global vars
 
@@ -162,10 +170,9 @@ class PCA(IStrategy):
     loss_threshold = default_loss_threshold
     dynamic_gain_thresholds = True  # dynamically adjust gain thresholds based on actual mean (beware, training data could be bad)
 
-
     num_pairs = 0
     pair_model_info = {}  # holds model-related info for each pair
-    classifier_stats = {} # holds statistics for each type of classifier (useful to rank classifiers
+    classifier_stats = {}  # holds statistics for each type of classifier (useful to rank classifiers
 
     # debug flags
     first_time = True  # mostly for debug
@@ -236,8 +243,8 @@ class PCA(IStrategy):
 
         series = np.where(
             (
-                    (future_df['mfi'] >= 80) & # classic oversold threshold
-                    (future_df['dwt'] <= future_df['future_min']) # at min of future window
+                    (future_df['mfi'] >= 80) &  # classic oversold threshold
+                    (future_df['dwt'] <= future_df['future_min'])  # at min of future window
             ), 1.0, 0.0)
 
         return series
@@ -254,8 +261,16 @@ class PCA(IStrategy):
 
         return series
 
-    ################################
 
+    # override the following to add strategy-specific criteria to the (main) buy/sell conditions
+
+    def get_strategy_buy_conditions(self, dataframe: DataFrame):
+        return None
+
+    def get_strategy_sell_conditions(self, dataframe: DataFrame):
+        return None
+
+    ################################
 
     """
     inf Pair Definitions
@@ -284,7 +299,6 @@ class PCA(IStrategy):
         curr_pair = metadata['pair']
         self.curr_pair = curr_pair
 
-
         self.set_state(curr_pair, self.State.POPULATE)
         self.curr_lookahead = int(12 * self.lookahead_hours)
         self.dbg_curr_df = dataframe
@@ -306,7 +320,6 @@ class PCA(IStrategy):
 
         print("")
         print(curr_pair)
-
 
         # if first time through for this pair, add entry to pair_model_info
         if not (curr_pair in self.pair_model_info):
@@ -358,6 +371,42 @@ class PCA(IStrategy):
         return dataframe
 
     ###################################
+
+    # add indicators used by stoploss/custom sell logic
+    def add_stoploss_indicators(self, dataframe, pair) -> DataFrame:
+        if not pair in self.custom_trade_info:
+            self.custom_trade_info[pair] = {}
+            if not 'had_trend' in self.custom_trade_info[pair]:
+                self.custom_trade_info[pair]['had_trend'] = False
+
+        # RMI: https://www.tradingview.com/script/kwIt9OgQ-Relative-Momentum-Index/
+        dataframe['rmi'] = cta.RMI(dataframe, length=24, mom=5)
+
+        # MA Streak: https://www.tradingview.com/script/Yq1z7cIv-MA-Streak-Can-Show-When-a-Run-Is-Getting-Long-in-the-Tooth/
+        dataframe['mastreak'] = cta.mastreak(dataframe, period=4)
+
+        # Trends
+        dataframe['candle_up'] = np.where(dataframe['close'] >= dataframe['close'].shift(), 1.0, -1.0)
+        dataframe['candle_up_trend'] = np.where(dataframe['candle_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
+        dataframe['candle_up_seq'] = dataframe['candle_up'].rolling(5).sum()
+
+        dataframe['candle_dn'] = np.where(dataframe['close'] < dataframe['close'].shift(), 1.0, -1.0)
+        dataframe['candle_dn_trend'] = np.where(dataframe['candle_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
+        dataframe['candle_dn_seq'] = dataframe['candle_up'].rolling(5).sum()
+
+        dataframe['rmi_up'] = np.where(dataframe['rmi'] >= dataframe['rmi'].shift(), 1.0, -1.0)
+        dataframe['rmi_up_trend'] = np.where(dataframe['rmi_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
+
+        dataframe['rmi_dn'] = np.where(dataframe['rmi'] <= dataframe['rmi'].shift(), 1.0, -1.0)
+        dataframe['rmi_dn_count'] = dataframe['rmi_dn'].rolling(8).sum()
+
+        # Indicators used only for ROI and Custom Stoploss
+        ssldown, sslup = cta.SSLChannels_ATR(dataframe, length=21)
+        dataframe['sroc'] = cta.SROC(dataframe, roclen=21, emalen=13, smooth=21)
+        dataframe['ssl_dir'] = 0
+        dataframe['ssl_dir'] = np.where(sslup > ssldown, 1.0, -1.0)
+
+        return dataframe
 
     # populate dataframe with desired technical indicators
     # NOTE: OK to throw (almost) anything in here, just add it to the parameter list
@@ -426,33 +475,6 @@ class PCA(IStrategy):
         # RSI
         # dataframe['rsi'] = ta.RSI(dataframe, timeperiod=win_size)
         dataframe['rsi_14'] = ta.RSI(dataframe, timeperiod=14)
-
-        # RMI: https://www.tradingview.com/script/kwIt9OgQ-Relative-Momentum-Index/
-        dataframe['rmi'] = cta.RMI(dataframe, length=24, mom=5)
-
-        # MA Streak: https://www.tradingview.com/script/Yq1z7cIv-MA-Streak-Can-Show-When-a-Run-Is-Getting-Long-in-the-Tooth/
-        dataframe['mastreak'] = cta.mastreak(dataframe, period=4)
-
-        # Trends
-        dataframe['candle_up'] = np.where(dataframe['close'] >= dataframe['close'].shift(), 1.0, -1.0)
-        dataframe['candle_up_trend'] = np.where(dataframe['candle_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
-        dataframe['candle_up_seq'] = dataframe['candle_up'].rolling(5).sum()
-
-        dataframe['candle_dn'] = np.where(dataframe['close'] < dataframe['close'].shift(), 1.0, -1.0)
-        dataframe['candle_dn_trend'] = np.where(dataframe['candle_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
-        dataframe['candle_dn_seq'] = dataframe['candle_up'].rolling(5).sum()
-
-        dataframe['rmi_up'] = np.where(dataframe['rmi'] >= dataframe['rmi'].shift(), 1.0, -1.0)
-        dataframe['rmi_up_trend'] = np.where(dataframe['rmi_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
-
-        dataframe['rmi_dn'] = np.where(dataframe['rmi'] <= dataframe['rmi'].shift(), 1.0, -1.0)
-        dataframe['rmi_dn_count'] = dataframe['rmi_dn'].rolling(8).sum()
-
-        # Indicators used only for ROI and Custom Stoploss
-        ssldown, sslup = cta.SSLChannels_ATR(dataframe, length=21)
-        dataframe['sroc'] = cta.SROC(dataframe, roclen=21, emalen=13, smooth=21)
-        dataframe['ssl_dir'] = 0
-        dataframe['ssl_dir'] = np.where(sslup > ssldown, 1.0, -1.0)
 
         # # EMAs
         # dataframe['ema_12'] = ta.EMA(dataframe, timeperiod=12)
@@ -552,47 +574,26 @@ class PCA(IStrategy):
         dataframe['moist'] = np.where(qtpylib.crossed_above(dataframe['macd'], dataframe['macdsignal']), 1.0, -1.0)
         dataframe['throbbing'] = np.where(dataframe['roc_6'] > dataframe['roc_6'].rolling(12).mean(), 1.0, -1.0)
 
-        # ## sqzmi to detect quiet periods
-        # dataframe['sqzmi'] = np.where(fta.SQZMI(dataframe), 1.0, -1.0)
-        # dataframe['sqz_on'] = np.where(
-        #     (
-        #         (dataframe["kc_upper"] > dataframe['bb_upperband']) &
-        #         (dataframe["kc_lower"] < dataframe['bb_lowerband'])
-        #     ), 1.0, -1.0
-        # )
-        # dataframe['sqz_off'] = np.where(
-        #     (
-        #         (dataframe["kc_upper"] < dataframe['bb_upperband']) &
-        #         (dataframe["kc_lower"] > dataframe['bb_lowerband'])
-        #     ), 1.0, -1.0
-        # )
-        # dataframe['sqz_none'] = np.where(
-        #     (
-        #         (dataframe['sqz_on'] < 0) &
-        #         (dataframe["sqz_off"] < 0)
-        #     ), 1.0, -1.0
-        # )
-
         # MFI
         dataframe['mfi'] = ta.MFI(dataframe)
         # dataframe['mfi_norm'] = self.norm_column(dataframe['mfi'])
         # dataframe['mfi_entry'] = np.where((dataframe['mfi_norm'] > 0.5), 1.0, 0.0)
         # dataframe['mfi_exit'] = np.where((dataframe['mfi_norm'] <= -0.5), 1.0, 0.0)
-        # dataframe['mfi_signal'] = dataframe['mfi_entry'] - dataframe['mfi_exit']
+        # dataframe['mfi_signal'] = dataframe['mfi_buy'] - dataframe['mfi_sell']
 
         # Volume Flow Indicator (MFI) for volume based on the direction of price movement
         # dataframe['vfi'] = fta.VFI(dataframe, period=14)
         # dataframe['vfi_norm'] = self.norm_column(dataframe['vfi'])
         # dataframe['vfi_entry'] = np.where((dataframe['vfi_norm'] > 0.5), 1.0, 0.0)
         # dataframe['vfi_exit'] = np.where((dataframe['vfi_norm'] <= -0.5), 1.0, 0.0)
-        # dataframe['vfi_signal'] = dataframe['vfi_entry'] - dataframe['vfi_exit']
+        # dataframe['vfi_signal'] = dataframe['vfi_buy'] - dataframe['vfi_sell']
 
         # ATR
         dataframe['atr'] = ta.ATR(dataframe, timeperiod=win_size)
         # dataframe['atr_norm'] = self.norm_column(dataframe['atr'])
         # dataframe['atr_entry'] = np.where((dataframe['atr_norm'] > 0.5), 1.0, 0.0)
         # dataframe['atr_exit'] = np.where((dataframe['atr_norm'] <= -0.5), 1.0, 0.0)
-        # dataframe['atr_signal'] = dataframe['atr_entry'] - dataframe['atr_exit']
+        # dataframe['atr_signal'] = dataframe['atr_buy'] - dataframe['atr_sell']
 
         # Hilbert Transform Indicator - SineWave
         hilbert = ta.HT_SINE(dataframe)
@@ -621,7 +622,7 @@ class PCA(IStrategy):
 
         # DWT model
         # if in backtest or hyperopt, then we have to do rolling calculations
-        if self.dp.runmode.value in ('hyperopt', 'backtest'):
+        if self.dp.runmode.value in ('hyperopt', 'backtest', 'plot'):
             dataframe['dwt'] = dataframe['close'].rolling(window=self.dwt_window).apply(self.roll_get_dwt)
             dataframe['smooth'] = dataframe['close'].rolling(window=self.dwt_window).apply(self.roll_smooth)
             dataframe['dwt_smooth'] = dataframe['dwt'].rolling(window=self.dwt_window).apply(self.roll_smooth)
@@ -632,25 +633,50 @@ class PCA(IStrategy):
 
         # smoothed version - useful for trends
         # dataframe['dwt_smooth'] = gaussian_filter1d(dataframe['dwt'], 8)
+        # dataframe['mid'] = abs((dataframe['close'] - dataframe['open']) / 2.0)
+
+        dataframe['dwt_gain'] = 100.0 * (dataframe['dwt'] - dataframe['dwt'].shift()) / dataframe['dwt'].shift()
+        dataframe['dwt_profit'] = dataframe['dwt_gain'].clip(lower=0.0)
+        dataframe['dwt_loss'] = dataframe['dwt_gain'].clip(upper=0.0)
+
+        # Sequences of consecutive up/downs
+        dataframe['dwt_dir'] = 0.0
+        dataframe['dwt_dir'] = np.where(dataframe['dwt_smooth'].diff() > 0, 1.0, -1.0)
+
+        dataframe['dwt_dir_up'] = dataframe['dwt_dir'].clip(lower=0.0)
+        dataframe['dwt_nseq_up'] = dataframe['dwt_dir_up'] * (dataframe['dwt_dir_up'].groupby(
+            (dataframe['dwt_dir_up'] != dataframe['dwt_dir_up'].shift()).cumsum()).cumcount() + 1)
+        dataframe['dwt_nseq_up'] = dataframe['dwt_nseq_up'].clip(lower=0.0, upper=20.0) # removes startup artifacts
+
+        dataframe['dwt_dir_dn'] = abs(dataframe['dwt_dir'].clip(upper=0.0))
+        dataframe['dwt_nseq_dn'] = dataframe['dwt_dir_dn'] * (dataframe['dwt_dir_dn'].groupby(
+            (dataframe['dwt_dir_dn'] != dataframe['dwt_dir_dn'].shift()).cumsum()).cumcount() + 1)
+        dataframe['dwt_nseq_dn'] = dataframe['dwt_nseq_dn'].clip(lower=0.0, upper=20.0)
+
+
+        # TODO: remove/fix any columns that contain 'inf'
+        self.check_inf(dataframe)
+
+        # TODO: fix NaNs
+        dataframe.fillna(0.0, inplace=True)
+
+        return dataframe
+
+    # 'hidden' indicators. These are ostensibly backward looking, but may inadvertently use means etc.
+    def add_hidden_indicators(self, dataframe: DataFrame) -> DataFrame:
+
+        win_size = max(self.curr_lookahead, 14)
 
         dataframe['dwt_deriv'] = np.gradient(dataframe['dwt_smooth'])
+        # dataframe['dwt_deriv'] = np.gradient(dataframe['dwt'])
         dataframe['dwt_top'] = np.where(qtpylib.crossed_below(dataframe['dwt_deriv'], 0.0), 1, 0)
         dataframe['dwt_bottom'] = np.where(qtpylib.crossed_above(dataframe['dwt_deriv'], 0.0), 1, 0)
 
         dataframe['dwt_diff'] = 100.0 * (dataframe['dwt'] - dataframe['close']) / dataframe['close']
         dataframe['dwt_smooth_diff'] = 100.0 * (dataframe['dwt'] - dataframe['dwt_smooth']) / dataframe['dwt_smooth']
 
-        # up/down direction
-        dataframe['dwt_dir'] = 0.0
-        # dataframe['dwt_dir'] = np.where(dataframe['dwt'].diff() >= 0, 1.0, -1.0)
-        dataframe['dwt_dir'] = np.where(dataframe['dwt_smooth'].diff() >= 0, 1.0, -1.0)
+        dataframe['dwt_trend'] = np.where(dataframe['dwt_dir'].rolling(5).sum() > 3.0, 1.0, -1.0)
 
-        dataframe['dwt_trend'] = np.where(dataframe['dwt_dir'].rolling(5).sum() > 0.0, 1.0, -1.0)
-
-        dataframe['dwt_gain'] = 100.0 * (dataframe['dwt'] - dataframe['dwt'].shift()) / dataframe['dwt'].shift()
-
-        dataframe['dwt_profit'] = dataframe['dwt_gain'].clip(lower=0.0)
-        dataframe['dwt_loss'] = dataframe['dwt_gain'].clip(upper=0.0)
 
         # get rolling mean & stddev so that we have a localised estimate of (recent) activity
         dataframe['dwt_mean'] = dataframe['dwt'].rolling(win_size).mean()
@@ -678,26 +704,23 @@ class PCA(IStrategy):
         dataframe['dwt_nseq_entry'] = np.where(dataframe['dwt_nseq_dn'] < dataframe['dwt_nseq_dn_thresh'], 1.0, 0.0)
 
         # Recent min/max
-        dataframe['dwt_recent_min'] = dataframe['dwt_smooth'].rolling(window=win_size).min()
-        dataframe['dwt_recent_max'] = dataframe['dwt_smooth'].rolling(window=win_size).max()
+        dataframe['dwt_recent_min'] = dataframe['dwt'].rolling(window=win_size).min()
+        dataframe['dwt_recent_max'] = dataframe['dwt'].rolling(window=win_size).max()
         dataframe['dwt_maxmin'] = 100.0 * (dataframe['dwt_recent_max'] - dataframe['dwt_recent_min']) / \
                                   dataframe['dwt_recent_max']
-
+        dataframe['dwt_delta_min'] = 100.0 * (dataframe['dwt_recent_min'] - dataframe['close']) / \
+                                  dataframe['close']
+        dataframe['dwt_delta_max'] = 100.0 * (dataframe['dwt_recent_max'] - dataframe['close']) / \
+                                  dataframe['close']
         # longer term high/low
         dataframe['dwt_low'] = dataframe['dwt_smooth'].rolling(window=self.startup_candle_count).min()
         dataframe['dwt_high'] = dataframe['dwt_smooth'].rolling(window=self.startup_candle_count).max()
 
         # # these are (primarily) clues for the ML algorithm:
-        dataframe['dwt_at_min'] = np.where(dataframe['dwt_smooth'] <= dataframe['dwt_recent_min'], 1.0, 0.0)
-        dataframe['dwt_at_max'] = np.where(dataframe['dwt_smooth'] >= dataframe['dwt_recent_max'], 1.0, 0.0)
+        # dataframe['dwt_at_min'] = np.where(dataframe['dwt_smooth'] <= dataframe['dwt_recent_min'], 1.0, 0.0)
+        # dataframe['dwt_at_max'] = np.where(dataframe['dwt_smooth'] >= dataframe['dwt_recent_max'], 1.0, 0.0)
         dataframe['dwt_at_low'] = np.where(dataframe['dwt_smooth'] <= dataframe['dwt_low'], 1.0, 0.0)
         dataframe['dwt_at_high'] = np.where(dataframe['dwt_smooth'] >= dataframe['dwt_high'], 1.0, 0.0)
-
-        # TODO: remove/fix any columns that contain 'inf'
-        self.check_inf(dataframe)
-
-        # TODO: fix NaNs
-        dataframe.fillna(0.0, inplace=True)
 
         return dataframe
 
@@ -710,6 +733,7 @@ class PCA(IStrategy):
         win_size = max(lookahead, 14)
 
         # make a copy of the dataframe so that we do not put any forward looking data into the main dataframe
+        # Also, use a different name to avoid cut & paste errors
         future_df = dataframe.copy()
 
         # we can either use the actual closing price, or the DWT model (smoother)
@@ -777,7 +801,7 @@ class PCA(IStrategy):
         # build forward-looking sum of up/down trends
         future_win = pd.api.indexers.FixedForwardWindowIndexer(window_size=int(win_size))  # don't use a big window
 
-        future_df['future_nseq'] = future_df['curr_trend'].rolling(window=future_win, min_periods=1).sum()
+        # future_df['future_nseq'] = future_df['curr_trend'].rolling(window=future_win, min_periods=1).sum()
 
         # future_df['future_nseq_up'] = 0.0
         # future_df['future_nseq_up'] = np.where(
@@ -785,7 +809,8 @@ class PCA(IStrategy):
         #     future_df.groupby(future_df["dwt_dir_up"].ne(future_df["dwt_dir_up"].shift(1)).cumsum()).cumcount() + 1,
         #     0.0
         # )
-        future_df['future_nseq_up'] = future_df['future_nseq'].clip(lower=0.0)
+        # future_df['future_nseq_up'] = future_df['future_nseq'].clip(lower=0.0)
+        future_df['future_nseq_up'] = future_df['dwt_nseq_up'].shift(-win_size)
 
         future_df['future_nseq_up_mean'] = future_df['future_nseq_up'].rolling(window=future_win).mean()
         future_df['future_nseq_up_std'] = future_df['future_nseq_up'].rolling(window=future_win).std()
@@ -798,7 +823,8 @@ class PCA(IStrategy):
         #     0.0
         # )
         # print(future_df['future_nseq_dn'])
-        future_df['future_nseq_dn'] = future_df['future_nseq'].clip(upper=0.0)
+        # future_df['future_nseq_dn'] = future_df['future_nseq'].clip(upper=0.0)
+        future_df['future_nseq_dn'] = future_df['dwt_nseq_dn'].shift(-win_size)
 
         future_df['future_nseq_dn_mean'] = future_df['future_nseq_dn'].rolling(future_win).mean()
         future_df['future_nseq_dn_std'] = future_df['future_nseq_dn'].rolling(future_win).std()
@@ -808,8 +834,17 @@ class PCA(IStrategy):
         # Recent min/max
         # future_df['future_min'] = future_df[price_col].rolling(window=future_win).min()
         # future_df['future_max'] = future_df[price_col].rolling(window=future_win).max()
-        future_df['future_min'] = future_df['dwt_smooth'].rolling(window=future_win).min()
-        future_df['future_max'] = future_df['dwt_smooth'].rolling(window=future_win).max()
+        future_df['future_min'] = future_df['dwt'].rolling(window=future_win).min()
+        future_df['future_max'] = future_df['dwt'].rolling(window=future_win).max()
+
+        future_df['future_maxmin'] = 100.0 * (future_df['future_max'] - future_df['future_min']) / \
+                                  future_df['future_max']
+        future_df['future_delta_min'] = 100.0 * (future_df['future_min'] - future_df['close']) / \
+                                  future_df['close']
+        future_df['future_delta_max'] = 100.0 * (future_df['future_max'] - future_df['close']) / \
+                                  future_df['close']
+
+        future_df['future_maxmin'] = future_df['future_maxmin'].clip(lower=0.0, upper=10.0)
 
         # get average gain & stddev
         profit_mean = future_df['future_profit'].mean()
@@ -820,12 +855,14 @@ class PCA(IStrategy):
         # update thresholds
         if self.profit_threshold != profit_mean:
             newval = profit_mean + self.n_profit_stddevs * profit_std
-            print("    Profit threshold {:.4f} -> {:.4f}".format(self.profit_threshold, newval))
+            if self.dbg_verbose:
+                print("    Profit threshold {:.4f} -> {:.4f}".format(self.profit_threshold, newval))
             self.profit_threshold = newval
 
         if self.loss_threshold != loss_mean:
             newval = loss_mean - self.n_loss_stddevs * abs(loss_std)
-            print("    Loss threshold {:.4f} -> {:.4f}".format(self.loss_threshold, newval))
+            if self.dbg_verbose:
+                print("    Loss threshold {:.4f} -> {:.4f}".format(self.loss_threshold, newval))
             self.loss_threshold = newval
 
         return future_df
@@ -835,7 +872,8 @@ class PCA(IStrategy):
     # creates the entry/exit labels absed on looking ahead into the supplied dataframe
     def create_training_data(self, dataframe: DataFrame):
 
-        future_df = self.add_future_data(dataframe.copy())
+        future_df = self.add_hidden_indicators(dataframe.copy())
+        future_df = self.add_future_data(future_df)
 
         future_df['train_entry'] = 0.0
         future_df['train_exit'] = 0.0
@@ -932,7 +970,7 @@ class PCA(IStrategy):
             return model[length - 1]
         else:
             # cannot calculate DWT (e.g. at startup), just return original value
-            return col[len(col)-1]
+            return col[len(col) - 1]
 
     def dwtModel(self, data):
 
@@ -970,14 +1008,19 @@ class PCA(IStrategy):
         """ Mean absolute deviation of a signal """
         return np.mean(np.absolute(d - np.mean(d, axis)), axis)
 
-    # add indicators used by stoploss/custom exit logic
+    # add indicators used by stoploss/custom sell logic
     def add_stoploss_indicators(self, dataframe, pair) -> DataFrame:
         if not pair in self.custom_trade_info:
             self.custom_trade_info[pair] = {}
             if not 'had_trend' in self.custom_trade_info[pair]:
                 self.custom_trade_info[pair]['had_trend'] = False
 
-        return dataframe
+    # get a scaler for scaling/normalising the data (in a func because I change it routinely)
+    def get_scaler(self):
+        # uncomment the one yu want
+        # return StandardScaler()
+        # return RobustScaler()
+        return MinMaxScaler()
 
     def norm_column(self, col):
         return self.zscore_column(col)
@@ -1024,16 +1067,30 @@ class PCA(IStrategy):
     def norm_dataframe(self, dataframe: DataFrame) -> DataFrame:
         self.check_inf(dataframe)
 
-        temp = dataframe.copy()
-        if 'date' in temp.columns:
-            temp['date'] = pd.to_datetime(temp['date']).astype('int64')
+        df = dataframe.copy()
+        if 'date' in df.columns:
+            dates = pd.to_datetime(df['date'], utc=True)
+            # dates = pd.to_datetime(df['date'])
+            start_date = datetime(2020, 1, 1).astimezone(timezone.utc)
+            df['date'] = dates.astype('int64')
+            df['days_from_start'] = (dates - start_date).dt.days
+            df['day_of_week'] = dates.dt.dayofweek
+            df['day_of_month'] = dates.dt.day
+            df['week_of_year'] = dates.dt.isocalendar().week
+            df['month'] = dates.dt.month
+            # df['year'] = dates.dt.year
 
-        temp = self.remove_debug_columns(temp)
+        df = self.remove_debug_columns(df)
 
-        temp.set_index('date')
-        temp.reindex()
+        df.set_index('date')
+        df.reindex()
 
-        return self.zscore_dataframe(temp).fillna(0.0)
+        cols = df.columns
+        self.scaler = self.get_scaler()
+
+        df = pd.DataFrame(self.scaler.fit_transform(df), columns=cols)
+
+        return df
 
     # Normalise a dataframe using Z-Score normalisation (mean=0, stddev=1)
     def zscore_dataframe(self, dataframe: DataFrame) -> DataFrame:
@@ -1088,7 +1145,6 @@ class PCA(IStrategy):
             b = entries
             s = exits
         return df2, b, s
-
 
     # build a 'viable' dataframe sample set. Needed because the positive labels are sparse
     def build_viable_dataset(self, size: int, df_norm: DataFrame, entries, exits):
@@ -1242,7 +1298,8 @@ class PCA(IStrategy):
             print("     entries:", entries.shape, ' -> train:', train_entries.shape, " + test:", test_entries.shape)
             print("     exits:", exits.shape, ' -> train:', train_exits.shape, " + test:", test_exits.shape)
 
-        print("    #training samples:", len(df_train), " #entries:", int(train_entries.sum()), ' #exits:', int(train_exits.sum()))
+        print("    #training samples:", len(df_train), " #entries:", int(train_entries.sum()), ' #exit:', 
+              int(train_exits.sum()))
 
         #TODO: if low number of entries/exits, try k-fold sampling
 
@@ -1315,6 +1372,8 @@ class PCA(IStrategy):
                 print(classification_report(test_exit_labels, pred_exits))
                 print("")
 
+    autoencoder = None
+
     # get the PCA model for the supplied dataframe (dataframe must be normalised)
     def get_pca(self, df_norm: DataFrame):
 
@@ -1365,7 +1424,7 @@ class PCA(IStrategy):
             # if necessary, re-calculate pca with reduced column set
             if (ncols != df_norm.shape[1]):
                 # pca = skd.PCA(n_components=ncols, svd_solver="randomized", whiten=True).fit(df_norm)
-                pca = pca = skd.KernelPCA(n_components=ncols, remove_zero_eig=True).fit(df_norm)
+                pca = skd.KernelPCA(n_components=ncols, remove_zero_eig=True).fit(df_norm)
 
         elif pca_type == 2:
             print("    Using FactorAnalysis...")
@@ -1399,8 +1458,22 @@ class PCA(IStrategy):
         elif pca_type == 3:
             # fast, but not as accurate
             print("    Using Locally Linear Embedding...")
+            pca = LocallyLinearEmbedding(n_components=4, eigen_solver='dense', method="modified").fit(df_norm)
+
+        elif pca_type == 4:
+            # a bit slow, still debugging...
+            print("    Using Autoencoder...")
             # pca = LocallyLinearEmbedding(n_components=4, eigen_solver='dense', method="modified").fit(df_norm)
-            pca = LocallyLinearEmbedding(method="modified").fit(df_norm)
+            if self.autoencoder is None:
+                # self.autoencoder = AutoEncoder(df_norm.shape[1])
+                self.autoencoder = CompressionAutoEncoder(df_norm.shape[1], tag="Buy")
+            pca = self.autoencoder
+
+        elif pca_type == 5:
+            # Restricted Boltzmann Machine
+            print("    Using Restricted Boltzmann Machine...")
+            pca = RBMEncoder()
+
 
         else:
             print("*** ERR - unknown PCA type ***")
@@ -1417,10 +1490,11 @@ class PCA(IStrategy):
         # check variance ratios
         var_big = np.where(ratios >= 0.5)[0]
         if len(var_big) > 0:
-            print("    !!! high variance in columns: ", var_big)
-            print("    !!! variances: ", ratios)
+            # print("    !!! high variance in columns: ", var_big)
+            print("    !!! high variance in columns: ", df.columns.values[var_big])
+            # print("    !!! variances: ", ratios)
 
-        var_0  = np.where(ratios == 0)[0]
+        var_0 = np.where(ratios == 0)[0]
         if len(var_0) > 0:
             print("    !!! zero variance in columns: ", var_0)
 
@@ -1436,10 +1510,9 @@ class PCA(IStrategy):
 
         zero_rows = loadings[(loadings == 0).any(axis=1)].index.values.tolist()
         if len(zero_rows) > 0:
-            print("    !!! zero values in rows (remove indicator?!) : ", zero_rows)
+            print("    !!! No contribution from indicator(s) - remove ?! : ", zero_rows)
 
         return
-
 
     def analyse_pca(self, pca, df):
         print("")
@@ -1471,7 +1544,7 @@ class PCA(IStrategy):
         l3['Score'] = l3a.sum(axis=1)
         l3['Rank'] = loadings['Score'].rank(ascending=False)
         print("Loadings, Weighted by Variance Ratio")
-        print (l3.sort_values('Rank').head(n=20))
+        print(l3.sort_values('Rank').head(n=20))
 
         # # rankings per column
         ranks['Score'] = ranks.sum(axis=1)
@@ -1547,7 +1620,7 @@ class PCA(IStrategy):
     classifier_list = [
         'LogisticRegression', 'GaussianNB', 'SGD',
         'GradientBoosting', 'AdaBoost', 'linearSVC', 'sigmoidSVC',
-        'LDA'
+        'LDA', 'XGBoost'
     ]
 
     # factory to create classifier based on name
@@ -1602,14 +1675,15 @@ class PCA(IStrategy):
             # choose 4 decent classifiers
             c1, _ = self.classifier_factory('AdaBoost', data, labels)
             c2, _ = self.classifier_factory('GaussianNB', data, labels)
-            c3, _ = self.classifier_factory('KNeighbors', data, labels)
-            c4, _ = self.classifier_factory('DecisionTree', data, labels)
+            c3, _ = self.classifier_factory('LDA', data, labels)
+            c4, _ = self.classifier_factory('sigmoidSVC', data, labels)
             clf = VotingClassifier(estimators=[('c1', c1), ('c2', c2), ('c3', c3), ('c4', c4)], voting='hard')
         elif name == 'LDA':
             clf = LinearDiscriminantAnalysis()
         elif name == 'QDA':
             clf = QuadraticDiscriminantAnalysis()
-
+        elif name == 'XGBoost':
+            clf = XGBClassifier()
 
         else:
             print("Unknown classifier: ", name)
@@ -1646,7 +1720,7 @@ class PCA(IStrategy):
         #       "res_train:", res_train.shape, "res_test:", res_test.shape)
 
         # check there are enough training samples
-        #TODO: if low train/test samples, use k-fold sampling nstead
+        # TODO: if low train/test samples, use k-fold sampling nstead
         if res_train.sum() < 2:
             print("    Insufficient +ve (train) results to fit: ", res_train.sum())
             return None, ""
@@ -1682,7 +1756,7 @@ class PCA(IStrategy):
                         self.classifier_stats[tag] = {}
 
                     if not (cname in self.classifier_stats[tag]):
-                        self.classifier_stats[tag][cname] = { 'count': 0, 'score': 0.0, 'selected': 0}
+                        self.classifier_stats[tag][cname] = {'count': 0, 'score': 0.0, 'selected': 0}
 
                     curr_count = self.classifier_stats[tag][cname]['count']
                     curr_score = self.classifier_stats[tag][cname]['score']
@@ -1701,7 +1775,6 @@ class PCA(IStrategy):
             print("!!! WARNING: F1 score below threshold ({:.3f})".format(best_score))
             print("!!!")
             return None, ""
-
 
         # update stats for selected classifier
         if tag:
@@ -1871,17 +1944,15 @@ class PCA(IStrategy):
                 table.align["Mean Score"] = "c"
                 table.float_format = '.4'
                 for cls in self.classifier_stats['exit']:
-                        table.add_row([cls,
-                                       self.classifier_stats['exit'][cls]['score'],
-                                       self.classifier_stats['exit'][cls]['selected']])
+                    table.add_row([cls,
+                                   self.classifier_stats['exit'][cls]['score'],
+                                   self.classifier_stats['exit'][cls]['selected']])
                 table.reversesort = True
                 # table.sortby = 'Mean Score'
                 print(table.get_string(sort_key=operator.itemgetter(2, 1), sortby="Selected"))
                 print("")
 
-
             print("")
-
 
     ###################################
 
@@ -1898,11 +1969,9 @@ class PCA(IStrategy):
 
         if not self.dp.runmode.value in ('hyperopt'):
             if PCA.first_run:
-                PCA.first_run = False # note use of clas variable, not instance variable
+                PCA.first_run = False  # note use of clas variable, not instance variable
                 # self.show_debug_info(curr_pair)
                 self.show_all_debug_info()
-
-        conditions.append(dataframe['volume'] > 0)
 
         # add some fairly loose guards, to help prevent 'bad' predictions
 
@@ -1912,17 +1981,22 @@ class PCA(IStrategy):
         # some trading volume
         conditions.append(dataframe['volume'] > 0)
 
-        # Fisher RSI + Williams combo
-        conditions.append(dataframe['fisher_wr'] < -0.7)
+        # MFI
+        conditions.append(dataframe['mfi'] < 30.0)
 
-        # below Bollinger mid-point
-        conditions.append(dataframe['close'] < dataframe['bb_middleband'])
+        # below TEMA
+        conditions.append(dataframe['close'] < dataframe['tema'])
 
         # PCA/Classifier triggers
         pca_cond = (
             (qtpylib.crossed_above(dataframe['predict_entry'], 0.5))
         )
         conditions.append(pca_cond)
+
+        # add strategy-specific conditions (from subclass)
+        strat_cond = self.get_strategy_buy_conditions(dataframe)
+        if strat_cond is not None:
+            conditions.append(strat_cond)
 
         # set entry tags
         dataframe.loc[pca_cond, 'entry_tag'] += 'pca_entry '
@@ -1937,7 +2011,7 @@ class PCA(IStrategy):
     ###################################
 
     """
-    exit Signal
+    Exit Signal
     """
 
     def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
@@ -1949,20 +2023,17 @@ class PCA(IStrategy):
 
         if not self.dp.runmode.value in ('hyperopt'):
             if PCA.first_run:
-                PCA.first_run = False # note use of clas variable, not instance variable
+                PCA.first_run = False  # note use of clas variable, not instance variable
                 # self.show_debug_info(curr_pair)
                 self.show_all_debug_info()
 
         conditions.append(dataframe['volume'] > 0)
 
-        # # ATR in exit range
-        # conditions.append(dataframe['atr_signal'] <= 0.0)
+        # MFI
+        conditions.append(dataframe['mfi'] > 70.0)
 
-        # above Bollinger mid-point
-        conditions.append(dataframe['close'] > dataframe['bb_middleband'])
-
-        # Fisher RSI + Williams combo
-        conditions.append(dataframe['fisher_wr'] > 0.5)
+        # above TEMA
+        conditions.append(dataframe['close'] > dataframe['tema'])
 
         # PCA triggers
         pca_cond = (
@@ -1970,6 +2041,11 @@ class PCA(IStrategy):
         )
 
         conditions.append(pca_cond)
+
+        # add strategy-specific conditions (from subclass)
+        strat_cond = self.get_strategy_sell_conditions(dataframe)
+        if strat_cond is not None:
+            conditions.append(strat_cond)
 
         dataframe.loc[pca_cond, 'exit_tag'] += 'pca_exit '
 
@@ -2018,7 +2094,7 @@ class PCA(IStrategy):
     ###################################
 
     """
-    Custom exit
+    Custom Exit
     """
 
     def custom_exit(self, pair: str, trade: 'Trade', current_time: 'datetime', current_rate: float,
@@ -2031,6 +2107,16 @@ class PCA(IStrategy):
         max_profit = max(0, trade.calc_profit_ratio(trade.max_rate))
         pullback_value = max(0, (max_profit - self.cexit_pullback_amount.value))
         in_trend = False
+
+        # Mod: just take the profit:
+        # Above 3%, sell if MFA > 90
+        if current_profit > 0.03:
+            if last_candle['mfi'] > 90:
+                return 'mfi_90'
+
+        # Sell any positions at a loss if they are held for more than one day.
+        if current_profit < 0.0 and (current_time - trade.open_date_utc).days >= 2:
+            return 'unclog'
 
         # Determine our current ROI point based on the defined type
         if self.cexit_roi_type.value == 'static':
@@ -2292,4 +2378,3 @@ def range_percent_change(dataframe: DataFrame, method, length: int) -> float:
             'close'].rolling(length).min()
     else:
         raise ValueError(f"Method {method} not defined!")
-

@@ -54,6 +54,21 @@ PCA_macd:
 
 class PCA_macd(PCA):
 
+    plot_config = {
+        'main_plot': {
+            'close': {'color': 'teal'},
+        },
+        'subplots': {
+            "Diff": {
+                '%train_buy': {'color': 'green'},
+                'predict_buy': {'color': 'blue'},
+                '%train_sell': {'color': 'red'},
+                'predict_sell': {'color': 'orange'},
+                'macdhist': {'color': 'salmon'}
+            },
+        }
+    }
+
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # Have to re-declare any globals that we need to modify
@@ -61,17 +76,17 @@ class PCA_macd(PCA):
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
-    lookahead_hours = 0.5
-    n_profit_stddevs = 0.0
-    n_loss_stddevs = 0.0
-    min_f1_score = 0.70
+    lookahead_hours = 1.0
+    n_profit_stddevs = 1.0
+    n_loss_stddevs = 1.0
+    min_f1_score = 0.60
 
     custom_trade_info = {}
 
-    dbg_scan_classifiers = True  # if True, scan all viable classifiers and choose the best. Very slow!
+    dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
     dbg_test_classifier = True  # test clasifiers after fitting
     dbg_analyse_pca = False  # analyze PCA weights
-    dbg_verbose = False  # controls debug output
+    dbg_verbose = True  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
 
     ###################################
@@ -119,12 +134,10 @@ class PCA_macd(PCA):
         buys = np.where(
             (
                     # MACD turns around -ve to +ve
-                    (future_df['macdhist'] < 0) &
-                    (future_df['macdhist'].shift(-self.curr_lookahead) > 0) &
-                    (future_df['dwt_nseq'] < 0)
-                    # # future profit
-                    # (future_df['profit_max'] >= future_df['profit_threshold']) &
-                    # (future_df['future_gain'] > 0)
+                    (future_df['macdhist'].shift() < 0) &
+                    (future_df['macdhist'] >= 0) &
+
+                    (future_df['future_gain'] >= self.profit_threshold)   # future gain
             ), 1.0, 0.0)
 
         return buys
@@ -134,11 +147,10 @@ class PCA_macd(PCA):
         sells = np.where(
             (
                     # MACD turns around +ve to -ve
-                    (future_df['macdhist'] > 0) &
-                    (future_df['macdhist'].shift(-self.curr_lookahead) < 0) #&
-                    # # future loss
-                    # (future_df['loss_min'] <= future_df['loss_threshold']) &
-                    # (future_df['future_gain'] < 0)
+                    (future_df['macdhist'].shift() > 0) &
+                    (future_df['macdhist'] <= 0) &
+
+                    (future_df['future_gain'] <= self.loss_threshold)   # future loss
             ), 1.0, 0.0)
 
         return sells
@@ -146,8 +158,23 @@ class PCA_macd(PCA):
     # save the indicators used here so that we can see them in plots (prefixed by '%')
     def save_debug_indicators(self, future_df: DataFrame):
         self.add_debug_indicator(future_df, 'future_gain')
-        self.add_debug_indicator(future_df, 'profit_max')
-        self.add_debug_indicator(future_df, 'loss_min')
 
         return
 
+    ###################################
+
+    # callbacks to add conditions to main buy/sell decision (rather than trainng)
+
+    def get_strategy_buy_conditions(self, dataframe: DataFrame):
+        cond = np.where(
+            (
+                (dataframe['macdhist'] <= 0)
+            ), 1.0, 0.0)
+        return cond
+
+    def get_strategy_sell_conditions(self, dataframe: DataFrame):
+        cond = np.where(
+            (
+                (dataframe['macdhist'] >= 0)
+            ), 1.0, 0.0)
+        return cond

@@ -117,16 +117,19 @@ class PCA_over(PCA):
     def get_train_buy_signals(self, future_df: DataFrame):
         buys = np.where(
             (
-                # various overbought condition
-                    (future_df['fastk'] < 30) &
-                    (future_df['rsi'] < 30) &
-                    (future_df['mfi'] < 30) &
-                    # (future_df['vfi'] < 50) &
-                    (future_df['fisher_wr'] < -0.5) &
+                # # various overbought condition
+                #     (future_df['fastk'] < 30) &
+                #     (future_df['rsi'] < 30) &
+                #     (future_df['mfi'] < 30) &
+                #     # (future_df['vfi'] < 50) &
+                #     (future_df['fisher_wr'] < -0.5) &
+                #
+                #     # future profit
+                #     (future_df['profit_max'] >= self.profit_threshold) &
+                #     (future_df['future_gain'] > 0)
 
-                    # future profit
-                    (future_df['profit_max'] >= self.profit_threshold) &
-                    (future_df['future_gain'] > 0)
+                    (future_df['mfi'] < 30) &
+                    (future_df['dwt_bottom'] > 0)
             ), 1.0, 0.0)
 
         return buys
@@ -134,16 +137,20 @@ class PCA_over(PCA):
     def get_train_sell_signals(self, future_df: DataFrame):
         sells = np.where(
             (
-                # stochastics show oversold condition
-                    (future_df['fastk'] > 70) &
-                    (future_df['rsi'] > 70) &
-                    (future_df['mfi'] > 70) &
-                    # (future_df['vfi'] > 50) &
-                    (future_df['fisher_wr'] > 0.5) &
+                # # stochastics show oversold condition
+                #     (future_df['fastk'] > 70) &
+                #     (future_df['rsi'] > 70) &
+                #     (future_df['mfi'] > 70) &
+                #     # (future_df['vfi'] > 50) &
+                #     (future_df['fisher_wr'] > 0.5) &
+                #
+                #     # future loss
+                #     (future_df['loss_min'] <= self.loss_threshold) &
+                #     (future_df['future_gain'] < 0)
 
-                    # future loss
-                    (future_df['loss_min'] <= self.loss_threshold) &
-                    (future_df['future_gain'] < 0)
+                    (future_df['mfi'] > 80) &
+                    (future_df['dwt_top'] > 0)
+
             ), 1.0, 0.0)
 
         return sells
