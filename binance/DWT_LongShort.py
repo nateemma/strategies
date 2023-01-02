@@ -60,7 +60,7 @@ class DWT_LongShort(IStrategy):
     }
 
     # Stoploss:
-    stoploss = -0.10
+    stoploss = -0.05
 
     # Trailing stop:
     trailing_stop = False

@@ -410,7 +410,7 @@ class FisherBBDynamic(IStrategy):
     # Processing buy signals
     #
 
-    def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         dataframe.loc[
             (
                 (self.get_buy_signal_fisher_bb(dataframe) == True) |
@@ -450,7 +450,7 @@ class FisherBBDynamic(IStrategy):
     # Processing sell signals
     #
 
-    def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+    def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         dataframe.loc[
             (qtpylib.crossed_above(dataframe['sslDown_inf'], dataframe['sslUp_inf']))
             & (
