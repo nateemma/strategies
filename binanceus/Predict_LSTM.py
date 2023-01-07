@@ -54,17 +54,20 @@ import Time2Vector
 import Transformer
 import Attention
 
+from DataframeUtils import DataframeUtils
+from DataframePopulator import DataframePopulator
+
 """
 ####################################################################################
 Predict_LSTM - uses a Long-Short Term Memory neural network to try and predict the future stock price
-      
+
       This works by creating a LSTM model that we train on the historical data, then use that model to predict 
       future values
-      
+
       Note that this is very slow because we are training and running a neural network. 
       This strategy is likely not viable on a configuration of more than a few pairs, and even then needs
       a fast computer, preferably with a GPU
-      
+
       In addition to the normal freqtrade packages, these strategies also require the installation of:
         finta
         keras
@@ -79,7 +82,7 @@ class Predict_LSTM(IStrategy):
     plot_config = {
         'main_plot': {
             'close': {'color': 'green'},
-            'smooth': {'color': 'teal'},
+            # 'smooth': {'color': 'teal'},
             'predict': {'color': 'lightpink'},
         },
         'subplots': {
@@ -93,11 +96,11 @@ class Predict_LSTM(IStrategy):
 
     # ROI table:
     minimal_roi = {
-        "0": 0.1
+        "0": 0.06
     }
 
     # Stoploss:
-    stoploss = -0.05
+    stoploss = -0.99
 
     # Trailing stop:
     trailing_stop = False
@@ -118,7 +121,7 @@ class Predict_LSTM(IStrategy):
 
     # Required
     startup_candle_count: int = 128  # must be power of 2
-    process_only_new_candles = True # this strat is very resource intensive, do not set to False
+    process_only_new_candles = True  # this strat is very resource intensive, do not set to False
 
     # Strategy-specific global vars
 
@@ -134,7 +137,7 @@ class Predict_LSTM(IStrategy):
     n_profit_stddevs = 0.0
     n_loss_stddevs = 0.0
     min_f1_score = 0.70
-    max_train_loss = 0.15
+    max_train_loss = 0.1
 
     curr_lookahead = int(12 * lookahead_hours)
 
@@ -154,10 +157,14 @@ class Predict_LSTM(IStrategy):
     curr_dataframe: DataFrame = None
     normalise_data = True
 
+
+    dataframeUtils = None
+    dataframePopulator = None
+
     # the following affect training of the model. Bigger numbers give better model, but take longer and use more memory
-    seq_len = 4 # 'depth' of training sequence
-    num_epochs = 64 # number of iterations for training
-    batch_size = 512 # batch size for training
+    seq_len = 4  # 'depth' of training sequence
+    num_epochs = 64  # number of iterations for training
+    batch_size = 512  # batch size for training
     predict_batch_size = 256
 
     # debug flags
@@ -243,6 +250,18 @@ class Predict_LSTM(IStrategy):
         self.profit_threshold = self.default_profit_threshold
         self.loss_threshold = self.default_loss_threshold
 
+        if self.dataframeUtils is None:
+            self.dataframeUtils = DataframeUtils()
+
+        if self.dataframePopulator is None:
+            self.dataframePopulator = DataframePopulator()
+
+            self.dataframePopulator.runmode = self.dp.runmode.value
+            self.dataframePopulator.win_size = min(14, self.curr_lookahead)
+            self.dataframePopulator.startup_win = self.startup_candle_count
+            self.dataframePopulator.n_loss_stddevs = self.n_loss_stddevs
+            self.dataframePopulator.n_profit_stddevs = self.n_profit_stddevs
+
         if Predict_LSTM.first_time:
             Predict_LSTM.first_time = False
             print("")
@@ -256,6 +275,9 @@ class Predict_LSTM(IStrategy):
 
         print("")
         print(self.curr_pair)
+
+        # populate the standard indicators
+        dataframe = self.dataframePopulator.add_indicators(dataframe)
 
         # populate the training indicators
         dataframe = self.add_training_indicators(dataframe)
@@ -275,8 +297,8 @@ class Predict_LSTM(IStrategy):
         # Custom Stoploss
         if self.dbg_verbose:
             print("    updating stoploss data...")
-        dataframe = self.add_indicators(dataframe)
-        dataframe = self.add_stoploss_indicators(dataframe,self.curr_pair)
+        # dataframe = self.add_indicators(dataframe)
+        dataframe = self.add_stoploss_indicators(dataframe, self.curr_pair)
 
         return dataframe
 
@@ -285,199 +307,11 @@ class Predict_LSTM(IStrategy):
     # add in any indicators to be used for training
     def add_training_indicators(self, dataframe: DataFrame) -> DataFrame:
 
-        # don't add too many indicators, it just muddles the prediction
-
-        # price, high, low, volume automatically included
-
-        win_size = max(self.curr_lookahead, 14)
-
-        dataframe['mid'] = (dataframe['open'] + dataframe['close']) / 2.0
-
-        # % gain relative to previous candle
-        dataframe['gain'] = (dataframe['close'] - dataframe['close'].shift(1)) / dataframe['close'].shift(1)
-
-        # smoothed version, for trends
-        # dataframe['smooth'] = dataframe['close'].rolling(window=win_size).apply(self.roll_smooth)
-        # dataframe['smooth'] = dataframe['mid'].rolling(window=win_size).apply(self.roll_smooth)
-        dataframe['smooth'] = dataframe['mid'].rolling(window=win_size).apply(self.roll_strong_smooth)
-
-        # dataframe['tema'] = ta.TEMA(dataframe, timeperiod=win_size)
-
-        # RSI
-        # dataframe['rsi'] = ta.RSI(dataframe, timeperiod=win_size)
-
-        # MFI
-        dataframe['mfi'] = ta.MFI(dataframe)
-        # #
-        # # # VFI
-        # # dataframe['vfi'] = fta.VFI(dataframe, period=win_size)
-        # #
-        # # ATR
-        # dataframe['atr'] = ta.ATR(dataframe, timeperiod=win_size)
-        #
-        # # Hilbert Transform Indicator - SineWave
-        # hilbert = ta.HT_SINE(dataframe)
-        # dataframe['htsine'] = hilbert['sine']
-        # dataframe['htleadsine'] = hilbert['leadsine']
-
-        # # Stoch fast
-        # stoch_fast = ta.STOCHF(dataframe)
-        # dataframe['fastd'] = stoch_fast['fastd']
-        # dataframe['fastk'] = stoch_fast['fastk']
-        # dataframe['fast_diff'] = dataframe['fastd'] - dataframe['fastk']
-
-        # # # ADX
-        dataframe['adx'] = ta.ADX(dataframe)
-
-        # Plus Directional Indicator / Movement
-        dataframe['dm_plus'] = ta.PLUS_DM(dataframe)
-        dataframe['di_plus'] = ta.PLUS_DI(dataframe)
-
-        # Minus Directional Indicator / Movement
-        dataframe['dm_minus'] = ta.MINUS_DM(dataframe)
-        dataframe['di_minus'] = ta.MINUS_DI(dataframe)
-
-        dataframe['dm_delta'] = dataframe['dm_plus'] - dataframe['dm_minus']
-        dataframe['di_delta'] = dataframe['di_plus'] - dataframe['di_minus']
-
-        # longer term high/low
-        dataframe['low_trend'] = dataframe['close'].rolling(window=self.startup_candle_count).min()
-        dataframe['high_trend'] = dataframe['close'].rolling(window=self.startup_candle_count).max()
-
-        dataframe['price_dir'] = np.where(dataframe['smooth'].diff() >= 0, 1.0, -1.0)
-        dataframe['nseq'] = dataframe['price_dir'].rolling(window=win_size, min_periods=1).sum()
+        # need this here to match dimensions
+        dataframe['temp'] = dataframe['close']
 
         return dataframe
 
-    # populate dataframe with desired technical indicators
-    # NOTE: OK to throw (almost) anything in here, just add it to the parameter list
-    # The whole idea is to create a dimension-reduced mapping anyway
-    # Warning: do not use indicators that might produce 'inf' results, it messes up the scaling
-    def add_indicators(self, dataframe: DataFrame) -> DataFrame:
-
-        win_size = max(self.curr_lookahead, 14)
-
-        # these averages are used internally, do not remove!
-        dataframe['sma'] = ta.SMA(dataframe, timeperiod=win_size)
-        dataframe['ema'] = ta.EMA(dataframe, timeperiod=win_size)
-        # dataframe['tema'] = ta.TEMA(dataframe, timeperiod=win_size)
-        # dataframe['tema_stddev'] = dataframe['tema'].rolling(win_size).std()
-        # dataframe['rsi'] = ta.RSI(dataframe, timeperiod=win_size)
-
-        # these are here for reference. Uncomment anything you want to use
-
-        # # MACD
-        # macd = ta.MACD(dataframe)
-        # dataframe['macd'] = macd['macd']
-        # dataframe['macdsignal'] = macd['macdsignal']
-        # dataframe['macdhist'] = macd['macdhist']
-        #
-        # # Bollinger Bands (must include these)
-        # bollinger = qtpylib.bollinger_bands(dataframe['close'], window=20, stds=2)
-        # dataframe['bb_lowerband'] = bollinger['lower']
-        # dataframe['bb_middleband'] = bollinger['mid']
-        # dataframe['bb_upperband'] = bollinger['upper']
-        # dataframe['bb_width'] = ((dataframe['bb_upperband'] - dataframe['bb_lowerband']) / dataframe['bb_middleband'])
-        # dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
-        # dataframe["bb_loss"] = ((dataframe["bb_lowerband"] - dataframe["close"]) / dataframe["close"])
-        #
-        # # Donchian Channels
-        # dataframe['dc_upper'] = ta.MAX(dataframe['high'], timeperiod=win_size)
-        # dataframe['dc_lower'] = ta.MIN(dataframe['low'], timeperiod=win_size)
-        # dataframe['dc_mid'] = ta.TEMA(((dataframe['dc_upper'] + dataframe['dc_lower']) / 2), timeperiod=win_size)
-        #
-        # dataframe["dcbb_dist_upper"] = (dataframe["dc_upper"] - dataframe['bb_upperband'])
-        # dataframe["dcbb_dist_lower"] = (dataframe["dc_lower"] - dataframe['bb_lowerband'])
-        #
-        # # Fibonacci Levels (of Donchian Channel)
-        # dataframe['dc_dist'] = (dataframe['dc_upper'] - dataframe['dc_lower'])
-        # dataframe['dc_hf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.236  # Highest Fib
-        # dataframe['dc_chf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.382  # Centre High Fib
-        # dataframe['dc_clf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.618  # Centre Low Fib
-        # dataframe['dc_lf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.764  # Low Fib
-        #
-        #  # Keltner Channels
-        # keltner = qtpylib.keltner_channel(dataframe)
-        # dataframe["kc_upper"] = keltner["upper"]
-        # dataframe["kc_lower"] = keltner["lower"]
-        # dataframe["kc_mid"] = keltner["mid"]
-        #
-        # # Williams %R
-        # dataframe['wr'] = 0.02 * (williams_r(dataframe, period=14) + 50.0)
-        #
-        # # Fisher RSI
-        # rsi = 0.1 * (dataframe['rsi'] - 50)
-        # dataframe['fisher_rsi'] = (np.exp(2 * rsi) - 1) / (np.exp(2 * rsi) + 1)
-        #
-        # # Combined Fisher RSI and Williams %R
-        # dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
-        #
-        #
-        # # MFI
-        # dataframe['mfi'] = ta.MFI(dataframe)
-        #
-        # # ATR
-        # dataframe['atr'] = ta.ATR(dataframe, timeperiod=win_size)
-        #
-        # # Hilbert Transform Indicator - SineWave
-        # hilbert = ta.HT_SINE(dataframe)
-        # dataframe['htsine'] = hilbert['sine']
-        # dataframe['htleadsine'] = hilbert['leadsine']
-        #
-        # # ADX
-        # dataframe['adx'] = ta.ADX(dataframe)
-        #
-        # # Plus Directional Indicator / Movement
-        # dataframe['dm_plus'] = ta.PLUS_DM(dataframe)
-        # dataframe['di_plus'] = ta.PLUS_DI(dataframe)
-        #
-        # # Minus Directional Indicator / Movement
-        # dataframe['dm_minus'] = ta.MINUS_DM(dataframe)
-        # dataframe['di_minus'] = ta.MINUS_DI(dataframe)
-        # dataframe['dm_delta'] = dataframe['dm_plus'] - dataframe['dm_minus']
-        # dataframe['di_delta'] = dataframe['di_plus'] - dataframe['di_minus']
-
-        # # Stoch fast
-        # stoch_fast = ta.STOCHF(dataframe)
-        # dataframe['fastd'] = stoch_fast['fastd']
-        # dataframe['fastk'] = stoch_fast['fastk']
-        # dataframe['fast_diff'] = dataframe['fastd'] - dataframe['fastk']
-        #
-        # # SAR Parabol
-        # dataframe['sar'] = ta.SAR(dataframe)
-        #
-        # dataframe['mom'] = ta.MOM(dataframe, timeperiod=14)
-        #
-        # # priming indicators
-        # dataframe['color'] = np.where((dataframe['close'] > dataframe['open']), 1.0, -1.0)
-        # dataframe['rsi_7'] = ta.RSI(dataframe, timeperiod=7)
-        # dataframe['roc_6'] = ta.ROC(dataframe, timeperiod=6)
-        # dataframe['primed'] = np.where(dataframe['color'].rolling(3).sum() == 3.0, 1.0, -1.0)
-        # dataframe['in_the_mood'] = np.where(dataframe['rsi_7'] > dataframe['rsi_7'].rolling(12).mean(), 1.0, -1.0)
-        # dataframe['moist'] = np.where(qtpylib.crossed_above(dataframe['macd'], dataframe['macdsignal']), 1.0, -1.0)
-        # dataframe['throbbing'] = np.where(dataframe['roc_6'] > dataframe['roc_6'].rolling(12).mean(), 1.0, -1.0)
-        #
-        # # Oscillators
-        #
-        # # EWO
-        # dataframe['ewo'] = ewo(dataframe, 50, 200)
-        #
-        # # Ultimate Oscillator
-        # dataframe['uo'] = ta.ULTOSC(dataframe)
-        #
-        # # Aroon, Aroon Oscillator
-        # aroon = ta.AROON(dataframe)
-        # dataframe['aroonup'] = aroon['aroonup']
-        # dataframe['aroondown'] = aroon['aroondown']
-        # dataframe['aroonosc'] = ta.AROONOSC(dataframe)
-        #
-        # # Awesome Oscillator
-        # dataframe['ao'] = qtpylib.awesome_oscillator(dataframe)
-        #
-        # # Commodity Channel Index: values [Oversold:-100, Overbought:100]
-        # dataframe['cci'] = ta.CCI(dataframe)
-
-        return dataframe
 
     def add_stoploss_indicators(self, dataframe: DataFrame, pair) -> DataFrame:
 
@@ -487,35 +321,7 @@ class Predict_LSTM(IStrategy):
                 self.custom_trade_info[pair]['had_trend'] = False
 
         # Indicators used for ROI and Custom Stoploss
-
-        # RMI: https://www.tradingview.com/script/kwIt9OgQ-Relative-Momentum-Index/
-        dataframe['rmi'] = cta.RMI(dataframe, length=24, mom=5)
-
-        # Trends
-        dataframe['candle_up'] = np.where(dataframe['close'] >= dataframe['close'].shift(), 1.0, -1.0)
-        dataframe['candle_up_trend'] = np.where(dataframe['candle_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
-        dataframe['candle_up_seq'] = dataframe['candle_up'].rolling(5).sum()
-
-        dataframe['candle_dn'] = np.where(dataframe['close'] < dataframe['close'].shift(), 1.0, -1.0)
-        dataframe['candle_dn_trend'] = np.where(dataframe['candle_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
-        dataframe['candle_dn_seq'] = dataframe['candle_up'].rolling(5).sum()
-
-        dataframe['rmi_up'] = np.where(dataframe['rmi'] >= dataframe['rmi'].shift(), 1.0, -1.0)
-        dataframe['rmi_up_trend'] = np.where(dataframe['rmi_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
-
-        dataframe['rmi_dn'] = np.where(dataframe['rmi'] <= dataframe['rmi'].shift(), 1.0, -1.0)
-        dataframe['rmi_dn_count'] = dataframe['rmi_dn'].rolling(8).sum()
-
-        ssldown, sslup = cta.SSLChannels_ATR(dataframe, length=21)
-        dataframe['sroc'] = cta.SROC(dataframe, roclen=21, emalen=13, smooth=21)
-        dataframe['ssl_dir'] = 0
-        dataframe['ssl_dir'] = np.where(sslup > ssldown, 1.0, -1.0)
-
-        # TODO: remove/fix any columns that contain 'inf'
-        self.check_inf(dataframe)
-
-        # TODO: fix NaNs
-        dataframe.fillna(0.0, inplace=True)
+        dataframe = self.dataframePopulator.add_stoploss_indicators(dataframe)
 
         return dataframe
 
@@ -537,21 +343,24 @@ class Predict_LSTM(IStrategy):
 
     def train_model(self, dataframe: DataFrame, pair) -> DataFrame:
 
+        df_norm = self.dataframeUtils.norm_dataframe(dataframe)
 
-
-        nfeatures = dataframe.shape[1]
+        nfeatures = df_norm.shape[1]
 
         # if first time through for this pair, add entry to pair_model_info
         if not (pair in self.pair_model_info):
-            self.pair_model_info[pair] = {'model': None, 'interval':0, 'score':0.0}
+            self.pair_model_info[pair] = {'model': None, 'interval': 0, 'score': 0.0}
 
         if self.pair_model_info[pair]['model'] == None:
             print("    Creating model for: ", pair, " seq_len:", nfeatures)
             self.pair_model_info[pair]['model'] = self.get_model(nfeatures, self.seq_len)
             self.pair_model_info[pair]['interval'] = 0
 
-
         model = self.pair_model_info[pair]['model']
+
+
+        if self.dp.runmode.value not in ('backtest'):
+            return dataframe
 
         # if in a run mode, then periodically load weights and just return
         if self.dp.runmode.value not in ('hyperopt', 'backtest', 'plot'):
@@ -576,22 +385,26 @@ class Predict_LSTM(IStrategy):
 
         # set up training and test data
 
-        # get a mormalised version, then extract data
-        df = dataframe.fillna(0.0)
-        # df = df.shift(-self.startup_candle_count)  # don't use data from startup period
-        df = self.convert_date(df)
-        # tgt_col = df.columns.get_loc("smooth")
-        tgt_col = df.columns.get_loc("close")
-        scaler = self.get_scaler()
+        # # tgt_col = dataframe.columns.get_loc("smooth")
+        # tgt_col = dataframe.columns.get_loc("close")
 
-        df_norm = scaler.fit_transform(df)
+        # # get a mormalised version, then extract data
+        # df = dataframe.fillna(0.0)
+        # # df = df.shift(-self.startup_candle_count)  # don't use data from startup period
+        # df = self.convert_date(df)
+        # scaler = self.get_scaler()
+        # 
+        # df_norm = scaler.fit_transform(df)
+
+        # save closing prices for later
+        prices = np.array(df_norm['close'])
 
         # constrain size to what will be available in run modes
         df_size = df_norm.shape[0]
         # data_size = int(min(975, df_size))
-        data_size = df_size # For backtest/hyperopt/plot, this will be big. Normal size for run modes
+        data_size = df_size  # For backtest/hyperopt/plot, this will be big. Normal size for run modes
 
-        pad = self.curr_lookahead # have to allow for future results to be in range
+        pad = self.curr_lookahead  # have to allow for future results to be in range
         train_ratio = 0.8
         test_ratio = 1.0 - train_ratio
         train_size = int(train_ratio * (data_size - pad)) - 1
@@ -637,39 +450,47 @@ class Predict_LSTM(IStrategy):
                                                                                 test_size, data_size))
 
         print("    data:[{}:{}] train:[{}:{}] train_result:[{}:{}] test:[{}:{}] test_result:[{}:{}] "
-              .format(0, data_size-1,
-                      train_start, (train_start+train_size),
-                      train_result_start, (train_result_start+train_size),
-                      test_start, (test_start+test_size),
-                      test_result_start, (test_result_start+test_size)
+              .format(0, data_size - 1,
+                      train_start, (train_start + train_size),
+                      train_result_start, (train_result_start + train_size),
+                      test_start, (test_start + test_size),
+                      test_result_start, (test_result_start + test_size)
                       ))
 
         # convert dataframe to tensor before extracting train/test data (avoid edge effects)
-        df_tensor = self.df_to_tensor(df_norm, self.seq_len)
-        # train_df_norm = df_norm[train_start:train_start + train_size, :]
+        df_tensor = self.dataframeUtils.df_to_tensor(df_norm, self.seq_len)
+        # # train_df_norm = df_norm[train_start:train_start + train_size, :]
+        # # train_results_norm = df_norm[train_result_start:train_result_start + train_size, tgt_col]
+        # train_df_norm = df_tensor[train_start:train_start + train_size]
         # train_results_norm = df_norm[train_result_start:train_result_start + train_size, tgt_col]
-        train_df_norm = df_tensor[train_start:train_start + train_size]
-        train_results_norm = df_norm[train_result_start:train_result_start + train_size, tgt_col]
+        #
+        # test_df_norm = df_tensor[test_start:test_start + test_size]
+        # test_results_norm = df_norm[test_result_start:test_result_start + test_size, tgt_col]
 
+        train_df_norm = df_tensor[train_start:train_start + train_size]
         test_df_norm = df_tensor[test_start:test_start + test_size]
-        test_results_norm = df_norm[test_result_start:test_result_start + test_size, tgt_col]
+
+        # extract prices from dataframe and convert to tensors
+        train_results = prices[train_result_start:train_result_start + train_size]
+        test_results = prices[test_result_start:test_result_start + test_size]
+        train_results_norm = self.dataframeUtils.df_to_tensor(train_results.reshape(-1, 1), self.seq_len)
+        test_results_norm = self.dataframeUtils.df_to_tensor(test_results.reshape(-1, 1), self.seq_len)
 
         # print(train_df_norm[:, tgt_col])
         # print(train_results_norm)
 
-
-        # train_tensor = self.df_to_tensor(train_df_norm, self.seq_len)
-        # test_tensor = self.df_to_tensor(test_df_norm, self.seq_len)
+        # train_tensor = self.dataframeUtils.df_to_tensor(train_df_norm, self.seq_len)
+        # test_tensor = self.dataframeUtils.df_to_tensor(test_df_norm, self.seq_len)
         train_tensor = train_df_norm
         test_tensor = test_df_norm
 
-        # re-shape into format expected by LSTM model
-        # train_df_norm = np.reshape(np.array(train_df_norm), (train_df_norm.shape[0], self.seq_len, train_df_norm.shape[1]))
-        # test_df_norm = np.reshape(np.array(test_df_norm), (test_df_norm.shape[0], self.seq_len, test_df_norm.shape[1]))
-        train_tensor = np.reshape(train_tensor, (train_size, self.seq_len, nfeatures))
-        test_tensor = np.reshape(test_tensor, (test_size, self.seq_len, nfeatures))
-        train_results_norm = np.array(train_results_norm).reshape(-1, 1)
-        test_results_norm = np.array(test_results_norm).reshape(-1, 1)
+        # # re-shape into format expected by LSTM model
+        # # train_df_norm = np.reshape(np.array(train_df_norm), (train_df_norm.shape[0], self.seq_len, train_df_norm.shape[1]))
+        # # test_df_norm = np.reshape(np.array(test_df_norm), (test_df_norm.shape[0], self.seq_len, test_df_norm.shape[1]))
+        # train_tensor = np.reshape(train_tensor, (train_size, self.seq_len, nfeatures))
+        # test_tensor = np.reshape(test_tensor, (test_size, self.seq_len, nfeatures))
+        # train_results_norm = np.array(train_results_norm).reshape(-1, 1)
+        # test_results_norm = np.array(test_results_norm).reshape(-1, 1)
 
         # print("")
         # print("    train data:", np.shape(train_tensor), " train results:", train_results_norm.shape)
@@ -680,7 +501,7 @@ class Predict_LSTM(IStrategy):
         print("    fitting model...")
         print("")
 
-        #TODO: save full model to current path?!
+        # TODO: save full model to current path?!
 
         # callback to control early exit on plateau of results
         early_callback = keras.callbacks.EarlyStopping(
@@ -743,10 +564,12 @@ class Predict_LSTM(IStrategy):
         return dataframe
 
     def get_model_name(self):
-        # Note that keras expects it to be called 'checkpoint'
-        checkpoint_dir = '/tmp'
-        curr_class = self.__class__.__name__
-        model_name = checkpoint_dir + "/" + curr_class + "/" + self.curr_pair.replace("/", "_") + "/checkpoint"
+        # checkpoint_dir = '/tmp'
+        checkpoint_dir = '/tmp'+ "/" + self.__class__.__name__ + "/" + self.curr_pair.replace("/", "_") + "/"
+        if not os.path.exists(checkpoint_dir):
+            os.makedirs(checkpoint_dir)
+
+        model_name = checkpoint_dir + "checkpoint.h5"
         return model_name
 
     def get_model_weights(self, model):
@@ -766,6 +589,7 @@ class Predict_LSTM(IStrategy):
                 print("*** ERR: no existing model. You should run backtest first!")
         return model
 
+    '''
     # get a scaler for scaling/normalising the data (in a func because I change it routinely)
     def get_scaler(self):
         # uncomment the one yu want
@@ -804,6 +628,7 @@ class Predict_LSTM(IStrategy):
         # print("tensor: ", tensor_arr)
         # print("data:{} tensor:{}".format(np.shape(data), np.shape(tensor_arr)))
         return tensor_arr
+    '''
 
     def get_model(self, nfeatures: int, seq_len: int):
         model = keras.Sequential()
@@ -901,18 +726,20 @@ class Predict_LSTM(IStrategy):
             return predictions
 
         # scale/normalise
-        df = self.convert_date(dataframe)
-        # tgt_col = df.columns.get_loc("close")
-        tgt_col = df.columns.get_loc("smooth")
-        scaler = self.get_scaler()
+        # # tgt_col = dataframe.columns.get_loc("close")
+        # tgt_col = dataframe.columns.get_loc("smooth")
+        # df = self.convert_date(dataframe)
+        # # scaler = self.get_scaler()
+        # # scaler = scaler.fit(df)
+        # # df_norm = scaler.transform(df)
+        # df_norm = self.dataframeUtils.norm_dataframe(df)
 
-        scaler = scaler.fit(df)
-        df_norm = scaler.transform(df)
+        df_norm = self.dataframeUtils.norm_dataframe(dataframe)
 
         # df_norm3 = np.reshape(df_chunk, (np.shape(df_chunk)[0], self.seq_len, np.shape(df_chunk)[1]))
 
         # convert dataframe to tensor
-        df_tensor = self.df_to_tensor(df_norm, self.seq_len)
+        df_tensor = self.dataframeUtils.df_to_tensor(df_norm, self.seq_len)
 
         # prediction does not work well when run over a large dataset, so divide into chunks and predict for each one
         # then concatenate the results and return
@@ -941,16 +768,24 @@ class Predict_LSTM(IStrategy):
 
         # re-scale the predictions
         # slight cheat - replace 'gain' column with predictions, then inverse scale
-        cl_col = df_norm[:, tgt_col]
+        # cl_col = df_norm[:, tgt_col]
+        #
+        # df_norm[:, tgt_col] = preds_notrend
+        # # inv_y = scaler.inverse_transform(df_norm)
+        # inv_y = self.dataframeUtils.denorm_dataframe(df_norm)
+        # # print("preds_notrend:", preds_notrend.shape, " df_norm:", df_norm.shape, " inv_y:", inv_y.shape)
+        # predictions = inv_y[:, tgt_col]
+        #
+        # if tgt_col == 'gain':
+        #     # using gain rather than price, so add gain to current price
+        #     predictions = (1.0 + predictions) * dataframe['close']
+        #
 
-        df_norm[:, tgt_col] = preds_notrend
-        inv_y = scaler.inverse_transform(df_norm)
-        # print("preds_notrend:", preds_notrend.shape, " df_norm:", df_norm.shape, " inv_y:", inv_y.shape)
-        predictions = inv_y[:, tgt_col]
+        df_norm["temp"] = preds_notrend
 
-        if tgt_col == 'gain':
-            # using gain rather than price, so add gain to current price
-            predictions = (1.0 + predictions) * dataframe['close']
+        # inv_y = scaler.inverse_transform(df_norm)
+        inv_y = self.dataframeUtils.denorm_dataframe(df_norm)
+        predictions = inv_y["temp"]
 
         print("runs:{} predictions:{}".format(nruns, len(predictions)))
         return predictions

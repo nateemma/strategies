@@ -2,10 +2,10 @@
   "strategy_name": "PCA_highlow",
   "params": {
     "roi": {
-      "0": 0.05
+      "0": 0.06
     },
     "stoploss": {
-      "stoploss": -0.05
+      "stoploss": -0.99
     },
     "trailing": {
       "trailing_stop": true,
@@ -17,22 +17,22 @@
     "sell": {
       "cexit_endtrend_respect_roi": true,
       "cexit_pullback": false,
-      "cexit_pullback_amount": 0.02,
+      "cexit_pullback_amount": 0.026,
       "cexit_pullback_respect_roi": true,
-      "cexit_roi_end": 0.002,
-      "cexit_roi_start": 0.026,
-      "cexit_roi_time": 1431,
+      "cexit_roi_end": 0.01,
+      "cexit_roi_start": 0.04,
+      "cexit_roi_time": 1363,
       "cexit_roi_type": "step",
-      "cexit_trend_type": "ssl",
-      "cstop_bail_how": "time",
-      "cstop_bail_roc": -2.921,
-      "cstop_bail_time": 176,
+      "cexit_trend_type": "none",
+      "cstop_bail_how": "roc",
+      "cstop_bail_roc": -4.204,
+      "cstop_bail_time": 799,
       "cstop_bail_time_trend": true,
-      "cstop_loss_threshold": -0.039,
-      "cstop_max_stoploss": -0.282
+      "cstop_loss_threshold": -0.032,
+      "cstop_max_stoploss": -0.083
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-12-23 23:15:00.301364+00:00"
+  "export_time": "2023-01-05 22:56:01.099743+00:00"
 }

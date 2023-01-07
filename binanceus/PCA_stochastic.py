@@ -125,7 +125,7 @@ class PCA_stochastic(PCA):
                     ((future_df['fast_diff'] > 0) & (future_df['fast_diff'].shift(-self.curr_lookahead) <= 0)) &
 
                     # future profit
-                    (future_df['profit_max'] >= future_df['profit_threshold']) &
+                    (future_df['future_profit_max'] >= future_df['profit_threshold']) &
                     (future_df['future_gain'] > 0)
             ), 1.0, 0.0)
 
@@ -140,7 +140,7 @@ class PCA_stochastic(PCA):
                     ((future_df['fast_diff'] < 0) & (future_df['fast_diff'].shift(-self.curr_lookahead) >= 0)) &
 
                     # future loss
-                    (future_df['loss_min'] <= future_df['loss_threshold']) &
+                    (future_df['future_loss_min'] <= future_df['loss_threshold']) &
                     (future_df['future_gain'] < 0)
             ), 1.0, 0.0)
 
@@ -149,8 +149,8 @@ class PCA_stochastic(PCA):
     # save the indicators used here so that we can see them in plots (prefixed by '%')
     def save_debug_indicators(self, future_df: DataFrame):
         self.add_debug_indicator(future_df, 'future_gain')
-        self.add_debug_indicator(future_df, 'profit_max')
-        self.add_debug_indicator(future_df, 'loss_min')
+        self.add_debug_indicator(future_df, 'future_profit_max')
+        self.add_debug_indicator(future_df, 'future_loss_min')
 
         return
 

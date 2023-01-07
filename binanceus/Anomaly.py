@@ -92,8 +92,8 @@ from AnomalyDetector_LSTM import AnomalyDetector_LSTM
 from AnomalyDetector_PCA import AnomalyDetector_PCA
 from AnomalyDetector_GMix import AnomalyDetector_GMix
 
-import DataframeUtils
-import DataframePopulator
+from DataframeUtils import DataframeUtils
+from DataframePopulator import DataframePopulator
 
 """
 ####################################################################################
@@ -192,6 +192,9 @@ class Anomaly(IStrategy):
     compressor = None
     compress_data = True
 
+    dataframeUtils = None
+    dataframePopulator = None
+
     num_pairs = 0
     buy_classifier = None
     sell_classifier = None
@@ -258,18 +261,18 @@ class Anomaly(IStrategy):
     else:
 
         # Custom Sell Profit (formerly Dynamic ROI)
-        csell_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
+        cexit_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
                                               optimize=True)
-        csell_roi_time = IntParameter(720, 1440, default=720, space='sell', load=True, optimize=True)
-        csell_roi_start = DecimalParameter(0.01, 0.05, default=0.01, space='sell', load=True, optimize=True)
-        csell_roi_end = DecimalParameter(0.0, 0.01, default=0, space='sell', load=True, optimize=True)
-        csell_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any', 'none'], default='any', space='sell',
+        cexit_roi_time = IntParameter(720, 1440, default=720, space='sell', load=True, optimize=True)
+        cexit_roi_start = DecimalParameter(0.01, 0.05, default=0.01, space='sell', load=True, optimize=True)
+        cexit_roi_end = DecimalParameter(0.0, 0.01, default=0, space='sell', load=True, optimize=True)
+        cexit_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any', 'none'], default='any', space='sell',
                                                 load=True, optimize=True)
-        csell_pullback = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
-        csell_pullback_amount = DecimalParameter(0.005, 0.03, default=0.01, space='sell', load=True, optimize=True)
-        csell_pullback_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
+        cexit_pullback = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+        cexit_pullback_amount = DecimalParameter(0.005, 0.03, default=0.01, space='sell', load=True, optimize=True)
+        cexit_pullback_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
                                                           optimize=True)
-        csell_endtrend_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
+        cexit_endtrend_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
                                                           optimize=True)
 
         # Custom Stoploss
@@ -376,17 +379,20 @@ class Anomaly(IStrategy):
         self.curr_lookahead = int(12 * self.lookahead_hours)
         self.dbg_curr_df = dataframe
 
-        DataframePopulator.runmode = self.dp.runmode.value
-        DataframePopulator.win_size = min(14, self.curr_lookahead)
-        DataframePopulator.startup_win = self.startup_candle_count
-        DataframePopulator.n_loss_stddevs = self.n_loss_stddevs
-        DataframePopulator.n_profit_stddevs = self.n_profit_stddevs
+        if self.dataframeUtils is None:
+            self.dataframeUtils = DataframeUtils()
 
-        print("")
-        print(curr_pair)
+        if self.dataframePopulator is None:
+            self.dataframePopulator = DataframePopulator()
+
+            self.dataframePopulator.runmode = self.dp.runmode.value
+            self.dataframePopulator.win_size = min(14, self.curr_lookahead)
+            self.dataframePopulator.startup_win = self.startup_candle_count
+            self.dataframePopulator.n_loss_stddevs = self.n_loss_stddevs
+            self.dataframePopulator.n_profit_stddevs = self.n_profit_stddevs
 
         # populate the normal dataframe
-        dataframe = DataframePopulator.add_indicators(dataframe)
+        dataframe = self.dataframePopulator.add_indicators(dataframe)
         # dataframe = self.add_indicators(dataframe)
 
         if Anomaly.first_time:
@@ -398,18 +404,21 @@ class Anomaly(IStrategy):
 
             print("    Lookahead: ", self.curr_lookahead, " candles (", self.lookahead_hours, " hours)")
 
+        print("")
+        print(curr_pair)
+
         # create labels used for training
         buys, sells = self.create_training_data(dataframe)
 
-        # drop last group (because there cannot be a prediction)
-        df = dataframe.iloc[:-self.curr_lookahead]
-        buys = buys.iloc[:-self.curr_lookahead]
-        sells = sells.iloc[:-self.curr_lookahead]
+        # # drop last group (because there cannot be a prediction)
+        # df = dataframe.iloc[:-self.curr_lookahead]
+        # buys = buys.iloc[:-self.curr_lookahead]
+        # sells = sells.iloc[:-self.curr_lookahead]
 
         # train the models on the informative data
         if self.dbg_verbose:
             print("    training models...")
-        df = self.train_models(curr_pair, df, buys, sells)
+        df = self.train_models(curr_pair, dataframe, buys, sells)
 
         # add predictions
 
@@ -441,7 +450,7 @@ class Anomaly(IStrategy):
             if not 'had_trend' in self.custom_trade_info[pair]:
                 self.custom_trade_info[pair]['had_trend'] = False
 
-        dataframe = DataframePopulator.add_stoploss_indicators(dataframe)
+        dataframe = self.dataframePopulator.add_stoploss_indicators(dataframe)
 
         return dataframe
 
@@ -453,8 +462,8 @@ class Anomaly(IStrategy):
     def create_training_data(self, dataframe: DataFrame):
 
         # future_df = self.add_future_data(dataframe.copy())
-        future_df = DataframePopulator.add_hidden_indicators(dataframe.copy())
-        future_df = DataframePopulator.add_future_data(future_df, self.curr_lookahead)
+        future_df = self.dataframePopulator.add_hidden_indicators(dataframe.copy())
+        future_df = self.dataframePopulator.add_future_data(future_df, self.curr_lookahead)
 
         future_df['train_buy'] = 0.0
         future_df['train_sell'] = 0.0
@@ -542,7 +551,7 @@ class Anomaly(IStrategy):
             clf = AnomalyDetector_SVM(self.curr_pair, tag=tag)
 
         elif self.classifier_type == self.ClassifierType.PCA:
-            clf = AnomalyDetector_PCA(nfeatures, tag=tag)
+            clf = AnomalyDetector_PCA(self.curr_pair, tag=tag)
 
         elif self.classifier_type == self.ClassifierType.LSTMAutoEncoder:
             clf = AnomalyDetector_LSTM(nfeatures, tag=tag)
@@ -573,7 +582,7 @@ class Anomaly(IStrategy):
 
         rand_st = 27  # use fixed number for reproducibility
 
-        full_df_norm = DataframeUtils.norm_dataframe(dataframe)
+        full_df_norm = self.dataframeUtils.norm_dataframe(dataframe)
 
 
         if self.compress_data:
@@ -612,9 +621,9 @@ class Anomaly(IStrategy):
         #                                                                                       random_state=rand_st,
         #                                                                                       shuffle=False)
         # use the back portion of data for training, front for testing
-        df_test, df_train = DataframeUtils.split_dataframe(full_df_norm, (1.0 - train_ratio))
-        test_buys, train_buys = DataframeUtils.split_array(buys, (1.0 - train_ratio))
-        test_sells, train_sells = DataframeUtils.split_array(sells, (1.0 - train_ratio))
+        df_test, df_train = self.dataframeUtils.split_dataframe(full_df_norm, (1.0 - train_ratio))
+        test_buys, train_buys = self.dataframeUtils.split_array(buys, (1.0 - train_ratio))
+        test_sells, train_sells = self.dataframeUtils.split_array(sells, (1.0 - train_ratio))
 
         if self.dbg_verbose:
             print("     dataframe:", full_df_norm.shape, ' -> train:', df_train.shape, " + test:", df_test.shape)
@@ -624,10 +633,10 @@ class Anomaly(IStrategy):
         print("    #training samples:", len(df_train), " #buys:", int(train_buys.sum()), ' #sells:',
               int(train_sells.sum()))
 
-        train_buy_labels = DataframeUtils.get_binary_labels(train_buys)
-        train_sell_labels = DataframeUtils.get_binary_labels(train_sells)
-        test_buy_labels = DataframeUtils.get_binary_labels(test_buys)
-        test_sell_labels = DataframeUtils.get_binary_labels(test_sells)
+        train_buy_labels = self.dataframeUtils.get_binary_labels(train_buys)
+        train_sell_labels = self.dataframeUtils.get_binary_labels(train_sells)
+        test_buy_labels = self.dataframeUtils.get_binary_labels(test_buys)
+        test_sell_labels = self.dataframeUtils.get_binary_labels(test_sells)
 
         # force train/fit the classifiers in backtest mode only
         force_train = True if (self.dp.runmode.value in ('backtest')) else False
@@ -659,18 +668,18 @@ class Anomaly(IStrategy):
         # if running 'plot', reconstruct the original dataframe for display
         if self.dp.runmode.value in ('plot'):
             if self.compress_data:
-                df_norm = DataframeUtils.norm_dataframe(dataframe)  # this also resets the scaler
+                df_norm = self.dataframeUtils.norm_dataframe(dataframe)  # this also resets the scaler
                 df_compressed = self.compress_dataframe(df_norm)
                 df_recon_compressed = self.buy_classifier.reconstruct(df_compressed)
                 df_recon_norm = self.compressor.inverse_transform(df_recon_compressed)
                 df_recon_norm = pd.DataFrame(df_recon_norm, columns=df_norm.columns)
-                df_recon = DataframeUtils.denorm_dataframe(df_recon_norm)
+                df_recon = self.dataframeUtils.denorm_dataframe(df_recon_norm)
                 dataframe['%recon'] = df_recon['close']
             else:
                 # debug: get reconstructed dataframe and save 'close' as a comparison
-                tmp = DataframeUtils.norm_dataframe(dataframe)  # this just resets the scaler
+                tmp = self.dataframeUtils.norm_dataframe(dataframe)  # this just resets the scaler
                 df_recon_norm = self.buy_classifier.reconstruct(tmp)
-                df_recon = DataframeUtils.denorm_dataframe(df_recon_norm)
+                df_recon = self.dataframeUtils.denorm_dataframe(df_recon_norm)
                 dataframe['%recon'] = df_recon['close']
         return dataframe
 
@@ -738,7 +747,7 @@ class Anomaly(IStrategy):
 
         if clf:
             # print("    predicting... - dataframe:", dataframe.shape)
-            df_norm = DataframeUtils.norm_dataframe(dataframe)
+            df_norm = self.dataframeUtils.norm_dataframe(dataframe)
             if self.compress_data:
                 df_norm = self.compress_dataframe(df_norm)
             predict = clf.predict(df_norm)
@@ -805,7 +814,7 @@ class Anomaly(IStrategy):
     Buy Signal
     """
 
-    def populate_buy_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         conditions = []
         dataframe.loc[:, 'enter_tag'] = ''
         curr_pair = metadata['pair']
@@ -841,7 +850,7 @@ class Anomaly(IStrategy):
             conditions.append(strat_cond)
 
         # sell signal is not active
-        # conditions.append(dataframe['predict_sell'] < 0.1)
+        conditions.append(dataframe['predict_sell'] < 0.1)
 
         # PCA/Classifier triggers
         anomaly_cond = (
@@ -865,7 +874,7 @@ class Anomaly(IStrategy):
     Sell Signal
     """
 
-    def populate_sell_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+    def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         conditions = []
         dataframe.loc[:, 'exit_tag'] = ''
         curr_pair = metadata['pair']
@@ -890,7 +899,7 @@ class Anomaly(IStrategy):
         # conditions.append(dataframe['fisher_wr'] > 0.5)
 
         # MFI
-        conditions.append(dataframe['mfi'] > 60.0)
+        conditions.append(dataframe['mfi'] > 50.0)
 
         # add strategy-specific conditions (from subclass)
         strat_cond = self.get_strategy_sell_conditions(dataframe)
@@ -999,14 +1008,14 @@ class Anomaly(IStrategy):
     Custom Sell
     """
 
-    def custom_sell(self, pair: str, trade: 'Trade', current_time: 'datetime', current_rate: float,
+    def custom_exit(self, pair: str, trade: 'Trade', current_time: 'datetime', current_rate: float,
                     current_profit: float, **kwargs):
         if self.use_simpler_custom_stoploss:
-            return self.simpler_custom_sell(pair, trade, current_time, current_rate, current_profit)
+            return self.simpler_custom_exit(pair, trade, current_time, current_rate, current_profit)
         else:
-            return self.complex_custom_sell(pair, trade, current_time, current_rate, current_profit)
+            return self.complex_custom_exit(pair, trade, current_time, current_rate, current_profit)
 
-    def complex_custom_sell(self, pair: str, trade: 'Trade', current_time: 'datetime', current_rate: float,
+    def complex_custom_exit(self, pair: str, trade: 'Trade', current_time: 'datetime', current_rate: float,
                             current_profit: float):
 
         dataframe, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
@@ -1014,7 +1023,7 @@ class Anomaly(IStrategy):
 
         trade_dur = int((current_time.timestamp() - trade.open_date_utc.timestamp()) // 60)
         max_profit = max(0, trade.calc_profit_ratio(trade.max_rate))
-        pullback_value = max(0, (max_profit - self.csell_pullback_amount.value))
+        pullback_value = max(0, (max_profit - self.cexit_pullback_amount.value))
         in_trend = False
 
         # Mod: just take the profit:
@@ -1028,25 +1037,25 @@ class Anomaly(IStrategy):
             return 'unclog'
 
         # Determine our current ROI point based on the defined type
-        if self.csell_roi_type.value == 'static':
-            min_roi = self.csell_roi_start.value
-        elif self.csell_roi_type.value == 'decay':
-            min_roi = cta.linear_decay(self.csell_roi_start.value, self.csell_roi_end.value, 0,
-                                       self.csell_roi_time.value, trade_dur)
-        elif self.csell_roi_type.value == 'step':
-            if trade_dur < self.csell_roi_time.value:
-                min_roi = self.csell_roi_start.value
+        if self.cexit_roi_type.value == 'static':
+            min_roi = self.cexit_roi_start.value
+        elif self.cexit_roi_type.value == 'decay':
+            min_roi = cta.linear_decay(self.cexit_roi_start.value, self.cexit_roi_end.value, 0,
+                                       self.cexit_roi_time.value, trade_dur)
+        elif self.cexit_roi_type.value == 'step':
+            if trade_dur < self.cexit_roi_time.value:
+                min_roi = self.cexit_roi_start.value
             else:
-                min_roi = self.csell_roi_end.value
+                min_roi = self.cexit_roi_end.value
 
         # Determine if there is a trend
-        if self.csell_trend_type.value == 'rmi' or self.csell_trend_type.value == 'any':
+        if self.cexit_trend_type.value == 'rmi' or self.cexit_trend_type.value == 'any':
             if last_candle['rmi_up_trend'] == 1:
                 in_trend = True
-        if self.csell_trend_type.value == 'ssl' or self.csell_trend_type.value == 'any':
+        if self.cexit_trend_type.value == 'ssl' or self.cexit_trend_type.value == 'any':
             if last_candle['ssl_dir'] == 1:
                 in_trend = True
-        if self.csell_trend_type.value == 'candle' or self.csell_trend_type.value == 'any':
+        if self.cexit_trend_type.value == 'candle' or self.cexit_trend_type.value == 'any':
             if last_candle['candle_up_trend'] == 1:
                 in_trend = True
 
@@ -1055,10 +1064,10 @@ class Anomaly(IStrategy):
             # Record that we were in a trend for this trade/pair for a more useful sell message later
             self.custom_trade_info[trade.pair]['had_trend'] = True
             # If pullback is enabled and profit has pulled back allow a sell, maybe
-            if self.csell_pullback.value == True and (current_profit <= pullback_value):
-                if self.csell_pullback_respect_roi.value == True and current_profit > min_roi:
+            if self.cexit_pullback.value == True and (current_profit <= pullback_value):
+                if self.cexit_pullback_respect_roi.value == True and current_profit > min_roi:
                     return 'intrend_pullback_roi'
-                elif self.csell_pullback_respect_roi.value == False:
+                elif self.cexit_pullback_respect_roi.value == False:
                     if current_profit > min_roi:
                         return 'intrend_pullback_roi'
                     else:
@@ -1071,7 +1080,7 @@ class Anomaly(IStrategy):
                 if current_profit > min_roi:
                     self.custom_trade_info[trade.pair]['had_trend'] = False
                     return 'trend_roi'
-                elif self.csell_endtrend_respect_roi.value == False:
+                elif self.cexit_endtrend_respect_roi.value == False:
                     self.custom_trade_info[trade.pair]['had_trend'] = False
                     return 'trend_noroi'
             elif current_profit > min_roi:
@@ -1079,7 +1088,7 @@ class Anomaly(IStrategy):
         else:
             return None
 
-    def simpler_custom_sell(self, pair: str, trade: 'Trade', current_time: 'datetime', current_rate: float,
+    def simpler_custom_exit(self, pair: str, trade: 'Trade', current_time: 'datetime', current_rate: float,
                             current_profit: float):
         dataframe, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
         last_candle = dataframe.iloc[-1].squeeze()

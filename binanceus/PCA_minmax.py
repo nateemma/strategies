@@ -55,19 +55,6 @@ PCA_minmax:
 
 class PCA_minmax(PCA):
 
-    plot_config = {
-        'main_plot': {
-            # 'dwt': {'color': 'darkcyan'},
-            # '%future_min': {'color': 'salmon'},
-            # '%future_max': {'color': 'cadetblue'},
-        },
-        'subplots': {
-            "Diff": {
-                '%train_buy': {'color': 'salmon'},
-                'predict_buy': {'color': 'cadetblue'},
-            },
-        }
-    }
 
     # Do *not* hyperopt for the roi and stoploss spaces
 
@@ -76,9 +63,9 @@ class PCA_minmax(PCA):
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
-    lookahead_hours = 4.0
-    n_profit_stddevs = 0.0
-    n_loss_stddevs = 0.0
+    lookahead_hours = 8.0
+    n_profit_stddevs = 2.0
+    n_loss_stddevs = 2.0
     min_f1_score = 0.70
 
     custom_trade_info = {}
@@ -138,9 +125,12 @@ class PCA_minmax(PCA):
             (
                     (future_df['mfi'] < 30) & # loose guard
                     # (future_df['dwt_at_min'] > 0) & # at min of previous window
-                    (future_df['dwt_bottom'] > 0) &  # at min of previous window
+                    # (future_df['dwt_bottom'] > 0) &  # at min of previous window
 
-                    (future_df['future_gain'] >= self.profit_threshold) # profit in next window exceeds threshold
+                    (future_df['full_dwt'] <= future_df['dwt_recent_min']) &  # at min of past window
+                    (future_df['full_dwt'] <= future_df['future_min']) &  # at min of future window
+
+                    (future_df['future_gain'] >= future_df['profit_threshold']) # profit in next window exceeds threshold
             ), 1.0, 0.0)
 
         return series
@@ -151,12 +141,23 @@ class PCA_minmax(PCA):
             (
                     (future_df['mfi'] > 70) &  # loose guard
                     # (future_df['dwt_at_max'] > 0) & # at max of previous window
-                    (future_df['dwt_top'] > 0) & # at max of previous window
+                    # (future_df['dwt_top'] > 0) & # at max of previous window
 
-                    (future_df['future_gain'] <= self.loss_threshold) # loss in next window exceeds threshold
+                    (future_df['full_dwt'] >= future_df['dwt_recent_min']) &  # at max of past window
+                    (future_df['full_dwt'] >= future_df['future_max']) &  # at max of future window
+
+                    (future_df['future_gain'] <= future_df['loss_threshold']) # loss in next window exceeds threshold
             ), 1.0, 0.0)
 
         return series
+
+    def get_strategy_buy_conditions(self, dataframe: DataFrame):
+        cond = np.where(
+            (
+                # sell signal is not active
+                (dataframe['predict_sell'] < 0.1)
+            ), 1.0, 0.0)
+        return cond
 
 
     # save the indicators used here so that we can see them in plots (prefixed by '%')

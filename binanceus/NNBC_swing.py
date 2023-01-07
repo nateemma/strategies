@@ -86,18 +86,18 @@ class NNBC_swing(NNBC):
     # sell_pca_gain = IntParameter(-1, -15, default=-4, space='sell', load=True, optimize=True)
 
     # Custom Sell Profit (formerly Dynamic ROI)
-    csell_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
+    cexit_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
                                           optimize=True)
-    csell_roi_time = IntParameter(720, 1440, default=720, space='sell', load=True, optimize=True)
-    csell_roi_start = DecimalParameter(0.01, 0.05, default=0.01, space='sell', load=True, optimize=True)
-    csell_roi_end = DecimalParameter(0.0, 0.01, default=0, space='sell', load=True, optimize=True)
-    csell_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any', 'none'], default='any', space='sell',
+    cexit_roi_time = IntParameter(720, 1440, default=720, space='sell', load=True, optimize=True)
+    cexit_roi_start = DecimalParameter(0.01, 0.05, default=0.01, space='sell', load=True, optimize=True)
+    cexit_roi_end = DecimalParameter(0.0, 0.01, default=0, space='sell', load=True, optimize=True)
+    cexit_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any', 'none'], default='any', space='sell',
                                             load=True, optimize=True)
-    csell_pullback = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
-    csell_pullback_amount = DecimalParameter(0.005, 0.03, default=0.01, space='sell', load=True, optimize=True)
-    csell_pullback_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
+    cexit_pullback = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+    cexit_pullback_amount = DecimalParameter(0.005, 0.03, default=0.01, space='sell', load=True, optimize=True)
+    cexit_pullback_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
                                                       optimize=True)
-    csell_endtrend_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
+    cexit_endtrend_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
                                                       optimize=True)
 
     # Custom Stoploss
@@ -120,7 +120,7 @@ class NNBC_swing(NNBC):
         buys = np.where(
             (
                     # (future_df['volume'] > 0) & # volume check
-                    (future_df['future_gain'] > self.profit_threshold) &  # future gain
+                    (future_df['future_gain'] > future_df['profit_threshold']) &  # future gain
                     (future_df['dwt_bottom'] > 0)   # bottom of trend
                     # (qtpylib.crossed_above(future_df['dwt_deriv'], 0.0)) # start of upswing
 
@@ -133,7 +133,7 @@ class NNBC_swing(NNBC):
         sells = np.where(
             (
                     # (future_df['volume'] > 0) & # volume check
-                    (future_df['future_gain'] < self.loss_threshold) & # future loss
+                    (future_df['future_gain'] < future_df['loss_threshold']) & # future loss
                     (future_df['dwt_top'] > 0)  # top of trend
                     # (qtpylib.crossed_below(future_df['dwt_deriv'], 0.0)) # start of downswing
             ), 1.0, 0.0)
@@ -145,4 +145,3 @@ class NNBC_swing(NNBC):
         self.add_debug_indicator(future_df, 'future_gain')
 
         return
-

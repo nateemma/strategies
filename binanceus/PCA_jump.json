@@ -2,10 +2,10 @@
   "strategy_name": "PCA_jump",
   "params": {
     "roi": {
-      "0": 0.05
+      "0": 0.06
     },
     "stoploss": {
-      "stoploss": -0.05
+      "stoploss": -0.99
     },
     "trailing": {
       "trailing_stop": true,
@@ -15,24 +15,24 @@
     },
     "buy": {},
     "sell": {
-      "cexit_endtrend_respect_roi": true,
-      "cexit_pullback": true,
-      "cexit_pullback_amount": 0.012,
-      "cexit_pullback_respect_roi": true,
+      "cexit_endtrend_respect_roi": false,
+      "cexit_pullback": false,
+      "cexit_pullback_amount": 0.02,
+      "cexit_pullback_respect_roi": false,
       "cexit_roi_end": 0.004,
-      "cexit_roi_start": 0.022,
-      "cexit_roi_time": 1159,
-      "cexit_roi_type": "decay",
+      "cexit_roi_start": 0.015,
+      "cexit_roi_time": 1282,
+      "cexit_roi_type": "step",
       "cexit_trend_type": "none",
       "cstop_bail_how": "none",
-      "cstop_bail_roc": -2.267,
-      "cstop_bail_time": 493,
+      "cstop_bail_roc": -3.914,
+      "cstop_bail_time": 637,
       "cstop_bail_time_trend": false,
-      "cstop_loss_threshold": -0.04,
-      "cstop_max_stoploss": -0.113
+      "cstop_loss_threshold": -0.023,
+      "cstop_max_stoploss": -0.106
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-12-24 03:04:18.661604+00:00"
+  "export_time": "2023-01-06 00:10:08.982632+00:00"
 }

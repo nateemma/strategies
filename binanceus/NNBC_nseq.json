@@ -2,10 +2,10 @@
   "strategy_name": "NNBC_nseq",
   "params": {
     "roi": {
-      "0": 0.05
+      "0": 0.06
     },
     "stoploss": {
-      "stoploss": -0.05
+      "stoploss": -0.99
     },
     "trailing": {
       "trailing_stop": false,
@@ -17,15 +17,15 @@
       "buy_nseq_dn": 0
     },
     "sell": {
-      "csell_endtrend_respect_roi": false,
-      "csell_pullback": false,
-      "csell_pullback_amount": 0.02,
-      "csell_pullback_respect_roi": false,
-      "csell_roi_end": 0.009,
-      "csell_roi_start": 0.049,
-      "csell_roi_time": 1004,
-      "csell_roi_type": "static",
-      "csell_trend_type": "none",
+      "cexit_endtrend_respect_roi": false,
+      "cexit_pullback": false,
+      "cexit_pullback_amount": 0.02,
+      "cexit_pullback_respect_roi": false,
+      "cexit_roi_end": 0.009,
+      "cexit_roi_start": 0.049,
+      "cexit_roi_time": 1004,
+      "cexit_roi_type": "static",
+      "cexit_trend_type": "none",
       "cstop_bail_how": "roc",
       "cstop_bail_roc": -2.818,
       "cstop_bail_time": 817,

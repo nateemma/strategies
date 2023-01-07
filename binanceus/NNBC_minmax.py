@@ -55,19 +55,7 @@ PCA_minmax:
 
 class NNBC_minmax(NNBC):
 
-    plot_config = {
-        'main_plot': {
-            'dwt': {'color': 'darkcyan'},
-            # '%future_min': {'color': 'salmon'},
-            # '%future_max': {'color': 'cadetblue'},
-        },
-        'subplots': {
-            "Diff": {
-                '%train_buy': {'color': 'salmon'},
-                'predict_buy': {'color': 'cadetblue'},
-            },
-        }
-    }
+
 
     # Do *not* hyperopt for the roi and stoploss spaces
 
@@ -76,10 +64,10 @@ class NNBC_minmax(NNBC):
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
-    lookahead_hours = 4.0
-    n_profit_stddevs = 0.0
-    n_loss_stddevs = 0.0
-    min_f1_score = 0.70
+    lookahead_hours = 8.0
+    n_profit_stddevs = 2.0
+    n_loss_stddevs = 2.0
+    min_f1_score = 0.50
 
     custom_trade_info = {}
 
@@ -89,6 +77,7 @@ class NNBC_minmax(NNBC):
     dbg_verbose = True  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
 
+    refit_model = True
     ###################################
 
     # Strategy Specific Variable Storage
@@ -101,18 +90,18 @@ class NNBC_minmax(NNBC):
     # sell_pca_gain = IntParameter(-1, -15, default=-4, space='sell', load=True, optimize=True)
 
     # Custom Sell Profit (formerly Dynamic ROI)
-    csell_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
+    cexit_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
                                           optimize=True)
-    csell_roi_time = IntParameter(720, 1440, default=720, space='sell', load=True, optimize=True)
-    csell_roi_start = DecimalParameter(0.01, 0.05, default=0.01, space='sell', load=True, optimize=True)
-    csell_roi_end = DecimalParameter(0.0, 0.01, default=0, space='sell', load=True, optimize=True)
-    csell_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any', 'none'], default='any', space='sell',
+    cexit_roi_time = IntParameter(720, 1440, default=720, space='sell', load=True, optimize=True)
+    cexit_roi_start = DecimalParameter(0.01, 0.05, default=0.01, space='sell', load=True, optimize=True)
+    cexit_roi_end = DecimalParameter(0.0, 0.01, default=0, space='sell', load=True, optimize=True)
+    cexit_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any', 'none'], default='any', space='sell',
                                             load=True, optimize=True)
-    csell_pullback = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
-    csell_pullback_amount = DecimalParameter(0.005, 0.03, default=0.01, space='sell', load=True, optimize=True)
-    csell_pullback_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
+    cexit_pullback = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+    cexit_pullback_amount = DecimalParameter(0.005, 0.03, default=0.01, space='sell', load=True, optimize=True)
+    cexit_pullback_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
                                                       optimize=True)
-    csell_endtrend_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
+    cexit_endtrend_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
                                                       optimize=True)
 
     # Custom Stoploss
@@ -138,9 +127,12 @@ class NNBC_minmax(NNBC):
             (
                     (future_df['mfi'] < 30) & # loose guard
                     # (future_df['dwt_at_min'] > 0) & # at min of previous window
-                    (future_df['dwt_bottom'] > 0) &  # at min of previous window
+                    # (future_df['dwt_bottom'] > 0) &  # at min of previous window
 
-                    (future_df['future_gain'] >= self.profit_threshold) # profit in next window exceeds threshold
+                    (future_df['full_dwt'] <= future_df['dwt_recent_min']) &  # at min of past window
+                    (future_df['full_dwt'] <= future_df['future_min']) &  # at min of future window
+
+                    (future_df['future_gain'] >= future_df['profit_threshold']) # profit in next window exceeds threshold
             ), 1.0, 0.0)
 
         return series
@@ -151,20 +143,31 @@ class NNBC_minmax(NNBC):
             (
                     (future_df['mfi'] > 70) &  # loose guard
                     # (future_df['dwt_at_max'] > 0) & # at max of previous window
-                    (future_df['dwt_top'] > 0) & # at max of previous window
+                    # (future_df['dwt_top'] > 0) & # at max of previous window
 
-                    (future_df['future_gain'] <= self.loss_threshold) # loss in next window exceeds threshold
+                    (future_df['full_dwt'] >= future_df['dwt_recent_min']) &  # at max of past window
+                    (future_df['full_dwt'] >= future_df['future_max']) &  # at max of future window
+
+                    (future_df['future_gain'] <= future_df['loss_threshold']) # loss in next window exceeds threshold
             ), 1.0, 0.0)
 
         return series
+
+    def get_strategy_buy_conditions(self, dataframe: DataFrame):
+        cond = np.where(
+            (
+                # sell signal is not active
+                (dataframe['predict_sell'] < 0.1)
+            ), 1.0, 0.0)
+        return cond
 
 
     # save the indicators used here so that we can see them in plots (prefixed by '%')
     def save_debug_indicators(self, future_df: DataFrame):
         # self.add_debug_indicator(future_df, 'future_min')
-        # self.add_debug_indicator(future_df, 'future_max')
-        self.add_debug_indicator(future_df, 'dwt_bottom')
-        self.add_debug_indicator(future_df, 'dwt_top')
+        # # self.add_debug_indicator(future_df, 'future_max')
+        # self.add_debug_indicator(future_df, 'dwt_at_min')
+        # self.add_debug_indicator(future_df, 'dwt_at_max')
         self.add_debug_indicator(future_df, 'train_buy')
         self.add_debug_indicator(future_df, 'train_sell')
 

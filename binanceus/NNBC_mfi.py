@@ -84,18 +84,18 @@ class NNBC_mfi(NNBC):
     # PCA hyperparams
 
     # Custom Sell Profit (formerly Dynamic ROI)
-    csell_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
+    cexit_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
                                           optimize=True)
-    csell_roi_time = IntParameter(720, 1440, default=720, space='sell', load=True, optimize=True)
-    csell_roi_start = DecimalParameter(0.01, 0.05, default=0.01, space='sell', load=True, optimize=True)
-    csell_roi_end = DecimalParameter(0.0, 0.01, default=0, space='sell', load=True, optimize=True)
-    csell_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any', 'none'], default='any', space='sell',
+    cexit_roi_time = IntParameter(720, 1440, default=720, space='sell', load=True, optimize=True)
+    cexit_roi_start = DecimalParameter(0.01, 0.05, default=0.01, space='sell', load=True, optimize=True)
+    cexit_roi_end = DecimalParameter(0.0, 0.01, default=0, space='sell', load=True, optimize=True)
+    cexit_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any', 'none'], default='any', space='sell',
                                             load=True, optimize=True)
-    csell_pullback = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
-    csell_pullback_amount = DecimalParameter(0.005, 0.03, default=0.01, space='sell', load=True, optimize=True)
-    csell_pullback_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
+    cexit_pullback = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+    cexit_pullback_amount = DecimalParameter(0.005, 0.03, default=0.01, space='sell', load=True, optimize=True)
+    cexit_pullback_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
                                                       optimize=True)
-    csell_endtrend_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
+    cexit_endtrend_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
                                                       optimize=True)
 
     # Custom Stoploss
@@ -116,29 +116,32 @@ class NNBC_mfi(NNBC):
     # Note that this will find a lot of results, may want to add a few more guards
 
     def get_train_buy_signals(self, future_df: DataFrame):
-        series = np.where(
+        buys = np.where(
             (
-                    (future_df['mfi'] < 20) &
-                    (future_df['future_gain'] >= self.profit_threshold)
+                # overbought condition
+                    (future_df['mfi'] <= 10) &
+
+                    # future profit
+                    (future_df['future_gain'] >= future_df['profit_threshold'])
             ), 1.0, 0.0)
 
-        return series
+        return buys
 
-    # this is a pretty generic sell condition. Can't be too picky
     def get_train_sell_signals(self, future_df: DataFrame):
-        series = np.where(
+        sells = np.where(
             (
-                    (future_df['mfi'] > 80) &
-                    (future_df['future_gain'] <= self.loss_threshold)
+                # oversold condition
+                    (future_df['mfi'] >= 90) &
+
+                    # future loss
+                    (future_df['future_gain'] <= future_df['loss_threshold'])
             ), 1.0, 0.0)
 
-        return series
-
+        return sells
 
     # save the indicators used here so that we can see them in plots (prefixed by '%')
     def save_debug_indicators(self, future_df: DataFrame):
-        # self.add_debug_indicator(future_df, 'future_min')
-        # self.add_debug_indicator(future_df, 'future_max')
+        self.add_debug_indicator(future_df, 'future_gain')
 
         return
 

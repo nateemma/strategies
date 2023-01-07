@@ -139,7 +139,7 @@ class PCA_jump(PCA):
                     (future_df['dwt_delta_max'] >= abs(future_df['loss_threshold'])) &
 
                     # upcoming window exceeds profit threshold
-                    (future_df['future_delta_max'] >= self.profit_threshold)
+                    (future_df['future_delta_max'] >= future_df['profit_threshold'])
                     # (future_df['future_delta_max'] >= 5.0)
 
             ), 1.0, 0.0)
@@ -156,7 +156,7 @@ class PCA_jump(PCA):
                     (abs(future_df['dwt_delta_min']) >= future_df['profit_threshold']) &
 
                     # upcoming window exceeds loss threshold
-                    (future_df['future_delta_min'] <= self.loss_threshold)
+                    (future_df['future_delta_min'] <= future_df['loss_threshold'])
                     # (future_df['future_delta_min'] <= -4.0)
             ), 1.0, 0.0)
 

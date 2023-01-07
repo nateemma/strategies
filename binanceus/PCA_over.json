@@ -2,10 +2,10 @@
   "strategy_name": "PCA_over",
   "params": {
     "roi": {
-      "0": 0.05
+      "0": 0.06
     },
     "stoploss": {
-      "stoploss": -0.05
+      "stoploss": -0.99
     },
     "trailing": {
       "trailing_stop": false,
@@ -15,24 +15,24 @@
     },
     "buy": {},
     "sell": {
-      "csell_endtrend_respect_roi": true,
-      "csell_pullback": false,
-      "csell_pullback_amount": 0.01,
-      "csell_pullback_respect_roi": false,
-      "csell_roi_end": 0.008,
-      "csell_roi_start": 0.029,
-      "csell_roi_time": 1322,
-      "csell_roi_type": "step",
-      "csell_trend_type": "none",
-      "cstop_bail_how": "roc",
-      "cstop_bail_roc": -2.853,
-      "cstop_bail_time": 842,
+      "cexit_endtrend_respect_roi": true,
+      "cexit_pullback": false,
+      "cexit_pullback_amount": 0.022,
+      "cexit_pullback_respect_roi": true,
+      "cexit_roi_end": 0.002,
+      "cexit_roi_start": 0.02,
+      "cexit_roi_time": 960,
+      "cexit_roi_type": "decay",
+      "cexit_trend_type": "none",
+      "cstop_bail_how": "none",
+      "cstop_bail_roc": -3.941,
+      "cstop_bail_time": 1347,
       "cstop_bail_time_trend": true,
-      "cstop_loss_threshold": -0.023,
-      "cstop_max_stoploss": -0.211
+      "cstop_loss_threshold": -0.012,
+      "cstop_max_stoploss": -0.262
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-12-24 00:24:40.706702+00:00"
+  "export_time": "2023-01-05 23:20:49.334107+00:00"
 }

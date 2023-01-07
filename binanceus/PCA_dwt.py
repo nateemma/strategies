@@ -57,42 +57,6 @@ class PCA_dwt(PCA):
     # Have to re-declare globals, so that we can change them without affecting (or having to change) the base class,
     # and also avoiding affecting other subclasses of PCA
 
-
-    # ROI table:
-    minimal_roi = {
-        "0": 0.1
-    }
-
-    # Stoploss:
-    stoploss = -0.10
-
-    # Trailing stop:
-    trailing_stop = False
-    trailing_stop_positive = None
-    trailing_stop_positive_offset = 0.0
-    trailing_only_offset_is_reached = False
-
-    timeframe = '5m'
-
-    inf_timeframe = '5m'
-
-    use_custom_stoploss = True
-
-    # Recommended
-    use_entry_signal = True
-    entry_profit_only = False
-    ignore_roi_if_entry_signal = True
-
-    # Required
-    startup_candle_count: int = 128  # must be power of 2
-    process_only_new_candles = True
-
-    # Strategy-specific global vars
-
-    inf_mins = timeframe_to_minutes(inf_timeframe)
-    data_mins = timeframe_to_minutes(timeframe)
-    inf_ratio = int(inf_mins / data_mins)
-
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
@@ -101,34 +65,11 @@ class PCA_dwt(PCA):
     n_loss_stddevs = 2.0
     min_f1_score = 0.51
 
-    indicator_list = []  # list of parameters to use (technical indicators)
-
-    inf_lookahead = int((12 / inf_ratio) * lookahead_hours)
-    curr_lookahead = inf_lookahead
-
-    curr_pair = ""
     custom_trade_info = {}
 
-    # profit/loss thresholds used for assessing buy/sell signals. Keep these realistic!
-    # Note: if self.dynamic_gain_thresholds is True, these will be adjusted for each pair, based on historical mean
-    default_profit_threshold = 0.3
-    default_loss_threshold = -0.3
-    profit_threshold = default_profit_threshold
-    loss_threshold = default_loss_threshold
-    dynamic_gain_thresholds = True  # dynamically adjust gain thresholds based on actual mean (beware, training data could be bad)
-
-    dwt_window = startup_candle_count
-
-    num_pairs = 0
-    pair_model_info = {}  # holds model-related info for each pair
-
-    # debug flags
-    first_time = True  # mostly for debug
-    first_run = True  # used to identify first time through buy/sell populate funcs
-
-    dbg_scan_classifiers = True  # if True, scan all viable classifiers and choose the best. Very slow!
-    dbg_test_classifier = True  # test clasifiers after fitting
-    dbg_analyse_pca = False  # analyze PCA weights
+    dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
+    dbg_test_classifier = False  # test classifiers after fitting
+    dbg_analyse_pca = False  # analyze PCA weights (turn on when adding new indicators)
     dbg_verbose = False  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
 
@@ -179,7 +120,7 @@ class PCA_dwt(PCA):
                 # forward model above backward model
                     (future_df['dwt_smooth_diff'] < 0) &
                     # current loss below threshold
-                    (future_df['dwt_smooth_diff'] <= self.loss_threshold) &
+                    (future_df['dwt_smooth_diff'] <= future_df['loss_threshold']) &
                     # forward model below backward model at lookahead
                     (future_df['dwt_smooth_diff'].shift(-self.curr_lookahead) > 0)
             ), 1.0, 0.0)
@@ -192,7 +133,7 @@ class PCA_dwt(PCA):
                 # forward model above backward model
                     (future_df['dwt_smooth_diff'] > 0) &
                     # current profit above threshold
-                    (future_df['dwt_smooth_diff'] >= self.profit_threshold) &
+                    (future_df['dwt_smooth_diff'] >= future_df['profit_threshold']) &
                     # forward model below backward model at lookahead
                     (future_df['dwt_smooth_diff'].shift(-self.curr_lookahead) < 0)
             ), 1.0, 0.0)

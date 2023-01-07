@@ -81,6 +81,19 @@ from tqdm import tqdm
 import Attention
 import RBM
 
+
+from DataframeUtils import DataframeUtils
+from DataframePopulator import DataframePopulator
+
+from NNBClassifier_MLP import NNBClassifier_MLP
+from NNBClassifier_MLP2 import NNBClassifier_MLP2
+from NNBClassifier_LSTM import NNBClassifier_LSTM
+from NNBClassifier_LSTM2 import NNBClassifier_LSTM2
+from NNBClassifier_Attention import NNBClassifier_Attention
+from NNBClassifier_Multihead import NNBClassifier_Multihead
+from NNBClassifier_Transformer import NNBClassifier_Transformer
+from NNBClassifier_RBM import NNBClassifier_RBM
+
 """
 ####################################################################################
 NNBC - Neural Net Binary Classifier
@@ -145,11 +158,11 @@ class NNBC(IStrategy):
 
     # ROI table:
     minimal_roi = {
-        "0": 0.05
+        "0": 0.06
     }
 
     # Stoploss:
-    stoploss = -0.05
+    stoploss = -0.99
 
     # Trailing stop:
     trailing_stop = False
@@ -190,7 +203,8 @@ class NNBC(IStrategy):
     compressor = None
     compress_data = True
     # classifier_name = 'Transformer'  # select based on testing
-    classifier_name = 'Multihead'  # select based on testing
+    # classifier_name = 'Multihead'  # select based on testing
+    classifier_name = 'LSTM'  # for debug
     buy_classifier = None
     sell_classifier = None
 
@@ -199,25 +213,19 @@ class NNBC(IStrategy):
     curr_pair = ""
     custom_trade_info = {}
 
-    # profit/loss thresholds used for assessing buy/sell signals. Keep these realistic!
-    # Note: if self.dynamic_gain_thresholds is True, these will be adjusted for each pair, based on historical mean
-    default_profit_threshold = 0.3
-    default_loss_threshold = -0.3
-    profit_threshold = default_profit_threshold
-    loss_threshold = default_loss_threshold
-    dynamic_gain_thresholds = True  # dynamically adjust gain thresholds based on actual mean (beware, training data could be bad)
-
-    # the following affect training of the model. Bigger numbers give better model, but take longer and use more memory
+    # the following affect training of the model. Bigger numbers give better results, but take longer and use more memory
     seq_len = 8  # 'depth' of training sequence
     num_epochs = 512  # number of iterations for training
     batch_size = 1024  # batch size for training
 
-    cherrypick_data = False
-    refit_model = True  # only set to True when training. If False, then existing model is used, if present
-    use_full_dataset = True  # use the entire dataset for training (in backtest/hyperopt)
+    refit_model = False  # only set to True when training. If False, then existing model is used, if present
+    use_full_dataset = True  # use the entire dataset for training (in backtest)
 
-    buy_tag = 'buy'
-    sell_tag = 'sell'
+    dataframeUtils = None
+    dataframePopulator = None
+
+    buy_tag = 'Buy'
+    sell_tag = 'Sell'
 
     dwt_window = startup_candle_count
 
@@ -294,7 +302,7 @@ class NNBC(IStrategy):
         series = np.where(
             (
                 # (future_df['mfi'] <= 30) &  # loose oversold threshold
-                (future_df['future_gain'] >= self.profit_threshold)  # future gain above threshold
+                (future_df['future_gain'] >= future_df['profit_threshold'])  # future gain above threshold
             ), 1.0, 0.0)
 
         return series
@@ -306,7 +314,7 @@ class NNBC(IStrategy):
         series = np.where(
             (
                 # (future_df['mfi'] >= 70) &  # loose overbought threshold
-                (future_df['future_gain'] <= self.loss_threshold)  # future loss above threshold
+                (future_df['future_gain'] <= future_df['loss_threshold'])  # future loss above threshold
             ), 1.0, 0.0)
 
         return series
@@ -348,50 +356,51 @@ class NNBC(IStrategy):
         self.curr_lookahead = int(12 * self.lookahead_hours)
         self.dbg_curr_df = dataframe
 
-        # reset profit/loss thresholds
-        self.profit_threshold = self.default_profit_threshold
-        self.loss_threshold = self.default_loss_threshold
+        if self.dataframeUtils is None:
+            self.dataframeUtils = DataframeUtils()
 
-        if NNBC.first_time:
-            NNBC.first_time = False
+        if self.dataframePopulator is None:
+            self.dataframePopulator = DataframePopulator()
+
+            self.dataframePopulator.runmode = self.dp.runmode.value
+            self.dataframePopulator.win_size = min(14, self.curr_lookahead)
+            self.dataframePopulator.startup_win = self.startup_candle_count
+            self.dataframePopulator.n_loss_stddevs = self.n_loss_stddevs
+            self.dataframePopulator.n_profit_stddevs = self.n_profit_stddevs
+
+        if self.first_time:
+            self.first_time = False
             print("")
             print("***************************************")
             print("** Warning: startup can be very slow **")
             print("***************************************")
 
             print("    Lookahead: ", self.curr_lookahead, " candles (", self.lookahead_hours, " hours)")
-            print("    Thresholds - Profit:{:.2f}% Loss:{:.2f}%".format(self.profit_threshold,
-                                                                        self.loss_threshold))
+
+
+        print("")
+        print(curr_pair)
 
         # make sure we only retrain in backtest modes
         if self.dp.runmode.value not in ('backtest'):
             self.refit_model = False
 
-        if self.buy_classifier is None:
-            self.buy_classifier = self.load_model(self.classifier_name, self.buy_tag)
-
-        if self.sell_classifier is None:
-            self.sell_classifier = self.load_model(self.classifier_name, self.sell_tag)
-
-        print("")
-        print(curr_pair)
-
         # populate the normal dataframe
-        dataframe = self.add_indicators(dataframe)
+        dataframe = self.dataframePopulator.add_indicators(dataframe)
 
         buys, sells = self.create_training_data(dataframe)
 
-        # drop last group (because there cannot be a prediction)
-        df = dataframe.iloc[:-self.curr_lookahead]
-        buys = buys.iloc[:-self.curr_lookahead]
-        sells = sells.iloc[:-self.curr_lookahead]
+        # # drop last group (because there cannot be a prediction)
+        # df = dataframe.iloc[:-self.curr_lookahead]
+        # buys = buys.iloc[:-self.curr_lookahead]
+        # sells = sells.iloc[:-self.curr_lookahead]
 
         # Principal Component Analysis of inf data
 
         # train the models on the informative data
         if self.dbg_verbose:
             print("    training models...")
-        self.train_models(curr_pair, df, buys, sells)
+        self.train_models(curr_pair, dataframe, buys, sells)
         # add predictions
 
         if self.dbg_verbose:
@@ -410,489 +419,15 @@ class NNBC(IStrategy):
 
         return dataframe
 
-    ###################################
-
-    # populate dataframe with desired technical indicators
-    # NOTE: OK to throw (almost) anything in here, just add it to the parameter list
-    # The whole idea is to create a dimension-reduced mapping anyway
-    # Warning: do not use indicators that might produce 'inf' results, it messes up the scaling
-    def add_indicators(self, dataframe: DataFrame) -> DataFrame:
-
-        win_size = max(self.curr_lookahead, 14)
-
-        # these averages are used internally, do not remove!
-        dataframe['sma'] = ta.SMA(dataframe, timeperiod=win_size)
-        dataframe['ema'] = ta.EMA(dataframe, timeperiod=win_size)
-        dataframe['tema'] = ta.TEMA(dataframe, timeperiod=win_size)
-        dataframe['tema_stddev'] = dataframe['tema'].rolling(win_size).std()
-
-        # RSI
-        period = 14
-        smoothD = 3
-        SmoothK = 3
-        dataframe['rsi'] = ta.RSI(dataframe, timeperiod=win_size)
-        stochrsi = (dataframe['rsi'] - dataframe['rsi'].rolling(period).min()) / (
-                dataframe['rsi'].rolling(period).max() - dataframe['rsi'].rolling(period).min())
-        dataframe['srsi_k'] = stochrsi.rolling(SmoothK).mean() * 100
-        dataframe['srsi_d'] = dataframe['srsi_k'].rolling(smoothD).mean()
-
-        # Bollinger Bands (must include these)
-        bollinger = qtpylib.bollinger_bands(dataframe['close'], window=20, stds=2)
-        dataframe['bb_lowerband'] = bollinger['lower']
-        dataframe['bb_middleband'] = bollinger['mid']
-        dataframe['bb_upperband'] = bollinger['upper']
-        dataframe['bb_width'] = ((dataframe['bb_upperband'] - dataframe['bb_lowerband']) / dataframe['bb_middleband'])
-        dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
-        dataframe["bb_loss"] = ((dataframe["bb_lowerband"] - dataframe["close"]) / dataframe["close"])
-
-        # Donchian Channels
-        dataframe['dc_upper'] = ta.MAX(dataframe['high'], timeperiod=win_size)
-        dataframe['dc_lower'] = ta.MIN(dataframe['low'], timeperiod=win_size)
-        dataframe['dc_mid'] = ta.TEMA(((dataframe['dc_upper'] + dataframe['dc_lower']) / 2), timeperiod=win_size)
-
-        dataframe["dcbb_dist_upper"] = (dataframe["dc_upper"] - dataframe['bb_upperband'])
-        dataframe["dcbb_dist_lower"] = (dataframe["dc_lower"] - dataframe['bb_lowerband'])
-
-        # Fibonacci Levels (of Donchian Channel)
-        dataframe['dc_dist'] = (dataframe['dc_upper'] - dataframe['dc_lower'])
-        # dataframe['dc_hf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.236  # Highest Fib
-        # dataframe['dc_chf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.382  # Centre High Fib
-        # dataframe['dc_clf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.618  # Centre Low Fib
-        # dataframe['dc_lf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.764  # Low Fib
-
-        #  # Keltner Channels
-        # keltner = qtpylib.keltner_channel(dataframe)
-        # dataframe["kc_upper"] = keltner["upper"]
-        # dataframe["kc_lower"] = keltner["lower"]
-        # dataframe["kc_mid"] = keltner["mid"]
-
-        # Williams %R
-        dataframe['wr'] = 0.02 * (williams_r(dataframe, period=14) + 50.0)
-
-        # Fisher RSI
-        rsi = 0.1 * (dataframe['rsi'] - 50)
-        dataframe['fisher_rsi'] = (np.exp(2 * rsi) - 1) / (np.exp(2 * rsi) + 1)
-
-        # Combined Fisher RSI and Williams %R
-        dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
-
-        # RSI
-        # dataframe['rsi'] = ta.RSI(dataframe, timeperiod=win_size)
-        dataframe['rsi_14'] = ta.RSI(dataframe, timeperiod=14)
-
-        # # EMAs
-        # dataframe['ema_12'] = ta.EMA(dataframe, timeperiod=12)
-        # dataframe['ema_20'] = ta.EMA(dataframe, timeperiod=20)
-        # dataframe['ema_25'] = ta.EMA(dataframe, timeperiod=25)
-        # dataframe['ema_35'] = ta.EMA(dataframe, timeperiod=35)
-        # dataframe['ema_50'] = ta.EMA(dataframe, timeperiod=50)
-        # dataframe['ema_100'] = ta.EMA(dataframe, timeperiod=100)
-        # dataframe['ema_200'] = ta.EMA(dataframe, timeperiod=200)
-
-        # SMA
-        dataframe['sma_200'] = ta.SMA(dataframe, timeperiod=200)
-        dataframe['sma_200_dec_20'] = np.where(dataframe['sma_200'] < dataframe['sma_200'].shift(20), 1.0, -1.0)
-        dataframe['sma_200_dec_24'] = np.where(dataframe['sma_200'] < dataframe['sma_200'].shift(24), 1.0, -1.0)
-
-        # # CMF
-        # dataframe['cmf'] = chaikin_money_flow(dataframe, 20)
-
-        # # CTI
-        # dataframe['cti'] = pta.cti(dataframe["close"], length=20)
-
-        # CRSI (3, 2, 100)
-        crsi_closechange = dataframe['close'] / dataframe['close'].shift(1)
-        crsi_updown = np.where(crsi_closechange.gt(1), 1.0, np.where(crsi_closechange.lt(1), -1.0, -1.0))
-        dataframe['crsi'] = (ta.RSI(dataframe['close'], timeperiod=3) + ta.RSI(crsi_updown, timeperiod=2) + ta.ROC(
-            dataframe['close'],
-            100)) / 3
-
-        # Williams %R
-        dataframe['r_14'] = williams_r(dataframe, period=14)
-        dataframe['r_480'] = williams_r(dataframe, period=480)
-
-        # ROC
-        dataframe['roc_9'] = ta.ROC(dataframe, timeperiod=9)
-
-        # # T3 Average
-        # dataframe['t3_avg'] = t3_average(dataframe)
-
-        # # S/R
-        # res_series = dataframe['high'].rolling(window=5, center=True).apply(lambda row: is_resistance(row),
-        #                                                                     raw=True).shift(2)
-        # sup_series = dataframe['low'].rolling(window=5, center=True).apply(lambda row: is_support(row),
-        #                                                                    raw=True).shift(2)
-        # dataframe['res_level'] = Series(
-        #     np.where(res_series,
-        #              np.where(dataframe['close'] > dataframe['open'], dataframe['close'], dataframe['open']),
-        #              float('NaN'))).ffill()
-        # dataframe['res_hlevel'] = Series(np.where(res_series, dataframe['high'], float('NaN'))).ffill()
-        # dataframe['sup_level'] = Series(
-        #     np.where(sup_series,
-        #              np.where(dataframe['close'] < dataframe['open'], dataframe['close'], dataframe['open']),
-        #              float('NaN'))).ffill()
-
-        # Pump protections
-        dataframe['hl_pct_change_48'] = range_percent_change(dataframe, 'HL', 48)
-        dataframe['hl_pct_change_36'] = range_percent_change(dataframe, 'HL', 36)
-        dataframe['hl_pct_change_24'] = range_percent_change(dataframe, 'HL', 24)
-        dataframe['hl_pct_change_12'] = range_percent_change(dataframe, 'HL', 12)
-        dataframe['hl_pct_change_6'] = range_percent_change(dataframe, 'HL', 6)
-
-        # ADX
-        dataframe['adx'] = ta.ADX(dataframe)
-
-        # Plus Directional Indicator / Movement
-        dataframe['dm_plus'] = ta.PLUS_DM(dataframe)
-        dataframe['di_plus'] = ta.PLUS_DI(dataframe)
-
-        # Minus Directional Indicator / Movement
-        dataframe['dm_minus'] = ta.MINUS_DM(dataframe)
-        dataframe['di_minus'] = ta.MINUS_DI(dataframe)
-        dataframe['dm_delta'] = dataframe['dm_plus'] - dataframe['dm_minus']
-        dataframe['di_delta'] = dataframe['di_plus'] - dataframe['di_minus']
-
-        # MACD
-        macd = ta.MACD(dataframe)
-        dataframe['macd'] = macd['macd']
-        dataframe['macdsignal'] = macd['macdsignal']
-        dataframe['macdhist'] = macd['macdhist']
-
-        # Stoch fast
-        stoch_fast = ta.STOCHF(dataframe)
-        dataframe['fastd'] = stoch_fast['fastd']
-        dataframe['fastk'] = stoch_fast['fastk']
-        dataframe['fast_diff'] = dataframe['fastd'] - dataframe['fastk']
-
-        # # SAR Parabol
-        # dataframe['sar'] = ta.SAR(dataframe)
-
-        dataframe['mom'] = ta.MOM(dataframe, timeperiod=14)
-
-        # priming indicators
-        dataframe['color'] = np.where((dataframe['close'] > dataframe['open']), 1.0, -1.0)
-        dataframe['rsi_7'] = ta.RSI(dataframe, timeperiod=7)
-        dataframe['roc_6'] = ta.ROC(dataframe, timeperiod=6)
-        dataframe['primed'] = np.where(dataframe['color'].rolling(3).sum() == 3.0, 1.0, -1.0)
-        dataframe['in_the_mood'] = np.where(dataframe['rsi_7'] > dataframe['rsi_7'].rolling(12).mean(), 1.0, -1.0)
-        dataframe['moist'] = np.where(qtpylib.crossed_above(dataframe['macd'], dataframe['macdsignal']), 1.0, -1.0)
-        dataframe['throbbing'] = np.where(dataframe['roc_6'] > dataframe['roc_6'].rolling(12).mean(), 1.0, -1.0)
-
-        # ## sqzmi to detect quiet periods
-        # dataframe['sqzmi'] = np.where(fta.SQZMI(dataframe), 1.0, -1.0)
-        # dataframe['sqz_on'] = np.where(
-        #     (
-        #         (dataframe["kc_upper"] > dataframe['bb_upperband']) &
-        #         (dataframe["kc_lower"] < dataframe['bb_lowerband'])
-        #     ), 1.0, -1.0
-        # )
-        # dataframe['sqz_off'] = np.where(
-        #     (
-        #         (dataframe["kc_upper"] < dataframe['bb_upperband']) &
-        #         (dataframe["kc_lower"] > dataframe['bb_lowerband'])
-        #     ), 1.0, -1.0
-        # )
-        # dataframe['sqz_none'] = np.where(
-        #     (
-        #         (dataframe['sqz_on'] < 0) &
-        #         (dataframe["sqz_off"] < 0)
-        #     ), 1.0, -1.0
-        # )
-
-        # MFI
-        dataframe['mfi'] = ta.MFI(dataframe)
-        # dataframe['mfi_norm'] = self.norm_column(dataframe['mfi'])
-        # dataframe['mfi_buy'] = np.where((dataframe['mfi_norm'] > 0.5), 1.0, 0.0)
-        # dataframe['mfi_sell'] = np.where((dataframe['mfi_norm'] <= -0.5), 1.0, 0.0)
-        # dataframe['mfi_signal'] = dataframe['mfi_buy'] - dataframe['mfi_sell']
-
-        # Volume Flow Indicator (MFI) for volume based on the direction of price movement
-        dataframe['vfi'] = fta.VFI(dataframe, period=14)
-        # dataframe['vfi_norm'] = self.norm_column(dataframe['vfi'])
-        # dataframe['vfi_buy'] = np.where((dataframe['vfi_norm'] > 0.5), 1.0, 0.0)
-        # dataframe['vfi_sell'] = np.where((dataframe['vfi_norm'] <= -0.5), 1.0, 0.0)
-        # dataframe['vfi_signal'] = dataframe['vfi_buy'] - dataframe['vfi_sell']
-
-        # ATR
-        dataframe['atr'] = ta.ATR(dataframe, timeperiod=win_size)
-        # dataframe['atr_norm'] = self.norm_column(dataframe['atr'])
-        # dataframe['atr_buy'] = np.where((dataframe['atr_norm'] > 0.5), 1.0, 0.0)
-        # dataframe['atr_sell'] = np.where((dataframe['atr_norm'] <= -0.5), 1.0, 0.0)
-        # dataframe['atr_signal'] = dataframe['atr_buy'] - dataframe['atr_sell']
-
-        # Hilbert Transform Indicator - SineWave
-        hilbert = ta.HT_SINE(dataframe)
-        dataframe['htsine'] = hilbert['sine']
-        dataframe['htleadsine'] = hilbert['leadsine']
-
-        # Oscillators
-
-        # EWO
-        dataframe['ewo'] = ewo(dataframe, 50, 200)
-
-        # Ultimate Oscillator
-        dataframe['uo'] = ta.ULTOSC(dataframe)
-
-        # Aroon, Aroon Oscillator
-        aroon = ta.AROON(dataframe)
-        dataframe['aroonup'] = aroon['aroonup']
-        dataframe['aroondown'] = aroon['aroondown']
-        dataframe['aroonosc'] = ta.AROONOSC(dataframe)
-
-        # Awesome Oscillator
-        dataframe['ao'] = qtpylib.awesome_oscillator(dataframe)
-
-        # Commodity Channel Index: values [Oversold:-100, Overbought:100]
-        dataframe['cci'] = ta.CCI(dataframe)
-
-        # DWT model
-        # if in backtest or hyperopt, then we have to do rolling calculations
-        if self.dp.runmode.value in ('plot', 'hyperopt', 'backtest'):
-            dataframe['dwt'] = dataframe['close'].rolling(window=self.dwt_window).apply(self.roll_get_dwt)
-            dataframe['smooth'] = dataframe['close'].rolling(window=self.dwt_window).apply(self.roll_smooth)
-            dataframe['dwt_smooth'] = dataframe['dwt'].rolling(window=self.dwt_window).apply(self.roll_smooth)
-        else:
-            dataframe['dwt'] = self.get_dwt(dataframe['close'])
-            dataframe['smooth'] = gaussian_filter1d(dataframe['close'], 2)
-            dataframe['dwt_smooth'] = gaussian_filter1d(dataframe['dwt'], 2)
-
-        # dataframe['dwt_smooth'] = dataframe['dwt_smooth'].clip(lower=dataframe['dwt'].min()) # avoid startup artifacts
-        dataframe['dwt_smooth'].replace(0, dataframe['dwt'].min(), inplace=True)
-
-        # smoothed version - useful for trends
-        # dataframe['dwt_smooth'] = gaussian_filter1d(dataframe['dwt'], 8)
-
-        dataframe['dwt_diff'] = 100.0 * (dataframe['dwt'] - dataframe['close']) / dataframe['close']
-        dataframe['dwt_smooth_diff'] = 100.0 * (dataframe['dwt'] - dataframe['dwt_smooth']) / dataframe['dwt_smooth']
-
-        # up/down direction
-        dataframe['dwt_dir'] = 0.0
-        # dataframe['dwt_dir'] = np.where(dataframe['dwt'].diff() >= 0, 1.0, -1.0)
-        dataframe['dwt_dir'] = np.where(dataframe['dwt_smooth'].diff() > 0, 1.0, -1.0)
-
-        dataframe['dwt_trend'] = np.where(dataframe['dwt_dir'].rolling(5).sum() > 0.0, 1.0, -1.0)
-
-        dataframe['dwt_gain'] = 100.0 * (dataframe['dwt'] - dataframe['dwt'].shift()) / dataframe['dwt'].shift()
-
-        # gain from beginning of window to end of window
-        dataframe['dwt_win_gain'] = 100.0 * (dataframe['dwt'] - dataframe['dwt'].shift(self.curr_lookahead)) / \
-                                    dataframe['dwt'].shift(self.curr_lookahead)
-
-        dataframe['dwt_profit'] = dataframe['dwt_gain'].clip(lower=0.0)
-        dataframe['dwt_loss'] = dataframe['dwt_gain'].clip(upper=0.0)
-
-        # get rolling mean & stddev so that we have a localised estimate of (recent) activity
-        dataframe['dwt_mean'] = dataframe['dwt'].rolling(win_size).mean()
-        dataframe['dwt_std'] = dataframe['dwt'].rolling(win_size).std()
-        dataframe['dwt_profit_mean'] = dataframe['dwt_profit'].rolling(win_size).mean()
-        dataframe['dwt_profit_std'] = dataframe['dwt_profit'].rolling(win_size).std()
-        dataframe['dwt_loss_mean'] = dataframe['dwt_loss'].rolling(win_size).mean()
-        dataframe['dwt_loss_std'] = dataframe['dwt_loss'].rolling(win_size).std()
-
-        dataframe['dwt_dir_up'] = dataframe['dwt_dir'].clip(lower=0.0)
-        dataframe['dwt_nseq_up'] = dataframe['dwt_dir_up'] * (dataframe['dwt_dir_up'].groupby(
-            (dataframe['dwt_dir_up'] != dataframe['dwt_dir_up'].shift()).cumsum()).cumcount() + 1)
-        dataframe['dwt_nseq_up'] = dataframe['dwt_nseq_up'].clip(lower=0.0, upper=20.0)  # removes startup artifacts
-
-        # dataframe['dwt_nseq_up_mean'] = dataframe['dwt_nseq_up'].rolling(window=win_size).mean()
-        # dataframe['dwt_nseq_up_std'] = dataframe['dwt_nseq_up'].rolling(window=win_size).std()
-        # dataframe['dwt_nseq_up_thresh'] = dataframe['dwt_nseq_up_mean'] + \
-        #                                   self.n_profit_stddevs * dataframe['dwt_nseq_up_std']
-        # dataframe['dwt_nseq_sell'] = np.where(dataframe['dwt_nseq_up'] > dataframe['dwt_nseq_up_thresh'], 1.0, 0.0)
-
-        dataframe['dwt_dir_dn'] = abs(dataframe['dwt_dir'].clip(upper=0.0))
-        dataframe['dwt_nseq_dn'] = dataframe['dwt_dir_dn'] * (dataframe['dwt_dir_dn'].groupby(
-            (dataframe['dwt_dir_dn'] != dataframe['dwt_dir_dn'].shift()).cumsum()).cumcount() + 1)
-        dataframe['dwt_nseq_dn'] = dataframe['dwt_nseq_dn'].clip(lower=0.0, upper=30.0)
-
-        # # dataframe['dwt_nseq_dn'] = dataframe['dwt_nseq'].clip(upper=0.0)
-        # dataframe['dwt_nseq_dn_mean'] = dataframe['dwt_nseq_dn'].rolling(window=win_size).mean()
-        # dataframe['dwt_nseq_dn_std'] = dataframe['dwt_nseq_dn'].rolling(window=win_size).std()
-        # dataframe['dwt_nseq_dn_thresh'] = dataframe['dwt_nseq_dn_mean'] - self.n_loss_stddevs * dataframe[
-        #     'dwt_nseq_dn_std']
-        # dataframe['dwt_nseq_buy'] = np.where(dataframe['dwt_nseq_dn'] < dataframe['dwt_nseq_dn_thresh'], 1.0, 0.0)
-
-        # Recent min/max
-        dataframe['dwt_recent_min'] = dataframe['dwt_smooth'].rolling(window=win_size).min()
-        dataframe['dwt_recent_max'] = dataframe['dwt_smooth'].rolling(window=win_size).max()
-        dataframe['dwt_maxmin'] = 100.0 * (dataframe['dwt_recent_max'] - dataframe['dwt_recent_min']) / \
-                                  dataframe['dwt_recent_max']
-
-        # these are differences (%) relative to the recent min/max and the current price
-        dataframe['dwt_delta_min'] = 100.0 * (dataframe['dwt_recent_min'] - dataframe['close']) / \
-                                     dataframe['close']
-        dataframe['dwt_delta_max'] = 100.0 * (dataframe['dwt_recent_max'] - dataframe['close']) / \
-                                     dataframe['close']
-
-        # longer term high/low
-        dataframe['dwt_low'] = dataframe['dwt_smooth'].rolling(window=self.startup_candle_count).min()
-        dataframe['dwt_high'] = dataframe['dwt_smooth'].rolling(window=self.startup_candle_count).max()
-
-        # # # these are (primarily) clues for the ML algorithm:
-        # dataframe['dwt_at_min'] = np.where(dataframe['dwt_smooth'] <= dataframe['dwt_recent_min'], 1.0, 0.0)
-        # dataframe['dwt_at_max'] = np.where(dataframe['dwt_smooth'] >= dataframe['dwt_recent_max'], 1.0, 0.0)
-        # dataframe['dwt_at_low'] = np.where(dataframe['dwt_smooth'] <= dataframe['dwt_low'], 1.0, 0.0)
-        # dataframe['dwt_at_high'] = np.where(dataframe['dwt_smooth'] >= dataframe['dwt_high'], 1.0, 0.0)
-
-        # TODO: remove/fix any columns that contain 'inf'
-        self.check_inf(dataframe)
-
-        # TODO: fix NaNs
-        dataframe.fillna(0.0, inplace=True)
-
-        return dataframe
-
-    # calculate future gains. Used for setting targets
-    def add_future_data(self, dataframe: DataFrame) -> DataFrame:
-
-        # yes, we lookahead in the data!
-        lookahead = self.curr_lookahead
-
-        win_size = max(lookahead, 14)
-
-        # make a copy of the dataframe so that we do not put any forward looking data into the main dataframe
-        future_df = dataframe.copy()
-
-        # we can either use the actual closing price, or the DWT model (smoother)
-
-        use_dwt = True
-        if use_dwt:
-            price_col = 'full_dwt'
-
-            # get the 'full' DWT transform. This models the entire dataframe, so cannot be used in the 'main' dataframe
-            future_df['full_dwt'] = self.get_dwt(dataframe['close'])
-
-        else:
-            price_col = 'close'
-            future_df['full_dwt'] = 0.0
-
-
-        # these look backward, but are here to be safe
-        # dataframe['dwt_deriv'] = np.gradient(dataframe['dwt_smooth'])
-        future_df['dwt_deriv'] = np.gradient(future_df['dwt'])
-        future_df['dwt_top'] = np.where(qtpylib.crossed_below(future_df['dwt_deriv'], 0.0), 1, 0)
-        future_df['dwt_bottom'] = np.where(qtpylib.crossed_above(future_df['dwt_deriv'], 0.0), 1, 0)
-
-        # calculate future gains
-        future_df['future_close'] = future_df[price_col].shift(-lookahead)
-
-        future_df['future_gain'] = 100.0 * (future_df['future_close'] - future_df[price_col]) / future_df[price_col]
-        future_df['future_gain'].clip(lower=-5.0, upper=5.0, inplace=True)
-
-        # gain from beginning of window to end of window
-        future_df['future_win_gain'] = 100.0 * (future_df['dwt'].shift(-self.curr_lookahead) - future_df['dwt'] /
-                                                future_df['dwt'])
-
-        future_df['future_profit'] = future_df['future_gain'].clip(lower=0.0)
-        future_df['future_loss'] = future_df['future_gain'].clip(upper=0.0)
-
-        # get rolling mean & stddev so that we have a localised estimate of (recent) future activity
-        # Note: window in past because we already looked forward
-        future_df['profit_mean'] = future_df['future_profit'].rolling(win_size).mean()
-        future_df['profit_std'] = future_df['future_profit'].rolling(win_size).std()
-        future_df['profit_max'] = future_df['future_profit'].rolling(win_size).max()
-        future_df['profit_min'] = future_df['future_profit'].rolling(win_size).min()
-        future_df['loss_mean'] = future_df['future_loss'].rolling(win_size).mean()
-        future_df['loss_std'] = future_df['future_loss'].rolling(win_size).std()
-        future_df['loss_max'] = future_df['future_loss'].rolling(win_size).max()
-        future_df['loss_min'] = future_df['future_loss'].rolling(win_size).min()
-
-        # future_df['profit_threshold'] = future_df['profit_mean'] + self.n_profit_stddevs * abs(future_df['profit_std'])
-        # future_df['loss_threshold'] = future_df['loss_mean'] - self.n_loss_stddevs * abs(future_df['loss_std'])
-
-        future_df['profit_threshold'] = future_df['dwt_profit_mean'] + self.n_profit_stddevs * abs(
-            future_df['dwt_profit_std'])
-        future_df['loss_threshold'] = future_df['dwt_loss_mean'] - self.n_loss_stddevs * abs(future_df['dwt_loss_std'])
-
-        future_df['profit_diff'] = (future_df['future_profit'] - future_df['profit_threshold']) * 10.0
-        future_df['loss_diff'] = (future_df['future_loss'] - future_df['loss_threshold']) * 10.0
-
-        # future_df['buy_signal'] = np.where(future_df['profit_diff'] > 0.0, 1.0, 0.0)
-        # future_df['sell_signal'] = np.where(future_df['loss_diff'] < 0.0, -1.0, 0.0)
-
-        # these explicitly uses dwt
-        future_df['future_dwt'] = future_df['full_dwt'].shift(-lookahead)
-        # future_df['curr_trend'] = np.where(future_df['full_dwt'].shift(-1) > future_df['full_dwt'], 1.0, -1.0)
-        # future_df['future_trend'] = np.where(future_df['future_dwt'].shift(-1) > future_df['future_dwt'], 1.0, -1.0)
-
-        future_df['trend'] = np.where(future_df[price_col] >= future_df[price_col].shift(), 1.0, -1.0)
-        future_df['ftrend'] = np.where(future_df['future_close'] >= future_df['future_close'].shift(), 1.0, -1.0)
-
-        future_df['curr_trend'] = np.where(future_df['trend'].rolling(3).sum() > 0.0, 1.0, -1.0)
-        future_df['future_trend'] = np.where(future_df['ftrend'].rolling(3).sum() > 0.0, 1.0, -1.0)
-
-        future_df['dwt_dir'] = 0.0
-        future_df['dwt_dir'] = np.where(dataframe['dwt'].diff() >= 0, 1, -1)
-        future_df['dwt_dir_up'] = np.where(dataframe['dwt'].diff() >= 0, 1, 0)
-        future_df['dwt_dir_dn'] = np.where(dataframe['dwt'].diff() < 0, 1, 0)
-
-        # build forward-looking sum of up/down trends
-        future_win = pd.api.indexers.FixedForwardWindowIndexer(window_size=int(win_size))  # don't use a big window
-
-        future_df['future_nseq'] = future_df['curr_trend'].rolling(window=future_win, min_periods=1).sum()
-        # future_df['future_nseq'] = future_df['dwt_nseq'].shift(-lookahead)
-
-        # future_df['future_nseq_up'] = 0.0
-        # future_df['future_nseq_up'] = np.where(
-        #     future_df["dwt_dir_up"].eq(1),
-        #     future_df.groupby(future_df["dwt_dir_up"].ne(future_df["dwt_dir_up"].shift(1)).cumsum()).cumcount() + 1,
-        #     0.0
-        # )
-        future_df['future_nseq_up'] = future_df['dwt_nseq_up'].shift(-lookahead)
-
-        future_df['future_nseq_up_mean'] = future_df['future_nseq_up'].rolling(window=future_win).mean()
-        future_df['future_nseq_up_std'] = future_df['future_nseq_up'].rolling(window=future_win).std()
-        future_df['future_nseq_up_thresh'] = future_df['future_nseq_up_mean'] + self.n_profit_stddevs * future_df[
-            'future_nseq_up_std']
-
-        # future_df['future_nseq_dn'] = -np.where(
-        #     future_df["dwt_dir_dn"].eq(1),
-        #     future_df.groupby(future_df["dwt_dir_dn"].ne(future_df["dwt_dir_dn"].shift(1)).cumsum()).cumcount() + 1,
-        #     0.0
-        # )
-        # print(future_df['future_nseq_dn'])
-        future_df['future_nseq_dn'] = future_df['dwt_nseq_dn'].shift(-lookahead)
-
-        future_df['future_nseq_dn_mean'] = future_df['future_nseq_dn'].rolling(future_win).mean()
-        future_df['future_nseq_dn_std'] = future_df['future_nseq_dn'].rolling(future_win).std()
-        future_df['future_nseq_dn_thresh'] = future_df['future_nseq_dn_mean'] \
-                                             - self.n_loss_stddevs * future_df['future_nseq_dn_std']
-
-        # Recent min/max
-        future_df['future_min'] = future_df['dwt_smooth'].rolling(window=future_win).min()
-        future_df['future_max'] = future_df['dwt_smooth'].rolling(window=future_win).max()
-        future_df['future_maxmin'] = 100.0 * (future_df['future_max'] - future_df['future_min']) / \
-                                     future_df['future_max']
-        future_df['future_delta_min'] = 100.0 * (future_df['future_min'] - future_df['close']) / \
-                                        future_df['close']
-        future_df['future_delta_max'] = 100.0 * (future_df['future_max'] - future_df['close']) / \
-                                        future_df['close']
-
-        # get average gain & stddev
-        profit_mean = future_df['future_profit'].mean()
-        profit_std = future_df['future_profit'].std()
-        loss_mean = future_df['future_loss'].mean()
-        loss_std = future_df['future_loss'].std()
-
-        # update thresholds
-        if self.profit_threshold != profit_mean:
-            newval = profit_mean + self.n_profit_stddevs * profit_std
-            print("    Profit threshold {:.4f} -> {:.4f}".format(self.profit_threshold, newval))
-            self.profit_threshold = newval
-
-        if self.loss_threshold != loss_mean:
-            newval = loss_mean - self.n_loss_stddevs * abs(loss_std)
-            print("    Loss threshold {:.4f} -> {:.4f}".format(self.loss_threshold, newval))
-            self.loss_threshold = newval
-
-        return future_df
 
     ################################
 
     # creates the buy/sell labels absed on looking ahead into the supplied dataframe
     def create_training_data(self, dataframe: DataFrame):
 
-        future_df = self.add_future_data(dataframe.copy())
+        # future_df = self.add_future_data(dataframe.copy())
+        future_df = self.dataframePopulator.add_hidden_indicators(dataframe.copy())
+        future_df = self.dataframePopulator.add_future_data(future_df, self.curr_lookahead)
 
         future_df['train_buy'] = 0.0
         future_df['train_sell'] = 0.0
@@ -923,8 +458,8 @@ class NNBC(IStrategy):
         dbg_list = [
             'full_dwt', 'train_buy', 'train_sell',
             'future_gain', 'future_min', 'future_max',
-            'profit_min', 'profit_max', 'profit_threshold',
-            'loss_min', 'loss_max', 'loss_threshold',
+            'future_profit_min', 'future_profit_max', 'profit_threshold',
+            'future_loss_min', 'future_loss_max', 'loss_threshold',
         ]
 
         if len(dbg_list) > 0:
@@ -947,86 +482,6 @@ class NNBC(IStrategy):
 
     ###################
 
-    # returns (rolling) smoothed version of input column
-    def roll_smooth(self, col) -> np.float:
-        # must return scalar, so just calculate prediction and take last value
-
-        # smooth = gaussian_filter1d(col, 4)
-        smooth = gaussian_filter1d(col, 2)
-
-        length = len(smooth)
-        if length > 0:
-            return smooth[length - 1]
-        else:
-            print("model:", smooth)
-            return 0.0
-
-    def get_dwt(self, col):
-
-        a = np.array(col)
-
-        # de-trend the data
-        w_mean = a.mean()
-        w_std = a.std()
-        a_notrend = (a - w_mean) / w_std
-        # a_notrend = a_notrend.clip(min=-3.0, max=3.0)
-
-        # get DWT model of data
-        restored_sig = self.dwtModel(a_notrend)
-
-        # re-trend
-        model = (restored_sig * w_std) + w_mean
-
-        return model
-
-    def roll_get_dwt(self, col) -> np.float:
-        # must return scalar, so just calculate prediction and take last value
-
-        model = self.get_dwt(col)
-
-        length = len(model)
-        if length > 0:
-            return model[length - 1]
-        else:
-            # cannot calculate DWT (e.g. at startup), just return original value
-            return col[len(col) - 1]
-
-    def dwtModel(self, data):
-
-        # the choice of wavelet makes a big difference
-        # for an overview, check out: https://www.kaggle.com/theoviel/denoising-with-direct-wavelet-transform
-        # wavelet = 'db1'
-        wavelet = 'db8'
-        # wavelet = 'bior1.1'
-        # wavelet = 'haar'  # deals well with harsh transitions
-        level = 1
-        wmode = "smooth"
-        tmode = "hard"
-        length = len(data)
-
-        # Apply DWT transform
-        coeff = pywt.wavedec(data, wavelet, mode=wmode)
-
-        # remove higher harmonics
-        std = np.std(coeff[level])
-        sigma = (1 / 0.6745) * self.madev(coeff[-level])
-        # sigma = self.madev(coeff[-level])
-        uthresh = sigma * np.sqrt(2 * np.log(length))
-
-        coeff[1:] = (pywt.threshold(i, value=uthresh, mode=tmode) for i in coeff[1:])
-
-        # inverse DWT transform
-        model = pywt.waverec(coeff, wavelet, mode=wmode)
-
-        # there is a known bug in waverec where odd numbered lengths result in an extra item at the end
-        diff = len(model) - len(data)
-        return model[0:len(model) - diff]
-        # return model[diff:]
-
-    def madev(self, d, axis=None):
-        """ Mean absolute deviation of a signal """
-        return np.mean(np.absolute(d - np.mean(d, axis)), axis)
-
     # add indicators used by stoploss/custom sell logic
     def add_stoploss_indicators(self, dataframe, pair) -> DataFrame:
         if not pair in self.custom_trade_info:
@@ -1035,71 +490,9 @@ class NNBC(IStrategy):
                 self.custom_trade_info[pair]['had_trend'] = False
 
         # Indicators used for ROI and Custom Stoploss
-
-        # RMI: https://www.tradingview.com/script/kwIt9OgQ-Relative-Momentum-Index/
-        dataframe['rmi'] = cta.RMI(dataframe, length=24, mom=5)
-
-        # Trends
-        dataframe['candle_up'] = np.where(dataframe['close'] >= dataframe['close'].shift(), 1.0, -1.0)
-        dataframe['candle_up_trend'] = np.where(dataframe['candle_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
-        dataframe['candle_up_seq'] = dataframe['candle_up'].rolling(5).sum()
-
-        dataframe['candle_dn'] = np.where(dataframe['close'] < dataframe['close'].shift(), 1.0, -1.0)
-        dataframe['candle_dn_trend'] = np.where(dataframe['candle_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
-        dataframe['candle_dn_seq'] = dataframe['candle_up'].rolling(5).sum()
-
-        dataframe['rmi_up'] = np.where(dataframe['rmi'] >= dataframe['rmi'].shift(), 1.0, -1.0)
-        dataframe['rmi_up_trend'] = np.where(dataframe['rmi_up'].rolling(5).sum() > 0.0, 1.0, -1.0)
-
-        dataframe['rmi_dn'] = np.where(dataframe['rmi'] <= dataframe['rmi'].shift(), 1.0, -1.0)
-        dataframe['rmi_dn_count'] = dataframe['rmi_dn'].rolling(8).sum()
-
-        ssldown, sslup = cta.SSLChannels_ATR(dataframe, length=21)
-        dataframe['sroc'] = cta.SROC(dataframe, roclen=21, emalen=13, smooth=21)
-        dataframe['ssl_dir'] = 0
-        dataframe['ssl_dir'] = np.where(sslup > ssldown, 1.0, -1.0)
+        dataframe = self.dataframePopulator.add_stoploss_indicators(dataframe)
         return dataframe
 
-    def norm_column(self, col):
-        return self.zscore_column(col)
-
-    # normalises a column. Data is in units of 1 stddev, i.e. a value of 1.0 represents 1 stdev above mean
-    def zscore_column(self, col):
-        return (col - col.mean()) / col.std()
-
-    # applies MinMax scaling to a column. Returns all data in range [0,1]
-    def minmax_column(self, col):
-        result = col
-        # print(col)
-
-        if (col.dtype == 'str') or (col.dtype == 'object'):
-            result = 0.0
-        else:
-            result = col
-            cmax = max(col)
-            cmin = min(col)
-            denom = float(cmax - cmin)
-            if denom == 0.0:
-                result = 0.0
-            else:
-                result = (col - col.min()) / denom
-
-        return result
-
-    def check_inf(self, dataframe):
-        col_name = dataframe.columns.to_series()[np.isinf(dataframe).any()]
-        if len(col_name) > 0:
-            print("***")
-            print("*** Infinity in cols: ", col_name)
-            print("***")
-
-    def remove_debug_columns(self, dataframe: DataFrame) -> DataFrame:
-        drop_list = dataframe.filter(regex='^%').columns
-        if len(drop_list) > 0:
-            for col in drop_list:
-                dataframe = dataframe.drop(col, axis=1)
-            dataframe.reindex()
-        return dataframe
 
     # compress the supplied dataframe
     def compress_dataframe(self, dataframe: DataFrame) -> DataFrame:
@@ -1107,352 +500,6 @@ class NNBC(IStrategy):
             self.compressor = self.get_compressor(dataframe)
         return pd.DataFrame(self.compressor.transform(dataframe))
 
-    # Normalise a dataframe
-    def norm_dataframe(self, dataframe: DataFrame) -> DataFrame:
-        self.check_inf(dataframe)
-
-        df = dataframe.copy()
-        if 'date' in df.columns:
-            dates = pd.to_datetime(df['date'], utc=True)
-            # dates = pd.to_datetime(df['date'])
-            start_date = datetime(2020, 1, 1).astimezone(timezone.utc)
-            df['date'] = dates.astype('int64')
-            df['days_from_start'] = (dates - start_date).dt.days
-            df['day_of_week'] = dates.dt.dayofweek
-            df['day_of_month'] = dates.dt.day
-            df['week_of_year'] = dates.dt.isocalendar().week
-            df['month'] = dates.dt.month
-            df['year'] = dates.dt.year
-
-        df = self.remove_debug_columns(df)
-
-        df.set_index('date')
-        df.reindex()
-
-        scaler = self.get_scaler()
-
-        return scaler.fit_transform(df)
-
-    # Normalise a dataframe using Z-Score normalisation (mean=0, stddev=1)
-    def zscore_dataframe(self, dataframe: DataFrame) -> DataFrame:
-        self.check_inf(dataframe)
-        return ((dataframe - dataframe.mean()) / dataframe.std())
-
-    # Scale a dataframe using sklearn builtin scaler
-    def scale_dataframe(self, dataframe: DataFrame) -> DataFrame:
-        self.check_inf(dataframe)
-
-        temp = dataframe.copy()
-        if 'date' in temp.columns:
-            temp['date'] = pd.to_datetime(temp['date']).astype('int64')
-
-        temp = self.remove_debug_columns(temp)
-
-        temp.reindex()
-
-        scaler = RobustScaler()
-        scaler = scaler.fit(temp)
-        temp = scaler.transform(temp)
-        return temp
-
-    # remove outliers from normalised dataframe
-    def remove_outliers(self, df_norm: DataFrame, buys, sells):
-
-        # for col in df_norm.columns.values:
-        #     if col != 'date':
-        #         df_norm = df_norm[(df_norm[col] <= 3.0)]
-        # return df_norm
-        df = df_norm.copy()
-        df['%temp_buy'] = buys.copy()
-        df['%temp_sell'] = sells.copy()
-        #
-        df2 = df[((df >= -3.0) & (df <= 3.0)).all(axis=1)]
-        # df_out = df[~((df >= -3.0) & (df <= 3.0)).all(axis=1)] # for debug
-        ndrop = df_norm.shape[0] - df2.shape[0]
-        if ndrop > 0:
-            b = df2['%temp_buy'].copy()
-            s = df2['%temp_sell'].copy()
-            df2.drop('%temp_buy', axis=1, inplace=True)
-            df2.drop('%temp_sell', axis=1, inplace=True)
-            df2.reindex()
-            # if self.dbg_verbose:
-            print("    Removed ", ndrop, " outliers")
-            # print(" df2:", df2)
-            # print(" df_out:", df_out)
-            # print ("df_norm:", df_norm.shape, "df2:", df2.shape, "df_out:", df_out.shape)
-        else:
-            # no outliers, just return originals
-            df2 = df_norm
-            b = buys
-            s = sells
-        return df2, b, s
-
-    # build a 'viable' dataframe sample set. Needed because the positive labels are sparse
-    # Not entirely sure this works with Neural Nets because they look at sequences
-    def build_viable_dataset(self, size: int, df_norm, buys, sells):
-
-        # copy and combine the data into one dataframe
-        df = df_norm.copy()
-
-        df_type = type(df).__name__
-        if 'array' in df_type:
-            # np.array
-            buy_col = np.shape(df)[1]
-            sell_col = buy_col + 1
-            df = np.hstack((df, np.array(buys).reshape(-1, 1), np.array(sells).reshape(-1, 1)))
-
-        else:
-            # dataframe
-            df['%temp_buy'] = buys.copy()
-            df['%temp_sell'] = sells.copy()
-            buy_col = df.columns.get_loc('%temp_buy')
-            sell_col = df.columns.get_loc('%temp_sell')
-
-        tensor = self.df_to_tensor(df, self.seq_len)
-
-        # print("df_norm:{} df:{} tensor:{}".format(np.shape(df_norm), np.shape(df), np.shape(tensor)))
-        # print("buy_col:{} sell_col:{}".format(buy_col, sell_col))
-
-        buy_idx = np.array([], dtype=int)
-        sell_idx = np.array([], dtype=int)
-        nosig_idx = np.array([], dtype=int)
-        buy_tensor = np.array([], dtype=float)
-        sell_tensor = np.array([], dtype=float)
-        nosig_tensor = np.array([], dtype=float)
-
-        # identify buys, sells, no signal (probably a fast way to this)
-        for row in range(np.shape(tensor)[0]):
-            if tensor[row][0][buy_col] == 1:
-                buy_idx = np.append(buy_idx, row)
-            if tensor[row][0][sell_col] == 1:
-                sell_idx = np.append(sell_idx, row)
-            if (tensor[row][0][buy_col] == 0) & (tensor[row][0][sell_col] == 0):
-                nosig_idx = np.append(nosig_idx, row)
-
-        buy_tensor = tensor[buy_idx].copy()
-        sell_tensor = tensor[sell_idx].copy()
-        nosig_tensor = tensor[nosig_idx].copy()
-
-        num_buys = np.shape(buy_tensor)[0]
-        num_sells = np.shape(sell_tensor)[0]
-        num_nosig = np.shape(nosig_tensor)[0]
-        # print("df:{} num_buys:{} num_sells:{} num_nosig:{}".format(np.shape(tensor)[0], num_buys, num_sells, num_nosig))
-
-        # print("raw:")
-        # print("tensor:{} buy_tensor:{}, sell_tensor:{}, nosig_tensor:{}".format(np.shape(tensor),
-        #                                                                         np.shape(buy_tensor),
-        #                                                                         np.shape(sell_tensor),
-        #                                                                         np.shape(nosig_tensor)))
-        # print(sell_tensor)
-
-        # DEBUG
-        for row in range(np.shape(sell_tensor)[0]):
-            if buy_tensor[row][0][buy_col] != 1:
-                print("invalid buy entry ({:.2f}) in row {}".format(buy_tensor[row][0][buy_col], row))
-                print(sell_tensor[row][0])
-
-            if sell_tensor[row][0][sell_col] != 1:
-                print("invalid sell entry ({:.2f}) in row {}".format(sell_tensor[row][0][sell_col], row))
-                print(sell_tensor[row][0])
-
-            if (nosig_tensor[row][0][buy_col] != 0) & (sell_tensor[row][0][sell_col] != 0):
-                print("invalid nosig entry ({:.2f}) in row {}".format(nosig_tensor[row][0][sell_col], row))
-                print(sell_tensor[row][0])
-
-        # make sure there aren't too many buys & sells
-        # We are aiming for a roughly even split between buys, sells, and 'no signal' (no buy or sell)
-        max_signals = int(2 * size / 3)
-        if ((num_buys + num_sells) > max_signals):
-            # both exceed max?
-            sig_size = int(size / 3)
-            if (num_buys > sig_size) & (num_sells > sig_size):
-                # resize both buy & sell to 1/3 of requested size
-                buy_tensor, _ = train_test_split(buy_tensor, train_size=sig_size, shuffle=True)
-                sell_tensor, _ = train_test_split(sell_tensor, train_size=sig_size, shuffle=True)
-            else:
-                # only one them is too big, so figure out which
-                if (num_buys > num_sells):
-                    buy_tensor, _ = train_test_split(buy_tensor, train_size=max_signals - num_sells, shuffle=True)
-                else:
-                    sell_tensor, _ = train_test_split(sell_tensor, train_size=max_signals - num_buys, shuffle=True)
-
-        # extract enough rows to fill the requested size
-        fill_size = size - min(num_buys, int(size / 3)) - min(num_sells, int(size / 3))
-        nosig_tensor, _ = train_test_split(nosig_tensor, train_size=fill_size, shuffle=True)
-        # print("viable df - buys:{} sells:{} fill:{}".format(df_buy.shape[0], df_sell.shape[0], df_nosig.shape[0]))
-
-        # concatenate the arrays
-        t2 = np.concatenate((buy_tensor, sell_tensor, nosig_tensor))
-
-        # shuffle rows, so that buys, sells & nothing are intermixed
-        np.random.shuffle(t2)
-        # np.random.shuffle(t2)
-
-        # print("trimmed:")
-        # print("buy_tensor:{}, sell_tensor:{}, nosig_tensor:{} t2:{}".format(np.shape(buy_tensor),
-        #                                                                     np.shape(sell_tensor),
-        #                                                                     np.shape(nosig_tensor),
-        #                                                                     np.shape(t2)))
-        # print(t2)
-
-        # separate out the data, buys & sells
-        b = t2[:, :, buy_col].copy()
-        s = t2[:, :, sell_col].copy()
-
-        # print("b:{:.0f} s:{:.0f}".format(b[:, 0].sum(), s[:, 0].sum()))
-
-        t3 = np.zeros((np.shape(t2)[0], np.shape(t2)[1], np.shape(t2)[2] - 2), dtype=float)
-        for row in range(np.shape(t2)[0]):
-            for seq in range(np.shape(t2)[1]):
-                features = np.delete(t2[row][seq], [buy_col, sell_col])
-                t3[row][seq] = features
-
-        return t3, b, s
-
-    # build a dataset that mimics 'live' runs
-    def build_standard_dataset(self, size: int, df_norm: DataFrame, buys, sells):
-
-        # constrain size to what will be available in run modes
-        # df_size = df_norm.shape[0]
-        df_size = df_norm.shape[0]
-        # data_size = int(min(975, size))
-        data_size = size
-
-        pad = self.curr_lookahead  # have to allow for future results to be in range
-
-        # trying different test options. For some reason, results vary quite dramatically based on the approach
-
-        test_option = 0
-        if test_option == 0:
-            # take the end  (better fit for recent data). The most realistic option
-            start = int(df_size - (data_size + pad))
-        elif test_option == 1:
-            # take the middle part of the full dataframe
-            start = int((df_size - (data_size + self.curr_lookahead)) / 2)
-        elif test_option == 2:
-            # use the front part of the data
-            start = 0
-        elif test_option == 3:
-            # search buys array to find window with most buys? Cheating?!
-            start = 0
-            num_iter = df_size - data_size
-            if num_iter > 0:
-                max_buys = 0
-                for i in range(num_iter):
-                    num_buys = buys[i:i + data_size - 1].sum()
-                    if num_buys > max_buys:
-                        start = i
-        else:
-            # take the end  (better fit for recent data)
-            start = int(df_size - (data_size + pad))
-
-        result_start = start + self.curr_lookahead
-
-        # just double-check ;-)
-        if (data_size + self.curr_lookahead) > df_size:
-            print("ERR: invalid data size")
-            print("     df:{} data_size:{}".format(df_size, data_size))
-
-        # print("    df:[{}:{}] start:{} end:{} length:{}]".format(0, (data_size - 1),
-        #                                                          start, (start + data_size), data_size))
-
-        # convert dataframe to tensor before extracting train/test data (avoid edge effects)
-        tensor = self.df_to_tensor(df_norm, self.seq_len)
-        buy_tensor = self.df_to_tensor(np.array(buys).reshape(-1, 1), self.seq_len)
-        sell_tensor = self.df_to_tensor(np.array(sells).reshape(-1, 1), self.seq_len)
-
-        # extract desired rows
-        t = tensor[start:start + data_size]
-        b = buy_tensor[start:start + data_size]
-        s = sell_tensor[start:start + data_size]
-
-        return t, b, s
-
-    # splits the data, buys & sells into train & test
-    # this sort of emulates train_test_split, but with different options for selecting data
-    def split_data(self, tensor, buys, sells, ratio):
-
-        # constrain size to what will be available in run modes
-        # df_size = df_norm.shape[0]
-        data_size = int(np.shape(tensor)[0])
-
-        pad = self.curr_lookahead  # have to allow for future results to be in range
-        train_ratio = ratio
-        test_ratio = 1.0 - train_ratio
-        train_size = int(train_ratio * (data_size - pad)) - 1
-        test_size = int(test_ratio * (data_size - pad)) - 1
-
-        # trying different test options. For some reason, results vary quite dramatically based on the approach
-
-        test_option = 1
-        if test_option == 0:
-            # take the middle part of the full dataframe
-            train_start = int((data_size - (train_size + test_size + self.curr_lookahead)) / 2)
-            test_start = train_start + train_size + 1
-        elif test_option == 1:
-            # take the end for training (better fit for recent data), earlier section for testing
-            train_start = int(data_size - (train_size + pad))
-            test_start = 0
-        elif test_option == 2:
-            # use the whole dataset for training, last section for testing (yes, I know this is not good)
-            train_start = 0
-            train_size = data_size - pad - 1
-            test_start = data_size - (test_size + pad)
-        else:
-            # the 'classic' - first part train, last part test
-            train_start = 0
-            test_start = data_size - (test_size + pad) - 1
-
-        train_result_start = train_start + self.curr_lookahead
-        test_result_start = test_start + self.curr_lookahead
-
-        # just double-check ;-)
-        if (train_size + test_size + self.curr_lookahead) > data_size:
-            print("ERR: invalid train/test sizes")
-            print("     train_size:{} test_size:{} data_size:{}".format(train_size, test_size, data_size))
-
-        if (train_result_start + train_size) > data_size:
-            print("ERR: invalid train result config")
-            print("     train_result_start:{} train_size:{} data_size:{}".format(train_result_start,
-                                                                                 train_size, data_size))
-
-        if (test_result_start + test_size) > data_size:
-            print("ERR: invalid test result config")
-            print("     test_result_start:{} train_size:{} data_size:{}".format(test_result_start,
-                                                                                test_size, data_size))
-
-        # print("    data:[{}:{}] train:[{}:{}] train_result:[{}:{}] test:[{}:{}] test_result:[{}:{}] "
-        #       .format(0, data_size - 1,
-        #               train_start, (train_start + train_size),
-        #               train_result_start, (train_result_start + train_size),
-        #               test_start, (test_start + test_size),
-        #               test_result_start, (test_result_start + test_size)
-        #               ))
-
-        # extract desired rows
-        train_tensor = tensor[train_start:train_start + train_size]
-        train_buys_tensor = buys[train_result_start:train_result_start + train_size]
-        train_sells_tensor = sells[train_result_start:train_result_start + train_size]
-
-        test_tensor = tensor[test_start:test_start + test_size]
-        test_buys_tensor = buys[test_result_start:test_result_start + test_size]
-        test_sells_tensor = sells[test_result_start:test_result_start + test_size]
-
-        num_buys = train_buys_tensor[:, 0].sum()
-        num_sells = train_sells_tensor[:, 0].sum()
-        if (num_buys <= 2) or (num_sells <= 2):
-            print("   WARNING - low number of buys/sells in training data")
-            print("   training #buys:{} #sells:{} ".format(num_buys, num_sells))
-
-        return train_tensor, test_tensor, train_buys_tensor, test_buys_tensor, train_sells_tensor, test_sells_tensor
-
-    # map column into [0,1]
-    def get_binary_labels(self, col):
-        binary_encoder = LabelEncoder().fit([min(col), max(col)])
-        result = binary_encoder.transform(col)
-        # print ("label input:  ", col)
-        # print ("label output: ", result)
-        return result
 
     # train the PCA reduction and classification models
 
@@ -1476,11 +523,11 @@ class NNBC(IStrategy):
         remove_outliers = False
         if remove_outliers:
             # norm dataframe before splitting, otherwise variances are skewed
-            full_df_norm = self.norm_dataframe(dataframe)
-            full_df_norm, buys, sells = self.remove_outliers(full_df_norm, buys, sells)
+            full_df_norm = self.dataframeUtils.norm_dataframe(dataframe)
+            full_df_norm, buys, sells = self.dataframeUtils.remove_outliers(full_df_norm, buys, sells)
         else:
-            # full_df_norm = self.norm_dataframe(dataframe).clip(lower=-3.0, upper=3.0)  # supress outliers
-            full_df_norm = self.norm_dataframe(dataframe)
+            # full_df_norm = self.dataframeUtils.norm_dataframe(dataframe).clip(lower=-3.0, upper=3.0)  # supress outliers
+            full_df_norm = self.dataframeUtils.norm_dataframe(dataframe)
 
 
         # compress data
@@ -1495,17 +542,27 @@ class NNBC(IStrategy):
         else:
             data_size = int(min(975, full_df_norm.shape[0]))
 
+
+        # create classifiers, if necessary
+        num_features = full_df_norm.shape[1]
+        if self.buy_classifier is None:
+            self.buy_classifier, _ = self.classifier_factory(self.classifier_name, num_features, tag=self.buy_tag)
+        if self.sell_classifier is None:
+            self.sell_classifier, _ = self.classifier_factory(self.classifier_name, num_features, tag=self.sell_tag)
+
+
         # get training dataset
         # Note: this returns tensors, not dataframes
 
-        if self.cherrypick_data:
-            # get 'viable' data set (includes all buys/sells)
-            v_tensor, v_buys, v_sells = self.build_viable_dataset(data_size, full_df_norm, buys, sells)
-        else:
-            v_tensor, v_buys, v_sells = self.build_standard_dataset(data_size, full_df_norm, buys, sells)
+        v_tensor, v_buys, v_sells = self.dataframeUtils.build_standard_dataset(data_size, full_df_norm, buys, sells,
+                                                                          self.curr_lookahead, self.seq_len)
 
-        tsr_train, tsr_test, train_buys, test_buys, train_sells, test_sells, = self.split_data(v_tensor, v_buys,
-                                                                                               v_sells, 0.8)
+        tsr_train, tsr_test, train_buys, test_buys, \
+        train_sells, test_sells, = self.dataframeUtils.split_tensor(v_tensor,
+                                                               v_buys,
+                                                               v_sells,
+                                                               0.8,
+                                                               self.curr_lookahead)
 
         num_buys = int(train_buys[:, 0].sum())
         num_sells = int(train_sells[:, 0].sum())
@@ -1520,12 +577,12 @@ class NNBC(IStrategy):
 
         # TODO: if low number of buys/sells, try k-fold sampling
 
-        buy_labels = self.get_binary_labels(buys)
-        sell_labels = self.get_binary_labels(sells)
-        # train_buy_labels = self.get_binary_labels(train_buys)
-        # train_sell_labels = self.get_binary_labels(train_sells)
-        # test_buy_labels = self.get_binary_labels(test_buys)
-        # test_sell_labels = self.get_binary_labels(test_sells)
+        buy_labels = self.dataframeUtils.get_binary_labels(buys)
+        sell_labels = self.dataframeUtils.get_binary_labels(sells)
+        # train_buy_labels = self.dataframeUtils.get_binary_labels(train_buys)
+        # train_sell_labels = self.dataframeUtils.get_binary_labels(train_sells)
+        # test_buy_labels = self.dataframeUtils.get_binary_labels(test_buys)
+        # test_sell_labels = self.dataframeUtils.get_binary_labels(test_sells)
 
         train_buy_labels = train_buys
         train_sell_labels = train_sells
@@ -1570,6 +627,8 @@ class NNBC(IStrategy):
                 print(classification_report(test_sell_labels[:, 0], pred_sells))
                 print("")
 
+        return
+
     # get a classifier for the supplied normalised dataframe and known results
     def get_buy_classifier(self, tensor, results, test_tensor, test_labels):
 
@@ -1588,9 +647,10 @@ class NNBC(IStrategy):
         if self.dp.runmode.value in ('backtest'):
             # If already done, just  re-fit
             if self.buy_classifier:
-                clf = self.fit_classifier(clf, name, self.buy_tag, tensor, labels, test_tensor, test_labels)
+                clf = self.fit_classifier(self.buy_classifier, name, self.buy_tag, tensor, labels, test_tensor, test_labels)
             else:
-                clf, name = self.classifier_factory(self.classifier_name, tensor, labels)
+                num_features = np.shape(tensor)[2]
+                clf, name = self.classifier_factory(name, num_features, tag=self.buy_tag)
                 clf = self.fit_classifier(clf, name, self.buy_tag, tensor, labels, test_tensor, test_labels)
 
         return clf, name
@@ -1612,9 +672,10 @@ class NNBC(IStrategy):
         if self.dp.runmode.value in ('backtest'):
             # If already done, just  re-fit
             if self.sell_classifier:
-                clf = self.fit_classifier(clf, name, self.sell_tag, tensor, labels, test_tensor, test_labels)
+                clf = self.fit_classifier(self.sell_classifier, name, self.sell_tag, tensor, labels, test_tensor, test_labels)
             else:
-                clf, name = self.classifier_factory(self.classifier_name, tensor, labels)
+                num_features = np.shape(tensor)[2]
+                clf, name = self.classifier_factory(name, num_features, tag=self.buy_tag)
                 clf = self.fit_classifier(clf, name, self.sell_tag, tensor, labels, test_tensor, test_labels)
 
         return clf, name
@@ -1628,191 +689,17 @@ class NNBC(IStrategy):
         compressor = skd.PCA(n_components=ncols, whiten=True, svd_solver='full').fit(df_norm)
         return compressor
 
-    # get a scaler for scaling/normalising the data (in a func because I change it routinely)
-    def get_scaler(self):
-        # uncomment the one yu want
-        # return StandardScaler()
-        # return RobustScaler()
-        return MinMaxScaler()
-
-    def df_to_tensor(self, df, seq_len):
-        # input format = [nrows, nfeatures], output = [nrows, seq_len, nfeatures]
-        # print("df type:", type(df))
-        if not isinstance(df, type([np.ndarray, np.array])):
-            data = np.array(df)
-        else:
-            data = df
-
-        nrows = np.shape(data)[0]
-        nfeatures = np.shape(data)[1]
-        tensor_arr = np.zeros((nrows, seq_len, nfeatures), dtype=float)
-        zero_row = np.zeros((nfeatures), dtype=float)
-        # tensor_arr = []
-
-        # print("data:{} tensor:{}".format(np.shape(data), np.shape(tensor_arr)))
-        # print("nrows:{} nfeatures:{}".format(nrows, nfeatures))
-
-        reverse = True
-
-        # fill the first part (0..seqlen rows), which are only sparsely populated
-        for row in range(seq_len):
-            for seq in range(seq_len):
-                if seq >= (seq_len - row - 1):
-                    src_row = (row + seq) - seq_len + 1
-                    tensor_arr[row][seq] = data[src_row]
-                else:
-                    tensor_arr[row][seq] = zero_row
-            if reverse:
-                tensor_arr[row] = np.flipud(tensor_arr[row])
-
-        # fill the rest
-        # print("Data:{}, len:{}".format(np.shape(data), seq_len))
-        for row in range(seq_len, nrows):
-            tensor_arr[row] = data[(row - seq_len) + 1:row + 1]
-            if reverse:
-                tensor_arr[row] = np.flipud(tensor_arr[row])
-
-        # print("data: ", data)
-        # print("tensor: ", tensor_arr)
-        # print("data:{} tensor:{}".format(np.shape(data), np.shape(tensor_arr)))
-        return tensor_arr
 
     #######################################
 
-    def get_checkpoint_path(self, clf_name, tag):
-        checkpoint_dir = '/tmp'
-        curr_class = self.__class__.__name__
-        # checkpoint_path = checkpoint_dir + "/" + curr_class + "/" + tag + self.curr_pair.replace("/", "_") + "/checkpoint"
-        if self.compress_data:
-            checkpoint_path = checkpoint_dir + "/" + curr_class + "/" + clf_name + "_" + tag + "_cmp" + "/checkpoint.h5"
-        else:
-            checkpoint_path = checkpoint_dir + "/" + curr_class + "/" + clf_name + "_" + tag + "/checkpoint.h5"
-
-        return checkpoint_path
-
-    def get_model_path(self, clf_name, tag):
-        curr_class = self.__class__.__name__
-        model_dir = './models/' + curr_class + "/"
-        # model_path = model_dir + tag + self.curr_pair.replace("/", "_") + ".h5"
-        if self.compress_data:
-            model_path = model_dir + curr_class + "_" + clf_name + "_" + tag + "_cmp" + ".h5"
-        else:
-            model_path = model_dir + curr_class + "_" + clf_name + "_" + tag  + ".h5"
-
-        return model_path
-
-    def load_model(self, clf_name, tag):
-        model = None
-        model_path = self.get_model_path(clf_name, tag)
-
-        # load saved model if present
-        if os.path.exists(model_path):
-            print("    Loading existing model ({})...".format(model_path))
-            try:
-                model = keras.models.load_model(model_path, compile=False)
-                # optimizer = keras.optimizers.Adam()
-                optimizer = keras.optimizers.Adam(learning_rate=0.001)
-                model.compile(metrics=['accuracy', 'mse'], loss='mse', optimizer=optimizer)
-                self.is_trained = True
-
-            except Exception as e:
-                print("    ", str(e))
-                print("    Error loading model from {}. Check whether model format changed".format(model_path))
-                self.is_trained = False
-        else:
-            print("    model not found ({})...".format(model_path))
-            self.is_trained = False
-
-        return model
-
-    def get_model_weights(self, model, clf_name, tag):
-
-        model_name = self.get_checkpoint_path(clf_name, tag)
-
-        # if checkpoint already exists, load it as a starting point
-        if os.path.exists(model_name):
-            print("    Loading checkpoint ({})...".format(model_name))
-            try:
-                model.load_weights(model_name)
-            except:
-                print("Error loading weights from {}. Check whether model format changed".format(model_name))
-        else:
-            print("    model not found ({})...".format(model_name))
-            if self.dp.runmode.value not in ('backtest'):
-                print("*** ERR: no existing model. You should run backtest first!")
-        return model
-
     def fit_classifier(self, classifier, name, tag, tensor, labels, test_tensor, test_labels):
 
-        # load existing model, if it exists
-        checkpoint = self.get_checkpoint_path(name, tag)
-
-        classifier = self.load_model(name, tag)
-
-        # print("is_trained:{} refit_model:{}".format(self.is_trained, self.refit_model))
-        if (classifier is not None) and self.is_trained and (not self.refit_model):
-            print("    Using loaded model...")
-            return classifier
-
         if classifier is None:
-            classifier, _ = self.classifier_factory(name, tensor, labels)
-
-        if classifier is None:
-            print("    Could not create classifier")
+            print("    ERR: classifier is None")
             return None
 
-        num_samples = np.shape(tensor)[0]
-        num_events = labels[:, 0, 0].sum()
-        exp_acc = (num_samples - num_events) / num_samples
-        print("    train: samples:{} events:{} exp. acc:{:.4f}".format(num_samples, num_events, exp_acc))
-
-        # callback to control early exit on plateau of results
-        early_callback = keras.callbacks.EarlyStopping(
-            monitor="loss",
-            mode="min",
-            min_delta=0.0001,
-            patience=6,
-            restore_best_weights = True,
-            verbose=0)
-
-        plateau_callback = keras.callbacks.ReduceLROnPlateau(
-            monitor='loss',
-            factor=0.1,
-            min_delta=0.0001,
-            patience=4,
-            verbose=0)
-
-        # callback to control saving of 'best' model
-        # Note that we use validation loss as the metric, not training loss
-        checkpoint_callback = keras.callbacks.ModelCheckpoint(
-            filepath=checkpoint,
-            # save_weights_only=True,
-            save_weights_only=False,
-            monitor='loss',
-            mode='min',
-            save_best_only=True,
-            verbose=0)
-
-        # df_tensor = np.reshape(df_tensor, (np.shape(df_tensor)[0], np.shape(df_tensor)[1], np.shape(df_tensor)[2]))
-        # lbl_tensor = np.array(lbl_tensor).reshape(np.shape(df_tensor)[0], np.shape(df_tensor)[1], np.shape(df_tensor)[2]))
-
-        print("    training {} classifier: {}...".format(tag, name))
-
-        # Model weights are saved at the end of every epoch, if it's the best seen so far.
-        fhis = classifier.fit(tensor, labels,
-                              batch_size=self.batch_size,
-                              epochs=self.num_epochs,
-                              callbacks=[plateau_callback, early_callback, checkpoint_callback],
-                              validation_data=(test_tensor, test_labels),
-                              verbose=1)
-
-        # # The model weights (that are considered the best) are loaded into th model.
-        # classifier = self.get_model_weights(classifier, name, tag)
-
-        # save the model
-        keras.models.save_model(classifier, filepath=self.get_model_path(name, tag))
-
-        self.is_trained = True
+        force_train = False if (not self.dp.runmode.value in ('backtest')) else self.refit_model
+        classifier.train(tensor, test_tensor, labels, test_labels, force_train=force_train)
 
         return classifier
 
@@ -1820,7 +707,7 @@ class NNBC(IStrategy):
 
         if not isinstance(data, (np.ndarray, np.array)):
             # convert dataframe to tensor
-            df_tensor = self.df_to_tensor(data, self.seq_len)
+            df_tensor = self.dataframeUtils.df_to_tensor(data, self.seq_len)
         else:
             df_tensor = data
 
@@ -1830,40 +717,9 @@ class NNBC(IStrategy):
             return predictions
 
         # run the prediction
-        preds = classifier.predict(df_tensor, verbose=0)
-
-        # re-shape into a vector
-        preds = np.array(preds[:, 0]).reshape(-1, 1)
-        preds = preds[:, 0]
-
-        nz_preds = preds[preds > 0.001]
-        if len(nz_preds == 0):
-            nz_preds = preds
-
-        # convert softmax result into a binary value
-        # predictions = np.argmax(preds) # softmax output
-        # predictions = tf.round(tf.nn.sigmoid(preds)) # linear output
-
-        # it looks like (sometimes) the predictions are scaled down, so cheat a little and use a threshold based on the
-        # mean and standard deviation
-        # TODO: figure out scaling factor based on dataframe normalisation
-        if preds.max() > 0.75:
-            threshold = 0.75
-        elif preds.max() > 0.5:
-            threshold = 0.5
-        else:
-            threshold = nz_preds.mean() + 2.0 * nz_preds.std()
-        threshold = max(threshold, 0.8)
-
-        predictions = np.where(preds > threshold, 1.0, 0.0)  # sigmoid output
-
-        # print("preds events:{} mean: {:.4f} min: {:.4f} max: {:.4f} std: {:.4f}".format(len(nz_preds),
-        #                                                                              nz_preds.mean(),
-        #                                                                              nz_preds.min(),
-        #                                                                              nz_preds.max(),
-        #                                                                              nz_preds.std()
-        #                                                                              ))
+        predictions = classifier.predict(df_tensor)
         return predictions
+
 
     #################################
 
@@ -1874,264 +730,31 @@ class NNBC(IStrategy):
     ]
 
     # factory to create classifier based on name
-    def classifier_factory(self, name, tensor, labels):
+    def classifier_factory(self, name, nfeatures, tag=""):
         clf = None
 
-        nfeatures = np.shape(tensor)[2]
-
         if name == 'MLP':
-            clf = self.build_model_MLP(nfeatures, self.seq_len)
+            clf = NNBClassifier_MLP(self.curr_pair, self.seq_len, nfeatures, tag=tag)
         elif name == 'MLP2':
-            clf = self.build_model_MLP2(nfeatures, self.seq_len)
+            clf = NNBClassifier_MLP2(self.curr_pair, self.seq_len, nfeatures, tag=tag)
         elif name == 'LSTM':
-            clf = self.build_model_LSTM(nfeatures, self.seq_len)
+            clf = NNBClassifier_LSTM(self.curr_pair, self.seq_len, nfeatures, tag=tag)
         elif name == 'LSTM2':
-            clf = self.build_model_LSTM2(nfeatures, self.seq_len)
+            clf = NNBClassifier_LSTM2(self.curr_pair, self.seq_len, nfeatures, tag=tag)
         elif name == 'Attention':
-            clf = self.build_model_Attention(nfeatures, self.seq_len)
+            clf = NNBClassifier_Attention(self.curr_pair, self.seq_len, nfeatures, tag=tag)
         elif name == 'Multihead':
-            clf = self.build_model_Multihead(nfeatures, self.seq_len)
+            clf = NNBClassifier_Multihead(self.curr_pair, self.seq_len, nfeatures, tag=tag)
         elif name == 'Transformer':
-            clf = self.build_model_Transformer(nfeatures, self.seq_len)
+            clf = NNBClassifier_Transformer(self.curr_pair, self.seq_len, nfeatures, tag=tag)
         elif name == 'RBM':
-            clf = self.build_model_RBM(nfeatures, self.seq_len)
+            clf = NNBClassifier_RBM(self.curr_pair, self.seq_len, nfeatures, tag=tag)
 
         else:
             print("Unknown classifier: ", name)
             clf = None
         return clf, name
 
-    # Classifier Models
-
-    # These all return binary 'softmax' values that should be evaluated using np.argmax(result) to convert to 0 or 1
-
-    # Multi-Layer Perceptron
-    def build_model_MLP(self, nfeatures: int, seq_len: int):
-
-        model = keras.Sequential()
-
-        # simplest possible model:
-        model.add(layers.Dense(96, input_shape=(seq_len, nfeatures)))
-        model.add(layers.Dropout(rate=0.1))
-        model.add(layers.Dense(32))
-        model.add(layers.Dropout(rate=0.1))
-
-        # model.add(layers.Dense(1, activation='linear'))
-        model.add(layers.Dense(1, activation='sigmoid'))
-
-        # model.summary()  # helps keep track of which model is running, while making changes
-        opt = keras.optimizers.Adam(learning_rate=0.0001)
-        model.compile(optimizer=opt,
-                      loss='binary_crossentropy',
-                      metrics=['accuracy'])
-        return model
-
-    # Multi-Layer Perceptron
-    def build_model_MLP2(self, nfeatures: int, seq_len: int):
-
-        model = keras.Sequential()
-
-        # simplest possible model:
-        model.add(layers.Dense(128, input_shape=(seq_len, nfeatures)))
-        model.add(layers.Dropout(rate=0.2))
-        model.add(layers.Dense(512))
-        model.add(layers.Dropout(rate=0.2))
-        model.add(layers.Dense(64))
-        model.add(layers.Dropout(rate=0.2))
-        model.add(layers.Dense(32))
-        model.add(layers.Dropout(rate=0.2))
-
-        # model.add(layers.Dense(1, activation='linear'))
-        model.add(layers.Dense(1, activation='sigmoid'))
-
-        # model.summary()  # helps keep track of which model is running, while making changes
-        opt = keras.optimizers.Adam(learning_rate=0.0001)
-        model.compile(optimizer=opt,
-                      loss='binary_crossentropy',
-                      metrics=['accuracy', 'mse'])
-        return model
-
-    # Long/Short Term Memory
-    def build_model_LSTM(self, nfeatures: int, seq_len: int):
-
-        # print("    build_model_LSTM - nfeatures: ", nfeatures)
-        model = keras.Sequential()
-
-        # simplest possible model:
-        model.add(layers.LSTM(128, return_sequences=True, activation='sigmoid', input_shape=(seq_len, nfeatures)))
-        model.add(layers.Dropout(rate=0.1))
-
-        # model.add(layers.Dense(1, activation='linear'))
-        model.add(layers.Dense(1, activation='sigmoid'))
-
-        # model.summary()  # helps keep track of which model is running, while making changes
-        opt = keras.optimizers.Adam(learning_rate=0.0001)
-        model.compile(optimizer=opt,
-                      loss='binary_crossentropy',
-                      metrics=['accuracy', 'mse'])
-        return model
-
-    # Long/Short Term Memory #2
-    def build_model_LSTM2(self, nfeatures: int, seq_len: int):
-
-        model = keras.Sequential()
-
-        # model.add(layers.LSTM(64, return_sequences=True, input_shape=(seq_len, nfeatures)))
-        model.add(layers.LSTM(64, activation='tanh', return_sequences=True, input_shape=(seq_len, nfeatures)))
-        model.add(layers.Dropout(rate=0.2))
-        model.add(layers.LSTM(64, return_sequences=True, activation='tanh'))
-        model.add(layers.Dropout(rate=0.2))
-        model.add(layers.LSTM(32, return_sequences=True, activation='tanh'))
-        model.add(layers.Dropout(rate=0.2))
-        model.add(layers.LSTM(16, return_sequences=True, activation='tanh'))
-        model.add(layers.Dropout(rate=0.2))
-
-        # model.add(layers.Dense(1, activation='linear'))
-        model.add(layers.Dense(1, activation='sigmoid'))
-
-        model.summary()  # helps keep track of which model is running, while making changes
-        opt = keras.optimizers.Adam(learning_rate=0.0001)
-        model.compile(optimizer=opt,
-                      loss='binary_crossentropy',
-                      metrics=['accuracy', 'mse'])
-        return model
-
-    # Self-Attention
-    def build_model_Attention(self, nfeatures: int, seq_len: int):
-
-        model = keras.Sequential()
-
-        # Attention (Single Head)
-        model.add(layers.LSTM(128, return_sequences=True, activation='tanh', input_shape=(seq_len, nfeatures)))
-        model.add(layers.Dropout(0.2))
-        model.add(layers.BatchNormalization())
-        model.add(Attention.Attention(seq_len))
-        model.add(layers.Dense(32, activation="relu"))
-        model.add(layers.Dropout(0.2))
-
-        # model.add(layers.Dense(1, activation='linear'))
-        model.add(layers.Dense(1, activation='sigmoid'))
-
-        model.summary()  # helps keep track of which model is running, while making changes
-        opt = keras.optimizers.Adam(learning_rate=0.0001)
-        model.compile(optimizer=opt,
-                      loss='binary_crossentropy',
-                      metrics=['accuracy', 'mse'])
-        return model
-
-    # Multihead Attention
-    def build_model_Multihead(self, nfeatures: int, seq_len: int):
-
-        dropout = 0.1
-
-        input_shape = (seq_len, nfeatures)
-        inputs = keras.Input(shape=input_shape)
-        x = inputs
-        x = layers.LSTM(128, return_sequences=True, activation='tanh', input_shape=input_shape)(x)
-        x = layers.Dropout(dropout)(x)
-        x = layers.Dense(nfeatures)(x)
-        x = layers.LayerNormalization(epsilon=1e-6)(x)
-
-        # "ATTENTION LAYER"
-        x = layers.MultiHeadAttention(key_dim=nfeatures, num_heads=3, dropout=dropout)(x, x, x)
-        x = layers.Dropout(0.1)(x)
-        res = x + inputs
-
-        # FEED FORWARD Part - you can stick anything here or just delete the whole section - it will still work.
-        x = layers.LayerNormalization(epsilon=1e-6)(res)
-        x = layers.Conv1D(filters=seq_len, kernel_size=1, activation="relu")(x)
-        x = layers.Dropout(dropout)(x)
-        x = layers.Conv1D(filters=nfeatures, kernel_size=1)(x)
-        x = x + res
-
-        # outputs = layers.Dense(1, activation="linear")(x)
-        outputs = layers.Dense(1, activation="sigmoid")(x)
-
-        model = keras.Model(inputs, outputs)
-
-        # model.summary()  # helps keep track of which model is running, while making changes
-        opt = keras.optimizers.Adam(learning_rate=0.0001)
-        model.compile(optimizer=opt,
-                      loss='binary_crossentropy',
-                      metrics=['accuracy', 'mse'])
-        return model
-
-    def transformer_encoder(self, inputs, head_size, num_heads, dropout, ff_dim):
-
-        # Normalization and Attention
-        x = layers.LayerNormalization(epsilon=1e-6)(inputs)
-        x = layers.MultiHeadAttention(key_dim=head_size, num_heads=num_heads, dropout=dropout)(x, x)
-        x = layers.Dropout(dropout)(x)
-
-        res = x + inputs
-
-        # Feed Forward Part
-        x = layers.LayerNormalization(epsilon=1e-6)(res)
-        x = layers.Conv1D(filters=ff_dim, kernel_size=1, activation="relu")(x)
-        x = layers.Dropout(dropout)(x)
-        # x = layers.Conv1D(filters=inputs.shape[-1], kernel_size=1)(x)
-        x = layers.Conv1D(filters=head_size, kernel_size=1)(x)
-        return x + res
-
-    def  build_model_Transformer(self, nfeatures: int, seq_len: int):
-
-        # head_size = 256
-        head_size = nfeatures
-        num_heads = 4
-        # ff_dim = 4
-        ff_dim = seq_len
-        num_transformer_blocks = 4
-        mlp_units = [128]
-        mlp_dropout = 0.4
-        dropout = 0.25
-
-        inputs = keras.Input(shape=(seq_len, nfeatures))
-        x = inputs
-        for _ in range(num_transformer_blocks):
-            x = self.transformer_encoder(x, head_size, num_heads, dropout, ff_dim)
-
-        x = layers.GlobalAveragePooling1D(keepdims=True, data_format="channels_first")(x)
-        for dim in mlp_units:
-            # x = layers.Dense(dim, activation="relu")(x)
-            x = layers.Dense(dim)(x)
-            x = layers.Dropout(mlp_dropout)(x)
-
-        # output layer
-        # x = layers.Dense(seq_len)(x)
-        outputs = layers.Dense(1, activation="sigmoid")(x)
-
-        model = keras.Model(inputs, outputs)
-
-        # model.summary()  # helps keep track of which model is running, while making changes
-        opt = keras.optimizers.Adam(learning_rate=0.0001)
-        model.compile(optimizer=opt,
-                      loss='binary_crossentropy',
-                      metrics=['accuracy', 'mse'])
-        return model
-
-
-    # Reduced Boltzmann Machine
-    def build_model_RBM(self, nfeatures: int, seq_len: int):
-
-        model = keras.Sequential()
-
-        model.add(layers.GRU(64, return_sequences=True, input_shape=(seq_len, nfeatures)))
-
-        model.add(RBM.RBM())
-        model.add(layers.LSTM(128, return_sequences=True))
-        model.add(layers.Dropout(0.2))
-
-        # model.add(layers.Dense(1, activation='linear'))
-        model.add(layers.Dense(1, activation='sigmoid'))
-
-        model.summary()  # helps keep track of which model is running, while making changes
-        opt = keras.optimizers.Adam(learning_rate=0.0001)
-        model.compile(optimizer=opt,
-                      loss='binary_crossentropy',
-                      metrics=['accuracy', 'mse'])
-        return model
-
-    # TODO: Support Vector Regression, Deep Boltzmann Machine
 
     #######################################
 
@@ -2158,12 +781,22 @@ class NNBC(IStrategy):
         # labels = self.get_binary_labels(results)
         labels = results
 
-        # TODO: replace train_test_spli?!
+        # # TODO: replace train_test_spli?!
+        #
+        # # split into test/train for evaluation, then re-fit once selected
+        # # tsr_train, df_test, res_train, res_test = train_test_split(df, results, train_size=0.5)
+        # tsr_train, tsr_test, res_train, res_test = train_test_split(tensor, labels, train_size=0.8,
+        #                                                             random_state=27, shuffle=False)
 
-        # split into test/train for evaluation, then re-fit once selected
-        # tsr_train, df_test, res_train, res_test = train_test_split(df, results, train_size=0.5)
-        tsr_train, tsr_test, res_train, res_test = train_test_split(tensor, labels, train_size=0.8,
-                                                                    random_state=27, shuffle=False)
+        ratio = 0.8
+        train_len = int(ratio * np.shape(labels)[0])
+        test_len = np.shape(labels)[0] - train_len
+        tsr_train = tensor[test_len+1:, :, :]
+        tsr_test = tensor[0:test_len:, :, :]
+        res_train = labels[test_len+1:, :]
+        res_test = labels[0:test_len:, :]
+
+
         # print("tsr_train:", tsr_train.shape, " tsr_test:", tsr_test.shape,
         #       "res_train:", res_train.shape, "res_test:", res_test.shape)
 
@@ -2177,8 +810,9 @@ class NNBC(IStrategy):
             print("    Insufficient +ve (test) results: ", res_test.sum())
             return None, ""
 
+        num_features = np.shape(tsr_train)[2]
         for clf_name in self.classifier_list:
-            clf, _ = self.classifier_factory(clf_name, tsr_train, res_train)
+            clf, _ = self.classifier_factory(clf_name, num_features, tag=tag)
 
             if clf is not None:
 
@@ -2225,11 +859,11 @@ class NNBC(IStrategy):
 
         if clf is not None:
             # print("    predicting... - dataframe:", dataframe.shape)
-            df_norm = self.norm_dataframe(dataframe)
+            df_norm = self.dataframeUtils.norm_dataframe(dataframe)
             if self.compress_data:
                 df_norm = self.compress_dataframe(df_norm)
 
-            df_tensor = self.df_to_tensor(df_norm, self.seq_len)
+            df_tensor = self.dataframeUtils.df_to_tensor(df_norm, self.seq_len)
             predict = self.get_classifier_predictions(clf, df_tensor)
 
         else:
@@ -2347,14 +981,14 @@ class NNBC(IStrategy):
 
         # add some fairly loose guards, to help prevent 'bad' predictions
 
-        # some trading volume
-        conditions.append(dataframe['volume'] > 0)
+        # # some trading volume
+        # conditions.append(dataframe['volume'] > 0)
 
         # MFI
-        conditions.append(dataframe['mfi'] < 30.0)
+        conditions.append(dataframe['mfi'] < 50.0)
 
-        # above TEMA
-        conditions.append(dataframe['dwt'] > dataframe['tema'])
+        # # above TEMA
+        # conditions.append(dataframe['dwt'] < dataframe['tema'])
 
 
         # Classifier triggers
@@ -2369,12 +1003,12 @@ class NNBC(IStrategy):
             conditions.append(strat_cond)
 
         # set entry tags
-        dataframe.loc[predict_cond, 'enter_tag'] += 'predict_entry '
+        dataframe.loc[predict_cond, 'enter_tag'] += 'nnbc_entry '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
         else:
-            dataframe['buy'] = 0
+            dataframe['entry'] = 0
 
         return dataframe
 
@@ -2397,14 +1031,14 @@ class NNBC(IStrategy):
                 # self.show_debug_info(curr_pair)
                 self.show_all_debug_info()
 
-        # some volume
-        conditions.append(dataframe['volume'] > 0)
+        # # some volume
+        # conditions.append(dataframe['volume'] > 0)
 
         # MFI
-        conditions.append(dataframe['mfi'] > 70.0)
+        conditions.append(dataframe['mfi'] > 50.0)
 
-        # below TEMA
-        conditions.append(dataframe['dwt'] < dataframe['tema'])
+        # # below TEMA
+        # conditions.append(dataframe['dwt'] > dataframe['tema'])
 
 
         # PCA triggers
@@ -2419,12 +1053,12 @@ class NNBC(IStrategy):
         if strat_cond is not None:
             conditions.append(strat_cond)
 
-        dataframe.loc[predict_cond, 'exit_tag'] += 'predict_exit '
+        dataframe.loc[predict_cond, 'exit_tag'] += 'nnbc_exit '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1
         else:
-            dataframe['sell'] = 0
+            dataframe['exit'] = 0
 
         return dataframe
 
@@ -2480,6 +1114,16 @@ class NNBC(IStrategy):
         pullback_value = max(0, (max_profit - self.cexit_pullback_amount.value))
         in_trend = False
 
+        # Mod: just take the profit:
+        # Above 3%, sell if MFA > 90
+        if current_profit > 0.03:
+            if last_candle['mfi'] > 90:
+                return 'mfi_90'
+
+        # Sell any positions at a loss if they are held for more than one day.
+        if current_profit < 0.0 and (current_time - trade.open_date_utc).days >= 2:
+            return 'unclog'
+
         # Determine our current ROI point based on the defined type
         if self.cexit_roi_type.value == 'static':
             min_roi = self.cexit_roi_start.value
@@ -2534,209 +1178,3 @@ class NNBC(IStrategy):
 
 
 #######################
-
-# Utility functions
-
-
-# Elliot Wave Oscillator
-def ewo(dataframe, sma1_length=5, sma2_length=35):
-    sma1 = ta.EMA(dataframe, timeperiod=sma1_length)
-    sma2 = ta.EMA(dataframe, timeperiod=sma2_length)
-    smadif = (sma1 - sma2) / dataframe['close'] * 100
-    return smadif
-
-
-# Chaikin Money Flow
-def chaikin_money_flow(dataframe, n=20, fillna=False) -> Series:
-    """Chaikin Money Flow (CMF)
-    It measures the amount of Money Flow Volume over a specific period.
-    http://stockcharts.com/school/doku.php?id=chart_school:technical_indicators:chaikin_money_flow_cmf
-    Args:
-        dataframe(pandas.Dataframe): dataframe containing ohlcv
-        n(int): n period.
-        fillna(bool): if True, fill nan values.
-    Returns:
-        pandas.Series: New feature generated.
-    """
-    mfv = ((dataframe['close'] - dataframe['low']) - (dataframe['high'] - dataframe['close'])) / (
-            dataframe['high'] - dataframe['low'])
-    mfv = mfv.fillna(0.0)  # float division by zero
-    mfv *= dataframe['volume']
-    cmf = (mfv.rolling(n, min_periods=0).sum()
-           / dataframe['volume'].rolling(n, min_periods=0).sum())
-    if fillna:
-        cmf = cmf.replace([np.inf, -np.inf], np.nan).fillna(0)
-    return Series(cmf, name='cmf')
-
-
-# Williams %R
-def williams_r(dataframe: DataFrame, period: int = 14) -> Series:
-    """Williams %R, or just %R, is a technical analysis oscillator showing the current closing price in relation to the high and low
-        of the past N days (for a given N). It was developed by a publisher and promoter of trading materials, Larry Williams.
-        Its purpose is to tell whether a stock or commodity market is trading near the high or the low, or somewhere in between,
-        of its recent trading range.
-        The oscillator is on a negative scale, from −100 (lowest) up to 0 (highest).
-    """
-
-    highest_high = dataframe["high"].rolling(center=False, window=period).max()
-    lowest_low = dataframe["low"].rolling(center=False, window=period).min()
-
-    WR = Series(
-        (highest_high - dataframe["close"]) / (highest_high - lowest_low),
-        name=f"{period} Williams %R",
-    )
-
-    return WR * -100
-
-
-# Volume Weighted Moving Average
-def vwma(dataframe: DataFrame, length: int = 10):
-    """Indicator: Volume Weighted Moving Average (VWMA)"""
-    # Calculate Result
-    pv = dataframe['close'] * dataframe['volume']
-    vwma = Series(ta.SMA(pv, timeperiod=length) / ta.SMA(dataframe['volume'], timeperiod=length))
-    vwma = vwma.fillna(0, inplace=True)
-    return vwma
-
-
-# Exponential moving average of a volume weighted simple moving average
-def ema_vwma_osc(dataframe, len_slow_ma):
-    slow_ema = Series(ta.EMA(vwma(dataframe, len_slow_ma), len_slow_ma))
-    return ((slow_ema - slow_ema.shift(1)) / slow_ema.shift(1)) * 100
-
-
-def t3_average(dataframe, length=5):
-    """
-    T3 Average by HPotter on Tradingview
-    https://www.tradingview.com/script/qzoC9H1I-T3-Average/
-    """
-    df = dataframe.copy()
-
-    df['xe1'] = ta.EMA(df['close'], timeperiod=length)
-    df['xe1'].fillna(0, inplace=True)
-    df['xe2'] = ta.EMA(df['xe1'], timeperiod=length)
-    df['xe2'].fillna(0, inplace=True)
-    df['xe3'] = ta.EMA(df['xe2'], timeperiod=length)
-    df['xe3'].fillna(0, inplace=True)
-    df['xe4'] = ta.EMA(df['xe3'], timeperiod=length)
-    df['xe4'].fillna(0, inplace=True)
-    df['xe5'] = ta.EMA(df['xe4'], timeperiod=length)
-    df['xe5'].fillna(0, inplace=True)
-    df['xe6'] = ta.EMA(df['xe5'], timeperiod=length)
-    df['xe6'].fillna(0, inplace=True)
-    b = 0.7
-    c1 = -b * b * b
-    c2 = 3 * b * b + 3 * b * b * b
-    c3 = -6 * b * b - 3 * b - 3 * b * b * b
-    c4 = 1 + 3 * b + b * b * b + 3 * b * b
-    df['T3Average'] = c1 * df['xe6'] + c2 * df['xe5'] + c3 * df['xe4'] + c4 * df['xe3']
-
-    return df['T3Average']
-
-
-def pivot_points(dataframe: DataFrame, mode='fibonacci') -> Series:
-    if mode == 'simple':
-        hlc3_pivot = (dataframe['high'] + dataframe['low'] + dataframe['close']).shift(1) / 3
-        res1 = hlc3_pivot * 2 - dataframe['low'].shift(1)
-        sup1 = hlc3_pivot * 2 - dataframe['high'].shift(1)
-        res2 = hlc3_pivot + (dataframe['high'] - dataframe['low']).shift()
-        sup2 = hlc3_pivot - (dataframe['high'] - dataframe['low']).shift()
-        res3 = hlc3_pivot * 2 + (dataframe['high'] - 2 * dataframe['low']).shift()
-        sup3 = hlc3_pivot * 2 - (2 * dataframe['high'] - dataframe['low']).shift()
-        return hlc3_pivot, res1, res2, res3, sup1, sup2, sup3
-    elif mode == 'fibonacci':
-        hlc3_pivot = (dataframe['high'] + dataframe['low'] + dataframe['close']).shift(1) / 3
-        hl_range = (dataframe['high'] - dataframe['low']).shift(1)
-        res1 = hlc3_pivot + 0.382 * hl_range
-        sup1 = hlc3_pivot - 0.382 * hl_range
-        res2 = hlc3_pivot + 0.618 * hl_range
-        sup2 = hlc3_pivot - 0.618 * hl_range
-        res3 = hlc3_pivot + 1 * hl_range
-        sup3 = hlc3_pivot - 1 * hl_range
-        return hlc3_pivot, res1, res2, res3, sup1, sup2, sup3
-    elif mode == 'DeMark':
-        demark_pivot_lt = (dataframe['low'] * 2 + dataframe['high'] + dataframe['close'])
-        demark_pivot_eq = (dataframe['close'] * 2 + dataframe['low'] + dataframe['high'])
-        demark_pivot_gt = (dataframe['high'] * 2 + dataframe['low'] + dataframe['close'])
-        demark_pivot = np.where((dataframe['close'] < dataframe['open']), demark_pivot_lt,
-                                np.where((dataframe['close'] > dataframe['open']), demark_pivot_gt, demark_pivot_eq))
-        dm_pivot = demark_pivot / 4
-        dm_res = demark_pivot / 2 - dataframe['low']
-        dm_sup = demark_pivot / 2 - dataframe['high']
-        return dm_pivot, dm_res, dm_sup
-
-
-def heikin_ashi(dataframe, smooth_inputs=False, smooth_outputs=False, length=10):
-    df = dataframe[['open', 'close', 'high', 'low']].copy().fillna(0)
-    if smooth_inputs:
-        df['open_s'] = ta.EMA(df['open'], timeframe=length)
-        df['high_s'] = ta.EMA(df['high'], timeframe=length)
-        df['low_s'] = ta.EMA(df['low'], timeframe=length)
-        df['close_s'] = ta.EMA(df['close'], timeframe=length)
-
-        open_ha = (df['open_s'].shift(1) + df['close_s'].shift(1)) / 2
-        high_ha = df.loc[:, ['high_s', 'open_s', 'close_s']].max(axis=1)
-        low_ha = df.loc[:, ['low_s', 'open_s', 'close_s']].min(axis=1)
-        close_ha = (df['open_s'] + df['high_s'] + df['low_s'] + df['close_s']) / 4
-    else:
-        open_ha = (df['open'].shift(1) + df['close'].shift(1)) / 2
-        high_ha = df.loc[:, ['high', 'open', 'close']].max(axis=1)
-        low_ha = df.loc[:, ['low', 'open', 'close']].min(axis=1)
-        close_ha = (df['open'] + df['high'] + df['low'] + df['close']) / 4
-
-    open_ha = open_ha.fillna(0)
-    high_ha = high_ha.fillna(0)
-    low_ha = low_ha.fillna(0)
-    close_ha = close_ha.fillna(0)
-
-    if smooth_outputs:
-        open_sha = ta.EMA(open_ha, timeframe=length)
-        high_sha = ta.EMA(high_ha, timeframe=length)
-        low_sha = ta.EMA(low_ha, timeframe=length)
-        close_sha = ta.EMA(close_ha, timeframe=length)
-
-        return open_sha, close_sha, low_sha
-    else:
-        return open_ha, close_ha, low_ha
-
-
-# Range midpoint acts as Support
-def is_support(row_data) -> bool:
-    conditions = []
-    for row in range(len(row_data) - 1):
-        if row < len(row_data) // 2:
-            conditions.append(row_data[row] > row_data[row + 1])
-        else:
-            conditions.append(row_data[row] < row_data[row + 1])
-    result = reduce(lambda x, y: x & y, conditions)
-    return result
-
-
-# Range midpoint acts as Resistance
-def is_resistance(row_data) -> bool:
-    conditions = []
-    for row in range(len(row_data) - 1):
-        if row < len(row_data) // 2:
-            conditions.append(row_data[row] < row_data[row + 1])
-        else:
-            conditions.append(row_data[row] > row_data[row + 1])
-    result = reduce(lambda x, y: x & y, conditions)
-    return result
-
-
-def range_percent_change(dataframe: DataFrame, method, length: int) -> float:
-    """
-    Rolling Percentage Change Maximum across interval.
-
-    :param dataframe: DataFrame The original OHLC dataframe
-    :param method: High to Low / Open to Close
-    :param length: int The length to look back
-    """
-    if method == 'HL':
-        return (dataframe['high'].rolling(length).max() - dataframe['low'].rolling(length).min()) / dataframe[
-            'low'].rolling(length).min()
-    elif method == 'OC':
-        return (dataframe['open'].rolling(length).max() - dataframe['close'].rolling(length).min()) / dataframe[
-            'close'].rolling(length).min()
-    else:
-        raise ValueError(f"Method {method} not defined!")

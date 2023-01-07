@@ -117,19 +117,19 @@ class PCA_over(PCA):
     def get_train_buy_signals(self, future_df: DataFrame):
         buys = np.where(
             (
-                # # various overbought condition
-                #     (future_df['fastk'] < 30) &
-                #     (future_df['rsi'] < 30) &
-                #     (future_df['mfi'] < 30) &
-                #     # (future_df['vfi'] < 50) &
-                #     (future_df['fisher_wr'] < -0.5) &
-                #
-                #     # future profit
-                #     (future_df['profit_max'] >= self.profit_threshold) &
-                #     (future_df['future_gain'] > 0)
+                # various overbought condition (can't be too strict or there will be no matches)
+                    (future_df['fastk'] < 40) &
+                    (future_df['rsi'] < 40) &
+                    (future_df['mfi'] < 40) &
+                    # (future_df['vfi'] < 50) &
+                    (future_df['fisher_wr'] < -0.4) &
 
-                    (future_df['mfi'] < 30) &
-                    (future_df['dwt_bottom'] > 0)
+                    # future profit
+                    (future_df['future_profit_max'] >= future_df['profit_threshold']) &
+                    (future_df['future_gain'] > 0)
+
+                    # (future_df['mfi'] < 30) &
+                    # (future_df['dwt_bottom'] > 0)
             ), 1.0, 0.0)
 
         return buys
@@ -137,19 +137,19 @@ class PCA_over(PCA):
     def get_train_sell_signals(self, future_df: DataFrame):
         sells = np.where(
             (
-                # # stochastics show oversold condition
-                #     (future_df['fastk'] > 70) &
-                #     (future_df['rsi'] > 70) &
-                #     (future_df['mfi'] > 70) &
-                #     # (future_df['vfi'] > 50) &
-                #     (future_df['fisher_wr'] > 0.5) &
-                #
-                #     # future loss
-                #     (future_df['loss_min'] <= self.loss_threshold) &
-                #     (future_df['future_gain'] < 0)
+                # oversold condition
+                    (future_df['fastk'] > 60) &
+                    (future_df['rsi'] > 60) &
+                    (future_df['mfi'] > 60) &
+                    # (future_df['vfi'] > 50) &
+                    (future_df['fisher_wr'] > 0.6) &
 
-                    (future_df['mfi'] > 80) &
-                    (future_df['dwt_top'] > 0)
+                    # future loss
+                    (future_df['future_loss_min'] <= future_df['loss_threshold']) &
+                    (future_df['future_gain'] < 0)
+
+                    # (future_df['mfi'] > 80) &
+                    # (future_df['dwt_top'] > 0)
 
             ), 1.0, 0.0)
 
@@ -158,8 +158,8 @@ class PCA_over(PCA):
     # save the indicators used here so that we can see them in plots (prefixed by '%')
     def save_debug_indicators(self, future_df: DataFrame):
         self.add_debug_indicator(future_df, 'future_gain')
-        self.add_debug_indicator(future_df, 'profit_max')
-        self.add_debug_indicator(future_df, 'loss_min')
+        self.add_debug_indicator(future_df, 'future_profit_max')
+        self.add_debug_indicator(future_df, 'future_loss_min')
 
         return
 

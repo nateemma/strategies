@@ -40,12 +40,12 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 import keras
 from keras import layers
 from sklearn.neighbors import LocalOutlierFactor
-from AnomalyDetectorSklearn import AnomalyDetectorSklearn
+from ClassifierSklearn import ClassifierSklearn
 
 
 import h5py
 
-class AnomalyDetector_LOF(AnomalyDetectorSklearn):
+class AnomalyDetector_LOF(ClassifierSklearn):
 
     classifier = None
     clean_data_required = True # training data should not contain anomalies

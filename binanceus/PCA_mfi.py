@@ -60,7 +60,7 @@ class PCA_mfi(PCA):
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
-    lookahead_hours = 0.5
+    lookahead_hours = 1.0
     n_profit_stddevs = 1.0
     n_loss_stddevs = 1.0
     min_f1_score = 0.70
@@ -85,18 +85,18 @@ class PCA_mfi(PCA):
     # sell_pca_gain = IntParameter(-1, -15, default=-4, space='sell', load=True, optimize=True)
 
     # Custom Sell Profit (formerly Dynamic ROI)
-    csell_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
+    cexit_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
                                           optimize=True)
-    csell_roi_time = IntParameter(720, 1440, default=720, space='sell', load=True, optimize=True)
-    csell_roi_start = DecimalParameter(0.01, 0.05, default=0.01, space='sell', load=True, optimize=True)
-    csell_roi_end = DecimalParameter(0.0, 0.01, default=0, space='sell', load=True, optimize=True)
-    csell_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any', 'none'], default='any', space='sell',
+    cexit_roi_time = IntParameter(720, 1440, default=720, space='sell', load=True, optimize=True)
+    cexit_roi_start = DecimalParameter(0.01, 0.05, default=0.01, space='sell', load=True, optimize=True)
+    cexit_roi_end = DecimalParameter(0.0, 0.01, default=0, space='sell', load=True, optimize=True)
+    cexit_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any', 'none'], default='any', space='sell',
                                             load=True, optimize=True)
-    csell_pullback = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
-    csell_pullback_amount = DecimalParameter(0.005, 0.03, default=0.01, space='sell', load=True, optimize=True)
-    csell_pullback_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
+    cexit_pullback = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+    cexit_pullback_amount = DecimalParameter(0.005, 0.03, default=0.01, space='sell', load=True, optimize=True)
+    cexit_pullback_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
                                                       optimize=True)
-    csell_endtrend_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
+    cexit_endtrend_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
                                                       optimize=True)
 
     # Custom Stoploss
@@ -118,10 +118,10 @@ class PCA_mfi(PCA):
         buys = np.where(
             (
                 # overbought condition
-                    (future_df['mfi'] <= 20) &
+                    (future_df['mfi'] <= 10) &
 
                     # future profit
-                    (future_df['future_gain'] >= self.profit_threshold)
+                    (future_df['future_gain'] >= future_df['profit_threshold'])
             ), 1.0, 0.0)
 
         return buys
@@ -130,10 +130,10 @@ class PCA_mfi(PCA):
         sells = np.where(
             (
                 # oversold condition
-                    (future_df['mfi'] >= 80) &
+                    (future_df['mfi'] >= 90) &
 
                     # future loss
-                    (future_df['future_gain'] <= self.loss_threshold)
+                    (future_df['future_gain'] <= future_df['loss_threshold'])
             ), 1.0, 0.0)
 
         return sells

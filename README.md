@@ -11,8 +11,13 @@ I am testing and modifying code in the following types of strategies:
 - Predict
 - Anomaly
 
-*NOTE*: I am currently re-factoring to move common code to separate files, isolate any potentially 
+_NOTE_: I am currently re-factoring to move common code to separate files, isolate any potentially 
 forward-looking indicators, and to use pre-trained models
+
+*Binance*: I live in the USA, and the Binance exchange recently blocked API access from here. 
+So, I cannot (easily) test the code in the binance exchange directory. I know I could use a VPN, but
+I'm busy with a bunch of other stuff in the binanceus directory - sorry. <br>
+All strats should work, but you will need to run hyperopt on them to get good hyperparameters
 
 ## Intro
 This folder contains the code for a variety of custom trading strategies for use with the [freqtrade](https://www.freqtrade.io/) framework.
@@ -95,8 +100,8 @@ The following is a list of my custom strategies that I am currently testing.
 | KalmanSIMD | Model behaviour using a Kalman Filter (from simdkalman)                                                                                                                 |
 | PCA_*      | Uses Principal Component Analysis (PCA) and classifiers trained on prior data to predict buy/sells. Each PCA_* variant uses a different approach to predict buys/sells. |
 | NNBC_*     | Neural Network Binary Classifiers - approaches to predict buy/sell events |                                                                                              |
-| Predict_*  | Uses neural network approaches to predict price changes |
-| Anomaly* | USe anomaly detection algorithms to identify buys/sells. Anomaly.py is the main logic, Anomaly_*.py contain the algorithms |
+| NNPredict_* | Uses neural network approaches to predict price changes |
+| Anomaly*   | USe anomaly detection algorithms to identify buys/sells. Anomaly.py is the main logic, Anomaly_*.py contain the algorithms |
 
 
 

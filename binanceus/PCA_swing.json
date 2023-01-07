@@ -2,10 +2,10 @@
   "strategy_name": "PCA_swing",
   "params": {
     "roi": {
-      "0": 0.05
+      "0": 0.06
     },
     "stoploss": {
-      "stoploss": -0.05
+      "stoploss": -0.99
     },
     "trailing": {
       "trailing_stop": true,
@@ -17,22 +17,22 @@
     "sell": {
       "cexit_endtrend_respect_roi": true,
       "cexit_pullback": false,
-      "cexit_pullback_amount": 0.006,
+      "cexit_pullback_amount": 0.029,
       "cexit_pullback_respect_roi": true,
       "cexit_roi_end": 0.001,
-      "cexit_roi_start": 0.023,
-      "cexit_roi_time": 1026,
+      "cexit_roi_start": 0.012,
+      "cexit_roi_time": 969,
       "cexit_roi_type": "decay",
-      "cexit_trend_type": "rmi",
-      "cstop_bail_how": "time",
-      "cstop_bail_roc": -1.621,
-      "cstop_bail_time": 1134,
+      "cexit_trend_type": "candle",
+      "cstop_bail_how": "any",
+      "cstop_bail_roc": -1.23,
+      "cstop_bail_time": 352,
       "cstop_bail_time_trend": false,
-      "cstop_loss_threshold": -0.022,
-      "cstop_max_stoploss": -0.072
+      "cstop_loss_threshold": -0.021,
+      "cstop_max_stoploss": -0.184
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2022-12-23 23:50:48.079942+00:00"
+  "export_time": "2023-01-05 23:08:49.614994+00:00"
 }

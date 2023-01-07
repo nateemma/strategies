@@ -41,11 +41,11 @@ import keras
 from keras import layers
 from sklearn.covariance import EllipticEnvelope
 
-from AnomalyDetectorSklearn import AnomalyDetectorSklearn
+from ClassifierSklearn import ClassifierSklearn
 
 import h5py
 
-class AnomalyDetector_EE(AnomalyDetectorSklearn):
+class AnomalyDetector_EE(ClassifierSklearn):
 
     classifier = None
     clean_data_required = True # training data should not contain anomalies

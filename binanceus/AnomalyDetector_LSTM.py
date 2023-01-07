@@ -40,12 +40,12 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
 import keras
 from keras import layers
-from AnomalyDetectorKeras import AnomalyDetectorKeras
+from ClassifierKerasEncoder import ClassifierKerasEncoder
 
 import h5py
 
 
-class AnomalyDetector_LSTM(AnomalyDetectorKeras):
+class AnomalyDetector_LSTM(ClassifierKerasEncoder):
     is_trained = False
     clean_data_required = True  # training data cannot contain anomalies
 
@@ -81,12 +81,5 @@ class AnomalyDetector_LSTM(AnomalyDetectorKeras):
         )
         # model.add(layers.Dropout(rate=0.2))
         model.add(layers.Dense(self.num_features, activation=None))
-
-        # optimizer = keras.optimizers.Adam()
-        optimizer = keras.optimizers.Adam(learning_rate=0.01)
-
-        model.compile(metrics=['accuracy', 'mse'], loss='mse', optimizer=optimizer)
-
-        # self.update_model_weights()
 
         return model

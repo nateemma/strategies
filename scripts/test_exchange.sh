@@ -2,7 +2,8 @@
 
 # list of strategies to test
 lev_list="DWT_Leveraged DWT_lev_short DWT_Leveraged_recent DWT_Leveraged2"
-strat_list="PCA_dwt PCA_fbb PCA_highlow PCA_jump PCA_macd PCA_mfi PCA_minmax PCA_nseq PCA_over PCA_profit PCA_stochastic PCA_swing"
+strat_list="PCA_dwt PCA_fbb PCA_highlow PCA_jump PCA_macd PCA_mfi PCA_minmax PCA_nseq PCA_over PCA_profit \
+PCA_stochastic PCA_swing"
 
 # default values
 
@@ -133,7 +134,7 @@ echo "List: ${slist}"
 echo "Date/time: ${today}" > $logfile
 echo "Time range: ${timerange}" >> $logfile
 
-cmd="freqtrade backtesting ${jarg} --timerange=${timerange} -c ${config_file} --strategy-path ${exchange_dir} --strategy-list ${test_list} > $logfile"
+cmd="freqtrade backtesting  --cache none ${jarg} --timerange=${timerange} -c ${config_file} --strategy-path ${exchange_dir} --strategy-list ${test_list} > $logfile"
 echo "${cmd}"
 eval ${cmd}
 

@@ -20,7 +20,7 @@ declare -A strat_list=( \
 )
 
 # default values
-epochs=500
+epochs=200
 spaces=""
 num_days=180
 start_date=$(date -j -v-${num_days}d +"%Y%m%d")
@@ -28,7 +28,7 @@ today=$(date +"%Y%m%d")
 timerange="${start_date}-${today}"
 download=0
 jobs=0
-lossf="WeightedProfitHyperOptLoss"
+lossf="ExpectancyHyperOptLoss"
 #lossf="SharpeHyperOptLoss"
 random_state=$RANDOM
 
@@ -203,12 +203,15 @@ for strat space in ${(kv)strat_list}; do
 
 done
 
+echo ""
+python user_data/strategies/scripts/SummariseHyperOptResults.py ${logfile}
+echo ""
+
 
 echo ""
-echo "$logfile:"
+echo "Full output is in file: ${logfile}:"
 echo ""
-cat $logfile
-echo ""
+#cat $logfile
 
 # restore PYTHONPATH
 export PYTHONPATH="${oldpath}"

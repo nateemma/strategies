@@ -1,0 +1,47 @@
+{
+  "strategy_name": "FBB_KalmanSIMD",
+  "params": {
+    "roi": {
+      "0": 10
+    },
+    "stoploss": {
+      "stoploss": -0.1
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "buy": {
+      "buy_bb_gain": 0.31,
+      "buy_fisher_wr": -0.9,
+      "buy_force_fisher_wr": -0.95,
+      "buy_kf_diff": 0.004
+    },
+    "sell": {
+      "cexit_endtrend_respect_roi": false,
+      "cexit_pullback": true,
+      "cexit_pullback_amount": 0.022,
+      "cexit_pullback_respect_roi": true,
+      "cexit_roi_end": 0.007,
+      "cexit_roi_start": 0.019,
+      "cexit_roi_time": 1176,
+      "cexit_roi_type": "static",
+      "cexit_trend_type": "ssl",
+      "cstop_bail_how": "time",
+      "cstop_bail_roc": -2.126,
+      "cstop_bail_time": 1409,
+      "cstop_bail_time_trend": false,
+      "cstop_loss_threshold": -0.046,
+      "cstop_max_stoploss": -0.117,
+      "sell_bb_gain": 1.03,
+      "sell_fisher_wr": 0.77,
+      "sell_force_fisher_wr": 0.95,
+      "sell_kf_diff": 0.0
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2023-01-04 16:41:32.901038+00:00"
+}

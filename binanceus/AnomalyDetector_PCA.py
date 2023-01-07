@@ -41,31 +41,24 @@ np.random.seed(seed)
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
-import keras
-from keras import layers
+import joblib
 from sklearn.decomposition import PCA
 
+from ClassifierSklearn import ClassifierSklearn
 
 
-import h5py
+class AnomalyDetector_PCA(ClassifierSklearn):
 
-class AnomalyDetector_PCA():
-
-    classifier: PCA = None
-    clean_data_required = True # training data should not contain anomalies
     num_features = 0
     num_columns = 0
     data_cols = None
-    find_thresholds = False
+    find_thresholds = False # only set to true while testing
+
     mad_threshold = 5.0
     var_threshold = 0.95
 
-    def __init__(self, num_features, tag=""):
-        super().__init__()
-        self.num_features = num_features
-        self.classifier = None # created in train()  func
-        self.name = self.__class__.__name__ + "_" + tag
-
+    classifier = None
+    clean_data_required = False # training data should not contain anomalies
 
 
     # update training using the suplied (normalised) dataframe. Training is cumulative
@@ -74,7 +67,6 @@ class AnomalyDetector_PCA():
 
         if self.is_trained and not force_train:
             return
-
 
         if np.shape(df_train_norm)[0] != np.shape(train_labels)[0]:
             print("    *** ERR: dataframe and labels do not not match:")
@@ -95,35 +87,38 @@ class AnomalyDetector_PCA():
 
         if self.find_thresholds:
 
-            #TODO: save best results to array, then save/load
-            best_vthreshold = 0.0
+            best_vthreshold = 0.55
             top_score = 0.0
             best_th = 0.0
 
             print("    Searching for best variance & MAD thresholds...")
-            for vth in np.arange(0.70, 0.99, 0.05):
-                self.classifier = self.get_pca(df_train, vth)
+            # for vth in np.arange(0.30, 0.99, 0.05):
+            self.classifier = self.get_pca(df_train, best_vthreshold)
 
-                # test against original training dataframe & labels
-                for mth in np.arange(2.0, 6.0, 0.2):
-                    self.mad_threshold = mth
-                    score = self.get_pca_score(self.classifier, df_train_norm, train_labels)
-                    # print("    threshold:{} F1 score: {:.3f}".format(th, score))
-                    print("    Variance threshold:{:.3f} MAD Threshold: {:.2f} ({:.4f})".format(vth,
-                                                                                                mth,
-                                                                                                score))
-                    if score > top_score:
-                        top_score = score
-                        best_th = mth
-                        best_vthreshold = vth
-                print("")
+            # test against original training dataframe & labels
+            for mth in np.arange(2.0, 6.0, 0.2):
+                self.mad_threshold = mth
+                score = self.get_pca_score(self.classifier, df_train_norm, train_labels)
+                # print("    threshold:{} F1 score: {:.3f}".format(th, score))
+                # print("    MAD Threshold: {:.2f} ({:.4f})".format(mth, score))
+                if score > top_score:
+                    top_score = score
+                    best_th = mth
             self.mad_threshold = best_th
             self.var_threshold = best_vthreshold
-            print("    Selected: Variance threshold:{:.3f} MAD Threshold: {:.2f} ({:.4f})".format(self.var_threshold,
+            print("")
+            print("    Selected: Variance threshold:{:.3f} MAD Threshold: {:.2f} F1score:{:.4f}".format(self.var_threshold,
                                                                                                   self.mad_threshold,
                                                                                                   top_score))
+            print("")
 
         self.classifier = self.get_pca(df_train, self.var_threshold)
+
+        # only save if this is the first time training
+        if not self.is_trained:
+            self.save()
+
+        self.is_trained = True
 
         return
 
@@ -201,14 +196,14 @@ class AnomalyDetector_PCA():
             # # mean + stddev method
             # # threshold for anomaly scores
             # loss = np.array(msle)
-            # threshold = np.mean(loss) + 2 * np.std(loss)
+            # threshold = np.mean(loss) + 1.0 * np.std(loss)
             #
-            # # anything anomylous results in a '1'
+            # # anything anomalous results in a '1'
             # predictions = np.where(msle > threshold, 1.0, 0.0)
 
              # Median Absolute Deviation method
             z_scores = self.mad_score(msle)
-            predictions = np.where(z_scores > self.mad_threshold, 1.0, 0.0)
+            predictions = np.where(z_scores >= self.mad_threshold, 1.0, 0.0)
 
             #
             # print("    loss:")
@@ -219,18 +214,13 @@ class AnomalyDetector_PCA():
 
         return predictions
 
-    def save(self, path=""):
-        return
-
+    '''
     def load(self, path=""):
+        self.classifier = super().load(path)
+        if self.classifier is not None:
+            self.is_trained = True
         return self.classifier
-
-    def is_trained(self) -> bool:
-        return False
-
-    def needs_clean_data(self) -> bool:
-        # print("    clean_data_required: ", self.clean_data_required)
-        return self.clean_data_required
+    '''
 
     # Median Absolute Deviation
     def mad_score(self, points):

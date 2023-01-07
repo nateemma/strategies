@@ -43,10 +43,10 @@ import keras
 from keras import layers
 
 import h5py
-from AnomalyDetectorKeras import AnomalyDetectorKeras
+from ClassifierKerasEncoder import ClassifierKerasEncoder
 
 
-class AnomalyDetector_AEnc(AnomalyDetectorKeras):
+class AnomalyDetector_AEnc(ClassifierKerasEncoder):
 
     is_trained = False
     clean_data_required = True # training data cannot contain anomalies
@@ -81,12 +81,5 @@ class AnomalyDetector_AEnc(AnomalyDetectorKeras):
         # model.add(layers.Dropout(rate=0.2))
         # model.add(layers.Dense(128, activation='elu'))
         model.add(layers.Dense(self.num_features, activation=None))
-
-        # optimizer = keras.optimizers.Adam()
-        optimizer = keras.optimizers.Adam(learning_rate=0.01)
-
-        model.compile(metrics=['accuracy', 'mse'], loss='mse', optimizer=optimizer)
-
-        # self.update_model_weights()
 
         return model

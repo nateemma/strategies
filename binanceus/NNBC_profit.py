@@ -103,18 +103,18 @@ class NNBC_profit(NNBC):
     # sell_pca_gain = IntParameter(-1, -15, default=-4, space='sell', load=True, optimize=True)
 
     # Custom Sell Profit (formerly Dynamic ROI)
-    csell_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
+    cexit_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
                                           optimize=True)
-    csell_roi_time = IntParameter(720, 1440, default=720, space='sell', load=True, optimize=True)
-    csell_roi_start = DecimalParameter(0.01, 0.05, default=0.01, space='sell', load=True, optimize=True)
-    csell_roi_end = DecimalParameter(0.0, 0.01, default=0, space='sell', load=True, optimize=True)
-    csell_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any', 'none'], default='any', space='sell',
+    cexit_roi_time = IntParameter(720, 1440, default=720, space='sell', load=True, optimize=True)
+    cexit_roi_start = DecimalParameter(0.01, 0.05, default=0.01, space='sell', load=True, optimize=True)
+    cexit_roi_end = DecimalParameter(0.0, 0.01, default=0, space='sell', load=True, optimize=True)
+    cexit_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any', 'none'], default='any', space='sell',
                                             load=True, optimize=True)
-    csell_pullback = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
-    csell_pullback_amount = DecimalParameter(0.005, 0.03, default=0.01, space='sell', load=True, optimize=True)
-    csell_pullback_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
+    cexit_pullback = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+    cexit_pullback_amount = DecimalParameter(0.005, 0.03, default=0.01, space='sell', load=True, optimize=True)
+    cexit_pullback_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
                                                       optimize=True)
-    csell_endtrend_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
+    cexit_endtrend_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
                                                       optimize=True)
 
     # Custom Stoploss
@@ -135,9 +135,7 @@ class NNBC_profit(NNBC):
     def get_train_buy_signals(self, future_df: DataFrame):
         series = np.where(
             (
-                    (future_df['dwt_gain'] <= self.loss_threshold) & # loss exceeds threshold
-
-                    (future_df['profit_max'] >= self.profit_threshold) & # future profit exceeds threshold
+                    (future_df['future_profit_max'] >= future_df['profit_threshold']) & # future profit exceeds threshold
                     (future_df['future_max'] > future_df['dwt_recent_max']) # future window max exceeds prior window max
             ), 1.0, 0.0)
 
@@ -146,47 +144,19 @@ class NNBC_profit(NNBC):
     def get_train_sell_signals(self, future_df: DataFrame):
         series = np.where(
             (
-                    (future_df['dwt_gain'] >= self.profit_threshold) & # profit exceeds threshold
-
-                    (future_df['loss_min'] <= self.loss_threshold) & # future loss exceeds threshold
+                    (future_df['future_loss_min'] <= future_df['loss_threshold']) & # future loss exceeds threshold
                     (future_df['future_min'] < future_df['dwt_recent_min']) # future window max exceeds prior window max
             ), 1.0, 0.0)
 
         return series
 
-        ###################################
-
-    # provide additional buy/sell signals
-    # These usually repeat the (backward-looking) guards from the training signal criteria. This helps filter out
-    # bad predictions (Machine Learning is not perfect)
-
-
-    def get_train_buy_signals(self, dataframe: DataFrame):
-        buys = np.where(
-            (
-                    (dataframe['dwt_gain'] <= self.loss_threshold)   #  loss exceeds threshold
-            ), 1.0, 0.0)
-
-        return buys
-
-    def get_train_sell_signals(self, dataframe: DataFrame):
-        sells = np.where(
-            (
-                    (dataframe['dwt_gain'] >= self.profit_threshold)  # profit exceeds threshold
-            ), 1.0, 0.0)
-
-        return sells
-
-    ###################################
-
     # save the indicators used here so that we can see them in plots (prefixed by '%')
     def save_debug_indicators(self, future_df: DataFrame):
 
-        self.add_debug_indicator(future_df, 'profit_max')
+        self.add_debug_indicator(future_df, 'future_profit_max')
         self.add_debug_indicator(future_df, 'profit_threshold')
-        self.add_debug_indicator(future_df, 'profit_max')
         self.add_debug_indicator(future_df, 'future_max')
-        self.add_debug_indicator(future_df, 'loss_min')
+        self.add_debug_indicator(future_df, 'future_loss_min')
         self.add_debug_indicator(future_df, 'loss_threshold')
         self.add_debug_indicator(future_df, 'future_min')
 

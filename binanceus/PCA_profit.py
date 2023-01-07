@@ -117,7 +117,7 @@ class PCA_profit(PCA):
     def get_train_buy_signals(self, future_df: DataFrame):
         series = np.where(
             (
-                    (future_df['profit_max'] >= future_df['profit_threshold']) & # future profit exceeds threshold
+                    (future_df['future_profit_max'] >= future_df['profit_threshold']) & # future profit exceeds threshold
                     (future_df['future_max'] > future_df['dwt_recent_max']) # future window max exceeds prior window max
             ), 1.0, 0.0)
 
@@ -126,7 +126,7 @@ class PCA_profit(PCA):
     def get_train_sell_signals(self, future_df: DataFrame):
         series = np.where(
             (
-                    (future_df['loss_min'] <= future_df['loss_threshold']) & # future loss exceeds threshold
+                    (future_df['future_loss_min'] <= future_df['loss_threshold']) & # future loss exceeds threshold
                     (future_df['future_min'] < future_df['dwt_recent_min']) # future window max exceeds prior window max
             ), 1.0, 0.0)
 
@@ -135,10 +135,10 @@ class PCA_profit(PCA):
     # save the indicators used here so that we can see them in plots (prefixed by '%')
     def save_debug_indicators(self, future_df: DataFrame):
 
-        self.add_debug_indicator(future_df, 'profit_max')
+        self.add_debug_indicator(future_df, 'future_profit_max')
         self.add_debug_indicator(future_df, 'profit_threshold')
         self.add_debug_indicator(future_df, 'future_max')
-        self.add_debug_indicator(future_df, 'loss_min')
+        self.add_debug_indicator(future_df, 'future_loss_min')
         self.add_debug_indicator(future_df, 'loss_threshold')
         self.add_debug_indicator(future_df, 'future_min')
 

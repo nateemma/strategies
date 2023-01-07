@@ -102,18 +102,18 @@ class NNBC_fbb(NNBC):
     # sell_pca_gain = IntParameter(-1, -15, default=-4, space='sell', load=True, optimize=True)
 
     # Custom Sell Profit (formerly Dynamic ROI)
-    csell_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
+    cexit_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
                                           optimize=True)
-    csell_roi_time = IntParameter(720, 1440, default=720, space='sell', load=True, optimize=True)
-    csell_roi_start = DecimalParameter(0.01, 0.05, default=0.01, space='sell', load=True, optimize=True)
-    csell_roi_end = DecimalParameter(0.0, 0.01, default=0, space='sell', load=True, optimize=True)
-    csell_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any', 'none'], default='any', space='sell',
+    cexit_roi_time = IntParameter(720, 1440, default=720, space='sell', load=True, optimize=True)
+    cexit_roi_start = DecimalParameter(0.01, 0.05, default=0.01, space='sell', load=True, optimize=True)
+    cexit_roi_end = DecimalParameter(0.0, 0.01, default=0, space='sell', load=True, optimize=True)
+    cexit_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any', 'none'], default='any', space='sell',
                                             load=True, optimize=True)
-    csell_pullback = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
-    csell_pullback_amount = DecimalParameter(0.005, 0.03, default=0.01, space='sell', load=True, optimize=True)
-    csell_pullback_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
+    cexit_pullback = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+    cexit_pullback_amount = DecimalParameter(0.005, 0.03, default=0.01, space='sell', load=True, optimize=True)
+    cexit_pullback_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
                                                       optimize=True)
-    csell_endtrend_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
+    cexit_endtrend_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
                                                       optimize=True)
 
     # Custom Stoploss
@@ -136,11 +136,11 @@ class NNBC_fbb(NNBC):
             (
                 # overbought condition with high potential profit
                     (future_df['fisher_wr'] < -0.8) &
-                    # (future_df['bb_gain'] >= future_df['profit_threshold']/100.0) &
-                    (future_df['bb_gain'] >= self.profit_threshold / 100.0) &
+                    (future_df['bb_gain'] >= future_df['profit_threshold']/100.0) &
 
                     # future profit
-                    (future_df['future_gain'] >= self.profit_threshold)
+                    (future_df['future_profit_max'] >= future_df['profit_threshold']) &
+                    (future_df['future_gain'] > 0)
             ), 1.0, 0.0)
 
         return buys
@@ -150,11 +150,10 @@ class NNBC_fbb(NNBC):
             (
                 # oversold condition with high potential loss
                     (future_df['fisher_wr'] > 0.8) &
-                    # (future_df['bb_loss'] <= future_df['loss_threshold']/100.0) &
-                    (future_df['bb_loss'] <= self.loss_threshold / 100.0) &
+                    (future_df['bb_loss'] <= future_df['loss_threshold']/100.0) &
 
                     # future loss
-                    (future_df['future_gain'] <= self.loss_threshold)
+                    (future_df['future_gain'] <= future_df['loss_threshold'])
             ), 1.0, 0.0)
 
         return sells
@@ -162,8 +161,9 @@ class NNBC_fbb(NNBC):
     # save the indicators used here so that we can see them in plots (prefixed by '%')
     def save_debug_indicators(self, future_df: DataFrame):
         self.add_debug_indicator(future_df, 'future_gain')
-        self.add_debug_indicator(future_df, 'profit_max')
-        self.add_debug_indicator(future_df, 'loss_min')
+        self.add_debug_indicator(future_df, 'future_profit_max')
+        self.add_debug_indicator(future_df, 'future_loss_min')
 
         return
+
 

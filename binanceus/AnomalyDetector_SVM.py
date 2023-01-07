@@ -41,12 +41,12 @@ import keras
 from keras import layers
 from sklearn.svm import OneClassSVM
 
-from AnomalyDetectorSklearn import AnomalyDetectorSklearn
+from ClassifierSklearn import ClassifierSklearn
 
 
 import h5py
 
-class AnomalyDetector_SVM(AnomalyDetectorSklearn):
+class AnomalyDetector_SVM(ClassifierSklearn):
 
     classifier = None
     clean_data_required = True # training data should not contain anomalies

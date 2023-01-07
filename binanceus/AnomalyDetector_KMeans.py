@@ -40,11 +40,11 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 import keras
 from keras import layers
 from sklearn.cluster import KMeans
-from AnomalyDetectorSklearn import AnomalyDetectorSklearn
+from ClassifierSklearn import ClassifierSklearn
 
 import h5py
 
-class AnomalyDetector_KMeans(AnomalyDetectorSklearn):
+class AnomalyDetector_KMeans(ClassifierSklearn):
 
     classifier = None
     clean_data_required = False # training data should not contain anomalies

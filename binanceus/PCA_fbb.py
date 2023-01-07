@@ -136,11 +136,10 @@ class PCA_fbb(PCA):
             (
                 # overbought condition with high potential profit
                     (future_df['fisher_wr'] < -0.8) &
-                    # (future_df['bb_gain'] >= future_df['profit_threshold']/100.0) &
-                    (future_df['bb_gain'] >= self.profit_threshold / 100.0) &
+                    (future_df['bb_gain'] >= future_df['profit_threshold']/100.0) &
 
                     # future profit
-                    (future_df['profit_max'] >= self.profit_threshold) &
+                    (future_df['future_profit_max'] >= future_df['profit_threshold']) &
                     (future_df['future_gain'] > 0)
             ), 1.0, 0.0)
 
@@ -151,11 +150,10 @@ class PCA_fbb(PCA):
             (
                 # oversold condition with high potential loss
                     (future_df['fisher_wr'] > 0.8) &
-                    # (future_df['bb_loss'] <= future_df['loss_threshold']/100.0) &
-                    (future_df['bb_loss'] <= self.loss_threshold / 100.0) &
+                    (future_df['bb_loss'] <= future_df['loss_threshold']/100.0) &
 
                     # future loss
-                    (future_df['future_gain'] <= self.loss_threshold)
+                    (future_df['future_gain'] <= future_df['loss_threshold'])
             ), 1.0, 0.0)
 
         return sells
@@ -163,8 +161,8 @@ class PCA_fbb(PCA):
     # save the indicators used here so that we can see them in plots (prefixed by '%')
     def save_debug_indicators(self, future_df: DataFrame):
         self.add_debug_indicator(future_df, 'future_gain')
-        self.add_debug_indicator(future_df, 'profit_max')
-        self.add_debug_indicator(future_df, 'loss_min')
+        self.add_debug_indicator(future_df, 'future_profit_max')
+        self.add_debug_indicator(future_df, 'future_loss_min')
 
         return
 

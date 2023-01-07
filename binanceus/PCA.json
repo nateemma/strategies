@@ -2,10 +2,10 @@
   "strategy_name": "PCA",
   "params": {
     "roi": {
-      "0": 0.1
+      "0": 0.06
     },
     "stoploss": {
-      "stoploss": -0.05
+      "stoploss": -0.99
     },
     "trailing": {
       "trailing_stop": false,
