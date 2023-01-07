@@ -106,7 +106,7 @@ class NNPredict_Transformer(NNPredict):
     curr_pair = ""
     custom_trade_info = {}
 
-    refit_model = True
+    refit_model = False
 
 
     ###################################

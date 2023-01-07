@@ -8,7 +8,7 @@ I am testing and modifying code in the following types of strategies:
 
 - PCA
 - NNBC
-- Predict
+- NNPredict
 - Anomaly
 
 _NOTE_: I am currently re-factoring to move common code to separate files, isolate any potentially 
@@ -25,7 +25,7 @@ This folder contains the code for a variety of custom trading strategies for use
 Please read through the instructions at https://www.freqtrade.io before attempting to use this software.
 
 Note: I have tried many different strategies, most of which perform quite badly or inconsistently. 
-The abandoned strategies are in the _archived/_ folder<br> for reference (I sometimes cut & paste pieces of them into 
+The abandoned strategies are in the _archived/_ folder for reference (I sometimes cut & paste pieces of them into 
 new strategies).
 
 I currently focus on strategies that revolve around one of several approaches:
@@ -46,7 +46,7 @@ Logic is very similar to the PCA classes, and the base class is NNBC (Neural Net
 The internals are a little more complex because the Neural Network code works with 'tensors' rather than dataframes.
 Currently, performance is not great, mostly because there are not enough buy/sell events to train the models properly. 
 At some point I will train them on longer timeperiods and then save/load the resulting models (I'm working on this)
-4. Neural Network prediction models (Predict_*.py)<br>
+4. Neural Network prediction models (NNPredict_*.py)<br>
 Similar to NNBC, but predicts an actual price, rather than a buy/sell recommendation. Same issues as NNBC
 5. Anomaly Detection (Anomaly.py)<br>
 The main issue with using neural networks is that there are not many buy/sell recommendations relative to the number
@@ -54,7 +54,11 @@ of samples (typically about 1%). This approach uses various anomaly detection al
 data, which will mostly model the normal cases (no buy or sell). Then we run it against actual data and anything identified
 as an 'anomaly' should be a buy or sell.<br>
 I also combine this with various compression techniques, such as PCA, to make the anomaly detection algorithms more 
-efficient. As an aside, I should also try this with the other neural network approaches.
+efficient. 
+
+For the approaches that use Neural Networks (usually with 'NN' somewhere in the name), I have started saving and 
+reloading models, which are in the _models/_ subdirectory of the exchange folder. These are created by running 
+_backtest_ over long periods of time, and are then loaded and reused in any other mode (hyperopt, plot, dryrun etc)
 
 All of these strategies use the custom sell/stoploss  approach from the Solipsis strategy (by werkrew). 
 This makes a huge difference in performance, but the downside is that each strategy requires a lot of hyperopt-ing 

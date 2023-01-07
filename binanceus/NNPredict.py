@@ -447,7 +447,8 @@ class NNPredict(IStrategy):
         # train the model
         print("    fitting model...")
         print("")
-        force_train = False if (not self.dp.runmode.value in ('backtest')) else self.refit_model
+        force_train = self.refit_model if (self.dp.runmode.value in ('backtest')) else False
+        # print(f'force_train:{force_train} refit_model:{self.refit_model} runmode:{self.dp.runmode.value}')
         self.classifier_list[self.curr_pair].train(train_tensor, test_tensor,
                                                    train_results_norm, test_results_norm,
                                                    force_train)

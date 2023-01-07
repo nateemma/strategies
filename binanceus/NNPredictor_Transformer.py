@@ -47,7 +47,7 @@ import h5py
 class NNPredictor_Transformer(ClassifierKerasLinear):
     is_trained = False
     clean_data_required = False  # training data can contain anomalies
-    model_per_pair = False # separate model per pair
+    model_per_pair = True # separate model per pair
 
     # override the build_model function in subclasses
     def create_model(self, seq_len, num_features):

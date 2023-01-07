@@ -75,6 +75,13 @@ class ClassifierKerasLinear(ClassifierKeras):
     # update training using the suplied (normalised) dataframe. Training is cumulative
     def train(self, df_train_norm, df_test_norm, train_results, test_results, force_train=False):
 
+
+        # print(f'is_trained:{self.is_trained} force_train:{force_train}')
+
+        # if model is already trained, and caller is not requesting a re-train, then just return
+        if (self.model is not None) and self.is_trained and (not force_train):
+            return
+
         # if model doesn't exist, create it (lazy initialisation)
         if self.model is None:
             self.model = self.create_model(self.seq_len, self.num_features)
@@ -83,10 +90,6 @@ class ClassifierKerasLinear(ClassifierKeras):
                 return
             self.model = self.compile_model(self.model)
             self.model.summary()
-
-        # if model is already trained, and caller is not requesting a re-train, then just return
-        if self.is_trained and not force_train:
-            return
 
         # if the input is a dataframe, we can 'clean' it, then convert to tensor format
         # cannot clean a tensor since it doesn't have column headings any more
