@@ -1,0 +1,38 @@
+{
+  "strategy_name": "NNPredict_Multihead",
+  "params": {
+    "roi": {
+      "0": 0.06
+    },
+    "stoploss": {
+      "stoploss": -0.99
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "buy": {},
+    "sell": {
+      "cexit_endtrend_respect_roi": true,
+      "cexit_pullback": true,
+      "cexit_pullback_amount": 0.023,
+      "cexit_pullback_respect_roi": true,
+      "cexit_roi_end": 0.007,
+      "cexit_roi_start": 0.042,
+      "cexit_roi_time": 1065,
+      "cexit_roi_type": "step",
+      "cexit_trend_type": "rmi",
+      "cstop_bail_how": "time",
+      "cstop_bail_roc": -3.718,
+      "cstop_bail_time": 325,
+      "cstop_bail_time_trend": false,
+      "cstop_loss_threshold": -0.026,
+      "cstop_max_stoploss": -0.2
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2023-01-08 01:19:38.496213+00:00"
+}

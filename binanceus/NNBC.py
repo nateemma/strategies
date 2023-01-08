@@ -202,9 +202,9 @@ class NNBC(IStrategy):
 
     compressor = None
     compress_data = True
-    # classifier_name = 'Transformer'  # select based on testing
+    classifier_name = 'Transformer'  # select based on testing
     # classifier_name = 'Multihead'  # select based on testing
-    classifier_name = 'LSTM'  # for debug
+    # classifier_name = 'LSTM'  # for debug
     buy_classifier = None
     sell_classifier = None
 
