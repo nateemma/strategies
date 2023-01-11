@@ -82,7 +82,7 @@ from CompressionAutoEncoder import CompressionAutoEncoder
 from RBMEncoder import RBMEncoder
 
 
-from DataframeUtils import DataframeUtils
+from DataframeUtils import DataframeUtils, ScalerType
 from DataframePopulator import DataframePopulator
 
 """
@@ -185,6 +185,8 @@ class PCA(IStrategy):
     # debug flags
     first_time = True  # mostly for debug
     first_run = True  # used to identify first time through buy/sell populate funcs
+
+    scaler_type = ScalerType.Robust # scaler type used for normalisation
 
     dataframeUtils = None
     dataframePopulator = None
@@ -378,6 +380,9 @@ class PCA(IStrategy):
         else:
             # decrement interval. When this reaches 0 it will trigger re-fitting of the data
             self.pair_model_info[curr_pair]['interval'] = self.pair_model_info[curr_pair]['interval'] - 1
+
+        # (re-)set the scaler
+        self.dataframeUtils.set_scaler_type(self.scaler_type)
 
         # populate the normal dataframe
         # dataframe = self.add_indicators(dataframe)

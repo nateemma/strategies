@@ -106,7 +106,8 @@ class NNPredict_MLP(NNPredict):
     curr_pair = ""
     custom_trade_info = {}
 
-    refit_model = True
+    refit_model = False
+    seq_len = 4
 
     ###################################
 
@@ -142,7 +143,7 @@ class NNPredict_MLP(NNPredict):
 
     ################################
 
-    def get_classifier(self, pair, num_features: int, seq_len: int):
+    def get_classifier(self, pair, seq_len: int, num_features: int):
         return NNPredictor_MLP(pair, seq_len, num_features)
 
     ################################

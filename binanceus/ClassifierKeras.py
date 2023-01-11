@@ -53,6 +53,7 @@ class ClassifierKeras():
 
     model = None
     is_trained = False
+    category = ""
     name = ""
     model_path = ""
     checkpoint_path = "/tmp/model.h5"
@@ -62,8 +63,9 @@ class ClassifierKeras():
     encoder = None
     num_epochs = 256  # number of iterations for training
     batch_size = 1024  # batch size for training
-    clean_data_required = True # train with positive rows removed
+    clean_data_required = False # train with positive rows removed
     model_per_pair = False # set to False to combine across all pairs
+    new_model = False # True if a new model was created this run
     
 
     #Note: pair is needed because we cannot combine model across pairs because of huge price differences
@@ -83,15 +85,31 @@ class ClassifierKeras():
         else:
             tag_suffix = "_" + tag
 
-        self.name = self.__class__.__name__ + pair_suffix + tag_suffix
+        self.category = self.__class__.__name__
+        self.name = self.category + pair_suffix + tag_suffix
 
-        self.model_path = self.get_model_path()
+        # self.model_path = self.get_model_path()
+        self.set_model_name(self.category, self.name)
         self.seq_len = seq_len
         self.num_features = num_features
         # print("    num_features: ", num_features)
 
-        # load saved model if present
-        self.model = self.load()
+
+    # set model name - this overrides the default naming. This allows the strategy to set the naming convention
+    # directory and extension are handled, just need to supply the ategory (e.g. the strat name) and main file name
+    # caller will have to take care of adding pair names, tag etc.
+    def set_model_name(self, category, model_name):
+        root_dir = self.get_model_root_dir()
+        save_dir = root_dir + category + '/'
+        file_path = save_dir + model_name + ".h5"
+
+        # update tracking vars (need to override defaults)
+        self.category = category
+        self.model_path = file_path
+        self.name = model_name
+        # print(f"    Set model path:{self.model_path}")
+
+        return self.model_path
 
     # create model - subclasses should overide this
     def create_model(self, seq_len, num_features):
@@ -129,7 +147,13 @@ class ClassifierKeras():
     # the 'labels' args should contain 0.0 for normal results, '1.0' for anomalies (buy or sell)
     def train(self, df_train_norm, df_test_norm, train_results, test_results, force_train=False):
 
-        if self.is_trained and not force_train:
+        # lazy loading because params can change up to this point
+        if self.model is None:
+            # load saved model if present
+            self.model = self.load()
+
+        # just return if model has already been trained, unless forc_train is set, or this was a new model
+        if self.model_is_trained() and (not force_train) and (not self.new_model_created()):
             return
 
         if self.model is None:
@@ -223,6 +247,12 @@ class ClassifierKeras():
 
     # evaluate model using the supplied (normalised) dataframe as test data.
     def evaluate(self, df_norm: DataFrame):
+
+        # lazy loading because params can change up to this point
+        if self.model is None:
+            # load saved model if present
+            self.model = self.load()
+
         test_tensor = self.dataframeUtils.df_to_tensor(df_norm, self.seq_len)
 
         print("    Predicting...")
@@ -243,6 +273,12 @@ class ClassifierKeras():
 
     # 'recosnstruct' a dataframe by passing it through the model
     def reconstruct(self, df_norm:DataFrame) -> DataFrame:
+
+        # lazy loading because params can change up to this point
+        if self.model is None:
+            # load saved model if present
+            self.model = self.load()
+
         cols = df_norm.columns
         tensor = self.dataframeUtils.df_to_tensor(df_norm, self.seq_len)
         encoded_tensor = self.model.predict(tensor, verbose=1)
@@ -255,6 +291,12 @@ class ClassifierKeras():
 
     # transform supplied (normalised) dataframe into a lower dimension version
     def transform(self, df_norm: DataFrame) -> DataFrame:
+
+        # lazy loading because params can change up to this point
+        if self.model is None:
+            # load saved model if present
+            self.model = self.load()
+
         if self.encoder is None:
             self.encoder = self.model.get_layer(self.encoder_layer)
         cols = df_norm.columns
@@ -266,6 +308,11 @@ class ClassifierKeras():
         return pd.DataFrame(encoded_array, columns=cols)
 
     def predict(self, df_norm: DataFrame):
+
+        # lazy loading because params can change up to this point
+        if self.model is None:
+            # load saved model if present
+            self.model = self.load()
 
         # convert to tensor format and run the autoencoder
         # tensor = np.array(df_norm).reshape(df_norm.shape[0], 1, df_norm.shape[1])
@@ -307,11 +354,20 @@ class ClassifierKeras():
 
         return predictions
 
-    # returns path to 'full' model file
-    def get_model_path(self):
+
+    # returns path to the root directory used for storing models
+    def get_model_root_dir(self):
         # set as subdirectory of location of this file (so that it can be included in the repository)
         file_dir = os.path.dirname(str(Path(__file__)))
-        save_dir = file_dir + "/models/" + self.__class__.__name__ + '/'
+        root_dir = file_dir + "/models/"
+        if not os.path.exists(root_dir):
+            os.makedirs(root_dir)
+        return root_dir
+
+    # returns path to 'full' model file
+    def get_model_path(self):
+        root_dir = self.get_model_root_dir()
+        save_dir = root_dir + self.category + '/'
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
         model_path = save_dir + self.name + ".h5"
@@ -333,6 +389,9 @@ class ClassifierKeras():
             self.model_path = path
             
         print("    saving model to: ", path)
+        save_dir = os.path.dirname(path)
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
         keras.models.save_model(self.model, filepath=path)
         return
 
@@ -362,6 +421,9 @@ class ClassifierKeras():
                 print("    Error loading model from {}. Check whether model format changed".format(path))
         else:
             print("    model not found ({})...".format(path))
+            # flag this as a new model. Note that this is a class global variable because we need to track this
+            # across multiple instances (e.g. if we are combining all pairs into one model)
+            ClassifierKeras.new_model = True
 
         return model
 
@@ -375,7 +437,9 @@ class ClassifierKeras():
     def needs_clean_data(self) -> bool:
         # print("    clean_data_required: ", self.clean_data_required)
         return self.clean_data_required
-    
+
+    def new_model_created(self) -> bool:
+        return ClassifierKeras.new_model
 
     def update_model_weights(self):
 

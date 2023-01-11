@@ -47,8 +47,8 @@ import h5py
 from DataframeUtils import DataframeUtils
 from ClassifierKeras import ClassifierKeras
 
-class ClassifierKerasLinear(ClassifierKeras):
 
+class ClassifierKerasLinear(ClassifierKeras):
     clean_data_required = False
 
     # create model - subclasses should overide this
@@ -75,11 +75,17 @@ class ClassifierKerasLinear(ClassifierKeras):
     # update training using the suplied (normalised) dataframe. Training is cumulative
     def train(self, df_train_norm, df_test_norm, train_results, test_results, force_train=False):
 
+        # lazy loading because params can change up to this point
+        if self.model is None:
+            # load saved model if present
+            self.model = self.load()
 
         # print(f'is_trained:{self.is_trained} force_train:{force_train}')
 
         # if model is already trained, and caller is not requesting a re-train, then just return
-        if (self.model is not None) and self.is_trained and (not force_train):
+        if (self.model is not None) and self.model_is_trained() and (not force_train) and (not self.new_model_created()):
+            # print(f"    Not training. is_trained:{self.is_trained} force_train:{force_train} new_model:{self.new_model}")
+            print("    Model is already trained")
             return
 
         # if model doesn't exist, create it (lazy initialisation)
@@ -159,11 +165,11 @@ class ClassifierKerasLinear(ClassifierKeras):
 
         # Model weights are saved at the end of every epoch, if it's the best seen so far.
         fhis = self.model.fit(train_tensor, train_results,
-                                    batch_size=self.batch_size,
-                                    epochs=self.num_epochs,
-                                    callbacks=callbacks,
-                                    validation_data=(test_tensor, test_results),
-                                    verbose=1)
+                              batch_size=self.batch_size,
+                              epochs=self.num_epochs,
+                              callbacks=callbacks,
+                              validation_data=(test_tensor, test_results),
+                              verbose=1)
 
         # # The model weights (that are considered the best) are loaded into th model.
         # self.update_model_weights()
@@ -173,8 +179,12 @@ class ClassifierKerasLinear(ClassifierKeras):
 
         return
 
-
     def predict(self, data):
+
+        # lazy loading because params can change up to this point
+        if self.model is None:
+            # load saved model if present
+            self.model = self.load()
 
         if not isinstance(data, (np.ndarray, np.array)):
             # convert dataframe to tensor
@@ -192,4 +202,3 @@ class ClassifierKerasLinear(ClassifierKeras):
 
         # Note that this returns the full tensor version of the prediction (samples, seq_len, num_features)
         return preds
-

@@ -77,7 +77,7 @@ class NNBC_minmax(NNBC):
     dbg_verbose = True  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
 
-    refit_model = True
+    refit_model = False
     ###################################
 
     # Strategy Specific Variable Storage

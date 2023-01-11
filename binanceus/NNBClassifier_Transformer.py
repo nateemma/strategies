@@ -55,9 +55,9 @@ class NNBClassifier_Transformer(ClassifierKerasBinary):
         # ff_dim = 4
         ff_dim = seq_len
         num_transformer_blocks = 4
-        mlp_units = [128]
-        mlp_dropout = 0.4
-        dropout = 0.25
+        mlp_units = [64, 32, 8]
+        mlp_dropout = 0.2
+        dropout = 0.2
 
         inputs = keras.Input(shape=(seq_len, num_features))
         x = inputs

@@ -6,7 +6,6 @@ from enum import Enum
 import pywt
 import talib.abstract as ta
 from scipy.ndimage import gaussian_filter1d
-from sklearn.preprocessing import RobustScaler, MinMaxScaler, StandardScaler
 
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 import arrow
@@ -56,7 +55,7 @@ import Time2Vector
 import Transformer
 import Attention
 
-from DataframeUtils import DataframeUtils
+from DataframeUtils import DataframeUtils, ScalerType
 from DataframePopulator import DataframePopulator
 from NNPredictor_LSTM import NNPredictor_LSTM
 
@@ -161,8 +160,9 @@ class NNPredict(IStrategy):
     classifier_list = {}
     compressor = None
     compress_data = False  # currently not working
-    refit_model = False  # set to True if you want to refit an existing model (e.g. single model across all pairs)
-
+    refit_model = False # set to True if you want to re-train the model. Usually better to just delete it and restart
+    scaler_type = ScalerType.Robust # scaler type used for normalisation
+    model_per_pair = False # set to True to create pair-specific models (better but only works for pairs in whitelist)
     dataframeUtils = None
     dataframePopulator = None
 
@@ -186,7 +186,12 @@ class NNPredict(IStrategy):
 
     ## Hyperopt Variables
 
-    # LSTM hyperparams
+    # buy/sell hyperparams
+
+    # threshold values (in %)
+    entry_threshold = DecimalParameter(0.1, 3.0, default=1.0, decimals=1, space='buy', load=True, optimize=True)
+    exit_threshold = DecimalParameter(-3.0, -0.1, default=-1.0, decimals=1, space='sell', load=True, optimize=True)
+
 
     # Custom Sell Profit (formerly Dynamic ROI)
     cexit_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
@@ -280,11 +285,10 @@ class NNPredict(IStrategy):
         if self.dp.runmode.value not in ('backtest'):
             self.refit_model = False
 
-        # populate the standard indicators
-        dataframe = self.dataframePopulator.add_indicators(dataframe)
+        # (re-)set the scaler
+        self.dataframeUtils.set_scaler_type(self.scaler_type)
 
-        # populate the training indicators
-        dataframe = self.add_training_indicators(dataframe)
+        dataframe = self.add_indicators(dataframe)
 
         # train the model
         if self.dbg_verbose:
@@ -306,6 +310,17 @@ class NNPredict(IStrategy):
         return dataframe
 
     ###################################
+    # add the 'standard' indicators. Override this is you want to use something else
+    def add_indicators(self, dataframe: DataFrame) -> DataFrame:
+
+        # populate the standard indicators
+        dataframe = self.dataframePopulator.add_indicators(dataframe)
+
+        # populate the training indicators
+        dataframe = self.add_training_indicators(dataframe)
+
+        return dataframe
+
 
     # add in any indicators to be used for training
     def add_training_indicators(self, dataframe: DataFrame) -> DataFrame:
@@ -442,22 +457,39 @@ class NNPredict(IStrategy):
         nfeatures = np.shape(train_tensor)[2]
 
         if self.curr_pair not in self.classifier_list:
-            self.classifier_list[self.curr_pair] = self.get_classifier(self.curr_pair, nfeatures, self.seq_len)
+            self.classifier_list[self.curr_pair] = self.make_classifier(self.curr_pair, self.seq_len, nfeatures)
 
         # train the model
         print("    fitting model...")
         print("")
         force_train = self.refit_model if (self.dp.runmode.value in ('backtest')) else False
-        # print(f'force_train:{force_train} refit_model:{self.refit_model} runmode:{self.dp.runmode.value}')
+        # print(f"self.refit_model:{self.refit_model} self.dp.runmode.value:{self.dp.runmode.value}")
         self.classifier_list[self.curr_pair].train(train_tensor, test_tensor,
                                                    train_results_norm, test_results_norm,
                                                    force_train)
 
         return dataframe
 
+    # returns the classifier model.
+    def make_classifier(self, pair, seq_len: int, num_features: int):
+        predictor = self.get_classifier(pair, seq_len, num_features)
+
+        # set the model name parameters (the predictor cannot know what we want to call the model)
+        category, model_name = self.get_model_identifiers(pair)
+        predictor.set_model_name(category, model_name)
+        return predictor
+
     # returns the classifier model. Override this function to change the type of classifier
-    def get_classifier(self, pair, num_features: int, seq_len: int):
+    def get_classifier(self, pair, seq_len: int, num_features: int):
         return NNPredictor_LSTM(pair, seq_len, num_features)
+
+    # return IDs that control model naming. Should be OK for all subclasses
+    def get_model_identifiers(self, pair):
+        category = self.__class__.__name__
+        model_name = category
+        if self.model_per_pair:
+            model_name = model_name + "_" + pair.split("/")[0]
+        return category, model_name
 
     ################################
 
@@ -551,7 +583,7 @@ class NNPredict(IStrategy):
 
     def get_compressor(self, df_norm: DataFrame):
         # just use fixed size PCA (easier for classifiers to deal with)
-        ncols = 64
+        ncols = int(64)
         compressor = skd.PCA(n_components=ncols, whiten=True, svd_solver='full').fit(df_norm)
         return compressor
 
@@ -619,7 +651,7 @@ class NNPredict(IStrategy):
 
         # Classifier triggers
         predict_cond = (
-            (qtpylib.crossed_above(dataframe['predict_diff'], 1.0))
+            (qtpylib.crossed_above(dataframe['predict_diff'], self.entry_threshold.value))
         )
         conditions.append(predict_cond)
 
@@ -654,7 +686,7 @@ class NNPredict(IStrategy):
 
         # Classifier triggers
         predict_cond = (
-            qtpylib.crossed_below(dataframe['predict_diff'], -1.0)
+            qtpylib.crossed_below(dataframe['predict_diff'], self.exit_threshold.value)
         )
 
         conditions.append(predict_cond)

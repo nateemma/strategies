@@ -82,7 +82,7 @@ import Attention
 import RBM
 
 
-from DataframeUtils import DataframeUtils
+from DataframeUtils import DataframeUtils, ScalerType
 from DataframePopulator import DataframePopulator
 
 from NNBClassifier_MLP import NNBClassifier_MLP
@@ -218,8 +218,11 @@ class NNBC(IStrategy):
     num_epochs = 512  # number of iterations for training
     batch_size = 1024  # batch size for training
 
-    refit_model = False  # only set to True when training. If False, then existing model is used, if present
+    refit_model = True  # only set to True when training. If False, then existing model is used, if present
     use_full_dataset = True  # use the entire dataset for training (in backtest)
+    model_per_pair = False
+
+    scaler_type = ScalerType.Robust # scaler type used for normalisation
 
     dataframeUtils = None
     dataframePopulator = None
@@ -384,6 +387,9 @@ class NNBC(IStrategy):
         # make sure we only retrain in backtest modes
         if self.dp.runmode.value not in ('backtest'):
             self.refit_model = False
+
+        # (re-)set the scaler
+        self.dataframeUtils.set_scaler_type(self.scaler_type)
 
         # populate the normal dataframe
         dataframe = self.dataframePopulator.add_indicators(dataframe)
@@ -730,31 +736,46 @@ class NNBC(IStrategy):
     ]
 
     # factory to create classifier based on name
-    def classifier_factory(self, name, nfeatures, tag=""):
+    def classifier_factory(self, clf_name, nfeatures, tag=""):
         clf = None
 
-        if name == 'MLP':
+        if clf_name == 'MLP':
             clf = NNBClassifier_MLP(self.curr_pair, self.seq_len, nfeatures, tag=tag)
-        elif name == 'MLP2':
+        elif clf_name == 'MLP2':
             clf = NNBClassifier_MLP2(self.curr_pair, self.seq_len, nfeatures, tag=tag)
-        elif name == 'LSTM':
+        elif clf_name == 'LSTM':
             clf = NNBClassifier_LSTM(self.curr_pair, self.seq_len, nfeatures, tag=tag)
-        elif name == 'LSTM2':
+        elif clf_name == 'LSTM2':
             clf = NNBClassifier_LSTM2(self.curr_pair, self.seq_len, nfeatures, tag=tag)
-        elif name == 'Attention':
+        elif clf_name == 'Attention':
             clf = NNBClassifier_Attention(self.curr_pair, self.seq_len, nfeatures, tag=tag)
-        elif name == 'Multihead':
+        elif clf_name == 'Multihead':
             clf = NNBClassifier_Multihead(self.curr_pair, self.seq_len, nfeatures, tag=tag)
-        elif name == 'Transformer':
+        elif clf_name == 'Transformer':
             clf = NNBClassifier_Transformer(self.curr_pair, self.seq_len, nfeatures, tag=tag)
-        elif name == 'RBM':
+        elif clf_name == 'RBM':
             clf = NNBClassifier_RBM(self.curr_pair, self.seq_len, nfeatures, tag=tag)
 
         else:
-            print("Unknown classifier: ", name)
+            print("Unknown classifier: ", clf_name)
             clf = None
-        return clf, name
 
+        # set the model name
+        category, model_name = self.get_model_identifiers(self.curr_pair, clf_name, tag)
+        clf.set_model_name(category, model_name)
+
+        return clf, clf_name
+
+
+    # return IDs that control model naming. Should be OK for all subclasses
+    def get_model_identifiers(self, pair, clf_name, tag):
+        category = self.__class__.__name__
+        model_name = category + "_" + clf_name
+        if self.model_per_pair:
+            model_name = model_name + "_" + pair.split("/")[0]
+        if len(tag) > 0:
+            model_name = model_name + "_" + tag
+        return category, model_name
 
     #######################################
 

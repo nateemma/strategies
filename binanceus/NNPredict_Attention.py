@@ -106,7 +106,7 @@ class NNPredict_Attention(NNPredict):
     curr_pair = ""
     custom_trade_info = {}
 
-    refit_model = True
+    refit_model = False
 
     ###################################
 
@@ -142,7 +142,7 @@ class NNPredict_Attention(NNPredict):
 
     ################################
 
-    def get_classifier(self, pair, num_features: int, seq_len: int):
+    def get_classifier(self, pair, seq_len: int, num_features: int):
         return NNPredictor_Attention(pair, seq_len, num_features)
 
     ################################

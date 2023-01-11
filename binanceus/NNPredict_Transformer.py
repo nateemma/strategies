@@ -106,7 +106,7 @@ class NNPredict_Transformer(NNPredict):
     curr_pair = ""
     custom_trade_info = {}
 
-    refit_model = False
+    refit_model = False # set to True if you want to re-train the model. Usually better to just delete it and restart
 
 
     ###################################
@@ -146,7 +146,7 @@ class NNPredict_Transformer(NNPredict):
 
     ################################
 
-    def get_classifier(self, pair, num_features: int, seq_len: int):
+    def get_classifier(self, pair, seq_len: int, num_features: int):
         return NNPredictor_Transformer(pair, seq_len, num_features)
 
 

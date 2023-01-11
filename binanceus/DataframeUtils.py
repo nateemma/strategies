@@ -1,7 +1,7 @@
 # utility set of funcs for manipulating dataframes & tensors
 # Note: this is a class, so you need to instantiate an object to use the functions here. The reason for this is
 # that we can then run multiple strategies simultaneously - if everything were to be static, one strat could reset
-# state needed by another strat
+# state needed by another strat. Also, you may sometimes need to process multiple dataframes at the same time
 
 import numpy as np
 import pandas as pd
@@ -13,6 +13,7 @@ sys.path.append(str(Path(__file__).parent))
 
 import logging
 import warnings
+from enum import Enum
 
 log = logging.getLogger(__name__)
 # log.setLevel(logging.DEBUG)
@@ -27,20 +28,57 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler, RobustScaler, Mi
 pd.options.mode.chained_assignment = None  # default='warn'
 
 
+class ScalerType(Enum):
+    NoScaling = 0
+    Standard = 1
+    Robust = 2
+    MinMax = 3
+
+
 class DataframeUtils():
 
-    scaler = None
+    #################################
+    # scaling utilities etc.
 
+    scaler = None
+    scaler_type:ScalerType = ScalerType.NoScaling
+    scaler_fitted = False
+
+
+    # sets the type of scaler desired, and initialises associated vars
+    def set_scaler_type(self, type:ScalerType):
+        self.scaler_type = type
+        self.scaler_fitted = False
+        self.scaler = None
+        self.scaler = self.get_scaler()
 
     # get a scaler for scaling/normalising the data (in a func because I change it routinely)
     def get_scaler(self):
 
-        if self.scaler == None:
-            # uncomment the one yu want
-            self.scaler = StandardScaler()
-            # self.scaler = RobustScaler()
-            # self.scaler = MinMaxScaler()
+        if self.scaler is None:
+            if self.scaler_type == ScalerType.NoScaling:
+                print("    Data will not be scaled")
+            elif self.scaler_type == ScalerType.Standard:
+                self.scaler = StandardScaler()
+            elif self.scaler_type == ScalerType.MinMax:
+                self.scaler = MinMaxScaler()
+            elif self.scaler_type == ScalerType.Robust:
+                self.scaler = RobustScaler()
+            else:
+                print(f"    Unknown scaler type: {self.scaler_type}")
+
         return self.scaler
+
+    def fit_scaler(self, dataframe: DataFrame):
+        if self.scaler is not None:
+            if self.scaler_fitted:
+                print("    Warning: re-fitting scaler")
+            self.scaler = self.scaler.fit(dataframe)
+            self.scaler_fitted = True
+        return
+
+    ###################################
+    # debug utilities
 
     def check_inf(self, dataframe):
         col_name = dataframe.columns.to_series()[np.isinf(dataframe).any()]
@@ -59,12 +97,25 @@ class DataframeUtils():
         return dataframe
 
 
+    ###################################
+
     # Normalise a dataframe
     def norm_dataframe(self, dataframe: DataFrame) -> DataFrame:
 
         self.check_inf(dataframe)
 
         df = dataframe.copy()
+
+        # if no scaling then just return a copy
+        if self.scaler_type == ScalerType.NoScaling:
+            return df
+
+        # if scaler not created, then do so
+        if self.scaler is  None:
+            self.scaler = self.get_scaler()
+
+        # convert date column so that it can be scaled.
+        # Also, add in date components (maybe there's a pattern, who knows?)
         if 'date' in df.columns:
             dates = pd.to_datetime(df['date'], utc=True)
             # dates = pd.to_datetime(df['date'])
@@ -83,8 +134,11 @@ class DataframeUtils():
         df.reindex()
 
         cols = df.columns
-        self.scaler = self.get_scaler()
-        self.scaler = self.scaler.fit(df)
+
+        # fit, if not already done
+        # Note that fitting is only done once, then reused on subsequent calls to norm/denorm. Call set_scaler to reset
+        if not self.scaler_fitted:
+            self.fit_scaler(df)
 
         df = pd.DataFrame(self.scaler.transform(df), columns=cols)
 
@@ -104,22 +158,16 @@ class DataframeUtils():
 
         return df
 
-
-    # slit a dataframe into two, based on the supplied ratio
-    def split_dataframe(self, dataframe: DataFrame, ratio: float) -> (DataFrame, DataFrame):
-        split_row = int(ratio * dataframe.shape[0])
-        df1 = dataframe.iloc[0:split_row].copy()
-        df2 = dataframe.iloc[split_row + 1:].copy()
-        return df1, df2
+    ###################################
 
 
-    # slit an array into two, based on the supplied ratio
-    def split_array(self, array, ratio: float) -> (DataFrame, DataFrame):
-        split_row = int(ratio * np.shape(array)[0])
-        a1 = array[0:split_row].copy()
-        a2 = array[split_row + 1:].copy()
-        return a1, a2
-
+    # map column into [0,1]
+    def get_binary_labels(self, col):
+        binary_encoder = LabelEncoder().fit([min(col), max(col)])
+        result = binary_encoder.transform(col)
+        # print ("label input:  ", col)
+        # print ("label output: ", result)
+        return result
 
     # remove outliers from normalised dataframe
     def remove_outliers(self, df_norm: DataFrame, buys, sells):
@@ -152,6 +200,8 @@ class DataframeUtils():
             s = sells
         return df2, b, s
 
+    ###################################
+    # train/test dataset utilities
 
     # build a 'viable' dataframe sample set. Needed because the positive labels are sparse
     def build_viable_dataset(self, size: int, df_norm: DataFrame, buys, sells):
@@ -294,9 +344,27 @@ class DataframeUtils():
 
         return t, b, s
 
+    ###################################
+    # Utilities for 'splitting' various datastructures
+
+    # slit a dataframe into two, based on the supplied ratio
+    def split_dataframe(self, dataframe: DataFrame, ratio: float) -> (DataFrame, DataFrame):
+        split_row = int(ratio * dataframe.shape[0])
+        df1 = dataframe.iloc[0:split_row].copy()
+        df2 = dataframe.iloc[split_row + 1:].copy()
+        return df1, df2
+
+
+    # slit an array into two, based on the supplied ratio
+    def split_array(self, array, ratio: float) -> (DataFrame, DataFrame):
+        split_row = int(ratio * np.shape(array)[0])
+        a1 = array[0:split_row].copy()
+        a2 = array[split_row + 1:].copy()
+        return a1, a2
 
     # splits the tensor, buys & sells into train & test
     # this sort of emulates train_test_split, but with different options for selecting data
+    #TODO: make this varable argument, i.e. any number of tensors
     def split_tensor(self, tensor, buys, sells, ratio, lookahead):
 
         # constrain size to what will be available in run modes
@@ -372,16 +440,6 @@ class DataframeUtils():
             print("   training #buys:{} #sells:{} ".format(num_buys, num_sells))
 
         return train_tensor, test_tensor, train_buys_tensor, test_buys_tensor, train_sells_tensor, test_sells_tensor
-
-
-    # map column into [0,1]
-    def get_binary_labels(self, col):
-        binary_encoder = LabelEncoder().fit([min(col), max(col)])
-        result = binary_encoder.transform(col)
-        # print ("label input:  ", col)
-        # print ("label output: ", result)
-        return result
-
 
     # convert dataframe to 3D tensor (for use with keras models)
     def df_to_tensor(self, df, seq_len):
