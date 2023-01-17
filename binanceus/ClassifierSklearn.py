@@ -46,37 +46,73 @@ import h5py
 import joblib
 
 from numpy import quantile
+from DataframeUtils import DataframeUtils
+
 
 class ClassifierSklearn():
 
-    classifier = None
+
+    model = None
     is_trained = False
-    clean_data_required = False # training data should not contain anomalies
-    num_estimators = 10
+    category = ""
     name = ""
     model_path = ""
+    checkpoint_path = ""
+
     use_saved_model = True
-    loaded_from_file = True
+    loaded_from_file = False
     contamination = 0.01 # ratio of signals to samples. Used in several algorithms, so saved
+
+    clean_data_required = False  # train with positive rows removed
+    model_per_pair = True  # set to False to combine across all pairs
+    new_model = False  # True if a new model was created this run
+
+    dataframeUtils = None
+    requires_dataframes = True # set to True if classifier takes dataframes rather than tensors
+    prescale_dataframe = False # set to True if algorithms need dataframes to be pre-scaled
+    single_prediction = False # True if alogorithm only produces 1 prediction (not entire data array)
+
 
     def __init__(self, pair, tag=""):
         super().__init__()
 
         self.loaded_from_file = False
 
-        #TODO: add num_features, use to modify model_path
-        if tag == "":
-            self.name = self.__class__.__name__ + "_" + pname
+        if self.model_per_pair:
+            pair_suffix = "_" + pair.split("/")[0]
         else:
-            self.name = self.__class__.__name__ + "_" + pname + "_" + tag
-        self.model_path = self.get_model_path()
+            pair_suffix = ""
 
-        # load saved model if present
-        if self.use_saved_model & os.path.exists(self.model_path):
-            self.classifier = self.load()
-            if self.classifier == None:
-                print("    Failed to load model ({})".format(self.model_path))
+        if tag == "":
+            tag_suffix = ""
+        else:
+            tag_suffix = "_" + tag
 
+        self.category = self.__class__.__name__
+        self.name = self.category + pair_suffix + tag_suffix
+
+        # self.model_path = self.get_model_path()
+        self.set_model_name(self.category, self.name)
+
+        if self.dataframeUtils is None:
+            self.dataframeUtils = DataframeUtils()
+
+
+    # set model name - this overrides the default naming. This allows the strategy to set the naming convention
+    # directory and extension are handled, just need to supply the category (e.g. the strat name) and main file name
+    # caller will have to take care of adding pair names, tag etc.
+    def set_model_name(self, category, model_name):
+        root_dir = self.get_model_root_dir()
+        save_dir = root_dir + category + '/'
+        file_path = save_dir + model_name + ".sav"
+
+        # update tracking vars (need to override defaults)
+        self.category = category
+        self.model_path = file_path
+        self.name = model_name
+        # print(f"    Set model path:{self.model_path}")
+
+        return self.model_path
 
     # create classifier - subclasses should overide this
     def create_classifier(self):
@@ -98,7 +134,7 @@ class ClassifierSklearn():
         # if self.is_trained and (force_train == False):
         #     return
 
-        if not self.clean_data_required:
+        if self.clean_data_required:
             # only use entries that do not have buy/sell signal
             df1 = df_train_norm.copy()
             df1['%labels'] = train_labels
@@ -113,14 +149,14 @@ class ClassifierSklearn():
         self.contamination = round((train_labels.sum() / np.shape(train_labels)[0]), 3)
 
         # if classifier is not yet defined, create it
-        if self.classifier == None:
-            self.classifier = self.create_classifier()
+        if self.model == None:
+            self.model = self.create_classifier()
 
         # TODO: create class each time, with actual ratio of 'anomalies' ?!
         print("    fitting classifier: ", self.__class__.__name__)
         # self.num_estimators = self.num_estimators + 1
-        # self.classifier.set_params(n_estimators=self.num_estimators)
-        self.classifier = self.classifier.fit(df_train)
+        # self.model.set_params(n_estimators=self.num_estimators)
+        self.model = self.model.fit(df_train)
 
         # only save if this is the first time training
         if not self.is_trained:
@@ -145,25 +181,29 @@ class ClassifierSklearn():
     def transform(self, df_norm: DataFrame) -> DataFrame:
         return df_norm
 
+    # run the model prediction against the entire data buffer
+    def backtest(self, data):
+        # for sklearn-based models, this is the same thing as running predict(). Here for compatibility with other types
+        return self.predict(data)
 
     # only need to override/define the predict function
     def predict(self, df_norm: DataFrame):
 
-        if self.classifier is None:
+        if self.model is None:
             print("    ERR: no classifier")
             return np.zeros(np.shape(df_norm)[0])
 
-        pred = self.classifier.predict(df_norm)
+        pred = self.model.predict(df_norm)
 
         use_scores = True
 
         # not all sklearn algorithms support score_samples method, so double-check
-        has_scores = getattr(self.classifier, "score_samples", None)
+        has_scores = getattr(self.model, "score_samples", None)
         if not callable(has_scores):
             use_scores = False
 
         if use_scores:
-            scores = self.classifier.score_samples(df_norm)
+            scores = self.model.score_samples(df_norm)
             # thresh = np.quantile(scores, self.contamination)
             thresh = scores.mean() - 2.0 * scores.std()
             # print("thresh:{:.3f} min:{:.3f} max:{:.3f} mean:{:.3f} std:{:.3f}".format(thresh,
@@ -177,31 +217,70 @@ class ClassifierSklearn():
 
         return predictions
 
-    # returns path to 'full' model file
-    def get_model_path(self):
+
+    # returns path to the root directory used for storing models
+    def get_model_root_dir(self):
         # set as subdirectory of location of this file (so that it can be included in the repository)
         file_dir = os.path.dirname(str(Path(__file__)))
-        save_dir = file_dir + "/models/" + self.__class__.__name__ + '/'
+        root_dir = file_dir + "/models/"
+        if not os.path.exists(root_dir):
+            os.makedirs(root_dir)
+        return root_dir
+
+    # returns path to 'full' model file
+    def get_model_path(self):
+        root_dir = self.get_model_root_dir()
+        save_dir = root_dir + self.category + '/'
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
         model_path = save_dir + self.name + ".sav"
         return model_path
 
+    def get_checkpoint_path(self):
+        checkpoint_dir = '/tmp' + "/" + self.name + "/"
+        if not os.path.exists(checkpoint_dir):
+            os.makedirs(checkpoint_dir)
+        model_path = checkpoint_dir + "checkpoint.sav"
+        return model_path
+
     def save(self, path=""):
+
+        if len(path) == 0:
+            self.model_path = self.get_model_path()
+            path = self.model_path
+        else:
+            self.model_path = path
+
         if self.use_saved_model and (not self.loaded_from_file):
-            # use joblib to save classifier state
+            save_dir = os.path.dirname(path)
+            if not os.path.exists(save_dir):
+                os.makedirs(save_dir)
+
+            # use joblib to save model state
             print("    saving to: ", self.model_path)
-            joblib.dump(self.classifier, self.model_path)
+            joblib.dump(self.model, self.model_path)
         return
 
     def load(self, path=""):
+
+        if len(path) == 0:
+            self.model_path = self.get_model_path()
+            path = self.model_path
+        else:
+            self.model_path = path
+
         if self.use_saved_model:
-            # use joblib to reload classifier state
-            print("    loading from: ", self.model_path)
-            self.classifier = joblib.load(self.model_path)
-            self.loaded_from_file = True
-            # self.is_trained = True
-        return self.classifier
+            if os.path.exists(path):
+                # use joblib to reload model state
+                print("    loading from: ", self.model_path)
+                self.model = joblib.load(self.model_path)
+                self.loaded_from_file = True
+                # self.is_trained = True # training is NOT cumulative for sklearn classifiers
+        return self.model
+
+    def model_exists(self) -> bool:
+        path = self.get_model_path()
+        return os.path.exists(path)
 
     def model_is_trained(self) -> bool:
         return self.is_trained
@@ -209,3 +288,15 @@ class ClassifierSklearn():
     def needs_clean_data(self) -> bool:
         # print("    clean_data_required: ", self.clean_data_required)
         return self.clean_data_required
+
+    def needs_dataframes(self) -> bool:
+        return self.requires_dataframes
+
+    def prescale_data(self) -> bool:
+        return self.prescale_dataframe
+
+    def returns_single_prediction(self) -> bool:
+        return self.single_prediction
+
+    def new_model_created(self) -> bool:
+        return ClassifierSklearn.new_model # note use of class-level variable

@@ -81,7 +81,7 @@ NNPredict_stripped - uses an LSTM neural network to try and predict the future s
 class NNPredict_stripped(NNPredict):
     plot_config = {
         'main_plot': {
-            'close': {'color': 'green'},
+            'close': {'color': 'cornflowerblue'},
             # 'smooth': {'color': 'teal'},
             'predict': {'color': 'lightpink'},
         },

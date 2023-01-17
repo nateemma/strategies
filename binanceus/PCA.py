@@ -53,7 +53,8 @@ from sklearn.utils.fixes import loguniform
 from sklearn import preprocessing
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import GridSearchCV
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier, VotingClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier, VotingClassifier, \
+    StackingClassifier
 from sklearn.naive_bayes import GaussianNB, MultinomialNB
 from sklearn.neural_network import MLPClassifier, BernoulliRBM
 from sklearn.neighbors import KNeighborsClassifier
@@ -108,6 +109,33 @@ PCA - uses Principal Component Analysis to try and reduce the total set of indic
 ####################################################################################
 """
 
+
+# enum of various classifiers available
+class ClassifierType(Enum):
+    LogisticRegression = 0
+    DecisionTree = 1
+    RandomForest = 2
+    GaussianNB = 3
+    MLP = 4
+    IsolationForest = 5
+    EllipticEnvelope = 6
+    OneClassSVM = 7
+    PCA = 8
+    GaussianMixture = 9
+    KNeighbors = 10
+    StochasticGradientDescent = 11
+    GradientBoosting = 12
+    AdaBoost = 13
+    QuadraticDiscriminantAnalysis = 14
+    LinearSVC = 15
+    GaussianSVC = 16
+    PolySVC = 17
+    SigmoidSVC = 18
+    Voting = 19
+    LinearDiscriminantAnalysis = 20
+    XGBoost = 21
+    Stacking = 22
+    
 
 class PCA(IStrategy):
 
@@ -204,33 +232,10 @@ class PCA(IStrategy):
         STOPLOSS = 3
         RUNNING = 4
 
-    # enum of various classifiers available
-    class ClassifierType(Enum):
-        LogisticRegression = 0
-        DecisionTree = 1
-        RandomForest = 2
-        GaussianNB = 3
-        MLP = 4
-        IsolationForest = 5
-        EllipticEnvelope = 6
-        OneClassSVM = 7
-        PCA = 8
-        GaussianMixture = 9
-        KNeighbors = 10
-        StochasticGradientDescent = 11
-        GradientBoosting = 12
-        AdaBoost = 13
-        QuadraticDiscriminantAnalysis = 14
-        LinearSVC = 15
-        GaussianSVC = 16
-        PolySVC = 17
-        SigmoidSVC = 18
-        Voting = 19
-        LinearDiscriminantAnalysis = 20
-        XGBoost = 21
 
     # default classifier
-    default_classifier = ClassifierType.LinearDiscriminantAnalysis  # select based on testing
+    # default_classifier = ClassifierType.LinearDiscriminantAnalysis  # select based on testing
+    default_classifier = ClassifierType.Stacking  # select based on testing
 
     ###################################
 
@@ -603,8 +608,10 @@ class PCA(IStrategy):
 
         sell_clf, sell_clf_name = self.get_sell_classifier(df_train_pca, train_sell_labels)
 
-        # save the models
+        if self.dbg_verbose:
+            print(f'    Classifiers - buy: {buy_clf_name} sell: {sell_clf_name}')
 
+        # save the models
         self.pair_model_info[curr_pair]['pca'] = pca
         self.pair_model_info[curr_pair]['pca_size'] = df_train_pca.shape[1]
         self.pair_model_info[curr_pair]['clf_buy_name'] = buy_clf_name
@@ -638,6 +645,8 @@ class PCA(IStrategy):
         ncols = df_norm.shape[1]  # allow all components to get the full variance matrix
         whiten = True
 
+        # change this variable to select the type of PCA used.
+        # Regular old PCA (type 0) seems to perform best, but I leave the others here for reference
         pca_type = 0
 
         # there are various types of PCA, plus alternatives like ICA and Feature Extraction
@@ -884,61 +893,61 @@ class PCA(IStrategy):
     def classifier_factory(self, name, data, labels):
         clf = None
 
-        if name == self.ClassifierType.LogisticRegression:
+        if name == ClassifierType.LogisticRegression:
             clf = LogisticRegression(max_iter=10000)
-        elif name == self.ClassifierType.DecisionTree:
+        elif name == ClassifierType.DecisionTree:
             clf = DecisionTreeClassifier()
-        elif name == self.ClassifierType.RandomForest:
+        elif name == ClassifierType.RandomForest:
             clf = RandomForestClassifier()
-        elif name == self.ClassifierType.GaussianNB:
+        elif name == ClassifierType.GaussianNB:
             clf = GaussianNB()
-        elif name == self.ClassifierType.MLP:
-            param_grid = {
-                'hidden_layer_sizes': [(30, 2), (30, 80, 2), (30, 60, 30, 2)],
-                'max_iter': [50, 100, 150],
-                'activation': ['tanh', 'relu'],
-                'solver': ['sgd', 'adam', 'lbfgs'],
-                'alpha': [0.0001, 0.05],
-                'learning_rate': ['constant', 'adaptive'],
-            }
+        elif name == ClassifierType.MLP:
             clf = MLPClassifier(hidden_layer_sizes=(64, 32, 1),
                                 max_iter=50,
                                 activation='relu',
                                 learning_rate='adaptive',
                                 alpha=1e-5,
-                                solver='lbfgs',
+                                solver='adam',
                                 verbose=0)
 
-        elif name == self.ClassifierType.KNeighbors:
+        elif name == ClassifierType.KNeighbors:
             clf = KNeighborsClassifier(n_neighbors=3)
-        elif name == self.ClassifierType.StochasticGradientDescent:
+        elif name == ClassifierType.StochasticGradientDescent:
             clf = SGDClassifier()
-        elif name == self.ClassifierType.GradientBoosting:
+        elif name == ClassifierType.GradientBoosting:
             clf = GradientBoostingClassifier()
-        elif name == self.ClassifierType.AdaBoost:
+        elif name == ClassifierType.AdaBoost:
             clf = AdaBoostClassifier()
-        elif name == self.ClassifierType.LinearSVC:
+        elif name == ClassifierType.LinearSVC:
             clf = LinearSVC(dual=False)
-        elif name == self.ClassifierType.GaussianSVC:
+        elif name == ClassifierType.GaussianSVC:
             clf = SVC(kernel='rbf')
-        elif name == self.ClassifierType.PolySVC:
+        elif name == ClassifierType.PolySVC:
             clf = SVC(kernel='poly')
-        elif name == self.ClassifierType.SigmoidSVC:
+        elif name == ClassifierType.SigmoidSVC:
             clf = SVC(kernel='sigmoid')
-        elif name == self.ClassifierType.Voting:
+        elif name == ClassifierType.Voting:
             # choose 4 decent classifiers
-            c1, _ = self.classifier_factory('AdaBoost', data, labels)
-            c2, _ = self.classifier_factory('GaussianNB', data, labels)
-            c3, _ = self.classifier_factory('LDA', data, labels)
-            c4, _ = self.classifier_factory('sigmoidSVC', data, labels)
+            c1, _ = self.classifier_factory(ClassifierType.LinearDiscriminantAnalysis, data, labels)
+            c2, _ = self.classifier_factory(ClassifierType.SigmoidSVC, data, labels)
+            c3, _ = self.classifier_factory(ClassifierType.XGBoost, data, labels)
+            c4, _ = self.classifier_factory(ClassifierType.AdaBoost, data, labels)
             clf = VotingClassifier(estimators=[('c1', c1), ('c2', c2), ('c3', c3), ('c4', c4)], voting='hard')
-        elif name == self.ClassifierType.LinearDiscriminantAnalysis:
+        elif name == ClassifierType.LinearDiscriminantAnalysis:
             clf = LinearDiscriminantAnalysis()
-        elif name == self.ClassifierType.QuadraticDiscriminantAnalysis:
+        elif name == ClassifierType.QuadraticDiscriminantAnalysis:
             clf = QuadraticDiscriminantAnalysis()
-        elif name == self.ClassifierType.XGBoost:
+        elif name == ClassifierType.XGBoost:
             clf = XGBClassifier()
-
+        elif name == ClassifierType.Stacking:
+            # Stacked 'ensemble' of classifiers
+            c1, _ = self.classifier_factory(ClassifierType.LinearDiscriminantAnalysis, data, labels)
+            c2, _ = self.classifier_factory(ClassifierType.SigmoidSVC, data, labels)
+            c3, _ = self.classifier_factory(ClassifierType.XGBoost, data, labels)
+            c4, _ = self.classifier_factory(ClassifierType.AdaBoost, data, labels)
+            estimators = [('c1', c1), ('c2', c2), ('c3', c3), ('c4', c4)]
+            clf = StackingClassifier(estimators=estimators,
+                                     final_estimator=LogisticRegression())
         else:
             print("Unknown classifier: ", name)
             clf = None

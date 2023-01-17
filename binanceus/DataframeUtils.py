@@ -80,12 +80,21 @@ class DataframeUtils():
     ###################################
     # debug utilities
 
-    def check_inf(self, dataframe):
+    def check_nan(self, dataframe) -> bool:
+        found = False
+        col_name = dataframe.columns[dataframe.isna().any()].tolist()
+        if len(col_name) > 0:
+            print("*** NaN in cols: ", col_name)
+            found = True
+        return found
+
+    def check_inf(self, dataframe) -> bool:
+        found = False
         col_name = dataframe.columns.to_series()[np.isinf(dataframe).any()]
         if len(col_name) > 0:
-            print("***")
             print("*** Infinity in cols: ", col_name)
-            print("***")
+            found = True
+        return found
 
 
     def remove_debug_columns(self, dataframe: DataFrame) -> DataFrame:
@@ -444,7 +453,7 @@ class DataframeUtils():
     # convert dataframe to 3D tensor (for use with keras models)
     def df_to_tensor(self, df, seq_len):
 
-        if not isinstance(df, type([np.ndarray, np.array])):
+        if self.is_dataframe(df):
             data = np.array(df)
         else:
             data = df
@@ -482,3 +491,13 @@ class DataframeUtils():
         # print("tensor: ", tensor_arr)
         # print("data:{} tensor:{}".format(np.shape(data), np.shape(tensor_arr)))
         return tensor_arr
+
+    # utility to check whether an object is a Dataframe
+    def is_dataframe(self, data) -> bool:
+        ctype = str(type(data)).lower()
+        return True if ('dataframe' in ctype) else False
+
+    # utility to check whether an object is a tensor
+    def is_tensor(self, data) -> bool:
+        ctype = str(type(data)).lower()
+        return True if ('array' in ctype) else False

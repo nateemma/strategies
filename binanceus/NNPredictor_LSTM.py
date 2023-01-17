@@ -57,10 +57,24 @@ class NNPredictor_LSTM(ClassifierKerasLinear):
         # NOTE: don't use relu with LSTMs, cannot use GPU if you do (much slower). Use tanh
 
         # simplest possible LSTM :
-        model.add(layers.LSTM(64, return_sequences=True, activation='tanh', input_shape=(seq_len, num_features)))
-        model.add(layers.Dropout(rate=0.1))
+        # model.add(layers.LSTM(64, return_sequences=True, activation='tanh', input_shape=(seq_len, num_features)))
+        # model.add(layers.Dropout(rate=0.1))
+        #
+        # # last layer is a linear (float) value - do not change
+        # model.add(layers.Dense(1, activation='linear'))
+
+        inputs = keras.Input(shape=(seq_len, num_features))
+        x = inputs
+        x = keras.layers.LSTM(64, return_sequences=True, activation='tanh', input_shape=(seq_len, num_features))(x)
+        x = keras.layers.Dropout(0.1)(x)
+
+        # intermediate layer to bring the dimensions
+        x = keras.layers.Dense(16)(x)
+        x = keras.layers.Dropout(0.1)(x)
 
         # last layer is a linear (float) value - do not change
-        model.add(layers.Dense(1, activation='linear'))
+        outputs = layers.Dense(1, activation="linear")(x)
+
+        model = keras.Model(inputs, outputs)
 
         return model

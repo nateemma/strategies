@@ -58,6 +58,7 @@ import Attention
 from DataframeUtils import DataframeUtils, ScalerType
 from DataframePopulator import DataframePopulator
 from NNPredictor_LSTM import NNPredictor_LSTM
+import Environment
 
 """
 ####################################################################################
@@ -83,7 +84,7 @@ NNPredict - uses a Long-Short Term Memory neural network to try and predict the 
 class NNPredict(IStrategy):
     plot_config = {
         'main_plot': {
-            'close': {'color': 'green'},
+            'close': {'color': 'cornflowerblue'},
             # 'temp': {'color': 'teal'},
             'predict': {'color': 'lightpink'},
         },
@@ -157,20 +158,25 @@ class NNPredict(IStrategy):
     batch_size = 1024  # batch size for training
     predict_batch_size = 512
 
-    classifier_list = {}
+    classifier_list = {} # classifier for each pair
+    init_done = {} # flags whether initialisation has been done for a pair or not
+
     compressor = None
     compress_data = False  # currently not working
     refit_model = False # set to True if you want to re-train the model. Usually better to just delete it and restart
     scaler_type = ScalerType.Robust # scaler type used for normalisation
     model_per_pair = False # set to True to create pair-specific models (better but only works for pairs in whitelist)
+    training_only = False # set to True to just generate models, no backtesting or prediction
+
     dataframeUtils = None
     dataframePopulator = None
 
-    # debug flags
+    # flags used for initialisation
     first_time = True  # mostly for debug
     first_run = True  # used to identify first time through buy/sell populate funcs
 
     dbg_verbose = True  # controls debug output
+    dbg_test_classifier = False  # test clasifiers after fitting
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
 
     # variables to track state
@@ -264,19 +270,24 @@ class NNPredict(IStrategy):
             self.dataframePopulator = DataframePopulator()
 
             self.dataframePopulator.runmode = self.dp.runmode.value
-            self.dataframePopulator.win_size = min(14, self.curr_lookahead)
+            self.dataframePopulator.win_size = max(14, self.curr_lookahead)
             self.dataframePopulator.startup_win = self.startup_candle_count
             self.dataframePopulator.n_loss_stddevs = self.n_loss_stddevs
             self.dataframePopulator.n_profit_stddevs = self.n_profit_stddevs
 
         if NNPredict.first_time:
             NNPredict.first_time = False
+
             print("")
             print("***************************************")
             print("** Warning: startup can be very slow **")
             print("***************************************")
 
-            print("    Lookahead: ", self.curr_lookahead, " candles (", self.lookahead_hours, " hours)")
+            Environment.print_environment()
+
+            print(f"    Lookahead: {self.curr_lookahead} candles ({self.lookahead_hours} hours)")
+            print(f"    Re-train existing models: {self.refit_model}")
+            print(f"    Training (only) mode: {self.training_only}")
 
         print("")
         print(self.curr_pair)
@@ -284,28 +295,50 @@ class NNPredict(IStrategy):
         # make sure we only retrain in backtest modes
         if self.dp.runmode.value not in ('backtest'):
             self.refit_model = False
+            self.training_only = False
 
         # (re-)set the scaler
         self.dataframeUtils.set_scaler_type(self.scaler_type)
 
+        if self.dbg_verbose:
+            print("    Adding technical indicators...")
         dataframe = self.add_indicators(dataframe)
 
         # train the model
         if self.dbg_verbose:
             print("    training model...")
 
+        # if we are training, then force re-training of an existing model
+        if self.training_only:
+            self.refit_model = True
+
         dataframe = self.train_model(dataframe, self.curr_pair)
 
-        # add predictions
-        if self.dbg_verbose:
-            print("    running predictions...")
+        # if in training mode then skip further processing.
+        # Doesn't make sense without the model anyway, and it can sometimes be very slow
 
-        dataframe = self.add_predictions(dataframe, self.curr_pair)
+        if self.training_only:
+            print("    Training mode. Skipping backtesting and prediction steps")
+            print("        freqtrade backtest results will show no trades")
+            print("        set training_only=False to re-enable full backtesting")
 
-        # Custom Stoploss
-        if self.dbg_verbose:
-            print("    updating stoploss data...")
-        dataframe = self.add_stoploss_indicators(dataframe, self.curr_pair)
+        else:
+            # if first time through, run backtest
+            if self.curr_pair not in self.init_done:
+                self.init_done[self.curr_pair] = True
+                print("    running backtest...")
+                dataframe = self.backtest_data(dataframe)
+
+            # add predictions
+            if self.dbg_verbose:
+                print("    running predictions...")
+
+            dataframe = self.add_predictions(dataframe, self.curr_pair)
+
+            # Custom Stoploss
+            if self.dbg_verbose:
+                print("    updating stoploss data...")
+            dataframe = self.add_stoploss_indicators(dataframe, self.curr_pair)
 
         return dataframe
 
@@ -325,10 +358,11 @@ class NNPredict(IStrategy):
     # add in any indicators to be used for training
     def add_training_indicators(self, dataframe: DataFrame) -> DataFrame:
 
-        # placeholders, just need the columns to be there (with some realistic values)
+        # placeholders, just need the columns to be there for later (with some realistic values)
         dataframe['predict'] = dataframe['close']
         dataframe['temp'] = dataframe['close']
 
+        # no looking ahead in this approach
         # future_df = self.dataframePopulator.add_hidden_indicators(dataframe.copy())
         # future_df = self.dataframePopulator.add_future_data(future_df, self.curr_lookahead)
         return dataframe
@@ -344,28 +378,21 @@ class NNPredict(IStrategy):
         dataframe = self.dataframePopulator.add_stoploss_indicators(dataframe)
         return dataframe
 
-    # add columns based on predictions. Do not call until after model has been trained
-    def add_predictions(self, dataframe: DataFrame, pair) -> DataFrame:
-
-        win_size = max(self.curr_lookahead, 14)
-
-        dataframe = self.add_model_predictions(dataframe)
-        dataframe['predict_smooth'] = dataframe['predict'].rolling(window=win_size).apply(self.roll_strong_smooth)
-
-        dataframe['predict_diff'] = 100.0 * (dataframe['predict'] - dataframe['close']) / dataframe['close']
-
-        # dataframe['predict_diff'] = 100.0 * (dataframe['predict_smooth'] - dataframe['smooth']) / dataframe['smooth']
-
-        return dataframe
-
     ################################
 
+    # prepare data and train the model
     def train_model(self, dataframe: DataFrame, pair) -> DataFrame:
 
-        df_norm = self.dataframeUtils.norm_dataframe(dataframe)
+        nfeatures = np.shape(dataframe)[1]
 
-        # save closing prices for later
-        prices = np.array(df_norm['close'])
+        # create the classifier if it doesn't already exist
+        if self.curr_pair not in self.classifier_list:
+            self.classifier_list[self.curr_pair] = self.make_classifier(self.curr_pair, self.seq_len, nfeatures)
+
+        if self.classifier_list[self.curr_pair].prescale_data():
+            df_norm = self.dataframeUtils.norm_dataframe(dataframe)
+        else:
+            df_norm = dataframe.copy()
 
         # compress data
         if self.compress_data:
@@ -431,44 +458,360 @@ class NNPredict(IStrategy):
         #               test_result_start, (test_result_start+test_size)
         #               ))
 
-        # convert dataframe to tensor before extracting train/test data (avoid edge effects)
-        df_tensor = self.dataframeUtils.df_to_tensor(df_norm, self.seq_len)
-        train_df_norm = df_tensor[train_start:train_start + train_size]
-        test_df_norm = df_tensor[test_start:test_start + test_size]
+        # some classifiers take DataFrames as input, others tensors, so check
+        if self.classifier_list[self.curr_pair].needs_dataframes():
+            # save closing prices for later
+            prices = df_norm['close']
 
-        # extract prices from dataframe and convert to tensors
-        train_results = prices[train_result_start:train_result_start + train_size]
-        test_results = prices[test_result_start:test_result_start + test_size]
-        train_results_norm = self.dataframeUtils.df_to_tensor(train_results.reshape(-1, 1), self.seq_len)
-        test_results_norm = self.dataframeUtils.df_to_tensor(test_results.reshape(-1, 1), self.seq_len)
+            train_df = df_norm.iloc[train_start:(train_start + train_size)]
+            test_df = df_norm.iloc[test_start:(test_start + test_size)]
 
-        train_tensor = train_df_norm
-        test_tensor = test_df_norm
+            # extract prices from dataframe and convert to tensors
+            train_prices_df = prices.iloc[train_result_start:train_result_start + train_size]
+            test_prices_df = prices.iloc[test_result_start:test_result_start + test_size]
 
-        # print("prices:", np.shape(prices), " train results:", np.shape(train_results))
-        # print("train data:", np.shape(train_df_norm), " train results norm:", np.shape(train_results_norm))
+            # copy to the vars used for training
+            train_data = train_df
+            test_data = test_df
+            train_results = train_prices_df
+            test_results = test_prices_df
 
-        # print("")
-        # print("    train data:", np.shape(train_tensor), " train results:", train_results_norm.shape)
-        # print("    test data: ", np.shape(test_tensor), " test results: ", test_results_norm.shape)
-        # print("")
+        else:
+            # save closing prices for later
+            prices = np.array(df_norm['close'])
+
+            # convert dataframe to tensor before extracting train/test data (avoid edge effects)
+            df_tensor = self.dataframeUtils.df_to_tensor(df_norm, self.seq_len)
+            train_tensor = df_tensor[train_start:train_start + train_size]
+            test_tensor = df_tensor[test_start:test_start + test_size]
+
+            # extract prices from dataframe and convert to tensors
+            train_prices = prices[train_result_start:train_result_start + train_size]
+            test_prices = prices[test_result_start:test_result_start + test_size]
+            train_prices_tensor = self.dataframeUtils.df_to_tensor(train_prices.reshape(-1, 1), self.seq_len)
+            test_prices_tensor = self.dataframeUtils.df_to_tensor(test_prices.reshape(-1, 1), self.seq_len)
+
+            # copy to the vars used for training
+            train_data = train_tensor
+            test_data = test_tensor
+            train_results = train_prices_tensor
+            test_results = test_prices_tensor
+
+            # print("prices:", np.shape(prices), " train results:", np.shape(train_results))
+            # print("train data:", np.shape(train_df_norm), " train results norm:", np.shape(train_results_norm))
+
+            # print("")
+            # print("    train data:", np.shape(train_tensor), " train results:", train_results_norm.shape)
+            # print("    test data: ", np.shape(test_tensor), " test results: ", test_results_norm.shape)
+            # print("")
 
         # create/retrieve the model
-        nfeatures = np.shape(train_tensor)[2]
-
-        if self.curr_pair not in self.classifier_list:
-            self.classifier_list[self.curr_pair] = self.make_classifier(self.curr_pair, self.seq_len, nfeatures)
 
         # train the model
         print("    fitting model...")
         print("")
         force_train = self.refit_model if (self.dp.runmode.value in ('backtest')) else False
         # print(f"self.refit_model:{self.refit_model} self.dp.runmode.value:{self.dp.runmode.value}")
-        self.classifier_list[self.curr_pair].train(train_tensor, test_tensor,
-                                                   train_results_norm, test_results_norm,
+        self.classifier_list[self.curr_pair].train(train_data, test_data,
+                                                   train_results, test_results,
                                                    force_train)
 
+        if self.dbg_test_classifier:
+            self.classifier_list[self.curr_pair].evaluate(test_data)
+
         return dataframe
+
+
+    ################################
+
+    # backtest the data and update the dataframe
+    def backtest_data(self, dataframe: DataFrame) -> DataFrame:
+
+        # get the current classifier
+        classifier = self.classifier_list[self.curr_pair]
+        use_dataframes = classifier.needs_dataframes()
+        prescale_data = classifier.prescale_data()
+
+        # print(f'backtest_data() - use_dataframes:{use_dataframes} prescale_data:{prescale_data}')
+
+        # pre-scale if needed
+        if prescale_data:
+            df_norm = self.dataframeUtils.norm_dataframe(dataframe)
+        else:
+            df_norm = dataframe
+
+        # convert to tensor, if needed
+        if use_dataframes:
+            data = df_norm
+        else:
+            data = self.dataframeUtils.df_to_tensor(df_norm, self.seq_len)
+
+        # run backtest
+        preds_notrend = classifier.backtest(data)
+
+        # re-scale, if necessary
+        if prescale_data:
+            # replace the 'temp' column and de-normalise (this is why we added the 'temp' column earlier, to match dimensions)
+            df_norm["temp"] = preds_notrend
+            inv_y = self.dataframeUtils.denorm_dataframe(df_norm)
+            predictions = inv_y["temp"]
+        else:
+            # classifier handles scaling
+            predictions = preds_notrend
+
+        dataframe['predict'] = predictions
+
+        return dataframe
+
+    ################################
+
+    # update predictions for the latest part of the dataframe
+    def update_predictions(self, dataframe: DataFrame) -> DataFrame:
+
+        # get the current classifier
+        classifier = self.classifier_list[self.curr_pair]
+        use_dataframes = classifier.needs_dataframes()
+        prescale_data = classifier.prescale_data()
+
+        # pre-scale if needed
+        if prescale_data:
+            df_norm = self.dataframeUtils.norm_dataframe(dataframe)
+        else:
+            df_norm = dataframe
+
+        # extract the last part of the data
+        window = 128
+        end = np.shape(df_norm)[0] - 1
+        start = end - window
+        if use_dataframes:
+            data = df_norm.iloc[start:end]
+        else:
+            tensor = self.dataframeUtils.df_to_tensor(df_norm, self.seq_len)
+            data = tensor[start:end]
+
+        # predict
+        latest_prediction = dataframe['close'].iloc[-1]
+        if classifier.returns_single_prediction():
+            predictions = classifier.predict(data)
+            latest_prediction = predictions[-1]
+        else:
+            preds_notrend = self.get_predictions(data)
+
+            # re-scale, if necessary
+            if prescale_data:
+                # replace the 'temp' column and de-normalise (this is why we added the 'temp' column earlier, to match dimensions)
+                df_norm["temp"].iloc[start:end] = preds_notrend
+                inv_y = self.dataframeUtils.denorm_dataframe(df_norm)
+                predictions = inv_y["temp"]
+                latest_prediction = predictions.iloc[-1]
+            else:
+                # classifier handles scaling
+                predictions = preds_notrend
+                latest_prediction = predictions[-1]
+
+        # update just the last entry in the predict column
+        dataframe['predict'].iloc[-1] = latest_prediction
+        return dataframe
+
+    ################################
+
+    # get predictions from the model. Directly updates the 'predict' column
+    def add_model_predictions(self, dataframe: DataFrame) -> DataFrame:
+
+        # check that model exists
+        if self.curr_pair not in self.classifier_list:
+            print("*** No model for pair ", self.curr_pair)
+            return dataframe
+        
+        # if the model produces single valued predictions then we have to roll through the dataframe
+        # if not, we can use a more efficient batching approach
+        if self.classifier_list[self.curr_pair].returns_single_prediction():
+            dataframe = self.add_model_rolling_predictions(dataframe)
+        else:
+            dataframe = self.add_model_batch_predictions(dataframe)
+            
+        return dataframe
+
+    # get predictions. Note that the input can be dataframe or tensor
+    def get_predictions(self, data_chunk):
+
+        if self.curr_pair not in self.classifier_list:
+            print("    ERR: no classifier")
+            preds_notrend = np.zeros(np.shape(data_chunk)[0], dtype=float)
+            return preds_notrend
+
+        # run the prediction
+        preds_notrend = self.classifier_list[self.curr_pair].predict(data_chunk)
+
+        predictions = preds_notrend
+        # print(df)
+        if self.classifier_list[self.curr_pair].returns_single_prediction():
+            predictions = [predictions[-1]]
+
+        return predictions
+
+    # run prediction in batches over the entire history
+    def add_model_batch_predictions(self, dataframe: DataFrame) -> DataFrame:
+
+        # scale/normalise
+        # save mean & std of close column, need this to re-scale predictions later
+        cl_mean = dataframe['close'].mean()
+        cl_std = dataframe['close'].std()
+        
+        # get the current classifier
+        classifier = self.classifier_list[self.curr_pair]
+        use_dataframes = classifier.needs_dataframes()
+        prescale_data = classifier.prescale_data()
+
+        # pre-scale if needed
+        if prescale_data:
+            df_norm = self.dataframeUtils.norm_dataframe(dataframe)
+        else:
+            df_norm = dataframe
+
+        # compress if specified
+        if self.compress_data:
+            old_dim = np.shape(df_norm)[1]
+            df_norm = self.compress_dataframe(df_norm)
+            print(f"    Compressed dataframe {old_dim} -> {np.shape(df_norm)[1]}")
+
+        if not use_dataframes:
+            # convert dataframe to tensor
+            df_tensor = self.dataframeUtils.df_to_tensor(df_norm, self.seq_len)
+
+        # prediction does not work well when run over a large dataset, so divide into chunks and predict for each one
+        # then concatenate the results and return
+        preds_notrend: np.array = []
+        batch_size = self.predict_batch_size
+
+        nruns = int(np.shape(df_norm)[0] / batch_size)
+        # print(f'    batch_size:{batch_size} nruns:{nruns}')
+
+        for i in tqdm(range(nruns), desc="    Predicting…", ascii=True, ncols=75):
+            # for i in range(nruns):
+            start = i * batch_size
+            end = start + batch_size
+            # print("start:{} end:{}".format(start, end))
+            if use_dataframes:
+                chunk = df_norm.iloc[start:end]
+            else:
+                chunk = df_tensor[start:end]
+            # print(chunk)
+            preds = self.get_predictions(chunk)
+            # print(preds)
+            preds_notrend = np.concatenate((preds_notrend, preds))
+
+        # copy whatever is leftover
+        start = nruns * batch_size
+        end = np.shape(df_norm)[0]
+        # print("start:{} end:{}".format(start, end))
+        if end > start:
+            if use_dataframes:
+                chunk = df_norm.iloc[start:end]
+            else:
+                chunk = df_tensor[start:end]
+            preds = self.get_predictions(chunk)
+            preds_notrend = np.concatenate((preds_notrend, preds))
+
+        # re-scale the predictions
+        # slight cheat - replace 'temp' column with predictions, then inverse scale
+
+        # decompress
+        if self.compress_data:
+            # TODO: this is not working - can't add a column because PCA inverse_transform will coomplain
+            #      can't really replace a column because the scaling is wrong
+
+            predictions = preds_notrend * cl_std + cl_mean
+
+        else:
+            if prescale_data:
+                # replace the 'temp' column and de-normalise (this is why we added the 'temp' column earlier, to match dimensions)
+                df_norm["temp"] = preds_notrend
+                inv_y = self.dataframeUtils.denorm_dataframe(df_norm)
+                predictions = inv_y["temp"]
+            else:
+                # classifier handles scaling
+                predictions = preds_notrend
+
+        # print("runs:{} predictions:{}".format(nruns, len(predictions)))
+
+        dataframe['predict'] = predictions
+        return dataframe
+
+    # run prediction in rolling fashion (one result at a time -> slow) over the entire history
+    def add_model_rolling_predictions(self, dataframe: DataFrame) -> DataFrame:
+
+        print ("    Adding rolling predictions. Might take a while...")
+
+        # probably don't need to handle tensor cases since those classifiers typically do not return single values
+
+        # get the current clasifier
+        classifier = self.classifier_list[self.curr_pair]
+        use_dataframes = classifier.needs_dataframes()
+        prescale_data = classifier.prescale_data()
+
+        # pre-scale if needed
+        if prescale_data:
+            df_norm = self.dataframeUtils.norm_dataframe(dataframe)
+        else:
+            df_norm = dataframe
+
+        if not use_dataframes:
+            df_tensor = self.dataframeUtils.df_to_tensor(df_norm, self.seq_len)
+
+        window = 64
+        start = window
+        end = np.shape(df_norm)[0]
+
+        preds_notrend: np.array = []
+
+        # set values for startup window
+        for index in range(0, start):
+            preds_notrend = np.concatenate((preds_notrend, [df_norm['close'].iloc[index]]))
+
+        # add predictions
+        for i in tqdm(range(start, end), desc="    Predicting…", ascii=True, ncols=75):
+            # for index in range(start, end):
+            if use_dataframes:
+                chunk = df_norm.iloc[start:end]
+            else:
+                chunk = df_tensor[start:end]
+            preds = self.get_predictions(chunk)
+            preds_notrend = np.concatenate((preds_notrend, preds))
+
+        # re-scale, if needed
+        if prescale_data:
+            # replace the 'temp' column and de-normalise (this is why we added the 'temp' column earlier, to match dimensions)
+            df_norm["temp"] = preds_notrend
+            inv_y = self.dataframeUtils.denorm_dataframe(df_norm)
+            predictions = inv_y["temp"]
+        else:
+            # classifier handles scaling
+            predictions = preds_notrend
+
+        # copy to dataframe column
+        dataframe['predict'] = predictions
+
+        return dataframe
+
+    ################################
+
+    # add columns based on predictions. Do not call until after model has been trained
+    def add_predictions(self, dataframe: DataFrame, pair) -> DataFrame:
+
+        win_size = max(self.curr_lookahead, 14)
+
+        # dataframe = self.add_model_predictions(dataframe)
+        dataframe = self.update_predictions(dataframe)
+        dataframe['predict_smooth'] = dataframe['predict'].rolling(window=win_size).apply(self.roll_strong_smooth)
+
+        dataframe['predict_diff'] = 100.0 * (dataframe['predict'] - dataframe['close']) / dataframe['close']
+
+        # dataframe['predict_diff'] = 100.0 * (dataframe['predict_smooth'] - dataframe['smooth']) / dataframe['smooth']
+
+        return dataframe
+
+    #######################################
 
     # returns the classifier model.
     def make_classifier(self, pair, seq_len: int, num_features: int):
@@ -493,94 +836,6 @@ class NNPredict(IStrategy):
 
     ################################
 
-    # get predictions. Note that the input must already be in tensor format
-    def get_predictions(self, df_chunk: np.array):
-
-        if self.curr_pair not in self.classifier_list:
-            print("    ERR: no classifier")
-            preds_notrend = np.zeros(np.shape(df_chunk)[0], dtype=float)
-            return preds_notrend
-        else:
-            # run the prediction
-            preds_notrend = self.classifier_list[self.curr_pair].predict(df_chunk)
-            preds_notrend = np.array(preds_notrend[:, 0]).reshape(-1, 1)
-            preds_notrend = preds_notrend[:, 0]
-
-            return preds_notrend
-
-    # run prediction in batches over the entire history
-    def add_model_predictions(self, dataframe: DataFrame) -> DataFrame:
-
-        # check that model exists
-        if self.curr_pair not in self.classifier_list:
-            print("*** No model for pair ", self.curr_pair)
-            predictions = dataframe['close']
-            return predictions
-
-        # scale/normalise
-        # save mean & std of close column, need this to re-scale predictions later
-        cl_mean = dataframe['close'].mean()
-        cl_std = dataframe['close'].std()
-
-        df_norm = self.dataframeUtils.norm_dataframe(dataframe)
-
-        # compress
-        if self.compress_data:
-            old_dim = np.shape(df_norm)[1]
-            df_norm = self.compress_dataframe(df_norm)
-            print(f"    Compressed dataframe {old_dim} -> {np.shape(df_norm)[1]}")
-
-        # convert dataframe to tensor
-        df_tensor = self.dataframeUtils.df_to_tensor(df_norm, self.seq_len)
-
-        # prediction does not work well when run over a large dataset, so divide into chunks and predict for each one
-        # then concatenate the results and return
-        preds_notrend: np.array = []
-        batch_size = self.predict_batch_size
-        nruns = int(dataframe.shape[0] / batch_size)
-        for i in tqdm(range(nruns), desc="    Predicting…", ascii=True, ncols=75):
-            # for i in range(nruns):
-            start = i * batch_size
-            end = start + batch_size
-            # print("start:{} end:{}".format(start, end))
-            chunk = df_tensor[start:end]
-            # print(chunk)
-            preds = self.get_predictions(chunk)
-            # print(preds)
-            preds_notrend = np.concatenate((preds_notrend, preds))
-
-        # copy whatever is leftover
-        start = nruns * batch_size
-        end = dataframe.shape[0]
-        # print("start:{} end:{}".format(start, end))
-        if end > start:
-            chunk = df_tensor[start:end]
-            preds = self.get_predictions(chunk)
-            preds_notrend = np.concatenate((preds_notrend, preds))
-
-        # re-scale the predictions
-        # slight cheat - replace 'temp' column with predictions, then inverse scale
-
-        # decompress
-        if self.compress_data:
-            # TODO: this is not working - can't add a column because PCA inverse_transform will coomplain
-            #      can't really replace a column because the scaling is wrong
-
-            predictions = preds_notrend * cl_std + cl_mean
-
-        else:
-            # replace the 'temp' column and de-normalise (this is why we added the 'temp' column earlier, to match dimensions)
-            df_norm["temp"] = preds_notrend
-            inv_y = self.dataframeUtils.denorm_dataframe(df_norm)
-            predictions = inv_y["temp"]
-
-        # print("runs:{} predictions:{}".format(nruns, len(predictions)))
-
-        dataframe['predict'] = predictions
-        return dataframe
-
-    #######################################
-
     def get_compressor(self, df_norm: DataFrame):
         # just use fixed size PCA (easier for classifiers to deal with)
         ncols = int(64)
@@ -603,7 +858,7 @@ class NNPredict(IStrategy):
     #######################################
 
     # returns (rolling) smoothed version of input column
-    def roll_smooth(self, col) -> np.float:
+    def roll_smooth(self, col) -> float:
         # must return scalar, so just calculate prediction and take last value
 
         smooth = gaussian_filter1d(col, 4)
@@ -615,7 +870,7 @@ class NNPredict(IStrategy):
         else:
             return col[len(col) - 1]
 
-    def roll_strong_smooth(self, col) -> np.float:
+    def roll_strong_smooth(self, col) -> float:
         # must return scalar, so just calculate prediction and take last value
 
         smooth = gaussian_filter1d(col, 24)
@@ -640,6 +895,10 @@ class NNPredict(IStrategy):
         conditions = []
         dataframe.loc[:, 'enter_tag'] = ''
         curr_pair = metadata['pair']
+
+        # if we are training a new model, just return (this helps avoid runtime errors)
+        if self.training_only:
+            return dataframe
 
         # conditions.append(dataframe['volume'] > 0)
 
@@ -679,10 +938,15 @@ class NNPredict(IStrategy):
         dataframe.loc[:, 'exit_tag'] = ''
         curr_pair = metadata['pair']
 
-        conditions.append(dataframe['volume'] > 0)
 
-        # loose guard
-        conditions.append(dataframe['mfi'] > 50.0)
+        # if we are training a new model, just return (this helps avoid runtime errors)
+        if self.training_only:
+            return dataframe
+
+        # conditions.append(dataframe['volume'] > 0)
+
+        # # loose guard
+        # conditions.append(dataframe['mfi'] > 50.0)
 
         # Classifier triggers
         predict_cond = (

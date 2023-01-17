@@ -92,7 +92,7 @@ from AnomalyDetector_LSTM import AnomalyDetector_LSTM
 from AnomalyDetector_PCA import AnomalyDetector_PCA
 from AnomalyDetector_GMix import AnomalyDetector_GMix
 
-from DataframeUtils import DataframeUtils
+from DataframeUtils import DataframeUtils, ScalerType
 from DataframePopulator import DataframePopulator
 
 """
@@ -191,6 +191,7 @@ class Anomaly(IStrategy):
 
     compressor = None
     compress_data = True
+    scaler_type = ScalerType.Robust # scaler type used for normalisation
 
     dataframeUtils = None
     dataframePopulator = None
@@ -406,6 +407,9 @@ class Anomaly(IStrategy):
 
         print("")
         print(curr_pair)
+
+        # (re-)set the scaler
+        self.dataframeUtils.set_scaler_type(self.scaler_type)
 
         # create labels used for training
         buys, sells = self.create_training_data(dataframe)
@@ -684,10 +688,10 @@ class Anomaly(IStrategy):
         return dataframe
 
     # compress the supplied dataframe
-    def compress_dataframe(self, dataframe: DataFrame) -> DataFrame:
+    def compress_dataframe(self, df_norm: DataFrame) -> DataFrame:
         if not self.compressor:
-            self.compressor = self.get_compressor(dataframe)
-        return pd.DataFrame(self.compressor.transform(dataframe))
+            self.compressor = self.get_compressor(df_norm)
+        return pd.DataFrame(self.compressor.transform(df_norm))
 
     # get the compressor model for the supplied dataframe (dataframe must be normalised)
     # use .transform() to compress the dataframe

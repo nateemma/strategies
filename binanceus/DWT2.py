@@ -202,7 +202,7 @@ class DWT2(IStrategy):
 
         return model
 
-    def roll_get_dwt(self, col) -> np.float:
+    def roll_get_dwt(self, col) -> float:
         # must return scalar, so just calculate prediction and take last value
 
         model = self.get_dwt(col)
@@ -250,7 +250,7 @@ class DWT2(IStrategy):
         return np.mean(np.absolute(d - np.mean(d, axis)), axis)
 
 
-    def roll_smooth(self, col) -> np.float:
+    def roll_smooth(self, col) -> float:
         # must return scalar, so just calculate prediction and take last value
 
         smooth = gaussian_filter1d(col, 4)

@@ -79,7 +79,7 @@ Predict_Transformer - uses an Attention neural network to try and predict the fu
 class NNPredict_Transformer(NNPredict):
     plot_config = {
         'main_plot': {
-            'close': {'color': 'green'},
+            'close': {'color': 'cornflowerblue'},
             # 'smooth': {'color': 'teal'},
             'predict': {'color': 'lightpink'},
         },

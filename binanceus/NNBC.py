@@ -198,7 +198,7 @@ class NNBC(IStrategy):
     lookahead_hours = 0.5
     n_profit_stddevs = 1.0
     n_loss_stddevs = 1.0
-    min_f1_score = 0.5
+    min_f1_score = 0.3
 
     compressor = None
     compress_data = True
@@ -711,7 +711,7 @@ class NNBC(IStrategy):
 
     def get_classifier_predictions(self, classifier, data):
 
-        if not isinstance(data, (np.ndarray, np.array)):
+        if self.dataframeUtils.is_dataframe(data):
             # convert dataframe to tensor
             df_tensor = self.dataframeUtils.df_to_tensor(data, self.seq_len)
         else:

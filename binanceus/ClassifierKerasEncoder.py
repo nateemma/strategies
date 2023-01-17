@@ -98,10 +98,10 @@ class ClassifierKerasEncoder(ClassifierKeras):
                 print("    ERR: model not created")
                 return
 
-            self.model = self.compile_modedl(self.model)
+            self.model = self.compile_model(self.model)
             self.model.summary()
 
-        if not isinstance(df_train_norm, (np.ndarray, np.array)):
+        if self.dataframeUtils.is_dataframe(df_train):
             # remove rows with positive labels?!
             if self.clean_data_required:
                 df1 = df_train_norm.copy()
@@ -188,14 +188,14 @@ class ClassifierKerasEncoder(ClassifierKeras):
 
         # convert to tensor format and run the autoencoder
         # tensor = np.array(df_norm).reshape(df_norm.shape[0], 1, df_norm.shape[1])
-        tensor = self.dataframeUtils.df_to_tensor(df_norm, self.seq_len)
+        tensor = self.dataframeUtils.df_to_tensor(data, self.seq_len)
 
         predict_tensor = self.model.predict(tensor, verbose=1)
 
         # not sure why, but predict sometimes returns an odd length
         if np.shape(predict_tensor)[0] != np.shape(tensor)[0]:
             print("    ERR: prediction length mismatch ({} vs {})".format(len(predict_tensor), np.shape(tensor)[0]))
-            predictions = np.zeros(df_norm.shape[0], dtype=float)
+            predictions = np.zeros(data.shape[0], dtype=float)
         else:
             # get losses by comparing input to output
             msle = tf.keras.losses.msle(predict_tensor, tensor)

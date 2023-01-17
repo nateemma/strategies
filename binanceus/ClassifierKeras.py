@@ -66,7 +66,12 @@ class ClassifierKeras():
     clean_data_required = False # train with positive rows removed
     model_per_pair = False # set to False to combine across all pairs
     new_model = False # True if a new model was created this run
-    
+    dataframeUtils = None
+    requires_dataframes = False # set to True if classifier takes dataframes rather than tensors
+    prescale_dataframe = True # set to True if algorithms need dataframes to be pre-scaled
+    single_prediction = False # True if alogorithm only produces 1 prediction (not entire data array)
+
+    # ---------------------------
 
     #Note: pair is needed because we cannot combine model across pairs because of huge price differences
 
@@ -94,6 +99,10 @@ class ClassifierKeras():
         self.num_features = num_features
         # print("    num_features: ", num_features)
 
+        if self.dataframeUtils is None:
+            self.dataframeUtils = DataframeUtils()
+
+    # ---------------------------
 
     # set model name - this overrides the default naming. This allows the strategy to set the naming convention
     # directory and extension are handled, just need to supply the ategory (e.g. the strat name) and main file name
@@ -110,6 +119,8 @@ class ClassifierKeras():
         # print(f"    Set model path:{self.model_path}")
 
         return self.model_path
+
+    # ---------------------------
 
     # create model - subclasses should overide this
     def create_model(self, seq_len, num_features):
@@ -134,6 +145,8 @@ class ClassifierKeras():
 
         model.add(layers.Dense(num_features, activation=None))
 
+    # ---------------------------
+
     # compile the model. This is a distinct function because it can vary by model type
     def compile_model(self, model):
 
@@ -142,6 +155,8 @@ class ClassifierKeras():
         model.compile(metrics=['accuracy', 'mse'], loss='mse', optimizer=optimizer)
 
         return model
+
+    # ---------------------------
 
     # update training using the suplied (normalised) dataframe. Training is cumulative
     # the 'labels' args should contain 0.0 for normal results, '1.0' for anomalies (buy or sell)
@@ -165,7 +180,7 @@ class ClassifierKeras():
             self.model = self.compile_model(self.model)
             self.model.summary()
 
-        if not isinstance(df_train_norm, (np.ndarray, np.array)):
+        if self.dataframeUtils.is_dataframe(df_train):
             # remove rows with positive labels?!
             if self.clean_data_required:
                 df1 = df_train_norm.copy()
@@ -234,7 +249,7 @@ class ClassifierKeras():
                                     epochs=self.num_epochs,
                                     callbacks=callbacks,
                                     validation_data=(test_tensor, test_tensor),
-                                    verbose=1)
+                                    verbose=0)
 
         # # The model weights (that are considered the best) are loaded into th model.
         # self.update_model_weights()
@@ -244,70 +259,17 @@ class ClassifierKeras():
 
         return
 
+    # ---------------------------
 
-    # evaluate model using the supplied (normalised) dataframe as test data.
-    def evaluate(self, df_norm: DataFrame):
+    # run the model prediction against the entire data buffer
+    def backtest(self, data):
+        # for keras-based models, this is the same thing as running predict(). Here for compatibility with other types
+        # print(f"    backtest. Data size:{np.shape(data)}")
+        return self.predict(data)
 
-        # lazy loading because params can change up to this point
-        if self.model is None:
-            # load saved model if present
-            self.model = self.load()
+    # ---------------------------
 
-        test_tensor = self.dataframeUtils.df_to_tensor(df_norm, self.seq_len)
-
-        print("    Predicting...")
-        preds = self.model.predict(test_tensor, verbose=1)
-
-        print("    Comparing...")
-        score = self.model.evaluate(test_tensor, preds, return_dict=True, verbose=1)
-        print("model:{} score:{} ".format(self.name, score))
-
-        loss = tf.keras.metrics.mean_squared_error(test_tensor, preds)
-        # print("    loss:{} {}".format(np.shape(loss), loss))
-        loss = np.array(loss[0])
-        print("    loss:")
-        print("        sum:{:.3f} min:{:.3f} max:{:.3f} mean:{:.3f} std:{:.3f}".format(loss.sum(),
-                                                                                       loss.min(), loss.max(),
-                                                                                       loss.mean(), loss.std()))
-        return
-
-    # 'recosnstruct' a dataframe by passing it through the model
-    def reconstruct(self, df_norm:DataFrame) -> DataFrame:
-
-        # lazy loading because params can change up to this point
-        if self.model is None:
-            # load saved model if present
-            self.model = self.load()
-
-        cols = df_norm.columns
-        tensor = self.dataframeUtils.df_to_tensor(df_norm, self.seq_len)
-        encoded_tensor = self.model.predict(tensor, verbose=1)
-        # print("    encoded_tensor:{}".format(np.shape(encoded_tensor)))
-        encode_array = encoded_tensor[:, 0, :]
-        encoded_array = encode_array.reshape(np.shape(encoded_tensor)[0], np.shape(encoded_tensor)[2])
-        # print("    encoded_array:{}".format(np.shape(encoded_array)))
-
-        return pd.DataFrame(encoded_array, columns=cols)
-
-    # transform supplied (normalised) dataframe into a lower dimension version
-    def transform(self, df_norm: DataFrame) -> DataFrame:
-
-        # lazy loading because params can change up to this point
-        if self.model is None:
-            # load saved model if present
-            self.model = self.load()
-
-        if self.encoder is None:
-            self.encoder = self.model.get_layer(self.encoder_layer)
-        cols = df_norm.columns
-        # tensor = np.array(df_norm).reshape(df_norm.shape[0], 1, df_norm.shape[1])
-        tensor = self.dataframeUtils.df_to_tensor(df_norm, self.seq_len)
-        encoded_tensor = self.encoder.predict(tensor, verbose=1)
-        encoded_array = encoded_tensor.reshape(np.shape(encoded_tensor)[0], np.shape(encoded_tensor)[2])
-
-        return pd.DataFrame(encoded_array, columns=cols)
-
-    def predict(self, df_norm: DataFrame):
+    def predict(self, data):
 
         # lazy loading because params can change up to this point
         if self.model is None:
@@ -315,15 +277,19 @@ class ClassifierKeras():
             self.model = self.load()
 
         # convert to tensor format and run the autoencoder
-        # tensor = np.array(df_norm).reshape(df_norm.shape[0], 1, df_norm.shape[1])
-        tensor = self.dataframeUtils.df_to_tensor(df_norm, self.seq_len)
+        if self.dataframeUtils.is_dataframe(data):
+            # convert dataframe to tensor
+            tensor = self.dataframeUtils.df_to_tensor(data, self.seq_len)
+        else:
+            tensor = data
+
 
         predict_tensor = self.model.predict(tensor, verbose=1)
 
         # not sure why, but predict sometimes returns an odd length
         if np.shape(predict_tensor)[0] != np.shape(tensor)[0]:
             print("    ERR: prediction length mismatch ({} vs {})".format(len(predict_tensor), np.shape(tensor)[0]))
-            predictions = np.zeros(df_norm.shape[0], dtype=float)
+            predictions = np.zeros(np.shape(tensor)[0], dtype=float)
         else:
             # get losses by comparing input to output
             msle = tf.keras.losses.msle(predict_tensor, tensor)
@@ -352,8 +318,82 @@ class ClassifierKeras():
             # predictions = np.where(mae_loss > threshold, 1.0, 0.0)
             # print("    predictions:{} data:{}".format(np.shape(predictions), predictions))
 
+
         return predictions
 
+    # ---------------------------
+
+    # evaluate model using the supplied (normalised) dataframe as test data.
+    def evaluate(self, data):
+
+        # lazy loading because params can change up to this point
+        if self.model is None:
+            # load saved model if present
+            self.model = self.load()
+
+        if self.dataframeUtils.is_dataframe(data):
+            # convert dataframe to tensor
+            test_tensor = self.dataframeUtils.df_to_tensor(data, self.seq_len)
+        else:
+            test_tensor = data
+
+        print("    Predicting...")
+        preds = self.model.predict(test_tensor, verbose=0)
+
+        print("    Comparing...")
+        score = self.model.evaluate(test_tensor, preds, return_dict=True, verbose=0)
+        print("model:{} score:{} ".format(self.name, score))
+
+        loss = tf.keras.metrics.mean_squared_error(test_tensor, preds)
+        # print("    loss:{} {}".format(np.shape(loss), loss))
+        loss = np.array(loss[0])
+        print("    loss:")
+        print("        sum:{:.3f} min:{:.3f} max:{:.3f} mean:{:.3f} std:{:.3f}".format(loss.sum(),
+                                                                                       loss.min(), loss.max(),
+                                                                                       loss.mean(), loss.std()))
+        return
+
+    # ---------------------------
+
+    # 'recosnstruct' a dataframe by passing it through the model
+    def reconstruct(self, df_norm:DataFrame) -> DataFrame:
+
+        # lazy loading because params can change up to this point
+        if self.model is None:
+            # load saved model if present
+            self.model = self.load()
+
+        cols = df_norm.columns
+        tensor = self.dataframeUtils.df_to_tensor(df_norm, self.seq_len)
+        encoded_tensor = self.model.predict(tensor, verbose=1)
+        # print("    encoded_tensor:{}".format(np.shape(encoded_tensor)))
+        encode_array = encoded_tensor[:, 0, :]
+        encoded_array = encode_array.reshape(np.shape(encoded_tensor)[0], np.shape(encoded_tensor)[2])
+        # print("    encoded_array:{}".format(np.shape(encoded_array)))
+
+        return pd.DataFrame(encoded_array, columns=cols)
+
+    # ---------------------------
+
+    # transform supplied (normalised) dataframe into a lower dimension version
+    def transform(self, df_norm: DataFrame) -> DataFrame:
+
+        # lazy loading because params can change up to this point
+        if self.model is None:
+            # load saved model if present
+            self.model = self.load()
+
+        if self.encoder is None:
+            self.encoder = self.model.get_layer(self.encoder_layer)
+        cols = df_norm.columns
+        # tensor = np.array(df_norm).reshape(df_norm.shape[0], 1, df_norm.shape[1])
+        tensor = self.dataframeUtils.df_to_tensor(df_norm, self.seq_len)
+        encoded_tensor = self.encoder.predict(tensor, verbose=1)
+        encoded_array = encoded_tensor.reshape(np.shape(encoded_tensor)[0], np.shape(encoded_tensor)[2])
+
+        return pd.DataFrame(encoded_array, columns=cols)
+
+    # ---------------------------
 
     # returns path to the root directory used for storing models
     def get_model_root_dir(self):
@@ -364,6 +404,8 @@ class ClassifierKeras():
             os.makedirs(root_dir)
         return root_dir
 
+    # ---------------------------
+
     # returns path to 'full' model file
     def get_model_path(self):
         root_dir = self.get_model_root_dir()
@@ -373,13 +415,17 @@ class ClassifierKeras():
         model_path = save_dir + self.name + ".h5"
         return model_path
 
+    # ---------------------------
+
     def get_checkpoint_path(self):
         checkpoint_dir = '/tmp'+ "/" + self.name + "/"
         if not os.path.exists(checkpoint_dir):
             os.makedirs(checkpoint_dir)
         model_path = checkpoint_dir + "checkpoint.h5"
         return model_path
-    
+
+    # ---------------------------
+
     def save(self, path=""):
         
         if len(path) == 0:
@@ -394,6 +440,8 @@ class ClassifierKeras():
             os.makedirs(save_dir)
         keras.models.save_model(self.model, filepath=path)
         return
+
+    # ---------------------------
 
     def load(self, path=""):
         
@@ -427,19 +475,44 @@ class ClassifierKeras():
 
         return model
 
+    # ---------------------------
+
     def model_exists(self) -> bool:
         path = self.get_model_path()
         return os.path.exists(path)
 
+    # ---------------------------
+
     def model_is_trained(self) -> bool:
         return self.is_trained
+
+    # ---------------------------
 
     def needs_clean_data(self) -> bool:
         # print("    clean_data_required: ", self.clean_data_required)
         return self.clean_data_required
 
+    # ---------------------------
+
+    def needs_dataframes(self) -> bool:
+        return self.requires_dataframes
+
+    # ---------------------------
+
+    def prescale_data(self) -> bool:
+        return self.prescale_dataframe
+
+    # ---------------------------
+
     def new_model_created(self) -> bool:
         return ClassifierKeras.new_model
+
+    # ---------------------------
+
+    def returns_single_prediction(self) -> bool:
+        return self.single_prediction
+
+    # ---------------------------
 
     def update_model_weights(self):
 
@@ -455,6 +528,8 @@ class ClassifierKeras():
             print("    model not found ({})...".format(self.checkpoint_path))
 
         return
+
+    # ---------------------------
 
     # Median Absolute Deviation
     def mad_score(self, points):

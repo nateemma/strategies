@@ -81,7 +81,7 @@ Predict_LSTM - uses a Long-Short Term Memory neural network to try and predict t
 class Predict_LSTM(IStrategy):
     plot_config = {
         'main_plot': {
-            'close': {'color': 'green'},
+            'close': {'color': 'cornflowerblue'},
             # 'smooth': {'color': 'teal'},
             'predict': {'color': 'lightpink'},
         },
@@ -791,7 +791,7 @@ class Predict_LSTM(IStrategy):
         return predictions
 
     # returns (rolling) smoothed version of input column
-    def roll_smooth(self, col) -> np.float:
+    def roll_smooth(self, col) -> float:
         # must return scalar, so just calculate prediction and take last value
 
         smooth = gaussian_filter1d(col, 4)
@@ -803,7 +803,7 @@ class Predict_LSTM(IStrategy):
         else:
             return col[len(col) - 1]
 
-    def roll_strong_smooth(self, col) -> np.float:
+    def roll_strong_smooth(self, col) -> float:
         # must return scalar, so just calculate prediction and take last value
 
         smooth = gaussian_filter1d(col, 24)

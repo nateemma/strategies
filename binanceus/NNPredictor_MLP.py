@@ -52,18 +52,28 @@ class NNPredictor_MLP(ClassifierKerasLinear):
     # override the build_model function in subclasses
     def create_model(self, seq_len, num_features):
 
-        model = keras.Sequential(name=self.name)
+        # model = keras.Sequential(name=self.name)
+        #
+        # # simple MLP :
+        # dropout = 0.1
+        # model.add(layers.Dense(156, input_shape=(seq_len, num_features)))
+        # model.add(layers.Dropout(rate=dropout))
+        # model.add(layers.Dense(16))
+        # model.add(layers.Dropout(rate=dropout))
+        #
+        # # last layer is a linear (float) value - do not change
+        # model.add(layers.Dense(1, activation='linear'))
 
-        # NOTE: don't use relu with LSTMs, cannot use GPU if you do (much slower). Use tanh
-
-        # simple MLP :
-        dropout = 0.1
-        model.add(layers.Dense(64, input_shape=(seq_len, num_features)))
-        model.add(layers.Dropout(rate=dropout))
-        model.add(layers.Dense(32))
-        model.add(layers.Dropout(rate=dropout))
+        inputs = keras.Input(shape=(seq_len, num_features))
+        x = inputs
+        x = keras.layers.Dense(156)(x)
+        x = keras.layers.Dropout(0.1)(x)
+        x = keras.layers.Dense(16)(x)
+        x = keras.layers.Dropout(0.1)(x)
 
         # last layer is a linear (float) value - do not change
-        model.add(layers.Dense(1, activation='linear'))
+        outputs = layers.Dense(1, activation="linear")(x)
+
+        model = keras.Model(inputs, outputs)
 
         return model

@@ -75,6 +75,9 @@ class NNPredictor_Multihead(ClassifierKerasLinear):
         x = layers.Conv1D(filters=num_features, kernel_size=1)(x)
         x = x + res
 
+        x = layers.Dense(16)(x)
+        x = layers.Dropout(0.1)(x)
+
         # last layer is a linear decision - do not change
         outputs = layers.Dense(1, activation="linear")(x)
 

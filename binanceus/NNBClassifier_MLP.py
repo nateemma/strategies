@@ -54,7 +54,7 @@ class NNBClassifier_MLP(ClassifierKerasBinary):
         model = keras.Sequential(name=self.name)
 
         # very simple MLP model:
-        model.add(layers.Dense(64, input_shape=(seq_len, num_features)))
+        model.add(layers.Dense(128, input_shape=(seq_len, num_features)))
         model.add(layers.Dropout(rate=0.1))
         model.add(layers.Dense(32))
         model.add(layers.Dropout(rate=0.1))

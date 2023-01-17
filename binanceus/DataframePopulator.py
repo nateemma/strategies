@@ -510,7 +510,7 @@ class DataframePopulator():
     
     
     # returns (rolling) smoothed version of input column
-    def roll_smooth(self, col) -> np.float:
+    def roll_smooth(self, col) -> float:
         # must return scalar, so just calculate prediction and take last value
     
         # smooth = gaussian_filter1d(col, 4)
@@ -541,7 +541,7 @@ class DataframePopulator():
     
         return model
     
-    def roll_get_dwt(self, col) -> np.float:
+    def roll_get_dwt(self, col) -> float:
         # must return scalar, so just calculate prediction and take last value
     
         model = self.get_dwt(col)

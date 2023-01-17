@@ -79,7 +79,7 @@ Predict_Multihead - uses a Multi-head Attention neural network to try and predic
 class NNPredict_Multihead(NNPredict):
     plot_config = {
         'main_plot': {
-            'close': {'color': 'green'},
+            'close': {'color': 'cornflowerblue'},
             # 'smooth': {'color': 'teal'},
             'predict': {'color': 'lightpink'},
         },

@@ -4,6 +4,7 @@
 
 
 import numpy as np
+import numpy
 from pandas import DataFrame, Series
 import pandas as pd
 
@@ -90,6 +91,7 @@ class ClassifierKerasLinear(ClassifierKeras):
 
         # if model doesn't exist, create it (lazy initialisation)
         if self.model is None:
+            self.num_features = np.shape(df_train_norm)[2]
             self.model = self.create_model(self.seq_len, self.num_features)
             if self.model is None:
                 print("    ERR: model not created")
@@ -99,7 +101,7 @@ class ClassifierKerasLinear(ClassifierKeras):
 
         # if the input is a dataframe, we can 'clean' it, then convert to tensor format
         # cannot clean a tensor since it doesn't have column headings any more
-        if not isinstance(df_train_norm, (np.ndarray, np.array)):
+        if self.dataframeUtils.is_dataframe(df_train_norm):
             # remove rows with positive labels?!
             if self.clean_data_required:
                 df1 = df_train_norm.copy()
@@ -169,7 +171,7 @@ class ClassifierKerasLinear(ClassifierKeras):
                               epochs=self.num_epochs,
                               callbacks=callbacks,
                               validation_data=(test_tensor, test_results),
-                              verbose=1)
+                              verbose=0)
 
         # # The model weights (that are considered the best) are loaded into th model.
         # self.update_model_weights()
@@ -186,7 +188,9 @@ class ClassifierKerasLinear(ClassifierKeras):
             # load saved model if present
             self.model = self.load()
 
-        if not isinstance(data, (np.ndarray, np.array)):
+        # print(f'data type:{type(data)}')
+
+        if self.dataframeUtils.is_dataframe(data):
             # convert dataframe to tensor
             df_tensor = self.dataframeUtils.df_to_tensor(data, self.seq_len)
         else:
@@ -198,7 +202,10 @@ class ClassifierKerasLinear(ClassifierKeras):
             return predictions
 
         # run the prediction
-        preds = self.model.predict(df_tensor, verbose=0)
+        preds = self.model.predict(df_tensor, verbose=1)
 
-        # Note that this returns the full tensor version of the prediction (samples, seq_len, num_features)
-        return preds
+        # reshape so that we return just a straight array of predictions
+        preds = np.array(preds[:, 0]).reshape(-1, 1)
+        predictions = preds[:, 0]
+
+        return predictions

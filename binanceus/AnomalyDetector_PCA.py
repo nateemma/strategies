@@ -72,7 +72,7 @@ class AnomalyDetector_PCA(ClassifierSklearn):
             print("    *** ERR: dataframe and labels do not not match:")
             print("    df_train_norm:{} train_labels:{}".format(np.shape(df_train_norm), np.shape(train_labels)))
 
-        if not self.clean_data_required:
+        if self.clean_data_required:
             df1 = df_train_norm.copy()
             df1['%labels'] = train_labels
             df1 = df1[(df1['%labels'] < 0.1)]

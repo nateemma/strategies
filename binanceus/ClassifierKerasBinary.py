@@ -99,7 +99,7 @@ class ClassifierKerasBinary(ClassifierKeras):
             self.model = self.compile_model(self.model)
             self.model.summary()
 
-        if not isinstance(df_train_norm, (np.ndarray, np.array)):
+        if self.dataframeUtils.is_dataframe(df_train_norm):
             # remove rows with positive labels?!
             if self.clean_data_required:
                 df1 = df_train_norm.copy()
@@ -182,7 +182,7 @@ class ClassifierKerasBinary(ClassifierKeras):
     def predict(self, data):
 
 
-        if not isinstance(data, (np.ndarray, np.array)):
+        if self.dataframeUtils.is_dataframe(data):
             # convert dataframe to tensor
             df_tensor = self.dataframeUtils.df_to_tensor(data, self.seq_len)
         else:

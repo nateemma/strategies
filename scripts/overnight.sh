@@ -18,13 +18,13 @@ logfile="overnight.log"
 today=`date`
 echo "${today} overnight.sh" >$logfile
 
-for strat in $pca_list; do
+for strat in $nnp_list; do
   echo "" >>$logfile
   echo "-------------------" >>$logfile
   echo "${strat}" >>$logfile
   echo "-------------------" >>$logfile
   echo "" >>$logfile
-  zsh user_data/strategies/scripts/test_strat.sh binanceus ${strat} >>$logfile
+  zsh user_data/strategies/scripts/test_strat.sh -n 750 binanceus ${strat} >>$logfile
 done
 
 python user_data/strategies/scripts/SummariseTestResults.py $logfile
