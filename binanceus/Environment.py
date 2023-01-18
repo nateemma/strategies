@@ -1,5 +1,6 @@
 # utility to print out current environment
 
+import multiprocessing
 import sys
 import platform
 
@@ -30,6 +31,12 @@ except ModuleNotFoundError:
     torch_installed = False
 
 try:
+    import pytorch_lightning
+    lightning_installed = True
+except ModuleNotFoundError:
+    lightning_installed = False
+
+try:
     import darts
     darts_installed = True
 except ModuleNotFoundError:
@@ -45,6 +52,7 @@ def print_environment():
     if os_type.lower() == "darwin":
         os_type = os_type + " (MacOS)"
     os_version = platform.platform()
+    num_cpus = multiprocessing.cpu_count()
 
     # Python
     python_version = sys.version.split('\n')
@@ -58,6 +66,7 @@ def print_environment():
     # Tensorflow
     if tf_installed:
         tf_version = tf.__version__
+        tf_devices = tf.config.get_visible_devices()
     else:
         tf_version = NOT_INSTALLED
 
@@ -73,6 +82,12 @@ def print_environment():
     else:
         torch_version = NOT_INSTALLED
 
+    # pytorch lightning
+    if lightning_installed:
+        lightning_version = pytorch_lightning.__version__
+    else:
+        lightning_version = NOT_INSTALLED
+
     # darts
     if darts_installed:
         darts_version = darts.__version__
@@ -83,9 +98,10 @@ def print_environment():
     print(f"    OS Type:    {os_type}, Version: {os_version}")
     print(f"    python:     {python_version}")
     print(f"    sklearn:    {sklearn_version}")
-    print(f"    tensorflow: {tf_version}")
+    print(f"    tensorflow: {tf_version}, devices:{tf_devices}")
     print(f"    keras:      {keras_version}")
     print(f"    pytorch:    {torch_version}")
+    print(f"    lightning:  {lightning_version}")
     print(f"    darts:      {darts_version}")
     print("")
 

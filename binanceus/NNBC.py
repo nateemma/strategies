@@ -407,8 +407,8 @@ class NNBC(IStrategy):
         if self.dbg_verbose:
             print("    training models...")
         self.train_models(curr_pair, dataframe, buys, sells)
-        # add predictions
 
+        # add predictions
         if self.dbg_verbose:
             print("    running predictions...")
 
@@ -511,9 +511,6 @@ class NNBC(IStrategy):
 
     def train_models(self, curr_pair, dataframe: DataFrame, buys, sells):
 
-        if self.dp.runmode.value not in ('backtest'):
-            return
-
         # check input - need at least 2 samples or classifiers will not train
         if buys.sum() < 2:
             print("*** ERR: insufficient buys in expected results. Check training data")
@@ -548,7 +545,6 @@ class NNBC(IStrategy):
         else:
             data_size = int(min(975, full_df_norm.shape[0]))
 
-
         # create classifiers, if necessary
         num_features = full_df_norm.shape[1]
         if self.buy_classifier is None:
@@ -556,6 +552,9 @@ class NNBC(IStrategy):
         if self.sell_classifier is None:
             self.sell_classifier, _ = self.classifier_factory(self.classifier_name, num_features, tag=self.sell_tag)
 
+        # # if not backtest then just return. Still need procesing up to this point though
+        # if self.dp.runmode.value not in ('backtest'):
+        #     return
 
         # get training dataset
         # Note: this returns tensors, not dataframes
@@ -638,7 +637,7 @@ class NNBC(IStrategy):
     # get a classifier for the supplied normalised dataframe and known results
     def get_buy_classifier(self, tensor, results, test_tensor, test_labels):
 
-        clf = None
+        clf = self.buy_classifier
         name = self.classifier_name
 
         # labels = self.get_binary_labels(results)
@@ -664,7 +663,7 @@ class NNBC(IStrategy):
     # get a classifier for the supplied normalised dataframe and known results
     def get_sell_classifier(self, tensor, results, test_tensor, test_labels):
 
-        clf = None
+        clf = self.sell_classifier
         name = self.classifier_name
         # labels = self.get_binary_labels(results)
         labels = results

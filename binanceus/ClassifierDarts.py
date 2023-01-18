@@ -18,6 +18,7 @@
 import torch
 
 import darts
+import pytorch_lightning
 
 from pytorch_lightning import Trainer
 import numpy as np
@@ -137,6 +138,21 @@ class ClassifierDarts():
 
         self.num_cpus = multiprocessing.cpu_count()
 
+        # Annoyingly, trainer args need to be specified in the constructor
+        if self.use_gpu:
+            self.trainer_args["accelerator"] = "auto"
+
+        # Early stop callback
+        early_callback = EarlyStopping(
+            # monitor="val_MeanAbsolutePercentageError",  # "val_loss",
+            monitor="train_loss",
+            patience=5,
+            min_delta=0.001,
+            mode='min',
+        )
+        self.trainer_args["callbacks"] = [early_callback]
+
+
         print(f"    CPUs:{self.num_cpus} GPU:{self.is_gpu_available()}")
 
     # ---------------------------
@@ -235,12 +251,14 @@ class ClassifierDarts():
 
         # convert to 32-bit (allows use of GPU)
         if self.is_gpu_available():
+            print("    Converting to 32-bit to allow GPU usage...")
             train_time_series = train_time_series.astype(np.float32)
             test_time_series = test_time_series.astype(np.float32)
             train_price_series = train_price_series.astype(np.float32)
             test_price_series = test_price_series.astype(np.float32)
-            self.trainer_args["accelerator"] = "gpu",
-            self.trainer_args["devices"] = [0]
+            self.trainer_args["accelerator"] = "gpu"
+            self.trainer_args["devices"] = -1
+            self.trainer_args["auto_select_gpus"] = True
 
         # scale the dataframes
         df_scaler = Scaler(RobustScaler())
@@ -272,16 +290,6 @@ class ClassifierDarts():
 
         # A TorchMetric or val_loss can be used as the monitor
         torch_metrics = MeanAbsolutePercentageError()
-
-        # Early stop callback
-        early_callback = EarlyStopping(
-            # monitor="val_MeanAbsolutePercentageError",  # "val_loss",
-            monitor="loss",
-            patience=5,
-            min_delta=0.001,
-            mode='min',
-        )
-        self.trainer_args["callbacks"] = [early_callback]
 
         # print(f'df_train: {np.shape(df_train)} train_results:{np.shape(train_results)}')
         # print(f'train_covariate_series: {train_covariate_series.n_samples} train_target_series:{train_target_series.n_samples}')
@@ -591,6 +599,12 @@ class ClassifierDarts():
 
     def is_gpu_available(self) -> bool:
         return torch.backends.mps.is_available() and self.use_gpu
+
+    # ---------------------------
+
+    def get_trainer_args(self):
+        print(f"     Trainer args: {self.trainer_args}")
+        return self.trainer_args
 
     # ---------------------------
 

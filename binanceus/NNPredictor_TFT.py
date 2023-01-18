@@ -1,4 +1,4 @@
-# Neural Network Binary Classifier: this subclass uses an NHits model
+# Neural Network Binary Classifier: this subclass uses Google's Temporal Fusion Transformer (TFT) model
 
 
 import numpy as np
@@ -36,10 +36,10 @@ tf.random.set_seed(seed)
 np.random.seed(seed)
 
 from ClassifierDarts import ClassifierDarts
-from darts.models import NHiTSModel
+from darts.models import TFTModel
 
 
-class NNPredictor_NHiTS(ClassifierDarts):
+class NNPredictor_TFT(ClassifierDarts):
     is_trained = False
     clean_data_required = False  # training data can contain anomalies
     model_per_pair = False  # separate model per pair
@@ -47,16 +47,15 @@ class NNPredictor_NHiTS(ClassifierDarts):
     # override the build_model function in subclasses
     def create_model(self, seq_len, num_features):
 
-        print(f"    pl_trainer_kwargs={self.trainer_args}")
-        model = NHiTSModel(input_chunk_length=seq_len,
-                           output_chunk_length=self.lookahead,
-                           pl_trainer_kwargs=self.trainer_args
-                           )
-
+        model = TFTModel(input_chunk_length=seq_len,
+                         output_chunk_length=self.lookahead,
+                         add_relative_index=True,
+                         pl_trainer_kwargs=self.get_trainer_args()
+                         )
         return model
 
         return model
 
     # class-specific load
     def load_from_file(self, model_path):
-        return NHiTSModel.load(model_path)
+        return TFTModel.load(model_path)
