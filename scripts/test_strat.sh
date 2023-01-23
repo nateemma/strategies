@@ -26,9 +26,9 @@ Usage: zsh $script [options] <exchange> <strategy>
 
 [options]:  -c | --config      path to config file (default: user_data/strategies/<exchange>/config_<exchange>.json
             -l | --leveraged   Use 'leveraged' config file
-            -n | --ndays       Number of days of backtesting. Defaults to ${ndays}
+            -n | --ndays       Number of days of backtesting. Defaults to ${num_days}
                  --short       Use 'short' config file
-            -t | --timeframe   Timeframe (YYYMMDD-[YYYMMDD]). Defaults to last ${ndays} days (${timerange})
+            -t | --timeframe   Timeframe (YYYMMDD-[YYYMMDD]). Defaults to last ${num_days} days (${timerange})
 
 <exchange>  Name of exchange (binanceus, coinbasepro, kucoin, etc)
 

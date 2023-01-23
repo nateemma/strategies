@@ -50,8 +50,6 @@ from DataframeUtils import DataframeUtils
 
 
 class ClassifierSklearn():
-
-
     model = None
     is_trained = False
     category = ""
@@ -61,17 +59,16 @@ class ClassifierSklearn():
 
     use_saved_model = True
     loaded_from_file = False
-    contamination = 0.01 # ratio of signals to samples. Used in several algorithms, so saved
+    contamination = 0.01  # ratio of signals to samples. Used in several algorithms, so saved
 
     clean_data_required = False  # train with positive rows removed
     model_per_pair = True  # set to False to combine across all pairs
     new_model = False  # True if a new model was created this run
 
     dataframeUtils = None
-    requires_dataframes = True # set to True if classifier takes dataframes rather than tensors
-    prescale_dataframe = False # set to True if algorithms need dataframes to be pre-scaled
-    single_prediction = False # True if alogorithm only produces 1 prediction (not entire data array)
-
+    requires_dataframes = True  # set to True if classifier takes dataframes rather than tensors
+    prescale_dataframe = False  # set to True if algorithms need dataframes to be pre-scaled
+    single_prediction = False  # True if alogorithm only produces 1 prediction (not entire data array)
 
     def __init__(self, pair, tag=""):
         super().__init__()
@@ -97,7 +94,6 @@ class ClassifierSklearn():
         if self.dataframeUtils is None:
             self.dataframeUtils = DataframeUtils()
 
-
     # set model name - this overrides the default naming. This allows the strategy to set the naming convention
     # directory and extension are handled, just need to supply the category (e.g. the strat name) and main file name
     # caller will have to take care of adding pair names, tag etc.
@@ -120,14 +116,13 @@ class ClassifierSklearn():
         classifier = None
 
         print("    ERR: create_classifier() should be defined by the subclass")
-        classifier = IsolationForest() # just so that there is something viable to use
+        classifier = IsolationForest()  # just so that there is something viable to use
 
         return classifier
 
     # update training using the suplied (normalised) dataframe. Training is cumulative
     # the 'labels' args should contain 0.0 for normal results, '1.0' for anomalies (buy or sell)
     def train(self, df_train_norm: DataFrame, df_test_norm: DataFrame, train_labels, test_labels, force_train=False):
-
 
         # NOTE: sklearn algorithms are *not* cumulative or reusable, so need to re-train each time
         # # already trained? Just return
@@ -153,10 +148,10 @@ class ClassifierSklearn():
             self.model = self.create_classifier()
 
         # TODO: create class each time, with actual ratio of 'anomalies' ?!
-        print("    fitting classifier: ", self.__class__.__name__)
+        print(f"    fitting classifier: {self.__class__.__name__} contamination: {self.contamination}")
         # self.num_estimators = self.num_estimators + 1
         # self.model.set_params(n_estimators=self.num_estimators)
-        self.model = self.model.fit(df_train)
+        self.model = self.model.fit(df_train, labels)
 
         # only save if this is the first time training
         if not self.is_trained:
@@ -164,17 +159,14 @@ class ClassifierSklearn():
 
         self.is_trained = True
 
-
-
         return
-
 
     # evaluate model using the supplied (normalised) dataframe as test data.
     def evaluate(self, df_norm: DataFrame):
         return
 
     # 'recosnstruct' a dataframe by passing it through the classifier
-    def reconstruct(self, df_norm:DataFrame) -> DataFrame:
+    def reconstruct(self, df_norm: DataFrame) -> DataFrame:
         return df_norm
 
     # transform supplied (normalised) dataframe into a lower dimension version
@@ -193,7 +185,17 @@ class ClassifierSklearn():
             print("    ERR: no classifier")
             return np.zeros(np.shape(df_norm)[0])
 
-        pred = self.model.predict(df_norm)
+        has_predict = getattr(self.model, "predict", None)
+        if callable(has_predict):
+            pred = self.model.predict(df_norm)
+        else:
+            # some sklearn classifiers have fit_predict instead
+            has_fit_predict = getattr(self.model, "fit_predict", None)
+            if callable(has_fit_predict):
+                pred = self.model.fit_predict(df_norm)
+            else:
+                print("    ERR: classifier does not have a predict() or fit_predict() method")
+                return np.zeros(np.shape(df_norm)[0])
 
         use_scores = True
 
@@ -216,7 +218,6 @@ class ClassifierSklearn():
             predictions = pd.Series(pred).replace([-1, 1], [1.0, 0.0])
 
         return predictions
-
 
     # returns path to the root directory used for storing models
     def get_model_root_dir(self):
@@ -251,7 +252,8 @@ class ClassifierSklearn():
         else:
             self.model_path = path
 
-        if self.use_saved_model and (not self.loaded_from_file):
+        # only save if this is a new model
+        if self.new_model:
             save_dir = os.path.dirname(path)
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
@@ -276,6 +278,8 @@ class ClassifierSklearn():
                 self.model = joblib.load(self.model_path)
                 self.loaded_from_file = True
                 # self.is_trained = True # training is NOT cumulative for sklearn classifiers
+            else:
+                self.new_model = True
         return self.model
 
     def model_exists(self) -> bool:
@@ -299,4 +303,4 @@ class ClassifierSklearn():
         return self.single_prediction
 
     def new_model_created(self) -> bool:
-        return ClassifierSklearn.new_model # note use of class-level variable
+        return ClassifierSklearn.new_model  # note use of class-level variable

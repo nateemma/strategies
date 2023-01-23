@@ -91,6 +91,8 @@ from AnomalyDetector_SVM import AnomalyDetector_SVM
 from AnomalyDetector_LSTM import AnomalyDetector_LSTM
 from AnomalyDetector_PCA import AnomalyDetector_PCA
 from AnomalyDetector_GMix import AnomalyDetector_GMix
+from AnomalyDetector_DBSCAN import AnomalyDetector_DBSCAN
+from AnomalyDetector_Ensemble import AnomalyDetector_Ensemble
 
 from DataframeUtils import DataframeUtils, ScalerType
 from DataframePopulator import DataframePopulator
@@ -230,8 +232,12 @@ class Anomaly(IStrategy):
         OneClassSVM = 7
         PCA = 8
         GaussianMixture = 9
+        DBSCAN = 10 # currently not working
+        Ensemble = 11
 
     classifier_type = ClassifierType.IsolationForest # controls which classifier is used
+    # classifier_type = ClassifierType.Ensemble # controls which classifier is used
+    # classifier_type = ClassifierType.DBSCAN # controls which classifier is used
 
     ###################################
 
@@ -563,6 +569,12 @@ class Anomaly(IStrategy):
         elif self.classifier_type == self.ClassifierType.GaussianMixture:
             clf = AnomalyDetector_GMix(self.curr_pair, tag=tag)
 
+        elif self.classifier_type == self.ClassifierType.DBSCAN:
+            clf = AnomalyDetector_DBSCAN(self.curr_pair, tag=tag)
+
+        elif self.classifier_type == self.ClassifierType.Ensemble:
+            clf = AnomalyDetector_Ensemble(self.curr_pair, tag=tag)
+
         else:
             print("    ERR: unknown classifier type ({})".format(self.classifier_type))
 
@@ -843,10 +855,10 @@ class Anomaly(IStrategy):
         # conditions.append(dataframe['fisher_wr'] < -0.7)
 
         # MFI
-        conditions.append(dataframe['mfi'] < 40.0)
+        conditions.append(dataframe['mfi'] < 50.0)
 
-        # below TEMA
-        conditions.append(dataframe['close'] < dataframe['tema'])
+        # # below TEMA
+        # conditions.append(dataframe['close'] < dataframe['tema'])
 
         # add strategy-specific conditions (from subclass)
         strat_cond = self.get_strategy_buy_conditions(dataframe)
@@ -896,8 +908,8 @@ class Anomaly(IStrategy):
         # # ATR in sell range
         # conditions.append(dataframe['atr_signal'] <= 0.0)
 
-        # above Bollinger mid-point
-        conditions.append(dataframe['close'] > dataframe['bb_middleband'])
+        # # above Bollinger mid-point
+        # conditions.append(dataframe['close'] > dataframe['bb_middleband'])
 
         # # Fisher RSI + Williams combo
         # conditions.append(dataframe['fisher_wr'] > 0.5)

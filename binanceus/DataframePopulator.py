@@ -59,12 +59,14 @@ class DataframePopulator():
     # Warning: do not use indicators that might produce 'inf' results, it messes up the scaling
     
     def add_indicators(self, dataframe: DataFrame) -> DataFrame:
-    
+
+        dataframe['mid'] = (dataframe['open'] + dataframe['close']) / 2.0
+
         # these averages are used internally, do not remove!
         dataframe['sma'] = ta.SMA(dataframe, timeperiod=self.win_size)
         dataframe['ema'] = ta.EMA(dataframe, timeperiod=self.win_size)
         dataframe['tema'] = ta.TEMA(dataframe, timeperiod=self.win_size)
-        dataframe['tema_stddev'] = dataframe['tema'].rolling(self.win_size).std()
+        # dataframe['tema_stddev'] = dataframe['tema'].rolling(self.win_size).std()
     
         # RSI
         period = 14
@@ -255,17 +257,11 @@ class DataframePopulator():
         # DWT model
         # if in backtest or hyperopt, then we have to do rolling calculations
         if self.runmode in ('hyperopt', 'backtest', 'plot'):
-            dataframe['dwt'] = dataframe['close'].rolling(window=self.startup_win).apply(self.roll_get_dwt)
-            dataframe['smooth'] = dataframe['close'].rolling(window=self.startup_win).apply(self.roll_smooth)
-            dataframe['dwt_smooth'] = dataframe['dwt'].rolling(window=self.startup_win).apply(self.roll_smooth)
+            # dataframe['dwt'] = dataframe['close'].rolling(window=self.startup_win).apply(self.roll_get_dwt)
+            dataframe['dwt'] = dataframe['mid'].rolling(window=self.startup_win).apply(self.roll_get_dwt)
         else:
-            dataframe['dwt'] = self.get_dwt(dataframe['close'])
-            dataframe['smooth'] = gaussian_filter1d(dataframe['close'], 2)
-            dataframe['dwt_smooth'] = gaussian_filter1d(dataframe['dwt'], 2)
-    
-        # smoothed version - useful for trends
-        # dataframe['dwt_smooth'] = gaussian_filter1d(dataframe['dwt'], 8)
-        # dataframe['mid'] = abs((dataframe['close'] - dataframe['open']) / 2.0)
+            # dataframe['dwt'] = self.get_dwt(dataframe['close'])
+            dataframe['dwt'] = self.get_dwt(dataframe['mid'])
     
         dataframe['dwt_gain'] = 100.0 * (dataframe['dwt'] - dataframe['dwt'].shift()) / dataframe['dwt'].shift()
         dataframe['dwt_profit'] = dataframe['dwt_gain'].clip(lower=0.0)
@@ -283,7 +279,7 @@ class DataframePopulator():
     
         # Sequences of consecutive up/downs
         dataframe['dwt_dir'] = 0.0
-        dataframe['dwt_dir'] = np.where(dataframe['dwt_smooth'].diff() > 0, 1.0, -1.0)
+        dataframe['dwt_dir'] = np.where(dataframe['dwt'].diff() > 0, 1.0, -1.0)
     
         dataframe['dwt_dir_up'] = dataframe['dwt_dir'].clip(lower=0.0)
         dataframe['dwt_nseq_up'] = dataframe['dwt_dir_up'] * (dataframe['dwt_dir_up'].groupby(
@@ -307,13 +303,13 @@ class DataframePopulator():
     # 'hidden' indicators. These are ostensibly backward looking, but may inadvertently use means, smoothing etc.
     def add_hidden_indicators(self, dataframe: DataFrame) -> DataFrame:
     
-        dataframe['dwt_deriv'] = np.gradient(dataframe['dwt_smooth'])
+        dataframe['dwt_deriv'] = np.gradient(dataframe['dwt'])
         # dataframe['dwt_deriv'] = np.gradient(dataframe['dwt'])
         dataframe['dwt_top'] = np.where(qtpylib.crossed_below(dataframe['dwt_deriv'], 0.0), 1, 0)
         dataframe['dwt_bottom'] = np.where(qtpylib.crossed_above(dataframe['dwt_deriv'], 0.0), 1, 0)
     
         dataframe['dwt_diff'] = 100.0 * (dataframe['dwt'] - dataframe['close']) / dataframe['close']
-        dataframe['dwt_smooth_diff'] = 100.0 * (dataframe['dwt'] - dataframe['dwt_smooth']) / dataframe['dwt_smooth']
+        # dataframe['dwt_diff'] = 100.0 * (dataframe['dwt'] - dataframe['dwt']) / dataframe['dwt']
     
         dataframe['dwt_trend'] = np.where(dataframe['dwt_dir'].rolling(5).sum() > 3.0, 1.0, -1.0)
     
@@ -332,14 +328,14 @@ class DataframePopulator():
         dataframe['dwt_delta_max'] = 100.0 * (dataframe['dwt_recent_max'] - dataframe['close']) / \
                                      dataframe['close']
         # longer term high/low
-        dataframe['dwt_low'] = dataframe['dwt_smooth'].rolling(window=self.startup_win).min()
-        dataframe['dwt_high'] = dataframe['dwt_smooth'].rolling(window=self.startup_win).max()
+        dataframe['dwt_low'] = dataframe['dwt'].rolling(window=self.startup_win).min()
+        dataframe['dwt_high'] = dataframe['dwt'].rolling(window=self.startup_win).max()
     
         # # these are (primarily) clues for the ML algorithm:
-        # dataframe['dwt_at_min'] = np.where(dataframe['dwt_smooth'] <= dataframe['dwt_recent_min'], 1.0, 0.0)
-        # dataframe['dwt_at_max'] = np.where(dataframe['dwt_smooth'] >= dataframe['dwt_recent_max'], 1.0, 0.0)
-        dataframe['dwt_at_low'] = np.where(dataframe['dwt_smooth'] <= dataframe['dwt_low'], 1.0, 0.0)
-        dataframe['dwt_at_high'] = np.where(dataframe['dwt_smooth'] >= dataframe['dwt_high'], 1.0, 0.0)
+        # dataframe['dwt_at_min'] = np.where(dataframe['dwt'] <= dataframe['dwt_recent_min'], 1.0, 0.0)
+        # dataframe['dwt_at_max'] = np.where(dataframe['dwt'] >= dataframe['dwt_recent_max'], 1.0, 0.0)
+        dataframe['dwt_at_low'] = np.where(dataframe['dwt'] <= dataframe['dwt_low'], 1.0, 0.0)
+        dataframe['dwt_at_high'] = np.where(dataframe['dwt'] >= dataframe['dwt_high'], 1.0, 0.0)
     
         return dataframe
     
@@ -513,8 +509,8 @@ class DataframePopulator():
     def roll_smooth(self, col) -> float:
         # must return scalar, so just calculate prediction and take last value
     
-        # smooth = gaussian_filter1d(col, 4)
-        smooth = gaussian_filter1d(col, 2)
+        smooth = gaussian_filter1d(col, 4)
+        # smooth = gaussian_filter1d(col, 2)
     
         length = len(smooth)
         if length > 0:

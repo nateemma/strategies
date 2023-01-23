@@ -55,7 +55,7 @@ NNBC_profit:
 class NNBC_profit(NNBC):
     plot_config = {
         'main_plot': {
-            'dwt_smooth': {'color': 'salmon'},
+            'dwt': {'color': 'salmon'},
         },
         'subplots': {
             "Diff": {

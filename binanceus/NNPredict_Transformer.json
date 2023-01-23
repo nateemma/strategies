@@ -14,28 +14,28 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "entry_threshold": 2.7
+      "entry_threshold": 2.8
     },
     "sell": {
       "cexit_endtrend_respect_roi": false,
-      "cexit_pullback": false,
-      "cexit_pullback_amount": 0.011,
+      "cexit_pullback": true,
+      "cexit_pullback_amount": 0.015,
       "cexit_pullback_respect_roi": false,
-      "cexit_roi_end": 0.008,
-      "cexit_roi_start": 0.031,
-      "cexit_roi_time": 1408,
-      "cexit_roi_type": "decay",
+      "cexit_roi_end": 0.003,
+      "cexit_roi_start": 0.018,
+      "cexit_roi_time": 1088,
+      "cexit_roi_type": "static",
       "cexit_trend_type": "none",
-      "cstop_bail_how": "none",
-      "cstop_bail_roc": -2.494,
-      "cstop_bail_time": 194,
-      "cstop_bail_time_trend": true,
-      "cstop_loss_threshold": -0.019,
-      "cstop_max_stoploss": -0.181,
-      "exit_threshold": -3.0
+      "cstop_bail_how": "roc",
+      "cstop_bail_roc": -4.663,
+      "cstop_bail_time": 1101,
+      "cstop_bail_time_trend": false,
+      "cstop_loss_threshold": -0.041,
+      "cstop_max_stoploss": -0.222,
+      "exit_threshold": -2.7
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2023-01-13 03:59:31.253967+00:00"
+  "export_time": "2023-01-18 16:39:00.374590+00:00"
 }

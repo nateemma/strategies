@@ -136,7 +136,7 @@ class NNPredict(IStrategy):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     # lookahead_hours = 1.0
-    lookahead_hours = 1.0
+    lookahead_hours = 0.4
     n_profit_stddevs = 0.0
     n_loss_stddevs = 0.0
     min_f1_score = 0.49
@@ -158,15 +158,19 @@ class NNPredict(IStrategy):
     batch_size = 1024  # batch size for training
     predict_batch_size = 512
 
-    classifier_list = {} # classifier for each pair
-    init_done = {} # flags whether initialisation has been done for a pair or not
+    classifier_list = {}  # classifier for each pair
+    init_done = {}  # flags whether initialisation has been done for a pair or not
 
     compressor = None
     compress_data = False  # currently not working
-    refit_model = False # set to True if you want to re-train the model. Usually better to just delete it and restart
-    scaler_type = ScalerType.Robust # scaler type used for normalisation
-    model_per_pair = False # set to True to create pair-specific models (better but only works for pairs in whitelist)
-    training_only = False # set to True to just generate models, no backtesting or prediction
+    refit_model = False  # set to True if you want to re-train the model. Usually better to just delete it and restart
+    scaler_type = ScalerType.Robust  # scaler type used for normalisation
+    # scaler_type = ScalerType.Standard  # scaler type used for normalisation
+    model_per_pair = True  # set to True to create pair-specific models (better but only works for pairs in whitelist)
+    training_only = False  # set to True to just generate models, no backtesting or prediction
+
+    # target_column = 'close'  # which column should be used for training and prediction
+    target_column = 'mid'
 
     dataframeUtils = None
     dataframePopulator = None
@@ -178,6 +182,7 @@ class NNPredict(IStrategy):
     dbg_verbose = True  # controls debug output
     dbg_test_classifier = False  # test clasifiers after fitting
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
+    dbg_enable_tracing = False  # set to True in subclass to enable function tracing
 
     # variables to track state
     class State(Enum):
@@ -197,7 +202,6 @@ class NNPredict(IStrategy):
     # threshold values (in %)
     entry_threshold = DecimalParameter(0.1, 3.0, default=1.0, decimals=1, space='buy', load=True, optimize=True)
     exit_threshold = DecimalParameter(-3.0, -0.1, default=-1.0, decimals=1, space='sell', load=True, optimize=True)
-
 
     # Custom Sell Profit (formerly Dynamic ROI)
     cexit_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
@@ -289,6 +293,10 @@ class NNPredict(IStrategy):
             print(f"    Re-train existing models: {self.refit_model}")
             print(f"    Training (only) mode: {self.training_only}")
 
+            # debug tracing
+            if self.dbg_enable_tracing:
+                self.enable_function_tracing()
+
         print("")
         print(self.curr_pair)
 
@@ -354,13 +362,12 @@ class NNPredict(IStrategy):
 
         return dataframe
 
-
     # add in any indicators to be used for training
     def add_training_indicators(self, dataframe: DataFrame) -> DataFrame:
 
         # placeholders, just need the columns to be there for later (with some realistic values)
-        dataframe['predict'] = dataframe['close']
-        dataframe['temp'] = dataframe['close']
+        dataframe['predict'] = 0.0
+        dataframe['temp'] = 0.0
 
         # no looking ahead in this approach
         # future_df = self.dataframePopulator.add_hidden_indicators(dataframe.copy())
@@ -461,7 +468,7 @@ class NNPredict(IStrategy):
         # some classifiers take DataFrames as input, others tensors, so check
         if self.classifier_list[self.curr_pair].needs_dataframes():
             # save closing prices for later
-            prices = df_norm['close']
+            prices = df_norm[self.target_column]
 
             train_df = df_norm.iloc[train_start:(train_start + train_size)]
             test_df = df_norm.iloc[test_start:(test_start + test_size)]
@@ -478,7 +485,7 @@ class NNPredict(IStrategy):
 
         else:
             # save closing prices for later
-            prices = np.array(df_norm['close'])
+            prices = np.array(df_norm[self.target_column])
 
             # convert dataframe to tensor before extracting train/test data (avoid edge effects)
             df_tensor = self.dataframeUtils.df_to_tensor(df_norm, self.seq_len)
@@ -521,7 +528,6 @@ class NNPredict(IStrategy):
 
         return dataframe
 
-
     ################################
 
     # backtest the data and update the dataframe
@@ -531,11 +537,13 @@ class NNPredict(IStrategy):
         classifier = self.classifier_list[self.curr_pair]
         use_dataframes = classifier.needs_dataframes()
         prescale_data = classifier.prescale_data()
+        price_scaler = self.dataframeUtils.make_scaler()
 
         # print(f'backtest_data() - use_dataframes:{use_dataframes} prescale_data:{prescale_data}')
 
         # pre-scale if needed
         if prescale_data:
+            price_scaler.fit(np.array(dataframe[self.target_column]).reshape(1, -1))
             df_norm = self.dataframeUtils.norm_dataframe(dataframe)
         else:
             df_norm = dataframe
@@ -551,10 +559,18 @@ class NNPredict(IStrategy):
 
         # re-scale, if necessary
         if prescale_data:
-            # replace the 'temp' column and de-normalise (this is why we added the 'temp' column earlier, to match dimensions)
-            df_norm["temp"] = preds_notrend
-            inv_y = self.dataframeUtils.denorm_dataframe(df_norm)
-            predictions = inv_y["temp"]
+            # # replace the 'temp' column and de-normalise (this is why we added the 'temp' column earlier, to match dimensions)
+            # df_norm["temp"] = preds_notrend
+            # inv_y = self.dataframeUtils.denorm_dataframe(df_norm)
+            # predictions = inv_y["temp"]
+            predictions = price_scaler.inverse_transform(preds_notrend.reshape(1, -1))[0]
+
+            # print("")
+            # print(f"preds_notrend: {preds_notrend}")
+            # print("")
+            # print(f"predictions: {predictions}")
+            # print("")
+
         else:
             # classifier handles scaling
             predictions = preds_notrend
@@ -573,6 +589,11 @@ class NNPredict(IStrategy):
         use_dataframes = classifier.needs_dataframes()
         prescale_data = classifier.prescale_data()
 
+        # get a scaler for the price data
+        price_scaler = self.dataframeUtils.make_scaler()
+
+        # print(f'backtest_data() - use_dataframes:{use_dataframes} prescale_data:{prescale_data}')
+
         # pre-scale if needed
         if prescale_data:
             df_norm = self.dataframeUtils.norm_dataframe(dataframe)
@@ -589,8 +610,12 @@ class NNPredict(IStrategy):
             tensor = self.dataframeUtils.df_to_tensor(df_norm, self.seq_len)
             data = tensor[start:end]
 
+        if prescale_data:
+            # fit price scaler on subset of cloe column
+            price_scaler.fit(np.array(dataframe[self.target_column].iloc[start:end]).reshape(1, -1))
+
         # predict
-        latest_prediction = dataframe['close'].iloc[-1]
+        latest_prediction = dataframe[self.target_column].iloc[-1]
         if classifier.returns_single_prediction():
             predictions = classifier.predict(data)
             latest_prediction = predictions[-1]
@@ -599,11 +624,13 @@ class NNPredict(IStrategy):
 
             # re-scale, if necessary
             if prescale_data:
-                # replace the 'temp' column and de-normalise (this is why we added the 'temp' column earlier, to match dimensions)
-                df_norm["temp"].iloc[start:end] = preds_notrend
-                inv_y = self.dataframeUtils.denorm_dataframe(df_norm)
-                predictions = inv_y["temp"]
-                latest_prediction = predictions.iloc[-1]
+                # # replace the 'temp' column and de-normalise (this is why we added the 'temp' column earlier, to match dimensions)
+                # df_norm["temp"].iloc[start:end] = preds_notrend
+                # inv_y = self.dataframeUtils.denorm_dataframe(df_norm)
+                # predictions = inv_y["temp"]
+                predictions = price_scaler.inverse_transform(preds_notrend.reshape(1, -1))[0]
+                # latest_prediction = predictions.iloc[-1]
+                latest_prediction = predictions[-1]
             else:
                 # classifier handles scaling
                 predictions = preds_notrend
@@ -622,14 +649,14 @@ class NNPredict(IStrategy):
         if self.curr_pair not in self.classifier_list:
             print("*** No model for pair ", self.curr_pair)
             return dataframe
-        
+
         # if the model produces single valued predictions then we have to roll through the dataframe
         # if not, we can use a more efficient batching approach
         if self.classifier_list[self.curr_pair].returns_single_prediction():
             dataframe = self.add_model_rolling_predictions(dataframe)
         else:
             dataframe = self.add_model_batch_predictions(dataframe)
-            
+
         return dataframe
 
     # get predictions. Note that the input can be dataframe or tensor
@@ -655,9 +682,9 @@ class NNPredict(IStrategy):
 
         # scale/normalise
         # save mean & std of close column, need this to re-scale predictions later
-        cl_mean = dataframe['close'].mean()
-        cl_std = dataframe['close'].std()
-        
+        cl_mean = dataframe[self.target_column].mean()
+        cl_std = dataframe[self.target_column].std()
+
         # get the current classifier
         classifier = self.classifier_list[self.curr_pair]
         use_dataframes = classifier.needs_dataframes()
@@ -741,7 +768,7 @@ class NNPredict(IStrategy):
     # run prediction in rolling fashion (one result at a time -> slow) over the entire history
     def add_model_rolling_predictions(self, dataframe: DataFrame) -> DataFrame:
 
-        print ("    Adding rolling predictions. Might take a while...")
+        print("    Adding rolling predictions. Might take a while...")
 
         # probably don't need to handle tensor cases since those classifiers typically do not return single values
 
@@ -767,7 +794,7 @@ class NNPredict(IStrategy):
 
         # set values for startup window
         for index in range(0, start):
-            preds_notrend = np.concatenate((preds_notrend, [df_norm['close'].iloc[index]]))
+            preds_notrend = np.concatenate((preds_notrend, [df_norm[self.target_column].iloc[index]]))
 
         # add predictions
         for i in tqdm(range(start, end), desc="    Predicting…", ascii=True, ncols=75):
@@ -805,7 +832,8 @@ class NNPredict(IStrategy):
         dataframe = self.update_predictions(dataframe)
         dataframe['predict_smooth'] = dataframe['predict'].rolling(window=win_size).apply(self.roll_strong_smooth)
 
-        dataframe['predict_diff'] = 100.0 * (dataframe['predict'] - dataframe['close']) / dataframe['close']
+        dataframe['predict_diff'] = 100.0 * (dataframe['predict'] - dataframe[self.target_column]) / \
+                                    dataframe[self.target_column]
 
         # dataframe['predict_diff'] = 100.0 * (dataframe['predict_smooth'] - dataframe['smooth']) / dataframe['smooth']
 
@@ -883,7 +911,43 @@ class NNPredict(IStrategy):
 
     ################################
 
-    clip_outliers = False
+    # utility to trace function calls
+    # Usage: call self.enable_function_tracing() in your code to enable
+
+    file_dir = os.path.dirname(str(Path(__file__)))
+
+    def tracefunc(self, frame, event, arg, indent=[0]):
+
+        EXCLUSIONS = {'<', '__', 'roll_'}
+
+        file_path = frame.f_code.co_filename
+        # only trace if file is in the same directory
+        if self.file_dir in file_path:
+            if not any(x in frame.f_code.co_name for x in EXCLUSIONS):
+                if event == "call":
+                    indent[0] += 2
+                    # print("-" * indent[0] + "> ", frame.f_code.co_name)
+                    if 'self' in frame.f_locals:
+                        class_name = frame.f_locals['self'].__class__.__name__
+                        func_name = class_name + '.' + frame.f_code.co_name
+                    else:
+                        func_name = frame.f_code.co_name
+
+                    # func_name = '{name:->{ind}s}()'.format(ind=indent[0] * 2, name=func_name)
+                    func_name = "-" * 2 * indent[0] + "> " + func_name
+                    file_name = os.path.basename(file_path)
+                    # txt = func_name # temp
+                    txt = '{: <60} # {}, {}'.format(func_name, file_name, frame.f_lineno)
+                    print(txt)
+                elif event == "return":
+                    # print("<" + "-" * indent[0], "exit function", frame.f_code.co_name)
+                    indent[0] -= 2
+
+        return self.tracefunc
+
+    def enable_function_tracing(self):
+        print("Function tracing enabled. This will slow down processing")
+        sys.setprofile(self.tracefunc)
 
     ################################
 
@@ -905,8 +969,8 @@ class NNPredict(IStrategy):
         # some trading volume
         conditions.append(dataframe['volume'] > 0)
 
-        # loose guard
-        conditions.append(dataframe['mfi'] < 50.0)
+        # # loose guard
+        # conditions.append(dataframe['mfi'] < 50.0)
 
         # Classifier triggers
         predict_cond = (
@@ -937,7 +1001,6 @@ class NNPredict(IStrategy):
         conditions = []
         dataframe.loc[:, 'exit_tag'] = ''
         curr_pair = metadata['pair']
-
 
         # if we are training a new model, just return (this helps avoid runtime errors)
         if self.training_only:

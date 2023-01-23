@@ -56,7 +56,7 @@ class PCA_macd(PCA):
 
     plot_config = {
         'main_plot': {
-            'close': {'color': 'teal'},
+            'close': {'color': 'cornflowerblue'},
         },
         'subplots': {
             "Diff": {

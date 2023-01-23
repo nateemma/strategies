@@ -171,7 +171,7 @@ class ClassifierKerasLinear(ClassifierKeras):
                               epochs=self.num_epochs,
                               callbacks=callbacks,
                               validation_data=(test_tensor, test_results),
-                              verbose=0)
+                              verbose=1)
 
         # # The model weights (that are considered the best) are loaded into th model.
         # self.update_model_weights()
@@ -202,7 +202,7 @@ class ClassifierKerasLinear(ClassifierKeras):
             return predictions
 
         # run the prediction
-        preds = self.model.predict(df_tensor, verbose=1)
+        preds = self.model.predict(df_tensor, verbose=0)
 
         # reshape so that we return just a straight array of predictions
         preds = np.array(preds[:, 0]).reshape(-1, 1)

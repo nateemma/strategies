@@ -144,7 +144,7 @@ class ClassifierKerasBinary(ClassifierKeras):
             patience=early_patience,
             min_delta=0.0001,
             restore_best_weights=True,
-            verbose=1)
+            verbose=0)
 
         plateau_callback = keras.callbacks.ReduceLROnPlateau(
             monitor=monitor_field,

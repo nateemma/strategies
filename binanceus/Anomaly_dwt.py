@@ -74,14 +74,14 @@ class Anomaly_dwt(Anomaly):
     # Have to re-declare globals, so that we can change them without affecting (or having to change) the base class,
     # and also avoiding affecting other subclasses of Anomaly
 
-    use_simpler_custom_stoploss = True
+    use_simpler_custom_stoploss = False
 
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     lookahead_hours = 0.5
-    n_profit_stddevs = 2.0
-    n_loss_stddevs = 2.0
+    n_profit_stddevs = 1.0
+    n_loss_stddevs = 1.0
     min_f1_score = 0.48
 
     custom_trade_info = {}
@@ -104,28 +104,53 @@ class Anomaly_dwt(Anomaly):
     # sell_pca_gain = IntParameter(-1, -15, default=-4, space='sell', load=True, optimize=True)
 
     # Custom Sell Profit (formerly Dynamic ROI)
-    cexit_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
-                                          optimize=True)
-    cexit_roi_time = IntParameter(720, 1440, default=720, space='sell', load=True, optimize=True)
-    cexit_roi_start = DecimalParameter(0.01, 0.05, default=0.01, space='sell', load=True, optimize=True)
-    cexit_roi_end = DecimalParameter(0.0, 0.01, default=0, space='sell', load=True, optimize=True)
-    cexit_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any', 'none'], default='any', space='sell',
-                                            load=True, optimize=True)
-    cexit_pullback = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
-    cexit_pullback_amount = DecimalParameter(0.005, 0.03, default=0.01, space='sell', load=True, optimize=True)
-    cexit_pullback_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
-                                                      optimize=True)
-    cexit_endtrend_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
-                                                      optimize=True)
 
-    # Custom Stoploss
-    cstop_loss_threshold = DecimalParameter(-0.05, -0.01, default=-0.03, space='sell', load=True, optimize=True)
-    cstop_bail_how = CategoricalParameter(['roc', 'time', 'any', 'none'], default='none', space='sell', load=True,
-                                          optimize=True)
-    cstop_bail_roc = DecimalParameter(-5.0, -1.0, default=-3.0, space='sell', load=True, optimize=True)
-    cstop_bail_time = IntParameter(60, 1440, default=720, space='sell', load=True, optimize=True)
-    cstop_bail_time_trend = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
-    cstop_max_stoploss = DecimalParameter(-0.30, -0.01, default=-0.10, space='sell', load=True, optimize=True)
+    if use_simpler_custom_stoploss:
+        sell_params = {
+            "pHSL": -0.068,
+            "pPF_1": 0.008,
+            "pPF_2": 0.098,
+            "pSL_1": 0.02,
+            "pSL_2": 0.065,
+        }
+
+        # hard stoploss profit
+        pHSL = DecimalParameter(-0.200, -0.010, default=-0.08, decimals=3, space='sell', load=True)
+
+        # profit threshold 1, trigger point, SL_1 is used
+        pPF_1 = DecimalParameter(0.008, 0.020, default=0.016, decimals=3, space='sell', load=True)
+        pSL_1 = DecimalParameter(0.008, 0.020, default=0.011, decimals=3, space='sell', load=True)
+
+        # profit threshold 2, SL_2 is used
+        pPF_2 = DecimalParameter(0.040, 0.100, default=0.080, decimals=3, space='sell', load=True)
+        pSL_2 = DecimalParameter(0.020, 0.070, default=0.040, decimals=3, space='sell', load=True)
+
+    else:
+
+        # Custom Sell Profit (formerly Dynamic ROI)
+        cexit_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
+                                              optimize=True)
+        cexit_roi_time = IntParameter(720, 1440, default=720, space='sell', load=True, optimize=True)
+        cexit_roi_start = DecimalParameter(0.01, 0.05, default=0.01, space='sell', load=True, optimize=True)
+        cexit_roi_end = DecimalParameter(0.0, 0.01, default=0, space='sell', load=True, optimize=True)
+        cexit_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any', 'none'], default='any', space='sell',
+                                                load=True, optimize=True)
+        cexit_pullback = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+        cexit_pullback_amount = DecimalParameter(0.005, 0.03, default=0.01, space='sell', load=True, optimize=True)
+        cexit_pullback_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
+                                                          optimize=True)
+        cexit_endtrend_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
+                                                          optimize=True)
+
+        # Custom Stoploss
+        cstop_loss_threshold = DecimalParameter(-0.05, -0.01, default=-0.03, space='sell', load=True, optimize=True)
+        cstop_bail_how = CategoricalParameter(['roc', 'time', 'any', 'none'], default='none', space='sell', load=True,
+                                              optimize=True)
+        cstop_bail_roc = DecimalParameter(-5.0, -1.0, default=-3.0, space='sell', load=True, optimize=True)
+        cstop_bail_time = IntParameter(60, 1440, default=720, space='sell', load=True, optimize=True)
+        cstop_bail_time_trend = CategoricalParameter([True, False], default=True, space='sell', load=True,
+                                                     optimize=True)
+        cstop_max_stoploss = DecimalParameter(-0.30, -0.01, default=-0.10, space='sell', load=True, optimize=True)
 
 
     ###################################
@@ -138,11 +163,11 @@ class Anomaly_dwt(Anomaly):
         series = np.where(
             (
                 # forward model above backward model
-                    (future_df['dwt_smooth_diff'] < 0) &
+                    (future_df['dwt_diff'] < 0) &
                     # current loss below threshold
-                    (future_df['dwt_smooth_diff'] <= future_df['loss_threshold']) &
+                    (future_df['dwt_diff'] <= future_df['loss_threshold']) &
                     # forward model below backward model at lookahead
-                    (future_df['dwt_smooth_diff'].shift(-self.curr_lookahead) > 0)
+                    (future_df['dwt_diff'].shift(-self.curr_lookahead) > 0)
             ), 1.0, 0.0)
 
         return series
@@ -151,11 +176,11 @@ class Anomaly_dwt(Anomaly):
         series = np.where(
             (
                 # forward model above backward model
-                    (future_df['dwt_smooth_diff'] > 0) &
+                    (future_df['dwt_diff'] > 0) &
                     # current profit above threshold
-                    (future_df['dwt_smooth_diff'] >= future_df['profit_threshold']) &
+                    (future_df['dwt_diff'] >= future_df['profit_threshold']) &
                     # forward model below backward model at lookahead
-                    (future_df['dwt_smooth_diff'].shift(-self.curr_lookahead) < 0)
+                    (future_df['dwt_diff'].shift(-self.curr_lookahead) < 0)
             ), 1.0, 0.0)
 
         return series

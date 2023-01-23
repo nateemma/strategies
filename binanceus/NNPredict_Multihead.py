@@ -95,7 +95,7 @@ class NNPredict_Multihead(NNPredict):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     # lookahead_hours = 1.0
-    lookahead_hours = 1.0
+    lookahead_hours = 0.4
     n_profit_stddevs = 0.0
     n_loss_stddevs = 0.0
     min_f1_score = 0.70

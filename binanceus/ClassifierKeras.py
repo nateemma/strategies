@@ -69,7 +69,7 @@ class ClassifierKeras():
     dataframeUtils = None
     requires_dataframes = False # set to True if classifier takes dataframes rather than tensors
     prescale_dataframe = True # set to True if algorithms need dataframes to be pre-scaled
-    single_prediction = False # True if alogorithm only produces 1 prediction (not entire data array)
+    single_prediction = False # True if algorithm only produces 1 prediction (not entire data array)
 
     # ---------------------------
 

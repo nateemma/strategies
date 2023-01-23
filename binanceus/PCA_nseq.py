@@ -78,8 +78,8 @@ class PCA_nseq(PCA):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     lookahead_hours = 1.0
-    n_profit_stddevs = 1.0
-    n_loss_stddevs = 2.0
+    n_profit_stddevs = 0.5
+    n_loss_stddevs = 1.0
     min_f1_score = 0.6
 
     custom_trade_info = {}
@@ -87,7 +87,7 @@ class PCA_nseq(PCA):
     dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
     dbg_test_classifier = True  # test classifiers after fitting
     dbg_analyse_pca = False  # analyze PCA weights
-    dbg_verbose = False  # controls debug output
+    dbg_verbose = True  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
 
     ###################################
@@ -131,9 +131,9 @@ class PCA_nseq(PCA):
     def get_train_buy_signals(self, future_df: DataFrame):
         series = np.where(
             (
-                    (future_df['mfi'] < 30) & # loose guard
-                    (future_df['dwt_nseq_dn'] >= 6) &
-                    (future_df['future_nseq_up'] >= 4) &
+                    (future_df['mfi'] < 50) & # loose guard
+                    (future_df['dwt_nseq_dn'] >= 4) &
+                    # (future_df['future_nseq_up'] >= 4) &
 
                     (future_df['future_profit_max'] >= future_df['profit_threshold'])   # future profit exceeds threshold
             ), 1.0, 0.0)
@@ -144,8 +144,8 @@ class PCA_nseq(PCA):
 
         series = np.where(
             (
-                    (future_df['mfi'] > 70) & # loose guard
-                    (future_df['dwt_nseq_up'] >= 10) &
+                    (future_df['mfi'] > 50) & # loose guard
+                    (future_df['dwt_nseq_up'] >= 6) &
                     # (future_df['future_nseq_dn'] >= 4) &
 
                     (future_df['future_loss_min'] <= future_df['loss_threshold'])   # future loss exceeds threshold

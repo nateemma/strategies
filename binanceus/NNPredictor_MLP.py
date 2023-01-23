@@ -40,6 +40,7 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 import keras
 from keras import layers
 from ClassifierKerasLinear import ClassifierKerasLinear
+from DataframeUtils import ScalerType
 
 import h5py
 
@@ -48,6 +49,8 @@ class NNPredictor_MLP(ClassifierKerasLinear):
     is_trained = False
     clean_data_required = False  # training data can contain anomalies
     model_per_pair = False # separate model per pair
+
+    scaler_type = ScalerType.Standard
 
     # override the build_model function in subclasses
     def create_model(self, seq_len, num_features):
@@ -68,8 +71,10 @@ class NNPredictor_MLP(ClassifierKerasLinear):
         x = inputs
         x = keras.layers.Dense(156)(x)
         x = keras.layers.Dropout(0.1)(x)
+        x = keras.layers.BatchNormalization()(x)
         x = keras.layers.Dense(16)(x)
         x = keras.layers.Dropout(0.1)(x)
+        x = keras.layers.BatchNormalization()(x)
 
         # last layer is a linear (float) value - do not change
         outputs = layers.Dense(1, activation="linear")(x)

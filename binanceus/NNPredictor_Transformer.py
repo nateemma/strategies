@@ -67,7 +67,9 @@ class NNPredictor_Transformer(ClassifierKerasLinear):
             x = self.transformer_encoder(x, head_size, num_heads, dropout, ff_dim)
 
         # may not need this part:
-        x = layers.GlobalAveragePooling1D(keepdims=True, data_format="channels_first")(x)
+        # x = layers.GlobalAveragePooling1D(keepdims=True, data_format="channels_first")(x)
+        x = keras.layers.BatchNormalization()(x)
+
         for dim in mlp_units:
             # x = layers.Dense(dim, activation="relu")(x)
             x = layers.Dense(dim)(x)

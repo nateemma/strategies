@@ -64,7 +64,7 @@ class NNBC_minmax(NNBC):
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
-    lookahead_hours = 8.0
+    lookahead_hours = 4.0
     n_profit_stddevs = 2.0
     n_loss_stddevs = 2.0
     min_f1_score = 0.50
@@ -125,7 +125,7 @@ class NNBC_minmax(NNBC):
 
         series = np.where(
             (
-                    (future_df['mfi'] < 30) & # loose guard
+                    # (future_df['mfi'] < 50) & # loose guard
                     # (future_df['dwt_at_min'] > 0) & # at min of previous window
                     # (future_df['dwt_bottom'] > 0) &  # at min of previous window
 
@@ -141,7 +141,7 @@ class NNBC_minmax(NNBC):
 
         series = np.where(
             (
-                    (future_df['mfi'] > 70) &  # loose guard
+                    # (future_df['mfi'] > 50) &  # loose guard
                     # (future_df['dwt_at_max'] > 0) & # at max of previous window
                     # (future_df['dwt_top'] > 0) & # at max of previous window
 

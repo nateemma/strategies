@@ -56,7 +56,7 @@ class Anomaly_nseq(Anomaly):
     plot_config = {
         'main_plot': {
             'close': {'color': 'cornflowerblue'},
-            # 'dwt_smooth': {'color': 'salmon'},
+            # 'dwt': {'color': 'salmon'},
         },
         'subplots': {
             "Diff": {
@@ -73,6 +73,8 @@ class Anomaly_nseq(Anomaly):
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # Have to re-declare any globals that we need to modify
+
+    use_simpler_custom_stoploss = False
 
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run

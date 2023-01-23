@@ -121,7 +121,7 @@ class PCA_highlow(PCA):
             (
                     (future_df['mfi'] < 40) &  # loose guard
                     (future_df['dwt_at_low'] > 0) & # at low of full window
-                    (future_df['dwt_smooth'] <= future_df['future_min']) # at min of future window
+                    (future_df['dwt'] <= future_df['future_min']) # at min of future window
             ), 1.0, 0.0)
 
         return series
@@ -132,7 +132,7 @@ class PCA_highlow(PCA):
             (
                     (future_df['mfi'] > 60) &  # loose guard
                     (future_df['dwt_at_high'] > 0) & # at high of full window
-                    (future_df['dwt_smooth'] >= future_df['future_max']) # at max of future window
+                    (future_df['dwt'] >= future_df['future_max']) # at max of future window
             ), 1.0, 0.0)
 
         return series

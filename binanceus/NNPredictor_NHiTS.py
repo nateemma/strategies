@@ -50,6 +50,7 @@ class NNPredictor_NHiTS(ClassifierDarts):
         print(f"    pl_trainer_kwargs={self.trainer_args}")
         model = NHiTSModel(input_chunk_length=seq_len,
                            output_chunk_length=self.lookahead,
+                           batch_size=self.batch_size,
                            pl_trainer_kwargs=self.trainer_args
                            )
 

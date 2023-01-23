@@ -56,7 +56,7 @@ class NNBC_nseq(NNBC):
     plot_config = {
         'main_plot': {
             'tema': {'color': 'darkcyan'},
-            'dwt_smooth': {'color': 'salmon'},
+            'dwt': {'color': 'salmon'},
         },
         'subplots': {
             "Diff": {

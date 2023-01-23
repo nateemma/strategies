@@ -65,8 +65,12 @@ class NNPredictor_LSTM(ClassifierKerasLinear):
 
         inputs = keras.Input(shape=(seq_len, num_features))
         x = inputs
+        x = keras.layers.Dense(64)(x)
+        x = keras.layers.BatchNormalization()(x)
         x = keras.layers.LSTM(64, return_sequences=True, activation='tanh', input_shape=(seq_len, num_features))(x)
         x = keras.layers.Dropout(0.1)(x)
+        x = keras.layers.BatchNormalization()(x)
+
 
         # intermediate layer to bring the dimensions
         x = keras.layers.Dense(16)(x)

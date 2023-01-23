@@ -51,8 +51,11 @@ from tqdm.keras import TqdmCallback
 
 import random
 
+from DataframeUtils import DataframeUtils, ScalerType
+
 from NNPredict import NNPredict
 from NNPredictor_MLP import NNPredictor_MLP
+from NNPredictor_LSTM import NNPredictor_LSTM
 
 """
 ####################################################################################
@@ -79,6 +82,7 @@ NNPredict_stripped - uses an LSTM neural network to try and predict the future s
 # this inherits from NNPredict and just replaces the model used for predictions
 
 class NNPredict_stripped(NNPredict):
+
     plot_config = {
         'main_plot': {
             'close': {'color': 'cornflowerblue'},
@@ -97,7 +101,7 @@ class NNPredict_stripped(NNPredict):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     # lookahead_hours = 1.0
-    lookahead_hours = 1.0
+    lookahead_hours = 0.4
     n_profit_stddevs = 0.0
     n_loss_stddevs = 0.0
     min_f1_score = 0.70
@@ -108,7 +112,12 @@ class NNPredict_stripped(NNPredict):
     curr_pair = ""
     custom_trade_info = {}
 
-    refit_model = False
+    refit_model = True
+    training_only = False
+
+    target_column = 'mid'
+
+    dbg_enable_tracing = False
 
     ###################################
 
@@ -146,31 +155,37 @@ class NNPredict_stripped(NNPredict):
     win_size = 14
     runmode = ""  # set this to self.dp.runmode.value
 
+
     ################################
-    # we override the ad_indicators func
+    # we override the add_indicators func
     def add_indicators(self, dataframe: DataFrame) -> DataFrame:
 
         # source data includes open/close/high/low price, volume
         # month, day, hour minute etc. added automatically
 
-        # we only add 'temp' because it's needed as a placeholder for scaling
+        # needed as placeholders for scaling/results later
         dataframe['temp'] = 0.0
+        dataframe['predict'] = 0.0
 
-        # these averages are used internally, do not remove!
+        dataframe['mid'] = (dataframe['open'] + dataframe['close']) / 2.0
+
+        # moving averages
         dataframe['sma'] = ta.SMA(dataframe, timeperiod=self.win_size)
         dataframe['ema'] = ta.EMA(dataframe, timeperiod=self.win_size)
         dataframe['tema'] = ta.TEMA(dataframe, timeperiod=self.win_size)
-        dataframe['tema_stddev'] = dataframe['tema'].rolling(self.win_size).std()
+        # dataframe['tema_stddev'] = dataframe['tema'].rolling(self.win_size).std()
 
         # RSI
-        period = 14
-        smoothD = 3
-        SmoothK = 3
         dataframe['rsi'] = ta.RSI(dataframe, timeperiod=self.win_size)
-        stochrsi = (dataframe['rsi'] - dataframe['rsi'].rolling(period).min()) / (
-                dataframe['rsi'].rolling(period).max() - dataframe['rsi'].rolling(period).min())
-        dataframe['srsi_k'] = stochrsi.rolling(SmoothK).mean() * 100
-        dataframe['srsi_d'] = dataframe['srsi_k'].rolling(smoothD).mean()
+
+        # # fast/slow stochastic
+        # period = 14
+        # smoothD = 3
+        # SmoothK = 3
+        # stochrsi = (dataframe['rsi'] - dataframe['rsi'].rolling(period).min()) / (
+        #         dataframe['rsi'].rolling(period).max() - dataframe['rsi'].rolling(period).min())
+        # dataframe['srsi_k'] = stochrsi.rolling(SmoothK).mean() * 100
+        # dataframe['srsi_d'] = dataframe['srsi_k'].rolling(smoothD).mean()
 
         # Bollinger Bands (must include these)
         bollinger = qtpylib.bollinger_bands(dataframe['close'], window=20, stds=2)
@@ -186,31 +201,26 @@ class NNPredict_stripped(NNPredict):
         dataframe['dc_lower'] = ta.MIN(dataframe['low'], timeperiod=self.win_size)
         dataframe['dc_mid'] = ta.TEMA(((dataframe['dc_upper'] + dataframe['dc_lower']) / 2), timeperiod=self.win_size)
 
-        dataframe["dcbb_dist_upper"] = (dataframe["dc_upper"] - dataframe['bb_upperband'])
-        dataframe["dcbb_dist_lower"] = (dataframe["dc_lower"] - dataframe['bb_lowerband'])
+        # Keltner Channels (these can sometimes produce inf results)
+        keltner = qtpylib.keltner_channel(dataframe)
+        dataframe["kc_upper"] = keltner["upper"]
+        dataframe["kc_lower"] = keltner["lower"]
 
-        # Fibonacci Levels (of Donchian Channel)
-        dataframe['dc_dist'] = (dataframe['dc_upper'] - dataframe['dc_lower'])
-        # dataframe['dc_hf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.236  # Highest Fib
-        # dataframe['dc_chf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.382  # Centre High Fib
-        # dataframe['dc_clf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.618  # Centre Low Fib
-        # dataframe['dc_lf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.764  # Low Fib
-
-         # Keltner Channels (these can sometimes produce inf results)
+        # Keltner Channels (these can sometimes produce inf results)
         keltner = qtpylib.keltner_channel(dataframe)
         dataframe["kc_upper"] = keltner["upper"]
         dataframe["kc_lower"] = keltner["lower"]
         dataframe["kc_mid"] = keltner["mid"]
 
-        # Williams %R
-        dataframe['wr'] = 0.02 * (self.dataframePopulator.williams_r(dataframe, period=14) + 50.0)
-
-        # Fisher RSI
-        rsi = 0.1 * (dataframe['rsi'] - 50)
-        dataframe['fisher_rsi'] = (np.exp(2 * rsi) - 1) / (np.exp(2 * rsi) + 1)
-
-        # Combined Fisher RSI and Williams %R
-        dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
+        # # Williams %R
+        # dataframe['wr'] = 0.02 * (self.dataframePopulator.williams_r(dataframe, period=14) + 50.0)
+        #
+        # # Fisher RSI
+        # rsi = 0.1 * (dataframe['rsi'] - 50)
+        # dataframe['fisher_rsi'] = (np.exp(2 * rsi) - 1) / (np.exp(2 * rsi) + 1)
+        #
+        # # Combined Fisher RSI and Williams %R
+        # dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
 
         # ADX
         dataframe['adx'] = ta.ADX(dataframe)
@@ -240,6 +250,17 @@ class NNPredict_stripped(NNPredict):
         # mfi is used as a guard
         dataframe['mfi'] = ta.MFI(dataframe)
 
+        # # DWT model
+        # # if in backtest, hyperopt or plot, then we have to do rolling calculations
+        # if self.runmode in ('hyperopt', 'backtest', 'plot'):
+        #     dataframe['dwt'] = dataframe['close'].rolling(window=self.startup_win).apply(self.dataframePopulator.roll_get_dwt)
+        #     dataframe['smooth'] = dataframe['close'].rolling(window=self.startup_win).apply(self.dataframePopulator.roll_smooth)
+        #     dataframe['dwt'] = dataframe['dwt'].rolling(window=self.startup_win).apply(self.dataframePopulator.roll_smooth)
+        # else:
+        #     dataframe['dwt'] = self.dataframePopulator.get_dwt(dataframe['close'])
+        #     dataframe['smooth'] = gaussian_filter1d(dataframe['close'], 2)
+        #     dataframe['dwt'] = gaussian_filter1d(dataframe['dwt'], 2)
+
         # TODO: remove/fix any columns that contain 'inf'
         self.dataframeUtils.check_inf(dataframe)
 
@@ -247,4 +268,9 @@ class NNPredict_stripped(NNPredict):
         dataframe.fillna(0.0, inplace=True)
 
         return dataframe
+    ################################
+
+    def get_classifier(self, pair, seq_len: int, num_features: int):
+        return NNPredictor_LSTM(pair, seq_len, num_features)
+
     ################################

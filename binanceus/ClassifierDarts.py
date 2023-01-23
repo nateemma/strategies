@@ -25,13 +25,14 @@ import numpy as np
 import numpy
 from darts.dataprocessing.transformers import Scaler
 from darts.metrics import mase
-from darts.models import NBEATSModel
+from darts.models import NBEATSModel, TFTModel
 from pandas import DataFrame, Series
 import pandas as pd
 
 from pytorch_lightning.callbacks import EarlyStopping
 from sklearn.preprocessing import RobustScaler
 from torchmetrics import MeanAbsolutePercentageError
+from torchinfo import summary
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -62,6 +63,9 @@ import multiprocessing
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 os.environ['TF_DETERMINISTIC_OPS'] = '1'
 
+# not all layers are supported on the GPU yet, so fallback to CPU
+os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'
+
 seed = 42
 os.environ['PYTHONHASHSEED'] = str(seed)
 random.seed(seed)
@@ -74,13 +78,14 @@ class ClassifierDarts():
     num_features = 64
     seq_len = 12
     lookahead = 12
+    batch_size = 1024
 
     model = None
     is_trained = False
     category = ""
     name = ""
     model_path = ""
-    model_ext = ".pkl"
+    model_ext = ".pt"
     checkpoint_path = "/tmp/model" + model_ext
 
     loaded_from_file = False
@@ -98,7 +103,7 @@ class ClassifierDarts():
     trainer = None
     trainer_args = {}
     num_cpus = 1
-    use_gpu = False # Note: not all classifiers can use the GPU, and some are slower when they do
+    use_gpu = True # Note: not all classifiers can use the GPU, and some are slower when they do
 
     train_cols = []  # used for debug
 
@@ -108,6 +113,8 @@ class ClassifierDarts():
 
     def __init__(self, pair, seq_len, num_features, tag=""):
         super().__init__()
+
+        self.set_all_seeds()
 
         self.loaded_from_file = False
         self.seq_len = seq_len
@@ -141,19 +148,27 @@ class ClassifierDarts():
         # Annoyingly, trainer args need to be specified in the constructor
         if self.use_gpu:
             self.trainer_args["accelerator"] = "auto"
+            self.trainer_args["auto_select_gpus"] = True
+            # self.trainer_args["strategy"] = "fsdp"
+            self.trainer_args["auto_scale_batch_size"] = True
+
+            # workaround for some issues with pickle and mps (metal)
+            try:
+                multiprocessing.set_start_method('fork')
+            except RuntimeError:
+                pass # this is OK, usually means that it has already been done (which is a dumb exception)
 
         # Early stop callback
         early_callback = EarlyStopping(
             # monitor="val_MeanAbsolutePercentageError",  # "val_loss",
-            monitor="train_loss",
+            monitor="val_loss",
             patience=5,
-            min_delta=0.001,
+            min_delta=0.01,
             mode='min',
         )
         self.trainer_args["callbacks"] = [early_callback]
 
-
-        print(f"    CPUs:{self.num_cpus} GPU:{self.is_gpu_available()}")
+        # print(f"    CPUs:{self.num_cpus} GPU:{self.is_gpu_available()}")
 
     # ---------------------------
 
@@ -256,9 +271,9 @@ class ClassifierDarts():
             test_time_series = test_time_series.astype(np.float32)
             train_price_series = train_price_series.astype(np.float32)
             test_price_series = test_price_series.astype(np.float32)
-            self.trainer_args["accelerator"] = "gpu"
-            self.trainer_args["devices"] = -1
-            self.trainer_args["auto_select_gpus"] = True
+            # self.trainer_args["accelerator"] = "gpu"
+            # self.trainer_args["devices"] = -1
+            # self.trainer_args["auto_select_gpus"] = True
 
         # scale the dataframes
         df_scaler = Scaler(RobustScaler())
@@ -305,6 +320,8 @@ class ClassifierDarts():
         # only save if this is the first time training
         if not self.is_trained:
             self.save()
+            print(f'Model: {self.model_path}')
+            summary(self.model, input_size=(self.batch_size, self.seq_len, self.num_features))
 
         self.is_trained = True
 
@@ -350,14 +367,18 @@ class ClassifierDarts():
         df_scaler = Scaler(RobustScaler())
         covariate_series = df_scaler.fit_transform(df_time_series)
 
-        print(f"    backtesting {dataframe.shape[0]} samples")
+        time_est = dataframe.shape[0] / 600.0 # ~10 it/sec
+        print(f"    backtesting {dataframe.shape[0]} samples. Estimated time:{time_est:.2f} (mins)")
         # run backtesting
-        preds = self.model.historical_forecasts(price_series,
-                                                past_covariates=covariate_series,
-                                                # num_loader_workers=self.num_cpus,
-                                                forecast_horizon=self.lookahead,
-                                                retrain=False,
-                                                verbose=False)
+        # with torch.no_grad():
+        with torch.inference_mode():
+                preds = self.model.historical_forecasts(price_series,
+                                                    past_covariates=covariate_series,
+                                                    forecast_horizon=self.lookahead,
+                                                    last_points_only=True,
+                                                    retrain=False,
+                                                    verbose=False)
+
         # reverse scaling
         preds2 = price_scaler.inverse_transform(preds)
 
@@ -365,19 +386,16 @@ class ClassifierDarts():
         df = preds2.pd_dataframe()
         scaled_preds = np.array(df['close'])
 
-        predictions = np.zeros(np.shape(dataframe)[0])
+        # predictions = np.zeros(np.shape(dataframe)[0])
+        predictions = np.array(dataframe['close'])
 
         # predictions are usually shorter than the original data (need some values to feed the pipeline)
         start = len(predictions) - len(scaled_preds)
 
-        if start > 0:
-            predictions[0:start-1] = np.array(dataframe['close'].iloc[0:start-1]) # use original data to pre-populate and size
+        # if start > 0:
+        #     predictions[0:start-1] = np.array(dataframe['close'].iloc[0:start-1]) # use original data to pre-populate and size
 
-        # print(f'len(predictions):{len(predictions)}  len(scaled_preds):{len(scaled_preds)} start:{start}')
-        # print(f"close:{dataframe['close']}")
-        # print(f'predictions1:{predictions}')
-
-        # predictions[start:len(predictions)] = np.array(scaled_preds)
+        # should this be placed at the start or the end?!
         predictions[start:] = np.array(scaled_preds)
 
         # print(f'predictions2:{predictions}')
@@ -427,11 +445,14 @@ class ClassifierDarts():
 
         self.trainer = Trainer(accelerator='mps', devices=1)
         # print(f'Prediction data size: {np.shape(df)}')
-        preds = self.model.predict(n=self.lookahead,
-                                   series=price_series,
-                                   past_covariates=covariate_series,
-                                   # num_loader_workers=self.num_cpus,
-                                   verbose=False)
+        # with torch.no_grad():
+        with torch.inference_mode():
+            preds = self.model.predict(n=self.lookahead,
+                                       series=price_series,
+                                       past_covariates=covariate_series,
+                                       batch_size=self.batch_size,
+                                       # num_loader_workers=self.num_cpus,
+                                       verbose=False)
 
         # print (preds)
         # convert to dataframe so that we cann access the predictions
@@ -476,6 +497,17 @@ class ClassifierDarts():
 
     # ---------------------------
 
+    # set values of various random seeds so that we get repeatable performance
+    def set_all_seeds(self):
+        seed = 42
+        os.environ["PL_GLOBAL_SEED"] = str(seed)
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+
+    # ---------------------------
+
     # returns path to the root directory used for storing models
     def get_model_root_dir(self):
         # set as subdirectory of location of this file (so that it can be included in the repository)
@@ -494,6 +526,17 @@ class ClassifierDarts():
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
         model_path = save_dir + self.name + self.model_ext
+        return model_path
+
+    # ---------------------------
+
+    # returns path to the coreml model file
+    def get_coreml_model_path(self):
+        root_dir = self.get_model_root_dir()
+        save_dir = root_dir + self.category + '/'
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        model_path = save_dir + self.name + '.coreml'
         return model_path
 
     # ---------------------------
@@ -529,6 +572,12 @@ class ClassifierDarts():
 
     # ---------------------------
 
+    def save_as_coreml(self):
+        return
+
+    # ---------------------------
+
+
     def load(self, path=""):
 
         if len(path) == 0:
@@ -544,6 +593,8 @@ class ClassifierDarts():
             self.model = self.load_from_file(self.model_path)
             self.loaded_from_file = True
             self.is_trained = True
+            print(f'Model: {self.model_path}')
+            summary(self.model, input_size=(self.batch_size, self.seq_len, self.num_features))
         else:
             print("    model not found ({})...".format(path))
             # flag this as a new model. Note that this is a class global variable because we need to track this

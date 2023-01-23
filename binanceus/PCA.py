@@ -886,7 +886,7 @@ class PCA(IStrategy):
         ClassifierType.LogisticRegression, ClassifierType.GaussianNB,
         ClassifierType.StochasticGradientDescent, ClassifierType.GradientBoosting,
         ClassifierType.AdaBoost, ClassifierType.LinearSVC, ClassifierType.SigmoidSVC,
-        ClassifierType.LinearDiscriminantAnalysis, ClassifierType.XGBoost
+        ClassifierType.LinearDiscriminantAnalysis, ClassifierType.XGBoost, ClassifierType.Stacking
     ]
 
     # factory to create classifier based on name
@@ -942,10 +942,11 @@ class PCA(IStrategy):
         elif name == ClassifierType.Stacking:
             # Stacked 'ensemble' of classifiers
             c1, _ = self.classifier_factory(ClassifierType.LinearDiscriminantAnalysis, data, labels)
-            c2, _ = self.classifier_factory(ClassifierType.SigmoidSVC, data, labels)
-            c3, _ = self.classifier_factory(ClassifierType.XGBoost, data, labels)
-            c4, _ = self.classifier_factory(ClassifierType.AdaBoost, data, labels)
-            estimators = [('c1', c1), ('c2', c2), ('c3', c3), ('c4', c4)]
+            c2, _ = self.classifier_factory(ClassifierType.LinearSVC, data, labels)
+            c3, _ = self.classifier_factory(ClassifierType.StochasticGradientDescent, data, labels)
+            c4, _ = self.classifier_factory(ClassifierType.LogisticRegression, data, labels)
+            c5, _ = self.classifier_factory(ClassifierType.AdaBoost, data, labels)
+            estimators = [('c1', c1), ('c2', c2), ('c3', c3), ('c4', c4), ('c5', c5)]
             clf = StackingClassifier(estimators=estimators,
                                      final_estimator=LogisticRegression())
         else:
@@ -1190,10 +1191,10 @@ class PCA(IStrategy):
                 table.align["Classifier"] = "l"
                 table.align["Mean Score"] = "c"
                 table.float_format = '.4'
-                for cls in self.classifier_stats['entry']:
+                for cls in self.classifier_stats['buy']:
                     table.add_row([cls,
-                                   self.classifier_stats['entry'][cls]['score'],
-                                   self.classifier_stats['entry'][cls]['selected']])
+                                   self.classifier_stats['buy'][cls]['score'],
+                                   self.classifier_stats['buy'][cls]['selected']])
                 table.reversesort = True
                 # table.sortby = 'Mean Score'
                 print(table.get_string(sort_key=operator.itemgetter(2, 1), sortby="Selected"))
@@ -1206,10 +1207,10 @@ class PCA(IStrategy):
                 table.align["Classifier"] = "l"
                 table.align["Mean Score"] = "c"
                 table.float_format = '.4'
-                for cls in self.classifier_stats['exit']:
+                for cls in self.classifier_stats['sell']:
                     table.add_row([cls,
-                                   self.classifier_stats['exit'][cls]['score'],
-                                   self.classifier_stats['exit'][cls]['selected']])
+                                   self.classifier_stats['sell'][cls]['score'],
+                                   self.classifier_stats['sell'][cls]['selected']])
                 table.reversesort = True
                 # table.sortby = 'Mean Score'
                 print(table.get_string(sort_key=operator.itemgetter(2, 1), sortby="Selected"))

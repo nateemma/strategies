@@ -51,23 +51,31 @@ class DataframeUtils():
         self.scaler_fitted = False
         self.scaler = None
         self.scaler = self.get_scaler()
+        # print(f"    Scaler set to: {type}")
 
     # get a scaler for scaling/normalising the data (in a func because I change it routinely)
     def get_scaler(self):
 
+        # only create if it doesn't yet exist
         if self.scaler is None:
-            if self.scaler_type == ScalerType.NoScaling:
-                print("    Data will not be scaled")
-            elif self.scaler_type == ScalerType.Standard:
-                self.scaler = StandardScaler()
-            elif self.scaler_type == ScalerType.MinMax:
-                self.scaler = MinMaxScaler()
-            elif self.scaler_type == ScalerType.Robust:
-                self.scaler = RobustScaler()
-            else:
-                print(f"    Unknown scaler type: {self.scaler_type}")
+            self.scaler = self.make_scaler()
 
         return self.scaler
+
+    # make a scaler that matches the type set with self.scaler_type
+    def make_scaler(self):
+        scaler = None
+        if self.scaler_type == ScalerType.NoScaling:
+            print("    Data will not be scaled")
+        elif self.scaler_type == ScalerType.Standard:
+            scaler = StandardScaler()
+        elif self.scaler_type == ScalerType.MinMax:
+            scaler = MinMaxScaler()
+        elif self.scaler_type == ScalerType.Robust:
+            scaler = RobustScaler()
+        else:
+            print(f"    Unknown scaler type: {self.scaler_type}")
+        return scaler
 
     def fit_scaler(self, dataframe: DataFrame):
         if self.scaler is not None:
@@ -75,6 +83,8 @@ class DataframeUtils():
                 print("    Warning: re-fitting scaler")
             self.scaler = self.scaler.fit(dataframe)
             self.scaler_fitted = True
+        else:
+            print("    WARN: fit_scaler() called, but scaler has not been assigned")
         return
 
     ###################################
@@ -145,7 +155,8 @@ class DataframeUtils():
         cols = df.columns
 
         # fit, if not already done
-        # Note that fitting is only done once, then reused on subsequent calls to norm/denorm. Call set_scaler to reset
+        # Note that fitting is only done once, then reused on subsequent calls to norm/denorm.
+        # Call set_scaler() to reset
         if not self.scaler_fitted:
             self.fit_scaler(df)
 
@@ -161,8 +172,12 @@ class DataframeUtils():
         if self.scaler is  None:
             print("   WARN: scaler is None")
 
+        if not self.scaler_fitted:
+            print("   WARN: scaler has not been fitted")
+
         cols = dataframe.columns
 
+        print(f"Scaler type:{self.scaler_type}  fitted:{self.scaler_fitted}")
         df = pd.DataFrame(self.scaler.inverse_transform(dataframe), columns=cols)
 
         return df

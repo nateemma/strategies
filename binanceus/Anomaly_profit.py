@@ -58,6 +58,8 @@ class Anomaly_profit(Anomaly):
 
     # Have to re-declare any globals that we need to modify
 
+    use_simpler_custom_stoploss = False
+
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt

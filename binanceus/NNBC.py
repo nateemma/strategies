@@ -62,8 +62,8 @@ from prettytable import PrettyTable
 
 import os
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
-os.environ['TF_DETERMINISTIC_OPS'] = '1'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['TF_DETERMINISTIC_OPS'] = '3'
 
 import tensorflow as tf
 
@@ -74,6 +74,9 @@ tf.random.set_seed(seed)
 np.random.seed(seed)
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
+
+tf_logger = logging.getLogger('tensorflow')
+tf_logger.setLevel(logging.WARN)
 
 import keras
 from keras import layers
@@ -218,7 +221,7 @@ class NNBC(IStrategy):
     num_epochs = 512  # number of iterations for training
     batch_size = 1024  # batch size for training
 
-    refit_model = True  # only set to True when training. If False, then existing model is used, if present
+    refit_model = False  # only set to True when training. If False, then existing model is used, if present
     use_full_dataset = True  # use the entire dataset for training (in backtest)
     model_per_pair = False
 
