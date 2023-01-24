@@ -149,7 +149,10 @@ class NNPredict_NHiTS(NNPredict):
     ################################
 
     def get_classifier(self, pair, seq_len: int, num_features: int):
-        predictor = NNPredictor_NHiTS(pair, seq_len, num_features)
+
+        # use_gpu = False if (self.dp.runmode.value in ('hyperopt')) else True
+        use_gpu = True
+        predictor = NNPredictor_NHiTS(pair, seq_len, num_features, use_gpu=use_gpu)
         predictor.set_lookahead(self.curr_lookahead)
         return predictor
 

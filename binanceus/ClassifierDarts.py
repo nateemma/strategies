@@ -32,7 +32,7 @@ import pandas as pd
 from pytorch_lightning.callbacks import EarlyStopping
 from sklearn.preprocessing import RobustScaler
 from torchmetrics import MeanAbsolutePercentageError
-from torchinfo import summary
+# from torchinfo import summary
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -58,7 +58,7 @@ warnings.filterwarnings("ignore", ".*MPS available but not used.*")
 import random
 
 import os
-import multiprocessing
+import multiprocess
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 os.environ['TF_DETERMINISTIC_OPS'] = '1'
@@ -73,6 +73,8 @@ np.random.seed(seed)
 
 from DataframeUtils import DataframeUtils
 
+
+# ---------------------------
 
 class ClassifierDarts():
     num_features = 64
@@ -102,7 +104,7 @@ class ClassifierDarts():
 
     trainer = None
     trainer_args = {}
-    num_cpus = 1
+    # num_cpus = 1
     use_gpu = True # Note: not all classifiers can use the GPU, and some are slower when they do
 
     train_cols = []  # used for debug
@@ -111,14 +113,17 @@ class ClassifierDarts():
 
     # Note: pair is needed because we cannot combine model across pairs because of huge price differences
 
-    def __init__(self, pair, seq_len, num_features, tag=""):
+    def __init__(self, pair, seq_len, num_features, tag="", use_gpu=True):
         super().__init__()
 
+        # set seeds so that runs are reproducable
         self.set_all_seeds()
 
         self.loaded_from_file = False
         self.seq_len = seq_len
         self.num_features = num_features
+
+        self.use_gpu = use_gpu
 
         if self.model_per_pair:
             pair_suffix = "_" + pair.split("/")[0]
@@ -143,20 +148,10 @@ class ClassifierDarts():
         # torch.device("mps")
         # self.trainer = Trainer(accelerator='mps', devices=1)
 
-        self.num_cpus = multiprocessing.cpu_count()
+        # self.num_cpus = multiprocessing.cpu_count()
 
+        # set pytorch Trainer args. Ref: https://pytorch-lightning.readthedocs.io/en/stable/common/trainer.html
         # Annoyingly, trainer args need to be specified in the constructor
-        if self.use_gpu:
-            self.trainer_args["accelerator"] = "auto"
-            self.trainer_args["auto_select_gpus"] = True
-            # self.trainer_args["strategy"] = "fsdp"
-            self.trainer_args["auto_scale_batch_size"] = True
-
-            # workaround for some issues with pickle and mps (metal)
-            try:
-                multiprocessing.set_start_method('fork')
-            except RuntimeError:
-                pass # this is OK, usually means that it has already been done (which is a dumb exception)
 
         # Early stop callback
         early_callback = EarlyStopping(
@@ -167,6 +162,24 @@ class ClassifierDarts():
             mode='min',
         )
         self.trainer_args["callbacks"] = [early_callback]
+        # self.trainer_args["deterministic"] = True
+        self.trainer_args["auto_lr_find"] = True
+        self.trainer_args["benchmark"] = True
+
+        if self.use_gpu:
+            self.trainer_args["accelerator"] = "auto"
+            # self.trainer_args["auto_select_gpus"] = True
+            # self.trainer_args["strategy"] = "ddp"
+            self.trainer_args["auto_scale_batch_size"] = True
+            self.trainer_args["devices"] = "auto"
+        else:
+            self.trainer_args["devices"] = "cpu"
+
+            # # workaround for some issues with pickle and mps (metal)
+            # try:
+            #     multiprocessing.set_start_method('fork')
+            # except RuntimeError:
+            #     pass # this is OK, usually means that it has already been done (which is a dumb exception)
 
         # print(f"    CPUs:{self.num_cpus} GPU:{self.is_gpu_available()}")
 
@@ -264,16 +277,19 @@ class ClassifierDarts():
         df3['close'] = test_results
         test_price_series = darts.TimeSeries.from_dataframe(df3, time_col='date', value_cols='close', fillna_value=0)
 
-        # convert to 32-bit (allows use of GPU)
-        if self.is_gpu_available():
-            print("    Converting to 32-bit to allow GPU usage...")
-            train_time_series = train_time_series.astype(np.float32)
-            test_time_series = test_time_series.astype(np.float32)
-            train_price_series = train_price_series.astype(np.float32)
-            test_price_series = test_price_series.astype(np.float32)
-            # self.trainer_args["accelerator"] = "gpu"
-            # self.trainer_args["devices"] = -1
-            # self.trainer_args["auto_select_gpus"] = True
+        # # convert to 32-bit (allows use of GPU)
+        # if self.is_gpu_available():
+        #     print("    Converting to 32-bit to allow GPU usage...")
+        #     train_time_series = train_time_series.astype(np.float32)
+        #     test_time_series = test_time_series.astype(np.float32)
+        #     train_price_series = train_price_series.astype(np.float32)
+        #     test_price_series = test_price_series.astype(np.float32)
+
+        # workaround for GPU bug: always convert to 32-bit
+        train_time_series = train_time_series.astype(np.float32)
+        test_time_series = test_time_series.astype(np.float32)
+        train_price_series = train_price_series.astype(np.float32)
+        test_price_series = test_price_series.astype(np.float32)
 
         # scale the dataframes
         df_scaler = Scaler(RobustScaler())
@@ -321,7 +337,7 @@ class ClassifierDarts():
         if not self.is_trained:
             self.save()
             print(f'Model: {self.model_path}')
-            summary(self.model, input_size=(self.batch_size, self.seq_len, self.num_features))
+            # summary(self.model, input_size=(self.batch_size, self.seq_len, self.num_features))
 
         self.is_trained = True
 
@@ -358,10 +374,14 @@ class ClassifierDarts():
         # convert dataframe to timeseries
         df_time_series = darts.TimeSeries.from_dataframe(df, time_col='date')
 
-        # convert to 32-bit (allows use of GPU)
-        if self.is_gpu_available():
-            price_series = price_series.astype(np.float32)
-            df_time_series = df_time_series.astype(np.float32)
+        # # convert to 32-bit (allows use of GPU)
+        # if self.is_gpu_available():
+        #     price_series = price_series.astype(np.float32)
+        #     df_time_series = df_time_series.astype(np.float32)
+
+        # workaround for GPU bug: always convert to 32-bit
+        price_series = price_series.astype(np.float32)
+        df_time_series = df_time_series.astype(np.float32)
 
         # scale the dataframe
         df_scaler = Scaler(RobustScaler())
@@ -425,6 +445,7 @@ class ClassifierDarts():
         df = dataframe.copy()
         df['date'] = pd.to_datetime(df.date).dt.tz_localize(None)
 
+
         # convert closing price column to time series & scale
         price_series = darts.TimeSeries.from_dataframe(df, time_col='date', value_cols='close')
         price_scaler = Scaler(RobustScaler())
@@ -434,10 +455,14 @@ class ClassifierDarts():
         # convert dataframe to timeseries
         df_time_series = darts.TimeSeries.from_dataframe(df, time_col='date')
 
-        # convert to 32-bit (allows use of GPU)
-        if self.is_gpu_available():
-            price_series = price_series.astype(np.float32)
-            df_time_series = df_time_series.astype(np.float32)
+        # # convert to 32-bit (allows use of GPU)
+        # if self.is_gpu_available():
+        #     price_series = price_series.astype(np.float32)
+        #     df_time_series = df_time_series.astype(np.float32)
+
+        # workaround for GPU bug: always convert to 32-bit
+        price_series = price_series.astype(np.float32)
+        df_time_series = df_time_series.astype(np.float32)
 
         # scale the dataframe
         df_scaler = Scaler(RobustScaler())
@@ -594,7 +619,7 @@ class ClassifierDarts():
             self.loaded_from_file = True
             self.is_trained = True
             print(f'Model: {self.model_path}')
-            summary(self.model, input_size=(self.batch_size, self.seq_len, self.num_features))
+            # summary(self.model, input_size=(self.batch_size, self.seq_len, self.num_features))
         else:
             print("    model not found ({})...".format(path))
             # flag this as a new model. Note that this is a class global variable because we need to track this
