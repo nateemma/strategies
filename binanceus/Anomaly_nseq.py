@@ -132,13 +132,13 @@ class Anomaly_nseq(Anomaly):
     ###################################
 
     # Override the default training signals
-
+    
     def get_train_buy_signals(self, future_df: DataFrame):
         series = np.where(
             (
-                    (future_df['mfi'] < 30) & # loose guard
-                    (future_df['dwt_nseq_dn'] >= 6) &
-                    (future_df['future_nseq_up'] >= 4) &
+                    (future_df['mfi'] < 50) & # loose guard
+                    (future_df['dwt_nseq_dn'] >= 4) &
+                    # (future_df['future_nseq_up'] >= 4) &
 
                     (future_df['future_profit_max'] >= future_df['profit_threshold'])   # future profit exceeds threshold
             ), 1.0, 0.0)
@@ -149,8 +149,8 @@ class Anomaly_nseq(Anomaly):
 
         series = np.where(
             (
-                    (future_df['mfi'] > 70) & # loose guard
-                    (future_df['dwt_nseq_up'] >= 10) &
+                    (future_df['mfi'] > 50) & # loose guard
+                    (future_df['dwt_nseq_up'] >= 6) &
                     # (future_df['future_nseq_dn'] >= 4) &
 
                     (future_df['future_loss_min'] <= future_df['loss_threshold'])   # future loss exceeds threshold
