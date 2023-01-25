@@ -66,15 +66,15 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 os.environ['TF_DETERMINISTIC_OPS'] = '1'
 
-import tensorflow as tf
+# import tensorflow as tf
 
 seed = 42
 os.environ['PYTHONHASHSEED'] = str(seed)
 random.seed(seed)
-tf.random.set_seed(seed)
+# tf.random.set_seed(seed)
 np.random.seed(seed)
 
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
+# tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
 import keras
 from keras import layers
