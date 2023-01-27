@@ -1,3 +1,6 @@
+# This is a test strategy for figuring out how to use ray and anyscale for distributed training/testing
+# Need to do pip install of ray, anyscale and ray_lightning
+
 import operator
 
 import numpy as np
@@ -52,11 +55,11 @@ from tqdm.keras import TqdmCallback
 import random
 
 from NNPredict import NNPredict
-from NNPredictor_Multihead import NNPredictor_Multihead
+from NNPredictor_NHiTS import NNPredictor_NHiTS
 
 """
 ####################################################################################
-Predict_Multihead - uses a Multi-head Attention neural network to try and predict the future stock price
+Predict_NHiTS - uses an NHiTS neural network to try and predict the future stock price
       
       This works by creating a  model that we train on the historical data, then use that model to predict 
       future values
@@ -70,13 +73,14 @@ Predict_Multihead - uses a Multi-head Attention neural network to try and predic
         keras
         tensorflow
         tqdm
+        darts
 
 ####################################################################################
 """
 
 # this inherits from NNPredict and just replaces the model used for predictions
 
-class NNPredict_Multihead(NNPredict):
+class NNPredict_Ray(NNPredict):
     plot_config = {
         'main_plot': {
             'close': {'color': 'cornflowerblue'},
@@ -107,7 +111,7 @@ class NNPredict_Multihead(NNPredict):
     custom_trade_info = {}
 
     refit_model = False # set to True if you want to re-train the model. Usually better to just delete it and restart
-    training_only = True
+    training_only = False
 
 
     ###################################
@@ -144,7 +148,15 @@ class NNPredict_Multihead(NNPredict):
 
     ################################
 
+
+    ################################
+
     def get_classifier(self, pair, seq_len: int, num_features: int):
-        return NNPredictor_Multihead(pair, seq_len, num_features)
+
+        # use_gpu = False if (self.dp.runmode.value in ('hyperopt')) else True
+        use_gpu = True
+        predictor = NNPredictor_NHiTS(pair, seq_len, num_features, use_gpu=use_gpu)
+        predictor.set_lookahead(self.curr_lookahead)
+        return predictor
 
     ################################

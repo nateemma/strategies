@@ -1,4 +1,3 @@
-
 # Script to process hyperopt log and summarise results. Useful for multiple hyperopts in one file (e.g. from hyp_exchange.sh)
 
 
@@ -17,7 +16,7 @@ strat_summary = {}
 
 
 # routine to skip to requested pattern
-def skipto(pattern) -> bool:
+def skipto(pattern, anywhere=False) -> bool:
     global curr_line
     global infile
 
@@ -28,7 +27,11 @@ def skipto(pattern) -> bool:
     curr_line = infile.readline()
 
     while curr_line:
-        if pattern in curr_line:
+        if anywhere:
+            found = (pattern in curr_line) # pattern is anywhere in the string
+        else:
+            found = curr_line.lstrip().startswith(pattern) # string starts with pattern (ignoring whitespace)
+        if found:
             break
         curr_line = infile.readline()
 
@@ -39,12 +42,16 @@ def skipto(pattern) -> bool:
 
 # copies the input file and prints each line until pattern is found.
 # Note: prints current line but not the final line
-def copyto(pattern):
+def copyto(pattern, anywhere=False):
     global curr_line
     global infile
 
     while curr_line:
-        if pattern in curr_line:
+        if anywhere:
+            found = (pattern in curr_line) # pattern is anywhere in the string
+        else:
+            found = curr_line.lstrip().startswith(pattern) # string starts with pattern (ignoring whitespace)
+        if found:
             break
         print(curr_line.rstrip())
         curr_line = infile.readline()
@@ -58,23 +65,25 @@ def copyto(pattern):
 def rank_simple(vector):
     return sorted(range(len(vector)), key=vector.__getitem__)
 
+
 def rankdata(a):
     n = len(a)
-    ivec=rank_simple(a)
-    svec=[a[rank] for rank in ivec]
+    ivec = rank_simple(a)
+    svec = [a[rank] for rank in ivec]
     sumranks = 0
     dupcount = 0
-    newarray = [0]*n
+    newarray = [0] * n
     for i in xrange(n):
         sumranks += i
         dupcount += 1
-        if i==n-1 or svec[i] != svec[i+1]:
+        if i == n - 1 or svec[i] != svec[i + 1]:
             averank = sumranks / float(dupcount) + 1
-            for j in xrange(i-dupcount+1,i+1):
+            for j in xrange(i - dupcount + 1, i + 1):
                 newarray[ivec[j]] = averank
             sumranks = 0
             dupcount = 0
     return newarray
+
 
 def process_totals(strat, line):
     global strat_summary
@@ -85,7 +94,7 @@ def process_totals(strat, line):
     cols = line.strip().split("|")
 
     cols.pop(0)
-    cols.pop(len(cols)-1)
+    cols.pop(len(cols) - 1)
 
     entry = {}
     entry['entries'] = int(cols[1])
@@ -97,8 +106,8 @@ def process_totals(strat, line):
 
     return
 
-def print_results():
 
+def print_results():
     global strat_summary
     global strat_results
 
@@ -107,25 +116,28 @@ def print_results():
 
     # convert associative array into 'plain' array
     strat_stats = []
-    # calculate stats for each strategy
-    for strategy in strat_summary:
-        strat_stats.append([strategy,
-                            strat_summary[strategy]['entries'], strat_summary[strategy]['ave_profit'],
-                            strat_summary[strategy]['tot_profit'], strat_summary[strategy]['win_pct'],
-                           0.0])
+    if strat_summary:
+        # calculate stats for each strategy
+        for strategy in strat_summary:
+            strat_stats.append([strategy,
+                                strat_summary[strategy]['entries'], strat_summary[strategy]['ave_profit'],
+                                strat_summary[strategy]['tot_profit'], strat_summary[strategy]['win_pct'],
+                                0.0])
 
-    # create dataframe
-    df = pandas.DataFrame(strat_stats,
-                          columns=["Strategy", "Trades", "Ave Profit(%)", "Tot Profit(%)", "Win%", "Rank"])
+        # create dataframe
+        df = pandas.DataFrame(strat_stats,
+                              columns=["Strategy", "Trades", "Average \nProfit(%)",
+                                       "Total  \nProfit(%)", "Win%", "Rank"])
 
-    df["Rank"] = df["Win%"].rank(ascending=False, method='min')
+        df["Rank"] = df["Win%"].rank(ascending=False, method='min')
 
-    pandas.set_option('display.precision', 2)
-    print("")
-    hdrs = df.columns.values
-    print(tabulate(df.sort_values(by=['Rank'], ascending=True), showindex="never", headers=hdrs, tablefmt='psql'))
+        pandas.set_option('display.precision', 2)
+        print("")
+        hdrs = df.columns.values
+        print(tabulate(df.sort_values(by=['Rank'], ascending=True), showindex="never", headers=hdrs, tablefmt='psql'))
 
     return
+
 
 def main():
     global curr_line
@@ -141,21 +153,22 @@ def main():
     infile = open(file_name)
 
     # repeatedly scan file and find header of new run, then print results
-    while skipto("Result for strategy "):
+    while skipto("Result for strategy ", anywhere=True):
         strat = curr_line.rstrip().split(" ")[-1]
         print("")
         print("------------")
         print(strat)
         print("------------")
         print("")
-        copyto('TOTAL')
+        copyto('TOTAL', anywhere=True)
         process_totals(strat, curr_line.rstrip())
-        copyto('================== SUMMARY METRICS')
+        copyto('================== SUMMARY METRICS', anywhere=True)
         copyto('===============================')
         print(curr_line.rstrip())
         print("")
 
     print_results()
+
 
 if __name__ == '__main__':
     main()

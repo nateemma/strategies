@@ -54,8 +54,8 @@ class AnomalyDetector_Ensemble(ClassifierSklearn):
         c2 = GaussianMixture()
         c3 = LocalOutlierFactor(n_neighbors=30, novelty=True, contamination=self.contamination)
         c4 = OneClassSVM(gamma='scale', nu=self.contamination)
-        # estimators = [('c1', c1), ('c2', c2), ('c3', c3), ('c4', c4)]
-        estimators = [('c2', c2), ('c3', c3), ('c4', c4)]
+        estimators = [('c1', c1), ('c2', c2), ('c3', c3), ('c4', c4)]
+        # estimators = [('c2', c2), ('c3', c3), ('c4', c4)]
         classifier = StackingClassifier(estimators=estimators,
                                         final_estimator=LogisticRegression())
         return classifier

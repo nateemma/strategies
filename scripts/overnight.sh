@@ -19,7 +19,7 @@ if [[ "${strat_type}" == "pca" ]]; then
   list=("PCA_dwt" "PCA_fbb" "PCA_highlow" "PCA_jump" "PCA_macd" "PCA_mfi" "PCA_minmax" "PCA_nseq" "PCA_over" \
 "PCA_profit" "PCA_stochastic" "PCA_swing")
 elif  [[ "${strat_type}" == "anomaly" ]]; then
-  list=("Anomaly_dwt" "Anomaly_macd" "Anomaly_minmax" "Anomaly_profit" )
+  list=("Anomaly_dwt" "Anomaly_macd" "Anomaly_nseq" "Anomaly_profit" )
 elif  [[ "${strat_type}" == "nnbc" ]]; then
   list=("NNBC_fbb" "NNBC_jump" "NNBC_minmax" "NNBC_nseq" "NNBC_profit" "NNBC_swing")
 elif  [[ "${strat_type}" == "nnpredict" ]]; then
@@ -35,20 +35,26 @@ echo "Strategy list: ${list}"
 echo "Output log:    ${logfile}"
 
 today=$(date)
-echo "${today} overnight.sh" >"$logfile"
+echo "" >$logfile
+echo "============================" >>$logfile
+echo "${today} overnight.sh" >>$logfile
+echo "============================" >>$logfile
+echo "" >>$logfile
 
 for strat in $list; do
-  echo "" >>"$logfile"
-  echo "-------------------" >>"$logfile"
-  echo "${strat}" >>"$logfile"
-  echo "-------------------" >>"$logfile"
-  echo "" >>"$logfile"
-  zsh user_data/strategies/scripts/test_strat.sh -n 750 binanceus ${strat} >>"$logfile"
+  echo "" >>$logfile
+  echo "-------------------" >>$logfile
+  echo "${strat}" >>$logfile
+  echo "-------------------" >>$logfile
+  echo "" >>$logfile
+#  zsh user_data/strategies/scripts/test_strat.sh -n 750 binanceus ${strat} >>$logfile
+  zsh user_data/strategies/scripts/hyp_strat.sh -n 90 -e 100 -s sell -l CalmarHyperOptLoss binanceus ${strat} >>$logfile
 done
+echo "============================" >>$logfile
 
 python user_data/strategies/scripts/SummariseTestResults.py $logfile
 
-cat "$logfile"
+#cat $logfile
 
 echo ""
 echo "Output log:${logfile}"

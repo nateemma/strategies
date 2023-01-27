@@ -1,4 +1,4 @@
-# base class that implements an Anomaly detector using Darts models
+# base class that implements a classifier using PyTorch models
 # You should not really use this directly, use one of the specific subclasses instead, depending on the type
 # of model (linear, binary, encoder etc.)
 
@@ -7,33 +7,26 @@
 
 # For a list of viable algorithms, see: https://unit8co.github.io/darts/README.html (Forecasting Models section)
 
-# darts uses pytorch for Neural Network-based algorithms, which is why you see a lot of pytorch code here
-# Also, pytorch works very differently from keras. I have maintained the same interfaces across sklearn, keras and darts
-# which is why I have to update some parameters via a call interface rather than adding a parameter
+# pytorch works very differently from keras. I have maintained the same interfaces across sklearn, keras, darts and
+# pytorch, which is why I have to update some parameters via a call interface rather than adding a parameter
 
 # specific model subclasses (linear etc) should override create_model
 
-# run: "pip install darts" to get the darts library
+# To install, run:
+#     conda install pytorch torchvision -c pytorch
+import multiprocessing
 
 import torch
-
-import darts
 import pytorch_lightning
 
 from pytorch_lightning import Trainer
 import numpy as np
-import numpy
-from darts.dataprocessing.transformers import Scaler
-from darts.metrics import mase
-from darts.models import NBEATSModel, TFTModel
 from pandas import DataFrame, Series
 import pandas as pd
 
 from pytorch_lightning.callbacks import EarlyStopping
 from sklearn.preprocessing import RobustScaler
 from torchmetrics import MeanAbsolutePercentageError
-
-# from torchinfo import summary
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -53,14 +46,12 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 logging.getLogger("lightning").setLevel(logging.WARN)
 logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
-
 warnings.filterwarnings("ignore", category=PossibleUserWarning)
 warnings.filterwarnings("ignore", ".*MPS available but not used.*")
 
 import random
 
 import os
-import multiprocess
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 os.environ['TF_DETERMINISTIC_OPS'] = '1'
@@ -78,7 +69,7 @@ from DataframeUtils import DataframeUtils
 
 # ---------------------------
 
-class ClassifierDarts():
+class ClassifierPyTorch():
     num_features = 64
     seq_len = 12
     lookahead = 12
@@ -90,7 +81,7 @@ class ClassifierDarts():
     name = ""
     model_path = ""
     model_ext = ".pt"
-    checkpoint_path = "/tmp/model" + model_ext
+    checkpoint_path = "/tmp/model" + model_ext # will be overwritten later
 
     loaded_from_file = False
     contamination = 0.01  # ratio of signals to samples. Used in several algorithms, so saved
@@ -105,9 +96,8 @@ class ClassifierDarts():
     single_prediction = True  # True if algorithm only produces 1 prediction (not entire data array)
 
     trainer = None
-    trainer_args = {}
-    # num_cpus = 1
-    use_gpu = True  # Note: not all classifiers can use the GPU, and some are slower when they do
+    num_cpus = 1
+    use_gpu = True # Note: not all classifiers can use the GPU, and some are slower when they do
 
     train_cols = []  # used for debug
 
@@ -146,14 +136,11 @@ class ClassifierDarts():
         if self.dataframeUtils is None:
             self.dataframeUtils = DataframeUtils()
 
-        # # the following should turn on hardware acceleration, if suported
-        # torch.device("mps")
-        # self.trainer = Trainer(accelerator='mps', devices=1)
-
-        # self.num_cpus = multiprocessing.cpu_count()
+        # the following should turn on hardware acceleration, if suported
+        torch.device("mps")
+        self.num_cpus = multiprocessing.cpu_count()
 
         # set pytorch Trainer args. Ref: https://pytorch-lightning.readthedocs.io/en/stable/common/trainer.html
-        # Annoyingly, trainer args need to be specified in the constructor
 
         # Early stop callback
         early_callback = EarlyStopping(
@@ -162,20 +149,11 @@ class ClassifierDarts():
             min_delta=0.001,
             mode='min',
         )
-        self.trainer_args["callbacks"] = [early_callback]
-        # self.trainer_args["deterministic"] = True
-        self.trainer_args["auto_lr_find"] = True
-        self.trainer_args["benchmark"] = True
-        self.trainer_args["enable_model_summary"] = True
-        self.trainer_args["auto_scale_batch_size"] = True
-        self.trainer_args["devices"] = "auto"
 
-        accelerator = "auto" if self.is_gpu_available() else "cpu"
-        self.trainer_args["accelerator"] = accelerator
+        accel = 'auto' if self.is_gpu_available() else 'cpu'
 
-        # set up the equivalent Trainer object for later use
         self.trainer = Trainer(
-            accelerator=accelerator,
+            accelerator=accel,
             devices="auto",
             callbacks=[early_callback],
             auto_lr_find=True,
@@ -183,7 +161,7 @@ class ClassifierDarts():
             auto_scale_batch_size=True
         )
 
-        # print(f"    CPUs:{self.num_cpus} GPU:{self.is_gpu_available()}")
+        print(f"    CPUs:{self.num_cpus} GPU:{self.is_gpu_available()}")
 
     # ---------------------------
 
@@ -217,7 +195,7 @@ class ClassifierDarts():
 
         print("    WARN: subclass must override create_model(). Using NBeats prediction model as reference")
 
-        # use NBeats because it is used as an example in Darts documentation
+        # use NBeats because it is used as an example
         model = NBEATSModel(input_chunk_length=seq_len, output_chunk_length=self.lookahead)
 
         return model
@@ -225,7 +203,7 @@ class ClassifierDarts():
     # ---------------------------
 
     # update training using the supplied (NON-normalised) dataframe. Training is cumulative
-    # Note: darts does not work well with pre-normlaised dataframes, so we need the raw data
+    # Note: pytorch does not work well with pre-normalised dataframes, so we need the raw data
     def train(self, df_train, df_test, train_results, test_results, force_train=False):
 
         self.train_cols = df_train.columns.values  # save for later debug
@@ -261,6 +239,8 @@ class ClassifierDarts():
         else:
             # df_train = df_train.copy()
             results = train_results
+
+        # convert various arrays to format expected by PyTorch
 
         # convert time formats
         df_train['date'] = pd.to_datetime(df_train.date).dt.tz_localize(None)
@@ -299,13 +279,8 @@ class ClassifierDarts():
         train_target_series = train_price_scaler.transform(train_price_series)
         test_target_series = train_price_scaler.transform(test_price_series)
 
-        ##scaling sometimes produces NaNs
-        # darts.utils.missing_values.fill_mising_values(train_covariate_series)
-        # darts.utils.missing_values.fill_mising_values(test_covariate_series)
-        # darts.utils.missing_values.fill_mising_values(train_target_series)
-        # darts.utils.missing_values.fill_mising_values(test_target_series)
-
         # check for nans
+
 
         # print (f'covariate_series:{covariate_series}')
         # print (f'price_series:{price_series}')
@@ -326,7 +301,6 @@ class ClassifierDarts():
                                     val_past_covariates=test_covariate_series,
                                     epochs=epochs,
                                     # num_loader_workers=self.num_cpus,
-                                    trainer=self.trainer,
                                     verbose=True)
 
         # only save if this is the first time training
@@ -379,7 +353,7 @@ class ClassifierDarts():
         df_scaler = Scaler(RobustScaler())
         covariate_series = df_scaler.fit_transform(df_time_series)
 
-        time_est = dataframe.shape[0] / 600.0  # ~10 it/sec
+        time_est = dataframe.shape[0] / 600.0 # ~10 it/sec
         print(f"    backtesting {dataframe.shape[0]} samples. Estimated time:{time_est:.2f} (mins)")
         # run backtesting
         # with torch.no_grad():
@@ -389,7 +363,6 @@ class ClassifierDarts():
                                                     forecast_horizon=self.lookahead,
                                                     last_points_only=True,
                                                     retrain=False,
-                                                    # trainer=self.trainer,
                                                     verbose=False)
 
         # reverse scaling
@@ -438,6 +411,7 @@ class ClassifierDarts():
         df = dataframe.copy()
         df['date'] = pd.to_datetime(df.date).dt.tz_localize(None)
 
+
         # convert closing price column to time series & scale
         price_series = darts.TimeSeries.from_dataframe(df, time_col='date', value_cols='close')
         price_scaler = Scaler(RobustScaler())
@@ -468,7 +442,6 @@ class ClassifierDarts():
                                        series=price_series,
                                        past_covariates=covariate_series,
                                        batch_size=self.batch_size,
-                                       trainer=self.trainer,
                                        # num_loader_workers=self.num_cpus,
                                        verbose=False)
 
@@ -594,6 +567,7 @@ class ClassifierDarts():
         return
 
     # ---------------------------
+
 
     def load(self, path=""):
 

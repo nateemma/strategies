@@ -101,3 +101,15 @@ class Attention(Layer):
     def compute_output_shape(self, input_shape):
         #return input_shape[0], input_shape[-1]
         return input_shape[0],  self.features_dim
+
+    def get_config(self):  # Needed for saving and loading model with custom layer
+        config = super().get_config().copy()
+        config.update({
+            'W_regularizer': self.W_regularizer,
+            'b_regularizer': self.b_regularizer,
+            'W_constraint': self.W_constraint,
+            'b_constraint': self.b_constraint,
+            'bias': self.bias,
+            'step_dim': self.step_dim
+        })
+        return config

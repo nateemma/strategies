@@ -132,7 +132,7 @@ class Anomaly_nseq(Anomaly):
     ###################################
 
     # Override the default training signals
-    
+
     def get_train_buy_signals(self, future_df: DataFrame):
         series = np.where(
             (

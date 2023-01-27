@@ -52,11 +52,12 @@ from tqdm.keras import TqdmCallback
 import random
 
 from NNPredict import NNPredict
-from NNPredictor_Multihead import NNPredictor_Multihead
+# from NNPredictor_Ray import NNPredictor_Ray
+from NNPredictor_NLinear import NNPredictor_NLinear
 
 """
 ####################################################################################
-Predict_Multihead - uses a Multi-head Attention neural network to try and predict the future stock price
+Predict_NLinear - uses an NLinear neural network to try and predict the future stock price
       
       This works by creating a  model that we train on the historical data, then use that model to predict 
       future values
@@ -76,7 +77,7 @@ Predict_Multihead - uses a Multi-head Attention neural network to try and predic
 
 # this inherits from NNPredict and just replaces the model used for predictions
 
-class NNPredict_Multihead(NNPredict):
+class NNPredict_NLinear(NNPredict):
     plot_config = {
         'main_plot': {
             'close': {'color': 'cornflowerblue'},
@@ -107,7 +108,7 @@ class NNPredict_Multihead(NNPredict):
     custom_trade_info = {}
 
     refit_model = False # set to True if you want to re-train the model. Usually better to just delete it and restart
-    training_only = True
+    training_only = False
 
 
     ###################################
@@ -144,7 +145,13 @@ class NNPredict_Multihead(NNPredict):
 
     ################################
 
+
+    ################################
+
     def get_classifier(self, pair, seq_len: int, num_features: int):
-        return NNPredictor_Multihead(pair, seq_len, num_features)
+        # predictor = NNPredictor_Ray(pair, seq_len, num_features)
+        predictor = NNPredictor_NLinear(pair, seq_len, num_features)
+        predictor.set_lookahead(self.curr_lookahead)
+        return predictor
 
     ################################
