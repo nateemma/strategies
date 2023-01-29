@@ -80,7 +80,7 @@ Predict_TFT - uses an TFT neural network to try and predict the future stock pri
 class NNPredict_TFT(NNPredict):
     plot_config = {
         'main_plot': {
-            'close': {'color': 'cornflowerblue'},
+            'mid': {'color': 'cornflowerblue'},
             # 'smooth': {'color': 'teal'},
             'predict': {'color': 'lightpink'},
         },
@@ -96,7 +96,7 @@ class NNPredict_TFT(NNPredict):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     # lookahead_hours = 1.0
-    lookahead_hours = 1.0
+    lookahead_hours = 0.4
     n_profit_stddevs = 0.0
     n_loss_stddevs = 0.0
     min_f1_score = 0.70
@@ -109,6 +109,7 @@ class NNPredict_TFT(NNPredict):
 
     refit_model = False # set to True if you want to re-train the model. Usually better to just delete it and restart
     training_only = True
+    model_per_pair = False
 
 
     ###################################
@@ -149,8 +150,10 @@ class NNPredict_TFT(NNPredict):
     ################################
 
     def get_classifier(self, pair, seq_len: int, num_features: int):
-        predictor = NNPredictor_TFT(pair, seq_len, num_features)
+        use_gpu = False # gpu issues with this model
+        predictor = NNPredictor_TFT(pair, seq_len, num_features, use_gpu=use_gpu)
         predictor.set_lookahead(self.curr_lookahead)
+        predictor.set_target_column(self.target_column)
         return predictor
 
     ################################

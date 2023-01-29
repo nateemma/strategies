@@ -80,7 +80,7 @@ Predict_NLinear - uses an NLinear neural network to try and predict the future s
 class NNPredict_NLinear(NNPredict):
     plot_config = {
         'main_plot': {
-            'close': {'color': 'cornflowerblue'},
+            'mid': {'color': 'cornflowerblue'},
             # 'smooth': {'color': 'teal'},
             'predict': {'color': 'lightpink'},
         },

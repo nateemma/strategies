@@ -79,7 +79,7 @@ Predict_Attention - uses an Attention neural network to try and predict the futu
 class NNPredict_Attention(NNPredict):
     plot_config = {
         'main_plot': {
-            'close': {'color': 'cornflowerblue'},
+            'mid': {'color': 'cornflowerblue'},
             # 'smooth': {'color': 'teal'},
             'predict': {'color': 'lightpink'},
         },

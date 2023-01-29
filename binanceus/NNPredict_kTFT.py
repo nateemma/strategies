@@ -80,7 +80,7 @@ Predict_TFT - uses an TFT (keras) neural network to try and predict the future s
 class NNPredict_kTFT(NNPredict):
     plot_config = {
         'main_plot': {
-            'close': {'color': 'cornflowerblue'},
+            'mid': {'color': 'cornflowerblue'},
             # 'smooth': {'color': 'teal'},
             'predict': {'color': 'lightpink'},
         },

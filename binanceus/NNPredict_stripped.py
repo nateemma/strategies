@@ -85,7 +85,7 @@ class NNPredict_stripped(NNPredict):
 
     plot_config = {
         'main_plot': {
-            'close': {'color': 'cornflowerblue'},
+            'mid': {'color': 'cornflowerblue'},
             # 'smooth': {'color': 'teal'},
             'predict': {'color': 'lightpink'},
         },

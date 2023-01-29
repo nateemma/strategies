@@ -58,6 +58,6 @@ class NNPredictor_NBeats(ClassifierDarts):
         return model
 
     # class-specific load
-    def load_from_file(self, model_path):
+    def load_from_file(self, model_path, use_gpu=True):
         return NBEATSModel.load(model_path)
 

@@ -80,7 +80,7 @@ Predict_NHiTS - uses an NHiTS neural network to try and predict the future stock
 class NNPredict_NHiTS(NNPredict):
     plot_config = {
         'main_plot': {
-            'close': {'color': 'cornflowerblue'},
+            'mid': {'color': 'cornflowerblue'},
             # 'smooth': {'color': 'teal'},
             'predict': {'color': 'lightpink'},
         },
@@ -117,7 +117,10 @@ class NNPredict_NHiTS(NNPredict):
 
     ## Hyperopt Variables
 
-    # LSTM hyperparams
+
+    # threshold values (in %)
+    entry_threshold = DecimalParameter(-3.0, -0.1, default=-1.0,  decimals=1, space='buy', load=True, optimize=True)
+    exit_threshold = DecimalParameter(0.1, 3.0, default=1.0, decimals=1, space='sell', load=True, optimize=True)
 
     # Custom Sell Profit (formerly Dynamic ROI)
     cexit_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,

@@ -84,7 +84,7 @@ NNPredict - uses a Long-Short Term Memory neural network to try and predict the 
 class NNPredict(IStrategy):
     plot_config = {
         'main_plot': {
-            'close': {'color': 'cornflowerblue'},
+            'mid': {'color': 'cornflowerblue'},
             # 'temp': {'color': 'teal'},
             'predict': {'color': 'lightpink'},
         },
@@ -154,7 +154,7 @@ class NNPredict(IStrategy):
 
     # the following affect training of the model. Bigger numbers give better model, but take longer and use more memory
     seq_len = 12  # 'depth' of training sequence
-    num_epochs = 128  # number of iterations for training
+    num_epochs = 128  # max number of iterations for training
     batch_size = 1024  # batch size for training
     predict_batch_size = 512
 
@@ -166,8 +166,8 @@ class NNPredict(IStrategy):
     refit_model = False  # set to True if you want to re-train the model. Usually better to just delete it and restart
     scaler_type = ScalerType.Robust  # scaler type used for normalisation
     # scaler_type = ScalerType.Standard  # scaler type used for normalisation
-    model_per_pair = True  # set to True to create pair-specific models (better but only works for pairs in whitelist)
-    training_only = False  # set to True to just generate models, no backtesting or prediction
+    model_per_pair = False  # set to True to create pair-specific models (better but only works for pairs in whitelist)
+    training_only = True  # set to True to just generate models, no backtesting or prediction
 
     # target_column = 'close'  # which column should be used for training and prediction
     target_column = 'mid'
@@ -228,15 +228,15 @@ class NNPredict(IStrategy):
     cstop_max_stoploss = DecimalParameter(-0.30, -0.01, default=-0.10, space='sell', load=True, optimize=True)
 
     ################################
-    # class to create custom Keras layer that decompresses and denormalises predictions from the model
-    class RestorePredictions(tf.keras.layers.Layer):
-        def call(self, preds):
-            inputs = keras.Input(preds)
-            x = layers.Dense(1)(inputs)  # output shape should be the same as the original input shape
-            x = self.compressor.inverse_transform(x)
-            x = self.dataframeUtils.get_scaler().inverse_transform(x)
-            restored = keras.Model(inputs, x)
-            return restored
+    # # class to create custom Keras layer that decompresses and denormalises predictions from the model
+    # class RestorePredictions(tf.keras.layers.Layer):
+    #     def call(self, preds):
+    #         inputs = keras.Input(preds)
+    #         x = layers.Dense(1)(inputs)  # output shape should be the same as the original input shape
+    #         x = self.compressor.inverse_transform(x)
+    #         x = self.dataframeUtils.get_scaler().inverse_transform(x)
+    #         restored = keras.Model(inputs, x)
+    #         return restored
 
     ################################
 
@@ -341,12 +341,12 @@ class NNPredict(IStrategy):
             if self.dbg_verbose:
                 print("    running predictions...")
 
-            dataframe = self.add_predictions(dataframe, self.curr_pair)
+        dataframe = self.add_predictions(dataframe, self.curr_pair)
 
-            # Custom Stoploss
-            if self.dbg_verbose:
-                print("    updating stoploss data...")
-            dataframe = self.add_stoploss_indicators(dataframe, self.curr_pair)
+        # Custom Stoploss
+        if self.dbg_verbose:
+            print("    updating stoploss data...")
+        dataframe = self.add_stoploss_indicators(dataframe, self.curr_pair)
 
         return dataframe
 
@@ -533,7 +533,7 @@ class NNPredict(IStrategy):
     # backtest the data and update the dataframe
     def backtest_data(self, dataframe: DataFrame) -> DataFrame:
 
-        # get the current classifier
+        # get the current classifier and relevant flags
         classifier = self.classifier_list[self.curr_pair]
         use_dataframes = classifier.needs_dataframes()
         prescale_data = classifier.prescale_data()

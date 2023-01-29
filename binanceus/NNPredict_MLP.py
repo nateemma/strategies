@@ -79,7 +79,7 @@ Predict_MLP - uses an MLP neural network to try and predict the future stock pri
 class NNPredict_MLP(NNPredict):
     plot_config = {
         'main_plot': {
-            'close': {'color': 'cornflowerblue'},
+            'mid': {'color': 'cornflowerblue'},
             'dwt': {'color': 'teal'},
             'predict': {'color': 'lightpink'},
         },
@@ -106,7 +106,8 @@ class NNPredict_MLP(NNPredict):
     curr_pair = ""
     custom_trade_info = {}
 
-    refit_model = True
+    refit_model = False
+    training_only = False
 
     ###################################
 

@@ -57,5 +57,5 @@ class NNPredictor_TFT(ClassifierDarts):
         return model
 
     # class-specific load
-    def load_from_file(self, model_path):
+    def load_from_file(self, model_path, use_gpu=True):
         return TFTModel.load(model_path)

@@ -79,7 +79,7 @@ Predict_Transformer - uses an Attention neural network to try and predict the fu
 class NNPredict_Transformer(NNPredict):
     plot_config = {
         'main_plot': {
-            'close': {'color': 'cornflowerblue'},
+            'mid': {'color': 'cornflowerblue'},
             # 'smooth': {'color': 'teal'},
             'predict': {'color': 'lightpink'},
         },
@@ -107,7 +107,7 @@ class NNPredict_Transformer(NNPredict):
     custom_trade_info = {}
 
     refit_model = False # set to True if you want to re-train the model. Usually better to just delete it and restart
-    training_only = False
+    training_only = True
 
     ###################################
 

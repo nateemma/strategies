@@ -79,7 +79,7 @@ Predict_NBeats - uses an NBeats neural network to try and predict the future sto
 class NNPredict_NBeats(NNPredict):
     plot_config = {
         'main_plot': {
-            'close': {'color': 'cornflowerblue'},
+            'mid': {'color': 'cornflowerblue'},
             # 'smooth': {'color': 'teal'},
             'predict': {'color': 'lightpink'},
         },

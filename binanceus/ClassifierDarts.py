@@ -14,6 +14,7 @@
 # specific model subclasses (linear etc) should override create_model
 
 # run: "pip install darts" to get the darts library
+import multiprocessing
 
 import torch
 
@@ -29,8 +30,8 @@ from darts.models import NBEATSModel, TFTModel
 from pandas import DataFrame, Series
 import pandas as pd
 
-from pytorch_lightning.callbacks import EarlyStopping
-from sklearn.preprocessing import RobustScaler
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from sklearn.preprocessing import RobustScaler, MinMaxScaler
 from torchmetrics import MeanAbsolutePercentageError
 
 # from torchinfo import summary
@@ -80,29 +81,30 @@ from DataframeUtils import DataframeUtils
 
 class ClassifierDarts():
     num_features = 64
-    seq_len = 12
+    lookback = 12
     lookahead = 12
     batch_size = 1024
 
     model = None
     is_trained = False
     category = ""
-    name = ""
+    model_name = ""
     model_path = ""
     model_ext = ".pt"
     checkpoint_path = "/tmp/model" + model_ext
+    target_column = 'close'
 
     loaded_from_file = False
     contamination = 0.01  # ratio of signals to samples. Used in several algorithms, so saved
 
     clean_data_required = False  # train with positive rows removed
     model_per_pair = False  # set to False to combine across all pairs
-    new_model = False  # True if a new model was created this run
+    new_model = False  # May not wrok for darts-based strats, so leave at False
 
     dataframeUtils = None
     requires_dataframes = True  # set to True if classifier takes dataframes rather than tensors
     prescale_dataframe = False  # set to True if algorithms need dataframes to be pre-scaled
-    single_prediction = True  # True if algorithm only produces 1 prediction (not entire data array)
+    single_prediction = False  # True if algorithm only produces 1 prediction (not entire data array)
 
     trainer = None
     trainer_args = {}
@@ -115,17 +117,19 @@ class ClassifierDarts():
 
     # Note: pair is needed because we cannot combine model across pairs because of huge price differences
 
-    def __init__(self, pair, seq_len, num_features, tag="", use_gpu=True):
+    def __init__(self, pair, lookback, num_features, tag="", use_gpu=True):
         super().__init__()
 
         # set seeds so that runs are reproducable
         self.set_all_seeds()
 
         self.loaded_from_file = False
-        self.seq_len = seq_len
+        self.lookback = lookback
         self.num_features = num_features
 
         self.use_gpu = use_gpu
+        self.num_cpus = multiprocessing.cpu_count()
+        print(f"    CPUs:{self.num_cpus} GPU:{self.is_gpu_available()}")
 
         if self.model_per_pair:
             pair_suffix = "_" + pair.split("/")[0]
@@ -138,10 +142,10 @@ class ClassifierDarts():
             tag_suffix = "_" + tag
 
         self.category = self.__class__.__name__
-        self.name = self.category + pair_suffix + tag_suffix
+        self.model_name = self.category + pair_suffix + tag_suffix
 
-        # self.model_path = self.get_model_path()
-        self.set_model_name(self.category, self.name)
+        # set model name via function, so that programs have an option to override this (e.g. add program name)
+        self.set_model_name(self.category, self.model_name)
 
         if self.dataframeUtils is None:
             self.dataframeUtils = DataframeUtils()
@@ -149,8 +153,6 @@ class ClassifierDarts():
         # # the following should turn on hardware acceleration, if suported
         # torch.device("mps")
         # self.trainer = Trainer(accelerator='mps', devices=1)
-
-        # self.num_cpus = multiprocessing.cpu_count()
 
         # set pytorch Trainer args. Ref: https://pytorch-lightning.readthedocs.io/en/stable/common/trainer.html
         # Annoyingly, trainer args need to be specified in the constructor
@@ -162,28 +164,39 @@ class ClassifierDarts():
             min_delta=0.001,
             mode='min',
         )
-        self.trainer_args["callbacks"] = [early_callback]
+
+        checkpoint_callback = ModelCheckpoint(
+            dirpath=self.get_checkpoint_dir(),
+            filename="best-checkpoint",
+            save_top_k=1,
+            verbose=True,
+            monitor="val_loss",
+            mode="min")
+
+        self.trainer_args["callbacks"] = [early_callback, checkpoint_callback]
         # self.trainer_args["deterministic"] = True
         self.trainer_args["auto_lr_find"] = True
         self.trainer_args["benchmark"] = True
         self.trainer_args["enable_model_summary"] = True
         self.trainer_args["auto_scale_batch_size"] = True
-        self.trainer_args["devices"] = "auto"
+        self.trainer_args["enable_checkpointing"] = True
+        self.trainer_args["enable_progress_bar"] = True
+        self.trainer_args["min_epochs"] = 6
 
-        accelerator = "auto" if self.is_gpu_available() else "cpu"
+        accelerator = "mps" if self.is_gpu_available() else "cpu"
         self.trainer_args["accelerator"] = accelerator
 
-        # set up the equivalent Trainer object for later use
-        self.trainer = Trainer(
-            accelerator=accelerator,
-            devices="auto",
-            callbacks=[early_callback],
-            auto_lr_find=True,
-            benchmark=True,
-            auto_scale_batch_size=True
-        )
+        devices = 1 if self.is_gpu_available() else "auto"
+        self.trainer_args["devices"] = devices
+        # self.trainer_args["devices"] = "auto"
 
-        # print(f"    CPUs:{self.num_cpus} GPU:{self.is_gpu_available()}")
+        if self.is_gpu_available():
+            self.trainer_args['precision'] = 32
+
+        print(f'    self.trainer_args: {self.trainer_args}')
+
+        # set up the equivalent Trainer object for later use
+        self.trainer = Trainer(**self.trainer_args)
 
     # ---------------------------
 
@@ -198,7 +211,7 @@ class ClassifierDarts():
         # update tracking vars (need to override defaults)
         self.category = category
         self.model_path = file_path
-        self.name = model_name
+        self.model_name = model_name
         # print(f"    Set model path:{self.model_path}")
 
         return self.model_path
@@ -207,18 +220,24 @@ class ClassifierDarts():
 
     def set_lookahead(self, lookahead):
         self.lookahead = lookahead
+        self.lookback = int(max(self.lookback, 4 * self.lookahead))
+
+    # ---------------------------
+
+    def set_target_column(self, target_column):
+        self.target_column = target_column
 
     # ---------------------------
 
     # create model - subclasses should overide this
-    def create_model(self, seq_len, num_features):
+    def create_model(self, lookback, num_features):
 
         model = None
 
         print("    WARN: subclass must override create_model(). Using NBeats prediction model as reference")
 
         # use NBeats because it is used as an example in Darts documentation
-        model = NBEATSModel(input_chunk_length=seq_len, output_chunk_length=self.lookahead)
+        model = NBEATSModel(input_chunk_length=lookback, output_chunk_length=self.lookahead)
 
         return model
 
@@ -241,26 +260,27 @@ class ClassifierDarts():
 
         # no model? Create it from scratch
         if self.model is None:
-            self.model = self.create_model(self.seq_len, self.num_features)
+            self.model = self.create_model(self.lookback, self.num_features)
             if self.model is None:
+                print("")
                 print("    ERR: model not created")
+                print("")
                 return
 
         if self.dataframeUtils.is_tensor(df_train):
             # we have been passed a pandas array,should be a dataframe
+            print("")
             print("    ERR: require DataFrame, not Pandas array")
+            print("")
             return
 
-        if self.clean_data_required:
-            # only use entries that do not have buy/sell signal
-            df1 = df_train.copy()
-            df1['%labels'] = train_results
-            df1 = df1[(df1['%labels'] < 0.1)]
-            results = df1['%labels']
-            df_train = df1.drop('%labels', axis=1)
-        else:
-            # df_train = df_train.copy()
-            results = train_results
+        # check lengths
+        if (np.shape(df_train)[0] != np.shape(train_results)[0]) or (np.shape(df_test)[0] != np.shape(test_results)[0]):
+            print("")
+            print("     WARN: lengths do not match")
+            print(f'    df_train:{np.shape(df_train)} train_results:{np.shape(train_results)}')
+            print(f'    df_test:{np.shape(df_test)} test_results:{np.shape(test_results)}')
+            print("")
 
         # convert time formats
         df_train['date'] = pd.to_datetime(df_train.date).dt.tz_localize(None)
@@ -272,12 +292,14 @@ class ClassifierDarts():
 
         # convert results. Put into dataframe format first, because we need to match the date index
         df2 = df_train.copy()
-        df2['close'] = train_results
-        train_price_series = darts.TimeSeries.from_dataframe(df2, time_col='date', value_cols='close', fillna_value=0)
+        df2[self.target_column] = train_results
+        train_price_series = darts.TimeSeries.from_dataframe(df2, time_col='date', value_cols=self.target_column,
+                                                             fillna_value=0)
 
         df3 = df_test.copy()
-        df3['close'] = test_results
-        test_price_series = darts.TimeSeries.from_dataframe(df3, time_col='date', value_cols='close', fillna_value=0)
+        df3[self.target_column] = test_results
+        test_price_series = darts.TimeSeries.from_dataframe(df3, time_col='date', value_cols=self.target_column,
+                                                            fillna_value=0)
 
         # convert to 32-bit (allows use of GPU)
         if self.is_gpu_available():
@@ -288,13 +310,13 @@ class ClassifierDarts():
             test_price_series = test_price_series.astype(np.float32)
 
         # scale the dataframes
-        df_scaler = Scaler(RobustScaler())
+        df_scaler = Scaler(MinMaxScaler())
         df_scaler = df_scaler.fit(train_time_series)
         train_covariate_series = df_scaler.transform(train_time_series)
         test_covariate_series = df_scaler.transform(test_time_series)
 
-        # price_series = df_train_norm['close']
-        train_price_scaler = Scaler(RobustScaler())
+        # price_series = df_train_norm[self.target_column]
+        train_price_scaler = Scaler(MinMaxScaler())
         train_price_scaler = train_price_scaler.fit(train_price_series)
         train_target_series = train_price_scaler.transform(train_price_series)
         test_target_series = train_price_scaler.transform(test_price_series)
@@ -314,9 +336,6 @@ class ClassifierDarts():
         # epochs = 6  # debug
         epochs = 64
 
-        # A TorchMetric or val_loss can be used as the monitor
-        torch_metrics = MeanAbsolutePercentageError()
-
         # print(f'df_train: {np.shape(df_train)} train_results:{np.shape(train_results)}')
         # print(f'train_covariate_series: {train_covariate_series.n_samples} train_target_series:{train_target_series.n_samples}')
 
@@ -324,16 +343,17 @@ class ClassifierDarts():
                                     past_covariates=train_covariate_series,
                                     val_series=test_target_series,
                                     val_past_covariates=test_covariate_series,
-                                    epochs=epochs,
-                                    # num_loader_workers=self.num_cpus,
-                                    trainer=self.trainer,
-                                    verbose=True)
+                                    # epochs=epochs,
+                                    # num_loader_workers=2,
+                                    verbose=True
+                                    # trainer=self.trainer
+                                    )
 
         # only save if this is the first time training
         if not self.is_trained:
             self.save()
             print(f'Model: {self.model_path}')
-            # summary(self.model, input_size=(self.batch_size, self.seq_len, self.num_features))
+            # summary(self.model, input_size=(self.batch_size, self.lookback, self.num_features))
 
         self.is_trained = True
 
@@ -362,8 +382,8 @@ class ClassifierDarts():
         df['date'] = pd.to_datetime(df.date).dt.tz_localize(None)
 
         # convert closing price column to time series & scale
-        price_series = darts.TimeSeries.from_dataframe(df, time_col='date', value_cols='close')
-        price_scaler = Scaler(RobustScaler())
+        price_series = darts.TimeSeries.from_dataframe(df, time_col='date', value_cols=self.target_column)
+        price_scaler = Scaler(MinMaxScaler())
         price_scaler = price_scaler.fit(price_series)
         price_series = price_scaler.transform(price_series)
 
@@ -376,37 +396,42 @@ class ClassifierDarts():
             df_time_series = df_time_series.astype(np.float32)
 
         # scale the dataframe
-        df_scaler = Scaler(RobustScaler())
+        df_scaler = Scaler(MinMaxScaler())
         covariate_series = df_scaler.fit_transform(df_time_series)
 
-        time_est = dataframe.shape[0] / 600.0  # ~10 it/sec
+        # print(f'    dataframe:{np.shape(dataframe)}')
+        # print(f'    covariate_series:{covariate_series.n_samples}, {covariate_series.n_timesteps}, {covariate_series.n_components}')
+        # print(f'    price_series:{price_series.n_samples}, {price_series.n_timesteps}, {price_series.n_components}')
+
+        time_est = dataframe.shape[0] / (200.0 * 60.0)  # ~200 it/sec
         print(f"    backtesting {dataframe.shape[0]} samples. Estimated time:{time_est:.2f} (mins)")
         # run backtesting
-        # with torch.no_grad():
+
         with torch.inference_mode():
             preds = self.model.historical_forecasts(price_series,
                                                     past_covariates=covariate_series,
+                                                    # forecast_horizon=self.lookahead,
                                                     forecast_horizon=self.lookahead,
-                                                    last_points_only=True,
+                                                    stride=price_series.n_timesteps,
+                                                    # last_points_only=True,
                                                     retrain=False,
-                                                    # trainer=self.trainer,
-                                                    verbose=False)
+                                                    verbose=True)
 
         # reverse scaling
         preds2 = price_scaler.inverse_transform(preds)
 
         # get the underlying dataframe and column
         df = preds2.pd_dataframe()
-        scaled_preds = np.array(df['close'])
+        scaled_preds = np.array(df[self.target_column])
 
         # predictions = np.zeros(np.shape(dataframe)[0])
-        predictions = np.array(dataframe['close'])
+        predictions = np.array(dataframe[self.target_column])
 
         # predictions are usually shorter than the original data (need some values to feed the pipeline)
         start = len(predictions) - len(scaled_preds)
 
         # if start > 0:
-        #     predictions[0:start-1] = np.array(dataframe['close'].iloc[0:start-1]) # use original data to pre-populate and size
+        #     predictions[0:start-1] = np.array(dataframe[self.target_column].iloc[0:start-1]) # use original data to pre-populate and size
 
         # should this be placed at the start or the end?!
         predictions[start:] = np.array(scaled_preds)
@@ -439,8 +464,8 @@ class ClassifierDarts():
         df['date'] = pd.to_datetime(df.date).dt.tz_localize(None)
 
         # convert closing price column to time series & scale
-        price_series = darts.TimeSeries.from_dataframe(df, time_col='date', value_cols='close')
-        price_scaler = Scaler(RobustScaler())
+        price_series = darts.TimeSeries.from_dataframe(df, time_col='date', value_cols=self.target_column)
+        price_scaler = Scaler(MinMaxScaler())
         price_scaler = price_scaler.fit(price_series)
         price_series = price_scaler.transform(price_series)
 
@@ -457,7 +482,7 @@ class ClassifierDarts():
         df_time_series = df_time_series.astype(np.float32)
 
         # scale the dataframe
-        df_scaler = Scaler(RobustScaler())
+        df_scaler = Scaler(MinMaxScaler())
         covariate_series = df_scaler.fit_transform(df_time_series)
 
         self.trainer = Trainer(accelerator='mps', devices=1)
@@ -468,14 +493,14 @@ class ClassifierDarts():
                                        series=price_series,
                                        past_covariates=covariate_series,
                                        batch_size=self.batch_size,
-                                       trainer=self.trainer,
+                                       # trainer=self.trainer,
                                        # num_loader_workers=self.num_cpus,
-                                       verbose=False)
+                                       verbose=True)
 
         # print (preds)
         # convert to dataframe so that we cann access the predictions
         # df = preds.pd_dataframe()
-        # scaled_preds = np.array(df['close'])
+        # scaled_preds = np.array(df[self.target_column])
         # preds_series = darts.TimeSeries.from_series(scaled_preds)
 
         # reverse scaling
@@ -483,7 +508,7 @@ class ClassifierDarts():
 
         # get the underlying dataframe and column
         df = preds2.pd_dataframe()
-        scaled_preds = np.array(df['close'])
+        scaled_preds = np.array(df[self.target_column])
 
         predictions = scaled_preds
 
@@ -543,7 +568,7 @@ class ClassifierDarts():
         save_dir = root_dir + self.category + '/'
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-        model_path = save_dir + self.name + self.model_ext
+        model_path = save_dir + self.model_name + self.model_ext
         return model_path
 
     # ---------------------------
@@ -554,15 +579,19 @@ class ClassifierDarts():
         save_dir = root_dir + self.category + '/'
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-        model_path = save_dir + self.name + '.coreml'
+        model_path = save_dir + self.model_name + '.coreml'
         return model_path
 
     # ---------------------------
 
-    def get_checkpoint_path(self):
-        checkpoint_dir = '/tmp' + "/" + self.name + "/"
+    def get_checkpoint_dir(self):
+        checkpoint_dir = '/tmp' + "/" + self.model_name + "/"
         if not os.path.exists(checkpoint_dir):
             os.makedirs(checkpoint_dir)
+        return checkpoint_dir
+
+    def get_checkpoint_path(self):
+        checkpoint_dir = self.get_checkpoint_dir()
         model_path = checkpoint_dir + "checkpoint" + self.model_ext
         return model_path
 
@@ -583,8 +612,8 @@ class ClassifierDarts():
 
         # save is built in to the model
         print("    saving to: ", self.model_path)
-        # joblib.dump(self.model, self.model_path)
         self.model.save(self.model_path)
+        # torch.save(self.model.state_dict(), self.model_path)
 
         return
 
@@ -607,11 +636,11 @@ class ClassifierDarts():
             # use joblib to reload model state
             print("    loading from: ", self.model_path)
             # self.model = joblib.load(self.model_path)
-            self.model = self.load_from_file(self.model_path)
+            self.model = self.load_from_file(self.model_path, use_gpu=self.is_gpu_available())
             self.loaded_from_file = True
             self.is_trained = True
             print(f'Model: {self.model_path}')
-            # summary(self.model, input_size=(self.batch_size, self.seq_len, self.num_features))
+            # summary(self.model, input_size=(self.batch_size, self.lookback, self.num_features))
         else:
             print("    model not found ({})...".format(path))
             # flag this as a new model. Note that this is a class global variable because we need to track this
@@ -622,9 +651,15 @@ class ClassifierDarts():
 
     # ---------------------------
 
-    # subclasses should override this, because data format is calss-specific in darts/pytorch
-    def load_from_file(self, model_path):
-        return darts.models.forecasting.torch_forecasting_model.PastCovariatesTorchModel.load(model_path)
+    # subclasses should override this, because data format is class-specific in darts/pytorch
+    def load_from_file(self, model_path, use_gpu=True):
+        if use_gpu:
+            model = darts.models.forecasting.torch_forecasting_model.PastCovariatesTorchModel.load_state_dict(
+                torch.load(model_path))
+        else:
+            model = darts.models.forecasting.torch_forecasting_model.PastCovariatesTorchModel.load_state_dict(
+                torch.load(model_path, map_location='cpu'))
+        return model
 
     # ---------------------------
 

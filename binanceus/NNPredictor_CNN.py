@@ -54,18 +54,17 @@ class NNPredictor_CNN(ClassifierKerasLinear):
         dropout = 0.1
         n_filters = (8, 8, 8)
 
-        inputs = keras.Input(shape=(seq_len, num_features,1))
+        inputs = keras.Input(shape=(seq_len, num_features))
         x = inputs
 
-        x=keras.layers.Conv2D(n_filters[0], kernel_size=(1, 1), activation="relu",
-                              data_format="channels_last",
-                              input_shape=(seq_len, num_features))(x)
-        x = keras.layers.Conv2D(n_filters[1], kernel_size=(num_features, 3), activation="relu")(x)
-        x = keras.layers.MaxPool2D(pool_size=(1, 2))(x)
-        x = keras.layers.Conv2D(n_filters[2], kernel_size=(1, 3), activation="relu")(x)
-        x = keras.layers.MaxPool2D(pool_size=(1, 2))(x)
+        x = keras.layers.Dense(64, input_shape=(seq_len, num_features))(x)
+        x = keras.layers.BatchNormalization()(x)
+
+        x = keras.layers.Conv1D(filters=64, kernel_size=2, activation='relu')(x)
+        x = keras.layers.MaxPooling1D(pool_size=2)(x)
         x = keras.layers.Flatten()(x)
         x = keras.layers.Dropout(dropout)(x)
+        x = keras.layers.BatchNormalization()(x)
 
         # intermediate layer to bring the dimensions
         x = keras.layers.Dense(16)(x)

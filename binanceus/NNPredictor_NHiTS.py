@@ -37,6 +37,7 @@ np.random.seed(seed)
 
 from ClassifierDarts import ClassifierDarts
 from darts.models import NHiTSModel
+import torch
 
 
 class NNPredictor_NHiTS(ClassifierDarts):
@@ -46,12 +47,12 @@ class NNPredictor_NHiTS(ClassifierDarts):
 
     # override the build_model function in subclasses
     def create_model(self, seq_len, num_features):
-
         print(f"    pl_trainer_kwargs={self.trainer_args}")
         model = NHiTSModel(input_chunk_length=seq_len,
                            output_chunk_length=self.lookahead,
                            batch_size=self.batch_size,
-                           pl_trainer_kwargs=self.trainer_args
+                           pl_trainer_kwargs=self.trainer_args,
+                           model_name=self.model_name
                            )
 
         return model
@@ -59,5 +60,5 @@ class NNPredictor_NHiTS(ClassifierDarts):
         return model
 
     # class-specific load
-    def load_from_file(self, model_path):
+    def load_from_file(self, model_path, use_gpu=True):
         return NHiTSModel.load(model_path)

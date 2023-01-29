@@ -33,6 +33,8 @@ if [[ $(prompt_user "Install general packages?: ") -eq 1 ]]; then
   for pkg in $pkg_general; do
     pip install $pkg
   done
+
+  conda install numba; pip uninstall numba
 fi
 echo ""
 

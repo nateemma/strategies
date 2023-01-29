@@ -80,7 +80,7 @@ Predict_CNN - uses an CNN neural network to try and predict the future stock pri
 class NNPredict_CNN(NNPredict):
     plot_config = {
         'main_plot': {
-            'close': {'color': 'cornflowerblue'},
+            'mid': {'color': 'cornflowerblue'},
             # 'smooth': {'color': 'teal'},
             'predict': {'color': 'lightpink'},
         },
