@@ -97,6 +97,9 @@ from NNBClassifier_Multihead import NNBClassifier_Multihead
 from NNBClassifier_Transformer import NNBClassifier_Transformer
 from NNBClassifier_RBM import NNBClassifier_RBM
 
+import Environment
+import profiler
+
 """
 ####################################################################################
 NNBC - Neural Net Binary Classifier
@@ -247,6 +250,7 @@ class NNBC(IStrategy):
     dbg_test_classifier = True  # test clasifiers after fitting
     dbg_verbose = True  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
+    dbg_trace_memory = True
 
     # variables to track state
     class State(Enum):
@@ -366,6 +370,10 @@ class NNBC(IStrategy):
             self.dataframeUtils = DataframeUtils()
 
         if self.dataframePopulator is None:
+            if self.dbg_trace_memory:
+                profiler.start(10)
+                profiler.snapshot()
+
             self.dataframePopulator = DataframePopulator()
 
             self.dataframePopulator.runmode = self.dp.runmode.value
@@ -380,6 +388,8 @@ class NNBC(IStrategy):
             print("***************************************")
             print("** Warning: startup can be very slow **")
             print("***************************************")
+
+            Environment.print_environment()
 
             print("    Lookahead: ", self.curr_lookahead, " candles (", self.lookahead_hours, " hours)")
 
@@ -425,6 +435,9 @@ class NNBC(IStrategy):
         if self.dbg_verbose:
             print("    updating stoploss data...")
         self.add_stoploss_indicators(dataframe, curr_pair)
+
+        if self.dbg_trace_memory:
+            profiler.snapshot()
 
         return dataframe
 
@@ -1032,6 +1045,12 @@ class NNBC(IStrategy):
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
         else:
             dataframe['entry'] = 0
+
+        if self.dbg_trace_memory:
+            profiler.snapshot()
+            profiler.display_stats()
+            profiler.compare()
+            profiler.print_trace()
 
         return dataframe
 

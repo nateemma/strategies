@@ -1,4 +1,5 @@
 import operator
+import tracemalloc
 
 import numpy as np
 from enum import Enum
@@ -59,6 +60,7 @@ from DataframeUtils import DataframeUtils, ScalerType
 from DataframePopulator import DataframePopulator
 from NNPredictor_LSTM import NNPredictor_LSTM
 import Environment
+import profiler
 
 """
 ####################################################################################
@@ -167,7 +169,7 @@ class NNPredict(IStrategy):
     scaler_type = ScalerType.Robust  # scaler type used for normalisation
     # scaler_type = ScalerType.Standard  # scaler type used for normalisation
     model_per_pair = False  # set to True to create pair-specific models (better but only works for pairs in whitelist)
-    training_only = True  # set to True to just generate models, no backtesting or prediction
+    training_only = False  # set to True to just generate models, no backtesting or prediction
 
     # target_column = 'close'  # which column should be used for training and prediction
     target_column = 'mid'
@@ -183,6 +185,7 @@ class NNPredict(IStrategy):
     dbg_test_classifier = False  # test clasifiers after fitting
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
     dbg_enable_tracing = False  # set to True in subclass to enable function tracing
+    dbg_trace_memory = True
 
     # variables to track state
     class State(Enum):
@@ -271,6 +274,11 @@ class NNPredict(IStrategy):
             self.dataframeUtils = DataframeUtils()
 
         if self.dataframePopulator is None:
+
+            if self.dbg_trace_memory:
+                profiler.start(10)
+                profiler.snapshot()
+
             self.dataframePopulator = DataframePopulator()
 
             self.dataframePopulator.runmode = self.dp.runmode.value
@@ -347,6 +355,9 @@ class NNPredict(IStrategy):
         if self.dbg_verbose:
             print("    updating stoploss data...")
         dataframe = self.add_stoploss_indicators(dataframe, self.curr_pair)
+
+        if self.dbg_trace_memory:
+            profiler.snapshot()
 
         return dataframe
 
@@ -989,6 +1000,12 @@ class NNPredict(IStrategy):
         # set first (startup) period to 0
         dataframe.loc[dataframe.index[:self.startup_candle_count], 'buy'] = 0
 
+        if self.dbg_trace_memory:
+            profiler.snapshot()
+            profiler.display_stats()
+            profiler.compare()
+            profiler.print_trace()
+
         return dataframe
 
     ###################################
@@ -1142,4 +1159,4 @@ class NNPredict(IStrategy):
         else:
             return None
 
-#######################
+    #######################
