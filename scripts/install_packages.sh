@@ -31,22 +31,23 @@ pkg_general=("finta" "prettytable" "PyWavelets" "simdkalman" "pykalman" "scipy" 
 if [[ $(prompt_user "Install general packages?: ") -eq 1 ]]; then
   echo ""
   for pkg in $pkg_general; do
-    pip install $pkg
+    pip3 install $pkg
   done
 
-  conda install numba; pip uninstall numba
+  conda install numba; pip3 uninstall numba
+  pip3 install numpy<1.24 # obviously check version if packages update
 fi
 echo ""
 
-# install packages for keres/tensorflow-based strategies
+# install packages for keres/tensorflow-based strategies (MacOS-specific)
 
 if [[ $(prompt_user "Install keras/rensorflow packages?: ") -eq 1 ]]; then
   echo ""
   conda install -c apple tensorflow-deps
-  pip install tensorflow-macos
-  pip install tensorflow-metal
+  pip3 install tensorflow-macos
+  pip3 install tensorflow-metal
   conda install -c conda-forge -y pandas jupyter
-  pip install keras
+  pip3 install keras
 fi
 echo ""
 
@@ -55,6 +56,6 @@ echo ""
 if [[ $(prompt_user "Install darts/pytorch packages?: ") -eq 1 ]]; then
   echo ""
   conda install pytorch torchvision -c pytorch
-  pip install darts
+  pip3 install darts
 fi
 echo ""

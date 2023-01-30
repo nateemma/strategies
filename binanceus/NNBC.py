@@ -246,8 +246,8 @@ class NNBC(IStrategy):
     first_time = True  # mostly for debug
     first_run = True  # used to identify first time through buy/sell populate funcs
 
-    dbg_scan_classifiers = True  # if True, scan all viable classifiers and choose the best. Very slow!
-    dbg_test_classifier = True  # test clasifiers after fitting
+    dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
+    dbg_test_classifier = False  # test clasifiers after fitting
     dbg_verbose = True  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
     dbg_trace_memory = True
