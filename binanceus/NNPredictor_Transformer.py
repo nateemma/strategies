@@ -53,10 +53,11 @@ class NNPredictor_Transformer(ClassifierKerasLinear):
     def create_model(self, seq_len, num_features):
 
         head_size = num_features
-        num_heads = 4
+        # num_heads = max(16, int(num_features/2))
+        num_heads = 16
         # ff_dim = 4
         ff_dim = seq_len
-        num_transformer_blocks = 4
+        num_transformer_blocks = seq_len
         mlp_units = [64, 16, 8]
         mlp_dropout = 0.2
         dropout = 0.2

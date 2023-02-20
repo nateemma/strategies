@@ -31,7 +31,7 @@ from pandas import DataFrame, Series
 import pandas as pd
 
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
-from sklearn.preprocessing import RobustScaler, MinMaxScaler
+from sklearn.preprocessing import RobustScaler, RobustScaler
 from torchmetrics import MeanAbsolutePercentageError
 
 # from torchinfo import summary
@@ -159,7 +159,7 @@ class ClassifierDarts():
 
         # Early stop callback
         early_callback = EarlyStopping(
-            monitor="val_loss",
+            monitor=self.get_loss_metric(),
             patience=8,
             min_delta=0.001,
             mode='min',
@@ -170,7 +170,7 @@ class ClassifierDarts():
             filename="best-checkpoint",
             save_top_k=1,
             verbose=True,
-            monitor="val_loss",
+            monitor=self.get_loss_metric(),
             mode="min")
 
         self.trainer_args["callbacks"] = [early_callback, checkpoint_callback]
@@ -216,11 +216,17 @@ class ClassifierDarts():
 
         return self.model_path
 
+    def get_model_name(self):
+        return self.model_name
+
     # ---------------------------
 
     def set_lookahead(self, lookahead):
         self.lookahead = lookahead
         self.lookback = int(max(self.lookback, 4 * self.lookahead))
+
+    def get_lookahead(self):
+        return self.lookahead
 
     # ---------------------------
 
@@ -229,7 +235,50 @@ class ClassifierDarts():
 
     # ---------------------------
 
-    # create model - subclasses should overide this
+    # the following are intended to be overridden by  the subclass, if necessary
+
+    # return loss metric for fitting. Can vary by model, hence it's a function. IOverride in subclass if necessary
+    def get_loss_metric(self):
+        return 'val_loss'
+
+    # This implementation covers many models, but if the signature is different then override this call in the subclass
+    def model_fit(self, model, train_target_series, train_covariate_series, test_target_series, test_covariate_series):
+        model = model.fit(train_target_series,
+                          past_covariates=train_covariate_series,
+                          val_series=test_target_series,
+                          val_past_covariates=test_covariate_series,
+                          verbose=True
+                          )
+
+        # load best checkpoint
+        # model = self.load_from_checkpoint(self.trainer.checkpoint_callback.best_model_path)
+
+        return model
+
+    def model_historical_forecasts(self, model, target_series, covariate_series):
+        preds = model.historical_forecasts(target_series,
+                                           past_covariates=covariate_series,
+                                           # forecast_horizon=self.lookahead,
+                                           forecast_horizon=self.lookahead,
+                                           stride=target_series.n_timesteps,
+                                           # last_points_only=True,
+                                           retrain=False,
+                                           verbose=True)
+        return preds
+
+    def model_predict(self, model, target_series, covariate_series):
+
+        preds = model.predict(n=self.lookahead,
+                              series=target_series,
+                              past_covariates=covariate_series,
+                              batch_size=self.batch_size,
+                              # trainer=self.trainer,
+                              # num_loader_workers=self.num_cpus,
+                              verbose=True)
+
+        return preds
+
+    # create model - subclasses should override this
     def create_model(self, lookback, num_features):
 
         model = None
@@ -310,50 +359,28 @@ class ClassifierDarts():
             test_price_series = test_price_series.astype(np.float32)
 
         # scale the dataframes
-        df_scaler = Scaler(MinMaxScaler())
+        df_scaler = Scaler(RobustScaler())
         df_scaler = df_scaler.fit(train_time_series)
         train_covariate_series = df_scaler.transform(train_time_series)
         test_covariate_series = df_scaler.transform(test_time_series)
 
         # price_series = df_train_norm[self.target_column]
-        train_price_scaler = Scaler(MinMaxScaler())
+        train_price_scaler = Scaler(RobustScaler())
         train_price_scaler = train_price_scaler.fit(train_price_series)
         train_target_series = train_price_scaler.transform(train_price_series)
         test_target_series = train_price_scaler.transform(test_price_series)
 
-        ##scaling sometimes produces NaNs
-        # darts.utils.missing_values.fill_mising_values(train_covariate_series)
-        # darts.utils.missing_values.fill_mising_values(test_covariate_series)
-        # darts.utils.missing_values.fill_mising_values(train_target_series)
-        # darts.utils.missing_values.fill_mising_values(test_target_series)
-
-        # check for nans
-
-        # print (f'covariate_series:{covariate_series}')
-        # print (f'price_series:{price_series}')
-
         # fit the model against the training data
-        # epochs = 6  # debug
-        epochs = 64
 
         # print(f'df_train: {np.shape(df_train)} train_results:{np.shape(train_results)}')
         # print(f'train_covariate_series: {train_covariate_series.n_samples} train_target_series:{train_target_series.n_samples}')
 
-        self.model = self.model.fit(train_target_series,
-                                    past_covariates=train_covariate_series,
-                                    val_series=test_target_series,
-                                    val_past_covariates=test_covariate_series,
-                                    # epochs=epochs,
-                                    # num_loader_workers=2,
-                                    verbose=True
-                                    # trainer=self.trainer
-                                    )
+        # fit the model
+        self.model = self.model_fit(self.model,
+                                    train_target_series, train_covariate_series,
+                                    test_target_series, test_covariate_series)
 
-        # only save if this is the first time training
-        if not self.is_trained:
-            self.save()
-            print(f'Model: {self.model_path}')
-            # summary(self.model, input_size=(self.batch_size, self.lookback, self.num_features))
+        self.save()
 
         self.is_trained = True
 
@@ -383,7 +410,7 @@ class ClassifierDarts():
 
         # convert closing price column to time series & scale
         price_series = darts.TimeSeries.from_dataframe(df, time_col='date', value_cols=self.target_column)
-        price_scaler = Scaler(MinMaxScaler())
+        price_scaler = Scaler(RobustScaler())
         price_scaler = price_scaler.fit(price_series)
         price_series = price_scaler.transform(price_series)
 
@@ -396,7 +423,7 @@ class ClassifierDarts():
             df_time_series = df_time_series.astype(np.float32)
 
         # scale the dataframe
-        df_scaler = Scaler(MinMaxScaler())
+        df_scaler = Scaler(RobustScaler())
         covariate_series = df_scaler.fit_transform(df_time_series)
 
         # print(f'    dataframe:{np.shape(dataframe)}')
@@ -408,14 +435,7 @@ class ClassifierDarts():
         # run backtesting
 
         with torch.inference_mode():
-            preds = self.model.historical_forecasts(price_series,
-                                                    past_covariates=covariate_series,
-                                                    # forecast_horizon=self.lookahead,
-                                                    forecast_horizon=self.lookahead,
-                                                    stride=price_series.n_timesteps,
-                                                    # last_points_only=True,
-                                                    retrain=False,
-                                                    verbose=True)
+            preds = self.model_historical_forecasts(self.model, price_series, covariate_series)
 
         # reverse scaling
         preds2 = price_scaler.inverse_transform(preds)
@@ -465,7 +485,7 @@ class ClassifierDarts():
 
         # convert closing price column to time series & scale
         price_series = darts.TimeSeries.from_dataframe(df, time_col='date', value_cols=self.target_column)
-        price_scaler = Scaler(MinMaxScaler())
+        price_scaler = Scaler(RobustScaler())
         price_scaler = price_scaler.fit(price_series)
         price_series = price_scaler.transform(price_series)
 
@@ -482,20 +502,14 @@ class ClassifierDarts():
         df_time_series = df_time_series.astype(np.float32)
 
         # scale the dataframe
-        df_scaler = Scaler(MinMaxScaler())
+        df_scaler = Scaler(RobustScaler())
         covariate_series = df_scaler.fit_transform(df_time_series)
 
         self.trainer = Trainer(accelerator='mps', devices=1)
         # print(f'Prediction data size: {np.shape(df)}')
         # with torch.no_grad():
         with torch.inference_mode():
-            preds = self.model.predict(n=self.lookahead,
-                                       series=price_series,
-                                       past_covariates=covariate_series,
-                                       batch_size=self.batch_size,
-                                       # trainer=self.trainer,
-                                       # num_loader_workers=self.num_cpus,
-                                       verbose=True)
+            preds = self.model_predict(self.model, price_series, covariate_series)
 
         # print (preds)
         # convert to dataframe so that we cann access the predictions
@@ -585,14 +599,14 @@ class ClassifierDarts():
     # ---------------------------
 
     def get_checkpoint_dir(self):
-        checkpoint_dir = '/tmp' + "/" + self.model_name + "/"
+        checkpoint_dir = '/tmp' + "/" + self.__class__.__name__ + "/"
         if not os.path.exists(checkpoint_dir):
             os.makedirs(checkpoint_dir)
         return checkpoint_dir
 
     def get_checkpoint_path(self):
         checkpoint_dir = self.get_checkpoint_dir()
-        model_path = checkpoint_dir + "checkpoint" + self.model_ext
+        model_path = checkpoint_dir + self.model_name + self.model_ext
         return model_path
 
     # ---------------------------
@@ -600,7 +614,7 @@ class ClassifierDarts():
     def save(self, path=""):
 
         if len(path) == 0:
-            self.model_path = self.get_model_path()
+            # self.model_path = self.get_model_path()
             path = self.model_path
         else:
             self.model_path = path
@@ -627,7 +641,7 @@ class ClassifierDarts():
     def load(self, path=""):
 
         if len(path) == 0:
-            self.model_path = self.get_model_path()
+            # self.model_path = self.get_model_path()
             path = self.model_path
         else:
             self.model_path = path
@@ -652,19 +666,21 @@ class ClassifierDarts():
     # ---------------------------
 
     # subclasses should override this, because data format is class-specific in darts/pytorch
+    def load_from_checkpoint(self, path):
+        print("    *** ERR: subclass must override load_from_checkpoint()")
+        return self.model
+
+    # ---------------------------
+
+    # subclasses should override this, because data format is class-specific in darts/pytorch
     def load_from_file(self, model_path, use_gpu=True):
-        if use_gpu:
-            model = darts.models.forecasting.torch_forecasting_model.PastCovariatesTorchModel.load_state_dict(
-                torch.load(model_path))
-        else:
-            model = darts.models.forecasting.torch_forecasting_model.PastCovariatesTorchModel.load_state_dict(
-                torch.load(model_path, map_location='cpu'))
-        return model
+        print("    *** ERR: subclass must override load_from_file()")
+        return self.model
 
     # ---------------------------
 
     def model_exists(self) -> bool:
-        path = self.get_model_path()
+        path = self.model_path
         return os.path.exists(path)
 
     # ---------------------------

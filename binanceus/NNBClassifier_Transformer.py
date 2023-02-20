@@ -45,13 +45,13 @@ from ClassifierKerasBinary import ClassifierKerasBinary
 
 class NNBClassifier_Transformer(ClassifierKerasBinary):
     is_trained = False
-    clean_data_required = True  # training data cannot contain anomalies
+    clean_data_required = False  # training data cannot contain anomalies
 
     # override the build_model function in subclasses
     def create_model(self, seq_len, num_features):
 
         head_size = num_features
-        num_heads = 4
+        num_heads = int(num_features / 2)
         # ff_dim = 4
         ff_dim = seq_len
         num_transformer_blocks = 4
@@ -64,7 +64,7 @@ class NNBClassifier_Transformer(ClassifierKerasBinary):
         for _ in range(num_transformer_blocks):
             x = self.transformer_encoder(x, head_size, num_heads, dropout, ff_dim)
 
-        x = layers.GlobalAveragePooling1D(keepdims=True, data_format="channels_first")(x)
+        # x = layers.GlobalAveragePooling1D(keepdims=True, data_format="channels_first")(x)
         for dim in mlp_units:
             # x = layers.Dense(dim, activation="relu")(x)
             x = layers.Dense(dim)(x)

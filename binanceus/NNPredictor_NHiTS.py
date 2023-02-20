@@ -44,21 +44,28 @@ class NNPredictor_NHiTS(ClassifierDarts):
     is_trained = False
     clean_data_required = False  # training data can contain anomalies
     model_per_pair = False  # separate model per pair
+    lookahead = 4
+    model_name = ""
 
     # override the build_model function in subclasses
     def create_model(self, seq_len, num_features):
-        print(f"    pl_trainer_kwargs={self.trainer_args}")
+        self.model_name = self.__class__.__name__
+
+        # print(f"    pl_trainer_kwargs={self.trainer_args}")
         model = NHiTSModel(input_chunk_length=seq_len,
-                           output_chunk_length=self.lookahead,
+                           output_chunk_length=self.get_lookahead(),
                            batch_size=self.batch_size,
-                           pl_trainer_kwargs=self.trainer_args,
+                           pl_trainer_kwargs=self.get_trainer_args(),
                            model_name=self.model_name
                            )
-
-        return model
 
         return model
 
     # class-specific load
     def load_from_file(self, model_path, use_gpu=True):
         return NHiTSModel.load(model_path)
+
+    # class-specific load
+    def load_from_checkpoint(self):
+        return NHiTSModel.load_from_checkpoint(self.model_name, work_dir=self.get_checkpoint_dir(), best=True)
+

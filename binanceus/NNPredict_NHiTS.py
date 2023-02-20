@@ -156,6 +156,8 @@ class NNPredict_NHiTS(NNPredict):
         # use_gpu = False if (self.dp.runmode.value in ('hyperopt')) else True
         use_gpu = True
         predictor = NNPredictor_NHiTS(pair, seq_len, num_features, use_gpu=use_gpu)
+        name = self.__class__.__name__
+        predictor.set_model_name(name, name)
         predictor.set_lookahead(self.curr_lookahead)
         return predictor
 

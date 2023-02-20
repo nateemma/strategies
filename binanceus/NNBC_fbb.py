@@ -134,7 +134,7 @@ class NNBC_fbb(NNBC):
     def get_train_buy_signals(self, future_df: DataFrame):
         buys = np.where(
             (
-                # overbought condition with high potential profit
+                # oversold condition with high potential profit
                     (future_df['fisher_wr'] < -0.8) &
                     (future_df['bb_gain'] >= future_df['profit_threshold']/100.0) &
 
@@ -148,7 +148,7 @@ class NNBC_fbb(NNBC):
     def get_train_sell_signals(self, future_df: DataFrame):
         sells = np.where(
             (
-                # oversold condition with high potential loss
+                # overbought condition with high potential loss
                     (future_df['fisher_wr'] > 0.8) &
                     (future_df['bb_loss'] <= future_df['loss_threshold']/100.0) &
 

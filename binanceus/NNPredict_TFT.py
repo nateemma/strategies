@@ -152,6 +152,8 @@ class NNPredict_TFT(NNPredict):
     def get_classifier(self, pair, seq_len: int, num_features: int):
         use_gpu = False # gpu issues with this model
         predictor = NNPredictor_TFT(pair, seq_len, num_features, use_gpu=use_gpu)
+        name = self.__class__.__name__
+        predictor.set_model_name(name, name)
         predictor.set_lookahead(self.curr_lookahead)
         predictor.set_target_column(self.target_column)
         return predictor

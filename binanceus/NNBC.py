@@ -62,8 +62,8 @@ from prettytable import PrettyTable
 
 import os
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-os.environ['TF_DETERMINISTIC_OPS'] = '3'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+os.environ['TF_DETERMINISTIC_OPS'] = '1'
 
 import tensorflow as tf
 
@@ -250,7 +250,8 @@ class NNBC(IStrategy):
     dbg_test_classifier = False  # test clasifiers after fitting
     dbg_verbose = True  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
-    dbg_trace_memory = True
+    dbg_trace_memory = False # if true, trace memory usage
+    dbg_trace_pair = "" # pair used for synching memory snapshots
 
     # variables to track state
     class State(Enum):
@@ -366,11 +367,14 @@ class NNBC(IStrategy):
         self.curr_lookahead = int(12 * self.lookahead_hours)
         self.dbg_curr_df = dataframe
 
+        # create and initialise instances of objects shared across pairs
         if self.dataframeUtils is None:
             self.dataframeUtils = DataframeUtils()
 
         if self.dataframePopulator is None:
-            if self.dbg_trace_memory:
+
+            if self.dbg_trace_memory and (self.dbg_trace_pair == self.curr_pair):
+                self.dbg_trace_pair = curr_pair  # only act when we see this pair (too much otherwise)
                 profiler.start(10)
                 profiler.snapshot()
 
@@ -382,6 +386,7 @@ class NNBC(IStrategy):
             self.dataframePopulator.n_loss_stddevs = self.n_loss_stddevs
             self.dataframePopulator.n_profit_stddevs = self.n_profit_stddevs
 
+        # first time through? Print some debug info
         if self.first_time:
             self.first_time = False
             print("")
@@ -407,16 +412,10 @@ class NNBC(IStrategy):
         # populate the normal dataframe
         dataframe = self.dataframePopulator.add_indicators(dataframe)
 
+        # get the buy/sell training signals
         buys, sells = self.create_training_data(dataframe)
 
-        # # drop last group (because there cannot be a prediction)
-        # df = dataframe.iloc[:-self.curr_lookahead]
-        # buys = buys.iloc[:-self.curr_lookahead]
-        # sells = sells.iloc[:-self.curr_lookahead]
-
-        # Principal Component Analysis of inf data
-
-        # train the models on the informative data
+        # train the models on the populated data and signals
         if self.dbg_verbose:
             print("    training models...")
         self.train_models(curr_pair, dataframe, buys, sells)
@@ -436,7 +435,7 @@ class NNBC(IStrategy):
             print("    updating stoploss data...")
         self.add_stoploss_indicators(dataframe, curr_pair)
 
-        if self.dbg_trace_memory:
+        if self.dbg_trace_memory and (self.dbg_trace_pair == self.curr_pair):
             profiler.snapshot()
 
         return dataframe
@@ -817,13 +816,8 @@ class NNBC(IStrategy):
         # labels = self.get_binary_labels(results)
         labels = results
 
-        # # TODO: replace train_test_spli?!
-        #
-        # # split into test/train for evaluation, then re-fit once selected
-        # # tsr_train, df_test, res_train, res_test = train_test_split(df, results, train_size=0.5)
-        # tsr_train, tsr_test, res_train, res_test = train_test_split(tensor, labels, train_size=0.8,
-        #                                                             random_state=27, shuffle=False)
-
+        # split into train & test sets
+        # Note: we are taking the training data from the end (most recent data), not the beginning
         ratio = 0.8
         train_len = int(ratio * np.shape(labels)[0])
         test_len = np.shape(labels)[0] - train_len
@@ -846,6 +840,7 @@ class NNBC(IStrategy):
             print("    Insufficient +ve (test) results: ", res_test.sum())
             return None, ""
 
+        # scan through the list of classifiers in self.classifier_list
         num_features = np.shape(tsr_train)[2]
         for clf_name in self.classifier_list:
             clf, _ = self.classifier_factory(clf_name, num_features, tag=tag)
@@ -903,7 +898,7 @@ class NNBC(IStrategy):
             predict = self.get_classifier_predictions(clf, df_tensor)
 
         else:
-            print("Null CLF for pair: ", pair)
+            print("Null Classifier for pair: ", pair)
 
         # print (predict)
         return predict
@@ -1046,7 +1041,7 @@ class NNBC(IStrategy):
         else:
             dataframe['entry'] = 0
 
-        if self.dbg_trace_memory:
+        if self.dbg_trace_memory and (self.dbg_trace_pair == self.curr_pair):
             profiler.snapshot()
             profiler.display_stats()
             profiler.compare()

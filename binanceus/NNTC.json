@@ -1,0 +1,41 @@
+{
+  "strategy_name": "NNTC",
+  "params": {
+    "roi": {
+      "0": 0.06
+    },
+    "stoploss": {
+      "stoploss": -0.99
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 3
+    },
+    "buy": {},
+    "sell": {
+      "cexit_endtrend_respect_roi": true,
+      "cexit_pullback": false,
+      "cexit_pullback_amount": 0.015,
+      "cexit_pullback_respect_roi": false,
+      "cexit_roi_end": 0.003,
+      "cexit_roi_start": 0.018,
+      "cexit_roi_time": 818,
+      "cexit_roi_type": "decay",
+      "cexit_trend_type": "ssl",
+      "cstop_bail_how": "none",
+      "cstop_bail_roc": -3.98,
+      "cstop_bail_time": 700,
+      "cstop_bail_time_trend": false,
+      "cstop_loss_threshold": -0.046,
+      "cstop_max_stoploss": -0.231
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2023-02-20 08:25:14.496169+00:00"
+}

@@ -44,7 +44,7 @@ from ClassifierKerasBinary import ClassifierKerasBinary
 
 class NNBClassifier_Multihead(ClassifierKerasBinary):
     is_trained = False
-    clean_data_required = True  # training data cannot contain anomalies
+    clean_data_required = False  # training data cannot contain anomalies
 
     # override the build_model function in subclasses
     def create_model(self, seq_len, num_features):

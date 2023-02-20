@@ -151,6 +151,8 @@ class NNPredict_NLinear(NNPredict):
     def get_classifier(self, pair, seq_len: int, num_features: int):
         # predictor = NNPredictor_Ray(pair, seq_len, num_features)
         predictor = NNPredictor_NLinear(pair, seq_len, num_features)
+        name = self.__class__.__name__
+        predictor.set_model_name(name, name)
         predictor.set_lookahead(self.curr_lookahead)
         return predictor
 

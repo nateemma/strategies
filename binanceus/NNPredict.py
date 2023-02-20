@@ -186,6 +186,7 @@ class NNPredict(IStrategy):
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
     dbg_enable_tracing = False  # set to True in subclass to enable function tracing
     dbg_trace_memory = True
+    dbg_trace_pair = ""
 
     # variables to track state
     class State(Enum):
@@ -275,7 +276,8 @@ class NNPredict(IStrategy):
 
         if self.dataframePopulator is None:
 
-            if self.dbg_trace_memory:
+            if self.dbg_trace_memory and (self.dbg_trace_pair == self.curr_pair):
+                self.dbg_trace_pair = curr_pair # only act when we see this pair (too much otherwise)
                 profiler.start(10)
                 profiler.snapshot()
 
@@ -356,7 +358,7 @@ class NNPredict(IStrategy):
             print("    updating stoploss data...")
         dataframe = self.add_stoploss_indicators(dataframe, self.curr_pair)
 
-        if self.dbg_trace_memory:
+        if self.dbg_trace_memory and (self.dbg_trace_pair == self.curr_pair):
             profiler.snapshot()
 
         return dataframe
@@ -554,7 +556,7 @@ class NNPredict(IStrategy):
 
         # pre-scale if needed
         if prescale_data:
-            price_scaler.fit(np.array(dataframe[self.target_column]).reshape(1, -1))
+            price_scaler.fit(dataframe[self.target_column].to_numpy().reshape(1, -1))
             df_norm = self.dataframeUtils.norm_dataframe(dataframe)
         else:
             df_norm = dataframe
@@ -613,7 +615,8 @@ class NNPredict(IStrategy):
 
         # extract the last part of the data
         window = 128
-        end = np.shape(df_norm)[0] - 1
+        # end = np.shape(df_norm)[0] - 1
+        end = np.shape(df_norm)[0]
         start = end - window
         if use_dataframes:
             data = df_norm.iloc[start:end]
@@ -635,12 +638,12 @@ class NNPredict(IStrategy):
 
             # re-scale, if necessary
             if prescale_data:
-                # # replace the 'temp' column and de-normalise (this is why we added the 'temp' column earlier, to match dimensions)
+                # replace the 'temp' column and de-normalise (this is why we added the 'temp' column earlier, to match dimensions)
                 # df_norm["temp"].iloc[start:end] = preds_notrend
                 # inv_y = self.dataframeUtils.denorm_dataframe(df_norm)
                 # predictions = inv_y["temp"]
-                predictions = price_scaler.inverse_transform(preds_notrend.reshape(1, -1))[0]
                 # latest_prediction = predictions.iloc[-1]
+                predictions = price_scaler.inverse_transform(preds_notrend.reshape(1, -1))[0]
                 latest_prediction = predictions[-1]
             else:
                 # classifier handles scaling
@@ -841,7 +844,7 @@ class NNPredict(IStrategy):
 
         # dataframe = self.add_model_predictions(dataframe)
         dataframe = self.update_predictions(dataframe)
-        dataframe['predict_smooth'] = dataframe['predict'].rolling(window=win_size).apply(self.roll_strong_smooth)
+        # dataframe['predict_smooth'] = dataframe['predict'].rolling(window=win_size).apply(self.roll_strong_smooth)
 
         dataframe['predict_diff'] = 100.0 * (dataframe['predict'] - dataframe[self.target_column]) / \
                                     dataframe[self.target_column]
@@ -1000,7 +1003,7 @@ class NNPredict(IStrategy):
         # set first (startup) period to 0
         dataframe.loc[dataframe.index[:self.startup_candle_count], 'buy'] = 0
 
-        if self.dbg_trace_memory:
+        if self.dbg_trace_memory and (self.dbg_trace_pair == self.curr_pair):
             profiler.snapshot()
             profiler.display_stats()
             profiler.compare()
