@@ -11,23 +11,24 @@ code in the following types of strategies:
 - PCA
 - Anomaly
 - NNBC
+- NNTC
 - NNPredict
 
-
 _NOTES_:
-
-- I am currently re-factoring to move common code to separate files, isolate any potentially forward-looking indicators,
-  and to use pre-trained models
 
 - _**Binance**_: I live in the USA, and the Binance exchange recently blocked API access from here. So, I cannot (
   easily) test the code in the binance exchange directory. I know I could use a VPN, but I'm busy with a bunch of other
   stuff in the binanceus directory - sorry. <br>
   All strats should work, but you will need to run hyperopt on them to get good hyperparameters
 
-- Mac M1 My development machine is a Mac M1 laptop. While it is very fast, it does present some challenges in terms of
-  packages. See [here](README_MACM1.md) for more details.<br>
+- **Mac M1** My development machine is a Mac M1 laptop. While it is very fast, it does present some challenges in terms
+  of packages. See [here](README_MACM1.md) for more details.<br>
   As an aside, all of my scripts are written for _zsh_, not _bash_ (this is the default shell on MacOS, plus the version
   of bash that is pre-installed is very old)
+
+- **NNTC** I am currently replacing the NNBC (Neureal Network Binary Clasifer) strategies with NNTC (Neural Network
+  Trinary Classifer) strategies. Essentially the same thing, but uses a single model for buy/sell/nothing instead of two
+  model (buy/nothing and sell/nothing). Noit sure why, but it seems to work better
 
 ## Intro
 
