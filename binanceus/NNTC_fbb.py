@@ -84,6 +84,9 @@ class NNTC_fbb(NNTC):
 
     custom_trade_info = {}
 
+    refit_model = False  # only set to True when training. If False, then existing model is used, if present
+
+
     dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
     dbg_test_classifier = False  # test clasifiers after fitting
     dbg_analyse_pca = False  # analyze PCA weights

@@ -94,6 +94,7 @@ from DataframePopulator import DataframePopulator
 # from NNTClassifier_Attention import NNTClassifier_Attention
 # from NNTClassifier_Multihead import NNTClassifier_Multihead
 from NNTClassifier_Transformer import NNTClassifier_Transformer
+from NNTClassifier_LSTM import NNTClassifier_LSTM
 # from NNTClassifier_RBM import NNTClassifier_RBM
 
 import Environment
@@ -581,8 +582,10 @@ class NNTC(IStrategy):
         train_size = int(train_ratio * (data_size - pad)) - 1
         test_size = int(test_ratio * (data_size - pad)) - 1
 
-        train_start = frame_size - train_size
-        test_start = frame_size - data_size
+        # train_start = frame_size - train_size
+        # test_start = frame_size - data_size
+        train_start = 0
+        test_start = train_size
 
         tsr_train = full_tensor[train_start:train_start + train_size]
         tsr_test = full_tensor[test_start:test_start + test_size]
@@ -696,6 +699,8 @@ class NNTC(IStrategy):
         if clf_name == 'Transformer':
             clf = NNTClassifier_Transformer(self.curr_pair, self.seq_len, nfeatures, tag=tag)
 
+        elif clf_name == 'LSTM':
+            clf = NNTClassifier_LSTM(self.curr_pair, self.seq_len, nfeatures, tag=tag)
         else:
             print("Unknown classifier: ", clf_name)
             clf = None
@@ -838,8 +843,8 @@ class NNTC(IStrategy):
 
         print("    predicting buys/sells...")
         preds = self.predict(df, pair, clf)
-        buys = np.where(((preds > 0.8) & (preds < 1.2)), 1.0, 0.0)
-        sells = np.where((preds > 1.8), 1.0, 0.0)
+        buys = np.where(((preds > 0.6) & (preds < 1.4)), 1.0, 0.0)
+        sells = np.where((preds > 1.5), 1.0, 0.0)
 
         return buys, sells
 

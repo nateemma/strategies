@@ -459,9 +459,6 @@ class ClassifierKeras():
             try:
                 model = keras.models.load_model(path, compile=False)
                 self.compile_model(model)
-                # optimizer = keras.optimizers.Adam()
-                # optimizer = keras.optimizers.Adam(learning_rate=0.0001)
-                # model.compile(metrics=['mae', 'mse'], loss='mse', optimizer=optimizer)
                 self.is_trained = True
 
             except Exception as e:

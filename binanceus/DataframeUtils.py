@@ -403,7 +403,8 @@ class DataframeUtils():
 
         # trying different test options. For some reason, results vary quite dramatically based on the approach
 
-        test_option = 1
+        # test_option = 1
+        test_option = 3
         if test_option == 0:
             # take the middle part of the full dataframe
             train_start = int((data_size - (train_size + test_size + lookahead)) / 2)

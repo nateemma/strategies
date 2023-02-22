@@ -176,6 +176,8 @@ class ClassifierKerasTrinary(ClassifierKeras):
 
         callbacks = [plateau_callback, early_callback, checkpoint_callback]
 
+        keras.backend.set_value(self.model.optimizer.learning_rate, 0.01)
+
         # if self.dbg_verbose:
         print("")
         print("    training model: {}...".format(self.name))
