@@ -32,9 +32,6 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 os.environ['TF_DETERMINISTIC_OPS'] = '1'
 
-# workaround for memory leak in tensorflow 2.10
-os.environ['TF_RUN_EAGER_OP_AS_FUNCTION'] = '0'
-
 import tensorflow as tf
 
 seed = 42
@@ -52,8 +49,8 @@ import h5py
 
 from DataframeUtils import DataframeUtils
 
-
 class ClassifierKeras():
+
     model = None
     is_trained = False
     category = ""
@@ -66,17 +63,17 @@ class ClassifierKeras():
     encoder = None
     num_epochs = 256  # number of iterations for training
     batch_size = 1024  # batch size for training
-    clean_data_required = False  # train with positive rows removed
-    model_per_pair = False  # set to False to combine across all pairs
-    new_model = False  # True if a new model was created this run
+    clean_data_required = False # train with positive rows removed
+    model_per_pair = False # set to False to combine across all pairs
+    new_model = False # True if a new model was created this run
     dataframeUtils = None
-    requires_dataframes = False  # set to True if classifier takes dataframes rather than tensors
-    prescale_dataframe = True  # set to True if algorithms need dataframes to be pre-scaled
-    single_prediction = False  # True if algorithm only produces 1 prediction (not entire data array)
+    requires_dataframes = False # set to True if classifier takes dataframes rather than tensors
+    prescale_dataframe = True # set to True if algorithms need dataframes to be pre-scaled
+    single_prediction = False # True if algorithm only produces 1 prediction (not entire data array)
 
     # ---------------------------
 
-    # Note: pair is needed because we cannot combine model across pairs because of huge price differences
+    #Note: pair is needed because we cannot combine model across pairs because of huge price differences
 
     def __init__(self, pair, seq_len, num_features, tag=""):
         super().__init__()
@@ -138,12 +135,13 @@ class ClassifierKeras():
 
         # Encoder
         model.add(layers.Dense(outer_dim, activation='relu', input_shape=(seq_len, num_features)))
-        model.add(layers.Dense(2 * outer_dim, activation='relu'))
-        model.add(layers.Dense(inner_dim, activation='relu', name=self.encoder_layer))  # name is mandatory
+        model.add(layers.Dense(2*outer_dim, activation='relu'))
+        model.add(layers.Dense(inner_dim, activation='relu', name=self.encoder_layer)) # name is mandatory
 
         # Decoder
-        model.add(layers.Dense(2 * outer_dim, activation='relu', input_shape=(1, inner_dim)))
+        model.add(layers.Dense(2*outer_dim, activation='relu', input_shape=(1, inner_dim)))
         model.add(layers.Dense(outer_dim, activation='relu'))
+
 
         model.add(layers.Dense(num_features, activation=None))
 
@@ -247,11 +245,11 @@ class ClassifierKeras():
 
         # Model weights are saved at the end of every epoch, if it's the best seen so far.
         fhis = self.model.fit(train_tensor, train_tensor,
-                              batch_size=self.batch_size,
-                              epochs=self.num_epochs,
-                              callbacks=callbacks,
-                              validation_data=(test_tensor, test_tensor),
-                              verbose=0)
+                                    batch_size=self.batch_size,
+                                    epochs=self.num_epochs,
+                                    callbacks=callbacks,
+                                    validation_data=(test_tensor, test_tensor),
+                                    verbose=0)
 
         # # The model weights (that are considered the best) are loaded into th model.
         # self.update_model_weights()
@@ -284,6 +282,7 @@ class ClassifierKeras():
             tensor = self.dataframeUtils.df_to_tensor(data, self.seq_len)
         else:
             tensor = data
+
 
         predict_tensor = self.model.predict(tensor, verbose=1)
 
@@ -318,6 +317,7 @@ class ClassifierKeras():
             # threshold = np.max(mae_loss)
             # predictions = np.where(mae_loss > threshold, 1.0, 0.0)
             # print("    predictions:{} data:{}".format(np.shape(predictions), predictions))
+
 
         return predictions
 
@@ -356,7 +356,7 @@ class ClassifierKeras():
     # ---------------------------
 
     # 'recosnstruct' a dataframe by passing it through the model
-    def reconstruct(self, df_norm: DataFrame) -> DataFrame:
+    def reconstruct(self, df_norm:DataFrame) -> DataFrame:
 
         # lazy loading because params can change up to this point
         if self.model is None:
@@ -418,7 +418,7 @@ class ClassifierKeras():
     # ---------------------------
 
     def get_checkpoint_path(self):
-        checkpoint_dir = '/tmp' + "/" + self.name + "/"
+        checkpoint_dir = '/tmp'+ "/" + self.name + "/"
         if not os.path.exists(checkpoint_dir):
             os.makedirs(checkpoint_dir)
         model_path = checkpoint_dir + "checkpoint.h5"
@@ -427,13 +427,13 @@ class ClassifierKeras():
     # ---------------------------
 
     def save(self, path=""):
-
+        
         if len(path) == 0:
             self.model_path = self.get_model_path()
             path = self.model_path
         else:
             self.model_path = path
-
+            
         print("    saving model to: ", path)
         save_dir = os.path.dirname(path)
         if not os.path.exists(save_dir):
@@ -444,7 +444,7 @@ class ClassifierKeras():
     # ---------------------------
 
     def load(self, path=""):
-
+        
         if len(path) == 0:
             self.model_path = self.get_model_path()
             path = self.model_path
@@ -452,7 +452,7 @@ class ClassifierKeras():
             self.model_path = path
 
         model = None
-
+        
         # if model exists, load it
         if os.path.exists(path):
             print("    Loading existing model ({})...".format(path))
