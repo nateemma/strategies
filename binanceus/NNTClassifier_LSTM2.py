@@ -54,20 +54,14 @@ class NNTClassifier_LSTM2(ClassifierKerasTrinary):
 
         # NOTE: don't use relu with LSTMs, cannot use GPU if you do (much slower). Use tanh
 
-        model.add(layers.LSTM(128, activation='tanh', return_sequences=True, input_shape=(seq_len, num_features)))
-        model.add(layers.Dropout(rate=0.2))
-        model.add(layers.BatchNormalization())
 
-        model.add(layers.LSTM(64, return_sequences=True, activation='tanh'))
-        model.add(layers.Dropout(rate=0.2))
-        model.add(layers.BatchNormalization())
+        model.add(layers.LSTM(64, activation='tanh', recurrent_dropout=0.25, return_sequences=True, input_shape=(seq_len, num_features)))
+        model.add(layers.Dropout(rate=0.5))
 
-        model.add(layers.LSTM(32, return_sequences=True, activation='tanh'))
-        model.add(layers.Dropout(rate=0.2))
-        model.add(layers.BatchNormalization())
-
-        model.add(layers.LSTM(16, return_sequences=True, activation='tanh'))
-        model.add(layers.Dropout(rate=0.2))
+        model.add(layers.LSTM(64, activation='tanh', return_sequences=True, recurrent_dropout=0.25))
+        model.add(layers.Dropout(rate=0.5))
+        #
+        # model.add(layers.Dense(16))
 
         # last layer is a trinary decision - do not change
         model.add(layers.Dense(3, activation="softmax"))

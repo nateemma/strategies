@@ -51,11 +51,13 @@ class NNTClassifier_Transformer(ClassifierKerasTrinary):
     def create_model(self, seq_len, num_features):
 
         head_size = num_features
-        num_heads = int(num_features / 2)
-        # ff_dim = 4
-        ff_dim = seq_len
-        num_transformer_blocks = seq_len
-        mlp_units = [64, 32, 8]
+        # num_heads = int(num_features / 2)
+        num_heads = 3
+        ff_dim = 4
+        # ff_dim = seq_len
+        # num_transformer_blocks = seq_len
+        num_transformer_blocks = 4
+        mlp_units = [32, 8]
         mlp_dropout = 0.2
         dropout = 0.2
 
@@ -65,7 +67,7 @@ class NNTClassifier_Transformer(ClassifierKerasTrinary):
             x = self.transformer_encoder(x, head_size, num_heads, dropout, ff_dim)
             x = keras.layers.BatchNormalization()(x)
 
-        # x = layers.GlobalAveragePooling1D(keepdims=True, data_format="channels_first")(x)
+        x = layers.GlobalAveragePooling1D(keepdims=True, data_format="channels_first")(x)
 
         for dim in mlp_units:
             # x = layers.Dense(dim, activation="relu")(x)

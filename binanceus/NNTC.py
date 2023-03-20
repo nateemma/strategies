@@ -87,14 +87,16 @@ import RBM
 from DataframeUtils import DataframeUtils, ScalerType
 from DataframePopulator import DataframePopulator
 
-# from NNTClassifier_MLP import NNTClassifier_MLP
+from NNTClassifier_MLP import NNTClassifier_MLP
+from NNTClassifier_CNN import NNTClassifier_CNN
 # from NNTClassifier_MLP2 import NNTClassifier_MLP2
-# from NNTClassifier_LSTM import NNTClassifier_LSTM
-# from NNTClassifier_LSTM2 import NNTClassifier_LSTM2
-# from NNTClassifier_Attention import NNTClassifier_Attention
-# from NNTClassifier_Multihead import NNTClassifier_Multihead
-from NNTClassifier_Transformer import NNTClassifier_Transformer
 from NNTClassifier_LSTM import NNTClassifier_LSTM
+from NNTClassifier_LSTM2 import NNTClassifier_LSTM2
+# from NNTClassifier_Attention import NNTClassifier_Attention
+from NNTClassifier_Multihead import NNTClassifier_Multihead
+from NNTClassifier_Transformer import NNTClassifier_Transformer
+from NNTClassifier_Wavenet import NNTClassifier_Wavenet
+from NNTClassifier_GRU import NNTClassifier_GRU
 # from NNTClassifier_RBM import NNTClassifier_RBM
 
 import Environment
@@ -207,7 +209,8 @@ class NNTC(IStrategy):
 
     compressor = None
     compress_data = True
-    classifier_name = 'Transformer'  # select based on testing
+    # classifier_name = 'Transformer'  # select based on testing
+    classifier_name = 'MLP'  # select based on testing
     trinary_classifier = None
 
     curr_lookahead = int(12 * lookahead_hours)
@@ -701,6 +704,25 @@ class NNTC(IStrategy):
 
         elif clf_name == 'LSTM':
             clf = NNTClassifier_LSTM(self.curr_pair, self.seq_len, nfeatures, tag=tag)
+
+        elif clf_name == 'LSTM2':
+            clf = NNTClassifier_LSTM2(self.curr_pair, self.seq_len, nfeatures, tag=tag)
+
+        elif clf_name == 'MLP':
+            clf = NNTClassifier_MLP(self.curr_pair, self.seq_len, nfeatures, tag=tag)
+
+        elif clf_name == 'CNN':
+            clf = NNTClassifier_CNN(self.curr_pair, self.seq_len, nfeatures, tag=tag)
+
+        elif clf_name == 'Multihead':
+            clf = NNTClassifier_Multihead(self.curr_pair, self.seq_len, nfeatures, tag=tag)
+
+        elif clf_name == 'Wavenet':
+            clf = NNTClassifier_Wavenet(self.curr_pair, self.seq_len, nfeatures, tag=tag)
+
+        elif clf_name == 'GRU':
+            clf = NNTClassifier_GRU(self.curr_pair, self.seq_len, nfeatures, tag=tag)
+
         else:
             print("Unknown classifier: ", clf_name)
             clf = None
@@ -714,9 +736,14 @@ class NNTC(IStrategy):
     # return IDs that control model naming. Should be OK for all subclasses
     def get_model_identifiers(self, pair, clf_name, tag):
         category = self.__class__.__name__
-        model_name = category + "_" + clf_name
+        if not clf_name in category:
+            model_name = category + "_" + clf_name
+        else:
+            model_name = category
+
         if self.model_per_pair:
             model_name = model_name + "_" + pair.split("/")[0]
+
         if len(tag) > 0:
             model_name = model_name + "_" + tag
         return category, model_name
@@ -1035,7 +1062,11 @@ class NNTC(IStrategy):
             if last_candle['mfi'] > 90:
                 return 'mfi_90'
 
-        # Sell any positions at a loss if they are held for more than one day.
+        # Mod: strong sell signal, in profit
+        if (current_profit > 0) and (last_candle['fisher_wr'] > 0.98):
+                return 'fwr_98'
+
+        # Mod: Sell any positions at a loss if they are held for more than two days.
         if current_profit < 0.0 and (current_time - trade.open_date_utc).days >= 2:
             return 'unclog'
 

@@ -90,7 +90,7 @@ class NNTC_fbb_LSTM(NNTC):
 
 
     dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
-    dbg_test_classifier = False  # test clasifiers after fitting
+    dbg_test_classifier = True  # test clasifiers after fitting
     dbg_analyse_pca = False  # analyze PCA weights
     dbg_verbose = False  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe

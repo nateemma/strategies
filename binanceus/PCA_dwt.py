@@ -117,7 +117,7 @@ class PCA_dwt(PCA):
     def get_train_buy_signals(self, future_df: DataFrame):
         series = np.where(
             (
-                # forward model above backward model
+                # forward model below backward model
                     (future_df['dwt_diff'] < 0) &
                     # current loss below threshold
                     (future_df['dwt_diff'] <= future_df['loss_threshold']) &

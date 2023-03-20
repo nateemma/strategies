@@ -1378,6 +1378,10 @@ class PCA(IStrategy):
             if last_candle['mfi'] > 90:
                 return 'mfi_90'
 
+        # Mod: strong sell signal, in profit
+        if (current_profit > 0) and (last_candle['fisher_wr'] > 0.98):
+                return 'fwr_98'
+
         # Sell any positions at a loss if they are held for more than one day.
         if current_profit < 0.0 and (current_time - trade.open_date_utc).days >= 2:
             return 'unclog'

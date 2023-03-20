@@ -24,6 +24,9 @@ elif  [[ "${strat_type}" == "nnbc" ]]; then
   list=("NNBC_fbb" "NNBC_jump" "NNBC_minmax" "NNBC_nseq" "NNBC_profit" "NNBC_swing")
 elif  [[ "${strat_type}" == "nnpredict" ]]; then
   list=("NNPredict" "NNPredict_Multihead" "NNPredict_Transformer" "NNPredict_MLP")
+elif  [[ "${strat_type}" == "nntc" ]]; then
+  list=("NNTC" "NNTC_fbb_LSTM" "NNTC_dwt_LSTM" "NNTC_highlow_LSTM" "NNTC_macd_LSTM" "NNTC_nseq_LSTM" \
+  "NNTC_profit_LSTM" "NNTC_pv_LSTM" "NNTC_swing_LSTM")
 else
   echo "ERR: unknown strategy list: ${1}"
   return
@@ -48,7 +51,8 @@ for strat in $list; do
   echo "-------------------" >>$logfile
   echo "" >>$logfile
 #  zsh user_data/strategies/scripts/test_strat.sh -n 750 binanceus ${strat} >>$logfile
-  zsh user_data/strategies/scripts/hyp_strat.sh -n 90 -e 100 -s sell -l CalmarHyperOptLoss binanceus ${strat} >>$logfile
+  zsh user_data/strategies/scripts/test_strat.sh -n 60 binanceus ${strat} >>$logfile
+#  zsh user_data/strategies/scripts/hyp_strat.sh -n 90 -e 100 -s sell -l CalmarHyperOptLoss binanceus ${strat} >>$logfile
 done
 echo "============================" >>$logfile
 

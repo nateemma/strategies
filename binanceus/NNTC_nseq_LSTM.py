@@ -77,8 +77,8 @@ class NNTC_nseq_LSTM(NNTC):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     lookahead_hours = 1.0
-    n_profit_stddevs = 1.5
-    n_loss_stddevs = 2.0
+    n_profit_stddevs = 1.0
+    n_loss_stddevs = 1.0
     min_f1_score = 0.70
 
     custom_trade_info = {}
@@ -102,8 +102,8 @@ class NNTC_nseq_LSTM(NNTC):
 
 
     # buy/sell hyperparams
-    buy_nseq_dn = IntParameter(0, 10, default=4, space='buy', load=True, optimize=True)
-    sell_nseq_up = IntParameter(0, 10, default=8, space='sell', load=True, optimize=True)
+    buy_nseq_dn = IntParameter(2, 10, default=4, space='buy', load=True, optimize=True)
+    sell_nseq_up = IntParameter(2, 10, default=8, space='sell', load=True, optimize=True)
 
     # Custom Sell Profit (formerly Dynamic ROI)
     cexit_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
