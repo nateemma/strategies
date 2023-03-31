@@ -17,7 +17,7 @@
       "max_open_trades": 3
     },
     "buy": {
-      "buy_nseq_dn": 7
+      "buy_nseq_dn": 4
     },
     "sell": {
       "cexit_endtrend_respect_roi": true,
@@ -35,7 +35,7 @@
       "cstop_bail_time_trend": true,
       "cstop_loss_threshold": -0.014,
       "cstop_max_stoploss": -0.192,
-      "sell_nseq_up": 8
+      "sell_nseq_up": 4
     },
     "protection": {}
   },

@@ -101,8 +101,8 @@ class NNTC_profit_Wavenet(NNTC):
     ## Hyperopt Variables
 
     # buy/sell hyperparams
-    buy_nseq_dn = IntParameter(2, 10, default=4, space='buy', load=True, optimize=True)
-    sell_nseq_up = IntParameter(2, 10, default=8, space='sell', load=True, optimize=True)
+    buy_nseq_dn = IntParameter(2, 6, default=2, space='buy', load=True, optimize=True)
+    sell_nseq_up = IntParameter(2, 6, default=2, space='sell', load=True, optimize=True)
 
     # Custom Sell Profit (formerly Dynamic ROI)
     cexit_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,

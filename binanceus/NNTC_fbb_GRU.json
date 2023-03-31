@@ -1,0 +1,41 @@
+{
+  "strategy_name": "NNTC_fbb_GRU",
+  "params": {
+    "roi": {
+      "0": 0.06
+    },
+    "stoploss": {
+      "stoploss": -0.99
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 3
+    },
+    "buy": {},
+    "sell": {
+      "cexit_endtrend_respect_roi": true,
+      "cexit_pullback": true,
+      "cexit_pullback_amount": 0.009,
+      "cexit_pullback_respect_roi": true,
+      "cexit_roi_end": 0.004,
+      "cexit_roi_start": 0.033,
+      "cexit_roi_time": 1206,
+      "cexit_roi_type": "static",
+      "cexit_trend_type": "none",
+      "cstop_bail_how": "none",
+      "cstop_bail_roc": -4.164,
+      "cstop_bail_time": 759,
+      "cstop_bail_time_trend": false,
+      "cstop_loss_threshold": -0.04,
+      "cstop_max_stoploss": -0.215
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2023-03-21 02:09:25.357550+00:00"
+}

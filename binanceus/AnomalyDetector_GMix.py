@@ -53,5 +53,5 @@ class AnomalyDetector_GMix(ClassifierSklearn):
 
 
     def create_classifier(self):
-        classifier = GaussianMixture()
+        classifier = GaussianMixture(n_components=2)
         return classifier

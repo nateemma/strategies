@@ -302,13 +302,16 @@ class DataframePopulator():
     
     # 'hidden' indicators. These are ostensibly backward looking, but may inadvertently use means, smoothing etc.
     def add_hidden_indicators(self, dataframe: DataFrame) -> DataFrame:
-    
+
+        dataframe['fwd_dwt'] = self.get_dwt(dataframe['mid'])
+
         dataframe['dwt_deriv'] = np.gradient(dataframe['dwt'])
         # dataframe['dwt_deriv'] = np.gradient(dataframe['dwt'])
         dataframe['dwt_top'] = np.where(qtpylib.crossed_below(dataframe['dwt_deriv'], 0.0), 1, 0)
         dataframe['dwt_bottom'] = np.where(qtpylib.crossed_above(dataframe['dwt_deriv'], 0.0), 1, 0)
     
-        dataframe['dwt_diff'] = 100.0 * (dataframe['dwt'] - dataframe['close']) / dataframe['close']
+        # dataframe['dwt_diff'] = 100.0 * (dataframe['dwt'] - dataframe['mid']) / dataframe['mid']
+        dataframe['dwt_diff'] = 100.0 * (dataframe['fwd_dwt'] - dataframe['mid']) / dataframe['mid']
         # dataframe['dwt_diff'] = 100.0 * (dataframe['dwt'] - dataframe['dwt']) / dataframe['dwt']
     
         dataframe['dwt_trend'] = np.where(dataframe['dwt_dir'].rolling(5).sum() > 3.0, 1.0, -1.0)

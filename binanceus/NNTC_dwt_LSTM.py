@@ -77,7 +77,7 @@ class NNTC_dwt_LSTM(NNTC):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     lookahead_hours = 0.5
-    n_profit_stddevs = 2.0
+    n_profit_stddevs = 0.5
     n_loss_stddevs = 2.0
     min_f1_score = 0.70
 
@@ -138,10 +138,18 @@ class NNTC_dwt_LSTM(NNTC):
             (
                 # forward model below backward model
                     (future_df['dwt_diff'] < 0) &
+
                     # current loss below threshold
                     (future_df['dwt_diff'] <= future_df['loss_threshold']) &
+
                     # forward model below backward model at lookahead
-                    (future_df['dwt_diff'].shift(-self.curr_lookahead) > 0)
+                    (future_df['dwt_diff'].shift(-self.curr_lookahead) > 0) &
+
+                    # future profit exceeds threshold
+                    (future_df['future_profit_max'] >= future_df['profit_threshold']) &
+
+                    # future loss exceeds threshold
+                    (future_df['future_loss_min'] <= future_df['loss_threshold'])
             ), 1.0, 0.0)
 
         return series
@@ -151,8 +159,10 @@ class NNTC_dwt_LSTM(NNTC):
             (
                 # forward model above backward model
                     (future_df['dwt_diff'] > 0) &
+
                     # current profit above threshold
                     (future_df['dwt_diff'] >= future_df['profit_threshold']) &
+
                     # forward model below backward model at lookahead
                     (future_df['dwt_diff'].shift(-self.curr_lookahead) < 0)
             ), 1.0, 0.0)

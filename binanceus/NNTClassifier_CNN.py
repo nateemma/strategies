@@ -57,12 +57,10 @@ class NNTClassifier_CNN(ClassifierKerasTrinary):
         inputs = keras.Input(shape=(seq_len, num_features))
         x = inputs
 
-        x = keras.layers.Dense(64, input_shape=(seq_len, num_features))(x)
-        x = keras.layers.BatchNormalization()(x)
+        # x = keras.layers.Dense(64, input_shape=(seq_len, num_features))(x)
+        # x = keras.layers.BatchNormalization()(x)
 
-        x = keras.layers.Conv1D(filters=64, kernel_size=2, activation='tanh')(x)
-        x = keras.layers.MaxPooling1D(pool_size=2)(x)
-        x = keras.layers.Flatten()(x)
+        x = keras.layers.Conv1D(filters=64, kernel_size=2, activation='tanh',  padding="causal")(x)
         x = keras.layers.Dropout(dropout)(x)
         x = keras.layers.BatchNormalization()(x)
 

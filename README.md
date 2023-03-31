@@ -1,7 +1,5 @@
 # Phil's Custom freqtrade Crypto Trading Strategies
 
-_**I am currently unable to push to github, trying to figure out why...**_
-
 ## Current Status
 
 I've been getting some questions on the various strategies here, so I thought I'd better clarify what I am currently

@@ -159,7 +159,7 @@ class Anomaly(IStrategy):
     inf_timeframe = '5m'
 
     use_custom_stoploss = True
-    use_simpler_custom_stoploss = False
+    use_simpler_custom_stoploss = True
 
     # Recommended
     use_entry_signal = True
@@ -1026,6 +1026,25 @@ class Anomaly(IStrategy):
 
     def custom_exit(self, pair: str, trade: 'Trade', current_time: 'datetime', current_rate: float,
                     current_profit: float, **kwargs):
+
+        # Mod: just take the profit:
+
+        dataframe, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
+        last_candle = dataframe.iloc[-1].squeeze()
+
+        # Above 3%, sell if MFA > 90
+        if current_profit > 0.03:
+            if last_candle['mfi'] > 90:
+                return 'mfi_90'
+
+        # Mod: strong sell signal, in profit
+        if (current_profit > 0) and (last_candle['fisher_wr'] > 0.98):
+                return 'fwr_98'
+
+        # Mod: Sell any positions at a loss if they are held for more than two days.
+        if current_profit < 0.0 and (current_time - trade.open_date_utc).days >= 2:
+            return 'unclog'
+
         if self.use_simpler_custom_stoploss:
             return self.simpler_custom_exit(pair, trade, current_time, current_rate, current_profit)
         else:

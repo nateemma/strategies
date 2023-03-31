@@ -96,6 +96,8 @@ from NNTClassifier_LSTM2 import NNTClassifier_LSTM2
 from NNTClassifier_Multihead import NNTClassifier_Multihead
 from NNTClassifier_Transformer import NNTClassifier_Transformer
 from NNTClassifier_Wavenet import NNTClassifier_Wavenet
+from NNTClassifier_Wavenet2 import NNTClassifier_Wavenet2
+from NNTClassifier_GMix import NNTClassifier_GMix
 from NNTClassifier_GRU import NNTClassifier_GRU
 # from NNTClassifier_RBM import NNTClassifier_RBM
 
@@ -409,6 +411,8 @@ class NNTC(IStrategy):
         self.dataframeUtils.set_scaler_type(self.scaler_type)
 
         # populate the normal dataframe
+        if self.dbg_verbose:
+            print("    adding indicators...")
         dataframe = self.dataframePopulator.add_indicators(dataframe)
 
         # get the buy/sell training signals
@@ -453,6 +457,7 @@ class NNTC(IStrategy):
         # use sequence trends as criteria
         future_df['train_buy'] = self.get_train_buy_signals(future_df)
         future_df['train_sell'] = self.get_train_sell_signals(future_df)
+        # future_df['train_buy'] = np.where(future_df['train_sell']>0.0, 0.0, temp_buys) # sell takes precedence
 
         buys = future_df['train_buy'].copy()
         if buys.sum() < 3:
@@ -720,8 +725,14 @@ class NNTC(IStrategy):
         elif clf_name == 'Wavenet':
             clf = NNTClassifier_Wavenet(self.curr_pair, self.seq_len, nfeatures, tag=tag)
 
+        elif clf_name == 'Wavenet2':
+            clf = NNTClassifier_Wavenet2(self.curr_pair, self.seq_len, nfeatures, tag=tag)
+
         elif clf_name == 'GRU':
             clf = NNTClassifier_GRU(self.curr_pair, self.seq_len, nfeatures, tag=tag)
+
+        elif clf_name == 'GMix':
+            clf = NNTClassifier_GMix(self.curr_pair, self.seq_len, nfeatures, tag=tag)
 
         else:
             print("Unknown classifier: ", clf_name)
@@ -870,7 +881,7 @@ class NNTC(IStrategy):
 
         print("    predicting buys/sells...")
         preds = self.predict(df, pair, clf)
-        buys = np.where(((preds > 0.6) & (preds < 1.4)), 1.0, 0.0)
+        buys = np.where(((preds > 0.8) & (preds < 1.4)), 1.0, 0.0)
         sells = np.where((preds > 1.5), 1.0, 0.0)
 
         return buys, sells
@@ -923,15 +934,17 @@ class NNTC(IStrategy):
         # conditions.append(dataframe['volume'] > 0)
 
         # MFI
-        conditions.append(dataframe['mfi'] < 50.0)
+        conditions.append(dataframe['mfi'] < 40.0)
 
         # # above TEMA
         # conditions.append(dataframe['dwt'] < dataframe['tema'])
 
         # Classifier triggers
         predict_cond = (
-            (qtpylib.crossed_above(dataframe['predict_buy'], 0.5))
+            (qtpylib.crossed_above(dataframe['predict_buy'], 0.0))
         )
+
+        # print(f"Num buys: {dataframe['predict_buy'].sum()}")
         conditions.append(predict_cond)
 
         # add strategy-specific conditions (from subclass)
@@ -944,6 +957,7 @@ class NNTC(IStrategy):
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
+            # print(f"Num buys: {dataframe['buy'].sum()}")
         else:
             dataframe['entry'] = 0
 
@@ -978,7 +992,7 @@ class NNTC(IStrategy):
         # conditions.append(dataframe['volume'] > 0)
 
         # MFI
-        conditions.append(dataframe['mfi'] > 50.0)
+        conditions.append(dataframe['mfi'] > 80.0)
 
         # # below TEMA
         # conditions.append(dataframe['dwt'] > dataframe['tema'])
