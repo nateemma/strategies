@@ -1,5 +1,6 @@
 # Neural Network Trinary Classifier: this subclass uses a simple Multi-Layer Perceptron model
 
+# NOTE: recommend using seq_len of 1 with MLPs
 
 import numpy as np
 from pandas import DataFrame, Series

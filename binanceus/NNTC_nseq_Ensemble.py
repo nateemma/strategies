@@ -43,15 +43,15 @@ from NNTC import NNTC
 
 """
 ####################################################################################
-NNTC_profit:
-    This is a subclass of NNTC, which provides a framework for deriving a dimensionally-reduced model
-    This class trains the model based on future profit/loss conditions
+NNTC_nseq_Ensemble:
+    This is a subclass of PCA, which provides a framework for deriving a dimensionally-reduced model
+    This class trains the model based on sequences of up/down trends 
 
 ####################################################################################
 """
 
 
-class NNTC_profit_GMix(NNTC):
+class NNTC_nseq_Ensemble(NNTC):
 
     plot_config = {
         'main_plot': {
@@ -77,8 +77,8 @@ class NNTC_profit_GMix(NNTC):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     lookahead_hours = 1.0
-    n_profit_stddevs = 2.0
-    n_loss_stddevs = 2.5
+    n_profit_stddevs = 1.0
+    n_loss_stddevs = 1.0
     min_f1_score = 0.70
 
     custom_trade_info = {}
@@ -92,7 +92,7 @@ class NNTC_profit_GMix(NNTC):
     dbg_verbose = False  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
 
-    classifier_name = 'GMix'
+    classifier_name = 'Ensemble'
 
     ###################################
 
@@ -100,9 +100,10 @@ class NNTC_profit_GMix(NNTC):
 
     ## Hyperopt Variables
 
+
     # buy/sell hyperparams
-    buy_nseq_dn = IntParameter(2, 6, default=2, space='buy', load=True, optimize=True)
-    sell_nseq_up = IntParameter(2, 6, default=2, space='sell', load=True, optimize=True)
+    buy_nseq_dn = IntParameter(2, 10, default=4, space='buy', load=True, optimize=True)
+    sell_nseq_up = IntParameter(2, 10, default=8, space='sell', load=True, optimize=True)
 
     # Custom Sell Profit (formerly Dynamic ROI)
     cexit_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
@@ -132,40 +133,41 @@ class NNTC_profit_GMix(NNTC):
 
     # override the default training signal generation
 
-    # find where future price is higher/lower than previous window max/min and exceeds threshold
-
     def get_train_buy_signals(self, future_df: DataFrame):
         series = np.where(
             (
-                    (future_df['future_profit_max'] >= future_df['profit_threshold']) & # future profit exceeds threshold
-                    (future_df['future_max'] > future_df['dwt_recent_max']) # future window max exceeds prior window max
+                    (future_df['mfi'] < 50) & # loose guard
+                    (future_df['dwt_nseq_dn'] >= 4) &
+                    (future_df['future_nseq_up'] >= 4) &
+
+                    (future_df['future_profit_max'] >= future_df['profit_threshold'])   # future profit exceeds threshold
             ), 1.0, 0.0)
 
         return series
 
     def get_train_sell_signals(self, future_df: DataFrame):
+
         series = np.where(
             (
-                    (future_df['future_loss_min'] <= future_df['loss_threshold']) & # future loss exceeds threshold
-                    (future_df['future_min'] < future_df['dwt_recent_min']) # future window max exceeds prior window max
+                    (future_df['mfi'] > 50) & # loose guard
+                    (future_df['dwt_nseq_up'] >= 4) &
+                    # (future_df['future_nseq_dn'] >= 4) &
+
+                    (future_df['future_loss_min'] <= future_df['loss_threshold'])   # future loss exceeds threshold
             ), 1.0, 0.0)
 
         return series
 
     # save the indicators used here so that we can see them in plots (prefixed by '%')
     def save_debug_indicators(self, future_df: DataFrame):
-
-        self.add_debug_indicator(future_df, 'future_profit_max')
-        # self.add_debug_indicator(future_df, 'profit_threshold')
-        self.add_debug_indicator(future_df, 'future_max')
-        self.add_debug_indicator(future_df, 'future_loss_min')
-        # self.add_debug_indicator(future_df, 'loss_threshold')
-        self.add_debug_indicator(future_df, 'future_min')
+        self.add_debug_indicator(future_df, 'future_nseq_up')
+        # self.add_debug_indicator(future_df, 'future_nseq_up_thresh')
+        self.add_debug_indicator(future_df, 'future_nseq_dn')
+        # self.add_debug_indicator(future_df, 'future_nseq_dn_thresh')
 
         return
 
     ###################################
-
 
     # callbacks to add conditions to main buy/sell decision (rather than trainng)
 
@@ -186,4 +188,3 @@ class NNTC_profit_GMix(NNTC):
         return cond
 
     ###################################
-

@@ -1,0 +1,41 @@
+{
+  "strategy_name": "Anomaly_fbb",
+  "params": {
+    "roi": {
+      "0": 0.06
+    },
+    "stoploss": {
+      "stoploss": -0.99
+    },
+    "trailing": {
+      "trailing_stop": true,
+      "trailing_stop_positive": 0.177,
+      "trailing_stop_positive_offset": 0.214,
+      "trailing_only_offset_is_reached": true
+    },
+    "max_open_trades": {
+      "max_open_trades": 3
+    },
+    "buy": {},
+    "sell": {
+      "cexit_endtrend_respect_roi": true,
+      "cexit_pullback": false,
+      "cexit_pullback_amount": 0.018,
+      "cexit_pullback_respect_roi": false,
+      "cexit_roi_end": 0.006,
+      "cexit_roi_start": 0.013,
+      "cexit_roi_time": 1292,
+      "cexit_roi_type": "step",
+      "cexit_trend_type": "ssl",
+      "cstop_bail_how": "none",
+      "cstop_bail_roc": -2.732,
+      "cstop_bail_time": 763,
+      "cstop_bail_time_trend": false,
+      "cstop_loss_threshold": -0.021,
+      "cstop_max_stoploss": -0.247
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2023-04-03 01:42:27.886145+00:00"
+}

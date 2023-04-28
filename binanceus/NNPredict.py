@@ -153,6 +153,7 @@ class NNPredict(IStrategy):
     # pair_model_info = {}  # holds model-related info for each pair
     curr_dataframe: DataFrame = None
     normalise_data = True
+    ignore_exit_signals = True  # set to True if you don't want to process sell/exit signals (let custom sell do it)
 
     # the following affect training of the model. Bigger numbers give better model, but take longer and use more memory
     seq_len = 12  # 'depth' of training sequence
@@ -161,6 +162,7 @@ class NNPredict(IStrategy):
     predict_batch_size = 512
 
     classifier_list = {}  # classifier for each pair
+    curr_classifier = None
     init_done = {}  # flags whether initialisation has been done for a pair or not
 
     compressor = None
@@ -277,7 +279,7 @@ class NNPredict(IStrategy):
         if self.dataframePopulator is None:
 
             if self.dbg_trace_memory and (self.dbg_trace_pair == self.curr_pair):
-                self.dbg_trace_pair = curr_pair # only act when we see this pair (too much otherwise)
+                self.dbg_trace_pair = curr_pair  # only act when we see this pair (too much otherwise)
                 profiler.start(10)
                 profiler.snapshot()
 
@@ -406,10 +408,16 @@ class NNPredict(IStrategy):
         nfeatures = np.shape(dataframe)[1]
 
         # create the classifier if it doesn't already exist
-        if self.curr_pair not in self.classifier_list:
-            self.classifier_list[self.curr_pair] = self.make_classifier(self.curr_pair, self.seq_len, nfeatures)
+        if self.model_per_pair:
+            if self.curr_pair not in self.classifier_list:
+                self.classifier_list[self.curr_pair] = self.make_classifier(self.curr_pair, self.seq_len, nfeatures)
+            self.curr_classifier = self.classifier_list[self.curr_pair]
 
-        if self.classifier_list[self.curr_pair].prescale_data():
+        else:
+            if not self.curr_classifier:
+                self.curr_classifier = self.make_classifier(self.curr_pair, self.seq_len, nfeatures)
+
+        if self.curr_classifier.prescale_data():
             df_norm = self.dataframeUtils.norm_dataframe(dataframe)
         else:
             df_norm = dataframe.copy()
@@ -479,7 +487,7 @@ class NNPredict(IStrategy):
         #               ))
 
         # some classifiers take DataFrames as input, others tensors, so check
-        if self.classifier_list[self.curr_pair].needs_dataframes():
+        if self.curr_classifier.needs_dataframes():
             # save closing prices for later
             prices = df_norm[self.target_column]
 
@@ -532,12 +540,12 @@ class NNPredict(IStrategy):
         print("")
         force_train = self.refit_model if (self.dp.runmode.value in ('backtest')) else False
         # print(f"self.refit_model:{self.refit_model} self.dp.runmode.value:{self.dp.runmode.value}")
-        self.classifier_list[self.curr_pair].train(train_data, test_data,
-                                                   train_results, test_results,
-                                                   force_train)
+        self.curr_classifier.train(train_data, test_data,
+                                   train_results, test_results,
+                                   force_train)
 
         if self.dbg_test_classifier:
-            self.classifier_list[self.curr_pair].evaluate(test_data)
+            self.curr_classifier.evaluate(test_data)
 
         return dataframe
 
@@ -547,7 +555,7 @@ class NNPredict(IStrategy):
     def backtest_data(self, dataframe: DataFrame) -> DataFrame:
 
         # get the current classifier and relevant flags
-        classifier = self.classifier_list[self.curr_pair]
+        classifier = self.curr_classifier
         use_dataframes = classifier.needs_dataframes()
         prescale_data = classifier.prescale_data()
         price_scaler = self.dataframeUtils.make_scaler()
@@ -598,7 +606,7 @@ class NNPredict(IStrategy):
     def update_predictions(self, dataframe: DataFrame) -> DataFrame:
 
         # get the current classifier
-        classifier = self.classifier_list[self.curr_pair]
+        classifier = self.curr_classifier
         use_dataframes = classifier.needs_dataframes()
         prescale_data = classifier.prescale_data()
 
@@ -666,7 +674,7 @@ class NNPredict(IStrategy):
 
         # if the model produces single valued predictions then we have to roll through the dataframe
         # if not, we can use a more efficient batching approach
-        if self.classifier_list[self.curr_pair].returns_single_prediction():
+        if self.curr_classifier.returns_single_prediction():
             dataframe = self.add_model_rolling_predictions(dataframe)
         else:
             dataframe = self.add_model_batch_predictions(dataframe)
@@ -676,17 +684,18 @@ class NNPredict(IStrategy):
     # get predictions. Note that the input can be dataframe or tensor
     def get_predictions(self, data_chunk):
 
-        if self.curr_pair not in self.classifier_list:
+        # if self.curr_pair not in self.classifier_list:
+        if not self.curr_classifier:
             print("    ERR: no classifier")
             preds_notrend = np.zeros(np.shape(data_chunk)[0], dtype=float)
             return preds_notrend
 
         # run the prediction
-        preds_notrend = self.classifier_list[self.curr_pair].predict(data_chunk)
+        preds_notrend = self.curr_classifier.predict(data_chunk)
 
         predictions = preds_notrend
         # print(df)
-        if self.classifier_list[self.curr_pair].returns_single_prediction():
+        if self.curr_classifier.returns_single_prediction():
             predictions = [predictions[-1]]
 
         return predictions
@@ -700,7 +709,7 @@ class NNPredict(IStrategy):
         cl_std = dataframe[self.target_column].std()
 
         # get the current classifier
-        classifier = self.classifier_list[self.curr_pair]
+        classifier = self.curr_classifier
         use_dataframes = classifier.needs_dataframes()
         prescale_data = classifier.prescale_data()
 
@@ -787,7 +796,7 @@ class NNPredict(IStrategy):
         # probably don't need to handle tensor cases since those classifiers typically do not return single values
 
         # get the current clasifier
-        classifier = self.classifier_list[self.curr_pair]
+        classifier = self.curr_classifier
         use_dataframes = classifier.needs_dataframes()
         prescale_data = classifier.prescale_data()
 
@@ -1024,6 +1033,11 @@ class NNPredict(IStrategy):
 
         # if we are training a new model, just return (this helps avoid runtime errors)
         if self.training_only:
+            dataframe['exit_long'] = 0
+            return dataframe
+
+        if self.ignore_exit_signals:
+            dataframe['exit_long'] = 0
             return dataframe
 
         # conditions.append(dataframe['volume'] > 0)
@@ -1102,15 +1116,15 @@ class NNPredict(IStrategy):
 
         # Mod: just take the profit:
         # Above 3%, sell if MFA > 90
-        if current_profit > 0.03:
-            if last_candle['mfi'] > 90:
+        if current_profit >= 0.03:
+            if last_candle['mfi'] >= 90:
                 return 'mfi_90'
 
         # Mod: strong sell signal, in profit
-        if (current_profit > 0) and (last_candle['fisher_wr'] > 0.98):
-                return 'fwr_98'
+        if (current_profit > 0) and (last_candle['fisher_wr'] >= 0.98):
+            return 'fwr_98'
 
-        # Sell any positions at a loss if they are held for more than one day.
+        # Sell any positions at a loss if they are held for more than two days.
         if current_profit < 0.0 and (current_time - trade.open_date_utc).days >= 2:
             return 'unclog'
 

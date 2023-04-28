@@ -1,0 +1,41 @@
+{
+  "strategy_name": "NNBC_profit",
+  "params": {
+    "roi": {
+      "0": 0.06
+    },
+    "stoploss": {
+      "stoploss": -0.99
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 3
+    },
+    "buy": {},
+    "sell": {
+      "cexit_endtrend_respect_roi": true,
+      "cexit_pullback": true,
+      "cexit_pullback_amount": 0.03,
+      "cexit_pullback_respect_roi": true,
+      "cexit_roi_end": 0.0,
+      "cexit_roi_start": 0.022,
+      "cexit_roi_time": 724,
+      "cexit_roi_type": "static",
+      "cexit_trend_type": "ssl",
+      "cstop_bail_how": "none",
+      "cstop_bail_roc": -3.356,
+      "cstop_bail_time": 1346,
+      "cstop_bail_time_trend": false,
+      "cstop_loss_threshold": -0.049,
+      "cstop_max_stoploss": -0.107
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2023-04-03 18:40:30.402788+00:00"
+}

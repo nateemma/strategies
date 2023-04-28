@@ -159,7 +159,7 @@ class Anomaly(IStrategy):
     inf_timeframe = '5m'
 
     use_custom_stoploss = True
-    use_simpler_custom_stoploss = True
+    use_simpler_custom_stoploss = False
 
     # Recommended
     use_entry_signal = True
@@ -204,6 +204,8 @@ class Anomaly(IStrategy):
     buy_classifier_list = {}
     sell_classifier_list = {}
 
+    ignore_exit_signals = True # set to True if you don't want to process sell/exit signals (let custom sell do it)
+
     # debug flags
     first_time = True  # mostly for debug
     first_run = True  # used to identify first time through buy/sell populate funcs
@@ -235,8 +237,8 @@ class Anomaly(IStrategy):
         DBSCAN = 10 # currently not working
         Ensemble = 11
 
-    classifier_type = ClassifierType.IsolationForest # controls which classifier is used
-    # classifier_type = ClassifierType.Ensemble # controls which classifier is used
+    # classifier_type = ClassifierType.IsolationForest # controls which classifier is used
+    classifier_type = ClassifierType.Ensemble # controls which classifier is used
     # classifier_type = ClassifierType.DBSCAN # controls which classifier is used
 
     ###################################
@@ -339,7 +341,7 @@ class Anomaly(IStrategy):
         # buys = None
         buys = np.where(
             (
-                    (dataframe['mfi'] <= 30) #&
+                    (dataframe['mfi'] <= 40) #&
                     # (dataframe['dwt_loss'] <= dataframe['loss_threshold'])   #  loss exceeds threshold
             ), 1.0, 0.0)
 
@@ -351,7 +353,7 @@ class Anomaly(IStrategy):
 
         sells = np.where(
             (
-                    (dataframe['mfi'] >= 70) &
+                    (dataframe['mfi'] >= 60) &
                     (dataframe['dwt_profit'] >= dataframe['profit_threshold'])  # profit exceeds threshold
             ), 1.0, 0.0)
 
@@ -617,11 +619,12 @@ class Anomaly(IStrategy):
         else:
             self.buy_classifier = self.buy_classifier_list[self.curr_pair]
 
-        if self.curr_pair not in self.sell_classifier_list:
-            self.sell_classifier = self.get_classifier(full_df_norm.shape[1], "Sell")
-            self.sell_classifier_list[self.curr_pair] = self.sell_classifier
-        else:
-            self.sell_classifier = self.sell_classifier_list[self.curr_pair]
+        if not self.ignore_exit_signals:
+            if self.curr_pair not in self.sell_classifier_list:
+                self.sell_classifier = self.get_classifier(full_df_norm.shape[1], "Sell")
+                self.sell_classifier_list[self.curr_pair] = self.sell_classifier
+            else:
+                self.sell_classifier = self.sell_classifier_list[self.curr_pair]
 
         # constrain sample size to what will be available in run modes
         data_size = int(min(975, full_df_norm.shape[0]))
@@ -661,7 +664,8 @@ class Anomaly(IStrategy):
         self.buy_classifier.train(df_train, df_test, train_buys, test_buys, force_train=force_train)
 
         # Sell Classifier
-        self.sell_classifier.train(df_train, df_test, train_sells, test_sells, force_train=force_train)
+        if not self.ignore_exit_signals:
+            self.sell_classifier.train(df_train, df_test, train_sells, test_sells, force_train=force_train)
 
 
         # if scan specified, test against the test dataframe
@@ -786,6 +790,9 @@ class Anomaly(IStrategy):
         print("    predicting buys...")
         predict = self.predict(df, pair, clf)
 
+        # anomaly detection tends to flag both buys and sells, so filter based on MFI
+        predict = np.where((predict > 0) & (df['mfi'] < 50), 1.0, 0.0)
+
         return predict
 
     def predict_sell(self, df: DataFrame, pair):
@@ -798,6 +805,9 @@ class Anomaly(IStrategy):
 
         print("    predicting sells...")
         predict = self.predict(df, pair, clf)
+
+        # anomaly detection tends to flag both buys and sells, so filter based on MFI
+        predict = np.where((predict > 0) & (df['mfi'] > 50), 1.0, 0.0)
 
         return predict
 
@@ -855,7 +865,7 @@ class Anomaly(IStrategy):
         # conditions.append(dataframe['fisher_wr'] < -0.7)
 
         # MFI
-        conditions.append(dataframe['mfi'] < 50.0)
+        # conditions.append(dataframe['mfi'] < 30.0)
 
         # # below TEMA
         # conditions.append(dataframe['close'] < dataframe['tema'])
@@ -865,8 +875,8 @@ class Anomaly(IStrategy):
         if strat_cond is not None:
             conditions.append(strat_cond)
 
-        # sell signal is not active
-        conditions.append(dataframe['predict_sell'] < 0.1)
+        # # sell signal is not active
+        # conditions.append(dataframe['predict_sell'] < 0.1)
 
         # PCA/Classifier triggers
         anomaly_cond = (
@@ -903,7 +913,11 @@ class Anomaly(IStrategy):
                 # self.show_debug_info(curr_pair)
                 self.show_all_debug_info()
 
-        conditions.append(dataframe['volume'] > 0)
+        if self.ignore_exit_signals:
+            dataframe['exit_long'] = 0
+            return dataframe
+
+        # conditions.append(dataframe['volume'] > 0)
 
         # # ATR in sell range
         # conditions.append(dataframe['atr_signal'] <= 0.0)
@@ -915,7 +929,7 @@ class Anomaly(IStrategy):
         # conditions.append(dataframe['fisher_wr'] > 0.5)
 
         # MFI
-        conditions.append(dataframe['mfi'] > 50.0)
+        # conditions.append(dataframe['mfi'] > 70.0)
 
         # add strategy-specific conditions (from subclass)
         strat_cond = self.get_strategy_sell_conditions(dataframe)

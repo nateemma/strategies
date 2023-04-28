@@ -1,0 +1,44 @@
+{
+  "strategy_name": "NNTC_nseq_Ensemble",
+  "params": {
+    "roi": {
+      "0": 0.06
+    },
+    "stoploss": {
+      "stoploss": -0.99
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 3
+    },
+    "buy": {
+      "buy_nseq_dn": 2
+    },
+    "sell": {
+      "cexit_endtrend_respect_roi": true,
+      "cexit_pullback": true,
+      "cexit_pullback_amount": 0.02,
+      "cexit_pullback_respect_roi": false,
+      "cexit_roi_end": 0.009,
+      "cexit_roi_start": 0.041,
+      "cexit_roi_time": 1386,
+      "cexit_roi_type": "static",
+      "cexit_trend_type": "none",
+      "cstop_bail_how": "none",
+      "cstop_bail_roc": -1.891,
+      "cstop_bail_time": 1430,
+      "cstop_bail_time_trend": true,
+      "cstop_loss_threshold": -0.019,
+      "cstop_max_stoploss": -0.21,
+      "sell_nseq_up": 2
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2023-02-22 22:40:36.981982+00:00"
+}

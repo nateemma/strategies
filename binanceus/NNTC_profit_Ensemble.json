@@ -1,0 +1,44 @@
+{
+  "strategy_name": "NNTC_profit_Ensemble",
+  "params": {
+    "roi": {
+      "0": 0.06
+    },
+    "stoploss": {
+      "stoploss": -0.99
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 3
+    },
+    "buy": {
+      "buy_nseq_dn": 5
+    },
+    "sell": {
+      "cexit_endtrend_respect_roi": true,
+      "cexit_pullback": false,
+      "cexit_pullback_amount": 0.01,
+      "cexit_pullback_respect_roi": false,
+      "cexit_roi_end": 0.0,
+      "cexit_roi_start": 0.046,
+      "cexit_roi_time": 1040,
+      "cexit_roi_type": "decay",
+      "cexit_trend_type": "ssl",
+      "cstop_bail_how": "none",
+      "cstop_bail_roc": -4.398,
+      "cstop_bail_time": 313,
+      "cstop_bail_time_trend": true,
+      "cstop_loss_threshold": -0.029,
+      "cstop_max_stoploss": -0.266,
+      "sell_nseq_up": 10
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2023-04-21 08:20:05.636219+00:00"
+}

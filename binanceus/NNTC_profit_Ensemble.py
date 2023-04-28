@@ -43,15 +43,15 @@ from NNTC import NNTC
 
 """
 ####################################################################################
-PCA_fbb:
+NNTC_profit_Ensemble:
     This is a subclass of PCA, which provides a framework for deriving a dimensionally-reduced model
-    This class trains the model based on Fisher/WR and bollinger band conditions
+    This class trains the model based on future profit/loss conditions and an ensemble of different classifiers
 
 ####################################################################################
 """
 
 
-class NNTC_fbb(NNTC):
+class NNTC_profit_Ensemble(NNTC):
 
     plot_config = {
         'main_plot': {
@@ -61,11 +61,10 @@ class NNTC_fbb(NNTC):
         },
         'subplots': {
             "Diff": {
-                '%train_buy': {'color': 'salmon'},
-                'predict_buy': {'color': 'cadetblue'},
-                'fisher_wr': {'color': 'plum'},
-                'bb_gain': {'color': 'sandybrown'},
-                'bb_loss': {'color': 'rosybrown'},
+                '%train_buy': {'color': 'mediumaquamarine'},
+                'predict_buy': {'color': 'cornflowerblue'},
+                '%train_sell': {'color': 'salmon'},
+                'predict_sell': {'color': 'orange'},
             },
         }
     }
@@ -78,8 +77,8 @@ class NNTC_fbb(NNTC):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     lookahead_hours = 1.0
-    n_profit_stddevs = 1.5
-    n_loss_stddevs = 2.0
+    n_profit_stddevs = 1.0
+    n_loss_stddevs = 1.0
     min_f1_score = 0.70
 
     custom_trade_info = {}
@@ -93,16 +92,17 @@ class NNTC_fbb(NNTC):
     dbg_verbose = False  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
 
+    classifier_name = 'Ensemble'
+
     ###################################
 
     # Strategy Specific Variable Storage
 
     ## Hyperopt Variables
 
-    # PCA hyperparams
-    # buy_pca_gain = IntParameter(1, 50, default=4, space='buy', load=True, optimize=True)
-    #
-    # sell_pca_gain = IntParameter(-1, -15, default=-4, space='sell', load=True, optimize=True)
+    # buy/sell hyperparams
+    buy_nseq_dn = IntParameter(2, 10, default=4, space='buy', load=True, optimize=True)
+    sell_nseq_up = IntParameter(2, 10, default=8, space='sell', load=True, optimize=True)
 
     # Custom Sell Profit (formerly Dynamic ROI)
     cexit_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
@@ -132,41 +132,62 @@ class NNTC_fbb(NNTC):
 
     # override the default training signal generation
 
-    # uses various fisher_wr and bollinger band indicators, combined with future los/gain
+    # find where future price is higher/lower than previous window max/min and exceeds threshold
 
     def get_train_buy_signals(self, future_df: DataFrame):
-        buys = np.where(
+        series = np.where(
             (
-                # oversold condition with high potential profit
-                    (future_df['fisher_wr'] < -0.8) &
-                    (future_df['bb_gain'] >= future_df['profit_threshold']/100.0) &
+                    (future_df['mfi'] < 50) & # MFI in buy range
 
-                    # future profit
-                    (future_df['future_profit_max'] >= future_df['profit_threshold']) &
-                    (future_df['future_gain'] > 0)
+                    (future_df['future_profit_max'] >= future_df['profit_threshold']) & # future profit exceeds threshold
+                    (future_df['future_max'] > future_df['dwt_recent_max']) # future window max exceeds prior window max
             ), 1.0, 0.0)
 
-        return buys
+        return series
 
     def get_train_sell_signals(self, future_df: DataFrame):
-        sells = np.where(
+        series = np.where(
             (
-                # overbought condition with high potential loss
-                    (future_df['fisher_wr'] > 0.8) &
-                    (future_df['bb_loss'] <= future_df['loss_threshold']/100.0) &
+                    (future_df['mfi'] > 50) & # MFI in sell range
 
-                    # future loss
-                    (future_df['future_gain'] <= future_df['loss_threshold'])
+                    (future_df['future_loss_min'] <= future_df['loss_threshold']) & # future loss exceeds threshold
+                    (future_df['future_min'] < future_df['dwt_recent_min']) # future window max exceeds prior window max
             ), 1.0, 0.0)
 
-        return sells
+        return series
 
     # save the indicators used here so that we can see them in plots (prefixed by '%')
     def save_debug_indicators(self, future_df: DataFrame):
-        self.add_debug_indicator(future_df, 'future_gain')
+
         self.add_debug_indicator(future_df, 'future_profit_max')
+        # self.add_debug_indicator(future_df, 'profit_threshold')
+        self.add_debug_indicator(future_df, 'future_max')
         self.add_debug_indicator(future_df, 'future_loss_min')
+        # self.add_debug_indicator(future_df, 'loss_threshold')
+        self.add_debug_indicator(future_df, 'future_min')
 
         return
 
+    ###################################
+
+
+    # callbacks to add conditions to main buy/sell decision (rather than trainng)
+    #
+    # def get_strategy_buy_conditions(self, dataframe: DataFrame):
+    #     cond = np.where(
+    #         (
+    #             # N down sequences
+    #             (dataframe['dwt_nseq_dn'] >= self.buy_nseq_dn.value)
+    #         ), 1.0, 0.0)
+    #     return cond
+    #
+    # def get_strategy_sell_conditions(self, dataframe: DataFrame):
+    #     cond = np.where(
+    #         (
+    #             # N up sequences
+    #             ( dataframe['dwt_nseq_up'] >= self.sell_nseq_up.value)
+    #         ), 1.0, 0.0)
+    #     return cond
+
+    ###################################
 

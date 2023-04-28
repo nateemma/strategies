@@ -92,14 +92,14 @@ from NNTClassifier_CNN import NNTClassifier_CNN
 # from NNTClassifier_MLP2 import NNTClassifier_MLP2
 from NNTClassifier_LSTM import NNTClassifier_LSTM
 from NNTClassifier_LSTM2 import NNTClassifier_LSTM2
+from NNTClassifier_LSTM3 import NNTClassifier_LSTM3
 # from NNTClassifier_Attention import NNTClassifier_Attention
 from NNTClassifier_Multihead import NNTClassifier_Multihead
 from NNTClassifier_Transformer import NNTClassifier_Transformer
 from NNTClassifier_Wavenet import NNTClassifier_Wavenet
 from NNTClassifier_Wavenet2 import NNTClassifier_Wavenet2
-from NNTClassifier_GMix import NNTClassifier_GMix
 from NNTClassifier_GRU import NNTClassifier_GRU
-# from NNTClassifier_RBM import NNTClassifier_RBM
+from NNTClassifier_Ensemble import NNTClassifier_Ensemble
 
 import Environment
 import profiler
@@ -228,6 +228,7 @@ class NNTC(IStrategy):
     refit_model = False  # only set to True when training. If False, then existing model is used, if present
     use_full_dataset = True  # use the entire dataset for training (in backtest)
     model_per_pair = False
+    ignore_exit_signals = True # set to True if you don't want to process sell/exit signals (let custom sell do it)
 
     scaler_type = ScalerType.Robust  # scaler type used for normalisation
 
@@ -713,6 +714,9 @@ class NNTC(IStrategy):
         elif clf_name == 'LSTM2':
             clf = NNTClassifier_LSTM2(self.curr_pair, self.seq_len, nfeatures, tag=tag)
 
+        elif clf_name == 'LSTM3':
+            clf = NNTClassifier_LSTM3(self.curr_pair, self.seq_len, nfeatures, tag=tag)
+
         elif clf_name == 'MLP':
             clf = NNTClassifier_MLP(self.curr_pair, self.seq_len, nfeatures, tag=tag)
 
@@ -731,8 +735,8 @@ class NNTC(IStrategy):
         elif clf_name == 'GRU':
             clf = NNTClassifier_GRU(self.curr_pair, self.seq_len, nfeatures, tag=tag)
 
-        elif clf_name == 'GMix':
-            clf = NNTClassifier_GMix(self.curr_pair, self.seq_len, nfeatures, tag=tag)
+        elif clf_name == 'Ensemble':
+            clf = NNTClassifier_Ensemble(self.curr_pair, self.seq_len, nfeatures, tag=tag)
 
         else:
             print("Unknown classifier: ", clf_name)
@@ -881,8 +885,15 @@ class NNTC(IStrategy):
 
         print("    predicting buys/sells...")
         preds = self.predict(df, pair, clf)
-        buys = np.where(((preds > 0.8) & (preds < 1.4)), 1.0, 0.0)
-        sells = np.where((preds > 1.5), 1.0, 0.0)
+
+        # convert probability to buy & sell events
+        # Note that I added in a 'loose'  MFI check, just to help filter out bad predictions
+        buys = np.where(((preds > 0.5) & (preds < 1.4) & (df['mfi'] < 50)), 1.0, 0.0)
+        sells = np.where(((preds > 1.5) & (df['mfi'] > 50)), 1.0, 0.0)
+
+        # buys = np.where(((preds > 0.5) & (preds < 1.4)), 1.0, 0.0)
+        # sells = np.where(((preds > 1.5)), 1.0, 0.0)
+
 
         return buys, sells
 
@@ -934,7 +945,7 @@ class NNTC(IStrategy):
         # conditions.append(dataframe['volume'] > 0)
 
         # MFI
-        conditions.append(dataframe['mfi'] < 40.0)
+        conditions.append(dataframe['mfi'] < 50.0)
 
         # # above TEMA
         # conditions.append(dataframe['dwt'] < dataframe['tema'])
@@ -988,11 +999,16 @@ class NNTC(IStrategy):
                 # self.show_debug_info(curr_pair)
                 self.show_all_debug_info()
 
+
+        if self.ignore_exit_signals:
+            dataframe['exit_long'] = 0
+            return dataframe
+
         # # some volume
         # conditions.append(dataframe['volume'] > 0)
 
         # MFI
-        conditions.append(dataframe['mfi'] > 80.0)
+        conditions.append(dataframe['mfi'] > 50.0)
 
         # # below TEMA
         # conditions.append(dataframe['dwt'] > dataframe['tema'])

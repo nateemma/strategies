@@ -2,10 +2,6 @@
 
 ## Current Status
 
-**I am experiencing many issues pushing to github (haven't been successful for weeks). 
-
-I am currently travelling but will try to resolve this when I get back (May). Sorry about that**
-
 I've been getting some questions on the various strategies here, so I thought I'd better clarify what I am currently
 working on...
 
@@ -14,7 +10,7 @@ code in the following types of strategies:
 
 - PCA
 - Anomaly
-- NNTC (replaces NNBC)
+- NNBC
 - NNPredict
 
 
@@ -28,17 +24,10 @@ _NOTES_:
   stuff in the binanceus directory - sorry. <br>
   All strats should work, but you will need to run hyperopt on them to get good hyperparameters
 
-- _**Mac M1**_: My development machine is a Mac M1 laptop. While it is very fast, it does present some challenges in terms of
+- Mac M1 My development machine is a Mac M1 laptop. While it is very fast, it does present some challenges in terms of
   packages. See [here](README_MACM1.md) for more details.<br>
   As an aside, all of my scripts are written for _zsh_, not _bash_ (this is the default shell on MacOS, plus the version
   of bash that is pre-installed is very old)
-  
- - _**NNBC vs NNTC**_: I have been replacing the NNBC (Neural Network Binary Classifiers) with NNTC alternatives (Trinary, i.e. one model predicts one of hold/buy/sell). These appear to be much faster and more accurate, and use less memory (one model instead of two).
- Unfortunately, I have been unable to push most of these changes...
- 
- - _**NNPredict**_: I am not happy with how these are working, despite results that might seem OK. The problem itself (predicting the actual price) is a cutting edge problem, and I do not appear to have solved it
-
-- _**Anomaly**_: these are actually the best performing algorithms in live runs. I have significantly re-written the underlying algorithm, but again I cannot upload the changes to github...
 
 ## Intro
 

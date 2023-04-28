@@ -1,5 +1,6 @@
 # Neural Network Binary Classifier: this subclass uses a simple Multi-Layer Perceptron model
 
+#NOTE: MLPs do not work well with time sequences, so I recommend setting this to 1
 
 import numpy as np
 from pandas import DataFrame, Series

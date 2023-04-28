@@ -9,35 +9,14 @@ echo ""
 
 strat_type="PCA"
 
+ryn_hyp=false
+
 list=()
 
 if [[ $# -gt 0 ]]; then
   strat_type="${1}"
 fi
 
-#if [[ "${strat_type}" == "pca" ]]; then
-#  list=("PCA_dwt" "PCA_fbb" "PCA_highlow" "PCA_jump" "PCA_macd" "PCA_mfi" "PCA_minmax" "PCA_nseq" "PCA_over" \
-#"PCA_profit" "PCA_stochastic" "PCA_swing")
-#elif  [[ "${strat_type}" == "anomaly" ]]; then
-#  list=("Anomaly_dwt" "Anomaly_macd" "Anomaly_nseq" "Anomaly_profit" )
-#elif  [[ "${strat_type}" == "nnbc" ]]; then
-#  list=("NNBC_fbb" "NNBC_jump" "NNBC_minmax" "NNBC_nseq" "NNBC_profit" "NNBC_swing")
-#elif  [[ "${strat_type}" == "nnpredict" ]]; then
-#  list=("NNPredict" "NNPredict_Multihead" "NNPredict_Transformer" "NNPredict_MLP")
-#elif  [[ "${strat_type}" == "nntc" ]]; then
-#  list=("NNTC_highlow_LSTM" "NNTC_profit_GRU"  \
-#  "NNTC_dwt_LSTM" "NNTC_macd_GRU"  "NNTC_profit_LSTM" \
-#  "NNTC_macd_LSTM" "NNTC_profit_LSTM2" \
-#  "NNTC_fbb_GRU" "NNTC_macd_Multihead" "NNTC_profit_Wavenet" \
-#  "NNTC_fbb_LSTM" "NNTC_nseq_GRU" "NNTC_pv_LSTM" \
-#  "NNTC_fbb_Multihead" "NNTC_nseq_LSTM" "NNTC_pv_Multihead" \
-#  "NNTC_fbb_Wavenet" "NNTC_nseq_Transformer" "NNTC_pv_Wavenet" \
-#  "NNTC_fwr_LSTM" "NNTC_nseq_Wavenet" "NNTC_swing_LSTM")
-#
-#else
-#  echo "ERR: unknown strategy list: ${1}"
-#  return
-#fi
 
 
 #list=$(exec find user_data/strategies/binanceus/${strat_type}_*.py -type f -exec basename {}  -print0 \;)
@@ -60,9 +39,10 @@ fi
 #echo "Files: ${list}"
 
 logfile="overnight_${strat_type}.log"
+hyplog="overnight_hyp_${strat_type}.log"
 
 echo "Strategy list: ${list}"
-echo "Output log:    ${logfile}"
+echo "Test log:      ${logfile}"
 
 today=$(date)
 echo "" >$logfile
@@ -71,21 +51,49 @@ echo "${today} overnight.sh" >>$logfile
 echo "============================" >>$logfile
 echo "" >>$logfile
 
+if [ $run_hyp ]; then
+  echo "HyperOpt log:  ${$hyplog}"
+  echo "" >$hyplog
+  echo "============================" >>$hyplog
+  echo "${today} overnight.sh" >>$hyplog
+  echo "============================" >>$hyplog
+  echo "" >>$hyplog
+fi
+
 for file in ${list}; do
   strat=$file:t:r
   echo $strat
+
+  echo ""
+  echo "-------------------"
+  echo "${strat}"
+  echo "-------------------"
+  echo ""
+
+  if [ $run_hyp ]; then
+    echo "" >>$hyplog
+    echo "-------------------" >>$hyplog
+    echo "${strat}" >>$hyplog
+    echo "-------------------" >>$hyplog
+    echo "" >>$hyplog
+    zsh user_data/strategies/scripts/hyp_strat.sh -n 90 -e 100 -s sell -l CalmarHyperOptLoss binanceus ${strat} >>$hyplog
+  fi
+
   echo "" >>$logfile
   echo "-------------------" >>$logfile
   echo "${strat}" >>$logfile
   echo "-------------------" >>$logfile
   echo "" >>$logfile
-#  zsh user_data/strategies/scripts/test_strat.sh -n 750 binanceus ${strat} >>$logfile
-  zsh user_data/strategies/scripts/test_strat.sh -n 60 binanceus ${strat} >>$logfile
-#  zsh user_data/strategies/scripts/hyp_strat.sh -n 90 -e 100 -s sell -l CalmarHyperOptLoss binanceus ${strat} >>$logfile
+  zsh user_data/strategies/scripts/test_strat.sh -n 30 binanceus ${strat} >>$logfile
+
 done
 echo "============================" >>$logfile
 
 python user_data/strategies/scripts/SummariseTestResults.py ${logfile}
+
+if [ $run_hyp ]; then
+  python user_data/strategies/scripts/SummariseHyperOptResults.py ${$hyplog}
+fi
 
 #cat $logfile
 

@@ -101,8 +101,23 @@ def process_totals(strat, line):
     entry['ave_profit'] = float(cols[2])
     entry['tot_profit'] = float(cols[5])
     entry['win_pct'] = float(cols[7].strip().split(" ")[-1])
+    entry['expectancy'] = 0 # updated later
 
     strat_summary[strat] = entry
+
+    return
+
+def process_expectancy(strat, line):
+    global strat_summary
+    global strat_results
+
+    # format of line:
+    # | Expectancy                  | -0.05               |
+    cols = line.strip().split("|")
+    cols.pop(0)
+    cols.pop(len(cols) - 1)
+
+    strat_summary[strat]['expectancy'] = float(cols[-1])
 
     return
 
@@ -112,7 +127,7 @@ def print_results():
     global strat_results
 
     print("")
-    print("Summary:")
+    # print("Summary:")
 
     # convert associative array into 'plain' array
     strat_stats = []
@@ -122,14 +137,15 @@ def print_results():
             strat_stats.append([strategy,
                                 strat_summary[strategy]['entries'], strat_summary[strategy]['ave_profit'],
                                 strat_summary[strategy]['tot_profit'], strat_summary[strategy]['win_pct'],
+                                strat_summary[strategy]['expectancy'],
                                 0.0])
 
         # create dataframe
         df = pandas.DataFrame(strat_stats,
-                              columns=["Strategy", "Trades", "Average \nProfit(%)",
-                                       "Total  \nProfit(%)", "Win%", "Rank"])
+                              columns=["Strategy", "Trades", "Average%",
+                                       "Total%", "Win%", "Expectancy", "Rank"])
 
-        df["Rank"] = df["Win%"].rank(ascending=False, method='min')
+        df["Rank"] = df["Total%"].rank(ascending=False, method='min')
 
         pandas.set_option('display.precision', 2)
         print("")
@@ -142,6 +158,7 @@ def print_results():
 def main():
     global curr_line
     global infile
+    global strat_results
 
     args = sys.argv[1:]
 
@@ -155,17 +172,25 @@ def main():
     # repeatedly scan file and find header of new run, then print results
     while skipto("Result for strategy ", anywhere=True):
         strat = curr_line.rstrip().split(" ")[-1]
-        print("")
-        print("------------")
-        print(strat)
-        print("------------")
-        print("")
-        copyto('TOTAL', anywhere=True)
+        # print("")
+        # print("------------")
+        # print(strat)
+        # print("------------")
+        # print("")
+        # copyto('TOTAL', anywhere=True)
+        skipto('TOTAL', anywhere=True)
         process_totals(strat, curr_line.rstrip())
-        copyto('================== SUMMARY METRICS', anywhere=True)
-        copyto('===============================')
-        print(curr_line.rstrip())
-        print("")
+        # copyto('================== SUMMARY METRICS', anywhere=True)
+        skipto('================== SUMMARY METRICS', anywhere=True)
+        if strat_summary[strat]['entries'] > 0:
+            # copyto('Expectancy', anywhere=True)
+            skipto('Expectancy', anywhere=True)
+            # print(curr_line.rstrip())
+            process_expectancy(strat, curr_line.rstrip())
+        # copyto('===============================')
+        skipto('===============================')
+        # print(curr_line.rstrip())
+        # print("")
 
     print_results()
 

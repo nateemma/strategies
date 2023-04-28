@@ -67,7 +67,7 @@ def process_totals(strat, line):
 
     # format of line:
     # 97/100:     94 trades. 63/0/31 Wins/Draws/Losses. Avg profit   0.59%. Median profit   1.15%. Total profit 1658.03907912 USD (  16.58%). Avg duration 22:16:00 min. Objective: -30.83651
-    cols = " ".join(line.split()) # get rid of multiple spaces
+    cols = " ".join(line[1:].split()) # get rid of multiple spaces (and 1st character, which could be '*')
     cols = cols.strip().split(" ")
 
     # print("cols: ", cols)
@@ -77,7 +77,7 @@ def process_totals(strat, line):
     wins, draws, losses = cols[3].strip().split("/")
     entry['ave_profit'] = float(cols[7].split('%')[0])
     entry['tot_profit'] = float(cols[16].split('%')[0])
-    entry['win_pct'] = float(wins) / float(entry['entries'])
+    entry['win_pct'] = 100.0 * float(wins) / float(entry['entries'])
 
     strat_summary[strat] = entry
 
@@ -102,9 +102,9 @@ def print_results():
 
     # create dataframe
     df = pandas.DataFrame(strat_stats,
-                          columns=["Strategy", "Trades", "Ave\nProfit(%)", "Tot\nProfit(%)", "Win%", "Rank"])
+                          columns=["Strategy", "Trades", "Average(%)", "Total(%)", "Win%", "Rank"])
 
-    df["Rank"] = df["Win%"].rank(ascending=False, method='min')
+    df["Rank"] = df["Total(%)"].rank(ascending=False, method='min')
 
     pandas.set_option('display.precision', 2)
     print("")

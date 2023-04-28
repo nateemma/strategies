@@ -43,15 +43,15 @@ from NNTC import NNTC
 
 """
 ####################################################################################
-NNTC_dwt_GRU:
-    This is a subclass of NNTC, which provides a framework for deriving a dimensionally-reduced model
-    This class trains the model based on DWT models
+NNTC_highlow_Ensemble:
+    This is a subclass of PCA, which provides a framework for deriving a dimensionally-reduced model
+    This class trains the model based on local high/low conditions
 
 ####################################################################################
 """
 
 
-class NNTC_dwt_GRU(NNTC):
+class NNTC_highlow_Ensemble(NNTC):
 
     plot_config = {
         'main_plot': {
@@ -76,8 +76,8 @@ class NNTC_dwt_GRU(NNTC):
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
-    lookahead_hours = 0.5
-    n_profit_stddevs = 1.0
+    lookahead_hours = 1.0
+    n_profit_stddevs = 1.5
     n_loss_stddevs = 2.0
     min_f1_score = 0.70
 
@@ -87,12 +87,12 @@ class NNTC_dwt_GRU(NNTC):
 
 
     dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
-    dbg_test_classifier = True  # test clasifiers after fitting
+    dbg_test_classifier = False  # test clasifiers after fitting
     dbg_analyse_pca = False  # analyze PCA weights
     dbg_verbose = False  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
 
-    classifier_name = 'GRU'
+    classifier_name = 'Ensemble'
 
     ###################################
 
@@ -133,45 +133,35 @@ class NNTC_dwt_GRU(NNTC):
 
     # override the default training signal generation
 
+    # uses various fisher_wr and bollinger band indicators, combined with future los/gain
+
     def get_train_buy_signals(self, future_df: DataFrame):
+
         series = np.where(
             (
-                # forward model below backward model
-                    (future_df['dwt_diff'] < 0) &
-
-                    # current loss below threshold
-                    (future_df['dwt_diff'] <= future_df['loss_threshold']) &
-
-                    # forward model below backward model at lookahead
-                    (future_df['dwt_diff'].shift(-self.curr_lookahead) > 0) &
-
-                    # future profit exceeds threshold
-                    (future_df['future_profit_max'] >= future_df['profit_threshold'])
+                    (future_df['mfi'] < 40) &  # loose guard
+                    (future_df['dwt_at_low'] > 0) & # at low of full window
+                    (future_df['dwt'] <= future_df['future_min']) # at min of future window
             ), 1.0, 0.0)
 
         return series
 
     def get_train_sell_signals(self, future_df: DataFrame):
+
         series = np.where(
             (
-                # forward model above backward model
-                    (future_df['dwt_diff'] > 0) &
-                    # current profit above threshold
-                    (future_df['dwt_diff'] >= future_df['profit_threshold']) &
-                    # forward model below backward model at lookahead
-                    (future_df['dwt_diff'].shift(-self.curr_lookahead) < 0) &
-
-                    # future loss exceeds threshold
-                    (future_df['future_loss_min'] <= future_df['loss_threshold'])
+                    (future_df['mfi'] > 60) &  # loose guard
+                    (future_df['dwt_at_high'] > 0) & # at high of full window
+                    (future_df['dwt'] >= future_df['future_max']) # at max of future window
             ), 1.0, 0.0)
 
         return series
 
+
     # save the indicators used here so that we can see them in plots (prefixed by '%')
     def save_debug_indicators(self, future_df: DataFrame):
 
-        self.add_debug_indicator(future_df, 'future_max')
         self.add_debug_indicator(future_df, 'future_min')
+        self.add_debug_indicator(future_df, 'future_max')
 
         return
-

@@ -210,6 +210,8 @@ class PCA(IStrategy):
     pair_model_info = {}  # holds model-related info for each pair
     classifier_stats = {}  # holds statistics for each type of classifier (useful to rank classifiers
 
+    ignore_exit_signals = True # set to True if you don't want to process sell/exit signals (let custom sell do it)
+
     # debug flags
     first_time = True  # mostly for debug
     first_run = True  # used to identify first time through buy/sell populate funcs
@@ -606,10 +608,14 @@ class PCA(IStrategy):
             print("*** ERR: insufficient number of positive sell labels ({:.2f}%)".format(sell_ratio))
             return
 
-        sell_clf, sell_clf_name = self.get_sell_classifier(df_train_pca, train_sell_labels)
+        if not self.ignore_exit_signals:
+            sell_clf, sell_clf_name = self.get_sell_classifier(df_train_pca, train_sell_labels)
 
-        if self.dbg_verbose:
-            print(f'    Classifiers - buy: {buy_clf_name} sell: {sell_clf_name}')
+            if self.dbg_verbose:
+                print(f'    Classifiers - sell: {buy_clf_name} sell: {sell_clf_name}')
+        else:
+            sell_clf = None
+            sell_clf_name = "None"
 
         # save the models
         self.pair_model_info[curr_pair]['pca'] = pca
@@ -1290,6 +1296,11 @@ class PCA(IStrategy):
                 PCA.first_run = False  # note use of clas variable, not instance variable
                 # self.show_debug_info(curr_pair)
                 self.show_all_debug_info()
+
+        # if we are to ignore exit signals, just set exit column to 0s and return
+        if self.ignore_exit_signals:
+            dataframe['exit_long'] = 0
+            return dataframe
 
         conditions.append(dataframe['volume'] > 0)
 

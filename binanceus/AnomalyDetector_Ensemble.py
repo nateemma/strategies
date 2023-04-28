@@ -39,7 +39,7 @@ log = logging.getLogger(__name__)
 # log.setLevel(logging.DEBUG)
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
-from sklearn.ensemble import IsolationForest, StackingClassifier
+from sklearn.ensemble import IsolationForest, StackingClassifier, RandomForestClassifier
 from ClassifierSklearn import ClassifierSklearn
 
 
@@ -47,15 +47,52 @@ from ClassifierSklearn import ClassifierSklearn
 class AnomalyDetector_Ensemble(ClassifierSklearn):
     classifier = None
     clean_data_required = True  # training data should not contain anomalies
+    use_scores = False
+
+    c1 = None
+    c2 = None
+    c3 = None
+    c4 = None
+    c_ensemble = None
 
     def create_classifier(self):
-        # Stacked 'ensemble' of classifiers
-        c1 = IsolationForest(contamination=self.contamination)
-        c2 = GaussianMixture()
-        c3 = LocalOutlierFactor(n_neighbors=30, novelty=True, contamination=self.contamination)
-        c4 = OneClassSVM(gamma='scale', nu=self.contamination)
-        estimators = [('c1', c1), ('c2', c2), ('c3', c3), ('c4', c4)]
-        # estimators = [('c2', c2), ('c3', c3), ('c4', c4)]
-        classifier = StackingClassifier(estimators=estimators,
-                                        final_estimator=LogisticRegression())
-        return classifier
+        self.c1 = IsolationForest(contamination=self.contamination)
+        self.c2 = GaussianMixture()
+        self.c3 = LocalOutlierFactor(n_neighbors=30, novelty=True, contamination=self.contamination)
+        self.c4 = OneClassSVM(gamma='scale', nu=self.contamination)
+        self.c_ensemble = IsolationForest(contamination=self.contamination)
+        return self.c_ensemble
+
+    def model_fit(self, df, labels):
+
+        # fit all of the classifiers
+        self.c1.fit(df, labels)
+        self.c2.fit(df, labels)
+        self.c3.fit(df, labels)
+        self.c4.fit(df, labels)
+
+        # get predictions from each algorithm
+        y1 = self.c1.predict(df)
+        y2 = self.c2.predict(df)
+        y3 = self.c3.predict(df)
+        y4 = self.c4.predict(df)
+
+        # Fit ensemble classifier using predictions from each algorithm
+        X_new = np.column_stack((y1, y2, y3, y4))
+        # X_new = np.column_stack((y1, y2, y3))
+        self.c_ensemble.fit(X_new, labels)
+
+        return self.c_ensemble
+
+    def model_predict(self, df):
+
+        # get predictions from each algorithm
+        y1 = self.c1.predict(df)
+        y2 = self.c2.predict(df)
+        y3 = self.c3.predict(df)
+        y4 = self.c4.predict(df)
+
+        # run ensemble classifier using predictions from each algorithm
+        X_new = np.column_stack((y1, y2, y3, y4))
+        # X_new = np.column_stack((y1, y2, y3))
+        return self.c_ensemble.predict(X_new)

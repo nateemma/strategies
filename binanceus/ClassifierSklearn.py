@@ -69,6 +69,7 @@ class ClassifierSklearn():
     requires_dataframes = True  # set to True if classifier takes dataframes rather than tensors
     prescale_dataframe = False  # set to True if algorithms need dataframes to be pre-scaled
     single_prediction = False  # True if alogorithm only produces 1 prediction (not entire data array)
+    use_scores = True # True if model supports scoring of results (ensembles do not)
 
     def __init__(self, pair, tag=""):
         super().__init__()
@@ -120,6 +121,14 @@ class ClassifierSklearn():
 
         return classifier
 
+    # fit the model (can be overridden)
+    def model_fit(self, df, labels):
+        return self.model.fit(df, labels)
+
+    # run predciction (can be overridden)
+    def model_predict(self, df):
+        return self.model.predict(df)
+
     # update training using the suplied (normalised) dataframe. Training is cumulative
     # the 'labels' args should contain 0.0 for normal results, '1.0' for anomalies (buy or sell)
     def train(self, df_train_norm: DataFrame, df_test_norm: DataFrame, train_labels, test_labels, force_train=False):
@@ -151,7 +160,7 @@ class ClassifierSklearn():
         print(f"    fitting classifier: {self.__class__.__name__} contamination: {self.contamination}")
         # self.num_estimators = self.num_estimators + 1
         # self.model.set_params(n_estimators=self.num_estimators)
-        self.model = self.model.fit(df_train, labels)
+        self.model = self.model_fit(df_train, labels)
 
         # only save if this is the first time training
         if not self.is_trained:
@@ -187,7 +196,8 @@ class ClassifierSklearn():
 
         has_predict = getattr(self.model, "predict", None)
         if callable(has_predict):
-            pred = self.model.predict(df_norm)
+            pred = self.model_predict(df_norm)
+
         else:
             # some sklearn classifiers have fit_predict instead
             has_fit_predict = getattr(self.model, "fit_predict", None)
@@ -197,14 +207,13 @@ class ClassifierSklearn():
                 print("    ERR: classifier does not have a predict() or fit_predict() method")
                 return np.zeros(np.shape(df_norm)[0])
 
-        use_scores = True
 
         # not all sklearn algorithms support score_samples method, so double-check
         has_scores = getattr(self.model, "score_samples", None)
         if not callable(has_scores):
-            use_scores = False
+            self.use_scores = False
 
-        if use_scores:
+        if self.use_scores:
             scores = self.model.score_samples(df_norm)
             # thresh = np.quantile(scores, self.contamination)
             thresh = scores.mean() - 2.0 * scores.std()
