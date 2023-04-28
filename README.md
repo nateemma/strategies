@@ -2,7 +2,9 @@
 
 ## Current Status
 
-**I am experiencing many issues pushing to github (haven't been successful for weeks). I am currently travelling but will try to resolve this when I get back (May). Sorry about that**
+**I am experiencing many issues pushing to github (haven't been successful for weeks). 
+
+I am currently travelling but will try to resolve this when I get back (May). Sorry about that**
 
 I've been getting some questions on the various strategies here, so I thought I'd better clarify what I am currently
 working on...
