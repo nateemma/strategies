@@ -89,11 +89,12 @@ class AnomalyDetector_Ensemble(ClassifierSklearn):
 
         # get predictions from each algorithm
         y1 = self.c1.predict(df)
-        y2 = self.c2.predict(df)
+        # y2 = self.c2.predict(df)
         y3 = self.c3.predict(df)
         y4 = self.c4.predict(df)
 
         # run ensemble classifier using predictions from each algorithm
-        X_new = np.column_stack((y1, y2, y3, y4))
+        # X_new = np.column_stack((y1, y2, y3, y4))
+        X_new = np.column_stack((y1, y3, y4))
         # X_new = np.column_stack((y1, y2, y3))
         return self.c_ensemble.predict(X_new)
