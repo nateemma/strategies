@@ -57,7 +57,7 @@ class AnomalyDetector_Ensemble(ClassifierSklearn):
 
     def create_classifier(self):
         self.c1 = IsolationForest(contamination=self.contamination)
-        self.c2 = GaussianMixture(reg_covar=1e-5, n_components=2)
+        # self.c2 = GaussianMixture(reg_covar=1e-5, n_components=2)
         self.c3 = LocalOutlierFactor(n_neighbors=30, novelty=True, contamination=self.contamination)
         self.c4 = OneClassSVM(gamma='scale', nu=self.contamination)
         self.c_ensemble = IsolationForest(contamination=self.contamination)
@@ -67,18 +67,19 @@ class AnomalyDetector_Ensemble(ClassifierSklearn):
 
         # fit all of the classifiers
         self.c1.fit(df, labels)
-        self.c2.fit(df, labels)
+        # self.c2.fit(df, labels)
         self.c3.fit(df, labels)
         self.c4.fit(df, labels)
 
         # get predictions from each algorithm
         y1 = self.c1.predict(df)
-        y2 = self.c2.predict(df)
+        # y2 = self.c2.predict(df)
         y3 = self.c3.predict(df)
         y4 = self.c4.predict(df)
 
         # Fit ensemble classifier using predictions from each algorithm
-        X_new = np.column_stack((y1, y2, y3, y4))
+        # X_new = np.column_stack((y1, y2, y3, y4))
+        X_new = np.column_stack((y1, y3, y4))
         # X_new = np.column_stack((y1, y2, y3))
         self.c_ensemble.fit(X_new, labels)
 
