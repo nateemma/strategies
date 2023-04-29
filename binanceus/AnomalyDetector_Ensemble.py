@@ -57,7 +57,7 @@ class AnomalyDetector_Ensemble(ClassifierSklearn):
 
     def create_classifier(self):
         self.c1 = IsolationForest(contamination=self.contamination)
-        self.c2 = GaussianMixture()
+        self.c2 = GaussianMixture(reg_covar=1e-5)
         self.c3 = LocalOutlierFactor(n_neighbors=30, novelty=True, contamination=self.contamination)
         self.c4 = OneClassSVM(gamma='scale', nu=self.contamination)
         self.c_ensemble = IsolationForest(contamination=self.contamination)
