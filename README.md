@@ -10,24 +10,28 @@ code in the following types of strategies:
 
 - PCA
 - Anomaly
-- NNBC
+- NNTC
 - NNPredict
-
 
 _NOTES_:
 
-- I am currently re-factoring to move common code to separate files, isolate any potentially forward-looking indicators,
-  and to use pre-trained models
+- I am currently replacing the NNBC strategies with equivalent NNTC strategies. They are essentially the same, but NNBC
+  uses separate buy and sell neural network models, while NNTC use a single model to predict buy/sell/hold. This appears
+  to work better and uses less memory (one model instead of two)
 
 - _**Binance**_: I live in the USA, and the Binance exchange recently blocked API access from here. So, I cannot (
   easily) test the code in the binance exchange directory. I know I could use a VPN, but I'm busy with a bunch of other
   stuff in the binanceus directory - sorry. <br>
   All strats should work, but you will need to run hyperopt on them to get good hyperparameters
 
-- Mac M1 My development machine is a Mac M1 laptop. While it is very fast, it does present some challenges in terms of
-  packages. See [here](README_MACM1.md) for more details.<br>
+- _**Mac M1**_: My development machine is a Mac M1 laptop. While it is very fast, it does present some challenges in
+  terms of packages. See [here](README_MACM1.md) for more details.<br>
   As an aside, all of my scripts are written for _zsh_, not _bash_ (this is the default shell on MacOS, plus the version
   of bash that is pre-installed is very old)
+
+- _**NNPredict**_: this uses neural networks to predict changes in the price of a pair. Timeseries prediction is a
+  cutting edge problem, and I do not appear to have solved it! These algorithms perform OK in backtesting, but if you
+  look at the details, the predictions are not good. So, I am currently not working on these
 
 ## Intro
 
@@ -52,12 +56,11 @@ I currently focus on strategies that revolve around one of several approaches:
    before I knew about that, so just kept going (because I find it interesting).<br>
    All of the PCA logic is contained in a base class named PCA. There are several variants (prefixed with PCA_) that try
    out different approaches to identify buy/sell signals that are used for training the classifiers.
-3. Use Neural Networks to create binary classifiers that return a buy/sell prediction.<br>
-   Logic is very similar to the PCA classes, and the base class is NNBC (Neural Network Binary Classifier). The
+3. Use Neural Networks to create trinary classifiers that return a buy/sell prediction.<br>
+   Logic is very similar to the PCA classes, and the base class is NNTC (Neural Network Trinary Classifier). The
    internals are a little more complex because the Neural Network code works with 'tensors' rather than dataframes.
-   Currently, performance is not great, mostly because there are not enough buy/sell events to train the models
-   properly. At some point I will train them on longer timeperiods and then save/load the resulting models (I'm working
-   on this)
+   These have to be trained over long time periods because there aren't enough buys/sells otherwise. Models are saved in
+   the models/ directory and will be used if present.
 4. Neural Network prediction models (NNPredict_*.py)<br>
    Similar to NNBC, but predicts an actual price, rather than a buy/sell recommendation. Same issues as NNBC
 5. Anomaly Detection (Anomaly.py)<br>
@@ -102,18 +105,19 @@ periods where the market performed poorly (e.g. May, Nov and Dec 2021)
 
 The following is a list of my custom strategies that I am currently testing.
 
-| Strategy   | Description                                                                                                                                                             | 
-|------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| DWT        | Model behaviour using a Digital Wavelet Transform (DWT)                                                                                                                 |
-| DWT_short  | Same as DWT, but with shorting added                                                                                                                                    |
-| FFT        | Model behaviour using a Fast Fourier Transform (FFT)                                                                                                                    |
-| FBB_*      | Adds Fisher/Bollinger band filtering to DWT/FFT/Kalman                                                                                                                  |
-| Kalman     | Model behaviour using a Kalman Filter (from pykalman)                                                                                                                   |
-| KalmanSIMD | Model behaviour using a Kalman Filter (from simdkalman)                                                                                                                 |
-| PCA_*      | Uses Principal Component Analysis (PCA) and classifiers trained on prior data to predict buy/sells. Each PCA_* variant uses a different approach to predict buys/sells. |
-| NNBC_*     | Neural Network Binary Classifiers - approaches to predict buy/sell events |                                                                                              |
-| NNPredict_* | Uses neural network approaches to predict price changes |
-| Anomaly*   | USe anomaly detection algorithms to identify buys/sells. Anomaly.py is the main logic, Anomaly_*.py contain the algorithms |
+| Strategy    | Description                                                                                                                                                             | 
+|-------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| DWT         | Model behaviour using a Digital Wavelet Transform (DWT)                                                                                                                 |
+| DWT_short   | Same as DWT, but with shorting added                                                                                                                                    |
+| FFT         | Model behaviour using a Fast Fourier Transform (FFT)                                                                                                                    |
+| FBB_*       | Adds Fisher/Bollinger band filtering to DWT/FFT/Kalman                                                                                                                  |
+| Kalman      | Model behaviour using a Kalman Filter (from pykalman)                                                                                                                   |
+| KalmanSIMD  | Model behaviour using a Kalman Filter (from simdkalman)                                                                                                                 |
+| PCA_*       | Uses Principal Component Analysis (PCA) and classifiers trained on prior data to predict buy/sells. Each PCA_* variant uses a different approach to predict buys/sells. |
+| NNBC_*      | Neural Network Binary Classifiers - approaches to predict buy/sell events                                                                                               |                                                                                              |
+| NNTC_*      | Neural Network Trinary Classifiers - approaches to predict hold/buy/sell events                                                                                         |                                                                                              |
+| NNPredict_* | Uses neural network approaches to predict price changes                                                                                                                 |
+| Anomaly*    | USe anomaly detection algorithms to identify buys/sells. Anomaly.py is the main logic, Anomaly_*.py contain the algorithms                                              |
 
 Please note that you will need both the _.py_ *and* the _.json_ file.
 
