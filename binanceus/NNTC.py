@@ -564,7 +564,7 @@ class NNTC(IStrategy):
 
         # create classifiers, if necessary
         num_features = full_df_norm.shape[1]
-        if self.trinary_classifier is None:
+        if (self.trinary_classifier is None) or self.model_per_pair:
             self.trinary_classifier, _ = self.classifier_factory(self.classifier_name, num_features)
 
         # combine nothing/buys/sells into a single array
@@ -751,7 +751,7 @@ class NNTC(IStrategy):
     # return IDs that control model naming. Should be OK for all subclasses
     def get_model_identifiers(self, pair, clf_name, tag):
         category = self.__class__.__name__
-        if not clf_name in category:
+        if not clf_name in category: # don't add if already there
             model_name = category + "_" + clf_name
         else:
             model_name = category

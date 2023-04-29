@@ -77,6 +77,8 @@ class NNTC_pv_LSTM(NNTC):
     n_loss_stddevs = 1.0
     min_f1_score = 0.70
 
+    model_per_pair = True
+
     custom_trade_info = {}
 
     refit_model = False  # only set to True when training. If False, then existing model is used, if present
