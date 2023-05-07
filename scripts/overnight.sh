@@ -9,7 +9,7 @@ echo ""
 
 strat_type="PCA"
 
-ryn_hyp=false
+run_hyp=true
 
 list=()
 
@@ -38,6 +38,9 @@ fi
 
 #echo "Files: ${list}"
 
+typeset -l logfile # force lowercase
+typeset -l hyplog
+
 logfile="overnight_${strat_type}.log"
 hyplog="overnight_hyp_${strat_type}.log"
 
@@ -51,8 +54,10 @@ echo "${today} overnight.sh" >>$logfile
 echo "============================" >>$logfile
 echo "" >>$logfile
 
-if [ $run_hyp ]; then
-  echo "HyperOpt log:  ${$hyplog}"
+echo "\${run_hyp}:  ${run_hyp}"
+
+if $run_hyp ; then
+  echo "HyperOpt log:  ${hyplog}"
   echo "" >$hyplog
   echo "============================" >>$hyplog
   echo "${today} overnight.sh" >>$hyplog
@@ -70,7 +75,7 @@ for file in ${list}; do
   echo "-------------------"
   echo ""
 
-  if [ $run_hyp ]; then
+  if ${run_hyp} ; then
     echo "" >>$hyplog
     echo "-------------------" >>$hyplog
     echo "${strat}" >>$hyplog
@@ -91,8 +96,8 @@ echo "============================" >>$logfile
 
 python user_data/strategies/scripts/SummariseTestResults.py ${logfile}
 
-if [ $run_hyp ]; then
-  python user_data/strategies/scripts/SummariseHyperOptResults.py ${$hyplog}
+if $run_hyp ; then
+  python user_data/strategies/scripts/SummariseHyperOptResults.py ${hyplog}
 fi
 
 #cat $logfile

@@ -140,13 +140,13 @@ class NNTC_dwt_Wavenet(NNTC):
                     (future_df['dwt_diff'] < 0) &
 
                     # current loss below threshold
-                    (future_df['dwt_diff'] <= future_df['loss_threshold']) &
+                    (future_df['dwt_diff'] <= future_df['fwd_loss_threshold']) &
 
                     # forward model below backward model at lookahead
                     (future_df['dwt_diff'].shift(-self.curr_lookahead) > 0) &
 
                     # future profit exceeds threshold
-                    (future_df['future_profit_max'] >= future_df['profit_threshold'])
+                    (future_df['future_profit_max'] >= future_df['fwd_profit_threshold'])
             ), 1.0, 0.0)
 
         return series
@@ -157,12 +157,12 @@ class NNTC_dwt_Wavenet(NNTC):
                 # forward model above backward model
                     (future_df['dwt_diff'] > 0) &
                     # current profit above threshold
-                    (future_df['dwt_diff'] >= future_df['profit_threshold']) &
+                    (future_df['dwt_diff'] >= future_df['fwd_profit_threshold']) &
                     # forward model below backward model at lookahead
                     (future_df['dwt_diff'].shift(-self.curr_lookahead) < 0) &
 
                     # future loss exceeds threshold
-                    (future_df['future_loss_min'] <= future_df['loss_threshold'])
+                    (future_df['future_loss_min'] <= future_df['fwd_loss_threshold'])
             ), 1.0, 0.0)
 
         return series

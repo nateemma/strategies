@@ -59,10 +59,7 @@ class PCA_jump(PCA):
         },
         'subplots': {
             "Diff": {
-                'dwt_delta_max': {'color': 'green'},
-                '%future_delta_max': {'color': 'blue'},
-                'dwt_delta_min': {'color': 'lightcoral'},
-                '%future_delta_min': {'color': 'lavender'},
+                'gain': {'color': 'green'},
                 '%train_buy': {'color': 'cadetblue'},
                 'predict_buy': {'color': 'salmon'},
             },
@@ -77,11 +74,13 @@ class PCA_jump(PCA):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     lookahead_hours = 1.0
-    n_profit_stddevs = 4.0
-    n_loss_stddevs = 4.0
+    n_profit_stddevs = 2.0
+    n_loss_stddevs = 2.0
     min_f1_score = 0.51
 
     custom_trade_info = {}
+
+    ignore_exit_signals = False
 
     dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
     dbg_test_classifier = True  # test classifiers after fitting
@@ -132,14 +131,17 @@ class PCA_jump(PCA):
     def get_train_buy_signals(self, future_df: DataFrame):
         series = np.where(
             (
-                    (future_df['mfi'] < 30) &  # loose guard
+                    # (future_df['mfi'] < 40) &  # loose guard
 
-                    # drop from high of previous window exceeded loss threshold
-                    (future_df['dwt_delta_max'] > 0.0) &
-                    (future_df['dwt_delta_max'] >= abs(future_df['loss_threshold'])) &
+                    # # drop from high of previous window exceeded loss threshold
+                    # (future_df['dwt_delta_max'] > 0.0) &
+                    # (future_df['dwt_delta_max'] >= abs(future_df['fwd_loss_threshold'])) &
+
+                    # previous candle dropped more than 0.5%
+                    (future_df['gain'] <= -0.5) &
 
                     # upcoming window exceeds profit threshold
-                    (future_df['future_delta_max'] >= future_df['profit_threshold'])
+                    (future_df['future_delta_max'] >= future_df['fwd_profit_threshold'])
                     # (future_df['future_delta_max'] >= 5.0)
 
             ), 1.0, 0.0)
@@ -149,14 +151,17 @@ class PCA_jump(PCA):
     def get_train_sell_signals(self, future_df: DataFrame):
         series = np.where(
             (
-                    (future_df['mfi'] > 70) &  # loose guard
+                    # (future_df['mfi'] > 60) &  # loose guard
 
-                    # gain in previous window exceeded profit threshold
-                    (future_df['dwt_delta_min'] < 0.0) &
-                    (abs(future_df['dwt_delta_min']) >= future_df['profit_threshold']) &
+                    # # gain in previous window exceeded profit threshold
+                    # (future_df['dwt_delta_min'] < 0.0) &
+                    # (abs(future_df['dwt_delta_min']) >= future_df['fwd_profit_threshold']) &
+
+                    # previous candle dropped more than 1%
+                    (future_df['gain'] >= 0.4) &
 
                     # upcoming window exceeds loss threshold
-                    (future_df['future_delta_min'] <= future_df['loss_threshold'])
+                    (future_df['future_delta_min'] <= future_df['fwd_loss_threshold'])
                     # (future_df['future_delta_min'] <= -4.0)
             ), 1.0, 0.0)
 

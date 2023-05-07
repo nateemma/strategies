@@ -139,7 +139,7 @@ class Anomaly_macd(Anomaly):
                     (future_df['macdhist'].shift() < 0) &
                     (future_df['macdhist'] >= 0) &
 
-                    (future_df['future_gain'] >= future_df['profit_threshold'])   # future gain
+                    (future_df['future_gain'] >= future_df['fwd_profit_threshold'])   # future gain
             ), 1.0, 0.0)
 
         return buys
@@ -152,7 +152,7 @@ class Anomaly_macd(Anomaly):
                     (future_df['macdhist'].shift() > 0) &
                     (future_df['macdhist'] <= 0) &
 
-                    (future_df['future_gain'] <= future_df['loss_threshold'])   # future loss
+                    (future_df['future_gain'] <= future_df['fwd_loss_threshold'])   # future loss
             ), 1.0, 0.0)
 
         return sells

@@ -125,7 +125,7 @@ class PCA_over(PCA):
                     (future_df['fisher_wr'] < -0.4) &
 
                     # future profit
-                    (future_df['future_profit_max'] >= future_df['profit_threshold']) &
+                    (future_df['future_profit_max'] >= future_df['fwd_profit_threshold']) &
                     (future_df['future_gain'] > 0)
 
                     # (future_df['mfi'] < 30) &
@@ -145,7 +145,7 @@ class PCA_over(PCA):
                     (future_df['fisher_wr'] > 0.6) &
 
                     # future loss
-                    (future_df['future_loss_min'] <= future_df['loss_threshold']) &
+                    (future_df['future_loss_min'] <= future_df['fwd_loss_threshold']) &
                     (future_df['future_gain'] < 0)
 
                     # (future_df['mfi'] > 80) &

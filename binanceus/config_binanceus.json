@@ -52,24 +52,34 @@
       "rateLimit": 200
     },
     "pair_whitelist": [
-      "BTC/USD",
       "ETH/USD",
-      "DOGE/USD",
-      "MATIC/USD",
       "SOL/USD",
+      "MATIC/USD",
       "ADA/USD",
-      "LINK/USD",
+      "DOGE/USD",
+      "RNDR/USD",
+      "VET/USD",
       "LTC/USD",
-      "FTM/USD",
-      "APE/USD"
+      "RAD/USD",
+      "LINK/USD",
+      "ONE/USD",
+      "OP/USD",
+      "AVAX/USD",
+      "ATOM/USD",
+      "GRT/USD",
+      "FET/USD",
+      "ACH/USD",
+      "DOT/USD",
+      "ALGO/USD",
+      "BTC/USD" // make sure last entry is a 'main' pair
     ],
     "pair_blacklist": [
-//      ".*(BNB)/.*",
-//      ".*(_PREMIUM|BEAR|BULL|DOWN|HALF|HEDGE|UP|[1235][SL])/.*",
-//      ".*(AUD|BRZ|CAD|CHF|EUR|GBP|HKD|IDRT|JPY|NGN|RUB|SGD|TRY|UAH|USD|ZAR)/.*",
-//      ".*(BUSD|CUSDT|DAI|PAX|PAXG|SUSD|TUSD|USDC|USDT|UST|VAI)/.*",
-//      ".*(ACM|AFA|ALA|ALL|APL|ASR|ATM|BAR|CAI|CITY|FOR|GAL|GOZ|IBFK|JUV|LEG|LOCK-1|NAVI|NMR|NOV|OG|PFL|PSG|ROUSH|STV|TH|TRA|UCH|UFC|YBO)/.*",
-//      ".*(CHZ|CTXC|HBAR|NMR|SHIB|SLP|XVS|ONG|ARDR)/.*"
+      //      ".*(BNB)/.*",
+      //      ".*(_PREMIUM|BEAR|BULL|DOWN|HALF|HEDGE|UP|[1235][SL])/.*",
+      //      ".*(AUD|BRZ|CAD|CHF|EUR|GBP|HKD|IDRT|JPY|NGN|RUB|SGD|TRY|UAH|USD|ZAR)/.*",
+      //      ".*(BUSD|CUSDT|DAI|PAX|PAXG|SUSD|TUSD|USDC|USDT|UST|VAI)/.*",
+      //      ".*(ACM|AFA|ALA|ALL|APL|ASR|ATM|BAR|CAI|CITY|FOR|GAL|GOZ|IBFK|JUV|LEG|LOCK-1|NAVI|NMR|NOV|OG|PFL|PSG|ROUSH|STV|TH|TRA|UCH|UFC|YBO)/.*",
+      //      ".*(CHZ|CTXC|HBAR|NMR|SHIB|SLP|XVS|ONG|ARDR)/.*"
     ]
   },
   "pairlists": [

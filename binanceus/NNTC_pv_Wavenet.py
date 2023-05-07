@@ -144,7 +144,7 @@ class NNTC_pv_Wavenet(NNTC):
                     (future_df['dwt_nseq_dn'] >= 3) &
 
                     # future profit
-                    (future_df['future_profit_max'] >= future_df['profit_threshold']) &
+                    (future_df['future_profit_max'] >= future_df['fwd_profit_threshold']) &
                     (future_df['future_gain'] > 0)
             ), 1.0, 0.0)
 
@@ -164,7 +164,7 @@ class NNTC_pv_Wavenet(NNTC):
                     (future_df['dwt_nseq_up'] >= 3) &
 
                     # future loss
-                    (future_df['future_gain'] <= future_df['loss_threshold'])
+                    (future_df['future_gain'] <= future_df['fwd_loss_threshold'])
             ), 1.0, 0.0)
 
         return sells

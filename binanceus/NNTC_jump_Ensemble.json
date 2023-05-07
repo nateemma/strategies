@@ -1,0 +1,44 @@
+{
+  "strategy_name": "NNTC_jump_Ensemble",
+  "params": {
+    "roi": {
+      "0": 0.06
+    },
+    "stoploss": {
+      "stoploss": -0.99
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 3
+    },
+    "buy": {
+      "buy_nseq_dn": 7
+    },
+    "sell": {
+      "cexit_endtrend_respect_roi": true,
+      "cexit_pullback": false,
+      "cexit_pullback_amount": 0.028,
+      "cexit_pullback_respect_roi": true,
+      "cexit_roi_end": 0.005,
+      "cexit_roi_start": 0.019,
+      "cexit_roi_time": 850,
+      "cexit_roi_type": "step",
+      "cexit_trend_type": "ssl",
+      "cstop_bail_how": "none",
+      "cstop_bail_roc": -1.815,
+      "cstop_bail_time": 498,
+      "cstop_bail_time_trend": false,
+      "cstop_loss_threshold": -0.038,
+      "cstop_max_stoploss": -0.162,
+      "sell_nseq_up": 6
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2023-05-07 01:01:13.418253+00:00"
+}

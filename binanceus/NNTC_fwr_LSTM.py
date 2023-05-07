@@ -124,7 +124,7 @@ class NNTC_fwr_LSTM(NNTC):
                     (future_df['fisher_wr'] >= 0.98) &
 
                     # future profit
-                    (future_df['future_gain'] >= future_df['profit_threshold'])
+                    (future_df['future_gain'] >= future_df['fwd_profit_threshold'])
             ), 1.0, 0.0)
 
         return buys
@@ -136,7 +136,7 @@ class NNTC_fwr_LSTM(NNTC):
                     (future_df['fisher_wr'] <= -0.98) &
 
                     # future loss
-                    (future_df['future_gain'] <= future_df['loss_threshold'])
+                    (future_df['future_gain'] <= future_df['fwd_loss_threshold'])
             ), 1.0, 0.0)
 
         return sells

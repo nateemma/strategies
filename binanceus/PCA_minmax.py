@@ -130,7 +130,7 @@ class PCA_minmax(PCA):
                     (future_df['full_dwt'] <= future_df['dwt_recent_min']) &  # at min of past window
                     (future_df['full_dwt'] <= future_df['future_min']) &  # at min of future window
 
-                    (future_df['future_gain'] >= future_df['profit_threshold']) # profit in next window exceeds threshold
+                    (future_df['future_gain'] >= future_df['fwd_profit_threshold']) # profit in next window exceeds threshold
             ), 1.0, 0.0)
 
         return series
@@ -146,7 +146,7 @@ class PCA_minmax(PCA):
                     (future_df['full_dwt'] >= future_df['dwt_recent_min']) &  # at max of past window
                     (future_df['full_dwt'] >= future_df['future_max']) &  # at max of future window
 
-                    (future_df['future_gain'] <= future_df['loss_threshold']) # loss in next window exceeds threshold
+                    (future_df['future_gain'] <= future_df['fwd_loss_threshold']) # loss in next window exceeds threshold
             ), 1.0, 0.0)
 
         return series

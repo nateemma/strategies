@@ -121,7 +121,7 @@ class PCA_mfi(PCA):
                     (future_df['mfi'] <= 10) &
 
                     # future profit
-                    (future_df['future_gain'] >= future_df['profit_threshold'])
+                    (future_df['future_gain'] >= future_df['fwd_profit_threshold'])
             ), 1.0, 0.0)
 
         return buys
@@ -133,7 +133,7 @@ class PCA_mfi(PCA):
                     (future_df['mfi'] >= 90) &
 
                     # future loss
-                    (future_df['future_gain'] <= future_df['loss_threshold'])
+                    (future_df['future_gain'] <= future_df['fwd_loss_threshold'])
             ), 1.0, 0.0)
 
         return sells

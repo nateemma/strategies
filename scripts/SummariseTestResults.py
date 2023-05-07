@@ -178,19 +178,19 @@ def main():
         # print("------------")
         # print("")
         # copyto('TOTAL', anywhere=True)
-        skipto('TOTAL', anywhere=True)
-        process_totals(strat, curr_line.rstrip())
-        # copyto('================== SUMMARY METRICS', anywhere=True)
-        skipto('================== SUMMARY METRICS', anywhere=True)
-        if strat_summary[strat]['entries'] > 0:
-            # copyto('Expectancy', anywhere=True)
-            skipto('Expectancy', anywhere=True)
-            # print(curr_line.rstrip())
-            process_expectancy(strat, curr_line.rstrip())
-        # copyto('===============================')
-        skipto('===============================')
-        # print(curr_line.rstrip())
-        # print("")
+        if skipto('TOTAL', anywhere=True):
+            process_totals(strat, curr_line.rstrip())
+            # copyto('================== SUMMARY METRICS', anywhere=True)
+            if skipto('================== SUMMARY METRICS', anywhere=True):
+                if strat_summary[strat]['entries'] > 0:
+                    # copyto('Expectancy', anywhere=True)
+                    if skipto('Expectancy', anywhere=True):
+                        # print(curr_line.rstrip())
+                        process_expectancy(strat, curr_line.rstrip())
+                        # copyto('===============================')
+                        skipto('===============================')
+                        # print(curr_line.rstrip())
+                        # print("")
 
     print_results()
 

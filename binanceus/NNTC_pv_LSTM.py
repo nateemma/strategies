@@ -77,7 +77,7 @@ class NNTC_pv_LSTM(NNTC):
     n_loss_stddevs = 1.0
     min_f1_score = 0.70
 
-    model_per_pair = True
+    model_per_pair = False
 
     custom_trade_info = {}
 
@@ -136,7 +136,7 @@ class NNTC_pv_LSTM(NNTC):
         v_idx = scipy.signal.argrelextrema(future_df['close'].to_numpy(), np.less_equal, order=self.curr_lookahead)[0]
         valleys[v_idx] = 1.0
 
-        print(f'future_df: {future_df.shape} valleys: {np.shape(valleys)}')
+        # print(f'future_df: {future_df.shape} valleys: {np.shape(valleys)}')
         buys = np.where(
             (
                 # overbought condition with high potential profit
@@ -146,7 +146,7 @@ class NNTC_pv_LSTM(NNTC):
                     (future_df['dwt_nseq_dn'] >= 3) &
 
                     # future profit
-                    (future_df['future_profit_max'] >= future_df['profit_threshold']) &
+                    (future_df['future_profit_max'] >= future_df['fwd_profit_threshold']) &
                     (future_df['future_gain'] > 0)
             ), 1.0, 0.0)
 
@@ -166,7 +166,7 @@ class NNTC_pv_LSTM(NNTC):
                     (future_df['dwt_nseq_up'] >= 3) &
 
                     # future loss
-                    (future_df['future_gain'] <= future_df['loss_threshold'])
+                    (future_df['future_gain'] <= future_df['fwd_loss_threshold'])
             ), 1.0, 0.0)
 
         return sells

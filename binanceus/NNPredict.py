@@ -330,7 +330,7 @@ class NNPredict(IStrategy):
 
         # if we are training, then force re-training of an existing model
         if self.training_only:
-            self.refit_model = True
+            self.refit_model = False
 
         dataframe = self.train_model(dataframe, self.curr_pair)
 

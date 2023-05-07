@@ -138,7 +138,7 @@ class NNTC_profit_MLP(NNTC):
     def get_train_buy_signals(self, future_df: DataFrame):
         series = np.where(
             (
-                    (future_df['future_profit_max'] >= future_df['profit_threshold']) & # future profit exceeds threshold
+                    (future_df['future_profit_max'] >= future_df['fwd_profit_threshold']) & # future profit exceeds threshold
                     (future_df['future_max'] > future_df['dwt_recent_max']) # future window max exceeds prior window max
             ), 1.0, 0.0)
 
@@ -147,7 +147,7 @@ class NNTC_profit_MLP(NNTC):
     def get_train_sell_signals(self, future_df: DataFrame):
         series = np.where(
             (
-                    (future_df['future_loss_min'] <= future_df['loss_threshold']) & # future loss exceeds threshold
+                    (future_df['future_loss_min'] <= future_df['fwd_loss_threshold']) & # future loss exceeds threshold
                     (future_df['future_min'] < future_df['dwt_recent_min']) # future window max exceeds prior window max
             ), 1.0, 0.0)
 

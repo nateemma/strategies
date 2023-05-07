@@ -138,7 +138,7 @@ class NNTC_swing_LSTM(NNTC):
 
         buys = np.where(
             (
-                    (future_df['future_gain'] > future_df['profit_threshold']) &  # future gain
+                    (future_df['future_gain'] > future_df['fwd_profit_threshold']) &  # future gain
                     (future_df['dwt_bottom'] > 0)   # bottom of trend
 
             ), 1.0, 0.0)
@@ -149,7 +149,7 @@ class NNTC_swing_LSTM(NNTC):
 
         sells = np.where(
             (
-                    (future_df['future_gain'] < future_df['loss_threshold']) & # future loss
+                    (future_df['future_gain'] < future_df['fwd_loss_threshold']) & # future loss
                     (future_df['dwt_top'] > 0)  # top of trend
             ), 1.0, 0.0)
 

@@ -312,7 +312,7 @@ class NNTC(IStrategy):
         series = np.where(
             (
                 # future profit exceeds threshold
-                    (future_df['future_profit_max'] >= future_df['profit_threshold']) &
+                    (future_df['future_profit_max'] >= future_df['fwd_profit_threshold']) &
                     # future window max exceeds prior window max
                     (future_df['future_max'] > future_df['dwt_recent_max'])
             ), 1.0, 0.0)
@@ -326,7 +326,7 @@ class NNTC(IStrategy):
         series = np.where(
             (
                 # future loss exceeds threshold
-                    (future_df['future_loss_min'] <= future_df['loss_threshold']) &
+                    (future_df['future_loss_min'] <= future_df['fwd_loss_threshold']) &
                     # future window max exceeds prior window max
                     (future_df['future_min'] < future_df['dwt_recent_min'])
             ), 1.0, 0.0)
@@ -574,7 +574,22 @@ class NNTC(IStrategy):
         nothing[np.where(blabels > 0)] = 0.0           # if buy or sell is set, clear nothing entry
         nothing[np.where(slabels > 0)] = 0.0
         blabels[np.where(slabels > 0)] = 0.0             # sells override buys
-        # print(f'nothing:{nothing.sum()} buys:{buys.sum()} sells:{sells.sum()}')
+        num_samples = len(blabels)
+        num_holds = nothing.sum()
+        num_buys = buys.sum()
+        num_sells = sells.sum()
+        hpct = 100.0 * num_holds / num_samples
+        bpct = 100.0 * num_buys / num_samples
+        spct = 100.0 * num_sells / num_samples
+        print(f'    holds:{num_holds:.0f} ({hpct:.2f}%) ' + \
+              f'buys:{num_buys:.0f} ({bpct:.2f}%) sells:{num_sells:.0f} ({spct:.2f}%)')
+
+        # If <1% buy/signals, issue warning. Neural net will likely not converge
+        if bpct < 1.0:
+            print(f'    ** WARNING: low number of buy signals ({bpct:.2f}%)')
+
+        if spct < 1.0:
+            print(f'    ** WARNING: low number of sell signals ({spct:.2f}%)')
 
         labels = np.array([nothing, blabels, slabels]).T
 
@@ -603,11 +618,14 @@ class NNTC(IStrategy):
 
         num_buys = int(tsr_lbl_train[:, 0, 1].sum())
         num_sells = int(tsr_lbl_train[:, 0, 2].sum())
+        buy_pct = 100.0*(num_buys/train_size)
 
         if self.dbg_verbose:
-            print("     tensor:", full_tensor.shape, ' -> train:', tsr_train.shape, " + test:", tsr_test.shape)
-            print("     labels:", lbl_tensor.shape, ' -> train:', tsr_lbl_train.shape, " + test:", tsr_lbl_test.shape)
-            print("     training samples:", train_size, " #buys:", num_buys, ' #sells:', num_sells)
+            # print("     tensor:", full_tensor.shape, ' -> train:', tsr_train.shape, " + test:", tsr_test.shape)
+            # print("     labels:", lbl_tensor.shape, ' -> train:', tsr_lbl_train.shape, " + test:", tsr_lbl_test.shape)
+            print("    training samples: ", train_size,
+                  " #buys:", num_buys, " ({:.2f}".format(buy_pct), "%)",
+                  ' #sells:', num_sells, " ({:.2f}".format(100.0*(num_sells/train_size)), "%)",)
 
         # Create classifier for the model
 

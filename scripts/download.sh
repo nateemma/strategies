@@ -30,7 +30,7 @@ END
 
 
 #get date from 180 days ago (MacOS-specific)
-num_days=180
+num_days=750
 start_date=$(date -j -v-${num_days}d +"%Y%m%d")
 timerange="${start_date}-"
 #fixed_args="-t 5m 15m 1h 1d"

@@ -140,7 +140,7 @@ class Anomaly_nseq(Anomaly):
                     (future_df['dwt_nseq_dn'] >= 4) &
                     # (future_df['future_nseq_up'] >= 4) &
 
-                    (future_df['future_profit_max'] >= future_df['profit_threshold'])   # future profit exceeds threshold
+                    (future_df['future_profit_max'] >= future_df['fwd_profit_threshold'])   # future profit exceeds threshold
             ), 1.0, 0.0)
 
         return series
@@ -153,7 +153,7 @@ class Anomaly_nseq(Anomaly):
                     (future_df['dwt_nseq_up'] >= 6) &
                     # (future_df['future_nseq_dn'] >= 4) &
 
-                    (future_df['future_loss_min'] <= future_df['loss_threshold'])   # future loss exceeds threshold
+                    (future_df['future_loss_min'] <= future_df['fwd_loss_threshold'])   # future loss exceeds threshold
             ), 1.0, 0.0)
 
         return series

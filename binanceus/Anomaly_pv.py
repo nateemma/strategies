@@ -129,7 +129,7 @@ class Anomaly_pv(Anomaly):
                     (future_df['dwt_nseq_dn'] >= 2) &
 
                     # future profit
-                    (future_df['future_profit_max'] >= future_df['profit_threshold']) &
+                    (future_df['future_profit_max'] >= future_df['fwd_profit_threshold']) &
                     (future_df['future_gain'] > 0)
             ), 1.0, 0.0)
 
@@ -149,7 +149,7 @@ class Anomaly_pv(Anomaly):
                     (future_df['dwt_nseq_up'] >= 2) &
 
                     # future loss
-                    (future_df['future_gain'] <= future_df['loss_threshold'])
+                    (future_df['future_gain'] <= future_df['fwd_loss_threshold'])
             ), 1.0, 0.0)
 
         return sells

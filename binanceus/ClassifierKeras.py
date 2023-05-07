@@ -32,18 +32,25 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 os.environ['TF_DETERMINISTIC_OPS'] = '1'
 
+import tensorflow as tf
+
+
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
+
 # workaround for memory leak in tensorflow 2.10
 os.environ['TF_RUN_EAGER_OP_AS_FUNCTION'] = '0'
-
-import tensorflow as tf
+mem_fraction = 0.4
+config = tf.compat.v1.ConfigProto(device_count={'GPU': 0})
+config.gpu_options.allow_growth = True
+config.gpu_options.per_process_gpu_memory_fraction = mem_fraction
+sess = tf.compat.v1.Session(config=config)
+tf.compat.v1.keras.backend.set_session(sess)
 
 seed = 42
 os.environ['PYTHONHASHSEED'] = str(seed)
 random.seed(seed)
 tf.random.set_seed(seed)
 np.random.seed(seed)
-
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
 import keras
 from keras import layers
@@ -73,6 +80,7 @@ class ClassifierKeras():
     requires_dataframes = False # set to True if classifier takes dataframes rather than tensors
     prescale_dataframe = True # set to True if algorithms need dataframes to be pre-scaled
     single_prediction = False # True if algorithm only produces 1 prediction (not entire data array)
+    combine_models = False # True means combine models for all pairs (unless model per pair). False will train only on 1st pair
 
     # ---------------------------
 
@@ -161,7 +169,7 @@ class ClassifierKeras():
 
     # ---------------------------
 
-    # update training using the suplied (normalised) dataframe. Training is cumulative
+    # update training using the supplied (normalised) dataframe. Training is cumulative
     # the 'labels' args should contain 0.0 for normal results, '1.0' for anomalies (buy or sell)
     def train(self, df_train_norm, df_test_norm, train_results, test_results, force_train=False):
 
@@ -170,7 +178,7 @@ class ClassifierKeras():
             # load saved model if present
             self.model = self.load()
 
-        # just return if model has already been trained, unless forc_train is set, or this was a new model
+        # just return if model has already been trained, unless force_train is set, or this was a new model
         if self.model_is_trained() and (not force_train) and (not self.new_model_created()):
             return
 
@@ -471,7 +479,12 @@ class ClassifierKeras():
             print("    model not found ({})...".format(path))
             # flag this as a new model. Note that this is a class global variable because we need to track this
             # across multiple instances (e.g. if we are combining all pairs into one model)
-            ClassifierKeras.new_model = True
+            if self.combine_models:
+                ClassifierKeras.new_model = True
+            else:
+                ClassifierKeras.new_model = False
+
+            self.is_trained = False
 
         return model
 

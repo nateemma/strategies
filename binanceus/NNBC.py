@@ -313,7 +313,7 @@ class NNBC(IStrategy):
         series = np.where(
             (
                 # (future_df['mfi'] <= 30) &  # loose oversold threshold
-                (future_df['future_gain'] >= future_df['profit_threshold'])  # future gain above threshold
+                (future_df['future_gain'] >= future_df['fwd_profit_threshold'])  # future gain above threshold
             ), 1.0, 0.0)
 
         return series
@@ -325,7 +325,7 @@ class NNBC(IStrategy):
         series = np.where(
             (
                 # (future_df['mfi'] >= 70) &  # loose overbought threshold
-                (future_df['future_gain'] <= future_df['loss_threshold'])  # future loss above threshold
+                (future_df['future_gain'] <= future_df['fwd_loss_threshold'])  # future loss above threshold
             ), 1.0, 0.0)
 
         return series

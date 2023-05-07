@@ -108,6 +108,8 @@ class ClassifierKerasTrinary(ClassifierKeras):
 
         # print(f'is_trained:{self.is_trained} force_train:{force_train}')
 
+        # print("    train_tensor:{} test_tensor:{}".format(np.shape(train_tensor), np.shape(test_tensor)))
+
         # if model is already trained, and caller is not requesting a re-train, then just return
         if (self.model is not None) and self.model_is_trained() and (not force_train) and (not self.new_model_created()):
             # print(f"    Not training. is_trained:{self.is_trained} force_train:{force_train} new_model:{self.new_model}")
