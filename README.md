@@ -2,6 +2,11 @@
 
 ## Current Status
 
+**
+May 18th, 2023
+
+__I recently found some issues with label generation and training. I am in the process of updating all of the NNTC strategies, and cleaning up a little as I go. I have to regenerate and test all of the strategies, which will take me at least a week...__**
+
 I've been getting some questions on the various strategies here, so I thought I'd better clarify what I am currently
 working on...
 
