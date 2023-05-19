@@ -40,6 +40,9 @@ log = logging.getLogger(__name__)
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 from NNTC import NNTC
+import TrainingSignals
+import NNTClassifier
+
 
 """
 ####################################################################################
@@ -53,6 +56,7 @@ NNTC_fbb_Ensemble:
 
 class NNTC_fbb_Ensemble(NNTC):
 
+    # parameters that will be displayed if you run freqtrade plot-dataframe
     plot_config = {
         'main_plot': {
             # 'dwt': {'color': 'darkcyan'},
@@ -72,17 +76,16 @@ class NNTC_fbb_Ensemble(NNTC):
         }
     }
 
+
     # Do *not* hyperopt for the roi and stoploss spaces
 
-    # Have to re-declare any globals that we need to modify
+    # Have to re-declare any globals that we need to modify because freqtrade can/will run strats in parallel
 
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
-    lookahead_hours = 1.0
-    n_profit_stddevs = 1.5
-    n_loss_stddevs = 2.0
-    min_f1_score = 0.70
+
+    min_f1_score = 0.50
 
     custom_trade_info = {}
 
@@ -95,18 +98,10 @@ class NNTC_fbb_Ensemble(NNTC):
     dbg_verbose = False  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
 
-    classifier_name = 'Ensemble'
-
     ###################################
-
-    # Strategy Specific Variable Storage
 
     ## Hyperopt Variables
 
-    # PCA hyperparams
-    # buy_pca_gain = IntParameter(1, 50, default=4, space='buy', load=True, optimize=True)
-    #
-    # sell_pca_gain = IntParameter(-1, -15, default=-4, space='sell', load=True, optimize=True)
 
     # Custom Sell Profit (formerly Dynamic ROI)
     cexit_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
@@ -133,46 +128,14 @@ class NNTC_fbb_Ensemble(NNTC):
     cstop_max_stoploss = DecimalParameter(-0.30, -0.01, default=-0.10, space='sell', load=True, optimize=True)
 
     ###################################
+    # override the (most often changed) default parameters for this particular strategy
 
-    # override the default training signal generation
+    lookahead_hours = 1.0
+    n_profit_stddevs = 1.5
+    n_loss_stddevs = 2.0
 
-    # uses various fisher_wr and bollinger band indicators, combined with future los/gain
+    signal_type = TrainingSignals.SignalType.Fisher_Bollinger
+    classifier_type = NNTClassifier.ClassifierType.Ensemble
 
-    def get_train_buy_signals(self, future_df: DataFrame):
-        buys = np.where(
-            (
-                # oversold condition with high potential profit
-                    (future_df['mfi'] < 50) &  # MFI in buy range
-                    (future_df['fisher_wr'] < -0.8) &
-                    (future_df['bb_gain'] >= future_df['profit_threshold']/100.0) &
-
-                    # future profit
-                    (future_df['future_profit_max'] >= future_df['fwd_profit_threshold']) &
-                    (future_df['future_gain'] > 0)
-            ), 1.0, 0.0)
-
-        return buys
-
-    def get_train_sell_signals(self, future_df: DataFrame):
-        sells = np.where(
-            (
-                # overbought condition with high potential loss
-                    (future_df['mfi'] > 50) & # MFI in sell range
-                    (future_df['fisher_wr'] > 0.8) &
-                    (future_df['bb_loss'] <= future_df['loss_threshold']/100.0) &
-
-                    # future loss
-                    (future_df['future_gain'] <= future_df['fwd_loss_threshold'])
-            ), 1.0, 0.0)
-
-        return sells
-
-    # save the indicators used here so that we can see them in plots (prefixed by '%')
-    def save_debug_indicators(self, future_df: DataFrame):
-        self.add_debug_indicator(future_df, 'future_gain')
-        self.add_debug_indicator(future_df, 'future_profit_max')
-        self.add_debug_indicator(future_df, 'future_loss_min')
-
-        return
-
+    ignore_exit_signals = False
 

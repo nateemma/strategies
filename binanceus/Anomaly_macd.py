@@ -139,7 +139,7 @@ class Anomaly_macd(Anomaly):
                     (future_df['macdhist'].shift() < 0) &
                     (future_df['macdhist'] >= 0) &
 
-                    (future_df['future_gain'] >= future_df['fwd_profit_threshold'])   # future gain
+                    (future_df['future_gain'] >= future_df['future_profit_threshold'])   # future gain
             ), 1.0, 0.0)
 
         return buys
@@ -152,7 +152,7 @@ class Anomaly_macd(Anomaly):
                     (future_df['macdhist'].shift() > 0) &
                     (future_df['macdhist'] <= 0) &
 
-                    (future_df['future_gain'] <= future_df['fwd_loss_threshold'])   # future loss
+                    (future_df['future_gain'] <= future_df['future_loss_threshold'])   # future loss
             ), 1.0, 0.0)
 
         return sells
@@ -167,14 +167,14 @@ class Anomaly_macd(Anomaly):
 
     # callbacks to add conditions to main buy/sell decision (rather than trainng)
 
-    def get_strategy_buy_conditions(self, dataframe: DataFrame):
+    def get_strategy_entry_guard_conditions(self, dataframe: DataFrame):
         cond = np.where(
             (
                 (dataframe['macdhist'] <= 0)
             ), 1.0, 0.0)
         return cond
 
-    def get_strategy_sell_conditions(self, dataframe: DataFrame):
+    def get_strategy_exit_guard_conditions(self, dataframe: DataFrame):
         cond = np.where(
             (
                 (dataframe['macdhist'] >= 0)

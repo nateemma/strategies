@@ -40,11 +40,14 @@ log = logging.getLogger(__name__)
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 from NNTC import NNTC
+import TrainingSignals
+import NNTClassifier
+
 
 """
 ####################################################################################
 NNTC_swing:
-    This is a subclass of PCA, which provides a framework for deriving a dimensionally-reduced model
+    This is a subclass of NNTC, which provides a framework for deriving a dimensionally-reduced model
     This class trains the model based on 'swings' between ups and downs'
 
 ####################################################################################
@@ -61,6 +64,8 @@ class NNTC_swing_LSTM(NNTC):
         },
         'subplots': {
             "Diff": {
+                '%future_gain': {'color': 'blue'},
+                '%future_profit_threshold': {'color': 'green'},
                 '%train_buy': {'color': 'mediumaquamarine'},
                 'predict_buy': {'color': 'cornflowerblue'},
                 '%train_sell': {'color': 'salmon'},
@@ -76,15 +81,12 @@ class NNTC_swing_LSTM(NNTC):
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
-    lookahead_hours = 1.0
-    n_swing_stddevs = 2.0
-    n_loss_stddevs = 2.0
+
     min_f1_score = 0.70
 
     custom_trade_info = {}
 
     refit_model = False  # only set to True when training. If False, then existing model is used, if present
-
 
     dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
     dbg_test_classifier = False  # test clasifiers after fitting
@@ -92,17 +94,13 @@ class NNTC_swing_LSTM(NNTC):
     dbg_verbose = False  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
 
-    classifier_name = 'LSTM'
-
     ###################################
 
-    # Strategy Specific Variable Storage
-
-    ## Hyperopt Variables
+    ## Hyperopt Variables - redclare here so that they go to the correct JSON file (and not the base class)
 
     # buy/sell hyperparams
-    buy_nseq_dn = IntParameter(2, 10, default=3, space='buy', load=True, optimize=True)
-    sell_nseq_up = IntParameter(2, 10, default=3, space='sell', load=True, optimize=True)
+    buy_nseq_dn = IntParameter(2, 10, default=4, space='buy', load=True, optimize=True)
+    sell_nseq_up = IntParameter(2, 10, default=8, space='sell', load=True, optimize=True)
 
     # Custom Sell Profit (formerly Dynamic ROI)
     cexit_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
@@ -130,57 +128,13 @@ class NNTC_swing_LSTM(NNTC):
 
     ###################################
 
-    # override the default training signal generation
+    # override the (most often changed) default parameters for this particular strategy
 
-    # detect points where smoothed estimate is at a top/bottom and there is a direction change
+    lookahead_hours = 1.0
+    n_profit_stddevs = 2.0
+    n_loss_stddevs = 2.0
 
-    def get_train_buy_signals(self, future_df: DataFrame):
+    signal_type = TrainingSignals.SignalType.Swing
+    classifier_type = NNTClassifier.ClassifierType.LSTM
 
-        buys = np.where(
-            (
-                    (future_df['future_gain'] > future_df['fwd_profit_threshold']) &  # future gain
-                    (future_df['dwt_bottom'] > 0)   # bottom of trend
-
-            ), 1.0, 0.0)
-
-        return buys
-
-    def get_train_sell_signals(self, future_df: DataFrame):
-
-        sells = np.where(
-            (
-                    (future_df['future_gain'] < future_df['fwd_loss_threshold']) & # future loss
-                    (future_df['dwt_top'] > 0)  # top of trend
-            ), 1.0, 0.0)
-
-        return sells
-
-    # save the indicators used here so that we can see them in plots (prefixed by '%')
-    def save_debug_indicators(self, future_df: DataFrame):
-        self.add_debug_indicator(future_df, 'future_gain')
-
-        return
-
-    ###################################
-
-
-    # callbacks to add conditions to main buy/sell decision (rather than trainng)
-
-    def get_strategy_buy_conditions(self, dataframe: DataFrame):
-        cond = np.where(
-            (
-                # N down sequences
-                (dataframe['dwt_nseq_dn'] >= self.buy_nseq_dn.value)
-            ), 1.0, 0.0)
-        return cond
-
-    def get_strategy_sell_conditions(self, dataframe: DataFrame):
-        cond = np.where(
-            (
-                # N up sequences
-                ( dataframe['dwt_nseq_up'] >= self.sell_nseq_up.value)
-            ), 1.0, 0.0)
-        return cond
-
-    ###################################
-
+    ignore_exit_signals = False

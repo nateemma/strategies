@@ -136,7 +136,7 @@ class PCA_fwr(PCA):
                     (future_df['fisher_wr'] < -0.9) &
 
                     # future profit
-                    (future_df['future_profit_max'] >= future_df['fwd_profit_threshold']) &
+                    (future_df['future_profit_max'] >= future_df['future_profit_threshold']) &
                     (future_df['future_gain'] > 0)
             ), 1.0, 0.0)
 
@@ -149,12 +149,12 @@ class PCA_fwr(PCA):
                     (future_df['fisher_wr'] > 0.9) &
 
                     # future loss
-                    (future_df['future_gain'] <= future_df['fwd_loss_threshold'])
+                    (future_df['future_gain'] <= future_df['future_loss_threshold'])
             ), 1.0, 0.0)
 
         return sells
 
-    def get_strategy_buy_conditions(self, dataframe: DataFrame):
+    def get_strategy_entry_guard_conditions(self, dataframe: DataFrame):
         cond = np.where(
             (
                 # N down sequences
@@ -162,7 +162,7 @@ class PCA_fwr(PCA):
             ), 1.0, 0.0)
         return cond
 
-    def get_strategy_sell_conditions(self, dataframe: DataFrame):
+    def get_strategy_exit_guard_conditions(self, dataframe: DataFrame):
         cond = np.where(
             (
                 # N up sequences

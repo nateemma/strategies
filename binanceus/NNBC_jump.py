@@ -156,10 +156,10 @@ class NNBC_jump(NNBC):
 
                     # drop from high of previous window exceeded loss threshold
                     (future_df['dwt_delta_max'] > 0.0) &
-                    (future_df['dwt_delta_max'] >= abs(future_df['fwd_loss_threshold'])) &
+                    (future_df['dwt_delta_max'] >= abs(future_df['future_loss_threshold'])) &
 
                     # upcoming window exceeds profit threshold
-                    (future_df['future_delta_max'] >= future_df['fwd_profit_threshold'])
+                    (future_df['future_delta_max'] >= future_df['future_profit_threshold'])
                     # (future_df['future_delta_max'] >= 5.0)
 
             ), 1.0, 0.0)
@@ -173,17 +173,17 @@ class NNBC_jump(NNBC):
 
                     # gain in previous window exceeded profit threshold
                     (future_df['dwt_delta_min'] < 0.0) &
-                    (abs(future_df['dwt_delta_min']) >= future_df['fwd_profit_threshold']) &
+                    (abs(future_df['dwt_delta_min']) >= future_df['future_profit_threshold']) &
 
                     # upcoming window exceeds loss threshold
-                    (future_df['future_delta_min'] <= future_df['fwd_loss_threshold'])
+                    (future_df['future_delta_min'] <= future_df['future_loss_threshold'])
                     # (future_df['future_delta_min'] <= -4.0)
             ), 1.0, 0.0)
 
         return series
 
 
-    # def get_strategy_buy_conditions(self, dataframe: DataFrame):
+    # def get_strategy_entry_guard_conditions(self, dataframe: DataFrame):
     #     cond = np.where(
     #         (
     #                 # drop from high of previous window exceeded loss threshold
@@ -192,7 +192,7 @@ class NNBC_jump(NNBC):
     #         ), 1.0, 0.0)
     #     return cond
     #
-    # def get_strategy_sell_conditions(self, dataframe: DataFrame):
+    # def get_strategy_exit_guard_conditions(self, dataframe: DataFrame):
     #     cond = np.where(
     #         (
     #             # gain in previous window exceeded profit threshold

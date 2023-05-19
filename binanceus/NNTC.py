@@ -1,7 +1,7 @@
 import operator
 
 import numpy as np
-from enum import Enum
+from enum import Enum, auto
 
 import pywt
 import talib.abstract as ta
@@ -86,20 +86,25 @@ import RBM
 
 from DataframeUtils import DataframeUtils, ScalerType
 from DataframePopulator import DataframePopulator
+import TrainingSignals
 
-from NNTClassifier_MLP import NNTClassifier_MLP
-from NNTClassifier_CNN import NNTClassifier_CNN
-# from NNTClassifier_MLP2 import NNTClassifier_MLP2
-from NNTClassifier_LSTM import NNTClassifier_LSTM
-from NNTClassifier_LSTM2 import NNTClassifier_LSTM2
-from NNTClassifier_LSTM3 import NNTClassifier_LSTM3
+import NNTClassifier
+
+# from NNTClassifier_MLP import NNTClassifier_MLP
+# from NNTClassifier_CNN import NNTClassifier_CNN
+# # from NNTClassifier_MLP2 import NNTClassifier_MLP2
+# from NNTClassifier_LSTM import NNTClassifier_LSTM
+# from NNTClassifier_LSTM2 import NNTClassifier_LSTM2
+# from NNTClassifier_LSTM3 import NNTClassifier_LSTM3
+# # from NNTClassifier_Attention import NNTClassifier_Attention
+# from NNTClassifier_Multihead import NNTClassifier_Multihead
+# from NNTClassifier_Transformer import NNTClassifier_Transformer
+# from NNTClassifier_Wavenet import NNTClassifier_Wavenet
+# from NNTClassifier_Wavenet2 import NNTClassifier_Wavenet2
+# from NNTClassifier_GRU import NNTClassifier_GRU
+# from NNTClassifier_Ensemble import NNTClassifier_Ensemble
+# from NNTClassifier_TCN import NNTClassifier_TCN
 # from NNTClassifier_Attention import NNTClassifier_Attention
-from NNTClassifier_Multihead import NNTClassifier_Multihead
-from NNTClassifier_Transformer import NNTClassifier_Transformer
-from NNTClassifier_Wavenet import NNTClassifier_Wavenet
-from NNTClassifier_Wavenet2 import NNTClassifier_Wavenet2
-from NNTClassifier_GRU import NNTClassifier_GRU
-from NNTClassifier_Ensemble import NNTClassifier_Ensemble
 
 import Environment
 import profiler
@@ -211,8 +216,7 @@ class NNTC(IStrategy):
 
     compressor = None
     compress_data = True
-    # classifier_name = 'Transformer'  # select based on testing
-    classifier_name = 'MLP'  # select based on testing
+
     trinary_classifier = None
 
     curr_lookahead = int(12 * lookahead_hours)
@@ -228,7 +232,7 @@ class NNTC(IStrategy):
     refit_model = False  # only set to True when training. If False, then existing model is used, if present
     use_full_dataset = True  # use the entire dataset for training (in backtest)
     model_per_pair = False
-    ignore_exit_signals = True # set to True if you don't want to process sell/exit signals (let custom sell do it)
+    ignore_exit_signals = False  # set to True if you don't want to process sell/exit signals (let custom sell do it)
 
     scaler_type = ScalerType.Robust  # scaler type used for normalisation
 
@@ -258,6 +262,25 @@ class NNTC(IStrategy):
         POPULATE = 2
         STOPLOSS = 3
         RUNNING = 4
+
+    # class ClassifierType(Enum):
+    #     Attention = auto()
+    #     CNN = auto()
+    #     Ensemble = auto()
+    #     GRU = auto()
+    #     LSTM = auto()
+    #     LSTM2 = auto()
+    #     LSTM3 = auto()
+    #     MLP = auto()
+    #     Multihead = auto()
+    #     TCN = auto()
+    #     Transformer = auto()
+    #     Wavenet = auto()
+    #     Wavenet2 = auto()
+
+    classifier_type = NNTClassifier.ClassifierType.LSTM  # default, override in subclass
+
+    signal_type = TrainingSignals.SignalType.Undefined  # can override this, or the get_train_* functions
 
     ###################################
 
@@ -296,7 +319,9 @@ class NNTC(IStrategy):
 
     ################################
 
-    # subclasses should oiverride the following 2 functions - this is here as an example
+    # subclasses should override the following 2 functions - this is here as an example
+    # NOTE: can also just set signal_type to something else valid, and that will also work
+    #       see TrainingSignals.SignalType for a list of algorithms
 
     # Note: try to combine current/historical data (from populate_indicators) with future data
     #       If you only use future data, the ML training is just guessing
@@ -307,39 +332,35 @@ class NNTC(IStrategy):
 
     def get_train_buy_signals(self, future_df: DataFrame):
 
-        print("!!! WARNING: using base class (buy) training implementation !!!")
+        if self.signal_type == TrainingSignals.SignalType.Undefined:
+            print("!!! WARNING: using base class (buy) training implementation !!!")
 
-        series = np.where(
-            (
-                # future profit exceeds threshold
-                    (future_df['future_profit_max'] >= future_df['fwd_profit_threshold']) &
-                    # future window max exceeds prior window max
-                    (future_df['future_max'] > future_df['dwt_recent_max'])
-            ), 1.0, 0.0)
+        signals = TrainingSignals.get_entry_training_signals(self.signal_type, future_df)
 
-        return series
+        if signals is None:
+            signals = pd.Series(np.zeros(np.shape(future_df)[0], dtype=float))
+
+        return signals
 
     def get_train_sell_signals(self, future_df: DataFrame):
 
-        print("!!! WARNING: using base class (sell) training implementation !!!")
+        if self.signal_type == TrainingSignals.SignalType.Undefined:
+            print("!!! WARNING: using base class (sell) training implementation !!!")
 
-        series = np.where(
-            (
-                # future loss exceeds threshold
-                    (future_df['future_loss_min'] <= future_df['fwd_loss_threshold']) &
-                    # future window max exceeds prior window max
-                    (future_df['future_min'] < future_df['dwt_recent_min'])
-            ), 1.0, 0.0)
+        signals = TrainingSignals.get_exit_training_signals(self.signal_type, future_df)
 
-        return series
+        if signals is None:
+            signals = pd.Series(np.zeros(np.shape(future_df)[0], dtype=float))
+
+        return signals
 
     # override the following to add strategy-specific criteria to the (main) buy/sell conditions
 
-    def get_strategy_buy_conditions(self, dataframe: DataFrame):
-        return None
+    def get_strategy_entry_guard_conditions(self, dataframe: DataFrame):
+        return TrainingSignals.get_entry_guard_conditions(self.signal_type, dataframe)
 
-    def get_strategy_sell_conditions(self, dataframe: DataFrame):
-        return None
+    def get_strategy_exit_guard_conditions(self, dataframe: DataFrame):
+        return TrainingSignals.get_exit_guard_conditions(self.signal_type, dataframe)
 
     ################################
 
@@ -388,6 +409,7 @@ class NNTC(IStrategy):
             self.dataframePopulator.startup_win = self.startup_candle_count
             self.dataframePopulator.n_loss_stddevs = self.n_loss_stddevs
             self.dataframePopulator.n_profit_stddevs = self.n_profit_stddevs
+            TrainingSignals.set_strategy_parameters(self.curr_lookahead, self.n_profit_stddevs, self.n_loss_stddevs)
 
         # first time through? Print some debug info
         if self.first_time:
@@ -465,8 +487,18 @@ class NNTC(IStrategy):
             print("OOPS! <3 ({:.0f}) buy signals generated. Check training criteria".format(buys.sum()))
 
         sells = future_df['train_sell'].copy()
+        sells = sells * 2.0 # sells are represented as 2.0 in this type of strategy
         if sells.sum() < 3:
             print("OOPS! <3 ({:.0f}) sell signals generated. Check training criteria".format(sells.sum()))
+
+
+        # Trick: artificially set entry before buy/sell to match
+        buys[np.where(buys > 0)[0] - 1] = 1.0
+        sells[np.where(sells > 0)[0] - 1] = 2.0
+
+        # copy back to dataframe
+        future_df['train_buy'] = np.where(buys > 0, 1.0, 0.0)
+        future_df['train_sell'] = np.where(sells > 0, 1.0, 0.0)
 
         self.save_debug_data(future_df)
         self.save_debug_indicators(future_df)
@@ -482,7 +514,7 @@ class NNTC(IStrategy):
         dbg_list = [
             'full_dwt', 'train_buy', 'train_sell',
             'future_gain', 'future_min', 'future_max',
-            'future_profit_min', 'future_profit_max', 'profit_threshold',
+            'future_profit_min', 'future_profit_max',
             'future_loss_min', 'future_loss_max', 'loss_threshold',
         ]
 
@@ -494,7 +526,13 @@ class NNTC(IStrategy):
 
     # empty func. Meant to be overridden by subclass
     def save_debug_indicators(self, future_df: DataFrame):
-        pass
+        dbg_list = TrainingSignals.get_debug_indicators(self.signal_type)
+
+        if len(dbg_list) > 0:
+            for indicator in dbg_list:
+                # print(f"    Adding debug indicator: {indicator}")
+                self.add_debug_indicator(future_df, indicator)
+
         return
 
     # adds an indicator to the main frame for debug (e.g. plotting). Column will be prefixed with '%', which will
@@ -521,6 +559,7 @@ class NNTC(IStrategy):
     def compress_dataframe(self, dataframe: DataFrame) -> DataFrame:
         if not self.compressor:
             self.compressor = self.get_compressor(dataframe)
+        # self.compressor = self.get_compressor(dataframe)
         return pd.DataFrame(self.compressor.transform(dataframe))
 
     # train the classification model
@@ -565,15 +604,23 @@ class NNTC(IStrategy):
         # create classifiers, if necessary
         num_features = full_df_norm.shape[1]
         if (self.trinary_classifier is None) or self.model_per_pair:
-            self.trinary_classifier, _ = self.classifier_factory(self.classifier_name, num_features)
+            self.trinary_classifier, name = NNTClassifier.create_classifier(self.classifier_type,
+                                                                            self.curr_pair,
+                                                                            num_features,
+                                                                            self.seq_len)
+
+            # set the model name
+            category, model_name = self.get_model_identifiers(self.curr_pair, name)
+            self.trinary_classifier.set_model_name(category, model_name)
 
         # combine nothing/buys/sells into a single array
         blabels = buys.to_numpy()
         slabels = sells.to_numpy()
+
         nothing = np.ones(frame_size, dtype=float)  # init nothing to 1s
-        nothing[np.where(blabels > 0)] = 0.0           # if buy or sell is set, clear nothing entry
+        nothing[np.where(blabels > 0)] = 0.0  # if buy or sell is set, clear nothing entry
         nothing[np.where(slabels > 0)] = 0.0
-        blabels[np.where(slabels > 0)] = 0.0             # sells override buys
+        blabels[np.where(slabels > 0)] = 0.0  # sells override buys
         num_samples = len(blabels)
         num_holds = nothing.sum()
         num_buys = buys.sum()
@@ -618,14 +665,14 @@ class NNTC(IStrategy):
 
         num_buys = int(tsr_lbl_train[:, 0, 1].sum())
         num_sells = int(tsr_lbl_train[:, 0, 2].sum())
-        buy_pct = 100.0*(num_buys/train_size)
+        buy_pct = 100.0 * (num_buys / train_size)
 
         if self.dbg_verbose:
-            # print("     tensor:", full_tensor.shape, ' -> train:', tsr_train.shape, " + test:", tsr_test.shape)
-            # print("     labels:", lbl_tensor.shape, ' -> train:', tsr_lbl_train.shape, " + test:", tsr_lbl_test.shape)
+        # print("     tensor:", full_tensor.shape, ' -> train:', tsr_train.shape, " + test:", tsr_test.shape)
+        # print("     labels:", lbl_tensor.shape, ' -> train:', tsr_lbl_train.shape, " + test:", tsr_lbl_test.shape)
             print("    training samples: ", train_size,
                   " #buys:", num_buys, " ({:.2f}".format(buy_pct), "%)",
-                  ' #sells:', num_sells, " ({:.2f}".format(100.0*(num_sells/train_size)), "%)",)
+                  ' #sells:', num_sells, " ({:.2f}".format(100.0 * (num_sells / train_size)), "%)", )
 
         # Create classifier for the model
 
@@ -636,12 +683,11 @@ class NNTC(IStrategy):
 
         # if scan specified, test against the test dataframe
         if self.dbg_test_classifier:
-
             if not (clf is None):
                 preds = self.get_classifier_predictions(clf, tsr_test)
                 results = np.argmax(tsr_lbl_test[:, 0], axis=1)
                 print("Testing Classifier (", clf_name, ")")
-                print(classification_report(results, preds))
+                print(classification_report(results, preds, zero_division=0))
                 print("")
 
         return
@@ -650,7 +696,7 @@ class NNTC(IStrategy):
     def get_trinary_classifier(self, tensor, results, test_tensor, test_labels):
 
         clf = self.trinary_classifier
-        name = self.classifier_name
+        name = str(self.classifier_type)
 
         # labels = self.get_trinary_labels(results)
         labels = results
@@ -668,7 +714,14 @@ class NNTC(IStrategy):
                                           test_labels)
             else:
                 num_features = np.shape(tensor)[2]
-                clf, name = self.classifier_factory(name, num_features)
+                clf, name = NNTClassifier.create_classifier(self.classifier_type, self.curr_pair, num_features,
+                                                            self.seq_len)
+
+                # set the model name
+                category, model_name = self.get_model_identifiers(self.curr_pair, name)
+                clf.set_model_name(category, model_name)
+
+                # fit the classifier
                 clf = self.fit_classifier(clf, name, "", tensor, labels, test_tensor, test_labels)
 
         return clf, name
@@ -676,9 +729,18 @@ class NNTC(IStrategy):
     #######################################
 
     def get_compressor(self, df_norm: DataFrame):
-        # just use fixed size PCA (easier for classifiers to deal with)
+        #  use fixed size PCA (Tensorflow models need fixed inputs)
         ncols = 64
         compressor = skd.PCA(n_components=ncols, whiten=True, svd_solver='full').fit(df_norm)
+
+        num_features = np.shape(df_norm)[-1]
+        if num_features > 2.0 * ncols:
+            print(f"    ** WARNING: probably too much feature compression ({num_features} -> {ncols})")
+
+        ratio_sum = compressor.explained_variance_ratio_.sum()
+        if ratio_sum <= 0.9:
+            print(f"    WARNING: reconstruction accuracy low: {ratio_sum} - Should be >0.9")
+
         return compressor
 
     #######################################
@@ -715,61 +777,17 @@ class NNTC(IStrategy):
 
     # list of potential classifier types - set to the list that you want to compare
     classifier_list = [
-        # 'MLP', 'LSTM', 'Attention', 'Multihead'
-        'MLP', 'MLP2', 'LSTM', 'Multihead', 'Transformer'
+        NNTClassifier.ClassifierType.MLP,
+        NNTClassifier.ClassifierType.Ensemble,
+        NNTClassifier.ClassifierType.LSTM,
+        NNTClassifier.ClassifierType.Multihead,
+        NNTClassifier.ClassifierType.Transformer
     ]
 
-    # factory to create classifier based on name
-    def classifier_factory(self, clf_name, nfeatures, tag=""):
-        clf = None
-
-        if clf_name == 'Transformer':
-            clf = NNTClassifier_Transformer(self.curr_pair, self.seq_len, nfeatures, tag=tag)
-
-        elif clf_name == 'LSTM':
-            clf = NNTClassifier_LSTM(self.curr_pair, self.seq_len, nfeatures, tag=tag)
-
-        elif clf_name == 'LSTM2':
-            clf = NNTClassifier_LSTM2(self.curr_pair, self.seq_len, nfeatures, tag=tag)
-
-        elif clf_name == 'LSTM3':
-            clf = NNTClassifier_LSTM3(self.curr_pair, self.seq_len, nfeatures, tag=tag)
-
-        elif clf_name == 'MLP':
-            clf = NNTClassifier_MLP(self.curr_pair, self.seq_len, nfeatures, tag=tag)
-
-        elif clf_name == 'CNN':
-            clf = NNTClassifier_CNN(self.curr_pair, self.seq_len, nfeatures, tag=tag)
-
-        elif clf_name == 'Multihead':
-            clf = NNTClassifier_Multihead(self.curr_pair, self.seq_len, nfeatures, tag=tag)
-
-        elif clf_name == 'Wavenet':
-            clf = NNTClassifier_Wavenet(self.curr_pair, self.seq_len, nfeatures, tag=tag)
-
-        elif clf_name == 'Wavenet2':
-            clf = NNTClassifier_Wavenet2(self.curr_pair, self.seq_len, nfeatures, tag=tag)
-
-        elif clf_name == 'GRU':
-            clf = NNTClassifier_GRU(self.curr_pair, self.seq_len, nfeatures, tag=tag)
-
-        elif clf_name == 'Ensemble':
-            clf = NNTClassifier_Ensemble(self.curr_pair, self.seq_len, nfeatures, tag=tag)
-
-        else:
-            print("Unknown classifier: ", clf_name)
-            clf = None
-
-        # set the model name
-        category, model_name = self.get_model_identifiers(self.curr_pair, clf_name, tag)
-        clf.set_model_name(category, model_name)
-
-        return clf, clf_name
-
     # return IDs that control model naming. Should be OK for all subclasses
-    def get_model_identifiers(self, pair, clf_name, tag):
+    def get_model_identifiers(self, pair, clf_name, tag=""):
         category = self.__class__.__name__
-        if not clf_name in category: # don't add if already there
+        if not clf_name in category:  # don't add if already there
             model_name = category + "_" + clf_name
         else:
             model_name = category
@@ -831,14 +849,19 @@ class NNTC(IStrategy):
 
         # scan through the list of classifiers in self.classifier_list
         num_features = np.shape(tsr_train)[2]
-        for clf_name in self.classifier_list:
-            clf, _ = self.classifier_factory(clf_name, num_features, tag=tag)
+        for clf_id in self.classifier_list:
+            clf, name = NNTClassifier.create_classifier(self.classifier_type, self.curr_pair, num_features,
+                                                        self.seq_len, tag=tag)
+
+            # set the model name
+            category, model_name = self.get_model_identifiers(self.curr_pair, name)
+            clf.set_model_name(category, model_name)
 
             if clf is not None:
 
                 # fit to the training data
-                clf_dict[clf_name] = clf
-                clf = self.fit_classifier(clf, clf_name, tag, tsr_train, res_train, tsr_test, res_test)
+                clf_dict[clf_id] = clf
+                clf = self.fit_classifier(clf, clf_id, tag, tsr_train, res_train, tsr_test, res_test)
 
                 # assess using the test data. Do *not* use the training data for testing
                 pred_test = self.get_classifier_predictions(clf, tsr_test)
@@ -847,11 +870,11 @@ class NNTC(IStrategy):
                 score = f1_score(res_test[:, 0], pred_test, average='macro')
 
                 if self.dbg_verbose:
-                    print("      {0:<20}: {1:.3f}".format(clf_name, score))
+                    print("      {0:<20}: {1:.3f}".format(clf_id, score))
 
                 if score > best_score:
                     best_score = score
-                    best_classifier = clf_name
+                    best_classifier = clf_id
 
         if best_score <= 0.0:
             print("   No classifier found")
@@ -899,7 +922,7 @@ class NNTC(IStrategy):
             print("    No Classifier for pair ", pair, " -Skipping predictions")
             predict = df['close'].copy()  # just to get the size
             predict = 0.0
-            return predict
+            return predict, predict
 
         print("    predicting buys/sells...")
         preds = self.predict(df, pair, clf)
@@ -911,7 +934,6 @@ class NNTC(IStrategy):
 
         # buys = np.where(((preds > 0.5) & (preds < 1.4)), 1.0, 0.0)
         # sells = np.where(((preds > 1.5)), 1.0, 0.0)
-
 
         return buys, sells
 
@@ -977,7 +999,7 @@ class NNTC(IStrategy):
         conditions.append(predict_cond)
 
         # add strategy-specific conditions (from subclass)
-        strat_cond = self.get_strategy_buy_conditions(dataframe)
+        strat_cond = self.get_strategy_entry_guard_conditions(dataframe)
         if strat_cond is not None:
             conditions.append(strat_cond)
 
@@ -1017,7 +1039,6 @@ class NNTC(IStrategy):
                 # self.show_debug_info(curr_pair)
                 self.show_all_debug_info()
 
-
         if self.ignore_exit_signals:
             dataframe['exit_long'] = 0
             return dataframe
@@ -1039,7 +1060,7 @@ class NNTC(IStrategy):
         conditions.append(predict_cond)
 
         # add strategy-specific conditions (from subclass)
-        strat_cond = self.get_strategy_sell_conditions(dataframe)
+        strat_cond = self.get_strategy_exit_guard_conditions(dataframe)
         if strat_cond is not None:
             conditions.append(strat_cond)
 
@@ -1105,17 +1126,20 @@ class NNTC(IStrategy):
         in_trend = False
 
         # Mod: just take the profit:
-        # Above 3%, sell if MFA > 90
+        # Above 3%, sell if MFI > 90
         if current_profit > 0.03:
             if last_candle['mfi'] > 90:
                 return 'mfi_90'
 
         # Mod: strong sell signal, in profit
         if (current_profit > 0) and (last_candle['fisher_wr'] > 0.98):
-                return 'fwr_98'
+            return 'fwr_98'
 
-        # Mod: Sell any positions at a loss if they are held for more than two days.
-        if current_profit < 0.0 and (current_time - trade.open_date_utc).days >= 2:
+        if not self.use_custom_stoploss:
+            return None
+
+        # Mod: Sell any positions at a loss if they are held for more than 'N' days.
+        if current_profit < 0.0 and (current_time - trade.open_date_utc).days >= 7:
             return 'unclog'
 
         # Determine our current ROI point based on the defined type

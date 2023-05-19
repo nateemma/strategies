@@ -3,6 +3,7 @@
 import multiprocessing
 import sys
 import platform
+import freqtrade
 
 # Note that we have to surround import with try/except since not all strategies require all of these packages
 
@@ -46,6 +47,9 @@ except ModuleNotFoundError:
 def print_environment():
 
     NOT_INSTALLED = "(not installed)"
+
+    # freqtrade
+    freqtrade_version = freqtrade.__version__
 
     # OS info
     os_type = sys.platform
@@ -95,6 +99,7 @@ def print_environment():
         darts_version = NOT_INSTALLED
 
     print("")
+    print(f"    freqtrade:  {freqtrade_version}")
     print(f"    OS Type:    {os_type}, Version: {os_version}")
     print(f"    python:     {python_version}")
     print(f"    sklearn:    {sklearn_version}")

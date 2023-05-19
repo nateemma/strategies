@@ -1,0 +1,44 @@
+{
+  "strategy_name": "NNTC_fbb_Transformer",
+  "params": {
+    "roi": {
+      "0": 0.05,
+      "16": 0.04,
+      "64": 0.02,
+      "128": 0
+    },
+    "stoploss": {
+      "stoploss": -0.05
+    },
+    "max_open_trades": {
+      "max_open_trades": 3
+    },
+    "buy": {},
+    "sell": {
+      "cexit_endtrend_respect_roi": true,
+      "cexit_pullback": false,
+      "cexit_pullback_amount": 0.017,
+      "cexit_pullback_respect_roi": true,
+      "cexit_roi_end": 0.001,
+      "cexit_roi_start": 0.049,
+      "cexit_roi_time": 1279,
+      "cexit_roi_type": "decay",
+      "cexit_trend_type": "any",
+      "cstop_bail_how": "none",
+      "cstop_bail_roc": -3.988,
+      "cstop_bail_time": 782,
+      "cstop_bail_time_trend": false,
+      "cstop_loss_threshold": -0.031,
+      "cstop_max_stoploss": -0.299
+    },
+    "protection": {},
+    "trailing": {
+      "trailing_stop": true,
+      "trailing_stop_positive": 0.124,
+      "trailing_stop_positive_offset": 0.181,
+      "trailing_only_offset_is_reached": true
+    }
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2023-05-19 01:08:19.462062+00:00"
+}

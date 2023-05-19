@@ -2,10 +2,13 @@
 
 ## Current Status
 
-**
-May 18th, 2023
+_*
+I am in the middle of re-generating models for all of the NNTC strategies after finding an issue with labelling and training. The repo contains an
+incomplete set of models, because I was asked to submit whatever I had while I am generating new models (they take
+multiple days to generate). I also consolidated classes and cleaned up a little while I was doing that.
 
-__I recently found some issues with label generation and training. I am in the process of updating all of the NNTC strategies, and cleaning up a little as I go. I have to regenerate and test all of the strategies, which will take me at least a week...__**
+See [README_NNTC.nd](README_NNTC.md) for some more details
+*_
 
 I've been getting some questions on the various strategies here, so I thought I'd better clarify what I am currently
 working on...
@@ -16,13 +19,13 @@ code in the following types of strategies:
 - PCA
 - Anomaly
 - NNTC
-- NNPredict
 
 _NOTES_:
 
-- I am currently replacing the NNBC strategies with equivalent NNTC strategies. They are essentially the same, but NNBC
-  uses separate buy and sell neural network models, while NNTC use a single model to predict buy/sell/hold. This appears
-  to work better and uses less memory (one model instead of two)
+- I have replaced the NNBC strategies with equivalent NNTC strategies. They are essentially the same, but NNBC uses
+  separate buy and sell neural network models, while NNTC use a single model to predict buy/sell/hold. This appears to
+  work better and uses less memory (one model instead of two).<br>
+
 
 - _**Binance**_: I live in the USA, and the Binance exchange recently blocked API access from here. So, I cannot (
   easily) test the code in the binance exchange directory. I know I could use a VPN, but I'm busy with a bunch of other

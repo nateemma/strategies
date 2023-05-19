@@ -36,10 +36,13 @@ log = logging.getLogger(__name__)
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 from NNTC import NNTC
+import TrainingSignals
+import NNTClassifier
+
 
 """
 ####################################################################################
-NNTC_pv:
+NNTC_pv_Wavenet:
     This is a subclass of NNTC, which provides a framework for deriving a dimensionally-reduced model
     This class trains the model based on future peak/valley conditions
 
@@ -57,6 +60,8 @@ class NNTC_pv_Wavenet(NNTC):
         },
         'subplots': {
             "Diff": {
+                '%future_gain': {'color': 'blue'},
+                '%future_profit_threshold': {'color': 'green'},
                 '%train_buy': {'color': 'mediumaquamarine'},
                 'predict_buy': {'color': 'cornflowerblue'},
                 '%train_sell': {'color': 'salmon'},
@@ -72,15 +77,12 @@ class NNTC_pv_Wavenet(NNTC):
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
-    lookahead_hours = 1.0
-    n_profit_stddevs = 1.0
-    n_loss_stddevs = 1.0
+
     min_f1_score = 0.70
 
     custom_trade_info = {}
 
     refit_model = False  # only set to True when training. If False, then existing model is used, if present
-
 
     dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
     dbg_test_classifier = False  # test clasifiers after fitting
@@ -88,17 +90,13 @@ class NNTC_pv_Wavenet(NNTC):
     dbg_verbose = False  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
 
-    classifier_name = 'Wavenet'
-
     ###################################
 
-    # Strategy Specific Variable Storage
-
-    ## Hyperopt Variables
+    ## Hyperopt Variables - redclare here so that they go to the correct JSON file (and not the base class)
 
     # buy/sell hyperparams
-    buy_nseq_dn = IntParameter(2, 4, default=2, space='buy', load=True, optimize=True)
-    sell_nseq_up = IntParameter(2, 4, default=2, space='sell', load=True, optimize=True)
+    buy_nseq_dn = IntParameter(2, 10, default=4, space='buy', load=True, optimize=True)
+    sell_nseq_up = IntParameter(2, 10, default=8, space='sell', load=True, optimize=True)
 
     # Custom Sell Profit (formerly Dynamic ROI)
     cexit_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
@@ -126,81 +124,13 @@ class NNTC_pv_Wavenet(NNTC):
 
     ###################################
 
-    # override the default training signal generation
+    # override the (most often changed) default parameters for this particular strategy
 
-    def get_train_buy_signals(self, future_df: DataFrame):
+    lookahead_hours = 1.0
+    n_profit_stddevs = 2.0
+    n_loss_stddevs = 2.0
 
-        valleys = np.zeros(future_df.shape[0], dtype=float)
-        v_idx = scipy.signal.argrelextrema(future_df['close'].to_numpy(), np.less_equal, order=self.curr_lookahead)[0]
-        valleys[v_idx] = 1.0
+    signal_type = TrainingSignals.SignalType.Peaks_Valleys
+    classifier_type = NNTClassifier.ClassifierType.Wavenet
 
-        # print(f'future_df: {future_df.shape} valleys: {np.shape(valleys)}')
-        buys = np.where(
-            (
-                # overbought condition with high potential profit
-                    (valleys > 0.0) &
-
-                    # N down sequences
-                    (future_df['dwt_nseq_dn'] >= 3) &
-
-                    # future profit
-                    (future_df['future_profit_max'] >= future_df['fwd_profit_threshold']) &
-                    (future_df['future_gain'] > 0)
-            ), 1.0, 0.0)
-
-        return buys
-
-    def get_train_sell_signals(self, future_df: DataFrame):
-
-        peaks = np.zeros(future_df.shape[0], dtype=float)
-        p_idx = scipy.signal.argrelextrema(future_df['close'].to_numpy(), np.greater_equal, order=self.curr_lookahead)[0]
-        peaks[p_idx] = 1.0
-
-        sells = np.where(
-            (
-                    (peaks > 0) &
-
-                    # N up sequences
-                    (future_df['dwt_nseq_up'] >= 3) &
-
-                    # future loss
-                    (future_df['future_gain'] <= future_df['fwd_loss_threshold'])
-            ), 1.0, 0.0)
-
-        return sells
-
-    # save the indicators used here so that we can see them in plots (prefixed by '%')
-    def save_debug_indicators(self, future_df: DataFrame):
-
-        self.add_debug_indicator(future_df, 'future_profit_max')
-        # self.add_debug_indicator(future_df, 'profit_threshold')
-        self.add_debug_indicator(future_df, 'future_max')
-        self.add_debug_indicator(future_df, 'future_loss_min')
-        # self.add_debug_indicator(future_df, 'loss_threshold')
-        self.add_debug_indicator(future_df, 'future_min')
-
-        return
-
-    ###################################
-
-
-    # callbacks to add conditions to main buy/sell decision (rather than trainng)
-
-    def get_strategy_buy_conditions(self, dataframe: DataFrame):
-        cond = np.where(
-            (
-                # N down sequences
-                (dataframe['dwt_nseq_dn'] >= self.buy_nseq_dn.value)
-            ), 1.0, 0.0)
-        return cond
-
-    def get_strategy_sell_conditions(self, dataframe: DataFrame):
-        cond = np.where(
-            (
-                # N up sequences
-                ( dataframe['dwt_nseq_up'] >= self.sell_nseq_up.value)
-            ), 1.0, 0.0)
-        return cond
-
-    ###################################
-
+    ignore_exit_signals = False

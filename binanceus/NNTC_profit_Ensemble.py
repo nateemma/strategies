@@ -40,12 +40,14 @@ log = logging.getLogger(__name__)
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 from NNTC import NNTC
+import TrainingSignals
+import NNTClassifier
 
 """
 ####################################################################################
-NNTC_profit_Ensemble:
+NNTC_profit:
     This is a subclass of PCA, which provides a framework for deriving a dimensionally-reduced model
-    This class trains the model based on future profit/loss conditions and an ensemble of different classifiers
+    This class trains the model based on future profit/loss conditions
 
 ####################################################################################
 """
@@ -61,6 +63,8 @@ class NNTC_profit_Ensemble(NNTC):
         },
         'subplots': {
             "Diff": {
+                '%future_gain': {'color': 'blue'},
+                '%future_profit_threshold': {'color': 'green'},
                 '%train_buy': {'color': 'mediumaquamarine'},
                 'predict_buy': {'color': 'cornflowerblue'},
                 '%train_sell': {'color': 'salmon'},
@@ -76,15 +80,12 @@ class NNTC_profit_Ensemble(NNTC):
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
-    lookahead_hours = 1.0
-    n_profit_stddevs = 1.0
-    n_loss_stddevs = 1.0
+
     min_f1_score = 0.70
 
     custom_trade_info = {}
 
     refit_model = False  # only set to True when training. If False, then existing model is used, if present
-
 
     dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
     dbg_test_classifier = False  # test clasifiers after fitting
@@ -92,13 +93,9 @@ class NNTC_profit_Ensemble(NNTC):
     dbg_verbose = False  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
 
-    classifier_name = 'Ensemble'
-
     ###################################
 
-    # Strategy Specific Variable Storage
-
-    ## Hyperopt Variables
+    ## Hyperopt Variables - redclare here so that they go to the correct JSON file (and not the base class)
 
     # buy/sell hyperparams
     buy_nseq_dn = IntParameter(2, 10, default=4, space='buy', load=True, optimize=True)
@@ -130,64 +127,13 @@ class NNTC_profit_Ensemble(NNTC):
 
     ###################################
 
-    # override the default training signal generation
+    # override the (most often changed) default parameters for this particular strategy
 
-    # find where future price is higher/lower than previous window max/min and exceeds threshold
+    lookahead_hours = 1.0
+    n_profit_stddevs = 2.0
+    n_loss_stddevs = 2.0
 
-    def get_train_buy_signals(self, future_df: DataFrame):
-        series = np.where(
-            (
-                    (future_df['mfi'] < 50) & # MFI in buy range
+    signal_type = TrainingSignals.SignalType.Profit
+    classifier_type = NNTClassifier.ClassifierType.Ensemble
 
-                    (future_df['future_profit_max'] >= future_df['fwd_profit_threshold']) & # future profit exceeds threshold
-                    (future_df['future_max'] > future_df['dwt_recent_max']) # future window max exceeds prior window max
-            ), 1.0, 0.0)
-
-        return series
-
-    def get_train_sell_signals(self, future_df: DataFrame):
-        series = np.where(
-            (
-                    (future_df['mfi'] > 50) & # MFI in sell range
-
-                    (future_df['future_loss_min'] <= future_df['fwd_loss_threshold']) & # future loss exceeds threshold
-                    (future_df['future_min'] < future_df['dwt_recent_min']) # future window max exceeds prior window max
-            ), 1.0, 0.0)
-
-        return series
-
-    # save the indicators used here so that we can see them in plots (prefixed by '%')
-    def save_debug_indicators(self, future_df: DataFrame):
-
-        self.add_debug_indicator(future_df, 'future_profit_max')
-        # self.add_debug_indicator(future_df, 'profit_threshold')
-        self.add_debug_indicator(future_df, 'future_max')
-        self.add_debug_indicator(future_df, 'future_loss_min')
-        # self.add_debug_indicator(future_df, 'loss_threshold')
-        self.add_debug_indicator(future_df, 'future_min')
-
-        return
-
-    ###################################
-
-
-    # callbacks to add conditions to main buy/sell decision (rather than trainng)
-    #
-    # def get_strategy_buy_conditions(self, dataframe: DataFrame):
-    #     cond = np.where(
-    #         (
-    #             # N down sequences
-    #             (dataframe['dwt_nseq_dn'] >= self.buy_nseq_dn.value)
-    #         ), 1.0, 0.0)
-    #     return cond
-    #
-    # def get_strategy_sell_conditions(self, dataframe: DataFrame):
-    #     cond = np.where(
-    #         (
-    #             # N up sequences
-    #             ( dataframe['dwt_nseq_up'] >= self.sell_nseq_up.value)
-    #         ), 1.0, 0.0)
-    #     return cond
-
-    ###################################
-
+    ignore_exit_signals = False

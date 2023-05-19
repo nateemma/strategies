@@ -1,0 +1,41 @@
+{
+  "strategy_name": "NNTC_fbb_Attention",
+  "params": {
+    "roi": {
+      "0": 0.06
+    },
+    "stoploss": {
+      "stoploss": -0.99
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 3
+    },
+    "buy": {},
+    "sell": {
+      "cexit_endtrend_respect_roi": false,
+      "cexit_pullback": false,
+      "cexit_pullback_amount": 0.01,
+      "cexit_pullback_respect_roi": false,
+      "cexit_roi_end": 0.008,
+      "cexit_roi_start": 0.049,
+      "cexit_roi_time": 1419,
+      "cexit_roi_type": "step",
+      "cexit_trend_type": "none",
+      "cstop_bail_how": "time",
+      "cstop_bail_roc": -3.715,
+      "cstop_bail_time": 624,
+      "cstop_bail_time_trend": false,
+      "cstop_loss_threshold": -0.05,
+      "cstop_max_stoploss": -0.291
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2023-05-17 17:57:59.888323+00:00"
+}

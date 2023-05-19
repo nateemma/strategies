@@ -13,6 +13,7 @@ infile = None
 curr_line = ""
 strat_results = {}
 strat_summary = {}
+market_change = None
 
 
 # routine to skip to requested pattern
@@ -121,10 +122,26 @@ def process_expectancy(strat, line):
 
     return
 
+def process_market_change(strat, line):
+    global strat_summary
+    global strat_results
+    global market_change
+
+    # format of line:
+    # | Market change                   | -16.55%                |
+    cols = line.strip().split("|")
+    cols.pop(0)
+    cols.pop(len(cols) - 1)
+
+    market_change = str(cols[-1])
+
+    return
+
 
 def print_results():
     global strat_summary
     global strat_results
+    global market_change
 
     print("")
     # print("Summary:")
@@ -151,6 +168,9 @@ def print_results():
         print("")
         hdrs = df.columns.values
         print(tabulate(df.sort_values(by=['Rank'], ascending=True), showindex="never", headers=hdrs, tablefmt='psql'))
+
+        print("")
+        print(f"Market Change: {market_change}")
 
     return
 
@@ -185,8 +205,12 @@ def main():
                 if strat_summary[strat]['entries'] > 0:
                     # copyto('Expectancy', anywhere=True)
                     if skipto('Expectancy', anywhere=True):
-                        # print(curr_line.rstrip())
                         process_expectancy(strat, curr_line.rstrip())
+
+                        if market_change is None:
+                            if skipto('Market change', anywhere=True):
+                                process_market_change(strat, curr_line.rstrip())
+
                         # copyto('===============================')
                         skipto('===============================')
                         # print(curr_line.rstrip())

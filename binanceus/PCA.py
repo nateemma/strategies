@@ -210,7 +210,7 @@ class PCA(IStrategy):
     pair_model_info = {}  # holds model-related info for each pair
     classifier_stats = {}  # holds statistics for each type of classifier (useful to rank classifiers
 
-    ignore_exit_signals = True # set to True if you don't want to process sell/exit signals (let custom sell do it)
+    ignore_exit_signals = False # set to True if you don't want to process sell/exit signals (let custom sell do it)
 
     # debug flags
     first_time = True  # mostly for debug
@@ -312,10 +312,10 @@ class PCA(IStrategy):
 
     # override the following to add strategy-specific criteria to the (main) buy/sell conditions
 
-    def get_strategy_buy_conditions(self, dataframe: DataFrame):
+    def get_strategy_entry_guard_conditions(self, dataframe: DataFrame):
         return None
 
-    def get_strategy_sell_conditions(self, dataframe: DataFrame):
+    def get_strategy_exit_guard_conditions(self, dataframe: DataFrame):
         return None
 
     ################################
@@ -1264,7 +1264,7 @@ class PCA(IStrategy):
         conditions.append(pca_cond)
 
         # add strategy-specific conditions (from subclass)
-        strat_cond = self.get_strategy_buy_conditions(dataframe)
+        strat_cond = self.get_strategy_entry_guard_conditions(dataframe)
         if strat_cond is not None:
             conditions.append(strat_cond)
 
@@ -1318,7 +1318,7 @@ class PCA(IStrategy):
         conditions.append(pca_cond)
 
         # add strategy-specific conditions (from subclass)
-        strat_cond = self.get_strategy_sell_conditions(dataframe)
+        strat_cond = self.get_strategy_exit_guard_conditions(dataframe)
         if strat_cond is not None:
             conditions.append(strat_cond)
 

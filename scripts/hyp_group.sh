@@ -130,7 +130,7 @@ group=$2
 strat_dir="user_data/strategies"
 exchange_dir="${strat_dir}/${exchange}"
 config_file="${exchange_dir}/config_${exchange}.json"
-logfile="hyp_${exchange}_${group}.log"
+logfile="hyp_${exchange}_${group:gs/*/}.log"
 
 if [ ! -f ${config_file} ]; then
     echo "config file not found: ${config_file}"
@@ -143,7 +143,14 @@ if [ ! -d ${exchange_dir} ]; then
 fi
 
 # get the list of files using the group identifier
-files="${group}_*.py"
+
+# if there is already a wildcard in the group name, just use that, otherwise use group as a prefix
+if [[ ${group} == *"*"* ]]; then
+  files="${group}.py"
+else
+  files="${group}_*.py"
+fi
+
 find_result=$( find ${exchange_dir} -name "${files}" -type f -print0 | xargs -0 basename )
 strat_list=( "${(@f)${find_result}}" )
 

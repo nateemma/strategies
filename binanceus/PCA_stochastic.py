@@ -125,7 +125,7 @@ class PCA_stochastic(PCA):
                     ((future_df['fast_diff'] > 0) & (future_df['fast_diff'].shift(-self.curr_lookahead) <= 0)) &
 
                     # future profit
-                    (future_df['future_profit_max'] >= future_df['fwd_profit_threshold']) &
+                    (future_df['future_profit_max'] >= future_df['future_profit_threshold']) &
                     (future_df['future_gain'] > 0)
             ), 1.0, 0.0)
 
@@ -140,7 +140,7 @@ class PCA_stochastic(PCA):
                     ((future_df['fast_diff'] < 0) & (future_df['fast_diff'].shift(-self.curr_lookahead) >= 0)) &
 
                     # future loss
-                    (future_df['future_loss_min'] <= future_df['fwd_loss_threshold']) &
+                    (future_df['future_loss_min'] <= future_df['future_loss_threshold']) &
                     (future_df['future_gain'] < 0)
             ), 1.0, 0.0)
 

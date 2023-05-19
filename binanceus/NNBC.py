@@ -313,7 +313,7 @@ class NNBC(IStrategy):
         series = np.where(
             (
                 # (future_df['mfi'] <= 30) &  # loose oversold threshold
-                (future_df['future_gain'] >= future_df['fwd_profit_threshold'])  # future gain above threshold
+                (future_df['future_gain'] >= future_df['future_profit_threshold'])  # future gain above threshold
             ), 1.0, 0.0)
 
         return series
@@ -325,17 +325,17 @@ class NNBC(IStrategy):
         series = np.where(
             (
                 # (future_df['mfi'] >= 70) &  # loose overbought threshold
-                (future_df['future_gain'] <= future_df['fwd_loss_threshold'])  # future loss above threshold
+                (future_df['future_gain'] <= future_df['future_loss_threshold'])  # future loss above threshold
             ), 1.0, 0.0)
 
         return series
 
     # override the following to add strategy-specific criteria to the (main) buy/sell conditions
 
-    def get_strategy_buy_conditions(self, dataframe: DataFrame):
+    def get_strategy_entry_guard_conditions(self, dataframe: DataFrame):
         return None
 
-    def get_strategy_sell_conditions(self, dataframe: DataFrame):
+    def get_strategy_exit_guard_conditions(self, dataframe: DataFrame):
         return None
 
     ################################
@@ -1029,7 +1029,7 @@ class NNBC(IStrategy):
         conditions.append(predict_cond)
 
         # add strategy-specific conditions (from subclass)
-        strat_cond = self.get_strategy_buy_conditions(dataframe)
+        strat_cond = self.get_strategy_entry_guard_conditions(dataframe)
         if strat_cond is not None:
             conditions.append(strat_cond)
 
@@ -1086,7 +1086,7 @@ class NNBC(IStrategy):
         conditions.append(predict_cond)
 
         # add strategy-specific conditions (from subclass)
-        strat_cond = self.get_strategy_sell_conditions(dataframe)
+        strat_cond = self.get_strategy_exit_guard_conditions(dataframe)
         if strat_cond is not None:
             conditions.append(strat_cond)
 

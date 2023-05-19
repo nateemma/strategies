@@ -90,10 +90,14 @@ class ClassifierKerasTrinary(ClassifierKeras):
         # optimizer = keras.optimizers.Adam(learning_rate=0.001)
         optimizer = keras.optimizers.Adam(learning_rate=0.01)
 
-        # must use binary_crossentropy loss because this is a binary classifier
-        model.compile(optimizer=optimizer,
-                      loss=CategoricalCrossentropy(),
-                      metrics=['accuracy', 'mse'])
+        # model.compile(optimizer=optimizer,
+        #               loss=CategoricalCrossentropy(),
+        #               metrics=['accuracy', 'mse'])
+        model.compile(
+            optimizer=optimizer,
+            loss="categorical_crossentropy",
+            metrics=["categorical_accuracy"],
+        )
 
         return model
 
@@ -149,8 +153,8 @@ class ClassifierKerasTrinary(ClassifierKeras):
 
         monitor_field = 'loss'
         monitor_mode = "min"
-        early_patience = 4
-        plateau_patience = 4
+        early_patience = 6
+        plateau_patience = 3
 
         # callback to control early exit on plateau of results
         early_callback = keras.callbacks.EarlyStopping(

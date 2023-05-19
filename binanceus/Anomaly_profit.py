@@ -122,7 +122,7 @@ class Anomaly_profit(Anomaly):
             (
                     (future_df['mfi'] < 40) & # loose guard
 
-                    (future_df['future_profit_max'] >= future_df['fwd_profit_threshold']) & # future profit exceeds threshold
+                    (future_df['future_profit_max'] >= future_df['future_profit_threshold']) & # future profit exceeds threshold
                     (future_df['future_max'] > future_df['dwt_recent_max']) # future window max exceeds prior window max
             ), 1.0, 0.0)
 
@@ -133,7 +133,7 @@ class Anomaly_profit(Anomaly):
             (
                     (future_df['mfi'] > 60) & # loose guard
 
-                    (future_df['future_loss_min'] <= future_df['fwd_loss_threshold']) & # future loss exceeds threshold
+                    (future_df['future_loss_min'] <= future_df['future_loss_threshold']) & # future loss exceeds threshold
                     (future_df['future_min'] < future_df['dwt_recent_min']) # future window max exceeds prior window max
             ), 1.0, 0.0)
 

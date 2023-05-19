@@ -68,6 +68,10 @@ class DataframePopulator():
         dataframe['profit'] = dataframe['gain'].clip(lower=0.0)
         dataframe['loss'] = dataframe['gain'].clip(upper=0.0)
 
+        # Recent min/max
+        dataframe['recent_min'] = dataframe['close'].rolling(window=self.win_size).min()
+        dataframe['recent_max'] = dataframe['close'].rolling(window=self.win_size).max()
+
         # these averages are used internally, do not remove!
         dataframe['sma'] = ta.SMA(dataframe, timeperiod=self.win_size)
         dataframe['ema'] = ta.EMA(dataframe, timeperiod=self.win_size)
@@ -351,22 +355,6 @@ class DataframePopulator():
         dataframe['dwt_at_low'] = np.where(dataframe['dwt'] <= dataframe['dwt_low'], 1.0, 0.0)
         dataframe['dwt_at_high'] = np.where(dataframe['dwt'] >= dataframe['dwt_high'], 1.0, 0.0)
 
-        # overall gain/loss stats. Inefficient to add a constant to each row, but it removes need to manage globals
-        # These are forward looking because they use the entire history
-        profits = dataframe['profit'].to_numpy()
-        nonzero_idx = np.nonzero(profits)
-        dataframe['fwd_profit_mean'] = np.mean(profits[nonzero_idx])
-        dataframe['fwd_profit_std'] = np.std(profits[nonzero_idx])
-        dataframe['fwd_profit_threshold'] = dataframe['fwd_profit_mean'] + \
-                                            self.n_profit_stddevs * abs(dataframe['fwd_profit_std'])
-
-        losses = dataframe['loss'].to_numpy()
-        nonzero_idx = np.nonzero(losses)
-        dataframe['fwd_loss_mean'] = np.mean(losses[nonzero_idx])
-        dataframe['fwd_loss_std'] = np.std(losses[nonzero_idx])
-        dataframe['fwd_loss_threshold'] = dataframe['fwd_loss_mean'] - \
-                                          self.n_loss_stddevs * abs(dataframe['fwd_loss_std'])
-
         # dataframe['loss_threshold'] = dataframe['dwt_loss_mean'] - self.n_loss_stddevs * abs(dataframe['dwt_loss_std'])
 
         return dataframe
@@ -403,15 +391,20 @@ class DataframePopulator():
         future_df['future_loss'] = future_df['future_gain'].clip(upper=0.0)
 
         # get rolling mean & stddev so that we have a localised estimate of (recent) future activity
-        # Note: window in past because we already looked forward
-        future_df['future_profit_mean'] = future_df['future_profit'].rolling(self.win_size).mean()
-        future_df['future_profit_std'] = future_df['future_profit'].rolling(self.win_size).std()
-        future_df['future_profit_max'] = future_df['future_profit'].rolling(self.win_size).max()
-        future_df['future_profit_min'] = future_df['future_profit'].rolling(self.win_size).min()
-        future_df['future_loss_mean'] = future_df['future_loss'].rolling(self.win_size).mean()
-        future_df['future_loss_std'] = future_df['future_loss'].rolling(self.win_size).std()
-        future_df['future_loss_max'] = future_df['future_loss'].rolling(self.win_size).max()
-        future_df['future_loss_min'] = future_df['future_loss'].rolling(self.win_size).min()
+        # Note: window in past because we already looked forward (with 'future_close')
+        future_df['future_gain_mean'] = future_df['future_gain'].rolling(lookahead_win).mean()
+        future_df['future_gain_std'] = future_df['future_gain'].rolling(lookahead_win).std()
+        future_df['future_gain_sum'] = future_df['future_gain'].rolling(lookahead_win).sum()
+
+        future_df['future_profit_mean'] = future_df['future_profit'].rolling(lookahead_win).mean()
+        future_df['future_profit_std'] = future_df['future_profit'].rolling(lookahead_win).std()
+        future_df['future_loss_mean'] = future_df['future_loss'].rolling(lookahead_win).mean()
+        future_df['future_loss_std'] = future_df['future_loss'].rolling(lookahead_win).std()
+
+        future_df['future_profit_max'] = future_df['future_profit'].rolling(lookahead_win).max()
+        future_df['future_profit_min'] = future_df['future_profit'].rolling(lookahead_win).min()
+        future_df['future_loss_max'] = future_df['future_loss'].rolling(lookahead_win).max()
+        future_df['future_loss_min'] = future_df['future_loss'].rolling(lookahead_win).min()
 
         # future_df['profit_threshold'] = future_df['profit_mean'] + self.n_profit_stddevs * abs(future_df['profit_std'])
         # future_df['loss_threshold'] = future_df['loss_mean'] - self.n_loss_stddevs * abs(future_df['loss_std'])
@@ -421,8 +414,8 @@ class DataframePopulator():
         future_df['future_loss_threshold'] = future_df['dwt_loss_mean'] - self.n_loss_stddevs * abs(
             future_df['dwt_loss_std'])
 
-        future_df['future_profit_diff'] = (future_df['future_profit'] - future_df['fwd_profit_threshold']) * 10.0
-        future_df['future_loss_diff'] = (future_df['future_loss'] - future_df['fwd_loss_threshold']) * 10.0
+        future_df['future_profit_diff'] = (future_df['future_profit'] - future_df['future_profit_threshold']) * 10.0
+        future_df['future_loss_diff'] = (future_df['future_loss'] - future_df['future_loss_threshold']) * 10.0
 
         # future_df['buy_signal'] = np.where(future_df['profit_diff'] > 0.0, 1.0, 0.0)
         # future_df['sell_signal'] = np.where(future_df['loss_diff'] < 0.0, -1.0, 0.0)

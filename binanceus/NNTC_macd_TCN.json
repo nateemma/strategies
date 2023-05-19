@@ -1,0 +1,44 @@
+{
+  "strategy_name": "NNTC_macd_TCN",
+  "params": {
+    "roi": {
+      "0": 0.06
+    },
+    "stoploss": {
+      "stoploss": -0.99
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 3
+    },
+    "buy": {
+      "buy_nseq_dn": 3
+    },
+    "sell": {
+      "cexit_endtrend_respect_roi": true,
+      "cexit_pullback": false,
+      "cexit_pullback_amount": 0.011,
+      "cexit_pullback_respect_roi": true,
+      "cexit_roi_end": 0.003,
+      "cexit_roi_start": 0.016,
+      "cexit_roi_time": 1001,
+      "cexit_roi_type": "decay",
+      "cexit_trend_type": "rmi",
+      "cstop_bail_how": "roc",
+      "cstop_bail_roc": -3.909,
+      "cstop_bail_time": 1360,
+      "cstop_bail_time_trend": false,
+      "cstop_loss_threshold": -0.021,
+      "cstop_max_stoploss": -0.103,
+      "sell_nseq_up": 4
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2023-05-07 02:49:24.397010+00:00"
+}

@@ -135,7 +135,7 @@ class PCA_nseq(PCA):
                     (future_df['dwt_nseq_dn'] >= 4) &
                     # (future_df['future_nseq_up'] >= 4) &
 
-                    (future_df['future_profit_max'] >= future_df['fwd_profit_threshold'])   # future profit exceeds threshold
+                    (future_df['future_profit_max'] >= future_df['future_profit_threshold'])   # future profit exceeds threshold
             ), 1.0, 0.0)
 
         return series
@@ -148,7 +148,7 @@ class PCA_nseq(PCA):
                     (future_df['dwt_nseq_up'] >= 6) &
                     # (future_df['future_nseq_dn'] >= 4) &
 
-                    (future_df['future_loss_min'] <= future_df['fwd_loss_threshold'])   # future loss exceeds threshold
+                    (future_df['future_loss_min'] <= future_df['future_loss_threshold'])   # future loss exceeds threshold
             ), 1.0, 0.0)
 
         return series
@@ -166,7 +166,7 @@ class PCA_nseq(PCA):
 
     # callbacks to add conditions to main buy/sell decision (rather than trainng)
 
-    def get_strategy_buy_conditions(self, dataframe: DataFrame):
+    def get_strategy_entry_guard_conditions(self, dataframe: DataFrame):
         cond = np.where(
             (
                 # N down sequences
@@ -174,7 +174,7 @@ class PCA_nseq(PCA):
             ), 1.0, 0.0)
         return cond
 
-    def get_strategy_sell_conditions(self, dataframe: DataFrame):
+    def get_strategy_exit_guard_conditions(self, dataframe: DataFrame):
         cond = np.where(
             (
                 # N up sequences

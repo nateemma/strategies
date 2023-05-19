@@ -41,7 +41,7 @@ config_file=""
 short=0
 leveraged=0
 
-spaces="buy sell"
+spaces="sell"
 
 #get date from 180 days ago (MacOS-specific)
 num_days=180

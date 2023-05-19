@@ -120,7 +120,7 @@ class NNBC_swing(NNBC):
         buys = np.where(
             (
                     # (future_df['volume'] > 0) & # volume check
-                    (future_df['future_gain'] > future_df['fwd_profit_threshold']) &  # future gain
+                    (future_df['future_gain'] > future_df['future_profit_threshold']) &  # future gain
                     (future_df['dwt_bottom'] > 0)   # bottom of trend
                     # (qtpylib.crossed_above(future_df['dwt_deriv'], 0.0)) # start of upswing
 
@@ -133,7 +133,7 @@ class NNBC_swing(NNBC):
         sells = np.where(
             (
                     # (future_df['volume'] > 0) & # volume check
-                    (future_df['future_gain'] < future_df['fwd_loss_threshold']) & # future loss
+                    (future_df['future_gain'] < future_df['future_loss_threshold']) & # future loss
                     (future_df['dwt_top'] > 0)  # top of trend
                     # (qtpylib.crossed_below(future_df['dwt_deriv'], 0.0)) # start of downswing
             ), 1.0, 0.0)

@@ -1,14 +1,9 @@
 import numpy as np
 from enum import Enum
 
-import pywt
 import scipy
-import talib.abstract as ta
-from scipy.ndimage import gaussian_filter1d
-from statsmodels.discrete.discrete_model import Probit
 
 import freqtrade.vendor.qtpylib.indicators as qtpylib
-import arrow
 
 from freqtrade.exchange import timeframe_to_minutes
 from freqtrade.strategy import (IStrategy, merge_informative_pair, stoploss_from_open,
@@ -41,12 +36,15 @@ log = logging.getLogger(__name__)
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 from NNTC import NNTC
+import TrainingSignals
+import NNTClassifier
+
 
 """
 ####################################################################################
 NNTC_pv_Multihead:
     This is a subclass of NNTC, which provides a framework for deriving a dimensionally-reduced model
-    This class trains the model based on peak/valley detection
+    This class trains the model based on future peak/valley conditions
 
 ####################################################################################
 """
@@ -56,10 +54,14 @@ class NNTC_pv_Multihead(NNTC):
 
     plot_config = {
         'main_plot': {
-            'close': {'color': 'cornflowerblue'},
+            # 'dwt': {'color': 'darkcyan'},
+            # '%future_min': {'color': 'salmon'},
+            # '%future_max': {'color': 'cadetblue'},
         },
         'subplots': {
             "Diff": {
+                '%future_gain': {'color': 'blue'},
+                '%future_profit_threshold': {'color': 'green'},
                 '%train_buy': {'color': 'mediumaquamarine'},
                 'predict_buy': {'color': 'cornflowerblue'},
                 '%train_sell': {'color': 'salmon'},
@@ -75,31 +77,26 @@ class NNTC_pv_Multihead(NNTC):
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
-    lookahead_hours = 1.0
-    n_profit_stddevs = 1.5
-    n_loss_stddevs = 2.0
+
     min_f1_score = 0.70
 
     custom_trade_info = {}
 
+    refit_model = False  # only set to True when training. If False, then existing model is used, if present
+
     dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
-    dbg_test_classifier = True  # test clasifiers after fitting
+    dbg_test_classifier = False  # test clasifiers after fitting
     dbg_analyse_pca = False  # analyze PCA weights
     dbg_verbose = False  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
 
-    classifier_name = 'Multihead'
-
     ###################################
 
-    # Strategy Specific Variable Storage
+    ## Hyperopt Variables - redclare here so that they go to the correct JSON file (and not the base class)
 
-    ## Hyperopt Variables
-
-    # PCA hyperparams
-    # buy_pca_gain = IntParameter(1, 50, default=4, space='buy', load=True, optimize=True)
-    #
-    # sell_pca_gain = IntParameter(-1, -15, default=-4, space='sell', load=True, optimize=True)
+    # buy/sell hyperparams
+    buy_nseq_dn = IntParameter(2, 10, default=4, space='buy', load=True, optimize=True)
+    sell_nseq_up = IntParameter(2, 10, default=8, space='sell', load=True, optimize=True)
 
     # Custom Sell Profit (formerly Dynamic ROI)
     cexit_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
@@ -127,50 +124,13 @@ class NNTC_pv_Multihead(NNTC):
 
     ###################################
 
-    # override the default training signal generation
+    # override the (most often changed) default parameters for this particular strategy
 
-    def get_train_buy_signals(self, future_df: DataFrame):
+    lookahead_hours = 1.0
+    n_profit_stddevs = 2.0
+    n_loss_stddevs = 2.0
 
-        valleys = np.zeros(future_df.shape[0], dtype=float)
-        v_idx = scipy.signal.argrelextrema(future_df['close'].to_numpy(), np.less_equal, order=self.curr_lookahead)[0]
-        valleys[v_idx] = 1.0
+    signal_type = TrainingSignals.SignalType.Peaks_Valleys
+    classifier_type = NNTClassifier.ClassifierType.Multihead
 
-        print(f'future_df: {future_df.shape} valleys: {np.shape(valleys)}')
-        buys = np.where(
-            (
-                # overbought condition with high potential profit
-                    (valleys > 0.0) &
-
-                    # future profit
-                    (future_df['future_profit_max'] >= future_df['fwd_profit_threshold']) &
-                    (future_df['future_gain'] > 0)
-            ), 1.0, 0.0)
-
-        return buys
-
-    def get_train_sell_signals(self, future_df: DataFrame):
-
-        peaks = np.zeros(future_df.shape[0], dtype=float)
-        p_idx = scipy.signal.argrelextrema(future_df['close'].to_numpy(), np.greater_equal, order=self.curr_lookahead)[0]
-        peaks[p_idx] = 1.0
-
-        sells = np.where(
-            (
-                    (peaks > 0) &
-
-                    # future loss
-                    (future_df['future_gain'] <= future_df['fwd_loss_threshold'])
-            ), 1.0, 0.0)
-
-        return sells
-
-
-    # save the indicators used here so that we can see them in plots (prefixed by '%')
-    def save_debug_indicators(self, future_df: DataFrame):
-        self.add_debug_indicator(future_df, 'future_gain')
-        self.add_debug_indicator(future_df, 'future_profit_max')
-        self.add_debug_indicator(future_df, 'future_loss_min')
-
-        return
-
-
+    ignore_exit_signals = False

@@ -35,7 +35,9 @@ os.environ['TF_DETERMINISTIC_OPS'] = '1'
 import tensorflow as tf
 
 
-tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+logging.disable(logging.WARNING)
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = '3'
 
 # workaround for memory leak in tensorflow 2.10
 os.environ['TF_RUN_EAGER_OP_AS_FUNCTION'] = '0'
@@ -468,7 +470,12 @@ class ClassifierKeras():
         if os.path.exists(path):
             print("    Loading existing model ({})...".format(path))
             try:
-                model = keras.models.load_model(path, compile=False)
+                # check for custom load function (used with custom layers)
+                custom_load = getattr(self, "custom_load", None)
+                if callable(custom_load):
+                    model = self.custom_load(path)
+                else:
+                    model = keras.models.load_model(path, compile=False)
                 self.compile_model(model)
                 self.is_trained = True
 

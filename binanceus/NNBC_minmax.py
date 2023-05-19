@@ -132,7 +132,7 @@ class NNBC_minmax(NNBC):
                     (future_df['full_dwt'] <= future_df['dwt_recent_min']) &  # at min of past window
                     (future_df['full_dwt'] <= future_df['future_min']) &  # at min of future window
 
-                    (future_df['future_gain'] >= future_df['fwd_profit_threshold']) # profit in next window exceeds threshold
+                    (future_df['future_gain'] >= future_df['future_profit_threshold']) # profit in next window exceeds threshold
             ), 1.0, 0.0)
 
         return series
@@ -148,12 +148,12 @@ class NNBC_minmax(NNBC):
                     (future_df['full_dwt'] >= future_df['dwt_recent_min']) &  # at max of past window
                     (future_df['full_dwt'] >= future_df['future_max']) &  # at max of future window
 
-                    (future_df['future_gain'] <= future_df['fwd_loss_threshold']) # loss in next window exceeds threshold
+                    (future_df['future_gain'] <= future_df['future_loss_threshold']) # loss in next window exceeds threshold
             ), 1.0, 0.0)
 
         return series
 
-    def get_strategy_buy_conditions(self, dataframe: DataFrame):
+    def get_strategy_entry_guard_conditions(self, dataframe: DataFrame):
         cond = np.where(
             (
                 # sell signal is not active

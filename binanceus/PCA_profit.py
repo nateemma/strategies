@@ -53,6 +53,24 @@ PCA_profit:
 
 
 class PCA_profit(PCA):
+
+    # default plot config
+    plot_config = {
+        'main_plot': {
+            'close': {'color': 'cornflowerblue'},
+        },
+        'subplots': {
+            "Diff": {
+                '%future_gain': {'color': 'blue'},
+                '%future_profit_threshold': {'color': 'green'},
+                '%train_buy': {'color': 'mediumaquamarine'},
+                'predict_buy': {'color': 'cornflowerblue'},
+                '%train_sell': {'color': 'salmon'},
+                'predict_sell': {'color': 'orange'},
+            },
+        }
+    }
+
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # Have to re-declare any globals that we need to modify
@@ -60,7 +78,7 @@ class PCA_profit(PCA):
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
-    lookahead_hours = 0.5
+    lookahead_hours = 1.0
     n_profit_stddevs = 2.0
     n_loss_stddevs = 2.0
     min_f1_score = 0.60
@@ -117,8 +135,13 @@ class PCA_profit(PCA):
     def get_train_buy_signals(self, future_df: DataFrame):
         series = np.where(
             (
-                    (future_df['future_profit_max'] >= future_df['fwd_profit_threshold']) & # future profit exceeds threshold
-                    (future_df['future_max'] > future_df['dwt_recent_max']) # future window max exceeds prior window max
+                    (future_df['future_gain'] >= 2.0 * future_df['future_profit_threshold'])  # &
+
+                    # (future_df['mfi'] < 50) & # buy region
+                    # (future_df['future_profit_max'] >= future_df['future_profit_threshold']) &  # future profit exceeds threshold
+                    #
+                    # (future_df['future_gain_sum'] >= future_df['future_profit_threshold']) & # future profit exceeds threshold
+                    # (future_df['future_max'] > future_df['dwt_recent_max']) # future window max exceeds prior window max
             ), 1.0, 0.0)
 
         return series
@@ -126,8 +149,10 @@ class PCA_profit(PCA):
     def get_train_sell_signals(self, future_df: DataFrame):
         series = np.where(
             (
-                    (future_df['future_loss_min'] <= future_df['fwd_loss_threshold']) & # future loss exceeds threshold
-                    (future_df['future_min'] < future_df['dwt_recent_min']) # future window max exceeds prior window max
+                    (future_df['future_gain'] <= 2.0 * future_df['future_loss_threshold'])  # &
+
+                    # (future_df['future_loss_min'] <= future_df['future_loss_threshold']) & # future loss exceeds threshold
+                    # (future_df['future_min'] < future_df['dwt_recent_min']) # future window max exceeds prior window max
             ), 1.0, 0.0)
 
         return series
@@ -135,11 +160,12 @@ class PCA_profit(PCA):
     # save the indicators used here so that we can see them in plots (prefixed by '%')
     def save_debug_indicators(self, future_df: DataFrame):
 
+        self.add_debug_indicator(future_df, 'future_gain')
         self.add_debug_indicator(future_df, 'future_profit_max')
-        self.add_debug_indicator(future_df, 'profit_threshold')
+        self.add_debug_indicator(future_df, 'future_profit_threshold')
         self.add_debug_indicator(future_df, 'future_max')
         self.add_debug_indicator(future_df, 'future_loss_min')
-        self.add_debug_indicator(future_df, 'loss_threshold')
+        self.add_debug_indicator(future_df, 'future_loss_threshold')
         self.add_debug_indicator(future_df, 'future_min')
 
         return

@@ -204,7 +204,7 @@ class Anomaly(IStrategy):
     buy_classifier_list = {}
     sell_classifier_list = {}
 
-    ignore_exit_signals = True # set to True if you don't want to process sell/exit signals (let custom sell do it)
+    ignore_exit_signals = False # set to True if you don't want to process sell/exit signals (let custom sell do it)
 
     # debug flags
     first_time = True  # mostly for debug
@@ -310,9 +310,9 @@ class Anomaly(IStrategy):
         series = np.where(
             (
                     (future_df['mfi'] <= 30) & # loose guard
-                    (future_df['dwt_gain'] <= future_df['fwd_loss_threshold']) &  # loss exceeds threshold
+                    (future_df['dwt_gain'] <= future_df['future_loss_threshold']) &  # loss exceeds threshold
 
-                    (future_df['future_profit_max'] >= future_df['fwd_profit_threshold']) & # future profit exceeds threshold
+                    (future_df['future_profit_max'] >= future_df['future_profit_threshold']) & # future profit exceeds threshold
                     (future_df['future_max'] > future_df['dwt_recent_max']) # future window max exceeds prior window max
             ), 1.0, 0.0)
 
@@ -322,9 +322,9 @@ class Anomaly(IStrategy):
         series = np.where(
             (
                     (future_df['mfi'] >= 70) & # loose guard
-                    (future_df['dwt_gain'] >= future_df['fwd_profit_threshold']) & # profit exceeds threshold
+                    (future_df['dwt_gain'] >= future_df['future_profit_threshold']) & # profit exceeds threshold
 
-                    (future_df['future_loss_min'] <= future_df['fwd_loss_threshold']) & # future loss exceeds threshold
+                    (future_df['future_loss_min'] <= future_df['future_loss_threshold']) & # future loss exceeds threshold
                     (future_df['future_min'] < future_df['dwt_recent_min']) # future window max exceeds prior window max
             ), 1.0, 0.0)
 
@@ -336,7 +336,7 @@ class Anomaly(IStrategy):
     # bad predictions (Machine Learning is not perfect)
 
 
-    def get_strategy_buy_conditions(self, dataframe: DataFrame):
+    def get_strategy_entry_guard_conditions(self, dataframe: DataFrame):
 
         # buys = None
         buys = np.where(
@@ -347,7 +347,7 @@ class Anomaly(IStrategy):
 
         return buys
 
-    def get_strategy_sell_conditions(self, dataframe: DataFrame):
+    def get_strategy_exit_guard_conditions(self, dataframe: DataFrame):
 
         # sells = None
 
@@ -871,7 +871,7 @@ class Anomaly(IStrategy):
         # conditions.append(dataframe['close'] < dataframe['tema'])
 
         # add strategy-specific conditions (from subclass)
-        strat_cond = self.get_strategy_buy_conditions(dataframe)
+        strat_cond = self.get_strategy_entry_guard_conditions(dataframe)
         if strat_cond is not None:
             conditions.append(strat_cond)
 
@@ -932,7 +932,7 @@ class Anomaly(IStrategy):
         # conditions.append(dataframe['mfi'] > 70.0)
 
         # add strategy-specific conditions (from subclass)
-        strat_cond = self.get_strategy_sell_conditions(dataframe)
+        strat_cond = self.get_strategy_exit_guard_conditions(dataframe)
         if strat_cond is not None:
             conditions.append(strat_cond)
 

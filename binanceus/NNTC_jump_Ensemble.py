@@ -40,12 +40,15 @@ log = logging.getLogger(__name__)
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 from NNTC import NNTC
+import TrainingSignals
+import NNTClassifier
+
 
 """
 ####################################################################################
 NNTC_jump_Ensemble:
     This is a subclass of NNTC, which provides a framework for deriving a dimensionally-reduced model
-    This class trains the model based on future jump/loss conditions
+    This class trains the model based on large gain/loss conditions
 
 ####################################################################################
 """
@@ -53,58 +56,31 @@ NNTC_jump_Ensemble:
 
 class NNTC_jump_Ensemble(NNTC):
 
-    plot_config = {
-        'main_plot': {
-            # 'dwt': {'color': 'darkcyan'},
-            # '%future_min': {'color': 'salmon'},
-            # '%future_max': {'color': 'cadetblue'},
-        },
-        'subplots': {
-            "Diff": {
-                'gain': {'color': 'green'},
-                '%train_buy': {'color': 'mediumaquamarine'},
-                'predict_buy': {'color': 'cornflowerblue'},
-                '%train_sell': {'color': 'salmon'},
-                'predict_sell': {'color': 'orange'},
-            },
-        }
-    }
-
     # Do *not* hyperopt for the roi and stoploss spaces
 
-    # Have to re-declare any globals that we need to modify
+    # Have to re-declare any globals that we need to modify because freqtrade can/will run strats in parallel
 
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
-    lookahead_hours = 1.0
-    n_jump_stddevs = 2.0
-    n_loss_stddevs = 2.0
-    min_f1_score = 0.70
+
+    min_f1_score = 0.50
 
     custom_trade_info = {}
 
     refit_model = False  # only set to True when training. If False, then existing model is used, if present
-    ignore_exit_signals = True # train with False, run with True
 
 
     dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
-    dbg_test_classifier = False  # test clasifiers after fitting
+    dbg_test_classifier = True  # test clasifiers after fitting
     dbg_analyse_pca = False  # analyze PCA weights
-    dbg_verbose = True  # controls debug output
+    dbg_verbose = False  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
-
-    classifier_name = 'Ensemble'
 
     ###################################
 
-    # Strategy Specific Variable Storage
-
     ## Hyperopt Variables
 
-    # buy/sell hyperparams
-    buy_nseq_dn = IntParameter(2, 10, default=4, space='buy', load=True, optimize=True)
-    sell_nseq_up = IntParameter(2, 10, default=8, space='sell', load=True, optimize=True)
 
     # Custom Sell Profit (formerly Dynamic ROI)
     cexit_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
@@ -131,44 +107,14 @@ class NNTC_jump_Ensemble(NNTC):
     cstop_max_stoploss = DecimalParameter(-0.30, -0.01, default=-0.10, space='sell', load=True, optimize=True)
 
     ###################################
+    # override the (most often changed) default parameters for this particular strategy
 
-    # override the default training signal generation
+    lookahead_hours = 0.5
+    n_profit_stddevs = 0.5
+    n_loss_stddevs = 2.0
 
-    # find where future price is higher/lower than previous window max/min and exceeds threshold
+    signal_type = TrainingSignals.SignalType.Jump
+    classifier_type = NNTClassifier.ClassifierType.Ensemble
 
-    def get_train_buy_signals(self, future_df: DataFrame):
-        series = np.where(
-            (
-                # previous candle dropped more than 0.5%
-                    (future_df['gain'] <= -0.3) &
-
-                    # upcoming window exceeds profit threshold
-                    (future_df['future_profit_max'] >= future_df['fwd_profit_threshold']) # future jump exceeds threshold
-            ), 1.0, 0.0)
-
-        return series
-
-    def get_train_sell_signals(self, future_df: DataFrame):
-        series = np.where(
-            (
-                    # previous candle dropped more than 1%
-                    (future_df['gain'] >= 0.3) &
-
-                    (future_df['future_loss_min'] <= future_df['fwd_loss_threshold']) # future loss exceeds threshold
-            ), 1.0, 0.0)
-
-        return series
-
-    # save the indicators used here so that we can see them in plots (prefixed by '%')
-    def save_debug_indicators(self, future_df: DataFrame):
-
-        return
-
-    ###################################
-
-
-    # callbacks to add conditions to main buy/sell decision (rather than trainng)
-
-
-    ###################################
+    ignore_exit_signals = False
 

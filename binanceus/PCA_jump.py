@@ -135,13 +135,13 @@ class PCA_jump(PCA):
 
                     # # drop from high of previous window exceeded loss threshold
                     # (future_df['dwt_delta_max'] > 0.0) &
-                    # (future_df['dwt_delta_max'] >= abs(future_df['fwd_loss_threshold'])) &
+                    # (future_df['dwt_delta_max'] >= abs(future_df['future_loss_threshold'])) &
 
                     # previous candle dropped more than 0.5%
                     (future_df['gain'] <= -0.5) &
 
                     # upcoming window exceeds profit threshold
-                    (future_df['future_delta_max'] >= future_df['fwd_profit_threshold'])
+                    (future_df['future_delta_max'] >= future_df['future_profit_threshold'])
                     # (future_df['future_delta_max'] >= 5.0)
 
             ), 1.0, 0.0)
@@ -155,20 +155,20 @@ class PCA_jump(PCA):
 
                     # # gain in previous window exceeded profit threshold
                     # (future_df['dwt_delta_min'] < 0.0) &
-                    # (abs(future_df['dwt_delta_min']) >= future_df['fwd_profit_threshold']) &
+                    # (abs(future_df['dwt_delta_min']) >= future_df['future_profit_threshold']) &
 
                     # previous candle dropped more than 1%
                     (future_df['gain'] >= 0.4) &
 
                     # upcoming window exceeds loss threshold
-                    (future_df['future_delta_min'] <= future_df['fwd_loss_threshold'])
+                    (future_df['future_delta_min'] <= future_df['future_loss_threshold'])
                     # (future_df['future_delta_min'] <= -4.0)
             ), 1.0, 0.0)
 
         return series
 
 
-    # def get_strategy_buy_conditions(self, dataframe: DataFrame):
+    # def get_strategy_entry_guard_conditions(self, dataframe: DataFrame):
     #     cond = np.where(
     #         (
     #                 # drop from high of previous window exceeded loss threshold
@@ -177,7 +177,7 @@ class PCA_jump(PCA):
     #         ), 1.0, 0.0)
     #     return cond
     #
-    # def get_strategy_sell_conditions(self, dataframe: DataFrame):
+    # def get_strategy_exit_guard_conditions(self, dataframe: DataFrame):
     #     cond = np.where(
     #         (
     #             # gain in previous window exceeded profit threshold

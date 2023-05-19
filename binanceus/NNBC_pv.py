@@ -140,7 +140,7 @@ class NNBC_pv(NNBC):
                     (valleys > 0.0) &
 
                     # future profit
-                    (future_df['future_profit_max'] >= future_df['fwd_profit_threshold']) &
+                    (future_df['future_profit_max'] >= future_df['future_profit_threshold']) &
                     (future_df['future_gain'] > 0)
             ), 1.0, 0.0)
 
@@ -157,7 +157,7 @@ class NNBC_pv(NNBC):
                     (peaks > 0) &
 
                     # future loss
-                    (future_df['future_gain'] <= future_df['fwd_loss_threshold'])
+                    (future_df['future_gain'] <= future_df['future_loss_threshold'])
             ), 1.0, 0.0)
 
         return sells
