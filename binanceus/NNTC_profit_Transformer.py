@@ -136,4 +136,4 @@ class NNTC_profit_Transformer(NNTC):
     signal_type = TrainingSignals.SignalType.Profit
     classifier_type = NNTClassifier.ClassifierType.Transformer
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True

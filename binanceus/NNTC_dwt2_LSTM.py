@@ -133,5 +133,5 @@ class NNTC_dwt2_LSTM(NNTC):
     signal_type = TrainingSignals.SignalType.DWT2
     classifier_type = NNTClassifier.ClassifierType.LSTM
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True
 

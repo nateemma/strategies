@@ -133,5 +133,5 @@ class NNTC_dwt2_Wavenet2(NNTC):
     signal_type = TrainingSignals.SignalType.DWT2
     classifier_type = NNTClassifier.ClassifierType.Wavenet2
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True
 

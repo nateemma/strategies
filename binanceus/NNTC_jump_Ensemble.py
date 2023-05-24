@@ -116,5 +116,5 @@ class NNTC_jump_Ensemble(NNTC):
     signal_type = TrainingSignals.SignalType.Jump
     classifier_type = NNTClassifier.ClassifierType.Ensemble
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True
 

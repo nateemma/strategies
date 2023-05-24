@@ -151,7 +151,7 @@ else
   files="${group}_*.py"
 fi
 
-find_result=$( find ${exchange_dir} -name "${files}" -type f -print0 | xargs -0 basename )
+find_result=$( find ${exchange_dir} -name "${files}" -type f -print0 | xargs -0 basename | sort -h )
 strat_list=( "${(@f)${find_result}}" )
 
 num_files=${#strat_list[@]}

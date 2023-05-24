@@ -133,5 +133,5 @@ class NNTC_macd_GRU(NNTC):
     signal_type = TrainingSignals.SignalType.MACD
     classifier_type = NNTClassifier.ClassifierType.GRU
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True
 

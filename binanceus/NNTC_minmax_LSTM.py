@@ -131,5 +131,5 @@ class NNTC_minmax_LSTM(NNTC):
     signal_type = TrainingSignals.SignalType.Min_Max
     classifier_type = NNTClassifier.ClassifierType.LSTM
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True
 

@@ -84,9 +84,9 @@ def bbw_buy(future_df):
 
     signals = np.where(
         (
-                # (future_df['fisher_wr'] > 0.1) &  # guard
+            # (future_df['fisher_wr'] > 0.1) &  # guard
 
-                # peak detected
+            # peak detected
                 (peaks > 0) &
 
                 # future loss exceeds threshold
@@ -104,9 +104,9 @@ def bbw_sell(future_df):
 
     signals = np.where(
         (
-                # (future_df['fisher_wr'] < -0.1) &  # guard
+            # (future_df['fisher_wr'] < -0.1) &  # guard
 
-                # valley detected
+            # valley detected
                 (valleys > 0.0) &
 
                 # future profit exceeds threshold
@@ -300,7 +300,11 @@ def fbb_sell(future_df):
 def fbb_entry_guard(dataframe):
     condition = np.where(
         (
-            (dataframe['fisher_wr'] < -0.5)
+            # buy region
+            (dataframe['fisher_wr'] < -0.5) &
+
+            # N down sequences
+            (dataframe['dwt_nseq_dn'] >= 2)
         ), 1.0, 0.0)
     return condition
 
@@ -308,7 +312,11 @@ def fbb_entry_guard(dataframe):
 def fbb_exit_guard(dataframe):
     condition = np.where(
         (
-            (dataframe['fisher_wr'] > 0.5)
+            # sell region
+            (dataframe['fisher_wr'] > 0.5) &
+
+            # N up sequences
+            (dataframe['dwt_nseq_up'] >= 2)
         ), 1.0, 0.0)
     return condition
 
@@ -459,7 +467,8 @@ def jump_sell(future_df):
 def jump_entry_guard(dataframe):
     condition = np.where(
         (
-            (dataframe['gain'].shift() < 0)  # previous candle was a loss
+            # N down sequences
+            (dataframe['dwt_nseq_dn'] >= 2)
         ), 1.0, 0.0)
     return condition
 
@@ -467,7 +476,8 @@ def jump_entry_guard(dataframe):
 def jump_exit_guard(dataframe):
     condition = np.where(
         (
-            (dataframe['gain'].shift() > 0)  # previous candle was a gain
+            # N up sequences
+            (dataframe['dwt_nseq_up'] >= 2)
         ), 1.0, 0.0)
     return condition
 
@@ -707,7 +717,7 @@ def mfi_dbg_indicators():
 
 # -----------------------------------
 
-# detect the max (sell) or min (buy of both the past window and the future window
+# detect the max (sell) or min (buy) of both the past window and the future window
 
 def minmax_buy(future_df):
     signals = np.where(
@@ -716,10 +726,10 @@ def minmax_buy(future_df):
                 (future_df['full_dwt'] <= future_df['dwt_recent_min']) &
 
                 # at min of future window
-                (future_df['full_dwt'] <= future_df['future_min'])  # &
+                (future_df['full_dwt'] <= future_df['future_min'])  &
 
             # future profit exceeds threshold
-            # (future_df['future_profit_max'] >= future_df['future_profit_threshold'])
+            (future_df['future_profit_max'] >= future_df['future_profit_threshold'])
         ), 1.0, 0.0)
     return signals
 
@@ -770,9 +780,12 @@ def minmax_dbg_indicators():
 def nseq_buy(future_df):
     signals = np.where(
         (
-            # down, then up
-                (future_df['dwt_nseq_dn'] >= 4) &
-                # (future_df['future_nseq_up'] >= 4) &
+            # long down run just happened, or a long up run is about to happen
+                (
+                        (future_df['full_dwt_nseq_dn'] >= 10) |
+
+                        (future_df['future_nseq_up'] >= 15)
+                ) &
 
                 # future profit exceeds threshold
                 (future_df['future_profit_max'] >= future_df['future_profit_threshold'])
@@ -783,9 +796,12 @@ def nseq_buy(future_df):
 def nseq_sell(future_df):
     signals = np.where(
         (
-            # up, then down
-                (future_df['dwt_nseq_up'] >= 3) &
-                # (future_df['future_nseq_dn'] >= 4) &
+            # long up run just happened, or a long down run is about to happen
+                (
+                        (future_df['full_dwt_nseq_up'] >= 10) |
+
+                        (future_df['future_nseq_dn'] >= 15)
+                ) &
 
                 # future profit exceeds threshold
                 (future_df['future_loss_min'] <= future_df['future_loss_threshold'])
@@ -794,27 +810,30 @@ def nseq_sell(future_df):
 
 
 def nseq_entry_guard(dataframe):
-    # cond = np.where(
-    #     (
-    #         # N down sequences
-    #         (dataframe['dwt_nseq_dn'] >= 2)
-    #     ), 1.0, 0.0)
-    # return cond
-    return None
+    cond = np.where(
+        (
+            # N down sequences
+            (dataframe['dwt_nseq_dn'] >= 2)
+        ), 1.0, 0.0)
+    return cond
+
 
 
 def nseq_exit_guard(dataframe):
-    # cond = np.where(
-    #     (
-    #         # N up sequences
-    #         (dataframe['dwt_nseq_up'] >= 2)
-    #     ), 1.0, 0.0)
-    # return cond
-    return None
+    cond = np.where(
+        (
+            # N up sequences
+            (dataframe['dwt_nseq_up'] >= 2)
+        ), 1.0, 0.0)
+    return cond
+
 
 
 def nseq_dbg_indicators():
     return [
+        'full_dwt',
+        'full_dwt_nseq_up',
+        'full_dwt_nseq_dn',
         'future_nseq_up',
         'future_nseq_dn'
     ]
@@ -1055,7 +1074,7 @@ def swing_buy(future_df):
                 (future_df['dwt_bottom'] > 0) &
 
                 # future gain
-                (future_df['future_gain'] >= future_df['future_profit_threshold']) &
+                (future_df['future_gain_max'] >= future_df['future_profit_threshold']) &
                 (future_df['future_gain'] > 0)
         ), 1.0, 0.0)
     return signals
@@ -1068,7 +1087,7 @@ def swing_sell(future_df):
                 (future_df['dwt_top'] > 0) &
 
                 # future gain
-                (future_df['future_loss'] <= future_df['future_loss_threshold']) &
+                (future_df['future_loss_min'] <= future_df['future_loss_threshold']) &
                 (future_df['future_gain'] < 0)
         ), 1.0, 0.0)
     return signals

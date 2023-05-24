@@ -136,7 +136,7 @@ class NNTC_profit_MLP(NNTC):
     signal_type = TrainingSignals.SignalType.Profit
     classifier_type = NNTClassifier.ClassifierType.MLP
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True
 
     # MLP models do not do well with seq_len > 1, so reset
     seq_len = 1

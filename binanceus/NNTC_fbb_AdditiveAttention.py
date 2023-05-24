@@ -137,6 +137,6 @@ class NNTC_fbb_AdditiveAttention(NNTC):
     signal_type = TrainingSignals.SignalType.Fisher_Bollinger
     classifier_type = NNTClassifier.ClassifierType.AdditiveAttention
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True
 
     compress_data = False

@@ -130,5 +130,5 @@ class NNTC_mfi_LSTM(NNTC):
     signal_type = TrainingSignals.SignalType.Money_Flow
     classifier_type = NNTClassifier.ClassifierType.LSTM
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True
 

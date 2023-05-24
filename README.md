@@ -2,13 +2,14 @@
 
 ## Current Status
 
-_*
-I am in the middle of re-generating models for all of the NNTC strategies after finding an issue with labelling and training. The repo contains an
+<b> I am in the middle of re-generating models for all of the NNTC strategies after finding an issue with labelling and training. The repo contains an
 incomplete set of models, because I was asked to submit whatever I had while I am generating new models (they take
 multiple days to generate). I also consolidated classes and cleaned up a little while I was doing that.
 
-See [README_NNTC.nd](README_NNTC.md) for some more details
-*_
+If you test a strat and it starts training amodel, that means that I haven't updated that model yet...
+
+See [README_NNTC.md](README_NNTC.md) for some more details
+</b>
 
 I've been getting some questions on the various strategies here, so I thought I'd better clarify what I am currently
 working on...

@@ -21,21 +21,21 @@
       "cexit_endtrend_respect_roi": true,
       "cexit_pullback": true,
       "cexit_pullback_amount": 0.005,
-      "cexit_pullback_respect_roi": true,
-      "cexit_roi_end": 0.007,
-      "cexit_roi_start": 0.041,
-      "cexit_roi_time": 1091,
-      "cexit_roi_type": "decay",
-      "cexit_trend_type": "none",
-      "cstop_bail_how": "any",
-      "cstop_bail_roc": -3.223,
-      "cstop_bail_time": 1258,
-      "cstop_bail_time_trend": true,
-      "cstop_loss_threshold": -0.038,
-      "cstop_max_stoploss": -0.056
+      "cexit_pullback_respect_roi": false,
+      "cexit_roi_end": 0.01,
+      "cexit_roi_start": 0.05,
+      "cexit_roi_time": 1191,
+      "cexit_roi_type": "static",
+      "cexit_trend_type": "any",
+      "cstop_bail_how": "roc",
+      "cstop_bail_roc": -2.203,
+      "cstop_bail_time": 394,
+      "cstop_bail_time_trend": false,
+      "cstop_loss_threshold": -0.049,
+      "cstop_max_stoploss": -0.24
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2023-05-16 07:44:43.533958+00:00"
+  "export_time": "2023-05-20 21:17:35.676569+00:00"
 }

@@ -133,4 +133,4 @@ class NNTC_pv_Multihead(NNTC):
     signal_type = TrainingSignals.SignalType.Peaks_Valleys
     classifier_type = NNTClassifier.ClassifierType.Multihead
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True

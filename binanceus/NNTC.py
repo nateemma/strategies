@@ -90,22 +90,6 @@ import TrainingSignals
 
 import NNTClassifier
 
-# from NNTClassifier_MLP import NNTClassifier_MLP
-# from NNTClassifier_CNN import NNTClassifier_CNN
-# # from NNTClassifier_MLP2 import NNTClassifier_MLP2
-# from NNTClassifier_LSTM import NNTClassifier_LSTM
-# from NNTClassifier_LSTM2 import NNTClassifier_LSTM2
-# from NNTClassifier_LSTM3 import NNTClassifier_LSTM3
-# # from NNTClassifier_Attention import NNTClassifier_Attention
-# from NNTClassifier_Multihead import NNTClassifier_Multihead
-# from NNTClassifier_Transformer import NNTClassifier_Transformer
-# from NNTClassifier_Wavenet import NNTClassifier_Wavenet
-# from NNTClassifier_Wavenet2 import NNTClassifier_Wavenet2
-# from NNTClassifier_GRU import NNTClassifier_GRU
-# from NNTClassifier_Ensemble import NNTClassifier_Ensemble
-# from NNTClassifier_TCN import NNTClassifier_TCN
-# from NNTClassifier_Attention import NNTClassifier_Attention
-
 import Environment
 import profiler
 
@@ -231,8 +215,9 @@ class NNTC(IStrategy):
 
     refit_model = False  # only set to True when training. If False, then existing model is used, if present
     use_full_dataset = True  # use the entire dataset for training (in backtest)
-    model_per_pair = False
-    ignore_exit_signals = False  # set to True if you don't want to process sell/exit signals (let custom sell do it)
+    model_per_pair = False # single model for all pairs
+    combine_models = True # combine training across all pairs
+    ignore_exit_signals = True  # set to True if you don't want to process sell/exit signals (let custom sell do it)
 
     scaler_type = ScalerType.Robust  # scaler type used for normalisation
 
@@ -487,29 +472,47 @@ class NNTC(IStrategy):
             print("OOPS! <3 ({:.0f}) buy signals generated. Check training criteria".format(buys.sum()))
 
         sells = future_df['train_sell'].copy()
-        sells = sells * 2.0 # sells are represented as 2.0 in this type of strategy
+        # sells = sells * 2.0 # sells are represented as 2.0 in this type of strategy
         if sells.sum() < 3:
             print("OOPS! <3 ({:.0f}) sell signals generated. Check training criteria".format(sells.sum()))
 
 
         # Trick: artificially set entry before buy/sell to match
-        buys[np.where(buys > 0)[0] - 1] = 1.0
-        sells[np.where(sells > 0)[0] - 1] = 2.0
+
+        bidx = np.where(buys > 0)[0] # index of buy entries
+        # set the entry before each buy signal, unless it's the first item
+        if len(bidx) > 1: # there are some buys
+            if bidx[0] == 0:
+                buys[bidx[1:] - 1] = 1.0
+            else:
+                buys[bidx - 1] = 1.0
+
+        sidx = np.where(sells > 0)[0] # index of sell entries
+        # set the entry before each buy signal, unless it's the first item
+        if len(sidx) > 1: # there are some buys
+            if sidx[0] == 0:
+                sells[sidx[1:] - 1] = 1.0
+            else:
+                sells[sidx - 1] = 1.0
+
+        # sells override buys
+        buys[np.where(sells > 0)[0]] = 0.0
+
 
         # copy back to dataframe
         future_df['train_buy'] = np.where(buys > 0, 1.0, 0.0)
         future_df['train_sell'] = np.where(sells > 0, 1.0, 0.0)
 
         self.save_debug_data(future_df)
-        self.save_debug_indicators(future_df)
 
         return buys, sells
 
     def save_debug_data(self, future_df: DataFrame):
 
         # Debug support: add commonly used indicators so that they can be viewed
-        # the list below is available for any subclass. Subclasses themselves can add more by overriding
-        # the func save_debug_indicators()
+        # the list below is available for any subclass.
+
+        # Subclasses themselves can add more by overriding the func save_debug_indicators()
 
         dbg_list = [
             'full_dwt', 'train_buy', 'train_sell',
@@ -522,16 +525,19 @@ class NNTC(IStrategy):
             for indicator in dbg_list:
                 self.add_debug_indicator(future_df, indicator)
 
+        # save the indicators for this training signal type, or can override in subclass
+        self.save_debug_indicators(future_df)
+
         return
 
-    # empty func. Meant to be overridden by subclass
+    # save debug indicators identified by the training signal. Can also be overidden in the subclass
     def save_debug_indicators(self, future_df: DataFrame):
         dbg_list = TrainingSignals.get_debug_indicators(self.signal_type)
 
         if len(dbg_list) > 0:
+            # print(f"    Adding debug indicators: {dbg_list}")
             for indicator in dbg_list:
-                # print(f"    Adding debug indicator: {indicator}")
-                self.add_debug_indicator(future_df, indicator)
+                 self.add_debug_indicator(future_df, indicator)
 
         return
 
@@ -609,20 +615,26 @@ class NNTC(IStrategy):
                                                                             num_features,
                                                                             self.seq_len)
 
-            # set the model name
+            # set additional model parameters
             category, model_name = self.get_model_identifiers(self.curr_pair, name)
             self.trinary_classifier.set_model_name(category, model_name)
+            self.trinary_classifier.set_combine_models(self.combine_models)
 
-        # combine nothing/buys/sells into a single array
+        # combine holds/buys/sells into a single array
         blabels = buys.to_numpy()
         slabels = sells.to_numpy()
-
-        nothing = np.ones(frame_size, dtype=float)  # init nothing to 1s
-        nothing[np.where(blabels > 0)] = 0.0  # if buy or sell is set, clear nothing entry
-        nothing[np.where(slabels > 0)] = 0.0
         blabels[np.where(slabels > 0)] = 0.0  # sells override buys
-        num_samples = len(blabels)
-        num_holds = nothing.sum()
+
+        # holds = np.ones(frame_size, dtype=float)  # init holds to 1s
+        # holds[np.where(blabels > 0)] = 0.0  # if buy or sell is set, clear holds entry
+        # holds[np.where(slabels > 0)] = 0.0
+
+
+        holds = np.zeros(frame_size, dtype=float)  # init holds to 0s
+        holds[np.where((blabels == 0) & (slabels == 0))] = 1.0
+
+        num_samples = frame_size
+        num_holds = holds.sum()
         num_buys = buys.sum()
         num_sells = sells.sum()
         hpct = 100.0 * num_holds / num_samples
@@ -631,6 +643,10 @@ class NNTC(IStrategy):
         print(f'    holds:{num_holds:.0f} ({hpct:.2f}%) ' + \
               f'buys:{num_buys:.0f} ({bpct:.2f}%) sells:{num_sells:.0f} ({spct:.2f}%)')
 
+        # quick check
+        if int(num_holds + num_buys + num_sells) != num_samples:
+            print("    ** ERR: labels are inconsistent **")
+
         # If <1% buy/signals, issue warning. Neural net will likely not converge
         if bpct < 1.0:
             print(f'    ** WARNING: low number of buy signals ({bpct:.2f}%)')
@@ -638,7 +654,7 @@ class NNTC(IStrategy):
         if spct < 1.0:
             print(f'    ** WARNING: low number of sell signals ({spct:.2f}%)')
 
-        labels = np.array([nothing, blabels, slabels]).T
+        labels = np.array([holds, blabels, slabels]).T
 
         # convert to tensors
         full_tensor = self.dataframeUtils.df_to_tensor(full_df_norm, self.seq_len)
@@ -686,7 +702,7 @@ class NNTC(IStrategy):
             if not (clf is None):
                 preds = self.get_classifier_predictions(clf, tsr_test)
                 results = np.argmax(tsr_lbl_test[:, 0], axis=1)
-                print("Testing Classifier (", clf_name, ")")
+                print(f"    Testing Classifier: {clf_name}, pair: {curr_pair}")
                 print(classification_report(results, preds, zero_division=0))
                 print("")
 
@@ -720,6 +736,7 @@ class NNTC(IStrategy):
                 # set the model name
                 category, model_name = self.get_model_identifiers(self.curr_pair, name)
                 clf.set_model_name(category, model_name)
+                clf.set_combine_models(self.combine_models)
 
                 # fit the classifier
                 clf = self.fit_classifier(clf, name, "", tensor, labels, test_tensor, test_labels)
@@ -856,6 +873,8 @@ class NNTC(IStrategy):
             # set the model name
             category, model_name = self.get_model_identifiers(self.curr_pair, name)
             clf.set_model_name(category, model_name)
+            clf.set_combine_models(self.combine_models)
+
 
             if clf is not None:
 

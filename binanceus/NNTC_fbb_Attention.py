@@ -137,6 +137,6 @@ class NNTC_fbb_Attention(NNTC):
     signal_type = TrainingSignals.SignalType.Fisher_Bollinger
     classifier_type = NNTClassifier.ClassifierType.Attention
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True
 
     compress_data = False

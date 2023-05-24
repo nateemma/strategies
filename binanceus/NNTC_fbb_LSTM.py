@@ -137,7 +137,7 @@ class NNTC_fbb_LSTM(NNTC):
     signal_type = TrainingSignals.SignalType.Fisher_Bollinger
     classifier_type = NNTClassifier.ClassifierType.LSTM
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True
 
 
 

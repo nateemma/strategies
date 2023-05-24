@@ -58,14 +58,16 @@ class NNTC_nseq_LSTM(NNTC):
 
     plot_config = {
         'main_plot': {
-            # 'dwt': {'color': 'darkcyan'},
+            '%full_dwt': {'color': 'darkcyan'},
             # '%future_min': {'color': 'salmon'},
             # '%future_max': {'color': 'cadetblue'},
         },
         'subplots': {
             "Diff": {
-                '%future_nseq_up': {'color': 'darkcyan'},
-                '%future_nseq_dn': {'color': 'darkred'},
+                '%full_dwt_nseq_up': {'color': 'green'},
+                '%full_dwt_nseq_dn': {'color': 'red'},
+                '%future_nseq_up': {'color': 'purple'},
+                '%future_nseq_dn': {'color': 'orange'},
                 '%train_buy': {'color': 'mediumaquamarine'},
                 'predict_buy': {'color': 'cornflowerblue'},
                 '%train_sell': {'color': 'salmon'},
@@ -128,11 +130,11 @@ class NNTC_nseq_LSTM(NNTC):
     # override the (most often changed) default parameters for this particular strategy
 
     lookahead_hours = 1.0
-    n_profit_stddevs = 1.0
-    n_loss_stddevs = 1.0
+    n_profit_stddevs = 2.0
+    n_loss_stddevs = 2.0
 
     signal_type = TrainingSignals.SignalType.N_Sequence
     classifier_type = NNTClassifier.ClassifierType.LSTM
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True
 

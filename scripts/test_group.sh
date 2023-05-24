@@ -5,6 +5,9 @@
 # list of strategies to test
 strat_list=()
 
+# current file (must be at top level)
+curr_file="$0"
+
 # default values
 
 num_days=30
@@ -17,14 +20,17 @@ only_missing_models=false
 test_list=${strat_list}
 leveraged=0
 logfile=""
+alt_config=""
 
 show_usage () {
-    script=$(basename $ZSH_SOURCE)
+#    script=$(basename $ZSH_SOURCE)
+    script=${curr_file}
     cat << END
 
-Usage: zsh $script [options] <exchange> <group>
+Usage: zsh ${script} [options] <exchange> <group>
 
-[options]:  -d | --download    Downloads latest market data before running test. Default is ${download}
+[options]:  -c | --config      Specify an alternate config file (just name, not directory or extension)
+            -d | --download    Downloads latest market data before running test. Default is ${download}
             -j | --jobs        Number of parallel jobs to run
             -m | --missing     Only run if model is missing
             -n | --ndays       Number of days of backtesting. Defaults to ${num_days}
@@ -33,6 +39,9 @@ Usage: zsh $script [options] <exchange> <group>
 
 <exchange>  Name of exchange (binanceus, kucoin, etc)
 <group>     The prefix of the strategy files. Example: "PCA" will process all strat files beginning with "PCA_"
+            TIP: you can also specify the "*" wildcard, but you must enclose this in quotes
+                 Example: "NNTC_*LSTM" will test all files that match that pattern.
+                 Very useful if you updated a signal type, or a model architecture
 
 
 END
@@ -50,7 +59,7 @@ add_line () {
 die() { echo "$*" >&2; exit 2; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
-while getopts dj:mn:s:t:-: OPT; do
+while getopts c:dj:mn:s:t:-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
@@ -58,6 +67,7 @@ while getopts dj:mn:s:t:-: OPT; do
     OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
   fi
   case "$OPT" in
+    c | config )     needs_arg; alt_config="${OPTARG}" ;;
     d | download )   download=1 ;;
     j | jobs )       needs_arg; jobs="$OPTARG" ;;
     m | missing )    only_missing_models=true ;;
@@ -78,8 +88,13 @@ group=$2
 
 strat_dir="user_data/strategies"
 exchange_dir="${strat_dir}/${exchange}"
-config_file="${exchange_dir}/config_${exchange}.json"
 logfile="test_${exchange}_${group:gs/*/}.log"
+
+if [[ -n ${alt_config} ]]; then
+  config_file="${exchange_dir}/${alt_config}.json"
+else
+  config_file="${exchange_dir}/config_${exchange}.json"
+fi
 
 if [[ $# -ne 2 ]] ; then
   echo "ERR: Missing arguments"
@@ -159,19 +174,22 @@ add_line "Testing strategy list for exchange: ${exchange}..."
 add_line "List: ${strat_list}"
 add_line "Date/time: ${today}"
 add_line "Time range: ${timerange}"
+add_line "Log file: ${logfile}"
 
 for strat in ${strat_list//.py/}; do
 
-  global test_strat
+#  global test_strat
 
   test_strat=true
   if ${only_missing_models}; then
+    echo ""
     model_file="${exchange_dir}/models/${strat}/${strat}.h5"
     if [ -f ${model_file} ]; then
       add_line "model file already exists (${model_file}). Skipping strategy ${strat}"
       test_strat=false
     else
       add_line "model file not found (${model_file})"
+      add_line "Training model for ${strat}"
     fi
   fi
 

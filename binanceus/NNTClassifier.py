@@ -40,6 +40,7 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
 import keras
 from keras import layers
+from keras.regularizers import l2
 from ClassifierKerasTrinary import ClassifierKerasTrinary
 
 
@@ -62,6 +63,7 @@ class ClassifierType(Enum):
     Transformer = auto()  # Transformer
     Wavenet = auto()  # Simplified Wavenet
     Wavenet2 = auto()  # Full Wavenet
+    Wavenet3 = auto()  # Full Wavenet, reduced dimensions
 
 
 # --------------------------------------------------------------
@@ -181,7 +183,8 @@ class NNTClassifier_Ensemble(ClassifierKerasTrinary):
         x1 = self.get_lstm(inputs, seq_len, num_features)
         x2 = self.get_gru(inputs, seq_len, num_features)
         x3 = self.get_cnn(inputs, seq_len, num_features)
-        x4 = self.get_simple_wavenet(inputs, seq_len, num_features)
+        # x4 = self.get_simple_wavenet(inputs, seq_len, num_features)
+        x4 = self.get_attention(inputs, seq_len, num_features)
 
         # combine the outputs of the models
         x_combined = layers.Concatenate()([x1, x2, x3, x4])
@@ -226,6 +229,18 @@ class NNTClassifier_Ensemble(ClassifierKerasTrinary):
         for rate in (1, 2, 4, 8) * 2:
             x = layers.Conv1D(filters=64, kernel_size=2, padding="causal", activation="relu", dilation_rate=rate)(x)
 
+        x = layers.Dense(3, activation="softmax")(x)
+        return x
+
+    def get_attention(self, inputs, seq_len, num_features):
+        x = inputs
+        x = layers.LSTM(num_features, return_sequences=True, input_shape=(seq_len, num_features))(x)
+        x = layers.Dropout(0.2)(x)
+        x = layers.BatchNormalization()(x)
+
+        x = layers.Attention()([x, x])
+
+        # last layer is a trinary decision - do not change
         x = layers.Dense(3, activation="softmax")(x)
         return x
 
@@ -525,7 +540,7 @@ class NNTClassifier_Wavenet2(ClassifierKerasTrinary):
                                             activation='tanh')(input_)
             sigmoid_out = layers.Convolution1D(n_filters, filter_size, padding="causal", dilation_rate=rate,
                                                activation='sigmoid')(input_)
-            merged = layers.Multiply()([tanh_out, sigmoid_out])
+            # merged = layers.Multiply()([tanh_out, sigmoid_out])
 
             # skip_x = layers.Convolution1D(nb_filters, 1, padding='same', use_bias=use_bias,
             #                               kernel_regularizer=l2(res_l2))(x)
@@ -582,16 +597,98 @@ class NNTClassifier_Wavenet2(ClassifierKerasTrinary):
 
         return model
 
+
+# --------------------------------------------------------------
+# Full Wavenet, but with reduced dimensions. Should be much smaller/faster than the full version
+
+# code influenced by: https://github.com/basveeling/wavenet/blob/bf8ef958372692ecb32e8540f7c81f69a186eb8d/wavenet.py#L20
+
+
+class NNTClassifier_Wavenet3(ClassifierKerasTrinary):
+    is_trained = False
+    clean_data_required = False  # training data cannot contain anomalies
+
+    def wavenetBlock(self, n_filters, filter_size, rate):
+        def f(input_):
+            residual = input_
+            tanh_out = layers.Convolution1D(n_filters, filter_size, padding="causal", dilation_rate=rate,
+                                            activation='tanh')(input_)
+            sigmoid_out = layers.Convolution1D(n_filters, filter_size, padding="causal", dilation_rate=rate,
+                                               activation='sigmoid')(input_)
+
+            x = layers.Multiply()([tanh_out, sigmoid_out])
+
+            res_x = layers.Convolution1D(n_filters, 1, padding='same', kernel_regularizer=l2(0))(x)
+            skip_x = layers.Convolution1D(n_filters, 1, padding='same', kernel_regularizer=l2(0))(x)
+            res_x = layers.Add()([input_, res_x])
+            return res_x, skip_x
+
+        return f
+
+    # override the build_model function in subclasses
+    def create_model(self, seq_len, num_features):
+
+        # reduced sizes, for improved training speed
+        n_filters = 16
+        filter_size = 2
+
+        # model = keras.Sequential(name=self.name)
+        inputs = layers.Input(shape=(seq_len, num_features))
+
+        # bring down dimensions from num_features to n_filters
+        x = layers.GRU(n_filters, activation="tanh", return_sequences=True)(inputs)
+
+        x = layers.Convolution1D(n_filters, filter_size, padding="causal", dilation_rate=1)(x)
+
+        # A, B = self.wavenetBlock(64, 2, 1)(inputs)
+
+        skip_connections = []
+        for i in range(1, 3):
+            rate = 1
+            for j in range(1, 10):
+                x, skip = self.wavenetBlock(n_filters, filter_size, rate)(x)
+                skip_connections.append(skip)
+                rate = 2 * rate
+
+            x = layers.BatchNormalization()(x)
+
+        x = layers.Add()(skip_connections)
+        x = layers.Activation('relu')(x)
+        x = layers.Convolution1D(n_filters, 1, padding='same', kernel_regularizer=l2(0))(x)
+        x = layers.Activation('relu')(x)
+        x = layers.Convolution1D(n_filters, 1, padding='same')(x)
+
+        x = layers.LSTM(3, activation='tanh', return_sequences=True)(x)
+
+        # last layer is a trinary decision - do not change
+        outputs = layers.Dense(3, activation="softmax")(x)
+
+        model = keras.Model(inputs, outputs)
+
+        return model
+
+
 # --------------------------------------------------------------
 
 # factory to create classifier based on ID. Returns classifier and name
 def create_classifier(clf_type: ClassifierType, pair, nfeatures, seq_len, tag=""):
-
     clf = None
     clf_name = str(clf_type).split(".")[-1]
 
-    if clf_type == ClassifierType.Transformer:
-        clf = NNTClassifier_Transformer(pair, seq_len, nfeatures, tag=tag)
+    if clf_type == ClassifierType.AdditiveAttention:
+        clf = NNTClassifier_AdditiveAttention(pair, seq_len, nfeatures, tag=tag)
+
+    elif clf_type == ClassifierType.Attention:
+        clf = NNTClassifier_Attention(pair, seq_len, nfeatures, tag=tag)
+
+    elif clf_type == ClassifierType.CNN:
+        clf = NNTClassifier_CNN(pair, seq_len, nfeatures, tag=tag)
+
+    elif clf_type == ClassifierType.Ensemble:
+        clf = NNTClassifier_Ensemble(pair, seq_len, nfeatures, tag=tag)
+
+    elif clf_type == ClassifierType.GRU:
+        clf = NNTClassifier_GRU(pair, seq_len, nfeatures, tag=tag)
 
     elif clf_type == ClassifierType.LSTM:
         clf = NNTClassifier_LSTM(pair, seq_len, nfeatures, tag=tag)
@@ -605,11 +702,14 @@ def create_classifier(clf_type: ClassifierType, pair, nfeatures, seq_len, tag=""
     elif clf_type == ClassifierType.MLP:
         clf = NNTClassifier_MLP(pair, seq_len, nfeatures, tag=tag)
 
-    elif clf_type == ClassifierType.CNN:
-        clf = NNTClassifier_CNN(pair, seq_len, nfeatures, tag=tag)
-
     elif clf_type == ClassifierType.Multihead:
         clf = NNTClassifier_Multihead(pair, seq_len, nfeatures, tag=tag)
+
+    elif clf_type == ClassifierType.TCN:
+        clf = NNTClassifier_TCN(pair, seq_len, nfeatures, tag=tag)
+
+    elif clf_type == ClassifierType.Transformer:
+        clf = NNTClassifier_Transformer(pair, seq_len, nfeatures, tag=tag)
 
     elif clf_type == ClassifierType.Wavenet:
         clf = NNTClassifier_Wavenet(pair, seq_len, nfeatures, tag=tag)
@@ -617,20 +717,8 @@ def create_classifier(clf_type: ClassifierType, pair, nfeatures, seq_len, tag=""
     elif clf_type == ClassifierType.Wavenet2:
         clf = NNTClassifier_Wavenet2(pair, seq_len, nfeatures, tag=tag)
 
-    elif clf_type == ClassifierType.GRU:
-        clf = NNTClassifier_GRU(pair, seq_len, nfeatures, tag=tag)
-
-    elif clf_type == ClassifierType.Ensemble:
-        clf = NNTClassifier_Ensemble(pair, seq_len, nfeatures, tag=tag)
-
-    elif clf_type == ClassifierType.TCN:
-        clf = NNTClassifier_TCN(pair, seq_len, nfeatures, tag=tag)
-
-    elif clf_type == ClassifierType.Attention:
-        clf = NNTClassifier_Attention(pair, seq_len, nfeatures, tag=tag)
-
-    elif clf_type == ClassifierType.AdditiveAttention:
-        clf = NNTClassifier_AdditiveAttention(pair, seq_len, nfeatures, tag=tag)
+    elif clf_type == ClassifierType.Wavenet3:
+        clf = NNTClassifier_Wavenet3(pair, seq_len, nfeatures, tag=tag)
 
     else:
         print("Unknown classifier: ", clf_type)

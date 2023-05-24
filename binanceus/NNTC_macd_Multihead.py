@@ -133,5 +133,5 @@ class NNTC_macd_Multihead(NNTC):
     signal_type = TrainingSignals.SignalType.MACD
     classifier_type = NNTClassifier.ClassifierType.Multihead
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True
 

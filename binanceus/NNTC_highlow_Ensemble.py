@@ -132,5 +132,5 @@ class NNTC_highlow_Ensemble(NNTC):
     signal_type = TrainingSignals.SignalType.High_Low
     classifier_type = NNTClassifier.ClassifierType.Ensemble
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True
 

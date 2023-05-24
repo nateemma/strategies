@@ -131,6 +131,6 @@ class NNTC_dwt_Wavenet(NNTC):
     n_loss_stddevs = 2.0
 
     signal_type = TrainingSignals.SignalType.DWT
-    classifier_type = NNTClassifier.ClassifierType.CNN
+    classifier_type = NNTClassifier.ClassifierType.Wavenet
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True

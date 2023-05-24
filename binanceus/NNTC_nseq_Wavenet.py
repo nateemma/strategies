@@ -134,5 +134,5 @@ class NNTC_nseq_Wavenet(NNTC):
     signal_type = TrainingSignals.SignalType.N_Sequence
     classifier_type = NNTClassifier.ClassifierType.Wavenet
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True
 

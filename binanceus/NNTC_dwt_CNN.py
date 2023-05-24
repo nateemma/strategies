@@ -132,4 +132,4 @@ class NNTC_dwt_CNN(NNTC):
     signal_type = TrainingSignals.SignalType.DWT
     classifier_type = NNTClassifier.ClassifierType.CNN
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True

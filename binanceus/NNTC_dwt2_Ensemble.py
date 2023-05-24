@@ -133,5 +133,5 @@ class NNTC_dwt2_Ensemble(NNTC):
     signal_type = TrainingSignals.SignalType.DWT2
     classifier_type = NNTClassifier.ClassifierType.Ensemble
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True
 

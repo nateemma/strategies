@@ -204,7 +204,7 @@ class Anomaly(IStrategy):
     buy_classifier_list = {}
     sell_classifier_list = {}
 
-    ignore_exit_signals = False # set to True if you don't want to process sell/exit signals (let custom sell do it)
+    ignore_exit_signals = True # set to True if you don't want to process sell/exit signals (let custom sell do it)
 
     # debug flags
     first_time = True  # mostly for debug

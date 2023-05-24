@@ -137,4 +137,4 @@ class NNTC_over_LSTM(NNTC):
     signal_type = TrainingSignals.SignalType.Oversold
     classifier_type = NNTClassifier.ClassifierType.LSTM
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True

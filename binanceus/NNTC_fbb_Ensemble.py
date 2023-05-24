@@ -137,5 +137,5 @@ class NNTC_fbb_Ensemble(NNTC):
     signal_type = TrainingSignals.SignalType.Fisher_Bollinger
     classifier_type = NNTClassifier.ClassifierType.Ensemble
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True
 

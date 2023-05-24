@@ -80,7 +80,7 @@ class PCA_jump(PCA):
 
     custom_trade_info = {}
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True
 
     dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
     dbg_test_classifier = True  # test classifiers after fitting

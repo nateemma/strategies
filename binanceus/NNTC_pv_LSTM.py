@@ -133,6 +133,6 @@ class NNTC_pv_LSTM(NNTC):
     signal_type = TrainingSignals.SignalType.Peaks_Valleys
     classifier_type = NNTClassifier.ClassifierType.LSTM
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True
 
     model_per_pair = True

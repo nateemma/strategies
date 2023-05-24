@@ -134,6 +134,13 @@ class ClassifierKeras():
         return self.model_path
 
     # ---------------------------
+    # sets the combine-Models flag.
+    # If True, models will be combined across multiple pairs
+    # If False, only first pair is used for training (unless per_pair is specified)
+    def set_combine_models(self, combine_models):
+        self.combine_models = combine_models
+
+    # ---------------------------
 
     # create model - subclasses should overide this
     def create_model(self, seq_len, num_features):

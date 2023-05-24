@@ -431,38 +431,34 @@ class DataframePopulator():
         future_df['curr_trend'] = np.where(future_df['trend'].rolling(3).sum() > 0.0, 1.0, -1.0)
         future_df['future_trend'] = np.where(future_df['ftrend'].rolling(3).sum() > 0.0, 1.0, -1.0)
 
-        future_df['dwt_dir'] = 0.0
-        future_df['dwt_dir'] = np.where(dataframe['dwt'].diff() >= 0, 1, -1)
-        future_df['dwt_dir_up'] = np.where(dataframe['dwt'].diff() >= 0, 1, 0)
-        future_df['dwt_dir_dn'] = np.where(dataframe['dwt'].diff() < 0, 1, 0)
+
+
+        # Sequences of consecutive up/downs (using full_dwt)
+        future_df['full_dwt_dir'] = 0.0
+        future_df['full_dwt_dir'] = np.where(future_df['full_dwt'].diff() > 0, 1.0, -1.0)
+
+        future_df['full_dwt_dir_up'] = future_df['full_dwt_dir'].clip(lower=0.0)
+        future_df['full_dwt_nseq_up'] = future_df['full_dwt_dir_up'] * (future_df['full_dwt_dir_up'].groupby(
+            (future_df['full_dwt_dir_up'] != future_df['full_dwt_dir_up'].shift()).cumsum()).cumcount() + 1)
+        future_df['full_dwt_nseq_up'] = future_df['full_dwt_nseq_up'].clip(lower=0.0, upper=20.0)  # removes startup artifacts
+
+        future_df['full_dwt_dir_dn'] = abs(future_df['full_dwt_dir'].clip(upper=0.0))
+        future_df['full_dwt_nseq_dn'] = future_df['full_dwt_dir_dn'] * (future_df['full_dwt_dir_dn'].groupby(
+            (future_df['full_dwt_dir_dn'] != future_df['full_dwt_dir_dn'].shift()).cumsum()).cumcount() + 1)
+        future_df['full_dwt_nseq_dn'] = future_df['full_dwt_nseq_dn'].clip(lower=0.0, upper=20.0)
+
 
         # build forward-looking sum of up/down trends
         future_win = pd.api.indexers.FixedForwardWindowIndexer(window_size=int(self.win_size))  # don't use a big window
 
-        # future_df['future_nseq'] = future_df['curr_trend'].rolling(window=future_win, min_periods=1).sum()
-
-        # future_df['future_nseq_up'] = 0.0
-        # future_df['future_nseq_up'] = np.where(
-        #     future_df["dwt_dir_up"].eq(1),
-        #     future_df.groupby(future_df["dwt_dir_up"].ne(future_df["dwt_dir_up"].shift(1)).cumsum()).cumcount() + 1,
-        #     0.0
-        # )
-        # future_df['future_nseq_up'] = future_df['future_nseq'].clip(lower=0.0)
-        future_df['future_nseq_up'] = future_df['dwt_nseq_up'].shift(-self.win_size)
+        future_df['future_nseq_up'] = future_df['full_dwt_nseq_up'].shift(-self.win_size)
 
         future_df['future_nseq_up_mean'] = future_df['future_nseq_up'].rolling(window=future_win).mean()
         future_df['future_nseq_up_std'] = future_df['future_nseq_up'].rolling(window=future_win).std()
         future_df['future_nseq_up_thresh'] = future_df['future_nseq_up_mean'] + self.n_profit_stddevs * future_df[
             'future_nseq_up_std']
 
-        # future_df['future_nseq_dn'] = -np.where(
-        #     future_df["dwt_dir_dn"].eq(1),
-        #     future_df.groupby(future_df["dwt_dir_dn"].ne(future_df["dwt_dir_dn"].shift(1)).cumsum()).cumcount() + 1,
-        #     0.0
-        # )
-        # print(future_df['future_nseq_dn'])
-        # future_df['future_nseq_dn'] = future_df['future_nseq'].clip(upper=0.0)
-        future_df['future_nseq_dn'] = future_df['dwt_nseq_dn'].shift(-self.win_size)
+        future_df['future_nseq_dn'] = future_df['full_dwt_nseq_dn'].shift(-self.win_size)
 
         future_df['future_nseq_dn_mean'] = future_df['future_nseq_dn'].rolling(future_win).mean()
         future_df['future_nseq_dn_std'] = future_df['future_nseq_dn'].rolling(future_win).std()

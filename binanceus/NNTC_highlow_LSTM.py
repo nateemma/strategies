@@ -134,4 +134,4 @@ class NNTC_highlow_LSTM(NNTC):
     signal_type = TrainingSignals.SignalType.High_Low
     classifier_type = NNTClassifier.ClassifierType.LSTM
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True

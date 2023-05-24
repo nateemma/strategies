@@ -133,5 +133,5 @@ class NNTC_macd_Attention(NNTC):
     signal_type = TrainingSignals.SignalType.MACD
     classifier_type = NNTClassifier.ClassifierType.Attention
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True
 

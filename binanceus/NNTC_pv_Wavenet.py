@@ -133,4 +133,4 @@ class NNTC_pv_Wavenet(NNTC):
     signal_type = TrainingSignals.SignalType.Peaks_Valleys
     classifier_type = NNTClassifier.ClassifierType.Wavenet
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True

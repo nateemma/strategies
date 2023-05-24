@@ -153,7 +153,7 @@ class NNPredict(IStrategy):
     # pair_model_info = {}  # holds model-related info for each pair
     curr_dataframe: DataFrame = None
     normalise_data = True
-    ignore_exit_signals = False  # set to True if you don't want to process sell/exit signals (let custom sell do it)
+    ignore_exit_signals = True  # set to True if you don't want to process sell/exit signals (let custom sell do it)
 
     # the following affect training of the model. Bigger numbers give better model, but take longer and use more memory
     seq_len = 12  # 'depth' of training sequence

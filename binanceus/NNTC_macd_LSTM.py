@@ -133,5 +133,5 @@ class NNTC_macd_LSTM(NNTC):
     signal_type = TrainingSignals.SignalType.MACD
     classifier_type = NNTClassifier.ClassifierType.LSTM
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True
 

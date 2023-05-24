@@ -134,5 +134,5 @@ class NNTC_nseq_GRU(NNTC):
     signal_type = TrainingSignals.SignalType.N_Sequence
     classifier_type = NNTClassifier.ClassifierType.GRU
 
-    ignore_exit_signals = False
+    ignore_exit_signals = True
 
