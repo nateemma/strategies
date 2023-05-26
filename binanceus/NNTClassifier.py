@@ -1,5 +1,6 @@
 # Neural Network Trinary Classifier: collection of neural network classifiers, types and access functions
 
+# usage: classifer, name = NNTClassifier.create_classifier(classifier_type, pair, nfeatures, seq_len, tag="")
 
 import numpy as np
 from pandas import DataFrame, Series
@@ -45,27 +46,7 @@ from ClassifierKerasTrinary import ClassifierKerasTrinary
 
 
 # --------------------------------------------------------------
-
-# Types of Classifier
-
-class ClassifierType(Enum):
-    Attention = auto()  # self-Attention (Transformer Attention)
-    AdditiveAttention = auto()  # Additive-Attention
-    CNN = auto()  # Convolutional Neural Network
-    Ensemble = auto()  # Ensemble/Stack of several Classifiers
-    GRU = auto()  # Gated Recurrent Unit
-    LSTM = auto()  # Long-Short Term Memory (basic)
-    LSTM2 = auto()  # Two-tier LSTM
-    LSTM3 = auto()  # Convolutional/LSTM Combo
-    MLP = auto()  # Multi-Layer Perceptron
-    Multihead = auto()  # Multihead Self-Attention
-    TCN = auto()  # Temporal Convolutional Network
-    Transformer = auto()  # Transformer
-    Wavenet = auto()  # Simplified Wavenet
-    Wavenet2 = auto()  # Full Wavenet
-    Wavenet3 = auto()  # Full Wavenet, reduced dimensions
-
-
+# Define classes for each type of classifier (have to declare them first)
 # --------------------------------------------------------------
 
 # Additive Attention Classifier
@@ -470,11 +451,14 @@ class NNTClassifier_Transformer(ClassifierKerasTrinary):
             x = self.transformer_encoder(x, head_size, num_heads, dropout, ff_dim)
             x = keras.layers.BatchNormalization()(x)
 
-        x = layers.GlobalAveragePooling1D(keepdims=True, data_format="channels_first")(x)
+        # x = layers.GlobalAveragePooling1D(keepdims=True, data_format="channels_first")(x)
 
-        for dim in mlp_units:
-            x = layers.Dense(dim)(x)
-            x = layers.Dropout(mlp_dropout)(x)
+        # for dim in mlp_units:
+        #     x = layers.Dense(dim)(x)
+        #     x = layers.Dropout(mlp_dropout)(x)
+
+        # scale down
+        x = layers.LSTM(3, activation='tanh', return_sequences=True)(x)
 
         # last layer is a trinary decision - do not change
         outputs = layers.Dense(3, activation="softmax")(x)
@@ -658,6 +642,7 @@ class NNTClassifier_Wavenet3(ClassifierKerasTrinary):
         x = layers.Activation('relu')(x)
         x = layers.Convolution1D(n_filters, 1, padding='same')(x)
 
+        # reduce from n_filters down to 3
         x = layers.LSTM(3, activation='tanh', return_sequences=True)(x)
 
         # last layer is a trinary decision - do not change
@@ -670,59 +655,32 @@ class NNTClassifier_Wavenet3(ClassifierKerasTrinary):
 
 # --------------------------------------------------------------
 
+# Types of Classifier
+
+class ClassifierType(Enum):
+    AdditiveAttention = NNTClassifier_AdditiveAttention  # Additive-Attention
+    Attention = NNTClassifier_Attention  # self-Attention (Transformer Attention)
+    CNN = NNTClassifier_CNN  # Convolutional Neural Network
+    Ensemble = NNTClassifier_Ensemble  # Ensemble/Stack of several Classifiers
+    GRU = NNTClassifier_GRU  # Gated Recurrent Unit
+    LSTM = NNTClassifier_LSTM  # Long-Short Term Memory (basic)
+    LSTM2 = NNTClassifier_LSTM2  # Two-tier LSTM
+    LSTM3 = NNTClassifier_LSTM3  # Convolutional/LSTM Combo
+    MLP = NNTClassifier_MLP  # Multi-Layer Perceptron
+    Multihead = NNTClassifier_MLP  # Multihead Self-Attention
+    TCN = NNTClassifier_TCN  # Temporal Convolutional Network
+    Transformer = NNTClassifier_Transformer  # Transformer
+    Wavenet = NNTClassifier_Wavenet  # Simplified Wavenet
+    Wavenet2 = NNTClassifier_Wavenet2  # Full Wavenet
+    Wavenet3 = NNTClassifier_Wavenet3  # Full Wavenet, reduced dimensions
+
+
+# --------------------------------------------------------------
+
 # factory to create classifier based on ID. Returns classifier and name
 def create_classifier(clf_type: ClassifierType, pair, nfeatures, seq_len, tag=""):
-    clf = None
     clf_name = str(clf_type).split(".")[-1]
-
-    if clf_type == ClassifierType.AdditiveAttention:
-        clf = NNTClassifier_AdditiveAttention(pair, seq_len, nfeatures, tag=tag)
-
-    elif clf_type == ClassifierType.Attention:
-        clf = NNTClassifier_Attention(pair, seq_len, nfeatures, tag=tag)
-
-    elif clf_type == ClassifierType.CNN:
-        clf = NNTClassifier_CNN(pair, seq_len, nfeatures, tag=tag)
-
-    elif clf_type == ClassifierType.Ensemble:
-        clf = NNTClassifier_Ensemble(pair, seq_len, nfeatures, tag=tag)
-
-    elif clf_type == ClassifierType.GRU:
-        clf = NNTClassifier_GRU(pair, seq_len, nfeatures, tag=tag)
-
-    elif clf_type == ClassifierType.LSTM:
-        clf = NNTClassifier_LSTM(pair, seq_len, nfeatures, tag=tag)
-
-    elif clf_type == ClassifierType.LSTM2:
-        clf = NNTClassifier_LSTM2(pair, seq_len, nfeatures, tag=tag)
-
-    elif clf_type == ClassifierType.LSTM3:
-        clf = NNTClassifier_LSTM3(pair, seq_len, nfeatures, tag=tag)
-
-    elif clf_type == ClassifierType.MLP:
-        clf = NNTClassifier_MLP(pair, seq_len, nfeatures, tag=tag)
-
-    elif clf_type == ClassifierType.Multihead:
-        clf = NNTClassifier_Multihead(pair, seq_len, nfeatures, tag=tag)
-
-    elif clf_type == ClassifierType.TCN:
-        clf = NNTClassifier_TCN(pair, seq_len, nfeatures, tag=tag)
-
-    elif clf_type == ClassifierType.Transformer:
-        clf = NNTClassifier_Transformer(pair, seq_len, nfeatures, tag=tag)
-
-    elif clf_type == ClassifierType.Wavenet:
-        clf = NNTClassifier_Wavenet(pair, seq_len, nfeatures, tag=tag)
-
-    elif clf_type == ClassifierType.Wavenet2:
-        clf = NNTClassifier_Wavenet2(pair, seq_len, nfeatures, tag=tag)
-
-    elif clf_type == ClassifierType.Wavenet3:
-        clf = NNTClassifier_Wavenet3(pair, seq_len, nfeatures, tag=tag)
-
-    else:
-        print("Unknown classifier: ", clf_type)
-        clf = None
+    clf = clf_type.value(pair, seq_len, nfeatures, tag=tag)
 
     return clf, clf_name
 

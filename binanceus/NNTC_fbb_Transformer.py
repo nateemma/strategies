@@ -137,7 +137,7 @@ class NNTC_fbb_Transformer(NNTC):
     signal_type = TrainingSignals.SignalType.Fisher_Bollinger
     classifier_type = NNTClassifier.ClassifierType.Transformer
 
-    ignore_exit_signals = True
+    ignore_exit_signals = False
 
     compress_data = True
 

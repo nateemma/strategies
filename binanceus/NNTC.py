@@ -37,7 +37,7 @@ import warnings
 
 log = logging.getLogger(__name__)
 # log.setLevel(logging.DEBUG)
-warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
+# warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 import custom_indicators as cta
 from finta import TA as fta
@@ -265,7 +265,7 @@ class NNTC(IStrategy):
 
     classifier_type = NNTClassifier.ClassifierType.LSTM  # default, override in subclass
 
-    signal_type = TrainingSignals.SignalType.Undefined  # can override this, or the get_train_* functions
+    signal_type = TrainingSignals.SignalType.Profit  # should override this
 
     ###################################
 
@@ -317,9 +317,6 @@ class NNTC(IStrategy):
 
     def get_train_buy_signals(self, future_df: DataFrame):
 
-        if self.signal_type == TrainingSignals.SignalType.Undefined:
-            print("!!! WARNING: using base class (buy) training implementation !!!")
-
         signals = TrainingSignals.get_entry_training_signals(self.signal_type, future_df)
 
         if signals is None:
@@ -328,9 +325,6 @@ class NNTC(IStrategy):
         return signals
 
     def get_train_sell_signals(self, future_df: DataFrame):
-
-        if self.signal_type == TrainingSignals.SignalType.Undefined:
-            print("!!! WARNING: using base class (sell) training implementation !!!")
 
         signals = TrainingSignals.get_exit_training_signals(self.signal_type, future_df)
 
@@ -451,6 +445,30 @@ class NNTC(IStrategy):
         return dataframe
 
     ################################
+    # run data augmentation techniques
+    def augment_training_signals(self, buys, sells):
+
+        # Trick 1: artificially extend positive signals one entry earlier
+
+        bidx = np.where(buys > 0)[0]  # index of buy entries
+        # set the entry before each buy signal, unless it's the first item
+        if len(bidx) > 1:  # there are some buys
+            start = 1 if (bidx[0] == 0) else 0
+            buys[bidx[start:] - 1] = 1.0
+
+        sidx = np.where(sells > 0)[0]  # index of sell entries
+        # set the entry before each sell signal, unless it's the first item
+        if len(sidx) > 1:  # there are some buys
+            start = 1 if (sidx[0] == 0) else 0
+            sells[sidx[start:] - 1] = 1.0
+
+        # Trick 2: sells override buys
+        buys[np.where(sells > 0)[0]] = 0.0
+
+        # Trick 3: if a buy is followed by a sell, override the buy
+        buys[np.where(sells[:-1] == 1)[0] + 1] = 0.0
+
+        return buys, sells
 
     # creates the buy/sell labels absed on looking ahead into the supplied dataframe
     def create_training_data(self, dataframe: DataFrame):
@@ -476,30 +494,11 @@ class NNTC(IStrategy):
         if sells.sum() < 3:
             print("OOPS! <3 ({:.0f}) sell signals generated. Check training criteria".format(sells.sum()))
 
-
-        # Trick: artificially set entry before buy/sell to match
-
-        bidx = np.where(buys > 0)[0] # index of buy entries
-        # set the entry before each buy signal, unless it's the first item
-        if len(bidx) > 1: # there are some buys
-            if bidx[0] == 0:
-                buys[bidx[1:] - 1] = 1.0
-            else:
-                buys[bidx - 1] = 1.0
-
-        sidx = np.where(sells > 0)[0] # index of sell entries
-        # set the entry before each buy signal, unless it's the first item
-        if len(sidx) > 1: # there are some buys
-            if sidx[0] == 0:
-                sells[sidx[1:] - 1] = 1.0
-            else:
-                sells[sidx - 1] = 1.0
-
-        # sells override buys
-        buys[np.where(sells > 0)[0]] = 0.0
+        # run data augmentation techniques
+        buys, sells = self.augment_training_signals(buys, sells)
 
 
-        # copy back to dataframe
+        # copy back to dataframe (because they likely changed)
         future_df['train_buy'] = np.where(buys > 0, 1.0, 0.0)
         future_df['train_sell'] = np.where(sells > 0, 1.0, 0.0)
 

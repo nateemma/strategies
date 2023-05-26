@@ -64,8 +64,6 @@ class NNTC_swing_LSTM(NNTC):
         },
         'subplots': {
             "Diff": {
-                '%future_gain': {'color': 'blue'},
-                '%future_profit_threshold': {'color': 'green'},
                 '%train_buy': {'color': 'mediumaquamarine'},
                 'predict_buy': {'color': 'cornflowerblue'},
                 '%train_sell': {'color': 'salmon'},

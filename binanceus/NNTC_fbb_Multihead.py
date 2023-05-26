@@ -135,7 +135,7 @@ class NNTC_fbb_Multihead(NNTC):
     n_loss_stddevs = 2.0
 
     signal_type = TrainingSignals.SignalType.Fisher_Bollinger
-    classifier_type = NNTClassifier.ClassifierType.LSTM
+    classifier_type = NNTClassifier.ClassifierType.Multihead
 
     ignore_exit_signals = True
 
