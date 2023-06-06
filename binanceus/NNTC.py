@@ -38,6 +38,11 @@ import warnings
 log = logging.getLogger(__name__)
 # log.setLevel(logging.DEBUG)
 # warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
+log.addFilter(logging.Filter(name='loading'))
+log.addFilter(logging.Filter(name='saving'))
+logging.getLogger('tensorflow').setLevel(logging.WARNING)
+logging.getLogger('keras').setLevel(logging.WARNING)
+logging.getLogger('pickle').setLevel(logging.CRITICAL)
 
 import custom_indicators as cta
 from finta import TA as fta
@@ -146,8 +151,8 @@ class NNTC(IStrategy):
             "Diff": {
                 '%train_buy': {'color': 'mediumaquamarine'},
                 'predict_buy': {'color': 'cornflowerblue'},
-                '%train_sell': {'color': 'salmon'},
-                'predict_sell': {'color': 'orange'},
+                '%train_sell': {'color': 'lightsalmon'},
+                'predict_sell': {'color': 'brown'},
             },
         }
     }
@@ -193,9 +198,9 @@ class NNTC(IStrategy):
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
-    lookahead_hours = 0.5
-    n_profit_stddevs = 3.0
-    n_loss_stddevs = 3.0
+    lookahead_hours = 1.0
+    n_profit_stddevs = 0.0
+    n_loss_stddevs = 0.0
     min_f1_score = 0.3
 
     compressor = None
@@ -216,7 +221,7 @@ class NNTC(IStrategy):
     refit_model = False  # only set to True when training. If False, then existing model is used, if present
     use_full_dataset = True  # use the entire dataset for training (in backtest)
     model_per_pair = False # single model for all pairs
-    combine_models = True # combine training across all pairs
+    combine_models = False # combine training across all pairs
     ignore_exit_signals = True  # set to True if you don't want to process sell/exit signals (let custom sell do it)
 
     scaler_type = ScalerType.Robust  # scaler type used for normalisation
@@ -248,24 +253,10 @@ class NNTC(IStrategy):
         STOPLOSS = 3
         RUNNING = 4
 
-    # class ClassifierType(Enum):
-    #     Attention = auto()
-    #     CNN = auto()
-    #     Ensemble = auto()
-    #     GRU = auto()
-    #     LSTM = auto()
-    #     LSTM2 = auto()
-    #     LSTM3 = auto()
-    #     MLP = auto()
-    #     Multihead = auto()
-    #     TCN = auto()
-    #     Transformer = auto()
-    #     Wavenet = auto()
-    #     Wavenet2 = auto()
-
     classifier_type = NNTClassifier.ClassifierType.LSTM  # default, override in subclass
 
     signal_type = TrainingSignals.SignalType.Profit  # should override this
+    training_signals = None
 
     ###################################
 
@@ -306,7 +297,7 @@ class NNTC(IStrategy):
 
     # subclasses should override the following 2 functions - this is here as an example
     # NOTE: can also just set signal_type to something else valid, and that will also work
-    #       see TrainingSignals.SignalType for a list of algorithms
+    #       see self.training_signals.SignalType for a list of algorithms
 
     # Note: try to combine current/historical data (from populate_indicators) with future data
     #       If you only use future data, the ML training is just guessing
@@ -317,7 +308,7 @@ class NNTC(IStrategy):
 
     def get_train_buy_signals(self, future_df: DataFrame):
 
-        signals = TrainingSignals.get_entry_training_signals(self.signal_type, future_df)
+        signals = self.training_signals.get_entry_training_signals(future_df)
 
         if signals is None:
             signals = pd.Series(np.zeros(np.shape(future_df)[0], dtype=float))
@@ -326,7 +317,7 @@ class NNTC(IStrategy):
 
     def get_train_sell_signals(self, future_df: DataFrame):
 
-        signals = TrainingSignals.get_exit_training_signals(self.signal_type, future_df)
+        signals = self.training_signals.get_exit_training_signals(future_df)
 
         if signals is None:
             signals = pd.Series(np.zeros(np.shape(future_df)[0], dtype=float))
@@ -336,10 +327,10 @@ class NNTC(IStrategy):
     # override the following to add strategy-specific criteria to the (main) buy/sell conditions
 
     def get_strategy_entry_guard_conditions(self, dataframe: DataFrame):
-        return TrainingSignals.get_entry_guard_conditions(self.signal_type, dataframe)
+        return self.training_signals.get_entry_guard_conditions(dataframe)
 
     def get_strategy_exit_guard_conditions(self, dataframe: DataFrame):
-        return TrainingSignals.get_exit_guard_conditions(self.signal_type, dataframe)
+        return self.training_signals.get_exit_guard_conditions(dataframe)
 
     ################################
 
@@ -356,6 +347,23 @@ class NNTC(IStrategy):
 
     ###################################
 
+    def print_strategy_info(self):
+
+        print("")
+        print("Strategy Parameters/Flags")
+        print("")
+        print(f"    Signal Type:            {self.signal_type} ({self.training_signals.get_signal_name()})")
+        print(f"    Classifier Type:        {self.classifier_type}")
+        print(f"    Lookahead:              {self.lookahead_hours} hours ({self.curr_lookahead} candles)")
+        print(f"    n_profit_stddevs:       {self.n_profit_stddevs}")
+        print(f"    n_loss_stddevs:         {self.n_loss_stddevs}")
+        print(f"    compress_data:          {self.compress_data}")
+        print(f"    refit_model:            {self.refit_model}")
+        print(f"    model_per_pair:         {self.model_per_pair}")
+        print(f"    combine_models:         {self.combine_models}")
+        print(f"    ignore_exit_signals:    {self.ignore_exit_signals}")
+        print("")
+
     """
     Indicator Definitions
     """
@@ -369,6 +377,9 @@ class NNTC(IStrategy):
         self.set_state(curr_pair, self.State.POPULATE)
         self.curr_lookahead = int(12 * self.lookahead_hours)
         self.dbg_curr_df = dataframe
+
+        if self.training_signals is None:
+            self.training_signals = TrainingSignals.create_training_signals(self.signal_type, self.curr_lookahead)
 
         # create and initialise instances of objects shared across pairs
         if self.dataframeUtils is None:
@@ -388,11 +399,14 @@ class NNTC(IStrategy):
             self.dataframePopulator.startup_win = self.startup_candle_count
             self.dataframePopulator.n_loss_stddevs = self.n_loss_stddevs
             self.dataframePopulator.n_profit_stddevs = self.n_profit_stddevs
-            TrainingSignals.set_strategy_parameters(self.curr_lookahead, self.n_profit_stddevs, self.n_loss_stddevs)
 
         # first time through? Print some debug info
         if self.first_time:
             self.first_time = False
+            print("")
+            print("----------------------")
+            print(self.__class__.__name__)
+            print("----------------------")
             print("")
             print("***************************************")
             print("** Warning: startup can be very slow **")
@@ -400,7 +414,7 @@ class NNTC(IStrategy):
 
             Environment.print_environment()
 
-            print("    Lookahead: ", self.curr_lookahead, " candles (", self.lookahead_hours, " hours)")
+            self.print_strategy_info()
 
         print("")
         print(curr_pair)
@@ -452,15 +466,17 @@ class NNTC(IStrategy):
 
         bidx = np.where(buys > 0)[0]  # index of buy entries
         # set the entry before each buy signal, unless it's the first item
-        if len(bidx) > 1:  # there are some buys
+        if len(bidx) > 0:  # there are some buys
             start = 1 if (bidx[0] == 0) else 0
-            buys[bidx[start:] - 1] = 1.0
+            if len(bidx) >= start:
+                buys[bidx[start:] - 1] = 1.0
 
         sidx = np.where(sells > 0)[0]  # index of sell entries
         # set the entry before each sell signal, unless it's the first item
-        if len(sidx) > 1:  # there are some buys
+        if len(sidx) > 0:  # there are some sells
             start = 1 if (sidx[0] == 0) else 0
-            sells[sidx[start:] - 1] = 1.0
+            if len(sidx) >= start:
+                sells[sidx[start:] - 1] = 1.0
 
         # Trick 2: sells override buys
         buys[np.where(sells > 0)[0]] = 0.0
@@ -531,7 +547,7 @@ class NNTC(IStrategy):
 
     # save debug indicators identified by the training signal. Can also be overidden in the subclass
     def save_debug_indicators(self, future_df: DataFrame):
-        dbg_list = TrainingSignals.get_debug_indicators(self.signal_type)
+        dbg_list = self.training_signals.get_debug_indicators()
 
         if len(dbg_list) > 0:
             # print(f"    Adding debug indicators: {dbg_list}")
@@ -885,7 +901,7 @@ class NNTC(IStrategy):
                 pred_test = self.get_classifier_predictions(clf, tsr_test)
 
                 # score = f1_score(results, prediction, average=None)[1]
-                score = f1_score(res_test[:, 0], pred_test, average='macro')
+                score = f1_score(res_test[:, 0], pred_test, average='micro')
 
                 if self.dbg_verbose:
                     print("      {0:<20}: {1:.3f}".format(clf_id, score))
@@ -999,8 +1015,8 @@ class NNTC(IStrategy):
 
         # add some fairly loose guards, to help prevent 'bad' predictions
 
-        # # some trading volume
-        # conditions.append(dataframe['volume'] > 0)
+        # some trading volume
+        conditions.append(dataframe['volume'] > 0)
 
         # MFI
         conditions.append(dataframe['mfi'] < 50.0)
@@ -1129,7 +1145,8 @@ class NNTC(IStrategy):
     ###################################
 
     """
-    Custom Sell
+    Custom Exit
+    (Note that this runs even if use_custom_stoploss is False)
     """
 
     def custom_exit(self, pair: str, trade: 'Trade', current_time: 'datetime', current_rate: float,
@@ -1157,8 +1174,16 @@ class NNTC(IStrategy):
             return None
 
         # Mod: Sell any positions at a loss if they are held for more than 'N' days.
-        if current_profit < 0.0 and (current_time - trade.open_date_utc).days >= 7:
+        # if (current_profit < 0.0) and (current_time - trade.open_date_utc).days >= 7:
+        if (current_time - trade.open_date_utc).days >= 7:
             return 'unclog'
+
+        # Mod: sell if current profit exceeds threshold (based on recent trends)
+        if (current_profit > 0) and (current_profit > last_candle['profit_threshold']):
+            return 'profit_threshold'
+
+        # if (current_profit < 0) and (current_profit < last_candle['loss_threshold']):
+        #     return 'loss_threshold'
 
         # Determine our current ROI point based on the defined type
         if self.cexit_roi_type.value == 'static':

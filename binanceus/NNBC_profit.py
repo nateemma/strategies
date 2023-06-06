@@ -62,7 +62,7 @@ class NNBC_profit(NNBC):
                 '%train_buy': {'color': 'green'},
                 'predict_buy': {'color': 'blue'},
                 '%train_sell': {'color': 'red'},
-                'predict_sell': {'color': 'orange'},
+                'predict_sell': {'color': 'brown'},
                 '%profit_max': {'color': 'purple'},
                 '%loss_min': {'color': 'tomato'},
             },
@@ -79,8 +79,8 @@ class NNBC_profit(NNBC):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     lookahead_hours = 1.0
-    n_profit_stddevs = 1.0
-    n_loss_stddevs = 1.0
+    n_profit_stddevs = 0.0
+    n_loss_stddevs = 0.0
     min_f1_score = 0.60
 
     custom_trade_info = {}

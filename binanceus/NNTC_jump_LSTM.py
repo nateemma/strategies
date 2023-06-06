@@ -56,6 +56,25 @@ NNTC_jump_LSTM:
 
 class NNTC_jump_LSTM(NNTC):
 
+
+    plot_config = {
+        'main_plot': {
+            # 'dwt': {'color': 'darkcyan'},
+            # '%future_min': {'color': 'salmon'},
+            # '%future_max': {'color': 'cadetblue'},
+        },
+        'subplots': {
+            "Diff": {
+                '%dwt_delta_min': {'color': 'blue'},
+                '%dwt_delta_max': {'color': 'green'},
+                '%train_buy': {'color': 'mediumaquamarine'},
+                'predict_buy': {'color': 'cornflowerblue'},
+                '%train_sell': {'color': 'lightsalmon'},
+                'predict_sell': {'color': 'brown'},
+            },
+        }
+    }
+
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # Have to re-declare any globals that we need to modify because freqtrade can/will run strats in parallel
@@ -109,9 +128,9 @@ class NNTC_jump_LSTM(NNTC):
     ###################################
     # override the (most often changed) default parameters for this particular strategy
 
-    lookahead_hours = 0.5
-    n_profit_stddevs = 0.5
-    n_loss_stddevs = 2.0
+    lookahead_hours = 1.0
+    n_profit_stddevs = 0.0
+    n_loss_stddevs = 0.0
 
     signal_type = TrainingSignals.SignalType.Jump
     classifier_type = NNTClassifier.ClassifierType.LSTM

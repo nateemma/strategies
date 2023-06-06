@@ -3,6 +3,7 @@
 # They are in a seperate file because I use the same set of indicators across several types of strategies, so it's
 # just convenient to do it this way
 #
+import math
 
 import numpy as np
 import pandas as pd
@@ -34,6 +35,7 @@ from finta import TA as fta
 import legendary_ta as lta
 
 from DataframeUtils import DataframeUtils
+from scipy.stats import linregress
 
 
 #################
@@ -45,8 +47,8 @@ class DataframePopulator():
     win_size = 14
     runmode = ""  # set this to self.dp.runmode.value
 
-    n_profit_stddevs = 1.0
-    n_loss_stddevs = 1.0
+    n_profit_stddevs = 0.0
+    n_loss_stddevs = 0.0
 
     dataframeUtils = None
 
@@ -230,7 +232,7 @@ class DataframePopulator():
         # dataframe['moist'] = np.where(qtpylib.crossed_above(dataframe['macd'], dataframe['macdsignal']), 1.0, -1.0)
         # dataframe['throbbing'] = np.where(dataframe['roc_6'] > dataframe['roc_6'].rolling(12).mean(), 1.0, -1.0)
 
-        # MFI
+        # MFI - Chaikin Money Flow Indicator
         dataframe['mfi'] = ta.MFI(dataframe)
 
         # Volume Flow Indicator (MFI) for volume based on the direction of price movement
@@ -282,6 +284,7 @@ class DataframePopulator():
         dataframe['dwt_loss_mean'] = dataframe['dwt_loss'].rolling(self.win_size).mean()
         dataframe['dwt_loss_std'] = dataframe['dwt_loss'].rolling(self.win_size).std()
 
+        # (Local) Profit & Loss thresholds are used extensively, do not remove!
         dataframe['profit_threshold'] = dataframe['dwt_profit_mean'] + self.n_profit_stddevs * abs(
             dataframe['dwt_profit_std'])
 
@@ -307,6 +310,11 @@ class DataframePopulator():
         dataframe = lta.smi_momentum(dataframe)
         dataframe = lta.pinbar(dataframe, dataframe["smi"])
         dataframe = lta.breakouts(dataframe)
+
+
+        # rolling linear slope of the DWT (i.e. average trend) of near-past
+        dataframe['dwt_slope'] = dataframe['dwt'].rolling(window=6).apply(self.roll_get_slope)
+
 
         # TODO: remove/fix any columns that contain 'inf'
         self.dataframeUtils.check_inf(dataframe)
@@ -341,10 +349,10 @@ class DataframePopulator():
         dataframe['dwt_recent_max'] = dataframe['dwt'].rolling(window=self.win_size).max()
         dataframe['dwt_maxmin'] = 100.0 * (dataframe['dwt_recent_max'] - dataframe['dwt_recent_min']) / \
                                   dataframe['dwt_recent_max']
-        dataframe['dwt_delta_min'] = 100.0 * (dataframe['dwt_recent_min'] - dataframe['close']) / \
-                                     dataframe['close']
-        dataframe['dwt_delta_max'] = 100.0 * (dataframe['dwt_recent_max'] - dataframe['close']) / \
-                                     dataframe['close']
+        dataframe['dwt_delta_min'] = (100.0 * (dataframe['dwt_recent_min'] - dataframe['close']) / \
+                                      dataframe['close']).clip(lower=-5.0)
+        dataframe['dwt_delta_max'] = (100.0 * (dataframe['dwt_recent_max'] - dataframe['close']) / \
+                                      dataframe['close']).clip(upper=5.0)
         # longer term high/low
         dataframe['dwt_low'] = dataframe['dwt'].rolling(window=self.startup_win).min()
         dataframe['dwt_high'] = dataframe['dwt'].rolling(window=self.startup_win).max()
@@ -431,8 +439,6 @@ class DataframePopulator():
         future_df['curr_trend'] = np.where(future_df['trend'].rolling(3).sum() > 0.0, 1.0, -1.0)
         future_df['future_trend'] = np.where(future_df['ftrend'].rolling(3).sum() > 0.0, 1.0, -1.0)
 
-
-
         # Sequences of consecutive up/downs (using full_dwt)
         future_df['full_dwt_dir'] = 0.0
         future_df['full_dwt_dir'] = np.where(future_df['full_dwt'].diff() > 0, 1.0, -1.0)
@@ -440,13 +446,13 @@ class DataframePopulator():
         future_df['full_dwt_dir_up'] = future_df['full_dwt_dir'].clip(lower=0.0)
         future_df['full_dwt_nseq_up'] = future_df['full_dwt_dir_up'] * (future_df['full_dwt_dir_up'].groupby(
             (future_df['full_dwt_dir_up'] != future_df['full_dwt_dir_up'].shift()).cumsum()).cumcount() + 1)
-        future_df['full_dwt_nseq_up'] = future_df['full_dwt_nseq_up'].clip(lower=0.0, upper=20.0)  # removes startup artifacts
+        future_df['full_dwt_nseq_up'] = future_df['full_dwt_nseq_up'].clip(lower=0.0,
+                                                                           upper=20.0)  # removes startup artifacts
 
         future_df['full_dwt_dir_dn'] = abs(future_df['full_dwt_dir'].clip(upper=0.0))
         future_df['full_dwt_nseq_dn'] = future_df['full_dwt_dir_dn'] * (future_df['full_dwt_dir_dn'].groupby(
             (future_df['full_dwt_dir_dn'] != future_df['full_dwt_dir_dn'].shift()).cumsum()).cumcount() + 1)
         future_df['full_dwt_nseq_dn'] = future_df['full_dwt_nseq_dn'].clip(lower=0.0, upper=20.0)
-
 
         # build forward-looking sum of up/down trends
         future_win = pd.api.indexers.FixedForwardWindowIndexer(window_size=int(self.win_size))  # don't use a big window
@@ -479,6 +485,10 @@ class DataframePopulator():
                                         future_df['close']
 
         future_df['future_maxmin'] = future_df['future_maxmin'].clip(lower=0.0, upper=10.0)
+
+
+        # rolling linear slope of the DWT (i.e. average trend) of near-past (shifted forward)
+        future_df['future_slope'] = future_df['future_dwt'].rolling(window=6).apply(self.roll_get_slope)
 
         # get average gain & stddev
         profit_mean = future_df['future_profit'].mean()
@@ -603,6 +613,19 @@ class DataframePopulator():
     def madev(self, d, axis=None):
         """ Mean absolute deviation of a signal """
         return np.mean(np.absolute(d - np.mean(d, axis)), axis)
+
+    def roll_get_slope(self, col) -> float:
+        # must return scalar, so just calculate prediction and take last value
+
+        slope = np.polyfit(col.index, col, 1)[0]
+
+        if np.isnan(slope) or np.isinf(slope):
+            slope = 10.0
+
+        if (slope < 0) and math.isinf(slope):
+            slope = -10.0
+
+        return slope
 
     #######################
 

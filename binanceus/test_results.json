@@ -1,0 +1,552 @@
+{
+    "NNTC_bbw_LSTM": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 30,
+        "entries": 215,
+        "ave_profit": -0.2,
+        "tot_profit": -13.0,
+        "win_pct": 47.4,
+        "expectancy": -0.23,
+        "daily_profit": -0.433
+    },
+    "NNTC_dwt_LSTM": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 30,
+        "entries": 40,
+        "ave_profit": -1.19,
+        "tot_profit": -14.34,
+        "win_pct": 70.0,
+        "expectancy": -0.2,
+        "daily_profit": -0.478
+    },
+    "NNTC_fbb_AdditiveAttention": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 30,
+        "entries": 50,
+        "ave_profit": -0.61,
+        "tot_profit": -9.21,
+        "win_pct": 82.0,
+        "expectancy": -0.1,
+        "daily_profit": -0.307
+    },
+    "NNTC_fbb_Attention": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 30,
+        "entries": 43,
+        "ave_profit": -0.37,
+        "tot_profit": -4.73,
+        "win_pct": 83.7,
+        "expectancy": -0.06,
+        "daily_profit": -0.158
+    },
+    "NNTC_fbb_Ensemble": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 30,
+        "entries": 88,
+        "ave_profit": -0.38,
+        "tot_profit": -10.08,
+        "win_pct": 69.3,
+        "expectancy": -0.12,
+        "daily_profit": -0.336
+    },
+    "NNTC_fbb_GRU": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 30,
+        "entries": 22,
+        "ave_profit": -0.31,
+        "tot_profit": -2.02,
+        "win_pct": 50.0,
+        "expectancy": -0.31,
+        "daily_profit": -0.067
+    },
+    "NNTC_fbb_LSTM": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 30,
+        "entries": 19,
+        "ave_profit": -1.05,
+        "tot_profit": -6.0,
+        "win_pct": 68.4,
+        "expectancy": -0.22,
+        "daily_profit": -0.2
+    },
+    "NNTC_fbb_Multihead": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 30,
+        "entries": 66,
+        "ave_profit": -0.96,
+        "tot_profit": -19.1,
+        "win_pct": 71.2,
+        "expectancy": -0.17,
+        "daily_profit": -0.637
+    },
+    "NNTC_fbb_Transformer": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 30,
+        "entries": 38,
+        "ave_profit": -0.68,
+        "tot_profit": -7.81,
+        "win_pct": 39.5,
+        "expectancy": -0.46,
+        "daily_profit": -0.26
+    },
+    "NNTC_fbb_Wavenet": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 30,
+        "entries": 21,
+        "ave_profit": -0.63,
+        "tot_profit": -3.97,
+        "win_pct": 42.9,
+        "expectancy": -0.39,
+        "daily_profit": -0.132
+    },
+    "NNTC_fwr_LSTM": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 30,
+        "entries": 38,
+        "ave_profit": -0.2,
+        "tot_profit": -2.31,
+        "win_pct": 55.3,
+        "expectancy": -0.09,
+        "daily_profit": -0.077
+    },
+    "NNTC_highlow_Ensemble": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 30,
+        "entries": 65,
+        "ave_profit": -0.68,
+        "tot_profit": -13.24,
+        "win_pct": 81.5,
+        "expectancy": -0.1,
+        "daily_profit": -0.441
+    },
+    "NNTC_highlow_LSTM": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 30,
+        "entries": 13,
+        "ave_profit": -3.5,
+        "tot_profit": -13.68,
+        "win_pct": 61.5,
+        "expectancy": -0.34,
+        "daily_profit": -0.456
+    },
+    "NNTC_jump_Ensemble": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 30,
+        "entries": 42,
+        "ave_profit": -1.23,
+        "tot_profit": -15.57,
+        "win_pct": 81.0,
+        "expectancy": -0.15,
+        "daily_profit": -0.519
+    },
+    "NNTC_jump_LSTM": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 30,
+        "entries": 49,
+        "ave_profit": -1.3,
+        "tot_profit": -19.08,
+        "win_pct": 75.5,
+        "expectancy": -0.18,
+        "daily_profit": -0.636
+    },
+    "NNTC_jump_Transformer": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 30,
+        "entries": 75,
+        "ave_profit": -0.34,
+        "tot_profit": -7.71,
+        "win_pct": 80.0,
+        "expectancy": -0.07,
+        "daily_profit": -0.257
+    },
+    "NNTC_macd2_Attention": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 30,
+        "entries": 53,
+        "ave_profit": -0.63,
+        "tot_profit": -10.04,
+        "win_pct": 84.9,
+        "expectancy": -0.08,
+        "daily_profit": -0.335
+    },
+    "NNTC_macd3_LSTM": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 30,
+        "entries": 37,
+        "ave_profit": -1.21,
+        "tot_profit": -13.48,
+        "win_pct": 75.7,
+        "expectancy": -0.2,
+        "daily_profit": -0.449
+    },
+    "NNTC_macd_Attention": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 69,
+        "ave_profit": 0.65,
+        "tot_profit": 13.41,
+        "win_pct": 89.9,
+        "expectancy": 0.09,
+        "daily_profit": 0.037
+    },
+    "NNTC_macd_Ensemble": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 114,
+        "ave_profit": -0.27,
+        "tot_profit": -9.1,
+        "win_pct": 85.1,
+        "expectancy": -0.03,
+        "daily_profit": -0.025
+    },
+    "NNTC_macd_GRU": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 101,
+        "ave_profit": -0.17,
+        "tot_profit": -5.15,
+        "win_pct": 79.2,
+        "expectancy": -0.02,
+        "daily_profit": -0.014
+    },
+    "NNTC_macd_LSTM": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 67,
+        "ave_profit": -0.56,
+        "tot_profit": -11.27,
+        "win_pct": 88.1,
+        "expectancy": -0.04,
+        "daily_profit": -0.031
+    },
+    "NNTC_macd_Multihead": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 214,
+        "ave_profit": -0.18,
+        "tot_profit": -11.75,
+        "win_pct": 80.8,
+        "expectancy": -0.02,
+        "daily_profit": -0.033
+    },
+    "NNTC_macd_TCN": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 21,
+        "ave_profit": 0.01,
+        "tot_profit": 0.07,
+        "win_pct": 85.7,
+        "expectancy": 0.0,
+        "daily_profit": 0.0
+    },
+    "NNTC_macd_Transformer": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 52,
+        "ave_profit": -0.71,
+        "tot_profit": -11.14,
+        "win_pct": 76.9,
+        "expectancy": -0.08,
+        "daily_profit": -0.031
+    },
+    "NNTC_mfi_LSTM": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 273,
+        "ave_profit": 0.03,
+        "tot_profit": 2.22,
+        "win_pct": 75.1,
+        "expectancy": 0.01,
+        "daily_profit": 0.006
+    },
+    "NNTC_minmax_LSTM": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 117,
+        "ave_profit": -0.03,
+        "tot_profit": -1.08,
+        "win_pct": 41.0,
+        "expectancy": -0.03,
+        "daily_profit": -0.003
+    },
+    "NNTC_nseq_Attention": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 201,
+        "ave_profit": 0.16,
+        "tot_profit": 9.9,
+        "win_pct": 91.0,
+        "expectancy": 0.02,
+        "daily_profit": 0.028
+    },
+    "NNTC_nseq_Ensemble": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 180,
+        "ave_profit": 0.22,
+        "tot_profit": 12.08,
+        "win_pct": 86.7,
+        "expectancy": 0.03,
+        "daily_profit": 0.034
+    },
+    "NNTC_nseq_GRU": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 543,
+        "ave_profit": -0.12,
+        "tot_profit": -19.1,
+        "win_pct": 55.8,
+        "expectancy": -0.16,
+        "daily_profit": -0.053
+    },
+    "NNTC_nseq_LSTM": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 172,
+        "ave_profit": 0.15,
+        "tot_profit": 7.58,
+        "win_pct": 89.5,
+        "expectancy": 0.01,
+        "daily_profit": 0.021
+    },
+    "NNTC_nseq_Transformer": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 236,
+        "ave_profit": -0.16,
+        "tot_profit": -11.54,
+        "win_pct": 87.7,
+        "expectancy": -0.02,
+        "daily_profit": -0.032
+    },
+    "NNTC_nseq_Wavenet": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 191,
+        "ave_profit": 0.39,
+        "tot_profit": 22.61,
+        "win_pct": 90.6,
+        "expectancy": 0.06,
+        "daily_profit": 0.063
+    },
+    "NNTC_over_LSTM": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 191,
+        "ave_profit": 0.43,
+        "tot_profit": 24.71,
+        "win_pct": 89.5,
+        "expectancy": 0.04,
+        "daily_profit": 0.069
+    },
+    "NNTC_profit_CNN": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 275,
+        "ave_profit": -0.03,
+        "tot_profit": -2.68,
+        "win_pct": 74.9,
+        "expectancy": -0.01,
+        "daily_profit": -0.007
+    },
+    "NNTC_profit_Ensemble": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 241,
+        "ave_profit": 0.74,
+        "tot_profit": 53.69,
+        "win_pct": 82.6,
+        "expectancy": 0.11,
+        "daily_profit": 0.149
+    },
+    "NNTC_profit_GRU": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 196,
+        "ave_profit": 0.09,
+        "tot_profit": 5.22,
+        "win_pct": 82.7,
+        "expectancy": 0.01,
+        "daily_profit": 0.014
+    },
+    "NNTC_profit_LSTM": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 239,
+        "ave_profit": 0.64,
+        "tot_profit": 46.09,
+        "win_pct": 83.7,
+        "expectancy": 0.09,
+        "daily_profit": 0.128
+    },
+    "NNTC_profit_LSTM2": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 249,
+        "ave_profit": 0.58,
+        "tot_profit": 43.71,
+        "win_pct": 88.0,
+        "expectancy": 0.08,
+        "daily_profit": 0.121
+    },
+    "NNTC_profit_LSTM3": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 237,
+        "ave_profit": 0.66,
+        "tot_profit": 47.32,
+        "win_pct": 75.1,
+        "expectancy": 0.12,
+        "daily_profit": 0.131
+    },
+    "NNTC_profit_Transformer": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 233,
+        "ave_profit": 0.19,
+        "tot_profit": 13.56,
+        "win_pct": 82.4,
+        "expectancy": 0.02,
+        "daily_profit": 0.038
+    },
+    "NNTC_profit_Wavenet": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 271,
+        "ave_profit": 0.55,
+        "tot_profit": 44.96,
+        "win_pct": 82.3,
+        "expectancy": 0.09,
+        "daily_profit": 0.125
+    },
+    "NNTC_profit_MLP": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 314,
+        "ave_profit": -0.24,
+        "tot_profit": -22.55,
+        "win_pct": 67.2,
+        "expectancy": -0.05,
+        "daily_profit": -0.063
+    },
+    "NNTC_profit_Wavenet2": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 202,
+        "ave_profit": 0.75,
+        "tot_profit": 45.2,
+        "win_pct": 88.1,
+        "expectancy": 0.09,
+        "daily_profit": 0.126
+    },
+    "NNTC_profit_Wavenet3": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 173,
+        "ave_profit": 0.18,
+        "tot_profit": 9.14,
+        "win_pct": 82.1,
+        "expectancy": 0.02,
+        "daily_profit": 0.025
+    },
+    "NNTC_pv_Ensemble": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 59,
+        "ave_profit": 0.37,
+        "tot_profit": 6.63,
+        "win_pct": 84.7,
+        "expectancy": 0.05,
+        "daily_profit": 0.018
+    },
+    "NNTC_pv_LSTM": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 157,
+        "ave_profit": 0.25,
+        "tot_profit": 11.57,
+        "win_pct": 66.9,
+        "expectancy": 1.26,
+        "daily_profit": 0.032
+    },
+    "NNTC_pv_MLP": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 342,
+        "ave_profit": -0.27,
+        "tot_profit": -27.36,
+        "win_pct": 69.0,
+        "expectancy": -0.05,
+        "daily_profit": -0.076
+    },
+    "NNTC_pv_Multihead": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 375,
+        "ave_profit": -0.15,
+        "tot_profit": -17.13,
+        "win_pct": 78.1,
+        "expectancy": -0.03,
+        "daily_profit": -0.048
+    },
+    "NNTC_pv_Wavenet": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 50,
+        "ave_profit": -0.01,
+        "tot_profit": -0.11,
+        "win_pct": 86.0,
+        "expectancy": -0.0,
+        "daily_profit": -0.0
+    },
+    "NNTC_slope_LSTM": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 164,
+        "ave_profit": 0.61,
+        "tot_profit": 29.95,
+        "win_pct": 86.6,
+        "expectancy": 0.07,
+        "daily_profit": 0.083
+    },
+    "NNTC_stochastic_LSTM": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 256,
+        "ave_profit": 0.44,
+        "tot_profit": 34.19,
+        "win_pct": 89.8,
+        "expectancy": 0.05,
+        "daily_profit": 0.095
+    },
+    "NNTC_swing_LSTM": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 111,
+        "ave_profit": 0.24,
+        "tot_profit": 8.08,
+        "win_pct": 89.2,
+        "expectancy": 0.02,
+        "daily_profit": 0.022
+    },
+    "NNTC_dwt2_LSTM": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 30,
+        "entries": 148,
+        "ave_profit": -0.21,
+        "tot_profit": -9.35,
+        "win_pct": 68.9,
+        "expectancy": -0.07,
+        "daily_profit": -0.312
+    },
+    "NNTC_smooth_LSTM": {
+        "test_date": "2023 Jun 06",
+        "num_test_days": 360,
+        "entries": 11,
+        "ave_profit": -2.14,
+        "tot_profit": -7.07,
+        "win_pct": 36.4,
+        "expectancy": -0.56,
+        "daily_profit": -0.02
+    }
+}

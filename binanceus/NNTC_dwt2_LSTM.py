@@ -58,8 +58,8 @@ class NNTC_dwt2_LSTM(NNTC):
     # parameters that will be displayed if you run freqtrade plot-dataframe
     plot_config = {
         'main_plot': {
-            'dwt': {'color': 'darkcyan'},
-            '%full_dwt': {'color': 'green'},
+            'dwt2': {'color': 'darkcyan'},
+            '%full_dwt2': {'color': 'green'},
             # '%future_min': {'color': 'salmon'},
             # '%future_max': {'color': 'cadetblue'},
         },
@@ -67,8 +67,8 @@ class NNTC_dwt2_LSTM(NNTC):
             "Diff": {
                 '%train_buy': {'color': 'mediumaquamarine'},
                 'predict_buy': {'color': 'cornflowerblue'},
-                '%train_sell': {'color': 'salmon'},
-                'predict_sell': {'color': 'orange'},
+                '%train_sell': {'color': 'lightsalmon'},
+                'predict_sell': {'color': 'brown'},
             },
         }
     }
@@ -127,8 +127,8 @@ class NNTC_dwt2_LSTM(NNTC):
     # override the (most often changed) default parameters for this particular strategy
 
     lookahead_hours = 1.0
-    n_profit_stddevs = 2.0
-    n_loss_stddevs = 2.0
+    n_profit_stddevs = 0.0
+    n_loss_stddevs = 0.0
 
     signal_type = TrainingSignals.SignalType.DWT2
     classifier_type = NNTClassifier.ClassifierType.LSTM

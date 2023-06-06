@@ -51,11 +51,11 @@
       "enableRateLimit": true,
       "rateLimit": 200
     },
-    "pair_whitelist": [
-      "MATIC/USD",
-      "ADA/USD",
-      "DOT/USD",
-      "ETH/USD" // make sure last entry is a 'main' pair
+    "pair_whitelist": [ // short list because we are only training
+      "ETH/USD"
+//      "ADA/USD",
+//      "DOT/USD",
+//      "BTC/USD" // make sure last entry is a 'main' pair
     ],
     "pair_blacklist": [
       //      ".*(BNB)/.*",

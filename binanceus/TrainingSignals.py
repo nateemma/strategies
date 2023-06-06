@@ -4,18 +4,22 @@
 # The signals are collected here so that the different approaches to generating events can be more easily used across
 # multiple strategies
 # Notes:
-#   - This not a class, just a collection of functions and data types
 #   - Any hard-coded numbers have been derived by staring at charts for hours to figure out appropriate values
 #   - These functions all look ahead in the data, so they can *ONLY* be used for training
+#   - WARNING: any behavioural changes to get_entry_training_signals() or get_exit_training_signals() require
+#              that you re-train the associated models (because the training data will change)
 
-
-import numpy as np
-import pandas as pd
-
-import scipy
+# TODO:
+# - move lookahead and stdevs into this file. Remove from strategies
+# - add method to get abbreviation (use for model naming)
+# - check that indicators are present for each signal type
 
 import sys
 from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import scipy
 
 sys.path.append(str(Path(__file__).parent))
 
@@ -27,15 +31,14 @@ log = logging.getLogger(__name__)
 # log.setLevel(logging.DEBUG)
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
-from pandas import DataFrame, Series
+from pandas import DataFrame
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
-
 # -----------------------------------
 # define a xxx_signals class for each type of training signal
-# This allows us to deal with the different types in a fairly generic fashion
-# Each class must contain the follow *static* functions (use@staticmethod):
+# This allows us to deal with the different types in a  generic fashion
+# Each class must contain the follow *static* functions :
 #   get_entry_training_signals()
 #   get_exit_training_signals()
 #   get_entry_guard_conditions()
@@ -46,30 +49,63 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 # -----------------------------------
 
-# base clas
-class base_signals:
-    @staticmethod
-    def entry_training_signals(future_df: DataFrame):
+# base class - to allow generic treatment of all signal types
+
+from abc import ABC, abstractmethod
+
+
+class base_signals(ABC):
+    lookahead_hours = 1.0
+    lookahead = 12 # candles
+    n_profit_stddevs = 0.0
+    n_loss_stddevs = 0.0
+
+    def __init__(self, lookahead):
+        super().__init__()
+
+        self.lookahead = lookahead
+
+    def get_lookahead(self):
+        return self.lookahead
+
+    def get_n_profit_stddevs(self):
+        return self.n_profit_stddevs
+
+    def get_n_loss_stddevs(self):
+        return self.n_loss_stddevs
+
+    # returns the 'abbreviated' name used for this signal. Intended for naming models
+    # Note that this relies on the naming convention xxx_signals, where xxx will be the abbreviated name
+    def get_signal_name(self):
+        name = self.__class__.__name__.replace("_signals", "")
+        return name
+
+    @abstractmethod
+    def get_entry_training_signals(self, future_df: DataFrame):
         return np.zeros(future_df.shape[0], dtype=float)
 
     # function to get sell signals
-    @staticmethod
-    def exit_training_signals(future_df: DataFrame):
+
+    @abstractmethod
+    def get_exit_training_signals(self, future_df: DataFrame):
         return np.zeros(future_df.shape[0], dtype=float)
 
     # function to get entry/buy guard conditions
-    @staticmethod
-    def entry_guard_conditions(dataframe: DataFrame):
+
+    @abstractmethod
+    def get_entry_guard_conditions(self, dataframe: DataFrame):
         return None
 
     # function to get entry/buy guard conditions
-    @staticmethod
-    def exit_guard_conditions(dataframe: DataFrame):
+
+    @abstractmethod
+    def get_exit_guard_conditions(self, dataframe: DataFrame):
         return None
 
     # function to get list of debug indicators to make visible (e.g. for plotting)
-    @staticmethod
-    def debug_indicators():
+
+    @abstractmethod
+    def get_debug_indicators(self):
         return []
 
 
@@ -79,8 +115,8 @@ class base_signals:
 
 class bbw_signals(base_signals):
     # function to get buy signals
-    @staticmethod
-    def entry_training_signals(future_df: DataFrame):
+
+    def get_entry_training_signals(self, future_df: DataFrame):
         peaks = np.zeros(future_df.shape[0], dtype=float)
         order = 4
 
@@ -100,8 +136,8 @@ class bbw_signals(base_signals):
         return signals
 
     # function to get sell signals
-    @staticmethod
-    def exit_training_signals(future_df: DataFrame):
+
+    def get_exit_training_signals(self, future_df: DataFrame):
         valleys = np.zeros(future_df.shape[0], dtype=float)
         order = 4
 
@@ -121,20 +157,20 @@ class bbw_signals(base_signals):
         return signals
 
     # function to get entry/buy guard conditions
-    @staticmethod
-    def entry_guard_conditions(dataframe: DataFrame):
+
+    def get_entry_guard_conditions(self, dataframe: DataFrame):
         conditions = None
         return conditions
 
     # function to get entry/buy guard conditions
-    @staticmethod
-    def exit_guard_conditions(dataframe: DataFrame):
+
+    def get_exit_guard_conditions(self, dataframe: DataFrame):
         conditions = None
         return conditions
 
     # function to get list of debug indicators to make visible (e.g. for plotting)
-    @staticmethod
-    def debug_indicators():
+
+    def get_debug_indicators(self):
         dbg_list = []
         return dbg_list
 
@@ -148,9 +184,8 @@ class bbw_signals(base_signals):
 
 class dwt_signals(base_signals):
 
-    @staticmethod
-    def entry_training_signals(future_df: DataFrame):
-        global curr_lookahead
+    def get_entry_training_signals(self, future_df: DataFrame):
+        global lookahead
         signals = np.where(
             (
                 # forward model below backward model
@@ -160,16 +195,15 @@ class dwt_signals(base_signals):
                     # (future_df['dwt_diff'] <= future_df['future_loss_threshold']) &
 
                     # forward model above backward model at lookahead
-                    (future_df['dwt_diff'].shift(-curr_lookahead) > 0) &
+                    (future_df['dwt_diff'].shift(-self.lookahead) > 0) &
 
                     # future profit exceeds threshold
                     (future_df['future_profit'] >= future_df['future_profit_threshold'])
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def exit_training_signals(future_df: DataFrame):
-        global curr_lookahead
+    def get_exit_training_signals(self, future_df: DataFrame):
+        global lookahead
         signals = np.where(
             (
                 # forward model above backward model
@@ -179,23 +213,20 @@ class dwt_signals(base_signals):
                     # (future_df['dwt_diff'] >= future_df['future_profit_threshold']) &
 
                     # forward model below backward model at lookahead
-                    (future_df['dwt_diff'].shift(-curr_lookahead) < 0) &
+                    (future_df['dwt_diff'].shift(-self.lookahead) < 0) &
 
                     # future loss exceeds threshold
                     (future_df['future_loss'] <= future_df['future_loss_threshold'])
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def entry_guard_conditions(dataframe: DataFrame):
+    def get_entry_guard_conditions(self, dataframe: DataFrame):
         return None
 
-    @staticmethod
-    def exit_guard_conditions(dataframe: DataFrame):
+    def get_exit_guard_conditions(self, dataframe: DataFrame):
         return None
 
-    @staticmethod
-    def debug_indicators():
+    def get_debug_indicators(self):
         return [
             'full_dwt', 'future_max', 'future_min'
         ]
@@ -207,9 +238,8 @@ class dwt_signals(base_signals):
 
 class dwt2_signals(base_signals):
 
-    @staticmethod
-    def entry_training_signals(future_df: DataFrame):
-        global curr_lookahead
+    def get_entry_training_signals(self, future_df: DataFrame):
+        global lookahead
         # detect valleys
         valleys = np.zeros(future_df.shape[0], dtype=float)
         order = 4
@@ -229,9 +259,8 @@ class dwt2_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def exit_training_signals(future_df: DataFrame):
-        global curr_lookahead
+    def get_exit_training_signals(self, future_df: DataFrame):
+        global lookahead
 
         peaks = np.zeros(future_df.shape[0], dtype=float)
         order = 4
@@ -251,24 +280,21 @@ class dwt2_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def entry_guard_conditions(dataframe: DataFrame):
+    def get_entry_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 (dataframe['fisher_wr'] < -0.1)
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def exit_guard_conditions(dataframe: DataFrame):
+    def get_exit_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 (dataframe['fisher_wr'] > 0.1)
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def debug_indicators():
+    def get_debug_indicators(self):
         return [
             'full_dwt', 'future_max', 'future_min'
         ]
@@ -286,8 +312,7 @@ class dwt2_signals(base_signals):
 
 class fbb_signals(base_signals):
 
-    @staticmethod
-    def entry_training_signals(future_df: DataFrame):
+    def get_entry_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
                 # oversold condition with high potential profit
@@ -301,8 +326,7 @@ class fbb_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def exit_training_signals(future_df: DataFrame):
+    def get_exit_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
                 # overbought condition with high potential loss
@@ -315,8 +339,7 @@ class fbb_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def entry_guard_conditions(dataframe: DataFrame):
+    def get_entry_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 # buy region
@@ -327,8 +350,7 @@ class fbb_signals(base_signals):
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def exit_guard_conditions(dataframe: DataFrame):
+    def get_exit_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 # sell region
@@ -339,8 +361,7 @@ class fbb_signals(base_signals):
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def debug_indicators():
+    def get_debug_indicators(self):
         return [
             'future_gain',
             'future_profit_max',
@@ -355,8 +376,7 @@ class fbb_signals(base_signals):
 
 class fwr_signals(base_signals):
 
-    @staticmethod
-    def entry_training_signals(future_df: DataFrame):
+    def get_entry_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
                 # oversold condition
@@ -367,8 +387,7 @@ class fwr_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def exit_training_signals(future_df: DataFrame):
+    def get_exit_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
                 # overbought condition
@@ -379,24 +398,21 @@ class fwr_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def entry_guard_conditions(dataframe: DataFrame):
+    def get_entry_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 (dataframe['fisher_wr'] < -0.5)
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def exit_guard_conditions(dataframe: DataFrame):
+    def get_exit_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 (dataframe['fisher_wr'] > 0.5)
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def debug_indicators():
+    def get_debug_indicators(self):
         return [
         ]
 
@@ -407,8 +423,7 @@ class fwr_signals(base_signals):
 
 class highlow_signals(base_signals):
 
-    @staticmethod
-    def entry_training_signals(future_df: DataFrame):
+    def get_entry_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
                     (future_df['dwt_at_low'] > 0) &  # at low of full window
@@ -417,8 +432,7 @@ class highlow_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def exit_training_signals(future_df: DataFrame):
+    def get_exit_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
                     (future_df['dwt_at_high'] > 0) &  # at high of full window
@@ -427,8 +441,7 @@ class highlow_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def entry_guard_conditions(dataframe: DataFrame):
+    def get_entry_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 (dataframe['fisher_wr'] < -0.5)
@@ -436,8 +449,7 @@ class highlow_signals(base_signals):
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def exit_guard_conditions(dataframe: DataFrame):
+    def get_exit_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 (dataframe['fisher_wr'] > 0.5)
@@ -445,8 +457,7 @@ class highlow_signals(base_signals):
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def debug_indicators():
+    def get_debug_indicators(self):
         return [
             'dwt_at_low',
             'dwt_at_high',
@@ -461,8 +472,7 @@ class highlow_signals(base_signals):
 
 class jump_signals(base_signals):
 
-    @staticmethod
-    def entry_training_signals(future_df: DataFrame):
+    def get_entry_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
                 # previous candle dropped more than 2 std dev
@@ -471,13 +481,15 @@ class jump_signals(base_signals):
                             (future_df['future_loss_mean'] - 2.0 * abs(future_df['future_loss_std']))
                     ) &
 
+                    # big drop somewhere in previous window
+                    (future_df['dwt_delta_min'] <= 1.0) &
+
                     # upcoming window exceeds profit threshold
                     (future_df['future_profit_max'] >= future_df['future_profit_threshold'])
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def exit_training_signals(future_df: DataFrame):
+    def get_exit_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
                 # previous candle gained more than 2 std dev
@@ -486,13 +498,15 @@ class jump_signals(base_signals):
                             (future_df['future_profit_mean'] + 2.0 * abs(future_df['future_profit_std']))
                     ) &
 
+                    # big gain somewhere in previous window
+                    (future_df['dwt_delta_max'] >= 1.0) &
+
                     # upcoming window exceeds loss threshold
                     (future_df['future_loss_min'] <= future_df['future_loss_threshold'])
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def entry_guard_conditions(dataframe: DataFrame):
+    def get_entry_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 # N down sequences
@@ -500,8 +514,7 @@ class jump_signals(base_signals):
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def exit_guard_conditions(dataframe: DataFrame):
+    def get_exit_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 # N up sequences
@@ -509,9 +522,10 @@ class jump_signals(base_signals):
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def debug_indicators():
+    def get_debug_indicators(self):
         return [
+            'dwt_delta_min',
+            'dwt_delta_max'
         ]
 
 
@@ -521,8 +535,7 @@ class jump_signals(base_signals):
 
 class macd_signals(base_signals):
 
-    @staticmethod
-    def entry_training_signals(future_df: DataFrame):
+    def get_entry_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
                 # MACD turns around -ve to +ve
@@ -534,8 +547,7 @@ class macd_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def exit_training_signals(future_df: DataFrame):
+    def get_exit_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
                 # MACD turns around +ve to -ve
@@ -547,24 +559,21 @@ class macd_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def entry_guard_conditions(dataframe: DataFrame):
+    def get_entry_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 (dataframe['macdhist'] < 0)
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def exit_guard_conditions(dataframe: DataFrame):
+    def get_exit_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 (dataframe['macdhist'] > 0)
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def debug_indicators():
+    def get_debug_indicators(self):
         return [
         ]
 
@@ -575,8 +584,7 @@ class macd_signals(base_signals):
 
 class macd2_signals(base_signals):
 
-    @staticmethod
-    def entry_training_signals(future_df: DataFrame):
+    def get_entry_training_signals(self, future_df: DataFrame):
         # detect valleys
         valleys = np.zeros(future_df.shape[0], dtype=float)
         order = 4
@@ -594,8 +602,7 @@ class macd2_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def exit_training_signals(future_df: DataFrame):
+    def get_exit_training_signals(self, future_df: DataFrame):
         peaks = np.zeros(future_df.shape[0], dtype=float)
         order = 2
 
@@ -612,24 +619,21 @@ class macd2_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def entry_guard_conditions(dataframe: DataFrame):
+    def get_entry_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 (dataframe['macdhist'] < 0)
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def exit_guard_conditions(dataframe: DataFrame):
+    def get_exit_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 (dataframe['macdhist'] > 0)
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def debug_indicators():
+    def get_debug_indicators(self):
         return [
         ]
 
@@ -640,8 +644,7 @@ class macd2_signals(base_signals):
 
 class macd3_signals(base_signals):
 
-    @staticmethod
-    def entry_training_signals(future_df: DataFrame):
+    def get_entry_training_signals(self, future_df: DataFrame):
         # MACD is related to price, so need to figure out scale
         macd_neg = future_df['macdhist'].clip(upper=0.0)
         # threshold = macd_neg.mean() - abs(macd_neg.std())
@@ -662,8 +665,7 @@ class macd3_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def exit_training_signals(future_df: DataFrame):
+    def get_exit_training_signals(self, future_df: DataFrame):
         macd_pos = future_df['macdhist'].clip(lower=0.0)
         # threshold = macd_pos.mean() + abs(macd_pos.std())
         threshold = macd_pos.mean()
@@ -683,24 +685,21 @@ class macd3_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def entry_guard_conditions(dataframe: DataFrame):
+    def get_entry_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 (dataframe['macdhist'] < 0)
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def exit_guard_conditions(dataframe: DataFrame):
+    def get_exit_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 (dataframe['macdhist'] > 0)
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def debug_indicators():
+    def get_debug_indicators(self):
         return [
         ]
 
@@ -711,8 +710,7 @@ class macd3_signals(base_signals):
 
 class mfi_signals(base_signals):
 
-    @staticmethod
-    def entry_training_signals(future_df: DataFrame):
+    def get_entry_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
                 # oversold condition
@@ -723,8 +721,7 @@ class mfi_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def exit_training_signals(future_df: DataFrame):
+    def get_exit_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
                 # overbought condition
@@ -735,24 +732,21 @@ class mfi_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def entry_guard_conditions(dataframe: DataFrame):
+    def get_entry_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 (dataframe['mfi'] <= 30)
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def exit_guard_conditions(dataframe: DataFrame):
+    def get_exit_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 (dataframe['mfi'] >= 60)
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def debug_indicators():
+    def get_debug_indicators(self):
         return [
         ]
 
@@ -763,8 +757,7 @@ class mfi_signals(base_signals):
 
 class minmax_signals(base_signals):
 
-    @staticmethod
-    def entry_training_signals(future_df: DataFrame):
+    def get_entry_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
                 # at min of past window
@@ -778,8 +771,7 @@ class minmax_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def exit_training_signals(future_df: DataFrame):
+    def get_exit_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
                 # at max of past window
@@ -793,8 +785,7 @@ class minmax_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def entry_guard_conditions(dataframe: DataFrame):
+    def get_entry_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 (dataframe['fisher_wr'] < -0.5)
@@ -802,8 +793,7 @@ class minmax_signals(base_signals):
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def exit_guard_conditions(dataframe: DataFrame):
+    def get_exit_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 (dataframe['fisher_wr'] > 0.5)
@@ -811,8 +801,7 @@ class minmax_signals(base_signals):
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def debug_indicators():
+    def get_debug_indicators(self):
         return [
             'future_loss_min',
             'future_profit_max'
@@ -825,8 +814,7 @@ class minmax_signals(base_signals):
 
 class nseq_signals(base_signals):
 
-    @staticmethod
-    def entry_training_signals(future_df: DataFrame):
+    def get_entry_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
                 # long down run just happened, or a long up run is about to happen
@@ -841,8 +829,7 @@ class nseq_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def exit_training_signals(future_df: DataFrame):
+    def get_exit_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
                 # long up run just happened, or a long down run is about to happen
@@ -857,8 +844,7 @@ class nseq_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def entry_guard_conditions(dataframe: DataFrame):
+    def get_entry_guard_conditions(self, dataframe: DataFrame):
         cond = np.where(
             (
                 # N down sequences
@@ -866,8 +852,7 @@ class nseq_signals(base_signals):
             ), 1.0, 0.0)
         return cond
 
-    @staticmethod
-    def exit_guard_conditions(dataframe: DataFrame):
+    def get_exit_guard_conditions(self, dataframe: DataFrame):
         cond = np.where(
             (
                 # N up sequences
@@ -875,8 +860,7 @@ class nseq_signals(base_signals):
             ), 1.0, 0.0)
         return cond
 
-    @staticmethod
-    def debug_indicators():
+    def get_debug_indicators(self):
         return [
             'full_dwt',
             'full_dwt_nseq_up',
@@ -892,10 +876,9 @@ class nseq_signals(base_signals):
 
 # Note: cannot be too restrictive or there will not be enough signals to train
 
-class over_signals:
+class over_signals(base_signals):
 
-    @staticmethod
-    def entry_training_signals(future_df: DataFrame):
+    def get_entry_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
                 # various overbought condition (can't be too strict or there will be no matches)
@@ -908,8 +891,7 @@ class over_signals:
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def exit_training_signals(future_df: DataFrame):
+    def get_exit_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
                     (future_df['rsi'] > 60) &
@@ -921,24 +903,21 @@ class over_signals:
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def entry_guard_conditions(dataframe: DataFrame):
+    def get_entry_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 (dataframe['fisher_wr'] < -0.5)
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def exit_guard_conditions(dataframe: DataFrame):
+    def get_exit_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 (dataframe['fisher_wr'] > 0.5)
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def debug_indicators():
+    def get_debug_indicators(self):
         return [
             'future_loss_min',
             'future_profit_max'
@@ -951,8 +930,10 @@ class over_signals:
 
 class profit_signals(base_signals):
 
-    @staticmethod
-    def entry_training_signals(future_df: DataFrame):
+    n_profit_stddevs = 2.0
+    n_loss_stddevs = 2.0
+
+    def get_entry_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
                     (future_df['fisher_wr'] < -0.1) &
@@ -962,8 +943,7 @@ class profit_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def exit_training_signals(future_df: DataFrame):
+    def get_exit_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
                     (future_df['fisher_wr'] > 0.1) &
@@ -973,28 +953,26 @@ class profit_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def entry_guard_conditions(dataframe: DataFrame):
+    def get_entry_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 (dataframe['fisher_wr'] < -0.5)
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def exit_guard_conditions(dataframe: DataFrame):
+    def get_exit_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 (dataframe['fisher_wr'] > 0.5)
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def debug_indicators():
+    def get_debug_indicators(self):
         return [
             'future_profit_threshold',
             'future_loss_threshold',
-            'future_gain'
+            'future_gain',
+            'future_slope'
         ]
 
 
@@ -1004,9 +982,8 @@ class profit_signals(base_signals):
 
 class pv_signals(base_signals):
 
-    @staticmethod
-    def entry_training_signals(future_df: DataFrame):
-        global curr_lookahead
+    def get_entry_training_signals(self, future_df: DataFrame):
+        global lookahead
         valleys = np.zeros(future_df.shape[0], dtype=float)
         order = 4
 
@@ -1025,9 +1002,8 @@ class pv_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def exit_training_signals(future_df: DataFrame):
-        global curr_lookahead
+    def get_exit_training_signals(self, future_df: DataFrame):
+        global lookahead
         peaks = np.zeros(future_df.shape[0], dtype=float)
         order = 4
 
@@ -1044,25 +1020,165 @@ class pv_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def entry_guard_conditions(dataframe: DataFrame):
+    def get_entry_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 (dataframe['close'] <= dataframe['recent_min'])  # local low
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def exit_guard_conditions(dataframe: DataFrame):
+    def get_exit_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 (dataframe['close'] >= dataframe['recent_max'])  # local high
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def debug_indicators():
+    def get_debug_indicators(self):
         return [
+        ]
+
+
+# -----------------------------------
+
+# slope - examines the average slope, past & future
+
+class slope_signals(base_signals):
+
+    def get_entry_training_signals(self, future_df: DataFrame):
+        global lookahead
+        signals = np.where(
+            (
+                # in a downtrend
+                    (future_df['dwt_slope'] < 0) &
+
+                    # future up trend
+                    (future_df['future_slope'] > 0) &
+
+                    (future_df['fisher_wr'] < -0.5) &
+
+                    # future profit
+                    (future_df['future_profit_max'] >= future_df['future_profit_threshold']) &
+                    (future_df['future_gain'] > 0)
+            ), 1.0, 0.0)
+        return signals
+
+    def get_exit_training_signals(self, future_df: DataFrame):
+        global lookahead
+        signals = np.where(
+            (
+                # in an uptrend
+                    (future_df['dwt_slope'] > 0) &
+
+                    # future down trend
+                    (future_df['future_slope'] < 0) &
+
+                    (future_df['fisher_wr'] > 0.5) &
+
+                    # future loss
+                    (future_df['future_loss_min'] <= future_df['future_loss_threshold']) &
+                    (future_df['future_gain'] < 0)
+
+            ), 1.0, 0.0)
+        return signals
+
+    def get_entry_guard_conditions(self, dataframe: DataFrame):
+        condition = np.where(
+            (
+                (dataframe['fisher_wr'] < -0.5)
+            ), 1.0, 0.0)
+        return condition
+        # return None
+
+    def get_exit_guard_conditions(self, dataframe: DataFrame):
+        condition = np.where(
+            (
+                (dataframe['fisher_wr'] > 0.5)
+            ), 1.0, 0.0)
+        return condition
+        # return None
+
+    def get_debug_indicators(self):
+        return [
+            'future_slope'
+        ]
+
+
+# -----------------------------------
+
+# smooth - find peaks & valleys on smoothed version of price
+# the theory is that this should avoid the smaller peaks & valleys
+
+class smooth_signals(base_signals):
+
+    def get_entry_training_signals(self, future_df: DataFrame):
+        global lookahead
+
+        # get the smoothed version
+        smoothed = future_df['mid'].ewm(span=7).mean().to_numpy()
+
+        # detect valleys
+        valleys = np.zeros(future_df.shape[0], dtype=float)
+        order = 4
+
+        v_idx = scipy.signal.argrelextrema(smoothed, np.less_equal, order=order)[0]
+        valleys[v_idx] = 1.0
+
+        signals = np.where(
+            (
+                    (future_df['fisher_wr'] < -0.1) &  # guard
+
+                    # valley detected
+                    (valleys > 0.0) &
+
+                    # future profit exceeds threshold
+                    (future_df['future_profit'] >= future_df['future_profit_threshold'])
+            ), 1.0, 0.0)
+        return signals
+
+    def get_exit_training_signals(self, future_df: DataFrame):
+        global lookahead
+
+        # get the smoothed version
+        smoothed = future_df['mid'].ewm(span=7).mean().to_numpy()
+
+        peaks = np.zeros(future_df.shape[0], dtype=float)
+        order = 4
+
+        p_idx = scipy.signal.argrelextrema(smoothed, np.greater_equal, order=order)[0]
+        peaks[p_idx] = 1.0
+
+        signals = np.where(
+            (
+                    (future_df['fisher_wr'] > 0.1) &  # guard
+
+                    # peak detected
+                    (peaks > 0) &
+
+                    # future loss exceeds threshold
+                    (future_df['future_loss'] <= future_df['future_loss_threshold'])
+            ), 1.0, 0.0)
+        return signals
+
+    def get_entry_guard_conditions(self, dataframe: DataFrame):
+        condition = np.where(
+            (
+                (dataframe['fisher_wr'] < -0.5)
+            ), 1.0, 0.0)
+        return condition
+        # return None
+
+    def get_exit_guard_conditions(self, dataframe: DataFrame):
+        condition = np.where(
+            (
+                (dataframe['fisher_wr'] > 0.5)
+            ), 1.0, 0.0)
+        return condition
+        # return None
+
+    def get_debug_indicators(self):
+        return [
+            'future_slope'
         ]
 
 
@@ -1073,13 +1189,12 @@ class pv_signals(base_signals):
 
 class stochastic_signals(base_signals):
 
-    @staticmethod
-    def entry_training_signals(future_df: DataFrame):
-        global curr_lookahead
+    def get_entry_training_signals(self, future_df: DataFrame):
+        global lookahead
         signals = np.where(
             (
                 # stochastics show overbought condition
-                    ((future_df['fast_diff'] > 0) & (future_df['fast_diff'].shift(-curr_lookahead) <= 0)) &
+                    ((future_df['fast_diff'] > 0) & (future_df['fast_diff'].shift(-self.lookahead) <= 0)) &
 
                     # future profit
                     (future_df['future_profit_max'] >= future_df['future_profit_threshold']) &
@@ -1087,13 +1202,12 @@ class stochastic_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def exit_training_signals(future_df: DataFrame):
-        global curr_lookahead
+    def get_exit_training_signals(self, future_df: DataFrame):
+        global lookahead
         signals = np.where(
             (
                 # stochastics show oversold condition
-                    ((future_df['fast_diff'] < 0) & (future_df['fast_diff'].shift(-curr_lookahead) >= 0)) &
+                    ((future_df['fast_diff'] < 0) & (future_df['fast_diff'].shift(-self.lookahead) >= 0)) &
 
                     # future loss
                     (future_df['future_loss_min'] <= future_df['future_loss_threshold']) &
@@ -1102,24 +1216,21 @@ class stochastic_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def entry_guard_conditions(dataframe: DataFrame):
+    def get_entry_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 (dataframe['fast_diff'] > 0)
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def exit_guard_conditions(dataframe: DataFrame):
+    def get_exit_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 (dataframe['fast_diff'] < 0)
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def debug_indicators():
+    def get_debug_indicators(self):
         return [
         ]
 
@@ -1130,8 +1241,7 @@ class stochastic_signals(base_signals):
 
 class swing_signals(base_signals):
 
-    @staticmethod
-    def entry_training_signals(future_df: DataFrame):
+    def get_entry_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
                 # bottom of trend
@@ -1143,8 +1253,7 @@ class swing_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def exit_training_signals(future_df: DataFrame):
+    def get_exit_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
                 # top of trend
@@ -1156,24 +1265,21 @@ class swing_signals(base_signals):
             ), 1.0, 0.0)
         return signals
 
-    @staticmethod
-    def entry_guard_conditions(dataframe: DataFrame):
+    def get_entry_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 (dataframe['close'] <= dataframe['recent_min'])  # local low
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def exit_guard_conditions(dataframe: DataFrame):
+    def get_exit_guard_conditions(self, dataframe: DataFrame):
         condition = np.where(
             (
                 (dataframe['close'] >= dataframe['recent_max'])  # local high
             ), 1.0, 0.0)
         return condition
 
-    @staticmethod
-    def debug_indicators():
+    def get_debug_indicators(self):
         return [
             'future_loss_min',
             'future_profit_max'
@@ -1182,81 +1288,33 @@ class swing_signals(base_signals):
 
 # -----------------------------------
 
-# class TrainingSignals2:
-# -----------------------------------
-curr_lookahead = 12
-n_profit_stddevs = 1.0
-n_loss_stddevs = 1.0
-
-
-# function to set parameters used by many signal algorithms
-@staticmethod
-def set_strategy_parameters(lookahead, n_profit_std, n_loss_std):
-    global curr_lookahead
-    global n_profit_stddevs
-    global n_loss_stddevs
-
-    curr_lookahead = lookahead
-    n_profit_stddevs = n_profit_std
-    n_loss_stddevs = n_loss_std
-
 
 # enum of all available signal types
 
 class SignalType(Enum):
-    Bollinger_Width = bbw_signals()
-    DWT = dwt_signals()
-    DWT2 = dwt2_signals()
-    Fisher_Bollinger = fbb_signals()
-    Fisher_Williams = fwr_signals()
-    High_Low = highlow_signals()
-    Jump = jump_signals()
-    MACD = macd_signals()
-    MACD2 = macd2_signals()
-    MACD3 = macd3_signals()
-    Money_Flow = mfi_signals()
-    Min_Max = minmax_signals()
-    N_Sequence = nseq_signals()
-    Oversold = over_signals()
-    Profit = profit_signals()
-    Peaks_Valleys = pv_signals()
-    Stochastic = stochastic_signals()
-    Swing = swing_signals()
-
-    # # @classmethod
-    # def get_entry_training_signals(self, future_df: DataFrame):
-    #     st = self.value
-    #     print(f"self:{self}")
-    #     return self.value().entry_training_signals(future_df)
+    Bollinger_Width = bbw_signals
+    DWT = dwt_signals
+    DWT2 = dwt2_signals
+    Fisher_Bollinger = fbb_signals
+    Fisher_Williams = fwr_signals
+    High_Low = highlow_signals
+    Jump = jump_signals
+    MACD = macd_signals
+    MACD2 = macd2_signals
+    MACD3 = macd3_signals
+    Money_Flow = mfi_signals
+    Min_Max = minmax_signals
+    N_Sequence = nseq_signals
+    Oversold = over_signals
+    Profit = profit_signals
+    Peaks_Valleys = pv_signals
+    Smooth = smooth_signals
+    Slope = slope_signals
+    Stochastic = stochastic_signals
+    Swing = swing_signals
 
 
-# function to get buy signals
-@staticmethod
-def get_entry_training_signals(signal_type: SignalType, future_df: DataFrame):
-    return signal_type.value.entry_training_signals(future_df)
-
-
-# function to get sell signals
-@staticmethod
-def get_exit_training_signals(signal_type: SignalType, future_df: DataFrame):
-    return signal_type.value.exit_training_signals(future_df)
-
-
-# function to get entry/buy guard conditions
-@staticmethod
-def get_entry_guard_conditions(signal_type: SignalType, dataframe: DataFrame):
-    return signal_type.value.entry_guard_conditions(dataframe)
-
-
-# function to get entry/buy guard conditions
-@staticmethod
-def get_exit_guard_conditions(signal_type: SignalType, dataframe: DataFrame):
-    return signal_type.value.exit_guard_conditions(dataframe)
-
-
-# function to get list of debug indicators to make visible (e.g. for plotting)
-@staticmethod
-def get_debug_indicators(signal_type: SignalType):
-    return signal_type.value.debug_indicators()
+def create_training_signals(signal_type: SignalType, lookahead):
+    return signal_type.value(lookahead)
 
 # -----------------------------------

@@ -23,22 +23,22 @@
     "sell": {
       "cexit_endtrend_respect_roi": false,
       "cexit_pullback": false,
-      "cexit_pullback_amount": 0.013,
+      "cexit_pullback_amount": 0.026,
       "cexit_pullback_respect_roi": true,
-      "cexit_roi_end": 0.001,
-      "cexit_roi_start": 0.049,
-      "cexit_roi_time": 736,
-      "cexit_roi_type": "step",
-      "cexit_trend_type": "ssl",
+      "cexit_roi_end": 0.009,
+      "cexit_roi_start": 0.032,
+      "cexit_roi_time": 1202,
+      "cexit_roi_type": "decay",
+      "cexit_trend_type": "rmi",
       "cstop_bail_how": "any",
-      "cstop_bail_roc": -3.913,
-      "cstop_bail_time": 433,
+      "cstop_bail_roc": -4.485,
+      "cstop_bail_time": 410,
       "cstop_bail_time_trend": true,
-      "cstop_loss_threshold": -0.036,
-      "cstop_max_stoploss": -0.169
+      "cstop_loss_threshold": -0.011,
+      "cstop_max_stoploss": -0.231
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2023-05-25 09:30:09.937391+00:00"
+  "export_time": "2023-06-05 17:00:50.450196+00:00"
 }

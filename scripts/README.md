@@ -1,24 +1,23 @@
 # Helper Scripts
 
-The majority of scripts here are to help deal with multiple exchanges.
+The majority of scripts here are to help deal with multiple exchanges, or groups of strategies.
 
 NOTE: I use Macs for development, so most of these scripts assume zsh (the default shell on Macs). 
-You may run into issues if you try to use bash instead.
+You may run into issues if you try to use bash instead. Most of teh scripts print out the freqtrade command that they are using, so you can just copy and modify that if needed.
 
-| Script | Description |
-|-----------|------------------------------------------|
-|cleanup.sh| Removes 'old' files from user_data subdirectories (hyperopt, backtesting, plots etc.). Default is to remove anything older than 30 days.|
-|compareStats.sh|Parses output from test_monthly.sh and summarises results across suppoirted exchanges|
-|download.sh|Downloads candle data for an exchange. Defaults to all exchanges|
-|dryrun_strat.sh| Dry-runs a strategy on the specified exchange, takes care of PYTHONPATH, db-url etc |
-|hyp_strat.sh|runs hyperopt on an individual strategy for the specified exchange |
-|hyp_exchange.sh|Runs hyp_strat.sh for all of the currently active strategies for the specified exchange |
-|hyp_all.sh| Runs hyp_exchange.sh for all currently active exchanges (takes a *_very_* long time) |
-|run_strat.sh| Runs a strategy live on the specified exchange, takes care of PYTHONPATH, db-url etc |
-|test_strat.sh|Tests an individual strategy for the specified exchange |
-|test_exchange.sh|Tests all of the currently active strategies for the specified exchange |
-|test_monthly.sh| Runs test_exchange.sh over a monthly interval for the past 6 months, shows average performance, and ranks the strategies |
-
+| Script                          | Description                                                                                                                              |
+|---------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|
+| cleanup.sh                      | Removes 'old' files from user_data subdirectories (hyperopt, backtesting, plots etc.). Default is to remove anything older than 30 days. |
+| download.sh                     | Downloads candle data for an exchange. Defaults to all exchanges                                                                         |
+| test_strat.sh                   | Tests an individual strategy for the specified exchange                                                                                  |
+| hyp_strat.sh                    | runs hyperopt on an individual strategy for the specified exchange                                                                       |
+| dryrun_strat.sh                 | Dry-runs a strategy on the specified exchange, takes care of PYTHONPATH, db-url etc                                                      |
+| run_strat.sh                    | Runs a strategy live on the specified exchange, takes care of PYTHONPATH, db-url etc                                                     |
+| test_group.sh                   | Tests a group of strategies and summarises the results. Useful because it takes wildcards                                                |
+| hyp_group.sh                    | Runs hyperopt on a group of strategies (with wildcards)                                                                                  |
+| SummariseTestResults.py         | Summarises the output of test_group.sh (or any backtest file). Note: python, not shell script                                            |
+| SummariseHyperOptTestResults.py | Summarises the output of hyp_group.sh (or any hyperopt output)                                                                           |
+| ShowTestResults.py              | The Summarise*.py scripts save the results to a json file. This script displays those results as a table                                 |
 
 Specify the -h option for help.
 

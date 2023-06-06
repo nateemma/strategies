@@ -1,6 +1,5 @@
 # Script to process hyperopt log and summarise results. Useful for multiple hyperopts in one file (e.g. from hyp_exchange.sh)
-
-
+from datetime import datetime
 import sys
 import os
 from re import search
@@ -9,11 +8,15 @@ import pandas
 import numpy
 from tabulate import tabulate
 
+import json
+
 infile = None
 curr_line = ""
 strat_results = {}
-strat_summary = {}
 market_change = None
+test_date = None
+num_test_days = 0
+exchange = ""
 
 
 # routine to skip to requested pattern
@@ -86,9 +89,51 @@ def rankdata(a):
     return newarray
 
 
+def process_exchange(line):
+    global exchange
+
+    # line format:
+    # Testing strategy list for exchange: binanceus...
+
+    exchange = line.split(":")[-1]
+    exchange = exchange.strip().replace(".","")
+    return
+
+def process_test_date(line):
+    global test_date
+
+    # line format:
+    # Date/time: Wed May 31 08:42:11 PDT 2023
+    date_string = line.strip().split(": ")[-1]
+    input_format = "%a %b %d %H:%M:%S %Z %Y"
+    date_object = datetime.strptime(date_string, input_format)
+    output_format = "%Y %b %d"
+    test_date = date_object.strftime(output_format)
+
+    print("")
+    print(f'Test Date:\t{test_date}')
+    return
+
+def process_time_range(line):
+    global num_test_days
+
+    # line format:
+    # Time range: 20220605-20230531
+    date_string = line.strip().split(":")[-1]
+    start_date, end_date = date_string.split("-")
+    start_date = datetime.strptime(start_date.strip(), "%Y%m%d")
+    end_date = datetime.strptime(end_date.strip(), "%Y%m%d")
+    date_diff = end_date - start_date
+    num_test_days = date_diff.days
+
+    print(f"No. Test Days:\t{num_test_days}")
+
+    return
 def process_totals(strat, line):
-    global strat_summary
     global strat_results
+    global strat_results
+    global test_date
+    global num_test_days
 
     # format of line:
     # | TOTAL | Entries | Avg Profit % | Cum Profit % |  Tot Profit USD | Tot Profit % | Avg Duration | Win  Draw  Loss  Win% |
@@ -98,18 +143,21 @@ def process_totals(strat, line):
     cols.pop(len(cols) - 1)
 
     entry = {}
+    entry['test_date'] = str(test_date)
+    entry['num_test_days'] = int(num_test_days)
     entry['entries'] = int(cols[1])
     entry['ave_profit'] = float(cols[2])
     entry['tot_profit'] = float(cols[5])
     entry['win_pct'] = float(cols[7].strip().split(" ")[-1])
     entry['expectancy'] = 0 # updated later
+    entry['daily_profit'] = 0 # updated later
 
-    strat_summary[strat] = entry
+    strat_results[strat] = entry
 
     return
 
 def process_expectancy(strat, line):
-    global strat_summary
+    global strat_results
     global strat_results
 
     # format of line:
@@ -118,12 +166,29 @@ def process_expectancy(strat, line):
     cols.pop(0)
     cols.pop(len(cols) - 1)
 
-    strat_summary[strat]['expectancy'] = float(cols[-1])
+    strat_results[strat]['expectancy'] = float(cols[-1])
+
+    return
+
+def process_daily_profit(strat, line):
+    global strat_results
+    global strat_results
+
+    # # format of line:
+    # # | Avg. daily profit %         | -0.01%              |
+    # cols = line.strip().split("|")
+    # cols.pop(0)
+    # cols.pop(len(cols) - 1)
+    #
+    # strat_results[strat]['daily_profit'] = float(cols[-1].replace("%",""))
+
+    # entry in test output is not very accurate, so just calculate
+    strat_results[strat]['daily_profit'] = round(float(strat_results[strat]['tot_profit']/num_test_days), 3)
 
     return
 
 def process_market_change(strat, line):
-    global strat_summary
+    global strat_results
     global strat_results
     global market_change
 
@@ -133,14 +198,12 @@ def process_market_change(strat, line):
     cols.pop(0)
     cols.pop(len(cols) - 1)
 
-    market_change = str(cols[-1])
+    market_change = str(cols[-1]).strip()
 
     return
 
 
-def print_results():
-    global strat_summary
-    global strat_results
+def print_results(test_results):
     global market_change
 
     print("")
@@ -148,32 +211,60 @@ def print_results():
 
     # convert associative array into 'plain' array
     strat_stats = []
-    if strat_summary:
+    if test_results:
         # calculate stats for each strategy
-        for strategy in strat_summary:
+        for strategy in test_results:
             strat_stats.append([strategy,
-                                strat_summary[strategy]['entries'], strat_summary[strategy]['ave_profit'],
-                                strat_summary[strategy]['tot_profit'], strat_summary[strategy]['win_pct'],
-                                strat_summary[strategy]['expectancy'],
-                                0.0])
+                                test_results[strategy]['entries'],
+                                test_results[strategy]['ave_profit'],
+                                test_results[strategy]['tot_profit'],
+                                test_results[strategy]['win_pct'],
+                                test_results[strategy]['expectancy'],
+                                test_results[strategy]['daily_profit'],
+                                0])
 
         # create dataframe
         df = pandas.DataFrame(strat_stats,
                               columns=["Strategy", "Trades", "Average%",
-                                       "Total%", "Win%", "Expectancy", "Rank"])
+                                       "Total%", "Win%", "Expectancy", "Daily%", "Rank"])
 
-        df["Rank"] = df["Total%"].rank(ascending=False, method='min')
+        df["Rank"] = df["Daily%"].rank(ascending=False, method='min', pct=False)
 
         pandas.set_option('display.precision', 2)
         print("")
         hdrs = df.columns.values
-        print(tabulate(df.sort_values(by=['Rank'], ascending=True), showindex="never", headers=hdrs, tablefmt='psql'))
-
-        print("")
-        print(f"Market Change: {market_change}")
+        print(tabulate(df.sort_values(by=['Rank', "Expectancy"], ascending=[True, False]),
+                       floatfmt=["", "d", ".2f", ".2f", ".2f", ".2f", ".3f", ".0f"],
+                       showindex="never", headers=hdrs, tablefmt='psql'))
 
     return
 
+
+def update_saved_results(curr_results):
+
+    global exchange
+
+    results_file = f"./user_data/strategies/{exchange}/test_results.json"
+
+
+    # if file exists, load it
+    if os.path.isfile(results_file):
+        print(f"Loading prior results from {results_file}")
+        with open(results_file, "r") as rf:
+            results = json.load(rf)
+    else:
+        results = {}
+
+    # add the current results
+    for strat in curr_results:
+        results[strat] = curr_results[strat]
+
+    # Save to the file
+    with open(results_file, "w") as rf:
+        print(f"Saving updated results to {results_file}")
+        json.dump(results, rf, indent=4)
+
+    return
 
 def main():
     global curr_line
@@ -189,6 +280,16 @@ def main():
 
     infile = open(file_name)
 
+    # get header data
+    if skipto('exchange:', anywhere=True):
+        process_exchange(curr_line.rstrip())
+
+        if skipto('Date/time:'):
+            process_test_date(curr_line.rstrip())
+
+            if skipto('Time range'):
+                process_time_range(curr_line.rstrip())
+
     # repeatedly scan file and find header of new run, then print results
     while skipto("Result for strategy ", anywhere=True):
         strat = curr_line.rstrip().split(" ")[-1]
@@ -202,22 +303,27 @@ def main():
             process_totals(strat, curr_line.rstrip())
             # copyto('================== SUMMARY METRICS', anywhere=True)
             if skipto('================== SUMMARY METRICS', anywhere=True):
-                if strat_summary[strat]['entries'] > 0:
-                    # copyto('Expectancy', anywhere=True)
+                if strat_results[strat]['entries'] > 0:
                     if skipto('Expectancy', anywhere=True):
                         process_expectancy(strat, curr_line.rstrip())
+
+                        if skipto('daily profit %', anywhere=True):
+                            process_daily_profit(strat, curr_line.rstrip())
 
                         if market_change is None:
                             if skipto('Market change', anywhere=True):
                                 process_market_change(strat, curr_line.rstrip())
+                                print(f"Market Change:\t{market_change}")
 
                         # copyto('===============================')
                         skipto('===============================')
                         # print(curr_line.rstrip())
                         # print("")
 
-    print_results()
+    print_results(strat_results)
+    print("")
 
+    update_saved_results(strat_results)
 
 if __name__ == '__main__':
     main()

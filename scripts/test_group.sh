@@ -1,6 +1,6 @@
 #!/bin/zsh
 
-# tests a set of strategies that match a 'group' prefix (e.g. "PCA")
+# tests a set of strategies that match a 'group' prefix (e.g. "PCA" or "NNTC_*LSTM")
 
 # list of strategies to test
 strat_list=()
@@ -21,6 +21,7 @@ test_list=${strat_list}
 leveraged=0
 logfile=""
 alt_config=""
+run_parallel=true
 
 show_usage () {
 #    script=$(basename $ZSH_SOURCE)
@@ -87,6 +88,7 @@ exchange=$1
 group=$2
 
 strat_dir="user_data/strategies"
+script_dir="${strat_dir}/scripts"
 exchange_dir="${strat_dir}/${exchange}"
 logfile="test_${exchange}_${group:gs/*/}.log"
 
@@ -171,20 +173,22 @@ add_line "${today}"
 
 echo "" >$logfile
 add_line "Testing strategy list for exchange: ${exchange}..."
-add_line "List: ${strat_list}"
+#add_line "List: ${strat_list}"
 add_line "Date/time: ${today}"
 add_line "Time range: ${timerange}"
 add_line "Log file: ${logfile}"
+echo ""
 
+# convert list of files to filtered list of strat names
+
+run_list=( )
 for strat in ${strat_list//.py/}; do
-
-#  global test_strat
 
   test_strat=true
   if ${only_missing_models}; then
     echo ""
     model_file="${exchange_dir}/models/${strat}/${strat}.h5"
-    if [ -f ${model_file} ]; then
+    if [ -e ${model_file} ]; then
       add_line "model file already exists (${model_file}). Skipping strategy ${strat}"
       test_strat=false
     else
@@ -193,25 +197,58 @@ for strat in ${strat_list//.py/}; do
     fi
   fi
 
-  if ${test_strat}; then
-    add_line ""
-    add_line "----------------------"
-    add_line "${strat}"
-    add_line "----------------------"
-
-    args="${jarg} --timerange=${timerange} -c ${config_file} --strategy-path ${exchange_dir} --strategy-list ${strat}"
-    cmd="freqtrade backtesting --cache none ${args} >> $logfile"
-    add_line "${cmd}"
-    eval ${cmd}
-  fi
+    if ${test_strat}; then
+      run_list+=( ${strat} )
+    fi
 done
 
+# double-check that parallel has been installed
+parallel_installed=$(command -v parallel)
+
+if [[ -n $parallel_installed ]]; then
+  echo "parallel is installed"
+else
+  echo "parallel is not installed. Run brew install parallel (or sudo apt-get install parallel)"
+  run_parallel=false
+  return
+fi
+
+args="${jarg} --timerange=${timerange} -c ${config_file} --strategy-path ${exchange_dir}"
+cmd="freqtrade backtesting --cache none ${args} --strategy-list "
+
+if ${run_parallel}; then
+  echo "Running in parallel. Results will be summarised upon completion..."
+  echo ""
+  echo "Test list:"
+  echo ${run_list}
+  echo ""
+#  echo "parallel -j 3 ${cmd} {} ::: ${run_list} | tee -a ${logfile}"
+
+  parallel -j 3 -v "${cmd}" {} ::: ${run_list} | tee -a ${logfile}
+
+  wait
+  echo $?
+else
+  for strat in ${run_list}; do
+      add_line ""
+#      add_line "----------------------"
+#      add_line "${strat}"
+#      add_line "----------------------"
+      command="${cmd} ${strat} >> $logfile"
+      add_line "${command}"
+      eval ${command}
+  done
+fi
+
 echo ""
-echo "$logfile:"
+#echo "$logfile:"
+#echo ""
+#cat $logfile
+#echo ""
 echo ""
-cat $logfile
-echo ""
-echo ""
+
+# print a summary of the tests. This also saves the results to the results 'database'
+python3 ${script_dir}/SummariseTestResults.py ${logfile}
 
 # restore PYTHONPATH
 export PYTHONPATH="${oldpath}"

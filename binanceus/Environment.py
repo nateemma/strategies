@@ -99,6 +99,8 @@ def print_environment():
         darts_version = NOT_INSTALLED
 
     print("")
+    print("Software Environment:")
+    print("")
     print(f"    freqtrade:  {freqtrade_version}")
     print(f"    OS Type:    {os_type}, Version: {os_version}")
     print(f"    python:     {python_version}")

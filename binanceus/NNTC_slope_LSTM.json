@@ -1,0 +1,44 @@
+{
+  "strategy_name": "NNTC_slope_LSTM",
+  "params": {
+    "roi": {
+      "0": 0.06
+    },
+    "stoploss": {
+      "stoploss": -0.99
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 3
+    },
+    "buy": {
+      "buy_nseq_dn": 3
+    },
+    "sell": {
+      "cexit_endtrend_respect_roi": true,
+      "cexit_pullback": true,
+      "cexit_pullback_amount": 0.029,
+      "cexit_pullback_respect_roi": true,
+      "cexit_roi_end": 0.004,
+      "cexit_roi_start": 0.022,
+      "cexit_roi_time": 1342,
+      "cexit_roi_type": "static",
+      "cexit_trend_type": "ssl",
+      "cstop_bail_how": "none",
+      "cstop_bail_roc": -3.021,
+      "cstop_bail_time": 199,
+      "cstop_bail_time_trend": true,
+      "cstop_loss_threshold": -0.048,
+      "cstop_max_stoploss": -0.297,
+      "sell_nseq_up": 5
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2023-06-05 11:00:30.496850+00:00"
+}

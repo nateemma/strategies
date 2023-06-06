@@ -62,8 +62,8 @@ class PCA_swing(PCA):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     lookahead_hours = 1.0
-    n_profit_stddevs = 1.0
-    n_loss_stddevs = 1.0
+    n_profit_stddevs = 0.0
+    n_loss_stddevs = 0.0
     min_f1_score = 0.51
 
     custom_trade_info = {}

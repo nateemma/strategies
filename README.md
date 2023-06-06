@@ -2,24 +2,21 @@
 
 ## Current Status
 
-<b> I am in the middle of re-generating models for all of the NNTC strategies after finding an issue with labelling and training. The repo contains an
-incomplete set of models, because I was asked to submit whatever I had while I am generating new models (they take
-multiple days to generate). I also consolidated classes and cleaned up a little while I was doing that.
+I've been getting some questions on the various strategies here, so I thought I'd better clarify what I am currently
+working on...
 
-If you test a strat and it starts training amodel, that means that I haven't updated that model yet...
+June 6, 2023: I recently just spent a lot of time examining the training approach, since this seems to make a major
+difference in performance. I tested many different optimizers, learning rates and loss functions, and ended up writing
+several custom loss functions that are tailored to this environment.
+
+I am currently focused on the NNTC strategies, but will get back to PCA and Anomaly at some time.
 
 See [README_NNTC.md](README_NNTC.md) for some more details
 </b>
 
-I've been getting some questions on the various strategies here, so I thought I'd better clarify what I am currently
-working on...
-
-Right now, I am only active in the 'binanceus' directory (user_data/strategies/binanceus). I am testing and modifying
-code in the following types of strategies:
-
-- PCA
-- Anomaly
-- NNTC
+Note that I am only active in the 'binanceus' directory (user_data/strategies/binanceus).
+<br>Because of this, I am considering removing the exchange-based directory structure, and replacing it with a 'group'
+based structure, i.e. all NNTC strategies in an NNTC directory, PCA strategies in a PCA directory etc.
 
 _NOTES_:
 
@@ -40,7 +37,8 @@ _NOTES_:
 
 - _**NNPredict**_: this uses neural networks to predict changes in the price of a pair. Timeseries prediction is a
   cutting edge problem, and I do not appear to have solved it! These algorithms perform OK in backtesting, but if you
-  look at the details, the predictions are not good. So, I am currently not working on these
+  look at the details, the predictions are not good. <br>So, I am currently not working on these, but I may circle back
+  and apply lessons learned from te NNTC work
 
 ## Intro
 
@@ -168,16 +166,16 @@ _freqtrade hyperopt_ command (or the hyp_strat.sh script)
 <br>
 To help with this, I added a bunch of shell scripts in the _user_data/strategies/scripts_ directory:
 
-| Script | Description |
-|-----------|------------------------------------------|
-|test_strat.sh|Tests an individual strategy for the specified exchange |
-|test_exchange.sh|Tests all of the currently active strategies for the specified exchange |
-|test_monthly.sh| Runs test_exchange.sh over a monthly interval for the past 6 months, shows average performance, and ranks the strategies |
-|hyp_strat.sh|runs hyperopt on an individual strategy for the specified exchange |
-|hyp_exchange.sh|Runs hyp_strat.sh for all of the currently active strategies for the specified exchange |
-|hyp_all.sh| Runs hyp_exchange.sh for all currently active exchanges (takes a *_very_* long time) |
-|run_strat.sh| Runs a strategy live on the specified exchange, takes care of PYTHONPATH, db-url etc |
-|dryrun_strat.sh| Dry-runs a strategy on the specified exchange, takes care of PYTHONPATH, db-url etc |
+| Script           | Description                                                                                                              |
+|------------------|--------------------------------------------------------------------------------------------------------------------------|
+| test_strat.sh    | Tests an individual strategy for the specified exchange                                                                  |
+| test_exchange.sh | Tests all of the currently active strategies for the specified exchange                                                  |
+| test_monthly.sh  | Runs test_exchange.sh over a monthly interval for the past 6 months, shows average performance, and ranks the strategies |
+| hyp_strat.sh     | runs hyperopt on an individual strategy for the specified exchange                                                       |
+| hyp_exchange.sh  | Runs hyp_strat.sh for all of the currently active strategies for the specified exchange                                  |
+| hyp_all.sh       | Runs hyp_exchange.sh for all currently active exchanges (takes a *_very_* long time)                                     |
+| run_strat.sh     | Runs a strategy live on the specified exchange, takes care of PYTHONPATH, db-url etc                                     |
+| dryrun_strat.sh  | Dry-runs a strategy on the specified exchange, takes care of PYTHONPATH, db-url etc                                      |
 
 Specify the -h option for help.
 
@@ -303,7 +301,8 @@ conditions.
 
 Backtesting can be done using the following command:
 
-> freqtrade backtesting -c _\<config\>_ --strategy-path _\<path\>_ --strategy _\<strategy\>_  --timerange=_\<timerange\>_
+> freqtrade backtesting -c _\<config\>_ --strategy-path _\<path\>_ --strategy _\<strategy\>_  --timerange=
+_\<timerange\>_
 
 Or, you can use a script:
 
@@ -339,7 +338,8 @@ tuned for a specific exchange will typically not perform well on other exchanges
 
 The freqtrade command to run the optimisation is:
 
-> freqtrade hyperopt -c _\<config\>_ --strategy-path _\<path\>_ --strategy _\<strategy\>_  --spaces _\<space\>_ --hyperopt-loss _\<loss algorithm\>_   --timerange=_\<timerange\>_
+> freqtrade hyperopt -c _\<config\>_ --strategy-path _\<path\>_ --strategy _\<strategy\>_  --spaces _\<space\>_
+> --hyperopt-loss _\<loss algorithm\>_   --timerange=_\<timerange\>_
 
 where:
 
@@ -399,13 +399,13 @@ For example:
 
 The available custom loss functions are:
 
-| Loss Function              | Description |
-|----------------------------|------------------------------------------|
-| ExpectancyHyperOptLoss     | Optimises based primarily on Expectancy (projected profit per trade) |
-| PEDHyperOptLoss            | Optimises based equally on Profit, Expectancy and Duration |
+| Loss Function              | Description                                                                 |
+|----------------------------|-----------------------------------------------------------------------------|
+| ExpectancyHyperOptLoss     | Optimises based primarily on Expectancy (projected profit per trade)        |
+| PEDHyperOptLoss            | Optimises based equally on Profit, Expectancy and Duration                  |
 | QuickHyperOptLoss          | Optimises based primarily on average duration of trades (shorter is better) |
-| WinHyperOptLoss            | Optimises based primarily on Win/Loss ratio |
-| WeightedProfitHyperOptLoss | Optimises based primarily on profit |
+| WinHyperOptLoss            | Optimises based primarily on Win/Loss ratio                                 |
+| WeightedProfitHyperOptLoss | Optimises based primarily on profit                                         |
 
 All of these functions take multiple parameters into account, they just use different weightings. They also require a
 minimum profit, number of trades and win/loss ratio.
@@ -418,7 +418,8 @@ than just the solution that produces the most profit based on the historical dat
 It is often very useful to see a visual representation of your strategy. You can do this using the plot-dataframe
 command:
 
-> freqtrade plot-dataframe --strategy-path _\<path\>_ --strategy _\<strategy\>_  -p BCH/USD --timerange=_\<timerange\>_ --indicators1 ema5 ema20 --indicators2 mfi
+> freqtrade plot-dataframe --strategy-path _\<path\>_ --strategy _\<strategy\>_  -p BCH/USD --timerange=_\<timerange\>_
+> --indicators1 ema5 ema20 --indicators2 mfi
 
 This example creates a plot for pair BCH/USD, adds ema5 and ema20 to the main chart and adds a plot of mfi below that (
 these must exist in your dataframe for the strategy). You can find it in the _user_data/plot/_ directory, and in this

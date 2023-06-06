@@ -248,7 +248,7 @@ class ClassifierKeras():
         # callback to control saving of 'best' model
         # Note that we use validation loss as the metric, not training loss
         checkpoint_callback = keras.callbacks.ModelCheckpoint(
-            filepath=self.checkpoint_path,
+            filepath=self.get_checkpoint_path(),
             save_weights_only=True,
             monitor=monitor_field,
             mode=monitor_mode,
@@ -543,9 +543,11 @@ class ClassifierKeras():
 
     def update_model_weights(self):
 
+        self.checkpoint_path = self.get_checkpoint_path()
+
         # if checkpoint already exists, load the weights
         if os.path.exists(self.checkpoint_path):
-            print("    Loading existing model weights ({})...".format(self.checkpoint_path))
+            print("    Loading model weights ({})...".format(self.checkpoint_path))
             try:
                 self.model.load_weights(self.checkpoint_path)
             except:

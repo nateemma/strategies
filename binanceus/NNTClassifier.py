@@ -2,6 +2,8 @@
 
 # usage: classifer, name = NNTClassifier.create_classifier(classifier_type, pair, nfeatures, seq_len, tag="")
 
+# NOTE: all models should have a Droput layer to avoid overfitting
+
 import numpy as np
 from pandas import DataFrame, Series
 import pandas as pd
@@ -60,9 +62,10 @@ class NNTClassifier_AdditiveAttention(ClassifierKerasTrinary):
         # model = keras.Sequential(name=self.name)
         inputs = layers.Input(shape=(seq_len, num_features))
 
-        x = layers.LSTM(num_features, return_sequences=True, input_shape=(seq_len, num_features))(inputs)
-        # x = layers.Dropout(0.2)(x)
-        # x = layers.BatchNormalization()(x)
+        x = layers.LSTM(num_features, recurrent_dropout=0.25, return_sequences=True,
+                        input_shape=(seq_len, num_features))(inputs)
+        x = layers.Dropout(0.2)(x)
+        x = layers.BatchNormalization()(x)
 
         # x = layers.Attention()([x, inputs])
         x = layers.AdditiveAttention()([x, inputs])
@@ -71,6 +74,7 @@ class NNTClassifier_AdditiveAttention(ClassifierKerasTrinary):
         x = layers.Dense(32)(x)
 
         # last layer is a trinary decision - do not change
+        x = layers.Dropout(0.2)(x)
         outputs = layers.Dense(3, activation="softmax")(x)
 
         model = keras.Model(inputs, outputs)
@@ -93,7 +97,8 @@ class NNTClassifier_Attention(ClassifierKerasTrinary):
         # model = keras.Sequential(name=self.name)
         inputs = layers.Input(shape=(seq_len, num_features))
 
-        x = layers.LSTM(num_features, return_sequences=True, input_shape=(seq_len, num_features))(inputs)
+        x = layers.LSTM(num_features, recurrent_dropout=0.25, return_sequences=True,
+                        input_shape=(seq_len, num_features))(inputs)
         x = layers.Dropout(0.2)(x)
         x = layers.BatchNormalization()(x)
 
@@ -104,6 +109,7 @@ class NNTClassifier_Attention(ClassifierKerasTrinary):
         x = layers.Dense(32)(x)
 
         # last layer is a trinary decision - do not change
+        x = layers.Dropout(0.2)(x)
         outputs = layers.Dense(3, activation="softmax")(x)
 
         model = keras.Model(inputs, outputs)
@@ -122,7 +128,7 @@ class NNTClassifier_CNN(ClassifierKerasTrinary):
 
     # override the build_model function in subclasses
     def create_model(self, seq_len, num_features):
-        dropout = 0.1
+        dropout = 0.4
         n_filters = (8, seq_len, seq_len)
 
         inputs = keras.Input(shape=(seq_len, num_features))
@@ -137,9 +143,9 @@ class NNTClassifier_CNN(ClassifierKerasTrinary):
 
         # intermediate layer to bring down the dimensions
         x = keras.layers.Dense(16)(x)
-        x = keras.layers.Dropout(0.1)(x)
 
         # last layer is a linear trinary decision - do not change
+        x = layers.Dropout(0.2)(x)
         outputs = layers.Dense(3, activation="softmax")(x)
 
         model = keras.Model(inputs, outputs)
@@ -171,10 +177,10 @@ class NNTClassifier_Ensemble(ClassifierKerasTrinary):
         x_combined = layers.Concatenate()([x1, x2, x3, x4])
 
         # run an LSTM to learn from the combined models
-        x = layers.LSTM(3, activation='tanh', return_sequences=True)(x_combined)
-        # x = layers.Dropout(rate=0.1)(x)
+        x = layers.LSTM(3, activation='tanh', recurrent_dropout=0.25, return_sequences=True)(x_combined)
 
         # last layer is a trinary decision - do not change
+        x = layers.Dropout(0.2)(x)
         outputs = layers.Dense(3, activation="softmax")(x)
 
         model = keras.Model(inputs, outputs)
@@ -182,26 +188,27 @@ class NNTClassifier_Ensemble(ClassifierKerasTrinary):
         return model
 
     def get_lstm(self, inputs, seq_len, num_features):
-        x = layers.LSTM(64, activation='tanh', return_sequences=True, input_shape=(seq_len, num_features))(inputs)
-        # x = layers.Dropout(rate=0.1)(x)
+        x = layers.LSTM(64, activation='tanh', recurrent_dropout=0.25,
+                        return_sequences=True, input_shape=(seq_len, num_features))(inputs)
+        x = layers.Dropout(rate=0.2)(x)
         x = layers.Dense(3, activation="softmax")(x)
         return x
 
     def get_gru(self, inputs, seq_len, num_features):
         x = layers.Conv1D(filters=64, kernel_size=2, activation="relu", padding="causal")(inputs)
         x = layers.GRU(32, return_sequences=True)(x)
-        # x = layers.Dropout(rate=0.1)(x)
+        x = layers.Dropout(rate=0.2)(x)
         x = layers.Dense(3, activation="softmax")(x)
         return x
 
     def get_cnn(self, inputs, seq_len, num_features):
         x = keras.layers.Conv1D(filters=64, kernel_size=2, activation='tanh', padding="causal")(inputs)
-        x = keras.layers.Dropout(0.1)(x)
+        x = keras.layers.Dropout(0.2)(x)
         x = keras.layers.BatchNormalization()(x)
 
         # intermediate layer to bring down the dimensions
         x = keras.layers.Dense(16)(x)
-        # x = keras.layers.Dropout(0.1)(x)
+        x = keras.layers.Dropout(0.2)(x)
         x = layers.Dense(3, activation="softmax")(x)
         return x
 
@@ -209,19 +216,21 @@ class NNTClassifier_Ensemble(ClassifierKerasTrinary):
         x = inputs
         for rate in (1, 2, 4, 8) * 2:
             x = layers.Conv1D(filters=64, kernel_size=2, padding="causal", activation="relu", dilation_rate=rate)(x)
-
+        x = layers.Dropout(0.2)(x)
         x = layers.Dense(3, activation="softmax")(x)
         return x
 
     def get_attention(self, inputs, seq_len, num_features):
         x = inputs
-        x = layers.LSTM(num_features, return_sequences=True, input_shape=(seq_len, num_features))(x)
+        x = layers.LSTM(num_features, recurrent_dropout=0.25, return_sequences=True,
+                        input_shape=(seq_len, num_features))(x)
         x = layers.Dropout(0.2)(x)
         x = layers.BatchNormalization()(x)
 
         x = layers.Attention()([x, x])
 
         # last layer is a trinary decision - do not change
+        x = layers.Dropout(0.2)(x)
         x = layers.Dense(3, activation="softmax")(x)
         return x
 
@@ -243,6 +252,7 @@ class NNTClassifier_GRU(ClassifierKerasTrinary):
         model.add(layers.GRU(32, return_sequences=True))
 
         # last layer is a trinary decision - do not change
+        model.add(layers.Dropout(0.2))
         model.add(layers.Dense(3, activation="softmax"))
 
         return model
@@ -262,10 +272,11 @@ class NNTClassifier_LSTM(ClassifierKerasTrinary):
 
         # NOTE: don't use relu with LSTMs, cannot use GPU if you do (much slower). Use tanh
 
-        model.add(layers.LSTM(128, activation='tanh', return_sequences=True, input_shape=(seq_len, num_features)))
-        model.add(layers.Dropout(rate=0.2))
+        model.add(layers.LSTM(128, activation='tanh', recurrent_dropout=0.25,
+                              return_sequences=True, input_shape=(seq_len, num_features)))
 
         # last layer is a trinary decision - do not change
+        model.add(layers.Dropout(0.2))
         model.add(layers.Dense(3, activation="softmax"))
 
         return model
@@ -290,11 +301,12 @@ class NNTClassifier_LSTM2(ClassifierKerasTrinary):
         model.add(layers.Dropout(rate=0.5))
 
         model.add(layers.LSTM(64, activation='tanh', return_sequences=True, recurrent_dropout=0.25))
-        model.add(layers.Dropout(rate=0.5))
+
         #
         # model.add(layers.Dense(16))
 
         # last layer is a trinary decision - do not change
+        model.add(layers.Dropout(0.2))
         model.add(layers.Dense(3, activation="softmax"))
 
         return model
@@ -319,9 +331,10 @@ class NNTClassifier_LSTM3(ClassifierKerasTrinary):
         model.add(layers.Conv1D(128, kernel_size=3, padding='same', activation='relu'))
         # model.add(layers.MaxPooling1D(pool_size=2))
         model.add(layers.BatchNormalization())
-        model.add(layers.LSTM(128, activation='tanh', return_sequences=True))
+        model.add(layers.LSTM(128, activation='tanh', recurrent_dropout=0.25, return_sequences=True))
 
         # last layer is a trinary decision - do not change
+        model.add(layers.Dropout(0.2))
         model.add(layers.Dense(3, activation="softmax"))
 
         return model
@@ -341,11 +354,11 @@ class NNTClassifier_MLP(ClassifierKerasTrinary):
 
         # very simple MLP model:
         model.add(layers.Dense(128, input_shape=(seq_len, num_features)))
-        model.add(layers.Dropout(rate=0.1))
+        model.add(layers.Dropout(rate=0.2))
         model.add(layers.Dense(32))
-        model.add(layers.Dropout(rate=0.1))
 
         # last layer is a trinary decision - do not change
+        model.add(layers.Dropout(0.2))
         model.add(layers.Dense(3, activation="softmax"))
 
         return model
@@ -366,7 +379,8 @@ class NNTClassifier_Multihead(ClassifierKerasTrinary):
         input_shape = (seq_len, num_features)
         inputs = keras.Input(shape=input_shape)
         x = inputs
-        x = layers.LSTM(num_features, return_sequences=True, activation='tanh', input_shape=input_shape)(x)
+        x = layers.LSTM(num_features, return_sequences=True, recurrent_dropout=0.25, activation='tanh',
+                        input_shape=input_shape)(x)
         x = layers.Dropout(dropout)(x)
         x = layers.Dense(num_features)(x)
         x = layers.LayerNormalization(epsilon=1e-6)(x)
@@ -385,6 +399,7 @@ class NNTClassifier_Multihead(ClassifierKerasTrinary):
         x = x + res
 
         # last layer is a trinary decision - do not change
+        x = layers.Dropout(0.2)(x)
         outputs = layers.Dense(3, activation="softmax")(x)
 
         model = keras.Model(inputs, outputs)
@@ -410,6 +425,7 @@ class NNTClassifier_TCN(ClassifierKerasTrinary):
         x = TCN(nb_filters=num_features, kernel_size=seq_len, return_sequences=True, activation='tanh')(inputs)
 
         # last layer is a trinary decision - do not change
+        x = layers.Dropout(0.2)(x)
         outputs = layers.Dense(3, activation="softmax")(x)
 
         model = keras.Model(inputs, outputs)
@@ -441,7 +457,7 @@ class NNTClassifier_Transformer(ClassifierKerasTrinary):
         # ff_dim = seq_len
         # num_transformer_blocks = seq_len
         num_transformer_blocks = 4
-        mlp_units = [32, 8]
+        mlp_units = [32]
         mlp_dropout = 0.4
         dropout = 0.25
 
@@ -452,16 +468,22 @@ class NNTClassifier_Transformer(ClassifierKerasTrinary):
             x = keras.layers.BatchNormalization()(x)
 
         # x = layers.GlobalAveragePooling1D(keepdims=True, data_format="channels_first")(x)
+        # x = layers.GlobalMaxPooling1D(keepdims=True, data_format="channels_first")(x)
 
-        # for dim in mlp_units:
-        #     x = layers.Dense(dim)(x)
-        #     x = layers.Dropout(mlp_dropout)(x)
+        for dim in mlp_units:
+            x = layers.Dense(dim)(x)
+            x = layers.Dropout(mlp_dropout)(x)
 
-        # scale down
-        x = layers.LSTM(3, activation='tanh', return_sequences=True)(x)
+        # # last layer is a trinary decision - do not change
+        # outputs = layers.Dense(3, activation="softmax")(x)
 
         # last layer is a trinary decision - do not change
-        outputs = layers.Dense(3, activation="softmax")(x)
+        x = layers.Dropout(0.2)(x)
+        x = layers.Dense(3, activation="softmax")(x)
+
+        # add timestep dimension back in for compatibility
+        # outputs = layers.Reshape((1,3))(x)
+        outputs = x
 
         model = keras.Model(inputs, outputs)
 
@@ -478,9 +500,9 @@ class NNTClassifier_Transformer(ClassifierKerasTrinary):
 
         # Feed Forward Part
         x = layers.LayerNormalization(epsilon=1e-6)(res)
-        x = layers.Conv1D(filters=ff_dim, kernel_size=1, activation="relu")(x)
+        x = layers.Conv1D(filters=ff_dim, kernel_size=2, padding="causal", activation="relu")(x)
         x = layers.Dropout(dropout)(x)
-        x = layers.Conv1D(filters=head_size, kernel_size=1)(x)
+        x = layers.Conv1D(filters=head_size, kernel_size=2, padding="causal")(x)
         return x + res
 
 
@@ -502,6 +524,7 @@ class NNTClassifier_Wavenet(ClassifierKerasTrinary):
             model.add(layers.Conv1D(filters=64, kernel_size=2, padding="causal", activation="relu", dilation_rate=rate))
 
         # last layer is a trinary decision - do not change
+        model.add(layers.Dropout(0.2))
         model.add(layers.Dense(3, activation="softmax"))
 
         return model
@@ -575,6 +598,7 @@ class NNTClassifier_Wavenet2(ClassifierKerasTrinary):
         x = layers.Convolution1D(n_filters, 1, padding='same')(x)
 
         # last layer is a trinary decision - do not change
+        x = layers.Dropout(0.2)(x)
         outputs = layers.Dense(3, activation="softmax")(x)
 
         model = keras.Model(inputs, outputs)
@@ -642,10 +666,11 @@ class NNTClassifier_Wavenet3(ClassifierKerasTrinary):
         x = layers.Activation('relu')(x)
         x = layers.Convolution1D(n_filters, 1, padding='same')(x)
 
-        # reduce from n_filters down to 3
-        x = layers.LSTM(3, activation='tanh', return_sequences=True)(x)
+        # # remove the timesteps axis
+        # x = layers.GlobalMaxPooling1D(n_filters)(x)
 
         # last layer is a trinary decision - do not change
+        x = layers.Dropout(0.2)(x)
         outputs = layers.Dense(3, activation="softmax")(x)
 
         model = keras.Model(inputs, outputs)

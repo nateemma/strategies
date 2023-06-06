@@ -148,8 +148,8 @@ class PCA(IStrategy):
             "Diff": {
                 '%train_buy': {'color': 'mediumaquamarine'},
                 'predict_buy': {'color': 'cornflowerblue'},
-                '%train_sell': {'color': 'salmon'},
-                'predict_sell': {'color': 'orange'},
+                '%train_sell': {'color': 'lightsalmon'},
+                'predict_sell': {'color': 'brown'},
             },
         }
     }

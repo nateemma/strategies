@@ -5,7 +5,6 @@
 from enum import Enum
 
 import numpy as np
-from pandas import DataFrame, Series
 import pandas as pd
 
 pd.options.mode.chained_assignment = None  # default='warn'
@@ -20,15 +19,23 @@ import logging
 import warnings
 
 log = logging.getLogger(__name__)
+# log = logging.getLogger()
 # log.setLevel(logging.DEBUG)
+log.addFilter(logging.Filter(name='loading'))
+log.addFilter(logging.Filter(name='saving'))
+logging.getLogger('tensorflow').setLevel(logging.WARNING)
+logging.getLogger('keras').setLevel(logging.WARNING)
+logging.getLogger('pickle').setLevel(logging.CRITICAL)
+
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
 import random
 
 import os
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # errors only
 os.environ['TF_DETERMINISTIC_OPS'] = '1'
+os.environ['PYTHON_PICKLING_LOGLEVEL'] = '0'
 
 # workaround for memory leak in tensorflow 2.10
 os.environ['TF_RUN_EAGER_OP_AS_FUNCTION'] = '0'
@@ -45,11 +52,13 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
 import keras
 from keras import layers
-from keras.losses import CategoricalCrossentropy
+import keras.backend as K
 
-import h5py
+import sklearn
 
-from DataframeUtils import DataframeUtils
+from itertools import product
+import functools
+
 from ClassifierKeras import ClassifierKeras
 
 
@@ -61,7 +70,6 @@ class Result(Enum):
 
 
 class ClassifierKerasTrinary(ClassifierKeras):
-
     clean_data_required = False
 
     # create model - subclasses should overide this
@@ -88,15 +96,32 @@ class ClassifierKerasTrinary(ClassifierKeras):
     def compile_model(self, model):
 
         # optimizer = keras.optimizers.Adam(learning_rate=0.001)
+        # optimizer = keras.optimizers.Adam(learning_rate=0.005)
         optimizer = keras.optimizers.Adam(learning_rate=0.01)
 
-        # model.compile(optimizer=optimizer,
-        #               loss=CategoricalCrossentropy(),
-        #               metrics=['accuracy', 'mse'])
+        # optimizer = tf.keras.optimizers.AdamW(learning_rate=0.001, weight_decay=0.004)
+        # optimizer = tf.train.AdamWOptimizer(learning_rate=0.001, weight_decay=0.004)
+        # optimizer = keras.optimizers.SGD(learning_rate=0.01, momentum=0.9, nesterov=True, clipnorm=1.)
+
+        # The loss function makes a big difference, probably because the class distribution (hold/sell/buy) is
+        # very unbalanced, i.e. way more holds than buys or sells
+
+        # categorical cross entropy is the 'standard' loss function for categorization problems
+        # loss = "categorical_crossentropy"
+        # loss = "sparse_categorical_crossentropy"
+
+        # Try some some custom loss functions, where we can weight the los based on actual clas distribution
+        # loss = weighted_categorical_loss(self.get_class_weights())
+        loss = categorical_focal_loss(alpha=self.get_class_weights())
+        # loss = f1_loss(self.get_class_weights())
+
+        # metrics = ["sparse_categorical_accuracy", f1_metric(self.get_class_weights())]
+        metrics = ["categorical_accuracy", f1_metric(self.get_class_weights())]
+
         model.compile(
             optimizer=optimizer,
-            loss="categorical_crossentropy",
-            metrics=["categorical_accuracy"],
+            loss=loss,
+            metrics=metrics,
         )
 
         return model
@@ -108,25 +133,19 @@ class ClassifierKerasTrinary(ClassifierKeras):
         # lazy loading because params can change up to this point
         if self.model is None:
             # load saved model if present
-            self.model = self.load()
+            with keras.utils.custom_object_scope({'f1_loss': f1_loss, 'f1_metric': f1_metric}):
+                self.model = self.load()
 
         # print(f'is_trained:{self.is_trained} force_train:{force_train}')
 
         # print("    train_tensor:{} test_tensor:{}".format(np.shape(train_tensor), np.shape(test_tensor)))
 
         # if model is already trained, and caller is not requesting a re-train, then just return
-        if (self.model is not None) and self.model_is_trained() and (not force_train) and (not self.new_model_created()):
+        if (self.model is not None) and self.model_is_trained() and (not force_train) and (
+                not self.new_model_created()):
             # print(f"    Not training. is_trained:{self.is_trained} force_train:{force_train} new_model:{self.new_model}")
             print("    Model is already trained")
             return
-
-        if self.model is None:
-            self.model = self.create_model(self.seq_len, self.num_features)
-            if self.model is None:
-                print("    ERR: model not created")
-                return
-            self.model = self.compile_model(self.model)
-            self.model.summary()
 
         if self.dataframeUtils.is_dataframe(df_train_norm):
             # remove rows with positive labels?!
@@ -151,17 +170,37 @@ class ClassifierKerasTrinary(ClassifierKeras):
             train_tensor = df_train_norm.copy()
             test_tensor = df_test_norm.copy()
 
-        monitor_field = 'loss'
+
+        # set class weights (used by custom loss and metric functions)
+        self.set_class_weights(train_results)
+
+        # if model does not exist, create and compile it
+        if self.model is None:
+            self.model = self.create_model(self.seq_len, self.num_features)
+            if self.model is None:
+                print("    ERR: model not created")
+                return
+            self.model = self.compile_model(self.model)
+            self.model.summary()
+
+
+        # monitor_field = 'val_loss' # assess based on validation loss, rather than training loss
+
         monitor_mode = "min"
-        early_patience = 6
-        plateau_patience = 3
+        monitor_field = 'loss'
+
+        min_delta = 0.001
+        early_patience = 8
+        plateau_patience = 4
+
+        # print(f"monitor_field: {monitor_field}, monitor_mode: {monitor_mode}, early_patience: {early_patience}")
 
         # callback to control early exit on plateau of results
         early_callback = keras.callbacks.EarlyStopping(
             monitor=monitor_field,
             mode=monitor_mode,
             patience=early_patience,
-            min_delta=0.0001,
+            min_delta=min_delta,
             restore_best_weights=True,
             verbose=0)
 
@@ -169,14 +208,14 @@ class ClassifierKerasTrinary(ClassifierKeras):
             monitor=monitor_field,
             mode=monitor_mode,
             factor=0.1,
-            min_delta=0.0001,
+            min_delta=min_delta,
             patience=plateau_patience,
             verbose=0)
 
         # callback to control saving of 'best' model
         # Note that we use validation loss as the metric, not training loss
         checkpoint_callback = keras.callbacks.ModelCheckpoint(
-            filepath=self.checkpoint_path,
+            filepath=self.get_checkpoint_path(),
             save_weights_only=True,
             monitor=monitor_field,
             mode=monitor_mode,
@@ -185,7 +224,7 @@ class ClassifierKerasTrinary(ClassifierKeras):
 
         callbacks = [plateau_callback, early_callback, checkpoint_callback]
 
-        keras.backend.set_value(self.model.optimizer.learning_rate, 0.01)
+        # K.set_value(self.model.optimizer.learning_rate, 0.001)
 
         # if self.dbg_verbose:
         print("")
@@ -195,27 +234,33 @@ class ClassifierKerasTrinary(ClassifierKeras):
 
         # Model weights are saved at the end of every epoch, if it's the best seen so far.
         fhis = self.model.fit(train_tensor, train_results,
-                                    batch_size=self.batch_size,
-                                    epochs=self.num_epochs,
-                                    callbacks=callbacks,
-                                    validation_data=(test_tensor, test_results),
-                                    verbose=1)
+                              batch_size=self.batch_size,
+                              epochs=self.num_epochs,
+                              callbacks=callbacks,
+                              validation_data=(test_tensor, test_results),
+                              # class_weight=self.get_class_weight_dict(),
+                              verbose=1)
 
-        # # The model weights (that are considered the best) are loaded into th model.
+        # The model weights (that are considered the best) are loaded into th model.
+        # Note: don't need to do this if restore_best_weights=True in early_callback
         # self.update_model_weights()
 
-        self.save()
+        with keras.utils.custom_object_scope({'f1_loss': f1_loss, 'f1_metric': f1_metric}):
+            self.save()
         self.is_trained = True
 
-        return
+        # score = self.model.evaluate(test_tensor, test_results, verbose=1)
+        # print(f'    Model test score:{score[0]:.3f}  accuracy:{score[1]:.3f}')
 
+        return
 
     def predict(self, data):
 
         # lazy loading because params can change up to this point
         if self.model is None:
             # load saved model if present
-            self.model = self.load()
+            with keras.utils.custom_object_scope({'f1_loss': f1_loss, 'f1_metric': f1_metric}):
+                self.model = self.load()
 
         if self.dataframeUtils.is_dataframe(data):
             # convert dataframe to tensor
@@ -231,12 +276,293 @@ class ClassifierKerasTrinary(ClassifierKeras):
         # run the prediction
         preds = self.model.predict(df_tensor, verbose=0)
 
-        # re-shape into a vector
-        preds = preds[:, 0]
-        # print(f'preds: {np.shape(preds)} {preds}')
+        # # re-shape into a vector
+        # preds = preds[:, 0]
+
+        # Using the Max value. This emulates the keras GlobalMaxPooling1D layer
+        # print(f'preds: {np.shape(preds)}')
+        preds = np.max(preds, axis=1)
 
         # convert softmax result into a trinary value
-        predictions = np.argmax(preds, axis=1) # softmax output
+        predictions = np.argmax(preds, axis=1)  # softmax output
 
         return predictions
 
+    # -----------------------------------------
+    # functions to help with calculating class weights
+
+    class_weights = []
+    class_weight_dict = {}
+
+    def set_class_weights(self, label_tensor):
+        # Assuming your labels are one-hot encoded, you need to convert them to integers first
+        y_train = tf.argmax(label_tensor,
+                            axis=-1)  # creates tensor of shape (batch_size, timesteps) with integers 0, 1, or 2
+        y_train = tf.reshape(y_train, [-1])  # flatten the tensor to a shape of (batch_size * timesteps,)
+        y_train = y_train.numpy()  # convert the tensor to a numpy array
+
+        # Now you can use the compute_class_weight function
+        classes = np.unique(y_train)  # This will give you an array of [0, 1, 2]
+        self.class_weights = sklearn.utils.class_weight.compute_class_weight(class_weight='balanced',
+                                                                             classes=classes,
+                                                                             y=y_train)
+        # This will give you an array of class weights, such as [0.5, 4.0, 4.0]
+
+        # Hack?: make sure buy is at least as important as sell
+        if len(self.class_weights) >= 3:
+            self.class_weights[2] = min(self.class_weights[1], self.class_weights[2])
+
+        # normalise so that we can keep the metric range roughly in the 0..1 range
+
+        # self.class_weights = self.class_weights / np.sum(self.class_weights)
+        self.class_weights = self.class_weights / np.max(self.class_weights)
+
+        print(f'class_weights: {self.class_weights}')
+
+        # You can then use the class_weights array as a dictionary for the class_weight argument in Keras
+        self.class_weight_dict = dict(enumerate(self.class_weights))
+
+        return
+
+    def get_class_weights(self):
+        return self.class_weights
+
+    def get_class_weight_dict(self):
+        return self.class_weight_dict
+
+
+# -----------------------------------------
+
+#  the following are some custom loss functions that I am evaluating, to try and account for class imbalance
+#  Note that they need to be static (not part of class)
+
+# TODO: these should really be in the base class. Move there once debugged/tested
+
+
+def f1_micro(y_true, y_pred, weights):
+    # calculate true positives
+    tp = K.sum(K.cast(y_true * y_pred, 'float'), axis=None)
+    # calculate false positives
+    fp = K.sum(K.cast((1 - y_true) * y_pred, 'float'), axis=None)
+    # calculate false negatives
+    fn = K.sum(K.cast(y_true * (1 - y_pred), 'float'), axis=None)
+    # calculate precision
+    p = tp / (tp + fp + K.epsilon())
+    # calculate recall
+    r = tp / (tp + fn + K.epsilon())
+    # calculate micro f1 score
+    f1 = 2 * p * r / (p + r + K.epsilon())
+
+    # multiply f1 score by weights
+    weighted_f1 = f1 * weights
+
+    # return the weighted micro f1 score
+    return weighted_f1
+
+
+def f1_macro(y_true, y_pred, weights):
+    # calculate true positives
+    tp = K.sum(K.cast(y_true * y_pred, 'float'), axis=0)
+    # calculate false positives
+    fp = K.sum(K.cast((1 - y_true) * y_pred, 'float'), axis=0)
+    # calculate false negatives
+    fn = K.sum(K.cast(y_true * (1 - y_pred), 'float'), axis=0)
+    # calculate precision
+    p = tp / (tp + fp + K.epsilon())
+    # calculate recall
+    r = tp / (tp + fn + K.epsilon())
+    # calculate macro f1 score
+    f1 = 2 * p * r / (p + r + K.epsilon())
+
+    # multiply f1 score by weights
+    weighted_f1 = f1 * weights
+
+    # return the average macro f1 score across all classes
+    return K.mean(weighted_f1)
+
+# this version should be differentiable
+def f1_macro_diff(y_true, y_pred, weights):
+
+    # compatible with tf <=2.11
+    # calculate true positives
+    tp = K.sum(K.cast(y_true * y_pred, 'float'), axis=0)
+    # calculate false positives
+    fp = K.sum(K.cast((1 - y_true) * y_pred, 'float'), axis=0)
+    # calculate false negatives
+    fn = K.sum(K.cast(y_true * (1 - y_pred), 'float'), axis=0)
+    # calculate precision
+    p = tp / (tp + fp + K.epsilon())
+    # calculate recall
+    r = tp / (tp + fn + K.epsilon())
+
+    # Calculate the weighted precision and recall
+    w_p = p * weights
+    w_r = r * weights
+
+    # calculate macro f1 score
+    f1 = 2 * w_p * w_r / (w_p + w_r + K.epsilon())
+
+    f1_mean = K.mean(f1)
+
+    # loss = tf.keras.losses.binary_crossentropy(y_true, y_pred) * (1 - w_p) + w_r
+    loss = tf.keras.losses.binary_crossentropy(y_true, y_pred) * f1_mean
+
+    # return loss
+    return f1_mean
+
+def f1_weighted(y_true, y_pred):
+    ground_positives = K.sum(y_true, axis=0) + K.epsilon()  # = TP + FN
+    pred_positives = K.sum(y_pred, axis=0) + K.epsilon()  # = TP + FP
+    true_positives = K.sum(y_true * y_pred, axis=0) + K.epsilon()  # = TP
+
+    precision = true_positives / pred_positives
+    recall = true_positives / ground_positives
+    # both = 1 if ground_positives == 0 or pred_positives == 0
+
+    f1 = 2 * (precision * recall) / (precision + recall + K.epsilon())
+
+    weighted_f1 = f1 * ground_positives / K.sum(ground_positives)
+    weighted_f1 = K.sum(weighted_f1)
+
+    return weighted_f1
+
+
+def f1_beta(y_true, y_pred, beta=1):
+    # beta>1 adds weight to recall. beta<1 adds weight to precision
+    beta = 2.0
+
+    # convert labels to one-hot vectors
+    y_true = K.one_hot(K.cast(y_true, 'int32'), num_classes=K.int_shape(y_pred)[-1])
+    # clip predictions to avoid log(0)
+    y_pred = K.clip(y_pred, K.epsilon(), 1 - K.epsilon())
+    # calculate true positives, false positives and false negatives
+    tp = K.sum(y_true * y_pred, axis=-1)
+    fp = K.sum((1 - y_true) * y_pred, axis=-1)
+    fn = K.sum(y_true * (1 - y_pred), axis=-1)
+    # calculate precision and recall
+    p = tp / (tp + fp + K.epsilon())
+    r = tp / (tp + fn + K.epsilon())
+    # calculate F1 beta score
+    bb = beta * beta
+    fbeta_score = (1 + bb) * (p * r) / (bb * p + r + K.epsilon())
+    # return the negative F1 beta score as the loss
+    return fbeta_score
+
+
+def weighted_categorical_loss(weights):
+
+    weights = np.array(weights, dtype=np.float32)
+
+    def wc_loss(y_true, y_pred):
+
+        # Clip the prediction value to prevent NaN's and Inf's
+        epsilon = K.epsilon()
+        y_pred = K.clip(y_pred, epsilon, 1. - epsilon)
+
+        # Calculate Cross Entropy
+        ce_loss = -y_true * K.log(y_pred)
+
+        # # Calculate cross-entropy loss
+        # ce_loss = K.categorical_crossentropy(y_true, y_pred, from_logits=False)
+
+        # Apply class weights
+        weighted_ce_loss = ce_loss * weights
+
+        return weighted_ce_loss
+
+    return wc_loss
+
+
+def categorical_focal_loss(alpha, gamma=2.):
+    """
+    Softmax version of focal loss.
+    When there is a skew between different categories/labels in your data set, you can try to apply this function as a
+    loss.
+           m
+      FL = ∑  -alpha * (1 - p_o,c)^gamma * y_o,c * log(p_o,c)
+          c=1
+
+      where m = number of classes, c = class and o = observation
+
+    Parameters:
+      alpha -- the same as weighing factor in balanced cross entropy. Alpha is used to specify the weight of different
+      categories/labels, the size of the array needs to be consistent with the number of classes.
+      gamma -- focusing parameter for modulating factor (1-p)
+
+    Default value:
+      gamma -- 2.0 as mentioned in the paper
+      alpha -- 0.25 as mentioned in the paper
+
+    References:
+        Official paper: https://arxiv.org/pdf/1708.02002.pdf
+        https://www.tensorflow.org/api_docs/python/tf/keras/backend/categorical_crossentropy
+
+    Usage:
+     model.compile(loss=[categorical_focal_loss(alpha=[[.25, .25, .25]], gamma=2)], metrics=["accuracy"], optimizer=adam)
+    """
+
+    alpha = np.array(alpha, dtype=np.float32)
+
+    def categorical_focal_loss_fixed(y_true, y_pred):
+        """
+        :param y_true: A tensor of the same shape as `y_pred`
+        :param y_pred: A tensor resulting from a softmax
+        :return: Output tensor.
+        """
+
+        # Clip the prediction value to prevent NaN's and Inf's
+        epsilon = K.epsilon()
+        y_pred = K.clip(y_pred, epsilon, 1. - epsilon)
+
+        # Calculate Cross Entropy
+        cross_entropy = -y_true * K.log(y_pred)
+
+        # Calculate Focal Loss
+        loss = alpha * K.pow(1 - y_pred, gamma) * cross_entropy
+
+        # Compute mean loss in mini_batch
+        return K.mean(K.sum(loss, axis=-1))
+
+    return categorical_focal_loss_fixed
+
+
+def f1_loss(weights):
+    # Note: for loss, we return (1 - metric) so that we can minimise it
+
+    if weights is None:
+        weights = K.constant([0.125, 1.0, 1.0])
+
+    def f1_loss_fn(y_true, y_pred):
+        # metric = f1_micro(y_true, y_pred, weights)
+        metric = f1_macro(y_true, y_pred, weights)
+        # metric = f1_weighted(y_true, y_pred, weights)
+        # metric = f1_macro_diff(y_true, y_pred, weights)
+        # metrics = w_categorical_crossentropy(y_true, y_pred, weights)
+
+        return 1 - metric
+
+    return f1_loss_fn
+
+
+def f1_metric(weights):
+
+    if weights is None:
+        weights = K.constant([0.125, 1.0, 1.0])
+
+    def f1_score(y_true, y_pred):
+
+        #  round 'y_pred' to exactly zeros and ones
+        predLabels = K.argmax(y_pred, axis=-1)
+        y_pred = K.one_hot(predLabels, K.int_shape(y_pred)[-1])
+
+        # metric = f1_micro(y_true, y_pred, weights)
+        metric = f1_macro(y_true, y_pred, weights)
+        # metric = f1_weighted(y_true, y_pred, weights)
+        # metric = f1_macro_diff(y_true, y_pred, weights)
+        # metrics = w_categorical_crossentropy(y_true, y_pred, weights)
+
+        return metric
+
+    return f1_score
+
+# -----------------------------------------

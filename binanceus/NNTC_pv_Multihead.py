@@ -64,8 +64,8 @@ class NNTC_pv_Multihead(NNTC):
                 '%future_profit_threshold': {'color': 'green'},
                 '%train_buy': {'color': 'mediumaquamarine'},
                 'predict_buy': {'color': 'cornflowerblue'},
-                '%train_sell': {'color': 'salmon'},
-                'predict_sell': {'color': 'orange'},
+                '%train_sell': {'color': 'lightsalmon'},
+                'predict_sell': {'color': 'brown'},
             },
         }
     }
@@ -127,8 +127,8 @@ class NNTC_pv_Multihead(NNTC):
     # override the (most often changed) default parameters for this particular strategy
 
     lookahead_hours = 1.0
-    n_profit_stddevs = 2.0
-    n_loss_stddevs = 2.0
+    n_profit_stddevs = 0.0
+    n_loss_stddevs = 0.0
 
     signal_type = TrainingSignals.SignalType.Peaks_Valleys
     classifier_type = NNTClassifier.ClassifierType.Multihead

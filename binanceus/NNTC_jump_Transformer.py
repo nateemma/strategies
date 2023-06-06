@@ -110,8 +110,8 @@ class NNTC_jump_Transformer(NNTC):
     # override the (most often changed) default parameters for this particular strategy
 
     lookahead_hours = 1.0
-    n_profit_stddevs = 2.0
-    n_loss_stddevs = 2.0
+    n_profit_stddevs = 0.0
+    n_loss_stddevs = 0.0
 
     signal_type = TrainingSignals.SignalType.Jump
     classifier_type = NNTClassifier.ClassifierType.Transformer
