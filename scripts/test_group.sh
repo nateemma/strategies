@@ -192,8 +192,7 @@ for strat in ${strat_list//.py/}; do
       add_line "model file already exists (${model_file}). Skipping strategy ${strat}"
       test_strat=false
     else
-      add_line "model file not found (${model_file})"
-      add_line "Training model for ${strat}"
+      add_line "model file not found (${model_file}). Will train ${strat}"
     fi
   fi
 
@@ -206,7 +205,8 @@ done
 parallel_installed=$(command -v parallel)
 
 if [[ -n $parallel_installed ]]; then
-  echo "parallel is installed"
+#  echo "parallel is installed"
+  echo ""
 else
   echo "parallel is not installed. Run brew install parallel (or sudo apt-get install parallel)"
   run_parallel=false

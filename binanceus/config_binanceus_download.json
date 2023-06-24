@@ -1,5 +1,5 @@
 {
-  "max_open_trades": 3,
+  "max_open_trades": 10,
   "stake_currency": "USD",
   "dry_run_wallet": 10000,
   "stake_amount": 3000,

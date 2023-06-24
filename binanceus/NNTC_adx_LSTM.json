@@ -1,0 +1,48 @@
+{
+  "strategy_name": "NNTC_adx_LSTM",
+  "params": {
+    "roi": {
+      "0": 0.006
+    },
+    "stoploss": {
+      "stoploss": -0.1
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 10
+    },
+    "buy": {},
+    "sell": {
+      "cexit_endtrend_respect_roi": false,
+      "cexit_pullback": false,
+      "cexit_pullback_amount": 0.01,
+      "cexit_pullback_respect_roi": false,
+      "cexit_roi_end": 0.002,
+      "cexit_roi_start": 0.05,
+      "cexit_roi_time": 1138,
+      "cexit_roi_type": "static",
+      "cexit_trend_type": "any",
+      "cstop_bail_how": "time",
+      "cstop_bail_roc": -4.735,
+      "cstop_bail_time": 491,
+      "cstop_bail_time_trend": true,
+      "cstop_loss_threshold": -0.024,
+      "cstop_max_stoploss": -0.081,
+      "enable_exit_signal": false,
+      "loss_ratio": 1.2,
+      "profit_ratio": 1.4,
+      "tstop_ratio": 0.741,
+      "tstop_start": 0.058,
+      "use_loss_ratio": false,
+      "use_profit_ratio": true
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2023-06-22 19:07:51.164805+00:00"
+}

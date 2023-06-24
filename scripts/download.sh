@@ -34,7 +34,8 @@ num_days=750
 start_date=$(date -j -v-${num_days}d +"%Y%m%d")
 timerange="${start_date}-"
 #fixed_args="-t 5m 15m 1h 1d"
-fixed_args="-t 5m 15m 1h"
+#fixed_args="-t 5m 15m 1h"
+fixed_args="-t 15m"
 short=0
 leveraged=0
 

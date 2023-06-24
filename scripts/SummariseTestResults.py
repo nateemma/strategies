@@ -5,7 +5,8 @@ import os
 from re import search
 import statistics
 import pandas
-import numpy
+import numpy as np
+import scipy
 from tabulate import tabulate
 
 import json
@@ -146,6 +147,7 @@ def process_totals(strat, line):
     entry['test_date'] = str(test_date)
     entry['num_test_days'] = int(num_test_days)
     entry['entries'] = int(cols[1])
+    entry['daily_trades'] = float(cols[1]) / float(num_test_days)
     entry['ave_profit'] = float(cols[2])
     entry['tot_profit'] = float(cols[5])
     entry['win_pct'] = float(cols[7].strip().split(" ")[-1])
@@ -216,6 +218,7 @@ def print_results(test_results):
         for strategy in test_results:
             strat_stats.append([strategy,
                                 test_results[strategy]['entries'],
+                                test_results[strategy]['daily_trades'],
                                 test_results[strategy]['ave_profit'],
                                 test_results[strategy]['tot_profit'],
                                 test_results[strategy]['win_pct'],
@@ -225,16 +228,25 @@ def print_results(test_results):
 
         # create dataframe
         df = pandas.DataFrame(strat_stats,
-                              columns=["Strategy", "Trades", "Average%",
+                              columns=["Strategy", "Trades", "Tr/day", "Average%",
                                        "Total%", "Win%", "Expectancy", "Daily%", "Rank"])
 
-        df["Rank"] = df["Daily%"].rank(ascending=False, method='min', pct=False)
+        rank1 = df["Tr/day"].rank(ascending=False, method='min', pct=False)
+        rank2 = df["Average%"].rank(ascending=False, method='min', pct=False)
+        rank3 = df["Win%"].rank(ascending=False, method='min', pct=False)
+        rank4 = df["Expectancy"].rank(ascending=False, method='min', pct=False)
+        rank5 = df["Daily%"].rank(ascending=False, method='min', pct=False)
+        # rank_mean = np.mean([rank1, rank2, rank3, rank4, rank5], axis=0)
+        # rank_mean = np.mean([rank1, rank2, rank4, rank5], axis=0)
+        rank_mean = np.mean([rank1, rank3, rank4, rank5], axis=0)
+        # print(f'rank_mean: {rank_mean}')
+        df["Rank"] = scipy.stats.rankdata(rank_mean)
 
         pandas.set_option('display.precision', 2)
         print("")
         hdrs = df.columns.values
         print(tabulate(df.sort_values(by=['Rank', "Expectancy"], ascending=[True, False]),
-                       floatfmt=["", "d", ".2f", ".2f", ".2f", ".2f", ".3f", ".0f"],
+                       floatfmt=["", "d", ".2f", ".2f", ".2f", ".2f", ".2f", ".3f", ".0f"],
                        showindex="never", headers=hdrs, tablefmt='psql'))
 
     return

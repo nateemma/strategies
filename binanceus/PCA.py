@@ -158,7 +158,7 @@ class PCA(IStrategy):
 
     # ROI table:
     minimal_roi = {
-        "0": 0.06
+        "0": 0.006
     }
 
     # Stoploss:
@@ -210,7 +210,7 @@ class PCA(IStrategy):
     pair_model_info = {}  # holds model-related info for each pair
     classifier_stats = {}  # holds statistics for each type of classifier (useful to rank classifiers
 
-    ignore_exit_signals = True # set to True if you don't want to process sell/exit signals (let custom sell do it)
+    ignore_exit_signals = False # set to True if you don't want to process sell/exit signals (let custom sell do it)
 
     # debug flags
     first_time = True  # mostly for debug

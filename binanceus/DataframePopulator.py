@@ -17,6 +17,7 @@ from pandas import DataFrame, Series
 import sys
 from pathlib import Path
 from functools import reduce
+from enum import Enum
 
 sys.path.append(str(Path(__file__).parent))
 
@@ -39,6 +40,16 @@ from scipy.stats import linregress
 
 
 #################
+
+# the type of dataset used for input
+class DatasetType(Enum):
+    DEFAULT = 0
+    MINIMAL = 1
+    SMALL = 2
+    MEDIUM = 3
+    LARGE = 4
+    CUSTOM1 = 5
+    CUSTOM2 = 6
 
 class DataframePopulator():
     # global vars that control data generation. Ok to set these from a strategy
@@ -63,7 +74,9 @@ class DataframePopulator():
     # The whole idea is to create a dimension-reduced mapping anyway
     # Warning: do not use indicators that might produce 'inf' results, it messes up the scaling
 
-    def add_indicators(self, dataframe: DataFrame) -> DataFrame:
+
+    # use the minimal set of indicators needed to satisfy the trading signals logic and base class checks
+    def add_minimal_indicators(self, dataframe: DataFrame) -> DataFrame:
 
         dataframe['mid'] = (dataframe['open'] + dataframe['close']) / 2.0
         dataframe['gain'] = 100.0 * (dataframe['close'] - dataframe['open']) / dataframe['open']
@@ -74,21 +87,6 @@ class DataframePopulator():
         dataframe['recent_min'] = dataframe['close'].rolling(window=self.win_size).min()
         dataframe['recent_max'] = dataframe['close'].rolling(window=self.win_size).max()
 
-        # these averages are used internally, do not remove!
-        dataframe['sma'] = ta.SMA(dataframe, timeperiod=self.win_size)
-        dataframe['ema'] = ta.EMA(dataframe, timeperiod=self.win_size)
-        dataframe['tema'] = ta.TEMA(dataframe, timeperiod=self.win_size)
-        # dataframe['tema_stddev'] = dataframe['tema'].rolling(self.win_size).std()
-
-        # RSI
-        period = 14
-        smoothD = 3
-        SmoothK = 3
-        dataframe['rsi'] = ta.RSI(dataframe, timeperiod=self.win_size)
-        stochrsi = (dataframe['rsi'] - dataframe['rsi'].rolling(period).min()) / (
-                dataframe['rsi'].rolling(period).max() - dataframe['rsi'].rolling(period).min())
-        dataframe['srsi_k'] = stochrsi.rolling(SmoothK).mean() * 100
-        dataframe['srsi_d'] = dataframe['srsi_k'].rolling(smoothD).mean()
 
         # Bollinger Bands (must include these)
         bollinger = qtpylib.bollinger_bands(dataframe['close'], window=20, stds=2)
@@ -98,6 +96,98 @@ class DataframePopulator():
         dataframe['bb_width'] = ((dataframe['bb_upperband'] - dataframe['bb_lowerband']) / dataframe['bb_middleband'])
         dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
         dataframe["bb_loss"] = ((dataframe["bb_lowerband"] - dataframe["close"]) / dataframe["close"])
+
+        # RSI
+        dataframe['rsi'] = ta.RSI(dataframe, timeperiod=self.win_size)
+
+        # Williams %R
+        dataframe['wr'] = 0.02 * (self.williams_r(dataframe, period=14) + 50.0)
+
+        # Fisher RSI
+        rsi = 0.1 * (dataframe['rsi'] - 50)
+        dataframe['fisher_rsi'] = (np.exp(2 * rsi) - 1) / (np.exp(2 * rsi) + 1)
+
+        # Combined Fisher RSI and Williams %R
+        dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
+
+        # MACD
+        macd = ta.MACD(dataframe)
+        dataframe['macd'] = macd['macd']
+        dataframe['macdsignal'] = macd['macdsignal']
+        dataframe['macdhist'] = macd['macdhist']
+
+        # Stoch fast
+        stoch_fast = ta.STOCHF(dataframe)
+        dataframe['fastd'] = stoch_fast['fastd']
+        dataframe['fastk'] = stoch_fast['fastk']
+        dataframe['fast_diff'] = dataframe['fastd'] - dataframe['fastk']
+
+        # MFI - Chaikin Money Flow Indicator
+        dataframe['mfi'] = ta.MFI(dataframe)
+
+        # DWT model
+        # if in backtest or hyperopt, then we have to do rolling calculations
+        if self.runmode in ('hyperopt', 'backtest', 'plot'):
+            # dataframe['dwt'] = dataframe['close'].rolling(window=self.startup_win).apply(self.roll_get_dwt)
+            dataframe['dwt'] = dataframe['mid'].rolling(window=self.startup_win).apply(self.roll_get_dwt)
+        else:
+            # dataframe['dwt'] = self.get_dwt(dataframe['close'])
+            dataframe['dwt'] = self.get_dwt(dataframe['mid'])
+
+        dataframe['dwt_gain'] = 100.0 * (dataframe['dwt'] - dataframe['dwt'].shift()) / dataframe['dwt'].shift()
+        dataframe['dwt_profit'] = dataframe['dwt_gain'].clip(lower=0.0)
+        dataframe['dwt_loss'] = dataframe['dwt_gain'].clip(upper=0.0)
+
+        dataframe['dwt_profit_mean'] = dataframe['dwt_profit'].rolling(self.win_size).mean()
+        dataframe['dwt_profit_std'] = dataframe['dwt_profit'].rolling(self.win_size).std()
+        dataframe['dwt_loss_mean'] = dataframe['dwt_loss'].rolling(self.win_size).mean()
+        dataframe['dwt_loss_std'] = dataframe['dwt_loss'].rolling(self.win_size).std()
+
+        # (Local) Profit & Loss thresholds are used extensively, do not remove!
+        dataframe['profit_threshold'] = dataframe['dwt_profit_mean'] + self.n_profit_stddevs * abs(
+            dataframe['dwt_profit_std'])
+
+        dataframe['loss_threshold'] = dataframe['dwt_loss_mean'] - self.n_loss_stddevs * abs(dataframe['dwt_loss_std'])
+
+        # Sequences of consecutive up/downs
+        dataframe['dwt_dir'] = 0.0
+        dataframe['dwt_dir'] = np.where(dataframe['dwt'].diff() > 0, 1.0, -1.0)
+
+        dataframe['dwt_dir_up'] = dataframe['dwt_dir'].clip(lower=0.0)
+        dataframe['dwt_nseq_up'] = dataframe['dwt_dir_up'] * (dataframe['dwt_dir_up'].groupby(
+            (dataframe['dwt_dir_up'] != dataframe['dwt_dir_up'].shift()).cumsum()).cumcount() + 1)
+        dataframe['dwt_nseq_up'] = dataframe['dwt_nseq_up'].clip(lower=0.0, upper=20.0)  # removes startup artifacts
+
+        dataframe['dwt_dir_dn'] = abs(dataframe['dwt_dir'].clip(upper=0.0))
+        dataframe['dwt_nseq_dn'] = dataframe['dwt_dir_dn'] * (dataframe['dwt_dir_dn'].groupby(
+            (dataframe['dwt_dir_dn'] != dataframe['dwt_dir_dn'].shift()).cumsum()).cumcount() + 1)
+        dataframe['dwt_nseq_dn'] = dataframe['dwt_nseq_dn'].clip(lower=0.0, upper=20.0)
+
+        # rolling linear slope of the DWT (i.e. average trend) of near-past
+        dataframe['dwt_slope'] = dataframe['dwt'].rolling(window=6).apply(self.roll_get_slope)
+
+        return dataframe
+
+    # ------------------------------
+
+    def add_default_indicators(self, dataframe: DataFrame) -> DataFrame:
+
+        dataframe = self.add_minimal_indicators(dataframe)
+
+        # moving averages
+        dataframe['sma'] = ta.SMA(dataframe, timeperiod=self.win_size)
+        dataframe['ema'] = ta.EMA(dataframe, timeperiod=self.win_size)
+        dataframe['tema'] = ta.TEMA(dataframe, timeperiod=self.win_size)
+        # dataframe['tema_stddev'] = dataframe['tema'].rolling(self.win_size).std()
+
+        # Stochastic
+        period = 14
+        smoothD = 3
+        SmoothK = 3
+        stochrsi = (dataframe['rsi'] - dataframe['rsi'].rolling(period).min()) / (
+                dataframe['rsi'].rolling(period).max() - dataframe['rsi'].rolling(period).min())
+        dataframe['srsi_k'] = stochrsi.rolling(SmoothK).mean() * 100
+        dataframe['srsi_d'] = dataframe['srsi_k'].rolling(smoothD).mean()
 
         # Donchian Channels
         dataframe['dc_upper'] = ta.MAX(dataframe['high'], timeperiod=self.win_size)
@@ -119,16 +209,6 @@ class DataframePopulator():
         dataframe["kc_upper"] = keltner["upper"]
         dataframe["kc_lower"] = keltner["lower"]
         dataframe["kc_mid"] = keltner["mid"]
-
-        # Williams %R
-        dataframe['wr'] = 0.02 * (self.williams_r(dataframe, period=14) + 50.0)
-
-        # Fisher RSI
-        rsi = 0.1 * (dataframe['rsi'] - 50)
-        dataframe['fisher_rsi'] = (np.exp(2 * rsi) - 1) / (np.exp(2 * rsi) + 1)
-
-        # Combined Fisher RSI and Williams %R
-        dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
 
         # RSI
         # dataframe['rsi'] = ta.RSI(dataframe, timeperiod=self.win_size)
@@ -206,18 +286,6 @@ class DataframePopulator():
         dataframe['dm_delta'] = dataframe['dm_plus'] - dataframe['dm_minus']
         dataframe['di_delta'] = dataframe['di_plus'] - dataframe['di_minus']
 
-        # MACD
-        macd = ta.MACD(dataframe)
-        dataframe['macd'] = macd['macd']
-        dataframe['macdsignal'] = macd['macdsignal']
-        dataframe['macdhist'] = macd['macdhist']
-
-        # Stoch fast
-        stoch_fast = ta.STOCHF(dataframe)
-        dataframe['fastd'] = stoch_fast['fastd']
-        dataframe['fastk'] = stoch_fast['fastk']
-        dataframe['fast_diff'] = dataframe['fastd'] - dataframe['fastk']
-
         # # SAR Parabol
         # dataframe['sar'] = ta.SAR(dataframe)
 
@@ -231,9 +299,6 @@ class DataframePopulator():
         # dataframe['in_the_mood'] = np.where(dataframe['rsi_7'] > dataframe['rsi_7'].rolling(12).mean(), 1.0, -1.0)
         # dataframe['moist'] = np.where(qtpylib.crossed_above(dataframe['macd'], dataframe['macdsignal']), 1.0, -1.0)
         # dataframe['throbbing'] = np.where(dataframe['roc_6'] > dataframe['roc_6'].rolling(12).mean(), 1.0, -1.0)
-
-        # MFI - Chaikin Money Flow Indicator
-        dataframe['mfi'] = ta.MFI(dataframe)
 
         # Volume Flow Indicator (MFI) for volume based on the direction of price movement
         dataframe['vfi'] = fta.VFI(dataframe, period=14)
@@ -266,44 +331,6 @@ class DataframePopulator():
         # Commodity Channel Index: values [Oversold:-100, Overbought:100]
         dataframe['cci'] = ta.CCI(dataframe)
 
-        # DWT model
-        # if in backtest or hyperopt, then we have to do rolling calculations
-        if self.runmode in ('hyperopt', 'backtest', 'plot'):
-            # dataframe['dwt'] = dataframe['close'].rolling(window=self.startup_win).apply(self.roll_get_dwt)
-            dataframe['dwt'] = dataframe['mid'].rolling(window=self.startup_win).apply(self.roll_get_dwt)
-        else:
-            # dataframe['dwt'] = self.get_dwt(dataframe['close'])
-            dataframe['dwt'] = self.get_dwt(dataframe['mid'])
-
-        dataframe['dwt_gain'] = 100.0 * (dataframe['dwt'] - dataframe['dwt'].shift()) / dataframe['dwt'].shift()
-        dataframe['dwt_profit'] = dataframe['dwt_gain'].clip(lower=0.0)
-        dataframe['dwt_loss'] = dataframe['dwt_gain'].clip(upper=0.0)
-
-        dataframe['dwt_profit_mean'] = dataframe['dwt_profit'].rolling(self.win_size).mean()
-        dataframe['dwt_profit_std'] = dataframe['dwt_profit'].rolling(self.win_size).std()
-        dataframe['dwt_loss_mean'] = dataframe['dwt_loss'].rolling(self.win_size).mean()
-        dataframe['dwt_loss_std'] = dataframe['dwt_loss'].rolling(self.win_size).std()
-
-        # (Local) Profit & Loss thresholds are used extensively, do not remove!
-        dataframe['profit_threshold'] = dataframe['dwt_profit_mean'] + self.n_profit_stddevs * abs(
-            dataframe['dwt_profit_std'])
-
-        dataframe['loss_threshold'] = dataframe['dwt_loss_mean'] - self.n_loss_stddevs * abs(dataframe['dwt_loss_std'])
-
-        # Sequences of consecutive up/downs
-        dataframe['dwt_dir'] = 0.0
-        dataframe['dwt_dir'] = np.where(dataframe['dwt'].diff() > 0, 1.0, -1.0)
-
-        dataframe['dwt_dir_up'] = dataframe['dwt_dir'].clip(lower=0.0)
-        dataframe['dwt_nseq_up'] = dataframe['dwt_dir_up'] * (dataframe['dwt_dir_up'].groupby(
-            (dataframe['dwt_dir_up'] != dataframe['dwt_dir_up'].shift()).cumsum()).cumcount() + 1)
-        dataframe['dwt_nseq_up'] = dataframe['dwt_nseq_up'].clip(lower=0.0, upper=20.0)  # removes startup artifacts
-
-        dataframe['dwt_dir_dn'] = abs(dataframe['dwt_dir'].clip(upper=0.0))
-        dataframe['dwt_nseq_dn'] = dataframe['dwt_dir_dn'] * (dataframe['dwt_dir_dn'].groupby(
-            (dataframe['dwt_dir_dn'] != dataframe['dwt_dir_dn'].shift()).cumsum()).cumcount() + 1)
-        dataframe['dwt_nseq_dn'] = dataframe['dwt_nseq_dn'].clip(lower=0.0, upper=20.0)
-
         # Legenadry TA indicators
         dataframe = lta.fisher_cg(dataframe)
         dataframe = lta.exhaustion_bars(dataframe)
@@ -311,10 +338,161 @@ class DataframePopulator():
         dataframe = lta.pinbar(dataframe, dataframe["smi"])
         dataframe = lta.breakouts(dataframe)
 
+        return dataframe
 
-        # rolling linear slope of the DWT (i.e. average trend) of near-past
-        dataframe['dwt_slope'] = dataframe['dwt'].rolling(window=6).apply(self.roll_get_slope)
+    # ------------------------------
+    # 'small' set of indicators - basically, the best-known ones
+    def add_small_indicators(self, dataframe: DataFrame) -> DataFrame:
 
+        dataframe = self.add_minimal_indicators(dataframe)
+
+        # moving averages
+        dataframe['sma'] = ta.SMA(dataframe, timeperiod=self.win_size)
+        dataframe['ema'] = ta.EMA(dataframe, timeperiod=self.win_size)
+        dataframe['tema'] = ta.TEMA(dataframe, timeperiod=self.win_size)
+        # dataframe['tema_stddev'] = dataframe['tema'].rolling(self.win_size).std()
+
+        # Donchian Channels
+        dataframe['dc_upper'] = ta.MAX(dataframe['high'], timeperiod=self.win_size)
+        dataframe['dc_lower'] = ta.MIN(dataframe['low'], timeperiod=self.win_size)
+        dataframe['dc_mid'] = ta.TEMA(((dataframe['dc_upper'] + dataframe['dc_lower']) / 2), timeperiod=self.win_size)
+
+        dataframe["dcbb_dist_upper"] = (dataframe["dc_upper"] - dataframe['bb_upperband'])
+        dataframe["dcbb_dist_lower"] = (dataframe["dc_lower"] - dataframe['bb_lowerband'])
+
+        # Fibonacci Levels (of Donchian Channel)
+        dataframe['dc_dist'] = (dataframe['dc_upper'] - dataframe['dc_lower'])
+        # dataframe['dc_hf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.236  # Highest Fib
+        # dataframe['dc_chf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.382  # Centre High Fib
+        # dataframe['dc_clf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.618  # Centre Low Fib
+        # dataframe['dc_lf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.764  # Low Fib
+
+        # Keltner Channels (these can sometimes produce inf results)
+        keltner = qtpylib.keltner_channel(dataframe)
+        dataframe["kc_upper"] = keltner["upper"]
+        dataframe["kc_lower"] = keltner["lower"]
+        dataframe["kc_mid"] = keltner["mid"]
+
+        return dataframe
+
+    # ------------------------------
+
+    def add_medium_indicators(self, dataframe: DataFrame) -> DataFrame:
+
+        dataframe = self.add_small_indicators(dataframe)
+
+
+        # ADX
+        dataframe['adx'] = ta.ADX(dataframe)
+
+        # Plus Directional Indicator / Movement
+        dataframe['dm_plus'] = ta.PLUS_DM(dataframe)
+        dataframe['di_plus'] = ta.PLUS_DI(dataframe)
+
+        # Minus Directional Indicator / Movement
+        dataframe['dm_minus'] = ta.MINUS_DM(dataframe)
+        dataframe['di_minus'] = ta.MINUS_DI(dataframe)
+        dataframe['dm_delta'] = dataframe['dm_plus'] - dataframe['dm_minus']
+        dataframe['di_delta'] = dataframe['di_plus'] - dataframe['di_minus']
+
+        # Volume Flow Indicator (MFI) for volume based on the direction of price movement
+        dataframe['vfi'] = fta.VFI(dataframe, period=14)
+
+        # ATR
+        dataframe['atr'] = ta.ATR(dataframe, timeperiod=self.win_size)
+
+        # Oscillators
+
+        # EWO
+        dataframe['ewo'] = self.ewo(dataframe, 50, 200)
+
+        # Ultimate Oscillator
+        dataframe['uo'] = ta.ULTOSC(dataframe)
+
+        # Aroon, Aroon Oscillator
+        aroon = ta.AROON(dataframe)
+        dataframe['aroonup'] = aroon['aroonup']
+        dataframe['aroondown'] = aroon['aroondown']
+        dataframe['aroonosc'] = ta.AROONOSC(dataframe)
+
+        # Awesome Oscillator
+        dataframe['ao'] = qtpylib.awesome_oscillator(dataframe)
+
+        return dataframe
+
+    # ------------------------------
+
+    def add_large_indicators(self, dataframe: DataFrame) -> DataFrame:
+
+        dataframe = self.add_medium_indicators(dataframe)
+
+        # Stochastic
+        period = 14
+        smoothD = 3
+        SmoothK = 3
+        stochrsi = (dataframe['rsi'] - dataframe['rsi'].rolling(period).min()) / (
+                dataframe['rsi'].rolling(period).max() - dataframe['rsi'].rolling(period).min())
+        dataframe['srsi_k'] = stochrsi.rolling(SmoothK).mean() * 100
+        dataframe['srsi_d'] = dataframe['srsi_k'].rolling(smoothD).mean()
+
+        # RSI
+        dataframe['rsi_14'] = ta.RSI(dataframe, timeperiod=14)
+
+        # SMA
+        dataframe['sma_200'] = ta.SMA(dataframe, timeperiod=200)
+
+        # Hilbert Transform Indicator - SineWave
+        hilbert = ta.HT_SINE(dataframe)
+        dataframe['htsine'] = hilbert['sine']
+        dataframe['htleadsine'] = hilbert['leadsine']
+
+        # Commodity Channel Index: values [Oversold:-100, Overbought:100]
+        dataframe['cci'] = ta.CCI(dataframe)
+
+        # Legendary TA indicators
+        dataframe = lta.fisher_cg(dataframe)
+        dataframe = lta.exhaustion_bars(dataframe)
+        dataframe = lta.smi_momentum(dataframe)
+        dataframe = lta.pinbar(dataframe, dataframe["smi"])
+        dataframe = lta.breakouts(dataframe)
+
+
+        return dataframe
+
+    # ------------------------------
+
+    def add_custom1_indicators(self, dataframe: DataFrame) -> DataFrame:
+
+        dataframe = self.add_minimal_indicators(dataframe)
+        return dataframe
+
+    # ------------------------------
+
+    def add_custom2_indicators(self, dataframe: DataFrame) -> DataFrame:
+
+        dataframe = self.add_minimal_indicators(dataframe)
+        return dataframe
+
+    #------------------------------
+
+    def add_indicators(self, dataframe: DataFrame, dataset_type=DatasetType.DEFAULT) -> DataFrame:
+
+        if dataset_type == DatasetType.DEFAULT:
+            dataframe = self.add_default_indicators(dataframe)
+        elif dataset_type == DatasetType.MINIMAL:
+            dataframe = self.add_minimal_indicators(dataframe)
+        elif dataset_type == DatasetType.SMALL:
+            dataframe = self.add_small_indicators(dataframe)
+        elif dataset_type == DatasetType.MEDIUM:
+            dataframe = self.add_medium_indicators(dataframe)
+        elif dataset_type == DatasetType.LARGE:
+            dataframe = self.add_large_indicators(dataframe)
+        elif dataset_type == DatasetType.CUSTOM1:
+            dataframe = self.add_custom1_indicators(dataframe)
+        elif dataset_type == DatasetType.CUSTOM2:
+            dataframe = self.add_custom2_indicators(dataframe)
+        else:
+            print(f"    ERROR: Unknown dataset type: {dataset_type}")
 
         # TODO: remove/fix any columns that contain 'inf'
         self.dataframeUtils.check_inf(dataframe)
@@ -323,6 +501,8 @@ class DataframePopulator():
         dataframe.fillna(0.0, inplace=True)
 
         return dataframe
+
+    ################################
 
     # 'hidden' indicators. These are ostensibly backward looking, but may inadvertently use means, smoothing etc.
     def add_hidden_indicators(self, dataframe: DataFrame) -> DataFrame:
@@ -653,7 +833,8 @@ class DataframePopulator():
         mfv = ((dataframe['close'] - dataframe['low']) - (dataframe['high'] - dataframe['close'])) / (
                 dataframe['high'] - dataframe['low'])
         mfv = mfv.fillna(0.0)  # float division by zero
-        mfv *= dataframe['volume']
+        mfv *= dataframe['l1' \
+                         'volume']
         cmf = (mfv.rolling(n, min_periods=0).sum()
                / dataframe['volume'].rolling(n, min_periods=0).sum())
         if fillna:

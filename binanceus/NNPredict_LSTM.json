@@ -2,10 +2,10 @@
   "strategy_name": "NNPredict_LSTM",
   "params": {
     "roi": {
-      "0": 0.06
+      "0": 0.006
     },
     "stoploss": {
-      "stoploss": -0.99
+      "stoploss": -0.05
     },
     "trailing": {
       "trailing_stop": false,

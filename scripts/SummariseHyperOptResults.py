@@ -137,13 +137,13 @@ def main():
     infile = open(file_name)
 
     # repeatedly scan file and find header of new run, then print results
-    while skipto("-----------"):
+    while skipto("------------------"):
         print("")
         print(curr_line.rstrip())
         curr_line = infile.readline()
         strategy = curr_line.strip()
 
-        copyto('freqtrade hyperopt')
+        copyto(("------------------"))
         print(curr_line.rstrip())
         # skip anything between header & results
         if skipto('+--------'):

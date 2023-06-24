@@ -2,10 +2,10 @@
   "strategy_name": "NNTC_fbb_Wavenet",
   "params": {
     "roi": {
-      "0": 0.06
+      "0": 0.006
     },
     "stoploss": {
-      "stoploss": -0.99
+      "stoploss": -0.1
     },
     "trailing": {
       "trailing_stop": false,
@@ -14,28 +14,20 @@
       "trailing_only_offset_is_reached": false
     },
     "max_open_trades": {
-      "max_open_trades": 3
+      "max_open_trades": 10
     },
     "buy": {},
     "sell": {
-      "cexit_endtrend_respect_roi": false,
-      "cexit_pullback": false,
-      "cexit_pullback_amount": 0.028,
-      "cexit_pullback_respect_roi": true,
-      "cexit_roi_end": 0.002,
-      "cexit_roi_start": 0.011,
-      "cexit_roi_time": 1089,
-      "cexit_roi_type": "step",
-      "cexit_trend_type": "ssl",
-      "cstop_bail_how": "time",
-      "cstop_bail_roc": -1.657,
-      "cstop_bail_time": 446,
-      "cstop_bail_time_trend": true,
-      "cstop_loss_threshold": -0.014,
-      "cstop_max_stoploss": -0.013
+      "enable_exit_signal": true,
+      "loss_ratio": 1.4,
+      "profit_ratio": 1.4,
+      "tstop_ratio": 0.967,
+      "tstop_start": 0.059,
+      "use_loss_ratio": false,
+      "use_profit_ratio": false
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2023-06-05 17:13:13.638041+00:00"
+  "export_time": "2023-06-22 22:08:55.811782+00:00"
 }

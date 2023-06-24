@@ -14,7 +14,7 @@
       "trailing_only_offset_is_reached": false
     },
     "max_open_trades": {
-      "max_open_trades": 3
+      "max_open_trades": 10
     },
     "buy": {},
     "sell": {

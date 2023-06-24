@@ -10,6 +10,9 @@
 #declare -A strat_list=()
 strat_list=()
 
+# current file (must be at top level)
+curr_file="$0"
+
 # default values
 epochs=100
 spaces="sell"
@@ -22,6 +25,7 @@ jobs=0
 lossf="ExpectancyHyperOptLoss"
 #lossf="SharpeHyperOptLoss"
 random_state=$RANDOM
+alt_config=""
 
 # get the number of cores
 num_cores=`sysctl -n hw.ncpu`
@@ -35,12 +39,13 @@ run_cmd () {
 
 
 show_usage () {
-    script=$(basename $ZSH_SOURCE)
+    script=${curr_file}
     cat << END
 
 Usage: zsh $script [options] <exchange> <group>
 
-[options]:  -d | --download    Downloads latest market data before running hyperopt. Default is ${download}
+[options]:  -c | --config      Specify an alternate config file (just name, not directory or extension)
+            -d | --download    Downloads latest market data before running hyperopt. Default is ${download}
             -e | --epochs      Number of epochs to run. Default: ${epochs}
             -j | --jobs        Number of parallel jobs to run
             -l | --loss        Loss function to use (default: ${lossf})
@@ -92,7 +97,7 @@ needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
 check_shell
 
-while getopts d:e:j:l:n:s:t:-: OPT; do
+while getopts c:d:e:j:l:n:s:t:-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
@@ -100,6 +105,7 @@ while getopts d:e:j:l:n:s:t:-: OPT; do
     OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
   fi
   case "$OPT" in
+    c | config )     needs_arg; alt_config="${OPTARG}" ;;
     d | download )   download=1 ;;
     e | epochs )     needs_arg; epochs="$OPTARG" ;;
     j | jobs )       needs_arg; jobs="$OPTARG" ;;
@@ -129,8 +135,13 @@ group=$2
 
 strat_dir="user_data/strategies"
 exchange_dir="${strat_dir}/${exchange}"
-config_file="${exchange_dir}/config_${exchange}.json"
 logfile="hyp_${exchange}_${group:gs/*/}.log"
+
+if [[ -n ${alt_config} ]]; then
+  config_file="${exchange_dir}/${alt_config}.json"
+else
+  config_file="${exchange_dir}/config_${exchange}.json"
+fi
 
 if [ ! -f ${config_file} ]; then
     echo "config file not found: ${config_file}"
@@ -203,9 +214,9 @@ hargs="${hargs} --random-state ${random_state}"
 #for strat space in ${(kv)strat_list}; do
 for strat in ${strat_list//.py/}; do
   add_line ""
-  add_line "----------------------"
-  add_line "${strat}"
-  add_line "----------------------"
+#  add_line "----------------------"
+#  add_line "${strat}"
+#  add_line "----------------------"
 
 #  if [[ "${spaces}" == "" ]]; then
 #    spaces=$space

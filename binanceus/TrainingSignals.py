@@ -17,6 +17,8 @@
 import sys
 from pathlib import Path
 
+import freqtrade.vendor.qtpylib.indicators as qtpylib
+
 import numpy as np
 import pandas as pd
 import scipy
@@ -57,8 +59,8 @@ from abc import ABC, abstractmethod
 class base_signals(ABC):
     lookahead_hours = 1.0
     lookahead = 12 # candles
-    n_profit_stddevs = 0.0
-    n_loss_stddevs = 0.0
+    n_profit_stddevs = 1.0
+    n_loss_stddevs = 1.0
 
     def __init__(self, lookahead):
         super().__init__()
@@ -79,6 +81,24 @@ class base_signals(ABC):
     def get_signal_name(self):
         name = self.__class__.__name__.replace("_signals", "")
         return name
+
+    # check that the supplied indicators are present in the dataframe
+    def indicators_present(self, ind_list, dataframe) -> bool:
+        if len(ind_list) > 0:
+            result = True
+            for ind in ind_list:
+                if ind not in dataframe.columns:
+                    result = False
+                    print(f"    ERROR: indicator not in dataframe: {ind}")
+        else:
+            print("    WARNOING: empty indicator list provided")
+            result = False
+
+        return result
+
+    @abstractmethod
+    def check_indicators(self, future_df: DataFrame) -> bool:
+        return False
 
     @abstractmethod
     def get_entry_training_signals(self, future_df: DataFrame):
@@ -111,48 +131,279 @@ class base_signals(ABC):
 
 # -----------------------------------
 
-# training signals based on the width of the Bollinger Bands
+# training signals based on ADX and DI indicators
 
-class bbw_signals(base_signals):
+class adx_signals(base_signals):
+
+    def check_indicators(self, dataframe) -> bool:
+        # check that needed indicators are present
+        ind_list = [
+            'adx', 'dm_delta', 'di_delta',
+            'future_loss_min', 'future_loss_threshold',
+            'future_profit_max', 'future_profit_threshold'
+        ]
+        return self.indicators_present(ind_list, dataframe)
+
     # function to get buy signals
-
     def get_entry_training_signals(self, future_df: DataFrame):
-        peaks = np.zeros(future_df.shape[0], dtype=float)
-        order = 4
 
-        p_idx = scipy.signal.argrelextrema(future_df['bb_width'].to_numpy(), np.greater_equal, order=order)[0]
-        peaks[p_idx] = 1.0
+        # classic ADX:
+        # ADX above 25 and DI+ above DI-: That's an uptrend.
+        # ADX above 25 and DI- above DI+: That's a downtrend.
 
         signals = np.where(
             (
-                # (future_df['fisher_wr'] > 0.1) &  # guard
+                (future_df['fisher_wr'] < -0.5) & # guard
 
-                # peak detected
-                    (peaks > 0) &
+                (future_df['adx'] > 25) &
+                (future_df['di_delta'] < 0) & # downtrend
 
-                    # future loss exceeds threshold
-                    (future_df['future_loss_min'] <= future_df['future_loss_threshold'])
+                # future profit exceeds threshold
+                (future_df['future_profit_max'] >= future_df['future_profit_threshold'])
             ), 1.0, 0.0)
         return signals
 
     # function to get sell signals
 
     def get_exit_training_signals(self, future_df: DataFrame):
-        valleys = np.zeros(future_df.shape[0], dtype=float)
-        order = 4
-
-        v_idx = scipy.signal.argrelextrema(future_df['bb_width'].to_numpy(), np.less_equal, order=order)[0]
-        valleys[v_idx] = 1.0
 
         signals = np.where(
             (
-                # (future_df['fisher_wr'] < -0.1) &  # guard
+                (future_df['fisher_wr'] > 0.5) & # guard
 
-                # valley detected
-                    (valleys > 0.0) &
+                (future_df['adx'] > 25) &
+                (future_df['di_delta'] > 0) & # uptrend
+
+                # future loss exceeds threshold
+                (future_df['future_loss_min'] <= future_df['future_loss_threshold'])
+            ), 1.0, 0.0)
+        return signals
+
+    # function to get entry/buy guard conditions
+
+    def get_entry_guard_conditions(self, dataframe: DataFrame):
+        conditions = np.where(
+            (
+                (dataframe['fisher_wr'] < -0.5)
+            ), 1.0, 0.0)
+        return conditions
+
+    # function to get entry/buy guard conditions
+
+    def get_exit_guard_conditions(self, dataframe: DataFrame):
+        conditions = np.where(
+            (
+                (dataframe['fisher_wr'] > 0.5)
+            ), 1.0, 0.0)
+        return conditions
+
+    # function to get list of debug indicators to make visible (e.g. for plotting)
+
+    def get_debug_indicators(self):
+        dbg_list = []
+        return dbg_list
+
+
+# -----------------------------------
+
+# training signals based on ADX and DI indicators
+# This variant looks for DI+ and DI- crossings
+
+class adx2_signals(base_signals):
+
+    def check_indicators(self, dataframe) -> bool:
+        # check that needed indicators are present
+        ind_list = [
+            'adx', 'di_plus', 'di_minus',
+            'future_loss_min', 'future_loss_threshold',
+            'future_profit_max', 'future_profit_threshold'
+        ]
+        return self.indicators_present(ind_list, dataframe)
+
+    # function to get buy signals
+    def get_entry_training_signals(self, future_df: DataFrame):
+
+        # classic ADX crossing:
+        # ADX above 20 and DI+ crosses above DI-
+        # ADX above 20 and DI+ crosses below DI+
+
+        # just the crossing points don't generate enough signals, so look for range around the crossing instead
+
+        signals = np.where(
+            (
+                # (future_df['adx'] > 20) &
+                (future_df['di_delta'] >= 0) &
+                (future_df['di_delta'] <= 5) &
+
+                # future profit exceeds threshold
+                (future_df['future_profit_max'] >= future_df['future_profit_threshold'])
+            ), 1.0, 0.0)
+        return signals
+
+    # function to get sell signals
+
+    def get_exit_training_signals(self, future_df: DataFrame):
+
+        signals = np.where(
+            (
+                # (future_df['adx'] > 20) &
+                (future_df['di_delta'] <= 0) &
+                (future_df['di_delta'] >= -5) &
+
+                # future loss exceeds threshold
+                (future_df['future_loss_min'] <= future_df['future_loss_threshold'])
+            ), 1.0, 0.0)
+        return signals
+
+    # function to get entry/buy guard conditions
+
+    def get_entry_guard_conditions(self, dataframe: DataFrame):
+        conditions = np.where(
+            (
+                (dataframe['fisher_wr'] < -0.5)
+            ), 1.0, 0.0)
+        return conditions
+
+    # function to get entry/buy guard conditions
+
+    def get_exit_guard_conditions(self, dataframe: DataFrame):
+        conditions = np.where(
+            (
+                (dataframe['fisher_wr'] > 0.5)
+            ), 1.0, 0.0)
+        return conditions
+
+    # function to get list of debug indicators to make visible (e.g. for plotting)
+
+    def get_debug_indicators(self):
+        dbg_list = []
+        return dbg_list
+
+
+# -----------------------------------
+
+# training signals based on ADX and DI indicators
+# This variant looks for ADX > 25 and di_diff > 25 or < -25
+
+class adx3_signals(base_signals):
+
+    def check_indicators(self, dataframe) -> bool:
+        # check that needed indicators are present
+        ind_list = [
+            'adx', 'di_plus', 'di_minus',
+            'future_loss_min', 'future_loss_threshold',
+            'future_profit_max', 'future_profit_threshold'
+        ]
+        return self.indicators_present(ind_list, dataframe)
+
+    # function to get buy signals
+    def get_entry_training_signals(self, future_df: DataFrame):
+
+        # classic ADX crossing:
+        # ADX above 20 and DI+ crosses above DI-
+        # ADX above 20 and DI+ crosses below DI+
+
+        # just the crossing points don't generate enough signals, so look for range around the crossing instead
+
+        signals = np.where(
+            (
+                (future_df['adx'] > 20) &
+                (future_df['di_delta'] <= -10) &
+
+                # future profit exceeds threshold
+                (future_df['future_profit_max'] >= future_df['future_profit_threshold'])
+            ), 1.0, 0.0)
+        return signals
+
+    # function to get sell signals
+
+    def get_exit_training_signals(self, future_df: DataFrame):
+
+        signals = np.where(
+            (
+                (future_df['adx'] > 20) &
+                (future_df['di_delta'] >= 10) &
+
+                # future loss exceeds threshold
+                (future_df['future_loss_min'] <= future_df['future_loss_threshold'])
+            ), 1.0, 0.0)
+        return signals
+
+    # function to get entry/buy guard conditions
+
+    def get_entry_guard_conditions(self, dataframe: DataFrame):
+        conditions = np.where(
+            (
+                (dataframe['fisher_wr'] < -0.5)
+            ), 1.0, 0.0)
+        return conditions
+
+    # function to get entry/buy guard conditions
+
+    def get_exit_guard_conditions(self, dataframe: DataFrame):
+        conditions = np.where(
+            (
+                (dataframe['fisher_wr'] > 0.5)
+            ), 1.0, 0.0)
+        return conditions
+
+    # function to get list of debug indicators to make visible (e.g. for plotting)
+
+    def get_debug_indicators(self):
+        dbg_list = []
+        return dbg_list
+
+
+# -----------------------------------
+
+# training signals based on teh Aroon Oscillator
+
+        # classic Arron:
+        # Aroon Up > Aroon Down and (Aroon Up near 100, Aroon Down near 0): That's an uptrend.
+        # Aroon Up < Aroon Down and (Aroon Down near 100, Aroon Up near 0): That's a downtrend.
+
+class aroon_signals(base_signals):
+
+    def check_indicators(self, dataframe) -> bool:
+        # check that needed indicators are present
+        ind_list = [
+            'aroonup', 'aroondown',
+            'future_loss_min', 'future_loss_threshold',
+            'future_profit_max', 'future_profit_threshold'
+        ]
+        return self.indicators_present(ind_list, dataframe)
+
+    # function to get buy signals
+    def get_entry_training_signals(self, future_df: DataFrame):
+        signals = np.where(
+            (
+                # uptrend
+                    (future_df['aroonup'] > future_df['aroondown']) &
+                    (
+                            (future_df['aroonup'] > 90) &
+                            (future_df['aroondown'] < 10)
+                    ) &
 
                     # future profit exceeds threshold
                     (future_df['future_profit_max'] >= future_df['future_profit_threshold'])
+            ), 1.0, 0.0)
+        return signals
+
+    # function to get sell signals
+
+    def get_exit_training_signals(self, future_df: DataFrame):
+
+        signals = np.where(
+            (
+                # downtrend
+                    (future_df['aroonup'] < future_df['aroondown']) &
+                    (
+                            (future_df['aroonup'] < 10) &
+                            (future_df['aroondown'] > 90)
+                    ) &
+
+                # future loss exceeds threshold
+                (future_df['future_loss_min'] <= future_df['future_loss_threshold'])
             ), 1.0, 0.0)
         return signals
 
@@ -177,6 +428,91 @@ class bbw_signals(base_signals):
 
 # -----------------------------------
 
+# training signals based on the width of the Bollinger Bands
+
+class bbw_signals(base_signals):
+
+    def check_indicators(self, dataframe) -> bool:
+        # check that needed indicators are present
+        ind_list = [
+            'bb_width',
+            'future_loss_min', 'future_loss_threshold',
+            'future_profit_max', 'future_profit_threshold'
+        ]
+        return self.indicators_present(ind_list, dataframe)
+
+    # function to get buy signals
+    def get_entry_training_signals(self, future_df: DataFrame):
+
+        peaks = np.zeros(future_df.shape[0], dtype=float)
+        order = 4
+
+        p_idx = scipy.signal.argrelextrema(future_df['bb_width'].to_numpy(), np.greater_equal, order=order)[0]
+        peaks[p_idx] = 1.0
+
+        signals = np.where(
+            (
+                # (future_df['fisher_wr'] > 0.1) &  # guard
+
+                # peak detected
+                    (peaks > 0) &
+
+                    # future profit exceeds threshold
+                    (future_df['future_profit_max'] >= future_df['future_profit_threshold'])
+
+            ), 1.0, 0.0)
+        return signals
+
+    # function to get sell signals
+
+    def get_exit_training_signals(self, future_df: DataFrame):
+        valleys = np.zeros(future_df.shape[0], dtype=float)
+        order = 4
+
+        v_idx = scipy.signal.argrelextrema(future_df['bb_width'].to_numpy(), np.less_equal, order=order)[0]
+        valleys[v_idx] = 1.0
+
+        signals = np.where(
+            (
+                # (future_df['fisher_wr'] < -0.1) &  # guard
+
+                # valley detected
+                    (valleys > 0.0) &
+
+                    # future loss exceeds threshold
+                    (future_df['future_loss_min'] <= future_df['future_loss_threshold'])
+            ), 1.0, 0.0)
+        return signals
+
+    # function to get entry/buy guard conditions
+
+    def get_entry_guard_conditions(self, dataframe: DataFrame):
+        conditions = np.where(
+            (
+                (dataframe['fisher_wr'] < -0.5)
+                # (dataframe['close'] <= dataframe['recent_min'])  # local low
+            ), 1.0, 0.0)
+        return conditions
+
+    # function to get entry/buy guard conditions
+
+    def get_exit_guard_conditions(self, dataframe: DataFrame):
+        conditions = np.where(
+            (
+                (dataframe['fisher_wr'] > 0.5)
+                # (dataframe['close'] >= dataframe['recent_max'])  # local high
+            ), 1.0, 0.0)
+        return conditions
+
+    # function to get list of debug indicators to make visible (e.g. for plotting)
+
+    def get_debug_indicators(self):
+        dbg_list = []
+        return dbg_list
+
+
+# -----------------------------------
+
 # training signals based on the discreet Wavelet Transform (DWT) of the closing price.
 # 'dwt' is a rolling calculation, i.e. does not look forward
 # 'full_dwt' looks ahead, and so can be used for finding buy/sell points in the future
@@ -184,10 +520,23 @@ class bbw_signals(base_signals):
 
 class dwt_signals(base_signals):
 
+    def check_indicators(self, dataframe) -> bool:
+        # check that needed indicators are present
+        ind_list = [
+            'dwt_diff',
+            'future_loss_min', 'future_loss_threshold',
+            'future_profit_max', 'future_profit_threshold',
+            'recent_max'
+        ]
+        return self.indicators_present(ind_list, dataframe)
+
     def get_entry_training_signals(self, future_df: DataFrame):
         global lookahead
         signals = np.where(
             (
+                (future_df['fisher_wr'] < -0.5) &
+                # (future_df['close'] <= future_df['recent_min']) &  # local low
+
                 # forward model below backward model
                     (future_df['dwt_diff'] < 0) &
 
@@ -198,7 +547,7 @@ class dwt_signals(base_signals):
                     (future_df['dwt_diff'].shift(-self.lookahead) > 0) &
 
                     # future profit exceeds threshold
-                    (future_df['future_profit'] >= future_df['future_profit_threshold'])
+                    (future_df['future_profit_max'] >= future_df['future_profit_threshold'])
             ), 1.0, 0.0)
         return signals
 
@@ -206,7 +555,10 @@ class dwt_signals(base_signals):
         global lookahead
         signals = np.where(
             (
-                # forward model above backward model
+                (future_df['fisher_wr'] > 0.5) &
+                    # (future_df['close'] >= future_df['recent_max']) &  # local high
+
+                    # forward model above backward model
                     (future_df['dwt_diff'] > 0) &
 
                     # # current profit above threshold
@@ -216,15 +568,29 @@ class dwt_signals(base_signals):
                     (future_df['dwt_diff'].shift(-self.lookahead) < 0) &
 
                     # future loss exceeds threshold
-                    (future_df['future_loss'] <= future_df['future_loss_threshold'])
+                    (future_df['future_loss_min'] <= future_df['future_loss_threshold'])
             ), 1.0, 0.0)
         return signals
 
     def get_entry_guard_conditions(self, dataframe: DataFrame):
-        return None
+        condition = np.where(
+            (
+                (dataframe['fisher_wr'] < -0.5) &
+                (dataframe['close'] <= dataframe['recent_min'])  # local low
+            ), 1.0, 0.0)
+        return condition
+
+        # return None
 
     def get_exit_guard_conditions(self, dataframe: DataFrame):
-        return None
+        condition = np.where(
+            (
+                (dataframe['fisher_wr'] > 0.5) &
+                (dataframe['close'] >= dataframe['recent_max'])  # local high
+            ), 1.0, 0.0)
+        return condition
+
+        # return None
 
     def get_debug_indicators(self):
         return [
@@ -237,6 +603,15 @@ class dwt_signals(base_signals):
 # this version does peak/valley detection on the forward-looking DWT estimate
 
 class dwt2_signals(base_signals):
+
+    def check_indicators(self, dataframe) -> bool:
+        # check that needed indicators are present
+        ind_list = [
+            'full_dwt', 'fisher_wr',
+            'future_loss_min', 'future_loss_threshold',
+            'future_profit_max', 'future_profit_threshold'
+        ]
+        return self.indicators_present(ind_list, dataframe)
 
     def get_entry_training_signals(self, future_df: DataFrame):
         global lookahead
@@ -255,7 +630,7 @@ class dwt2_signals(base_signals):
                     (valleys > 0.0) &
 
                     # future profit exceeds threshold
-                    (future_df['future_profit'] >= future_df['future_profit_threshold'])
+                    (future_df['future_profit_max'] >= future_df['future_profit_threshold'])
             ), 1.0, 0.0)
         return signals
 
@@ -276,7 +651,7 @@ class dwt2_signals(base_signals):
                     (peaks > 0) &
 
                     # future loss exceeds threshold
-                    (future_df['future_loss'] <= future_df['future_loss_threshold'])
+                    (future_df['future_loss_min'] <= future_df['future_loss_threshold'])
             ), 1.0, 0.0)
         return signals
 
@@ -312,6 +687,16 @@ class dwt2_signals(base_signals):
 
 class fbb_signals(base_signals):
 
+    def check_indicators(self, dataframe) -> bool:
+        # check that needed indicators are present
+        ind_list = [
+            'mfi', 'fisher_wr', 'bb_gain',
+            'profit_threshold', 'loss_threshold',
+            'future_loss_min', 'future_loss_threshold',
+            'future_profit_max', 'future_profit_threshold'
+        ]
+        return self.indicators_present(ind_list, dataframe)
+
     def get_entry_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
@@ -335,7 +720,7 @@ class fbb_signals(base_signals):
                     (future_df['bb_loss'] <= future_df['loss_threshold'] / 100.0) &
 
                     # future loss
-                    (future_df['future_gain'] <= future_df['future_loss_threshold'])
+                    (future_df['future_profit_min'] <= future_df['future_loss_threshold'])
             ), 1.0, 0.0)
         return signals
 
@@ -376,6 +761,15 @@ class fbb_signals(base_signals):
 
 class fwr_signals(base_signals):
 
+    def check_indicators(self, dataframe) -> bool:
+        # check that needed indicators are present
+        ind_list = [
+            'fisher_wr',
+            'future_loss_min', 'future_loss_threshold',
+            'future_profit_max', 'future_profit_threshold'
+        ]
+        return self.indicators_present(ind_list, dataframe)
+
     def get_entry_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
@@ -383,7 +777,7 @@ class fwr_signals(base_signals):
                     (future_df['fisher_wr'] <= -0.8) &
 
                     # future profit
-                    (future_df['future_gain'] >= future_df['future_profit_threshold'])
+                    (future_df['future_profit_max'] >= future_df['future_profit_threshold'])
             ), 1.0, 0.0)
         return signals
 
@@ -394,7 +788,7 @@ class fwr_signals(base_signals):
                     (future_df['fisher_wr'] >= 0.8) &
 
                     # future loss
-                    (future_df['future_gain'] <= future_df['future_loss_threshold'])
+                    (future_df['future_loss_min'] <= future_df['future_loss_threshold'])
             ), 1.0, 0.0)
         return signals
 
@@ -422,6 +816,15 @@ class fwr_signals(base_signals):
 # highlow - detects highs and lows within the lookahead window
 
 class highlow_signals(base_signals):
+
+    def check_indicators(self, dataframe) -> bool:
+        # check that needed indicators are present
+        ind_list = [
+            'dwt_at_low', 'dwt_at_high', 'fisher_wr',
+            'future_loss_min', 'future_loss_threshold',
+            'future_profit_max', 'future_profit_threshold'
+        ]
+        return self.indicators_present(ind_list, dataframe)
 
     def get_entry_training_signals(self, future_df: DataFrame):
         signals = np.where(
@@ -471,6 +874,15 @@ class highlow_signals(base_signals):
 # jump - looks for 'big' jumps in price, with future profit/loss
 
 class jump_signals(base_signals):
+
+    def check_indicators(self, dataframe) -> bool:
+        # check that needed indicators are present
+        ind_list = [
+            'dwt_delta_min', 'dwt_delta_max',
+            'future_loss_min', 'future_loss_threshold',
+            'future_profit_max', 'future_profit_threshold'
+        ]
+        return self.indicators_present(ind_list, dataframe)
 
     def get_entry_training_signals(self, future_df: DataFrame):
         signals = np.where(
@@ -535,6 +947,15 @@ class jump_signals(base_signals):
 
 class macd_signals(base_signals):
 
+    def check_indicators(self, dataframe) -> bool:
+        # check that needed indicators are present
+        ind_list = [
+            'macdhist',
+            'future_loss_min', 'future_loss_threshold',
+            'future_profit_max', 'future_profit_threshold'
+        ]
+        return self.indicators_present(ind_list, dataframe)
+
     def get_entry_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
@@ -583,6 +1004,15 @@ class macd_signals(base_signals):
 # macd2 - modified MACD, trigger when macdhistory is at a low/high
 
 class macd2_signals(base_signals):
+
+    def check_indicators(self, dataframe) -> bool:
+        # check that needed indicators are present
+        ind_list = [
+            'macdhist',
+            'future_loss_min', 'future_loss_threshold',
+            'future_profit_max', 'future_profit_threshold'
+        ]
+        return self.indicators_present(ind_list, dataframe)
 
     def get_entry_training_signals(self, future_df: DataFrame):
         # detect valleys
@@ -643,6 +1073,15 @@ class macd2_signals(base_signals):
 # macd3 - modified MACD, trigger when macdhistory is in a low/high region
 
 class macd3_signals(base_signals):
+
+    def check_indicators(self, dataframe) -> bool:
+        # check that needed indicators are present
+        ind_list = [
+            'macdhist', 'mfi',
+            'future_loss_min', 'future_loss_threshold',
+            'future_profit_max', 'future_profit_threshold'
+        ]
+        return self.indicators_present(ind_list, dataframe)
 
     def get_entry_training_signals(self, future_df: DataFrame):
         # MACD is related to price, so need to figure out scale
@@ -710,6 +1149,15 @@ class macd3_signals(base_signals):
 
 class mfi_signals(base_signals):
 
+    def check_indicators(self, dataframe) -> bool:
+        # check that needed indicators are present
+        ind_list = [
+            'mfi',
+            'future_loss_min', 'future_loss_threshold',
+            'future_profit_max', 'future_profit_threshold'
+        ]
+        return self.indicators_present(ind_list, dataframe)
+
     def get_entry_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
@@ -756,6 +1204,15 @@ class mfi_signals(base_signals):
 # detect the max (sell) or min (buy) of both the past window and the future window
 
 class minmax_signals(base_signals):
+
+    def check_indicators(self, dataframe) -> bool:
+        # check that needed indicators are present
+        ind_list = [
+            'full_dwt', 'dwt_recent_min', 'dwt_recent_max', 'fisher_wr',
+            'future_loss_min', 'future_loss_threshold',
+            'future_profit_max', 'future_profit_threshold'
+        ]
+        return self.indicators_present(ind_list, dataframe)
 
     def get_entry_training_signals(self, future_df: DataFrame):
         signals = np.where(
@@ -813,6 +1270,16 @@ class minmax_signals(base_signals):
 # NSeq - continuous sequences of up/down movements
 
 class nseq_signals(base_signals):
+
+    def check_indicators(self, dataframe) -> bool:
+        # check that needed indicators are present
+        ind_list = [
+            'dwt_nseq_dn', 'dwt_nseq_up',
+            'full_dwt_nseq_dn', 'full_dwt_nseq_up',
+            'future_loss_min', 'future_loss_threshold',
+            'future_profit_max', 'future_profit_threshold'
+        ]
+        return self.indicators_present(ind_list, dataframe)
 
     def get_entry_training_signals(self, future_df: DataFrame):
         signals = np.where(
@@ -878,6 +1345,15 @@ class nseq_signals(base_signals):
 
 class over_signals(base_signals):
 
+    def check_indicators(self, dataframe) -> bool:
+        # check that needed indicators are present
+        ind_list = [
+            'rsi', 'mfi', 'fisher_wr',
+            'future_loss_min', 'future_loss_threshold',
+            'future_profit_max', 'future_profit_threshold'
+        ]
+        return self.indicators_present(ind_list, dataframe)
+
     def get_entry_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
@@ -933,10 +1409,19 @@ class profit_signals(base_signals):
     n_profit_stddevs = 2.0
     n_loss_stddevs = 2.0
 
+    def check_indicators(self, dataframe) -> bool:
+        # check that needed indicators are present
+        ind_list = [
+            'fisher_wr',
+            'future_loss_min', 'future_loss_threshold',
+            'future_profit_max', 'future_profit_threshold'
+        ]
+        return self.indicators_present(ind_list, dataframe)
+
     def get_entry_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
-                    (future_df['fisher_wr'] < -0.1) &
+                    (future_df['fisher_wr'] < -0.5) &
 
                     # qtpylib.crossed_above(future_df['future_gain'], 2.0 * future_df['future_profit_threshold'])
                     (future_df['future_profit_max'] >= 2.0 * future_df['future_profit_threshold'])
@@ -946,10 +1431,10 @@ class profit_signals(base_signals):
     def get_exit_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
-                    (future_df['fisher_wr'] > 0.1) &
+                    (future_df['fisher_wr'] > 0.5) &
 
                     # qtpylib.crossed_below(future_df['future_gain'], 2.0 * future_df['future_loss_threshold'])
-                    (future_df['future_loss_min'] <= future_df['future_loss_threshold'])
+                    (future_df['future_loss_min'] <= 2.0 * future_df['future_loss_threshold'])
             ), 1.0, 0.0)
         return signals
 
@@ -981,6 +1466,16 @@ class profit_signals(base_signals):
 # pv - peak/valley detection
 
 class pv_signals(base_signals):
+
+    def check_indicators(self, dataframe) -> bool:
+        # check that needed indicators are present
+        ind_list = [
+            'full_dwt',
+            'recent_min', 'recent_max',
+            'future_loss_min', 'future_loss_threshold',
+            'future_profit_max', 'future_profit_threshold'
+        ]
+        return self.indicators_present(ind_list, dataframe)
 
     def get_entry_training_signals(self, future_df: DataFrame):
         global lookahead
@@ -1044,6 +1539,15 @@ class pv_signals(base_signals):
 # slope - examines the average slope, past & future
 
 class slope_signals(base_signals):
+
+    def check_indicators(self, dataframe) -> bool:
+        # check that needed indicators are present
+        ind_list = [
+            'dwt_slope', 'fisher_wr', 'future_slope',
+            'future_loss_min', 'future_loss_threshold',
+            'future_profit_max', 'future_profit_threshold'
+        ]
+        return self.indicators_present(ind_list, dataframe)
 
     def get_entry_training_signals(self, future_df: DataFrame):
         global lookahead
@@ -1111,6 +1615,15 @@ class slope_signals(base_signals):
 
 class smooth_signals(base_signals):
 
+    def check_indicators(self, dataframe) -> bool:
+        # check that needed indicators are present
+        ind_list = [
+            'mid', 'fisher_wr',
+            'future_loss_min', 'future_loss_threshold',
+            'future_profit_max', 'future_profit_threshold'
+        ]
+        return self.indicators_present(ind_list, dataframe)
+
     def get_entry_training_signals(self, future_df: DataFrame):
         global lookahead
 
@@ -1132,7 +1645,7 @@ class smooth_signals(base_signals):
                     (valleys > 0.0) &
 
                     # future profit exceeds threshold
-                    (future_df['future_profit'] >= future_df['future_profit_threshold'])
+                    (future_df['future_profit_max'] >= future_df['future_profit_threshold'])
             ), 1.0, 0.0)
         return signals
 
@@ -1156,7 +1669,7 @@ class smooth_signals(base_signals):
                     (peaks > 0) &
 
                     # future loss exceeds threshold
-                    (future_df['future_loss'] <= future_df['future_loss_threshold'])
+                    (future_df['future_loss_min'] <= future_df['future_loss_threshold'])
             ), 1.0, 0.0)
         return signals
 
@@ -1188,6 +1701,15 @@ class smooth_signals(base_signals):
 # above 80 implies sell, below 20 implies buy
 
 class stochastic_signals(base_signals):
+
+    def check_indicators(self, dataframe) -> bool:
+        # check that needed indicators are present
+        ind_list = [
+            'fast_diff',
+            'future_loss_min', 'future_loss_threshold',
+            'future_profit_max', 'future_profit_threshold'
+        ]
+        return self.indicators_present(ind_list, dataframe)
 
     def get_entry_training_signals(self, future_df: DataFrame):
         global lookahead
@@ -1241,6 +1763,16 @@ class stochastic_signals(base_signals):
 
 class swing_signals(base_signals):
 
+    def check_indicators(self, dataframe) -> bool:
+        # check that needed indicators are present
+        ind_list = [
+            'dwt_bottom', 'dwt_top',
+            'recent_min', 'recent_max',
+            'future_loss_min', 'future_loss_threshold',
+            'future_profit_max', 'future_profit_threshold'
+        ]
+        return self.indicators_present(ind_list, dataframe)
+
     def get_entry_training_signals(self, future_df: DataFrame):
         signals = np.where(
             (
@@ -1292,6 +1824,10 @@ class swing_signals(base_signals):
 # enum of all available signal types
 
 class SignalType(Enum):
+    ADX = adx_signals
+    ADX2 = adx2_signals
+    ADX3 = adx3_signals
+    Aroon = aroon_signals
     Bollinger_Width = bbw_signals
     DWT = dwt_signals
     DWT2 = dwt2_signals

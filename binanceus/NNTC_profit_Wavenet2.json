@@ -2,10 +2,10 @@
   "strategy_name": "NNTC_profit_Wavenet2",
   "params": {
     "roi": {
-      "0": 0.06
+      "0": 0.006
     },
     "stoploss": {
-      "stoploss": -0.99
+      "stoploss": -0.1
     },
     "trailing": {
       "trailing_stop": false,
@@ -14,31 +14,20 @@
       "trailing_only_offset_is_reached": false
     },
     "max_open_trades": {
-      "max_open_trades": 3
+      "max_open_trades": 10
     },
-    "buy": {
-      "buy_nseq_dn": 6
-    },
+    "buy": {},
     "sell": {
-      "cexit_endtrend_respect_roi": true,
-      "cexit_pullback": true,
-      "cexit_pullback_amount": 0.027,
-      "cexit_pullback_respect_roi": true,
-      "cexit_roi_end": 0.01,
-      "cexit_roi_start": 0.044,
-      "cexit_roi_time": 994,
-      "cexit_roi_type": "step",
-      "cexit_trend_type": "none",
-      "cstop_bail_how": "none",
-      "cstop_bail_roc": -1.751,
-      "cstop_bail_time": 740,
-      "cstop_bail_time_trend": false,
-      "cstop_loss_threshold": -0.011,
-      "cstop_max_stoploss": -0.107,
-      "sell_nseq_up": 9
+      "enable_exit_signal": false,
+      "loss_ratio": 2.0,
+      "profit_ratio": 3.5,
+      "tstop_ratio": 0.979,
+      "tstop_start": 0.058,
+      "use_loss_ratio": true,
+      "use_profit_ratio": false
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2023-05-25 17:09:48.447972+00:00"
+  "export_time": "2023-06-23 07:41:53.781932+00:00"
 }

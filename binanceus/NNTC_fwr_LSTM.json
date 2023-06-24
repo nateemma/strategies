@@ -2,10 +2,10 @@
   "strategy_name": "NNTC_fwr_LSTM",
   "params": {
     "roi": {
-      "0": 0.06
+      "0": 0.006
     },
     "stoploss": {
-      "stoploss": -0.99
+      "stoploss": -0.1
     },
     "trailing": {
       "trailing_stop": false,
@@ -14,28 +14,20 @@
       "trailing_only_offset_is_reached": false
     },
     "max_open_trades": {
-      "max_open_trades": 3
+      "max_open_trades": 10
     },
     "buy": {},
     "sell": {
-      "cexit_endtrend_respect_roi": true,
-      "cexit_pullback": true,
-      "cexit_pullback_amount": 0.023,
-      "cexit_pullback_respect_roi": false,
-      "cexit_roi_end": 0.004,
-      "cexit_roi_start": 0.044,
-      "cexit_roi_time": 724,
-      "cexit_roi_type": "decay",
-      "cexit_trend_type": "none",
-      "cstop_bail_how": "roc",
-      "cstop_bail_roc": -4.334,
-      "cstop_bail_time": 1356,
-      "cstop_bail_time_trend": true,
-      "cstop_loss_threshold": -0.046,
-      "cstop_max_stoploss": -0.012
+      "enable_exit_signal": false,
+      "loss_ratio": 1.9,
+      "profit_ratio": 2.3,
+      "tstop_ratio": 0.726,
+      "tstop_start": 0.027,
+      "use_loss_ratio": false,
+      "use_profit_ratio": false
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2023-06-05 07:25:46.949147+00:00"
+  "export_time": "2023-06-22 22:21:44.109072+00:00"
 }

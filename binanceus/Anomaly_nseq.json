@@ -5,7 +5,7 @@
       "0": 0.04
     },
     "stoploss": {
-      "stoploss": -0.99
+      "stoploss": -0.05
     },
     "trailing": {
       "trailing_stop": false,
@@ -14,7 +14,7 @@
       "trailing_only_offset_is_reached": false
     },
     "max_open_trades": {
-      "max_open_trades": 3
+      "max_open_trades": 10
     },
     "buy": {
       "buy_nseq_dn": 2

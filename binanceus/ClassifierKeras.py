@@ -458,7 +458,7 @@ class ClassifierKeras():
         save_dir = os.path.dirname(path)
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-        keras.models.save_model(self.model, filepath=path)
+        keras.models.save_model(self.model, filepath=path, save_format='h5')
         return
 
     # ---------------------------

@@ -164,7 +164,7 @@ class NNBC(IStrategy):
 
     # ROI table:
     minimal_roi = {
-        "0": 0.06
+        "0": 0.006
     }
 
     # Stoploss:

@@ -2,7 +2,7 @@
 # This class implements a keras classifier that provides a trinary result (nothing, buy, sell)
 
 # subclasses should override the create_model() method
-from enum import Enum
+from enum import Enum, auto
 
 import numpy as np
 import pandas as pd
@@ -56,10 +56,8 @@ import keras.backend as K
 
 import sklearn
 
-from itertools import product
-import functools
-
 from ClassifierKeras import ClassifierKeras
+from CustomWeightedLoss import CustomWeightedLoss
 
 
 # enum for results
@@ -67,6 +65,7 @@ class Result(Enum):
     NOTHING = 0
     BUY = 1
     SELL = 2
+
 
 
 class ClassifierKerasTrinary(ClassifierKeras):
@@ -110,13 +109,12 @@ class ClassifierKerasTrinary(ClassifierKeras):
         # loss = "categorical_crossentropy"
         # loss = "sparse_categorical_crossentropy"
 
-        # Try some some custom loss functions, where we can weight the los based on actual clas distribution
-        # loss = weighted_categorical_loss(self.get_class_weights())
-        loss = categorical_focal_loss(alpha=self.get_class_weights())
-        # loss = f1_loss(self.get_class_weights())
+        # Try some some custom loss functions, where we can weight the los based on actual class distribution
+        # loss = CustomWeightedLoss(CustomWeightedLoss.WeightedLossType.CATEGORICAL_FOCAL, self.get_class_weights())
+        loss = CustomWeightedLoss(CustomWeightedLoss.WeightedLossType.WEIGHTED_CATEGORICAL, self.get_class_weights())
 
-        # metrics = ["sparse_categorical_accuracy", f1_metric(self.get_class_weights())]
-        metrics = ["categorical_accuracy", f1_metric(self.get_class_weights())]
+        buy_p = tf.keras.metrics.Precision(class_id=1)
+        metrics = ["categorical_accuracy", buy_p]
 
         model.compile(
             optimizer=optimizer,
@@ -133,8 +131,7 @@ class ClassifierKerasTrinary(ClassifierKeras):
         # lazy loading because params can change up to this point
         if self.model is None:
             # load saved model if present
-            with keras.utils.custom_object_scope({'f1_loss': f1_loss, 'f1_metric': f1_metric}):
-                self.model = self.load()
+            self.model = self.load()
 
         # print(f'is_trained:{self.is_trained} force_train:{force_train}')
 
@@ -245,8 +242,7 @@ class ClassifierKerasTrinary(ClassifierKeras):
         # Note: don't need to do this if restore_best_weights=True in early_callback
         # self.update_model_weights()
 
-        with keras.utils.custom_object_scope({'f1_loss': f1_loss, 'f1_metric': f1_metric}):
-            self.save()
+        self.save()
         self.is_trained = True
 
         # score = self.model.evaluate(test_tensor, test_results, verbose=1)
@@ -259,8 +255,7 @@ class ClassifierKerasTrinary(ClassifierKeras):
         # lazy loading because params can change up to this point
         if self.model is None:
             # load saved model if present
-            with keras.utils.custom_object_scope({'f1_loss': f1_loss, 'f1_metric': f1_metric}):
-                self.model = self.load()
+            self.model = self.load()
 
         if self.dataframeUtils.is_dataframe(data):
             # convert dataframe to tensor
@@ -317,7 +312,7 @@ class ClassifierKerasTrinary(ClassifierKeras):
         # self.class_weights = self.class_weights / np.sum(self.class_weights)
         self.class_weights = self.class_weights / np.max(self.class_weights)
 
-        print(f'class_weights: {self.class_weights}')
+        # print(f'class_weights: {self.class_weights}')
 
         # You can then use the class_weights array as a dictionary for the class_weight argument in Keras
         self.class_weight_dict = dict(enumerate(self.class_weights))
@@ -329,240 +324,3 @@ class ClassifierKerasTrinary(ClassifierKeras):
 
     def get_class_weight_dict(self):
         return self.class_weight_dict
-
-
-# -----------------------------------------
-
-#  the following are some custom loss functions that I am evaluating, to try and account for class imbalance
-#  Note that they need to be static (not part of class)
-
-# TODO: these should really be in the base class. Move there once debugged/tested
-
-
-def f1_micro(y_true, y_pred, weights):
-    # calculate true positives
-    tp = K.sum(K.cast(y_true * y_pred, 'float'), axis=None)
-    # calculate false positives
-    fp = K.sum(K.cast((1 - y_true) * y_pred, 'float'), axis=None)
-    # calculate false negatives
-    fn = K.sum(K.cast(y_true * (1 - y_pred), 'float'), axis=None)
-    # calculate precision
-    p = tp / (tp + fp + K.epsilon())
-    # calculate recall
-    r = tp / (tp + fn + K.epsilon())
-    # calculate micro f1 score
-    f1 = 2 * p * r / (p + r + K.epsilon())
-
-    # multiply f1 score by weights
-    weighted_f1 = f1 * weights
-
-    # return the weighted micro f1 score
-    return weighted_f1
-
-
-def f1_macro(y_true, y_pred, weights):
-    # calculate true positives
-    tp = K.sum(K.cast(y_true * y_pred, 'float'), axis=0)
-    # calculate false positives
-    fp = K.sum(K.cast((1 - y_true) * y_pred, 'float'), axis=0)
-    # calculate false negatives
-    fn = K.sum(K.cast(y_true * (1 - y_pred), 'float'), axis=0)
-    # calculate precision
-    p = tp / (tp + fp + K.epsilon())
-    # calculate recall
-    r = tp / (tp + fn + K.epsilon())
-    # calculate macro f1 score
-    f1 = 2 * p * r / (p + r + K.epsilon())
-
-    # multiply f1 score by weights
-    weighted_f1 = f1 * weights
-
-    # return the average macro f1 score across all classes
-    return K.mean(weighted_f1)
-
-# this version should be differentiable
-def f1_macro_diff(y_true, y_pred, weights):
-
-    # compatible with tf <=2.11
-    # calculate true positives
-    tp = K.sum(K.cast(y_true * y_pred, 'float'), axis=0)
-    # calculate false positives
-    fp = K.sum(K.cast((1 - y_true) * y_pred, 'float'), axis=0)
-    # calculate false negatives
-    fn = K.sum(K.cast(y_true * (1 - y_pred), 'float'), axis=0)
-    # calculate precision
-    p = tp / (tp + fp + K.epsilon())
-    # calculate recall
-    r = tp / (tp + fn + K.epsilon())
-
-    # Calculate the weighted precision and recall
-    w_p = p * weights
-    w_r = r * weights
-
-    # calculate macro f1 score
-    f1 = 2 * w_p * w_r / (w_p + w_r + K.epsilon())
-
-    f1_mean = K.mean(f1)
-
-    # loss = tf.keras.losses.binary_crossentropy(y_true, y_pred) * (1 - w_p) + w_r
-    loss = tf.keras.losses.binary_crossentropy(y_true, y_pred) * f1_mean
-
-    # return loss
-    return f1_mean
-
-def f1_weighted(y_true, y_pred):
-    ground_positives = K.sum(y_true, axis=0) + K.epsilon()  # = TP + FN
-    pred_positives = K.sum(y_pred, axis=0) + K.epsilon()  # = TP + FP
-    true_positives = K.sum(y_true * y_pred, axis=0) + K.epsilon()  # = TP
-
-    precision = true_positives / pred_positives
-    recall = true_positives / ground_positives
-    # both = 1 if ground_positives == 0 or pred_positives == 0
-
-    f1 = 2 * (precision * recall) / (precision + recall + K.epsilon())
-
-    weighted_f1 = f1 * ground_positives / K.sum(ground_positives)
-    weighted_f1 = K.sum(weighted_f1)
-
-    return weighted_f1
-
-
-def f1_beta(y_true, y_pred, beta=1):
-    # beta>1 adds weight to recall. beta<1 adds weight to precision
-    beta = 2.0
-
-    # convert labels to one-hot vectors
-    y_true = K.one_hot(K.cast(y_true, 'int32'), num_classes=K.int_shape(y_pred)[-1])
-    # clip predictions to avoid log(0)
-    y_pred = K.clip(y_pred, K.epsilon(), 1 - K.epsilon())
-    # calculate true positives, false positives and false negatives
-    tp = K.sum(y_true * y_pred, axis=-1)
-    fp = K.sum((1 - y_true) * y_pred, axis=-1)
-    fn = K.sum(y_true * (1 - y_pred), axis=-1)
-    # calculate precision and recall
-    p = tp / (tp + fp + K.epsilon())
-    r = tp / (tp + fn + K.epsilon())
-    # calculate F1 beta score
-    bb = beta * beta
-    fbeta_score = (1 + bb) * (p * r) / (bb * p + r + K.epsilon())
-    # return the negative F1 beta score as the loss
-    return fbeta_score
-
-
-def weighted_categorical_loss(weights):
-
-    weights = np.array(weights, dtype=np.float32)
-
-    def wc_loss(y_true, y_pred):
-
-        # Clip the prediction value to prevent NaN's and Inf's
-        epsilon = K.epsilon()
-        y_pred = K.clip(y_pred, epsilon, 1. - epsilon)
-
-        # Calculate Cross Entropy
-        ce_loss = -y_true * K.log(y_pred)
-
-        # # Calculate cross-entropy loss
-        # ce_loss = K.categorical_crossentropy(y_true, y_pred, from_logits=False)
-
-        # Apply class weights
-        weighted_ce_loss = ce_loss * weights
-
-        return weighted_ce_loss
-
-    return wc_loss
-
-
-def categorical_focal_loss(alpha, gamma=2.):
-    """
-    Softmax version of focal loss.
-    When there is a skew between different categories/labels in your data set, you can try to apply this function as a
-    loss.
-           m
-      FL = ∑  -alpha * (1 - p_o,c)^gamma * y_o,c * log(p_o,c)
-          c=1
-
-      where m = number of classes, c = class and o = observation
-
-    Parameters:
-      alpha -- the same as weighing factor in balanced cross entropy. Alpha is used to specify the weight of different
-      categories/labels, the size of the array needs to be consistent with the number of classes.
-      gamma -- focusing parameter for modulating factor (1-p)
-
-    Default value:
-      gamma -- 2.0 as mentioned in the paper
-      alpha -- 0.25 as mentioned in the paper
-
-    References:
-        Official paper: https://arxiv.org/pdf/1708.02002.pdf
-        https://www.tensorflow.org/api_docs/python/tf/keras/backend/categorical_crossentropy
-
-    Usage:
-     model.compile(loss=[categorical_focal_loss(alpha=[[.25, .25, .25]], gamma=2)], metrics=["accuracy"], optimizer=adam)
-    """
-
-    alpha = np.array(alpha, dtype=np.float32)
-
-    def categorical_focal_loss_fixed(y_true, y_pred):
-        """
-        :param y_true: A tensor of the same shape as `y_pred`
-        :param y_pred: A tensor resulting from a softmax
-        :return: Output tensor.
-        """
-
-        # Clip the prediction value to prevent NaN's and Inf's
-        epsilon = K.epsilon()
-        y_pred = K.clip(y_pred, epsilon, 1. - epsilon)
-
-        # Calculate Cross Entropy
-        cross_entropy = -y_true * K.log(y_pred)
-
-        # Calculate Focal Loss
-        loss = alpha * K.pow(1 - y_pred, gamma) * cross_entropy
-
-        # Compute mean loss in mini_batch
-        return K.mean(K.sum(loss, axis=-1))
-
-    return categorical_focal_loss_fixed
-
-
-def f1_loss(weights):
-    # Note: for loss, we return (1 - metric) so that we can minimise it
-
-    if weights is None:
-        weights = K.constant([0.125, 1.0, 1.0])
-
-    def f1_loss_fn(y_true, y_pred):
-        # metric = f1_micro(y_true, y_pred, weights)
-        metric = f1_macro(y_true, y_pred, weights)
-        # metric = f1_weighted(y_true, y_pred, weights)
-        # metric = f1_macro_diff(y_true, y_pred, weights)
-        # metrics = w_categorical_crossentropy(y_true, y_pred, weights)
-
-        return 1 - metric
-
-    return f1_loss_fn
-
-
-def f1_metric(weights):
-
-    if weights is None:
-        weights = K.constant([0.125, 1.0, 1.0])
-
-    def f1_score(y_true, y_pred):
-
-        #  round 'y_pred' to exactly zeros and ones
-        predLabels = K.argmax(y_pred, axis=-1)
-        y_pred = K.one_hot(predLabels, K.int_shape(y_pred)[-1])
-
-        # metric = f1_micro(y_true, y_pred, weights)
-        metric = f1_macro(y_true, y_pred, weights)
-        # metric = f1_weighted(y_true, y_pred, weights)
-        # metric = f1_macro_diff(y_true, y_pred, weights)
-        # metrics = w_categorical_crossentropy(y_true, y_pred, weights)
-
-        return metric
-
-    return f1_score
-
-# -----------------------------------------

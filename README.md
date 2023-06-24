@@ -1,13 +1,24 @@
 # Phil's Custom freqtrade Crypto Trading Strategies
 
+## Changelog
+
+I am having a lot of problems pushing to github. It might be related to all of the models...
+
+2023/6/23: I replaced the complicated custom stoploss and exit logic with something greatly simplified. The general
+approach is now to quickly trade in and out (I guess this is called _scalping_).
+<br>Performance is worse in backtesting, butis more reflective of what happens in live runs. Performance is better than
+the overall market, but still not great.
+<br>
+
+2023/6/6:
+I recently just spent a lot of time examining the training approach, since this seems to make a major
+difference in performance. I tested many different optimizers, learning rates and loss functions, and ended up writing
+several custom loss functions that are tailored to this environment.
+
 ## Current Status
 
 I've been getting some questions on the various strategies here, so I thought I'd better clarify what I am currently
 working on...
-
-June 6, 2023: I recently just spent a lot of time examining the training approach, since this seems to make a major
-difference in performance. I tested many different optimizers, learning rates and loss functions, and ended up writing
-several custom loss functions that are tailored to this environment.
 
 I am currently focused on the NNTC strategies, but will get back to PCA and Anomaly at some time.
 

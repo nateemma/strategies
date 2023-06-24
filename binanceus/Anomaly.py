@@ -204,7 +204,7 @@ class Anomaly(IStrategy):
     buy_classifier_list = {}
     sell_classifier_list = {}
 
-    ignore_exit_signals = True # set to True if you don't want to process sell/exit signals (let custom sell do it)
+    ignore_exit_signals = False # set to True if you don't want to process sell/exit signals (let custom sell do it)
 
     # debug flags
     first_time = True  # mostly for debug
@@ -1023,8 +1023,8 @@ class Anomaly(IStrategy):
 
         return min(-0.01, max(stoploss_from_open(sl_profit, current_profit), -0.99))
 
-        if current_profit < 0.02:
-            return -1  # return a value bigger than the initial stoploss to keep using the initial stoploss
+        # if current_profit < 0.02:
+        #     return -1  # return a value bigger than the initial stoploss to keep using the initial stoploss
 
         # # After reaching the desired offset, allow the stoploss to trail by half the profit
         # desired_stoploss = current_profit / 4

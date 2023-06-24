@@ -2,19 +2,19 @@
   "strategy_name": "PCA_jump",
   "params": {
     "roi": {
-      "0": 0.06
+      "0": 0.006
     },
     "stoploss": {
-      "stoploss": -0.99
+      "stoploss": -0.05
     },
     "trailing": {
-      "trailing_stop": true,
+      "trailing_stop": false,
       "trailing_stop_positive": 0.258,
       "trailing_stop_positive_offset": 0.298,
-      "trailing_only_offset_is_reached": true
+      "trailing_only_offset_is_reached": false
     },
     "max_open_trades": {
-      "max_open_trades": 3
+      "max_open_trades": 10
     },
     "buy": {},
     "sell": {

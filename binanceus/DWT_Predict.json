@@ -1,0 +1,29 @@
+{
+  "strategy_name": "DWT_Predict",
+  "params": {
+    "roi": {
+      "0": 0.06
+    },
+    "stoploss": {
+      "stoploss": -0.1
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 10
+    },
+    "buy": {
+      "entry_dwt_diff": 0.4
+    },
+    "sell": {
+      "exit_dwt_diff": -0.3
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2023-06-24 07:54:26.205826+00:00"
+}

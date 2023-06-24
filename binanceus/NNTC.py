@@ -1,28 +1,16 @@
-import operator
+from datetime import datetime
+from enum import Enum
+from functools import reduce
 
 import numpy as np
-from enum import Enum, auto
-
-import pywt
-import talib.abstract as ta
-from scipy.ndimage import gaussian_filter1d
-
-import freqtrade.vendor.qtpylib.indicators as qtpylib
-import arrow
-
-from freqtrade.exchange import timeframe_to_minutes
-from freqtrade.strategy import (IStrategy, merge_informative_pair, stoploss_from_open,
-                                IntParameter, DecimalParameter, CategoricalParameter)
-
-from typing import Dict, List, Optional, Tuple, Union
-from pandas import DataFrame, Series
-from functools import reduce
-from datetime import datetime, timedelta, timezone
-from freqtrade.persistence import Trade
-
 # Get rid of pandas warnings during backtesting
 import pandas as pd
-import pandas_ta as pta
+from pandas import DataFrame
+
+import freqtrade.vendor.qtpylib.indicators as qtpylib
+from freqtrade.exchange import timeframe_to_minutes
+from freqtrade.persistence import Trade
+from freqtrade.strategy import (IStrategy, IntParameter, DecimalParameter, CategoricalParameter)
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -33,41 +21,35 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 
 import logging
-import warnings
 
 log = logging.getLogger(__name__)
 # log.setLevel(logging.DEBUG)
 # warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
+# attempts to disable annoying keras load/save logging:
 log.addFilter(logging.Filter(name='loading'))
 log.addFilter(logging.Filter(name='saving'))
 logging.getLogger('tensorflow').setLevel(logging.WARNING)
 logging.getLogger('keras').setLevel(logging.WARNING)
 logging.getLogger('pickle').setLevel(logging.CRITICAL)
+logging.basicConfig(level=logging.WARNING)
+logging.disable(logging.WARNING)
 
 import custom_indicators as cta
-from finta import TA as fta
 
-from sklearn.model_selection import RandomizedSearchCV, train_test_split
 from sklearn.metrics import classification_report
-from sklearn.metrics import ConfusionMatrixDisplay
-from sklearn.preprocessing import StandardScaler, RobustScaler
 import sklearn.decomposition as skd
-from sklearn.preprocessing import LabelEncoder, StandardScaler, MinMaxScaler
 
 from sklearn.metrics import make_scorer
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import precision_score
 from sklearn.metrics import recall_score
 from sklearn.metrics import f1_score
-from sklearn.model_selection import cross_validate
 
 import random
 
-from prettytable import PrettyTable
-
 import os
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_DETERMINISTIC_OPS'] = '1'
 
 import tensorflow as tf
@@ -83,14 +65,8 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 tf_logger = logging.getLogger('tensorflow')
 tf_logger.setLevel(logging.WARN)
 
-import keras
-from keras import layers
-from tqdm import tqdm
-import Attention
-import RBM
-
 from DataframeUtils import DataframeUtils, ScalerType
-from DataframePopulator import DataframePopulator
+from DataframePopulator import DataframePopulator, DatasetType
 import TrainingSignals
 
 import NNTClassifier
@@ -161,11 +137,11 @@ class NNTC(IStrategy):
 
     # ROI table:
     minimal_roi = {
-        "0": 0.06
+        "0": 0.006
     }
 
     # Stoploss:
-    stoploss = -0.99
+    stoploss = -0.1
 
     # Trailing stop:
     trailing_stop = False
@@ -186,7 +162,7 @@ class NNTC(IStrategy):
 
     # Required
     startup_candle_count: int = 128  # must be power of 2
-    process_only_new_candles = True
+    process_only_new_candles = False
 
     # ------------------------------
     # Strategy-specific global vars
@@ -218,11 +194,13 @@ class NNTC(IStrategy):
     num_epochs = 512  # number of iterations for training
     batch_size = 1024  # batch size for training
 
+    COMPRESSED_SIZE = 64
+
     refit_model = False  # only set to True when training. If False, then existing model is used, if present
     use_full_dataset = True  # use the entire dataset for training (in backtest)
-    model_per_pair = False # single model for all pairs
-    combine_models = False # combine training across all pairs
-    ignore_exit_signals = True  # set to True if you don't want to process sell/exit signals (let custom sell do it)
+    model_per_pair = False  # single model for all pairs
+    combine_models = False  # combine training across all pairs
+    ignore_exit_signals = False  # set to True if you don't want to process sell/exit signals (let custom sell do it)
 
     scaler_type = ScalerType.Robust  # scaler type used for normalisation
 
@@ -240,7 +218,7 @@ class NNTC(IStrategy):
     first_run = True  # used to identify first time through buy/sell populate funcs
 
     dbg_scan_classifiers = False  # if True, scan all viable classifiers and choose the best. Very slow!
-    dbg_test_classifier = True  # test clasifiers after fitting
+    dbg_test_classifier = False  # test clasifiers after fitting
     dbg_verbose = True  # controls debug output
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
     dbg_trace_memory = False  # if true, trace memory usage
@@ -255,6 +233,7 @@ class NNTC(IStrategy):
 
     classifier_type = NNTClassifier.ClassifierType.LSTM  # default, override in subclass
 
+    dataset_type = DatasetType.DEFAULT
     signal_type = TrainingSignals.SignalType.Profit  # should override this
     training_signals = None
 
@@ -264,10 +243,28 @@ class NNTC(IStrategy):
 
     ## Hyperopt Variables
 
+
+    # trailing stoploss
+    tstop_start = DecimalParameter(0.0, 0.06, default=0.019, decimals=3, space='sell', load=True, optimize=True)
+    tstop_ratio = DecimalParameter(0.7, 0.99, default=0.8, decimals=3, space='sell', load=True, optimize=True)
+
+    # profit threshold exit
+    profit_ratio = DecimalParameter(0.5, 4.0, default=1.0, decimals=1, space='sell', load=True, optimize=True)
+    use_profit_ratio = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+
+    # loss treshold exit
+    loss_ratio = DecimalParameter(0.5, 2.0, default=1.0, decimals=1, space='sell', load=True, optimize=True)
+    use_loss_ratio = CategoricalParameter([True, False], default=False, space='sell', load=True, optimize=True)
+
+    # use exit signal? Use this for hyperopt, but once decided it's better to just set self.ignore_exit_signals
+    enable_exit_signal = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+
     #  hyperparams
     # buy_gain = IntParameter(1, 50, default=4, space='buy', load=True, optimize=True)
     #
     # sell_gain = IntParameter(-1, -15, default=-4, space='sell', load=True, optimize=True)
+
+    '''
 
     # Custom Sell Profit (formerly Dynamic ROI)
     cexit_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
@@ -292,7 +289,7 @@ class NNTC(IStrategy):
     cstop_bail_time = IntParameter(60, 1440, default=720, space='sell', load=True, optimize=True)
     cstop_bail_time_trend = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
     cstop_max_stoploss = DecimalParameter(-0.30, -0.01, default=-0.10, space='sell', load=True, optimize=True)
-
+    '''
     ################################
 
     # subclasses should override the following 2 functions - this is here as an example
@@ -308,7 +305,12 @@ class NNTC(IStrategy):
 
     def get_train_buy_signals(self, future_df: DataFrame):
 
-        signals = self.training_signals.get_entry_training_signals(future_df)
+        signals = None
+
+        if self.training_signals.check_indicators(future_df):
+            signals = self.training_signals.get_entry_training_signals(future_df)
+        else:
+            print("    ERROR: Missing indicators in dataframe")
 
         if signals is None:
             signals = pd.Series(np.zeros(np.shape(future_df)[0], dtype=float))
@@ -317,7 +319,10 @@ class NNTC(IStrategy):
 
     def get_train_sell_signals(self, future_df: DataFrame):
 
-        signals = self.training_signals.get_exit_training_signals(future_df)
+        signals = None
+
+        if self.training_signals.check_indicators(future_df):
+            signals = self.training_signals.get_exit_training_signals(future_df)
 
         if signals is None:
             signals = pd.Series(np.zeros(np.shape(future_df)[0], dtype=float))
@@ -352,6 +357,7 @@ class NNTC(IStrategy):
         print("")
         print("Strategy Parameters/Flags")
         print("")
+        print(f"    Dataset Type:           {self.dataset_type} ({self.dataset_type.value})")
         print(f"    Signal Type:            {self.signal_type} ({self.training_signals.get_signal_name()})")
         print(f"    Classifier Type:        {self.classifier_type}")
         print(f"    Lookahead:              {self.lookahead_hours} hours ({self.curr_lookahead} candles)")
@@ -379,7 +385,11 @@ class NNTC(IStrategy):
         self.dbg_curr_df = dataframe
 
         if self.training_signals is None:
+            #TODO: put params in training_signal
             self.training_signals = TrainingSignals.create_training_signals(self.signal_type, self.curr_lookahead)
+            self.curr_lookahead = self.training_signals.get_lookahead()
+            self.n_loss_stddevs = self.training_signals.get_n_loss_stddevs()
+            self.n_profit_stddevs = self.training_signals.get_n_profit_stddevs()
 
         # create and initialise instances of objects shared across pairs
         if self.dataframeUtils is None:
@@ -408,9 +418,9 @@ class NNTC(IStrategy):
             print(self.__class__.__name__)
             print("----------------------")
             print("")
-            print("***************************************")
-            print("** Warning: startup can be very slow **")
-            print("***************************************")
+            # print("***************************************")
+            # print("** Warning: startup can be very slow **")
+            # print("***************************************")
 
             Environment.print_environment()
 
@@ -429,7 +439,12 @@ class NNTC(IStrategy):
         # populate the normal dataframe
         if self.dbg_verbose:
             print("    adding indicators...")
-        dataframe = self.dataframePopulator.add_indicators(dataframe)
+        dataframe = self.dataframePopulator.add_indicators(dataframe, dataset_type=self.dataset_type)
+
+        # if number of features less than compressed size, just disable compression
+        if dataframe.shape[-1] <= self.COMPRESSED_SIZE:
+            self.compress_data = False
+            print(f"    Disabled compression ({dataframe.shape[-1]} <= {self.COMPRESSED_SIZE})")
 
         # get the buy/sell training signals
         buys, sells = self.create_training_data(dataframe)
@@ -449,9 +464,10 @@ class NNTC(IStrategy):
         dataframe['predict_sell'] = pred_sells
 
         # Custom Stoploss
-        if self.dbg_verbose:
-            print("    updating stoploss data...")
-        self.add_stoploss_indicators(dataframe, curr_pair)
+        if self.use_custom_stoploss:
+            if self.dbg_verbose:
+                print("    updating stoploss data...")
+            self.add_stoploss_indicators(dataframe, curr_pair)
 
         if self.dbg_trace_memory and (self.dbg_trace_pair == self.curr_pair):
             profiler.snapshot()
@@ -513,7 +529,6 @@ class NNTC(IStrategy):
         # run data augmentation techniques
         buys, sells = self.augment_training_signals(buys, sells)
 
-
         # copy back to dataframe (because they likely changed)
         future_df['train_buy'] = np.where(buys > 0, 1.0, 0.0)
         future_df['train_sell'] = np.where(sells > 0, 1.0, 0.0)
@@ -552,7 +567,7 @@ class NNTC(IStrategy):
         if len(dbg_list) > 0:
             # print(f"    Adding debug indicators: {dbg_list}")
             for indicator in dbg_list:
-                 self.add_debug_indicator(future_df, indicator)
+                self.add_debug_indicator(future_df, indicator)
 
         return
 
@@ -644,7 +659,6 @@ class NNTC(IStrategy):
         # holds[np.where(blabels > 0)] = 0.0  # if buy or sell is set, clear holds entry
         # holds[np.where(slabels > 0)] = 0.0
 
-
         holds = np.zeros(frame_size, dtype=float)  # init holds to 0s
         holds[np.where((blabels == 0) & (slabels == 0))] = 1.0
 
@@ -699,8 +713,8 @@ class NNTC(IStrategy):
         buy_pct = 100.0 * (num_buys / train_size)
 
         if self.dbg_verbose:
-        # print("     tensor:", full_tensor.shape, ' -> train:', tsr_train.shape, " + test:", tsr_test.shape)
-        # print("     labels:", lbl_tensor.shape, ' -> train:', tsr_lbl_train.shape, " + test:", tsr_lbl_test.shape)
+            # print("     tensor:", full_tensor.shape, ' -> train:', tsr_train.shape, " + test:", tsr_test.shape)
+            # print("     labels:", lbl_tensor.shape, ' -> train:', tsr_lbl_train.shape, " + test:", tsr_lbl_test.shape)
             print("    training samples: ", train_size,
                   " #buys:", num_buys, " ({:.2f}".format(buy_pct), "%)",
                   ' #sells:', num_sells, " ({:.2f}".format(100.0 * (num_sells / train_size)), "%)", )
@@ -717,7 +731,8 @@ class NNTC(IStrategy):
             if not (clf is None):
                 preds = self.get_classifier_predictions(clf, tsr_test)
                 results = np.argmax(tsr_lbl_test[:, 0], axis=1)
-                print(f"    Testing Classifier: {clf_name}, pair: {curr_pair}")
+                print(f"    Testing Classifier: {clf_name}, signals:{self.training_signals.get_signal_name()}, ",
+                      f"pair: {curr_pair}")
                 print(classification_report(results, preds, zero_division=0))
                 print("")
 
@@ -727,7 +742,7 @@ class NNTC(IStrategy):
     def get_trinary_classifier(self, tensor, results, test_tensor, test_labels):
 
         clf = self.trinary_classifier
-        name = str(self.classifier_type)
+        name = str(self.classifier_type).split(".")[-1]
 
         # labels = self.get_trinary_labels(results)
         labels = results
@@ -762,7 +777,7 @@ class NNTC(IStrategy):
 
     def get_compressor(self, df_norm: DataFrame):
         #  use fixed size PCA (Tensorflow models need fixed inputs)
-        ncols = 64
+        ncols = min(self.COMPRESSED_SIZE, df_norm.shape[-1])
         compressor = skd.PCA(n_components=ncols, whiten=True, svd_solver='full').fit(df_norm)
 
         num_features = np.shape(df_norm)[-1]
@@ -818,11 +833,27 @@ class NNTC(IStrategy):
 
     # return IDs that control model naming. Should be OK for all subclasses
     def get_model_identifiers(self, pair, clf_name, tag=""):
-        category = self.__class__.__name__
-        if not clf_name in category:  # don't add if already there
-            model_name = category + "_" + clf_name
+        # category = self.__class__.__name__
+
+        # if not clf_name in category:  # don't add if already there
+        #     model_name = category + "_" + clf_name
+        # else:
+        #     model_name = category
+
+        # basic model name is built from base class (NNTC), dataset type, training signals and classifier
+
+        if self.dataset_type == DatasetType.DEFAULT:
+            ds = ""
         else:
-            model_name = category
+            ds = str(self.dataset_type.value) + "_"
+        model_name = "NNTC_" + \
+                     ds + \
+                     self.training_signals.get_signal_name() + "_" + \
+                     clf_name
+
+        category = "NNTC_" + \
+                     self.training_signals.get_signal_name() + "_" + \
+                     clf_name
 
         if self.model_per_pair:
             model_name = model_name + "_" + pair.split("/")[0]
@@ -889,7 +920,6 @@ class NNTC(IStrategy):
             category, model_name = self.get_model_identifiers(self.curr_pair, name)
             clf.set_model_name(category, model_name)
             clf.set_combine_models(self.combine_models)
-
 
             if clf is not None:
 
@@ -1021,12 +1051,15 @@ class NNTC(IStrategy):
         # MFI
         conditions.append(dataframe['mfi'] < 50.0)
 
-        # # above TEMA
-        # conditions.append(dataframe['dwt'] < dataframe['tema'])
+        # Fisher/Williams in buy region
+        conditions.append(dataframe['fisher_wr'] <= -0.5)
 
         # Classifier triggers
+        # predict_cond = (
+        #     (qtpylib.crossed_above(dataframe['predict_buy'], 0.0))
+        # )
         predict_cond = (
-            (qtpylib.crossed_above(dataframe['predict_buy'], 0.0))
+            dataframe['predict_buy'] > 0.5
         )
 
         # print(f"Num buys: {dataframe['predict_buy'].sum()}")
@@ -1073,7 +1106,7 @@ class NNTC(IStrategy):
                 # self.show_debug_info(curr_pair)
                 self.show_all_debug_info()
 
-        if self.ignore_exit_signals:
+        if self.ignore_exit_signals or (not self.enable_exit_signal.value):
             dataframe['exit_long'] = 0
             return dataframe
 
@@ -1083,13 +1116,18 @@ class NNTC(IStrategy):
         # MFI
         conditions.append(dataframe['mfi'] > 50.0)
 
-        # # below TEMA
-        # conditions.append(dataframe['dwt'] > dataframe['tema'])
 
-        # PCA triggers
+        # Fisher/Williams in sell region
+        conditions.append(dataframe['fisher_wr'] >= 0.5)
+
+        # model triggers
+        # predict_cond = (
+        #     qtpylib.crossed_above(dataframe['predict_sell'], 0.5)
+        # )
         predict_cond = (
-            qtpylib.crossed_above(dataframe['predict_sell'], 0.5)
+                dataframe['predict_sell'] > 0.5
         )
+
 
         conditions.append(predict_cond)
 
@@ -1113,6 +1151,21 @@ class NNTC(IStrategy):
     Custom Stoploss
     """
 
+    # simplified version of custom trailing stoploss
+    def custom_stoploss(self, pair: str, trade: 'Trade', current_time: datetime, current_rate: float,
+                        current_profit: float, **kwargs) -> float:
+
+        #TEMP: move this to populate_exit_signals in NNTC
+        if not self.enable_exit_signal.value:
+            self.ignore_exit_signals = True
+
+        if current_profit > self.tstop_start.value:
+            return current_profit * self.tstop_ratio.value
+
+        # return min(-0.001, max(stoploss_from_open(0.05, current_profit), -0.99))
+        return -0.99
+
+    '''
     def custom_stoploss(self, pair: str, trade: 'Trade', current_time: datetime, current_rate: float,
                         current_profit: float, **kwargs) -> float:
 
@@ -1141,6 +1194,7 @@ class NNTC(IStrategy):
                     else:
                         return 0.01
         return 1
+    '''
 
     ###################################
 
@@ -1149,6 +1203,44 @@ class NNTC(IStrategy):
     (Note that this runs even if use_custom_stoploss is False)
     """
 
+    # simplified version of custom exit
+
+    def custom_exit(self, pair: str, trade: 'Trade', current_time: 'datetime', current_rate: float,
+                    current_profit: float, **kwargs):
+
+        dataframe, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
+        last_candle = dataframe.iloc[-1].squeeze()
+
+        # trade_dur = int((current_time.timestamp() - trade.open_date_utc.timestamp()) // 60)
+        # max_profit = max(0, trade.calc_profit_ratio(trade.max_rate))
+
+        # Mod: just take the profit:
+        # Above 2%, sell if MFI > 90
+        if current_profit > 0.02:
+            if last_candle['mfi'] > 90:
+                return 'mfi_90'
+
+        # Mod: strong sell signal, in profit
+        if (current_profit > 0) and (last_candle['fisher_wr'] > 0.98):
+            return 'fwr_98'
+
+        # Mod: Sell any positions at a loss if they are held for more than 'N' days.
+        # if (current_profit < 0.0) and (current_time - trade.open_date_utc).days >= 7:
+        if (current_time - trade.open_date_utc).days >= 7:
+            return 'unclog'
+
+        # Mod: sell if current profit exceeds threshold (based on recent trends)
+        if self.use_profit_ratio.value:
+            if (current_profit > 0) and (current_profit > last_candle['profit_threshold'] * self.profit_ratio.value):
+                return 'profit_threshold'
+
+        if self.use_loss_ratio.value:
+            if (current_profit < 0) and (current_profit < last_candle['loss_threshold'] * self.loss_ratio.value):
+                return 'loss_threshold'
+
+        return None
+
+    '''
     def custom_exit(self, pair: str, trade: 'Trade', current_time: 'datetime', current_rate: float,
                     current_profit: float, **kwargs):
 
@@ -1161,17 +1253,14 @@ class NNTC(IStrategy):
         in_trend = False
 
         # Mod: just take the profit:
-        # Above 3%, sell if MFI > 90
-        if current_profit > 0.03:
+        # Above 2%, sell if MFI > 90
+        if current_profit > 0.02:
             if last_candle['mfi'] > 90:
                 return 'mfi_90'
 
         # Mod: strong sell signal, in profit
         if (current_profit > 0) and (last_candle['fisher_wr'] > 0.98):
             return 'fwr_98'
-
-        if not self.use_custom_stoploss:
-            return None
 
         # Mod: Sell any positions at a loss if they are held for more than 'N' days.
         # if (current_profit < 0.0) and (current_time - trade.open_date_utc).days >= 7:
@@ -1182,8 +1271,11 @@ class NNTC(IStrategy):
         if (current_profit > 0) and (current_profit > last_candle['profit_threshold']):
             return 'profit_threshold'
 
-        # if (current_profit < 0) and (current_profit < last_candle['loss_threshold']):
-        #     return 'loss_threshold'
+        if (current_profit < 0) and (current_profit < last_candle['loss_threshold']):
+            return 'loss_threshold'
+
+        if not self.use_custom_stoploss:
+            return None
 
         # Determine our current ROI point based on the defined type
         if self.cexit_roi_type.value == 'static':
@@ -1236,5 +1328,5 @@ class NNTC(IStrategy):
                 return 'notrend_roi'
         else:
             return None
-
+    '''
 #######################

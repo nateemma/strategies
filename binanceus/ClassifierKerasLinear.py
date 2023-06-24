@@ -52,7 +52,7 @@ from ClassifierKeras import ClassifierKeras
 class ClassifierKerasLinear(ClassifierKeras):
     clean_data_required = False
 
-    # create model - subclasses should overide this
+    # create model - subclasses should override this
     def create_model(self, seq_len, num_features):
 
         print("    WARNING: create_model() should be defined by the subclass")
