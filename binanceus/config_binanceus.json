@@ -1,9 +1,9 @@
 {
-//  "max_open_trades": 10,
+  //  "max_open_trades": 10,
   "max_open_trades": 10,
   "stake_currency": "USD",
   "dry_run_wallet": 10000,
-//  "stake_amount": 3000,
+  //  "stake_amount": 3000,
   "stake_amount": 900,
   "tradable_balance_ratio": 0.99,
   "fiat_display_currency": "USD",
@@ -39,6 +39,7 @@
     "force_entry": "market",
     "stoploss": "market",
     "stoploss_on_exchange": false,
+    "stoploss_price_type": "last",
     "stoploss_on_exchange_interval": 60,
     "stoploss_on_exchange_limit_ratio": 0.99
   },
@@ -46,12 +47,8 @@
     "name": "binanceus",
     "key": "",
     "secret": "",
-    "ccxt_config": {
-      "enableRateLimit": true
-    },
+    "ccxt_config": {},
     "ccxt_async_config": {
-      "enableRateLimit": true,
-      "rateLimit": 200
     },
     "pair_whitelist": [
       "ETH/USD",
@@ -59,21 +56,22 @@
       "MATIC/USD",
       "ADA/USD",
       "DOGE/USD",
-//      "RNDR/USD",
-//      "VET/USD",
+      //      "RNDR/USD",
+      //      "VET/USD",
       "LTC/USD",
-//      "RAD/USD",
+      //      "RAD/USD",
       "LINK/USD",
       "ONE/USD",
-//      "OP/USD",
-//      "AVAX/USD",
+      //      "OP/USD",
+      //      "AVAX/USD",
       "ATOM/USD",
       "GRT/USD",
       "FET/USD",
       "ACH/USD",
       "DOT/USD",
       "ALGO/USD",
-      "BTC/USD" // make sure last entry is a 'main' pair
+      "BTC/USD"
+      // make sure last entry is a 'main' pair
     ],
     "pair_blacklist": [
       //      ".*(BNB)/.*",

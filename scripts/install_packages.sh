@@ -26,7 +26,7 @@ prompt_user () {
 }
 
 # install generally used packages
-pkg_general=("finta" "prettytable" "PyWavelets" "simdkalman" "pykalman" "scipy" "scikit-learn")
+pkg_general=("finta" "prettytable" "PyWavelets" "simdkalman" "pykalman" "scipy" "scikit-learn" "ast_comments")
 
 if [[ $(prompt_user "Install general packages?: ") -eq 1 ]]; then
   echo ""
@@ -42,12 +42,22 @@ echo ""
 # install packages for keres/tensorflow-based strategies (MacOS-specific)
 
 if [[ $(prompt_user "Install keras/rensorflow packages?: ") -eq 1 ]]; then
-  echo ""
-  conda install -c apple tensorflow-deps
-  pip3 install tensorflow-macos
-  pip3 install tensorflow-metal
-  conda install -c conda-forge -y pandas jupyter
-  pip3 install keras
+
+  cpu_brand=$(sysctl -n machdep.cpu.brand_string)
+  if [[ $cpu_brand == Apple* ]]; then
+      echo ""
+      conda install -c apple tensorflow-deps
+      pip3 install tensorflow-macos
+      pip3 install tensorflow-metal
+      conda install -c conda-forge -y pandas jupyter
+      pip3 install keras
+
+  else
+    pip3 install --upgrade tensorflow
+    pip3 install --upgrade keras
+    pip3 install --upgrade pandas
+
+  fi
 fi
 echo ""
 

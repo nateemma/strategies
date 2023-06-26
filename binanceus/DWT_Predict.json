@@ -17,13 +17,18 @@
       "max_open_trades": 10
     },
     "buy": {
-      "entry_dwt_diff": 0.4
+      "entry_dwt_diff": 4.1
     },
     "sell": {
-      "exit_dwt_diff": -0.3
+      "enable_exit_signal": true,
+      "exit_dwt_diff": -0.4,
+      "profit_threshold": 0.046,
+      "tstop_ratio": 0.922,
+      "tstop_start": 0.042,
+      "use_profit_threshold": true
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2023-06-24 07:54:26.205826+00:00"
+  "export_time": "2023-06-26 20:27:37.388612+00:00"
 }

@@ -4,6 +4,11 @@
 
 I am having a lot of problems pushing to github. It might be related to all of the models...
 
+2023/6/26: Added new type of strat - DWT_Predict.py
+<br>This strategy uses a DWT transform and saves the DWT coefficients for each time step. It then uses a regression
+algorithm to learn the relationship between thiose coefficiwnts and the futuire price. The trained regression algorithm
+is them used to predcict price changes.
+
 2023/6/23: I replaced the complicated custom stoploss and exit logic with something greatly simplified. The general
 approach is now to quickly trade in and out (I guess this is called _scalping_).
 <br>Performance is worse in backtesting, butis more reflective of what happens in live runs. Performance is better than

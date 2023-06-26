@@ -12,7 +12,7 @@ from sklearn.preprocessing import RobustScaler
 
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 
-from freqtrade.strategy import (IStrategy, DecimalParameter)
+from freqtrade.strategy import (IStrategy, DecimalParameter, CategoricalParameter)
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -66,7 +66,7 @@ class DWT_Predict(IStrategy):
     timeframe = '5m'
     inf_timeframe = '15m'
 
-    use_custom_stoploss = False
+    use_custom_stoploss = True
 
     # Recommended
     use_exit_signal = True
@@ -76,7 +76,7 @@ class DWT_Predict(IStrategy):
     # Required
     startup_candle_count: int = 128  # must be power of 2
 
-    process_only_new_candles = False
+    process_only_new_candles = True
 
     custom_trade_info = {}
 
@@ -98,6 +98,18 @@ class DWT_Predict(IStrategy):
     # DWT  hyperparams
     entry_dwt_diff = DecimalParameter(0.0, 5.0, decimals=1, default=0.4, space='buy', load=True, optimize=True)
     exit_dwt_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-0.3, space='sell', load=True, optimize=True)
+
+    # trailing stoploss
+    tstop_start = DecimalParameter(0.0, 0.06, default=0.019, decimals=3, space='sell', load=True, optimize=True)
+    tstop_ratio = DecimalParameter(0.7, 0.99, default=0.8, decimals=3, space='sell', load=True, optimize=True)
+
+    # profit threshold exit
+    profit_threshold = DecimalParameter(0.005, 0.065, default=0.06, decimals=3, space='sell', load=True, optimize=True)
+    use_profit_threshold = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+
+    # use exit signal? Use this for hyperopt, but once decided it's better to just set self.ignore_exit_signals
+    enable_exit_signal = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+
 
 
     plot_config = {
@@ -416,6 +428,10 @@ class DWT_Predict(IStrategy):
         conditions = []
         dataframe.loc[:, 'exit_tag'] = ''
 
+        if not self.enable_exit_signal.value:
+            dataframe['exit_long'] = 0
+            return dataframe
+
         # some volume
         conditions.append(dataframe['volume'] > 0)
 
@@ -444,3 +460,52 @@ class DWT_Predict(IStrategy):
         return dataframe
 
     ###################################
+
+    """
+    Custom Stoploss
+    """
+
+    # simplified version of custom trailing stoploss
+    def custom_stoploss(self, pair: str, trade: 'Trade', current_time: datetime, current_rate: float,
+                        current_profit: float, **kwargs) -> float:
+
+        if current_profit > self.tstop_start.value:
+            return current_profit * self.tstop_ratio.value
+
+        # return min(-0.001, max(stoploss_from_open(0.05, current_profit), -0.99))
+        return -0.99
+
+
+    ###################################
+
+    """
+    Custom Exit
+    (Note that this runs even if use_custom_stoploss is False)
+    """
+
+    # simplified version of custom exit
+
+    def custom_exit(self, pair: str, trade: 'Trade', current_time: 'datetime', current_rate: float,
+                    current_profit: float, **kwargs):
+
+        dataframe, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
+        last_candle = dataframe.iloc[-1].squeeze()
+
+        # trade_dur = int((current_time.timestamp() - trade.open_date_utc.timestamp()) // 60)
+
+        # check profit against ROI target. This sort of emulates the freqtrade roi approach, but is much simpler
+        if self.use_profit_threshold.value:
+            if (current_profit >= self.profit_threshold.value):
+                return 'profit_threshold'
+
+        # Mod: strong sell signal, in profit
+        if (current_profit > 0) and (last_candle['fisher_wr'] > 0.98):
+            return 'fwr_98'
+
+        # Mod: Sell any positions at a loss if they are held for more than 'N' days.
+        # if (current_profit < 0.0) and (current_time - trade.open_date_utc).days >= 7:
+        if (current_time - trade.open_date_utc).days >= 7:
+            return 'unclog'
+
+
+        return None
