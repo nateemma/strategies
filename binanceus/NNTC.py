@@ -248,13 +248,22 @@ class NNTC(IStrategy):
     tstop_start = DecimalParameter(0.0, 0.06, default=0.019, decimals=3, space='sell', load=True, optimize=True)
     tstop_ratio = DecimalParameter(0.7, 0.99, default=0.8, decimals=3, space='sell', load=True, optimize=True)
 
-    # profit threshold exit
-    profit_ratio = DecimalParameter(0.5, 4.0, default=1.0, decimals=1, space='sell', load=True, optimize=True)
-    use_profit_ratio = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
 
-    # loss treshold exit
-    loss_ratio = DecimalParameter(0.5, 2.0, default=1.0, decimals=1, space='sell', load=True, optimize=True)
-    use_loss_ratio = CategoricalParameter([True, False], default=False, space='sell', load=True, optimize=True)
+    # profit threshold exit
+    profit_threshold = DecimalParameter(0.005, 0.065, default=0.046, decimals=3, space='sell', load=True, optimize=True)
+    use_profit_threshold = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+
+    # loss threshold exit
+    loss_threshold = DecimalParameter(-0.065, -0.005, default=-0.046, decimals=3, space='sell', load=True, optimize=True)
+    use_loss_threshold = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+
+    # # profit threshold exit
+    # profit_ratio = DecimalParameter(0.5, 4.0, default=1.0, decimals=1, space='sell', load=True, optimize=True)
+    # use_profit_ratio = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+    #
+    # # loss treshold exit
+    # loss_ratio = DecimalParameter(0.5, 2.0, default=1.0, decimals=1, space='sell', load=True, optimize=True)
+    # use_loss_ratio = CategoricalParameter([True, False], default=False, space='sell', load=True, optimize=True)
 
     # use exit signal? Use this for hyperopt, but once decided it's better to just set self.ignore_exit_signals
     enable_exit_signal = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
@@ -1229,14 +1238,24 @@ class NNTC(IStrategy):
         if (current_time - trade.open_date_utc).days >= 7:
             return 'unclog'
 
-        # Mod: sell if current profit exceeds threshold (based on recent trends)
-        if self.use_profit_ratio.value:
-            if (current_profit > 0) and (current_profit > last_candle['profit_threshold'] * self.profit_ratio.value):
+        # check profit against threshold. This sort of emulates the freqtrade roi approach, but is much simpler
+        if self.use_profit_threshold.value:
+            if (current_profit >= self.profit_threshold.value):
                 return 'profit_threshold'
 
-        if self.use_loss_ratio.value:
-            if (current_profit < 0) and (current_profit < last_candle['loss_threshold'] * self.loss_ratio.value):
+        # check loss against threshold. This sort of emulates the freqtrade stoploss approach, but is much simpler
+        if self.use_loss_threshold.value:
+            if (current_profit <= self.loss_threshold.value):
                 return 'loss_threshold'
+        #
+        # # Mod: sell if current profit exceeds threshold (based on recent trends)
+        # if self.use_profit_ratio.value:
+        #     if (current_profit > 0) and (current_profit > last_candle['profit_threshold'] * self.profit_ratio.value):
+        #         return 'profit_threshold'
+        #
+        # if self.use_loss_ratio.value:
+        #     if (current_profit < 0) and (current_profit < last_candle['loss_threshold'] * self.loss_ratio.value):
+        #         return 'loss_threshold'
 
         return None
 

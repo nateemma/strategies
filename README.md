@@ -4,6 +4,8 @@
 
 I am having a lot of problems pushing to github. It might be related to all of the models...
 
+2023/6/27: Tuned DWT_predict a little. Updates to support tensorflow 2.12
+
 2023/6/26: Added new type of strat - DWT_Predict.py
 <br>This strategy uses a DWT transform and saves the DWT coefficients for each time step. It then uses a regression
 algorithm to learn the relationship between thiose coefficiwnts and the futuire price. The trained regression algorithm

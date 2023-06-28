@@ -9,6 +9,7 @@ from pandas import DataFrame, Series
 
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.preprocessing import RobustScaler
+from xgboost import XGBRegressor
 
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 
@@ -75,6 +76,7 @@ class DWT_Predict(IStrategy):
 
     # Required
     startup_candle_count: int = 128  # must be power of 2
+    win_size = 14
 
     process_only_new_candles = True
 
@@ -105,10 +107,14 @@ class DWT_Predict(IStrategy):
 
     # profit threshold exit
     profit_threshold = DecimalParameter(0.005, 0.065, default=0.06, decimals=3, space='sell', load=True, optimize=True)
-    use_profit_threshold = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+    use_profit_threshold = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=False)
+
+    # loss threshold exit
+    loss_threshold = DecimalParameter(-0.065, -0.005, default=-0.046, decimals=3, space='sell', load=True, optimize=True)
+    use_loss_threshold = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=False)
 
     # use exit signal? Use this for hyperopt, but once decided it's better to just set self.ignore_exit_signals
-    enable_exit_signal = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+    enable_exit_signal = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=False)
 
 
 
@@ -158,10 +164,10 @@ class DWT_Predict(IStrategy):
         # dataframe['dwt_model'] = dataframe['close'].rolling(window=self.dwt_window).apply(self.model)
 
         # RSI
-        dataframe['rsi'] = ta.RSI(dataframe, timeperiod=self.dwt_window)
+        dataframe['rsi'] = ta.RSI(dataframe, timeperiod=self.win_size)
 
         # Williams %R
-        dataframe['wr'] = 0.02 * (self.williams_r(dataframe, period=14) + 50.0)
+        dataframe['wr'] = 0.02 * (self.williams_r(dataframe, period=self.win_size) + 50.0)
 
         # Fisher RSI
         rsi = 0.1 * (dataframe['rsi'] - 50)
@@ -174,8 +180,9 @@ class DWT_Predict(IStrategy):
         print("    Building coefficients dataframe...")
         self.df_coeffs = None # reset for each pair
         coeffs = dataframe['close'].rolling(window=self.dwt_window).apply(self.add_coeffs)
+        # dataframe = self.dataframe_add_coeff(dataframe)
 
-        print("    Merging coefficients into dataframe...")
+        # print("    Merging coefficients into dataframe...")
         dataframe = self.merge_data(dataframe)
 
         print("    Training Model...")
@@ -261,21 +268,38 @@ class DWT_Predict(IStrategy):
         length = len(model)
         return model[length - 1]
 
-    # adds coefficients to dataframe row
-    def add_coeffs(self, a: np.ndarray) -> np.float:
+    # function to get dwt coefficients
+    def get_coeffs(self, data: np.array) -> np.array:
+
+        length = len(data)
+
+        # print(pywt.wavelist(kind='discrete'))
 
         # get the DWT coefficients
-        wavelet = 'haar'
+        # wavelet = 'haar'
+        # level = 2
+        # coeffs = pywt.wavedec(data, wavelet, level=level, mode='smooth')
+        wavelet = 'db12'
         level = 2
-        length = len(a)
-        coeffs = pywt.wavedec(a, wavelet, level=level, mode='smooth')
+        coeffs = pywt.wavedec(data, wavelet, mode='smooth')
+
 
         # remove higher harmonics
         sigma = (1 / 0.6745) * self.madev(coeffs[-level])
         uthresh = sigma * np.sqrt(2 * np.log(length))
         coeffs[1:] = (pywt.threshold(i, value=uthresh, mode='hard') for i in coeffs[1:])
 
+        # flatten the coefficient arrays
         features = np.concatenate(np.array(coeffs, dtype=object))
+
+        return features
+
+    # adds coefficients to dataframe row
+    # TODO: need to speed this up somehow
+    def add_coeffs(self, a: np.ndarray) -> np.float:
+
+        # get the DWT coefficients
+        features = self.get_coeffs(np.array(a))
 
         # print("")
         # print(f"features: {np.shape(features)}")
@@ -283,7 +307,7 @@ class DWT_Predict(IStrategy):
         # print("")
 
         if self.df_coeffs is None:
-            # cols = np.arange(len(features))
+            # add headers (required by pandas because we want to merge later)
             cols = []
             for i in range(len(features)):
                 col = "coeff_" + str(i)
@@ -296,13 +320,65 @@ class DWT_Predict(IStrategy):
                 zeros.append([0] * len(self.df_coeffs.columns))
 
             # Add the rows of zeros to the dataframe
-            # self.df_coeffs = self.df_coeffs.append(pd.DataFrame(zeros, columns=self.df_coeffs.columns),
-            #                                        ignore_index=True)
             self.df_coeffs = pd.concat([self.df_coeffs, pd.DataFrame(zeros, columns=self.df_coeffs.columns)])
 
+        # Append the coefficients to the df_coeffs dataframe
         self.df_coeffs.loc[len(self.df_coeffs)] = features
 
-        return 1.0
+        return 1.0 # have to return a float value
+
+    '''
+
+    # adds coefficients to the dataframe. This is an attempt to speed up the rolling window processing of add_coeffs
+    def dataframe_add_coeff(self, dataframe: DataFrame) -> DataFrame:
+
+        close_data = np.array(dataframe['close'])
+
+        init_df = False if "coeff_0" in dataframe.columns else True
+
+        # roll through the close data and create DWT coefficients for each step
+        nrows = len(close_data)
+        start = 0
+        coeff_array = []
+        col_names  = []
+        num_coeffs = 0
+
+        for i in range(nrows):
+            end = start + self.dwt_window - 1
+            slice = close_data[start:end]
+
+            features = self.get_coeffs(slice)
+
+            # if not present, create columns in dataframe
+            if init_df:
+                init_df = False
+                # add empty columns to dataframe
+                for i in range(len(features)):
+                    col = "coeff_" + str(i)
+                    # dataframe[col] = 0.0
+                    col_names.append(col)
+                num_coeffs = len(features)
+            coeff_array.append(features)
+            start = start + 1
+
+        # add empty data to account for the startup window
+        zeros = []
+        for i in range(self.dwt_window - 1):
+            zeros.append(np.zeros(num_coeffs, dtype=float))
+        coeff_array = zeros + coeff_array
+
+        # Create a DataFrame with the column names
+        df = pd.DataFrame(columns=col_names)
+
+        # Merge the data into the DataFrame
+        for array in coeff_array:
+            df = df.append(array.reshape(1, -1), ignore_index=True)
+
+        # copy the coefficients into the dataframe
+        dataframe = pd.concat([dataframe, self.df_coeffs], axis=1, ignore_index=False)
+
+        return dataframe
+    '''
 
     def merge_data(self, dataframe: DataFrame) -> DataFrame:
 
@@ -347,9 +423,12 @@ class DWT_Predict(IStrategy):
         # print(f"df: {df.shape} y:{y.shape}")
 
         # self.coeff_model = SVR(kernel='rbf', C=1.0, epsilon=0.1)
-        params = {'n_estimators': 100, 'max_depth': 4, 'min_samples_split': 2,
-                  'learning_rate': 0.1, 'loss': 'squared_error'}
-        self.coeff_model = GradientBoostingRegressor(**params)
+        # params = {'n_estimators': 100, 'max_depth': 4, 'min_samples_split': 2,
+        #           'learning_rate': 0.1, 'loss': 'squared_error'}
+        # self.coeff_model = GradientBoostingRegressor(**params)
+        params = {'n_estimators': 100, 'max_depth': 4, 'learning_rate': 0.1}
+
+        self.coeff_model = XGBRegressor(**params)
         self.coeff_model.fit(df, y)
 
 
@@ -497,6 +576,12 @@ class DWT_Predict(IStrategy):
         if self.use_profit_threshold.value:
             if (current_profit >= self.profit_threshold.value):
                 return 'profit_threshold'
+
+
+        # check loss against threshold. This sort of emulates the freqtrade stoploss approach, but is much simpler
+        if self.use_loss_threshold.value:
+            if (current_profit <= self.loss_threshold.value):
+                return 'loss_threshold'
 
         # Mod: strong sell signal, in profit
         if (current_profit > 0) and (last_candle['fisher_wr'] > 0.98):

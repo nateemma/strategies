@@ -7,8 +7,8 @@
 
 
 import numpy as np
-from pandas import DataFrame, Series
 import pandas as pd
+from pandas import DataFrame
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -34,7 +34,6 @@ os.environ['TF_DETERMINISTIC_OPS'] = '1'
 
 import tensorflow as tf
 
-
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 logging.disable(logging.WARNING)
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = '3'
@@ -54,15 +53,13 @@ random.seed(seed)
 tf.random.set_seed(seed)
 np.random.seed(seed)
 
-import keras
-from keras import layers
-
-import h5py
+# import keras
+# from keras import layers
 
 from DataframeUtils import DataframeUtils
 
-class ClassifierKeras():
 
+class ClassifierKeras():
     model = None
     is_trained = False
     category = ""
@@ -75,18 +72,18 @@ class ClassifierKeras():
     encoder = None
     num_epochs = 256  # number of iterations for training
     batch_size = 1024  # batch size for training
-    clean_data_required = False # train with positive rows removed
-    model_per_pair = False # set to False to combine across all pairs
-    new_model = False # True if a new model was created this run
+    clean_data_required = False  # train with positive rows removed
+    model_per_pair = False  # set to False to combine across all pairs
+    new_model = False  # True if a new model was created this run
     dataframeUtils = None
-    requires_dataframes = False # set to True if classifier takes dataframes rather than tensors
-    prescale_dataframe = True # set to True if algorithms need dataframes to be pre-scaled
-    single_prediction = False # True if algorithm only produces 1 prediction (not entire data array)
-    combine_models = False # True means combine models for all pairs (unless model per pair). False will train only on 1st pair
+    requires_dataframes = False  # set to True if classifier takes dataframes rather than tensors
+    prescale_dataframe = True  # set to True if algorithms need dataframes to be pre-scaled
+    single_prediction = False  # True if algorithm only produces 1 prediction (not entire data array)
+    combine_models = False  # True means combine models for all pairs (unless model per pair). False will train only on 1st pair
 
     # ---------------------------
 
-    #Note: pair is needed because we cannot combine model across pairs because of huge price differences
+    # Note: pair is needed because we cannot combine model across pairs because of huge price differences
 
     def __init__(self, pair, seq_len, num_features, tag=""):
         super().__init__()
@@ -151,26 +148,25 @@ class ClassifierKeras():
 
         print("    WARNING: create_model() should be defined by the subclass")
         # create a simple model for illustrative purposes (or to test the framework)
-        model = keras.Sequential(name=self.name)
+        model = tf.keras.Sequential(name=self.name)
 
         # Encoder
-        model.add(layers.Dense(outer_dim, activation='relu', input_shape=(seq_len, num_features)))
-        model.add(layers.Dense(2*outer_dim, activation='relu'))
-        model.add(layers.Dense(inner_dim, activation='relu', name=self.encoder_layer)) # name is mandatory
+        model.add(tf.keras.layers.Dense(outer_dim, activation='relu', input_shape=(seq_len, num_features)))
+        model.add(tf.keras.layers.Dense(2 * outer_dim, activation='relu'))
+        model.add(tf.keras.layers.Dense(inner_dim, activation='relu', name=self.encoder_layer))  # name is mandatory
 
         # Decoder
-        model.add(layers.Dense(2*outer_dim, activation='relu', input_shape=(1, inner_dim)))
-        model.add(layers.Dense(outer_dim, activation='relu'))
+        model.add(tf.keras.layers.Dense(2 * outer_dim, activation='relu', input_shape=(1, inner_dim)))
+        model.add(tf.keras.layers.Dense(outer_dim, activation='relu'))
 
-
-        model.add(layers.Dense(num_features, activation=None))
+        model.add(tf.keras.layers.Dense(num_features, activation=None))
 
     # ---------------------------
 
     # compile the model. This is a distinct function because it can vary by model type
     def compile_model(self, model):
 
-        optimizer = keras.optimizers.Adam(learning_rate=0.01)
+        optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
 
         model.compile(metrics=['accuracy', 'mse'], loss='mse', optimizer=optimizer)
 
@@ -200,7 +196,7 @@ class ClassifierKeras():
             self.model = self.compile_model(self.model)
             self.model.summary()
 
-        if self.dataframeUtils.is_dataframe(df_train):
+        if self.dataframeUtils.is_dataframe(df_train_norm):
             # remove rows with positive labels?!
             if self.clean_data_required:
                 df1 = df_train_norm.copy()
@@ -229,7 +225,7 @@ class ClassifierKeras():
         plateau_patience = 4
 
         # callback to control early exit on plateau of results
-        early_callback = keras.callbacks.EarlyStopping(
+        early_callback = tf.keras.callbacks.EarlyStopping(
             monitor=monitor_field,
             mode=monitor_mode,
             patience=early_patience,
@@ -237,7 +233,7 @@ class ClassifierKeras():
             restore_best_weights=True,
             verbose=1)
 
-        plateau_callback = keras.callbacks.ReduceLROnPlateau(
+        plateau_callback = tf.keras.callbacks.ReduceLROnPlateau(
             monitor=monitor_field,
             mode=monitor_mode,
             factor=0.1,
@@ -247,7 +243,7 @@ class ClassifierKeras():
 
         # callback to control saving of 'best' model
         # Note that we use validation loss as the metric, not training loss
-        checkpoint_callback = keras.callbacks.ModelCheckpoint(
+        checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
             filepath=self.get_checkpoint_path(),
             save_weights_only=True,
             monitor=monitor_field,
@@ -265,11 +261,11 @@ class ClassifierKeras():
 
         # Model weights are saved at the end of every epoch, if it's the best seen so far.
         fhis = self.model.fit(train_tensor, train_tensor,
-                                    batch_size=self.batch_size,
-                                    epochs=self.num_epochs,
-                                    callbacks=callbacks,
-                                    validation_data=(test_tensor, test_tensor),
-                                    verbose=0)
+                              batch_size=self.batch_size,
+                              epochs=self.num_epochs,
+                              callbacks=callbacks,
+                              validation_data=(test_tensor, test_tensor),
+                              verbose=0)
 
         # # The model weights (that are considered the best) are loaded into th model.
         # self.update_model_weights()
@@ -303,7 +299,6 @@ class ClassifierKeras():
         else:
             tensor = data
 
-
         predict_tensor = self.model.predict(tensor, verbose=1)
 
         # not sure why, but predict sometimes returns an odd length
@@ -312,7 +307,7 @@ class ClassifierKeras():
             predictions = np.zeros(np.shape(tensor)[0], dtype=float)
         else:
             # get losses by comparing input to output
-            msle = tf.keras.losses.msle(predict_tensor, tensor)
+            msle = tf.tf.keras.losses.msle(predict_tensor, tensor)
             msle = msle[:, 0]
 
             # mean + stddev method
@@ -337,7 +332,6 @@ class ClassifierKeras():
             # threshold = np.max(mae_loss)
             # predictions = np.where(mae_loss > threshold, 1.0, 0.0)
             # print("    predictions:{} data:{}".format(np.shape(predictions), predictions))
-
 
         return predictions
 
@@ -364,7 +358,7 @@ class ClassifierKeras():
         score = self.model.evaluate(test_tensor, preds, return_dict=True, verbose=0)
         print("model:{} score:{} ".format(self.name, score))
 
-        loss = tf.keras.metrics.mean_squared_error(test_tensor, preds)
+        loss = tf.tf.keras.metrics.mean_squared_error(test_tensor, preds)
         # print("    loss:{} {}".format(np.shape(loss), loss))
         loss = np.array(loss[0])
         print("    loss:")
@@ -376,7 +370,7 @@ class ClassifierKeras():
     # ---------------------------
 
     # 'recosnstruct' a dataframe by passing it through the model
-    def reconstruct(self, df_norm:DataFrame) -> DataFrame:
+    def reconstruct(self, df_norm: DataFrame) -> DataFrame:
 
         # lazy loading because params can change up to this point
         if self.model is None:
@@ -438,7 +432,7 @@ class ClassifierKeras():
     # ---------------------------
 
     def get_checkpoint_path(self):
-        checkpoint_dir = '/tmp'+ "/" + self.name + "/"
+        checkpoint_dir = '/tmp' + "/" + self.name + "/"
         if not os.path.exists(checkpoint_dir):
             os.makedirs(checkpoint_dir)
         model_path = checkpoint_dir + "checkpoint.h5"
@@ -447,24 +441,24 @@ class ClassifierKeras():
     # ---------------------------
 
     def save(self, path=""):
-        
+
         if len(path) == 0:
             self.model_path = self.get_model_path()
             path = self.model_path
         else:
             self.model_path = path
-            
+
         print("    saving model to: ", path)
         save_dir = os.path.dirname(path)
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-        keras.models.save_model(self.model, filepath=path, save_format='h5')
+        tf.keras.models.save_model(self.model, filepath=path, save_format='h5')
         return
 
     # ---------------------------
 
     def load(self, path=""):
-        
+
         if len(path) == 0:
             self.model_path = self.get_model_path()
             path = self.model_path
@@ -472,7 +466,7 @@ class ClassifierKeras():
             self.model_path = path
 
         model = None
-        
+
         # if model exists, load it
         if os.path.exists(path):
             print("    Loading existing model ({})...".format(path))
@@ -482,7 +476,7 @@ class ClassifierKeras():
                 if callable(custom_load):
                     model = self.custom_load(path)
                 else:
-                    model = keras.models.load_model(path, compile=False)
+                    model = tf.keras.models.load_model(path, compile=False)
                 self.compile_model(model)
                 self.is_trained = True
 

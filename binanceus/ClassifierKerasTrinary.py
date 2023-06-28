@@ -50,10 +50,6 @@ np.random.seed(seed)
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
-import keras
-from keras import layers
-import keras.backend as K
-
 import sklearn
 
 from ClassifierKeras import ClassifierKeras
@@ -79,28 +75,29 @@ class ClassifierKerasTrinary(ClassifierKeras):
         print("    WARNING: create_model() should be defined by the subclass")
 
         # create a simple model for illustrative purposes (or to test the framework)
-        model = keras.Sequential(name=self.name)
+        model = tf.keras.Sequential(name=self.name)
 
         # NOTE: don't use relu with LSTMs, cannot use GPU if you do (much slower). Use tanh
 
         # simplest possible model:
-        model.add(layers.LSTM(128, return_sequences=True, activation='tanh', input_shape=(seq_len, num_features)))
-        model.add(layers.Dropout(rate=0.1))
+        model.add(tf.keras.layers.LSTM(128, return_sequences=True, activation='tanh', input_shape=(seq_len, num_features)))
+        model.add(tf.keras.layers.Dropout(rate=0.1))
 
         # last layer is a trinary decision - do not change
-        model.add(layers.Dense(3, activation='softmax'))
+        model.add(tf.keras.layers.Dense(3, activation='softmax'))
 
         return model
 
     def compile_model(self, model):
 
-        # optimizer = keras.optimizers.Adam(learning_rate=0.001)
-        # optimizer = keras.optimizers.Adam(learning_rate=0.005)
-        optimizer = keras.optimizers.Adam(learning_rate=0.01)
+        # optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+        # optimizer = tf.keras.optimizers.Adam(learning_rate=0.005)
+        # optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
+        optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
 
         # optimizer = tf.keras.optimizers.AdamW(learning_rate=0.001, weight_decay=0.004)
         # optimizer = tf.train.AdamWOptimizer(learning_rate=0.001, weight_decay=0.004)
-        # optimizer = keras.optimizers.SGD(learning_rate=0.01, momentum=0.9, nesterov=True, clipnorm=1.)
+        # optimizer = tf.keras.optimizers.SGD(learning_rate=0.01, momentum=0.9, nesterov=True, clipnorm=1.)
 
         # The loss function makes a big difference, probably because the class distribution (hold/sell/buy) is
         # very unbalanced, i.e. way more holds than buys or sells
@@ -193,7 +190,7 @@ class ClassifierKerasTrinary(ClassifierKeras):
         # print(f"monitor_field: {monitor_field}, monitor_mode: {monitor_mode}, early_patience: {early_patience}")
 
         # callback to control early exit on plateau of results
-        early_callback = keras.callbacks.EarlyStopping(
+        early_callback = tf.keras.callbacks.EarlyStopping(
             monitor=monitor_field,
             mode=monitor_mode,
             patience=early_patience,
@@ -201,7 +198,7 @@ class ClassifierKerasTrinary(ClassifierKeras):
             restore_best_weights=True,
             verbose=0)
 
-        plateau_callback = keras.callbacks.ReduceLROnPlateau(
+        plateau_callback = tf.keras.callbacks.ReduceLROnPlateau(
             monitor=monitor_field,
             mode=monitor_mode,
             factor=0.1,
@@ -211,7 +208,7 @@ class ClassifierKerasTrinary(ClassifierKeras):
 
         # callback to control saving of 'best' model
         # Note that we use validation loss as the metric, not training loss
-        checkpoint_callback = keras.callbacks.ModelCheckpoint(
+        checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
             filepath=self.get_checkpoint_path(),
             save_weights_only=True,
             monitor=monitor_field,

@@ -26,7 +26,8 @@ prompt_user () {
 }
 
 # install generally used packages
-pkg_general=("finta" "prettytable" "PyWavelets" "simdkalman" "pykalman" "scipy" "scikit-learn" "ast_comments")
+pkg_general=("finta" "prettytable" "PyWavelets" "simdkalman" "pykalman" "scipy" "scikit-learn" \
+"ast_comments" "rich" "xgboost")
 
 if [[ $(prompt_user "Install general packages?: ") -eq 1 ]]; then
   echo ""
@@ -43,18 +44,19 @@ echo ""
 
 if [[ $(prompt_user "Install keras/rensorflow packages?: ") -eq 1 ]]; then
 
+  # check whether this uses an Apple CPU
   cpu_brand=$(sysctl -n machdep.cpu.brand_string)
   if [[ $cpu_brand == Apple* ]]; then
       echo ""
       conda install -c apple tensorflow-deps
-      pip3 install tensorflow-macos
-      pip3 install tensorflow-metal
+      pip3 install --upgrade tensorflow-macos
+      pip3 install --upgrade tensorflow-metal
       conda install -c conda-forge -y pandas jupyter
-      pip3 install keras
+#      pip3 install --upgrade keras
 
   else
     pip3 install --upgrade tensorflow
-    pip3 install --upgrade keras
+#    pip3 install --upgrade keras
     pip3 install --upgrade pandas
 
   fi
@@ -67,5 +69,6 @@ if [[ $(prompt_user "Install darts/pytorch packages?: ") -eq 1 ]]; then
   echo ""
   conda install pytorch torchvision -c pytorch
   pip3 install darts
+  pip3 install statsforecast
 fi
 echo ""
