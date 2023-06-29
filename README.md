@@ -4,6 +4,10 @@
 
 I am having a lot of problems pushing to github. It might be related to all of the models...
 
+2023/6/29: converted to use USDT instead of USD - pairs were being removed from binanceus, so this no longer made sense. 
+<br>DWT_Predict has been optimised a little and is quite a bit faster. custom_sell and custom_exit have also been simplified. Performance is looking good in dry runs...
+<br>There is currently an issue with hyperopt for NN strats caused by something not being pickle-able. I am chasing this down, but it's not obvious. The strats will still run though
+
 2023/6/27: Tuned DWT_predict a little. Updates to support tensorflow 2.12
 
 2023/6/26: Added new type of strat - DWT_Predict.py
