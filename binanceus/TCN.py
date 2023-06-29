@@ -3,15 +3,15 @@ from typing import List
 
 import tensorflow as tf
 # pylint: disable=E0611,E0401
-from keras import backend as K, Model, Input, optimizers
+# from keras import backend as K, Model, Input, optimizers
 # pylint: disable=E0611,E0401
-from keras import layers
+# from keras import layers
 # pylint: disable=E0611,E0401
-from keras.layers import Activation, SpatialDropout1D, Lambda
+# from tf.keras.layers import Activation, SpatialDropout1D, Lambda
 # pylint: disable=E0611,E0401
-from keras.layers import Layer, Conv1D, Dense, BatchNormalization, LayerNormalization
+# from tf.keras.layers import Layer, Conv1D, Dense, BatchNormalization, LayerNormalization
 
-# from keras.layers.utils import register_keras_serializable
+# from tf.keras.layers.utils import register_keras_serializable
 
 
 def is_power_of_two(num: int):
@@ -27,7 +27,7 @@ def adjust_dilations(dilations: list):
 
 
 # @tf.keras.utils.register_keras_serializable
-class ResidualBlock(Layer):
+class ResidualBlock(tf.keras.layers.Layer):
 
     def __init__(self,
                  dilation_rate: int,
@@ -79,7 +79,7 @@ class ResidualBlock(Layer):
         """Helper function for building layer
         Args:
             layer: Appends layer to internal layer list and builds it based on the current output
-                   shape of ResidualBlocK. Updates current output shape.
+                   shape of ResidualBloctf.keras.backend. Updates current output shape.
         """
         self.layers.append(layer)
         self.layers[-1].build(self.res_output_shape)
@@ -87,14 +87,14 @@ class ResidualBlock(Layer):
 
     def build(self, input_shape):
 
-        with K.name_scope(self.name):  # name scope used to make sure weights get unique names
+        with tf.keras.backend.name_scope(self.name):  # name scope used to make sure weights get unique names
             self.layers = []
             self.res_output_shape = input_shape
 
-            for k in range(2):  # dilated conv block.
+            for k in range(2):  # dilated conv bloctf.keras.backend.
                 name = 'conv1D_{}'.format(k)
-                with K.name_scope(name):  # name scope used to make sure weights get unique names
-                    conv = Conv1D(
+                with tf.keras.backend.name_scope(name):  # name scope used to make sure weights get unique names
+                    conv = tf.keras.layers.Conv1D(
                         filters=self.nb_filters,
                         kernel_size=self.kernel_size,
                         dilation_rate=self.dilation_rate,
@@ -105,29 +105,29 @@ class ResidualBlock(Layer):
                     # if self.use_weight_norm:
                     #     from tensorflow_addons.layers import WeightNormalization
                     #     # wrap it. WeightNormalization API is different than BatchNormalization or LayerNormalization.
-                    #     with K.name_scope('norm_{}'.format(k)):
+                    #     with tf.keras.backend.name_scope('norm_{}'.format(k)):
                     #         conv = WeightNormalization(conv)
                     self._build_layer(conv)
 
-                with K.name_scope('norm_{}'.format(k)):
+                with tf.keras.backend.name_scope('norm_{}'.format(k)):
                     if self.use_batch_norm:
-                        self._build_layer(BatchNormalization())
+                        self._build_layer(tf.keras.layers.BatchNormalization())
                     elif self.use_layer_norm:
-                        self._build_layer(LayerNormalization())
+                        self._build_layer(tf.keras.layers.LayerNormalization())
                     elif self.use_weight_norm:
                         pass  # done above.
 
-                with K.name_scope('act_and_dropout_{}'.format(k)):
-                    self._build_layer(Activation(self.activation, name='Act_Conv1D_{}'.format(k)))
-                    self._build_layer(SpatialDropout1D(rate=self.dropout_rate, name='SDropout_{}'.format(k)))
+                with tf.keras.backend.name_scope('act_and_dropout_{}'.format(k)):
+                    self._build_layer(tf.keras.layers.Activation(self.activation, name='Act_Conv1D_{}'.format(k)))
+                    self._build_layer(tf.keras.layers.SpatialDropout1D(rate=self.dropout_rate, name='SDropout_{}'.format(k)))
 
             if self.nb_filters != input_shape[-1]:
                 # 1x1 conv to match the shapes (channel dimension).
                 name = 'matching_conv1D'
-                with K.name_scope(name):
+                with tf.keras.backend.name_scope(name):
                     # make and build this layer separately because it directly uses input_shape.
                     # 1x1 conv.
-                    self.shape_match_conv = Conv1D(
+                    self.shape_match_conv = tf.keras.layers.Conv1D(
                         filters=self.nb_filters,
                         kernel_size=1,
                         padding='same',
@@ -136,14 +136,14 @@ class ResidualBlock(Layer):
                     )
             else:
                 name = 'matching_identity'
-                self.shape_match_conv = Lambda(lambda x: x, name=name)
+                self.shape_match_conv = tf.keras.layers.Lambda(lambda x: x, name=name)
 
-            with K.name_scope(name):
+            with tf.keras.backend.name_scope(name):
                 self.shape_match_conv.build(input_shape)
                 self.res_output_shape = self.shape_match_conv.compute_output_shape(input_shape)
 
-            self._build_layer(Activation(self.activation, name='Act_Conv_Blocks'))
-            self.final_activation = Activation(self.activation, name='Act_Res_Block')
+            self._build_layer(tf.keras.layers.Activation(self.activation, name='Act_Conv_Blocks'))
+            self.final_activation = tf.keras.layers.Activation(self.activation, name='Act_Res_Block')
             self.final_activation.build(self.res_output_shape)  # probably isn't necessary
 
             # this is done to force Keras to add the layers in the list to self._layers
@@ -164,7 +164,7 @@ class ResidualBlock(Layer):
         # x2: Residual (1x1 matching conv - optional).
         # Output: x1 + x2.
         # x1 -> connected to skip connections.
-        # x1 + x2 -> connected to the next block.
+        # x1 + x2 -> connected to the next bloctf.keras.backend.
         #       input
         #     x1      x2
         #   conv1D    1x1 Conv1D (optional)
@@ -177,14 +177,14 @@ class ResidualBlock(Layer):
             training_flag = 'training' in dict(inspect.signature(layer.call).parameters)
             x1 = layer(x1, training=training) if training_flag else layer(x1)
         x2 = self.shape_match_conv(inputs)
-        x1_x2 = self.final_activation(layers.add([x2, x1], name='Add_Res'))
+        x1_x2 = self.final_activation(tf.keras.layers.layers.add([x2, x1], name='Add_Res'))
         return [x1_x2, x1]
 
     def compute_output_shape(self, input_shape):
         return [self.res_output_shape, self.res_output_shape]
 
 # @tf.keras.utils.register_keras_serializable
-class TCN(Layer):
+class TCN(tf.keras.layers.Layer):
     """Creates a TCN layer.
 
         Input shape:
@@ -196,7 +196,7 @@ class TCN(Layer):
             dilations: The list of the dilations. Example is: [1, 2, 4, 8, 16, 32, 64].
             nb_stacks : The number of stacks of residual blocks to use.
             padding: The padding to use in the convolutional layers, 'causal' or 'same'.
-            use_skip_connections: Boolean. If we want to add skip connections from input to each residual blocK.
+            use_skip_connections: Boolean. If we want to add skip connections from input to each residual bloctf.keras.backend.
             return_sequences: Boolean. Whether to return the last output in the output sequence, or the full sequence.
             activation: The activation used in the residual blocks o = Activation(x + F(x)).
             dropout_rate: Float between 0 and 1. Fraction of the input units to drop.
@@ -317,7 +317,7 @@ class TCN(Layer):
 
         else:
             self.output_slice_index = -1  # causal case.
-        self.slicer_layer = Lambda(lambda tt: tt[:, self.output_slice_index, :], name='Slice_Output')
+        self.slicer_layer = tf.keras.layers.Lambda(lambda tt: tt[:, self.output_slice_index, :], name='Slice_Output')
         self.slicer_layer.build(self.build_output_shape.as_list())
 
     def compute_output_shape(self, input_shape):
@@ -348,14 +348,14 @@ class TCN(Layer):
             try:
                 x, skip_out = res_block(x, training=training)
             except TypeError:  # compatibility with tensorflow 1.x
-                x, skip_out = res_block(K.cast(x, 'float32'), training=training)
+                x, skip_out = res_block(tf.keras.backend.cast(x, 'float32'), training=training)
             self.skip_connections.append(skip_out)
             self.layers_outputs.append(x)
 
         if self.use_skip_connections:
             if len(self.skip_connections) > 1:
                 # Keras: A merge layer should be called on a list of at least 2 inputs. Got 1 input.
-                x = layers.add(self.skip_connections, name='Add_Skip_Connections')
+                x = tf.keras.layers.layers.add(self.skip_connections, name='Add_Skip_Connections')
             else:
                 x = self.skip_connections[0]
             self.layers_outputs.append(x)
@@ -363,7 +363,7 @@ class TCN(Layer):
         if not self.return_sequences:
             # case: time dimension is unknown. e.g. (bs, None, input_dim).
             if self.padding_same_and_time_dim_unknown:
-                self.output_slice_index = K.shape(self.layers_outputs[-1])[1] // 2
+                self.output_slice_index = tf.keras.backend.shape(self.layers_outputs[-1])[1] // 2
             x = self.slicer_layer(x)
             self.layers_outputs.append(x)
         return x
@@ -405,15 +405,15 @@ def compiled_tcn(num_feat,  # type: int
                  return_sequences=True,
                  regression=False,  # type: bool
                  dropout_rate=0.05,  # type: float
-                 name='tcn',  # type: str,
-                 kernel_initializer='he_normal',  # type: str,
-                 activation='relu',  # type:str,
+                 name='tcn',  # type: str
+                 kernel_initializer='he_normal',  # type: str
+                 activation='relu',  # type:str
                  opt='adam',
                  lr=0.002,
                  use_batch_norm=False,
                  use_layer_norm=False,
                  use_weight_norm=False):
-    # type: (...) -> Model
+    # type: (...) -> tf.keras.Model
     """Creates a compiled TCN model for a given task (i.e. regression or classification).
     Classification uses a sparse categorical loss. Please input class ids and not one-hot encodings.
 
@@ -426,7 +426,7 @@ def compiled_tcn(num_feat,  # type: int
         nb_stacks : The number of stacks of residual blocks to use.
         max_len: The maximum sequence length, use None if the sequence length is dynamic.
         padding: The padding to use in the convolutional layers.
-        use_skip_connections: Boolean. If we want to add skip connections from input to each residual blocK.
+        use_skip_connections: Boolean. If we want to add skip connections from input to each residual bloctf.keras.backend.
         return_sequences: Boolean. Whether to return the last output in the output sequence, or the full sequence.
         regression: Whether the output should be continuous or discrete.
         dropout_rate: Float between 0 and 1. Fraction of the input units to drop.
@@ -444,7 +444,7 @@ def compiled_tcn(num_feat,  # type: int
 
     dilations = adjust_dilations(dilations)
 
-    input_layer = Input(shape=(max_len, num_feat))
+    input_layer = tf.keras.layers.Input(shape=(max_len, num_feat))
 
     x = TCN(nb_filters, kernel_size, nb_stacks, dilations, padding,
             use_skip_connections, dropout_rate, return_sequences,
@@ -455,45 +455,45 @@ def compiled_tcn(num_feat,  # type: int
 
     def get_opt():
         if opt == 'adam':
-            return optimizers.Adam(lr=lr, clipnorm=1.)
+            return tf.keras.optimizers.Adam(lr=lr, clipnorm=1.)
         elif opt == 'rmsprop':
-            return optimizers.RMSprop(lr=lr, clipnorm=1.)
+            return tf.keras.optimizers.RMSprop(lr=lr, clipnorm=1.)
         else:
             raise Exception('Only Adam and RMSProp are available here')
 
     if not regression:
         # classification
-        x = Dense(num_classes)(x)
-        x = Activation('softmax')(x)
+        x = tf.keras.layers.Dense(num_classes)(x)
+        x = tf.keras.layers.Activation('softmax')(x)
         output_layer = x
-        model = Model(input_layer, output_layer)
+        model = tf.keras.Model(input_layer, output_layer)
 
         # https://github.com/keras-team/keras/pull/11373
         # It's now in Keras@master but still not available with pip.
         # TODO remove later.
         def accuracy(y_true, y_pred):
             # reshape in case it's in shape (num_samples, 1) instead of (num_samples,)
-            if K.ndim(y_true) == K.ndim(y_pred):
-                y_true = K.squeeze(y_true, -1)
+            if tf.keras.backend.ndim(y_true) == tf.keras.backend.ndim(y_pred):
+                y_true = tf.keras.backend.squeeze(y_true, -1)
             # convert dense predictions to labels
-            y_pred_labels = K.argmax(y_pred, axis=-1)
-            y_pred_labels = K.cast(y_pred_labels, K.floatx())
-            return K.cast(K.equal(y_true, y_pred_labels), K.floatx())
+            y_pred_labels = tf.keras.backend.argmax(y_pred, axis=-1)
+            y_pred_labels = tf.keras.backend.cast(y_pred_labels, tf.keras.backend.floatx())
+            return tf.keras.backend.cast(tf.keras.backend.equal(y_true, y_pred_labels), tf.keras.backend.floatx())
 
         model.compile(get_opt(), loss='sparse_categorical_crossentropy', metrics=[accuracy])
     else:
         # regression
-        x = Dense(output_len)(x)
-        x = Activation('linear')(x)
+        x = tf.keras.layers.Dense(output_len)(x)
+        x = tf.keras.layers.Activation('linear')(x)
         output_layer = x
-        model = Model(input_layer, output_layer)
+        model = tf.keras.Model(input_layer, output_layer)
         model.compile(get_opt(), loss='mean_squared_error')
     print('model.x = {}'.format(input_layer.shape))
     print('model.y = {}'.format(output_layer.shape))
     return model
 
 
-def tcn_full_summary(model: Model, expand_residual_blocks=True):
+def tcn_full_summary(model: tf.keras.Model, expand_residual_blocks=True):
     import tensorflow as tf
     # 2.6.0-rc1, 2.5.0...
     versions = [int(v) for v in tf.__version__.split('-')[0].split('.')]

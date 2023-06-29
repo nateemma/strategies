@@ -37,7 +37,7 @@ np.random.seed(seed)
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
-import keras
+#import keras
 from keras import layers
 from ClassifierKerasBinary import ClassifierKerasBinary
 
@@ -52,7 +52,7 @@ class NNBClassifier_Multihead(ClassifierKerasBinary):
         dropout = 0.1
 
         input_shape = (seq_len, num_features)
-        inputs = keras.Input(shape=input_shape)
+        inputs = tf.keras.Input(shape=input_shape)
         x = inputs
         x = layers.LSTM(64, return_sequences=True, activation='tanh', input_shape=input_shape)(x)
         x = layers.Dropout(dropout)(x)
@@ -74,6 +74,6 @@ class NNBClassifier_Multihead(ClassifierKerasBinary):
         # last layer is a binary decision - do not change
         outputs = layers.Dense(1, activation="sigmoid")(x)
 
-        model = keras.Model(inputs, outputs)
+        model = tf.keras.Model(inputs, outputs)
 
         return model

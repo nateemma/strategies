@@ -3,11 +3,10 @@ from enum import Enum
 from functools import reduce
 
 import numpy as np
-# Get rid of pandas warnings during backtesting
 import pandas as pd
 from pandas import DataFrame
 
-import freqtrade.vendor.qtpylib.indicators as qtpylib
+# import freqtrade.vendor.qtpylib.indicators as qtpylib
 from freqtrade.exchange import timeframe_to_minutes
 from freqtrade.persistence import Trade
 from freqtrade.strategy import (IStrategy, IntParameter, DecimalParameter, CategoricalParameter)

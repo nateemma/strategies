@@ -41,9 +41,9 @@ np.random.seed(seed)
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
-# import keras
+# #import keras
 # from keras import layers
-# from keras.regularizers import l2
+# from tf.keras.regularizers import l2
 from ClassifierKerasTrinary import ClassifierKerasTrinary
 
 
@@ -134,15 +134,15 @@ class NNTClassifier_CNN(ClassifierKerasTrinary):
         inputs = tf.keras.Input(shape=(seq_len, num_features))
         x = inputs
 
-        # x = tf.keras.tf.keras.layers.Dense(64, input_shape=(seq_len, num_features))(x)
-        # x = tf.keras.tf.keras.layers.BatchNormalization()(x)
+        # x = tf.keras.layers.Dense(64, input_shape=(seq_len, num_features))(x)
+        # x = tf.keras.layers.BatchNormalization()(x)
 
-        x = tf.keras.tf.keras.layers.Conv1D(filters=64, kernel_size=2, activation='tanh', padding="causal")(x)
-        x = tf.keras.tf.keras.layers.Dropout(dropout)(x)
-        x = tf.keras.tf.keras.layers.BatchNormalization()(x)
+        x = tf.keras.layers.Conv1D(filters=64, kernel_size=2, activation='tanh', padding="causal")(x)
+        x = tf.keras.layers.Dropout(dropout)(x)
+        x = tf.keras.layers.BatchNormalization()(x)
 
         # intermediate layer to bring down the dimensions
-        x = tf.keras.tf.keras.layers.Dense(16)(x)
+        x = tf.keras.layers.Dense(16)(x)
 
         # last layer is a linear trinary decision - do not change
         x = tf.keras.layers.Dropout(0.2)(x)
@@ -202,13 +202,13 @@ class NNTClassifier_Ensemble(ClassifierKerasTrinary):
         return x
 
     def get_cnn(self, inputs, seq_len, num_features):
-        x = tf.keras.tf.keras.layers.Conv1D(filters=64, kernel_size=2, activation='tanh', padding="causal")(inputs)
-        x = tf.keras.tf.keras.layers.Dropout(0.2)(x)
-        x = tf.keras.tf.keras.layers.BatchNormalization()(x)
+        x = tf.keras.layers.Conv1D(filters=64, kernel_size=2, activation='tanh', padding="causal")(inputs)
+        x = tf.keras.layers.Dropout(0.2)(x)
+        x = tf.keras.layers.BatchNormalization()(x)
 
         # intermediate layer to bring down the dimensions
-        x = tf.keras.tf.keras.layers.Dense(16)(x)
-        x = tf.keras.tf.keras.layers.Dropout(0.2)(x)
+        x = tf.keras.layers.Dense(16)(x)
+        x = tf.keras.layers.Dropout(0.2)(x)
         x = tf.keras.layers.Dense(3, activation="softmax")(x)
         return x
 
@@ -465,7 +465,7 @@ class NNTClassifier_Transformer(ClassifierKerasTrinary):
         x = inputs
         for _ in range(num_transformer_blocks):
             x = self.transformer_encoder(x, head_size, num_heads, dropout, ff_dim)
-            x = tf.keras.tf.keras.layers.BatchNormalization()(x)
+            x = tf.keras.layers.BatchNormalization()(x)
 
         # x = tf.keras.layers.GlobalAveragePooling1D(keepdims=True, data_format="channels_first")(x)
         # x = tf.keras.layers.GlobalMaxPooling1D(keepdims=True, data_format="channels_first")(x)

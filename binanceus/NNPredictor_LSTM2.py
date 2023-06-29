@@ -37,7 +37,7 @@ np.random.seed(seed)
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
-import keras
+#import keras
 from keras import layers
 from ClassifierKerasLinear import ClassifierKerasLinear
 
@@ -55,11 +55,11 @@ class NNPredictor_LSTM2(ClassifierKerasLinear):
         # NOTE: don't use relu with LSTMs, cannot use GPU if you do (much slower). Use tanh
 
         # simplest possible LSTM :
-        model = keras.Sequential(name=self.name)
+        model = tf.keras.Sequential(name=self.name)
 
         # NOTE: don't use relu with LSTMs, cannot use GPU if you do (much slower). Use tanh
 
-        inputs = keras.Input(shape=(seq_len, num_features))
+        inputs = tf.keras.Input(shape=(seq_len, num_features))
         x = inputs
         x = layers.LSTM(128, activation='tanh', return_sequences=True)(x)
         x = layers.Dropout(rate=0.2)(x)
@@ -67,6 +67,6 @@ class NNPredictor_LSTM2(ClassifierKerasLinear):
         # last layer is a linear (float) value - do not change
         outputs = layers.Dense(1, activation="linear")(x)
 
-        model = keras.Model(inputs, outputs)
+        model = tf.keras.Model(inputs, outputs)
 
         return model

@@ -37,7 +37,7 @@ np.random.seed(seed)
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
-import keras
+#import keras
 from keras import layers
 from ClassifierKerasLinear import ClassifierKerasLinear
 
@@ -54,25 +54,25 @@ class NNPredictor_CNN(ClassifierKerasLinear):
         dropout = 0.1
         n_filters = (8, 8, 8)
 
-        inputs = keras.Input(shape=(seq_len, num_features))
+        inputs = tf.keras.Input(shape=(seq_len, num_features))
         x = inputs
 
-        x = keras.layers.Dense(64, input_shape=(seq_len, num_features))(x)
-        x = keras.layers.BatchNormalization()(x)
+        x = tf.keras.layers.Dense(64, input_shape=(seq_len, num_features))(x)
+        x = tf.keras.layers.BatchNormalization()(x)
 
-        x = keras.layers.Conv1D(filters=64, kernel_size=2, activation='relu')(x)
-        x = keras.layers.MaxPooling1D(pool_size=2)(x)
-        x = keras.layers.Flatten()(x)
-        x = keras.layers.Dropout(dropout)(x)
-        x = keras.layers.BatchNormalization()(x)
+        x = tf.keras.layers.Conv1D(filters=64, kernel_size=2, activation='relu')(x)
+        x = tf.keras.layers.MaxPooling1D(pool_size=2)(x)
+        x = tf.keras.layers.Flatten()(x)
+        x = tf.keras.layers.Dropout(dropout)(x)
+        x = tf.keras.layers.BatchNormalization()(x)
 
         # intermediate layer to bring the dimensions
-        x = keras.layers.Dense(16)(x)
-        x = keras.layers.Dropout(0.1)(x)
+        x = tf.keras.layers.Dense(16)(x)
+        x = tf.keras.layers.Dropout(0.1)(x)
 
         # last layer is a linear (float) value - do not change
         outputs = layers.Dense(1, activation="linear")(x)
 
-        model = keras.Model(inputs, outputs)
+        model = tf.keras.Model(inputs, outputs)
 
         return model

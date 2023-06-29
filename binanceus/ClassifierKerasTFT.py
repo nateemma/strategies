@@ -39,7 +39,7 @@ np.random.seed(seed)
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
-import keras
+#import keras
 from keras import layers
 
 import h5py

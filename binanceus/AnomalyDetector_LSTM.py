@@ -38,7 +38,7 @@ np.random.seed(seed)
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
-import keras
+#import keras
 from keras import layers
 from ClassifierKerasEncoder import ClassifierKerasEncoder
 
@@ -54,7 +54,7 @@ class AnomalyDetector_LSTM(ClassifierKerasEncoder):
         outer_dim = 64
         inner_dim = 16
 
-        model = keras.Sequential(name=self.name)
+        model = tf.keras.Sequential(name=self.name)
 
         # NOTE: don't use relu with LSTMs, cannot use GPU if you do (much slower). Use tanh
 

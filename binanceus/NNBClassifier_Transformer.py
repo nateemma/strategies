@@ -37,7 +37,7 @@ np.random.seed(seed)
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
-import keras
+#import keras
 from keras import layers
 from ClassifierKerasBinary import ClassifierKerasBinary
 
@@ -59,7 +59,7 @@ class NNBClassifier_Transformer(ClassifierKerasBinary):
         mlp_dropout = 0.2
         dropout = 0.2
 
-        inputs = keras.Input(shape=(seq_len, num_features))
+        inputs = tf.keras.Input(shape=(seq_len, num_features))
         x = inputs
         for _ in range(num_transformer_blocks):
             x = self.transformer_encoder(x, head_size, num_heads, dropout, ff_dim)
@@ -73,7 +73,7 @@ class NNBClassifier_Transformer(ClassifierKerasBinary):
         # last layer is a binary decision - do not change
         outputs = layers.Dense(1, activation="sigmoid")(x)
 
-        model = keras.Model(inputs, outputs)
+        model = tf.keras.Model(inputs, outputs)
 
         return model
 

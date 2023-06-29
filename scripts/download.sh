@@ -21,6 +21,7 @@ Usage: zsh $script [options] [<exchange>]
 
 [options]:  -h | --help       print this text
             -l | --leveraged  Use 'leveraged' config file. Optional
+            -n | --ndays       Number of days of backtesting. Defaults to ${num_days}
             -s | --short      Use 'short' config file. Optional
 
 <exchange>  Name of exchange (binanceus, kucoin, etc). Optional
@@ -33,9 +34,12 @@ END
 num_days=750
 start_date=$(date -j -v-${num_days}d +"%Y%m%d")
 timerange="${start_date}-"
+today=$(date +"%Y%m%d")
+num_days=180
+
 #fixed_args="-t 5m 15m 1h 1d"
 #fixed_args="-t 5m 15m 1h"
-fixed_args="-t 15m"
+fixed_args="-t 5m"
 short=0
 leveraged=0
 
@@ -44,7 +48,7 @@ leveraged=0
 die() { echo "$*" >&2; exit 2; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
-while getopts hls-: OPT; do
+while getopts hln:s-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
@@ -54,6 +58,7 @@ while getopts hls-: OPT; do
   case "$OPT" in
     h | help )       show_usage; exit 0 ;;
     l | leveraged )  leveraged=1 ;;
+    n | ndays )      needs_arg; num_days="$OPTARG"; timerange="$(date -j -v-${num_days}d +"%Y%m%d")-${today}" ;;
     s | short )      short=1 ;;
     ??* )            show_usage; die "Illegal option --$OPT" ;;  # bad long option
     ? )              show_usage; die "Illegal option --$OPT" ;;  # bad short option (error reported via getopts)

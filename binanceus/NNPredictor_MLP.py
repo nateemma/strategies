@@ -37,7 +37,7 @@ np.random.seed(seed)
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
-import keras
+#import keras
 from keras import layers
 from ClassifierKerasLinear import ClassifierKerasLinear
 from DataframeUtils import ScalerType
@@ -55,7 +55,7 @@ class NNPredictor_MLP(ClassifierKerasLinear):
     # override the build_model function in subclasses
     def create_model(self, seq_len, num_features):
 
-        # model = keras.Sequential(name=self.name)
+        # model = tf.keras.Sequential(name=self.name)
         #
         # # simple MLP :
         # dropout = 0.1
@@ -67,18 +67,18 @@ class NNPredictor_MLP(ClassifierKerasLinear):
         # # last layer is a linear (float) value - do not change
         # model.add(layers.Dense(1, activation='linear'))
 
-        inputs = keras.Input(shape=(seq_len, num_features))
+        inputs = tf.keras.Input(shape=(seq_len, num_features))
         x = inputs
-        x = keras.layers.Dense(156)(x)
-        x = keras.layers.Dropout(0.1)(x)
-        x = keras.layers.BatchNormalization()(x)
-        x = keras.layers.Dense(16)(x)
-        x = keras.layers.Dropout(0.1)(x)
-        x = keras.layers.BatchNormalization()(x)
+        x = tf.keras.layers.Dense(156)(x)
+        x = tf.keras.layers.Dropout(0.1)(x)
+        x = tf.keras.layers.BatchNormalization()(x)
+        x = tf.keras.layers.Dense(16)(x)
+        x = tf.keras.layers.Dropout(0.1)(x)
+        x = tf.keras.layers.BatchNormalization()(x)
 
         # last layer is a linear (float) value - do not change
         outputs = layers.Dense(1, activation="linear")(x)
 
-        model = keras.Model(inputs, outputs)
+        model = tf.keras.Model(inputs, outputs)
 
         return model

@@ -37,7 +37,7 @@ np.random.seed(seed)
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
-import keras
+#import keras
 from keras import layers
 from ClassifierKerasBinary import ClassifierKerasBinary
 import Attention
@@ -52,7 +52,7 @@ class NNBClassifier_Attention(ClassifierKerasBinary):
     # override the build_model function in subclasses
     def create_model(self, seq_len, num_features):
 
-        model = keras.Sequential(name=self.name)
+        model = tf.keras.Sequential(name=self.name)
 
         # Attention (Single Head)
         model.add(layers.LSTM(128, return_sequences=True, activation='tanh', input_shape=(seq_len, num_features)))

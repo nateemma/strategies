@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 import os, datetime
 import tensorflow as tf
-from keras.models import *
-from keras.layers import *
+from tf.keras.models import *
+from tf.keras.layers import *
 
 class SingleAttention(Layer):
     def __init__(self, d_k, d_v):

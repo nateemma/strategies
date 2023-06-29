@@ -39,7 +39,7 @@ np.random.seed(seed)
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
-import keras
+#import keras
 from keras import layers
 
 import h5py
@@ -50,9 +50,9 @@ class AnomalyDetector():
     dbg_verbose = 1
     first_run = True
 
-    encoder: keras.Model = None
-    decoder: keras.Model = None
-    autoencoder: keras.Model = None
+    encoder: tf.keras.Model = None
+    decoder: tf.keras.Model = None
+    autoencoder: tf.keras.Model = None
 
     # these will be overwritten by the specific autoencoder
     name = "AnomalyDetector"
@@ -104,7 +104,7 @@ class AnomalyDetector():
 
         if model_type == 0:
             # default autoencoder is a (fairly) simple set of dense layers
-            self.autoencoder = keras.Sequential(name=self.name)
+            self.autoencoder = tf.keras.Sequential(name=self.name)
 
             # Encoder
             self.autoencoder.add(layers.Dense(96, activation='elu', input_shape=(1, self.num_features)))
@@ -125,7 +125,7 @@ class AnomalyDetector():
 
         elif model_type == 1:
             # LSTM
-            self.autoencoder = keras.Sequential(name=self.name)
+            self.autoencoder = tf.keras.Sequential(name=self.name)
 
             # Encoder
             self.autoencoder.add(layers.Dense(96, activation='elu', input_shape=(1, self.num_features)))
@@ -148,7 +148,7 @@ class AnomalyDetector():
 
         elif model_type == 2:
             # Convolutional
-            self.autoencoder = keras.Sequential(name=self.name)
+            self.autoencoder = tf.keras.Sequential(name=self.name)
 
             # Encoder
             self.autoencoder.add(layers.Conv1D(filters=64, kernel_size=7, padding="same", input_shape=(1, self.num_features)))
@@ -172,8 +172,8 @@ class AnomalyDetector():
             return
 
 
-        # optimizer = keras.optimizers.Adam()
-        optimizer = keras.optimizers.Adam(learning_rate=0.001)
+        # optimizer = tf.keras.optimizers.Adam()
+        optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
 
         self.autoencoder.compile(metrics=['accuracy', 'mse'], loss='mse', optimizer=optimizer)
 
@@ -221,13 +221,13 @@ class AnomalyDetector():
             plateau_patience = 4
 
         # callback to control early exit on plateau of results
-        early_callback = keras.callbacks.EarlyStopping(
+        early_callback = tf.keras.callbacks.EarlyStopping(
             monitor=monitor_field,
             mode=monitor_mode,
             patience=early_patience,
             verbose=1)
 
-        plateau_callback = keras.callbacks.ReduceLROnPlateau(
+        plateau_callback = tf.keras.callbacks.ReduceLROnPlateau(
             monitor=monitor_field,
             mode=monitor_mode,
             factor=0.1,
@@ -237,7 +237,7 @@ class AnomalyDetector():
 
         # callback to control saving of 'best' model
         # Note that we use validation loss as the metric, not training loss
-        checkpoint_callback = keras.callbacks.ModelCheckpoint(
+        checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
             filepath=self.checkpoint_path,
             save_weights_only=True,
             monitor=monitor_field,
@@ -345,7 +345,7 @@ class AnomalyDetector():
             path = self.model_path
         print("    saving model to: ", path)
         # self.autoencoder.save(path)
-        keras.models.save_model(self.autoencoder, filepath=path)
+        tf.keras.models.save_model(self.autoencoder, filepath=path)
         return
 
     # load the full encoder model from the (optional) supplied path. Use this to load a fully trained autoencoder
@@ -357,9 +357,9 @@ class AnomalyDetector():
         if os.path.exists(path):
             print("    Loading existing model ({})...".format(path))
             try:
-                self.autoencoder = keras.models.load_model(path, compile=False)
-                # optimizer = keras.optimizers.Adam()
-                optimizer = keras.optimizers.Adam(learning_rate=0.001)
+                self.autoencoder = tf.keras.models.load_model(path, compile=False)
+                # optimizer = tf.keras.optimizers.Adam()
+                optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
                 self.autoencoder.compile(metrics=['accuracy', 'mse'], loss='mse', optimizer=optimizer)
                 self.is_trained = True
 
@@ -372,7 +372,7 @@ class AnomalyDetector():
         return self.autoencoder
 
     # get the encoder part of the autoencoder
-    def get_encoder(self) -> keras.Model:
+    def get_encoder(self) -> tf.keras.Model:
         return self.encoder
 
     def get_checkpoint_path(self):

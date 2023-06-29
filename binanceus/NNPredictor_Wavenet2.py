@@ -38,9 +38,9 @@ np.random.seed(seed)
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
-import keras
+#import keras
 from keras import layers
-from keras.regularizers import l2
+from tf.keras.regularizers import l2
 from ClassifierKerasLinear import ClassifierKerasLinear
 
 import h5py
@@ -105,6 +105,6 @@ class NNPredictor_Wavenet2(ClassifierKerasLinear):
         # last layer is a linear (float) value - do not change
         outputs = layers.Dense(1, activation="linear")(x)
 
-        model = keras.Model(inputs, outputs)
+        model = tf.keras.Model(inputs, outputs)
 
         return model

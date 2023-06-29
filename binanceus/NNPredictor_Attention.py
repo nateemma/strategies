@@ -37,7 +37,7 @@ np.random.seed(seed)
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
-import keras
+#import keras
 from keras import layers
 from ClassifierKerasLinear import ClassifierKerasLinear
 from Attention import Attention
@@ -53,7 +53,7 @@ class NNPredictor_Attention(ClassifierKerasLinear):
     # override the build_model function in subclasses
     def create_model(self, seq_len, num_features):
         # Attention (Single Head)
-        model = keras.Sequential(name=self.name)
+        model = tf.keras.Sequential(name=self.name)
 
         model.add(layers.LSTM(128, return_sequences=True, input_shape=(seq_len, num_features)))
         model.add(layers.Dropout(0.2))

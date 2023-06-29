@@ -53,9 +53,6 @@ random.seed(seed)
 tf.random.set_seed(seed)
 np.random.seed(seed)
 
-# import keras
-# from keras import layers
-
 from DataframeUtils import DataframeUtils
 
 
@@ -160,6 +157,7 @@ class ClassifierKeras():
         model.add(tf.keras.layers.Dense(outer_dim, activation='relu'))
 
         model.add(tf.keras.layers.Dense(num_features, activation=None))
+        return model
 
     # ---------------------------
 
@@ -307,7 +305,7 @@ class ClassifierKeras():
             predictions = np.zeros(np.shape(tensor)[0], dtype=float)
         else:
             # get losses by comparing input to output
-            msle = tf.tf.keras.losses.msle(predict_tensor, tensor)
+            msle = tf.keras.losses.msle(predict_tensor, tensor)
             msle = msle[:, 0]
 
             # mean + stddev method
@@ -358,7 +356,7 @@ class ClassifierKeras():
         score = self.model.evaluate(test_tensor, preds, return_dict=True, verbose=0)
         print("model:{} score:{} ".format(self.name, score))
 
-        loss = tf.tf.keras.metrics.mean_squared_error(test_tensor, preds)
+        loss = tf.keras.metrics.mean_squared_error(test_tensor, preds)
         # print("    loss:{} {}".format(np.shape(loss), loss))
         loss = np.array(loss[0])
         print("    loss:")

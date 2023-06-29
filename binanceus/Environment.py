@@ -14,7 +14,7 @@ except ModuleNotFoundError:
     tf_installed = False
 
 try:
-    import keras
+    #import keras
     keras_installed = True
 except ModuleNotFoundError:
     keras_installed = False
@@ -76,7 +76,7 @@ def print_environment():
 
     # keras
     if keras_installed:
-        keras_version = keras.__version__
+        keras_version = tf.keras.__version__
     else:
         keras_version = NOT_INSTALLED
 

@@ -78,7 +78,7 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 tf_logger = logging.getLogger('tensorflow')
 tf_logger.setLevel(logging.WARN)
 
-import keras
+#import keras
 from keras import layers
 from tqdm import tqdm
 import Attention

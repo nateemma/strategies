@@ -40,7 +40,7 @@ np.random.seed(seed)
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
-import keras
+#import keras
 from keras import layers
 
 import h5py
@@ -57,7 +57,7 @@ class ClassifierKerasLinear(ClassifierKeras):
 
         print("    WARNING: create_model() should be defined by the subclass")
 
-        model = keras.Sequential()
+        model = tf.keras.Sequential()
 
         # simplest possible model:
         model.add(layers.LSTM(64, return_sequences=True, activation='tanh', input_shape=(seq_len, num_features)))
@@ -67,8 +67,8 @@ class ClassifierKerasLinear(ClassifierKeras):
         return model
 
     def compile_model(self, model):
-        optimizer = keras.optimizers.Adam(learning_rate=0.01)
-        # optimizer = keras.optimizers.SGD(learning_rate=1, momentum=0.9)
+        optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
+        # optimizer = tf.keras.optimizers.SGD(learning_rate=1, momentum=0.9)
         model.compile(metrics=['mae', 'mse'], loss='mse', optimizer=optimizer)
 
         return model
@@ -131,7 +131,7 @@ class ClassifierKerasLinear(ClassifierKeras):
         plateau_patience = 4
 
         # callback to control early exit on plateau of results
-        early_callback = keras.callbacks.EarlyStopping(
+        early_callback = tf.keras.callbacks.EarlyStopping(
             monitor=monitor_field,
             mode=monitor_mode,
             patience=early_patience,
@@ -139,7 +139,7 @@ class ClassifierKerasLinear(ClassifierKeras):
             restore_best_weights=True,
             verbose=1)
 
-        plateau_callback = keras.callbacks.ReduceLROnPlateau(
+        plateau_callback = tf.keras.callbacks.ReduceLROnPlateau(
             monitor=monitor_field,
             mode=monitor_mode,
             factor=0.1,
@@ -149,7 +149,7 @@ class ClassifierKerasLinear(ClassifierKeras):
 
         # callback to control saving of 'best' model
         # Note that we use validation loss as the metric, not training loss
-        checkpoint_callback = keras.callbacks.ModelCheckpoint(
+        checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
             filepath=self.checkpoint_path,
             save_weights_only=True,
             monitor=monitor_field,

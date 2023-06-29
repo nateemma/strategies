@@ -38,7 +38,7 @@ np.random.seed(seed)
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
-import keras
+#import keras
 from keras import layers
 from ClassifierKerasBinary import ClassifierKerasBinary
 
@@ -52,7 +52,7 @@ class NNBClassifier_MLP(ClassifierKerasBinary):
     # override the build_model function in subclasses
     def create_model(self, seq_len, num_features):
 
-        model = keras.Sequential(name=self.name)
+        model = tf.keras.Sequential(name=self.name)
 
         # very simple MLP model:
         model.add(layers.Dense(128, input_shape=(seq_len, num_features)))

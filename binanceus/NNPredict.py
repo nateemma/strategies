@@ -44,7 +44,7 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 import custom_indicators as cta
 from finta import TA as fta
 
-import keras
+#import keras
 import tensorflow as tf
 from keras import layers
 from tqdm import tqdm
@@ -237,11 +237,11 @@ class NNPredict(IStrategy):
     # # class to create custom Keras layer that decompresses and denormalises predictions from the model
     # class RestorePredictions(tf.keras.layers.Layer):
     #     def call(self, preds):
-    #         inputs = keras.Input(preds)
+    #         inputs = tf.keras.Input(preds)
     #         x = layers.Dense(1)(inputs)  # output shape should be the same as the original input shape
     #         x = self.compressor.inverse_transform(x)
     #         x = self.dataframeUtils.get_scaler().inverse_transform(x)
-    #         restored = keras.Model(inputs, x)
+    #         restored = tf.keras.Model(inputs, x)
     #         return restored
 
     ################################

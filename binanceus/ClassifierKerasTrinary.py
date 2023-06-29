@@ -106,7 +106,7 @@ class ClassifierKerasTrinary(ClassifierKeras):
         # loss = "categorical_crossentropy"
         # loss = "sparse_categorical_crossentropy"
 
-        # Try some some custom loss functions, where we can weight the los based on actual class distribution
+        # Try some custom loss functions, where we can weight the los based on actual class distribution
         # loss = CustomWeightedLoss(CustomWeightedLoss.WeightedLossType.CATEGORICAL_FOCAL, self.get_class_weights())
         loss = CustomWeightedLoss(CustomWeightedLoss.WeightedLossType.WEIGHTED_CATEGORICAL, self.get_class_weights())
 

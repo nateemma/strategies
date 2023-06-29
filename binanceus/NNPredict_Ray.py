@@ -47,7 +47,7 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 import custom_indicators as cta
 from finta import TA as fta
 
-import keras
+#import keras
 from keras import layers
 from tqdm import tqdm
 from tqdm.keras import TqdmCallback

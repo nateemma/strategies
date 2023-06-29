@@ -37,7 +37,7 @@ np.random.seed(seed)
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
-import keras
+#import keras
 from keras import layers
 from ClassifierKerasLinear import ClassifierKerasLinear
 
@@ -62,14 +62,14 @@ class NNPredictor_Transformer(ClassifierKerasLinear):
         mlp_dropout = 0.2
         dropout = 0.2
 
-        inputs = keras.Input(shape=(seq_len, num_features))
+        inputs = tf.keras.Input(shape=(seq_len, num_features))
         x = inputs
         for _ in range(num_transformer_blocks):
             x = self.transformer_encoder(x, head_size, num_heads, dropout, ff_dim)
 
         # may not need this part:
         # x = layers.GlobalAveragePooling1D(keepdims=True, data_format="channels_first")(x)
-        x = keras.layers.BatchNormalization()(x)
+        x = tf.keras.layers.BatchNormalization()(x)
 
         for dim in mlp_units:
             # x = layers.Dense(dim, activation="relu")(x)
@@ -79,7 +79,7 @@ class NNPredictor_Transformer(ClassifierKerasLinear):
         # last layer is a linear (float) value - do not change
         outputs = layers.Dense(1, activation="linear")(x)
 
-        model = keras.Model(inputs, outputs)
+        model = tf.keras.Model(inputs, outputs)
 
         return model
 

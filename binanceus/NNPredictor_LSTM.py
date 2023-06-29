@@ -37,7 +37,7 @@ np.random.seed(seed)
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
-import keras
+#import keras
 from keras import layers
 from ClassifierKerasLinear import ClassifierKerasLinear
 
@@ -52,7 +52,7 @@ class NNPredictor_LSTM(ClassifierKerasLinear):
     # override the build_model function in subclasses
     def create_model(self, seq_len, num_features):
 
-        model = keras.Sequential(name=self.name)
+        model = tf.keras.Sequential(name=self.name)
 
         # NOTE: don't use relu with LSTMs, cannot use GPU if you do (much slower). Use tanh
 
@@ -63,22 +63,22 @@ class NNPredictor_LSTM(ClassifierKerasLinear):
         # # last layer is a linear (float) value - do not change
         # model.add(layers.Dense(1, activation='linear'))
 
-        inputs = keras.Input(shape=(seq_len, num_features))
+        inputs = tf.keras.Input(shape=(seq_len, num_features))
         x = inputs
-        x = keras.layers.Dense(64)(x)
-        x = keras.layers.BatchNormalization()(x)
-        x = keras.layers.LSTM(64, return_sequences=True, activation='tanh', input_shape=(seq_len, num_features))(x)
-        x = keras.layers.Dropout(0.1)(x)
-        x = keras.layers.BatchNormalization()(x)
+        x = tf.keras.layers.Dense(64)(x)
+        x = tf.keras.layers.BatchNormalization()(x)
+        x = tf.keras.layers.LSTM(64, return_sequences=True, activation='tanh', input_shape=(seq_len, num_features))(x)
+        x = tf.keras.layers.Dropout(0.1)(x)
+        x = tf.keras.layers.BatchNormalization()(x)
 
 
         # intermediate layer to bring the dimensions
-        x = keras.layers.Dense(16)(x)
-        x = keras.layers.Dropout(0.1)(x)
+        x = tf.keras.layers.Dense(16)(x)
+        x = tf.keras.layers.Dropout(0.1)(x)
 
         # last layer is a linear (float) value - do not change
         outputs = layers.Dense(1, activation="linear")(x)
 
-        model = keras.Model(inputs, outputs)
+        model = tf.keras.Model(inputs, outputs)
 
         return model
