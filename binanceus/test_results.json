@@ -691,5 +691,60 @@
         "win_pct": 90.2,
         "expectancy": 0.05,
         "daily_profit": 0.036
+    },
+    "DWT_Predict_12": {
+        "test_date": "2023 Jun 30",
+        "num_test_days": 30,
+        "entries": 1270,
+        "daily_trades": 42.333333333333336,
+        "ave_profit": 0.64,
+        "tot_profit": 72.77,
+        "win_pct": 88.2,
+        "expectancy": 0.42,
+        "daily_profit": 2.426
+    },
+    "DWT_Predict": {
+        "test_date": "2023 Jun 30",
+        "num_test_days": 30,
+        "entries": 938,
+        "daily_trades": 31.266666666666666,
+        "ave_profit": 0.83,
+        "tot_profit": 69.96,
+        "win_pct": 90.7,
+        "expectancy": 0.37,
+        "daily_profit": 2.332
+    },
+    "DWT_Predict_3": {
+        "test_date": "2023 Jun 30",
+        "num_test_days": 30,
+        "entries": 813,
+        "daily_trades": 27.1,
+        "ave_profit": 0.4,
+        "tot_profit": 29.38,
+        "win_pct": 78.1,
+        "expectancy": 0.18,
+        "daily_profit": 0.979
+    },
+    "DWT_Predict_6": {
+        "test_date": "2023 Jun 30",
+        "num_test_days": 30,
+        "entries": 1024,
+        "daily_trades": 34.13333333333333,
+        "ave_profit": 0.55,
+        "tot_profit": 50.57,
+        "win_pct": 81.8,
+        "expectancy": 0.31,
+        "daily_profit": 1.686
+    },
+    "DWT_Predict_9": {
+        "test_date": "2023 Jun 30",
+        "num_test_days": 30,
+        "entries": 1166,
+        "daily_trades": 38.86666666666667,
+        "ave_profit": 0.64,
+        "tot_profit": 67.28,
+        "win_pct": 86.4,
+        "expectancy": 0.37,
+        "daily_profit": 2.243
     }
 }

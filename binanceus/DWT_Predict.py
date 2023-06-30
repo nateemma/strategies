@@ -91,7 +91,7 @@ class DWT_Predict(IStrategy):
 
     dwt_window = startup_candle_count
 
-    lookahead = 6
+    lookahead = 12
 
     df_coeffs: DataFrame = None
     coeff_model = None
@@ -515,13 +515,12 @@ class DWT_Predict(IStrategy):
     def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         conditions = []
         dataframe.loc[:, 'enter_tag'] = ''
-
-
-        # some trading volume
-        conditions.append(dataframe['volume'] > 0)
-
-        # Fisher/Williams in buy region
+       
         if self.enable_guards.value:
+            # some trading volume
+            conditions.append(dataframe['volume'] > 0)
+
+            # Fisher/Williams in buy region
             conditions.append(dataframe['fisher_wr'] <= -0.5)
         else:
             conditions.append(dataframe['fisher_wr'] < 0.0)
@@ -534,11 +533,11 @@ class DWT_Predict(IStrategy):
 
         conditions.append(dwt_cond)
 
-        # DWTs will spike on big gains, so try to constrain
-        spike_cond = (
-                dataframe['model_diff'] < 2.0 * self.entry_dwt_diff.value
-        )
-        conditions.append(spike_cond)
+        # # DWTs will spike on big gains, so try to constrain
+        # spike_cond = (
+        #         dataframe['model_diff'] < 2.0 * self.entry_dwt_diff.value
+        # )
+        # conditions.append(spike_cond)
 
         # set entry tags
         dataframe.loc[dwt_cond, 'enter_tag'] += 'dwt_entry '
@@ -562,11 +561,12 @@ class DWT_Predict(IStrategy):
             dataframe['exit_long'] = 0
             return dataframe
 
-        # some volume
-        conditions.append(dataframe['volume'] > 0)
-
-        # Fisher/Williams in sell region
         if self.enable_guards.value:
+ 
+            # some volume
+            conditions.append(dataframe['volume'] > 0)
+
+             # Fisher/Williams in sell region
             conditions.append(dataframe['fisher_wr'] >= 0.5)
         else:
             conditions.append(dataframe['fisher_wr'] > 0.0)
@@ -579,11 +579,11 @@ class DWT_Predict(IStrategy):
 
         conditions.append(dwt_cond)
 
-        # DWTs will spike on big gains, so try to constrain
-        spike_cond = (
-                dataframe['model_diff'] > 2.0 * self.exit_dwt_diff.value
-        )
-        conditions.append(spike_cond)
+        # # DWTs will spike on big gains, so try to constrain
+        # spike_cond = (
+        #         dataframe['model_diff'] > 2.0 * self.exit_dwt_diff.value
+        # )
+        # conditions.append(spike_cond)
 
         # set exit tags
         dataframe.loc[dwt_cond, 'exit_tag'] += 'dwt_exit '
@@ -638,14 +638,17 @@ class DWT_Predict(IStrategy):
             if (current_profit <= self.loss_threshold.value):
                 return 'loss_threshold'
 
-        # Mod: strong sell signal, in profit
+        # strong sell signal, in profit
         if (current_profit > 0) and (last_candle['fisher_wr'] > 0.93):
             return 'fwr_high'
 
-        # Mod: Sell any positions at a loss if they are held for more than 'N' days.
+        # Sell any positions at a loss if they are held for more than 'N' days.
         # if (current_profit < 0.0) and (current_time - trade.open_date_utc).days >= 7:
         if (current_time - trade.open_date_utc).days >= 7:
             return 'unclog'
-
+        
+        # big drop predicted. Should trigger exit, but this might be quicker (and will be 'market' sell)
+        if last_candle['dwt_diff'] <= self.exit_dwt_diff.value:
+            return 'predict_drop'
 
         return None
