@@ -526,7 +526,8 @@ class DWT_Predict(IStrategy):
 
         # DWT triggers
         dwt_cond = (
-            qtpylib.crossed_above(dataframe['model_diff'], self.entry_dwt_diff.value)
+            # qtpylib.crossed_above(dataframe['model_diff'], self.entry_dwt_diff.value)
+            dataframe['model_diff'] >= self.entry_dwt_diff.value
         )
 
         conditions.append(dwt_cond)
@@ -568,7 +569,8 @@ class DWT_Predict(IStrategy):
 
         # DWT triggers
         dwt_cond = (
-            qtpylib.crossed_below(dataframe['model_diff'], self.exit_dwt_diff.value)
+            # qtpylib.crossed_below(dataframe['model_diff'], self.exit_dwt_diff.value)
+            dataframe['model_diff'] <= self.exit_dwt_diff.value
         )
 
         conditions.append(dwt_cond)

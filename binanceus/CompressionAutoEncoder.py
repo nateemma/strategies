@@ -43,8 +43,8 @@ np.random.seed(seed)
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
 #import keras
-from keras import layers
-from tf.keras.optimizers import SGD
+# from keras import layers
+# from tf.keras.optimizers import SGD
 import h5py
 
 class CompressionAutoEncoder():
@@ -104,23 +104,23 @@ class CompressionAutoEncoder():
     def build_model(self, num_features, num_dims):
         # default autoencoder is a (fairly) simple set of dense layers
         self.encoder = tf.keras.Sequential(name="encoder")
-        self.encoder.add(layers.Dense(128, activation='relu', input_shape=(1, self.num_features)))
-        # self.encoder.add(layers.Dropout(rate=0.1))
-        # self.encoder.add(layers.Dense(96, activation='relu'))
-        # self.encoder.add(layers.Dropout(rate=0.1))
-        self.encoder.add(layers.Dense(1024, activation='relu'))
-        # self.encoder.add(layers.Dropout(rate=0.1))
-        self.encoder.add(layers.Dense(self.latent_dim, activation='relu', name='encoder_output'))
+        self.encoder.add(tf.keras.layers.Dense(128, activation='relu', input_shape=(1, self.num_features)))
+        # self.encoder.add(tf.keras.layers.Dropout(rate=0.1))
+        # self.encoder.add(tf.keras.layers.Dense(96, activation='relu'))
+        # self.encoder.add(tf.keras.layers.Dropout(rate=0.1))
+        self.encoder.add(tf.keras.layers.Dense(1024, activation='relu'))
+        # self.encoder.add(tf.keras.layers.Dropout(rate=0.1))
+        self.encoder.add(tf.keras.layers.Dense(self.latent_dim, activation='relu', name='encoder_output'))
 
         self.decoder = tf.keras.Sequential(name="decoder")
-        self.decoder.add(layers.Dense(1024, activation='relu', input_shape=(1, self.latent_dim)))
-        # self.encoder.add(layers.Dropout(rate=0.1))
-        # self.decoder.add(layers.Dense(96, activation='relu'))
-        # self.encoder.add(layers.Dropout(rate=0.1))
-        # self.decoder.add(layers.Dense(64, activation='relu'))
-        # self.encoder.add(layers.Dropout(rate=0.1))
-        self.decoder.add(layers.Dense(128, activation='relu'))
-        self.decoder.add(layers.Dense(self.num_features, activation=None))
+        self.decoder.add(tf.keras.layers.Dense(1024, activation='relu', input_shape=(1, self.latent_dim)))
+        # self.encoder.add(tf.keras.layers.Dropout(rate=0.1))
+        # self.decoder.add(tf.keras.layers.Dense(96, activation='relu'))
+        # self.encoder.add(tf.keras.layers.Dropout(rate=0.1))
+        # self.decoder.add(tf.keras.layers.Dense(64, activation='relu'))
+        # self.encoder.add(tf.keras.layers.Dropout(rate=0.1))
+        self.decoder.add(tf.keras.layers.Dense(128, activation='relu'))
+        self.decoder.add(tf.keras.layers.Dense(self.num_features, activation=None))
 
         self.autoencoder = tf.keras.Sequential(name=self.name)
         self.autoencoder.add(self.encoder)
@@ -129,7 +129,7 @@ class CompressionAutoEncoder():
         # optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0,
         #                                   amsgrad=False)
 
-        optimizer = SGD(learning_rate=1, momentum=0.9)
+        optimizer = tf.keras.optimizers.SGD(learning_rate=1, momentum=0.9)
         # optimizer = tf.keras.optimizers.Adam(learning_rate=0.1)
 
         self.autoencoder.compile(metrics=['accuracy', 'mse'], loss='mse', optimizer=optimizer)
@@ -285,7 +285,7 @@ class CompressionAutoEncoder():
             try:
                 self.autoencoder = tf.keras.models.load_model(path, compile=False)
                 # optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
-                optimizer = SGD(learning_rate=1, momentum=0.9)
+                optimizer = tf.keras.optimizers.SGD(learning_rate=1, momentum=0.9)
                 # optimizer = tf.keras.optimizers.Adam(learning_rate=0.1)
 
                 self.autoencoder.compile(metrics=['accuracy', 'mse'], loss='mse', optimizer=optimizer)

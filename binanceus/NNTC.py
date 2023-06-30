@@ -939,7 +939,8 @@ class NNTC(IStrategy):
                 pred_test = self.get_classifier_predictions(clf, tsr_test)
 
                 # score = f1_score(results, prediction, average=None)[1]
-                score = f1_score(res_test[:, 0], pred_test, average='micro')
+                f1_scorer = make_scorer(f1_score, average='micro')
+                score = f1_scorer(res_test[:, 0], pred_test)
 
                 if self.dbg_verbose:
                     print("      {0:<20}: {1:.3f}".format(clf_id, score))
@@ -1160,7 +1161,7 @@ class NNTC(IStrategy):
     """
 
     # simplified version of custom trailing stoploss
-    def custom_stoploss(self, pair: str, trade: 'Trade', current_time: datetime, current_rate: float,
+    def custom_stoploss(self, pair: str, trade: Trade, current_time: datetime, current_rate: float,
                         current_profit: float, **kwargs) -> float:
 
         #TEMP: move this to populate_exit_signals in NNTC
@@ -1213,7 +1214,7 @@ class NNTC(IStrategy):
 
     # simplified version of custom exit
 
-    def custom_exit(self, pair: str, trade: 'Trade', current_time: 'datetime', current_rate: float,
+    def custom_exit(self, pair: str, trade: Trade, current_time: 'datetime', current_rate: float,
                     current_profit: float, **kwargs):
 
         dataframe, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
@@ -1229,8 +1230,8 @@ class NNTC(IStrategy):
                 return 'mfi_90'
 
         # Mod: strong sell signal, in profit
-        if (current_profit > 0) and (last_candle['fisher_wr'] > 0.98):
-            return 'fwr_98'
+        if (current_profit > 0) and (last_candle['fisher_wr'] > 0.93):
+            return 'fwr_high'
 
         # Mod: Sell any positions at a loss if they are held for more than 'N' days.
         # if (current_profit < 0.0) and (current_time - trade.open_date_utc).days >= 7:
