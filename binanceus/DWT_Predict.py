@@ -523,6 +523,8 @@ class DWT_Predict(IStrategy):
         # Fisher/Williams in buy region
         if self.enable_guards.value:
             conditions.append(dataframe['fisher_wr'] <= -0.5)
+        else:
+            conditions.append(dataframe['fisher_wr'] < 0.0)
 
         # DWT triggers
         dwt_cond = (
@@ -566,6 +568,8 @@ class DWT_Predict(IStrategy):
         # Fisher/Williams in sell region
         if self.enable_guards.value:
             conditions.append(dataframe['fisher_wr'] >= 0.5)
+        else:
+            conditions.append(dataframe['fisher_wr'] > 0.0)
 
         # DWT triggers
         dwt_cond = (
