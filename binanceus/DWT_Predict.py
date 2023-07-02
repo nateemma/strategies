@@ -1,5 +1,6 @@
 from datetime import datetime
 from functools import reduce
+# import timeit
 
 import numpy as np
 # Get rid of pandas warnings during backtesting
@@ -7,11 +8,12 @@ import pandas as pd
 from pandas import DataFrame, Series
 
 
-from sklearn.ensemble import GradientBoostingRegressor
+# from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.preprocessing import RobustScaler
 from xgboost import XGBRegressor
+from lightgbm import LGBMRegressor
 
-import freqtrade.vendor.qtpylib.indicators as qtpylib
+# import freqtrade.vendor.qtpylib.indicators as qtpylib
 
 from freqtrade.strategy import (IStrategy, DecimalParameter, CategoricalParameter)
 from freqtrade.persistence import Trade
@@ -99,8 +101,14 @@ class DWT_Predict(IStrategy):
     scaler = RobustScaler()
 
     # DWT  hyperparams
-    entry_dwt_diff = DecimalParameter(0.0, 5.0, decimals=1, default=0.4, space='buy', load=True, optimize=True)
-    exit_dwt_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-0.3, space='sell', load=True, optimize=True)
+    # NOTE: this strategy does not hyperopt well, no idea why. Note that some vars are turned off (optimize=False)
+
+    # the defaults are set for fairly frequent trades, and get out quickly
+    # if you want bigger trades, then increase entry_dwt_diff, decrese exit_dwt_diff and adjust profit_threshold and
+    # loss_threshold accordingly. Note that there is also a corellation to self.lookahead, but that cannot be a hyperopt 
+    # parameter (because it is used in populate_indicators)
+    entry_dwt_diff = DecimalParameter(0.5, 3.0, decimals=1, default=1.0, space='buy', load=True, optimize=False)
+    exit_dwt_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-1.0, space='sell', load=True, optimize=False)
 
     # trailing stoploss
     tstop_start = DecimalParameter(0.0, 0.06, default=0.019, decimals=3, space='sell', load=True, optimize=True)
@@ -118,7 +126,7 @@ class DWT_Predict(IStrategy):
     enable_exit_signal = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=False)
 
     # enable entry/exit guards (safer vs profit)
-    enable_guards = CategoricalParameter([True, False], default=False, space='sell', load=True, optimize=True)
+    enable_guards = CategoricalParameter([True, False], default=False, space='sell', load=True, optimize=False)
 
 
     plot_config = {
@@ -161,6 +169,9 @@ class DWT_Predict(IStrategy):
         if self.dataframeUtils is None:
             self.dataframeUtils = DataframeUtils()
             self.dataframeUtils.set_scaler_type(ScalerType.Robust)
+
+        if self.coeff_model is None:
+            self.create_model()
 
         # # build the DWT
         # print("    Building DWT...")
@@ -387,9 +398,9 @@ class DWT_Predict(IStrategy):
             end = start + self.dwt_window - 1
             end = min(end, nrows-1)
             if (end-start) > 0:
-                slice = close_data[start:end]
+                dslice = close_data[start:end]
 
-                features = self.get_coeffs(slice)
+                features = self.get_coeffs(dslice)
         
                 # initialise the np.array (need features first to know size)
                 if not init_done:
@@ -456,25 +467,34 @@ class DWT_Predict(IStrategy):
 
     #-------------
 
-    def train_model(self, dataframe: DataFrame):
-
-        df = self.convert_dataframe(dataframe)
-
-        # need to exclude the startup period at the front, and the lookahead period at the end
-
-        df = df.iloc[self.startup_candle_count:-self.lookahead]
-        y = dataframe['close'].iloc[self.startup_candle_count+self.lookahead:].to_numpy()
-
-        # print(f"df: {df.shape} y:{y.shape}")
-
-        # self.coeff_model = SVR(kernel='rbf', C=1.0, epsilon=0.1)
+    def create_model(self):
+                # self.coeff_model = SVR(kernel='rbf', C=1.0, epsilon=0.1)
         # params = {'n_estimators': 100, 'max_depth': 4, 'min_samples_split': 2,
         #           'learning_rate': 0.1, 'loss': 'squared_error'}
         # self.coeff_model = GradientBoostingRegressor(**params)
         params = {'n_estimators': 100, 'max_depth': 4, 'learning_rate': 0.1}
 
-        self.coeff_model = XGBRegressor(**params)
-        self.coeff_model.fit(df, y)
+        # self.coeff_model = XGBRegressor(**params)
+        self.coeff_model = LGBMRegressor(**params)
+        return
+
+    #-------------
+
+    def train_model(self, dataframe: DataFrame):
+
+        data = np.array(self.convert_dataframe(dataframe))
+
+        # need to exclude the startup period at the front, and the lookahead period at the end
+
+        data_slice = data[self.startup_candle_count:-self.lookahead]
+        y = dataframe['close'].iloc[self.startup_candle_count+self.lookahead:].to_numpy()
+
+        # print(f"df: {df.shape} y:{y.shape}")
+
+
+        self.coeff_model.fit(data_slice, y)
+
+        return
 
 
     #-------------
@@ -485,25 +505,33 @@ class DWT_Predict(IStrategy):
 
         return y_pred
 
+    # add predictions in batch mode. Only use this when ther is no future data present
     def add_predictions(self, dataframe: DataFrame) -> DataFrame:
 
-        df = self.convert_dataframe(dataframe)
+        data = np.array(self.convert_dataframe(dataframe))
 
-        dataframe['dwt_predict'] = self.coeff_model.predict(df)
+        dataframe['dwt_predict'] = self.coeff_model.predict(data)
         return dataframe
 
+    # add predictions in a rolling fashion. Use this when future data is present (e.g. backtest)
     def add_rolling_predictions(self, dataframe: DataFrame) -> DataFrame:
-        df = self.convert_dataframe(dataframe)
 
-        nrows = df.shape[0]
+        data = np.array(self.convert_dataframe(dataframe)) # much faster using np.array vs DataFrame
+
+        nrows = np.shape(data)[0]  - self.dwt_window + 1
         start = 0
+        dest = self.dwt_window - 1
 
         dataframe['dwt_predict'] = dataframe['close']
+
+        # loop through each row, allowing for a startup buffer
         for i in range(nrows):
             end = start + self.dwt_window - 1
-            slice = df.iloc[start:end]
-            dataframe['dwt_predict'][start:end] = self.coeff_model.predict(slice)
+            data_slice = data[start:end]
+            # dataframe['dwt_predict'][dest:dest + self.dwt_window - 1] = self.coeff_model.predict(slice)
+            dataframe['dwt_predict'][dest] = self.coeff_model.predict(data_slice)[-1]
             start = start + 1
+            dest = dest + 1
         return dataframe
 
     ###################################
@@ -603,11 +631,12 @@ class DWT_Predict(IStrategy):
     def custom_stoploss(self, pair: str, trade: Trade, current_time: datetime, current_rate: float,
                         current_profit: float, **kwargs) -> float:
 
+        # if current profit is above start value, then set stoploss at fraction of current profit
         if current_profit > self.tstop_start.value:
             return current_profit * self.tstop_ratio.value
 
         # return min(-0.001, max(stoploss_from_open(0.05, current_profit), -0.99))
-        return -0.99
+        return self.stoploss
 
 
     ###################################
@@ -647,8 +676,8 @@ class DWT_Predict(IStrategy):
         if (current_time - trade.open_date_utc).days >= 7:
             return 'unclog'
         
-        # big drop predicted. Should trigger exit, but this might be quicker (and will be 'market' sell)
-        if last_candle['dwt_diff'] <= self.exit_dwt_diff.value:
+        # big drop predicted. Should also trigger an exit signal, but this might be quicker (and will be 'market' sell)
+        if last_candle['model_diff'] <= self.exit_dwt_diff.value:
             return 'predict_drop'
 
         return None
