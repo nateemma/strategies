@@ -25,13 +25,13 @@
       "exit_dwt_diff": -1.0,
       "use_loss_threshold": true,
       "use_profit_threshold": true,
-      "loss_threshold": -0.065,
-      "profit_threshold": 0.045,
-      "tstop_ratio": 0.952,
-      "tstop_start": 0.058
+      "loss_threshold": -0.055,
+      "profit_threshold": 0.063,
+      "tstop_ratio": 0.989,
+      "tstop_start": 0.057
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2023-07-02 14:03:50.135301+00:00"
+  "export_time": "2023-07-02 15:17:13.995381+00:00"
 }

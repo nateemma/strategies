@@ -40,7 +40,7 @@ import talib.abstract as ta
 
 """
 ####################################################################################
-DWT_Predict - use a Discreet Wavelet Transform to model the price, and an xgboost
+DWT_Predict - use a Discreet Wavelet Transform to model the price, and a
               regression algorithm trained on the DWT coefficients, which is then used
               to predict future prices.
               Unfortunately, this must all be done in a rolling fashion to avoid lookahead
@@ -105,8 +105,9 @@ class DWT_Predict(IStrategy):
 
     # the defaults are set for fairly frequent trades, and get out quickly
     # if you want bigger trades, then increase entry_dwt_diff, decrese exit_dwt_diff and adjust profit_threshold and
-    # loss_threshold accordingly. Note that there is also a corellation to self.lookahead, but that cannot be a hyperopt 
-    # parameter (because it is used in populate_indicators)
+    # loss_threshold accordingly. 
+    # Note that there is also a corellation to self.lookahead, but that cannot be a hyperopt parameter (because it is 
+    # used in populate_indicators). Larger lookahead implies bigger differences between the model and actual price
     entry_dwt_diff = DecimalParameter(0.5, 3.0, decimals=1, default=1.0, space='buy', load=True, optimize=False)
     exit_dwt_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-1.0, space='sell', load=True, optimize=False)
 
@@ -200,13 +201,14 @@ class DWT_Predict(IStrategy):
 
         # add the predictions
         print("    Making predictions...")
-        if self.dp.runmode.value not in ('hyperopt', 'backtest', 'plot'):
-            dataframe = self.add_predictions(dataframe)
-        else:
-            dataframe = self.add_rolling_predictions(dataframe)
+        # if self.dp.runmode.value not in ('hyperopt', 'backtest', 'plot'):
+        #     dataframe = self.add_predictions(dataframe)
+        # else:
+        #     dataframe = self.add_rolling_predictions(dataframe)
 
-        dataframe['model_diff'] = 100.0 * (dataframe['dwt_predict'] - dataframe['close']) / dataframe[
-            'close']
+        dataframe = self.add_rolling_predictions(dataframe)
+
+        dataframe['model_diff'] = 100.0 * (dataframe['dwt_predict'] - dataframe['close']) / dataframe['close']
 
         return dataframe
 
@@ -676,7 +678,7 @@ class DWT_Predict(IStrategy):
         if (current_time - trade.open_date_utc).days >= 7:
             return 'unclog'
         
-        # big drop predicted. Should also trigger an exit signal, but this might be quicker (and will be 'market' sell)
+        # big drop predicted. Should also trigger an exit signal, but this might be quicker (and will likely be 'market' sell)
         if last_candle['model_diff'] <= self.exit_dwt_diff.value:
             return 'predict_drop'
 
