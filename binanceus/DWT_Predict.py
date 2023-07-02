@@ -11,7 +11,7 @@ from pandas import DataFrame, Series
 # from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.preprocessing import RobustScaler
 from xgboost import XGBRegressor
-from lightgbm import LGBMRegressor
+# from lightgbm import LGBMRegressor
 
 # import freqtrade.vendor.qtpylib.indicators as qtpylib
 
@@ -476,8 +476,10 @@ class DWT_Predict(IStrategy):
         # self.coeff_model = GradientBoostingRegressor(**params)
         params = {'n_estimators': 100, 'max_depth': 4, 'learning_rate': 0.1}
 
-        # self.coeff_model = XGBRegressor(**params)
-        self.coeff_model = LGBMRegressor(**params)
+        self.coeff_model = XGBRegressor(**params)
+
+        # LGBMRegressor gives better/faster results, but has issues on some MacOS platforms. Hence, noy using it any more
+        # self.coeff_model = LGBMRegressor(**params)
         return
 
     #-------------
