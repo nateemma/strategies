@@ -96,6 +96,7 @@ class DWT_Predict(IStrategy):
     lookahead = 12
 
     df_coeffs: DataFrame = None
+    coeff_array = None
     coeff_model = None
     dataframeUtils = None
     scaler = RobustScaler()
@@ -380,7 +381,7 @@ class DWT_Predict(IStrategy):
         return dataframe
     
 
-    # this version builds a numpy array of coefficients, then copies those into the dataframe
+    # this version builds a numpy array of coefficients, then copies those into the dataframe (faster)
     def add_coefficients_2(self, dataframe) -> DataFrame:
 
         # copy the close data into an np.array
@@ -392,7 +393,7 @@ class DWT_Predict(IStrategy):
         nrows = len(close_data)
         start = 0
         dest = self.dwt_window - 1
-        coeff_array = None
+        self.coeff_array = None
         col_names  = []
         num_coeffs = 0
 
@@ -408,11 +409,11 @@ class DWT_Predict(IStrategy):
                 if not init_done:
                     init_done = True
                     num_coeffs = len(features)
-                    coeff_array = np.zeros((nrows, num_coeffs), dtype=float)
+                    self.coeff_array = np.zeros((nrows, num_coeffs), dtype=float)
 
                 # copy the features to the appropriate row of the coefficient array (offset due to startup window)
-                # coeff_array[dest, 0:len(features)] = features
-                coeff_array[dest] = features
+                # self.coeff_array[dest, 0:len(features)] = features
+                self.coeff_array[dest] = features
 
                 start = start + 1
                 dest = dest + 1
@@ -422,10 +423,10 @@ class DWT_Predict(IStrategy):
             col = "coeff_" + str(i)
             col_names.append(col)
         
-        # print(f'coeff_array: {np.shape(coeff_array)} col_names:{np.shape(col_names)}')
+        # print(f'self.coeff_array: {np.shape(self.coeff_array)} col_names:{np.shape(col_names)}')
 
         # convert the np.array into a dataframe
-        df_coeff = pd.DataFrame(coeff_array, columns=col_names)
+        df_coeff = pd.DataFrame(self.coeff_array, columns=col_names)
 
         # merge into the main dataframe
         dataframe = self.merge_data(dataframe, df_coeff)
@@ -554,8 +555,8 @@ class DWT_Predict(IStrategy):
 
             # Fisher/Williams in buy region
             conditions.append(dataframe['fisher_wr'] <= -0.5)
-        else:
-            conditions.append(dataframe['fisher_wr'] < 0.0)
+        # else:
+        #     conditions.append(dataframe['fisher_wr'] < 0.0)
 
         # DWT triggers
         dwt_cond = (
@@ -600,8 +601,8 @@ class DWT_Predict(IStrategy):
 
              # Fisher/Williams in sell region
             conditions.append(dataframe['fisher_wr'] >= 0.5)
-        else:
-            conditions.append(dataframe['fisher_wr'] > 0.0)
+        # else:
+        #     conditions.append(dataframe['fisher_wr'] > 0.0)
 
         # DWT triggers
         dwt_cond = (

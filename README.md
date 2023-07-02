@@ -4,6 +4,9 @@
 
 I am having a lot of problems pushing to github. It might be related to all of the models...
 
+2023/7/2: reverted back to using XGBoostRegressor. LightGBM gives better results, and is quite a bit faster, but it crashes on 
+non-M1 Macs. Hyper-parameters also had to be adjusted to accomodate the different modelling.
+
 2023/6/29: converted to use USDT instead of USD - pairs were being removed from binanceus, so this no longer made sense. 
 <br>DWT_Predict has been optimised a little and is quite a bit faster. custom_sell and custom_exit have also been simplified. Performance is looking good in dry runs...
 <br>There is currently an issue with hyperopt for NN strats caused by something not being pickle-able. I am chasing this down, but it's not obvious. The strats will still run though
