@@ -38,19 +38,22 @@ from DataframeUtils import DataframeUtils, ScalerType
 import pywt
 import talib.abstract as ta
 
-"""
+'''
+
 ####################################################################################
-DWT_Predict - use a Discreet Wavelet Transform to model the price, and a
+DWT_Predict2 - use a Discreet Wavelet Transform to model the price, and a
               regression algorithm trained on the DWT coefficients, which is then used
               to predict future prices.
               Unfortunately, this must all be done in a rolling fashion to avoid lookahead
               bias - so it is pretty slow
 
+              This variant attempts to minimise the amount of data in the dataframe
+
 ####################################################################################
-"""
+'''
 
 
-class DWT_Predict(IStrategy):
+class DWT_Predict2(IStrategy):
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # ROI table:
@@ -95,7 +98,7 @@ class DWT_Predict(IStrategy):
 
     lookahead = 12
 
-    df_coeffs: DataFrame = None
+    # df_coeffs: DataFrame = None
     coeff_array = None
     coeff_model = None
     dataframeUtils = None
@@ -109,8 +112,8 @@ class DWT_Predict(IStrategy):
     # loss_threshold accordingly. 
     # Note that there is also a corellation to self.lookahead, but that cannot be a hyperopt parameter (because it is 
     # used in populate_indicators). Larger lookahead implies bigger differences between the model and actual price
-    entry_dwt_diff = DecimalParameter(0.5, 3.0, decimals=1, default=1.0, space='buy', load=True, optimize=False)
-    exit_dwt_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-1.0, space='sell', load=True, optimize=False)
+    entry_dwt_diff = DecimalParameter(0.5, 3.0, decimals=1, default=1.0, space='buy', load=True, optimize=True)
+    exit_dwt_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-1.0, space='sell', load=True, optimize=True)
 
     # trailing stoploss
     tstop_start = DecimalParameter(0.0, 0.06, default=0.019, decimals=3, space='sell', load=True, optimize=True)
@@ -208,7 +211,6 @@ class DWT_Predict(IStrategy):
         #     dataframe = self.add_rolling_predictions(dataframe)
 
         dataframe = self.add_rolling_predictions(dataframe)
-       
 
         dataframe['model_diff'] = 100.0 * (dataframe['dwt_predict'] - dataframe['close']) / dataframe['close']
 
@@ -317,75 +319,75 @@ class DWT_Predict(IStrategy):
 
         return features
 
-    # adds coefficients to dataframe row, in a rolling fashion
-    # TODO: need to speed this up somehow
-    def roll_add_coeffs(self, a: np.ndarray) -> np.float:
+    # # adds coefficients to dataframe row, in a rolling fashion
+    # # TODO: need to speed this up somehow
+    # def roll_add_coeffs(self, a: np.ndarray) -> np.float:
 
-        # get the DWT coefficients
-        features = self.get_coeffs(np.array(a))
+    #     # get the DWT coefficients
+    #     features = self.get_coeffs(np.array(a))
 
-        # print("")
-        # print(f"features: {np.shape(features)}")
-        # print(features)
-        # print("")
+    #     # print("")
+    #     # print(f"features: {np.shape(features)}")
+    #     # print(features)
+    #     # print("")
 
-        if self.df_coeffs is None:
-            # add headers (required by pandas because we want to merge later)
-            cols = []
-            for i in range(len(features)):
-                col = "coeff_" + str(i)
-                cols.append(col)
-            self.df_coeffs = pd.DataFrame(columns=cols)
+    #     if self.df_coeffs is None:
+    #         # add headers (required by pandas because we want to merge later)
+    #         cols = []
+    #         for i in range(len(features)):
+    #             col = "coeff_" + str(i)
+    #             cols.append(col)
+    #         self.df_coeffs = pd.DataFrame(columns=cols)
 
-            # add rows of zeros to account fpr the rolling window startup
-            zeros = []
-            for i in range(self.dwt_window-1):
-                zeros.append([0] * len(self.df_coeffs.columns))
+    #         # add rows of zeros to account fpr the rolling window startup
+    #         zeros = []
+    #         for i in range(self.dwt_window-1):
+    #             zeros.append([0] * len(self.df_coeffs.columns))
 
-            # Add the rows of zeros to the dataframe
-            self.df_coeffs = pd.concat([self.df_coeffs, pd.DataFrame(zeros, columns=self.df_coeffs.columns)])
+    #         # Add the rows of zeros to the dataframe
+    #         self.df_coeffs = pd.concat([self.df_coeffs, pd.DataFrame(zeros, columns=self.df_coeffs.columns)])
 
-        # Append the coefficients to the df_coeffs dataframe
-        self.df_coeffs.loc[len(self.df_coeffs)] = features
+    #     # Append the coefficients to the df_coeffs dataframe
+    #     self.df_coeffs.loc[len(self.df_coeffs)] = features
 
-        return 1.0 # have to return a float value
+    #     return 1.0 # have to return a float value
 
 
-    def merge_data(self, df1: DataFrame, df2: DataFrame) -> DataFrame:
+    # def merge_data(self, df1: DataFrame, df2: DataFrame) -> DataFrame:
 
-        # merge df_coeffs into the main dataframe
+    #     # merge df_coeffs into the main dataframe
 
-        l1 = df1.shape[0]
-        l2 = df2.shape[0]
+    #     l1 = df1.shape[0]
+    #     l2 = df2.shape[0]
 
-        if l1 != l2:
-            print(f"    **** size mismatch. len(df1)={l1} len(df2)={l2}")
-        dataframe = pd.concat([df1, df2], axis=1, ignore_index=False).fillna(0.0)
+    #     if l1 != l2:
+    #         print(f"    **** size mismatch. len(df1)={l1} len(df2)={l2}")
+    #     dataframe = pd.concat([df1, df2], axis=1, ignore_index=False).fillna(0.0)
 
-        return dataframe
+    #     return dataframe
 
     #-------------
 
     # trying out several approaches to building the coefficients dataframe
 
-    # this version is the 'standard' rolling calculation
-    def add_coefficients_1(self, dataframe) -> DataFrame:
+    # # this version is the 'standard' rolling calculation
+    # def add_coefficients_1(self, dataframe) -> DataFrame:
 
 
-        self.df_coeffs = None # reset for each pair
-        coeffs = dataframe['close'].rolling(window=self.dwt_window).apply(self.roll_add_coeffs)
-        # dataframe = self.dataframe_add_coeff(dataframe)
+    #     self.df_coeffs = None # reset for each pair
+    #     coeffs = dataframe['close'].rolling(window=self.dwt_window).apply(self.roll_add_coeffs)
+    #     # dataframe = self.dataframe_add_coeff(dataframe)
 
-        # print("    Merging coefficients into dataframe...")
-        dataframe = self.merge_data(dataframe, self.df_coeffs)
+    #     # print("    Merging coefficients into dataframe...")
+    #     dataframe = self.merge_data(dataframe, self.df_coeffs)
 
-        return dataframe
+    #     return dataframe
     
 
     # this version builds a numpy array of coefficients, then copies those into the dataframe (faster)
     def add_coefficients_2(self, dataframe) -> DataFrame:
 
-        # copy the close data into an np.array
+        # # copy the close data into an np.array (faster)
         close_data = np.array(dataframe['close'])
 
         init_done = False
@@ -419,18 +421,19 @@ class DWT_Predict(IStrategy):
                 start = start + 1
                 dest = dest + 1
 
-        # set up the column names
-        for i in range(num_coeffs):
-            col = "coeff_" + str(i)
-            col_names.append(col)
+        # # set up the column names
+        # for i in range(num_coeffs):
+        #     col = "coeff_" + str(i)
+        #     col_names.append(col)
         
-        # print(f'self.coeff_array: {np.shape(self.coeff_array)} col_names:{np.shape(col_names)}')
+        # # convert the np.array into a dataframe
+        # df_coeff = pd.DataFrame(self.coeff_array, columns=col_names)
 
-        # convert the np.array into a dataframe
-        df_coeff = pd.DataFrame(self.coeff_array, columns=col_names)
+        # # merge into the main dataframe
+        # dataframe = self.merge_data(dataframe, df_coeff)
 
-        # merge into the main dataframe
-        dataframe = self.merge_data(dataframe, df_coeff)
+        self.scaler.fit(self.coeff_array)
+        self.coeff_array = self.scaler.transform(self.coeff_array)
 
         return dataframe
 
@@ -488,11 +491,11 @@ class DWT_Predict(IStrategy):
 
     def train_model(self, dataframe: DataFrame):
 
-        data = np.array(self.convert_dataframe(dataframe))
+        # data = np.array(self.convert_dataframe(dataframe))
 
         # need to exclude the startup period at the front, and the lookahead period at the end
 
-        data_slice = data[self.startup_candle_count:-self.lookahead]
+        data_slice = self.coeff_array[self.startup_candle_count:-self.lookahead]
         y = dataframe['close'].iloc[self.startup_candle_count+self.lookahead:].to_numpy()
 
         # print(f"df: {df.shape} y:{y.shape}")
@@ -505,19 +508,19 @@ class DWT_Predict(IStrategy):
 
     #-------------
 
-    def predict(self, a: np.ndarray) -> np.float:
+    # def predict(self, a: np.ndarray) -> np.float:
 
-        y_pred = self.coeff_model.predict(a)
+    #     y_pred = self.coeff_model.predict(a)
 
-        return y_pred
+    #     return y_pred
 
-    # add predictions in batch mode. Only use this when ther is no future data present
-    def add_predictions(self, dataframe: DataFrame) -> DataFrame:
+    # # add predictions in batch mode. Only use this when ther is no future data present
+    # def add_predictions(self, dataframe: DataFrame) -> DataFrame:
 
-        data = np.array(self.convert_dataframe(dataframe))
+    #     data = np.array(self.convert_dataframe(dataframe))
 
-        dataframe['dwt_predict'] = self.coeff_model.predict(data)
-        return dataframe
+    #     dataframe['dwt_predict'] = self.coeff_model.predict(data)
+    #     return dataframe
 
     # add predictions in a rolling fashion. Use this when future data is present (e.g. backtest)
     def add_rolling_predictions(self, dataframe: DataFrame) -> DataFrame:
@@ -533,14 +536,15 @@ class DWT_Predict(IStrategy):
         # loop through each row, allowing for a startup buffer
         for i in range(nrows):
             end = start + self.dwt_window - 1
-            data_slice = data[start:end]
+            data_slice = self.coeff_array[start:end]
             # dataframe['dwt_predict'][dest:dest + self.dwt_window - 1] = self.coeff_model.predict(slice)
             dataframe['dwt_predict'][dest] = self.coeff_model.predict(data_slice)[-1]
             start = start + 1
             dest = dest + 1
 
+        
         # make sure last entry is updated
-        data_slice = data[-self.dwt_window:]
+        data_slice = self.coeff_array[-self.dwt_window:]
         dataframe['dwt_predict'][-1] = self.coeff_model.predict(data_slice)[-1]
 
         return dataframe
