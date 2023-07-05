@@ -43,7 +43,7 @@ import talib.abstract as ta
 '''
 
 ####################################################################################
-DWT_Predict2 - use a Discreet Wavelet Transform to model the price, and a
+DWT_Predict3 - use a Discreet Wavelet Transform to model the price, and a
               regression algorithm trained on the DWT coefficients, which is then used
               to predict future prices.
               Unfortunately, this must all be done in a rolling fashion to avoid lookahead
@@ -55,7 +55,7 @@ DWT_Predict2 - use a Discreet Wavelet Transform to model the price, and a
 '''
 
 
-class DWT_Predict2(IStrategy):
+class DWT_Predict3(IStrategy):
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # ROI table:
@@ -212,7 +212,11 @@ class DWT_Predict2(IStrategy):
         # else:
         #     dataframe = self.add_rolling_predictions(dataframe)
 
-        dataframe = self.add_rolling_predictions(dataframe)
+        if curr_pair not in self.custom_trade_info:
+            dataframe = self.add_rolling_predictions(dataframe)
+            self.custom_trade_info[curr_pair] = { 'init': True }
+
+        dataframe = self.update_last_entry(dataframe)
 
         dataframe['model_diff'] = 100.0 * (dataframe['dwt_predict'] - dataframe['close']) / dataframe['close']
 
@@ -544,13 +548,17 @@ class DWT_Predict2(IStrategy):
             start = start + 1
             dest = dest + 1
 
-        
+
+        return dataframe
+
+    def update_last_entry(self, dataframe):
+
         # make sure last entry is updated
         data_slice = self.coeff_array[-self.dwt_window:]
         dataframe['dwt_predict'][-1] = self.coeff_model.predict(data_slice)[-1]
 
         return dataframe
-
+    
     ###################################
 
     """

@@ -1,3 +1,5 @@
+#pragma pylint: disable=W0105, C0103, C0301
+
 from datetime import datetime
 from enum import Enum
 from functools import reduce

@@ -1,3 +1,5 @@
+#pragma pylint: disable=W0105, C0103, C0301
+
 from datetime import datetime
 from functools import reduce
 # import timeit
@@ -266,7 +268,7 @@ class DWT_Predict(IStrategy):
 
         return model
 
-    def model(self, a: np.ndarray) -> np.float:
+    def model(self, a: np.ndarray) -> float:
         # must return scalar, so just calculate prediction and take last value
         # model = self.dwtModel(np.array(a))
 
@@ -313,13 +315,13 @@ class DWT_Predict(IStrategy):
 
         # trim down to max 128 entries
         if len(features) > 128:
-            features = features[:128]
+            features = features[:127]
 
         return features
 
     # adds coefficients to dataframe row, in a rolling fashion
     # TODO: need to speed this up somehow
-    def roll_add_coeffs(self, a: np.ndarray) -> np.float:
+    def roll_add_coeffs(self, a: np.ndarray) -> float:
 
         # get the DWT coefficients
         features = self.get_coeffs(np.array(a))
@@ -389,6 +391,8 @@ class DWT_Predict(IStrategy):
         close_data = np.array(dataframe['close'])
 
         init_done = False
+
+        
         
         # roll through the close data and create DWT coefficients for each step
         nrows = len(close_data)
@@ -505,7 +509,7 @@ class DWT_Predict(IStrategy):
 
     #-------------
 
-    def predict(self, a: np.ndarray) -> np.float:
+    def predict(self, a: np.ndarray) -> float:
 
         y_pred = self.coeff_model.predict(a)
 
