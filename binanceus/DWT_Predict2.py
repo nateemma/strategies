@@ -114,8 +114,8 @@ class DWT_Predict2(IStrategy):
     # loss_threshold accordingly. 
     # Note that there is also a corellation to self.lookahead, but that cannot be a hyperopt parameter (because it is 
     # used in populate_indicators). Larger lookahead implies bigger differences between the model and actual price
-    entry_dwt_diff = DecimalParameter(0.5, 3.0, decimals=1, default=1.0, space='buy', load=True, optimize=True)
-    exit_dwt_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-1.0, space='sell', load=True, optimize=True)
+    entry_dwt_diff = DecimalParameter(0.5, 3.0, decimals=1, default=1.0, space='buy', load=True, optimize=False)
+    exit_dwt_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-1.0, space='sell', load=True, optimize=False)
 
     # trailing stoploss
     tstop_start = DecimalParameter(0.0, 0.06, default=0.019, decimals=3, space='sell', load=True, optimize=True)
@@ -184,7 +184,7 @@ class DWT_Predict2(IStrategy):
 
         print("")
         print(curr_pair)
-        print("")
+        # print("")
 
 
         # # build the DWT
@@ -205,15 +205,15 @@ class DWT_Predict2(IStrategy):
         dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
 
         # build the list of model coefficients - added to self.df_coeffs
-        print("    Adding coefficients...")
+        # print("    Adding coefficients...")
         dataframe = self.add_coefficients(dataframe)
 
-        print("    Training Model...")
+        # print("    Training Model...")
         dataframe['dwt_predict'] = dataframe['close']
         self.train_model(dataframe)
 
         # add the predictions
-        print("    Making predictions...")
+        # print("    Making predictions...")
 
         dataframe = self.add_rolling_predictions(dataframe)
 
@@ -466,6 +466,8 @@ class DWT_Predict2(IStrategy):
 
             # Fisher/Williams in buy region
             conditions.append(dataframe['fisher_wr'] <= -0.5)
+        else:
+            conditions.append(dataframe['fisher_wr'] < 0.0) # very loose guard
 
         # DWT triggers
         dwt_cond = (
@@ -495,10 +497,12 @@ class DWT_Predict2(IStrategy):
         pred = round(last_candle['dwt_predict'], 4)
         price = round(rate, 4)
         if pred > price:
-            log.info(f'    Trade Entry: {pair}, rate: {price}')
+            if self.dp.runmode.value not in ('backtest', 'plot', 'hyperopt'):
+                print(f'Trade Entry: {pair}, rate: {price}')
             result = True
         else:
-            log.warning(f"    Trade entry rejected: {pair}. Prediction:{pred:.4f} <= rate:{price:.4f}")
+            if self.dp.runmode.value not in ('hyperopt'):
+                print(f"Trade entry rejected: {pair}. Prediction:{pred:.4f} <= rate:{price:.4f}")
             result = False
 
         return result
@@ -525,6 +529,8 @@ class DWT_Predict2(IStrategy):
 
              # Fisher/Williams in sell region
             conditions.append(dataframe['fisher_wr'] >= 0.5)
+        else:
+            conditions.append(dataframe['fisher_wr'] > 0.0) # very loose guard
 
         # DWT triggers
         dwt_cond = (
@@ -546,7 +552,8 @@ class DWT_Predict2(IStrategy):
                            rate: float, time_in_force: str, exit_reason: str,
                            current_time: datetime, **kwargs) -> bool:
                 
-        log.info(f'    Trade Exit: {pair}, rate: {rate}')
+        if self.dp.runmode.value not in ('backtest', 'plot', 'hyperopt'):
+            print(f'Trade Exit: {pair}, rate: {round(rate, 4)}')
 
         return True
     

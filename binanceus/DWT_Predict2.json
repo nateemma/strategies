@@ -24,7 +24,7 @@
       "enable_guards": false,
       "use_loss_threshold": true,
       "use_profit_threshold": true,
-      "exit_dwt_diff": -0.4,
+      "exit_dwt_diff": -0.8,
       "loss_threshold": -0.056,
       "profit_threshold": 0.061,
       "tstop_ratio": 0.925,
