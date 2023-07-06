@@ -498,11 +498,11 @@ class DWT_Predict2(IStrategy):
         price = round(rate, 4)
         if pred > price:
             if self.dp.runmode.value not in ('backtest', 'plot', 'hyperopt'):
-                print(f'Trade Entry: {pair}, rate: {price}')
+                print(f'Entry: {pair}, rate: {price}')
             result = True
         else:
             if self.dp.runmode.value not in ('hyperopt'):
-                print(f"Trade entry rejected: {pair}. Prediction:{pred:.4f} <= rate:{price:.4f}")
+                print(f"Entry rejected: {pair}. Prediction:{pred:.4f} <= rate:{price:.4f}")
             result = False
 
         return result

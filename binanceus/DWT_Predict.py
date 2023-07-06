@@ -195,23 +195,19 @@ class DWT_Predict(IStrategy):
         dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
 
         # build the list of model coefficients - added to self.df_coeffs
-        print("    Adding coefficients...")
+        # print("    Adding coefficients...")
         dataframe = self.add_coefficients(dataframe)
 
-        print("    Training Model...")
+        # print("    Training Model...")
         dataframe['dwt_predict'] = dataframe['close']
         self.train_model(dataframe)
 
         # add the predictions
-        print("    Making predictions...")
-        # if self.dp.runmode.value not in ('hyperopt', 'backtest', 'plot'):
-        #     dataframe = self.add_predictions(dataframe)
-        # else:
-        #     dataframe = self.add_rolling_predictions(dataframe)
-
+        # print("    Making predictions...")
         dataframe = self.add_rolling_predictions(dataframe)
        
 
+        # % difference between prediction and curent close
         dataframe['model_diff'] = 100.0 * (dataframe['dwt_predict'] - dataframe['close']) / dataframe['close']
 
         return dataframe
@@ -565,8 +561,8 @@ class DWT_Predict(IStrategy):
 
             # Fisher/Williams in buy region
             conditions.append(dataframe['fisher_wr'] <= -0.5)
-        # else:
-        #     conditions.append(dataframe['fisher_wr'] < 0.0)
+        else:
+            conditions.append(dataframe['fisher_wr'] < 0.0)
 
         # DWT triggers
         dwt_cond = (
@@ -602,10 +598,12 @@ class DWT_Predict(IStrategy):
         pred = round(last_candle['dwt_predict'], 4)
         price = round(rate, 4)
         if pred > price:
-            log.info(f'    Trade Entry: {pair}, rate: {price}')
+            if self.dp.runmode.value not in ('backtest', 'plot', 'hyperopt'):
+                print(f'Entry: {pair}, rate: {price}')
             result = True
         else:
-            log.warning(f"    Trade entry rejected: {pair}. Prediction:{pred:.4f} <= rate:{price:.4f}")
+            if self.dp.runmode.value not in ('hyperopt'):
+                print(f"Entry rejected: {pair}. Prediction:{pred:.4f} <= rate:{price:.4f}")
             result = False
 
         return result
@@ -661,7 +659,8 @@ class DWT_Predict(IStrategy):
                            rate: float, time_in_force: str, exit_reason: str,
                            current_time: datetime, **kwargs) -> bool:
                 
-        log.info(f'    Trade Exit: {pair}, rate: {rate}')
+        if self.dp.runmode.value not in ('backtest', 'plot', 'hyperopt'):
+            print(f'Trade Exit: {pair}, rate: {round(rate, 4)}')
 
         return True
     
