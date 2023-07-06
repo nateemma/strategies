@@ -590,6 +590,26 @@ class DWT_Predict(IStrategy):
 
         return dataframe
 
+    def confirm_trade_entry(self, pair: str, order_type: str, amount: float, rate: float,
+                            time_in_force: str, current_time: datetime, entry_tag: str,
+                            side: str, **kwargs) -> bool:
+        
+
+        dataframe, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
+        last_candle = dataframe.iloc[-1].squeeze()
+
+        # don't buy if the purchase price is above the current prediction (both can change)
+        pred = round(last_candle['dwt_predict'], 4)
+        price = round(rate, 4)
+        if pred > price:
+            log.info(f'    Trade Entry: {pair}, rate: {price}')
+            result = True
+        else:
+            log.warning(f"    Trade entry rejected: {pair}. Prediction:{pred:.4f} <= rate:{price:.4f}")
+            result = False
+
+        return result
+    
     ###################################
 
     """
@@ -636,6 +656,15 @@ class DWT_Predict(IStrategy):
 
         return dataframe
 
+
+    def confirm_trade_exit(self, pair: str, trade: Trade, order_type: str, amount: float,
+                           rate: float, time_in_force: str, exit_reason: str,
+                           current_time: datetime, **kwargs) -> bool:
+                
+        log.info(f'    Trade Exit: {pair}, rate: {rate}')
+
+        return True
+    
     ###################################
 
     """
