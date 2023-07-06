@@ -166,9 +166,9 @@ class DWT_Predict(IStrategy):
         # Base pair dataframe timeframe indicators
         curr_pair = metadata['pair']
 
-        print("")
-        print(curr_pair)
-        print("")
+        # print("")
+        # print(curr_pair)
+        # print("")
 
         if self.dataframeUtils is None:
             self.dataframeUtils = DataframeUtils()
@@ -387,39 +387,42 @@ class DWT_Predict(IStrategy):
         close_data = np.array(dataframe['close'])
 
         init_done = False
-
-        
         
         # roll through the close data and create DWT coefficients for each step
-        nrows = len(close_data)
+ 
+        nrows = np.shape(close_data)[0]
         start = 0
-        dest = self.dwt_window - 1
+        end = start + self.dwt_window 
+        dest = end
+
+        # print(f"nrows:{nrows} start:{start} end:{end} dest:{dest} nbuffs:{nbuffs}")
+
         self.coeff_array = None
-        col_names  = []
         num_coeffs = 0
 
-        for i in range(nrows-self.dwt_window+1):
-            end = start + self.dwt_window - 1
-            end = min(end, nrows-1)
-            if (end-start) > 0:
-                dslice = close_data[start:end]
+        while end < nrows:
+            dslice = close_data[start:end]
 
-                features = self.get_coeffs(dslice)
-        
-                # initialise the np.array (need features first to know size)
-                if not init_done:
-                    init_done = True
-                    num_coeffs = len(features)
-                    self.coeff_array = np.zeros((nrows, num_coeffs), dtype=float)
+            # print(f"start:{start} end:{end} dest:{dest} len:{len(dslice)}")
 
-                # copy the features to the appropriate row of the coefficient array (offset due to startup window)
-                # self.coeff_array[dest, 0:len(features)] = features
-                self.coeff_array[dest] = features
+            features = self.get_coeffs(dslice)
+            
+            # initialise the np.array (need features first to know size)
+            if not init_done:
+                init_done = True
+                num_coeffs = len(features)
+                self.coeff_array = np.zeros((nrows, num_coeffs), dtype=float)
+                # print(f"coeff_array:{np.shape(self.coeff_array)}")
 
-                start = start + 1
-                dest = dest + 1
+            # copy the features to the appropriate row of the coefficient array (offset due to startup window)
+            self.coeff_array[dest] = features
+
+            start = start + 1
+            dest = dest + 1
+            end = start + self.dwt_window
 
         # set up the column names
+        col_names = []
         for i in range(num_coeffs):
             col = "coeff_" + str(i)
             col_names.append(col)

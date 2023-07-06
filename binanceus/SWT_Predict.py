@@ -43,8 +43,8 @@ import talib.abstract as ta
 '''
 
 ####################################################################################
-DWT_Predict2 - use a Discreet Wavelet Transform to model the price, and a
-              regression algorithm trained on the DWT coefficients, which is then used
+SWT_Predict - use a Discreet Wavelet Transform to model the price, and a
+              regression algorithm trained on the SWT coefficients, which is then used
               to predict future prices.
               Unfortunately, this must all be done in a rolling fashion to avoid lookahead
               bias - so it is pretty slow
@@ -55,7 +55,7 @@ DWT_Predict2 - use a Discreet Wavelet Transform to model the price, and a
 '''
 
 
-class DWT_Predict2(IStrategy):
+class SWT_Predict(IStrategy):
     # Do *not* hyperopt for the roi and stoploss spaces
 
     # ROI table:
@@ -96,7 +96,7 @@ class DWT_Predict2(IStrategy):
 
     ## Hyperopt Variables
 
-    dwt_window = startup_candle_count
+    swt_window = startup_candle_count
 
     lookahead = 12
 
@@ -106,16 +106,16 @@ class DWT_Predict2(IStrategy):
     dataframeUtils = None
     scaler = RobustScaler()
 
-    # DWT  hyperparams
+    # SWT  hyperparams
     # NOTE: this strategy does not hyperopt well, no idea why. Note that some vars are turned off (optimize=False)
 
     # the defaults are set for fairly frequent trades, and get out quickly
-    # if you want bigger trades, then increase entry_dwt_diff, decrese exit_dwt_diff and adjust profit_threshold and
+    # if you want bigger trades, then increase entry_swt_diff, decrese exit_swt_diff and adjust profit_threshold and
     # loss_threshold accordingly. 
     # Note that there is also a corellation to self.lookahead, but that cannot be a hyperopt parameter (because it is 
     # used in populate_indicators). Larger lookahead implies bigger differences between the model and actual price
-    entry_dwt_diff = DecimalParameter(0.5, 3.0, decimals=1, default=1.0, space='buy', load=True, optimize=False)
-    exit_dwt_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-1.0, space='sell', load=True, optimize=False)
+    entry_swt_diff = DecimalParameter(0.5, 3.0, decimals=1, default=1.0, space='buy', load=True, optimize=False)
+    exit_swt_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-1.0, space='sell', load=True, optimize=False)
 
     # trailing stoploss
     tstop_start = DecimalParameter(0.0, 0.06, default=0.019, decimals=3, space='sell', load=True, optimize=True)
@@ -139,8 +139,8 @@ class DWT_Predict2(IStrategy):
     plot_config = {
         'main_plot': {
             'close': {'color': 'cornflowerblue'},
-            # 'dwt_model': {'color': 'lightsalmon'},
-            'dwt_predict': {'color': 'mediumaquamarine'},
+            # 'swt_model': {'color': 'lightsalmon'},
+            'swt_predict': {'color': 'mediumaquamarine'},
         },
         'subplots': {
             "Diff": {
@@ -187,9 +187,9 @@ class DWT_Predict2(IStrategy):
         # print("")
 
 
-        # # build the DWT
-        # print("    Building DWT...")
-        # dataframe['dwt_model'] = dataframe['close'].rolling(window=self.dwt_window).apply(self.model)
+        # # build the SWT
+        # print("    Building SWT...")
+        # dataframe['swt_model'] = dataframe['close'].rolling(window=self.swt_window).apply(self.model)
 
         # RSI
         dataframe['rsi'] = ta.RSI(dataframe, timeperiod=self.win_size)
@@ -209,7 +209,7 @@ class DWT_Predict2(IStrategy):
         dataframe = self.add_coefficients(dataframe)
 
         # print("    Training Model...")
-        dataframe['dwt_predict'] = dataframe['close']
+        dataframe['swt_predict'] = dataframe['close']
         self.train_model(dataframe)
 
         # add the predictions
@@ -217,7 +217,7 @@ class DWT_Predict2(IStrategy):
 
         dataframe = self.add_rolling_predictions(dataframe)
 
-        dataframe['model_diff'] = 100.0 * (dataframe['dwt_predict'] - dataframe['close']) / dataframe['close']
+        dataframe['model_diff'] = 100.0 * (dataframe['swt_predict'] - dataframe['close']) / dataframe['close']
 
         return dataframe
 
@@ -251,62 +251,22 @@ class DWT_Predict2(IStrategy):
         ''' Mean absolute deviation of a signal'''
         return np.mean(np.absolute(d - np.mean(d, axis)), axis)
 
-    def dwtModel(self, data):
-
-        # the choice of wavelet makes a big difference
-        # for an overview, check out: https://www.kaggle.com/theoviel/denoising-with-direct-wavelet-transform
-        # wavelet = 'db1'
-        # wavelet = 'bior1.1'
-        wavelet = 'haar'  # deals well with harsh transitions
-        level = 2
-        wmode = "smooth"
-        length = len(data)
-
-        coeff = pywt.wavedec(data, wavelet, mode=wmode)
-
-        # remove higher harmonics
-        sigma = (1 / 0.6745) * self.madev(coeff[-level])
-        uthresh = sigma * np.sqrt(2 * np.log(length))
-        coeff[1:] = (pywt.threshold(i, value=uthresh, mode='hard') for i in coeff[1:])
-
-        # inverse transform
-        model = pywt.waverec(coeff, wavelet, mode=wmode)
-
-        return model
-
-    def model(self, a: np.ndarray) -> float:
-        # must return scalar, so just calculate prediction and take last value
-        # model = self.dwtModel(np.array(a))
-
-        # de-trend the data
-        w_mean = a.mean()
-        w_std = a.std()
-        x_notrend = (a - w_mean) / w_std
-
-        # get DWT model of data
-        restored_sig = self.dwtModel(x_notrend)
-
-        # re-trend
-        model = (restored_sig * w_std) + w_mean
-
-        length = len(model)
-        return model[length - 1]
-
     ###################################
 
  
-    # function to get dwt coefficients
+    # function to get swt coefficients
     def get_coeffs(self, data: np.array) -> np.array:
-
 
 
         # print(pywt.wavelist(kind='discrete'))
 
-        # get the DWT coefficients
+        # print(f"data: {np.shape(data)}")
+
+        # get the SWT coefficients
         wavelet = 'haar'
          # wavelet = 'db12'
         # wavelet = 'db4'
-        coeffs = pywt.wavedec(data, wavelet, mode='smooth')
+        coeffs = pywt.swt(data, wavelet, level=2)
 
         # # remove higher harmonics
         # level = 2
@@ -315,12 +275,18 @@ class DWT_Predict2(IStrategy):
         # uthresh = sigma * np.sqrt(2 * np.log(length))
         # coeffs[1:] = (pywt.threshold(i, value=uthresh, mode='hard') for i in coeffs[1:])
 
-        # flatten the coefficient arrays
-        features = np.concatenate(np.array(coeffs, dtype=object))
+        # # Threshold the coefficients
+        # threshold = 0.1
+        # coeffs = pywt.threshold(coeffs, threshold)
+
+        # flatten the coefficient arrays (swt returns a 3d array, not 2d like wavedec)
+        features = np.concatenate(np.concatenate(np.array(coeffs, dtype=object)))
+
+        # print(f"coeffs:{np.shape(coeffs)} features:{np.shape(features)}")
 
         # trim down to max 128 entries
         if len(features) > 128:
-            features = features[:127]
+            features = features[:128]
 
         return features
     
@@ -332,10 +298,19 @@ class DWT_Predict2(IStrategy):
         close_data = np.array(dataframe['close'])
 
         init_done = False
-
+        
+        # roll through the close data and create SWT coefficients for each step
         nrows = np.shape(close_data)[0]
+        nbuffs = int(nrows / self.swt_window)
+        # offset the start such that the last batch will include the last set of rows
+        # if nrows % self.swt_window == 0:
+        #     start = 0
+        # else:
+        #     # start = self.swt_window - (nrows % self.swt_window)
+        #     start = nrows - nbuffs * self.swt_window - 1
+
         start = 0
-        end = start + self.dwt_window 
+        end = start + self.swt_window 
         dest = end
 
         # print(f"nrows:{nrows} start:{start} end:{end} dest:{dest} nbuffs:{nbuffs}")
@@ -362,7 +337,7 @@ class DWT_Predict2(IStrategy):
 
             start = start + 1
             dest = dest + 1
-            end = start + self.dwt_window
+            end = start + self.swt_window
 
         # normalise the coefficients
         self.scaler.fit(self.coeff_array)
@@ -430,25 +405,25 @@ class DWT_Predict2(IStrategy):
 
         data = np.array(self.convert_dataframe(dataframe)) # much faster using np.array vs DataFrame
 
-        nrows = np.shape(data)[0]  - self.dwt_window + 1
+        nrows = np.shape(data)[0]  - self.swt_window + 1
         start = 0
-        dest = self.dwt_window - 1
+        dest = self.swt_window - 1
 
-        dataframe['dwt_predict'] = dataframe['close']
+        dataframe['swt_predict'] = dataframe['close']
 
         # loop through each row, allowing for a startup buffer
         for i in range(nrows):
-            end = start + self.dwt_window - 1
+            end = start + self.swt_window - 1
             data_slice = self.coeff_array[start:end]
-            # dataframe['dwt_predict'][dest:dest + self.dwt_window - 1] = self.coeff_model.predict(slice)
-            dataframe['dwt_predict'][dest] = self.coeff_model.predict(data_slice)[-1]
+            # dataframe['swt_predict'][dest:dest + self.swt_window - 1] = self.coeff_model.predict(slice)
+            dataframe['swt_predict'][dest] = self.coeff_model.predict(data_slice)[-1]
             start = start + 1
             dest = dest + 1
 
         
         # make sure last entry is updated
-        data_slice = self.coeff_array[-self.dwt_window:]
-        dataframe['dwt_predict'][-1] = self.coeff_model.predict(data_slice)[-1]
+        data_slice = self.coeff_array[-self.swt_window:]
+        dataframe['swt_predict'][-1] = self.coeff_model.predict(data_slice)[-1]
 
         return dataframe
 
@@ -471,15 +446,15 @@ class DWT_Predict2(IStrategy):
         else:
             conditions.append(dataframe['fisher_wr'] < 0.0) # very loose guard
 
-        # DWT triggers
-        dwt_cond = (
-            dataframe['model_diff'] >= self.entry_dwt_diff.value
+        # SWT triggers
+        swt_cond = (
+            dataframe['model_diff'] >= self.entry_swt_diff.value
         )
 
-        conditions.append(dwt_cond)
+        conditions.append(swt_cond)
 
         # set entry tags
-        dataframe.loc[dwt_cond, 'enter_tag'] += 'dwt_entry '
+        dataframe.loc[swt_cond, 'enter_tag'] += 'swt_entry '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'enter_long'] = 1
@@ -496,7 +471,7 @@ class DWT_Predict2(IStrategy):
         last_candle = dataframe.iloc[-1].squeeze()
 
         # don't buy if the purchase price is above the current prediction (both can change)
-        pred = round(last_candle['dwt_predict'], 4)
+        pred = round(last_candle['swt_predict'], 4)
         price = round(rate, 4)
         if pred > price:
             if self.dp.runmode.value not in ('backtest', 'plot', 'hyperopt'):
@@ -534,15 +509,15 @@ class DWT_Predict2(IStrategy):
         else:
             conditions.append(dataframe['fisher_wr'] > 0.0) # very loose guard
 
-        # DWT triggers
-        dwt_cond = (
-            dataframe['model_diff'] <= self.exit_dwt_diff.value
+        # SWT triggers
+        swt_cond = (
+            dataframe['model_diff'] <= self.exit_swt_diff.value
         )
 
-        conditions.append(dwt_cond)
+        conditions.append(swt_cond)
 
         # set exit tags
-        dataframe.loc[dwt_cond, 'exit_tag'] += 'dwt_exit '
+        dataframe.loc[swt_cond, 'exit_tag'] += 'swt_exit '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'exit_long'] = 1
@@ -615,7 +590,7 @@ class DWT_Predict2(IStrategy):
             return 'unclog'
         
         # big drop predicted. Should also trigger an exit signal, but this might be quicker (and will likely be 'market' sell)
-        if last_candle['model_diff'] <= self.exit_dwt_diff.value:
+        if last_candle['model_diff'] <= self.exit_swt_diff.value:
             return 'predict_drop'
 
         return None
