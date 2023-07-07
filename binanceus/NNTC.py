@@ -244,62 +244,21 @@ class NNTC(IStrategy):
 
     ## Hyperopt Variables
 
-
-    # trailing stoploss
-    tstop_start = DecimalParameter(0.0, 0.06, default=0.019, decimals=3, space='sell', load=True, optimize=True)
-    tstop_ratio = DecimalParameter(0.7, 0.99, default=0.8, decimals=3, space='sell', load=True, optimize=True)
-
+   # trailing stoploss
+    tstop_start = DecimalParameter(0.0, 0.06, default=0.015, decimals=3, space='sell', load=True, optimize=True)
+    tstop_ratio = DecimalParameter(0.7, 0.99, default=0.9, decimals=3, space='sell', load=True, optimize=True)
 
     # profit threshold exit
-    profit_threshold = DecimalParameter(0.005, 0.065, default=0.046, decimals=3, space='sell', load=True, optimize=True)
-    use_profit_threshold = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+    profit_threshold = DecimalParameter(0.005, 0.065, default=0.025, decimals=3, space='sell', load=True, optimize=True)
+    use_profit_threshold = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=False)
 
     # loss threshold exit
     loss_threshold = DecimalParameter(-0.065, -0.005, default=-0.046, decimals=3, space='sell', load=True, optimize=True)
-    use_loss_threshold = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+    use_loss_threshold = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=False)
 
-    # # profit threshold exit
-    # profit_ratio = DecimalParameter(0.5, 4.0, default=1.0, decimals=1, space='sell', load=True, optimize=True)
-    # use_profit_ratio = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
-    #
-    # # loss treshold exit
-    # loss_ratio = DecimalParameter(0.5, 2.0, default=1.0, decimals=1, space='sell', load=True, optimize=True)
-    # use_loss_ratio = CategoricalParameter([True, False], default=False, space='sell', load=True, optimize=True)
+    # use exit signal? 
+    enable_exit_signal = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=False)
 
-    # use exit signal? Use this for hyperopt, but once decided it's better to just set self.ignore_exit_signals
-    enable_exit_signal = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
-
-    #  hyperparams
-    # buy_gain = IntParameter(1, 50, default=4, space='buy', load=True, optimize=True)
-    #
-    # sell_gain = IntParameter(-1, -15, default=-4, space='sell', load=True, optimize=True)
-
-    '''
-
-    # Custom Sell Profit (formerly Dynamic ROI)
-    cexit_roi_type = CategoricalParameter(['static', 'decay', 'step'], default='step', space='sell', load=True,
-                                          optimize=True)
-    cexit_roi_time = IntParameter(720, 1440, default=720, space='sell', load=True, optimize=True)
-    cexit_roi_start = DecimalParameter(0.01, 0.05, default=0.01, space='sell', load=True, optimize=True)
-    cexit_roi_end = DecimalParameter(0.0, 0.01, default=0, space='sell', load=True, optimize=True)
-    cexit_trend_type = CategoricalParameter(['rmi', 'ssl', 'candle', 'any', 'none'], default='any', space='sell',
-                                            load=True, optimize=True)
-    cexit_pullback = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
-    cexit_pullback_amount = DecimalParameter(0.005, 0.03, default=0.01, space='sell', load=True, optimize=True)
-    cexit_pullback_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
-                                                      optimize=True)
-    cexit_endtrend_respect_roi = CategoricalParameter([True, False], default=False, space='sell', load=True,
-                                                      optimize=True)
-
-    # Custom Stoploss
-    cstop_loss_threshold = DecimalParameter(-0.05, -0.01, default=-0.03, space='sell', load=True, optimize=True)
-    cstop_bail_how = CategoricalParameter(['roc', 'time', 'any', 'none'], default='none', space='sell', load=True,
-                                          optimize=True)
-    cstop_bail_roc = DecimalParameter(-5.0, -1.0, default=-3.0, space='sell', load=True, optimize=True)
-    cstop_bail_time = IntParameter(60, 1440, default=720, space='sell', load=True, optimize=True)
-    cstop_bail_time_trend = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
-    cstop_max_stoploss = DecimalParameter(-0.30, -0.01, default=-0.10, space='sell', load=True, optimize=True)
-    '''
     ################################
 
     # subclasses should override the following 2 functions - this is here as an example
@@ -1085,10 +1044,10 @@ class NNTC(IStrategy):
         dataframe.loc[predict_cond, 'enter_tag'] += 'nntc_entry '
 
         if conditions:
-            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'buy'] = 1
+            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'enter_long'] = 1
             # print(f"Num buys: {dataframe['buy'].sum()}")
         else:
-            dataframe['entry'] = 0
+            dataframe['enter_long'] = 0
 
         if self.dbg_trace_memory and (self.dbg_trace_pair == self.curr_pair):
             profiler.snapshot()
@@ -1113,7 +1072,7 @@ class NNTC(IStrategy):
 
         if not self.dp.runmode.value in ('hyperopt'):
             if NNTC.first_run:
-                NNTC.first_run = False  # note use of clas variable, not instance variable
+                NNTC.first_run = False  # note use of class variable, not instance variable
                 # self.show_debug_info(curr_pair)
                 self.show_all_debug_info()
 
@@ -1150,9 +1109,9 @@ class NNTC(IStrategy):
         dataframe.loc[predict_cond, 'exit_tag'] += 'nntc_exit '
 
         if conditions:
-            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'sell'] = 1
+            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'exit_long'] = 1
         else:
-            dataframe['exit'] = 0
+            dataframe['exit_long'] = 0
 
         return dataframe
 
@@ -1166,46 +1125,12 @@ class NNTC(IStrategy):
     def custom_stoploss(self, pair: str, trade: Trade, current_time: datetime, current_rate: float,
                         current_profit: float, **kwargs) -> float:
 
-        #TEMP: move this to populate_exit_signals in NNTC
-        if not self.enable_exit_signal.value:
-            self.ignore_exit_signals = True
-
         if current_profit > self.tstop_start.value:
             return current_profit * self.tstop_ratio.value
 
         # return min(-0.001, max(stoploss_from_open(0.05, current_profit), -0.99))
-        return -0.99
+        return self.stoploss
 
-    '''
-    def custom_stoploss(self, pair: str, trade: 'Trade', current_time: datetime, current_rate: float,
-                        current_profit: float, **kwargs) -> float:
-
-        # self.set_state(pair, self.State.STOPLOSS)
-
-        dataframe, last_updated = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
-        last_candle = dataframe.iloc[-1].squeeze()
-        trade_dur = int((current_time.timestamp() - trade.open_date_utc.timestamp()) // 60)
-        in_trend = self.custom_trade_info[trade.pair]['had_trend']
-
-        # limit stoploss
-        if current_profit < self.cstop_max_stoploss.value:
-            return 0.01
-
-        # Determine how we sell when we are in a loss
-        if current_profit < self.cstop_loss_threshold.value:
-            if self.cstop_bail_how.value == 'roc' or self.cstop_bail_how.value == 'any':
-                # Dynamic bailout based on rate of change
-                if last_candle['sroc'] <= self.cstop_bail_roc.value:
-                    return 0.01
-            if self.cstop_bail_how.value == 'time' or self.cstop_bail_how.value == 'any':
-                # Dynamic bailout based on time, unless time_trend is true and there is a potential reversal
-                if trade_dur > self.cstop_bail_time.value:
-                    if self.cstop_bail_time_trend.value == True and in_trend == True:
-                        return 1
-                    else:
-                        return 0.01
-        return 1
-    '''
 
     ###################################
 
@@ -1226,10 +1151,10 @@ class NNTC(IStrategy):
         # max_profit = max(0, trade.calc_profit_ratio(trade.max_rate))
 
         # Mod: just take the profit:
-        # Above 2%, sell if MFI > 90
-        if current_profit > 0.02:
-            if last_candle['mfi'] > 90:
-                return 'mfi_90'
+        # Above 1%, sell if Fisher/Williams in sell range
+        if current_profit > 0.01:
+            if last_candle['fisher_wr'] > 0.8:
+                return 'take_profit'
 
         # Mod: strong sell signal, in profit
         if (current_profit > 0) and (last_candle['fisher_wr'] > 0.93):
@@ -1249,105 +1174,11 @@ class NNTC(IStrategy):
         if self.use_loss_threshold.value:
             if (current_profit <= self.loss_threshold.value):
                 return 'loss_threshold'
-        #
-        # # Mod: sell if current profit exceeds threshold (based on recent trends)
-        # if self.use_profit_ratio.value:
-        #     if (current_profit > 0) and (current_profit > last_candle['profit_threshold'] * self.profit_ratio.value):
-        #         return 'profit_threshold'
-        #
-        # if self.use_loss_ratio.value:
-        #     if (current_profit < 0) and (current_profit < last_candle['loss_threshold'] * self.loss_ratio.value):
-        #         return 'loss_threshold'
 
+        # if in profit and exit signal is set, sell (whether or not ignore exit is active)
+        if (current_profit > 0) and (last_candle['exit_long'] > 0):
+            return 'exit_signal'
+        
         return None
 
-    '''
-    def custom_exit(self, pair: str, trade: 'Trade', current_time: 'datetime', current_rate: float,
-                    current_profit: float, **kwargs):
-
-        dataframe, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
-        last_candle = dataframe.iloc[-1].squeeze()
-
-        trade_dur = int((current_time.timestamp() - trade.open_date_utc.timestamp()) // 60)
-        max_profit = max(0, trade.calc_profit_ratio(trade.max_rate))
-        pullback_value = max(0, (max_profit - self.cexit_pullback_amount.value))
-        in_trend = False
-
-        # Mod: just take the profit:
-        # Above 2%, sell if MFI > 90
-        if current_profit > 0.02:
-            if last_candle['mfi'] > 90:
-                return 'mfi_90'
-
-        # Mod: strong sell signal, in profit
-        if (current_profit > 0) and (last_candle['fisher_wr'] > 0.98):
-            return 'fwr_98'
-
-        # Mod: Sell any positions at a loss if they are held for more than 'N' days.
-        # if (current_profit < 0.0) and (current_time - trade.open_date_utc).days >= 7:
-        if (current_time - trade.open_date_utc).days >= 7:
-            return 'unclog'
-
-        # Mod: sell if current profit exceeds threshold (based on recent trends)
-        if (current_profit > 0) and (current_profit > last_candle['profit_threshold']):
-            return 'profit_threshold'
-
-        if (current_profit < 0) and (current_profit < last_candle['loss_threshold']):
-            return 'loss_threshold'
-
-        if not self.use_custom_stoploss:
-            return None
-
-        # Determine our current ROI point based on the defined type
-        if self.cexit_roi_type.value == 'static':
-            min_roi = self.cexit_roi_start.value
-        elif self.cexit_roi_type.value == 'decay':
-            min_roi = cta.linear_decay(self.cexit_roi_start.value, self.cexit_roi_end.value, 0,
-                                       self.cexit_roi_time.value, trade_dur)
-        elif self.cexit_roi_type.value == 'step':
-            if trade_dur < self.cexit_roi_time.value:
-                min_roi = self.cexit_roi_start.value
-            else:
-                min_roi = self.cexit_roi_end.value
-
-        # Determine if there is a trend
-        if self.cexit_trend_type.value == 'rmi' or self.cexit_trend_type.value == 'any':
-            if last_candle['rmi_up_trend'] == 1:
-                in_trend = True
-        if self.cexit_trend_type.value == 'ssl' or self.cexit_trend_type.value == 'any':
-            if last_candle['ssl_dir'] == 1:
-                in_trend = True
-        if self.cexit_trend_type.value == 'candle' or self.cexit_trend_type.value == 'any':
-            if last_candle['candle_up_trend'] == 1:
-                in_trend = True
-
-        # Don't sell if we are in a trend unless the pullback threshold is met
-        if in_trend == True and current_profit > 0:
-            # Record that we were in a trend for this trade/pair for a more useful sell message later
-            self.custom_trade_info[trade.pair]['had_trend'] = True
-            # If pullback is enabled and profit has pulled back allow a sell, maybe
-            if self.cexit_pullback.value == True and (current_profit <= pullback_value):
-                if self.cexit_pullback_respect_roi.value == True and current_profit > min_roi:
-                    return 'intrend_pullback_roi'
-                elif self.cexit_pullback_respect_roi.value == False:
-                    if current_profit > min_roi:
-                        return 'intrend_pullback_roi'
-                    else:
-                        return 'intrend_pullback_noroi'
-            # We are in a trend and pullback is disabled or has not happened or various criteria were not met, hold
-            return None
-        # If we are not in a trend, just use the roi value
-        elif in_trend == False:
-            if self.custom_trade_info[trade.pair]['had_trend']:
-                if current_profit > min_roi:
-                    self.custom_trade_info[trade.pair]['had_trend'] = False
-                    return 'trend_roi'
-                elif self.cexit_endtrend_respect_roi.value == False:
-                    self.custom_trade_info[trade.pair]['had_trend'] = False
-                    return 'trend_noroi'
-            elif current_profit > min_roi:
-                return 'notrend_roi'
-        else:
-            return None
-    '''
 #######################

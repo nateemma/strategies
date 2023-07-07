@@ -1817,6 +1817,93 @@ class swing_signals(base_signals):
             'future_profit_max'
         ]
 
+# -----------------------------------
+
+# combines all signals together (in an OR fashion, not AND)
+
+class all_signals(base_signals):
+
+    def check_indicators(self, dataframe) -> bool:
+        # check that needed indicators are present
+        ind_list = [
+            'fisher_wr'
+        ]
+        return self.indicators_present(ind_list, dataframe)
+
+    def get_entry_training_signals(self, future_df: DataFrame):
+
+        signals = None
+        filter = np.where(
+            (
+                 (future_df['fisher_wr'] < -0.5)
+            ), 1.0, 0.0)
+
+        # loop through all signal types (except this one)
+        for stype in SignalType:
+            if stype != SignalType.ALL:
+                tsig = create_training_signals(stype, 12)
+                sigs = tsig.get_entry_training_signals(future_df)
+                if signals is None:
+                    signals = sigs
+                else:
+                    # print(f"stype: {stype}")
+                    # print(f"signals:{signals} sigs:{sigs}")
+                    signals = pd.Series(np.where(signals == 1, 1, np.where(sigs == 1, 1, 0)))
+                    # signals = signals | sigs
+                    # print(f"signals:{signals}")
+        
+        # filter out the signals, otherwise there are far too many
+        # signals = pd.Series(np.where(signals == 1 & filter == 1, 1, 0))
+        signals = signals.astype(int) & filter.astype(int)
+
+        return signals
+
+    def get_exit_training_signals(self, future_df: DataFrame):
+
+        signals = None
+        filter = np.where(
+            (
+                 (future_df['fisher_wr'] > 0.5)
+            ), 1.0, 0.0)
+
+        # loop through all signal types (except this one)
+        for stype in SignalType:
+            if stype != SignalType.ALL:
+                tsig = create_training_signals(stype, 12)
+                sigs = tsig.get_exit_training_signals(future_df)
+                if signals is None:
+                    signals = sigs
+                else:
+                    signals = pd.Series(np.where(signals == 1, 1, np.where(sigs == 1, 1, 0)))
+                    # signals = signals | sigs
+
+                
+        # filter out the signals, otherwise there are far too many
+        # signals = pd.Series(np.where(signals == 1 & filter == 1, 1, 0))
+        signals = signals.astype(int) & filter.astype(int)
+
+        return signals
+
+    def get_entry_guard_conditions(self, dataframe: DataFrame):
+        condition = np.where(
+            (
+                 (dataframe['fisher_wr'] <= -0.5)
+            ), 1.0, 0.0)
+        return condition
+
+    def get_exit_guard_conditions(self, dataframe: DataFrame):
+        condition = np.where(
+            (
+                 (dataframe['fisher_wr'] >= 0.5)
+            ), 1.0, 0.0)
+        return condition
+
+    def get_debug_indicators(self):
+        return [
+            'future_loss_min',
+            'future_profit_max'
+        ]
+
 
 # -----------------------------------
 
@@ -1827,6 +1914,7 @@ class SignalType(Enum):
     ADX = adx_signals
     ADX2 = adx2_signals
     ADX3 = adx3_signals
+    ALL = all_signals
     Aroon = aroon_signals
     Bollinger_Width = bbw_signals
     DWT = dwt_signals

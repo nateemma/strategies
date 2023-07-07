@@ -4,6 +4,11 @@
 
 I am having a lot of problems pushing to github. It might be related to all of the models...
 
+2023/7/7: Updated custom stoploss & exit routines to simplify processing.
+<br>Added new "ALL" training signal to NNTC (suggested by @nilux), which combines all available buy/sell training signals (with some reality-based filtering).
+<br>Still having issues with hyperopt, likely caused by tensorflow update.
+<br>DWT/SWT strats are performing very well in backtesting, not so well in dry runs. Getting hit by sudden drops (what a surprise)
+
 2023/7/2: reverted back to using XGBoostRegressor. LightGBM gives better results, and is quite a bit faster, but it crashes on 
 non-M1 Macs. Hyper-parameters also had to be adjusted to accomodate the different modelling.
 

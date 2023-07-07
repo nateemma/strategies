@@ -93,7 +93,7 @@ class DWT_Predict(IStrategy):
 
     ## Hyperopt Variables
 
-    dwt_window = startup_candle_count
+    model_window = startup_candle_count
 
     lookahead = 12
 
@@ -107,12 +107,12 @@ class DWT_Predict(IStrategy):
     # NOTE: this strategy does not hyperopt well, no idea why. Note that some vars are turned off (optimize=False)
 
     # the defaults are set for fairly frequent trades, and get out quickly
-    # if you want bigger trades, then increase entry_dwt_diff, decrese exit_dwt_diff and adjust profit_threshold and
+    # if you want bigger trades, then increase entry_model_diff, decrese exit_model_diff and adjust profit_threshold and
     # loss_threshold accordingly. 
     # Note that there is also a corellation to self.lookahead, but that cannot be a hyperopt parameter (because it is 
     # used in populate_indicators). Larger lookahead implies bigger differences between the model and actual price
-    entry_dwt_diff = DecimalParameter(0.5, 3.0, decimals=1, default=1.0, space='buy', load=True, optimize=False)
-    exit_dwt_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-1.0, space='sell', load=True, optimize=False)
+    entry_model_diff = DecimalParameter(0.5, 3.0, decimals=1, default=1.0, space='buy', load=True, optimize=False)
+    exit_model_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-1.0, space='sell', load=True, optimize=False)
 
     # trailing stoploss
     tstop_start = DecimalParameter(0.0, 0.06, default=0.019, decimals=3, space='sell', load=True, optimize=True)
@@ -136,8 +136,8 @@ class DWT_Predict(IStrategy):
     plot_config = {
         'main_plot': {
             'close': {'color': 'cornflowerblue'},
-            # 'dwt_model': {'color': 'lightsalmon'},
-            'dwt_predict': {'color': 'mediumaquamarine'},
+            # 'model_model': {'color': 'lightsalmon'},
+            'model_predict': {'color': 'mediumaquamarine'},
         },
         'subplots': {
             "Diff": {
@@ -179,7 +179,7 @@ class DWT_Predict(IStrategy):
 
         # # build the DWT
         # print("    Building DWT...")
-        # dataframe['dwt_model'] = dataframe['close'].rolling(window=self.dwt_window).apply(self.model)
+        # dataframe['model_model'] = dataframe['close'].rolling(window=self.model_window).apply(self.model)
 
         # RSI
         dataframe['rsi'] = ta.RSI(dataframe, timeperiod=self.win_size)
@@ -199,7 +199,7 @@ class DWT_Predict(IStrategy):
         dataframe = self.add_coefficients(dataframe)
 
         # print("    Training Model...")
-        dataframe['dwt_predict'] = dataframe['close']
+        dataframe['model_predict'] = dataframe['close']
         self.train_model(dataframe)
 
         # add the predictions
@@ -208,7 +208,7 @@ class DWT_Predict(IStrategy):
        
 
         # % difference between prediction and curent close
-        dataframe['model_diff'] = 100.0 * (dataframe['dwt_predict'] - dataframe['close']) / dataframe['close']
+        dataframe['model_diff'] = 100.0 * (dataframe['model_predict'] - dataframe['close']) / dataframe['close']
 
         return dataframe
 
@@ -337,7 +337,7 @@ class DWT_Predict(IStrategy):
 
             # add rows of zeros to account fpr the rolling window startup
             zeros = []
-            for i in range(self.dwt_window-1):
+            for i in range(self.model_window-1):
                 zeros.append([0] * len(self.df_coeffs.columns))
 
             # Add the rows of zeros to the dataframe
@@ -371,7 +371,7 @@ class DWT_Predict(IStrategy):
 
 
         self.df_coeffs = None # reset for each pair
-        coeffs = dataframe['close'].rolling(window=self.dwt_window).apply(self.roll_add_coeffs)
+        coeffs = dataframe['close'].rolling(window=self.model_window).apply(self.roll_add_coeffs)
         # dataframe = self.dataframe_add_coeff(dataframe)
 
         # print("    Merging coefficients into dataframe...")
@@ -392,7 +392,7 @@ class DWT_Predict(IStrategy):
  
         nrows = np.shape(close_data)[0]
         start = 0
-        end = start + self.dwt_window 
+        end = start + self.model_window 
         dest = end
 
         # print(f"nrows:{nrows} start:{start} end:{end} dest:{dest} nbuffs:{nbuffs}")
@@ -419,7 +419,7 @@ class DWT_Predict(IStrategy):
 
             start = start + 1
             dest = dest + 1
-            end = start + self.dwt_window
+            end = start + self.model_window
 
         # set up the column names
         col_names = []
@@ -519,7 +519,7 @@ class DWT_Predict(IStrategy):
 
         data = np.array(self.convert_dataframe(dataframe))
 
-        dataframe['dwt_predict'] = self.coeff_model.predict(data)
+        dataframe['model_predict'] = self.coeff_model.predict(data)
         return dataframe
 
     # add predictions in a rolling fashion. Use this when future data is present (e.g. backtest)
@@ -527,24 +527,24 @@ class DWT_Predict(IStrategy):
 
         data = np.array(self.convert_dataframe(dataframe)) # much faster using np.array vs DataFrame
 
-        nrows = np.shape(data)[0]  - self.dwt_window + 1
+        nrows = np.shape(data)[0]  - self.model_window + 1
         start = 0
-        dest = self.dwt_window - 1
+        dest = self.model_window - 1
 
-        dataframe['dwt_predict'] = dataframe['close']
+        dataframe['model_predict'] = dataframe['close']
 
         # loop through each row, allowing for a startup buffer
         for i in range(nrows):
-            end = start + self.dwt_window - 1
+            end = start + self.model_window - 1
             data_slice = data[start:end]
-            # dataframe['dwt_predict'][dest:dest + self.dwt_window - 1] = self.coeff_model.predict(slice)
-            dataframe['dwt_predict'][dest] = self.coeff_model.predict(data_slice)[-1]
+            # dataframe['model_predict'][dest:dest + self.model_window - 1] = self.coeff_model.predict(slice)
+            dataframe['model_predict'][dest] = self.coeff_model.predict(data_slice)[-1]
             start = start + 1
             dest = dest + 1
 
         # make sure last entry is updated
-        data_slice = data[-self.dwt_window:]
-        dataframe['dwt_predict'][-1] = self.coeff_model.predict(data_slice)[-1]
+        data_slice = data[-self.model_window:]
+        dataframe['model_predict'][-1] = self.coeff_model.predict(data_slice)[-1]
 
         return dataframe
 
@@ -568,21 +568,21 @@ class DWT_Predict(IStrategy):
             conditions.append(dataframe['fisher_wr'] < 0.0)
 
         # DWT triggers
-        dwt_cond = (
-            # qtpylib.crossed_above(dataframe['model_diff'], self.entry_dwt_diff.value)
-            dataframe['model_diff'] >= self.entry_dwt_diff.value
+        model_cond = (
+            # qtpylib.crossed_above(dataframe['model_diff'], self.entry_model_diff.value)
+            dataframe['model_diff'] >= self.entry_model_diff.value
         )
 
-        conditions.append(dwt_cond)
+        conditions.append(model_cond)
 
         # # DWTs will spike on big gains, so try to constrain
         # spike_cond = (
-        #         dataframe['model_diff'] < 2.0 * self.entry_dwt_diff.value
+        #         dataframe['model_diff'] < 2.0 * self.entry_model_diff.value
         # )
         # conditions.append(spike_cond)
 
         # set entry tags
-        dataframe.loc[dwt_cond, 'enter_tag'] += 'dwt_entry '
+        dataframe.loc[model_cond, 'enter_tag'] += 'model_entry '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'enter_long'] = 1
@@ -598,7 +598,7 @@ class DWT_Predict(IStrategy):
         last_candle = dataframe.iloc[-1].squeeze()
 
         # don't buy if the purchase price is above the current prediction (both can change)
-        pred = round(last_candle['dwt_predict'], 4)
+        pred = round(last_candle['model_predict'], 4)
         price = round(rate, 4)
         if pred > price:
             if self.dp.runmode.value not in ('backtest', 'plot', 'hyperopt'):
@@ -609,6 +609,12 @@ class DWT_Predict(IStrategy):
                 print(f"Entry rejected: {pair}. Prediction:{pred:.4f} <= rate:{price:.4f}")
             result = False
 
+        # don't buy if sell signal active (it can happen)
+        if last_candle['exit_long'] > 0:
+            if self.dp.runmode.value not in ('hyperopt'):
+                print(f"Entry rejected: sell active")
+            result = False
+            
         return result
     
     ###################################
@@ -636,21 +642,21 @@ class DWT_Predict(IStrategy):
         #     conditions.append(dataframe['fisher_wr'] > 0.0)
 
         # DWT triggers
-        dwt_cond = (
-            # qtpylib.crossed_below(dataframe['model_diff'], self.exit_dwt_diff.value)
-            dataframe['model_diff'] <= self.exit_dwt_diff.value
+        model_cond = (
+            # qtpylib.crossed_below(dataframe['model_diff'], self.exit_model_diff.value)
+            dataframe['model_diff'] <= self.exit_model_diff.value
         )
 
-        conditions.append(dwt_cond)
+        conditions.append(model_cond)
 
         # # DWTs will spike on big gains, so try to constrain
         # spike_cond = (
-        #         dataframe['model_diff'] > 2.0 * self.exit_dwt_diff.value
+        #         dataframe['model_diff'] > 2.0 * self.exit_model_diff.value
         # )
         # conditions.append(spike_cond)
 
         # set exit tags
-        dataframe.loc[dwt_cond, 'exit_tag'] += 'dwt_exit '
+        dataframe.loc[model_cond, 'exit_tag'] += 'model_exit '
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), 'exit_long'] = 1
@@ -701,12 +707,11 @@ class DWT_Predict(IStrategy):
         last_candle = dataframe.iloc[-1].squeeze()
 
         # trade_dur = int((current_time.timestamp() - trade.open_date_utc.timestamp()) // 60)
-
+            
         # check profit against ROI target. This sort of emulates the freqtrade roi approach, but is much simpler
         if self.use_profit_threshold.value:
             if (current_profit >= self.profit_threshold.value):
                 return 'profit_threshold'
-
 
         # check loss against threshold. This sort of emulates the freqtrade stoploss approach, but is much simpler
         if self.use_loss_threshold.value:
@@ -717,13 +722,22 @@ class DWT_Predict(IStrategy):
         if (current_profit > 0) and (last_candle['fisher_wr'] > 0.93):
             return 'fwr_high'
 
+        # Above 1%, sell if Fisher/Williams in sell range
+        if current_profit > 0.01:
+            if last_candle['fisher_wr'] > 0.8:
+                return 'take_profit'
+            
         # Sell any positions at a loss if they are held for more than 'N' days.
-        # if (current_profit < 0.0) and (current_time - trade.open_date_utc).days >= 7:
         if (current_time - trade.open_date_utc).days >= 7:
             return 'unclog'
         
         # big drop predicted. Should also trigger an exit signal, but this might be quicker (and will likely be 'market' sell)
-        if last_candle['model_diff'] <= self.exit_dwt_diff.value:
+        if last_candle['model_diff'] <= self.exit_model_diff.value:
             return 'predict_drop'
+        
+
+        # if in profit and exit signal is set, sell (even if exit signals are disabled)
+        if (current_profit > 0) and (last_candle['exit_long'] > 0):
+            return 'exit_signal'
 
         return None
