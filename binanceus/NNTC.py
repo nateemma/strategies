@@ -1080,8 +1080,8 @@ class NNTC(IStrategy):
             dataframe['exit_long'] = 0
             return dataframe
 
-        # # some volume
-        # conditions.append(dataframe['volume'] > 0)
+        # some volume
+        conditions.append(dataframe['volume'] > 0)
 
         # MFI
         conditions.append(dataframe['mfi'] > 50.0)

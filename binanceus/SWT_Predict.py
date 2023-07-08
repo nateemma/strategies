@@ -438,9 +438,10 @@ class SWT_Predict(IStrategy):
         conditions = []
         dataframe.loc[:, 'enter_tag'] = ''
        
+        # some trading volume
+        conditions.append(dataframe['volume'] > 0)
+
         if self.enable_guards.value:
-            # some trading volume
-            conditions.append(dataframe['volume'] > 0)
 
             # Fisher/Williams in buy region
             conditions.append(dataframe['fisher_wr'] <= -0.5)

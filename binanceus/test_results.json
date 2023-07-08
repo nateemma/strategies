@@ -440,15 +440,15 @@
         "daily_profit": -0.298
     },
     "NNTC_profit_Transformer": {
-        "test_date": "2023 Jun 29",
+        "test_date": "2023 Jul 07",
         "num_test_days": 30,
-        "entries": 602,
-        "daily_trades": 20.066666666666666,
-        "ave_profit": -0.3,
-        "tot_profit": -16.51,
-        "win_pct": 84.2,
-        "expectancy": -0.06,
-        "daily_profit": -0.55
+        "entries": 228,
+        "daily_trades": 7.6,
+        "ave_profit": -0.57,
+        "tot_profit": -11.77,
+        "win_pct": 81.1,
+        "expectancy": -0.12,
+        "daily_profit": -0.392
     },
     "NNTC_profit_Wavenet": {
         "test_date": "2023 Jul 07",
@@ -473,59 +473,59 @@
         "daily_profit": -0.608
     },
     "NNTC_profit_Wavenet2": {
-        "test_date": "2023 Jun 29",
+        "test_date": "2023 Jul 07",
         "num_test_days": 30,
-        "entries": 68,
-        "daily_trades": 2.2666666666666666,
-        "ave_profit": -0.04,
-        "tot_profit": -0.22,
-        "win_pct": 91.2,
-        "expectancy": -0.01,
-        "daily_profit": -0.007
+        "entries": 164,
+        "daily_trades": 5.466666666666667,
+        "ave_profit": -0.57,
+        "tot_profit": -8.48,
+        "win_pct": 80.5,
+        "expectancy": -0.12,
+        "daily_profit": -0.283
     },
     "NNTC_profit_Wavenet3": {
-        "test_date": "2023 Jun 29",
+        "test_date": "2023 Jul 07",
         "num_test_days": 30,
-        "entries": 103,
-        "daily_trades": 3.433333333333333,
-        "ave_profit": 0.01,
-        "tot_profit": 0.05,
-        "win_pct": 89.3,
-        "expectancy": 0.0,
-        "daily_profit": 0.002
+        "entries": 56,
+        "daily_trades": 1.8666666666666667,
+        "ave_profit": -1.05,
+        "tot_profit": -5.31,
+        "win_pct": 69.6,
+        "expectancy": -0.24,
+        "daily_profit": -0.177
     },
     "NNTC_pv_Ensemble": {
-        "test_date": "2023 Jun 29",
+        "test_date": "2023 Jul 07",
         "num_test_days": 30,
-        "entries": 260,
-        "daily_trades": 8.666666666666666,
-        "ave_profit": -0.28,
-        "tot_profit": -6.47,
-        "win_pct": 80.0,
-        "expectancy": -0.07,
-        "daily_profit": -0.216
+        "entries": 175,
+        "daily_trades": 5.833333333333333,
+        "ave_profit": -0.24,
+        "tot_profit": -3.73,
+        "win_pct": 78.3,
+        "expectancy": -0.09,
+        "daily_profit": -0.124
     },
     "NNTC_pv_LSTM": {
-        "test_date": "2023 Jun 29",
+        "test_date": "2023 Jul 07",
         "num_test_days": 30,
-        "entries": 339,
-        "daily_trades": 11.3,
-        "ave_profit": -0.51,
-        "tot_profit": -15.54,
-        "win_pct": 81.4,
-        "expectancy": -0.1,
-        "daily_profit": -0.518
+        "entries": 243,
+        "daily_trades": 8.1,
+        "ave_profit": -0.44,
+        "tot_profit": -9.58,
+        "win_pct": 82.7,
+        "expectancy": -0.08,
+        "daily_profit": -0.319
     },
     "NNTC_pv_MLP": {
-        "test_date": "2023 Jun 29",
+        "test_date": "2023 Jul 07",
         "num_test_days": 30,
-        "entries": 422,
-        "daily_trades": 14.066666666666666,
-        "ave_profit": -0.4,
-        "tot_profit": -15.12,
-        "win_pct": 82.9,
-        "expectancy": -0.08,
-        "daily_profit": -0.504
+        "entries": 610,
+        "daily_trades": 20.333333333333332,
+        "ave_profit": -0.25,
+        "tot_profit": -13.54,
+        "win_pct": 84.8,
+        "expectancy": -0.06,
+        "daily_profit": -0.451
     },
     "NNTC_pv_Multihead": {
         "test_date": "2023 Jun 12",
@@ -539,48 +539,48 @@
         "daily_profit": -0.478
     },
     "NNTC_pv_Wavenet": {
-        "test_date": "2023 Jun 29",
+        "test_date": "2023 Jul 07",
         "num_test_days": 30,
-        "entries": 18,
-        "daily_trades": 0.6,
-        "ave_profit": -0.32,
-        "tot_profit": -0.53,
-        "win_pct": 83.3,
-        "expectancy": -0.09,
-        "daily_profit": -0.018
+        "entries": 20,
+        "daily_trades": 0.6666666666666666,
+        "ave_profit": -0.53,
+        "tot_profit": -0.96,
+        "win_pct": 70.0,
+        "expectancy": -0.2,
+        "daily_profit": -0.032
     },
     "NNTC_slope_LSTM": {
-        "test_date": "2023 Jun 29",
+        "test_date": "2023 Jul 07",
         "num_test_days": 30,
-        "entries": 25,
-        "daily_trades": 0.8333333333333334,
-        "ave_profit": 0.52,
-        "tot_profit": 1.18,
-        "win_pct": 92.0,
-        "expectancy": 2.3,
-        "daily_profit": 0.039
+        "entries": 103,
+        "daily_trades": 3.433333333333333,
+        "ave_profit": -0.62,
+        "tot_profit": -5.71,
+        "win_pct": 71.8,
+        "expectancy": -0.15,
+        "daily_profit": -0.19
     },
     "NNTC_stochastic_LSTM": {
-        "test_date": "2023 Jun 29",
+        "test_date": "2023 Jul 07",
         "num_test_days": 30,
-        "entries": 245,
-        "daily_trades": 8.166666666666666,
-        "ave_profit": -0.52,
-        "tot_profit": -11.39,
-        "win_pct": 83.3,
-        "expectancy": -0.09,
-        "daily_profit": -0.38
+        "entries": 378,
+        "daily_trades": 12.6,
+        "ave_profit": -0.22,
+        "tot_profit": -7.56,
+        "win_pct": 85.2,
+        "expectancy": -0.04,
+        "daily_profit": -0.252
     },
     "NNTC_swing_LSTM": {
-        "test_date": "2023 Jun 29",
+        "test_date": "2023 Jul 07",
         "num_test_days": 30,
-        "entries": 265,
-        "daily_trades": 8.833333333333334,
-        "ave_profit": -0.32,
-        "tot_profit": -7.54,
-        "win_pct": 84.2,
-        "expectancy": -0.07,
-        "daily_profit": -0.251
+        "entries": 189,
+        "daily_trades": 6.3,
+        "ave_profit": -0.43,
+        "tot_profit": -7.25,
+        "win_pct": 83.1,
+        "expectancy": -0.09,
+        "daily_profit": -0.242
     },
     "NNTC_dwt2_LSTM": {
         "test_date": "2023 Jul 07",
@@ -594,15 +594,15 @@
         "daily_profit": -0.095
     },
     "NNTC_smooth_LSTM": {
-        "test_date": "2023 Jun 29",
+        "test_date": "2023 Jul 07",
         "num_test_days": 30,
-        "entries": 354,
-        "daily_trades": 11.8,
-        "ave_profit": -0.46,
-        "tot_profit": -14.51,
-        "win_pct": 75.1,
-        "expectancy": -0.13,
-        "daily_profit": -0.484
+        "entries": 111,
+        "daily_trades": 3.7,
+        "ave_profit": -0.21,
+        "tot_profit": -2.12,
+        "win_pct": 78.4,
+        "expectancy": -0.09,
+        "daily_profit": -0.071
     },
     "NNTC_profit_AdditiveAttention": {
         "test_date": "2023 Jul 07",

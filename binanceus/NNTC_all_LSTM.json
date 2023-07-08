@@ -18,11 +18,11 @@
     },
     "buy": {},
     "sell": {
-      "enable_exit_signal": false,
+      "enable_exit_signal": true,
       "loss_threshold": -0.049,
       "profit_threshold": 0.025,
       "tstop_ratio": 0.964,
-      "tstop_start": 0.015,
+      "tstop_start": 0.02,
       "use_loss_ratio": true,
       "use_profit_ratio": true
     },

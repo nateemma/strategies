@@ -1823,6 +1823,9 @@ class swing_signals(base_signals):
 
 class all_signals(base_signals):
 
+    n_profit_stddevs = 2.0
+    n_loss_stddevs = 2.0
+
     def check_indicators(self, dataframe) -> bool:
         # check that needed indicators are present
         ind_list = [
@@ -1833,10 +1836,7 @@ class all_signals(base_signals):
     def get_entry_training_signals(self, future_df: DataFrame):
 
         signals = None
-        filter = np.where(
-            (
-                 (future_df['fisher_wr'] < -0.5)
-            ), 1.0, 0.0)
+        count = None # for tracking stats
 
         # loop through all signal types (except this one)
         for stype in SignalType:
@@ -1846,25 +1846,32 @@ class all_signals(base_signals):
                 if signals is None:
                     signals = sigs
                 else:
-                    # print(f"stype: {stype}")
-                    # print(f"signals:{signals} sigs:{sigs}")
                     signals = pd.Series(np.where(signals == 1, 1, np.where(sigs == 1, 1, 0)))
-                    # signals = signals | sigs
-                    # print(f"signals:{signals}")
+
+                if count is None:
+                    count = np.array(sigs)
+                else:
+                    count = count + np.array(sigs)
+
+        # create filter where number of signals is greater than the mean + stddev (rounded down)
+        threshold = int(count.mean()) + int(count.std())
+        filter = np.where(count>threshold, 1, 0)
+
+        trend_filter = np.where(
+            (
+                 (future_df['fisher_wr'] < 0)
+            ), 1.0, 0.0)
         
         # filter out the signals, otherwise there are far too many
-        # signals = pd.Series(np.where(signals == 1 & filter == 1, 1, 0))
-        signals = signals.astype(int) & filter.astype(int)
+        signals = signals.astype(int) & filter.astype(int) & trend_filter.astype(int)
 
         return signals
+
 
     def get_exit_training_signals(self, future_df: DataFrame):
 
         signals = None
-        filter = np.where(
-            (
-                 (future_df['fisher_wr'] > 0.5)
-            ), 1.0, 0.0)
+        count = None # for tracking stats
 
         # loop through all signal types (except this one)
         for stype in SignalType:
@@ -1877,10 +1884,23 @@ class all_signals(base_signals):
                     signals = pd.Series(np.where(signals == 1, 1, np.where(sigs == 1, 1, 0)))
                     # signals = signals | sigs
 
+                if count is None:
+                    count = np.array(sigs)
+                else:
+                    count = count + np.array(sigs)
+
+
+        # create filter where number of signals is greater than the mean + stddev (rounded down)
+        threshold = int(count.mean()) + int(count.std())
+        filter = np.where(count>threshold, 1, 0)
+
+        trend_filter = np.where(
+            (
+                 (future_df['fisher_wr'] > 0)
+            ), 1.0, 0.0)
                 
         # filter out the signals, otherwise there are far too many
-        # signals = pd.Series(np.where(signals == 1 & filter == 1, 1, 0))
-        signals = signals.astype(int) & filter.astype(int)
+        signals = signals.astype(int) & filter.astype(int) & trend_filter.astype(int)
 
         return signals
 
