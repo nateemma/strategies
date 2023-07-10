@@ -8,6 +8,7 @@ import numpy as np
 # Get rid of pandas warnings during backtesting
 import pandas as pd
 from pandas import DataFrame, Series
+import scipy
 
 
 # from sklearn.ensemble import GradientBoostingRegressor
@@ -115,8 +116,8 @@ class SWT_Predict(IStrategy):
     # loss_threshold accordingly. 
     # Note that there is also a corellation to self.lookahead, but that cannot be a hyperopt parameter (because it is 
     # used in populate_indicators). Larger lookahead implies bigger differences between the model and actual price
-    entry_model_diff = DecimalParameter(0.5, 3.0, decimals=1, default=1.0, space='buy', load=True, optimize=False)
-    exit_model_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-1.0, space='sell', load=True, optimize=False)
+    entry_model_diff = DecimalParameter(0.5, 3.0, decimals=1, default=1.0, space='buy', load=True, optimize=True)
+    exit_model_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-1.0, space='sell', load=True, optimize=True)
 
     # trailing stoploss
     tstop_start = DecimalParameter(0.0, 0.06, default=0.019, decimals=3, space='sell', load=True, optimize=True)
@@ -263,31 +264,50 @@ class SWT_Predict(IStrategy):
 
         # print(f"data: {np.shape(data)}")
 
+        retrend = False
+
+        if retrend:
+            # de-trend the data
+            w_mean = data.mean()
+            w_std = data.std()
+            x = (data - w_mean) / w_std
+        else:
+            x = data
+
         # get the SWT coefficients
-        wavelet = 'haar'
-         # wavelet = 'db12'
-        # wavelet = 'db4'
-        coeffs = pywt.swt(data, wavelet, level=2)
+        # wavelet = 'haar'
+        # wavelet = 'db1'
+        wavelet = 'db4'
 
-        # # remove higher harmonics
-        # level = 2
-        # length = len(data)
-        # sigma = (1 / 0.6745) * self.madev(coeffs[-level])
-        # uthresh = sigma * np.sqrt(2 * np.log(length))
-        # coeffs[1:] = (pywt.threshold(i, value=uthresh, mode='hard') for i in coeffs[1:])
+        # (cA2, cD2), (cA1, cD1) = pywt.swt(data, wavelet, level=2)
+        
+        # swt returns an array, with each element being 2 arrays - cA_n and cD_n, whre n is the level
+        coeffs = pywt.swt(x, wavelet, level=2)
+        num_levels = np.shape(coeffs)[0] # varies depending upon the wavelet used
 
-        # # Threshold the coefficients
-        # threshold = 0.1
-        # coeffs = pywt.threshold(coeffs, threshold)
+        # coeff_list = np.array([data[-1]]) # always include the last input data point
+        # coeff_list = [data[-1]] # always include the last input data point
+        coeff_list = [] 
+        if num_levels > 0:
+            # add the approximation coefficients, then the detailed
+            for i in range(num_levels):
+                cA_n = coeffs[i][0]
+                if retrend:
+                    cA_n = (cA_n * w_std) + w_mean
+                cD_n = coeffs[i][1]
+                coeff_list.extend(cA_n)
+                coeff_list.extend(cD_n)
 
-        # flatten the coefficient arrays (swt returns a 3d array, not 2d like wavedec)
-        features = np.concatenate(np.concatenate(np.array(coeffs, dtype=object)))
+        # print(f'coeff_list:{np.shape(coeff_list)}')
+        features = np.array(coeff_list, dtype=float)
 
-        # print(f"coeffs:{np.shape(coeffs)} features:{np.shape(features)}")
+        # if retrend:
+        #     # re-trend
+        #     features = (features * w_std) + w_mean
 
-        # trim down to max 128 entries
-        if len(features) > 128:
-            features = features[:128]
+        # # trim down to max 128 entries
+        # if len(features) > 128:
+        #     features = features[:128]
 
         return features
     
@@ -295,8 +315,11 @@ class SWT_Predict(IStrategy):
     # builds a numpy array of coefficients
     def add_coefficients(self, dataframe) -> DataFrame:
 
+        df_norm = self.convert_dataframe(dataframe)
+
         # # copy the close data into an np.array (faster)
-        close_data = np.array(dataframe['close'])
+        # close_data = np.array(dataframe['close']).reshape(-1, 1)
+        close_data = np.array(df_norm['close'])
 
         init_done = False
         
@@ -311,7 +334,7 @@ class SWT_Predict(IStrategy):
         #     start = nrows - nbuffs * self.model_window - 1
 
         start = 0
-        end = start + self.model_window 
+        end = start + self.model_window
         dest = end
 
         # print(f"nrows:{nrows} start:{start} end:{end} dest:{dest} nbuffs:{nbuffs}")
@@ -338,11 +361,11 @@ class SWT_Predict(IStrategy):
 
             start = start + 1
             dest = dest + 1
-            end = start + self.model_window
+            end = end + 1
 
-        # normalise the coefficients
-        self.scaler.fit(self.coeff_array)
-        self.coeff_array = self.scaler.transform(self.coeff_array)
+        # # normalise the coefficients
+        # self.scaler.fit(self.coeff_array)
+        # self.coeff_array = self.scaler.transform(self.coeff_array)
 
         return dataframe
 
@@ -386,12 +409,14 @@ class SWT_Predict(IStrategy):
 
     def train_model(self, dataframe: DataFrame):
 
+        #TODO: do grid search for best parameters first time through (or just during debug)
+
         # need to exclude the startup period at the front, and the lookahead period at the end
 
         data_slice = self.coeff_array[self.startup_candle_count:-self.lookahead]
         y = dataframe['close'].iloc[self.startup_candle_count+self.lookahead:].to_numpy()
 
-        # print(f"df: {df.shape} y:{y.shape}")
+        # print(f"df: {np.shape(data_slice)} y:{np.shape(y)}")
 
 
         self.coeff_model.fit(data_slice, y)
@@ -401,30 +426,78 @@ class SWT_Predict(IStrategy):
 
     #-------------
 
+    def get_modal_value(self, data):
+        # round to 6 decimal places (otherwise there is unlikely to be a modal value)
+        rnd = np.round(data, decimals=6)
+
+        # get the mode
+        mode = scipy.stats.mode(rnd, keepdims=False).mode
+
+        return mode
+
+
     # add predictions in a rolling fashion. Use this when future data is present (e.g. backtest)
     def add_rolling_predictions(self, dataframe: DataFrame) -> DataFrame:
 
+        '''
+
+        use_modal = False
+
         data = np.array(self.convert_dataframe(dataframe)) # much faster using np.array vs DataFrame
 
-        nrows = np.shape(data)[0]  - self.model_window + 1
+        # nrows = np.shape(data)[0]  - self.model_window + 1
+        nrows = np.shape(data)[0]
         start = 0
         dest = self.model_window - 1
 
         dataframe['model_predict'] = dataframe['close']
 
+        col_idx = dataframe.columns.get_loc('model_predict')
+
         # loop through each row, allowing for a startup buffer
-        for i in range(nrows):
-            end = start + self.model_window - 1
+        # for i in range(nrows):
+        while (dest < nrows):
+            # end = start + self.model_window - 1
+            end = start + self.model_window 
             data_slice = self.coeff_array[start:end]
-            # dataframe['model_predict'][dest:dest + self.model_window - 1] = self.coeff_model.predict(slice)
-            dataframe['model_predict'][dest] = self.coeff_model.predict(data_slice)[-1]
+
+            preds = self.coeff_model.predict(data_slice)
+            pred = preds[-1]
+            # if use_modal:
+            #     pred = self.get_modal_value(preds)
+            # else:
+            #     pred = np.mean(preds)
+
+
+            dataframe.iat[dest, col_idx] = pred
+
             start = start + 1
             dest = dest + 1
 
         
         # make sure last entry is updated
         data_slice = self.coeff_array[-self.model_window:]
-        dataframe['model_predict'][-1] = self.coeff_model.predict(data_slice)[-1]
+        preds = self.coeff_model.predict(data_slice)
+        pred = preds[-1]
+        # if use_modal:
+        #     pred = self.get_modal_value(preds)
+        # else:
+        #     pred = np.mean(preds)
+
+        dataframe.iat[-1, col_idx] = pred
+        '''
+
+        dataframe['model_predict'] = dataframe['close']
+        # col_idx = dataframe.columns.get_loc('model_predict')
+
+        # nrows = np.shape(dataframe)[0]
+
+        # for i in range(nrows):
+        #     data = self.coeff_array[i]
+        #     pred = self.coeff_model.predict(data)
+        #     dataframe.iat[i, col_idx] = pred
+
+        dataframe['model_predict'] = self.coeff_model.predict(self.coeff_array)
 
         return dataframe
 

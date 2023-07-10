@@ -300,13 +300,23 @@ class DWT_Predict2(IStrategy):
 
 
 
+        retrend = False
+
+        if retrend:
+            # de-trend the data
+            w_mean = data.mean()
+            w_std = data.std()
+            x = (data - w_mean) / w_std
+        else:
+            x = data
+
         # print(pywt.wavelist(kind='discrete'))
 
         # get the DWT coefficients
         wavelet = 'haar'
          # wavelet = 'db12'
         # wavelet = 'db4'
-        coeffs = pywt.wavedec(data, wavelet, mode='smooth')
+        coeffs = pywt.wavedec(x, wavelet, mode='smooth')
 
         # # remove higher harmonics
         # level = 2
@@ -318,9 +328,13 @@ class DWT_Predict2(IStrategy):
         # flatten the coefficient arrays
         features = np.concatenate(np.array(coeffs, dtype=object))
 
+        if retrend:
+            # re-trend
+            features = (features * w_std) + w_mean
+
         # trim down to max 128 entries
         if len(features) > 128:
-            features = features[:127]
+            features = features[:128]
 
         return features
     
