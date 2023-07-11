@@ -204,7 +204,8 @@ class DWT_Predict(IStrategy):
 
         # add the predictions
         # print("    Making predictions...")
-        dataframe = self.add_rolling_predictions(dataframe)
+        # dataframe = self.add_rolling_predictions(dataframe)
+        dataframe = self.add_predictions(dataframe)
        
 
         # % difference between prediction and curent close
@@ -309,9 +310,9 @@ class DWT_Predict(IStrategy):
         # flatten the coefficient arrays
         features = np.concatenate(np.array(coeffs, dtype=object))
 
-        # trim down to max 128 entries
-        if len(features) > 128:
-            features = features[:127]
+        # # trim down to max 128 entries
+        # if len(features) > 128:
+        #     features = features[:127]
 
         return features
 
@@ -388,11 +389,11 @@ class DWT_Predict(IStrategy):
 
         init_done = False
         
-        # roll through the close data and create DWT coefficients for each step
- 
+        # roll through the close data and create SWT coefficients for each step
         nrows = np.shape(close_data)[0]
+
         start = 0
-        end = start + self.model_window 
+        end = start + self.model_window
         dest = end
 
         # print(f"nrows:{nrows} start:{start} end:{end} dest:{dest} nbuffs:{nbuffs}")
@@ -419,7 +420,7 @@ class DWT_Predict(IStrategy):
 
             start = start + 1
             dest = dest + 1
-            end = start + self.model_window
+            end = end + 1
 
         # set up the column names
         col_names = []

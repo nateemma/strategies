@@ -298,25 +298,13 @@ class DWT_Predict2(IStrategy):
     # function to get dwt coefficients
     def get_coeffs(self, data: np.array) -> np.array:
 
-
-
-        retrend = False
-
-        if retrend:
-            # de-trend the data
-            w_mean = data.mean()
-            w_std = data.std()
-            x = (data - w_mean) / w_std
-        else:
-            x = data
-
         # print(pywt.wavelist(kind='discrete'))
 
         # get the DWT coefficients
         wavelet = 'haar'
          # wavelet = 'db12'
         # wavelet = 'db4'
-        coeffs = pywt.wavedec(x, wavelet, mode='smooth')
+        coeffs = pywt.wavedec(data, wavelet, mode='smooth')
 
         # # remove higher harmonics
         # level = 2
@@ -328,13 +316,9 @@ class DWT_Predict2(IStrategy):
         # flatten the coefficient arrays
         features = np.concatenate(np.array(coeffs, dtype=object))
 
-        if retrend:
-            # re-trend
-            features = (features * w_std) + w_mean
-
-        # trim down to max 128 entries
-        if len(features) > 128:
-            features = features[:128]
+        # # trim down to max 128 entries
+        # if len(features) > 128:
+        #     features = features[:128]
 
         return features
     
@@ -342,14 +326,19 @@ class DWT_Predict2(IStrategy):
     # builds a numpy array of coefficients
     def add_coefficients(self, dataframe) -> DataFrame:
 
-        # # copy the close data into an np.array (faster)
-        close_data = np.array(dataframe['close'])
+        # normalise the dataframe
+        df_norm = self.convert_dataframe(dataframe)
+
+        # copy the close data into an np.array (faster)
+        close_data = np.array(df_norm['close'])
 
         init_done = False
-
+        
+        # roll through the close data and create SWT coefficients for each step
         nrows = np.shape(close_data)[0]
+
         start = 0
-        end = start + self.model_window 
+        end = start + self.model_window
         dest = end
 
         # print(f"nrows:{nrows} start:{start} end:{end} dest:{dest} nbuffs:{nbuffs}")
@@ -376,11 +365,7 @@ class DWT_Predict2(IStrategy):
 
             start = start + 1
             dest = dest + 1
-            end = start + self.model_window
-
-        # normalise the coefficients
-        self.scaler.fit(self.coeff_array)
-        self.coeff_array = self.scaler.transform(self.coeff_array)
+            end = end + 1
 
         return dataframe
 
@@ -442,6 +427,8 @@ class DWT_Predict2(IStrategy):
     # add predictions in a rolling fashion. Use this when future data is present (e.g. backtest)
     def add_rolling_predictions(self, dataframe: DataFrame) -> DataFrame:
 
+        '''
+
         data = np.array(self.convert_dataframe(dataframe)) # much faster using np.array vs DataFrame
 
         nrows = np.shape(data)[0]  - self.model_window + 1
@@ -463,6 +450,9 @@ class DWT_Predict2(IStrategy):
         # make sure last entry is updated
         data_slice = self.coeff_array[-self.model_window:]
         dataframe['model_predict'][-1] = self.coeff_model.predict(data_slice)[-1]
+        '''
+        
+        dataframe['model_predict'] = self.coeff_model.predict(self.coeff_array)
 
         return dataframe
 

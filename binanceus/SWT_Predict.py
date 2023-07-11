@@ -315,23 +315,16 @@ class SWT_Predict(IStrategy):
     # builds a numpy array of coefficients
     def add_coefficients(self, dataframe) -> DataFrame:
 
+        # normalise the dataframe
         df_norm = self.convert_dataframe(dataframe)
 
-        # # copy the close data into an np.array (faster)
-        # close_data = np.array(dataframe['close']).reshape(-1, 1)
+        # copy the close data into an np.array (faster)
         close_data = np.array(df_norm['close'])
 
         init_done = False
         
         # roll through the close data and create SWT coefficients for each step
         nrows = np.shape(close_data)[0]
-        nbuffs = int(nrows / self.model_window)
-        # offset the start such that the last batch will include the last set of rows
-        # if nrows % self.model_window == 0:
-        #     start = 0
-        # else:
-        #     # start = self.model_window - (nrows % self.model_window)
-        #     start = nrows - nbuffs * self.model_window - 1
 
         start = 0
         end = start + self.model_window
