@@ -77,7 +77,7 @@ class SWT_Predict(IStrategy):
     timeframe = '5m'
     inf_timeframe = '15m'
 
-    use_custom_stoploss = False
+    use_custom_stoploss = True
 
     # Recommended
     use_exit_signal = True
@@ -125,11 +125,11 @@ class SWT_Predict(IStrategy):
 
     # profit threshold exit
     profit_threshold = DecimalParameter(0.005, 0.065, default=0.06, decimals=3, space='sell', load=True, optimize=True)
-    use_profit_threshold = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=False)
+    use_profit_threshold = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
 
     # loss threshold exit
     loss_threshold = DecimalParameter(-0.065, -0.005, default=-0.046, decimals=3, space='sell', load=True, optimize=True)
-    use_loss_threshold = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=False)
+    use_loss_threshold = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
 
     # use exit signal? 
     enable_exit_signal = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=False)
