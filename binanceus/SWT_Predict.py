@@ -77,7 +77,7 @@ class SWT_Predict(IStrategy):
     timeframe = '5m'
     inf_timeframe = '15m'
 
-    use_custom_stoploss = True
+    use_custom_stoploss = False
 
     # Recommended
     use_exit_signal = True
@@ -763,6 +763,10 @@ class SWT_Predict(IStrategy):
         dataframe, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
         last_candle = dataframe.iloc[-1].squeeze()
           
+
+        if not self.use_custom_stoploss:
+            return None
+        
         # check profit against ROI target. This sort of emulates the freqtrade roi approach, but is much simpler
         if self.use_profit_threshold.value:
             if (current_profit >= self.profit_threshold.value):
