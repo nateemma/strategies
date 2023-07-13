@@ -1,4 +1,4 @@
-#pragma pylint: disable=W0105, C0103, C0301
+#pragma pylint: disable=W0105, C0103, C0301, W1203
 
 from datetime import datetime
 from functools import reduce
@@ -111,8 +111,8 @@ class DWT_Predict(IStrategy):
     # loss_threshold accordingly. 
     # Note that there is also a corellation to self.lookahead, but that cannot be a hyperopt parameter (because it is 
     # used in populate_indicators). Larger lookahead implies bigger differences between the model and actual price
-    entry_model_diff = DecimalParameter(0.5, 3.0, decimals=1, default=1.0, space='buy', load=True, optimize=False)
-    exit_model_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-1.0, space='sell', load=True, optimize=False)
+    entry_model_diff = DecimalParameter(0.5, 3.0, decimals=1, default=1.0, space='buy', load=True, optimize=True)
+    exit_model_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-1.0, space='sell', load=True, optimize=True)
 
     # trailing stoploss
     tstop_start = DecimalParameter(0.0, 0.06, default=0.019, decimals=3, space='sell', load=True, optimize=True)
@@ -145,6 +145,19 @@ class DWT_Predict(IStrategy):
             },
         }
     }
+
+    ###################################
+
+    def bot_start(self, **kwargs) -> None:
+
+        if self.dataframeUtils is None:
+            self.dataframeUtils = DataframeUtils()
+            self.dataframeUtils.set_scaler_type(ScalerType.Robust)
+
+        if self.coeff_model is None:
+            self.create_model()
+
+        return
 
     ###################################
 
@@ -194,19 +207,9 @@ class DWT_Predict(IStrategy):
         # Combined Fisher RSI and Williams %R
         dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
 
-        # build the list of model coefficients - added to self.df_coeffs
-        # print("    Adding coefficients...")
-        dataframe = self.add_coefficients(dataframe)
-
-        # print("    Training Model...")
-        dataframe['model_predict'] = dataframe['close']
-        self.train_model(dataframe)
-
         # add the predictions
         # print("    Making predictions...")
-        # dataframe = self.add_rolling_predictions(dataframe)
         dataframe = self.add_predictions(dataframe)
-       
 
         # % difference between prediction and curent close
         dataframe['model_diff'] = 100.0 * (dataframe['model_predict'] - dataframe['close']) / dataframe['close']
@@ -291,105 +294,47 @@ class DWT_Predict(IStrategy):
 
         length = len(data)
 
+        x = data
+
+        # data must be of even length, so trim if necessary
+        if (len(x) % 2) != 0:
+            x = x[1:]
+
         # print(pywt.wavelist(kind='discrete'))
 
         # get the DWT coefficients
         # wavelet = 'db12'
         wavelet = 'db4'
-        levels = 5
-        # coeffs = pywt.wavedec(data, wavelet, mode='smooth', level=levels)
-        coeffs = pywt.wavedec(data, wavelet, mode='smooth')
-        # coeffs = modwt.modwt(data, wavelet, levels)
+        # wavelet = 'haar'
+        coeffs = pywt.wavedec(x, wavelet, mode='smooth', level=2)
 
-
-        # # remove higher harmonics
-        # sigma = (1 / 0.6745) * self.madev(coeffs[-level])
-        # uthresh = sigma * np.sqrt(2 * np.log(length))
-        # coeffs[1:] = (pywt.threshold(i, value=uthresh, mode='hard') for i in coeffs[1:])
-
-        # flatten the coefficient arrays
         features = np.concatenate(np.array(coeffs, dtype=object))
 
-        # # trim down to max 128 entries
-        # if len(features) > 128:
-        #     features = features[:127]
+        # # flatten the coefficient arrays
+        # levels = len(coeffs)
+        # features = np.array(coeffs, dtype=object)
+        # print(f'features:{np.shape(features)}')
+        # for i in range(levels):
+        #     features = np.concatenate(features)
+
+        # print(f'features:{np.shape(features)}')
 
         return features
 
-    # adds coefficients to dataframe row, in a rolling fashion
-    # TODO: need to speed this up somehow
-    def roll_add_coeffs(self, a: np.ndarray) -> float:
-
-        # get the DWT coefficients
-        features = self.get_coeffs(np.array(a))
-
-        # print("")
-        # print(f"features: {np.shape(features)}")
-        # print(features)
-        # print("")
-
-        if self.df_coeffs is None:
-            # add headers (required by pandas because we want to merge later)
-            cols = []
-            for i in range(len(features)):
-                col = "coeff_" + str(i)
-                cols.append(col)
-            self.df_coeffs = pd.DataFrame(columns=cols)
-
-            # add rows of zeros to account fpr the rolling window startup
-            zeros = []
-            for i in range(self.model_window-1):
-                zeros.append([0] * len(self.df_coeffs.columns))
-
-            # Add the rows of zeros to the dataframe
-            self.df_coeffs = pd.concat([self.df_coeffs, pd.DataFrame(zeros, columns=self.df_coeffs.columns)])
-
-        # Append the coefficients to the df_coeffs dataframe
-        self.df_coeffs.loc[len(self.df_coeffs)] = features
-
-        return 1.0 # have to return a float value
-
-
-    def merge_data(self, df1: DataFrame, df2: DataFrame) -> DataFrame:
-
-        # merge df_coeffs into the main dataframe
-
-        l1 = df1.shape[0]
-        l2 = df2.shape[0]
-
-        if l1 != l2:
-            print(f"    **** size mismatch. len(df1)={l1} len(df2)={l2}")
-        dataframe = pd.concat([df1, df2], axis=1, ignore_index=False).fillna(0.0)
-
-        return dataframe
-
     #-------------
 
-    # trying out several approaches to building the coefficients dataframe
+    # builds a numpy array of coefficients
+    def add_coefficients(self, dataframe) -> DataFrame:
 
-    # this version is the 'standard' rolling calculation
-    def add_coefficients_1(self, dataframe) -> DataFrame:
+        # normalise the dataframe
+        df_norm = self.convert_dataframe(dataframe)
 
-
-        self.df_coeffs = None # reset for each pair
-        coeffs = dataframe['close'].rolling(window=self.model_window).apply(self.roll_add_coeffs)
-        # dataframe = self.dataframe_add_coeff(dataframe)
-
-        # print("    Merging coefficients into dataframe...")
-        dataframe = self.merge_data(dataframe, self.df_coeffs)
-
-        return dataframe
-    
-
-    # this version builds a numpy array of coefficients, then copies those into the dataframe (faster)
-    def add_coefficients_2(self, dataframe) -> DataFrame:
-
-        # copy the close data into an np.array
+        # copy the close data into an np.array (faster)
         close_data = np.array(dataframe['close'])
 
         init_done = False
         
-        # roll through the close data and create SWT coefficients for each step
+        # roll through the close data and create DWT coefficients for each step
         nrows = np.shape(close_data)[0]
 
         start = 0
@@ -422,6 +367,60 @@ class DWT_Predict(IStrategy):
             dest = dest + 1
             end = end + 1
 
+        # # normalise the coefficients
+        # self.scaler.fit(self.coeff_array)
+        # self.coeff_array = self.scaler.transform(self.coeff_array)
+
+        return dataframe
+    
+    #-------------
+
+
+    # builds a numpy array of coefficients
+    def get_coefficient_table(self, data: np.array):
+
+        init_done = False
+        
+        # roll through the  data and create DWT coefficients for each step
+        nrows = np.shape(data)[0]
+
+        # print(f'nrows:{nrows}')
+
+        start = 0
+        end = start + self.model_window - 1
+        dest = end
+
+        # print(f"nrows:{nrows} start:{start} end:{end} dest:{dest} nbuffs:{nbuffs}")
+
+        coeff_table = None
+        num_coeffs = 0
+
+        while end < nrows:
+            dslice = data[start:end]
+
+            # print(f"start:{start} end:{end} dest:{dest} len:{len(dslice)}")
+
+            features = self.get_coeffs(dslice)
+            
+            # initialise the np.array (need features first to know size)
+            if not init_done:
+                init_done = True
+                num_coeffs = len(features)
+                coeff_table = np.zeros((nrows, num_coeffs), dtype=float)
+                # print(f"coeff_table:{np.shape(coeff_table)}")
+
+            # copy the features to the appropriate row of the coefficient array (offset due to startup window)
+            coeff_table[dest] = features
+
+            start = start + 1
+            dest = dest + 1
+            end = end + 1
+
+        return coeff_table
+
+    def merge_coeff_table(self, coeff_table: np.array, dataframe: DataFrame) -> DataFrame:
+
+        num_coeffs = np.shape(coeff_table)[1]
         # set up the column names
         col_names = []
         for i in range(num_coeffs):
@@ -431,27 +430,28 @@ class DWT_Predict(IStrategy):
         # print(f'self.coeff_array: {np.shape(self.coeff_array)} col_names:{np.shape(col_names)}')
 
         # convert the np.array into a dataframe
-        df_coeff = pd.DataFrame(self.coeff_array, columns=col_names)
+        df_coeff = pd.DataFrame(coeff_table, columns=col_names)
 
         # merge into the main dataframe
         dataframe = self.merge_data(dataframe, df_coeff)
 
         return dataframe
-
     #-------------
 
-    def add_coefficients(self, dataframe) -> DataFrame:
 
-        # df1 = self.add_coefficients_1(dataframe)
-        df2 = self.add_coefficients_2(dataframe)
+    def merge_data(self, df1: DataFrame, df2: DataFrame) -> DataFrame:
 
-        # df_diff = df1.compare(df2, align_axis=0)
+        # merge df_coeffs into the main dataframe
 
-        # print(df_diff)
+        l1 = df1.shape[0]
+        l2 = df2.shape[0]
 
-        dataframe = df2
+        if l1 != l2:
+            print(f"    **** size mismatch. len(df1)={l1} len(df2)={l2}")
+        dataframe = pd.concat([df1, df2], axis=1, ignore_index=False).fillna(0.0)
 
         return dataframe
+
 
     #-------------
 
@@ -490,19 +490,18 @@ class DWT_Predict(IStrategy):
 
     #-------------
 
-    def train_model(self, dataframe: DataFrame):
+    def train_model(self, data: np.array, close: np.array):
 
-        data = np.array(self.convert_dataframe(dataframe))
+        # data = np.array(self.convert_dataframe(dataframe))
 
         # need to exclude the startup period at the front, and the lookahead period at the end
 
-        data_slice = data[self.startup_candle_count:-self.lookahead]
-        y = dataframe['close'].iloc[self.startup_candle_count+self.lookahead:].to_numpy()
+        x = data[:-self.lookahead]
+        y = close[self.lookahead:]
 
-        # print(f"df: {df.shape} y:{y.shape}")
+        # print(f"df: {np.shape(x)} y:{np.shape(y)}")
 
-
-        self.coeff_model.fit(data_slice, y)
+        self.coeff_model.fit(x, y)
 
         return
 
@@ -511,44 +510,142 @@ class DWT_Predict(IStrategy):
 
     def predict(self, a: np.ndarray) -> float:
 
-        y_pred = self.coeff_model.predict(a)
+        y_pred = self.coeff_model.predict(a)[-1]
 
         return y_pred
 
-    # add predictions in batch mode. Only use this when ther is no future data present
-    def add_predictions(self, dataframe: DataFrame) -> DataFrame:
 
-        data = np.array(self.convert_dataframe(dataframe))
+    # get predictions based on a window of data
+    def get_predictions(self, dataframe: DataFrame):
+        close_data = np.array(dataframe['close'])
+        coeff_table = self.get_coefficient_table(close_data)
+        df_merged = self.merge_coeff_table(coeff_table, dataframe)
+        data = np.array(self.convert_dataframe(df_merged))
+        self.train_model(data, close_data)
+        predictions = self.coeff_model.predict(data)
+        return predictions
 
-        dataframe['model_predict'] = self.coeff_model.predict(data)
-        return dataframe
 
     # add predictions in a rolling fashion. Use this when future data is present (e.g. backtest)
     def add_rolling_predictions(self, dataframe: DataFrame) -> DataFrame:
 
-        data = np.array(self.convert_dataframe(dataframe)) # much faster using np.array vs DataFrame
+        live_buffer_size = 974
 
-        nrows = np.shape(data)[0]  - self.model_window + 1
+        # roll through the close data and predict for each step
+        nrows = np.shape(dataframe)[0]
+
+        # initialise the prediction array, using the close data
+        close_data = np.array(dataframe['close']).copy()
+        pred_array = close_data
+        
+        # build the coefficient table (outside the main loop)
+        coeff_table = self.get_coefficient_table(close_data)
+        df_merged = self.merge_coeff_table(coeff_table, dataframe)
+
+        data = np.array(self.convert_dataframe(df_merged)) # much faster using np.array vs DataFrame
+
+
+        # if training withion loop, we need to use a buffer size at least 2x the DWT/DWT window size + lookahead
+        win_size = live_buffer_size
+        max_win_size = live_buffer_size 
+
         start = 0
-        dest = self.model_window - 1
+        end = start + win_size
+        first_time = True
+
+        while end < nrows:
+
+            start = end - win_size
+            dslice = data[start:end]
+            cslice = close_data[start:end]
+
+            # print(f"start:{start} end:{end} win_size:{win_size} dslice:{np.shape(dslice)}")
+
+            self.train_model(dslice, cslice)
+            preds = self.coeff_model.predict(dslice)
+
+            if first_time:
+                pred_array[:win_size] = preds
+                first_time = False
+            else:
+                pred_array[end] = preds[-1]
+
+            end = end + 1
+
+        return pred_array
+
+
+
+    # add predictions in a jumping fashion. This is a compromise - the rolling version is very slow
+    # Note: you probably need to manually tune the parameters, since there is some limited lookahead here
+    def add_jumping_predictions(self, dataframe: DataFrame) -> DataFrame:
+
+        live_buffer_size = 974
+
+        # roll through the close data and predict for each step
+        nrows = np.shape(dataframe)[0]
+
+        # initialise the prediction array, using the close data
+        close_data = np.array(dataframe['close']).copy()
+        pred_array = close_data
+        
+        # build the coefficient table (outside the main loop)
+        coeff_table = self.get_coefficient_table(close_data)
+        df_merged = self.merge_coeff_table(coeff_table, dataframe)
+
+        data = np.array(self.convert_dataframe(df_merged)) # much faster using np.array vs DataFrame
+
+        # if training within loop, we need to use a buffer size at least 2x the DWT/DWT window size + lookahead
+        # here, just using same size as the live run buffer
+        win_size = 974
+
+        # loop until we get to/past the end of the buffer
+        start = 0
+        end = start + win_size
+
+        while end < nrows:
+
+            # extract the data and coefficients from the current window
+            start = end - win_size
+            dslice = data[start:end]
+            cslice = close_data[start:end]
+
+            # print(f"start:{start} end:{end} win_size:{win_size} dslice:{np.shape(dslice)}")
+
+            # (re-)train the model and get predictions
+            self.train_model(dslice, cslice)
+            preds = self.coeff_model.predict(dslice)
+
+            # copy the predictions for this window into the main predictions array
+            pred_array[start:end] = preds
+
+            # move the window to the next segment
+            end = end + win_size - 1
+
+        # make sure the last section gets processed (the loop above may not exactly fit the data)
+        dslice = data[-win_size:]
+        cslice = close_data[-win_size:]
+        self.train_model(dslice, cslice)
+        preds = self.coeff_model.predict(dslice)
+        pred_array[-win_size:] = preds
+
+        return pred_array
+
+    
+    # add predictions to dataframe['model_predict']
+    def add_predictions(self, dataframe: DataFrame) -> DataFrame:
 
         dataframe['model_predict'] = dataframe['close']
 
-        # loop through each row, allowing for a startup buffer
-        for i in range(nrows):
-            end = start + self.model_window - 1
-            data_slice = data[start:end]
-            # dataframe['model_predict'][dest:dest + self.model_window - 1] = self.coeff_model.predict(slice)
-            dataframe['model_predict'][dest] = self.coeff_model.predict(data_slice)[-1]
-            start = start + 1
-            dest = dest + 1
-
-        # make sure last entry is updated
-        data_slice = data[-self.model_window:]
-        dataframe['model_predict'][-1] = self.coeff_model.predict(data_slice)[-1]
+        # for hyperopt, dryrun and plot modes, we need to add data using a rolling/jumping window
+        if self.dp.runmode.value in ('hyperopt' 'backtest' 'plot'):
+            dataframe['model_predict'] = self.add_jumping_predictions(dataframe)
+        else:
+            # for other modes, we can just directly process the data (because it is not forward looking)
+            dataframe['model_predict'] = self.get_predictions(dataframe)
 
         return dataframe
-
+    
     ###################################
 
     """
@@ -569,11 +666,13 @@ class DWT_Predict(IStrategy):
         else:
             conditions.append(dataframe['fisher_wr'] < 0.0)
 
-        # DWT triggers
+        # model triggers
         model_cond = (
-            # qtpylib.crossed_above(dataframe['model_diff'], self.entry_model_diff.value)
-            dataframe['model_diff'] >= self.entry_model_diff.value
-        )
+            # model predicts a rise above the entry threshold
+            (dataframe['model_diff'] >= self.entry_model_diff.value) &
+
+            # model prediction is going up
+            (dataframe['model_predict'] >= dataframe['model_predict'].shift())       )
 
         conditions.append(model_cond)
 
@@ -640,22 +739,16 @@ class DWT_Predict(IStrategy):
 
              # Fisher/Williams in sell region
             conditions.append(dataframe['fisher_wr'] >= 0.5)
-        # else:
-        #     conditions.append(dataframe['fisher_wr'] > 0.0)
+        else:
+            conditions.append(dataframe['fisher_wr'] > 0.0)
 
-        # DWT triggers
+        # model triggers
         model_cond = (
-            # qtpylib.crossed_below(dataframe['model_diff'], self.exit_model_diff.value)
-            dataframe['model_diff'] <= self.exit_model_diff.value
+            (dataframe['model_diff'] <= self.exit_model_diff.value) 
         )
 
         conditions.append(model_cond)
 
-        # # DWTs will spike on big gains, so try to constrain
-        # spike_cond = (
-        #         dataframe['model_diff'] > 2.0 * self.exit_model_diff.value
-        # )
-        # conditions.append(spike_cond)
 
         # set exit tags
         dataframe.loc[model_cond, 'exit_tag'] += 'model_exit '

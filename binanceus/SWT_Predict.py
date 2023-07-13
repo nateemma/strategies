@@ -575,35 +575,34 @@ class SWT_Predict(IStrategy):
         # build the coefficient table (outside the main loop)
         coeff_table = self.get_coefficient_table(data)
 
-        # win_size = self.model_window
-        # if (nrows > live_buffer_size):
-        #     max_win_size = live_buffer_size 
-        # else:
-        #     max_win_size = self.model_window
-
         # if training within loop, we need to use a buffer size at least 2x the DWT/SWT window size + lookahead
         # here, just using same size as the live run buffer
         win_size = 974
 
+        # loop until we get to/past the end of the buffer
         start = 0
         end = start + win_size
 
         while end < nrows:
 
+            # extract the data and coefficients from the current window
             start = end - win_size
             dslice = data[start:end]
             cslice = coeff_table[start:end]
 
             # print(f"start:{start} end:{end} win_size:{win_size} dslice:{np.shape(dslice)}")
 
+            # (re-)train the model and get predictions
             self.train_model(dslice, cslice)
             preds = self.coeff_model.predict(cslice)
 
+            # copy the predictions for this window into the main predictions array
             pred_array[start:end] = preds
 
+            # move the window to the next segment
             end = end + win_size - 1
 
-        # make sure the last section gets processed
+        # make sure the last section gets processed (the loop above may not exactly fit the data)
         dslice = data[-win_size:]
         cslice = coeff_table[-win_size:]
         self.train_model(dslice, cslice)
@@ -632,9 +631,14 @@ class SWT_Predict(IStrategy):
         else:
             conditions.append(dataframe['fisher_wr'] < 0.0) # very loose guard
 
-        # SWT triggers
+        # Model triggers
         model_cond = (
-            dataframe['model_diff'] >= self.entry_model_diff.value
+            # model predicts a rise above the entry threshold
+            (dataframe['model_diff'] >= self.entry_model_diff.value) &
+
+            # model prediction is going up
+            (dataframe['model_predict'] >= dataframe['model_predict'].shift())
+
         )
 
         conditions.append(model_cond)
@@ -701,10 +705,9 @@ class SWT_Predict(IStrategy):
         else:
             conditions.append(dataframe['fisher_wr'] > 0.0) # very loose guard
 
-        # SWT triggers
+        # Model triggers
         model_cond = (
-            (dataframe['model_diff'] <= self.exit_model_diff.value) &
-            (dataframe['model_predict'] >= dataframe['model_predict'].shift())
+            (dataframe['model_diff'] <= self.exit_model_diff.value) 
         )
 
         conditions.append(model_cond)
