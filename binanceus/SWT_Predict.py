@@ -703,7 +703,8 @@ class SWT_Predict(IStrategy):
 
         # SWT triggers
         model_cond = (
-            dataframe['model_diff'] <= self.exit_model_diff.value
+            (dataframe['model_diff'] <= self.exit_model_diff.value) &
+            (dataframe['model_predict'] >= dataframe['model_predict'].shift())
         )
 
         conditions.append(model_cond)
