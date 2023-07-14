@@ -116,8 +116,8 @@ class SWT_Predict(IStrategy):
     # loss_threshold accordingly. 
     # Note that there is also a corellation to self.lookahead, but that cannot be a hyperopt parameter (because it is 
     # used in populate_indicators). Larger lookahead implies bigger differences between the model and actual price
-    entry_model_diff = DecimalParameter(0.5, 3.0, decimals=1, default=1.0, space='buy', load=True, optimize=True)
-    exit_model_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-1.0, space='sell', load=True, optimize=True)
+    entry_model_diff = DecimalParameter(0.5, 3.0, decimals=1, default=1.0, space='buy', load=True, optimize=False)
+    exit_model_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-1.0, space='sell', load=True, optimize=False)
 
     # trailing stoploss
     tstop_start = DecimalParameter(0.0, 0.06, default=0.019, decimals=3, space='sell', load=True, optimize=True)
@@ -132,7 +132,7 @@ class SWT_Predict(IStrategy):
     use_loss_threshold = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
 
     # use exit signal? 
-    enable_exit_signal = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=False)
+    enable_exit_signal = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
 
     # enable entry/exit guards (safer vs profit)
     enable_guards = CategoricalParameter([True, False], default=False, space='sell', load=True, optimize=False)
@@ -766,16 +766,7 @@ class SWT_Predict(IStrategy):
 
         if not self.use_custom_stoploss:
             return None
-        
-        # check profit against ROI target. This sort of emulates the freqtrade roi approach, but is much simpler
-        if self.use_profit_threshold.value:
-            if (current_profit >= self.profit_threshold.value):
-                return 'profit_threshold'
 
-        # check loss against threshold. This sort of emulates the freqtrade stoploss approach, but is much simpler
-        if self.use_loss_threshold.value:
-            if (current_profit <= self.loss_threshold.value):
-                return 'loss_threshold'
 
         # strong sell signal, in profit
         if (current_profit > 0) and (last_candle['fisher_wr'] > 0.95):
@@ -785,13 +776,23 @@ class SWT_Predict(IStrategy):
         if current_profit > 0.01:
             if last_candle['fisher_wr'] > 0.8:
                 return 'take_profit'
-            
+                  
+        # check profit against ROI target. This sort of emulates the freqtrade roi approach, but is much simpler
+        if self.use_profit_threshold.value:
+            if (current_profit >= self.profit_threshold.value):
+                return 'profit_threshold'
+
+        # check loss against threshold. This sort of emulates the freqtrade stoploss approach, but is much simpler
+        if self.use_loss_threshold.value:
+            if (current_profit <= self.loss_threshold.value):
+                return 'loss_threshold'
+              
         # Sell any positions at a loss if they are held for more than 'N' days.
         if (current_time - trade.open_date_utc).days >= 7:
             return 'unclog'
         
         # big drop predicted. Should also trigger an exit signal, but this might be quicker (and will likely be 'market' sell)
-        if last_candle['model_diff'] <= self.exit_model_diff.value:
+        if last_candle['model_diff'] <= min(-1.0, self.exit_model_diff.value):
             return 'predict_drop'
         
 
