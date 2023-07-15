@@ -778,6 +778,10 @@ class SWT_Predict(IStrategy):
             if last_candle['fisher_wr'] > 0.8:
                 return 'take_profit'
                   
+        # if model prediction is above threshold, don't exit
+        if last_candle['model_diff'] >= self.entry_model_diff.value:
+            return None
+
         # check profit against ROI target. This sort of emulates the freqtrade roi approach, but is much simpler
         if self.use_profit_threshold.value:
             if (current_profit >= self.profit_threshold.value):

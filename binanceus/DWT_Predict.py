@@ -19,6 +19,7 @@ from xgboost import XGBRegressor
 
 from freqtrade.strategy import (IStrategy, DecimalParameter, CategoricalParameter)
 from freqtrade.persistence import Trade
+import freqtrade.vendor.qtpylib.indicators as qtpylib
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -206,6 +207,21 @@ class DWT_Predict(IStrategy):
 
         # Combined Fisher RSI and Williams %R
         dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
+
+        # Bollinger Bands
+        bollinger = qtpylib.bollinger_bands(dataframe['close'], window=20, stds=2)
+        dataframe['bb_lowerband'] = bollinger['lower']
+        dataframe['bb_middleband'] = bollinger['mid']
+        dataframe['bb_upperband'] = bollinger['upper']
+        dataframe['bb_width'] = ((dataframe['bb_upperband'] - dataframe['bb_lowerband']) / dataframe['bb_middleband'])
+        dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
+        dataframe["bb_loss"] = ((dataframe["bb_lowerband"] - dataframe["close"]) / dataframe["close"])
+
+        # MACD
+        macd = ta.MACD(dataframe)
+        dataframe['macd'] = macd['macd']
+        dataframe['macdsignal'] = macd['macdsignal']
+        dataframe['macdhist'] = macd['macdhist']
 
         # add the predictions
         # print("    Making predictions...")
@@ -800,9 +816,25 @@ class DWT_Predict(IStrategy):
 
         dataframe, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
         last_candle = dataframe.iloc[-1].squeeze()
+        
 
-        # trade_dur = int((current_time.timestamp() - trade.open_date_utc.timestamp()) // 60)
-            
+        if not self.use_custom_stoploss:
+            return None
+
+
+        # strong sell signal, in profit
+        if (current_profit > 0) and (last_candle['fisher_wr'] > 0.95):
+            return 'fwr_overbought'
+
+        # Above 1%, sell if Fisher/Williams in sell range
+        if current_profit > 0.01:
+            if last_candle['fisher_wr'] > 0.8:
+                return 'take_profit'
+                  
+        # if model prediction is above threshold, don't exit
+        if last_candle['model_diff'] >= self.entry_model_diff.value:
+            return None
+
         # check profit against ROI target. This sort of emulates the freqtrade roi approach, but is much simpler
         if self.use_profit_threshold.value:
             if (current_profit >= self.profit_threshold.value):
@@ -812,22 +844,13 @@ class DWT_Predict(IStrategy):
         if self.use_loss_threshold.value:
             if (current_profit <= self.loss_threshold.value):
                 return 'loss_threshold'
-
-        # strong sell signal, in profit
-        if (current_profit > 0) and (last_candle['fisher_wr'] > 0.93):
-            return 'fwr_high'
-
-        # Above 1%, sell if Fisher/Williams in sell range
-        if current_profit > 0.01:
-            if last_candle['fisher_wr'] > 0.8:
-                return 'take_profit'
-            
+              
         # Sell any positions at a loss if they are held for more than 'N' days.
         if (current_time - trade.open_date_utc).days >= 7:
             return 'unclog'
         
         # big drop predicted. Should also trigger an exit signal, but this might be quicker (and will likely be 'market' sell)
-        if last_candle['model_diff'] <= self.exit_model_diff.value:
+        if last_candle['model_diff'] <= min(-1.0, self.exit_model_diff.value):
             return 'predict_drop'
         
 

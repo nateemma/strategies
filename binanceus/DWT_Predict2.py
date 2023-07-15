@@ -728,19 +728,13 @@ class DWT_Predict2(IStrategy):
 
     def custom_exit(self, pair: str, trade: Trade, current_time: 'datetime', current_rate: float,
                     current_profit: float, **kwargs):
-
+                  
+        if not self.use_custom_stoploss:
+            return None
+        
         dataframe, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
         last_candle = dataframe.iloc[-1].squeeze()
-          
-        # check profit against ROI target. This sort of emulates the freqtrade roi approach, but is much simpler
-        if self.use_profit_threshold.value:
-            if (current_profit >= self.profit_threshold.value):
-                return 'profit_threshold'
 
-        # check loss against threshold. This sort of emulates the freqtrade stoploss approach, but is much simpler
-        if self.use_loss_threshold.value:
-            if (current_profit <= self.loss_threshold.value):
-                return 'loss_threshold'
 
         # strong sell signal, in profit
         if (current_profit > 0) and (last_candle['fisher_wr'] > 0.95):
@@ -750,13 +744,27 @@ class DWT_Predict2(IStrategy):
         if current_profit > 0.01:
             if last_candle['fisher_wr'] > 0.8:
                 return 'take_profit'
-            
+                  
+        # if model prediction is above threshold, don't exit
+        if last_candle['model_diff'] >= self.entry_model_diff.value:
+            return None
+
+        # check profit against ROI target. This sort of emulates the freqtrade roi approach, but is much simpler
+        if self.use_profit_threshold.value:
+            if (current_profit >= self.profit_threshold.value):
+                return 'profit_threshold'
+
+        # check loss against threshold. This sort of emulates the freqtrade stoploss approach, but is much simpler
+        if self.use_loss_threshold.value:
+            if (current_profit <= self.loss_threshold.value):
+                return 'loss_threshold'
+              
         # Sell any positions at a loss if they are held for more than 'N' days.
         if (current_time - trade.open_date_utc).days >= 7:
             return 'unclog'
         
         # big drop predicted. Should also trigger an exit signal, but this might be quicker (and will likely be 'market' sell)
-        if last_candle['model_diff'] <= self.exit_model_diff.value:
+        if last_candle['model_diff'] <= min(-1.0, self.exit_model_diff.value):
             return 'predict_drop'
         
 
