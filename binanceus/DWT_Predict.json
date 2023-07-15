@@ -20,18 +20,18 @@
       "entry_model_diff": 0.5
     },
     "sell": {
-      "enable_exit_signal": true,
-      "enable_guards": false,
-      "use_loss_threshold": true,
-      "use_profit_threshold": true,
-      "exit_model_diff": -0.5,
-      "loss_threshold": -0.064,
-      "profit_threshold": 0.032,
-      "tstop_ratio": 0.959,
-      "tstop_start": 0.049
+      "enable_guards": true,
+      "enable_exit_signal": false,
+      "exit_model_diff": -0.4,
+      "loss_threshold": -0.046,
+      "profit_threshold": 0.022,
+      "tstop_ratio": 0.925,
+      "tstop_start": 0.026,
+      "use_loss_threshold": false,
+      "use_profit_threshold": true
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2023-07-13 16:31:03.605291+00:00"
+  "export_time": "2023-07-15 15:18:09.548149+00:00"
 }

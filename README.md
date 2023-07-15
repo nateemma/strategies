@@ -4,6 +4,9 @@
 
 I am having a lot of problems pushing to github. It might be related to all of the models...
 
+2023/7/15:
+Updated sliding window processing for S/DWT_Predict family to prevent lookahead. Howvwer, that was exceptionally slow so I converted it to a compromise, which does have a little bit of an issue with indirect lookahead for backtesting, so results are inflated. 
+
 2023/7/7: Updated custom stoploss & exit routines to simplify processing.
 <br>Added new "ALL" training signal to NNTC (suggested by @nilux), which combines all available buy/sell training signals (with some reality-based filtering).
 <br>Still having issues with hyperopt, likely caused by tensorflow update.

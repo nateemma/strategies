@@ -100,7 +100,8 @@ class SWT_Predict(IStrategy):
 
     model_window = startup_candle_count
 
-    lookahead = 12
+    # lookahead = 12
+    lookahead = 6
 
     # df_coeffs: DataFrame = None
     coeff_array = None
@@ -116,8 +117,8 @@ class SWT_Predict(IStrategy):
     # loss_threshold accordingly. 
     # Note that there is also a corellation to self.lookahead, but that cannot be a hyperopt parameter (because it is 
     # used in populate_indicators). Larger lookahead implies bigger differences between the model and actual price
-    entry_model_diff = DecimalParameter(0.5, 3.0, decimals=1, default=1.0, space='buy', load=True, optimize=False)
-    exit_model_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-1.0, space='sell', load=True, optimize=False)
+    entry_model_diff = DecimalParameter(0.2, 3.0, decimals=1, default=1.0, space='buy', load=True, optimize=True)
+    exit_model_diff = DecimalParameter(-5.0, 0.0, decimals=1, default=-1.0, space='sell', load=True, optimize=True)
 
     # trailing stoploss
     tstop_start = DecimalParameter(0.0, 0.06, default=0.019, decimals=3, space='sell', load=True, optimize=True)

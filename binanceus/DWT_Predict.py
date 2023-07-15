@@ -95,7 +95,7 @@ class DWT_Predict(IStrategy):
 
     model_window = startup_candle_count
 
-    lookahead = 12
+    lookahead = 6
 
     df_coeffs: DataFrame = None
     coeff_array = None
@@ -120,17 +120,17 @@ class DWT_Predict(IStrategy):
 
     # profit threshold exit
     profit_threshold = DecimalParameter(0.005, 0.065, default=0.06, decimals=3, space='sell', load=True, optimize=True)
-    use_profit_threshold = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=False)
+    use_profit_threshold = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
 
     # loss threshold exit
     loss_threshold = DecimalParameter(-0.065, -0.005, default=-0.046, decimals=3, space='sell', load=True, optimize=True)
-    use_loss_threshold = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=False)
+    use_loss_threshold = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
 
     # use exit signal? 
-    enable_exit_signal = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=False)
+    enable_exit_signal = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
 
     # enable entry/exit guards (safer vs profit)
-    enable_guards = CategoricalParameter([True, False], default=False, space='sell', load=True, optimize=False)
+    enable_guards = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=False)
 
 
     plot_config = {
