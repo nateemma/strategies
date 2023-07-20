@@ -2,27 +2,27 @@ import numpy as np
 import pandas as pd
 import os, datetime
 import tensorflow as tf
-from tf.keras.models import *
-from tf.keras.layers import *
+# from tf.keras.models import *
+# from tf.keras.layers import *
 
-class SingleAttention(Layer):
+class SingleAttention(tf.keras.layers.Layer):
     def __init__(self, d_k, d_v):
         super(SingleAttention, self).__init__()
         self.d_k = d_k
         self.d_v = d_v
 
     def build(self, input_shape):
-        self.query = Dense(self.d_k,
+        self.query = tf.keras.layers.Dense(self.d_k,
                            input_shape=input_shape,
                            kernel_initializer='glorot_uniform',
                            bias_initializer='glorot_uniform')
 
-        self.key = Dense(self.d_k,
+        self.key = tf.keras.layers.Dense(self.d_k,
                          input_shape=input_shape,
                          kernel_initializer='glorot_uniform',
                          bias_initializer='glorot_uniform')
 
-        self.value = Dense(self.d_v,
+        self.value = tf.keras.layers.Dense(self.d_v,
                            input_shape=input_shape,
                            kernel_initializer='glorot_uniform',
                            bias_initializer='glorot_uniform')
@@ -42,7 +42,7 @@ class SingleAttention(Layer):
     #############################################################################
 
 
-class MultiAttention(Layer):
+class MultiAttention(tf.keras.layers.Layer):
     def __init__(self, d_k, d_v, n_heads):
         super(MultiAttention, self).__init__()
         self.d_k = d_k
@@ -55,7 +55,7 @@ class MultiAttention(Layer):
             self.attn_heads.append(SingleAttention(self.d_k, self.d_v))
 
             # input_shape[0]=(batch, seq_len, 7), input_shape[0][-1]=7
-        self.linear = Dense(input_shape[-1],
+        self.linear = tf.keras.layers.Dense(input_shape[-1],
                             input_shape=input_shape,
                             kernel_initializer='glorot_uniform',
                             bias_initializer='glorot_uniform')
@@ -69,7 +69,7 @@ class MultiAttention(Layer):
     #############################################################################
 
 
-class TransformerEncoder(Layer):
+class TransformerEncoder(tf.keras.layers.Layer):
     def __init__(self, d_k, d_v, n_heads, ff_dim, dropout=0.1, **kwargs):
         super(TransformerEncoder, self).__init__()
         self.d_k = d_k
@@ -81,16 +81,16 @@ class TransformerEncoder(Layer):
 
     def build(self, input_shape):
         self.attn_multi = MultiAttention(self.d_k, self.d_v, self.n_heads)
-        self.attn_dropout = Dropout(self.dropout_rate)
-        self.attn_normalize = LayerNormalization(input_shape=input_shape, epsilon=1e-6)
+        self.attn_dropout = tf.keras.layers.Dropout(self.dropout_rate)
+        self.attn_normalize = tf.keras.layers.LayerNormalization(input_shape=input_shape, epsilon=1e-6)
 
-        self.ff_conv1D_1 = Conv1D(filters=self.ff_dim, kernel_size=1, activation='relu')
+        self.ff_conv1D_1 = tf.keras.layers.Conv1D(filters=self.ff_dim, kernel_size=1, activation='relu')
         # input_shape[0]=(batch, seq_len, 7), input_shape[0][-1] = 7
         # print("input_shape:", input_shape)
-        # self.ff_conv1D_2 = Conv1D(filters=input_shape[0][-1], kernel_size=1)
-        self.ff_conv1D_2 = Conv1D(filters=self.d_k, kernel_size=1)
-        self.ff_dropout = Dropout(self.dropout_rate)
-        self.ff_normalize = LayerNormalization(input_shape=input_shape, epsilon=1e-6)
+        # self.ff_conv1D_2 = tf.keras.layers.Conv1D(filters=input_shape[0][-1], kernel_size=1)
+        self.ff_conv1D_2 = tf.keras.layers.Conv1D(filters=self.d_k, kernel_size=1)
+        self.ff_dropout = tf.keras.layers.Dropout(self.dropout_rate)
+        self.ff_normalize = tf.keras.layers.LayerNormalization(input_shape=input_shape, epsilon=1e-6)
 
     def call(self, inputs):  # inputs = (in_seq, in_seq, in_seq)
         attn_layer = self.attn_multi(inputs)

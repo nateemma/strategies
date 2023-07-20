@@ -4,6 +4,11 @@
 
 I am having a lot of problems pushing to github. It might be related to all of the models...
 
+2023/7/20:
+Started moving strategies into separate directories (just TSPredict for now)
+<br>
+Updated NNPredict to account for newer version of tensorflow. You might need to regenerate models - I haven't updated them for this family in quite a while...
+
 2023/7/15:
 Updated sliding window processing for S/DWT_Predict family to prevent lookahead. Howvwer, that was exceptionally slow so I converted it to a compromise, which does have a little bit of an issue with indirect lookahead for backtesting, so results are inflated. 
 
