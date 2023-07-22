@@ -6,9 +6,9 @@ show_usage () {
     script=$(basename $BASH_SOURCE)
     cat << END
 
-Usage: zsh $script [options] <exchange> <strategy>
+Usage: zsh $script [options] <group> <strategy>
 
-[options]:  -c | --config      path to config file (default: user_data/strategies/<exchange>/config_<exchange>.json
+[options]:  -c | --config      path to config file (default: user_data/strategies/<group>/config_<group>.json
             -e | --epochs      Number of epochs to run. Default 100
             -j | --jobs        Number of parallel jobs
             -l | --loss        Loss function to use (default WeightedProfitHyperOptLoss)
@@ -18,7 +18,7 @@ Usage: zsh $script [options] <exchange> <strategy>
                  --short       Use 'short' config file
             -t | --timeframe   Timeframe (YYYMMDD-[YYYMMDD]). Defaults to last 30 days
 
-<exchange>  Name of exchange (binanceus, coinbasepro, kucoin, etc)
+<group>  Either subgroup (e.g. NNTC) or name of exchange (binanceus, coinbasepro, kucoin, etc)
 
 <strategy>  Name of Strategy
 
@@ -82,30 +82,53 @@ if [[ $# -ne 2 ]] ; then
   exit 0
 fi
 
-exchange=$1
+group=$1
 strategy=$2
 
 strat_dir="user_data/strategies"
-exchange_dir="${strat_dir}/${exchange}"
-if [ -z "${config_file}" ] ; then
-  config_file="${exchange_dir}/config_${exchange}.json"
+config_dir="${strat_dir}/config"
+group_dir="${strat_dir}/${group}"
+strat_file="${group_dir}/${strategy}.py"
+
+exchange_list=$(freqtrade list-exchanges -1)
+if [[ "${exchange_list[@]}" =~ $group ]]; then
+  echo "Exchange (${group}) detected - using legacy mode"
+  exchange="_${group}"
+  config_dir="${group_dir}"
+else
+  exchange=""
 fi
 
+
 if [[ $short -ne 0 ]] ; then
-    config_file="${exchange_dir}/config_${exchange}_short.json"
+    config_file="${config_dir}/config${exchange}_short.json"
 fi
 
 if [[ leveraged -ne 0 ]] ; then
-    config_file="${exchange_dir}/config_${exchange}_leveraged.json"
+    config_file="${config_dir}/config${exchange}_leveraged.json"
+fi
+
+if [ -z "${config_file}" ] ; then
+  config_file="${config_dir}/config${exchange}.json"
 fi
 
 if [ ! -f ${config_file} ]; then
+    echo ""
     echo "config file not found: ${config_file}"
+    echo "(Maybe try using the -c option?)"
+    echo ""
     exit 0
 fi
 
-if [ ! -d ${exchange_dir} ]; then
-    echo "Strategy dir not found: ${exchange_dir}"
+if [ ! -d ${group_dir} ]; then
+    echo ""
+    echo "Strategy dir not found: ${group_dir}"
+    echo ""
+    exit 0
+fi
+
+if [ ! -f  ${strat_file} ]; then
+    echo "Strategy file file not found: ${strat_file}"
     exit 0
 fi
 
@@ -128,14 +151,14 @@ min_trades=$((diff / 2))
 
 
 echo ""
-echo "Using config file: ${config_file} and Strategy dir: ${exchange_dir}"
+echo "Using config file: ${config_file} and Strategy dir: ${group_dir}"
 echo ""
 
 # set up path
 oldpath=${PYTHONPATH}
-export PYTHONPATH="./${exchange_dir}:./${strat_dir}:${PYTHONPATH}"
+export PYTHONPATH="./${group_dir}:./${strat_dir}:${PYTHONPATH}"
 
-hypfile="${exchange_dir}/${strategy}.json"
+hypfile="${group_dir}/${strategy}.json"
 
 if [ ${clean} -eq 1 ]; then
   # remove any hyperopt files (we want the strategies to use the coded values)
@@ -148,12 +171,12 @@ fi
 
 today=`date`
 echo $today
-echo "Optimising strategy:$strategy for exchange:$exchange..."
+echo "Optimising strategy:$strategy for group:$group..."
 
 
 #set -x
 args="${jarg} --spaces ${spaces} --hyperopt-loss ${loss} --timerange=${timerange} --epochs ${epochs} \
-    -c ${config_file} --strategy-path ${exchange_dir}  \
+    -c ${config_file} --strategy-path ${group_dir}  \
     -s ${strategy} --min-trades ${min_trades} "
 cmd="freqtrade hyperopt ${args} --no-color"
 

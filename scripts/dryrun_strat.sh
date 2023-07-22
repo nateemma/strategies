@@ -2,24 +2,27 @@
 
 # dry run a  strategy. Takes care of python path, database spec, config file etc.
 
+script=$0
+
 show_usage () {
-    script=$(basename $0)
     cat << END
 
-Usage: zsh $script [options] <exchange> <strategy>
+Usage: zsh $script [options] <group> <strategy>
 
-[options]:  -k | --keep-db   saves the existing database. Removed by default
-            -l | --leveraged   Use 'leveraged' config file
-            -p | --port      port number (used for naming). Optional
-            -s | --short     Use 'short' config file. Optional
+[options]:  -k | --keep-db    saves the existing database. Removed by default
+            -l | --leveraged  Use 'leveraged' config file
+            -p | --port       port number (used for naming). Optional
+            -s | --short      Use 'short' config file. Optional
 
-<exchange>  Name of exchange (binanceus, kucoin, etc)
+<group>  Either subgroup (e.g. NNTC) or name of exchange (binanceus, coinbasepro, kucoin, etc)
 
 <strategy>  Name of Strategy
 
-If port is specified, then the script will look for both config_<exchange>.json and config_<exchange>_<port>.json
+If port is specified, then the script will look for both config.json and config_<port>.json
 
-If short is specified, then the script will look for config_<exchange>_short.json
+If short is specified, then the script will look for config_short.json
+
+If leveraged is specified, then the script will look for config_leveraged.json
 
 END
 }
@@ -65,22 +68,33 @@ if [[ $# -ne 2 ]] ; then
   exit 0
 fi
 
-exchange=$1
+group=$1
 strategy=$2
 
 strat_dir="user_data/strategies"
-exchange_dir="${strat_dir}/${exchange}"
-base_config="config_${exchange}.json"
-port_config="config_${exchange}${port}.json"
-db_url="tradesv3_${exchange}${port}.dryrun.sqlite"
+group_dir="${strat_dir}/${group}"
+base_config="config.json"
+port_config="config_${port}.json"
+db_url="tradesv3_${port}.dryrun.sqlite"
+
+
+exchange_list=$(freqtrade list-exchanges -1)
+if [[ "${exchange_list[@]}" =~ $group ]]; then
+  echo "Exchange (${group}) detected - using legacy mode"
+  base_config="config_${group}.json"
+  port_config="config_${group}${port}.json"
+  db_url="tradesv3_${group}${port}.dryrun.sqlite"
+fi
 
 
 if [ ${short} -eq 1 ]; then
-  base_config="config_${exchange}_short.json"
+  # base_config="config_${group}_short.json"
+  base_config=$(echo "${base_config}" | sed "s/.json/_short.json/g")
 fi
 
 if [[ leveraged -ne 0 ]] ; then
-    base_config="config_${exchange}_leveraged.json"
+    # base_config="config_${group}_leveraged.json"
+    base_config=$(echo "${base_config}" | sed "s/.json/_leveraged.json/g")
 fi
 
 if [ ! -f ${base_config} ]; then
@@ -93,18 +107,18 @@ if [ ! -f ${port_config} ]; then
     exit 0
 fi
 
-if [ ! -d ${exchange_dir} ]; then
-    echo "Strategy dir not found: ${exchange_dir}"
+if [ ! -d ${group_dir} ]; then
+    echo "Strategy dir not found: ${group_dir}"
     exit 0
 fi
 
 echo ""
-echo "Using config file: ${base_config} and Strategy dir: ${exchange_dir}"
+echo "Using config file: ${base_config} and Strategy dir: ${group_dir}"
 echo ""
 
 # set up path
 oldpath=${PYTHONPATH}
-export PYTHONPATH="./${exchange_dir}:./${strat_dir}:${PYTHONPATH}"
+export PYTHONPATH="./${group_dir}:./${strat_dir}:${PYTHONPATH}"
 
 # Remove previous dryrun database, unless option specified to keep
 if [ ${keep_db} -ne 1 ]; then
@@ -124,12 +138,12 @@ fi
 
 today=`date`
 
-cmd="freqtrade trade --dry-run -c ${config}  --db-url sqlite:///${db_url} --strategy-path ${exchange_dir} -s ${strategy}"
+cmd="freqtrade trade --dry-run -c ${config}  --db-url sqlite:///${db_url} --strategy-path ${group_dir} -s ${strategy}"
 
 cat << END
 
 -------------------------
-$today    Dry-run strategy:$strategy for exchange:$exchange...
+$today    Dry-run strategy:$strategy for group:$group...
 -------------------------
 
 END

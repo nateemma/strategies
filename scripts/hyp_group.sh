@@ -1,7 +1,7 @@
 #!/bin/zsh
 
-# This script runs hyperopt on all of the main strategies for the specified exchange and 'group'
-# 'group' is basically the prefix for the files, e.g. "PCA". Any files beginning with the group prefix and "_"
+# This script runs hyperopt on all of the main strategies for the specified group and 'pattern'
+# 'pattern' is basically the prefix for the files, e.g. "PCA". Any files beginning with the pattern prefix and "_"
 # will be processed
 
 # NOTE: for now, only runs with the 'sell' space. May add check to if 'buy' is used later
@@ -42,7 +42,7 @@ show_usage () {
     script=${curr_file}
     cat << END
 
-Usage: zsh $script [options] <exchange> <group>
+Usage: zsh $script [options] <group> <pattern>
 
 [options]:  -c | --config      Specify an alternate config file (just name, not directory or extension)
             -d | --download    Downloads latest market data before running hyperopt. Default is ${download}
@@ -53,9 +53,11 @@ Usage: zsh $script [options] <exchange> <group>
             -s | --spaces      Optimisation spaces (any of: buy, roi, trailing, stoploss, sell). Use quotes for multiple
             -t | --timeframe   Timeframe (YYYMMDD-[YYYMMDD]). Defaults to last ${num_days} days
 
-<exchange>  Name of exchange (binanceus, kucoin, etc)
-<group>     The prefix of the strategy files. Example: "PCA" will process all strat files beginning with "PCA_"
-
+<group>     Name of group (subdir or exchange)
+<pattern>   The prefix of the strategy files. Example: "PCA" will process all strat files beginning with "PCA_"
+            TIP: you can also specify the "*" wildcard, but you must enclose this in quotes
+                 Example: "NNTC_*LSTM" will test all files that match that pattern.
+                 Very useful if you updated a signal type, or a model architecture
 
 END
 }
@@ -130,17 +132,19 @@ if [[ $# -ne 2 ]] ; then
 fi
 
 
-exchange=$1
-group=$2
+group=$1
+pattern=$2
 
 strat_dir="user_data/strategies"
-exchange_dir="${strat_dir}/${exchange}"
-logfile="hyp_${exchange}_${group:gs/*/}.log"
+script_dir="${strat_dir}/scripts"
+config_dir="${strat_dir}/config"
+group_dir="${strat_dir}/${group}"
+logfile="test_${group}_${group:gs/*/}.log"
 
 if [[ -n ${alt_config} ]]; then
-  config_file="${exchange_dir}/${alt_config}.json"
+  config_file="${config_dir}/${alt_config}.json"
 else
-  config_file="${exchange_dir}/config_${exchange}.json"
+  config_file="${config_dir}/config.json"
 fi
 
 if [ ! -f ${config_file} ]; then
@@ -148,26 +152,26 @@ if [ ! -f ${config_file} ]; then
     exit 0
 fi
 
-if [ ! -d ${exchange_dir} ]; then
-    echo "Strategy dir not found: ${exchange_dir}"
+if [ ! -d ${group_dir} ]; then
+    echo "Strategy dir not found: ${group_dir}"
     exit 0
 fi
 
-# get the list of files using the group identifier
+# get the list of files using the pattern identifier
 
-# if there is already a wildcard in the group name, just use that, otherwise use group as a prefix
-if [[ ${group} == *"*"* ]]; then
-  files="${group}.py"
+# if there is already a wildcard in the pattern name, just use that, otherwise use pattern as a prefix
+if [[ ${pattern} == *"*"* ]]; then
+  files="${pattern}.py"
 else
-  files="${group}_*.py"
+  files="${pattern}_*.py"
 fi
 
-find_result=$( find ${exchange_dir} -name "${files}" -type f -print0 | xargs -0 basename | sort -h )
+find_result=$( find ${group_dir} -name "${files}" -type f -print0 | xargs -0 basename | sort -h )
 strat_list=( "${(@f)${find_result}}" )
 
 num_files=${#strat_list[@]}
 if [[ $num_files -eq 0 ]]; then
-  echo "ERR: no strategy files found for group: ${group}"
+  echo "ERR: no strategy files found for pattern: ${pattern}"
   exit 0
 fi
 
@@ -177,16 +181,16 @@ echo "" >$logfile
 add_line ""
 today=`date`
 add_line "============================================="
-add_line "Running hyperopt for exchange: ${exchange}..."
+add_line "Running hyperopt for group: ${group}..."
 add_line "Date/time: ${today}"
 add_line "Time range: ${timerange}"
 add_line "Config file: ${config_file}"
-add_line "Strategy dir: ${exchange_dir}"
+add_line "Strategy dir: ${group_dir}"
 add_line ""
 
 # set up path
 oldpath=${PYTHONPATH}
-export PYTHONPATH="./${exchange_dir}:./${strat_dir}:${PYTHONPATH}"
+export PYTHONPATH="./${group_dir}:./${strat_dir}:${PYTHONPATH}"
 
 
 
@@ -200,13 +204,13 @@ if [ ${jobs} -gt 0 ]; then
     jarg="-j ${jobs}"
 else
   # for kucoin, reduce number of jobs
-    if [ "$exchange" = "kucoin" ]; then
+    if [ "$group" = "kucoin" ]; then
       jarg="-j ${min_cores}"
     fi
 fi
 
 
-hargs=" -c ${config_file} ${jarg} --strategy-path ${exchange_dir} --timerange=${timerange} --hyperopt-loss ${lossf}"
+hargs=" -c ${config_file} ${jarg} --strategy-path ${group_dir} --timerange=${timerange} --hyperopt-loss ${lossf}"
 
 # add a random state so that each strat starts in the same place
 hargs="${hargs} --random-state ${random_state}"

@@ -28,7 +28,7 @@ show_usage () {
     script=${curr_file}
     cat << END
 
-Usage: zsh ${script} [options] <exchange> <group>
+Usage: zsh ${script} [options] <group> <pattern>
 
 [options]:  -c | --config      Specify an alternate config file (just name, not directory or extension)
             -d | --download    Downloads latest market data before running test. Default is ${download}
@@ -38,8 +38,8 @@ Usage: zsh ${script} [options] <exchange> <group>
             -s | --strategy    Test a specific strategy (or list of strategies). Overrides the default list
             -t | --timeframe   Timeframe (YYYMMDD-[YYYMMDD]). Defaults to last ${num_days} days
 
-<exchange>  Name of exchange (binanceus, kucoin, etc)
-<group>     The prefix of the strategy files. Example: "PCA" will process all strat files beginning with "PCA_"
+<group>  Name of group (subdir or exchange)
+<pattern>   The pattern to select strategy files. Example: "PCA" will process all strat files beginning with "PCA_"
             TIP: you can also specify the "*" wildcard, but you must enclose this in quotes
                  Example: "NNTC_*LSTM" will test all files that match that pattern.
                  Very useful if you updated a signal type, or a model architecture
@@ -84,18 +84,19 @@ shift $((OPTIND-1)) # remove parsed options and args from $@ list
 #set +x
 
 
-exchange=$1
-group=$2
+group=$1
+pattern=$2
 
 strat_dir="user_data/strategies"
 script_dir="${strat_dir}/scripts"
-exchange_dir="${strat_dir}/${exchange}"
-logfile="test_${exchange}_${group:gs/*/}.log"
+config_dir="${strat_dir}/config"
+group_dir="${strat_dir}/${group}"
+logfile="test_${group}_${group:gs/*/}.log"
 
 if [[ -n ${alt_config} ]]; then
-  config_file="${exchange_dir}/${alt_config}.json"
+  config_file="${config_dir}/${alt_config}.json"
 else
-  config_file="${exchange_dir}/config_${exchange}.json"
+  config_file="${config_dir}/config.json"
 fi
 
 if [[ $# -ne 2 ]] ; then
@@ -109,28 +110,28 @@ if [ ! -f ${config_file} ]; then
     exit 0
 fi
 
-if [ ! -d ${exchange_dir} ]; then
-    echo "Strategy dir not found: ${exchange_dir}"
+if [ ! -d ${group_dir} ]; then
+    echo "Strategy dir not found: ${group_dir}"
     exit 0
 fi
 
 # get the list of files using the group identifier
 
 # if there is already a wildcard in the group name, just use that, otherwise use group as a prefix
-if [[ ${group} == *"*"* ]]; then
-  files="${group}.py"
+if [[ ${pattern} == *"*"* ]]; then
+  files="${pattern}.py"
 else
-  files="${group}_*.py"
+  files="${pattern}_*.py"
 fi
 
 #echo "Matching: ${files}"
-find_result=$( find ${exchange_dir} -name "${files}" -type f -print0 | xargs -0 basename | sort -h )
+find_result=$( find ${group_dir} -name "${files}" -type f -print0 | xargs -0 basename | sort -h )
 strat_list=( "${(@f)${find_result}}" )
 
 
 num_files=${#strat_list[@]}
 if [[ $num_files -eq 0 ]]; then
-  echo "ERR: no strategy files found for group: ${group}"
+  echo "ERR: no strategy files found for pattern: ${pattern}"
   exit 0
 fi
 
@@ -139,16 +140,16 @@ fi
 #echo "strat_list: ${strat_list}"
 
 echo ""
-echo "Using config file: ${config_file} and Strategy dir: ${exchange_dir}"
+echo "Using config file: ${config_file} and Strategy dir: ${group_dir}"
 echo ""
 
 # set up path
 oldpath=${PYTHONPATH}
-export PYTHONPATH="./${exchange_dir}:./${strat_dir}:${PYTHONPATH}"
+export PYTHONPATH="./${group_dir}:./${strat_dir}:${PYTHONPATH}"
 
 
 # remove any hyperopt files (we want the strategies to use the coded values)
-#for entry in $exchange_dir/*.json
+#for entry in $group_dir/*.json
 #do
 #  echo "removing $entry"
 #  rm ${entry}
@@ -172,7 +173,7 @@ today=`date`
 add_line "${today}"
 
 echo "" >$logfile
-add_line "Testing strategy list for exchange: ${exchange}..."
+add_line "Testing strategy list for group: ${group}..."
 #add_line "List: ${strat_list}"
 add_line "Date/time: ${today}"
 add_line "Time range: ${timerange}"
@@ -187,7 +188,7 @@ for strat in ${strat_list//.py/}; do
   test_strat=true
   if ${only_missing_models}; then
     echo ""
-    model_file="${exchange_dir}/models/${strat}/${strat}.h5"
+    model_file="${group_dir}/models/${strat}/${strat}.h5"
     if [ -e ${model_file} ]; then
       add_line "model file already exists (${model_file}). Skipping strategy ${strat}"
       test_strat=false
@@ -213,7 +214,7 @@ else
   return
 fi
 
-args="${jarg} --timerange=${timerange} -c ${config_file} --strategy-path ${exchange_dir}"
+args="${jarg} --timerange=${timerange} -c ${config_file} --strategy-path ${group_dir}"
 cmd="freqtrade backtesting --cache none ${args} --strategy-list "
 
 if ${run_parallel}; then

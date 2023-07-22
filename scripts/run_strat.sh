@@ -2,25 +2,26 @@
 
 # (live) run a  strategy. Takes care of python path, database spec, config file etc.
 
+script=$0
+
 show_usage () {
-    script=$(basename $0)
     cat << END
 
-Usage: zsh $script [options] <exchange> <strategy>
+Usage: zsh $script [options] <group> <strategy>
 
-[options]:  -p | --port      port number (used for naming). Optional
-            -l | --leveraged   Use 'leveraged' config file
-            -s | --short     Use 'short' config file. Optional
+[options]:  -p | --port       port number (used for naming). Optional
+            -l | --leveraged  Use 'leveraged' config file
+            -s | --short      Use 'short' config file. Optional
 
-<exchange>  Name of exchange (binanceus, kucoin, etc)
+<group>  Either subgroup (e.g. NNTC) or name of group (binanceus, coinbasepro, kucoin, etc)
 
 <strategy>  Name of Strategy
 
-If port is specified, then the script will look for config_<exchange>_<port>.json
+If port is specified, then the script will look for config_<group>_<port>.json
 
-If short is specified, the script will look for config_<exchange>_short.json
+If short is specified, the script will look for config_<group>_short.json
 
-If leverage is specified, the script will look for config_<exchange>_leverage.json
+If leverage is specified, the script will look for config_<group>_leverage.json
 
 NOTE: if the database already exists, it will be re-used, i.e. any previously opened trades should be found
 
@@ -65,21 +66,32 @@ if [[ $# -ne 2 ]] ; then
   exit 0
 fi
 
-exchange=$1
+group=$1
 strategy=$2
 
 strat_dir="user_data/strategies"
-exchange_dir="${strat_dir}/${exchange}"
-base_config="config_${exchange}.json"
-port_config="config_${exchange}${port}.json"
-db_url="tradesv3_${exchange}${port}.sqlite"
+group_dir="${strat_dir}/${group}"
+base_config="config.json"
+port_config="config_${port}.json"
+db_url="tradesv3_${port}.dryrun.sqlite"
+
+
+exchange_list=$(freqtrade list-exchanges -1)
+if [[ "${exchange_list[@]}" =~ $group ]]; then
+  echo "Exchange (${group}) detected - using legacy mode"
+  base_config="config_${group}.json"
+  port_config="config_${group}${port}.json"
+  db_url="tradesv3_${group}${port}.dryrun.sqlite"
+fi
 
 if [ ${short} -eq 1 ]; then
-  base_config="config_${exchange}_short.json"
+  # base_config="config_${group}_short.json"
+  base_config=$(echo "${base_config}" | sed "s/.json/_short.json/g")
 fi
 
 if [[ leveraged -ne 0 ]] ; then
-    base_config="config_${exchange}_leveraged.json"
+    # base_config="config_${group}_leveraged.json"
+    base_config=$(echo "${base_config}" | sed "s/.json/_leveraged.json/g")
 fi
 
 if [ ! -f ${base_config} ]; then
@@ -92,8 +104,8 @@ if [ ! -f ${port_config} ]; then
     exit 0
 fi
 
-if [ ! -d ${exchange_dir} ]; then
-    echo "Strategy dir not found: ${exchange_dir}"
+if [ ! -d ${group_dir} ]; then
+    echo "Strategy dir not found: ${group_dir}"
     exit 0
 fi
 
@@ -110,18 +122,18 @@ else
 fi
 
 echo ""
-echo "Using config file: ${base_config} and Strategy dir: ${exchange_dir}"
+echo "Using config file: ${base_config} and Strategy dir: ${group_dir}"
 echo ""
 
 # set up path
 oldpath=${PYTHONPATH}
-export PYTHONPATH="./${exchange_dir}:./${strat_dir}:${PYTHONPATH}"
+export PYTHONPATH="./${group_dir}:./${strat_dir}:${PYTHONPATH}"
 
 today=`date`
 echo $today
-echo "Optimising strategy:$strategy for exchange:$exchange..."
+echo "Optimising strategy:$strategy for group:$group..."
 
-cmd="freqtrade trade  -c ${config}  --db-url sqlite:///${db_url} --strategy-path ${exchange_dir} -s ${strategy}"
+cmd="freqtrade trade  -c ${config}  --db-url sqlite:///${db_url} --strategy-path ${group_dir} -s ${strategy}"
 
 cat << END
 

@@ -29,7 +29,7 @@ Usage: zsh $script [options] <group> <strategy> <pair>
             -n | --ndays       Number of days of backtesting. Defaults to ${num_days}
             -t | --timeframe   Timeframe (YYYMMDD-[YYYMMDD]). Defaults to last ${num_days} days (${timerange})
 
-<group>     Name of group (group or subdir)
+<group>  Either subgroup (e.g. NNTC) or name of exchange (binanceus, coinbasepro, kucoin, etc)
 
 <strategy>  Name of Strategy
 
@@ -53,7 +53,7 @@ while getopts :c:ln:st:-: OPT; do
     c | config )     needs_arg; config_file="$OPTARG" ;;
     l | leveraged )  leveraged=1 ;;
     n | ndays )      needs_arg; num_days="$OPTARG"; timerange="$(date -j -v-${num_days}d +"%Y%m%d")-" ;;
-        short )      short=1 ;;
+    s | short )      short=1 ;;
     t | timeframe )  needs_arg; timerange="$OPTARG" ;;
     ??* )            show_usage; die "Illegal option --$OPT" ;;  # bad long option
     ? )              show_usage; die "Illegal option --$OPT" ;;  # bad short option (error reported via getopts)
@@ -63,7 +63,7 @@ shift $((OPTIND-1)) # remove parsed options and args from $@ list
 
 
 if [[ $# -ne 3 ]] ; then
-  echo "ERR: Missing arguments"
+  echo "*** ERR: Missing arguments"
   show_usage
   exit 0
 fi
@@ -73,31 +73,44 @@ strategy=$2
 pair=$3
 
 strat_dir="user_data/strategies"
-group_dir="${strat_dir}/${group}"
 config_dir="${strat_dir}/config"
-util_dir="${strat_dir}/utils"
-
+group_dir="${strat_dir}/${group}"
 strat_file="${group_dir}/${strategy}.py"
 
+exchange_list=$(freqtrade list-exchanges -1)
+if [[ "${exchange_list[@]}" =~ $group ]]; then
+  echo "Exchange (${group}) detected - using legacy mode"
+  exchange="_${group}"
+  config_dir="${group_dir}"
+else
+  exchange=""
+fi
+
+
 if [[ $short -ne 0 ]] ; then
-    config_file="${group_dir}/config_${group}_short.json"
+    config_file="${config_dir}/config${exchange}_short.json"
 fi
 
 if [[ leveraged -ne 0 ]] ; then
-    config_file="${group_dir}/config_${group}_leveraged.json"
+    config_file="${config_dir}/config${exchange}_leveraged.json"
 fi
 
 if [ -z "${config_file}" ] ; then
-  config_file="${config_dir}/config.json"
+  config_file="${config_dir}/config${exchange}.json"
 fi
 
 if [ ! -f ${config_file} ]; then
+    echo ""
     echo "config file not found: ${config_file}"
+    echo "(Maybe try using the -c option?)"
+    echo ""
     exit 0
 fi
 
 if [ ! -d ${group_dir} ]; then
+    echo ""
     echo "Strategy dir not found: ${group_dir}"
+    echo ""
     exit 0
 fi
 

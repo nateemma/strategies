@@ -2,6 +2,8 @@
 
 # runs a single strategy
 
+script=$0
+
 clean=0
 epochs=100
 jarg=""
@@ -18,21 +20,25 @@ end_date="$(date "+%Y%m%d")"
 
 timerange="${start_date}-${end_date}"
 
+default_config="user_data/strategies/config/config.json"
+
 show_usage () {
-    script=$(basename $BASH_SOURCE)
     cat << END
 
-Usage: zsh $script [options] <exchange> <strategy>
+Usage: zsh $script [options] <group> <strategy>
 
-[options]:  -c | --config      path to config file (default: user_data/strategies/<exchange>/config_<exchange>.json
+[options]:  -c | --config      path to config file (default: ${default_config}
             -l | --leveraged   Use 'leveraged' config file
             -n | --ndays       Number of days of backtesting. Defaults to ${num_days}
                  --short       Use 'short' config file
             -t | --timeframe   Timeframe (YYYMMDD-[YYYMMDD]). Defaults to last ${num_days} days (${timerange})
 
-<exchange>  Name of exchange (binanceus, coinbasepro, kucoin, etc)
+<group>  Either subgroup (e.g. NNTC) or name of exchange (binanceus, coinbasepro, kucoin, etc)
 
 <strategy>  Name of Strategy
+
+Note that if an exchange is specified, the config file can also be user_data/strategies/<exchange>/config_<exchange>.json
+This is for backwards compatibility. Be aware that the script will check for ${default_config} first
 
 END
 }
@@ -54,8 +60,7 @@ while getopts :c:e:j:ln:st:-: OPT; do
     l | leveraged )  leveraged=1 ;;
     j | jobs )       needs_arg; jarg="-j $OPTARG" ;;
     n | ndays )      needs_arg; num_days="$OPTARG"; timerange="$(date -j -v-${num_days}d +"%Y%m%d")-" ;;
-    s | spaces )     needs_arg; spaces="${OPTARG}" ;;
-        short )      short=1 ;;
+    s | short )      short=1 ;;
     t | timeframe )  needs_arg; timerange="$OPTARG" ;;
     ??* )            show_usage; die "Illegal option --$OPT" ;;  # bad long option
     ? )              show_usage; die "Illegal option --$OPT" ;;  # bad short option (error reported via getopts)
@@ -70,32 +75,48 @@ if [[ $# -ne 2 ]] ; then
   exit 0
 fi
 
-exchange=$1
+group=$1
 strategy=$2
 
 strat_dir="user_data/strategies"
-exchange_dir="${strat_dir}/${exchange}"
-strat_file="${exchange_dir}/${strategy}.py"
+config_dir="${strat_dir}/config"
+group_dir="${strat_dir}/${group}"
+strat_file="${group_dir}/${strategy}.py"
+
+exchange_list=$(freqtrade list-exchanges -1)
+if [[ "${exchange_list[@]}" =~ $group ]]; then
+  echo "Exchange (${group}) detected - using legacy mode"
+  exchange="_${group}"
+  config_dir="${group_dir}"
+else
+  exchange=""
+fi
+
 
 if [[ $short -ne 0 ]] ; then
-    config_file="${exchange_dir}/config_${exchange}_short.json"
+    config_file="${config_dir}/config${exchange}_short.json"
 fi
 
 if [[ leveraged -ne 0 ]] ; then
-    config_file="${exchange_dir}/config_${exchange}_leveraged.json"
+    config_file="${config_dir}/config${exchange}_leveraged.json"
 fi
 
 if [ -z "${config_file}" ] ; then
-  config_file="${exchange_dir}/config_${exchange}.json"
+  config_file="${config_dir}/config${exchange}.json"
 fi
 
 if [ ! -f ${config_file} ]; then
+    echo ""
     echo "config file not found: ${config_file}"
+    echo "(Maybe try using the -c option?)"
+    echo ""
     exit 0
 fi
 
-if [ ! -d ${exchange_dir} ]; then
-    echo "Strategy dir not found: ${exchange_dir}"
+if [ ! -d ${group_dir} ]; then
+    echo ""
+    echo "Strategy dir not found: ${group_dir}"
+    echo ""
     exit 0
 fi
 
@@ -116,20 +137,20 @@ timerange="${start}-${end}"
 
 
 echo ""
-echo "Using config file: ${config_file} and Strategy dir: ${exchange_dir}"
+echo "Using config file: ${config_file} and Strategy dir: ${group_dir}"
 echo ""
 
 # set up path
 oldpath=${PYTHONPATH}
-export PYTHONPATH="./${exchange_dir}:./${strat_dir}:${PYTHONPATH}"
+export PYTHONPATH="./${group_dir}:./${strat_dir}:${PYTHONPATH}"
 
 today=`date`
 echo $today
 echo "Testing strategy:$strategy for exchange:$exchange..."
 
 
-cmd="freqtrade backtesting --cache none  --breakdown month --timerange=${timerange} -c ${config_file} --strategy-path ${exchange_dir} --strategy-list ${strategy}"
-#cmd="freqtrade backtesting --breakdown month --timerange=${timerange} -c ${config_file} --strategy-path ${exchange_dir} --strategy-list ${strategy}"
+cmd="freqtrade backtesting --cache none  --breakdown month --timerange=${timerange} -c ${config_file} --strategy-path ${group_dir} --strategy-list ${strategy}"
+#cmd="freqtrade backtesting --breakdown month --timerange=${timerange} -c ${config_file} --strategy-path ${group_dir} --strategy-list ${strategy}"
 echo ${cmd}
 eval ${cmd}
 

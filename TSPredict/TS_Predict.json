@@ -1,0 +1,37 @@
+{
+  "strategy_name": "TS_Predict",
+  "params": {
+    "roi": {
+      "0": 0.06
+    },
+    "stoploss": {
+      "stoploss": -0.1
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 10
+    },
+    "buy": {
+      "entry_model_diff": 0.5
+    },
+    "sell": {
+      "enable_guards": true,
+      "enable_exit_signal": false,
+      "exit_model_diff": -0.2,
+      "loss_threshold": -0.02,
+      "profit_threshold": 0.032,
+      "tstop_ratio": 0.822,
+      "tstop_start": 0.037,
+      "use_loss_threshold": true,
+      "use_profit_threshold": false
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2023-07-17 19:18:22.074245+00:00"
+}
