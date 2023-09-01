@@ -1,0 +1,33 @@
+{
+  "strategy_name": "Anomaly_jump",
+  "params": {
+    "roi": {
+      "0": 0.04
+    },
+    "stoploss": {
+      "stoploss": -0.06
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": 0.0,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 10
+    },
+    "buy": {},
+    "sell": {
+      "enable_exit_signal": true,
+      "loss_threshold": -0.06,
+      "profit_threshold": 0.01,
+      "tstop_ratio": 0.752,
+      "tstop_start": 0.044,
+      "use_loss_threshold": true,
+      "use_profit_threshold": false
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2023-08-27 22:24:39.248107+00:00"
+}
