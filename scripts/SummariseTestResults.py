@@ -43,6 +43,7 @@ def skipto(pattern, anywhere=False) -> bool:
     if curr_line:
         return True
     else:
+        # print(f"*** Target not found: {pattern}")
         return False
 
 # copies the input file and prints each line until pattern is found.
@@ -168,7 +169,14 @@ def process_expectancy(strat, line):
     cols.pop(0)
     cols.pop(len(cols) - 1)
 
-    strat_results[strat]['expectancy'] = float(cols[-1])
+    cols = cols[-1]
+
+    if "(" in cols:
+        cols = cols.strip().split("(")[0]
+
+    # print(f"cols:{cols}")
+
+    strat_results[strat]['expectancy'] = float(cols)
 
     return
 
@@ -295,12 +303,15 @@ def main():
     # get header data
     if skipto('exchange:', anywhere=True):
         process_exchange(curr_line.rstrip())
+    else:
+        infile.close()
+        infile = open(file_name)
 
-        if skipto('Date/time:'):
-            process_test_date(curr_line.rstrip())
+    if skipto('Date/time:'):
+        process_test_date(curr_line.rstrip())
 
-            if skipto('Time range'):
-                process_time_range(curr_line.rstrip())
+        if skipto('Time range'):
+            process_time_range(curr_line.rstrip())
 
     # repeatedly scan file and find header of new run, then print results
     while skipto("Result for strategy ", anywhere=True):

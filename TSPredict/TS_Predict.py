@@ -33,7 +33,6 @@ sys.path.append(str(Path(__file__).parent))
 
 # this adds  ../utils
 sys.path.append("../utils")
-# sys.path.insert(0, '../utils')
 
 import logging
 import warnings

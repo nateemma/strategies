@@ -1,0 +1,44 @@
+{
+  "strategy_name": "NNPredict_TFT",
+  "params": {
+    "roi": {
+      "0": 0.006
+    },
+    "stoploss": {
+      "stoploss": -0.05
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 10
+    },
+    "buy": {
+      "entry_threshold": 1.0
+    },
+    "sell": {
+      "cexit_endtrend_respect_roi": true,
+      "cexit_pullback": false,
+      "cexit_pullback_amount": 0.007,
+      "cexit_pullback_respect_roi": false,
+      "cexit_roi_end": 0.002,
+      "cexit_roi_start": 0.039,
+      "cexit_roi_time": 843,
+      "cexit_roi_type": "decay",
+      "cexit_trend_type": "candle",
+      "cstop_bail_how": "roc",
+      "cstop_bail_roc": -4.348,
+      "cstop_bail_time": 745,
+      "cstop_bail_time_trend": false,
+      "cstop_loss_threshold": -0.047,
+      "cstop_max_stoploss": -0.146,
+      "exit_threshold": -2.8
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2023-01-27 14:00:44.097232+00:00"
+}

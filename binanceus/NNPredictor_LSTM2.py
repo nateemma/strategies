@@ -67,6 +67,6 @@ class NNPredictor_LSTM2(ClassifierKerasLinear):
         # last layer is a linear (float) value - do not change
         outputs = layers.Dense(1, activation="linear")(x)
 
-        model = tf.keras.Model(inputs, outputs)
+        model = tf.keras.Model(inputs, outputs, name=self.name)
 
         return model

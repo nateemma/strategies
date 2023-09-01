@@ -139,7 +139,7 @@ strat_dir="user_data/strategies"
 script_dir="${strat_dir}/scripts"
 config_dir="${strat_dir}/config"
 group_dir="${strat_dir}/${group}"
-logfile="test_${group}_${group:gs/*/}.log"
+logfile="hyp_${group}_${group:gs/*/}.log"
 
 if [[ -n ${alt_config} ]]; then
   config_file="${config_dir}/${alt_config}.json"

@@ -59,13 +59,14 @@ class DataframeUtils():
         # only create if it doesn't yet exist
         if self.scaler is None:
             self.scaler = self.make_scaler()
+            self.scaler_fitted = False
 
         return self.scaler
 
     # make a scaler that matches the type set with self.scaler_type
     def make_scaler(self):
         scaler = None
-        if self.scaler_type == ScalerType.NoScaling:
+        if (self.scaler_type == ScalerType.NoScaling):
             print("    Data will not be scaled")
         elif self.scaler_type == ScalerType.Standard:
             scaler = StandardScaler()
@@ -75,12 +76,13 @@ class DataframeUtils():
             scaler = RobustScaler()
         else:
             print(f"    Unknown scaler type: {self.scaler_type}")
+
         return scaler
 
     def fit_scaler(self, dataframe: DataFrame):
         if self.scaler is not None:
-            if self.scaler_fitted:
-                print("    Warning: re-fitting scaler")
+            # if self.scaler_fitted:
+            #     print("    Warning: re-fitting scaler")
             self.scaler = self.scaler.fit(dataframe)
             self.scaler_fitted = True
         else:
@@ -125,9 +127,6 @@ class DataframeUtils():
 
         df = dataframe.copy()
 
-        # if no scaling then just return a copy
-        if self.scaler_type == ScalerType.NoScaling:
-            return df
 
         # if scaler not created, then do so
         if self.scaler is  None:
@@ -154,13 +153,22 @@ class DataframeUtils():
 
         cols = df.columns
 
-        # fit, if not already done
-        # Note that fitting is only done once, then reused on subsequent calls to norm/denorm.
-        # Call set_scaler() to reset
-        if not self.scaler_fitted:
-            self.fit_scaler(df)
 
-        df = pd.DataFrame(self.scaler.transform(df), columns=cols)
+        # if no scaling then don't transform the dataframe (still need the date conversion though)
+        if self.scaler_type != ScalerType.NoScaling:
+
+            # fit, if not already done
+            # Note that fitting is only done once, then reused on subsequent calls to norm/denorm.
+            # Call set_scaler() to reset
+            if not self.scaler_fitted:
+                self.fit_scaler(df)
+            # self.fit_scaler(df)
+
+            df = self.scaler.transform(df)
+
+        df = pd.DataFrame(df, columns=cols)
+
+        # print("norm_dataframe()") # debug
 
         return df
 
@@ -169,6 +177,9 @@ class DataframeUtils():
     def denorm_dataframe(self, dataframe: DataFrame) -> DataFrame:
 
 
+        if self.scaler_type == ScalerType.NoScaling:
+            return dataframe
+        
         if self.scaler is  None:
             print("   WARN: scaler is None")
 
@@ -177,10 +188,13 @@ class DataframeUtils():
 
         cols = dataframe.columns
 
-        print(f"Scaler type:{self.scaler_type}  fitted:{self.scaler_fitted}")
+        # print(f"Scaler type:{self.scaler_type}  fitted:{self.scaler_fitted}")
         df = pd.DataFrame(self.scaler.inverse_transform(dataframe), columns=cols)
 
+        # print("denorm_dataframe()") # debug
+
         return df
+
 
     ###################################
 

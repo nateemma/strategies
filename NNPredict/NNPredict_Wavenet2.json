@@ -1,0 +1,44 @@
+{
+  "strategy_name": "NNPredict_Wavenet2",
+  "params": {
+    "roi": {
+      "0": 0.006
+    },
+    "stoploss": {
+      "stoploss": -0.05
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 10
+    },
+    "buy": {
+      "entry_threshold": 3.0
+    },
+    "sell": {
+      "cexit_endtrend_respect_roi": true,
+      "cexit_pullback": false,
+      "cexit_pullback_amount": 0.021,
+      "cexit_pullback_respect_roi": false,
+      "cexit_roi_end": 0.0,
+      "cexit_roi_start": 0.047,
+      "cexit_roi_time": 938,
+      "cexit_roi_type": "static",
+      "cexit_trend_type": "candle",
+      "cstop_bail_how": "none",
+      "cstop_bail_roc": -4.01,
+      "cstop_bail_time": 1406,
+      "cstop_bail_time_trend": false,
+      "cstop_loss_threshold": -0.047,
+      "cstop_max_stoploss": -0.252,
+      "exit_threshold": -0.8
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2023-04-10 14:38:54.961880+00:00"
+}

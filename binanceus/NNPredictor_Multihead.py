@@ -81,6 +81,6 @@ class NNPredictor_Multihead(ClassifierKerasLinear):
         # last layer is a linear decision - do not change
         outputs = layers.Dense(1, activation="linear")(x)
 
-        model = tf.keras.Model(inputs, outputs)
+        model = tf.keras.Model(inputs, outputs, name=self.name)
 
         return model

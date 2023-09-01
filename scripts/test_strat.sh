@@ -82,6 +82,7 @@ strat_dir="user_data/strategies"
 config_dir="${strat_dir}/config"
 group_dir="${strat_dir}/${group}"
 strat_file="${group_dir}/${strategy}.py"
+utils_dir="${strat_dir/utils}"
 
 exchange_list=$(freqtrade list-exchanges -1)
 if [[ "${exchange_list[@]}" =~ $group ]]; then
@@ -142,7 +143,7 @@ echo ""
 
 # set up path
 oldpath=${PYTHONPATH}
-export PYTHONPATH="./${group_dir}:./${strat_dir}:${PYTHONPATH}"
+export PYTHONPATH="./${group_dir}:./${strat_dir}:./${utils_dir}:${PYTHONPATH}"
 
 today=`date`
 echo $today

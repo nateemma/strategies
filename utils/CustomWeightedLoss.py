@@ -3,9 +3,6 @@ import tensorflow as tf
 from enum import Enum, auto
 
 
-
-
-
 class CustomWeightedLoss(tf.keras.losses.Loss):
 
     # enum of available custom loss functions

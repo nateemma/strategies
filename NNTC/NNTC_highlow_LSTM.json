@@ -1,0 +1,33 @@
+{
+  "strategy_name": "NNTC_highlow_LSTM",
+  "params": {
+    "roi": {
+      "0": 0.006
+    },
+    "stoploss": {
+      "stoploss": -0.1
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 10
+    },
+    "buy": {},
+    "sell": {
+      "enable_exit_signal": false,
+      "loss_ratio": 1.8,
+      "profit_ratio": 3.7,
+      "tstop_ratio": 0.701,
+      "tstop_start": 0.02,
+      "use_loss_ratio": false,
+      "use_profit_ratio": true
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2023-06-22 22:57:44.258867+00:00"
+}

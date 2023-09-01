@@ -40,9 +40,9 @@ if [[ $(prompt_user "Install general packages?: ") -eq 1 ]]; then
 fi
 echo ""
 
-# install packages for keres/tensorflow-based strategies (MacOS-specific)
+# install packages for tensorflow-based strategies (MacOS-specific)
 
-if [[ $(prompt_user "Install keras/rensorflow packages?: ") -eq 1 ]]; then
+if [[ $(prompt_user "Install tensorflow packages?: ") -eq 1 ]]; then
 
   # check whether this uses an Apple CPU
   cpu_brand=$(sysctl -n machdep.cpu.brand_string)
@@ -51,6 +51,7 @@ if [[ $(prompt_user "Install keras/rensorflow packages?: ") -eq 1 ]]; then
       conda install -c apple tensorflow-deps
       pip3 install --upgrade tensorflow-macos
       pip3 install --upgrade tensorflow-metal
+      # conda install -c conda-forge tensorflow==2.10
       conda install -c conda-forge -y pandas jupyter
 #      pip3 install --upgrade keras
 
@@ -68,7 +69,9 @@ echo ""
 if [[ $(prompt_user "Install darts/pytorch packages?: ") -eq 1 ]]; then
   echo ""
   conda install pytorch torchvision -c pytorch
-  pip3 install darts
+  # pip3 install darts
+  pip3 install "u8darts[all]"
   pip3 install statsforecast
+  pip3 install multiprocess
 fi
 echo ""

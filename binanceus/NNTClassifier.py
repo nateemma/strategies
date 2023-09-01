@@ -77,7 +77,7 @@ class NNTClassifier_AdditiveAttention(ClassifierKerasTrinary):
         x = tf.keras.layers.Dropout(0.2)(x)
         outputs = tf.keras.layers.Dense(3, activation="softmax")(x)
 
-        model = tf.keras.Model(inputs, outputs)
+        model = tf.keras.Model(inputs, outputs, name=self.name)
 
         # model.summary()
 
@@ -112,7 +112,7 @@ class NNTClassifier_Attention(ClassifierKerasTrinary):
         x = tf.keras.layers.Dropout(0.2)(x)
         outputs = tf.keras.layers.Dense(3, activation="softmax")(x)
 
-        model = tf.keras.Model(inputs, outputs)
+        model = tf.keras.Model(inputs, outputs, name=self.name)
 
         # model.summary()
 
@@ -148,7 +148,7 @@ class NNTClassifier_CNN(ClassifierKerasTrinary):
         x = tf.keras.layers.Dropout(0.2)(x)
         outputs = tf.keras.layers.Dense(3, activation="softmax")(x)
 
-        model = tf.keras.Model(inputs, outputs)
+        model = tf.keras.Model(inputs, outputs, name=self.name)
 
         return model
 
@@ -183,7 +183,7 @@ class NNTClassifier_Ensemble(ClassifierKerasTrinary):
         x = tf.keras.layers.Dropout(0.2)(x)
         outputs = tf.keras.layers.Dense(3, activation="softmax")(x)
 
-        model = tf.keras.Model(inputs, outputs)
+        model = tf.keras.Model(inputs, outputs, name=self.name)
 
         return model
 
@@ -402,7 +402,7 @@ class NNTClassifier_Multihead(ClassifierKerasTrinary):
         x = tf.keras.layers.Dropout(0.2)(x)
         outputs = tf.keras.layers.Dense(3, activation="softmax")(x)
 
-        model = tf.keras.Model(inputs, outputs)
+        model = tf.keras.Model(inputs, outputs, name=self.name)
 
         return model
 
@@ -428,7 +428,7 @@ class NNTClassifier_TCN(ClassifierKerasTrinary):
         x = tf.keras.layers.Dropout(0.2)(x)
         outputs = tf.keras.layers.Dense(3, activation="softmax")(x)
 
-        model = tf.keras.Model(inputs, outputs)
+        model = tf.keras.Model(inputs, outputs, name=self.name)
 
         return model
 
@@ -485,7 +485,7 @@ class NNTClassifier_Transformer(ClassifierKerasTrinary):
         # outputs = tf.keras.layers.Reshape((1,3))(x)
         outputs = x
 
-        model = tf.keras.Model(inputs, outputs)
+        model = tf.keras.Model(inputs, outputs, name=self.name)
 
         return model
 
@@ -601,7 +601,7 @@ class NNTClassifier_Wavenet2(ClassifierKerasTrinary):
         x = tf.keras.layers.Dropout(0.2)(x)
         outputs = tf.keras.layers.Dense(3, activation="softmax")(x)
 
-        model = tf.keras.Model(inputs, outputs)
+        model = tf.keras.Model(inputs, outputs, name=self.name)
 
         return model
 
@@ -673,7 +673,7 @@ class NNTClassifier_Wavenet3(ClassifierKerasTrinary):
         x = tf.keras.layers.Dropout(0.2)(x)
         outputs = tf.keras.layers.Dense(3, activation="softmax")(x)
 
-        model = tf.keras.Model(inputs, outputs)
+        model = tf.keras.Model(inputs, outputs, name=self.name)
 
         return model
 

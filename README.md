@@ -1,8 +1,19 @@
 # Phil's Custom freqtrade Crypto Trading Strategies
 
+<b>I recently re-organised all of the strategies. Originally, they were in exchange-based folders (binanceus etc.). This became unwieldly, plus it is now difficult to use multiple exchanges anyway. So, I have moved all of the strategies into new directories based on the underlying family (or group), such as Anomaly, PCA, NNPredict etc.
+<br>
+
+All scripts have been updated such that they now take the group name (but the old exchange method will still work)
+</b>
+
+I will eventually get around to updating all of the READMEs...
+
 ## Changelog
 
 I am having a lot of problems pushing to github. It might be related to all of the models...
+
+2023/08/25:
+restructured all strategies into directories based on the strategy family, e.g. PCA, ANomaly, NNPredict etc. Common code is in the utils directory
 
 2023/7/20:
 Started moving strategies into separate directories (just TSPredict for now)

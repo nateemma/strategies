@@ -214,64 +214,8 @@ class DataframePopulator():
         # dataframe['rsi'] = ta.RSI(dataframe, timeperiod=self.win_size)
         dataframe['rsi_14'] = ta.RSI(dataframe, timeperiod=14)
 
-        # # EMAs
-        # dataframe['ema_12'] = ta.EMA(dataframe, timeperiod=12)
-        # dataframe['ema_20'] = ta.EMA(dataframe, timeperiod=20)
-        # dataframe['ema_25'] = ta.EMA(dataframe, timeperiod=25)
-        # dataframe['ema_35'] = ta.EMA(dataframe, timeperiod=35)
-        # dataframe['ema_50'] = ta.EMA(dataframe, timeperiod=50)
-        # dataframe['ema_100'] = ta.EMA(dataframe, timeperiod=100)
-        # dataframe['ema_200'] = ta.EMA(dataframe, timeperiod=200)
-
         # SMA
         dataframe['sma_200'] = ta.SMA(dataframe, timeperiod=200)
-        # dataframe['sma_200_dec_20'] = np.where(dataframe['sma_200'] < dataframe['sma_200'].shift(20), 1.0, -1.0)
-        # dataframe['sma_200_dec_24'] = np.where(dataframe['sma_200'] < dataframe['sma_200'].shift(24), 1.0, -1.0)
-
-        # # CMF
-        # dataframe['cmf'] = chaikin_money_flow(dataframe, 20)
-
-        # # CTI
-        # dataframe['cti'] = pta.cti(dataframe["close"], length=20)
-
-        # # CRSI (3, 2, 100)
-        # crsi_closechange = dataframe['close'] / dataframe['close'].shift(1)
-        # crsi_updown = np.where(crsi_closechange.gt(1), 1.0, np.where(crsi_closechange.lt(1), -1.0, -1.0))
-        # dataframe['crsi'] = (ta.RSI(dataframe['close'], timeperiod=3) + ta.RSI(crsi_updown, timeperiod=2) + ta.ROC(
-        #     dataframe['close'],
-        #     100)) / 3
-        #
-        # # Williams %R
-        # dataframe['r_14'] = self.williams_r(dataframe, period=14)
-        # dataframe['r_480'] = self.williams_r(dataframe, period=480)
-
-        # # ROC
-        # dataframe['roc_9'] = ta.ROC(dataframe, timeperiod=9)
-
-        # # T3 Average
-        # dataframe['t3_avg'] = t3_average(dataframe)
-
-        # # S/R
-        # res_series = dataframe['high'].rolling(window=5, center=True).apply(lambda row: is_resistance(row),
-        #                                                                     raw=True).shift(2)
-        # sup_series = dataframe['low'].rolling(window=5, center=True).apply(lambda row: is_support(row),
-        #                                                                    raw=True).shift(2)
-        # dataframe['res_level'] = Series(
-        #     np.where(res_series,
-        #              np.where(dataframe['close'] > dataframe['open'], dataframe['close'], dataframe['open']),
-        #              float('NaN'))).ffill()
-        # dataframe['res_hlevel'] = Series(np.where(res_series, dataframe['high'], float('NaN'))).ffill()
-        # dataframe['sup_level'] = Series(
-        #     np.where(sup_series,
-        #              np.where(dataframe['close'] < dataframe['open'], dataframe['close'], dataframe['open']),
-        #              float('NaN'))).ffill()
-
-        # # Pump protections
-        # dataframe['hl_pct_change_48'] = self.range_percent_change(dataframe, 'HL', 48)
-        # dataframe['hl_pct_change_36'] = self.range_percent_change(dataframe, 'HL', 36)
-        # dataframe['hl_pct_change_24'] = self.range_percent_change(dataframe, 'HL', 24)
-        # dataframe['hl_pct_change_12'] = self.range_percent_change(dataframe, 'HL', 12)
-        # dataframe['hl_pct_change_6'] = self.range_percent_change(dataframe, 'HL', 6)
 
         # ADX
         dataframe['adx'] = ta.ADX(dataframe)
@@ -285,20 +229,6 @@ class DataframePopulator():
         dataframe['di_minus'] = ta.MINUS_DI(dataframe)
         dataframe['dm_delta'] = dataframe['dm_plus'] - dataframe['dm_minus']
         dataframe['di_delta'] = dataframe['di_plus'] - dataframe['di_minus']
-
-        # # SAR Parabol
-        # dataframe['sar'] = ta.SAR(dataframe)
-
-        # dataframe['mom'] = ta.MOM(dataframe, timeperiod=14)
-        #
-        # # priming indicators
-        # dataframe['color'] = np.where((dataframe['close'] > dataframe['open']), 1.0, -1.0)
-        # dataframe['rsi_7'] = ta.RSI(dataframe, timeperiod=7)
-        # dataframe['roc_6'] = ta.ROC(dataframe, timeperiod=6)
-        # dataframe['primed'] = np.where(dataframe['color'].rolling(3).sum() == 3.0, 1.0, -1.0)
-        # dataframe['in_the_mood'] = np.where(dataframe['rsi_7'] > dataframe['rsi_7'].rolling(12).mean(), 1.0, -1.0)
-        # dataframe['moist'] = np.where(qtpylib.crossed_above(dataframe['macd'], dataframe['macdsignal']), 1.0, -1.0)
-        # dataframe['throbbing'] = np.where(dataframe['roc_6'] > dataframe['roc_6'].rolling(12).mean(), 1.0, -1.0)
 
         # Volume Flow Indicator (MFI) for volume based on the direction of price movement
         dataframe['vfi'] = fta.VFI(dataframe, period=14)
@@ -461,6 +391,7 @@ class DataframePopulator():
 
     # ------------------------------
 
+    # for experimentation
     def add_custom1_indicators(self, dataframe: DataFrame) -> DataFrame:
 
         dataframe = self.add_minimal_indicators(dataframe)
@@ -476,6 +407,8 @@ class DataframePopulator():
     #------------------------------
 
     def add_indicators(self, dataframe: DataFrame, dataset_type=DatasetType.DEFAULT) -> DataFrame:
+
+        # print(f"dataset_type: {dataset_type}")
 
         if dataset_type == DatasetType.DEFAULT:
             dataframe = self.add_default_indicators(dataframe)
@@ -506,6 +439,12 @@ class DataframePopulator():
 
     # 'hidden' indicators. These are ostensibly backward looking, but may inadvertently use means, smoothing etc.
     def add_hidden_indicators(self, dataframe: DataFrame) -> DataFrame:
+
+        if 'mid' not in dataframe:
+            print("")
+            print("*** ERR: missing columns (mid)")
+            print(f"    cols: {dataframe.columns.values}")
+            print("")
 
         dataframe['fwd_dwt'] = self.get_dwt(dataframe['mid'])
 

@@ -9,10 +9,6 @@
 #   - WARNING: any behavioural changes to get_entry_training_signals() or get_exit_training_signals() require
 #              that you re-train the associated models (because the training data will change)
 
-# TODO:
-# - move lookahead and stdevs into this file. Remove from strategies
-# - add method to get abbreviation (use for model naming)
-# - check that indicators are present for each signal type
 
 import sys
 from pathlib import Path
@@ -40,7 +36,7 @@ pd.options.mode.chained_assignment = None  # default='warn'
 # -----------------------------------
 # define a xxx_signals class for each type of training signal
 # This allows us to deal with the different types in a  generic fashion
-# Each class must contain the follow *static* functions :
+# Each class must contain (at least) the follow methods :
 #   get_entry_training_signals()
 #   get_exit_training_signals()
 #   get_entry_guard_conditions()

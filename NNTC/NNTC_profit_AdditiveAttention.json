@@ -1,0 +1,33 @@
+{
+  "strategy_name": "NNTC_profit_AdditiveAttention",
+  "params": {
+    "roi": {
+      "0": 0.006
+    },
+    "stoploss": {
+      "stoploss": -0.1
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 10
+    },
+    "buy": {},
+    "sell": {
+      "enable_exit_signal": true,
+      "loss_ratio": 2.0,
+      "profit_ratio": 3.9,
+      "tstop_ratio": 0.702,
+      "tstop_start": 0.039,
+      "use_loss_ratio": true,
+      "use_profit_ratio": true
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2023-06-23 04:49:32.360195+00:00"
+}
