@@ -9,64 +9,6 @@ The strategies have been moved to directories based on the strategy 'group' (e.g
 All scripts have been updated such that they now take the group name (but the old exchange method will still work)
 **
 
-## Changelog
-
-I am having a lot of problems pushing to github. It might be related to all of the models...
-
-2023/08/25:
-restructured all strategies into directories based on the strategy family, e.g. PCA, ANomaly, NNPredict etc. Common code is in the utils directory
-
-2023/7/20:
-Started moving strategies into separate directories (just TSPredict for now)
-<br>
-Updated NNPredict to account for newer version of tensorflow. You might need to regenerate models - I haven't updated them for this family in quite a while...
-
-2023/7/15:
-Updated sliding window processing for S/DWT_Predict family to prevent lookahead. Howvwer, that was exceptionally slow so I converted it to a compromise, which does have a little bit of an issue with indirect lookahead for backtesting, so results are inflated. 
-
-2023/7/7: Updated custom stoploss & exit routines to simplify processing.
-<br>Added new "ALL" training signal to NNTC (suggested by @nilux), which combines all available buy/sell training signals (with some reality-based filtering).
-<br>Still having issues with hyperopt, likely caused by tensorflow update.
-<br>DWT/SWT strats are performing very well in backtesting, not so well in dry runs. Getting hit by sudden drops (what a surprise)
-
-2023/7/2: reverted back to using XGBoostRegressor. LightGBM gives better results, and is quite a bit faster, but it crashes on 
-non-M1 Macs. Hyper-parameters also had to be adjusted to accomodate the different modelling.
-
-2023/6/29: converted to use USDT instead of USD - pairs were being removed from binanceus, so this no longer made sense. 
-<br>DWT_Predict has been optimised a little and is quite a bit faster. custom_sell and custom_exit have also been simplified. Performance is looking good in dry runs...
-<br>There is currently an issue with hyperopt for NN strats caused by something not being pickle-able. I am chasing this down, but it's not obvious. The strats will still run though
-
-2023/6/27: Tuned DWT_predict a little. Updates to support tensorflow 2.12
-
-2023/6/26: Added new type of strat - DWT_Predict.py
-<br>This strategy uses a DWT transform and saves the DWT coefficients for each time step. It then uses a regression
-algorithm to learn the relationship between thiose coefficiwnts and the future price. The trained regression algorithm
-is then used to predict price changes.
-
-2023/6/23: I replaced the complicated custom stoploss and exit logic with something greatly simplified. The general
-approach is now to quickly trade in and out (I guess this is called _scalping_).
-<br>Performance is worse in backtesting, butis more reflective of what happens in live runs. Performance is better than
-the overall market, but still not great.
-<br>
-
-2023/6/6:
-I recently just spent a lot of time examining the training approach, since this seems to make a major
-difference in performance. I tested many different optimizers, learning rates and loss functions, and ended up writing
-several custom loss functions that are tailored to this environment.
-
-## Current Status
-
-I've been getting some questions on the various strategies here, so I thought I'd better clarify what I am currently
-working on...
-
-I am currently focused on the NNTC strategies, but will get back to PCA and Anomaly at some time.
-
-See [README_NNTC.md](README_NNTC.md) for some more details
-</b>
-
-Note that I am only active in the 'binanceus' directory (user_data/strategies/binanceus).
-<br>Because of this, I am considering removing the exchange-based directory structure, and replacing it with a 'group'
-based structure, i.e. all NNTC strategies in an NNTC directory, PCA strategies in a PCA directory etc.
 
 _NOTES_:
 

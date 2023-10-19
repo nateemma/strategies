@@ -74,8 +74,8 @@ strategy=$2
 strat_dir="user_data/strategies"
 group_dir="${strat_dir}/${group}"
 base_config="config.json"
-port_config="config_${port}.json"
-db_url="tradesv3_${port}.dryrun.sqlite"
+port_config="config${port}.json"
+db_url="tradesv3${port}.dryrun.sqlite"
 
 
 exchange_list=$(freqtrade list-exchanges -1)

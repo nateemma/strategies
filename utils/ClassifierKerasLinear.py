@@ -71,14 +71,14 @@ class ClassifierKerasLinear(ClassifierKeras):
     def compile_model(self, model):
         # optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
         # workaround for tensorflow issues with Adam:
-        optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=0.01)
+        optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=self.learning_rate)
         # optimizer = tf.keras.optimizers.SGD(learning_rate=1, momentum=0.9)
         model.compile(metrics=['mae', 'mse'], loss='mse', optimizer=optimizer)
 
         return model
 
     # update training using the suplied (normalised) dataframe. Training is cumulative
-    def train(self, df_train_norm, df_test_norm, train_results, test_results, force_train=False):
+    def train(self, df_train_norm, df_test_norm, train_results, test_results, force_train=False, save_model=True):
 
         # lazy loading because params can change up to this point
         if self.model is None:
@@ -89,15 +89,18 @@ class ClassifierKerasLinear(ClassifierKeras):
 
         new_model = self.new_model_created()
 
+        # print(f"    is_trained:{self.is_trained} force_train:{force_train} new_model:{self.new_model} combine_models:{self.combine_models}")
+
         # if model is already trained, and caller is not requesting a re-train, then just return
         if (self.model is not None) and \
             (self.model_is_trained()) and \
             (not force_train) and \
             (not new_model) and \
             (not self.combine_models or (not new_model)):
-            print(f"    is_trained:{self.is_trained} force_train:{force_train} new_model:{self.new_model} combine_models:{self.combine_models}")
+            print(f"    SKipping training - is_trained:{self.is_trained} force_train:{force_train} new_model:{self.new_model} combine_models:{self.combine_models}")
             print("    Model is already trained")
             return
+
 
         # if model doesn't exist, create it (lazy initialisation)
         if self.model is None:
@@ -173,25 +176,27 @@ class ClassifierKerasLinear(ClassifierKeras):
         print("")
         print("    training model: {}...".format(self.name))
 
-        # print("    train_tensor:{} test_tensor:{}".format(np.shape(train_tensor), np.shape(test_tensor)))
+        # print("    train_tensor:{} train_results:{}".format(np.shape(train_tensor), np.shape(train_results)))
+        # print("    test_tensor:{}  test_results:{}".format(np.shape(test_tensor), np.shape(test_results)))
 
         # Model weights are saved at the end of every epoch, if it's the best seen so far.
         fhis = self.model.fit(train_tensor, train_results,
-                              batch_size=self.batch_size,
-                              epochs=self.num_epochs,
-                              callbacks=callbacks,
-                              validation_data=(test_tensor, test_results),
-                              verbose=1)
+                                batch_size=self.batch_size,
+                                epochs=self.num_epochs,
+                                callbacks=callbacks,
+                                validation_data=(test_tensor, test_results),
+                                verbose=0)
 
 
         # reset learning rate
         if self.combine_models:
-            tf.keras.backend.set_value(self.model.optimizer.learning_rate, 0.01)
+            tf.keras.backend.set_value(self.model.optimizer.learning_rate, self.learning_rate)
 
         # # The model weights (that are considered the best) are loaded into th model.
         # self.update_model_weights()
 
-        self.save()
+        if save_model:
+            self.save()
         self.is_trained = True
 
         return

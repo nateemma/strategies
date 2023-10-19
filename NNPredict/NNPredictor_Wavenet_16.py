@@ -1,4 +1,4 @@
-# Neural Network Binary Classifier: this subclass uses a full Wavenet model
+# Neural Network Predictor: this subclass uses a simplified Wavenet model
 # Note that this is a very big (and slow to train model)
 
 
@@ -45,7 +45,7 @@ from utils.ClassifierKerasLinear import ClassifierKerasLinear
 import h5py
 
 
-class NNPredictor_Wavenet2(ClassifierKerasLinear):
+class NNPredictor_Wavenet_16(ClassifierKerasLinear):
     is_trained = False
     clean_data_required = False  # training data can contain anomalies
     model_per_pair = False # separate model per pair
@@ -72,39 +72,21 @@ class NNPredictor_Wavenet2(ClassifierKerasLinear):
     def create_model(self, seq_len, num_features):
         inputs = tf.keras.layers.Input(shape=(seq_len, num_features))
 
-        if num_features > 32:
-            filter_size = 64
-        elif num_features > 16:
-            filter_size = 32
-        else:
-            filter_size = 32
+        x = inputs
+        # x = tf.keras.layers.Convolution1D(64, 2, padding="causal", dilation_rate=1)(inputs)
 
-
-        # x = inputs
-        x = tf.keras.layers.Convolution1D(filter_size, 2, padding="causal", dilation_rate=1)(inputs)
-
-        # A, B = self.wavenetBlock(64, 2, 1)(inputs)
-
-        skip_connections = []
-        for i in range(1, 3):
-            rate = 1
-            for j in range (1, 10):
-                x, skip = self.wavenetBlock(filter_size, 2, rate)(x)
-                skip_connections.append(skip)
-                rate = 2 * rate
-
-            x = tf.keras.layers.BatchNormalization()(x)
-
-        x = tf.keras.layers.Add()(skip_connections)
-        x = tf.keras.layers.Activation('relu')(x)
-        x = tf.keras.layers.Convolution1D(filter_size, 1, padding='same', kernel_regularizer=tf.keras.regularizers.l2(0))(x)
-        x = tf.keras.layers.Activation('relu')(x)
-        x = tf.keras.layers.Convolution1D(filter_size, 1, padding='same')(x)
-
+        # Wavenet model, which is a series of convolutional layers with increasing dilution rate:
+        # This is a greatly simplified version
+        for rate in (1, 2, 4, 8) * 2:
+            x = tf.keras.layers.Conv1D(filters=16, kernel_size=2, padding="causal", activation="relu", dilation_rate=rate)(x)
 
         # remplace sequence column with the average value
         x = tf.keras.layers.GlobalAveragePooling1D()(x)
 
+        # intermediate layer to bring the dimensions
+        x = tf.keras.layers.Dense(4)(x)
+        x = tf.keras.layers.Dropout(0.1)(x)
+        
         # last layer is a linear (float) value - do not change
         outputs = tf.keras.layers.Dense(1, activation="linear")(x)
 

@@ -1,82 +1,22 @@
 # Phil's Custom freqtrade Crypto Trading Strategies
 
+_**I am no longer actively developing these strategies, mostly because I think that crypto in general is so chaotic right now that it
+is not possible to predict future movements. I frequently se drops >20% in a single candle followed by a jump, which no algorithm will be able to predict and handle.**_
+
 <b>I recently re-organised all of the strategies. Originally, they were in exchange-based folders (binanceus etc.). This became unwieldly, plus it is now difficult to use multiple exchanges anyway. So, I have moved all of the strategies into new directories based on the underlying family (or group), such as Anomaly, PCA, NNPredict etc.
 <br>
 
-All scripts have been updated such that they now take the group name (but the old exchange method will still work)
+
 </b>
 
-I will eventually get around to updating all of the READMEs...
-
-## Changelog
-
-I am having a lot of problems pushing to github. It might be related to all of the models...
-
-2023/08/25:
-restructured all strategies into directories based on the strategy family, e.g. PCA, ANomaly, NNPredict etc. Common code is in the utils directory
-
-2023/7/20:
-Started moving strategies into separate directories (just TSPredict for now)
-<br>
-Updated NNPredict to account for newer version of tensorflow. You might need to regenerate models - I haven't updated them for this family in quite a while...
-
-2023/7/15:
-Updated sliding window processing for S/DWT_Predict family to prevent lookahead. Howvwer, that was exceptionally slow so I converted it to a compromise, which does have a little bit of an issue with indirect lookahead for backtesting, so results are inflated. 
-
-2023/7/7: Updated custom stoploss & exit routines to simplify processing.
-<br>Added new "ALL" training signal to NNTC (suggested by @nilux), which combines all available buy/sell training signals (with some reality-based filtering).
-<br>Still having issues with hyperopt, likely caused by tensorflow update.
-<br>DWT/SWT strats are performing very well in backtesting, not so well in dry runs. Getting hit by sudden drops (what a surprise)
-
-2023/7/2: reverted back to using XGBoostRegressor. LightGBM gives better results, and is quite a bit faster, but it crashes on 
-non-M1 Macs. Hyper-parameters also had to be adjusted to accomodate the different modelling.
-
-2023/6/29: converted to use USDT instead of USD - pairs were being removed from binanceus, so this no longer made sense. 
-<br>DWT_Predict has been optimised a little and is quite a bit faster. custom_sell and custom_exit have also been simplified. Performance is looking good in dry runs...
-<br>There is currently an issue with hyperopt for NN strats caused by something not being pickle-able. I am chasing this down, but it's not obvious. The strats will still run though
-
-2023/6/27: Tuned DWT_predict a little. Updates to support tensorflow 2.12
-
-2023/6/26: Added new type of strat - DWT_Predict.py
-<br>This strategy uses a DWT transform and saves the DWT coefficients for each time step. It then uses a regression
-algorithm to learn the relationship between thiose coefficiwnts and the future price. The trained regression algorithm
-is then used to predict price changes.
-
-2023/6/23: I replaced the complicated custom stoploss and exit logic with something greatly simplified. The general
-approach is now to quickly trade in and out (I guess this is called _scalping_).
-<br>Performance is worse in backtesting, butis more reflective of what happens in live runs. Performance is better than
-the overall market, but still not great.
-<br>
-
-2023/6/6:
-I recently just spent a lot of time examining the training approach, since this seems to make a major
-difference in performance. I tested many different optimizers, learning rates and loss functions, and ended up writing
-several custom loss functions that are tailored to this environment.
-
-## Current Status
-
-I've been getting some questions on the various strategies here, so I thought I'd better clarify what I am currently
-working on...
-
-I am currently focused on the NNTC strategies, but will get back to PCA and Anomaly at some time.
-
-See [README_NNTC.md](README_NNTC.md) for some more details
-</b>
-
-Note that I am only active in the 'binanceus' directory (user_data/strategies/binanceus).
-<br>Because of this, I am considering removing the exchange-based directory structure, and replacing it with a 'group'
-based structure, i.e. all NNTC strategies in an NNTC directory, PCA strategies in a PCA directory etc.
 
 _NOTES_:
 
-- I have replaced the NNBC strategies with equivalent NNTC strategies. They are essentially the same, but NNBC uses
-  separate buy and sell neural network models, while NNTC use a single model to predict buy/sell/hold. This appears to
-  work better and uses less memory (one model instead of two).<br>
+- _**Scripts**_: All scripts (in user_data/strategies/scripts) have been updated such that they now take the group name (but the old exchange method will still work)
 
-
-- _**Binance**_: I live in the USA, and the Binance exchange recently blocked API access from here. So, I cannot (
-  easily) test the code in the binance exchange directory. I know I could use a VPN, but I'm busy with a bunch of other
-  stuff in the binanceus directory - sorry. <br>
+- _**Binance**_: I live in the USA, and the most exchanges recently blocked API access from here. So, I cannot (
+  easily) test the code in any other exchange. I know I could use a VPN, but I'm busy with a bunch of other
+  stuff - sorry. <br>
   All strats should work, but you will need to run hyperopt on them to get good hyperparameters
 
 - _**Mac M1**_: My development machine is a Mac M1 laptop. While it is very fast, it does present some challenges in
@@ -88,6 +28,8 @@ _NOTES_:
   cutting edge problem, and I do not appear to have solved it! These algorithms perform OK in backtesting, but if you
   look at the details, the predictions are not good. <br>So, I am currently not working on these, but I may circle back
   and apply lessons learned from te NNTC work
+
+- _**Tensorflow**_: several strategies use neural network models implemented using tensorflow (and keras). For some reason, the latest versions of tensorflow dropped support for serialisation of models (at least on MacOS), so hyperopt of these strategies no longer works (because hyperopt saves and restores the strategies via pickle).
 
 ## Intro
 

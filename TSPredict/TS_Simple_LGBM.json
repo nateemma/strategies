@@ -1,5 +1,5 @@
 {
-  "strategy_name": "TS_Simple",
+  "strategy_name": "TS_Simple_LGBM",
   "params": {
     "roi": {
       "0": 0.06
@@ -17,21 +17,21 @@
       "max_open_trades": 10
     },
     "buy": {
-      "entry_model_gain": 0.9
+      "entry_model_gain": 0.5
     },
     "sell": {
       "enable_guards": true,
       "enable_exit_signal": true,
-      "exit_model_gain": -0.4,
-      "loss_threshold": -0.02,
-      "profit_threshold": 0.063,
-      "tstop_ratio": 0.728,
-      "tstop_start": 0.018,
+      "exit_model_gain": -0.6,
+      "loss_threshold": -0.021,
+      "profit_threshold": 0.019,
+      "tstop_ratio": 0.966,
+      "tstop_start": 0.059,
       "use_loss_threshold": true,
       "use_profit_threshold": true
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2023-10-12 20:15:42.214212+00:00"
+  "export_time": "2023-10-12 19:30:48.476724+00:00"
 }

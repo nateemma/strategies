@@ -83,19 +83,6 @@ class DataframePopulator():
         dataframe['profit'] = dataframe['gain'].clip(lower=0.0)
         dataframe['loss'] = dataframe['gain'].clip(upper=0.0)
 
-        # Recent min/max
-        dataframe['recent_min'] = dataframe['close'].rolling(window=self.win_size).min()
-        dataframe['recent_max'] = dataframe['close'].rolling(window=self.win_size).max()
-
-
-        # Bollinger Bands (must include these)
-        bollinger = qtpylib.bollinger_bands(dataframe['close'], window=20, stds=2)
-        dataframe['bb_lowerband'] = bollinger['lower']
-        dataframe['bb_middleband'] = bollinger['mid']
-        dataframe['bb_upperband'] = bollinger['upper']
-        dataframe['bb_width'] = ((dataframe['bb_upperband'] - dataframe['bb_lowerband']) / dataframe['bb_middleband'])
-        dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
-        dataframe["bb_loss"] = ((dataframe["bb_lowerband"] - dataframe["close"]) / dataframe["close"])
 
         # RSI
         dataframe['rsi'] = ta.RSI(dataframe, timeperiod=self.win_size)
@@ -110,6 +97,34 @@ class DataframePopulator():
         # Combined Fisher RSI and Williams %R
         dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
 
+        # MFI - Chaikin Money Flow Indicator
+        dataframe['mfi'] = ta.MFI(dataframe)
+
+        return dataframe
+
+ 
+    # ------------------------------
+    # 'small' set of indicators - basically, the best-known ones
+    def add_small_indicators(self, dataframe: DataFrame) -> DataFrame:
+
+        dataframe = self.add_minimal_indicators(dataframe)
+
+
+        # Recent min/max
+        dataframe['recent_min'] = dataframe['close'].rolling(window=self.win_size).min()
+        dataframe['recent_max'] = dataframe['close'].rolling(window=self.win_size).max()
+
+
+        # Bollinger Bands (must include these)
+        bollinger = qtpylib.bollinger_bands(dataframe['close'], window=20, stds=2)
+        dataframe['bb_lowerband'] = bollinger['lower']
+        dataframe['bb_middleband'] = bollinger['mid']
+        dataframe['bb_upperband'] = bollinger['upper']
+        dataframe['bb_width'] = ((dataframe['bb_upperband'] - dataframe['bb_lowerband']) / dataframe['bb_middleband'])
+        dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
+        dataframe["bb_loss"] = ((dataframe["bb_lowerband"] - dataframe["close"]) / dataframe["close"])
+
+
         # MACD
         macd = ta.MACD(dataframe)
         dataframe['macd'] = macd['macd']
@@ -122,8 +137,6 @@ class DataframePopulator():
         dataframe['fastk'] = stoch_fast['fastk']
         dataframe['fast_diff'] = dataframe['fastd'] - dataframe['fastk']
 
-        # MFI - Chaikin Money Flow Indicator
-        dataframe['mfi'] = ta.MFI(dataframe)
 
         # DWT model
         # if in backtest or hyperopt, then we have to do rolling calculations
@@ -166,13 +179,53 @@ class DataframePopulator():
         # rolling linear slope of the DWT (i.e. average trend) of near-past
         dataframe['dwt_slope'] = dataframe['dwt'].rolling(window=6).apply(self.roll_get_slope)
 
-        return dataframe
+        # moving averages
+        dataframe['sma'] = ta.SMA(dataframe, timeperiod=self.win_size)
+        dataframe['ema'] = ta.EMA(dataframe, timeperiod=self.win_size)
+        dataframe['tema'] = ta.TEMA(dataframe, timeperiod=self.win_size)
+        # dataframe['tema_stddev'] = dataframe['tema'].rolling(self.win_size).std()
 
-    # ------------------------------
+        # Donchian Channels
+        dataframe['dc_upper'] = ta.MAX(dataframe['high'], timeperiod=self.win_size)
+        dataframe['dc_lower'] = ta.MIN(dataframe['low'], timeperiod=self.win_size)
+        dataframe['dc_mid'] = ta.TEMA(((dataframe['dc_upper'] + dataframe['dc_lower']) / 2), timeperiod=self.win_size)
+
+        dataframe["dcbb_dist_upper"] = (dataframe["dc_upper"] - dataframe['bb_upperband'])
+        dataframe["dcbb_dist_lower"] = (dataframe["dc_lower"] - dataframe['bb_lowerband'])
+
+        # Fibonacci Levels (of Donchian Channel)
+        dataframe['dc_dist'] = (dataframe['dc_upper'] - dataframe['dc_lower'])
+        # dataframe['dc_hf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.236  # Highest Fib
+        # dataframe['dc_chf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.382  # Centre High Fib
+        # dataframe['dc_clf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.618  # Centre Low Fib
+        # dataframe['dc_lf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.764  # Low Fib
+
+        # Keltner Channels (these can sometimes produce inf results)
+        keltner = qtpylib.keltner_channel(dataframe)
+        dataframe["kc_upper"] = keltner["upper"]
+        dataframe["kc_lower"] = keltner["lower"]
+        dataframe["kc_mid"] = keltner["mid"]
+
+        return dataframe
+    
+   # ------------------------------
 
     def add_default_indicators(self, dataframe: DataFrame) -> DataFrame:
 
-        dataframe = self.add_minimal_indicators(dataframe)
+        dataframe = self.add_small_indicators(dataframe)
+
+        # Recent min/max
+        dataframe['recent_min'] = dataframe['close'].rolling(window=self.win_size).min()
+        dataframe['recent_max'] = dataframe['close'].rolling(window=self.win_size).max()
+
+        # Bollinger Bands (must include these)
+        bollinger = qtpylib.bollinger_bands(dataframe['close'], window=20, stds=2)
+        dataframe['bb_lowerband'] = bollinger['lower']
+        dataframe['bb_middleband'] = bollinger['mid']
+        dataframe['bb_upperband'] = bollinger['upper']
+        dataframe['bb_width'] = ((dataframe['bb_upperband'] - dataframe['bb_lowerband']) / dataframe['bb_middleband'])
+        dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
+        dataframe["bb_loss"] = ((dataframe["bb_lowerband"] - dataframe["close"]) / dataframe["close"])
 
         # moving averages
         dataframe['sma'] = ta.SMA(dataframe, timeperiod=self.win_size)
@@ -267,41 +320,6 @@ class DataframePopulator():
         dataframe = lta.smi_momentum(dataframe)
         dataframe = lta.pinbar(dataframe, dataframe["smi"])
         dataframe = lta.breakouts(dataframe)
-
-        return dataframe
-
-    # ------------------------------
-    # 'small' set of indicators - basically, the best-known ones
-    def add_small_indicators(self, dataframe: DataFrame) -> DataFrame:
-
-        dataframe = self.add_minimal_indicators(dataframe)
-
-        # moving averages
-        dataframe['sma'] = ta.SMA(dataframe, timeperiod=self.win_size)
-        dataframe['ema'] = ta.EMA(dataframe, timeperiod=self.win_size)
-        dataframe['tema'] = ta.TEMA(dataframe, timeperiod=self.win_size)
-        # dataframe['tema_stddev'] = dataframe['tema'].rolling(self.win_size).std()
-
-        # Donchian Channels
-        dataframe['dc_upper'] = ta.MAX(dataframe['high'], timeperiod=self.win_size)
-        dataframe['dc_lower'] = ta.MIN(dataframe['low'], timeperiod=self.win_size)
-        dataframe['dc_mid'] = ta.TEMA(((dataframe['dc_upper'] + dataframe['dc_lower']) / 2), timeperiod=self.win_size)
-
-        dataframe["dcbb_dist_upper"] = (dataframe["dc_upper"] - dataframe['bb_upperband'])
-        dataframe["dcbb_dist_lower"] = (dataframe["dc_lower"] - dataframe['bb_lowerband'])
-
-        # Fibonacci Levels (of Donchian Channel)
-        dataframe['dc_dist'] = (dataframe['dc_upper'] - dataframe['dc_lower'])
-        # dataframe['dc_hf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.236  # Highest Fib
-        # dataframe['dc_chf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.382  # Centre High Fib
-        # dataframe['dc_clf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.618  # Centre Low Fib
-        # dataframe['dc_lf'] = dataframe['dc_upper'] - dataframe['dc_dist'] * 0.764  # Low Fib
-
-        # Keltner Channels (these can sometimes produce inf results)
-        keltner = qtpylib.keltner_channel(dataframe)
-        dataframe["kc_upper"] = keltner["upper"]
-        dataframe["kc_lower"] = keltner["lower"]
-        dataframe["kc_mid"] = keltner["mid"]
 
         return dataframe
 

@@ -44,7 +44,10 @@ class ClassifierKeras():
     num_features = 64
     encoder_layer = 'encoder_output'
     encoder = None
-    num_epochs = 256  # number of iterations for training
+    default_max_epochs = 256
+    num_epochs = default_max_epochs  # number of iterations for training (can be set)
+    default_learning_rate = 0.01
+    learning_rate = default_learning_rate
     batch_size = 1024  # batch size for training
     clean_data_required = False  # train with positive rows removed
     model_per_pair = False  # set to False to combine across all pairs
@@ -54,6 +57,7 @@ class ClassifierKeras():
     prescale_dataframe = True  # set to True if algorithms need dataframes to be pre-scaled
     single_prediction = False  # True if algorithm only produces 1 prediction (not entire data array)
     combine_models = False  # True means combine models for all pairs (unless model per pair). False will train only on 1st pair
+
 
     # ---------------------------
 
@@ -135,6 +139,25 @@ class ClassifierKeras():
     
     def set_target_column(self, target_column):
         pass
+        return
+    
+
+    # ---------------------------
+    
+    def set_num_epochs(self, num_epochs=None):
+        if num_epochs is None:
+            self.num_epochs = self.default_max_epochs
+        else:
+            self.num_epochs = num_epochs
+        return
+        
+    # ---------------------------
+    
+    def set_learning_rate(self, rate=None):
+        if rate is None:
+            self.learning_rate = self.default_learning_rate
+        else:
+            self.learning_rate = rate
         return
     
     # ---------------------------

@@ -640,7 +640,7 @@ class NNPredict(IStrategy):
 
         tmp = self.norm_array(dataframe[self.target_column].to_numpy())
 
-        print(f'backtest_data() - use_dataframes:{use_dataframes} prescale_data:{prescale_data}')
+        # print(f'    backtest_data() - use_dataframes:{use_dataframes} prescale_data:{prescale_data}')
 
         # pre-scale if needed
         if prescale_data:

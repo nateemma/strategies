@@ -1,5 +1,5 @@
 {
-  "strategy_name": "TS_Simple",
+  "strategy_name": "TS_Simple_RF",
   "params": {
     "roi": {
       "0": 0.06
@@ -22,16 +22,16 @@
     "sell": {
       "enable_guards": true,
       "enable_exit_signal": true,
-      "exit_model_gain": -0.4,
-      "loss_threshold": -0.02,
-      "profit_threshold": 0.063,
-      "tstop_ratio": 0.728,
-      "tstop_start": 0.018,
+      "exit_model_gain": -2.1,
+      "loss_threshold": -0.065,
+      "profit_threshold": 0.044,
+      "tstop_ratio": 0.754,
+      "tstop_start": 0.044,
       "use_loss_threshold": true,
-      "use_profit_threshold": true
+      "use_profit_threshold": false
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2023-10-12 20:15:42.214212+00:00"
+  "export_time": "2023-10-13 22:21:03.803749+00:00"
 }
