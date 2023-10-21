@@ -1,3 +1,23 @@
+"""
+####################################################################################
+TS_Simple - base class for 'simple' time series prediction
+             Handles most of the logic for time series prediction. Subclasses should
+             override the model-related functions
+
+             This strategy uses only the 'base' indicators (open, close etc.) to estimate future gain.
+             Note that I use gain rather than price because it is a normalised value, and works better with prediction algorithms.
+             I use the actual (future) gain to train a base model, which is then further refined for each individual pair.
+             The model is created if it does not exist, and is trained on all available data before being saved.
+             Models are saved in user_data/strategies/TSPredict/models/<class>/<class>.sav, where <class> is the name of the current class
+             (TS_Simple if running this directly, or the name of the subclass). 
+             If the model already exits, then it is just loaded and used.
+             So, it makes sense to do initial training over a long period of time to create the base model. 
+             If training, then no backtesting or tuning for individual pairs is performed (way faster).
+             If you want to retrain (e.g. you changed indicators), then delete the model and run the strategy over a long time period
+
+####################################################################################
+"""
+
 #pragma pylint: disable=W0105, C0103, C0114, C0115, C0116, C0301, C0325, W1203
 
 from datetime import datetime
@@ -51,14 +71,8 @@ from utils.DataframeUtils import DataframeUtils, ScalerType # pylint: disable=E0
 # import pywt
 import talib.abstract as ta
 
-"""
-####################################################################################
-TS_Simple - base class for time series prediction
-             Handles most of the logic for time series prediction. Subclasses should
-             overide the model-related functions
 
-####################################################################################
-"""
+
 
 
 class TS_Simple(IStrategy):
@@ -125,7 +139,7 @@ class TS_Simple(IStrategy):
 
     training_data = None
     training_labels = None
-    training_mode = False # set to true to generate initial model (typically over long time period)
+    training_mode = False # set to true if model does not already exist
     supports_incremental_training = True
     model_per_pair = False
     combine_models = True
@@ -348,10 +362,12 @@ class TS_Simple(IStrategy):
             self.model = joblib.load(model_path)
             self.model_trained = True
             self.new_model = False
+            self.training_mode = False
         else:
             self.create_model(df_shape)
             self.model_trained = False
             self.new_model = True
+            self.training_mode = True
 
         if self.model is None:
             print("***    ERR: model was not created properly ***")
@@ -459,7 +475,7 @@ class TS_Simple(IStrategy):
             if self.new_model:
                 self.save_model()
         
-        print(f'    model_trained:{self.model_trained} new_model:{self.new_model}  combine_models:{self.combine_models}')
+        # print(f'    model_trained:{self.model_trained} new_model:{self.new_model}  combine_models:{self.combine_models}')
 
         return
     
@@ -718,12 +734,28 @@ class TS_Simple(IStrategy):
         model_cond = (
             (
                 # model predicts a rise above the entry threshold
-                (dataframe['predicted_gain'] >= self.entry_model_gain.value) 
+                (dataframe['predicted_gain'] >= self.entry_model_gain.value) &
+
+                # Fisher/Williams in oversold region
+                (dataframe['fisher_wr'] < -0.5)
+            )
+            |
+            # (
+            #     # model predicts some gain
+            #     (dataframe['predicted_gain'] > 0.0) &
+
+            #     # strong oversold condition
+            #     (dataframe['fisher_wr'] <= -0.99)
+            # )
+            # |
+            (
+                # large gain predicted (ignore fisher_wr)
+                (dataframe['predicted_gain'] >= 2.0 * self.entry_model_gain.value) 
             )
         )
         
 
-        conditions.append(fwr_cond)
+        # conditions.append(fwr_cond)
         conditions.append(model_cond)
 
 

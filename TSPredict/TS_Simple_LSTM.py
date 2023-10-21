@@ -56,7 +56,7 @@ class TS_Simple_LSTM(TS_Simple):
     dataframeUtils = DataframeUtils()
     training_mode = False # set to True to train initial model (over long period)
     combine_models = True
-    supports_incremental_training = True
+    supports_incremental_training = False
 
     ###################################
 

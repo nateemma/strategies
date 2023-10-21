@@ -17,7 +17,7 @@
       "max_open_trades": 10
     },
     "buy": {
-      "entry_model_gain": 0.9
+      "entry_model_gain": 0.6
     },
     "sell": {
       "enable_guards": true,

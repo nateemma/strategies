@@ -97,7 +97,7 @@ class ClassifierKerasLinear(ClassifierKeras):
             (not force_train) and \
             (not new_model) and \
             (not self.combine_models or (not new_model)):
-            print(f"    SKipping training - is_trained:{self.is_trained} force_train:{force_train} new_model:{self.new_model} combine_models:{self.combine_models}")
+            # print(f"    SKipping training - is_trained:{self.is_trained} force_train:{force_train} new_model:{self.new_model} combine_models:{self.combine_models}")
             print("    Model is already trained")
             return
 
