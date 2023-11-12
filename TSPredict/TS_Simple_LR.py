@@ -33,7 +33,7 @@ log = logging.getLogger(__name__)
 # log.setLevel(logging.DEBUG)
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
-from lightgbm.sklearn import LGBMRegressor
+from sklearn.linear_model import LinearRegression
 from utils.DataframeUtils import DataframeUtils
 
 
@@ -41,21 +41,21 @@ from TS_Simple import TS_Simple
 
 """
 ####################################################################################
-TS_Simple_LGBM - subclass of TS_Simple that uses a Light GBM model
+TS_Simple_LinearRegression - subclass of TS_Simple that uses a Linear Regression model
 
 ####################################################################################
 """
 
 
-class TS_Simple_LGBM(TS_Simple):
+class TS_Simple_LR(TS_Simple):
 
     seq_len = 6
     num_features= 0
     model_per_pair = False
     dataframeUtils = DataframeUtils()
-    training_mode = False # set to True to train initial model (over long period) - much faster
-    supports_incremental_training = True
-    combine_models = True
+    combine_models = False
+    training_mode = False # set to True to train initial model (over long period)
+    supports_incremental_training = False
 
     ###################################
     
@@ -63,29 +63,11 @@ class TS_Simple_LGBM(TS_Simple):
 
     def create_model(self, df_shape):
 
-        print("    creating LGBMRegressor")
-        # LGBMRegressor gives better/faster results, but has issues on some MacOS platforms. 
-
-        params = {'n_estimators': 100, 'max_depth': 4, 'learning_rate': 0.1, 
-                  'keep_training_booster': True, 'verbose': -1}
-        self.model = LGBMRegressor(**params)
+        print("    creating LinearRegression")
+        self.model = LinearRegression()
         
         return
     
-
-    def train_model(self, model, data: np.array, train: np.array, save_model):
-
-        if self.model is None:
-            print("***    ERR: no model ***")
-            return
-        
-        # train on the supplied data
-        if self.new_model and (not self.model_trained):
-            self.model = self.model.fit(data, train)
-        else:
-            self.model = self.model.fit(data, train, init_model=self.model)
-
-        return
     
     #-------------
 

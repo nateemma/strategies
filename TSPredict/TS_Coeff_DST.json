@@ -1,5 +1,5 @@
 {
-  "strategy_name": "TS_Simple_SGD",
+  "strategy_name": "TS_Coeff_DST",
   "params": {
     "roi": {
       "0": 0.06
@@ -17,21 +17,21 @@
       "max_open_trades": 10
     },
     "buy": {
-      "entry_model_gain": 0.5
+      "entry_model_gain": 1.1
     },
     "sell": {
+      "enable_exit_signal": false,
       "enable_guards": false,
-      "enable_exit_signal": true,
-      "exit_model_gain": -0.5,
-      "loss_threshold": -0.048,
-      "profit_threshold": 0.045,
-      "tstop_ratio": 0.98,
-      "tstop_start": 0.052,
-      "use_loss_threshold": false,
-      "use_profit_threshold": true
+      "exit_model_gain": -1.0,
+      "loss_threshold": -0.042,
+      "profit_threshold": 0.058,
+      "tstop_ratio": 0.909,
+      "tstop_start": 0.06,
+      "use_loss_threshold": true,
+      "use_profit_threshold": false
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2023-11-10 15:13:37.577845+00:00"
+  "export_time": "2023-11-11 16:23:25.202861+00:00"
 }

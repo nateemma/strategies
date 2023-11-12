@@ -188,7 +188,8 @@ for strat in ${strat_list//.py/}; do
   test_strat=true
   if ${only_missing_models}; then
     echo ""
-    model_file="${group_dir}/models/${strat}/${strat}.h5"
+    # model_file="${group_dir}/models/${strat}/${strat}.h5"
+    model_file="${group_dir}/models/${strat}/${strat}.keras"
     if [ -e ${model_file} ]; then
       add_line "model file already exists (${model_file}). Skipping strategy ${strat}"
       test_strat=false

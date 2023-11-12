@@ -520,6 +520,7 @@ class ClassifierKeras():
                     model = keras.models.load_model(path, compile=False)
                 self.compile_model(model)
                 self.is_trained = True
+                ClassifierKeras.new_model = False
 
             except Exception as e:
                 print("    ", str(e))
@@ -528,11 +529,12 @@ class ClassifierKeras():
             print("    model not found ({})...".format(path))
             # flag this as a new model. Note that this is a class global variable because we need to track this
             # across multiple instances (e.g. if we are combining all pairs into one model)
-            if self.combine_models:
-                ClassifierKeras.new_model = True
-            else:
-                ClassifierKeras.new_model = False
-
+            # if self.combine_models:
+            #     ClassifierKeras.new_model = True
+            # else:
+            #     ClassifierKeras.new_model = False
+            ClassifierKeras.new_model = True
+            
             self.is_trained = False
 
         return model

@@ -1,15 +1,15 @@
 """
 ####################################################################################
-TS_Simple - base class for 'simple' time series prediction
+TS_Gain - base class for 'simple' time series prediction
              Handles most of the logic for time series prediction. Subclasses should
              override the model-related functions
 
-             This strategy uses only the 'base' indicators (open, close etc.) to estimate future gain.
+             This strategy uses only calculated gain to estimate future gain (no other indicators)
              Note that I use gain rather than price because it is a normalised value, and works better with prediction algorithms.
              I use the actual (future) gain to train a base model, which is then further refined for each individual pair.
              The model is created if it does not exist, and is trained on all available data before being saved.
              Models are saved in user_data/strategies/TSPredict/models/<class>/<class>.sav, where <class> is the name of the current class
-             (TS_Simple if running this directly, or the name of the subclass). 
+             (TS_Gain if running this directly, or the name of the subclass). 
              If the model already exits, then it is just loaded and used.
              So, it makes sense to do initial training over a long period of time to create the base model. 
              If training, then no backtesting or tuning for individual pairs is performed (way faster).
@@ -34,8 +34,7 @@ from pandas import DataFrame, Series
 
 # from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.preprocessing import RobustScaler
-from xgboost import XGBRegressor
-# from lightgbm import LGBMRegressor
+
 
 # import freqtrade.vendor.qtpylib.indicators as qtpylib
 
@@ -66,6 +65,10 @@ log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
+from xgboost import XGBRegressor
+# from lightgbm import LGBMRegressor
+from sklearn.linear_model import PassiveAggressiveRegressor
+from sklearn.linear_model import SGDRegressor
 
 from utils.DataframeUtils import DataframeUtils, ScalerType # pylint: disable=E0401
 # import pywt
@@ -75,7 +78,7 @@ import talib.abstract as ta
 
 
 
-class TS_Simple(IStrategy):
+class TS_Gain(IStrategy):
     # Do *not* hyperopt for the roi and stoploss spaces
 
 
@@ -135,7 +138,7 @@ class TS_Simple(IStrategy):
     # model_window = startup_candle_count
     model_window = 128
 
-    lookahead = 6
+    lookahead = 12
 
     training_data = None
     training_labels = None
@@ -181,7 +184,7 @@ class TS_Simple(IStrategy):
     enable_exit_signal = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
 
     # enable entry/exit guards (safer vs profit)
-    enable_guards = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+    enable_guards = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=False)
 
 
     ###################################
@@ -233,79 +236,14 @@ class TS_Simple(IStrategy):
         dataframe['gain'] = self.smooth(dataframe['gain'], 8) # smooth gain to make it easier to fit
         dataframe['gain'] = self.detrend_array(dataframe['gain'])
 
-
-        # add other indicators
-        # NOTE: does not work well with lots of indicators. Also, avoid any indicators that oscillate wildly or have
-        #       discontinuities
-
-        '''
         rsi = ta.RSI(dataframe, timeperiod=self.win_size)
         wr = 0.02 * (self.williams_r(dataframe, period=self.win_size) + 50.0)
         rsi2 = 0.1 * (rsi - 50)
         fisher_rsi =  (np.exp(2 * rsi2) - 1) / (np.exp(2 * rsi2) + 1)
         dataframe['fisher_wr'] = (wr + fisher_rsi) / 2.0
 
-        '''
 
-        # RSI
-        dataframe['rsi'] = ta.RSI(dataframe, timeperiod=self.win_size)
-
-        # Williams %R
-        dataframe['wr'] = 0.02 * (self.williams_r(dataframe, period=self.win_size) + 50.0)
-
-        # Fisher RSI
-        rsi = 0.1 * (dataframe['rsi'] - 50)
-        dataframe['fisher_rsi'] = (np.exp(2 * rsi) - 1) / (np.exp(2 * rsi) + 1)
-
-        # Combined Fisher RSI and Williams %R
-        dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
-
-        # Bollinger Bands
-        bollinger = qtpylib.bollinger_bands(dataframe['close'], window=20, stds=2)
-        dataframe['bb_lowerband'] = bollinger['lower']
-        dataframe['bb_middleband'] = bollinger['mid']
-        dataframe['bb_upperband'] = bollinger['upper']
-        dataframe['bb_width'] = ((dataframe['bb_upperband'] - dataframe['bb_lowerband']) / dataframe['bb_middleband'])
-        dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
-        dataframe["bb_loss"] = ((dataframe["bb_lowerband"] - dataframe["close"]) / dataframe["close"])
-
-        # MACD
-        macd = ta.MACD(dataframe)
-        dataframe['macd'] = macd['macd']
-        dataframe['macdsignal'] = macd['macdsignal']
-        dataframe['macdhist'] = macd['macdhist']
-
-        '''
-        # moving averages
-        dataframe['sma'] = ta.SMA(dataframe, timeperiod=self.win_size)
-        dataframe['ema'] = ta.EMA(dataframe, timeperiod=self.win_size)
-        dataframe['tema'] = ta.TEMA(dataframe, timeperiod=self.win_size)
-
-        # Donchian Channels
-        dataframe['dc_upper'] = ta.MAX(dataframe['high'], timeperiod=self.win_size)
-        dataframe['dc_lower'] = ta.MIN(dataframe['low'], timeperiod=self.win_size)
-        dataframe['dc_mid'] = ta.TEMA(((dataframe['dc_upper'] + dataframe['dc_lower']) / 2), timeperiod=self.win_size)
-
-
-        # Keltner Channels (these can sometimes produce inf results)
-        keltner = qtpylib.keltner_channel(dataframe)
-        dataframe["kc_upper"] = keltner["upper"]
-        dataframe["kc_lower"] = keltner["lower"]
-        dataframe["kc_mid"] = keltner["mid"]
-
-        # Stochastic
-        period = 14
-        smoothD = 3
-        SmoothK = 3
-        stochrsi = (dataframe['rsi'] - dataframe['rsi'].rolling(period).min()) / (
-                dataframe['rsi'].rolling(period).max() - dataframe['rsi'].rolling(period).min())
-        dataframe['srsi_k'] = stochrsi.rolling(SmoothK).mean() * 100
-        dataframe['srsi_d'] = dataframe['srsi_k'].rolling(smoothD).mean()
-
-
-        '''
-
-        dataframe['model_gain'] = 0.0
+        dataframe['predicted_gain'] = 0.0
 
         # create and init the model, if first time (dataframe has to be populated first)
         if self.model is None:
@@ -335,9 +273,9 @@ class TS_Simple(IStrategy):
         return np.nan_to_num(y_smooth)
 
     def get_future_gain(self, dataframe):
-        future_gain = 100.0 * (dataframe['close'].shift(-self.lookahead) - dataframe['close']) / dataframe['close']
-        future_gain.fillna(0.0, inplace=True)
-        future_gain = np.array(future_gain)
+        fgain = 100.0 * (dataframe['close'].shift(-self.lookahead) - dataframe['close']) / dataframe['close']
+        fgain.fillna(0.0, inplace=True)
+        future_gain = np.array(fgain)
         future_gain = self.smooth(future_gain, 8)
         # print(f'future_gain:{future_gain}')
         return self.detrend_array(future_gain)
@@ -402,6 +340,9 @@ class TS_Simple(IStrategy):
         path = root_dir + "/" + model_name + ".sav"
         return path
     
+
+    #-------------
+
     def load_model(self, df_shape):
 
         model_path = self.get_model_path("")
@@ -455,17 +396,14 @@ class TS_Simple(IStrategy):
     #-------------
 
     def create_model(self, df_shape):
-        # self.model = SVR(kernel='rbf', C=1.0, epsilon=0.1)
-        # params = {'n_estimators': 100, 'max_depth': 4, 'min_samples_split': 2,
-        #           'learning_rate': 0.1, 'loss': 'squared_error'}
-        # self.model = GradientBoostingRegressor(**params)
-        params = {'n_estimators': 100, 'max_depth': 4, 'learning_rate': 0.1}
 
-        print("    creating XGBRegressor")
-        self.model = XGBRegressor(**params)
+        # params = {'n_estimators': 100, 'max_depth': 4, 'learning_rate': 0.1}
+        # self.model = XGBRegressor(**params)
 
-        # LGBMRegressor gives better/faster results, but has issues on some MacOS platforms. Hence, not using it any more
-        # self.model = LGBMRegressor(**params)
+        self.model = PassiveAggressiveRegressor(warm_start=True)
+        # self.model = SGDRegressor(loss='huber')
+
+        print(f"    creating new model using: {type(self.model)}")
 
         if self.model is None:
             print("***    ERR: create_model() - model was not created ***")
@@ -483,6 +421,8 @@ class TS_Simple(IStrategy):
         
         x = np.nan_to_num(data)
 
+        # train on the supplied data
+        
         # print('    Updating existing model')
         if isinstance(model, XGBRegressor):
             # print('    Updating xgb_model')
@@ -503,6 +443,16 @@ class TS_Simple(IStrategy):
 
     #-------------
 
+    def reduce_dataframe(self, dataframe):
+
+        df = self.convert_dataframe(dataframe) # normalised
+        # df = dataframe # not normalised
+        data = df[['gain', 'close']].to_numpy()
+        # data = df[['gain']].to_numpy()
+        return np.nan_to_num(data)
+
+    #-------------
+
     # single prediction (for use in rolling calculation)
     def predict(self, df) -> float:
 
@@ -515,6 +465,8 @@ class TS_Simple(IStrategy):
 
         return y_pred
 
+
+    #-------------
 
     # initial training of the model
     def init_model(self, dataframe: DataFrame):
@@ -532,13 +484,13 @@ class TS_Simple(IStrategy):
         if (not self.model_trained) or (self.new_model and self.combine_models):
             df = dataframe
 
-            data = np.array(self.convert_dataframe(df))
-            future_gain_data = self.get_future_gain(df)
+            gain_data = self.get_future_gain(df)
+            data = self.reduce_dataframe(df)
 
             # training_data = data[:-self.lookahead]
             # training_labels = gain_data[self.lookahead:]
             training_data = data.copy()
-            training_labels = future_gain_data.copy()
+            training_labels = gain_data.copy()
 
             if not self.model_trained:
                 print(f'    initial training ({self.curr_pair})')
@@ -556,41 +508,17 @@ class TS_Simple(IStrategy):
 
         return
     
+    #-------------
+
     # generate predictions for an np array (intended to be overriden if needed)
     def predict_data(self, data):
         x = np.nan_to_num(data)
         preds = self.model.predict(x)
-        preds = np.clip(preds, -5.0, 5.0)
+        preds = np.clip(preds, -3.0, 3.0)
         return preds
 
-    # get predictions for the entire dataframe
-    def get_predictions(self, dataframe: DataFrame):
 
-        # limit training to what we would see in a live environment, otherwise results are too good
-        live_buffer_size = 974
-        if dataframe.shape[0] > live_buffer_size:
-            df = dataframe.iloc[-live_buffer_size:]
-        else:
-            df = dataframe
-
-        model = self.custom_trade_info[self.curr_pair]
-
-        data = np.array(self.convert_dataframe(df))
-        future_gain_data = self.get_future_gain(df)
-        # gain_data = df['gain'].to_numpy()
-
-        self.training_data = data.copy()
-        self.training_labels = future_gain_data.copy()
-
-        if (not self.training_mode) and (self.supports_incremental_training):
-            self.train_model(model, self.training_data, self.training_labels, False)
-
-        # predictions = self.model.predict(data)
-        predictions = self.predict_data(data)
-        dataframe['predicted_gain'] = predictions
-        
-        return dataframe
-
+    #-------------
 
     # add predictions in a rolling fashion. Use this when future data is present (e.g. backtest)
     def add_rolling_predictions(self, dataframe: DataFrame):
@@ -603,23 +531,22 @@ class TS_Simple(IStrategy):
 
         # build the coefficient table and merge into the dataframe (outside the main loop)
 
-        data = np.array(self.convert_dataframe(dataframe))
-        future_gain_data = self.get_future_gain(dataframe)
-        gain_data = dataframe['gain'].to_numpy()
+        gain_data = self.get_future_gain(dataframe)
+        data = self.reduce_dataframe(dataframe)
 
         # set up training data
         self.training_data = data.copy()
-        self.training_labels = future_gain_data.copy()
+        self.training_labels = gain_data.copy()
+        # self.training_labels[:-self.lookahead] = gain_data[self.lookahead:]
+
+        # initialise the prediction array
+        pred_array = np.zeros(np.shape(gain_data), dtype=float)
 
 
-        # initialise the prediction array, using the close data
-        pred_array = gain_data.copy()
-
-
-        # if training withion loop, we need to use a buffer size at least 2x the DWT/DWT window size + lookahead
-        win_size = live_buffer_size
-        # win_size = 512
-        max_win_size = live_buffer_size 
+        # if training within loop, we need to use a buffer size at least 2x the  window size + lookahead
+        # win_size = live_buffer_size
+        win_size = 12
+        # max_win_size = live_buffer_size 
 
         start = 0
         end = start + win_size
@@ -631,14 +558,17 @@ class TS_Simple(IStrategy):
 
             start = end - win_size
             dslice = self.training_data[start:end].copy()
-            cslice = self.training_labels[start:end].copy()
+            tslice = self.training_labels[start:end].copy()
 
             # print(f"start:{start} end:{end} win_size:{win_size} dslice:{np.shape(dslice)}")
 
-            if (not self.training_mode) and (self.supports_incremental_training):
-                self.train_model(model, dslice, cslice, False)
-            # preds = self.model.predict(dslice)
             preds = self.predict_data(dslice)
+
+            if (not self.training_mode) and (self.supports_incremental_training):
+                if ( end % win_size) == 0:
+                    # print(f'    Retrain. end:{end}')
+                    self.train_model(model, dslice, tslice, False)
+
 
             if first_time:
                 pred_array[:win_size] = preds.copy()
@@ -650,9 +580,13 @@ class TS_Simple(IStrategy):
 
         dataframe['predicted_gain'] = pred_array.copy()
 
+        # add gain to dataframe for display purposes
+        dataframe['future_gain'] = gain_data.copy()
+
         return dataframe
 
 
+    #-------------
 
     # add predictions in a jumping fashion. This is a compromise - the rolling version is very slow
     # Note: you probably need to manually tune the parameters, since there is some limited lookahead here
@@ -665,19 +599,25 @@ class TS_Simple(IStrategy):
         # roll through the close data and predict for each step
         nrows = np.shape(df)[0]
 
-        data = np.array(self.convert_dataframe(dataframe))
-        future_gain_data = self.get_future_gain(dataframe)
-        gain_data = dataframe['gain'].to_numpy()
+
+        # build the coefficient table and merge into the dataframe (outside the main loop)
+
+
+        gain_data = self.get_future_gain(df)
+        data = self.reduce_dataframe(df)
 
         # set up training data
         self.training_data = data.copy()
-        self.training_labels = future_gain_data.copy()
+        self.training_labels = np.zeros(np.shape(gain_data), dtype=float)
+        # self.training_labels[:-self.lookahead] = gain_data[self.lookahead:].copy()
+        self.training_labels = gain_data.copy()
 
         # initialise the prediction array, using the close data
         pred_array = np.zeros(np.shape(gain_data), dtype=float)
 
         # win_size = 974
-        win_size = 128
+        # win_size = 128
+        win_size = self.lookahead
 
         # loop until we get to/past the end of the buffer
         # start = 0
@@ -693,6 +633,9 @@ class TS_Simple(IStrategy):
             # extract the data and coefficients from the current window
             start = end - win_size
             dslice = self.training_data[start:end].copy()
+
+            # run prediction
+            preds = self.predict_data(dslice)
 
             # get the training data. Use data prior to current prediction data, limited to live buffer size (so backtest resembles live modes)
 
@@ -713,7 +656,6 @@ class TS_Simple(IStrategy):
             if (not self.training_mode) and (self.supports_incremental_training):
                 self.train_model(model, train_data, train_results, False)
 
-            preds = self.predict_data(dslice)
 
             # copy the predictions for this window into the main predictions array
             pred_array[start:end] = preds.copy()
@@ -723,11 +665,11 @@ class TS_Simple(IStrategy):
 
         # make sure the last section gets processed (the loop above may not exactly fit the data)
         # Note that we cannot use the last section for training because we don't have forward looking data
-        dslice = self.training_data[-(win_size+self.lookahead):-self.lookahead]
-        cslice = self.training_labels[-(win_size+self.lookahead):-self.lookahead]
+        dslice = self.training_data[-(win_size+self.lookahead):-self.lookahead].copy()
+        tslice = self.training_labels[-(win_size+self.lookahead):-self.lookahead].copy()
 
         if (not self.training_mode) and (self.supports_incremental_training):
-            self.train_model(model, dslice, cslice, False)
+            self.train_model(model, dslice, tslice, False)
 
         # predict for last window
         dslice = data[-win_size:].copy()
@@ -743,6 +685,8 @@ class TS_Simple(IStrategy):
         return dataframe
 
     
+    #-------------
+
     # add predictions to dataframe['predicted_gain']
     def add_predictions(self, dataframe: DataFrame) -> DataFrame:
 
@@ -770,8 +714,8 @@ class TS_Simple(IStrategy):
             dataframe['predicted_gain'] = 0.0
         else:
             print(f'    backtesting {self.curr_pair}')
-            dataframe = self.add_jumping_predictions(dataframe)
-            # dataframe = self.add_rolling_predictions(dataframe)
+            # dataframe = self.add_jumping_predictions(dataframe)
+            dataframe = self.add_rolling_predictions(dataframe)
 
 
         if run_profiler:
@@ -795,7 +739,7 @@ class TS_Simple(IStrategy):
 
         if self.enable_guards.value:
             # Fisher/Williams in oversold region
-            conditions.append(dataframe['fisher_wr'] < 0.0)
+            conditions.append(dataframe['fisher_wr'] < 0.5)
 
             # some trading volume
             conditions.append(dataframe['volume'] > 0)
@@ -809,10 +753,7 @@ class TS_Simple(IStrategy):
         model_cond = (
             (
                 # model predicts a rise above the entry threshold
-                (dataframe['predicted_gain'] >= self.entry_model_gain.value) &
-
-                # Fisher/Williams in oversold region
-                (dataframe['fisher_wr'] < -0.5)
+                (dataframe['predicted_gain'] >= self.entry_model_gain.value) 
             )
             |
             # (
@@ -902,7 +843,7 @@ class TS_Simple(IStrategy):
 
         if self.enable_guards.value:
             # Fisher/Williams in overbought region
-            conditions.append(dataframe['fisher_wr'] > 0.0)
+            conditions.append(dataframe['fisher_wr'] > 0.5)
 
             # some trading volume
             conditions.append(dataframe['volume'] > 0)

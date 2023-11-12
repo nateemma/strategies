@@ -23,6 +23,7 @@ import os
 import joblib
 group_dir = str(Path(__file__).parent)
 strat_dir = str(Path(__file__).parent.parent)
+sys.path.append(str(Path(__file__)))
 sys.path.append(strat_dir)
 sys.path.append(group_dir)
 
@@ -33,7 +34,8 @@ log = logging.getLogger(__name__)
 # log.setLevel(logging.DEBUG)
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
-from lightgbm.sklearn import LGBMRegressor
+from sklearn.experimental import enable_hist_gradient_boosting
+from sklearn.ensemble import HistGradientBoostingRegressor
 from utils.DataframeUtils import DataframeUtils
 
 
@@ -41,13 +43,13 @@ from TS_Simple import TS_Simple
 
 """
 ####################################################################################
-TS_Simple_LGBM - subclass of TS_Simple that uses a Light GBM model
+TS_Simple_HGB - subclass of TS_Simple that uses a Histogram Gradient Boosting model
 
 ####################################################################################
 """
 
 
-class TS_Simple_LGBM(TS_Simple):
+class TS_Simple_HGB(TS_Simple):
 
     seq_len = 6
     num_features= 0
@@ -63,30 +65,12 @@ class TS_Simple_LGBM(TS_Simple):
 
     def create_model(self, df_shape):
 
-        print("    creating LGBMRegressor")
-        # LGBMRegressor gives better/faster results, but has issues on some MacOS platforms. 
-
-        params = {'n_estimators': 100, 'max_depth': 4, 'learning_rate': 0.1, 
-                  'keep_training_booster': True, 'verbose': -1}
-        self.model = LGBMRegressor(**params)
+        print("    creating HistGradientBoostingRegressor")
+        self.model = HistGradientBoostingRegressor(warm_start=True)
         
         return
     
 
-    def train_model(self, model, data: np.array, train: np.array, save_model):
-
-        if self.model is None:
-            print("***    ERR: no model ***")
-            return
-        
-        # train on the supplied data
-        if self.new_model and (not self.model_trained):
-            self.model = self.model.fit(data, train)
-        else:
-            self.model = self.model.fit(data, train, init_model=self.model)
-
-        return
-    
     #-------------
 
 

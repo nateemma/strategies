@@ -1,5 +1,5 @@
 {
-  "strategy_name": "TS_Simple_SGD",
+  "strategy_name": "TS_Simple_LR",
   "params": {
     "roi": {
       "0": 0.06
@@ -17,21 +17,21 @@
       "max_open_trades": 10
     },
     "buy": {
-      "entry_model_gain": 0.5
+      "entry_model_gain": 0.25
     },
     "sell": {
       "enable_guards": false,
       "enable_exit_signal": true,
-      "exit_model_gain": -0.5,
-      "loss_threshold": -0.048,
-      "profit_threshold": 0.045,
-      "tstop_ratio": 0.98,
-      "tstop_start": 0.052,
-      "use_loss_threshold": false,
+      "exit_model_gain": -0.2,
+      "loss_threshold": -0.047,
+      "profit_threshold": 0.022,
+      "tstop_ratio": 0.96,
+      "tstop_start": 0.047,
+      "use_loss_threshold": true,
       "use_profit_threshold": true
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2023-11-10 15:13:37.577845+00:00"
+  "export_time": "2023-10-14 16:04:44.172639+00:00"
 }

@@ -64,7 +64,7 @@ class TS_Simple_SGD(TS_Simple):
     def create_model(self, df_shape):
 
         print("    creating SGDRegressor")
-        self.model = SGDRegressor(loss='huber')
+        self.model = SGDRegressor(loss='huber', shuffle=False)
         
         return
     

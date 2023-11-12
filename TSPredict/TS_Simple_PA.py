@@ -64,7 +64,7 @@ class TS_Simple_PA(TS_Simple):
     def create_model(self, df_shape):
 
         print("    creating PassiveAggressiveRegressor")
-        self.model = PassiveAggressiveRegressor()
+        self.model = PassiveAggressiveRegressor(warm_start=True)
         
         return
     

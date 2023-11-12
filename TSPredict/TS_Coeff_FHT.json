@@ -1,5 +1,5 @@
 {
-  "strategy_name": "TS_Simple_SGD",
+  "strategy_name": "TS_Coeff_FHT",
   "params": {
     "roi": {
       "0": 0.06
@@ -20,18 +20,18 @@
       "entry_model_gain": 0.5
     },
     "sell": {
-      "enable_guards": false,
-      "enable_exit_signal": true,
-      "exit_model_gain": -0.5,
-      "loss_threshold": -0.048,
-      "profit_threshold": 0.045,
-      "tstop_ratio": 0.98,
-      "tstop_start": 0.052,
+      "enable_exit_signal": false,
+      "enable_guards": true,
+      "exit_model_gain": -0.7,
+      "loss_threshold": -0.007,
+      "profit_threshold": 0.016,
+      "tstop_ratio": 0.938,
+      "tstop_start": 0.054,
       "use_loss_threshold": false,
       "use_profit_threshold": true
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2023-11-10 15:13:37.577845+00:00"
+  "export_time": "2023-11-11 17:00:15.413122+00:00"
 }
