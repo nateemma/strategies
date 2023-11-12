@@ -1,0 +1,26 @@
+{
+  "strategy_name": "NNPredict_LSTM0",
+  "params": {
+    "roi": {
+      "0": 0.006
+    },
+    "stoploss": {
+      "stoploss": -0.05
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "buy": {
+      "entry_threshold": 1.0
+    },
+    "sell": {
+      "exit_threshold": -0.3
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2023-01-21 02:23:31.454421+00:00"
+}

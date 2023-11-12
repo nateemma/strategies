@@ -14,25 +14,10 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "entry_threshold": 0.05
+      "entry_threshold": 0.02
     },
     "sell": {
-      "cexit_endtrend_respect_roi": false,
-      "cexit_pullback": true,
-      "cexit_pullback_amount": 0.015,
-      "cexit_pullback_respect_roi": false,
-      "cexit_roi_end": 0.003,
-      "cexit_roi_start": 0.018,
-      "cexit_roi_time": 1088,
-      "cexit_roi_type": "static",
-      "cexit_trend_type": "none",
-      "cstop_bail_how": "roc",
-      "cstop_bail_roc": -4.663,
-      "cstop_bail_time": 1101,
-      "cstop_bail_time_trend": false,
-      "cstop_loss_threshold": -0.041,
-      "cstop_max_stoploss": -0.222,
-      "exit_threshold": -0.1
+      "exit_threshold": -0.02
     },
     "protection": {}
   },

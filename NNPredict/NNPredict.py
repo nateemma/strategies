@@ -99,8 +99,8 @@ class NNPredict(IStrategy):
         },
         'subplots': {
             "Diff": {
-                'predict': {'color': 'lightpink'},
-                '%future_gain': {'color': 'blue'},
+                'predict': {'color': 'blue'},
+                '%future_gain': {'color': 'orange'},
                 'fisher_wr': {'color': 'teal'},
             },
         }
@@ -347,10 +347,13 @@ class NNPredict(IStrategy):
         # if in training mode then skip further processing.
         # Doesn't make sense without the model anyway, and it can sometimes be very slow
 
+
+        # print(f"    Training (only) mode: {self.training_only}")
+
         if self.training_only:
             print("    Training mode. Skipping backtesting and prediction steps")
-            print("        freqtrade backtest results will show no trades")
-            print("        set training_only=False to re-enable full backtesting")
+            # print("        freqtrade backtest results will show no trades")
+            # print("        set training_only=False to re-enable full backtesting")
 
         else:
             # if first time through, run backtest
@@ -359,11 +362,11 @@ class NNPredict(IStrategy):
                 # print("    running backtest...")
                 # dataframe = self.backtest_data(dataframe)
 
-        # add predictions
-        if self.dbg_verbose:
-            print("    running predictions...")
+            # add predictions
+            if self.dbg_verbose:
+                print("    running predictions...")
 
-        dataframe = self.add_predictions(dataframe, self.curr_pair)
+            dataframe = self.add_predictions(dataframe, self.curr_pair)
 
         # # Custom Stoploss
         # if self.dbg_verbose:
@@ -492,6 +495,9 @@ class NNPredict(IStrategy):
 
         future_gain = 100.0 * (dataframe[self.target_column].shift(-self.curr_lookahead) - dataframe[self.target_column]) / \
                             dataframe[self.target_column]
+
+        dataframe['%future_gain'] = self.smooth(future_gain, self.curr_lookahead)
+        dataframe['%future_gain'].fillna(0.0, inplace=True)
         dataframe['%future_gain'] = np.nan_to_num(future_gain)
         # target = self.norm_array(dataframe[self.target_column].to_numpy())
         # target_col = '%future_gain'
@@ -582,7 +588,14 @@ class NNPredict(IStrategy):
 
         if self.dbg_test_classifier:
             self.curr_classifier.evaluate(test_data, test_results)
-                
+        
+        # If a new model, set training mode
+        # print(f'    New model: {self.curr_classifier.new_model_created()}')
+        if self.curr_classifier.new_model_created():
+            if not self.training_only:
+                print('    Switching to Training mode (no backtest)')
+            self.training_only = True
+
         return dataframe
 
     ################################
@@ -626,7 +639,13 @@ class NNPredict(IStrategy):
         else:
             return arr
     
-        
+    # fast curve smoothing utility
+    def smooth(self, y, window):
+        box = np.ones(window)/window
+        y_smooth = np.convolve(y, box, mode='same')
+        y_smooth = np.round(y_smooth, decimals=3) #Hack: constrain to 3 decimal places (should be elsewhere, but convenient here)
+        return y_smooth
+    
     ################################
 
     # backtest the data and update the dataframe
@@ -981,6 +1000,7 @@ class NNPredict(IStrategy):
         dataframe = self.add_model_predictions(dataframe)
         dataframe = self.update_predictions(dataframe)
         # dataframe['predict_smooth'] = dataframe['predict'].rolling(window=win_size).apply(self.roll_strong_smooth)
+        dataframe['predict'] = dataframe['predict'].clip(lower=-5.0, upper=5.0)
 
         return dataframe
 
@@ -1112,6 +1132,7 @@ class NNPredict(IStrategy):
 
         # if we are training a new model, just return (this helps avoid runtime errors)
         if self.training_only:
+            dataframe['enter_long'] = 0
             return dataframe
 
         # conditions.append(dataframe['volume'] > 0)
@@ -1120,19 +1141,31 @@ class NNPredict(IStrategy):
         conditions.append(dataframe['volume'] > 0)
 
         # loose guard
-        conditions.append(dataframe['mfi'] < 50.0)
+        # conditions.append(dataframe['mfi'] < 50.0)
 
         # Fisher/Williams in buy region
-        conditions.append(dataframe['fisher_wr'] <= -0.5)
+        # conditions.append(dataframe['fisher_wr'] < -0.5)
+        conditions.append(dataframe['fisher_wr'] < 0.0)
 
-        # Classifier triggers
+        # # Strong Fisher/Williams buy
+        # fwr_cond = (
+        #     (dataframe['fisher_wr'] < -0.98)
+        # )
+
+        # Model triggers
         predict_cond = (
-            (dataframe['predict'] >= self.entry_threshold.value) &
-            (dataframe['predict'] < 5.0)
+            (
+                (dataframe['predict'] >= self.entry_threshold.value) 
+            )
+            # |
+            # (
+            #     (dataframe['fisher_wr'] < -0.98)
+            # )
         )
         conditions.append(predict_cond)
 
         # set entry tags
+        # dataframe.loc[fwr_cond, 'enter_tag'] += 'fwr_entry '
         dataframe.loc[predict_cond, 'enter_tag'] += 'predict_entry '
 
         if conditions:
@@ -1171,18 +1204,18 @@ class NNPredict(IStrategy):
             dataframe['exit_long'] = 0
             return dataframe
 
-        # conditions.append(dataframe['volume'] > 0)
+        conditions.append(dataframe['volume'] > 0)
 
         # loose guard
-        conditions.append(dataframe['mfi'] > 50.0)
+        # conditions.append(dataframe['mfi'] > 50.0)
 
         # Fisher/Williams in sell region
-        conditions.append(dataframe['fisher_wr'] >= 0.5)
+        # conditions.append(dataframe['fisher_wr'] > 0.5)
+        conditions.append(dataframe['fisher_wr'] > 0.0)
 
         # Classifier triggers
         predict_cond = (
-            (dataframe['predict'] <= self.exit_threshold.value) &
-            (dataframe['predict'] > -5.0)
+            (dataframe['predict'] <= self.exit_threshold.value)
         )
 
         conditions.append(predict_cond)
@@ -1234,20 +1267,26 @@ class NNPredict(IStrategy):
         # trade_dur = int((current_time.timestamp() - trade.open_date_utc.timestamp()) // 60)
         # max_profit = max(0, trade.calc_profit_ratio(trade.max_rate))
 
-        # Mod: just take the profit:
+
+
+        # strong sell signal, in profit
+        if (current_profit > 0) and (last_candle['fisher_wr'] > 0.96):
+            return 'fwr_overbought'
+
         # Above 1%, sell if Fisher/Williams in sell range
         if current_profit > 0.01:
             if last_candle['fisher_wr'] > 0.8:
                 return 'take_profit'
 
-        # Mod: strong sell signal, in profit
-        if (current_profit > 0) and (last_candle['fisher_wr'] > 0.93):
-            return 'fwr_high'
-
         # Mod: Sell any positions at a loss if they are held for more than 'N' days.
-        # if (current_profit < 0.0) and (current_time - trade.open_date_utc).days >= 7:
+
+        # Sell any positions if open for >= 1 day with any level of profit
+        if ((current_time - trade.open_date_utc).days >= 1) & (current_profit > 0):
+            return 'unclog_1'
+        
+        # Sell any positions at a loss if they are held for more than 7 days.
         if (current_time - trade.open_date_utc).days >= 7:
-            return 'unclog'
+            return 'unclog_7'
 
         # check profit against threshold. This sort of emulates the freqtrade roi approach, but is much simpler
         if self.use_profit_threshold.value:

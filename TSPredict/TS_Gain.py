@@ -253,6 +253,8 @@ class TS_Gain(IStrategy):
         # print("    Making predictions...")
         dataframe = self.add_predictions(dataframe)
 
+        dataframe.fillna(0.0, inplace=True)
+        
         return dataframe
 
 

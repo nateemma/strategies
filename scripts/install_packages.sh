@@ -27,7 +27,7 @@ prompt_user () {
 
 # install generally used packages
 pkg_general=("finta" "prettytable" "PyWavelets" "simdkalman" "pykalman" "scipy" "scikit-learn" \
-"ast_comments" "rich" "xgboost" "lightgbm" "river")
+"ast_comments" "rich" "xgboost" "lightgbm" )
 
 if [[ $(prompt_user "Install general packages?: ") -eq 1 ]]; then
   echo ""

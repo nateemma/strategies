@@ -96,6 +96,7 @@ class NNPredict_Multihead(NNPredict):
 
     refit_model = False # set to True if you want to re-train the model. Usually better to just delete it and restart
     training_only = False
+    combine_models = False
 
 
     ###################################

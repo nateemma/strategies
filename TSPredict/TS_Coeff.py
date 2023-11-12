@@ -973,6 +973,7 @@ class TS_Coeff(IStrategy):
                 print(f'    backtesting {self.curr_pair}')
                 dataframe = self.add_jumping_predictions(dataframe)
                 # dataframe = self.add_rolling_predictions(dataframe)
+                self.custom_trade_info[self.curr_pair]['initialised'] = True
             else:
                 print(f'    updating latest prediction for: {self.curr_pair}')
                 dataframe = self.add_latest_prediction(dataframe)

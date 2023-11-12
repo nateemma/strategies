@@ -74,12 +74,15 @@ class NNPredictor_LSTM(ClassifierKerasLinear):
         x = tf.keras.layers.Dropout(0.1)(x)
         x = tf.keras.layers.BatchNormalization()(x)
 
-        # remplace sequence column with the average value
-        x = tf.keras.layers.GlobalAveragePooling1D()(x)
+        # bring down to 1 number
+        x = tf.keras.layers.LSTM(1, activation='tanh')(x)
+
+        # replace sequence column with the average value
+        # x = tf.keras.layers.GlobalAveragePooling1D()(x)
 
         # intermediate layer to bring the dimensions
-        x = tf.keras.layers.Dense(16)(x)
-        x = tf.keras.layers.Dropout(0.1)(x)
+        # x = tf.keras.layers.Dense(16)(x)
+        # x = tf.keras.layers.Dropout(0.1)(x)
 
         # last layer is a linear (float) value - do not change
         outputs = tf.keras.layers.Dense(1, activation="linear")(x)

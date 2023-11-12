@@ -82,8 +82,8 @@ class NNPredict_MLP(NNPredict):
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
-    # lookahead_hours = 1.0
-    lookahead_hours = 0.4
+    lookahead_hours = 1.0
+    # lookahead_hours = 0.4
     n_profit_stddevs = 0.0
     n_loss_stddevs = 0.0
     min_f1_score = 0.70
@@ -91,11 +91,14 @@ class NNPredict_MLP(NNPredict):
 
     curr_lookahead = int(12 * lookahead_hours)
 
+    seq_len = 1 # MLP does not handle seq_len>1 very well
+
     curr_pair = ""
     custom_trade_info = {}
 
     refit_model = False
     training_only = False
+    combine_models = False
 
     ###################################
 

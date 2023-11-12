@@ -107,6 +107,7 @@ class NNPredict_Attention(NNPredict):
     custom_trade_info = {}
 
     refit_model = False
+    combine_models = False
 
     ###################################
 

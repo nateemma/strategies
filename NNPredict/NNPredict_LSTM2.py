@@ -96,6 +96,7 @@ class NNPredict_LSTM2(NNPredict):
 
     refit_model = False
     training_only = False
+    combine_models = False
 
     ###################################
 

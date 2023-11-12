@@ -17,25 +17,10 @@
       "max_open_trades": 10
     },
     "buy": {
-      "entry_threshold": 0.3
+      "entry_threshold": 0.25
     },
     "sell": {
-      "cexit_endtrend_respect_roi": true,
-      "cexit_pullback": false,
-      "cexit_pullback_amount": 0.021,
-      "cexit_pullback_respect_roi": false,
-      "cexit_roi_end": 0.0,
-      "cexit_roi_start": 0.047,
-      "cexit_roi_time": 938,
-      "cexit_roi_type": "static",
-      "cexit_trend_type": "candle",
-      "cstop_bail_how": "none",
-      "cstop_bail_roc": -4.01,
-      "cstop_bail_time": 1406,
-      "cstop_bail_time_trend": false,
-      "cstop_loss_threshold": -0.047,
-      "cstop_max_stoploss": -0.252,
-      "exit_threshold": -0.3
+      "exit_threshold": -0.25
     },
     "protection": {}
   },
