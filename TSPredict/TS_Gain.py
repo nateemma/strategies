@@ -33,7 +33,7 @@ from pandas import DataFrame, Series
 
 
 # from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.preprocessing import RobustScaler
+from sklearn.preprocessing import StandardScaler
 
 
 # import freqtrade.vendor.qtpylib.indicators as qtpylib
@@ -138,7 +138,7 @@ class TS_Gain(IStrategy):
     # model_window = startup_candle_count
     model_window = 128
 
-    lookahead = 12
+    lookahead = 6
 
     training_data = None
     training_labels = None
@@ -152,7 +152,7 @@ class TS_Gain(IStrategy):
     norm_data = False
 
     dataframeUtils = None
-    scaler = RobustScaler()
+    scaler = StandardScaler()
     model = None
 
     curr_dataframe: DataFrame = None
@@ -184,7 +184,7 @@ class TS_Gain(IStrategy):
     enable_exit_signal = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
 
     # enable entry/exit guards (safer vs profit)
-    enable_guards = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=False)
+    enable_guards = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
 
 
     ###################################
@@ -254,7 +254,7 @@ class TS_Gain(IStrategy):
         dataframe = self.add_predictions(dataframe)
 
         dataframe.fillna(0.0, inplace=True)
-        
+
         return dataframe
 
 
@@ -277,7 +277,7 @@ class TS_Gain(IStrategy):
     def get_future_gain(self, dataframe):
         fgain = 100.0 * (dataframe['close'].shift(-self.lookahead) - dataframe['close']) / dataframe['close']
         fgain.fillna(0.0, inplace=True)
-        future_gain = np.array(fgain)
+        future_gain = np.nan_to_num(np.array(fgain))
         future_gain = self.smooth(future_gain, 8)
         # print(f'future_gain:{future_gain}')
         return self.detrend_array(future_gain)
@@ -402,8 +402,8 @@ class TS_Gain(IStrategy):
         # params = {'n_estimators': 100, 'max_depth': 4, 'learning_rate': 0.1}
         # self.model = XGBRegressor(**params)
 
-        self.model = PassiveAggressiveRegressor(warm_start=True)
-        # self.model = SGDRegressor(loss='huber')
+        # self.model = PassiveAggressiveRegressor(warm_start=True)
+        self.model = SGDRegressor(loss='huber')
 
         print(f"    creating new model using: {type(self.model)}")
 
@@ -449,8 +449,8 @@ class TS_Gain(IStrategy):
 
         df = self.convert_dataframe(dataframe) # normalised
         # df = dataframe # not normalised
-        data = df[['gain', 'close']].to_numpy()
-        # data = df[['gain']].to_numpy()
+        # data = df[['gain', 'volume']].to_numpy()
+        data = df[['gain']].to_numpy()
         return np.nan_to_num(data)
 
     #-------------
@@ -458,7 +458,8 @@ class TS_Gain(IStrategy):
     # single prediction (for use in rolling calculation)
     def predict(self, df) -> float:
 
-        data = np.array(self.convert_dataframe(df))
+        # data = np.array(self.convert_dataframe(df))
+        data = self.reduce_dataframe(df)
 
         x = np.nan_to_num(data)
 
@@ -585,6 +586,8 @@ class TS_Gain(IStrategy):
         # add gain to dataframe for display purposes
         dataframe['future_gain'] = gain_data.copy()
 
+        self.custom_trade_info[self.curr_pair] = self.model
+
         return dataframe
 
 
@@ -684,6 +687,9 @@ class TS_Gain(IStrategy):
         # add gain to dataframe for display purposes
         dataframe['future_gain'] = gain_data.copy()
 
+
+        self.custom_trade_info[self.curr_pair] = self.model
+        
         return dataframe
 
     
@@ -700,7 +706,7 @@ class TS_Gain(IStrategy):
             prof = cProfile.Profile()
             prof.enable()
 
-        self.scaler = RobustScaler() # reset scaler each time
+        self.scaler = StandardScaler() # reset scaler each time
 
         self.init_model(dataframe)
 

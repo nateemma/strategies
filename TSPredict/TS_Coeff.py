@@ -18,7 +18,7 @@ TS_Coeff - base class for 'simple' time series prediction
 ####################################################################################
 """
 
-#pragma pylint: disable=W0105, C0103, C0114, C0115, C0116, C0301, C0325, W1203
+#pragma pylint: disable=W0105, C0103, C0114, C0115, C0116, C0301, C0303, C0325, W1203
 
 from datetime import datetime
 from functools import reduce
@@ -51,6 +51,8 @@ from pathlib import Path
 
 import os
 import joblib
+import copy
+
 group_dir = str(Path(__file__).parent)
 strat_dir = str(Path(__file__).parent.parent)
 sys.path.append(strat_dir)
@@ -91,7 +93,7 @@ class TS_Coeff(IStrategy):
             "Diff": {
                 'predicted_gain': {'color': 'red'},
                 'future_gain': {'color': 'lightsalmon'},
-                'fisher_wr': {'color': 'lightblue'}
+                'gain': {'color': 'lightblue'}
             },
         }
     }
@@ -143,6 +145,7 @@ class TS_Coeff(IStrategy):
 
     df_coeffs: DataFrame = None
     coeff_table = None
+    coeff_array = None
 
     training_data = None
     training_labels = None
@@ -153,12 +156,14 @@ class TS_Coeff(IStrategy):
     model_trained = False
     new_model = False
 
-    norm_data = False
-    retrain_period = 16
+    norm_data = True
+    # retrain_period = 12 # number of candles before retrining
+    retrain_period = 2 # for testing only!
 
     dataframeUtils = None
     scaler = RobustScaler()
     model = None
+    base_model = None
 
     curr_dataframe: DataFrame = None
 
@@ -338,6 +343,7 @@ class TS_Coeff(IStrategy):
 
     def convert_dataframe(self, dataframe: DataFrame) -> DataFrame:
         df = dataframe.copy()
+
         # convert date column so that it can be scaled.
         if 'date' in df.columns:
             dates = pd.to_datetime(df['date'], utc=True)
@@ -348,9 +354,10 @@ class TS_Coeff(IStrategy):
         df.set_index('date')
         df.reindex()
 
-        # scale the dataframe
-        self.scaler.fit(df)
-        df = pd.DataFrame(self.scaler.transform(df), columns=df.columns)
+        if self.norm_data:
+            # scale the dataframe
+            self.scaler.fit(df)
+            df = pd.DataFrame(self.scaler.transform(df), columns=df.columns)
 
         return df
 
@@ -364,14 +371,17 @@ class TS_Coeff(IStrategy):
         return np.mean(np.absolute(d - np.mean(d, axis)), axis)
 
     def detrend_array(self, a):
-            if self.norm_data:
-                # de-trend the data
-                w_mean = a.mean()
-                w_std = a.std()
-                a_notrend = (a - w_mean) / w_std
-                return a_notrend
-            else:
-                return a
+        '''
+        if self.norm_data:
+            # de-trend the data
+            w_mean = a.mean()
+            w_std = a.std()
+            a_notrend = (a - w_mean) / w_std
+            return a_notrend
+        else:
+            return a
+        '''
+        return a
 
     def dwtModel(self, data):
 
@@ -407,22 +417,22 @@ class TS_Coeff(IStrategy):
 
     def get_dwt(self, col):
 
-            a = np.array(col)
+        a = np.array(col)
 
-            # # de-trend the data
-            # w_mean = a.mean()
-            # w_std = a.std()
-            # a_notrend = (a - w_mean) / w_std
+        # # de-trend the data
+        # w_mean = a.mean()
+        # w_std = a.std()
+        # a_notrend = (a - w_mean) / w_std
 
-            # # get DWT model of data
-            # restored_sig = self.dwtModel(a_notrend)
+        # # get DWT model of data
+        # restored_sig = self.dwtModel(a_notrend)
 
-            # # re-trend
-            # dwt_model = (restored_sig * w_std) + w_mean
+        # # re-trend
+        # dwt_model = (restored_sig * w_std) + w_mean
 
-            dwt_model = self.dwtModel(a)
+        dwt_model = self.dwtModel(a)
 
-            return dwt_model
+        return dwt_model
 
 
     ###################################
@@ -554,6 +564,8 @@ class TS_Coeff(IStrategy):
 
         return
 
+    #-------------
+
     # merge the supplied dataframe with the coefficient table. Number of rows must match
     def merge_coeff_table(self, dataframe: DataFrame):
 
@@ -643,9 +655,9 @@ class TS_Coeff(IStrategy):
 
         # if supporting incremental training, try to set the warm_start attribute
         if self.supports_incremental_training:
-             # check that attribute exists
-             if hasattr(self.model, 'warm_start'):
-                 self.model.warm_start = True
+            # check that attribute exists
+            if hasattr(self.model, 'warm_start'):
+                self.model.warm_start = True
 
         if self.model is None:
             print("***    ERR: model was not created properly ***")
@@ -724,6 +736,8 @@ class TS_Coeff(IStrategy):
         return y_pred
 
 
+    #-------------
+    
     # initial training of the model
     def init_model(self, dataframe: DataFrame):
         # if not self.training_mode:
@@ -771,14 +785,18 @@ class TS_Coeff(IStrategy):
 
         return
     
+    #-------------
+    
     # generate predictions for an np array (intended to be overriden if needed)
-    def predict_data(self, data):
+    def predict_data(self, model, data):
         x = np.nan_to_num(data)
-        preds = self.model.predict(x)
+        preds = model.predict(x)
         preds = np.clip(preds, -5.0, 5.0)
         return preds
 
 
+    #-------------
+    
     # add predictions in a jumping fashion. This is a compromise - the rolling version is very slow
     # Note: you probably need to manually tune the parameters, since there is some limited lookahead here
     def add_jumping_predictions(self, dataframe: DataFrame) -> DataFrame:
@@ -817,7 +835,7 @@ class TS_Coeff(IStrategy):
         end = start + win_size
         train_start = 0
 
-        model = self.custom_trade_info[self.curr_pair]['model']
+        base_model = copy.deepcopy(self.model) # make a deep copy so that we don't override the baseline model
 
         while end < nrows:
 
@@ -840,12 +858,13 @@ class TS_Coeff(IStrategy):
             if (not self.training_mode) and (self.supports_incremental_training):
                 train_data = self.training_data[train_start:start-1].copy()
                 train_results = self.training_labels[train_start:start-1].copy()
-                self.train_model(model, train_data, train_results, False)
+                base_model = copy.deepcopy(self.model)
+                self.train_model(base_model, train_data, train_results, False)
 
 
             # rebuild data up to end of current window
             dslice = self.training_data[start:end].copy()
-            preds = self.predict_data(dslice)
+            preds = self.predict_data(base_model, dslice)
 
             # copy the predictions for this window into the main predictions array
             pred_array[start:end] = preds.copy()
@@ -856,15 +875,17 @@ class TS_Coeff(IStrategy):
         # make sure the last section gets processed (the loop above may not exactly fit the data)
         # Note that we cannot use the last section for training because we don't have forward looking data
 
+        '''
         if (not self.training_mode) and (self.supports_incremental_training):
             dslice = self.training_data[-(win_size+self.lookahead):-self.lookahead]
             cslice = self.training_labels[-(win_size+self.lookahead):-self.lookahead]
-            self.train_model(model, dslice, cslice, False)
+            self.train_model(base_model, dslice, cslice, False)
+        '''
 
         # predict for last window
         dslice = self.training_data[-win_size:]
         # preds = self.model.predict(dslice)
-        preds = self.predict_data(dslice)
+        preds = self.predict_data(base_model, dslice)
         pred_array[-win_size:] = preds.copy()
 
         dataframe['predicted_gain'] = pred_array.copy()
@@ -872,24 +893,22 @@ class TS_Coeff(IStrategy):
         # add gain to dataframe for display purposes
         dataframe['future_gain'] = future_gain_data.copy()
 
-        # update pair-specific model
-        self.custom_trade_info[self.curr_pair]['model'] = model
+        # # update pair-specific model
+        # self.custom_trade_info[self.curr_pair]['model'] = model
+
+        # # restore model
+        # self.model = copy.deepcopy(base_model)
 
         return dataframe
 
+    #-------------
+    
     # add the latest prediction, and update training periodically
     def add_latest_prediction(self, dataframe: DataFrame) -> DataFrame:
 
         # limit training to what we would see in a live environment, otherwise results are too good
         live_buffer_size = 974
         df = dataframe
-
-        # roll through the close data and predict for each step
-        nrows = np.shape(df)[0]
-
-
-        # build the coefficient table and merge into the dataframe (OK outside the main loop since it's built incrementally anyway)
-
 
         # set up training data
         #TODO: see if we can do this incrementally instead of rebuilding every time, or just use portion of data
@@ -900,29 +919,53 @@ class TS_Coeff(IStrategy):
         self.training_data = self.merge_coeff_table(df_norm)
         self.training_labels = future_gain_data.copy()
 
-        # initialise the prediction array
+
+        # TODO: only save fixed length of predictions (original size)
+
+        # initialise the prediction array using saved/historical data (don't recalculte because model is now different)
         pred_array = np.zeros(np.shape(future_gain_data), dtype=float)
-        pred_array[:-1] = self.custom_trade_info[self.curr_pair]['predictions'][1:]
+        plen = len(self.custom_trade_info[self.curr_pair]['predictions'])
+        dlen = len(pred_array)
+        # print(f"[predictions]:{np.shape(self.custom_trade_info[self.curr_pair]['predictions'])}  pred_array:{np.shape(pred_array)}")
 
+        pred_array[:plen] = self.custom_trade_info[self.curr_pair]['predictions'].copy()
+
+
+        '''
         # win_size = 974
-        win_size = 128
-
-        start = win_size
-
+        # win_size = 128
+        win_size = plen
 
         model = self.custom_trade_info[self.curr_pair]['model']
-
 
         # predict for last window
         dslice = self.training_data[-win_size:].copy()
         preds = self.predict_data(dslice)
 
+        '''
+
+        # cannot use last portion because we are looking ahead
+        dslice = self.training_data[:-self.lookahead]
+        tslice = self.training_labels[:-self.lookahead]
+
+        # retrain base model and get predictions
+        base_model = copy.deepcopy(self.model)
+        self.train_model(base_model, dslice, tslice, False)
+        preds = self.predict_data(base_model, self.training_data)
+
+        # self.model = copy.deepcopy(base_model) # restore original model
+
+        # only replace last prediction (i.e. don't overwrite the historical predictions)
         pred_array[-1] = preds[-1]
-        dataframe['predicted_gain'][-1] = pred_array.copy()
+        print(f'    {self.curr_pair}: predict {preds[-1]:.2f}% gain')
+
+        dataframe['predicted_gain'] = pred_array.copy()
+        self.custom_trade_info[self.curr_pair]['predictions'] = pred_array.copy()
 
         # add gain to dataframe for display purposes
         dataframe['future_gain'] = future_gain_data.copy()
 
+        '''
         # update pair-specific model
         self.custom_trade_info[self.curr_pair]['model'] = model
 
@@ -932,14 +975,19 @@ class TS_Coeff(IStrategy):
         if count <= 0:
             self.custom_trade_info[self.curr_pair]['count'] = self.retrain_period
 
-            tslice = self.training_labels[-win_size:].copy()
             if (not self.training_mode) and (self.supports_incremental_training):
+                print(f'    Re-training for: {self.curr_pair}')
+                tslice = self.training_labels[-win_size:].copy()
                 self.train_model(model, dslice, tslice, False)
+                self.custom_trade_info[self.curr_pair]['model'] = model
         else:
             self.custom_trade_info[self.curr_pair]['count'] = count
 
+        '''
         return dataframe
 
+    
+    #-------------
     
     # add predictions to dataframe['predicted_gain']
     def add_predictions(self, dataframe: DataFrame) -> DataFrame:
@@ -958,7 +1006,7 @@ class TS_Coeff(IStrategy):
 
         if self.curr_pair not in self.custom_trade_info:
             self.custom_trade_info[self.curr_pair] = {
-                'model': self.model,
+                # 'model': self.model,
                 'initialised': False,
                 'predictions': None,
                 'count': self.retrain_period
@@ -975,7 +1023,7 @@ class TS_Coeff(IStrategy):
                 # dataframe = self.add_rolling_predictions(dataframe)
                 self.custom_trade_info[self.curr_pair]['initialised'] = True
             else:
-                print(f'    updating latest prediction for: {self.curr_pair}')
+                # print(f'    updating latest prediction for: {self.curr_pair}')
                 dataframe = self.add_latest_prediction(dataframe)
 
             # save the predictions
