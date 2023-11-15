@@ -3,7 +3,7 @@
 
 """
 ####################################################################################
-TS_Coeff_DWT - use a Discreet Wavelet Transform model
+TS_Coeff_MODWT - use a Maximal Overlap Discrete Wavelet Transform model
 
 ####################################################################################
 """
@@ -18,9 +18,11 @@ import pandas as pd
 from pandas import DataFrame, Series
 import pywt
 
+from modwt import modwt, modwtmra
+
 from TS_Coeff import TS_Coeff
 
-class TS_Coeff_DWT(TS_Coeff):
+class TS_Coeff_MODWT(TS_Coeff):
 
     ###################################
 
@@ -41,8 +43,8 @@ class TS_Coeff_DWT(TS_Coeff):
         # get the DWT coefficients
         # wavelet = 'db8'
         wavelet = 'bior3.9'
-        level = 2
-        coeffs = pywt.wavedec(x, wavelet, mode='smooth', level=level)
+        level = 5
+        coeffs = modwt(x, wavelet, level)
 
         '''
         # remove higher harmonics

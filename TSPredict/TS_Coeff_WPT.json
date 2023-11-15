@@ -1,5 +1,5 @@
 {
-  "strategy_name": "TS_Coeff_DCT",
+  "strategy_name": "TS_Coeff_WPT",
   "params": {
     "roi": {
       "0": 0.06
@@ -19,16 +19,16 @@
     "buy": {},
     "sell": {
       "enable_exit_signal": false,
-      "enable_guards": true,
-      "loss_threshold": -0.011,
-      "profit_threshold": 0.03,
-      "tstop_ratio": 0.715,
-      "tstop_start": 0.058,
-      "use_loss_threshold": false,
-      "use_profit_threshold": false
+      "enable_guards": false,
+      "loss_threshold": -0.007,
+      "profit_threshold": 0.058,
+      "tstop_ratio": 0.931,
+      "tstop_start": 0.052,
+      "use_loss_threshold": true,
+      "use_profit_threshold": true
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2023-11-15 17:25:58.286050+00:00"
+  "export_time": "2023-11-15 19:38:19.302117+00:00"
 }

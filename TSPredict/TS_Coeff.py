@@ -179,8 +179,8 @@ class TS_Coeff(IStrategy):
     # loss_threshold accordingly. 
     # Note that there is also a corellation to self.lookahead, but that cannot be a hyperopt parameter (because it is 
     # used in populate_indicators). Larger lookahead implies bigger differences between the model and actual price
-    entry_model_gain = DecimalParameter(0.5, 3.0, decimals=1, default=1.0, space='buy', load=True, optimize=True)
-    exit_model_gain = DecimalParameter(-5.0, 0.0, decimals=1, default=-1.0, space='sell', load=True, optimize=True)
+    # entry_model_gain = DecimalParameter(0.5, 3.0, decimals=1, default=1.0, space='buy', load=True, optimize=True)
+    # exit_model_gain = DecimalParameter(-5.0, 0.0, decimals=1, default=-1.0, space='sell', load=True, optimize=True)
 
     # trailing stoploss
     tstop_start = DecimalParameter(0.0, 0.06, default=0.019, decimals=3, space='sell', load=True, optimize=True)
@@ -253,10 +253,11 @@ class TS_Coeff(IStrategy):
         # target profit/loss thresholds        
         dataframe['profit'] = dataframe['gain'].clip(lower=0.0)
         dataframe['loss'] = dataframe['gain'].clip(upper=0.0)
-        dataframe['target_profit'] = dataframe['profit'].rolling(window=self.startup_candle_count).mean() + \
-            dataframe['profit'].rolling(window=self.startup_candle_count).std()
-        dataframe['target_loss'] = dataframe['loss'].rolling(window=self.startup_candle_count).mean() - \
-            abs(dataframe['loss'].rolling(window=self.startup_candle_count).std())
+        win_size = 32
+        dataframe['target_profit'] = dataframe['profit'].rolling(window=win_size).mean() + \
+            1.0 * dataframe['profit'].rolling(window=win_size).std()
+        dataframe['target_loss'] = dataframe['loss'].rolling(window=win_size).mean() - \
+            1.0 * abs(dataframe['loss'].rolling(window=win_size).std())
 
         # RSI
         dataframe['rsi'] = ta.RSI(dataframe, timeperiod=self.win_size)
@@ -1028,9 +1029,9 @@ class TS_Coeff(IStrategy):
 
                 # init target values to hyperopt values. Will be dynamic after this point
                 # dataframe['target_profit'] = float(self.entry_model_gain.value)
-                # dataframe['target_loss'] = float(self.exit_model_gain.value)
-                self.target_profit = self.entry_model_gain.value
-                self.target_loss = self.exit_model_gain.value
+                # # dataframe['target_loss'] = float(self.exit_model_gain.value)
+                # self.target_profit = self.entry_model_gain.value
+                # self.target_loss = self.exit_model_gain.value
             else:
                 # print(f'    updating latest prediction for: {self.curr_pair}')
                 dataframe = self.add_latest_prediction(dataframe)
@@ -1060,6 +1061,10 @@ class TS_Coeff(IStrategy):
         dataframe.loc[:, 'enter_tag'] = ''
        
 
+        if self.training_mode:
+            dataframe['enter_long'] = 0
+            return dataframe
+
         if self.enable_guards.value:
             # Fisher/Williams in oversold region
             conditions.append(dataframe['fisher_wr'] < 0.0)
@@ -1076,16 +1081,18 @@ class TS_Coeff(IStrategy):
         model_cond = (
             (
                 # model predicts a rise above the entry threshold
-                (dataframe['predicted_gain'] >= dataframe['target_profit']) &
+                qtpylib.crossed_above(dataframe['predicted_gain'], dataframe['target_profit']) &
+                # (dataframe['predicted_gain'] >= dataframe['target_profit']) &
+                # (dataframe['predicted_gain'].shift() >= dataframe['target_profit'].shift()) &
 
                 # Fisher/Williams in oversold region
                 (dataframe['fisher_wr'] < -0.5)
             )
-            |
-            (
-                # large gain predicted (ignore fisher_wr)
-                (dataframe['predicted_gain'] >= 2.0 * dataframe['target_profit']) 
-            )
+            # |
+            # (
+            #     # large gain predicted (ignore fisher_wr)
+            #     qtpylib.crossed_above(dataframe['predicted_gain'], 2.0 * dataframe['target_profit']) 
+            # )
         )
         
 
@@ -1153,7 +1160,7 @@ class TS_Coeff(IStrategy):
         conditions = []
         dataframe.loc[:, 'exit_tag'] = ''
 
-        if not self.enable_exit_signal.value:
+        if self.training_mode or (not self.enable_exit_signal.value):
             dataframe['exit_long'] = 0
             return dataframe
 
@@ -1170,7 +1177,7 @@ class TS_Coeff(IStrategy):
         model_cond = (
             (
 
-                (dataframe['predicted_gain'] <= dataframe['target_loss']) 
+                qtpylib.crossed_below(dataframe['predicted_gain'], dataframe['target_loss'] )
             )
         )
 

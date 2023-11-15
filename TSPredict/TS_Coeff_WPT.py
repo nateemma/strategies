@@ -3,7 +3,7 @@
 
 """
 ####################################################################################
-TS_Coeff_DWT - use a Discreet Wavelet Transform model
+TS_Coeff_WPT - use a Wavelet Packet Transform model
 
 ####################################################################################
 """
@@ -20,7 +20,7 @@ import pywt
 
 from TS_Coeff import TS_Coeff
 
-class TS_Coeff_DWT(TS_Coeff):
+class TS_Coeff_WPT(TS_Coeff):
 
     ###################################
 
@@ -39,10 +39,15 @@ class TS_Coeff_DWT(TS_Coeff):
         # print(pywt.wavelist(kind='discrete'))
 
         # get the DWT coefficients
-        # wavelet = 'db8'
+        # wavelet = 'db12'
+        # wavelet = 'db2'
         wavelet = 'bior3.9'
-        level = 2
-        coeffs = pywt.wavedec(x, wavelet, mode='smooth', level=level)
+        level = 3
+        # coeffs = pywt.wavedec(x, wavelet, mode='smooth', level=level)
+
+
+        wp = pywt.WaveletPacket(data=x, wavelet=wavelet, mode='symmetric', maxlevel=level)
+        coeffs = [node.data for node in wp.get_level(level, 'natural')]
 
         '''
         # remove higher harmonics
