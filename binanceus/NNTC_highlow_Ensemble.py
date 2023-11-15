@@ -4,7 +4,7 @@ from enum import Enum
 import pywt
 import talib.abstract as ta
 from scipy.ndimage import gaussian_filter1d
-from statsmodels.discrete.discrete_model import Probit
+# from statsmodels.discrete.discrete_model import Probit
 
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 import arrow
@@ -89,4 +89,6 @@ class NNTC_highlow_Ensemble(NNTC):
     classifier_type = NNTClassifier.ClassifierType.Ensemble
 
     ignore_exit_signals = False
+
+    process_only_new_candles = True
 
