@@ -731,7 +731,7 @@ class TS_Coeff(IStrategy):
         data = np.array(self.convert_dataframe(df))
 
         # y_pred = self.model.predict(data)[-1]
-        y_pred = self.predict_data(data)[-1]
+        y_pred = self.predict_data(self.model, data)[-1]
 
         return y_pred
 
@@ -927,7 +927,9 @@ class TS_Coeff(IStrategy):
         print(f"[predictions]:{np.shape(self.custom_trade_info[self.curr_pair]['predictions'])}  pred_array:{np.shape(pred_array)}")
 
         # copy previous predictions and shift down by 1
-        pred_array[:plen-2] = self.custom_trade_info[self.curr_pair]['predictions'][1:].copy()
+        pred_array = self.custom_trade_info[self.curr_pair]['predictions'].copy()
+        pred_array = np.roll(pred_array, -1)
+        pred_array[-1] = 0.0
 
         # cannot use last portion because we are looking ahead
         dslice = self.training_data[:-self.lookahead]
@@ -944,7 +946,8 @@ class TS_Coeff(IStrategy):
         pred_array[-1] = preds[-1]
         print(f'    {self.curr_pair}: predict {preds[-1]:.2f}% gain')
 
-        dataframe['predicted_gain'] = pred_array.copy()
+        dataframe['predicted_gain'] = 0.0
+        dataframe['predicted_gain'][-plen:] = pred_array.copy()
         self.custom_trade_info[self.curr_pair]['predictions'] = pred_array.copy()
 
         # add gain to dataframe for display purposes
