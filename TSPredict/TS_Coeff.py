@@ -91,9 +91,10 @@ class TS_Coeff(IStrategy):
         },
         'subplots': {
             "Diff": {
-                'predicted_gain': {'color': 'red'},
-                'future_gain': {'color': 'lightsalmon'},
-                'gain': {'color': 'lightblue'}
+                'predicted_gain': {'color': 'orange'},
+                'future_gain': {'color': 'lightblue'},
+                'target_profit': {'color': 'lightgreen'},
+                'target_loss': {'color': 'lightsalmon'}
             },
         }
     }
@@ -249,6 +250,13 @@ class TS_Coeff(IStrategy):
         dataframe['gain'] = self.smooth(dataframe['gain'], 8)
         dataframe['gain'] = self.detrend_array(dataframe['gain'])
 
+        # target profit/loss thresholds        
+        dataframe['profit'] = dataframe['gain'].clip(lower=0.0)
+        dataframe['loss'] = dataframe['gain'].clip(upper=0.0)
+        dataframe['target_profit'] = dataframe['profit'].rolling(window=self.startup_candle_count).mean() + \
+            dataframe['profit'].rolling(window=self.startup_candle_count).std()
+        dataframe['target_loss'] = dataframe['loss'].rolling(window=self.startup_candle_count).mean() - \
+            abs(dataframe['loss'].rolling(window=self.startup_candle_count).std())
 
         # RSI
         dataframe['rsi'] = ta.RSI(dataframe, timeperiod=self.win_size)
@@ -922,7 +930,7 @@ class TS_Coeff(IStrategy):
 
         pred_array = np.zeros(plen, dtype=float)
 
-        print(f"[predictions]:{np.shape(self.custom_trade_info[self.curr_pair]['predictions'])}  pred_array:{np.shape(pred_array)}")
+        # print(f"[predictions]:{np.shape(self.custom_trade_info[self.curr_pair]['predictions'])}  pred_array:{np.shape(pred_array)}")
 
         # copy previous predictions and shift down by 1
         pred_array = self.custom_trade_info[self.curr_pair]['predictions'].copy()
@@ -942,7 +950,6 @@ class TS_Coeff(IStrategy):
 
         # only replace last prediction (i.e. don't overwrite the historical predictions)
         pred_array[-1] = preds[-1]
-        print(f'    {self.curr_pair}: predict {preds[-1]:.2f}% gain')
 
         dataframe['predicted_gain'] = 0.0
         dataframe['predicted_gain'][-plen:] = pred_array.copy()
@@ -951,13 +958,35 @@ class TS_Coeff(IStrategy):
         # add gain to dataframe for display purposes
         dataframe['future_gain'] = future_gain_data.copy()
 
+        '''
+        # copy target values from history and shift down
+        dataframe['target_profit'] = float(self.entry_model_gain.value)
+        dataframe['target_loss'] = float(self.exit_model_gain.value)
+        tlen = len(self.custom_trade_info[self.curr_pair]['target_profit'])
+        tp_arr =  np.roll(self.custom_trade_info[self.curr_pair]['target_profit'], -1)
+        tl_arr =  np.roll(self.custom_trade_info[self.curr_pair]['target_loss'], -1)
+
         # update target values for profit and loss
+        #TODO: limit window to more recent data?
         gain_arr = dataframe['gain'].to_numpy()
         gain_profit = gain_arr[gain_arr>0.0]
         gain_loss = gain_arr[gain_arr<0.0]
 
-        self.target_profit = np.mean(gain_profit) + np.std(gain_profit)
-        self.target_loss = np.mean(gain_loss) - abs(np.std(gain_loss))
+        self.target_profit = np.mean(gain_profit) + 0.0 * np.std(gain_profit)
+        self.target_loss = np.mean(gain_loss) - 0.0 * abs(np.std(gain_loss))
+        tp_arr[-1] = self.target_profit
+        tl_arr[-1] = self.target_loss
+
+
+        dataframe['target_profit'][-tlen:] =  tp_arr.copy()
+        dataframe['target_loss'][-tlen:] =  tl_arr.copy()
+        self.custom_trade_info[self.curr_pair]['target_profit'] = tp_arr.copy()
+        self.custom_trade_info[self.curr_pair]['target_loss'] = tl_arr.copy()
+
+        print(f'    {self.curr_pair}:   predict {preds[-1]:.2f}% gain.  Target profit: {tp_arr[-1]:.2f} loss: {tl_arr[-1]:.2f}')
+
+        '''
+        print(f'    {self.curr_pair}:   predict {preds[-1]:.2f}% gain')
 
         return dataframe
 
@@ -983,8 +1012,7 @@ class TS_Coeff(IStrategy):
             self.custom_trade_info[self.curr_pair] = {
                 # 'model': self.model,
                 'initialised': False,
-                'predictions': None,
-                'count': self.retrain_period
+                'predictions': None
             }
 
 
@@ -998,14 +1026,19 @@ class TS_Coeff(IStrategy):
                 # dataframe = self.add_rolling_predictions(dataframe)
                 self.custom_trade_info[self.curr_pair]['initialised'] = True
 
+                # init target values to hyperopt values. Will be dynamic after this point
+                # dataframe['target_profit'] = float(self.entry_model_gain.value)
+                # dataframe['target_loss'] = float(self.exit_model_gain.value)
                 self.target_profit = self.entry_model_gain.value
                 self.target_loss = self.exit_model_gain.value
             else:
                 # print(f'    updating latest prediction for: {self.curr_pair}')
                 dataframe = self.add_latest_prediction(dataframe)
 
-            # save the predictions
+            # save the predictions and targets
             self.custom_trade_info[self.curr_pair]['predictions'] = dataframe['predicted_gain'].to_numpy()
+            # self.custom_trade_info[self.curr_pair]['target_profit'] = dataframe['target_profit'].to_numpy()
+            # self.custom_trade_info[self.curr_pair]['target_loss'] = dataframe['target_loss'].to_numpy()
 
 
         if run_profiler:
@@ -1043,7 +1076,7 @@ class TS_Coeff(IStrategy):
         model_cond = (
             (
                 # model predicts a rise above the entry threshold
-                (dataframe['predicted_gain'] >= self.target_profit) &
+                (dataframe['predicted_gain'] >= dataframe['target_profit']) &
 
                 # Fisher/Williams in oversold region
                 (dataframe['fisher_wr'] < -0.5)
@@ -1051,7 +1084,7 @@ class TS_Coeff(IStrategy):
             |
             (
                 # large gain predicted (ignore fisher_wr)
-                (dataframe['predicted_gain'] >= 2.0 * self.target_profit) 
+                (dataframe['predicted_gain'] >= 2.0 * dataframe['target_profit']) 
             )
         )
         
@@ -1137,7 +1170,7 @@ class TS_Coeff(IStrategy):
         model_cond = (
             (
 
-                (dataframe['predicted_gain'] <= self.target_loss) 
+                (dataframe['predicted_gain'] <= dataframe['target_loss']) 
             )
         )
 
@@ -1201,12 +1234,12 @@ class TS_Coeff(IStrategy):
 
 
         # strong sell signal, in profit
-        if (current_profit > 0) and (last_candle['fisher_wr'] > 0.96):
+        if (current_profit > 0) and (last_candle['fisher_wr'] > 0.98):
             return 'fwr_overbought'
 
         # Above 1%, sell if Fisher/Williams in sell range
         if current_profit > 0.01:
-            if last_candle['fisher_wr'] > 0.8:
+            if last_candle['fisher_wr'] > 0.9:
                 return 'take_profit'
  
 
@@ -1230,7 +1263,7 @@ class TS_Coeff(IStrategy):
         
         
         # big drop predicted. Should also trigger an exit signal, but this might be quicker (and will likely be 'market' sell)
-        if (current_profit > 0) and (last_candle['predicted_gain'] <= self.exit_model_gain.value):
+        if (current_profit > 0) and (last_candle['predicted_gain'] <= last_candle['target_loss']):
             return 'predict_drop'
         
 
