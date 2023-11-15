@@ -17,12 +17,12 @@
       "max_open_trades": 10
     },
     "buy": {
-      "entry_model_gain": 0.25
+      "entry_model_gain": 0.8
     },
     "sell": {
       "enable_guards": false,
       "enable_exit_signal": true,
-      "exit_model_gain": -0.2,
+      "exit_model_gain": -0.8,
       "loss_threshold": -0.047,
       "profit_threshold": 0.022,
       "tstop_ratio": 0.96,

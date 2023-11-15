@@ -34,7 +34,7 @@ log = logging.getLogger(__name__)
 # log.setLevel(logging.DEBUG)
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
-from sklearn.experimental import enable_hist_gradient_boosting
+# from sklearn.ensemble import enable_hist_gradient_boosting
 from sklearn.ensemble import HistGradientBoostingRegressor
 from utils.DataframeUtils import DataframeUtils
 

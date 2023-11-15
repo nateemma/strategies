@@ -537,10 +537,8 @@ class TS_Simple(IStrategy):
             data = np.array(self.convert_dataframe(df))
             future_gain_data = self.get_future_gain(df)
 
-            # training_data = data[:-self.lookahead]
-            # training_labels = gain_data[self.lookahead:]
-            training_data = data.copy()
-            training_labels = future_gain_data.copy()
+            training_data = data[:-self.lookahead-1].copy()
+            training_labels = future_gain_data[:-self.lookahead-1].copy()
 
             if not self.model_trained:
                 print(f'    initial training ({self.curr_pair})')

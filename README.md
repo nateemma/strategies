@@ -1,13 +1,29 @@
 # Phil's Custom freqtrade Crypto Trading Strategies
 
-_**I am no longer actively developing these strategies, mostly because I think that crypto in general is so chaotic right now that it
-is not possible to predict future movements. I frequently se drops >20% in a single candle followed by a jump, which no algorithm will be able to predict and handle.**_
+_**I am only periodically developing these strategies because - work, family etc...**_
 
-<b>I recently re-organised all of the strategies. Originally, they were in exchange-based folders (binanceus etc.). This became unwieldly, plus it is now difficult to use multiple exchanges anyway. So, I have moved all of the strategies into new directories based on the underlying family (or group), such as Anomaly, PCA, NNPredict etc.
+I recently re-organised all of the strategies. Originally, they were in exchange-based folders (binanceus etc.). This became unwieldly, plus it is now difficult to use multiple exchanges anyway. So, I have moved all of the strategies into new directories based on the underlying family (or group), such as Anomaly, PCA, NNPredict etc.
 <br>
+```
+tree -d -L 1
+.
+├── Anomaly
+├── NNPredict
+├── NNTC
+├── TSPredict
+├── archived
+├── binanceus
+├── config
+├── hyperopts
+├── reference
+├── scripts
+└── utils
+```
 
+_archive_ contains abandoned strategies (which are still sometimes useful for cut & paste)
+<br>
+_binanceus_ is a remnant from when I was running with multiple exchanges (which no longer seems possible). I no longer develop here, but left it for reference
 
-</b>
 
 
 _NOTES_:

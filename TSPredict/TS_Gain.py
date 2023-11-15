@@ -50,6 +50,8 @@ from pathlib import Path
 
 import os
 import joblib
+import copy
+
 group_dir = str(Path(__file__).parent)
 strat_dir = str(Path(__file__).parent.parent)
 sys.path.append(strat_dir)
@@ -90,7 +92,7 @@ class TS_Gain(IStrategy):
             "Diff": {
                 'predicted_gain': {'color': 'red'},
                 'future_gain': {'color': 'lightsalmon'},
-                'fisher_wr': {'color': 'lightblue'}
+                'gain': {'color': 'lightblue'}
             },
         }
     }
@@ -232,7 +234,6 @@ class TS_Gain(IStrategy):
         # backward looking gain
         dataframe['gain'] = 100.0 * (dataframe['close'] - dataframe['close'].shift(self.lookahead)) / dataframe['close']
         dataframe['gain'].fillna(0.0, inplace=True)
-
         dataframe['gain'] = self.smooth(dataframe['gain'], 8) # smooth gain to make it easier to fit
         dataframe['gain'] = self.detrend_array(dataframe['gain'])
 
@@ -275,11 +276,10 @@ class TS_Gain(IStrategy):
         return np.nan_to_num(y_smooth)
 
     def get_future_gain(self, dataframe):
-        fgain = 100.0 * (dataframe['close'].shift(-self.lookahead) - dataframe['close']) / dataframe['close']
-        fgain.fillna(0.0, inplace=True)
-        future_gain = np.nan_to_num(np.array(fgain))
+        future_gain = 100.0 * (dataframe['close'].shift(-self.lookahead) - dataframe['close']) / dataframe['close']
+        future_gain.fillna(0.0, inplace=True)
+        future_gain = np.array(future_gain)
         future_gain = self.smooth(future_gain, 8)
-        # print(f'future_gain:{future_gain}')
         return self.detrend_array(future_gain)
     
     ###################################
@@ -492,8 +492,8 @@ class TS_Gain(IStrategy):
 
             # training_data = data[:-self.lookahead]
             # training_labels = gain_data[self.lookahead:]
-            training_data = data.copy()
-            training_labels = gain_data.copy()
+            training_data = data[:-self.lookahead-1].copy()
+            training_labels = gain_data[:-self.lookahead-1].copy()
 
             if not self.model_trained:
                 print(f'    initial training ({self.curr_pair})')
@@ -514,9 +514,9 @@ class TS_Gain(IStrategy):
     #-------------
 
     # generate predictions for an np array (intended to be overriden if needed)
-    def predict_data(self, data):
+    def predict_data(self, model, data):
         x = np.nan_to_num(data)
-        preds = self.model.predict(x)
+        preds = model.predict(x)
         preds = np.clip(preds, -3.0, 3.0)
         return preds
 
@@ -555,7 +555,8 @@ class TS_Gain(IStrategy):
         end = start + win_size
         first_time = True
 
-        model = self.custom_trade_info[self.curr_pair]
+        # model = self.custom_trade_info[self.curr_pair]
+        model = copy.deepcopy(self.model)
 
         while end < nrows:
 
@@ -565,11 +566,15 @@ class TS_Gain(IStrategy):
 
             # print(f"start:{start} end:{end} win_size:{win_size} dslice:{np.shape(dslice)}")
 
-            preds = self.predict_data(dslice)
+            preds = self.predict_data(model, dslice)
 
             if (not self.training_mode) and (self.supports_incremental_training):
                 if ( end % win_size) == 0:
                     # print(f'    Retrain. end:{end}')
+                    dslice = self.training_data[0:start-1].copy()
+                    tslice = self.training_labels[0:start-1].copy()
+
+                    model = copy.deepcopy(self.model)
                     self.train_model(model, dslice, tslice, False)
 
 
@@ -586,7 +591,7 @@ class TS_Gain(IStrategy):
         # add gain to dataframe for display purposes
         dataframe['future_gain'] = gain_data.copy()
 
-        self.custom_trade_info[self.curr_pair] = self.model
+        # self.custom_trade_info[self.curr_pair] = self.model
 
         return dataframe
 
@@ -613,8 +618,7 @@ class TS_Gain(IStrategy):
 
         # set up training data
         self.training_data = data.copy()
-        self.training_labels = np.zeros(np.shape(gain_data), dtype=float)
-        # self.training_labels[:-self.lookahead] = gain_data[self.lookahead:].copy()
+        # self.training_labels = np.zeros(np.shape(gain_data), dtype=float)
         self.training_labels = gain_data.copy()
 
         # initialise the prediction array, using the close data
@@ -631,7 +635,8 @@ class TS_Gain(IStrategy):
         end = start + win_size
         train_start = 0
 
-        model = self.custom_trade_info[self.curr_pair]
+        # model = self.custom_trade_info[self.curr_pair]
+        model = copy.deepcopy(self.model)
 
         while end < nrows:
 
@@ -640,25 +645,17 @@ class TS_Gain(IStrategy):
             dslice = self.training_data[start:end].copy()
 
             # run prediction
-            preds = self.predict_data(dslice)
+            preds = self.predict_data(model, dslice)
 
-            # get the training data. Use data prior to current prediction data, limited to live buffer size (so backtest resembles live modes)
-
-
-            # if start > live_buffer_size:
-            #     train_start = start - live_buffer_size
-            # print(f'train_start: {train_start} start:{start}')
-
-            train_data = self.training_data[train_start:start-1].copy()
-            train_results = self.training_labels[train_start:start-1].copy()
-
-            # print(f"start:{start} end:{end} train_start:{train_start}")
-            # print(f'train_data: {train_data}')
-            # print(f'train_results: {train_results}')
 
             # (re-)train the model on prior data and get predictions
 
             if (not self.training_mode) and (self.supports_incremental_training):
+                # train_data = self.training_data[train_start:start-1].copy()
+                # train_results = self.training_labels[train_start:start-1].copy()
+                train_data = self.training_data[0:start-1].copy()
+                train_results = self.training_labels[0:start-1].copy()
+                model = copy.deepcopy(self.model)
                 self.train_model(model, train_data, train_results, False)
 
 
@@ -673,13 +670,13 @@ class TS_Gain(IStrategy):
         dslice = self.training_data[-(win_size+self.lookahead):-self.lookahead].copy()
         tslice = self.training_labels[-(win_size+self.lookahead):-self.lookahead].copy()
 
-        if (not self.training_mode) and (self.supports_incremental_training):
-            self.train_model(model, dslice, tslice, False)
+        # if (not self.training_mode) and (self.supports_incremental_training):
+        #     self.train_model(model, dslice, tslice, False)
 
         # predict for last window
         dslice = data[-win_size:].copy()
         # preds = self.model.predict(dslice)
-        preds = self.predict_data(dslice)
+        preds = self.predict_data(model, dslice)
         pred_array[-win_size:] = preds.copy()
 
         dataframe['predicted_gain'] = pred_array.copy()
@@ -688,7 +685,7 @@ class TS_Gain(IStrategy):
         dataframe['future_gain'] = gain_data.copy()
 
 
-        self.custom_trade_info[self.curr_pair] = self.model
+        # self.custom_trade_info[self.curr_pair] = self.model
         
         return dataframe
 
@@ -722,8 +719,8 @@ class TS_Gain(IStrategy):
             dataframe['predicted_gain'] = 0.0
         else:
             print(f'    backtesting {self.curr_pair}')
-            # dataframe = self.add_jumping_predictions(dataframe)
-            dataframe = self.add_rolling_predictions(dataframe)
+            dataframe = self.add_jumping_predictions(dataframe)
+            # dataframe = self.add_rolling_predictions(dataframe)
 
 
         if run_profiler:

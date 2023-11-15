@@ -79,13 +79,16 @@ add_line () {
 
 # run the hyperopt command using the supplied arguments ($1)
 run_hyperopt () {
-      add_line ""
-      add_line "freqtrade hyperopt ${1}"
-      add_line ""
-#      set -x
-      cmd="freqtrade hyperopt ${1} --no-color >> $logfile"
-      eval ${cmd}
-#      set +x
+    add_line "----------------------"
+    add_line "${strat}"
+    add_line "----------------------"
+    add_line ""
+    add_line "freqtrade hyperopt ${1}"
+    add_line ""
+#   set -x
+    cmd="freqtrade hyperopt ${1} --no-color >> $logfile"
+    eval ${cmd}
+#   set +x
 }
 
 # process options
@@ -139,7 +142,7 @@ strat_dir="user_data/strategies"
 script_dir="${strat_dir}/scripts"
 config_dir="${strat_dir}/config"
 group_dir="${strat_dir}/${group}"
-logfile="hyp_${group}_${group:gs/*/}.log"
+logfile="hyp_${group}_${pattern:gs/*/}.log"
 
 if [[ -n ${alt_config} ]]; then
   config_file="${config_dir}/${alt_config}.json"
@@ -218,9 +221,7 @@ hargs="${hargs} --random-state ${random_state}"
 #for strat space in ${(kv)strat_list}; do
 for strat in ${strat_list//.py/}; do
   add_line ""
-#  add_line "----------------------"
-#  add_line "${strat}"
-#  add_line "----------------------"
+
 
 #  if [[ "${spaces}" == "" ]]; then
 #    spaces=$space

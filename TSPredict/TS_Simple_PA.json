@@ -22,7 +22,7 @@
     "sell": {
       "enable_guards": true,
       "enable_exit_signal": false,
-      "exit_model_gain": -4.6,
+      "exit_model_gain": -0.8,
       "loss_threshold": -0.054,
       "profit_threshold": 0.046,
       "tstop_ratio": 0.912,

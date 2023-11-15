@@ -760,14 +760,10 @@ class TS_Coeff(IStrategy):
             df_norm = self.convert_dataframe(dataframe)
             gain_data = df_norm['gain'].to_numpy()
             self.build_coefficient_table(gain_data)
-            # df_merged = self.merge_coeff_table(dataframe)
-            # data = np.array(self.convert_dataframe(df_merged))
             data = self.merge_coeff_table(self.convert_dataframe(df_norm))
 
-            # training_data = data[:-self.lookahead]
-            # training_labels = gain_data[self.lookahead:]
-            training_data = data.copy()
-            training_labels = future_gain_data.copy()
+            training_data = data[:-self.lookahead-1].copy()
+            training_labels = future_gain_data[:-self.lookahead-1].copy()
 
             if not self.model_trained:
                 print(f'    initial training ({self.curr_pair})')
@@ -791,7 +787,7 @@ class TS_Coeff(IStrategy):
     def predict_data(self, model, data):
         x = np.nan_to_num(data)
         preds = model.predict(x)
-        preds = np.clip(preds, -5.0, 5.0)
+        preds = np.clip(preds, -3.0, 3.0)
         return preds
 
 
@@ -916,33 +912,22 @@ class TS_Coeff(IStrategy):
         df_norm = self.convert_dataframe(dataframe)
         self.build_coefficient_table(df_norm['gain'].to_numpy()) 
 
-        self.training_data = self.merge_coeff_table(df_norm)
-        self.training_labels = future_gain_data.copy()
+        data = self.merge_coeff_table(df_norm)
+
+        plen = len(self.custom_trade_info[self.curr_pair]['predictions'])
+
+        self.training_data = data[-plen:].copy()
+        self.training_labels = future_gain_data[-plen:].copy()
 
 
         # TODO: only save fixed length of predictions (original size)
 
-        # initialise the prediction array using saved/historical data (don't recalculte because model is now different)
-        pred_array = np.zeros(np.shape(future_gain_data), dtype=float)
-        plen = len(self.custom_trade_info[self.curr_pair]['predictions'])
-        dlen = len(pred_array)
-        # print(f"[predictions]:{np.shape(self.custom_trade_info[self.curr_pair]['predictions'])}  pred_array:{np.shape(pred_array)}")
+        pred_array = np.zeros(plen, dtype=float)
 
-        pred_array[:plen] = self.custom_trade_info[self.curr_pair]['predictions'].copy()
+        print(f"[predictions]:{np.shape(self.custom_trade_info[self.curr_pair]['predictions'])}  pred_array:{np.shape(pred_array)}")
 
-
-        '''
-        # win_size = 974
-        # win_size = 128
-        win_size = plen
-
-        model = self.custom_trade_info[self.curr_pair]['model']
-
-        # predict for last window
-        dslice = self.training_data[-win_size:].copy()
-        preds = self.predict_data(dslice)
-
-        '''
+        # copy previous predictions and shift down by 1
+        pred_array[:plen-2] = self.custom_trade_info[self.curr_pair]['predictions'][1:].copy()
 
         # cannot use last portion because we are looking ahead
         dslice = self.training_data[:-self.lookahead]
@@ -965,25 +950,6 @@ class TS_Coeff(IStrategy):
         # add gain to dataframe for display purposes
         dataframe['future_gain'] = future_gain_data.copy()
 
-        '''
-        # update pair-specific model
-        self.custom_trade_info[self.curr_pair]['model'] = model
-
-        # decrement count, if we hit 0 then re-train
-        count = self.custom_trade_info[self.curr_pair]['count'] - 1
-
-        if count <= 0:
-            self.custom_trade_info[self.curr_pair]['count'] = self.retrain_period
-
-            if (not self.training_mode) and (self.supports_incremental_training):
-                print(f'    Re-training for: {self.curr_pair}')
-                tslice = self.training_labels[-win_size:].copy()
-                self.train_model(model, dslice, tslice, False)
-                self.custom_trade_info[self.curr_pair]['model'] = model
-        else:
-            self.custom_trade_info[self.curr_pair]['count'] = count
-
-        '''
         return dataframe
 
     
