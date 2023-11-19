@@ -17,21 +17,25 @@
       "max_open_trades": 10
     },
     "buy": {
-      "entry_model_gain": 0.1
+      "enable_entry_guards": true,
+      "entry_guard_fwr": -0.2
     },
     "sell": {
-      "enable_exit_signal": false,
-      "enable_guards": true,
-      "exit_model_gain": -0.1,
-      "loss_threshold": -0.061,
-      "profit_threshold": 0.06,
-      "tstop_ratio": 0.943,
-      "tstop_start": 0.05,
-      "use_loss_threshold": true,
-      "use_profit_threshold": true
+      "cexit_fwr_overbought": 0.9,
+      "cexit_fwr_take_profit": 0.9,
+      "cexit_loss_threshold": -0.063,
+      "cexit_profit_threshold": 0.059,
+      "cexit_use_loss_threshold": true,
+      "cexit_use_profit_threshold": false,
+      "cstop_enable": true,
+      "cstop_ratio": 0.858,
+      "cstop_start": 0.031,
+      "enable_exit_guards": false,
+      "enable_exit_signal": true,
+      "exit_guard_fwr": 0.5
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2023-11-13 20:08:41.897260+00:00"
+  "export_time": "2023-11-17 21:40:32.818353+00:00"
 }

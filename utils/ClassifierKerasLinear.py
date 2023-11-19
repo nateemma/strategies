@@ -185,7 +185,7 @@ class ClassifierKerasLinear(ClassifierKeras):
                                 epochs=self.num_epochs,
                                 callbacks=callbacks,
                                 validation_data=(test_tensor, test_results),
-                                verbose=0)
+                                verbose=1)
 
 
         # reset learning rate

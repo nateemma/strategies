@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 from pandas import DataFrame, Series
 
-from scipy.fft import fft, rfft, irfft
+from scipy.fft import fft, rfft, irfft, fftfreq
 
 from TS_Coeff import TS_Coeff
 
@@ -30,11 +30,6 @@ class TS_Coeff_FFT(TS_Coeff):
     def get_coeffs(self, data: np.array) -> np.array:
 
         n = len(data)
-                
-        # # de-trend the data
-        # w_mean = data.mean()
-        # w_std = data.std()
-        # x = (data - w_mean) / w_std
 
         x = data
 
@@ -44,6 +39,10 @@ class TS_Coeff_FFT(TS_Coeff):
 
         # print(f'features: {features}')
 
+        # cutoff = int (len(features) * 0.78)
+        # features[cutoff:] = 0.0
+
+        # return features[:cutoff]
         return features
 
     #-------------

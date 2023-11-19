@@ -171,7 +171,7 @@ class NNPredict(IStrategy):
     scaler_type = ScalerType.Robust  # scaler type used for normalisation
     # scaler_type = ScalerType.Standard  # scaler type used for normalisation
     model_per_pair = False  # set to True to create pair-specific models (better but only works for pairs in whitelist)
-    training_only = False  # set to True to just generate models, no backtesting or prediction
+    training_mode = False  # set to True to just generate models, no backtesting or prediction
 
     # target_column = 'close'  # which column should be used for training and prediction
     target_column = 'mid'
@@ -303,7 +303,7 @@ class NNPredict(IStrategy):
 
             print(f"    Lookahead: {self.curr_lookahead} candles ({self.lookahead_hours} hours)")
             print(f"    Re-train existing models: {self.refit_model}")
-            print(f"    Training (only) mode: {self.training_only}")
+            print(f"    Training (only) mode: {self.training_mode}")
 
             # debug tracing
             if self.dbg_enable_tracing:
@@ -315,7 +315,7 @@ class NNPredict(IStrategy):
         # make sure we only retrain in backtest modes
         if self.dp.runmode.value not in ('backtest'):
             self.refit_model = False
-            self.training_only = False
+            self.training_mode = False
 
         # (re-)set the scaler
         self.dataframeUtils.set_scaler_type(self.scaler_type)
@@ -329,7 +329,7 @@ class NNPredict(IStrategy):
             print("    training model...")
 
         # if we are training, then force re-training of an existing model
-        if self.training_only:
+        if self.training_mode:
             self.refit_model = False
 
         dataframe = self.train_model(dataframe, self.curr_pair)
@@ -337,10 +337,10 @@ class NNPredict(IStrategy):
         # if in training mode then skip further processing.
         # Doesn't make sense without the model anyway, and it can sometimes be very slow
 
-        if self.training_only:
+        if self.training_mode:
             print("    Training mode. Skipping backtesting and prediction steps")
             print("        freqtrade backtest results will show no trades")
-            print("        set training_only=False to re-enable full backtesting")
+            print("        set training_mode=False to re-enable full backtesting")
 
         else:
             # if first time through, run backtest
@@ -984,7 +984,7 @@ class NNPredict(IStrategy):
         curr_pair = metadata['pair']
 
         # if we are training a new model, just return (this helps avoid runtime errors)
-        if self.training_only:
+        if self.training_mode:
             return dataframe
 
         # conditions.append(dataframe['volume'] > 0)
@@ -1032,7 +1032,7 @@ class NNPredict(IStrategy):
         curr_pair = metadata['pair']
 
         # if we are training a new model, just return (this helps avoid runtime errors)
-        if self.training_only:
+        if self.training_mode:
             dataframe['exit_long'] = 0
             return dataframe
 

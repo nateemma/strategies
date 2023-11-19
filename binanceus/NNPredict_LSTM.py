@@ -107,7 +107,7 @@ class NNPredict_LSTM(NNPredict):
     custom_trade_info = {}
 
     refit_model = False
-    training_only = False
+    training_mode = False
 
     ###################################
 

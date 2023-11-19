@@ -17,10 +17,22 @@
       "max_open_trades": 10
     },
     "buy": {
-      "entry_threshold": 0.7
+      "enable_entry_guards": false,
+      "entry_guard_fwr": -0.1
     },
     "sell": {
-      "exit_threshold": -0.7
+      "cexit_fwr_overbought": 1.0,
+      "cexit_fwr_take_profit": 0.98,
+      "cexit_loss_threshold": -0.063,
+      "cexit_profit_threshold": 0.06,
+      "cexit_use_loss_threshold": false,
+      "cexit_use_profit_threshold": true,
+      "cstop_enable": true,
+      "cstop_ratio": 0.764,
+      "cstop_start": 0.042,
+      "enable_exit_guards": false,
+      "enable_exit_signal": false,
+      "exit_guard_fwr": 0.8
     },
     "protection": {}
   },

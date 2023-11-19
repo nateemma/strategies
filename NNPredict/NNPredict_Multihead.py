@@ -95,7 +95,7 @@ class NNPredict_Multihead(NNPredict):
     custom_trade_info = {}
 
     refit_model = False # set to True if you want to re-train the model. Usually better to just delete it and restart
-    training_only = False
+    training_mode = False
     combine_models = False
 
 

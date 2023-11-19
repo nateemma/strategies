@@ -103,7 +103,7 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
         if 'profit_total' in backtest_stats:
             abs_profit_loss = -backtest_stats['profit_total'] / 2.0
 
-        result = expectancy_loss + drawdown_loss + abs_profit_loss
+        result = expectancy_loss + drawdown_loss + 0.5 * abs_profit_loss
 
         if abs_profit_loss < -100.0:
             result = UNDESIRED_SOLUTION

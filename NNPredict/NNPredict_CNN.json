@@ -17,25 +17,22 @@
       "max_open_trades": 10
     },
     "buy": {
-      "entry_threshold": 1.0
+      "enable_entry_guards": false,
+      "entry_guard_fwr": -0.1
     },
     "sell": {
-      "cexit_endtrend_respect_roi": true,
-      "cexit_pullback": false,
-      "cexit_pullback_amount": 0.012,
-      "cexit_pullback_respect_roi": true,
-      "cexit_roi_end": 0.006,
-      "cexit_roi_start": 0.021,
-      "cexit_roi_time": 918,
-      "cexit_roi_type": "static",
-      "cexit_trend_type": "candle",
-      "cstop_bail_how": "any",
-      "cstop_bail_roc": -1.951,
-      "cstop_bail_time": 1347,
-      "cstop_bail_time_trend": true,
-      "cstop_loss_threshold": -0.045,
-      "cstop_max_stoploss": -0.03,
-      "exit_threshold": -1.0
+      "cexit_fwr_overbought": 1.0,
+      "cexit_fwr_take_profit": 0.98,
+      "cexit_loss_threshold": -0.063,
+      "cexit_profit_threshold": 0.06,
+      "cexit_use_loss_threshold": false,
+      "cexit_use_profit_threshold": true,
+      "cstop_enable": true,
+      "cstop_ratio": 0.764,
+      "cstop_start": 0.042,
+      "enable_exit_guards": false,
+      "enable_exit_signal": false,
+      "exit_guard_fwr": 0.8
     },
     "protection": {}
   },

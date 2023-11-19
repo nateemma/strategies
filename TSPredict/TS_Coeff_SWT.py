@@ -41,7 +41,9 @@ class TS_Coeff_SWT(TS_Coeff):
         if (len(x) % 2) != 0:
             x = x[1:]
 
-        wavelet = 'db4'
+        # wavelet = 'db4'
+
+        wavelet = 'bior3.9'
 
         # (cA2, cD2), (cA1, cD1) = pywt.swt(data, wavelet, level=2)
         

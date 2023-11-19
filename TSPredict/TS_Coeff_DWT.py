@@ -52,8 +52,8 @@ class TS_Coeff_DWT(TS_Coeff):
         uthresh = sigma * np.sqrt(2 * np.log(length))
 
         coeffs[1:] = (pywt.threshold(i, value=uthresh, mode='hard') for i in coeffs[1:])
-        '''
 
+        '''
 
         # flatten the coefficient arrays
         features = np.concatenate(np.array(coeffs, dtype=object))

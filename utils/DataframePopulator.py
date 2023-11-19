@@ -97,8 +97,6 @@ class DataframePopulator():
         # Combined Fisher RSI and Williams %R
         dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
 
-        # MFI - Chaikin Money Flow Indicator
-        dataframe['mfi'] = ta.MFI(dataframe)
 
         return dataframe
 
@@ -109,6 +107,9 @@ class DataframePopulator():
 
         dataframe = self.add_minimal_indicators(dataframe)
 
+
+        # MFI - Chaikin Money Flow Indicator
+        dataframe['mfi'] = ta.MFI(dataframe)
 
         # Recent min/max
         dataframe['recent_min'] = dataframe['close'].rolling(window=self.win_size).min()
@@ -413,6 +414,38 @@ class DataframePopulator():
     def add_custom1_indicators(self, dataframe: DataFrame) -> DataFrame:
 
         dataframe = self.add_minimal_indicators(dataframe)
+
+        # Bollinger Bands 
+        bollinger = qtpylib.bollinger_bands(dataframe['close'], window=20, stds=2)
+        dataframe['bb_lowerband'] = bollinger['lower']
+        dataframe['bb_middleband'] = bollinger['mid']
+        dataframe['bb_upperband'] = bollinger['upper']
+        dataframe['bb_width'] = ((dataframe['bb_upperband'] - dataframe['bb_lowerband']) / dataframe['bb_middleband'])
+        dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
+        dataframe["bb_loss"] = ((dataframe["bb_lowerband"] - dataframe["close"]) / dataframe["close"])
+
+
+        # MACD
+        macd = ta.MACD(dataframe)
+        dataframe['macd'] = macd['macd']
+        dataframe['macdsignal'] = macd['macdsignal']
+        dataframe['macdhist'] = macd['macdhist']
+
+        '''
+        # Keltner Channels (Warning: these can sometimes produce inf results)
+        keltner = qtpylib.keltner_channel(dataframe)
+        dataframe["kc_upper"] = keltner["upper"]
+        dataframe["kc_lower"] = keltner["lower"]
+        dataframe["kc_mid"] = keltner["mid"]
+
+
+        # Donchian Channels
+        dataframe['dc_upper'] = ta.MAX(dataframe['high'], timeperiod=self.win_size)
+        dataframe['dc_lower'] = ta.MIN(dataframe['low'], timeperiod=self.win_size)
+        dataframe['dc_mid'] = ta.TEMA(((dataframe['dc_upper'] + dataframe['dc_lower']) / 2), timeperiod=self.win_size)
+        
+        '''
+        
         return dataframe
 
     # ------------------------------
@@ -448,7 +481,7 @@ class DataframePopulator():
         # TODO: remove/fix any columns that contain 'inf'
         self.dataframeUtils.check_inf(dataframe)
 
-        # TODO: fix NaNs
+        # fix NaNs
         dataframe.fillna(0.0, inplace=True)
 
         return dataframe
