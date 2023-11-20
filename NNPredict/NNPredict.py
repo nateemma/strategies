@@ -402,10 +402,9 @@ class NNPredict(IStrategy):
     # add in any indicators to be used for training
     def add_training_indicators(self, dataframe: DataFrame) -> DataFrame:
 
-        # placeholders, just need the columns to be there for later (with some realistic values)
-        # dataframe['predicted_gain'] = dataframe[self.target_column]
-        dataframe['predicted_gain'] = dataframe[self.target_column]
-        dataframe['temp'] = dataframe[self.target_column]
+        # placeholders, just need the columns to be there for later
+        dataframe['predicted_gain'] = 0.0
+        dataframe['temp'] = 0.0
 
         # no looking ahead in this approach
         # future_df = self.dataframePopulator.add_hidden_indicators(dataframe.copy())
@@ -443,6 +442,10 @@ class NNPredict(IStrategy):
             n_std * dataframe['bprofit'].rolling(window=win_size).std()
         dataframe['target_loss'] = -abs(dataframe['bloss'].rolling(window=win_size).mean()) - \
             n_std * abs(dataframe['bloss'].rolling(window=win_size).std())
+
+        # constrain min profit/loss
+        dataframe['target_profit'] = dataframe['target_profit'].clip(lower=0.5)
+        dataframe['target_loss'] = dataframe['target_loss'].clip(upper=-0.2)
 
         dataframe['target_profit'] = np.nan_to_num(dataframe['target_profit'])
         dataframe['target_loss'] = np.nan_to_num(dataframe['target_loss'])
@@ -537,8 +540,8 @@ class NNPredict(IStrategy):
             df_norm = dataframe.copy()
 
 
-        future_gain = df_norm['bgain'].shift(-self.curr_lookahead)
-        # future_gain = dataframe['bgain'].shift(-self.curr_lookahead)
+        # future_gain = df_norm['bgain'].shift(-self.curr_lookahead)
+        future_gain = dataframe['bgain'].shift(-self.curr_lookahead)
 
         # dataframe['%future_gain'] = self.smooth(future_gain, self.curr_lookahead)
         dataframe['%future_gain'] = np.nan_to_num(future_gain)
@@ -1308,7 +1311,7 @@ class NNPredict(IStrategy):
             return None
 
         # strong sell signal, in profit
-        if (current_profit > 0) and (last_candle['fisher_wr'] >= self.cexit_fwr_overbought.value):
+        if (current_profit > 0.001) and (last_candle['fisher_wr'] >= self.cexit_fwr_overbought.value):
             return 'fwr_overbought'
 
         # Above 1%, sell if Fisher/Williams in sell range

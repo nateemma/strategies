@@ -18,7 +18,7 @@ TS_Coeff - base class for 'simple' time series prediction
 ####################################################################################
 """
 
-#pragma pylint: disable=W0105, C0103, C0114, C0115, C0116, C0301, C0303, C0325, W1203
+#pragma pylint: disable=W0105, C0103, C0114, C0115, C0116, C0301, C0302, C0303, C0325, W1203
 
 from datetime import datetime
 from functools import reduce
@@ -255,7 +255,8 @@ class TS_Coeff(IStrategy):
 
 
         # backward looking gain
-        dataframe['gain'] = 100.0 * (dataframe['close'] - dataframe['close'].shift(self.lookahead)) / dataframe['close']
+        dataframe['gain'] = 100.0 * (dataframe['close'] - dataframe['close'].shift(self.lookahead)) / \
+            dataframe['close'].shift(self.lookahead)
         dataframe['gain'].fillna(0.0, inplace=True)
         dataframe['gain'] = self.smooth(dataframe['gain'], 8)
         dataframe['gain'] = self.detrend_array(dataframe['gain'])
@@ -269,6 +270,12 @@ class TS_Coeff(IStrategy):
             n_std * dataframe['profit'].rolling(window=win_size).std()
         dataframe['target_loss'] = dataframe['loss'].rolling(window=win_size).mean() - \
             n_std * abs(dataframe['loss'].rolling(window=win_size).std())
+
+        dataframe['target_profit'] = dataframe['target_profit'].clip(lower=0.5)
+        dataframe['target_loss'] = dataframe['target_loss'].clip(upper=-0.2)
+        
+        dataframe['target_profit'] = np.nan_to_num(dataframe['target_profit'])
+        dataframe['target_loss'] = np.nan_to_num(dataframe['target_loss'])
 
         # RSI
         dataframe['rsi'] = ta.RSI(dataframe, timeperiod=self.win_size)
@@ -330,14 +337,11 @@ class TS_Coeff(IStrategy):
     
     # look ahead to get future gain. Do *not* put this into the main dataframe!
     def get_future_gain(self, dataframe):
-        # future_gain = 100.0 * (dataframe['close'].shift(-self.lookahead) - dataframe['close']) / dataframe['close']
-        # future_gain.fillna(0.0, inplace=True)
-        # future_gain = np.array(future_gain)
-        # future_gain = self.smooth(future_gain, 8)
-        # # print(f'future_gain:{future_gain}')
-        # return self.detrend_array(future_gain)
-        df = self.convert_dataframe(dataframe)
-        future_gain = df['gain'].shift(-self.lookahead).to_numpy()
+
+        # df = self.convert_dataframe(dataframe)
+        # future_gain = df['gain'].shift(-self.lookahead).to_numpy()
+
+        future_gain = dataframe['gain'].shift(-self.lookahead).to_numpy()
         return self.smooth(future_gain, 8)
     
     ###################################
@@ -1193,7 +1197,7 @@ class TS_Coeff(IStrategy):
             return None
 
         # strong sell signal, in profit
-        if (current_profit > 0) and (last_candle['fisher_wr'] >= self.cexit_fwr_overbought.value):
+        if (current_profit > 0.001) and (last_candle['fisher_wr'] >= self.cexit_fwr_overbought.value):
             return 'fwr_overbought'
 
         # Above 1%, sell if Fisher/Williams in sell range

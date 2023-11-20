@@ -18,7 +18,7 @@ TS_Gain - base class for 'simple' time series prediction
 ####################################################################################
 """
 
-#pragma pylint: disable=W0105, C0103, C0114, C0115, C0116, C0301, C0325, W1203
+#pragma pylint: disable=W0105, C0103, C0114, C0115, C0116, C0301, C0302, C0303, C0325, W1203
 
 from datetime import datetime
 from functools import reduce
@@ -33,7 +33,7 @@ from pandas import DataFrame, Series
 
 
 # from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import RobustScaler
 
 
 # import freqtrade.vendor.qtpylib.indicators as qtpylib
@@ -66,6 +66,7 @@ import warnings
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 from xgboost import XGBRegressor
 # from lightgbm import LGBMRegressor
@@ -155,7 +156,7 @@ class TS_Gain(IStrategy):
     norm_data = False
 
     dataframeUtils = None
-    scaler = StandardScaler()
+    scaler = RobustScaler()
     model = None
 
     curr_dataframe: DataFrame = None
@@ -240,10 +241,13 @@ class TS_Gain(IStrategy):
 
 
         # backward looking gain
-        dataframe['gain'] = 100.0 * (dataframe['close'] - dataframe['close'].shift(self.lookahead)) / dataframe['close']
+        dataframe['gain'] = 100.0 * (dataframe['close'] - dataframe['close'].shift(self.lookahead)) / \
+            dataframe['close'].shift(self.lookahead)
         dataframe['gain'].fillna(0.0, inplace=True)
         dataframe['gain'] = self.smooth(dataframe['gain'], 8) # smooth gain to make it easier to fit
         dataframe['gain'] = self.detrend_array(dataframe['gain'])
+
+        # dataframe['ngain'] = self.norm_array(dataframe['gain'].to_numpy())
 
         # target profit/loss thresholds        
         dataframe['profit'] = dataframe['gain'].clip(lower=0.0)
@@ -254,6 +258,12 @@ class TS_Gain(IStrategy):
         dataframe['target_loss'] = dataframe['loss'].rolling(window=win_size).mean() - \
             2.0 * abs(dataframe['loss'].rolling(window=win_size).std())
         
+        # constrain min profit/loss
+        dataframe['target_profit'] = dataframe['target_profit'].clip(lower=0.5)
+        dataframe['target_loss'] = dataframe['target_loss'].clip(upper=-0.2)
+                
+        dataframe['target_profit'] = np.nan_to_num(dataframe['target_profit'])
+        dataframe['target_loss'] = np.nan_to_num(dataframe['target_loss'])
 
         rsi = ta.RSI(dataframe, timeperiod=self.win_size)
         wr = 0.02 * (self.williams_r(dataframe, period=self.win_size) + 50.0)
@@ -277,13 +287,17 @@ class TS_Gain(IStrategy):
         return dataframe
 
 
+
+    def norm_array(self, a):
+        # de-trend the data
+        w_mean = a.mean()
+        w_std = a.std()
+        a_notrend = (a - w_mean) / w_std
+        return np.nan_to_num(a_notrend)
+    
     def detrend_array(self, a):
             if self.norm_data:
-                # de-trend the data
-                w_mean = a.mean()
-                w_std = a.std()
-                a_notrend = (a - w_mean) / w_std
-                return np.nan_to_num(a_notrend)
+                return self.norm_array(a)
             else:
                 return np.nan_to_num(a)
     
@@ -294,13 +308,10 @@ class TS_Gain(IStrategy):
         return np.nan_to_num(y_smooth)
 
     def get_future_gain(self, dataframe):
-        # future_gain = 100.0 * (dataframe['close'].shift(-self.lookahead) - dataframe['close']) / dataframe['close']
-        # future_gain.fillna(0.0, inplace=True)
-        # future_gain = np.array(future_gain)
-        # future_gain = self.smooth(future_gain, 8)
-        # return self.detrend_array(future_gain)
-        df = self.convert_dataframe(dataframe)
-        future_gain = df['gain'].shift(-self.lookahead).to_numpy()
+        # df = self.convert_dataframe(dataframe)
+        # future_gain = df['gain'].shift(-self.lookahead).to_numpy()
+
+        future_gain = dataframe['gain'].shift(-self.lookahead).to_numpy()
         return self.smooth(future_gain, 8)
     
     ###################################
@@ -710,7 +721,63 @@ class TS_Gain(IStrategy):
         
         return dataframe
 
+    #-------------
     
+    # add the latest prediction, and update training periodically
+    def add_latest_prediction(self, dataframe: DataFrame) -> DataFrame:
+
+        df = dataframe
+
+        # set up training data
+        #TODO: see if we can do this incrementally instead of rebuilding every time, or just use portion of data
+        future_gain_data = self.get_future_gain(df)
+        df_norm = self.convert_dataframe(dataframe)
+        self.build_coefficient_table(df_norm['gain'].to_numpy()) 
+
+        data = self.merge_coeff_table(df_norm)
+
+        plen = len(self.custom_trade_info[self.curr_pair]['predictions'])
+        dlen = np.shape(dataframe)[1]
+        clen = min(plen, dlen)
+
+        self.training_data = data[-clen:].copy()
+        self.training_labels = future_gain_data[-clen:].copy()
+
+        pred_array = np.zeros(clen, dtype=float)
+
+        # print(f"[predictions]:{np.shape(self.custom_trade_info[self.curr_pair]['predictions'])}  pred_array:{np.shape(pred_array)}")
+
+        # copy previous predictions and shift down by 1
+        pred_array = self.custom_trade_info[self.curr_pair]['predictions'].copy()
+        pred_array = np.roll(pred_array, -1)
+        pred_array[-1] = 0.0
+
+        # cannot use last portion because we are looking ahead
+        dslice = self.training_data[:-self.lookahead]
+        tslice = self.training_labels[:-self.lookahead]
+
+        # retrain base model and get predictions
+        base_model = copy.deepcopy(self.model)
+        self.train_model(base_model, dslice, tslice, False)
+        preds = self.predict_data(base_model, self.training_data)
+
+        # self.model = copy.deepcopy(base_model) # restore original model
+
+        # only replace last prediction (i.e. don't overwrite the historical predictions)
+        pred_array[-1] = preds[-1]
+
+        dataframe['predicted_gain'] = 0.0
+        dataframe['predicted_gain'][-clen:] = pred_array[-clen:].copy()
+        self.custom_trade_info[self.curr_pair]['predictions'] = pred_array[-clen:].copy()
+
+        # add gain to dataframe for display purposes
+        dataframe['future_gain'] = 0.0
+        dataframe['future_gain'][-clen:] = future_gain_data[-clen:].copy()
+
+        print(f'    {self.curr_pair}:   predict {preds[-1]:.2f}% gain')
+
+        return dataframe
+
     #-------------
 
     # add predictions to dataframe['predicted_gain']
@@ -724,24 +791,34 @@ class TS_Gain(IStrategy):
             prof = cProfile.Profile()
             prof.enable()
 
-        self.scaler = StandardScaler() # reset scaler each time
+        self.scaler = RobustScaler() # reset scaler each time
 
         self.init_model(dataframe)
 
         if self.curr_pair not in self.custom_trade_info:
-            self.custom_trade_info[self.curr_pair] = None
-
-        if self.custom_trade_info[self.curr_pair] is None:
-            self.custom_trade_info[self.curr_pair] = self.model
+            self.custom_trade_info[self.curr_pair] = {
+                # 'model': self.model,
+                'initialised': False,
+                'predictions': None
+            }
 
 
         if self.training_mode:
             print(f'    Training mode. Skipping backtest for {self.curr_pair}')
             dataframe['predicted_gain'] = 0.0
         else:
-            print(f'    backtesting {self.curr_pair}')
-            dataframe = self.add_jumping_predictions(dataframe)
-            # dataframe = self.add_rolling_predictions(dataframe)
+            if not self.custom_trade_info[self.curr_pair]['initialised']:
+                print(f'    backtesting {self.curr_pair}')
+                dataframe = self.add_jumping_predictions(dataframe)
+                # dataframe = self.add_rolling_predictions(dataframe)
+                self.custom_trade_info[self.curr_pair]['initialised'] = True
+
+            else:
+                # print(f'    updating latest prediction for: {self.curr_pair}')
+                dataframe = self.add_latest_prediction(dataframe)
+
+            # save the predictions and targets
+            self.custom_trade_info[self.curr_pair]['predictions'] = dataframe['predicted_gain'].to_numpy()
 
 
         if run_profiler:
@@ -905,7 +982,7 @@ class TS_Gain(IStrategy):
             return None
 
         # strong sell signal, in profit
-        if (current_profit > 0) and (last_candle['fisher_wr'] >= self.cexit_fwr_overbought.value):
+        if (current_profit > 0.001) and (last_candle['fisher_wr'] >= self.cexit_fwr_overbought.value):
             return 'fwr_overbought'
 
         # Above 1%, sell if Fisher/Williams in sell range

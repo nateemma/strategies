@@ -14,8 +14,8 @@
       "trailing_only_offset_is_reached": false
     },
     "buy": {
-      "enable_entry_guards": false,
-      "entry_guard_fwr": -0.1
+      "enable_entry_guards": true,
+      "entry_guard_fwr": -0.0
     },
     "sell": {
       "cexit_fwr_overbought": 1.0,
@@ -28,8 +28,8 @@
       "cstop_ratio": 0.764,
       "cstop_start": 0.042,
       "enable_exit_guards": false,
-      "enable_exit_signal": false,
-      "exit_guard_fwr": 0.8
+      "enable_exit_signal": true,
+      "exit_guard_fwr": 0.0
     },
     "protection": {}
   },
