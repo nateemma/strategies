@@ -412,7 +412,10 @@ class NNPredict(IStrategy):
         # future_df = self.dataframePopulator.add_future_data(future_df, self.curr_lookahead)
         return dataframe
 
-    def add_stoploss_indicators(self, dataframe: DataFrame, pair) -> DataFrame:
+
+    def add_stoploss_indicators(self, dataframe: DataFrame, pair="") -> DataFrame:
+
+        ''' old stoploss
 
         if not pair in self.custom_trade_info:
             self.custom_trade_info[pair] = {}
@@ -421,6 +424,29 @@ class NNPredict(IStrategy):
 
         # Indicators used for ROI and Custom Stoploss
         dataframe = self.dataframePopulator.add_stoploss_indicators(dataframe)
+        '''
+
+        # add backward looking gain. (default is not what we need)
+        dataframe['bgain'] = 100.0 * (dataframe[self.target_column] - dataframe[self.target_column].shift(self.curr_lookahead)) / \
+                            dataframe[self.target_column].shift(self.curr_lookahead)
+
+        dataframe['bgain'] = self.smooth(dataframe['bgain'], self.curr_lookahead) # takes care of edge effects
+
+        dataframe['bprofit'] = dataframe['bgain'].clip(lower=0.0)
+        dataframe['bloss'] = dataframe['bgain'].clip(upper=0.0)
+
+
+        # add thresholds (used by buy/sell and custom exit)
+        win_size = 32
+        n_std = 3.0
+        dataframe['target_profit'] = dataframe['bprofit'].rolling(window=win_size).mean() + \
+            n_std * dataframe['bprofit'].rolling(window=win_size).std()
+        dataframe['target_loss'] = -abs(dataframe['bloss'].rolling(window=win_size).mean()) - \
+            n_std * abs(dataframe['bloss'].rolling(window=win_size).std())
+
+        dataframe['target_profit'] = np.nan_to_num(dataframe['target_profit'])
+        dataframe['target_loss'] = np.nan_to_num(dataframe['target_loss'])
+
         return dataframe
 
     ################################
@@ -502,25 +528,7 @@ class NNPredict(IStrategy):
             print(f"    ERR: target column not present ({self.target_column})")
             return dataframe
 
-        # add backward looking gain. (default is not waht we need)
-        dataframe['bgain'] = 100.0 * (dataframe[self.target_column] - dataframe[self.target_column].shift(self.curr_lookahead)) / \
-                            dataframe[self.target_column].shift(self.curr_lookahead)
-
-        dataframe['bgain'] = self.smooth(dataframe['bgain'], self.curr_lookahead) # takes care of edge effects
-
-        dataframe['bprofit'] = dataframe['bgain'].clip(lower=0.0)
-        dataframe['bloss'] = dataframe['bgain'].clip(upper=0.0)
-
-
-        # add thresholds (used by buy/sell and custom exit)
-        win_size = 32
-        dataframe['target_profit'] = dataframe['bprofit'].rolling(window=win_size).mean() + \
-            2.0 * dataframe['bprofit'].rolling(window=win_size).std()
-        dataframe['target_loss'] = -abs(dataframe['bloss'].rolling(window=win_size).mean()) - \
-            2.0 * abs(dataframe['bloss'].rolling(window=win_size).std())
-
-        dataframe['target_profit'] = np.nan_to_num(dataframe['target_profit'])
-        dataframe['target_loss'] = np.nan_to_num(dataframe['target_loss'])
+        dataframe = self.add_stoploss_indicators(dataframe)
 
         # scale the dataframe
         if self.curr_classifier.prescale_data():

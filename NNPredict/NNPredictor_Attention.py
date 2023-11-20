@@ -57,7 +57,7 @@ class NNPredictor_Attention(ClassifierKerasLinear):
 
         inputs = tf.keras.layers.Input(shape=(seq_len, num_features))
 
-        x = tf.keras.layers.LSTM(num_features, recurrent_dropout=0.25, return_sequences=True,
+        x = tf.keras.layers.LSTM(num_features, activation='tanh', return_sequences=True,
                         input_shape=(seq_len, num_features))(inputs)
         x = tf.keras.layers.Dropout(0.2)(x)
         x = tf.keras.layers.BatchNormalization()(x)
@@ -65,15 +65,17 @@ class NNPredictor_Attention(ClassifierKerasLinear):
         # x = tf.keras.layers.Attention()([x, inputs])
         x = tf.keras.layers.Attention()([x, x])
 
-        # remplace sequence column with the average value
-        x = tf.keras.layers.GlobalAveragePooling1D()(x)
+        x = tf.keras.layers.LSTM(1, activation='tanh')(x)
 
-        x = tf.keras.layers.Dense(32)(x)
+        # # remplace sequence column with the average value
+        # x = tf.keras.layers.GlobalAveragePooling1D()(x)
+
+        # x = tf.keras.layers.Dense(32)(x)
 
          # last layer is linear - do not change
         x = tf.keras.layers.Dropout(0.2)(x)
         outputs = tf.keras.layers.Dense(1, activation="linear")(x)
 
-        model = tf.keras.Model(inputs, outputs, name=self.name)\
+        model = tf.keras.Model(inputs, outputs, name=self.name)
 
         return model

@@ -1,5 +1,5 @@
 {
-  "strategy_name": "NNPredict_min_Wavenet2",
+  "strategy_name": "NNPredict_Wavenet2",
   "params": {
     "roi": {
       "0": 0.006

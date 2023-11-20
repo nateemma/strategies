@@ -263,10 +263,11 @@ class TS_Coeff(IStrategy):
         dataframe['profit'] = dataframe['gain'].clip(lower=0.0)
         dataframe['loss'] = dataframe['gain'].clip(upper=0.0)
         win_size = 32
+        n_std = 2.0
         dataframe['target_profit'] = dataframe['profit'].rolling(window=win_size).mean() + \
-            2.0 * dataframe['profit'].rolling(window=win_size).std()
+            n_std * dataframe['profit'].rolling(window=win_size).std()
         dataframe['target_loss'] = dataframe['loss'].rolling(window=win_size).mean() - \
-            2.0 * abs(dataframe['loss'].rolling(window=win_size).std())
+            n_std * abs(dataframe['loss'].rolling(window=win_size).std())
 
         # RSI
         dataframe['rsi'] = ta.RSI(dataframe, timeperiod=self.win_size)
@@ -937,11 +938,13 @@ class TS_Coeff(IStrategy):
         data = self.merge_coeff_table(df_norm)
 
         plen = len(self.custom_trade_info[self.curr_pair]['predictions'])
+        dlen = len(dataframe['predicted_gain'])
+        clen = min(plen, dlen)
 
-        self.training_data = data[-plen:].copy()
-        self.training_labels = future_gain_data[-plen:].copy()
+        self.training_data = data[-clen:].copy()
+        self.training_labels = future_gain_data[-clen:].copy()
 
-        pred_array = np.zeros(plen, dtype=float)
+        pred_array = np.zeros(clen, dtype=float)
 
         # print(f"[predictions]:{np.shape(self.custom_trade_info[self.curr_pair]['predictions'])}  pred_array:{np.shape(pred_array)}")
 
@@ -965,11 +968,11 @@ class TS_Coeff(IStrategy):
         pred_array[-1] = preds[-1]
 
         dataframe['predicted_gain'] = 0.0
-        dataframe['predicted_gain'][-plen:] = pred_array.copy()
-        self.custom_trade_info[self.curr_pair]['predictions'] = pred_array.copy()
+        dataframe['predicted_gain'][-clen:] = pred_array[-clen:].copy()
+        self.custom_trade_info[self.curr_pair]['predictions'] = pred_array[-clen:].copy()
 
         # add gain to dataframe for display purposes
-        dataframe['future_gain'] = future_gain_data.copy()
+        dataframe['future_gain'][-clen:] = future_gain_data.copy()
 
         print(f'    {self.curr_pair}:   predict {preds[-1]:.2f}% gain')
 

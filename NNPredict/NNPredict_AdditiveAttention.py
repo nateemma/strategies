@@ -52,11 +52,11 @@ from tqdm.keras import TqdmCallback
 import random
 
 from NNPredict import NNPredict
-from NNPredictor_Attention import NNPredictor_Attention
+from NNPredictor_AdditiveAttention import NNPredictor_AdditiveAttention
 
 """
 ####################################################################################
-Predict_Attention - uses an Attention neural network to try and predict the future stock price
+Predict_AdditiveAttention - uses an Attention neural network to try and predict the future stock price
       
       This works by creating a  model that we train on the historical data, then use that model to predict 
       future values
@@ -76,7 +76,7 @@ Predict_Attention - uses an Attention neural network to try and predict the futu
 
 # this inherits from NNPredict and just replaces the model used for predictions
 
-class NNPredict_Attention(NNPredict):
+class NNPredict_AdditiveAttention(NNPredict):
     # plot_config = {
     #     'main_plot': {
     #         'mid': {'color': 'cornflowerblue'},
@@ -117,6 +117,6 @@ class NNPredict_Attention(NNPredict):
     ################################
 
     def get_classifier(self, pair, seq_len: int, num_features: int):
-        return NNPredictor_Attention(pair, seq_len, num_features)
+        return NNPredictor_AdditiveAttention(pair, seq_len, num_features)
 
     ################################

@@ -1,4 +1,4 @@
-# Neural Network Binary Classifier: this subclass uses a simple GRU model
+# Neural Network Binary Classifier: this subclass uses an Additive Attention model
 
 
 import numpy as np
@@ -39,31 +39,41 @@ np.random.seed(seed)
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
 #import keras
-# from keras import layers
+# from tensorflow.python.keras import layers, Model
 from utils.ClassifierKerasLinear import ClassifierKerasLinear
+# from Attention import Attention
 
 import h5py
 
 
-class NNPredictor_GRU(ClassifierKerasLinear):
+class NNPredictor_AdditiveAttention(ClassifierKerasLinear):
     is_trained = False
     clean_data_required = False  # training data can contain anomalies
     model_per_pair = False # separate model per pair
 
     # override the build_model function in subclasses
     def create_model(self, seq_len, num_features):
+        # Attention (Single Head)
 
-        model = tf.keras.Sequential(name=self.name)
+        inputs = tf.keras.layers.Input(shape=(seq_len, num_features))
 
-        inputs = tf.keras.Input(shape=(seq_len, num_features))
-        x = inputs
-        x = tf.keras.layers.Conv1D(filters=64, kernel_size=2, activation="relu", padding="causal")(x)
-        x = tf.keras.layers.GRU(32, return_sequences=True)(x)
+        x = tf.keras.layers.LSTM(num_features, activation='tanh', return_sequences=True,
+                        input_shape=(seq_len, num_features))(inputs)
+        x = tf.keras.layers.Dropout(0.2)(x)
+        x = tf.keras.layers.BatchNormalization()(x)
 
-        # x = tf.keras.layers.Dense(8)(x)
+        # x = tf.keras.layers.AdditiveAttention()([x, inputs])
+        x = tf.keras.layers.AdditiveAttention()([x, x])
+
         x = tf.keras.layers.LSTM(1, activation='tanh')(x)
 
-        # last layer is a linear (float) value - do not change
+        # remplace sequence column with the average value
+        # x = tf.keras.layers.GlobalAveragePooling1D()(x)
+
+        # x = tf.keras.layers.Dense(32)(x)
+
+         # last layer is linear - do not change
+        # x = tf.keras.layers.Dropout(0.2)(x)
         outputs = tf.keras.layers.Dense(1, activation="linear")(x)
 
         model = tf.keras.Model(inputs, outputs, name=self.name)
