@@ -67,6 +67,7 @@ import warnings
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 from xgboost import XGBRegressor
 # from lightgbm import LGBMRegressor
@@ -938,7 +939,7 @@ class TS_Coeff(IStrategy):
         data = self.merge_coeff_table(df_norm)
 
         plen = len(self.custom_trade_info[self.curr_pair]['predictions'])
-        dlen = len(dataframe['predicted_gain'])
+        dlen = np.shape(dataframe)[1]
         clen = min(plen, dlen)
 
         self.training_data = data[-clen:].copy()
@@ -972,7 +973,8 @@ class TS_Coeff(IStrategy):
         self.custom_trade_info[self.curr_pair]['predictions'] = pred_array[-clen:].copy()
 
         # add gain to dataframe for display purposes
-        dataframe['future_gain'][-clen:] = future_gain_data.copy()
+        dataframe['future_gain'] = 0.0
+        dataframe['future_gain'][-clen:] = future_gain_data[-clen:].copy()
 
         print(f'    {self.curr_pair}:   predict {preds[-1]:.2f}% gain')
 
