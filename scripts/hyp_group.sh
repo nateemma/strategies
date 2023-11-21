@@ -17,7 +17,17 @@ curr_file="$0"
 epochs=100
 spaces="sell"
 num_days=180
-start_date=$(date -j -v-${num_days}d +"%Y%m%d")
+# Get the operating system name
+os=$(uname)
+
+# Check if the operating system is Darwin (macOS)
+if [ "$os" = "Darwin" ]; then
+  # Use the -j -v option for BSD date command
+  start_date=$(date -j -v-${num_days}d +"%Y%m%d")
+else
+  # Use the -d option for GNU date command
+  start_date=$(date -d "-${num_days} days" +"%Y%m%d")
+fi
 today=$(date +"%Y%m%d")
 timerange="${start_date}-${today}"
 download=0
@@ -243,7 +253,7 @@ for strat in ${strat_list//.py/}; do
   #  if [[ "${spaces}" == "" ]]; then
   #    spaces=$space
   #  fi
-  
+
   # run main hyperopt
   args="${hargs} --epochs ${epochs} --space ${spaces} -s ${strat} --min-trades ${min_trades} "
   run_hyperopt ${args}

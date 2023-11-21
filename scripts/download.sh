@@ -30,9 +30,21 @@ END
 }
 
 
-#get date from 180 days ago (MacOS-specific)
+#get date from 1N80 days ago
 num_days=750
-start_date=$(date -j -v-${num_days}d +"%Y%m%d")
+
+# Get the operating system name
+os=$(uname)
+
+# Check if the operating system is Darwin (macOS)
+if [ "$os" = "Darwin" ]; then
+  # Use the -j -v option for BSD date command
+  start_date=$(date -j -v-${num_days}d +"%Y%m%d")
+else
+  # Use the -d option for GNU date command
+  start_date=$(date -d "-${num_days} days" +"%Y%m%d")
+fi
+
 timerange="${start_date}-"
 today=$(date +"%Y%m%d")
 num_days=180

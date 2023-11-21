@@ -13,9 +13,21 @@ leveraged=0
 
 spaces="buy sell"
 
-#get date from 30 days ago (MacOS-specific)
+#get date from 30 days ago (should work for both BSD and Linux systems)
 num_days=180
-start_date=$(date -j -v-${num_days}d +"%Y%m%d")
+
+# Get the operating system name
+os=$(uname)
+
+# Check if the operating system is Darwin (macOS)
+if [ "$os" = "Darwin" ]; then
+  # Use the -j -v option for BSD date command
+  start_date=$(date -j -v-${num_days}d +"%Y%m%d")
+else
+  # Use the -d option for GNU date command
+  start_date=$(date -d "-${num_days} days" +"%Y%m%d")
+fi
+
 end_date="$(date "+%Y%m%d")"
 
 timerange="${start_date}-${end_date}"
