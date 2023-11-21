@@ -77,7 +77,9 @@ for exchange in "${list[@]}"; do
   echo ""
 
   strat_dir="user_data/strategies/${exchange}"
-  config_file="${strat_dir}/config_${exchange}.json"
+  config_dir="user_data/strategies/config"
+  # config_file="${config_dir}/config_${exchange}.json"
+  config_file="${config_dir}/config.json"
 
   if [ ${short} -eq 1 ]; then
     fixed_args="--trading-mode futures ${fixed_args}"

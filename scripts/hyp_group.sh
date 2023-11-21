@@ -179,6 +179,23 @@ if [[ $num_files -eq 0 ]]; then
 fi
 
 
+# calculate min trades
+# extract start & end dates from timerange
+a=("${(@s/-/)timerange}")
+start=${a[1]} # don't know why it's reversed
+end=${a[0]}
+if [ -z "$end" ]; then
+  end="$(date "+%Y%m%d")"
+fi
+timerange="${start}-${end}"
+
+#echo "timerange:${timerange} start:${start} end:${end}"
+
+# calculate diff
+zmodload zsh/datetime
+diff=$(( ( $(strftime -r %Y%m%d "$end") - $(strftime -r %Y%m%d "$start") ) / 86400 ))
+min_trades=$((diff / 2))
+
 
 echo "" >$logfile
 add_line ""
@@ -223,11 +240,12 @@ for strat in ${strat_list//.py/}; do
   add_line ""
 
 
-#  if [[ "${spaces}" == "" ]]; then
-#    spaces=$space
-#  fi
+  #  if [[ "${spaces}" == "" ]]; then
+  #    spaces=$space
+  #  fi
+  
   # run main hyperopt
-  args="${hargs} --epochs ${epochs} --space ${spaces} -s ${strat}"
+  args="${hargs} --epochs ${epochs} --space ${spaces} -s ${strat} --min-trades ${min_trades} "
   run_hyperopt ${args}
 
 done

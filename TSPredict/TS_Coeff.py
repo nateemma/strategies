@@ -238,6 +238,7 @@ class TS_Coeff(IStrategy):
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
 
+        #NOTE: if you change the indicators, you need to regenerate the model
 
         # Base pair dataframe timeframe indicators
         curr_pair = metadata['pair']

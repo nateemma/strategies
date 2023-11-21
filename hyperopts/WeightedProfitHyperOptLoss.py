@@ -52,7 +52,7 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         weight_abs_profit = 2.0
         weight_exp_profit = 0.5
         weight_ave_profit = 1.0
-        weight_expectancy = 1.0
+        weight_expectancy = 1.5
         weight_win_loss_ratio = 2.0
         weight_sharp_ratio = 1.0
         weight_sortino_ratio = 0.25
