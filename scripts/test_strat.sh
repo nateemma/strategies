@@ -13,20 +13,28 @@ leveraged=0
 
 spaces="buy sell"
 
-#get date from 30 days ago (should work for both BSD and Linux systems)
 num_days=180
+start_date=$(date +"%Y%m%d")
 
-# Get the operating system name
-os=$(uname)
+set_start_date () {
+  # ndays="$1"
 
-# Check if the operating system is Darwin (macOS)
-if [ "$os" = "Darwin" ]; then
-  # Use the -j -v option for BSD date command
-  start_date=$(date -j -v-${num_days}d +"%Y%m%d")
-else
-  # Use the -d option for GNU date command
-  start_date=$(date -d "-${num_days} days" +"%Y%m%d")
-fi
+  # Get the operating system name
+  os=$(uname)
+
+  # Check if the operating system is Darwin (macOS)
+  if [ "$os" = "Darwin" ]; then
+    # Use the -j -v option for BSD date command
+    start_date=$(date -j -v-${num_days}d +"%Y%m%d")
+  else
+    # Use the -d option for GNU date command
+    start_date=$(date -d "-${num_days} days ago " +"%Y%m%d")
+  fi
+}
+
+#get date from num_days days ago
+set_start_date
+
 
 end_date="$(date "+%Y%m%d")"
 
@@ -71,7 +79,7 @@ while getopts :c:e:j:ln:st:-: OPT; do
     e | epochs )     needs_arg; epochs="$OPTARG" ;;
     l | leveraged )  leveraged=1 ;;
     j | jobs )       needs_arg; jarg="-j $OPTARG" ;;
-    n | ndays )      needs_arg; num_days="$OPTARG"; timerange="$(date -j -v-${num_days}d +"%Y%m%d")-" ;;
+    n | ndays )      needs_arg; num_days="$OPTARG"; set_start_date; timerange="${start_date}-${today}" ;;
     s | short )      short=1 ;;
     t | timeframe )  needs_arg; timerange="$OPTARG" ;;
     ??* )            show_usage; die "Illegal option --$OPT" ;;  # bad long option

@@ -43,19 +43,28 @@ leveraged=0
 
 spaces="sell"
 
-#get date from 180 days ago (MacOS-specific)
 num_days=180
-# Get the operating system name
-os=$(uname)
+start_date=$(date +"%Y%m%d")
 
-# Check if the operating system is Darwin (macOS)
-if [ "$os" = "Darwin" ]; then
-  # Use the -j -v option for BSD date command
-  start_date=$(date -j -v-${num_days}d +"%Y%m%d")
-else
-  # Use the -d option for GNU date command
-  start_date=$(date -d "-${num_days} days" +"%Y%m%d")
-fi
+set_start_date () {
+  # ndays="$1"
+
+  # Get the operating system name
+  os=$(uname)
+
+  # Check if the operating system is Darwin (macOS)
+  if [ "$os" = "Darwin" ]; then
+    # Use the -j -v option for BSD date command
+    start_date=$(date -j -v-${num_days}d +"%Y%m%d")
+  else
+    # Use the -d option for GNU date command
+    start_date=$(date -d "-${num_days} days ago " +"%Y%m%d")
+  fi
+}
+
+#get date from num_days days ago
+set_start_date
+
 timerange="${start_date}-"
 
 # process options
@@ -75,7 +84,7 @@ while getopts :c:e:j:l:n:s:t:-: OPT; do
     l | loss )       needs_arg; loss="$OPTARG" ;;
         leveraged )  leveraged=1 ;;
     j | jobs )       needs_arg; jarg="-j $OPTARG" ;;
-    n | ndays )      needs_arg; num_days="$OPTARG"; timerange="$(date -j -v-${num_days}d +"%Y%m%d")-" ;;
+    n | ndays )      needs_arg; num_days="$OPTARG"; set_start_date; timerange="${start_date}-${today}" ;;
     s | spaces )     needs_arg; spaces="${OPTARG}" ;;
         short )      short=1 ;;
     t | timeframe )  needs_arg; timerange="$OPTARG" ;;
