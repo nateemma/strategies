@@ -822,7 +822,7 @@ class TS_Simple(IStrategy):
             print("*** Exception in add_latest_prediction()")
             print(e) # prints the error message
             print(traceback.format_exc()) # prints the full traceback
-            
+
         return dataframe
 
     #-------------
@@ -859,13 +859,11 @@ class TS_Simple(IStrategy):
                 dataframe = self.add_jumping_predictions(dataframe)
                 # dataframe = self.add_rolling_predictions(dataframe)
                 self.custom_trade_info[self.curr_pair]['initialised'] = True
+                self.custom_trade_info[self.curr_pair]['predictions'] = dataframe['predicted_gain'].copy()
 
             else:
                 # print(f'    updating latest prediction for: {self.curr_pair}')
                 dataframe = self.add_latest_prediction(dataframe)
-
-            # save the predictions and targets
-            self.custom_trade_info[self.curr_pair]['predictions'] = dataframe['predicted_gain'].to_numpy()
 
 
         if run_profiler:

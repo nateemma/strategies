@@ -1027,20 +1027,11 @@ class TS_Coeff(IStrategy):
                 dataframe = self.add_jumping_predictions(dataframe)
                 # dataframe = self.add_rolling_predictions(dataframe)
                 self.custom_trade_info[self.curr_pair]['initialised'] = True
+                self.custom_trade_info[self.curr_pair]['predictions'] = dataframe['predicted_gain'].copy()
 
-                # init target values to hyperopt values. Will be dynamic after this point
-                # dataframe['target_profit'] = float(self.entry_model_gain.value)
-                # # dataframe['target_loss'] = float(self.exit_model_gain.value)
-                # self.target_profit = self.entry_model_gain.value
-                # self.target_loss = self.exit_model_gain.value
             else:
                 # print(f'    updating latest prediction for: {self.curr_pair}')
                 dataframe = self.add_latest_prediction(dataframe)
-
-            # save the predictions and targets
-            self.custom_trade_info[self.curr_pair]['predictions'] = dataframe['predicted_gain'].to_numpy()
-            # self.custom_trade_info[self.curr_pair]['target_profit'] = dataframe['target_profit'].to_numpy()
-            # self.custom_trade_info[self.curr_pair]['target_loss'] = dataframe['target_loss'].to_numpy()
 
 
         if run_profiler:
