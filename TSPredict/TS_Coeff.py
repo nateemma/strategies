@@ -25,6 +25,7 @@ from functools import reduce
 
 import cProfile
 import pstats
+import traceback
 
 import numpy as np
 # Get rid of pandas warnings during backtesting
@@ -943,45 +944,51 @@ class TS_Coeff(IStrategy):
 
         data = self.merge_coeff_table(df_norm)
 
-        plen = len(self.custom_trade_info[self.curr_pair]['predictions'])
-        dlen = np.shape(dataframe)[1]
-        clen = min(plen, dlen)
+        try:
+            plen = len(self.custom_trade_info[self.curr_pair]['predictions'])
+            dlen = np.shape(dataframe)[1]
+            clen = min(plen, dlen)
 
-        self.training_data = data[-clen:].copy()
-        self.training_labels = future_gain_data[-clen:].copy()
+            self.training_data = data[-clen:].copy()
+            self.training_labels = future_gain_data[-clen:].copy()
 
-        pred_array = np.zeros(clen, dtype=float)
+            pred_array = np.zeros(clen, dtype=float)
 
-        # print(f"[predictions]:{np.shape(self.custom_trade_info[self.curr_pair]['predictions'])}  pred_array:{np.shape(pred_array)}")
+            # print(f"[predictions]:{np.shape(self.custom_trade_info[self.curr_pair]['predictions'])}  pred_array:{np.shape(pred_array)}")
 
-        # copy previous predictions and shift down by 1
-        pred_array = self.custom_trade_info[self.curr_pair]['predictions'].copy()
-        pred_array = np.roll(pred_array, -1)
-        pred_array[-1] = 0.0
+            # copy previous predictions and shift down by 1
+            pred_array = self.custom_trade_info[self.curr_pair]['predictions'].copy()
+            pred_array = np.roll(pred_array, -1)
+            pred_array[-1] = 0.0
 
-        # cannot use last portion because we are looking ahead
-        dslice = self.training_data[:-self.lookahead]
-        tslice = self.training_labels[:-self.lookahead]
+            # cannot use last portion because we are looking ahead
+            dslice = self.training_data[:-self.lookahead]
+            tslice = self.training_labels[:-self.lookahead]
 
-        # retrain base model and get predictions
-        base_model = copy.deepcopy(self.model)
-        self.train_model(base_model, dslice, tslice, False)
-        preds = self.predict_data(base_model, self.training_data)
+            # retrain base model and get predictions
+            base_model = copy.deepcopy(self.model)
+            self.train_model(base_model, dslice, tslice, False)
+            preds = self.predict_data(base_model, self.training_data)
 
-        # self.model = copy.deepcopy(base_model) # restore original model
+            # self.model = copy.deepcopy(base_model) # restore original model
 
-        # only replace last prediction (i.e. don't overwrite the historical predictions)
-        pred_array[-1] = preds[-1]
+            # only replace last prediction (i.e. don't overwrite the historical predictions)
+            pred_array[-1] = preds[-1]
 
-        dataframe['predicted_gain'] = 0.0
-        dataframe['predicted_gain'][-clen:] = pred_array[-clen:].copy()
-        self.custom_trade_info[self.curr_pair]['predictions'] = pred_array[-clen:].copy()
+            dataframe['predicted_gain'] = 0.0
+            dataframe['predicted_gain'][-clen:] = pred_array[-clen:].copy()
+            self.custom_trade_info[self.curr_pair]['predictions'] = pred_array[-clen:].copy()
 
-        # add gain to dataframe for display purposes
-        dataframe['future_gain'] = 0.0
-        dataframe['future_gain'][-clen:] = future_gain_data[-clen:].copy()
+            # add gain to dataframe for display purposes
+            dataframe['future_gain'] = 0.0
+            dataframe['future_gain'][-clen:] = future_gain_data[-clen:].copy()
 
-        print(f'    {self.curr_pair}:   predict {preds[-1]:.2f}% gain')
+            print(f'    {self.curr_pair}:   predict {preds[-1]:.2f}% gain')
+
+        except Exception as e:
+            print("*** Exception in add_latest_prediction()")
+            print(e) # prints the error message
+            print(traceback.format_exc()) # prints the full traceback
 
         return dataframe
 
