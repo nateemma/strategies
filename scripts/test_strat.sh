@@ -148,9 +148,11 @@ fi
 
 
 # adjust timerange to make sure there is an end date (which enables caching of data in backtesting)
-a=("${(@s/-/)timerange}")
-start=${a[1]} # don't know why it's reversed
-end=${a[0]}
+# a=("${(@s/-/)timerange}")
+# start=${a[1]} # don't know why it's reversed
+# end=${a[0]}
+start=$(echo $timerange | cut -d "-" -f 1)
+end=$(echo $timerange | cut -d "-" -f 2)
 if [ -z "$end" ]; then
   end="$(date "+%Y%m%d")"
 fi

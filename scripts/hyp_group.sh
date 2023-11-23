@@ -202,9 +202,11 @@ fi
 
 # calculate min trades
 # extract start & end dates from timerange
-a=("${(@s/-/)timerange}")
-start=${a[1]} # don't know why it's reversed
-end=${a[0]}
+# a=("${(@s/-/)timerange}")
+# start=${a[1]} # don't know why it's reversed
+# end=${a[0]}
+start=$(echo $timerange | cut -d "-" -f 1)
+end=$(echo $timerange | cut -d "-" -f 2)
 if [ -z "$end" ]; then
   end="$(date "+%Y%m%d")"
 fi

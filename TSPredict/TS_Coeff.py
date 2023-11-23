@@ -94,7 +94,7 @@ class TS_Coeff(IStrategy):
         'subplots': {
             "Diff": {
                 'predicted_gain': {'color': 'orange'},
-                'future_gain': {'color': 'lightblue'},
+                'gain': {'color': 'lightblue'},
                 'target_profit': {'color': 'lightgreen'},
                 'target_loss': {'color': 'lightsalmon'}
             },
@@ -918,15 +918,6 @@ class TS_Coeff(IStrategy):
 
         dataframe['predicted_gain'] = pred_array.copy()
 
-        # add gain to dataframe for display purposes
-        dataframe['future_gain'] = future_gain_data.copy()
-
-        # # update pair-specific model
-        # self.custom_trade_info[self.curr_pair]['model'] = model
-
-        # # restore model
-        # self.model = copy.deepcopy(base_model)
-
         return dataframe
 
     #-------------
@@ -936,17 +927,17 @@ class TS_Coeff(IStrategy):
 
         df = dataframe
 
-        # set up training data
-        #TODO: see if we can do this incrementally instead of rebuilding every time, or just use portion of data
-        future_gain_data = self.get_future_gain(df)
-        df_norm = self.convert_dataframe(dataframe)
-        self.build_coefficient_table(df_norm['gain'].to_numpy()) 
-
-        data = self.merge_coeff_table(df_norm)
-
         try:
+            # set up training data
+            #TODO: see if we can do this incrementally instead of rebuilding every time, or just use portion of data
+            future_gain_data = self.get_future_gain(df)
+            df_norm = self.convert_dataframe(dataframe)
+            self.build_coefficient_table(df_norm['gain'].to_numpy()) 
+
+            data = self.merge_coeff_table(df_norm)
+
             plen = len(self.custom_trade_info[self.curr_pair]['predictions'])
-            dlen = np.shape(dataframe)[1]
+            dlen = len(dataframe['gain'])
             clen = min(plen, dlen)
 
             self.training_data = data[-clen:].copy()
@@ -977,11 +968,7 @@ class TS_Coeff(IStrategy):
 
             dataframe['predicted_gain'] = 0.0
             dataframe['predicted_gain'][-clen:] = pred_array[-clen:].copy()
-            self.custom_trade_info[self.curr_pair]['predictions'] = pred_array[-clen:].copy()
-
-            # add gain to dataframe for display purposes
-            dataframe['future_gain'] = 0.0
-            dataframe['future_gain'][-clen:] = future_gain_data[-clen:].copy()
+            self.custom_trade_info[self.curr_pair]['predictions'][-clen:] = pred_array[-clen:].copy()
 
             print(f'    {self.curr_pair}:   predict {preds[-1]:.2f}% gain')
 
@@ -1028,7 +1015,6 @@ class TS_Coeff(IStrategy):
                 # dataframe = self.add_rolling_predictions(dataframe)
                 self.custom_trade_info[self.curr_pair]['initialised'] = True
                 self.custom_trade_info[self.curr_pair]['predictions'] = dataframe['predicted_gain'].copy()
-
             else:
                 # print(f'    updating latest prediction for: {self.curr_pair}')
                 dataframe = self.add_latest_prediction(dataframe)
