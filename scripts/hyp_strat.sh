@@ -58,7 +58,7 @@ set_start_date () {
     start_date=$(date -j -v-${num_days}d +"%Y%m%d")
   else
     # Use the -d option for GNU date command
-    start_date=$(date -d "-${num_days} days ago " +"%Y%m%d")
+    start_date=$(date -d "${num_days} days ago " +"%Y%m%d")
   fi
 }
 

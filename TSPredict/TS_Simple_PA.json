@@ -23,19 +23,19 @@
     "sell": {
       "cexit_fwr_overbought": 1.0,
       "cexit_fwr_take_profit": 1.0,
-      "cexit_loss_threshold": -0.034,
-      "cexit_profit_threshold": 0.01,
+      "cexit_loss_threshold": -0.04,
+      "cexit_profit_threshold": 0.009,
       "cexit_use_loss_threshold": false,
       "cexit_use_profit_threshold": false,
       "cstop_enable": false,
-      "cstop_ratio": 0.735,
-      "cstop_start": 0.019,
+      "cstop_ratio": 0.951,
+      "cstop_start": 0.02,
       "enable_exit_guards": false,
       "enable_exit_signal": true,
-      "exit_guard_fwr": 0.2
+      "exit_guard_fwr": 0.4
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2023-11-22 18:18:37.297514+00:00"
+  "export_time": "2023-11-23 05:51:38.799502+00:00"
 }
