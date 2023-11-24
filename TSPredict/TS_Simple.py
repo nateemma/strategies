@@ -74,7 +74,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 from utils.DataframeUtils import DataframeUtils, ScalerType # pylint: disable=E0401
 # import pywt
 import talib.abstract as ta
-
+import utils.legendary_ta as lta
 
 
 
@@ -305,11 +305,11 @@ class TS_Simple(IStrategy):
         dataframe['macdsignal'] = macd['macdsignal']
         dataframe['macdhist'] = macd['macdhist']
 
-        '''
+
         # moving averages
-        dataframe['sma'] = ta.SMA(dataframe, timeperiod=self.win_size)
-        dataframe['ema'] = ta.EMA(dataframe, timeperiod=self.win_size)
-        dataframe['tema'] = ta.TEMA(dataframe, timeperiod=self.win_size)
+        dataframe['sma'] = ta.SMA(dataframe, timeperiod=14)
+        dataframe['ema'] = ta.EMA(dataframe, timeperiod=14)
+        dataframe['tema'] = ta.TEMA(dataframe, timeperiod=14)
 
         # Donchian Channels
         dataframe['dc_upper'] = ta.MAX(dataframe['high'], timeperiod=self.win_size)
@@ -317,25 +317,7 @@ class TS_Simple(IStrategy):
         dataframe['dc_mid'] = ta.TEMA(((dataframe['dc_upper'] + dataframe['dc_lower']) / 2), timeperiod=self.win_size)
 
 
-        # Keltner Channels (these can sometimes produce inf results)
-        keltner = qtpylib.keltner_channel(dataframe)
-        dataframe["kc_upper"] = keltner["upper"]
-        dataframe["kc_lower"] = keltner["lower"]
-        dataframe["kc_mid"] = keltner["mid"]
-
-        # Stochastic
-        period = 14
-        smoothD = 3
-        SmoothK = 3
-        stochrsi = (dataframe['rsi'] - dataframe['rsi'].rolling(period).min()) / (
-                dataframe['rsi'].rolling(period).max() - dataframe['rsi'].rolling(period).min())
-        dataframe['srsi_k'] = stochrsi.rolling(SmoothK).mean() * 100
-        dataframe['srsi_d'] = dataframe['srsi_k'].rolling(smoothD).mean()
-
-
-        '''
-
-        dataframe['model_gain'] = 0.0
+        dataframe['predicted_gain'] = 0.0
 
         # create and init the model, if first time (dataframe has to be populated first)
         if self.model is None:
