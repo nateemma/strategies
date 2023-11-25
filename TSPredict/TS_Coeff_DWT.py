@@ -41,6 +41,7 @@ class TS_Coeff_DWT(TS_Coeff):
         # get the DWT coefficients
         # wavelet = 'db8'
         wavelet = 'bior3.9'
+        wavelet = 'sym10'
         level = 2
         coeffs = pywt.wavedec(x, wavelet, mode='smooth', level=level)
 

@@ -751,10 +751,7 @@ class TS_Simple(IStrategy):
             # set up training data
             #TODO: see if we can do this incrementally instead of rebuilding every time, or just use portion of data
             future_gain_data = self.get_future_gain(df)
-            df_norm = self.convert_dataframe(dataframe)
-            self.build_coefficient_table(df_norm['gain'].to_numpy()) 
-
-            data = self.merge_coeff_table(df_norm)
+            data = np.array(self.convert_dataframe(dataframe))
 
             plen = len(self.custom_trade_info[self.curr_pair]['predictions'])
             dlen = len(dataframe['gain'])
@@ -768,7 +765,7 @@ class TS_Simple(IStrategy):
             # print(f"[predictions]:{np.shape(self.custom_trade_info[self.curr_pair]['predictions'])}  pred_array:{np.shape(pred_array)}")
 
             # copy previous predictions and shift down by 1
-            pred_array = self.custom_trade_info[self.curr_pair]['predictions'].copy()
+            pred_array[-clen:] = self.custom_trade_info[self.curr_pair]['predictions'][-clen:].copy()
             pred_array = np.roll(pred_array, -1)
             pred_array[-1] = 0.0
 

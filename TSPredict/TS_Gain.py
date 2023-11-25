@@ -73,6 +73,7 @@ from xgboost import XGBRegressor
 # from lightgbm import LGBMRegressor
 from sklearn.linear_model import PassiveAggressiveRegressor
 from sklearn.linear_model import SGDRegressor
+from sklearn.svm import SVR
 
 from utils.DataframeUtils import DataframeUtils, ScalerType # pylint: disable=E0401
 # import pywt
@@ -432,11 +433,12 @@ class TS_Gain(IStrategy):
 
     def create_model(self, df_shape):
 
-        # params = {'n_estimators': 100, 'max_depth': 4, 'learning_rate': 0.1}
-        # self.model = XGBRegressor(**params)
+        params = {'n_estimators': 100, 'max_depth': 4, 'learning_rate': 0.1}
+        self.model = XGBRegressor(**params)
 
-        # self.model = PassiveAggressiveRegressor(warm_start=True)
-        self.model = SGDRegressor(loss='huber')
+        # # self.model = PassiveAggressiveRegressor(warm_start=True)
+        # self.model = SGDRegressor(loss='huber')
+        # self.model = SVR()
 
         print(f"    creating new model using: {type(self.model)}")
 
@@ -744,7 +746,7 @@ class TS_Gain(IStrategy):
             # print(f"[predictions]:{np.shape(self.custom_trade_info[self.curr_pair]['predictions'])}  pred_array:{np.shape(pred_array)}")
 
             # copy previous predictions and shift down by 1
-            pred_array = self.custom_trade_info[self.curr_pair]['predictions'].copy()
+            pred_array[-clen:] = self.custom_trade_info[self.curr_pair]['predictions'][-clen:].copy()
             pred_array = np.roll(pred_array, -1)
             pred_array[-1] = 0.0
 

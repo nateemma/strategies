@@ -948,7 +948,7 @@ class TS_Coeff(IStrategy):
             # print(f"[predictions]:{np.shape(self.custom_trade_info[self.curr_pair]['predictions'])}  pred_array:{np.shape(pred_array)}")
 
             # copy previous predictions and shift down by 1
-            pred_array = self.custom_trade_info[self.curr_pair]['predictions'].copy()
+            pred_array[-clen:] = self.custom_trade_info[self.curr_pair]['predictions'][-clen:].copy()
             pred_array = np.roll(pred_array, -1)
             pred_array[-1] = 0.0
 
