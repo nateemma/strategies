@@ -1,5 +1,5 @@
 {
-  "strategy_name": "TS_Coeff_SWT",
+  "strategy_name": "TSPredict",
   "params": {
     "roi": {
       "0": 0.06
@@ -23,19 +23,19 @@
     "sell": {
       "enable_exit_guards": true,
       "cexit_fwr_overbought": 1.0,
-      "cexit_fwr_take_profit": 1.0,
-      "cexit_loss_threshold": -0.038,
-      "cexit_profit_threshold": 0.031,
+      "cexit_fwr_take_profit": 0.97,
+      "cexit_loss_threshold": -0.055,
+      "cexit_profit_threshold": 0.006,
       "cexit_use_loss_threshold": false,
       "cexit_use_profit_threshold": false,
-      "cstop_enable": true,
+      "cstop_enable": false,
       "cstop_ratio": 0.939,
-      "cstop_start": 0.049,
+      "cstop_start": 0.012,
       "enable_exit_signal": true,
-      "exit_guard_fwr": 0.8
+      "exit_guard_fwr": 1.0
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2023-11-25 21:13:08.797029+00:00"
+  "export_time": "2023-11-25 19:50:33.686305+00:00"
 }
