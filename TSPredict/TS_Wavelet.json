@@ -1,5 +1,5 @@
 {
-  "strategy_name": "TS_Coeff",
+  "strategy_name": "TS_Wavelet",
   "params": {
     "roi": {
       "0": 0.06
@@ -31,7 +31,7 @@
       "cstop_enable": false,
       "cstop_ratio": 0.838,
       "cstop_start": 0.032,
-      "enable_exit_signal": false,
+      "enable_exit_signal": true,
       "exit_guard_fwr": 0.0
     },
     "protection": {}
