@@ -709,10 +709,10 @@ class TSPredict(IStrategy):
             self.custom_trade_info[self.curr_pair]['predictions'][-clen:] = pred_array[-clen:].copy()
 
             pg = preds[-1]
-            if pg <= dataframe['target_loss'][-1]:
-                tag = " * "
-            elif pg >= dataframe['target_gain'][-1]:
+            if pg <= dataframe['target_loss'].iloc[-1]:
                 tag = "(*)"
+            elif pg >= dataframe['target_profit'].iloc[-1]:
+                tag = " * "
             else:
                 tag = "   "
             print(f'    {tag} predict {pg:4.2f}% gain for: {self.curr_pair}')
