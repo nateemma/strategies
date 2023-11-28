@@ -80,7 +80,7 @@ class TS_Wavelet(IStrategy):
         },
         'subplots': {
             "Diff": {
-                'predicted_gain': {'color': 'orange'},
+                'predicted_gain': {'color': 'purple'},
                 'gain': {'color': 'lightblue'},
                 'target_profit': {'color': 'lightgreen'},
                 'target_loss': {'color': 'lightsalmon'}
@@ -251,8 +251,8 @@ class TS_Wavelet(IStrategy):
         dataframe['target_loss'] = dataframe['loss'].rolling(window=win_size).mean() - \
             n_std * abs(dataframe['loss'].rolling(window=win_size).std())
 
-        dataframe['target_profit'] = dataframe['target_profit'].clip(lower=0.5)
-        dataframe['target_loss'] = dataframe['target_loss'].clip(upper=-0.2)
+        dataframe['target_profit'] = dataframe['target_profit'].clip(lower=0.1)
+        dataframe['target_loss'] = dataframe['target_loss'].clip(upper=-0.1)
         
         dataframe['target_profit'] = np.nan_to_num(dataframe['target_profit'])
         dataframe['target_loss'] = np.nan_to_num(dataframe['target_loss'])
@@ -787,7 +787,14 @@ class TS_Wavelet(IStrategy):
             dataframe['predicted_gain'][-clen:] = pred_array[-clen:].copy()
             self.custom_trade_info[self.curr_pair]['predictions'][-clen:] = pred_array[-clen:].copy()
 
-            print(f'    {self.curr_pair}:   predict {preds[-1]:.2f}% gain')
+            pg = preds[-1]
+            if pg <= dataframe['target_loss'][-1]:
+                tag = " * "
+            elif pg >= dataframe['target_gain'][-1]:
+                tag = "(*)"
+            else:
+                tag = "   "
+            print(f'    {tag} predict {pg:4.2f}% gain for: {self.curr_pair}')
 
         except Exception as e:
             print("*** Exception in add_latest_prediction()")
