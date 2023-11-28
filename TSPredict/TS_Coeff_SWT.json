@@ -18,21 +18,21 @@
     },
     "buy": {
       "enable_entry_guards": true,
-      "entry_guard_fwr": 0.0
+      "entry_guard_fwr": -0.3
     },
     "sell": {
       "enable_exit_guards": true,
       "cexit_fwr_overbought": 1.0,
-      "cexit_fwr_take_profit": 1.0,
-      "cexit_loss_threshold": -0.038,
-      "cexit_profit_threshold": 0.031,
+      "cexit_fwr_take_profit": 0.99,
+      "cexit_loss_threshold": -0.039,
+      "cexit_profit_threshold": 0.055,
       "cexit_use_loss_threshold": false,
       "cexit_use_profit_threshold": false,
       "cstop_enable": true,
-      "cstop_ratio": 0.939,
-      "cstop_start": 0.049,
-      "enable_exit_signal": true,
-      "exit_guard_fwr": 0.8
+      "cstop_ratio": 0.917,
+      "cstop_start": 0.058,
+      "enable_exit_signal": false,
+      "exit_guard_fwr": 1.0
     },
     "protection": {}
   },

@@ -53,7 +53,7 @@ class TS_Coeff_SWT(TS_Coeff):
         coeffs = pywt.swt(x, wavelet, level=levels)
         
         num_levels = np.shape(coeffs)[0] # varies depending upon the wavelet used
-        '''
+
         # coeff_list = np.array([data[-1]]) # always include the last input data point
         # coeff_list = [data[-1]] # always include the last input data point
         coeff_list = [] 
@@ -69,9 +69,6 @@ class TS_Coeff_SWT(TS_Coeff):
         features = np.array(coeff_list, dtype=float)
 
         return features
-    
-        '''
-        return self.coeff_to_array(coeffs)
 
     #-------------
 
