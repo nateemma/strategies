@@ -131,7 +131,8 @@ class TS_Wavelet(IStrategy):
     # model_window = startup_candle_count
     model_window = 128
 
-    lookahead = 6
+    # lookahead = 6
+    lookahead = 12
 
     df_coeffs: DataFrame = None
     coeff_table = None
@@ -242,7 +243,8 @@ class TS_Wavelet(IStrategy):
         # target profit/loss thresholds        
         dataframe['profit'] = dataframe['gain'].clip(lower=0.0)
         dataframe['loss'] = dataframe['gain'].clip(upper=0.0)
-        win_size = 32
+        # win_size = 32
+        win_size = self.lookahead
         n_std = 2.0
         dataframe['target_profit'] = dataframe['profit'].rolling(window=win_size).mean() + \
             n_std * dataframe['profit'].rolling(window=win_size).std()
@@ -437,7 +439,8 @@ class TS_Wavelet(IStrategy):
         # get the DWT coefficients
         self.wavelet = 'bior3.9'
         # self.wavelet = 'db2'
-        self.mode = 'smooth'
+        # self.mode = 'smooth'
+        self.mode = 'zero'
         self.coeff_format = "wavedec"
         level = 2
         coeffs = pywt.wavedec(x, self.wavelet, mode=self.mode, level=level)
@@ -636,7 +639,7 @@ class TS_Wavelet(IStrategy):
 
         coeff_arr = []
 
-        training_data = data[train_start:train_end - self.lookahead]
+        training_data = data[train_start:train_end - self.lookahead] # better, but much slower
         predict_data = data[predict_start:predict_end]
 
         # create the model
@@ -647,6 +650,7 @@ class TS_Wavelet(IStrategy):
 
         # train/predict for each coefficient individually
         for i in range(self.coeff_start_col, ncols):
+            # training_data = data[train_start:train_end, i][:-self.lookahead].reshape(-1,1) # less accurate, but much faster
             training_labels = data[train_start:train_end, i][self.lookahead:]
             training_labels = np.nan_to_num(training_labels)
 
@@ -657,6 +661,7 @@ class TS_Wavelet(IStrategy):
             self.model.fit(training_data, training_labels)
 
             # get a prediction
+            # predict_data = data[predict_start:predict_end, i].reshape(-1,1) # less accurate, but much faster
             pred = self.model.predict(predict_data)[-1]
             coeff_arr.append(pred)
 
@@ -742,6 +747,7 @@ class TS_Wavelet(IStrategy):
         df = dataframe
         win_size = 126
         nrows = np.shape(df)[0]
+        train_size = 256
 
         try:
             # set up training data
@@ -766,7 +772,11 @@ class TS_Wavelet(IStrategy):
             pred_array[-1] = 0.0
 
             # get predictions
-            preds = self.predict_data(data, 0, -win_size - 1, -win_size, nrows)
+            train_end = nrows - (win_size + 1)
+            train_start = max(0, train_end - train_size)
+            preds = self.predict_data(data, 
+                                      train_start, train_end, 
+                                      -win_size, nrows)
 
             # self.model = copy.deepcopy(base_model) # restore original model
 
