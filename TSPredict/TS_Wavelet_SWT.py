@@ -3,7 +3,7 @@
 
 """
 ####################################################################################
-TS_Coeff_SWT - use a Stabding Wave Transform model
+TS_Wavelet_SWT - use a Standing Wave Transform model
 
 ####################################################################################
 """
@@ -18,9 +18,12 @@ import pandas as pd
 from pandas import DataFrame, Series
 import pywt
 
-from TS_Coeff import TS_Coeff
 
-class TS_Coeff_SWT(TS_Coeff):
+from sklearn.preprocessing import RobustScaler
+
+from TS_Wavelet import TS_Wavelet
+
+class TS_Wavelet_SWT(TS_Wavelet):
 
     ###################################
 
@@ -41,36 +44,33 @@ class TS_Coeff_SWT(TS_Coeff):
         if (len(x) % 2) != 0:
             x = x[1:]
 
-        # wavelet = 'db4'
+        # self.wavelet = 'db4'
 
-        wavelet = 'bior3.9'
+        self.wavelet = 'bior3.9'
+
+        self.coeff_format = "wavedec"
 
         # (cA2, cD2), (cA1, cD1) = pywt.swt(data, wavelet, level=2)
         
         # swt returns an array, with each element being 2 arrays - cA_n and cD_n, whre n is the level
         levels = min(2, pywt.swt_max_level(len(x)))
         # levels = 1 #TMP DEBUG
-        coeffs = pywt.swt(x, wavelet, level=levels)
-        
-        num_levels = np.shape(coeffs)[0] # varies depending upon the wavelet used
+        coeffs = pywt.swt(x, self.wavelet, level=levels, trim_approx=True)
 
-        # coeff_list = np.array([data[-1]]) # always include the last input data point
-        # coeff_list = [data[-1]] # always include the last input data point
-        coeff_list = [] 
-        if num_levels > 0:
-            # add the approximation coefficients, then the detailed
-            for i in range(num_levels):
-                cA_n = coeffs[i][0]
-                cD_n = coeffs[i][1]
-                coeff_list.extend(cA_n)
-                coeff_list.extend(cD_n)
-
-        # print(f'coeff_list:{np.shape(coeff_list)}')
-        features = np.array(coeff_list, dtype=float)
-
-        return features
-    
-    return self.coeff_to_array(coeffs)
+        return self.coeff_to_array(coeffs)
 
     #-------------
 
+    def get_value(self, coeffs):
+        # series = pywt.waverec(coeffs, self.wavelet)
+
+        series = pywt.iswt(coeffs, wavelet=self.wavelet)
+        # print(f'    coeff_slices:{self.coeff_slices}, coeff_shapes:{self.coeff_shapes} series:{np.shape(series)}')
+
+        # de-norm
+        scaler = RobustScaler()
+        scaler.fit(self.gain_data.reshape(-1, 1))
+        denorm_series = scaler.inverse_transform(series.reshape(-1, 1)).squeeze()
+        return denorm_series
+    
+    # -------------

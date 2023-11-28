@@ -17,11 +17,11 @@
       "max_open_trades": 10
     },
     "buy": {
-      "enable_entry_guards": true,
+      "enable_entry_guards": false,
       "entry_guard_fwr": 0.0
     },
     "sell": {
-      "enable_exit_guards": true,
+      "enable_exit_guards": false,
       "cexit_fwr_overbought": 1.0,
       "cexit_fwr_take_profit": 0.97,
       "cexit_loss_threshold": -0.055,
@@ -32,7 +32,7 @@
       "cstop_ratio": 0.939,
       "cstop_start": 0.012,
       "enable_exit_signal": true,
-      "exit_guard_fwr": 1.0
+      "exit_guard_fwr": 0.0
     },
     "protection": {}
   },

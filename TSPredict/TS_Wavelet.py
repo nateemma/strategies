@@ -60,7 +60,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 from xgboost import XGBRegressor
 # from lightgbm import LGBMRegressor
 from sklearn.linear_model import PassiveAggressiveRegressor
-from sklearn.linear_model import SGDRegressor
+# from sklearn.linear_model import SGDRegressor
 
 from utils.DataframeUtils import DataframeUtils, ScalerType # pylint: disable=E0401
 # import pywt
@@ -137,6 +137,7 @@ class TS_Wavelet(IStrategy):
     coeff_table = None
     coeff_array = None
     coeff_start_col = 0
+    gain_data = None
 
     training_data = None
     training_labels = None
@@ -235,6 +236,9 @@ class TS_Wavelet(IStrategy):
         dataframe['gain'] = self.smooth(dataframe['gain'], 8)
         dataframe['gain'] = self.detrend_array(dataframe['gain'])
 
+        # need to save the gain data for later scaling
+        self.gain_data = dataframe['gain'].to_numpy().copy()
+
         # target profit/loss thresholds        
         dataframe['profit'] = dataframe['gain'].clip(lower=0.0)
         dataframe['loss'] = dataframe['gain'].clip(upper=0.0)
@@ -328,10 +332,10 @@ class TS_Wavelet(IStrategy):
     # look ahead to get future gain. Do *not* put this into the main dataframe!
     def get_future_gain(self, dataframe):
 
-        # df = self.convert_dataframe(dataframe)
-        # future_gain = df['gain'].shift(-self.lookahead).to_numpy()
+        df = self.convert_dataframe(dataframe)
+        future_gain = df['gain'].shift(-self.lookahead).to_numpy()
 
-        future_gain = dataframe['gain'].shift(-self.lookahead).to_numpy()
+        # future_gain = dataframe['gain'].shift(-self.lookahead).to_numpy()
         return self.smooth(future_gain, 8)
     
     ###################################
@@ -412,8 +416,10 @@ class TS_Wavelet(IStrategy):
     # Coefficient functions
  
     wavelet = "db2"
+    mode = "smooth"
     coeff_slices = None
     coeff_shapes = None
+    coeff_format = "wavedec"
 
     # function to get dwt coefficients
     def get_coeffs(self, data: np.array) -> np.array:
@@ -431,8 +437,10 @@ class TS_Wavelet(IStrategy):
         # get the DWT coefficients
         self.wavelet = 'bior3.9'
         # self.wavelet = 'db2'
+        self.mode = 'smooth'
+        self.coeff_format = "wavedec"
         level = 2
-        coeffs = pywt.wavedec(x, self.wavelet, mode='smooth', level=level)
+        coeffs = pywt.wavedec(x, self.wavelet, mode=self.mode, level=level)
 
         ''''''
         # remove higher harmonics
@@ -452,22 +460,41 @@ class TS_Wavelet(IStrategy):
 
     def coeff_to_array(self, coeffs):
         # flatten the coefficient arrays
-        arr, self.coeff_slices, self.coeff_shapes = pywt.ravel_coeffs(coeffs)
+
+        # faster:
+        # arr, self.coeff_slices, self.coeff_shapes = pywt.ravel_coeffs(coeffs)
+
+        # more general purpose (can use with many waveforms)
+        arr, self.coeff_slices = pywt.coeffs_to_array(coeffs)
+
         return np.array(arr)
 
     #-------------
 
     def array_to_coeff(self, array):
-        coeffs = pywt.unravel_coeffs(array, self.coeff_slices, self.coeff_shapes, output_format='wavedec')
+
+        # faster:
+        # coeffs = pywt.unravel_coeffs(array, self.coeff_slices, self.coeff_shapes, output_format='wavedec')
+
+        # more general purpose (can use with many waveforms)
+        coeffs = pywt.array_to_coeffs(array, self.coeff_slices, output_format=self.coeff_format)
+
         # print(f'    coeff_slices:{self.coeff_slices}, coeff_shapes:{self.coeff_shapes} array:{np.shape(array)}')
         return coeffs
 
     #-------------
 
     def get_value(self, coeffs):
-        series = pywt.waverec(coeffs, self.wavelet)
+        # series = pywt.waverec(coeffs, self.wavelet)
+
+        series = pywt.waverec(coeffs, wavelet=self.wavelet, mode=self.mode)
         # print(f'    coeff_slices:{self.coeff_slices}, coeff_shapes:{self.coeff_shapes} series:{np.shape(series)}')
-        return series
+
+        # de-norm
+        scaler = RobustScaler()
+        scaler.fit(self.gain_data.reshape(-1,1))
+        denorm_series = scaler.inverse_transform(series.reshape(-1, 1)).squeeze()
+        return denorm_series
 
     #-------------
 
@@ -551,11 +578,11 @@ class TS_Wavelet(IStrategy):
     # override this method if you want a different type of prediction model
     def create_model(self, df_shape):
 
-        # print("    creating new model using: XGBRegressor")
-        params = {'n_estimators': 100, 'max_depth': 4, 'learning_rate': 0.1}
-        self.model = XGBRegressor(**params)
+        # # print("    creating new model using: XGBRegressor")
+        # params = {'n_estimators': 100, 'max_depth': 4, 'learning_rate': 0.1}
+        # self.model = XGBRegressor(**params)
 
-        # # self.model = PassiveAggressiveRegressor(warm_start=True)
+        self.model = PassiveAggressiveRegressor(warm_start=False)
         # self.model = SGDRegressor(loss='huber')
 
         print(f"    creating new model using: {type(self.model)}")
@@ -565,7 +592,7 @@ class TS_Wavelet(IStrategy):
         return
 
     #-------------
-
+    '''
     # train the model. Override if not an sklearn-compatible algorithm
     # set save_model=False if you don't want to save the model (needed for ML algorithms)
     def train_model(self, model, data: np.array, results: np.array, save_model):
@@ -592,24 +619,15 @@ class TS_Wavelet(IStrategy):
 
         return
 
-
-    #-------------
-
-    # single prediction (for use in rolling calculation)
-    def predict(self, df) -> float:
-
-        data = np.array(self.convert_dataframe(df))
-
-        # y_pred = self.model.predict(data)[-1]
-        y_pred = self.predict_data(self.model, data)[-1]
-
-        return y_pred
+    '''
  
     
     #-------------
     
     # generate predictions for an np array 
-    def predict_data(self, model, data):
+    # data should be the entire data array, not a slice
+    # since we both train and predict, supply indices to allow trining and predicting in different regions
+    def predict_data(self, data, train_start, train_end, predict_start, predict_end):
 
         # a little different than other strats, since we train a model for each column
         x = np.nan_to_num(data)
@@ -618,25 +636,28 @@ class TS_Wavelet(IStrategy):
 
         coeff_arr = []
 
+        training_data = data[train_start:train_end - self.lookahead]
+        predict_data = data[predict_start:predict_end]
+
+        # create the model
+        if self.model is None:
+            self.create_model(np.shape(data))
+
+        # print(f'    train_start:{train_start}, train_end:{train_end}, predict_start:{predict_start}, predict_end:{predict_end}')
+
+        # train/predict for each coefficient individually
         for i in range(self.coeff_start_col, ncols):
-            # extract the training data
-            # training_data = data[:,i][:-self.lookahead-1].reshape((-1,1))
-            training_data = data[:-self.lookahead-1]
-            training_labels = data[:,i][self.lookahead+1:]
+            training_labels = data[train_start:train_end, i][self.lookahead:]
             training_labels = np.nan_to_num(training_labels)
 
             # print(f'    data:{np.shape(training_data)} labels:{np.shape(training_labels)}')
-            # create the model
-            if self.model is None:
-                self.create_model(np.shape(data))
+
 
             # fit the model
             self.model.fit(training_data, training_labels)
-            # self.train_model(self.model, training_data, training_labels, False)
 
             # get a prediction
-            # pred = self.model.predict(data[:,i])[-1]
-            pred = self.model.predict(data)[-1]
+            pred = self.model.predict(predict_data)[-1]
             coeff_arr.append(pred)
 
         # convert back to wavelet coefficients (different for each type of wavelet)
@@ -647,81 +668,6 @@ class TS_Wavelet(IStrategy):
         # print(f'    preds[-1]:{preds[-1]}')
 
         return preds
-
-
-    #-------------
-
-    # add predictions in a rolling fashion. Use this when future data is present (e.g. backtest)
-    def add_rolling_predictions(self, dataframe: DataFrame):
-
-        # limit training to what we would see in a live environment, otherwise results are too good
-        live_buffer_size = 974
-
-        # roll through the close data and predict for each step
-        nrows = np.shape(dataframe)[0]
-
-        # build the coefficient table and merge into the dataframe (outside the main loop)
-
-        gain_data = self.get_future_gain(dataframe)
-        data = self.get_data(dataframe)
-
-        # set up training data
-        self.training_data = data.copy()
-        self.training_labels = gain_data.copy()
-        # self.training_labels[:-self.lookahead] = gain_data[self.lookahead:]
-
-        # initialise the prediction array
-        pred_array = np.zeros(np.shape(gain_data), dtype=float)
-
-
-        # if training within loop, we need to use a buffer size at least 2x the  window size + lookahead
-        # win_size = live_buffer_size
-        win_size = 12
-        # max_win_size = live_buffer_size 
-
-        start = 0
-        end = start + win_size
-        first_time = True
-
-        # model = self.custom_trade_info[self.curr_pair]
-        # model = copy.deepcopy(self.model)
-        model = self.model
-
-        while end < nrows:
-
-            start = end - win_size
-            dslice = self.training_data[start:end].copy()
-            tslice = self.training_labels[start:end].copy()
-
-            # print(f"start:{start} end:{end} win_size:{win_size} dslice:{np.shape(dslice)}")
-
-            preds = self.predict_data(model, dslice)
-
-            # if (not self.training_mode) and (self.supports_incremental_training):
-            #     if ( end % win_size) == 0:
-            #         # print(f'    Retrain. end:{end}')
-            #         dslice = self.training_data[0:start-1].copy()
-            #         tslice = self.training_labels[0:start-1].copy()
-
-            #         model = copy.deepcopy(self.model)
-            #         self.train_model(model, dslice, tslice, False)
-
-
-            if first_time:
-                plen = len(preds)
-                pred_array[-plen:] = preds.copy()
-                first_time = False
-            else:
-                pred_array[end] = preds[-1]
-
-            end = end + 1
-
-        palen = len(pred_array)
-        dataframe['predicted_gain'][-palen:] = pred_array.copy()
-
-        # self.custom_trade_info[self.curr_pair] = self.model
-
-        return dataframe
 
 
     #-------------
@@ -743,10 +689,6 @@ class TS_Wavelet(IStrategy):
         future_gain_data = self.get_future_gain(df)
         data = self.get_data(dataframe)
 
-        self.training_data = data.copy()
-        self.training_labels = np.zeros(np.shape(future_gain_data), dtype=float)
-        self.training_labels = future_gain_data.copy()
-
         # initialise the prediction array, using the close data
         pred_array = np.zeros(np.shape(future_gain_data), dtype=float)
 
@@ -758,50 +700,32 @@ class TS_Wavelet(IStrategy):
         # end = start + win_size
         start = win_size
         end = start + win_size
-        train_start = 0
+        train_end = start - 1
+        train_size = 2 * win_size
+        train_start = max(0, train_end-train_size)
 
         # base_model = copy.deepcopy(self.model) # make a deep copy so that we don't override the baseline model
         base_model = self.model
 
         while end < nrows:
 
-            # extract the data and coefficients from the current window
-            start = end - win_size
-
-            # (re-)train the model on prior data and get predictions
-
-            # if (not self.training_mode) and (self.supports_incremental_training):
-            #     train_data = self.training_data[train_start:start-1].copy()
-            #     train_results = self.training_labels[train_start:start-1].copy()
-            #     base_model = copy.deepcopy(self.model)
-            #     self.train_model(base_model, train_data, train_results, False)
-
-
             # rebuild data up to end of current window
-            dslice = self.training_data[start:end].copy()
-            preds = self.predict_data(base_model, dslice)
+            preds = self.predict_data(data, train_start, train_end, start, end)
 
             # print(f'    preds:{np.shape(preds)}')
             # copy the predictions for this window into the main predictions array
-            pred_array[start:end] = preds.copy()
+            pred_array[start:end] = preds[-win_size:].copy()
 
             # move the window to the next segment
-            end = end + win_size - 1
+            # end = end + win_size - 1
+            end = end + win_size
+            start = start + win_size
+            train_end = start - 1
+            train_start = max(0, train_end - train_size)
 
-        # make sure the last section gets processed (the loop above may not exactly fit the data)
-        # Note that we cannot use the last section for training because we don't have forward looking data
-
-        '''
-        if (not self.training_mode) and (self.supports_incremental_training):
-            dslice = self.training_data[-(win_size+self.lookahead):-self.lookahead]
-            cslice = self.training_labels[-(win_size+self.lookahead):-self.lookahead]
-            self.train_model(base_model, dslice, cslice, False)
-        '''
 
         # predict for last window
-        dslice = self.training_data[-win_size:]
-        # preds = self.model.predict(dslice)
-        preds = self.predict_data(base_model, dslice)
+        preds = self.predict_data(data, -(train_size + win_size + 1), -(win_size + 1), -win_size, nrows)
         plen = len(preds)
         pred_array[-plen:] = preds.copy()
 
@@ -816,6 +740,8 @@ class TS_Wavelet(IStrategy):
     def add_latest_prediction(self, dataframe: DataFrame) -> DataFrame:
 
         df = dataframe
+        win_size = 126
+        nrows = np.shape(df)[0]
 
         try:
             # set up training data
@@ -839,14 +765,8 @@ class TS_Wavelet(IStrategy):
             pred_array = np.roll(pred_array, -1)
             pred_array[-1] = 0.0
 
-            # cannot use last portion because we are looking ahead
-            dslice = training_data[:-self.lookahead]
-            tslice = training_labels[:-self.lookahead]
-
-            # retrain base model and get predictions
-            base_model = copy.deepcopy(self.model)
-            # self.train_model(base_model, dslice, tslice, False)
-            preds = self.predict_data(base_model, training_data)
+            # get predictions
+            preds = self.predict_data(data, 0, -win_size - 1, -win_size, nrows)
 
             # self.model = copy.deepcopy(base_model) # restore original model
 

@@ -54,4 +54,8 @@ class TS_Gain(TSPredict):
     def add_strategy_indicators(self, dataframe):
         return dataframe
 
+    def get_data(self, dataframe):
+        # supply *only* the gain column
+        df = dataframe.loc[:, ['gain']]
+        return np.array(self.convert_dataframe(dataframe))
         

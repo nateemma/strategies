@@ -149,6 +149,7 @@ class TSPredict(IStrategy):
     df_coeffs: DataFrame = None
     coeff_table = None
     coeff_array = None
+    gain_data = None
 
     training_data = None
     training_labels = None
@@ -176,10 +177,12 @@ class TSPredict(IStrategy):
     # hyperparams
  
     # enable entry/exit guards (safer vs profit)
-    enable_entry_guards = CategoricalParameter([True, False], default=True, space='buy', load=False, optimize=False)
+    enable_entry_guards = CategoricalParameter(
+        [True, False], default=True, space='buy', load=True, optimize=False)
     entry_guard_fwr = DecimalParameter(-1.0, 0.0, default=-0.0, decimals=1, space='buy', load=True, optimize=True)
 
-    enable_exit_guards = CategoricalParameter([True, False], default=True, space='sell', load=False, optimize=False)
+    enable_exit_guards = CategoricalParameter(
+        [True, False], default=True, space='sell', load=True, optimize=False)
     exit_guard_fwr = DecimalParameter(0.0, 1.0, default=0.0, decimals=1, space='sell', load=True, optimize=True)
 
     # use exit signal? 
@@ -247,6 +250,9 @@ class TSPredict(IStrategy):
         dataframe['gain'].fillna(0.0, inplace=True)
         dataframe['gain'] = self.smooth(dataframe['gain'], 8)
         dataframe['gain'] = self.detrend_array(dataframe['gain'])
+
+        # need to save the gain data for later scaling
+        self.gain_data = dataframe['gain'].to_numpy().copy()
 
         # target profit/loss thresholds        
         dataframe['profit'] = dataframe['gain'].clip(lower=0.0)
@@ -320,10 +326,10 @@ class TSPredict(IStrategy):
     # look ahead to get future gain. Do *not* put this into the main dataframe!
     def get_future_gain(self, dataframe):
 
-        # df = self.convert_dataframe(dataframe)
-        # future_gain = df['gain'].shift(-self.lookahead).to_numpy()
+        df = self.convert_dataframe(dataframe)
+        future_gain = df['gain'].shift(-self.lookahead).to_numpy()
 
-        future_gain = dataframe['gain'].shift(-self.lookahead).to_numpy()
+        # future_gain = dataframe['gain'].shift(-self.lookahead).to_numpy()
         return self.smooth(future_gain, 8)
     
     ###################################
@@ -559,8 +565,14 @@ class TSPredict(IStrategy):
     def predict_data(self, model, data):
         x = np.nan_to_num(data)
         preds = model.predict(x)
-        preds = np.clip(preds, -3.0, 3.0)
-        return preds
+
+        # de-norm
+        scaler = RobustScaler()
+        scaler.fit(self.gain_data.reshape(-1, 1))
+        denorm_preds = scaler.inverse_transform(preds.reshape(-1, 1)).squeeze()
+
+        denorm_preds = np.clip(denorm_preds, -3.0, 3.0)
+        return denorm_preds
 
 
     #-------------
@@ -595,18 +607,17 @@ class TSPredict(IStrategy):
         win_size = 128
 
         # loop until we get to/past the end of the buffer
-        # start = 0
-        # end = start + win_size
         start = win_size
         end = start + win_size
-        train_start = 0
+        train_end = start - 1
+        train_size = 2 * win_size
+        train_start = max(0, train_end - train_size)
 
         base_model = copy.deepcopy(self.model) # make a deep copy so that we don't override the baseline model
 
         while end < nrows:
 
             # extract the data and coefficients from the current window
-            start = end - win_size
 
             # (re-)train the model on prior data and get predictions
 
@@ -625,7 +636,10 @@ class TSPredict(IStrategy):
             pred_array[start:end] = preds.copy()
 
             # move the window to the next segment
-            end = end + win_size - 1
+            end = end + win_size
+            start = start + win_size
+            train_end = start - 1
+            train_start = max(0, train_end - train_size)
 
         # make sure the last section gets processed (the loop above may not exactly fit the data)
         # Note that we cannot use the last section for training because we don't have forward looking data
