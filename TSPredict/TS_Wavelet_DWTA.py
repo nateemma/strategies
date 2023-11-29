@@ -1,4 +1,4 @@
-#pragma pylint: disable=W0105, C0103, C0301, W1203
+# pragma pylint: disable=W0105, C0103, C0114, C0115, C0116, C0301, C0302, C0303, C0411, C0413,  W1203
 
 
 """
@@ -108,3 +108,23 @@ class TS_Wavelet_DWTA(TS_Wavelet):
 
     # -------------
 
+    # don't add extra indicators
+    def add_strategy_indicators(self, dataframe):
+
+        # 'volume' seems to cause spikes, so maybe remove it?!
+        # dataframe.drop('volume', axis=1)
+        return dataframe
+    
+        # override func to get data for this strategy
+
+    # -------------
+
+    def get_data(self, dataframe):
+
+        # df = dataframe.loc[:, ['gain']]
+        # df_norm = self.convert_dataframe(df)
+        df_norm = self.convert_dataframe(dataframe)
+        gain_data = df_norm['gain'].to_numpy()
+        self.build_coefficient_table(gain_data)
+        data = self.merge_coeff_table(df_norm)
+        return data

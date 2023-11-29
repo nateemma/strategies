@@ -1,3 +1,5 @@
+# pragma pylint: disable=W0105, C0103, C0114, C0115, C0116, C0301, C0302, C0303, C0411, C0413,  W1203
+
 """
 ####################################################################################
 TS_Wavelet - predicts each component/coefficient of a wavelet and reconstructs the signal to produce a prediction
@@ -5,7 +7,6 @@ TS_Wavelet - predicts each component/coefficient of a wavelet and reconstructs t
 ####################################################################################
 """
 
-#pragma pylint: disable=W0105, C0103, C0114, C0115, C0116, C0301, C0302, C0303, C0325, W1203
 
 from datetime import datetime
 from functools import reduce
@@ -132,7 +133,7 @@ class TS_Wavelet(IStrategy):
     model_window = 128
 
     # lookahead = 6
-    lookahead = 12
+    lookahead = 9
 
     df_coeffs: DataFrame = None
     coeff_table = None
@@ -182,7 +183,7 @@ class TS_Wavelet(IStrategy):
     # Custom Exit
     # profit threshold exit
     cexit_profit_threshold = DecimalParameter(0.005, 0.065, default=0.033, decimals=3, space='sell', load=True, optimize=True)
-    cexit_use_profit_threshold = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+    cexit_use_profit_threshold = CategoricalParameter([True, False], default=False, space='sell', load=True, optimize=True)
 
     # loss threshold exit
     cexit_loss_threshold = DecimalParameter(-0.065, -0.005, default=-0.046, decimals=3, space='sell', load=True, optimize=True)
@@ -251,11 +252,12 @@ class TS_Wavelet(IStrategy):
         dataframe['target_loss'] = dataframe['loss'].rolling(window=win_size).mean() - \
             n_std * abs(dataframe['loss'].rolling(window=win_size).std())
 
-        dataframe['target_profit'] = dataframe['target_profit'].clip(lower=0.1)
-        dataframe['target_loss'] = dataframe['target_loss'].clip(upper=-0.1)
+        dataframe['target_profit'] = dataframe['target_profit'].clip(lower=0.1, upper=3.0)
+        dataframe['target_loss'] = dataframe['target_loss'].clip(lower=-3.0, upper=-0.1)
         
         dataframe['target_profit'] = np.nan_to_num(dataframe['target_profit'])
         dataframe['target_loss'] = np.nan_to_num(dataframe['target_loss'])
+
 
         # RSI
         dataframe['rsi'] = ta.RSI(dataframe, timeperiod=self.win_size)
@@ -573,7 +575,7 @@ class TS_Wavelet(IStrategy):
         df_norm = self.convert_dataframe(dataframe)
         gain_data = df_norm['gain'].to_numpy()
         self.build_coefficient_table(gain_data)
-        data = self.merge_coeff_table(self.convert_dataframe(df_norm))
+        data = self.merge_coeff_table(df_norm)
         return data
 
    #-------------
@@ -594,37 +596,6 @@ class TS_Wavelet(IStrategy):
             print("***    ERR: create_model() - model was not created ***")
         return
 
-    #-------------
-    '''
-    # train the model. Override if not an sklearn-compatible algorithm
-    # set save_model=False if you don't want to save the model (needed for ML algorithms)
-    def train_model(self, model, data: np.array, results: np.array, save_model):
-
-        if self.model is None:
-            print("***    ERR: no model ***")
-            return
-
-        x = np.nan_to_num(data)
-
-        # print('    Updating existing model')
-        if isinstance(model, XGBRegressor):
-            # print('    Updating xgb_model')
-            if self.new_model and (not self.model_trained):
-                model.fit(x, results)
-            else:
-                model.fit(x, results, xgb_model=self.model)
-        elif hasattr(model, "partial_fit"):
-            # print('    partial_fit()')
-            model.partial_fit(x, results)
-        else:
-            # print('    fit()')
-            model.fit(x, results)
-
-        return
-
-    '''
- 
-    
     #-------------
     
     # generate predictions for an np array 
@@ -794,7 +765,7 @@ class TS_Wavelet(IStrategy):
                 tag = " * "
             else:
                 tag = "   "
-            print(f'    {tag} predict {pg:4.2f}% gain for: {self.curr_pair}')
+            print(f'    {tag} predict {pg:6.2f}% gain for: {self.curr_pair}')
 
         except Exception as e:
             print("*** Exception in add_latest_prediction()")
@@ -841,6 +812,8 @@ class TS_Wavelet(IStrategy):
                 # print(f'    updating latest prediction for: {self.curr_pair}')
                 dataframe = self.add_latest_prediction(dataframe)
 
+        # predictions can spike, so constrain range
+        dataframe['predicted_gain'] = dataframe['predicted_gain'].clip(lower=-3.0, upper=3.0)
 
         if run_profiler:
             prof.disable()
@@ -869,7 +842,8 @@ class TS_Wavelet(IStrategy):
             conditions.append(dataframe['fisher_wr'] < self.entry_guard_fwr.value)
 
             # some trading volume
-            conditions.append(dataframe['volume'] > 0)
+            if 'volume' in dataframe:
+                conditions.append(dataframe['volume'] > 0)
 
 
         fwr_cond = (
@@ -932,7 +906,8 @@ class TS_Wavelet(IStrategy):
             conditions.append(dataframe['fisher_wr'] > self.exit_guard_fwr.value)
 
             # some trading volume
-            conditions.append(dataframe['volume'] > 0)
+            if 'volume' in dataframe:
+                conditions.append(dataframe['volume'] > 0)
 
         # model triggers
         model_cond = (
@@ -972,7 +947,7 @@ class TS_Wavelet(IStrategy):
 
     # simplified version of custom trailing stoploss
     def custom_stoploss(self, pair: str, trade: Trade, current_time: datetime, current_rate: float,
-                        current_profit: float, **kwargs) -> float:
+                        current_profit: float, after_fill: bool, **kwargs) -> float:
 
         # if enable, use custom trailing ratio, else use default system
         if self.cstop_enable.value:
@@ -1042,3 +1017,4 @@ class TS_Wavelet(IStrategy):
             return 'exit_signal'
 
         return None
+    

@@ -1,10 +1,11 @@
+# pragma pylint: disable=W0105, C0103, C0114, C0115, C0116, C0301, C0302, C0303, C0411, C0413,  W1203
+
 """
 ####################################################################################
 TS_Predict - base class for 'simple' time series prediction
              Handles most of the logic for time series prediction. Subclasses should
              override the model-related functions
 
-             This strategy uses only the 'base' indicators (open, close etc.) to estimate future gain.
              Note that I use gain rather than price because it is a normalised value, and works better with prediction algorithms.
              I use the actual (future) gain to train a base model, which is then further refined for each individual pair.
              The model is created if it does not exist, and is trained on all available data before being saved.
@@ -18,7 +19,6 @@ TS_Predict - base class for 'simple' time series prediction
 ####################################################################################
 """
 
-#pragma pylint: disable=W0105, C0103, C0114, C0115, C0116, C0301, C0302, C0303, C0325, W1203
 
 from datetime import datetime
 from functools import reduce
@@ -715,7 +715,7 @@ class TSPredict(IStrategy):
                 tag = " * "
             else:
                 tag = "   "
-            print(f'    {tag} predict {pg:4.2f}% gain for: {self.curr_pair}')
+            print(f'    {tag} predict {pg:6.2f}% gain for: {self.curr_pair}')
 
         except Exception as e:
             print("*** Exception in add_latest_prediction()")
@@ -895,7 +895,7 @@ class TSPredict(IStrategy):
 
     # simplified version of custom trailing stoploss
     def custom_stoploss(self, pair: str, trade: Trade, current_time: datetime, current_rate: float,
-                        current_profit: float, **kwargs) -> float:
+                        current_profit: float, after_fill: bool, **kwargs) -> float:
 
         # if enable, use custom trailing ratio, else use default system
         if self.cstop_enable.value:
@@ -965,3 +965,4 @@ class TSPredict(IStrategy):
             return 'exit_signal'
 
         return None
+    

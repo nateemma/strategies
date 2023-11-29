@@ -1,3 +1,5 @@
+# pragma pylint: disable=W0105, C0103, C0114, C0115, C0116, C0301, C0302, C0303, C0411, C0413,  W1203
+
 """
 ####################################################################################
 TS_Gain - base class for 'simple' time series prediction
@@ -56,6 +58,6 @@ class TS_Gain(TSPredict):
 
     def get_data(self, dataframe):
         # supply *only* the gain column
-        df = dataframe.loc[:, ['gain']]
-        return np.array(self.convert_dataframe(dataframe))
+        df = dataframe[['date', 'gain']].copy()
+        return np.array(self.convert_dataframe(df))
         
