@@ -161,6 +161,11 @@ class ClassifierKeras():
         return
     
     # ---------------------------
+    # utility function to find the nearest power of 2 greater than the supplied number
+    def nearest_power_of_2(self, n):
+        return 2**n.bit_length()
+    
+    # ---------------------------
 
     # create model - subclasses should overide this
     def create_model(self, seq_len, num_features):

@@ -64,7 +64,9 @@ class NNPredictor_LSTM0(ClassifierKerasLinear):
         inputs = tf.keras.Input(shape=(seq_len, num_features))
         x = inputs
 
-        x = tf.keras.layers.LSTM(seq_len, return_sequences=True, activation='tanh', input_shape=(seq_len, num_features))(x)
+        lstm_size = self.nearest_power_of_2(num_features)
+        x = tf.keras.layers.LSTM(lstm_size, return_sequences=True,
+                                 activation='tanh', input_shape=(seq_len, num_features))(x)
         x = tf.keras.layers.Dropout(0.1)(x)
 
 

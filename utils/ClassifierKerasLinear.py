@@ -83,6 +83,7 @@ class ClassifierKerasLinear(ClassifierKeras):
         # lazy loading because params can change up to this point
         if self.model is None:
             # load saved model if present
+            # print('    Loading model')
             self.model = self.load()
 
         # print(f'is_trained:{self.is_trained} force_train:{force_train}')
@@ -98,7 +99,7 @@ class ClassifierKerasLinear(ClassifierKeras):
             (not self.combine_models):
             # (not self.combine_models or (not new_model)):
             # print(f"    SKipping training - is_trained:{self.is_trained} force_train:{force_train} new_model:{self.new_model} combine_models:{self.combine_models}")
-            print("    Model is already trained")
+            # print("    Model is already trained")
             return
 
 

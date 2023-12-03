@@ -2,7 +2,7 @@
   "strategy_name": "TS_Coeff_FHT",
   "params": {
     "roi": {
-      "0": 0.06
+      "0": 0.02
     },
     "stoploss": {
       "stoploss": -0.1
@@ -18,24 +18,24 @@
     },
     "buy": {
       "enable_entry_guards": true,
-      "entry_guard_fwr": -0.1
+      "entry_guard_fwr": -0.6
     },
     "sell": {
       "enable_exit_guards": true,
       "cexit_fwr_overbought": 1.0,
       "cexit_fwr_take_profit": 1.0,
-      "cexit_loss_threshold": -0.007,
+      "cexit_loss_threshold": -0.036,
       "cexit_profit_threshold": 0.065,
       "cexit_use_loss_threshold": false,
       "cexit_use_profit_threshold": true,
       "cstop_enable": true,
-      "cstop_ratio": 0.737,
-      "cstop_start": 0.022,
+      "cstop_ratio": 0.91,
+      "cstop_start": 0.013,
       "enable_exit_signal": false,
-      "exit_guard_fwr": 1.0
+      "exit_guard_fwr": 0.4
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2023-11-28 00:16:02.013268+00:00"
+  "export_time": "2023-12-02 17:22:30.547655+00:00"
 }

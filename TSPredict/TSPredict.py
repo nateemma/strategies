@@ -93,7 +93,7 @@ class TSPredict(IStrategy):
         },
         'subplots': {
             "Diff": {
-                'predicted_gain': {'color': 'orange'},
+                'predicted_gain': {'color': 'purple'},
                 'gain': {'color': 'lightblue'},
                 'target_profit': {'color': 'lightgreen'},
                 'target_loss': {'color': 'lightsalmon'}
@@ -104,7 +104,7 @@ class TSPredict(IStrategy):
 
     # ROI table:
     minimal_roi = {
-        "0": 0.06
+        "0": 0.02
     }
 
     # Stoploss:
@@ -144,7 +144,7 @@ class TSPredict(IStrategy):
     # model_window = startup_candle_count
     model_window = 128
 
-    lookahead = 6
+    lookahead = 9
 
     df_coeffs: DataFrame = None
     coeff_table = None
@@ -613,7 +613,7 @@ class TSPredict(IStrategy):
         train_size = 2 * win_size
         train_start = max(0, train_end - train_size)
 
-        base_model = copy.deepcopy(self.model) # make a deep copy so that we don't override the baseline model
+        pair_model = copy.deepcopy(self.model) # make a deep copy so that we don't override the baseline model
 
         while end < nrows:
 
@@ -624,13 +624,14 @@ class TSPredict(IStrategy):
             if (not self.training_mode) and (self.supports_incremental_training):
                 train_data = self.training_data[train_start:start-1].copy()
                 train_results = self.training_labels[train_start:start-1].copy()
-                base_model = copy.deepcopy(self.model)
-                self.train_model(base_model, train_data, train_results, False)
+                # pair_model = copy.deepcopy(self.model)
+                self.train_model(pair_model, train_data, train_results, False)
 
 
             # rebuild data up to end of current window
             dslice = self.training_data[start:end].copy()
-            preds = self.predict_data(base_model, dslice)
+            self.gain_data = np.array(dataframe['gain'].iloc[start:end]) # needed for scaling
+            preds = self.predict_data(pair_model, dslice)
 
             # copy the predictions for this window into the main predictions array
             pred_array[start:end] = preds.copy()
@@ -644,17 +645,12 @@ class TSPredict(IStrategy):
         # make sure the last section gets processed (the loop above may not exactly fit the data)
         # Note that we cannot use the last section for training because we don't have forward looking data
 
-        '''
-        if (not self.training_mode) and (self.supports_incremental_training):
-            dslice = self.training_data[-(win_size+self.lookahead):-self.lookahead]
-            cslice = self.training_labels[-(win_size+self.lookahead):-self.lookahead]
-            self.train_model(base_model, dslice, cslice, False)
-        '''
-
         # predict for last window
         dslice = self.training_data[-win_size:]
         # preds = self.model.predict(dslice)
-        preds = self.predict_data(base_model, dslice)
+
+        self.gain_data = np.array(dataframe['gain'].iloc[-win_size]) # needed for scaling
+        preds = self.predict_data(pair_model, dslice)
         pred_array[-win_size:] = preds.copy()
 
         dataframe['predicted_gain'] = pred_array.copy()
@@ -697,6 +693,8 @@ class TSPredict(IStrategy):
             # retrain base model and get predictions
             base_model = copy.deepcopy(self.model)
             self.train_model(base_model, dslice, tslice, False)
+
+            self.gain_data = np.array(dataframe['gain'].iloc[-clen])  # needed for scaling
             preds = self.predict_data(base_model, self.training_data)
 
             # self.model = copy.deepcopy(base_model) # restore original model
@@ -927,11 +925,11 @@ class TSPredict(IStrategy):
             return None
 
         # strong sell signal, in profit
-        if (current_profit > 0.001) and (last_candle['fisher_wr'] >= self.cexit_fwr_overbought.value):
+        if (current_profit > 0.0) and (last_candle['fisher_wr'] >= self.cexit_fwr_overbought.value):
             return 'fwr_overbought'
 
-        # Above 1%, sell if Fisher/Williams in sell range
-        if current_profit > 0.01:
+        # Above 0.5%, sell if Fisher/Williams in sell range
+        if current_profit > 0.005:
             if last_candle['fisher_wr'] >= self.cexit_fwr_take_profit.value:
                 return 'take_profit'
  

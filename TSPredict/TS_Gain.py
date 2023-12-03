@@ -2,25 +2,12 @@
 
 """
 ####################################################################################
-TS_Gain - base class for 'simple' time series prediction
-             Handles most of the logic for time series prediction. Subclasses should
-             override the model-related functions
-
-             This strategy uses only calculated gain to estimate future gain (no other indicators)
-             Note that I use gain rather than price because it is a normalised value, and works better with prediction algorithms.
-             I use the actual (future) gain to train a base model, which is then further refined for each individual pair.
-             The model is created if it does not exist, and is trained on all available data before being saved.
-             Models are saved in user_data/strategies/TSPredict/models/<class>/<class>.sav, where <class> is the name of the current class
-             (TS_Gain if running this directly, or the name of the subclass). 
-             If the model already exits, then it is just loaded and used.
-             So, it makes sense to do initial training over a long period of time to create the base model. 
-             If training, then no backtesting or tuning for individual pairs is performed (way faster).
-             If you want to retrain (e.g. you changed indicators), then delete the model and run the strategy over a long time period
+TS_Gain - predict future values of 'gain' column
+             
 
 ####################################################################################
 """
 
-#pragma pylint: disable=W0105, C0103, C0114, C0115, C0116, C0301, C0302, C0303, C0325, W1203
 
 
 import sys
@@ -57,7 +44,9 @@ class TS_Gain(TSPredict):
         return dataframe
 
     def get_data(self, dataframe):
-        # supply *only* the gain column
-        df = dataframe[['date', 'gain']].copy()
+        # supply *only* the gain column (and standard indicators)
+        col_list = ['date', 'open', 'close', 'high', 'low', 'volume', 'gain']
+        # col_list = ['date', 'gain']
+        df = dataframe[col_list].copy()
         return np.array(self.convert_dataframe(df))
         

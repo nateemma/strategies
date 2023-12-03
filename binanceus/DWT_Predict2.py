@@ -61,7 +61,7 @@ class DWT_Predict2(IStrategy):
 
     # ROI table:
     minimal_roi = {
-        "0": 0.06
+        "0": 0.02
     }
 
     # Stoploss:

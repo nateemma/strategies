@@ -100,7 +100,7 @@ class TS_Coeff(TSPredict):
         df_norm = self.convert_dataframe(dataframe)
         gain_data = df_norm['gain'].to_numpy()
         self.build_coefficient_table(gain_data)
-        data = self.merge_coeff_table(self.convert_dataframe(df_norm))
+        data = self.merge_coeff_table(df_norm)
         return data
 
    #-------------

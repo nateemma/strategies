@@ -1,5 +1,5 @@
 {
-  "strategy_name": "TS_Wavelet",
+  "strategy_name": "TS_Coeff_DWT_LSTM",
   "params": {
     "roi": {
       "0": 0.02
@@ -17,25 +17,25 @@
       "max_open_trades": 10
     },
     "buy": {
-      "enable_entry_guards": true,
-      "entry_guard_fwr": -0.1
+      "enable_entry_guards": false,
+      "entry_guard_fwr": 0.0
     },
     "sell": {
-      "enable_exit_guards": true,
-      "cexit_fwr_overbought": 1.0,
-      "cexit_fwr_take_profit": 1.0,
-      "cexit_loss_threshold": -0.023,
-      "cexit_profit_threshold": 0.046,
-      "cexit_use_loss_threshold": true,
+      "enable_exit_guards": false,
+      "cexit_fwr_overbought": 0.9,
+      "cexit_fwr_take_profit": 0.9,
+      "cexit_loss_threshold": -0.018,
+      "cexit_profit_threshold": 0.047,
+      "cexit_use_loss_threshold": false,
       "cexit_use_profit_threshold": false,
       "cstop_enable": false,
-      "cstop_ratio": 0.805,
-      "cstop_start": 0.021,
+      "cstop_ratio": 0.747,
+      "cstop_start": 0.012,
       "enable_exit_signal": true,
-      "exit_guard_fwr": 0.3
+      "exit_guard_fwr": 0.0
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2023-12-02 20:53:09.982247+00:00"
+  "export_time": "2023-11-30 15:46:46.266278+00:00"
 }

@@ -2,7 +2,7 @@
   "strategy_name": "TS_Simple_GB",
   "params": {
     "roi": {
-      "0": 0.06
+      "0": 0.02
     },
     "stoploss": {
       "stoploss": -0.1
@@ -18,24 +18,24 @@
     },
     "buy": {
       "enable_entry_guards": true,
-      "entry_guard_fwr": -0.7
+      "entry_guard_fwr": -0.8
     },
     "sell": {
       "enable_exit_guards": true,
       "cexit_fwr_overbought": 0.95,
-      "cexit_fwr_take_profit": 0.95,
-      "cexit_loss_threshold": -0.013,
-      "cexit_profit_threshold": 0.007,
-      "cexit_use_loss_threshold": true,
+      "cexit_fwr_take_profit": 1.0,
+      "cexit_loss_threshold": -0.055,
+      "cexit_profit_threshold": 0.063,
+      "cexit_use_loss_threshold": false,
       "cexit_use_profit_threshold": true,
-      "cstop_enable": false,
-      "cstop_ratio": 0.878,
-      "cstop_start": 0.002,
+      "cstop_enable": true,
+      "cstop_ratio": 0.932,
+      "cstop_start": 0.017,
       "enable_exit_signal": true,
-      "exit_guard_fwr": 1.0
+      "exit_guard_fwr": 0.4
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2023-11-27 22:49:40.850915+00:00"
+  "export_time": "2023-12-02 19:03:26.115941+00:00"
 }

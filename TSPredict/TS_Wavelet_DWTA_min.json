@@ -2,7 +2,7 @@
   "strategy_name": "TS_Wavelet_DWTA_min",
   "params": {
     "roi": {
-      "0": 0.06
+      "0": 0.02
     },
     "stoploss": {
       "stoploss": -0.1
@@ -18,24 +18,24 @@
     },
     "buy": {
       "enable_entry_guards": true,
-      "entry_guard_fwr": -0.2
+      "entry_guard_fwr": -0.3
     },
     "sell": {
       "enable_exit_guards": true,
       "cexit_fwr_overbought": 1.0,
       "cexit_fwr_take_profit": 1.0,
-      "cexit_loss_threshold": -0.037,
-      "cexit_profit_threshold": 0.053,
+      "cexit_loss_threshold": -0.016,
+      "cexit_profit_threshold": 0.027,
       "cexit_use_loss_threshold": false,
       "cexit_use_profit_threshold": false,
       "cstop_enable": false,
-      "cstop_ratio": 0.754,
-      "cstop_start": 0.025,
+      "cstop_ratio": 0.901,
+      "cstop_start": 0.059,
       "enable_exit_signal": true,
-      "exit_guard_fwr": 0.0
+      "exit_guard_fwr": 0.9
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2023-11-29 18:27:35.535662+00:00"
+  "export_time": "2023-12-02 21:15:57.764245+00:00"
 }

@@ -31,6 +31,7 @@ from sklearn.preprocessing import RobustScaler
 from freqtrade.strategy import (IStrategy, DecimalParameter, CategoricalParameter)
 from freqtrade.persistence import Trade
 import freqtrade.vendor.qtpylib.indicators as qtpylib
+from typing import Any, List, Optional
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -92,7 +93,7 @@ class TS_Wavelet(IStrategy):
 
     # ROI table:
     minimal_roi = {
-        "0": 0.06
+        "0": 0.02
     }
 
     # Stoploss:
@@ -164,13 +165,13 @@ class TS_Wavelet(IStrategy):
     target_loss = 0.0
 
     # hyperparams
- 
+    
     # enable entry/exit guards (safer vs profit)
     enable_entry_guards = CategoricalParameter([True, False], default=True, space='buy', load=False, optimize=False)
     entry_guard_fwr = DecimalParameter(-1.0, 0.0, default=-0.0, decimals=1, space='buy', load=True, optimize=True)
 
     enable_exit_guards = CategoricalParameter([True, False], default=True, space='sell', load=False, optimize=False)
-    exit_guard_fwr = DecimalParameter(0.0, 1.0, default=0.0, decimals=1, space='sell', load=True, optimize=True)
+    exit_guard_fwr = DecimalParameter(0.0, 1.0, default=0.7, decimals=1, space='sell', load=True, optimize=True)
 
     # use exit signal? 
     enable_exit_signal = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
@@ -182,15 +183,15 @@ class TS_Wavelet(IStrategy):
 
     # Custom Exit
     # profit threshold exit
-    cexit_profit_threshold = DecimalParameter(0.005, 0.065, default=0.033, decimals=3, space='sell', load=True, optimize=True)
+    cexit_profit_threshold = DecimalParameter(0.005, 0.065, default=0.047, decimals=3, space='sell', load=True, optimize=True)
     cexit_use_profit_threshold = CategoricalParameter([True, False], default=False, space='sell', load=True, optimize=True)
 
     # loss threshold exit
     cexit_loss_threshold = DecimalParameter(-0.065, -0.005, default=-0.046, decimals=3, space='sell', load=True, optimize=True)
     cexit_use_loss_threshold = CategoricalParameter([True, False], default=False, space='sell', load=True, optimize=True)
 
-    cexit_fwr_overbought = DecimalParameter(0.90, 1.00, default=0.98, decimals=2, space='sell', load=True, optimize=True)
-    cexit_fwr_take_profit = DecimalParameter(0.90, 1.00, default=0.90, decimals=2, space='sell', load=True, optimize=True)
+    cexit_fwr_overbought = DecimalParameter(0.90, 1.00, default=0.99, decimals=2, space='sell', load=True, optimize=True)
+    cexit_fwr_take_profit = DecimalParameter(0.90, 1.00, default=0.98, decimals=2, space='sell', load=True, optimize=True)
  
 
     ###################################
@@ -239,7 +240,7 @@ class TS_Wavelet(IStrategy):
         dataframe['gain'] = self.detrend_array(dataframe['gain'])
 
         # need to save the gain data for later scaling
-        self.gain_data = dataframe['gain'].to_numpy().copy()
+        self.gain_data = np.array(dataframe['gain'])
 
         # target profit/loss thresholds        
         dataframe['profit'] = dataframe['gain'].clip(lower=0.0)
@@ -685,6 +686,9 @@ class TS_Wavelet(IStrategy):
 
         while end < nrows:
 
+             # set the (unmodified) gain data for scaling
+            self.gain_data = np.array(dataframe['gain'].iloc[start:end])
+
             # rebuild data up to end of current window
             preds = self.predict_data(data, train_start, train_end, start, end)
 
@@ -701,6 +705,8 @@ class TS_Wavelet(IStrategy):
 
 
         # predict for last window
+
+        self.gain_data = np.array(dataframe['gain'].iloc[-win_size])
         preds = self.predict_data(data, -(train_size + win_size + 1), -(win_size + 1), -win_size, nrows)
         plen = len(preds)
         pred_array[-plen:] = preds.copy()
@@ -745,6 +751,7 @@ class TS_Wavelet(IStrategy):
             # get predictions
             train_end = nrows - (win_size + 1)
             train_start = max(0, train_end - train_size)
+            self.gain_data = np.array(dataframe['gain'].iloc[-win_size])
             preds = self.predict_data(data, 
                                       train_start, train_end, 
                                       -win_size, nrows)
@@ -928,12 +935,25 @@ class TS_Wavelet(IStrategy):
 
         return dataframe
 
+    ###################################
 
+    def confirm_trade_entry(self, pair: str, order_type: str, amount: float, rate: float,
+                            time_in_force: str, current_time: datetime, entry_tag: Optional[str],
+                            side: str, **kwargs) -> bool:
+        
+        #TODO: double-check that predicted gain is still above threshold
+        # How? Maybe save target rate for each pair (in custom_trade_info)?
+        
+        # just debug
+        if self.dp.runmode.value not in ('backtest', 'plot', 'hyperopt'):
+            print(f'Trade Entry: {pair}, rate: {round(rate, 4)}')
+
+        return True
 
     def confirm_trade_exit(self, pair: str, trade: Trade, order_type: str, amount: float,
                            rate: float, time_in_force: str, exit_reason: str,
                            current_time: datetime, **kwargs) -> bool:
-                
+        # just debug
         if self.dp.runmode.value not in ('backtest', 'plot', 'hyperopt'):
             print(f'Trade Exit: {pair}, rate: {round(rate, 4)}')
 
@@ -979,11 +999,11 @@ class TS_Wavelet(IStrategy):
             return None
 
         # strong sell signal, in profit
-        if (current_profit > 0.001) and (last_candle['fisher_wr'] >= self.cexit_fwr_overbought.value):
+        if (current_profit > 0.0) and (last_candle['fisher_wr'] >= self.cexit_fwr_overbought.value):
             return 'fwr_overbought'
 
-        # Above 1%, sell if Fisher/Williams in sell range
-        if current_profit > 0.01:
+        # Above 0.5%, sell if Fisher/Williams in sell range
+        if current_profit > 0.005:
             if last_candle['fisher_wr'] >= self.cexit_fwr_take_profit.value:
                 return 'take_profit'
  

@@ -17,7 +17,7 @@ On subsequent runs, the strategy will load the saved model, and use that as the 
 > zsh user_data/strategies/scripts/test_strat -n 30 TSPredict \<_strat_\>
 
 4. Plot data
-> zsh user_data/strategies/scripts/plot_strat -n 600 TSPredict \<_strat_\> \<_pair_\>
+> zsh user_data/strategies/scripts/plot_strat -n 7 TSPredict \<_strat_\> \<_pair_\>
 
 5. Examine plot
 In a browser, open the file file://user_data/plot/freqtrade-plot-ALGO_USDT-5m.html <br>
@@ -27,18 +27,27 @@ The plot for _predicted\_gain_ should look something like the plot for _gain_, b
 
 ## Files
 
-The majority of functional code is in the class *TSPredict.py* - this implements the basic dataframe handling, model loading/saving/training, custom stoploss/exit and populate_entry/exit functions.
+The majority of functional code is in the class *TSPredict.py* - this implements the basic dataframe handling, model loading/saving/training, custom stoploss/exit and populate_entry/exit functions.<br>
+Similarly *TS_Wavelet.py* contains the base code for the Wavelet family of strategies (see below)
 
 Other classes add on different approaches to modelling the future values, for example:
 
+- TS_Gain_*.py<br>
+These classes predict on _only_ the historical gain values. These are not particularly good strategies, they are mostly here to serve as a baseline (any viable strategy should do better than these), and a way to find lookahead bias.
+
 - TS_Simple_*.py<br>
-These add some additional indicators and estimate future gain using a variety of different algorithms (e.g. TS_Simple_SGD.py uses a Stochastic Gradient Descent algorithm)
+These add some additional indicators and estimate future gain using a variety of different algorithms (e.g. TS_Simple_SGD.py uses a Stochastic Gradient Descent algorithm)<br>
+Note: if you want to try different regression/prediction algorithms, be aware that they really need to support incremental traing, i.e. the model is updated with new data rather than completely retrained.
 
 - TS_Coeff_*.py<br>
 These add coefficients to the indicators that are based on various signal estimation algorithms, such as FFT, DWT etc. The estimation coefficients are added to the indicators and the prediction/regression algorithm is trained using those coefficients
 
+- TS_Wavelet_*.py<br>
+Instead of predicting gain using various signal estimation techniques or regression/prediction algorithms, these decompose the gain data into subcomponents using various transforms (DWT, SWt etc.), predict the futrure values of each subcomponent and then rebuilds the signal to create a a prediction of future gain. These are _very_ compute intensive, so I had to use a fast regression algorithm (PassiveAggressiveRegressor from sklearn). XGBoost is better, but does not run in real time when performing a dry run.<br>
+Note: these strategies do not save/reload models, so you do not need to train them before use
 
-Note: yes, I know there many other algorithms that could be used. If you don't see them here, it gnerally means they didn't perform well, so I didn't include them.
+
+Note: yes, I know there many other algorithms that could be used. If you don't see them here, it generally means they didn't perform well, so I didn't include them.
 
 ## Downloading Test Data
 
