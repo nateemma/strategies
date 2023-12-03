@@ -49,6 +49,38 @@ Note: these strategies do not save/reload models, so you do not need to train th
 
 Note: yes, I know there many other algorithms that could be used. If you don't see them here, it generally means they didn't perform well, so I didn't include them.
 
+## Indicators
+
+If you want to add indicators, then you should crate a new strategy that inherits from the strategy that you want to modify, and override the function add_strategy_indicators(). Then, follow the steps below to create a model for the new strategy (unless you are subclassing one of the TS_Wavelet strategis, which does not use stored models).
+
+## Models
+
+Models, if used, are saved in user_data/strategies/TSPredict/models/\<_classname_\>
+
+If you change indicators or the prediction/regression algorithm (or sometimes update the package) then you will need to delete and regenerate the model.
+
+For example, say we change something in TS_Simple_PA.py that requires a model update, we would probably do the following:
+
+"""
+# remove existing model
+rm -r user_data/strategies/TSPredict/models/TS_Simple_PA
+
+# download data (this will only download missing data)
+zsh user_data/strategies/scripts/download.sh -n 600 binanceus
+
+# regenerate the model over a long time period
+zsh user_data/strategies/scripts/test_strat.sh -n 600 TSPredict TS_Simple_PA
+
+# test over a recent time period
+zsh user_data/strategies/scripts/test_strat.sh -n 30 TSPredict TS_Simple_PA
+
+# plot the last few days
+zsh user_data/strategies/scripts/plot_strat.sh -n 3 TSPredict TS_Simple_PA ALGO/USDT
+
+# load the file user_data/plot/freqtrade-plot-ALGO_USDT-5m.html into a browser and check buy/sell events
+
+"""
+
 ## Downloading Test Data
 
 To run backtest and hyperopt, you need to download data to your local environment.

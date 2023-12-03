@@ -2,19 +2,7 @@
 
 """
 ####################################################################################
-TS_Predict - base class for 'simple' time series prediction
-             Handles most of the logic for time series prediction. Subclasses should
-             override the model-related functions
-
-             Note that I use gain rather than price because it is a normalised value, and works better with prediction algorithms.
-             I use the actual (future) gain to train a base model, which is then further refined for each individual pair.
-             The model is created if it does not exist, and is trained on all available data before being saved.
-             Models are saved in user_data/strategies/TSPredict/models/<class>/<class>.sav, where <class> is the name of the current class
-             (TS_Predict if running this directly, or the name of the subclass). 
-             If the model already exits, then it is just loaded and used.
-             So, it makes sense to do initial training over a long period of time to create the base model. 
-             If training, then no backtesting or tuning for individual pairs is performed (way faster).
-             If you want to retrain (e.g. you changed indicators), then delete the model and run the strategy over a long time period
+TS_Wavelet - predicts each component/coefficient of a wavelet and reconstructs the signal to produce a prediction
 
 ####################################################################################
 """
@@ -22,9 +10,6 @@ TS_Predict - base class for 'simple' time series prediction
 
 from datetime import datetime
 from functools import reduce
-
-
-from typing import Any, List, Optional
 
 import cProfile
 import pstats
@@ -46,6 +31,7 @@ from sklearn.preprocessing import RobustScaler
 from freqtrade.strategy import (IStrategy, DecimalParameter, CategoricalParameter)
 from freqtrade.persistence import Trade
 import freqtrade.vendor.qtpylib.indicators as qtpylib
+from typing import Any, List, Optional
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -76,7 +62,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 from xgboost import XGBRegressor
 # from lightgbm import LGBMRegressor
 from sklearn.linear_model import PassiveAggressiveRegressor
-from sklearn.linear_model import SGDRegressor
+# from sklearn.linear_model import SGDRegressor
 
 from utils.DataframeUtils import DataframeUtils, ScalerType # pylint: disable=E0401
 # import pywt
@@ -86,7 +72,7 @@ import talib.abstract as ta
 
 
 
-class TSPredict(IStrategy):
+class TS_Wavelet_old(IStrategy):
     # Do *not* hyperopt for the roi and stoploss spaces
 
 
@@ -147,11 +133,13 @@ class TSPredict(IStrategy):
     # model_window = startup_candle_count
     model_window = 128
 
+    # lookahead = 6
     lookahead = 9
 
     df_coeffs: DataFrame = None
     coeff_table = None
     coeff_array = None
+    coeff_start_col = 0
     gain_data = None
 
     training_data = None
@@ -159,13 +147,12 @@ class TSPredict(IStrategy):
     training_mode = False # do not set manually
     supports_incremental_training = True
     model_per_pair = False
-    combine_models = True
+    combine_models = False
     model_trained = False
     new_model = False
 
     norm_data = True
-    # retrain_period = 12 # number of candles before retrining
-    retrain_period = 2 # for testing only!
+    retrain_period = 12 # number of candles before retrining
 
     dataframeUtils = None
     scaler = RobustScaler()
@@ -178,48 +165,34 @@ class TSPredict(IStrategy):
     target_loss = 0.0
 
     # hyperparams
-
+    
     # enable entry/exit guards (safer vs profit)
-    enable_entry_guards = CategoricalParameter(
-        [True, False], default=True, space='buy', load=False, optimize=False)
-    entry_guard_fwr = DecimalParameter(-1.0, 0.0, default=-0.0,
-                                       decimals=1, space='buy', load=True, optimize=True)
+    enable_entry_guards = CategoricalParameter([True, False], default=True, space='buy', load=False, optimize=False)
+    entry_guard_fwr = DecimalParameter(-1.0, 0.0, default=-0.0, decimals=1, space='buy', load=True, optimize=True)
 
-    enable_exit_guards = CategoricalParameter(
-        [True, False], default=True, space='sell', load=False, optimize=False)
-    exit_guard_fwr = DecimalParameter(
-        0.0, 1.0, default=0.7, decimals=1, space='sell', load=True, optimize=True)
+    enable_exit_guards = CategoricalParameter([True, False], default=True, space='sell', load=False, optimize=False)
+    exit_guard_fwr = DecimalParameter(0.0, 1.0, default=0.7, decimals=1, space='sell', load=True, optimize=True)
 
-    # use exit signal?
-    enable_exit_signal = CategoricalParameter(
-        [True, False], default=True, space='sell', load=True, optimize=True)
+    # use exit signal? 
+    enable_exit_signal = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
 
     # Custom Stoploss
-    cstop_enable = CategoricalParameter(
-        [True, False], default=False, space='sell', load=True, optimize=True)
-    cstop_start = DecimalParameter(0.0, 0.060, default=0.019, decimals=3,
-                                   space='sell', load=True, optimize=True)
-    cstop_ratio = DecimalParameter(0.7, 0.999, default=0.8, decimals=3,
-                                   space='sell', load=True, optimize=True)
+    cstop_enable = CategoricalParameter([True, False], default=False, space='sell', load=True, optimize=True)
+    cstop_start = DecimalParameter(0.0, 0.060, default=0.019, decimals=3, space='sell', load=True, optimize=True)
+    cstop_ratio = DecimalParameter(0.7, 0.999, default=0.8, decimals=3, space='sell', load=True, optimize=True)
 
     # Custom Exit
     # profit threshold exit
-    cexit_profit_threshold = DecimalParameter(
-        0.005, 0.065, default=0.047, decimals=3, space='sell', load=True, optimize=True)
-    cexit_use_profit_threshold = CategoricalParameter(
-        [True, False], default=False, space='sell', load=True, optimize=True)
+    cexit_profit_threshold = DecimalParameter(0.005, 0.065, default=0.047, decimals=3, space='sell', load=True, optimize=True)
+    cexit_use_profit_threshold = CategoricalParameter([True, False], default=False, space='sell', load=True, optimize=True)
 
     # loss threshold exit
-    cexit_loss_threshold = DecimalParameter(-0.065, -0.005, default=-
-                                            0.046, decimals=3, space='sell', load=True, optimize=True)
-    cexit_use_loss_threshold = CategoricalParameter(
-        [True, False], default=False, space='sell', load=True, optimize=True)
+    cexit_loss_threshold = DecimalParameter(-0.065, -0.005, default=-0.046, decimals=3, space='sell', load=True, optimize=True)
+    cexit_use_loss_threshold = CategoricalParameter([True, False], default=False, space='sell', load=True, optimize=True)
 
-    cexit_fwr_overbought = DecimalParameter(
-        0.90, 1.00, default=0.99, decimals=2, space='sell', load=True, optimize=True)
-    cexit_fwr_take_profit = DecimalParameter(
-        0.90, 1.00, default=0.98, decimals=2, space='sell', load=True, optimize=True)
-
+    cexit_fwr_overbought = DecimalParameter(0.90, 1.00, default=0.99, decimals=2, space='sell', load=True, optimize=True)
+    cexit_fwr_take_profit = DecimalParameter(0.90, 1.00, default=0.98, decimals=2, space='sell', load=True, optimize=True)
+ 
 
     ###################################
 
@@ -267,11 +240,12 @@ class TSPredict(IStrategy):
         dataframe['gain'] = self.detrend_array(dataframe['gain'])
 
         # need to save the gain data for later scaling
-        self.gain_data = dataframe['gain'].to_numpy().copy()
+        self.gain_data = np.array(dataframe['gain'])
 
         # target profit/loss thresholds        
         dataframe['profit'] = dataframe['gain'].clip(lower=0.0)
         dataframe['loss'] = dataframe['gain'].clip(upper=0.0)
+        # win_size = 32
         win_size = self.lookahead
         n_std = 2.0
         dataframe['target_profit'] = dataframe['profit'].rolling(window=win_size).mean() + \
@@ -279,11 +253,12 @@ class TSPredict(IStrategy):
         dataframe['target_loss'] = dataframe['loss'].rolling(window=win_size).mean() - \
             n_std * abs(dataframe['loss'].rolling(window=win_size).std())
 
-        dataframe['target_profit'] = dataframe['target_profit'].clip(lower=0.1)
-        dataframe['target_loss'] = dataframe['target_loss'].clip(upper=-0.1)
+        dataframe['target_profit'] = dataframe['target_profit'].clip(lower=0.1, upper=3.0)
+        dataframe['target_loss'] = dataframe['target_loss'].clip(lower=-3.0, upper=-0.1)
         
         dataframe['target_profit'] = np.nan_to_num(dataframe['target_profit'])
         dataframe['target_loss'] = np.nan_to_num(dataframe['target_loss'])
+
 
         # RSI
         dataframe['rsi'] = ta.RSI(dataframe, timeperiod=self.win_size)
@@ -305,12 +280,6 @@ class TSPredict(IStrategy):
         # Add strategy-specific indicators
         dataframe = self.add_strategy_indicators(dataframe)
 
-
-        # create and init the model, if first time (dataframe has to be populated first)
-        if self.model is None:
-            # print("    Loading model")
-            self.load_model(np.shape(dataframe))
-
         # add the predictions
         # print("    Making predictions...")
         dataframe = self.add_predictions(dataframe)
@@ -322,14 +291,41 @@ class TSPredict(IStrategy):
 
         return dataframe
    
+  
     ###################################
 
     def add_strategy_indicators(self, dataframe):
 
-        # Override this function in subclasses and add extra indicators here
+        # add some extra indicators
+
+        # Bollinger Bands
+        bollinger = qtpylib.bollinger_bands(dataframe['close'], window=20, stds=2)
+        dataframe['bb_lowerband'] = bollinger['lower']
+        dataframe['bb_middleband'] = bollinger['mid']
+        dataframe['bb_upperband'] = bollinger['upper']
+        dataframe['bb_width'] = ((dataframe['bb_upperband'] - dataframe['bb_lowerband']) / dataframe['bb_middleband'])
+        dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
+        dataframe["bb_loss"] = ((dataframe["bb_lowerband"] - dataframe["close"]) / dataframe["close"])
+
+        # MACD
+        macd = ta.MACD(dataframe)
+        dataframe['macd'] = macd['macd']
+        dataframe['macdsignal'] = macd['macdsignal']
+        dataframe['macdhist'] = macd['macdhist']
+
+
+        # moving averages
+        dataframe['sma'] = ta.SMA(dataframe, timeperiod=14)
+        dataframe['ema'] = ta.EMA(dataframe, timeperiod=14)
+        dataframe['tema'] = ta.TEMA(dataframe, timeperiod=14)
+
+        # Donchian Channels
+        dataframe['dc_upper'] = ta.MAX(dataframe['high'], timeperiod=self.win_size)
+        dataframe['dc_lower'] = ta.MIN(dataframe['low'], timeperiod=self.win_size)
+        dataframe['dc_mid'] = ta.TEMA(((dataframe['dc_upper'] + dataframe['dc_lower']) / 2), timeperiod=self.win_size)
 
         return dataframe
-  
+
     ###################################
     
     def smooth(self, y, window):
@@ -410,80 +406,189 @@ class TSPredict(IStrategy):
         '''
         return a
 
+
     ###################################
 
-    # Model-related funcs. Override in subclass to use a different type of model
+    # DWT functions
+ 
+    def madev(self, d, axis=None):
+        """ Mean absolute deviation of a signal """
+        return np.mean(np.absolute(d - np.mean(d, axis)), axis)
 
 
-    def get_model_path(self, pair):
-        category = self.__class__.__name__
-        root_dir = group_dir + "/models/" + category
-        model_name = category
-        if self.model_per_pair and (len(pair) > 0):
-            model_name = model_name + "_" + pair.split("/")[0]
-        path = root_dir + "/" + model_name + ".sav"
-        return path
-    
-    def load_model(self, df_shape):
+    ###################################
 
-        model_path = self.get_model_path("")
+    # Coefficient functions
+ 
+    wavelet = "db2"
+    mode = "smooth"
+    coeff_slices = None
+    coeff_shapes = None
+    coeff_format = "wavedec"
 
-        # load from file or create new model
-        if os.path.exists(model_path):
-            # use joblib to reload model state
-            print("    loading from: ", model_path)
-            self.model = joblib.load(model_path)
-            self.model_trained = True
-            self.new_model = False
-            self.training_mode = False
+    # function to get dwt coefficients
+    def get_coeffs(self, data: np.array) -> np.array:
+
+        length = len(data)
+
+        x = data
+
+        # data must be of even length, so trim if necessary
+        if (len(x) % 2) != 0:
+            x = x[1:]
+
+        # print(pywt.wavelist(kind='discrete'))
+
+        # get the DWT coefficients
+        self.wavelet = 'bior3.9'
+        # self.wavelet = 'db2'
+        # self.mode = 'smooth'
+        self.mode = 'zero'
+        self.coeff_format = "wavedec"
+        level = 2
+        coeffs = pywt.wavedec(x, self.wavelet, mode=self.mode, level=level)
+
+        ''''''
+        # remove higher harmonics
+        std = np.std(coeffs[level])
+        sigma = (1 / 0.6745) * self.madev(coeffs[-level])
+        # sigma = madev(coeff[-level])
+        uthresh = sigma * np.sqrt(2 * np.log(length))
+
+        coeffs[1:] = (pywt.threshold(i, value=uthresh, mode='hard') for i in coeffs[1:])
+
+        ''''''
+
+        return self.coeff_to_array(coeffs)
+
+    #-------------
+
+
+    def coeff_to_array(self, coeffs):
+        # flatten the coefficient arrays
+
+        # faster:
+        # arr, self.coeff_slices, self.coeff_shapes = pywt.ravel_coeffs(coeffs)
+
+        # more general purpose (can use with many waveforms)
+        arr, self.coeff_slices = pywt.coeffs_to_array(coeffs)
+
+        return np.array(arr)
+
+    #-------------
+
+    def array_to_coeff(self, array):
+
+        # faster:
+        # coeffs = pywt.unravel_coeffs(array, self.coeff_slices, self.coeff_shapes, output_format='wavedec')
+
+        # more general purpose (can use with many waveforms)
+        coeffs = pywt.array_to_coeffs(array, self.coeff_slices, output_format=self.coeff_format)
+
+        # print(f'    coeff_slices:{self.coeff_slices}, coeff_shapes:{self.coeff_shapes} array:{np.shape(array)}')
+        return coeffs
+
+    #-------------
+
+    def get_value(self, coeffs):
+        # series = pywt.waverec(coeffs, self.wavelet)
+
+        series = pywt.waverec(coeffs, wavelet=self.wavelet, mode=self.mode)
+        # print(f'    coeff_slices:{self.coeff_slices}, coeff_shapes:{self.coeff_shapes} series:{np.shape(series)}')
+
+        # de-norm
+        scaler = RobustScaler()
+        scaler.fit(self.gain_data.reshape(-1,1))
+        denorm_series = scaler.inverse_transform(series.reshape(-1, 1)).squeeze()
+        return denorm_series
+
+    #-------------
+
+    # builds a numpy array of coefficients
+    def build_coefficient_table(self, data: np.array):
+        
+        # roll through the  data and create coefficients for each step
+        nrows = np.shape(data)[0]
+
+        # print(f'build_coefficient_table() data:{np.shape(data)}')
+
+        start = 0
+        if nrows > self.model_window:
+            end = start + self.model_window - 1
         else:
-            self.create_model(df_shape)
-            self.model_trained = False
-            self.new_model = True
-            self.training_mode = True
+            end = start + 32
+        dest = end
 
-        # sklearn family of regressors sometimes support starting with an existing model (warm_start), or incrementl training (partial_fit())
-        if hasattr(self.model, 'warm_start'):
-            self.model.warm_start = True
-            self.supports_incremental_training = True # override default
+        # print(f"nrows:{nrows} start:{start} end:{end} dest:{dest} nbuffs:{nbuffs}")
 
-        if hasattr(self.model, 'partial_fit'):
-            self.supports_incremental_training = True # override default
+        self.coeff_table = None
+        num_coeffs = 0
+        init_done = False
 
-        if self.model is None:
-            print("***    ERR: model was not created properly ***")
+        while end < nrows:
+            dslice = data[start:end]
+
+            # print(f"start:{start} end:{end} dest:{dest} len:{len(dslice)}")
+
+            features = self.get_coeffs(dslice)
+            # print(f'build_coefficient_table() features: {np.shape(features)}')
+            
+            # initialise the np.array (need features first to know size)
+            if not init_done:
+                init_done = True
+                num_coeffs = len(features)
+                self.coeff_table = np.zeros((nrows, num_coeffs), dtype=float)
+                # print(f"coeff_table:{np.shape(self.coeff_table)}")
+
+            # copy the features to the appropriate row of the coefficient array (offset due to startup window)
+            self.coeff_table[dest] = features
+
+            start = start + 1
+            dest = dest + 1
+            end = end + 1
+
+
+        # print(f'build_coefficient_table() self.coeff_table: {np.shape(self.coeff_table)}')
 
         return
 
     #-------------
 
-    def save_model(self):
+    # merge the supplied dataframe with the coefficient table. Number of rows must match
+    def merge_coeff_table(self, dataframe: DataFrame):
 
-        # save trained model (but only if didn't already exist)
+        # print(f'merge_coeff_table() self.coeff_table: {np.shape(self.coeff_table)}')
 
-        model_path = self.get_model_path("")
+        num_coeffs = np.shape(self.coeff_table)[1]
 
-        # create directory if it doesn't already exist
-        save_dir = os.path.dirname(model_path)
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
+        merged_table = np.concatenate([np.array(dataframe), self.coeff_table], axis=1)
 
-        # use joblib to save model state
-        print("    saving to: ", model_path)
-        joblib.dump(self.model, model_path)
+        # save the start column for later use
+        self.coeff_start_col = np.shape(dataframe)[1]
 
-        return
+        return merged_table
 
     #-------------
+
+    # override func to get data for this strategy
+    def get_data(self, dataframe):
+
+        df_norm = self.convert_dataframe(dataframe)
+        gain_data = df_norm['gain'].to_numpy()
+        self.build_coefficient_table(gain_data)
+        data = self.merge_coeff_table(df_norm)
+        return data
+
+   #-------------
 
     # override this method if you want a different type of prediction model
     def create_model(self, df_shape):
 
-        # print("    creating new model using: XGBRegressor")
-        params = {'n_estimators': 100, 'max_depth': 4, 'learning_rate': 0.1}
-        self.model = XGBRegressor(**params)
+        # # print("    creating new model using: XGBRegressor")
+        # params = {'n_estimators': 100, 'max_depth': 4, 'learning_rate': 0.1}
+        # self.model = XGBRegressor(**params)
 
-        # # self.model = PassiveAggressiveRegressor(warm_start=True)
+        self.model = PassiveAggressiveRegressor(warm_start=False)
         # self.model = SGDRegressor(loss='huber')
 
         print(f"    creating new model using: {type(self.model)}")
@@ -493,101 +598,53 @@ class TSPredict(IStrategy):
         return
 
     #-------------
+    
+    # generate predictions for an np array 
+    # data should be the entire data array, not a slice
+    # since we both train and predict, supply indices to allow trining and predicting in different regions
+    def predict_data(self, data, train_start, train_end, predict_start, predict_end):
 
-    # train the model. Override if not an sklearn-compatible algorithm
-    # set save_model=False if you don't want to save the model (needed for ML algorithms)
-    def train_model(self, model, data: np.array, results: np.array, save_model):
+        # a little different than other strats, since we train a model for each column
+        x = np.nan_to_num(data)
 
+        ncols = np.shape(data)[1]
+
+        coeff_arr = []
+
+        training_data = data[train_start:train_end - self.lookahead] # better, but much slower
+        predict_data = data[predict_start:predict_end]
+
+        # create the model
         if self.model is None:
-            print("***    ERR: no model ***")
-            return
+            self.create_model(np.shape(data))
 
-        x = np.nan_to_num(data)
+        # print(f'    train_start:{train_start}, train_end:{train_end}, predict_start:{predict_start}, predict_end:{predict_end}')
 
-        # print('    Updating existing model')
-        if isinstance(model, XGBRegressor):
-            # print('    Updating xgb_model')
-            if self.new_model and (not self.model_trained):
-                model.fit(x, results)
-            else:
-                model.fit(x, results, xgb_model=self.model)
-        elif hasattr(model, "partial_fit"):
-            # print('    partial_fit()')
-            model.partial_fit(x, results)
-        else:
-            # print('    fit()')
-            model.fit(x, results)
+        # train/predict for each coefficient individually
+        for i in range(self.coeff_start_col, ncols):
+            # training_data = data[train_start:train_end, i][:-self.lookahead].reshape(-1,1) # less accurate, but much faster
+            training_labels = data[train_start:train_end, i][self.lookahead:]
+            training_labels = np.nan_to_num(training_labels)
 
-        return
+            # print(f'    data:{np.shape(training_data)} labels:{np.shape(training_labels)}')
 
 
-    #-------------
+            # fit the model
+            self.model.fit(training_data, training_labels)
 
-    # single prediction (for use in rolling calculation)
-    def predict(self, df) -> float:
+            # get a prediction
+            # predict_data = data[predict_start:predict_end, i].reshape(-1,1) # less accurate, but much faster
+            pred = self.model.predict(predict_data)[-1]
+            coeff_arr.append(pred)
 
-        data = np.array(self.convert_dataframe(df))
+        # convert back to wavelet coefficients (different for each type of wavelet)
+        wcoeffs = self.array_to_coeff(np.array(coeff_arr))
 
-        # y_pred = self.model.predict(data)[-1]
-        y_pred = self.predict_data(self.model, data)[-1]
+        # convert back to gain
+        preds = self.get_value(wcoeffs)
+        # print(f'    preds[-1]:{preds[-1]}')
 
-        return y_pred
-
-
-    #-------------
-
-    # get the data for this straegy. Override if necessary
-    def get_data(self, dataframe):
-        # default is to just normalise the dataframe and convert to numpy array
-        df = np.array(self.convert_dataframe(dataframe))
-        return df
- 
-    #-------------
-    
-    # initial training of the model
-    def init_model(self, dataframe: DataFrame):
-
-        # if model is not yet trained, or this is a new model and we want to combine across pairs, then train
-        if (not self.model_trained) or (self.new_model and self.combine_models):
-
-            df = dataframe
-
-            future_gain_data = self.get_future_gain(df)
-            data = self.get_data(df)
-
-            training_data = data[:-self.lookahead-1].copy()
-            training_labels = future_gain_data[:-self.lookahead-1].copy()
-
-            if not self.model_trained:
-                print(f'    initial training ({self.curr_pair})')
-            else:
-                print(f'    incremental training ({self.curr_pair})')
-
-            self.train_model(self.model, training_data, training_labels, True)
-
-            self.model_trained = True
-
-            if self.new_model:
-                self.save_model()
-        
-        # print(f'    model_trained:{self.model_trained} new_model:{self.new_model}  combine_models:{self.combine_models}')
-
-        return
-    
-    #-------------
-    
-    # generate predictions for an np array (intended to be overriden if needed)
-    def predict_data(self, model, data):
-        x = np.nan_to_num(data)
-        preds = model.predict(x)
-
-        # de-norm
-        scaler = RobustScaler()
-        scaler.fit(self.gain_data.reshape(-1, 1))
-        denorm_preds = scaler.inverse_transform(preds.reshape(-1, 1)).squeeze()
-
-        denorm_preds = np.clip(denorm_preds, -3.0, 3.0)
-        return denorm_preds
+        return preds
 
 
     #-------------
@@ -596,8 +653,6 @@ class TSPredict(IStrategy):
     # Note: you probably need to manually tune the parameters, since there is some limited lookahead here
     def add_jumping_predictions(self, dataframe: DataFrame) -> DataFrame:
 
-        # limit training to what we would see in a live environment, otherwise results are too good
-        live_buffer_size = 974
         df = dataframe
 
         # roll through the close data and predict for each step
@@ -611,64 +666,53 @@ class TSPredict(IStrategy):
         future_gain_data = self.get_future_gain(df)
         data = self.get_data(dataframe)
 
-        self.training_data = data.copy()
-        self.training_labels = np.zeros(np.shape(future_gain_data), dtype=float)
-        self.training_labels = future_gain_data.copy()
-
         # initialise the prediction array, using the close data
         pred_array = np.zeros(np.shape(future_gain_data), dtype=float)
 
-        # win_size = 974
-        win_size = 128
+        # NOTE: win_size must be 126 because waverec returns a fixed size signal (you guessed it, length=126)
+        win_size = 126
 
         # loop until we get to/past the end of the buffer
+        # start = 0
+        # end = start + win_size
         start = win_size
         end = start + win_size
         train_end = start - 1
         train_size = 2 * win_size
-        train_start = max(0, train_end - train_size)
+        train_start = max(0, train_end-train_size)
 
-        pair_model = copy.deepcopy(self.model) # make a deep copy so that we don't override the baseline model
+        # base_model = copy.deepcopy(self.model) # make a deep copy so that we don't override the baseline model
+        base_model = self.model
 
         while end < nrows:
 
-            # extract the data and coefficients from the current window
-
-            # (re-)train the model on prior data and get predictions
-
-            if (not self.training_mode) and (self.supports_incremental_training):
-                train_data = self.training_data[train_start:start-1].copy()
-                train_results = self.training_labels[train_start:start-1].copy()
-                # pair_model = copy.deepcopy(self.model)
-                self.train_model(pair_model, train_data, train_results, False)
-
+             # set the (unmodified) gain data for scaling
+            self.gain_data = np.array(dataframe['gain'].iloc[start:end])
 
             # rebuild data up to end of current window
-            dslice = self.training_data[start:end].copy()
-            self.gain_data = np.array(dataframe['gain'].iloc[start:end]) # needed for scaling
-            preds = self.predict_data(pair_model, dslice)
+            preds = self.predict_data(data, train_start, train_end, start, end)
 
+            # print(f'    preds:{np.shape(preds)}')
             # copy the predictions for this window into the main predictions array
-            pred_array[start:end] = preds.copy()
+            pred_array[start:end] = preds[-win_size:].copy()
 
             # move the window to the next segment
+            # end = end + win_size - 1
             end = end + win_size
             start = start + win_size
             train_end = start - 1
             train_start = max(0, train_end - train_size)
 
-        # make sure the last section gets processed (the loop above may not exactly fit the data)
-        # Note that we cannot use the last section for training because we don't have forward looking data
 
         # predict for last window
-        dslice = self.training_data[-win_size:]
-        # preds = self.model.predict(dslice)
 
-        self.gain_data = np.array(dataframe['gain'].iloc[-win_size]) # needed for scaling
-        preds = self.predict_data(pair_model, dslice)
-        pred_array[-win_size:] = preds.copy()
+        self.gain_data = np.array(dataframe['gain'].iloc[-win_size])
+        preds = self.predict_data(data, -(train_size + win_size + 1), -(win_size + 1), -win_size, nrows)
+        plen = len(preds)
+        pred_array[-plen:] = preds.copy()
 
-        dataframe['predicted_gain'] = pred_array.copy()
+        palen = len(pred_array)
+        dataframe['predicted_gain'][-palen:] = pred_array.copy()
 
         return dataframe
 
@@ -678,6 +722,9 @@ class TSPredict(IStrategy):
     def add_latest_prediction(self, dataframe: DataFrame) -> DataFrame:
 
         df = dataframe
+        win_size = 126
+        nrows = np.shape(df)[0]
+        train_size = 256
 
         try:
             # set up training data
@@ -689,8 +736,8 @@ class TSPredict(IStrategy):
             dlen = len(dataframe['gain'])
             clen = min(plen, dlen)
 
-            self.training_data = data[-clen:].copy()
-            self.training_labels = future_gain_data[-clen:].copy()
+            training_data = data[-clen:].copy()
+            training_labels = future_gain_data[-clen:].copy()
 
             pred_array = np.zeros(clen, dtype=float)
 
@@ -701,16 +748,13 @@ class TSPredict(IStrategy):
             pred_array = np.roll(pred_array, -1)
             pred_array[-1] = 0.0
 
-            # cannot use last portion because we are looking ahead
-            dslice = self.training_data[:-self.lookahead]
-            tslice = self.training_labels[:-self.lookahead]
-
-            # retrain base model and get predictions
-            base_model = copy.deepcopy(self.model)
-            self.train_model(base_model, dslice, tslice, False)
-
-            self.gain_data = np.array(dataframe['gain'].iloc[-clen])  # needed for scaling
-            preds = self.predict_data(base_model, self.training_data)
+            # get predictions
+            train_end = nrows - (win_size + 1)
+            train_start = max(0, train_end - train_size)
+            self.gain_data = np.array(dataframe['gain'].iloc[-win_size])
+            preds = self.predict_data(data, 
+                                      train_start, train_end, 
+                                      -win_size, nrows)
 
             # self.model = copy.deepcopy(base_model) # restore original model
 
@@ -753,15 +797,11 @@ class TSPredict(IStrategy):
 
         self.scaler = RobustScaler() # reset scaler each time
 
-        self.init_model(dataframe)
-
         if self.curr_pair not in self.custom_trade_info:
             self.custom_trade_info[self.curr_pair] = {
                 # 'model': self.model,
                 'initialised': False,
-                'predictions': None,
-                'curr_prediction': 0.0,
-                'curr_target': 0.0
+                'predictions': None
             }
 
 
@@ -781,10 +821,6 @@ class TSPredict(IStrategy):
 
         # predictions can spike, so constrain range
         dataframe['predicted_gain'] = dataframe['predicted_gain'].clip(lower=-3.0, upper=3.0)
-
-        # save latest prediction and threshold for later use (where dataframe is not available)
-        self.custom_trade_info[self.curr_pair]['curr_prediction'] = dataframe['predicted_gain'].iloc[-1]
-        self.custom_trade_info[self.curr_pair]['curr_target'] = dataframe['target_profit'].iloc[-1]
 
         if run_profiler:
             prof.disable()
@@ -813,7 +849,8 @@ class TSPredict(IStrategy):
             conditions.append(dataframe['fisher_wr'] < self.entry_guard_fwr.value)
 
             # some trading volume
-            conditions.append(dataframe['volume'] > 0)
+            if 'volume' in dataframe:
+                conditions.append(dataframe['volume'] > 0)
 
 
         fwr_cond = (
@@ -876,7 +913,8 @@ class TSPredict(IStrategy):
             conditions.append(dataframe['fisher_wr'] > self.exit_guard_fwr.value)
 
             # some trading volume
-            conditions.append(dataframe['volume'] > 0)
+            if 'volume' in dataframe:
+                conditions.append(dataframe['volume'] > 0)
 
         # model triggers
         model_cond = (
@@ -902,43 +940,20 @@ class TSPredict(IStrategy):
     def confirm_trade_entry(self, pair: str, order_type: str, amount: float, rate: float,
                             time_in_force: str, current_time: datetime, entry_tag: Optional[str],
                             side: str, **kwargs) -> bool:
-
-        # in 'real' systems, there is often a delay between the signal and the trade
-        # double-check that predicted gain is still above threshold
-
-        if pair in self.custom_trade_info:
-            curr_pred = self.custom_trade_info[pair]['curr_prediction']
-            curr_target = self.custom_trade_info[pair]['curr_target']
-
-            '''
-            # for some reason, this is trigerring all the time, so disable for now
-            if curr_pred < curr_target:
-                if self.dp.runmode.value not in ('backtest', 'plot', 'hyperopt'):
-                    print(
-                        f'    *** {pair} Trade cancelled. Prediction ({curr_pred:.2f}%) below target ({curr_target:.2f}%) '
-                        )
-                return False
-            '''
-
-            # check that prediction is still a profit, rather than a loss
-            if curr_pred < 0.0:
-                if self.dp.runmode.value not in ('backtest', 'plot', 'hyperopt'):
-                    print(
-                        f'    *** {pair} Trade cancelled. Prediction ({curr_pred:.2f}%) is now a loss '
-                        )
-                return False
-
+        
+        #TODO: double-check that predicted gain is still above threshold
+        # How? Maybe save target rate for each pair (in custom_trade_info)?
+        
         # just debug
         if self.dp.runmode.value not in ('backtest', 'plot', 'hyperopt'):
             print(f'Trade Entry: {pair}, rate: {round(rate, 4)}')
 
         return True
 
-
     def confirm_trade_exit(self, pair: str, trade: Trade, order_type: str, amount: float,
                            rate: float, time_in_force: str, exit_reason: str,
                            current_time: datetime, **kwargs) -> bool:
-                
+        # just debug
         if self.dp.runmode.value not in ('backtest', 'plot', 'hyperopt'):
             print(f'Trade Exit: {pair}, rate: {round(rate, 4)}')
 

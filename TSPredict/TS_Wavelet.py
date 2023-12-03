@@ -3,6 +3,7 @@
 """
 ####################################################################################
 TS_Wavelet - predicts each component/coefficient of a wavelet and reconstructs the signal to produce a prediction
+            NOTE: this is *very* compute intensive
 
 ####################################################################################
 """
@@ -48,9 +49,6 @@ strat_dir = str(Path(__file__).parent.parent)
 sys.path.append(strat_dir)
 sys.path.append(group_dir)
 
-# # this adds  ../utils
-# sys.path.append("../utils")
-
 import logging
 import warnings
 
@@ -69,57 +67,11 @@ from utils.DataframeUtils import DataframeUtils, ScalerType # pylint: disable=E0
 import talib.abstract as ta
 
 
+from TSPredict import TSPredict
 
 
-
-class TS_Wavelet(IStrategy):
-    # Do *not* hyperopt for the roi and stoploss spaces
-
-
-    plot_config = {
-        'main_plot': {
-            'close': {'color': 'cornflowerblue'}
-        },
-        'subplots': {
-            "Diff": {
-                'predicted_gain': {'color': 'purple'},
-                'gain': {'color': 'lightblue'},
-                'target_profit': {'color': 'lightgreen'},
-                'target_loss': {'color': 'lightsalmon'}
-            },
-        }
-    }
-
-
-    # ROI table:
-    minimal_roi = {
-        "0": 0.02
-    }
-
-    # Stoploss:
-    stoploss = -0.10
-
-    # Trailing stop:
-    trailing_stop = False
-    trailing_stop_positive = None
-    trailing_stop_positive_offset = 0.0
-    trailing_only_offset_is_reached = False
-
-    timeframe = '5m'
-    inf_timeframe = '15m'
-
-    use_custom_stoploss = True
-
-    # Recommended
-    use_exit_signal = True
-    exit_profit_only = False
-    ignore_roi_if_entry_signal = True
-
-    # Required
-    startup_candle_count: int = 128  # must be power of 2
-    win_size = 14
-
-    process_only_new_candles = True
+class TS_Wavelet(TSPredict):
+   
 
     custom_trade_info = {} # pair-specific data
     curr_pair = ""
@@ -128,7 +80,6 @@ class TS_Wavelet(IStrategy):
 
     # Strategy Specific Variable Storage
 
-    ## Hyperopt Variables
 
     # model_window = startup_candle_count
     model_window = 128
@@ -142,154 +93,7 @@ class TS_Wavelet(IStrategy):
     coeff_start_col = 0
     gain_data = None
 
-    training_data = None
-    training_labels = None
-    training_mode = False # do not set manually
-    supports_incremental_training = True
-    model_per_pair = False
-    combine_models = False
-    model_trained = False
-    new_model = False
-
-    norm_data = True
-    retrain_period = 12 # number of candles before retrining
-
-    dataframeUtils = None
-    scaler = RobustScaler()
-    model = None
-    base_model = None
-
-    curr_dataframe: DataFrame = None
-
-    target_profit = 0.0
-    target_loss = 0.0
-
-    # hyperparams
-    
-    # enable entry/exit guards (safer vs profit)
-    enable_entry_guards = CategoricalParameter([True, False], default=True, space='buy', load=False, optimize=False)
-    entry_guard_fwr = DecimalParameter(-1.0, 0.0, default=-0.0, decimals=1, space='buy', load=True, optimize=True)
-
-    enable_exit_guards = CategoricalParameter([True, False], default=True, space='sell', load=False, optimize=False)
-    exit_guard_fwr = DecimalParameter(0.0, 1.0, default=0.7, decimals=1, space='sell', load=True, optimize=True)
-
-    # use exit signal? 
-    enable_exit_signal = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
-
-    # Custom Stoploss
-    cstop_enable = CategoricalParameter([True, False], default=False, space='sell', load=True, optimize=True)
-    cstop_start = DecimalParameter(0.0, 0.060, default=0.019, decimals=3, space='sell', load=True, optimize=True)
-    cstop_ratio = DecimalParameter(0.7, 0.999, default=0.8, decimals=3, space='sell', load=True, optimize=True)
-
-    # Custom Exit
-    # profit threshold exit
-    cexit_profit_threshold = DecimalParameter(0.005, 0.065, default=0.047, decimals=3, space='sell', load=True, optimize=True)
-    cexit_use_profit_threshold = CategoricalParameter([True, False], default=False, space='sell', load=True, optimize=True)
-
-    # loss threshold exit
-    cexit_loss_threshold = DecimalParameter(-0.065, -0.005, default=-0.046, decimals=3, space='sell', load=True, optimize=True)
-    cexit_use_loss_threshold = CategoricalParameter([True, False], default=False, space='sell', load=True, optimize=True)
-
-    cexit_fwr_overbought = DecimalParameter(0.90, 1.00, default=0.99, decimals=2, space='sell', load=True, optimize=True)
-    cexit_fwr_take_profit = DecimalParameter(0.90, 1.00, default=0.98, decimals=2, space='sell', load=True, optimize=True)
  
-
-    ###################################
-
-    def bot_start(self, **kwargs) -> None:
-
-        if self.dataframeUtils is None:
-            self.dataframeUtils = DataframeUtils()
-            self.dataframeUtils.set_scaler_type(ScalerType.Robust)
-
-        return
-
-    ###################################
-
-    """
-    Informative Pair Definitions
-    """
-
-    def informative_pairs(self):
-        return []
-
-    ###################################
-
-    """
-    Indicator Definitions
-    """
-
-    def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-
-        #NOTE: if you change the indicators, you need to regenerate the model
-
-        # Base pair dataframe timeframe indicators
-        curr_pair = metadata['pair']
-
-        self.curr_dataframe = dataframe
-        self.curr_pair = curr_pair
-
-        # The following are needed for base functions, so do not remove.
-        # Add custom indicators to add_strategy_indicators()
-
-        # backward looking gain
-        dataframe['gain'] = 100.0 * (dataframe['close'] - dataframe['close'].shift(self.lookahead)) / \
-            dataframe['close'].shift(self.lookahead)
-        dataframe['gain'].fillna(0.0, inplace=True)
-        dataframe['gain'] = self.smooth(dataframe['gain'], 8)
-        dataframe['gain'] = self.detrend_array(dataframe['gain'])
-
-        # need to save the gain data for later scaling
-        self.gain_data = np.array(dataframe['gain'])
-
-        # target profit/loss thresholds        
-        dataframe['profit'] = dataframe['gain'].clip(lower=0.0)
-        dataframe['loss'] = dataframe['gain'].clip(upper=0.0)
-        # win_size = 32
-        win_size = self.lookahead
-        n_std = 2.0
-        dataframe['target_profit'] = dataframe['profit'].rolling(window=win_size).mean() + \
-            n_std * dataframe['profit'].rolling(window=win_size).std()
-        dataframe['target_loss'] = dataframe['loss'].rolling(window=win_size).mean() - \
-            n_std * abs(dataframe['loss'].rolling(window=win_size).std())
-
-        dataframe['target_profit'] = dataframe['target_profit'].clip(lower=0.1, upper=3.0)
-        dataframe['target_loss'] = dataframe['target_loss'].clip(lower=-3.0, upper=-0.1)
-        
-        dataframe['target_profit'] = np.nan_to_num(dataframe['target_profit'])
-        dataframe['target_loss'] = np.nan_to_num(dataframe['target_loss'])
-
-
-        # RSI
-        dataframe['rsi'] = ta.RSI(dataframe, timeperiod=self.win_size)
-
-        # Williams %R
-        dataframe['wr'] = 0.02 * (self.williams_r(dataframe, period=self.win_size) + 50.0)
-
-        # Fisher RSI
-        rsi = 0.1 * (dataframe['rsi'] - 50)
-        dataframe['fisher_rsi'] = (np.exp(2 * rsi) - 1) / (np.exp(2 * rsi) + 1)
-
-        # Combined Fisher RSI and Williams %R
-        dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
-
-        # init prediction column
-        dataframe['predicted_gain'] = 0.0
-
-
-        # Add strategy-specific indicators
-        dataframe = self.add_strategy_indicators(dataframe)
-
-        # add the predictions
-        # print("    Making predictions...")
-        dataframe = self.add_predictions(dataframe)
-
-        dataframe.fillna(0.0, inplace=True)
-
-        # #DBG (cannot include this in 'real' strat because it's forward looking):
-        # dataframe['dwt'] = self.get_dwt(dataframe['gain'])
-
-        return dataframe
    
   
     ###################################
@@ -328,85 +132,6 @@ class TS_Wavelet(IStrategy):
 
     ###################################
     
-    def smooth(self, y, window):
-        box = np.ones(window)/window
-        y_smooth = np.convolve(y, box, mode='same')
-        y_smooth = np.round(y_smooth, decimals=3) #Hack: constrain to 3 decimal places (should be elsewhere, but convenient here)
-        return np.nan_to_num(y_smooth)
-    
-    # look ahead to get future gain. Do *not* put this into the main dataframe!
-    def get_future_gain(self, dataframe):
-
-        df = self.convert_dataframe(dataframe)
-        future_gain = df['gain'].shift(-self.lookahead).to_numpy()
-
-        # future_gain = dataframe['gain'].shift(-self.lookahead).to_numpy()
-        return self.smooth(future_gain, 8)
-    
-    ###################################
-
-    # Williams %R
-    def williams_r(self, dataframe: DataFrame, period: int = 14) -> Series:
-        """Williams %R, or just %R, is a technical analysis oscillator showing the current closing price in relation to the high and low
-            of the past N days (for a given N). It was developed by a publisher and promoter of trading materials, Larry Williams.
-            Its purpose is to tell whether a stock or commodity market is trading near the high or the low, or somewhere in between,
-            of its recent trading range.
-            The oscillator is on a negative scale, from −100 (lowest) up to 0 (highest).
-        """
-
-        highest_high = dataframe["high"].rolling(center=False, window=period).max()
-        lowest_low = dataframe["low"].rolling(center=False, window=period).min()
-
-        WR = Series(
-            (highest_high - dataframe["close"]) / (highest_high - lowest_low),
-            name=f"{period} Williams %R",
-        )
-
-        return WR * -100
-
-
-    ###################################
-
-
-    #-------------
-
-    def convert_dataframe(self, dataframe: DataFrame) -> DataFrame:
-        df = dataframe.copy()
-
-        # convert date column so that it can be scaled.
-        if 'date' in df.columns:
-            dates = pd.to_datetime(df['date'], utc=True)
-            df['date'] = dates.astype('int64')
-
-        df.fillna(0.0, inplace=True)
-
-        df.set_index('date')
-        df.reindex()
-
-        if self.norm_data:
-            # scale the dataframe
-            self.scaler.fit(df)
-            df = pd.DataFrame(self.scaler.transform(df), columns=df.columns)
-
-        return df
-
-
-    ###################################
-
-    def detrend_array(self, a):
-        '''
-        if self.norm_data:
-            # de-trend the data
-            w_mean = a.mean()
-            w_std = a.std()
-            a_notrend = (a - w_mean) / w_std
-            return a_notrend
-        else:
-            return a
-        '''
-        return a
-
-
     ###################################
 
     # DWT functions
@@ -578,13 +303,17 @@ class TS_Wavelet(IStrategy):
         self.build_coefficient_table(gain_data)
         data = self.merge_coeff_table(df_norm)
         return data
+    
+    #####################################
 
-   #-------------
+    # Model-related functions - note that this family of strategies does not save/reload models
 
-    # override this method if you want a different type of prediction model
+
+
+    # regression/prediction model. For this family, it must be *fast*
     def create_model(self, df_shape):
 
-        # # print("    creating new model using: XGBRegressor")
+        # XGBoost is the best regression algorithm, but it runs too slowly for this strategy
         # params = {'n_estimators': 100, 'max_depth': 4, 'learning_rate': 0.1}
         # self.model = XGBRegressor(**params)
 
@@ -596,6 +325,29 @@ class TS_Wavelet(IStrategy):
         if self.model is None:
             print("***    ERR: create_model() - model was not created ***")
         return
+    
+    # -------------
+
+    # the following are here just to maintain compatibilkity with TSPredict
+
+    def init_model(self, dataframe: DataFrame):
+        pass
+    
+    def train_model(self, model, data: np.array, results: np.array, save_model):
+        pass
+
+    def save_model(self):
+        pass
+
+    def load_model(self, df_shape):
+        self.model_trained = True
+        self.new_model = False
+        self.training_mode = False
+        return
+    
+    #####################################
+
+    # Prediction-related functions
 
     #-------------
     
@@ -784,257 +536,4 @@ class TS_Wavelet(IStrategy):
     
     #-------------
     
-    # add predictions to dataframe['predicted_gain']
-    def add_predictions(self, dataframe: DataFrame) -> DataFrame:
-
-        # print(f"    {self.curr_pair} adding predictions")
-
-        run_profiler = False
-
-        if run_profiler:
-            prof = cProfile.Profile()
-            prof.enable()
-
-        self.scaler = RobustScaler() # reset scaler each time
-
-        if self.curr_pair not in self.custom_trade_info:
-            self.custom_trade_info[self.curr_pair] = {
-                # 'model': self.model,
-                'initialised': False,
-                'predictions': None
-            }
-
-
-        if self.training_mode:
-            print(f'    Training mode. Skipping backtest for {self.curr_pair}')
-            dataframe['predicted_gain'] = 0.0
-        else:
-            if not self.custom_trade_info[self.curr_pair]['initialised']:
-                print(f'    backtesting {self.curr_pair}')
-                dataframe = self.add_jumping_predictions(dataframe)
-                # dataframe = self.add_rolling_predictions(dataframe)
-                self.custom_trade_info[self.curr_pair]['initialised'] = True
-                self.custom_trade_info[self.curr_pair]['predictions'] = dataframe['predicted_gain'].copy()
-            else:
-                # print(f'    updating latest prediction for: {self.curr_pair}')
-                dataframe = self.add_latest_prediction(dataframe)
-
-        # predictions can spike, so constrain range
-        dataframe['predicted_gain'] = dataframe['predicted_gain'].clip(lower=-3.0, upper=3.0)
-
-        if run_profiler:
-            prof.disable()
-            # print profiling output
-            stats = pstats.Stats(prof).strip_dirs().sort_stats("cumtime")
-            stats.print_stats(20) # top 20 rows
-
-        return dataframe
-    
-    ###################################
-
-    """
-    entry Signal
-    """
-
-    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        conditions = []
-        dataframe.loc[:, 'enter_tag'] = ''
-       
-        if self.training_mode:
-            dataframe['enter_long'] = 0
-            return dataframe
-        
-        if self.enable_entry_guards.value:
-            # Fisher/Williams in oversold region
-            conditions.append(dataframe['fisher_wr'] < self.entry_guard_fwr.value)
-
-            # some trading volume
-            if 'volume' in dataframe:
-                conditions.append(dataframe['volume'] > 0)
-
-
-        fwr_cond = (
-            (dataframe['fisher_wr'] < -0.98)
-        )
-
-
-        # model triggers
-        model_cond = (
-            (
-                # model predicts a rise above the entry threshold
-                qtpylib.crossed_above(dataframe['predicted_gain'], dataframe['target_profit']) #&
-                # (dataframe['predicted_gain'] >= dataframe['target_profit']) &
-                # (dataframe['predicted_gain'].shift() >= dataframe['target_profit'].shift()) &
-
-                # Fisher/Williams in oversold region
-                # (dataframe['fisher_wr'] < -0.5)
-            )
-            # |
-            # (
-            #     # large gain predicted (ignore fisher_wr)
-            #     qtpylib.crossed_above(dataframe['predicted_gain'], 2.0 * dataframe['target_profit']) 
-            # )
-        )
-        
-        
-
-        # conditions.append(fwr_cond)
-        conditions.append(model_cond)
-
-
-        # set entry tags
-        dataframe.loc[fwr_cond, 'enter_tag'] += 'fwr_entry '
-        dataframe.loc[model_cond, 'enter_tag'] += 'model_entry '
-
-        if conditions:
-            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'enter_long'] = 1
-
-        return dataframe
-
-
-    ###################################
-
-    """
-    exit Signal
-    """
-
-    def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
-        conditions = []
-        dataframe.loc[:, 'exit_tag'] = ''
-
-        if self.training_mode or (not self.enable_exit_signal.value):
-            dataframe['exit_long'] = 0
-            return dataframe
-
-        # if self.enable_entry_guards.value:
-
-        if self.enable_exit_guards.value:
-            # Fisher/Williams in overbought region
-            conditions.append(dataframe['fisher_wr'] > self.exit_guard_fwr.value)
-
-            # some trading volume
-            if 'volume' in dataframe:
-                conditions.append(dataframe['volume'] > 0)
-
-        # model triggers
-        model_cond = (
-            (
-
-                 qtpylib.crossed_below(dataframe['predicted_gain'], dataframe['target_loss'] )
-           )
-        )
-
-        conditions.append(model_cond)
-
-
-        # set exit tags
-        dataframe.loc[model_cond, 'exit_tag'] += 'model_exit '
-
-        if conditions:
-            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'exit_long'] = 1
-
-        return dataframe
-
-    ###################################
-
-    def confirm_trade_entry(self, pair: str, order_type: str, amount: float, rate: float,
-                            time_in_force: str, current_time: datetime, entry_tag: Optional[str],
-                            side: str, **kwargs) -> bool:
-        
-        #TODO: double-check that predicted gain is still above threshold
-        # How? Maybe save target rate for each pair (in custom_trade_info)?
-        
-        # just debug
-        if self.dp.runmode.value not in ('backtest', 'plot', 'hyperopt'):
-            print(f'Trade Entry: {pair}, rate: {round(rate, 4)}')
-
-        return True
-
-    def confirm_trade_exit(self, pair: str, trade: Trade, order_type: str, amount: float,
-                           rate: float, time_in_force: str, exit_reason: str,
-                           current_time: datetime, **kwargs) -> bool:
-        # just debug
-        if self.dp.runmode.value not in ('backtest', 'plot', 'hyperopt'):
-            print(f'Trade Exit: {pair}, rate: {round(rate, 4)}')
-
-        return True
-    
-    ###################################
-
-    """
-    Custom Stoploss
-    """
-
-    # simplified version of custom trailing stoploss
-    def custom_stoploss(self, pair: str, trade: Trade, current_time: datetime, current_rate: float,
-                        current_profit: float, after_fill: bool, **kwargs) -> float:
-
-        # if enable, use custom trailing ratio, else use default system
-        if self.cstop_enable.value:
-            # if current profit is above start value, then set stoploss at fraction of current profit
-            if current_profit > self.cstop_start.value:
-                return current_profit * self.cstop_ratio.value
-
-        # return min(-0.001, max(stoploss_from_open(0.05, current_profit), -0.99))
-        return self.stoploss
-
-
-    ###################################
-
-    """
-    Custom Exit
-    (Note that this runs even if use_custom_stoploss is False)
-    """
-
-    # simplified version of custom exit
-
-    def custom_exit(self, pair: str, trade: Trade, current_time: 'datetime', current_rate: float,
-                    current_profit: float, **kwargs):
-
-        dataframe, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
-        last_candle = dataframe.iloc[-1].squeeze()
-        
-
-        if not self.use_custom_stoploss:
-            return None
-
-        # strong sell signal, in profit
-        if (current_profit > 0.0) and (last_candle['fisher_wr'] >= self.cexit_fwr_overbought.value):
-            return 'fwr_overbought'
-
-        # Above 0.5%, sell if Fisher/Williams in sell range
-        if current_profit > 0.005:
-            if last_candle['fisher_wr'] >= self.cexit_fwr_take_profit.value:
-                return 'take_profit'
- 
-
-        # check profit against ROI target. This sort of emulates the freqtrade roi approach, but is much simpler
-        if self.cexit_use_profit_threshold.value:
-            if (current_profit >= self.cexit_profit_threshold.value):
-                return 'cexit_profit_threshold'
-
-        # check loss against threshold. This sort of emulates the freqtrade stoploss approach, but is much simpler
-        if self.cexit_use_loss_threshold.value:
-            if (current_profit <= self.cexit_loss_threshold.value):
-                return 'cexit_loss_threshold'
-              
-        # Sell any positions if open for >= 1 day with any level of profit
-        if ((current_time - trade.open_date_utc).days >= 1) & (current_profit > 0):
-            return 'unclog_1'
-        
-        # Sell any positions at a loss if they are held for more than 7 days.
-        if (current_time - trade.open_date_utc).days >= 7:
-            return 'unclog_7'
-        
-        
-        # big drop predicted. Should also trigger an exit signal, but this might be quicker (and will likely be 'market' sell)
-        if (current_profit > 0) and (last_candle['predicted_gain'] <= last_candle['target_loss']):
-            return 'predict_drop'
-        
-
-        # if in profit and exit signal is set, sell (even if exit signals are disabled)
-        if (current_profit > 0) and (last_candle['exit_long'] > 0):
-            return 'exit_signal'
-
-        return None
     
