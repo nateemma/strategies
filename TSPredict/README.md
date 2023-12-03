@@ -61,25 +61,24 @@ If you change indicators or the prediction/regression algorithm (or sometimes up
 
 For example, say we change something in TS_Simple_PA.py that requires a model update, we would probably do the following:
 
-"""
-# remove existing model
-rm -r user_data/strategies/TSPredict/models/TS_Simple_PA
+># remove existing model
+>rm -r user_data/strategies/TSPredict/models/TS_Simple_PA
+>
+># download data (this will only download missing data)
+>zsh user_data/strategies/scripts/download.sh -n 600 binanceus
+>
+># regenerate the model over a long time period
+>zsh user_data/strategies/scripts/test_strat.sh -n 600 TSPredict TS_Simple_PA
+>
+># test over a recent time period
+>zsh user_data/strategies/scripts/test_strat.sh -n 30 TSPredict TS_Simple_PA
+>
+># plot the last few days
+>zsh user_data/strategies/scripts/plot_strat.sh -n 3 TSPredict TS_Simple_PA ALGO/USDT
+>
+># load the file user_data/plot/freqtrade-plot-ALGO_USDT-5m.html into a browser and check buy/sell events
+>
 
-# download data (this will only download missing data)
-zsh user_data/strategies/scripts/download.sh -n 600 binanceus
-
-# regenerate the model over a long time period
-zsh user_data/strategies/scripts/test_strat.sh -n 600 TSPredict TS_Simple_PA
-
-# test over a recent time period
-zsh user_data/strategies/scripts/test_strat.sh -n 30 TSPredict TS_Simple_PA
-
-# plot the last few days
-zsh user_data/strategies/scripts/plot_strat.sh -n 3 TSPredict TS_Simple_PA ALGO/USDT
-
-# load the file user_data/plot/freqtrade-plot-ALGO_USDT-5m.html into a browser and check buy/sell events
-
-"""
 
 ## Downloading Test Data
 
