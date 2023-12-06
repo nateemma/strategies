@@ -74,7 +74,7 @@ class TS_Coeff_DWT_LSTM(TS_Coeff_DWT):
         path = self.get_model_path("")
         self.model.set_model_path(path)
         # self.model.set_combine_models(self.combine_models)
-        self.model.set_combine_models(False)
+        self.model.set_combine_models(True)
         
         return
     

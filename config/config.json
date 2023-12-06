@@ -1,5 +1,5 @@
 {
-  "max_open_trades": 10,
+  "max_open_trades": 5,
   "stake_currency": "USDT",
   "dry_run_wallet": 10000,
   "stake_amount": 900,
@@ -15,7 +15,7 @@
     "unit": "minutes"
   },
   "entry_pricing": {
-    "price_side": "same",
+    "price_side": "other",
     "use_order_book": true,
     "order_book_top": 1,
     "price_last_balance": 0.0,
@@ -25,13 +25,13 @@
     }
   },
   "exit_pricing": {
-    "price_side": "same",
+    "price_side": "other",
     "use_order_book": true,
     "order_book_top": 1
   },
   "order_types": {
-    "entry": "limit",
-    "exit": "limit",
+    "entry": "market",
+    "exit": "market",
     "emergency_exit": "market",
     "force_exit": "market",
     "force_entry": "market",

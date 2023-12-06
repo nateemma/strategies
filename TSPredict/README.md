@@ -1,6 +1,6 @@
 # Time Series Prediction (TSPredict)
 
-Strategies in this directory implement a common approach to 'simply' estimating future values of a time series - in this case, the gain. I use gain instead of price because the values are simiular across all pairs (price is not at all) and so I can create models that work for any pair.
+Strategies in this directory implement a common approach to 'simply' estimating future values of a time series - in this case, the gain. I use gain instead of price because the values are similar across all pairs (price is not at all) and so I can create models that work for any pair.
 
 In general, all of these strategies will try to load an existing model, but if it is not found it will create and train a new model. So, the first time you run a strategy, do so over a long period of time.
 On subsequent runs, the strategy will load the saved model, and use that as the basis for all pairs. Pair-specific data is used to incrementally train the model with new data as it becomes available (but this is not saved). In theory, prediction accuracy should get better over time
@@ -8,16 +8,20 @@ On subsequent runs, the strategy will load the saved model, and use that as the 
 ## Quick Start
 
 1. Download data<br>
-> zsh user_data/strategies/scripts/download.sh binanceus
+
+    > zsh user_data/strategies/scripts/download.sh binanceus
 
 2. Test over a long period of time to create a decent base model (only need to do this once per strat)
-> zsh user_data/strategies/scripts/test_strat -n 600 TSPredict \<_strat_\>
+
+    > zsh user_data/strategies/scripts/test_strat -n 600 TSPredict \<_strat_\>
 
 3. Test over reasonable time period
-> zsh user_data/strategies/scripts/test_strat -n 30 TSPredict \<_strat_\>
+
+    > zsh user_data/strategies/scripts/test_strat -n 30 TSPredict \<_strat_\>
 
 4. Plot data
-> zsh user_data/strategies/scripts/plot_strat -n 7 TSPredict \<_strat_\> \<_pair_\>
+
+    > zsh user_data/strategies/scripts/plot_strat -n 7 TSPredict \<_strat_\> \<_pair_\>
 
 5. Examine plot
 In a browser, open the file file://user_data/plot/freqtrade-plot-ALGO_USDT-5m.html <br>
@@ -27,8 +31,8 @@ The plot for _predicted\_gain_ should look something like the plot for _gain_, b
 
 ## Files
 
-The majority of functional code is in the class *TSPredict.py* - this implements the basic dataframe handling, model loading/saving/training, custom stoploss/exit and populate_entry/exit functions.<br>
-Similarly *TS_Wavelet.py* contains the base code for the Wavelet family of strategies (see below)
+The majority of functional code is in the class _TSPredict.py_ - this implements the basic dataframe handling, model loading/saving/training, custom stoploss/exit and populate_entry/exit functions.<br>
+Similarly _TS_Wavelet.py_ contains the base code for the Wavelet family of strategies (see below)
 
 Other classes add on different approaches to modelling the future values, for example:
 
@@ -37,21 +41,21 @@ These classes predict on _only_ the historical gain values. These are not partic
 
 - TS_Simple_*.py<br>
 These add some additional indicators and estimate future gain using a variety of different algorithms (e.g. TS_Simple_SGD.py uses a Stochastic Gradient Descent algorithm)<br>
-Note: if you want to try different regression/prediction algorithms, be aware that they really need to support incremental traing, i.e. the model is updated with new data rather than completely retrained.
+This is actually a good platform for testing whether indicators make a difference or not. Indicators that vary wildly or have discontinuities will likely mess up the predictions.
+Note: if you want to try different regression/prediction algorithms, be aware that they really need to support incremental training, i.e. the model is updated with new data rather than completely retrained.
 
 - TS_Coeff_*.py<br>
 These add coefficients to the indicators that are based on various signal estimation algorithms, such as FFT, DWT etc. The estimation coefficients are added to the indicators and the prediction/regression algorithm is trained using those coefficients
 
 - TS_Wavelet_*.py<br>
-Instead of predicting gain using various signal estimation techniques or regression/prediction algorithms, these decompose the gain data into subcomponents using various transforms (DWT, SWt etc.), predict the futrure values of each subcomponent and then rebuilds the signal to create a a prediction of future gain. These are _very_ compute intensive, so I had to use a fast regression algorithm (PassiveAggressiveRegressor from sklearn). XGBoost is better, but does not run in real time when performing a dry run.<br>
+Instead of predicting gain using various signal estimation techniques or regression/prediction algorithms, these decompose the gain data into subcomponents using various transforms (DWT, SWt etc.), predict the future values of each subcomponent and then rebuilds the signal to create a a prediction of future gain. These are _very_ compute intensive, so I had to use a fast regression algorithm (PassiveAggressiveRegressor from sklearn). XGBoost is better, but does not run in real time when performing a dry run.<br>
 Note: these strategies do not save/reload models, so you do not need to train them before use
-
 
 Note: yes, I know there many other algorithms that could be used. If you don't see them here, it generally means they didn't perform well, so I didn't include them.
 
 ## Indicators
 
-If you want to add indicators, then you should crate a new strategy that inherits from the strategy that you want to modify, and override the function add_strategy_indicators(). Then, follow the steps below to create a model for the new strategy (unless you are subclassing one of the TS_Wavelet strategis, which does not use stored models).
+If you want to add indicators, then you should crate a new strategy that inherits from the strategy that you want to modify, and override the function add_strategy_indicators(). Then, follow the steps below to create a model for the new strategy (unless you are subclassing one of the TS_Wavelet strategies, which does not use stored models).
 
 ## Models
 
@@ -89,13 +93,11 @@ You do this using a command like this:
 
 > freqtrade download-data --timerange=_\<timerange\>_ -c _\<config\>_-t 5m
 
-
 I typically download for the past 180 days, which is the default used by the various scripts.
 
 For convenience, you can also just run :
 
-> zsh user_data/strategies/scripts/download.sh *[\<exchange\>\]*
-
+> zsh user_data/strategies/scripts/download.sh *\[\<exchange\>\]*
 
 ## Backtesting
 
@@ -136,7 +138,7 @@ See [here](https://www.freqtrade.io/en/latest/strategy-customization/#common-mis
 little) more information
 
 Also, some example strategies with subtle lookahead bias can be viewed (with an explanation)
-at: https://github.com/freqtrade/freqtrade-strategies/tree/master/user_data/strategies/lookahead_bias
+at: <https://github.com/freqtrade/freqtrade-strategies/tree/master/user_data/strategies/lookahead_bias>
 
 ## Hyper-Parameter Optimisation
 
@@ -172,7 +174,7 @@ them in sequence.
 
 NOTE: the optimised parameters are written to a json file that matches the strategy file, e.g. DWT.py will produce
 DWT.json. freqtrade commands (backtesting, dryrun, live running) will take the parameters from that file. Those
-settings *override* any equivalent settings contained in the python file, so if you are changing parameters in the
+settings _override_ any equivalent settings contained in the python file, so if you are changing parameters in the
 python code and nothing is happening, check the json file (it took me a while to figure that out)
 
 The optimisation run does not always produce better results, so look carefully). I tend to open the json file before
@@ -204,7 +206,7 @@ Easy. In a command window, just run:
 > freqtrade trade --dry-run --strategy-path _\<path\>_ --strategy _\<strategy\>_
 
 If you install freqUI (instructions [here](https://www.freqtrade.io/en/stable/rest-api/)), then you can monitor the
-trades on a web page at http://127.0.0.1:8080/ (or whatever address you specify in config.json)
+trades on a web page at <http://127.0.0.1:8080/> (or whatever address you specify in config.json)
 
 The script helper is:
 

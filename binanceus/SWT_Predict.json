@@ -2,7 +2,7 @@
   "strategy_name": "SWT_Predict",
   "params": {
     "roi": {
-      "0": 0.02
+      "0": 0.04, "100": 0.02
     },
     "stoploss": {
       "stoploss": -0.1

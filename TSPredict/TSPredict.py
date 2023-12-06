@@ -1,4 +1,4 @@
-# pragma pylint: disable=W0105, C0103, C0114, C0115, C0116, C0301, C0302, C0303, C0411, C0413,  W1203
+# pragma pylint: disable=W0105, C0103, C0114, C0115, C0116, C0301, C0302, C0303, C0325, C0411, C0413,  W1203
 
 """
 ####################################################################################
@@ -9,8 +9,8 @@ TS_Predict - base class for 'simple' time series prediction
              Note that I use gain rather than price because it is a normalised value, and works better with prediction algorithms.
              I use the actual (future) gain to train a base model, which is then further refined for each individual pair.
              The model is created if it does not exist, and is trained on all available data before being saved.
-             Models are saved in user_data/strategies/TSPredict/models/<class>/<class>.sav, where <class> is the name of the current class
-             (TS_Predict if running this directly, or the name of the subclass). 
+             Models are saved in user_data/strategies/TSPredict/models/<class>/<class>.sav, where <class> is the name of 
+             the current class (TS_Predict if running this directly, or the name of the subclass). 
              If the model already exits, then it is just loaded and used.
              So, it makes sense to do initial training over a long period of time to create the base model. 
              If training, then no backtesting or tuning for individual pairs is performed (way faster).
@@ -47,7 +47,6 @@ from freqtrade.strategy import (IStrategy, DecimalParameter, CategoricalParamete
 from freqtrade.persistence import Trade
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 
-pd.options.mode.chained_assignment = None  # default='warn'
 
 # Strategy specific imports, files must reside in same folder as strategy
 import sys
@@ -62,16 +61,16 @@ strat_dir = str(Path(__file__).parent.parent)
 sys.path.append(strat_dir)
 sys.path.append(group_dir)
 
-# # this adds  ../utils
-# sys.path.append("../utils")
 
 import logging
 import warnings
 
 log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+# log.setLevel(logging.DEBUG)
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 warnings.simplefilter(action='ignore', category=FutureWarning)
+
+pd.options.mode.chained_assignment = None  # default='warn'
 
 from xgboost import XGBRegressor
 # from lightgbm import LGBMRegressor
@@ -107,7 +106,8 @@ class TSPredict(IStrategy):
 
     # ROI table:
     minimal_roi = {
-        "0": 0.02
+      "0": 0.04,
+      "100": 0.02
     }
 
     # Stoploss:
@@ -147,7 +147,7 @@ class TSPredict(IStrategy):
     # model_window = startup_candle_count
     model_window = 128
 
-    lookahead = 9
+    lookahead = 6
 
     df_coeffs: DataFrame = None
     coeff_table = None
@@ -180,29 +180,18 @@ class TSPredict(IStrategy):
     # hyperparams
 
     # enable entry/exit guards (safer vs profit)
-    enable_entry_guards = CategoricalParameter(
-        [True, False], default=True, space='buy', load=False, optimize=False)
-    entry_guard_fwr = DecimalParameter(-1.0, 0.0, default=-0.0,
-                                       decimals=1, space='buy', load=True, optimize=True)
+    enable_entry_guards = CategoricalParameter([True, False], default=False, space='buy', load=True, optimize=True)
+    entry_guard_fwr = DecimalParameter(-1.0, 0.0, default=-0.0, decimals=1, space='buy', load=True, optimize=True)
 
-    enable_exit_guards = CategoricalParameter(
-        [True, False], default=True, space='sell', load=False, optimize=False)
-    exit_guard_fwr = DecimalParameter(
-        0.0, 1.0, default=0.7, decimals=1, space='sell', load=True, optimize=True)
+    enable_exit_guards = CategoricalParameter([True, False], default=False, space='sell', load=True, optimize=True)
+    exit_guard_fwr = DecimalParameter(0.0, 1.0, default=0.0, decimals=1, space='sell', load=True, optimize=True)
 
     # use exit signal?
-    enable_exit_signal = CategoricalParameter(
-        [True, False], default=True, space='sell', load=True, optimize=True)
-
-    # Custom Stoploss
-    cstop_enable = CategoricalParameter(
-        [True, False], default=False, space='sell', load=True, optimize=True)
-    cstop_start = DecimalParameter(0.0, 0.060, default=0.019, decimals=3,
-                                   space='sell', load=True, optimize=True)
-    cstop_ratio = DecimalParameter(0.7, 0.999, default=0.8, decimals=3,
-                                   space='sell', load=True, optimize=True)
+    enable_exit_signal = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
 
     # Custom Exit
+
+    '''
     # profit threshold exit
     cexit_profit_threshold = DecimalParameter(
         0.005, 0.065, default=0.047, decimals=3, space='sell', load=True, optimize=True)
@@ -215,10 +204,16 @@ class TSPredict(IStrategy):
     cexit_use_loss_threshold = CategoricalParameter(
         [True, False], default=False, space='sell', load=True, optimize=True)
 
-    cexit_fwr_overbought = DecimalParameter(
-        0.90, 1.00, default=0.99, decimals=2, space='sell', load=True, optimize=True)
-    cexit_fwr_take_profit = DecimalParameter(
-        0.90, 1.00, default=0.98, decimals=2, space='sell', load=True, optimize=True)
+    '''
+
+    # Fisher/Williams sell limits
+    cexit_fwr_overbought = DecimalParameter(0.90, 0.99, default=0.99, decimals=2, space='sell', load=True, optimize=True)
+    cexit_fwr_take_profit = DecimalParameter(0.90, 0.99, default=0.98, decimals=2, space='sell', load=True, optimize=True)
+    
+    # sell if we see a large drop, and how large?
+    cexit_enable_large_drop = CategoricalParameter([True, False], default=False, space='sell', load=True, optimize=True)
+    cexit_large_drop = DecimalParameter(-3.0, -1.00, default=-2.0, decimals=1, space='sell', load=True, optimize=True)
+
 
 
     ###################################
@@ -263,16 +258,16 @@ class TSPredict(IStrategy):
         dataframe['gain'] = 100.0 * (dataframe['close'] - dataframe['close'].shift(self.lookahead)) / \
             dataframe['close'].shift(self.lookahead)
         dataframe['gain'].fillna(0.0, inplace=True)
+
         dataframe['gain'] = self.smooth(dataframe['gain'], 8)
-        dataframe['gain'] = self.detrend_array(dataframe['gain'])
 
         # need to save the gain data for later scaling
         self.gain_data = dataframe['gain'].to_numpy().copy()
 
-        # target profit/loss thresholds        
+        # target profit/loss thresholds
         dataframe['profit'] = dataframe['gain'].clip(lower=0.0)
         dataframe['loss'] = dataframe['gain'].clip(upper=0.0)
-        win_size = self.lookahead
+        win_size = max(self.lookahead, 6)
         n_std = 2.0
         dataframe['target_profit'] = dataframe['profit'].rolling(window=win_size).mean() + \
             n_std * dataframe['profit'].rolling(window=win_size).std()
@@ -393,22 +388,6 @@ class TSPredict(IStrategy):
             df = pd.DataFrame(self.scaler.transform(df), columns=df.columns)
 
         return df
-
-
-    ###################################
-
-    def detrend_array(self, a):
-        '''
-        if self.norm_data:
-            # de-trend the data
-            w_mean = a.mean()
-            w_std = a.std()
-            a_notrend = (a - w_mean) / w_std
-            return a_notrend
-        else:
-            return a
-        '''
-        return a
 
     ###################################
 
@@ -596,16 +575,10 @@ class TSPredict(IStrategy):
     # Note: you probably need to manually tune the parameters, since there is some limited lookahead here
     def add_jumping_predictions(self, dataframe: DataFrame) -> DataFrame:
 
-        # limit training to what we would see in a live environment, otherwise results are too good
-        live_buffer_size = 974
         df = dataframe
 
         # roll through the close data and predict for each step
         nrows = np.shape(df)[0]
-
-
-        # build the coefficient table and merge into the dataframe (OK outside the main loop since it's built incrementally anyway)
-
 
         # set up training data
         future_gain_data = self.get_future_gain(df)
@@ -903,34 +876,43 @@ class TSPredict(IStrategy):
                             time_in_force: str, current_time: datetime, entry_tag: Optional[str],
                             side: str, **kwargs) -> bool:
 
+        # this only makes sense in 'live' modes
+        if self.dp.runmode.value in ('backtest', 'plot', 'hyperopt'):
+            return True
+        
         # in 'real' systems, there is often a delay between the signal and the trade
         # double-check that predicted gain is still above threshold
 
         if pair in self.custom_trade_info:
             curr_pred = self.custom_trade_info[pair]['curr_prediction']
-            curr_target = self.custom_trade_info[pair]['curr_target']
 
-            '''
-            # for some reason, this is trigerring all the time, so disable for now
+
+            # check latest prediction against latest target
+
+            curr_target = self.custom_trade_info[pair]['curr_target']
             if curr_pred < curr_target:
                 if self.dp.runmode.value not in ('backtest', 'plot', 'hyperopt'):
                     print(
                         f'    *** {pair} Trade cancelled. Prediction ({curr_pred:.2f}%) below target ({curr_target:.2f}%) '
                         )
                 return False
-            '''
 
+
+            '''
             # check that prediction is still a profit, rather than a loss
             if curr_pred < 0.0:
-                if self.dp.runmode.value not in ('backtest', 'plot', 'hyperopt'):
+                # if self.dp.runmode.value not in ('backtest', 'plot', 'hyperopt'):
+                if self.dp.runmode.value not in ('hyperopt'):
                     print(
                         f'    *** {pair} Trade cancelled. Prediction ({curr_pred:.2f}%) is now a loss '
                         )
                 return False
 
+            '''
+
         # just debug
         if self.dp.runmode.value not in ('backtest', 'plot', 'hyperopt'):
-            print(f'Trade Entry: {pair}, rate: {round(rate, 4)}')
+            print(f'    Trade Entry: {pair}, rate: {rate:.4f}')
 
         return True
 
@@ -940,7 +922,7 @@ class TSPredict(IStrategy):
                            current_time: datetime, **kwargs) -> bool:
                 
         if self.dp.runmode.value not in ('backtest', 'plot', 'hyperopt'):
-            print(f'Trade Exit: {pair}, rate: {round(rate, 4)}')
+            print(f'    Trade Exit: {pair}, rate: {rate:.4f)}')
 
         return True
     
@@ -954,11 +936,15 @@ class TSPredict(IStrategy):
     def custom_stoploss(self, pair: str, trade: Trade, current_time: datetime, current_rate: float,
                         current_profit: float, after_fill: bool, **kwargs) -> float:
 
+        # this is just here so that we can use custom_exit
+        '''
         # if enable, use custom trailing ratio, else use default system
         if self.cstop_enable.value:
             # if current profit is above start value, then set stoploss at fraction of current profit
             if current_profit > self.cstop_start.value:
                 return current_profit * self.cstop_ratio.value
+        
+        '''
 
         # return min(-0.001, max(stoploss_from_open(0.05, current_profit), -0.99))
         return self.stoploss
@@ -993,6 +979,7 @@ class TSPredict(IStrategy):
                 return 'take_profit'
  
 
+        '''
         # check profit against ROI target. This sort of emulates the freqtrade roi approach, but is much simpler
         if self.cexit_use_profit_threshold.value:
             if (current_profit >= self.cexit_profit_threshold.value):
@@ -1002,6 +989,8 @@ class TSPredict(IStrategy):
         if self.cexit_use_loss_threshold.value:
             if (current_profit <= self.cexit_loss_threshold.value):
                 return 'cexit_loss_threshold'
+        
+        '''
               
         # Sell any positions if open for >= 1 day with any level of profit
         if ((current_time - trade.open_date_utc).days >= 1) & (current_profit > 0):
@@ -1011,10 +1000,14 @@ class TSPredict(IStrategy):
         if (current_time - trade.open_date_utc).days >= 7:
             return 'unclog_7'
         
-        
         # big drop predicted. Should also trigger an exit signal, but this might be quicker (and will likely be 'market' sell)
         if (current_profit > 0) and (last_candle['predicted_gain'] <= last_candle['target_loss']):
             return 'predict_drop'
+        
+        # large drop preduicted, just bail no matter profit
+        if self.cexit_enable_large_drop.value:
+            if (last_candle['predicted_gain'] < self.cexit_large_drop.value):
+                return 'large_drop'
         
 
         # if in profit and exit signal is set, sell (even if exit signals are disabled)
