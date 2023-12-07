@@ -153,6 +153,9 @@ class TSPredict(IStrategy):
     coeff_table = None
     coeff_array = None
     gain_data = None
+    
+    profit_nstd = 2.6
+    loss_nstd = 2.6
 
     training_data = None
     training_labels = None
@@ -183,11 +186,11 @@ class TSPredict(IStrategy):
     enable_entry_guards = CategoricalParameter([True, False], default=False, space='buy', load=True, optimize=True)
     entry_guard_fwr = DecimalParameter(-1.0, 0.0, default=-0.0, decimals=1, space='buy', load=True, optimize=True)
 
-    enable_exit_guards = CategoricalParameter([True, False], default=False, space='sell', load=True, optimize=True)
-    exit_guard_fwr = DecimalParameter(0.0, 1.0, default=0.0, decimals=1, space='sell', load=True, optimize=True)
+    enable_exit_guards = CategoricalParameter([True, False], default=False, space='sell', load=True, optimize=False)
+    exit_guard_fwr = DecimalParameter(0.0, 1.0, default=0.2, decimals=1, space='sell', load=True, optimize=False)
 
     # use exit signal?
-    enable_exit_signal = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+    enable_exit_signal = CategoricalParameter([True, False], default=False, space='sell', load=True, optimize=False)
 
     # Custom Exit
 
@@ -206,13 +209,20 @@ class TSPredict(IStrategy):
 
     '''
 
+    # No. Standard Deviations of profit/loss for target
+    cexit_min_profit_th = DecimalParameter(0.0, 1.0, default=0.3, decimals=1, space='buy', load=True, optimize=True)
+    cexit_profit_nstd = DecimalParameter(0.0, 4.0, default=2.9, decimals=1, space='buy', load=True, optimize=True)
+
+    cexit_min_loss_th = DecimalParameter(-1.0, 0.0, default=-0.0, decimals=1, space='sell', load=True, optimize=True)
+    cexit_loss_nstd = DecimalParameter(0.0, 4.0, default=0.2, decimals=1, space='sell', load=True, optimize=True)
+ 
     # Fisher/Williams sell limits
     cexit_fwr_overbought = DecimalParameter(0.90, 0.99, default=0.99, decimals=2, space='sell', load=True, optimize=True)
-    cexit_fwr_take_profit = DecimalParameter(0.90, 0.99, default=0.98, decimals=2, space='sell', load=True, optimize=True)
+    cexit_fwr_take_profit = DecimalParameter(0.90, 0.99, default=0.97, decimals=2, space='sell', load=True, optimize=True)
     
     # sell if we see a large drop, and how large?
-    cexit_enable_large_drop = CategoricalParameter([True, False], default=False, space='sell', load=True, optimize=True)
-    cexit_large_drop = DecimalParameter(-3.0, -1.00, default=-2.0, decimals=1, space='sell', load=True, optimize=True)
+    cexit_enable_large_drop = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
+    cexit_large_drop = DecimalParameter(-3.0, -1.00, default=-1.0, decimals=1, space='sell', load=True, optimize=True)
 
 
 
@@ -267,18 +277,8 @@ class TSPredict(IStrategy):
         # target profit/loss thresholds
         dataframe['profit'] = dataframe['gain'].clip(lower=0.0)
         dataframe['loss'] = dataframe['gain'].clip(upper=0.0)
-        win_size = max(self.lookahead, 6)
-        n_std = 2.0
-        dataframe['target_profit'] = dataframe['profit'].rolling(window=win_size).mean() + \
-            n_std * dataframe['profit'].rolling(window=win_size).std()
-        dataframe['target_loss'] = dataframe['loss'].rolling(window=win_size).mean() - \
-            n_std * abs(dataframe['loss'].rolling(window=win_size).std())
 
-        dataframe['target_profit'] = dataframe['target_profit'].clip(lower=0.1)
-        dataframe['target_loss'] = dataframe['target_loss'].clip(upper=-0.1)
-        
-        dataframe['target_profit'] = np.nan_to_num(dataframe['target_profit'])
-        dataframe['target_loss'] = np.nan_to_num(dataframe['target_loss'])
+        dataframe = self.update_gain_targets(dataframe)
 
         # RSI
         dataframe['rsi'] = ta.RSI(dataframe, timeperiod=self.win_size)
@@ -317,6 +317,28 @@ class TSPredict(IStrategy):
 
         return dataframe
    
+
+    def update_gain_targets(self, dataframe):
+
+
+        win_size = max(self.lookahead, 6)
+        self.profit_nstd = float(self.cexit_profit_nstd.value)
+        self.loss_nstd = float(self.cexit_loss_nstd.value)
+
+        dataframe['target_profit'] = dataframe['profit'].rolling(window=win_size).mean() + \
+            self.profit_nstd * dataframe['profit'].rolling(window=win_size).std()
+        
+        dataframe['target_loss'] = dataframe['loss'].rolling(window=win_size).mean() - \
+            self.loss_nstd * abs(dataframe['loss'].rolling(window=win_size).std())
+
+        dataframe['target_profit'] = dataframe['target_profit'].clip(lower=float(self.cexit_min_profit_th.value))
+        dataframe['target_loss'] = dataframe['target_loss'].clip(upper=float(self.cexit_min_loss_th.value))
+        
+        dataframe['target_profit'] = np.nan_to_num(dataframe['target_profit'])
+        dataframe['target_loss'] = np.nan_to_num(dataframe['target_loss'])
+
+        return dataframe
+    
     ###################################
 
     def add_strategy_indicators(self, dataframe):
@@ -612,7 +634,7 @@ class TSPredict(IStrategy):
             if (not self.training_mode) and (self.supports_incremental_training):
                 train_data = self.training_data[train_start:start-1].copy()
                 train_results = self.training_labels[train_start:start-1].copy()
-                # pair_model = copy.deepcopy(self.model)
+                pair_model = copy.deepcopy(self.model) # reset to avoid over-training
                 self.train_model(pair_model, train_data, train_results, False)
 
 
@@ -752,12 +774,13 @@ class TSPredict(IStrategy):
                 # print(f'    updating latest prediction for: {self.curr_pair}')
                 dataframe = self.add_latest_prediction(dataframe)
 
+                # save latest prediction and threshold for later use (where dataframe is not available)
+                self.custom_trade_info[self.curr_pair]['curr_prediction'] = dataframe['predicted_gain'].iloc[-1]
+                self.custom_trade_info[self.curr_pair]['curr_target'] = dataframe['target_profit'].iloc[-1]
+
         # predictions can spike, so constrain range
         dataframe['predicted_gain'] = dataframe['predicted_gain'].clip(lower=-3.0, upper=3.0)
 
-        # save latest prediction and threshold for later use (where dataframe is not available)
-        self.custom_trade_info[self.curr_pair]['curr_prediction'] = dataframe['predicted_gain'].iloc[-1]
-        self.custom_trade_info[self.curr_pair]['curr_target'] = dataframe['target_profit'].iloc[-1]
 
         if run_profiler:
             prof.disable()
@@ -781,6 +804,8 @@ class TSPredict(IStrategy):
             dataframe['enter_long'] = 0
             return dataframe
         
+        dataframe = self.update_gain_targets(dataframe)
+
         if self.enable_entry_guards.value:
             # Fisher/Williams in oversold region
             conditions.append(dataframe['fisher_wr'] < self.entry_guard_fwr.value)
