@@ -49,12 +49,6 @@ TS_Simple_SGD - subclass of TS_Simple that uses a Stochastic Gradient Decent mod
 
 class TS_Simple_SGD(TS_Simple):
 
-    seq_len = 6
-    num_features= 0
-    model_per_pair = False
-    dataframeUtils = DataframeUtils()
-    combine_models = False
-    training_mode = False # set to True to train initial model (over long period)
     supports_incremental_training = True
 
     ###################################
@@ -64,7 +58,7 @@ class TS_Simple_SGD(TS_Simple):
     def create_model(self, df_shape):
 
         print("    creating SGDRegressor")
-        self.model = SGDRegressor(loss='huber', shuffle=False)
+        self.model = SGDRegressor(loss='huber', shuffle=False, warm_start=True)
         
         return
     

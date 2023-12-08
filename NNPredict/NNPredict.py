@@ -43,6 +43,7 @@ import warnings
 log = logging.getLogger(__name__)
 # log.setLevel(logging.DEBUG)
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
+warnings.simplefilter(action="ignore", category=FutureWarning)
 
 from finta import TA as fta
 

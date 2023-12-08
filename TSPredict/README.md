@@ -13,15 +13,15 @@ On subsequent runs, the strategy will load the saved model, and use that as the 
 
 2. Test over a long period of time to create a decent base model (only need to do this once per strat)
 
-    > zsh user_data/strategies/scripts/test_strat -n 600 TSPredict \<_strat_\>
+    > zsh user_data/strategies/scripts/test_strat.sh -n 600 TSPredict \<_strat_\>
 
 3. Test over reasonable time period
 
-    > zsh user_data/strategies/scripts/test_strat -n 30 TSPredict \<_strat_\>
+    > zsh user_data/strategies/scripts/test_strat.sh -n 30 TSPredict \<_strat_\>
 
 4. Plot data
 
-    > zsh user_data/strategies/scripts/plot_strat -n 7 TSPredict \<_strat_\> \<_pair_\>
+    > zsh user_data/strategies/scripts/plot_strat.sh -n 7 TSPredict \<_strat_\> \<_pair_\>
 
 5. Examine plot
 In a browser, open the file file://user_data/plot/freqtrade-plot-ALGO_USDT-5m.html <br>
@@ -210,7 +210,7 @@ trades on a web page at <http://127.0.0.1:8080/> (or whatever address you specif
 
 The script helper is:
 
-> zsh user_data/strategies/scripts/dryrun_strat -p _\<port\>_ _\<exchange\>_ _\<strategy\>_
+> zsh user_data/strategies/scripts/dryrun_strat.sh -p _\<port\>_ _\<exchange\>_ _\<strategy\>_
 
 The -p is optional, but if you want to run multiple strategies on the same exchange you need to use this. In such cases,
 there needs to be a matching config file in the base _freqtrade_ directory of the form _
@@ -232,7 +232,7 @@ In a command window, just run:
 
 The script helper is:
 
-> zsh user_data/strategies/scripts/run_strat -p _\<port\>_ _\<exchange\>_ _\<strategy\>_
+> zsh user_data/strategies/scripts/run_strat.sh -p _\<port\>_ _\<exchange\>_ _\<strategy\>_
 
 You can monitor trades from the UI (see above), and from the exchange website/app
 

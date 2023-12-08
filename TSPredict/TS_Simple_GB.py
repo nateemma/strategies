@@ -49,11 +49,6 @@ TS_Simple_GB - subclass of TS_Simple that uses a Gradient model
 
 class TS_Simple_GB(TS_Simple):
 
-    seq_len = 6
-    num_features= 0
-    model_per_pair = False
-    dataframeUtils = DataframeUtils()
-    training_mode = False # set to True to train initial model (over long period)
     supports_incremental_training = True
 
     ###################################
@@ -64,7 +59,7 @@ class TS_Simple_GB(TS_Simple):
 
         print("    creating GradientBoostingRegressor")
         params = {'n_estimators': 100, 'max_depth': 4, 'min_samples_split': 2,
-                  'learning_rate': 0.1, 'loss': 'squared_error'}
+                  'learning_rate': 0.1, 'loss': 'squared_error', 'warm_start': True}
         self.model = GradientBoostingRegressor(**params)
         
         return
