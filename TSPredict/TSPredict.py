@@ -169,17 +169,17 @@ class TSPredict(IStrategy):
 
     # Buy hyperspace params:
     buy_params = {
-        "cexit_min_profit_th": 0.6,
-        "cexit_profit_nstd": 3.4,
+        "cexit_min_profit_th": 0.5,
+        "cexit_profit_nstd": 3.2,
         "enable_entry_guards": False,
-        "entry_guard_fwr": -0.4,
+        "entry_guard_fwr": -0.9,
     }
 
     # Sell hyperspace params:
     sell_params = {
         "cexit_fwr_overbought": 0.99,
-        "cexit_fwr_take_profit": 0.98,
-        "cexit_loss_nstd": 0.3,
+        "cexit_fwr_take_profit": 0.99,
+        "cexit_loss_nstd": 0.7,
         "cexit_min_loss_th": -0.2,
         "cexit_enable_large_drop": False,  # value loaded from strategy
         "cexit_large_drop": -1.5,  # value loaded from strategy
@@ -226,18 +226,18 @@ class TSPredict(IStrategy):
     """
 
     # No. Standard Deviations of profit/loss for target, and lower limit
-    cexit_min_profit_th = DecimalParameter(0.4, 1.0, default=0.6, decimals=1, space="buy", load=True, optimize=True)
-    cexit_profit_nstd = DecimalParameter(0.0, 4.0, default=3.4, decimals=1, space="buy", load=True, optimize=True)
+    cexit_min_profit_th = DecimalParameter(0.4, 1.0, default=0.5, decimals=1, space="buy", load=True, optimize=True)
+    cexit_profit_nstd = DecimalParameter(0.0, 4.0, default=3.2, decimals=1, space="buy", load=True, optimize=True)
 
     cexit_min_loss_th = DecimalParameter(-1.0, -0.1, default=-0.2, decimals=1, space="sell", load=True, optimize=True)
-    cexit_loss_nstd = DecimalParameter(0.0, 4.0, default=0.3, decimals=1, space="sell", load=True, optimize=True)
+    cexit_loss_nstd = DecimalParameter(0.0, 4.0, default=0.7, decimals=1, space="sell", load=True, optimize=True)
 
     # Fisher/Williams sell limits
     cexit_fwr_overbought = DecimalParameter(
         0.90, 0.99, default=0.99, decimals=2, space="sell", load=True, optimize=True
         )
     cexit_fwr_take_profit = DecimalParameter(
-        0.90, 0.99, default=0.98, decimals=2, space="sell", load=True, optimize=True
+        0.90, 0.99, default=0.99, decimals=2, space="sell", load=True, optimize=True
         )
 
     # sell if we see a large drop, and how large?
@@ -993,6 +993,10 @@ class TSPredict(IStrategy):
         last_candle = dataframe.iloc[-1].squeeze()
 
         if not self.use_custom_stoploss:
+            return None
+
+        # check volume?!
+        if last_candle['volume'] <= 1.0:
             return None
 
         # strong sell signal, in profit
