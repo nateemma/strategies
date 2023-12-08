@@ -56,16 +56,18 @@ from freqtrade.persistence import Trade
 # import freqtrade.vendor.qtpylib.indicators as qtpylib
 from freqtrade.strategy import CategoricalParameter, DecimalParameter, IStrategy
 
+
+# from lightgbm import LGBMRegressor
+# from sklearn.linear_model import PassiveAggressiveRegressor, SGDRegressor
+from xgboost import XGBRegressor
+
 group_dir = str(Path(__file__).parent)
 strat_dir = str(Path(__file__).parent.parent)
 sys.path.append(strat_dir)
 sys.path.append(group_dir)
 
 
-# from lightgbm import LGBMRegressor
-from sklearn.linear_model import PassiveAggressiveRegressor, SGDRegressor
 from utils.DataframeUtils import DataframeUtils, ScalerType  # pylint: disable=E0401
-from xgboost import XGBRegressor
 
 log = logging.getLogger(__name__)
 # log.setLevel(logging.DEBUG)
@@ -389,10 +391,10 @@ class TSPredict(IStrategy):
     # Williams %R
     def williams_r(self, dataframe: DataFrame, period: int = 14) -> Series:
         """
-        Williams %R, or just %R, is a technical analysis oscillator showing the current closing price in relation to the 
-        high and low of the past N days (for a given N). It was developed by a publisher and promoter of trading 
+        Williams %R, or just %R, is a technical analysis oscillator showing the current closing price in relation to the
+        high and low of the past N days (for a given N). It was developed by a publisher and promoter of trading
         materials, Larry Williams.
-        Its purpose is to tell whether a stock or commodity market is trading near the high or the low, or somewhere in 
+        Its purpose is to tell whether a stock or commodity market is trading near the high or the low, or somewhere in
         between,  of its recent trading range.
         The oscillator is on a negative scale, from −100 (lowest) up to 0 (highest).
         """
@@ -821,12 +823,8 @@ class TSPredict(IStrategy):
         # model triggers
         model_cond = (
             # model predicts a rise above the entry threshold
-            qtpylib.crossed_above(dataframe["predicted_gain"], dataframe["target_profit"])
-            # |
-            # (
-            #     # large gain predicted (ignore fisher_wr)
-            #     qtpylib.crossed_above(dataframe['predicted_gain'], 2.0 * dataframe['target_profit'])
-            # )
+            # qtpylib.crossed_above(dataframe["predicted_gain"], dataframe["target_profit"])
+            dataframe["predicted_gain"] > dataframe["target_profit"]
         )
 
         # conditions.append(fwr_cond)
@@ -866,7 +864,8 @@ class TSPredict(IStrategy):
 
 
         # model triggers
-        model_cond = qtpylib.crossed_below(dataframe["predicted_gain"], dataframe["target_loss"])
+        # model_cond = qtpylib.crossed_below(dataframe["predicted_gain"], dataframe["target_loss"])
+        model_cond = (dataframe["predicted_gain"] < dataframe["target_loss"])
 
         conditions.append(model_cond)
 
