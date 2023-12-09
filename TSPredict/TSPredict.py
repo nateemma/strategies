@@ -360,6 +360,10 @@ class TSPredict(IStrategy):
         dataframe["target_profit"] = np.nan_to_num(dataframe["target_profit"])
         dataframe["target_loss"] = np.nan_to_num(dataframe["target_loss"])
 
+        dataframe["local_mean"] = dataframe["close"].rolling(window=win_size).mean()
+        dataframe["local_min"] = dataframe["close"].rolling(window=win_size).min()
+        dataframe["local_max"] = dataframe["close"].rolling(window=win_size).max()
+
         return dataframe
 
     ###################################
@@ -724,6 +728,7 @@ class TSPredict(IStrategy):
             dataframe["predicted_gain"][-clen:] = pred_array[-clen:].copy()
             self.custom_trade_info[self.curr_pair]["predictions"][-clen:] = pred_array[-clen:].copy()
 
+            '''
             pg = preds[-1]
             if pg <= dataframe["target_loss"].iloc[-1]:
                 tag = "(*)"
@@ -732,6 +737,8 @@ class TSPredict(IStrategy):
             else:
                 tag = "   "
             print(f"    {tag} predict {pg:6.2f}% gain for: {self.curr_pair}")
+
+            '''
 
         except Exception as e:
             print("*** Exception in add_latest_prediction()")
@@ -824,7 +831,10 @@ class TSPredict(IStrategy):
         model_cond = (
             # model predicts a rise above the entry threshold
             # qtpylib.crossed_above(dataframe["predicted_gain"], dataframe["target_profit"])
-            dataframe["predicted_gain"] > dataframe["target_profit"]
+            (dataframe["predicted_gain"] > dataframe["target_profit"])
+            &
+            # in lower portion of previous window
+            (dataframe["close"] < dataframe["local_mean"])
         )
 
         # conditions.append(fwr_cond)
@@ -864,8 +874,16 @@ class TSPredict(IStrategy):
 
 
         # model triggers
-        # model_cond = qtpylib.crossed_below(dataframe["predicted_gain"], dataframe["target_loss"])
-        model_cond = (dataframe["predicted_gain"] < dataframe["target_loss"])
+        model_cond = (
+            # prediction crossed target
+            # qtpylib.crossed_below(dataframe["predicted_gain"], dataframe["target_loss"])
+
+            # use this version if volume checks are enabled, because we might miss the crossing otherwise
+            (dataframe["predicted_gain"] < dataframe["target_loss"])
+            &
+            # in upper portion of previous window
+            (dataframe["close"] > dataframe["local_mean"])
+        )
 
         conditions.append(model_cond)
 
@@ -925,7 +943,7 @@ class TSPredict(IStrategy):
 
         # just debug
         if self.dp.runmode.value not in ("backtest", "plot", "hyperopt"):
-            print(f"    Trade Entry: {pair}, rate: {rate:.4f}")
+            print(f"    Trade Entry: {pair}, rate: {rate:.4f} Predicted gain: {curr_pred:.2f}% Target: {curr_target:.2f}%")
 
         return True
 
@@ -941,6 +959,7 @@ class TSPredict(IStrategy):
         current_time: datetime,
         **kwargs,
     ) -> bool:
+        
         if self.dp.runmode.value not in ("backtest", "plot", "hyperopt"):
             print(f"    Trade Exit: {pair}, rate: {rate:.4f)}")
 
