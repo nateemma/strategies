@@ -171,18 +171,18 @@ class TSPredict(IStrategy):
 
     # Buy hyperspace params:
     buy_params = {
-        "cexit_min_profit_th": 0.5,
-        "cexit_profit_nstd": 3.2,
-        "enable_entry_guards": False,
-        "entry_guard_fwr": -0.9,
+        "cexit_min_profit_th": 0.4,
+        "cexit_profit_nstd": 0.0,
+        "enable_entry_guards": True,  # value loaded from strategy
+        "entry_guard_fwr": -0.2,  # value loaded from strategy
     }
 
     # Sell hyperspace params:
     sell_params = {
         "cexit_fwr_overbought": 0.99,
         "cexit_fwr_take_profit": 0.99,
-        "cexit_loss_nstd": 0.7,
-        "cexit_min_loss_th": -0.2,
+        "cexit_loss_nstd": 0.0,
+        "cexit_min_loss_th": -0.1,
         "cexit_enable_large_drop": False,  # value loaded from strategy
         "cexit_large_drop": -1.5,  # value loaded from strategy
         "enable_exit_guards": False,  # value loaded from strategy
@@ -192,10 +192,10 @@ class TSPredict(IStrategy):
 
     # enable entry/exit guards (safety vs profit)
     enable_entry_guards = CategoricalParameter(
-        [True, False], default=False, space="buy", load=True, optimize=True
+        [True, False], default=True, space="buy", load=True, optimize=False
         )
     entry_guard_fwr = DecimalParameter(
-        -1.0, 0.0, default=-0.0, decimals=1, space="buy", load=True, optimize=True
+        -1.0, 0.0, default=-0.2, decimals=1, space="buy", load=True, optimize=False
         )
 
     enable_exit_guards = CategoricalParameter(
@@ -228,8 +228,8 @@ class TSPredict(IStrategy):
     """
 
     # No. Standard Deviations of profit/loss for target, and lower limit
-    cexit_min_profit_th = DecimalParameter(0.4, 1.0, default=0.5, decimals=1, space="buy", load=True, optimize=True)
-    cexit_profit_nstd = DecimalParameter(0.0, 4.0, default=3.2, decimals=1, space="buy", load=True, optimize=True)
+    cexit_min_profit_th = DecimalParameter(0.4, 1.0, default=0.4, decimals=1, space="buy", load=True, optimize=True)
+    cexit_profit_nstd = DecimalParameter(0.0, 4.0, default=0.9, decimals=1, space="buy", load=True, optimize=True)
 
     cexit_min_loss_th = DecimalParameter(-1.0, -0.1, default=-0.2, decimals=1, space="sell", load=True, optimize=True)
     cexit_loss_nstd = DecimalParameter(0.0, 4.0, default=0.7, decimals=1, space="sell", load=True, optimize=True)
