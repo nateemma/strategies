@@ -168,7 +168,7 @@ class TSPredict(IStrategy):
 
     # hyperparams
 
-
+    '''
     # Buy hyperspace params:
     buy_params = {
         "cexit_min_profit_th": 0.4,
@@ -190,27 +190,73 @@ class TSPredict(IStrategy):
         "exit_guard_fwr": 0.2,  # value loaded from strategy
     }
 
+    '''
+
+    # Buy hyperspace params:
+    buy_params = {
+        "cexit_min_profit_th": 0.5,
+        "cexit_profit_nstd": 0.6,
+        "entry_guard_fwr": 0.0,
+        "enable_entry_guards": True,  # value loaded from strategy
+    }
+
+    # Sell hyperspace params:
+    sell_params = {
+        "cexit_fwr_overbought": 0.99,
+        "cexit_fwr_take_profit": 0.99,
+        "cexit_loss_nstd": 1.4,
+        "cexit_min_loss_th": -0.5,
+        "exit_guard_fwr": 0.0,
+        "cexit_enable_large_drop": False,  # value loaded from strategy
+        "cexit_large_drop": -1.9,  # value loaded from strategy
+        "enable_exit_guards": True,  # value loaded from strategy
+        "enable_exit_signal": True,  # value loaded from strategy
+    }
+
     # enable entry/exit guards (safety vs profit)
     enable_entry_guards = CategoricalParameter(
         [True, False], default=True, space="buy", load=True, optimize=False
         )
     entry_guard_fwr = DecimalParameter(
-        -1.0, 0.0, default=-0.2, decimals=1, space="buy", load=True, optimize=False
+        -0.4, 0.0, default=-0.2, decimals=1, space="buy", load=True, optimize=True
         )
 
     enable_exit_guards = CategoricalParameter(
-        [True, False], default=False, space="sell", load=True, optimize=False
+        [True, False], default=True, space="sell", load=True, optimize=False
         )
     exit_guard_fwr = DecimalParameter(
-        0.0, 1.0, default=0.2, decimals=1, space="sell", load=True, optimize=False
+        0.0, 0.4, default=0.2, decimals=1, space="sell", load=True, optimize=True
         )
 
     # use exit signal? If disabled, just rely on the custom exit checks (or stoploss) to get out
     enable_exit_signal = CategoricalParameter(
-        [True, False], default=False, space="sell", load=True, optimize=False
+        [True, False], default=True, space="sell", load=True, optimize=False
         )
 
     # Custom Exit
+
+    # No. Standard Deviations of profit/loss for target, and lower limit
+    cexit_min_profit_th = DecimalParameter(0.5, 2.0, default=0.7, decimals=1, space="buy", load=True, optimize=True)
+    cexit_profit_nstd = DecimalParameter(0.0, 4.0, default=0.9, decimals=1, space="buy", load=True, optimize=True)
+
+    cexit_min_loss_th = DecimalParameter(-2.0, -0.5, default=-0.4, decimals=1, space="sell", load=True, optimize=True)
+    cexit_loss_nstd = DecimalParameter(0.0, 4.0, default=0.7, decimals=1, space="sell", load=True, optimize=True)
+
+    # Fisher/Williams sell limits - used to bail out when in profit
+    cexit_fwr_overbought = DecimalParameter(
+        0.90, 0.99, default=0.99, decimals=2, space="sell", load=True, optimize=True
+        )
+    cexit_fwr_take_profit = DecimalParameter(
+        0.90, 0.99, default=0.99, decimals=2, space="sell", load=True, optimize=True
+        )
+
+    # sell if we see a large drop, and how large?
+    cexit_enable_large_drop = CategoricalParameter(
+        [True, False], default=False, space="sell", load=True, optimize=False
+        )
+    cexit_large_drop = DecimalParameter(
+        -3.0, -1.00, default=-1.9, decimals=1, space="sell", load=True, optimize=False
+        )
 
     """
     # profit threshold exit
@@ -226,29 +272,6 @@ class TSPredict(IStrategy):
         [True, False], default=False, space='sell', load=True, optimize=True)
 
     """
-
-    # No. Standard Deviations of profit/loss for target, and lower limit
-    cexit_min_profit_th = DecimalParameter(0.4, 1.0, default=0.4, decimals=1, space="buy", load=True, optimize=True)
-    cexit_profit_nstd = DecimalParameter(0.0, 4.0, default=0.9, decimals=1, space="buy", load=True, optimize=True)
-
-    cexit_min_loss_th = DecimalParameter(-1.0, -0.1, default=-0.2, decimals=1, space="sell", load=True, optimize=True)
-    cexit_loss_nstd = DecimalParameter(0.0, 4.0, default=0.7, decimals=1, space="sell", load=True, optimize=True)
-
-    # Fisher/Williams sell limits
-    cexit_fwr_overbought = DecimalParameter(
-        0.90, 0.99, default=0.99, decimals=2, space="sell", load=True, optimize=True
-        )
-    cexit_fwr_take_profit = DecimalParameter(
-        0.90, 0.99, default=0.99, decimals=2, space="sell", load=True, optimize=True
-        )
-
-    # sell if we see a large drop, and how large?
-    cexit_enable_large_drop = CategoricalParameter(
-        [True, False], default=False, space="sell", load=True, optimize=False
-        )
-    cexit_large_drop = DecimalParameter(
-        -3.0, -1.00, default=-1.9, decimals=1, space="sell", load=True, optimize=False
-        )
 
     ###################################
 

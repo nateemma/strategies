@@ -154,6 +154,7 @@ def process_totals(strat, line):
     entry['win_pct'] = float(cols[7].strip().split(" ")[-1])
     entry['expectancy'] = 0 # updated later
     entry['daily_profit'] = 0 # updated later
+    entry['vs_market'] = 0 # updated later
 
     strat_results[strat] = entry
 
@@ -224,11 +225,13 @@ def print_results(test_results):
     if test_results:
         # calculate stats for each strategy
         for strategy in test_results:
+            test_results[strategy]['vs_market'] = test_results[strategy]['tot_profit'] - float(market_change.strip("%"))
             strat_stats.append([strategy,
                                 test_results[strategy]['entries'],
                                 test_results[strategy]['daily_trades'],
                                 test_results[strategy]['ave_profit'],
                                 test_results[strategy]['tot_profit'],
+                                test_results[strategy]['vs_market'],
                                 test_results[strategy]['win_pct'],
                                 test_results[strategy]['expectancy'],
                                 test_results[strategy]['daily_profit'],
@@ -237,7 +240,7 @@ def print_results(test_results):
         # create dataframe
         df = pandas.DataFrame(strat_stats,
                               columns=["Strategy", "Trades", "Tr/day", "Average%",
-                                       "Total%", "Win%", "Expectancy", "Daily%", "Rank"])
+                                       "Total%", "vs Mkt%", "Win%", "Expectancy", "Daily%", "Rank"])
 
         rank1 = df["Tr/day"].rank(ascending=False, method='min', pct=False)
         rank2 = df["Average%"].rank(ascending=False, method='min', pct=False)
@@ -254,7 +257,7 @@ def print_results(test_results):
         print("")
         hdrs = df.columns.values
         print(tabulate(df.sort_values(by=['Rank', "Expectancy"], ascending=[True, False]),
-                       floatfmt=["", "d", ".2f", ".2f", ".2f", ".2f", ".2f", ".3f", ".0f"],
+                       floatfmt=["", "d", ".2f", ".2f", ".1f", ".1f", ".1f", ".2f", ".2f", ".0f"],
                        showindex="never", headers=hdrs, tablefmt='psql'))
 
     return

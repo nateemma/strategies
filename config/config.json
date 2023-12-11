@@ -50,16 +50,13 @@
     },
     "pair_whitelist": [
       "SOL/USDT",
-      "MATIC/USDT",
+      "XRP/USDT",
       "ADA/USDT",
       "DOGE/USDT",
       "LTC/USDT",
       "LINK/USDT",
-      // "ONE/USDT",
       "ATOM/USDT",
-      "GRT/USDT",
-      // "FET/USDT",
-      // "ACH/USDT",
+      "FET/USDT",
       "DOT/USDT",
       "ALGO/USDT"
     ],
