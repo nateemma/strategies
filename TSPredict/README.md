@@ -5,6 +5,11 @@ Strategies in this directory implement a common approach to 'simply' estimating 
 In general, all of these strategies will try to load an existing model, but if it is not found it will create and train a new model. So, the first time you run a strategy, do so over a long period of time.
 On subsequent runs, the strategy will load the saved model, and use that as the basis for all pairs. Pair-specific data is used to incrementally train the model with new data as it becomes available (but this is not saved). In theory, prediction accuracy should get better over time
 
+_*Warning*_: backtest results can look really good for these strategies, but be sure to try these out in a dry run.  
+The backtest results are good because the trades are 'perfect', meaning that they execute immediately; in the real world, there are delays and spreads that take away profit from each trade, and since these strategies inherently look at quick in & out trades that has a big impact. 
+Also, you can hyperopt these strategies to et what appears to be really good returns, usually by emphasisng fast trades. In live environments, this approach tends to get hard by quick downward swings and reversals.  
+So, I have been trying to tune the hyperparameters to be 'safer', and optimise for expectancy rather than profit.
+
 ## Quick Start
 
 1. Download data<br>

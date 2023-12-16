@@ -184,10 +184,10 @@ if [ ${download} -eq 1 ]; then
   eval ${cmd}
 fi
 
-jarg=""
-if [ ${jobs} -gt 0 ]; then
-    jarg="-j ${jobs}"
-fi
+# jarg=""
+# if [ ${jobs} -gt 0 ]; then
+#     jarg="-j ${jobs}"
+# fi
 
 today=`date`
 add_line "${today}"
@@ -246,7 +246,7 @@ if ${run_parallel}; then
   echo ""
 #  echo "parallel -j 3 ${cmd} {} ::: ${run_list} | tee -a ${logfile}"
 
-  parallel -j 3 -v "${cmd}" {} ::: ${run_list} | tee -a ${logfile}
+  parallel -j $jobs -v "${cmd}" {} ::: ${run_list} | tee -a ${logfile}
 
   wait
   echo $?

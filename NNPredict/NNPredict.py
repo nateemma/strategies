@@ -1,74 +1,70 @@
-import operator
-import tracemalloc
+# import operator
+# import tracemalloc
+from datetime import datetime
+from enum import Enum
+from functools import reduce
+from typing import Optional
 
 import numpy as np
-from enum import Enum
-
-import pywt
-import talib.abstract as ta
+import pandas as pd
+from pandas import DataFrame
 from scipy.ndimage import gaussian_filter1d
 
 import freqtrade.vendor.qtpylib.indicators as qtpylib
-import arrow
-
 from freqtrade.exchange import timeframe_to_minutes
-from freqtrade.strategy import (IStrategy, merge_informative_pair, stoploss_from_open,
-                                IntParameter, DecimalParameter, CategoricalParameter)
-
-from typing import Dict, List, Optional, Tuple, Union
-from pandas import DataFrame, Series
-from functools import reduce
-from datetime import datetime, timedelta, timezone
 from freqtrade.persistence import Trade
+from freqtrade.strategy import (
+    CategoricalParameter,
+    DecimalParameter,
+    IntParameter,
+    IStrategy,
+    merge_informative_pair,
+    stoploss_from_open,
+)
 
-# Get rid of pandas warnings during backtesting
-import pandas as pd
-import pandas_ta as pta
 
-pd.options.mode.chained_assignment = None  # default='warn'
-
-# Strategy specific imports, files must reside in same folder as strategy
-import sys
 import os
+import sys
 from pathlib import Path
+import logging
+import warnings
+# import random
 
+import sklearn.decomposition as skd
+
+#import keras
+# import tensorflow as tf
+
+
+# import utils.custom_indicators as cta
+import utils.profiler as profiler
+
+# from NNPredictor_LSTM import NNPredictor_LSTM
+from NNPredictor_LSTM0 import NNPredictor_LSTM0
+from sklearn.preprocessing import MinMaxScaler, RobustScaler, StandardScaler
+from tqdm import tqdm
+from utils.DataframePopulator import DataframePopulator, DatasetType
+from utils.DataframeUtils import DataframeUtils, ScalerType
+from utils.Environment import Environment
+
+# set paths so that we can find imports in parallel directories
 group_dir = str(Path(__file__).parent)
 strat_dir = str(Path(__file__).parent.parent)
 sys.path.append(strat_dir)
 sys.path.append(group_dir)
 
-import logging
-import warnings
+# logging setup
+pd.options.mode.chained_assignment = None  # default='warn'
 
 log = logging.getLogger(__name__)
 # log.setLevel(logging.DEBUG)
 warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
-from finta import TA as fta
 
-#import keras
-import tensorflow as tf
-from keras import layers
-from tqdm import tqdm
-from tqdm.keras import TqdmCallback
-import sklearn.decomposition as skd
 
-from sklearn.preprocessing import StandardScaler, RobustScaler, MinMaxScaler
 
-import random
-# import Time2Vector
-# import Transformer
-# import Attention
 
-import  utils.custom_indicators as cta
-from utils.DataframeUtils import DataframeUtils, ScalerType
-from utils.DataframePopulator import DataframePopulator, DatasetType
-from utils.Environment import Environment 
-import utils.profiler as profiler
-
-# from NNPredictor_LSTM import NNPredictor_LSTM
-from NNPredictor_LSTM0 import NNPredictor_LSTM0
 
 
 """
@@ -100,7 +96,8 @@ class NNPredict(IStrategy):
         },
         'subplots': {
             "Diff": {
-                'predicted_gain': {'color': 'orange'},
+                'predicted_gain': {'color': 'purple'},
+                'gain': {'color': 'orange'},
                 '%future_gain': {'color': 'lightblue'},
                 'target_profit': {'color': 'lightgreen'},
                 'target_loss': {'color': 'lightsalmon'}
@@ -112,7 +109,8 @@ class NNPredict(IStrategy):
 
     # ROI table:
     minimal_roi = {
-        "0": 0.006
+       "0": 0.04,
+       "100": 0.02
     }
 
     # Stoploss:
@@ -155,7 +153,7 @@ class NNPredict(IStrategy):
     min_f1_score = 0.49
     max_train_loss = 0.15
 
-    curr_lookahead = int(12 * lookahead_hours)
+    lookahead = int(12 * lookahead_hours)
 
     curr_pair = ""
     custom_trade_info = {}
@@ -194,7 +192,8 @@ class NNPredict(IStrategy):
 
     # which column should be used for training and prediction   
     # target_column = 'close'  
-    target_column = 'mid'
+    # target_column = 'mid'
+    target_column = 'gain'
     # target_column = 'tema'
 
     dataframeUtils = None
@@ -225,46 +224,75 @@ class NNPredict(IStrategy):
     ## Hyperopt Variables
 
     # buy/sell hyperparams
+        
 
-    # enable entry/exit guards (safer vs profit)
-    enable_entry_guards = CategoricalParameter([True, False], default=False, space='buy', load=True, optimize=True)
-    entry_guard_fwr = DecimalParameter(-1.0, 0.0, default=-0.0, decimals=1, space='buy', load=True, optimize=True)
+    # Buy hyperspace params:
+    buy_params = {
+        "cexit_min_profit_th": 0.5,
+        "cexit_profit_nstd": 0.6,
+        "entry_guard_fwr": 0.0,
+        "enable_entry_guards": True,  # value loaded from strategy
+    }
 
-    enable_exit_guards = CategoricalParameter([True, False], default=False, space='sell', load=True, optimize=True)
-    exit_guard_fwr = DecimalParameter(0.0, 1.0, default=0.0, decimals=1, space='sell', load=True, optimize=True)
+    # Sell hyperspace params:
+    sell_params = {
+        "cexit_fwr_overbought": 0.99,
+        "cexit_fwr_take_profit": 0.99,
+        "cexit_loss_nstd": 1.4,
+        "cexit_min_loss_th": -0.5,
+        "exit_guard_fwr": 0.0,
+        "cexit_enable_large_drop": False,  # value loaded from strategy
+        "cexit_large_drop": -1.9,  # value loaded from strategy
+        "enable_exit_guards": True,  # value loaded from strategy
+        "enable_exit_signal": True,  # value loaded from strategy
+    }
 
-    # use exit signal? 
-    enable_exit_signal = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
 
-    # Custom Stoploss
-    cstop_enable = CategoricalParameter([True, False], default=False, space='sell', load=True, optimize=True)
-    cstop_start = DecimalParameter(0.0, 0.060, default=0.019, decimals=3, space='sell', load=True, optimize=True)
-    cstop_ratio = DecimalParameter(0.7, 0.999, default=0.8, decimals=3, space='sell', load=True, optimize=True)
+    # enable entry/exit guards (safety vs profit)
+    enable_entry_guards = CategoricalParameter(
+        [True, False], default=True, space="buy", load=True, optimize=False
+        )
+    entry_guard_fwr = DecimalParameter(
+        -0.4, 0.0, default=-0.2, decimals=1, space="buy", load=True, optimize=True
+        )
+
+    enable_exit_guards = CategoricalParameter(
+        [True, False], default=True, space="sell", load=True, optimize=False
+        )
+    exit_guard_fwr = DecimalParameter(
+        0.0, 0.4, default=0.2, decimals=1, space="sell", load=True, optimize=True
+        )
+
+    # use exit signal? If disabled, just rely on the custom exit checks (or stoploss) to get out
+    enable_exit_signal = CategoricalParameter(
+        [True, False], default=True, space="sell", load=True, optimize=False
+        )
 
     # Custom Exit
-    # profit threshold exit
-    cexit_profit_threshold = DecimalParameter(0.005, 0.065, default=0.033, decimals=3, space='sell', load=True, optimize=True)
-    cexit_use_profit_threshold = CategoricalParameter([True, False], default=True, space='sell', load=True, optimize=True)
 
-    # loss threshold exit
-    cexit_loss_threshold = DecimalParameter(-0.065, -0.005, default=-0.046, decimals=3, space='sell', load=True, optimize=True)
-    cexit_use_loss_threshold = CategoricalParameter([True, False], default=False, space='sell', load=True, optimize=True)
+    # No. Standard Deviations of profit/loss for target, and lower limit
+    cexit_min_profit_th = DecimalParameter(0.5, 2.0, default=0.7, decimals=1, space="buy", load=True, optimize=True)
+    cexit_profit_nstd = DecimalParameter(0.0, 4.0, default=0.9, decimals=1, space="buy", load=True, optimize=True)
 
-    cexit_fwr_overbought = DecimalParameter(0.90, 1.00, default=0.98, decimals=2, space='sell', load=True, optimize=True)
-    cexit_fwr_take_profit = DecimalParameter(0.90, 1.00, default=0.90, decimals=2, space='sell', load=True, optimize=True)
- 
-    ################################
-    # # class to create custom Keras layer that decompresses and denormalises predictions from the model
-    # class RestorePredictions(tf.keras.layers.Layer):
-    #     def call(self, preds):
-    #         inputs = tf.keras.Input(preds)
-    #         x = layers.Dense(1)(inputs)  # output shape should be the same as the original input shape
-    #         x = self.compressor.inverse_transform(x)
-    #         x = self.dataframeUtils.get_scaler().inverse_transform(x)
-    #         restored = tf.keras.Model(inputs, x)
-    #         return restored
+    cexit_min_loss_th = DecimalParameter(-2.0, -0.5, default=-0.4, decimals=1, space="sell", load=True, optimize=True)
+    cexit_loss_nstd = DecimalParameter(0.0, 4.0, default=0.7, decimals=1, space="sell", load=True, optimize=True)
 
-    ################################
+    # Fisher/Williams sell limits - used to bail out when in profit
+    cexit_fwr_overbought = DecimalParameter(
+        0.90, 0.99, default=0.99, decimals=2, space="sell", load=True, optimize=True
+        )
+    cexit_fwr_take_profit = DecimalParameter(
+        0.90, 0.99, default=0.99, decimals=2, space="sell", load=True, optimize=True
+        )
+
+    # sell if we see a large drop, and how large?
+    cexit_enable_large_drop = CategoricalParameter(
+        [True, False], default=False, space="sell", load=True, optimize=False
+        )
+    cexit_large_drop = DecimalParameter(
+        -3.0, -1.00, default=-1.9, decimals=1, space="sell", load=True, optimize=False
+        )
+
 
     """
     inf Pair Definitions
@@ -290,7 +318,7 @@ class NNPredict(IStrategy):
         self.curr_pair = curr_pair
         self.curr_dataframe = dataframe
 
-        self.curr_lookahead = int(12 * self.lookahead_hours)
+        self.lookahead = int(12 * self.lookahead_hours)
         self.dbg_curr_df = dataframe
 
         if self.dataframeUtils is None:
@@ -306,7 +334,7 @@ class NNPredict(IStrategy):
             self.dataframePopulator = DataframePopulator()
 
             self.dataframePopulator.runmode = self.dp.runmode.value
-            self.dataframePopulator.win_size = max(14, self.curr_lookahead)
+            self.dataframePopulator.win_size = max(14, self.lookahead)
             self.dataframePopulator.startup_win = self.startup_candle_count
             self.dataframePopulator.n_loss_stddevs = self.n_loss_stddevs
             self.dataframePopulator.n_profit_stddevs = self.n_profit_stddevs
@@ -321,7 +349,7 @@ class NNPredict(IStrategy):
 
             Environment().print_environment()
 
-            print(f"    Lookahead: {self.curr_lookahead} candles ({self.lookahead_hours} hours)")
+            print(f"    Lookahead: {self.lookahead} candles ({self.lookahead_hours} hours)")
             print(f"    Re-train existing models: {self.refit_model}")
             print(f"    Training (only) mode: {self.training_mode}")
 
@@ -395,8 +423,13 @@ class NNPredict(IStrategy):
         # populate the standard indicators
         dataframe = self.dataframePopulator.add_indicators(dataframe, dataset_type=DatasetType.CUSTOM1)
 
+        # add indicators needed for callbacks
+        dataframe = self.update_gain_targets(dataframe)
+
         # populate the training indicators
         dataframe = self.add_training_indicators(dataframe)
+
+        dataframe.fillna(0.0, inplace=True)
 
         return dataframe
 
@@ -409,47 +442,51 @@ class NNPredict(IStrategy):
 
         # no looking ahead in this approach
         # future_df = self.dataframePopulator.add_hidden_indicators(dataframe.copy())
-        # future_df = self.dataframePopulator.add_future_data(future_df, self.curr_lookahead)
+        # future_df = self.dataframePopulator.add_future_data(future_df, self.lookahead)
         return dataframe
+    
+    ################################
 
+    def update_gain_targets(self, dataframe):
+        win_size = max(self.lookahead, 6)
+        self.profit_nstd = float(self.cexit_profit_nstd.value)
+        self.loss_nstd = float(self.cexit_loss_nstd.value)
 
-    def add_stoploss_indicators(self, dataframe: DataFrame, pair="") -> DataFrame:
+        # backward looking gain
+        dataframe["gain"] = (
+            100.0
+            * (dataframe["close"] - dataframe["close"].shift(self.lookahead))
+            / dataframe["close"].shift(self.lookahead)
+        )
+        dataframe["gain"].fillna(0.0, inplace=True)
 
-        ''' old stoploss
+        dataframe["gain"] = self.smooth(dataframe["gain"], 8)
 
-        if not pair in self.custom_trade_info:
-            self.custom_trade_info[pair] = {}
-            if not 'had_trend' in self.custom_trade_info[pair]:
-                self.custom_trade_info[pair]['had_trend'] = False
+        # need to save the gain data for later scaling
+        self.gain_data = dataframe["gain"].to_numpy().copy()
 
-        # Indicators used for ROI and Custom Stoploss
-        dataframe = self.dataframePopulator.add_stoploss_indicators(dataframe)
-        '''
+        # target profit/loss thresholds
+        dataframe["profit"] = dataframe["gain"].clip(lower=0.0)
+        dataframe["loss"] = dataframe["gain"].clip(upper=0.0)
 
-        # add backward looking gain. (default is not what we need)
-        dataframe['bgain'] = 100.0 * (dataframe[self.target_column] - dataframe[self.target_column].shift(self.curr_lookahead)) / \
-                            dataframe[self.target_column].shift(self.curr_lookahead)
+        dataframe["target_profit"] = (
+            dataframe["profit"].rolling(window=win_size).mean()
+            + self.profit_nstd * dataframe["profit"].rolling(window=win_size).std()
+        )
 
-        dataframe['bgain'] = self.smooth(dataframe['bgain'], self.curr_lookahead) # takes care of edge effects
+        dataframe["target_loss"] = dataframe["loss"].rolling(window=win_size).mean() - self.loss_nstd * abs(
+            dataframe["loss"].rolling(window=win_size).std()
+        )
 
-        dataframe['bprofit'] = dataframe['bgain'].clip(lower=0.0)
-        dataframe['bloss'] = dataframe['bgain'].clip(upper=0.0)
+        dataframe["target_profit"] = dataframe["target_profit"].clip(lower=float(self.cexit_min_profit_th.value))
+        dataframe["target_loss"] = dataframe["target_loss"].clip(upper=float(self.cexit_min_loss_th.value))
 
+        dataframe["target_profit"] = np.nan_to_num(dataframe["target_profit"])
+        dataframe["target_loss"] = np.nan_to_num(dataframe["target_loss"])
 
-        # add thresholds (used by buy/sell and custom exit)
-        win_size = 32
-        n_std = 3.0
-        dataframe['target_profit'] = dataframe['bprofit'].rolling(window=win_size).mean() + \
-            n_std * dataframe['bprofit'].rolling(window=win_size).std()
-        dataframe['target_loss'] = -abs(dataframe['bloss'].rolling(window=win_size).mean()) - \
-            n_std * abs(dataframe['bloss'].rolling(window=win_size).std())
-
-        # constrain min profit/loss
-        dataframe['target_profit'] = dataframe['target_profit'].clip(lower=0.5)
-        dataframe['target_loss'] = dataframe['target_loss'].clip(upper=-0.2)
-
-        dataframe['target_profit'] = np.nan_to_num(dataframe['target_profit'])
-        dataframe['target_loss'] = np.nan_to_num(dataframe['target_loss'])
+        dataframe["local_mean"] = dataframe["close"].rolling(window=win_size).mean()
+        dataframe["local_min"] = dataframe["close"].rolling(window=win_size).min()
+        dataframe["local_max"] = dataframe["close"].rolling(window=win_size).max()
 
         return dataframe
 
@@ -458,8 +495,8 @@ class NNPredict(IStrategy):
     def check_lookahead(self, target, train_target):
         # offset = int(np.shape(target)[0] / 2)
         offset = 0
-        a1 = target[offset:offset+3*self.curr_lookahead:]
-        a2 = train_target[offset:offset+3*self.curr_lookahead:]
+        a1 = target[offset:offset+3*self.lookahead:]
+        a2 = train_target[offset:offset+3*self.lookahead:]
 
         print("")
         print(f"target mean:{np.mean(target)} min:{np.min(target)} max:{np.max(target)}")
@@ -473,6 +510,8 @@ class NNPredict(IStrategy):
 
             print(f"train_target: {train_target}")
             print(f"train_target_tensor: {train_target_tensor}")
+
+    ################################
 
     # prepare data and train the model
     def train_model(self, dataframe: DataFrame, pair) -> DataFrame:
@@ -494,7 +533,7 @@ class NNPredict(IStrategy):
         # data_size = int(min(975, df_size))
         data_size = df_size  # For backtest/hyperopt/plot, this will be big. Normal size for run modes
 
-        pad = self.curr_lookahead  # have to allow for future results to be in range
+        pad = self.lookahead  # have to allow for future results to be in range
         train_ratio = 0.8
         test_ratio = 1.0 - train_ratio
         train_size = int(train_ratio * (data_size - pad)) - 1
@@ -505,7 +544,7 @@ class NNPredict(IStrategy):
         test_option = 3
         if test_option == 0:
             # take the middle part of the full dataframe
-            train_start = int((df_size - (train_size + test_size + self.curr_lookahead)) / 2)
+            train_start = int((df_size - (train_size + test_size + self.lookahead)) / 2)
             test_start = train_start + train_size + 1
         elif test_option == 1:
             # take the end for training (better fit for recent data), earlier section for testing
@@ -522,8 +561,8 @@ class NNPredict(IStrategy):
             test_start = data_size - (test_size + pad) - 1
 
         # offset result starts with lookahead value
-        # train_result_start = train_start + self.curr_lookahead
-        # test_result_start = test_start + self.curr_lookahead
+        # train_result_start = train_start + self.lookahead
+        # test_result_start = test_start + self.lookahead
         train_result_start = train_start
         test_result_start = test_start
 
@@ -532,7 +571,7 @@ class NNPredict(IStrategy):
             print(f"    ERR: target column not present ({self.target_column})")
             return dataframe
 
-        dataframe = self.add_stoploss_indicators(dataframe)
+        # dataframe = self.add_stoploss_indicators(dataframe)
 
         # scale the dataframe
         if self.curr_classifier.prescale_data():
@@ -541,13 +580,14 @@ class NNPredict(IStrategy):
             df_norm = dataframe.copy()
 
 
-        # future_gain = df_norm['bgain'].shift(-self.curr_lookahead)
-        future_gain = dataframe['bgain'].shift(-self.curr_lookahead)
+        future_gain = df_norm['gain'].shift(-self.lookahead)
+        future_gain = np.nan_to_num(future_gain)
+        # future_gain = dataframe['gain'].shift(-self.lookahead)
 
-        # dataframe['%future_gain'] = self.smooth(future_gain, self.curr_lookahead)
+        # dataframe['%future_gain'] = self.smooth(future_gain, self.lookahead)
         dataframe['%future_gain'] = np.nan_to_num(future_gain)
         target = future_gain
-        self.curr_classifier.set_target_column(self.target_column)
+        self.curr_classifier.set_target_column('gain')
 
         # compress data
         if self.compress_data:
@@ -714,8 +754,10 @@ class NNPredict(IStrategy):
         preds_notrend = classifier.backtest(data)
         # print(f"preds_notrend: {np.shape(preds_notrend)}")
 
-        # results are not scaled
-        predictions = preds_notrend
+        # # results are not scaled
+        # predictions = preds_notrend
+
+        predictions = self.denorm_array(preds_notrend)
 
         '''
         # re-scale, if necessary
@@ -783,6 +825,9 @@ class NNPredict(IStrategy):
         #     tgt_scaler.fit(np.array(dataframe[self.target_column].iloc[start:end]).reshape(1, -1))
         #     # tgt_scaler.fit(np.array(dataframe[self.target_column].to_numpy()).reshape(1, -1))
 
+
+        tmp = self.norm_array(dataframe['gain'].iloc[start:end]) # this just sets the scale
+
         # predict
         latest_prediction = dataframe[self.target_column].iloc[-1]
         if classifier.returns_single_prediction():
@@ -793,22 +838,9 @@ class NNPredict(IStrategy):
         else:
             preds_notrend = self.get_predictions(data)
 
-            # re-scale, if necessary
-            if prescale_data:
-                # replace the 'temp' column and de-normalise (this is why we added the 'temp' column earlier, to match dimensions)
-                # df_norm["temp"].iloc[start:end] = preds_notrend
-                # inv_y = self.dataframeUtils.denorm_dataframe(df_norm)
-                # predictions = inv_y["temp"]
-                predictions = self.denorm_array(preds_notrend)
-                # latest_prediction = predictions.iloc[-1]
-                # predictions = tgt_scaler.inverse_transform(preds_notrend.reshape(1, -1))[0]
-                # latest_prediction = predictions[-1]
-            else:
-                # classifier handles scaling
-                predictions = preds_notrend
-                # latest_prediction = predictions[-1]
+            predictions = self.denorm_array(preds_notrend)
 
-            dataframe['predicted_gain'].iloc[-len(predictions):] = predictions
+            dataframe['predicted_gain'].iloc[-len(predictions):] = predictions.copy()
 
         # if prescale_data:
         #     df = self.dataframeUtils.denorm_dataframe(df_norm)
@@ -832,7 +864,8 @@ class NNPredict(IStrategy):
         # else:
         #     dataframe = self.add_model_batch_predictions(dataframe)
 
-        dataframe = self.backtest_data(dataframe)
+        # dataframe = self.backtest_data(dataframe)
+        dataframe = self.add_model_batch_predictions(dataframe)
         # dataframe = self.update_predictions(dataframe)
 
         return dataframe
@@ -899,74 +932,49 @@ class NNPredict(IStrategy):
 
         # prediction does not work well when run over a large dataset, so divide into chunks and predict for each one
         # then concatenate the results and return
-        preds_notrend: np.array = []
+        predictions: np.array = np.zeros(np.shape(dataframe['gain']), dtype=float)
         batch_size = self.predict_batch_size
 
-        nruns = int(np.shape(df_norm)[0] / batch_size)
-        # print(f'    batch_size:{batch_size} nruns:{nruns}')
+        # loop until we get to/past the end of the buffer
+        start = batch_size
+        end = start + batch_size
+        nrows = np.shape(dataframe)[0]
 
-        for i in tqdm(range(nruns), desc="    Predicting…", ascii=True, ncols=75):
-            # for i in range(nruns):
-            start = i * batch_size
-            end = start + batch_size
-            print(f"i:{i} start:{start} end:{end}")
+        while end < nrows:
+
             if use_dataframes:
                 chunk = df_norm.iloc[start:end]
             else:
                 chunk = df_tensor[start:end]
-            # print(chunk)
-            # preds = self.get_predictions(chunk).reshape(-1)
+
             preds = self.get_predictions(chunk)
-            print(f"preds:{np.shape(preds)}")
-            preds_notrend = np.concatenate((preds_notrend, preds))
-            print(f"preds_no_trend:{np.shape(preds_notrend)}")
 
-        # handle leftover. Some models have a minimum size, so just take the batch that fits into the last section
-        start = nruns * batch_size
-        end = np.shape(df_norm)[0]
-        num_left = end - start
-        if num_left > 0:
-            print(f"start:{start} end:{end}")
-            if use_dataframes:
-                chunk = df_norm.iloc[batch_size:]
-            else:
-                chunk = df_tensor[batch_size:]
-            # preds = self.get_predictions(chunk).reshape(-1)
-            preds = self.get_predictions(chunk)
-            if preds.ndim == 0: # can sometimes returna single value at edge
-                preds = [preds]
-            # print(f"preds:{np.shape(preds)} data:{preds}")
-            preds_notrend = np.concatenate((preds_notrend, preds[-num_left:]))
+             # normalise the source gain data, just to set up the scaler
+            tmp = self.norm_array(dataframe['gain'].iloc[start:end].to_numpy())
+            preds = self.denorm_array(preds)
 
-        print(f"preds_no_trend:{np.shape(preds_notrend)}")
+            # copy the predictions for this window into the main predictions array
+            predictions[start:end] = preds.copy()
 
-        # re-scale the predictions
-        # slight cheat - replace 'temp' column with predictions, then inverse scale
+            # move the window to the next segment
+            end = end + batch_size
+            start = start + batch_size
 
-        # decompress
-        if self.compress_data:
-            # TODO: this is not working - can't add a column because PCA inverse_transform will coomplain
-            #      can't really replace a column because the scaling is wrong
+        # make sure the last section gets processed (the loop above may not exactly fit the data)
+        # Note that we cannot use the last section for training because we don't have forward looking data
 
-            predictions = preds_notrend * cl_std + cl_mean
-
+        if use_dataframes:
+            chunk = df_norm.iloc[-batch_size:]
         else:
-            if prescale_data:
-                # replace the 'temp' column and de-normalise (this is why we added the 'temp' column earlier, to match dimensions)
-                df_norm["temp"] = preds_notrend
-                # inv_y = self.dataframeUtils.denorm_dataframe(df_norm)
-                # predictions = inv_y["temp"]
-                # predictions = tgt_scaler.inverse_transform(preds_notrend.reshape(1, -1))[0]
-                predictions = self.denorm_array(preds_notrend)
-                dataframe['temp'] = df_norm['temp'] # for debug
-            else:
-                # classifier handles scaling
-                predictions = preds_notrend
+            chunk = df_tensor[-batch_size:]
 
-        print("runs:{} predictions:{} batch:{}".format(nruns, len(predictions), batch_size))
+        preds = self.get_predictions(chunk)
+        tmp = self.norm_array(dataframe['gain'].iloc[-batch_size:].to_numpy())
+        preds = self.denorm_array(preds)
+        predictions[-batch_size:] = preds.copy()
 
-        dataframe['predicted_gain'].iloc[-len(predictions):] = predictions
-        
+        dataframe["predicted_gain"].iloc[-len(predictions):] = predictions.copy()
+
         return dataframe
 
     # run prediction in rolling fashion (one result at a time -> slow) over the entire history
@@ -1031,12 +1039,12 @@ class NNPredict(IStrategy):
     # add columns based on predictions. Do not call until after model has been trained
     def add_predictions(self, dataframe: DataFrame, pair) -> DataFrame:
 
-        win_size = max(self.curr_lookahead, 14)
+        win_size = max(self.lookahead, 14)
 
         dataframe = self.add_model_predictions(dataframe)
         dataframe = self.update_predictions(dataframe)
         # dataframe['predict_smooth'] = dataframe['predicted_gain'].rolling(window=win_size).apply(self.roll_strong_smooth)
-        dataframe['predicted_gain'] = dataframe['predicted_gain'].clip(lower=-2.0, upper=2.0)
+        dataframe['predicted_gain'] = dataframe['predicted_gain'].clip(lower=-3.0, upper=3.0)
 
         return dataframe
 
@@ -1167,58 +1175,45 @@ class NNPredict(IStrategy):
 
     def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         conditions = []
-        dataframe.loc[:, 'enter_tag'] = ''
-       
+        dataframe.loc[:, "enter_tag"] = ""
+
         if self.training_mode:
-            dataframe['enter_long'] = 0
+            dataframe["enter_long"] = 0
             return dataframe
-        
+
+        dataframe = self.update_gain_targets(dataframe)
+
+        # some trading volume (otherwise expect spread problems)
+        conditions.append(dataframe["volume"] > 1.0)
+
         if self.enable_entry_guards.value:
             # Fisher/Williams in oversold region
-            conditions.append(dataframe['fisher_wr'] < self.entry_guard_fwr.value)
-
-            # some trading volume
-            conditions.append(dataframe['volume'] > 0)
+            conditions.append(dataframe["fisher_wr"] < self.entry_guard_fwr.value)
 
 
-        fwr_cond = (
-            (dataframe['fisher_wr'] < -0.98)
-        )
-
+        fwr_cond = dataframe["fisher_wr"] < -0.98
 
         # model triggers
         model_cond = (
-            (
-                # model predicts a rise above the entry threshold
-                qtpylib.crossed_above(dataframe['predicted_gain'], dataframe['target_profit']) #&
-                # (dataframe['predicted_gain'] >= dataframe['target_profit']) &
-                # (dataframe['predicted_gain'].shift() >= dataframe['target_profit'].shift()) &
-
-                # Fisher/Williams in oversold region
-                # (dataframe['fisher_wr'] < -0.5)
-            )
-            # |
-            # (
-            #     # large gain predicted (ignore fisher_wr)
-            #     qtpylib.crossed_above(dataframe['predicted_gain'], 2.0 * dataframe['target_profit']) 
-            # )
+            # model predicts a rise above the entry threshold
+            # qtpylib.crossed_above(dataframe["predicted_gain"], dataframe["target_profit"])
+            (dataframe["predicted_gain"] > dataframe["target_profit"])
+            &
+            # in lower portion of previous window
+            (dataframe["close"] < dataframe["local_mean"])
         )
-        
-        
 
         # conditions.append(fwr_cond)
         conditions.append(model_cond)
 
-
         # set entry tags
-        dataframe.loc[fwr_cond, 'enter_tag'] += 'fwr_entry '
-        dataframe.loc[model_cond, 'enter_tag'] += 'model_entry '
+        dataframe.loc[fwr_cond, "enter_tag"] += "fwr_entry "
+        dataframe.loc[model_cond, "enter_tag"] += "model_entry "
 
         if conditions:
-            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'enter_long'] = 1
+            dataframe.loc[reduce(lambda x, y: x & y, conditions), "enter_long"] = 1
 
         return dataframe
-
 
     ###################################
 
@@ -1228,50 +1223,114 @@ class NNPredict(IStrategy):
 
     def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         conditions = []
-        dataframe.loc[:, 'exit_tag'] = ''
+        dataframe.loc[:, "exit_tag"] = ""
 
         if self.training_mode or (not self.enable_exit_signal.value):
-            dataframe['exit_long'] = 0
+            dataframe["exit_long"] = 0
             return dataframe
 
         # if self.enable_entry_guards.value:
 
+        # some trading volume (otherwise expect spread problems)
+        conditions.append(dataframe["volume"] > 0)
+
         if self.enable_exit_guards.value:
             # Fisher/Williams in overbought region
-            conditions.append(dataframe['fisher_wr'] > self.exit_guard_fwr.value)
+            conditions.append(dataframe["fisher_wr"] > self.exit_guard_fwr.value)
 
-            # some trading volume
-            conditions.append(dataframe['volume'] > 0)
 
         # model triggers
         model_cond = (
-            (
+            # prediction crossed target
+            # qtpylib.crossed_below(dataframe["predicted_gain"], dataframe["target_loss"])
 
-                 qtpylib.crossed_below(dataframe['predicted_gain'], dataframe['target_loss'] )
-           )
+            # use this version if volume checks are enabled, because we might miss the crossing otherwise
+            (dataframe["predicted_gain"] < dataframe["target_loss"])
+            &
+            # in upper portion of previous window
+            (dataframe["close"] > dataframe["local_mean"])
         )
 
         conditions.append(model_cond)
 
-
         # set exit tags
-        dataframe.loc[model_cond, 'exit_tag'] += 'model_exit '
+        dataframe.loc[model_cond, "exit_tag"] += "model_exit "
 
         if conditions:
-            dataframe.loc[reduce(lambda x, y: x & y, conditions), 'exit_long'] = 1
+            dataframe.loc[reduce(lambda x, y: x & y, conditions), "exit_long"] = 1
 
         return dataframe
 
+    ###################################
 
-    def confirm_trade_exit(self, pair: str, trade: Trade, order_type: str, amount: float,
-                           rate: float, time_in_force: str, exit_reason: str,
-                           current_time: datetime, **kwargs) -> bool:
-                
-        if self.dp.runmode.value not in ('backtest', 'plot', 'hyperopt'):
-            print(f'Trade Exit: {pair}, rate: {round(rate, 4)}')
+    def confirm_trade_entry(
+        self,
+        pair: str,
+        order_type: str,
+        amount: float,
+        rate: float,
+        time_in_force: str,
+        current_time: datetime,
+        entry_tag: Optional[str],
+        side: str,
+        **kwargs,
+    ) -> bool:
+        # this only makes sense in 'live' modes
+        if self.dp.runmode.value in ("backtest", "plot", "hyperopt"):
+            return True
+
+        # in 'real' systems, there is often a delay between the signal and the trade
+        # double-check that predicted gain is still above threshold
+
+        if pair in self.custom_trade_info:
+            curr_pred = self.custom_trade_info[pair]["curr_prediction"]
+
+            # check latest prediction against latest target
+
+            curr_target = self.custom_trade_info[pair]["curr_target"]
+            if curr_pred < curr_target:
+                if self.dp.runmode.value not in ("backtest", "plot", "hyperopt"):
+                    print(
+                        f"    *** {pair} Trade cancelled. Prediction ({curr_pred:.2f}%) below target ({curr_target:.2f}%) "
+                    )
+                return False
+
+            """
+            # check that prediction is still a profit, rather than a loss
+            if curr_pred < 0.0:
+                # if self.dp.runmode.value not in ('backtest', 'plot', 'hyperopt'):
+                if self.dp.runmode.value not in ('hyperopt'):
+                    print(
+                        f'    *** {pair} Trade cancelled. Prediction ({curr_pred:.2f}%) is now a loss '
+                        )
+                return False
+
+            """
+
+        # just debug
+        if self.dp.runmode.value not in ("backtest", "plot", "hyperopt"):
+            print(f"    Trade Entry: {pair}, rate: {rate:.4f} Predicted gain: {curr_pred:.2f}% Target: {curr_target:.2f}%")
 
         return True
-    
+
+    def confirm_trade_exit(
+        self,
+        pair: str,
+        trade: Trade,
+        order_type: str,
+        amount: float,
+        rate: float,
+        time_in_force: str,
+        exit_reason: str,
+        current_time: datetime,
+        **kwargs,
+    ) -> bool:
+        
+        if self.dp.runmode.value not in ("backtest", "plot", "hyperopt"):
+            print(f"    Trade Exit: {pair}, rate: {rate:.4f)}")
+
+        return True
+
     ###################################
 
     """
@@ -1279,18 +1338,28 @@ class NNPredict(IStrategy):
     """
 
     # simplified version of custom trailing stoploss
-    def custom_stoploss(self, pair: str, trade: Trade, current_time: datetime, current_rate: float,
-                        current_profit: float, **kwargs) -> float:
-
+    def custom_stoploss(
+        self,
+        pair: str,
+        trade: Trade,
+        current_time: datetime,
+        current_rate: float,
+        current_profit: float,
+        after_fill: bool,
+        **kwargs,
+    ) -> float:
+        # this is just here so that we can use custom_exit
+        """
         # if enable, use custom trailing ratio, else use default system
         if self.cstop_enable.value:
             # if current profit is above start value, then set stoploss at fraction of current profit
             if current_profit > self.cstop_start.value:
                 return current_profit * self.cstop_ratio.value
 
+        """
+
         # return min(-0.001, max(stoploss_from_open(0.05, current_profit), -0.99))
         return self.stoploss
-
 
     ###################################
 
@@ -1301,26 +1370,29 @@ class NNPredict(IStrategy):
 
     # simplified version of custom exit
 
-    def custom_exit(self, pair: str, trade: Trade, current_time: 'datetime', current_rate: float,
-                    current_profit: float, **kwargs):
-
+    def custom_exit(
+        self, pair: str, trade: Trade, current_time: "datetime", current_rate: float, current_profit: float, **kwargs
+    ):
         dataframe, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
         last_candle = dataframe.iloc[-1].squeeze()
-        
 
         if not self.use_custom_stoploss:
             return None
 
+        # check volume?!
+        if last_candle['volume'] <= 1.0:
+            return None
+
         # strong sell signal, in profit
-        if (current_profit > 0.001) and (last_candle['fisher_wr'] >= self.cexit_fwr_overbought.value):
-            return 'fwr_overbought'
+        if (current_profit > 0.0) and (last_candle["fisher_wr"] >= self.cexit_fwr_overbought.value):
+            return "fwr_overbought"
 
-        # Above 1%, sell if Fisher/Williams in sell range
-        if current_profit > 0.01:
-            if last_candle['fisher_wr'] >= self.cexit_fwr_take_profit.value:
-                return 'take_profit'
- 
+        # Above 0.5%, sell if Fisher/Williams in sell range
+        if current_profit > 0.005:
+            if last_candle["fisher_wr"] >= self.cexit_fwr_take_profit.value:
+                return "take_profit"
 
+        """
         # check profit against ROI target. This sort of emulates the freqtrade roi approach, but is much simpler
         if self.cexit_use_profit_threshold.value:
             if (current_profit >= self.cexit_profit_threshold.value):
@@ -1330,23 +1402,28 @@ class NNPredict(IStrategy):
         if self.cexit_use_loss_threshold.value:
             if (current_profit <= self.cexit_loss_threshold.value):
                 return 'cexit_loss_threshold'
-              
+
+        """
+
         # Sell any positions if open for >= 1 day with any level of profit
         if ((current_time - trade.open_date_utc).days >= 1) & (current_profit > 0):
-            return 'unclog_1'
-        
+            return "unclog_1"
+
         # Sell any positions at a loss if they are held for more than 7 days.
         if (current_time - trade.open_date_utc).days >= 7:
-            return 'unclog_7'
-        
-        
+            return "unclog_7"
+
         # big drop predicted. Should also trigger an exit signal, but this might be quicker (and will likely be 'market' sell)
-        if (current_profit > 0) and (last_candle['predicted_gain'] <= last_candle['target_loss']):
-            return 'predict_drop'
-        
+        if (current_profit > 0) and (last_candle["predicted_gain"] <= last_candle["target_loss"]):
+            return "predict_drop"
+
+        # large drop preduicted, just bail no matter profit
+        if self.cexit_enable_large_drop.value:
+            if last_candle["predicted_gain"] < self.cexit_large_drop.value:
+                return "large_drop"
 
         # if in profit and exit signal is set, sell (even if exit signals are disabled)
-        if (current_profit > 0) and (last_candle['exit_long'] > 0):
-            return 'exit_signal'
+        if (current_profit > 0) and (last_candle["exit_long"] > 0):
+            return "exit_signal"
 
         return None

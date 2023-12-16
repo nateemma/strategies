@@ -79,7 +79,9 @@ Predict_LSTM - uses an LSTM neural network to try and predict the future stock p
 
 class NNPredict_LSTM0(NNPredict):
 
-    lookahead_hours = 1.0
+    lookahead_hours = 0.5
+
+    combine_models = False
 
     ################################
 

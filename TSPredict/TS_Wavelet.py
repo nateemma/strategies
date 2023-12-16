@@ -60,7 +60,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 from xgboost import XGBRegressor
 # from lightgbm import LGBMRegressor
 from sklearn.linear_model import PassiveAggressiveRegressor
-# from sklearn.linear_model import SGDRegressor
+from sklearn.linear_model import SGDRegressor
 
 from utils.DataframeUtils import DataframeUtils, ScalerType # pylint: disable=E0401
 # import pywt
@@ -93,6 +93,7 @@ class TS_Wavelet(TSPredict):
     coeff_start_col = 0
     gain_data = None
 
+    single_col_prediction = False
  
    
   
@@ -251,7 +252,7 @@ class TS_Wavelet(TSPredict):
         init_done = False
 
         while end < nrows:
-            dslice = data[start:end]
+            dslice = data[start:end].copy()
 
             # print(f"start:{start} end:{end} dest:{dest} len:{len(dslice)}")
 
@@ -286,10 +287,12 @@ class TS_Wavelet(TSPredict):
 
         num_coeffs = np.shape(self.coeff_table)[1]
 
-        merged_table = np.concatenate([np.array(dataframe), self.coeff_table], axis=1)
+        # merged_table = np.concatenate([np.array(dataframe), self.coeff_table], axis=1)
+        merged_table = self.coeff_table
 
         # save the start column for later use
-        self.coeff_start_col = np.shape(dataframe)[1]
+        # self.coeff_start_col = np.shape(dataframe)[1]
+        self.coeff_start_col = 0
 
         return merged_table
 
@@ -313,26 +316,25 @@ class TS_Wavelet(TSPredict):
     # regression/prediction model. For this family, it must be *fast*
     def create_model(self, df_shape):
 
-        # XGBoost is the best regression algorithm, but it runs too slowly for this strategy
+        # # XGBoost is the best regression algorithm, but it runs too slowly for this strategy
         # params = {'n_estimators': 100, 'max_depth': 4, 'learning_rate': 0.1}
         # self.model = XGBRegressor(**params)
 
         self.model = PassiveAggressiveRegressor(warm_start=False)
-        # self.model = SGDRegressor(loss='huber')
 
         print(f"    creating new model using: {type(self.model)}")
 
         if self.model is None:
             print("***    ERR: create_model() - model was not created ***")
         return
-    
+
     # -------------
 
     # the following are here just to maintain compatibilkity with TSPredict
 
     def init_model(self, dataframe: DataFrame):
         pass
-    
+
     def train_model(self, model, data: np.array, results: np.array, save_model):
         pass
 
@@ -344,13 +346,13 @@ class TS_Wavelet(TSPredict):
         self.new_model = False
         self.training_mode = False
         return
-    
+
     #####################################
 
     # Prediction-related functions
 
     #-------------
-    
+
     # generate predictions for an np array 
     # data should be the entire data array, not a slice
     # since we both train and predict, supply indices to allow trining and predicting in different regions
@@ -363,8 +365,10 @@ class TS_Wavelet(TSPredict):
 
         coeff_arr = []
 
-        training_data = data[train_start:train_end - self.lookahead] # better, but much slower
-        predict_data = data[predict_start:predict_end]
+        if not self.single_col_prediction:
+            # all columns - better, but much slower
+            training_data = data[train_start:train_end - self.lookahead].copy()
+            predict_data = data[predict_start:predict_end].copy()
 
         # create the model
         if self.model is None:
@@ -374,8 +378,10 @@ class TS_Wavelet(TSPredict):
 
         # train/predict for each coefficient individually
         for i in range(self.coeff_start_col, ncols):
-            # training_data = data[train_start:train_end, i][:-self.lookahead].reshape(-1,1) # less accurate, but much faster
-            training_labels = data[train_start:train_end, i][self.lookahead:]
+
+            if self.single_col_prediction:
+                training_data = data[train_start:train_end, i][:-self.lookahead].reshape(-1,1) # 1 column - less accurate, but much faster
+            training_labels = data[train_start:train_end, i][self.lookahead:].copy()
             training_labels = np.nan_to_num(training_labels)
 
             # print(f'    data:{np.shape(training_data)} labels:{np.shape(training_labels)}')
@@ -385,7 +391,9 @@ class TS_Wavelet(TSPredict):
             self.model.fit(training_data, training_labels)
 
             # get a prediction
-            # predict_data = data[predict_start:predict_end, i].reshape(-1,1) # less accurate, but much faster
+            if self.single_col_prediction:
+                predict_data = data[predict_start:predict_end, i].reshape(-1,1) # 1 column - less accurate, but much faster
+
             pred = self.model.predict(predict_data)[-1]
             coeff_arr.append(pred)
 
@@ -434,7 +442,7 @@ class TS_Wavelet(TSPredict):
         train_start = max(0, train_end-train_size)
 
         # base_model = copy.deepcopy(self.model) # make a deep copy so that we don't override the baseline model
-        base_model = self.model
+        # base_model = self.model
 
         while end < nrows:
 
@@ -458,8 +466,9 @@ class TS_Wavelet(TSPredict):
 
         # predict for last window
 
-        self.gain_data = np.array(dataframe['gain'].iloc[-win_size])
-        preds = self.predict_data(data, -(train_size + win_size + 1), -(win_size + 1), -win_size, nrows)
+        self.gain_data = np.array(dataframe['gain'].iloc[-win_size:])
+        preds = self.predict_data(data, -(train_size + win_size + 1), -(win_size + 1), -win_size, -1)
+        # preds = self.predict_data(data, 0, -(win_size + 1), -win_size, -1)
         plen = len(preds)
         pred_array[-plen:] = preds.copy()
 
@@ -474,7 +483,7 @@ class TS_Wavelet(TSPredict):
     def add_latest_prediction(self, dataframe: DataFrame) -> DataFrame:
 
         df = dataframe
-        win_size = 126
+        win_size = 64
         nrows = np.shape(df)[0]
         train_size = 256
 
@@ -500,23 +509,28 @@ class TS_Wavelet(TSPredict):
             pred_array = np.roll(pred_array, -1)
             pred_array[-1] = 0.0
 
+            # # save original model
+            # base_model = copy.deepcopy(self.model)
+
             # get predictions
             train_end = nrows - (win_size + 1)
-            train_start = max(0, train_end - train_size)
-            self.gain_data = np.array(dataframe['gain'].iloc[-win_size])
+            # train_start = max(0, train_end - train_size)
+            train_start = 0
+            self.gain_data = np.array(dataframe['gain'].iloc[-win_size:])
             preds = self.predict_data(data, 
                                       train_start, train_end, 
-                                      -win_size, nrows)
+                                      -win_size, -1)
 
-            # self.model = copy.deepcopy(base_model) # restore original model
+            # self.model = base_model # restore original model
 
             # only replace last prediction (i.e. don't overwrite the historical predictions)
-            pred_array[-1] = preds[-1]
+            pred_array[-1] = preds[-1].copy()
 
             dataframe['predicted_gain'] = 0.0
             dataframe['predicted_gain'][-clen:] = pred_array[-clen:].copy()
             self.custom_trade_info[self.curr_pair]['predictions'][-clen:] = pred_array[-clen:].copy()
 
+            '''
             pg = preds[-1]
             if pg <= dataframe['target_loss'].iloc[-1]:
                 tag = "(*)"
@@ -525,6 +539,8 @@ class TS_Wavelet(TSPredict):
             else:
                 tag = "   "
             print(f'    {tag} predict {pg:6.2f}% gain for: {self.curr_pair}')
+
+            '''
 
         except Exception as e:
             print("*** Exception in add_latest_prediction()")

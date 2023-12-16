@@ -1,4 +1,4 @@
-# pragma pylint: disable=W0105, C0103, C0114, C0115, C0116, C0301, C0302, C0303, C0325, C0411, C0413,  W1203
+# pragma pylint: disable=W0105, C0103, C0114, C0115, C0116, C0301, C0302, C0303, C0325, C0411, C0413,  W1203, W291
 
 """
 ####################################################################################
@@ -49,6 +49,7 @@ import talib.abstract as ta
 
 # from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.preprocessing import RobustScaler
+from freqtrade import leverage
 
 import freqtrade.vendor.qtpylib.indicators as qtpylib
 from freqtrade.persistence import Trade
@@ -109,6 +110,12 @@ class TSPredict(IStrategy):
     inf_timeframe = "15m"
 
     use_custom_stoploss = True
+
+    leverage = 1.0
+    can_short = False
+    # if setting can-short to True, remember to update the config file:
+    #   "trading_mode": "futures",
+    #   "margin_mode": "isolated",
 
     # Recommended
     use_exit_signal = True
@@ -411,7 +418,8 @@ class TSPredict(IStrategy):
         future_gain = df["gain"].shift(-self.lookahead).to_numpy()
 
         # future_gain = dataframe['gain'].shift(-self.lookahead).to_numpy()
-        return self.smooth(future_gain, 8)
+        # return self.smooth(future_gain, 8)
+        return future_gain
 
     ###################################
 
@@ -695,7 +703,7 @@ class TSPredict(IStrategy):
         dslice = self.training_data[-win_size:]
         # preds = self.model.predict(dslice)
 
-        self.gain_data = np.array(dataframe["gain"].iloc[-win_size])  # needed for scaling
+        self.gain_data = np.array(dataframe["gain"].iloc[-win_size:])  # needed for scaling
         preds = self.predict_data(pair_model, dslice)
         pred_array[-win_size:] = preds.copy()
 
@@ -739,7 +747,7 @@ class TSPredict(IStrategy):
             base_model = copy.deepcopy(self.model)
             self.train_model(base_model, dslice, tslice, False)
 
-            self.gain_data = np.array(dataframe["gain"].iloc[-clen])  # needed for scaling
+            self.gain_data = np.array(dataframe["gain"].iloc[-clen:])  # needed for scaling
             preds = self.predict_data(base_model, self.training_data)
 
             # self.model = copy.deepcopy(base_model) # restore original model
@@ -814,7 +822,7 @@ class TSPredict(IStrategy):
                 self.custom_trade_info[self.curr_pair]["curr_target"] = dataframe["target_profit"].iloc[-1]
 
         # predictions can spike, so constrain range
-        dataframe["predicted_gain"] = dataframe["predicted_gain"].clip(lower=-3.0, upper=3.0)
+        dataframe["predicted_gain"] = dataframe["predicted_gain"].clip(lower=-5.0, upper=5.0)
 
         if run_profiler:
             prof.disable()
@@ -853,8 +861,9 @@ class TSPredict(IStrategy):
         # model triggers
         model_cond = (
             # model predicts a rise above the entry threshold
-            # qtpylib.crossed_above(dataframe["predicted_gain"], dataframe["target_profit"])
-            (dataframe["predicted_gain"] > dataframe["target_profit"])
+            qtpylib.crossed_above(dataframe["predicted_gain"], dataframe["target_profit"])
+            # (dataframe["predicted_gain"] > dataframe["target_profit"]) &
+            # (dataframe["predicted_gain"].shift() > dataframe["target_profit"].shift())
             &
             # in lower portion of previous window
             (dataframe["close"] < dataframe["local_mean"])
@@ -899,10 +908,11 @@ class TSPredict(IStrategy):
         # model triggers
         model_cond = (
             # prediction crossed target
-            # qtpylib.crossed_below(dataframe["predicted_gain"], dataframe["target_loss"])
+            qtpylib.crossed_below(dataframe["predicted_gain"], dataframe["target_loss"])
 
             # use this version if volume checks are enabled, because we might miss the crossing otherwise
-            (dataframe["predicted_gain"] < dataframe["target_loss"])
+            # (dataframe["predicted_gain"] < dataframe["target_loss"]) &
+            # (dataframe["predicted_gain"].shift() < dataframe["target_loss"].shift())
             &
             # in upper portion of previous window
             (dataframe["close"] > dataframe["local_mean"])
@@ -947,26 +957,18 @@ class TSPredict(IStrategy):
             curr_target = self.custom_trade_info[pair]["curr_target"]
             if curr_pred < curr_target:
                 if self.dp.runmode.value not in ("backtest", "plot", "hyperopt"):
+                    print("")
                     print(
                         f"    *** {pair} Trade cancelled. Prediction ({curr_pred:.2f}%) below target ({curr_target:.2f}%) "
                     )
+                    print("")
                 return False
-
-            """
-            # check that prediction is still a profit, rather than a loss
-            if curr_pred < 0.0:
-                # if self.dp.runmode.value not in ('backtest', 'plot', 'hyperopt'):
-                if self.dp.runmode.value not in ('hyperopt'):
-                    print(
-                        f'    *** {pair} Trade cancelled. Prediction ({curr_pred:.2f}%) is now a loss '
-                        )
-                return False
-
-            """
 
         # just debug
         if self.dp.runmode.value not in ("backtest", "plot", "hyperopt"):
+            print("")
             print(f"    Trade Entry: {pair}, rate: {rate:.4f} Predicted gain: {curr_pred:.2f}% Target: {curr_target:.2f}%")
+            print("")
 
         return True
 
@@ -984,7 +986,9 @@ class TSPredict(IStrategy):
     ) -> bool:
         
         if self.dp.runmode.value not in ("backtest", "plot", "hyperopt"):
+            print("")
             print(f"    Trade Exit: {pair}, rate: {rate:.4f)}")
+            print("")
 
         return True
 
@@ -1006,14 +1010,6 @@ class TSPredict(IStrategy):
         **kwargs,
     ) -> float:
         # this is just here so that we can use custom_exit
-        """
-        # if enable, use custom trailing ratio, else use default system
-        if self.cstop_enable.value:
-            # if current profit is above start value, then set stoploss at fraction of current profit
-            if current_profit > self.cstop_start.value:
-                return current_profit * self.cstop_ratio.value
-
-        """
 
         # return min(-0.001, max(stoploss_from_open(0.05, current_profit), -0.99))
         return self.stoploss
@@ -1027,9 +1023,9 @@ class TSPredict(IStrategy):
 
     # simplified version of custom exit
 
-    def custom_exit(
-        self, pair: str, trade: Trade, current_time: "datetime", current_rate: float, current_profit: float, **kwargs
-    ):
+    def custom_exit(self, pair: str, trade: Trade, current_time: "datetime", current_rate: float,
+                    current_profit: float, **kwargs):
+
         dataframe, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
         last_candle = dataframe.iloc[-1].squeeze()
 
@@ -1040,27 +1036,38 @@ class TSPredict(IStrategy):
         if last_candle['volume'] <= 1.0:
             return None
 
-        # strong sell signal, in profit
-        if (current_profit > 0.0) and (last_candle["fisher_wr"] >= self.cexit_fwr_overbought.value):
-            return "fwr_overbought"
+        if trade.is_short:
+            print("    short trades not yet supported in custom_exit()")
 
-        # Above 0.5%, sell if Fisher/Williams in sell range
-        if current_profit > 0.005:
-            if last_candle["fisher_wr"] >= self.cexit_fwr_take_profit.value:
-                return "take_profit"
+        else:
 
-        """
-        # check profit against ROI target. This sort of emulates the freqtrade roi approach, but is much simpler
-        if self.cexit_use_profit_threshold.value:
-            if (current_profit >= self.cexit_profit_threshold.value):
-                return 'cexit_profit_threshold'
+            # print("    checking long trade")
 
-        # check loss against threshold. This sort of emulates the freqtrade stoploss approach, but is much simpler
-        if self.cexit_use_loss_threshold.value:
-            if (current_profit <= self.cexit_loss_threshold.value):
-                return 'cexit_loss_threshold'
+            # strong sell signal, in profit
+            if (current_profit > 0.0) and (last_candle["fisher_wr"] >= self.cexit_fwr_overbought.value):
+                return "fwr_overbought"
 
-        """
+            # Above 0.5%, sell if Fisher/Williams in sell range
+            if current_profit > 0.005:
+                if last_candle["fisher_wr"] >= self.cexit_fwr_take_profit.value:
+                    return "take_profit"
+
+
+            # big drop predicted. Should also trigger an exit signal, but this might be quicker (and will likely be 'market' sell)
+            if (current_profit > 0) and (last_candle["predicted_gain"] <= last_candle["target_loss"]):
+                return "predict_drop"
+
+            # large drop preduicted, just bail no matter profit
+            if self.cexit_enable_large_drop.value:
+                if last_candle["predicted_gain"] < self.cexit_large_drop.value:
+                    return "large_drop"
+
+            # if in profit and exit signal is set, sell (even if exit signals are disabled)
+            if (current_profit > 0) and (last_candle["exit_long"] > 0):
+                return "exit_signal"
+
+
+        # The following apply to both long & short trades:
 
         # Sell any positions if open for >= 1 day with any level of profit
         if ((current_time - trade.open_date_utc).days >= 1) & (current_profit > 0):
@@ -1069,18 +1076,5 @@ class TSPredict(IStrategy):
         # Sell any positions at a loss if they are held for more than 7 days.
         if (current_time - trade.open_date_utc).days >= 7:
             return "unclog_7"
-
-        # big drop predicted. Should also trigger an exit signal, but this might be quicker (and will likely be 'market' sell)
-        if (current_profit > 0) and (last_candle["predicted_gain"] <= last_candle["target_loss"]):
-            return "predict_drop"
-
-        # large drop preduicted, just bail no matter profit
-        if self.cexit_enable_large_drop.value:
-            if last_candle["predicted_gain"] < self.cexit_large_drop.value:
-                return "large_drop"
-
-        # if in profit and exit signal is set, sell (even if exit signals are disabled)
-        if (current_profit > 0) and (last_candle["exit_long"] > 0):
-            return "exit_signal"
 
         return None
