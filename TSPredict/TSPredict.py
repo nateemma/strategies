@@ -461,6 +461,7 @@ class TSPredict(IStrategy):
         df.set_index("date")
         df.reindex()
 
+        # print(f'    norm_data:{self.norm_data}')
         if self.norm_data:
             # scale the dataframe
             self.scaler.fit(df)

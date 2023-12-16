@@ -77,11 +77,7 @@ class TS_Wavelet_WPT(TS_Wavelet):
         # reconstruct the data from level 2
         series = self.wp.reconstruct(update=True)
 
-        # de-norm
-        scaler = RobustScaler()
-        scaler.fit(self.gain_data.reshape(-1, 1))
-        denorm_series = scaler.inverse_transform(series.reshape(-1, 1)).squeeze()
-        return denorm_series
+        return series
     
     # -------------
 

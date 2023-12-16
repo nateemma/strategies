@@ -94,6 +94,8 @@ class TS_Wavelet(TSPredict):
     gain_data = None
 
     single_col_prediction = False
+
+    norm_data = False
  
    
   
@@ -131,8 +133,6 @@ class TS_Wavelet(TSPredict):
 
         return dataframe
 
-    ###################################
-    
     ###################################
 
     # DWT functions
@@ -222,11 +222,7 @@ class TS_Wavelet(TSPredict):
         series = pywt.waverec(coeffs, wavelet=self.wavelet, mode=self.mode)
         # print(f'    coeff_slices:{self.coeff_slices}, coeff_shapes:{self.coeff_shapes} series:{np.shape(series)}')
 
-        # de-norm
-        scaler = RobustScaler()
-        scaler.fit(self.gain_data.reshape(-1,1))
-        denorm_series = scaler.inverse_transform(series.reshape(-1, 1)).squeeze()
-        return denorm_series
+        return series
 
     #-------------
 
@@ -258,7 +254,7 @@ class TS_Wavelet(TSPredict):
 
             features = self.get_coeffs(dslice)
             # print(f'build_coefficient_table() features: {np.shape(features)}')
-            
+
             # initialise the np.array (need features first to know size)
             if not init_done:
                 init_done = True
@@ -295,6 +291,24 @@ class TS_Wavelet(TSPredict):
         self.coeff_start_col = 0
 
         return merged_table
+
+    #-------------
+    # Normalisation
+
+    scaler = RobustScaler()
+
+    def update_scaler(self, data):
+
+        if not self.scaler:
+            self.scaler = RobustScaler()
+
+        self.scaler.fit(data.reshape(-1,1))
+
+    def norm_array(self, a):
+            return self.scaler.transform(a.reshape(-1, 1))
+
+    def denorm_array(self, a):
+            return self.scaler.inverse_transform(a.reshape(-1, 1)).squeeze()
 
     #-------------
 
@@ -404,6 +418,9 @@ class TS_Wavelet(TSPredict):
         preds = self.get_value(wcoeffs)
         # print(f'    preds[-1]:{preds[-1]}')
 
+        if self.norm_data:
+            preds = self.denorm_array(preds)
+
         return preds
 
 
@@ -447,7 +464,8 @@ class TS_Wavelet(TSPredict):
         while end < nrows:
 
              # set the (unmodified) gain data for scaling
-            self.gain_data = np.array(dataframe['gain'].iloc[start:end])
+            # self.gain_data = np.array(dataframe['gain'].iloc[start:end])
+            self.update_scaler(np.array(dataframe['gain'].iloc[start:end]))
 
             # rebuild data up to end of current window
             preds = self.predict_data(data, train_start, train_end, start, end)
@@ -466,7 +484,9 @@ class TS_Wavelet(TSPredict):
 
         # predict for last window
 
-        self.gain_data = np.array(dataframe['gain'].iloc[-win_size:])
+        # self.gain_data = np.array(dataframe['gain'].iloc[-win_size:])
+        self.update_scaler(np.array(dataframe['gain'].iloc[-win_size:]))
+
         preds = self.predict_data(data, -(train_size + win_size + 1), -(win_size + 1), -win_size, -1)
         # preds = self.predict_data(data, 0, -(win_size + 1), -win_size, -1)
         plen = len(preds)
@@ -516,7 +536,9 @@ class TS_Wavelet(TSPredict):
             train_end = nrows - (win_size + 1)
             # train_start = max(0, train_end - train_size)
             train_start = 0
-            self.gain_data = np.array(dataframe['gain'].iloc[-win_size:])
+            # self.gain_data = np.array(dataframe['gain'].iloc[-win_size:])
+            self.update_scaler(np.array(dataframe['gain'].iloc[-win_size:]))
+
             preds = self.predict_data(data, 
                                       train_start, train_end, 
                                       -win_size, -1)

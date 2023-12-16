@@ -68,11 +68,7 @@ class TS_Wavelet_FFT(TS_Wavelet):
 
         series = series.real
 
-        # de-norm
-        scaler = RobustScaler()
-        scaler.fit(self.gain_data.reshape(-1, 1))
-        denorm_series = scaler.inverse_transform(series.reshape(-1, 1)).squeeze()
-        return denorm_series
+        return series
     
     # -------------
 

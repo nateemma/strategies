@@ -87,10 +87,6 @@ class TS_Wavelet_SWTA(TS_Wavelet):
         series = pywt.iswt(coeffs, wavelet=self.wavelet)
         # print(f'    coeff_slices:{self.coeff_slices}, coeff_shapes:{self.coeff_shapes} series:{np.shape(series)}')
 
-        # de-norm
-        scaler = RobustScaler()
-        scaler.fit(self.gain_data.reshape(-1, 1))
-        denorm_series = scaler.inverse_transform(series.reshape(-1, 1)).squeeze()
-        return denorm_series
+        return series
     
     # -------------
