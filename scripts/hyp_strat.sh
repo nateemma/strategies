@@ -41,7 +41,7 @@ config_file=""
 short=0
 leveraged=0
 
-spaces="sell"
+spaces="buy sell"
 
 num_days=180
 start_date=$(date +"%Y%m%d")

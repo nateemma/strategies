@@ -15,7 +15,7 @@ curr_file="$0"
 
 # default values
 epochs=100
-spaces="sell"
+spaces="buy sell"
 
 num_days=180
 start_date=$(date +"%Y%m%d")

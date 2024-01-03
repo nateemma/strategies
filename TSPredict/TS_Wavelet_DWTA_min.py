@@ -17,21 +17,13 @@ TS_Wavelet_DWTA_min - use a Digital Wave Transform model (Approximate Coefficien
 ####################################################################################
 """
 
-from xgboost import XGBRegressor
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__)))
 
-import numpy as np
-import pandas as pd
-from pandas import DataFrame, Series
-import pywt
-
-
-from sklearn.preprocessing import RobustScaler
-
-from xgboost import XGBRegressor
+import utils.Wavelets as Wavelets
+import utils.Forecasters as Forecasters
 
 from TS_Wavelet_DWTA import TS_Wavelet_DWTA
 
@@ -39,6 +31,9 @@ class TS_Wavelet_DWTA_min(TS_Wavelet_DWTA):
 
     ###################################
 
+    merge_indicators = True
+    use_rolling = True
+    single_col_prediction = True
 
     # -------------
 

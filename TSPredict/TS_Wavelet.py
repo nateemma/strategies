@@ -61,11 +61,15 @@ from xgboost import XGBRegressor
 # from lightgbm import LGBMRegressor
 from sklearn.linear_model import PassiveAggressiveRegressor
 from sklearn.linear_model import SGDRegressor
+from sklearn.svm import SVR
 
 from utils.DataframeUtils import DataframeUtils, ScalerType # pylint: disable=E0401
 # import pywt
 import talib.abstract as ta
+import utils.custom_indicators as cta
 
+import utils.Wavelets as Wavelets
+import utils.Forecasters as Forecasters
 
 from TSPredict import TSPredict
 
@@ -80,25 +84,41 @@ class TS_Wavelet(TSPredict):
 
     # Strategy Specific Variable Storage
 
+    lookahead = 6
+    # lookahead = 9
 
     # model_window = startup_candle_count
-    model_window = 128
+    model_window = 32 # longer = slower
+    train_len = 32 # longer = slower
+    scale_len = 16 # no. recent candles to use when scaling
 
-    # lookahead = 6
-    lookahead = 9
+    use_rolling = True # True = rolling (slow but realistic), False = Jumping (much faster, less realistic)
+    single_col_prediction = False # True = use only gain. False = use all columns (better, but much slower)
+
+
 
     df_coeffs: DataFrame = None
     coeff_table = None
+    coeff_table_offset = 0
     coeff_array = None
     coeff_start_col = 0
+    coeff_num_cols = 0
     gain_data = None
 
-    single_col_prediction = False
 
-    norm_data = False
- 
-   
-  
+    norm_data = True
+
+    wavelet_type:Wavelets.WaveletType = Wavelets.WaveletType.MODWT
+    wavelet = None
+
+    forecaster_type:Forecasters.ForecasterType = Forecasters.ForecasterType.PA
+    forecaster = None
+
+    data = None
+
+    min_wavelet_size = 16 # needed for consistently-sized transforms
+    win_size = model_window # this can vary
+
     ###################################
 
     def add_strategy_indicators(self, dataframe):
@@ -131,166 +151,12 @@ class TS_Wavelet(TSPredict):
         dataframe['dc_lower'] = ta.MIN(dataframe['low'], timeperiod=self.win_size)
         dataframe['dc_mid'] = ta.TEMA(((dataframe['dc_upper'] + dataframe['dc_lower']) / 2), timeperiod=self.win_size)
 
+        # # reset expanding window size
+        # self.win_size = self.min_wavelet_size
+
         return dataframe
 
     ###################################
-
-    # DWT functions
- 
-    def madev(self, d, axis=None):
-        """ Mean absolute deviation of a signal """
-        return np.mean(np.absolute(d - np.mean(d, axis)), axis)
-
-
-    ###################################
-
-    # Coefficient functions
- 
-    wavelet = "db2"
-    mode = "smooth"
-    coeff_slices = None
-    coeff_shapes = None
-    coeff_format = "wavedec"
-
-    # function to get dwt coefficients
-    def get_coeffs(self, data: np.array) -> np.array:
-
-        length = len(data)
-
-        x = data
-
-        # data must be of even length, so trim if necessary
-        if (len(x) % 2) != 0:
-            x = x[1:]
-
-        # print(pywt.wavelist(kind='discrete'))
-
-        # get the DWT coefficients
-        self.wavelet = 'bior3.9'
-        # self.wavelet = 'db2'
-        # self.mode = 'smooth'
-        self.mode = 'zero'
-        self.coeff_format = "wavedec"
-        level = 2
-        coeffs = pywt.wavedec(x, self.wavelet, mode=self.mode, level=level)
-
-        ''''''
-        # remove higher harmonics
-        std = np.std(coeffs[level])
-        sigma = (1 / 0.6745) * self.madev(coeffs[-level])
-        # sigma = madev(coeff[-level])
-        uthresh = sigma * np.sqrt(2 * np.log(length))
-
-        coeffs[1:] = (pywt.threshold(i, value=uthresh, mode='hard') for i in coeffs[1:])
-
-        ''''''
-
-        return self.coeff_to_array(coeffs)
-
-    #-------------
-
-
-    def coeff_to_array(self, coeffs):
-        # flatten the coefficient arrays
-
-        # faster:
-        # arr, self.coeff_slices, self.coeff_shapes = pywt.ravel_coeffs(coeffs)
-
-        # more general purpose (can use with many waveforms)
-        arr, self.coeff_slices = pywt.coeffs_to_array(coeffs)
-
-        return np.array(arr)
-
-    #-------------
-
-    def array_to_coeff(self, array):
-
-        # faster:
-        # coeffs = pywt.unravel_coeffs(array, self.coeff_slices, self.coeff_shapes, output_format='wavedec')
-
-        # more general purpose (can use with many waveforms)
-        coeffs = pywt.array_to_coeffs(array, self.coeff_slices, output_format=self.coeff_format)
-
-        # print(f'    coeff_slices:{self.coeff_slices}, coeff_shapes:{self.coeff_shapes} array:{np.shape(array)}')
-        return coeffs
-
-    #-------------
-
-    def get_value(self, coeffs):
-        # series = pywt.waverec(coeffs, self.wavelet)
-
-        series = pywt.waverec(coeffs, wavelet=self.wavelet, mode=self.mode)
-        # print(f'    coeff_slices:{self.coeff_slices}, coeff_shapes:{self.coeff_shapes} series:{np.shape(series)}')
-
-        return series
-
-    #-------------
-
-    # builds a numpy array of coefficients
-    def build_coefficient_table(self, data: np.array):
-        
-        # roll through the  data and create coefficients for each step
-        nrows = np.shape(data)[0]
-
-        # print(f'build_coefficient_table() data:{np.shape(data)}')
-
-        start = 0
-        if nrows > self.model_window:
-            end = start + self.model_window - 1
-        else:
-            end = start + 32
-        dest = end
-
-        # print(f"nrows:{nrows} start:{start} end:{end} dest:{dest} nbuffs:{nbuffs}")
-
-        self.coeff_table = None
-        num_coeffs = 0
-        init_done = False
-
-        while end < nrows:
-            dslice = data[start:end].copy()
-
-            # print(f"start:{start} end:{end} dest:{dest} len:{len(dslice)}")
-
-            features = self.get_coeffs(dslice)
-            # print(f'build_coefficient_table() features: {np.shape(features)}')
-
-            # initialise the np.array (need features first to know size)
-            if not init_done:
-                init_done = True
-                num_coeffs = len(features)
-                self.coeff_table = np.zeros((nrows, num_coeffs), dtype=float)
-                # print(f"coeff_table:{np.shape(self.coeff_table)}")
-
-            # copy the features to the appropriate row of the coefficient array (offset due to startup window)
-            self.coeff_table[dest] = features
-
-            start = start + 1
-            dest = dest + 1
-            end = end + 1
-
-
-        # print(f'build_coefficient_table() self.coeff_table: {np.shape(self.coeff_table)}')
-
-        return
-
-    #-------------
-
-    # merge the supplied dataframe with the coefficient table. Number of rows must match
-    def merge_coeff_table(self, dataframe: DataFrame):
-
-        # print(f'merge_coeff_table() self.coeff_table: {np.shape(self.coeff_table)}')
-
-        num_coeffs = np.shape(self.coeff_table)[1]
-
-        # merged_table = np.concatenate([np.array(dataframe), self.coeff_table], axis=1)
-        merged_table = self.coeff_table
-
-        # save the start column for later use
-        # self.coeff_start_col = np.shape(dataframe)[1]
-        self.coeff_start_col = 0
-
-        return merged_table
 
     #-------------
     # Normalisation
@@ -312,39 +178,15 @@ class TS_Wavelet(TSPredict):
 
     #-------------
 
-    # override func to get data for this strategy
-    def get_data(self, dataframe):
-
-        df_norm = self.convert_dataframe(dataframe)
-        gain_data = df_norm['gain'].to_numpy()
-        self.build_coefficient_table(gain_data)
-        data = self.merge_coeff_table(df_norm)
-        return data
     
     #####################################
 
     # Model-related functions - note that this family of strategies does not save/reload models
 
-
-
-    # regression/prediction model. For this family, it must be *fast*
-    def create_model(self, df_shape):
-
-        # # XGBoost is the best regression algorithm, but it runs too slowly for this strategy
-        # params = {'n_estimators': 100, 'max_depth': 4, 'learning_rate': 0.1}
-        # self.model = XGBRegressor(**params)
-
-        self.model = PassiveAggressiveRegressor(warm_start=False)
-
-        print(f"    creating new model using: {type(self.model)}")
-
-        if self.model is None:
-            print("***    ERR: create_model() - model was not created ***")
-        return
-
-    # -------------
-
     # the following are here just to maintain compatibilkity with TSPredict
+
+    def create_model(self, df_shape):
+        pass
 
     def init_model(self, dataframe: DataFrame):
         pass
@@ -367,158 +209,346 @@ class TS_Wavelet(TSPredict):
 
     #-------------
 
+    # override func to get data for this strategy
+    def set_data(self, dataframe):
+
+        df_norm = self.convert_dataframe(dataframe)
+        self.gain_data = df_norm['gain'].to_numpy()
+
+        # data for building coeff_table
+        self.data = self.gain_data.copy() # copy becaise gain_data changes
+
+        # copy of dataframe
+        self.curr_dataframe = dataframe
+
+        return
+
+
+    # builds a numpy array of coefficients
+    def build_coefficient_table(self, start, end):
+
+        # print(f'start:{start} end:{end} self.win_size:{self.win_size}')
+
+
+        # lazy initialisation of vars (so thatthey can be changed in subclasses)
+        if self.wavelet is None:
+           self.wavelet = Wavelets.make_wavelet(self.wavelet_type)
+
+        self.wavelet.set_lookahead(self.lookahead)
+
+        if self.forecaster is None:
+            self.forecaster = Forecasters.make_forecaster(self.forecaster_type)
+
+        # if forecaster does not require pre-training, then just set training length to 0
+        if not self.forecaster.requires_pretraining():
+            self.train_len = 0
+
+        if self.wavelet is None:
+            print('    **** ERR: wavelet not specified')
+            return
+
+        # print(f'    Wavelet:{self.wavelet_type.name} Forecaster:{self.forecaster_type.name}')
+
+        # double check forecaster/multicolumn combo
+        if (not self.single_col_prediction) and (not self.forecaster.supports_multiple_columns()):
+            print('    **** ERR: forecaster does not support multiple columns')
+            print('              Reverting to single column predictionss')
+            self.single_col_prediction = True
+
+        self.coeff_table = None
+        self.coeff_table_offset = start
+        num_coeffs = 0
+        init_done = False
+
+        features = None
+        nrows = end - start
+        row_start = max(self.min_wavelet_size, start) # don't run until we have enough data for the transform
+
+        for row in range(row_start, end):
+            # dslice = data[start:end].copy()
+            win_start = max(0, row-self.min_wavelet_size)
+            dslice = self.data[win_start:row]
+            # print(f'data[{win_start}:{row}]: {dslice}')
+
+            coeffs = self.wavelet.get_coeffs(dslice)
+            features = self.wavelet.coeff_to_array(coeffs)
+            # print(f'features: {np.shape(features)}')
+
+            # initialise the np.array (need features first to know size)
+            if not init_done:
+                init_done = True
+                num_coeffs = len(features)
+                self.coeff_table = np.zeros((nrows, num_coeffs), dtype=float)
+                # print(f"coeff_table:{np.shape(self.coeff_table)}")
+
+            # copy the features to the appropriate row of the coefficient array 
+            # print(f'row: {row} start:{start}')
+            self.coeff_table[row-start] = features
+
+        # merge data from main dataframe
+        self.merge_coeff_table(start, end)
+
+        return
+    #-------------
+
+    # merge the supplied dataframe with the coefficient table. Number of rows must match
+    def merge_coeff_table(self, start, end):
+
+        # print(f'merge_coeff_table() self.coeff_table: {np.shape(self.coeff_table)}')
+
+        self.coeff_num_cols = np.shape(self.coeff_table)[1]
+
+        # if using single column prediction, no need to merge in dataframe column because they won't be used
+        if self.single_col_prediction or (not self.merge_indicators):
+            merged_table = self.coeff_table
+            self.coeff_start_col = 0
+        else:
+            self.coeff_start_col = np.shape(self.curr_dataframe)[1]
+            df = self.curr_dataframe.iloc[start:end]
+            df_norm = self.convert_dataframe(df)
+            merged_table = np.concatenate([np.array(df_norm), self.coeff_table], axis=1)
+
+        self.coeff_table = merged_table
+
+        return
+
+    #-------------
+
     # generate predictions for an np array 
-    # data should be the entire data array, not a slice
-    # since we both train and predict, supply indices to allow trining and predicting in different regions
-    def predict_data(self, data, train_start, train_end, predict_start, predict_end):
+    def predict_data(self, predict_start, predict_end):
 
         # a little different than other strats, since we train a model for each column
-        x = np.nan_to_num(data)
 
-        ncols = np.shape(data)[1]
+        # check that we have enough data to run a prediction, if not return zeros
+        if predict_start < (self.train_len + self.lookahead):
+            return np.zeros(predict_end-predict_start, dtype=float)
 
-        coeff_arr = []
+        ncols = np.shape(self.coeff_table)[1]
+        coeff_arr: np.array = []
 
-        if not self.single_col_prediction:
-            # all columns - better, but much slower
-            training_data = data[train_start:train_end - self.lookahead].copy()
-            predict_data = data[predict_start:predict_end].copy()
+        # train on previous data (*not* current data!)
+        train_end = predict_start - 1
+        train_start = max(0, train_end-self.train_len)
+        results_start = train_start + self.lookahead
+        results_end = train_end + self.lookahead
 
-        # create the model
-        if self.model is None:
-            self.create_model(np.shape(data))
+        # coefficient table may only be partial, so adjust start/end positions
+        start = predict_start - self.coeff_table_offset
+        end = predict_end - self.coeff_table_offset
 
-        # print(f'    train_start:{train_start}, train_end:{train_end}, predict_start:{predict_start}, predict_end:{predict_end}')
+        # print(f'self.coeff_table_offset:{self.coeff_table_offset} start:{start} end:{end}')
+
+        # get the data buffers from self.coeff_table
+        if not self.single_col_prediction: # single_column version done inside loop
+            predict_data = self.coeff_table[start:end]
+            # predict_data = np.nan_to_num(predict_data)
+            train_data = self.coeff_table[train_start:train_end]
+            results = self.coeff_table[results_start:results_end]
+
+
+        # print(f'start:{start} end:{end} train_start:{train_start} train_end:{train_end} train_len:{self.train_len}')
 
         # train/predict for each coefficient individually
         for i in range(self.coeff_start_col, ncols):
 
+            # get the data buffers from self.coeff_table
+            # if single column, then just use a single coefficient
             if self.single_col_prediction:
-                training_data = data[train_start:train_end, i][:-self.lookahead].reshape(-1,1) # 1 column - less accurate, but much faster
-            training_labels = data[train_start:train_end, i][self.lookahead:].copy()
-            training_labels = np.nan_to_num(training_labels)
+                predict_data = self.coeff_table[start:end, i].reshape(-1,1)
+                # predict_data = np.nan_to_num(predict_data)
+                train_data = self.coeff_table[train_start:train_end, i].reshape(-1,1)
 
-            # print(f'    data:{np.shape(training_data)} labels:{np.shape(training_labels)}')
+            results = self.coeff_table[results_start:results_end, i]
 
+            # print(f'predict_data: {predict_data}')
+            # print(f'train_data: {train_data}')
+            # print(f'results: {results}')
 
-            # fit the model
-            self.model.fit(training_data, training_labels)
+            # train the forecaster
+            self.forecaster.train(train_data, results)
 
             # get a prediction
-            if self.single_col_prediction:
-                predict_data = data[predict_start:predict_end, i].reshape(-1,1) # 1 column - less accurate, but much faster
-
-            pred = self.model.predict(predict_data)[-1]
-            coeff_arr.append(pred)
-
-        # convert back to wavelet coefficients (different for each type of wavelet)
-        wcoeffs = self.array_to_coeff(np.array(coeff_arr))
+            preds = self.forecaster.forecast(predict_data, self.lookahead).squeeze()
+            coeff_arr.append(preds[-1])
 
         # convert back to gain
-        preds = self.get_value(wcoeffs)
-        # print(f'    preds[-1]:{preds[-1]}')
+        coeffs = self.wavelet.array_to_coeff(np.array(coeff_arr))
+        preds = self.wavelet.get_values(coeffs)
 
+        # rescale if necessary
         if self.norm_data:
             preds = self.denorm_array(preds)
 
+
+        # print(f'preds[{start}:{end}]: {preds}')
+
         return preds
 
+    # -------------
+
+    # single prediction (for use in rolling calculation)
+    def predict(self, gain, df) -> float:
+       # Get the start and end index labels of the series
+        start = gain.index[0]
+        end = gain.index[-1]
+
+        # Get the integer positions of the labels in the dataframe index
+        start_row = df.index.get_loc(start)
+        end_row = df.index.get_loc(end) + 1 # need to add the 1, don't know why!
+
+
+        if end_row < (self.train_len + self.min_wavelet_size + self.lookahead):
+        # if start_row < (self.min_wavelet_size + self.lookahead): # need buffer for training
+            # print(f'    ({start_row}:{end_row}) y_pred[-1]:0.0')
+            return 0.0
+
+        # print(f'gain.index:{gain.index} start:{start} end:{end} start_row:{start_row} end_row:{end_row}')
+
+        scale_start = max(0, len(gain)-16)
+
+        # print(f'    coeff_table: {np.shape(self.coeff_table)} start_row: {start_row} end_row: {end_row} ')
+
+        self.update_scaler(np.array(gain)[scale_start:])
+
+        y_pred = self.predict_data(start_row, end_row)
+        # print(f'    ({start_row}:{end_row}) y_pred[-1]:{y_pred[-1]}')
+        return y_pred[-1]
 
     #-------------
-    
+    def add_rolling_predictions(self, dataframe: DataFrame) -> DataFrame:
+        # debug:
+        try:
+            # convert dataframe into wavelet data for use in rolling function
+            self.set_data(dataframe)
+
+            # build the coefficient table for entire range
+            self.build_coefficient_table(0, np.shape(dataframe)[0])
+
+            # # build the coefficient table for the entire range
+            # self.build_coefficient_table(0, np.shape(dataframe)[0])
+            # print(f'    self.wavelet_data:{np.shape(self.wavelet_data)}')
+
+            dataframe['predicted_gain'] = dataframe['gain'].rolling(window=self.model_window).apply(self.predict, args=(dataframe,))
+
+            # slightly smooth, to get rid of spikes
+            dataframe['predicted_gain'] = self.smooth(dataframe['predicted_gain'], 2)
+
+        except Exception as e:
+            print("*** Exception in add_rolling_predictions()")
+            print(e) # prints the error message
+            print(traceback.format_exc()) # prints the full traceback
+
+        return dataframe
+
+
     # add predictions in a jumping fashion. This is a compromise - the rolling version is very slow
-    # Note: you probably need to manually tune the parameters, since there is some limited lookahead here
+    # Note: make sure the rolling version works properly, then it should be OK to use the 'jumping' version
     def add_jumping_predictions(self, dataframe: DataFrame) -> DataFrame:
 
-        df = dataframe
-
-        # roll through the close data and predict for each step
-        nrows = np.shape(df)[0]
+        # TEMP: do rolling calculation instead:
 
 
-        # build the coefficient table and merge into the dataframe (OK outside the main loop since it's built incrementally anyway)
+        if self.use_rolling:
+            dataframe = self.add_rolling_predictions(dataframe)
+
+        else:
+            try:
+                df = dataframe
+
+                # roll through the close data and predict for each step
+                nrows = np.shape(df)[0]
 
 
-        # set up training data
-        future_gain_data = self.get_future_gain(df)
-        data = self.get_data(dataframe)
-
-        # initialise the prediction array, using the close data
-        pred_array = np.zeros(np.shape(future_gain_data), dtype=float)
-
-        # NOTE: win_size must be 126 because waverec returns a fixed size signal (you guessed it, length=126)
-        win_size = 126
-
-        # loop until we get to/past the end of the buffer
-        # start = 0
-        # end = start + win_size
-        start = win_size
-        end = start + win_size
-        train_end = start - 1
-        train_size = 2 * win_size
-        train_start = max(0, train_end-train_size)
-
-        # base_model = copy.deepcopy(self.model) # make a deep copy so that we don't override the baseline model
-        # base_model = self.model
-
-        while end < nrows:
-
-             # set the (unmodified) gain data for scaling
-            # self.gain_data = np.array(dataframe['gain'].iloc[start:end])
-            self.update_scaler(np.array(dataframe['gain'].iloc[start:end]))
-
-            # rebuild data up to end of current window
-            preds = self.predict_data(data, train_start, train_end, start, end)
-
-            # print(f'    preds:{np.shape(preds)}')
-            # copy the predictions for this window into the main predictions array
-            pred_array[start:end] = preds[-win_size:].copy()
-
-            # move the window to the next segment
-            # end = end + win_size - 1
-            end = end + win_size
-            start = start + win_size
-            train_end = start - 1
-            train_start = max(0, train_end - train_size)
+                # build the coefficient table and merge into the dataframe (OK outside the main loop since it's built incrementally anyway)
 
 
-        # predict for last window
+                # set up training data
+                future_gain_data = self.get_future_gain(df)
+                self.set_data(dataframe)
 
-        # self.gain_data = np.array(dataframe['gain'].iloc[-win_size:])
-        self.update_scaler(np.array(dataframe['gain'].iloc[-win_size:]))
+                # build the coefficient table for the entire range
+                self.build_coefficient_table(0, nrows)
 
-        preds = self.predict_data(data, -(train_size + win_size + 1), -(win_size + 1), -win_size, -1)
-        # preds = self.predict_data(data, 0, -(win_size + 1), -win_size, -1)
-        plen = len(preds)
-        pred_array[-plen:] = preds.copy()
+                # initialise the prediction array, using the close data
+                pred_array = np.zeros(np.shape(future_gain_data), dtype=float)
 
-        palen = len(pred_array)
-        dataframe['predicted_gain'][-palen:] = pred_array.copy()
+                win_size = self.model_window
+
+                # loop until we get to/past the end of the buffer
+                start = 0
+                end = start + win_size
+                scale_start = max(0, end-self.scale_len)
+
+                while end < nrows:
+
+                    # set the (unmodified) gain data for scaling
+                    self.update_scaler(np.array(dataframe['gain'].iloc[scale_start:end]))
+                    # self.update_scaler(np.array(dataframe['gain'].iloc[start:end]))
+
+                    # rebuild data up to end of current window
+                    preds = self.predict_data(start, end)
+
+                    # prediction length doesn't always match data length
+                    plen = len(preds)
+                    clen = min(plen, (nrows-start))
+
+                    # print(f'    preds:{np.shape(preds)}')
+                    # copy the predictions for this window into the main predictions array
+                    pred_array[start:start+clen] = preds[:clen].copy()
+
+                    # move the window to the next segment
+                    # end = end + win_size - 1
+                    # end = end + win_size
+                    # start = start + win_size
+                    end = end + plen
+                    start = start + plen
+                    scale_start = max(0, end - self.scale_len)
+
+
+                # predict for last window
+
+                self.update_scaler(np.array(dataframe['gain'].iloc[-self.scale_len:]))
+                # self.update_scaler(np.array(dataframe['gain'].iloc[-win_size:]))
+                # self.update_scaler(np.array(dataframe['gain'].iloc[train_start:train_end]))
+
+                # preds = self.predict_data(data, -(self.train_len + win_size + 1), -(win_size + 1), -win_size, -1)
+                preds = self.predict_data(nrows-win_size, nrows)
+                # preds = self.predict_data(data, 0, -(win_size + 1), -win_size, -1)
+                plen = len(preds)
+                pred_array[-plen:] = preds.copy()
+
+                palen = len(pred_array)
+                dataframe['predicted_gain'][-palen:] = pred_array.copy()
+
+                # slightly smooth, to get rid of spikes
+                dataframe['predicted_gain'] = self.smooth(dataframe['predicted_gain'], 2)
+
+            except Exception as e:
+                print("*** Exception in add_jumping_predictions()")
+                print(e) # prints the error message
+                print(traceback.format_exc()) # prints the full traceback
 
         return dataframe
 
     #-------------
-    
+
     # add the latest prediction, and update training periodically
     def add_latest_prediction(self, dataframe: DataFrame) -> DataFrame:
 
         df = dataframe
-        win_size = 64
+        win_size = 128
         nrows = np.shape(df)[0]
-        train_size = 256
 
         try:
             # set up training data
             #TODO: see if we can do this incrementally instead of rebuilding every time, or just use portion of data
             future_gain_data = self.get_future_gain(df)
-            data = self.get_data(dataframe)
+            self.set_data(dataframe)
+
 
             plen = len(self.custom_trade_info[self.curr_pair]['predictions'])
             dlen = len(dataframe['gain'])
             clen = min(plen, dlen)
-
-            training_data = data[-clen:].copy()
-            training_labels = future_gain_data[-clen:].copy()
 
             pred_array = np.zeros(clen, dtype=float)
 
@@ -533,26 +563,33 @@ class TS_Wavelet(TSPredict):
             # base_model = copy.deepcopy(self.model)
 
             # get predictions
-            train_end = nrows - (win_size + 1)
-            # train_start = max(0, train_end - train_size)
-            train_start = 0
-            # self.gain_data = np.array(dataframe['gain'].iloc[-win_size:])
-            self.update_scaler(np.array(dataframe['gain'].iloc[-win_size:]))
+            end = np.shape(dataframe)[0]
+            start = end - win_size
+            scale_start = max(0, end - self.scale_len)
+            # train_start = 0
+            # self.update_scaler(np.array(dataframe['gain'].iloc[-win_size:]))
+            self.update_scaler(np.array(dataframe['gain'].iloc[scale_start:end]))
 
-            preds = self.predict_data(data, 
-                                      train_start, train_end, 
-                                      -win_size, -1)
+
+            # # build the coefficient table for (only) the prediction range)
+            # self.build_coefficient_table(start, end)
+
+            preds = self.predict_data(start, end)
 
             # self.model = base_model # restore original model
 
             # only replace last prediction (i.e. don't overwrite the historical predictions)
             pred_array[-1] = preds[-1].copy()
+            # pred_array[-1] = preds[0].copy()
+
+            # slightly smooth, to get rid of spikes
+            pred_array = self.smooth(pred_array, 2)
 
             dataframe['predicted_gain'] = 0.0
             dataframe['predicted_gain'][-clen:] = pred_array[-clen:].copy()
             self.custom_trade_info[self.curr_pair]['predictions'][-clen:] = pred_array[-clen:].copy()
 
-            '''
+            ''''''
             pg = preds[-1]
             if pg <= dataframe['target_loss'].iloc[-1]:
                 tag = "(*)"
@@ -562,7 +599,7 @@ class TS_Wavelet(TSPredict):
                 tag = "   "
             print(f'    {tag} predict {pg:6.2f}% gain for: {self.curr_pair}')
 
-            '''
+            ''''''
 
         except Exception as e:
             print("*** Exception in add_latest_prediction()")
@@ -571,7 +608,6 @@ class TS_Wavelet(TSPredict):
 
         return dataframe
 
-    
+
     #-------------
-    
-    
+
