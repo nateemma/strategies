@@ -2,13 +2,17 @@
 
 Strategies in this directory implement a common approach to 'simply' estimating future values of a time series - in this case, the gain. I use gain instead of price because the values are similar across all pairs (price is not at all) and so I can create models that work for any pair.
 
-In general, all of these strategies will try to load an existing model, but if it is not found it will create and train a new model. So, the first time you run a strategy, do so over a long period of time.
+In general, most (all except TS_Wavelet*) of these strategies will try to load an existing model, but if it is not found it will create and train a new model. So, the first time you run a strategy, do so over a long period of time.
 On subsequent runs, the strategy will load the saved model, and use that as the basis for all pairs. Pair-specific data is used to incrementally train the model with new data as it becomes available (but this is not saved). In theory, prediction accuracy should get better over time
 
 _*Warning*_: backtest results can look really good for these strategies, but be sure to try these out in a dry run.  
 The backtest results are good because the trades are 'perfect', meaning that they execute immediately; in the real world, there are delays and spreads that take away profit from each trade, and since these strategies inherently look at quick in & out trades that has a big impact. 
-Also, you can hyperopt these strategies to et what appears to be really good returns, usually by emphasisng fast trades. In live environments, this approach tends to get hard by quick downward swings and reversals.  
+Also, you can hyperopt these strategies to get what appears to be really good returns, usually by emphasising fast trades. In live environments, this approach tends to get hit hard by quick downward swings and reversals.  
 So, I have been trying to tune the hyperparameters to be 'safer', and optimise for expectancy rather than profit.
+
+_*
+Currently, the win rate on these strategies is pretty good, but they all seem to suffer from buying into 'false' reversals, i.e. the price is going down then swings up, but then quickly drops (a long way) down again. The strategies see this reversal and trade into it. I am currently looking into various momentum indicators to try and fix this...
+*_
 
 ## Quick Start
 
@@ -16,7 +20,7 @@ So, I have been trying to tune the hyperparameters to be 'safer', and optimise f
 
     > zsh user_data/strategies/scripts/download.sh binanceus
 
-2. Test over a long period of time to create a decent base model (only need to do this once per strat)
+2. Test over a long period of time to create a decent base model (only need to do this once per strat). No need for this with Wavelet strategies.
 
     > zsh user_data/strategies/scripts/test_strat.sh -n 600 TSPredict \<_strat_\>
 
@@ -30,7 +34,8 @@ So, I have been trying to tune the hyperparameters to be 'safer', and optimise f
 
 5. Examine plot
 In a browser, open the file file://user_data/plot/freqtrade-plot-ALGO_USDT-5m.html <br>
-but you probably need to fix the path to point to wherever you installed freqtrade. Replace ALGO_USDT with whatever pair you used when running plot_strat.sh
+but you probably need to fix the path to point to wherever you installed freqtrade. 
+Replace ALGO_USDT with whatever pair you used when running plot_strat.sh
 
 The plot for _predicted\_gain_ should look something like the plot for _gain_, but shifted forward in time (since it is attempting to predict future values of _gain_). When the value of _predicted\_gain_ crosses above _target\_profit_, an entry signal should be generated. Conversely, when the value of _predicted\_gain_ crosses below _target\_loss_, an exit signal should be generated. Note that this may not always happen, since extra guard conditions could be active (look in the .json file)
 
@@ -53,7 +58,7 @@ Note: if you want to try different regression/prediction algorithms, be aware th
 These add coefficients to the indicators that are based on various signal estimation algorithms, such as FFT, DWT etc. The estimation coefficients are added to the indicators and the prediction/regression algorithm is trained using those coefficients
 
 - TS_Wavelet_*.py<br>
-Instead of predicting gain using various signal estimation techniques or regression/prediction algorithms, these decompose the gain data into subcomponents using various transforms (DWT, SWt etc.), predict the future values of each subcomponent and then rebuilds the signal to create a a prediction of future gain. These are _very_ compute intensive, so I had to use a fast regression algorithm (PassiveAggressiveRegressor from sklearn). XGBoost is better, but does not run in real time when performing a dry run.<br>
+Instead of predicting gain using various signal estimation techniques or regression/prediction algorithms, these decompose the gain data into subcomponents using various transforms (DWT, SWT etc.), predict the future values of each subcomponent and then rebuilds the signal to create a a prediction of future gain. These are _very_ compute intensive, so I had to use a fast regression algorithm (PassiveAggressiveRegressor from sklearn). XGBoost is better, but does not run in real time when performing a dry run.<br>
 Note: these strategies do not save/reload models, so you do not need to train them before use
 
 Note: yes, I know there many other algorithms that could be used. If you don't see them here, it generally means they didn't perform well, so I didn't include them.

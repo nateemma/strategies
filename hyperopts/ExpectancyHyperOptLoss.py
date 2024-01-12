@@ -12,15 +12,17 @@ from math import exp
 
 from pandas import DataFrame
 
+from freqtrade.data.metrics import calculate_calmar
 from freqtrade.optimize.hyperopt import IHyperOptLoss
 from datetime import datetime
 import numpy as np
 from typing import Any, Dict
 
 # Contstants to allow evaluation in cases where thre is insufficient (or nonexistent) info in the configuration
-EXPECTED_TRADES_PER_DAY = 3  # used to set target goals
+EXPECTED_TRADES_PER_DAY = 2                       # used to set target goals
 MIN_TRADES_PER_DAY = EXPECTED_TRADES_PER_DAY / 3  # used to filter out scenarios where there are not enough trades
-UNDESIRED_SOLUTION = 2.0  # indicates that we don't want this solution (so hyperopt will avoid)
+EXPECTED_AVE_PROFIT = 0.004                       # used to assess actual profit vs desired profit. Typical is 0.4% (0.004)
+UNDESIRED_SOLUTION = 3.0                          # indicates that we don't want this solution (so hyperopt will avoid)
 
 
 class ExpectancyHyperOptLoss(IHyperOptLoss):
@@ -35,31 +37,12 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
                                backtest_stats: Dict[str, Any],
                                *args, **kwargs) -> float:
 
-        debug_level = 0  # displays (more) messages if higher
+        debug_level = 0 # displays (more) messages if higher
 
         # if debug_level >= 2:
         #     profit_cols = [col for col in results.columns if 'profit' in col]
         #     print("Profit columns:")
         #     print(profit_cols)
-
-        days_period = (max_date - min_date).days
-        # target_trades = days_period*EXPECTED_TRADES_PER_DAY
-        if config['max_open_trades']:
-            target_trades = days_period * config['max_open_trades']
-        else:
-            target_trades = days_period * EXPECTED_TRADES_PER_DAY
-
-        # Calculate trade loss metric first, because this is used elsewhere
-        # Several other metrics are misleading if there are not enough trades
-
-        # # trade loss
-        # if trade_count > MIN_TRADES_PER_DAY * days_period:
-        #     num_trades_loss = (target_trades - trade_count) / target_trades
-        # else:
-        #     # just return a large number if insufficient trades. Makes other calculations easier/safer
-        #     if debug_level > 1:
-        #         print(" \tTrade count too low:{:.0f}".format(trade_count))
-        #     return UNDESIRED_SOLUTION
 
         stake = backtest_stats['stake_amount']
         total_profit_pct = results["profit_abs"] / stake
@@ -95,23 +78,48 @@ class ExpectancyHyperOptLoss(IHyperOptLoss):
         drawdown_loss = 0.0
         abs_profit_loss = 0.0
 
-        # if (expectancy_loss <= 0.0):
-        # use drawdown and profit as a tie-breaker
-        if 'max_drawdown' in backtest_stats:
-            drawdown_loss = (backtest_stats['max_drawdown'] - 1.0) / 2.0
+        # use Calmar and profit as a tie-breaker
+        starting_balance = config['dry_run_wallet']
+        calmar_loss = -calculate_calmar(results, min_date, max_date, starting_balance) / 100.0
+        if (debug_level > 1):
+                print(f"calmar_loss:{calmar_loss:.3f}")
 
-        if 'profit_total' in backtest_stats:
-            abs_profit_loss = -backtest_stats['profit_total'] / 2.0
+        # Daily/Average profit
+        ave_profit_loss = 0.0
+        days_period = (max_date - min_date).days
+        if 'profit_total_abs' in backtest_stats:
+            profit_sum = backtest_stats['profit_total_abs']
+        elif "profit_abs" in results:
+            profit_sum = results["profit_abs"].sum()
+        else:
+            profit_sum = 0.0
 
-        result = expectancy_loss + drawdown_loss + abs_profit_loss
+        if 'profit_mean' in backtest_stats:
+            ave_profit_loss = EXPECTED_AVE_PROFIT - backtest_stats['profit_mean']
+        else:
+            ave_profit_loss = EXPECTED_AVE_PROFIT - ((profit_sum / days_period) / 100.0)
+        ave_profit_loss = -ave_profit_loss * 100.0
+
+        if profit_sum < 0.0:
+            if (debug_level > 1):
+                print(f"-ve profit:{profit_sum:.3f}")
+            ave_profit_loss = UNDESIRED_SOLUTION + abs(ave_profit_loss)
+
+
+        calmar_loss = 1.0 * calmar_loss
+        ave_profit_loss = 1.0 * ave_profit_loss
+
+        calmar_loss = max(-1.0, calmar_loss) # limit contribution
+        ave_profit_loss = max(-1.0, ave_profit_loss)
+
+        result = expectancy_loss + calmar_loss + ave_profit_loss
 
         if abs_profit_loss < -100.0:
             result = UNDESIRED_SOLUTION
         elif abs_profit_loss > 0.0:
-            result = result + 1.0 # penalise -ve profit
+            result = result + 2.0 # penalise -ve profit
 
         if ((debug_level == 1) & (result < 0.0)) | (debug_level > 1):
-            print("{:.2f} exp:{:.2f} drw:{:.2f} prf:{:.2f} ".format(result, expectancy_loss, drawdown_loss,
-                                                                    abs_profit_loss))
+            print(f" exp:{expectancy_loss:.2f} calmar:{calmar_loss:.2f} profit:{ave_profit_loss:.2f} Total:{result:.2f}")
 
         return result

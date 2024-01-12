@@ -13,6 +13,7 @@ from enum import Enum
 
 import numpy as np
 import pywt
+import scipy
 from scipy.fft import fft, hfft, ifft, ihfft, rfft, irfft, fftfreq
 from scipy.fft import fht, ifht
 from modwt import modwt, imodwt, modwtmra
@@ -60,7 +61,7 @@ class base_wavelet(ABC):
         # more general purpose (can use with many waveforms)
         array, self.coeff_slices = pywt.coeffs_to_array(coeffs)
 
-        # print(f'    coeff_to_array: coeffs:{dir(coeffs)}, arr:{np.shape(arr)}')
+        # print(f'    coeff_to_array: array:{np.shape(array)}')
         return np.array(array)
 
     # convert 1d numpy array back to wavelet coefficient format. This works for several variants
@@ -70,7 +71,7 @@ class base_wavelet(ABC):
         coeffs = pywt.array_to_coeffs(array, self.coeff_slices, output_format=self.coeff_format)
 
         # print(f'    coeff_slices:{self.coeff_slices}, coeff_shapes:{self.coeff_shapes} array:{np.shape(array)}')
-        # print(f'    array_to_coeff: coeffs:{dir(coeffs)}, array:{np.shape(array)}')
+        # print(f'    array_to_coeff:  array:{np.shape(array)}')
         return coeffs
 
     # set whether to detrend/retrend data or not. Set to False if you are doing a 1-way transform
@@ -87,20 +88,57 @@ class base_wavelet(ABC):
     poly = None
     xhat = None
 
+    # detrend = False
+    # 0 = slope
+    # 1 = linear fit
+    # 2 = scipy reduce
+    # 3 = FFT transform
+    detrend_method = 3
+    # detrend_method = 1
+
     def detrend_array(self, x):
-        n = x.size
-        t = np.arange(0, n)
-        self.poly = np.polyfit(t, x, 1)         # find linear trend in x
+        if self.detrend:
+            n = x.size
+            t = np.arange(0, n)
+            self.poly = np.polyfit(t, x, 1)         # find trend in x
 
-        self.xhat = np.polyval(self.poly, t)
-        x_notrend = x - self.xhat
+            if (self.detrend_method < 0) or (self.detrend_method >3):
+                self.detrend_method = 0
 
+            if self.detrend_method == 0:
+                # subtract slope
+                x_notrend = x - self.poly[0]
+            elif self.detrend_method == 1:
+                # subtract entire polynomial
+                self.xhat = np.polyval(self.poly, t)
+                x_notrend = x - self.xhat
+            elif self.detrend_method == 2:
+                # use scipy detrend
+                x_notrend = scipy.signal.detrend(x, type='linear')
+            elif self.detrend_method == 3:
+                # use FFT trasnform
+                f = np.fft.rfft(x)
+                f[5:] = 0.0
+                self.xhat = np.fft.irfft(f, n)
+                x_notrend = x - self.xhat
+        else:
+            x_notrend = x
         return x_notrend
 
     def retrend_array(self, x_notrend):
-        n = x_notrend.size
-        t = np.arange(self.lookahead, self.lookahead+n)
-        x = x_notrend + self.xhat
+        if self.detrend:
+            if self.detrend_method == 0:
+                x = x_notrend + self.poly[0]
+            elif self.detrend_method == 3:
+                x = x_notrend + self.xhat
+            else:
+                n = x_notrend.size
+                t = np.arange(self.lookahead, self.lookahead+n)
+                # t = np.arange(0, n)
+                self.xhat = np.polyval(self.poly, t)
+                x = x_notrend + self.xhat
+        else:
+            x = x_notrend
         return x
 
 # -----------------------------------
@@ -126,7 +164,7 @@ class dwt_wavelet(base_wavelet):
         self.wavelet = pywt.Wavelet(self.wavelet_type)
         self.mode = 'symmetric'
         self.coeff_format = "wavedec"
-        level = 3
+        level = 2
         coeffs = pywt.wavedec(x, self.wavelet, mode=self.mode, level=level)
 
         # print(f'    wavelet.dec_len:{self.wavelet.dec_len}  wavelet.rec_len:{self.wavelet.rec_len}')
@@ -162,6 +200,7 @@ class dwt_wavelet(base_wavelet):
     def coeff_to_array(self, coeffs):
         array = super().coeff_to_array(coeffs)
         # print(f'  coeff_to_array() {np.shape(array)}')
+
         return array
 
     def array_to_coeff(self, array):
@@ -255,6 +294,7 @@ class fft_wavelet(base_wavelet):
         coeffs = np.concatenate([r_coeffs, i_coeffs])
 
         self.data_shape = np.shape(coeffs)
+        # print(f'    fft data_shape:{self.data_shape}')
 
         return coeffs
 
@@ -272,7 +312,10 @@ class fft_wavelet(base_wavelet):
         return np.ravel(coeffs)
 
     def array_to_coeff(self, array):
-        coeffs = np.reshape(array, self.data_shape)
+        # coeffs = np.reshape(array, self.data_shape)
+        coeffs = np.array(array)
+
+        # print(f'    coeffs data_shape:{np.shape(coeffs)}')
         # convert back to complex numbers
         split = int(len(array) / 2)
         r_coeffs = np.array(array[:split])

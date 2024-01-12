@@ -54,18 +54,11 @@ from TSPredict import TSPredict
 
 class TS_Simple(TSPredict):
 
+    use_rolling = True
+
     def add_strategy_indicators(self, dataframe):
 
         # add some extra indicators
-
-        # Bollinger Bands
-        bollinger = qtpylib.bollinger_bands(dataframe['close'], window=20, stds=2)
-        dataframe['bb_lowerband'] = bollinger['lower']
-        dataframe['bb_middleband'] = bollinger['mid']
-        dataframe['bb_upperband'] = bollinger['upper']
-        dataframe['bb_width'] = ((dataframe['bb_upperband'] - dataframe['bb_lowerband']) / dataframe['bb_middleband'])
-        dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
-        dataframe["bb_loss"] = ((dataframe["bb_lowerband"] - dataframe["close"]) / dataframe["close"])
 
         # MACD
         macd = ta.MACD(dataframe)
@@ -75,9 +68,9 @@ class TS_Simple(TSPredict):
 
 
         # moving averages
-        dataframe['sma'] = ta.SMA(dataframe, timeperiod=14)
-        dataframe['ema'] = ta.EMA(dataframe, timeperiod=14)
-        dataframe['tema'] = ta.TEMA(dataframe, timeperiod=14)
+        dataframe['sma'] = ta.SMA(dataframe, timeperiod=self.win_size)
+        dataframe['ema'] = ta.EMA(dataframe, timeperiod=self.win_size)
+        dataframe['tema'] = ta.TEMA(dataframe, timeperiod=self.win_size)
 
         # Donchian Channels
         dataframe['dc_upper'] = ta.MAX(dataframe['high'], timeperiod=self.win_size)

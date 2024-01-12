@@ -11,6 +11,7 @@ from math import exp
 
 from pandas import DataFrame
 
+from freqtrade.data.metrics import calculate_calmar
 from freqtrade.optimize.hyperopt import IHyperOptLoss
 from datetime import datetime
 import numpy as np
@@ -18,15 +19,15 @@ from typing import Any, Dict
 
 # Constants to allow evaluation in cases where there is insufficient (or nonexistent) info in the configuration
 
-EXPECTED_TRADES_PER_DAY = 1                         # used to set target goals
+EXPECTED_TRADES_PER_DAY = 2                         # used to set target goals
 MIN_TRADES_PER_DAY = EXPECTED_TRADES_PER_DAY/3.0    # used to filter out scenarios where there are not enough trades
 EXPECTED_PROFIT_PER_TRADE = 0.003                   # be realistic. Setting this too high will eliminate potentially good solutions
 EXPECTED_AVE_PROFIT = 0.004                         # used to assess actual profit vs desired profit. Typical is 0.4% (0.004)
-EXPECTED_MONTHLY_PROFIT = 0.15                      # used to assess actual profit vs desired profit. Typical is 15% (0.15)
+EXPECTED_MONTHLY_PROFIT = 0.01                      # used to assess actual profit vs desired profit. Typical is 1% (0.01)
 EXPECTED_TRADE_DURATION = 240                       # goal for duration (or shorter) in seconds
 MAX_TRADE_DURATION = 24.0*60.0*60.0                 # max allowable duration
 
-UNDESIRED_SOLUTION = 2.0                            # indicates that we don't want this solution (so hyperopt will avoid)
+UNDESIRED_SOLUTION = 3.0                            # indicates that we don't want this solution (so hyperopt will avoid)
 
 class WeightedProfitHyperOptLoss(IHyperOptLoss):
     """
@@ -47,34 +48,16 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         #                                                                                           backtest_stats['profit_mean'], backtest_stats['wins']))
 
         # define weights
-        weight_num_trades = 0.1
-        weight_duration = 0.1
-        weight_abs_profit = 2.0
+        weight_num_trades = 0.0
+        weight_duration = 0.0
+        weight_abs_profit = 1.0
         weight_exp_profit = 0.5
-        weight_ave_profit = 1.0
+        weight_ave_profit = 2.0
         weight_expectancy = 2.0
         weight_win_loss_ratio = 2.0
         weight_sharp_ratio = 1.0
         weight_sortino_ratio = 0.25
-        weight_drawdown = 1.0
-
-        # if config['exchange']['name']:
-        #     if (config['exchange']['name'] == 'kucoin') or (config['exchange']['name'] == 'ascendex'):
-        #         # kucoin is extremely volatile, with v.high profits in backtesting (but not in real markets)
-        #         # so, reduce influence of absolute profit and no. of trades (and sharpe/sortino)
-        #         # the goal is reduce the number of losing and highly risky trades (the cost is some loss of profits)
-        #         weight_num_trades = 0.1
-        #         weight_duration = 0.25
-        #         weight_abs_profit = 0.1
-        #         weight_exp_profit = 0.5
-        #         weight_ave_profit = 1.0
-        #         weight_expectancy = 1.0
-        #         weight_win_loss_ratio = 0.75
-        #         weight_sharp_ratio = 0.25
-        #         weight_sortino_ratio = 0.05
-        #     elif (config['exchange']['name'] == 'ftx'):
-        #         weight_abs_profit = 0.2
-        #         weight_win_loss_ratio = 4.0
+        weight_calmar = 1.0
 
 
         days_period = (max_date - min_date).days
@@ -103,28 +86,36 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         else:
             profit_sum = results["profit_abs"].sum()
 
-        if profit_sum < 0.0:
-            if debug_level > 2:
-                print(" \tProfit too low: {:.2f}".format(profit_sum))
-            if backtest_stats['profit_total']:
-                return 1.0 - backtest_stats['profit_total']
-            else:
-                return UNDESIRED_SOLUTION
+        # if profit_sum < 0.0:
+        #     if debug_level > 2:
+        #         print(" \tProfit too low: {:.2f}".format(profit_sum))
+        #     if backtest_stats['profit_total']:
+        #         return 1.0 - backtest_stats['profit_total']
+        #     else:
+        #         return UNDESIRED_SOLUTION
 
 
 
-        if backtest_stats['profit_total']:
-            abs_profit_loss = backtest_stats['profit_total']
-        elif config['dry_run_wallet']:
-            abs_profit_loss = profit_sum / config['dry_run_wallet']
-        elif config['max_open_trades'] and config['stake_amount']:
-            abs_profit_loss = profit_sum / (config['max_open_trades']*config['stake_amount']*num_months)
+        if 'profit_total_pct' in backtest_stats:
+            profit_pct = backtest_stats['profit_total_pct'] / 100.0
+        elif 'dry_run_wallet' in config:
+            profit_pct = profit_sum / config['dry_run_wallet']
+        elif ('max_open_trades' in config) and ('stake_amount' in config):
+            profit_pct = profit_sum / (config['max_open_trades']*config['stake_amount']*num_months)
         else:
-            abs_profit_loss = profit_sum / 10000.0
+            profit_pct = profit_sum / 10000.0
 
         # scale loss by #months so that it's consistent no matter the length of the run
         # use 15% per month as goal, scale by 10
-        abs_profit_loss = 10.0 * (0.15 - (abs_profit_loss / num_months))
+        monthly_profit = (profit_pct / num_months)
+        if monthly_profit < 0.0:
+            if debug_level > 1:
+                print(f" \tLow profit - Abs:{profit_pct:.4f} Monthly:{monthly_profit:.4f}")
+            # return UNDESIRED_SOLUTION + abs(monthly_profit)
+
+        # abs_profit_loss = 10.0 * (EXPECTED_MONTHLY_PROFIT - monthly_profit)
+        abs_profit_loss = 100.0 * (EXPECTED_MONTHLY_PROFIT - monthly_profit)
+
 
         # # punish if below goal
         # if abs_profit_loss > 0.0:
@@ -139,7 +130,7 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
             ave_profit_loss = EXPECTED_AVE_PROFIT - backtest_stats['profit_mean']
         else:
             ave_profit_loss = EXPECTED_AVE_PROFIT - ((profit_sum / days_period) / 100.0)
-        ave_profit_loss = ave_profit_loss * 100.0
+        ave_profit_loss = -ave_profit_loss * 100.0
 
         # Expected Profit
 
@@ -207,11 +198,12 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         if expectancy_loss > 0.0:
             if debug_level > 1:
                 print(" \tExpectancy Loss below goal: {:.2f}".format(expectancy_loss))
-            return expectancy_loss
+            return UNDESIRED_SOLUTION + expectancy_loss
 
         # Win/Loss ratio (losses here are draws & losses)
         if losing_count > 0:
-            win_loss_ratio_loss = 1.0 - (winning_count / losing_count)
+            # win_loss_ratio_loss = 1.0 - (winning_count / losing_count)
+            win_loss_ratio_loss = 0.8 - (winning_count / losing_count)
         else:
             win_loss_ratio_loss = -abs(abs_profit_loss)
 
@@ -247,10 +239,10 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
             sharp_ratio_loss = 2.0 * sharp_ratio_loss
             sortino_ratio_loss = 2.0 * sortino_ratio_loss
 
-        # Max Drawdown
-        drawdown_loss = 0.0
-        if backtest_stats['max_drawdown']:
-            drawdown_loss = (backtest_stats['max_drawdown'] - 1.0)
+        # Calmar (Max Drawdown)
+        starting_balance = config['dry_run_wallet']
+        calmar_loss = -calculate_calmar(results, min_date, max_date, starting_balance) / 100.0
+
 
         # limit profit loss value if (unweighted) expectancy < -1.0 (i.e. generally profitable)
         if expectancy_loss > -1.0:
@@ -268,13 +260,13 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         win_loss_ratio_loss = weight_win_loss_ratio * win_loss_ratio_loss
         sharp_ratio_loss    = weight_sharp_ratio * sharp_ratio_loss
         sortino_ratio_loss  = weight_sortino_ratio * sortino_ratio_loss
-        drawdown_loss       = weight_drawdown * drawdown_loss
+        calmar_loss         = weight_calmar * calmar_loss
 
         if weight_abs_profit > 0.0:
             # sometimes spikes happen, so cap it and turn on debug
             if abs_profit_loss < limit_profit_loss:
                 abs_profit_loss = max(abs_profit_loss, limit_profit_loss)
-                # debug_level = 1
+                debug_level = 1
 
             # don't let anything outweigh profit
             if weight_num_trades > 0.0:
@@ -293,21 +285,21 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
                 sharp_ratio_loss = max(sharp_ratio_loss, abs_profit_loss)
             if weight_sortino_ratio > 0.0:
                 sortino_ratio_loss = max(sortino_ratio_loss, abs_profit_loss)
-            if weight_drawdown > 0.0:
-                drawdown_loss = max(drawdown_loss, abs_profit_loss)
+            if weight_calmar > 0.0:
+                calmar_loss = max(calmar_loss, abs_profit_loss)
 
         result = abs_profit_loss + num_trades_loss + duration_loss + exp_profit_loss + ave_profit_loss + \
-                 win_loss_ratio_loss + expectancy_loss + sharp_ratio_loss + sortino_ratio_loss + drawdown_loss
+                 win_loss_ratio_loss + expectancy_loss + sharp_ratio_loss + sortino_ratio_loss + calmar_loss
 
         if abs_profit_loss < -100.0:
             result = UNDESIRED_SOLUTION
 
-        if (result < 0.0) and (debug_level > 0):
+        if ((result < 0.0) and (debug_level > 0)) or (debug_level > 2):
             print(" \tPabs:{:.2f} Pave:{:.2f} n:{:.2f} dur:{:.2f} w/l:{:.2f} " \
-                  "expy:{:.2f}  sharpe:{:.2f} sortino:{:.2f} draw:{:.2f}" \
+                  "expy:{:.2f}  sharpe:{:.2f} sortino:{:.2f} calmar:{:.2f}" \
                   " Total:{:.2f}"\
                   .format(abs_profit_loss, ave_profit_loss, num_trades_loss, duration_loss,  win_loss_ratio_loss, \
-                          expectancy_loss, sharp_ratio_loss, sortino_ratio_loss, drawdown_loss, \
+                          expectancy_loss, sharp_ratio_loss, sortino_ratio_loss, calmar_loss, \
                           result))
 
         return result

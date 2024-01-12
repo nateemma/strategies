@@ -23,6 +23,10 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__)))
 
+
+import utils.Wavelets as Wavelets
+import utils.Forecasters as Forecasters
+
 from TS_Wavelet_DWTA import TS_Wavelet_DWTA
 
 
@@ -30,11 +34,7 @@ from TS_Wavelet_DWTA import TS_Wavelet_DWTA
 
 class TS_Wavelet_DWTA_roll(TS_Wavelet_DWTA):
 
-    lookahead = 6
-    model_window = 16
-    train_len = 64
     use_rolling = True
-    single_col_prediction = True
-    scale_len = 16
-    norm_data = True
+    # forecaster_type = Forecasters.ForecasterType.SGD
+
 

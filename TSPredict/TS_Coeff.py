@@ -66,18 +66,11 @@ class TS_Coeff(TSPredict):
 
     wavelet_type = Wavelets.WaveletType.DWT
 
+    use_rolling = True
+
     def add_strategy_indicators(self, dataframe):
 
         # add some extra indicators
-
-        # Bollinger Bands
-        bollinger = qtpylib.bollinger_bands(dataframe['close'], window=20, stds=2)
-        dataframe['bb_lowerband'] = bollinger['lower']
-        dataframe['bb_middleband'] = bollinger['mid']
-        dataframe['bb_upperband'] = bollinger['upper']
-        dataframe['bb_width'] = ((dataframe['bb_upperband'] - dataframe['bb_lowerband']) / dataframe['bb_middleband'])
-        dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
-        dataframe["bb_loss"] = ((dataframe["bb_lowerband"] - dataframe["close"]) / dataframe["close"])
 
         # MACD
         macd = ta.MACD(dataframe)
