@@ -908,13 +908,13 @@ class TSPredict(IStrategy):
             pred_array[-1] = 0.0
 
             # train on previous data
-            train_end = clen - self.model_window - self.lookahead
+            # train_end = clen - self.model_window - self.lookahead
+            train_end = np.shape(self.training_data)[0] - self.lookahead - 1
             train_start = max(0, train_end-self.train_len)
-            scale_start = max(0, clen-self.scale_len)
 
             # cannot use last portion because we are looking ahead
-            dslice = self.training_data[train_start:train_end]
-            tslice = self.training_labels[train_start:train_end]
+            tslice = self.training_data[train_start:train_end]
+            lslice = self.training_labels[train_start:train_end]
 
             # get the forecaster for this pair
             if self.custom_trade_info[self.curr_pair]['forecaster'] is None:
@@ -925,11 +925,11 @@ class TSPredict(IStrategy):
 
             # update forecaster and get predictions
 
-            self.train_model(pair_forecaster, dslice, tslice, False)
+            self.train_model(pair_forecaster, tslice, lslice, False)
 
             slen = min(clen, self.scale_len)
             self.gain_data = np.array(dataframe["gain"].iloc[-slen:])  # needed for scaling
-            preds = self.predict_data(pair_forecaster, self.training_data.iloc[-self.model_window:])
+            preds = self.predict_data(pair_forecaster, self.training_data[-self.model_window:])
 
             # self.forecaster = copy.deepcopy(base_forecaster) # restore original model
 
