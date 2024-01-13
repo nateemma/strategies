@@ -627,7 +627,7 @@ class TS_Wavelet(TSPredict):
     def add_latest_prediction(self, dataframe: DataFrame) -> DataFrame:
 
         df = dataframe
-        win_size = 128
+        win_size = self.win_size
         nrows = np.shape(df)[0]
 
         try:
