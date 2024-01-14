@@ -211,25 +211,27 @@ class TSPredict(IStrategy):
 
     # hyperparams
 
+
     # Buy hyperspace params:
     buy_params = {
-        "cexit_min_profit_th": 0.1,
-        "cexit_profit_nstd": 2.8,
-        "entry_bb_factor": 0.82,
-        "entry_bb_width": 0.056,
-        "entry_enable_squeeze": True,
-        "entry_guard_metric": 0.0,
+        "cexit_min_profit_th": 0.5,
+        "cexit_profit_nstd": 1.8,
+        "entry_bb_factor": 0.75,
+        "entry_bb_width": 0.031,
+        "entry_guard_metric": -0.1,
         "enable_entry_guards": True,  # value loaded from strategy
+        "entry_enable_squeeze": True,  # value loaded from strategy
     }
 
     # Sell hyperspace params:
     sell_params = {
-        "cexit_loss_nstd": 1.6,
-        "cexit_metric_overbought": 0.55,
-        "cexit_metric_take_profit": 0.91,
+        "cexit_loss_nstd": 0.5,
+        "cexit_metric_overbought": 0.69,
+        "cexit_metric_take_profit": 0.73,
         "cexit_min_loss_th": -1.5,
-        "exit_bb_factor": 0.71,
-        "exit_guard_metric": 0.4,
+        "exit_bb_factor": 0.73,
+        "exit_enable_squeeze": True,
+        "exit_guard_metric": 0.0,
         "enable_exit_guards": True,  # value loaded from strategy
         "enable_exit_signal": True,  # value loaded from strategy
     }
@@ -238,16 +240,17 @@ class TSPredict(IStrategy):
     enable_entry_guards = CategoricalParameter(
         [True, False], default=True, space="buy", load=True, optimize=False
         )
+
     entry_guard_metric = DecimalParameter(
         -0.8, 0.0, default=-0.6, decimals=1, space="buy", load=True, optimize=True
         )
 
     entry_enable_squeeze= CategoricalParameter(
-        [True, False], default=True, space="buy", load=True, optimize=True
+        [True, False], default=True, space="buy", load=True, optimize=False
         )
 
     entry_bb_width = DecimalParameter(
-        0.01, 0.100, default=0.04, decimals=3, space="buy", load=True, optimize=True
+        0.020, 0.100, default=0.04, decimals=3, space="buy", load=True, optimize=True
         )
 
     entry_bb_factor = DecimalParameter(
@@ -259,6 +262,7 @@ class TSPredict(IStrategy):
     enable_exit_guards = CategoricalParameter(
         [True, False], default=True, space="sell", load=True, optimize=False
         )
+
     exit_guard_metric = DecimalParameter(
         0.0, 0.8, default=0.2, decimals=1, space="sell", load=True, optimize=True
         )
@@ -271,6 +275,11 @@ class TSPredict(IStrategy):
     enable_exit_signal = CategoricalParameter(
         [True, False], default=True, space="sell", load=True, optimize=False
         )
+
+    exit_enable_squeeze= CategoricalParameter(
+        [True, False], default=False, space="sell", load=True, optimize=True
+        )
+
 
     # Custom Exit
 
@@ -329,6 +338,11 @@ class TSPredict(IStrategy):
 
     # update saved data based on current pairlist
     def update_pairlist_data(self):
+
+        # this only makes sense in 'live' modes
+        if self.dp.runmode.value in ("backtest", "plot", "hyperopt"):
+            return
+
         # current pairlist
         curr_pairlist = np.array(self.dp.current_whitelist())
 
@@ -1153,6 +1167,11 @@ class TSPredict(IStrategy):
             (dataframe['close'] >= upper_limit)
             , -1, 0)
 
+        if not ('squeeze' in dataframe.columns):
+            dataframe['squeeze'] = np.where(
+                (dataframe['bb_width'] >= self.entry_bb_width.value)
+            , 1, 0)
+
         if self.enable_exit_guards.value:
             # some trading volume (otherwise expect spread problems)
             conditions.append(dataframe["volume"] > 0)
@@ -1165,6 +1184,10 @@ class TSPredict(IStrategy):
 
             # bearish region
             conditions.append(dataframe["bearish"] < 0)
+
+            # wide Bollinger Bands
+            if self.exit_enable_squeeze.value:
+                conditions.append(dataframe['squeeze'] > 0)
 
             # # not bullish (looser than bearish)
             # conditions.append(dataframe["bullish"] <= 0)
