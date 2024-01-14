@@ -664,6 +664,7 @@ class TS_Wavelet(TSPredict):
 
             # # build the coefficient table for (only) the prediction range)
             # self.build_coefficient_table(start, end)
+            self.build_coefficient_table(0, end)
 
             preds = self.predict_data(start, end)
 

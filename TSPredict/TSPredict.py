@@ -327,6 +327,30 @@ class TSPredict(IStrategy):
 
     ###################################
 
+    # update saved data based on current pairlist
+    def update_pairlist_data(self):
+        # current pairlist
+        curr_pairlist = np.array(self.dp.current_whitelist())
+
+        # pairlist from previous calls
+        saved_pairlist = np.array(list(self.custom_trade_info.keys()))
+
+        # get the pairs that are no longer in the list
+        removed_pairs = np.setdiff1d(saved_pairlist, curr_pairlist)
+        added_pairs = np.setdiff1d(curr_pairlist, saved_pairlist)
+
+        if (len(removed_pairs) > 0):
+            print("    Pairlist changed:")
+            print(f'    old pairs: {saved_pairlist}')
+            print(f'    new pairs: {curr_pairlist}')
+            print(f'    pairs removed: {removed_pairs}')
+            print(f'    pairs added: {added_pairs}')
+
+            for pair in removed_pairs:
+                print(f'    Removing historical data for: {pair}')
+                del self.custom_trade_info[pair]
+
+    ###################################
     """
     Indicator Definitions
     """
@@ -339,6 +363,8 @@ class TSPredict(IStrategy):
 
         self.curr_dataframe = dataframe
         self.curr_pair = curr_pair
+
+        self.update_pairlist_data()
 
         # The following are needed for base functions, so do not remove.
         # Add custom indicators to add_strategy_indicators()
