@@ -67,7 +67,7 @@ class WaveletPredictor:
     curr_dataframe = None
 
     norm_data = False
-    scale_results = True
+    scale_results = False
     single_col_prediction = True
     merge_indicators = False
     training_required = True
@@ -519,13 +519,13 @@ dataframe = pd.DataFrame(data, columns=["gain"])
 lookahead = 6
 
 wlist = [
-    Wavelets.WaveletType.MODWT,
+    # Wavelets.WaveletType.MODWT,
     # Wavelets.WaveletType.SWT,
     # Wavelets.WaveletType.WPT,
     # Wavelets.WaveletType.FFT,
     # Wavelets.WaveletType.HFFT,
     # Wavelets.WaveletType.DWT,
-    # Wavelets.WaveletType.DWTA,
+    Wavelets.WaveletType.DWTA,
     ]
 flist = [
     # Forecasters.ForecasterType.NULL, # use this to show effect of wavelet alone
@@ -552,7 +552,7 @@ flist = [
 ]
 
 # llist = [ 16, 32, 36, 64 ]
-llist = [ 64 ]
+llist = [ 32 ]
 marker_list = [ '.', 'o', 'v', '^', '<', '>', 'p', '*', 'h', 'H', 'D', 'd', 'P', 'X' ]
 num_markers = len(marker_list)
 mkr_idx = 0

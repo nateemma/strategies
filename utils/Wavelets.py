@@ -30,7 +30,7 @@ class base_wavelet(ABC):
     coeff_shapes = None
     coeff_format = "wavedec"
     data_shape = None
-    detrend = True
+    detrend = False
     lookahead = 0
 
 
@@ -239,8 +239,10 @@ class dwta_wavelet(base_wavelet):
 
 
         # set detailed coeffs to zero (they still need to be there though)
-        threshold = 0.0
-        coeffs[1:] = [pywt.threshold(c, value=threshold, mode='hard') for c in coeffs[1:]]
+        threshold = 0.001
+        # coeffs[1:] = [pywt.threshold(c, value=threshold, mode='hard') for c in coeffs[1:]]
+        # coeffs[1:] = [pywt.threshold(c, value=threshold, mode='soft') for c in coeffs[1:]]
+        coeffs[1:] = [pywt.threshold(c, value=threshold, mode='garotte') for c in coeffs[1:]]
 
         return coeffs
 

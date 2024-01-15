@@ -76,30 +76,6 @@ from TSPredict import TSPredict
 
 class TS_Wavelet(TSPredict):
 
-   # Buy hyperspace params:
-    buy_params = {
-        "cexit_min_profit_th": 0.2,
-        "cexit_profit_nstd": 2.0,
-        "entry_bb_factor": 1.06,
-        "entry_bb_width": 0.02,
-        "entry_guard_metric": -0.1,
-        "enable_entry_guards": True,  # value loaded from strategy
-        "entry_enable_squeeze": True,  # value loaded from strategy
-    }
-
-    # Sell hyperspace params:
-    sell_params = {
-        "cexit_loss_nstd": 2.7,
-        "cexit_metric_overbought": 0.88,
-        "cexit_metric_take_profit": 0.84,
-        "cexit_min_loss_th": -0.2,
-        "exit_bb_factor": 0.79,
-        "exit_enable_squeeze": True,
-        "exit_guard_metric": 0.5,
-        "enable_exit_guards": True,  # value loaded from strategy
-        "enable_exit_signal": True,  # value loaded from strategy
-    }
-
     # ROI table:  # value loaded from strategy
     minimal_roi = {
         "0": 0.04,
@@ -126,24 +102,25 @@ class TS_Wavelet(TSPredict):
 
     norm_data = False # must be false for these strategies
     detrend_data = False
-    scale_results = True
+    scale_results = False
     single_col_prediction = False
     merge_indicators = False
     training_required = True
     expanding_window = False
     use_rolling = False
 
+    # NOTE: can only use longer lengths with FFT, too slow otherwise
     wavelet_size = 32  # Windowing should match this. Longer = better but slower with edge effects. Should be even
     model_window = wavelet_size # longer = slower
     # train_min_len = wavelet_size // 2 # longer = slower
     train_min_len = wavelet_size # longer = slower
-    train_max_len = wavelet_size * 4 # longer = slower
+    train_max_len = min(128, wavelet_size * 4) # longer = slower
     # train_max_len = wavelet_size * 2 # longer = slower
     # scale_len = wavelet_size // 4 # no. recent candles to use when scaling
     scale_len = min(16, wavelet_size//2) # no. recent candles to use when scaling
-    win_size = wavelet_size
+    win_size = min(32, wavelet_size)
 
-    wavelet_type:Wavelets.WaveletType = Wavelets.WaveletType.MODWT
+    wavelet_type:Wavelets.WaveletType = Wavelets.WaveletType.DWTA
     wavelet = None
 
     forecaster_type:Forecasters.ForecasterType = Forecasters.ForecasterType.PA
@@ -634,7 +611,7 @@ class TS_Wavelet(TSPredict):
     def add_latest_prediction(self, dataframe: DataFrame) -> DataFrame:
 
         df = dataframe
-        win_size = self.win_size
+        win_size = self.model_window
         nrows = np.shape(df)[0]
 
         try:

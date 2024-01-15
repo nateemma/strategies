@@ -928,15 +928,10 @@ class pa_forecaster(base_forecaster):
     def create_model(self):
         if self.model is None:
             # self.model = PassiveAggressiveRegressor(warm_start=self.reuse_model)
-            # self.model = PassiveAggressiveRegressor(C=1.0, epsilon=0.1, loss='epsilon_insensitive', shuffle=False)
 
-            # self.model = PassiveAggressiveRegressor(C=1.0, epsilon=0.05, loss='epsilon_insensitive', shuffle=False)
+            self.model = PassiveAggressiveRegressor(C=1.5, epsilon=0.02, loss='epsilon_insensitive', shuffle=False)
 
-            # self.model = PassiveAggressiveRegressor(C=0.2, epsilon=0.05, loss='epsilon_insensitive', shuffle=False)
-            # self.model = PassiveAggressiveRegressor(C=0.2, epsilon=0.005, loss='epsilon_insensitive', shuffle=False)
-            # self.model = PassiveAggressiveRegressor(C=0.1, epsilon=0.005, loss='epsilon_insensitive', shuffle=False)
-            # self.model = PassiveAggressiveRegressor(C=0.05, epsilon=0.005, loss='epsilon_insensitive', shuffle=False)
-            self.model = PassiveAggressiveRegressor(C=0.05, epsilon=0.01, loss='epsilon_insensitive', shuffle=False)
+            # self.model = PassiveAggressiveRegressor(C=1.0, epsilon=0.01, loss='epsilon_insensitive', shuffle=False)
         return
 
     def train(self, train_data: np.array, results: np.array, incremental=True):

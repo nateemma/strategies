@@ -161,10 +161,10 @@ class TSPredict(IStrategy):
 
 
 
-    use_rolling = False # True = rolling (slow but realistic), False = Jumping (much faster, less realistic)
+    use_rolling = True # True = rolling (slow but realistic), False = Jumping (much faster, less realistic)
     single_col_prediction = False # True = use only gain. False = use all columns (better, but much slower)
 
-    wavelet_type:Wavelets.WaveletType = Wavelets.WaveletType.MODWT
+    wavelet_type:Wavelets.WaveletType = Wavelets.WaveletType.DWTA
     wavelet = None
 
     forecaster_type:Forecasters.ForecasterType = Forecasters.ForecasterType.PA
@@ -176,10 +176,10 @@ class TSPredict(IStrategy):
     win_size = wavelet_size # this can vary
 
     train_min_len = wavelet_size # longer = slower
-    train_len = wavelet_size * 4 # longer = slower
+    train_len = min(128, wavelet_size * 4) # longer = slower
     # scale_len = wavelet_size // 2 # no. recent candles to use when scaling
     scale_len = min(8, wavelet_size//2) # no. recent candles to use when scaling
-    win_size = wavelet_size
+    win_size = min(32, wavelet_size)
     model_window = wavelet_size # longer = slower
 
     profit_nstd = 2.6
@@ -196,6 +196,7 @@ class TSPredict(IStrategy):
 
     norm_data = False # changing this requires new models
     detrend_data = False
+    scale_data = False
     # retrain_period = 12 # number of candles before retrining
     retrain_period = 2  # for testing only!
 
@@ -211,13 +212,12 @@ class TSPredict(IStrategy):
 
     # hyperparams
 
-
     # Buy hyperspace params:
     buy_params = {
-        "cexit_min_profit_th": 0.1,
-        "cexit_profit_nstd": 0.6,
-        "entry_bb_factor": 1.07,
-        "entry_bb_width": 0.021,
+        "cexit_min_profit_th": 0.5,
+        "cexit_profit_nstd": 0.1,
+        "entry_bb_factor": 1.13,
+        "entry_bb_width": 0.023,
         "entry_guard_metric": -0.2,
         "enable_entry_guards": True,  # value loaded from strategy
         "entry_enable_squeeze": True,  # value loaded from strategy
@@ -225,13 +225,13 @@ class TSPredict(IStrategy):
 
     # Sell hyperspace params:
     sell_params = {
-        "cexit_loss_nstd": 1.5,
-        "cexit_metric_overbought": 0.67,
-        "cexit_metric_take_profit": 0.56,
-        "cexit_min_loss_th": -0.1,
-        "exit_bb_factor": 0.71,
-        "exit_enable_squeeze": False,
-        "exit_guard_metric": 0.1,
+        "cexit_loss_nstd": 0.4,
+        "cexit_metric_overbought": 0.91,
+        "cexit_metric_take_profit": 0.88,
+        "cexit_min_loss_th": -0.4,
+        "exit_bb_factor": 0.8,
+        "exit_enable_squeeze": True,
+        "exit_guard_metric": 0.4,
         "enable_exit_guards": True,  # value loaded from strategy
         "enable_exit_signal": True,  # value loaded from strategy
     }
@@ -372,6 +372,8 @@ class TSPredict(IStrategy):
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         # NOTE: if you change the indicators, you need to regenerate the model
 
+        window_size = min(32, self.win_size)
+
         # Base pair dataframe timeframe indicators
         curr_pair = metadata["pair"]
 
@@ -403,7 +405,7 @@ class TSPredict(IStrategy):
         dataframe = self.update_gain_targets(dataframe)
 
         # Bollinger Bands
-        bollinger = qtpylib.bollinger_bands(dataframe['close'], window=self.win_size, stds=2)
+        bollinger = qtpylib.bollinger_bands(dataframe['close'], window=window_size, stds=2)
         dataframe['bb_lowerband'] = bollinger['lower']
         dataframe['bb_middleband'] = bollinger['mid']
         dataframe['bb_upperband'] = bollinger['upper']
@@ -413,11 +415,11 @@ class TSPredict(IStrategy):
 
 
         # RSI
-        dataframe["rsi"] = ta.RSI(dataframe, timeperiod=self.win_size)
+        dataframe["rsi"] = ta.RSI(dataframe, timeperiod=window_size)
 
         '''
         # Williams %R
-        dataframe["wr"] = 0.02 * (self.williams_r(dataframe, period=self.win_size) + 50.0)
+        dataframe["wr"] = 0.02 * (self.williams_r(dataframe, period=window_size) + 50.0)
 
         # Fisher RSI
         rsi = 0.1 * (dataframe["rsi"] - 50)
@@ -432,7 +434,7 @@ class TSPredict(IStrategy):
         dataframe["predicted_gain"] = 0.0
 
         # RMI: https://www.tradingview.com/script/kwIt9OgQ-Relative-Momentum-Index/
-        dataframe['rmi'] = cta.RMI(dataframe, length=self.win_size, mom=5)
+        dataframe['rmi'] = cta.RMI(dataframe, length=window_size, mom=5)
 
         # scaled version for use as guard metric
         dataframe['srmi'] = 2.0 * (dataframe['rmi'] - 50.0) / 100.0
@@ -699,10 +701,14 @@ class TSPredict(IStrategy):
         # print(f'    data:{np.shape(data)} preds:{np.shape(preds)}')
 
         # de-norm
-        scaler = RobustScaler()
-        scaler.fit(self.gain_data.reshape(-1, 1))
-        denorm_preds = scaler.inverse_transform(preds.reshape(-1, 1)).squeeze()
-        # denorm_preds = scaler.inverse_transform(preds.reshape(-1, 1))
+        if self.scale_data:
+            scaler = RobustScaler()
+            scaler.fit(self.gain_data.reshape(-1, 1))
+            denorm_preds = scaler.inverse_transform(preds.reshape(-1, 1)).squeeze()
+            # denorm_preds = scaler.inverse_transform(preds.reshape(-1, 1))
+        else:
+            denorm_preds = preds
+
 
         denorm_preds = np.clip(denorm_preds, -3.0, 3.0)
         return denorm_preds
@@ -935,8 +941,10 @@ class TSPredict(IStrategy):
             dlen = len(dataframe["gain"])
             clen = min(plen, dlen)
 
-            self.training_data = data[-clen:].copy()
-            self.training_labels = future_gain_data[-clen:].copy()
+            # self.training_data = data[-clen:].copy()
+            # self.training_labels = future_gain_data[-clen:].copy()
+            self.training_data = data
+            self.training_labels = future_gain_data
 
             pred_array = np.zeros(clen, dtype=float)
 
