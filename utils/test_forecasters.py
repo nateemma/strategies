@@ -15,7 +15,7 @@ from sklearn.metrics import mean_squared_error
 
 from freqtrade.freqai import prediction_models
 
-
+'''
 # test data taken from real run
 test_data = [  0.02693603,  0.78708102,  0.29854797,  0.27140725, -0.08078632, -0.08078632,
  -0.88864952, -0.56550424, -0.06764984,  0.10826905, -0.24255491, -0.24255491,
@@ -59,15 +59,20 @@ gen_data = f1 * np.sin(0.5*X) + f2 * np.cos(0.5*X) + f3 * 0.3
 # data = np.array(gen_data)
 data = np.array(test_data)
 
-norm_data = True
+'''
 
-steps = 6
+# load data from file
+data = np.load('test_data.npy')
+
+norm_data = False
+
+lookahead = 6
 model_window = 64
 train_len = model_window * 4
 
 train_data = np.array(data)
-train_results = np.roll(train_data, -steps)
-train_results[-steps:].fill(0)
+train_results = np.roll(train_data, -lookahead)
+train_results[-lookahead:].fill(0)
 
 orig = np.array(data)
 results = {}
@@ -83,11 +88,12 @@ def baseline(data):
 #---------------------------------------
 
 def forecast_data(data):
+    global lookahead
     start = data.index[0]
     end = data.index[-1]
 
     if forecaster.requires_pretraining():
-        min_data = train_len + model_window + steps
+        min_data = train_len + model_window + lookahead
     else:
         min_data = model_window
 
@@ -96,7 +102,7 @@ def forecast_data(data):
         return 0.0
 
     if forecaster.requires_pretraining():
-        t_end = start - 1
+        t_end = end - lookahead - 1
         t_start = max(0, t_end-train_len)
         # print(f'    train_data:{np.shape(train_data)} train_results:{np.shape(train_results)} t_start:{t_start} t_end:{t_end}')
         t_data = train_data[t_start:t_end].reshape(-1,1)
@@ -104,13 +110,16 @@ def forecast_data(data):
         forecaster.train(t_data, t_results, incremental=False)
 
     dslice = np.array(data).copy().reshape(-1,1)
-    forecast = forecaster.forecast(dslice, steps)
-    # print(f'    start:{start} end:{end} steps:{steps} data[-1]:{data.iloc[-1]:.3f} forecast:{forecast[-1]:.3f}')
+    forecast = forecaster.forecast(dslice, lookahead)
+    # print(f'    start:{start} end:{end} lookahead:{lookahead} data[-1]:{data.iloc[-1]:.3f} forecast:{forecast[-1]:.3f}')
     return forecast[-1]
 
 #---------------------------------------
 
 def rolling_predict(data, window_size, norm_data=False):
+    global lookahead
+
+
     start = 0
     end = window_size-1
 
@@ -127,7 +136,7 @@ def rolling_predict(data, window_size, norm_data=False):
 
     while end < len(x):
         if forecaster.requires_pretraining():
-            min_data = train_len + model_window + steps
+            min_data = train_len + model_window + lookahead
         else:
             min_data = model_window
 
@@ -138,7 +147,8 @@ def rolling_predict(data, window_size, norm_data=False):
             continue
 
         if forecaster.requires_pretraining():
-            t_end = start - 1
+            # t_end = start - 1
+            t_end = end -lookahead - 1
             t_start = max(0, t_end-train_len)
             # print(f'     start:{start} end:{end} start:{t_start} t_end:{t_end} model_window:{model_window} min_data:{min_data}')
             t_data = train_data[t_start:t_end].reshape(-1,1)
@@ -146,8 +156,8 @@ def rolling_predict(data, window_size, norm_data=False):
             forecaster.train(t_data, t_results)
 
         dslice = x[start:end].reshape(-1,1)
-        forecast = forecaster.forecast(dslice, steps)
-        preds[start:end] = forecast
+        forecast = forecaster.forecast(dslice, lookahead)
+        preds[start:end] = forecast.squeeze()
         start = start + 1
         end = end + 1
 
@@ -176,8 +186,8 @@ flist = [
     # Forecasters.ForecasterType.LINEAR,
     # Forecasters.ForecasterType.QUADRATIC,
     Forecasters.ForecasterType.PA,
-    Forecasters.ForecasterType.SGD,
-    Forecasters.ForecasterType.SVR,
+    # Forecasters.ForecasterType.SGD,
+    # Forecasters.ForecasterType.SVR,
     # Forecasters.ForecasterType.FFT_EXTRAPOLATION,
     # Forecasters.ForecasterType.MLP,
     # Forecasters.ForecasterType.LGBM,
@@ -196,13 +206,13 @@ mkr_idx = 0
 # df = pd.DataFrame(orig, index=np.arange(len(orig)))
 # ax = df.plot(label='Original', marker="o", color="black")
 
-dataframe['gain_shifted'] = dataframe['gain'].shift(-steps)
+dataframe['gain_shifted'] = dataframe['gain'].shift(-lookahead)
 # ax = dataframe['gain'].plot(label='Original', marker="x", color="black")
 ax = dataframe['gain_shifted'].plot(label='Original (shifted)', marker="x", color="black")
 
 for f in flist:
     forecaster = Forecasters.make_forecaster(f)
-    forecaster.set_detrend(True)
+    forecaster.set_detrend(False)
     id = forecaster.get_name()
     print(id)
 
@@ -215,11 +225,11 @@ for f in flist:
 
     # # DBG: manualyy set first portion of prediction
     # dslice = dataframe['gain'].iloc[0:model_window].to_numpy()
-    # preds = forecaster.forecast(dslice, steps)
+    # preds = forecaster.forecast(dslice, lookahead)
     # print(f'    preds:{np.shape(preds)}')
     # dataframe["predicted_gain"].iloc[model_window-len(preds):model_window] = preds
 
-    # dataframe['shifted_pred'] = dataframe['predicted_gain'].shift(steps)
+    # dataframe['shifted_pred'] = dataframe['predicted_gain'].shift(lookahead)
     # dataframe["predicted_gain"].plot(ax=ax, label=id, linestyle='dashed', marker=marker_list[mkr_idx])
     # dataframe["shifted_pred"].plot(ax=ax, label=id+" (shifted)", linestyle='dashed', marker=marker_list[mkr_idx])
 

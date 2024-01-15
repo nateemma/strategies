@@ -152,36 +152,25 @@ def check_1d(array: np.array) -> np.array:
 # currently works for 1d or 2d arrays
 
 trend_xhat = None
+trend_poly = None
+
 
 def detrend(x_notrend, axis=0):
-    global trend_xhat
+    global trend_poly
     x = np.nan_to_num(x_notrend)
-    if x.ndim == 1: # If x is 1D, use the original logic
-        N = len(x)
-        f = np.fft.rfft(x)
-        f[5:] = 0.0
-        trend_xhat = np.fft.irfft(f, N)
-        return x - trend_xhat
-    elif x.ndim == 2: # If x is 2D, loop over the columns and apply the original logic to each column
-        # N, M = x.shape
-        # trend_xhat = np.zeros_like(x)
-        # for i in range(M):
-        #     f = np.fft.rfft(x[:, i])
-        #     f[5:] = 0.0
-        #     trend_xhat[:, i] = np.fft.irfft(f, N)
-        # return x - trend_xhat
-        return x
-    else: # If x is neither 1D nor 2D, raise an error
-        raise ValueError("x_notrend must be either 1D or 2D")
+    n = x.size
+    t = np.arange(0, n)
+    trend_poly = np.polyfit(t, x, 1)         # find trend in x
+
+    # subtract slope
+    x_notrend = x - trend_poly[0]
+
+    return x_notrend
+
 
 def retrend(x_trend, axis=0):
-    global trend_xhat
-    if x_trend.ndim == trend_xhat.ndim: # If x_trend and trend_xhat have the same number of dimensions, use the original logic
-        return x_trend + trend_xhat
-    else: # If x_trend and trend_xhat have different number of dimensions, raise an error
-        estr = f"original and x_trend must have the same number of dimensions {np.shape(trend_xhat)} vs {np.shape(x_trend)}"
-        print(estr)
-        return x_trend
+    global trend_poly
+    return x_trend + trend_poly[0]
 
 # -----------------------------------
 
@@ -191,6 +180,7 @@ def smooth(y, window):
     # Hack: constrain to 3 decimal places (should be elsewhere, but convenient here)
     y_smooth = np.round(y_smooth, decimals=3)
     return np.nan_to_num(y_smooth)
+
 
 #------------------------------
 
@@ -938,8 +928,15 @@ class pa_forecaster(base_forecaster):
     def create_model(self):
         if self.model is None:
             # self.model = PassiveAggressiveRegressor(warm_start=self.reuse_model)
-            # self.model = PassiveAggressiveRegressor(C=0.01, epsilon=0.01, loss='epsilon_insensitive', shuffle=False)
-            self.model = PassiveAggressiveRegressor(C=0.1, epsilon=0.01, loss='epsilon_insensitive', shuffle=False)
+            # self.model = PassiveAggressiveRegressor(C=1.0, epsilon=0.1, loss='epsilon_insensitive', shuffle=False)
+
+            # self.model = PassiveAggressiveRegressor(C=1.0, epsilon=0.05, loss='epsilon_insensitive', shuffle=False)
+
+            # self.model = PassiveAggressiveRegressor(C=0.2, epsilon=0.05, loss='epsilon_insensitive', shuffle=False)
+            # self.model = PassiveAggressiveRegressor(C=0.2, epsilon=0.005, loss='epsilon_insensitive', shuffle=False)
+            # self.model = PassiveAggressiveRegressor(C=0.1, epsilon=0.005, loss='epsilon_insensitive', shuffle=False)
+            # self.model = PassiveAggressiveRegressor(C=0.05, epsilon=0.005, loss='epsilon_insensitive', shuffle=False)
+            self.model = PassiveAggressiveRegressor(C=0.05, epsilon=0.01, loss='epsilon_insensitive', shuffle=False)
         return
 
     def train(self, train_data: np.array, results: np.array, incremental=True):
@@ -963,7 +960,9 @@ class pa_forecaster(base_forecaster):
             x = detrend(np.array(data))
         else:
             x = np.nan_to_num(data)
+
         predictions = self.model.predict(x)
+
         if self.detrend_data:
             # predictions = retrend(predictions.reshape(-1,1)).squeeze()
             predictions = retrend(predictions.reshape(-1,1))
@@ -974,8 +973,9 @@ class pa_forecaster(base_forecaster):
     def find_params(self, train_data: np.array, results: np.array):
         # Define parameter grid
         param_grid = {
-        'C': [0.01, 0.05, 0.1, 1],
-        'epsilon': [0.001, 0.005, 0.01, 0.1]
+        # 'C': [0.2, 0.4, 0.6, 0.8, 1.0],
+        'C': [1.0],
+        'epsilon': [0.01, 0.05, 0.1, 0.5, 1.0, 1.5]
         }
 
         # Initialize GridSearchCV object
@@ -1008,7 +1008,11 @@ class sgd_forecaster(base_forecaster):
     def create_model(self):
         if self.model is None:
             # self.model = SGDRegressor(loss="huber", warm_start=self.reuse_model)
-            self.model = SGDRegressor(warm_start=self.reuse_model)
+            # self.model = SGDRegressor(warm_start=self.reuse_model)
+            self.model = SGDRegressor(warm_start=self.reuse_model, alpha=0.0001, epsilon=0.0001, 
+                                      loss="epsilon_insensitive", shuffle=False)
+            self.model = SGDRegressor(warm_start=self.reuse_model, alpha=0.01, epsilon=1.0, shuffle=False)
+            # self.model = SGDRegressor(warm_start=self.reuse_model, shuffle=False, loss="huber")
         return
 
     def train(self, train_data: np.array, results: np.array, incremental=True):

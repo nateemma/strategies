@@ -194,7 +194,7 @@ class TSPredict(IStrategy):
     model_trained = False
     new_model = False
 
-    norm_data = True
+    norm_data = False # changing this requires new models
     detrend_data = False
     # retrain_period = 12 # number of candles before retrining
     retrain_period = 2  # for testing only!
@@ -214,24 +214,24 @@ class TSPredict(IStrategy):
 
     # Buy hyperspace params:
     buy_params = {
-        "cexit_min_profit_th": 0.5,
-        "cexit_profit_nstd": 1.8,
-        "entry_bb_factor": 0.75,
-        "entry_bb_width": 0.031,
-        "entry_guard_metric": -0.1,
+        "cexit_min_profit_th": 0.1,
+        "cexit_profit_nstd": 0.6,
+        "entry_bb_factor": 1.07,
+        "entry_bb_width": 0.021,
+        "entry_guard_metric": -0.2,
         "enable_entry_guards": True,  # value loaded from strategy
         "entry_enable_squeeze": True,  # value loaded from strategy
     }
 
     # Sell hyperspace params:
     sell_params = {
-        "cexit_loss_nstd": 0.5,
-        "cexit_metric_overbought": 0.69,
-        "cexit_metric_take_profit": 0.73,
-        "cexit_min_loss_th": -1.5,
-        "exit_bb_factor": 0.73,
-        "exit_enable_squeeze": True,
-        "exit_guard_metric": 0.0,
+        "cexit_loss_nstd": 1.5,
+        "cexit_metric_overbought": 0.67,
+        "cexit_metric_take_profit": 0.56,
+        "cexit_min_loss_th": -0.1,
+        "exit_bb_factor": 0.71,
+        "exit_enable_squeeze": False,
+        "exit_guard_metric": 0.1,
         "enable_exit_guards": True,  # value loaded from strategy
         "enable_exit_signal": True,  # value loaded from strategy
     }

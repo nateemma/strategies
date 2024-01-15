@@ -8,6 +8,7 @@ import Wavelets
 
 from sklearn.metrics import mean_squared_error
 
+'''
 # test data taken from real run
 test_data = [  0.02693603,  0.78708102,  0.29854797,  0.27140725, -0.08078632, -0.08078632,
  -0.88864952, -0.56550424, -0.06764984,  0.10826905, -0.24255491, -0.24255491,
@@ -46,6 +47,11 @@ gen_data = f1 * np.sin(0.5*X) + f2 * np.cos(0.5*X) + f3 * 0.3
 
 # data = gen_data
 data = np.array(test_data)
+'''
+
+test_data = np.load('test_data.npy')
+
+data = test_data[0:min(512, len(test_data))]
 
 wavelet = Wavelets.make_wavelet(wavelet_type=Wavelets.WaveletType.MODWT)
 

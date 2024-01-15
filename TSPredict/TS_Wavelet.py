@@ -76,28 +76,34 @@ from TSPredict import TSPredict
 
 class TS_Wavelet(TSPredict):
 
-    # Buy hyperspace params:
+   # Buy hyperspace params:
     buy_params = {
-        "cexit_min_profit_th": 0.5,
-        "cexit_profit_nstd": 1.5,
-        "entry_bb_factor": 0.72,
+        "cexit_min_profit_th": 0.2,
+        "cexit_profit_nstd": 2.0,
+        "entry_bb_factor": 1.06,
         "entry_bb_width": 0.02,
-        "entry_guard_metric": 0.0,
+        "entry_guard_metric": -0.1,
         "enable_entry_guards": True,  # value loaded from strategy
         "entry_enable_squeeze": True,  # value loaded from strategy
     }
 
     # Sell hyperspace params:
     sell_params = {
-        "cexit_loss_nstd": 3.3,
-        "cexit_metric_overbought": 0.61,
-        "cexit_metric_take_profit": 0.89,
-        "cexit_min_loss_th": 0.0,
-        "exit_bb_factor": 0.81,
-        "exit_enable_squeeze": False,
-        "exit_guard_metric": 0.6,
+        "cexit_loss_nstd": 2.7,
+        "cexit_metric_overbought": 0.88,
+        "cexit_metric_take_profit": 0.84,
+        "cexit_min_loss_th": -0.2,
+        "exit_bb_factor": 0.79,
+        "exit_enable_squeeze": True,
+        "exit_guard_metric": 0.5,
         "enable_exit_guards": True,  # value loaded from strategy
         "enable_exit_signal": True,  # value loaded from strategy
+    }
+
+    # ROI table:  # value loaded from strategy
+    minimal_roi = {
+        "0": 0.04,
+        "100": 0.02
     }
 
     custom_trade_info = {} # pair-specific data
