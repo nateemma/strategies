@@ -157,7 +157,7 @@ class TSPredict(IStrategy):
     coeff_table = None
     coeff_array = None
     gain_data = None
-    merge_indicators = True # set to False to not merge indicators into prediction data
+    merge_indicators = False # set to False to not merge indicators into prediction data
 
 
 
@@ -195,10 +195,6 @@ class TSPredict(IStrategy):
     new_model = False
 
     norm_data = False # changing this requires new models
-    detrend_data = False
-    scale_data = False
-    # retrain_period = 12 # number of candles before retrining
-    retrain_period = 2  # for testing only!
 
     dataframeUtils = None
     scaler = RobustScaler()
@@ -311,7 +307,6 @@ class TSPredict(IStrategy):
 
         if self.forecaster is None:
             self.forecaster = Forecasters.make_forecaster(self.forecaster_type)
-            self.forecaster.set_detrend(self.detrend_data)
 
         if (not self.forecaster.supports_multiple_columns()):
             print('    ****')
@@ -697,21 +692,10 @@ class TSPredict(IStrategy):
 
         preds = forecaster.forecast(x, self.lookahead)
 
-
         # print(f'    data:{np.shape(data)} preds:{np.shape(preds)}')
 
-        # de-norm
-        if self.scale_data:
-            scaler = RobustScaler()
-            scaler.fit(self.gain_data.reshape(-1, 1))
-            denorm_preds = scaler.inverse_transform(preds.reshape(-1, 1)).squeeze()
-            # denorm_preds = scaler.inverse_transform(preds.reshape(-1, 1))
-        else:
-            denorm_preds = preds
-
-
-        denorm_preds = np.clip(denorm_preds, -3.0, 3.0)
-        return denorm_preds
+        preds = np.clip(preds, -3.0, 3.0)
+        return preds
 
     # -------------
 
@@ -756,14 +740,14 @@ class TSPredict(IStrategy):
     # alternate rolling prediction approach. The pandas rolling mechanism seems to have issues for some reason
     def rolling_predict(self, gain, window_size):
 
-        win_size = window_size - 1
+        win_size = window_size
 
         x = np.nan_to_num(np.array(gain))
         preds = np.zeros(len(x), dtype=float)
         nrows = np.shape(self.training_data)[0]
 
         start = 0
-        end = start + win_size
+        end = start + win_size - 1
         scale_start = max(0, end-self.scale_len)
 
         # train_end = max(0, start - 1)
@@ -838,7 +822,7 @@ class TSPredict(IStrategy):
         # loop until we get to/past the end of the buffer
         # start = win_size
         start = 0
-        end = start + win_size
+        end = start + win_size - 1
         train_end = start - 1
         train_size = self.train_len
         train_start = max(0, train_end - train_size)
@@ -968,6 +952,8 @@ class TSPredict(IStrategy):
             if self.custom_trade_info[self.curr_pair]['forecaster'] is None:
                 # make a deep copy so that we don't override the baseline model
                 pair_forecaster = copy.deepcopy(self.forecaster)
+                # forecaster should already be there, so print warning
+                print(f'    *** WARNING: No pre-existing forecaster. Creating from model')
             else:
                 pair_forecaster = self.custom_trade_info[self.curr_pair]['forecaster']
 

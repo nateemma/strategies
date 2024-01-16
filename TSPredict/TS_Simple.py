@@ -55,6 +55,7 @@ from TSPredict import TSPredict
 class TS_Simple(TSPredict):
 
     use_rolling = True
+    merge_indicators = True
 
     def add_strategy_indicators(self, dataframe):
 

@@ -67,7 +67,7 @@ data = np.load('test_data.npy')
 norm_data = False
 
 lookahead = 6
-model_window = 64
+model_window = 32
 train_len = model_window * 4
 
 train_data = np.array(data)
@@ -142,6 +142,7 @@ def rolling_predict(data, window_size, norm_data=False):
 
         if end < (min_data-1):
             # print(f'    start:{start} end:{end} train_len:{train_len} model_window:{model_window} min_data:{min_data}')
+            preds[end] = 0.0
             start = start + 1
             end = end + 1
             continue
@@ -154,10 +155,12 @@ def rolling_predict(data, window_size, norm_data=False):
             t_data = train_data[t_start:t_end].reshape(-1,1)
             t_results = train_results[t_start:t_end]
             forecaster.train(t_data, t_results)
+        # else:
+            # print(f'    start:{start} end:{end} train_len:{train_len} model_window:{model_window} min_data:{min_data}')
 
         dslice = x[start:end].reshape(-1,1)
-        forecast = forecaster.forecast(dslice, lookahead)
-        preds[start:end] = forecast.squeeze()
+        forecast = forecaster.forecast(dslice, lookahead).squeeze()
+        preds[end] = forecast[-1]
         start = start + 1
         end = end + 1
 
@@ -206,7 +209,8 @@ mkr_idx = 0
 # df = pd.DataFrame(orig, index=np.arange(len(orig)))
 # ax = df.plot(label='Original', marker="o", color="black")
 
-dataframe['gain_shifted'] = dataframe['gain'].shift(-lookahead)
+# dataframe['gain_shifted'] = dataframe['gain'].shift(-lookahead)
+dataframe['gain_shifted'] = train_results
 # ax = dataframe['gain'].plot(label='Original', marker="x", color="black")
 ax = dataframe['gain_shifted'].plot(label='Original (shifted)', marker="x", color="black")
 

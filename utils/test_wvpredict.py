@@ -207,8 +207,6 @@ class WaveletPredictor:
             print('    **** ERR: wavelet not specified')
             return
 
-        self.forecaster.set_detrend(self.detrend_data)
-
         # print(f'    Wavelet:{self.wavelet_type.name} Forecaster:{self.forecaster_type.name}')
 
         # double check forecaster/multicolumn combo
@@ -260,6 +258,7 @@ class WaveletPredictor:
     # merge the supplied dataframe with the coefficient table. Number of rows must match
     def merge_coeff_table(self, start, end):
 
+        # print(f'merge_coeff_table() self.coeff_table: {np.shape(self.coeff_table)}')
 
         self.coeff_num_cols = np.shape(self.coeff_table)[1]
 
@@ -267,9 +266,7 @@ class WaveletPredictor:
         if self.single_col_prediction or (not self.merge_indicators):
             merged_table = self.coeff_table
             self.coeff_start_col = 0
-
         else:
-
             self.coeff_start_col = np.shape(self.curr_dataframe)[1]
             df = self.curr_dataframe.iloc[start:end]
             df_norm = self.convert_dataframe(df)
@@ -277,7 +274,6 @@ class WaveletPredictor:
 
         self.coeff_table = np.nan_to_num(merged_table)
 
-        # print(f'merge_coeff_table() self.coeff_table: {np.shape(self.coeff_table)}')
         return
 
     # -------------
@@ -342,15 +338,19 @@ class WaveletPredictor:
 
             results = self.coeff_table[results_start:results_end, i]
 
-            # print(f'predict_data: {predict_data.squeeze()}')
-            # print(f'train_data: {train_data.squeeze()}')
-            # print(f'results: {results.squeeze()}')
+            # print(f'predict_data: {np.shape(predict_data)}')
+            # print(f'train_data: {np.shape(train_data)}')
+            # print(f'results: {np.shape(results)}')
 
             # since we know we are switching data surces, disable incremental training
             self.forecaster.train(train_data, results, incremental=False)
 
             # get a prediction
             preds = self.forecaster.forecast(predict_data, self.lookahead)
+            # if not self.single_col_prediction:
+            #     preds = preds[:,i] # extarct the column we are currently predicting
+            # print(f'preds: {np.shape(preds)}')
+
             if preds.ndim > 1:
                 preds = preds.squeeze()
 
@@ -362,14 +362,10 @@ class WaveletPredictor:
         coeffs = self.wavelet.array_to_coeff(c_array)
         preds = self.wavelet.get_values(coeffs)
 
-        # rescale if necessary
-        if self.scale_results:
-            preds = self.denorm_array(preds)
-
-
         # print(f'preds[{start}:{end}] len:{len(preds)}: {preds}')
         # print(f'preds[{end}]: {preds[-1]}')
         # print('===========================')
+
 
         return preds
 
@@ -410,9 +406,9 @@ class WaveletPredictor:
     def rolling_predict(self, data):
 
         if self.forecaster.requires_pretraining():
-            min_data = self.train_min_len + self.model_window + self.lookahead
+            min_data = self.train_min_len + self.wavelet_size + self.lookahead
         else:
-            min_data = self.model_window
+            min_data = self.wavelet_size
 
         start = 0
         end = min_data - 1
@@ -424,6 +420,7 @@ class WaveletPredictor:
 
             # print(f'    start:{start} end:{end} train_max_len:{self.train_max_len} model_window:{self.model_window} min_data:{min_data}')
             if end < (min_data-1):
+                preds[end] = 0.0
                 start = start + 1
                 end = end + 1
                 continue
@@ -433,22 +430,13 @@ class WaveletPredictor:
             self.update_scaler(np.array(data)[scale_start:scale_end])
 
             forecast = self.predict_data(start, end)
-            # if start < window_size:
-            #     flen = len(forecast)
-            #     preds[end-flen:end] = forecast
-            # else:
-            #     preds[end] = forecast[-1]
             preds[end] = forecast[-1]
 
-            if (end == self.wavelet_size) or (end == self.wavelet_size+1) or (end == self.wavelet_size+2):
-                # print(f'    {i}: coeff_array:{np.array(coeff_array)}')
-                print(f'   rolling_predict {end}: self.data[{end+self.lookahead}]:{self.data[end+self.lookahead]}')
-                print(f'   rolling_predict {end}: forecast[-1]:{forecast[-1]}')
+            # print(f'forecast: {forecast}')
 
             start = start + 1
             end = end + 1
 
-        preds = preds.clip(min=-5.0, max=5.0)
         return preds
 
     # -------------

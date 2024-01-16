@@ -85,7 +85,7 @@ class base_forecaster(ABC):
     support_multiple_columns = False
     support_retrain = False
     requires_training = False
-    detrend_data = True
+    detrend_data = False
 
     def __init__(self):
         super().__init__()
@@ -293,7 +293,7 @@ class quadratic_forecaster(base_forecaster):
 # performs an FFT transform, moves each frequency bin forward N steps and does the inverse transform
 class fft_extrapolation_forecaster(base_forecaster):
 
-    filter_type = 0
+    filter_type = 1
     smooth_data = True
 
     def get_name(self):
@@ -355,13 +355,13 @@ class fft_extrapolation_forecaster(base_forecaster):
 
         N = yf.size # number of data points
 
-        if filter_type == 0:
+        if filter_type == 1:
             # simply remove higher frequencies
             yf_filt = yf
             index = max(4, int(len(yf)/2))
             yf_filt[index:] = 0.0
 
-        elif filter_type == 1:
+        elif filter_type == 2:
             # bandpass filter
 
             # select frequencies and coefficients
@@ -379,7 +379,7 @@ class fft_extrapolation_forecaster(base_forecaster):
             g = gpl + gmn # bandpass filter
             yf_filt = yf * g # filtered FFT coefficients
 
-        elif filter_type == 2:
+        elif filter_type == 3:
             # power spectrum filter
             # Compute the power spectrum
             ps = np.abs (yf)**2
@@ -393,7 +393,7 @@ class fft_extrapolation_forecaster(base_forecaster):
             mask = ps > threshold
             yf_filt = yf * mask
 
-        elif filter_type == 3:
+        elif filter_type == 4:
             # phase filter
             # Compute the phase spectrum
             phase = np.angle (yf)
@@ -929,7 +929,9 @@ class pa_forecaster(base_forecaster):
         if self.model is None:
             # self.model = PassiveAggressiveRegressor(warm_start=self.reuse_model)
 
-            self.model = PassiveAggressiveRegressor(C=1.5, epsilon=0.02, loss='epsilon_insensitive', shuffle=False)
+            self.model = PassiveAggressiveRegressor(shuffle=False)
+            # self.model = PassiveAggressiveRegressor(C=1.2, epsilon=0.001, loss='epsilon_insensitive', shuffle=False)
+            # self.model = PassiveAggressiveRegressor(C=1.5, epsilon=0.02, loss='epsilon_insensitive', shuffle=False)
 
             # self.model = PassiveAggressiveRegressor(C=1.0, epsilon=0.01, loss='epsilon_insensitive', shuffle=False)
         return
@@ -962,6 +964,10 @@ class pa_forecaster(base_forecaster):
             # predictions = retrend(predictions.reshape(-1,1)).squeeze()
             predictions = retrend(predictions.reshape(-1,1))
 
+        plen = np.shape(predictions)[0]
+        dlen  = np.shape(data)[0]
+        if plen < dlen:
+            print(f'    WARNING: len(predictions) < len(data) {plen} vs {dlen}')
         return predictions
 
 
@@ -969,8 +975,8 @@ class pa_forecaster(base_forecaster):
         # Define parameter grid
         param_grid = {
         # 'C': [0.2, 0.4, 0.6, 0.8, 1.0],
-        'C': [1.0],
-        'epsilon': [0.01, 0.05, 0.1, 0.5, 1.0, 1.5]
+        'C': [0.8, 1.0, 1.2, 1.4],
+        'epsilon': [0.005, 0.01, 0.01, 0.05, 0.1, 0.15]
         }
 
         # Initialize GridSearchCV object

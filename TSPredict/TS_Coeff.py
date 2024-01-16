@@ -125,7 +125,6 @@ class TS_Coeff(TSPredict):
         self.coeff_table = None
         num_coeffs = 0
         init_done = False
-        self.wavelet.set_detrend(False) # one-way tarsnform, so do not detrend data
 
         while end < nrows:
             dslice = data[start:end]

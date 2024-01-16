@@ -41,6 +41,7 @@ from TSPredict import TSPredict
 class TS_Gain(TSPredict):
 
     use_rolling = True
+    merge_indicators = True
 
     def add_strategy_indicators(self, dataframe):
         return dataframe
