@@ -210,31 +210,31 @@ class TSPredict(IStrategy):
 
     # Buy hyperspace params:
     buy_params = {
-        "cexit_min_profit_th": 0.5,
-        "cexit_profit_nstd": 0.1,
-        "entry_bb_factor": 1.13,
-        "entry_bb_width": 0.023,
-        "entry_guard_metric": -0.2,
-        "enable_entry_guards": True,  # value loaded from strategy
-        "entry_enable_squeeze": True,  # value loaded from strategy
+        "cexit_min_profit_th": 0.8,
+        "cexit_profit_nstd": 1.0,
+        "enable_entry_guards": False,
+        "entry_bb_factor": 0.93,
+        "entry_bb_width": 0.08,
+        "entry_enable_squeeze": False,
+        "entry_guard_metric": 0.0,
     }
 
     # Sell hyperspace params:
     sell_params = {
-        "cexit_loss_nstd": 0.4,
-        "cexit_metric_overbought": 0.91,
-        "cexit_metric_take_profit": 0.88,
-        "cexit_min_loss_th": -0.4,
-        "exit_bb_factor": 0.8,
+        "cexit_loss_nstd": 1.2,
+        "cexit_metric_overbought": 0.8,
+        "cexit_metric_take_profit": 0.71,
+        "cexit_min_loss_th": 0.0,
+        "enable_exit_guards": True,
+        "enable_exit_signal": False,
+        "exit_bb_factor": 1.07,
         "exit_enable_squeeze": True,
-        "exit_guard_metric": 0.4,
-        "enable_exit_guards": True,  # value loaded from strategy
-        "enable_exit_signal": True,  # value loaded from strategy
+        "exit_guard_metric": 0.2,
     }
 
     # Entry
     enable_entry_guards = CategoricalParameter(
-        [True, False], default=True, space="buy", load=True, optimize=False
+        [True, False], default=True, space="buy", load=True, optimize=True
         )
 
     entry_guard_metric = DecimalParameter(
@@ -242,7 +242,7 @@ class TSPredict(IStrategy):
         )
 
     entry_enable_squeeze= CategoricalParameter(
-        [True, False], default=True, space="buy", load=True, optimize=False
+        [True, False], default=True, space="buy", load=True, optimize=True
         )
 
     entry_bb_width = DecimalParameter(
@@ -256,7 +256,7 @@ class TSPredict(IStrategy):
 
     # Exit
     enable_exit_guards = CategoricalParameter(
-        [True, False], default=True, space="sell", load=True, optimize=False
+        [True, False], default=True, space="sell", load=True, optimize=True
         )
 
     exit_guard_metric = DecimalParameter(
@@ -269,7 +269,7 @@ class TSPredict(IStrategy):
 
     # use exit signal? If disabled, just rely on the custom exit checks (or stoploss) to get out
     enable_exit_signal = CategoricalParameter(
-        [True, False], default=True, space="sell", load=True, optimize=False
+        [True, False], default=True, space="sell", load=True, optimize=True
         )
 
     exit_enable_squeeze= CategoricalParameter(
@@ -387,6 +387,7 @@ class TSPredict(IStrategy):
             / dataframe["close"].shift(self.lookahead)
         )
         dataframe["gain"].fillna(0.0, inplace=True)
+        dataframe["gain"] = dataframe["gain"].round(4)
 
         # dataframe["gain"] = self.smooth(dataframe["gain"], 8)
 
@@ -505,6 +506,9 @@ class TSPredict(IStrategy):
     def get_future_gain(self, dataframe):
         df = self.convert_dataframe(dataframe)
         future_gain = df["gain"].shift(-self.lookahead).to_numpy()
+        future_gain[-self.lookahead:] = 0.0
+        future_gain = np.round(future_gain, decimals=3)
+        future_gain = np.nan_to_num(future_gain)
 
         # future_gain = dataframe['gain'].shift(-self.lookahead).to_numpy()
         # return self.smooth(future_gain, 8)
@@ -716,7 +720,7 @@ class TSPredict(IStrategy):
             return 0.0
 
         # train on previous data
-        train_end = start_row - self.lookahead
+        train_end = start_row - self.lookahead - 1
         train_start = max(0, train_end-self.train_len)
         scale_start = max(0, end-self.scale_len)
 
@@ -751,7 +755,7 @@ class TSPredict(IStrategy):
         scale_start = max(0, end-self.scale_len)
 
         # train_end = max(0, start - 1)
-        train_end = min(end - 1, nrows - self.lookahead - 1)
+        train_end = min(end - 1, nrows - self.lookahead - 2)
         train_start = max(0, train_end-self.train_len)
 
 
@@ -789,7 +793,7 @@ class TSPredict(IStrategy):
             end = end + 1
             start = start + 1
             # train_end = start - 1
-            train_end = min(end - 1, nrows - self.lookahead - 1)
+            train_end = min(end - 1, nrows - self.lookahead - 2)
             train_start = max(0, train_end-self.train_len)
 
         # save the updated/trained forecaster
@@ -941,7 +945,7 @@ class TSPredict(IStrategy):
 
             # train on previous data
             # train_end = clen - self.model_window - self.lookahead
-            train_end = np.shape(self.training_data)[0] - self.lookahead - 1
+            train_end = np.shape(self.training_data)[0] - self.lookahead - 2
             train_start = max(0, train_end-self.train_len)
 
             # cannot use last portion because we are looking ahead
@@ -1012,7 +1016,7 @@ class TSPredict(IStrategy):
 
         if self.curr_pair not in self.custom_trade_info:
             self.custom_trade_info[self.curr_pair] = {
-                'forecaster':  copy.deepcopy(self.forecaster),
+                'forecaster':  None,
                 "initialised": False,
                 "predictions": None,
                 "curr_prediction": 0.0,

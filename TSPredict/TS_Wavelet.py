@@ -101,8 +101,6 @@ class TS_Wavelet(TSPredict):
     # curr_dataframe = None
 
     norm_data = False # must be false for these strategies
-    detrend_data = False
-    scale_results = False
     single_col_prediction = False
     merge_indicators = False
     training_required = True
@@ -246,7 +244,6 @@ class TS_Wavelet(TSPredict):
 
         if self.forecaster is None:
             self.forecaster = Forecasters.make_forecaster(self.forecaster_type)
-            self.forecaster.set_detrend(self.detrend_data)
 
         # if forecaster does not require pre-training, then just set training length to 0
         if not self.forecaster.requires_pretraining():
@@ -351,7 +348,7 @@ class TS_Wavelet(TSPredict):
 
         # train on previous data
         # train_end = max(self.train_min_len, predict_start-1)
-        train_end = min(predict_end - 1, nrows - self.lookahead - 1)
+        train_end = min(predict_end - 1, nrows - self.lookahead - 2)
         train_start = max(0, train_end-self.train_max_len)
         results_start = train_start + self.lookahead
         results_end = train_end + self.lookahead
@@ -412,11 +409,6 @@ class TS_Wavelet(TSPredict):
         c_array = np.array(coeff_arr)
         coeffs = self.wavelet.array_to_coeff(c_array)
         preds = self.wavelet.get_values(coeffs)
-
-        # rescale if necessary
-        if self.scale_results:
-            preds = self.denorm_array(preds)
-
 
         # print(f'preds[{start}:{end}] len:{len(preds)}: {preds}')
         # print(f'preds[{end}]: {preds[-1]}')
@@ -483,11 +475,6 @@ class TS_Wavelet(TSPredict):
             self.update_scaler(np.array(data)[scale_start:scale_end])
 
             forecast = self.predict_data(start, end)
-            # if start < window_size:
-            #     flen = len(forecast)
-            #     preds[end-flen:end] = forecast
-            # else:
-            #     preds[end] = forecast[-1]
             preds[end] = forecast[-1]
 
             # print(f'forecast: {forecast}')
