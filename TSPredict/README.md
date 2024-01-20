@@ -1,5 +1,10 @@
 # Time Series Prediction (TSPredict)
 
+_*NOTE: these streategies currently do not work too well. Some of them perform slightly better than Market, but not much more.  
+The fundamental problem appears to be that the regression algorithms cannot handle the complexity of the underlying time series (predominantly the gain). I am currently investigating ways to address this*_
+
+_Also, the current performance is worse than previous releases because I fixed a subtle bug involving lookahead bias_
+
 Strategies in this directory implement a common approach to 'simply' estimating future values of a time series - in this case, the gain. I use gain instead of price because the values are similar across all pairs (price is not at all) and so I can create models that work for any pair.
 
 In general, most (all except TS_Wavelet*) of these strategies will try to load an existing model, but if it is not found it will create and train a new model. So, the first time you run a strategy, do so over a long period of time.

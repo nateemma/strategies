@@ -20,6 +20,7 @@ import pandas as pd
 from sklearn.model_selection import GridSearchCV
 import statsmodels.tsa.api as tsa
 from statsmodels.tsa.forecasting.theta import ThetaModel
+from statsmodels.tsa.ar_model import ar_select_order
 from xgboost import XGBRegressor
 
 import lightgbm as lgbm
@@ -86,6 +87,8 @@ class base_forecaster(ABC):
     support_retrain = False
     requires_training = False
     detrend_data = False
+    smooth_data = False
+    smooth_window = 4
 
     def __init__(self):
         super().__init__()
@@ -101,9 +104,15 @@ class base_forecaster(ABC):
         self.create_model()
         return self.model
 
-    # function to set the underlying model (e.g. if loaded from a file)
+    # function to specify whether or not to detrend data before training/forecasting
     def set_detrend(self, detrend_flag=True):
         self.detrend_data = detrend_flag
+        return
+
+    # function to specify whether or not to smooth data before training/forecasting
+    def set_smooth(self, smooth_flag=True, smooth_window=4):
+        self.smooth_data = smooth_flag
+        self.smooth_window = smooth_window
         return
 
     # function to set the underlying model (e.g. if loaded from a file)
@@ -149,28 +158,26 @@ def check_1d(array: np.array) -> np.array:
 
 # -----------------------------------
 # de-trend and re-trend data
-# currently works for 1d or 2d arrays
+# currently only works for 1d
 
-trend_xhat = None
-trend_poly = None
+trend_line = None
 
 
-def detrend(x_notrend, axis=0):
-    global trend_poly
-    x = np.nan_to_num(x_notrend)
-    n = x.size
-    t = np.arange(0, n)
-    trend_poly = np.polyfit(t, x, 1)         # find trend in x
+def detrend(x, axis=0):
+    global trend_line
+    x = np.nan_to_num(x)
 
-    # subtract slope
-    x_notrend = x - trend_poly[0]
+    t = np.arange(0, len(x))
+    trend_poly = np.polyfit(t, x, 1)
+    trend_line = np.polyval(trend_poly, x)
+    x_notrend = x - trend_line
 
     return x_notrend
 
 
 def retrend(x_trend, axis=0):
-    global trend_poly
-    return x_trend + trend_poly[0]
+    global trend_line
+    return x_trend + trend_line
 
 # -----------------------------------
 
@@ -217,25 +224,28 @@ class linear_forecaster(base_forecaster):
         N = len(x)
 
         # smooth
-        # x = smooth(x, 6)
+        if self.smooth_data:
+            x = smooth(x, self.smooth_window)
 
         # de-trend
-        x_detrend = detrend(x)
+        if self.detrend_data:
+            x = detrend(x)
 
         # fit the supplied data
         t = np.arange(N)
-        coeffs = np.polyfit(t, x_detrend, 1)
+        coeffs = np.polyfit(t, x, 1)
 
         # predict forward N steps
         t = np.arange(N, N+steps)
         x_pred = np.polyval(coeffs, t)
 
         # resize array to initial size
-        x_pred = np.concatenate((x_detrend, x_pred))[-N:]
+        predictions = np.concatenate((x, x_pred))[-N:]
         # x_pred = x_pred[-N:]
 
         # re-trend
-        predictions = retrend(x_pred)
+        if self.detrend_data:
+            predictions = retrend(predictions)
 
         # print(f'    data: {data.squeeze()}')
         # print(f'    preds:{predictions}')
@@ -259,14 +269,16 @@ class quadratic_forecaster(base_forecaster):
         N = len(x)
 
         # smooth
-        x = smooth(x, 6)
+        if self.smooth_data:
+            x = smooth(x, self.smooth_window)
 
         # de-trend
-        x_detrend = detrend(x)
+        if self.detrend_data:
+            x = detrend(x)
 
         # fit the supplied data
         t = np.arange(N)
-        coeffs = np.polyfit(t, x_detrend, 3)
+        coeffs = np.polyfit(t, x, 3)
 
         # predict forward N steps
         t = np.arange(N, N+steps)
@@ -274,11 +286,11 @@ class quadratic_forecaster(base_forecaster):
         x_pred = np.polyval(coeffs, t)
 
         # build array of initial size
-        x_pred = np.concatenate((x_detrend, x_pred), dtype=float)[-N:]
-        # x_pred = x_pred[-N:]
+        predictions = np.concatenate((x, x_pred), dtype=float)[-N:]
 
         # re-trend
-        predictions = retrend(x_pred)
+        if self.detrend_data:
+            predictions = retrend(predictions)
 
         self.model = NullRegressor() # just have something not None that can be called
 
@@ -293,8 +305,8 @@ class quadratic_forecaster(base_forecaster):
 # performs an FFT transform, moves each frequency bin forward N steps and does the inverse transform
 class fft_extrapolation_forecaster(base_forecaster):
 
-    filter_type = 1
-    smooth_data = True
+    filter_type = 4
+    predict_type = 2
 
     def get_name(self):
         return "FFT Extrapolation"
@@ -305,52 +317,39 @@ class fft_extrapolation_forecaster(base_forecaster):
 
         # print(f'y:{np.shape(y)}')
 
-        #smooth
-        if self.smooth_data:
-            y = smooth(y, 6)
-
         N = y.size # number of data points
-        dt = 1.0 # sampling interval
-        t = np.arange(0, N*dt, dt) # time array
 
-        # detrend the data
+        # smooth
+        if self.smooth_data:
+            y = smooth(y, self.smooth_window)
+
+        # de-trend
         if self.detrend_data:
-            y_detrend =  detrend(y)
-        else:
-            y_detrend =  y
+            y = detrend(y)
 
         # apply FFT
-        yf = np.fft.fft(y_detrend) # FFT of detrended signal
-        yf = np.concatenate((yf[:(N+1)//2], np.zeros(N), yf[(N+1)//2:])) # zero-padding for higher resolution
-        fr = np.fft.fftfreq(2*N, dt) # frequency array
-        yf_abs = np.abs(yf) # magnitude of FFT coefficients
+        yf = np.fft.fft(y) # FFT of signal
+        # yf = np.concatenate((yf[:(N+1)//2], np.zeros(N), yf[(N+1)//2:])) # zero-padding for higher resolution
 
         yf_filt = self.filter_freqs(yf, filter_type=self.filter_type)
 
-        # generate predicted values
-        t_pred = np.arange(N*dt, (N+steps)) # time array for prediction
-        y_pred = np.zeros(len(t_pred)) # array for predicted values
-        for i in range(len(yf_filt)):
-            # sum of complex exponentials
-            y_pred_new = y_pred + yf_filt[i] * (np.cos(2*np.pi*fr[i]*t_pred) + 1j*np.sin(2*np.pi*fr[i]*t_pred))
-            y_pred = y_pred_new # work around complex casting
-        y_pred = np.real(y_pred) # real part of predicted values
+        y_pred = self.predict_freqs(yf_filt, steps, predict_type=self.predict_type)
 
         # apply IFFT
         y_pred_ifft = np.fft.ifft(y_pred) # IFFT of predicted values
         y_pred_ifft = np.real(y_pred_ifft) # real part of IFFT values
 
-        # add back trend
-        y_pred_final = np.concatenate((y, y_pred_ifft))[-len(y):]
-        if self.detrend_data:
-            y_pred_final = retrend(y_pred_final)
+        predictions = np.concatenate((y, y_pred_ifft))[-len(y):]
 
-        predictions = y_pred_final
+        # re-trend
+        if self.detrend_data:
+            predictions = retrend(predictions)
 
         self.model = NullRegressor() # just have something not None that can be called
 
-        return predictions
+        return predictions[-N:]
 
+    # utility to filter out frequencies (various methods)
     def filter_freqs(self, yf, filter_type=0):
 
         N = yf.size # number of data points
@@ -358,9 +357,10 @@ class fft_extrapolation_forecaster(base_forecaster):
         if filter_type == 1:
             # simply remove higher frequencies
             yf_filt = yf
-            index = max(4, int(len(yf)/2))
-            yf_filt[index:] = 0.0
+            index = max(4, int(N/2))
+            yf_filt[index:-index] = 0.0
 
+            # print(f'N:{N} yf_filt2:{yf_filt}')
         elif filter_type == 2:
             # bandpass filter
 
@@ -392,6 +392,7 @@ class fft_extrapolation_forecaster(base_forecaster):
             # Apply a mask to the fft coefficients
             mask = ps > threshold
             yf_filt = yf * mask
+            # print(f'yf_filt:{yf_filt}')
 
         elif filter_type == 4:
             # phase filter
@@ -399,14 +400,17 @@ class fft_extrapolation_forecaster(base_forecaster):
             phase = np.angle (yf)
 
             # Define a threshold for filtering
-            # threshold = 2.0
-            # threshold = np.mean(np.abs(phase))
+            threshold = np.pi / 2.0
+            threshold = np.mean(np.abs(phase))
 
-            threshold = np.sort(np.abs(phase))[-N//4]
+            # # sort phases, set threshold from end
+            # threshold = np.sort(np.abs(phase))[-N//8]
 
             # Apply a mask to the phase spectrum
             mask = np.abs (phase) < threshold
             yf_filt = yf * mask
+            # print(f'phase:{phase}')
+            # print(f'yf_filt:{yf_filt}')
 
         else:
             # default is no filter at all
@@ -415,6 +419,42 @@ class fft_extrapolation_forecaster(base_forecaster):
         return yf_filt
 
 
+    # utility to predict frequency data (various methods)
+    def predict_freqs(self, yf, steps, predict_type=0):
+
+        N = yf.size # number of data points
+        dt = 1.0 / 12.0
+        fr = np.fft.fftfreq(2*N, dt) # frequency array
+
+        if predict_type == 1:
+            # extend sines and cosines
+            t_pred = np.arange(N*dt, (N+steps)) # time array for prediction
+            yf_pred = np.zeros(len(t_pred)) # array for predicted values
+            for i in range(steps):
+                # sum of complex exponentials
+                yf_pred_new = yf_pred + yf[i] * (np.cos(2*np.pi*fr[i]*t_pred) + 1j*np.sin(2*np.pi*fr[i]*t_pred))
+                yf_pred = yf_pred_new # work around complex casting
+        elif predict_type == 2:
+            # calculate conjugates
+
+            # Extend the FFT coefficients by steps
+            # The new coefficients are the complex conjugates of the previous ones
+            yf_pred = np.concatenate((yf, yf[-2:0:-1].conj()))
+
+        elif predict_type == 3:
+            # AutoRegressor
+            ar = make_forecaster(ForecasterType.AR)
+            yf_pred_r = ar.forecast(yf.real, steps)
+            # yf_pred_i= ar.forecast(yf.imag, steps)
+            # yf_pred = yf_pred_r + yf_pred_i * 1j
+            # yf_pred = ar.forecast(abs(yf), steps)
+            yf_pred = yf_pred_r
+
+        else:
+            # default is no prediction at all
+            yf_pred = yf
+
+        return yf_pred
 # -----------------------------------
 
 
@@ -425,6 +465,12 @@ class exponential_forecaster(base_forecaster):
     def forecast(self, data: np.array, steps) -> np.array:
  
         x = check_1d(data)
+
+        # smooth
+        if self.smooth_data:
+            x = smooth(x, self.smooth_window)
+
+        # detrend
         if self.detrend_data:
             x = detrend(x)
 
@@ -432,7 +478,7 @@ class exponential_forecaster(base_forecaster):
         predictions = self.model.predict(0, len(x) + steps)
 
         predictions = np.concatenate((x, predictions), dtype=float)[-len(x):]
- 
+
         if self.detrend_data:
             predictions = retrend(predictions)
 
@@ -447,6 +493,12 @@ class statespace_exponential_forecaster(base_forecaster):
     def forecast(self, data: np.array, steps) -> np.array:
 
         x = check_1d(data)
+
+        # smooth
+        if self.smooth_data:
+            x = smooth(x, self.smooth_window)
+
+        # detrend
         if self.detrend_data:
             x = detrend(x)
 
@@ -471,17 +523,29 @@ class holt_forecaster(base_forecaster):
     def forecast(self, data: np.array, steps) -> np.array:
 
         x = check_1d(data)
+
+
+        # smooth
+        if self.smooth_data:
+            x = smooth(x, self.smooth_window)
+
+        # detrend
         if self.detrend_data:
             x = detrend(x)
+
+        N = len(x)
         self.model = tsa.Holt(x, damped_trend=True, initialization_method="estimated").fit()
-        predictions = self.model.predict(0, len(x) + steps)
+        # predictions = self.model.predict(0, len(x) + steps)
+        # predictions = self.model.predict(N, N + steps - 1)
+
+        predictions = self.model.predict(start=N, end=N + steps - 1)
 
         predictions = np.concatenate((x, predictions), dtype=float)[-len(x):]
 
         if self.detrend_data:
             predictions = retrend(predictions)
 
-        return predictions
+        return predictions[-len(x):]
 
 
 # -----------------------------------
@@ -494,6 +558,13 @@ class simple_exponential_forecaster(base_forecaster):
     def forecast(self, data: np.array, steps) -> np.array:
  
         x = check_1d(data)
+
+
+        # smooth
+        if self.smooth_data:
+            x = smooth(x, self.smooth_window)
+
+        # detrend
         if self.detrend_data:
             x = detrend(x)
 
@@ -518,6 +589,12 @@ class ets_forecaster(base_forecaster):
     def forecast(self, data: np.array, steps) -> np.array:
 
         x = check_1d(data)
+
+        # smooth
+        if self.smooth_data:
+            x = smooth(x, self.smooth_window)
+
+        # detrend
         if self.detrend_data:
             x = detrend(x)
 
@@ -543,6 +620,12 @@ class arima_forecaster(base_forecaster):
         try:  # ARIMA is very sensitive to zeroes in data, which happens a lot at startup
 
             y = check_1d(data)
+
+            # smooth
+            if self.smooth_data:
+                y = smooth(y, self.smooth_window)
+
+            # detrend
             if self.detrend_data:
                 y = detrend(y)
 
@@ -583,13 +666,33 @@ class ar_forecaster(base_forecaster):
     def forecast(self, data: np.array, steps) -> np.array:
 
         x = check_1d(data)
+
+        # smooth
+        if self.smooth_data:
+            x = smooth(x, self.smooth_window)
+
+        # detrend
         if self.detrend_data:
             x = detrend(x)
 
-        self.model = tsa.AutoReg(x, lags=3).fit()
-        predictions = self.model.predict(len(x), len(x) + steps)
+        N = len(x)
 
-        predictions = np.concatenate((x, predictions), dtype=float)[-len(x):]
+        # Use the ar_select_order function to choose the optimal lag order
+        mod = ar_select_order(x, maxlag=15)
+        # print(mod.ar_lags) # print the selected lag order
+
+        # Create an instance of the AutoReg class with the selected lag order
+        self.model = tsa.AutoReg(x, lags=mod.ar_lags).fit()
+        # print(self.model.summary())
+
+        # Predict the time series forward N steps
+        preds = self.model.predict(N, N + steps - 1)
+
+        # self.model = tsa.AutoReg(x, lags=steps).fit()
+        # print(self.model.summary())
+        # preds = self.model.predict(N, N + steps - 1)
+
+        predictions = np.concatenate((x, preds), dtype=float)[-N:]
         if self.detrend_data:
             predictions = retrend(predictions)
         return predictions
@@ -607,6 +710,12 @@ class theta_forecaster(base_forecaster):
     def forecast(self, data: np.array, steps) -> np.array:
 
         x = check_1d(data)
+
+        # smooth
+        if self.smooth_data:
+            x = smooth(x, self.smooth_window)
+
+        # detrend
         if self.detrend_data:
             x = detrend(x)
 
@@ -666,7 +775,7 @@ class gb_forecaster(base_forecaster):
 
         if self.detrend_data:
             train_data = detrend(train_data)
-            results = detrend(results)
+            # results = detrend(results)
 
         self.model.fit(train_data, results)
         # print(f'n_estimators_:{self.model.n_estimators_}')
@@ -681,8 +790,8 @@ class gb_forecaster(base_forecaster):
         else:
             x = np.nan_to_num(data)
         predictions = self.model.predict(x)
-        if self.detrend_data:
-            predictions = retrend(predictions.reshape(-1,1)).squeeze()
+        # if self.detrend_data:
+        #     predictions = retrend(predictions.reshape(-1,1)).squeeze()
         return predictions
 
 
@@ -708,7 +817,7 @@ class hgb_forecaster(base_forecaster):
 
         if self.detrend_data:
             train_data = detrend(train_data)
-            results = detrend(results)
+            # results = detrend(results)
 
         self.model.fit(train_data, results)
 
@@ -720,8 +829,8 @@ class hgb_forecaster(base_forecaster):
         else:
             x = np.nan_to_num(data)
         predictions = self.model.predict(x)
-        if self.detrend_data:
-            predictions = retrend(predictions.reshape(-1,1)).squeeze()
+        # if self.detrend_data:
+        #     predictions = retrend(predictions.reshape(-1,1)).squeeze()
         return predictions
 
 
@@ -746,7 +855,7 @@ class kmeans_forecaster(base_forecaster):
         self.create_model()
         if self.detrend_data:
             train_data = detrend(train_data)
-            results = detrend(results)
+            # results = detrend(results)
 
         # if you know that the data source is changing, set incremental to False
         if incremental:
@@ -762,8 +871,8 @@ class kmeans_forecaster(base_forecaster):
         else:
             x = np.nan_to_num(data)
         predictions = self.model.predict(x)
-        if self.detrend_data:
-            predictions = retrend(predictions.reshape(-1,1)).squeeze()
+        # if self.detrend_data:
+        #     predictions = retrend(predictions.reshape(-1,1)).squeeze()
         return predictions
 
 
@@ -892,7 +1001,7 @@ class mlp_forecaster(base_forecaster):
         self.create_model()
         if self.detrend_data:
             train_data = detrend(train_data)
-            results = detrend(results)
+            # results = detrend(results)
 
         # if you know that the data source is changing, set incremental to False
         if incremental:
@@ -908,8 +1017,8 @@ class mlp_forecaster(base_forecaster):
         else:
             x = np.nan_to_num(data)
         predictions = self.model.predict(x)
-        if self.detrend_data:
-            predictions = retrend(predictions.reshape(-1,1)).squeeze()
+        # if self.detrend_data:
+        #     predictions = retrend(predictions.reshape(-1,1)).squeeze()
         return predictions
 
 
@@ -927,11 +1036,15 @@ class pa_forecaster(base_forecaster):
 
     def create_model(self):
         if self.model is None:
-            # self.model = PassiveAggressiveRegressor(warm_start=self.reuse_model)
+            self.model = PassiveAggressiveRegressor()
+            # self.model = PassiveAggressiveRegressor(shuffle=False)
+            # self.model = PassiveAggressiveRegressor(warm_start=self.reuse_model, shuffle=False)
+            # self.model = PassiveAggressiveRegressor(warm_start=self.reuse_model, shuffle=False, C=0.8, epsilon=0.001)
 
-            self.model = PassiveAggressiveRegressor(shuffle=False)
+            # self.model = PassiveAggressiveRegressor(shuffle=False)
             # self.model = PassiveAggressiveRegressor(C=1.2, epsilon=0.001, loss='epsilon_insensitive', shuffle=False)
-            # self.model = PassiveAggressiveRegressor(C=1.5, epsilon=0.02, loss='epsilon_insensitive', shuffle=False)
+            # self.model = PassiveAggressiveRegressor(C=1.0, epsilon=0.01, loss='epsilon_insensitive', 
+            #                                         shuffle=False, warm_start=self.reuse_model)
 
             # self.model = PassiveAggressiveRegressor(C=1.0, epsilon=0.01, loss='epsilon_insensitive', shuffle=False)
         return
@@ -940,7 +1053,7 @@ class pa_forecaster(base_forecaster):
         self.create_model()
         if self.detrend_data:
             train_data = detrend(train_data)
-            results = detrend(results)
+            # results = detrend(results)
 
         # if you know that the data source is changing, set incremental to False
         if incremental:
@@ -960,9 +1073,9 @@ class pa_forecaster(base_forecaster):
 
         predictions = self.model.predict(x)
 
-        if self.detrend_data:
-            # predictions = retrend(predictions.reshape(-1,1)).squeeze()
-            predictions = retrend(predictions.reshape(-1,1))
+        # if self.detrend_data:
+        #     # predictions = retrend(predictions.reshape(-1,1)).squeeze()
+        #     predictions = retrend(predictions.reshape(-1,1))
 
         plen = np.shape(predictions)[0]
         dlen  = np.shape(data)[0]
@@ -1009,19 +1122,18 @@ class sgd_forecaster(base_forecaster):
     def create_model(self):
         if self.model is None:
             # self.model = SGDRegressor(loss="huber", warm_start=self.reuse_model)
-            # self.model = SGDRegressor(warm_start=self.reuse_model)
-            self.model = SGDRegressor(warm_start=self.reuse_model, alpha=0.0001, epsilon=0.0001, 
-                                      loss="epsilon_insensitive", shuffle=False)
-            self.model = SGDRegressor(warm_start=self.reuse_model, alpha=0.01, epsilon=1.0, shuffle=False)
-            # self.model = SGDRegressor(warm_start=self.reuse_model, shuffle=False, loss="huber")
+            self.model = SGDRegressor(loss="epsilon_insensitive", warm_start=self.reuse_model, shuffle=False)
+            # print('Creating SGDRegressor')
         return
 
     def train(self, train_data: np.array, results: np.array, incremental=True):
         self.create_model()
 
+        # print(f'Train SGDRegressor train_data:{np.shape(train_data)} results:{np.shape(results)} incremental:{incremental}')
+
         if self.detrend_data:
             train_data = detrend(train_data)
-            results = detrend(results)
+            # results = detrend(results)
 
         # if you know that the data source is changing, set incremental to False
         if incremental:
@@ -1037,8 +1149,12 @@ class sgd_forecaster(base_forecaster):
         else:
             x = np.nan_to_num(data)
         predictions = self.model.predict(x)
-        if self.detrend_data:
-            predictions = retrend(predictions.reshape(-1,1)).squeeze()
+
+        # print(f'forecast SGDRegressor data:{np.shape(data)} predictions:{np.shape(predictions)}')
+
+
+        # if self.detrend_data:
+        #     predictions = retrend(predictions.reshape(-1,1)).squeeze()
 
         # return predictions
         return predictions
@@ -1057,7 +1173,7 @@ class svr_forecaster(base_forecaster):
 
     def create_model(self):
         if self.model is None:
-            self.model = SVR()
+            self.model = SVR(C=2.0, epsilon=0.001)
         return
 
     def train(self, train_data: np.array, results: np.array, incremental=True):
@@ -1065,7 +1181,7 @@ class svr_forecaster(base_forecaster):
 
         if self.detrend_data:
             train_data = detrend(train_data)
-            results = detrend(results)
+            # results = detrend(results)
 
         self.model.fit(train_data, results)
         return
@@ -1076,8 +1192,8 @@ class svr_forecaster(base_forecaster):
         else:
             x = np.nan_to_num(data)
         predictions = self.model.predict(x)
-        if self.detrend_data:
-            predictions = retrend(predictions.reshape(-1,1)).squeeze()
+        # if self.detrend_data:
+        #     predictions = retrend(predictions.reshape(-1,1)).squeeze()
         return predictions
 
 
@@ -1102,7 +1218,7 @@ class xgb_forecaster(base_forecaster):
 
             if self.detrend_data:
                 train_data = detrend(train_data)
-                results = detrend(results)
+                # results = detrend(results)
 
             self.model.fit(train_data, results)
             # self.find_params(train_data, results) # only use while testing
@@ -1125,8 +1241,8 @@ class xgb_forecaster(base_forecaster):
         else:
             x = np.nan_to_num(data)
         predictions = self.model.predict(x)
-        if self.detrend_data:
-            predictions = retrend(predictions.reshape(-1,1)).squeeze()
+        # if self.detrend_data:
+        #     predictions = retrend(predictions.reshape(-1,1)).squeeze()
         return predictions
 
     def find_params(self, train_data: np.array, results: np.array):

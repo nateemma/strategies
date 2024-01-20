@@ -98,6 +98,7 @@ class TS_Coeff(TSPredict):
 
         df_norm = self.convert_dataframe(dataframe)
         gain_data = df_norm['gain'].to_numpy()
+        gain_data = self.smooth(gain_data, 2)
         self.build_coefficient_table(gain_data)
         data = self.merge_coeff_table(df_norm)
         return data
@@ -134,7 +135,7 @@ class TS_Coeff(TSPredict):
             coeffs = self.wavelet.get_coeffs(dslice)
             features = self.wavelet.coeff_to_array(coeffs)
             # print(f'build_coefficient_table() features: {np.shape(features)}')
-            
+
             # initialise the np.array (need features first to know size)
             if not init_done:
                 init_done = True
@@ -160,6 +161,13 @@ class TS_Coeff(TSPredict):
     def merge_coeff_table(self, dataframe: DataFrame):
 
         # print(f'merge_coeff_table() self.coeff_table: {np.shape(self.coeff_table)}')
+
+        # apply smoothing to each column, otherwise prediction alogorithms will struggle
+        num_cols = np.shape(self.coeff_table)[1]
+        for j in range (num_cols):
+            feature = self.coeff_table[:,j]
+            feature = self.smooth(feature, 2)
+            self.coeff_table[:,j] = feature
 
         num_coeffs = np.shape(self.coeff_table)[1]
 

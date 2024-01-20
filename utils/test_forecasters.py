@@ -56,18 +56,20 @@ X = np.arange(num_samples)  # data points
 gen_data = f1 * np.sin(0.5*X) + f2 * np.cos(0.5*X) + f3 * 0.3
 # gen_data = f1 * np.sin(0.5*X) + f3 * 0.3
 
-# data = np.array(gen_data)
-data = np.array(test_data)
+data = np.array(gen_data)
+# data = np.array(test_data)
 
 '''
 
 # load data from file
 data = np.load('test_data.npy')
 
+
 norm_data = False
 
 lookahead = 6
 model_window = 32
+# train_len = model_window * 4
 train_len = model_window * 4
 
 train_data = np.array(data)
@@ -84,6 +86,15 @@ def baseline(data):
 
     # just return last item
     return data.iloc[-1]
+
+#---------------------------------------
+
+def smooth( y, window, axis=-1):
+    box = np.ones(window) / window
+    y_smooth = np.convolve(y, box, mode="same")
+    # Hack: constrain to 3 decimal places (should be elsewhere, but convenient here)
+    y_smooth = np.round(y_smooth, decimals=3)
+    return np.nan_to_num(y_smooth)
 
 #---------------------------------------
 
@@ -107,7 +118,8 @@ def forecast_data(data):
         # print(f'    train_data:{np.shape(train_data)} train_results:{np.shape(train_results)} t_start:{t_start} t_end:{t_end}')
         t_data = train_data[t_start:t_end].reshape(-1,1)
         t_results = train_results[t_start:t_end]
-        forecaster.train(t_data, t_results, incremental=False)
+        # forecaster.train(t_data, t_results, incremental=False)
+        forecaster.train(t_data, t_results, incremental=True)
 
     dslice = np.array(data).copy().reshape(-1,1)
     forecast = forecaster.forecast(dslice, lookahead)
@@ -124,6 +136,9 @@ def rolling_predict(data, window_size, norm_data=False):
     end = window_size-1
 
     x = np.array(data)
+
+    x = smooth(x, 2)
+
     scaler = None
     if norm_data:
         y = x.reshape(-1,1)
@@ -132,6 +147,7 @@ def rolling_predict(data, window_size, norm_data=False):
         x = scaler.transform(y).reshape(-1)
 
     x = np.nan_to_num(x)
+    nrows = len(x)
     preds = np.zeros(len(x), dtype=float)
 
     while end < len(x):
@@ -149,12 +165,13 @@ def rolling_predict(data, window_size, norm_data=False):
 
         if forecaster.requires_pretraining():
             # t_end = start - 1
-            t_end = end -lookahead - 1
+            # t_end = end - lookahead - 1
+            t_end = min(end - lookahead - 1, nrows - lookahead - 2)
             t_start = max(0, t_end-train_len)
             # print(f'     start:{start} end:{end} start:{t_start} t_end:{t_end} model_window:{model_window} min_data:{min_data}')
             t_data = train_data[t_start:t_end].reshape(-1,1)
             t_results = train_results[t_start:t_end]
-            forecaster.train(t_data, t_results)
+            forecaster.train(t_data, t_results, incremental=False)
         # else:
             # print(f'    start:{start} end:{end} train_len:{train_len} model_window:{model_window} min_data:{min_data}')
 
@@ -179,17 +196,18 @@ dataframe = pd.DataFrame(data, columns=["gain"])
 flist = [
     # Forecasters.ForecasterType.EXPONENTAL,
     # Forecasters.ForecasterType.SIMPLE_EXPONENTAL,
+    # Forecasters.ForecasterType.AR,
     # Forecasters.ForecasterType.HOLT,
     # Forecasters.ForecasterType.ARIMA,
     # Forecasters.ForecasterType.THETA,
     # Forecasters.ForecasterType.ETS,
     # Forecasters.ForecasterType.HGB,
     # Forecasters.ForecasterType.GB,
-    # Forecasters.ForecasterType.NULL,
+    Forecasters.ForecasterType.NULL,
     # Forecasters.ForecasterType.LINEAR,
     # Forecasters.ForecasterType.QUADRATIC,
-    Forecasters.ForecasterType.PA,
-    # Forecasters.ForecasterType.SGD,
+    # Forecasters.ForecasterType.PA,
+    Forecasters.ForecasterType.SGD,
     # Forecasters.ForecasterType.SVR,
     # Forecasters.ForecasterType.FFT_EXTRAPOLATION,
     # Forecasters.ForecasterType.MLP,
@@ -212,7 +230,8 @@ mkr_idx = 0
 # dataframe['gain_shifted'] = dataframe['gain'].shift(-lookahead)
 dataframe['gain_shifted'] = train_results
 # ax = dataframe['gain'].plot(label='Original', marker="x", color="black")
-ax = dataframe['gain_shifted'].plot(label='Original (shifted)', marker="x", color="black")
+# dataframe['gain_shifted'].plot(ax=ax, label='Training Data', marker="o", color="blue")
+ax = dataframe['gain_shifted'].plot(label='Training Data', marker="o", color="blue")
 
 for f in flist:
     forecaster = Forecasters.make_forecaster(f)

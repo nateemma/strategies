@@ -33,6 +33,7 @@ sys.path.append(group_dir)
 # warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
+import utils.Forecasters as Forecasters
 
 from TSPredict import TSPredict
 
@@ -42,14 +43,26 @@ class TS_Gain(TSPredict):
 
     use_rolling = True
     merge_indicators = True
+    single_col_prediction = False
+
+    if single_col_prediction:
+        forecaster_type = Forecasters.ForecasterType.SGD
+    else:
+        forecaster_type = Forecasters.ForecasterType.PA
 
     def add_strategy_indicators(self, dataframe):
         return dataframe
 
     def get_data(self, dataframe):
         # supply *only* the gain column (and standard indicators)
-        col_list = ['date', 'open', 'close', 'high', 'low', 'volume', 'gain']
-        # col_list = ['date', 'gain']
+        if self.single_col_prediction:
+            col_list = ['date', 'gain']
+        else:
+            col_list = ['date', 'open', 'close', 'high', 'low', 'volume', 'gain']
+
         df = dataframe[col_list].copy()
+        gain = dataframe['gain'].to_numpy()
+        gain = self.smooth(gain, 2)
+        dataframe['gain'] = gain
         return np.array(self.convert_dataframe(df))
-        
+

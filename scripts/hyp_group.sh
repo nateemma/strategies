@@ -217,8 +217,9 @@ timerange="${start}-${end}"
 # calculate diff
 zmodload zsh/datetime
 diff=$(( ( $(strftime -r %Y%m%d "$end") - $(strftime -r %Y%m%d "$start") ) / 86400 ))
-# min_trades=$((diff / 2))
-min_trades=$((diff * 2))
+
+# set min trades based on # days (N per day)
+min_trades=$((diff * 4))
 
 
 echo "" >$logfile

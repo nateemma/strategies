@@ -1,5 +1,5 @@
 {
-  "strategy_name": "TS_Coeff",
+  "strategy_name": "TS_Wavelet",
   "params": {
     "roi": {
       "0": 0.04,
@@ -20,24 +20,24 @@
     "buy": {
       "enable_guard_metric": true,
       "enable_squeeze": true,
-      "cexit_min_profit_th": 0.7,
-      "cexit_profit_nstd": 1.3,
+      "cexit_min_profit_th": 0.4,
+      "cexit_profit_nstd": 2.2,
       "enable_bb_check": false,
-      "entry_bb_factor": 1.04,
-      "entry_bb_width": 0.085,
+      "entry_bb_factor": 0.74,
+      "entry_bb_width": 0.059,
       "entry_guard_metric": 0.0
     },
     "sell": {
-      "cexit_loss_nstd": 0.4,
-      "cexit_metric_overbought": 0.78,
-      "cexit_metric_take_profit": 0.96,
-      "cexit_min_loss_th": -1.1,
+      "cexit_loss_nstd": 0.1,
+      "cexit_metric_overbought": 0.55,
+      "cexit_metric_take_profit": 0.89,
+      "cexit_min_loss_th": -0.1,
       "enable_exit_signal": true,
-      "exit_bb_factor": 0.77,
-      "exit_guard_metric": 0.1
+      "exit_bb_factor": 1.19,
+      "exit_guard_metric": 0.3
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2024-01-19 18:24:41.543626+00:00"
+  "export_time": "2024-01-19 18:34:30.293996+00:00"
 }

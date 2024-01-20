@@ -70,9 +70,8 @@ class BB_RMI(IStrategy):
         "subplots": {
             "Diff": {
                 "guard_metric": {"color": "orange"},
-                "bullish": {"color": "darkseagreen"},
-                "bearish": {"color": "darksalmon"},
-                "squeeze": {"color": "cornflowerblue"},
+                "buy_region": {"color": "darkseagreen"},
+                "sell_region": {"color": "darksalmon"},
             },
         },
     }
@@ -118,68 +117,95 @@ class BB_RMI(IStrategy):
     # Strategy Specific Variable Storage
     dataframeUtils = None
     scaler = RobustScaler()
+    training_mode = False
 
     # hyperparams
+
+
     # Buy hyperspace params:
     buy_params = {
-        "entry_bb_factor": 1.14,
-        "entry_bb_width": 0.051,
-        "entry_enable_squeeze": True,
-        "entry_guard_metric": -0.6,
+        "cexit_min_profit_th": 0.1,
+        "cexit_profit_nstd": 0.6,
+        "entry_bb_factor": 1.11,
+        "entry_bb_width": 0.02,
+        "entry_guard_metric": -0.2,
+        "enable_bb_check": True,  # value loaded from strategy
+        "enable_guard_metric": True,  # value loaded from strategy
+        "enable_squeeze": True,  # value loaded from strategy
     }
 
     # Sell hyperspace params:
     sell_params = {
-        "cexit_metric_overbought": 0.73,
-        "cexit_metric_take_profit": 0.86,
-        "exit_bb_factor": 0.91,
-        "exit_guard_metric": 0.3,
+        "cexit_loss_nstd": 1.1,
+        "cexit_metric_overbought": 0.74,
+        "cexit_metric_take_profit": 0.76,
+        "cexit_min_loss_th": -1.3,
+        "exit_bb_factor": 0.75,
+        "exit_guard_metric": 0.1,
         "enable_exit_signal": True,  # value loaded from strategy
     }
 
-    # entry params
+    # Entry
 
-    entry_enable_squeeze= CategoricalParameter(
-        [True, False], default=True, space="buy", load=True, optimize=True
+    # the following flags apply to both entry and exit
+    enable_guard_metric = CategoricalParameter(
+        [True, False], default=True, space="buy", load=True, optimize=False
         )
 
-    entry_bb_width = DecimalParameter(
-        0.01, 0.100, default=0.02, decimals=3, space="buy", load=True, optimize=True
+    enable_bb_check = CategoricalParameter(
+        [True, False], default=True, space="buy", load=True, optimize=False
         )
 
-    entry_bb_factor = DecimalParameter(
-        0.70, 1.20, default=0.8, decimals=2, space="buy", load=True, optimize=True
+    enable_squeeze = CategoricalParameter(
+        [True, False], default=True, space="buy", load=True, optimize=False
         )
 
     entry_guard_metric = DecimalParameter(
-        -0.8, 0.0, default=-0.5, decimals=1, space="buy", load=True, optimize=True
+        -0.8, 0.0, default=-0.6, decimals=1, space="buy", load=True, optimize=True
         )
 
-    # exit params
+    entry_bb_width = DecimalParameter(
+        0.020, 0.100, default=0.04, decimals=3, space="buy", load=True, optimize=True
+        )
 
+    entry_bb_factor = DecimalParameter(
+        0.70, 1.20, default=1.1, decimals=2, space="buy", load=True, optimize=True
+        )
+
+
+    # Exit
     # use exit signal? If disabled, just rely on the custom exit checks (or stoploss) to get out
     enable_exit_signal = CategoricalParameter(
-        [True, False], default=True, space="sell", load=True, optimize=False
+        [True, False], default=True, space="sell", load=True, optimize=True
+        )
+
+    exit_guard_metric = DecimalParameter(
+        0.0, 0.8, default=0.2, decimals=1, space="sell", load=True, optimize=True
         )
 
     exit_bb_factor = DecimalParameter(
         0.70, 1.20, default=0.8, decimals=2, space="sell", load=True, optimize=True
         )
 
-    exit_guard_metric = DecimalParameter(
-        0.0, 0.8, default=0.5, decimals=1, space="sell", load=True, optimize=True
-        )
 
-    # Custom Exit params
 
-    # Metric-based sell limits - used to bail out when in profit
+    # Custom Exit
+
+    # No. Standard Deviations of profit/loss for target, and lower limit
+    cexit_min_profit_th = DecimalParameter(0.0, 1.5, default=0.7, decimals=1, space="buy", load=True, optimize=True)
+    cexit_profit_nstd = DecimalParameter(0.0, 3.0, default=0.9, decimals=1, space="buy", load=True, optimize=True)
+
+    cexit_min_loss_th = DecimalParameter(-1.5, -0.0, default=-0.4, decimals=1, space="sell", load=True, optimize=True)
+    cexit_loss_nstd = DecimalParameter(0.0, 3.0, default=0.7, decimals=1, space="sell", load=True, optimize=True)
+
+    # Guard metric sell limits - used to bail out when in profit
     cexit_metric_overbought = DecimalParameter(
-        0.55, 0.99, default=0.99, decimals=2, space="sell", load=True, optimize=True
-        )
-    cexit_metric_take_profit = DecimalParameter(
-        0.55, 0.99, default=0.99, decimals=2, space="sell", load=True, optimize=True
+        0.55, 0.99, default=0.96, decimals=2, space="sell", load=True, optimize=True
         )
 
+    cexit_metric_take_profit = DecimalParameter(
+        0.55, 0.99, default=0.76, decimals=2, space="sell", load=True, optimize=True
+        )
 
 
     ###################################
@@ -201,7 +227,7 @@ class BB_RMI(IStrategy):
         return []
 
     ###################################
-
+    
     """
     Indicator Definitions
     """
@@ -273,34 +299,64 @@ class BB_RMI(IStrategy):
         conditions = []
         dataframe.loc[:, "enter_tag"] = ""
         dataframe["enter_long"] = 0
+        dataframe['buy_region'] = 0
 
-        # Bollinger band-based bull/bear indicators:
-
-        # calculate limits slightly within upper/lower bands
-
-        lower_limit = dataframe['bb_middleband'] - \
-             self.exit_bb_factor.value * (dataframe['bb_middleband'] - dataframe['bb_lowerband'])
-
-        dataframe['bullish'] = np.where(
-            (dataframe['close'] <= lower_limit)
-            , 1, 0)
-
-        dataframe['squeeze'] = np.where(
-            (dataframe['bb_width'] >= self.entry_bb_width.value)
-            , 1, 0)
+        if self.training_mode:
+            return dataframe
 
         # some trading volume (otherwise expect spread problems)
         conditions.append(dataframe["volume"] > 1.0)
 
-        # Guard metric in oversold region
-        conditions.append(dataframe["guard_metric"] < self.entry_guard_metric.value)
+        guard_conditions = []
 
-        # bullish region
-        conditions.append(dataframe["bullish"] > 0)
+        if self.enable_guard_metric.value:
 
-        # wide Bollinger Bands
-        if self.entry_enable_squeeze.value:
-            conditions.append(dataframe['squeeze'] > 0)
+            # Guard metric in oversold region
+            guard_conditions.append(dataframe["guard_metric"] < self.entry_guard_metric.value)
+
+            # in lower portion of previous window
+            # conditions.append(dataframe["close"] < dataframe["local_mean"])
+
+        if self.enable_bb_check.value:
+            # Bollinger band-based bull/bear indicators:
+            # Done here so that we can use hyperopt to find values
+
+            lower_limit = dataframe['bb_middleband'] - \
+                self.exit_bb_factor.value * (dataframe['bb_middleband'] - dataframe['bb_lowerband'])
+
+            dataframe['bullish'] = np.where(
+                (dataframe['close'] <= lower_limit)
+                , 1, 0)
+
+            # bullish region
+            guard_conditions.append(dataframe["bullish"] > 0)
+
+            # # not bearish (looser than bullish)
+            # conditions.append(dataframe["bearish"] >= 0)
+
+        if self.enable_squeeze.value:
+            dataframe['squeeze'] = np.where(
+                (dataframe['bb_width'] >= self.entry_bb_width.value)
+                , 1, 0)
+
+            guard_conditions.append(dataframe['squeeze'] > 0)
+
+
+        # add coulmn that combines guard conditions (for plotting)
+        if guard_conditions:
+            dataframe.loc[reduce(lambda x, y: x & y, guard_conditions), "buy_region"] = 1
+
+        # model triggers
+        model_cond = (
+            # buy region
+            (dataframe["buy_region"] > 0)
+        )
+
+        # conditions.append(metric_cond)
+        conditions.append(model_cond)
+
+        # set entry tags
+        dataframe.loc[model_cond, "enter_tag"] += "model_entry "
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), "enter_long"] = 1
@@ -317,22 +373,69 @@ class BB_RMI(IStrategy):
         conditions = []
         dataframe.loc[:, "exit_tag"] = ""
         dataframe["exit_long"] = 0
+        dataframe['sell_region'] = 0
 
-        upper_limit = dataframe['bb_middleband'] + \
-            self.entry_bb_factor.value * (dataframe['bb_upperband'] - dataframe['bb_middleband'])
+        if self.training_mode or (not self.enable_exit_signal.value):
+            return dataframe
 
-        dataframe['bearish'] = np.where(
-            (dataframe['close'] >= upper_limit)
-            , -1, 0)
+
+        dataframe['sell_region'] = 0
+        guard_conditions = []
+
 
         # some trading volume (otherwise expect spread problems)
         conditions.append(dataframe["volume"] > 0)
 
-        # Guard metric in overbought region
-        conditions.append(dataframe["guard_metric"] > self.exit_guard_metric.value)
+        if self.enable_guard_metric.value:
 
-        # bearish region
-        conditions.append(dataframe["bearish"] < 0)
+            # Guard metric in overbought region
+            guard_conditions.append(dataframe["guard_metric"] > self.exit_guard_metric.value)
+
+            # in upper portion of previous window
+            # guard_conditions.append(dataframe["close"] > dataframe["local_mean"])
+
+        if self.enable_bb_check.value:
+
+            # Bollinger band-based bull/bear indicators:
+            # Done here so that we can use hyperopt to find values
+
+            upper_limit = dataframe['bb_middleband'] + \
+            self.entry_bb_factor.value * (dataframe['bb_upperband'] - dataframe['bb_middleband'])
+
+            dataframe['bearish'] = np.where(
+                (dataframe['close'] >= upper_limit)
+                , -1, 0)
+
+            # bearish region
+            guard_conditions.append(dataframe["bearish"] < 0)
+
+            # # not bullish (looser than bearish)
+            # conditions.append(dataframe["bullish"] <= 0)
+
+        if self.enable_squeeze.value:
+            if not ('squeeze' in dataframe.columns):
+                dataframe['squeeze'] = np.where(
+                    (dataframe['bb_width'] >= self.entry_bb_width.value)
+                , 1, 0)
+
+            guard_conditions.append(dataframe['squeeze'] > 0)
+
+
+        if guard_conditions:
+            # add column that combines guard conditions (for plotting)
+            dataframe.loc[reduce(lambda x, y: x & y, guard_conditions), "sell_region"] = -1
+
+        # model triggers
+        model_cond = (
+
+            # sell region
+            (dataframe["sell_region"] < 0)
+        )
+
+        conditions.append(model_cond)
+
+        # set exit tags
+        dataframe.loc[model_cond, "exit_tag"] += "model_exit "
 
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), "exit_long"] = 1

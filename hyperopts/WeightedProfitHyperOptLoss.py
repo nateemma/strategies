@@ -19,7 +19,7 @@ from typing import Any, Dict
 
 # Constants to allow evaluation in cases where there is insufficient (or nonexistent) info in the configuration
 
-EXPECTED_TRADES_PER_DAY = 2                         # used to set target goals
+EXPECTED_TRADES_PER_DAY = 4                         # used to set target goals
 MIN_TRADES_PER_DAY = EXPECTED_TRADES_PER_DAY/3.0    # used to filter out scenarios where there are not enough trades
 EXPECTED_PROFIT_PER_TRADE = 0.003                   # be realistic. Setting this too high will eliminate potentially good solutions
 EXPECTED_AVE_PROFIT = 0.004                         # used to assess actual profit vs desired profit. Typical is 0.4% (0.004)
@@ -48,7 +48,7 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
         #                                                                                           backtest_stats['profit_mean'], backtest_stats['wins']))
 
         # define weights
-        weight_num_trades = 0.0
+        weight_num_trades = 0.5
         weight_duration = 0.0
         weight_abs_profit = 1.0
         weight_exp_profit = 0.5

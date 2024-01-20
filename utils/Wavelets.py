@@ -32,6 +32,9 @@ class base_wavelet(ABC):
     data_shape = None
     lookahead = 0
 
+    detrend_data = False
+    smooth_data = False
+    smooth_window = 4
 
     def __init__(self):
         super().__init__()
@@ -60,6 +63,10 @@ class base_wavelet(ABC):
         # more general purpose (can use with many waveforms)
         array, self.coeff_slices = pywt.coeffs_to_array(coeffs)
 
+        # re-trend
+        if self.detrend_data:
+            array = retrend(np.array(array))
+
         # print(f'    coeff_to_array: array:{np.shape(array)}')
         return np.array(array)
 
@@ -79,6 +86,51 @@ class base_wavelet(ABC):
         self.lookahead = lookahead
         return
 
+    # function to specify whether or not to detrend data before training/forecasting
+    def set_detrend(self, detrend_flag=True):
+        self.detrend_data = detrend_flag
+        return
+
+    # function to specify whether or not to smooth data before training/forecasting
+    def set_smooth(self, smooth_flag=True, smooth_window=4):
+        self.smooth_data = smooth_flag
+        self.smooth_window = smooth_window
+        return
+
+# -----------------------------------
+# de-trend and re-trend data
+# currently only works for 1d, and detrend/retrend must be paired, i.e. cannot call detrend() multiple times then expect to retrend
+
+trend_line = None
+
+
+def detrend(x, axis=0):
+    global trend_line
+    x = np.nan_to_num(x)
+    n = x.size
+
+    t = np.arange(0, len(x))
+    trend_poly = np.polyfit(t, x, 1)
+    trend_line = np.polyval(trend_poly, x)
+    x_notrend = x - trend_line
+
+    return x_notrend
+
+
+def retrend(x_trend, axis=0):
+    global trend_line
+    return x_trend + trend_line
+
+# -----------------------------------
+
+def smooth(y, window):
+    box = np.ones(window) / window
+    y_smooth = np.convolve(y, box, mode="same")
+    # Hack: constrain to 3 decimal places (should be elsewhere, but convenient here)
+    y_smooth = np.round(y_smooth, decimals=3)
+    return np.nan_to_num(y_smooth)
+
+
 # -----------------------------------
 
 # DWT - Discrete Wavelet Transform
@@ -89,9 +141,9 @@ class dwt_wavelet(base_wavelet):
 
         x = data
 
-        # # data must be of even length, so trim if necessary
-        # if (len(x) % 2) != 0:
-        #     x = x[1:]
+        # de-trend
+        if self.detrend_data:
+            x = detrend(x)
 
         # get the DWT coefficients
         self.wavelet_type = 'bior3.9'
@@ -150,9 +202,9 @@ class dwta_wavelet(base_wavelet):
 
         x = data
 
-        # # data must be of even length, so trim if necessary
-        # if (len(x) % 2) != 0:
-        #     x = x[1:]
+        # de-trend
+        if self.detrend_data:
+            x = detrend(x)
 
         # get the DWT coefficients
         self.wavelet_type = 'bior3.9'
@@ -188,6 +240,11 @@ class dwta_wavelet(base_wavelet):
     def coeff_to_array(self, coeffs):
         array = np.array(coeffs[0])
         self.save_coeffs = coeffs
+
+        # re-trend
+        if self.detrend_data:
+            array = retrend(array)
+
         return array
 
     def array_to_coeff(self, array):
@@ -204,7 +261,12 @@ class fft_wavelet(base_wavelet):
 
         x = data
 
-        freqs = rfft(x)
+        # de-trend
+        if self.detrend_data:
+            x = detrend(x)
+
+        # freqs = rfft(x)
+        freqs = fft(x)
 
         # # filter out higher harmonics
         # n_param = int(len(freqs) / 2) + 1
@@ -223,12 +285,20 @@ class fft_wavelet(base_wavelet):
 
     def get_values(self, coeffs):
         # reconstruct the data
-        series = irfft(coeffs)
+        # series = irfft(coeffs)
+        series = ifft(coeffs)
 
-        return series
+        return series.real
 
     def coeff_to_array(self, coeffs):
-        return np.ravel(coeffs)
+
+        array = np.ravel(coeffs)
+
+        # re-trend
+        if self.detrend_data:
+            array = retrend(np.array(array))
+
+        return array
 
     def array_to_coeff(self, array):
         # coeffs = np.reshape(array, self.data_shape)
@@ -251,6 +321,10 @@ class hfft_wavelet(base_wavelet):
 
         x = data
 
+        # de-trend
+        if self.detrend_data:
+            x = detrend(x)
+
         coeffs = hfft(x)
 
         self.data_shape = np.shape(coeffs)
@@ -266,7 +340,14 @@ class hfft_wavelet(base_wavelet):
         return series
 
     def coeff_to_array(self, coeffs):
-        return np.ravel(coeffs)
+
+        array = np.ravel(coeffs)
+
+        # re-trend
+        if self.detrend_data:
+            array = retrend(np.array(array))
+
+        return array
 
     def array_to_coeff(self, array):
         coeffs = np.reshape(array, self.data_shape)
@@ -282,6 +363,10 @@ class fht_wavelet(base_wavelet):
 
         x = data
 
+        # de-trend
+        if self.detrend_data:
+            x = detrend(x)
+
         # compute the fht
         self.dln = np.log(x[1]/x[0]) 
         coeffs = fht(x, mu=0.0, dln=self.dln)
@@ -296,7 +381,13 @@ class fht_wavelet(base_wavelet):
     def coeff_to_array(self, coeffs):
         self.data_shape = np.shape(coeffs)
         array = coeffs.flatten()
+
+        # re-trend
+        if self.detrend_data:
+            array = retrend(array)
+
         return array
+        return arra
 
     def array_to_coeff(self, array):
         series = array.reshape(self.data_shape)
@@ -310,6 +401,10 @@ class modwt_wavelet(base_wavelet):
     def get_coeffs(self, data: np.array) -> np.array:
 
         x = data
+
+        # de-trend
+        if self.detrend_data:
+            x = detrend(x)
 
         # # data must be of even length, so trim if necessary
         # if (len(x) % 2) != 0:
@@ -331,6 +426,11 @@ class modwt_wavelet(base_wavelet):
     def coeff_to_array(self, coeffs):
         array = coeffs.flatten()
         self.data_shape = np.shape(coeffs)
+
+        # re-trend
+        if self.detrend_data:
+            array = retrend(array)
+
         return array
 
     def array_to_coeff(self, array):
@@ -345,6 +445,10 @@ class swt_wavelet(base_wavelet):
     def get_coeffs(self, data: np.array) -> np.array:
 
         x = data
+
+        # de-trend
+        if self.detrend_data:
+            x = detrend(x)
 
         # data must be of even length, so trim if necessary
         if (len(x) % 2) != 0:
@@ -369,6 +473,51 @@ class swt_wavelet(base_wavelet):
 
     def array_to_coeff(self, array):
         return super().array_to_coeff(array)
+
+# -----------------------------------
+
+# SWT - Standing Wave Transform, Approximate coefficients only
+
+class swta_wavelet(base_wavelet):
+    def get_coeffs(self, data: np.array) -> np.array:
+
+        x = data
+
+        # de-trend
+        if self.detrend_data:
+            x = detrend(x)
+
+        # data must be of even length, so trim if necessary
+        if (len(x) % 2) != 0:
+            x = x[1:]
+
+        self.wavelet = 'bior3.9'
+        self.coeff_format = "wavedec"
+
+        # (cA2, cD2), (cA1, cD1) = pywt.swt(data, wavelet, level=2)
+        # swt returns an array, with each element being 2 arrays - cA_n and cD_n, where n is the level
+        levels = min(3, pywt.swt_max_level(len(x)))
+        coeffs = pywt.swt(x, self.wavelet, level=levels, trim_approx=True)
+
+        print(f'pywt.__version__: {pywt.__version__}')
+        print (f'coeffs:{coeffs}')
+
+        # Zero out the detail coefficients
+        coeffs0 = [coeffs[0]] + [np.zeros_like(cD) for cD in coeffs[1:]]
+
+        return coeffs0
+
+    def get_values(self, coeffs):
+        series = pywt.iswt(coeffs, wavelet=self.wavelet)
+
+        return series
+
+    def coeff_to_array(self, coeffs):
+        return super().coeff_to_array(coeffs)
+
+    def array_to_coeff(self, array):
+        return super().array_to_coeff(array)
+
 # -----------------------------------
 
 # WPT - Wavelet Packet Transform
@@ -380,6 +529,10 @@ class wpt_wavelet(base_wavelet):
     def get_coeffs(self, data: np.array) -> np.array:
 
         x = data
+
+        # de-trend
+        if self.detrend_data:
+            x = detrend(x)
 
         # # data must be of even length, so trim if necessary
         # if (len(x) % 2) != 0:
@@ -407,6 +560,11 @@ class wpt_wavelet(base_wavelet):
 
     def coeff_to_array(self, coeffs):
         array = np.concatenate([coeff.data for coeff in coeffs])
+
+        # re-trend
+        if self.detrend_data:
+            array = retrend(array)
+
         return array
 
     def array_to_coeff(self, array):
@@ -426,6 +584,7 @@ class WaveletType(Enum):
     FHT = fht_wavelet
     MODWT = modwt_wavelet
     SWT = swt_wavelet
+    SWTA = swta_wavelet
     WPT = wpt_wavelet
 
 

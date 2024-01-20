@@ -51,7 +51,7 @@ def timer(func):
 
 
 # -----------------------------------
-model_window = 64
+model_window = 32
 
 class WaveletPredictor:
     wavelet = None
@@ -77,7 +77,7 @@ class WaveletPredictor:
     wavelet_size = 64  # Windowing should match this. Longer = better but slower with edge effects. Should be even
     model_window = wavelet_size # longer = slower
     train_min_len = wavelet_size // 2 # longer = slower
-    train_max_len = wavelet_size * 2 # longer = slower
+    train_max_len = wavelet_size * 4 # longer = slower
     scale_len = wavelet_size // 2 # no. recent candles to use when scaling
     win_size = wavelet_size
 
@@ -87,6 +87,7 @@ class WaveletPredictor:
     def set_data(self, dataframe:DataFrame):
         self.curr_dataframe = dataframe
         self.data = np.array(dataframe["gain"])
+        self.data = self.smooth(self.data, 2)
         self.data = np.nan_to_num(self.data)
         # self.data = self.smooth(self.data, 2)
         self.build_coefficient_table(0, np.shape(self.data)[0])
@@ -105,7 +106,7 @@ class WaveletPredictor:
         self.model_window = self.wavelet_size
         self.train_min_len = self.wavelet_size // 2 
         self.train_max_len = self.wavelet_size * 4
-        self.scale_len = min(8, self.wavelet_size // 2)
+        self.scale_len = max(8, self.wavelet_size // 2)
         self.win_size = self.wavelet_size
         return
 
@@ -151,6 +152,29 @@ class WaveletPredictor:
         # Hack: constrain to 3 decimal places (should be elsewhere, but convenient here)
         y_smooth = np.round(y_smooth, decimals=3)
         return np.nan_to_num(y_smooth)
+
+    # scales array y, based on array x
+    def scale_array(self, target, data):
+
+        # detrend the input arrays
+        t = np.arange(0, len(target))
+        t_poly = np.polyfit(t, target, 1)
+        t_line = np.polyval(t_poly, target)
+        x = target - t_line
+
+        t = np.arange(0, len(data))
+        d_poly = np.polyfit(t, data, 1)
+        d_line = np.polyval(d_poly, data)
+        y = data - d_line
+
+        # scale untrended data
+        self.update_scaler(x)
+        y_scaled = self.denorm_array(y)
+
+        # retrend
+        y_scaled = y_scaled + d_line
+
+        return y_scaled
 
 
     def convert_dataframe(self, dataframe: DataFrame) -> DataFrame:
@@ -260,6 +284,13 @@ class WaveletPredictor:
 
         # print(f'merge_coeff_table() self.coeff_table: {np.shape(self.coeff_table)}')
 
+        # apply smoothing to each column, otherwise prediction alogorithms will struggle
+        num_cols = np.shape(self.coeff_table)[1]
+        for j in range (num_cols):
+            feature = self.coeff_table[:,j]
+            feature = self.smooth(feature, 4)
+            self.coeff_table[:,j] = feature
+
         self.coeff_num_cols = np.shape(self.coeff_table)[1]
 
         # if using single column prediction, no need to merge in dataframe column because they won't be used
@@ -281,7 +312,7 @@ class WaveletPredictor:
     # generate predictions for an np array 
     def predict_data(self, predict_start, predict_end):
 
-       # a little different than other strats, since we train a model for each column
+        # a little different than other strats, since we train a model for each column
 
         # check that we have enough data to run a prediction, if not return zeros
         if self.forecaster.requires_pretraining():
@@ -300,7 +331,7 @@ class WaveletPredictor:
 
         # train on previous data
         # train_end = max(self.train_min_len, predict_start-1)
-        train_end = min(predict_end - 1, nrows - self.lookahead - 1)
+        train_end = min(predict_end - self.lookahead - 1, nrows - self.lookahead - 2)
         train_start = max(0, train_end-self.train_max_len)
         results_start = train_start + self.lookahead
         results_end = train_end + self.lookahead
@@ -314,13 +345,16 @@ class WaveletPredictor:
             plen = 2 * self.model_window
             start = max(0, end-plen+1)
 
-        # print(f'self.coeff_table_offset:{self.coeff_table_offset} start:{start} end:{end}')
+        # print(f' predict_start:{predict_start} predict_end:{predict_end} start:{start} end:{end}')
+
+        # print(f'   {predict_end} < ({self.train_min_len} + {self.wavelet_size} + {self.lookahead})')
 
         # get the data buffers from self.coeff_table
         if not self.single_col_prediction: # single_column version done inside loop
             predict_data = self.coeff_table[start:end]
             # predict_data = np.nan_to_num(predict_data)
-            train_data = self.coeff_table[train_start:train_end]
+            if self.forecaster.requires_pretraining():
+                train_data = self.coeff_table[train_start:train_end]
             # results = self.coeff_table[results_start:results_end]
 
 
@@ -342,17 +376,18 @@ class WaveletPredictor:
             # print(f'train_data: {np.shape(train_data)}')
             # print(f'results: {np.shape(results)}')
 
-            # since we know we are switching data surces, disable incremental training
-            self.forecaster.train(train_data, results, incremental=False)
+            if self.forecaster.requires_pretraining():
+                # since we know we are switching data surces, disable incremental training
+                self.forecaster.train(train_data, results, incremental=False)
 
             # get a prediction
             preds = self.forecaster.forecast(predict_data, self.lookahead)
-            # if not self.single_col_prediction:
-            #     preds = preds[:,i] # extarct the column we are currently predicting
-            # print(f'preds: {np.shape(preds)}')
 
             if preds.ndim > 1:
                 preds = preds.squeeze()
+
+            # smooth predictions to try and avoid drastic changes
+            preds = self.smooth(preds, 4)
 
             # append prediction for this column
             coeff_arr.append(preds[-1])
@@ -362,10 +397,15 @@ class WaveletPredictor:
         coeffs = self.wavelet.array_to_coeff(c_array)
         preds = self.wavelet.get_values(coeffs)
 
+
+        # scale results to somewhat match the (recent) input
+        # preds = self.denorm_array(preds)
+
+        preds = self.scale_array(self.data[predict_end-self.scale_len:predict_end], preds)
+
         # print(f'preds[{start}:{end}] len:{len(preds)}: {preds}')
         # print(f'preds[{end}]: {preds[-1]}')
         # print('===========================')
-
 
         return preds
 
@@ -410,19 +450,19 @@ class WaveletPredictor:
         else:
             min_data = self.wavelet_size
 
-        start = 0
         end = min_data - 1
+        start = max(0, end - self.wavelet_size)
 
         x = np.nan_to_num(np.array(data))
         preds = np.zeros(len(x), dtype=float)
-
+ 
         while end < len(x):
 
             # print(f'    start:{start} end:{end} train_max_len:{self.train_max_len} model_window:{self.model_window} min_data:{min_data}')
             if end < (min_data-1):
                 preds[end] = 0.0
-                start = start + 1
                 end = end + 1
+                start = max(0, end - self.wavelet_size)
                 continue
 
             scale_start = max(0, start-self.scale_len)
@@ -434,8 +474,8 @@ class WaveletPredictor:
 
             # print(f'forecast: {forecast}')
 
-            start = start + 1
             end = end + 1
+            start = max(0, end - self.wavelet_size)
 
         return preds
 
@@ -491,7 +531,7 @@ num_samples = 512
 
 test_data = np.load('test_data.npy')
 
-data = test_data[0:min(512, len(test_data))]
+data = test_data[0:min(1024, len(test_data))]
 
 # data = StandardScaler().fit_transform(data.reshape(-1,1)).reshape(-1)
 # data = RobustScaler().fit_transform(data.reshape(-1,1)).reshape(-1)
@@ -509,14 +549,15 @@ lookahead = 6
 wlist = [
     # Wavelets.WaveletType.MODWT,
     # Wavelets.WaveletType.SWT,
+    Wavelets.WaveletType.SWTA,
     # Wavelets.WaveletType.WPT,
     # Wavelets.WaveletType.FFT,
     # Wavelets.WaveletType.HFFT,
     # Wavelets.WaveletType.DWT,
-    Wavelets.WaveletType.DWTA,
+    # Wavelets.WaveletType.DWTA,
     ]
 flist = [
-    # Forecasters.ForecasterType.NULL, # use this to show effect of wavelet alone
+    Forecasters.ForecasterType.NULL, # use this to show effect of wavelet alone
     # Forecasters.ForecasterType.EXPONENTAL,
     # Forecasters.ForecasterType.ETS,
     # Forecasters.ForecasterType.SIMPLE_EXPONENTAL,
@@ -530,8 +571,8 @@ flist = [
     # Forecasters.ForecasterType.FFT_EXTRAPOLATION,
     # Forecasters.ForecasterType.MLP,
     # Forecasters.ForecasterType.KMEANS,
-    Forecasters.ForecasterType.PA,
-    # Forecasters.ForecasterType.SGD,
+    # Forecasters.ForecasterType.PA,
+    Forecasters.ForecasterType.SGD,
     # Forecasters.ForecasterType.SVR,
     # Forecasters.ForecasterType.GB,
     # Forecasters.ForecasterType.HGB,

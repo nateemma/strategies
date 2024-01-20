@@ -98,13 +98,12 @@ class TSPredict(IStrategy):
             "Diff": {
                 "predicted_gain": {"color": "rebeccapurple"},
                 "shifted_pred": {"color": "skyblue"},
+                # "squeeze": {"color": "red"},
                 "gain": {"color": "green"},
                 "target_profit": {"color": "lightgreen"},
                 "target_loss": {"color": "lightsalmon"},
-                "guard_metric": {"color": "orange"},
-                "bullish": {"color": "darkseagreen"},
-                "bearish": {"color": "darksalmon"},
-                "squeeze": {"color": "cornflowerblue"},
+                "buy_region": {"color": "darkseagreen"},
+                "sell_region": {"color": "darksalmon"},
             },
         },
     }
@@ -168,6 +167,8 @@ class TSPredict(IStrategy):
     wavelet = None
 
     forecaster_type:Forecasters.ForecasterType = Forecasters.ForecasterType.PA
+    # forecaster_type:Forecasters.ForecasterType = Forecasters.ForecasterType.SGD
+    # forecaster_type:Forecasters.ForecasterType = Forecasters.ForecasterType.SVR
     forecaster = None
 
     data = None
@@ -210,43 +211,48 @@ class TSPredict(IStrategy):
 
     # Buy hyperspace params:
     buy_params = {
-        "cexit_min_profit_th": 0.8,
+        "cexit_min_profit_th": 0.6,
         "cexit_profit_nstd": 1.0,
-        "enable_entry_guards": False,
-        "entry_bb_factor": 0.93,
-        "entry_bb_width": 0.08,
-        "entry_enable_squeeze": False,
-        "entry_guard_metric": 0.0,
+        "enable_bb_check": False,
+        "entry_bb_factor": 1.09,
+        "entry_bb_width": 0.026,
+        "entry_guard_metric": -0.3,
+        "enable_guard_metric": True,  # value loaded from strategy
+        "enable_squeeze": True,  # value loaded from strategy
     }
 
     # Sell hyperspace params:
     sell_params = {
-        "cexit_loss_nstd": 1.2,
-        "cexit_metric_overbought": 0.8,
-        "cexit_metric_take_profit": 0.71,
-        "cexit_min_loss_th": 0.0,
-        "enable_exit_guards": True,
-        "enable_exit_signal": False,
-        "exit_bb_factor": 1.07,
-        "exit_enable_squeeze": True,
-        "exit_guard_metric": 0.2,
+        "cexit_loss_nstd": 2.9,
+        "cexit_metric_overbought": 0.68,
+        "cexit_metric_take_profit": 0.56,
+        "cexit_min_loss_th": -0.3,
+        "enable_exit_signal": True,
+        "exit_bb_factor": 1.13,
+        "exit_guard_metric": 0.6,
     }
 
     # Entry
-    enable_entry_guards = CategoricalParameter(
+
+    # the following flags apply to both entry and exit
+    enable_guard_metric = CategoricalParameter(
+        [True, False], default=True, space="buy", load=True, optimize=False
+        )
+
+    enable_bb_check = CategoricalParameter(
         [True, False], default=True, space="buy", load=True, optimize=True
+        )
+
+    enable_squeeze = CategoricalParameter(
+        [True, False], default=True, space="buy", load=True, optimize=False
         )
 
     entry_guard_metric = DecimalParameter(
-        -0.8, 0.0, default=-0.6, decimals=1, space="buy", load=True, optimize=True
-        )
-
-    entry_enable_squeeze= CategoricalParameter(
-        [True, False], default=True, space="buy", load=True, optimize=True
+        -0.8, 0.0, default=-0.2, decimals=1, space="buy", load=True, optimize=True
         )
 
     entry_bb_width = DecimalParameter(
-        0.020, 0.100, default=0.04, decimals=3, space="buy", load=True, optimize=True
+        0.020, 0.100, default=0.02, decimals=3, space="buy", load=True, optimize=True
         )
 
     entry_bb_factor = DecimalParameter(
@@ -255,41 +261,35 @@ class TSPredict(IStrategy):
 
 
     # Exit
-    enable_exit_guards = CategoricalParameter(
+    # use exit signal? If disabled, just rely on the custom exit checks (or stoploss) to get out
+    enable_exit_signal = CategoricalParameter(
         [True, False], default=True, space="sell", load=True, optimize=True
         )
 
     exit_guard_metric = DecimalParameter(
-        0.0, 0.8, default=0.2, decimals=1, space="sell", load=True, optimize=True
+        0.0, 0.8, default=0.0, decimals=1, space="sell", load=True, optimize=True
         )
 
     exit_bb_factor = DecimalParameter(
         0.70, 1.20, default=0.8, decimals=2, space="sell", load=True, optimize=True
         )
 
-    # use exit signal? If disabled, just rely on the custom exit checks (or stoploss) to get out
-    enable_exit_signal = CategoricalParameter(
-        [True, False], default=True, space="sell", load=True, optimize=True
-        )
-
-    exit_enable_squeeze= CategoricalParameter(
-        [True, False], default=False, space="sell", load=True, optimize=True
-        )
 
 
     # Custom Exit
 
     # No. Standard Deviations of profit/loss for target, and lower limit
-    cexit_min_profit_th = DecimalParameter(0.0, 2.0, default=0.7, decimals=1, space="buy", load=True, optimize=True)
-    cexit_profit_nstd = DecimalParameter(0.0, 4.0, default=0.9, decimals=1, space="buy", load=True, optimize=True)
+    cexit_min_profit_th = DecimalParameter(0.0, 1.5, default=0.7, decimals=1, space="buy", load=True, optimize=True)
+    cexit_profit_nstd = DecimalParameter(0.0, 3.0, default=0.9, decimals=1, space="buy", load=True, optimize=True)
 
-    cexit_min_loss_th = DecimalParameter(-2.0, -0.0, default=-0.4, decimals=1, space="sell", load=True, optimize=True)
-    cexit_loss_nstd = DecimalParameter(0.0, 4.0, default=0.7, decimals=1, space="sell", load=True, optimize=True)
+    cexit_min_loss_th = DecimalParameter(-1.5, -0.0, default=-0.4, decimals=1, space="sell", load=True, optimize=True)
+    cexit_loss_nstd = DecimalParameter(0.0, 3.0, default=0.7, decimals=1, space="sell", load=True, optimize=True)
 
     # Guard metric sell limits - used to bail out when in profit
     cexit_metric_overbought = DecimalParameter(
         0.55, 0.99, default=0.96, decimals=2, space="sell", load=True, optimize=True
         )
+
     cexit_metric_take_profit = DecimalParameter(
         0.55, 0.99, default=0.76, decimals=2, space="sell", load=True, optimize=True
         )
@@ -439,6 +439,19 @@ class TSPredict(IStrategy):
         dataframe['guard_metric'] = dataframe['srmi']
 
 
+        use_kc_squeeze = False
+
+        if use_kc_squeeze:
+            # Calculate the Keltner Channel
+            keltner = qtpylib.keltner_channel(dataframe, window=window_size, atrs=4)
+            upper_kc = keltner["upper"]
+            lower_kc = keltner["lower"]
+            upper_bb = dataframe['bb_upperband']
+            lower_bb = dataframe['bb_lowerband']
+
+            # calculate BB/KC squeeze
+            dataframe['squeeze'] = np.where(((lower_bb > lower_kc) & (upper_bb < upper_kc)), 1, 0)
+
         # Add strategy-specific indicators
         dataframe = self.add_strategy_indicators(dataframe)
 
@@ -502,6 +515,8 @@ class TSPredict(IStrategy):
         y_smooth = np.round(y_smooth, decimals=3)
         return np.nan_to_num(y_smooth)
 
+    #-----------------------
+
     # look ahead to get future gain. Do *not* put this into the main dataframe!
     def get_future_gain(self, dataframe):
         df = self.convert_dataframe(dataframe)
@@ -513,6 +528,49 @@ class TSPredict(IStrategy):
         # future_gain = dataframe['gain'].shift(-self.lookahead).to_numpy()
         # return self.smooth(future_gain, 8)
         return future_gain
+
+    #-------------
+    # Normalisation
+
+    array_scaler = RobustScaler()
+
+    def update_scaler(self, data):
+
+        if not self.array_scaler:
+            self.array_scaler = RobustScaler()
+
+        self.array_scaler.fit(data.reshape(-1,1))
+
+    def norm_array(self, a):
+            return self.array_scaler.transform(a.reshape(-1, 1))
+
+    def denorm_array(self, a):
+            return self.array_scaler.inverse_transform(a.reshape(-1, 1)).squeeze()
+
+    # scales array data, based on array target
+    def scale_array(self, target, data):
+
+        # detrend the input arrays
+        t = np.arange(0, len(target))
+        t_poly = np.polyfit(t, target, 1)
+        t_line = np.polyval(t_poly, target)
+        x = target - t_line
+
+        t = np.arange(0, len(data))
+        d_poly = np.polyfit(t, data, 1)
+        d_line = np.polyval(d_poly, data)
+        y = data - d_line
+
+        # scale untrended data
+        self.update_scaler(x)
+        y_scaled = self.denorm_array(y)
+
+        # retrend
+        y_scaled = y_scaled + d_line
+
+        return y_scaled
+
+    #-------------
 
     ###################################
 
@@ -660,7 +718,13 @@ class TSPredict(IStrategy):
             future_gain_data = self.get_future_gain(df)
             data = self.get_data(df)
 
-            training_data = data[: -self.lookahead - 1].copy()
+            if self.single_col_prediction:
+                training_data = dataframe['gain'].to_numpy()
+                training_data = self.smooth(training_data, 2)
+                training_data = training_data.reshape(-1,1)
+            else:
+                training_data = data.copy()
+            training_data = training_data[: -self.lookahead - 1]
             training_labels = future_gain_data[: -self.lookahead - 1].copy()
 
             if not self.model_trained:
@@ -685,7 +749,11 @@ class TSPredict(IStrategy):
     def get_data(self, dataframe):
         # default is to just normalise the dataframe and convert to numpy array
         self.curr_dataframe = dataframe
-        self.data = np.array(self.convert_dataframe(dataframe))
+        df = dataframe.copy()
+        gain = df['gain'].to_numpy()
+        gain = self.smooth(gain, 2)
+        df['gain'] = gain
+        self.data = np.array(self.convert_dataframe(df))
         return self.data
 
     # -------------
@@ -697,6 +765,12 @@ class TSPredict(IStrategy):
         preds = forecaster.forecast(x, self.lookahead)
 
         # print(f'    data:{np.shape(data)} preds:{np.shape(preds)}')
+
+        # smooth predictions to try and avoid drastic changes
+        preds = self.smooth(preds, 4)
+
+        # scale the results to generally match the input characteristics
+        preds = self.scale_array(data[-8:], preds)
 
         preds = np.clip(preds, -3.0, 3.0)
         return preds
@@ -751,11 +825,13 @@ class TSPredict(IStrategy):
         nrows = np.shape(self.training_data)[0]
 
         start = 0
-        end = start + win_size - 1
+        end = start + win_size
         scale_start = max(0, end-self.scale_len)
 
-        # train_end = max(0, start - 1)
-        train_end = min(end - 1, nrows - self.lookahead - 2)
+        # train_end = max(0, start  - self.lookahead - 1)
+        # train_end = max(0, start  - 1)
+        # train_end = max(0, start - self.lookahead - 1)
+        train_end = min(end - self.lookahead - 1, nrows - self.lookahead - 2) # potential lookahead problem
         train_start = max(0, train_end-self.train_len)
 
 
@@ -792,8 +868,9 @@ class TSPredict(IStrategy):
             # move the window to the next segment
             end = end + 1
             start = start + 1
+            # train_end = start - self.lookahead - 1
             # train_end = start - 1
-            train_end = min(end - 1, nrows - self.lookahead - 2)
+            train_end = min(end - self.lookahead - 1, nrows - self.lookahead - 2) # potential lookahead problem
             train_start = max(0, train_end-self.train_len)
 
         # save the updated/trained forecaster
@@ -825,9 +902,9 @@ class TSPredict(IStrategy):
 
         # loop until we get to/past the end of the buffer
         # start = win_size
-        start = 0
+        start = self.lookahead + self.train_len
         end = start + win_size - 1
-        train_end = start - 1
+        train_end = max(0, start - self.lookahead - 1)
         train_size = self.train_len
         train_start = max(0, train_end - train_size)
         scale_start = max(0, end-self.scale_len)
@@ -867,7 +944,7 @@ class TSPredict(IStrategy):
             # move the window to the next segment
             end = end + win_size
             start = start + win_size
-            train_end = start - 1
+            train_end = start - self.lookahead - 1
             train_start = max(0, train_end - train_size)
 
         # make sure the last section gets processed (the loop above may not exactly fit the data)
@@ -897,7 +974,13 @@ class TSPredict(IStrategy):
             future_gain_data = self.get_future_gain(dataframe)
             data = self.get_data(dataframe)
 
-            self.training_data = data.copy()
+            if self.single_col_prediction:
+                self.training_data = dataframe['gain'].to_numpy()
+                self.training_data = self.smooth(self.training_data, 2)
+                self.training_data = self.training_data.reshape(-1,1)
+            else:
+                self.training_data = data.copy()
+
             self.training_labels = np.zeros(np.shape(future_gain_data), dtype=float)
             self.training_labels = future_gain_data.copy()
 
@@ -1067,59 +1150,72 @@ class TSPredict(IStrategy):
     def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         conditions = []
         dataframe.loc[:, "enter_tag"] = ""
+        dataframe["enter_long"] = 0
+        dataframe['buy_region'] = 0
 
         if self.training_mode:
-            dataframe["enter_long"] = 0
             return dataframe
 
         # update gain targets here so that we can use hyperopt parameters
         dataframe = self.update_gain_targets(dataframe)
 
-        # Bollinger band-based bull/bear indicators:
-        # Done here so that we can use hyperopt to find values
+        # some trading volume (otherwise expect spread problems)
+        conditions.append(dataframe["volume"] > 1.0)
 
-        lower_limit = dataframe['bb_middleband'] - \
-             self.exit_bb_factor.value * (dataframe['bb_middleband'] - dataframe['bb_lowerband'])
+        guard_conditions = []
 
-        dataframe['bullish'] = np.where(
-            (dataframe['close'] <= lower_limit)
-            , 1, 0)
-
-        dataframe['squeeze'] = np.where(
-            (dataframe['bb_width'] >= self.entry_bb_width.value)
-            , 1, 0)
-
-        if self.enable_entry_guards.value:
-
-            # some trading volume (otherwise expect spread problems)
-            conditions.append(dataframe["volume"] > 1.0)
+        if self.enable_guard_metric.value:
 
             # Guard metric in oversold region
-            conditions.append(dataframe["guard_metric"] < self.entry_guard_metric.value)
+            guard_conditions.append(dataframe["guard_metric"] < self.entry_guard_metric.value)
 
             # in lower portion of previous window
             # conditions.append(dataframe["close"] < dataframe["local_mean"])
 
+        if self.enable_bb_check.value:
+            # Bollinger band-based bull/bear indicators:
+            # Done here so that we can use hyperopt to find values
+
+            lower_limit = dataframe['bb_middleband'] - \
+                self.exit_bb_factor.value * (dataframe['bb_middleband'] - dataframe['bb_lowerband'])
+
+            dataframe['bullish'] = np.where(
+                (dataframe['close'] <= lower_limit)
+                , 1, 0)
+
             # bullish region
-            conditions.append(dataframe["bullish"] > 0)
+            guard_conditions.append(dataframe["bullish"] > 0)
 
             # # not bearish (looser than bullish)
             # conditions.append(dataframe["bearish"] >= 0)
 
-            # wide Bollinger Bands
-            if self.entry_enable_squeeze.value:
-                conditions.append(dataframe['squeeze'] > 0)
+        if self.enable_squeeze.value:
+            if not ('squeeze' in dataframe.columns):
+                dataframe['squeeze'] = np.where(
+                    (dataframe['bb_width'] >= self.entry_bb_width.value)
+                    , 1, 0)
+
+            guard_conditions.append(dataframe['squeeze'] > 0)
+
+
+        # add coulmn that combines guard conditions (for plotting)
+        if guard_conditions:
+            dataframe.loc[reduce(lambda x, y: x & y, guard_conditions), "buy_region"] = 1
 
             # model triggers
             model_cond = (
-
-                # prediction crossed target
-                qtpylib.crossed_above(dataframe["predicted_gain"], dataframe["target_profit"])
-                |
+                # buy region
+                (dataframe["buy_region"] > 0)
+                &
                 (
-                    # add this version if volume checks are enabled, because we might miss the crossing otherwise
-                    (dataframe["predicted_gain"] > dataframe["target_profit"]) &
-                    (dataframe["predicted_gain"].shift() > dataframe["target_profit"].shift())
+                    # prediction crossed target
+                    qtpylib.crossed_above(dataframe["predicted_gain"], dataframe["target_profit"])
+                    |
+                    (
+                        # add this version if volume checks are enabled, because we might miss the crossing otherwise
+                        (dataframe["predicted_gain"] > dataframe["target_profit"]) &
+                        (dataframe["predicted_gain"].shift() > dataframe["target_profit"].shift())
+                    )
                 )
             )
         else:
@@ -1149,57 +1245,74 @@ class TSPredict(IStrategy):
     def populate_exit_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         conditions = []
         dataframe.loc[:, "exit_tag"] = ""
+        dataframe["exit_long"] = 0
+        dataframe['sell_region'] = 0
 
         if self.training_mode or (not self.enable_exit_signal.value):
-            dataframe["exit_long"] = 0
             return dataframe
 
 
-        # Bollinger band-based bull/bear indicators:
-        # Done here so that we can use hyperopt to find values
+        dataframe['sell_region'] = 0
+        guard_conditions = []
 
-        upper_limit = dataframe['bb_middleband'] + \
-        self.entry_bb_factor.value * (dataframe['bb_upperband'] - dataframe['bb_middleband'])
 
-        dataframe['bearish'] = np.where(
-            (dataframe['close'] >= upper_limit)
-            , -1, 0)
+        # some trading volume (otherwise expect spread problems)
+        conditions.append(dataframe["volume"] > 0)
 
-        if not ('squeeze' in dataframe.columns):
-            dataframe['squeeze'] = np.where(
-                (dataframe['bb_width'] >= self.entry_bb_width.value)
-            , 1, 0)
-
-        if self.enable_exit_guards.value:
-            # some trading volume (otherwise expect spread problems)
-            conditions.append(dataframe["volume"] > 0)
+        if self.enable_guard_metric.value:
 
             # Guard metric in overbought region
-            conditions.append(dataframe["guard_metric"] > self.exit_guard_metric.value)
+            guard_conditions.append(dataframe["guard_metric"] > self.exit_guard_metric.value)
 
             # in upper portion of previous window
-            # conditions.append(dataframe["close"] > dataframe["local_mean"])
+            # guard_conditions.append(dataframe["close"] > dataframe["local_mean"])
+
+        if self.enable_bb_check.value:
+
+            # Bollinger band-based bull/bear indicators:
+            # Done here so that we can use hyperopt to find values
+
+            upper_limit = dataframe['bb_middleband'] + \
+            self.entry_bb_factor.value * (dataframe['bb_upperband'] - dataframe['bb_middleband'])
+
+            dataframe['bearish'] = np.where(
+                (dataframe['close'] >= upper_limit)
+                , -1, 0)
 
             # bearish region
-            conditions.append(dataframe["bearish"] < 0)
-
-            # wide Bollinger Bands
-            if self.exit_enable_squeeze.value:
-                conditions.append(dataframe['squeeze'] > 0)
+            guard_conditions.append(dataframe["bearish"] < 0)
 
             # # not bullish (looser than bearish)
             # conditions.append(dataframe["bullish"] <= 0)
 
+        if self.enable_squeeze.value:
+            if not ('squeeze' in dataframe.columns):
+                dataframe['squeeze'] = np.where(
+                    (dataframe['bb_width'] >= self.entry_bb_width.value)
+                , 1, 0)
+
+            guard_conditions.append(dataframe['squeeze'] > 0)
+
+
+        if guard_conditions:
+            # add column that combines guard conditions (for plotting)
+            dataframe.loc[reduce(lambda x, y: x & y, guard_conditions), "sell_region"] = -1
+
             # model triggers
             model_cond = (
 
-                # prediction crossed target
-                qtpylib.crossed_below(dataframe["predicted_gain"], dataframe["target_loss"])
-                |
+                # sell region
+                (dataframe["sell_region"] < 0)
+                &
                 (
-                    # add this if volume checks are enabled, because we might miss the crossing otherwise
-                    (dataframe["predicted_gain"] < dataframe["target_loss"]) &
-                    (dataframe["predicted_gain"].shift() < dataframe["target_loss"].shift())
+                    # prediction crossed target
+                    qtpylib.crossed_below(dataframe["predicted_gain"], dataframe["target_loss"])
+                    |
+                    (
+                        # add this if volume checks are enabled, because we might miss the crossing otherwise
+                        (dataframe["predicted_gain"] < dataframe["target_loss"]) &
+                        (dataframe["predicted_gain"].shift() < dataframe["target_loss"].shift())
+                    )
                 )
             )
         else:
