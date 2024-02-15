@@ -160,10 +160,10 @@ class TSPredict(IStrategy):
 
 
 
-    use_rolling = True # True = rolling (slow but realistic), False = Jumping (much faster, less realistic)
+    use_rolling = False # True = rolling (slow but realistic), False = Jumping (much faster, less realistic)
     single_col_prediction = False # True = use only gain. False = use all columns (better, but much slower)
 
-    wavelet_type:Wavelets.WaveletType = Wavelets.WaveletType.DWTA
+    wavelet_type:Wavelets.WaveletType = Wavelets.WaveletType.DWT
     wavelet = None
 
     forecaster_type:Forecasters.ForecasterType = Forecasters.ForecasterType.PA
@@ -173,7 +173,7 @@ class TSPredict(IStrategy):
 
     data = None
 
-    wavelet_size = 32 # needed for consistently-sized transforms
+    wavelet_size = 64 # needed for consistently-sized transforms
     win_size = wavelet_size # this can vary
 
     train_min_len = wavelet_size # longer = slower
@@ -194,6 +194,8 @@ class TSPredict(IStrategy):
     combine_models = True
     model_trained = False
     new_model = False
+    detrend_data = False
+    scale_results = False
 
     norm_data = False # changing this requires new models
 
@@ -209,34 +211,35 @@ class TSPredict(IStrategy):
 
     # hyperparams
 
+
     # Buy hyperspace params:
     buy_params = {
-        "cexit_min_profit_th": 0.6,
-        "cexit_profit_nstd": 1.0,
+        "cexit_min_profit_th": 0.3,
+        "cexit_profit_nstd": 1.9,
         "enable_bb_check": False,
-        "entry_bb_factor": 1.09,
-        "entry_bb_width": 0.026,
+        "enable_guard_metric": True,
+        "enable_squeeze": False,
+        "entry_bb_factor": 0.82,
+        "entry_bb_width": 0.025,
         "entry_guard_metric": -0.3,
-        "enable_guard_metric": True,  # value loaded from strategy
-        "enable_squeeze": True,  # value loaded from strategy
     }
 
     # Sell hyperspace params:
     sell_params = {
-        "cexit_loss_nstd": 2.9,
-        "cexit_metric_overbought": 0.68,
-        "cexit_metric_take_profit": 0.56,
-        "cexit_min_loss_th": -0.3,
+        "cexit_loss_nstd": 1.8,
+        "cexit_metric_overbought": 0.76,
+        "cexit_metric_take_profit": 0.94,
+        "cexit_min_loss_th": -1.4,
         "enable_exit_signal": True,
-        "exit_bb_factor": 1.13,
-        "exit_guard_metric": 0.6,
+        "exit_bb_factor": 1.01,
+        "exit_guard_metric": 0.7,
     }
 
     # Entry
 
     # the following flags apply to both entry and exit
     enable_guard_metric = CategoricalParameter(
-        [True, False], default=True, space="buy", load=True, optimize=False
+        [True, False], default=True, space="buy", load=True, optimize=True
         )
 
     enable_bb_check = CategoricalParameter(
@@ -244,7 +247,7 @@ class TSPredict(IStrategy):
         )
 
     enable_squeeze = CategoricalParameter(
-        [True, False], default=True, space="buy", load=True, optimize=False
+        [True, False], default=True, space="buy", load=True, optimize=True
         )
 
     entry_guard_metric = DecimalParameter(
@@ -307,8 +310,9 @@ class TSPredict(IStrategy):
 
         if self.forecaster is None:
             self.forecaster = Forecasters.make_forecaster(self.forecaster_type)
+            self.forecaster.set_detrend(self.detrend_data)
 
-        if (not self.forecaster.supports_multiple_columns()):
+        if (not self.forecaster.supports_multiple_columns()) and (not self.single_col_prediction):
             print('    ****')
             print(f'    **** ERROR: forecaster ({self.forecaster_type.name}) does not support multiple indicators')
             print('    ****')
@@ -318,6 +322,21 @@ class TSPredict(IStrategy):
             print(f'    **** WARNING: forecaster ({self.forecaster_type.name}) does not support retrainings')
             print('    ****')
 
+        # reset global vars based on wavelet_size, which can be changed by subclasses
+        self.win_size = self.wavelet_size # this can vary
+        self.train_min_len = self.wavelet_size # longer = slower
+        self.train_len = min(128, self.wavelet_size * 4) # longer = slower
+        # scale_len = wavelet_size // 2 # no. recent candles to use when scaling
+        self.scale_len = min(8, self.wavelet_size//2) # no. recent candles to use when scaling
+        self.win_size = min(32, self.wavelet_size)
+        self.model_window = self.wavelet_size # longer = slower
+
+        print("")
+        print(f"    wavelet_type:    {self.wavelet_type.name}")
+        print(f"    wavelet_size:    {self.wavelet_size}")
+        print(f"    forecaster_type: {self.forecaster.get_name()}")
+        print(f"    detrend_data:    {self.forecaster.detrend_data}")
+        print("")
         return
 
     ###################################
@@ -701,7 +720,7 @@ class TSPredict(IStrategy):
         x = np.nan_to_num(data)
         y = np.nan_to_num(results)
 
-        forecaster.train(x, y)
+        forecaster.train(x, y, incremental=True)
 
         # print(f'   train_model() data:{np.shape(data)} results:{np.shape(results)}')
 
@@ -720,7 +739,7 @@ class TSPredict(IStrategy):
 
             if self.single_col_prediction:
                 training_data = dataframe['gain'].to_numpy()
-                training_data = self.smooth(training_data, 2)
+                # training_data = self.smooth(training_data, 2)
                 training_data = training_data.reshape(-1,1)
             else:
                 training_data = data.copy()
@@ -732,7 +751,21 @@ class TSPredict(IStrategy):
             else:
                 print(f"    incremental training ({self.curr_pair})")
 
-            self.train_model(self.forecaster, training_data, training_labels, True)
+            if self.forecaster.supports_retrain:
+                # loop through data and train on self.wavelet_length amounts of data
+                start = 0
+                end = self.train_len - 1
+                num_buffs = int((np.shape(training_data)[0]) / self.train_len)
+                for i in range(num_buffs):
+
+                    # print(f'   start:{start} end:{end} self.train_len:{self.train_len}')
+                    self.train_model(self.forecaster, training_data[start:end], training_labels[start:end], True)
+
+                    start = start + self.train_len
+                    end = end + self.train_len
+
+            else:
+                self.train_model(self.forecaster, training_data, training_labels, True)
 
             self.model_trained = True
 
@@ -751,7 +784,7 @@ class TSPredict(IStrategy):
         self.curr_dataframe = dataframe
         df = dataframe.copy()
         gain = df['gain'].to_numpy()
-        gain = self.smooth(gain, 2)
+        # gain = self.smooth(gain, 2)
         df['gain'] = gain
         self.data = np.array(self.convert_dataframe(df))
         return self.data
@@ -766,11 +799,12 @@ class TSPredict(IStrategy):
 
         # print(f'    data:{np.shape(data)} preds:{np.shape(preds)}')
 
-        # smooth predictions to try and avoid drastic changes
-        preds = self.smooth(preds, 4)
+        # # smooth predictions to try and avoid drastic changes
+        # preds = self.smooth(preds, 2)
 
         # scale the results to generally match the input characteristics
-        preds = self.scale_array(data[-8:], preds)
+        if self.scale_results:
+            preds = self.scale_array(data[-8:], preds)
 
         preds = np.clip(preds, -3.0, 3.0)
         return preds
@@ -801,7 +835,8 @@ class TSPredict(IStrategy):
         if (not self.training_mode) and (self.supports_incremental_training):
             train_data = self.training_data[train_start : start - 1].copy()
             train_results = self.training_labels[train_start : start - 1].copy()
-            pair_forecaster = copy.deepcopy(self.forecaster)  # reset to avoid over-training
+            # pair_forecaster = copy.deepcopy(self.forecaster)  # reset to avoid over-training
+            pair_forecaster = self.forecaster
             self.train_model(pair_forecaster, train_data, train_results, False)
         else:
             pair_forecaster = self.forecaster
@@ -839,14 +874,15 @@ class TSPredict(IStrategy):
         if self.custom_trade_info[self.curr_pair]['forecaster'] is None:
             # make a deep copy so that we don't override the baseline model
             pair_forecaster = copy.deepcopy(self.forecaster)
+            self.custom_trade_info[self.curr_pair]['forecaster'] = pair_forecaster
         else:
             pair_forecaster = self.custom_trade_info[self.curr_pair]['forecaster']
 
         # loop through each row
-        while end < len(x):
+        while end <= len(x):
 
             if start < (self.wavelet_size + self.lookahead): # need buffer for training
-                preds[end] = 0.0
+                preds[end-1] = 0.0
             else:
                 # (re-)train the model on prior data and get predictions
 
@@ -863,7 +899,7 @@ class TSPredict(IStrategy):
                 forecast = self.predict_data(pair_forecaster, dslice)
 
                 # print(f'    forecast:{forecast}')
-                preds[end] = forecast[-1]
+                preds[end-1] = forecast[-1]
 
             # move the window to the next segment
             end = end + 1
@@ -904,10 +940,14 @@ class TSPredict(IStrategy):
         # start = win_size
         start = self.lookahead + self.train_len
         end = start + win_size - 1
-        train_end = max(0, start - self.lookahead - 1)
+        # train_end = max(0, start - self.lookahead - 1)
+        # train_end = max(0, end - self.lookahead - 1)
         train_size = self.train_len
-        train_start = max(0, train_end - train_size)
+        # train_start = max(0, train_end - train_size)
         scale_start = max(0, end-self.scale_len)
+
+        train_end = min(end - self.lookahead - 1, nrows - self.lookahead - 2) # potential lookahead problem
+        train_start = max(0, train_end-self.train_len)
 
         # get the forecaster for this pair
         if self.custom_trade_info[self.curr_pair]['forecaster'] is None:
@@ -923,8 +963,8 @@ class TSPredict(IStrategy):
             # (re-)train the model on prior data and get predictions
 
             if (not self.training_mode) and (self.supports_incremental_training):
-                train_data = self.training_data[train_start : start - 1].copy()
-                train_results = self.training_labels[train_start : start - 1].copy()
+                train_data = self.training_data[train_start : train_end].copy()
+                train_results = self.training_labels[train_start : train_end].copy()
                 pair_forecaster = copy.deepcopy(self.forecaster)  # reset to avoid over-training
                 self.train_model(pair_forecaster, train_data, train_results, False)
                 # print(f'train_data: {np.shape(train_data)}')
@@ -944,7 +984,7 @@ class TSPredict(IStrategy):
             # move the window to the next segment
             end = end + win_size
             start = start + win_size
-            train_end = start - self.lookahead - 1
+            train_end = end - self.lookahead - 1
             train_start = max(0, train_end - train_size)
 
         # make sure the last section gets processed (the loop above may not exactly fit the data)
@@ -956,7 +996,7 @@ class TSPredict(IStrategy):
         slen = min(win_size, 32)
         self.gain_data = np.array(dataframe["gain"].iloc[-slen:])  # needed for scaling
         preds = self.predict_data(pair_forecaster, dslice)
-        pred_array[-slen:] = preds.copy()
+        pred_array[-len(preds):] = preds.copy()
 
         dataframe["predicted_gain"] = pred_array.copy()
 
@@ -976,7 +1016,7 @@ class TSPredict(IStrategy):
 
             if self.single_col_prediction:
                 self.training_data = dataframe['gain'].to_numpy()
-                self.training_data = self.smooth(self.training_data, 2)
+                # self.training_data = self.smooth(self.training_data, 1)
                 self.training_data = self.training_data.reshape(-1,1)
             else:
                 self.training_data = data.copy()
@@ -1110,6 +1150,7 @@ class TSPredict(IStrategy):
             print(f"    Training mode. Skipping backtest for {self.curr_pair}")
             dataframe["predicted_gain"] = 0.0
         else:
+            '''
             if not self.custom_trade_info[self.curr_pair]["initialised"]:
                 print(f"    backtesting {self.curr_pair}")
                 if self.use_rolling:
@@ -1127,10 +1168,23 @@ class TSPredict(IStrategy):
                 self.custom_trade_info[self.curr_pair]["curr_prediction"] = dataframe["predicted_gain"].iloc[-1]
                 self.custom_trade_info[self.curr_pair]["curr_target"] = dataframe["target_profit"].iloc[-1]
 
-        # predictions can spike, so constrain range
-        dataframe["predicted_gain"] = dataframe["predicted_gain"].clip(lower=-3.0, upper=3.0)
+            '''
 
-        # ad shifted version, for debug only
+            print(f"    backtesting {self.curr_pair}")
+            if self.use_rolling:
+                dataframe = self.add_rolling_predictions(dataframe)
+            else:
+                dataframe = self.add_jumping_predictions(dataframe)
+
+            # predictions can spike, so constrain range
+            dataframe["predicted_gain"] = dataframe["predicted_gain"].clip(lower=-3.0, upper=3.0)
+
+            # save latest prediction and threshold for later use (where dataframe is not available)
+            self.custom_trade_info[self.curr_pair]["curr_prediction"] = dataframe["predicted_gain"].iloc[-1]
+            self.custom_trade_info[self.curr_pair]["curr_target"] = dataframe["target_profit"].iloc[-1]
+
+
+        # add shifted version, for debug only
         dataframe['shifted_pred'] = dataframe['predicted_gain'].shift(self.lookahead)
 
         if run_profiler:

@@ -48,6 +48,9 @@ sys.path.append(group_dir)
 
 import talib.abstract as ta
 
+
+import utils.Forecasters as Forecasters
+
 from TSPredict import TSPredict
 
 
@@ -56,6 +59,8 @@ class TS_Simple(TSPredict):
 
     use_rolling = True
     merge_indicators = True
+
+    forecaster_type = Forecasters.ForecasterType.PA
 
     def add_strategy_indicators(self, dataframe):
 

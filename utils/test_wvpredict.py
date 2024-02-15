@@ -9,20 +9,19 @@ The function names and approach mimic those used in the Time Series Prediction s
 # Import libraries
 import numpy as np
 import pandas as pd
-import pywt
-import scipy
 import matplotlib.pyplot as plt
-from regex import D, S
-from sklearn.feature_selection import SelectFdr
 from sklearn.preprocessing import MinMaxScaler, RobustScaler
 from sklearn.discriminant_analysis import StandardScaler
 from pandas import DataFrame
-from sympy import print_fcode
+
+import sys
+import traceback
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent))
 
 import Wavelets
 import Forecasters
 
-from sklearn.metrics import mean_squared_error
 
 # -----------------------------------
 
@@ -62,19 +61,20 @@ class WaveletPredictor:
     coeff_table_offset = 0
     coeff_array = None
     coeff_start_col = 0
+    col_forecasters = None
     gain_data = None
     data = None
     curr_dataframe = None
 
     norm_data = False
     scale_results = False
-    single_col_prediction = True
+    single_col_prediction = False
     merge_indicators = False
     training_required = True
     expanding_window = False
     detrend_data = False
 
-    wavelet_size = 64  # Windowing should match this. Longer = better but slower with edge effects. Should be even
+    wavelet_size = 32 # Windowing should match this. Longer = better but slower with edge effects. Should be even
     model_window = wavelet_size # longer = slower
     train_min_len = wavelet_size // 2 # longer = slower
     train_max_len = wavelet_size * 4 # longer = slower
@@ -87,9 +87,8 @@ class WaveletPredictor:
     def set_data(self, dataframe:DataFrame):
         self.curr_dataframe = dataframe
         self.data = np.array(dataframe["gain"])
-        self.data = self.smooth(self.data, 2)
+        # self.data = self.smooth(self.data, 1)
         self.data = np.nan_to_num(self.data)
-        # self.data = self.smooth(self.data, 2)
         self.build_coefficient_table(0, np.shape(self.data)[0])
         return
 
@@ -114,6 +113,7 @@ class WaveletPredictor:
 
     def set_forecaster_type(self, forecaster_type: Forecasters.ForecasterType):
         self.forecaster = Forecasters.make_forecaster(forecaster_type)
+        self.forecaster.set_detrend(self.detrend_data)
         return
 
     # --------------------------------
@@ -284,12 +284,12 @@ class WaveletPredictor:
 
         # print(f'merge_coeff_table() self.coeff_table: {np.shape(self.coeff_table)}')
 
-        # apply smoothing to each column, otherwise prediction alogorithms will struggle
-        num_cols = np.shape(self.coeff_table)[1]
-        for j in range (num_cols):
-            feature = self.coeff_table[:,j]
-            feature = self.smooth(feature, 4)
-            self.coeff_table[:,j] = feature
+        # # apply smoothing to each column, otherwise prediction alogorithms will struggle
+        # num_cols = np.shape(self.coeff_table)[1]
+        # for j in range (num_cols):
+        #     feature = self.coeff_table[:,j]
+        #     feature = self.smooth(feature, 1)
+        #     self.coeff_table[:,j] = feature
 
         self.coeff_num_cols = np.shape(self.coeff_table)[1]
 
@@ -331,7 +331,8 @@ class WaveletPredictor:
 
         # train on previous data
         # train_end = max(self.train_min_len, predict_start-1)
-        train_end = min(predict_end - self.lookahead - 1, nrows - self.lookahead - 2)
+        # train_end = min(predict_end - self.lookahead - 1, nrows - self.lookahead - 2)
+        train_end = min(predict_end - self.lookahead, nrows - self.lookahead)
         train_start = max(0, train_end-self.train_max_len)
         results_start = train_start + self.lookahead
         results_end = train_end + self.lookahead
@@ -372,22 +373,24 @@ class WaveletPredictor:
 
             results = self.coeff_table[results_start:results_end, i]
 
+            col_forecaster = self.col_forecasters[i-self.coeff_start_col]
+
             # print(f'predict_data: {np.shape(predict_data)}')
             # print(f'train_data: {np.shape(train_data)}')
             # print(f'results: {np.shape(results)}')
 
-            if self.forecaster.requires_pretraining():
-                # since we know we are switching data surces, disable incremental training
-                self.forecaster.train(train_data, results, incremental=False)
+            if col_forecaster.requires_pretraining():
+                # since we have a forecaster per column, we can train incrementally
+                col_forecaster.train(train_data, results, incremental=True)
 
             # get a prediction
-            preds = self.forecaster.forecast(predict_data, self.lookahead)
+            preds = col_forecaster.forecast(predict_data, self.lookahead)
 
             if preds.ndim > 1:
                 preds = preds.squeeze()
 
             # smooth predictions to try and avoid drastic changes
-            preds = self.smooth(preds, 4)
+            # preds = self.smooth(preds, 1)
 
             # append prediction for this column
             coeff_arr.append(preds[-1])
@@ -401,7 +404,8 @@ class WaveletPredictor:
         # scale results to somewhat match the (recent) input
         # preds = self.denorm_array(preds)
 
-        preds = self.scale_array(self.data[predict_end-self.scale_len:predict_end], preds)
+        # if self.scale_results:
+        #     preds = self.scale_array(self.data[predict_end-self.scale_len:predict_end], preds)
 
         # print(f'preds[{start}:{end}] len:{len(preds)}: {preds}')
         # print(f'preds[{end}]: {preds[-1]}')
@@ -422,20 +426,6 @@ class WaveletPredictor:
         start_row = df.index.get_loc(start)
         end_row = df.index.get_loc(end) + 1 # need to add the 1, don't know why!
 
-
-        # if end_row < (self.train_max_len + self.wavelet_size + self.lookahead):
-        # # if start_row < (self.wavelet_size + self.lookahead): # need buffer for training
-        #     # print(f'    ({start_row}:{end_row}) y_pred[-1]:0.0')
-        #     return 0.0
-
-        # print(f'gain.index:{gain.index} start:{start} end:{end} start_row:{start_row} end_row:{end_row}')
-
-        scale_start = max(0, len(gain)-16)
-
-        # print(f'    coeff_table: {np.shape(self.coeff_table)} start_row: {start_row} end_row: {end_row} ')
-
-        self.update_scaler(np.array(gain)[scale_start:])
-
         y_pred = self.predict_data(start_row, end_row)
         # print(f'    ({start_row}:{end_row}) y_pred[-1]:{y_pred[-1]}')
         return y_pred[-1]
@@ -455,12 +445,16 @@ class WaveletPredictor:
 
         x = np.nan_to_num(np.array(data))
         preds = np.zeros(len(x), dtype=float)
+
+        if self.col_forecasters is  None:
+            # create an array of forecasters (1 for each column)
+            self.col_forecasters = np.full(self.coeff_num_cols, self.forecaster)
  
-        while end < len(x):
+        while end <= len(x):
 
             # print(f'    start:{start} end:{end} train_max_len:{self.train_max_len} model_window:{self.model_window} min_data:{min_data}')
             if end < (min_data-1):
-                preds[end] = 0.0
+                preds[end-1] = 0.0
                 end = end + 1
                 start = max(0, end - self.wavelet_size)
                 continue
@@ -470,7 +464,7 @@ class WaveletPredictor:
             self.update_scaler(np.array(data)[scale_start:scale_end])
 
             forecast = self.predict_data(start, end)
-            preds[end] = forecast[-1]
+            preds[end-1] = forecast[-1]
 
             # print(f'forecast: {forecast}')
 
@@ -479,7 +473,86 @@ class WaveletPredictor:
 
         return preds
 
+
+
+    # add predictions in a jumping fashion. This is a compromise - the rolling version is very slow
+    # Note: make sure the rolling version works properly, then it should be OK to use the 'jumping' version
+    @timer
+    def jumping_predict(self, data: np.array):
+
+        try:
+
+            # roll through the close data and predict for each step
+            nrows = len(data)
+
+            # initialise the prediction array
+            pred_array = np.zeros(nrows, dtype=float)
+
+            if self.col_forecasters is  None:
+                # create an array of forecasters (1 for each column)
+                self.col_forecasters = np.full(self.coeff_num_cols, self.forecaster)
+ 
+            win_size = self.model_window
+
+            # loop until we get to/past the end of the buffer
+            start = 0
+            end = start + win_size
+            scale_start = max(0, end-self.scale_len)
+
+            while end < nrows:
+
+                # set the (unmodified) gain data for scaling
+                self.update_scaler(np.array(data[scale_start:end]))
+                # self.update_scaler(np.array(dataframe['gain'].iloc[start:end]))
+
+                # rebuild data up to end of current window
+                preds = self.predict_data(start, end)
+
+                # prediction length doesn't always match data length
+                plen = len(preds)
+                clen = min(plen, (nrows-start))
+
+                # print(f'    preds:{np.shape(preds)}')
+                # copy the predictions for this window into the main predictions array
+                pred_array[start:start+clen] = preds[:clen].copy()
+
+                # move the window to the next segment
+                # end = end + win_size - 1
+                # end = end + win_size
+                # start = start + win_size
+                end = end + plen
+                start = start + plen
+                scale_start = max(0, end - self.scale_len)
+
+
+            # predict for last window
+
+            self.update_scaler(np.array(data[-self.scale_len:]))
+
+            # print(f'    start:{nrows-win_size}, end:{nrows}')
+            # print(f'    data:{data[nrows-win_size:nrows]}')
+            # print(f'    self.coeff_table:{np.shape(self.coeff_table)}')
+            preds = self.predict_data(nrows-win_size, nrows-1)
+
+            # print(f'    preds:{preds}')
+            plen = len(preds)
+            pred_array[-plen:] = preds.copy()
+
+        except Exception as e:
+            print("*** Exception in add_jumping_predictions()")
+            print(e) # prints the error message
+            print(traceback.format_exc()) # prints the full traceback
+
+        return pred_array
+
+    # rolling predict using pandas dataframe rolling
+    @timer
+    def pdroll_predict(self, dataframe):
+            preds = dataframe['gain'].rolling(window=self.model_window).apply(self.predict, args=(dataframe,))
+            return preds
+
     # -------------
+
     # convert self.coeff_table back into a waveform (for debug)
     def rolling_coeff_table(self):
         # nrows = np.shape(self.coeff_table)[0]
@@ -533,6 +606,8 @@ test_data = np.load('test_data.npy')
 
 data = test_data[0:min(1024, len(test_data))]
 
+print(f' {len(data)} test samples')
+
 # data = StandardScaler().fit_transform(data.reshape(-1,1)).reshape(-1)
 # data = RobustScaler().fit_transform(data.reshape(-1,1)).reshape(-1)
 # data = MinMaxScaler().fit_transform(data.reshape(-1,1)).reshape(-1)
@@ -549,15 +624,16 @@ lookahead = 6
 wlist = [
     # Wavelets.WaveletType.MODWT,
     # Wavelets.WaveletType.SWT,
-    Wavelets.WaveletType.SWTA,
-    # Wavelets.WaveletType.WPT,
+    # Wavelets.WaveletType.SWTA,
+    Wavelets.WaveletType.WPT,
     # Wavelets.WaveletType.FFT,
+    # Wavelets.WaveletType.FFTA,
     # Wavelets.WaveletType.HFFT,
     # Wavelets.WaveletType.DWT,
     # Wavelets.WaveletType.DWTA,
     ]
 flist = [
-    Forecasters.ForecasterType.NULL, # use this to show effect of wavelet alone
+    # Forecasters.ForecasterType.NULL, # use this to show effect of wavelet alone
     # Forecasters.ForecasterType.EXPONENTAL,
     # Forecasters.ForecasterType.ETS,
     # Forecasters.ForecasterType.SIMPLE_EXPONENTAL,
@@ -571,8 +647,8 @@ flist = [
     # Forecasters.ForecasterType.FFT_EXTRAPOLATION,
     # Forecasters.ForecasterType.MLP,
     # Forecasters.ForecasterType.KMEANS,
-    # Forecasters.ForecasterType.PA,
-    Forecasters.ForecasterType.SGD,
+    Forecasters.ForecasterType.PA,
+    # Forecasters.ForecasterType.SGD,
     # Forecasters.ForecasterType.SVR,
     # Forecasters.ForecasterType.GB,
     # Forecasters.ForecasterType.HGB,
@@ -581,7 +657,7 @@ flist = [
 ]
 
 # llist = [ 16, 32, 36, 64 ]
-llist = [ 32 ]
+llist = [ 64 ]
 marker_list = [ '.', 'o', 'v', '^', '<', '>', 'p', '*', 'h', 'H', 'D', 'd', 'P', 'X' ]
 num_markers = len(marker_list)
 mkr_idx = 0
@@ -592,6 +668,8 @@ mkr_idx = 0
 dataframe['gain_shifted'] = dataframe['gain'].shift(-lookahead)
 # ax = dataframe['gain'].plot(label='Original', marker="x", color="black")
 ax = dataframe['gain_shifted'].plot(label='Original (shifted)', marker="x", color="black")
+
+gain = np.array(dataframe["gain"])
 
 for wavelet_type in wlist:
     for forecaster_type in flist:
@@ -612,9 +690,32 @@ for wavelet_type in wlist:
             # dataframe["coeff_table"].plot(ax=ax, label=label+" coeff_table", linestyle="dashed", marker=marker_list[mkr_idx])
             # mkr_idx = (mkr_idx + 1) % num_markers
 
-            dataframe["predicted_gain"] = predictor.rolling_predict(dataframe["gain"])
-            dataframe["predicted_gain"].plot(ax=ax, label=label, linestyle="dashed", marker=marker_list[mkr_idx])
+            # col = "roll_"+label
+            # dataframe[col] = predictor.rolling_predict(gain)
+            # print(f'forecaster_type: {forecaster_type}')
+            # if "NULL" in forecaster_type.name:
+            #     print('shifting NULL)')
+            #     dataframe[col] = dataframe[col].shift(-lookahead)
+            # dataframe[col].plot(ax=ax, label=label + ' (rolling)', linestyle="dashed", marker=marker_list[mkr_idx])
+            # mkr_idx = (mkr_idx + 1) % num_markers
+
+            col = "jump_"+label
+            dataframe[col] = predictor.jumping_predict(gain)
+            print(f'forecaster_type: {forecaster_type} (jumping)')
+            if "NULL" in forecaster_type.name:
+                print('shifting NULL)')
+                dataframe[col] = dataframe[col].shift(-lookahead)
+            dataframe[col].plot(ax=ax, label=label + ' (jumping)', linestyle="dashed", marker=marker_list[mkr_idx])
             mkr_idx = (mkr_idx + 1) % num_markers
+
+            # col = "pd_"+label
+            # dataframe[col] = predictor.pdroll_predict(dataframe)
+            # print(f'forecaster_type: {forecaster_type} (pd roll)')
+            # if "NULL" in forecaster_type.name:
+            #     print('shifting NULL)')
+            #     dataframe[col] = dataframe[col].shift(-lookahead)
+            # dataframe[col].plot(ax=ax, label=label + ' (pd roll)', linestyle="dashed", marker=marker_list[mkr_idx])
+            # mkr_idx = (mkr_idx + 1) % num_markers
 
 plt.legend()
 plt.show()

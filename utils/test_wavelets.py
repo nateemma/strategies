@@ -53,7 +53,9 @@ test_data = np.load('test_data.npy')
 
 data = test_data[0:min(512, len(test_data))]
 
-wavelet = Wavelets.make_wavelet(wavelet_type=Wavelets.WaveletType.MODWT)
+print(f'pywt version: {pywt.__version__}')
+
+wavelet = Wavelets.make_wavelet(wavelet_type=Wavelets.WaveletType.FFTA)
 
 coeffs = wavelet.get_coeffs(data)
 array = wavelet.coeff_to_array(coeffs)

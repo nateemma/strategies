@@ -74,7 +74,7 @@ class NNTClassifier_AdditiveAttention(ClassifierKerasTrinary):
         x = tf.keras.layers.AdditiveAttention()([x, inputs])
 
         # replace sequence column with the average value
-        model.add(tf.keras.layers.GlobalAveragePooling1D())
+        x = tf.keras.layers.GlobalAveragePooling1D()(x)
 
         # Attention produces strange datatypes that cause issues with softmax, so use Dense layer to map/downsize
         x = tf.keras.layers.Dense(32)(x)
@@ -112,7 +112,7 @@ class NNTClassifier_Attention(ClassifierKerasTrinary):
         x = tf.keras.layers.Attention()([x, x])
 
         # replace sequence column with the average value
-        model.add(tf.keras.layers.GlobalAveragePooling1D())
+        x = tf.keras.layers.GlobalAveragePooling1D()(x)
 
         # Attention produces strange datatypes that cause issues with softmax, so use Dense layer to map/downsize
         x = tf.keras.layers.Dense(32)(x)
@@ -151,7 +151,7 @@ class NNTClassifier_CNN(ClassifierKerasTrinary):
         x = tf.keras.layers.BatchNormalization()(x)
 
         # replace sequence column with the average value
-        model.add(tf.keras.layers.GlobalAveragePooling1D())
+        x = tf.keras.layers.GlobalAveragePooling1D()(x)
 
         # intermediate layer to bring down the dimensions
         x = tf.keras.layers.Dense(16)(x)
@@ -192,7 +192,7 @@ class NNTClassifier_Ensemble(ClassifierKerasTrinary):
         x = tf.keras.layers.LSTM(3, activation='tanh', recurrent_dropout=0.25, return_sequences=True)(x_combined)
 
         # replace sequence column with the average value
-        model.add(tf.keras.layers.GlobalAveragePooling1D())
+        x = tf.keras.layers.GlobalAveragePooling1D()(x)
 
         # last layer is a trinary decision - do not change
         x = tf.keras.layers.Dropout(0.2)(x)
@@ -382,20 +382,32 @@ class NNTClassifier_MLP(ClassifierKerasTrinary):
 
     # override the build_model function in subclasses
     def create_model(self, seq_len, num_features):
-        model = tf.keras.Sequential(name=self.name)
+
+        input_shape = (seq_len, num_features)
+        inputs = tf.keras.Input(shape=input_shape)
+        x = inputs
 
         # very simple MLP model:
 
-        # replace sequence column with the average value
-        model.add(tf.keras.layers.GlobalAveragePooling1D(), input_shape=(seq_len, num_features))
+        # replace sequence column with the average value (MLPs can't handle sequence layer)
+        x = tf.keras.layers.GlobalAveragePooling1D()(x)
 
-        model.add(tf.keras.layers.Dense(128))
-        model.add(tf.keras.layers.Dropout(rate=0.2))
-        model.add(tf.keras.layers.Dense(32))
+        x = tf.keras.layers.Dense(128)(x)
+        x = tf.keras.layers.Dropout(rate=0.2)(x)
+        x = tf.keras.layers.Dense(64)(x)
+        x = tf.keras.layers.Dropout(rate=0.2)(x)
+        x = tf.keras.layers.Dense(32)(x)
+        x = tf.keras.layers.Dropout(rate=0.2)(x)
+        x = tf.keras.layers.Dense(16)(x)
+        x = tf.keras.layers.Dropout(rate=0.2)(x)
+        x = tf.keras.layers.Dense(8)(x)
 
         # last layer is a trinary decision - do not change
-        model.add(tf.keras.layers.Dropout(0.2))
-        model.add(tf.keras.layers.Dense(3, activation="softmax"))
+        x = tf.keras.layers.Dropout(0.2)(x)
+
+        outputs = tf.keras.layers.Dense(3, activation="softmax")(x)
+
+        model = tf.keras.Model(inputs, outputs, name=self.name)
 
         return model
 
@@ -435,7 +447,7 @@ class NNTClassifier_Multihead(ClassifierKerasTrinary):
         x = x + res
 
         # replace sequence column with the average value
-        model.add(tf.keras.layers.GlobalAveragePooling1D())
+        x = tf.keras.layers.GlobalAveragePooling1D()(x)
 
         # last layer is a trinary decision - do not change
         x = tf.keras.layers.Dropout(0.2)(x)
@@ -464,7 +476,7 @@ class NNTClassifier_TCN(ClassifierKerasTrinary):
         x = TCN(nb_filters=num_features, kernel_size=seq_len, return_sequences=True, activation='tanh')(inputs)
 
         # replace sequence column with the average value
-        model.add(tf.keras.layers.GlobalAveragePooling1D())
+        x = tf.keras.layers.GlobalAveragePooling1D()(x)
 
         # last layer is a trinary decision - do not change
         x = tf.keras.layers.Dropout(0.2)(x)
@@ -513,7 +525,7 @@ class NNTClassifier_Transformer(ClassifierKerasTrinary):
         # x = tf.keras.layers.GlobalMaxPooling1D(keepdims=True, data_format="channels_first")(x)
 
         # replace sequence column with the average value
-        model.add(tf.keras.layers.GlobalAveragePooling1D())
+        x = tf.keras.layers.GlobalAveragePooling1D()(x)
 
         for dim in mlp_units:
             x = tf.keras.layers.Dense(dim)(x)
@@ -646,7 +658,7 @@ class NNTClassifier_Wavenet2(ClassifierKerasTrinary):
         x = tf.keras.layers.Convolution1D(n_filters, 1, padding='same')(x)
 
         # replace sequence column with the average value
-        model.add(tf.keras.layers.GlobalAveragePooling1D())
+        x = tf.keras.layers.GlobalAveragePooling1D()(x)
 
         # last layer is a trinary decision - do not change
         x = tf.keras.layers.Dropout(0.2)(x)
@@ -721,7 +733,7 @@ class NNTClassifier_Wavenet3(ClassifierKerasTrinary):
         # x = tf.keras.layers.GlobalMaxPooling1D(n_filters)(x)
 
         # replace sequence column with the average value
-        model.add(tf.keras.layers.GlobalAveragePooling1D())
+        x = tf.keras.layers.GlobalAveragePooling1D()(x)
 
         # last layer is a trinary decision - do not change
         x = tf.keras.layers.Dropout(0.2)(x)

@@ -1,0 +1,43 @@
+{
+  "strategy_name": "BuyRegions",
+  "params": {
+    "roi": {
+      "0": 0.04,
+      "100": 0.02
+    },
+    "stoploss": {
+      "stoploss": -0.1
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 5
+    },
+    "buy": {
+      "enable_bb_check": true,
+      "enable_guard_metric": false,
+      "enable_squeeze": false,
+      "cexit_min_profit_th": 0.4,
+      "cexit_profit_nstd": 2.0,
+      "entry_bb_factor": 0.89,
+      "entry_bb_width": 0.068,
+      "entry_guard_metric": 0.0
+    },
+    "sell": {
+      "cexit_loss_nstd": 0.2,
+      "cexit_metric_overbought": 0.75,
+      "cexit_metric_take_profit": 0.59,
+      "cexit_min_loss_th": -1.4,
+      "enable_exit_signal": false,
+      "exit_bb_factor": 0.73,
+      "exit_guard_metric": 0.0
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2024-02-12 22:55:17.219466+00:00"
+}

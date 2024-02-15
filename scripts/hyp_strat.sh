@@ -171,7 +171,7 @@ diff=$(( ( $(strftime -r %Y%m%d "$end") - $(strftime -r %Y%m%d "$start") ) / 864
 # min_trades=$((diff / 2))
 
 # set min trades based on # days (N per day)
-min_trades=$((diff * 4))
+min_trades=$((diff * 2))
 
 
 echo ""

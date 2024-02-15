@@ -96,6 +96,7 @@ class TS_Wavelet(TSPredict):
     coeff_table_offset = 0
     coeff_array = None
     coeff_start_col = 0
+    col_forecasters = None
     gain_data = None
     data = None
     # curr_dataframe = None
@@ -105,7 +106,8 @@ class TS_Wavelet(TSPredict):
     merge_indicators = False
     training_required = True
     expanding_window = False
-    use_rolling = True
+    use_rolling = False # takes too long otherwise
+    detrend_data = False
 
     # NOTE: can only use longer lengths with FFT, too slow otherwise
     wavelet_size = 32  # Windowing should match this. Longer = better but slower with edge effects. Should be even
@@ -118,11 +120,11 @@ class TS_Wavelet(TSPredict):
     scale_len = min(16, wavelet_size//2) # no. recent candles to use when scaling
     win_size = max(32, wavelet_size)
 
-    wavelet_type:Wavelets.WaveletType = Wavelets.WaveletType.DWTA
+    wavelet_type:Wavelets.WaveletType = Wavelets.WaveletType.SWT
     wavelet = None
 
-    # forecaster_type:Forecasters.ForecasterType = Forecasters.ForecasterType.PA
-    forecaster_type:Forecasters.ForecasterType = Forecasters.ForecasterType.SGD
+    forecaster_type:Forecasters.ForecasterType = Forecasters.ForecasterType.PA
+    # forecaster_type:Forecasters.ForecasterType = Forecasters.ForecasterType.SGD
     # forecaster_type:Forecasters.ForecasterType = Forecasters.ForecasterType.FFT_EXTRAPOLATION
     forecaster = None
 
@@ -202,7 +204,7 @@ class TS_Wavelet(TSPredict):
         #     self.saved = True
 
 
-        self.data = self.smooth(self.data, 2)
+        # self.data = self.smooth(self.data, 2)
 
         # copy of dataframe
         self.curr_dataframe = dataframe
@@ -290,12 +292,12 @@ class TS_Wavelet(TSPredict):
 
         self.coeff_num_cols = np.shape(self.coeff_table)[1]
 
-        # apply smoothing to each column, otherwise prediction alogorithms will struggle
-        num_cols = np.shape(self.coeff_table)[1]
-        for j in range (num_cols):
-            feature = self.coeff_table[:,j]
-            feature = self.smooth(feature, 2)
-            self.coeff_table[:,j] = feature
+        # apply smoothing to each column, otherwise prediction algorithms will struggle
+        # num_cols = np.shape(self.coeff_table)[1]
+        # for j in range (num_cols):
+        #     feature = self.coeff_table[:,j]
+        #     feature = self.smooth(feature, 1)
+        #     self.coeff_table[:,j] = feature
 
         # if using single column prediction, no need to merge in dataframe column because they won't be used
         if self.single_col_prediction or (not self.merge_indicators):
@@ -376,22 +378,24 @@ class TS_Wavelet(TSPredict):
 
             results = self.coeff_table[results_start:results_end, i]
 
+            col_forecaster = self.col_forecasters[i-self.coeff_start_col]
+
             # print(f'predict_data: {np.shape(predict_data)}')
             # print(f'train_data: {np.shape(train_data)}')
             # print(f'results: {np.shape(results)}')
 
             if self.forecaster.requires_pretraining():
                 # since we know we are switching data surces, disable incremental training
-                self.forecaster.train(train_data, results, incremental=False)
+                col_forecaster.train(train_data, results, incremental=True)
 
             # get a prediction
-            preds = self.forecaster.forecast(predict_data, self.lookahead)
+            preds = col_forecaster.forecast(predict_data, self.lookahead)
 
             if preds.ndim > 1:
                 preds = preds.squeeze()
 
-            # smooth predictions to try and avoid drastic changes
-            preds = self.smooth(preds, 4)
+            # # smooth predictions to try and avoid drastic changes
+            # preds = self.smooth(preds, 2)
 
             # append prediction for this column
             coeff_arr.append(preds[-1])
@@ -405,7 +409,8 @@ class TS_Wavelet(TSPredict):
         # scale results to somewhat match the (recent) input
         # preds = self.denorm_array(preds)
 
-        preds = self.scale_array(self.data[predict_end-self.scale_len:predict_end], preds)
+        if self.scale_results:
+            preds = self.scale_array(self.data[predict_end-self.scale_len:predict_end], preds)
 
         # print(f'preds[{start}:{end}] len:{len(preds)}: {preds}')
         # print(f'preds[{end}]: {preds[-1]}')
@@ -458,7 +463,12 @@ class TS_Wavelet(TSPredict):
         x = np.nan_to_num(np.array(data))
         preds = np.zeros(len(x), dtype=float)
 
-        while end < len(x):
+        # if self.col_forecasters is  None:
+        #     # create an array of forecasters (1 for each column)
+        #     self.col_forecasters = np.full(self.coeff_num_cols, self.forecaster)
+        self.col_forecasters = np.full(self.coeff_num_cols, self.forecaster)
+ 
+        while end <= len(x):
 
             # print(f'    start:{start} end:{end} train_max_len:{self.train_max_len} model_window:{self.model_window} min_data:{min_data}')
             if end < (min_data-1):
@@ -472,7 +482,7 @@ class TS_Wavelet(TSPredict):
             self.update_scaler(np.array(data)[scale_start:scale_end])
 
             forecast = self.predict_data(start, end)
-            preds[end] = forecast[-1]
+            preds[end-1] = forecast[-1]
 
             # print(f'forecast: {forecast}')
 
@@ -530,7 +540,8 @@ class TS_Wavelet(TSPredict):
 
             # initialise the prediction array, using the close data
             pred_array = np.zeros(np.shape(future_gain_data), dtype=float)
-
+            self.col_forecasters = np.full(self.coeff_num_cols, self.forecaster)
+ 
             win_size = self.model_window
 
             # loop until we get to/past the end of the buffer
@@ -579,8 +590,8 @@ class TS_Wavelet(TSPredict):
             palen = len(pred_array)
             dataframe['predicted_gain'][-palen:] = pred_array.copy()
 
-            # slightly smooth, to get rid of spikes
-            dataframe['predicted_gain'] = self.smooth(dataframe['predicted_gain'], 2)
+            # # slightly smooth, to get rid of spikes
+            # dataframe['predicted_gain'] = self.smooth(dataframe['predicted_gain'], 2)
 
         except Exception as e:
             print("*** Exception in add_jumping_predictions()")
@@ -642,8 +653,8 @@ class TS_Wavelet(TSPredict):
             pred_array[-1] = preds[-1].copy()
             # pred_array[-1] = preds[0].copy()
 
-            # slightly smooth, to get rid of spikes
-            pred_array = self.smooth(pred_array, 2)
+            # # slightly smooth, to get rid of spikes
+            # pred_array = self.smooth(pred_array, 2)
 
             dataframe['predicted_gain'] = 0.0
             dataframe['predicted_gain'][-clen:] = pred_array[-clen:].copy()
