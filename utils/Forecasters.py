@@ -1121,10 +1121,12 @@ class pa_forecaster(base_forecaster):
 
     def create_model(self):
         if self.model is None:
-            self.model = PassiveAggressiveRegressor()
+            # self.model = PassiveAggressiveRegressor()
             # self.model = PassiveAggressiveRegressor(shuffle=False)
 
-            self.model = PassiveAggressiveRegressor(C=0.4, epsilon=1.5, loss='huber', fit_intercept=False,
+            # self.model = PassiveAggressiveRegressor(C=0.4, epsilon=1.5, loss='huber', fit_intercept=False,
+            #                                         shuffle=False, warm_start=False, verbose=0)
+            self.model = PassiveAggressiveRegressor(C=0.4, epsilon=1.5, fit_intercept=False,
                                                     shuffle=False, warm_start=False, verbose=0)
         return
 

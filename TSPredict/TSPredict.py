@@ -1180,8 +1180,10 @@ class TSPredict(IStrategy):
             dataframe["predicted_gain"] = dataframe["predicted_gain"].clip(lower=-3.0, upper=3.0)
 
             # save latest prediction and threshold for later use (where dataframe is not available)
-            self.custom_trade_info[self.curr_pair]["curr_prediction"] = dataframe["predicted_gain"].iloc[-1]
-            self.custom_trade_info[self.curr_pair]["curr_target"] = dataframe["target_profit"].iloc[-1]
+            curr_prediction = dataframe["predicted_gain"].iloc[-1]
+            curr_target = dataframe["close"].iloc[-1] * (1.0 + curr_prediction / 100.0)
+            self.custom_trade_info[self.curr_pair]["curr_prediction"] = curr_prediction
+            self.custom_trade_info[self.curr_pair]["curr_target"] = curr_target
 
 
         # add shifted version, for debug only
@@ -1410,14 +1412,14 @@ class TSPredict(IStrategy):
         if pair in self.custom_trade_info:
             curr_pred = self.custom_trade_info[pair]["curr_prediction"]
 
-            # check latest prediction against latest target
+            # check rate against target
 
             curr_target = self.custom_trade_info[pair]["curr_target"]
-            if curr_pred < curr_target:
+            if rate >= curr_target:
                 if self.dp.runmode.value not in ("backtest", "plot", "hyperopt"):
                     print("")
                     print(
-                        f"    *** {pair} Trade cancelled. Prediction ({curr_pred:.2f}%) below target ({curr_target:.2f}%) "
+                        f"    *** {pair} Trade cancelled. Rate ({rate:.2f}) above target ({curr_target:.2f}) "
                     )
                     print("")
                 return False
@@ -1425,7 +1427,7 @@ class TSPredict(IStrategy):
         # just debug
         if self.dp.runmode.value not in ("backtest", "plot", "hyperopt"):
             print("")
-            print(f"    Trade Entry: {pair}, rate: {rate:.4f} Predicted gain: {curr_pred:.2f}% Target: {curr_target:.2f}%")
+            print(f"    Trade Entry: {pair}, rate: {rate:.4f} Predicted gain: {curr_pred:.2f}% Target: {curr_target:.2f}")
             print("")
 
         return True

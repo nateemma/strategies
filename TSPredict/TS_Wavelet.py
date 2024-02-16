@@ -76,6 +76,30 @@ from TSPredict import TSPredict
 
 class TS_Wavelet(TSPredict):
 
+
+    # Buy hyperspace params:
+    buy_params = {
+        "cexit_min_profit_th": 0.5,
+        "cexit_profit_nstd": 0.5,
+        "enable_bb_check": False,
+        "enable_squeeze": False,
+        "entry_bb_factor": 1.2,
+        "entry_bb_width": 0.09,
+        "entry_guard_metric": 0.0,
+        "enable_guard_metric": True,  # value loaded from strategy
+    }
+
+    # Sell hyperspace params:
+    sell_params = {
+        "cexit_loss_nstd": 0.0,
+        "cexit_metric_overbought": 0.91,
+        "cexit_metric_take_profit": 0.85,
+        "cexit_min_loss_th": 0.0,
+        "enable_exit_signal": True,
+        "exit_bb_factor": 0.87,
+        "exit_guard_metric": 0.6,
+    }
+
     # ROI table:  # value loaded from strategy
     minimal_roi = {
         "0": 0.04,
