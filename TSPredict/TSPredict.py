@@ -239,7 +239,7 @@ class TSPredict(IStrategy):
 
     # the following flags apply to both entry and exit
     enable_guard_metric = CategoricalParameter(
-        [True, False], default=True, space="buy", load=True, optimize=True
+        [True, False], default=True, space="buy", load=True, optimize=False
         )
 
     enable_bb_check = CategoricalParameter(

@@ -80,24 +80,24 @@ class TS_Wavelet(TSPredict):
     # Buy hyperspace params:
     buy_params = {
         "cexit_min_profit_th": 0.5,
-        "cexit_profit_nstd": 0.5,
+        "cexit_profit_nstd": 1.2,
         "enable_bb_check": False,
         "enable_squeeze": False,
-        "entry_bb_factor": 1.2,
-        "entry_bb_width": 0.09,
+        "entry_bb_factor": 1.06,
+        "entry_bb_width": 0.098,
         "entry_guard_metric": 0.0,
         "enable_guard_metric": True,  # value loaded from strategy
     }
 
     # Sell hyperspace params:
     sell_params = {
-        "cexit_loss_nstd": 0.0,
-        "cexit_metric_overbought": 0.91,
-        "cexit_metric_take_profit": 0.85,
-        "cexit_min_loss_th": 0.0,
+        "cexit_loss_nstd": 0.3,
+        "cexit_metric_overbought": 0.93,
+        "cexit_metric_take_profit": 0.94,
+        "cexit_min_loss_th": -0.3,
         "enable_exit_signal": True,
-        "exit_bb_factor": 0.87,
-        "exit_guard_metric": 0.6,
+        "exit_bb_factor": 0.72,
+        "exit_guard_metric": 0.0,
     }
 
     # ROI table:  # value loaded from strategy
@@ -134,7 +134,7 @@ class TS_Wavelet(TSPredict):
     detrend_data = False
 
     # NOTE: can only use longer lengths with FFT, too slow otherwise
-    wavelet_size = 32  # Windowing should match this. Longer = better but slower with edge effects. Should be even
+    wavelet_size = 64  # Windowing should match this. Longer = better but slower with edge effects. Should be even
     model_window = wavelet_size # longer = slower
     # train_min_len = wavelet_size // 2 # longer = slower
     train_min_len = wavelet_size # longer = slower
@@ -606,7 +606,7 @@ class TS_Wavelet(TSPredict):
             # self.update_scaler(np.array(dataframe['gain'].iloc[train_start:train_end]))
 
             # preds = self.predict_data(data, -(self.train_len + win_size + 1), -(win_size + 1), -win_size, -1)
-            preds = self.predict_data(nrows-win_size, nrows)
+            preds = self.predict_data(nrows-win_size, nrows-1)
             # preds = self.predict_data(data, 0, -(win_size + 1), -win_size, -1)
             plen = len(preds)
             pred_array[-plen:] = preds.copy()
