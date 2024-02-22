@@ -95,7 +95,7 @@ class TS_Wavelet(TSPredict):
         "cexit_metric_overbought": 0.93,
         "cexit_metric_take_profit": 0.94,
         "cexit_min_loss_th": -0.3,
-        "enable_exit_signal": True,
+        "enable_exit_signal": False,
         "exit_bb_factor": 0.72,
         "exit_guard_metric": 0.0,
     }

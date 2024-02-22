@@ -230,7 +230,7 @@ class TSPredict(IStrategy):
         "cexit_metric_overbought": 0.76,
         "cexit_metric_take_profit": 0.94,
         "cexit_min_loss_th": -1.4,
-        "enable_exit_signal": True,
+        "enable_exit_signal": False,
         "exit_bb_factor": 1.01,
         "exit_guard_metric": 0.7,
     }
@@ -266,7 +266,7 @@ class TSPredict(IStrategy):
     # Exit
     # use exit signal? If disabled, just rely on the custom exit checks (or stoploss) to get out
     enable_exit_signal = CategoricalParameter(
-        [True, False], default=True, space="sell", load=True, optimize=True
+        [True, False], default=False, space="sell", load=True, optimize=False
         )
 
     exit_guard_metric = DecimalParameter(

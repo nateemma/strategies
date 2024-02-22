@@ -1,0 +1,43 @@
+{
+  "strategy_name": "TS_Wavelet_roll",
+  "params": {
+    "roi": {
+      "0": 0.04,
+      "100": 0.02
+    },
+    "stoploss": {
+      "stoploss": -0.1
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 5
+    },
+    "buy": {
+      "enable_guard_metric": true,
+      "cexit_min_profit_th": 0.1,
+      "cexit_profit_nstd": 0.0,
+      "enable_bb_check": false,
+      "enable_squeeze": false,
+      "entry_bb_factor": 1.09,
+      "entry_bb_width": 0.042,
+      "entry_guard_metric": -0.4
+    },
+    "sell": {
+      "enable_exit_signal": false,
+      "cexit_loss_nstd": 2.2,
+      "cexit_metric_overbought": 0.87,
+      "cexit_metric_take_profit": 0.6,
+      "cexit_min_loss_th": -1.5,
+      "exit_bb_factor": 0.78,
+      "exit_guard_metric": 0.5
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2024-02-22 14:24:42.242721+00:00"
+}
