@@ -23,4 +23,3 @@ from TS_Wavelet import TS_Wavelet
 class TS_Wavelet_FFTA(TS_Wavelet):
 
     wavelet_type = Wavelets.WaveletType.FFTA
-    detrend_data = False

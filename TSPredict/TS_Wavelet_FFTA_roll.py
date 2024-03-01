@@ -31,4 +31,5 @@ class TS_Wavelet_FFTA_roll(TS_Wavelet_FFTA):
     use_rolling = True
     single_col_prediction = True
     forecaster_type = Forecasters.ForecasterType.SGD
+    detrend_data = True
 

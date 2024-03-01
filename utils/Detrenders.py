@@ -220,6 +220,9 @@ class smooth_detrender(base_detrender):
 
 class scaler_detrender(base_detrender):
 
+
+    scaler = None
+
     def detrend_1d(self, data: np.array) -> np.array:
         x = np.array(data)
         if x.ndim == 1:
@@ -303,7 +306,7 @@ class dwt_detrender(base_detrender):
 
         x_detrend = data - self.poly
 
-        return x_detrend
+        return np.nan_to_num(x_detrend)
 
     # function to retrend the supplied signal
     def retrend_1d(self, data: np.array) -> np.array:
@@ -313,7 +316,7 @@ class dwt_detrender(base_detrender):
         dlen = min(len(data), len(self.poly))
         x_trend = data
         x_trend[-dlen:] = data[-dlen:] + self.poly[-dlen:]
-        return x_trend
+        return np.nan_to_num(x_trend)
 
 #---------------------------------------
 

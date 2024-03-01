@@ -76,15 +76,14 @@ from TSPredict import TSPredict
 
 class TS_Wavelet(TSPredict):
 
-
     # Buy hyperspace params:
     buy_params = {
-        "cexit_min_profit_th": 0.5,
-        "cexit_profit_nstd": 1.2,
-        "enable_bb_check": False,
+        "cexit_min_profit_th": 0.2,
+        "cexit_profit_nstd": 1.3,
+        "enable_bb_check": True,
         "enable_squeeze": False,
-        "entry_bb_factor": 1.06,
-        "entry_bb_width": 0.098,
+        "entry_bb_factor": 1.11,
+        "entry_bb_width": 0.077,
         "entry_guard_metric": 0.0,
         "enable_guard_metric": True,  # value loaded from strategy
     }
@@ -93,11 +92,11 @@ class TS_Wavelet(TSPredict):
     sell_params = {
         "cexit_loss_nstd": 0.3,
         "cexit_metric_overbought": 0.93,
-        "cexit_metric_take_profit": 0.94,
-        "cexit_min_loss_th": -0.3,
-        "enable_exit_signal": False,
-        "exit_bb_factor": 0.72,
-        "exit_guard_metric": 0.0,
+        "cexit_metric_take_profit": 0.72,
+        "cexit_min_loss_th": -1.0,
+        "exit_bb_factor": 0.75,
+        "exit_guard_metric": 0.7,
+        "enable_exit_signal": False,  # value loaded from strategy
     }
 
     # ROI table:  # value loaded from strategy
@@ -126,12 +125,12 @@ class TS_Wavelet(TSPredict):
     # curr_dataframe = None
 
     norm_data = False # must be false for these strategies
-    single_col_prediction = False
     merge_indicators = False
     training_required = True
     expanding_window = False
-    use_rolling = False # takes too long otherwise
-    detrend_data = False
+    use_rolling = False # if True, also set single_col_prediction = True
+    detrend_data = True # if True, also set single_col_prediction = True
+    single_col_prediction = True
 
     # NOTE: can only use longer lengths with FFT, too slow otherwise
     wavelet_size = 64  # Windowing should match this. Longer = better but slower with edge effects. Should be even
@@ -147,8 +146,8 @@ class TS_Wavelet(TSPredict):
     wavelet_type:Wavelets.WaveletType = Wavelets.WaveletType.SWT
     wavelet = None
 
-    forecaster_type:Forecasters.ForecasterType = Forecasters.ForecasterType.PA
-    # forecaster_type:Forecasters.ForecasterType = Forecasters.ForecasterType.SGD
+    # forecaster_type:Forecasters.ForecasterType = Forecasters.ForecasterType.PA
+    forecaster_type:Forecasters.ForecasterType = Forecasters.ForecasterType.SGD
     # forecaster_type:Forecasters.ForecasterType = Forecasters.ForecasterType.FFT_EXTRAPOLATION
     forecaster = None
 
@@ -485,14 +484,15 @@ class TS_Wavelet(TSPredict):
         start = max(0, end - self.wavelet_size)
 
         x = np.nan_to_num(np.array(data))
-        preds = np.zeros(len(x), dtype=float)
+        nrows = len(x)
+        preds = np.zeros(nrows, dtype=float)
 
         # if self.col_forecasters is  None:
         #     # create an array of forecasters (1 for each column)
         #     self.col_forecasters = np.full(self.coeff_num_cols, self.forecaster)
         self.col_forecasters = np.full(self.coeff_num_cols, self.forecaster)
  
-        while end <= len(x):
+        while end <= nrows:
 
             # print(f'    start:{start} end:{end} train_max_len:{self.train_max_len} model_window:{self.model_window} min_data:{min_data}')
             if end < (min_data-1):
@@ -508,10 +508,16 @@ class TS_Wavelet(TSPredict):
             forecast = self.predict_data(start, end)
             preds[end-1] = forecast[-1]
 
-            # print(f'forecast: {forecast}')
+            # if end == len(x):
+            #     print(f'    preds[-1]:{preds[-1]} forecast[-1]: {forecast[-1]}')
 
             end = end + 1
             start = max(0, end - self.wavelet_size)
+
+        # predict for last window
+        self.update_scaler(np.array(data[-self.scale_len:]))
+        plast = self.predict_data(nrows-self.wavelet_size, nrows-1)
+        preds[-1] = plast[-1]
 
         return preds
 

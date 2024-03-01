@@ -1,10 +1,13 @@
 
+# test program for combination of detrending and forecasting (mostly for detrending)
+
 # Import libraries
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
 import Forecasters
+import Detrenders
 
 
 
@@ -138,71 +141,47 @@ def rolling_predict(data, window_size, norm_data=False):
 dataframe = pd.DataFrame(data, columns=["gain"])
 
 
-flist = [
-    # Forecasters.ForecasterType.EXPONENTAL,
-    # Forecasters.ForecasterType.SIMPLE_EXPONENTAL,
-    # Forecasters.ForecasterType.AR,
-    # Forecasters.ForecasterType.HOLT,
-    # Forecasters.ForecasterType.ARIMA,
-    # Forecasters.ForecasterType.THETA,
-    # Forecasters.ForecasterType.ETS,
-    # Forecasters.ForecasterType.HGB,
-    # Forecasters.ForecasterType.GB,
-    # Forecasters.ForecasterType.NULL,
-    # Forecasters.ForecasterType.LINEAR,
-    # Forecasters.ForecasterType.QUADRATIC,
-    # Forecasters.ForecasterType.PA,
-    Forecasters.ForecasterType.SGD,
-    # Forecasters.ForecasterType.SVR,
-    # Forecasters.ForecasterType.FFT_EXTRAPOLATION,
-    # Forecasters.ForecasterType.MLP,
-    # Forecasters.ForecasterType.LGBM,
-    # Forecasters.ForecasterType.XGB
+dlist = [
+    # Detrenders.DetrenderType.NULL,
+    # Detrenders.DetrenderType.DIFFERENCING,
+    # Detrenders.DetrenderType.LINEAR,
+    # Detrenders.DetrenderType.QUADRATIC,
+    Detrenders.DetrenderType.SMOOTH,
+    # Detrenders.DetrenderType.SCALER,
+    Detrenders.DetrenderType.FFT,
+    # Detrenders.DetrenderType.DWT
 ]
 
-marker_list = [ '.', 'o', 'v', '^', '<', '>', 'p', '*', 'h', 'H', 'D', 'd', 'P', 'X' ]
+marker_list = [ 'X', 'D', 'v', '^', '<', '>', 'p', '*', 'h', 'H', 'o', 'd', 'P', 'x' ]
 num_markers = len(marker_list)
 mkr_idx = 0
 
-# dataframe["baseline"] = dataframe["gain"].rolling(window=model_window).apply(baseline)
-# dataframe["baseline"].plot(label='Baseline', marker="X", color="teal")
-
-
-# Plot the original data and the reconstructed data
-# df = pd.DataFrame(orig, index=np.arange(len(orig)))
-# ax = df.plot(label='Original', marker="o", color="black")
-
+# display training data for reference
 dataframe['gain_shifted'] = dataframe['gain'].shift(-lookahead)
-# ax = dataframe['gain'].plot(label='Original', marker="x", color="black")
-# dataframe['gain_shifted'].plot(ax=ax, label='Training Data', marker="o", color="blue")
-ax = dataframe['gain_shifted'].plot(label='Training Data', linestyle='dashed', marker="o", color="gray")
+ax = dataframe['gain_shifted'].plot(label='Training Data', linestyle='dashed', marker="o", color="black")
 
-# forecaster = Forecasters.make_forecaster(Forecasters.ForecasterType.NULL)
-# forecaster.set_detrend(False)
-# dataframe["null"] = rolling_predict(dataframe["gain"], model_window, norm_data=False)
-# dataframe["null"] = dataframe["null"].shift(-lookahead)
-# dataframe["null"].plot(ax=ax, label="Null (shifted)", linestyle='dashed', color='black', marker="x")
+forecaster = Forecasters.make_forecaster(Forecasters.ForecasterType.SGD)
+forecaster.set_detrend(True)
+fid = forecaster.get_name()
 
-for f in flist:
-    forecaster = Forecasters.make_forecaster(f)
-    forecaster.set_detrend(False)
-    id = forecaster.get_name()
-    print(id)
+for d in dlist:
 
-    col = "predicted_gain_" + id
+    id = d.name
+
+    # set the detrend type
+    forecaster.set_detrender_type(d)
+
+    col = fid + " / " + id
+    print(col)
+
+    # get the prediction
     dataframe[col] = rolling_predict(dataframe["gain"], model_window, norm_data=False)
-    dataframe[col].plot(ax=ax, label=id, marker=marker_list[mkr_idx])
 
+    # display the graph
+    dataframe[col].plot(ax=ax, label=col, marker=marker_list[mkr_idx])
+
+    # next marker
     mkr_idx = (mkr_idx + 1) % num_markers
-
-    id = id + "(w/ detrend)"
-    col = "predicted_gain_" + id 
-    forecaster.set_detrend(True)
-    dataframe[col] = rolling_predict(dataframe["gain"], model_window, norm_data=False)
-    dataframe[col].plot(ax=ax, label=id, marker=marker_list[mkr_idx])
-
-    mkr_idx = (mkr_idx + 1) % num_markers
-
 
 
 plt.legend()

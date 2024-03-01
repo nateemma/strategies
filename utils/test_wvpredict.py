@@ -68,11 +68,11 @@ class WaveletPredictor:
 
     norm_data = False
     scale_results = False
-    single_col_prediction = False
+    single_col_prediction = True
     merge_indicators = False
     training_required = True
     expanding_window = False
-    detrend_data = False
+    detrend_data = True
 
     wavelet_size = 32 # Windowing should match this. Longer = better but slower with edge effects. Should be even
     model_window = wavelet_size # longer = slower
@@ -435,6 +435,9 @@ class WaveletPredictor:
     @timer
     def rolling_predict(self, data):
 
+        # for rolling predictions, always use single column (too slow otherwise)
+        self.single_col_prediction = True
+
         if self.forecaster.requires_pretraining():
             min_data = self.train_min_len + self.wavelet_size + self.lookahead
         else:
@@ -647,8 +650,8 @@ flist = [
     # Forecasters.ForecasterType.FFT_EXTRAPOLATION,
     # Forecasters.ForecasterType.MLP,
     # Forecasters.ForecasterType.KMEANS,
-    Forecasters.ForecasterType.PA,
-    # Forecasters.ForecasterType.SGD,
+    # Forecasters.ForecasterType.PA,
+    Forecasters.ForecasterType.SGD,
     # Forecasters.ForecasterType.SVR,
     # Forecasters.ForecasterType.GB,
     # Forecasters.ForecasterType.HGB,
@@ -690,14 +693,14 @@ for wavelet_type in wlist:
             # dataframe["coeff_table"].plot(ax=ax, label=label+" coeff_table", linestyle="dashed", marker=marker_list[mkr_idx])
             # mkr_idx = (mkr_idx + 1) % num_markers
 
-            # col = "roll_"+label
-            # dataframe[col] = predictor.rolling_predict(gain)
-            # print(f'forecaster_type: {forecaster_type}')
-            # if "NULL" in forecaster_type.name:
-            #     print('shifting NULL)')
-            #     dataframe[col] = dataframe[col].shift(-lookahead)
-            # dataframe[col].plot(ax=ax, label=label + ' (rolling)', linestyle="dashed", marker=marker_list[mkr_idx])
-            # mkr_idx = (mkr_idx + 1) % num_markers
+            col = "roll_"+label
+            dataframe[col] = predictor.rolling_predict(gain)
+            print(f'forecaster_type: {forecaster_type}')
+            if "NULL" in forecaster_type.name:
+                print('shifting NULL)')
+                dataframe[col] = dataframe[col].shift(-lookahead)
+            dataframe[col].plot(ax=ax, label=label + ' (rolling)', linestyle="dashed", marker=marker_list[mkr_idx])
+            mkr_idx = (mkr_idx + 1) % num_markers
 
             col = "jump_"+label
             dataframe[col] = predictor.jumping_predict(gain)

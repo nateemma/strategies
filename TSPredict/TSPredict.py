@@ -93,7 +93,7 @@ class TSPredict(IStrategy):
     plot_config = {
         "main_plot": {
             "close": {"color": "cornflowerblue"},
-            },
+        },
         "subplots": {
             "Diff": {
                 "predicted_gain": {"color": "rebeccapurple"},
@@ -156,32 +156,30 @@ class TSPredict(IStrategy):
     coeff_table = None
     coeff_array = None
     gain_data = None
-    merge_indicators = False # set to False to not merge indicators into prediction data
+    merge_indicators = False  # set to False to not merge indicators into prediction data
 
+    use_rolling = False  # True = rolling (slow but realistic), False = Jumping (much faster, less realistic)
+    single_col_prediction = False  # True = use only gain. False = use all columns (better, but much slower)
 
-
-    use_rolling = False # True = rolling (slow but realistic), False = Jumping (much faster, less realistic)
-    single_col_prediction = False # True = use only gain. False = use all columns (better, but much slower)
-
-    wavelet_type:Wavelets.WaveletType = Wavelets.WaveletType.DWT
+    wavelet_type: Wavelets.WaveletType = Wavelets.WaveletType.DWT
     wavelet = None
 
-    forecaster_type:Forecasters.ForecasterType = Forecasters.ForecasterType.PA
+    forecaster_type: Forecasters.ForecasterType = Forecasters.ForecasterType.PA
     # forecaster_type:Forecasters.ForecasterType = Forecasters.ForecasterType.SGD
     # forecaster_type:Forecasters.ForecasterType = Forecasters.ForecasterType.SVR
     forecaster = None
 
     data = None
 
-    wavelet_size = 64 # needed for consistently-sized transforms
-    win_size = wavelet_size # this can vary
+    wavelet_size = 64  # needed for consistently-sized transforms
+    win_size = wavelet_size  # this can vary
 
-    train_min_len = wavelet_size # longer = slower
-    train_len = min(128, wavelet_size * 4) # longer = slower
+    train_min_len = wavelet_size  # longer = slower
+    train_len = min(128, wavelet_size * 4)  # longer = slower
     # scale_len = wavelet_size // 2 # no. recent candles to use when scaling
-    scale_len = min(8, wavelet_size//2) # no. recent candles to use when scaling
+    scale_len = min(8, wavelet_size // 2)  # no. recent candles to use when scaling
     win_size = min(32, wavelet_size)
-    model_window = wavelet_size # longer = slower
+    model_window = wavelet_size  # longer = slower
 
     profit_nstd = 2.6
     loss_nstd = 2.6
@@ -197,7 +195,7 @@ class TSPredict(IStrategy):
     detrend_data = False
     scale_results = False
 
-    norm_data = False # changing this requires new models
+    norm_data = False  # changing this requires new models
 
     dataframeUtils = None
     scaler = RobustScaler()
@@ -210,7 +208,6 @@ class TSPredict(IStrategy):
     target_loss = 0.0
 
     # hyperparams
-
 
     # Buy hyperspace params:
     buy_params = {
@@ -238,46 +235,25 @@ class TSPredict(IStrategy):
     # Entry
 
     # the following flags apply to both entry and exit
-    enable_guard_metric = CategoricalParameter(
-        [True, False], default=True, space="buy", load=True, optimize=False
-        )
+    enable_guard_metric = CategoricalParameter([True, False], default=True, space="buy", load=True, optimize=False)
 
-    enable_bb_check = CategoricalParameter(
-        [True, False], default=True, space="buy", load=True, optimize=True
-        )
+    enable_bb_check = CategoricalParameter([True, False], default=True, space="buy", load=True, optimize=True)
 
-    enable_squeeze = CategoricalParameter(
-        [True, False], default=True, space="buy", load=True, optimize=True
-        )
+    enable_squeeze = CategoricalParameter([True, False], default=True, space="buy", load=True, optimize=True)
 
-    entry_guard_metric = DecimalParameter(
-        -0.8, 0.0, default=-0.2, decimals=1, space="buy", load=True, optimize=True
-        )
+    entry_guard_metric = DecimalParameter(-0.8, 0.0, default=-0.2, decimals=1, space="buy", load=True, optimize=True)
 
-    entry_bb_width = DecimalParameter(
-        0.020, 0.100, default=0.02, decimals=3, space="buy", load=True, optimize=True
-        )
+    entry_bb_width = DecimalParameter(0.020, 0.100, default=0.02, decimals=3, space="buy", load=True, optimize=True)
 
-    entry_bb_factor = DecimalParameter(
-        0.70, 1.20, default=1.1, decimals=2, space="buy", load=True, optimize=True
-        )
-
+    entry_bb_factor = DecimalParameter(0.70, 1.20, default=1.1, decimals=2, space="buy", load=True, optimize=True)
 
     # Exit
     # use exit signal? If disabled, just rely on the custom exit checks (or stoploss) to get out
-    enable_exit_signal = CategoricalParameter(
-        [True, False], default=False, space="sell", load=True, optimize=False
-        )
+    enable_exit_signal = CategoricalParameter([True, False], default=False, space="sell", load=True, optimize=False)
 
-    exit_guard_metric = DecimalParameter(
-        0.0, 0.8, default=0.0, decimals=1, space="sell", load=True, optimize=True
-        )
+    exit_guard_metric = DecimalParameter(0.0, 0.8, default=0.0, decimals=1, space="sell", load=True, optimize=True)
 
-    exit_bb_factor = DecimalParameter(
-        0.70, 1.20, default=0.8, decimals=2, space="sell", load=True, optimize=True
-        )
-
-
+    exit_bb_factor = DecimalParameter(0.70, 1.20, default=0.8, decimals=2, space="sell", load=True, optimize=True)
 
     # Custom Exit
 
@@ -291,12 +267,11 @@ class TSPredict(IStrategy):
     # Guard metric sell limits - used to bail out when in profit
     cexit_metric_overbought = DecimalParameter(
         0.55, 0.99, default=0.96, decimals=2, space="sell", load=True, optimize=True
-        )
+    )
 
     cexit_metric_take_profit = DecimalParameter(
         0.55, 0.99, default=0.76, decimals=2, space="sell", load=True, optimize=True
-        )
-
+    )
 
     ###################################
 
@@ -306,30 +281,30 @@ class TSPredict(IStrategy):
             self.dataframeUtils.set_scaler_type(ScalerType.Robust)
 
         if self.wavelet is None:
-           self.wavelet = Wavelets.make_wavelet(self.wavelet_type)
+            self.wavelet = Wavelets.make_wavelet(self.wavelet_type)
 
         if self.forecaster is None:
             self.forecaster = Forecasters.make_forecaster(self.forecaster_type)
             self.forecaster.set_detrend(self.detrend_data)
 
         if (not self.forecaster.supports_multiple_columns()) and (not self.single_col_prediction):
-            print('    ****')
-            print(f'    **** ERROR: forecaster ({self.forecaster_type.name}) does not support multiple indicators')
-            print('    ****')
+            print("    ****")
+            print(f"    **** ERROR: forecaster ({self.forecaster_type.name}) does not support multiple indicators")
+            print("    ****")
 
-        if (not self.forecaster.supports_retrain()):
-            print('    ****')
-            print(f'    **** WARNING: forecaster ({self.forecaster_type.name}) does not support retrainings')
-            print('    ****')
+        if not self.forecaster.supports_retrain():
+            print("    ****")
+            print(f"    **** WARNING: forecaster ({self.forecaster_type.name}) does not support retrainings")
+            print("    ****")
 
         # reset global vars based on wavelet_size, which can be changed by subclasses
-        self.win_size = self.wavelet_size # this can vary
-        self.train_min_len = self.wavelet_size # longer = slower
-        self.train_len = min(128, self.wavelet_size * 4) # longer = slower
+        self.win_size = self.wavelet_size  # this can vary
+        self.train_min_len = self.wavelet_size  # longer = slower
+        self.train_len = min(128, self.wavelet_size * 4)  # longer = slower
         # scale_len = wavelet_size // 2 # no. recent candles to use when scaling
-        self.scale_len = min(8, self.wavelet_size//2) # no. recent candles to use when scaling
+        self.scale_len = min(8, self.wavelet_size // 2)  # no. recent candles to use when scaling
         self.win_size = min(32, self.wavelet_size)
-        self.model_window = self.wavelet_size # longer = slower
+        self.model_window = self.wavelet_size  # longer = slower
 
         print("")
         print(f"    wavelet_type:    {self.wavelet_type.name}")
@@ -352,7 +327,6 @@ class TSPredict(IStrategy):
 
     # update saved data based on current pairlist
     def update_pairlist_data(self):
-
         # this only makes sense in 'live' modes
         if self.dp.runmode.value in ("backtest", "plot", "hyperopt"):
             return
@@ -367,15 +341,15 @@ class TSPredict(IStrategy):
         removed_pairs = np.setdiff1d(saved_pairlist, curr_pairlist)
         added_pairs = np.setdiff1d(curr_pairlist, saved_pairlist)
 
-        if (len(removed_pairs) > 0):
+        if len(removed_pairs) > 0:
             print("    Pairlist changed:")
-            print(f'    old pairs: {saved_pairlist}')
-            print(f'    new pairs: {curr_pairlist}')
-            print(f'    pairs removed: {removed_pairs}')
-            print(f'    pairs added: {added_pairs}')
+            print(f"    old pairs: {saved_pairlist}")
+            print(f"    new pairs: {curr_pairlist}")
+            print(f"    pairs removed: {removed_pairs}")
+            print(f"    pairs added: {added_pairs}")
 
             for pair in removed_pairs:
-                print(f'    Removing historical data for: {pair}')
+                print(f"    Removing historical data for: {pair}")
                 del self.custom_trade_info[pair]
 
     ###################################
@@ -420,19 +394,18 @@ class TSPredict(IStrategy):
         dataframe = self.update_gain_targets(dataframe)
 
         # Bollinger Bands
-        bollinger = qtpylib.bollinger_bands(dataframe['close'], window=window_size, stds=2)
-        dataframe['bb_lowerband'] = bollinger['lower']
-        dataframe['bb_middleband'] = bollinger['mid']
-        dataframe['bb_upperband'] = bollinger['upper']
-        dataframe['bb_width'] = ((dataframe['bb_upperband'] - dataframe['bb_lowerband']) / dataframe['bb_middleband'])
-        dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
-        dataframe["bb_loss"] = ((dataframe["bb_lowerband"] - dataframe["close"]) / dataframe["close"])
-
+        bollinger = qtpylib.bollinger_bands(dataframe["close"], window=window_size, stds=2)
+        dataframe["bb_lowerband"] = bollinger["lower"]
+        dataframe["bb_middleband"] = bollinger["mid"]
+        dataframe["bb_upperband"] = bollinger["upper"]
+        dataframe["bb_width"] = (dataframe["bb_upperband"] - dataframe["bb_lowerband"]) / dataframe["bb_middleband"]
+        dataframe["bb_gain"] = (dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"]
+        dataframe["bb_loss"] = (dataframe["bb_lowerband"] - dataframe["close"]) / dataframe["close"]
 
         # RSI
         dataframe["rsi"] = ta.RSI(dataframe, timeperiod=window_size)
 
-        '''
+        """
         # Williams %R
         dataframe["wr"] = 0.02 * (self.williams_r(dataframe, period=window_size) + 50.0)
 
@@ -443,20 +416,19 @@ class TSPredict(IStrategy):
         # Combined Fisher RSI and Williams %R
         dataframe["fisher_wr"] = (dataframe["wr"] + dataframe["fisher_rsi"]) / 2.0
 
-        '''
+        """
 
         # init prediction column
         dataframe["predicted_gain"] = 0.0
 
         # RMI: https://www.tradingview.com/script/kwIt9OgQ-Relative-Momentum-Index/
-        dataframe['rmi'] = cta.RMI(dataframe, length=window_size, mom=5)
+        dataframe["rmi"] = cta.RMI(dataframe, length=window_size, mom=5)
 
         # scaled version for use as guard metric
-        dataframe['srmi'] = 2.0 * (dataframe['rmi'] - 50.0) / 100.0
+        dataframe["srmi"] = 2.0 * (dataframe["rmi"] - 50.0) / 100.0
 
         # guard metric must be in range [-1,+1], with -ve values indicating oversold and +ve values overbought
-        dataframe['guard_metric'] = dataframe['srmi']
-
+        dataframe["guard_metric"] = dataframe["srmi"]
 
         use_kc_squeeze = False
 
@@ -465,11 +437,11 @@ class TSPredict(IStrategy):
             keltner = qtpylib.keltner_channel(dataframe, window=window_size, atrs=4)
             upper_kc = keltner["upper"]
             lower_kc = keltner["lower"]
-            upper_bb = dataframe['bb_upperband']
-            lower_bb = dataframe['bb_lowerband']
+            upper_bb = dataframe["bb_upperband"]
+            lower_bb = dataframe["bb_lowerband"]
 
             # calculate BB/KC squeeze
-            dataframe['squeeze'] = np.where(((lower_bb > lower_kc) & (upper_bb < upper_kc)), 1, 0)
+            dataframe["squeeze"] = np.where(((lower_bb > lower_kc) & (upper_bb < upper_kc)), 1, 0)
 
         # Add strategy-specific indicators
         dataframe = self.add_strategy_indicators(dataframe)
@@ -522,7 +494,6 @@ class TSPredict(IStrategy):
     def add_strategy_indicators(self, dataframe):
         # Override this function in subclasses and add extra indicators here
 
-
         return dataframe
 
     ###################################
@@ -534,13 +505,13 @@ class TSPredict(IStrategy):
         y_smooth = np.round(y_smooth, decimals=3)
         return np.nan_to_num(y_smooth)
 
-    #-----------------------
+    # -----------------------
 
     # look ahead to get future gain. Do *not* put this into the main dataframe!
     def get_future_gain(self, dataframe):
         df = self.convert_dataframe(dataframe)
         future_gain = df["gain"].shift(-self.lookahead).to_numpy()
-        future_gain[-self.lookahead:] = 0.0
+        future_gain[-self.lookahead :] = 0.0
         future_gain = np.round(future_gain, decimals=3)
         future_gain = np.nan_to_num(future_gain)
 
@@ -548,27 +519,25 @@ class TSPredict(IStrategy):
         # return self.smooth(future_gain, 8)
         return future_gain
 
-    #-------------
+    # -------------
     # Normalisation
 
     array_scaler = RobustScaler()
 
     def update_scaler(self, data):
-
         if not self.array_scaler:
             self.array_scaler = RobustScaler()
 
-        self.array_scaler.fit(data.reshape(-1,1))
+        self.array_scaler.fit(data.reshape(-1, 1))
 
     def norm_array(self, a):
-            return self.array_scaler.transform(a.reshape(-1, 1))
+        return self.array_scaler.transform(a.reshape(-1, 1))
 
     def denorm_array(self, a):
-            return self.array_scaler.inverse_transform(a.reshape(-1, 1)).squeeze()
+        return self.array_scaler.inverse_transform(a.reshape(-1, 1)).squeeze()
 
     # scales array data, based on array target
     def scale_array(self, target, data):
-
         # detrend the input arrays
         t = np.arange(0, len(target))
         t_poly = np.polyfit(t, target, 1)
@@ -589,7 +558,7 @@ class TSPredict(IStrategy):
 
         return y_scaled
 
-    #-------------
+    # -------------
 
     ###################################
 
@@ -671,7 +640,7 @@ class TSPredict(IStrategy):
             self.new_model = True
             self.training_mode = True
 
-        # sklearn family of regressors sometimes support starting with an existing model (warm_start), 
+        # sklearn family of regressors sometimes support starting with an existing model (warm_start),
         # or incremental training (partial_fit())
         if hasattr(self.model, "warm_start"):
             self.model.warm_start = True
@@ -682,8 +651,6 @@ class TSPredict(IStrategy):
 
         # if self.model is None:
         #     print("***    ERR: model was not created properly ***")
-
-
 
         return
 
@@ -712,7 +679,7 @@ class TSPredict(IStrategy):
 
     # train the model. Override if not an sklearn-compatible algorithm
     # set save_model=False if you don't want to save the model (needed for ML algorithms)
-    def train_model(self, forecaster:Forecasters.base_forecaster, data: np.array, results: np.array, save_model):
+    def train_model(self, forecaster: Forecasters.base_forecaster, data: np.array, results: np.array, save_model):
         if forecaster is None:
             print("***    ERR: no forecaster ***")
             return
@@ -738,9 +705,9 @@ class TSPredict(IStrategy):
             data = self.get_data(df)
 
             if self.single_col_prediction:
-                training_data = dataframe['gain'].to_numpy()
+                training_data = dataframe["gain"].to_numpy()
                 # training_data = self.smooth(training_data, 2)
-                training_data = training_data.reshape(-1,1)
+                training_data = training_data.reshape(-1, 1)
             else:
                 training_data = data.copy()
             training_data = training_data[: -self.lookahead - 1]
@@ -757,7 +724,6 @@ class TSPredict(IStrategy):
                 end = self.train_len - 1
                 num_buffs = int((np.shape(training_data)[0]) / self.train_len)
                 for i in range(num_buffs):
-
                     # print(f'   start:{start} end:{end} self.train_len:{self.train_len}')
                     self.train_model(self.forecaster, training_data[start:end], training_labels[start:end], True)
 
@@ -783,16 +749,16 @@ class TSPredict(IStrategy):
         # default is to just normalise the dataframe and convert to numpy array
         self.curr_dataframe = dataframe
         df = dataframe.copy()
-        gain = df['gain'].to_numpy()
+        gain = df["gain"].to_numpy()
         # gain = self.smooth(gain, 2)
-        df['gain'] = gain
+        df["gain"] = gain
         self.data = np.array(self.convert_dataframe(df))
         return self.data
 
     # -------------
 
     # generate predictions for an np array (intended to be overriden if needed)
-    def predict_data(self, forecaster:Forecasters.base_forecaster, data):
+    def predict_data(self, forecaster: Forecasters.base_forecaster, data):
         x = np.nan_to_num(data)
 
         preds = forecaster.forecast(x, self.lookahead)
@@ -813,24 +779,22 @@ class TSPredict(IStrategy):
 
     # single prediction (for use in rolling calculation)
     def predict(self, gain, dataframe) -> float:
-
         # Get the start and end index labels of the series
         start = gain.index[0]
         end = gain.index[-1]
 
         # Get the integer positions of the labels in the dataframe index
         start_row = dataframe.index.get_loc(start)
-        end_row = dataframe.index.get_loc(end) + 1 # need to add the 1, don't know why!
-
+        end_row = dataframe.index.get_loc(end) + 1  # need to add the 1, don't know why!
 
         # if end_row < (self.wavelet_size + self.lookahead):
-        if start_row < (self.wavelet_size + self.lookahead): # need buffer for training
+        if start_row < (self.wavelet_size + self.lookahead):  # need buffer for training
             return 0.0
 
         # train on previous data
         train_end = start_row - self.lookahead - 1
-        train_start = max(0, train_end-self.train_len)
-        scale_start = max(0, end-self.scale_len)
+        train_start = max(0, train_end - self.train_len)
+        scale_start = max(0, end - self.scale_len)
 
         if (not self.training_mode) and (self.supports_incremental_training):
             train_data = self.training_data[train_start : start - 1].copy()
@@ -852,7 +816,6 @@ class TSPredict(IStrategy):
 
     # alternate rolling prediction approach. The pandas rolling mechanism seems to have issues for some reason
     def rolling_predict(self, gain, window_size):
-
         win_size = window_size
 
         x = np.nan_to_num(np.array(gain))
@@ -861,34 +824,32 @@ class TSPredict(IStrategy):
 
         start = 0
         end = start + win_size
-        scale_start = max(0, end-self.scale_len)
+        scale_start = max(0, end - self.scale_len)
 
         # train_end = max(0, start  - self.lookahead - 1)
         # train_end = max(0, start  - 1)
         # train_end = max(0, start - self.lookahead - 1)
-        train_end = min(end - self.lookahead - 1, nrows - self.lookahead - 2) # potential lookahead problem
-        train_start = max(0, train_end-self.train_len)
-
+        train_end = min(end - self.lookahead - 1, nrows - self.lookahead - 2)  # potential lookahead problem
+        train_start = max(0, train_end - self.train_len)
 
         # get the forecaster for this pair
-        if self.custom_trade_info[self.curr_pair]['forecaster'] is None:
+        if self.custom_trade_info[self.curr_pair]["forecaster"] is None:
             # make a deep copy so that we don't override the baseline model
             pair_forecaster = copy.deepcopy(self.forecaster)
-            self.custom_trade_info[self.curr_pair]['forecaster'] = pair_forecaster
+            self.custom_trade_info[self.curr_pair]["forecaster"] = pair_forecaster
         else:
-            pair_forecaster = self.custom_trade_info[self.curr_pair]['forecaster']
+            pair_forecaster = self.custom_trade_info[self.curr_pair]["forecaster"]
 
         # loop through each row
         while end <= len(x):
-
-            if start < (self.wavelet_size + self.lookahead): # need buffer for training
-                preds[end-1] = 0.0
+            if start < (self.wavelet_size + self.lookahead):  # need buffer for training
+                preds[end - 1] = 0.0
             else:
                 # (re-)train the model on prior data and get predictions
 
                 if (not self.training_mode) and (self.supports_incremental_training):
-                    train_data = self.training_data[train_start : train_end].copy()
-                    train_results = self.training_labels[train_start : train_end].copy()
+                    train_data = self.training_data[train_start:train_end].copy()
+                    train_results = self.training_labels[train_start:train_end].copy()
                     # pair_forecaster = copy.deepcopy(self.forecaster)  # reset to avoid over-training
                     self.train_model(pair_forecaster, train_data, train_results, False)
                     # print(f'    start:{start} end:{end} train_start:{train_start} train_end:{train_end}')
@@ -899,22 +860,22 @@ class TSPredict(IStrategy):
                 forecast = self.predict_data(pair_forecaster, dslice)
 
                 # print(f'    forecast:{forecast}')
-                preds[end-1] = forecast[-1]
+                preds[end - 1] = forecast[-1]
 
             # move the window to the next segment
             end = end + 1
             start = start + 1
             # train_end = start - self.lookahead - 1
             # train_end = start - 1
-            train_end = min(end - self.lookahead - 1, nrows - self.lookahead - 2) # potential lookahead problem
-            train_start = max(0, train_end-self.train_len)
+            train_end = min(end - self.lookahead - 1, nrows - self.lookahead - 2)  # potential lookahead problem
+            train_start = max(0, train_end - self.train_len)
 
         # save the updated/trained forecaster
-        self.custom_trade_info[self.curr_pair]['forecaster'] = pair_forecaster
+        self.custom_trade_info[self.curr_pair]["forecaster"] = pair_forecaster
 
         return preds
 
-#----------
+    # ----------
     # add predictions in a jumping fashion. This is a compromise - the rolling version is very slow
     # Note: you probably need to manually tune the parameters, since there is some limited lookahead here
     def add_jumping_predictions(self, dataframe: DataFrame) -> DataFrame:
@@ -944,17 +905,17 @@ class TSPredict(IStrategy):
         # train_end = max(0, end - self.lookahead - 1)
         train_size = self.train_len
         # train_start = max(0, train_end - train_size)
-        scale_start = max(0, end-self.scale_len)
+        scale_start = max(0, end - self.scale_len)
 
-        train_end = min(end - self.lookahead - 1, nrows - self.lookahead - 2) # potential lookahead problem
-        train_start = max(0, train_end-self.train_len)
+        train_end = min(end - self.lookahead - 1, nrows - self.lookahead - 2)  # potential lookahead problem
+        train_start = max(0, train_end - self.train_len)
 
         # get the forecaster for this pair
-        if self.custom_trade_info[self.curr_pair]['forecaster'] is None:
+        if self.custom_trade_info[self.curr_pair]["forecaster"] is None:
             # make a deep copy so that we don't override the baseline model
             pair_forecaster = copy.deepcopy(self.forecaster)
         else:
-            pair_forecaster = self.custom_trade_info[self.curr_pair]['forecaster']
+            pair_forecaster = self.custom_trade_info[self.curr_pair]["forecaster"]
 
         # loop through the rows
         while end < nrows:
@@ -963,8 +924,8 @@ class TSPredict(IStrategy):
             # (re-)train the model on prior data and get predictions
 
             if (not self.training_mode) and (self.supports_incremental_training):
-                train_data = self.training_data[train_start : train_end].copy()
-                train_results = self.training_labels[train_start : train_end].copy()
+                train_data = self.training_data[train_start:train_end].copy()
+                train_results = self.training_labels[train_start:train_end].copy()
                 pair_forecaster = copy.deepcopy(self.forecaster)  # reset to avoid over-training
                 self.train_model(pair_forecaster, train_data, train_results, False)
                 # print(f'train_data: {np.shape(train_data)}')
@@ -996,28 +957,27 @@ class TSPredict(IStrategy):
         slen = min(win_size, 32)
         self.gain_data = np.array(dataframe["gain"].iloc[-slen:])  # needed for scaling
         preds = self.predict_data(pair_forecaster, dslice)
-        pred_array[-len(preds):] = preds.copy()
+        pred_array[-len(preds) :] = preds.copy()
 
         dataframe["predicted_gain"] = pred_array.copy()
 
         # save the updated/trained forecaster
-        self.custom_trade_info[self.curr_pair]['forecaster'] = pair_forecaster
+        self.custom_trade_info[self.curr_pair]["forecaster"] = pair_forecaster
 
         return dataframe
 
     # -------------
 
     def add_rolling_predictions(self, dataframe: DataFrame) -> DataFrame:
-
         try:
             # set up training data
             future_gain_data = self.get_future_gain(dataframe)
             data = self.get_data(dataframe)
 
             if self.single_col_prediction:
-                self.training_data = dataframe['gain'].to_numpy()
+                self.training_data = dataframe["gain"].to_numpy()
                 # self.training_data = self.smooth(self.training_data, 1)
-                self.training_data = self.training_data.reshape(-1,1)
+                self.training_data = self.training_data.reshape(-1, 1)
             else:
                 self.training_data = data.copy()
 
@@ -1025,14 +985,14 @@ class TSPredict(IStrategy):
             self.training_labels = future_gain_data.copy()
 
             # dataframe['predicted_gain'] = dataframe['gain'].rolling(window=self.model_window).apply(self.predict, args=(dataframe,))
-            dataframe['predicted_gain'] = self.rolling_predict(dataframe['gain'], self.model_window)
+            dataframe["predicted_gain"] = self.rolling_predict(dataframe["gain"], self.model_window)
 
             # dataframe['predicted_gain'] = self.smooth(dataframe['predicted_gain'], 2)
 
         except Exception as e:
             print("*** Exception in add_rolling_predictions()")
-            print(e) # prints the error message
-            print(traceback.format_exc()) # prints the full traceback
+            print(e)  # prints the error message
+            print(traceback.format_exc())  # prints the full traceback
 
         return dataframe
 
@@ -1069,20 +1029,20 @@ class TSPredict(IStrategy):
             # train on previous data
             # train_end = clen - self.model_window - self.lookahead
             train_end = np.shape(self.training_data)[0] - self.lookahead - 2
-            train_start = max(0, train_end-self.train_len)
+            train_start = max(0, train_end - self.train_len)
 
             # cannot use last portion because we are looking ahead
             tslice = self.training_data[train_start:train_end]
             lslice = self.training_labels[train_start:train_end]
 
             # get the forecaster for this pair
-            if self.custom_trade_info[self.curr_pair]['forecaster'] is None:
+            if self.custom_trade_info[self.curr_pair]["forecaster"] is None:
                 # make a deep copy so that we don't override the baseline model
                 pair_forecaster = copy.deepcopy(self.forecaster)
                 # forecaster should already be there, so print warning
-                print(f'    *** WARNING: No pre-existing forecaster. Creating from model')
+                print(f"    *** WARNING: No pre-existing forecaster. Creating from model")
             else:
-                pair_forecaster = self.custom_trade_info[self.curr_pair]['forecaster']
+                pair_forecaster = self.custom_trade_info[self.curr_pair]["forecaster"]
 
             # update forecaster and get predictions
 
@@ -1090,7 +1050,7 @@ class TSPredict(IStrategy):
 
             slen = min(clen, self.scale_len)
             self.gain_data = np.array(dataframe["gain"].iloc[-slen:])  # needed for scaling
-            preds = self.predict_data(pair_forecaster, self.training_data[-self.model_window:])
+            preds = self.predict_data(pair_forecaster, self.training_data[-self.model_window :])
 
             # self.forecaster = copy.deepcopy(base_forecaster) # restore original model
 
@@ -1102,17 +1062,17 @@ class TSPredict(IStrategy):
             self.custom_trade_info[self.curr_pair]["predictions"][-clen:] = pred_array[-clen:].copy()
 
             # save the updated/trained forecaster
-            self.custom_trade_info[self.curr_pair]['forecaster'] = pair_forecaster
+            self.custom_trade_info[self.curr_pair]["forecaster"] = pair_forecaster
 
-            ''''''
+            """"""
             # Debug: print info if in buy or sell region (nothing otherwise)
             pg = preds[-1]
-            if pg <= dataframe['target_loss'].iloc[-1]:
-                print(f'    (v) predict {pg:6.2f}% loss for:   {self.curr_pair}')
-            elif pg >= dataframe['target_profit'].iloc[-1]:
-                print(f'     ^  predict {pg:6.2f}% profit for: {self.curr_pair}')
+            if pg <= dataframe["target_loss"].iloc[-1]:
+                print(f"    (v) predict {pg:6.2f}% loss for:   {self.curr_pair}")
+            elif pg >= dataframe["target_profit"].iloc[-1]:
+                print(f"     ^  predict {pg:6.2f}% profit for: {self.curr_pair}")
 
-            ''''''
+            """"""
 
         except Exception as e:
             print("*** Exception in add_latest_prediction()")
@@ -1139,7 +1099,7 @@ class TSPredict(IStrategy):
 
         if self.curr_pair not in self.custom_trade_info:
             self.custom_trade_info[self.curr_pair] = {
-                'forecaster':  None,
+                "forecaster": None,
                 "initialised": False,
                 "predictions": None,
                 "curr_prediction": 0.0,
@@ -1150,7 +1110,7 @@ class TSPredict(IStrategy):
             print(f"    Training mode. Skipping backtest for {self.curr_pair}")
             dataframe["predicted_gain"] = 0.0
         else:
-            '''
+            """
             if not self.custom_trade_info[self.curr_pair]["initialised"]:
                 print(f"    backtesting {self.curr_pair}")
                 if self.use_rolling:
@@ -1168,7 +1128,7 @@ class TSPredict(IStrategy):
                 self.custom_trade_info[self.curr_pair]["curr_prediction"] = dataframe["predicted_gain"].iloc[-1]
                 self.custom_trade_info[self.curr_pair]["curr_target"] = dataframe["target_profit"].iloc[-1]
 
-            '''
+            """
 
             print(f"    backtesting {self.curr_pair}")
             if self.use_rolling:
@@ -1179,15 +1139,18 @@ class TSPredict(IStrategy):
             # predictions can spike, so constrain range
             dataframe["predicted_gain"] = dataframe["predicted_gain"].clip(lower=-3.0, upper=3.0)
 
+            # save target rate for later use
+            dataframe["curr_target"] = dataframe["close"] * (1.0 + dataframe["predicted_gain"] / 100.0)
+            # TODO: really should set target to value predicted at previous buy signal
+
             # save latest prediction and threshold for later use (where dataframe is not available)
             curr_prediction = dataframe["predicted_gain"].iloc[-1]
             curr_target = dataframe["close"].iloc[-1] * (1.0 + curr_prediction / 100.0)
             self.custom_trade_info[self.curr_pair]["curr_prediction"] = curr_prediction
             self.custom_trade_info[self.curr_pair]["curr_target"] = curr_target
 
-
         # add shifted version, for debug only
-        dataframe['shifted_pred'] = dataframe['predicted_gain'].shift(self.lookahead)
+        dataframe["shifted_pred"] = dataframe["predicted_gain"].shift(self.lookahead)
 
         if run_profiler:
             prof.disable()
@@ -1207,7 +1170,7 @@ class TSPredict(IStrategy):
         conditions = []
         dataframe.loc[:, "enter_tag"] = ""
         dataframe["enter_long"] = 0
-        dataframe['buy_region'] = 0
+        dataframe["buy_region"] = 0
 
         if self.training_mode:
             return dataframe
@@ -1221,7 +1184,6 @@ class TSPredict(IStrategy):
         guard_conditions = []
 
         if self.enable_guard_metric.value:
-
             # Guard metric in oversold region
             guard_conditions.append(dataframe["guard_metric"] < self.entry_guard_metric.value)
 
@@ -1232,12 +1194,11 @@ class TSPredict(IStrategy):
             # Bollinger band-based bull/bear indicators:
             # Done here so that we can use hyperopt to find values
 
-            lower_limit = dataframe['bb_middleband'] - \
-                self.exit_bb_factor.value * (dataframe['bb_middleband'] - dataframe['bb_lowerband'])
+            lower_limit = dataframe["bb_middleband"] - self.exit_bb_factor.value * (
+                dataframe["bb_middleband"] - dataframe["bb_lowerband"]
+            )
 
-            dataframe['bullish'] = np.where(
-                (dataframe['close'] <= lower_limit)
-                , 1, 0)
+            dataframe["bullish"] = np.where((dataframe["close"] <= lower_limit), 1, 0)
 
             # bullish region
             guard_conditions.append(dataframe["bullish"] > 0)
@@ -1246,13 +1207,10 @@ class TSPredict(IStrategy):
             # conditions.append(dataframe["bearish"] >= 0)
 
         if self.enable_squeeze.value:
-            if not ('squeeze' in dataframe.columns):
-                dataframe['squeeze'] = np.where(
-                    (dataframe['bb_width'] >= self.entry_bb_width.value)
-                    , 1, 0)
+            if not ("squeeze" in dataframe.columns):
+                dataframe["squeeze"] = np.where((dataframe["bb_width"] >= self.entry_bb_width.value), 1, 0)
 
-            guard_conditions.append(dataframe['squeeze'] > 0)
-
+            guard_conditions.append(dataframe["squeeze"] > 0)
 
         # add coulmn that combines guard conditions (for plotting)
         if guard_conditions:
@@ -1262,15 +1220,13 @@ class TSPredict(IStrategy):
             model_cond = (
                 # buy region
                 (dataframe["buy_region"] > 0)
-                &
-                (
+                & (
                     # prediction crossed target
                     qtpylib.crossed_above(dataframe["predicted_gain"], dataframe["target_profit"])
-                    |
-                    (
+                    | (
                         # add this version if volume checks are enabled, because we might miss the crossing otherwise
-                        (dataframe["predicted_gain"] > dataframe["target_profit"]) &
-                        (dataframe["predicted_gain"].shift() > dataframe["target_profit"].shift())
+                        (dataframe["predicted_gain"] > dataframe["target_profit"])
+                        & (dataframe["predicted_gain"].shift() > dataframe["target_profit"].shift())
                     )
                 )
             )
@@ -1290,6 +1246,13 @@ class TSPredict(IStrategy):
         if conditions:
             dataframe.loc[reduce(lambda x, y: x & y, conditions), "enter_long"] = 1
 
+        # set target to value predicted at previous buy signal
+        curr_target = 0.0
+        for i in range(len(dataframe["close"])):
+            if dataframe["enter_long"].iloc[i] > 0.0:
+                curr_target = dataframe["close"].iloc[i] * (1.0 + dataframe["predicted_gain"].iloc[i] / 100.0)
+            dataframe.loc[i, "curr_target"] = curr_target
+
         return dataframe
 
     ###################################
@@ -1302,21 +1265,18 @@ class TSPredict(IStrategy):
         conditions = []
         dataframe.loc[:, "exit_tag"] = ""
         dataframe["exit_long"] = 0
-        dataframe['sell_region'] = 0
+        dataframe["sell_region"] = 0
 
         if self.training_mode or (not self.enable_exit_signal.value):
             return dataframe
 
-
-        dataframe['sell_region'] = 0
+        dataframe["sell_region"] = 0
         guard_conditions = []
-
 
         # some trading volume (otherwise expect spread problems)
         conditions.append(dataframe["volume"] > 0)
 
         if self.enable_guard_metric.value:
-
             # Guard metric in overbought region
             guard_conditions.append(dataframe["guard_metric"] > self.exit_guard_metric.value)
 
@@ -1324,16 +1284,14 @@ class TSPredict(IStrategy):
             # guard_conditions.append(dataframe["close"] > dataframe["local_mean"])
 
         if self.enable_bb_check.value:
-
             # Bollinger band-based bull/bear indicators:
             # Done here so that we can use hyperopt to find values
 
-            upper_limit = dataframe['bb_middleband'] + \
-            self.entry_bb_factor.value * (dataframe['bb_upperband'] - dataframe['bb_middleband'])
+            upper_limit = dataframe["bb_middleband"] + self.entry_bb_factor.value * (
+                dataframe["bb_upperband"] - dataframe["bb_middleband"]
+            )
 
-            dataframe['bearish'] = np.where(
-                (dataframe['close'] >= upper_limit)
-                , -1, 0)
+            dataframe["bearish"] = np.where((dataframe["close"] >= upper_limit), -1, 0)
 
             # bearish region
             guard_conditions.append(dataframe["bearish"] < 0)
@@ -1342,13 +1300,10 @@ class TSPredict(IStrategy):
             # conditions.append(dataframe["bullish"] <= 0)
 
         if self.enable_squeeze.value:
-            if not ('squeeze' in dataframe.columns):
-                dataframe['squeeze'] = np.where(
-                    (dataframe['bb_width'] >= self.entry_bb_width.value)
-                , 1, 0)
+            if not ("squeeze" in dataframe.columns):
+                dataframe["squeeze"] = np.where((dataframe["bb_width"] >= self.entry_bb_width.value), 1, 0)
 
-            guard_conditions.append(dataframe['squeeze'] > 0)
-
+            guard_conditions.append(dataframe["squeeze"] > 0)
 
         if guard_conditions:
             # add column that combines guard conditions (for plotting)
@@ -1356,18 +1311,15 @@ class TSPredict(IStrategy):
 
             # model triggers
             model_cond = (
-
                 # sell region
                 (dataframe["sell_region"] < 0)
-                &
-                (
+                & (
                     # prediction crossed target
                     qtpylib.crossed_below(dataframe["predicted_gain"], dataframe["target_loss"])
-                    |
-                    (
+                    | (
                         # add this if volume checks are enabled, because we might miss the crossing otherwise
-                        (dataframe["predicted_gain"] < dataframe["target_loss"]) &
-                        (dataframe["predicted_gain"].shift() < dataframe["target_loss"].shift())
+                        (dataframe["predicted_gain"] < dataframe["target_loss"])
+                        & (dataframe["predicted_gain"].shift() < dataframe["target_loss"].shift())
                     )
                 )
             )
@@ -1418,16 +1370,16 @@ class TSPredict(IStrategy):
             if rate >= curr_target:
                 if self.dp.runmode.value not in ("backtest", "plot", "hyperopt"):
                     print("")
-                    print(
-                        f"    *** {pair} Trade cancelled. Rate ({rate:.2f}) above target ({curr_target:.2f}) "
-                    )
+                    print(f"    *** {pair} Trade cancelled. Rate ({rate:.2f}) above target ({curr_target:.2f}) ")
                     print("")
                 return False
 
         # just debug
         if self.dp.runmode.value not in ("backtest", "plot", "hyperopt"):
             print("")
-            print(f"    Trade Entry: {pair}, rate: {rate:.4f} Predicted gain: {curr_pred:.2f}% Target: {curr_target:.2f}")
+            print(
+                f"    Trade Entry: {pair}, rate: {rate:.4f} Predicted gain: {curr_pred:.2f}% Target: {curr_target:.2f}"
+            )
             print("")
 
         return True
@@ -1444,7 +1396,6 @@ class TSPredict(IStrategy):
         current_time: datetime,
         **kwargs,
     ) -> bool:
-        
         if self.dp.runmode.value not in ("backtest", "plot", "hyperopt"):
             print("")
             print(f"    Trade Exit: {pair}, rate: {rate:.4f)}")
@@ -1483,9 +1434,9 @@ class TSPredict(IStrategy):
 
     # simplified version of custom exit
 
-    def custom_exit(self, pair: str, trade: Trade, current_time: "datetime", current_rate: float,
-                    current_profit: float, **kwargs):
-
+    def custom_exit(
+        self, pair: str, trade: Trade, current_time: "datetime", current_rate: float, current_profit: float, **kwargs
+    ):
         dataframe, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
         last_candle = dataframe.iloc[-1].squeeze()
 
@@ -1493,43 +1444,68 @@ class TSPredict(IStrategy):
             return None
 
         # check volume?!
-        if last_candle['volume'] <= 1.0:
+        if last_candle["volume"] <= 1.0:
             return None
 
         if trade.is_short:
             print("    short trades not yet supported in custom_exit()")
 
         else:
-
             # print("    checking long trade")
 
-            # strong sell signal, in profit
-            if (current_profit > 0.0) and (last_candle["guard_metric"] >= self.cexit_metric_overbought.value):
-                return "metric_overbought"
+            # currently in profit
+            if current_profit > 0.0:
+                # strong sell signal, in profit
+                if last_candle["guard_metric"] >= self.cexit_metric_overbought.value:
+                    return "metric_overbought"
 
-            # Above 0.5%, sell if Fisher/Williams in sell range
-            if current_profit > 0.005:
-                if last_candle["guard_metric"] >= self.cexit_metric_take_profit.value:
-                    return "take_profit"
+                # Above 0.5%, sell if Fisher/Williams in sell range
+                if current_profit > 0.005:
+                    if last_candle["guard_metric"] >= self.cexit_metric_take_profit.value:
+                        return "take_profit"
 
+                # big drop predicted. Should also trigger an exit signal, but this might be quicker (and will likely be 'market' sell)
+                if last_candle["predicted_gain"] <= last_candle["target_loss"]:
+                    return "predict_drop"
 
-            # big drop predicted. Should also trigger an exit signal, but this might be quicker (and will likely be 'market' sell)
-            if (current_profit > 0) and (last_candle["predicted_gain"] <= last_candle["target_loss"]):
-                return "predict_drop"
+                # if in profit and exit signal is set, sell (even if exit signals are disabled)
+                if last_candle["exit_long"] > 0:
+                    return "exit_signal"
 
-            # if in profit and exit signal is set, sell (even if exit signals are disabled)
-            if (current_profit > 0) and (last_candle["exit_long"] > 0):
-                return "exit_signal"
+                # above original target and trend is down
 
+                # if self.dp.runmode.value not in ("backtest", "plot", "hyperopt"):
+                if pair in self.custom_trade_info:
+                    if current_profit > 0.005:
+                        curr_target = last_candle["curr_target"]
+                        curr_pred = last_candle["predicted_gain"]
+                        if (
+                            (curr_target > 0.0)
+                            and (current_rate >= curr_target)
+                            and (curr_pred < 0.0)
+                            and (current_profit < abs(curr_pred))
+                        ):
+                            # if self.dp.runmode.value not in ("hyperopt"):
+                            #     print(f"    {pair} rate: {current_rate:.4f} profit: {100.0*current_profit:.2f}%",
+                            #           f" gain: {curr_pred:.2f}% tgt: {curr_target:.4f}")
+                            return "above_target"
 
         # The following apply to both long & short trades:
 
+        time_delta = current_time - trade.open_date_utc
+        num_hours = time_delta.total_seconds() / 3600
+        num_days = time_delta.days
+
+        # Sell any positions if open for >= 12 hours with some profit
+        if (num_hours >= 12) & (current_profit > 0.001):
+            return "unclog_12h"
+
         # Sell any positions if open for >= 1 day with any level of profit
-        if ((current_time - trade.open_date_utc).days >= 1) & (current_profit > 0):
-            return "unclog_1"
+        if (num_days >= 1) & (current_profit > 0):
+            return "unclog_1d"
 
         # Sell any positions at a loss if they are held for more than 7 days.
-        if (current_time - trade.open_date_utc).days >= 7:
-            return "unclog_7"
+        if num_days >= 7:
+            return "unclog_7d"
 
         return None

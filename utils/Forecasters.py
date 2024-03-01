@@ -118,7 +118,11 @@ class base_forecaster(ABC):
 
     # function to set detrend type
     def set_detrender_type(self, detrender_type):
+        # print(f'  detrender_type = {detrender_type}')
         self.detrender_type = detrender_type
+        # reset retrender vars so that they will be re-created with the new type
+        self.data_retrender = None
+        self.results_detrender = None
         return
 
     # function to specify whether or not to self.smooth data before training/forecasting
@@ -179,11 +183,11 @@ class base_forecaster(ABC):
 
     data_retrender = None
 
-    detrender_type: Detrenders.DetrenderType = Detrenders.DetrenderType.SMOOTH
+    # detrender_type: Detrenders.DetrenderType = Detrenders.DetrenderType.SMOOTH
     # detrender_type: Detrenders.DetrenderType = Detrenders.DetrenderType.DIFFERENCING
     # detrender_type: Detrenders.DetrenderType = Detrenders.DetrenderType.LINEAR
     # detrender_type: Detrenders.DetrenderType = Detrenders.DetrenderType.QUADRATIC
-    # detrender_type: Detrenders.DetrenderType = Detrenders.DetrenderType.FFT
+    detrender_type: Detrenders.DetrenderType = Detrenders.DetrenderType.FFT
     # detrender_type: Detrenders.DetrenderType = Detrenders.DetrenderType.DWT
 
     def detrend(self, x, axis=0):

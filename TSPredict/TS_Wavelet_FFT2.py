@@ -25,4 +25,4 @@ class TS_Wavelet_FFT2(TS_Wavelet):
     wavelet_type = Wavelets.WaveletType.FFT
     forecaster_type = Forecasters.ForecasterType.FFT_EXTRAPOLATION
     single_col_prediction = True
-    use_rolling = True
+    # use_rolling = True
