@@ -80,11 +80,14 @@ class NNPredictor_Wavenet(ClassifierKerasLinear):
         for rate in (1, 2, 4, 8) * 2:
             x = tf.keras.layers.Conv1D(filters=64, kernel_size=2, padding="causal", activation="relu", dilation_rate=rate)(x)
 
-        # remplace sequence column with the average value
-        x = tf.keras.layers.GlobalAveragePooling1D()(x)
+        # # replace sequence column with the average value
+        # x = tf.keras.layers.GlobalAveragePooling1D()(x)
 
-        # intermediate layer to bring the dimensions
-        x = tf.keras.layers.Dense(16)(x)
+        # # intermediate layer to bring down the dimensions
+        # x = tf.keras.layers.Dense(16)(x)
+
+        x = tf.keras.layers.LSTM(16, activation='tanh')(x)
+
         x = tf.keras.layers.Dropout(0.1)(x)
         
         # last layer is a linear (float) value - do not change

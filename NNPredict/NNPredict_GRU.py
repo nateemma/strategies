@@ -96,10 +96,6 @@ class NNPredict_GRU(NNPredict):
     # once during hyperopt
     # lookahead_hours = 1.0
     lookahead_hours = 0.4
-    n_profit_stddevs = 0.0
-    n_loss_stddevs = 0.0
-    min_f1_score = 0.70
-    max_train_loss = 0.15
 
     curr_lookahead = int(12 * lookahead_hours)
 
@@ -108,6 +104,7 @@ class NNPredict_GRU(NNPredict):
 
     refit_model = False
     training_mode = False
+    # combine_models = True
 
     ###################################
 

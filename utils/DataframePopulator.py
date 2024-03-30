@@ -58,6 +58,8 @@ class DataframePopulator():
     win_size = 14
     runmode = ""  # set this to self.dp.runmode.value
 
+    lookahead = 6
+
     n_profit_stddevs = 0.0
     n_loss_stddevs = 0.0
 
@@ -66,6 +68,11 @@ class DataframePopulator():
     def __init__(self):
         super().__init__()
         self.dataframeUtils = DataframeUtils()
+
+    #################
+
+    def set_lookahead(self, lookahead):
+        self.lookahead = lookahead
 
     #################
 
@@ -79,24 +86,55 @@ class DataframePopulator():
     def add_minimal_indicators(self, dataframe: DataFrame) -> DataFrame:
 
         dataframe['mid'] = (dataframe['open'] + dataframe['close']) / 2.0
-        dataframe['gain'] = 100.0 * (dataframe['close'] - dataframe['open']) / dataframe['open']
+        # dataframe['gain'] = 100.0 * (dataframe['close'] - dataframe['open']) / dataframe['open']
+
+        # backward looking gain
+        bgain = (
+            100.0
+            * (dataframe["close"] - dataframe["close"].shift(self.lookahead))
+            / dataframe["close"].shift(self.lookahead)
+        )
+
+        gain = np.nan_to_num(np.array(bgain))
+        dataframe["gain"] = self.smooth(gain, 4)
+        dataframe["gain"] = dataframe["gain"].round(2)
+
         dataframe['profit'] = dataframe['gain'].clip(lower=0.0)
         dataframe['loss'] = dataframe['gain'].clip(upper=0.0)
 
 
+        # Bollinger Bands (must include these)
+        bollinger = qtpylib.bollinger_bands(dataframe['close'], window=20, stds=2)
+        dataframe['bb_lowerband'] = bollinger['lower']
+        dataframe['bb_middleband'] = bollinger['mid']
+        dataframe['bb_upperband'] = bollinger['upper']
+        dataframe['bb_width'] = ((dataframe['bb_upperband'] - dataframe['bb_lowerband']) / dataframe['bb_middleband'])
+        dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
+        dataframe["bb_loss"] = ((dataframe["bb_lowerband"] - dataframe["close"]) / dataframe["close"])
+
         # RSI
-        dataframe['rsi'] = ta.RSI(dataframe, timeperiod=self.win_size)
+        rsi = ta.RSI(dataframe, timeperiod=self.win_size)
+        dataframe["rsi"] = rsi
 
         # Williams %R
-        dataframe['wr'] = 0.02 * (self.williams_r(dataframe, period=14) + 50.0)
+        wr = 0.02 * (self.williams_r(dataframe, period=self.win_size) + 50.0)
 
         # Fisher RSI
-        rsi = 0.1 * (dataframe['rsi'] - 50)
-        dataframe['fisher_rsi'] = (np.exp(2 * rsi) - 1) / (np.exp(2 * rsi) + 1)
+        rsi = 0.1 * (rsi - 50)
+        fisher_rsi = (np.exp(2 * rsi) - 1) / (np.exp(2 * rsi) + 1)
 
         # Combined Fisher RSI and Williams %R
-        dataframe['fisher_wr'] = (dataframe['wr'] + dataframe['fisher_rsi']) / 2.0
+        dataframe['fisher_wr'] = (wr + fisher_rsi) / 2.0
 
+
+        # RMI: https://www.tradingview.com/script/kwIt9OgQ-Relative-Momentum-Index/
+        rmi = cta.RMI(dataframe, length=self.win_size, mom=5)
+
+        # scaled version for use as guard metric
+        srmi = 2.0 * (rmi - 50.0) / 100.0
+
+        # guard metric must be in range [-1,+1], with -ve values indicating oversold and +ve values overbought
+        dataframe["guard_metric"] = srmi
 
         return dataframe
 
@@ -114,16 +152,6 @@ class DataframePopulator():
         # Recent min/max
         dataframe['recent_min'] = dataframe['close'].rolling(window=self.win_size).min()
         dataframe['recent_max'] = dataframe['close'].rolling(window=self.win_size).max()
-
-
-        # Bollinger Bands (must include these)
-        bollinger = qtpylib.bollinger_bands(dataframe['close'], window=20, stds=2)
-        dataframe['bb_lowerband'] = bollinger['lower']
-        dataframe['bb_middleband'] = bollinger['mid']
-        dataframe['bb_upperband'] = bollinger['upper']
-        dataframe['bb_width'] = ((dataframe['bb_upperband'] - dataframe['bb_lowerband']) / dataframe['bb_middleband'])
-        dataframe["bb_gain"] = ((dataframe["bb_upperband"] - dataframe["close"]) / dataframe["close"])
-        dataframe["bb_loss"] = ((dataframe["bb_lowerband"] - dataframe["close"]) / dataframe["close"])
 
 
         # MACD
@@ -431,7 +459,7 @@ class DataframePopulator():
         dataframe['macdsignal'] = macd['macdsignal']
         dataframe['macdhist'] = macd['macdhist']
 
-        '''
+        ''''''
         # Keltner Channels (Warning: these can sometimes produce inf results)
         keltner = qtpylib.keltner_channel(dataframe)
         dataframe["kc_upper"] = keltner["upper"]
@@ -444,7 +472,7 @@ class DataframePopulator():
         dataframe['dc_lower'] = ta.MIN(dataframe['low'], timeperiod=self.win_size)
         dataframe['dc_mid'] = ta.TEMA(((dataframe['dc_upper'] + dataframe['dc_lower']) / 2), timeperiod=self.win_size)
         
-        '''
+        ''''''
         
         return dataframe
 
@@ -704,11 +732,20 @@ class DataframePopulator():
 
     ##################
 
+    # smooth a series
+    def smooth(self, y, window):
+        box = np.ones(window) / window
+        y_smooth = np.convolve(y, box, mode="same")
+        # Hack: constrain to 3 decimal places (should be elsewhere, but convenient here)
+        y_smooth = np.round(y_smooth, decimals=3)
+        return np.nan_to_num(y_smooth)
+
     # returns (rolling) smoothed version of input column
     def roll_smooth(self, col) -> float:
         # must return scalar, so just calculate prediction and take last value
 
-        smooth = gaussian_filter1d(col, 4)
+        smooth = self.smooth(col, 4)
+        # smooth = gaussian_filter1d(col, 4)
         # smooth = gaussian_filter1d(col, 2)
 
         length = len(smooth)

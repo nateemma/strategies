@@ -39,7 +39,8 @@ class ClassifierKeras():
     model_path = ""
     model_ext = "keras"
     name = ""
-    checkpoint_path = "/tmp/model." + model_ext
+    # checkpoint_path = "/tmp/model." + model_ext
+    checkpoint_path = "/tmp/model.weights.h5"
     seq_len = 8
     num_features = 64
     encoder_layer = 'encoder_output'
@@ -79,8 +80,8 @@ class ClassifierKeras():
         config = tf.compat.v1.ConfigProto(device_count={'GPU': 0})
         config.gpu_options.allow_growth = True
         config.gpu_options.per_process_gpu_memory_fraction = mem_fraction
-        sess = tf.compat.v1.Session(config=config)
-        tf.compat.v1.keras.backend.set_session(sess)
+        # sess = tf.compat.v1.Session(config=config)
+        # tf.compat.v1.keras.backend.set_session(sess)
 
         seed = 42
         os.environ['PYTHONHASHSEED'] = str(seed)
@@ -459,6 +460,9 @@ class ClassifierKeras():
         self.root_dir = os.path.dirname(path)
         if not os.path.exists(self.root_dir):
             os.makedirs(self.root_dir)
+
+        self.checkpoint_path = self.get_checkpoint_path()
+
         return
 
     # returns path to the root directory used for storing models
@@ -483,7 +487,8 @@ class ClassifierKeras():
         checkpoint_dir = '/tmp' + "/" + self.name + "/"
         if not os.path.exists(checkpoint_dir):
             os.makedirs(checkpoint_dir)
-        model_path = checkpoint_dir + "checkpoint." + self.model_ext
+        # model_path = checkpoint_dir + "checkpoint." + self.model_ext
+        model_path = checkpoint_dir + "checkpoint.weights.h5"
         return model_path
 
     # ---------------------------

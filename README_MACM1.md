@@ -5,6 +5,8 @@ trying to do this. Note that _pip_ means _pip3_ (I have _pip_ aliased to _pip3_)
 
 Also, there is a script _install_packages.sh_ in _user_data/strategies/scripts_, that will do all of this for you
 
+*WARNING*: If you are running on an Apple processor (M1 etc) then there will likely be some dependency issues. The Mac M1 versions of libraries are generally only available via conda, and they do not keep up wit the pace of other packages such as python and tensorflow. In partuclar, be careful about upgrading python. At the time of writing, the latest version of python is 3.12, but the M1-based version of tensorflow-deps and tensorflow-macos only support python 3.10
+
 ## Installing Anaconda
 You should only need to do this once
 ```

@@ -307,8 +307,8 @@ class TSPredict(IStrategy):
         self.model_window = self.wavelet_size  # longer = slower
 
         print("")
-        print(f"    wavelet_type:    {self.wavelet_type.name}")
-        print(f"    wavelet_size:    {self.wavelet_size}")
+        print(f"    wavelet_type:    {self.wavelet_type.name} ({self.wavelet_size})")
+        print(f"    win_size:        {self.win_size}")
         print(f"    forecaster_type: {self.forecaster.get_name()}")
         print(f"    detrend_data:    {self.forecaster.detrend_data}")
         print("")

@@ -32,6 +32,10 @@ from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.svm import SVR
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.neural_network import MLPRegressor
+
+from sklearn.linear_model import PassiveAggressiveClassifier, Perceptron, SGDClassifier
+from sklearn.naive_bayes import MultinomialNB
+
 # from scipy.fft import fft, hfft, ifft, ihfft, rfft, irfft, fftfreq
 # -----------------------------------
 
@@ -232,6 +236,48 @@ class base_forecaster(ABC):
         # Hack: constrain to 3 decimal places (should be elsewhere, but convenient here)
         y_smooth = np.round(y_smooth, decimals=3)
         return np.nan_to_num(y_smooth)
+
+    # -----------------------------------
+
+    step_size = 0.5
+    max_val = 5.0
+    quantiles = (np.arange(-max_val, max_val+0.01, step_size) / step_size).astype(int)
+    labels = quantiles - quantiles[0] # labels are zero-based
+    value_to_index = {value: index for index, value in enumerate(quantiles)}
+
+    def quantise_array(self, x):
+        x2 = np.clip(x, -self.max_val, self.max_val)
+        x_q = (x2/self.step_size).astype(int)
+        x_q = x_q + abs(self.quantiles[0])
+        return x_q
+
+    def dequantise_array(self, x_q):
+        x = (x_q - abs(self.quantiles[0])) * self.step_size
+        return x
+
+    # converts quantised value into a one-hot-encoded label array
+    def value_to_label(self, value):
+
+        if (value <= self.quantiles[0]):
+            index = 0
+        elif (value >= self.quantiles[-1]):
+            index = -1
+        else:
+            index = self.value_to_index.get(value)
+            if index is None:
+                index = self.value_to_index.get(0)
+
+        labels = [0] * len(self.quantiles)
+        labels[index] = 1
+
+        return labels
+    
+    def label_to_value(self, label):
+        if (label < 0) or (label >= len(self.quantiles)):
+            value = 0
+        else:
+            value = self.quantiles[label] * self.step_size
+        return value
 
 #------------------------------
 
@@ -1356,12 +1402,177 @@ class xgb_forecaster(base_forecaster):
 
 # -----------------------------------
 
+#######################################
+#  sklear classifier-based forecasters
+# -----------------------------------
+
+# Note: detrend is ignored in these classes because it doesn't make sense when using quantisation
+
+class sklearn_classifier(base_forecaster):
+    reuse_model = True
+    support_multiple_columns = False
+    support_retrain = True
+    requires_training = True
+
+    def get_name(self):
+        return "base sklearn_classifier"
+
+    def create_model(self):
+        if self.model is None:
+            self.model = PassiveAggressiveClassifier()
+        return
+
+    def train(self, train_data: np.array, results: np.array, incremental=True):
+
+        self.create_model()
+
+        # if self.detrend_data:
+        #     train_data = self.detrend(train_data)
+        #     results = self.detrend_results(results)
+
+        # quantise data
+        train_data = self.quantise_array(train_data)
+        results = self.quantise_array(results)
+
+        if incremental:
+            self.model.partial_fit(train_data, results, classes=self.labels)
+        else:
+            self.model.fit(train_data, results)
+
+        # self.find_params(train_data, results) # only use while testing
+
+        return
+
+    def forecast(self, data: np.array, steps) -> np.array:
+
+        # if self.detrend_data:
+        #     x = self.detrend(np.array(data))
+        # else:
+        #     x = np.nan_to_num(data)
+
+        x = np.nan_to_num(data)
+
+        # quantise data
+        xq = self.quantise_array(x)
+
+        labels = self.model.predict(xq)
+        predictions = self.dequantise_array(labels)
+
+        # if self.detrend_data:
+        #      predictions = self.retrend_results(predictions.reshape(-1,1), steps).squeeze()
+
+        # print(f'    labels:      {labels}')
+        # print(f'    preds:       {preds}')
+        # print(f'    predictions: {predictions}')
+
+        plen = np.shape(predictions)[0]
+        dlen  = np.shape(data)[0]
+        if plen < dlen:
+            print(f'    WARNING: len(predictions) < len(data) {plen} vs {dlen}')
+        return predictions.squeeze()
+
+# -----------------------------------
+
+# 'null' classifier, for testing framework
+class nullcl_forecaster(sklearn_classifier):
+
+    def get_name(self):
+        return "Null Classifier"
+
+    def create_model(self):
+        if self.model is None:
+            self.model = PassiveAggressiveClassifier()
+        return
+
+    def train(self, train_data: np.array, results: np.array, incremental=True):
+        # create a model, just so that it's not None
+        self.create_model()
+
+        # # detrend data to set up scaling
+        # if self.detrend_data:
+        #     train_data = self.detrend(train_data)
+        #     results = self.detrend_results(results)
+        return
+
+    def forecast(self, data: np.array, steps) -> np.array:
+
+        # if self.detrend_data:
+        #     x = self.detrend(np.array(data))
+        # else:
+        #     x = np.nan_to_num(data)
+
+        x = np.nan_to_num(data)
+
+        # just quantise and de-quantise data
+        xq = self.quantise_array(x)
+        predictions = self.dequantise_array(xq)
+
+        # if self.detrend_data:
+        #      predictions = self.retrend_results(predictions.reshape(-1,1), steps).squeeze()
+
+        return predictions.squeeze()
+# -----------------------------------
+
+class mnb_forecaster(sklearn_classifier):
+
+    def get_name(self):
+        return "MultinomialNB"
+
+    def create_model(self):
+        if self.model is None:
+            self.model = MultinomialNB(alpha=0.01)
+        return
+
+
+# -----------------------------------
+
+class perceptron_forecaster(sklearn_classifier):
+
+    def get_name(self):
+        return "Perceptron"
+
+    def create_model(self):
+        if self.model is None:
+            self.model = Perceptron()
+        return
+
+
+# -----------------------------------
+
+class pac_forecaster(sklearn_classifier):
+
+    def get_name(self):
+        return "PassiveAggressiveClassifier"
+
+    def create_model(self):
+        if self.model is None:
+            # self.model = PassiveAggressiveClassifier(C=0.4, fit_intercept=False,
+            #                                         shuffle=False, warm_start=False, verbose=0)
+            self.model = PassiveAggressiveClassifier()
+        return
+
+
+# -----------------------------------
+
+class sgdc_forecaster(sklearn_classifier):
+
+    def get_name(self):
+        return "SGD Classifier"
+
+    def create_model(self):
+        if self.model is None:
+            self.model = SGDClassifier(max_iter=5)
+        return
+
+# -----------------------------------
 
 # enum of all available forecaster types
 
 
 class ForecasterType(Enum):
     NULL = null_forecaster
+
+    # statsmodel-based forecasters:
     LINEAR = linear_forecaster
     QUADRATIC = quadratic_forecaster
     FFT_EXTRAPOLATION = fft_extrapolation_forecaster
@@ -1373,6 +1584,8 @@ class ForecasterType(Enum):
     AR = ar_forecaster
     ARIMA = arima_forecaster
     THETA = theta_forecaster
+
+    # sklearn regressor-based forecasters
     GB = gb_forecaster
     HGB = hgb_forecaster
     KMEANS = kmeans_forecaster
@@ -1383,6 +1596,12 @@ class ForecasterType(Enum):
     SVR = svr_forecaster
     XGB = xgb_forecaster
 
+    # sklearn classifier-based forecasters
+    NULLCL = nullcl_forecaster
+    MNB = mnb_forecaster
+    PERCEPTRON = perceptron_forecaster
+    PAC = pac_forecaster
+    SGDC = sgdc_forecaster
 
 # (static) function to create a forecaster of the specified type
 def make_forecaster(forecaster_type: ForecasterType) -> base_forecaster:

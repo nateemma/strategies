@@ -71,7 +71,8 @@ class ClassifierKerasLinear(ClassifierKeras):
     def compile_model(self, model):
         # optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
         # workaround for tensorflow issues with Adam:
-        optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=self.learning_rate)
+        # optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=self.learning_rate)
+        optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate)
         # optimizer = tf.keras.optimizers.SGD(learning_rate=1, momentum=0.9)
         model.compile(metrics=['mae', 'mse'], loss='mse', optimizer=optimizer)
 

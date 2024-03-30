@@ -78,24 +78,24 @@ class TS_Wavelet(TSPredict):
 
     # Buy hyperspace params:
     buy_params = {
-        "cexit_min_profit_th": 0.2,
-        "cexit_profit_nstd": 1.3,
-        "enable_bb_check": True,
+        "cexit_min_profit_th": 0.4,
+        "cexit_profit_nstd": 1.4,
+        "enable_bb_check": False,
         "enable_squeeze": False,
-        "entry_bb_factor": 1.11,
-        "entry_bb_width": 0.077,
-        "entry_guard_metric": 0.0,
+        "entry_bb_factor": 0.9,
+        "entry_bb_width": 0.057,
+        "entry_guard_metric": -0.1,
         "enable_guard_metric": True,  # value loaded from strategy
     }
 
     # Sell hyperspace params:
     sell_params = {
-        "cexit_loss_nstd": 0.3,
-        "cexit_metric_overbought": 0.93,
-        "cexit_metric_take_profit": 0.72,
-        "cexit_min_loss_th": -1.0,
-        "exit_bb_factor": 0.75,
-        "exit_guard_metric": 0.7,
+        "cexit_loss_nstd": 2.8,
+        "cexit_metric_overbought": 0.91,
+        "cexit_metric_take_profit": 0.95,
+        "cexit_min_loss_th": 0.0,
+        "exit_bb_factor": 0.74,
+        "exit_guard_metric": 0.3,
         "enable_exit_signal": False,  # value loaded from strategy
     }
 

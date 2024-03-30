@@ -152,12 +152,18 @@ flist = [
     # Forecasters.ForecasterType.LINEAR,
     # Forecasters.ForecasterType.QUADRATIC,
     # Forecasters.ForecasterType.PA,
-    Forecasters.ForecasterType.SGD,
+    # Forecasters.ForecasterType.SGD,
     # Forecasters.ForecasterType.SVR,
     # Forecasters.ForecasterType.FFT_EXTRAPOLATION,
     # Forecasters.ForecasterType.MLP,
     # Forecasters.ForecasterType.LGBM,
-    # Forecasters.ForecasterType.XGB
+    # Forecasters.ForecasterType.XGB,
+
+    # Forecasters.ForecasterType.NULLCL,
+    # Forecasters.ForecasterType.MNB,
+    # Forecasters.ForecasterType.PERCEPTRON,
+    Forecasters.ForecasterType.PAC,
+    # Forecasters.ForecasterType.SGDC
 ]
 
 marker_list = [ '.', 'o', 'v', '^', '<', '>', 'p', '*', 'h', 'H', 'D', 'd', 'P', 'X' ]
@@ -195,13 +201,13 @@ for f in flist:
 
     mkr_idx = (mkr_idx + 1) % num_markers
 
-    id = id + "(w/ detrend)"
-    col = "predicted_gain_" + id 
-    forecaster.set_detrend(True)
-    dataframe[col] = rolling_predict(dataframe["gain"], model_window, norm_data=False)
-    dataframe[col].plot(ax=ax, label=id, marker=marker_list[mkr_idx])
+    # id = id + "(w/ detrend)"
+    # col = "predicted_gain_" + id 
+    # forecaster.set_detrend(True)
+    # dataframe[col] = rolling_predict(dataframe["gain"], model_window, norm_data=False)
+    # dataframe[col].plot(ax=ax, label=id, marker=marker_list[mkr_idx])
 
-    mkr_idx = (mkr_idx + 1) % num_markers
+    # mkr_idx = (mkr_idx + 1) % num_markers
 
 
 

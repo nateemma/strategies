@@ -64,24 +64,44 @@ class NNPredictor_MLP(ClassifierKerasLinear):
         x = inputs
 
         # Dense layers do not work well with seq_len dimension, so remove
-        x = tf.keras.layers.GlobalAveragePooling1D()(x)
+        # x = tf.keras.layers.GlobalAveragePooling1D()(x)
+        x = tf.keras.layers.LSTM(128, activation='tanh', return_sequences=False)(x)
 
         # Gradually filter down parameters
-        x = tf.keras.layers.Dense(128)(x)
-        x = tf.keras.layers.Dropout(0.1)(x)
+
+        for _ in range (3):
+            x = tf.keras.layers.Dense(256)(x)
+            x = tf.keras.layers.Dropout(0.1)(x)
+
         x = tf.keras.layers.BatchNormalization()(x)
 
-        x = tf.keras.layers.Dense(64)(x)
-        x = tf.keras.layers.Dropout(0.1)(x)
-        x = tf.keras.layers.BatchNormalization()(x)
+        # for _ in range (3):
+        #     x = tf.keras.layers.Dense(128)(x)
+        #     x = tf.keras.layers.Dropout(0.1)(x)
 
-        x = tf.keras.layers.Dense(32)(x)
-        x = tf.keras.layers.Dropout(0.1)(x)
-        x = tf.keras.layers.BatchNormalization()(x)
+        # x = tf.keras.layers.BatchNormalization()(x)
 
-        x = tf.keras.layers.Dense(16)(x)
-        x = tf.keras.layers.Dropout(0.1)(x)
-        x = tf.keras.layers.BatchNormalization()(x)
+        # for _ in range (3):
+        #     x = tf.keras.layers.Dense(64)(x)
+        #     x = tf.keras.layers.Dropout(0.1)(x)
+
+        # x = tf.keras.layers.BatchNormalization()(x)
+
+        # for _ in range (3):
+        #     x = tf.keras.layers.Dense(32)(x)
+        #     x = tf.keras.layers.Dropout(0.1)(x)
+
+        # x = tf.keras.layers.BatchNormalization()(x)
+
+        for _ in range (3):
+            x = tf.keras.layers.Dense(16)(x)
+        # x = tf.keras.layers.Dropout(0.1)(x)
+        # x = tf.keras.layers.BatchNormalization()(x)
+
+
+        # # reduce dimensions
+        # x = tf.keras.layers.Reshape((1, 16))(x) # add the sequence dimension back in so that we can use an LSTM
+        # x = tf.keras.layers.LSTM(1, activation='tanh')(x)
 
         # last layer is a linear (float) value - do not change
         outputs = tf.keras.layers.Dense(1, activation="linear")(x)

@@ -51,6 +51,8 @@ from tqdm.keras import TqdmCallback
 
 import random
 
+from utils.DataframePopulator import DatasetType
+
 from NNPredict import NNPredict
 from NNPredictor_CNN import NNPredictor_CNN
 
@@ -84,7 +86,7 @@ class NNPredict_CNN(NNPredict):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     # lookahead_hours = 1.0
-    lookahead_hours = 1.0
+    lookahead_hours = 0.5
     n_profit_stddevs = 0.0
     n_loss_stddevs = 0.0
     min_f1_score = 0.70
@@ -96,6 +98,9 @@ class NNPredict_CNN(NNPredict):
     custom_trade_info = {}
 
     refit_model = False
+
+    dataset_type = DatasetType.MINIMAL
+    combine_models = True
 
     ###################################
 
