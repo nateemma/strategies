@@ -450,7 +450,7 @@ trades on a web page at http://127.0.0.1:8080/ (or whatever address you specify 
 
 The script helper is:
 
-> zsh user_data/strategies/scripts/dryrun_strat -p _\<port\>_ _\<exchange\>_ _\<strategy\>_
+> zsh user_data/strategies/scripts/dryrun_strat.sh -p _\<port\>_ _\<exchange\>_ _\<strategy\>_
 
 The -p is optional, but if you want to run multiple strategies on the same exchange you need to use this. In such cases,
 there needs to be a matching config file in the base _freqtrade_ directory of the form _
