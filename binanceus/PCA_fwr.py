@@ -55,14 +55,14 @@ class PCA_fwr(PCA):
 
     plot_config = {
         'main_plot': {
-            'close': {'color': 'cornflowerblue'},
+            'close': {'color': 'lightsteelblue'},
         },
         'subplots': {
             "Diff": {
                 '%train_buy': {'color': 'mediumaquamarine'},
-                'predict_buy': {'color': 'cornflowerblue'},
-                '%train_sell': {'color': 'salmon'},
-                'predict_sell': {'color': 'orange'},
+                'predict_buy': {'color': 'lightsteelblue'},
+                '%train_sell': {'color': 'lightsalmon'},
+                'predict_sell': {'color': 'brown'},
                 'fisher_wr': {'color': 'plum'},
             },
         }
@@ -76,8 +76,8 @@ class PCA_fwr(PCA):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     lookahead_hours = 1.0
-    n_profit_stddevs = 1.5
-    n_loss_stddevs = 2.0
+    n_profit_stddevs = 0.0
+    n_loss_stddevs = 0.0
     min_f1_score = 0.70
 
     custom_trade_info = {}
@@ -136,7 +136,7 @@ class PCA_fwr(PCA):
                     (future_df['fisher_wr'] < -0.9) &
 
                     # future profit
-                    (future_df['future_profit_max'] >= future_df['profit_threshold']) &
+                    (future_df['future_profit_max'] >= future_df['future_profit_threshold']) &
                     (future_df['future_gain'] > 0)
             ), 1.0, 0.0)
 
@@ -149,12 +149,12 @@ class PCA_fwr(PCA):
                     (future_df['fisher_wr'] > 0.9) &
 
                     # future loss
-                    (future_df['future_gain'] <= future_df['loss_threshold'])
+                    (future_df['future_gain'] <= future_df['future_loss_threshold'])
             ), 1.0, 0.0)
 
         return sells
 
-    def get_strategy_buy_conditions(self, dataframe: DataFrame):
+    def get_strategy_entry_guard_conditions(self, dataframe: DataFrame):
         cond = np.where(
             (
                 # N down sequences
@@ -162,7 +162,7 @@ class PCA_fwr(PCA):
             ), 1.0, 0.0)
         return cond
 
-    def get_strategy_sell_conditions(self, dataframe: DataFrame):
+    def get_strategy_exit_guard_conditions(self, dataframe: DataFrame):
         cond = np.where(
             (
                 # N up sequences

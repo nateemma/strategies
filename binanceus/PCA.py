@@ -142,14 +142,14 @@ class PCA(IStrategy):
     # default plot config
     plot_config = {
         'main_plot': {
-            'close': {'color': 'cornflowerblue'},
+            'close': {'color': 'lightsteelblue'},
         },
         'subplots': {
             "Diff": {
                 '%train_buy': {'color': 'mediumaquamarine'},
-                'predict_buy': {'color': 'cornflowerblue'},
-                '%train_sell': {'color': 'salmon'},
-                'predict_sell': {'color': 'orange'},
+                'predict_buy': {'color': 'lightsteelblue'},
+                '%train_sell': {'color': 'lightsalmon'},
+                'predict_sell': {'color': 'brown'},
             },
         }
     }
@@ -158,7 +158,7 @@ class PCA(IStrategy):
 
     # ROI table:
     minimal_roi = {
-        "0": 0.06
+        "0": 0.006
     }
 
     # Stoploss:
@@ -209,6 +209,8 @@ class PCA(IStrategy):
     num_pairs = 0
     pair_model_info = {}  # holds model-related info for each pair
     classifier_stats = {}  # holds statistics for each type of classifier (useful to rank classifiers
+
+    ignore_exit_signals = False # set to True if you don't want to process sell/exit signals (let custom sell do it)
 
     # debug flags
     first_time = True  # mostly for debug
@@ -310,10 +312,10 @@ class PCA(IStrategy):
 
     # override the following to add strategy-specific criteria to the (main) buy/sell conditions
 
-    def get_strategy_buy_conditions(self, dataframe: DataFrame):
+    def get_strategy_entry_guard_conditions(self, dataframe: DataFrame):
         return None
 
-    def get_strategy_sell_conditions(self, dataframe: DataFrame):
+    def get_strategy_exit_guard_conditions(self, dataframe: DataFrame):
         return None
 
     ################################
@@ -606,10 +608,14 @@ class PCA(IStrategy):
             print("*** ERR: insufficient number of positive sell labels ({:.2f}%)".format(sell_ratio))
             return
 
-        sell_clf, sell_clf_name = self.get_sell_classifier(df_train_pca, train_sell_labels)
+        if not self.ignore_exit_signals:
+            sell_clf, sell_clf_name = self.get_sell_classifier(df_train_pca, train_sell_labels)
 
-        if self.dbg_verbose:
-            print(f'    Classifiers - buy: {buy_clf_name} sell: {sell_clf_name}')
+            if self.dbg_verbose:
+                print(f'    Classifiers - sell: {buy_clf_name} sell: {sell_clf_name}')
+        else:
+            sell_clf = None
+            sell_clf_name = "None"
 
         # save the models
         self.pair_model_info[curr_pair]['pca'] = pca
@@ -1258,7 +1264,7 @@ class PCA(IStrategy):
         conditions.append(pca_cond)
 
         # add strategy-specific conditions (from subclass)
-        strat_cond = self.get_strategy_buy_conditions(dataframe)
+        strat_cond = self.get_strategy_entry_guard_conditions(dataframe)
         if strat_cond is not None:
             conditions.append(strat_cond)
 
@@ -1291,6 +1297,11 @@ class PCA(IStrategy):
                 # self.show_debug_info(curr_pair)
                 self.show_all_debug_info()
 
+        # if we are to ignore exit signals, just set exit column to 0s and return
+        if self.ignore_exit_signals:
+            dataframe['exit_long'] = 0
+            return dataframe
+
         conditions.append(dataframe['volume'] > 0)
 
         # MFI
@@ -1307,7 +1318,7 @@ class PCA(IStrategy):
         conditions.append(pca_cond)
 
         # add strategy-specific conditions (from subclass)
-        strat_cond = self.get_strategy_sell_conditions(dataframe)
+        strat_cond = self.get_strategy_exit_guard_conditions(dataframe)
         if strat_cond is not None:
             conditions.append(strat_cond)
 
@@ -1377,6 +1388,10 @@ class PCA(IStrategy):
         if current_profit > 0.03:
             if last_candle['mfi'] > 90:
                 return 'mfi_90'
+
+        # Mod: strong sell signal, in profit
+        if (current_profit > 0) and (last_candle['fisher_wr'] > 0.98):
+                return 'fwr_98'
 
         # Sell any positions at a loss if they are held for more than one day.
         if current_profit < 0.0 and (current_time - trade.open_date_utc).days >= 2:

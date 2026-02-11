@@ -44,7 +44,7 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 import custom_indicators as cta
 from finta import TA as fta
 
-import keras
+#import keras
 from keras import layers
 from tqdm import tqdm
 from tqdm.keras import TqdmCallback
@@ -80,7 +80,7 @@ Predict_NLinear - uses an NLinear neural network to try and predict the future s
 class NNPredict_NLinear(NNPredict):
     plot_config = {
         'main_plot': {
-            'mid': {'color': 'cornflowerblue'},
+            'mid': {'color': 'lightsteelblue'},
             # 'smooth': {'color': 'teal'},
             'predict': {'color': 'lightpink'},
         },
@@ -108,7 +108,7 @@ class NNPredict_NLinear(NNPredict):
     custom_trade_info = {}
 
     refit_model = False # set to True if you want to re-train the model. Usually better to just delete it and restart
-    training_only = False
+    training_mode = False
 
 
     ###################################

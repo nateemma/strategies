@@ -60,9 +60,9 @@ class PCA_dwt(PCA):
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
-    lookahead_hours = 0.5
-    n_profit_stddevs = 2.0
-    n_loss_stddevs = 2.0
+    lookahead_hours = 1.0
+    n_profit_stddevs = 0.0
+    n_loss_stddevs = 0.0
     min_f1_score = 0.51
 
     custom_trade_info = {}
@@ -117,10 +117,10 @@ class PCA_dwt(PCA):
     def get_train_buy_signals(self, future_df: DataFrame):
         series = np.where(
             (
-                # forward model above backward model
+                # forward model below backward model
                     (future_df['dwt_diff'] < 0) &
                     # current loss below threshold
-                    (future_df['dwt_diff'] <= future_df['loss_threshold']) &
+                    (future_df['dwt_diff'] <= future_df['future_loss_threshold']) &
                     # forward model below backward model at lookahead
                     (future_df['dwt_diff'].shift(-self.curr_lookahead) > 0)
             ), 1.0, 0.0)
@@ -133,7 +133,7 @@ class PCA_dwt(PCA):
                 # forward model above backward model
                     (future_df['dwt_diff'] > 0) &
                     # current profit above threshold
-                    (future_df['dwt_diff'] >= future_df['profit_threshold']) &
+                    (future_df['dwt_diff'] >= future_df['future_profit_threshold']) &
                     # forward model below backward model at lookahead
                     (future_df['dwt_diff'].shift(-self.curr_lookahead) < 0)
             ), 1.0, 0.0)

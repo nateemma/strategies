@@ -7,7 +7,7 @@
 
 # For a list of viable algorithms, see: https://unit8co.github.io/darts/README.html (Forecasting Models section)
 
-# pytorch works very differently from keras. I have maintained the same interfaces across sklearn, keras, darts and
+# pytorch works very differently from tf.keras. I have maintained the same interfaces across sklearn, keras, darts and
 # pytorch, which is why I have to update some parameters via a call interface rather than adding a parameter
 
 # specific model subclasses (linear etc) should override create_model

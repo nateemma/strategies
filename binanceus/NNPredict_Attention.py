@@ -44,7 +44,7 @@ warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 import custom_indicators as cta
 from finta import TA as fta
 
-import keras
+#import keras
 from keras import layers
 from tqdm import tqdm
 from tqdm.keras import TqdmCallback
@@ -79,7 +79,7 @@ Predict_Attention - uses an Attention neural network to try and predict the futu
 class NNPredict_Attention(NNPredict):
     plot_config = {
         'main_plot': {
-            'mid': {'color': 'cornflowerblue'},
+            'mid': {'color': 'lightsteelblue'},
             # 'smooth': {'color': 'teal'},
             'predict': {'color': 'lightpink'},
         },

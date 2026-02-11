@@ -2,30 +2,6 @@
 
 # runs hyperopt on a single strategy
 
-show_usage () {
-    script=$(basename $BASH_SOURCE)
-    cat << END
-
-Usage: zsh $script [options] <exchange> <strategy>
-
-[options]:  -c | --config      path to config file (default: user_data/strategies/<exchange>/config_<exchange>.json
-            -e | --epochs      Number of epochs to run. Default 100
-            -j | --jobs        Number of parallel jobs
-            -l | --loss        Loss function to use (default WeightedProfitHyperOptLoss)
-                 --leveraged   Use 'leveraged' config file
-            -n | --ndays       Number of days of backtesting. Defaults to 30
-            -s | --spaces      Optimisation spaces (any of: buy, roi, trailing, stoploss, sell)
-                 --short       Use 'short' config file
-            -t | --timeframe   Timeframe (YYYMMDD-[YYYMMDD]). Defaults to last 30 days
-
-<exchange>  Name of exchange (binanceus, coinbasepro, kucoin, etc)
-
-<strategy>  Name of Strategy
-
-END
-}
-
-
 # Defaults
 
 # loss options: ShortTradeDurHyperOptLoss OnlyProfitHyperOptLoss SharpeHyperOptLoss SharpeHyperOptLossDaily
@@ -36,23 +12,89 @@ loss="WeightedProfitHyperOptLoss"
 
 clean=0
 epochs=100
-jarg=""
+
+# Get number of available CPUs (works on both macOS and Linux)
+# Use CPUs - 1 to leave one CPU free for system tasks
+if command -v nproc >/dev/null 2>&1; then
+    # Linux
+    num_cpus=$(nproc)
+elif command -v sysctl >/dev/null 2>&1; then
+    # macOS
+    num_cpus=$(sysctl -n hw.ncpu)
+else
+    # Fallback for other systems
+    num_cpus=$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo "1")
+fi
+# Subtract 1, but ensure at least 1 job
+num_jobs=$((num_cpus > 1 ? num_cpus - 1 : 1))
+jarg="-j ${num_jobs}"
+
 config_file=""
 short=0
 leveraged=0
-
+verbose=0
 spaces="buy sell"
 
-#get date from 180 days ago (MacOS-specific)
 num_days=180
-start_date=$(date -j -v-${num_days}d +"%Y%m%d")
-timerange="${start_date}-"
+offset_days=0
+start_date=$(date +"%Y%m%d")
+end_date="$(date "+%Y%m%d")"
+
+set_start_date () {
+  # ndays="$1"
+
+  num_days=$((num_days + offset_days))
+
+  # Get the operating system name
+  os=$(uname)
+
+  # Check if the operating system is Darwin (macOS)
+  if [ "$os" = "Darwin" ]; then
+    # Use the -j -v option for BSD date command
+    start_date=$(date -j -v-${num_days}d +"%Y%m%d")
+    end_date=$(date -j -v-${offset_days}d +"%Y%m%d")
+  else
+    # Use the -d option for GNU date command
+    start_date=$(date -d "${num_days} days ago " +"%Y%m%d")
+    end_date=$(date -d "${offset_days} days ago " +"%Y%m%d")
+  fi
+}
+
+#get date from num_days days ago
+set_start_date
+
+timerange="${start_date}-${end_date}"
+
+show_usage () {
+    script=$(basename $BASH_SOURCE)
+    cat << END
+
+Usage: zsh $script [options] <group> <strategy>
+
+[options]:  -c | --config      path to config file (default: user_data/strategies/<group>/config_<group>.json
+            -e | --epochs      Number of epochs to run. Default 100
+            -j | --jobs        Number of parallel jobs
+            -l | --loss        Loss function to use (default WeightedProfitHyperOptLoss)
+                 --leveraged   Use 'leveraged' config file
+            -n | --ndays       Number of days of backtesting. Defaults to 30
+            -o | --offset      Offset testing by this many days (i.e. don't use the last N days). Defaults to 0
+            -s | --spaces      Optimisation spaces (any of: buy, roi, trailing, stoploss, sell)
+                 --short       Use 'short' config file
+            -t | --timeframe   Timeframe (YYYMMDD-[YYYMMDD]). Defaults to last 30 days
+            -v | --verbose     Verbose mode
+<group>  Either subgroup (e.g. NNTC) or name of exchange (binanceus, coinbasepro, kucoin, etc)
+
+<strategy>  Name of Strategy
+
+END
+}
+
 
 # process options
 die() { echo "$*" >&2; exit 2; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
-while getopts :c:e:j:l:n:s:t:-: OPT; do
+while getopts :c:e:j:l:n:o:s:t:v-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
@@ -65,10 +107,12 @@ while getopts :c:e:j:l:n:s:t:-: OPT; do
     l | loss )       needs_arg; loss="$OPTARG" ;;
         leveraged )  leveraged=1 ;;
     j | jobs )       needs_arg; jarg="-j $OPTARG" ;;
-    n | ndays )      needs_arg; num_days="$OPTARG"; timerange="$(date -j -v-${num_days}d +"%Y%m%d")-" ;;
+    n | ndays )      needs_arg; num_days="$OPTARG"; set_start_date; timerange="${start_date}-${today}" ;;
+    o | offset )     needs_arg; offset_days="$OPTARG"; set_start_date; timerange="${start_date}-${end_date}" ;;
     s | spaces )     needs_arg; spaces="${OPTARG}" ;;
         short )      short=1 ;;
     t | timeframe )  needs_arg; timerange="$OPTARG" ;;
+    v | verbose )    verbose=1 ;;
     ??* )            show_usage; die "Illegal option --$OPT" ;;  # bad long option
     ? )              show_usage; die "Illegal option --$OPT" ;;  # bad short option (error reported via getopts)
   esac
@@ -82,41 +126,75 @@ if [[ $# -ne 2 ]] ; then
   exit 0
 fi
 
-exchange=$1
+group=$1
 strategy=$2
 
 strat_dir="user_data/strategies"
-exchange_dir="${strat_dir}/${exchange}"
-if [ -z "${config_file}" ] ; then
-  config_file="${exchange_dir}/config_${exchange}.json"
+config_dir="${strat_dir}/config"
+group_dir="${strat_dir}/${group}"
+strat_file="${group_dir}/${strategy}.py"
+
+exchange_list=$(freqtrade list-exchanges -1)
+if [[ "${exchange_list[@]}" =~ $group ]]; then
+  echo "Exchange (${group}) detected - using legacy mode"
+  exchange="_${group}"
+  config_dir="${group_dir}"
+else
+  exchange=""
+fi
+
+if [[ $verbose -ne 0 ]] ; then
+    verbose_arg="-vv"
+else
+    verbose_arg="-v"
 fi
 
 if [[ $short -ne 0 ]] ; then
-    config_file="${exchange_dir}/config_${exchange}_short.json"
+    config_file="${config_dir}/config${exchange}_short.json"
 fi
 
 if [[ leveraged -ne 0 ]] ; then
-    config_file="${exchange_dir}/config_${exchange}_leveraged.json"
+    config_file="${config_dir}/config${exchange}_leveraged.json"
+fi
+
+if [ -z "${config_file}" ] ; then
+  config_file="${config_dir}/config${exchange}.json"
 fi
 
 if [ ! -f ${config_file} ]; then
+    echo ""
     echo "config file not found: ${config_file}"
+    echo "(Maybe try using the -c option?)"
+    echo ""
     exit 0
 fi
 
-if [ ! -d ${exchange_dir} ]; then
-    echo "Strategy dir not found: ${exchange_dir}"
+if [ ! -d ${group_dir} ]; then
+    echo ""
+    echo "Strategy dir not found: ${group_dir}"
+    echo ""
+    exit 0
+fi
+
+if [ ! -f  ${strat_file} ]; then
+    echo "Strategy file file not found: ${strat_file}"
     exit 0
 fi
 
 # calculate min trades
 # extract start & end dates from timerange
-a=("${(@s/-/)timerange}")
-start=${a[1]} # don't know why it's reversed
-end=${a[0]}
-if [ -z "$end" ]; then
-  end="$(date "+%Y%m%d")"
-fi
+# a=("${(@s/-/)timerange}")
+# start=${a[1]} # don't know why it's reversed
+
+# start=$(echo $timerange | cut -d "-" -f 1)
+# end=$(echo $timerange | cut -d "-" -f 2)
+# end=${a[0]}
+# if [ -z "$end" ]; then
+#   end="$(date "+%Y%m%d")"
+# fi
+
+start=${start_date}
+end=${end_date}
 timerange="${start}-${end}"
 
 #echo "timerange:${timerange} start:${start} end:${end}"
@@ -124,18 +202,22 @@ timerange="${start}-${end}"
 # calculate diff
 zmodload zsh/datetime
 diff=$(( ( $(strftime -r %Y%m%d "$end") - $(strftime -r %Y%m%d "$start") ) / 86400 ))
-min_trades=$((diff / 2))
+# min_trades=$((diff / 2))
+
+# set min trades based on # days (N per day)
+# min_trades=$((diff * 2))
+min_trades=$((diff / 8))
 
 
 echo ""
-echo "Using config file: ${config_file} and Strategy dir: ${exchange_dir}"
+echo "Using config file: ${config_file} and Strategy dir: ${group_dir}"
 echo ""
 
 # set up path
 oldpath=${PYTHONPATH}
-export PYTHONPATH="./${exchange_dir}:./${strat_dir}:${PYTHONPATH}"
+export PYTHONPATH="./${group_dir}:./${strat_dir}:${PYTHONPATH}"
 
-hypfile="${exchange_dir}/${strategy}.json"
+hypfile="${group_dir}/${strategy}.json"
 
 if [ ${clean} -eq 1 ]; then
   # remove any hyperopt files (we want the strategies to use the coded values)
@@ -148,14 +230,14 @@ fi
 
 today=`date`
 echo $today
-echo "Optimising strategy:$strategy for exchange:$exchange..."
+echo "Optimising strategy:$strategy for group:$group..."
 
 
 #set -x
 args="${jarg} --spaces ${spaces} --hyperopt-loss ${loss} --timerange=${timerange} --epochs ${epochs} \
-    -c ${config_file} --strategy-path ${exchange_dir}  \
+    -c ${config_file} --strategy-path ${group_dir}  \
     -s ${strategy} --min-trades ${min_trades} "
-cmd="freqtrade hyperopt ${args} --no-color"
+cmd="freqtrade hyperopt ${args} --no-color ${verbose_arg}"
 
 cat << END
 

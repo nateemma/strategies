@@ -7,7 +7,6 @@ from typing import Dict, List
 from functools import reduce
 from pandas import DataFrame
 # --------------------------------
-from freqtrade.strategy.hyper import CategoricalParameter, DecimalParameter, IntParameter
 
 
 import talib.abstract as ta
@@ -44,10 +43,7 @@ class EMACross(IStrategy):
 
     # ROI table:
     minimal_roi = {
-        "0": 0.173,
-        "25": 0.055,
-        "60": 0.028,
-        "178": 0
+        "0": 0.03,
     }
 
     # Stoploss:

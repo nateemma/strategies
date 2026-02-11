@@ -2,40 +2,40 @@
   "strategy_name": "Anomaly_profit",
   "params": {
     "roi": {
-      "0": 0.06
+      "0": 0.006
     },
     "stoploss": {
-      "stoploss": -0.99
+      "stoploss": -0.05
     },
     "trailing": {
-      "trailing_stop": true,
+      "trailing_stop": false,
       "trailing_stop_positive": 0.177,
       "trailing_stop_positive_offset": 0.214,
-      "trailing_only_offset_is_reached": true
+      "trailing_only_offset_is_reached": false
     },
     "max_open_trades": {
-      "max_open_trades": 3
+      "max_open_trades": 10
     },
     "buy": {},
     "sell": {
       "cexit_endtrend_respect_roi": true,
-      "cexit_pullback": true,
-      "cexit_pullback_amount": 0.018,
+      "cexit_pullback": false,
+      "cexit_pullback_amount": 0.019,
       "cexit_pullback_respect_roi": true,
-      "cexit_roi_end": 0.01,
-      "cexit_roi_start": 0.014,
-      "cexit_roi_time": 977,
+      "cexit_roi_end": 0.003,
+      "cexit_roi_start": 0.025,
+      "cexit_roi_time": 1421,
       "cexit_roi_type": "static",
-      "cexit_trend_type": "none",
+      "cexit_trend_type": "any",
       "cstop_bail_how": "roc",
-      "cstop_bail_roc": -3.899,
-      "cstop_bail_time": 456,
+      "cstop_bail_roc": -2.177,
+      "cstop_bail_time": 701,
       "cstop_bail_time_trend": false,
-      "cstop_loss_threshold": -0.027,
-      "cstop_max_stoploss": -0.173
+      "cstop_loss_threshold": -0.025,
+      "cstop_max_stoploss": -0.123
     },
     "protection": {}
   },
   "ft_stratparam_v": 1,
-  "export_time": "2023-01-26 01:16:36.729580+00:00"
+  "export_time": "2023-05-08 23:34:42.034469+00:00"
 }

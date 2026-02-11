@@ -1,5 +1,5 @@
 {
-  "max_open_trades": 3,
+  "max_open_trades": 10,
   "stake_currency": "USD",
   "dry_run_wallet": 10000,
   "stake_amount": 3000,
@@ -68,7 +68,7 @@
 //          },
 //              {
                 "method": "VolumePairList",
-                "number_assets": 10,
+                "number_assets": 20,
                 "sort_key": "quoteVolume",
                 "refresh_period": 1800
       //    //    },

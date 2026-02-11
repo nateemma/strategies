@@ -3,6 +3,7 @@
 import multiprocessing
 import sys
 import platform
+import freqtrade
 
 # Note that we have to surround import with try/except since not all strategies require all of these packages
 
@@ -13,7 +14,7 @@ except ModuleNotFoundError:
     tf_installed = False
 
 try:
-    import keras
+    #import keras
     keras_installed = True
 except ModuleNotFoundError:
     keras_installed = False
@@ -47,6 +48,9 @@ def print_environment():
 
     NOT_INSTALLED = "(not installed)"
 
+    # freqtrade
+    freqtrade_version = freqtrade.__version__
+
     # OS info
     os_type = sys.platform
     if os_type.lower() == "darwin":
@@ -72,7 +76,7 @@ def print_environment():
 
     # keras
     if keras_installed:
-        keras_version = keras.__version__
+        keras_version = tf.keras.__version__
     else:
         keras_version = NOT_INSTALLED
 
@@ -95,6 +99,9 @@ def print_environment():
         darts_version = NOT_INSTALLED
 
     print("")
+    print("Software Environment:")
+    print("")
+    print(f"    freqtrade:  {freqtrade_version}")
     print(f"    OS Type:    {os_type}, Version: {os_version}")
     print(f"    python:     {python_version}")
     print(f"    sklearn:    {sklearn_version}")

@@ -1,33 +1,51 @@
 # Phil's Custom freqtrade Crypto Trading Strategies
 
-## Current Status
+_**I am only periodically developing these strategies because - work, family etc...**_
 
-I've been getting some questions on the various strategies here, so I thought I'd better clarify what I am currently
-working on...
+I recently re-organised all of the strategies. Originally, they were in exchange-based folders (binanceus etc.). This became unwieldly, plus it is now difficult to use multiple exchanges anyway. So, I have moved all of the strategies into new directories based on the underlying family (or group), such as Anomaly, PCA, NNPredict etc.
+<br>
+```
+tree -d -L 1
+.
+├── Anomaly
+├── NNPredict
+├── NNTC
+├── TSPredict
+├── archived
+├── binanceus
+├── config
+├── hyperopts
+├── reference
+├── scripts
+└── utils
+```
 
-Right now, I am only active in the 'binanceus' directory (user_data/strategies/binanceus). I am testing and modifying
-code in the following types of strategies:
+_archive_ contains abandoned strategies (which are still sometimes useful for cut & paste)
+<br>
+_binanceus_ is a remnant from when I was running with multiple exchanges (which no longer seems possible). I no longer develop here, but left it for reference
 
-- PCA
-- Anomaly
-- NNBC
-- NNPredict
 
 
 _NOTES_:
 
-- I am currently re-factoring to move common code to separate files, isolate any potentially forward-looking indicators,
-  and to use pre-trained models
+- _**Scripts**_: All scripts (in user_data/strategies/scripts) have been updated such that they now take the group name (but the old exchange method will still work)
 
-- _**Binance**_: I live in the USA, and the Binance exchange recently blocked API access from here. So, I cannot (
-  easily) test the code in the binance exchange directory. I know I could use a VPN, but I'm busy with a bunch of other
-  stuff in the binanceus directory - sorry. <br>
+- _**Binance**_: I live in the USA, and the most exchanges recently blocked API access from here. So, I cannot (
+  easily) test the code in any other exchange. I know I could use a VPN, but I'm busy with a bunch of other
+  stuff - sorry. <br>
   All strats should work, but you will need to run hyperopt on them to get good hyperparameters
 
-- Mac M1 My development machine is a Mac M1 laptop. While it is very fast, it does present some challenges in terms of
-  packages. See [here](README_MACM1.md) for more details.<br>
+- _**Mac M1**_: My development machine is a Mac M1 laptop. While it is very fast, it does present some challenges in
+  terms of packages. See [here](README_MACM1.md) for more details.<br>
   As an aside, all of my scripts are written for _zsh_, not _bash_ (this is the default shell on MacOS, plus the version
   of bash that is pre-installed is very old)
+
+- _**NNPredict**_: this uses neural networks to predict changes in the price of a pair. Timeseries prediction is a
+  cutting edge problem, and I do not appear to have solved it! These algorithms perform OK in backtesting, but if you
+  look at the details, the predictions are not good. <br>So, I am currently not working on these, but I may circle back
+  and apply lessons learned from te NNTC work
+
+- _**Tensorflow**_: several strategies use neural network models implemented using tensorflow (and keras). For some reason, the latest versions of tensorflow dropped support for serialisation of models (at least on MacOS), so hyperopt of these strategies no longer works (because hyperopt saves and restores the strategies via pickle).
 
 ## Intro
 
@@ -52,12 +70,11 @@ I currently focus on strategies that revolve around one of several approaches:
    before I knew about that, so just kept going (because I find it interesting).<br>
    All of the PCA logic is contained in a base class named PCA. There are several variants (prefixed with PCA_) that try
    out different approaches to identify buy/sell signals that are used for training the classifiers.
-3. Use Neural Networks to create binary classifiers that return a buy/sell prediction.<br>
-   Logic is very similar to the PCA classes, and the base class is NNBC (Neural Network Binary Classifier). The
+3. Use Neural Networks to create trinary classifiers that return a buy/sell prediction.<br>
+   Logic is very similar to the PCA classes, and the base class is NNTC (Neural Network Trinary Classifier). The
    internals are a little more complex because the Neural Network code works with 'tensors' rather than dataframes.
-   Currently, performance is not great, mostly because there are not enough buy/sell events to train the models
-   properly. At some point I will train them on longer timeperiods and then save/load the resulting models (I'm working
-   on this)
+   These have to be trained over long time periods because there aren't enough buys/sells otherwise. Models are saved in
+   the models/ directory and will be used if present.
 4. Neural Network prediction models (NNPredict_*.py)<br>
    Similar to NNBC, but predicts an actual price, rather than a buy/sell recommendation. Same issues as NNBC
 5. Anomaly Detection (Anomaly.py)<br>
@@ -102,18 +119,19 @@ periods where the market performed poorly (e.g. May, Nov and Dec 2021)
 
 The following is a list of my custom strategies that I am currently testing.
 
-| Strategy   | Description                                                                                                                                                             | 
-|------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| DWT        | Model behaviour using a Digital Wavelet Transform (DWT)                                                                                                                 |
-| DWT_short  | Same as DWT, but with shorting added                                                                                                                                    |
-| FFT        | Model behaviour using a Fast Fourier Transform (FFT)                                                                                                                    |
-| FBB_*      | Adds Fisher/Bollinger band filtering to DWT/FFT/Kalman                                                                                                                  |
-| Kalman     | Model behaviour using a Kalman Filter (from pykalman)                                                                                                                   |
-| KalmanSIMD | Model behaviour using a Kalman Filter (from simdkalman)                                                                                                                 |
-| PCA_*      | Uses Principal Component Analysis (PCA) and classifiers trained on prior data to predict buy/sells. Each PCA_* variant uses a different approach to predict buys/sells. |
-| NNBC_*     | Neural Network Binary Classifiers - approaches to predict buy/sell events |                                                                                              |
-| NNPredict_* | Uses neural network approaches to predict price changes |
-| Anomaly*   | USe anomaly detection algorithms to identify buys/sells. Anomaly.py is the main logic, Anomaly_*.py contain the algorithms |
+| Strategy    | Description                                                                                                                                                             | 
+|-------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| DWT         | Model behaviour using a Digital Wavelet Transform (DWT)                                                                                                                 |
+| DWT_short   | Same as DWT, but with shorting added                                                                                                                                    |
+| FFT         | Model behaviour using a Fast Fourier Transform (FFT)                                                                                                                    |
+| FBB_*       | Adds Fisher/Bollinger band filtering to DWT/FFT/Kalman                                                                                                                  |
+| Kalman      | Model behaviour using a Kalman Filter (from pykalman)                                                                                                                   |
+| KalmanSIMD  | Model behaviour using a Kalman Filter (from simdkalman)                                                                                                                 |
+| PCA_*       | Uses Principal Component Analysis (PCA) and classifiers trained on prior data to predict buy/sells. Each PCA_* variant uses a different approach to predict buys/sells. |
+| NNBC_*      | Neural Network Binary Classifiers - approaches to predict buy/sell events                                                                                               |                                                                                              |
+| NNTC_*      | Neural Network Trinary Classifiers - approaches to predict hold/buy/sell events                                                                                         |                                                                                              |
+| NNPredict_* | Uses neural network approaches to predict price changes                                                                                                                 |
+| Anomaly*    | USe anomaly detection algorithms to identify buys/sells. Anomaly.py is the main logic, Anomaly_*.py contain the algorithms                                              |
 
 Please note that you will need both the _.py_ *and* the _.json_ file.
 
@@ -155,16 +173,16 @@ _freqtrade hyperopt_ command (or the hyp_strat.sh script)
 <br>
 To help with this, I added a bunch of shell scripts in the _user_data/strategies/scripts_ directory:
 
-| Script | Description |
-|-----------|------------------------------------------|
-|test_strat.sh|Tests an individual strategy for the specified exchange |
-|test_exchange.sh|Tests all of the currently active strategies for the specified exchange |
-|test_monthly.sh| Runs test_exchange.sh over a monthly interval for the past 6 months, shows average performance, and ranks the strategies |
-|hyp_strat.sh|runs hyperopt on an individual strategy for the specified exchange |
-|hyp_exchange.sh|Runs hyp_strat.sh for all of the currently active strategies for the specified exchange |
-|hyp_all.sh| Runs hyp_exchange.sh for all currently active exchanges (takes a *_very_* long time) |
-|run_strat.sh| Runs a strategy live on the specified exchange, takes care of PYTHONPATH, db-url etc |
-|dryrun_strat.sh| Dry-runs a strategy on the specified exchange, takes care of PYTHONPATH, db-url etc |
+| Script           | Description                                                                                                              |
+|------------------|--------------------------------------------------------------------------------------------------------------------------|
+| test_strat.sh    | Tests an individual strategy for the specified exchange                                                                  |
+| test_exchange.sh | Tests all of the currently active strategies for the specified exchange                                                  |
+| test_monthly.sh  | Runs test_exchange.sh over a monthly interval for the past 6 months, shows average performance, and ranks the strategies |
+| hyp_strat.sh     | runs hyperopt on an individual strategy for the specified exchange                                                       |
+| hyp_exchange.sh  | Runs hyp_strat.sh for all of the currently active strategies for the specified exchange                                  |
+| hyp_all.sh       | Runs hyp_exchange.sh for all currently active exchanges (takes a *_very_* long time)                                     |
+| run_strat.sh     | Runs a strategy live on the specified exchange, takes care of PYTHONPATH, db-url etc                                     |
+| dryrun_strat.sh  | Dry-runs a strategy on the specified exchange, takes care of PYTHONPATH, db-url etc                                      |
 
 Specify the -h option for help.
 
@@ -290,7 +308,8 @@ conditions.
 
 Backtesting can be done using the following command:
 
-> freqtrade backtesting -c _\<config\>_ --strategy-path _\<path\>_ --strategy _\<strategy\>_  --timerange=_\<timerange\>_
+> freqtrade backtesting -c _\<config\>_ --strategy-path _\<path\>_ --strategy _\<strategy\>_  --timerange=
+_\<timerange\>_
 
 Or, you can use a script:
 
@@ -326,7 +345,8 @@ tuned for a specific exchange will typically not perform well on other exchanges
 
 The freqtrade command to run the optimisation is:
 
-> freqtrade hyperopt -c _\<config\>_ --strategy-path _\<path\>_ --strategy _\<strategy\>_  --spaces _\<space\>_ --hyperopt-loss _\<loss algorithm\>_   --timerange=_\<timerange\>_
+> freqtrade hyperopt -c _\<config\>_ --strategy-path _\<path\>_ --strategy _\<strategy\>_  --spaces _\<space\>_
+> --hyperopt-loss _\<loss algorithm\>_   --timerange=_\<timerange\>_
 
 where:
 
@@ -386,13 +406,13 @@ For example:
 
 The available custom loss functions are:
 
-| Loss Function              | Description |
-|----------------------------|------------------------------------------|
-| ExpectancyHyperOptLoss     | Optimises based primarily on Expectancy (projected profit per trade) |
-| PEDHyperOptLoss            | Optimises based equally on Profit, Expectancy and Duration |
+| Loss Function              | Description                                                                 |
+|----------------------------|-----------------------------------------------------------------------------|
+| ExpectancyHyperOptLoss     | Optimises based primarily on Expectancy (projected profit per trade)        |
+| PEDHyperOptLoss            | Optimises based equally on Profit, Expectancy and Duration                  |
 | QuickHyperOptLoss          | Optimises based primarily on average duration of trades (shorter is better) |
-| WinHyperOptLoss            | Optimises based primarily on Win/Loss ratio |
-| WeightedProfitHyperOptLoss | Optimises based primarily on profit |
+| WinHyperOptLoss            | Optimises based primarily on Win/Loss ratio                                 |
+| WeightedProfitHyperOptLoss | Optimises based primarily on profit                                         |
 
 All of these functions take multiple parameters into account, they just use different weightings. They also require a
 minimum profit, number of trades and win/loss ratio.
@@ -405,7 +425,8 @@ than just the solution that produces the most profit based on the historical dat
 It is often very useful to see a visual representation of your strategy. You can do this using the plot-dataframe
 command:
 
-> freqtrade plot-dataframe --strategy-path _\<path\>_ --strategy _\<strategy\>_  -p BCH/USD --timerange=_\<timerange\>_ --indicators1 ema5 ema20 --indicators2 mfi
+> freqtrade plot-dataframe --strategy-path _\<path\>_ --strategy _\<strategy\>_  -p BCH/USD --timerange=_\<timerange\>_
+> --indicators1 ema5 ema20 --indicators2 mfi
 
 This example creates a plot for pair BCH/USD, adds ema5 and ema20 to the main chart and adds a plot of mfi below that (
 these must exist in your dataframe for the strategy). You can find it in the _user_data/plot/_ directory, and in this

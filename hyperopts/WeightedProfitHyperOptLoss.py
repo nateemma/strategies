@@ -40,18 +40,18 @@ class WeightedProfitHyperOptLoss(IHyperOptLoss):
                                backtest_stats: Dict[str, Any],
                                *args, **kwargs) -> float:
 
-        debug_level = 0 # displays (more) messages if higher
+        debug_level = 1 # displays (more) messages if higher
 
         # if (debug_level > 1) and backtest_stats:
         #     print(" backtest_stats: profit_total: {:.2f} profit_mean: {:.2f} wins: {:.2f}".format(backtest_stats['profit_total'],
         #                                                                                           backtest_stats['profit_mean'], backtest_stats['wins']))
 
         # define weights
-        weight_num_trades = 0.1
-        weight_duration = 0.1
-        weight_abs_profit = 2.0
+        weight_num_trades = 0.0
+        weight_duration = 0.0
+        weight_abs_profit = 0.0
         weight_exp_profit = 0.5
-        weight_ave_profit = 1.0
+        weight_ave_profit = 2.0
         weight_expectancy = 1.0
         weight_win_loss_ratio = 2.0
         weight_sharp_ratio = 1.0

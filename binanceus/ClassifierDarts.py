@@ -8,7 +8,7 @@
 # For a list of viable algorithms, see: https://unit8co.github.io/darts/README.html (Forecasting Models section)
 
 # darts uses pytorch for Neural Network-based algorithms, which is why you see a lot of pytorch code here
-# Also, pytorch works very differently from keras. I have maintained the same interfaces across sklearn, keras and darts
+# Also, pytorch works very differently from tf.keras. I have maintained the same interfaces across sklearn, keras and darts
 # which is why I have to update some parameters via a call interface rather than adding a parameter
 
 # specific model subclasses (linear etc) should override create_model

@@ -39,7 +39,7 @@ np.random.seed(seed)
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
-import keras
+#import keras
 from keras import layers
 
 import h5py
@@ -50,9 +50,9 @@ class AutoEncoder():
     dbg_verbose = 1
 
 
-    encoder: keras.Model =  None
-    decoder: keras.Model =  None
-    autoencoder: keras.Model =  None
+    encoder: tf.keras.Model =  None
+    decoder: tf.keras.Model =  None
+    autoencoder: tf.keras.Model =  None
 
     # these will be overwritten by the specific autoencoder
     name = "AutoEncoder"
@@ -95,7 +95,7 @@ class AutoEncoder():
     # override the build_model function in subclasses
     def build_model(self, num_features, num_dims):
         # default autoencoder is a (fairly) simple set of dense layers
-        self.encoder = keras.Sequential(name="encoder")
+        self.encoder = tf.keras.Sequential(name="encoder")
         self.encoder.add(layers.Dense(96, activation='elu', input_shape=(1, self.num_features)))
         self.encoder.add(layers.Dropout(rate=0.1))
         self.encoder.add(layers.Dense(64, activation='elu'))
@@ -104,7 +104,7 @@ class AutoEncoder():
         self.encoder.add(layers.Dropout(rate=0.1))
         self.encoder.add(layers.Dense(self.latent_dim, activation='elu', name='encoder_output'))
 
-        self.decoder = keras.Sequential(name="decoder")
+        self.decoder = tf.keras.Sequential(name="decoder")
         self.decoder.add(layers.Dense(32, activation='elu', input_shape=(1, self.latent_dim)))
         self.encoder.add(layers.Dropout(rate=0.1))
         self.decoder.add(layers.Dense(48, activation='elu'))
@@ -114,14 +114,14 @@ class AutoEncoder():
         self.decoder.add(layers.Dense(96, activation='sigmoid'))
         self.decoder.add(layers.Dense(self.num_features, activation=None))
 
-        self.autoencoder = keras.Sequential(name=self.name)
+        self.autoencoder = tf.keras.Sequential(name=self.name)
         self.autoencoder.add(self.encoder)
         self.autoencoder.add(self.decoder)
 
-        # self.autoencoder = keras.Model(inputs=self.encoder.input,
+        # self.autoencoder = tf.keras.Model(inputs=self.encoder.input,
                                        # outputs=self.decoder(self.encoder.output),
                                        # name=self.name)
-        optimizer = keras.optimizers.Adam(learning_rate=0.0001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0,
+        optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0,
                                           amsgrad=False)
 
         self.autoencoder.compile(metrics=['accuracy', 'mse'], loss='mse', optimizer=optimizer)
@@ -140,13 +140,13 @@ class AutoEncoder():
 
 
         # callback to control early exit on plateau of results
-        early_callback = keras.callbacks.EarlyStopping(
+        early_callback = tf.keras.callbacks.EarlyStopping(
             monitor="loss",
             mode="min",
             patience=4,
             verbose=1)
 
-        plateau_callback = keras.callbacks.ReduceLROnPlateau(
+        plateau_callback = tf.keras.callbacks.ReduceLROnPlateau(
             monitor='loss',
             factor=0.1,
             min_delta=0.0001,
@@ -155,7 +155,7 @@ class AutoEncoder():
 
         # callback to control saving of 'best' model
         # Note that we use validation loss as the metric, not training loss
-        checkpoint_callback = keras.callbacks.ModelCheckpoint(
+        checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
             filepath=self.checkpoint_path,
             save_weights_only=True,
             monitor='loss',
@@ -223,7 +223,7 @@ class AutoEncoder():
             path = self.model_path
         print("    saving model to: ", path)
         # self.autoencoder.save(path)
-        keras.models.save_model(self.autoencoder, filepath=path)
+        tf.keras.models.save_model(self.autoencoder, filepath=path)
         return
 
     # load the full encoder model from the (optional) supplied path. Use this to load a fully trained autoencoder
@@ -235,7 +235,7 @@ class AutoEncoder():
         if os.path.exists(path):
             print("    Loading existing model ({})...".format(path))
             try:
-                self.autoencoder = keras.models.load_model(path, compile=False)
+                self.autoencoder = tf.keras.models.load_model(path, compile=False)
             except Exception as e:
                 print("    ", str(e))
                 print("    Error loading model from {}. Check whether model format changed".format(path))
@@ -245,7 +245,7 @@ class AutoEncoder():
         return self.autoencoder
 
     # get the encoder part of the autoencoder
-    def get_encoder(self) -> keras.Model:
+    def get_encoder(self) -> tf.keras.Model:
         return self.encoder
 
 

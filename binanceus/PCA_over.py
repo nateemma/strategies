@@ -60,9 +60,9 @@ class PCA_over(PCA):
     # These parameters control much of the behaviour because they control the generation of the training data
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
-    lookahead_hours = 0.5
-    n_profit_stddevs = 1.0
-    n_loss_stddevs = 1.0
+    lookahead_hours = 1.0
+    n_profit_stddevs = 0.0
+    n_loss_stddevs = 0.0
     min_f1_score = 0.70
 
     custom_trade_info = {}
@@ -125,7 +125,7 @@ class PCA_over(PCA):
                     (future_df['fisher_wr'] < -0.4) &
 
                     # future profit
-                    (future_df['future_profit_max'] >= future_df['profit_threshold']) &
+                    (future_df['future_profit_max'] >= future_df['future_profit_threshold']) &
                     (future_df['future_gain'] > 0)
 
                     # (future_df['mfi'] < 30) &
@@ -145,7 +145,7 @@ class PCA_over(PCA):
                     (future_df['fisher_wr'] > 0.6) &
 
                     # future loss
-                    (future_df['future_loss_min'] <= future_df['loss_threshold']) &
+                    (future_df['future_loss_min'] <= future_df['future_loss_threshold']) &
                     (future_df['future_gain'] < 0)
 
                     # (future_df['mfi'] > 80) &

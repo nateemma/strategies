@@ -56,14 +56,14 @@ class Anomaly_macd(Anomaly):
 
     plot_config = {
         'main_plot': {
-            'close': {'color': 'cornflowerblue'},
+            'close': {'color': 'lightsteelblue'},
         },
         'subplots': {
             "Diff": {
                 '%train_buy': {'color': 'green'},
                 'predict_buy': {'color': 'blue'},
                 '%train_sell': {'color': 'red'},
-                'predict_sell': {'color': 'orange'},
+                'predict_sell': {'color': 'brown'},
                 'macdhist': {'color': 'salmon'}
             },
         }
@@ -79,8 +79,8 @@ class Anomaly_macd(Anomaly):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     lookahead_hours = 1.0
-    n_profit_stddevs = 1.0
-    n_loss_stddevs = 1.0
+    n_profit_stddevs = 0.0
+    n_loss_stddevs = 0.0
     min_f1_score = 0.60
 
     custom_trade_info = {}
@@ -139,7 +139,7 @@ class Anomaly_macd(Anomaly):
                     (future_df['macdhist'].shift() < 0) &
                     (future_df['macdhist'] >= 0) &
 
-                    (future_df['future_gain'] >= future_df['profit_threshold'])   # future gain
+                    (future_df['future_gain'] >= future_df['future_profit_threshold'])   # future gain
             ), 1.0, 0.0)
 
         return buys
@@ -152,7 +152,7 @@ class Anomaly_macd(Anomaly):
                     (future_df['macdhist'].shift() > 0) &
                     (future_df['macdhist'] <= 0) &
 
-                    (future_df['future_gain'] <= future_df['loss_threshold'])   # future loss
+                    (future_df['future_gain'] <= future_df['future_loss_threshold'])   # future loss
             ), 1.0, 0.0)
 
         return sells
@@ -167,14 +167,14 @@ class Anomaly_macd(Anomaly):
 
     # callbacks to add conditions to main buy/sell decision (rather than trainng)
 
-    def get_strategy_buy_conditions(self, dataframe: DataFrame):
+    def get_strategy_entry_guard_conditions(self, dataframe: DataFrame):
         cond = np.where(
             (
                 (dataframe['macdhist'] <= 0)
             ), 1.0, 0.0)
         return cond
 
-    def get_strategy_sell_conditions(self, dataframe: DataFrame):
+    def get_strategy_exit_guard_conditions(self, dataframe: DataFrame):
         cond = np.where(
             (
                 (dataframe['macdhist'] >= 0)

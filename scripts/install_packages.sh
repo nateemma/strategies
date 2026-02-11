@@ -25,8 +25,13 @@ prompt_user () {
   echo $result # stupid zsh doesn't really have a return
 }
 
+# update installation tools first
+echo "updating pip, setup
+pip install --upgrade pip setup wheel
+
 # install generally used packages
-pkg_general=("finta" "prettytable" "PyWavelets" "simdkalman" "pykalman" "scipy" "scikit-learn")
+pkg_general=("finta" "prettytable" "PyWavelets" "simdkalman" "pykalman" "scipy" "scikit-learn" \
+"ast_comments" "rich" "xgboost" "lightgbm" "statsmodels" "imblearn" "tensorflow" "keras" "pandas-ta")
 
 if [[ $(prompt_user "Install general packages?: ") -eq 1 ]]; then
   echo ""
@@ -34,20 +39,31 @@ if [[ $(prompt_user "Install general packages?: ") -eq 1 ]]; then
     pip3 install $pkg
   done
 
-  conda install numba; pip3 uninstall numba
-  pip3 install numpy<1.24 # obviously check version if packages update
+  # conda install numba; pip3 uninstall numba
+  # pip3 install numpy<1.24 # obviously check version if packages update
 fi
 echo ""
 
-# install packages for keres/tensorflow-based strategies (MacOS-specific)
+# install packages for tensorflow-based strategies (MacOS-specific)
 
-if [[ $(prompt_user "Install keras/rensorflow packages?: ") -eq 1 ]]; then
-  echo ""
-  conda install -c apple tensorflow-deps
-  pip3 install tensorflow-macos
-  pip3 install tensorflow-metal
-  conda install -c conda-forge -y pandas jupyter
-  pip3 install keras
+if [[ $(prompt_user "Install tensorflow packages?: ") -eq 1 ]]; then
+
+  # check whether this uses an Apple CPU
+  cpu_brand=$(sysctl -n machdep.cpu.brand_string)
+  if [[ $cpu_brand == Apple* ]]; then
+      echo ""
+      echo "Detected Apple Silicon CPU: $cpu_brand"
+      echo "Installing TensorFlow for Apple Silicon..."
+      pip3 install --upgrade tensorflow-macos
+      pip3 install --upgrade tensorflow-metal
+      pip3 install --upgrade keras
+      pip3 install --upgrade pandas
+  else
+    echo "Installing standard TensorFlow..."
+    pip3 install --upgrade tensorflow
+    pip3 install --upgrade keras
+    pip3 install --upgrade pandas
+  fi
 fi
 echo ""
 
@@ -56,6 +72,9 @@ echo ""
 if [[ $(prompt_user "Install darts/pytorch packages?: ") -eq 1 ]]; then
   echo ""
   conda install pytorch torchvision -c pytorch
-  pip3 install darts
+  # pip3 install darts
+  pip3 install "u8darts[all]"
+  pip3 install statsforecast
+  pip3 install multiprocess
 fi
 echo ""

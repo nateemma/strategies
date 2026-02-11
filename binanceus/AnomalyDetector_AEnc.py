@@ -39,7 +39,7 @@ np.random.seed(seed)
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
-import keras
+#import keras
 from keras import layers
 
 import h5py
@@ -60,7 +60,7 @@ class AnomalyDetector_AEnc(ClassifierKerasEncoder):
     def create_model(self, seq_len, num_features):
 
         print("    Creating model: ", self.name)
-        model = keras.Sequential(name=self.name)
+        model = tf.keras.Sequential(name=self.name)
 
         outer_dim = 64
         inner_dim = 16

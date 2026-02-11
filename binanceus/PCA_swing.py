@@ -62,8 +62,8 @@ class PCA_swing(PCA):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     lookahead_hours = 1.0
-    n_profit_stddevs = 1.0
-    n_loss_stddevs = 1.0
+    n_profit_stddevs = 0.0
+    n_loss_stddevs = 0.0
     min_f1_score = 0.51
 
     custom_trade_info = {}
@@ -120,7 +120,7 @@ class PCA_swing(PCA):
         buys = np.where(
             (
                     # (future_df['volume'] > 0) & # volume check
-                    (future_df['future_gain'] > future_df['profit_threshold']) &  # future gain
+                    (future_df['future_gain'] > future_df['future_profit_threshold']) &  # future gain
                     (future_df['dwt_bottom'] > 0)   # bottom of trend
                     # (qtpylib.crossed_above(future_df['dwt_deriv'], 0.0)) # start of upswing
 
@@ -133,7 +133,7 @@ class PCA_swing(PCA):
         sells = np.where(
             (
                     # (future_df['volume'] > 0) & # volume check
-                    (future_df['future_gain'] < future_df['loss_threshold']) & # future loss
+                    (future_df['future_gain'] < future_df['future_loss_threshold']) & # future loss
                     (future_df['dwt_top'] > 0)  # top of trend
                     # (qtpylib.crossed_below(future_df['dwt_deriv'], 0.0)) # start of downswing
             ), 1.0, 0.0)

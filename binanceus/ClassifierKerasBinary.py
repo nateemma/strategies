@@ -40,7 +40,7 @@ np.random.seed(seed)
 
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
-import keras
+#import keras
 from keras import layers
 
 import h5py
@@ -60,7 +60,7 @@ class ClassifierKerasBinary(ClassifierKeras):
         print("    WARNING: create_model() should be defined by the subclass")
 
         # create a simple model for illustrative purposes (or to test the framework)
-        model = keras.Sequential(name=self.name)
+        model = tf.keras.Sequential(name=self.name)
 
         # NOTE: don't use relu with LSTMs, cannot use GPU if you do (much slower). Use tanh
 
@@ -75,7 +75,7 @@ class ClassifierKerasBinary(ClassifierKeras):
 
     def compile_model(self, model):
 
-        optimizer = keras.optimizers.Adam(learning_rate=0.001)
+        optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
 
         # must use binary_crossentropy loss because this is a binary classifier
         model.compile(optimizer=optimizer,
@@ -138,7 +138,7 @@ class ClassifierKerasBinary(ClassifierKeras):
         plateau_patience = 4
 
         # callback to control early exit on plateau of results
-        early_callback = keras.callbacks.EarlyStopping(
+        early_callback = tf.keras.callbacks.EarlyStopping(
             monitor=monitor_field,
             mode=monitor_mode,
             patience=early_patience,
@@ -146,7 +146,7 @@ class ClassifierKerasBinary(ClassifierKeras):
             restore_best_weights=True,
             verbose=0)
 
-        plateau_callback = keras.callbacks.ReduceLROnPlateau(
+        plateau_callback = tf.keras.callbacks.ReduceLROnPlateau(
             monitor=monitor_field,
             mode=monitor_mode,
             factor=0.1,
@@ -156,7 +156,7 @@ class ClassifierKerasBinary(ClassifierKeras):
 
         # callback to control saving of 'best' model
         # Note that we use validation loss as the metric, not training loss
-        checkpoint_callback = keras.callbacks.ModelCheckpoint(
+        checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
             filepath=self.checkpoint_path,
             save_weights_only=True,
             monitor=monitor_field,

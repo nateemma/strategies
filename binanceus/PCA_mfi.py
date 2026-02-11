@@ -61,8 +61,8 @@ class PCA_mfi(PCA):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     lookahead_hours = 1.0
-    n_profit_stddevs = 1.0
-    n_loss_stddevs = 1.0
+    n_profit_stddevs = 0.0
+    n_loss_stddevs = 0.0
     min_f1_score = 0.70
 
     custom_trade_info = {}
@@ -121,7 +121,7 @@ class PCA_mfi(PCA):
                     (future_df['mfi'] <= 10) &
 
                     # future profit
-                    (future_df['future_gain'] >= future_df['profit_threshold'])
+                    (future_df['future_gain'] >= future_df['future_profit_threshold'])
             ), 1.0, 0.0)
 
         return buys
@@ -133,7 +133,7 @@ class PCA_mfi(PCA):
                     (future_df['mfi'] >= 90) &
 
                     # future loss
-                    (future_df['future_gain'] <= future_df['loss_threshold'])
+                    (future_df['future_gain'] <= future_df['future_loss_threshold'])
             ), 1.0, 0.0)
 
         return sells

@@ -76,7 +76,7 @@ np.random.seed(seed)
 
 # tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
-import keras
+#import keras
 from keras import layers
 from tqdm import tqdm
 
@@ -125,15 +125,15 @@ class Anomaly(IStrategy):
 
     plot_config = {
         'main_plot': {
-            'close': {'color': 'cornflowerblue'},
+            'close': {'color': 'lightsteelblue'},
             # '%recon': {'color': 'lightsalmon'},
         },
         'subplots': {
             "Diff": {
                 '%train_buy': {'color': 'mediumaquamarine'},
-                'predict_buy': {'color': 'cornflowerblue'},
-                '%train_sell': {'color': 'salmon'},
-                'predict_sell': {'color': 'orange'},
+                'predict_buy': {'color': 'lightsteelblue'},
+                '%train_sell': {'color': 'lightsalmon'},
+                'predict_sell': {'color': 'brown'},
             },
         }
     }
@@ -182,8 +182,8 @@ class Anomaly(IStrategy):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     lookahead_hours = 1.0
-    n_profit_stddevs = 1.0
-    n_loss_stddevs = 1.0
+    n_profit_stddevs = 0.0
+    n_loss_stddevs = 0.0
     min_f1_score = 0.48 # this will be low because results are anomalies :-)
 
     curr_lookahead = int(12 * lookahead_hours)
@@ -203,6 +203,8 @@ class Anomaly(IStrategy):
     sell_classifier = None
     buy_classifier_list = {}
     sell_classifier_list = {}
+
+    ignore_exit_signals = False # set to True if you don't want to process sell/exit signals (let custom sell do it)
 
     # debug flags
     first_time = True  # mostly for debug
@@ -235,8 +237,8 @@ class Anomaly(IStrategy):
         DBSCAN = 10 # currently not working
         Ensemble = 11
 
-    classifier_type = ClassifierType.IsolationForest # controls which classifier is used
-    # classifier_type = ClassifierType.Ensemble # controls which classifier is used
+    # classifier_type = ClassifierType.IsolationForest # controls which classifier is used
+    classifier_type = ClassifierType.Ensemble # controls which classifier is used
     # classifier_type = ClassifierType.DBSCAN # controls which classifier is used
 
     ###################################
@@ -308,9 +310,9 @@ class Anomaly(IStrategy):
         series = np.where(
             (
                     (future_df['mfi'] <= 30) & # loose guard
-                    (future_df['dwt_gain'] <= future_df['loss_threshold']) &  # loss exceeds threshold
+                    (future_df['dwt_gain'] <= future_df['future_loss_threshold']) &  # loss exceeds threshold
 
-                    (future_df['future_profit_max'] >= future_df['profit_threshold']) & # future profit exceeds threshold
+                    (future_df['future_profit_max'] >= future_df['future_profit_threshold']) & # future profit exceeds threshold
                     (future_df['future_max'] > future_df['dwt_recent_max']) # future window max exceeds prior window max
             ), 1.0, 0.0)
 
@@ -320,9 +322,9 @@ class Anomaly(IStrategy):
         series = np.where(
             (
                     (future_df['mfi'] >= 70) & # loose guard
-                    (future_df['dwt_gain'] >= future_df['profit_threshold']) & # profit exceeds threshold
+                    (future_df['dwt_gain'] >= future_df['future_profit_threshold']) & # profit exceeds threshold
 
-                    (future_df['future_loss_min'] <= future_df['loss_threshold']) & # future loss exceeds threshold
+                    (future_df['future_loss_min'] <= future_df['future_loss_threshold']) & # future loss exceeds threshold
                     (future_df['future_min'] < future_df['dwt_recent_min']) # future window max exceeds prior window max
             ), 1.0, 0.0)
 
@@ -334,24 +336,24 @@ class Anomaly(IStrategy):
     # bad predictions (Machine Learning is not perfect)
 
 
-    def get_strategy_buy_conditions(self, dataframe: DataFrame):
+    def get_strategy_entry_guard_conditions(self, dataframe: DataFrame):
 
         # buys = None
         buys = np.where(
             (
-                    (dataframe['mfi'] <= 30) #&
+                    (dataframe['mfi'] <= 40) #&
                     # (dataframe['dwt_loss'] <= dataframe['loss_threshold'])   #  loss exceeds threshold
             ), 1.0, 0.0)
 
         return buys
 
-    def get_strategy_sell_conditions(self, dataframe: DataFrame):
+    def get_strategy_exit_guard_conditions(self, dataframe: DataFrame):
 
         # sells = None
 
         sells = np.where(
             (
-                    (dataframe['mfi'] >= 70) &
+                    (dataframe['mfi'] >= 60) &
                     (dataframe['dwt_profit'] >= dataframe['profit_threshold'])  # profit exceeds threshold
             ), 1.0, 0.0)
 
@@ -617,11 +619,12 @@ class Anomaly(IStrategy):
         else:
             self.buy_classifier = self.buy_classifier_list[self.curr_pair]
 
-        if self.curr_pair not in self.sell_classifier_list:
-            self.sell_classifier = self.get_classifier(full_df_norm.shape[1], "Sell")
-            self.sell_classifier_list[self.curr_pair] = self.sell_classifier
-        else:
-            self.sell_classifier = self.sell_classifier_list[self.curr_pair]
+        if not self.ignore_exit_signals:
+            if self.curr_pair not in self.sell_classifier_list:
+                self.sell_classifier = self.get_classifier(full_df_norm.shape[1], "Sell")
+                self.sell_classifier_list[self.curr_pair] = self.sell_classifier
+            else:
+                self.sell_classifier = self.sell_classifier_list[self.curr_pair]
 
         # constrain sample size to what will be available in run modes
         data_size = int(min(975, full_df_norm.shape[0]))
@@ -661,7 +664,8 @@ class Anomaly(IStrategy):
         self.buy_classifier.train(df_train, df_test, train_buys, test_buys, force_train=force_train)
 
         # Sell Classifier
-        self.sell_classifier.train(df_train, df_test, train_sells, test_sells, force_train=force_train)
+        if not self.ignore_exit_signals:
+            self.sell_classifier.train(df_train, df_test, train_sells, test_sells, force_train=force_train)
 
 
         # if scan specified, test against the test dataframe
@@ -786,6 +790,9 @@ class Anomaly(IStrategy):
         print("    predicting buys...")
         predict = self.predict(df, pair, clf)
 
+        # anomaly detection tends to flag both buys and sells, so filter based on MFI
+        predict = np.where((predict > 0) & (df['mfi'] < 50), 1.0, 0.0)
+
         return predict
 
     def predict_sell(self, df: DataFrame, pair):
@@ -798,6 +805,9 @@ class Anomaly(IStrategy):
 
         print("    predicting sells...")
         predict = self.predict(df, pair, clf)
+
+        # anomaly detection tends to flag both buys and sells, so filter based on MFI
+        predict = np.where((predict > 0) & (df['mfi'] > 50), 1.0, 0.0)
 
         return predict
 
@@ -855,18 +865,18 @@ class Anomaly(IStrategy):
         # conditions.append(dataframe['fisher_wr'] < -0.7)
 
         # MFI
-        conditions.append(dataframe['mfi'] < 50.0)
+        # conditions.append(dataframe['mfi'] < 30.0)
 
         # # below TEMA
         # conditions.append(dataframe['close'] < dataframe['tema'])
 
         # add strategy-specific conditions (from subclass)
-        strat_cond = self.get_strategy_buy_conditions(dataframe)
+        strat_cond = self.get_strategy_entry_guard_conditions(dataframe)
         if strat_cond is not None:
             conditions.append(strat_cond)
 
-        # sell signal is not active
-        conditions.append(dataframe['predict_sell'] < 0.1)
+        # # sell signal is not active
+        # conditions.append(dataframe['predict_sell'] < 0.1)
 
         # PCA/Classifier triggers
         anomaly_cond = (
@@ -903,7 +913,11 @@ class Anomaly(IStrategy):
                 # self.show_debug_info(curr_pair)
                 self.show_all_debug_info()
 
-        conditions.append(dataframe['volume'] > 0)
+        if self.ignore_exit_signals:
+            dataframe['exit_long'] = 0
+            return dataframe
+
+        # conditions.append(dataframe['volume'] > 0)
 
         # # ATR in sell range
         # conditions.append(dataframe['atr_signal'] <= 0.0)
@@ -915,10 +929,10 @@ class Anomaly(IStrategy):
         # conditions.append(dataframe['fisher_wr'] > 0.5)
 
         # MFI
-        conditions.append(dataframe['mfi'] > 50.0)
+        # conditions.append(dataframe['mfi'] > 70.0)
 
         # add strategy-specific conditions (from subclass)
-        strat_cond = self.get_strategy_sell_conditions(dataframe)
+        strat_cond = self.get_strategy_exit_guard_conditions(dataframe)
         if strat_cond is not None:
             conditions.append(strat_cond)
 
@@ -1009,8 +1023,8 @@ class Anomaly(IStrategy):
 
         return min(-0.01, max(stoploss_from_open(sl_profit, current_profit), -0.99))
 
-        if current_profit < 0.02:
-            return -1  # return a value bigger than the initial stoploss to keep using the initial stoploss
+        # if current_profit < 0.02:
+        #     return -1  # return a value bigger than the initial stoploss to keep using the initial stoploss
 
         # # After reaching the desired offset, allow the stoploss to trail by half the profit
         # desired_stoploss = current_profit / 4
@@ -1026,6 +1040,25 @@ class Anomaly(IStrategy):
 
     def custom_exit(self, pair: str, trade: 'Trade', current_time: 'datetime', current_rate: float,
                     current_profit: float, **kwargs):
+
+        # Mod: just take the profit:
+
+        dataframe, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
+        last_candle = dataframe.iloc[-1].squeeze()
+
+        # Above 3%, sell if MFA > 90
+        if current_profit > 0.03:
+            if last_candle['mfi'] > 90:
+                return 'mfi_90'
+
+        # Mod: strong sell signal, in profit
+        if (current_profit > 0) and (last_candle['fisher_wr'] > 0.98):
+                return 'fwr_98'
+
+        # Mod: Sell any positions at a loss if they are held for more than two days.
+        if current_profit < 0.0 and (current_time - trade.open_date_utc).days >= 2:
+            return 'unclog'
+
         if self.use_simpler_custom_stoploss:
             return self.simpler_custom_exit(pair, trade, current_time, current_rate, current_profit)
         else:
@@ -1047,6 +1080,10 @@ class Anomaly(IStrategy):
         if current_profit > 0.03:
             if last_candle['mfi'] > 90:
                 return 'mfi_90'
+
+        # Mod: strong sell signal, in profit
+        if (current_profit > 0) and (last_candle['fisher_wr'] > 0.98):
+                return 'fwr_98'
 
         # Sell any positions at a loss if they are held for more than one day.
         if current_profit < 0.0 and (current_time - trade.open_date_utc).days >= 2:
@@ -1117,6 +1154,10 @@ class Anomaly(IStrategy):
         if current_profit > 0.02:
             if last_candle['mfi'] > 90:
                 return 'mfi_90'
+
+        # Mod: strong sell signal, in profit
+        if (current_profit > 0) and (last_candle['fisher_wr'] > 0.98):
+                return 'fwr_98'
 
         # Sell any positions at a loss if they are held for more than one day.
         if current_profit < 0.0 and (current_time - trade.open_date_utc).days >= 2:

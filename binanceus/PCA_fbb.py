@@ -78,8 +78,8 @@ class PCA_fbb(PCA):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     lookahead_hours = 1.0
-    n_profit_stddevs = 1.5
-    n_loss_stddevs = 2.0
+    n_profit_stddevs = 0.0
+    n_loss_stddevs = 0.0
     min_f1_score = 0.70
 
     custom_trade_info = {}
@@ -139,7 +139,7 @@ class PCA_fbb(PCA):
                     (future_df['bb_gain'] >= future_df['profit_threshold']/100.0) &
 
                     # future profit
-                    (future_df['future_profit_max'] >= future_df['profit_threshold']) &
+                    (future_df['future_profit_max'] >= future_df['future_profit_threshold']) &
                     (future_df['future_gain'] > 0)
             ), 1.0, 0.0)
 
@@ -153,7 +153,7 @@ class PCA_fbb(PCA):
                     (future_df['bb_loss'] <= future_df['loss_threshold']/100.0) &
 
                     # future loss
-                    (future_df['future_gain'] <= future_df['loss_threshold'])
+                    (future_df['future_gain'] <= future_df['future_loss_threshold'])
             ), 1.0, 0.0)
 
         return sells

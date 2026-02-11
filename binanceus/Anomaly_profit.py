@@ -64,8 +64,8 @@ class Anomaly_profit(Anomaly):
     # Unfortunately, these cannot be hyperopt params because they are used in populate_indicators, which is only run
     # once during hyperopt
     lookahead_hours = 1.0
-    n_profit_stddevs = 2.0
-    n_loss_stddevs = 2.0
+    n_profit_stddevs = 0.0
+    n_loss_stddevs = 0.0
     min_f1_score = 0.48
 
     custom_trade_info = {}
@@ -122,7 +122,7 @@ class Anomaly_profit(Anomaly):
             (
                     (future_df['mfi'] < 40) & # loose guard
 
-                    (future_df['future_profit_max'] >= future_df['profit_threshold']) & # future profit exceeds threshold
+                    (future_df['future_profit_max'] >= future_df['future_profit_threshold']) & # future profit exceeds threshold
                     (future_df['future_max'] > future_df['dwt_recent_max']) # future window max exceeds prior window max
             ), 1.0, 0.0)
 
@@ -133,7 +133,7 @@ class Anomaly_profit(Anomaly):
             (
                     (future_df['mfi'] > 60) & # loose guard
 
-                    (future_df['future_loss_min'] <= future_df['loss_threshold']) & # future loss exceeds threshold
+                    (future_df['future_loss_min'] <= future_df['future_loss_threshold']) & # future loss exceeds threshold
                     (future_df['future_min'] < future_df['dwt_recent_min']) # future window max exceeds prior window max
             ), 1.0, 0.0)
 
