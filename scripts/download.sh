@@ -54,7 +54,7 @@ set_start_date
 
 timerange="${start_date}-"
 today=$(date +"%Y%m%d")
-timeframe='5m'
+timeframe='15m'
 
 
 short=0

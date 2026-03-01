@@ -34,9 +34,11 @@ def skipto(pattern, anywhere=False) -> bool:
 
     while curr_line:
         if anywhere:
-            found = (pattern in curr_line) # pattern is anywhere in the string
+            found = pattern in curr_line  # pattern is anywhere in the string
         else:
-            found = curr_line.lstrip().startswith(pattern) # string starts with pattern (ignoring whitespace)
+            found = curr_line.lstrip().startswith(
+                pattern
+            )  # string starts with pattern (ignoring whitespace)
         if found:
             break
         curr_line = infile.readline()
@@ -47,6 +49,7 @@ def skipto(pattern, anywhere=False) -> bool:
         # print(f"*** Target not found: {pattern}")
         return False
 
+
 # copies the input file and prints each line until pattern is found.
 # Note: prints current line but not the final line
 def copyto(pattern, anywhere=False):
@@ -55,9 +58,11 @@ def copyto(pattern, anywhere=False):
 
     while curr_line:
         if anywhere:
-            found = (pattern in curr_line) # pattern is anywhere in the string
+            found = pattern in curr_line  # pattern is anywhere in the string
         else:
-            found = curr_line.lstrip().startswith(pattern) # string starts with pattern (ignoring whitespace)
+            found = curr_line.lstrip().startswith(
+                pattern
+            )  # string starts with pattern (ignoring whitespace)
         if found:
             break
         print(curr_line.rstrip())
@@ -99,8 +104,9 @@ def process_exchange(line):
     # Testing strategy list for exchange: binanceus...
 
     exchange = line.split(":")[-1]
-    exchange = exchange.strip().replace(".","")
+    exchange = exchange.strip().replace(".", "")
     return
+
 
 def process_test_date(line):
     global test_date
@@ -114,8 +120,9 @@ def process_test_date(line):
     test_date = date_object.strftime(output_format)
 
     print("")
-    print(f'Test Date:\t{test_date}')
+    print(f"Test Date:\t{test_date}")
     return
+
 
 def process_time_range(line):
     global num_test_days
@@ -133,19 +140,21 @@ def process_time_range(line):
 
     return
 
+
 def get_empty_strat_result():
     entry = {}
-    entry['test_date'] = ""
-    entry['num_test_days'] = int(num_test_days)
-    entry['entries'] = 0
-    entry['daily_trades'] = 0
-    entry['ave_profit'] = 0
-    entry['tot_profit'] = 0
-    entry['win_pct'] = 0
-    entry['expectancy'] = 0 
-    entry['daily_profit'] = 0 
-    entry['vs_market'] = 0 
+    entry["test_date"] = ""
+    entry["num_test_days"] = int(num_test_days)
+    entry["entries"] = 0
+    entry["daily_trades"] = 0
+    entry["ave_profit"] = 0
+    entry["tot_profit"] = 0
+    entry["win_pct"] = 0
+    entry["expectancy"] = 0
+    entry["daily_profit"] = 0
+    entry["vs_market"] = 0
     return entry
+
 
 def process_totals(strat, line):
     global strat_results
@@ -171,22 +180,23 @@ def process_totals(strat, line):
         return
 
     entry = {}
-    entry['test_date'] = str(test_date)
-    entry['num_test_days'] = int(num_test_days)
-    entry['entries'] = int(cols[1])
-    entry['daily_trades'] = float(cols[1]) / float(num_test_days)
-    entry['ave_profit'] = float(cols[2])
-    entry['tot_profit'] = float(cols[4])
-    entry['win_pct'] = float(cols[6].strip().split(" ")[-1])
-    entry['expectancy'] = 0 # updated later
-    entry['daily_profit'] = 0 # updated later
-    entry['vs_market'] = 0 # updated later
+    entry["test_date"] = str(test_date)
+    entry["num_test_days"] = int(num_test_days)
+    entry["entries"] = int(cols[1])
+    entry["daily_trades"] = float(cols[1]) / float(num_test_days)
+    entry["ave_profit"] = float(cols[2])
+    entry["tot_profit"] = float(cols[4])
+    entry["win_pct"] = float(cols[6].strip().split(" ")[-1])
+    entry["expectancy"] = 0  # updated later
+    entry["daily_profit"] = 0  # updated later
+    entry["vs_market"] = 0  # updated later
 
     strat_results[strat] = entry
 
     # print(f'entry: {entry}')
 
     return
+
 
 def process_expectancy(strat, line):
     global strat_results
@@ -208,9 +218,10 @@ def process_expectancy(strat, line):
     if "(" in value:
         value = value.split("(")[0].strip()
 
-    strat_results[strat]['expectancy'] = float(value)
+    strat_results[strat]["expectancy"] = float(value)
 
     return
+
 
 def process_daily_profit(strat, line):
     global strat_results
@@ -225,9 +236,12 @@ def process_daily_profit(strat, line):
     # strat_results[strat]['daily_profit'] = float(cols[-1].replace("%",""))
 
     # entry in test output is not very accurate, so just calculate
-    strat_results[strat]['daily_profit'] = round(float(strat_results[strat]['tot_profit']/num_test_days), 3)
+    strat_results[strat]["daily_profit"] = round(
+        float(strat_results[strat]["tot_profit"] / num_test_days), 3
+    )
 
     return
+
 
 def process_market_change(strat, line):
     global strat_results
@@ -254,7 +268,6 @@ def print_results(test_results):
     global market_change
     global issues_found
 
-
     print(f"Market Change(%): {market_change}")
     print("")
     # print("Summary:")
@@ -262,47 +275,82 @@ def print_results(test_results):
     # convert associative array into 'plain' array
     strat_stats = []
     if test_results:
-            
+
         # calculate stats for each strategy
         for strategy in test_results:
-            test_results[strategy]['vs_market'] = test_results[strategy]['tot_profit'] - market_change
-            strat_stats.append([strategy,
-                                test_results[strategy]['entries'],
-                                test_results[strategy]['daily_trades'],
-                                test_results[strategy]['ave_profit'],
-                                test_results[strategy]['tot_profit'],
-                                test_results[strategy]['vs_market'],
-                                test_results[strategy]['win_pct'],
-                                test_results[strategy]['expectancy'],
-                                test_results[strategy]['daily_profit'],
-                                0])
+            test_results[strategy]["vs_market"] = (
+                test_results[strategy]["tot_profit"] - market_change
+            )
+            strat_stats.append(
+                [
+                    strategy,
+                    test_results[strategy]["entries"],
+                    test_results[strategy]["daily_trades"],
+                    test_results[strategy]["ave_profit"],
+                    test_results[strategy]["tot_profit"],
+                    test_results[strategy]["vs_market"],
+                    test_results[strategy]["win_pct"],
+                    test_results[strategy]["expectancy"],
+                    test_results[strategy]["daily_profit"],
+                    0,
+                ]
+            )
 
         # create dataframe
-        df = pandas.DataFrame(strat_stats,
-                              columns=["Strategy", "Trades", "Tr/day", "Average%",
-                                       "Total%", "vs Mkt%", "Win%", "Expectancy", "Daily%", "Rank"])
+        df = pandas.DataFrame(
+            strat_stats,
+            columns=[
+                "Strategy",
+                "Trades",
+                "Tr/day",
+                "Average%",
+                "Total%",
+                "vs Mkt%",
+                "Win%",
+                "Expectancy",
+                "Daily%",
+                "Rank",
+            ],
+        )
 
-        rank1 = df["Tr/day"].rank(ascending=False, method='min', pct=False)
+        rank1 = df["Tr/day"].rank(ascending=False, method="min", pct=False)
         # rank1 = df["Total%"].rank(ascending=False, method='min', pct=False)
-        rank2 = df["Average%"].rank(ascending=False, method='min', pct=False)
-        rank3 = df["Win%"].rank(ascending=False, method='min', pct=False)
-        rank4 = df["Expectancy"].rank(ascending=False, method='min', pct=False)
-        rank5 = df["Total%"].rank(ascending=False, method='min', pct=False)
+        rank2 = df["Daily%"].rank(ascending=False, method="min", pct=False)
+        rank3 = df["Win%"].rank(ascending=False, method="min", pct=False)
+        rank4 = df["Expectancy"].rank(ascending=False, method="min", pct=False)
+        rank5 = df["Total%"].rank(ascending=False, method="min", pct=False)
         # rank_mean = np.mean([rank1, rank2, rank3, rank4, rank5], axis=0)
         # rank_mean = np.mean([rank1, rank2, rank4, rank5], axis=0)
         # rank_mean = np.mean([rank1, rank3, rank4, rank5], axis=0)
-        rank_mean = np.mean([rank3, rank4, rank5], axis=0)
+        rank_mean = np.mean([rank2, rank4, rank5], axis=0)
         # print(f'rank_mean: {rank_mean}')
         df["Rank"] = scipy.stats.rankdata(rank_mean)
 
-        pandas.set_option('display.precision', 2)
+        pandas.set_option("display.precision", 2)
         print("")
-        hdrs = df.columns.values
+        hdrs = df.columns.tolist()
         # print(tabulate(df.sort_values(by=['Rank', "Expectancy"], ascending=[True, False]),
 
-        print(tabulate(df.sort_values(by=["Rank"], ascending=[True]),
-                       floatfmt=["", "d", ".2f", ".2f", ".1f", ".1f", ".1f", ".2f", ".2f", ".0f"],
-                       showindex="never", headers=hdrs, tablefmt='psql'))
+        print(
+            tabulate(
+                df.sort_values(by=["Rank"], ascending=[True]),
+                floatfmt=[
+                    "",
+                    "d",
+                    ".2f",
+                    ".2f",
+                    ".1f",
+                    ".1f",
+                    ".1f",
+                    ".2f",
+                    ".2f",
+                    ".0f",
+                ],
+                showindex="never",
+                headers=hdrs,
+                tablefmt="psql",
+            )
+        )
 
         if issues_found:
             print()
@@ -317,7 +365,6 @@ def update_saved_results(curr_results):
     global exchange
 
     results_file = f"./user_data/strategies/{exchange}/test_results.json"
-
 
     # if file exists, load it
     if os.path.isfile(results_file):
@@ -338,6 +385,7 @@ def update_saved_results(curr_results):
 
     return
 
+
 def main():
     global curr_line
     global infile
@@ -354,16 +402,16 @@ def main():
     infile = open(file_name)
 
     # get header data
-    if skipto('exchange:', anywhere=True):
+    if skipto("exchange:", anywhere=True):
         process_exchange(curr_line.rstrip())
     else:
         infile.close()
         infile = open(file_name)
 
-    if skipto('Date/time:'):
+    if skipto("Date/time:"):
         process_test_date(curr_line.rstrip())
 
-        if skipto('Time range'):
+        if skipto("Time range"):
             process_time_range(curr_line.rstrip())
 
     # repeatedly scan file and find header of new run, then print results
@@ -377,19 +425,19 @@ def main():
         # print("------------")
         # print("")
         # copyto('TOTAL', anywhere=True)
-        if skipto('TOTAL', anywhere=True):
+        if skipto("TOTAL", anywhere=True):
             process_totals(strat, curr_line.rstrip())
             # copyto('================== SUMMARY METRICS', anywhere=True)
-            if skipto(' SUMMARY METRICS', anywhere=True):
-                if strat_results[strat]['entries'] > 0:
-                    if skipto('Expectancy', anywhere=True):
+            if skipto(" SUMMARY METRICS", anywhere=True):
+                if strat_results[strat]["entries"] > 0:
+                    if skipto("Expectancy", anywhere=True):
                         process_expectancy(strat, curr_line.rstrip())
 
-                        if skipto('daily profit', anywhere=True):
+                        if skipto("daily profit", anywhere=True):
                             process_daily_profit(strat, curr_line.rstrip())
 
                         if market_change <= 0.0:
-                            if skipto('Market change', anywhere=True):
+                            if skipto("Market change", anywhere=True):
                                 process_market_change(strat, curr_line.rstrip())
                                 # print(f"Market Change:\t{market_change}")
                             else:
@@ -405,5 +453,6 @@ def main():
 
     update_saved_results(strat_results)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

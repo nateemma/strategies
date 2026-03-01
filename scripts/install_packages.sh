@@ -25,9 +25,22 @@ prompt_user () {
   echo $result # stupid zsh doesn't really have a return
 }
 
+# Handle environment detection
+# If we are in the freqtrade repo, try to use the local .venv
+SCRIPT_DIR=$(dirname "$0")
+REPO_ROOT=$(cd "$SCRIPT_DIR/../../.." && pwd)
+
+if [ -f "$REPO_ROOT/.venv/bin/activate" ]; then
+    echo "Detected Freqtrade virtual environment at $REPO_ROOT/.venv"
+    # Use the venv's pip directly to be sure
+    alias pip="$REPO_ROOT/.venv/bin/pip"
+    alias pip3="$REPO_ROOT/.venv/bin/pip"
+    echo "Using venv pip: $($REPO_ROOT/.venv/bin/pip --version)"
+fi
+
 # update installation tools first
-echo "updating pip, setup
-pip install --upgrade pip setup wheel
+echo "Updating pip, setuptools, and wheel..."
+pip install --upgrade pip setuptools wheel
 
 # install generally used packages
 pkg_general=("finta" "prettytable" "PyWavelets" "simdkalman" "pykalman" "scipy" "scikit-learn" \
@@ -39,8 +52,10 @@ if [[ $(prompt_user "Install general packages?: ") -eq 1 ]]; then
     pip3 install $pkg
   done
 
-  # conda install numba; pip3 uninstall numba
-  # pip3 install numpy<1.24 # obviously check version if packages update
+  # Force numpy < 2.0 to avoid the "umath failed to import" error
+  # This is critical for compatibility with TensorFlow 2.16 and other legacy compiled modules.
+  echo "Enforcing NumPy < 2.0..."
+  pip3 install "numpy<2"
 fi
 echo ""
 

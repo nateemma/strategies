@@ -1,4 +1,3 @@
-
 # Script to process monthly test results and summarise the statistics for each strategy
 
 
@@ -16,26 +15,29 @@ FIND_HEADER = 0
 SKIP_HEADER = 1
 READ_DATA = 2
 
+
 def rank_simple(vector):
     return sorted(range(len(vector)), key=vector.__getitem__)
 
+
 def rankdata(a):
     n = len(a)
-    ivec=rank_simple(a)
-    svec=[a[rank] for rank in ivec]
+    ivec = rank_simple(a)
+    svec = [a[rank] for rank in ivec]
     sumranks = 0
     dupcount = 0
-    newarray = [0]*n
-    for i in xrange(n):
+    newarray = [0] * n
+    for i in range(n):
         sumranks += i
         dupcount += 1
-        if i==n-1 or svec[i] != svec[i+1]:
+        if i == n - 1 or svec[i] != svec[i + 1]:
             averank = sumranks / float(dupcount) + 1
-            for j in xrange(i-dupcount+1,i+1):
+            for j in range(i - dupcount + 1, i + 1):
                 newarray[ivec[j]] = averank
             sumranks = 0
             dupcount = 0
     return newarray
+
 
 def main():
     args = sys.argv[1:]
@@ -60,7 +62,7 @@ def main():
                 if search("STRATEGY SUMMARY", line):
                     state = SKIP_HEADER
             elif state == SKIP_HEADER:
-                    state = READ_DATA
+                state = READ_DATA
             elif state == READ_DATA:
                 if search("===================", line):
                     state = FIND_HEADER
@@ -68,7 +70,7 @@ def main():
                     items = line.split("|")
                     strategy = items[1].strip()
                     if not (strategy in stratParams.keys()):
-                        stratParams[strategy] = {"profit":[], "winPct":[], "draw":[]}
+                        stratParams[strategy] = {"profit": [], "winPct": [], "draw": []}
 
                     # print("items: ", items)
                     profitPct = float(items[6].strip())
@@ -82,7 +84,7 @@ def main():
                     stratParams[strategy]["draw"].append(draw)
 
             else:
-                print ("Invalid state: ", state)
+                print("Invalid state: ", state)
                 sys.exit()
 
     # print("stratParams: ", stratParams)
@@ -91,7 +93,7 @@ def main():
         # print("stratParams: ")
         # print(stratParams)
 
-        #header
+        # header
         divider = "-" * 90
         # print(divider)
         # print("| {:16s} | {:33s} | {:19s} | {:9s} |".format("Strategy".center(16, " "), "Profit".center(33, " "), "Win%".center(19, " "), "Rank".center(9, " ")))
@@ -101,7 +103,7 @@ def main():
         # ))
         # print(divider)
 
-        stratStats=[]
+        stratStats = []
         # calculate stats for each strategy
         for strategy in stratParams:
             ptot = sum(stratParams[strategy]["profit"])
@@ -118,10 +120,29 @@ def main():
             dave = statistics.mean(stratParams[strategy]["draw"])
             dmed = statistics.median(stratParams[strategy]["draw"])
             empty = ""
-            stratStats.append([strategy, ptot, pmin, pmax, pave, pmed, empty,
-                               wmin, wmax, wave, wmed,  empty,
-                               dmin, dmax, dave, dmed,  empty,
-                               0.0, 0.0])
+            stratStats.append(
+                [
+                    strategy,
+                    ptot,
+                    pmin,
+                    pmax,
+                    pave,
+                    pmed,
+                    empty,
+                    wmin,
+                    wmax,
+                    wave,
+                    wmed,
+                    empty,
+                    dmin,
+                    dmax,
+                    dave,
+                    dmed,
+                    empty,
+                    0.0,
+                    0.0,
+                ]
+            )
             # print("| {:<18s} | {:>8.2f}{:>8.2f}{:>8.2f}{:>8.2f} | {:>8.2f}{:>8.2f}{:>8.2f}{:>8.2f} |".format(strategy,
             #                                                                         pmin, pmax, pave, pmed,
             #                                                                         wmin, wmax, wave, wmed
@@ -129,37 +150,92 @@ def main():
             # print(strategy, ": Profit min:", pmin, " max:", pmax, " Ave:", pave, " med:", pmed)
             # print(strategy, ": Win min:", wmin, " max:", wmax, " Ave:", wave, " med:", wmed)
 
-
         # create dataframe
-        df = pandas.DataFrame(stratStats, columns=["Strategy",
-                                                   "ptot", "pmin", "pmax", "pave", "pmed", "",
-                                                   "wmin", "wmax", "wave", "wmed", "",
-                                                   "dmin", "dmax", "dave", "dmed", "",
-                                                   "Score", "Rank"])
+        df = pandas.DataFrame(
+            stratStats,
+            columns=[
+                "Strategy",
+                "ptot",
+                "pmin",
+                "pmax",
+                "pave",
+                "pmed",
+                "",
+                "wmin",
+                "wmax",
+                "wave",
+                "wmed",
+                "",
+                "dmin",
+                "dmax",
+                "dave",
+                "dmed",
+                "",
+                "Score",
+                "Rank",
+            ],
+        )
 
         # calculate score. Weight profit higher, and median scores
-        df["Score"] = 2.00 * ( df["ptot"].rank(pct=True) + df["pmin"].rank(pct=True) + df["pmax"].rank(pct=True) +
-                               df["pave"].rank(pct=True) + 1.5*df["pmed"].rank(pct=True) ) + \
-                      0.50 * ( df["wmin"].rank(pct=True) + df["wmax"].rank(pct=True) + df["wave"].rank(pct=True) +
-                               1.5*df["wmed"].rank(pct=True) ) + \
-                      0.25 * ( df["dmin"].rank(ascending=False, pct=True) + df["dmax"].rank(ascending=False, pct=True) +
-                               df["dave"].rank(ascending=False, pct=True) + 1.5 * df["dmed"].rank(ascending=False, pct=True) )
+        df["Score"] = (
+            2.00
+            * (
+                df["ptot"].rank(pct=True)
+                + df["pmin"].rank(pct=True)
+                + df["pmax"].rank(pct=True)
+                + df["pave"].rank(pct=True)
+                + 1.5 * df["pmed"].rank(pct=True)
+            )
+            + 0.50
+            * (
+                df["wmin"].rank(pct=True)
+                + df["wmax"].rank(pct=True)
+                + df["wave"].rank(pct=True)
+                + 1.5 * df["wmed"].rank(pct=True)
+            )
+            + 0.25
+            * (
+                df["dmin"].rank(ascending=False, pct=True)
+                + df["dmax"].rank(ascending=False, pct=True)
+                + df["dave"].rank(ascending=False, pct=True)
+                + 1.5 * df["dmed"].rank(ascending=False, pct=True)
+            )
+        )
 
-        df["Rank"] = df["Score"].rank(ascending=False, method='min')
+        df["Rank"] = df["Score"].rank(ascending=False, method="min")
 
-        pandas.set_option('display.precision', 2)
-        print ("")
-        print("                                         Profit                         ",
-              "                 Win%                                 Drawdown                              Rank")
-        hdrs=["Strategy", "PTot", "PMin", "PMax", "PAve", "PMed", "",
-              "WMin", "WMax", "WAve", "WMed", ""
-            , "DMin", "DMax", "DAve", "DMed", ""
-            , "Score", "Rank"]
-        print(tabulate(df, showindex="never", headers=hdrs, tablefmt='psql'))
-        print ("")
+        pandas.set_option("display.precision", 2)
+        print("")
+        print(
+            "                                         Profit                         ",
+            "                 Win%                                 Drawdown                              Rank",
+        )
+        hdrs = [
+            "Strategy",
+            "PTot",
+            "PMin",
+            "PMax",
+            "PAve",
+            "PMed",
+            "",
+            "WMin",
+            "WMax",
+            "WAve",
+            "WMed",
+            "",
+            "DMin",
+            "DMax",
+            "DAve",
+            "DMed",
+            "",
+            "Score",
+            "Rank",
+        ]
+        print(tabulate(df, showindex="never", headers=hdrs, tablefmt="psql"))
+        print("")
         # print(tabulate(data, headers=["Name", "User ID", "Roll. No."]))
         # print(divider)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
