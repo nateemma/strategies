@@ -1,0 +1,33 @@
+{
+  "strategy_name": "NNTC_bbw_LSTM",
+  "params": {
+    "roi": {
+      "0": 0.006
+    },
+    "stoploss": {
+      "stoploss": -0.1
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 10
+    },
+    "buy": {},
+    "sell": {
+      "enable_exit_signal": false,
+      "loss_ratio": 0.5,
+      "profit_ratio": 3.7,
+      "tstop_ratio": 0.797,
+      "tstop_start": 0.014,
+      "use_loss_ratio": true,
+      "use_profit_ratio": false
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2023-06-22 19:34:05.756809+00:00"
+}

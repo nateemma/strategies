@@ -1,0 +1,41 @@
+{
+  "strategy_name": "Anomaly_all",
+  "params": {
+    "roi": {
+      "0": 0.04
+    },
+    "stoploss": {
+      "stoploss": -0.06
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": 0.0,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 10
+    },
+    "buy": {
+      "enable_entry_guards": false,
+      "entry_guard_fwr": -0.0
+    },
+    "sell": {
+      "cexit_fwr_overbought": 1.0,
+      "cexit_fwr_take_profit": 0.98,
+      "cexit_loss_threshold": -0.047,
+      "cexit_profit_threshold": 0.032,
+      "cexit_use_loss_threshold": true,
+      "cexit_use_profit_threshold": true,
+      "cstop_enable": false,
+      "cstop_ratio": 0.986,
+      "cstop_start": 0.0,
+      "enable_exit_guards": true,
+      "enable_exit_signal": false,
+      "exit_guard_fwr": 0.1
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2023-11-19 16:34:28.437744+00:00"
+}

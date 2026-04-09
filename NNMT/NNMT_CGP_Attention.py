@@ -1,0 +1,30 @@
+# pragma pylint: disable=C0103, C0114, C0115, C0116, C0301, C0302, C0303, C0325, C0411, C0413
+# pragma pylint: disable=W0105, W1203, W1309, W1514, W0613, W0621,
+# type: ignore
+# pylint: disable=import-error
+
+"""
+NNMT_CGP_Attention - Subclass of NNMTStrategy using Multi-Task CTAB-GAN+ for high-fidelity augmentation
+"""
+
+import sys
+from pathlib import Path
+from pandas import DataFrame
+import numpy as np
+from typing import Dict, Tuple
+
+group_dir = str(Path(__file__).parent)
+sys.path.append(group_dir)
+
+from NNMT_CGP import NNMT_CGP  # noqa: E402
+import NNMTClassifier
+# -----------
+
+
+class NNMT_CGP_Attention(NNMT_CGP):
+
+    # -----------
+
+    def get_classifier_type(self):
+        """Return the type of classifier used for training/predicting"""
+        return NNMTClassifier.ClassifierType.Attention

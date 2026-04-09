@@ -1,0 +1,45 @@
+{
+  "strategy_name": "NNCoeffs_CNN",
+  "params": {
+    "roi": {
+      "0": 0.12,
+      "11": 0.051,
+      "65": 0.01,
+      "180": 0
+    },
+    "stoploss": {
+      "stoploss": -0.99
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 5
+    },
+    "buy": {
+      "enable_bb_check": false,
+      "enable_guard_metric": true,
+      "enable_squeeze": false,
+      "entry_bb_factor": 0.77,
+      "entry_bb_width": 0.097,
+      "cexit_min_profit_th": 1.1,
+      "cexit_profit_nstd": 1.6,
+      "entry_guard_metric": -0.8
+    },
+    "sell": {
+      "enable_exit_signal": false,
+      "exit_bb_factor": 1.12,
+      "cexit_loss_nstd": 2.4,
+      "cexit_metric_overbought": 0.81,
+      "cexit_metric_take_profit": 0.64,
+      "cexit_min_loss_th": -0.1,
+      "exit_guard_metric": 0.8
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2024-11-13 18:48:05.429004+00:00"
+}

@@ -1,0 +1,33 @@
+{
+  "strategy_name": "NNTC_aroon_LSTM",
+  "params": {
+    "roi": {
+      "0": 0.006
+    },
+    "stoploss": {
+      "stoploss": -0.1
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 10
+    },
+    "buy": {},
+    "sell": {
+      "enable_exit_signal": true,
+      "loss_ratio": 0.7,
+      "profit_ratio": 0.6,
+      "tstop_ratio": 0.836,
+      "tstop_start": 0.054,
+      "use_loss_ratio": true,
+      "use_profit_ratio": false
+    },
+    "protection": {}
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2023-06-22 19:18:34.020929+00:00"
+}
