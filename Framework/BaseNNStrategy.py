@@ -348,11 +348,6 @@ class BaseNNStrategy(BaseStrategy):
     # Storage / Model management
     # =========================================================================
 
-    def get_storage_location(self) -> str:
-        """Determine the root directory for saved_data"""
-        root_dir = str(Path(__file__).parent.parent / "saved_data") + "/"
-        return root_dir
-
     def get_model_path(self) -> str:
         """Get the model path for saving/loading"""
         name = self.__class__.__name__

@@ -10,7 +10,7 @@ TS_Predict - base class for 'simple' time series prediction
              algorithms. I use the actual (future) gain to train a base model, which is then further refined for each
              individual pair.
              The model is created if it does not exist, and is trained on all available data before being saved.
-             Models are saved in user_data/strategies/TSPredict/models/<class>/<class>.sav, where <class> is the name
+             Models are saved in user_data/strategies/saved_data/<class>/<class>.sav, where <class> is the name
              of the current class (TS_Predict if running this directly, or the name of the subclass).
              If the model already exits, then it is just loaded and used.
              So, it makes sense to do initial training over a long period of time to create the base model.
@@ -84,6 +84,7 @@ sys.path.append(group_dir)
 
 
 import utils.custom_indicators as cta
+from utils.Scalers import load_scaler, scaler_exists
 
 import utils.Wavelets as Wavelets
 import utils.Forecasters as Forecasters
@@ -200,7 +201,7 @@ class TSPredict(BaseStrategy):
     ]
 
     aggregate_pairs = True  # use all pairs for training (in backtest)
-    norm_data = True
+    norm_data = True  # Now enabled by default: normalization applied before decomposition/analysis
     scale_results = True
 
     plot_config = {
@@ -284,7 +285,7 @@ class TSPredict(BaseStrategy):
     detrend_data = False
     scale_results = False
 
-    norm_data = False  # changing this requires new models
+    # norm_data = False  # REMOVED: using global setting above
 
     dataframeUtils = None
     scaler = RobustScaler()
@@ -639,16 +640,25 @@ class TSPredict(BaseStrategy):
             cols.append("gain")
 
         df = df[cols]
+
+        if self.norm_data:
+            # only scale columns that are not already normalized
+            cols_to_scale = [
+                col for col in cols if col not in self.pre_normalized_columns
+            ]
+            if len(cols_to_scale) > 0:
+                df = self.dataframeUtils.normalize_selected_columns(
+                    df, cols_to_scale, window=128
+                )
+
         df = df.fillna(0.0)
         return df
 
     ###################################
 
-    # Model-related funcs. Override in subclass to use a different type of model
-
     def get_model_path(self, pair):
         category = self.__class__.__name__
-        root_dir = group_dir + "/models/" + category
+        root_dir = self.get_storage_location() + category
         model_name = category
         if self.model_per_pair and (len(pair) > 0):
             model_name = model_name + "_" + pair.split("/")[0]
@@ -1066,19 +1076,33 @@ class TSPredict(BaseStrategy):
                     for i, col in enumerate(column_names)
                     if col not in self.pre_normalized_columns
                 ]
-
                 X_train_processed = X_train.copy()
                 X_predict_processed = X_predict.copy()
-
+                
                 if len(needs_scale_indices) > 0:
-                    scaler = RobustScaler()
-                    # Scale only the requested columns
-                    X_train_processed[:, needs_scale_indices] = scaler.fit_transform(
-                        X_train[:, needs_scale_indices]
-                    )
-                    X_predict_processed[:, needs_scale_indices] = scaler.transform(
-                        X_predict[:, needs_scale_indices]
-                    )
+                    scaler = None
+                    scaler_dir = self.get_storage_location()
+                    scaler_name = "main_scaler"
+                    
+                    # Try to load global scaler
+                    if scaler_exists(scaler_dir, scaler_name):
+                        try:
+                            global_scaler = load_scaler(scaler_dir, scaler_name)
+                            # Check compatibility (feature count must match)
+                            if hasattr(global_scaler, "n_features_in_") and global_scaler.n_features_in_ == len(needs_scale_indices):
+                                scaler = global_scaler
+                        except Exception as e:
+                            print(f"    WARN: could not load global scaler: {e}")
+
+                    if scaler is None:
+                        # Fallback to local RobustScaler
+                        scaler = RobustScaler()
+                        X_train_processed[:, needs_scale_indices] = scaler.fit_transform(X_train[:, needs_scale_indices])
+                    else:
+                        # Use global scaler (no fit_transform, just transform)
+                        X_train_processed[:, needs_scale_indices] = scaler.transform(X_train[:, needs_scale_indices])
+
+                    X_predict_processed[:, needs_scale_indices] = scaler.transform(X_predict[:, needs_scale_indices])
 
                 if self.use_mlx:
                     # MLX Path

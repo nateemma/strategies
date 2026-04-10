@@ -100,6 +100,12 @@ class TS_Coeff(TSPredict):
         # Optimized vectorized version
         from numpy.lib.stride_tricks import sliding_window_view
 
+        # lazy initialisation of vars (so thatthey can be changed in subclasses)
+        if self.wavelet is None:
+            self.wavelet = Wavelets.make_wavelet(self.wavelet_type)
+        
+        self.wavelet.set_lookahead(self.lookahead)
+
         # Prepare windows
         if len(win_data) < self.wavelet_size:
             # Not enough data yet
@@ -114,8 +120,9 @@ class TS_Coeff(TSPredict):
         # Check if we can use the vectorized SWT path (if applicable)
         if self.wavelet_type == Wavelets.WaveletType.SWT:
             levels = pywt.swt_max_level(self.wavelet_size)
+            wname = getattr(self.wavelet, "wavelet", None) or "db1"
             coeffs = pywt.swt(
-                windows, self.wavelet.wavelet, level=levels, axis=-1, trim_approx=True
+                windows, wname, level=levels, axis=-1, trim_approx=True
             )
             # coeffs is a list of levels, each is an array of (N, WaveletSize)
             # we need to flat-concatenate them along the last axis

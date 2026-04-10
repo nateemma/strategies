@@ -81,6 +81,7 @@ import utils.Wavelets as Wavelets
 import utils.Forecasters as Forecasters
 
 from TSPredict import TSPredict
+from utils.Scalers import load_scaler, scaler_exists
 
 
 # -----------------------------------------------------------------------
@@ -143,7 +144,7 @@ class TS_Wavelet(TSPredict):
     data = None
     # curr_dataframe = None
 
-    norm_data = False  # must be false for these strategies
+    norm_data = True  # now enabled, normalization applied before decomposition
     merge_indicators = False
     training_required = True
     expanding_window = False
@@ -483,9 +484,32 @@ class TS_Wavelet(TSPredict):
                     continue
 
                 # Scale features causally
-                scaler = RobustScaler()
-                X_train_scaled = scaler.fit_transform(X_train)
-                X_predict_scaled = scaler.transform(X_predict)
+                X_train_scaled = X_train.copy()
+                X_predict_scaled = X_predict.copy()
+                
+                scaler = None
+                scaler_dir = self.get_storage_location()
+                scaler_name = "main_scaler"
+                
+                # Try to load global scaler
+                if scaler_exists(scaler_dir, scaler_name):
+                    try:
+                        global_scaler = load_scaler(scaler_dir, scaler_name)
+                        # Check compatibility (X_train shape must match)
+                        if hasattr(global_scaler, "n_features_in_") and global_scaler.n_features_in_ == X_train.shape[1]:
+                             scaler = global_scaler
+                    except Exception as e:
+                        print(f"    WARN: could not load global scaler: {e}")
+
+                if scaler is None:
+                    # Fallback to local RobustScaler
+                    scaler = RobustScaler()
+                    X_train_scaled = scaler.fit_transform(X_train)
+                    X_predict_scaled = scaler.transform(X_predict)
+                else:
+                    # Use global scaler (transform only)
+                    X_train_scaled = scaler.transform(X_train)
+                    X_predict_scaled = scaler.transform(X_predict)
 
                 if self.use_mlx:
                     # MLX Path

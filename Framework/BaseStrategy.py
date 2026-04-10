@@ -342,6 +342,13 @@ class BaseStrategy(IStrategy):
         if self.dbg_verbose and (self.dp.runmode.value in ("backtest", "plot")):
             print(msg)
 
+    def get_storage_location(self) -> str:
+        """Determine the root directory for saved_data"""
+        from pathlib import Path
+
+        root_dir = str(Path(__file__).parent.parent / "saved_data") + "/"
+        return root_dir
+
     def print_strategy_info(self):
         """Print strategy information - to be overridden by subclasses"""
         print("")
