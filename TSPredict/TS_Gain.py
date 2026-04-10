@@ -54,4 +54,5 @@ class TS_Gain(TSPredict):
         # supply *only* the gain column
         gain = dataframe["gain"].to_numpy()
         gain = self.smooth(gain, 1)
-        return gain
+        # return as (N, 1) and provide feature name
+        return gain.reshape(-1, 1), ["gain"]

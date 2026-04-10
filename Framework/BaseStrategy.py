@@ -217,7 +217,7 @@ class BaseStrategy(IStrategy):
         "entry_atr_pct": 0.001,
         "entry_bb_width_threshold": 0.0,
         "entry_close_norm_threshold": 0.0,
-        "entry_enable_guards": False,
+        "entry_enable_guards": True,
         "entry_guard_threshold": -0.5,
         "entry_rvol_threshold": 2.0,
         "prediction_threshold": 0.3,
@@ -229,8 +229,8 @@ class BaseStrategy(IStrategy):
         "cexit_max_days": 30,
         "cexit_take_profit": 0.013,
         "enable_exit_signal": True,
-        "exit_close_norm_threshold": 0.1,
-        "exit_guard_threshold": 0.0,
+        "exit_close_norm_threshold": 0.0,
+        "exit_guard_threshold": 0.5,
     }
 
     # Trailing stop:
@@ -979,10 +979,14 @@ class BaseStrategy(IStrategy):
         dataframe.loc[model_conditions, "exit_tag"] += "model_exit "
 
         # Add common conditions
-        conditions.append(dataframe["rvol"] > 2.0)
 
-        # common guard conditions
-        conditions.append(dataframe["guard_metric"] > self.exit_guard_threshold.value)
+        if self.entry_enable_guards.value:
+            conditions.append(dataframe["rvol"] > 2.0)
+
+            # common guard conditions
+            conditions.append(
+                dataframe["guard_metric"] > self.exit_guard_threshold.value
+            )
 
         # Apply conditions
         if conditions:

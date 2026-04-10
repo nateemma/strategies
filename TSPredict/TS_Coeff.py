@@ -9,22 +9,23 @@ TS_Coeff - base class for 'simple' time series prediction
              I use the actual (future) gain to train a base model, which is then further refined for each individual pair.
              The model is created if it does not exist, and is trained on all available data before being saved.
              Models are saved in user_data/strategies/TSPredict/models/<class>/<class>.sav, where <class> is the name of the current class
-             (TS_Coeff if running this directly, or the name of the subclass). 
+             (TS_Coeff if running this directly, or the name of the subclass).
              If the model already exits, then it is just loaded and used.
-             So, it makes sense to do initial training over a long period of time to create the base model. 
+             So, it makes sense to do initial training over a long period of time to create the base model.
              If training, then no backtesting or tuning for individual pairs is performed (way faster).
              If you want to retrain (e.g. you changed indicators), then delete the model and run the strategy over a long time period
 
 ####################################################################################
 """
 
-#pragma pylint: disable=W0105, C0103, C0114, C0115, C0116, C0301, C0302, C0303, C0325, W1203
+# pragma pylint: disable=W0105, C0103, C0114, C0115, C0116, C0301, C0302, C0303, C0325, W1203
 
 
 import sys
 from pathlib import Path
 
 import numpy as np
+
 # Get rid of pandas warnings during backtesting
 import pandas as pd
 from pandas import DataFrame, Series
@@ -59,7 +60,6 @@ from sklearn.linear_model import SGDRegressor
 from TSPredict import TSPredict
 
 
-
 class TS_Coeff(TSPredict):
 
     coeff_table = None
@@ -68,94 +68,80 @@ class TS_Coeff(TSPredict):
 
     use_rolling = True
 
-    def add_strategy_indicators(self, dataframe):
-
-        # add some extra indicators
-
-        # MACD
-        macd = ta.MACD(dataframe)
-        dataframe['macd'] = macd['macd']
-        dataframe['macdsignal'] = macd['macdsignal']
-        dataframe['macdhist'] = macd['macdhist']
-
-
-        # moving averages
-        dataframe['sma'] = ta.SMA(dataframe, timeperiod=14)
-        dataframe['ema'] = ta.EMA(dataframe, timeperiod=14)
-        dataframe['tema'] = ta.TEMA(dataframe, timeperiod=14)
-
-        # Donchian Channels
-        dataframe['dc_upper'] = ta.MAX(dataframe['high'], timeperiod=self.win_size)
-        dataframe['dc_lower'] = ta.MIN(dataframe['low'], timeperiod=self.win_size)
-        dataframe['dc_mid'] = ta.TEMA(((dataframe['dc_upper'] + dataframe['dc_lower']) / 2), timeperiod=self.win_size)
-
-        return dataframe
-
-    #-------------
+    # -------------
 
     # override func to get data for this strategy
     def get_data(self, dataframe):
 
         df_norm = self.convert_dataframe(dataframe)
-        gain_data = df_norm['gain'].to_numpy()
+        gain_data = df_norm["gain"].to_numpy()
         # gain_data = self.smooth(gain_data, 2)
         self.build_coefficient_table(gain_data)
-        data = self.merge_coeff_table(df_norm)
-        return data
+        
+        # Get the feature columns from the normalized dataframe
+        features = [col for col in df_norm.columns if col != "gain"]
+        
+        # Merge with coefficients
+        data = self.merge_coeff_table(df_norm[features])
+        
+        # Generate names for coefficients
+        num_coeffs = np.shape(self.coeff_table)[1]
+        coeff_names = [f"coeff_{i}" for i in range(num_coeffs)]
+        
+        # Combined feature list
+        all_features = features + coeff_names
+        
+        return data, all_features
 
-
-    #-------------
+    # -------------
 
     # builds a numpy array of coefficients
-    def build_coefficient_table(self, data: np.array):
+    def build_coefficient_table(self, win_data: np.array):
+        # Optimized vectorized version
+        from numpy.lib.stride_tricks import sliding_window_view
 
-        # roll through the  data and create coefficients for each step
-        nrows = np.shape(data)[0]
+        # Prepare windows
+        if len(win_data) < self.wavelet_size:
+            # Not enough data yet
+            self.coeff_table = np.zeros((len(win_data), 10))  # dummy size
+            return
 
-        # print(f'build_coefficient_table() data:{np.shape(data)}')
+        windows = sliding_window_view(win_data, self.wavelet_size)
 
-        start = 0
-        if nrows > self.model_window:
-            end = start + self.model_window - 1
+        # Batch transform if using SWT, otherwise loop (DWT/others are less batch-friendly in PyWT)
+        # Note: TS_Coeff usually uses DWT which isn't natively batchable in PyWT without reshapes
+
+        # Check if we can use the vectorized SWT path (if applicable)
+        if self.wavelet_type == Wavelets.WaveletType.SWT:
+            levels = pywt.swt_max_level(self.wavelet_size)
+            coeffs = pywt.swt(
+                windows, self.wavelet.wavelet, level=levels, axis=-1, trim_approx=True
+            )
+            # coeffs is a list of levels, each is an array of (N, WaveletSize)
+            # we need to flat-concatenate them along the last axis
+            c_array = np.concatenate(coeffs, axis=-1)
+            result = c_array
         else:
-            end = start + 32
-        dest = end
+            # Fallback for DWT/others - still faster than the original because we only copy once
+            c_table = []
+            for i in range(len(windows)):
+                # .copy() fixes the "read-only buffer" error
+                coeffs = self.wavelet.get_coeffs(windows[i].copy())
+                features = self.wavelet.coeff_to_array(coeffs)
+                c_table.append(features)
+            result = np.array(c_table)
 
-        # print(f"nrows:{nrows} start:{start} end:{end} dest:{dest} nbuffs:{nbuffs}")
+        # Initialize and populate
+        nrows = len(win_data)
+        num_coeffs = result.shape[1]
+        self.coeff_table = np.zeros((nrows, num_coeffs), dtype=float)
 
-        self.coeff_table = None
-        num_coeffs = 0
-        init_done = False
-
-        while end < nrows:
-            dslice = data[start:end]
-
-            # print(f"start:{start} end:{end} dest:{dest} len:{len(dslice)}")
-
-            coeffs = self.wavelet.get_coeffs(dslice)
-            features = self.wavelet.coeff_to_array(coeffs)
-            # print(f'build_coefficient_table() features: {np.shape(features)}')
-
-            # initialise the np.array (need features first to know size)
-            if not init_done:
-                init_done = True
-                num_coeffs = len(features)
-                self.coeff_table = np.zeros((nrows, num_coeffs), dtype=float)
-                # print(f"coeff_table:{np.shape(self.coeff_table)}")
-
-            # copy the features to the appropriate row of the coefficient array (offset due to startup window)
-            self.coeff_table[dest] = features
-
-            start = start + 1
-            dest = dest + 1
-            end = end + 1
-
-
-        # print(f'build_coefficient_table() self.coeff_table: {np.shape(self.coeff_table)}')
-
+        # Offset matches the end of the window
+        offset = self.wavelet_size - 1
+        self.coeff_table[offset : offset + result.shape[0]] = result
         return
 
-    #-------------
+    # -------------
 
     # merge the supplied dataframe with the coefficient table. Number of rows must match
     def merge_coeff_table(self, dataframe: DataFrame):
@@ -174,6 +160,5 @@ class TS_Coeff(TSPredict):
         merged_table = np.concatenate([np.array(dataframe), self.coeff_table], axis=1)
 
         return merged_table
-    
-    #-------------
 
+    # -------------

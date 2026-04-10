@@ -71,6 +71,11 @@ from Framework.BaseStrategy import (
 # from lightgbm import LGBMRegressor
 # from sklearn.linear_model import PassiveAggressiveRegressor, SGDRegressor
 from xgboost import XGBRegressor
+import mlx.core as mx
+import mlx.nn as nn
+import mlx.optimizers as optim
+from lightgbm import LGBMRegressor
+from sklearn.multioutput import MultiOutputRegressor
 
 group_dir = str(Path(__file__).parent)
 strat_dir = str(Path(__file__).parent.parent)
@@ -92,6 +97,51 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 warnings.simplefilter(action="ignore", category=UserWarning)
 
 pd.options.mode.chained_assignment = None  # default='warn'
+
+
+# -----------------------------------------------------------------------
+# MLX Model for vectorized prediction
+class VectorizedMLP(nn.Module):
+    def __init__(self, input_dim, output_dim):
+        super().__init__()
+        self.layers = [
+            nn.Linear(input_dim, 256),
+            nn.ReLU(),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Linear(128, output_dim),
+        ]
+
+    def __call__(self, x: mx.array) -> mx.array:
+        for layer in self.layers:
+            x = layer(x)
+        return x
+
+
+def train_mlx_global(X, y, epochs=100, seed=42):
+    mx.random.seed(seed)
+    X_mx = mx.array(X)
+    y_mx = mx.array(y)
+
+    # ensure y is 2D if single output
+    if y_mx.ndim == 1:
+        y_mx = y_mx.reshape(-1, 1)
+
+    model = VectorizedMLP(X_mx.shape[1], y_mx.shape[1])
+    mx.eval(model.parameters())
+
+    def loss_fn(model, X, y):
+        return mx.mean(mx.square(model(X) - y))
+
+    loss_and_grad = nn.value_and_grad(model, loss_fn)
+    optimizer = optim.Adam(learning_rate=1e-3)
+
+    for _ in range(epochs):
+        loss, grads = loss_and_grad(model, X_mx, y_mx)
+        optimizer.update(model, grads)
+        mx.eval(model.parameters(), optimizer.state)
+
+    return model
 
 
 class TSPredict(BaseStrategy):
@@ -161,16 +211,12 @@ class TSPredict(BaseStrategy):
             "Diff": {
                 "predicted_gain": {"color": "rebeccapurple"},
                 "shifted_pred": {"color": "skyblue"},
-                # "squeeze": {"color": "red"},
                 "gain": {"color": "green"},
                 "target_profit": {"color": "lightgreen"},
                 "target_loss": {"color": "lightsalmon"},
-                "buy_region": {"color": "darkseagreen"},
-                "sell_region": {"color": "darksalmon"},
             },
         },
     }
-
 
     # Required
     startup_candle_count: int = 128  # must be power of 2
@@ -203,6 +249,14 @@ class TSPredict(BaseStrategy):
     # forecaster_type:Forecasters.ForecasterType = Forecasters.ForecasterType.SGD
     # forecaster_type:Forecasters.ForecasterType = Forecasters.ForecasterType.SVR
     forecaster = None
+
+    use_mlx = False
+    try:
+        import mlx.core as mx
+
+        use_mlx = hasattr(mx, "metal") and mx.metal.is_available()
+    except ImportError:
+        pass
 
     data = None
 
@@ -247,16 +301,18 @@ class TSPredict(BaseStrategy):
     # Buy hyperspace params:
     buy_params = {
         **BaseStrategy.buy_params,
-        "entry_enable_guards": False,
-        "cexit_min_profit_th": 1.0,
+        "entry_enable_guards": True,
+        "entry_guard_threshold": -0.0,
+        "cexit_min_profit_th": 0.5,
         "cexit_profit_nstd": 1.9,
     }
 
     # Sell hyperspace params:
     sell_params = {
         **BaseStrategy.sell_params,
+        "exit_guard_threshold": 0.0,
         "cexit_loss_nstd": 1.8,
-        "cexit_min_loss_th": -1.0,
+        "cexit_min_loss_th": -0.5,
     }
 
     # Custom Exit
@@ -483,15 +539,13 @@ class TSPredict(BaseStrategy):
         for i in range(2, n):
             filt[i] = c1 * (s[i] + s[i - 1]) / 2.0 + c2 * filt[i - 1] + c3 * filt[i - 2]
 
-        return pd.Series(filt, index=series.index)
+        if hasattr(series, "index"):
+            return pd.Series(filt, index=series.index)
+        else:
+            return filt
 
     def smooth(self, y, window):
-        # return self.super_smoother(y, window)
-        box = np.ones(window) / window
-        y_smooth = np.convolve(y, box, mode="same")
-        # Hack: constrain to 3 decimal places (should be elsewhere, but convenient here)
-        y_smooth = np.round(y_smooth, decimals=3)
-        return np.nan_to_num(y_smooth)
+        return self.super_smoother(y, window)
 
     # -----------------------
 
@@ -585,17 +639,6 @@ class TSPredict(BaseStrategy):
             cols.append("gain")
 
         df = df[cols]
-
-        if self.norm_data:
-            # only scale columns that are not already normalized
-            cols_to_scale = [
-                col for col in cols if col not in self.pre_normalized_columns
-            ]
-            if len(cols_to_scale) > 0:
-                df = self.dataframeUtils.normalize_selected_columns(
-                    df, cols_to_scale, window=128
-                )
-
         df = df.fillna(0.0)
         return df
 
@@ -699,7 +742,7 @@ class TSPredict(BaseStrategy):
             df = dataframe
 
             future_gain_data = self.get_future_gain(df)
-            data = self.get_data(df)
+            data, _ = self.get_data(df)
 
             if self.single_col_prediction:
                 training_data = dataframe["gain"].to_numpy()
@@ -755,7 +798,7 @@ class TSPredict(BaseStrategy):
         features = [col for col in df.columns if col != "gain"]
         self.data = df[features].to_numpy()
 
-        return self.data
+        return self.data, features
 
     # -------------
 
@@ -894,7 +937,7 @@ class TSPredict(BaseStrategy):
 
         # set up training data
         future_gain_data = self.get_future_gain(df)
-        data = self.get_data(dataframe)
+        data, _ = self.get_data(dataframe)
 
         self.training_data = data.copy()
         self.training_labels = np.zeros(np.shape(future_gain_data), dtype=float)
@@ -982,33 +1025,86 @@ class TSPredict(BaseStrategy):
 
     # -------------
 
+    # -------------
     def add_rolling_predictions(self, dataframe: DataFrame) -> DataFrame:
         try:
-            # set up training data
+            nrows = dataframe.shape[0]
             future_gain_data = self.get_future_gain(dataframe)
-            data = self.get_data(dataframe)
+            data, column_names = self.get_data(dataframe)
 
-            if self.single_col_prediction:
-                self.training_data = dataframe["gain"].to_numpy()
-                # self.training_data = self.smooth(self.training_data, 1)
-                self.training_data = self.training_data.reshape(-1, 1)
-            else:
-                self.training_data = data.copy()
+            # Initialise the prediction array
+            results_all = np.zeros(nrows)
 
-            self.training_labels = np.zeros(np.shape(future_gain_data), dtype=float)
-            self.training_labels = future_gain_data.copy()
+            # Walk-forward training to avoid lookahead bias and speed up processing
+            chunk_size = 2500  # Re-train every 2500 candles for speed
+            initial_train_size = max(self.train_min_len, 2000)
 
-            # dataframe['predicted_gain'] = dataframe['gain'].rolling(window=self.model_window).apply(self.predict, args=(dataframe,))
-            dataframe["predicted_gain"] = self.rolling_predict(
-                dataframe["gain"], self.model_window
+            print(
+                f"    Training TSPredict Causal Model ({'MLX' if self.use_mlx else 'LightGBM'})..."
             )
 
-            # dataframe['predicted_gain'] = self.smooth(dataframe['predicted_gain'], 2)
+            for win_end in range(initial_train_size, nrows, chunk_size):
+                # train_end must be behind win_end by at least lookahead
+                # however, get_future_gain already shifts the labels.
+                # So to be safe, we only train up to win_end - lookahead
+                train_end = win_end - self.lookahead
+                predict_end = min(win_end + chunk_size, nrows)
+
+                if train_end <= 0:
+                    continue
+
+                X_train = data[:train_end]
+                y_train = future_gain_data[:train_end]
+                X_predict = data[win_end:predict_end]
+
+                if len(X_predict) == 0:
+                    continue
+
+                # Selective scaling: only scale columns not in pre_normalized_columns
+                needs_scale_indices = [
+                    i
+                    for i, col in enumerate(column_names)
+                    if col not in self.pre_normalized_columns
+                ]
+
+                X_train_processed = X_train.copy()
+                X_predict_processed = X_predict.copy()
+
+                if len(needs_scale_indices) > 0:
+                    scaler = RobustScaler()
+                    # Scale only the requested columns
+                    X_train_processed[:, needs_scale_indices] = scaler.fit_transform(
+                        X_train[:, needs_scale_indices]
+                    )
+                    X_predict_processed[:, needs_scale_indices] = scaler.transform(
+                        X_predict[:, needs_scale_indices]
+                    )
+
+                if self.use_mlx:
+                    # MLX Path
+                    model = train_mlx_global(X_train_processed, y_train, epochs=60)
+                    X_mx = mx.array(X_predict_processed)
+                    preds_mx = model(X_mx)
+                    mx.eval(preds_mx)
+                    chunk_preds = np.array(preds_mx).squeeze()
+                else:
+                    # LightGBM Path
+                    model = LGBMRegressor(n_estimators=100, random_state=42)
+                    model.fit(X_train_processed, y_train)
+                    chunk_preds = model.predict(X_predict_processed)
+
+                # Ensure chunk_preds is 1D if single output
+                if chunk_preds.ndim > 1:
+                    chunk_preds = chunk_preds.ravel()
+
+                results_all[win_end:predict_end] = chunk_preds
+
+            dataframe.iloc[:, dataframe.columns.get_loc("predicted_gain")] = results_all
 
         except Exception as e:
             print("*** Exception in add_rolling_predictions()")
-            print(e)  # prints the error message
-            print(traceback.format_exc())  # prints the full traceback
+            print(e)
+            print(traceback.format_exc())
 
         return dataframe
 
@@ -1022,7 +1118,7 @@ class TSPredict(BaseStrategy):
             # set up training data
             # TODO: see if we can do this incrementally instead of rebuilding every time, or just use portion of data
             future_gain_data = self.get_future_gain(df)
-            data = self.get_data(dataframe)
+            data, _ = self.get_data(dataframe)
 
             plen = len(self.custom_trade_info[self.curr_pair]["predictions"])
             dlen = len(dataframe["gain"])
@@ -1204,7 +1300,7 @@ class TSPredict(BaseStrategy):
 
         # model triggers
         # (choose one)
-        # threshold = dataframe["target_profit"] # breakout
+        # threshold = dataframe["target_profit"]  # breakout
         threshold = dataframe["target_loss"]  # mean reversion
         model_cond = (
             # prediction crossed target
@@ -1230,20 +1326,11 @@ class TSPredict(BaseStrategy):
             return pd.Series([False] * len(dataframe))
 
         # model triggers
-        # (choose one)
-        threshold = dataframe["target_profit"]  # breakout
-        # threshold = dataframe["target_loss"]  # mean reversion
         model_cond = (
             # prediction crossed target
-            qtpylib.crossed_below(dataframe["predicted_gain"], threshold)
-            # | (
-            #     # add this if volume checks are enabled, because we might miss the crossing otherwise
-            #     (dataframe["predicted_gain"] < dataframe["target_loss"])
-            #     & (
-            #         dataframe["predicted_gain"].shift()
-            #         < dataframe["target_loss"].shift()
-            #     )
-            # )
+            qtpylib.crossed_below(
+                dataframe["predicted_gain"], dataframe["target_profit"]
+            )
         )
 
         return model_cond

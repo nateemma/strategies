@@ -56,5 +56,5 @@ class TS_QGain(TSPredict):
         # supply *only* the gain column
         gain = dataframe['gain'].to_numpy()
         # gain = self.smooth(gain, 1)
-        return gain
+        return gain.reshape(-1, 1), ["gain"]
 

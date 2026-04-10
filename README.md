@@ -1,28 +1,33 @@
-# Phil's Custom freqtrade Crypto Trading Strategies
+# Phil's Custom freqtrade Crypto Trading Strategies (Version 2)
 
-_**I am only periodically developing these strategies because - work, family etc...**_
+_**These are newer versions of my old strategies. **_
 
-I recently re-organised all of the strategies. Originally, they were in exchange-based folders (binanceus etc.). This became unwieldly, plus it is now difficult to use multiple exchanges anyway. So, I have moved all of the strategies into new directories based on the underlying family (or group), such as Anomaly, PCA, NNPredict etc.
+I have restructured all strategies to have the same basic framework with regards to entry/exit processing, custom exit etc. The basic framework is in the _Framework_ directory
 <br>
 ```
-tree -d -L 1
+tree -d -L 1           
 .
+├── __pycache__
 ├── Anomaly
-├── NNPredict
-├── NNTC
-├── TSPredict
 ├── archived
-├── binanceus
 ├── config
+├── Debug
+├── Framework
+├── GANs
 ├── hyperopts
+├── MLX
+├── NNMT
+├── NNNC
 ├── reference
+├── saved_data
 ├── scripts
+├── SharedData
+├── SimpleStrategies
+├── TSPredict
 └── utils
 ```
 
 _archive_ contains abandoned strategies (which are still sometimes useful for cut & paste)
-<br>
-_binanceus_ is a remnant from when I was running with multiple exchanges (which no longer seems possible). I no longer develop here, but left it for reference
 
 
 
@@ -40,12 +45,12 @@ _NOTES_:
   As an aside, all of my scripts are written for _zsh_, not _bash_ (this is the default shell on MacOS, plus the version
   of bash that is pre-installed is very old)
 
-- _**NNPredict**_: this uses neural networks to predict changes in the price of a pair. Timeseries prediction is a
+- _**NN<family>**_: these use neural networks to predict changes in the price of a pair. Timeseries prediction is a
   cutting edge problem, and I do not appear to have solved it! These algorithms perform OK in backtesting, but if you
   look at the details, the predictions are not good. <br>So, I am currently not working on these, but I may circle back
   and apply lessons learned from te NNTC work
 
-- _**Tensorflow**_: several strategies use neural network models implemented using tensorflow (and keras). For some reason, the latest versions of tensorflow dropped support for serialisation of models (at least on MacOS), so hyperopt of these strategies no longer works (because hyperopt saves and restores the strategies via pickle).
+- _**MLX**_: several strategies use neural network models implemented using MLX, which is Apple's machine learning library (very suimilar to pytorch). Where possible, I provide alternatives that will run on non-Apple hardware, but that's hard for me to test consistently.
 
 ## Intro
 
@@ -63,20 +68,11 @@ I currently focus on strategies that revolve around one of several approaches:
    price (above a certain margin) then buy, similarly sell if the model predicts a lower price. There are variants that
    use Discrete Wavelet Transforms (DWT), Fast Fourier Transforms (FFTs) and Kalman filters. The DWT variants seem to
    perform the best (and are the fastest).
-2. Use Principal Component Analysis (PCA) to reduce the dimensions of the dataframe columns, then use that to train
-   classifiers, which are then used to predict buys and sells. The PCA analysis is pretty cool because you just add
-   indicators and let the PCA reduction figure out which of them are actually important.<br>
-   Note that this is quite similar in approach to [freqAI](https://www.freqtrade.io/en/stable/freqai/), but I started it
-   before I knew about that, so just kept going (because I find it interesting).<br>
-   All of the PCA logic is contained in a base class named PCA. There are several variants (prefixed with PCA_) that try
-   out different approaches to identify buy/sell signals that are used for training the classifiers.
 3. Use Neural Networks to create trinary classifiers that return a buy/sell prediction.<br>
    Logic is very similar to the PCA classes, and the base class is NNTC (Neural Network Trinary Classifier). The
    internals are a little more complex because the Neural Network code works with 'tensors' rather than dataframes.
    These have to be trained over long time periods because there aren't enough buys/sells otherwise. Models are saved in
    the models/ directory and will be used if present.
-4. Neural Network prediction models (NNPredict_*.py)<br>
-   Similar to NNBC, but predicts an actual price, rather than a buy/sell recommendation. Same issues as NNBC
 5. Anomaly Detection (Anomaly.py)<br>
    The main issue with using neural networks is that there are not many buy/sell recommendations relative to the number
    of samples (typically about 1%). This approach uses various anomaly detection algorithms by training them on
@@ -89,12 +85,7 @@ For the approaches that use Neural Networks (usually with 'NN' somewhere in the 
 reloading models, which are in the _models/_ subdirectory of the exchange folder. These are created by running
 _backtest_ over long periods of time, and are then loaded and reused in any other mode (hyperopt, plot, dryrun etc)
 
-All of these strategies use the custom sell/stoploss approach from the Solipsis strategy (by werkrew). This makes a huge
-difference in performance, but the downside is that each strategy requires a lot of hyperopt-ing to get decent
-performance. Also, I am suspicious that the custom stoploss code is over-fitting, because it has such a drastic effect
-on performance and because it doesn't seem to work the same way in dry runs.<br>
-I am currently trying to find a simpler custom stoploss approach that transfers better to a live environment
-(look in Anomaly.py)
+All of these strategies use the same custom exit/stoploss approach. Most of the sells actually happen in custom_exit
 
 ## Disclaimer
 
@@ -114,29 +105,6 @@ volume, spreads, volatility etc. cannot be reproduced from the historical data p
 Do not engage money before you understand how it works and what profit/loss you should expect. Also, do not backtest the
 strategies in a period of huge growth (like 2020 for example), when any strategy would do well. I recommend including
 periods where the market performed poorly (e.g. May, Nov and Dec 2021)
-
-## List of Strategies
-
-The following is a list of my custom strategies that I am currently testing.
-
-| Strategy    | Description                                                                                                                                                             | 
-|-------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| DWT         | Model behaviour using a Digital Wavelet Transform (DWT)                                                                                                                 |
-| DWT_short   | Same as DWT, but with shorting added                                                                                                                                    |
-| FFT         | Model behaviour using a Fast Fourier Transform (FFT)                                                                                                                    |
-| FBB_*       | Adds Fisher/Bollinger band filtering to DWT/FFT/Kalman                                                                                                                  |
-| Kalman      | Model behaviour using a Kalman Filter (from pykalman)                                                                                                                   |
-| KalmanSIMD  | Model behaviour using a Kalman Filter (from simdkalman)                                                                                                                 |
-| PCA_*       | Uses Principal Component Analysis (PCA) and classifiers trained on prior data to predict buy/sells. Each PCA_* variant uses a different approach to predict buys/sells. |
-| NNBC_*      | Neural Network Binary Classifiers - approaches to predict buy/sell events                                                                                               |                                                                                              |
-| NNTC_*      | Neural Network Trinary Classifiers - approaches to predict hold/buy/sell events                                                                                         |                                                                                              |
-| NNPredict_* | Uses neural network approaches to predict price changes                                                                                                                 |
-| Anomaly*    | USe anomaly detection algorithms to identify buys/sells. Anomaly.py is the main logic, Anomaly_*.py contain the algorithms                                              |
-
-Please note that you will need both the _.py_ *and* the _.json_ file.
-
-If you know what you are doing, go ahead and use these (but read the section on muliple exchanges first). If not, please
-read through the general freqtrade documentation and the guidelines below...
 
 ## Reference repositories
 
