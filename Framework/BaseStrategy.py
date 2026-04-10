@@ -27,7 +27,7 @@ Subclasses (or intermediate bases) add family-specific logic:
 # Top level imports
 # --------------------------------
 from datetime import datetime
-from typing import Optional, List, Any, Dict
+from typing import Optional, List, Any, Dict, Iterable, Union
 from functools import reduce
 from dataclasses import dataclass, field
 from enum import IntEnum, Enum, auto
@@ -140,6 +140,8 @@ class StrategyConfig:
 
     # Data processing
     normalization: NormalizationType = NormalizationType.NONE
+    norm_data: bool = True
+    scale_results: bool = True
     use_pca_reduction: bool = False
 
     # Model
@@ -150,6 +152,7 @@ class StrategyConfig:
 
     # Training
     needs_training: bool = False
+    expanding_window: bool = False
     seq_len: int = 16
     num_epochs: int = 256
     batch_size: int = 2048
@@ -348,6 +351,25 @@ class BaseStrategy(IStrategy):
 
         root_dir = str(Path(__file__).parent.parent / "saved_data") + "/"
         return root_dir
+
+    @staticmethod
+    def aggregate_dataframes(dataframes: Iterable[DataFrame]) -> DataFrame:
+        """Concatenate multiple dataframes, resetting indices to avoid duplicates."""
+        import pandas as pd
+        frames = [df.reset_index(drop=True) for df in dataframes]
+        if not frames:
+            return DataFrame()
+        return pd.concat(frames, ignore_index=True)
+
+    @staticmethod
+    def aggregate_labels(
+        labels: Iterable[Union[np.ndarray, List[Any]]],
+    ) -> np.ndarray:
+        """Concatenate label arrays, preserving original dtype."""
+        arrays = [np.asarray(lbl) for lbl in labels]
+        if not arrays:
+            return np.array([])
+        return np.concatenate(arrays, axis=0)
 
     def print_strategy_info(self):
         """Print strategy information - to be overridden by subclasses"""
@@ -1176,7 +1198,24 @@ class BaseStrategy(IStrategy):
         **kwargs,
     ) -> bool:
 
-        # this only makes sense in 'live' modes
+        # Reject exit if trade has been open for less than 1 hour
+        # (Exception for emergency exits)
+        if exit_reason not in ["force_exit", "emergency_exit"]:
+            # Ensure timezone awareness for comparison
+            from datetime import timezone
+            t_current = current_time
+            if t_current.tzinfo is None:
+                 t_current = t_current.replace(tzinfo=timezone.utc)
+            
+            t_open = trade.open_date_utc
+            if t_open.tzinfo is None:
+                 t_open = t_open.replace(tzinfo=timezone.utc)
+
+            duration_hours = (t_current - t_open).total_seconds() / 3600.0
+            if duration_hours < 1.0:
+                return False
+
+        # remaining logic for live logging
         if self.dp.runmode.value in ("backtest", "plot", "hyperopt", "other"):
             return True
 

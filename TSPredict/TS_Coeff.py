@@ -58,9 +58,24 @@ import pywt
 from sklearn.linear_model import SGDRegressor
 
 from TSPredict import TSPredict
+from Framework.BaseStrategy import (
+    StrategyConfig,
+    NormalizationType,
+    ModelType,
+)
 
 
 class TS_Coeff(TSPredict):
+
+    # Strategy configuration
+    strategy_config = StrategyConfig(
+        normalization=NormalizationType.ROLLING_ROBUST,
+        norm_data=True,
+        scale_results=True,
+        aggregate_pairs=True,
+        model_type=ModelType.CUSTOM,
+        needs_training=True,
+    )
 
     coeff_table = None
 

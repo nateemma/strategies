@@ -32,7 +32,7 @@ import traceback
 from datetime import datetime
 from functools import reduce
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict
 
 import logging
 import warnings
@@ -151,8 +151,12 @@ class TSPredict(BaseStrategy):
     # Strategy configuration
     strategy_config = StrategyConfig(
         normalization=NormalizationType.ROLLING_ROBUST,
+        norm_data=True,
+        scale_results=True,
+        aggregate_pairs=True,
         model_type=ModelType.CUSTOM,
         needs_training=True,
+        expanding_window=False,
     )
 
     # indicators to include in normalisation. Anything not in the list will be dropped.
@@ -201,8 +205,8 @@ class TSPredict(BaseStrategy):
     ]
 
     aggregate_pairs = True  # use all pairs for training (in backtest)
-    norm_data = True  # Now enabled by default: normalization applied before decomposition/analysis
-    scale_results = True
+    # norm_data = True  # MOVED to strategy_config
+    # scale_results = True # MOVED to strategy_config
 
     plot_config = {
         "main_plot": {
@@ -472,9 +476,15 @@ class TSPredict(BaseStrategy):
         # init prediction column
         dataframe["predicted_gain"] = 0.0
 
-        # add the predictions
-        # print("    Making predictions...")
-        dataframe = self.add_predictions(dataframe)
+        # Skip prediction here if we are doing aggregate training (Backtesting only)
+        # This will be handled in advise_all_indicators
+        if not (
+            self.strategy_config.aggregate_pairs
+            and self.dp.runmode.value in ("backtest", "hyperopt")
+        ):
+            # add the predictions
+            # print("    Making predictions...")
+            dataframe = self.add_predictions(dataframe)
 
         dataframe["target_profit"] = 0.0
         dataframe["target_loss"] = 0.0
@@ -482,6 +492,48 @@ class TSPredict(BaseStrategy):
         dataframe["sell_region"] = 0
 
         return dataframe
+
+    def advise_all_indicators(self, data: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
+        """
+        Aggregate-aware version of advise_all_indicators.
+        If aggregate_pairs is True, combine all pairs into one giant training set.
+        """
+        # Pass 1: Standard population (skip predictions)
+        data = super().advise_all_indicators(data)
+
+        if not self.strategy_config.aggregate_pairs or self.dp.runmode.value not in (
+            "backtest",
+            "hyperopt",
+        ):
+            return data
+
+        backend = "MLX (Metal)" if self.use_mlx else "LightGBM"
+        self.debug_print(
+            f"    Running Aggregate Training/Prediction ({backend}) for {len(data)} pairs"
+        )
+
+        # Pass 2: Aggregate and Predict
+        all_pairs = list(data.keys())
+        frames = [data[pair] for pair in all_pairs]
+        lengths = [len(df) for df in frames]
+
+        # Combined DataFrame
+        combined_df = self.aggregate_dataframes(frames)
+
+        # Run global prediction (includes global walk-forward training)
+        combined_df = self.add_predictions(combined_df)
+
+        # Pass 3: Split back into individual pairs
+        start = 0
+        for i, pair in enumerate(all_pairs):
+            data[pair]["predicted_gain"] = (
+                combined_df["predicted_gain"]
+                .iloc[start : start + lengths[i]]
+                .to_numpy()
+            )
+            start += lengths[i]
+
+        return data
 
     def update_gain_targets(self, dataframe):
         # use a fixed window for thresholds to improve stability
@@ -641,7 +693,7 @@ class TSPredict(BaseStrategy):
 
         df = df[cols]
 
-        if self.norm_data:
+        if self.strategy_config.norm_data:
             # only scale columns that are not already normalized
             cols_to_scale = [
                 col for col in cols if col not in self.pre_normalized_columns
@@ -1078,18 +1130,22 @@ class TSPredict(BaseStrategy):
                 ]
                 X_train_processed = X_train.copy()
                 X_predict_processed = X_predict.copy()
-                
+
                 if len(needs_scale_indices) > 0:
                     scaler = None
                     scaler_dir = self.get_storage_location()
                     scaler_name = "main_scaler"
-                    
+
                     # Try to load global scaler
                     if scaler_exists(scaler_dir, scaler_name):
                         try:
                             global_scaler = load_scaler(scaler_dir, scaler_name)
                             # Check compatibility (feature count must match)
-                            if hasattr(global_scaler, "n_features_in_") and global_scaler.n_features_in_ == len(needs_scale_indices):
+                            if hasattr(
+                                global_scaler, "n_features_in_"
+                            ) and global_scaler.n_features_in_ == len(
+                                needs_scale_indices
+                            ):
                                 scaler = global_scaler
                         except Exception as e:
                             print(f"    WARN: could not load global scaler: {e}")
@@ -1097,16 +1153,23 @@ class TSPredict(BaseStrategy):
                     if scaler is None:
                         # Fallback to local RobustScaler
                         scaler = RobustScaler()
-                        X_train_processed[:, needs_scale_indices] = scaler.fit_transform(X_train[:, needs_scale_indices])
+                        X_train_processed[:, needs_scale_indices] = (
+                            scaler.fit_transform(X_train[:, needs_scale_indices])
+                        )
                     else:
                         # Use global scaler (no fit_transform, just transform)
-                        X_train_processed[:, needs_scale_indices] = scaler.transform(X_train[:, needs_scale_indices])
+                        X_train_processed[:, needs_scale_indices] = scaler.transform(
+                            X_train[:, needs_scale_indices]
+                        )
 
-                    X_predict_processed[:, needs_scale_indices] = scaler.transform(X_predict[:, needs_scale_indices])
+                    X_predict_processed[:, needs_scale_indices] = scaler.transform(
+                        X_predict[:, needs_scale_indices]
+                    )
 
                 if self.use_mlx:
                     # MLX Path
-                    model = train_mlx_global(X_train_processed, y_train, epochs=60)
+                    # Increased epochs for better convergence on pooled data
+                    model = train_mlx_global(X_train_processed, y_train, epochs=100)
                     X_mx = mx.array(X_predict_processed)
                     preds_mx = model(X_mx)
                     mx.eval(preds_mx)
@@ -1324,19 +1387,12 @@ class TSPredict(BaseStrategy):
 
         # model triggers
         # (choose one)
-        # threshold = dataframe["target_profit"]  # breakout
-        threshold = dataframe["target_loss"]  # mean reversion
+        breakout_threshold = dataframe["target_profit"]
+        reversion_threshold = dataframe["target_loss"]
         model_cond = (
             # prediction crossed target
-            qtpylib.crossed_above(dataframe["predicted_gain"], threshold)
-            # | (
-            #     # add this version if volume checks are enabled, because we might miss the crossing otherwise
-            #     (dataframe["predicted_gain"] > dataframe["target_profit"])
-            #     & (
-            #         dataframe["predicted_gain"].shift()
-            #         > dataframe["target_profit"].shift()
-            #     )
-            # )
+            qtpylib.crossed_above(dataframe["predicted_gain"], breakout_threshold)
+            | qtpylib.crossed_above(dataframe["predicted_gain"], reversion_threshold)
         )
 
         return model_cond

@@ -81,6 +81,11 @@ import utils.Wavelets as Wavelets
 import utils.Forecasters as Forecasters
 
 from TSPredict import TSPredict
+from Framework.BaseStrategy import (
+    StrategyConfig,
+    NormalizationType,
+    ModelType,
+)
 from utils.Scalers import load_scaler, scaler_exists
 
 
@@ -144,10 +149,20 @@ class TS_Wavelet(TSPredict):
     data = None
     # curr_dataframe = None
 
-    norm_data = True  # now enabled, normalization applied before decomposition
+    # Strategy configuration
+    strategy_config = StrategyConfig(
+        normalization=NormalizationType.ROLLING_ROBUST,
+        norm_data=True,
+        scale_results=True,
+        aggregate_pairs=False,  # Wavelet transform cannot be easily aggregated across pairs
+        model_type=ModelType.CUSTOM,
+        needs_training=True,
+        expanding_window=False,
+    )
+
     merge_indicators = False
     training_required = True
-    expanding_window = False
+    # expanding_window = False # moved to strategy_config
     use_rolling = False  # if True, also set single_col_prediction = True
     detrend_data = True  # if True, also set single_col_prediction = True
     single_col_prediction = True
@@ -169,6 +184,7 @@ class TS_Wavelet(TSPredict):
 
     # forecaster_type:Forecasters.ForecasterType = Forecasters.ForecasterType.PA
     forecaster_type: Forecasters.ForecasterType = Forecasters.ForecasterType.SGD
+    # forecaster_type: Forecasters.ForecasterType = Forecasters.ForecasterType.XGB
     # forecaster_type:Forecasters.ForecasterType = Forecasters.ForecasterType.FFT_EXTRAPOLATION
     forecaster = None
 
@@ -486,18 +502,21 @@ class TS_Wavelet(TSPredict):
                 # Scale features causally
                 X_train_scaled = X_train.copy()
                 X_predict_scaled = X_predict.copy()
-                
+
                 scaler = None
                 scaler_dir = self.get_storage_location()
                 scaler_name = "main_scaler"
-                
+
                 # Try to load global scaler
                 if scaler_exists(scaler_dir, scaler_name):
                     try:
                         global_scaler = load_scaler(scaler_dir, scaler_name)
                         # Check compatibility (X_train shape must match)
-                        if hasattr(global_scaler, "n_features_in_") and global_scaler.n_features_in_ == X_train.shape[1]:
-                             scaler = global_scaler
+                        if (
+                            hasattr(global_scaler, "n_features_in_")
+                            and global_scaler.n_features_in_ == X_train.shape[1]
+                        ):
+                            scaler = global_scaler
                     except Exception as e:
                         print(f"    WARN: could not load global scaler: {e}")
 
@@ -514,7 +533,7 @@ class TS_Wavelet(TSPredict):
                 if self.use_mlx:
                     # MLX Path
                     # Increased epochs for better convergence
-                    model = train_mlx(X_train_scaled, y_train, epochs=80)
+                    model = train_mlx(X_train_scaled, y_train, epochs=100)
                     X_mx = mx.array(X_predict_scaled)
                     preds_mx = model(X_mx)
                     mx.eval(preds_mx)
