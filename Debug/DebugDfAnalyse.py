@@ -31,16 +31,53 @@ sys.path.append(group_dir)
 
 from Framework.BaseNNStrategy import BaseNNStrategy, HAS_MLX, StrategyConfig
 from utils.Environment import Environment
-from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, TradingAction, FlowDirection, MomentumDirection, RiskLevel, GANType
+from Framework.BaseStrategy import (
+    BaseStrategy,
+    ScalerType,
+    MarketRegime,
+    TradingAction,
+    FlowDirection,
+    MomentumDirection,
+    RiskLevel,
+    GANType,
+)
 from Framework.BaseNNStrategy import BaseNNStrategy, HAS_MLX, StrategyConfig
 from utils.Environment import Environment
-from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, TradingAction, FlowDirection, MomentumDirection, RiskLevel, GANType
+from Framework.BaseStrategy import (
+    BaseStrategy,
+    ScalerType,
+    MarketRegime,
+    TradingAction,
+    FlowDirection,
+    MomentumDirection,
+    RiskLevel,
+    GANType,
+)
 from Framework.BaseNNStrategy import BaseNNStrategy, HAS_MLX, StrategyConfig
 from utils.Environment import Environment
-from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, TradingAction, FlowDirection, MomentumDirection, RiskLevel, GANType
+from Framework.BaseStrategy import (
+    BaseStrategy,
+    ScalerType,
+    MarketRegime,
+    TradingAction,
+    FlowDirection,
+    MomentumDirection,
+    RiskLevel,
+    GANType,
+)
 from Framework.BaseNNStrategy import BaseNNStrategy, HAS_MLX, StrategyConfig
 from utils.Environment import Environment
-from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, TradingAction, FlowDirection, MomentumDirection, RiskLevel, GANType
+from Framework.BaseStrategy import (
+    BaseStrategy,
+    ScalerType,
+    MarketRegime,
+    TradingAction,
+    FlowDirection,
+    MomentumDirection,
+    RiskLevel,
+    GANType,
+)
+from utils.DataframePopulator import DataframePopulator, DatasetType
 
 
 class DebugDfAnalyse(BaseNNStrategy):
@@ -380,7 +417,9 @@ class DebugDfAnalyse(BaseNNStrategy):
                     f"Retaining {n_95} components (95% variance); "
                     f"{n_discard} dimensions discarded."
                 )
-                print("Features to consider dropping first (by loading on discarded dims):")
+                print(
+                    "Features to consider dropping first (by loading on discarded dims):"
+                )
                 for col, score in by_drop[: min(50, len(by_drop))]:
                     print(f"  {col:40}  drop_score={score:.6f}")
                 if len(by_drop) > 50:
@@ -536,7 +575,9 @@ class DebugDfAnalyse(BaseNNStrategy):
         self.composite_results = composite_scores
 
         print("Top 50 features by composite ranking:")
-        print("(Buy/sell correlation only; PCA score shown for reference, not used in ranking)")
+        print(
+            "(Buy/sell correlation only; PCA score shown for reference, not used in ranking)"
+        )
         print()
         header = (
             f"{'Rank':<6} {'Feature':<30} {'Composite':<12} {'Corr':<12} {'PCA(ref)':<12} "
