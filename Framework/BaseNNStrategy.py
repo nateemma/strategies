@@ -59,22 +59,7 @@ from utils.DataframePopulator import DataframePopulator, DatasetType
 from utils.ClassifierKeras import ClassifierKeras
 
 from utils.Scalers import scaler_exists, save_scaler, load_scaler
-from utils.df_wgan_gp import balance_with_wgan_gp
-
-try:
-    from utils.df_wgan_mlx import balance_with_wgan_mlx
-
-    HAS_WGAN_MLX = True
-except (ImportError, ModuleNotFoundError):
-    HAS_WGAN_MLX = False
-from utils.df_ctab_gan import CTABGANPlus
-
-try:
-    from utils.df_ctab_gan_mlx import CTABGANMLX
-
-    HAS_CTAB_MLX = True
-except (ImportError, ModuleNotFoundError):
-    HAS_CTAB_MLX = False
+from GANs.GANInterface import GANInterface  # noqa: E402
 
 import Framework.TrainingSignals as TrainingSignals
 
@@ -1155,7 +1140,7 @@ class BaseNNStrategy(BaseStrategy):
     def wgan_enhance_training_data(
         self, train_df: DataFrame, train_labels: np.ndarray
     ) -> Tuple[DataFrame, np.ndarray]:
-        """WGAN-GP augmentation for 2D training data."""
+        """WGAN-GP augmentation for 2D training data via GANInterface."""
         try:
             if train_df.empty or len(train_labels) == 0:
                 print(
@@ -1205,7 +1190,6 @@ class BaseNNStrategy(BaseStrategy):
                 train_minmax_values = train_minmax
 
             train_minmax_values = train_minmax_values.astype("float32")
-            num_samples, _ = train_minmax_values.shape
 
             class_to_index = {int(cls): idx for idx, cls in enumerate(classes_sorted)}
             index_to_class = {idx: int(cls) for idx, cls in enumerate(classes_sorted)}
@@ -1215,41 +1199,42 @@ class BaseNNStrategy(BaseStrategy):
             num_classes = len(classes_sorted)
             train_labels_one_hot = np.eye(num_classes, dtype="float32")[label_indices]
 
-            train_kwargs = {
-                "epochs": self.wgan_epochs,
-                "batch_size": (
-                    min(self.wgan_batch_size, len(train_minmax_values))
-                    if len(train_minmax_values) > 0
-                    else self.wgan_batch_size
-                ),
-                "max_target": target,
-                "augmentation_target_ratio": self.wgan_target_ratio,
-                "verbose": True,
-                "save_path": save_location,
-                "n_critic": self.wgan_n_critic,
-            }
+            self.debug_print("    WGAN-GP 2D augmentation starting (via GANInterface)...")
 
-            self.debug_print(
-                f"    WGAN-GP 2D augmentation starting (MLX={HAS_WGAN_MLX and HAS_MLX})..."
-            )
-            tf.random.set_seed(42)
+            interface = GANInterface(GANType.WGAN, save_path=save_location)
+            try:
+                interface.load()
+                self.debug_print(f"    Loaded existing WGAN model from {save_location}.")
+            except Exception as load_err:
+                raise RuntimeError(
+                    f"WGAN model not found at {save_location}. "
+                    f"Run CreateWGAN first to train and save the model. Error: {load_err}"
+                ) from load_err
 
-            if HAS_WGAN_MLX and HAS_MLX:
-                aug_x, aug_y = balance_with_wgan_mlx(
-                    train_minmax_values,
-                    train_labels_one_hot,
-                    **train_kwargs,
-                    noise_std=self.wgan_noise_std,
+            # Generate per-class augmentation samples
+            aug_data_list: list = []
+            aug_labels_list: list = []
+            for class_idx in classes_sorted:
+                need_count = needs_map.get(int(class_idx), 0)
+                if need_count <= 0:
+                    continue
+                one_hot = np.zeros((need_count, num_classes), dtype="float32")
+                one_hot[:, int(class_idx)] = 1.0
+                # generate() returns (n, 1, F); squeeze seq dim for 2D augmentation
+                gen_3d = interface.generate(n=need_count, one_hot=one_hot)
+                aug_data_list.append(gen_3d[:, 0, :])
+                aug_labels_list.append(one_hot)
+
+            if aug_data_list:
+                aug_x = np.concatenate(
+                    [train_minmax_values] + aug_data_list, axis=0
+                )
+                aug_y = np.concatenate(
+                    [train_labels_one_hot] + aug_labels_list, axis=0
                 )
             else:
-                aug_x, aug_y = balance_with_wgan_gp(
-                    train_minmax_values,
-                    train_labels_one_hot,
-                    **train_kwargs,
-                    seq_len=1,
-                    noise_std=self.wgan_noise_std,
-                    architecture="mlp",
-                )
+                aug_x = train_minmax_values
+                aug_y = train_labels_one_hot
 
             aug_idx = aug_y.argmax(axis=1)
             aug_classes, aug_counts = np.unique(aug_idx, return_counts=True)
@@ -1286,6 +1271,7 @@ class BaseNNStrategy(BaseStrategy):
     def wgan_preprocess_training_data(
         self, dataframe: DataFrame, train_data, test_data, train_labels, test_labels
     ):
+        """Balance training data with WGAN-GP via GANInterface (supports 2D and 3D inputs)."""
         try:
             original_shape = np.shape(train_data)
             self.debug_print("    Balancing training data with WGAN-GP")
@@ -1305,24 +1291,28 @@ class BaseNNStrategy(BaseStrategy):
             if target <= 0:
                 print("    No majority class found, skipping balancing")
                 print(
-                    f"    WGAN-GP effect: shape {original_shape} -> {np.shape(train_data)}; counts {original_counts_map} -> {original_counts_map}"
+                    f"    WGAN-GP effect: shape {original_shape} -> {np.shape(train_data)}; "
+                    f"counts {original_counts_map} -> {original_counts_map}"
                 )
                 return train_data, test_data, train_labels, test_labels
 
             have_map = {
                 int(c): int(n) for c, n in zip(classes.tolist(), counts.tolist())
             }
+            num_classes = train_labels.shape[1]
             needs_map = {
                 c: max(0, target - have_map.get(c, 0))
-                for c in range(train_labels.shape[1])
+                for c in range(num_classes)
             }
             print(
-                f"    WGAN target per class: {target} (ratio={self.wgan_target_ratio})  Planned adds: {needs_map}"
+                f"    WGAN target per class: {target} (ratio={self.wgan_target_ratio})  "
+                f"Planned adds: {needs_map}"
             )
             if all(v <= 0 for v in needs_map.values()):
                 print("    Already at or above target; skipping WGAN-GP")
                 print(
-                    f"    WGAN-GP effect: shape {original_shape} -> {np.shape(train_data)}; counts {original_counts_map} -> {original_counts_map}"
+                    f"    WGAN-GP effect: shape {original_shape} -> {np.shape(train_data)}; "
+                    f"counts {original_counts_map} -> {original_counts_map}"
                 )
                 return train_data, test_data, train_labels, test_labels
 
@@ -1337,40 +1327,58 @@ class BaseNNStrategy(BaseStrategy):
                 train_data_minmax_2d = train_data_minmax_2d.to_numpy()
             train_data_minmax = train_data_minmax_2d.reshape(train_data_shape)
 
-            print("    WGAN-GP training starting...")
-            aug_x, aug_y = balance_with_wgan_gp(
-                train_data_minmax.astype("float32"),
-                train_labels.astype("float32"),
-                epochs=self.wgan_epochs,
-                batch_size=(
-                    min(self.wgan_batch_size, len(train_data))
-                    if len(train_data) > 0
-                    else self.wgan_batch_size
-                ),
-                max_target=target,
-                augmentation_target_ratio=self.wgan_target_ratio,
-                verbose=True,
-                save_path=save_location,
-                n_critic=self.wgan_n_critic,
-                noise_std=self.wgan_noise_std,
-                architecture="mlp",
-            )
+            interface = GANInterface(GANType.WGAN, save_path=save_location)
+            try:
+                interface.load()
+                print(f"    Loaded existing WGAN model from {save_location}.")
+            except Exception as load_err:
+                raise RuntimeError(
+                    f"WGAN model not found at {save_location}. "
+                    f"Run CreateWGAN first to train and save the model. Error: {load_err}"
+                ) from load_err
+
+            # Generate per-class augmentation samples; generate() returns (n, 1, F)
+            aug_data_list: list = []
+            aug_labels_list: list = []
+            for class_c in range(num_classes):
+                need_count = needs_map.get(class_c, 0)
+                if need_count <= 0:
+                    continue
+                one_hot = np.zeros((need_count, num_classes), dtype="float32")
+                one_hot[:, class_c] = 1.0
+                gen_3d = interface.generate(n=need_count, one_hot=one_hot)
+                # Reshape to match original train_data_shape dimensionality
+                if train_data.ndim == 3:
+                    aug_data_list.append(gen_3d)           # already (n, 1, F)
+                else:
+                    aug_data_list.append(gen_3d[:, 0, :])  # squeeze to (n, F)
+                aug_labels_list.append(one_hot)
+
+            if aug_data_list:
+                aug_x = np.concatenate(
+                    [train_data_minmax] + aug_data_list, axis=0
+                )
+                aug_y = np.concatenate(
+                    [train_labels] + aug_labels_list, axis=0
+                )
+            else:
+                aug_x = train_data_minmax
+                aug_y = train_labels
 
             aug_idx = aug_y.argmax(axis=1)
             aug_classes, aug_counts = np.unique(aug_idx, return_counts=True)
             aug_class_counts = dict(zip(aug_classes.tolist(), aug_counts.tolist()))
+            new_counts_map = {int(c): int(n) for c, n in aug_class_counts.items()}
             print("    WGAN-GP training complete")
             print(
                 f"    Augmented train size: {len(aug_x)}  Class counts: {aug_class_counts}"
             )
-            new_counts_map = {int(c): int(n) for c, n in aug_class_counts.items()}
             print(
                 f"    WGAN-GP effect: shape {original_shape} -> {np.shape(aug_x)}; "
                 f"counts {original_counts_map} -> {new_counts_map}"
             )
 
             aug_x_shape = aug_x.shape
-            num_features = aug_x.shape[-1]
             aug_x_2d = aug_x.reshape(-1, num_features)
             aug_input = self._format_for_gan_scaler(aug_x_2d)
             aug_x_2d = self.denormalise_from_gan(aug_input)
@@ -1403,7 +1411,7 @@ class BaseNNStrategy(BaseStrategy):
     def ctab_gan_enhance_training_data(
         self, train_df: DataFrame, train_labels: np.ndarray
     ) -> Tuple[DataFrame, np.ndarray]:
-        """Uses CTAB-GAN+ to generate more training data"""
+        """Uses CTAB-GAN+ to generate more training data via GANInterface."""
         try:
             if train_df.empty or len(train_labels) == 0:
                 self.debug_print(
@@ -1456,34 +1464,16 @@ class BaseNNStrategy(BaseStrategy):
 
             subdir = "CTABGANs_PCA" if self.use_pca_reduction else "CTABGANs"
             save_location = os.path.join(self.get_storage_location(), subdir)
-            if not os.path.exists(save_location):
-                print(
-                    f"    CTAB-GAN+ model not found at {save_location}; skipping augmentation"
-                )
-                return train_df, train_labels
-
-            generator_path = os.path.join(save_location, "generator.keras")
-            metadata_path = os.path.join(save_location, "metadata.pkl")
-            if not os.path.exists(generator_path) or not os.path.exists(metadata_path):
-                print(
-                    f"    CTAB-GAN+ model files not found at {save_location}; "
-                    "skipping augmentation"
-                )
-                return train_df, train_labels
 
             self.debug_print(f"    Loading CTAB-GAN+ model from {save_location}")
-            if (
-                HAS_CTAB_MLX
-                and HAS_MLX
-                and os.path.exists(os.path.join(save_location, "metadata_mlx.pkl"))
-            ):
-                self.debug_print("    Found MLX-optimized GAN model")
-                ctab_gan = CTABGANMLX()
-                thresholds = ctab_gan.load(save_location)
-            else:
-                self.debug_print("    Using standard Keras GAN model")
-                ctab_gan = CTABGANPlus()
-                thresholds = ctab_gan.load(save_location)
+            interface = GANInterface(GANType.CTAB_GAN, save_path=save_location)
+            try:
+                thresholds = interface.load()
+            except Exception as load_err:
+                raise RuntimeError(
+                    f"CTAB-GAN+ model not found at {save_location}. "
+                    f"Run CreateCtabGanPlus first to train and save the model. Error: {load_err}"
+                ) from load_err
 
             if thresholds.get("min_buy_gain_threshold") is not None:
                 self.MIN_BUY_GAIN_THRESHOLD = thresholds["min_buy_gain_threshold"]
@@ -1500,6 +1490,7 @@ class BaseNNStrategy(BaseStrategy):
 
             train_minmax = self.normalise_for_gan(train_df)
 
+            ctab_gan = interface._model
             if hasattr(ctab_gan, "column_order") and ctab_gan.column_order:
                 gan_columns = set(ctab_gan.column_order)
                 train_columns = set(train_minmax.columns)
@@ -1532,8 +1523,8 @@ class BaseNNStrategy(BaseStrategy):
                 self.debug_print(
                     f"    Generating {need_count} samples for class {class_idx}"
                 )
-                generated_df = ctab_gan.generate(
-                    num_samples=need_count,
+                generated_df = interface.generate(
+                    n=need_count,
                     class_label=int(class_idx),
                 )
 

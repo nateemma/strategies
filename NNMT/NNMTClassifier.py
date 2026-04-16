@@ -3,6 +3,7 @@
 
 import tensorflow as tf
 from enum import Enum
+from utils.ClassifierKeras import ClassifierKeras
 from utils.ClassifierKerasMultiTask import ClassifierKerasMultiTask
 from utils.PositionalEncoding import PositionalEncoding
 from utils.PCALayer import TrainablePCALayer
@@ -35,10 +36,14 @@ class NNMTClassifier_Base(ClassifierKerasMultiTask):
         self.seq_len = seq_len
 
         # Input layer
-        inputs = tf.keras.layers.Input(shape=(seq_len, num_features), name="input_layer")
+        inputs = tf.keras.layers.Input(
+            shape=(seq_len, num_features), name="input_layer"
+        )
 
         # num_filters = 64
-        num_filters = max(self.MIN_FILTER_SIZE, self.nearest_power_of_2(num_features - 1))
+        num_filters = max(
+            self.MIN_FILTER_SIZE, self.nearest_power_of_2(num_features - 1)
+        )
         num_components = num_filters
 
         # 1. Expand Feature Space (Learned Initial Mapping)
@@ -62,9 +67,7 @@ class NNMTClassifier_Base(ClassifierKerasMultiTask):
         # 3. Create the model-specific architecture (implemented by subclasses)
         # This should return tensor of shape (batch_size, features) - no sequence dimension
         # common_layer = self.create_common_layer(resized_input, seq_len, num_filters)
-        common_layer = self.create_common_layer(
-            resized_input, seq_len, num_components
-        )
+        common_layer = self.create_common_layer(resized_input, seq_len, num_components)
 
         # skip_connection = tf.keras.layers.GlobalAveragePooling1D(name="skip_connection")(pca_output)
         # common_last_step = tf.keras.layers.GlobalAveragePooling1D(name="common_last_step")(common_layer)
@@ -74,9 +77,13 @@ class NNMTClassifier_Base(ClassifierKerasMultiTask):
 
         # make sure the common_layer and resized_inputs match shapes
         if (len(common_layer.shape) == 2) and (len(resized_input.shape) == 3):
-            resized_input = tf.keras.layers.GlobalAveragePooling1D(name="reshape")(resized_input)
+            resized_input = tf.keras.layers.GlobalAveragePooling1D(name="reshape")(
+                resized_input
+            )
         elif (len(common_layer.shape) == 3) and (len(resized_input.shape) == 2):
-            common_layer = tf.keras.layers.GlobalAveragePooling1D(name="reshape")(common_layer)
+            common_layer = tf.keras.layers.GlobalAveragePooling1D(name="reshape")(
+                common_layer
+            )
 
         # common_layer = tf.keras.layers.Concatenate(name="common_layer_concat")(
         #     [resized_input, common_layer]
@@ -86,7 +93,7 @@ class NNMTClassifier_Base(ClassifierKerasMultiTask):
         )
 
         # update size in case it changed
-        last_dim = common_layer.shape[-1]   # TensorShape or None
+        last_dim = common_layer.shape[-1]  # TensorShape or None
         if last_dim is not None:
             num_components = max(self.MIN_FILTER_SIZE, int(last_dim))
 
@@ -95,15 +102,21 @@ class NNMTClassifier_Base(ClassifierKerasMultiTask):
         trading_head = self.create_task_head(
             common_layer, num_components, "trading_head"
         )
-        trading_output = tf.keras.layers.Dense(3, activation="softmax", name="trading")(trading_head)
+        trading_output = tf.keras.layers.Dense(3, activation="softmax", name="trading")(
+            trading_head
+        )
 
         # 2. Market regime classification (3 classes: Bull/Bear/Sideways) - AUXILIARY
         regime_head = self.create_task_head(common_layer, num_components, "regime_head")
-        regime_output = tf.keras.layers.Dense(3, activation="softmax", name="regime")(regime_head)
+        regime_output = tf.keras.layers.Dense(3, activation="softmax", name="regime")(
+            regime_head
+        )
 
         # 3. Risk classification (tri-state: LOW=0, MEDIUM=1, HIGH=2) - AUXILIARY
         risk_head = self.create_task_head(common_layer, num_components, "risk_head")
-        risk_output = tf.keras.layers.Dense(3, activation="softmax", name="risk")(risk_head)
+        risk_output = tf.keras.layers.Dense(3, activation="softmax", name="risk")(
+            risk_head
+        )
 
         # 4. Momentum prediction (continuous) - AUXILIARY
         momentum_head = self.create_task_head(
@@ -129,14 +142,14 @@ class NNMTClassifier_Base(ClassifierKerasMultiTask):
         model = tf.keras.Model(
             inputs=inputs,
             outputs={
-                'trading': trading_output,
-                'regime': regime_output,
-                'momentum': momentum_output,
-                'risk': risk_output,
-                'flow': flow_output,
-                'profit': profit_output
+                "trading": trading_output,
+                "regime": regime_output,
+                "momentum": momentum_output,
+                "risk": risk_output,
+                "flow": flow_output,
+                "profit": profit_output,
             },
-            name=self.name
+            name=self.name,
         )
 
         return model
@@ -160,11 +173,12 @@ class NNMTClassifier_Base(ClassifierKerasMultiTask):
         return x
 
     def create_common_layer(self, inputs, seq_len, num_features):
-
-        " Create a common layer with multiple CNNs and a cutom layer"
+        "Create a common layer with multiple CNNs and a cutom layer"
 
         # num_filters = num_features // 2
-        num_filters = max(self.MIN_FILTER_SIZE, self.nearest_power_of_2(num_features//2+1))
+        num_filters = max(
+            self.MIN_FILTER_SIZE, self.nearest_power_of_2(num_features // 2 + 1)
+        )
 
         common_layer = tf.keras.Sequential(
             [
@@ -186,7 +200,6 @@ class NNMTClassifier_Base(ClassifierKerasMultiTask):
                 ),
                 tf.keras.layers.LayerNormalization(),
                 tf.keras.layers.Dropout(self.DROPOUT_RATE),
-
                 # insert the class-specific coomon layer
             ],
             name="common_layer",
@@ -202,7 +215,7 @@ class NNMTClassifier_Base(ClassifierKerasMultiTask):
     def create_task_head(self, inputs, num_filters, name):
 
         l2_strength = 1e-2
-        nf = max(self.MIN_FILTER_SIZE, self.nearest_power_of_2((num_filters//2)+1))
+        nf = max(self.MIN_FILTER_SIZE, self.nearest_power_of_2((num_filters // 2) + 1))
 
         task_head = tf.keras.Sequential(
             [
@@ -293,12 +306,12 @@ class NNMTClassifier_LSTM(NNMTClassifier_Base):
 
 class NNMTClassifier_Transformer(NNMTClassifier_Base):
     """Multi-task classifier using Transformer architecture"""
-    
+
     def create_custom_common_layer(self, inputs, seq_len, num_features):
         # Transformer architecture with proper normalization
         x = tf.keras.layers.Dense(128)(inputs)
         x = tf.keras.layers.LayerNormalization()(x)
-        
+
         # Multiple transformer layers for better representation learning
         for i in range(3):  # 3 transformer layers
             # Multi-head attention with residual connection and layer norm
@@ -307,16 +320,18 @@ class NNMTClassifier_Transformer(NNMTClassifier_Base):
             )(x, x)
             x = tf.keras.layers.Add()([x, attention_output])
             x = tf.keras.layers.LayerNormalization()(x)
-            
+
             # Feed-forward network with residual connection and layer norm
-            ffn = tf.keras.Sequential([
-                tf.keras.layers.Dense(256, activation="relu"),
-                tf.keras.layers.Dropout(self.DROPOUT_RATE),
-                tf.keras.layers.Dense(128)
-            ])
+            ffn = tf.keras.Sequential(
+                [
+                    tf.keras.layers.Dense(256, activation="relu"),
+                    tf.keras.layers.Dropout(self.DROPOUT_RATE),
+                    tf.keras.layers.Dense(128),
+                ]
+            )
             x = tf.keras.layers.Add()([x, ffn(x)])
             x = tf.keras.layers.LayerNormalization()(x)
-        
+
         return x
 
 
@@ -327,7 +342,9 @@ class NNMTClassifier_CNN(NNMTClassifier_Base):
         # CNN architecture
         x = tf.keras.Sequential(
             [
-                tf.keras.layers.Conv1D(num_features, 3, activation="elu", padding="same"),
+                tf.keras.layers.Conv1D(
+                    num_features, 3, activation="elu", padding="same"
+                ),
                 tf.keras.layers.LayerNormalization(),
                 tf.keras.layers.Dropout(self.DROPOUT_RATE),
             ],
@@ -366,9 +383,9 @@ class NNMTClassifier_Attention(NNMTClassifier_Base):
         x = inputs
 
         # Self-attention mechanism with residual connection and layer norm
-        attention_output = tf.keras.layers.MultiHeadAttention(
-            num_heads=4, key_dim=32
-        )(x, x)
+        attention_output = tf.keras.layers.MultiHeadAttention(num_heads=4, key_dim=32)(
+            x, x
+        )
         x = tf.keras.layers.Add()([x, attention_output])
         x = tf.keras.layers.LayerNormalization()(x)
 
@@ -377,6 +394,7 @@ class NNMTClassifier_Attention(NNMTClassifier_Base):
 
 class NNMTClassifier_Wavenet(NNMTClassifier_Base):
     """Multi-task classifier using (full) Wavenet architecture"""
+
     # Note that this is notoriously slow to train!
 
     def create_custom_common_layer(self, inputs, seq_len, num_features):
@@ -407,12 +425,13 @@ class NNMTClassifier_Wavenet(NNMTClassifier_Base):
         )(x)
         x = tf.keras.layers.Activation("relu")(x)
         x = tf.keras.layers.Convolution1D(
-            num_features, 1, padding="same",
-            kernel_regularizer=tf.keras.regularizers.l2(self.L2_REGULARIZATION)
+            num_features,
+            1,
+            padding="same",
+            kernel_regularizer=tf.keras.regularizers.l2(self.L2_REGULARIZATION),
         )(x)
 
         x = tf.keras.layers.Dropout(self.DROPOUT_RATE)(x)
-
 
         return x
 
@@ -420,11 +439,10 @@ class NNMTClassifier_Wavenet(NNMTClassifier_Base):
 class NNMTClassifier_Wavenet_Fast(NNMTClassifier_Base):
     """Multi-task classifier using optimized Wavenet architecture (faster training)"""
 
-
     def create_custom_common_layer(self, inputs, seq_len, num_features):
         # Use fewer filters for speed (cap at 64)
         n_filters = min(num_features, 64)
-        
+
         x = tf.keras.layers.Convolution1D(
             n_filters, 2, padding="causal", dilation_rate=1
         )(inputs)
@@ -451,11 +469,13 @@ class NNMTClassifier_Wavenet_Fast(NNMTClassifier_Base):
             kernel_regularizer=tf.keras.regularizers.l2(self.L2_REGULARIZATION),
         )(x)
         x = tf.keras.layers.Activation("relu")(x)
-        
+
         # Project back to num_features to match task head expectations
         x = tf.keras.layers.Convolution1D(
-            num_features, 1, padding="same",
-            kernel_regularizer=tf.keras.regularizers.l2(self.L2_REGULARIZATION)
+            num_features,
+            1,
+            padding="same",
+            kernel_regularizer=tf.keras.regularizers.l2(self.L2_REGULARIZATION),
         )(x)
 
         x = tf.keras.layers.Dropout(self.DROPOUT_RATE)(x)
@@ -471,6 +491,7 @@ class NNMTClassifier_Wavenet_Fast(NNMTClassifier_Base):
 
 # --------------------------------------------------------------
 
+
 class NNMTClassifier_Multi_LSTM(NNMTClassifier_Base):
     """Multi-task classifier using Multi-LSTM architecture"""
 
@@ -479,7 +500,7 @@ class NNMTClassifier_Multi_LSTM(NNMTClassifier_Base):
         # Set the L2 strength (this is a hyperparameter to tune)
         l2_strength = 1e-3
         # nf = num_filters // 2
-        nf = max(self.MIN_FILTER_SIZE, self.nearest_power_of_2((num_filters//2)+1))
+        nf = max(self.MIN_FILTER_SIZE, self.nearest_power_of_2((num_filters // 2) + 1))
 
         # add a CNN layer to extract features
         head_cnn = tf.keras.Sequential(
@@ -537,13 +558,18 @@ class NNMTClassifier_Multi_GRU(NNMTClassifier_Base):
 
         task_head = tf.keras.Sequential(
             [
-                tf.keras.layers.Conv1D(filters=num_filters, kernel_size=2, activation="tanh", padding="causal"),
+                tf.keras.layers.Conv1D(
+                    filters=num_filters,
+                    kernel_size=2,
+                    activation="tanh",
+                    padding="causal",
+                ),
                 tf.keras.layers.GRU(
-                    num_filters//2, return_sequences=True, activation="tanh"
+                    num_filters // 2, return_sequences=True, activation="tanh"
                 ),
                 tf.keras.layers.Dropout(self.DROPOUT_RATE),
                 tf.keras.layers.GlobalAveragePooling1D(),
-                tf.keras.layers.Dense(num_filters//2, activation="tanh"),
+                tf.keras.layers.Dense(num_filters // 2, activation="tanh"),
                 tf.keras.layers.Dropout(self.DROPOUT_RATE),
                 tf.keras.layers.Dense(16, activation="tanh"),
                 tf.keras.layers.Dropout(self.DROPOUT_RATE),
@@ -563,7 +589,7 @@ class NNMTClassifier_Multi_CNN(NNMTClassifier_Base):
         if any(task in name for task in ["momentum", "flow", "profit"]):
             # simplified Wavenet
             task_head = inputs
-            for i, rate in enumerate((1, 2, 4, 8) * 2): # type: ignore
+            for i, rate in enumerate((1, 2, 4, 8) * 2):  # type: ignore
                 task_head = tf.keras.layers.Conv1D(
                     filters=num_filters,
                     kernel_size=2,
@@ -572,12 +598,15 @@ class NNMTClassifier_Multi_CNN(NNMTClassifier_Base):
                     dilation_rate=rate,
                     name=f"{name}_conv1d_{rate}_{i+1}",
                 )(task_head)
-                task_head = tf.keras.layers.Dropout(0.2, name=f"{name}_dropout_{rate}_{i+1}",)(task_head)
+                task_head = tf.keras.layers.Dropout(
+                    0.2,
+                    name=f"{name}_dropout_{rate}_{i+1}",
+                )(task_head)
 
             task_head = tf.keras.Sequential(
                 [
                     tf.keras.layers.GlobalAveragePooling1D(),
-                    tf.keras.layers.Dense(num_filters//2, activation="tanh"),
+                    tf.keras.layers.Dense(num_filters // 2, activation="tanh"),
                     tf.keras.layers.Dropout(self.DROPOUT_RATE),
                     tf.keras.layers.Dense(16, activation="tanh"),
                     tf.keras.layers.Dropout(self.DROPOUT_RATE),
@@ -621,19 +650,15 @@ class NNMTClassifier_Multi_Wavenet(NNMTClassifier_Base):
             )(input_)
 
             # Skip connection
-            skip_x = tf.keras.layers.Convolution1D(
-                n_filters, 1, padding="same"
-            )(x)
+            skip_x = tf.keras.layers.Convolution1D(n_filters, 1, padding="same")(x)
 
             # Residual connection
-            res_x = tf.keras.layers.Convolution1D(
-                n_filters, 1, padding="same"
-            )(input_)
+            res_x = tf.keras.layers.Convolution1D(n_filters, 1, padding="same")(input_)
             res_x = tf.keras.layers.Add()([x, res_x])
 
             return res_x, skip_x
-        return f
 
+        return f
 
     def create_task_head(self, inputs, num_filters, name):
 
@@ -732,7 +757,7 @@ class NNMTClassifier_Multi_Attention(NNMTClassifier_Base):
             task_head = tf.keras.Sequential(
                 [
                     tf.keras.layers.GlobalAveragePooling1D(),
-                    tf.keras.layers.Dense(num_filters//2, activation="tanh"),
+                    tf.keras.layers.Dense(num_filters // 2, activation="tanh"),
                     tf.keras.layers.Dropout(self.DROPOUT_RATE),
                     tf.keras.layers.Dense(16, activation="tanh"),
                     tf.keras.layers.Dropout(self.DROPOUT_RATE),
@@ -749,7 +774,7 @@ class NNMTClassifier_Multi_Attention(NNMTClassifier_Base):
                     ),
                     tf.keras.layers.Dropout(self.DROPOUT_RATE),
                     tf.keras.layers.GlobalAveragePooling1D(),
-                    tf.keras.layers.Dense(num_filters//2, activation="tanh"),
+                    tf.keras.layers.Dense(num_filters // 2, activation="tanh"),
                     tf.keras.layers.Dropout(self.DROPOUT_RATE),
                     tf.keras.layers.Dense(16, activation="tanh"),
                     tf.keras.layers.Dropout(self.DROPOUT_RATE),
@@ -815,9 +840,7 @@ class NNMTClassifier_Multi_Transformer(NNMTClassifier_Base):
             for i in range(num_layers):
                 # Multi-head attention
                 attention_output = tf.keras.layers.MultiHeadAttention(
-                    num_heads=num_heads, 
-                    key_dim=key_dim,
-                    name=f"{name}_attention_{i}"
+                    num_heads=num_heads, key_dim=key_dim, name=f"{name}_attention_{i}"
                 )(x, x)
 
                 # Add & Norm
@@ -847,7 +870,7 @@ class NNMTClassifier_Multi_Transformer(NNMTClassifier_Base):
             # Final dense layers
             task_head = tf.keras.Sequential(
                 [
-                    tf.keras.layers.Dense(num_filters//2, activation="tanh"),
+                    tf.keras.layers.Dense(num_filters // 2, activation="tanh"),
                     tf.keras.layers.Dropout(self.DROPOUT_RATE),
                     # tf.keras.layers.Dense(64, activation="tanh"),
                     # tf.keras.layers.Dropout(self.DROPOUT_RATE),
@@ -868,7 +891,7 @@ class NNMTClassifier_Multi_Transformer(NNMTClassifier_Base):
                     ),
                     tf.keras.layers.Dropout(self.DROPOUT_RATE),
                     tf.keras.layers.GlobalAveragePooling1D(),
-                    tf.keras.layers.Dense(num_filters//2, activation="tanh"),
+                    tf.keras.layers.Dense(num_filters // 2, activation="tanh"),
                     tf.keras.layers.Dropout(self.DROPOUT_RATE),
                     tf.keras.layers.Dense(16, activation="tanh"),
                     tf.keras.layers.Dropout(self.DROPOUT_RATE),
@@ -882,6 +905,7 @@ class NNMTClassifier_Multi_Transformer(NNMTClassifier_Base):
 # --------------------------------------------------------------
 # Classifier Type Enum
 # --------------------------------------------------------------
+
 
 class ClassifierType(Enum):
     LSTM = NNMTClassifier_LSTM
@@ -904,22 +928,23 @@ class ClassifierType(Enum):
 # Factory function
 # --------------------------------------------------------------
 
+
 def create_classifier(clf_type: ClassifierType, pair, nfeatures, seq_len, tag=""):
     """
     Factory function to create multi-task classifier based on type.
-    
+
     Args:
         clf_type: Type of classifier (LSTM, Transformer, etc.)
         pair: Trading pair
         nfeatures: Number of input features
         seq_len: Sequence length
         tag: Optional tag for the model
-        
+
     Returns:
         tuple: (classifier_instance, classifier_name)
     """
     clf_name = str(clf_type).split(".")[-1]
     clf = clf_type.value(pair, seq_len, nfeatures, tag=tag)
     # clf_name = clf.__class__.__name__
-    
+
     return clf, clf_name

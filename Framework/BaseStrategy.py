@@ -127,11 +127,10 @@ class ModelType(Enum):
     CUSTOM = auto()  # TSPredict — custom regressor pipeline
 
 
-class GANType(Enum):
-    NONE = auto()  # No GAN augmentation
-    WGAN = auto()  # WGAN-GP (TF or MLX)
-    CTAB_GAN = auto()  # CTAB-GAN+ (TF or MLX)
-    BOTH = auto()  # WGAN preprocessing + CTAB-GAN augmentation
+# GANType lives in the GAN subsystem so it stays independent of strategy code.
+# Re-exported here so existing `from Framework.BaseStrategy import GANType` imports
+# continue to work without modification.
+from GANs.GANType import GANType  # noqa: E402
 
 
 @dataclass

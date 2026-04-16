@@ -19,7 +19,7 @@ sys.path.append(group_dir)
 
 from NNMT_WGAN import NNMT_WGAN  # noqa: E402
 from ClassifierKeras import ClassifierKeras
-from NNNClassifierMLX import ClassifierTypeMLX, create_classifier_mlx
+from NNNC.NNNClassifierMLX import ClassifierTypeMLX, create_classifier_mlx
 
 # -----------
 

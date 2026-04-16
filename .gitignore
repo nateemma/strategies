@@ -5,3 +5,16 @@
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Test output
+test_results.json
+
+# Trained model weights and scalers are generated artifacts — not tracked.
+# The directory itself is kept via its README.
+saved_data/*
+!saved_data/README.md
+
+# NeuralNets/ is a nested standalone git repo with no remote. Decide later
+# whether to promote it to a submodule (needs a remote URL) or absorb its
+# files into this repo (needs its .git/ removed first).
+NeuralNets/

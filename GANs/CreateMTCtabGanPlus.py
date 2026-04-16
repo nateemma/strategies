@@ -4,9 +4,8 @@
 # pylint: disable=import-error
 
 """
-CreateMTCtabGanPlus - creates and saves Multi-Task CTAB-GAN+ models using data from all of the pairs in
-the whitelist. CTAB-GAN+ is specifically designed for tabular data with mixed data types
-(continuous and categorical) and supports multi-task learning.
+CreateMTCtabGanPlus - creates and saves Multi-Task CTAB-GAN+ models using data from all
+of the pairs in the whitelist.  Uses GANInterface for backend-agnostic training.
 """
 
 from __future__ import annotations
@@ -19,45 +18,25 @@ from typing import Any, Dict, Optional
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
-import tensorflow as tf
 
 group_dir = str(Path(__file__).parent)
 sys.path.append(group_dir)
 
 from CreateMTGANBase import CreateMTGANBase  # noqa: E402
-from NNMTStrategy import NNMTStrategy  # noqa: E402
-from Framework.BaseNNStrategy import BaseNNStrategy, HAS_MLX, StrategyConfig
-from utils.Environment import Environment
-from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, TradingAction, FlowDirection, MomentumDirection, RiskLevel, GANType
-from Framework.BaseNNStrategy import BaseNNStrategy, HAS_MLX, StrategyConfig
-from utils.Environment import Environment
-from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, TradingAction, FlowDirection, MomentumDirection, RiskLevel, GANType
-from Framework.BaseNNStrategy import BaseNNStrategy, HAS_MLX, StrategyConfig
-from utils.Environment import Environment
-from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, TradingAction, FlowDirection, MomentumDirection, RiskLevel, GANType
-from Framework.BaseNNStrategy import BaseNNStrategy, HAS_MLX, StrategyConfig
-from utils.Environment import Environment
-from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, TradingAction, FlowDirection, MomentumDirection, RiskLevel, GANType
 
-try:
-    from utils.df_ctab_gan_mlx import CTABGANMLX
-    from Framework.BaseNNStrategy import BaseNNStrategy, HAS_MLX, StrategyConfig
-from utils.Environment import Environment
-from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, TradingAction, FlowDirection, MomentumDirection, RiskLevel, GANType
+from NNMT.NNMTStrategy import NNMTStrategy  # noqa: E402
 from Framework.BaseNNStrategy import BaseNNStrategy, HAS_MLX, StrategyConfig
-from utils.Environment import Environment
-from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, TradingAction, FlowDirection, MomentumDirection, RiskLevel, GANType
-
-    HAS_CTAB_MLX = True
-except (ImportError, ModuleNotFoundError):
-    HAS_CTAB_MLX = False
-    HAS_MLX = False
-
-
-def _concatenate_task_labels(task_labels_dict: Dict[str, np.ndarray]) -> np.ndarray:
-    """Concatenate all task labels into a single condition vector."""
-    sorted_keys = sorted(task_labels_dict.keys())
-    return np.concatenate([task_labels_dict[k] for k in sorted_keys], axis=1)
+from Framework.BaseStrategy import (
+    BaseStrategy,
+    ScalerType,
+    MarketRegime,
+    TradingAction,
+    FlowDirection,
+    MomentumDirection,
+    RiskLevel,
+    GANType,
+)
+from GANs.GANInterface import GANInterface  # noqa: E402
 
 
 class CreateMTCtabGanPlus(CreateMTGANBase, NNMTStrategy):
@@ -78,74 +57,13 @@ class CreateMTCtabGanPlus(CreateMTGANBase, NNMTStrategy):
     MASTER_MIN_SELL_LOSS_THRESHOLD = 0.012
     MASTER_TRAINING_TYPE = 19
     # Keep local strategy defaults aligned with MASTER values
-    MIN_BUY_GAIN_THRESHOLD = (
-        MASTER_MIN_BUY_GAIN_THRESHOLD  # minimum gain for buy signals
-    )
-    MIN_SELL_LOSS_THRESHOLD = (
-        MASTER_MIN_SELL_LOSS_THRESHOLD  # minimum loss for sell signals
-    )
+    MIN_BUY_GAIN_THRESHOLD = MASTER_MIN_BUY_GAIN_THRESHOLD
+    MIN_SELL_LOSS_THRESHOLD = MASTER_MIN_SELL_LOSS_THRESHOLD
     TRAINING_TYPE = MASTER_TRAINING_TYPE
-
-    # DEFAULT_GAN_CONFIG: Dict[str, Any] = {
-    #     "name": "Multi-Task CTAB-GAN+",
-    #     "description": "Multi-Task CTAB-GAN+",
-    #     "train_kwargs": {
-    #         "epochs": 300,
-    #         "batch_size": 2048,  # Power of 2 for optimal GPU utilization
-    #         "latent_dim": 128,
-    #         "generator_layers": [256, 256],
-    #         "discriminator_layers": [256, 256],
-    #         "learning_rate": 2e-4,
-    #         "beta_1": 0.5,
-    #         "beta_2": 0.999,
-    #         "gp_weight": 10.0,
-    #         "verbose": True,
-    #         "integer_columns": [],
-    #         "use_cnn": False,
-    #         "use_auxiliary": False,
-    #         "info_loss_weight": 1.0,
-    #         "downstream_loss_weight": 0.0,
-    #         "generator_loss_weight": 0.0,
-    #     },
-    #     "task_target_ratios": {
-    #         "trading": 0.4,
-    #         "regime": 0.4,
-    #         "risk": 0.4,
-    #         "momentum": 0.4,
-    #         "flow": 0.4,
-    #         "profit": 0.4,
-    #     },
-    #     "primary_task": "trading",
-    #     "target_ratio": 0.4,
-    #     "save_subdir": "MTCTABGANs",
-    #     "multi_task": True,
-    #     "categorical_columns": None,  # Will be auto-detected from one_hot_columns
-    # }
 
     DEFAULT_GAN_CONFIG: Dict[str, Any] = {
         "name": "Multi-Task CTAB-GAN+",
         "description": "Multi-Task CTAB-GAN+",
-        "train_kwargs": {
-            "epochs": 300,
-            "batch_size": 512,
-            "latent_dim": 128,
-            "generator_layers": [256, 256],
-            "discriminator_layers": [256, 256],
-            "learning_rate": 2e-4,
-            "beta_1": 0.5,
-            "beta_2": 0.999,
-            "gp_weight": 10.0,
-            "verbose": True,
-            "integer_columns": [],
-            # --- ENHANCEMENTS (CTAB-GAN+ Paper) ---
-            # info_loss_weight ensures the GAN reproduces the marginal distributions (Stat Score)
-            # generator_loss_weight ensures the GAN reproduces feature correlations (Corr Score)
-            "use_cnn": False,
-            "use_auxiliary": True,
-            "info_loss_weight": 0.02,  # CRITICAL for high Stat Score and fidelity
-            "downstream_loss_weight": 0.01,
-            "generator_loss_weight": 0.01,  # Minor regularization for correlation matching
-        },
         "task_target_ratios": {
             "trading": 0.4,
             "regime": 0.4,
@@ -167,25 +85,12 @@ class CreateMTCtabGanPlus(CreateMTGANBase, NNMTStrategy):
         super().__init__(gan_config=gan_config, **kwargs)
 
     def iteration_init(self):
-        """Override to force MASTER threshold values for GAN creation.
-
-        Create*GAN strategies are the source of truth for gain/loss/training_type parameters.
-        This ensures that training labels are generated using the MASTER thresholds,
-        which will then be stored in the GAN metadata. This prevents mismatches
-        between the thresholds used for label generation and those stored in the GAN.
-        """
+        """Override to force MASTER threshold values for GAN creation."""
         self._validate_master_thresholds()
-        # Set MASTER values FIRST - these are the source of truth for GAN creation
-        # This ensures training labels are generated with the same thresholds that will
-        # be stored in the GAN metadata
         self.MIN_BUY_GAIN_THRESHOLD = self.MASTER_MIN_BUY_GAIN_THRESHOLD
         self.MIN_SELL_LOSS_THRESHOLD = self.MASTER_MIN_SELL_LOSS_THRESHOLD
         self.TRAINING_TYPE = self.MASTER_TRAINING_TYPE
-
-        # Mark that we're a GAN creation strategy (prevents parent from overriding)
         self._is_gan_creation_strategy = True
-
-        # Call parent - it will skip setting parameters since _is_gan_creation_strategy is True
         super().iteration_init()
 
     def _validate_master_thresholds(self) -> None:
@@ -214,29 +119,17 @@ class CreateMTCtabGanPlus(CreateMTGANBase, NNMTStrategy):
             ]
             raise ValueError("\n".join(lines))
 
-    def _get_categorical_columns(self, dataframe: DataFrame) -> list[str]:
-        """
-        Identify categorical columns from the dataframe.
-
-        Categorical columns are derived from one_hot_columns (e.g., flow_0, flow_2,
-        regime_0, regime_2) and other binary/categorical columns like sar_trend and trend_mode.
-        """
+    def _get_categorical_columns(self, dataframe: DataFrame) -> list:
+        """Identify categorical columns from the dataframe."""
         categorical_cols = []
-
-        # Get existing categorical columns from config if available
         config_cats = self.gan_config.get("categorical_columns", [])
         if isinstance(config_cats, list):
             categorical_cols.extend([c for c in config_cats if c in dataframe.columns])
-
-        # Get one-hot encoded columns (e.g., flow_0, flow_2, regime_0, regime_2)
         for base_col in getattr(self, "one_hot_columns", []):
-            # Find all columns that start with base_col_ (e.g., flow_0, flow_2)
             matching_cols = [
                 col for col in dataframe.columns if col.startswith(f"{base_col}_")
             ]
             categorical_cols.extend(matching_cols)
-
-        # Remove duplicates and ensure columns exist in dataframe
         unique_categorical = list(dict.fromkeys(categorical_cols))
         return [col for col in unique_categorical if col in dataframe.columns]
 
@@ -251,21 +144,13 @@ class CreateMTCtabGanPlus(CreateMTGANBase, NNMTStrategy):
         config: Dict[str, Any],
     ) -> None:
         try:
-            original_shape = np.shape(train_data)
-            print(
-                f"    Balancing training data with {config.get('name', 'Multi-Task CTAB-GAN+')}"
-            )
-
             if len(train_data) == 0:
                 print("    No training data to balance")
                 return
 
-            # Get training kwargs
-            train_kwargs = dict(config.get("train_kwargs", {}))
-            save_path = train_kwargs.pop("save_path", self.get_gan_save_path(config))
+            save_path = self.get_gan_save_path(config)
 
-            # Get the actual column names from the GAN scaler
-            # train_data comes from combined_minmax (GAN-scaled), which uses gan_scaler_a
+            # Get column names from the GAN scaler
             if (
                 not hasattr(self, "gan_scaler_a")
                 or self.gan_scaler_a is None
@@ -276,57 +161,46 @@ class CreateMTCtabGanPlus(CreateMTGANBase, NNMTStrategy):
                     "CTAB-GAN+ requires the GAN-scaled dataframe with feature_columns."
                 )
 
-            # Convert train_data back to DataFrame for CTAB-GAN+
-            # CTAB-GAN+ is fundamentally tabular; if we receive 3D tensors, we flatten them
-            # into a single wide row (B, S*F) to preserve sequence information in a tabular format.
+            # Handle 3D tensors by flattening for tabular CTAB-GAN+
             if train_data.ndim == 3:
                 num_samples, seq_len, num_features = train_data.shape
                 train_data_2d = train_data.reshape(num_samples, -1)
-
-                # Generate wide column names (e.g., rsi_0, rsi_1, ...)
                 feature_cols = self.gan_scaler_a.feature_columns
                 train_df_columns = [
                     f"{c}_{s}" for s in range(seq_len) for c in feature_cols
                 ]
-
                 print(
-                    f"    Flattened 3D tensors for CTAB-GAN+: {num_samples} samples, {len(train_df_columns)} features"
+                    f"    Flattened 3D tensors for CTAB-GAN+: "
+                    f"{num_samples} samples, {len(train_df_columns)} features"
                 )
                 train_df = pd.DataFrame(train_data_2d, columns=train_df_columns)
             else:
                 train_df_columns = self.gan_scaler_a.feature_columns
                 train_df = pd.DataFrame(train_data, columns=train_df_columns)
 
-            # Get categorical columns (filter to only those that exist in train_df)
+            # Detect or filter categorical columns
             categorical_columns = config.get("categorical_columns")
             if categorical_columns is None:
-                # Auto-detect from the normalized dataframe columns
                 categorical_columns = self._get_categorical_columns(train_df)
                 print(f"    Auto-detected categorical columns: {categorical_columns}")
             else:
-                # Filter to only include columns that exist in train_df
                 categorical_columns = [
-                    col for col in categorical_columns if col in train_df.columns
+                    c for c in categorical_columns if c in train_df.columns
                 ]
                 print(
                     f"    Using provided categorical columns (filtered): {categorical_columns}"
                 )
 
-            # Validate task labels
-            if not isinstance(train_labels, dict):
+            # Validate and normalise task labels
+            if not isinstance(train_labels, dict) or len(train_labels) == 0:
                 raise ValueError(
-                    "train_labels must be a dictionary for multi-task learning"
+                    "train_labels must be a non-empty dict for multi-task learning"
                 )
 
-            if len(train_labels) == 0:
-                raise ValueError("train_labels dictionary cannot be empty")
-
-            # Process task labels to ensure one-hot encoding
-            train_labels_processed = {}
+            train_labels_processed: Dict[str, np.ndarray] = {}
             for task, labels in train_labels.items():
                 arr = np.asarray(labels)
                 if arr.ndim == 1:
-                    # Convert to one-hot if needed
                     num_classes = int(arr.max()) + 1
                     train_labels_processed[task] = np.eye(
                         num_classes, dtype=np.float32
@@ -336,69 +210,17 @@ class CreateMTCtabGanPlus(CreateMTGANBase, NNMTStrategy):
                 else:
                     raise ValueError(f"Task '{task}' labels must be 1D or 2D array")
 
-            # Determine balancing targets using task_target_ratios
-            task_target_ratios = config.get("task_target_ratios")
-            if task_target_ratios is None:
-                # Fall back to primary_task behavior
-                primary_task = config.get("primary_task", "trading")
-                if primary_task not in train_labels_processed:
-                    print(
-                        f"    Primary task '{primary_task}' not found in labels. "
-                        f"Available: {list(train_labels_processed.keys())}"
-                    )
-                    print("    Skipping CTAB-GAN+ balancing")
-                    return
-
-                primary_labels = train_labels_processed[primary_task]
-                train_idx = primary_labels.argmax(axis=1)
-                classes, counts = np.unique(train_idx, return_counts=True)
-                class_counts = dict(zip(classes.tolist(), counts.tolist()))
+            # Log class distributions
+            for task, lbls in train_labels_processed.items():
+                task_idx = np.argmax(lbls, axis=1)
+                unique, task_counts = np.unique(task_idx, return_counts=True)
                 print(
-                    f"    Train set size: {len(train_data)}  "
-                    f"{primary_task} class counts: {class_counts}"
+                    f"    Task '{task}' class distribution: "
+                    f"{dict(zip(unique.tolist(), task_counts.tolist()))}"
                 )
 
-                current_max = int(counts.max()) if counts.size > 0 else 0
-                if current_max <= 0:
-                    print("    No majority class found, skipping balancing")
-                    return
-
-                target_ratio = config.get("target_ratio", 0.4)
-                target = int(current_max * target_ratio) if current_max > 0 else None
-                if target is None or target <= 0:
-                    print("    No target found, skipping balancing")
-                    return
-
-                # Calculate needs for primary task
-                num_classes = primary_labels.shape[1]
-                have_map = {
-                    c: int(primary_labels[:, c].sum()) for c in range(num_classes)
-                }
-                needs_map = {
-                    c: max(0, target - have_map.get(c, 0)) for c in range(num_classes)
-                }
-                print(
-                    f"    CTAB-GAN+ target per class: {target} "
-                    f"(ratio={target_ratio})  Planned adds: {needs_map}"
-                )
-                if all(v <= 0 for v in needs_map.values()):
-                    print("    Already at or above target; skipping CTAB-GAN+")
-                    return
-
-                # Convert to task_target_ratios format for consistency
-                task_target_ratios = {primary_task: target_ratio}
-            else:
-                # Validate task_target_ratios
-                for task in task_target_ratios.keys():
-                    if task is not None and task not in train_labels_processed:
-                        print(
-                            f"    Warning: task '{task}' in task_target_ratios not found in labels. "
-                            f"Available: {list(train_labels_processed.keys())}"
-                        )
-
-            # Print MASTER values that will be stored in GAN metadata (before training starts)
             print("    Multi-Task CTAB-GAN+ training starting...")
-            print(f"    MASTER thresholds (will be stored in GAN metadata):")
+            print("    MASTER thresholds (will be stored in GAN metadata):")
             print(
                 f"      MASTER_MIN_BUY_GAIN_THRESHOLD = {self.MASTER_MIN_BUY_GAIN_THRESHOLD:.4f}"
             )
@@ -407,69 +229,27 @@ class CreateMTCtabGanPlus(CreateMTGANBase, NNMTStrategy):
             )
             print(f"      MASTER_TRAINING_TYPE = {self.MASTER_TRAINING_TYPE}")
 
-            # Ensure random seed is set in train_kwargs (defaults to 42 if not specified)
-            if "random_seed" not in train_kwargs:
-                train_kwargs["random_seed"] = 42
-
-            # Initialize and train CTAB-GAN+
-            if (
-                HAS_CTAB_MLX
-                and HAS_MLX
-                and (not categorical_columns or len(categorical_columns) == 0)
-            ):
-                print(
-                    f"    Using MLX-accelerated Multi-Task CTAB-GAN (epochs={train_kwargs.get('epochs', 300)})"
-                )
-                ctab_gan = CTABGANMLX(
-                    latent_dim=train_kwargs.get("latent_dim", 128),
-                    epochs=train_kwargs.get("epochs", 300),
-                    batch_size=train_kwargs.get("batch_size", 512),
-                    verbose=True,
-                )
-                # Flatten labels for MLX version
-                fit_labels = _concatenate_task_labels(train_labels_processed)
-            else:
-                # Use standard Enhanced Keras version (supports Categorical + Auxiliary loss)
-                print("    Using standard Enhanced Keras Multi-Task CTAB-GAN")
-                ctab_gan = CTABGANPlusMTEnhanced(**train_kwargs)
-                fit_labels = train_labels_processed
-
-            # Fit the model
-            ctab_gan.fit(
-                dataframe=train_df,
-                labels=fit_labels,
+            interface = GANInterface(GANType.MT_CTAB_GAN, save_path=save_path)
+            interface.fit(
+                train_df,
+                train_labels_processed,
                 categorical_columns=categorical_columns,
-                validation_split=0.1,
             )
-
-            # Use MASTER threshold values - these are the source of truth stored in GAN metadata
-            # All strategies that load this GAN will use these values, ensuring consistency
-            min_buy_gain = self.MASTER_MIN_BUY_GAIN_THRESHOLD
-            min_sell_loss = self.MASTER_MIN_SELL_LOSS_THRESHOLD
-            training_type = self.MASTER_TRAINING_TYPE
-
-            # Save the model with thresholds and training_type
-            ctab_gan.save(
-                save_path,
-                min_buy_gain_threshold=min_buy_gain,
-                min_sell_loss_threshold=min_sell_loss,
-                training_type=training_type,
+            interface.save(
+                min_buy_gain_threshold=self.MASTER_MIN_BUY_GAIN_THRESHOLD,
+                min_sell_loss_threshold=self.MASTER_MIN_SELL_LOSS_THRESHOLD,
+                training_type=self.MASTER_TRAINING_TYPE,
             )
             print(f"    Multi-Task CTAB-GAN+ model saved to {save_path}")
-            if min_buy_gain is not None:
-                min_sell_str = (
-                    f"{min_sell_loss:.4f}" if min_sell_loss is not None else "None"
-                )
-                print(
-                    f"      Stored thresholds: min_buy_gain={min_buy_gain:.4f}, min_sell_loss={min_sell_str}, training_type={training_type}"
-                )
+            print(
+                f"      Stored thresholds: min_buy_gain={self.MASTER_MIN_BUY_GAIN_THRESHOLD:.4f}, "
+                f"min_sell_loss={self.MASTER_MIN_SELL_LOSS_THRESHOLD:.4f}, "
+                f"training_type={self.MASTER_TRAINING_TYPE}"
+            )
 
-            # Evaluate the model after training (in both GAN space and training space)
+            # Evaluate the model
             eval_sample_size = min(2000, len(train_df))
             print("\n    Evaluating Multi-Task CTAB-GAN+ model...")
-
-            # Generate data once for both evaluations
-            # Sample task labels from real data for evaluation
             eval_indices = np.random.choice(
                 len(train_df), eval_sample_size, replace=False
             )
@@ -477,264 +257,66 @@ class CreateMTCtabGanPlus(CreateMTGANBase, NNMTStrategy):
                 task: arr[eval_indices] for task, arr in train_labels_processed.items()
             }
 
-            if HAS_CTAB_MLX and isinstance(ctab_gan, CTABGANMLX):
-                eval_cond = _concatenate_task_labels(eval_task_labels)
-                generated_gan = ctab_gan.generate(
-                    num_samples=eval_sample_size, condition_vector=eval_cond
-                )
-            else:
-                generated_gan, _ = ctab_gan.generate(
-                    num_samples=eval_sample_size, task_labels=eval_task_labels
-                )
-
-            # Evaluate in GAN space
-            print("    GAN Space Evaluation (minmax normalized to [-1, 1]):")
             try:
+                generated_gan, _ = interface.generate(
+                    n=eval_sample_size, task_labels=eval_task_labels
+                )
+                print("    GAN Space Evaluation (minmax normalized to [-1, 1]):")
                 eval_df_gan = train_df.iloc[eval_indices]
-                eval_metrics_gan = ctab_gan.evaluate_with_dataframes(
+                eval_metrics = interface._model.evaluate_with_dataframes(
                     eval_df_gan, generated_gan
                 )
-                overall_gan = eval_metrics_gan.get("overall_score", {})
-                print(
-                    "      Overall Quality:     {:.4f}".format(
-                        overall_gan.get("overall_quality", 0.0)
-                    )
-                )
-                print(
-                    "      Diversity Score:     {:.4f}".format(
-                        overall_gan.get("diversity_score", 0.0)
-                    )
-                )
-                print(
-                    "      Correlation Score:   {:.4f}".format(
-                        overall_gan.get("correlation_score", 0.0)
-                    )
-                )
-                print(
-                    "      Statistical Score:  {:.4f}".format(
-                        overall_gan.get("statistical_score", 0.0)
-                    )
-                )
-                print(
-                    "      Validity Score:     {:.4f}".format(
-                        overall_gan.get("validity_score", 0.0)
-                    )
-                )
-
-                quality_gan = overall_gan.get("overall_quality", 0.0)
-                if quality_gan < 0.6:
-                    print(
-                        f"      ⚠️  WARNING: Low overall quality ({quality_gan:.4f}) - model may need improvement"
-                    )
-                elif quality_gan >= 0.8:
-                    print(f"      ✅ Excellent model quality ({quality_gan:.4f})")
+                overall = eval_metrics.get("overall_score", {})
+                for metric, label in [
+                    ("overall_quality", "Overall Quality"),
+                    ("diversity_score", "Diversity Score"),
+                    ("correlation_score", "Correlation Score"),
+                    ("statistical_score", "Statistical Score"),
+                    ("validity_score", "Validity Score"),
+                ]:
+                    print(f"      {label:<22} {overall.get(metric, 0.0):.4f}")
+                quality = overall.get("overall_quality", 0.0)
+                if quality < 0.6:
+                    print(f"      WARNING: Low overall quality ({quality:.4f})")
+                elif quality >= 0.8:
+                    print(f"      Excellent model quality ({quality:.4f})")
             except Exception as eval_exc:
                 print(f"      Evaluation failed: {eval_exc}")
                 print(traceback.format_exc())
 
-            # Evaluate in training space (denormalized)
-            print("    Training Space Evaluation (denormalized from GAN space):")
-            try:
-                # Denormalize both real and generated data
-                eval_df_training = self.denormalise_from_gan(
-                    train_df.iloc[eval_indices]
-                )
-                generated_training = self.denormalise_from_gan(generated_gan)
-
-                eval_metrics_training = ctab_gan.evaluate_with_dataframes(
-                    eval_df_training, generated_training
-                )
-                overall_training = eval_metrics_training.get("overall_score", {})
-                print(
-                    "      Overall Quality:     {:.4f}".format(
-                        overall_training.get("overall_quality", 0.0)
-                    )
-                )
-                print(
-                    "      Diversity Score:     {:.4f}".format(
-                        overall_training.get("diversity_score", 0.0)
-                    )
-                )
-                print(
-                    "      Correlation Score:   {:.4f}".format(
-                        overall_training.get("correlation_score", 0.0)
-                    )
-                )
-                stat_score = overall_training.get("statistical_score", 0.0)
-                print(f"      Statistical Score:  {stat_score:.4f}")
-                print(
-                    "      Validity Score:     {:.4f}".format(
-                        overall_training.get("validity_score", 0.0)
-                    )
-                )
-
-                quality_training = overall_training.get("overall_quality", 0.0)
-                if quality_training < 0.6:
-                    print(
-                        f"      ⚠️  WARNING: Low overall quality ({quality_training:.4f}) - model may need improvement"
-                    )
-                elif quality_training >= 0.8:
-                    print(f"      ✅ Excellent model quality ({quality_training:.4f})")
-            except Exception as eval_exc:
-                print(f"      Evaluation failed: {eval_exc}")
-                print(traceback.format_exc())
-
-            # Generate augmented samples for each task/class combination that needs augmentation
-            aug_data_list = [train_data]
-            aug_labels_dict = {
-                task: [labels] for task, labels in train_labels_processed.items()
-            }
-
-            # Determine generation needs from task_target_ratios
-            generation_needs = {}  # {(task, class): need_count}
-
+            # Compute and log generation needs from task_target_ratios
+            task_target_ratios = config.get("task_target_ratios", {})
+            total_generated = 0
             for task, ratio_spec in task_target_ratios.items():
                 if ratio_spec is None or task not in train_labels_processed:
                     continue
-
-                task_labels = train_labels_processed[task]
-                task_idx = np.argmax(task_labels, axis=1)
-                unique, counts = np.unique(task_idx, return_counts=True)
-                class_counts = {int(k): int(v) for k, v in zip(unique, counts)}
-                current_max = int(np.max(counts)) if counts.size > 0 else 0
-
-                # Determine ratios per class
-                if isinstance(ratio_spec, dict):
-                    class_ratios = ratio_spec
-                else:
-                    class_ratios = {c: ratio_spec for c in range(task_labels.shape[1])}
-
-                for c in range(task_labels.shape[1]):
+                task_lbls = train_labels_processed[task]
+                task_idx = np.argmax(task_lbls, axis=1)
+                unique, task_counts = np.unique(task_idx, return_counts=True)
+                current_max = int(np.max(task_counts)) if task_counts.size > 0 else 0
+                class_ratios = (
+                    ratio_spec
+                    if isinstance(ratio_spec, dict)
+                    else {c: ratio_spec for c in range(task_lbls.shape[1])}
+                )
+                for c in range(task_lbls.shape[1]):
                     ratio = class_ratios.get(c, 0.0)
                     if ratio <= 0.0:
                         continue
-
-                    target = int(current_max * ratio) if current_max > 0 else 0
-                    have = class_counts.get(c, 0)
-                    need = target - have
-
+                    have = int(np.sum(task_idx == c))
+                    target = int(current_max * ratio)
+                    need = max(0, target - have)
                     if need > 0:
-                        generation_needs[(task, c)] = need
+                        print(f"    Would generate {need} samples for {task} class {c}")
+                        total_generated += need
 
-            if not generation_needs:
-                print("    No classes need balancing")
-                return
-
-            # Generate samples for each task/class combination
-            for (task, class_c), need_count in generation_needs.items():
-                if need_count <= 0:
-                    continue
-
-                print(f"    Generating {need_count} samples for {task} class {class_c}")
-
-                # Find real samples that match this task/class
-                task_labels = train_labels_processed[task]
-                task_idx = np.argmax(task_labels, axis=1)
-                matching_mask = task_idx == class_c
-                matching_samples = np.where(matching_mask)[0]
-
-                if len(matching_samples) == 0:
-                    # No real samples of this class, generate with default labels
-                    task_labels_gen = {}
-                    for other_task in sorted(train_labels_processed.keys()):
-                        if other_task == task:
-                            num_classes = train_labels_processed[other_task].shape[1]
-                            one_hot = np.zeros(
-                                (need_count, num_classes), dtype=np.float32
-                            )
-                            one_hot[:, class_c] = 1.0
-                        else:
-                            # Use most common class from real data
-                            other_idx = np.argmax(
-                                train_labels_processed[other_task], axis=1
-                            )
-                            most_common = int(np.bincount(other_idx).argmax())
-                            num_classes = train_labels_processed[other_task].shape[1]
-                            one_hot = np.zeros(
-                                (need_count, num_classes), dtype=np.float32
-                            )
-                            one_hot[:, most_common] = 1.0
-                        task_labels_gen[other_task] = one_hot
-                else:
-                    # Sample from real data labels that match this task/class
-                    sampled_indices = np.random.choice(
-                        matching_samples,
-                        size=min(need_count, len(matching_samples)),
-                        replace=True,
-                    )
-                    # If we need more than available, duplicate
-                    if need_count > len(sampled_indices):
-                        sampled_indices = np.concatenate(
-                            [
-                                sampled_indices,
-                                np.random.choice(
-                                    matching_samples,
-                                    size=need_count - len(sampled_indices),
-                                    replace=True,
-                                ),
-                            ]
-                        )
-
-                    # Copy labels from sampled real data
-                    task_labels_gen = {
-                        t: train_labels_processed[t][sampled_indices].copy()
-                        for t in train_labels_processed.keys()
-                    }
-                    # Ensure the target task/class is correct
-                    num_classes = train_labels_processed[task].shape[1]
-                    task_labels_gen[task] = np.zeros(
-                        (need_count, num_classes), dtype=np.float32
-                    )
-                    task_labels_gen[task][:, class_c] = 1.0
-
-                # Generate synthetic data
-                if HAS_CTAB_MLX and isinstance(ctab_gan, CTABGANMLX):
-                    cond = _concatenate_task_labels(task_labels_gen)
-                    generated_df = ctab_gan.generate(
-                        num_samples=need_count, condition_vector=cond
-                    )
-                else:
-                    generated_df, _ = ctab_gan.generate(
-                        num_samples=need_count,
-                        task_labels=task_labels_gen,
-                    )
-
-                # Convert back to numpy array (maintain column order from train_df)
-                generated_array = generated_df[train_df_columns].values.astype(
-                    np.float32
-                )
-                aug_data_list.append(generated_array)
-
-                # Append generated labels
-                for t in train_labels_processed.keys():
-                    aug_labels_dict[t].append(task_labels_gen[t])
-
-            if aug_data_list:
-                aug_x = np.concatenate(aug_data_list, axis=0)
-                aug_y = {
-                    task: np.concatenate(aug_labels_dict[task], axis=0)
-                    for task in train_labels_processed.keys()
-                }
-
-                # Display stats for first task
-                display_task = list(train_labels_processed.keys())[0]
-                aug_task_labels = aug_y[display_task]
-                aug_idx = aug_task_labels.argmax(axis=1)
-                aug_classes, aug_counts = np.unique(aug_idx, return_counts=True)
-                aug_class_counts = dict(zip(aug_classes.tolist(), aug_counts.tolist()))
-
-                print("    Multi-Task CTAB-GAN+ training complete")
+            if total_generated > 0:
                 print(
-                    f"    Augmented train size: {len(aug_x)}  "
-                    f"{display_task} class counts: {aug_class_counts}"
-                )
-                print(
-                    f"    CTAB-GAN+ effect: shape {original_shape} -> {np.shape(aug_x)}"
+                    f"    Multi-Task CTAB-GAN+ training complete "
+                    f"(model trained; {total_generated} samples could be generated for augmentation)"
                 )
             else:
-                print(
-                    "    Multi-Task CTAB-GAN+ training complete, but no augmentation needed"
-                )
+                print("    Multi-Task CTAB-GAN+ training complete")
 
         except Exception as exc:
             print(

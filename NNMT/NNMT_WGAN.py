@@ -4,299 +4,224 @@
 # pylint: disable=import-error
 
 """
-NNMT_WGAN - Subclass of NNMTStrategy using WGAN-GP for high-fidelity augmentation
+NNMT_WGAN - Subclass of NNMTStrategy using WGAN-GP for multi-task augmentation.
+
+Uses GANInterface(GANType.MT_WGAN) to delegate all GAN-specific dispatch to the
+interface, including the MLX / TensorFlow backend selection.
 """
 
+import os
 import sys
+import traceback
 from pathlib import Path
-from pandas import DataFrame
+from typing import Dict, Optional, Tuple
+
 import numpy as np
 import pandas as pd
-import traceback
-import os
-from typing import Dict, Optional, Tuple
+from pandas import DataFrame
 
 group_dir = str(Path(__file__).parent)
 sys.path.append(group_dir)
 
-from NNMTStrategy import NNMTStrategy
-from utils.df_mt_wgan_gp import balance_with_mt_wgan_gp, load_mt_wgan_thresholds
-
-try:
-    from utils.df_mt_wgan_mlx import (
-        balance_with_mt_wgan_mlx,
-        load_mt_wgan_thresholds_mlx,
-    )
-
-    HAS_MT_WGAN_MLX = True
-except ImportError:
-    HAS_MT_WGAN_MLX = False
-from utils.Scalers import load_scaler
-
-# -----------
+from NNMTStrategy import NNMTStrategy  # noqa: E402
+from GANs.GANType import GANType  # noqa: E402
+from GANs.GANInterface import GANInterface  # noqa: E402
 
 
 class NNMT_WGAN(NNMTStrategy):
 
     augment_training_data = (
-        False  # we only want 'real' signals, since we are augmenting anyway
+        False  # only 'real' signals in 2-D mode; augmentation is done in 3-D
     )
 
-    # High-fidelity defaults
+    # WGAN hyper-parameters — override in subclasses as needed.
     wgan_epochs = 100
     wgan_batch_size = 2048
-    wgan_n_critic = (
-        5  # Train critic n times per generator step (TTUR - helps stability)
-    )
-    wgan_target_ratio = (
-        0.8  # upsample minorities to this fraction of majority (backward compatibility)
-    )
-    wgan_primary_task = (
-        "trading"  # Task to use for determining class balance (backward compatibility)
-    )
-    # Flexible multi-task balancing: dict mapping task names to ratios (float or dict[int, float] for per-class)
-    # If None, falls back to wgan_target_ratio and wgan_primary_task
-    # Example: {"trading": 0.5, "profit": {0: 0.6, 1: 0.4, 2: 0.5}, "regime": None}
-    wgan_task_target_ratios = {
-        "trading": 0.8,
-        "regime": 0.8,
-        "risk": 0.8,
+    wgan_n_critic = 5
+    wgan_target_ratio = 0.8          # fallback when task_target_ratios is None
+    wgan_primary_task = "trading"    # fallback when task_target_ratios is None
+    wgan_task_target_ratios: Optional[Dict] = {
+        "trading":  0.8,
+        "regime":   0.8,
+        "risk":     0.8,
         "momentum": 0.8,
-        "flow": 0.8,
-        "profit": 0.8,
+        "flow":     0.8,
+        "profit":   0.8,
     }
 
-    # -----------
-
-    # -----------
+    # ---------------------------------------------------------------------- #
+    # Hooks                                                                   #
+    # ---------------------------------------------------------------------- #
 
     def enhance_training_data(
         self, train_df: DataFrame, train_labels: Dict[str, np.ndarray]
     ) -> Tuple[DataFrame, Dict[str, np.ndarray]]:
-        """Optional hook to run GAN augmentation on 2D feature frames."""
-        print("    Skipping 2D WGAN augmentation (using 3D sequential instead)")
+        """Skip 2-D augmentation — multi-task WGAN works on 3-D tensors."""
+        print("    Skipping 2-D WGAN augmentation (using 3-D sequential instead)")
         return train_df, train_labels
 
     def preprocess_training_data(
-        self, dataframe: DataFrame, train_data, test_data, train_labels, test_labels
-    ):
-        # Clear augmented labels - will be set only if augmentation actually occurs
+        self,
+        dataframe: DataFrame,
+        train_data: np.ndarray,
+        test_data: np.ndarray,
+        train_labels: Dict[str, np.ndarray],
+        test_labels: Dict[str, np.ndarray],
+    ) -> Tuple[np.ndarray, np.ndarray, Dict[str, np.ndarray], Dict[str, np.ndarray]]:
+        """Balance 3-D sequential training data via MT-WGAN using GANInterface."""
         self._augmented_labels = None
+        original_shape = np.shape(train_data)
+
+        if len(train_data) == 0:
+            print("    No training data to balance")
+            return train_data, test_data, train_labels, test_labels
+
         try:
-            original_shape = np.shape(train_data)
-            print("    Balancing training data with MT WGAN-GP")
-            if len(train_data) == 0:
-                print("    No training data to balance")
-                return train_data, test_data, train_labels, test_labels
+            save_path = os.path.join(self.get_storage_location(), "GANs")
 
-            save_location = os.path.join(self.get_storage_location(), "GANs")
-
-            # Load gan_scaler for minmax transformation
-            # WGAN models work in minmax scaled space, but train_data is in normalized space
-
-            # Transform train_data from normalized space to minmax space for WGAN
-            # Reshape 3D tensor (batch, seq_len, num_features) to 2D (batch * seq_len, num_features)
+            # Transform 3-D tensor (batch, seq_len, features) → minmax space.
             train_data_shape = train_data.shape
             num_features = train_data.shape[-1]
-            train_data_2d = train_data.reshape(-1, num_features)
-            gan_input = self._format_for_gan_scaler(train_data_2d)
-            train_data_minmax_2d = self.normalise_for_gan(gan_input)
-            if isinstance(train_data_minmax_2d, pd.DataFrame):
-                train_data_minmax_2d = train_data_minmax_2d.to_numpy()
-            train_data_minmax = train_data_minmax_2d.reshape(train_data_shape)
+            train_2d = train_data.reshape(-1, num_features)
+            gan_input = self._format_for_gan_scaler(train_2d)
+            train_minmax_2d = self.normalise_for_gan(gan_input)
+            if isinstance(train_minmax_2d, pd.DataFrame):
+                train_minmax_2d = train_minmax_2d.to_numpy()
+            train_minmax = train_minmax_2d.reshape(train_data_shape)
 
-            # Use new task_target_ratios if provided, otherwise use backward-compatible approach
+            # Determine augmentation targets
             if self.wgan_task_target_ratios is not None:
-                # Flexible multi-task balancing
-                if HAS_MT_WGAN_MLX:
-                    aug_x, aug_y = balance_with_mt_wgan_mlx(
-                        train_data_minmax.astype("float32"),
-                        train_labels,
-                        epochs=self.wgan_epochs,
-                        batch_size=(
-                            min(self.wgan_batch_size, len(train_data))
-                            if len(train_data) > 0
-                            else self.wgan_batch_size
-                        ),
-                        verbose=True,
-                        save_path=save_location,
-                        n_critic=self.wgan_n_critic,
-                        task_target_ratios=self.wgan_task_target_ratios,
-                        seq_len=getattr(
-                            self, "wgan_seq_len", getattr(self, "seq_len", 1)
-                        ),
-                    )
-                else:
-                    aug_x, aug_y = balance_with_mt_wgan_gp(
-                        train_data_minmax.astype("float32"),
-                        train_labels,
-                        epochs=self.wgan_epochs,
-                        batch_size=(
-                            min(self.wgan_batch_size, len(train_data))
-                            if len(train_data) > 0
-                            else self.wgan_batch_size
-                        ),
-                        verbose=True,
-                        save_path=save_location,
-                        n_critic=self.wgan_n_critic,
-                        task_target_ratios=self.wgan_task_target_ratios,
-                    )
-                # For display, use first task in task_target_ratios
-                display_task = (
-                    list(self.wgan_task_target_ratios.keys())[0]
-                    if self.wgan_task_target_ratios
-                    else None
-                )
+                task_target_ratios = self.wgan_task_target_ratios
+                display_task = next(iter(task_target_ratios), None)
             else:
-                # Backward-compatible: validate primary_task
+                # Backward-compatible single-primary-task path.
                 if self.wgan_primary_task not in train_labels:
                     print(
-                        f"    Primary task '{self.wgan_primary_task}' not found in labels. Available: {list(train_labels.keys())}"
+                        f"    Primary task '{self.wgan_primary_task}' not found in labels. "
+                        f"Available: {list(train_labels.keys())}"
                     )
                     print("    Skipping WGAN-GP balancing")
-                    self._augmented_labels = None
                     return train_data, test_data, train_labels, test_labels
 
-                # Determine per-class counts and target based on primary_task
-                primary_labels = train_labels[self.wgan_primary_task]
-                train_idx = primary_labels.argmax(axis=1)
-                classes, counts = np.unique(train_idx, return_counts=True)
-                print(
-                    f"    Train set size: {len(train_data)}  {self.wgan_primary_task} class counts: {dict(zip(classes.tolist(), counts.tolist()))}"
-                )
-                original_counts_map = {
-                    int(c): int(n) for c, n in zip(classes.tolist(), counts.tolist())
-                }
+                primary = train_labels[self.wgan_primary_task]
+                train_idx = primary.argmax(axis=1)
+                _, counts = np.unique(train_idx, return_counts=True)
                 current_max = int(counts.max()) if counts.size > 0 else 0
-                target = (
-                    int(current_max * self.wgan_target_ratio)
-                    if current_max > 0
-                    else None
-                )
-                if target is None or target <= 0:
+                target = int(current_max * self.wgan_target_ratio) if current_max > 0 else None
+                if not target:
                     print("    No majority class found, skipping balancing")
-                    print(
-                        f"    WGAN-GP effect: shape {original_shape} -> {np.shape(train_data)}; counts {original_counts_map} -> {original_counts_map}"
-                    )
-                    self._augmented_labels = None
                     return train_data, test_data, train_labels, test_labels
 
-                have_map = {
-                    int(c): int(n) for c, n in zip(classes.tolist(), counts.tolist())
-                }
-                num_classes = primary_labels.shape[1]
-                needs_map = {
-                    c: max(0, target - have_map.get(c, 0)) for c in range(num_classes)
-                }
-                print(
-                    f"    WGAN target per class: {target} (ratio={self.wgan_target_ratio})  Planned adds: {needs_map}"
-                )
-                if all(v <= 0 for v in needs_map.values()):
-                    print("    Already at or above target; skipping WGAN-GP")
-                    print(
-                        f"    WGAN-GP effect: shape {original_shape} -> {np.shape(train_data)}; counts {original_counts_map} -> {original_counts_map}"
-                    )
-                    self._augmented_labels = None
-                    return train_data, test_data, train_labels, test_labels
-
-                if HAS_MT_WGAN_MLX:
-                    aug_x, aug_y = balance_with_mt_wgan_mlx(
-                        train_data_minmax.astype("float32"),
-                        train_labels,
-                        epochs=self.wgan_epochs,
-                        batch_size=(
-                            min(self.wgan_batch_size, len(train_data))
-                            if len(train_data) > 0
-                            else self.wgan_batch_size
-                        ),
-                        max_target=target,
-                        verbose=True,
-                        save_path=save_location,
-                        n_critic=self.wgan_n_critic,
-                        primary_task=self.wgan_primary_task,
-                        seq_len=getattr(
-                            self, "wgan_seq_len", getattr(self, "seq_len", 1)
-                        ),
-                    )
-                else:
-                    aug_x, aug_y = balance_with_mt_wgan_gp(
-                        train_data_minmax.astype("float32"),
-                        train_labels,
-                        epochs=self.wgan_epochs,
-                        batch_size=(
-                            min(self.wgan_batch_size, len(train_data))
-                            if len(train_data) > 0
-                            else self.wgan_batch_size
-                        ),
-                        max_target=target,
-                        verbose=True,
-                        save_path=save_location,
-                        n_critic=self.wgan_n_critic,
-                        primary_task=self.wgan_primary_task,
-                    )
+                task_target_ratios = {self.wgan_primary_task: self.wgan_target_ratio}
                 display_task = self.wgan_primary_task
-                original_counts_map = {
-                    int(c): int(n) for c, n in zip(classes.tolist(), counts.tolist())
-                }
 
-            # Print stats for display_task
+            print("    Balancing training data with MT WGAN-GP (via GANInterface)")
+            interface = GANInterface(GANType.MT_WGAN, save_path=save_path)
+            try:
+                interface.load()
+                print(f"    Loaded existing MT WGAN model from {save_path}.")
+            except Exception as load_err:
+                raise RuntimeError(
+                    f"MT WGAN model not found at {save_path}. "
+                    f"Run CreateMTWGAN first to train and save the model. Error: {load_err}"
+                ) from load_err
+
+            # Generate per-task per-class augmentation samples.
+            # collect additions: aug_data (n, seq, F), aug_labels_dict
+            aug_data_list: list = [train_minmax]
+            aug_labels_dict: Dict[str, list] = {t: [v] for t, v in train_labels.items()}
+
+            for task, ratio_spec in task_target_ratios.items():
+                if ratio_spec is None or task not in train_labels:
+                    continue
+
+                task_lbls = train_labels[task]
+                task_idx = np.argmax(task_lbls, axis=1)
+                unique, task_counts = np.unique(task_idx, return_counts=True)
+                current_max = int(np.max(task_counts)) if task_counts.size > 0 else 0
+
+                class_ratios = (
+                    ratio_spec if isinstance(ratio_spec, dict)
+                    else {c: ratio_spec for c in range(task_lbls.shape[1])}
+                )
+                for c in range(task_lbls.shape[1]):
+                    ratio = class_ratios.get(c, 0.0)
+                    if ratio <= 0.0:
+                        continue
+                    have = int(np.sum(task_idx == c))
+                    target_n = int(current_max * ratio)
+                    need = max(0, target_n - have)
+                    if need <= 0:
+                        continue
+
+                    # Build task_labels for this batch: target task gets one-hot class c,
+                    # other tasks use most-common class from real data.
+                    batch_task_labels: Dict[str, np.ndarray] = {}
+                    for other_task, other_lbls in train_labels.items():
+                        if other_task == task:
+                            nc = task_lbls.shape[1]
+                            oh = np.zeros((need, nc), dtype="float32")
+                            oh[:, c] = 1.0
+                            batch_task_labels[other_task] = oh
+                        else:
+                            other_idx = np.argmax(other_lbls, axis=1)
+                            most_common = int(np.bincount(other_idx).argmax())
+                            nc = other_lbls.shape[1]
+                            oh = np.zeros((need, nc), dtype="float32")
+                            oh[:, most_common] = 1.0
+                            batch_task_labels[other_task] = oh
+
+                    gen_data, gen_labels = interface.generate(
+                        n=need, task_labels=batch_task_labels
+                    )
+                    # gen_data: (need, 1, F) — keep 3D to match train_minmax shape
+                    aug_data_list.append(gen_data)
+                    for t in train_labels:
+                        aug_labels_dict[t].append(batch_task_labels[t])
+
+            aug_x = np.concatenate(aug_data_list, axis=0)
+            aug_y = {t: np.concatenate(aug_labels_dict[t], axis=0) for t in train_labels}
+
+            # Log augmentation stats.
             if display_task and display_task in aug_y:
-                aug_task_labels = aug_y[display_task]
-                aug_idx = aug_task_labels.argmax(axis=1)
-                aug_classes, aug_counts = np.unique(aug_idx, return_counts=True)
-                print(f"    WGAN-GP training complete")
+                aug_task_idx = aug_y[display_task].argmax(axis=1)
+                aug_classes, aug_counts = np.unique(aug_task_idx, return_counts=True)
+                aug_counts_map = dict(zip(aug_classes.tolist(), aug_counts.tolist()))
+                print("    WGAN-GP training complete")
                 print(
-                    f"    Augmented train size: {len(aug_x)}  {display_task} class counts: {dict(zip(aug_classes.tolist(), aug_counts.tolist()))}"
+                    f"    Augmented train size: {len(aug_x)}  "
+                    f"{display_task} class counts: {aug_counts_map}"
                 )
-                new_counts_map = {
-                    int(c): int(n)
-                    for c, n in zip(aug_classes.tolist(), aug_counts.tolist())
-                }
-                if "original_counts_map" in locals():
-                    print(
-                        f"    WGAN-GP effect: shape {original_shape} -> {np.shape(aug_x)}; counts {original_counts_map} -> {new_counts_map}"
-                    )
-                else:
-                    print(
-                        f"    WGAN-GP effect: shape {original_shape} -> {np.shape(aug_x)}"
-                    )
             else:
-                print(f"    WGAN-GP training complete")
+                print("    WGAN-GP training complete")
                 print(f"    Augmented train size: {len(aug_x)}")
-                print(
-                    f"    WGAN-GP effect: shape {original_shape} -> {np.shape(aug_x)}"
-                )
+            print(f"    WGAN-GP effect: shape {original_shape} -> {np.shape(aug_x)}")
 
-            # Quality assessment is automatically performed by balance_with_mt_wgan_gp
-            # (see assess_quality parameter, defaults to True)
-
-            # Store augmented labels so class weights can be recalculated from augmented distribution
             self._augmented_labels = aug_y
 
-            # Transform aug_x back from minmax scaled space to normalized space
-            # WGAN generates data in minmax space, but classifier models expect normalized space
-            # Reshape 3D tensor (batch, seq_len, num_features) to 2D (batch * seq_len, num_features)
-            aug_x_shape = aug_x.shape
-            num_features = aug_x.shape[-1]
-            aug_x_2d = aug_x.reshape(-1, num_features)
-            aug_input = self._format_for_gan_scaler(aug_x_2d)
-            aug_x_2d = self.denormalise_from_gan(aug_input)
-            if isinstance(aug_x_2d, pd.DataFrame):
-                aug_x_2d = aug_x_2d.to_numpy()
-            aug_x = aug_x_2d.reshape(aug_x_shape)
+            # Transform aug_x back from minmax space to normalised space.
+            aug_shape = aug_x.shape
+            aug_2d = aug_x.reshape(-1, num_features)
+            aug_input = self._format_for_gan_scaler(aug_2d)
+            aug_2d_norm = self.denormalise_from_gan(aug_input)
+            if isinstance(aug_2d_norm, pd.DataFrame):
+                aug_2d_norm = aug_2d_norm.to_numpy()
+            aug_x = aug_2d_norm.reshape(aug_shape)
 
             return aug_x, test_data, aug_y, test_labels
-        except Exception as e:
+
+        except Exception as exc:
             print("    WGAN-GP encountered an error; returning original data")
-            print(f"      Error: {e}")
+            print(f"      Error: {exc}")
             print(traceback.format_exc())
-            print(
-                f"    WGAN-GP effect: shape {original_shape} -> {np.shape(train_data)}; counts unchanged"
-            )
             self._augmented_labels = None
             return train_data, test_data, train_labels, test_labels
 
-    def _format_for_gan_scaler(self, array_2d):
+    # ---------------------------------------------------------------------- #
+    # Helpers                                                                 #
+    # ---------------------------------------------------------------------- #
+
+    def _format_for_gan_scaler(self, array_2d: np.ndarray):
         if isinstance(array_2d, pd.DataFrame):
             return array_2d
         if hasattr(self.gan_scaler_a, "feature_names_in_"):
@@ -306,29 +231,3 @@ class NNMT_WGAN(NNMTStrategy):
             except ValueError:
                 pass
         return array_2d
-
-    def _prepare_labels_for_wgan(
-        self, labels: Dict[str, np.ndarray]
-    ) -> Tuple[Dict[str, np.ndarray], Dict[str, Optional[Dict[int, int]]]]:
-        processed: Dict[str, np.ndarray] = {}
-        mappings: Dict[str, Optional[Dict[int, int]]] = {}
-
-        for task, values in labels.items():
-            arr = np.asarray(values)
-            if arr.ndim == 2 and arr.shape[1] > 1:
-                processed[task] = arr.astype("float32")
-                mappings[task] = None
-            else:
-                flattened = arr.reshape(-1).astype(int)
-                classes = np.sort(np.unique(flattened))
-                class_to_index = {int(cls): idx for idx, cls in enumerate(classes)}
-                index_to_class = {idx: int(cls) for idx, cls in enumerate(classes)}
-                label_indices = np.array(
-                    [class_to_index[int(cls)] for cls in flattened],
-                    dtype=int,
-                )
-                one_hot = np.eye(len(classes), dtype="float32")[label_indices]
-                processed[task] = one_hot
-                mappings[task] = index_to_class
-
-        return processed, mappings

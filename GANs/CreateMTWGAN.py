@@ -6,8 +6,8 @@
 
 """
 CreateMTWGAN - creates and saves Multi-Task WGAN-GP models using data from all of
-the pairs in the whitelist. Concrete GAN parameters are supplied through
-CreateGANBase for a unified API.
+the pairs in the whitelist.  Uses GANInterface for backend-agnostic training
+(MLX preferred, TensorFlow fallback).
 """
 
 from __future__ import annotations
@@ -24,15 +24,9 @@ group_dir = str(Path(__file__).parent)
 sys.path.append(group_dir)
 
 from CreateMTGANBase import CreateMTGANBase  # noqa: E402
-from NNMTStrategy import NNMTStrategy  # noqa: E402
-from utils.df_mt_wgan_gp import balance_with_mt_wgan_gp  # noqa: E402
-
-try:
-    from utils.df_mt_wgan_mlx import balance_with_mt_wgan_mlx
-
-    HAS_MT_WGAN_MLX = True
-except ImportError:
-    HAS_MT_WGAN_MLX = False
+from NNMT.NNMTStrategy import NNMTStrategy  # noqa: E402
+from GANs.GANInterface import GANInterface  # noqa: E402
+from GANs.GANType import GANType  # noqa: E402
 
 
 class CreateMTWGAN(CreateMTGANBase, NNMTStrategy):
@@ -54,19 +48,8 @@ class CreateMTWGAN(CreateMTGANBase, NNMTStrategy):
     MASTER_TRAINING_TYPE = 19  # Training type (label method) used for training labels
 
     DEFAULT_GAN_CONFIG: Dict[str, Any] = {
-        "name": "Multi-Task WGAN-GP (MLX)" if HAS_MT_WGAN_MLX else "Multi-Task WGAN-GP",
-        "description": (
-            "Multi-Task WGAN-GP (MLX)" if HAS_MT_WGAN_MLX else "Multi-Task WGAN-GP"
-        ),
-        "balance_fn": (
-            balance_with_mt_wgan_mlx if HAS_MT_WGAN_MLX else balance_with_mt_wgan_gp
-        ),
-        "train_kwargs": {
-            "epochs": 100,
-            "batch_size": 2048 if HAS_MT_WGAN_MLX else 256,
-            "n_critic": 6,
-            "verbose": True,
-        },
+        "name": "Multi-Task WGAN-GP",
+        "description": "Multi-Task WGAN-GP",
         "task_target_ratios": {
             "trading": 0.2,
             "regime": 0.1,
@@ -117,38 +100,27 @@ class CreateMTWGAN(CreateMTGANBase, NNMTStrategy):
         test_labels: Dict[str, np.ndarray],
         config: Dict[str, Any],
     ) -> None:
-        balance_fn = config.get("balance_fn")
-        if balance_fn is None:
-            print("    No balance function provided; skipping GAN training")
-            return
-
         try:
-            original_shape = np.shape(train_data)
-            print(f"    Balancing training data with {config.get('name', 'GAN')}")
-
             if len(train_data) == 0:
                 print("    No training data to balance")
                 return
 
-            train_kwargs = dict(config.get("train_kwargs", {}))
-            requested_batch = int(train_kwargs.get("batch_size", len(train_data)))
-            train_kwargs["batch_size"] = (
-                min(requested_batch, len(train_data))
-                if len(train_data) > 0
-                else requested_batch
-            )
-            train_kwargs.setdefault("save_path", self.get_gan_save_path(config))
+            # Log class distributions per task
+            for task, lbls in train_labels.items():
+                if hasattr(lbls, "argmax"):
+                    task_idx = lbls.argmax(axis=1)
+                    task_classes, task_counts = np.unique(task_idx, return_counts=True)
+                    task_counts_map = dict(
+                        zip(task_classes.tolist(), task_counts.tolist())
+                    )
+                    print(f"    Task '{task}' class distribution: {task_counts_map}")
 
-            # Pass MASTER threshold values and training_type to balance function - these are stored in GAN metadata
-            train_kwargs["min_buy_gain_threshold"] = self.MASTER_MIN_BUY_GAIN_THRESHOLD
-            train_kwargs["min_sell_loss_threshold"] = (
-                self.MASTER_MIN_SELL_LOSS_THRESHOLD
+            save_path = self.get_gan_save_path(config)
+            print(
+                f"    Training {config.get('name', 'Multi-Task WGAN-GP')} via GANInterface "
+                f"(save_path={save_path})"
             )
-            train_kwargs["training_type"] = self.MASTER_TRAINING_TYPE
-
-            # Print MASTER values that will be stored in GAN metadata (before training starts)
-            print("    Multi-Task WGAN-GP training starting...")
-            print(f"    MASTER thresholds (will be stored in GAN metadata):")
+            print("    MASTER thresholds (will be stored in GAN metadata):")
             print(
                 f"      MASTER_MIN_BUY_GAIN_THRESHOLD = {self.MASTER_MIN_BUY_GAIN_THRESHOLD:.4f}"
             )
@@ -157,79 +129,19 @@ class CreateMTWGAN(CreateMTGANBase, NNMTStrategy):
             )
             print(f"      MASTER_TRAINING_TYPE = {self.MASTER_TRAINING_TYPE}")
 
-            task_target_ratios = config.get("task_target_ratios")
-            display_task: Optional[str] = None
-
-            if task_target_ratios:
-                train_kwargs["task_target_ratios"] = task_target_ratios
-                display_task = next(iter(task_target_ratios.keys()), None)
-                aug_x, aug_y = balance_fn(
-                    train_data.astype("float32"),
-                    train_labels,
-                    **train_kwargs,
-                )
-            else:
-                primary_task = config.get("primary_task", "trading")
-                if primary_task not in train_labels:
-                    print(
-                        f"    Primary task '{primary_task}' not found in labels. "
-                        f"Available: {list(train_labels.keys())}"
-                    )
-                    print("    Skipping WGAN-GP balancing")
-                    return
-
-                primary_labels = train_labels[primary_task]
-                train_idx = primary_labels.argmax(axis=1)
-                classes, counts = np.unique(train_idx, return_counts=True)
-                class_counts = dict(zip(classes.tolist(), counts.tolist()))
-                print(
-                    f"    Train set size: {len(train_data)}  "
-                    f"{primary_task} class counts: {class_counts}"
-                )
-
-                current_max = int(counts.max()) if counts.size > 0 else 0
-                target_ratio = config.get("target_ratio", 0.1)
-                target = int(current_max * target_ratio) if current_max > 0 else None
-                if target is None or target <= 0:
-                    print("    No majority class found, skipping balancing")
-                    print(
-                        f"    WGAN-GP effect: shape {original_shape} -> {np.shape(train_data)}; "
-                        f"counts {class_counts} -> {class_counts}"
-                    )
-                    return
-
-                train_kwargs["max_target"] = target
-                train_kwargs["primary_task"] = primary_task
-                display_task = primary_task
-                # MASTER thresholds already set above
-                aug_x, aug_y = balance_fn(
-                    train_data.astype("float32"),
-                    train_labels,
-                    **train_kwargs,
-                )
-
-            if display_task and display_task in aug_y:
-                aug_task_labels = aug_y[display_task]
-                aug_idx = aug_task_labels.argmax(axis=1)
-                aug_classes, aug_counts = np.unique(aug_idx, return_counts=True)
-                aug_class_counts = dict(zip(aug_classes.tolist(), aug_counts.tolist()))
-                print("    Multi-Task WGAN-GP training complete")
-                print(
-                    f"    Augmented train size: {len(aug_x)}  "
-                    f"{display_task} class counts: {aug_class_counts}"
-                )
-                print(
-                    f"    WGAN-GP effect: shape {original_shape} -> {np.shape(aug_x)}"
-                )
-            else:
-                print("    Multi-Task WGAN-GP training complete")
-                print(f"    Augmented train size: {len(aug_x)}")
-                print(
-                    f"    WGAN-GP effect: shape {original_shape} -> {np.shape(aug_x)}"
-                )
-        except Exception as exc:
-            print(
-                "    Multi-Task WGAN-GP encountered an error; returning original data"
+            interface = GANInterface(GANType.MT_WGAN, save_path=save_path)
+            interface.fit(
+                train_data.astype("float32"),
+                train_labels,
             )
+            interface.save(
+                min_buy_gain_threshold=self.MASTER_MIN_BUY_GAIN_THRESHOLD,
+                min_sell_loss_threshold=self.MASTER_MIN_SELL_LOSS_THRESHOLD,
+                training_type=self.MASTER_TRAINING_TYPE,
+            )
+            print(f"    Multi-Task WGAN-GP model saved to {save_path}")
+
+        except Exception as exc:
+            print("    Multi-Task WGAN-GP encountered an error during training")
             print(f"      Error: {exc}")
             print(traceback.format_exc())
