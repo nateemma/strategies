@@ -28,7 +28,14 @@ class CreateGANFactory:
     New types can be added at runtime via register().
     """
 
+    # Creator strategies are now unified into CreateGAN (single-task) and
+    # CreateMTGAN (multi-task); the specific backend is selected via each
+    # class's gan_type attribute.  The legacy per-backend names continue
+    # to resolve via thin compat subclasses so existing freqtrade configs
+    # (``--strategy CreateWGAN`` etc.) keep working.
     _REGISTRY: Dict[str, Tuple[str, str]] = {
+        "gan":         ("user_data.strategies.GANs.CreateGAN",           "CreateGAN"),
+        "mt_gan":      ("user_data.strategies.GANs.CreateMTGAN",         "CreateMTGAN"),
         "wgan":        ("user_data.strategies.GANs.CreateWGAN",          "CreateWGAN"),
         "mt_wgan":     ("user_data.strategies.GANs.CreateMTWGAN",        "CreateMTWGAN"),
         "ctab_gan":    ("user_data.strategies.GANs.CreateCtabGanPlus",   "CreateCtabGanPlus"),
@@ -36,7 +43,9 @@ class CreateGANFactory:
         "cgp_pca":     ("user_data.strategies.GANs.Create_CGP_PCA",      "Create_CGP_PCA"),
     }
 
-    # Maps GANType members to creator registry keys.
+    # Maps GANType members to creator registry keys.  Uses the legacy
+    # backend-specific shim names so each GANType still resolves to a
+    # creator with the correct gan_type preset.
     _GANTYPE_TO_KEY: Dict[str, str] = {
         GANType.WGAN.name:        "wgan",
         GANType.MT_WGAN.name:     "mt_wgan",

@@ -2,12 +2,21 @@
 # pragma pylint: disable=W0105, W1203, W1309, W1514, W0613, W0621
 # type: ignore
 """
-CreateGANBase - shared functionality for building GAN training datasets across
-single-task and multi-task strategy variants.
+CreateGANBase - shared infrastructure for every GAN creator strategy.
 
-Concrete subclasses are expected to provide a `run_gan_training` implementation
-that consumes a configuration dictionary and invokes the appropriate balancing
-routine (e.g. WGAN-GP, MT-WGAN-GP, etc.).
+The GAN subsystem exposes a uniform GANInterface (fit/generate/save/load)
+parameterised by GANType, so each creator variant only needs to:
+
+  1. Aggregate training data across the configured pairs,
+  2. Hand the data to GANInterface.fit(),
+  3. Persist the result via GANInterface.save() with MASTER thresholds.
+
+This base class covers everything except step 2 — concrete subclasses
+implement ``run_gan_training`` to invoke the appropriate interface call.
+It also owns the MASTER_* threshold values: these are forced onto the
+mixed-in NN strategy during bot_start() so that the training labels
+generated for GAN input are derived from the same thresholds that will
+be stamped into the saved GAN metadata.
 """
 
 from __future__ import annotations
@@ -25,14 +34,19 @@ group_dir = str(Path(__file__).parent)
 sys.path.append(group_dir)
 
 from utils.DataframePopulator import DatasetType  # noqa: E402
+from GANs.GANType import GANType  # noqa: E402
 
 
 class CreateGANBase:
     """
     Mixin-style base class that encapsulates the common workflow for gathering,
     normalising, and shuffling data prior to training a GAN.
+
+    Subclasses (CreateGAN, CreateMTGAN) implement ``run_gan_training`` to
+    perform the backend-specific interface call.
     """
 
+    # --- Defaults shared across every variant --------------------------------
     DEFAULT_GAN_CONFIG: Dict[str, Any] = {
         "name": "Generic GAN",
         "description": "Generic GAN",
@@ -45,10 +59,89 @@ class CreateGANBase:
         "shuffle_before_gan": False,
     }
 
+    # --- MASTER threshold values ---------------------------------------------
+    # These are the single source of truth for the gain/loss/training-type
+    # parameters that drive training-label generation *and* are persisted in
+    # the GAN metadata.  A strategy that later loads the GAN will pick up
+    # these values automatically, so the labels the classifier was trained on
+    # stay consistent with the ones the GAN was trained on.
+    MASTER_MIN_BUY_GAIN_THRESHOLD = 0.016
+    MASTER_MIN_SELL_LOSS_THRESHOLD = 0.012
+    MASTER_TRAINING_TYPE = 19
+
+    # Concrete subclasses set this to the GANType they create.  Staying
+    # here as NONE means the caller must set it (or a subclass hard-codes it).
+    gan_type: GANType = GANType.NONE
+
     def __init__(self, gan_config: Optional[Dict[str, Any]] = None, **kwargs) -> None:
         super().__init__(**kwargs)
         self.gan_config: Dict[str, Any] = self._build_gan_config(gan_config)
         self._reset_state()
+
+    # ---------------------------------------------------------------------- #
+    # Iteration init — enforces MASTER thresholds for every GAN type         #
+    # ---------------------------------------------------------------------- #
+
+    def iteration_init(self) -> None:
+        """
+        Force MASTER_* values onto the NN strategy before label generation.
+
+        Applies uniformly to all GAN types — previously only the CTAB
+        variants set these, which meant the WGAN creators could silently
+        drift if hyperopt mutated buy_params/sell_params.  Marking the
+        strategy as a GAN creator also tells BaseNNStrategy.iteration_init
+        to leave MIN_*_THRESHOLD / TRAINING_TYPE alone.
+        """
+        self._validate_master_thresholds()
+
+        # Only assign if the attribute exists on the mixed-in strategy.
+        # CreateGANBase is sometimes used in non-NN test contexts where
+        # these attrs would otherwise pollute the instance namespace.
+        if hasattr(self, "MIN_BUY_GAIN_THRESHOLD"):
+            self.MIN_BUY_GAIN_THRESHOLD = self.MASTER_MIN_BUY_GAIN_THRESHOLD
+        if hasattr(self, "MIN_SELL_LOSS_THRESHOLD"):
+            self.MIN_SELL_LOSS_THRESHOLD = self.MASTER_MIN_SELL_LOSS_THRESHOLD
+        if hasattr(self, "TRAINING_TYPE"):
+            self.TRAINING_TYPE = self.MASTER_TRAINING_TYPE
+
+        self._is_gan_creation_strategy = True
+
+        # Continue up the MRO (typically BaseNNStrategy.iteration_init).
+        super().iteration_init()
+
+    def _validate_master_thresholds(self) -> None:
+        """Fail loudly if MASTER_* drift from the consumer NN strategy."""
+        try:
+            from Framework.BaseNNStrategy import BaseNNStrategy  # noqa: E402
+        except ImportError:
+            # Not mixed into an NN strategy — nothing to validate against.
+            return
+
+        strategy_vals = {
+            "MASTER_MIN_BUY_GAIN_THRESHOLD": BaseNNStrategy.MIN_BUY_GAIN_THRESHOLD,
+            "MASTER_MIN_SELL_LOSS_THRESHOLD": BaseNNStrategy.MIN_SELL_LOSS_THRESHOLD,
+            "MASTER_TRAINING_TYPE": BaseNNStrategy.TRAINING_TYPE,
+        }
+        local_vals = {
+            "MASTER_MIN_BUY_GAIN_THRESHOLD": self.MASTER_MIN_BUY_GAIN_THRESHOLD,
+            "MASTER_MIN_SELL_LOSS_THRESHOLD": self.MASTER_MIN_SELL_LOSS_THRESHOLD,
+            "MASTER_TRAINING_TYPE": self.MASTER_TRAINING_TYPE,
+        }
+        mismatches = {
+            key: (strategy_vals[key], local_vals[key])
+            for key in local_vals
+            if strategy_vals[key] != local_vals[key]
+        }
+        if mismatches:
+            lines = [
+                f"{self.__class__.__name__} MASTER_* mismatch with NNStrategy:",
+                *[
+                    f"  {key}: NNStrategy={vals[0]} vs "
+                    f"{self.__class__.__name__}={vals[1]}"
+                    for key, vals in mismatches.items()
+                ],
+            ]
+            raise ValueError("\n".join(lines))
 
     # ---------------------------------------------------------------------- #
     # Public workflow                                                        #
@@ -210,6 +303,26 @@ class CreateGANBase:
         if getattr(self, "use_pca_reduction", False):
             subdir = subdir + "_PCA"
         return f"{self.get_storage_location()}/{subdir}"
+
+    def _log_master_thresholds(self) -> None:
+        """Shared announcement block printed by every run_gan_training."""
+        print("    MASTER thresholds (will be stored in GAN metadata):")
+        print(
+            f"      MASTER_MIN_BUY_GAIN_THRESHOLD = "
+            f"{self.MASTER_MIN_BUY_GAIN_THRESHOLD:.4f}"
+        )
+        print(
+            f"      MASTER_MIN_SELL_LOSS_THRESHOLD = "
+            f"{self.MASTER_MIN_SELL_LOSS_THRESHOLD:.4f}"
+        )
+        print(f"      MASTER_TRAINING_TYPE = {self.MASTER_TRAINING_TYPE}")
+
+    def _master_save_kwargs(self) -> Dict[str, Any]:
+        return {
+            "min_buy_gain_threshold": self.MASTER_MIN_BUY_GAIN_THRESHOLD,
+            "min_sell_loss_threshold": self.MASTER_MIN_SELL_LOSS_THRESHOLD,
+            "training_type": self.MASTER_TRAINING_TYPE,
+        }
 
     def _ensure_dataframe(self, data: Any, reference: DataFrame) -> DataFrame:
         if isinstance(data, pd.DataFrame):
