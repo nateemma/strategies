@@ -79,18 +79,24 @@ class CreateGANBase:
         self._reset_state()
 
     # ---------------------------------------------------------------------- #
-    # Iteration init — enforces MASTER thresholds for every GAN type         #
+    # bot_start — enforces MASTER thresholds before any indicator runs       #
     # ---------------------------------------------------------------------- #
 
-    def iteration_init(self) -> None:
+    def bot_start(self, **kwargs) -> None:
         """
-        Force MASTER_* values onto the NN strategy before label generation.
+        Force MASTER_* values onto the NN strategy before any populate_*
+        runs.  Applies uniformly to all GAN types — previously only the
+        CTAB variants set these, so the WGAN creators could silently drift
+        if hyperopt mutated buy_params/sell_params.
 
-        Applies uniformly to all GAN types — previously only the CTAB
-        variants set these, which meant the WGAN creators could silently
-        drift if hyperopt mutated buy_params/sell_params.  Marking the
-        strategy as a GAN creator also tells BaseNNStrategy.iteration_init
-        to leave MIN_*_THRESHOLD / TRAINING_TYPE alone.
+        Marking the strategy as a GAN creator (via
+        ``_is_gan_creation_strategy = True``) tells
+        ``BaseNNStrategy.bot_start`` to skip its threshold overrides, so
+        the MASTER values reach the GAN metadata unmodified.
+
+        Order matters: we set the flag and the MASTER thresholds *before*
+        calling ``super().bot_start()`` so BaseNNStrategy sees both when
+        it runs.
         """
         self._validate_master_thresholds()
 
@@ -106,8 +112,8 @@ class CreateGANBase:
 
         self._is_gan_creation_strategy = True
 
-        # Continue up the MRO (typically BaseNNStrategy.iteration_init).
-        super().iteration_init()
+        # Continue up the MRO (typically BaseNNStrategy.bot_start).
+        super().bot_start(**kwargs)
 
     def _validate_master_thresholds(self) -> None:
         """Fail loudly if MASTER_* drift from the consumer NN strategy."""

@@ -838,27 +838,57 @@ class BaseStrategy(IStrategy):
         return dataframe
 
     # =========================================================================
-    # Iteration Init
+    # bot_start — one-time initialisation (freqtrade lifecycle hook)
+    # =========================================================================
+
+    def bot_start(self, **kwargs) -> None:
+        """
+        Called once after the strategy is instantiated and the data provider
+        has been attached.  Do all per-bot one-time setup here so that
+        ``iteration_init`` (called per ``populate_indicators`` cycle) stays
+        cheap.
+
+        Subclasses that override this MUST call ``super().bot_start(**kwargs)``
+        so the base setup runs.
+        """
+        self.debug_print("")
+        self.debug_print("----------------------")
+        self.debug_print(self.__class__.__name__)
+        self.debug_print("----------------------")
+        self.debug_print("")
+
+        if self.dp is not None and self.dp.runmode.value in ("util_no_exchange"):
+            print(f"    run mode: {self.dp.runmode.value}")
+
+        Environment().print_environment()
+        self.print_hyperopt_parameters()
+
+        # One-shot construction of the shared utility helpers.  The
+        # ``reset_scaler`` call lives in ``iteration_init`` because it must
+        # happen at the start of every populate_indicators() cycle.
+        if self.dataframeUtils is None:
+            self.dataframeUtils = DataframeUtils()
+            self.dataframeUtils.set_scaler_type(self.scaler_type)
+
+        if self.dataframePopulator is None:
+            self.dataframePopulator = DataframePopulator()
+
+        # Mark the one-time block as complete so anything still checking
+        # ``self.first_time`` (e.g. archived strategies) sees the right state.
+        self.first_time = False
+
+    # =========================================================================
+    # Iteration Init — per-populate_indicators setup (lightweight)
     # =========================================================================
 
     def iteration_init(self):
-        """Called at the start of each populate_indicators() cycle."""
+        """Called at the start of each populate_indicators() cycle.
 
-        # first time through? Print some debug info
-        if self.first_time:
-            self.first_time = False
-            self.debug_print("")
-            self.debug_print("----------------------")
-            self.debug_print(self.__class__.__name__)
-            self.debug_print("----------------------")
-            self.debug_print("")
-
-            if self.dp.runmode.value in ("util_no_exchange"):
-                print(f"    run mode: {self.dp.runmode.value}")
-
-            Environment().print_environment()
-            self.print_hyperopt_parameters()
-
+        Only per-iteration state belongs here — the bulk of one-time setup
+        lives in :meth:`bot_start`.  Defensive instantiation of the utility
+        helpers is preserved in case a subclass invokes populate_indicators
+        without going through ``ft_bot_start`` (e.g. unit tests).
+        """
         if self.dataframeUtils is None:
             self.dataframeUtils = DataframeUtils()
             self.dataframeUtils.set_scaler_type(self.scaler_type)

@@ -2194,66 +2194,75 @@ class BaseNNStrategy(BaseStrategy):
     # Iteration init (NN-specific extension)
     # =========================================================================
 
+    # =========================================================================
+    # bot_start — NN-specific one-time setup
+    # =========================================================================
+
+    def bot_start(self, **kwargs) -> None:
+        """
+        Called once after the strategy is instantiated.  Handles the
+        NN-specific setup that used to live behind a ``first_time`` gate
+        inside ``iteration_init`` — TF/MLX device configuration, threshold
+        loading from saved GAN metadata, and ``buy_params`` / ``sell_params``
+        overrides.
+
+        Subclasses that override this MUST call
+        ``super().bot_start(**kwargs)`` so the NN setup runs.
+        """
+        # Run BaseStrategy.bot_start first (banner, environment, helpers).
+        super().bot_start(**kwargs)
+
+        if self.dp is not None and self.dp.runmode.value in ("util_no_exchange"):
+            os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+            tf.config.set_visible_devices([], "GPU")
+            print("    Forced CPU mode for lookahead analysis")
+
+        # Print NN-specific info
+        self.print_strategy_info()
+
+        # GAN creators set this flag on themselves before bot_start runs
+        # (via CreateGANBase.bot_start setting it on super()).  When the
+        # current strategy *consumes* a GAN we'd like to load the thresholds
+        # that the GAN was trained with — when it *creates* a GAN we leave
+        # the MASTER values alone.
+        is_gan_creation = getattr(self, "_is_gan_creation_strategy", False)
+
+        if is_gan_creation:
+            return
+
+        if hasattr(self, "_load_gan_thresholds_early"):
+            self._load_gan_thresholds_early()
+
+        thresholds_from_gan = getattr(self, "_thresholds_from_gan", False)
+
+        if (
+            hasattr(self, "buy_params")
+            and self.buy_params
+            and "min_buy_gain_threshold" in self.buy_params
+            and not thresholds_from_gan
+        ):
+            self.MIN_BUY_GAIN_THRESHOLD = self.buy_params["min_buy_gain_threshold"]
+
+        if (
+            hasattr(self, "sell_params")
+            and self.sell_params
+            and "min_sell_loss_threshold" in self.sell_params
+            and not thresholds_from_gan
+        ):
+            self.MIN_SELL_LOSS_THRESHOLD = self.sell_params["min_sell_loss_threshold"]
+
+        if not thresholds_from_gan:
+            if not hasattr(self, "TRAINING_TYPE") or self.TRAINING_TYPE == 13:
+                self.TRAINING_TYPE = self.training_type.value
+
     def iteration_init(self):
-        """Called at the start of each populate_indicators() cycle — NN-specific extension."""
+        """Called at the start of each populate_indicators() cycle.
 
-        # Call base class init (environment, printing, DataframePopulator setup)
+        The bulk of the NN-specific setup now lives in :meth:`bot_start`.
+        This hook only refreshes per-iteration state — namely whether the
+        model still needs training.
+        """
         super().iteration_init()
-
-        # NN-specific: on first time, handle GAN thresholds and model config
-        if not self.first_time and hasattr(self, '_nn_first_time_done'):
-            pass  # Already done
-        else:
-            self._nn_first_time_done = True
-
-            if self.dp.runmode.value in ("util_no_exchange"):
-                os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-                tf.config.set_visible_devices([], "GPU")
-                print("    Forced CPU mode for lookahead analysis")
-
-            # Print NN-specific info
-            self.print_strategy_info()
-
-            # Check if this is a GAN creation strategy
-            is_gan_creation = getattr(self, "_is_gan_creation_strategy", False)
-
-            if not is_gan_creation:
-                gan_thresholds_loaded = False
-                if hasattr(self, "_load_gan_thresholds_early"):
-                    gan_thresholds_loaded = self._load_gan_thresholds_early()
-
-                if (
-                    hasattr(self, "buy_params")
-                    and self.buy_params
-                    and "min_buy_gain_threshold" in self.buy_params
-                ):
-                    if not hasattr(self, "_thresholds_from_gan") or not getattr(
-                        self, "_thresholds_from_gan", False
-                    ):
-                        self.MIN_BUY_GAIN_THRESHOLD = self.buy_params[
-                            "min_buy_gain_threshold"
-                        ]
-
-                if (
-                    hasattr(self, "sell_params")
-                    and self.sell_params
-                    and "min_sell_loss_threshold" in self.sell_params
-                ):
-                    if not hasattr(self, "_thresholds_from_gan") or not getattr(
-                        self, "_thresholds_from_gan", False
-                    ):
-                        self.MIN_SELL_LOSS_THRESHOLD = self.sell_params[
-                            "min_sell_loss_threshold"
-                        ]
-
-                if not hasattr(self, "_thresholds_from_gan") or not getattr(
-                    self, "_thresholds_from_gan", False
-                ):
-                    if (
-                        not hasattr(self, "TRAINING_TYPE") or self.TRAINING_TYPE == 13
-                    ):
-                        self.TRAINING_TYPE = self.training_type.value
-
         self.training_needed = not self.model_exists()
 
     # =========================================================================
