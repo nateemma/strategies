@@ -365,11 +365,22 @@ class GANInterface:
             return metadata or {}
 
         if self.gan_type == GANType.MT_WGAN:
-            # MLX path: mt_wgan_gen_mlx.safetensors + mt_wgan_meta_mlx.pkl
+            # MLX path.  MTWGANMLX writes its files with a ``_s{seq_len}``
+            # suffix when seq_len > 1 (e.g. mt_wgan_meta_mlx_s16.pkl),
+            # so we glob for the metadata file rather than probing a
+            # single fixed name.
             if self._use_mlx:
-                mlx_weights = os.path.join(self.save_path, "mt_wgan_gen_mlx.safetensors")
-                mlx_meta    = os.path.join(self.save_path, "mt_wgan_meta_mlx.pkl")
-                if os.path.exists(mlx_weights) and os.path.exists(mlx_meta):
+                import glob  # noqa: E402
+                meta_candidates = sorted(glob.glob(
+                    os.path.join(self.save_path, "mt_wgan_meta_mlx*.pkl")
+                ))
+                if meta_candidates:
+                    mlx_meta = meta_candidates[0]
+                    if len(meta_candidates) > 1:
+                        print(
+                            f"    Multiple MT_WGAN MLX metadata files found in "
+                            f"{self.save_path}: {meta_candidates}.  Using {mlx_meta}."
+                        )
                     try:
                         import pickle  # noqa: E402
                         from GANs.df_mt_wgan_mlx import MTWGANMLX  # noqa: E402
@@ -381,10 +392,14 @@ class GANInterface:
                             task_label_dims=metadata["task_label_dims"],
                             latent_dim=metadata.get("latent_dim", 64),
                         )
+                        # MTWGANMLX.load() reconstructs the per-seq_len paths
+                        # internally via _get_paths, so it finds the matching
+                        # weight files even when the suffix is present.
                         ok, _ = gan.load(self.save_path)
                         if not ok:
                             raise RuntimeError(
-                                f"MTWGANMLX.load() failed for {self.save_path}"
+                                f"MTWGANMLX.load() failed for {self.save_path} "
+                                f"(metadata file: {mlx_meta})"
                             )
                         self._model = gan
                         return metadata

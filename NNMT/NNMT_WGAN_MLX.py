@@ -19,7 +19,7 @@ sys.path.append(group_dir)
 
 from NNMT_WGAN import NNMT_WGAN  # noqa: E402
 from ClassifierKeras import ClassifierKeras
-from NNNC.NNNClassifierMLX import ClassifierTypeMLX, create_classifier_mlx
+from NNMT.NNMTClassifierMLX import ClassifierTypeMLX, create_classifier_mlx
 
 # -----------
 
@@ -34,10 +34,16 @@ class NNMT_WGAN_MLX(NNMT_WGAN):
     def get_classifier(
         self, classifier_type, pair, seq_len, num_features
     ) -> ClassifierKeras:
+        """Return the classifier used for training/predicting.
+
+        The multi-task MLX factory does not take an ``nclasses`` argument —
+        each of the six task heads emits a fixed 3-way softmax — so the call
+        site here matches the Keras MT factory (NNMTClassifier.create_classifier)
+        rather than the single-task NNNClassifierMLX one.
+        """
         if hasattr(mx, "metal") and mx.metal.is_available():
-            """Return the classifier used for training/predicting"""
             clf, _ = create_classifier_mlx(
-                classifier_type, pair, num_features, seq_len, 3
+                classifier_type, pair, num_features, seq_len
             )
         else:
             print(
