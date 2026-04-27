@@ -251,23 +251,46 @@ class TestCGANLifecycle(unittest.TestCase):
         return mock_mod, mock_model
 
     def test_fit_dispatches_to_cgan(self):
-        """fit() for CGAN must dispatch to _fit_cgan (verified via _model being set)."""
-        iface = GANInterface(GANType.CGAN, save_path="/tmp/cgan", prefer_mlx=False)
-        sentinel = object()
-        iface._fit_cgan = lambda *a, **kw: setattr(iface, "_model", sentinel)
-        data   = np.zeros((30, 1, 20), dtype="float32")
-        labels = np.eye(3, dtype="float32")[[0]*10 + [1]*10 + [2]*10]
-        iface.fit(data, labels)
-        self.assertIs(iface._model, sentinel)
+        """fit() for CGAN drives a DFCGAN through training and stores it."""
+        # Phase 2: CGAN goes through the backend registry.  Drive a fully
+        # mocked DFCGAN through the new path and assert the constructor
+        # was invoked + the resulting model lands on the interface.
+        mock_mod, mock_model = self._mock_cgan_module()
+
+        # The CGAN backend imports tensorflow inside fit; stub it so the
+        # import resolves to a mock, then the rest of the fit body sees
+        # placeholder tf.* calls.
+        mock_tf = MagicMock()
+
+        data = np.zeros((30, 1, 20), dtype="float32")
+        labels = np.eye(3, dtype="float32")[[0] * 10 + [1] * 10 + [2] * 10]
+
+        with patch.dict("sys.modules", {
+            "GANs.df_cgan": mock_mod,
+            "tensorflow":    mock_tf,
+        }):
+            iface = GANInterface(GANType.CGAN, save_path="/tmp/cgan", prefer_mlx=False)
+            iface.fit(data, labels)
+
+        mock_mod.DFCGAN.assert_called_once()
+        # GANInterface mirrors the backend's underlying _model onto self._model.
+        self.assertIs(iface._model, mock_model)
 
     def test_save_calls_save_cgan_model(self):
+        """save() for CGAN ultimately invokes _save_cgan_model."""
         mock_mod, mock_model = self._mock_cgan_module()
         mock_model._interface_metadata = {
-            "seq_len": 1, "num_features": 20, "num_classes": 3
+            "seq_len": 1, "num_features": 20, "num_classes": 3,
         }
 
+        # Drive through the backend rather than setting _model directly,
+        # since save() now delegates via self._backend when present.
+        from GANs.backends.cgan import CGANTFBackend  # noqa: E402
+        backend = CGANTFBackend()
+        backend._model = mock_model
+
         iface = GANInterface(GANType.CGAN, save_path="/tmp/cgan", prefer_mlx=False)
-        iface._model = mock_model
+        iface._backend = backend
 
         with patch.dict("sys.modules", {"GANs.df_cgan": mock_mod}):
             iface.save(extra_key="extra_val")

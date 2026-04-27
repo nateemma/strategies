@@ -59,7 +59,11 @@ import GANs.backends  # noqa: F401  — side-effect: registers concrete backends
 # types still go through the type-specific dispatch methods below.  As
 # more types migrate (CGAN, WGAN, MT_WGAN), they'll be added to this set
 # and the corresponding _fit_*/load branches removed.
-_BACKEND_MIGRATED: set = {GANType.CTAB_GAN, GANType.MT_CTAB_GAN}
+_BACKEND_MIGRATED: set = {
+    GANType.CTAB_GAN,
+    GANType.MT_CTAB_GAN,
+    GANType.CGAN,
+}
 
 
 # ---------------------------------------------------------------------------
@@ -223,7 +227,6 @@ class GANInterface:
         _FIT_DISPATCH = {
             GANType.WGAN:        self._fit_wgan,
             GANType.MT_WGAN:     self._fit_mt_wgan,
-            GANType.CGAN:        self._fit_cgan,
         }
         if self.gan_type not in _FIT_DISPATCH:
             raise ValueError(
@@ -274,13 +277,20 @@ class GANInterface:
                 raise ValueError("generate() for MT_WGAN requires keyword argument task_labels=<dict>")
             return self._model.generate(n, task_labels)
 
+        # CTAB-GAN family + CGAN are handled by the backend registry —
+        # see the early return at the top of generate().  Reaching here
+        # for them means the legacy mock-based tests set self._model
+        # directly without going through fit/load; keep the legacy
+        # delegation for that case.
         if self.gan_type == GANType.CGAN:
             one_hot = kwargs.get("one_hot")
             if one_hot is None:
-                raise ValueError("generate() for CGAN requires keyword argument one_hot=<np.ndarray>")
+                raise ValueError(
+                    "generate() for CGAN requires keyword argument one_hot=<np.ndarray>"
+                )
             return self._model.generate(n, one_hot)
 
-        # CTAB-GAN family — delegate unchanged
+        # CTAB-GAN family — legacy mock-test fallback
         num_samples = kwargs.pop("num_samples", n)
         return self._model.generate(num_samples=num_samples, **kwargs)
 
@@ -374,16 +384,9 @@ class GANInterface:
             _save_mt_wgan_model(self._model, meta, self.save_path)
             return
 
-        if self.gan_type == GANType.CGAN:
-            from GANs.df_cgan import _save_cgan_model  # noqa: E402
-            meta = dict(getattr(self._model, "_interface_metadata", {}))
-            meta.update(extra_metadata)
-            _save_cgan_model(self._model, meta, self.save_path)
-            return
-
-        # CTAB-GAN / MT-CTAB-GAN are handled via the backend registry —
-        # see the early return at the top of save().  Reaching here means
-        # an unhandled GANType slipped through.
+        # CGAN, CTAB-GAN, and MT-CTAB-GAN are handled via the backend
+        # registry — see the early return at the top of save().
+        # Reaching here means an unhandled GANType slipped through.
         raise ValueError(
             f"save() not supported for GANType.{self.gan_type.name}"
         )
@@ -491,19 +494,8 @@ class GANInterface:
             self._model._interface_metadata = metadata or {}
             return metadata or {}
 
-        # CTAB_GAN / MT_CTAB_GAN are handled by the backend registry —
-        # see the early return at the top of load().
-
-        if self.gan_type == GANType.CGAN:
-            from GANs.df_cgan import _load_cgan_model  # noqa: E402
-            gan, metadata = _load_cgan_model(self.save_path)
-            if gan is None:
-                raise RuntimeError(
-                    f"No saved CGAN model found at {self.save_path}"
-                )
-            self._model = gan
-            self._model._interface_metadata = metadata or {}
-            return metadata or {}
+        # CGAN, CTAB-GAN, and MT-CTAB-GAN are handled by the backend
+        # registry — see the early return at the top of load().
 
         raise ValueError(
             f"load() is not supported for GANType.{self.gan_type.name}."
@@ -660,91 +652,5 @@ class GANInterface:
             **fit_kwargs,
         )
 
-    def _fit_cgan(
-        self,
-        data: np.ndarray,
-        labels: np.ndarray,
-        _categorical_columns: Optional[List[str]],
-        caller_overrides: Dict[str, Any],
-    ) -> None:
-        import tensorflow as tf
-        from GANs.df_cgan import DFCGAN  # noqa: E402
-
-        data_f32 = np.asarray(data, dtype="float32")
-        labels_f32 = np.asarray(labels, dtype="float32")
-        if data_f32.ndim != 3:
-            raise ValueError(
-                f"CGAN requires 3D input (N, seq_len, features), got shape {data_f32.shape}"
-            )
-        num_samples, seq_len, num_features = data_f32.shape
-        num_classes = labels_f32.shape[1]
-
-        config = self._resolved_config(**caller_overrides)
-
-        # Feature stats used by the generator for output rescaling/clipping
-        feature_mean = data_f32.mean(axis=(0, 1)).astype("float32")
-        feature_std  = data_f32.std(axis=(0, 1)).astype("float32")
-        feature_min  = data_f32.min(axis=(0, 1)).astype("float32")
-        feature_max  = data_f32.max(axis=(0, 1)).astype("float32")
-
-        batch_size    = int(config.get("batch_size", 256))
-        learning_rate = float(config.get("learning_rate", 3e-4))
-
-        ds = tf.data.Dataset.from_tensor_slices((data_f32, labels_f32))
-        ds = ds.shuffle(buffer_size=min(8192, num_samples)).batch(batch_size).prefetch(tf.data.AUTOTUNE)
-
-        gan = DFCGAN(
-            seq_len=seq_len,
-            num_features=num_features,
-            num_classes=num_classes,
-            latent_dim=int(config.get("latent_dim", 64)),
-            d_steps=int(config.get("d_steps", 2)),
-            instance_noise_std=float(config.get("instance_noise_std", 0.01)),
-            label_smoothing=bool(config.get("label_smoothing", True)),
-            fm_weight=float(config.get("fm_weight", 1.0)),
-            fm_var_weight=float(config.get("fm_var_weight", 0.5)),
-            mmd_weight=float(config.get("mmd_weight", 0.5)),
-            feature_mean=feature_mean,
-            feature_std=feature_std,
-            feature_min=feature_min,
-            feature_max=feature_max,
-            generator_arch=str(config.get("generator_arch", "cnn")),
-            gen_base_filters=int(config.get("gen_base_filters", 128)),
-            gen_kernel_size=int(config.get("gen_kernel_size", 3)),
-            gen_upsample_blocks=int(config.get("gen_upsample_blocks", 2)),
-        )
-        gan.compile(
-            d_optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate, clipnorm=1.0),
-            g_optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate, clipnorm=1.0),
-            loss_fn=tf.keras.losses.BinaryCrossentropy(from_logits=True),
-        )
-
-        epochs           = int(config.get("epochs", 100))
-        steps_per_epoch  = config.get("steps_per_epoch")
-        verbose          = 1 if config.get("verbose", True) else 0
-
-        gan.fit(ds, epochs=epochs, steps_per_epoch=steps_per_epoch, verbose=verbose)
-
-        # Metadata needed to reconstruct the model via _load_cgan_model
-        gan._interface_metadata = {
-            "seq_len":             seq_len,
-            "num_features":        num_features,
-            "num_classes":         num_classes,
-            "latent_dim":          gan.latent_dim,
-            "d_steps":             gan.d_steps,
-            "instance_noise_std":  gan.instance_noise_std,
-            "label_smoothing":     gan.label_smoothing,
-            "fm_weight":           gan.fm_weight,
-            "fm_var_weight":       gan.fm_var_weight,
-            "mmd_weight":          gan.mmd_weight,
-            "feature_mean":        feature_mean,
-            "feature_std":         feature_std,
-            "feature_min":         feature_min,
-            "feature_max":         feature_max,
-            "generator_arch":      config.get("generator_arch", "cnn"),
-            "gen_base_filters":    int(config.get("gen_base_filters", 128)),
-            "gen_kernel_size":     int(config.get("gen_kernel_size", 3)),
-            "gen_upsample_blocks": int(config.get("gen_upsample_blocks", 2)),
-            "learning_rate":       learning_rate,
-        }
-        self._model = gan
+    # _fit_cgan was removed in Phase 2b — CGAN is now handled by
+    # GANs.backends.cgan.CGANTFBackend via the registry.

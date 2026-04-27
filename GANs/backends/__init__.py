@@ -11,3 +11,4 @@ Adding a new backend:
 """
 
 from . import ctab_gan  # noqa: F401  — registers CTAB-GAN + MT-CTAB-GAN backends
+from . import cgan      # noqa: F401  — registers CGAN backend
