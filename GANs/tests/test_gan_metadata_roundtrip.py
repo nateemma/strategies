@@ -162,28 +162,25 @@ def _save_via_interface(
     model: object,
     save_path: str,
     *,
-    df_module_path: str,
-    df_module_attr: str,
+    backend_cls,
     **extras,
 ) -> None:
     """
-    Drive GANInterface.save() with a stand-in model.
+    Drive GANInterface.save() with a stand-in model wrapped in a real
+    GANBackend instance.
 
-    GANInterface uses ``isinstance(self._model, WGANMLX)`` (or similar)
-    to decide which save branch to take, so we patch the real module
-    with a fake whose ``WGANMLX`` attribute is the stand-in's class.
+    Phase 2 of the GAN refactor moved per-type save logic from
+    isinstance-based dispatch in GANInterface into concrete backend
+    classes.  The cleanest way to test "what does save write to disk
+    for backend X" is to construct backend X with a stand-in ``_model``
+    and have GANInterface delegate to it.
     """
-    fake_module = MagicMock()
-    setattr(fake_module, df_module_attr, type(model))
+    backend = backend_cls()
+    backend._model = model
 
     iface = GANInterface(gan_type, save_path=save_path, prefer_mlx=True)
-    iface._model = model
-
-    # We need _HAS_MLX=True so the MLX branch is taken in save().
-    with patch("GANs.GANInterface._HAS_MLX", True):
-        iface._use_mlx = True
-        with patch.dict("sys.modules", {df_module_path: fake_module}):
-            iface.save(**extras)
+    iface._backend = backend
+    iface.save(**extras)
 
 
 def _load_pickle(path: str) -> dict:
@@ -200,11 +197,11 @@ class TestWGANMLXMetadata(unittest.TestCase):
     """GANInterface.save() for WGAN MLX writes wgangp_metadata.pkl."""
 
     def _save_and_load_metadata(self, save_path: str) -> dict:
+        from GANs.backends.wgan import WGANMLXBackend  # noqa: E402
         model = _StandInWGANMLX()
         _save_via_interface(
             GANType.WGAN, model, save_path,
-            df_module_path="GANs.df_wgan_mlx",
-            df_module_attr="WGANMLX",
+            backend_cls=WGANMLXBackend,
             **_USER_EXTRAS,
         )
         meta_path = os.path.join(save_path, "wgangp_metadata.pkl")
@@ -258,13 +255,23 @@ class TestMTWGANMLXMetadata(unittest.TestCase):
     """GANInterface.save() for MT_WGAN MLX writes mt_wgan_meta_mlx_s{N}.pkl."""
 
     def _save_and_load_metadata(self, save_path: str) -> dict:
+        # MT_WGAN hasn't been migrated yet (Phase 2d); for now this test
+        # still drives the isinstance-based legacy save path in
+        # GANInterface, just like before.  When MT_WGAN migrates the
+        # body of this method will switch to backend_cls= like the WGAN
+        # equivalent above.
+        fake_module = MagicMock()
+        fake_module.MTWGANMLX = type(_StandInMTWGANMLX())
+
         model = _StandInMTWGANMLX()
-        _save_via_interface(
-            GANType.MT_WGAN, model, save_path,
-            df_module_path="GANs.df_mt_wgan_mlx",
-            df_module_attr="MTWGANMLX",
-            **_USER_EXTRAS,
+        iface = GANInterface(
+            GANType.MT_WGAN, save_path=save_path, prefer_mlx=True
         )
+        iface._model = model
+        with patch("GANs.GANInterface._HAS_MLX", True):
+            iface._use_mlx = True
+            with patch.dict("sys.modules", {"GANs.df_mt_wgan_mlx": fake_module}):
+                iface.save(**_USER_EXTRAS)
         # seq_len=16 ⇒ filename gets _s16 suffix
         meta_path = os.path.join(save_path, "mt_wgan_meta_mlx_s16.pkl")
         self.assertTrue(
@@ -364,11 +371,11 @@ class TestCrossBackendInvariants(unittest.TestCase):
             "training_type": np.int64(19),
         }
         with tempfile.TemporaryDirectory() as td:
+            from GANs.backends.wgan import WGANMLXBackend  # noqa: E402
             model = _StandInWGANMLX()
             _save_via_interface(
                 GANType.WGAN, model, td,
-                df_module_path="GANs.df_wgan_mlx",
-                df_module_attr="WGANMLX",
+                backend_cls=WGANMLXBackend,
                 **extras,
             )
             meta = _load_pickle(os.path.join(td, "wgangp_metadata.pkl"))

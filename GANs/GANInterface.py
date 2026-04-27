@@ -63,6 +63,7 @@ _BACKEND_MIGRATED: set = {
     GANType.CTAB_GAN,
     GANType.MT_CTAB_GAN,
     GANType.CGAN,
+    GANType.WGAN,
 }
 
 
@@ -225,7 +226,6 @@ class GANInterface:
             return
 
         _FIT_DISPATCH = {
-            GANType.WGAN:        self._fit_wgan,
             GANType.MT_WGAN:     self._fit_mt_wgan,
         }
         if self.gan_type not in _FIT_DISPATCH:
@@ -265,28 +265,23 @@ class GANInterface:
                 "No model is available.  Call fit() to train one or "
                 "load() to restore a saved model."
             )
-        if self.gan_type == GANType.WGAN:
-            one_hot = kwargs.get("one_hot")
-            if one_hot is None:
-                raise ValueError("generate() for WGAN requires keyword argument one_hot=<np.ndarray>")
-            return self._model.generate(n, one_hot)
-
         if self.gan_type == GANType.MT_WGAN:
             task_labels = kwargs.get("task_labels")
             if task_labels is None:
                 raise ValueError("generate() for MT_WGAN requires keyword argument task_labels=<dict>")
             return self._model.generate(n, task_labels)
 
-        # CTAB-GAN family + CGAN are handled by the backend registry —
-        # see the early return at the top of generate().  Reaching here
-        # for them means the legacy mock-based tests set self._model
-        # directly without going through fit/load; keep the legacy
-        # delegation for that case.
-        if self.gan_type == GANType.CGAN:
+        # CTAB-GAN family, CGAN, and WGAN are handled by the backend
+        # registry — see the early return at the top of generate().
+        # Reaching here for them means the legacy mock-based tests set
+        # self._model directly without going through fit/load; keep
+        # legacy delegation + arg validation for that case.
+        if self.gan_type in (GANType.WGAN, GANType.CGAN):
             one_hot = kwargs.get("one_hot")
             if one_hot is None:
                 raise ValueError(
-                    "generate() for CGAN requires keyword argument one_hot=<np.ndarray>"
+                    f"generate() for {self.gan_type.name} requires "
+                    f"keyword argument one_hot=<np.ndarray>"
                 )
             return self._model.generate(n, one_hot)
 
@@ -322,34 +317,6 @@ class GANInterface:
         # using the same one-line shape the legacy code did.
         if self.gan_type in _BACKEND_MIGRATED:
             self._model.save(self.save_path, **extra_metadata)
-            return
-
-        if self.gan_type == GANType.WGAN:
-            # MLX path: WGANMLX has its own save() for weights; we write
-            # wgangp_metadata.pkl alongside it for load() to reconstruct.
-            try:
-                from GANs.df_wgan_mlx import WGANMLX  # noqa: E402
-                if isinstance(self._model, WGANMLX):
-                    import pickle  # noqa: E402
-                    os.makedirs(self.save_path, exist_ok=True)
-                    self._model.save(self.save_path)  # → wgan_gen_mlx.safetensors
-                    meta = {
-                        "num_features": self._model.num_features,
-                        "num_classes":  self._model.num_classes,
-                        "latent_dim":   self._model.latent_dim,
-                        "seq_len":      1,
-                    }
-                    meta.update(extra_metadata)
-                    with open(os.path.join(self.save_path, "wgangp_metadata.pkl"), "wb") as _f:
-                        pickle.dump(meta, _f)
-                    return
-            except (ImportError, ModuleNotFoundError):
-                pass
-            # TF path
-            from GANs.df_wgan_gp import _save_wgan_model  # noqa: E402
-            meta = dict(getattr(self._model, "_interface_metadata", {}))
-            meta.update(extra_metadata)
-            _save_wgan_model(self._model, meta, self.save_path)
             return
 
         if self.gan_type == GANType.MT_WGAN:
@@ -408,38 +375,6 @@ class GANInterface:
             )
             self._backend = backend
             self._model = getattr(backend, "_model", None)
-            return metadata or {}
-
-        if self.gan_type == GANType.WGAN:
-            # MLX path: wgan_gen_mlx.safetensors present + prefer_mlx
-            if self._use_mlx:
-                mlx_weights = os.path.join(self.save_path, "wgan_gen_mlx.safetensors")
-                mlx_meta    = os.path.join(self.save_path, "wgangp_metadata.pkl")
-                if os.path.exists(mlx_weights) and os.path.exists(mlx_meta):
-                    try:
-                        import pickle  # noqa: E402
-                        from GANs.df_wgan_mlx import WGANMLX  # noqa: E402
-                        with open(mlx_meta, "rb") as _f:
-                            metadata = pickle.load(_f)
-                        gan = WGANMLX(
-                            metadata["num_features"],
-                            metadata["num_classes"],
-                            latent_dim=metadata.get("latent_dim", 64),
-                        )
-                        gan.load(self.save_path)
-                        self._model = gan
-                        return metadata
-                    except (ImportError, ModuleNotFoundError):
-                        pass
-            # TF path
-            from GANs.df_wgan_gp import _load_wgan_model  # noqa: E402
-            gan, metadata = _load_wgan_model(self.save_path)
-            if gan is None:
-                raise RuntimeError(
-                    f"No saved WGAN model found at {self.save_path}"
-                )
-            self._model = gan
-            self._model._interface_metadata = metadata or {}
             return metadata or {}
 
         if self.gan_type == GANType.MT_WGAN:
@@ -565,38 +500,8 @@ class GANInterface:
             f"_build_model() called for non-model-based type: {self.gan_type.name}"
         )
 
-    def _fit_wgan(
-        self,
-        data: np.ndarray,
-        labels: np.ndarray,
-        _categorical_columns: Optional[List[str]],
-        caller_overrides: Dict[str, Any],
-    ) -> None:
-        data_f32 = np.asarray(data, dtype="float32")
-        labels_f32 = np.asarray(labels, dtype="float32")
-        if data_f32.ndim == 3:
-            # Caller passed 3D; squeeze to 2D for balance_with_wgan_gp
-            data_f32 = data_f32[:, 0, :]
-        config = self._resolved_config(**caller_overrides)
-        config.setdefault("seq_len", 1)
-        config["save_path"] = None              # caller must call save() explicitly
-        config["assess_quality"] = False        # assessed separately if needed
-        config["augmentation_target_ratio"] = 0.0   # train only; no generation needed
-        if self._use_mlx:
-            try:
-                from GANs.df_wgan_mlx import balance_with_wgan_mlx  # noqa: E402
-                _, _, gan = balance_with_wgan_mlx(
-                    data_f32, labels_f32, _return_model=True, **config
-                )
-                self._model = gan
-                return
-            except (ImportError, ModuleNotFoundError):
-                pass
-        from GANs.df_wgan_gp import balance_with_wgan_gp  # noqa: E402
-        _, _, gan = balance_with_wgan_gp(
-            data_f32, labels_f32, _return_model=True, **config
-        )
-        self._model = gan
+    # _fit_wgan was removed in Phase 2c — WGAN is now handled by
+    # GANs.backends.wgan.{WGANTFBackend, WGANMLXBackend} via the registry.
 
     def _fit_mt_wgan(
         self,
