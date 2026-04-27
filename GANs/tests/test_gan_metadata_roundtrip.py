@@ -235,7 +235,6 @@ class TestWGANMLXMetadata(unittest.TestCase):
             self.assertIn(key, meta, f"missing user extra {key!r}")
             self.assertEqual(meta[key], expected, f"user extra {key!r} mutated")
 
-    @unittest.expectedFailure  # known broken — Phase 3 will add these to the MLX path
     def test_feature_stats_persisted(self):
         with tempfile.TemporaryDirectory() as td:
             meta = self._save_and_load_metadata(td)
@@ -298,7 +297,6 @@ class TestMTWGANMLXMetadata(unittest.TestCase):
             self.assertIn(key, meta, f"missing user extra {key!r}")
             self.assertEqual(meta[key], expected, f"user extra {key!r} mutated")
 
-    @unittest.expectedFailure  # known broken — Phase 3 will add these to the MLX path
     def test_feature_stats_persisted(self):
         with tempfile.TemporaryDirectory() as td:
             meta = self._save_and_load_metadata(td)

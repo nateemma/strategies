@@ -238,6 +238,17 @@ class WGANMLXBackend(GANBackend):
             "latent_dim":   self._model.latent_dim,
             "seq_len":      1,
         }
+        # Persist per-feature statistics if the model tracks them.  The
+        # current real WGANMLX class doesn't (a follow-up should add
+        # _postprocess + the stat attrs, mirroring MTWGANMLX), but a
+        # forward-compatible save means existing saves don't need to be
+        # re-saved once that lands.  When stats are absent we just omit
+        # the keys — load() warns about it.
+        for stat_name in ("feature_mean", "feature_std", "feature_min", "feature_max"):
+            stat_value = getattr(self._model, stat_name, None)
+            if stat_value is not None:
+                meta[stat_name] = np.asarray(stat_value, dtype=np.float32)
+
         meta.update(extra_metadata)
         with open(os.path.join(save_path, _MLX_META_FILENAME), "wb") as f:
             pickle.dump(meta, f)
@@ -267,6 +278,16 @@ class WGANMLXBackend(GANBackend):
             latent_dim=metadata.get("latent_dim", 64),
         )
         gan.load(save_path)
+
+        # Restore feature stats onto the model if present in metadata.
+        # The real WGANMLX class doesn't currently use these (no
+        # _postprocess clip), but setting them here means a follow-up
+        # that adds _postprocess will see them automatically.  Older
+        # saves without stats are silently skipped — see save() for
+        # why we don't fail loudly on missing stats here.
+        for stat_name in ("feature_mean", "feature_std", "feature_min", "feature_max"):
+            if stat_name in metadata:
+                setattr(gan, stat_name, np.asarray(metadata[stat_name], dtype=np.float32))
 
         instance = cls()
         instance._model = gan

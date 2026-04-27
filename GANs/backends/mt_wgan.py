@@ -245,6 +245,17 @@ class MTWGANMLXBackend(GANBackend):
             "task_label_dims": dict(self._model.task_label_dims),
             "latent_dim":      self._model.latent_dim,
         }
+        # Persist per-feature statistics so generate()'s _postprocess
+        # clip survives a save/load round trip.  Without these the
+        # generator's output is unbounded — that's the failure mode
+        # that produced NaN samples in WGAN-augmented training data
+        # before this fix.
+        for stat_name in ("feature_mean", "feature_std", "feature_min", "feature_max"):
+            stat_value = getattr(self._model, stat_name, None)
+            if stat_value is not None:
+                # numpy arrays survive pickle natively.
+                meta[stat_name] = np.asarray(stat_value, dtype=np.float32)
+
         meta.update(extra_metadata)
         self._model.save(save_path, meta)
 
@@ -287,6 +298,26 @@ class MTWGANMLXBackend(GANBackend):
                 f"MTWGANMLX.load() failed for {save_path} "
                 f"(metadata file: {meta_path})"
             )
+
+        # Restore feature stats from metadata so _postprocess()'s
+        # clip works on a freshly loaded model the same way it did
+        # immediately after fit().  Older saves (pre-Phase-3) won't
+        # have these keys — degrade gracefully (clip becomes a no-op),
+        # but warn so the user knows to retrain.
+        missing_stats = [
+            n for n in ("feature_mean", "feature_std", "feature_min", "feature_max")
+            if n not in metadata
+        ]
+        if missing_stats:
+            print(
+                f"    WARNING: MT_WGAN MLX model at {save_path} was saved "
+                f"without feature stats {missing_stats}; output clipping "
+                f"will be skipped.  Retrain with the current code to "
+                f"populate these."
+            )
+        else:
+            for stat_name in ("feature_mean", "feature_std", "feature_min", "feature_max"):
+                setattr(gan, stat_name, np.asarray(metadata[stat_name], dtype=np.float32))
 
         instance = cls()
         instance._model = gan

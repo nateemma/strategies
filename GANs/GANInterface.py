@@ -37,6 +37,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
+import numpy as np
+
 from GANs.GANType import GANType
 from GANs.GANBackend import (
     GANBackend,
@@ -44,6 +46,45 @@ from GANs.GANBackend import (
     load_with_fallback,
 )
 import GANs.backends  # noqa: F401  — side-effect: registers concrete backends
+
+
+# ---------------------------------------------------------------------------
+# Output validation
+# ---------------------------------------------------------------------------
+
+
+def _assert_generated_finite(result: Any, *, gan_type: GANType) -> None:
+    """
+    Raise ValueError if ``result`` (the return value of generate())
+    contains any non-finite values.
+
+    Handles the four output shapes the various backends produce:
+      * np.ndarray (WGAN, CGAN)
+      * tuple of (samples_ndarray, labels_dict) (MT_WGAN)
+      * pd.DataFrame (CTAB_GAN)
+      * tuple of (DataFrame, labels_dict) (MT_CTAB_GAN)
+
+    The labels portion of the multi-task tuples is always one-hot
+    finite by construction; we don't bother checking it.
+    """
+    samples = result[0] if isinstance(result, tuple) else result
+
+    # DataFrames need .values; everything else is array-like.
+    if hasattr(samples, "values") and not isinstance(samples, np.ndarray):
+        arr = np.asarray(samples.values)
+    else:
+        arr = np.asarray(samples)
+
+    if not np.isfinite(arr).all():
+        n_bad = int((~np.isfinite(arr)).sum())
+        raise ValueError(
+            f"generate() for GANType.{gan_type.name} produced "
+            f"{n_bad} non-finite values (out of {arr.size}).  This "
+            f"usually means the generator's output isn't bounded "
+            f"(WGAN-MLX in particular has no _postprocess clip "
+            f"today).  Letting these reach a classifier corrupts "
+            f"training — fix the generator or pre-clip the output."
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -245,7 +286,21 @@ class GANInterface:
 
         Raises:
             RuntimeError: If neither fit() nor load() has been called.
+            ValueError:   If the generated output contains NaN/Inf
+                          values.  Generators that haven't fully
+                          converged or that lack output clipping
+                          (see WGAN-MLX) can produce non-finite
+                          samples; we reject them at the boundary
+                          rather than let them poison downstream
+                          consumers (the failure mode that
+                          surfaced in NNMT_WGAN_MLX training).
         """
+        result = self._dispatch_generate(n, **kwargs)
+        _assert_generated_finite(result, gan_type=self.gan_type)
+        return result
+
+    def _dispatch_generate(self, n: int, **kwargs: Any) -> Any:
+        """Internal: do the actual generate without the finiteness check."""
         # Phase 2: migrated types delegate straight to the backend.
         if self._backend is not None:
             return self._backend.generate(n, **kwargs)

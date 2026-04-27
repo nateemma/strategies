@@ -97,11 +97,10 @@ class TestWGANOutputContract(unittest.TestCase):
 
         self.assertEqual(np.asarray(out).dtype, np.float32)
 
-    @unittest.expectedFailure  # Phase 3: GANBackend.generate() will assert finiteness.
     def test_rejects_non_finite_output(self):
-        """When the underlying generator emits NaN/Inf, GANInterface should
-        either filter, replace, or raise — not silently propagate the bad
-        samples downstream."""
+        """When the underlying generator emits NaN/Inf, GANInterface
+        raises ValueError — non-finite samples must not reach the
+        consumer."""
         n = 50
         bad = np.zeros((n, 1, 25), dtype=np.float32)
         bad[3, 0, 7] = np.nan
@@ -111,10 +110,8 @@ class TestWGANOutputContract(unittest.TestCase):
         model.generate.return_value = bad
 
         iface = _interface_with_model(GANType.WGAN, model)
-        out = iface.generate(n, one_hot=_one_hot(n))
-
-        self.assertTrue(np.isfinite(np.asarray(out)).all(),
-                        "Non-finite values should not reach the consumer")
+        with self.assertRaises(ValueError):
+            iface.generate(n, one_hot=_one_hot(n))
 
 
 # ---------------------------------------------------------------------------
@@ -181,7 +178,6 @@ class TestMTWGANOutputContract(unittest.TestCase):
             self.assertEqual(gen_labels[task].shape, labels[task].shape,
                              f"shape mismatch for task {task!r}")
 
-    @unittest.expectedFailure  # Phase 3 contract.
     def test_rejects_non_finite_samples(self):
         n, S, F = 50, 16, 25
         labels = self._task_labels(n)
@@ -192,9 +188,8 @@ class TestMTWGANOutputContract(unittest.TestCase):
         model.generate.return_value = (bad, labels)
 
         iface = _interface_with_model(GANType.MT_WGAN, model)
-        gen_x, _ = iface.generate(n, task_labels=labels)
-
-        self.assertTrue(np.isfinite(gen_x).all())
+        with self.assertRaises(ValueError):
+            iface.generate(n, task_labels=labels)
 
 
 # ---------------------------------------------------------------------------
@@ -214,7 +209,6 @@ class TestCGANOutputContract(unittest.TestCase):
 
         self.assertEqual(out.shape, (n, S, F))
 
-    @unittest.expectedFailure  # Phase 3 contract.
     def test_rejects_non_finite_output(self):
         n = 50
         bad = np.zeros((n, 16, 25), dtype=np.float32)
@@ -224,9 +218,8 @@ class TestCGANOutputContract(unittest.TestCase):
         model.generate.return_value = bad
 
         iface = _interface_with_model(GANType.CGAN, model)
-        out = iface.generate(n, one_hot=_one_hot(n))
-
-        self.assertTrue(np.isfinite(np.asarray(out)).all())
+        with self.assertRaises(ValueError):
+            iface.generate(n, one_hot=_one_hot(n))
 
 
 # ---------------------------------------------------------------------------
