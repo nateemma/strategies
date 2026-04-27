@@ -42,6 +42,24 @@ import numpy as np
 import pandas as pd
 
 from GANs.GANType import GANType
+from GANs.GANBackend import (
+    GANBackend,
+    resolve_backend,
+    fit_with_fallback,
+    load_with_fallback,
+)
+import GANs.backends  # noqa: F401  — side-effect: registers concrete backends
+
+
+# ---------------------------------------------------------------------------
+# Phase 2 migration tracker
+# ---------------------------------------------------------------------------
+
+# GAN types that have been migrated to the GANBackend registry.  Other
+# types still go through the type-specific dispatch methods below.  As
+# more types migrate (CGAN, WGAN, MT_WGAN), they'll be added to this set
+# and the corresponding _fit_*/load branches removed.
+_BACKEND_MIGRATED: set = {GANType.CTAB_GAN, GANType.MT_CTAB_GAN}
 
 
 # ---------------------------------------------------------------------------
@@ -147,7 +165,11 @@ class GANInterface:
         self.gan_type = gan_type
         self.save_path = save_path
         self._use_mlx: bool = prefer_mlx and _HAS_MLX
+        # Legacy slot for non-migrated GAN types.  Migrated types use
+        # ``self._backend`` (a GANBackend instance) instead.  See
+        # ``_BACKEND_MIGRATED`` at module top.
         self._model: Optional[Any] = None
+        self._backend: Optional[GANBackend] = None
 
     # ---------------------------------------------------------------------- #
     # fit() / generate() / save() / load() — all GAN types                  #
@@ -176,11 +198,31 @@ class GANInterface:
                                  categorical (auto-detected when None).
             **caller_overrides: Override any default training parameter.
         """
+        # Phase 2: types migrated to the GANBackend registry go through
+        # resolve_backend → backend.fit, fully bypassing the
+        # type-specific _fit_* methods below.  The resolved config is
+        # passed as **kwargs and the backend silently drops keys it
+        # doesn't recognise.
+        if self.gan_type in _BACKEND_MIGRATED:
+            config = self._resolved_config(**caller_overrides)
+            # Drop save_path — it's a separate save() call, not a fit kwarg.
+            config.pop("save_path", None)
+            # fit_with_fallback handles the MLX→TF fallback when an MLX
+            # backend's underlying module fails to import (matches the
+            # pre-refactor try/except in _build_model).
+            self._backend = fit_with_fallback(
+                self.gan_type, data, labels,
+                prefer_mlx=self._use_mlx,
+                categorical_columns=categorical_columns,
+                **config,
+            )
+            # Mirror onto self._model for any caller still inspecting it.
+            self._model = getattr(self._backend, "_model", None)
+            return
+
         _FIT_DISPATCH = {
             GANType.WGAN:        self._fit_wgan,
             GANType.MT_WGAN:     self._fit_mt_wgan,
-            GANType.CTAB_GAN:    self._fit_ctab,
-            GANType.MT_CTAB_GAN: self._fit_ctab,
             GANType.CGAN:        self._fit_cgan,
         }
         if self.gan_type not in _FIT_DISPATCH:
@@ -211,6 +253,10 @@ class GANInterface:
         Raises:
             RuntimeError: If neither fit() nor load() has been called.
         """
+        # Phase 2: migrated types delegate straight to the backend.
+        if self._backend is not None:
+            return self._backend.generate(n, **kwargs)
+
         if self._model is None:
             raise RuntimeError(
                 "No model is available.  Call fit() to train one or "
@@ -248,10 +294,25 @@ class GANInterface:
             RuntimeError: If neither fit() nor load() has been called, or
                           save_path is None.
         """
+        # Phase 2: migrated types delegate straight to the backend.
+        if self._backend is not None:
+            if self.save_path is None:
+                raise RuntimeError("save_path is None; cannot persist model.")
+            self._backend.save(self.save_path, **extra_metadata)
+            return
+
         if self._model is None:
             raise RuntimeError("No model to save.  Call fit() first.")
         if self.save_path is None:
             raise RuntimeError("save_path is None; cannot persist model.")
+
+        # Migrated types reach here only when the caller bypassed fit()
+        # and set ``self._model`` directly (the existing mock-based tests
+        # in test_gan_interface.py do this).  Delegate to model.save
+        # using the same one-line shape the legacy code did.
+        if self.gan_type in _BACKEND_MIGRATED:
+            self._model.save(self.save_path, **extra_metadata)
+            return
 
         if self.gan_type == GANType.WGAN:
             # MLX path: WGANMLX has its own save() for weights; we write
@@ -320,8 +381,12 @@ class GANInterface:
             _save_cgan_model(self._model, meta, self.save_path)
             return
 
-        # CTAB-GAN family
-        self._model.save(self.save_path, **extra_metadata)
+        # CTAB-GAN / MT-CTAB-GAN are handled via the backend registry —
+        # see the early return at the top of save().  Reaching here means
+        # an unhandled GANType slipped through.
+        raise ValueError(
+            f"save() not supported for GANType.{self.gan_type.name}"
+        )
 
     def load(self) -> Dict[str, Any]:
         """Restore a saved model from save_path.
@@ -332,6 +397,16 @@ class GANInterface:
         Returns:
             Metadata dict stored alongside the model (e.g. thresholds).
         """
+        # Phase 2: migrated types use the GANBackend registry's
+        # MLX-then-TF fallback probe.
+        if self.gan_type in _BACKEND_MIGRATED:
+            backend, metadata = load_with_fallback(
+                self.gan_type, self.save_path, prefer_mlx=self._use_mlx
+            )
+            self._backend = backend
+            self._model = getattr(backend, "_model", None)
+            return metadata or {}
+
         if self.gan_type == GANType.WGAN:
             # MLX path: wgan_gen_mlx.safetensors present + prefer_mlx
             if self._use_mlx:
@@ -416,23 +491,8 @@ class GANInterface:
             self._model._interface_metadata = metadata or {}
             return metadata or {}
 
-        if self.gan_type == GANType.CTAB_GAN:
-            mlx_meta = os.path.join(self.save_path, "metadata_mlx.pkl")
-            if self._use_mlx and os.path.exists(mlx_meta):
-                try:
-                    from GANs.df_ctab_gan_mlx import CTABGANMLX  # noqa: E402
-                    self._model = CTABGANMLX()
-                    return self._model.load(self.save_path)
-                except (ImportError, ModuleNotFoundError):
-                    pass
-            from GANs.df_ctab_gan import CTABGANPlus  # noqa: E402
-            self._model = CTABGANPlus()
-            return self._model.load(self.save_path)
-
-        if self.gan_type == GANType.MT_CTAB_GAN:
-            from GANs.df_mt_ctab_gan import CTABGANPlusMT  # noqa: E402
-            self._model = CTABGANPlusMT()
-            return self._model.load(self.save_path)
+        # CTAB_GAN / MT_CTAB_GAN are handled by the backend registry —
+        # see the early return at the top of load().
 
         if self.gan_type == GANType.CGAN:
             from GANs.df_cgan import _load_cgan_model  # noqa: E402
