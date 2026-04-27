@@ -35,16 +35,11 @@ Usage — CGAN (sequential, 3D input):
 
 from __future__ import annotations
 
-import os
 from typing import Any, Dict, List, Optional
-
-import numpy as np
-import pandas as pd
 
 from GANs.GANType import GANType
 from GANs.GANBackend import (
     GANBackend,
-    resolve_backend,
     fit_with_fallback,
     load_with_fallback,
 )
@@ -64,6 +59,7 @@ _BACKEND_MIGRATED: set = {
     GANType.MT_CTAB_GAN,
     GANType.CGAN,
     GANType.WGAN,
+    GANType.MT_WGAN,
 }
 
 
@@ -208,31 +204,25 @@ class GANInterface:
         # type-specific _fit_* methods below.  The resolved config is
         # passed as **kwargs and the backend silently drops keys it
         # doesn't recognise.
-        if self.gan_type in _BACKEND_MIGRATED:
-            config = self._resolved_config(**caller_overrides)
-            # Drop save_path — it's a separate save() call, not a fit kwarg.
-            config.pop("save_path", None)
-            # fit_with_fallback handles the MLX→TF fallback when an MLX
-            # backend's underlying module fails to import (matches the
-            # pre-refactor try/except in _build_model).
-            self._backend = fit_with_fallback(
-                self.gan_type, data, labels,
-                prefer_mlx=self._use_mlx,
-                categorical_columns=categorical_columns,
-                **config,
-            )
-            # Mirror onto self._model for any caller still inspecting it.
-            self._model = getattr(self._backend, "_model", None)
-            return
-
-        _FIT_DISPATCH = {
-            GANType.MT_WGAN:     self._fit_mt_wgan,
-        }
-        if self.gan_type not in _FIT_DISPATCH:
+        # Phase 2 complete: every GANType with fit() support goes through
+        # the registry.  fit_with_fallback handles MLX→TF graceful
+        # fallback when an MLX backend's underlying module fails to
+        # import.  Backends silently ignore kwargs they don't recognise.
+        if self.gan_type not in _BACKEND_MIGRATED:
             raise ValueError(
                 f"fit() is not supported for GANType.{self.gan_type.name}."
             )
-        _FIT_DISPATCH[self.gan_type](data, labels, categorical_columns, caller_overrides)
+        config = self._resolved_config(**caller_overrides)
+        # Drop save_path — it's a separate save() call, not a fit kwarg.
+        config.pop("save_path", None)
+        self._backend = fit_with_fallback(
+            self.gan_type, data, labels,
+            prefer_mlx=self._use_mlx,
+            categorical_columns=categorical_columns,
+            **config,
+        )
+        # Mirror onto self._model for any caller still inspecting it.
+        self._model = getattr(self._backend, "_model", None)
 
     def generate(self, n: int, **kwargs: Any) -> Any:
         """Generate synthetic samples from a fitted or loaded model.
@@ -265,17 +255,10 @@ class GANInterface:
                 "No model is available.  Call fit() to train one or "
                 "load() to restore a saved model."
             )
-        if self.gan_type == GANType.MT_WGAN:
-            task_labels = kwargs.get("task_labels")
-            if task_labels is None:
-                raise ValueError("generate() for MT_WGAN requires keyword argument task_labels=<dict>")
-            return self._model.generate(n, task_labels)
-
-        # CTAB-GAN family, CGAN, and WGAN are handled by the backend
-        # registry — see the early return at the top of generate().
-        # Reaching here for them means the legacy mock-based tests set
-        # self._model directly without going through fit/load; keep
-        # legacy delegation + arg validation for that case.
+        # All migrated types delegate via the early return at the top
+        # of this method.  Reaching here means the legacy mock-based
+        # tests set self._model directly without going through fit/load;
+        # keep legacy delegation + arg validation for that case.
         if self.gan_type in (GANType.WGAN, GANType.CGAN):
             one_hot = kwargs.get("one_hot")
             if one_hot is None:
@@ -284,6 +267,14 @@ class GANInterface:
                     f"keyword argument one_hot=<np.ndarray>"
                 )
             return self._model.generate(n, one_hot)
+
+        if self.gan_type == GANType.MT_WGAN:
+            task_labels = kwargs.get("task_labels")
+            if task_labels is None:
+                raise ValueError(
+                    "generate() for MT_WGAN requires keyword argument task_labels=<dict>"
+                )
+            return self._model.generate(n, task_labels)
 
         # CTAB-GAN family — legacy mock-test fallback
         num_samples = kwargs.pop("num_samples", n)
@@ -319,41 +310,9 @@ class GANInterface:
             self._model.save(self.save_path, **extra_metadata)
             return
 
-        if self.gan_type == GANType.MT_WGAN:
-            # MLX path: MTWGANMLX saves its own weights + pickle metadata.
-            try:
-                from GANs.df_mt_wgan_mlx import MTWGANMLX  # noqa: E402
-                if isinstance(self._model, MTWGANMLX):
-                    meta = {
-                        "seq_len":         self._model.seq_len,
-                        "num_features":    self._model.num_features,
-                        "task_label_dims": dict(self._model.task_label_dims),
-                        "latent_dim":      self._model.latent_dim,
-                    }
-                    meta.update(extra_metadata)
-                    self._model.save(self.save_path, meta)
-                    return
-            except (ImportError, ModuleNotFoundError):
-                pass
-            # TF path — sanitise TrackedDict before pickling.
-            from GANs.df_mt_wgan_gp import _save_mt_wgan_model  # noqa: E402
-            meta = dict(getattr(self._model, "_interface_metadata", {}))
-            # Keras wraps dict attributes on Model subclasses as TrackedDict,
-            # which is not picklable.  Convert those entries to plain Python
-            # dicts/floats before handing off to the pickle-based serialiser.
-            if "task_label_dims" in meta:
-                meta["task_label_dims"] = dict(meta["task_label_dims"])
-            if "task_loss_weights" in meta:
-                meta["task_loss_weights"] = {
-                    k: float(v) for k, v in meta["task_loss_weights"].items()
-                }
-            meta.update(extra_metadata)
-            _save_mt_wgan_model(self._model, meta, self.save_path)
-            return
-
-        # CGAN, CTAB-GAN, and MT-CTAB-GAN are handled via the backend
-        # registry — see the early return at the top of save().
-        # Reaching here means an unhandled GANType slipped through.
+        # Every supported GANType is handled via the backend registry —
+        # see the early return at the top of save().  Reaching here means
+        # an unhandled GANType slipped through.
         raise ValueError(
             f"save() not supported for GANType.{self.gan_type.name}"
         )
@@ -377,61 +336,9 @@ class GANInterface:
             self._model = getattr(backend, "_model", None)
             return metadata or {}
 
-        if self.gan_type == GANType.MT_WGAN:
-            # MLX path.  MTWGANMLX writes its files with a ``_s{seq_len}``
-            # suffix when seq_len > 1 (e.g. mt_wgan_meta_mlx_s16.pkl),
-            # so we glob for the metadata file rather than probing a
-            # single fixed name.
-            if self._use_mlx:
-                import glob  # noqa: E402
-                meta_candidates = sorted(glob.glob(
-                    os.path.join(self.save_path, "mt_wgan_meta_mlx*.pkl")
-                ))
-                if meta_candidates:
-                    mlx_meta = meta_candidates[0]
-                    if len(meta_candidates) > 1:
-                        print(
-                            f"    Multiple MT_WGAN MLX metadata files found in "
-                            f"{self.save_path}: {meta_candidates}.  Using {mlx_meta}."
-                        )
-                    try:
-                        import pickle  # noqa: E402
-                        from GANs.df_mt_wgan_mlx import MTWGANMLX  # noqa: E402
-                        with open(mlx_meta, "rb") as _f:
-                            metadata = pickle.load(_f)
-                        gan = MTWGANMLX(
-                            seq_len=metadata["seq_len"],
-                            num_features=metadata["num_features"],
-                            task_label_dims=metadata["task_label_dims"],
-                            latent_dim=metadata.get("latent_dim", 64),
-                        )
-                        # MTWGANMLX.load() reconstructs the per-seq_len paths
-                        # internally via _get_paths, so it finds the matching
-                        # weight files even when the suffix is present.
-                        ok, _ = gan.load(self.save_path)
-                        if not ok:
-                            raise RuntimeError(
-                                f"MTWGANMLX.load() failed for {self.save_path} "
-                                f"(metadata file: {mlx_meta})"
-                            )
-                        self._model = gan
-                        return metadata
-                    except (ImportError, ModuleNotFoundError):
-                        pass
-            # TF path
-            from GANs.df_mt_wgan_gp import _load_mt_wgan_model  # noqa: E402
-            gan, metadata = _load_mt_wgan_model(self.save_path)
-            if gan is None:
-                raise RuntimeError(
-                    f"No saved MT_WGAN model found at {self.save_path}"
-                )
-            self._model = gan
-            self._model._interface_metadata = metadata or {}
-            return metadata or {}
-
-        # CGAN, CTAB-GAN, and MT-CTAB-GAN are handled by the backend
-        # registry — see the early return at the top of load().
-
+        # Every supported GANType is handled by the backend registry —
+        # see the early return at the top of load().  Reaching here
+        # means an unhandled GANType slipped through.
         raise ValueError(
             f"load() is not supported for GANType.{self.gan_type.name}."
         )
@@ -447,115 +354,7 @@ class GANInterface:
         config["save_path"] = self.save_path
         return config
 
-    # Keys accepted by the CTABGANPlus / CTABGANPlusMT constructors.
-    # Anything in _resolved_config that is NOT in this set and NOT in
-    # _CTAB_SKIP_KEYS will be forwarded to model.fit() (typically only
-    # validation_split).
-    _CTAB_CTOR_KEYS: frozenset = frozenset({
-        "latent_dim", "generator_layers", "discriminator_layers",
-        "batch_size", "epochs", "learning_rate", "beta_1", "beta_2",
-        "gp_weight", "verbose", "early_stopping_patience",
-        "early_stopping_min_delta", "reduce_lr_patience", "reduce_lr_factor",
-        "reduce_lr_min", "pac", "monitor_metric", "eval_frequency",
-        "eval_num_samples", "random_seed", "integer_columns",
-        # MT-only extras
-        "use_cnn", "use_auxiliary",
-    })
-
-    # Keys that belong to other GAN types or callers; silently ignored for CTAB.
-    _CTAB_SKIP_KEYS: frozenset = frozenset({
-        "save_path", "augmentation_target_ratio", "task_target_ratios",
-        "assess_quality", "n_critic", "noise_std", "architecture", "seq_len",
-    })
-
-    # Keys accepted by the lightweight CTABGANMLX constructor.
-    _CTAB_MLX_CTOR_KEYS: frozenset = frozenset({"latent_dim", "epochs", "batch_size", "n_critic", "verbose"})
-
-    def _build_model(self, **ctor_kwargs: Any) -> Any:
-        """Instantiate the correct model class for model-based GANs.
-
-        Args:
-            **ctor_kwargs: Constructor parameters forwarded to the model class
-                           (e.g. epochs, batch_size, latent_dim).  Unknown keys
-                           are silently dropped for the MLX variant (which has a
-                           smaller constructor surface).
-        """
-        if self.gan_type == GANType.CTAB_GAN:
-            if self._use_mlx:
-                try:
-                    from GANs.df_ctab_gan_mlx import CTABGANMLX  # noqa: E402
-                    mlx_kw = {k: v for k, v in ctor_kwargs.items()
-                               if k in self._CTAB_MLX_CTOR_KEYS}
-                    return CTABGANMLX(**mlx_kw)
-                except (ImportError, ModuleNotFoundError):
-                    pass
-            from GANs.df_ctab_gan import CTABGANPlus  # noqa: E402
-            return CTABGANPlus(**ctor_kwargs)
-
-        if self.gan_type == GANType.MT_CTAB_GAN:
-            from GANs.df_mt_ctab_gan import CTABGANPlusMT  # noqa: E402
-            return CTABGANPlusMT(**ctor_kwargs)
-
-        raise ValueError(
-            f"_build_model() called for non-model-based type: {self.gan_type.name}"
-        )
-
-    # _fit_wgan was removed in Phase 2c — WGAN is now handled by
-    # GANs.backends.wgan.{WGANTFBackend, WGANMLXBackend} via the registry.
-
-    def _fit_mt_wgan(
-        self,
-        data: np.ndarray,
-        labels: Dict[str, np.ndarray],
-        _categorical_columns: Optional[List[str]],
-        caller_overrides: Dict[str, Any],
-    ) -> None:
-        data_f32 = np.asarray(data, dtype="float32")
-        config = self._resolved_config(**caller_overrides)
-        config["save_path"] = None
-        config["assess_quality"] = False
-        # Always skip the generation loop — fit() trains only; generate() handles synthesis
-        config["task_target_ratios"] = {k: 0.0 for k in labels}
-        if self._use_mlx:
-            try:
-                from GANs.df_mt_wgan_mlx import balance_with_mt_wgan_mlx  # noqa: E402
-                _, _, gan = balance_with_mt_wgan_mlx(
-                    data_f32, labels, _return_model=True, **config
-                )
-                self._model = gan
-                return
-            except (ImportError, ModuleNotFoundError):
-                pass
-        from GANs.df_mt_wgan_gp import balance_with_mt_wgan_gp  # noqa: E402
-        _, _, gan = balance_with_mt_wgan_gp(
-            data_f32, labels, _return_model=True, **config
-        )
-        self._model = gan
-
-    def _fit_ctab(
-        self,
-        data: pd.DataFrame,
-        labels: Any,
-        categorical_columns: Optional[List[str]],
-        caller_overrides: Dict[str, Any],
-    ) -> None:
-        config = self._resolved_config(**caller_overrides)
-        # Route training hyperparams to the constructor (CTABGANPlus/MT takes
-        # epochs, batch_size, etc. at construction time, not at fit() time).
-        ctor_kwargs = {k: v for k, v in config.items() if k in self._CTAB_CTOR_KEYS}
-        # Anything not going to the constructor and not GAN-internal goes to fit()
-        # (in practice this is usually just validation_split).
-        fit_kwargs = {
-            k: v for k, v in config.items()
-            if k not in self._CTAB_CTOR_KEYS and k not in self._CTAB_SKIP_KEYS
-        }
-        self._model = self._build_model(**ctor_kwargs)
-        self._model.fit(
-            dataframe=data,
-            labels=labels,
-            categorical_columns=categorical_columns or [],
-            **fit_kwargs,
-        )
-
-    # _fit_cgan was removed in Phase 2b — CGAN is now handled by
-    # GANs.backends.cgan.CGANTFBackend via the registry.
+    # Phase 2 cleanup: every per-type ``_fit_*`` helper, the
+    # ``_build_model`` factory, and the CTAB constructor-key constants
+    # have been removed.  Each backend now owns its own kwarg
+    # partitioning and lazy module imports — see GANs/backends/*.py.

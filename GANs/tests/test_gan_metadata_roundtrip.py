@@ -32,7 +32,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from typing import Dict, Set
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import numpy as np
 
@@ -255,23 +255,13 @@ class TestMTWGANMLXMetadata(unittest.TestCase):
     """GANInterface.save() for MT_WGAN MLX writes mt_wgan_meta_mlx_s{N}.pkl."""
 
     def _save_and_load_metadata(self, save_path: str) -> dict:
-        # MT_WGAN hasn't been migrated yet (Phase 2d); for now this test
-        # still drives the isinstance-based legacy save path in
-        # GANInterface, just like before.  When MT_WGAN migrates the
-        # body of this method will switch to backend_cls= like the WGAN
-        # equivalent above.
-        fake_module = MagicMock()
-        fake_module.MTWGANMLX = type(_StandInMTWGANMLX())
-
+        from GANs.backends.mt_wgan import MTWGANMLXBackend  # noqa: E402
         model = _StandInMTWGANMLX()
-        iface = GANInterface(
-            GANType.MT_WGAN, save_path=save_path, prefer_mlx=True
+        _save_via_interface(
+            GANType.MT_WGAN, model, save_path,
+            backend_cls=MTWGANMLXBackend,
+            **_USER_EXTRAS,
         )
-        iface._model = model
-        with patch("GANs.GANInterface._HAS_MLX", True):
-            iface._use_mlx = True
-            with patch.dict("sys.modules", {"GANs.df_mt_wgan_mlx": fake_module}):
-                iface.save(**_USER_EXTRAS)
         # seq_len=16 ⇒ filename gets _s16 suffix
         meta_path = os.path.join(save_path, "mt_wgan_meta_mlx_s16.pkl")
         self.assertTrue(
