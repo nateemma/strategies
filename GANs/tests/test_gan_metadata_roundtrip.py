@@ -51,7 +51,12 @@ sys.modules.setdefault("freqtrade.persistence", _ft_stub)
 sys.modules.setdefault("freqtrade.strategy", _ft_stub)
 
 from GANs.GANType import GANType  # noqa: E402
-from GANs.GANInterface import GANInterface  # noqa: E402
+from GANs.GANInterface import (  # noqa: E402
+    GANInterface,
+    GANMetadataMismatchError,
+    _values_match,
+    _validate_metadata_against_expected,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -370,6 +375,191 @@ class TestCrossBackendInvariants(unittest.TestCase):
 
         self.assertAlmostEqual(float(meta["min_buy_gain_threshold"]), 0.016, places=5)
         self.assertEqual(int(meta["training_type"]), 19)
+
+
+# ---------------------------------------------------------------------------
+# Metadata validation — GANInterface.load(expected=...) must raise on drift
+# ---------------------------------------------------------------------------
+
+
+class TestMetadataValidationHelpers(unittest.TestCase):
+    """Pure-function tests for the value-comparison helper."""
+
+    def test_floats_compared_with_tolerance(self):
+        """np.float32 round-trip drift must not register as mismatch."""
+        self.assertTrue(_values_match(np.float32(0.016), 0.016))
+        self.assertTrue(_values_match(0.016, np.float32(0.016)))
+
+    def test_floats_strict_difference_fails(self):
+        self.assertFalse(_values_match(0.016, 0.020))
+
+    def test_int_eq(self):
+        self.assertTrue(_values_match(np.int64(19), 19))
+        self.assertFalse(_values_match(19, 20))
+
+    def test_lists_order_sensitive(self):
+        self.assertTrue(_values_match(["a", "b", "c"], ["a", "b", "c"]))
+        self.assertFalse(_values_match(["a", "c", "b"], ["a", "b", "c"]))
+
+    def test_lists_length_mismatch(self):
+        self.assertFalse(_values_match(["a", "b"], ["a", "b", "c"]))
+
+    def test_dicts_compared_recursively(self):
+        self.assertTrue(_values_match(
+            {"trading": 3, "regime": 3},
+            {"trading": 3, "regime": 3},
+        ))
+        self.assertFalse(_values_match(
+            {"trading": 3, "regime": 3},
+            {"trading": 3, "regime": 5},
+        ))
+
+
+class TestMetadataValidatorRaises(unittest.TestCase):
+    """``_validate_metadata_against_expected`` raises on any drift."""
+
+    def test_passes_when_all_match(self):
+        # No exception → success.
+        _validate_metadata_against_expected(
+            saved={"a": 1, "b": 2.0},
+            expected={"a": 1, "b": 2.0},
+            gan_type=GANType.WGAN,
+            save_path="/tmp",
+        )
+
+    def test_raises_on_value_mismatch(self):
+        with self.assertRaises(GANMetadataMismatchError) as ctx:
+            _validate_metadata_against_expected(
+                saved={"a": 1, "b": 2.0},
+                expected={"a": 1, "b": 9.9},
+                gan_type=GANType.WGAN,
+                save_path="/tmp",
+            )
+        self.assertIn("b", ctx.exception.mismatches)
+        self.assertEqual(ctx.exception.mismatches["b"], (2.0, 9.9))
+
+    def test_raises_when_expected_key_missing_from_saved(self):
+        with self.assertRaises(GANMetadataMismatchError) as ctx:
+            _validate_metadata_against_expected(
+                saved={"a": 1},
+                expected={"a": 1, "min_buy_gain_threshold": 0.016},
+                gan_type=GANType.WGAN,
+                save_path="/tmp",
+            )
+        self.assertIn("min_buy_gain_threshold", ctx.exception.mismatches)
+        saved_value, expected_value = ctx.exception.mismatches["min_buy_gain_threshold"]
+        self.assertEqual(saved_value, "<MISSING>")
+        self.assertEqual(expected_value, 0.016)
+
+    def test_extra_saved_keys_are_allowed(self):
+        """Saved metadata may include extra keys beyond what the caller
+        cares about — validation only checks what was passed in."""
+        _validate_metadata_against_expected(
+            saved={"a": 1, "b": 2, "c": 3},
+            expected={"a": 1},
+            gan_type=GANType.WGAN,
+            save_path="/tmp",
+        )
+
+    def test_error_message_lists_every_mismatch(self):
+        with self.assertRaises(GANMetadataMismatchError) as ctx:
+            _validate_metadata_against_expected(
+                saved={"a": 1, "b": 2, "c": 3},
+                expected={"a": 1, "b": 99, "c": 100},
+                gan_type=GANType.WGAN,
+                save_path="/tmp/some/path",
+            )
+        msg = str(ctx.exception)
+        self.assertIn("b", msg)
+        self.assertIn("c", msg)
+        self.assertIn("/tmp/some/path", msg)
+        self.assertIn("WGAN", msg)
+
+
+class TestGANInterfaceLoadValidation(unittest.TestCase):
+    """GANInterface.load(expected=...) — validation path.
+
+    These tests stub out ``load_with_fallback`` (the registry probe that
+    actually opens files and instantiates a backend) so we can drive
+    GANInterface.load with a known-good metadata payload and assert the
+    expected-vs-saved comparison runs.  This avoids the TF/MLX dependency
+    that the on-disk round-trip tests carry, while still exercising the
+    full code path through ``GANInterface.load``."""
+
+    def _patch_load_with_fallback(self, fake_metadata):
+        """Return a context manager that patches load_with_fallback to
+        return ``(stub_backend, fake_metadata)`` regardless of inputs."""
+        from unittest.mock import patch
+
+        stub_backend = MagicMock()
+        stub_backend._model = MagicMock()
+
+        return patch(
+            "GANs.GANInterface.load_with_fallback",
+            return_value=(stub_backend, fake_metadata),
+        )
+
+    def test_load_returns_metadata_when_expected_matches(self):
+        """Saved == expected → load() returns the metadata dict, no raise."""
+        saved_metadata = {
+            "num_features": 25,
+            "num_classes": 3,
+            "min_buy_gain_threshold": 0.016,
+            "training_type": 19,
+        }
+        with self._patch_load_with_fallback(saved_metadata):
+            iface = GANInterface(GANType.WGAN, save_path="/tmp", prefer_mlx=True)
+            result = iface.load(expected={
+                "min_buy_gain_threshold": 0.016,
+                "training_type": 19,
+            })
+        # Returned dict carries the full saved metadata, not just the
+        # subset we validated against.
+        self.assertEqual(result["num_features"], 25)
+        self.assertEqual(int(result["training_type"]), 19)
+
+    def test_load_raises_on_threshold_mismatch(self):
+        """Saved threshold drifts from expected → GANMetadataMismatchError.
+
+        This is the contract that prevents the silent-override bug:
+        previously CTAB-GAN's load() would overwrite
+        ``self.MIN_BUY_GAIN_THRESHOLD`` with the GAN's stale value.
+        Now the strategy must declare its expected thresholds and a
+        mismatch is surfaced loudly."""
+        saved_metadata = {
+            "min_buy_gain_threshold": 0.016,
+            "training_type": 19,
+        }
+        with self._patch_load_with_fallback(saved_metadata):
+            iface = GANInterface(GANType.WGAN, save_path="/tmp", prefer_mlx=True)
+            with self.assertRaises(GANMetadataMismatchError) as ctx:
+                iface.load(expected={
+                    "min_buy_gain_threshold": 0.030,  # drifted
+                    "training_type": 19,
+                })
+        self.assertIn("min_buy_gain_threshold", ctx.exception.mismatches)
+        self.assertNotIn("training_type", ctx.exception.mismatches)
+
+    def test_load_raises_when_expected_key_absent_from_saved(self):
+        """A strategy that adds a new metadata key won't silently load
+        models that predate it — the absence is treated as a mismatch."""
+        saved_metadata = {"num_features": 25}  # no thresholds saved
+        with self._patch_load_with_fallback(saved_metadata):
+            iface = GANInterface(GANType.WGAN, save_path="/tmp", prefer_mlx=True)
+            with self.assertRaises(GANMetadataMismatchError) as ctx:
+                iface.load(expected={"min_buy_gain_threshold": 0.016})
+        self.assertIn("min_buy_gain_threshold", ctx.exception.mismatches)
+        saved_value, _ = ctx.exception.mismatches["min_buy_gain_threshold"]
+        self.assertEqual(saved_value, "<MISSING>")
+
+    def test_load_no_expected_skips_validation(self):
+        """Backwards-compat: load() without expected= just returns metadata."""
+        saved_metadata = {"num_features": 25, "min_buy_gain_threshold": 0.016}
+        with self._patch_load_with_fallback(saved_metadata):
+            iface = GANInterface(GANType.WGAN, save_path="/tmp", prefer_mlx=True)
+            # No expected= → no raise, returns the saved dict.
+            result = iface.load()
+        self.assertEqual(result["num_features"], 25)
 
 
 # ---------------------------------------------------------------------------

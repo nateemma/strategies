@@ -60,7 +60,8 @@ user_data/strategies/
 ├── hyperopts/           ← Custom hyperopt loss functions
 ├── config/              ← Exchange-specific config files
 ├── saved_data/          ← Trained model files (keyed by strategy name)
-│                          + GANs/ + CTABGANs/ + MTCTABGANs/ subdirs for GANs
+│                          + GANs/<gan_type>/ subdirs for every GAN type
+│                          (GANs_PCA/<gan_type>/ for PCA-reduced strategies)
 ├── scripts/             ← Shell scripts for all workflow tasks
 ├── archived/            ← Old/abandoned strategies (reference only)
 └── reference/           ← External strategies for learning
@@ -116,9 +117,16 @@ that's stale.
 ### BaseNNStrategy responsibilities (in addition to BaseStrategy's)
 - Classifier construction via `get_classifier_type()` + `get_classifier()`
 - Training-signal generation via `TrainingSignals` + MASTER thresholds
-- GAN augmentation hooks (`wgan_enhance_training_data`,
-  `ctab_gan_enhance_training_data`, `mt_ctab_gan_enhance_training_data`)
-  that go through `GANInterface`
+- GAN augmentation via a single dispatcher: `enhance_training_data`
+  inspects `gan_type` and the label shape (ndarray vs dict), validates
+  the saved GAN's metadata against the strategy's current config, and
+  routes to `GANs.balance.balance_single_task` or `balance_multi_task`.
+  Concrete strategies declare `gan_type` (and optionally
+  `gan_target_ratio`, `gan_run_diagnostics`, `gan_passthrough_columns`)
+  — they don't see GAN-type-specific code.  Multi-task 3-D pipelines
+  (e.g. `NNMT_WGAN`) turn off the 2-D dispatcher with
+  `gan_augment = False` and run their own `preprocess_training_data`
+  that delegates to `balance_multi_task` on the 3-D tensor.
 - Per-task class-weight computation
 - Train / save / load lifecycle wired into `populate_indicators()`
 
@@ -384,10 +392,19 @@ set, or a WGAN with a different augmentation ratio).
    pre-existing classes (`CreateWGAN`, `CreateCtabGanPlus`, etc.) are
    thin shims over these two unified bases — copy one of them as a template.
 3. Run the new strategy via backtesting on a long timerange to train and save.
-4. The saved model goes to `saved_data/<save_subdir>/` (default subdir
-   depends on `gan_type`: `GANs/`, `CTABGANs/`, `MTCTABGANs/`).
-5. Strategies consume the GAN by calling `GANInterface(GANType.X, save_path=...)`
-   and then `interface.load()` followed by `interface.generate(...)`.
+4. The saved model goes to `saved_data/<StrategyName>/GANs/<gan_type>/`
+   (or `GANs_PCA/<gan_type>/` for PCA-reduced strategies) — the layout
+   is centralised in `GANs/paths.py::gan_save_path`, so subclasses
+   don't pick a directory name.
+5. Strategies consume the GAN by setting `gan_type = GANType.X` on the
+   class.  `BaseNNStrategy.enhance_training_data` then loads the model
+   via `GANInterface`, validates its saved metadata against the
+   strategy's current thresholds (raising
+   `GANMetadataMismatchError` on drift), and dispatches class balancing
+   through `GANs.balance.balance_single_task` /
+   `balance_multi_task`.  Override `_gan_expected_metadata` if your
+   strategy needs to validate extra keys on top of the default
+   thresholds + training_type.
 
 ### Case B — genuinely new GAN type (new GANType enum value)
 

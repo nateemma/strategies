@@ -5,16 +5,13 @@
 # flake8: noqa: F401, E402, F541, W0718, W0719
 
 """
-NNNC_WGAN - Subclass of NNNCStrategy using WGAN-GP for high-fidelity augmentation.
+NNNC_WGAN — NNNCStrategy with WGAN-GP augmentation.
 
-Declares GANType.WGAN so the facade-aware base class can route augmentation
-through GANFacade.  The heavy lifting (normalisation, one-hot encoding, etc.)
-stays in BaseNNStrategy.wgan_enhance_training_data().
+Just declares ``gan_type = GANType.WGAN``; everything else (loading the
+GAN, validating its metadata, balancing classes, denormalising) is
+dispatched by ``BaseNNStrategy.enhance_training_data`` — see
+``GANs.balance.balance_single_task`` for the actual augmentation.
 """
-
-from pandas import DataFrame
-import numpy as np
-from typing import Tuple
 
 from NNNCStrategy import NNNCStrategy
 from GANs.GANType import GANType
@@ -22,14 +19,13 @@ from GANs.GANType import GANType
 
 class NNNC_WGAN(NNNCStrategy):
 
-    # Declare the GAN type so facade-aware callers can route correctly.
+    # GAN augmentation — single-task WGAN-GP (MLX-accelerated when available).
     gan_type = GANType.WGAN
 
-    augment_training_data = True
-    wgan_target_ratio = 0.8
+    # Use only real signals as the basis; the GAN provides the synthetic
+    # samples below, so layered signal augmentation would double-count.
+    augment_training_data = False
 
-    def enhance_training_data(
-        self, train_df: DataFrame, train_labels: np.ndarray
-    ) -> Tuple[DataFrame, np.ndarray]:
-        """Augment 2-D training data with WGAN-GP (MLX-accelerated if available)."""
-        return self.wgan_enhance_training_data(train_df, train_labels)
+    # Single-task ratio: each minority class is brought up to 80% of the
+    # majority class size.  See balance_single_task for semantics.
+    gan_target_ratio = 0.8

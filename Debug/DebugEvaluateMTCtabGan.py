@@ -109,7 +109,13 @@ class DebugEvaluateMTCtabGan(NNMTStrategy):
         print()
 
         # Load the saved model
-        save_location = os.path.join(self.get_storage_location(), "MTCTABGANs")
+        from GANs.GANType import GANType  # noqa: E402
+        from GANs.paths import gan_save_path  # noqa: E402
+        save_location = gan_save_path(
+            self.get_storage_location(),
+            GANType.MT_CTAB_GAN,
+            use_pca=bool(getattr(self, "use_pca_reduction", False)),
+        )
         if not os.path.exists(save_location):
             print(f"    ERROR: Multi-Task CTAB-GAN+ model not found at {save_location}")
             raise FileNotFoundError(

@@ -17,8 +17,8 @@ Inherits from `BaseNNStrategy` (`Framework/BaseNNStrategy.py`) via
 | `SklearnStrategy.py` | Family base class.  Overrides `train_model()` and `get_predictions()` to operate on DataFrames; sets `seq_len = 1`.  Otherwise inherits everything from `BaseNNStrategy`. |
 | `SklearnClassifier.py` | Classifier factory — `ClassifierType` enum and `create_classifier()`.  Wraps sklearn's classifiers (`RandomForestClassifier`, `XGBClassifier`, `LogisticRegression`, `MLPClassifier`, `LinearSVC`, `LinearDiscriminantAnalysis`, `VotingClassifier`, `StackingClassifier`, …) under the project's `ClassifierSklearn` adapter so train/save/load match the NN pipeline's expectations. |
 | `Skl_RandomForest.py`, `Skl_XGBoost.py` | Concrete strategies — RF and XGBoost without augmentation. |
-| `Skl_RandomForest_WGAN.py`, `Skl_XGBoost_WGAN.py` | Same classifiers with WGAN-GP augmentation via `wgan_enhance_training_data`. |
-| `Skl_XGBoost_CGP.py` | XGBoost with CTAB-GAN+ augmentation via `ctab_gan_enhance_training_data`. |
+| `Skl_RandomForest_WGAN.py`, `Skl_XGBoost_WGAN.py` | Same classifiers with WGAN-GP augmentation — the subclass declares `gan_type = GANType.WGAN` and `BaseNNStrategy.enhance_training_data` dispatches the rest through `GANs.balance.balance_single_task`. |
+| `Skl_XGBoost_CGP.py` | XGBoost with CTAB-GAN+ augmentation — declares `gan_type = GANType.CTAB_GAN`; same dispatch path as the WGAN variants. |
 | `NNDetector.py`, `test_lightgbm_detector.py` | Experimental: LightGBM-based anomaly detection.  Standalone — not yet wired into the strategy pipeline. |
 
 ## Adding a new variant

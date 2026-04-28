@@ -4,7 +4,7 @@
 # pylint: disable=import-error
 
 """
-NNMT_WGAN_MLX - Subclass of NNMTStrategy using WGAN and MLX models
+NNMT_MLX_MultiLSTM - Subclass of NNMTStrategy using MLX models
 """
 
 import sys
@@ -17,23 +17,19 @@ import mlx.core as mx
 group_dir = str(Path(__file__).parent)
 sys.path.append(group_dir)
 
-from NNMT_WGAN import NNMT_WGAN  # noqa: E402
+from NNMTStrategy import NNMTStrategy  # noqa: E402
 from ClassifierKeras import ClassifierKeras
 from NNMT.NNMTClassifierMLX import ClassifierTypeMLX, create_classifier_mlx
 
 # -----------
 
 
-class NNMT_WGAN_MLX(NNMT_WGAN):
-
-    # Scalar broadcasts to every task — see balance_multi_task.target_ratios.
-    gan_target_ratio = 0.5
-    gan_run_diagnostics = True
+class NNMT_MLX_MultiLSTM(NNMTStrategy):
 
     # default is LSTM type. Override get_classifier_type() in subclass
     def get_classifier_type(self):
         """Return the type of classifier used for training/predicting"""
-        return ClassifierTypeMLX.LSTM
+        return ClassifierTypeMLX.Multi_LSTM
 
     def get_classifier(
         self, classifier_type, pair, seq_len, num_features

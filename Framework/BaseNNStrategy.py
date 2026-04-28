@@ -125,7 +125,22 @@ class BaseNNStrategy(BaseStrategy):
     MIN_BUY_GAIN_THRESHOLD = 0.016  # minimum gain for buy signals
     MIN_SELL_LOSS_THRESHOLD = 0.012  # minimum loss for sell signals
     TRAINING_TYPE = 19
+
+    # Signal augmentation gate — used by ``augment_training_signals``,
+    # the peak-finding / wavelet-smoothed buy-sell pair generator.
+    # Independent of GAN augmentation: strategies that GAN-augment
+    # often set this to False so the classifier sees only the GAN's
+    # synthetic samples on top of the original real signals.
     augment_training_data = True
+
+    # GAN augmentation knobs — see StrategyConfig docstring.  Strategies
+    # opt in by overriding ``gan_type`` and (optionally) the ratio /
+    # diagnostics flags; everything else is dispatched by the base class
+    # based on ``gan_type``.
+    gan_type: GANType = GANType.NONE
+    gan_augment: bool = True
+    gan_target_ratio: Any = 0.8         # float or Dict — see balance.py
+    gan_run_diagnostics: bool = False
 
     training_needed = True  # set automatically
 
@@ -1129,271 +1144,27 @@ class BaseNNStrategy(BaseStrategy):
     # =========================================================================
     # GAN augmentation
     # =========================================================================
+    # The actual augmentation logic lives in ``GANs.balance`` (single- and
+    # multi-task variants).  ``BaseNNStrategy.enhance_training_data`` is a
+    # thin dispatcher that picks the right helper based on ``gan_type`` and
+    # the shape of the labels.  Concrete strategies opt in by overriding
+    # ``gan_type`` (and optionally ``gan_target_ratio`` and
+    # ``gan_passthrough_columns``).  Per-backend training hyperparameters
+    # are owned by ``GANInterface._DEFAULTS`` — strategies don't see them.
 
-    # WGAN configuration
-    wgan_epochs = 100
-    wgan_batch_size = 2048
-    wgan_n_critic = 5
-    wgan_target_ratio = 1.0
-    wgan_noise_std = 0.02
-
-    def wgan_enhance_training_data(
-        self, train_df: DataFrame, train_labels: np.ndarray
-    ) -> Tuple[DataFrame, np.ndarray]:
-        """WGAN-GP augmentation for 2D training data via GANInterface."""
-        try:
-            if train_df.empty or len(train_labels) == 0:
-                print(
-                    "    No training data supplied to enhance_training_data; skipping GAN augmentation"
-                )
-                return train_df, train_labels
-
-            labels_int = train_labels.astype(int)
-            classes, counts = np.unique(labels_int, return_counts=True)
-            classes_sorted = np.sort(classes)
-            if classes_sorted.size == 0:
-                print("    No classes found in training labels; skipping WGAN-GP")
-                return train_df, train_labels
-            class_counts = dict(zip(classes.tolist(), counts.tolist()))
-            self.debug_print(
-                f"    Enhancing 2D training data with WGAN-GP  Class counts: {class_counts}"
-            )
-            original_counts_map = {int(c): int(n) for c, n in class_counts.items()}
-
-            current_max = int(counts.max()) if counts.size > 0 else 0
-            target = (
-                int(current_max * self.wgan_target_ratio) if current_max > 0 else None
-            )
-            if target is None or target <= 0:
-                self.debug_print("    No majority class found, skipping WGAN-GP")
-                return train_df, train_labels
-
-            needs_map = {
-                int(c): max(0, target - original_counts_map.get(int(c), 0))
-                for c in classes_sorted
-            }
-            self.debug_print(
-                f"    WGAN target per class: {target} "
-                f"(ratio={self.wgan_target_ratio})  Planned adds: {needs_map}"
-            )
-            if all(v <= 0 for v in needs_map.values()):
-                self.debug_print("    Already at or above target; skipping WGAN-GP")
-                return train_df, train_labels
-
-            subdir = "GANs_PCA" if self.use_pca_reduction else "GANs"
-            save_location = self.get_storage_location() + "/" + subdir
-
-            train_minmax = self.normalise_for_gan(train_df)
-            if isinstance(train_minmax, pd.DataFrame):
-                train_minmax_values = train_minmax.to_numpy()
-            else:
-                train_minmax_values = train_minmax
-
-            train_minmax_values = train_minmax_values.astype("float32")
-
-            class_to_index = {int(cls): idx for idx, cls in enumerate(classes_sorted)}
-            index_to_class = {idx: int(cls) for idx, cls in enumerate(classes_sorted)}
-            label_indices = np.array(
-                [class_to_index[int(cls)] for cls in labels_int], dtype=int
-            )
-            num_classes = len(classes_sorted)
-            train_labels_one_hot = np.eye(num_classes, dtype="float32")[label_indices]
-
-            self.debug_print("    WGAN-GP 2D augmentation starting (via GANInterface)...")
-
-            interface = GANInterface(GANType.WGAN, save_path=save_location)
-            try:
-                interface.load()
-                self.debug_print(f"    Loaded existing WGAN model from {save_location}.")
-            except Exception as load_err:
-                raise RuntimeError(
-                    f"WGAN model not found at {save_location}. "
-                    f"Run CreateWGAN first to train and save the model. Error: {load_err}"
-                ) from load_err
-
-            # Generate per-class augmentation samples
-            aug_data_list: list = []
-            aug_labels_list: list = []
-            for class_idx in classes_sorted:
-                need_count = needs_map.get(int(class_idx), 0)
-                if need_count <= 0:
-                    continue
-                one_hot = np.zeros((need_count, num_classes), dtype="float32")
-                one_hot[:, int(class_idx)] = 1.0
-                # generate() returns (n, 1, F); squeeze seq dim for 2D augmentation
-                gen_3d = interface.generate(n=need_count, one_hot=one_hot)
-                aug_data_list.append(gen_3d[:, 0, :])
-                aug_labels_list.append(one_hot)
-
-            if aug_data_list:
-                aug_x = np.concatenate(
-                    [train_minmax_values] + aug_data_list, axis=0
-                )
-                aug_y = np.concatenate(
-                    [train_labels_one_hot] + aug_labels_list, axis=0
-                )
-            else:
-                aug_x = train_minmax_values
-                aug_y = train_labels_one_hot
-
-            aug_idx = aug_y.argmax(axis=1)
-            aug_classes, aug_counts = np.unique(aug_idx, return_counts=True)
-            new_counts_map = {
-                int(c): int(n)
-                for c, n in zip(aug_classes.tolist(), aug_counts.tolist())
-            }
-            self.debug_print("    WGAN-GP 2D augmentation complete")
-            self.debug_print(
-                "    WGAN-GP effect: rows "
-                f"{len(train_minmax_values)} -> {len(aug_x)}; "
-                f"counts {original_counts_map} -> {new_counts_map}"
-            )
-
-            aug_minmax_df = self._format_for_gan_scaler(aug_x)
-            aug_normalized = self.denormalise_from_gan(aug_minmax_df)
-            if isinstance(aug_normalized, pd.DataFrame):
-                aug_df = aug_normalized.reset_index(drop=True)
-            else:
-                aug_df = pd.DataFrame(aug_normalized, columns=train_df.columns)
-
-            aug_labels = np.array(
-                [index_to_class[int(idx)] for idx in aug_idx], dtype=train_labels.dtype
-            )
-            return aug_df, aug_labels
-        except Exception as err:
-            print(
-                "    WGAN-GP encountered an error in enhance_training_data; stopping strategy"
-            )
-            print(f"      Error: {err}")
-            print(traceback.format_exc())
-            raise
-
-    def wgan_preprocess_training_data(
-        self, dataframe: DataFrame, train_data, test_data, train_labels, test_labels
-    ):
-        """Balance training data with WGAN-GP via GANInterface (supports 2D and 3D inputs)."""
-        try:
-            original_shape = np.shape(train_data)
-            self.debug_print("    Balancing training data with WGAN-GP")
-            if len(train_data) == 0:
-                print("    No training data to balance")
-                return train_data, test_data, train_labels, test_labels
-
-            train_idx = train_labels.argmax(axis=1)
-            classes, counts = np.unique(train_idx, return_counts=True)
-            class_counts = dict(zip(classes.tolist(), counts.tolist()))
-            self.debug_print(
-                f"    Train set size: {len(train_data)}  Class counts: {class_counts}"
-            )
-            original_counts_map = {int(c): int(n) for c, n in class_counts.items()}
-            current_max = int(counts.max()) if counts.size > 0 else 0
-            target = int(current_max * self.wgan_target_ratio) if current_max > 0 else 0
-            if target <= 0:
-                print("    No majority class found, skipping balancing")
-                print(
-                    f"    WGAN-GP effect: shape {original_shape} -> {np.shape(train_data)}; "
-                    f"counts {original_counts_map} -> {original_counts_map}"
-                )
-                return train_data, test_data, train_labels, test_labels
-
-            have_map = {
-                int(c): int(n) for c, n in zip(classes.tolist(), counts.tolist())
-            }
-            num_classes = train_labels.shape[1]
-            needs_map = {
-                c: max(0, target - have_map.get(c, 0))
-                for c in range(num_classes)
-            }
-            print(
-                f"    WGAN target per class: {target} (ratio={self.wgan_target_ratio})  "
-                f"Planned adds: {needs_map}"
-            )
-            if all(v <= 0 for v in needs_map.values()):
-                print("    Already at or above target; skipping WGAN-GP")
-                print(
-                    f"    WGAN-GP effect: shape {original_shape} -> {np.shape(train_data)}; "
-                    f"counts {original_counts_map} -> {original_counts_map}"
-                )
-                return train_data, test_data, train_labels, test_labels
-
-            save_location = self.get_storage_location() + "/GANs"
-
-            train_data_shape = train_data.shape
-            num_features = train_data.shape[-1]
-            train_data_2d = train_data.reshape(-1, num_features)
-            gan_input = self._format_for_gan_scaler(train_data_2d)
-            train_data_minmax_2d = self.normalise_for_gan(gan_input)
-            if isinstance(train_data_minmax_2d, pd.DataFrame):
-                train_data_minmax_2d = train_data_minmax_2d.to_numpy()
-            train_data_minmax = train_data_minmax_2d.reshape(train_data_shape)
-
-            interface = GANInterface(GANType.WGAN, save_path=save_location)
-            try:
-                interface.load()
-                print(f"    Loaded existing WGAN model from {save_location}.")
-            except Exception as load_err:
-                raise RuntimeError(
-                    f"WGAN model not found at {save_location}. "
-                    f"Run CreateWGAN first to train and save the model. Error: {load_err}"
-                ) from load_err
-
-            # Generate per-class augmentation samples; generate() returns (n, 1, F)
-            aug_data_list: list = []
-            aug_labels_list: list = []
-            for class_c in range(num_classes):
-                need_count = needs_map.get(class_c, 0)
-                if need_count <= 0:
-                    continue
-                one_hot = np.zeros((need_count, num_classes), dtype="float32")
-                one_hot[:, class_c] = 1.0
-                gen_3d = interface.generate(n=need_count, one_hot=one_hot)
-                # Reshape to match original train_data_shape dimensionality
-                if train_data.ndim == 3:
-                    aug_data_list.append(gen_3d)           # already (n, 1, F)
-                else:
-                    aug_data_list.append(gen_3d[:, 0, :])  # squeeze to (n, F)
-                aug_labels_list.append(one_hot)
-
-            if aug_data_list:
-                aug_x = np.concatenate(
-                    [train_data_minmax] + aug_data_list, axis=0
-                )
-                aug_y = np.concatenate(
-                    [train_labels] + aug_labels_list, axis=0
-                )
-            else:
-                aug_x = train_data_minmax
-                aug_y = train_labels
-
-            aug_idx = aug_y.argmax(axis=1)
-            aug_classes, aug_counts = np.unique(aug_idx, return_counts=True)
-            aug_class_counts = dict(zip(aug_classes.tolist(), aug_counts.tolist()))
-            new_counts_map = {int(c): int(n) for c, n in aug_class_counts.items()}
-            print("    WGAN-GP training complete")
-            print(
-                f"    Augmented train size: {len(aug_x)}  Class counts: {aug_class_counts}"
-            )
-            print(
-                f"    WGAN-GP effect: shape {original_shape} -> {np.shape(aug_x)}; "
-                f"counts {original_counts_map} -> {new_counts_map}"
-            )
-
-            aug_x_shape = aug_x.shape
-            aug_x_2d = aug_x.reshape(-1, num_features)
-            aug_input = self._format_for_gan_scaler(aug_x_2d)
-            aug_x_2d = self.denormalise_from_gan(aug_input)
-
-            if isinstance(aug_x_2d, pd.DataFrame):
-                aug_x_2d = aug_x_2d.to_numpy()
-
-            aug_x_normalized = aug_x_2d.reshape(aug_x_shape)
-
-            return aug_x_normalized, test_data, aug_y, test_labels
-        except Exception as e:
-            print("    WGAN-GP encountered an error; stopping strategy")
-            print(f"      Error: {e}")
-            print(traceback.format_exc())
-            raise
+    # Columns the GAN should NOT generate — values for these are copied
+    # from a random real sample at augmentation time.  Use for features
+    # with rigid structure that GANs reliably mis-reproduce (calendar
+    # sin/cos pairs, one-hot categoricals).  Diagnostics on a real
+    # WGAN-GP showed all six calendar columns systematically biased and
+    # their pairwise correlations attenuated — copying them from real
+    # samples sidesteps that failure mode entirely without losing any
+    # information the classifier needs.  Empty list / None disables.
+    gan_passthrough_columns: List[str] = [
+        "dow_sin", "dow_cos",
+        "doy_sin", "doy_cos",
+        "mod_sin", "mod_cos",
+    ]
 
     def _format_for_gan_scaler(self, array_2d):
         if isinstance(array_2d, pd.DataFrame):
@@ -1405,234 +1176,47 @@ class BaseNNStrategy(BaseStrategy):
             return pd.DataFrame(array_2d, columns=columns)
         return array_2d
 
-    # CTAB-GAN+ configuration
-    cgp_augmentation_target_ratio = 0.5
+    def _resolve_gan_passthrough_indices(
+        self,
+        train_minmax: Any = None,
+        train_df: Any = None,
+    ) -> Optional[List[int]]:
+        """Resolve ``gan_passthrough_columns`` to integer indices using
+        the most reliable column-order reference available.
 
-    def ctab_gan_enhance_training_data(
-        self, train_df: DataFrame, train_labels: np.ndarray
-    ) -> Tuple[DataFrame, np.ndarray]:
-        """Uses CTAB-GAN+ to generate more training data via GANInterface."""
-        try:
-            if train_df.empty or len(train_labels) == 0:
-                self.debug_print(
-                    "    No training data supplied to enhance_training_data; "
-                    "skipping CTAB-GAN+ augmentation"
-                )
-                return train_df, train_labels
+        Priority order:
+          1. ``train_minmax`` if it's a DataFrame (post-normalisation
+             frame whose columns match what the GAN saw at training).
+          2. The GAN scaler's ``feature_names_in_`` attribute.
+          3. ``train_df`` columns as a last resort.
 
-            if len(train_labels.shape) > 1 and train_labels.shape[1] > 1:
-                train_labels_one_hot = train_labels.astype(np.float32)
-                labels_int = np.argmax(train_labels_one_hot, axis=1)
-                num_classes = train_labels_one_hot.shape[1]
-            else:
-                labels_int = train_labels.astype(int).flatten()
-                num_classes = int(labels_int.max()) + 1
-                train_labels_one_hot = np.eye(num_classes, dtype=np.float32)[labels_int]
+        Returns ``None`` when the config is empty or no resolved
+        indices land in the resolved column order — that signals the
+        callers to skip the swap entirely.
+        """
+        configured = getattr(self, "gan_passthrough_columns", None)
+        if not configured:
+            return None
 
-            classes, counts = np.unique(labels_int, return_counts=True)
-            classes_sorted = np.sort(classes)
-            if classes_sorted.size == 0:
-                print("    No classes found in training labels; skipping CTAB-GAN+")
-                return train_df, train_labels
-            class_counts = dict(zip(classes.tolist(), counts.tolist()))
-            self.debug_print(
-                f"    Enhancing training data with CTAB-GAN+  Class counts: {class_counts}"
-            )
-            original_counts_map = {int(c): int(n) for c, n in class_counts.items()}
+        feature_names: Optional[List[str]] = None
+        if isinstance(train_minmax, pd.DataFrame):
+            feature_names = list(train_minmax.columns)
+        else:
+            scaler = getattr(self, "gan_scaler_a", None)
+            if scaler is not None and hasattr(scaler, "feature_names_in_"):
+                try:
+                    feature_names = list(scaler.feature_names_in_)
+                except Exception:
+                    feature_names = None
+            if feature_names is None and isinstance(train_df, pd.DataFrame):
+                feature_names = list(train_df.columns)
 
-            current_max = int(counts.max()) if counts.size > 0 else 0
-            target = (
-                int(current_max * self.cgp_augmentation_target_ratio)
-                if current_max > 0
-                else None
-            )
-            if target is None or target <= 0:
-                print("    No majority class found, skipping CTAB-GAN+")
-                return train_df, train_labels
+        if not feature_names:
+            return None
 
-            needs_map = {
-                int(c): max(0, target - original_counts_map.get(int(c), 0))
-                for c in classes_sorted
-            }
-            self.debug_print(
-                f"    CTAB-GAN+ target per class: {target} "
-                f"(ratio={self.cgp_augmentation_target_ratio})  Planned adds: {needs_map}"
-            )
-            if all(v <= 0 for v in needs_map.values()):
-                self.debug_print("    Already at or above target; skipping CTAB-GAN+")
-                return train_df, train_labels
-
-            subdir = "CTABGANs_PCA" if self.use_pca_reduction else "CTABGANs"
-            save_location = os.path.join(self.get_storage_location(), subdir)
-
-            self.debug_print(f"    Loading CTAB-GAN+ model from {save_location}")
-            interface = GANInterface(GANType.CTAB_GAN, save_path=save_location)
-            try:
-                thresholds = interface.load()
-            except Exception as load_err:
-                raise RuntimeError(
-                    f"CTAB-GAN+ model not found at {save_location}. "
-                    f"Run CreateCtabGanPlus first to train and save the model. Error: {load_err}"
-                ) from load_err
-
-            if thresholds.get("min_buy_gain_threshold") is not None:
-                self.MIN_BUY_GAIN_THRESHOLD = thresholds["min_buy_gain_threshold"]
-                self._thresholds_from_gan = True
-                self.debug_print(
-                    f"    Loaded threshold from GAN: MIN_BUY_GAIN_THRESHOLD={self.MIN_BUY_GAIN_THRESHOLD:.4f}"
-                )
-            if thresholds.get("min_sell_loss_threshold") is not None:
-                self.MIN_SELL_LOSS_THRESHOLD = thresholds["min_sell_loss_threshold"]
-                self._thresholds_from_gan = True
-                self.debug_print(
-                    f"    Loaded threshold from GAN: MIN_SELL_LOSS_THRESHOLD={self.MIN_SELL_LOSS_THRESHOLD:.4f}"
-                )
-
-            train_minmax = self.normalise_for_gan(train_df)
-
-            ctab_gan = interface._model
-            if hasattr(ctab_gan, "column_order") and ctab_gan.column_order:
-                gan_columns = set(ctab_gan.column_order)
-                train_columns = set(train_minmax.columns)
-                if gan_columns != train_columns:
-                    expected_size = self.get_normalized_size(train_df)
-                    error_msg = (
-                        f"GAN model feature mismatch detected before generation:\n"
-                        f"  GAN model columns ({len(gan_columns)}): {sorted(gan_columns)}\n"
-                        f"  Training data columns ({len(train_columns)}): {sorted(train_columns)}\n"
-                        f"  Expected normalized size: {expected_size}\n"
-                        f"  Missing in GAN: {sorted(train_columns - gan_columns)}\n"
-                        f"  Extra in GAN: {sorted(gan_columns - train_columns)}\n"
-                        f"  The GAN model must be retrained with the current feature set."
-                    )
-                    raise ValueError(error_msg)
-            if isinstance(train_minmax, pd.DataFrame):
-                train_minmax_values = train_minmax.to_numpy()
-            else:
-                train_minmax_values = train_minmax
-
-            train_minmax_values = train_minmax_values.astype("float32")
-
-            aug_data_list = []
-            aug_labels_list = []
-
-            for class_idx, need_count in needs_map.items():
-                if need_count <= 0:
-                    continue
-
-                self.debug_print(
-                    f"    Generating {need_count} samples for class {class_idx}"
-                )
-                generated_df = interface.generate(
-                    n=need_count,
-                    class_label=int(class_idx),
-                )
-
-                missing_cols = set(train_minmax.columns) - set(generated_df.columns)
-                extra_cols = set(generated_df.columns) - set(train_minmax.columns)
-
-                if missing_cols or extra_cols:
-                    expected_size = self.get_normalized_size(train_df)
-                    error_msg = (
-                        f"Column mismatch between generated data and training data:\n"
-                        f"  Training data columns: {len(train_minmax.columns)}\n"
-                        f"  Generated data columns: {len(generated_df.columns)}\n"
-                        f"  Expected normalized size: {expected_size}\n"
-                    )
-                    if missing_cols:
-                        error_msg += (
-                            f"  Missing columns in generated data: {missing_cols}\n"
-                        )
-                    if extra_cols:
-                        error_msg += (
-                            f"  Extra columns in generated data: {extra_cols}\n"
-                        )
-                    error_msg += (
-                        f"  The GAN model must be retrained with the current feature set.\n"
-                        f"  Training data columns: {list(train_minmax.columns)}\n"
-                        f"  Generated data columns: {list(generated_df.columns)}"
-                    )
-                    raise ValueError(error_msg)
-
-                generated_array = generated_df[train_minmax.columns].values.astype(
-                    np.float32
-                )
-
-                expected_size = self.get_normalized_size(train_df)
-                if generated_array.shape[1] != train_minmax_values.shape[1]:
-                    raise ValueError(
-                        f"Column count mismatch: "
-                        f"generated has {generated_array.shape[1]} columns, "
-                        f"training data has {train_minmax_values.shape[1]} columns, "
-                        f"expected normalized size: {expected_size}"
-                    )
-                aug_data_list.append(generated_array)
-
-                aug_labels_one_hot = np.zeros(
-                    (need_count, num_classes), dtype=train_labels_one_hot.dtype
-                )
-                aug_labels_one_hot[:, int(class_idx)] = 1.0
-                aug_labels_list.append(aug_labels_one_hot)
-
-            if aug_data_list:
-                aug_x = np.concatenate(aug_data_list, axis=0)
-                aug_y = np.concatenate(aug_labels_list, axis=0)
-
-                combined_x = np.concatenate([train_minmax_values, aug_x], axis=0)
-                combined_y = np.concatenate([train_labels_one_hot, aug_y], axis=0)
-
-                aug_minmax_df = self._format_for_gan_scaler(combined_x)
-                aug_normalized = self.denormalise_from_gan(aug_minmax_df)
-                if isinstance(aug_normalized, pd.DataFrame):
-                    aug_df = aug_normalized.reset_index(drop=True)
-                else:
-                    aug_df = pd.DataFrame(aug_normalized, columns=train_df.columns)
-
-                if list(aug_df.columns) != list(train_df.columns):
-                    expected_size = self.get_normalized_size(train_df)
-                    error_msg = (
-                        f"Column mismatch after denormalization:\n"
-                        f"  Original train_df columns ({len(train_df.columns)}): {list(train_df.columns)}\n"
-                        f"  Augmented aug_df columns ({len(aug_df.columns)}): {list(aug_df.columns)}\n"
-                        f"  Expected normalized size: {expected_size}\n"
-                        f"  The GAN model must be retrained with the current feature set."
-                    )
-                    raise ValueError(error_msg)
-
-                aug_df = aug_df[train_df.columns]
-
-                aug_idx = np.argmax(combined_y, axis=1)
-                aug_classes, aug_counts = np.unique(aug_idx, return_counts=True)
-                new_counts_map = {
-                    int(c): int(n)
-                    for c, n in zip(aug_classes.tolist(), aug_counts.tolist())
-                }
-                self.debug_print("    CTAB-GAN+ augmentation complete")
-                self.debug_print(
-                    "    CTAB-GAN+ effect: rows "
-                    f"{len(train_minmax_values)} -> {len(combined_x)}; "
-                    f"counts {original_counts_map} -> {new_counts_map}"
-                )
-
-                combined_labels_class_indices = np.argmax(combined_y, axis=1)
-
-                return aug_df, combined_labels_class_indices
-            else:
-                print("    CTAB-GAN+ augmentation: no samples generated")
-                return train_df, train_labels
-
-        except Exception as err:
-            print(
-                "    CTAB-GAN+ encountered an error in enhance_training_data; "
-                "stopping strategy"
-            )
-            print(f"      Error: {err}")
-            print(traceback.format_exc())
-            raise
-
-    # =========================================================================
-    # Virtual methods (NN-specific)
-    # =========================================================================
+        from GANs.passthrough import resolve_column_indices  # noqa: E402
+        indices = resolve_column_indices(configured, feature_names)
+        return indices or None
 
     def get_classifier_type(self):
         """Return the type of classifier used for training/predicting"""
@@ -1936,11 +1520,207 @@ class BaseNNStrategy(BaseStrategy):
 
         return aggr_tsr_train, aggr_tsr_test, aggr_train_labels, aggr_test_labels
 
+    # Multi-task GAN types — used by the dispatcher to pick between
+    # balance_single_task and balance_multi_task.  Listed here (rather
+    # than checking `name.startswith("MT_")`) so that adding a new
+    # multi-task type forces a deliberate update.
+    _MULTI_TASK_GAN_TYPES = frozenset({GANType.MT_WGAN, GANType.MT_CTAB_GAN})
+
     def enhance_training_data(
-        self, train_df: DataFrame, train_labels: np.ndarray
-    ) -> Tuple[DataFrame, np.ndarray]:
-        """Optional hook to modify training data before training. Override in subclass for GAN augmentation."""
-        return train_df, train_labels
+        self, train_df: DataFrame, train_labels
+    ) -> Tuple[DataFrame, Any]:
+        """Augment the per-pair training set with the configured GAN.
+
+        Pure dispatcher — single source of truth for "load the GAN,
+        validate its metadata against the strategy, balance the
+        classes, hand back the augmented frame".  The strategy never
+        sees GAN-type-specific code.
+
+        Behaviour:
+          * ``gan_type == NONE`` or ``gan_augment is False`` → pass-through.
+          * Single-task type (WGAN, CTAB_GAN, CGAN) with ndarray labels →
+            normalise → load with strict metadata validation →
+            ``balance_single_task`` → denormalise.
+          * Multi-task type (MT_WGAN, MT_CTAB_GAN) with dict labels →
+            same flow but via ``balance_multi_task``.  Used by NNMT
+            tabular augmentation; sequential 3-D MT strategies turn
+            this off and operate in ``preprocess_training_data`` instead.
+          * Mismatched gan_type / label shape → pass-through (a noisy
+            warning is logged so the misconfiguration is visible).
+
+        Metadata validation: a strict ``GANInterface.load(expected=…)``
+        comparison.  If the GAN was trained with different thresholds /
+        training_type / num_features than the strategy currently
+        declares, ``GANMetadataMismatchError`` is raised so the
+        operator must explicitly retrain or update — silently using
+        stale metadata corrupts training (the bug we fixed).
+
+        Returns the augmented ``(train_df, train_labels)`` in the same
+        types and shapes as the inputs.
+        """
+        if self.gan_type == GANType.NONE or not self.gan_augment:
+            return train_df, train_labels
+
+        is_multi_task_labels = isinstance(train_labels, dict)
+        is_multi_task_type = self.gan_type in self._MULTI_TASK_GAN_TYPES
+
+        if is_multi_task_labels != is_multi_task_type:
+            # Misconfiguration — log loudly and skip rather than crash.
+            print(
+                f"    enhance_training_data: gan_type={self.gan_type.name} "
+                f"and label shape ({'dict' if is_multi_task_labels else 'ndarray'}) "
+                f"disagree on multi-task — skipping augmentation"
+            )
+            return train_df, train_labels
+
+        if train_df is None or len(train_df) == 0:
+            return train_df, train_labels
+        if is_multi_task_labels:
+            if not train_labels:
+                return train_df, train_labels
+        elif len(train_labels) == 0:
+            return train_df, train_labels
+
+        # Lazy imports — the GAN stack pulls in TF / MLX which we don't
+        # want to import for strategies that never enable augmentation.
+        from GANs.balance import balance_multi_task, balance_single_task  # noqa: E402
+        from GANs.GANInterface import GANInterface, GANMetadataMismatchError  # noqa: E402
+        from GANs.paths import gan_save_path  # noqa: E402
+
+        save_path = gan_save_path(
+            self.get_storage_location(),
+            self.gan_type,
+            use_pca=bool(getattr(self, "use_pca_reduction", False)),
+        )
+        interface = GANInterface(self.gan_type, save_path=save_path)
+
+        expected = self._gan_expected_metadata(train_df)
+        try:
+            interface.load(expected=expected)
+        except GANMetadataMismatchError:
+            # Already self-explanatory — propagate as-is so the
+            # operator sees the per-key diff.
+            raise
+        except FileNotFoundError as load_err:
+            raise RuntimeError(
+                f"GAN model not found at {save_path}. "
+                f"Train it first via the corresponding Create* strategy "
+                f"(gan_type={self.gan_type.name}). "
+                f"Underlying error: {load_err}"
+            ) from load_err
+        except Exception as load_err:
+            raise RuntimeError(
+                f"Failed to load GAN model at {save_path}: {load_err}"
+            ) from load_err
+
+        # Normalise to GAN training space.  Keep the DataFrame view —
+        # the balance helpers use it for column-aware passthrough and
+        # the post-balance denormalise step below also expects it.
+        train_minmax = self.normalise_for_gan(train_df)
+        if not isinstance(train_minmax, pd.DataFrame):
+            train_minmax = self._format_for_gan_scaler(train_minmax)
+            if not isinstance(train_minmax, pd.DataFrame):
+                # Last resort — synthesise column names so passthrough
+                # and concatenation can still match.
+                train_minmax = pd.DataFrame(
+                    np.asarray(train_minmax),
+                    columns=list(train_df.columns),
+                )
+
+        passthrough = self._resolve_gan_passthrough_for_dispatcher(
+            train_minmax, train_df,
+        )
+
+        if is_multi_task_type:
+            aug_minmax, aug_labels = balance_multi_task(
+                interface=interface,
+                data=train_minmax,
+                labels=train_labels,
+                target_ratios=self.gan_target_ratio,
+                log=print,
+                debug_log=self.debug_print,
+                diagnostics=bool(self.gan_run_diagnostics),
+                feature_names=list(train_df.columns),
+                passthrough_columns=passthrough,
+            )
+        else:
+            aug_minmax, aug_labels = balance_single_task(
+                interface=interface,
+                data=train_minmax,
+                labels=train_labels,
+                target_ratio=self.gan_target_ratio,
+                log=print,
+                debug_log=self.debug_print,
+                diagnostics=bool(self.gan_run_diagnostics),
+                feature_names=list(train_df.columns),
+                passthrough_columns=passthrough,
+            )
+
+        # Denormalise back to the strategy's input space and restore
+        # the original column order — some backends emit columns in
+        # their own training order which would otherwise drift.
+        if isinstance(aug_minmax, np.ndarray):
+            aug_minmax = self._format_for_gan_scaler(aug_minmax)
+        aug_normalized = self.denormalise_from_gan(aug_minmax)
+        if isinstance(aug_normalized, pd.DataFrame):
+            aug_df = aug_normalized.reset_index(drop=True)
+        else:
+            aug_df = pd.DataFrame(
+                np.asarray(aug_normalized),
+                columns=list(train_df.columns),
+            )
+        if list(aug_df.columns) != list(train_df.columns):
+            # Reorder rather than raise — the GAN's column order is a
+            # superset/permutation, not a real mismatch (a mismatch
+            # would have failed metadata validation above).
+            aug_df = aug_df[train_df.columns]
+
+        return aug_df, aug_labels
+
+    # ----------------------------------------------------------------- #
+    # GAN dispatcher hooks — concrete strategies/subclasses can extend  #
+    # the metadata they expect or the passthrough resolution.            #
+    # ----------------------------------------------------------------- #
+
+    def _gan_expected_metadata(self, train_df: DataFrame) -> Dict[str, Any]:
+        """Metadata fields the strategy expects to find in the saved GAN.
+
+        ``GANInterface.load(expected=…)`` compares each key against the
+        persisted metadata and raises ``GANMetadataMismatchError`` on
+        any drift.  Strategy is the source of truth: if the GAN was
+        trained with different thresholds, the *operator* decides
+        whether to retrain or update the strategy — we don't decide
+        for them.
+
+        Subclasses can extend this (e.g. CTAB-GAN-aware strategies can
+        add ``column_order`` or ``num_features``) without touching the
+        dispatcher itself.
+        """
+        return {
+            "min_buy_gain_threshold": float(self.MIN_BUY_GAIN_THRESHOLD),
+            "min_sell_loss_threshold": float(self.MIN_SELL_LOSS_THRESHOLD),
+            "training_type": int(self.TRAINING_TYPE),
+        }
+
+    def _resolve_gan_passthrough_for_dispatcher(
+        self,
+        train_minmax: Any,
+        train_df: DataFrame,
+    ) -> Optional[List[Any]]:
+        """Resolve ``gan_passthrough_columns`` to a form the balance
+        helpers can consume.
+
+        For DataFrame inputs we return the configured names filtered to
+        what's present (``swap_passthrough_columns`` accepts names).
+        For ndarray inputs we delegate to the existing index resolver.
+        """
+        configured = getattr(self, "gan_passthrough_columns", None)
+        if not configured:
+            return None
+        if isinstance(train_minmax, pd.DataFrame):
+            present = [c for c in configured if c in train_minmax.columns]
+            return present or None
+        return self._resolve_gan_passthrough_indices(train_minmax, train_df)
 
     def preprocess_training_data(
         self, dataframe: DataFrame, train_data, test_data, train_labels, test_labels
@@ -2221,25 +2001,25 @@ class BaseNNStrategy(BaseStrategy):
         self.print_strategy_info()
 
         # GAN creators set this flag on themselves before bot_start runs
-        # (via CreateGANBase.bot_start setting it on super()).  When the
-        # current strategy *consumes* a GAN we'd like to load the thresholds
-        # that the GAN was trained with — when it *creates* a GAN we leave
-        # the MASTER values alone.
+        # (via CreateGANBase.bot_start setting it on super()) so the
+        # MASTER thresholds reach the GAN metadata unmodified by hyperopt.
         is_gan_creation = getattr(self, "_is_gan_creation_strategy", False)
 
         if is_gan_creation:
             return
 
-        if hasattr(self, "_load_gan_thresholds_early"):
-            self._load_gan_thresholds_early()
-
-        thresholds_from_gan = getattr(self, "_thresholds_from_gan", False)
-
+        # The strategy is the source of truth for thresholds and
+        # training_type.  Hyperopt overrides apply unconditionally;
+        # any GAN that was trained against different values will fail
+        # ``GANInterface.load(expected=…)`` with a loud diff so the
+        # operator can decide whether to retrain or pin the threshold.
+        # (The previous "GAN's saved thresholds silently win" path
+        # masked label/GAN drift — see the threshold validation in
+        # GANInterface.)
         if (
             hasattr(self, "buy_params")
             and self.buy_params
             and "min_buy_gain_threshold" in self.buy_params
-            and not thresholds_from_gan
         ):
             self.MIN_BUY_GAIN_THRESHOLD = self.buy_params["min_buy_gain_threshold"]
 
@@ -2247,13 +2027,11 @@ class BaseNNStrategy(BaseStrategy):
             hasattr(self, "sell_params")
             and self.sell_params
             and "min_sell_loss_threshold" in self.sell_params
-            and not thresholds_from_gan
         ):
             self.MIN_SELL_LOSS_THRESHOLD = self.sell_params["min_sell_loss_threshold"]
 
-        if not thresholds_from_gan:
-            if not hasattr(self, "TRAINING_TYPE") or self.TRAINING_TYPE == 13:
-                self.TRAINING_TYPE = self.training_type.value
+        if not hasattr(self, "TRAINING_TYPE") or self.TRAINING_TYPE == 13:
+            self.TRAINING_TYPE = self.training_type.value
 
     def iteration_init(self):
         """Called at the start of each populate_indicators() cycle.

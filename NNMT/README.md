@@ -13,7 +13,7 @@ Inherits from `BaseNNStrategy` (`Framework/BaseNNStrategy.py`) via
 
 | File | What it does |
 |---|---|
-| `NNMTStrategy.py` | Family base class.  Builds the multi-task label dict (`{"trading": …, "regime": …, …}`), runs `mt_ctab_gan_enhance_training_data` for augmentation, and wires the multi-task classifier into the standard NN pipeline. |
+| `NNMTStrategy.py` | Family base class.  Builds the multi-task label dict (`{"trading": …, "regime": …, …}`) and wires the multi-task classifier into the standard NN pipeline.  Tabular multi-task GAN augmentation (e.g. `MT_CTAB_GAN`) flows through `BaseNNStrategy.enhance_training_data` — set `gan_type = GANType.MT_CTAB_GAN` on the subclass and the dispatcher routes through `GANs.balance.balance_multi_task` automatically. |
 | `NNMTClassifier.py` | TF/Keras multi-task classifier factory.  `ClassifierType` enum + `create_classifier()`; 14 architecture variants split into "Normal" (LSTM, Transformer, CNN, GRU, Wavenet, Wavenet_Fast, Attention) which override the shared backbone, and "Multi_*" variants which override every per-task head. |
 | `NNMTClassifierMLX.py` | Apple-MLX multi-task classifier factory.  `ClassifierTypeMLX` enum + `create_classifier_mlx()`.  Mirrors the TF version's 14 architectures, but every Multi_\* variant uses the same head architecture for all six tasks (no per-task branching). |
 | `NNMT_CGP.py`, `NNMT_CGP_Attention.py` | Concrete strategies using CTAB-GAN+ multi-task augmentation. |

@@ -785,16 +785,125 @@ class TestProcessPredictions:
 
 
 # ---------------------------------------------------------------------------
-# enhance_training_data (no-op hook)
+# enhance_training_data — dispatcher behaviour
 # ---------------------------------------------------------------------------
+#
+# After the GAN refactor, ``enhance_training_data`` is the single entry
+# point for class-balanced augmentation; it dispatches to
+# ``balance_single_task`` or ``balance_multi_task`` based on ``gan_type``
+# and the shape of ``train_labels``.  These tests cover the short-circuit
+# branches (no-op when GAN is off, default config) without instantiating
+# a real GAN — the balance helpers themselves are tested in
+# ``GANs/tests/test_balance.py``.
 
 class TestEnhanceTrainingData:
-    def test_returns_input_unchanged(self, strat, indicator_df):
+    def test_default_config_returns_input_unchanged(self, strat, indicator_df):
+        """Default ``gan_type=GANType.NONE`` → pass-through."""
         df = indicator_df.copy()
         labels = np.zeros(len(df), dtype=int)
         out_df, out_labels = strat.enhance_training_data(df, labels)
         pd.testing.assert_frame_equal(out_df, df)
         np.testing.assert_array_equal(out_labels, labels)
+
+    def test_gan_augment_false_skips_dispatcher(self, strat, indicator_df):
+        """``gan_augment=False`` short-circuits even when gan_type is set.
+
+        Multi-task strategies that do their work in ``preprocess_training_data``
+        (3-D tensors) rely on this — they declare ``gan_type=MT_WGAN`` for
+        downstream consumers but turn off the 2-D dispatcher path here.
+        """
+        from GANs.GANType import GANType  # noqa: E402
+        df = indicator_df.copy()
+        labels = np.zeros(len(df), dtype=int)
+        strat.gan_type = GANType.WGAN
+        strat.gan_augment = False
+        out_df, out_labels = strat.enhance_training_data(df, labels)
+        pd.testing.assert_frame_equal(out_df, df)
+        np.testing.assert_array_equal(out_labels, labels)
+
+    def test_mismatched_single_task_with_dict_labels_skips(self, strat, indicator_df, capsys):
+        """Single-task ``gan_type`` + dict labels is a misconfiguration —
+        skip rather than crash, and emit a warning so the operator can
+        spot it in the logs."""
+        from GANs.GANType import GANType  # noqa: E402
+        df = indicator_df.copy()
+        labels = {"trading": np.zeros((len(df), 3), dtype=np.float32)}
+        strat.gan_type = GANType.WGAN
+        strat.gan_augment = True
+        out_df, out_labels = strat.enhance_training_data(df, labels)
+        pd.testing.assert_frame_equal(out_df, df)
+        # Same dict object back, untouched.
+        assert out_labels is labels
+        captured = capsys.readouterr()
+        assert "skipping augmentation" in captured.out
+
+    def test_mismatched_multi_task_with_ndarray_labels_skips(self, strat, indicator_df, capsys):
+        """Multi-task ``gan_type`` + ndarray labels — symmetric mismatch."""
+        from GANs.GANType import GANType  # noqa: E402
+        df = indicator_df.copy()
+        labels = np.zeros(len(df), dtype=int)
+        strat.gan_type = GANType.MT_WGAN
+        strat.gan_augment = True
+        out_df, out_labels = strat.enhance_training_data(df, labels)
+        pd.testing.assert_frame_equal(out_df, df)
+        np.testing.assert_array_equal(out_labels, labels)
+        captured = capsys.readouterr()
+        assert "skipping augmentation" in captured.out
+
+    def test_empty_inputs_short_circuit(self, strat):
+        """Empty df / empty labels — pass-through even with gan_type set."""
+        from GANs.GANType import GANType  # noqa: E402
+        empty_df = pd.DataFrame()
+        empty_labels = np.zeros(0, dtype=int)
+        strat.gan_type = GANType.WGAN
+        out_df, out_labels = strat.enhance_training_data(empty_df, empty_labels)
+        assert len(out_df) == 0
+        assert len(out_labels) == 0
+
+
+class TestGanExpectedMetadata:
+    """``_gan_expected_metadata`` is the strategy's declaration of what
+    must round-trip through the GAN's saved metadata.  ``GANInterface.load``
+    raises on any drift — so what's in this dict matters."""
+
+    def test_includes_thresholds_and_training_type(self, strat, indicator_df):
+        meta = strat._gan_expected_metadata(indicator_df)
+        assert "min_buy_gain_threshold" in meta
+        assert "min_sell_loss_threshold" in meta
+        assert "training_type" in meta
+
+    def test_threshold_values_are_floats(self, strat, indicator_df):
+        meta = strat._gan_expected_metadata(indicator_df)
+        assert isinstance(meta["min_buy_gain_threshold"], float)
+        assert isinstance(meta["min_sell_loss_threshold"], float)
+
+    def test_training_type_is_int(self, strat, indicator_df):
+        meta = strat._gan_expected_metadata(indicator_df)
+        assert isinstance(meta["training_type"], int)
+
+
+class TestResolveGanPassthroughForDispatcher:
+    """The dispatcher needs passthrough columns by *name* for DataFrame
+    backends and by *index* for ndarray backends.  Resolution must filter
+    out columns not present in the actual normalised frame so an
+    over-broad config doesn't crash augmentation."""
+
+    def test_returns_none_when_unconfigured(self, strat, indicator_df):
+        strat.gan_passthrough_columns = []
+        result = strat._resolve_gan_passthrough_for_dispatcher(indicator_df, indicator_df)
+        assert result is None
+
+    def test_dataframe_returns_present_names(self, strat):
+        df = pd.DataFrame({"dow_sin": [0.1], "x": [1.0], "y": [2.0]})
+        strat.gan_passthrough_columns = ["dow_sin", "absent"]
+        result = strat._resolve_gan_passthrough_for_dispatcher(df, df)
+        assert result == ["dow_sin"]
+
+    def test_dataframe_with_no_match_returns_none(self, strat):
+        df = pd.DataFrame({"x": [1.0], "y": [2.0]})
+        strat.gan_passthrough_columns = ["absent_a", "absent_b"]
+        result = strat._resolve_gan_passthrough_for_dispatcher(df, df)
+        assert result is None
 
 
 # ---------------------------------------------------------------------------

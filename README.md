@@ -131,7 +131,7 @@ BaseStrategy (Framework/)
 
 `BaseStrategy` provides the universal boilerplate: ROI tables, stop-loss, trailing stops, `custom_exit`, guard conditions, and `DataframePopulator` integration. `bot_start()` (freqtrade's one-time-init hook) handles environment setup, hyperopt-parameter printing, and shared utility instantiation; `iteration_init()` runs per-iteration scaler reset.
 
-`BaseNNStrategy` adds the full ML pipeline on top: classifier construction, training-signal generation, GAN augmentation hooks (`wgan_enhance_training_data`, `ctab_gan_enhance_training_data`), and per-task class-weight computation.  Family bases (`NNNCStrategy`, `NNMTStrategy`, etc.) wire in the family-specific classifier factory and label format.
+`BaseNNStrategy` adds the full ML pipeline on top: classifier construction, training-signal generation, GAN augmentation via `enhance_training_data` (a single dispatcher that routes through `GANs.balance.balance_single_task` / `balance_multi_task` based on `gan_type`), and per-task class-weight computation.  Family bases (`NNNCStrategy`, `NNMTStrategy`, etc.) wire in the family-specific classifier factory and label format.
 
 Subclasses add family-specific logic and need only override a small number of methods.
 
@@ -190,7 +190,9 @@ So, do *not* just blindly throw indicators into the dataframe, it will mess up t
 
 Neural net strategies suffer from severe class imbalance (many more holds than buys/sells). GANs generate synthetic minority-class samples to improve training.
 
-GAN models are created by running one of the `Create*GAN*` strategies in `GANs/` (e.g. `CreateWGAN`, `CreateMTWGAN`, `CreateCtabGanPlus`) under freqtrade backtesting; the trained model is stored in `saved_data/GANs/` (or `saved_data/CTABGANs/`, `saved_data/MTCTABGANs/` for the CTAB-GAN+ variants).  Strategies that consume the GAN load it via `GANInterface(GANType.X, save_path=...)`.
+GAN models are created by running one of the `Create*GAN*` strategies in `GANs/` (e.g. `CreateWGAN`, `CreateMTWGAN`, `CreateCtabGanPlus`) under freqtrade backtesting.  All GAN types share a single save layout: `saved_data/<StrategyName>/GANs/<gan_type>/` (or `GANs_PCA/<gan_type>/` for PCA-reduced strategies).  The convention lives in `GANs/paths.py::gan_save_path` — every consumer goes through it.
+
+Strategies consume a GAN by setting `gan_type = GANType.X` on the class.  The base class then loads the model, validates its persisted metadata against the strategy's current thresholds / training_type / etc., and dispatches class balancing through `GANs.balance.balance_single_task` (single-task types) or `balance_multi_task` (multi-task types).  Metadata mismatches raise `GANMetadataMismatchError` with a per-key diff so threshold drift between strategy and saved GAN is surfaced loudly rather than silently masked.
 
 Internally, every GAN type is wrapped by a `GANBackend` subclass (in `GANs/backends/`) so the `fit / generate / save / load` lifecycle is uniform across types and across MLX/TF backends.  Adding a new variant of an existing type is a one-class change in `GANs/`; adding a genuinely new GAN type means a new `GANBackend` in `GANs/backends/`.  See `GANs/README.md` for backend details and `GANs/tests/` for the contract tests.
 

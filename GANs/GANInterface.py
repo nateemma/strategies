@@ -35,7 +35,8 @@ Usage — CGAN (sequential, 3D input):
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+import math
+from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 import numpy as np
 
@@ -46,6 +47,39 @@ from GANs.GANBackend import (
     load_with_fallback,
 )
 import GANs.backends  # noqa: F401  — side-effect: registers concrete backends
+
+
+# ---------------------------------------------------------------------------
+# Validation
+# ---------------------------------------------------------------------------
+
+
+class GANMetadataMismatchError(ValueError):
+    """Raised by GANInterface.load(expected=...) when persisted metadata
+    drifts from what the strategy declared.
+
+    A mismatch means either the GAN must be retrained or the strategy
+    must be updated to match — silently using stale data would corrupt
+    training (e.g. labels generated under a different threshold than the
+    GAN saw).  We refuse to continue and surface the diff to the caller.
+    """
+
+    def __init__(self, mismatches: Dict[str, Any], gan_type: GANType, save_path: str):
+        self.mismatches = mismatches
+        self.gan_type = gan_type
+        self.save_path = save_path
+        lines = [
+            f"GAN metadata mismatch for {gan_type.name} at {save_path}:",
+        ]
+        for key, (saved, expected) in mismatches.items():
+            lines.append(
+                f"  {key}: saved={saved!r}  expected={expected!r}"
+            )
+        lines.append(
+            "  Either retrain the GAN with the current strategy config, "
+            "or update the strategy to match what was saved."
+        )
+        super().__init__("\n".join(lines))
 
 
 # ---------------------------------------------------------------------------
@@ -372,14 +406,40 @@ class GANInterface:
             f"save() not supported for GANType.{self.gan_type.name}"
         )
 
-    def load(self) -> Dict[str, Any]:
-        """Restore a saved model from save_path.
+    def load(
+        self,
+        expected: Optional[Mapping[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Restore a saved model from save_path and (optionally) validate
+        its persisted metadata against caller expectations.
 
         For CTAB_GAN, automatically selects the MLX variant when its
         metadata file is present and MLX is available.
 
+        Args:
+            expected: When provided, every key in this mapping is
+                      compared against the metadata persisted at save
+                      time.  A mismatch raises
+                      ``GANMetadataMismatchError`` with a per-key diff
+                      so the caller can decide whether to retrain the
+                      GAN or update the strategy.  Common use:
+
+                          interface.load(expected={
+                              "min_buy_gain_threshold": self.MIN_BUY_GAIN_THRESHOLD,
+                              "min_sell_loss_threshold": self.MIN_SELL_LOSS_THRESHOLD,
+                              "training_type": int(self.TRAINING_TYPE),
+                              "num_features": expected_features,
+                              "column_order": list(train_df.columns),
+                          })
+
+                      Keys absent from the saved metadata are reported
+                      as a mismatch (saved=<MISSING>) — stricter than
+                      "best-effort", which is the point.
+
         Returns:
-            Metadata dict stored alongside the model (e.g. thresholds).
+            Metadata dict stored alongside the model (thresholds,
+            feature stats, etc.).  Returned even when ``expected`` is
+            given so callers can inspect additional saved fields.
         """
         # Phase 2: migrated types use the GANBackend registry's
         # MLX-then-TF fallback probe.
@@ -389,7 +449,15 @@ class GANInterface:
             )
             self._backend = backend
             self._model = getattr(backend, "_model", None)
-            return metadata or {}
+            metadata_dict = dict(metadata or {})
+            if expected:
+                _validate_metadata_against_expected(
+                    saved=metadata_dict,
+                    expected=expected,
+                    gan_type=self.gan_type,
+                    save_path=self.save_path,
+                )
+            return metadata_dict
 
         # Every supported GANType is handled by the backend registry —
         # see the early return at the top of load().  Reaching here
@@ -413,3 +481,88 @@ class GANInterface:
     # ``_build_model`` factory, and the CTAB constructor-key constants
     # have been removed.  Each backend now owns its own kwarg
     # partitioning and lazy module imports — see GANs/backends/*.py.
+
+
+# ---------------------------------------------------------------------------
+# Internal: metadata validation
+# ---------------------------------------------------------------------------
+
+
+_MISSING = object()  # sentinel for "key not present in saved metadata"
+
+
+def _values_match(saved: Any, expected: Any) -> bool:
+    """Compare a saved metadata value against an expected value.
+
+    Numbers are compared with ``math.isclose`` to absorb pickle's
+    np.float32→Python-float drift; sequences (lists/tuples/np arrays)
+    are compared element-wise after converting to a common form;
+    everything else falls back to ``==``.
+    """
+    if saved is _MISSING:
+        return False
+
+    # Numpy scalars — coerce to Python types for clean comparison.
+    if isinstance(saved, np.generic):
+        saved = saved.item()
+    if isinstance(expected, np.generic):
+        expected = expected.item()
+
+    # Float-like comparison handles ``np.float32(0.016) ≈ 0.016``.
+    if isinstance(saved, float) or isinstance(expected, float):
+        try:
+            return math.isclose(float(saved), float(expected), rel_tol=1e-6, abs_tol=1e-9)
+        except (TypeError, ValueError):
+            return False
+
+    # Sequences — order matters for column_order, so we don't sort.
+    saved_is_seq = isinstance(saved, (list, tuple, np.ndarray))
+    expected_is_seq = isinstance(expected, (list, tuple, np.ndarray))
+    if saved_is_seq or expected_is_seq:
+        if not (saved_is_seq and expected_is_seq):
+            return False
+        saved_list = list(saved)
+        expected_list = list(expected)
+        if len(saved_list) != len(expected_list):
+            return False
+        return all(_values_match(s, e) for s, e in zip(saved_list, expected_list))
+
+    # Dicts (e.g. task_label_dims) — recursive value compare on shared keys.
+    if isinstance(saved, dict) and isinstance(expected, dict):
+        if set(saved.keys()) != set(expected.keys()):
+            return False
+        return all(_values_match(saved[k], expected[k]) for k in expected)
+
+    return saved == expected
+
+
+def _validate_metadata_against_expected(
+    *,
+    saved: Mapping[str, Any],
+    expected: Mapping[str, Any],
+    gan_type: GANType,
+    save_path: str,
+) -> None:
+    """Raise ``GANMetadataMismatchError`` if any expected key is missing
+    or unequal in the persisted metadata.
+
+    Strict by design: a mismatch means the GAN was trained against a
+    different config than the one currently active, and continuing
+    would silently corrupt training (e.g. labels generated under one
+    threshold combined with a GAN trained under another).  Either the
+    GAN must be retrained or the strategy must be updated to match —
+    we refuse to choose silently.
+    """
+    mismatches: Dict[str, Any] = {}
+    for key, expected_value in expected.items():
+        saved_value = saved.get(key, _MISSING)
+        if not _values_match(saved_value, expected_value):
+            display_saved = "<MISSING>" if saved_value is _MISSING else saved_value
+            mismatches[key] = (display_saved, expected_value)
+
+    if mismatches:
+        raise GANMetadataMismatchError(
+            mismatches=mismatches,
+            gan_type=gan_type,
+            save_path=save_path,
+        )

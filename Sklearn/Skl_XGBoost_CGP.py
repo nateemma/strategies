@@ -3,13 +3,10 @@
 # type: ignore
 # pylint: disable=import-error
 
-"""XGBoost subclass with WGAN enhancement"""
+"""XGBoost sklearn strategy with CTAB-GAN+ augmentation."""
 
 import sys
 from pathlib import Path
-from pandas import DataFrame
-import numpy as np
-from typing import Tuple
 
 # Make sibling Sklearn modules importable.
 group_dir = str(Path(__file__).parent)
@@ -17,37 +14,24 @@ sys.path.append(group_dir)
 
 from SklearnStrategy import SklearnStrategy  # noqa: E402
 import SklearnClassifier  # noqa: E402
+from GANs.GANType import GANType  # noqa: E402
 
 
 class Skl_XGBoost_CGP(SklearnStrategy):
-    """
-    XGBoost sklearn strategy with CTAB-GAN+ augmentation.
+    """XGBoost sklearn strategy with CTAB-GAN+ augmentation.
 
-    The training-time augmentation goes through
-    BaseNNStrategy.ctab_gan_enhance_training_data, which uses GANInterface
-    under the hood — no direct CTAB-GAN+ module import is needed here.
+    Augmentation is dispatched through ``BaseNNStrategy.enhance_training_data``;
+    this class only declares the GAN type and the augmentation ratio.
     """
 
-    # Sklearn classifiers work with DataFrames directly, not tensors
-    # seq_len is effectively 1 for sklearn (single timestep per sample)
-    seq_len = 1
+    seq_len = 1  # Sklearn classifiers work on flat samples.
 
-    def get_classifier_type(self):
-        """Return the type of sklearn classifier used for training/predicting"""
-        return SklearnClassifier.ClassifierType.XGBoost
+    # Single-task CTAB-GAN+ augmentation.
+    gan_type = GANType.CTAB_GAN
+    gan_target_ratio = 0.8
 
-    # we only want 'real' signals, since we are augmenting anyway
+    # Use only real signals as the basis; GAN handles synthetic samples.
     augment_training_data = False
 
-    def enhance_training_data(
-        self, train_df: DataFrame, train_labels: np.ndarray
-    ) -> Tuple[DataFrame, np.ndarray]:
-        """Optional hook to modify train/test tensors and labels before training.
-        Typical use would be to run a GAN to generate more training data, or to apply a 
-        custom data augmentation pipeline.
-
-        Must return (train_data, train_labels).
-        """
-
-        return self.ctab_gan_enhance_training_data(train_df, train_labels)
-
+    def get_classifier_type(self):
+        return SklearnClassifier.ClassifierType.XGBoost

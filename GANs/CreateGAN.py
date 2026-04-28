@@ -58,20 +58,20 @@ class CreateGAN(CreateGANBase, BaseNNStrategy):
 
     # Per-backend defaults.  The active entry is merged with any
     # caller-supplied override at construction time.
+    # ``save_subdir`` removed — every GAN type now writes to
+    # ``<storage>/GANs/<gan_type>`` via ``GANs.paths.gan_save_path``.
     _DEFAULTS_BY_TYPE: Dict[GANType, Dict[str, Any]] = {
         GANType.WGAN: {
             "name": "WGAN-GP",
             "description": "WGAN-GP",
             "augmentation_target_ratio": 0.4,
             "noise_std": 0.02,
-            "save_subdir": "GANs",
             "multi_task": False,
         },
         GANType.CTAB_GAN: {
             "name": "CTAB-GAN+",
             "description": "CTAB-GAN+",
             "augmentation_target_ratio": 1.0,
-            "save_subdir": "CTABGANs",
             "multi_task": False,
             # None → auto-detect from one_hot_columns
             "categorical_columns": None,

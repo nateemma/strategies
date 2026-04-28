@@ -3,6 +3,11 @@
 Provides GAN-based minority-class oversampling for Freqtrade strategies.
 All GAN types are accessed through a single unified entry point: `GANInterface`.
 
+The strategy never picks a GAN-specific code path itself — it declares
+`gan_type` and the rest is dispatched.  Single-task and multi-task variants
+share the same lifecycle, the same save layout, and the same balanced-augmentation
+helpers (`balance_single_task` / `balance_multi_task` in `balance.py`).
+
 ---
 
 ## GAN types
@@ -22,7 +27,28 @@ All GAN types are accessed through a single unified entry point: `GANInterface`.
 **CTAB-GAN+** uses VGM preprocessing to model the real data distribution more faithfully, especially for mixed continuous/categorical tables.
 **CGAN** is a sequential conditional GAN suited to time-series inputs.
 
-Note that the MT variants operate on tensors, not dataframes
+Note that the MT variants operate on tensors, not dataframes.
+
+---
+
+## Save layout
+
+Every GAN type for a strategy lives under one parent directory, keyed by
+`gan_type.name.lower()`:
+
+```
+<storage>/GANs/
+    wgan/                  GANType.WGAN
+    ctab_gan/              GANType.CTAB_GAN
+    mt_wgan/               GANType.MT_WGAN
+    mt_ctab_gan/           GANType.MT_CTAB_GAN
+    cgan/                  GANType.CGAN
+```
+
+PCA-reduced strategies use `GANs_PCA/<type>/` instead.  The convention is
+defined in `GANs/paths.py::gan_save_path` — every consumer (creator
+scripts, `BaseNNStrategy.enhance_training_data`, debug tools) goes
+through it, so changing the layout is a one-place edit.
 
 ---
 
@@ -114,9 +140,9 @@ gen_data = iface.generate(50, one_hot=one_hot)   # returns (50, seq_len, F)
 
 ---
 
-## Saving optional metadata
+## Saving and validating metadata
 
-`save()` accepts keyword arguments that are stored alongside the model and returned by `load()`.  This is useful for recording strategy-level thresholds that were determined at training time:
+`save()` accepts keyword arguments that are stored alongside the model and returned by `load()`.  Use this to record strategy-level thresholds, training_type, column order, or anything else the consumer needs to verify when it loads the model later:
 
 ```python
 iface.save(
@@ -124,10 +150,89 @@ iface.save(
     min_sell_loss_threshold=-0.012,
     training_type=2,
 )
-
-meta = iface.load()
-threshold = meta["min_buy_gain_threshold"]
 ```
+
+`load()` accepts an optional `expected` mapping.  Every key is compared
+against the persisted metadata; any mismatch (or missing key) raises
+`GANMetadataMismatchError` with a per-key diff so the operator can
+decide whether to retrain the GAN or update the strategy.  This is
+strict by design — silently using a GAN whose thresholds drifted from
+the strategy's current ones would produce labels generated under one
+threshold combined with a generator trained under another, corrupting
+training:
+
+```python
+from GANs.GANInterface import GANInterface, GANMetadataMismatchError
+
+iface = GANInterface(GANType.CTAB_GAN, save_path="...")
+try:
+    metadata = iface.load(expected={
+        "min_buy_gain_threshold": self.MIN_BUY_GAIN_THRESHOLD,
+        "min_sell_loss_threshold": self.MIN_SELL_LOSS_THRESHOLD,
+        "training_type": int(self.TRAINING_TYPE),
+    })
+except GANMetadataMismatchError as e:
+    # The exception's message lists each drifted key, the saved value,
+    # and the value the strategy expected — surface and stop.
+    raise
+```
+
+`load()` without `expected` returns the metadata dict unchecked
+(backwards-compatible).
+
+`BaseNNStrategy.enhance_training_data` already does this — strategies
+get strict validation for free by setting `gan_type`.  Override
+`_gan_expected_metadata(train_df)` to add type-specific keys (e.g.
+`column_order`, `num_features`) on top of the default thresholds /
+training_type checks.
+
+---
+
+## Class-balanced augmentation (`balance.py`)
+
+Two public helpers orchestrate the per-class generation loop on top of
+`GANInterface`.  The strategy code never picks GAN-specific kwargs —
+the helpers dispatch on `interface.gan_type`:
+
+### `balance_single_task` — for WGAN / CTAB_GAN / CGAN
+
+```python
+from GANs.balance import balance_single_task
+
+aug_data, aug_labels = balance_single_task(
+    interface=iface,
+    data=train_minmax,                   # (N, F) ndarray or DataFrame
+    labels=train_labels,                 # 1-D class indices or 2-D one-hot
+    target_ratio=0.8,                    # float, or {class_idx: float}
+    passthrough_columns=["dow_sin", ...],  # names for DataFrame, indices for ndarray
+)
+```
+
+Loops over classes, computes per-class deficits against
+`ratio * majority_count`, calls `interface.generate(...)` with the right
+kwarg for the backend (`one_hot=` for WGAN/CGAN, `class_label=` for
+CTAB-GAN), swaps passthrough columns from real samples, and concatenates.
+
+### `balance_multi_task` — for MT_WGAN / MT_CTAB_GAN
+
+```python
+from GANs.balance import balance_multi_task
+
+aug_data, aug_labels = balance_multi_task(
+    interface=iface,
+    data=train_minmax,                   # 2-D or 3-D ndarray, or DataFrame
+    labels={"trading": ..., "regime": ...},   # dict of one-hot arrays
+    target_ratios=0.8,                   # float (broadcast), Dict[task, float],
+                                         # or Dict[task, Dict[class, float]]
+)
+```
+
+Runs a deficit-driven greedy loop: each round picks the largest
+`(task, class)` deficit, asks the GAN for one batch with that class
+one-hot for the *target* task and the *other* tasks' labels sampled
+from each task's own current deficit distribution.  Solves the
+cross-task interference problem that a naive per-task loop can't
+(where balancing one task re-skews the others).
 
 ---
 

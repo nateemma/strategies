@@ -4,39 +4,32 @@
 # pylint: disable=import-error
 
 """
-NNNC_CGP - Subclass of NNNCStrategy using CTAB-GAN+ for high-fidelity augmentation
+NNNC_CGP — NNNCStrategy with CTAB-GAN+ augmentation.
+
+Just declares ``gan_type = GANType.CTAB_GAN``; everything else (loading the
+GAN, validating its metadata, per-class balancing, denormalising) is
+dispatched by ``BaseNNStrategy.enhance_training_data`` — see
+``GANs.balance.balance_single_task`` for the actual augmentation.
 """
 
 import sys
 from pathlib import Path
-from pandas import DataFrame
-import numpy as np
-from typing import Tuple
 
 group_dir = str(Path(__file__).parent)
 sys.path.append(group_dir)
 
 from NNNCStrategy import NNNCStrategy  # noqa: E402
-
-# -----------
+from GANs.GANType import GANType  # noqa: E402
 
 
 class NNNC_CGP(NNNCStrategy):
 
+    # GAN augmentation — single-task CTAB-GAN+.
+    gan_type = GANType.CTAB_GAN
+
+    # Use only real signals as the basis; the GAN provides synthetic
+    # samples below, so layered signal augmentation would double-count.
     augment_training_data = True
 
-    # CTAB-GAN+ configuration
-    # amount of augmentation. Don't set above 1.0 or the model will over-fit
-    cgp_augmentation_target_ratio = 0.8
-
-    # -----------
-
-    def enhance_training_data(
-        self, train_df: DataFrame, train_labels: np.ndarray
-    ) -> Tuple[DataFrame, np.ndarray]:
-        """Optional hook to modify train/test tensors and labels before training.
-        Uses CTAB-GAN+ to generate more training data
-
-        Must return (train_data, train_labels).
-        """
-        return self.ctab_gan_enhance_training_data(train_df, train_labels)
+    # Don't push above ~1.0 — the model starts overfitting to synthetic.
+    gan_target_ratio = 0.8

@@ -4,17 +4,19 @@
 # pylint: disable=import-error
 
 """
-NNMT_WGAN - Subclass of NNMTStrategy using WGAN-GP for multi-task augmentation.
+NNMT_WGAN — multi-task NNMT strategy with MT-WGAN-GP augmentation.
 
-Uses GANInterface(GANType.MT_WGAN) to delegate all GAN-specific dispatch to the
-interface, including the MLX / TensorFlow backend selection.
+Uses ``GANInterface(GANType.MT_WGAN)`` for the actual fit/generate; this
+class does the 3-D tensor reshape (which the BaseNN dispatcher's 2-D
+path can't handle) and delegates the cross-task balanced augmentation to
+``GANs.balance.balance_multi_task``.
 """
 
 import os
 import sys
 import traceback
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Tuple
 
 import numpy as np
 import pandas as pd
@@ -25,22 +27,25 @@ sys.path.append(group_dir)
 
 from NNMTStrategy import NNMTStrategy  # noqa: E402
 from GANs.GANType import GANType  # noqa: E402
-from GANs.GANInterface import GANInterface  # noqa: E402
+from GANs.GANInterface import GANInterface, GANMetadataMismatchError  # noqa: E402
+from GANs.paths import gan_save_path  # noqa: E402
 
 
 class NNMT_WGAN(NNMTStrategy):
 
-    augment_training_data = (
-        False  # only 'real' signals in 2-D mode; augmentation is done in 3-D
-    )
+    # GAN augmentation — multi-task WGAN-GP, applied to 3-D sequential
+    # tensors in preprocess_training_data.  We turn off the BaseNN 2-D
+    # dispatcher (gan_augment=False) because the augmentation is done
+    # later in 3-D space.
+    gan_type = GANType.MT_WGAN
+    gan_augment = False
 
-    # WGAN hyper-parameters — override in subclasses as needed.
-    wgan_epochs = 100
-    wgan_batch_size = 2048
-    wgan_n_critic = 5
-    wgan_target_ratio = 0.8          # fallback when task_target_ratios is None
-    wgan_primary_task = "trading"    # fallback when task_target_ratios is None
-    wgan_task_target_ratios: Optional[Dict] = {
+    # Per-task augmentation targets.  Accepts:
+    #   * float                       — broadcast to every task in train_labels
+    #   * Dict[task, float]           — per-task target
+    #   * Dict[task, Dict[cls, ratio]] — per-(task, class) override
+    # Same shape as ``balance_multi_task.target_ratios``.
+    gan_target_ratio: Any = {
         "trading":  0.8,
         "regime":   0.8,
         "risk":     0.8,
@@ -49,16 +54,20 @@ class NNMT_WGAN(NNMTStrategy):
         "profit":   0.8,
     }
 
-    # ---------------------------------------------------------------------- #
-    # Hooks                                                                   #
-    # ---------------------------------------------------------------------- #
+    # Use only real signals as the basis; the GAN provides synthetic
+    # samples below, so layered signal augmentation would double-count.
+    augment_training_data = False
 
-    def enhance_training_data(
-        self, train_df: DataFrame, train_labels: Dict[str, np.ndarray]
-    ) -> Tuple[DataFrame, Dict[str, np.ndarray]]:
-        """Skip 2-D augmentation — multi-task WGAN works on 3-D tensors."""
-        print("    Skipping 2-D WGAN augmentation (using 3-D sequential instead)")
-        return train_df, train_labels
+    # When True, balance_multi_task emits a per-(task, class) fidelity
+    # report (mean shift in σ, std ratio, mode-collapse / off-distribution
+    # flags, plus a worst-feature drilldown).  Off by default; flip on
+    # when training regresses with augmentation and you want to know
+    # whether the GAN is producing usable samples.
+    gan_run_diagnostics: bool = False
+
+    # ---------------------------------------------------------------------- #
+    # 3-D augmentation hook                                                  #
+    # ---------------------------------------------------------------------- #
 
     def preprocess_training_data(
         self,
@@ -68,7 +77,7 @@ class NNMT_WGAN(NNMTStrategy):
         train_labels: Dict[str, np.ndarray],
         test_labels: Dict[str, np.ndarray],
     ) -> Tuple[np.ndarray, np.ndarray, Dict[str, np.ndarray], Dict[str, np.ndarray]]:
-        """Balance 3-D sequential training data via MT-WGAN using GANInterface."""
+        """Balance 3-D sequential training data via MT-WGAN."""
         self._augmented_labels = None
         original_shape = np.shape(train_data)
 
@@ -77,7 +86,11 @@ class NNMT_WGAN(NNMTStrategy):
             return train_data, test_data, train_labels, test_labels
 
         try:
-            save_path = os.path.join(self.get_storage_location(), "GANs")
+            save_path = gan_save_path(
+                self.get_storage_location(),
+                self.gan_type,
+                use_pca=bool(getattr(self, "use_pca_reduction", False)),
+            )
 
             # Transform 3-D tensor (batch, seq_len, features) → minmax space.
             train_data_shape = train_data.shape
@@ -89,113 +102,45 @@ class NNMT_WGAN(NNMTStrategy):
                 train_minmax_2d = train_minmax_2d.to_numpy()
             train_minmax = train_minmax_2d.reshape(train_data_shape)
 
-            # Determine augmentation targets
-            if self.wgan_task_target_ratios is not None:
-                task_target_ratios = self.wgan_task_target_ratios
-                display_task = next(iter(task_target_ratios), None)
-            else:
-                # Backward-compatible single-primary-task path.
-                if self.wgan_primary_task not in train_labels:
-                    print(
-                        f"    Primary task '{self.wgan_primary_task}' not found in labels. "
-                        f"Available: {list(train_labels.keys())}"
-                    )
-                    print("    Skipping WGAN-GP balancing")
-                    return train_data, test_data, train_labels, test_labels
-
-                primary = train_labels[self.wgan_primary_task]
-                train_idx = primary.argmax(axis=1)
-                _, counts = np.unique(train_idx, return_counts=True)
-                current_max = int(counts.max()) if counts.size > 0 else 0
-                target = int(current_max * self.wgan_target_ratio) if current_max > 0 else None
-                if not target:
-                    print("    No majority class found, skipping balancing")
-                    return train_data, test_data, train_labels, test_labels
-
-                task_target_ratios = {self.wgan_primary_task: self.wgan_target_ratio}
-                display_task = self.wgan_primary_task
-
             print("    Balancing training data with MT WGAN-GP (via GANInterface)")
             interface = GANInterface(GANType.MT_WGAN, save_path=save_path)
             try:
-                interface.load()
+                interface.load(expected=self._gan_expected_metadata(dataframe))
                 print(f"    Loaded existing MT WGAN model from {save_path}.")
-            except Exception as load_err:
+            except GANMetadataMismatchError:
+                # Strict validation rejects stale models — propagate so
+                # the operator sees the per-key diff.
+                raise
+            except FileNotFoundError as load_err:
                 raise RuntimeError(
                     f"MT WGAN model not found at {save_path}. "
-                    f"Run CreateMTWGAN first to train and save the model. Error: {load_err}"
+                    f"Run CreateMTWGAN first to train and save the model. "
+                    f"Error: {load_err}"
                 ) from load_err
 
-            # Generate per-task per-class augmentation samples.
-            # collect additions: aug_data (n, seq, F), aug_labels_dict
-            aug_data_list: list = [train_minmax]
-            aug_labels_dict: Dict[str, list] = {t: [v] for t, v in train_labels.items()}
+            aug_x, aug_y = self._balance_iteratively(
+                interface=interface,
+                train_minmax=train_minmax,
+                train_labels=train_labels,
+            )
 
-            for task, ratio_spec in task_target_ratios.items():
-                if ratio_spec is None or task not in train_labels:
-                    continue
-
-                task_lbls = train_labels[task]
-                task_idx = np.argmax(task_lbls, axis=1)
-                unique, task_counts = np.unique(task_idx, return_counts=True)
-                current_max = int(np.max(task_counts)) if task_counts.size > 0 else 0
-
-                class_ratios = (
-                    ratio_spec if isinstance(ratio_spec, dict)
-                    else {c: ratio_spec for c in range(task_lbls.shape[1])}
-                )
-                for c in range(task_lbls.shape[1]):
-                    ratio = class_ratios.get(c, 0.0)
-                    if ratio <= 0.0:
-                        continue
-                    have = int(np.sum(task_idx == c))
-                    target_n = int(current_max * ratio)
-                    need = max(0, target_n - have)
-                    if need <= 0:
-                        continue
-
-                    # Build task_labels for this batch: target task gets one-hot class c,
-                    # other tasks use most-common class from real data.
-                    batch_task_labels: Dict[str, np.ndarray] = {}
-                    for other_task, other_lbls in train_labels.items():
-                        if other_task == task:
-                            nc = task_lbls.shape[1]
-                            oh = np.zeros((need, nc), dtype="float32")
-                            oh[:, c] = 1.0
-                            batch_task_labels[other_task] = oh
-                        else:
-                            other_idx = np.argmax(other_lbls, axis=1)
-                            most_common = int(np.bincount(other_idx).argmax())
-                            nc = other_lbls.shape[1]
-                            oh = np.zeros((need, nc), dtype="float32")
-                            oh[:, most_common] = 1.0
-                            batch_task_labels[other_task] = oh
-
-                    gen_data, gen_labels = interface.generate(
-                        n=need, task_labels=batch_task_labels
-                    )
-                    # gen_data: (need, 1, F) — keep 3D to match train_minmax shape
-                    aug_data_list.append(gen_data)
-                    for t in train_labels:
-                        aug_labels_dict[t].append(batch_task_labels[t])
-
-            aug_x = np.concatenate(aug_data_list, axis=0)
-            aug_y = {t: np.concatenate(aug_labels_dict[t], axis=0) for t in train_labels}
-
-            # Log augmentation stats.
+            # Log per-task augmentation summary using the first configured task.
+            display_task = None
+            if isinstance(self.gan_target_ratio, dict):
+                display_task = next(iter(self.gan_target_ratio), None)
             if display_task and display_task in aug_y:
                 aug_task_idx = aug_y[display_task].argmax(axis=1)
                 aug_classes, aug_counts = np.unique(aug_task_idx, return_counts=True)
                 aug_counts_map = dict(zip(aug_classes.tolist(), aug_counts.tolist()))
-                print("    WGAN-GP training complete")
+                print("    MT WGAN-GP augmentation complete")
                 print(
                     f"    Augmented train size: {len(aug_x)}  "
                     f"{display_task} class counts: {aug_counts_map}"
                 )
             else:
-                print("    WGAN-GP training complete")
+                print("    MT WGAN-GP augmentation complete")
                 print(f"    Augmented train size: {len(aug_x)}")
-            print(f"    WGAN-GP effect: shape {original_shape} -> {np.shape(aug_x)}")
+            print(f"    MT WGAN-GP effect: shape {original_shape} -> {np.shape(aug_x)}")
 
             self._augmented_labels = aug_y
 
@@ -210,8 +155,10 @@ class NNMT_WGAN(NNMTStrategy):
 
             return aug_x, test_data, aug_y, test_labels
 
+        except GANMetadataMismatchError:
+            raise
         except Exception as exc:
-            print("    WGAN-GP encountered an error; returning original data")
+            print("    MT WGAN-GP encountered an error; returning original data")
             print(f"      Error: {exc}")
             print(traceback.format_exc())
             self._augmented_labels = None
@@ -220,6 +167,56 @@ class NNMT_WGAN(NNMTStrategy):
     # ---------------------------------------------------------------------- #
     # Helpers                                                                 #
     # ---------------------------------------------------------------------- #
+
+    def _balance_iteratively(
+        self,
+        interface,
+        train_minmax: np.ndarray,
+        train_labels: Dict[str, np.ndarray],
+    ) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
+        """Delegate to ``GANs.balance.balance_multi_task``.
+
+        Thin wrapper kept so subclasses can override scheduling without
+        touching the augmentation policy itself — the algorithm lives
+        in the shared utility because it isn't WGAN-specific.
+        """
+        from GANs.balance import balance_multi_task  # noqa: E402
+        from GANs.passthrough import resolve_column_indices  # noqa: E402
+
+        # Pass feature names through when the scaler knows them — gives
+        # the diagnostic worst-feature drilldown human-readable column
+        # names instead of f0..fF, and lets the passthrough config
+        # specify columns by name.
+        feature_names = None
+        scaler = getattr(self, "gan_scaler_a", None)
+        if scaler is not None and hasattr(scaler, "feature_names_in_"):
+            try:
+                feature_names = list(scaler.feature_names_in_)
+            except Exception:
+                feature_names = None
+
+        # Translate passthrough column names → integer indices for the
+        # 3-D ndarray backend.  Names not present in the scaler's
+        # column set are silently dropped so an over-broad config
+        # doesn't crash augmentation.
+        passthrough_columns = None
+        configured = getattr(self, "gan_passthrough_columns", None)
+        if configured and feature_names:
+            indices = resolve_column_indices(configured, feature_names)
+            if indices:
+                passthrough_columns = indices
+
+        return balance_multi_task(
+            interface=interface,
+            data=train_minmax,
+            labels=train_labels,
+            target_ratios=self.gan_target_ratio,
+            log=print,
+            debug_log=self.debug_print,
+            diagnostics=bool(getattr(self, "gan_run_diagnostics", False)),
+            feature_names=feature_names,
+            passthrough_columns=passthrough_columns,
+        )
 
     def _format_for_gan_scaler(self, array_2d: np.ndarray):
         if isinstance(array_2d, pd.DataFrame):

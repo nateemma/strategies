@@ -26,10 +26,6 @@ from NNMT.NNMTClassifierMLX import ClassifierTypeMLX, create_classifier_mlx
 
 class NNMT_WGAN_MLX(NNMT_WGAN):
 
-    # Scalar broadcasts to every task — see balance_multi_task.target_ratios.
-    gan_target_ratio = 0.5
-    gan_run_diagnostics = True
-
     # default is LSTM type. Override get_classifier_type() in subclass
     def get_classifier_type(self):
         """Return the type of classifier used for training/predicting"""

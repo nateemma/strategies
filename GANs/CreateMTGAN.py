@@ -51,6 +51,8 @@ class CreateMTGAN(CreateMTGANBase, NNMTStrategy):
 
     aggregate_pairs = True  # use all pairs for training
 
+    # ``save_subdir`` removed — every GAN type now writes to
+    # ``<storage>/GANs/<gan_type>`` via ``GANs.paths.gan_save_path``.
     _DEFAULTS_BY_TYPE: Dict[GANType, Dict[str, Any]] = {
         GANType.MT_WGAN: {
             "name": "Multi-Task WGAN-GP",
@@ -65,7 +67,6 @@ class CreateMTGAN(CreateMTGANBase, NNMTStrategy):
             },
             "primary_task": "trading",
             "target_ratio": 0.1,
-            "save_subdir": "GANs",
             "multi_task": True,
         },
         GANType.MT_CTAB_GAN: {
@@ -81,7 +82,6 @@ class CreateMTGAN(CreateMTGANBase, NNMTStrategy):
             },
             "primary_task": "trading",
             "target_ratio": 0.4,
-            "save_subdir": "MTCTABGANs",
             "multi_task": True,
             "categorical_columns": [],
         },

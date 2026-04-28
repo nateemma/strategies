@@ -4,45 +4,35 @@
 # pylint: disable=import-error
 
 """
-NNMT_CGP - Subclass of NNMTStrategy using Multi-Task CTAB-GAN+ for high-fidelity augmentation
+NNMT_CGP — multi-task NNMT strategy with MT CTAB-GAN+ augmentation.
+
+Just declares ``gan_type = GANType.MT_CTAB_GAN``; everything else (loading
+the GAN, validating its metadata, cross-task balanced augmentation,
+denormalising) is dispatched by ``BaseNNStrategy.enhance_training_data``
+— see ``GANs.balance.balance_multi_task`` for the actual augmentation.
 """
 
 import sys
 from pathlib import Path
-from pandas import DataFrame
-import numpy as np
-from typing import Dict, Tuple
+from typing import Any
 
 group_dir = str(Path(__file__).parent)
 sys.path.append(group_dir)
 
 from NNMTStrategy import NNMTStrategy  # noqa: E402
-
-# -----------
+from GANs.GANType import GANType  # noqa: E402
 
 
 class NNMT_CGP(NNMTStrategy):
 
+    # GAN augmentation — multi-task CTAB-GAN+, applied at the 2-D
+    # tabular stage via the BaseNN dispatcher.
+    gan_type = GANType.MT_CTAB_GAN
+    augment_training_data = True
 
+    # Per-task ratio.  Float broadcasts to every task in train_labels;
+    # use a Dict[task, float] or Dict[task, Dict[cls, float]] for finer
+    # control — same shape as balance_multi_task accepts.
+    gan_target_ratio: Any = 0.8
 
-    augment_training_data = True 
-
-    # CTAB-GAN+ configuration
-    # cgp_augmentation_target_ratio = 0.4  # Augment minority classes to % of majority class size
-    cgp_augmentation_target_ratio = 0.8
-
-    batch_size = 2048  # bigger since we enhanced the data
-
-    # -----------
-
-    # -----------
-
-    def enhance_training_data(
-        self, train_df: DataFrame, train_labels: Dict[str, np.ndarray]
-    ) -> Tuple[DataFrame, Dict[str, np.ndarray]]:
-        """Optional hook to modify train/test tensors and labels before training.
-        Uses Multi-Task CTAB-GAN+ to generate more training data
-
-        Must return (train_data, train_labels).
-        """
-        return self.mt_ctab_gan_enhance_training_data(train_df, train_labels)
+    batch_size = 2048  # bigger since we augmented the data

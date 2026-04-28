@@ -35,6 +35,7 @@ sys.path.append(group_dir)
 
 from utils.DataframePopulator import DatasetType  # noqa: E402
 from GANs.GANType import GANType  # noqa: E402
+from GANs.paths import gan_save_path  # noqa: E402
 
 
 class CreateGANBase:
@@ -47,12 +48,16 @@ class CreateGANBase:
     """
 
     # --- Defaults shared across every variant --------------------------------
+    # ``save_subdir`` is no longer part of the config — every GAN type
+    # writes to ``<storage>/GANs/<gan_type>`` (or ``GANs_PCA/<gan_type>``
+    # when use_pca_reduction is True), centralised in
+    # ``GANs.paths.gan_save_path``.  Subclasses that previously set
+    # ``save_subdir`` should drop it.
     DEFAULT_GAN_CONFIG: Dict[str, Any] = {
         "name": "Generic GAN",
         "description": "Generic GAN",
         "balance_fn": None,
         "train_kwargs": {},
-        "save_subdir": "GANs",
         "train_shuffle_seed": 42,
         "test_shuffle_seed": 42,
         "multi_task": False,
@@ -304,11 +309,23 @@ class CreateGANBase:
         return dict(self.DEFAULT_GAN_CONFIG)
 
     def get_gan_save_path(self, config: Optional[Dict[str, Any]] = None) -> str:
-        config = config or self.gan_config
-        subdir = config.get("save_subdir", "GANs")
-        if getattr(self, "use_pca_reduction", False):
-            subdir = subdir + "_PCA"
-        return f"{self.get_storage_location()}/{subdir}"
+        """Per-type GAN storage path under the strategy's storage location.
+
+        Layout: ``<storage>/GANs/<gan_type>`` (or ``GANs_PCA/<gan_type>``
+        when ``use_pca_reduction`` is True).  Centralised in
+        ``GANs.paths.gan_save_path`` so every consumer — creator scripts
+        and the augmentation hooks in BaseNNStrategy / NNMTStrategy —
+        agrees on where the model lives.
+
+        ``config`` is accepted for backwards compatibility but is no
+        longer consulted: the subdir is fully determined by ``gan_type``
+        and ``use_pca_reduction``.
+        """
+        return gan_save_path(
+            self.get_storage_location(),
+            self.gan_type,
+            use_pca=bool(getattr(self, "use_pca_reduction", False)),
+        )
 
     def _log_master_thresholds(self) -> None:
         """Shared announcement block printed by every run_gan_training."""

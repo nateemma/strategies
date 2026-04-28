@@ -156,9 +156,25 @@ class StrategyConfig:
     num_epochs: int = 256
     batch_size: int = 2048
 
-    # GAN augmentation
-    gan_type: GANType = GANType.NONE
+    # Training-signal augmentation (peak-finding / wavelet smoothing /
+    # synthetic buy-sell pairs).  Independent of GAN augmentation —
+    # strategies that GAN-augment often set ``augment_training_data =
+    # False`` because the GAN already provides synthetic samples and
+    # they only want real signals as the basis.
     augment_training_data: bool = True
+
+    # GAN augmentation — concrete strategies opt in by setting ``gan_type``
+    # to anything other than NONE.  ``gan_target_ratio`` is intentionally
+    # a Union: single-task strategies set a float, multi-task strategies
+    # may set a float (broadcast across tasks), a Dict[task, float], or a
+    # nested Dict[task, Dict[class_idx, float]] — same shape as
+    # ``balance_multi_task`` accepts.  The strategy never has to know
+    # which concrete GAN backend it's calling, only whether the target
+    # set is single- or multi-task.
+    gan_type: GANType = GANType.NONE
+    gan_augment: bool = True
+    gan_target_ratio: Any = 0.8
+    gan_run_diagnostics: bool = False
 
     # Feature set
     dataset_type: str = "MINIMAL"  # maps to DatasetType enum
