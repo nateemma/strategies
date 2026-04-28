@@ -76,31 +76,34 @@ tree -d -L 1
 ├── MLX
 ├── NNMT
 ├── NNNC
-├── NeuralNets
 ├── reference
 ├── saved_data
 ├── scripts
-├── SharedData
 ├── SimpleStrategies
+├── Sklearn
 ├── TSPredict
 └── utils
 ```
 
+- _Anomaly_ — anomaly-detection strategies (autoencoder + GANomaly variants)
 - _archived_ — abandoned strategies kept for reference/cut & paste
 - _config_ — exchange-specific config files (replaces old per-exchange subdirectories)
 - _Debug_ — debug/visualisation strategies (all begin with `Debug`)
 - _Framework_ — universal base classes (`BaseStrategy`, `BaseNNStrategy`, `TrainingSignals`, `CreateScalers`)
-- _GANs_ — various GAN implementations and GAN model builders (CTAB-GAN+, WGAN etc.) used to augment imbalanced training data
+- _GANs_ — GAN implementations + the unified `GANInterface` / `GANBackend` system that wraps them.  See `GANs/README.md` for backend details.
 - _hyperopts_ — custom hyperopt loss functions (copy to `user_data/hyperopts` to use)
-- _MLX_ — Apple MLX neural network implementations (Mamba, etc.)
+- _MLX_ — Apple MLX neural network components (Mamba, etc.) shared across strategy families
 - _NNMT_ — Neural Network Multi-Task classification strategies
 - _NNNC_ — Neural Network N-ary (trinary) classification strategies
 - _reference_ — example strategies from other authors (for learning purposes)
 - _saved_data_ — saved model files, scalers, and GAN state; keyed by strategy name
 - _scripts_ — shell scripts for backtesting, hyperopt, dry-run, and live trading
 - _SimpleStrategies_ — indicator-driven strategies (no ML); each file is a standalone strategy
+- _Sklearn_ — sklearn-based classifier strategies (RandomForest, XGBoost, etc.) sharing the NN training/augmentation pipeline
 - _TSPredict_ — time-series prediction strategies using wavelets, FFTs, and DWT
 - _utils_ — shared utility code (classifiers, data manipulation, indicators, wavelets, etc.)
+
+> _**Note**: an older `NeuralNets/` directory used to hold a separate git repo with the NN base classes and scaler storage.  Its contents have been folded into `Framework/` (base classes) and `saved_data/` (scalers).  If you see references to `NeuralNets/` in older docs or branches, treat them as historical._
 
 ---
 
@@ -118,15 +121,19 @@ _NOTES_:
 ```
 BaseStrategy (Framework/)
 ├── BaseNNStrategy (Framework/)
-│   └── NNStrategy (Framework/)
-│       ├── NNNC/    – N-ary (trinary) classifiers
-│       ├── NNMT/    – Multi-task classifiers
-│       └── Anomaly/ – Anomaly detection
+│   ├── NNNCStrategy (NNNC/)        – N-ary (trinary) classifiers
+│   ├── NNMTStrategy (NNMT/)        – Multi-task classifiers
+│   ├── NNAnomalyStrategy (Anomaly/) – Anomaly detection
+│   └── SklearnStrategy (Sklearn/)  – sklearn classifiers (RF, XGBoost, …)
 ├── SimpleStrategy (SimpleStrategies/)
-└── TSPredict/       – Wavelet/FFT/DWT regression
+└── TSPredict (TSPredict/)          – Wavelet/FFT/DWT regression
 ```
 
-`BaseStrategy` provides the universal boilerplate: ROI tables, stop-loss, trailing stops, `custom_exit`, guard conditions, and `DataframePopulator` integration. Subclasses add family-specific logic and need only override a small number of methods.
+`BaseStrategy` provides the universal boilerplate: ROI tables, stop-loss, trailing stops, `custom_exit`, guard conditions, and `DataframePopulator` integration. `bot_start()` (freqtrade's one-time-init hook) handles environment setup, hyperopt-parameter printing, and shared utility instantiation; `iteration_init()` runs per-iteration scaler reset.
+
+`BaseNNStrategy` adds the full ML pipeline on top: classifier construction, training-signal generation, GAN augmentation hooks (`wgan_enhance_training_data`, `ctab_gan_enhance_training_data`), and per-task class-weight computation.  Family bases (`NNNCStrategy`, `NNMTStrategy`, etc.) wire in the family-specific classifier factory and label format.
+
+Subclasses add family-specific logic and need only override a small number of methods.
 
 ## Intro
 
@@ -138,7 +145,7 @@ I currently focus on strategies that revolve around one of several approaches:
 
 1. **Time-series prediction** — model expected price behaviour and compare to actual. Buy when the model projects a higher price (above a threshold), sell when it projects lower. Variants use Discrete Wavelet Transforms (DWT), FFTs, and Kalman filters. The DWT variants tend to perform best.
 
-2. **Neural network classification** — trinary classifiers (sell/hold/buy) based on technical indicators. Base class is `NNStrategy`. Models are trained over long periods and saved to `saved_data/`.
+2. **Neural network classification** — trinary classifiers (sell/hold/buy) based on technical indicators. Base class is `BaseNNStrategy` (`Framework/`); per-family subclasses live in `NNNC/` (N-ary), `NNMT/` (multi-task), `Anomaly/`, and `Sklearn/`. Models are trained over long periods and saved to `saved_data/<StrategyName>/`.
 
 3. **Anomaly detection** — train on historical "normal" (hold) data, then flag anomalous points (unusually high reconstruction error) as buy/sell candidates. Variants use `NNAnomalyClassifier` (autoencoder) and `NNGANomalyClassifier` (GANomaly).
 
@@ -149,7 +156,7 @@ I currently focus on strategies that revolve around one of several approaches:
 
 ### Model Management
 
-Neural net strategies train a model on first run and save it to `saved_data/<StrategyName>/` (or `NeuralNets/saved_data/<StrategyName>/`). Subsequent runs load the saved model.
+Neural net strategies train a model on first run and save it to `saved_data/<StrategyName>/`.  Subsequent runs load the saved model.
 
 To retrain: delete the files in `saved_data/<StrategyName>/`.
 
@@ -173,7 +180,7 @@ or:
 zsh user_data/strategies/scripts/test_strat.sh -n 720 -o 30 Framework CreateScalers
 ```
 
-Scaler files are stored in `NeuralNets/saved_data/`.
+Scaler files are stored in `saved_data/`.
 
 It turns out that normalization of data is very, very important for any kind of model-based strategy. The data passed to the models cannot have pair-specific data (like price or volume), and the data must be consistently scaled across pairs. Because of this, I spent a lot of time tweaking which indicators are passed into the models. Also, using several indicators which essentially have the same information confuses the models, so I have trimmed down redundant indicators where possible. If you are interested, look at DebugAnalyseDf to see how I assess the indicators.
 
@@ -181,7 +188,11 @@ So, do *not* just blindly throw indicators into the dataframe, it will mess up t
 
 ### GAN Data Augmentation
 
-Neural net strategies suffer from severe class imbalance (many more holds than buys/sells). GANs generate synthetic minority-class samples to improve training. GAN models are created with the `Create*GAN*` scripts in `GANs/`, and stored in `saved_data/GANs/`.
+Neural net strategies suffer from severe class imbalance (many more holds than buys/sells). GANs generate synthetic minority-class samples to improve training.
+
+GAN models are created by running one of the `Create*GAN*` strategies in `GANs/` (e.g. `CreateWGAN`, `CreateMTWGAN`, `CreateCtabGanPlus`) under freqtrade backtesting; the trained model is stored in `saved_data/GANs/` (or `saved_data/CTABGANs/`, `saved_data/MTCTABGANs/` for the CTAB-GAN+ variants).  Strategies that consume the GAN load it via `GANInterface(GANType.X, save_path=...)`.
+
+Internally, every GAN type is wrapped by a `GANBackend` subclass (in `GANs/backends/`) so the `fit / generate / save / load` lifecycle is uniform across types and across MLX/TF backends.  Adding a new variant of an existing type is a one-class change in `GANs/`; adding a genuinely new GAN type means a new `GANBackend` in `GANs/backends/`.  See `GANs/README.md` for backend details and `GANs/tests/` for the contract tests.
 
 ### NNNC Family
 

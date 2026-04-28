@@ -21,37 +21,57 @@ This file is intended to orient an AI agent (or a new developer) on how to build
 ```
 user_data/strategies/
 ├── Framework/           ← Universal base classes
-│   ├── BaseStrategy.py  ← Root base class for ALL strategies
-│   ├── BaseNNStrategy.py← NN-specific base (inherits BaseStrategy)
+│   ├── BaseStrategy.py  ← Root base class for ALL strategies (ROI, stoploss,
+│   │                      bot_start lifecycle, custom_exit, guards)
+│   ├── BaseNNStrategy.py← NN ML pipeline base (inherits BaseStrategy):
+│   │                      classifier construction, training-signal labels,
+│   │                      GAN augmentation hooks, class-weight handling
 │   ├── TrainingSignals.py  ← Future-aware label generation
 │   └── CreateScalers.py ← Run once to generate normalization scalers
-├── NeuralNets/          ← Separate git repo; NNStrategy base + scaler storage
-│   ├── NNStrategy.py    ← Full ML pipeline base class
-│   └── saved_data/      ← Scaler files go here
 ├── utils/               ← Shared utility code
 │   ├── DataframeUtils.py
-│   ├── DataframePopulator.py  ← Adds all technical indicators to a dataframe
-│   ├── ClassifierKeras*.py    ← Keras classifier implementations
-│   ├── ClassifierMLX*.py      ← Apple MLX classifier implementations
+│   ├── DataframePopulator.py     ← Adds all technical indicators to a dataframe
+│   ├── ClassifierKeras*.py        ← Keras classifier implementations
+│   ├── ClassifierMLX*.py          ← Apple MLX classifier implementations
+│   ├── ClassifierMLXMultiTask.py  ← MLX multi-task base (focal loss + grad clipping)
+│   ├── ClassifierSklearn.py       ← sklearn classifier implementations
 │   ├── Wavelets.py
 │   ├── Forecasters.py
 │   └── ...
-├── NNNC/                ← Neural Network N-ary Classification strategies
-├── NNMT/                ← Neural Network Multi-Task strategies
-├── Anomaly/             ← Neural Network Anomaly Detection strategies
-├── GANs/                ← GAN model builders (CTAB-GAN+, WGAN etc.)
-├── MLX/                 ← Apple MLX neural net components
+├── NNNC/                ← N-ary (trinary) Classification strategies + NNNClassifier
+├── NNMT/                ← Multi-Task strategies + NNMTClassifier (TF)
+│                          + NNMTClassifierMLX (Apple Silicon)
+├── Anomaly/             ← Anomaly Detection strategies (autoencoder + GANomaly)
+├── Sklearn/             ← sklearn classifier strategies (RandomForest, XGBoost, …)
+│                          inherit from BaseNNStrategy via SklearnStrategy
+├── GANs/                ← GAN implementations + GANInterface + GANBackend ABC
+│   ├── GANInterface.py  ← Thin facade: fit/generate/save/load
+│   ├── GANBackend.py    ← Abstract base + registry (resolve_backend, fit/load_with_fallback)
+│   ├── backends/        ← Concrete backends, one file per type/backend pair
+│   ├── df_*_gp.py       ← TensorFlow trainer implementations
+│   ├── df_*_mlx.py      ← MLX trainer implementations
+│   ├── Create*GAN*.py   ← Strategy classes you run under freqtrade backtesting
+│   │                      to train + save a GAN
+│   └── tests/           ← Contract + robustness tests
+├── MLX/                 ← Apple MLX neural net components (Mamba, etc.)
 ├── TSPredict/           ← Time-series/wavelet-based strategies
 ├── SimpleStrategies/    ← Single-indicator strategies (no ML)
 ├── Debug/               ← Debug/visualisation utilities
 ├── hyperopts/           ← Custom hyperopt loss functions
 ├── config/              ← Exchange-specific config files
 ├── saved_data/          ← Trained model files (keyed by strategy name)
-├── SharedData/          ← Shared GAN models and scalers
+│                          + GANs/ + CTABGANs/ + MTCTABGANs/ subdirs for GANs
 ├── scripts/             ← Shell scripts for all workflow tasks
 ├── archived/            ← Old/abandoned strategies (reference only)
 └── reference/           ← External strategies for learning
 ```
+
+> _**Historical note**_: an older `NeuralNets/` directory used to contain a
+> separate git repo holding the NN base class (`NNStrategy`) and the scaler
+> storage.  That directory is now deprecated — its contents have been folded
+> into `Framework/` (base classes) and the top-level `saved_data/` (scalers).
+> Older docs / older branches still reference `NeuralNets/`; those references
+> are stale.
 
 ---
 
@@ -59,20 +79,33 @@ user_data/strategies/
 
 ```
 BaseStrategy (Framework/BaseStrategy.py)
-├── BaseNNStrategy (Framework/BaseNNStrategy.py)
-│   └── NNStrategy (NeuralNets/NNStrategy.py)  ← full ML pipeline
-│       ├── NNNCStrategy (NNNC/NNNCStrategy.py)
-│       │   └── NNNC_CGP, NNNC_CGP_LSTM2, ... (concrete strategies)
-│       ├── NNMTStrategy (NNMT/NNMTStrategy.py)
-│       └── NNAnomalyStrategy (Anomaly/NNAnomalyStrategy.py)
+├── BaseNNStrategy (Framework/BaseNNStrategy.py)  ← full ML pipeline
+│   ├── NNNCStrategy (NNNC/NNNCStrategy.py)
+│   │   └── NNNC_CGP, NNNC_CGP_LSTM2, NNNC_CGP_MLX_*, ... (concrete strategies)
+│   ├── NNMTStrategy (NNMT/NNMTStrategy.py)
+│   │   └── NNMT_WGAN, NNMT_WGAN_MLX, NNMT_CGP, ... (concrete strategies)
+│   ├── NNAnomalyStrategy (Anomaly/NNAnomalyStrategy.py)
+│   └── SklearnStrategy (Sklearn/SklearnStrategy.py)
+│       └── Skl_RandomForest, Skl_XGBoost, Skl_RandomForest_WGAN, ...
 ├── SimpleStrategy (SimpleStrategies/SimpleStrategy.py)
 │   └── AO, BBBreakout, EMACross, ... (each in own file)
 └── TSPredict (TSPredict/TSPredict.py)
     └── TS_Wavelet_DWT, TS_Coeff_FFT, ... (concrete strategies)
 ```
 
+There is no separate `NNStrategy` class — `BaseNNStrategy` is the ML
+pipeline base and the per-family bases (NNNC/NNMT/Anomaly/Sklearn)
+inherit directly from it.  Older docs may still reference `NNStrategy`;
+that's stale.
+
 ### BaseStrategy responsibilities
 - ROI table, stoploss, trailing stop config
+- `bot_start()` — freqtrade's one-time-init hook.  Handles environment
+  setup, hyperopt-parameter printing, and shared utility instantiation
+  (`DataframeUtils`, `DataframePopulator`).  Subclasses overriding this
+  MUST call `super().bot_start(**kwargs)`.
+- `iteration_init()` — runs at the start of each `populate_indicators()`
+  cycle.  Now slim: just per-iteration scaler reset.
 - `custom_exit()` — most actual sells happen here, not in `populate_exit_trend`
 - `custom_stoploss()`
 - `confirm_trade_entry()` / `confirm_trade_exit()`
@@ -80,9 +113,18 @@ BaseStrategy (Framework/BaseStrategy.py)
 - Hyperopt parameters: guards, prediction threshold
 - `populate_indicators()` calls `DataframePopulator` to add all technical indicators
 
+### BaseNNStrategy responsibilities (in addition to BaseStrategy's)
+- Classifier construction via `get_classifier_type()` + `get_classifier()`
+- Training-signal generation via `TrainingSignals` + MASTER thresholds
+- GAN augmentation hooks (`wgan_enhance_training_data`,
+  `ctab_gan_enhance_training_data`, `mt_ctab_gan_enhance_training_data`)
+  that go through `GANInterface`
+- Per-task class-weight computation
+- Train / save / load lifecycle wired into `populate_indicators()`
+
 ### Adding a new strategy (NN family)
-1. Create a new `.py` file in the appropriate family directory (e.g., `NNNC/`)
-2. Inherit from the appropriate family base class (e.g., `NNNCStrategy`)
+1. Create a new `.py` file in the appropriate family directory (e.g., `NNNC/`, `NNMT/`, `Anomaly/`, `Sklearn/`)
+2. Inherit from the appropriate family base class (e.g., `NNNCStrategy`, `NNMTStrategy`, `SklearnStrategy`)
 3. Override `get_classifier_type()` and `get_classifier()` to return your model
 4. Optionally override `add_strategy_indicators()`, `get_custom_training_data()`, etc.
 5. Run backtest over a long period to train and save the model
@@ -188,7 +230,7 @@ freqtrade backtesting \
   --strategy CreateScalers \
   --timerange=20220101-
 ```
-Scalers are saved to `user_data/strategies/NeuralNets/saved_data/`.
+Scalers are saved to `user_data/strategies/saved_data/`.
 
 ### 8. Retrain a neural net model
 Delete the existing model files and re-run backtest with a long timerange:
@@ -213,17 +255,25 @@ zsh user_data/strategies/scripts/run_strat.sh NNNC NNNC_CGP
 
 ---
 
-## NeuralNets Pipeline (NNStrategy)
+## BaseNNStrategy Pipeline
 
-Understanding the data flow is critical for debugging or extending NN strategies.
+Understanding the data flow is critical for debugging or extending NN strategies.  The pipeline lives in `Framework/BaseNNStrategy.py` and is shared across NNNC, NNMT, Anomaly, and Sklearn family bases.
 
-### `populate_indicators(dataframe, metadata)`
-1. Checks that scalers exist in `NeuralNets/saved_data/`
-2. Calls `DataframePopulator` to add all technical indicators
-3. Adds training labels via `TrainingSignals`
-4. Normalizes features using pre-computed scalers
-5. If no saved model: collects dataframes from all pairs, trains, saves
-6. If model exists: loads it
+### `bot_start(**kwargs)` (one-time, called once per backtest/dry-run/live)
+1. Calls `super().bot_start()` (BaseStrategy: banner, environment, helpers).
+2. Configures TF/MLX device visibility for `util_no_exchange` runs.
+3. Loads MASTER thresholds from saved GAN metadata if present (so the strategy
+   always uses the same `MIN_BUY_GAIN_THRESHOLD` / `MIN_SELL_LOSS_THRESHOLD` /
+   `TRAINING_TYPE` the GAN was trained with).
+4. Falls back to `buy_params` / `sell_params` overrides if no GAN metadata.
+
+### `populate_indicators(dataframe, metadata)` (per pair, per iteration)
+1. Checks that scalers exist in `saved_data/`.
+2. Calls `DataframePopulator` to add all technical indicators.
+3. Adds training labels via `TrainingSignals`.
+4. Normalizes features using pre-computed scalers.
+5. If no saved model: collects dataframes from all pairs, trains, saves.
+6. If model exists: loads it.
 
 ### `get_predictions(dataframe)`
 1. Normalizes the dataframe
@@ -319,10 +369,43 @@ Run `CreateScalers` (see "Create scalers" above). NN strategies will fail at sta
 
 ---
 
-## Adding a New GAN Model
+## Adding to / extending the GAN system
 
-1. Create a new builder script in `GANs/` (e.g., `CreateMyGAN.py`)
-2. Inherit from `CreateGANBase` or `CreateMTGANBase`
-3. Run it as a strategy via backtesting on a long timerange to train and save the model
-4. Saved model goes to `SharedData/GANs/<ModelName>/`
-5. Reference in a strategy by setting `gan_model_name = "MyGAN"`
+There are two distinct extension cases:
+
+### Case A — new variant of an existing GAN type
+
+Most additions are this case (e.g. a CTAB-GAN+ trained on a different feature
+set, or a WGAN with a different augmentation ratio).
+
+1. Create a new builder script in `GANs/` (e.g. `CreateMyGAN.py`).
+2. Inherit from `CreateGAN` (single-task) or `CreateMTGAN` (multi-task) and
+   set `gan_type = GANType.X` plus any per-class config overrides.  The
+   pre-existing classes (`CreateWGAN`, `CreateCtabGanPlus`, etc.) are
+   thin shims over these two unified bases — copy one of them as a template.
+3. Run the new strategy via backtesting on a long timerange to train and save.
+4. The saved model goes to `saved_data/<save_subdir>/` (default subdir
+   depends on `gan_type`: `GANs/`, `CTABGANs/`, `MTCTABGANs/`).
+5. Strategies consume the GAN by calling `GANInterface(GANType.X, save_path=...)`
+   and then `interface.load()` followed by `interface.generate(...)`.
+
+### Case B — genuinely new GAN type (new GANType enum value)
+
+Rare.  Add when the existing types can't capture the new behaviour
+(e.g. a different label modality or a fundamentally different conditioning).
+
+1. Add the new enum entry to `GANType` (`GANs/GANType.py`).
+2. Create the trainer/model class(es) in `GANs/df_<name>_*.py` (TF and/or
+   MLX, following the existing `df_wgan_*` and `df_ctab_*` patterns).
+3. Create a backend class in `GANs/backends/<name>.py` subclassing
+   `GANBackend` and decorate with `@register_backend`.  Implement
+   `fit / generate / save / load` and `is_available()`.
+4. Add `from . import <name>  # noqa: F401` to `GANs/backends/__init__.py`
+   so it registers at import time.
+5. Add a `_DEFAULTS` entry in `GANInterface` if your type has trainer-specific
+   defaults that callers shouldn't be forced to know about.
+6. Add the new type to `_BACKEND_MIGRATED` in `GANInterface.py`.
+7. Cover it with the contract tests in `GANs/tests/`:
+   `test_gan_metadata_roundtrip.py` (what gets persisted),
+   `test_gan_output_contracts.py` (shape/dtype/finiteness),
+   and (gated) `test_gan_robustness.py`.
