@@ -23,10 +23,6 @@ import NNMTClassifier
 from BaseNNMTStrategy import BaseNNMTStrategy, ProfitDirection
 
 
-# -----------
-
-# -----------
-
 
 class NNMTStrategy(BaseNNMTStrategy):
     """
@@ -111,7 +107,6 @@ class NNMTStrategy(BaseNNMTStrategy):
 
     # -----------
     # Task-specific functions
-    # (Target calculators moved to BaseNNMTStrategy in Phase 3)
     # -----------
 
     def analyze_flow_distribution(
@@ -200,9 +195,7 @@ class NNMTStrategy(BaseNNMTStrategy):
         profit = scaled_profit
         return profit
 
-    # Trading Action (more complicated because it uses data from the other tasks)
-
-# -----------
+    # -----------
     # Override functions
     # -----------
 

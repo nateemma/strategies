@@ -7,7 +7,10 @@ heads acts as a regulariser and produces a model that's less prone to
 overfitting any single task.
 
 Inherits from `BaseNNStrategy` (`Framework/BaseNNStrategy.py`) via
-`NNMTStrategy`.
+`BaseNNMTStrategy` and `NNMTStrategy`:
+`NNMTStrategy` → `BaseNNMTStrategy` → `BaseNNStrategy`.
+
+`BaseNNMTStrategy` (`NNMT/BaseNNMTStrategy.py`) houses the multi-task scaffolding shared across all NNMT strategies: target calculators, pipeline overrides, task filtering logic, and multi-task class attributes.  `NNMTStrategy` keeps strategy-specific concerns: plot config, classifier choice, diagnostics, and profit-scaling helpers.  A second multi-task strategy can inherit directly from `BaseNNMTStrategy` to reuse the multi-task scaffolding without duplicating `NNMTStrategy`'s specifics.
 
 ## Main files
 
