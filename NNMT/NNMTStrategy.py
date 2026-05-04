@@ -18,8 +18,6 @@ import pandas as pd
 import traceback
 from enum import IntEnum
 
-from freqtrade.strategy import DecimalParameter, IntParameter, BooleanParameter
-
 import logging
 
 log = logging.getLogger(__name__)
