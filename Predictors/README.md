@@ -67,3 +67,12 @@ import from `Predictors/` so the task-type axis is explicit.
 `NNMTClassifier` and `NNMTClassifierMLX` use a `_Base` intermediate, so only
 the `_Base` class actually inherits from the Predictors hierarchy — the
 LSTM/Transformer variants in those files inherit from `_Base`.
+
+**Anomaly caveat:** `NNAnomalyStrategy.py` references `KerasAnomalyDetector`
+only in type hints (`get_classifier` return type, `get_predictions` parameter
+type). The actual classifier files `Anomaly/NNAnomalyClassifier.py` and
+`Anomaly/NNGANomalyClassifier.py` are pre-existing broken (missing
+`utils.AnyAnomaly` module) and were not migrated. The type hints are
+aspirational — when those files are fixed, they should be re-parented onto
+`Predictors.KerasAnomalyDetector` (or a sibling) so the annotations match
+runtime behavior.
