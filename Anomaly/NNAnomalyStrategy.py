@@ -36,7 +36,7 @@ from Framework.BaseNNStrategy import BaseNNStrategy, HAS_MLX, StrategyConfig
 from utils.Environment import Environment
 from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, TradingAction, FlowDirection, MomentumDirection, RiskLevel, GANType
 
-from utils.ClassifierKerasAnomaly import ClassifierKerasAnomaly
+from Predictors.KerasAnomalyDetector import KerasAnomalyDetector
 import NNAnomalyClassifier
 
 
@@ -238,7 +238,7 @@ from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, Tradi
 
     # -----------
 
-    def get_classifier(self, classifier_type, pair, seq_len, num_features) -> ClassifierKerasAnomaly:
+    def get_classifier(self, classifier_type, pair, seq_len, num_features) -> KerasAnomalyDetector:
         """ Return the classifier used for training/predicting """
 
         classifier, _ = NNAnomalyClassifier.create_classifier(
@@ -467,7 +467,7 @@ from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, Tradi
 
     # -----------
 
-    def get_predictions(self, dataframe: DataFrame, classifier: ClassifierKerasAnomaly):
+    def get_predictions(self, dataframe: DataFrame, classifier: KerasAnomalyDetector):
         """Get the predictions from the model"""
 
         # empty dictionary for use in error cases
