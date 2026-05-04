@@ -2,7 +2,7 @@ from __future__ import annotations
 
 # MLX multi-task classifier variants, mirroring NNMTClassifier.py.
 #
-# Each public class inherits ClassifierMLXMultiTask and provides one of:
+# Each public class inherits MLXClassifierMultiTask and provides one of:
 #   * _make_common_layer  — overridden by "Normal" variants (LSTM, Transformer,
 #                           CNN, GRU, Wavenet, Wavenet_Fast, Attention) to plug
 #                           an architecture-specific module into the *shared*
@@ -33,7 +33,8 @@ import mlx.nn as nn
 sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent.parent))
 
-from utils.ClassifierMLXMultiTask import ClassifierMLXMultiTask, TASK_NAMES
+from Predictors.MLXClassifierMultiTask import MLXClassifierMultiTask
+from utils.ClassifierMLXMultiTask import TASK_NAMES
 
 
 # ---------------------------------------------------------------------------
@@ -718,11 +719,11 @@ class _TransformerHead(nn.Module):
 
 
 # ---------------------------------------------------------------------------
-# Base ClassifierMLXMultiTask subclass — owns the factory hooks
+# Base MLXClassifierMultiTask subclass — owns the factory hooks
 # ---------------------------------------------------------------------------
 
 
-class NNMTClassifierMLX_Base(ClassifierMLXMultiTask):
+class NNMTClassifierMLX_Base(MLXClassifierMultiTask):
     """
     Base multi-task MLX classifier.  Subclasses override exactly one of:
       * _make_common_layer   (Normal variants — change the shared backbone)

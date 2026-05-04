@@ -3,14 +3,13 @@
 
 import tensorflow as tf
 from enum import Enum
-from utils.ClassifierKeras import ClassifierKeras
-from utils.ClassifierKerasMultiTask import ClassifierKerasMultiTask
+from Predictors.KerasClassifierMultiTask import KerasClassifierMultiTask
 from utils.PositionalEncoding import PositionalEncoding
 from utils.PCALayer import TrainablePCALayer
 from sklearn.decomposition import PCA
 
 
-class NNMTClassifier_Base(ClassifierKerasMultiTask):
+class NNMTClassifier_Base(KerasClassifierMultiTask):
     """
     Base class for Multi-Task Neural Network classifiers.
     Handles the common parts: regime, volatility, and risk prediction.
