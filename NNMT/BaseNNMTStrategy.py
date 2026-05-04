@@ -828,4 +828,113 @@ class BaseNNMTStrategy(BaseNNStrategy):
         )
         return dataframe
 
+    def _filter_trading_by_tasks(
+        self,
+        trading_predictions: np.ndarray,
+        profit_predictions: np.ndarray,
+        regime_predictions: np.ndarray,
+        momentum_predictions: np.ndarray,
+        flow_predictions: np.ndarray,
+        risk_predictions: np.ndarray,
+    ) -> np.ndarray:
+        """Apply task-aligned filters to trading predictions."""
+
+        """
+        trading_buy_mask = (trading_predictions == TradingAction.BUY)
+        trading_sell_mask = (trading_predictions == TradingAction.SELL)
+
+        required_matches = 3
+
+        buy_conditions = np.stack(
+            [
+                profit_predictions == ProfitDirection.PROFIT,
+                regime_predictions == MarketRegime.BULL,
+                momentum_predictions == MomentumDirection.POSITIVE,
+                flow_predictions == FlowDirection.INCREASE,
+                risk_predictions == RiskLevel.LOW,
+            ],
+            axis=0,
+        )
+        sell_conditions = np.stack(
+            [
+                profit_predictions == ProfitDirection.LOSS,
+                regime_predictions == MarketRegime.BEAR,
+                momentum_predictions == MomentumDirection.NEGATIVE,
+                flow_predictions == FlowDirection.DECREASE,
+                risk_predictions == RiskLevel.HIGH,
+            ],
+            axis=0,
+        )
+
+        buy_mask = trading_buy_mask & (buy_conditions.sum(axis=0) >= required_matches)
+        sell_mask = trading_sell_mask & (sell_conditions.sum(axis=0) >= required_matches)
+        # buy_mask = (buy_conditions.sum(axis=0) >= required_matches)
+        # sell_mask = (sell_conditions.sum(axis=0) >= required_matches-1)
+        """
+
+        buy_mask = (trading_predictions == TradingAction.BUY) & (
+            momentum_predictions == MomentumDirection.POSITIVE
+        )
+        sell_mask = (trading_predictions == TradingAction.SELL) & (
+            momentum_predictions == MomentumDirection.NEGATIVE
+        )
+
+        # Reset all to HOLD, then set BUY/SELL only where both conditions are met
+        filtered = np.full_like(trading_predictions, TradingAction.HOLD)
+        filtered[buy_mask] = TradingAction.BUY
+        filtered[sell_mask] = TradingAction.SELL
+        return filtered
+
+    def get_trading_classes(
+        self,
+        dataframe: DataFrame,
+        profit_targets: np.ndarray,
+        regime_targets: np.ndarray,
+        momentum_targets: np.ndarray,
+        risk_targets: np.ndarray,
+        flow_targets: np.ndarray,
+    ) -> np.ndarray:
+
+        # Calculate profit potential (similar to original NNNC)
+        future_df = dataframe.copy()
+
+        profit_series = profit_targets
+
+        # Initialize profit class array (HOLD by default)
+        trading_classes = np.ones(len(profit_series), dtype=int) * TradingAction.HOLD
+
+        buy_signals = self.get_train_buy_signals(future_df)
+        sell_signals = self.get_train_sell_signals(future_df)
+
+        # augment, if needed
+        buy_signals, sell_signals = self.augment_training_signals(
+            buy_signals, sell_signals
+        )
+
+        # set initially basd on training signals
+        trading_classes[buy_signals.astype(bool)] = TradingAction.BUY
+        trading_classes[sell_signals.astype(bool)] = TradingAction.SELL
+
+        # apply any filters based on the other tasks
+        filtered_trading_classes = self._filter_trading_by_tasks(
+            trading_classes,
+            np.asarray(profit_targets),
+            np.asarray(regime_targets),
+            np.asarray(momentum_targets),
+            np.asarray(flow_targets),
+            np.asarray(risk_targets),
+        )
+
+        buy_signals = filtered_trading_classes == TradingAction.BUY
+        sell_signals = filtered_trading_classes == TradingAction.SELL
+
+        self.dbg_curr_df["%train_buy"] = buy_signals.astype(int)
+        self.dbg_curr_df["%train_sell"] = sell_signals.astype(int)
+
+        # TODO: use other tasks to filter trading decisions (?!)
+
+        # Note that we cannot add this to the main dataframe
+        # because it is inherently looking ahead in time
+        return trading_classes
+
     # -----------
