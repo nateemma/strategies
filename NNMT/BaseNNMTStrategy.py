@@ -16,16 +16,22 @@ inherit them without duplicating NNMTStrategy.
 import sys
 from pathlib import Path
 from enum import IntEnum
+from typing import Dict, List, Optional
 from pandas import DataFrame
 import numpy as np
 import pandas as pd
+import traceback
+import logging
+
+log = logging.getLogger(__name__)
 
 # Match NNMTStrategy's sys.path setup so sibling-module imports resolve
 group_dir = str(Path(__file__).parent)
 sys.path.append(group_dir)
 
 from Framework.BaseNNStrategy import BaseNNStrategy
-from Framework.BaseStrategy import MarketRegime, FlowDirection, MomentumDirection, RiskLevel
+from Framework.BaseStrategy import MarketRegime, TradingAction, FlowDirection, MomentumDirection, RiskLevel
+from utils.ClassifierKeras import ClassifierKeras
 from freqtrade.strategy import DecimalParameter, IntParameter, BooleanParameter
 
 
@@ -317,5 +323,509 @@ class BaseNNMTStrategy(BaseNNStrategy):
         # Note that we cannot add this to the main dataframe
         # because it is inherently looking ahead in time
         return classes
+
+    # -----------
+
+    def add_additional_indicators(self, dataframe: DataFrame):
+        """Add any additional indicators to the dataframe"""
+
+        # we also want the parent class to add its indicators
+        dataframe = super().add_additional_indicators(dataframe)
+
+        # Initialize training indicators
+        dataframe["%train_buy"] = 0
+        dataframe["%train_sell"] = 0
+
+        # Add missing indicators that lookahead analysis expects (with default values)
+        dataframe["%train_trading"] = 1
+        dataframe["%train_risk"] = 1
+        dataframe["%train_momentum"] = 1
+        dataframe["%train_regime"] = 1
+        dataframe["%train_flow"] = 1
+        dataframe["%train_profit"] = 1
+        dataframe["%trading"] = 1
+        dataframe["%risk"] = 1
+        dataframe["%momentum"] = 1
+        dataframe["%regime"] = 1
+        dataframe["%flow"] = 1
+        dataframe["%profit"] = 1
+        dataframe["enter_tag"] = ""
+        dataframe["enter_long"] = 0
+        dataframe["exit_tag"] = ""
+        dataframe["exit_long"] = 0
+        dataframe["predict_buy"] = 0
+        dataframe["predict_sell"] = 0
+        self.dbg_curr_df = dataframe
+
+        # if "profit" not in self.include_list:
+        #     self.include_list.append("profit")
+
+        # print(f"DEBUG: dataframe columns: {dataframe.columns}")
+        return dataframe
+
+    # -----------
+
+    class_weights = {}
+
+    def get_training_labels(self, dataframe: DataFrame):
+
+        profit_targets = self.get_profit_target(dataframe)
+        regime_targets = self.get_market_target(dataframe)
+        momentum_targets = self.get_momentum_target(dataframe)
+        risk_targets = self.get_risk_target(dataframe)
+        flow_targets = self.get_flow_target(dataframe)
+        trading_targets = self.get_trading_classes(
+            dataframe,
+            profit_targets,
+            regime_targets,
+            momentum_targets,
+            risk_targets,
+            flow_targets,
+        )
+
+        # DEBUG: check that all tasks have the same length:
+        if (
+            len(profit_targets) != len(regime_targets)
+            or len(profit_targets) != len(momentum_targets)
+            or len(profit_targets) != len(risk_targets)
+            or len(profit_targets) != len(flow_targets)
+            or len(profit_targets) != len(trading_targets)
+        ):
+            self.debug_print("All tasks must have the same length")
+            self.debug_print(f"profit_targets length: {len(profit_targets)}")
+            self.debug_print(f"regime_targets length: {len(regime_targets)}")
+            self.debug_print(f"momentum_targets length: {len(momentum_targets)}")
+            self.debug_print(f"risk_targets length: {len(risk_targets)}")
+            self.debug_print(f"flow_targets length: {len(flow_targets)}")
+            self.debug_print(f"trading_targets length: {len(trading_targets)}")
+
+        labels = {}
+        labels["profit"] = profit_targets
+        labels["regime"] = regime_targets
+        labels["momentum"] = momentum_targets
+        labels["risk"] = risk_targets
+        labels["flow"] = flow_targets
+        labels["trading"] = trading_targets
+
+        # save class weights for later
+        self.class_weights = {}
+        self.class_weights["profit"] = self.get_class_weights(profit_targets)
+        self.class_weights["regime"] = self.get_class_weights(regime_targets)
+        self.class_weights["momentum"] = self.get_class_weights(momentum_targets)
+        self.class_weights["risk"] = self.get_class_weights(risk_targets)
+        self.class_weights["flow"] = self.get_class_weights(flow_targets)
+        self.class_weights["trading"] = self.get_class_weights(trading_targets)
+
+        # DEBUG: copy training data into debug columns of the main dataframe
+        self.dbg_curr_df = dataframe
+        offset = np.shape(self.dbg_curr_df)[0] - len(profit_targets)
+        self.dbg_curr_df.loc[offset:, "%train_profit"] = profit_targets
+        self.dbg_curr_df.loc[offset:, "%train_regime"] = regime_targets
+        self.dbg_curr_df.loc[offset:, "%train_momentum"] = momentum_targets
+        self.dbg_curr_df.loc[offset:, "%train_risk"] = risk_targets
+        self.dbg_curr_df.loc[offset:, "%train_flow"] = flow_targets
+        self.dbg_curr_df.loc[offset:, "%train_trading"] = trading_targets
+
+        return labels
+
+    # -----------
+
+    def get_training_class_weights(self, train_labels=None, validation_labels=None):
+        """Get the class weights for the training data
+
+        Args:
+            train_labels: Augmented training labels (balanced distribution) - used for weight calculation
+            validation_labels: Validation/test labels (real-world imbalanced distribution) - NOT used for weight calculation
+
+        Note: We calculate weights from train_labels (after augmentation) because they represent the
+        actual distribution the model will see during training. This ensures Focal Loss is
+        calibrated for the data it's actually processing.
+        """
+        labels_to_use = train_labels
+
+        if labels_to_use is None:
+            # Fall back to train_labels if validation_labels not provided (backward compatibility)
+            labels_to_use = train_labels
+
+        if labels_to_use is None:
+            # Fall back to stored labels if available
+            if (
+                hasattr(self, "_augmented_labels")
+                and self._augmented_labels is not None
+            ):
+                labels_to_use = self._augmented_labels
+
+        # If we have labels (either from parameter or stored), recalculate weights from them
+        if labels_to_use is not None and isinstance(labels_to_use, dict):
+            # Determine which labels we're using for clear logging
+            print(f"    Calculating class weights from augmented training data...")
+            # Recalculate weights based on labels
+            calculated_weights = {}
+            for task_name, task_labels in labels_to_use.items():
+                # Convert one-hot to class indices
+                class_indices = task_labels.argmax(axis=1)
+                counts = np.bincount(class_indices, minlength=3)
+                print(
+                    f"      {task_name} distribution: {counts} [{counts[0]/len(class_indices)*100:.1f}%, {counts[1]/len(class_indices)*100:.1f}%, {counts[2]/len(class_indices)*100:.1f}%]"
+                )
+                calculated_weights[task_name] = self.get_class_weights(class_indices)
+            self.class_weights = calculated_weights
+
+        return self.class_weights
+
+    # -----------
+
+    def prepare_training_data(
+        self, dataframes: List[DataFrame], labels_list, norm: bool = True
+    ):
+        """Prepare the training data"""
+
+        if not isinstance(dataframes, (list, tuple)):
+            dataframes = [dataframes]
+        if not isinstance(labels_list, (list, tuple)):
+            labels_list = [labels_list]
+
+        if len(dataframes) == 0:
+            raise ValueError("No dataframes supplied to prepare_training_data")
+
+        if len(dataframes) != len(labels_list):
+            raise ValueError(
+                "Mismatched dataframe/label counts in prepare_training_data"
+            )
+
+        aggr_tsr_train = None
+        aggr_tsr_test = None
+        aggr_train_labels: Optional[Dict[str, np.ndarray]] = None
+        aggr_test_labels: Optional[Dict[str, np.ndarray]] = None
+
+        for pair_idx, dataframe in enumerate(dataframes):
+            labels = labels_list[pair_idx]
+            if not isinstance(labels, dict):
+                raise ValueError("Multi-task labels must be a dictionary per pair")
+
+            pair_labels = {task: np.asarray(values) for task, values in labels.items()}
+            if norm:
+                df_norm = self.scale_dataframe(dataframe)
+            else:
+                df_norm = dataframe.copy()
+
+            min_length = min(
+                [len(df_norm)] + [len(values) for values in pair_labels.values()]
+            )
+            if min_length <= self.seq_len:
+                self.debug_print(
+                    f"    Skipping pair {pair_idx} due to insufficient data ({min_length} rows)"
+                )
+                continue
+
+            df_norm = df_norm.iloc[:min_length].reset_index(drop=True)
+            for task in pair_labels:
+                pair_labels[task] = pair_labels[task][:min_length]
+
+            split_idx = int(self.TRAIN_DATA_SPLIT * len(df_norm))
+            buffer_size = self.seq_len - 1
+            train_end = max(split_idx - buffer_size, self.seq_len)
+            test_start = train_end
+
+            train_df = df_norm.iloc[:train_end].reset_index(drop=True)
+            test_df = df_norm.iloc[test_start:].reset_index(drop=True)
+
+            train_label_segment = {
+                task: values[:train_end] for task, values in pair_labels.items()
+            }
+            test_label_segment = {
+                task: values[test_start:] for task, values in pair_labels.items()
+            }
+
+            train_df, train_label_segment = self.enhance_training_data(
+                train_df, train_label_segment
+            )
+
+            train_one_hot = {
+                task: self.dataframeUtils.one_hot_encode(
+                    np.asarray(vals).astype(int), 3
+                )
+                for task, vals in train_label_segment.items()
+            }
+            test_one_hot = {
+                task: self.dataframeUtils.one_hot_encode(
+                    np.asarray(vals).astype(int), 3
+                )
+                for task, vals in test_label_segment.items()
+            }
+
+            tsr_train = self.dataframeUtils.df_to_tensor(
+                train_df, self.seq_len, method=0
+            )
+            tsr_test = self.dataframeUtils.df_to_tensor(test_df, self.seq_len, method=0)
+
+            offset = self.seq_len - 1
+            for task in train_one_hot:
+                train_one_hot[task] = train_one_hot[task][offset:]
+                test_one_hot[task] = test_one_hot[task][offset:]
+
+            if len(tsr_train) == 0 or len(tsr_test) == 0:
+                self.debug_print(
+                    f"    Skipping pair {pair_idx} due to zero-length tensors after windowing"
+                )
+                continue
+
+            if aggr_tsr_train is None:
+                aggr_tsr_train = tsr_train
+                aggr_tsr_test = tsr_test
+                aggr_train_labels = {
+                    task: train_one_hot[task] for task in train_one_hot
+                }
+                aggr_test_labels = {task: test_one_hot[task] for task in test_one_hot}
+            else:
+                aggr_tsr_train = np.concatenate([aggr_tsr_train, tsr_train], axis=0)
+                aggr_tsr_test = np.concatenate([aggr_tsr_test, tsr_test], axis=0)
+                for task in train_one_hot:
+                    aggr_train_labels[task] = np.concatenate(
+                        [aggr_train_labels[task], train_one_hot[task]], axis=0
+                    )
+                    aggr_test_labels[task] = np.concatenate(
+                        [aggr_test_labels[task], test_one_hot[task]], axis=0
+                    )
+
+        if (
+            aggr_tsr_train is None
+            or aggr_tsr_test is None
+            or aggr_train_labels is None
+            or aggr_test_labels is None
+        ):
+            raise ValueError("No valid training data produced in prepare_training_data")
+
+        self._augmented_labels = aggr_train_labels
+
+        return aggr_tsr_train, aggr_tsr_test, aggr_train_labels, aggr_test_labels
+
+    # -----------
+
+    def get_predictions(self, dataframe: DataFrame, classifier: ClassifierKeras):
+        """Get the predictions from the model"""
+
+        # empty dictionary for use in error cases
+        dlen = np.shape(dataframe)[0]
+        predictions_dict = {}
+        predictions_dict["trading"] = np.ones(dlen, dtype=int)
+        predictions_dict["regime"] = np.ones(dlen, dtype=int)
+        predictions_dict["risk"] = np.ones(dlen, dtype=int)
+        predictions_dict["momentum"] = np.ones(dlen, dtype=float)
+        predictions_dict["flow"] = np.ones(dlen, dtype=float)
+        predictions_dict["profit"] = np.ones(dlen, dtype=float)
+
+        if classifier is None:
+            # print("    no classifier for predictions")
+            raise Exception("No classifier for predictions")
+
+        # Get multi-task predictions
+        try:
+            # # Debug: print data shape before prediction
+            # self.debug_print(f"    DEBUG: Input data shape: {data.shape}")
+            # self.debug_print(f"    DEBUG: Actual features: {data.shape[-1]}")
+            df_norm = self.scale_dataframe(dataframe)
+            df_tensor = self.dataframeUtils.df_to_tensor(
+                df_norm, self.seq_len, method=0
+            )
+            multi_predictions = classifier.predict(df_tensor)
+
+        except Exception as e:
+            log.error(f"    Prediction failed: {e}")
+            self.debug_print(f"    ERROR: Prediction failed: {e}")
+            self.debug_print(f"    Exception type: {type(e)}")
+            self.debug_print(f"    Traceback: {traceback.format_exc()}")
+            return predictions_dict
+
+        # Debug: print what we're getting
+
+        self.debug_print(
+            f"    DEBUG: multi_predictions keys: {list(multi_predictions.keys())}"
+        )
+
+        # extract arrays from dictionary
+        try:
+            trading_predictions = multi_predictions["trading"]
+            regime_predictions = multi_predictions["regime"]
+            risk_predictions = multi_predictions["risk"]
+            momentum_predictions = multi_predictions["momentum"]
+            flow_predictions = multi_predictions["flow"]
+            profit_predictions = multi_predictions["profit"]
+
+        except (KeyError, IndexError, TypeError) as e:
+            log.error(f"    Failed to extract predictions: {e}")
+            self.debug_print(f"    ERROR: Failed to extract predictions: {e}")
+            self.debug_print(f"    multi_predictions: {multi_predictions}")
+            return predictions_dict
+
+        # Ensure predictions are numpy arrays and properly shaped
+        trading_predictions = np.array(trading_predictions)
+        regime_predictions = np.array(regime_predictions)
+        risk_predictions = np.array(risk_predictions)
+        momentum_predictions = np.array(momentum_predictions)
+        flow_predictions = np.array(flow_predictions)
+        profit_predictions = np.array(profit_predictions)
+
+        # Clean predictions (handle NaN/Inf only)
+        trading_predictions = np.nan_to_num(
+            trading_predictions, nan=0.0, posinf=0.0, neginf=0.0
+        )
+        regime_predictions = np.nan_to_num(
+            regime_predictions, nan=0.0, posinf=0.0, neginf=0.0
+        )
+        risk_predictions = np.nan_to_num(
+            risk_predictions, nan=0.0, posinf=0.0, neginf=0.0
+        )
+        profit_predictions = np.nan_to_num(
+            profit_predictions, nan=0.0, posinf=0.0, neginf=0.0
+        )
+        momentum_predictions = np.nan_to_num(
+            momentum_predictions, nan=0.0, posinf=0.0, neginf=0.0
+        )
+        flow_predictions = np.nan_to_num(
+            flow_predictions, nan=0.0, posinf=0.0, neginf=0.0
+        )
+
+        # convert the probability matrices into classes
+        # Note the use of hyperparameters for the tasks that use bias
+
+        pred_threshold = self.prediction_threshold.value
+        # print(f"    prediction threshold: {pred_threshold}")
+
+        predictions_dict["trading"] = self.argmax_with_threshold(
+            trading_predictions,
+            threshold=pred_threshold,
+            default_class=TradingAction.HOLD,
+        )
+        # predictions_dict["trading"] = self.argmax_with_bias(
+        #     trading_predictions,
+        #     bias_map={0: self.bias_trading_sell.value, 2: self.bias_trading_buy.value},
+        #     threshold=pred_threshold,
+        #     default_class=TradingAction.HOLD,
+        # )
+        predictions_dict["regime"] = self.argmax_with_threshold(
+            regime_predictions,
+            threshold=pred_threshold,
+            default_class=MarketRegime.SIDEWAYS,
+        )
+        predictions_dict["risk"] = self.argmax_with_threshold(
+            risk_predictions, threshold=pred_threshold, default_class=RiskLevel.NORMAL
+        )
+        predictions_dict["momentum"] = self.argmax_with_threshold(
+            momentum_predictions,
+            threshold=pred_threshold,
+            default_class=MomentumDirection.STABLE,
+        )
+        predictions_dict["flow"] = self.argmax_with_threshold(
+            flow_predictions,
+            threshold=pred_threshold,
+            default_class=FlowDirection.NEUTRAL,
+        )
+        predictions_dict["profit"] = self.argmax_with_threshold(
+            profit_predictions,
+            threshold=pred_threshold,
+            default_class=ProfitDirection.NEUTRAL,
+        )
+        # predictions_dict["profit"] = self.argmax_with_bias(
+        #     profit_predictions,
+        #     bias_map={0: self.bias_profit_low.value, 2: self.bias_profit_high.value},
+        #     threshold=pred_threshold,
+        #     default_class=ProfitDirection.NEUTRAL,
+        # )
+
+        # DEBUG:
+        self.print_probability_stats(
+            "Trading", "Sell", profit_predictions[:, TradingAction.SELL], pred_threshold
+        )
+        self.print_probability_stats(
+            "Trading", "Hold", profit_predictions[:, TradingAction.HOLD], pred_threshold
+        )
+        self.print_probability_stats(
+            "Trading", "Buy", profit_predictions[:, TradingAction.BUY], pred_threshold
+        )
+        return predictions_dict
+
+    # -----------
+
+    def process_predictions(self, dataframe: DataFrame, predictions):
+        """Process the predictions. Ideally, set up dataframe["predict_buy"] and dataframe["predict_sell"]"""
+
+        trading_predictions = predictions["trading"]
+        regime_predictions = predictions["regime"]
+        risk_predictions = predictions["risk"]
+        momentum_predictions = predictions["momentum"]
+        flow_predictions = predictions["flow"]
+        profit_predictions = predictions["profit"]
+
+        apply_task_filters = self.apply_task_filters.value
+        if apply_task_filters:
+            trading_predictions = self._filter_trading_by_tasks(
+                trading_predictions,
+                profit_predictions,
+                regime_predictions,
+                momentum_predictions,
+                flow_predictions,
+                risk_predictions,
+            )
+
+        # Filter for consecutive buy predictions to reduce noise (VECTORIZED)
+        buy_signals = trading_predictions == TradingAction.BUY
+        min_consecutive = self.min_consecutive_buys.value
+
+        if min_consecutive > 0:
+            # Find the start and end of each consecutive sequence
+            # Pad with False to handle edge cases
+            padded_signals = np.concatenate([[False], buy_signals, [False]])
+
+            # Find transitions: True->False and False->True
+            transitions = np.diff(padded_signals.astype(int))
+            starts = np.where(transitions == 1)[0]  # False->True
+            ends = np.where(transitions == -1)[0]  # True->False
+
+            # Create mask for valid sequences (length >= min_consecutive)
+            valid_buy_mask = np.zeros_like(buy_signals, dtype=bool)
+
+            for start, end in zip(starts, ends):
+                seq_length = end - start
+                if seq_length >= min_consecutive:
+                    # Mark all positions in this sequence as valid
+                    valid_buy_mask[start:end] = True
+
+            # Convert isolated single buy signals back to hold
+            trading_predictions[buy_signals & ~valid_buy_mask] = TradingAction.HOLD
+
+        # DEBUG: this is a bit naughty, but add results to the current dataframe (not supposed to know this)
+        offset = len(dataframe) - len(trading_predictions)
+        dataframe["%trading"] = 0.0
+        dataframe["%regime"] = 0.0
+        dataframe["%momentum"] = 0.0
+        dataframe["%risk"] = 0.0
+        dataframe["%flow"] = 0.0
+        dataframe["%profit"] = 0.0
+        # Use the FINAL predictions (after all filtering and conversions), not raw argmax
+        dataframe.loc[offset:, "%trading"] = trading_predictions
+        dataframe.loc[offset:, "%regime"] = regime_predictions
+        dataframe.loc[offset:, "%risk"] = risk_predictions
+
+        dataframe.loc[offset:, "%momentum"] = momentum_predictions
+        dataframe.loc[offset:, "%flow"] = flow_predictions
+        dataframe.loc[offset:, "%profit"] = profit_predictions
+
+        self.debug_print("    Model predictions, after filtering:")
+        self.print_distribution_compact("  Trading", trading_predictions)
+        self.print_distribution_compact("  Risk", risk_predictions)
+        self.print_distribution_compact("  Market Regime", regime_predictions)
+        self.print_distribution_compact("  Momentum", momentum_predictions)
+        self.print_distribution_compact("  Flow", flow_predictions)
+        self.print_distribution_compact("  Profit", profit_predictions)
+
+        # add results to the main dataframe
+        dataframe.loc[offset:, "predict_buy"] = np.where(
+            trading_predictions == TradingAction.BUY, 1, 0
+        )
+        dataframe.loc[offset:, "predict_sell"] = np.where(
+            trading_predictions == TradingAction.SELL, 1, 0
+        )
+        return dataframe
 
     # -----------
