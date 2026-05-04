@@ -38,6 +38,7 @@ from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, Tradi
 
 from utils.ClassifierKeras import ClassifierKeras
 import NNMTClassifier
+from BaseNNMTStrategy import BaseNNMTStrategy
 
 
 # -----------
@@ -54,7 +55,7 @@ class ProfitDirection(IntEnum):
 # -----------
 
 
-class NNMTStrategy(BaseNNStrategy):
+class NNMTStrategy(BaseNNMTStrategy):
     """
     Neural Network Multi-Task (NNMT) base strategy that predicts:
     - Trading action (Sell/Hold/Buy) for trading decisions
