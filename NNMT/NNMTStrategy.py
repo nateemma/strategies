@@ -25,7 +25,6 @@ log = logging.getLogger(__name__)
 group_dir = str(Path(__file__).parent)
 sys.path.append(group_dir)
 
-from Framework.BaseNNStrategy import BaseNNStrategy, HAS_MLX, StrategyConfig
 from Framework.BaseStrategy import MarketRegime, TradingAction, FlowDirection, MomentumDirection, RiskLevel
 
 from utils.ClassifierKeras import ClassifierKeras
