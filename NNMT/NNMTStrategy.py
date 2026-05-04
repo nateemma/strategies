@@ -17,9 +17,13 @@ import numpy as np
 group_dir = str(Path(__file__).parent)
 sys.path.append(group_dir)
 
-from Framework.BaseStrategy import TradingAction
+# TradingAction and MarketRegime are re-exported here for NNMT2 and the
+# Debug/* scripts, which import them via `from NNMTStrategy import ...`.
+# Do not remove even though NNMTStrategy itself no longer references them.
+from Framework.BaseStrategy import TradingAction, MarketRegime
 from utils.ClassifierKeras import ClassifierKeras
 import NNMTClassifier
+# ProfitDirection is also re-exported for NNMT2.
 from BaseNNMTStrategy import BaseNNMTStrategy, ProfitDirection
 
 
