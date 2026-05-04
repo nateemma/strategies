@@ -46,7 +46,7 @@ from sklearn.discriminant_analysis import (
 )
 from xgboost import XGBClassifier
 
-from utils.ClassifierSklearn import ClassifierSklearn
+from Predictors.SklearnBaseClassifier import SklearnBaseClassifier
 from utils.DataframeUtils import DataframeUtils
 
 
@@ -55,7 +55,7 @@ from utils.DataframeUtils import DataframeUtils
 # --------------------------------------------------------------
 
 
-class SklearnClassifier_LogisticRegression(ClassifierSklearn):
+class SklearnClassifier_LogisticRegression(SklearnBaseClassifier):
     is_trained = False
     clean_data_required = False
 
@@ -63,7 +63,7 @@ class SklearnClassifier_LogisticRegression(ClassifierSklearn):
         return LogisticRegression(max_iter=10000)
 
 
-class SklearnClassifier_DecisionTree(ClassifierSklearn):
+class SklearnClassifier_DecisionTree(SklearnBaseClassifier):
     is_trained = False
     clean_data_required = False
 
@@ -71,7 +71,7 @@ class SklearnClassifier_DecisionTree(ClassifierSklearn):
         return DecisionTreeClassifier()
 
 
-class SklearnClassifier_RandomForest(ClassifierSklearn):
+class SklearnClassifier_RandomForest(SklearnBaseClassifier):
     is_trained = False
     clean_data_required = False
 
@@ -79,7 +79,7 @@ class SklearnClassifier_RandomForest(ClassifierSklearn):
         return RandomForestClassifier()
 
 
-class SklearnClassifier_GaussianNB(ClassifierSklearn):
+class SklearnClassifier_GaussianNB(SklearnBaseClassifier):
     is_trained = False
     clean_data_required = False
 
@@ -87,7 +87,7 @@ class SklearnClassifier_GaussianNB(ClassifierSklearn):
         return GaussianNB()
 
 
-class SklearnClassifier_MLP(ClassifierSklearn):
+class SklearnClassifier_MLP(SklearnBaseClassifier):
     is_trained = False
     clean_data_required = False
 
@@ -103,7 +103,7 @@ class SklearnClassifier_MLP(ClassifierSklearn):
         )
 
 
-class SklearnClassifier_KNeighbors(ClassifierSklearn):
+class SklearnClassifier_KNeighbors(SklearnBaseClassifier):
     is_trained = False
     clean_data_required = False
 
@@ -111,7 +111,7 @@ class SklearnClassifier_KNeighbors(ClassifierSklearn):
         return KNeighborsClassifier(n_neighbors=3)
 
 
-class SklearnClassifier_StochasticGradientDescent(ClassifierSklearn):
+class SklearnClassifier_StochasticGradientDescent(SklearnBaseClassifier):
     is_trained = False
     clean_data_required = False
 
@@ -119,7 +119,7 @@ class SklearnClassifier_StochasticGradientDescent(ClassifierSklearn):
         return SGDClassifier()
 
 
-class SklearnClassifier_GradientBoosting(ClassifierSklearn):
+class SklearnClassifier_GradientBoosting(SklearnBaseClassifier):
     is_trained = False
     clean_data_required = False
 
@@ -127,7 +127,7 @@ class SklearnClassifier_GradientBoosting(ClassifierSklearn):
         return GradientBoostingClassifier()
 
 
-class SklearnClassifier_AdaBoost(ClassifierSklearn):
+class SklearnClassifier_AdaBoost(SklearnBaseClassifier):
     is_trained = False
     clean_data_required = False
 
@@ -135,7 +135,7 @@ class SklearnClassifier_AdaBoost(ClassifierSklearn):
         return AdaBoostClassifier()
 
 
-class SklearnClassifier_LinearSVC(ClassifierSklearn):
+class SklearnClassifier_LinearSVC(SklearnBaseClassifier):
     is_trained = False
     clean_data_required = False
 
@@ -143,7 +143,7 @@ class SklearnClassifier_LinearSVC(ClassifierSklearn):
         return LinearSVC(dual=False)
 
 
-class SklearnClassifier_GaussianSVC(ClassifierSklearn):
+class SklearnClassifier_GaussianSVC(SklearnBaseClassifier):
     is_trained = False
     clean_data_required = False
 
@@ -151,7 +151,7 @@ class SklearnClassifier_GaussianSVC(ClassifierSklearn):
         return SVC(kernel="rbf")
 
 
-class SklearnClassifier_PolySVC(ClassifierSklearn):
+class SklearnClassifier_PolySVC(SklearnBaseClassifier):
     is_trained = False
     clean_data_required = False
 
@@ -159,7 +159,7 @@ class SklearnClassifier_PolySVC(ClassifierSklearn):
         return SVC(kernel="poly")
 
 
-class SklearnClassifier_SigmoidSVC(ClassifierSklearn):
+class SklearnClassifier_SigmoidSVC(SklearnBaseClassifier):
     is_trained = False
     clean_data_required = False
 
@@ -167,7 +167,7 @@ class SklearnClassifier_SigmoidSVC(ClassifierSklearn):
         return SVC(kernel="sigmoid")
 
 
-class SklearnClassifier_LinearDiscriminantAnalysis(ClassifierSklearn):
+class SklearnClassifier_LinearDiscriminantAnalysis(SklearnBaseClassifier):
     is_trained = False
     clean_data_required = False
 
@@ -175,7 +175,7 @@ class SklearnClassifier_LinearDiscriminantAnalysis(ClassifierSklearn):
         return LinearDiscriminantAnalysis()
 
 
-class SklearnClassifier_QuadraticDiscriminantAnalysis(ClassifierSklearn):
+class SklearnClassifier_QuadraticDiscriminantAnalysis(SklearnBaseClassifier):
     is_trained = False
     clean_data_required = False
 
@@ -183,7 +183,7 @@ class SklearnClassifier_QuadraticDiscriminantAnalysis(ClassifierSklearn):
         return QuadraticDiscriminantAnalysis()
 
 
-class SklearnClassifier_XGBoost(ClassifierSklearn):
+class SklearnClassifier_XGBoost(SklearnBaseClassifier):
     is_trained = False
     clean_data_required = False
 
@@ -191,7 +191,7 @@ class SklearnClassifier_XGBoost(ClassifierSklearn):
         return XGBClassifier()
 
 
-class SklearnClassifier_Voting(ClassifierSklearn):
+class SklearnClassifier_Voting(SklearnBaseClassifier):
     is_trained = False
     clean_data_required = False
 
@@ -206,7 +206,7 @@ class SklearnClassifier_Voting(ClassifierSklearn):
         )
 
 
-class SklearnClassifier_Stacking(ClassifierSklearn):
+class SklearnClassifier_Stacking(SklearnBaseClassifier):
     is_trained = False
     clean_data_required = False
 
@@ -270,7 +270,7 @@ def create_classifier(clf_type: ClassifierType, pair, nfeatures, seq_len, nclass
         tuple: (classifier instance, classifier name string)
     
     Note:
-        ClassifierSklearn expects DataFrames (2D: samples x features), not tensors.
+        SklearnBaseClassifier expects DataFrames (2D: samples x features), not tensors.
         No sequence or tensor conversion is needed.
     """
     clf_name = str(clf_type).split(".")[-1]
