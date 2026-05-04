@@ -57,7 +57,7 @@ from TCN import TCN
 # #import keras
 # from keras import layers
 # from tf.keras.regularizers import l2
-from utils.ClassifierKerasNary import ClassifierKerasNary
+from Predictors.KerasClassifierNary import KerasClassifierNary
 from utils.AttentionLayers import AttentionPooling1D
 
 # --------------------------------------------------------------
@@ -76,7 +76,7 @@ MIN_FILTER_SIZE = 32
 L2_STRENGTH = 2e-3  # Increased from 1e-3 to reduce overfitting
 
 
-class NNNClassifier_AdditiveAttention(ClassifierKerasNary):
+class NNNClassifier_AdditiveAttention(KerasClassifierNary):
     is_trained = False
     clean_data_required = False  # training data cannot contain anomalies
 
@@ -124,7 +124,7 @@ class NNNClassifier_AdditiveAttention(ClassifierKerasNary):
 # Self-Attention Classifier
 
 
-class NNNClassifier_Attention(ClassifierKerasNary):
+class NNNClassifier_Attention(KerasClassifierNary):
     is_trained = False
     clean_data_required = False  # training data cannot contain anomalies
 
@@ -192,7 +192,7 @@ class NNNClassifier_Attention(ClassifierKerasNary):
 # Convolutional Neural Network
 
 
-class NNNClassifier_CNN(ClassifierKerasNary):
+class NNNClassifier_CNN(KerasClassifierNary):
     is_trained = False
     clean_data_required = False  # training data cannot contain anomalies
 
@@ -231,7 +231,7 @@ class NNNClassifier_CNN(ClassifierKerasNary):
 # Ensemble/Stack of several Classifiers
 
 
-class NNNClassifier_Ensemble(ClassifierKerasNary):
+class NNNClassifier_Ensemble(KerasClassifierNary):
     is_trained = False
     clean_data_required = False  # training data cannot contain anomalies
 
@@ -336,7 +336,7 @@ class NNNClassifier_Ensemble(ClassifierKerasNary):
 # Gated Recurrent Unit
 
 
-class NNNClassifier_GRU(ClassifierKerasNary):
+class NNNClassifier_GRU(KerasClassifierNary):
     is_trained = False
     clean_data_required = False  # training data cannot contain anomalies
 
@@ -373,7 +373,7 @@ class NNNClassifier_GRU(ClassifierKerasNary):
 
 
 # @tf.keras.saving.register_keras_serializable(package="ClassifierKeras")
-class NNNClassifier_LSTM(ClassifierKerasNary):
+class NNNClassifier_LSTM(KerasClassifierNary):
     is_trained = False
     clean_data_required = False  # training data cannot contain anomalies
 
@@ -468,7 +468,7 @@ class NNNClassifier_LSTM(ClassifierKerasNary):
 # Larger LSTM
 
 
-class NNNClassifier_LSTM2(ClassifierKerasNary):
+class NNNClassifier_LSTM2(KerasClassifierNary):
     is_trained = False
     clean_data_required = False  # training data cannot contain anomalies
 
@@ -548,7 +548,7 @@ class NNNClassifier_LSTM2(ClassifierKerasNary):
 # Convolutional/LSTM Combo
 
 
-class NNNClassifier_LSTM3(ClassifierKerasNary):
+class NNNClassifier_LSTM3(KerasClassifierNary):
     is_trained = False
     clean_data_required = False  # training data cannot contain anomalies
 
@@ -589,7 +589,7 @@ class NNNClassifier_LSTM3(ClassifierKerasNary):
 # Parallel LSTMs
 
 
-class NNNClassifier_LSTM4(ClassifierKerasNary):
+class NNNClassifier_LSTM4(KerasClassifierNary):
     is_trained = False
     clean_data_required = False  # training data cannot contain anomalies
 
@@ -628,7 +628,7 @@ class NNNClassifier_LSTM4(ClassifierKerasNary):
 # Multi-Layer Perceptron (simple)
 
 
-class NNNClassifier_MLP(ClassifierKerasNary):
+class NNNClassifier_MLP(KerasClassifierNary):
     is_trained = False
     clean_data_required = False  # training data cannot contain anomalies
 
@@ -681,7 +681,7 @@ class NNNClassifier_MLP(ClassifierKerasNary):
 # Multihead Self-Attention
 
 
-class NNNClassifier_Multihead(ClassifierKerasNary):
+class NNNClassifier_Multihead(KerasClassifierNary):
     is_trained = False
     clean_data_required = False  # training data cannot contain anomalies
 
@@ -772,7 +772,7 @@ class NNNClassifier_Multihead(ClassifierKerasNary):
 # Temporal Convolutional Network
 
 
-class NNNClassifier_TCN(ClassifierKerasNary):
+class NNNClassifier_TCN(KerasClassifierNary):
     is_trained = False
     clean_data_required = False  # training data cannot contain anomalies
 
@@ -853,7 +853,7 @@ class TransformerPositionalEmbedding(tf.keras.layers.Layer):
         return config
 
 
-class NNNClassifier_Transformer(ClassifierKerasNary):
+class NNNClassifier_Transformer(KerasClassifierNary):
     is_trained = False
     clean_data_required = False  # training data cannot contain anomalies
 
@@ -1013,7 +1013,7 @@ class VAELossLayer(tf.keras.layers.Layer):
 
 
 # VAE (Variational Auto Encoder)Classifier
-class NNNClassifier_VAE(ClassifierKerasNary):
+class NNNClassifier_VAE(KerasClassifierNary):
     is_trained = False
     clean_data_required = False  # training data cannot contain anomalies
 
@@ -1080,7 +1080,7 @@ class NNNClassifier_VAE(ClassifierKerasNary):
 # Simplified Wavenet
 
 
-class NNNClassifier_Wavenet(ClassifierKerasNary):
+class NNNClassifier_Wavenet(KerasClassifierNary):
     is_trained = False
     clean_data_required = False  # training data cannot contain anomalies
 
@@ -1118,7 +1118,7 @@ class NNNClassifier_Wavenet(ClassifierKerasNary):
 # code influenced by: https://github.com/basveeling/wavenet/blob/bf8ef958372692ecb32e8540f7c81f69a186eb8d/wavenet.py#L20
 
 
-class NNNClassifier_Wavenet2(ClassifierKerasNary):
+class NNNClassifier_Wavenet2(KerasClassifierNary):
     is_trained = False
     clean_data_required = False  # training data cannot contain anomalies
 
@@ -1221,7 +1221,7 @@ class NNNClassifier_Wavenet2(ClassifierKerasNary):
 # code influenced by: https://github.com/basveeling/wavenet/blob/bf8ef958372692ecb32e8540f7c81f69a186eb8d/wavenet.py#L20
 
 
-class NNNClassifier_Wavenet3(ClassifierKerasNary):
+class NNNClassifier_Wavenet3(KerasClassifierNary):
     is_trained = False
     clean_data_required = False  # training data cannot contain anomalies
 

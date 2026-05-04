@@ -2,7 +2,7 @@ from __future__ import annotations
 
 # MLX model variants, mirroring NNNClassifier.py.
 #
-# Each class inherits ClassifierMLXNary and overrides create_model() to
+# Each class inherits MLXClassifierNary and overrides create_model() to
 # return an mlx.nn.Module.
 #
 # Usage (drop-in for NNNClassifier.create_classifier):
@@ -23,7 +23,7 @@ import mlx.nn as nn
 sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent.parent))
 
-from utils.ClassifierMLXNary import ClassifierMLXNary
+from Predictors.MLXClassifierNary import MLXClassifierNary
 
 # -----------------------------------------------------------------------
 # Shared constants (mirrors NNNClassifier.py)
@@ -205,7 +205,7 @@ class _LSTMModel(nn.Module):
         return mx.softmax(self.out(h), axis=-1)
 
 
-class NNNClassifierMLX_LSTM(ClassifierMLXNary):
+class NNNClassifierMLX_LSTM(MLXClassifierNary):
     is_trained = False
     clean_data_required = False
 
@@ -262,7 +262,7 @@ class _LSTMKANModel(nn.Module):
         return mx.softmax(h, axis=-1)
 
 
-class NNNClassifierMLX_LSTM_KAN(ClassifierMLXNary):
+class NNNClassifierMLX_LSTM_KAN(MLXClassifierNary):
     is_trained = False
     clean_data_required = False
 
@@ -328,7 +328,7 @@ class _LSTM2Model(nn.Module):
         return mx.softmax(self.out(h), axis=-1)
 
 
-class NNNClassifierMLX_LSTM2(ClassifierMLXNary):
+class NNNClassifierMLX_LSTM2(MLXClassifierNary):
     is_trained = False
     clean_data_required = False
 
@@ -379,7 +379,7 @@ class _GRUModel(nn.Module):
         return mx.softmax(self.out(h), axis=-1)
 
 
-class NNNClassifierMLX_GRU(ClassifierMLXNary):
+class NNNClassifierMLX_GRU(MLXClassifierNary):
     is_trained = False
     clean_data_required = False
 
@@ -415,7 +415,7 @@ class _CNNModel(nn.Module):
         return mx.softmax(self.out(x), axis=-1)
 
 
-class NNNClassifierMLX_CNN(ClassifierMLXNary):
+class NNNClassifierMLX_CNN(MLXClassifierNary):
     is_trained = False
     clean_data_required = False
 
@@ -455,7 +455,7 @@ class _MLPModel(nn.Module):
         return mx.softmax(self.out(x), axis=-1)
 
 
-class NNNClassifierMLX_MLP(ClassifierMLXNary):
+class NNNClassifierMLX_MLP(MLXClassifierNary):
     is_trained = False
     clean_data_required = False
 
@@ -525,7 +525,7 @@ class _AttentionModel(nn.Module):
         return mx.softmax(self.out(x), axis=-1)
 
 
-class NNNClassifierMLX_Attention(ClassifierMLXNary):
+class NNNClassifierMLX_Attention(MLXClassifierNary):
     is_trained = False
     clean_data_required = False
 
@@ -596,7 +596,7 @@ class _MultiheadModel(nn.Module):
         return mx.softmax(self.out(x), axis=-1)
 
 
-class NNNClassifierMLX_Multihead(ClassifierMLXNary):
+class NNNClassifierMLX_Multihead(MLXClassifierNary):
     is_trained = False
     clean_data_required = False
 
@@ -684,7 +684,7 @@ class _TransformerModel(nn.Module):
         return mx.softmax(self.out(x), axis=-1)
 
 
-class NNNClassifierMLX_Transformer(ClassifierMLXNary):
+class NNNClassifierMLX_Transformer(MLXClassifierNary):
     is_trained = False
     clean_data_required = False
 
@@ -739,7 +739,7 @@ class _WavenetModel(nn.Module):
         return mx.softmax(self.out(x), axis=-1)
 
 
-class NNNClassifierMLX_Wavenet(ClassifierMLXNary):
+class NNNClassifierMLX_Wavenet(MLXClassifierNary):
     is_trained = False
     clean_data_required = False
 
@@ -774,7 +774,7 @@ class _MambaModel(nn.Module):
         return mx.softmax(self.kan(x), axis=-1)
 
 
-class NNNClassifierMLX_Mamba(ClassifierMLXNary):
+class NNNClassifierMLX_Mamba(MLXClassifierNary):
     is_trained = False
     clean_data_required = False
 
@@ -810,7 +810,7 @@ class _Mamba2Model(nn.Module):
         return mx.softmax(self.kan(x), axis=-1)
 
 
-class NNNClassifierMLX_Mamba2(ClassifierMLXNary):
+class NNNClassifierMLX_Mamba2(MLXClassifierNary):
     is_trained = False
     clean_data_required = False
 
@@ -862,7 +862,7 @@ class _TSMambaModel(nn.Module):
         return mx.softmax(self.kan(pooled), axis=-1)
 
 
-class NNNClassifierMLX_TSMamba(ClassifierMLXNary):
+class NNNClassifierMLX_TSMamba(MLXClassifierNary):
     is_trained = False
     clean_data_required = False
 
