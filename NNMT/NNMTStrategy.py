@@ -75,10 +75,6 @@ class NNMTStrategy(BaseNNMTStrategy):
     Inherits from NNBase for clean(-ish) architecture
     """
 
-    profit_conflict_to_neutral = True
-    PROFIT_EMA_SPAN = 5
-    PROFIT_ATR_SCALE = 1.0
-
     plot_config = {
         "main_plot": {
             "close": {"color": "lightsteelblue"},
@@ -101,90 +97,6 @@ class NNMTStrategy(BaseNNMTStrategy):
             },
         },
     }
-
-    # -----------
-    # Hyperopt parameters
-    # -----------
-
-    # Consecutive signal filter (Note: increasing causes delay in real-time detection)
-    min_consecutive_buys = IntParameter(
-        1, 2, default=1, space="buy", optimize=True, load=True
-    )
-
-    # prediction
-
-    optimize_bias = False
-
-    bias_trading_sell = DecimalParameter(
-        0.01,
-        0.06,
-        default=0.03,
-        decimals=2,
-        space="buy",
-        optimize=optimize_bias,
-        load=True,
-    )
-    bias_trading_buy = DecimalParameter(
-        0.01,
-        0.06,
-        default=0.05,
-        decimals=2,
-        space="buy",
-        optimize=optimize_bias,
-        load=True,
-    )
-    bias_profit_low = DecimalParameter(
-        0.05,
-        0.18,
-        default=0.09,
-        decimals=2,
-        space="buy",
-        optimize=optimize_bias,
-        load=True,
-    )
-    bias_profit_high = DecimalParameter(
-        0.05,
-        0.18,
-        default=0.08,
-        decimals=2,
-        space="buy",
-        optimize=optimize_bias,
-        load=True,
-    )
-
-    apply_task_filters = BooleanParameter(
-        default=False,
-        space="buy",
-        optimize=True,
-        load=True,
-    )
-    # -----------
-    # Class level parameters
-    # -----------
-
-    augment_training_data = True  # signal augmentation; GAN augmentation gates on gan_augment
-
-    filter_signals = False  # don't double filter
-
-    # GAN augmentation knobs are inherited from BaseNNStrategy:
-    #   gan_type, gan_augment, gan_target_ratio, gan_run_diagnostics,
-    #   gan_passthrough_columns.  Concrete NNMT_* subclasses set
-    #   gan_type and (optionally) override gan_target_ratio.
-
-    regime_lookback = 20  # Periods for regime detection
-    volatility_lookback = 10  # Periods to calculate volatility
-    risk_threshold = 0.02  # Risk threshold for binary classification
-
-    PROFIT_TAKE_THRESHOLD = 0.02
-    PROFIT_STOP_LOSS_THRESHOLD = 0.015
-
-    task_thresholds = {
-        "momentum": {"low": -0.5, "high": 0.6},
-        "flow": {"low": -5.0, "high": 5.0},
-        "profit": {"low": -0.006, "high": 0.006},
-    }
-
-    # one_hot_columns = ["regime", "flow", "profit"]
 
     # -----------
     # Utility functions
