@@ -7,12 +7,11 @@ inherits BaseAnomalyDetector directly without an intervening framework
 base.
 """
 
-import sys
-import os
-# Add utils to path to support ClassifierKerasAnomaly's relative imports
-utils_path = os.path.join(os.path.dirname(__file__), '..', 'utils')
-if utils_path not in sys.path:
-    sys.path.insert(0, utils_path)
+# Import ClassifierKeras first so its sys.path.append() runs and adds utils/
+# to the path. ClassifierKerasAnomaly relies on sibling-style imports
+# (e.g. `from ClassifierKeras import ClassifierKeras`) that need utils/ on
+# sys.path.
+from utils.ClassifierKeras import ClassifierKeras  # noqa: F401
 
 from Predictors.BaseAnomalyDetector import BaseAnomalyDetector
 from utils.ClassifierKerasAnomaly import ClassifierKerasAnomaly
