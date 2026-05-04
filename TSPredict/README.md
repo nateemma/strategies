@@ -54,11 +54,6 @@ Other classes add on different approaches to modelling the future values, for ex
 - TS_Gain_*.py<br>
 These classes predict on _only_ the historical gain values. These are not particularly good strategies, they are mostly here to serve as a baseline (any viable strategy should do better than these), and a way to find lookahead bias.
 
-- TS_Simple_*.py<br>
-These add some additional indicators and estimate future gain using a variety of different algorithms (e.g. TS_Simple_SGD.py uses a Stochastic Gradient Descent algorithm)<br>
-This is actually a good platform for testing whether indicators make a difference or not. Indicators that vary wildly or have discontinuities will likely mess up the predictions.
-Note: if you want to try different regression/prediction algorithms, be aware that they really need to support incremental training, i.e. the model is updated with new data rather than completely retrained.
-
 - TS_Coeff_*.py<br>
 These add coefficients to the indicators that are based on various signal estimation algorithms, such as FFT, DWT etc. The estimation coefficients are added to the indicators and the prediction/regression algorithm is trained using those coefficients
 
@@ -74,27 +69,27 @@ If you want to add indicators, then you should crate a new strategy that inherit
 
 ## Models
 
-Models, if used, are saved in user_data/strategies/TSPredict/models/\<_classname_\>
+Models, if used, are saved in user_data/strategies/saved_data/\<_classname_\>
 
 If you change indicators or the prediction/regression algorithm (or sometimes update the package) then you will need to delete and regenerate the model.
 
-For example, say we change something in TS_Simple_PA.py that requires a model update, we would probably do the following:
+For example, say we change something in TS_Coeff_DWTA.py that requires a model update, we would probably do the following:
 
 ~~~
 # remove existing model
-rm -r user_data/strategies/TSPredict/models/TS_Simple_PA
+rm -r user_data/strategies/TSPredict/models/TS_Coeff_DWTA
 
 # download data (this will only download missing data)
 zsh user_data/strategies/scripts/download.sh -n 600 binanceus
 
 # regenerate the model over a long time period
-zsh user_data/strategies/scripts/test_strat.sh -n 600 TSPredict TS_Simple_PA
+zsh user_data/strategies/scripts/test_strat.sh -n 600 TSPredict TS_Coeff_DWTA
 
 # test over a recent time period
-zsh user_data/strategies/scripts/test_strat.sh -n 30 TSPredict TS_Simple_PA
+zsh user_data/strategies/scripts/test_strat.sh -n 30 TSPredict TS_Coeff_DWTA
 
 # plot the last few days
-zsh user_data/strategies/scripts/plot_strat.sh -n 3 TSPredict TS_Simple_PA ALGO/USDT
+zsh user_data/strategies/scripts/plot_strat.sh -n 3 TSPredict TS_Coeff_DWTA ALGO/USDT
 
 # load the file user_data/plot/freqtrade-plot-ALGO_USDT-5m.html into a browser and check buy/sell events
 
@@ -139,7 +134,7 @@ _\<timerange\>_
 
 Or, you can use a script:
 
-> zsh user_data/strategies/scripts/test_strat.sh _\<exchange\>_ _\<strategy\>_
+> zsh user_data/strategies/scripts/test_strat.sh -n 30 TSPredict _\<strategy\>_
 
 Use the -h option for options.
 

@@ -1,6 +1,6 @@
 """
 MLX functional tests — fit / generate / save / load for GAN types that have
-an MLX backend (WGAN, MT_WGAN, CTAB_GAN).
+an MLX backend (WGAN, MT_WGAN, CTAB_GAN, MT_CTAB_GAN).
 
 All tests are automatically skipped when MLX is not installed or Metal is not
 available, so this file is safe to run on any machine.
@@ -95,6 +95,21 @@ def _make_ctab_dataset(seed: int = 42):
     import pandas as pd
     data, labels = _make_wgan_dataset(seed)
     return pd.DataFrame(data, columns=[f"f{i}" for i in range(N_FEATURES)]), labels
+
+
+def _make_mt_ctab_dataset(seed: int = 42):
+    """Multi-task CTAB-GAN dataset — DataFrame + dict of one-hot task labels."""
+    import pandas as pd
+    rng = np.random.default_rng(seed)
+    data = rng.uniform(-1, 1, (N_SAMPLES, N_FEATURES)).astype("float32")
+    df = pd.DataFrame(data, columns=[f"f{i}" for i in range(N_FEATURES)])
+    trading = np.eye(N_MT_TRADING, dtype="float32")[
+        np.concatenate([np.zeros(40, int), np.ones(15, int), np.full(10, 2, int)])
+    ]
+    regime = np.eye(N_MT_REGIME, dtype="float32")[
+        np.concatenate([np.zeros(45, int), np.ones(20, int)])
+    ]
+    return df, {"trading": trading, "regime": regime}
 
 
 # ---------------------------------------------------------------------------
@@ -401,6 +416,141 @@ class TestCTABGANMLXSaveLoad(unittest.TestCase):
         iface2.load()
         result = iface2.generate(10, class_label=0)
         self.assertTrue(np.isfinite(result.values).all())
+
+
+# ---------------------------------------------------------------------------
+# 4. MT_CTAB_GAN MLX — fit / generate / save / load
+# ---------------------------------------------------------------------------
+
+
+@_skip_if_no_mlx
+class TestMTCTABGANMLXFitGen(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        from GANs.GANInterface import GANInterface
+        cls.df, cls.labels = _make_mt_ctab_dataset()
+        cls.tmp = tempfile.mkdtemp(prefix="mt_ctab_mlx_")
+        cls.iface = GANInterface(GANType.MT_CTAB_GAN, save_path=None, prefer_mlx=True)
+        # eval_frequency=0 keeps these fast tests on the divergence-only path
+        # and avoids the cost of evaluation runs on tiny synthetic data.
+        cls.iface.fit(
+            cls.df.copy(),
+            {k: v.copy() for k, v in cls.labels.items()},
+            epochs=FAST_EPOCHS,
+            batch_size=FAST_BATCH,
+            n_critic=FAST_N_CRITIC,
+            latent_dim=32,
+            eval_frequency=0,
+            verbose=False,
+        )
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.tmp, ignore_errors=True)
+
+    def _task_labels(self, n, trading_cls=0, regime_cls=0):
+        trading = np.zeros((n, N_MT_TRADING), dtype="float32")
+        trading[:, trading_cls] = 1.0
+        regime = np.zeros((n, N_MT_REGIME), dtype="float32")
+        regime[:, regime_cls] = 1.0
+        return {"trading": trading, "regime": regime}
+
+    def test_model_is_set_after_fit(self):
+        self.assertIsNotNone(self.iface._model)
+
+    def test_generate_returns_tuple_of_dataframe_and_labels(self):
+        import pandas as pd
+        result = self.iface.generate(8, task_labels=self._task_labels(8))
+        self.assertIsInstance(result, tuple)
+        gen_df, gen_labels = result
+        self.assertIsInstance(gen_df, pd.DataFrame)
+        self.assertEqual(gen_df.shape, (8, N_FEATURES))
+        self.assertIn("trading", gen_labels)
+        self.assertIn("regime", gen_labels)
+
+    def test_generate_finite_values(self):
+        gen_df, _ = self.iface.generate(10, task_labels=self._task_labels(10))
+        self.assertTrue(np.isfinite(gen_df.values).all())
+
+    def test_generate_without_task_labels_uses_uniform_sampling(self):
+        # Multi-task generate() accepts task_labels=None and samples
+        # one-hots per task internally.  Verify shape and finiteness.
+        gen_df, gen_labels = self.iface.generate(6, task_labels=None)
+        self.assertEqual(gen_df.shape, (6, N_FEATURES))
+        self.assertEqual(gen_labels["trading"].shape, (6, N_MT_TRADING))
+        self.assertEqual(gen_labels["regime"].shape, (6, N_MT_REGIME))
+
+
+@_skip_if_no_mlx
+class TestMTCTABGANMLXSaveLoad(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.df, cls.labels = _make_mt_ctab_dataset()
+        cls.tmp = tempfile.mkdtemp(prefix="mt_ctab_mlx_sl_")
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.tmp, ignore_errors=True)
+
+    def _fit_and_save(self, subdir):
+        from GANs.GANInterface import GANInterface
+        save_path = os.path.join(self.tmp, subdir)
+        iface = GANInterface(GANType.MT_CTAB_GAN, save_path=save_path, prefer_mlx=True)
+        iface.fit(
+            self.df.copy(),
+            {k: v.copy() for k, v in self.labels.items()},
+            epochs=FAST_EPOCHS,
+            batch_size=FAST_BATCH,
+            n_critic=FAST_N_CRITIC,
+            latent_dim=32,
+            eval_frequency=0,
+            verbose=False,
+        )
+        iface.save()
+        return save_path
+
+    def _task_oh(self, n):
+        trading = np.zeros((n, N_MT_TRADING), dtype="float32"); trading[:, 0] = 1.0
+        regime = np.zeros((n, N_MT_REGIME), dtype="float32"); regime[:, 0] = 1.0
+        return {"trading": trading, "regime": regime}
+
+    def test_mlx_metadata_file_written(self):
+        save_path = self._fit_and_save("mlx_meta_test")
+        self.assertTrue(
+            os.path.exists(os.path.join(save_path, "metadata_mlx.pkl")),
+            "metadata_mlx.pkl must exist so that load() selects the MLX path",
+        )
+
+    def test_mlx_weights_files_written(self):
+        save_path = self._fit_and_save("mlx_weights_test")
+        self.assertTrue(
+            os.path.exists(os.path.join(save_path, "gen_mlx.safetensors")),
+        )
+        self.assertTrue(
+            os.path.exists(os.path.join(save_path, "critic_mlx.safetensors")),
+        )
+
+    def test_loaded_model_generates_dataframe(self):
+        import pandas as pd
+        save_path = self._fit_and_save("load_test")
+        from GANs.GANInterface import GANInterface
+        iface2 = GANInterface(GANType.MT_CTAB_GAN, save_path=save_path, prefer_mlx=True)
+        iface2.load()
+        result = iface2.generate(5, task_labels=self._task_oh(5))
+        self.assertIsInstance(result, tuple)
+        gen_df, _ = result
+        self.assertIsInstance(gen_df, pd.DataFrame)
+        self.assertEqual(gen_df.shape, (5, N_FEATURES))
+
+    def test_round_trip_finite_values(self):
+        save_path = self._fit_and_save("finite_test")
+        from GANs.GANInterface import GANInterface
+        iface2 = GANInterface(GANType.MT_CTAB_GAN, save_path=save_path, prefer_mlx=True)
+        iface2.load()
+        gen_df, _ = iface2.generate(10, task_labels=self._task_oh(10))
+        self.assertTrue(np.isfinite(gen_df.values).all())
 
 
 # ---------------------------------------------------------------------------

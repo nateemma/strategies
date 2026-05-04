@@ -10,7 +10,6 @@ import traceback
 import numpy as np
 import pandas as pd
 from pandas import DataFrame
-from traitlets import Bool
 
 pd.options.mode.chained_assignment = None  # default='warn'
 

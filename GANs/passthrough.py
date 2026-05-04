@@ -62,6 +62,7 @@ def swap_passthrough_columns(
     real_pool: Union[np.ndarray, pd.DataFrame],
     columns: Sequence[Union[int, str]],
     rng: Optional[np.random.Generator] = None,
+    feature_names: Optional[Sequence[str]] = None,
 ) -> Union[np.ndarray, pd.DataFrame]:
     """Replace ``columns`` in ``synth`` with values copied from random
     rows of ``real_pool``.
@@ -75,12 +76,20 @@ def swap_passthrough_columns(
                     have the same trailing-axis feature layout as
                     ``synth``.  For 3D, must also have the same time
                     dimension.
-        columns:    Which columns to overwrite.  Integer indices for
-                    ndarray inputs, column names (str) for DataFrames.
-                    Empty list / None → no-op (returns ``synth``
-                    unchanged).
+        columns:    Which columns to overwrite.  May be integer indices,
+                    column names (str), or a mix.  Names are resolved to
+                    indices in the ndarray path via ``feature_names``,
+                    or via ``real_pool.columns`` if ``real_pool`` is a
+                    DataFrame.  Empty list / None → no-op (returns
+                    ``synth`` unchanged).
         rng:        Optional ``np.random.Generator``.  Pass a seeded
                     one in tests to make the swap reproducible.
+        feature_names: Column-order reference used to translate string
+                    column names to integer indices in the ndarray
+                    path.  Required if ``columns`` contains strings,
+                    ``synth`` is an ndarray, AND ``real_pool`` is also
+                    an ndarray (i.e. when there's no DataFrame to
+                    consult for column order).
 
     Returns:
         A copy of ``synth`` with the named columns overwritten.  The
@@ -88,7 +97,9 @@ def swap_passthrough_columns(
 
     Raises:
         ValueError: If shapes are incompatible (different feature
-                    counts, mismatched time dimensions, etc.).
+                    counts, mismatched time dimensions, etc.) or if
+                    string columns are passed in the ndarray path
+                    without a way to resolve them.
     """
     if not columns:
         return synth
@@ -107,18 +118,48 @@ def swap_passthrough_columns(
 
     # ndarray path.
     arr = np.asarray(synth)
-    pool = np.asarray(real_pool)
-    if isinstance(real_pool, pd.DataFrame):
+    pool_is_df = isinstance(real_pool, pd.DataFrame)
+    if pool_is_df:
         # Allow real_pool to be a DataFrame even when synth is an ndarray;
         # this happens during balance_multi_task on tabular backends.
         pool = real_pool.to_numpy()
+    else:
+        pool = np.asarray(real_pool)
     if arr.shape[-1] != pool.shape[-1]:
         raise ValueError(
             f"swap_passthrough_columns: feature count mismatch — "
             f"synth has {arr.shape[-1]} features, real_pool has {pool.shape[-1]}"
         )
 
-    col_indices = [int(c) for c in columns]
+    # Resolve any string column references to indices.  Two sources of
+    # column-order truth, in order of preference:
+    #   1. real_pool.columns when real_pool is a DataFrame (always correct).
+    #   2. feature_names when explicitly passed.
+    col_ref: Optional[Sequence[str]] = None
+    if pool_is_df:
+        col_ref = list(real_pool.columns)
+    elif feature_names is not None:
+        col_ref = list(feature_names)
+
+    col_indices: List[int] = []
+    for c in columns:
+        if isinstance(c, str):
+            if col_ref is None:
+                raise ValueError(
+                    f"swap_passthrough_columns: got string column {c!r} but no "
+                    "feature_names were provided and real_pool is an ndarray. "
+                    "Pass feature_names= so names can be resolved to indices."
+                )
+            try:
+                col_indices.append(col_ref.index(c))
+            except ValueError:
+                raise ValueError(
+                    f"swap_passthrough_columns: column {c!r} not found in "
+                    f"feature reference (have {len(col_ref)} columns)"
+                ) from None
+        else:
+            col_indices.append(int(c))
+
     return _swap_ndarray(arr, pool, col_indices, rng)
 
 

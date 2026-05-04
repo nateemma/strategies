@@ -186,6 +186,7 @@ def balance_single_task(
                 real_pool=data,
                 columns=passthrough_columns,
                 rng=rng,
+                feature_names=feature_names,
             )
 
         aug_data_batches.append(gen)
@@ -385,6 +386,7 @@ def balance_multi_task(
                 real_pool=data,
                 columns=passthrough_columns,
                 rng=rng,
+                feature_names=feature_names,
             )
 
         running_data.append(gen_data)
@@ -602,16 +604,37 @@ def _concatenate_data(batches: List[Any]) -> Any:
     so callers can mix DataFrames produced by GAN backends (which may
     return columns in their own training order) with the strategy's
     canonical layout — ``pd.concat`` would otherwise drift columns.
+
+    Mixed-type batches (DataFrame + ndarray) are tolerated: when the
+    first batch is a DataFrame we promote ndarray batches to DataFrames
+    using the canonical columns; when the first batch is an ndarray we
+    demote any DataFrame batches via ``.values``.  This handles GAN
+    backends that return ndarrays even though the strategy's real-data
+    pool is a DataFrame (e.g. CTAB_GAN reduced-output variants).
     """
     if not batches:
         raise ValueError("_concatenate_data: no batches to concatenate")
     first = batches[0]
     if isinstance(first, pd.DataFrame):
         canonical_cols = list(first.columns)
-        aligned = [
-            b[canonical_cols] if isinstance(b, pd.DataFrame) else b
-            for b in batches
-        ]
+        aligned: List[pd.DataFrame] = []
+        for b in batches:
+            if isinstance(b, pd.DataFrame):
+                aligned.append(b[canonical_cols])
+                continue
+            # Promote ndarray to DataFrame so pd.concat accepts it.
+            arr = np.asarray(b)
+            if arr.ndim != 2:
+                raise ValueError(
+                    f"_concatenate_data: cannot mix {arr.ndim}-D ndarray with "
+                    f"DataFrame (expected 2-D, shape was {arr.shape})"
+                )
+            if arr.shape[1] != len(canonical_cols):
+                raise ValueError(
+                    f"_concatenate_data: ndarray batch has {arr.shape[1]} cols "
+                    f"but reference DataFrame has {len(canonical_cols)}"
+                )
+            aligned.append(pd.DataFrame(arr, columns=canonical_cols))
         return pd.concat(aligned, axis=0, ignore_index=True)
     arrays = [
         b.values if isinstance(b, pd.DataFrame) else np.asarray(b)

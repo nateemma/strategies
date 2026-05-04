@@ -114,9 +114,14 @@ for exchange in "${list[@]}"; do
     config_file="${strat_dir}/config_${exchange}_leveraged.json"
   fi
 
+  oldpath=${PYTHONPATH}
+  export PYTHONPATH=".:${PYTHONPATH}"
+
   run_cmd "freqtrade download-data  -c ${config_file}  --timerange=${timerange} ${fixed_args}"
   # Add delay between requests to avoid rate limiting
   echo "Waiting 5 seconds to avoid rate limits..."
   sleep 5
   run_cmd "freqtrade download-data  -c ${config_file}  --timerange=${timerange} ${fixed_args} -p BTC/USD BTC/USDT"
+
+  export PYTHONPATH="${oldpath}"
 done

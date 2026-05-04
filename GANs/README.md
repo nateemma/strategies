@@ -17,7 +17,7 @@ helpers (`balance_single_task` / `balance_multi_task` in `balance.py`).
 | `WGAN` | WGAN-GP | numpy `(N, F)` | one-hot `(N, C)` | TF or MLX |
 | `MT_WGAN` | WGAN-GP multi-task | numpy `(N, seq_len, F)` | dict of one-hot arrays | TF or MLX |
 | `CTAB_GAN` | CTAB-GAN+ | DataFrame | one-hot `(N, C)` | TF or MLX |
-| `MT_CTAB_GAN` | CTAB-GAN+ multi-task | DataFrame | dict of one-hot arrays | TF |
+| `MT_CTAB_GAN` | CTAB-GAN+ multi-task | DataFrame | dict of one-hot arrays | TF or MLX |
 | `CGAN` | Conditional GAN | numpy `(N, seq_len, F)` | one-hot `(N, C)` | TF |
 | `BOTH` | WGAN pre-pass + CTAB-GAN | — | — | TF |
 | `NONE` | No augmentation | — | — | — |
@@ -238,12 +238,16 @@ cross-task interference problem that a naive per-task loop can't
 
 ## MLX acceleration
 
-On Apple Silicon, `CTAB_GAN` and `WGAN` automatically use an MLX backend when available.
+On Apple Silicon, `WGAN`, `MT_WGAN`, `CTAB_GAN`, and `MT_CTAB_GAN` automatically use an MLX backend when available.
 Pass `prefer_mlx=False` to force the TensorFlow backend:
 
 ```python
 iface = GANInterface(GANType.WGAN, save_path="...", prefer_mlx=False)
 ```
+
+The CTAB-GAN MLX variants (`CTAB_GAN`, `MT_CTAB_GAN`) are continuous-only — categorical columns are warned about and dropped during `fit()`.  Use the TF backend if you need categorical support.
+
+Both MLX CTAB variants share VGM encoding, evaluation metrics, and training callbacks via `mlx_ctab_helpers.py`.  Eval-quality-based early stopping and learning-rate reduction on plateau are enabled by default; set `eval_frequency=0` in the fit kwargs to disable them and fall back to the legacy combined-loss divergence guard only.
 
 ---
 

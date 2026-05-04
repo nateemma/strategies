@@ -52,9 +52,17 @@ _CTAB_SKIP_KEYS: frozenset = frozenset({
     "assess_quality", "n_critic", "noise_std", "architecture", "seq_len",
 })
 
-# CTAB-GAN MLX uses a slimmer constructor — drop anything not in this set.
+# CTAB-GAN MLX (single-task and multi-task) uses a slimmer constructor —
+# drop anything not in this set.  Both MLX classes accept the same params
+# (the multi-task class adds eval-quality early stopping / LR-reduce
+# alongside the single-task version).
 _CTAB_MLX_CTOR_KEYS: frozenset = frozenset({
-    "latent_dim", "epochs", "batch_size", "n_critic", "verbose",
+    "latent_dim", "hidden_dim", "epochs", "batch_size", "n_critic",
+    "learning_rate", "gp_weight",
+    "early_stopping_patience", "early_stopping_min_delta",
+    "reduce_lr_patience", "reduce_lr_factor", "reduce_lr_min",
+    "eval_frequency", "eval_num_samples", "monitor_metric",
+    "random_seed", "verbose",
 })
 
 
@@ -289,5 +297,80 @@ class MTCTABGANTFBackend(GANBackend):
 
         instance = cls()
         instance._model = CTABGANPlusMT()
+        metadata = instance._model.load(save_path)
+        return instance, metadata or {}
+
+
+# ---------------------------------------------------------------------------
+# Multi-task CTAB-GAN+ (MLX)
+# ---------------------------------------------------------------------------
+
+
+@register_backend
+class MTCTABGANMLXBackend(GANBackend):
+    """MLX backend for multi-task CTAB-GAN+ (wraps CTABGANMLXMT).
+
+    Continuous-only — categorical_columns are silently dropped (the
+    underlying class warns).  Use the TF backend if you need
+    categorical support for the multi-task variant.
+    """
+
+    GAN_TYPE = GANType.MT_CTAB_GAN
+    PREFERS_MLX = True
+
+    def __init__(self, model: Optional[Any] = None) -> None:
+        self._model = model
+
+    @classmethod
+    def is_available(cls) -> bool:
+        return _mlx_available()
+
+    # ---------- lifecycle ----------
+
+    def fit(
+        self,
+        data: Any,
+        labels: Any,
+        categorical_columns: Optional[List[str]] = None,
+        **kwargs: Any,
+    ) -> None:
+        from GANs.df_mt_ctab_gan_mlx import CTABGANMLXMT  # noqa: E402
+
+        mlx_kwargs = {k: v for k, v in kwargs.items() if k in _CTAB_MLX_CTOR_KEYS}
+        self._model = CTABGANMLXMT(**mlx_kwargs)
+        self._model.fit(
+            dataframe=data,
+            labels=labels,
+            categorical_columns=categorical_columns or [],
+        )
+
+    def generate(self, n: int, **kwargs: Any) -> Any:
+        if self._model is None:
+            raise RuntimeError(
+                "MTCTABGANMLXBackend.generate called before fit/load — no model"
+            )
+        num_samples = kwargs.pop("num_samples", n)
+        return self._model.generate(num_samples=num_samples, **kwargs)
+
+    def save(self, save_path: str, **extra_metadata: Any) -> None:
+        if self._model is None:
+            raise RuntimeError("MTCTABGANMLXBackend.save called before fit — no model")
+        self._model.save(save_path, **extra_metadata)
+
+    @classmethod
+    def load(cls, save_path: str) -> Tuple["MTCTABGANMLXBackend", Dict[str, Any]]:
+        # MLX format is identified by the presence of metadata_mlx.pkl —
+        # same convention as CTABGANMLXBackend.  Missing file → fall
+        # through to the TF backend via resolve_backend's fallback chain.
+        if not os.path.exists(os.path.join(save_path, "metadata_mlx.pkl")):
+            raise FileNotFoundError(
+                f"No MLX-format MT CTAB-GAN model at {save_path} "
+                f"(metadata_mlx.pkl missing)"
+            )
+
+        from GANs.df_mt_ctab_gan_mlx import CTABGANMLXMT  # noqa: E402
+
+        instance = cls()
+        instance._model = CTABGANMLXMT()
         metadata = instance._model.load(save_path)
         return instance, metadata or {}

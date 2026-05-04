@@ -115,9 +115,9 @@ class MomentumDirection(IntEnum):
 
 
 class NormalizationType(Enum):
-    NONE = auto()  # SimpleStrategies — no normalization
-    ROLLING_ROBUST = auto()  # NNStrategy default
-    CUSTOM = auto()  # TSPredict — its own scaling
+    NONE = auto()  # no normalization
+    ROLLING_ROBUST = auto()  # most model-based strategies
+    CUSTOM = auto()  # custom/nonstandard scaling
 
 
 class ModelType(Enum):
@@ -1071,7 +1071,7 @@ class BaseStrategy(IStrategy):
         return dataframe
 
     # =========================================================================
-    # Custom Stoploss (from NNStrategy)
+    # Custom Stoploss
     # =========================================================================
 
     def custom_stoploss(
@@ -1099,7 +1099,7 @@ class BaseStrategy(IStrategy):
         return desired_stoploss
 
     # =========================================================================
-    # Custom Exit (from NNStrategy)
+    # Custom Exit
     # =========================================================================
 
     def custom_exit(
@@ -1184,7 +1184,7 @@ class BaseStrategy(IStrategy):
         return None
 
     # =========================================================================
-    # Confirm Trade Entry / Exit (from NNStrategy)
+    # Confirm Trade Entry / Exit
     # =========================================================================
 
     def confirm_trade_entry(

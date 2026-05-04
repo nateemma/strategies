@@ -1,10 +1,28 @@
 """
-CTAB-GAN+ — MLX (Apple Metal) backend, single-task variant.
+Multi-Task CTAB-GAN+ — MLX (Apple Metal) backend.
 
-VGM-encoded continuous features and a single one-hot class condition.
-Multi-task variant lives in ``df_mt_ctab_gan_mlx.py``.  Both classes
-share VGM encoding, evaluation, and training callbacks via
-``mlx_ctab_helpers``.
+Mirrors the API of ``GANs.df_mt_ctab_gan.CTABGANPlusMT`` so callers can
+switch between TF and MLX transparently via ``GANInterface`` /
+``GANs.backends.ctab_gan``:
+
+    model = CTABGANMLXMT(epochs=300, batch_size=512)
+    model.fit(dataframe, labels={"trading": ..., "regime": ...})
+    gen_df, labels_dict = model.generate(num_samples=1000)
+    model.save("/path/to/dir", min_buy_gain_threshold=0.016)
+    model.load("/path/to/dir")
+
+Differences from the TF variant (intentional, scoped):
+
+  * Continuous-only.  Categorical columns are warned about and
+    dropped — the MLX variants don't carry the categorical encoding
+    machinery.
+  * No PacGAN — the existing single-task MLX class doesn't have it
+    either, and adding it isn't on this iteration's scope.
+  * Monitor metric is ``eval_quality`` only.  The TF version's
+    multi-metric switching isn't ported.
+
+Shared logic (VGM encoding, evaluation, callbacks) lives in
+``mlx_ctab_helpers`` so both MLX classes stay in sync.
 """
 
 from __future__ import annotations
@@ -13,7 +31,7 @@ import os
 import pickle
 import time
 import warnings
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import mlx.core as mx
 import mlx.nn as nn
@@ -33,20 +51,20 @@ from GANs.mlx_ctab_helpers import (
 )
 
 
-class GumbelSoftmax(nn.Module):
-    def __init__(self, temperature: float = 0.2):
-        super().__init__()
-        self.temperature = temperature
-
-    def __call__(self, x):
-        return mx.softmax(x / self.temperature, axis=-1)
+# ===========================================================================
+# Networks — same shape as the single-task MLX generator/critic, with
+# ``num_classes`` replaced by ``cond_dim`` (the concatenated multi-task
+# condition vector dimension).
+# ===========================================================================
 
 
-class Generator(nn.Module):
+class _Generator(nn.Module):
+    """Conditional generator producing per-column (scalar + mode probs)."""
+
     def __init__(
         self,
         latent_dim: int,
-        num_classes: int,
+        cond_dim: int,
         continuous_info: List[Tuple[int, int]],
         hidden_dim: int = 256,
     ):
@@ -54,8 +72,8 @@ class Generator(nn.Module):
         self.continuous_info = continuous_info
         self.total_dim = sum(v + m for v, m in continuous_info)
 
-        self.model = nn.Sequential(
-            nn.Linear(latent_dim + num_classes, hidden_dim),
+        self.trunk = nn.Sequential(
+            nn.Linear(latent_dim + cond_dim, hidden_dim),
             nn.LayerNorm(hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim * 2),
@@ -68,37 +86,38 @@ class Generator(nn.Module):
 
         # Per-column heads — registered as named attributes so MLX's
         # parameters() walk picks them up.
-        self._output_layer_names: List[str] = []
+        self._head_names: List[str] = []
         for i, (val_dim, num_modes) in enumerate(continuous_info):
-            scalar_name = f"output_scalar_{i}"
+            scalar_name = f"head_scalar_{i}"
             setattr(self, scalar_name, nn.Linear(hidden_dim, 1))
-            self._output_layer_names.append(scalar_name)
-
+            self._head_names.append(scalar_name)
             if num_modes > 0:
-                mode_name = f"output_modes_{i}"
+                mode_name = f"head_mode_{i}"
                 setattr(self, mode_name, nn.Linear(hidden_dim, num_modes))
-                self._output_layer_names.append(mode_name)
+                self._head_names.append(mode_name)
 
     def __call__(self, z, c):
-        h = self.model(mx.concatenate([z, c], axis=-1))
+        h = self.trunk(mx.concatenate([z, c], axis=-1))
         outputs: List[Any] = []
-        layer_idx = 0
-        for i, (val_dim, num_modes) in enumerate(self.continuous_info):
-            scalar_layer = getattr(self, self._output_layer_names[layer_idx])
+        idx = 0
+        for val_dim, num_modes in self.continuous_info:
+            scalar_layer = getattr(self, self._head_names[idx])
             outputs.append(mx.tanh(scalar_layer(h)))
-            layer_idx += 1
+            idx += 1
             if num_modes > 0:
-                mode_layer = getattr(self, self._output_layer_names[layer_idx])
+                mode_layer = getattr(self, self._head_names[idx])
                 outputs.append(mx.softmax(mode_layer(h) / 0.2, axis=-1))
-                layer_idx += 1
+                idx += 1
         return mx.concatenate(outputs, axis=-1)
 
 
-class Critic(nn.Module):
-    def __init__(self, total_dim: int, num_classes: int, hidden_dim: int = 256):
+class _Critic(nn.Module):
+    """Conditional Wasserstein critic."""
+
+    def __init__(self, total_dim: int, cond_dim: int, hidden_dim: int = 256):
         super().__init__()
         self.model = nn.Sequential(
-            nn.Linear(total_dim + num_classes, hidden_dim),
+            nn.Linear(total_dim + cond_dim, hidden_dim),
             nn.LeakyReLU(0.2),
             nn.Linear(hidden_dim, hidden_dim * 2),
             nn.LeakyReLU(0.2),
@@ -109,15 +128,25 @@ class Critic(nn.Module):
         return self.model(mx.concatenate([x, c], axis=-1))
 
 
-class CTABGANMLX:
-    """MLX transition of CTAB-GAN+ for purely continuous data using VGM encoding."""
+# ===========================================================================
+# Multi-task CTAB-GAN+ — MLX
+# ===========================================================================
+
+
+def _concat_task_labels(task_labels: Dict[str, np.ndarray]) -> np.ndarray:
+    """Concatenate task labels in sorted-key order for a stable condition vector."""
+    return np.concatenate([task_labels[k] for k in sorted(task_labels.keys())], axis=1)
+
+
+class CTABGANMLXMT:
+    """MLX backend for multi-task CTAB-GAN+ (continuous-only)."""
 
     def __init__(
         self,
         latent_dim: int = 128,
         hidden_dim: int = 256,
-        epochs: int = 100,
         batch_size: int = 512,
+        epochs: int = 300,
         n_critic: int = 5,
         learning_rate: float = 2e-4,
         gp_weight: float = 10.0,
@@ -131,19 +160,18 @@ class CTABGANMLX:
         monitor_metric: str = "eval_quality",
         random_seed: Optional[int] = 42,
         verbose: bool = True,
-    ):
+    ) -> None:
         if monitor_metric != "eval_quality":
             raise ValueError(
                 f"monitor_metric={monitor_metric!r} is not supported by the MLX "
-                f"backend — only 'eval_quality' is available.  Set "
-                f"eval_frequency=0 to disable eval-based monitoring entirely "
-                f"(falls back to combined-loss divergence guard only)."
+                f"multi-task variant — only 'eval_quality' is available.  Use the "
+                f"TF backend if you need loss-based monitoring."
             )
 
         self.latent_dim = latent_dim
         self.hidden_dim = hidden_dim
-        self.epochs = epochs
         self.batch_size = batch_size
+        self.epochs = epochs
         self.n_critic = n_critic
         self.learning_rate = learning_rate
         self.gp_weight = gp_weight
@@ -158,19 +186,23 @@ class CTABGANMLX:
         self.random_seed = random_seed
         self.verbose = verbose
 
-        self.is_fitted = False
-        self.num_classes = 0
-        self.gen: Optional[Generator] = None
-        self.critic: Optional[Critic] = None
+        # Populated by fit() / load().
+        self.is_fitted: bool = False
+        self.gen: Optional[_Generator] = None
+        self.critic: Optional[_Critic] = None
         self.gen_opt: Optional[optim.Adam] = None
         self.critic_opt: Optional[optim.Adam] = None
 
-        self.vgm_models: Dict[str, Any] = {}
-        self.column_info: Dict[str, dict] = {}
         self.column_order: List[str] = []
         self.continuous_columns: List[str] = []
+        self.vgm_models: Dict[str, Any] = {}
+        self.column_info: Dict[str, dict] = {}
         self.continuous_info: List[Tuple[int, int]] = []
         self.total_dim: int = 0
+
+        self.task_label_dims: Dict[str, int] = {}
+        self.sorted_tasks: List[str] = []
+        self.total_cond_dim: int = 0
 
     # ------------------------------------------------------------------ #
     # fit()                                                              #
@@ -179,13 +211,26 @@ class CTABGANMLX:
     def fit(
         self,
         dataframe: pd.DataFrame,
-        labels: np.ndarray,
-        categorical_columns: List[str] = [],
+        labels: Dict[str, np.ndarray],
+        categorical_columns: Sequence[str] = (),
         validation_split: float = 0.1,
-    ):
+    ) -> None:
+        if dataframe.empty:
+            raise ValueError("dataframe cannot be empty")
+        if not isinstance(labels, dict) or not labels:
+            raise ValueError("labels must be a non-empty dict of task arrays")
+        sizes = {k: arr.shape[0] for k, arr in labels.items()}
+        if len(set(sizes.values())) > 1:
+            raise ValueError(f"all task labels must share batch size; got {sizes}")
+        n_samples = next(iter(sizes.values()))
+        if n_samples != len(dataframe):
+            raise ValueError(
+                f"dataframe rows ({len(dataframe)}) != label batch size ({n_samples})"
+            )
+
         if categorical_columns:
             warnings.warn(
-                f"CTABGANMLX is continuous-only; ignoring categorical_columns="
+                f"CTABGANMLXMT is continuous-only; ignoring categorical_columns="
                 f"{list(categorical_columns)}.  Use the TF backend if you need "
                 f"categorical support.",
                 stacklevel=2,
@@ -194,10 +239,22 @@ class CTABGANMLX:
         df = dataframe.copy()
         for col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0.0).astype(np.float32)
-
         self.column_order = list(df.columns)
         self.continuous_columns = list(df.columns)
-        self.num_classes = labels.shape[1] if labels.ndim > 1 else int(labels.max()) + 1
+
+        labels_processed: Dict[str, np.ndarray] = {}
+        for task, arr in labels.items():
+            arr = np.asarray(arr)
+            if arr.ndim == 1:
+                num_classes = int(arr.max()) + 1
+                labels_processed[task] = np.eye(num_classes, dtype=np.float32)[arr.astype(int)]
+            elif arr.ndim == 2:
+                labels_processed[task] = arr.astype(np.float32)
+            else:
+                raise ValueError(f"Task '{task}' labels must be 1D or 2D")
+        self.task_label_dims = {k: v.shape[1] for k, v in labels_processed.items()}
+        self.sorted_tasks = sorted(self.task_label_dims.keys())
+        self.total_cond_dim = sum(self.task_label_dims.values())
 
         if self.verbose:
             print(f"    Fitting VGM models for {len(df.columns)} columns...")
@@ -210,15 +267,12 @@ class CTABGANMLX:
         self.total_dim = sum(v + m for v, m in self.continuous_info)
 
         encoded = transform_vgm(df, self.vgm_models, self.column_info, self.column_order)
-        if labels.ndim == 1:
-            cond = np.eye(self.num_classes, dtype=np.float32)[labels.astype(int)]
-        else:
-            cond = labels.astype(np.float32)
+        cond = _concat_task_labels(labels_processed)
 
-        self.gen = Generator(
-            self.latent_dim, self.num_classes, self.continuous_info, self.hidden_dim
+        self.gen = _Generator(
+            self.latent_dim, self.total_cond_dim, self.continuous_info, self.hidden_dim
         )
-        self.critic = Critic(self.total_dim, self.num_classes, self.hidden_dim)
+        self.critic = _Critic(self.total_dim, self.total_cond_dim, self.hidden_dim)
         self.gen_opt = optim.Adam(learning_rate=self.learning_rate, betas=(0.5, 0.9))
         self.critic_opt = optim.Adam(learning_rate=self.learning_rate, betas=(0.5, 0.9))
 
@@ -259,7 +313,9 @@ class CTABGANMLX:
                 return mx.sum(critic_model(x, real_c))
 
             gp_grad = mx.grad(score_fn)(interpolated)
-            gp = mx.mean((mx.sqrt(mx.sum(gp_grad ** 2, axis=1) + 1e-8) - 1.0) ** 2)
+            gp = mx.mean(
+                (mx.sqrt(mx.sum(gp_grad ** 2, axis=1) + 1e-8) - 1.0) ** 2
+            )
             return w_loss + gp_weight * gp
 
         def loss_gen(gen_model, z, c):
@@ -268,29 +324,29 @@ class CTABGANMLX:
         critic_grad_fn = nn.value_and_grad(self.critic, loss_critic)
         gen_grad_fn = nn.value_and_grad(self.gen, loss_gen)
 
-        eval_enabled = self.eval_frequency > 0
-        ckpt_mode = "max" if eval_enabled else "min"
-        ckpt = BestCheckpointTracker(mode=ckpt_mode, min_delta=self.early_stopping_min_delta)
+        ckpt = BestCheckpointTracker(mode="max", min_delta=self.early_stopping_min_delta)
         early = EarlyStopping(
             patience=self.early_stopping_patience,
             min_delta=self.early_stopping_min_delta,
-            mode=ckpt_mode,
+            mode="max",
         )
         lr_reduce = ReduceLROnPlateau(
             patience=self.reduce_lr_patience,
             factor=self.reduce_lr_factor,
             min_lr=self.reduce_lr_min,
-            mode=ckpt_mode,
+            mode="max",
         )
         diverge = DivergenceMonitor()
 
         if self.verbose:
-            mode_str = "eval-quality" if eval_enabled else "combined-loss (legacy)"
             print(
-                f"    Starting MLX CTAB-GAN+ training "
-                f"({self.epochs} epochs, monitor={mode_str})..."
+                f"    Starting MLX MT CTAB-GAN+ training "
+                f"({self.epochs} epochs, eval every {self.eval_frequency}, "
+                f"early-stop patience {self.early_stopping_patience})..."
             )
             start_t = time.time()
+
+        stopped_early = False
 
         for epoch in range(self.epochs):
             if self.random_seed is not None:
@@ -333,74 +389,72 @@ class CTABGANMLX:
             # Divergence detection uses the LAST batch's losses, not the
             # epoch mean — early-epoch transient spikes inflate the mean
             # past the absolute ceilings (300/500) on large datasets even
-            # when training is genuinely converging.  This matches the
-            # pre-helper-refactor MLX behaviour.
+            # when training is genuinely converging.
             if diverge.update(last_d, last_g, ckpt.best):
                 if self.verbose:
                     print(
                         f"    Stopping early at epoch {epoch + 1} due to divergence "
                         f"(last-batch d={last_d:.2f}, g={last_g:.2f}; "
                         f"epoch-mean d={avg_d:.2f}, g={avg_g:.2f}). "
-                        f"Best epoch was {ckpt.best_epoch + 1}."
+                        f"Best epoch was {ckpt.best_epoch + 1} "
+                        f"(quality={ckpt.best:.4f})."
                     )
+                stopped_early = True
                 break
 
-            if eval_enabled:
-                run_eval = (epoch + 1) % self.eval_frequency == 0
-                if run_eval:
-                    eval_metrics = self._evaluate_for_training(original_df)
-                    if eval_metrics is not None:
-                        quality = float(
-                            eval_metrics.get("overall_score", {}).get("overall_quality", 0.0)
-                        )
-                        ckpt.update(quality, epoch, self.gen, self.critic)
-                        stop_now = early.update(quality)
-                        reduced, new_lr = lr_reduce.update(
-                            quality, [self.gen_opt, self.critic_opt]
-                        )
-                        if self.verbose:
-                            block = eval_metrics.get("overall_score", {})
-                            msg = (
-                                f"    Epoch {epoch + 1}/{self.epochs}  "
-                                f"d={avg_d:.4f} g={avg_g:.4f}  "
-                                f"quality={quality:.4f} (best={ckpt.best:.4f} @ ep {ckpt.best_epoch + 1})  "
-                                f"div={block.get('diversity_score', 0.0):.3f} "
-                                f"corr={block.get('correlation_score', 0.0):.3f} "
-                                f"stat={block.get('statistical_score', 0.0):.3f} "
-                                f"valid={block.get('validity_score', 0.0):.3f}  "
-                                f"lr={float(self.gen_opt.learning_rate):.2e}"
-                            )
-                            if reduced:
-                                msg += f"  ↓ LR -> {new_lr:.2e}"
-                            print(msg)
-                        if stop_now:
-                            if self.verbose:
-                                print(
-                                    f"    Early stopping at epoch {epoch + 1}. "
-                                    f"Best epoch {ckpt.best_epoch + 1} "
-                                    f"(quality={ckpt.best:.4f})."
-                                )
-                            break
-                elif self.verbose and (epoch + 1) % 10 == 0:
-                    print(
-                        f"    Epoch {epoch + 1}/{self.epochs}  d={avg_d:.4f} g={avg_g:.4f}  "
+            run_eval = (
+                self.eval_frequency > 0
+                and (epoch + 1) % self.eval_frequency == 0
+            )
+            quality: Optional[float] = None
+            eval_metrics: Optional[Dict[str, Any]] = None
+            if run_eval:
+                eval_metrics = self._evaluate_for_training(original_df)
+                if eval_metrics is not None:
+                    quality = float(
+                        eval_metrics.get("overall_score", {}).get("overall_quality", 0.0)
+                    )
+
+            if quality is not None:
+                ckpt.update(quality, epoch, self.gen, self.critic)
+                stop_now = early.update(quality)
+                reduced, new_lr = lr_reduce.update(quality, [self.gen_opt, self.critic_opt])
+
+                if self.verbose:
+                    overall_block = eval_metrics.get("overall_score", {}) if eval_metrics else {}
+                    msg = (
+                        f"    Epoch {epoch + 1}/{self.epochs}  "
+                        f"d={avg_d:.4f} g={avg_g:.4f}  "
+                        f"quality={quality:.4f} (best={ckpt.best:.4f} @ ep {ckpt.best_epoch + 1})  "
+                        f"div={overall_block.get('diversity_score', 0.0):.3f} "
+                        f"corr={overall_block.get('correlation_score', 0.0):.3f} "
+                        f"stat={overall_block.get('statistical_score', 0.0):.3f} "
+                        f"valid={overall_block.get('validity_score', 0.0):.3f}  "
                         f"lr={float(self.gen_opt.learning_rate):.2e}"
                     )
-            else:
-                # Legacy fallback — combined-loss best-checkpoint, no early stop.
-                # Uses last-batch losses to match the pre-helper-refactor behaviour.
-                combined = abs(last_d) + abs(last_g)
-                ckpt.update(combined, epoch, self.gen, self.critic)
-                if self.verbose and epoch % 10 == 0:
-                    print(
-                        f"    Epoch {epoch}/{self.epochs} | "
-                        f"Critic Loss: {last_d:.4f} | Gen Loss: {last_g:.4f}"
-                    )
+                    if reduced:
+                        msg += f"  ↓ LR -> {new_lr:.2e}"
+                    print(msg)
+
+                if stop_now:
+                    if self.verbose:
+                        print(
+                            f"    Early stopping at epoch {epoch + 1} "
+                            f"(no improvement for {self.early_stopping_patience} eval cycles). "
+                            f"Best epoch {ckpt.best_epoch + 1} (quality={ckpt.best:.4f})."
+                        )
+                    stopped_early = True
+                    break
+            elif self.verbose and (epoch + 1) % max(self.eval_frequency, 1) == 0:
+                print(
+                    f"    Epoch {epoch + 1}/{self.epochs}  d={avg_d:.4f} g={avg_g:.4f}  "
+                    f"lr={float(self.gen_opt.learning_rate):.2e}"
+                )
 
             mx.clear_cache()
 
         if self.verbose:
-            print(f"    CTAB-GAN MLX training complete in {time.time() - start_t:.2f}s")
+            print(f"    MLX MT CTAB-GAN+ training complete in {time.time() - start_t:.2f}s")
 
         if ckpt.has_checkpoint:
             restored = ckpt.restore(self.gen, self.critic)
@@ -409,12 +463,14 @@ class CTABGANMLX:
                 if self.verbose:
                     print(
                         f"    Restored best model from epoch {ckpt.best_epoch + 1} "
-                        f"(score={ckpt.best:.4f})."
+                        f"(quality={ckpt.best:.4f})."
                     )
 
         ckpt.cleanup()
+        _ = stopped_early  # marker — read by tests/debug
 
     def _evaluate_for_training(self, original_df: pd.DataFrame) -> Optional[Dict[str, Any]]:
+        """Generate and score a sample for during-training quality monitoring."""
         try:
             n = min(self.eval_num_samples, len(original_df))
             if n <= 0:
@@ -425,7 +481,7 @@ class CTABGANMLX:
             else:
                 idx = np.random.choice(len(original_df), n, replace=False)
             real_eval = original_df.iloc[idx]
-            gen_df = self.generate(num_samples=n)
+            gen_df, _ = self.generate(num_samples=n, task_labels=None)
             return evaluate_with_dataframes(
                 real_eval,
                 gen_df,
@@ -439,47 +495,51 @@ class CTABGANMLX:
             return None
 
     # ------------------------------------------------------------------ #
-    # _transform — kept for backwards compat with any external callers   #
-    # ------------------------------------------------------------------ #
-
-    def _transform(self, df: pd.DataFrame) -> np.ndarray:
-        return transform_vgm(df, self.vgm_models, self.column_info, self.column_order)
-
-    # ------------------------------------------------------------------ #
     # generate()                                                         #
     # ------------------------------------------------------------------ #
 
     def generate(
         self,
         num_samples: int,
-        class_label: Optional[int] = None,
-        condition_vector: Optional[np.ndarray] = None,
-    ) -> pd.DataFrame:
-        if not self.is_fitted and self.gen is None:
-            raise ValueError("Model not fitted")
+        task_labels: Optional[Dict[str, np.ndarray]] = None,
+    ) -> Tuple[pd.DataFrame, Dict[str, np.ndarray]]:
+        if self.gen is None:
+            raise RuntimeError("Model is not fitted; call fit() or load() first.")
 
-        if condition_vector is not None:
-            c = condition_vector[:num_samples]
-            if c.shape[0] < num_samples:
-                c = np.tile(c, (int(np.ceil(num_samples / c.shape[0])), 1))[:num_samples]
-        elif class_label is not None:
-            c = np.zeros((num_samples, self.num_classes), dtype=np.float32)
-            c[:, class_label] = 1.0
+        if task_labels is None:
+            if self.random_seed is not None:
+                rng = np.random.RandomState(self.random_seed + 2000)
+            else:
+                rng = np.random
+            task_labels = {}
+            for task in self.sorted_tasks:
+                num_classes = self.task_label_dims[task]
+                idx = rng.randint(0, num_classes, size=num_samples)
+                task_labels[task] = np.eye(num_classes, dtype=np.float32)[idx]
         else:
-            c = np.eye(self.num_classes, dtype=np.float32)[
-                np.random.randint(0, self.num_classes, num_samples)
-            ]
+            if set(task_labels.keys()) != set(self.task_label_dims.keys()):
+                raise ValueError(
+                    f"task_labels must contain all tasks: {list(self.task_label_dims.keys())}"
+                )
+            for task in self.sorted_tasks:
+                expected = (num_samples, self.task_label_dims[task])
+                if task_labels[task].shape != expected:
+                    raise ValueError(
+                        f"Task '{task}' label shape {task_labels[task].shape} "
+                        f"!= expected {expected}"
+                    )
 
+        cond = _concat_task_labels(task_labels)
         z = mx.random.normal((num_samples, self.latent_dim))
-        c_mx = mx.array(c, dtype=mx.float32)
-        gen_data = self.gen(z, c_mx)
-        mx.eval(gen_data)
-        gen_np = np.array(gen_data)
+        c_mx = mx.array(cond, dtype=mx.float32)
+        gen_x = self.gen(z, c_mx)
+        mx.eval(gen_x)
+        gen_np = np.array(gen_x)
 
         decoded = inverse_transform_vgm(
             gen_np, self.vgm_models, self.column_info, self.column_order
         )
-        return pd.DataFrame(decoded, columns=self.column_order)
+        return pd.DataFrame(decoded, columns=self.column_order), task_labels
 
     # ------------------------------------------------------------------ #
     # evaluate()                                                         #
@@ -488,6 +548,7 @@ class CTABGANMLX:
     def evaluate_with_dataframes(
         self, real_data: pd.DataFrame, generated_data: pd.DataFrame
     ) -> Dict[str, Any]:
+        """Public wrapper around the shared helper."""
         return evaluate_with_dataframes(
             real_data,
             generated_data,
@@ -500,51 +561,75 @@ class CTABGANMLX:
     # save() / load()                                                    #
     # ------------------------------------------------------------------ #
 
-    def save(self, path: str, **extra_metadata: Any):
+    _META_FILE: str = "metadata_mlx.pkl"
+    _GEN_FILE: str = "gen_mlx.safetensors"
+    _CRITIC_FILE: str = "critic_mlx.safetensors"
+
+    def save(
+        self,
+        filepath: str,
+        min_buy_gain_threshold: Optional[float] = None,
+        min_sell_loss_threshold: Optional[float] = None,
+        training_type: Optional[int] = None,
+    ) -> None:
         if self.gen is None:
             raise RuntimeError("No fitted model to save.")
-        os.makedirs(path, exist_ok=True)
+        os.makedirs(filepath, exist_ok=True)
+        self.gen.save_weights(os.path.join(filepath, self._GEN_FILE))
+        self.critic.save_weights(os.path.join(filepath, self._CRITIC_FILE))
+
         meta: Dict[str, Any] = {
-            "column_info": self.column_info,
-            "vgm_models": self.vgm_models,
             "column_order": self.column_order,
             "continuous_columns": self.continuous_columns,
+            "column_info": self.column_info,
+            "vgm_models": self.vgm_models,
             "continuous_info": self.continuous_info,
+            "total_dim": self.total_dim,
+            "task_label_dims": self.task_label_dims,
+            "total_cond_dim": self.total_cond_dim,
             "latent_dim": self.latent_dim,
             "hidden_dim": self.hidden_dim,
-            "num_classes": self.num_classes,
-            "total_dim": self.total_dim,
         }
-        for key, value in extra_metadata.items():
-            if value is None:
-                continue
-            if key in ("min_buy_gain_threshold", "min_sell_loss_threshold"):
-                meta[key] = float(value)
-            elif key == "training_type":
-                meta[key] = int(value)
-            else:
-                meta[key] = value
-        with open(os.path.join(path, "metadata_mlx.pkl"), "wb") as f:
-            pickle.dump(meta, f)
-        self.gen.save_weights(os.path.join(path, "gen_mlx.safetensors"))
+        if min_buy_gain_threshold is not None:
+            meta["min_buy_gain_threshold"] = float(min_buy_gain_threshold)
+        if min_sell_loss_threshold is not None:
+            meta["min_sell_loss_threshold"] = float(min_sell_loss_threshold)
+        if training_type is not None:
+            meta["training_type"] = int(training_type)
 
-    def load(self, path: str) -> Dict[str, Any]:
-        with open(os.path.join(path, "metadata_mlx.pkl"), "rb") as f:
+        with open(os.path.join(filepath, self._META_FILE), "wb") as f:
+            pickle.dump(meta, f)
+
+    def load(self, filepath: str) -> Dict[str, Any]:
+        meta_path = os.path.join(filepath, self._META_FILE)
+        if not os.path.exists(meta_path):
+            raise FileNotFoundError(
+                f"Metadata file not found at {meta_path} — model may have been "
+                f"saved with the TF backend (use that backend to load)."
+            )
+        with open(meta_path, "rb") as f:
             meta = pickle.load(f)
+
+        self.column_order = meta["column_order"]
+        self.continuous_columns = meta["continuous_columns"]
         self.column_info = meta["column_info"]
         self.vgm_models = meta["vgm_models"]
-        self.column_order = meta["column_order"]
-        self.continuous_columns = meta.get("continuous_columns", list(self.column_order))
         self.continuous_info = meta["continuous_info"]
+        self.total_dim = meta["total_dim"]
+        self.task_label_dims = meta["task_label_dims"]
+        self.sorted_tasks = sorted(self.task_label_dims.keys())
+        self.total_cond_dim = meta["total_cond_dim"]
         self.latent_dim = meta["latent_dim"]
         self.hidden_dim = meta.get("hidden_dim", 256)
-        self.num_classes = meta["num_classes"]
-        self.total_dim = meta["total_dim"]
 
-        self.gen = Generator(
-            self.latent_dim, self.num_classes, self.continuous_info, self.hidden_dim
+        self.gen = _Generator(
+            self.latent_dim, self.total_cond_dim, self.continuous_info, self.hidden_dim
         )
-        self.gen.load_weights(os.path.join(path, "gen_mlx.safetensors"))
+        self.critic = _Critic(self.total_dim, self.total_cond_dim, self.hidden_dim)
+        self.gen.load_weights(os.path.join(filepath, self._GEN_FILE))
+        self.critic.load_weights(os.path.join(filepath, self._CRITIC_FILE))
+        self.gen_opt = optim.Adam(learning_rate=self.learning_rate, betas=(0.5, 0.9))
+        self.critic_opt = optim.Adam(learning_rate=self.learning_rate, betas=(0.5, 0.9))
         self.is_fitted = True
 
         return {
