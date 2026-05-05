@@ -223,7 +223,9 @@ def _swap_dataframe(
         # produce NaN-filled rows after concat.  Surface it loudly.
         raise ValueError(
             f"swap_passthrough_columns: columns {missing_synth} not found "
-            f"in synth — generator output schema doesn't match real data"
+            f"in synth — generator output schema doesn't match real data. "
+            f"synth has {len(synth.columns)} columns: {list(synth.columns)}. "
+            f"real_pool has {len(real_pool.columns)} columns: {list(real_pool.columns)}"
         )
 
     n_synth = len(synth)

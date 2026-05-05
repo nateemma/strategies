@@ -33,6 +33,6 @@ class NNMT_CGP(NNMTStrategy):
     # Per-task ratio.  Float broadcasts to every task in train_labels;
     # use a Dict[task, float] or Dict[task, Dict[cls, float]] for finer
     # control — same shape as balance_multi_task accepts.
-    gan_target_ratio: Any = 0.8
+    gan_target_ratio: Any = 0.6
 
     batch_size = 2048  # bigger since we augmented the data

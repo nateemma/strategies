@@ -4,7 +4,7 @@
 # pylint: disable=import-error
 
 """
-NNMT_WGAN_MLX_MultiLSTM - Subclass of NNMTStrategy using WGAN and MLX models
+NNMT_CGP_MLX_MultiLSTM - Subclass of NNMTStrategy using Ctab Gan and MLX models
 """
 
 import sys
@@ -17,14 +17,14 @@ import mlx.core as mx
 group_dir = str(Path(__file__).parent)
 sys.path.append(group_dir)
 
-from NNMT_WGAN import NNMT_WGAN  # noqa: E402
+from NNMT_CGP import NNMT_CGP  # noqa: E402
 from ClassifierKeras import ClassifierKeras
 from NNMT.NNMTClassifierMLX import ClassifierTypeMLX, create_classifier_mlx
 
 # -----------
 
 
-class NNMT_WGAN_MLX_MultiLSTM(NNMT_WGAN):
+class NNMT_CGP_MLX_MultiLSTM(NNMT_CGP):
 
     # default is LSTM type. Override get_classifier_type() in subclass
     def get_classifier_type(self):
