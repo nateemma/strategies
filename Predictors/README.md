@@ -25,10 +25,32 @@ The bases (`BasePredictor`, `BaseClassifier`, `BaseRegressor`,
 they exist so `isinstance(x, BaseClassifier)` works for dispatch and so
 the inheritance tree expresses the task-type taxonomy.
 
-Framework-specific classes (`KerasBaseClassifier`, `MLXClassifierNary`, etc.)
-combine a marker base with the corresponding `utils.Classifier*` class via
-multiple inheritance. All actual training, prediction, save, load behavior
-comes from `utils/`. The Predictors classes are thin facades.
+`KerasBaseClassifier` and `MLXBaseClassifier` are also pure markers — they
+do NOT inherit from `utils.ClassifierKeras` / `utils.ClassifierMLX`. Doing
+so created a broken diamond MRO at runtime: `utils/ClassifierKeras.py`
+gets loaded twice (once via `utils.ClassifierKeras`, once via the bare
+sibling-style `ClassifierKeras` import that
+`utils/ClassifierKerasMultiTask.py` and friends use), and the two copies
+become different class objects. C3 linearization then placed
+`utils.ClassifierKeras.ClassifierKeras` BEFORE
+`utils.ClassifierKerasMultiTask.ClassifierKerasMultiTask` in the MRO,
+breaking the cooperative `super().__init__()` chain.
+
+Concrete classes (`KerasClassifierNary`, `KerasClassifierMultiTask`,
+`MLXClassifierNary`, `MLXClassifierMultiTask`) inherit from a marker
+base PLUS the corresponding `utils.Classifier*` variant — that single
+utils inheritance gives them all behavior, with no diamond.
+
+`SklearnBaseClassifier` is the exception: it DOES inherit from
+`utils.ClassifierSklearn`, because the strategy-side `SklearnClassifier_*`
+concrete classes inherit from it directly (not via a `Sklearn*Variant`
+intermediate), and there's no equivalent diamond risk in the sklearn
+chain (no `utils.ClassifierSklearnVariant(ClassifierSklearn)` files).
+
+`KerasRegressorLinear` and `KerasAnomalyDetector` skip the framework base
+entirely — each is the only variant in its category — and inherit
+`(BaseRegressor, ClassifierKerasLinear)` / `(BaseAnomalyDetector,
+ClassifierKerasAnomaly)` directly. No diamond either.
 
 This is a parallel hierarchy: `utils/Classifier*` is unmodified, and
 non-migrated code can keep importing from there. Newer strategies should
