@@ -1542,9 +1542,12 @@ class BaseNNStrategy(BaseStrategy):
             normalise → load with strict metadata validation →
             ``balance_single_task`` → denormalise.
           * Multi-task type (MT_WGAN, MT_CTAB_GAN) with dict labels →
-            same flow but via ``balance_multi_task``.  Used by NNMT
-            tabular augmentation; sequential 3-D MT strategies turn
-            this off and operate in ``preprocess_training_data`` instead.
+            **handed off to ``preprocess_training_data``** because
+            multi-task GANs operate on the windowed 3-D tensors produced
+            after ``prepare_training_data``, not on the pre-windowed 2-D
+            DataFrame seen here.  This method returns the inputs
+            unchanged for that case; the real work happens in
+            ``BaseNNMTStrategy.preprocess_training_data``.
           * Mismatched gan_type / label shape → pass-through (a noisy
             warning is logged so the misconfiguration is visible).
 
@@ -1573,17 +1576,21 @@ class BaseNNStrategy(BaseStrategy):
             )
             return train_df, train_labels
 
+        # Multi-task augmentation has to happen on the windowed 3-D tensor,
+        # not on this pre-windowed DataFrame -- pass through and let
+        # BaseNNMTStrategy.preprocess_training_data run the balance against
+        # the tensor shape the GAN was actually trained on.
+        if is_multi_task_labels:
+            return train_df, train_labels
+
         if train_df is None or len(train_df) == 0:
             return train_df, train_labels
-        if is_multi_task_labels:
-            if not train_labels:
-                return train_df, train_labels
-        elif len(train_labels) == 0:
+        if len(train_labels) == 0:
             return train_df, train_labels
 
         # Lazy imports — the GAN stack pulls in TF / MLX which we don't
         # want to import for strategies that never enable augmentation.
-        from GANs.balance import balance_multi_task, balance_single_task  # noqa: E402
+        from GANs.balance import balance_single_task  # noqa: E402
         from GANs.GANInterface import GANInterface, GANMetadataMismatchError  # noqa: E402
         from GANs.paths import gan_save_path  # noqa: E402
 
@@ -1631,49 +1638,20 @@ class BaseNNStrategy(BaseStrategy):
             train_minmax, train_df,
         )
 
-        if is_multi_task_type:
-            # balance_multi_task expects 2D one-hot labels per task, but the
-            # caller (BaseNNMTStrategy.prepare_training_data) passes 1D
-            # class-index arrays and re-encodes to one-hot AFTER
-            # enhance_training_data returns. Convert here at the dispatch
-            # boundary so the contract on either side is preserved.
-            num_classes_per_task = {
-                task: max(int(np.asarray(values).max()) + 1, 3)
-                for task, values in train_labels.items()
-            }
-            train_labels_one_hot = {
-                task: self.dataframeUtils.one_hot_encode(
-                    np.asarray(values).astype(int), num_classes_per_task[task]
-                )
-                for task, values in train_labels.items()
-            }
-            aug_minmax, aug_labels_one_hot = balance_multi_task(
-                interface=interface,
-                data=train_minmax,
-                labels=train_labels_one_hot,
-                target_ratios=self.gan_target_ratio,
-                log=print,
-                debug_log=self.debug_print,
-                diagnostics=bool(self.gan_run_diagnostics),
-                feature_names=list(train_df.columns),
-                passthrough_columns=passthrough,
-            )
-            aug_labels = {
-                task: np.argmax(arr, axis=1).astype(int)
-                for task, arr in aug_labels_one_hot.items()
-            }
-        else:
-            aug_minmax, aug_labels = balance_single_task(
-                interface=interface,
-                data=train_minmax,
-                labels=train_labels,
-                target_ratio=self.gan_target_ratio,
-                log=print,
-                debug_log=self.debug_print,
-                diagnostics=bool(self.gan_run_diagnostics),
-                feature_names=list(train_df.columns),
-                passthrough_columns=passthrough,
-            )
+        # Multi-task GANs are handled in BaseNNMTStrategy.preprocess_training_data
+        # against the 3-D tensor; we return early above for is_multi_task_labels
+        # so we only reach here for the single-task path.
+        aug_minmax, aug_labels = balance_single_task(
+            interface=interface,
+            data=train_minmax,
+            labels=train_labels,
+            target_ratio=self.gan_target_ratio,
+            log=print,
+            debug_log=self.debug_print,
+            diagnostics=bool(self.gan_run_diagnostics),
+            feature_names=list(train_df.columns),
+            passthrough_columns=passthrough,
+        )
 
         # Denormalise back to the strategy's input space and restore
         # the original column order — some backends emit columns in

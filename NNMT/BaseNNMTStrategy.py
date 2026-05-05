@@ -33,12 +33,61 @@ from Framework.BaseNNStrategy import BaseNNStrategy
 from Framework.BaseStrategy import MarketRegime, TradingAction, FlowDirection, MomentumDirection, RiskLevel
 from utils.ClassifierKeras import ClassifierKeras
 from freqtrade.strategy import DecimalParameter, IntParameter, BooleanParameter
+from GANs.GANType import GANType
 
 
 class ProfitDirection(IntEnum):
     LOSS = 0
     NEUTRAL = 1
     PROFIT = 2
+
+
+class _UnflattenedGenerateWrapper:
+    """Wraps a GANInterface so generate() returns (n, T, F) ndarrays.
+
+    Multi-task tabular GAN backends (e.g. MT_CTAB_GAN) are trained on
+    flattened sequence windows and natively produce (n, T*F) DataFrames
+    with column names like ``<feature>_<t>``. preprocess_training_data
+    needs to mix those with the real (n, T, F) tensor that arrives from
+    prepare_training_data, so we reshape the synth output here once,
+    then balance_multi_task and swap_passthrough_columns can run on the
+    3-D path uniformly.
+
+    The reshape uses C-order, which is the same convention used to
+    flatten during GAN training: index ``t*F + f`` on the flat axis
+    maps to ``(t, f)`` on the un-flattened tensor.
+    """
+
+    def __init__(self, interface, T: int, F: int):
+        self._interface = interface
+        self._T = T
+        self._F = F
+        # Mirror commonly-inspected attributes so callers can still read
+        # gan_type / save_path / model through the wrapper.
+        self.gan_type = getattr(interface, "gan_type", None)
+
+    def __getattr__(self, name):
+        return getattr(self._interface, name)
+
+    def generate(self, n, **kwargs):
+        result = self._interface.generate(n=n, **kwargs)
+        if isinstance(result, tuple) and len(result) == 2:
+            data, labels = result
+            return self._unflatten(data), labels
+        return self._unflatten(result)
+
+    def _unflatten(self, data):
+        if isinstance(data, pd.DataFrame):
+            data = data.to_numpy()
+        if not isinstance(data, np.ndarray):
+            return data
+        if data.ndim == 2 and data.shape[1] == self._T * self._F:
+            return data.reshape(data.shape[0], self._T, self._F)
+        if data.ndim == 3:
+            return data
+        # Anything else -- leave as-is and let the caller's shape check
+        # surface the mismatch with an informative error.
+        return data
 
 
 class BaseNNMTStrategy(BaseNNStrategy):
@@ -599,6 +648,129 @@ class BaseNNMTStrategy(BaseNNStrategy):
         self._augmented_labels = aggr_train_labels
 
         return aggr_tsr_train, aggr_tsr_test, aggr_train_labels, aggr_test_labels
+
+    # -----------
+
+    def preprocess_training_data(
+        self, dataframe, train_data, test_data, train_labels, test_labels
+    ):
+        """Multi-task GAN augmentation against the windowed 3-D tensor.
+
+        Single-task strategies augment in BaseNNStrategy.enhance_training_data
+        (operating on the pre-windowed 2-D DataFrame). Multi-task strategies
+        cannot do that because the GAN backends (e.g. MT_CTAB_GAN) are
+        trained on flattened 16-step windows: each generated row is a
+        whole sequence, shape ``(n, T*F)``. The natural pairing is the
+        post-windowing 3-D tensor produced by prepare_training_data,
+        which is what arrives here.
+
+        Flow:
+          1. Bail out unless gan_augment is on, gan_type is multi-task,
+             labels look like a multi-task dict, and train_data is a 3-D
+             tensor.
+          2. Load the GAN with strict metadata validation (same checks
+             BaseNNStrategy.enhance_training_data uses).
+          3. Wrap the interface so generate() returns (n, T, F) ndarrays
+             instead of the (n, T*F) DataFrames the backend natively
+             produces. The reshape interprets the flat columns as
+             ``[t=0 features..., t=1 features..., ..., t=T-1 features]``,
+             matching how the GAN was trained on flattened windows.
+          4. Resolve passthrough column names to integer indices into
+             the F axis -- the 3-D path of swap_passthrough_columns
+             swaps whole (T,) sequences per index, preserving temporal
+             structure of deterministic features (calendar sin/cos).
+          5. Hand the 3-D real tensor + dict-of-one-hot labels to
+             balance_multi_task. It iterates, calling the wrapped
+             interface, swapping passthrough columns, and concatenating
+             along the leading axis so the augmented output stays in
+             (N_total, T, F) form.
+
+        Returns the augmented (train_data, test_data, train_labels,
+        test_labels) -- only train_data and train_labels change; test
+        data passes through untouched.
+        """
+        # Pass-through if augmentation is disabled or this isn't the
+        # multi-task path. Anything we don't handle here keeps the
+        # parent's no-op behavior.
+        if self.gan_type == GANType.NONE or not getattr(self, "gan_augment", False):
+            return super().preprocess_training_data(
+                dataframe, train_data, test_data, train_labels, test_labels
+            )
+        if self.gan_type not in self._MULTI_TASK_GAN_TYPES:
+            return super().preprocess_training_data(
+                dataframe, train_data, test_data, train_labels, test_labels
+            )
+        if not isinstance(train_labels, dict) or not train_labels:
+            return super().preprocess_training_data(
+                dataframe, train_data, test_data, train_labels, test_labels
+            )
+        if not isinstance(train_data, np.ndarray) or train_data.ndim != 3:
+            self.debug_print(
+                f"    preprocess_training_data: expected 3-D ndarray train_data, "
+                f"got {type(train_data).__name__} "
+                f"shape={getattr(train_data, 'shape', None)} -- skipping multi-task GAN balance"
+            )
+            return super().preprocess_training_data(
+                dataframe, train_data, test_data, train_labels, test_labels
+            )
+        if train_data.shape[0] == 0:
+            return super().preprocess_training_data(
+                dataframe, train_data, test_data, train_labels, test_labels
+            )
+
+        # Lazy imports -- the GAN stack pulls in TF / MLX which we don't
+        # want to import for strategies that never enable augmentation.
+        from GANs.balance import balance_multi_task  # noqa: E402
+        from GANs.GANInterface import GANInterface, GANMetadataMismatchError  # noqa: E402
+        from GANs.paths import gan_save_path  # noqa: E402
+
+        save_path = gan_save_path(
+            self.get_storage_location(),
+            self.gan_type,
+            use_pca=bool(getattr(self, "use_pca_reduction", False)),
+        )
+        interface = GANInterface(self.gan_type, save_path=save_path)
+        expected = self._gan_expected_metadata(dataframe)
+        try:
+            interface.load(expected=expected)
+        except GANMetadataMismatchError:
+            raise
+        except FileNotFoundError as load_err:
+            raise RuntimeError(
+                f"GAN model not found at {save_path}. "
+                f"Train it first via the corresponding Create* strategy "
+                f"(gan_type={self.gan_type.name}). "
+                f"Underlying error: {load_err}"
+            ) from load_err
+        except Exception as load_err:
+            raise RuntimeError(
+                f"Failed to load GAN model at {save_path}: {load_err}"
+            ) from load_err
+
+        T, F = int(train_data.shape[1]), int(train_data.shape[2])
+        wrapped_interface = _UnflattenedGenerateWrapper(interface, T=T, F=F)
+
+        # Resolve passthrough column names to integer indices into the F
+        # axis. _resolve_gan_passthrough_indices uses the GAN scaler's
+        # feature_names_in_ as the column-order reference, which matches
+        # the order the GAN was trained on.
+        passthrough_indices = self._resolve_gan_passthrough_indices(
+            train_minmax=None, train_df=dataframe
+        )
+
+        aug_train_data, aug_train_labels = balance_multi_task(
+            interface=wrapped_interface,
+            data=train_data,
+            labels=train_labels,
+            target_ratios=self.gan_target_ratio,
+            log=print,
+            debug_log=self.debug_print,
+            diagnostics=bool(self.gan_run_diagnostics),
+            feature_names=None,
+            passthrough_columns=passthrough_indices,
+        )
+
+        return aug_train_data, test_data, aug_train_labels, test_labels
 
     # -----------
 
