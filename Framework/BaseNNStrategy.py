@@ -1632,10 +1632,25 @@ class BaseNNStrategy(BaseStrategy):
         )
 
         if is_multi_task_type:
-            aug_minmax, aug_labels = balance_multi_task(
+            # balance_multi_task expects 2D one-hot labels per task, but the
+            # caller (BaseNNMTStrategy.prepare_training_data) passes 1D
+            # class-index arrays and re-encodes to one-hot AFTER
+            # enhance_training_data returns. Convert here at the dispatch
+            # boundary so the contract on either side is preserved.
+            num_classes_per_task = {
+                task: max(int(np.asarray(values).max()) + 1, 3)
+                for task, values in train_labels.items()
+            }
+            train_labels_one_hot = {
+                task: self.dataframeUtils.one_hot_encode(
+                    np.asarray(values).astype(int), num_classes_per_task[task]
+                )
+                for task, values in train_labels.items()
+            }
+            aug_minmax, aug_labels_one_hot = balance_multi_task(
                 interface=interface,
                 data=train_minmax,
-                labels=train_labels,
+                labels=train_labels_one_hot,
                 target_ratios=self.gan_target_ratio,
                 log=print,
                 debug_log=self.debug_print,
@@ -1643,6 +1658,10 @@ class BaseNNStrategy(BaseStrategy):
                 feature_names=list(train_df.columns),
                 passthrough_columns=passthrough,
             )
+            aug_labels = {
+                task: np.argmax(arr, axis=1).astype(int)
+                for task, arr in aug_labels_one_hot.items()
+            }
         else:
             aug_minmax, aug_labels = balance_single_task(
                 interface=interface,
