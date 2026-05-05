@@ -10,6 +10,15 @@ via multiple inheritance.
 Strategies should import from Predictors/* rather than utils/Classifier*.
 """
 
+# Self-bootstrap user_data/strategies on sys.path so the side-effect
+# import below works in contexts (e.g. pytest collection) that don't
+# already have it set.
+import sys as _sys
+from pathlib import Path as _Path
+_STRAT_DIR = str(_Path(__file__).resolve().parent.parent)
+if _STRAT_DIR not in _sys.path:
+    _sys.path.insert(0, _STRAT_DIR)
+
 # Side-effect import: utils/ClassifierKeras.py runs sys.path.append(utils/)
 # at module load. Several utils/Classifier*.py files use sibling-style
 # imports (e.g. `from ClassifierKeras import ClassifierKeras`) that need
