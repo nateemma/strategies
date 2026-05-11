@@ -305,3 +305,46 @@ class TabDDPMMLX:
         ema = self._ema_mlp.parameters()
         new_ema = _tree_lerp(ema, live, 1.0 - decay)
         self._ema_mlp.update(new_ema)
+
+    # ---------- sampling ---------- #
+
+    def generate(self, n: int, one_hot: np.ndarray) -> np.ndarray:
+        """Sample n synthetic rows conditioned on `one_hot`.
+
+        Args:
+            n:       Number of samples.
+            one_hot: (n, num_classes) float32.
+
+        Returns:
+            (n, 1, num_features) float32 numpy array. The trailing seq
+            axis exists so `balance_single_task`'s _SQUEEZE_SEQ_DIM_TYPES
+            path can squeeze it — matches the WGAN convention.
+        """
+        if self._ema_mlp is None:
+            raise RuntimeError("TabDDPMMLX.generate called before fit/load.")
+
+        one_hot = np.asarray(one_hot, dtype=np.float32)
+        if one_hot.shape != (n, self.num_classes):
+            raise ValueError(
+                f"one_hot must be ({n}, {self.num_classes}); got {one_hot.shape}"
+            )
+        class_idx = mx.array(one_hot.argmax(axis=1).astype(np.int32))
+
+        # Closure over the EMA model so the diffusion module stays
+        # model-agnostic.
+        ema = self._ema_mlp
+
+        def model_fn(x_t: mx.array, t: mx.array, cond: mx.array) -> mx.array:
+            return ema(x_t, t, cond)
+
+        x0_mx = ddim_sample(
+            model_fn=model_fn,
+            shape=(n, self.num_features),
+            cond=class_idx,
+            sched=self._sched,
+            num_steps=self.num_sample_steps,
+        )
+        # _postprocess: clip to [-1, 1], then inverse minmax.
+        x0_np = np.clip(np.asarray(x0_mx), -1.0, 1.0)
+        x0_np = self._minmax_invert(x0_np)
+        return x0_np.reshape(n, 1, self.num_features).astype(np.float32)

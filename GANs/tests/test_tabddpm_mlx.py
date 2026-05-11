@@ -74,3 +74,23 @@ class TestFit:
         out = capsys.readouterr().out
         assert "categorical" in out.lower() or "categorical" in capsys.readouterr().err.lower() \
             or True  # warning prints accepted regardless of stdout vs stderr
+
+
+class TestGenerate:
+    def test_generate_returns_finite_3d_array(self):
+        data, labels = _toy_dataset(n=200, f=8, c=3, seed=0)
+        m = TabDDPMMLX(
+            num_features=8, num_classes=3,
+            d_model=16, d_layers=(16, 16),
+            num_timesteps=50, num_sample_steps=10,
+            epochs=2, batch_size=64, verbose=False,
+        )
+        m.fit(data, labels)
+
+        one_hot = np.zeros((20, 3), dtype=np.float32)
+        one_hot[:, 1] = 1.0  # class 1
+        out = m.generate(20, one_hot)
+
+        assert isinstance(out, np.ndarray)
+        assert out.shape == (20, 1, 8)
+        assert np.isfinite(out).all(), "non-finite values in generated output"
