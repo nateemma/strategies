@@ -94,3 +94,37 @@ class TestGenerate:
         assert isinstance(out, np.ndarray)
         assert out.shape == (20, 1, 8)
         assert np.isfinite(out).all(), "non-finite values in generated output"
+
+
+class TestSaveLoad:
+    def test_save_load_roundtrip(self):
+        data, labels = _toy_dataset(n=200, f=8, c=3, seed=0)
+        m = TabDDPMMLX(
+            num_features=8, num_classes=3,
+            d_model=16, d_layers=(16, 16),
+            num_timesteps=50, num_sample_steps=10,
+            epochs=2, batch_size=64, verbose=False,
+        )
+        m.fit(data, labels)
+
+        tmp = tempfile.mkdtemp()
+        try:
+            m.save(tmp, training_type=2, min_buy_gain_threshold=0.016)
+
+            assert os.path.exists(os.path.join(tmp, "tabddpm_metadata.pkl"))
+            assert os.path.exists(os.path.join(tmp, "tabddpm_gen_mlx.safetensors"))
+
+            m2, meta = TabDDPMMLX.load_from(tmp)
+            assert m2.num_features == 8
+            assert m2.num_classes == 3
+            assert meta["training_type"] == 2
+            assert meta["min_buy_gain_threshold"] == 0.016
+            assert meta["num_features"] == 8
+
+            # Generated output shape matches.
+            one_hot = np.zeros((5, 3), dtype=np.float32)
+            one_hot[:, 0] = 1.0
+            out = m2.generate(5, one_hot)
+            assert out.shape == (5, 1, 8)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)

@@ -348,3 +348,61 @@ class TabDDPMMLX:
         x0_np = np.clip(np.asarray(x0_mx), -1.0, 1.0)
         x0_np = self._minmax_invert(x0_np)
         return x0_np.reshape(n, 1, self.num_features).astype(np.float32)
+
+    # ---------- persistence ---------- #
+
+    def save(self, save_path: str, **extra_metadata: Any) -> None:
+        """Persist the EMA model + ctor params + feature stats.
+
+        extra_metadata (e.g. MASTER_MIN_BUY_GAIN_THRESHOLD) is merged
+        into the pickle so GANInterface.load(expected=...) can validate
+        thresholds at load time.
+        """
+        if self._ema_mlp is None:
+            raise RuntimeError("TabDDPMMLX.save called before fit.")
+        os.makedirs(save_path, exist_ok=True)
+
+        self._ema_mlp.save_weights(os.path.join(save_path, _WEIGHTS_FILENAME))
+
+        meta: Dict[str, Any] = {
+            "num_features":     self.num_features,
+            "num_classes":      self.num_classes,
+            "d_model":          self.d_model,
+            "d_layers":         list(self.d_layers),
+            "dropout":          self.dropout,
+            "num_timesteps":    self.num_timesteps,
+            "num_sample_steps": self.num_sample_steps,
+            "feature_min":      np.asarray(self.feature_min, dtype=np.float32),
+            "feature_max":      np.asarray(self.feature_max, dtype=np.float32),
+        }
+        meta.update(extra_metadata)
+        with open(os.path.join(save_path, _META_FILENAME), "wb") as f:
+            pickle.dump(meta, f)
+
+    @classmethod
+    def load_from(cls, save_path: str) -> Tuple["TabDDPMMLX", Dict[str, Any]]:
+        meta_p = os.path.join(save_path, _META_FILENAME)
+        weights_p = os.path.join(save_path, _WEIGHTS_FILENAME)
+        if not (os.path.exists(meta_p) and os.path.exists(weights_p)):
+            raise FileNotFoundError(
+                f"No MLX-format TabDDPM model at {save_path} "
+                f"(needs {_META_FILENAME} + {_WEIGHTS_FILENAME})"
+            )
+
+        with open(meta_p, "rb") as f:
+            metadata = pickle.load(f)
+
+        instance = cls(
+            num_features=int(metadata["num_features"]),
+            num_classes=int(metadata["num_classes"]),
+            d_model=int(metadata.get("d_model", 256)),
+            d_layers=tuple(metadata.get("d_layers", (256, 256))),
+            dropout=float(metadata.get("dropout", 0.0)),
+            num_timesteps=int(metadata.get("num_timesteps", 1000)),
+            num_sample_steps=int(metadata.get("num_sample_steps", 50)),
+            verbose=False,
+        )
+        instance._ema_mlp.load_weights(weights_p)
+        instance.feature_min = np.asarray(metadata["feature_min"], dtype=np.float32)
+        instance.feature_max = np.asarray(metadata["feature_max"], dtype=np.float32)
+        return instance, metadata
