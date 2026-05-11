@@ -31,6 +31,21 @@ import numpy as np
 from GANs.diffusion_mlx import Schedule, ddim_sample, make_schedule, q_sample
 
 
+def _tree_lerp(a: Any, b: Any, t: float) -> Any:
+    """Element-wise (1-t)*a + t*b on nested mlx parameter trees.
+
+    Used for EMA updates — a is the EMA params, b is the live params,
+    t = 1 - ema_decay (so output stays closer to a when decay is high).
+    """
+    if isinstance(a, dict):
+        return {k: _tree_lerp(a[k], b[k], t) for k in a}
+    if isinstance(a, list):
+        return [_tree_lerp(ai, bi, t) for ai, bi in zip(a, b)]
+    if isinstance(a, mx.array):
+        return (1.0 - t) * a + t * b
+    return a  # non-array leaves passed through
+
+
 _META_FILENAME = "tabddpm_metadata.pkl"
 _WEIGHTS_FILENAME = "tabddpm_gen_mlx.safetensors"
 
@@ -181,3 +196,112 @@ class TabDDPMMLX:
             d_model=self.d_model, d_layers=self.d_layers,
             dropout=self.dropout,
         )
+
+    # ---------- training ---------- #
+
+    def _minmax_fit(self, data: np.ndarray) -> np.ndarray:
+        """Compute per-column min/max, scale data to [-1, 1].
+
+        Stores stats on self for use in _postprocess; returns the scaled array.
+        """
+        self.feature_min = data.min(axis=0).astype(np.float32)
+        self.feature_max = data.max(axis=0).astype(np.float32)
+        rng = self.feature_max - self.feature_min
+        rng = np.where(rng == 0, 1.0, rng)
+        return ((data - self.feature_min) / rng * 2.0 - 1.0).astype(np.float32)
+
+    def _minmax_invert(self, x: np.ndarray) -> np.ndarray:
+        rng = self.feature_max - self.feature_min
+        rng = np.where(rng == 0, 1.0, rng)
+        return ((x + 1.0) / 2.0) * rng + self.feature_min
+
+    def fit(
+        self,
+        data: np.ndarray,
+        labels: np.ndarray,
+        categorical_columns: Optional[Sequence[str]] = None,
+        **_: Any,
+    ) -> None:
+        """Train the diffusion model.
+
+        Args:
+            data:                (N, F) float32 — continuous features only.
+            labels:              (N, C) one-hot float32.
+            categorical_columns: Warned about and dropped (the v1 MLX
+                                 TabDDPM is continuous-only — same policy
+                                 as MLX CTAB-GAN).
+        """
+        if categorical_columns:
+            print(
+                f"[TabDDPMMLX] categorical_columns={list(categorical_columns)} "
+                "ignored — this backend is continuous-only."
+            )
+
+        data = np.asarray(data, dtype=np.float32)
+        labels = np.asarray(labels, dtype=np.float32)
+        if data.ndim != 2:
+            raise ValueError(f"data must be 2-D (N, F); got shape {data.shape}")
+        if labels.ndim != 2:
+            raise ValueError(f"labels must be 2-D (N, C); got shape {labels.shape}")
+
+        # Lazy-init the model now that we know dimensions.
+        if self.num_features == 0:
+            self.num_features = data.shape[1]
+        if self.num_classes == 0:
+            self.num_classes = labels.shape[1]
+        if self._mlp is None:
+            self._build_models()
+
+        data_norm = self._minmax_fit(data)
+        class_idx_np = labels.argmax(axis=1).astype(np.int32)
+        N = data_norm.shape[0]
+
+        # Move to MLX arrays once.
+        data_mx = mx.array(data_norm)
+        class_idx_mx = mx.array(class_idx_np)
+
+        optimizer = optim.AdamW(learning_rate=self.learning_rate,
+                                weight_decay=self.weight_decay)
+
+        def loss_fn(model: _TabDDPMMLP, x0: mx.array, t: mx.array,
+                    noise: mx.array, cls: mx.array) -> mx.array:
+            x_t = q_sample(x0, t, noise, self._sched)
+            eps_hat = model(x_t, t, cls)
+            return mx.mean((eps_hat - noise) ** 2)
+
+        loss_and_grad = nn.value_and_grad(self._mlp, loss_fn)
+
+        # Initialise EMA params to live params.
+        self._ema_mlp.update(self._mlp.parameters())
+
+        steps_per_epoch = max(1, N // self.batch_size)
+        rng = np.random.default_rng(0)
+
+        for epoch in range(self.epochs):
+            epoch_loss = 0.0
+            for _ in range(steps_per_epoch):
+                idx = rng.integers(0, N, size=self.batch_size)
+                idx_mx = mx.array(idx, dtype=mx.int32)
+                x0 = data_mx[idx_mx]
+                cls = class_idx_mx[idx_mx]
+                t = mx.random.randint(0, self.num_timesteps, (self.batch_size,))
+                noise = mx.random.normal((self.batch_size, self.num_features))
+
+                loss, grads = loss_and_grad(self._mlp, x0, t, noise, cls)
+                optimizer.update(self._mlp, grads)
+                mx.eval(self._mlp.parameters(), optimizer.state)
+
+                # EMA update: θ_ema ← decay·θ_ema + (1-decay)·θ
+                self._ema_update()
+                epoch_loss += float(loss.item())
+
+            avg = epoch_loss / steps_per_epoch
+            if self.verbose:
+                print(f"[TabDDPMMLX] epoch {epoch+1}/{self.epochs}  loss={avg:.4f}")
+
+    def _ema_update(self) -> None:
+        decay = self.ema_decay
+        live = self._mlp.parameters()
+        ema = self._ema_mlp.parameters()
+        new_ema = _tree_lerp(ema, live, 1.0 - decay)
+        self._ema_mlp.update(new_ema)

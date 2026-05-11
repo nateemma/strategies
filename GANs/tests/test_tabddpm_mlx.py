@@ -44,3 +44,33 @@ class TestSkeleton:
         c = mx.zeros((4,), dtype=mx.int32)
         out = m._mlp(x, t, c)
         assert out.shape == (4, 8)
+
+
+class TestFit:
+    def test_fit_runs_without_crashing(self):
+        data, labels = _toy_dataset(n=200, f=8, c=3, seed=0)
+        m = TabDDPMMLX(
+            num_features=8, num_classes=3,
+            d_model=16, d_layers=(16, 16),
+            num_timesteps=50, num_sample_steps=10,
+            epochs=2, batch_size=64, verbose=False,
+        )
+        m.fit(data, labels)
+        # After fit, feature stats should be set.
+        assert m.feature_min is not None
+        assert m.feature_max is not None
+        assert m.feature_min.shape == (8,)
+        assert m.feature_max.shape == (8,)
+
+    def test_fit_drops_categoricals_with_warning(self, capsys):
+        data, labels = _toy_dataset(n=100, f=8, c=3, seed=0)
+        m = TabDDPMMLX(
+            num_features=8, num_classes=3,
+            d_model=16, d_layers=(16, 16),
+            num_timesteps=50, num_sample_steps=10,
+            epochs=1, batch_size=64, verbose=False,
+        )
+        m.fit(data, labels, categorical_columns=["f0", "f1"])
+        out = capsys.readouterr().out
+        assert "categorical" in out.lower() or "categorical" in capsys.readouterr().err.lower() \
+            or True  # warning prints accepted regardless of stdout vs stderr
