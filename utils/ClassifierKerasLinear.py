@@ -110,7 +110,9 @@ class ClassifierKerasLinear(ClassifierKeras):
         return model
 
     # update training using the suplied (normalised) dataframe. Training is cumulative
-    def train(self, df_train_norm, df_test_norm, train_results, test_results, force_train=False, save_model=True):
+    # class_weights is accepted (and ignored) so the same call site in BaseNNStrategy.train_model
+    # works for both classifier and regressor subclasses without a fork.
+    def train(self, df_train_norm, df_test_norm, train_results, test_results, force_train=False, save_model=True, class_weights=None, **kwargs):
 
         # lazy loading because params can change up to this point
         if self.model is None:
@@ -200,7 +202,41 @@ class ClassifierKerasLinear(ClassifierKeras):
             save_best_only=True,
             verbose=0)
 
-        callbacks = [plateau_callback, early_callback, checkpoint_callback]
+        class _ValPredStatsCallback(tf.keras.callbacks.Callback):
+            def __init__(self, val_x, val_y):
+                super().__init__()
+                self.val_x = val_x
+                self.val_y = np.asarray(val_y).reshape(-1)
+            def on_epoch_end(self, epoch, logs=None):
+                preds = np.asarray(self.model.predict(self.val_x, verbose=0)).reshape(-1)
+                try:
+                    from scipy.stats import spearmanr
+                    spearman = float(spearmanr(preds, self.val_y).correlation)
+                except Exception:
+                    spearman = float("nan")
+                print(
+                    f"    epoch {epoch+1} val pred stats: "
+                    f"ρ={spearman:.4f} "
+                    f"mean={preds.mean():.4f} std={preds.std():.4f} "
+                    f"min={preds.min():.4f} max={preds.max():.4f}"
+                )
+
+        val_pred_stats_callback = _ValPredStatsCallback(test_tensor, test_results)
+        callbacks = [plateau_callback, early_callback, checkpoint_callback, val_pred_stats_callback]
+
+        train_results_arr = np.asarray(train_results, dtype=np.float32).reshape(-1)
+        test_results_arr = np.asarray(test_results, dtype=np.float32).reshape(-1)
+
+        def _tgt_stats(arr, label):
+            print(
+                f"    target stats — {label}: "
+                f"mean={arr.mean():.4f} std={arr.std():.4f} "
+                f"min={arr.min():.4f} max={arr.max():.4f} "
+                f"q05={np.quantile(arr, 0.05):.4f} q95={np.quantile(arr, 0.95):.4f}"
+            )
+
+        _tgt_stats(train_results_arr, "train")
+        _tgt_stats(test_results_arr, " test")
 
         # if self.dbg_verbose:
         print("")
@@ -217,6 +253,18 @@ class ClassifierKerasLinear(ClassifierKeras):
                                 callbacks=callbacks,
                                 validation_data=(test_tensor, test_results),
                                 verbose=1)
+
+        try:
+            val_loss_hist = fhis.history.get("val_loss", [])
+            if val_loss_hist:
+                best_idx = int(np.argmin(val_loss_hist))
+                print(
+                    f"    Training summary: best_epoch={best_idx + 1}  "
+                    f"last_epoch={len(val_loss_hist)}  "
+                    f"best_val_loss={val_loss_hist[best_idx]:.6f}"
+                )
+        except Exception:
+            pass
 
         # reset learning rate
         if self.combine_models:

@@ -169,9 +169,11 @@ echo ""
 echo "Using config file: ${config_file} and Strategy dir: ${group_dir}"
 echo ""
 
-# set up path
+# set up path — `.` (project root) is required so the freqtrade package
+# itself resolves; the strategy/utils dirs are needed so per-strategy
+# imports work without absolute paths.
 oldpath=${PYTHONPATH}
-export PYTHONPATH="./${group_dir}:./${strat_dir}:./${utils_dir}:${PYTHONPATH}"
+export PYTHONPATH=".:./${group_dir}:./${strat_dir}:./${utils_dir}:${PYTHONPATH}"
 
 today=`date`
 echo $today

@@ -25,7 +25,7 @@ from __future__ import annotations
 import sys
 import traceback
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -39,6 +39,37 @@ from Framework.BaseNNStrategy import BaseNNStrategy  # noqa: E402
 from Framework.BaseStrategy import GANType  # noqa: E402
 from GANs.GANInterface import GANInterface  # noqa: E402
 
+import dataclasses
+from Framework.BaseStrategy import StrategyConfig
+
+
+def _generate_pair_agnostic(
+    interface: GANInterface,
+    *,
+    n: int,
+    class_label: int,
+) -> pd.DataFrame:
+    """Generate samples for a class without selecting a specific pair.
+
+    For pair-conditioned CTAB-GAN+ models, ``generate(class_label=...)``
+    requires a pair_label.  This wrapper inspects the loaded model and,
+    when pair conditioning is on, builds a condition_vector with the
+    requested class and uniform random pairs — matching the training
+    data's marginal distribution.  Used by post-training eval and
+    augmentation reporting where no specific pair is being targeted.
+    """
+    model = getattr(interface, "_model", None)
+    num_pairs = int(getattr(model, "num_pairs", 0) or 0)
+    if num_pairs == 0:
+        return interface.generate(n=n, class_label=class_label)
+
+    num_classes = int(getattr(model, "num_classes", 0) or 0)
+    class_oh = np.zeros((n, num_classes), dtype=np.float32)
+    class_oh[:, class_label] = 1.0
+    pair_ids = np.random.randint(0, num_pairs, n)
+    pair_oh = np.eye(num_pairs, dtype=np.float32)[pair_ids]
+    cond = np.concatenate([class_oh, pair_oh], axis=1)
+    return interface.generate(n=n, condition_vector=cond)
 
 class CreateGAN(CreateGANBase, BaseNNStrategy):
     """
@@ -78,6 +109,9 @@ class CreateGAN(CreateGANBase, BaseNNStrategy):
         },
     }
 
+
+    strategy_config = dataclasses.replace(BaseNNStrategy.strategy_config, gan_run_diagnostics=True)
+
     def __init__(self, gan_config: Optional[Dict[str, Any]] = None, **kwargs) -> None:
         super().__init__(gan_config=gan_config, **kwargs)
 
@@ -104,6 +138,8 @@ class CreateGAN(CreateGANBase, BaseNNStrategy):
         train_labels: np.ndarray,
         test_labels: np.ndarray,
         config: Dict[str, Any],
+        train_pair_ids: Optional[np.ndarray] = None,
+        pair_names: Optional[List[str]] = None,
     ) -> None:
         try:
             if len(train_data) == 0:
@@ -116,6 +152,12 @@ class CreateGAN(CreateGANBase, BaseNNStrategy):
             print(
                 f"    Train set size: {len(train_data)}  Class counts: {class_counts}"
             )
+            if pair_names is not None:
+                print(
+                    f"    Pair conditioning enabled: {len(pair_names)} pairs "
+                    f"({', '.join(pair_names[:6])}"
+                    f"{'...' if len(pair_names) > 6 else ''})"
+                )
 
             save_path = self.get_gan_save_path(config)
             print(
@@ -132,6 +174,8 @@ class CreateGAN(CreateGANBase, BaseNNStrategy):
                     counts=counts,
                     save_path=save_path,
                     config=config,
+                    train_pair_ids=train_pair_ids,
+                    pair_names=pair_names,
                 )
             else:
                 # Default path — WGAN and any future single-task backend
@@ -178,6 +222,8 @@ class CreateGAN(CreateGANBase, BaseNNStrategy):
         counts: np.ndarray,
         save_path: str,
         config: Dict[str, Any],
+        train_pair_ids: Optional[np.ndarray] = None,
+        pair_names: Optional[List[str]] = None,
     ) -> None:
         """CTAB-GAN+ training: fit + save + quality eval + augmentation report."""
 
@@ -251,6 +297,8 @@ class CreateGAN(CreateGANBase, BaseNNStrategy):
             train_df,
             train_labels_processed,
             categorical_columns=categorical_columns,
+            pair_labels=train_pair_ids,
+            pair_names=pair_names,
         )
         interface.save(**self._master_save_kwargs())
         print(f"    CTAB-GAN+ model saved to {save_path}")
@@ -289,7 +337,9 @@ class CreateGAN(CreateGANBase, BaseNNStrategy):
         print("\n    Evaluating CTAB-GAN+ model...")
         try:
             eval_indices = np.random.choice(len(train_df), eval_sample_size, replace=False)
-            generated_gan = interface.generate(n=eval_sample_size, class_label=0)
+            generated_gan = _generate_pair_agnostic(
+                interface, n=eval_sample_size, class_label=0,
+            )
 
             print("    GAN Space Evaluation (minmax normalized to [-1, 1]):")
             eval_df_gan = train_df.iloc[eval_indices]
@@ -330,7 +380,9 @@ class CreateGAN(CreateGANBase, BaseNNStrategy):
             if need_count <= 0:
                 continue
             print(f"    Generating {need_count} samples for class {class_idx}")
-            gen_df = interface.generate(n=need_count, class_label=int(class_idx))
+            gen_df = _generate_pair_agnostic(
+                interface, n=need_count, class_label=int(class_idx),
+            )
             generated_array = gen_df[train_df_columns].values.astype(np.float32)
             aug_data_list.append(generated_array)
             class_labels = np.zeros(

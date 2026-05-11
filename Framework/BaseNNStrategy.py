@@ -122,8 +122,8 @@ class BaseNNStrategy(BaseStrategy):
     HORIZON = BaseStrategy.PEAK_WINDOW
     RISK_LOOKBACK = 200
     FLOW_LOOKBACK = 200
-    MIN_BUY_GAIN_THRESHOLD = 0.016  # minimum gain for buy signals
-    MIN_SELL_LOSS_THRESHOLD = 0.012  # minimum loss for sell signals
+    MIN_BUY_GAIN_THRESHOLD = 0.008  # minimum gain for buy signals
+    MIN_SELL_LOSS_THRESHOLD = 0.008  # minimum loss for sell signals
     TRAINING_TYPE = 19
 
     # Signal augmentation gate — used by ``augment_training_signals``,
@@ -1439,7 +1439,11 @@ class BaseNNStrategy(BaseStrategy):
     # =========================================================================
 
     def prepare_training_data(
-        self, dataframe: List[DataFrame], labels: List[Any], norm: bool = True
+        self,
+        dataframe: List[DataFrame],
+        labels: List[Any],
+        norm: bool = True,
+        pair_names: Optional[List[str]] = None,
     ):
         """Prepare the training data"""
 
@@ -1483,7 +1487,14 @@ class BaseNNStrategy(BaseStrategy):
             train_labels = pair_labels[:train_end]
             test_labels = pair_labels[test_start:]
 
-            train_df, train_labels = self.enhance_training_data(train_df, train_labels)
+            pair_name = (
+                pair_names[i]
+                if pair_names is not None and i < len(pair_names)
+                else None
+            )
+            train_df, train_labels = self.enhance_training_data(
+                train_df, train_labels, pair_name=pair_name
+            )
 
             train_labels = self.dataframeUtils.one_hot_encode(train_labels, 3)
             test_labels = self.dataframeUtils.one_hot_encode(test_labels, 3)
@@ -1527,7 +1538,10 @@ class BaseNNStrategy(BaseStrategy):
     _MULTI_TASK_GAN_TYPES = frozenset({GANType.MT_WGAN, GANType.MT_CTAB_GAN})
 
     def enhance_training_data(
-        self, train_df: DataFrame, train_labels
+        self,
+        train_df: DataFrame,
+        train_labels,
+        pair_name: Optional[str] = None,
     ) -> Tuple[DataFrame, Any]:
         """Augment the per-pair training set with the configured GAN.
 
@@ -1651,6 +1665,7 @@ class BaseNNStrategy(BaseStrategy):
             diagnostics=bool(self.gan_run_diagnostics),
             feature_names=list(train_df.columns),
             passthrough_columns=passthrough,
+            pair_name=pair_name,
         )
 
         # Denormalise back to the strategy's input space and restore
@@ -1726,12 +1741,16 @@ class BaseNNStrategy(BaseStrategy):
         return train_data, test_data, train_labels, test_labels
 
     def train_model(
-        self, dataframes: [DataFrame], labels: [Any], classifier: ClassifierKeras
+        self,
+        dataframes: [DataFrame],
+        labels: [Any],
+        classifier: ClassifierKeras,
+        pair_names: Optional[List[str]] = None,
     ):
         """Train the model - default implementation"""
 
         tsr_train, tsr_test, train_labels, test_labels = self.prepare_training_data(
-            dataframes, labels
+            dataframes, labels, pair_names=pair_names,
         )
 
         if tsr_train is not None and len(tsr_train.shape) >= 2:
@@ -2082,6 +2101,9 @@ class BaseNNStrategy(BaseStrategy):
 
         labels = self.get_training_labels(dataframe)
 
+        # Debug
+        dataframe["%train_labels"] = labels
+
         # set up the classifier if it doesn't already exist
         if self.classifier is None:
             num_features = self.get_normalized_size(dataframe)
@@ -2104,7 +2126,12 @@ class BaseNNStrategy(BaseStrategy):
 
                 if self.training_needed and not self.model_exists():
                     self.debug_print(f"    Training model on {self.pair_count} pairs")
-                    self.train_model(self.df_array, self.label_array, self.classifier)
+                    self.train_model(
+                        self.df_array,
+                        self.label_array,
+                        self.classifier,
+                        pair_names=list(whitelist),
+                    )
 
             if self.pair_count == len(whitelist):
                 pair_index = (
@@ -2117,7 +2144,10 @@ class BaseNNStrategy(BaseStrategy):
 
         else:
             if not self.model_exists():
-                self.train_model([dataframe], [labels], self.classifier)
+                self.train_model(
+                    [dataframe], [labels], self.classifier,
+                    pair_names=[self.curr_pair],
+                )
 
             self.dbg_curr_df = dataframe
             dataframe = self.add_debug_indicators(dataframe)

@@ -39,9 +39,10 @@ _CTAB_CTOR_KEYS: frozenset = frozenset({
     "gp_weight", "verbose", "early_stopping_patience",
     "early_stopping_min_delta", "reduce_lr_patience", "reduce_lr_factor",
     "reduce_lr_min", "pac", "monitor_metric", "eval_frequency",
-    "eval_num_samples", "random_seed", "integer_columns",
-    # MT-only extras
+    "eval_num_samples", "random_seed", "integer_columns", "n_critic",
+    # Enhanced-only extras
     "use_cnn", "use_auxiliary",
+    "info_loss_weight", "downstream_loss_weight", "generator_loss_weight",
 })
 
 # Keys that belong to other backends or to the surrounding strategy
@@ -49,7 +50,11 @@ _CTAB_CTOR_KEYS: frozenset = frozenset({
 # accept.  Silently dropped.
 _CTAB_SKIP_KEYS: frozenset = frozenset({
     "save_path", "augmentation_target_ratio", "task_target_ratios",
-    "assess_quality", "n_critic", "noise_std", "architecture", "seq_len",
+    "assess_quality", "noise_std", "architecture", "seq_len",
+    # Pair conditioning — consumed explicitly by MLX backend below;
+    # silently dropped on TF path (TF CTAB-GAN+ doesn't yet support pair
+    # conditioning).  MLX backend reads from raw kwargs.
+    "pair_labels", "pair_names",
 })
 
 # CTAB-GAN MLX (single-task and multi-task) uses a slimmer constructor —
@@ -128,10 +133,12 @@ class CTABGANTFBackend(GANBackend):
         categorical_columns: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> None:
-        from GANs.df_ctab_gan import CTABGANPlus  # noqa: E402
+        from GANs.df_ctab_gan import CTABGANPlusEnhanced  # noqa: E402
 
         ctor_kwargs, fit_kwargs = _split_ctab_kwargs(kwargs)
-        self._model = CTABGANPlus(**ctor_kwargs)
+        ctor_kwargs.setdefault("use_auxiliary", True)
+        ctor_kwargs.setdefault("generator_loss_weight", 5.0)
+        self._model = CTABGANPlusEnhanced(**ctor_kwargs)
         self._model.fit(
             dataframe=data,
             labels=labels,
@@ -156,10 +163,10 @@ class CTABGANTFBackend(GANBackend):
 
     @classmethod
     def load(cls, save_path: str) -> Tuple["CTABGANTFBackend", Dict[str, Any]]:
-        from GANs.df_ctab_gan import CTABGANPlus  # noqa: E402
+        from GANs.df_ctab_gan import CTABGANPlusEnhanced  # noqa: E402
 
         instance = cls()
-        instance._model = CTABGANPlus()
+        instance._model = CTABGANPlusEnhanced()
         metadata = instance._model.load(save_path)
         return instance, metadata or {}
 
@@ -196,11 +203,16 @@ class CTABGANMLXBackend(GANBackend):
 
         # MLX has a slimmer constructor — only forward keys it actually accepts.
         mlx_kwargs = {k: v for k, v in kwargs.items() if k in _CTAB_MLX_CTOR_KEYS}
+        # Pair conditioning flows to fit(), not the constructor.
+        pair_labels = kwargs.get("pair_labels")
+        pair_names = kwargs.get("pair_names")
         self._model = CTABGANMLX(**mlx_kwargs)
         self._model.fit(
             dataframe=data,
             labels=labels,
             categorical_columns=categorical_columns or [],
+            pair_labels=pair_labels,
+            pair_names=pair_names,
         )
 
     def generate(self, n: int, **kwargs: Any) -> Any:
@@ -267,10 +279,12 @@ class MTCTABGANTFBackend(GANBackend):
         categorical_columns: Optional[List[str]] = None,
         **kwargs: Any,
     ) -> None:
-        from GANs.df_mt_ctab_gan import CTABGANPlusMT  # noqa: E402
+        from GANs.df_mt_ctab_gan import CTABGANPlusMTEnhanced  # noqa: E402
 
         ctor_kwargs, fit_kwargs = _split_ctab_kwargs(kwargs)
-        self._model = CTABGANPlusMT(**ctor_kwargs)
+        ctor_kwargs.setdefault("use_auxiliary", True)
+        ctor_kwargs.setdefault("generator_loss_weight", 5.0)
+        self._model = CTABGANPlusMTEnhanced(**ctor_kwargs)
         self._model.fit(
             dataframe=data,
             labels=labels,
@@ -293,10 +307,10 @@ class MTCTABGANTFBackend(GANBackend):
 
     @classmethod
     def load(cls, save_path: str) -> Tuple["MTCTABGANTFBackend", Dict[str, Any]]:
-        from GANs.df_mt_ctab_gan import CTABGANPlusMT  # noqa: E402
+        from GANs.df_mt_ctab_gan import CTABGANPlusMTEnhanced  # noqa: E402
 
         instance = cls()
-        instance._model = CTABGANPlusMT()
+        instance._model = CTABGANPlusMTEnhanced()
         metadata = instance._model.load(save_path)
         return instance, metadata or {}
 

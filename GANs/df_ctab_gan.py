@@ -98,6 +98,7 @@ class CTABGANPlus:
         integer_columns: List[
             str
         ] = [],  # Columns to treat as simple continuous (linear) without VGM
+        n_critic: int = 5,  # WGAN-GP discriminator updates per generator update
     ):
         """
         Initialize CTAB-GAN+ model.
@@ -149,6 +150,7 @@ class CTABGANPlus:
         self.eval_num_samples = eval_num_samples
         self.random_seed = random_seed
         self.integer_columns = integer_columns
+        self.n_critic = n_critic
 
         # Temperature variable for Gumbel-Softmax annealing
         self.temperature = tf.Variable(
@@ -521,17 +523,22 @@ class CTABGANPlus:
                     continuous_info.append((1, 0))
                     continue
 
-                # Fit Variational Gaussian Mixture Model
+                # Ensure data is 2D and drop NaNs for fitting
+                clean_data = dataframe[col].dropna().values.reshape(-1, 1)
+
+                # Cap VGM components by sample count to avoid over-parameterization
+                # on small datasets (10 components × ~3 params each needs O(100s)
+                # of samples per column to be identifiable).
+                n_components_capped = max(1, min(10, len(clean_data) // 20))
+
                 bgm = BayesianGaussianMixture(
-                    n_components=10,
+                    n_components=n_components_capped,
                     weight_concentration_prior_type="dirichlet_process",
                     weight_concentration_prior=0.001,
                     max_iter=100,
                     n_init=1,
                     random_state=42,
                 )
-                # Ensure data is 2D and drop NaNs for fitting
-                clean_data = dataframe[col].dropna().values.reshape(-1, 1)
 
                 if self.verbose:
                     progress = len(self.vgm_models) + 1
@@ -1093,14 +1100,15 @@ class CTABGANPlus:
                 batch_labels_t = tf.gather(train_labels_t, batch_indices_t)
                 batch_size_actual = tf.shape(batch_data_t)[0]
 
-                # Train discriminator using compiled step
-                noise = tf.random.normal(
-                    (batch_size_actual, self.latent_dim), dtype=tf.float32
-                )
-                d_loss = self._train_discriminator_step(
-                    batch_data_t, batch_labels_t, noise
-                )
-                d_losses.append(float(d_loss))
+                # Train discriminator n_critic steps (WGAN-GP)
+                for _ in range(self.n_critic):
+                    noise = tf.random.normal(
+                        (batch_size_actual, self.latent_dim), dtype=tf.float32
+                    )
+                    d_loss = self._train_discriminator_step(
+                        batch_data_t, batch_labels_t, noise
+                    )
+                    d_losses.append(float(d_loss))
 
                 # Optional: train auxiliary on real batch (used by CTABGANPlusEnhanced)
                 if (
@@ -1419,6 +1427,9 @@ class CTABGANPlus:
                     )
                 self.generator.set_weights(best_generator_weights)
                 self.discriminator.set_weights(best_discriminator_weights)
+
+        if hasattr(self, "_post_train_diagnostics"):
+            self._post_train_diagnostics(train_data, train_labels)
 
     def save(
         self,
@@ -2149,6 +2160,7 @@ class CTABGANPlusEnhanced(CTABGANPlus):
         eval_num_samples: int = 1000,
         random_seed: Optional[int] = 42,
         integer_columns: List[str] = [],
+        n_critic: int = 5,
         use_cnn: bool = False,
         use_auxiliary: bool = False,
         info_loss_weight: float = 0.0,
@@ -2186,6 +2198,7 @@ class CTABGANPlusEnhanced(CTABGANPlus):
             eval_num_samples=eval_num_samples,
             random_seed=random_seed,
             integer_columns=integer_columns,
+            n_critic=n_critic,
         )
         self.use_cnn = use_cnn
         self.use_auxiliary = use_auxiliary
@@ -2450,6 +2463,60 @@ class CTABGANPlusEnhanced(CTABGANPlus):
         if valid_grads:
             self.generator.optimizer.apply_gradients(valid_grads)
         return g_loss
+
+    def _post_train_diagnostics(
+        self, train_data: np.ndarray, train_labels: np.ndarray
+    ) -> None:
+        """Print end-of-training diagnostics for class-conditioning health.
+
+        Reports:
+        - Auxiliary accuracy on real training data (sanity check that the
+          auxiliary actually learned the class boundary).
+        - For each class c: auxiliary accuracy on samples generated with
+          class_label=c, plus the mean per-feature value of those samples.
+
+        These four numbers tell us which of the failure modes is active:
+        - aux-acc-on-real low → auxiliary not training to good accuracy.
+        - aux-acc-on-real high but aux-acc-on-fake low → generator ignores
+          class label (auxiliary CE term is too weak, or distribution shift
+          between real and fake encoded space).
+        - Per-class feature means equal across classes → generator output
+          does not depend on class label at all (full mode collapse).
+        """
+        if self.auxiliary is None:
+            return
+        try:
+            print("\n  --- CTAB-GAN+ end-of-training diagnostics ---")
+            real_pred = self.auxiliary(train_data, training=False).numpy()
+            real_true = np.argmax(train_labels, axis=1)
+            real_pred_idx = np.argmax(real_pred, axis=1)
+            aux_acc_real = float(np.mean(real_pred_idx == real_true))
+            print(f"  Aux accuracy on REAL train data: {aux_acc_real:.3f}")
+
+            n_per_class = 200
+            for c in range(self.num_classes):
+                noise = tf.random.normal(
+                    (n_per_class, self.latent_dim), dtype=tf.float32
+                )
+                labels = np.tile(
+                    np.eye(self.num_classes, dtype=np.float32)[c], (n_per_class, 1)
+                )
+                labels_t = tf.convert_to_tensor(labels, dtype=tf.float32)
+                fake_encoded = self.generator([noise, labels_t], training=False).numpy()
+                fake_pred = self.auxiliary(fake_encoded, training=False).numpy()
+                fake_pred_idx = np.argmax(fake_pred, axis=1)
+                acc_c = float(np.mean(fake_pred_idx == c))
+                pred_dist = np.bincount(fake_pred_idx, minlength=self.num_classes)
+                gen_df = self.generate(n_per_class, class_label=c)
+                feat_means = gen_df.values.astype("float32").mean(axis=0)
+                fm_str = " ".join(f"{m:+.2f}" for m in feat_means)
+                print(
+                    f"  Class {c}: aux says {pred_dist.tolist()} "
+                    f"(acc={acc_c:.3f}); feat means = [{fm_str}]"
+                )
+            print("  --- end diagnostics ---\n")
+        except Exception as exc:
+            print(f"  Diagnostics failed: {exc}")
 
     def save(
         self,

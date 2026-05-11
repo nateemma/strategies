@@ -218,7 +218,7 @@ class BaseStrategy(IStrategy):
     # Common strategy flags
     use_custom_stoploss = True
     use_entry_signal = True
-    entry_profit_only = False
+    exit_profit_only = True
     ignore_roi_if_entry_signal = True
 
     # Common startup parameters
@@ -236,30 +236,30 @@ class BaseStrategy(IStrategy):
         "entry_bb_width_threshold": 0.0,
         "entry_close_norm_threshold": 0.0,
         "entry_enable_guards": True,
-        "entry_guard_threshold": -0.5,
-        "entry_rvol_threshold": 2.0,
-        "prediction_threshold": 0.3,
+        "entry_guard_threshold": -0.0,
+        "entry_rvol_threshold": 1.0,
+        "prediction_threshold": 0.4,
     }
 
     # Sell hyperspace params:
     sell_params = {
         "cexit_enable_profit_checks": True,
-        "cexit_max_days": 30,
+        "cexit_max_days": 3,
         "cexit_take_profit": 0.013,
         "enable_exit_signal": True,
         "exit_close_norm_threshold": 0.0,
-        "exit_guard_threshold": 0.5,
+        "exit_guard_threshold": 0.0,
     }
 
     # Trailing stop:
-    trailing_stop = True
+    trailing_stop = False
     trailing_stop_positive = 0.01
-    trailing_stop_positive_offset = 0.023
-    trailing_only_offset_is_reached = False
+    trailing_stop_positive_offset = 0.03
+    trailing_only_offset_is_reached = True
 
     # Common ROI and stoploss
     minimal_roi = {"0": 0.03}
-    stoploss = -0.307
+    stoploss = -0.05
 
     prediction_threshold = DecimalParameter(
         0.2, 0.7, default=0.5, decimals=2, space="buy", load=True, optimize=True
@@ -342,7 +342,7 @@ class BaseStrategy(IStrategy):
     dbg_curr_df: DataFrame = None  # for debugging of current dataframe
 
     # Common performance filtering parameters
-    PEAK_WINDOW = 12
+    PEAK_WINDOW = 6
     MIN_QUOTE_VOLUME = 1000
 
     # --------------------------------
@@ -1084,11 +1084,13 @@ class BaseStrategy(IStrategy):
         after_fill: bool,
         **kwargs,
     ) -> float:
-        """Simplified trailing stoploss.
+        # Simplified trailing stoploss.
 
-        Use the initial stoploss until the profit is above the threshold,
-        then use a trailing stoploss of 50% of the current profit.
+        return self.stoploss
+
         """
+        # Use the initial stoploss until the profit is above the threshold,
+        # then use a trailing stoploss of 50% of the current profit.
 
         if current_profit < self.cexit_take_profit.value:
             return self.stoploss
@@ -1097,6 +1099,7 @@ class BaseStrategy(IStrategy):
         desired_stoploss = -(current_profit / 2)  # Make it negative!
 
         return desired_stoploss
+        """
 
     # =========================================================================
     # Custom Exit
@@ -1116,8 +1119,8 @@ class BaseStrategy(IStrategy):
         )
         last_candle = dataframe.iloc[-1].squeeze()
 
-        if not self.use_custom_stoploss:
-            return None
+        # if not self.use_custom_stoploss:
+        #     return None
 
         if trade.is_short:
             print("    short trades not yet supported in custom_exit()")
@@ -1163,8 +1166,7 @@ class BaseStrategy(IStrategy):
                         return "metric_overbought"
 
                 if current_profit > self.cexit_take_profit.value:
-                    if "close_norm" in last_candle and last_candle["close_norm"] < 0:
-                        return "take_profit"
+                    return "take_profit"
 
         # Time-based exits (apply to both profitable and losing trades)
         time_delta = current_time - trade.open_date_utc

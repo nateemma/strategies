@@ -73,6 +73,7 @@ def balance_single_task(
     diagnostics: bool = False,
     feature_names: Optional[Sequence[str]] = None,
     passthrough_columns: Optional[Sequence[Union[int, str]]] = None,
+    pair_name: Optional[str] = None,
 ) -> Tuple[Any, np.ndarray]:
     """
     Augment ``(data, labels)`` so each class reaches
@@ -160,6 +161,10 @@ def balance_single_task(
         debug_log("    balance_single_task: nothing to add — at or above target")
         return data, labels
 
+    # Resolve pair_name → pair_label (integer index in the GAN's training
+    # pair list).  Only applies when the loaded model has pair conditioning.
+    pair_label = _resolve_pair_label(interface, pair_name, log)
+
     # --- Generate per class --------------------------------------------- #
     rng = np.random.default_rng()
     aug_data_batches: List[Any] = []
@@ -175,6 +180,7 @@ def balance_single_task(
             n=need,
             class_idx=int(class_idx),
             num_classes=num_classes,
+            pair_label=pair_label,
         )
         # Squeeze seq dimension for WGAN's (n, 1, F) → (n, F).
         if interface.gan_type in _SQUEEZE_SEQ_DIM_TYPES and getattr(gen, "ndim", 0) == 3:
@@ -702,12 +708,60 @@ def _resolve_single_task_needs(
     return needs
 
 
+def _resolve_pair_label(
+    interface: Any,
+    pair_name: Optional[str],
+    log: Any,
+) -> Optional[int]:
+    """Look up a pair name in the GAN's saved pair_names → integer index.
+
+    Returns None when the loaded GAN was not trained with pair conditioning
+    (num_pairs == 0 or pair_names missing from metadata). Raises when the
+    GAN does have pair conditioning but the requested pair_name isn't in
+    its training set — silently falling back would reintroduce the bug
+    pair conditioning was meant to fix.
+    """
+    model = getattr(interface, "_model", None)
+    if model is None:
+        return None
+    num_pairs = getattr(model, "num_pairs", 0)
+    if not num_pairs:
+        return None
+    if pair_name is None:
+        raise ValueError(
+            "GAN was trained with pair conditioning but no pair_name was "
+            "passed to balance_single_task — augmentation needs to know "
+            "which pair it is generating for."
+        )
+    pair_names = getattr(model, "pair_names", None)
+    if pair_names is None:
+        # Pair conditioning is on but the name → index mapping wasn't saved.
+        # Fall back to a deterministic warning; we can't resolve safely.
+        log(
+            f"    balance_single_task: GAN has pair conditioning but "
+            f"pair_names mapping is missing from metadata — cannot resolve "
+            f"pair_name={pair_name!r} to an index."
+        )
+        raise ValueError(
+            f"GAN metadata is missing pair_names; retrain the GAN to "
+            f"save the pair name → index mapping."
+        )
+    if pair_name not in pair_names:
+        raise ValueError(
+            f"Pair {pair_name!r} is not in the GAN's training pair list "
+            f"({pair_names}). Retrain the GAN with this pair included, "
+            f"or drop the pair from augmentation."
+        )
+    return int(pair_names.index(pair_name))
+
+
 def _generate_for_class(
     *,
     interface: Any,
     n: int,
     class_idx: int,
     num_classes: int,
+    pair_label: Optional[int] = None,
 ) -> Any:
     """Dispatch to ``interface.generate(n=…, …)`` using the right kwarg.
 
@@ -723,7 +777,12 @@ def _generate_for_class(
         return interface.generate(n=n, one_hot=one_hot)
 
     if gan_type == GANType.CTAB_GAN:
-        return interface.generate(n=n, class_label=int(class_idx))
+        # pair_label is only meaningful for pair-conditioned models; the
+        # underlying generate() ignores it when num_pairs == 0.
+        kwargs: Dict[str, Any] = {"class_label": int(class_idx)}
+        if pair_label is not None:
+            kwargs["pair_label"] = pair_label
+        return interface.generate(n=n, **kwargs)
 
     if gan_type == GANType.CGAN:
         one_hot = np.zeros((n, num_classes), dtype=np.float32)

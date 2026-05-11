@@ -70,8 +70,8 @@ class CreateGANBase:
     # the GAN metadata.  A strategy that later loads the GAN will pick up
     # these values automatically, so the labels the classifier was trained on
     # stay consistent with the ones the GAN was trained on.
-    MASTER_MIN_BUY_GAIN_THRESHOLD = 0.016
-    MASTER_MIN_SELL_LOSS_THRESHOLD = 0.012
+    MASTER_MIN_BUY_GAIN_THRESHOLD = 0.008
+    MASTER_MIN_SELL_LOSS_THRESHOLD = 0.008
     MASTER_TRAINING_TYPE = 19
 
     # Concrete subclasses set this to the GANType they create.  Staying
@@ -158,7 +158,12 @@ class CreateGANBase:
     # Public workflow                                                        #
     # ---------------------------------------------------------------------- #
 
-    def create_models(self, dataframes: List[DataFrame], labels: List[Any]) -> None:
+    def create_models(
+        self,
+        dataframes: List[DataFrame],
+        labels: List[Any],
+        pair_names: Optional[List[str]] = None,
+    ) -> None:
         config = self.gan_config
         descriptor = config.get("description") or config.get("name") or self.__class__.__name__
         print(f"    Creating {descriptor} models using aggregate dataframe of all pairs")
@@ -198,6 +203,17 @@ class CreateGANBase:
         train_data = combined_minmax.to_numpy(dtype=np.float32)
         train_labels = self._aggregate_labels_for_gan(labels)
 
+        # Track per-row pair index for pair-conditioned GAN training.  Built
+        # from the minmax dataframes (same row-order as train_data) so the
+        # indices align with the rows in train_data exactly.
+        train_pair_ids: Optional[np.ndarray] = None
+        if pair_names is not None and len(pair_names) == len(full_df_minmax_list):
+            pair_id_chunks = [
+                np.full(len(df), i, dtype=np.int32)
+                for i, df in enumerate(full_df_minmax_list)
+            ]
+            train_pair_ids = np.concatenate(pair_id_chunks, axis=0)
+
         if config.get("shuffle_before_gan", False) and len(train_data) > 0:
             seed = config.get("train_shuffle_seed", 42)
             rng = np.random.RandomState(seed)
@@ -207,6 +223,8 @@ class CreateGANBase:
                 train_labels = {task: values[indices] for task, values in train_labels.items()}
             elif train_labels is not None:
                 train_labels = train_labels[indices]
+            if train_pair_ids is not None:
+                train_pair_ids = train_pair_ids[indices]
 
         self.run_gan_training(
             combined_df=combined_original,
@@ -215,6 +233,8 @@ class CreateGANBase:
             train_labels=train_labels,
             test_labels=None,
             config=config,
+            train_pair_ids=train_pair_ids,
+            pair_names=pair_names,
         )
 
         self.on_gan_training_complete()
@@ -245,6 +265,8 @@ class CreateGANBase:
             self.combined_df = []
         if self.combined_labels is None:
             self.combined_labels = []
+        if self.combined_pair_names is None:
+            self.combined_pair_names = []
 
         if len(self.combined_df) == 0:
             print(f"    Init with: {curr_pair}")
@@ -253,13 +275,15 @@ class CreateGANBase:
 
         self.combined_df.append(dataframe.reset_index(drop=True))
         self.combined_labels = self._extend_labels(self.combined_labels, labels)
+        self.combined_pair_names.append(curr_pair)
 
         self.pair_count += 1
 
         if self.pair_count == target_pairs:
             dataframes_final = [df.copy() for df in self.combined_df]
             labels_final = self._finalize_labels(self.combined_labels)
-            self.create_models(dataframes_final, labels_final)
+            pair_names_final = list(self.combined_pair_names)
+            self.create_models(dataframes_final, labels_final, pair_names=pair_names_final)
 
         return dataframe
 
@@ -282,6 +306,8 @@ class CreateGANBase:
         train_labels: Any,
         test_labels: Any,
         config: Dict[str, Any],
+        train_pair_ids: Optional[np.ndarray] = None,
+        pair_names: Optional[List[str]] = None,
     ) -> None:
         """
         Subclasses must implement GAN-specific training logic using the provided
@@ -426,3 +452,4 @@ class CreateGANBase:
         self.pair_count = 0
         self.combined_df: Optional[List[DataFrame]] = None
         self.combined_labels: Optional[List[Any]] = None
+        self.combined_pair_names: Optional[List[str]] = None

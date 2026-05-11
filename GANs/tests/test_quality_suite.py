@@ -40,6 +40,13 @@ os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
 os.environ.setdefault("TF_DISABLE_MPS", "1")
 os.environ.setdefault("TF_METAL_DEVICE_ENABLE", "0")
 
+# MLX availability — used to skip MLX-only tests on non-Apple-Silicon hosts.
+try:
+    import mlx.core as _mx
+    _HAS_MLX = hasattr(_mx, "metal") and _mx.metal.is_available()
+except Exception:
+    _HAS_MLX = False
+
 # ---------------------------------------------------------------------------
 # Gate: skip all generated classes unless RUN_SLOW_TESTS is set
 # ---------------------------------------------------------------------------
@@ -57,6 +64,16 @@ N_FEATURES        = 8
 N_TRADING_CLASSES = 3
 N_REGIME_CLASSES  = 2
 SEQ_LEN           = 1
+
+# CTAB-GAN family needs substantially more data than WGAN/MTWGAN to learn
+# its per-column VGM mixtures and conditional structure — production runs
+# use thousands of samples, so the test mirrors that.
+N_CTAB_MAJORITY   = 1200
+N_CTAB_MINORITY_A = 450
+N_CTAB_MINORITY_B = 300
+N_CTAB_SAMPLES    = N_CTAB_MAJORITY + N_CTAB_MINORITY_A + N_CTAB_MINORITY_B
+N_CTAB_REGIME_A   = 1300
+N_CTAB_REGIME_B   = 650
 
 
 import pandas as pd  # noqa: E402 — needed for CTAB-GAN DataFrame input
@@ -138,16 +155,48 @@ def _wgan_setup_generated(cls: Any, iface: Any) -> None:
 
 
 def _make_ctab_dataset(seed: int = 42):
-    """Single-task DataFrame dataset for CTAB-GAN (2D data wrapped as DataFrame)."""
-    data_2d, labels = _make_wgan_dataset(seed)
-    return pd.DataFrame(data_2d, columns=_CTAB_COLUMNS), labels
+    """Single-task DataFrame dataset for CTAB-GAN with production-scale rows."""
+    rng = np.random.default_rng(seed)
+    class_means = np.array([
+        [ 0.6, -0.5,  0.4, -0.3,  0.5, -0.4,  0.3, -0.5],
+        [-0.5,  0.6, -0.4,  0.5, -0.3,  0.4, -0.5,  0.6],
+        [ 0.0,  0.0,  0.6, -0.6,  0.0,  0.0,  0.6, -0.6],
+    ], dtype="float32")
+    idx = np.concatenate([
+        np.zeros(N_CTAB_MAJORITY,   int),
+        np.ones(N_CTAB_MINORITY_A,  int),
+        np.full(N_CTAB_MINORITY_B,  2, int),
+    ])
+    noise  = rng.normal(0, 0.25, (N_CTAB_SAMPLES, N_FEATURES)).astype("float32")
+    data   = np.clip(class_means[idx] + noise, -1, 1)
+    labels = np.eye(N_TRADING_CLASSES, dtype="float32")[idx]
+    return pd.DataFrame(data, columns=_CTAB_COLUMNS), labels
 
 
 def _make_mt_ctab_dataset(seed: int = 42):
-    """Multi-task DataFrame dataset for MT-CTAB-GAN."""
-    data_3d, labels = _make_mt_dataset(seed)
-    data_2d = data_3d[:, 0, :]          # squeeze seq_len dim
-    return pd.DataFrame(data_2d, columns=_CTAB_COLUMNS), labels
+    """Multi-task DataFrame dataset for MT-CTAB-GAN with production-scale rows."""
+    rng = np.random.default_rng(seed)
+    class_means = np.array([
+        [ 0.6, -0.5,  0.4, -0.3,  0.5, -0.4,  0.3, -0.5],
+        [-0.5,  0.6, -0.4,  0.5, -0.3,  0.4, -0.5,  0.6],
+        [ 0.0,  0.0,  0.6, -0.6,  0.0,  0.0,  0.6, -0.6],
+    ], dtype="float32")
+    t_idx = np.concatenate([
+        np.zeros(N_CTAB_MAJORITY,   int),
+        np.ones(N_CTAB_MINORITY_A,  int),
+        np.full(N_CTAB_MINORITY_B,  2, int),
+    ])
+    noise = rng.normal(0, 0.25, (N_CTAB_SAMPLES, N_FEATURES)).astype("float32")
+    data  = np.clip(class_means[t_idx] + noise, -1, 1)
+    r_idx = np.concatenate([
+        np.zeros(N_CTAB_REGIME_A, int),
+        np.ones(N_CTAB_REGIME_B,  int),
+    ])
+    labels = {
+        "trading": np.eye(N_TRADING_CLASSES, dtype="float32")[t_idx],
+        "regime":  np.eye(N_REGIME_CLASSES,  dtype="float32")[r_idx],
+    }
+    return pd.DataFrame(data, columns=_CTAB_COLUMNS), labels
 
 
 def _ctab_setup_generated(cls: Any, iface: Any) -> None:
@@ -296,6 +345,7 @@ class GANTestConfig:
     setup_generated: Callable             # (cls, iface) -> None
     extra_fit_kwargs: dict = field(default_factory=dict)
     extra_tests: dict = field(default_factory=dict)  # {method_name: fn(self)}
+    prefer_mlx: bool = False              # route through MLX backend
 
 
 # ---------------------------------------------------------------------------
@@ -314,7 +364,14 @@ _GAN_CONFIGS: list[GANTestConfig] = [
         make_dataset=_make_wgan_dataset,
         setup_generated=_wgan_setup_generated,
         extra_fit_kwargs={"architecture": "mlp"},
-        extra_tests={"test_mean_feature_correlation_not_negative": _test_wgan_correlation},
+        extra_tests={
+            "test_mean_feature_correlation_not_negative": _test_wgan_correlation,
+            # Tighter thresholds: catch sample-quality regressions that the
+            # default 0.5 bars let through. Set to 0.2 — see notes in
+            # quality_base.py.
+            "MEAN_RMSE_THRESHOLD":           0.2,
+            "STD_RMSE_THRESHOLD":            0.2,
+        },
     ),
 
     # Multi-task variants
@@ -340,15 +397,21 @@ _GAN_CONFIGS: list[GANTestConfig] = [
         setup_generated=_ctab_setup_generated,
         extra_fit_kwargs={
             "epochs":               20,
-            "batch_size":           16,
+            "batch_size":           64,
             "latent_dim":           32,
             "generator_layers":     [64],
             "discriminator_layers": [64],
+            "monitor_metric":       "combined",  # skip per-epoch eval cost
+            "eval_frequency":       0,
         },
         extra_tests={
-            "MEAN_RMSE_THRESHOLD":           0.6,
-            "STD_RMSE_THRESHOLD":            0.6,
-            "test_label_fidelity_above_chance": _test_ctab_skip_label_fidelity,
+            # Tightened from 0.6 → 0.2 so the test actually surfaces poor
+            # sample quality. Label-fidelity test re-enabled (was previously
+            # skipped on the assumption tiny test datasets couldn't support
+            # discriminative class conditioning — but if it fails, that's
+            # exactly the signal we want).
+            "MEAN_RMSE_THRESHOLD":           0.2,
+            "STD_RMSE_THRESHOLD":            0.2,
         },
     ),
     GANTestConfig(
@@ -360,15 +423,62 @@ _GAN_CONFIGS: list[GANTestConfig] = [
         setup_generated=_mt_ctab_setup_generated,
         extra_fit_kwargs={
             "epochs":               20,
-            "batch_size":           16,
+            "batch_size":           64,
             "latent_dim":           32,
             "generator_layers":     [64],
             "discriminator_layers": [64],
+            "monitor_metric":       "combined",  # skip per-epoch eval cost
+            "eval_frequency":       0,
         },
         extra_tests={
-            "MEAN_RMSE_THRESHOLD":           0.65,  # MT multi-task conditioning needs extra headroom
-            "STD_RMSE_THRESHOLD":            0.6,
-            "test_label_fidelity_above_chance": _test_ctab_skip_label_fidelity,
+            "MEAN_RMSE_THRESHOLD":           0.2,
+            "STD_RMSE_THRESHOLD":            0.2,
+        },
+    ),
+    # MLX backends — distinct constructor (uses hidden_dim, not the
+    # generator_layers/discriminator_layers split; no auxiliary subclass).
+    GANTestConfig(
+        name="CTABGANMLX",
+        gan_type=GANType.CTAB_GAN,
+        n_classes=N_TRADING_CLASSES,
+        minority_classes=[1, 2],
+        make_dataset=_make_ctab_dataset,
+        setup_generated=_ctab_setup_generated,
+        prefer_mlx=True,
+        extra_fit_kwargs={
+            "epochs":         20,
+            "batch_size":     64,
+            "latent_dim":     32,
+            "hidden_dim":     64,
+            # MLX only supports "eval_quality"
+            "monitor_metric": "eval_quality",
+            "eval_frequency": 5,
+        },
+        extra_tests={
+            "MEAN_RMSE_THRESHOLD": 0.2,
+            "STD_RMSE_THRESHOLD":  0.2,
+        },
+    ),
+    GANTestConfig(
+        name="MTCTABGANMLX",
+        gan_type=GANType.MT_CTAB_GAN,
+        n_classes=N_TRADING_CLASSES,
+        minority_classes=[1, 2],
+        make_dataset=_make_mt_ctab_dataset,
+        setup_generated=_mt_ctab_setup_generated,
+        prefer_mlx=True,
+        extra_fit_kwargs={
+            "epochs":         20,
+            "batch_size":     64,
+            "latent_dim":     32,
+            "hidden_dim":     64,
+            # MLX multi-task only supports "eval_quality"
+            "monitor_metric": "eval_quality",
+            "eval_frequency": 5,
+        },
+        extra_tests={
+            "MEAN_RMSE_THRESHOLD": 0.2,
+            "STD_RMSE_THRESHOLD":  0.2,
         },
     ),
 ]
@@ -414,6 +524,7 @@ def _make_quality_test_class(config: GANTestConfig) -> type:
         "GAN_TYPE":        config.gan_type,
         "N_CLASSES":       config.n_classes,
         "MINORITY_CLASSES": config.minority_classes,
+        "PREFER_MLX":      config.prefer_mlx,
         "_make_dataset":    _make_dataset,
         "_fit_kwargs":      _fit_kwargs,
         "_setup_generated": _setup_generated,
@@ -425,7 +536,12 @@ def _make_quality_test_class(config: GANTestConfig) -> type:
         (GANQualityMixin, unittest.TestCase),
         attrs,
     )
-    return unittest.skipUnless(_RUN, _SKIP_MSG)(cls)
+    cls = unittest.skipUnless(_RUN, _SKIP_MSG)(cls)
+    if config.prefer_mlx:
+        cls = unittest.skipUnless(
+            _HAS_MLX, "MLX backend not available on this host"
+        )(cls)
+    return cls
 
 
 # ---------------------------------------------------------------------------

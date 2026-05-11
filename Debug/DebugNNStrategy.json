@@ -5,39 +5,39 @@
       "0": 0.03
     },
     "stoploss": {
-      "stoploss": -0.307
+      "stoploss": -0.05
     },
     "trailing": {
-      "trailing_stop": true,
+      "trailing_stop": false,
       "trailing_stop_positive": 0.01,
-      "trailing_stop_positive_offset": 0.023,
-      "trailing_only_offset_is_reached": false
+      "trailing_stop_positive_offset": 0.03,
+      "trailing_only_offset_is_reached": true
     },
     "max_open_trades": {
-      "max_open_trades": 5
-    },
-    "buy": {
-      "min_buy_gain_threshold": 0.016,
-      "prediction_threshold": 0.5,
-      "training_type": 19,
-      "entry_adx_threshold": 66.0,
-      "entry_atr_pct": 0.001,
-      "entry_bb_width_threshold": 0.03,
-      "entry_close_norm_threshold": 0.0,
-      "entry_enable_guards": false,
-      "entry_guard_threshold": -0.5
+      "max_open_trades": 10
     },
     "sell": {
-      "min_sell_loss_threshold": 0.012,
       "cexit_enable_profit_checks": true,
-      "cexit_max_days": 30,
+      "cexit_max_days": 3,
       "cexit_take_profit": 0.013,
       "enable_exit_signal": true,
-      "exit_close_norm_threshold": 0.1,
-      "exit_guard_threshold": 0.0
+      "exit_close_norm_threshold": 0.0,
+      "exit_guard_threshold": 0.0,
+      "min_sell_loss_threshold": 0.008
     },
-    "protection": {}
+    "buy": {
+      "entry_adx_threshold": 20.0,
+      "entry_atr_pct": 0.001,
+      "entry_bb_width_threshold": 0.0,
+      "entry_close_norm_threshold": 0.0,
+      "entry_enable_guards": true,
+      "entry_guard_threshold": -0.0,
+      "entry_rvol_threshold": 1.0,
+      "prediction_threshold": 0.3,
+      "training_type": 16,
+      "min_buy_gain_threshold": 0.01
+    }
   },
   "ft_stratparam_v": 1,
-  "export_time": "2026-03-11 01:16:54.883114+00:00"
+  "export_time": "2026-05-10 17:41:46.297420+00:00"
 }

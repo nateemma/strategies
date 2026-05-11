@@ -99,6 +99,7 @@ class CTABGANPlusMT:
         integer_columns: List[
             str
         ] = [],  # Columns to treat as simple continuous (linear) without VGM
+        n_critic: int = 5,  # WGAN-GP discriminator updates per generator update
     ):
         """
         Initialize Multi-Task CTAB-GAN+ model.
@@ -148,6 +149,7 @@ class CTABGANPlusMT:
         self.eval_num_samples = eval_num_samples
         self.random_seed = random_seed
         self.integer_columns = integer_columns
+        self.n_critic = n_critic
 
         # Temperature variable for Gumbel-Softmax annealing
         self.temperature = tf.Variable(
@@ -433,16 +435,20 @@ class CTABGANPlusMT:
                     continuous_info.append((1, 0))
                     continue
 
-                # Fit Variational Gaussian Mixture Model
+                clean_data = dataframe[col].dropna().values.reshape(-1, 1)
+
+                # Cap VGM components by sample count to avoid over-parameterization
+                # on small datasets.
+                n_components_capped = max(1, min(10, len(clean_data) // 20))
+
                 bgm = BayesianGaussianMixture(
-                    n_components=10,
+                    n_components=n_components_capped,
                     weight_concentration_prior_type="dirichlet_process",
                     weight_concentration_prior=0.001,
                     max_iter=100,
                     n_init=1,
                     random_state=42,
                 )
-                clean_data = dataframe[col].dropna().values.reshape(-1, 1)
 
                 if self.verbose:
                     progress = len(self.vgm_models) + 1
@@ -999,17 +1005,17 @@ class CTABGANPlusMT:
                 # Concatenate task labels for condition vector
                 batch_cond = _concatenate_task_labels(batch_labels_dict)
 
-                # Train discriminator using compiled step
-                noise = tf.random.normal(
-                    (batch_size_actual, self.latent_dim), dtype=tf.float32
-                )
+                # Train discriminator n_critic steps (WGAN-GP)
                 batch_data_t = tf.convert_to_tensor(batch_data, dtype=tf.float32)
                 batch_cond_t = tf.convert_to_tensor(batch_cond, dtype=tf.float32)
-
-                d_loss = self._train_discriminator_step(
-                    batch_data_t, batch_cond_t, noise
-                )
-                d_losses.append(float(d_loss))
+                for _ in range(self.n_critic):
+                    noise = tf.random.normal(
+                        (batch_size_actual, self.latent_dim), dtype=tf.float32
+                    )
+                    d_loss = self._train_discriminator_step(
+                        batch_data_t, batch_cond_t, noise
+                    )
+                    d_losses.append(float(d_loss))
 
                 # Optional: train auxiliary on real batch (used by CTABGANPlusMTEnhanced)
                 if (
@@ -1279,6 +1285,9 @@ class CTABGANPlusMT:
                     )
                 self.generator.set_weights(best_generator_weights)
                 self.discriminator.set_weights(best_discriminator_weights)
+
+        if hasattr(self, "_post_train_diagnostics"):
+            self._post_train_diagnostics(train_data, train_labels_dict)
 
     def evaluate(
         self,
@@ -1843,6 +1852,7 @@ class CTABGANPlusMTEnhanced(CTABGANPlusMT):
         eval_num_samples: int = 1000,
         random_seed: Optional[int] = 42,
         integer_columns: List[str] = [],
+        n_critic: int = 5,
         use_cnn: bool = False,
         use_auxiliary: bool = False,
         info_loss_weight: float = 0.0,
@@ -1880,6 +1890,7 @@ class CTABGANPlusMTEnhanced(CTABGANPlusMT):
             eval_num_samples=eval_num_samples,
             random_seed=random_seed,
             integer_columns=integer_columns,
+            n_critic=n_critic,
         )
         self.use_cnn = use_cnn
         self.use_auxiliary = use_auxiliary
@@ -2148,6 +2159,79 @@ class CTABGANPlusMTEnhanced(CTABGANPlusMT):
         if valid_grads:
             self.generator.optimizer.apply_gradients(valid_grads)
         return g_loss
+
+    def _post_train_diagnostics(
+        self, train_data: np.ndarray, train_labels_dict: Dict[str, np.ndarray]
+    ) -> None:
+        """Mirror of CTABGANPlusEnhanced._post_train_diagnostics for multi-task.
+
+        Reports auxiliary accuracy on real training data (per task) and on
+        generator output (per requested trading class). MT auxiliary uses
+        BCE over a concatenated multi-task condition vector — we slice it
+        back into task chunks using self.sorted_tasks / task_label_dims.
+        """
+        if self.auxiliary is None:
+            return
+        try:
+            print("\n  --- MT CTAB-GAN+ end-of-training diagnostics ---")
+            real_pred = self.auxiliary(train_data, training=False).numpy()
+
+            offset = 0
+            task_slices: Dict[str, slice] = {}
+            for task in self.sorted_tasks:
+                dim = self.task_label_dims[task]
+                task_slices[task] = slice(offset, offset + dim)
+                offset += dim
+
+            for task in self.sorted_tasks:
+                sl = task_slices[task]
+                pred_idx = np.argmax(real_pred[:, sl], axis=1)
+                true_idx = np.argmax(train_labels_dict[task], axis=1)
+                acc = float(np.mean(pred_idx == true_idx))
+                print(f"  Aux accuracy on REAL data, task '{task}': {acc:.3f}")
+
+            primary = "trading" if "trading" in self.sorted_tasks else self.sorted_tasks[0]
+            n_per_class = 200
+            primary_dim = self.task_label_dims[primary]
+            primary_slice = task_slices[primary]
+            for c in range(primary_dim):
+                # Build a multi-task condition with primary=c, others=class-0
+                cond_parts = []
+                for task in self.sorted_tasks:
+                    dim = self.task_label_dims[task]
+                    oh = np.zeros((n_per_class, dim), dtype=np.float32)
+                    target = c if task == primary else 0
+                    oh[:, target] = 1.0
+                    cond_parts.append(oh)
+                cond = np.concatenate(cond_parts, axis=1)
+                cond_t = tf.convert_to_tensor(cond, dtype=tf.float32)
+                noise = tf.random.normal(
+                    (n_per_class, self.latent_dim), dtype=tf.float32
+                )
+                fake_encoded = self.generator([noise, cond_t], training=False).numpy()
+                fake_pred = self.auxiliary(fake_encoded, training=False).numpy()
+                pred_idx = np.argmax(fake_pred[:, primary_slice], axis=1)
+                acc_c = float(np.mean(pred_idx == c))
+                pred_dist = np.bincount(pred_idx, minlength=primary_dim)
+                task_labels_full = {
+                    task: np.tile(
+                        np.eye(self.task_label_dims[task], dtype=np.float32)[
+                            c if task == primary else 0
+                        ],
+                        (n_per_class, 1),
+                    )
+                    for task in self.sorted_tasks
+                }
+                gen_df, _ = self.generate(n_per_class, task_labels=task_labels_full)
+                feat_means = gen_df.values.astype("float32").mean(axis=0)
+                fm_str = " ".join(f"{m:+.2f}" for m in feat_means)
+                print(
+                    f"  Class {c} ('{primary}'): aux says {pred_dist.tolist()} "
+                    f"(acc={acc_c:.3f}); feat means = [{fm_str}]"
+                )
+            print("  --- end diagnostics ---\n")
+        except Exception as exc:
+            print(f"  MT diagnostics failed: {exc}")
 
     def save(
         self,

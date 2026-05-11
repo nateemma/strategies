@@ -54,6 +54,7 @@ class GANQualityMixin:
     GAN_TYPE: ClassVar[Any]          # GANType enum value
     N_CLASSES: ClassVar[int]         # Number of output classes
     MINORITY_CLASSES: ClassVar[list] # Class indices to check for presence
+    PREFER_MLX: ClassVar[bool] = False  # Use MLX backend when available
 
     # ------------------------------------------------------------------ #
     # Thresholds — conservative sanity-check bars, not quality bars       #
@@ -61,6 +62,11 @@ class GANQualityMixin:
     MEAN_RMSE_THRESHOLD:      ClassVar[float] = 0.5
     STD_RMSE_THRESHOLD:       ClassVar[float] = 0.5
     RANGE_COVERAGE_THRESHOLD: ClassVar[float] = 0.5
+    # Mean absolute difference between real and generated correlation
+    # matrices. Each correlation entry is in [-1, +1], so 0.3 means
+    # "correlations differ by an average of 0.3" — a reasonable sanity bar.
+    # Lower values catch joint-structure failures that marginal stats miss.
+    CORR_DIFF_THRESHOLD:      ClassVar[float] = 0.3
 
     # ------------------------------------------------------------------ #
     # Set by setUpClass                                                    #
@@ -116,7 +122,7 @@ class GANQualityMixin:
         from GANs.GANInterface import GANInterface
 
         cls.real_data, cls.real_labels = cls._make_dataset()
-        iface = GANInterface(cls.GAN_TYPE, save_path=None, prefer_mlx=False)
+        iface = GANInterface(cls.GAN_TYPE, save_path=None, prefer_mlx=cls.PREFER_MLX)
         iface.fit(
             cls.real_data.copy(),
             cls._copy_labels(cls.real_labels),
@@ -191,6 +197,33 @@ class GANQualityMixin:
             self.RANGE_COVERAGE_THRESHOLD,
             msg=f"range_coverage={overlap:.2%} — generated samples don't cover "
                 "enough of the real value range",
+        )
+
+    def test_correlation_matrix_close_to_real(self) -> None:
+        """Generated correlation matrix should approximate the real one.
+
+        Marginal stats (mean/std/range) can be right while joint structure is
+        wrong — a generator can match per-feature distributions while
+        producing nonsense relationships across features. This test catches
+        that: it measures the mean absolute difference between the real and
+        generated correlation matrices and asserts it's below the threshold.
+        """
+        real_x = self._to_2d(self.real_data).astype(np.float64)
+        gen_x  = self._to_2d(self.gen_x).astype(np.float64)
+
+        # Replace NaN (from constant features in tiny samples) with 0 to keep
+        # the comparison numerically stable.
+        real_corr = np.nan_to_num(np.corrcoef(real_x, rowvar=False), nan=0.0)
+        gen_corr  = np.nan_to_num(np.corrcoef(gen_x,  rowvar=False), nan=0.0)
+
+        # Mean absolute difference across all entries
+        diff = float(np.abs(real_corr - gen_corr).mean())
+
+        self.assertLess(
+            diff, self.CORR_DIFF_THRESHOLD,
+            msg=f"correlation matrix mean |Δ| = {diff:.4f} ≥ "
+                f"threshold {self.CORR_DIFF_THRESHOLD:.4f} — "
+                "generated samples don't preserve feature joint structure",
         )
 
     # ------------------------------------------------------------------ #

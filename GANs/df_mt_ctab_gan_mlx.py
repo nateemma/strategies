@@ -278,6 +278,49 @@ class CTABGANMLXMT:
 
         self._run_training(df, encoded, cond)
         self.is_fitted = True
+        self._post_train_diagnostics(df, labels_processed)
+
+    def _post_train_diagnostics(
+        self,
+        real_df: pd.DataFrame,
+        real_labels: Dict[str, np.ndarray],
+    ) -> None:
+        """Per-class generator-output stats after training, MT version.
+
+        Reports real vs generated per-feature mean for each class of the
+        primary task ('trading' if present, else first sorted task).
+        Other tasks fixed at class 0 so the comparison isolates the
+        primary task's conditioning.
+        """
+        try:
+            print("\n  --- MT CTABGANMLX end-of-training diagnostics ---")
+            primary = "trading" if "trading" in self.sorted_tasks else self.sorted_tasks[0]
+            primary_idx = np.argmax(real_labels[primary], axis=1)
+            real_vals = real_df.values.astype("float32")
+            for c in range(self.task_label_dims[primary]):
+                mask = primary_idx == c
+                if not mask.any():
+                    continue
+                real_mean = real_vals[mask].mean(axis=0)
+                n = min(200, int(mask.sum()))
+                task_labels_full = {
+                    task: np.tile(
+                        np.eye(self.task_label_dims[task], dtype=np.float32)[
+                            c if task == primary else 0
+                        ],
+                        (n, 1),
+                    )
+                    for task in self.sorted_tasks
+                }
+                gen_df, _ = self.generate(n, task_labels=task_labels_full)
+                gen_mean = gen_df.values.astype("float32").mean(axis=0)
+                rm_str = " ".join(f"{m:+.2f}" for m in real_mean)
+                gm_str = " ".join(f"{m:+.2f}" for m in gen_mean)
+                print(f"  '{primary}' Class {c}: real means = [{rm_str}]")
+                print(f"                  gen  means = [{gm_str}]")
+            print("  --- end diagnostics ---\n")
+        except Exception as exc:
+            print(f"  MT MLX diagnostics failed: {exc}")
 
     # ------------------------------------------------------------------ #
     # Training loop                                                      #

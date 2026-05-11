@@ -46,6 +46,10 @@ class NNPredictor(ClassifierKerasLinear):
     model_per_pair = False # separate model per pair
     prescale_dataframe = False
 
+    # default — gives the simplified LSTM room to actually train.
+    default_learning_rate = 0.001
+    learning_rate = 0.0001
+
     def __init__(self, pair, seq_len, num_features):
         super().__init__(pair, seq_len, num_features)
 
@@ -70,6 +74,7 @@ class NNPredictor(ClassifierKerasLinear):
         # LSTM Layer to extract temporal features
         lstm_output = layers.LSTM(lstm_size, return_sequences=True, activation='tanh')(x)
         # lstm_output = layers.LSTM(lstm_size, return_sequences=True)(inputs)
+        lstm_output = layers.Dropout(0.2)(lstm_output)
 
         # get the estimation layer (typically from a subclass)
         est_output = self.get_estimation_layer(lstm_output)
@@ -86,6 +91,7 @@ class NNPredictor(ClassifierKerasLinear):
         # Get the latest sequences, reduce down to 2D
         # x = self.get_latest(x)
         x = layers.LSTM(lstm_size, activation='tanh')(x)
+        x = layers.Dropout(0.2)(x)
 
         # last layer is a linear (float) value
         outputs = layers.Dense(1, activation="linear")(x)
@@ -318,8 +324,47 @@ class predictor_gru(NNPredictor):
 # ------------------------------
 
 class predictor_lstm(NNPredictor):
+    """Hybrid LSTM regressor — same blueprint as the prior classifier work:
+
+        inputs                                    (B, T, num_features)
+          → Dense(num_filters, tanh)              [resize, in parallel]
+          ├─ identity (resize_out)
+          └─ Conv1D(kernel=2, padding='same')
+                → Dropout(0.2)
+          → Concatenate([resize_out, conv_out])    (B, T, 2*num_filters)
+          → LSTM (returns last timestep)           (B, num_filters)
+          → Dropout(0.2)
+          → Dense(1, linear)                       (B, 1)
+
+    Resize gives global feature interaction at each timestep; Conv1D
+    sees adjacent timesteps for local temporal patterns. Concatenating
+    keeps both signals in separate channels rather than collapsing
+    them via add. Mirrors the MLX _LSTMRegressorModel.
+
+    This bypasses the parent NNPredictor.create_model. get_estimation_layer
+    is retained for compatibility but unused by predictor_lstm itself.
+    """
+
+    def create_model(self, seq_len, num_features):
+        inputs = Input(shape=(seq_len, num_features))
+        lstm_size = max(self.nearest_power_of_2(num_features - 1), 16)
+
+        x_r = layers.Dense(lstm_size, activation='tanh')(inputs)
+        x_c = layers.Conv1D(lstm_size, kernel_size=2, padding='same')(x_r)
+        x_c = layers.Dropout(0.2)(x_c)
+
+        concat = layers.Concatenate(axis=-1)([x_r, x_c])
+
+        x = layers.LSTM(lstm_size)(concat)
+        x = layers.Dropout(0.2)(x)
+
+        outputs = layers.Dense(1, activation='linear')(x)
+        return Model(inputs, outputs, name=self.name)
 
     def get_estimation_layer(self, x_in):
+        # Retained for compatibility with NNPredictor.create_model (called by
+        # other subclasses that don't override create_model). Unused by
+        # predictor_lstm itself now that this class has its own create_model.
         x_shape = np.shape(x_in)
         lstm_size = max(16, self.nearest_power_of_2(x_shape[-1]-1))
 

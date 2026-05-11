@@ -30,14 +30,8 @@ from Framework.BaseNNStrategy import BaseNNStrategy, HAS_MLX, StrategyConfig
 from utils.Environment import Environment
 from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, TradingAction, FlowDirection, MomentumDirection, RiskLevel, GANType
 from Framework.BaseNNStrategy import BaseNNStrategy, HAS_MLX, StrategyConfig
-from utils.Environment import Environment
-from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, TradingAction, FlowDirection, MomentumDirection, RiskLevel, GANType
-from Framework.BaseNNStrategy import BaseNNStrategy, HAS_MLX, StrategyConfig
-from utils.Environment import Environment
-from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, TradingAction, FlowDirection, MomentumDirection, RiskLevel, GANType
-from Framework.BaseNNStrategy import BaseNNStrategy, HAS_MLX, StrategyConfig
-from utils.Environment import Environment
-from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, TradingAction, FlowDirection, MomentumDirection, RiskLevel, GANType
+from utils.DataframePopulator import DataframePopulator, DatasetType
+
 
 # Third-party imports
 from freqtrade.strategy import (  # noqa: E402
@@ -56,7 +50,7 @@ class DebugNNStrategy(BaseNNStrategy):
     MIN_BUY_GAIN_THRESHOLD = 0.009  # minimum gain for buy signals
     MIN_SELL_LOSS_THRESHOLD = 0.011  # minimum loss for sell signals
     TRAINING_TYPE = 16
-    PEAK_WINDOW = 12
+    PEAK_WINDOW = 6
     augment_training_data = False
     aggregate_pairs = False
 
@@ -95,30 +89,29 @@ class DebugNNStrategy(BaseNNStrategy):
     # --------------------------------
     # Buy hyperspace params:
     buy_params = {
-        "entry_atr_pct": 0.006,
-        "min_buy_gain_threshold": 0.013,
         "entry_adx_threshold": 20.0,
-        "entry_bb_width_threshold": 0.01,
-        "entry_close_norm_threshold": -0.0,
+        "entry_atr_pct": 0.001,
+        "entry_bb_width_threshold": 0.0,
+        "entry_close_norm_threshold": 0.0,
+        "entry_enable_guards": True,
         "entry_guard_threshold": -0.0,
-        "prediction_threshold": 0.5,
-        "training_type": 16,
+        "entry_rvol_threshold": 1.0,
+        "prediction_threshold": 0.3,
     }
 
     # Sell hyperspace params:
     sell_params = {
-        "min_sell_loss_threshold": 0.01,
-        "cexit_enable_profit_checks": False,
-        "cexit_max_days": 18,
-        "cexit_take_profit": 0.018,
+        "cexit_enable_profit_checks": True,
+        "cexit_max_days": 3,
+        "cexit_take_profit": 0.013,
         "enable_exit_signal": True,
         "exit_close_norm_threshold": 0.0,
         "exit_guard_threshold": 0.0,
     }
 
     # override NNStrategy hyperopt params (mostly to disable optimization for now)
-    opt_framework_params = True
-    opt_train_signals = False
+    opt_framework_params = False
+    opt_train_signals = True
 
     # don't optimise this here because predictions are perfect
     prediction_threshold = DecimalParameter(
@@ -197,6 +190,15 @@ class DebugNNStrategy(BaseNNStrategy):
         optimize=opt_framework_params,
     )
 
+    entry_rvol_threshold = DecimalParameter(
+        1.0,
+        4.0,
+        default=1.0,
+        decimals=1,
+        space="buy",
+        load=True,
+        optimize=opt_framework_params,
+    )
     exit_guard_threshold = DecimalParameter(
         0.0,
         0.9,
@@ -247,7 +249,7 @@ class DebugNNStrategy(BaseNNStrategy):
     # hyperparams to control buy/sell signals
     min_buy_gain_threshold = DecimalParameter(
         0.002,
-        0.02,
+        0.01,
         default=0.03,
         decimals=3,
         space="buy",
@@ -257,7 +259,7 @@ class DebugNNStrategy(BaseNNStrategy):
 
     min_sell_loss_threshold = DecimalParameter(
         0.002,
-        0.02,
+        0.01,
         default=0.03,
         decimals=3,
         space="sell",

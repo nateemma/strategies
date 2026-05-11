@@ -16,6 +16,8 @@ dispatched by ``BaseNNStrategy.enhance_training_data`` — see
 from NNNCStrategy import NNNCStrategy
 from GANs.GANType import GANType
 
+import dataclasses                                                                                                                                               
+from Framework.BaseStrategy import StrategyConfig  
 
 class NNNC_WGAN(NNNCStrategy):
 
@@ -29,3 +31,5 @@ class NNNC_WGAN(NNNCStrategy):
     # Single-task ratio: each minority class is brought up to 80% of the
     # majority class size.  See balance_single_task for semantics.
     gan_target_ratio = 0.8
+
+    strategy_config = dataclasses.replace(NNNCStrategy.strategy_config, gan_run_diagnostics=True)

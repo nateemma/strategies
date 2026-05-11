@@ -146,7 +146,7 @@ fi
 if [[ $verbose -ne 0 ]] ; then
     verbose_arg="-vv"
 else
-    verbose_arg="-v"
+    verbose_arg=""
 fi
 
 if [[ $short -ne 0 ]] ; then

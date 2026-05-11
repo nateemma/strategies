@@ -5,8 +5,7 @@
 # flake8: noqa: F401, E402, F541, W0718, W0719
 
 """
-NNNC_CGP - Subclass of NNNCStrategy using CTAB-GAN+ for high-fidelity augmentation
-MLX variants use Apple's native metal layers. Should be much faster
+NNNC_MLX - Subclass of NNNCStrategy using MLX variants (Apple's native metal layers). Should be much faster
 """
 
 import sys
@@ -18,28 +17,17 @@ import mlx.core as mx
 group_dir = str(Path(__file__).parent)
 sys.path.append(group_dir)
 
-from NNNC_CGP import NNNC_CGP
+from NNNCStrategy import NNNCStrategy
 from NNNClassifierMLX import ClassifierTypeMLX, create_classifier_mlx
 from ClassifierKeras import ClassifierKeras
-from GANs.GANType import GANType  # noqa: E402
 
 
-class NNNC_CGP_MLX(NNNC_CGP):
-
-    # GAN augmentation — single-task CTAB-GAN+.
-    gan_type = GANType.CTAB_GAN
+class NNNC_MLX(NNNCStrategy):
 
     # Use only real signals as the basis; the GAN provides synthetic
     # samples below, so layered signal augmentation would double-count.
     augment_training_data = True
 
-    # Don't push above ~1.0 — the model starts overfitting to synthetic.
-    gan_target_ratio = 0.4
-
-    # turn on diagnostics for the GAN (class-level override — the version
-    # consumed by BaseNNStrategy at training time is the class attribute,
-    # NOT the duplicate field on StrategyConfig).
-    gan_run_diagnostics = True
 
     # default is LSTM type. Override get_classifier_type() in subclass
     def get_classifier_type(self):

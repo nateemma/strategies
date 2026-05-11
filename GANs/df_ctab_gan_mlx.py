@@ -46,16 +46,19 @@ class Generator(nn.Module):
     def __init__(
         self,
         latent_dim: int,
-        num_classes: int,
+        cond_dim: int,
         continuous_info: List[Tuple[int, int]],
         hidden_dim: int = 256,
     ):
+        """cond_dim is the total conditioning vector size — class one-hot
+        concatenated with (optional) pair one-hot. Caller assembles the
+        cond vector outside this class."""
         super().__init__()
         self.continuous_info = continuous_info
         self.total_dim = sum(v + m for v, m in continuous_info)
 
         self.model = nn.Sequential(
-            nn.Linear(latent_dim + num_classes, hidden_dim),
+            nn.Linear(latent_dim + cond_dim, hidden_dim),
             nn.LayerNorm(hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim * 2),
@@ -95,10 +98,10 @@ class Generator(nn.Module):
 
 
 class Critic(nn.Module):
-    def __init__(self, total_dim: int, num_classes: int, hidden_dim: int = 256):
+    def __init__(self, total_dim: int, cond_dim: int, hidden_dim: int = 256):
         super().__init__()
         self.model = nn.Sequential(
-            nn.Linear(total_dim + num_classes, hidden_dim),
+            nn.Linear(total_dim + cond_dim, hidden_dim),
             nn.LeakyReLU(0.2),
             nn.Linear(hidden_dim, hidden_dim * 2),
             nn.LeakyReLU(0.2),
@@ -160,6 +163,10 @@ class CTABGANMLX:
 
         self.is_fitted = False
         self.num_classes = 0
+        # Pair conditioning — set when fit() is called with pair_labels.
+        # num_pairs == 0 means no pair conditioning (backward compatible).
+        self.num_pairs: int = 0
+        self.pair_names: Optional[List[str]] = None  # optional pair_id → label
         self.gen: Optional[Generator] = None
         self.critic: Optional[Critic] = None
         self.gen_opt: Optional[optim.Adam] = None
@@ -172,6 +179,11 @@ class CTABGANMLX:
         self.continuous_info: List[Tuple[int, int]] = []
         self.total_dim: int = 0
 
+    @property
+    def cond_dim(self) -> int:
+        """Total conditioning vector size: class one-hot + (optional) pair one-hot."""
+        return self.num_classes + self.num_pairs
+
     # ------------------------------------------------------------------ #
     # fit()                                                              #
     # ------------------------------------------------------------------ #
@@ -182,7 +194,20 @@ class CTABGANMLX:
         labels: np.ndarray,
         categorical_columns: List[str] = [],
         validation_split: float = 0.1,
+        pair_labels: Optional[np.ndarray] = None,
+        pair_names: Optional[List[str]] = None,
     ):
+        """Fit the GAN. With pair_labels provided, the generator learns
+        P(features | class, pair); without, it falls back to class-only
+        conditioning (backward compatible).
+
+        Args:
+            pair_labels: shape (N,) integer indices OR (N, num_pairs) one-hot.
+                If None, no pair conditioning is used.
+            pair_names: optional list of pair names indexed by pair_id, stored
+                in metadata so callers can resolve "BTC/USDT" → 0 at generate
+                time.
+        """
         if categorical_columns:
             warnings.warn(
                 f"CTABGANMLX is continuous-only; ignoring categorical_columns="
@@ -199,6 +224,25 @@ class CTABGANMLX:
         self.continuous_columns = list(df.columns)
         self.num_classes = labels.shape[1] if labels.ndim > 1 else int(labels.max()) + 1
 
+        # Pair conditioning setup
+        if pair_labels is not None:
+            pair_arr = np.asarray(pair_labels)
+            if pair_arr.ndim == 1:
+                self.num_pairs = int(pair_arr.max()) + 1
+                pair_oh = np.eye(self.num_pairs, dtype=np.float32)[pair_arr.astype(int)]
+            else:
+                self.num_pairs = pair_arr.shape[1]
+                pair_oh = pair_arr.astype(np.float32)
+            if pair_oh.shape[0] != len(df):
+                raise ValueError(
+                    f"pair_labels length {pair_oh.shape[0]} != dataframe length {len(df)}"
+                )
+            self.pair_names = list(pair_names) if pair_names is not None else None
+        else:
+            self.num_pairs = 0
+            pair_oh = None
+            self.pair_names = None
+
         if self.verbose:
             print(f"    Fitting VGM models for {len(df.columns)} columns...")
         self.vgm_models, self.column_info, self.continuous_info = fit_vgm_columns(
@@ -211,19 +255,97 @@ class CTABGANMLX:
 
         encoded = transform_vgm(df, self.vgm_models, self.column_info, self.column_order)
         if labels.ndim == 1:
-            cond = np.eye(self.num_classes, dtype=np.float32)[labels.astype(int)]
+            class_oh = np.eye(self.num_classes, dtype=np.float32)[labels.astype(int)]
         else:
-            cond = labels.astype(np.float32)
+            class_oh = labels.astype(np.float32)
+
+        # Assemble cond = [class_oh, pair_oh] (pair part omitted if num_pairs=0)
+        if pair_oh is not None:
+            cond = np.concatenate([class_oh, pair_oh], axis=1)
+        else:
+            cond = class_oh
 
         self.gen = Generator(
-            self.latent_dim, self.num_classes, self.continuous_info, self.hidden_dim
+            self.latent_dim, self.cond_dim, self.continuous_info, self.hidden_dim
         )
-        self.critic = Critic(self.total_dim, self.num_classes, self.hidden_dim)
+        self.critic = Critic(self.total_dim, self.cond_dim, self.hidden_dim)
         self.gen_opt = optim.Adam(learning_rate=self.learning_rate, betas=(0.5, 0.9))
         self.critic_opt = optim.Adam(learning_rate=self.learning_rate, betas=(0.5, 0.9))
 
         self._run_training(df, encoded, cond)
         self.is_fitted = True
+        self._post_train_diagnostics(df, cond, class_oh=class_oh, pair_oh=pair_oh)
+
+    def _post_train_diagnostics(
+        self,
+        real_df: pd.DataFrame,
+        real_cond: np.ndarray,
+        class_oh: Optional[np.ndarray] = None,
+        pair_oh: Optional[np.ndarray] = None,
+    ) -> None:
+        """Print per-class (and optionally per-(class, pair)) generator
+        output stats after training.
+
+        When pair_oh is provided, the diagnostic iterates over each pair and
+        each class within that pair so you can see whether the generator's
+        conditional distribution actually tracks the per-pair real
+        distribution (the failure mode that motivated pair conditioning).
+        """
+        try:
+            print("\n  --- CTABGANMLX end-of-training diagnostics ---")
+            real_vals = real_df.values.astype("float32")
+            # Resolve class indices from class_oh if provided, else from full
+            # cond (backward compat: cond was just class_oh before).
+            if class_oh is None:
+                class_oh = real_cond
+            class_idx = np.argmax(class_oh, axis=1)
+
+            if pair_oh is None or self.num_pairs == 0:
+                # Class-only diagnostic
+                for c in range(self.num_classes):
+                    mask = class_idx == c
+                    if not mask.any():
+                        continue
+                    real_mean = real_vals[mask].mean(axis=0)
+                    gen_df = self.generate(min(200, mask.sum()), class_label=c)
+                    gen_mean = gen_df.values.astype("float32").mean(axis=0)
+                    rm_str = " ".join(f"{m:+.2f}" for m in real_mean)
+                    gm_str = " ".join(f"{m:+.2f}" for m in gen_mean)
+                    print(f"  Class {c}: real means = [{rm_str}]")
+                    print(f"           gen  means = [{gm_str}]")
+            else:
+                # Per-(pair, class) diagnostic — the whole point of pair
+                # conditioning. Limit to first 4 pairs to keep output sane.
+                pair_idx = np.argmax(pair_oh, axis=1)
+                pairs_to_show = sorted(np.unique(pair_idx).tolist())[:4]
+                for p in pairs_to_show:
+                    pname = (
+                        self.pair_names[p]
+                        if self.pair_names and p < len(self.pair_names)
+                        else f"pair_{p}"
+                    )
+                    for c in range(self.num_classes):
+                        mask = (class_idx == c) & (pair_idx == p)
+                        n = int(mask.sum())
+                        if n == 0:
+                            continue
+                        real_mean = real_vals[mask].mean(axis=0)
+                        gen_df = self.generate(
+                            min(200, n), class_label=c, pair_label=p
+                        )
+                        gen_mean = gen_df.values.astype("float32").mean(axis=0)
+                        rm_str = " ".join(f"{m:+.2f}" for m in real_mean)
+                        gm_str = " ".join(f"{m:+.2f}" for m in gen_mean)
+                        print(f"  {pname} class {c} (n={n}): real = [{rm_str}]")
+                        print(f"  {' ' * (len(pname) + 9)}gen  = [{gm_str}]")
+                if len(np.unique(pair_idx)) > 4:
+                    print(
+                        f"  ... {len(np.unique(pair_idx)) - 4} more pairs "
+                        "omitted from diagnostic output"
+                    )
+            print("  --- end diagnostics ---\n")
+        except Exception as exc:
+            print(f"  MLX diagnostics failed: {exc}")
 
     # ------------------------------------------------------------------ #
     # Training loop                                                      #
@@ -423,9 +545,23 @@ class CTABGANMLX:
                 rng = np.random.RandomState(self.random_seed + 12345)
                 idx = rng.choice(len(original_df), n, replace=False)
             else:
+                rng = np.random
                 idx = np.random.choice(len(original_df), n, replace=False)
             real_eval = original_df.iloc[idx]
-            gen_df = self.generate(num_samples=n)
+            # For pair-conditioned models, generate with a uniform random
+            # mix of (class, pair) — that approximates the training data's
+            # marginal distribution, which is what the evaluator compares
+            # against.  Build the cond vector explicitly so we don't trip
+            # the "pair_label required" guard in generate().
+            if self.num_pairs > 0:
+                pair_ids = rng.randint(0, self.num_pairs, n)
+                class_ids = rng.randint(0, self.num_classes, n)
+                pair_oh = np.eye(self.num_pairs, dtype=np.float32)[pair_ids]
+                class_oh = np.eye(self.num_classes, dtype=np.float32)[class_ids]
+                cond = np.concatenate([class_oh, pair_oh], axis=1)
+                gen_df = self.generate(num_samples=n, condition_vector=cond)
+            else:
+                gen_df = self.generate(num_samples=n)
             return evaluate_with_dataframes(
                 real_eval,
                 gen_df,
@@ -454,7 +590,19 @@ class CTABGANMLX:
         num_samples: int,
         class_label: Optional[int] = None,
         condition_vector: Optional[np.ndarray] = None,
+        pair_label: Optional[int] = None,
     ) -> pd.DataFrame:
+        """Generate synthetic samples.
+
+        Args:
+            num_samples: number of rows to generate.
+            class_label: integer class index. Required when condition_vector
+                is None and the model has class conditioning.
+            condition_vector: full (num_samples, cond_dim) one-hot conditioning
+                matrix. Overrides class_label / pair_label when provided.
+            pair_label: integer pair index. Required when the model was fit
+                with pair_labels (i.e., self.num_pairs > 0). Ignored otherwise.
+        """
         if not self.is_fitted and self.gen is None:
             raise ValueError("Model not fitted")
 
@@ -462,13 +610,29 @@ class CTABGANMLX:
             c = condition_vector[:num_samples]
             if c.shape[0] < num_samples:
                 c = np.tile(c, (int(np.ceil(num_samples / c.shape[0])), 1))[:num_samples]
-        elif class_label is not None:
-            c = np.zeros((num_samples, self.num_classes), dtype=np.float32)
-            c[:, class_label] = 1.0
         else:
-            c = np.eye(self.num_classes, dtype=np.float32)[
-                np.random.randint(0, self.num_classes, num_samples)
-            ]
+            # Build class one-hot
+            if class_label is not None:
+                class_oh = np.zeros((num_samples, self.num_classes), dtype=np.float32)
+                class_oh[:, class_label] = 1.0
+            else:
+                class_oh = np.eye(self.num_classes, dtype=np.float32)[
+                    np.random.randint(0, self.num_classes, num_samples)
+                ]
+
+            # Build pair one-hot if the model has pair conditioning
+            if self.num_pairs > 0:
+                if pair_label is None:
+                    raise ValueError(
+                        f"This model was fit with pair conditioning "
+                        f"(num_pairs={self.num_pairs}); pair_label must be "
+                        f"provided to generate()."
+                    )
+                pair_oh = np.zeros((num_samples, self.num_pairs), dtype=np.float32)
+                pair_oh[:, pair_label] = 1.0
+                c = np.concatenate([class_oh, pair_oh], axis=1)
+            else:
+                c = class_oh
 
         z = mx.random.normal((num_samples, self.latent_dim))
         c_mx = mx.array(c, dtype=mx.float32)
@@ -513,6 +677,8 @@ class CTABGANMLX:
             "latent_dim": self.latent_dim,
             "hidden_dim": self.hidden_dim,
             "num_classes": self.num_classes,
+            "num_pairs": self.num_pairs,
+            "pair_names": self.pair_names,
             "total_dim": self.total_dim,
         }
         for key, value in extra_metadata.items():
@@ -539,10 +705,13 @@ class CTABGANMLX:
         self.latent_dim = meta["latent_dim"]
         self.hidden_dim = meta.get("hidden_dim", 256)
         self.num_classes = meta["num_classes"]
+        # Backward compatible — pre-pair-conditioning models lack these keys.
+        self.num_pairs = meta.get("num_pairs", 0)
+        self.pair_names = meta.get("pair_names")
         self.total_dim = meta["total_dim"]
 
         self.gen = Generator(
-            self.latent_dim, self.num_classes, self.continuous_info, self.hidden_dim
+            self.latent_dim, self.cond_dim, self.continuous_info, self.hidden_dim
         )
         self.gen.load_weights(os.path.join(path, "gen_mlx.safetensors"))
         self.is_fitted = True

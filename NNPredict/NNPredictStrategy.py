@@ -1,0 +1,451 @@
+# pragma pylint: disable=C0103, C0114, C0115, C0116, C0301, C0302, C0303, C0325, C0411, C0413
+# pragma pylint: disable=W0105, W1203, W1309, W1514, W0613, W0621,
+# type: ignore
+# pylint: disable=import-error
+
+"""
+NNPredictStrategy — base class for Neural Network Regression strategies.
+
+Parallel to NNNCStrategy (n-ary classification) but predicts a continuous
+future-gain target directly rather than a class label. Entry/exit signals
+are derived from a rolling-quantile threshold on the predicted gains, so
+the threshold adapts per-pair / per-regime.
+
+The three classification-specific paths in BaseNNStrategy are bypassed here:
+
+  * get_training_labels       — overridden to return continuous future_gain
+                                 (1D float array) instead of TradingAction
+                                 class indices.
+  * prepare_training_data     — overridden so the per-pair label slicing
+                                 does NOT one-hot-encode the float targets.
+  * get_training_class_weights — overridden to return None; bincount on
+                                 negative continuous targets would crash.
+  * get_predictions           — overridden to consume continuous regressor
+                                 output and convert it to TradingAction
+                                 integers via a per-pair rolling-quantile
+                                 threshold.
+
+Markov smoothing is disabled (only meaningful for discrete-state output).
+"""
+
+import sys
+from pathlib import Path
+from typing import Any, List
+
+import numpy as np
+import pandas as pd
+from pandas import DataFrame
+
+group_dir = str(Path(__file__).parent)
+sys.path.append(group_dir)
+sys.path.append(str(Path(__file__).parent.parent))
+
+from Framework.BaseNNStrategy import BaseNNStrategy, StrategyConfig
+from Framework.BaseStrategy import (
+    ModelType,
+    NormalizationType,
+    TradingAction,
+)
+
+import NNPredictRegressor
+
+
+class NNPredictStrategy(BaseNNStrategy):
+
+    plot_config = {
+        "main_plot": {
+            "close": {"color": "lightsteelblue"},
+        },
+        "subplots": {
+            "Diff": {
+                # "%train_lebels": {"color": "lightgreen"},
+                "predict_buy": {"color": "green"},
+                # "%train_sell": {"color": "orange"},
+                "predict_sell": {"color": "red"},
+                "%train_gain": { "color": "blue"},
+                "%predict_gain": { "color": "purple"},
+                "fisher_ss": { "color": "lightsteelblue"}
+            },
+        },
+    }
+
+    buy_params = {
+        "entry_adx_threshold": 0.02,
+        "entry_atr_pct": 0.001,
+        "entry_bb_width_threshold": 0.0,
+        "entry_close_norm_threshold": 0.0,
+        "entry_enable_guards": False,
+        "entry_guard_threshold": -0.2,
+        "entry_rvol_threshold": 1.0,
+        "prediction_threshold": 0.3,
+    }
+
+    sell_params = {
+        "cexit_enable_profit_checks": True,
+        "cexit_max_days": 3,
+        "cexit_take_profit": 0.02,
+        "enable_exit_signal": True,
+        "exit_close_norm_threshold": 0.0,
+        "exit_guard_threshold": 0.0,
+    }
+
+    strategy_config = StrategyConfig(
+        normalization=NormalizationType.ROLLING_ROBUST,
+        model_type=ModelType.KERAS,
+        needs_training=True,
+        seq_len=16,
+    )
+
+    augment_training_data = False  # signal augmentation is binary-only — not meaningful for continuous targets
+    use_markov_smoothing = False   # Markov transition matrix is for discrete states
+
+    # Regression target caps. After ATR scaling, gain is in ATR-units
+    # (multiples of per-bar volatility). The signed peak/trough over the
+    # forward horizon naturally distributes around ±3-5 ATR for typical
+    # crypto data, so ±8 clips only the genuine tail and keeps the bulk
+    # of the target distribution continuous (avoids a bimodal saturated
+    # target that traps MSE at predict-the-mean). Kept symmetric so MSE
+    # doesn't bias the regressor toward one side.
+    target_max_gain: float = 8.0
+    target_max_loss: float = 8.0
+
+    # Floor on atr_pct to avoid divide-by-near-zero on dead pairs.
+    atr_floor: float = 1e-3
+
+    # Rolling-quantile signal logic
+    entry_quantile: float = 0.90
+    exit_quantile: float = 0.10
+    rolling_window: int = 200
+
+    # for a regressor, we need a smaller prediction window. Picked off
+    # half-period of fisher_ss to break the "predict current state" shortcut
+    # the model finds when H ≈ fisher_ss period / 2 (where -fisher_ss[i+H]
+    # ≈ +fisher_ss[i]).
+    HORIZON = 4
+
+    # =========================================================================
+    # Classifier (regressor) selection
+    # =========================================================================
+
+    def get_classifier_type(self):
+        return NNPredictRegressor.RegressorType.LSTM
+
+    def get_classifier(
+        self, classifier_type, pair, seq_len, num_features
+    ) -> Any:
+        reg, _ = NNPredictRegressor.create_regressor(
+            classifier_type, pair, num_features, seq_len
+        )
+        return reg
+
+    # =========================================================================
+    # Strategy-specific features
+    # =========================================================================
+
+    def add_additional_indicators(self, dataframe: DataFrame) -> DataFrame:
+        """Adds recent_gain — the backward-window mirror of the future_gain
+        target — as an autoregressive feature for the regressor:
+
+            up   = (close[i] - min(close[i-H : i])) / close[i]   (rise from recent low)
+            down = (close[i] - max(close[i-H : i])) / close[i]   (fall from recent high; <= 0)
+            raw  = up if up > -down else down
+            gain = raw / max(atr_pct[i], atr_floor)
+
+        Sign convention matches the future_gain target: positive recent_gain
+        means we recently rose (largest backward excursion was a rise), so the
+        feature lines up with target_positive = will rise. Strictly causal
+        (window is close[i-H:i], excluding current).
+
+        Pre-normalized to [-1, +1] by dividing the ATR-unit gain by
+        max(target_max_gain, target_max_loss) (the same cap used on the target),
+        so the feature can sit in pre_normalized_columns and the shared scaler
+        does not need to refit.
+        """
+
+        dataframe = super().add_additional_indicators(dataframe)
+
+        close = dataframe["close"].astype(float)
+        horizon = int(self.HORIZON)
+
+        atr_pct = (
+            pd.Series(dataframe.get("atr_pct", pd.Series(np.zeros(len(close)))))
+            .fillna(0.0)
+            .to_numpy(dtype=np.float32)
+        )
+        atr_pct = np.maximum(atr_pct, self.atr_floor)
+
+        past = close.shift(1)
+        past_max = past.rolling(horizon, min_periods=1).max().to_numpy(dtype=np.float32)
+        past_min = past.rolling(horizon, min_periods=1).min().to_numpy(dtype=np.float32)
+        close_arr = close.to_numpy(dtype=np.float32)
+
+        up = (close_arr - past_min) / close_arr
+        down = (close_arr - past_max) / close_arr
+        raw = np.where(up > -down, up, down)
+
+        recent_gain = raw / atr_pct
+        recent_gain = np.nan_to_num(recent_gain, nan=0.0, posinf=0.0, neginf=0.0)
+        cap = float(max(self.target_max_gain, self.target_max_loss))
+        recent_gain = np.clip(recent_gain, -cap, cap) / cap
+
+        dataframe["recent_gain"] = recent_gain.astype(np.float32)
+
+        # current_gain: backward H-bar close-to-close return in ATR-units,
+        # pre-normalized to [-1, +1]. Backward mirror of the forward training
+        # target — get_training_labels shifts this column forward by H to
+        # produce
+        #     labels[i] = current_gain[i+H]
+        #               = (close[i+H] - close[i]) / close[i] / atr_pct[i+H]
+        # i.e., the model is asked to predict the 4-bar forward return in
+        # ATR-units (price-direction target). Replaces the prior -fisher_ss
+        # target which had high training metrics but was not actually a good
+        # buy/sell indicator — accurate fisher prediction does not translate
+        # to tradeable price-direction signals.
+        past_close = close.shift(horizon).to_numpy(dtype=np.float64)
+        close_full = close.to_numpy(dtype=np.float64)
+        gain_atr = (close_full - past_close) / past_close / atr_pct
+        gain_atr = np.nan_to_num(gain_atr, nan=0.0, posinf=0.0, neginf=0.0)
+        current_gain = np.clip(gain_atr, -cap, cap) / cap
+        dataframe["current_gain"] = current_gain.astype(np.float32)
+
+        # Strategy-local registration so recent_gain isn't dropped by
+        # rolling_dataframe_normalise (which drops anything not in include_list)
+        # and isn't fit by the shared scaler (it's already pre-normalized to
+        # [-1, +1]). Idempotent across calls — same pattern as
+        # BaseNNStrategy.process_one_hot_columns uses for derived columns.
+
+        add_columns = ["recent_gain", "current_gain", "atr_norm", "ema_fast_norm"]
+        for col in add_columns:
+            if col not in self.include_list:
+                self.include_list.append(col)
+            if col not in self.pre_normalized_columns:
+                self.pre_normalized_columns.append(col)
+
+        return dataframe
+
+    # =========================================================================
+    # Training labels — continuous future_gain target
+    # =========================================================================
+
+    def get_training_labels(self, dataframe: DataFrame):
+        """Return training labels as the H-bar-forward shift of `current_gain`.
+
+        `current_gain` is the backward close-to-close return in ATR-units,
+        pre-normalized to [-1, +1], computed once in add_additional_indicators.
+        Shifting it forward by H produces
+
+            labels[i] = current_gain[i+H]
+                      = (close[i+H] - close[i]) / close[i] / atr_pct[i+H]
+
+        — i.e., the same close-to-close formulation, looking forward instead
+        of backward. Output is in [-1, +1] (since current_gain is already
+        pre-normalized). val_loss values will be ~50× smaller than the prior
+        ATR-unit targets, but R² and ρ are scale-invariant.
+
+        Tail rows without a full forward horizon get label=0 from fillna; the
+        training tensor drops them via the seq_len offset, so this is benign.
+
+        Note: atr_pct is sampled at i+H here (consistent with current_gain's
+        backward definition), not at i as the prior implementation used.
+        """
+        self.dbg_curr_df = dataframe
+
+        if "current_gain" not in dataframe.columns:
+            raise ValueError(
+                "current_gain column not found — add_additional_indicators "
+                "must be called before get_training_labels."
+            )
+
+        horizon = int(self.HORIZON)
+        labels = (
+            dataframe["current_gain"]
+            .shift(-horizon)
+            .fillna(0.0)
+            .to_numpy(dtype=np.float32)
+        )
+
+        # Expose for debugging — write through self.dbg_curr_df, which is
+        # the dataframe the plot pipeline reads. Writing to the local
+        # `dataframe` parameter alone wasn't surviving downstream — that
+        # produced a stale %train_gain in the plot that didn't match the
+        # current_gain column. Mirroring %train_buy / %train_sell convention.
+        self.dbg_curr_df["%train_gain"] = labels
+
+        if getattr(self, "dbg_verbose", False):
+            self.debug_print(
+                f"        future_gain target: mean={labels.mean():.4f} "
+                f"std={labels.std():.4f} min={labels.min():.4f} max={labels.max():.4f}"
+            )
+
+        return labels
+
+    # =========================================================================
+    # Training data prep — skip one-hot encoding (targets are continuous)
+    # =========================================================================
+
+    def prepare_training_data(
+        self, dataframe: List[DataFrame], labels: List[Any], norm: bool = True
+    ):
+        """Mirror of BaseNNStrategy.prepare_training_data minus the
+        one_hot_encode(labels, 3) step. Continuous targets pass through as
+        1D float32 arrays."""
+
+        if len(dataframe) < 1:
+            raise ValueError("No dataframes passed in")
+
+        num_pairs = len(dataframe)
+        num_rows = np.shape(dataframe[0])[0]
+        max_index = num_pairs * num_rows
+
+        if max_index <= 1:
+            raise ValueError(
+                f"Insufficient data for training: max_index={max_index} "
+                f"(num_pairs={num_pairs}, num_rows={num_rows}). "
+                f"Need at least 2 total rows across all pairs."
+            )
+
+        aggr_tsr_train = None
+        aggr_tsr_test = None
+        aggr_train_labels = None
+        aggr_test_labels = None
+
+        for i in range(num_pairs):
+
+            pair_labels = np.asarray(labels[i], dtype=np.float32)
+            df_norm = self.scale_dataframe(dataframe[i]) if norm else dataframe[i]
+
+            split_idx = int(self.TRAIN_DATA_SPLIT * len(df_norm))
+            buffer_size = self.seq_len - 1
+
+            train_end = split_idx - buffer_size
+            train_df = df_norm[:train_end]
+
+            test_start = train_end
+            test_df = df_norm[test_start:]
+
+            train_labels = pair_labels[:train_end]
+            test_labels = pair_labels[test_start:]
+
+            train_df, train_labels = self.enhance_training_data(train_df, train_labels)
+
+            tsr_train = self.dataframeUtils.df_to_tensor(
+                train_df, self.seq_len, method=self.tensor_method
+            )
+            tsr_test = self.dataframeUtils.df_to_tensor(
+                test_df, self.seq_len, method=self.tensor_method
+            )
+
+            if self.tensor_method == 0:
+                offset = self.seq_len - 1
+            else:
+                offset = 0
+
+            train_labels = train_labels[offset:]
+            test_labels = test_labels[offset:]
+
+            if aggr_tsr_train is None:
+                aggr_tsr_train = tsr_train
+                aggr_tsr_test = tsr_test
+                aggr_train_labels = train_labels
+                aggr_test_labels = test_labels
+            else:
+                aggr_tsr_train = np.concatenate([aggr_tsr_train, tsr_train], axis=0)
+                aggr_tsr_test = np.concatenate([aggr_tsr_test, tsr_test], axis=0)
+                aggr_train_labels = np.concatenate(
+                    [aggr_train_labels, train_labels], axis=0
+                )
+                aggr_test_labels = np.concatenate(
+                    [aggr_test_labels, test_labels], axis=0
+                )
+
+        # df_to_tensor with method=3 (the default on Apple Silicon) returns
+        # mlx.core.array, which sklearn.utils.shuffle in BaseNNStrategy can't
+        # index. Coerce to numpy here so the shuffle step works regardless of
+        # backend; both regressor backends accept numpy in train().
+        return (
+            np.asarray(aggr_tsr_train),
+            np.asarray(aggr_tsr_test),
+            np.asarray(aggr_train_labels),
+            np.asarray(aggr_test_labels),
+        )
+
+    # =========================================================================
+    # Class weights — N/A for regression
+    # =========================================================================
+
+    def get_training_class_weights(self, train_labels=None, validation_labels=None):
+        """Regression has no classes. Returning None (rather than running
+        BaseNNStrategy's bincount-based code, which crashes on negative
+        continuous values)."""
+        return None
+
+    # =========================================================================
+    # Predictions — continuous gain → rolling-quantile → TradingAction
+    # =========================================================================
+
+    def get_predictions(self, dataframe: DataFrame, classifier):
+        """Run the regressor, then threshold the continuous predictions via
+        a rolling per-pair quantile to produce HOLD/BUY/SELL integers."""
+
+        df_norm = self.scale_dataframe(dataframe)
+        df_tensor = self.dataframeUtils.df_to_tensor(
+            df_norm, self.seq_len, method=self.tensor_method
+        )
+        # df_to_tensor with method=3 (default on Apple Silicon) yields an
+        # mlx.core.array; the Keras predict path can't consume that. Coerce
+        # to numpy here — both regressor backends accept numpy in predict().
+        df_tensor = np.asarray(df_tensor)
+
+        pred_gains = classifier.predict(df_tensor)
+        pred_gains = np.asarray(pred_gains, dtype=np.float32).reshape(-1)
+
+        original_length = len(dataframe)
+        if len(pred_gains) < original_length:
+            pad = np.zeros(original_length - len(pred_gains), dtype=np.float32)
+            pred_gains_full = np.concatenate([pad, pred_gains])
+        else:
+            pred_gains_full = pred_gains[:original_length]
+
+        gains_series = pd.Series(pred_gains_full)
+        window = max(int(self.rolling_window), self.seq_len + 1)
+        # min_periods set to allow signals to start emitting before the full
+        # window is available — quantile estimates are noisy early but a
+        # backtest with min_periods=window would have zero entries for the
+        # first 200 bars on every pair.
+        q_high = gains_series.rolling(window, min_periods=self.seq_len).quantile(
+            self.entry_quantile
+        )
+        q_low = gains_series.rolling(window, min_periods=self.seq_len).quantile(
+            self.exit_quantile
+        )
+
+        actions = np.full(original_length, TradingAction.HOLD, dtype=int)
+        # Rolling-quantile threshold alone — the > 0 / < 0 sign filter that
+        # used to gate this was a vestige of the close-to-close target where
+        # "positive prediction = price up" was clean. With non-price-direction
+        # targets (e.g. -fisher_ss[i+H]), the prediction may sit predominantly
+        # on one side of zero per pair while still varying meaningfully against
+        # the rolling-window distribution. The quantile alone captures
+        # "this prediction is unusually high/low for this pair right now,"
+        # which is what we want.
+        buy_mask = gains_series > q_high
+        sell_mask = gains_series < q_low
+        actions[buy_mask.fillna(False).to_numpy()] = TradingAction.BUY
+        actions[sell_mask.fillna(False).to_numpy()] = TradingAction.SELL
+
+        if getattr(self, "dbg_verbose", False):
+            n_buy = int((actions == TradingAction.BUY).sum())
+            n_sell = int((actions == TradingAction.SELL).sum())
+            self.debug_print(
+                f"        predicted gains: mean={pred_gains_full.mean():.4f} "
+                f"std={pred_gains_full.std():.4f} "
+                f"min={pred_gains_full.min():.4f} max={pred_gains_full.max():.4f}; "
+                f"actions buy={n_buy} sell={n_sell}"
+            )
+
+        # Stash continuous gain for downstream debug / stats — the classifier
+        # path stores per-class probabilities; the equivalent here is the raw
+        # predicted gain.
+        dataframe["%predict_gain"] = pred_gains_full
+
+        return actions
