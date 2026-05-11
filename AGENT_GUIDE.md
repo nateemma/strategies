@@ -41,6 +41,9 @@ user_data/strategies/
 ├── NNNC/                ← N-ary (trinary) Classification strategies + NNNClassifier
 ├── NNMT/                ← Multi-Task strategies + NNMTClassifier (TF)
 │                          + NNMTClassifierMLX (Apple Silicon)
+├── NNPredict/           ← Regression strategies (continuous future_gain
+│                          target → rolling-quantile signal). Keras / MLX /
+│                          Ridge regressor backends.
 ├── Anomaly/             ← Anomaly Detection strategies (autoencoder + GANomaly)
 ├── Sklearn/             ← sklearn classifier strategies (RandomForest, XGBoost, …)
 │                          inherit from BaseNNStrategy via SklearnStrategy
@@ -85,6 +88,8 @@ BaseStrategy (Framework/BaseStrategy.py)
 │   │   └── NNNC_CGP, NNNC_CGP_LSTM2, NNNC_CGP_MLX_*, ... (concrete strategies)
 │   ├── NNMTStrategy (NNMT/NNMTStrategy.py)
 │   │   └── NNMT_WGAN, NNMT_WGAN_MLX, NNMT_CGP, ... (concrete strategies)
+│   ├── NNPredictStrategy (NNPredict/NNPredictStrategy.py)  ← regression family
+│   │   └── NNPredict_LSTM, NNPredict_MLX_LSTM, NNPredict_Ridge
 │   ├── NNAnomalyStrategy (Anomaly/NNAnomalyStrategy.py)
 │   └── SklearnStrategy (Sklearn/SklearnStrategy.py)
 │       └── Skl_RandomForest, Skl_XGBoost, Skl_RandomForest_WGAN, ...
@@ -131,9 +136,9 @@ that's stale.
 - Train / save / load lifecycle wired into `populate_indicators()`
 
 ### Adding a new strategy (NN family)
-1. Create a new `.py` file in the appropriate family directory (e.g., `NNNC/`, `NNMT/`, `Anomaly/`, `Sklearn/`)
-2. Inherit from the appropriate family base class (e.g., `NNNCStrategy`, `NNMTStrategy`, `SklearnStrategy`)
-3. Override `get_classifier_type()` and `get_classifier()` to return your model
+1. Create a new `.py` file in the appropriate family directory (e.g., `NNNC/`, `NNMT/`, `NNPredict/`, `Anomaly/`, `Sklearn/`)
+2. Inherit from the appropriate family base class (e.g., `NNNCStrategy`, `NNMTStrategy`, `NNPredictStrategy`, `SklearnStrategy`)
+3. Override `get_classifier_type()` and `get_classifier()` to return your model (or regressor, for `NNPredictStrategy` subclasses)
 4. Optionally override `add_strategy_indicators()`, `get_custom_training_data()`, etc.
 5. Run backtest over a long period to train and save the model
 
