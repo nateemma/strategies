@@ -108,10 +108,10 @@ class CreateGAN(CreateGANBase, BaseNNStrategy):
             "categorical_columns": None,
         },
         GANType.TAB_DDPM: {
-            "name":                      "TabDDPM",
-            "description":               "TabDDPM (tabular diffusion, MLX)",
+            "name": "TabDDPM",
+            "description": "TabDDPM (tabular diffusion, MLX)",
             "augmentation_target_ratio": 0.4,
-            "multi_task":                False,
+            "multi_task": False,
         },
     }
 
