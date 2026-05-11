@@ -95,3 +95,71 @@ def q_sample(
     sqrt_ac = sched.sqrt_alphas_cumprod[t]               # (B,)
     sqrt_omac = sched.sqrt_one_minus_alphas_cumprod[t]   # (B,)
     return sqrt_ac[:, None] * x0 + sqrt_omac[:, None] * noise
+
+
+# ---------------------------------------------------------------------------
+# Reverse (DDIM η=0 sampler)
+# ---------------------------------------------------------------------------
+
+
+def ddim_sample(
+    model_fn: Callable[[mx.array, mx.array, mx.array], mx.array],
+    shape: Tuple[int, ...],
+    cond: mx.array,
+    sched: Schedule,
+    num_steps: int = 50,
+    x_init: Optional[mx.array] = None,
+    key: Optional[mx.array] = None,
+) -> mx.array:
+    """Deterministic DDIM reverse process (η=0).
+
+    Args:
+        model_fn: Callable(x_t, t, cond) -> ε̂ of shape `shape`.
+                  No model dependency in this module — caller passes
+                  a closure over its trained network.
+        shape:    Output shape (e.g. (n, F)).
+        cond:     Conditioning tensor (e.g. (n,) class indices) passed
+                  through to model_fn untouched.
+        sched:    Schedule from make_schedule.
+        num_steps: Number of DDIM steps (50 is a good default).
+        x_init:   Optional starting x_T. If None, sampled from N(0, I).
+        key:      Optional mx.random key for reproducible x_init.
+
+    Returns:
+        Raw x_0 of shape `shape`. No clipping in this module — the
+        caller's _postprocess handles clipping + inverse minmax.
+    """
+    T = sched.betas.shape[0]
+    if x_init is None:
+        x = mx.random.normal(shape, key=key)
+    else:
+        x = x_init
+
+    # Build a num_steps-length sub-sequence of timesteps T-1, ..., 0.
+    # Use evenly spaced integer indices into [0, T-1].
+    step_idx = mx.linspace(0, T - 1, num_steps, dtype=mx.float32)
+    step_idx = mx.round(step_idx).astype(mx.int32)
+    # Convert to a python list of ints (sub-sequences are short — fine
+    # for a 50-step loop, and indexed scalar gather is simpler this way).
+    timesteps = [int(step_idx[i].item()) for i in range(num_steps)][::-1]
+
+    batch = shape[0]
+    for i, t_int in enumerate(timesteps):
+        t_arr = mx.full((batch,), t_int, dtype=mx.int32)
+        eps_hat = model_fn(x, t_arr, cond)
+
+        sqrt_ac = sched.sqrt_alphas_cumprod[t_arr][:, None]
+        sqrt_omac = sched.sqrt_one_minus_alphas_cumprod[t_arr][:, None]
+        x0_hat = (x - sqrt_omac * eps_hat) / sqrt_ac
+
+        if i == len(timesteps) - 1:
+            # Final step: return x̂_0 directly (t_prev would be -1).
+            x = x0_hat
+        else:
+            t_prev = timesteps[i + 1]
+            ac_prev = sched.alphas_cumprod[t_prev]
+            sqrt_ac_prev = mx.sqrt(ac_prev)
+            sqrt_omac_prev = mx.sqrt(1.0 - ac_prev)
+            x = sqrt_ac_prev * x0_hat + sqrt_omac_prev * eps_hat
+
+    return x
