@@ -14,3 +14,4 @@ from . import ctab_gan  # noqa: F401  — registers CTAB-GAN + MT-CTAB-GAN backe
 from . import cgan      # noqa: F401  — registers CGAN backend
 from . import wgan      # noqa: F401  — registers WGAN TF + MLX backends
 from . import mt_wgan   # noqa: F401  — registers MT_WGAN TF + MLX backends
+from . import tabddpm   # noqa: F401  — registers TabDDPM MLX backend
