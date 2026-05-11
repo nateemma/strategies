@@ -107,6 +107,12 @@ class CreateGAN(CreateGANBase, BaseNNStrategy):
             # None → auto-detect from one_hot_columns
             "categorical_columns": None,
         },
+        GANType.TAB_DDPM: {
+            "name":                      "TabDDPM",
+            "description":               "TabDDPM (tabular diffusion, MLX)",
+            "augmentation_target_ratio": 0.4,
+            "multi_task":                False,
+        },
     }
 
 
