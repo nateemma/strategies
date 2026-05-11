@@ -45,3 +45,33 @@ class TestCosineSchedule:
         ):
             arr = getattr(sched, field_name)
             assert arr.shape == (200,), f"{field_name}: got {arr.shape}"
+
+
+class TestQSample:
+    def test_identity_at_t_zero(self):
+        from GANs.diffusion_mlx import q_sample
+
+        sched = make_schedule(T=1000)
+        x0 = mx.random.normal((16, 8))
+        noise = mx.random.normal((16, 8))
+        t = mx.zeros((16,), dtype=mx.int32)
+
+        x_t = q_sample(x0, t, noise, sched)
+        # At t=0, ᾱ_0 ≈ 1, so x_t ≈ x_0 (small residual noise from
+        # sqrt(1-ᾱ_0) ≈ 0 but not exactly zero — assert close-ish).
+        diff = mx.mean(mx.abs(x_t - x0)).item()
+        assert diff < 0.05, f"q_sample at t=0 drifted by {diff:.4f}"
+
+    def test_unit_variance_at_t_T_minus_one(self):
+        from GANs.diffusion_mlx import q_sample
+
+        T = 1000
+        sched = make_schedule(T=T)
+        x0 = mx.random.normal((4096, 8))
+        noise = mx.random.normal((4096, 8))
+        t = mx.full((4096,), T - 1, dtype=mx.int32)
+
+        x_t = np.asarray(q_sample(x0, t, noise, sched))
+        # At t=T-1, ᾱ_t ≈ 0, so x_t ≈ noise → per-column variance ≈ 1.
+        var = x_t.var(axis=0)
+        assert (var > 0.85).all() and (var < 1.15).all(), f"per-col var={var}"

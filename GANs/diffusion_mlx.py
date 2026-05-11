@@ -71,3 +71,27 @@ def make_schedule(T: int, s: float = 0.008) -> Schedule:
         sqrt_one_minus_alphas_cumprod=mx.sqrt(1.0 - alphas_cumprod),
         posterior_variance=posterior_variance,
     )
+
+
+# ---------------------------------------------------------------------------
+# Forward (training-time noising)
+# ---------------------------------------------------------------------------
+
+
+def q_sample(
+    x0: mx.array, t: mx.array, noise: mx.array, sched: Schedule
+) -> mx.array:
+    """Forward diffusion: x_t = √ᾱ_t · x_0 + √(1-ᾱ_t) · ε.
+
+    Args:
+        x0:    (B, F) clean samples in [-1, 1].
+        t:     (B,) int32 timestep indices in [0, T-1].
+        noise: (B, F) standard-normal noise, same shape as x0.
+        sched: Schedule from make_schedule.
+
+    Returns:
+        (B, F) noised samples x_t.
+    """
+    sqrt_ac = sched.sqrt_alphas_cumprod[t]               # (B,)
+    sqrt_omac = sched.sqrt_one_minus_alphas_cumprod[t]   # (B,)
+    return sqrt_ac[:, None] * x0 + sqrt_omac[:, None] * noise
