@@ -135,6 +135,7 @@ _BACKEND_MIGRATED: set = {
     GANType.CGAN,
     GANType.WGAN,
     GANType.MT_WGAN,
+    GANType.TAB_DDPM,
 }
 
 
@@ -228,6 +229,20 @@ class GANInterface:
             "gen_base_filters":  128,
             "gen_kernel_size":   3,
             "gen_upsample_blocks": 2,
+            "verbose":           True,
+        },
+        GANType.TAB_DDPM: {
+            "epochs":            300,
+            "batch_size":        4096,
+            "learning_rate":     1e-3,
+            "weight_decay":      1e-5,
+            "num_timesteps":     1000,
+            "num_sample_steps":  50,
+            "d_model":           256,
+            "d_layers":          (256, 256),
+            "dropout":           0.0,
+            "ema_decay":         0.999,
+            "eval_frequency":    20,
             "verbose":           True,
         },
     }
