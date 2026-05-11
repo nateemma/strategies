@@ -56,3 +56,40 @@ class TestInterfaceWiring:
             assert meta["training_type"] == 2
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
+
+
+class TestBalanceIntegration:
+    def test_balance_single_task_with_tab_ddpm(self):
+        from GANs.balance import balance_single_task
+
+        tmp = tempfile.mkdtemp()
+        try:
+            iface = GANInterface(GANType.TAB_DDPM, save_path=tmp)
+            # Use imbalanced dataset: 100 class 0, 20 class 1, 10 class 2.
+            # With target_ratio=1.0, we want all classes to have 100 samples.
+            rng = np.random.default_rng(seed=42)
+            data_c0 = rng.normal(size=(100, 8)).astype(np.float32)
+            data_c1 = rng.normal(size=(20, 8)).astype(np.float32)
+            data_c2 = rng.normal(size=(10, 8)).astype(np.float32)
+            data = np.vstack([data_c0, data_c1, data_c2])
+            labels_c0 = np.eye(3, dtype=np.float32)[np.zeros(100, dtype=int)]
+            labels_c1 = np.eye(3, dtype=np.float32)[np.ones(20, dtype=int)]
+            labels_c2 = np.eye(3, dtype=np.float32)[np.full(10, 2, dtype=int)]
+            labels = np.vstack([labels_c0, labels_c1, labels_c2])
+
+            iface.fit(data, labels,
+                      d_model=16, d_layers=(16, 16),
+                      num_timesteps=50, num_sample_steps=10,
+                      epochs=2, batch_size=64, verbose=False)
+
+            aug_data, aug_labels = balance_single_task(
+                interface=iface, data=data, labels=labels, target_ratio=1.0,
+                log=lambda *a, **kw: None, debug_log=lambda *a, **kw: None,
+            )
+            # Augmented set is larger than the input (we added samples).
+            assert aug_data.shape[0] > data.shape[0]
+            # 2-D output (squeeze path was taken) — same shape as input.
+            assert aug_data.ndim == 2
+            assert aug_data.shape[1] == 8
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)

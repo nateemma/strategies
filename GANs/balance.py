@@ -54,7 +54,7 @@ DEFAULT_MAX_ROUNDS: int = 200
 # expects a 2-D real-data input (i.e. WGAN-GP at single-task tabular).
 # We squeeze the seq dimension before concatenating so the augmented
 # output matches the shape the caller passed in.
-_SQUEEZE_SEQ_DIM_TYPES: set = {GANType.WGAN}
+_SQUEEZE_SEQ_DIM_TYPES: set = {GANType.WGAN, GANType.TAB_DDPM}
 
 
 # ---------------------------------------------------------------------------
@@ -785,6 +785,11 @@ def _generate_for_class(
         return interface.generate(n=n, **kwargs)
 
     if gan_type == GANType.CGAN:
+        one_hot = np.zeros((n, num_classes), dtype=np.float32)
+        one_hot[:, class_idx] = 1.0
+        return interface.generate(n=n, one_hot=one_hot)
+
+    if gan_type == GANType.TAB_DDPM:
         one_hot = np.zeros((n, num_classes), dtype=np.float32)
         one_hot[:, class_idx] = 1.0
         return interface.generate(n=n, one_hot=one_hot)
