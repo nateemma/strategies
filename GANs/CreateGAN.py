@@ -187,12 +187,19 @@ class CreateGAN(CreateGANBase, BaseNNStrategy):
                 # Default path — WGAN and any future single-task backend
                 # whose interface.fit() accepts (data_2d, one_hot) without
                 # per-class post-training generation logic.
+                #
+                # NOTE: pair conditioning is intentionally NOT passed here.
+                # The TabDDPM pair-conditioning experiment (2026-05-12)
+                # showed that adding pair embeddings on this dataset
+                # produced asymmetric class collapse — even with 2×
+                # training budget. Pair conditioning infrastructure is
+                # kept available in TabDDPMMLX / balance.py for callers
+                # that want to opt in directly via GANInterface.fit kwargs,
+                # but the default builder path does not enable it.
                 self._run_simple_training(
                     train_data=train_data,
                     train_labels=train_labels,
                     save_path=save_path,
-                    train_pair_ids=train_pair_ids,
-                    pair_names=pair_names,
                 )
 
         except Exception as exc:
