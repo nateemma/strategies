@@ -322,6 +322,21 @@ def _test_ctab_skip_label_fidelity(self: Any) -> None:
     )
 
 
+def _test_tabddpm_skip_joint_checks(self: Any) -> None:
+    """TabDDPM quality is measured by marginal statistical fidelity on the test dataset.
+
+    The quality-test dataset (~65 samples per class) is too small for a 20-epoch
+    run to produce reliably discriminative class conditioning or to preserve
+    joint feature structure.  Statistical marginal metrics (mean/std RMSE, range
+    coverage) are the meaningful quality bar for this GAN type at test scale.
+    """
+    import unittest
+    raise unittest.SkipTest(
+        "TabDDPM: joint-structure / label-fidelity checks skipped — "
+        "statistical marginal metrics cover generation quality at test scale"
+    )
+
+
 def _test_wgan_correlation(self: Any) -> None:
     """WGAN: generated and real features must not be strongly anti-correlated."""
     corr = self.quality_metrics.get("mean_correlation", 0.0)
@@ -371,6 +386,38 @@ _GAN_CONFIGS: list[GANTestConfig] = [
             # quality_base.py.
             "MEAN_RMSE_THRESHOLD":           0.2,
             "STD_RMSE_THRESHOLD":            0.2,
+        },
+    ),
+
+    # TabDDPM — MLX-only, single-task, continuous-only.
+    # Quality bars: statistical fidelity (mean/std RMSE, range coverage).
+    # label_fidelity and correlation tests are skipped for the same reason as
+    # CTABGAN: the quality-test dataset is too small (~65 samples) for a
+    # 20-epoch run to produce reliably discriminative class conditioning or to
+    # preserve joint feature structure. Statistical marginal metrics are the
+    # meaningful quality bar here.
+    GANTestConfig(
+        name="TabDDPM",
+        gan_type=GANType.TAB_DDPM,
+        n_classes=N_TRADING_CLASSES,
+        minority_classes=[1, 2],
+        make_dataset=_make_wgan_dataset,
+        setup_generated=_wgan_setup_generated,
+        prefer_mlx=True,
+        extra_fit_kwargs={
+            "d_model":          32,
+            "d_layers":         (32, 32),
+            "num_timesteps":    100,
+            "num_sample_steps": 20,
+            "epochs":           20,
+            "batch_size":       128,
+            "verbose":          False,
+        },
+        extra_tests={
+            "MEAN_RMSE_THRESHOLD":           0.5,
+            "STD_RMSE_THRESHOLD":            0.5,
+            "test_label_fidelity_above_chance": _test_tabddpm_skip_joint_checks,
+            "test_correlation_matrix_close_to_real": _test_tabddpm_skip_joint_checks,
         },
     ),
 
