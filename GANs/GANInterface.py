@@ -136,7 +136,11 @@ _BACKEND_MIGRATED: set = {
     GANType.WGAN,
     GANType.MT_WGAN,
     GANType.TAB_DDPM,
+    GANType.MT_DDPM,
 }
+
+# Public alias used by tests and callers.
+GAN_BACKED_TYPES = _BACKEND_MIGRATED
 
 
 # ---------------------------------------------------------------------------
@@ -247,6 +251,27 @@ class GANInterface:
             # to the cosine-β DDPM path used in earlier runs.
             "use_edm_schedule":  True,
             "verbose":           True,
+        },
+        GANType.MT_DDPM: {
+            "d_model":             256,
+            "d_layers":            4,
+            "dropout":             0.1,
+            "num_timesteps":       1000,
+            "num_sample_steps":    50,
+            "epochs":              300,
+            "batch_size":          256,
+            "learning_rate":       2e-4,
+            "weight_decay":        0.0,
+            "ema_decay":           0.999,
+            "eval_frequency":      10,
+            "lr_min_ratio":        0.1,
+            # Dormant flags — preserved for tuning without code change.
+            "min_snr_gamma":           0.0,
+            "class_balanced_sampling": False,
+            "p_uncond":                0.0,
+            "guidance_scale":          1.0,
+            "use_edm_schedule":        False,
+            "verbose":                 True,
         },
     }
 
@@ -382,6 +407,13 @@ class GANInterface:
                     "generate() for MT_WGAN requires keyword argument task_labels=<dict>"
                 )
             return self._model.generate(n, task_labels)
+
+        if self.gan_type == GANType.MT_DDPM:
+            task_labels = kwargs.get("task_labels")
+            if task_labels is None:
+                raise ValueError(
+                    "generate() for MT_DDPM requires keyword argument task_labels=<dict>"
+                )
 
         # CTAB-GAN family — legacy mock-test fallback
         num_samples = kwargs.pop("num_samples", n)

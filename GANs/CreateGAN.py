@@ -113,6 +113,11 @@ class CreateGAN(CreateGANBase, BaseNNStrategy):
             "augmentation_target_ratio": 0.4,
             "multi_task": False,
         },
+        GANType.MT_DDPM: {
+            "epochs":       300,
+            "batch_size":   256,
+            "verbose":      True,
+        },
     }
 
 
