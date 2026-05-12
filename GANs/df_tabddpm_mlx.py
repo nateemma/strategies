@@ -31,21 +31,6 @@ import numpy as np
 from GANs.diffusion_mlx import Schedule, ddim_sample, make_schedule, q_sample
 
 
-def _tree_copy(params: Any) -> Any:
-    """Deep-copy a nested mlx parameter tree (dict / list / mx.array).
-
-    Used to snapshot best-val-loss EMA params during fit() so we can
-    restore them at the end if late-epoch overfitting degrades quality.
-    Mirrors _tree_lerp's structural recursion."""
-    if isinstance(params, dict):
-        return {k: _tree_copy(v) for k, v in params.items()}
-    if isinstance(params, list):
-        return [_tree_copy(p) for p in params]
-    if isinstance(params, mx.array):
-        return mx.array(params)
-    return params
-
-
 def _tree_lerp(a: Any, b: Any, t: float) -> Any:
     """Element-wise (1-t)*a + t*b on nested mlx parameter trees.
 
@@ -167,8 +152,6 @@ class TabDDPMMLX:
         weight_decay: float = 1e-5,
         ema_decay: float = 0.999,
         eval_frequency: int = 20,
-        val_split_ratio: float = 0.05,
-        lr_min_ratio: float = 0.01,
         verbose: bool = True,
     ):
         self.num_features = num_features
@@ -184,8 +167,6 @@ class TabDDPMMLX:
         self.weight_decay = weight_decay
         self.ema_decay = ema_decay
         self.eval_frequency = eval_frequency
-        self.val_split_ratio = val_split_ratio
-        self.lr_min_ratio = lr_min_ratio
         self.verbose = verbose
 
         # Feature stats populated by fit(); used by _postprocess.
@@ -273,35 +254,11 @@ class TabDDPMMLX:
 
         data_norm = self._minmax_fit(data)
         class_idx_np = labels.argmax(axis=1).astype(np.int32)
-        N_total = data_norm.shape[0]
-
-        # Held-out val split for best-model tracking. Fixed-tail slice
-        # (last val_split_ratio of the rows) — simple, reproducible,
-        # avoids reshuffling.  Skip if there aren't enough rows for the
-        # split to be meaningful (≥8 val samples, ≥batch_size train).
-        n_val = int(N_total * self.val_split_ratio)
-        if n_val < 8 or (N_total - n_val) < self.batch_size:
-            n_val = 0
-        n_train = N_total - n_val
+        N = data_norm.shape[0]
 
         # Move to MLX arrays once.
-        data_mx = mx.array(data_norm[:n_train])
-        class_idx_mx = mx.array(class_idx_np[:n_train])
-
-        # Build a deterministic val batch — fixed noise + timesteps so
-        # val_loss is comparable epoch-to-epoch and across runs.
-        val_batch = None
-        if n_val > 0 and self.eval_frequency > 0:
-            val_key = mx.random.key(42)
-            sub_keys = mx.random.split(val_key, num=2)
-            val_batch = {
-                "x0":        mx.array(data_norm[n_train:]),
-                "class_idx": mx.array(class_idx_np[n_train:]),
-                "noise":     mx.random.normal(
-                                 (n_val, self.num_features), key=sub_keys[0]),
-                "t":         mx.random.randint(
-                                 0, self.num_timesteps, (n_val,), key=sub_keys[1]),
-            }
+        data_mx = mx.array(data_norm)
+        class_idx_mx = mx.array(class_idx_np)
 
         optimizer = optim.AdamW(learning_rate=self.learning_rate,
                                 weight_decay=self.weight_decay)
@@ -317,25 +274,13 @@ class TabDDPMMLX:
         # Initialise EMA params to live params.
         self._ema_mlp.update(self._mlp.parameters())
 
-        steps_per_epoch = max(1, n_train // self.batch_size)
-        total_steps = max(1, self.epochs * steps_per_epoch)
+        steps_per_epoch = max(1, N // self.batch_size)
         rng = np.random.default_rng(0)
-
-        # Best-model snapshot: tracked only if we actually compute val_loss.
-        # None means "no eval happened — keep whatever the last EMA state is".
-        best_val_loss = float("inf")
-        best_ema_params: Optional[Any] = None
-        global_step = 0
 
         for epoch in range(self.epochs):
             epoch_loss = 0.0
             for _ in range(steps_per_epoch):
-                # Cosine LR decay from self.learning_rate down to
-                # learning_rate*lr_min_ratio over total_steps.
-                optimizer.learning_rate = self._cosine_lr(global_step, total_steps)
-                global_step += 1
-
-                idx = rng.integers(0, n_train, size=self.batch_size)
+                idx = rng.integers(0, N, size=self.batch_size)
                 idx_mx = mx.array(idx, dtype=mx.int32)
                 x0 = data_mx[idx_mx]
                 cls = class_idx_mx[idx_mx]
@@ -363,37 +308,8 @@ class TabDDPMMLX:
                 epoch_loss += float(loss.item())
 
             avg = epoch_loss / steps_per_epoch
-
-            # Val-loss eval + best-model snapshot.
-            val_loss_str = ""
-            if (val_batch is not None
-                    and self.eval_frequency > 0
-                    and (epoch + 1) % self.eval_frequency == 0):
-                val_loss = self._compute_val_loss(val_batch)
-                marker = ""
-                if val_loss < best_val_loss:
-                    best_val_loss = val_loss
-                    best_ema_params = _tree_copy(self._ema_mlp.parameters())
-                    marker = " *"
-                val_loss_str = (f"  val_loss={val_loss:.4f}"
-                                f"  best={best_val_loss:.4f}{marker}")
-
             if self.verbose:
-                lr_now = float(optimizer.learning_rate)
-                print(
-                    f"[TabDDPMMLX] epoch {epoch+1}/{self.epochs}  "
-                    f"loss={avg:.4f}  lr={lr_now:.6f}{val_loss_str}"
-                )
-
-        # Restore the best EMA snapshot if we collected one.  When no eval
-        # happened (e.g. epochs < eval_frequency) the trained EMA stays.
-        if best_ema_params is not None:
-            self._ema_mlp.update(best_ema_params)
-            if self.verbose:
-                print(
-                    f"[TabDDPMMLX] restored best EMA params "
-                    f"(val_loss={best_val_loss:.4f})"
-                )
+                print(f"[TabDDPMMLX] epoch {epoch+1}/{self.epochs}  loss={avg:.4f}")
 
     def _ema_update(self) -> None:
         decay = self.ema_decay
@@ -401,35 +317,6 @@ class TabDDPMMLX:
         ema = self._ema_mlp.parameters()
         new_ema = _tree_lerp(ema, live, 1.0 - decay)
         self._ema_mlp.update(new_ema)
-
-    def _cosine_lr(self, step: int, total_steps: int) -> float:
-        """Cosine decay from self.learning_rate down to
-        learning_rate * lr_min_ratio over [0, total_steps].
-
-        After total_steps, returns the floor — guards against any
-        last-step overrun where global_step == total_steps.
-        """
-        if total_steps <= 0:
-            return self.learning_rate
-        lr_max = float(self.learning_rate)
-        lr_min = lr_max * float(self.lr_min_ratio)
-        progress = min(float(step) / float(total_steps), 1.0)
-        return lr_min + 0.5 * (lr_max - lr_min) * (1.0 + math.cos(math.pi * progress))
-
-    def _compute_val_loss(self, val_batch: Dict[str, mx.array]) -> float:
-        """Compute MSE-on-epsilon over a fixed held-out batch using the
-        EMA model. Deterministic given the prefilled val_batch."""
-        self._ema_mlp.eval()
-        try:
-            x_t = q_sample(
-                val_batch["x0"], val_batch["t"], val_batch["noise"], self._sched
-            )
-            eps_hat = self._ema_mlp(x_t, val_batch["t"], val_batch["class_idx"])
-            loss = mx.mean((eps_hat - val_batch["noise"]) ** 2)
-            mx.eval(loss)
-            return float(loss.item())
-        finally:
-            self._ema_mlp.train()
 
     # ---------- sampling ---------- #
 
