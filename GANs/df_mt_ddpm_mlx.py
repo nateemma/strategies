@@ -351,6 +351,75 @@ class MTDDPMMLX:
             if self.verbose and (epoch % self.eval_frequency == 0 or epoch == self.epochs - 1):
                 print(f"  MT_DDPM epoch {epoch + 1}/{self.epochs} loss={epoch_loss:.5f}")
 
+        if self.verbose:
+            try:
+                self.print_diagnostics(data, labels)
+            except Exception as e:
+                print(f"  WARNING: MT_DDPM diagnostics raised {type(e).__name__}: {e}")
+
+    def print_diagnostics(
+        self,
+        real_data: np.ndarray,
+        real_labels: Dict[str, np.ndarray],
+        n_synth: int = 1000,
+    ) -> None:
+        """Print real-vs-synth quality diagnostics.
+
+        Standard checks (per-feature mean/std, pairwise corr deltas) plus a
+        temporal autocorrelation check that's specific to the MT setting —
+        we generate sequences, so lag-1 and lag-5 self-correlation per feature
+        must roughly match real for the model to be useful.
+        """
+        n = min(n_synth, real_data.shape[0])
+        synth_labels = {name: real_labels[name][:n].copy() for name in real_labels}
+        synth = self.generate(n, synth_labels)
+
+        print("\n  --- MT_DDPM diagnostics ---")
+
+        # 1. Per-feature marginal stats (flattened over time).
+        real_flat = real_data[:n].reshape(-1, self.num_features)
+        synth_flat = synth.reshape(-1, self.num_features)
+        real_mean = real_flat.mean(axis=0)
+        synth_mean = synth_flat.mean(axis=0)
+        real_std = real_flat.std(axis=0)
+        synth_std = synth_flat.std(axis=0)
+        print(f"  feature mean abs delta: {np.abs(real_mean - synth_mean).mean():.4f} "
+              f"(per-feature max {np.abs(real_mean - synth_mean).max():.4f})")
+        print(f"  feature std abs delta:  {np.abs(real_std - synth_std).mean():.4f} "
+              f"(per-feature max {np.abs(real_std - synth_std).max():.4f})")
+
+        # 2. Pairwise correlation delta.
+        real_corr = np.corrcoef(real_flat.T)
+        synth_corr = np.corrcoef(synth_flat.T)
+        corr_diff = np.abs(real_corr - synth_corr)
+        iu = np.triu_indices_from(corr_diff, k=1)
+        print(f"  off-diagonal corr abs delta: mean {corr_diff[iu].mean():.4f}, "
+              f"max {corr_diff[iu].max():.4f}")
+
+        # 3. Temporal autocorrelation (lag-1 and lag-5) per feature.
+        def _lag_corr(data_3d: np.ndarray, lag: int) -> np.ndarray:
+            if lag >= data_3d.shape[1]:
+                return np.zeros(data_3d.shape[2])
+            a = data_3d[:, :-lag, :].reshape(-1, data_3d.shape[2])
+            b = data_3d[:, lag:, :].reshape(-1, data_3d.shape[2])
+            out = np.zeros(data_3d.shape[2])
+            for f in range(data_3d.shape[2]):
+                if a[:, f].std() < 1e-9 or b[:, f].std() < 1e-9:
+                    out[f] = 0.0
+                else:
+                    out[f] = np.corrcoef(a[:, f], b[:, f])[0, 1]
+            return out
+
+        for lag in (1, 5):
+            real_acf = _lag_corr(real_data[:n], lag)
+            synth_acf = _lag_corr(synth, lag)
+            delta = np.abs(real_acf - synth_acf)
+            worst = int(np.argmax(delta))
+            print(f"  lag-{lag} autocorr abs delta: mean {delta.mean():.4f}, "
+                  f"max {delta.max():.4f} (feature #{worst}: "
+                  f"real={real_acf[worst]:.3f} synth={synth_acf[worst]:.3f})")
+        print("  --- end diagnostics ---\n")
+
     def _ema_update(self) -> None:
         """In-place EMA: ema = ema * decay + live * (1 - decay).
 
