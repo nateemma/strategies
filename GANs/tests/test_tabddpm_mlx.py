@@ -57,10 +57,10 @@ class TestFit:
         )
         m.fit(data, labels)
         # After fit, feature stats should be set.
-        assert m.feature_min is not None
-        assert m.feature_max is not None
-        assert m.feature_min.shape == (8,)
-        assert m.feature_max.shape == (8,)
+        assert m.feature_mean is not None
+        assert m.feature_std is not None
+        assert m.feature_mean.shape == (8,)
+        assert m.feature_std.shape == (8,)
 
     def test_fit_drops_categoricals_with_warning(self, capsys):
         data, labels = _toy_dataset(n=100, f=8, c=3, seed=0)

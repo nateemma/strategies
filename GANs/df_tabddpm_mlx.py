@@ -201,8 +201,14 @@ class TabDDPMMLX:
         self.verbose = verbose
 
         # Feature stats populated by fit(); used by _postprocess.
-        self.feature_min: Optional[np.ndarray] = None
-        self.feature_max: Optional[np.ndarray] = None
+        # Per-feature z-score (mean / std) rather than minmax because
+        # diffusion's forward process pushes data into x_T ≈ N(0, I) —
+        # which only makes sense if each feature has roughly unit
+        # variance.  Heterogeneous post-minmax variances cause low-σ
+        # features to drown in the unit-variance noise and high-σ
+        # features to dominate the loss.
+        self.feature_mean: Optional[np.ndarray] = None
+        self.feature_std: Optional[np.ndarray] = None
 
         # Models created lazily in fit() once we know num_features/num_classes.
         # Skeleton instantiation (e.g. before load_from) still needs the
@@ -230,21 +236,33 @@ class TabDDPMMLX:
 
     # ---------- training ---------- #
 
-    def _minmax_fit(self, data: np.ndarray) -> np.ndarray:
-        """Compute per-column min/max, scale data to [-1, 1].
+    # Z-score outlier-clip threshold.  Real data outside this band is
+    # rare (< 0.01% under a normal assumption) and almost always an
+    # outlier, so we clip during training so the model isn't asked to
+    # spend capacity on the tails.  Same threshold applies at sample
+    # time to keep generated values inside the region the model has
+    # actually seen.
+    _ZSCORE_CLIP: float = 4.0
 
-        Stores stats on self for use in _postprocess; returns the scaled array.
+    def _zscore_fit(self, data: np.ndarray) -> np.ndarray:
+        """Per-feature z-score normalisation with outlier clipping.
+
+        Each feature gets approximately unit variance, which aligns
+        with diffusion's structural assumption (x_T ≈ N(0, I)).  A
+        small std floor avoids divide-by-zero on near-constant columns.
+        Outliers beyond ±_ZSCORE_CLIP σ are clipped to keep training
+        data in a bounded region.
         """
-        self.feature_min = data.min(axis=0).astype(np.float32)
-        self.feature_max = data.max(axis=0).astype(np.float32)
-        rng = self.feature_max - self.feature_min
-        rng = np.where(rng == 0, 1.0, rng)
-        return ((data - self.feature_min) / rng * 2.0 - 1.0).astype(np.float32)
+        self.feature_mean = data.mean(axis=0).astype(np.float32)
+        std = data.std(axis=0).astype(np.float32)
+        self.feature_std = np.maximum(std, 1e-6).astype(np.float32)
+        z = (data - self.feature_mean) / self.feature_std
+        return np.clip(z, -self._ZSCORE_CLIP, self._ZSCORE_CLIP).astype(np.float32)
 
-    def _minmax_invert(self, x: np.ndarray) -> np.ndarray:
-        rng = self.feature_max - self.feature_min
-        rng = np.where(rng == 0, 1.0, rng)
-        return ((x + 1.0) / 2.0) * rng + self.feature_min
+    def _zscore_invert(self, z: np.ndarray) -> np.ndarray:
+        """Inverse of _zscore_fit — maps standardised samples back to
+        the original feature ranges."""
+        return z * self.feature_std + self.feature_mean
 
     def fit(
         self,
@@ -283,7 +301,7 @@ class TabDDPMMLX:
         if self._mlp is None:
             self._build_models()
 
-        data_norm = self._minmax_fit(data)
+        data_norm = self._zscore_fit(data)
         class_idx_np = labels.argmax(axis=1).astype(np.int32)
         N = data_norm.shape[0]
 
@@ -507,9 +525,10 @@ class TabDDPMMLX:
         finally:
             ema.train()
 
-        # _postprocess: clip to [-1, 1], then inverse minmax.
-        x0_np = np.clip(np.asarray(x0_mx), -1.0, 1.0)
-        x0_np = self._minmax_invert(x0_np)
+        # _postprocess: clip to the training-time z-score band (±4σ),
+        # then inverse z-score back to original feature ranges.
+        x0_np = np.clip(np.asarray(x0_mx), -self._ZSCORE_CLIP, self._ZSCORE_CLIP)
+        x0_np = self._zscore_invert(x0_np)
         return x0_np.reshape(n, 1, self.num_features).astype(np.float32)
 
     # ---------- persistence ---------- #
@@ -537,8 +556,8 @@ class TabDDPMMLX:
             "num_sample_steps": self.num_sample_steps,
             "p_uncond":         self.p_uncond,
             "guidance_scale":   self.guidance_scale,
-            "feature_min":      np.asarray(self.feature_min, dtype=np.float32),
-            "feature_max":      np.asarray(self.feature_max, dtype=np.float32),
+            "feature_mean":     np.asarray(self.feature_mean, dtype=np.float32),
+            "feature_std":      np.asarray(self.feature_std, dtype=np.float32),
         }
         meta.update(extra_metadata)
         with open(os.path.join(save_path, _META_FILENAME), "wb") as f:
@@ -570,6 +589,6 @@ class TabDDPMMLX:
             verbose=False,
         )
         instance._ema_mlp.load_weights(weights_p)
-        instance.feature_min = np.asarray(metadata["feature_min"], dtype=np.float32)
-        instance.feature_max = np.asarray(metadata["feature_max"], dtype=np.float32)
+        instance.feature_mean = np.asarray(metadata["feature_mean"], dtype=np.float32)
+        instance.feature_std = np.asarray(metadata["feature_std"], dtype=np.float32)
         return instance, metadata

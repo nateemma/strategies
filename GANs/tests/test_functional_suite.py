@@ -485,7 +485,7 @@ _FITGEN_CONFIGS: list[FitGenSuiteConfig] = [
         metadata_filename="tabddpm_metadata.pkl",
         required_metadata_keys={
             "num_features", "num_classes",
-            "feature_min", "feature_max",
+            "feature_mean", "feature_std",
             "num_timesteps", "num_sample_steps",
             "d_model", "d_layers",
         },
