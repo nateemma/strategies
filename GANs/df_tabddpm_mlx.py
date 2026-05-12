@@ -175,7 +175,10 @@ class TabDDPMMLX:
         lr_min_ratio: float = 0.01,
         min_snr_gamma: float = 5.0,
         p_uncond: float = 0.1,
-        guidance_scale: float = 1.0,
+        # Default 3.0 — sample-time only, doesn't affect training. Plain
+        # conditional sampling is guidance_scale=1.0; 3.0 is the typical
+        # sweet spot for tabular class-conditional generation.
+        guidance_scale: float = 3.0,
         verbose: bool = True,
     ):
         self.num_features = num_features
