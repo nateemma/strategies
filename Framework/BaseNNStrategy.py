@@ -1800,7 +1800,15 @@ class BaseNNStrategy(BaseStrategy):
             )
 
         if self.shuffle_train_data:
+            # df_to_tensor with method=3 (Apple-Silicon default) returns
+            # mlx.core.array, which sklearn.utils.shuffle can't index
+            # ("Cannot index mlx array using the given type yet").
+            # Coerce to numpy before shuffling; classifier.train()
+            # converts back to mlx internally if it wants.  Same
+            # workaround NNPredict applies inside its prepare_training_data.
+            tsr_train = np.asarray(tsr_train)
             if isinstance(train_labels, dict):
+                train_labels = {k: np.asarray(v) for k, v in train_labels.items()}
                 rng = np.random.RandomState(42)
                 indices = rng.permutation(len(tsr_train))
                 tsr_train = tsr_train[indices]
@@ -1808,6 +1816,7 @@ class BaseNNStrategy(BaseStrategy):
                     key: value[indices] for key, value in train_labels.items()
                 }
             else:
+                train_labels = np.asarray(train_labels)
                 tsr_train, train_labels = shuffle(
                     tsr_train, train_labels, random_state=42
                 )
