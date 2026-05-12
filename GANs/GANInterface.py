@@ -243,6 +243,9 @@ class GANInterface:
             "dropout":           0.0,
             "ema_decay":         0.999,
             "eval_frequency":    20,
+            # EDM σ-schedule (Karras et al. 2022).  Set False to revert
+            # to the cosine-β DDPM path used in earlier runs.
+            "use_edm_schedule":  True,
             "verbose":           True,
         },
     }
