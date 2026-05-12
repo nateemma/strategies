@@ -184,10 +184,12 @@ class TabDDPMMLX:
         # sampling, matching the Yandex TabDDPM reference.
         class_balanced_sampling: bool = False,
         p_uncond: float = 0.1,
-        # Default 3.0 — sample-time only, doesn't affect training. Plain
-        # conditional sampling is guidance_scale=1.0; 3.0 is the typical
-        # sweet spot for tabular class-conditional generation.
-        guidance_scale: float = 3.0,
+        # Default 1.0 — plain conditional sampling, no CFG amplification.
+        # CFG at scale > 1 multiplies the (cond − uncond) ε prediction,
+        # which on this dataset pushed x0 past the ±4σ clip boundary
+        # and caused class-conditional mode collapse. Sample-time only;
+        # can be bumped post-load via `iface._model.guidance_scale`.
+        guidance_scale: float = 1.0,
         verbose: bool = True,
     ):
         self.num_features = num_features
