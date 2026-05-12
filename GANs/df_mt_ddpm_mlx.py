@@ -168,6 +168,9 @@ class MTDDPMMLX:
     Phase 2/3/4 follow-ons that are deliberately out of scope here.
     """
 
+    _META_BASE = "mt_ddpm_meta_mlx"
+    _WEIGHTS_BASE = "mt_ddpm_gen_mlx"
+
     def __init__(
         self,
         seq_len: int,
@@ -408,9 +411,85 @@ class MTDDPMMLX:
         samples_3d = samples_flat.reshape(n, T, F)
         return np.asarray(samples_3d, dtype=np.float32)
 
-    def save(self, *args, **kwargs):
-        raise NotImplementedError("filled in by Task 5")
+    def _suffix(self) -> str:
+        return f"_s{self.seq_len}" if self.seq_len > 1 else ""
+
+    def _paths(self, save_path: str) -> Tuple[str, str]:
+        s = self._suffix()
+        meta_p = os.path.join(save_path, f"{MTDDPMMLX._META_BASE}{s}.pkl")
+        weights_p = os.path.join(save_path, f"{MTDDPMMLX._WEIGHTS_BASE}{s}.safetensors")
+        return meta_p, weights_p
+
+    def save(self, save_path: str, extra_metadata: Optional[Dict[str, Any]] = None) -> None:
+        """Persist best-snapshot weights + ctor params + feature stats."""
+        if self._ema_mlp is None:
+            raise RuntimeError("MTDDPMMLX.save called before fit.")
+        os.makedirs(save_path, exist_ok=True)
+        meta_p, weights_p = self._paths(save_path)
+
+        # Save the best-snapshot if available, else current EMA.
+        model_to_save = getattr(self, "_best_state", None) or self._ema_mlp
+        model_to_save.save_weights(weights_p)
+
+        metadata: Dict[str, Any] = {
+            "seq_len":          self.seq_len,
+            "num_features":     self.num_features,
+            "task_label_dims":  dict(self.task_label_dims),
+            "d_model":          self.d_model,
+            "d_layers":         self.d_layers,
+            "dropout":          self.dropout,
+            "num_timesteps":    self.num_timesteps,
+            "num_sample_steps": self.num_sample_steps,
+        }
+        if self.feature_mean is not None:
+            metadata["feature_mean"] = np.asarray(self.feature_mean, dtype=np.float32)
+            metadata["feature_std"] = np.asarray(self.feature_std, dtype=np.float32)
+        if extra_metadata:
+            metadata.update(extra_metadata)
+
+        with open(meta_p, "wb") as f:
+            pickle.dump(metadata, f)
 
     @classmethod
-    def load_from(cls, *args, **kwargs):
-        raise NotImplementedError("filled in by Task 5")
+    def load_from(cls, save_path: str) -> Tuple["MTDDPMMLX", Dict[str, Any]]:
+        """Glob for meta file (seq_len suffix unknown), reconstruct instance, load weights."""
+        import glob
+        pattern = os.path.join(save_path, f"{cls._META_BASE}*.pkl")
+        candidates = sorted(glob.glob(pattern))
+        if not candidates:
+            raise FileNotFoundError(
+                f"No MT_DDPM model at {save_path} (no files matching {pattern})"
+            )
+        meta_p = candidates[0]
+        with open(meta_p, "rb") as f:
+            metadata = pickle.load(f)
+
+        instance = cls(
+            seq_len=int(metadata["seq_len"]),
+            num_features=int(metadata["num_features"]),
+            task_label_dims=dict(metadata["task_label_dims"]),
+            d_model=int(metadata["d_model"]),
+            d_layers=int(metadata["d_layers"]),
+            dropout=float(metadata.get("dropout", 0.1)),
+            num_timesteps=int(metadata["num_timesteps"]),
+            num_sample_steps=int(metadata["num_sample_steps"]),
+            verbose=False,
+        )
+
+        # Reconstruct schedule (needed by generate()).
+        instance._schedule = make_schedule(instance.num_timesteps)
+
+        # Find the weights file with the same suffix as the metadata file.
+        suffix = meta_p[len(os.path.join(save_path, cls._META_BASE)) : -len(".pkl")]
+        weights_p = os.path.join(save_path, f"{cls._WEIGHTS_BASE}{suffix}.safetensors")
+
+        # Load weights into _mlp, then mirror to _ema_mlp so generate() works.
+        instance._mlp.load_weights(weights_p)
+        import copy
+        instance._ema_mlp = copy.deepcopy(instance._mlp)
+
+        if "feature_mean" in metadata:
+            instance.feature_mean = np.asarray(metadata["feature_mean"], dtype=np.float32)
+            instance.feature_std = np.asarray(metadata["feature_std"], dtype=np.float32)
+
+        return instance, metadata

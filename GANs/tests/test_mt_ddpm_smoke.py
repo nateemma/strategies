@@ -106,3 +106,40 @@ def test_generate_shape_and_finiteness():
     assert np.all(np.isfinite(samples))
     # Per-feature std should be > 0 (no collapse on tiny training).
     assert (samples.reshape(-1, F).std(axis=0) > 0).all()
+
+
+def test_save_load_roundtrip(tmp_path):
+    rng = np.random.default_rng(2)
+    seq_len, F, C = 8, 6, 3
+    N = 64
+    data = rng.normal(0, 1, size=(N, seq_len, F)).astype(np.float32)
+    labels = {"trading": np.eye(C, dtype=np.float32)[rng.integers(0, C, size=N)]}
+
+    model = MTDDPMMLX(
+        seq_len=seq_len,
+        num_features=F,
+        task_label_dims={"trading": C},
+        d_model=32,
+        d_layers=2,
+        num_timesteps=50,
+        num_sample_steps=10,
+        epochs=2,
+        batch_size=32,
+        verbose=False,
+    )
+    model.fit(data, labels)
+
+    save_dir = str(tmp_path / "ckpt")
+    os.makedirs(save_dir, exist_ok=True)
+    model.save(save_dir)
+
+    loaded, meta = MTDDPMMLX.load_from(save_dir)
+    assert loaded.seq_len == seq_len
+    assert loaded.num_features == F
+    assert loaded.task_label_dims == {"trading": C}
+
+    # Generate must work on the loaded model.
+    gen_labels = {"trading": np.eye(C, dtype=np.float32)[rng.integers(0, C, size=8)]}
+    samples = loaded.generate(8, gen_labels)
+    assert samples.shape == (8, seq_len, F)
+    assert np.all(np.isfinite(samples))
