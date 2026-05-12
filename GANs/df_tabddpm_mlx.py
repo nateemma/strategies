@@ -115,8 +115,8 @@ class _TabDDPMMLP(nn.Module):
         self,
         num_features: int,
         num_classes: int,
-        d_model: int = 256,
-        d_layers: Sequence[int] = (256, 256),
+        d_model: int = 512,
+        d_layers: Sequence[int] = (512, 512, 512),
         dropout: float = 0.0,
     ):
         super().__init__()
@@ -161,8 +161,8 @@ class TabDDPMMLX:
         num_features: int = 0,
         num_classes: int = 0,
         *,
-        d_model: int = 256,
-        d_layers: Sequence[int] = (256, 256),
+        d_model: int = 512,
+        d_layers: Sequence[int] = (512, 512, 512),
         dropout: float = 0.0,
         num_timesteps: int = 1000,
         num_sample_steps: int = 50,
