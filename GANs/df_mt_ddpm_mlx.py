@@ -360,8 +360,53 @@ class MTDDPMMLX:
         new_ema = _tree_lerp(ema, live, 1.0 - d)
         self._ema_mlp.update(new_ema)
 
-    def generate(self, *args, **kwargs):
-        raise NotImplementedError("filled in by Task 4")
+    def generate(
+        self,
+        n: int,
+        task_labels: Dict[str, np.ndarray],
+        pair_label: Optional[int] = None,
+    ) -> np.ndarray:
+        """Reverse-process samples. Returns shape (n, seq_len, F), float32."""
+        if not isinstance(task_labels, dict):
+            raise TypeError(
+                f"generate() expects task_labels as Dict[str, np.ndarray]; "
+                f"got {type(task_labels).__name__}"
+            )
+
+        # Convert one-hot labels to argmax indices for embedding lookup.
+        label_arrays = {
+            name: mx.array(np.argmax(onehot, axis=1), dtype=mx.int32)
+            for name, onehot in task_labels.items()
+        }
+
+        # Use best-loss EMA snapshot if available, else current EMA.
+        model = getattr(self, "_best_state", None) or self._ema_mlp or self._mlp
+
+        # ddim_sample is 2D-hardcoded. Flatten-before-call: have ddim see
+        # (n, T*F), reshape inside model_fn and on output.
+        T = self.seq_len
+        F = self.num_features
+
+        def model_fn(x_t_flat: mx.array, t: mx.array, cond) -> mx.array:
+            # cond is passed through by ddim_sample but unused here — labels
+            # come from the closure over `label_arrays`.
+            x_t_3d = x_t_flat.reshape(x_t_flat.shape[0], T, F)
+            eps_3d = model(x_t_3d, t.astype(mx.float32), label_arrays, training=False)
+            return eps_3d.reshape(eps_3d.shape[0], T * F)
+
+        flat_shape = (n, T * F)
+        # The `cond` arg is unused by our model_fn; pass a dummy placeholder.
+        dummy_cond = mx.zeros((n,), dtype=mx.int32)
+
+        samples_flat = ddim_sample(
+            model_fn,
+            flat_shape,
+            dummy_cond,
+            self._schedule,
+            num_steps=self.num_sample_steps,
+        )
+        samples_3d = samples_flat.reshape(n, T, F)
+        return np.asarray(samples_3d, dtype=np.float32)
 
     def save(self, *args, **kwargs):
         raise NotImplementedError("filled in by Task 5")

@@ -76,3 +76,33 @@ def test_fit_runs_and_loss_decreases():
 
     assert model._best_train_loss is not None
     assert model._loss_history[0] > model._best_train_loss
+
+
+def test_generate_shape_and_finiteness():
+    rng = np.random.default_rng(1)
+    seq_len, F, C = 8, 6, 3
+    N = 128
+    data = rng.normal(0, 1, size=(N, seq_len, F)).astype(np.float32)
+    labels = {"trading": np.eye(C, dtype=np.float32)[rng.integers(0, C, size=N)]}
+
+    model = MTDDPMMLX(
+        seq_len=seq_len,
+        num_features=F,
+        task_label_dims={"trading": C},
+        d_model=32,
+        d_layers=2,
+        num_timesteps=50,
+        num_sample_steps=10,
+        epochs=3,
+        batch_size=32,
+        verbose=False,
+    )
+    model.fit(data, labels)
+
+    n_gen = 64
+    gen_labels = {"trading": np.eye(C, dtype=np.float32)[rng.integers(0, C, size=n_gen)]}
+    samples = model.generate(n_gen, gen_labels)
+    assert samples.shape == (n_gen, seq_len, F)
+    assert np.all(np.isfinite(samples))
+    # Per-feature std should be > 0 (no collapse on tiny training).
+    assert (samples.reshape(-1, F).std(axis=0) > 0).all()
