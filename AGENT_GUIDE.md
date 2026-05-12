@@ -416,6 +416,11 @@ set, or a WGAN with a different augmentation ratio).
 Rare.  Add when the existing types can't capture the new behaviour
 (e.g. a different label modality or a fundamentally different conditioning).
 
+> **Reference:** TabDDPM (`GANType.TAB_DDPM`) was added as a Case B
+> follow-up — see `docs/superpowers/specs/2026-05-11-tabddpm-design.md`
+> and `docs/superpowers/plans/2026-05-11-tabddpm-implementation.md` for
+> a concrete worked example. It's MLX-only and continuous-only.
+
 1. Add the new enum entry to `GANType` (`GANs/GANType.py`).
 2. Create the trainer/model class(es) in `GANs/df_<name>_*.py` (TF and/or
    MLX, following the existing `df_wgan_*` and `df_ctab_*` patterns).

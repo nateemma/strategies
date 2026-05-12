@@ -19,6 +19,7 @@ helpers (`balance_single_task` / `balance_multi_task` in `balance.py`).
 | `CTAB_GAN` | CTAB-GAN+ | DataFrame | one-hot `(N, C)` | TF or MLX |
 | `MT_CTAB_GAN` | CTAB-GAN+ multi-task | DataFrame | dict of one-hot arrays | TF or MLX |
 | `CGAN` | Conditional GAN | numpy `(N, seq_len, F)` | one-hot `(N, C)` | TF |
+| `TAB_DDPM` | TabDDPM (tabular diffusion) | numpy `(N, F)` | one-hot `(N, C)` | MLX only |
 | `BOTH` | WGAN pre-pass + CTAB-GAN | — | — | TF |
 | `NONE` | No augmentation | — | — | — |
 
@@ -138,6 +139,28 @@ one_hot[:, target_class] = 1.0
 gen_data = iface.generate(50, one_hot=one_hot)   # returns (50, seq_len, F)
 ```
 
+### TAB_DDPM
+
+```python
+iface = GANInterface(GANType.TAB_DDPM, save_path="/path/to/model/dir")
+
+# Train — data is 2-D continuous; categorical columns are warned and dropped.
+iface.fit(data_2d, labels_one_hot)
+iface.save(min_buy_gain_threshold=0.016, training_type=2)
+
+# Later — load and generate.
+iface.load(expected={"training_type": 2})
+one_hot = np.zeros((50, num_classes), dtype="float32")
+one_hot[:, target_class] = 1.0
+gen_data = iface.generate(50, one_hot=one_hot)   # returns (50, 1, F)
+```
+
+**Sampling speed.** Training uses the paper's `num_timesteps=1000` cosine
+schedule; inference uses deterministic DDIM-50 sampling (~20× faster than
+full DDPM reverse with effectively identical quality). Tune
+`num_sample_steps` in the fit kwargs if you need to trade speed for
+quality.
+
 ---
 
 ## Saving and validating metadata
@@ -238,7 +261,8 @@ cross-task interference problem that a naive per-task loop can't
 
 ## MLX acceleration
 
-On Apple Silicon, `WGAN`, `MT_WGAN`, `CTAB_GAN`, and `MT_CTAB_GAN` automatically use an MLX backend when available.
+On Apple Silicon, `WGAN`, `MT_WGAN`, `CTAB_GAN`, `MT_CTAB_GAN`, and `TAB_DDPM` use an MLX backend when available.
+`TAB_DDPM` is **MLX-only** — there is no TF backend; on non-MLX hosts, `resolve_backend` will fail with a clear diagnostic.
 Pass `prefer_mlx=False` to force the TensorFlow backend:
 
 ```python

@@ -32,7 +32,7 @@ Run a single GAN type (e.g. WGAN):
 python -m pytest user_data/strategies/GANs/tests/test_functional_suite.py -k "WGAN" -v
 ```
 
-Available type names: `WGAN`, `MTWGAN`, `CGAN`, `CTABGAN`, `MTCTABGAN`
+Available type names: `WGAN`, `MTWGAN`, `CGAN`, `CTABGAN`, `MTCTABGAN`, `TabDDPM`
 
 Each type generates three test classes (e.g. `TestWGANFitGenContract`, `TestWGANFitGenSaveLoad`, `TestWGANFitGenInterface`). Run one class directly:
 
@@ -56,7 +56,7 @@ Run a single GAN type:
 RUN_SLOW_TESTS=1 python -m pytest "user_data/strategies/GANs/tests/test_quality_suite.py::TestWGANQuality" -v
 ```
 
-Available type names: `TestWGANQuality`, `TestMTWGANQuality`, `TestCTABGANQuality`, `TestMTCTABGANQuality`
+Available type names: `TestWGANQuality`, `TestMTWGANQuality`, `TestCTABGANQuality`, `TestMTCTABGANQuality`, `TestTabDDPMQuality`
 
 ### All tests at once
 
