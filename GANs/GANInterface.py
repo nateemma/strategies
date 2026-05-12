@@ -232,7 +232,7 @@ class GANInterface:
             "verbose":           True,
         },
         GANType.TAB_DDPM: {
-            "epochs":            600,
+            "epochs":            300,
             "batch_size":        4096,
             "learning_rate":     1e-3,
             "weight_decay":      1e-5,
