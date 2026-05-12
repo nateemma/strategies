@@ -26,6 +26,7 @@ _TABDDPM_CTOR_KEYS: frozenset = frozenset({
     "learning_rate", "weight_decay",
     "ema_decay", "eval_frequency",
     "lr_min_ratio", "min_snr_gamma",
+    "p_uncond", "guidance_scale",
     "verbose",
 })
 

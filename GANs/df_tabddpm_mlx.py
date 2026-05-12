@@ -122,7 +122,13 @@ class _TabDDPMMLP(nn.Module):
         super().__init__()
         self.x_proj = nn.Linear(num_features, d_model)
         self.t_embed = _SinusoidalTimeEmbed(d_model)
-        self.class_embed = nn.Embedding(num_classes, d_model)
+        # +1 slot for the "null" / unconditional class token used by
+        # classifier-free guidance. fit() replaces real class indices
+        # with num_classes (the null slot) with probability p_uncond,
+        # training the model to predict both conditional and
+        # unconditional ε. generate() blends the two at sample time
+        # when guidance_scale != 1.0.
+        self.class_embed = nn.Embedding(num_classes + 1, d_model)
 
         dims = [d_model, *d_layers]
         self.blocks = [
@@ -168,6 +174,8 @@ class TabDDPMMLX:
         eval_frequency: int = 20,
         lr_min_ratio: float = 0.01,
         min_snr_gamma: float = 5.0,
+        p_uncond: float = 0.1,
+        guidance_scale: float = 1.0,
         verbose: bool = True,
     ):
         self.num_features = num_features
@@ -185,6 +193,8 @@ class TabDDPMMLX:
         self.eval_frequency = eval_frequency
         self.lr_min_ratio = lr_min_ratio
         self.min_snr_gamma = min_snr_gamma
+        self.p_uncond = p_uncond
+        self.guidance_scale = guidance_scale
         self.verbose = verbose
 
         # Feature stats populated by fit(); used by _postprocess.
@@ -351,6 +361,19 @@ class TabDDPMMLX:
                 idx_mx = mx.array(idx, dtype=mx.int32)
                 x0 = data_mx[idx_mx]
                 cls = class_idx_mx[idx_mx]
+
+                # Classifier-free guidance: drop the class condition with
+                # probability p_uncond, replacing it with the null token
+                # (index num_classes).  The model thereby learns both the
+                # conditional and unconditional noise prediction, and
+                # generate() can blend them at sample time.
+                if self.p_uncond > 0.0:
+                    drop = rng.random(self.batch_size) < self.p_uncond
+                    if drop.any():
+                        cls_np = np.asarray(cls)
+                        cls_np = np.where(drop, self.num_classes, cls_np).astype(np.int32)
+                        cls = mx.array(cls_np)
+
                 t = mx.random.randint(0, self.num_timesteps, (self.batch_size,))
                 noise = mx.random.normal((self.batch_size, self.num_features))
 
@@ -452,8 +475,23 @@ class TabDDPMMLX:
         ema = self._ema_mlp
         ema.eval()
 
-        def model_fn(x_t: mx.array, t: mx.array, cond: mx.array) -> mx.array:
-            return ema(x_t, t, cond)
+        # Classifier-free guidance: when guidance_scale != 1.0, blend
+        # the conditional and unconditional ε predictions per step:
+        #   ε̂ = ε̂_u + w · (ε̂_c − ε̂_u)
+        # scale=1 is plain conditional sampling (one model call/step);
+        # scale>1 amplifies the conditional direction (sharper class
+        # adherence at the cost of one extra forward pass).
+        guidance = float(self.guidance_scale)
+        if guidance == 1.0:
+            def model_fn(x_t: mx.array, t: mx.array, cond: mx.array) -> mx.array:
+                return ema(x_t, t, cond)
+        else:
+            null_idx = mx.full((n,), self.num_classes, dtype=mx.int32)
+
+            def model_fn(x_t: mx.array, t: mx.array, cond: mx.array) -> mx.array:
+                eps_cond = ema(x_t, t, cond)
+                eps_uncond = ema(x_t, t, null_idx)
+                return eps_uncond + guidance * (eps_cond - eps_uncond)
 
         try:
             x0_mx = ddim_sample(
@@ -494,6 +532,8 @@ class TabDDPMMLX:
             "dropout":          self.dropout,
             "num_timesteps":    self.num_timesteps,
             "num_sample_steps": self.num_sample_steps,
+            "p_uncond":         self.p_uncond,
+            "guidance_scale":   self.guidance_scale,
             "feature_min":      np.asarray(self.feature_min, dtype=np.float32),
             "feature_max":      np.asarray(self.feature_max, dtype=np.float32),
         }
@@ -522,6 +562,8 @@ class TabDDPMMLX:
             dropout=float(metadata.get("dropout", 0.0)),
             num_timesteps=int(metadata.get("num_timesteps", 1000)),
             num_sample_steps=int(metadata.get("num_sample_steps", 50)),
+            p_uncond=float(metadata.get("p_uncond", 0.1)),
+            guidance_scale=float(metadata.get("guidance_scale", 1.0)),
             verbose=False,
         )
         instance._ema_mlp.load_weights(weights_p)

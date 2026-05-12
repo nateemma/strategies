@@ -128,3 +128,51 @@ class TestSaveLoad:
             assert out.shape == (5, 1, 8)
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
+
+
+class TestClassifierFreeGuidance:
+    def test_generate_with_guidance_scale(self):
+        """guidance_scale != 1 should run the CFG blending path and
+        return finite output of the right shape — smoke check that the
+        unconditional/conditional dual-call path doesn't crash."""
+        data, labels = _toy_dataset(n=200, f=8, c=3, seed=0)
+        m = TabDDPMMLX(
+            num_features=8, num_classes=3,
+            d_model=16, d_layers=(16, 16),
+            num_timesteps=50, num_sample_steps=10,
+            epochs=2, batch_size=64,
+            p_uncond=0.2, guidance_scale=3.0,
+            verbose=False,
+        )
+        m.fit(data, labels)
+
+        one_hot = np.zeros((10, 3), dtype=np.float32)
+        one_hot[:, 1] = 1.0
+        out = m.generate(10, one_hot)
+
+        assert isinstance(out, np.ndarray)
+        assert out.shape == (10, 1, 8)
+        assert np.isfinite(out).all(), "CFG path produced non-finite values"
+
+    def test_save_load_preserves_cfg_params(self):
+        data, labels = _toy_dataset(n=200, f=8, c=3, seed=0)
+        m = TabDDPMMLX(
+            num_features=8, num_classes=3,
+            d_model=16, d_layers=(16, 16),
+            num_timesteps=50, num_sample_steps=10,
+            epochs=2, batch_size=64,
+            p_uncond=0.15, guidance_scale=4.0,
+            verbose=False,
+        )
+        m.fit(data, labels)
+
+        tmp = tempfile.mkdtemp()
+        try:
+            m.save(tmp)
+            m2, meta = TabDDPMMLX.load_from(tmp)
+            assert meta["p_uncond"] == 0.15
+            assert meta["guidance_scale"] == 4.0
+            assert m2.p_uncond == 0.15
+            assert m2.guidance_scale == 4.0
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
