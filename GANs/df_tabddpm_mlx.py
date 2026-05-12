@@ -31,6 +31,20 @@ import numpy as np
 from GANs.diffusion_mlx import Schedule, ddim_sample, make_schedule, q_sample
 
 
+def _tree_copy(params: Any) -> Any:
+    """Deep-copy a nested mlx parameter tree (dict / list / mx.array).
+
+    Used to snapshot best-loss EMA params during fit() so we can
+    restore them at the end if late-epoch training degrades."""
+    if isinstance(params, dict):
+        return {k: _tree_copy(v) for k, v in params.items()}
+    if isinstance(params, list):
+        return [_tree_copy(p) for p in params]
+    if isinstance(params, mx.array):
+        return mx.array(params)
+    return params
+
+
 def _tree_lerp(a: Any, b: Any, t: float) -> Any:
     """Element-wise (1-t)*a + t*b on nested mlx parameter trees.
 
@@ -152,6 +166,7 @@ class TabDDPMMLX:
         weight_decay: float = 1e-5,
         ema_decay: float = 0.999,
         eval_frequency: int = 20,
+        lr_min_ratio: float = 0.01,
         verbose: bool = True,
     ):
         self.num_features = num_features
@@ -167,6 +182,7 @@ class TabDDPMMLX:
         self.weight_decay = weight_decay
         self.ema_decay = ema_decay
         self.eval_frequency = eval_frequency
+        self.lr_min_ratio = lr_min_ratio
         self.verbose = verbose
 
         # Feature stats populated by fit(); used by _postprocess.
@@ -275,11 +291,24 @@ class TabDDPMMLX:
         self._ema_mlp.update(self._mlp.parameters())
 
         steps_per_epoch = max(1, N // self.batch_size)
+        total_steps = max(1, self.epochs * steps_per_epoch)
         rng = np.random.default_rng(0)
+
+        # Best-EMA snapshot (by training loss). Mirrors WGAN-MLX's
+        # "save best, restore at end if final is worse" pattern — no
+        # val split, just per-epoch training loss as the signal.
+        best_loss = float("inf")
+        best_ema_params: Optional[Any] = None
+        global_step = 0
 
         for epoch in range(self.epochs):
             epoch_loss = 0.0
             for _ in range(steps_per_epoch):
+                # Cosine LR decay from self.learning_rate to
+                # learning_rate * lr_min_ratio over total_steps.
+                optimizer.learning_rate = self._cosine_lr(global_step, total_steps)
+                global_step += 1
+
                 idx = rng.integers(0, N, size=self.batch_size)
                 idx_mx = mx.array(idx, dtype=mx.int32)
                 x0 = data_mx[idx_mx]
@@ -308,8 +337,31 @@ class TabDDPMMLX:
                 epoch_loss += float(loss.item())
 
             avg = epoch_loss / steps_per_epoch
+
+            # Best-EMA snapshot — track every epoch so we can restore the
+            # best version if late-epoch training degrades.
+            marker = ""
+            if avg < best_loss:
+                best_loss = avg
+                best_ema_params = _tree_copy(self._ema_mlp.parameters())
+                marker = " *"
+
             if self.verbose:
-                print(f"[TabDDPMMLX] epoch {epoch+1}/{self.epochs}  loss={avg:.4f}")
+                lr_now = float(optimizer.learning_rate)
+                print(
+                    f"[TabDDPMMLX] epoch {epoch+1}/{self.epochs}  "
+                    f"loss={avg:.4f}  lr={lr_now:.6f}  best={best_loss:.4f}{marker}"
+                )
+
+        # Restore best EMA snapshot if we ever took one (always true
+        # when we ran at least one epoch).
+        if best_ema_params is not None:
+            self._ema_mlp.update(best_ema_params)
+            if self.verbose:
+                print(
+                    f"[TabDDPMMLX] restored best EMA params "
+                    f"(best loss={best_loss:.4f})"
+                )
 
     def _ema_update(self) -> None:
         decay = self.ema_decay
@@ -317,6 +369,20 @@ class TabDDPMMLX:
         ema = self._ema_mlp.parameters()
         new_ema = _tree_lerp(ema, live, 1.0 - decay)
         self._ema_mlp.update(new_ema)
+
+    def _cosine_lr(self, step: int, total_steps: int) -> float:
+        """Cosine LR decay from self.learning_rate down to
+        learning_rate * lr_min_ratio over [0, total_steps].
+
+        Past total_steps, returns the floor — guards against any
+        last-step overrun where global_step == total_steps.
+        """
+        if total_steps <= 0:
+            return self.learning_rate
+        lr_max = float(self.learning_rate)
+        lr_min = lr_max * float(self.lr_min_ratio)
+        progress = min(float(step) / float(total_steps), 1.0)
+        return lr_min + 0.5 * (lr_max - lr_min) * (1.0 + math.cos(math.pi * progress))
 
     # ---------- sampling ---------- #
 
