@@ -187,7 +187,7 @@ class TabDDPMMLX:
         dropout: float = 0.0,
         num_timesteps: int = 1000,
         num_sample_steps: int = 50,
-        epochs: int = 300,
+        epochs: int = 600,
         batch_size: int = 4096,
         learning_rate: float = 1e-3,
         weight_decay: float = 1e-5,
