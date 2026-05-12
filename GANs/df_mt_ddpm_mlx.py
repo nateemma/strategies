@@ -493,3 +493,53 @@ class MTDDPMMLX:
             instance.feature_std = np.asarray(metadata["feature_std"], dtype=np.float32)
 
         return instance, metadata
+
+
+def balance_with_mt_ddpm_mlx(
+    data: np.ndarray,
+    labels: Dict[str, np.ndarray],
+    *,
+    epochs: int = 300,
+    batch_size: int = 256,
+    save_path: Optional[str] = None,
+    assess_quality: bool = False,
+    task_target_ratios: Optional[Dict[str, float]] = None,
+    _return_model: bool = False,
+    **model_kwargs: Any,
+) -> Tuple[np.ndarray, Dict[str, np.ndarray], Optional[MTDDPMMLX]]:
+    """Train an MT-DDPM, optionally augment, return (data, labels, model).
+
+    Mirrors the contract of balance_with_mt_wgan_mlx. The backend always
+    passes task_target_ratios={k: 0.0 for k in labels} so the in-fit
+    augmentation loop is skipped; generation happens later via .generate().
+    """
+    if data.ndim != 3:
+        raise ValueError(
+            f"balance_with_mt_ddpm_mlx expects 3D data (N, seq_len, F); "
+            f"got shape {data.shape}"
+        )
+
+    seq_len = data.shape[1]
+    num_features = data.shape[2]
+    task_label_dims = {k: int(v.shape[1]) for k, v in labels.items()}
+
+    model = MTDDPMMLX(
+        seq_len=seq_len,
+        num_features=num_features,
+        task_label_dims=task_label_dims,
+        epochs=epochs,
+        batch_size=batch_size,
+        **model_kwargs,
+    )
+    model.fit(data, labels)
+
+    if save_path is not None:
+        model.save(save_path)
+
+    # Phase 1: skip in-fit augmentation entirely. The backend handles
+    # generate() afterwards. Matches MT_WGAN's pattern when
+    # task_target_ratios is zero for all tasks.
+    out_data = data
+    out_labels = dict(labels)
+
+    return out_data, out_labels, (model if _return_model else None)
