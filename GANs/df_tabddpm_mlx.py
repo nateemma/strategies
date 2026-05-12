@@ -173,7 +173,16 @@ class TabDDPMMLX:
         ema_decay: float = 0.999,
         eval_frequency: int = 20,
         lr_min_ratio: float = 0.01,
-        min_snr_gamma: float = 5.0,
+        # min_snr_gamma > 0 enables Min-SNR-γ loss weighting (Hang et
+        # al. 2023). Default 0.0 — uniform timestep weighting, matching
+        # the original TabDDPM paper. Set to 5.0 to enable.
+        min_snr_gamma: float = 0.0,
+        # When True, each training batch is sampled with per-row
+        # probabilities inversely proportional to that row's class
+        # frequency, so the minority-class conditioning path gets
+        # equal gradient exposure. Default False — uniform-over-rows
+        # sampling, matching the Yandex TabDDPM reference.
+        class_balanced_sampling: bool = False,
         p_uncond: float = 0.1,
         # Default 3.0 — sample-time only, doesn't affect training. Plain
         # conditional sampling is guidance_scale=1.0; 3.0 is the typical
@@ -196,6 +205,7 @@ class TabDDPMMLX:
         self.eval_frequency = eval_frequency
         self.lr_min_ratio = lr_min_ratio
         self.min_snr_gamma = min_snr_gamma
+        self.class_balanced_sampling = class_balanced_sampling
         self.p_uncond = p_uncond
         self.guidance_scale = guidance_scale
         self.verbose = verbose
@@ -312,37 +322,44 @@ class TabDDPMMLX:
         optimizer = optim.AdamW(learning_rate=self.learning_rate,
                                 weight_decay=self.weight_decay)
 
-        # Class-balanced batch-sampling weights.  The GAN's purpose is
-        # generating minority-class samples, but with uniform sampling
-        # the model sees minority-class conditioning rarely during
-        # training — exactly the conditioning path that matters most at
-        # sample time.  Reweight per-sample probabilities so each class
+        # Class-balanced batch-sampling weights.  When enabled, each
+        # batch is sampled with per-row probabilities inversely
+        # proportional to that row's class frequency, so each class
         # contributes equal total probability; within a class the
-        # samples remain uniform.
-        class_counts = np.bincount(
-            class_idx_np, minlength=self.num_classes
-        ).astype(np.float32)
-        class_weights = np.where(
-            class_counts > 0, 1.0 / np.maximum(class_counts, 1.0), 0.0
-        )
-        per_sample_weights = class_weights[class_idx_np]
-        wsum = per_sample_weights.sum()
-        if wsum > 0:
-            per_sample_weights = per_sample_weights / wsum
+        # samples remain uniform.  When disabled, falls back to the
+        # uniform-over-rows sampler the original TabDDPM uses.
+        if self.class_balanced_sampling:
+            class_counts = np.bincount(
+                class_idx_np, minlength=self.num_classes
+            ).astype(np.float32)
+            class_weights = np.where(
+                class_counts > 0, 1.0 / np.maximum(class_counts, 1.0), 0.0
+            )
+            per_sample_weights = class_weights[class_idx_np]
+            wsum = per_sample_weights.sum()
+            if wsum > 0:
+                per_sample_weights = per_sample_weights / wsum
+            else:
+                per_sample_weights = None  # degenerate: no classes seen
         else:
-            per_sample_weights = None  # degenerate: no classes seen
+            per_sample_weights = None
+
+        use_min_snr = self.min_snr_gamma > 0.0
 
         def loss_fn(model: _TabDDPMMLP, x0: mx.array, t: mx.array,
                     noise: mx.array, cls: mx.array) -> mx.array:
             x_t = q_sample(x0, t, noise, self._sched)
             eps_hat = model(x_t, t, cls)
-            # Per-sample squared error, mean over feature dim → (B,).
-            per_sample_sq_err = mx.mean((eps_hat - noise) ** 2, axis=-1)
+            sq_err = (eps_hat - noise) ** 2
+            if not use_min_snr:
+                # Plain mean MSE over batch × features. Uniform timestep
+                # weighting — matches the original TabDDPM paper.
+                return mx.mean(sq_err)
             # Min-SNR-γ weighting (Hang et al. 2023). For ε-parameterised
             # diffusion, w_t = min(SNR_t, γ) / SNR_t. Down-weights easy
             # (high-SNR) timesteps so the model spends more capacity on
-            # the hard middle range of the noise schedule. ~5-10% sample
-            # quality gain on standard benchmarks.
+            # the hard middle range of the noise schedule.
+            per_sample_sq_err = mx.mean(sq_err, axis=-1)  # (B,)
             ac_t = self._sched.alphas_cumprod[t]
             one_minus_ac = mx.maximum(1.0 - ac_t, 1e-8)
             snr_t = ac_t / one_minus_ac
