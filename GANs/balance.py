@@ -792,7 +792,10 @@ def _generate_for_class(
     if gan_type == GANType.TAB_DDPM:
         one_hot = np.zeros((n, num_classes), dtype=np.float32)
         one_hot[:, class_idx] = 1.0
-        return interface.generate(n=n, one_hot=one_hot)
+        kwargs: Dict[str, Any] = {"one_hot": one_hot}
+        if pair_label is not None:
+            kwargs["pair_label"] = pair_label
+        return interface.generate(n=n, **kwargs)
 
     raise ValueError(
         f"balance_single_task: GANType.{gan_type.name} is not a single-task "

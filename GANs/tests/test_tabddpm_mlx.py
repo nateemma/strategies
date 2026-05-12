@@ -176,3 +176,81 @@ class TestClassifierFreeGuidance:
             assert m2.guidance_scale == 4.0
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
+
+
+class TestPairConditioning:
+    def test_fit_with_pair_labels_sets_num_pairs(self):
+        data, labels = _toy_dataset(n=200, f=8, c=3, seed=0)
+        # Three pairs, distributed roughly evenly across rows.
+        pair_labels = np.tile([0, 1, 2], 67)[:200].astype(np.int32)
+        pair_names = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
+
+        m = TabDDPMMLX(
+            num_features=8, num_classes=3,
+            d_model=16, d_layers=(16, 16),
+            num_timesteps=50, num_sample_steps=10,
+            epochs=2, batch_size=64, verbose=False,
+        )
+        m.fit(data, labels, pair_labels=pair_labels, pair_names=pair_names)
+
+        assert m.num_pairs == 3
+        assert m.pair_names == pair_names
+        assert m._mlp.pair_embed is not None
+        assert m._ema_mlp.pair_embed is not None
+
+    def test_generate_with_pair_label_returns_finite_output(self):
+        data, labels = _toy_dataset(n=200, f=8, c=3, seed=0)
+        pair_labels = np.tile([0, 1, 2], 67)[:200].astype(np.int32)
+
+        m = TabDDPMMLX(
+            num_features=8, num_classes=3,
+            d_model=16, d_layers=(16, 16),
+            num_timesteps=50, num_sample_steps=10,
+            epochs=2, batch_size=64, verbose=False,
+        )
+        m.fit(data, labels, pair_labels=pair_labels,
+              pair_names=["A", "B", "C"])
+
+        one_hot = np.zeros((10, 3), dtype=np.float32)
+        one_hot[:, 0] = 1.0
+        # Explicit pair_label.
+        out = m.generate(10, one_hot, pair_label=1)
+        assert out.shape == (10, 1, 8)
+        assert np.isfinite(out).all()
+
+        # No pair_label — uniform sampling over training pairs.
+        out2 = m.generate(10, one_hot)
+        assert out2.shape == (10, 1, 8)
+        assert np.isfinite(out2).all()
+
+    def test_save_load_preserves_pair_conditioning(self):
+        data, labels = _toy_dataset(n=200, f=8, c=3, seed=0)
+        pair_labels = np.tile([0, 1, 2], 67)[:200].astype(np.int32)
+        pair_names = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
+
+        m = TabDDPMMLX(
+            num_features=8, num_classes=3,
+            d_model=16, d_layers=(16, 16),
+            num_timesteps=50, num_sample_steps=10,
+            epochs=2, batch_size=64, verbose=False,
+        )
+        m.fit(data, labels, pair_labels=pair_labels, pair_names=pair_names)
+
+        tmp = tempfile.mkdtemp()
+        try:
+            m.save(tmp)
+            m2, meta = TabDDPMMLX.load_from(tmp)
+            assert meta["num_pairs"] == 3
+            assert meta["pair_names"] == pair_names
+            assert m2.num_pairs == 3
+            assert m2.pair_names == pair_names
+            assert m2._ema_mlp.pair_embed is not None
+
+            # Generated samples should still be valid after load.
+            one_hot = np.zeros((5, 3), dtype=np.float32)
+            one_hot[:, 0] = 1.0
+            out = m2.generate(5, one_hot, pair_label=2)
+            assert out.shape == (5, 1, 8)
+            assert np.isfinite(out).all()
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)

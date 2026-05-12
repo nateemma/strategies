@@ -21,7 +21,7 @@ import math
 import os
 import pickle
 import time
-from typing import Any, Dict, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import mlx.core as mx
 import mlx.nn as nn
@@ -109,7 +109,13 @@ class _MLPBlock(nn.Module):
 
 
 class _TabDDPMMLP(nn.Module):
-    """MLP backbone: x_proj + t_embed + class_embed → stacked blocks → head."""
+    """MLP backbone: x_proj + t_embed + class_embed (+ pair_embed) → blocks → head.
+
+    Pair conditioning is optional and gated on ``num_pairs > 0``: when set,
+    a parallel ``pair_embed`` is added to the same hidden state as the
+    class embedding, letting the model produce per-pair-conditional
+    samples (mirrors the MLX CTAB-GAN pattern).
+    """
 
     def __init__(
         self,
@@ -118,6 +124,7 @@ class _TabDDPMMLP(nn.Module):
         d_model: int = 256,
         d_layers: Sequence[int] = (256, 256),
         dropout: float = 0.0,
+        num_pairs: int = 0,
     ):
         super().__init__()
         self.x_proj = nn.Linear(num_features, d_model)
@@ -129,6 +136,11 @@ class _TabDDPMMLP(nn.Module):
         # unconditional ε. generate() blends the two at sample time
         # when guidance_scale != 1.0.
         self.class_embed = nn.Embedding(num_classes + 1, d_model)
+        self.num_pairs = num_pairs
+        if num_pairs > 0:
+            self.pair_embed = nn.Embedding(num_pairs, d_model)
+        else:
+            self.pair_embed = None
 
         dims = [d_model, *d_layers]
         self.blocks = [
@@ -137,8 +149,16 @@ class _TabDDPMMLP(nn.Module):
         ]
         self.head = nn.Linear(dims[-1], num_features)
 
-    def __call__(self, x_t: mx.array, t: mx.array, class_idx: mx.array) -> mx.array:
+    def __call__(
+        self,
+        x_t: mx.array,
+        t: mx.array,
+        class_idx: mx.array,
+        pair_idx: Optional[mx.array] = None,
+    ) -> mx.array:
         h = self.x_proj(x_t) + self.t_embed(t) + self.class_embed(class_idx)
+        if self.pair_embed is not None and pair_idx is not None:
+            h = h + self.pair_embed(pair_idx)
         for blk in self.blocks:
             h = blk(h)
         return self.head(h)
@@ -160,6 +180,7 @@ class TabDDPMMLX:
         self,
         num_features: int = 0,
         num_classes: int = 0,
+        num_pairs: int = 0,
         *,
         d_model: int = 256,
         d_layers: Sequence[int] = (256, 256),
@@ -194,6 +215,8 @@ class TabDDPMMLX:
     ):
         self.num_features = num_features
         self.num_classes = num_classes
+        self.num_pairs = num_pairs
+        self.pair_names: Optional[List[str]] = None
         self.d_model = d_model
         self.d_layers = tuple(d_layers)
         self.dropout = dropout
@@ -239,11 +262,13 @@ class TabDDPMMLX:
             self.num_features, self.num_classes,
             d_model=self.d_model, d_layers=self.d_layers,
             dropout=self.dropout,
+            num_pairs=self.num_pairs,
         )
         self._ema_mlp = _TabDDPMMLP(
             self.num_features, self.num_classes,
             d_model=self.d_model, d_layers=self.d_layers,
             dropout=self.dropout,
+            num_pairs=self.num_pairs,
         )
 
     # ---------- training ---------- #
@@ -281,6 +306,8 @@ class TabDDPMMLX:
         data: np.ndarray,
         labels: np.ndarray,
         categorical_columns: Optional[Sequence[str]] = None,
+        pair_labels: Optional[np.ndarray] = None,
+        pair_names: Optional[Sequence[str]] = None,
         **_: Any,
     ) -> None:
         """Train the diffusion model.
@@ -291,6 +318,13 @@ class TabDDPMMLX:
             categorical_columns: Warned about and dropped (the v1 MLX
                                  TabDDPM is continuous-only — same policy
                                  as MLX CTAB-GAN).
+            pair_labels:         Optional (N,) int array — pair id per row.
+                                 When provided, enables pair conditioning:
+                                 model learns per-(class, pair) joint
+                                 distributions instead of class-only.
+            pair_names:          Optional list of pair display names,
+                                 stored in metadata so callers can map a
+                                 pair string → pair id at generate time.
         """
         if categorical_columns:
             print(
@@ -305,12 +339,42 @@ class TabDDPMMLX:
         if labels.ndim != 2:
             raise ValueError(f"labels must be 2-D (N, C); got shape {labels.shape}")
 
-        # Lazy-init the model now that we know dimensions.
+        # Pair-conditioning setup.  When pair_labels is provided, derive
+        # num_pairs and store the name list in metadata.  The model is
+        # then built with a pair_embed of size num_pairs.
+        if pair_labels is not None:
+            pair_labels_np = np.asarray(pair_labels, dtype=np.int32)
+            if pair_labels_np.shape != (data.shape[0],):
+                raise ValueError(
+                    f"pair_labels shape must be ({data.shape[0]},); "
+                    f"got {pair_labels_np.shape}"
+                )
+            derived = int(pair_labels_np.max()) + 1 if pair_labels_np.size else 0
+            self.num_pairs = max(
+                derived, len(pair_names) if pair_names else 0
+            )
+            if pair_names is not None:
+                self.pair_names = list(pair_names)
+            if self.verbose:
+                print(
+                    f"[TabDDPMMLX] pair conditioning enabled — "
+                    f"num_pairs={self.num_pairs}"
+                )
+        else:
+            pair_labels_np = None
+
+        # Lazy-init the model now that we know dimensions.  Rebuild when
+        # the live model's num_pairs no longer matches self.num_pairs —
+        # that happens when the ctor built it at num_pairs=0 but fit()
+        # was then handed pair_labels and bumped self.num_pairs above.
         if self.num_features == 0:
             self.num_features = data.shape[1]
         if self.num_classes == 0:
             self.num_classes = labels.shape[1]
-        if self._mlp is None:
+        live_num_pairs = (
+            getattr(self._mlp, "num_pairs", 0) if self._mlp is not None else 0
+        )
+        if self._mlp is None or live_num_pairs != self.num_pairs:
             self._build_models()
 
         data_norm = self._zscore_fit(data)
@@ -320,6 +384,9 @@ class TabDDPMMLX:
         # Move to MLX arrays once.
         data_mx = mx.array(data_norm)
         class_idx_mx = mx.array(class_idx_np)
+        pair_idx_mx = (
+            mx.array(pair_labels_np) if pair_labels_np is not None else None
+        )
 
         optimizer = optim.AdamW(learning_rate=self.learning_rate,
                                 weight_decay=self.weight_decay)
@@ -349,9 +416,10 @@ class TabDDPMMLX:
         use_min_snr = self.min_snr_gamma > 0.0
 
         def loss_fn(model: _TabDDPMMLP, x0: mx.array, t: mx.array,
-                    noise: mx.array, cls: mx.array) -> mx.array:
+                    noise: mx.array, cls: mx.array,
+                    pair: Optional[mx.array] = None) -> mx.array:
             x_t = q_sample(x0, t, noise, self._sched)
-            eps_hat = model(x_t, t, cls)
+            eps_hat = model(x_t, t, cls, pair_idx=pair)
             sq_err = (eps_hat - noise) ** 2
             if not use_min_snr:
                 # Plain mean MSE over batch × features. Uniform timestep
@@ -401,6 +469,7 @@ class TabDDPMMLX:
                 idx_mx = mx.array(idx, dtype=mx.int32)
                 x0 = data_mx[idx_mx]
                 cls = class_idx_mx[idx_mx]
+                pair = pair_idx_mx[idx_mx] if pair_idx_mx is not None else None
 
                 # Classifier-free guidance: drop the class condition with
                 # probability p_uncond, replacing it with the null token
@@ -417,7 +486,7 @@ class TabDDPMMLX:
                 t = mx.random.randint(0, self.num_timesteps, (self.batch_size,))
                 noise = mx.random.normal((self.batch_size, self.num_features))
 
-                loss, grads = loss_and_grad(self._mlp, x0, t, noise, cls)
+                loss, grads = loss_and_grad(self._mlp, x0, t, noise, cls, pair)
                 optimizer.update(self._mlp, grads)
 
                 # EMA update: θ_ema ← decay·θ_ema + (1-decay)·θ
@@ -487,12 +556,23 @@ class TabDDPMMLX:
 
     # ---------- sampling ---------- #
 
-    def generate(self, n: int, one_hot: np.ndarray) -> np.ndarray:
-        """Sample n synthetic rows conditioned on `one_hot`.
+    def generate(
+        self,
+        n: int,
+        one_hot: np.ndarray,
+        pair_label: Optional[int] = None,
+    ) -> np.ndarray:
+        """Sample n synthetic rows conditioned on `one_hot` (and optionally
+        on a pair id).
 
         Args:
-            n:       Number of samples.
-            one_hot: (n, num_classes) float32.
+            n:          Number of samples.
+            one_hot:    (n, num_classes) float32.
+            pair_label: Optional int — pair id to condition on.  Required
+                        when the model was trained with pair conditioning
+                        (num_pairs > 0); ignored otherwise.  If the model
+                        has pair conditioning but no label is supplied,
+                        pairs are sampled uniformly from the training set.
 
         Returns:
             (n, 1, num_features) float32 numpy array. The trailing seq
@@ -509,6 +589,20 @@ class TabDDPMMLX:
             )
         class_idx = mx.array(one_hot.argmax(axis=1).astype(np.int32))
 
+        # Pair conditioning: if the model has a pair_embed, every forward
+        # pass needs a pair_idx.  Use the supplied pair_label when given,
+        # otherwise sample uniformly from training pair ids (a soft
+        # "average over pairs" — useful when the caller doesn't care which
+        # pair the synth samples come from).
+        if self.num_pairs > 0:
+            if pair_label is not None:
+                pair_idx = mx.full((n,), int(pair_label), dtype=mx.int32)
+            else:
+                pair_ids = np.random.randint(0, self.num_pairs, n).astype(np.int32)
+                pair_idx = mx.array(pair_ids)
+        else:
+            pair_idx = None
+
         # Closure over the EMA model so the diffusion module stays
         # model-agnostic. eval() disables dropout for sampling — matters
         # when callers set dropout>0 at training time.
@@ -524,13 +618,13 @@ class TabDDPMMLX:
         guidance = float(self.guidance_scale)
         if guidance == 1.0:
             def model_fn(x_t: mx.array, t: mx.array, cond: mx.array) -> mx.array:
-                return ema(x_t, t, cond)
+                return ema(x_t, t, cond, pair_idx=pair_idx)
         else:
             null_idx = mx.full((n,), self.num_classes, dtype=mx.int32)
 
             def model_fn(x_t: mx.array, t: mx.array, cond: mx.array) -> mx.array:
-                eps_cond = ema(x_t, t, cond)
-                eps_uncond = ema(x_t, t, null_idx)
+                eps_cond = ema(x_t, t, cond, pair_idx=pair_idx)
+                eps_uncond = ema(x_t, t, null_idx, pair_idx=pair_idx)
                 return eps_uncond + guidance * (eps_cond - eps_uncond)
 
         try:
@@ -568,6 +662,8 @@ class TabDDPMMLX:
         meta: Dict[str, Any] = {
             "num_features":     self.num_features,
             "num_classes":      self.num_classes,
+            "num_pairs":        self.num_pairs,
+            "pair_names":       self.pair_names,
             "d_model":          self.d_model,
             "d_layers":         list(self.d_layers),
             "dropout":          self.dropout,
@@ -598,6 +694,7 @@ class TabDDPMMLX:
         instance = cls(
             num_features=int(metadata["num_features"]),
             num_classes=int(metadata["num_classes"]),
+            num_pairs=int(metadata.get("num_pairs", 0)),
             d_model=int(metadata.get("d_model", 256)),
             d_layers=tuple(metadata.get("d_layers", (256, 256))),
             dropout=float(metadata.get("dropout", 0.0)),
@@ -610,4 +707,6 @@ class TabDDPMMLX:
         instance._ema_mlp.load_weights(weights_p)
         instance.feature_mean = np.asarray(metadata["feature_mean"], dtype=np.float32)
         instance.feature_std = np.asarray(metadata["feature_std"], dtype=np.float32)
+        pair_names = metadata.get("pair_names")
+        instance.pair_names = list(pair_names) if pair_names is not None else None
         return instance, metadata

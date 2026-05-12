@@ -64,6 +64,10 @@ class TabDDPMMLXBackend(GANBackend):
         data_2d = _data_to_2d(data)
         labels_f32 = np.asarray(labels, dtype=np.float32)
         ctor_kwargs = {k: v for k, v in kwargs.items() if k in _TABDDPM_CTOR_KEYS}
+        # Pair conditioning flows to fit(), not the ctor — mirrors the
+        # MLX CTAB-GAN backend's pattern.
+        pair_labels = kwargs.get("pair_labels")
+        pair_names = kwargs.get("pair_names")
 
         self._model = TabDDPMMLX(
             num_features=data_2d.shape[1],
@@ -73,6 +77,8 @@ class TabDDPMMLXBackend(GANBackend):
         self._model.fit(
             data_2d, labels_f32,
             categorical_columns=categorical_columns or [],
+            pair_labels=pair_labels,
+            pair_names=pair_names,
         )
 
     def generate(self, n: int, **kwargs: Any) -> Any:
@@ -85,7 +91,8 @@ class TabDDPMMLXBackend(GANBackend):
             raise ValueError(
                 "generate() for TAB_DDPM requires keyword argument one_hot=<np.ndarray>"
             )
-        return self._model.generate(n, one_hot)
+        pair_label = kwargs.get("pair_label")
+        return self._model.generate(n, one_hot, pair_label=pair_label)
 
     def save(self, save_path: str, **extra_metadata: Any) -> None:
         if self._model is None:

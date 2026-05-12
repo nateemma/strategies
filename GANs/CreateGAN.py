@@ -191,6 +191,8 @@ class CreateGAN(CreateGANBase, BaseNNStrategy):
                     train_data=train_data,
                     train_labels=train_labels,
                     save_path=save_path,
+                    train_pair_ids=train_pair_ids,
+                    pair_names=pair_names,
                 )
 
         except Exception as exc:
@@ -209,12 +211,25 @@ class CreateGAN(CreateGANBase, BaseNNStrategy):
         train_data: np.ndarray,
         train_labels: np.ndarray,
         save_path: str,
+        train_pair_ids: Optional[np.ndarray] = None,
+        pair_names: Optional[List[str]] = None,
     ) -> None:
-        """WGAN-style training: fit + save, no post-training generation."""
+        """WGAN-style training: fit + save, no post-training generation.
+
+        Pair info (train_pair_ids, pair_names) is forwarded to the
+        backend's fit() — backends that support pair conditioning
+        (e.g. TabDDPM) pick it up; backends that don't ignore it.
+        """
         interface = GANInterface(self.gan_type, save_path=save_path)
+        fit_kwargs: Dict[str, Any] = {}
+        if train_pair_ids is not None:
+            fit_kwargs["pair_labels"] = train_pair_ids
+        if pair_names is not None:
+            fit_kwargs["pair_names"] = pair_names
         interface.fit(
             train_data.astype("float32"),
             train_labels.astype("float32"),
+            **fit_kwargs,
         )
         interface.save(**self._master_save_kwargs())
         print(f"    {self.gan_type.name} model saved to {save_path}")
