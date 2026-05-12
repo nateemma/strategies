@@ -25,7 +25,7 @@ _TABDDPM_CTOR_KEYS: frozenset = frozenset({
     "epochs", "batch_size",
     "learning_rate", "weight_decay",
     "ema_decay", "eval_frequency",
-    "lr_min_ratio",
+    "lr_min_ratio", "min_snr_gamma",
     "verbose",
 })
 

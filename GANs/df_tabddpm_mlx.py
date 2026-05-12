@@ -167,6 +167,7 @@ class TabDDPMMLX:
         ema_decay: float = 0.999,
         eval_frequency: int = 20,
         lr_min_ratio: float = 0.01,
+        min_snr_gamma: float = 5.0,
         verbose: bool = True,
     ):
         self.num_features = num_features
@@ -183,6 +184,7 @@ class TabDDPMMLX:
         self.ema_decay = ema_decay
         self.eval_frequency = eval_frequency
         self.lr_min_ratio = lr_min_ratio
+        self.min_snr_gamma = min_snr_gamma
         self.verbose = verbose
 
         # Feature stats populated by fit(); used by _postprocess.
@@ -279,11 +281,42 @@ class TabDDPMMLX:
         optimizer = optim.AdamW(learning_rate=self.learning_rate,
                                 weight_decay=self.weight_decay)
 
+        # Class-balanced batch-sampling weights.  The GAN's purpose is
+        # generating minority-class samples, but with uniform sampling
+        # the model sees minority-class conditioning rarely during
+        # training — exactly the conditioning path that matters most at
+        # sample time.  Reweight per-sample probabilities so each class
+        # contributes equal total probability; within a class the
+        # samples remain uniform.
+        class_counts = np.bincount(
+            class_idx_np, minlength=self.num_classes
+        ).astype(np.float32)
+        class_weights = np.where(
+            class_counts > 0, 1.0 / np.maximum(class_counts, 1.0), 0.0
+        )
+        per_sample_weights = class_weights[class_idx_np]
+        wsum = per_sample_weights.sum()
+        if wsum > 0:
+            per_sample_weights = per_sample_weights / wsum
+        else:
+            per_sample_weights = None  # degenerate: no classes seen
+
         def loss_fn(model: _TabDDPMMLP, x0: mx.array, t: mx.array,
                     noise: mx.array, cls: mx.array) -> mx.array:
             x_t = q_sample(x0, t, noise, self._sched)
             eps_hat = model(x_t, t, cls)
-            return mx.mean((eps_hat - noise) ** 2)
+            # Per-sample squared error, mean over feature dim → (B,).
+            per_sample_sq_err = mx.mean((eps_hat - noise) ** 2, axis=-1)
+            # Min-SNR-γ weighting (Hang et al. 2023). For ε-parameterised
+            # diffusion, w_t = min(SNR_t, γ) / SNR_t. Down-weights easy
+            # (high-SNR) timesteps so the model spends more capacity on
+            # the hard middle range of the noise schedule. ~5-10% sample
+            # quality gain on standard benchmarks.
+            ac_t = self._sched.alphas_cumprod[t]
+            one_minus_ac = mx.maximum(1.0 - ac_t, 1e-8)
+            snr_t = ac_t / one_minus_ac
+            weights = mx.minimum(snr_t, self.min_snr_gamma) / snr_t
+            return mx.mean(weights * per_sample_sq_err)
 
         loss_and_grad = nn.value_and_grad(self._mlp, loss_fn)
 
@@ -309,7 +342,12 @@ class TabDDPMMLX:
                 optimizer.learning_rate = self._cosine_lr(global_step, total_steps)
                 global_step += 1
 
-                idx = rng.integers(0, N, size=self.batch_size)
+                if per_sample_weights is not None:
+                    idx = rng.choice(
+                        N, size=self.batch_size, replace=True, p=per_sample_weights,
+                    )
+                else:
+                    idx = rng.integers(0, N, size=self.batch_size)
                 idx_mx = mx.array(idx, dtype=mx.int32)
                 x0 = data_mx[idx_mx]
                 cls = class_idx_mx[idx_mx]
