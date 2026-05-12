@@ -331,19 +331,25 @@ class TabDDPMMLX:
         class_idx = mx.array(one_hot.argmax(axis=1).astype(np.int32))
 
         # Closure over the EMA model so the diffusion module stays
-        # model-agnostic.
+        # model-agnostic. eval() disables dropout for sampling — matters
+        # when callers set dropout>0 at training time.
         ema = self._ema_mlp
+        ema.eval()
 
         def model_fn(x_t: mx.array, t: mx.array, cond: mx.array) -> mx.array:
             return ema(x_t, t, cond)
 
-        x0_mx = ddim_sample(
-            model_fn=model_fn,
-            shape=(n, self.num_features),
-            cond=class_idx,
-            sched=self._sched,
-            num_steps=self.num_sample_steps,
-        )
+        try:
+            x0_mx = ddim_sample(
+                model_fn=model_fn,
+                shape=(n, self.num_features),
+                cond=class_idx,
+                sched=self._sched,
+                num_steps=self.num_sample_steps,
+            )
+        finally:
+            ema.train()
+
         # _postprocess: clip to [-1, 1], then inverse minmax.
         x0_np = np.clip(np.asarray(x0_mx), -1.0, 1.0)
         x0_np = self._minmax_invert(x0_np)

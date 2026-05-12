@@ -44,6 +44,7 @@ Every GAN type for a strategy lives under one parent directory, keyed by
     mt_wgan/               GANType.MT_WGAN
     mt_ctab_gan/           GANType.MT_CTAB_GAN
     cgan/                  GANType.CGAN
+    tab_ddpm/              GANType.TAB_DDPM
 ```
 
 PCA-reduced strategies use `GANs_PCA/<type>/` instead.  The convention is
@@ -217,7 +218,7 @@ Two public helpers orchestrate the per-class generation loop on top of
 `GANInterface`.  The strategy code never picks GAN-specific kwargs —
 the helpers dispatch on `interface.gan_type`:
 
-### `balance_single_task` — for WGAN / CTAB_GAN / CGAN
+### `balance_single_task` — for WGAN / CTAB_GAN / CGAN / TAB_DDPM
 
 ```python
 from GANs.balance import balance_single_task
