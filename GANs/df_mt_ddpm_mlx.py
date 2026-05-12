@@ -34,6 +34,21 @@ from GANs.diffusion_mlx import (
 )
 
 
+# ---------------------------------------------------------------------------
+# Parameter-tree helpers (mirrors df_tabddpm_mlx._tree_lerp)
+# ---------------------------------------------------------------------------
+
+def _tree_lerp(a: Any, b: Any, t: float) -> Any:
+    """Element-wise (1-t)*a + t*b on nested mlx parameter trees."""
+    if isinstance(a, dict):
+        return {k: _tree_lerp(a[k], b[k], t) for k in a}
+    if isinstance(a, list):
+        return [_tree_lerp(ai, bi, t) for ai, bi in zip(a, b)]
+    if isinstance(a, mx.array):
+        return (1.0 - t) * a + t * b
+    return a  # non-array leaves passed through
+
+
 # ---------- submodules ----------
 
 class _SinusoidalTimeEmbed(nn.Module):
@@ -85,13 +100,14 @@ class _MLPBlock(nn.Module):
         self.norm = nn.LayerNorm(dim)
         self.fc = nn.Linear(dim, dim)
         self.dropout_p = dropout
+        self._dropout = nn.Dropout(dropout) if dropout > 0.0 else None
 
     def __call__(self, x: mx.array, training: bool) -> mx.array:
         h = self.norm(x)
         h = self.fc(h)
         h = nn.gelu(h)
-        if training and self.dropout_p > 0.0:
-            h = nn.dropout(h, p=self.dropout_p)
+        if training and self._dropout is not None:
+            h = self._dropout(h)
         return x + h
 
 
@@ -224,8 +240,125 @@ class MTDDPMMLX:
         self.feature_mean: Optional[np.ndarray] = None
         self.feature_std: Optional[np.ndarray] = None
 
-    def fit(self, *args, **kwargs):
-        raise NotImplementedError("filled in by Task 3")
+    def fit(
+        self,
+        data: np.ndarray,
+        labels: Dict[str, np.ndarray],
+        categorical_columns: Optional[List[str]] = None,
+        pair_labels: Optional[np.ndarray] = None,
+        pair_names: Optional[List[str]] = None,
+    ) -> None:
+        """Train the diffusion model. Persists best-by-train-loss snapshot."""
+        import copy
+
+        if data.ndim != 3:
+            raise ValueError(
+                f"MTDDPMMLX.fit expects data of shape (N, seq_len, F); "
+                f"got {data.shape}"
+            )
+        if not isinstance(labels, dict):
+            raise TypeError(
+                f"MTDDPMMLX.fit expects labels as Dict[str, np.ndarray]; "
+                f"got {type(labels).__name__}"
+            )
+
+        N, T, F = data.shape
+        assert T == self.seq_len and F == self.num_features
+
+        self.feature_mean = data.reshape(-1, F).mean(axis=0).astype(np.float32)
+        self.feature_std = data.reshape(-1, F).std(axis=0).astype(np.float32) + 1e-6
+
+        x_data = mx.array(data, dtype=mx.float32)
+        task_arrays = {
+            name: mx.array(np.argmax(onehot, axis=1), dtype=mx.int32)
+            for name, onehot in labels.items()
+        }
+
+        self._schedule = make_schedule(self.num_timesteps)
+
+        optimizer = optim.AdamW(
+            learning_rate=self.learning_rate, weight_decay=self.weight_decay
+        )
+
+        self._ema_mlp = copy.deepcopy(self._mlp)
+
+        # Labels dict is captured by closure — passing a Python dict as a
+        # positional arg to nn.value_and_grad causes MLX to attempt gradient
+        # tracing through dict keys, which is unsupported. Only MLX arrays
+        # that need gradients (x0, noise) go as positional args.
+        _batch_labels: Dict[str, mx.array] = {}
+
+        def loss_fn(mlp, x0, t, noise):
+            # q_sample uses [:, None] broadcast — designed for (B, F).
+            # Flatten (B, T, F) → (B, T*F) before the call, then reshape.
+            b = x0.shape[0]
+            x0_flat = x0.reshape(b, -1)
+            noise_flat = noise.reshape(b, -1)
+            x_noisy_flat = q_sample(x0_flat, t, noise_flat, self._schedule)
+            x_noisy = x_noisy_flat.reshape(b, T, F)
+            eps_hat = mlp(x_noisy, t.astype(mx.float32), _batch_labels, training=True)
+            noise_shaped = noise_flat.reshape(b, T, F)
+            return mx.mean((eps_hat - noise_shaped) ** 2)
+
+        loss_and_grad = nn.value_and_grad(self._mlp, loss_fn)
+
+        self._loss_history: List[float] = []
+        self._best_train_loss: Optional[float] = None
+
+        rng = np.random.default_rng(42)
+        steps_per_epoch = max(N // self.batch_size, 1)
+
+        for epoch in range(self.epochs):
+            epoch_losses = []
+            perm = rng.permutation(N)
+            for step in range(steps_per_epoch):
+                idx = perm[step * self.batch_size : (step + 1) * self.batch_size]
+                if len(idx) == 0:
+                    continue
+                x0 = x_data[mx.array(idx, dtype=mx.int32)]
+                t = mx.random.randint(0, self.num_timesteps, (len(idx),))
+                noise = mx.random.normal(x0.shape)
+                # Update the closure-captured dict in place before each step.
+                for name, arr in task_arrays.items():
+                    _batch_labels[name] = arr[mx.array(idx, dtype=mx.int32)]
+
+                loss, grads = loss_and_grad(self._mlp, x0, t, noise)
+                optimizer.update(self._mlp, grads)
+
+                self._ema_update()
+
+                # CRITICAL: eval ALL updated state so Metal doesn't accumulate
+                # a lazy graph that overflows the resource limit.
+                mx.eval(
+                    self._mlp.parameters(),
+                    self._ema_mlp.parameters(),
+                    optimizer.state,
+                    loss,
+                )
+
+                epoch_losses.append(float(loss.item()))
+
+            epoch_loss = float(np.mean(epoch_losses)) if epoch_losses else float("nan")
+            self._loss_history.append(epoch_loss)
+
+            if self._best_train_loss is None or epoch_loss < self._best_train_loss:
+                self._best_train_loss = epoch_loss
+                self._best_state = copy.deepcopy(self._ema_mlp)
+
+            if self.verbose and (epoch % self.eval_frequency == 0 or epoch == self.epochs - 1):
+                print(f"  MT_DDPM epoch {epoch + 1}/{self.epochs} loss={epoch_loss:.5f}")
+
+    def _ema_update(self) -> None:
+        """In-place EMA: ema = ema * decay + live * (1 - decay).
+
+        Uses the same _tree_lerp pattern as TabDDPMMLX._ema_update to walk
+        the parameter tree without manual recursion.
+        """
+        d = self.ema_decay
+        live = self._mlp.parameters()
+        ema = self._ema_mlp.parameters()
+        new_ema = _tree_lerp(ema, live, 1.0 - d)
+        self._ema_mlp.update(new_ema)
 
     def generate(self, *args, **kwargs):
         raise NotImplementedError("filled in by Task 4")
