@@ -321,3 +321,58 @@ class TestPairFallback:
         idx = _resolve_pair_label(iface, None, log=log_lines.append)
         assert idx is None
         assert any("PAIR-CONDITIONING FALLBACK" in line for line in log_lines)
+
+
+class TestEDMSchedule:
+    """Smoke tests for the EDM-style σ schedule path
+    (``use_edm_schedule=True``)."""
+
+    def test_fit_generate_roundtrip_with_edm(self):
+        data, labels = _toy_dataset(n=200, f=8, c=3, seed=0)
+        m = TabDDPMMLX(
+            num_features=8, num_classes=3,
+            d_model=16, d_layers=(16, 16),
+            num_timesteps=50,  # unused on EDM path
+            num_sample_steps=10,
+            epochs=2, batch_size=64,
+            use_edm_schedule=True,
+            verbose=False,
+        )
+        m.fit(data, labels)
+
+        one_hot = np.zeros((10, 3), dtype=np.float32)
+        one_hot[:, 1] = 1.0
+        out = m.generate(10, one_hot)
+        assert isinstance(out, np.ndarray)
+        assert out.shape == (10, 1, 8)
+        assert np.isfinite(out).all(), "EDM path produced non-finite samples"
+
+    def test_save_load_preserves_edm_flag(self):
+        data, labels = _toy_dataset(n=200, f=8, c=3, seed=0)
+        m = TabDDPMMLX(
+            num_features=8, num_classes=3,
+            d_model=16, d_layers=(16, 16),
+            num_sample_steps=10,
+            epochs=2, batch_size=64,
+            use_edm_schedule=True,
+            edm_sigma_max=40.0,
+            verbose=False,
+        )
+        m.fit(data, labels)
+
+        tmp = tempfile.mkdtemp()
+        try:
+            m.save(tmp)
+            m2, meta = TabDDPMMLX.load_from(tmp)
+            assert meta["use_edm_schedule"] is True
+            assert meta["edm_sigma_max"] == 40.0
+            assert m2.use_edm_schedule is True
+            assert m2.edm_sigma_max == 40.0
+
+            one_hot = np.zeros((5, 3), dtype=np.float32)
+            one_hot[:, 0] = 1.0
+            out = m2.generate(5, one_hot)
+            assert out.shape == (5, 1, 8)
+            assert np.isfinite(out).all()
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)

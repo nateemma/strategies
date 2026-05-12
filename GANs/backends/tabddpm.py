@@ -28,6 +28,9 @@ _TABDDPM_CTOR_KEYS: frozenset = frozenset({
     "lr_min_ratio", "min_snr_gamma",
     "class_balanced_sampling",
     "p_uncond", "guidance_scale",
+    "use_edm_schedule",
+    "edm_p_mean", "edm_p_std",
+    "edm_sigma_min", "edm_sigma_max", "edm_rho",
     "verbose",
 })
 
