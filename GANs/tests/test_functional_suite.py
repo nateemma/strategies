@@ -213,6 +213,42 @@ def _wgan_check_metadata_dims(self, meta):
 
 
 # ---------------------------------------------------------------------------
+# Generate / check callables — TabDDPM
+# ---------------------------------------------------------------------------
+
+def _tabddpm_fast_fit_kwargs(**overrides) -> dict:
+    base = dict(
+        d_model=16,
+        d_layers=(16, 16),
+        num_timesteps=50,
+        num_sample_steps=10,
+        epochs=2,
+        batch_size=64,
+        verbose=False,
+    )
+    base.update(overrides)
+    return base
+
+
+def _tabddpm_do_generate(iface, n):
+    one_hot = np.zeros((n, N_WGAN_CLASSES), dtype="float32")
+    one_hot[:, 0] = 1.0
+    return iface.generate(n, one_hot=one_hot)
+
+
+def _tabddpm_check_gen_output(self, result, n):
+    self.assertIsInstance(result, np.ndarray)
+    self.assertEqual(result.shape[0], n)
+    self.assertEqual(result.ndim, 3)          # (n, 1, F)
+    self.assertEqual(result.shape[2], N_FEATURES)
+
+
+def _tabddpm_check_metadata_dims(self, meta):
+    self.assertEqual(meta["num_features"], N_FEATURES)
+    self.assertEqual(meta["num_classes"],  N_WGAN_CLASSES)
+
+
+# ---------------------------------------------------------------------------
 # Generate / check callables — MT_WGAN
 # ---------------------------------------------------------------------------
 
@@ -342,6 +378,7 @@ class FitGenSuiteConfig:
     check_metadata_dims: Callable  # (test_self, meta) -> None
     do_generate: Callable          # (iface, n) -> result
     check_gen_output: Callable     # (test_self, result, n) -> None
+    prefer_mlx: bool = False
     extra_contract_tests: dict = field(default_factory=dict)
     extra_saveload_tests: dict = field(default_factory=dict)
     extra_interface_tests: dict = field(default_factory=dict)
@@ -436,6 +473,27 @@ _FITGEN_CONFIGS: list[FitGenSuiteConfig] = [
         do_generate=_mt_ctab_do_generate,
         check_gen_output=_mt_ctab_check_gen_output,
     ),
+    FitGenSuiteConfig(
+        name="TabDDPM",
+        gan_type=GANType.TAB_DDPM,
+        n_samples=N_SAMPLES,
+        n_features=N_FEATURES,
+        make_dataset=_make_wgan_dataset,
+        copy_labels=lambda labels: labels.copy(),
+        fit_kwargs=_tabddpm_fast_fit_kwargs(),
+        model_files=["tabddpm_gen_mlx.safetensors"],
+        metadata_filename="tabddpm_metadata.pkl",
+        required_metadata_keys={
+            "num_features", "num_classes",
+            "feature_min", "feature_max",
+            "num_timesteps", "num_sample_steps",
+            "d_model", "d_layers",
+        },
+        check_metadata_dims=_tabddpm_check_metadata_dims,
+        do_generate=_tabddpm_do_generate,
+        check_gen_output=_tabddpm_check_gen_output,
+        prefer_mlx=True,
+    ),
 ]
 
 
@@ -454,7 +512,7 @@ def _make_fitgen_contract_class(config: FitGenSuiteConfig) -> type:
         from GANs.GANInterface import GANInterface
         cls.data, cls.labels = config.make_dataset()
         cls.tmp = tempfile.mkdtemp(prefix=f"{config.name.lower()}_fg_contract_")
-        cls.iface = GANInterface(config.gan_type, save_path=None, prefer_mlx=False)
+        cls.iface = GANInterface(config.gan_type, save_path=None, prefer_mlx=config.prefer_mlx)
         cls.iface.fit(
             cls.data.copy(),
             config.copy_labels(cls.labels),
@@ -519,7 +577,7 @@ def _make_fitgen_saveload_class(config: FitGenSuiteConfig) -> type:
         """Helper: fit a new model and save it to tmp/subdir."""
         from GANs.GANInterface import GANInterface
         save_path = os.path.join(self.tmp, subdir)
-        iface = GANInterface(_cfg.gan_type, save_path=save_path, prefer_mlx=False)
+        iface = GANInterface(_cfg.gan_type, save_path=save_path, prefer_mlx=_cfg.prefer_mlx)
         iface.fit(
             self.data.copy(),
             _cfg.copy_labels(self.labels),
@@ -558,7 +616,7 @@ def _make_fitgen_saveload_class(config: FitGenSuiteConfig) -> type:
     def test_loaded_model_generates_correct_output(self, _cfg=config):
         save_path = self._fit_and_save("reload_test")
         from GANs.GANInterface import GANInterface
-        iface2 = GANInterface(_cfg.gan_type, save_path=save_path, prefer_mlx=False)
+        iface2 = GANInterface(_cfg.gan_type, save_path=save_path, prefer_mlx=_cfg.prefer_mlx)
         iface2.load()
         result = _cfg.do_generate(iface2, 5)
         _cfg.check_gen_output(self, result, 5)
@@ -602,7 +660,7 @@ def _make_fitgen_interface_class(config: FitGenSuiteConfig) -> type:
 
     def test_fit_and_generate_end_to_end(self, _cfg=config):
         from GANs.GANInterface import GANInterface
-        iface = GANInterface(_cfg.gan_type, save_path=None, prefer_mlx=False)
+        iface = GANInterface(_cfg.gan_type, save_path=None, prefer_mlx=_cfg.prefer_mlx)
         iface.fit(
             self.data.copy(),
             _cfg.copy_labels(self.labels),
@@ -614,14 +672,14 @@ def _make_fitgen_interface_class(config: FitGenSuiteConfig) -> type:
     def test_fit_save_load_generate_round_trip(self, _cfg=config):
         from GANs.GANInterface import GANInterface
         save_path = os.path.join(self.tmp, "round_trip")
-        iface = GANInterface(_cfg.gan_type, save_path=save_path, prefer_mlx=False)
+        iface = GANInterface(_cfg.gan_type, save_path=save_path, prefer_mlx=_cfg.prefer_mlx)
         iface.fit(
             self.data.copy(),
             _cfg.copy_labels(self.labels),
             **_cfg.fit_kwargs,
         )
         iface.save()
-        iface2 = GANInterface(_cfg.gan_type, save_path=save_path, prefer_mlx=False)
+        iface2 = GANInterface(_cfg.gan_type, save_path=save_path, prefer_mlx=_cfg.prefer_mlx)
         iface2.load()
         result = _cfg.do_generate(iface2, 5)
         _cfg.check_gen_output(self, result, 5)
