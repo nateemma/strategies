@@ -28,3 +28,4 @@ class GANType(Enum):
     CGAN = auto()         # Conditional GAN, single-task, sequential (TF)
     BOTH = auto()         # WGAN pre-processing + CTAB-GAN augmentation
     TAB_DDPM = auto()     # TabDDPM (tabular diffusion, MLX-only, continuous-only, single-task)
+    MT_DDPM = auto()      # DDPM, multi-task, 3-D sequential (MLX-only, continuous-only)
