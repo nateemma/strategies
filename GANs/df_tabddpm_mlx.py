@@ -289,10 +289,22 @@ class TabDDPMMLX:
 
                 loss, grads = loss_and_grad(self._mlp, x0, t, noise, cls)
                 optimizer.update(self._mlp, grads)
-                mx.eval(self._mlp.parameters(), optimizer.state)
 
                 # EMA update: θ_ema ← decay·θ_ema + (1-decay)·θ
                 self._ema_update()
+
+                # Force materialisation of ALL live state on every step.
+                # Without the EMA params in this eval list, MLX's lazy
+                # graph accumulates _ema_mlp tensors across steps and
+                # eventually trips Metal's per-process resource limit
+                # (~500K allocations) — confirmed crash at epoch ~63
+                # on a 720-day training run.
+                mx.eval(
+                    self._mlp.parameters(),
+                    self._ema_mlp.parameters(),
+                    optimizer.state,
+                    loss,
+                )
                 epoch_loss += float(loss.item())
 
             avg = epoch_loss / steps_per_epoch
