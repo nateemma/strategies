@@ -38,8 +38,18 @@ DEFAULT_P_STD: float = 1.2
 
 # σ schedule for sampling: σ_i = (σ_max^(1/ρ) + i/(N-1) · (σ_min^(1/ρ) - σ_max^(1/ρ)))^ρ
 DEFAULT_SIGMA_MIN: float = 0.002
-DEFAULT_SIGMA_MAX: float = 80.0
+# σ_max=10 here (not 80 as in the EDM image paper).  Reason: with our
+# tabular training σ sampled log-normal(P_mean=-1.2, P_std=1.2), 99.7%
+# of training σ is in [0.008, 11].  Starting reverse sampling at σ=80
+# would feed the network inputs it never saw during training and
+# produce non-finite outputs.  10 keeps the entire reverse process
+# inside the trained σ distribution.
+DEFAULT_SIGMA_MAX: float = 10.0
 DEFAULT_RHO: float = 7.0
+
+# EDM input preconditioning data std.  Z-score normalised data has
+# per-feature std ≈ 1, so 1.0 is the right default for tabular.
+DEFAULT_SIGMA_DATA: float = 1.0
 
 
 # ---------------------------------------------------------------------------

@@ -32,6 +32,7 @@ from GANs.diffusion_mlx import Schedule, ddim_sample, make_schedule, q_sample
 from GANs.diffusion_edm_mlx import (
     DEFAULT_P_MEAN, DEFAULT_P_STD,
     DEFAULT_SIGMA_MIN, DEFAULT_SIGMA_MAX, DEFAULT_RHO,
+    DEFAULT_SIGMA_DATA,
     build_sigma_schedule, heun_sample, sample_log_normal_sigma,
 )
 
@@ -227,6 +228,7 @@ class TabDDPMMLX:
         edm_sigma_min: float = DEFAULT_SIGMA_MIN,
         edm_sigma_max: float = DEFAULT_SIGMA_MAX,
         edm_rho: float = DEFAULT_RHO,
+        edm_sigma_data: float = DEFAULT_SIGMA_DATA,
         verbose: bool = True,
     ):
         self.num_features = num_features
@@ -255,6 +257,7 @@ class TabDDPMMLX:
         self.edm_sigma_min = edm_sigma_min
         self.edm_sigma_max = edm_sigma_max
         self.edm_rho = edm_rho
+        self.edm_sigma_data = edm_sigma_data
         self.verbose = verbose
 
         # Feature stats populated by fit(); used by _postprocess.
@@ -456,17 +459,23 @@ class TabDDPMMLX:
         def loss_fn_edm(model: _TabDDPMMLP, x0: mx.array, sigma: mx.array,
                         noise: mx.array, cls: mx.array,
                         pair: Optional[mx.array] = None) -> mx.array:
-            """EDM-style σ-schedule loss with ε-prediction.
+            """EDM-style σ-schedule loss with ε-prediction + c_in
+            preconditioning.
 
-            Forward: x_σ = x_0 + σ · ε.  Time conditioning is fed as
-            c_noise = 0.25 · ln(σ) (EDM Eq. 7) so the sinusoidal time
-            embedding sees a scaled log-sigma rather than an integer
-            timestep.  Loss is plain MSE on ε — no preconditioning
-            (we're keeping the existing model output contract).
+            Forward: x_σ = x_0 + σ · ε.  We then pass the network
+            ``c_in · x_σ`` rather than x_σ directly, where
+            ``c_in = 1 / sqrt(σ² + σ_data²)`` (EDM Eq. 7) — this keeps
+            the input to the MLP at roughly unit magnitude across all σ,
+            so the network sees in-distribution inputs whether σ ≈ 0
+            or σ ≈ σ_max.  Time conditioning is c_noise = 0.25·ln(σ).
+            Loss is plain MSE on ε (no output preconditioning — we keep
+            ε-prediction).
             """
             x_sigma = x0 + sigma[:, None] * noise
+            sigma_data = self.edm_sigma_data
+            c_in = 1.0 / mx.sqrt(sigma**2 + sigma_data**2)
             c_noise = 0.25 * mx.log(sigma)
-            eps_hat = model(x_sigma, c_noise, cls, pair_idx=pair)
+            eps_hat = model(c_in[:, None] * x_sigma, c_noise, cls, pair_idx=pair)
             return mx.mean((eps_hat - noise) ** 2)
 
         loss_fn = loss_fn_edm if self.use_edm_schedule else loss_fn_ddpm
@@ -664,27 +673,39 @@ class TabDDPMMLX:
 
         # The model's time-conditioning input differs by schedule:
         #   DDPM path: integer timestep t (passed straight through).
-        #   EDM  path: c_noise(σ) = 0.25 · ln(σ) per Karras et al. Eq. 7.
-        # heun_sample hands the closure a σ array; ddim_sample hands a t
-        # array — neutral inside model_fn since we re-route the
-        # conditioning input here.
+        #   EDM  path: c_noise(σ) = 0.25 · ln(σ) per Karras et al. Eq. 7,
+        #             and input scaled by c_in = 1/sqrt(σ² + σ_data²)
+        #             to keep MLP inputs at unit magnitude across all σ
+        #             — without this, σ-magnitude inputs to the network
+        #             go non-finite for σ values it never saw during
+        #             training.
         if self.use_edm_schedule:
+            sigma_data_val = self.edm_sigma_data
+
             def _time_cond(t_or_sigma: mx.array) -> mx.array:
                 return 0.25 * mx.log(t_or_sigma)
+
+            def _scale_input(x: mx.array, sigma: mx.array) -> mx.array:
+                c_in = 1.0 / mx.sqrt(sigma**2 + sigma_data_val**2)
+                return c_in[:, None] * x
         else:
             def _time_cond(t_or_sigma: mx.array) -> mx.array:
                 return t_or_sigma
 
+            def _scale_input(x: mx.array, sigma: mx.array) -> mx.array:
+                return x
+
         if guidance == 1.0:
             def model_fn(x_t: mx.array, t: mx.array, cond: mx.array) -> mx.array:
-                return ema(x_t, _time_cond(t), cond, pair_idx=pair_idx)
+                return ema(_scale_input(x_t, t), _time_cond(t), cond, pair_idx=pair_idx)
         else:
             null_idx = mx.full((n,), self.num_classes, dtype=mx.int32)
 
             def model_fn(x_t: mx.array, t: mx.array, cond: mx.array) -> mx.array:
+                x_in = _scale_input(x_t, t)
                 c = _time_cond(t)
-                eps_cond = ema(x_t, c, cond, pair_idx=pair_idx)
-                eps_uncond = ema(x_t, c, null_idx, pair_idx=pair_idx)
+                eps_cond = ema(x_in, c, cond, pair_idx=pair_idx)
+                eps_uncond = ema(x_in, c, null_idx, pair_idx=pair_idx)
                 return eps_uncond + guidance * (eps_cond - eps_uncond)
 
         try:
@@ -751,6 +772,7 @@ class TabDDPMMLX:
             "edm_sigma_min":    self.edm_sigma_min,
             "edm_sigma_max":    self.edm_sigma_max,
             "edm_rho":          self.edm_rho,
+            "edm_sigma_data":   self.edm_sigma_data,
             "feature_mean":     np.asarray(self.feature_mean, dtype=np.float32),
             "feature_std":      np.asarray(self.feature_std, dtype=np.float32),
         }
@@ -788,6 +810,7 @@ class TabDDPMMLX:
             edm_sigma_min=float(metadata.get("edm_sigma_min", DEFAULT_SIGMA_MIN)),
             edm_sigma_max=float(metadata.get("edm_sigma_max", DEFAULT_SIGMA_MAX)),
             edm_rho=float(metadata.get("edm_rho", DEFAULT_RHO)),
+            edm_sigma_data=float(metadata.get("edm_sigma_data", DEFAULT_SIGMA_DATA)),
             verbose=False,
         )
         instance._ema_mlp.load_weights(weights_p)
