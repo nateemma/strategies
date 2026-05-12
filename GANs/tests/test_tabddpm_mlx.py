@@ -254,3 +254,70 @@ class TestPairConditioning:
             assert np.isfinite(out).all()
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
+
+
+class TestPairFallback:
+    """`_resolve_pair_label` should fall back to None (uniform sampling)
+    with a prominent warning when the pair isn't in the GAN's training
+    set — never raise."""
+
+    def test_unknown_pair_returns_none_with_warning(self):
+        from GANs.balance import _resolve_pair_label
+
+        # Build a fitted model so .num_pairs > 0 and .pair_names is set.
+        data, labels = _toy_dataset(n=200, f=8, c=3, seed=0)
+        pair_labels = np.tile([0, 1, 2], 67)[:200].astype(np.int32)
+        pair_names = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
+        m = TabDDPMMLX(
+            num_features=8, num_classes=3,
+            d_model=16, d_layers=(16, 16),
+            num_timesteps=50, num_sample_steps=10,
+            epochs=2, batch_size=64, verbose=False,
+        )
+        m.fit(data, labels, pair_labels=pair_labels, pair_names=pair_names)
+
+        # Wrap in a minimal interface-like object.
+        class _Iface:
+            pass
+
+        iface = _Iface()
+        iface._model = m
+
+        # Known pair → resolves to its index.
+        log_lines = []
+        idx = _resolve_pair_label(iface, "ETH/USDT", log=log_lines.append)
+        assert idx == 1
+        assert not any("PAIR-CONDITIONING FALLBACK" in line for line in log_lines)
+
+        # Unknown pair → None + warning.
+        log_lines = []
+        idx = _resolve_pair_label(iface, "DOGE/USDT", log=log_lines.append)
+        assert idx is None
+        assert any("PAIR-CONDITIONING FALLBACK" in line for line in log_lines)
+        assert any("DOGE/USDT" in line for line in log_lines)
+
+    def test_missing_pair_name_returns_none_with_warning(self):
+        from GANs.balance import _resolve_pair_label
+
+        data, labels = _toy_dataset(n=200, f=8, c=3, seed=0)
+        pair_labels = np.tile([0, 1, 2], 67)[:200].astype(np.int32)
+        m = TabDDPMMLX(
+            num_features=8, num_classes=3,
+            d_model=16, d_layers=(16, 16),
+            num_timesteps=50, num_sample_steps=10,
+            epochs=2, batch_size=64, verbose=False,
+        )
+        m.fit(data, labels, pair_labels=pair_labels,
+              pair_names=["A", "B", "C"])
+
+        class _Iface:
+            pass
+
+        iface = _Iface()
+        iface._model = m
+
+        # pair_name=None on a pair-conditioned model → fallback, no raise.
+        log_lines = []
+        idx = _resolve_pair_label(iface, None, log=log_lines.append)
+        assert idx is None
+        assert any("PAIR-CONDITIONING FALLBACK" in line for line in log_lines)

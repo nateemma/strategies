@@ -715,11 +715,15 @@ def _resolve_pair_label(
 ) -> Optional[int]:
     """Look up a pair name in the GAN's saved pair_names → integer index.
 
-    Returns None when the loaded GAN was not trained with pair conditioning
-    (num_pairs == 0 or pair_names missing from metadata). Raises when the
-    GAN does have pair conditioning but the requested pair_name isn't in
-    its training set — silently falling back would reintroduce the bug
-    pair conditioning was meant to fix.
+    Returns None when:
+      * The loaded GAN was not trained with pair conditioning
+        (``num_pairs == 0``).
+      * The GAN has pair conditioning but ``pair_names`` mapping is
+        missing from metadata (older saves).
+      * ``pair_name`` was not in the GAN's training set — falls back
+        with a prominent warning to "uniform-over-training-pairs"
+        sampling. The classifier still gets augmentation; it just
+        won't be pair-specific for this pair until the GAN is retrained.
     """
     model = getattr(interface, "_model", None)
     if model is None:
@@ -728,31 +732,55 @@ def _resolve_pair_label(
     if not num_pairs:
         return None
     if pair_name is None:
-        raise ValueError(
-            "GAN was trained with pair conditioning but no pair_name was "
-            "passed to balance_single_task — augmentation needs to know "
-            "which pair it is generating for."
+        # Caller didn't pass a pair_name at all — likely a programming
+        # error (the strategy should always know which pair it's
+        # processing).  Warn loudly and fall back to uniform sampling.
+        _warn_pair_fallback(
+            log,
+            reason="no pair_name supplied to balance_single_task",
+            advice="check that the strategy passes the current pair to augmentation.",
         )
+        return None
     pair_names = getattr(model, "pair_names", None)
     if pair_names is None:
-        # Pair conditioning is on but the name → index mapping wasn't saved.
-        # Fall back to a deterministic warning; we can't resolve safely.
-        log(
-            f"    balance_single_task: GAN has pair conditioning but "
-            f"pair_names mapping is missing from metadata — cannot resolve "
-            f"pair_name={pair_name!r} to an index."
+        _warn_pair_fallback(
+            log,
+            reason="GAN metadata is missing pair_names mapping",
+            advice=(
+                "retrain CreateTabDDPM so it stores pair_names "
+                "(post-2026-05-12 saves include it automatically)."
+            ),
         )
-        raise ValueError(
-            f"GAN metadata is missing pair_names; retrain the GAN to "
-            f"save the pair name → index mapping."
-        )
+        return None
     if pair_name not in pair_names:
-        raise ValueError(
-            f"Pair {pair_name!r} is not in the GAN's training pair list "
-            f"({pair_names}). Retrain the GAN with this pair included, "
-            f"or drop the pair from augmentation."
+        _warn_pair_fallback(
+            log,
+            reason=f"pair {pair_name!r} is not in the GAN's training pair list",
+            advice=(
+                f"retrain CreateTabDDPM with the current pairlist to learn "
+                f"per-pair samples for {pair_name!r}. "
+                f"Training pairs were: {pair_names}"
+            ),
         )
+        return None
     return int(pair_names.index(pair_name))
+
+
+def _warn_pair_fallback(log: Any, *, reason: str, advice: str) -> None:
+    """Emit a high-visibility warning when the GAN can't resolve a
+    pair_label and is falling back to uniform-over-training-pairs
+    sampling — clearly distinct from normal balance_single_task
+    output."""
+    banner = "*" * 74
+    log("")
+    log(f"    {banner}")
+    log(f"    *** GAN PAIR-CONDITIONING FALLBACK ***")
+    log(f"    * Reason:  {reason}")
+    log(f"    * Action:  generating with uniform-over-training-pairs sampling")
+    log(f"    *          (augmentation works, but samples are not pair-specific).")
+    log(f"    * Advice:  {advice}")
+    log(f"    {banner}")
+    log("")
 
 
 def _generate_for_class(
