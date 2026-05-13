@@ -85,6 +85,21 @@ class CreateMTGAN(CreateMTGANBase, NNMTStrategy):
             "multi_task": True,
             "categorical_columns": [],
         },
+        GANType.MT_DDPM: {
+            "name": "Multi-Task DDPM",
+            "description": "Multi-Task tabular DDPM (diffusion)",
+            "task_target_ratios": {
+                "trading": 0.2,
+                "regime": 0.1,
+                "risk": 0.1,
+                "momentum": 0.1,
+                "flow": 0.1,
+                "profit": 0.1,
+            },
+            "primary_task": "trading",
+            "target_ratio": 0.1,
+            "multi_task": True,
+        },
     }
 
     def __init__(self, gan_config: Optional[Dict[str, Any]] = None, **kwargs) -> None:
