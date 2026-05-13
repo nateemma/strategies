@@ -1535,7 +1535,9 @@ class BaseNNStrategy(BaseStrategy):
     # balance_single_task and balance_multi_task.  Listed here (rather
     # than checking `name.startswith("MT_")`) so that adding a new
     # multi-task type forces a deliberate update.
-    _MULTI_TASK_GAN_TYPES = frozenset({GANType.MT_WGAN, GANType.MT_CTAB_GAN})
+    _MULTI_TASK_GAN_TYPES = frozenset(
+        {GANType.MT_WGAN, GANType.MT_CTAB_GAN, GANType.MT_DDPM}
+    )
 
     def enhance_training_data(
         self,
