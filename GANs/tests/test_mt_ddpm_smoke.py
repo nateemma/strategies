@@ -143,3 +143,45 @@ def test_save_load_roundtrip(tmp_path):
     samples = loaded.generate(8, gen_labels)
     assert samples.shape == (8, seq_len, F)
     assert np.all(np.isfinite(samples))
+
+
+def test_conv1d_backbone_fit_generate():
+    """Smoke: conv1d backbone trains, generates correct shape, finite values."""
+    rng = np.random.default_rng(7)
+    seq_len, F, C = 8, 6, 3
+    N = 128
+    # Structured: each row is a smooth sequence so temporal struct exists.
+    t_grid = np.linspace(0, 2 * np.pi, seq_len, dtype=np.float32)
+    data = np.sin(t_grid)[None, :, None] + 0.1 * rng.normal(0, 1, size=(N, seq_len, F)).astype(np.float32)
+    labels = {"trading": np.eye(C, dtype=np.float32)[rng.integers(0, C, size=N)]}
+
+    model = MTDDPMMLX(
+        seq_len=seq_len,
+        num_features=F,
+        task_label_dims={"trading": C},
+        backbone="conv1d",
+        d_model=32,
+        d_layers=2,
+        num_timesteps=50,
+        num_sample_steps=10,
+        epochs=3,
+        batch_size=32,
+        verbose=False,
+    )
+    model.fit(data, labels)
+
+    gen_labels = {"trading": np.eye(C, dtype=np.float32)[rng.integers(0, C, size=16)]}
+    samples = model.generate(16, gen_labels)
+    assert samples.shape == (16, seq_len, F)
+    assert np.all(np.isfinite(samples))
+    assert (samples.reshape(-1, F).std(axis=0) > 0).all()
+
+
+def test_default_backbone_is_conv1d():
+    """conv1d should be the default — that's the whole point of Phase 1.5."""
+    model = MTDDPMMLX(
+        seq_len=8, num_features=6, task_label_dims={"trading": 3},
+        verbose=False,
+    )
+    # Either expose self.backbone attribute, or test that _mlp is the Conv1dBackbone class.
+    assert getattr(model, "backbone", None) == "conv1d" or type(model._mlp).__name__ == "_Conv1dBackbone"

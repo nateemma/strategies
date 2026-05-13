@@ -111,6 +111,89 @@ class _MLPBlock(nn.Module):
         return x + h
 
 
+class _Conv1dResBlock(nn.Module):
+    """LayerNorm → Conv1d → GELU → Dropout → Conv1d, with residual.
+
+    Operates on (B, T, channels) tensors (MLX's NLC convention).
+    Both convs use kernel=3, padding=1 so T is preserved end-to-end.
+    """
+
+    def __init__(self, channels: int, dropout: float):
+        super().__init__()
+        self.norm = nn.LayerNorm(channels)
+        self.conv1 = nn.Conv1d(channels, channels, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv1d(channels, channels, kernel_size=3, padding=1)
+        self.dropout_p = dropout
+        if dropout > 0.0:
+            self._dropout = nn.Dropout(dropout)
+
+    def __call__(self, x: mx.array, training: bool) -> mx.array:
+        T = x.shape[1]
+        h = self.norm(x)
+        h = self.conv1(h)[:, :T, :]
+        h = nn.gelu(h)
+        if training and self.dropout_p > 0.0:
+            h = self._dropout(h)
+        h = self.conv2(h)[:, :T, :]
+        return x + h
+
+
+class _Conv1dBackbone(nn.Module):
+    """Conv1d-over-time backbone for MT_DDPM.
+
+    Pipeline:
+      x: (B, T, F)
+      → in_proj  Conv1d(F → d_model, k=1)       # per-timestep projection
+      → + (time_emb + label_emb) broadcast across T
+      → N × _Conv1dResBlock(d_model)            # kernel=3 over time
+      → out_proj Conv1d(d_model → F, k=1)
+      → (B, T, F)
+
+    Same external interface as _FlatMLPBackbone: takes (x, t, task_labels, training)
+    and returns ε̂ of shape (B, T, F).
+    """
+
+    def __init__(
+        self,
+        seq_len: int,
+        num_features: int,
+        d_model: int,
+        d_layers: int,
+        dropout: float,
+        task_label_dims: Dict[str, int],
+    ):
+        super().__init__()
+        self.seq_len = seq_len
+        self.num_features = num_features
+
+        # 1×1 convs for the in/out projections — cheap and clean.
+        self.in_proj = nn.Conv1d(num_features, d_model, kernel_size=1)
+        self.blocks = [_Conv1dResBlock(d_model, dropout) for _ in range(d_layers)]
+        self.out_proj = nn.Conv1d(d_model, num_features, kernel_size=1)
+
+        self.time_embed = _SinusoidalTimeEmbed(d_model)
+        self.label_embed = _TaskLabelEmbed(task_label_dims, d_model)
+
+    def __call__(
+        self,
+        x: mx.array,                       # (B, T, F)
+        t: mx.array,                       # (B,)
+        task_labels: Dict[str, mx.array],
+        training: bool,
+    ) -> mx.array:                         # (B, T, F)
+        T = x.shape[1]
+        h = self.in_proj(x)[:, :T, :]     # (B, T, d_model)
+
+        t_emb = self.time_embed(t)         # (B, d_model)
+        l_emb = self.label_embed(task_labels)  # (B, d_model)
+        cond = (t_emb + l_emb)[:, None, :]  # (B, 1, d_model) — broadcast across T
+
+        h = h + cond
+        for blk in self.blocks:
+            h = blk(h, training=training)
+        return self.out_proj(h)[:, :T, :]  # (B, T, F)
+
+
 class _FlatMLPBackbone(nn.Module):
     """Flatten (B, T, F) -> (B, T*F), run MLP, reshape back.
 
@@ -176,6 +259,7 @@ class MTDDPMMLX:
         seq_len: int,
         num_features: int,
         task_label_dims: Dict[str, int],
+        backbone: str = "conv1d",
         d_model: int = 256,
         d_layers: int = 4,
         dropout: float = 0.1,
@@ -204,6 +288,7 @@ class MTDDPMMLX:
         self.seq_len = seq_len
         self.num_features = num_features
         self.task_label_dims = dict(task_label_dims)
+        self.backbone = backbone
         self.d_model = d_model
         self.d_layers = d_layers
         self.dropout = dropout
@@ -229,7 +314,7 @@ class MTDDPMMLX:
         self.edm_sigma_data = edm_sigma_data
         self.verbose = verbose
 
-        self._mlp = _FlatMLPBackbone(
+        _backbone_kwargs = dict(
             seq_len=seq_len,
             num_features=num_features,
             d_model=d_model,
@@ -237,7 +322,15 @@ class MTDDPMMLX:
             dropout=dropout,
             task_label_dims=task_label_dims,
         )
-        self._ema_mlp: Optional[_FlatMLPBackbone] = None
+        if backbone == "conv1d":
+            self._mlp = _Conv1dBackbone(**_backbone_kwargs)
+        elif backbone == "mlp":
+            self._mlp = _FlatMLPBackbone(**_backbone_kwargs)
+        else:
+            raise ValueError(
+                f"Unknown backbone={backbone!r}; expected 'conv1d' or 'mlp'."
+            )
+        self._ema_mlp: Optional[nn.Module] = None
         self._schedule = None
 
         self.feature_mean: Optional[np.ndarray] = None
@@ -533,6 +626,7 @@ class MTDDPMMLX:
             "seq_len":          self.seq_len,
             "num_features":     self.num_features,
             "task_label_dims":  dict(self.task_label_dims),
+            "backbone":         self.backbone,
             "d_model":          self.d_model,
             "d_layers":         self.d_layers,
             "dropout":          self.dropout,
@@ -566,6 +660,7 @@ class MTDDPMMLX:
             seq_len=int(metadata["seq_len"]),
             num_features=int(metadata["num_features"]),
             task_label_dims=dict(metadata["task_label_dims"]),
+            backbone=metadata.get("backbone", "mlp"),
             d_model=int(metadata["d_model"]),
             d_layers=int(metadata["d_layers"]),
             dropout=float(metadata.get("dropout", 0.1)),
