@@ -29,7 +29,12 @@ class CreateMTGANBase(CreateGANBase):
     data into 3D tensors (Batch, Seq, Features) before training.
     """
 
-    def create_models(self, dataframes: List[DataFrame], labels: List[Any]) -> None:
+    def create_models(
+        self,
+        dataframes: List[DataFrame],
+        labels: List[Any],
+        pair_names: Optional[List[str]] = None,
+    ) -> None:
         config = self.gan_config
         descriptor = config.get("description") or config.get("name") or self.__class__.__name__
         print(f"    Creating {descriptor} models (Multi-Task Sequence Aggregation)")
