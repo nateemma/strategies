@@ -243,6 +243,30 @@ class MTDDPMMLX:
         self.feature_mean: Optional[np.ndarray] = None
         self.feature_std: Optional[np.ndarray] = None
 
+    # Outliers beyond ±_ZSCORE_CLIP σ are clipped during training and
+    # generation so the model stays inside the σ region it has actually
+    # seen. Mirrors TabDDPMMLX._ZSCORE_CLIP.
+    _ZSCORE_CLIP: float = 4.0
+
+    def _zscore_fit_3d(self, data: np.ndarray) -> np.ndarray:
+        """Per-feature z-score normalisation for (N, T, F) tensors.
+
+        Stats computed across (N, T) so each feature gets approximately
+        unit variance — the standard assumption diffusion models make
+        about input scale. Mirrors ``TabDDPMMLX._zscore_fit`` but in 3D.
+        """
+        N_, T_, F_ = data.shape
+        flat = data.reshape(-1, F_)
+        self.feature_mean = flat.mean(axis=0).astype(np.float32)
+        std = flat.std(axis=0).astype(np.float32)
+        self.feature_std = np.maximum(std, 1e-6).astype(np.float32)
+        z = (data - self.feature_mean[None, None, :]) / self.feature_std[None, None, :]
+        return np.clip(z, -self._ZSCORE_CLIP, self._ZSCORE_CLIP).astype(np.float32)
+
+    def _zscore_invert_3d(self, z: np.ndarray) -> np.ndarray:
+        """Inverse of ``_zscore_fit_3d`` — restores original feature ranges."""
+        return z * self.feature_std[None, None, :] + self.feature_mean[None, None, :]
+
     def fit(
         self,
         data: np.ndarray,
@@ -268,10 +292,11 @@ class MTDDPMMLX:
         N, T, F = data.shape
         assert T == self.seq_len and F == self.num_features
 
-        self.feature_mean = data.reshape(-1, F).mean(axis=0).astype(np.float32)
-        self.feature_std = data.reshape(-1, F).std(axis=0).astype(np.float32) + 1e-6
-
-        x_data = mx.array(data, dtype=mx.float32)
+        # Z-score the data per feature before training. The diffusion
+        # model trains on standardised tensors; generate() inverts the
+        # transform on the way out.
+        data_norm = self._zscore_fit_3d(data)
+        x_data = mx.array(data_norm, dtype=mx.float32)
         task_arrays = {
             name: mx.array(np.argmax(onehot, axis=1), dtype=mx.int32)
             for name, onehot in labels.items()
@@ -478,7 +503,11 @@ class MTDDPMMLX:
             num_steps=self.num_sample_steps,
         )
         samples_3d = samples_flat.reshape(n, T, F)
-        return np.asarray(samples_3d, dtype=np.float32)
+        samples_np = np.asarray(samples_3d, dtype=np.float32)
+        # Invert z-score so caller gets samples on the original feature scale.
+        if self.feature_mean is not None and self.feature_std is not None:
+            samples_np = self._zscore_invert_3d(samples_np)
+        return samples_np.astype(np.float32)
 
     def _suffix(self) -> str:
         return f"_s{self.seq_len}" if self.seq_len > 1 else ""
