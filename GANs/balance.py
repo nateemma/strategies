@@ -18,8 +18,8 @@ Two public entry points:
   ``ctab_gan_enhance_training_data``.
 
 * ``balance_multi_task(interface, data, labels, target_ratios, …)``
-  — for MT_WGAN, MT_CTAB_GAN, and any future multi-task backend.  Runs a
-  deficit-driven greedy loop that picks the largest (task, class)
+  — for MT_WGAN, MT_CTAB_GAN, MT_DDPM, and any future multi-task backend.
+  Runs a deficit-driven greedy loop that picks the largest (task, class)
   deficit each round and assigns labels for non-target tasks
   probabilistically from each task's own current deficit distribution.
   Solves the cross-task interference problem that a naive per-task loop
@@ -282,7 +282,7 @@ def balance_multi_task(
     """
     Iteratively augment ``(data, labels)`` so every (task, class) pair
     reaches its target count.  Backend-agnostic — works for MT_WGAN,
-    MT_CTAB_GAN, and any future multi-task GAN exposed via GANInterface.
+    MT_CTAB_GAN, MT_DDPM, and any future multi-task GAN exposed via GANInterface.
 
     Args:
         interface:      A fitted/loaded ``GANInterface`` whose ``generate()``
