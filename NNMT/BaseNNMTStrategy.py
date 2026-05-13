@@ -525,7 +525,11 @@ class BaseNNMTStrategy(BaseNNStrategy):
     # -----------
 
     def prepare_training_data(
-        self, dataframes: List[DataFrame], labels_list, norm: bool = True
+        self,
+        dataframes: List[DataFrame],
+        labels_list,
+        norm: bool = True,
+        pair_names: Optional[List[str]] = None,
     ):
         """Prepare the training data"""
 
