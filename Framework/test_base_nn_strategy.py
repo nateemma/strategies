@@ -837,8 +837,9 @@ class TestEnhanceTrainingData:
         captured = capsys.readouterr()
         assert "skipping augmentation" in captured.out
 
-    def test_mismatched_multi_task_with_ndarray_labels_skips(self, strat, indicator_df, capsys):
-        """Multi-task ``gan_type`` + ndarray labels — symmetric mismatch."""
+    def test_mt_gan_with_ndarray_labels_defers_silently(self, strat, indicator_df, capsys):
+        """Multi-task ``gan_type`` + ndarray labels (single-task strategy) —
+        deferred silently to preprocess_training_data; no warning emitted here."""
         from GANs.GANType import GANType  # noqa: E402
         df = indicator_df.copy()
         labels = np.zeros(len(df), dtype=int)
@@ -848,7 +849,7 @@ class TestEnhanceTrainingData:
         pd.testing.assert_frame_equal(out_df, df)
         np.testing.assert_array_equal(out_labels, labels)
         captured = capsys.readouterr()
-        assert "skipping augmentation" in captured.out
+        assert "skipping augmentation" not in captured.out
 
     def test_empty_inputs_short_circuit(self, strat):
         """Empty df / empty labels — pass-through even with gan_type set."""
@@ -923,6 +924,116 @@ class TestPreprocessTrainingData:
         np.testing.assert_array_equal(r_vd, test_data)
         np.testing.assert_array_equal(r_tl, train_labels)
         np.testing.assert_array_equal(r_vl, test_labels)
+
+
+# ---------------------------------------------------------------------------
+# preprocess_training_data — single-task + MT GAN guards
+# ---------------------------------------------------------------------------
+#
+# These tests verify every pass-through guard in the new single-task MT GAN
+# branch of preprocess_training_data.  Actually loading a GAN and calling
+# balance_multi_task is integration territory; here we only exercise the
+# guards that keep existing single-task strategies completely unaffected.
+
+class TestPreprocessTrainingDataMTGuards:
+    """Guard branches in BaseNNStrategy.preprocess_training_data for the
+    single-task + MT GAN augmentation case."""
+
+    def _make_3d(self, n=50, T=16, F=10):
+        return np.random.rand(n, T, F).astype(np.float32)
+
+    def _make_labels(self, n=50, one_hot=False, num_classes=3):
+        if one_hot:
+            idx = np.random.randint(0, num_classes, n)
+            return np.eye(num_classes, dtype=np.float32)[idx]
+        return np.random.randint(0, num_classes, n).astype(int)
+
+    def test_passthrough_when_gan_type_none(self, strat, indicator_df):
+        """Default NONE type → immediate pass-through."""
+        from GANs.GANType import GANType  # noqa: E402
+        assert strat.gan_type == GANType.NONE
+        train_data = self._make_3d()
+        test_data = self._make_3d(n=20)
+        train_labels = self._make_labels()
+        test_labels = self._make_labels(n=20)
+        r_td, r_vd, r_tl, r_vl = strat.preprocess_training_data(
+            indicator_df, train_data, test_data, train_labels, test_labels
+        )
+        np.testing.assert_array_equal(r_td, train_data)
+        np.testing.assert_array_equal(r_vd, test_data)
+        np.testing.assert_array_equal(r_tl, train_labels)
+        np.testing.assert_array_equal(r_vl, test_labels)
+
+    def test_passthrough_when_gan_augment_false(self, strat, indicator_df):
+        """gan_augment=False → pass-through even with MT GAN type."""
+        from GANs.GANType import GANType  # noqa: E402
+        strat.gan_type = GANType.MT_DDPM
+        strat.gan_augment = False
+        train_data = self._make_3d()
+        test_data = self._make_3d(n=20)
+        train_labels = self._make_labels()
+        test_labels = self._make_labels(n=20)
+        r_td, r_vd, r_tl, r_vl = strat.preprocess_training_data(
+            indicator_df, train_data, test_data, train_labels, test_labels
+        )
+        np.testing.assert_array_equal(r_td, train_data)
+
+    def test_passthrough_when_single_task_gan_type(self, strat, indicator_df):
+        """Non-MT GAN type → pass-through (single-task aug handled elsewhere)."""
+        from GANs.GANType import GANType  # noqa: E402
+        strat.gan_type = GANType.WGAN
+        strat.gan_augment = True
+        train_data = self._make_3d()
+        test_data = self._make_3d(n=20)
+        train_labels = self._make_labels()
+        test_labels = self._make_labels(n=20)
+        r_td, r_vd, r_tl, r_vl = strat.preprocess_training_data(
+            indicator_df, train_data, test_data, train_labels, test_labels
+        )
+        np.testing.assert_array_equal(r_td, train_data)
+
+    def test_passthrough_when_labels_already_dict(self, strat, indicator_df):
+        """Dict labels → BaseNNMTStrategy handles; pass through here."""
+        from GANs.GANType import GANType  # noqa: E402
+        strat.gan_type = GANType.MT_DDPM
+        strat.gan_augment = True
+        train_data = self._make_3d()
+        test_data = self._make_3d(n=20)
+        train_labels = {"trading": self._make_labels(one_hot=True)}
+        test_labels = {"trading": self._make_labels(n=20, one_hot=True)}
+        r_td, r_vd, r_tl, r_vl = strat.preprocess_training_data(
+            indicator_df, train_data, test_data, train_labels, test_labels
+        )
+        np.testing.assert_array_equal(r_td, train_data)
+        assert r_tl is train_labels
+
+    def test_passthrough_when_train_data_not_3d(self, strat, indicator_df):
+        """2D train_data → pass-through (can't run tensor-level aug)."""
+        from GANs.GANType import GANType  # noqa: E402
+        strat.gan_type = GANType.MT_DDPM
+        strat.gan_augment = True
+        train_data = np.random.rand(50, 10).astype(np.float32)
+        test_data = np.random.rand(20, 10).astype(np.float32)
+        train_labels = self._make_labels()
+        test_labels = self._make_labels(n=20)
+        r_td, r_vd, r_tl, r_vl = strat.preprocess_training_data(
+            indicator_df, train_data, test_data, train_labels, test_labels
+        )
+        np.testing.assert_array_equal(r_td, train_data)
+
+    def test_passthrough_when_train_data_empty(self, strat, indicator_df):
+        """Empty train_data → pass-through."""
+        from GANs.GANType import GANType  # noqa: E402
+        strat.gan_type = GANType.MT_DDPM
+        strat.gan_augment = True
+        train_data = np.empty((0, 16, 10), dtype=np.float32)
+        test_data = np.random.rand(20, 16, 10).astype(np.float32)
+        train_labels = np.empty(0, dtype=int)
+        test_labels = self._make_labels(n=20)
+        r_td, r_vd, r_tl, r_vl = strat.preprocess_training_data(
+            indicator_df, train_data, test_data, train_labels, test_labels
+        )
+        assert r_td.shape[0] == 0
 
 
 # ---------------------------------------------------------------------------

@@ -1583,7 +1583,7 @@ class BaseNNStrategy(BaseStrategy):
         is_multi_task_labels = isinstance(train_labels, dict)
         is_multi_task_type = self.gan_type in self._MULTI_TASK_GAN_TYPES
 
-        if is_multi_task_labels != is_multi_task_type:
+        if is_multi_task_labels and not is_multi_task_type:
             # Misconfiguration — log loudly and skip rather than crash.
             print(
                 f"    enhance_training_data: gan_type={self.gan_type.name} "
@@ -1597,6 +1597,13 @@ class BaseNNStrategy(BaseStrategy):
         # BaseNNMTStrategy.preprocess_training_data run the balance against
         # the tensor shape the GAN was actually trained on.
         if is_multi_task_labels:
+            return train_df, train_labels
+
+        if is_multi_task_type:
+            # Single-task strategy with MT GAN type — defer augmentation to
+            # preprocess_training_data, which operates on the windowed 3D tensor
+            # produced by prepare_training_data, matching the shape the GAN was
+            # trained on.
             return train_df, train_labels
 
         if train_df is None or len(train_df) == 0:
@@ -1739,8 +1746,91 @@ class BaseNNStrategy(BaseStrategy):
     def preprocess_training_data(
         self, dataframe: DataFrame, train_data, test_data, train_labels, test_labels
     ):
-        """Optional hook to modify train/test tensors and labels before training."""
-        return train_data, test_data, train_labels, test_labels
+        """Tensor-level GAN augmentation for the single-task + MT GAN case.
+
+        The standard single-task GAN path runs at DataFrame row level inside
+        enhance_training_data.  When the configured GAN is a multi-task tensor
+        backend (MT_DDPM, MT_WGAN, MT_CTAB_GAN) and labels are a plain ndarray
+        (i.e. this is a single-task classifier), we must augment at tensor level
+        instead — otherwise sliding-window sequence construction mixes real and
+        iid synthetic rows in unnatural ways.
+
+        Pass-through for: GAN disabled; non-MT GAN type; labels already a dict
+        (handled by BaseNNMTStrategy override); non-3D train_data; empty data.
+        """
+        # Guards — return inputs unchanged for anything that isn't the new case.
+        if self.gan_type == GANType.NONE or not getattr(self, "gan_augment", False):
+            return train_data, test_data, train_labels, test_labels
+        if self.gan_type not in self._MULTI_TASK_GAN_TYPES:
+            return train_data, test_data, train_labels, test_labels
+        if isinstance(train_labels, dict):
+            # MT classifier path — BaseNNMTStrategy handles this in its override.
+            return train_data, test_data, train_labels, test_labels
+        if not isinstance(train_data, np.ndarray) or train_data.ndim != 3:
+            return train_data, test_data, train_labels, test_labels
+        if train_data.shape[0] == 0:
+            return train_data, test_data, train_labels, test_labels
+
+        # Wrap single-task labels as {"trading": one_hot}.
+        # Coerce to 2-D one-hot if labels arrived as 1-D class indices.
+        labels_arr = np.asarray(train_labels)
+        if labels_arr.ndim == 1:
+            num_classes = int(labels_arr.max()) + 1
+            one_hot = np.eye(num_classes, dtype=np.float32)[labels_arr.astype(int)]
+        else:
+            one_hot = labels_arr.astype(np.float32)
+        wrapped_labels = {"trading": one_hot}
+
+        # Lazy imports — keep GAN stack out of strategies that never use it.
+        from GANs.balance import balance_multi_task  # noqa: E402
+        from GANs.GANInterface import GANInterface, GANMetadataMismatchError  # noqa: E402
+        from GANs.paths import gan_save_path  # noqa: E402
+        from NNMT.BaseNNMTStrategy import _UnflattenedGenerateWrapper  # noqa: E402
+
+        save_path = gan_save_path(
+            self.get_storage_location(),
+            self.gan_type,
+            use_pca=bool(getattr(self, "use_pca_reduction", False)),
+        )
+        interface = GANInterface(self.gan_type, save_path=save_path)
+        expected = self._gan_expected_metadata(dataframe)
+        try:
+            interface.load(expected=expected)
+        except GANMetadataMismatchError:
+            raise
+        except FileNotFoundError as load_err:
+            raise RuntimeError(
+                f"GAN model not found at {save_path}. Train it first via the "
+                f"corresponding Create* strategy (gan_type={self.gan_type.name}). "
+                f"Underlying error: {load_err}"
+            ) from load_err
+        except Exception as load_err:
+            raise RuntimeError(
+                f"Failed to load GAN model at {save_path}: {load_err}"
+            ) from load_err
+
+        T, F = int(train_data.shape[1]), int(train_data.shape[2])
+        wrapped_interface = _UnflattenedGenerateWrapper(interface, T=T, F=F)
+
+        passthrough_indices = self._resolve_gan_passthrough_indices(
+            train_minmax=None, train_df=dataframe
+        )
+
+        aug_train_data, aug_labels_dict = balance_multi_task(
+            interface=wrapped_interface,
+            data=train_data,
+            labels=wrapped_labels,
+            target_ratios=self.gan_target_ratio,
+            log=print,
+            debug_log=self.debug_print,
+            diagnostics=bool(self.gan_run_diagnostics),
+            feature_names=None,
+            passthrough_columns=passthrough_indices,
+        )
+
+        # Unwrap labels back to ndarray for the single-task classifier.
+        aug_train_labels = aug_labels_dict["trading"]
+        return aug_train_data, test_data, aug_train_labels, test_labels
 
     def train_model(
         self,
