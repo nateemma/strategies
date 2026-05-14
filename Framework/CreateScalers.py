@@ -54,14 +54,17 @@ class CreateScalers(BaseNNStrategy):
         # normalising the dataframe will handle columns appropriately and save the scaler
         norm_df = self.rolling_dataframe_normalise(combined_df)
 
-        # Fit a polymorphic tensor scaler on raw numeric columns.
-        # The post-GAN pipeline (use_post_gan_scaling=True) feeds raw data to the GAN
-        # and applies this scaler to the combined real+synth tensor before the classifier.
-        print("    Fitting polymorphic tensor scaler (RobustScaler on raw data)")
-        raw_features = combined_df.select_dtypes(include=[np.number]).to_numpy(dtype=np.float32)
+        # Fit a polymorphic tensor scaler on the SAME cleaned columns the
+        # post-GAN pipeline will actually feed through. clean_for_tensor applies
+        # the include_list filter + debug-column drop + NaN/inf handling but
+        # SKIPS scaling — so stats here match what v2 strategies see at
+        # train/inference time.
+        print("    Fitting polymorphic tensor scaler on clean_for_tensor output")
+        cleaned_df = self.clean_for_tensor(combined_df)
+        raw_features = cleaned_df.to_numpy(dtype=np.float32)
         tensor_scaler = FeatureScaler().fit(raw_features)
         save_scaler(tensor_scaler, self.get_storage_location(), self.tensor_scaler_name)
-        print(f"    Saved tensor scaler as '{self.tensor_scaler_name}'")
+        print(f"    Saved tensor scaler ({raw_features.shape[1]} features) as '{self.tensor_scaler_name}'")
 
         # Fit PCA on all numeric columns (both pre-normalized and RobustScaler-normalized)
         pca_cols = [

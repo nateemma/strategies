@@ -58,10 +58,13 @@ class CreateMTGANBase(CreateGANBase):
 
         for i, df in enumerate(dataframes):
             if use_post_gan_scaling:
-                # Post-GAN scaling pipeline: feed raw data to the GAN.
-                # The GAN does its own internal z-score; a tensor scaler is
-                # applied to the augmented tensor after generation.
-                df_ready = df
+                # Post-GAN scaling pipeline: feed raw (but column-cleaned) data
+                # to the GAN. clean_for_tensor drops non-numeric/debug columns
+                # so df_to_tensor doesn't trip on object dtypes — equivalent to
+                # what rolling_dataframe_normalise does pre-scaling. The GAN
+                # does its own internal z-score; a tensor scaler is applied to
+                # the augmented tensor after generation.
+                df_ready = self.clean_for_tensor(df)
             else:
                 # Standard pipeline: pre-normalize before GAN sees the data.
                 df_norm = self.scale_dataframe(df)

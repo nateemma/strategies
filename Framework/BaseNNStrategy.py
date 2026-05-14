@@ -841,6 +841,27 @@ class BaseNNStrategy(BaseStrategy):
             full_df_norm = self.apply_pca(full_df_norm)
         return full_df_norm
 
+    def clean_for_tensor(self, df: DataFrame) -> DataFrame:
+        """Apply the same column filtering as rolling_dataframe_normalise but
+        SKIP the scaling step. For the post-GAN scaling pipeline where the
+        GAN sees raw values and a tensor scaler is applied downstream.
+
+        Without this, df_to_tensor on a raw dataframe trips on non-numeric
+        columns (date, object dtype indicators, debug columns) with a
+        std::bad_cast in mx.array.
+        """
+        df_clean = df.copy()
+        df_clean = self.process_one_hot_columns(df_clean)
+
+        drop_list = [c for c in df_clean.columns if c not in self.include_list]
+        if drop_list:
+            df_clean = df_clean.drop(columns=drop_list)
+
+        df_clean = self.dataframeUtils.remove_debug_columns(df_clean)
+        df_clean = df_clean.replace([np.inf, -np.inf], 0)
+        df_clean = df_clean.fillna(0)
+        return df_clean
+
     def descale_dataframe(self, dataframe: DataFrame):
         return dataframe
 
@@ -1984,11 +2005,14 @@ class BaseNNStrategy(BaseStrategy):
             )
 
         if getattr(self, "use_post_gan_scaling", False):
-            # Post-GAN scaling path: skip DataFrame-level normalization.
-            # Run df_to_tensor on raw data then apply the polymorphic tensor scaler.
+            # Post-GAN scaling path: skip DataFrame-level normalization but
+            # still do the column filtering (drop non-numeric / debug cols)
+            # so df_to_tensor doesn't trip on object dtypes. Then apply the
+            # polymorphic tensor scaler to the 3D tensor.
             from utils.Scalers import load_scaler  # noqa: E402
+            df_clean = self.clean_for_tensor(dataframe)
             df_tensor = self.dataframeUtils.df_to_tensor(
-                dataframe, self.seq_len, method=self.tensor_method
+                df_clean, self.seq_len, method=self.tensor_method
             )
             tensor_scaler = load_scaler(self.get_storage_location(), "main_tensor_scaler")
             df_tensor = tensor_scaler.transform(np.asarray(df_tensor))
