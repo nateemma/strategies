@@ -54,11 +54,19 @@ class CreateMTGANBase(CreateGANBase):
         seq_len = getattr(self, "seq_len", 1)
         print(f"    Building sequential tensors for {len(dataframes)} pairs (seq_len={seq_len})")
 
+        use_post_gan_scaling = bool(getattr(self, "use_post_gan_scaling", False))
+
         for i, df in enumerate(dataframes):
-            # Normalization (Scale per pair using fitted global scaler logic)
-            df_norm = self.scale_dataframe(df)
-            df_minmax = self.normalise_for_gan(df_norm)
-            
+            if use_post_gan_scaling:
+                # Post-GAN scaling pipeline: feed raw data to the GAN.
+                # The GAN does its own internal z-score; a tensor scaler is
+                # applied to the augmented tensor after generation.
+                df_ready = df
+            else:
+                # Standard pipeline: pre-normalize before GAN sees the data.
+                df_norm = self.scale_dataframe(df)
+                df_ready = self.normalise_for_gan(df_norm)
+
             # Determine labels dict for this pair
             labels_obj = labels[i]
             if not isinstance(labels_obj, dict):
@@ -71,7 +79,7 @@ class CreateMTGANBase(CreateGANBase):
             # Build 3D tensors (B, S, F) using standard strategy logic
             # This ensures GAN input matches the architecture expected by the classifier
             x = self.dataframeUtils.df_to_tensor(
-                df_minmax, seq_len, method=getattr(self, "tensor_method", 1)
+                df_ready, seq_len, method=getattr(self, "tensor_method", 1)
             )
             
             # Method 0 (TF) reduces sample count by (seq_len - 1), others preserve via padding

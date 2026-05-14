@@ -142,6 +142,14 @@ class BaseNNStrategy(BaseStrategy):
     gan_target_ratio: Any = 0.8         # float or Dict — see balance.py
     gan_run_diagnostics: bool = False
 
+    # When True, route the GAN augmentation through the post-GAN scaling
+    # pipeline: the GAN sees RAW (B, T, F) tensors, does its own internal
+    # z-score, and a polymorphic tensor scaler is applied to the augmented
+    # tensor before the classifier sees it. Only supported for MT_DDPM with
+    # single-task labels currently; other gan_type values fall back to the
+    # pre-GAN scaling pipeline regardless of this flag.
+    use_post_gan_scaling: bool = False
+
     training_needed = True  # set automatically
 
     # Scaler state
@@ -1794,6 +1802,7 @@ class BaseNNStrategy(BaseStrategy):
             self.get_storage_location(),
             self.gan_type,
             use_pca=bool(getattr(self, "use_pca_reduction", False)),
+            post_gan_scaling=bool(getattr(self, "use_post_gan_scaling", False)),
         )
         interface = GANInterface(self.gan_type, save_path=save_path)
         expected = self._gan_expected_metadata(dataframe)
@@ -1845,6 +1854,17 @@ class BaseNNStrategy(BaseStrategy):
 
         # Unwrap labels back to ndarray for the single-task classifier.
         aug_train_labels = aug_labels_dict["trading"]
+
+        # Post-GAN scaling path: apply polymorphic tensor scaler to the
+        # combined real+synth tensor so the classifier sees scaled data.
+        if getattr(self, "use_post_gan_scaling", False):
+            from utils.Scalers import load_scaler  # noqa: E402
+            from Framework.FeatureScaler import FeatureScaler  # noqa: E402
+            tensor_scaler = load_scaler(self.get_storage_location(), "main_tensor_scaler")
+            aug_train_data = tensor_scaler.transform(aug_train_data)
+            if test_data is not None and test_data.size > 0:
+                test_data = tensor_scaler.transform(test_data)
+
         return aug_train_data, test_data, aug_train_labels, test_labels
 
     def train_model(
@@ -1963,10 +1983,20 @@ class BaseNNStrategy(BaseStrategy):
                 f"Please ensure add_additional_indicators() and add_sequential_index() are called."
             )
 
-        df_norm = self.scale_dataframe(dataframe)
-        df_tensor = self.dataframeUtils.df_to_tensor(
-            df_norm, self.seq_len, method=self.tensor_method
-        )
+        if getattr(self, "use_post_gan_scaling", False):
+            # Post-GAN scaling path: skip DataFrame-level normalization.
+            # Run df_to_tensor on raw data then apply the polymorphic tensor scaler.
+            from utils.Scalers import load_scaler  # noqa: E402
+            df_tensor = self.dataframeUtils.df_to_tensor(
+                dataframe, self.seq_len, method=self.tensor_method
+            )
+            tensor_scaler = load_scaler(self.get_storage_location(), "main_tensor_scaler")
+            df_tensor = tensor_scaler.transform(np.asarray(df_tensor))
+        else:
+            df_norm = self.scale_dataframe(dataframe)
+            df_tensor = self.dataframeUtils.df_to_tensor(
+                df_norm, self.seq_len, method=self.tensor_method
+            )
 
         if hasattr(classifier, "model") and classifier.model is not None:
             model_input_shape = classifier.model.input_shape

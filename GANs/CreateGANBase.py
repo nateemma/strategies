@@ -351,6 +351,7 @@ class CreateGANBase:
             self.get_storage_location(),
             self.gan_type,
             use_pca=bool(getattr(self, "use_pca_reduction", False)),
+            post_gan_scaling=bool(getattr(self, "use_post_gan_scaling", False)),
         )
 
     def _log_master_thresholds(self) -> None:

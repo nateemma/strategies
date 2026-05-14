@@ -30,12 +30,14 @@ from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, Tradi
 from utils.DataframePopulator import DataframePopulator, DatasetType
 
 from utils.Scalers import scaler_exists, save_scaler, load_scaler, remove_scaler
+from Framework.FeatureScaler import FeatureScaler
 
 class CreateScalers(BaseNNStrategy):
 
     pair_count = 0
     combined_df = None
     scaler_name = "main_scaler"
+    tensor_scaler_name = "main_tensor_scaler"
 
     def remove_old_scaler(self, name) -> None:
         scaler_dir = self.get_storage_location()
@@ -51,6 +53,15 @@ class CreateScalers(BaseNNStrategy):
 
         # normalising the dataframe will handle columns appropriately and save the scaler
         norm_df = self.rolling_dataframe_normalise(combined_df)
+
+        # Fit a polymorphic tensor scaler on raw numeric columns.
+        # The post-GAN pipeline (use_post_gan_scaling=True) feeds raw data to the GAN
+        # and applies this scaler to the combined real+synth tensor before the classifier.
+        print("    Fitting polymorphic tensor scaler (RobustScaler on raw data)")
+        raw_features = combined_df.select_dtypes(include=[np.number]).to_numpy(dtype=np.float32)
+        tensor_scaler = FeatureScaler().fit(raw_features)
+        save_scaler(tensor_scaler, self.get_storage_location(), self.tensor_scaler_name)
+        print(f"    Saved tensor scaler as '{self.tensor_scaler_name}'")
 
         # Fit PCA on all numeric columns (both pre-normalized and RobustScaler-normalized)
         pca_cols = [

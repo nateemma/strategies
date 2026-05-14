@@ -1037,6 +1037,72 @@ class TestPreprocessTrainingDataMTGuards:
 
 
 # ---------------------------------------------------------------------------
+# post-GAN scaling guards
+# ---------------------------------------------------------------------------
+
+class TestPostGanScalingGuards:
+    """Tests for use_post_gan_scaling flag routing in preprocess_training_data
+    and get_predictions."""
+
+    def _make_3d(self, n=50, T=16, F=10):
+        return np.random.rand(n, T, F).astype(np.float32)
+
+    def _make_labels(self, n=50, num_classes=3):
+        return np.random.randint(0, num_classes, n).astype(int)
+
+    def test_flag_defaults_to_false(self, strat):
+        """use_post_gan_scaling defaults to False — existing behavior preserved."""
+        assert strat.use_post_gan_scaling is False
+
+    def test_passthrough_when_flag_false_and_gan_none(self, strat, indicator_df):
+        """Flag=False + GAN=NONE → unchanged pass-through (existing guard fires first)."""
+        from GANs.GANType import GANType
+        assert strat.gan_type == GANType.NONE
+        assert not strat.use_post_gan_scaling
+        train_data = self._make_3d()
+        test_data = self._make_3d(n=20)
+        train_labels = self._make_labels()
+        test_labels = self._make_labels(n=20)
+        r_td, r_vd, r_tl, r_vl = strat.preprocess_training_data(
+            indicator_df, train_data, test_data, train_labels, test_labels
+        )
+        np.testing.assert_array_equal(r_td, train_data)
+        np.testing.assert_array_equal(r_vd, test_data)
+
+    def test_flag_true_recognized_for_mt_ddpm(self, strat):
+        """Setting use_post_gan_scaling=True on MT_DDPM strategy is accepted."""
+        from GANs.GANType import GANType
+        strat.gan_type = GANType.MT_DDPM
+        strat.gan_augment = True
+        strat.use_post_gan_scaling = True
+        assert strat.use_post_gan_scaling is True
+
+    def test_post_gan_path_uses_different_save_subdir(self):
+        """When post_gan_scaling=True, gan_save_path returns GANs_PostScale/ subdir."""
+        from GANs.GANType import GANType
+        from GANs.paths import gan_save_path
+        path_normal = gan_save_path("/storage", GANType.MT_DDPM, post_gan_scaling=False)
+        path_post = gan_save_path("/storage", GANType.MT_DDPM, post_gan_scaling=True)
+        assert "GANs_PostScale" in path_post
+        assert "GANs_PostScale" not in path_normal
+        assert path_normal != path_post
+
+    def test_post_gan_save_path_has_correct_subdirectory(self):
+        """GANs_PostScale/<type> path matches expected layout."""
+        from GANs.GANType import GANType
+        from GANs.paths import gan_save_subdir
+        subdir = gan_save_subdir(GANType.MT_DDPM, post_gan_scaling=True)
+        assert subdir == "GANs_PostScale/mt_ddpm"
+
+    def test_normal_save_path_unchanged(self):
+        """Existing v1 save path is not affected by the new parameter."""
+        from GANs.GANType import GANType
+        from GANs.paths import gan_save_subdir
+        subdir = gan_save_subdir(GANType.MT_DDPM)
+        assert subdir == "GANs/mt_ddpm"
+
+
+# ---------------------------------------------------------------------------
 # dwt_smooth
 # ---------------------------------------------------------------------------
 

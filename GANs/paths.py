@@ -23,25 +23,37 @@ from GANs.GANType import GANType
 
 GAN_PARENT_DIR: str = "GANs"
 GAN_PCA_PARENT_DIR: str = "GANs_PCA"
+GAN_POST_SCALE_PARENT_DIR: str = "GANs_PostScale"
 
 
-def gan_save_subdir(gan_type: GANType, *, use_pca: bool = False) -> str:
+def gan_save_subdir(
+    gan_type: GANType,
+    *,
+    use_pca: bool = False,
+    post_gan_scaling: bool = False,
+) -> str:
     """Return the per-type subdir under the strategy's GANs parent.
 
-    Examples (with ``use_pca=False``):
+    Examples (with ``use_pca=False``, ``post_gan_scaling=False``):
         GANType.WGAN         → "GANs/wgan"
         GANType.CTAB_GAN     → "GANs/ctab_gan"
         GANType.MT_WGAN      → "GANs/mt_wgan"
         GANType.MT_CTAB_GAN  → "GANs/mt_ctab_gan"
 
     With ``use_pca=True`` the parent is ``GANs_PCA/`` instead.
+    With ``post_gan_scaling=True`` the parent is ``GANs_PostScale/`` instead.
+    ``use_pca`` takes precedence over ``post_gan_scaling`` if both are True.
 
     The returned path is relative — combine with the strategy's
     storage location to get an absolute path:
 
         os.path.join(strategy.get_storage_location(), gan_save_subdir(...))
     """
-    parent = GAN_PCA_PARENT_DIR if use_pca else GAN_PARENT_DIR
+    parent = (
+        GAN_PCA_PARENT_DIR if use_pca
+        else GAN_POST_SCALE_PARENT_DIR if post_gan_scaling
+        else GAN_PARENT_DIR
+    )
     return os.path.join(parent, gan_type.name.lower())
 
 
@@ -50,6 +62,10 @@ def gan_save_path(
     gan_type: GANType,
     *,
     use_pca: bool = False,
+    post_gan_scaling: bool = False,
 ) -> str:
     """Convenience: full absolute path = storage_location / GANs / <type>."""
-    return os.path.join(storage_location, gan_save_subdir(gan_type, use_pca=use_pca))
+    return os.path.join(
+        storage_location,
+        gan_save_subdir(gan_type, use_pca=use_pca, post_gan_scaling=post_gan_scaling),
+    )
