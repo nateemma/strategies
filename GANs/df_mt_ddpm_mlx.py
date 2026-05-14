@@ -597,6 +597,13 @@ class MTDDPMMLX:
         )
         samples_3d = samples_flat.reshape(n, T, F)
         samples_np = np.asarray(samples_3d, dtype=np.float32)
+        # Clip to the training-time z-score band (±_ZSCORE_CLIP) before
+        # inverting. The model trained on clipped data; values outside
+        # that band at sampling time are OOD fantasies that, when
+        # multiplied by feature_std, blow up to absurd raw magnitudes
+        # (e.g. synth μ=70 σ=60 for a feature with real μ=0.3 σ=0.5).
+        # Mirrors df_tabddpm_mlx.py's _postprocess clip.
+        samples_np = np.clip(samples_np, -self._ZSCORE_CLIP, self._ZSCORE_CLIP)
         # Invert z-score so caller gets samples on the original feature scale.
         if self.feature_mean is not None and self.feature_std is not None:
             samples_np = self._zscore_invert_3d(samples_np)
