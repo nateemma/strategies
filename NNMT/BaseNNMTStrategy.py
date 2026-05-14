@@ -90,6 +90,43 @@ class _UnflattenedGenerateWrapper:
         return data
 
 
+class _PadMissingTaskLabelsWrapper:
+    """Wraps a GANInterface so generate() pads missing task labels with
+    uniform-random one-hot encodings.
+
+    Used by single-task NNNC strategies running against a multi-task GAN:
+    the strategy provides only ``{"trading": one_hot}``, but the loaded GAN
+    was trained conditioned on N tasks. Calling generate() with only one
+    task is an OOD input regime for the model — diagnostics showed this
+    degrades sample quality (synth lag-1 autocorrelation flips negative
+    against a real autocorrelation of +0.98 — see the NNNC_DDPM_MLX_LSTM_MT
+    diagnostic at 2026-05-13). Filling the missing task slots with
+    uniform-random one-hots restores in-distribution conditioning.
+
+    The "uniform-random" choice is a deliberate non-informative prior on
+    the auxiliary tasks; we don't want their values to systematically bias
+    the trading-task generation.
+    """
+
+    def __init__(self, interface, expected_task_label_dims: Dict[str, int]):
+        self._interface = interface
+        self._task_dims = dict(expected_task_label_dims)
+        self.gan_type = getattr(interface, "gan_type", None)
+
+    def __getattr__(self, name):
+        return getattr(self._interface, name)
+
+    def generate(self, n, **kwargs):
+        task_labels = dict(kwargs.get("task_labels", {}))
+        for task, dim in self._task_dims.items():
+            if task in task_labels:
+                continue
+            idx = np.random.randint(0, dim, size=n)
+            task_labels[task] = np.eye(dim, dtype=np.float32)[idx]
+        kwargs["task_labels"] = task_labels
+        return self._interface.generate(n, **kwargs)
+
+
 class BaseNNMTStrategy(BaseNNStrategy):
     """
     Multi-task neural network strategy base.

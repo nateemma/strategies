@@ -1785,7 +1785,10 @@ class BaseNNStrategy(BaseStrategy):
         from GANs.balance import balance_multi_task  # noqa: E402
         from GANs.GANInterface import GANInterface, GANMetadataMismatchError  # noqa: E402
         from GANs.paths import gan_save_path  # noqa: E402
-        from NNMT.BaseNNMTStrategy import _UnflattenedGenerateWrapper  # noqa: E402
+        from NNMT.BaseNNMTStrategy import (  # noqa: E402
+            _PadMissingTaskLabelsWrapper,
+            _UnflattenedGenerateWrapper,
+        )
 
         save_path = gan_save_path(
             self.get_storage_location(),
@@ -1811,6 +1814,18 @@ class BaseNNStrategy(BaseStrategy):
 
         T, F = int(train_data.shape[1]), int(train_data.shape[2])
         wrapped_interface = _UnflattenedGenerateWrapper(interface, T=T, F=F)
+
+        # Single-task strategy + multi-task GAN: pad missing task labels with
+        # uniform-random one-hots so the model sees its training conditioning
+        # regime. Without this, lag-1 autocorrelation collapses to negative
+        # values for high-AR features (the GAN was trained with N tasks
+        # summed in the label embedding; passing only "trading" is OOD).
+        gan_model = getattr(interface, "_model", None)
+        gan_task_dims = getattr(gan_model, "task_label_dims", None)
+        if gan_task_dims:
+            wrapped_interface = _PadMissingTaskLabelsWrapper(
+                wrapped_interface, expected_task_label_dims=gan_task_dims
+            )
 
         passthrough_indices = self._resolve_gan_passthrough_indices(
             train_minmax=None, train_df=dataframe
