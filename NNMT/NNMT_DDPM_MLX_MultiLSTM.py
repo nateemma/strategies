@@ -28,6 +28,8 @@ from NNMT.NNMTClassifierMLX import ClassifierTypeMLX, create_classifier_mlx
 
 class NNMT_DDPM_MLX_MultiLSTM(NNMT_DDPM):
 
+    gan_target_ratio = 0.4
+    
     def get_classifier_type(self):
         return ClassifierTypeMLX.Multi_LSTM
 

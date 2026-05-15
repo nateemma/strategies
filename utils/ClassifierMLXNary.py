@@ -279,8 +279,8 @@ class ClassifierMLXNary(ClassifierMLX):
         grad_clip_norm = 1.0
         monitor_mode = "max"  # we monitor val_precision
         # monitor_key = "val_precision"
-        # monitor_key = "val_f1_class_2"
-        monitor_key = "val_mcc"
+        monitor_key = "val_f1_class_2"
+        # monitor_key = "val_mcc"
         checkpoint_path = self.get_checkpoint_path()
 
         best_metric = -np.inf

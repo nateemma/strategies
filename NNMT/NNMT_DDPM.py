@@ -64,7 +64,10 @@ class NNMT_DDPM(NNMTStrategy):
     # flags, plus a worst-feature drilldown).  Off by default; flip on
     # when training regresses with augmentation and you want to know
     # whether the DDPM is producing usable samples.
-    gan_run_diagnostics: bool = False
+    gan_run_diagnostics: bool = True
+
+
+    gan_target_ratio = 0.5
 
     # ---------------------------------------------------------------------- #
     # 3-D augmentation hook                                                  #

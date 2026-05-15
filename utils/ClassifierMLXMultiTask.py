@@ -393,7 +393,8 @@ class ClassifierMLXMultiTask(ClassifierMLX):
         grad_clip_norm = 1.0
         # Match ClassifierKerasMultiTask: monitor val_trading_mcc, maximise.
         monitor_mode = "max"
-        monitor_key = "val_trading_mcc"
+        # monitor_key = "val_trading_mcc"
+        monitor_key = "val_trading_precision_class_2"
         checkpoint_path = self.get_checkpoint_path()
 
         best_metric = -np.inf

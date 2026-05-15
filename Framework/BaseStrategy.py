@@ -238,7 +238,7 @@ class BaseStrategy(IStrategy):
         "entry_enable_guards": True,
         "entry_guard_threshold": -0.0,
         "entry_rvol_threshold": 1.0,
-        "prediction_threshold": 0.4,
+        "prediction_threshold": 0.65,
     }
 
     # Sell hyperspace params:
