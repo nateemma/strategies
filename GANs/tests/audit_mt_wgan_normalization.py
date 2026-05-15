@@ -276,3 +276,165 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Pytest regression tests for the forward z-score normalisation fix.
+#
+# These tests verify that the fix is applied correctly at the algebraic level
+# and that postprocessed output is on the correct scale.  They do NOT assert
+# full distributional convergence — that requires longer training and is
+# limited by the generator's Tanh activation (see note below).
+#
+# Key regression: before the fix, _postprocess output for large-scale features
+# (e.g. σ_real ≈ 1e6) would be bounded in [-1, 1] with near-zero std.  After
+# the fix, postprocessed output must be in the correct real-data scale range
+# regardless of generator convergence.
+#
+# KNOWN STRUCTURAL LIMIT (not addressed in this patch):
+#   The generator's Tanh activation bounds output to (-1, 1) in z-scored
+#   space, which corresponds to approximately ±1σ in real-data space.
+#   Generator mode collapse (constant -1 or +1) for specific features is
+#   a pre-existing architectural instability separate from the z-score fix.
+#   The tests below are tolerant of mode collapse while still catching the
+#   original pre-fix pathology (wrong scale by factor of std).
+#   See 2026-05-15-mt-wgan-audit-findings.md for full details.
+# ─────────────────────────────────────────────────────────────────────────────
+
+import pytest
+
+_EPOCHS_PYTEST = 60   # more epochs than the visual demo for stable convergence
+_N_GEN = 2000
+
+
+@pytest.fixture(scope="module")
+def trained_mt_wgan():
+    """Train a small MT_WGAN and return (trained_gan, real_data, real_labels)."""
+    rng = np.random.default_rng(42)
+    data = make_synthetic_data(_N_ROWS, _SEQ_LEN, rng)
+    labels = make_labels(_N_ROWS, rng)
+
+    from GANs.df_mt_wgan_mlx import balance_with_mt_wgan_mlx
+
+    _, _, gan = balance_with_mt_wgan_mlx(
+        data,
+        labels,
+        epochs=_EPOCHS_PYTEST,
+        batch_size=256,
+        task_target_ratios=None,
+        verbose=False,
+        _return_model=True,
+    )
+    return gan, data, labels
+
+
+def _generate_synth(gan, real_data, real_labels, n_gen=_N_GEN):
+    """Generate n_gen samples from a trained MT_WGAN using the real label distribution."""
+    import mlx.core as mx
+
+    rng_idx = np.random.default_rng(99)
+    n = real_data.shape[0]
+    idx = rng_idx.integers(0, n, n_gen)
+    sampled_labels = {task: real_labels[task][idx] for task in sorted(real_labels.keys())}
+
+    sorted_tasks = sorted(sampled_labels.keys())
+    c_parts = [mx.array(sampled_labels[t], dtype=mx.float32) for t in sorted_tasks]
+    c = mx.concatenate(c_parts, axis=-1)
+    z = mx.random.normal((n_gen, gan.latent_dim))
+
+    synth = gan.gen(z, c)
+    synth = gan._postprocess(synth)
+    mx.eval(synth)
+    return np.array(synth)
+
+
+def test_feature_stats_stored_on_model(trained_mt_wgan):
+    """After training, feature_mean and feature_std must be set and have correct shapes.
+
+    This is the minimal sanity check that the stats computation path ran.
+    """
+    gan, real_data, _ = trained_mt_wgan
+    assert gan.feature_mean is not None, "feature_mean should be set after training"
+    assert gan.feature_std is not None, "feature_std should be set after training"
+    assert gan.feature_mean.shape == (_NUM_FEATURES,), (
+        f"feature_mean shape {gan.feature_mean.shape} != ({_NUM_FEATURES},)"
+    )
+    assert gan.feature_std.shape == (_NUM_FEATURES,), (
+        f"feature_std shape {gan.feature_std.shape} != ({_NUM_FEATURES},)"
+    )
+    # Stats must reflect the real data distribution (not z-scored data)
+    real_flat = real_data.reshape(-1, _NUM_FEATURES)
+    for f in range(_NUM_FEATURES):
+        np.testing.assert_allclose(
+            gan.feature_mean[f], real_flat[:, f].mean(), rtol=1e-3,
+            err_msg=f"feature_mean[{f}] should be the raw data mean"
+        )
+        np.testing.assert_allclose(
+            gan.feature_std[f], real_flat[:, f].std(), rtol=1e-3,
+            err_msg=f"feature_std[{f}] should be the raw data std"
+        )
+
+
+def test_postprocess_output_on_correct_scale(trained_mt_wgan):
+    """Postprocessed output must be on the correct real-data scale.
+
+    The pre-fix pathology: large-scale features (e.g. σ_real ≈ 1e6) would
+    appear in [-1, 1] range because postprocess was inverting a non-applied
+    transform.  After the fix, postprocessed output must be in the same order
+    of magnitude as real data for every feature.
+
+    Test: |postprocess_mean - real_mean| < 2 * real_std for each feature.
+    This is very generous (allows ±2σ offset from mode collapse) but catches
+    the pre-fix bug where Feature 1 (real_mean=4.99e6, real_std=1e6) would
+    appear with postprocess_mean near 0.09 (i.e. 4.99e6σ off).
+    """
+    gan, real_data, real_labels = trained_mt_wgan
+    synth = _generate_synth(gan, real_data, real_labels)
+
+    real_flat = real_data.reshape(-1, _NUM_FEATURES)
+    synth_flat = synth.reshape(-1, _NUM_FEATURES)
+
+    for f in range(_NUM_FEATURES):
+        real_mean = real_flat[:, f].mean()
+        real_std = real_flat[:, f].std()
+        synth_mean = synth_flat[:, f].mean()
+        # Tolerance is 2 * real_std — wide enough to absorb mode collapse
+        # (generator stuck at Tanh=-1 gives synth_mean = real_mean - real_std)
+        # but tight enough to catch the pre-fix pathology.
+        tol = 2.0 * real_std
+        assert abs(synth_mean - real_mean) <= tol, (
+            f"Feature {f}: postprocess output mean {synth_mean:.4g} is "
+            f"{abs(synth_mean - real_mean) / real_std:.1f}σ from real mean {real_mean:.4g}.  "
+            f"Tolerance is ±{tol:.4g} (2σ).  "
+            f"This suggests the z-score inversion is using wrong scale — "
+            f"check that feature_std reflects raw data std."
+        )
+
+
+def test_postprocess_is_algebraic_inverse_of_zscore(trained_mt_wgan):
+    """_postprocess must exactly invert a z-scored input.
+
+    Directly verifies the algebraic correctness of the transform pair:
+    forward z-score (x - mean) / std → _postprocess → x.
+    This is unit-level: independent of generator training quality.
+    """
+    import mlx.core as mx
+
+    gan, real_data, _ = trained_mt_wgan
+
+    # Take a slice of real data and z-score it manually
+    sample = real_data[:100].astype(np.float32)
+    zscored = (sample - gan.feature_mean) / gan.feature_std  # (100, seq_len, F)
+
+    # _postprocess should invert this back to the original
+    recovered = gan._postprocess(mx.array(zscored))
+    mx.eval(recovered)
+    recovered_np = np.array(recovered)
+
+    np.testing.assert_allclose(
+        recovered_np, sample, rtol=1e-4, atol=1e-3,
+        err_msg=(
+            "_postprocess(zscore(x)) != x — the forward z-score and _postprocess "
+            "are not algebraic inverses.  Check feature_mean/feature_std assignment."
+        )
+    )

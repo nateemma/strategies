@@ -164,6 +164,11 @@ class MTCriticMLX(nn.Module):
         return adv_score, task_outputs
 
 class MTWGANMLX:
+    # Z-score outlier-clip threshold — mirrors TabDDPMMLX._ZSCORE_CLIP and
+    # MTDDPMMLX._ZSCORE_CLIP.  Training data is clipped to ±_ZSCORE_CLIP σ
+    # before being fed to the generator/critic.
+    _ZSCORE_CLIP: float = 4.0
+
     def __init__(self, seq_len: int, num_features: int, task_label_dims: dict[str, int], latent_dim: int = 64, gp_weight: float = 10.0, learning_rate: float = 1e-4, task_loss_weights: dict[str, float] | None = None):
         self.latent_dim = latent_dim
         self.task_label_dims = task_label_dims
@@ -387,7 +392,6 @@ def balance_with_mt_wgan_mlx(
     task_loss_weights = kwargs.get("task_loss_weights")
     
     # 1. Preparation
-    X = mx.array(train_data, dtype=mx.float32)
     gan = MTWGANMLX(
         seq_len, num_features, task_label_dims,
         latent_dim=latent_dim,
@@ -396,11 +400,30 @@ def balance_with_mt_wgan_mlx(
         task_loss_weights=task_loss_weights
     )
     
-    # Stats for postprocess (to match TF implementation behavior)
+    # Stats for postprocess — computed from raw data BEFORE normalisation.
+    # _postprocess inverts the z-score applied below, so these must reflect
+    # the original (un-normalised) distribution.
     gan.feature_mean = train_data.mean(axis=(0, 1)).astype("float32")
-    gan.feature_std = train_data.std(axis=(0, 1)).astype("float32") + 1e-8
+    std = train_data.std(axis=(0, 1)).astype("float32")
+    gan.feature_std = np.maximum(std, 1e-6)  # std floor — mirrors MTDDPMMLX
     gan.feature_min = train_data.min(axis=(0, 1)).astype("float32")
     gan.feature_max = train_data.max(axis=(0, 1)).astype("float32")
+
+    # Apply forward z-score so the generator learns in standardised space.
+    # _postprocess already applies the algebraic inverse (x * std + mean),
+    # so the two transforms cancel correctly on the way out.
+    # Mirrors MTDDPMMLX._zscore_fit_3d and TabDDPMMLX._zscore_fit.
+    #
+    # Note: the generator's final Tanh activation bounds its output to
+    # (-1, 1) in z-scored space, which corresponds to roughly ±1σ in
+    # real-data space.  MT_WGAN can reproduce the central mass of each
+    # feature's distribution but cannot reach the tails beyond ±1σ.
+    # To produce wider distributions the Tanh should be replaced with a
+    # scaled variant (e.g. `4 * tanh(x)`) or removed.  Not addressed in
+    # this patch — out of scope; see findings doc
+    # 2026-05-15-mt-wgan-audit-findings.md.
+    train_data = (train_data - gan.feature_mean) / gan.feature_std
+    train_data = np.clip(train_data, -MTWGANMLX._ZSCORE_CLIP, MTWGANMLX._ZSCORE_CLIP).astype(np.float32)
 
     save_path = kwargs.get("save_path")
     model_loaded = False
