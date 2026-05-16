@@ -393,9 +393,9 @@ class ClassifierMLXMultiTask(ClassifierMLX):
         grad_clip_norm = 1.0
         # Match ClassifierKerasMultiTask: monitor val_trading_mcc, maximise.
         monitor_mode = "max"
-        # monitor_key = "val_trading_mcc"
-        # monitor_key = "val_trading_f1_class_2"  # F1 peaks at epoch 1 (untrained, high recall); 2026-05-15 run showed save-best stuck at epoch 1 while precision improved through epoch 21
-        monitor_key = "val_trading_precision"
+        monitor_key = "val_trading_mcc"           # empirical winner — robust to class imbalance and degenerate predictions
+        # monitor_key = "val_trading_precision"   # 2026-05-15: drifts toward predicting class 1 (Hold/neutral) for most tasks; macro avg satisfied trivially
+        # monitor_key = "val_trading_f1_class_2"  # 2026-05-15: peaks at epoch 1 (untrained, high recall); save-best traps the untrained model
         checkpoint_path = self.get_checkpoint_path()
 
         best_metric = -np.inf

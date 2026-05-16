@@ -277,10 +277,10 @@ class ClassifierMLXNary(ClassifierMLX):
         # cascade the model weights to NaN — same failure mode the multi-task
         # variant guards against.
         grad_clip_norm = 1.0
-        monitor_mode = "max"  # we monitor val_precision
-        monitor_key = "val_precision"
-        # monitor_key = "val_f1_class_2"  # F1 peaks at epoch 1 (untrained, high recall); unreliable for save-best in class-imbalanced runs
-        # monitor_key = "val_mcc"
+        monitor_mode = "max"
+        # monitor_key = "val_precision"     # 2026-05-15: drifts toward all-Hold predictions; macro avg goes up by collapsing the minority classes
+        # monitor_key = "val_f1_class_2"    # 2026-05-15: peaks at epoch 1 (untrained, high recall); save-best traps the untrained model
+        monitor_key = "val_mcc"             # empirical winner — robust to class imbalance and degenerate predictions
         checkpoint_path = self.get_checkpoint_path()
 
         best_metric = -np.inf
