@@ -86,9 +86,18 @@ class ClassifierKerasMultiTask(ClassifierKeras):
     # learning_rate = 5e-5
     learning_rate = 1e-4
 
+    # Optional per-instance override of the default task weights below.
+    # Strategies that want to shift loss budget across tasks (e.g. heavily
+    # downweight auxiliary heads to let trading dominate) can set this
+    # attribute on the classifier instance in their get_classifier() method.
+    # When None, the in-method default applies. Values are normalised to
+    # sum to 1.0 at compile time, same as the defaults.
+    task_weights_override = None
+
     def __init__(self, pair, seq_len, num_features, tag=""):
         super().__init__(pair, seq_len, num_features, tag)
         self.name = self.__class__.__name__
+        self.task_weights_override = None
 
     def create_model(self, seq_len, num_features):
         """placeholder for create_model"""
@@ -186,14 +195,21 @@ class ClassifierKerasMultiTask(ClassifierKeras):
         # BUT regression tasks need sufficient weight to learn properly
         # These numbers are derived from observing training data and balancing the valifation loss
         # contributions of each task
-        task_weights_raw = {
-            "trading": 2.0,
-            "regime": 1.0,
-            "risk": 1.0,
-            "momentum": 1.0,
-            "flow": 1.0,
-            "profit": 2.0,
-        }
+        # Per-instance override beats the default below. See class attribute
+        # docstring for the use case (per-variant downweighting of aux tasks).
+        if self.task_weights_override is not None:
+            task_weights_raw = dict(self.task_weights_override)
+            weight_source = "instance override"
+        else:
+            task_weights_raw = {
+                "trading": 2.0,
+                "regime": 1.0,
+                "risk": 1.0,
+                "momentum": 1.0,
+                "flow": 1.0,
+                "profit": 2.0,
+            }
+            weight_source = "module default"
 
         # # Normalize task weights to sum to 1.0 for better interpretability and stable loss magnitude
         # # This preserves relative ratios while making the total loss a weighted average
@@ -202,7 +218,8 @@ class ClassifierKerasMultiTask(ClassifierKeras):
             task: weight / total_weight for task, weight in task_weights_raw.items()
         }
         print(
-            f"    task weights (normalized, sum={sum(task_weights.values()):.3f}): {task_weights}"
+            f"    task weights ({weight_source}, normalized, "
+            f"sum={sum(task_weights.values()):.3f}): {task_weights}"
         )
         # print(
         #     f"task_weights_raw: {task_weights_raw}"

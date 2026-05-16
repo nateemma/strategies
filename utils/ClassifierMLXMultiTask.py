@@ -189,10 +189,33 @@ class ClassifierMLXMultiTask(ClassifierMLX):
     # Internal state for per-task class weighting
     class_weights: Dict[str, list]
 
+    # Optional per-instance override of the module-level TASK_WEIGHTS.
+    # Strategies that want to shift loss budget across tasks (e.g. heavily
+    # downweight auxiliary heads to let trading dominate) can set this
+    # attribute on the classifier instance in their get_classifier() method.
+    # When None, the module default TASK_WEIGHTS applies. Values are
+    # normalised to sum to 1.0 at training time, same as the defaults.
+    task_weights_override: Optional[Dict[str, float]]
+
     def __init__(self, pair, seq_len, num_features, tag=""):
         super().__init__(pair, seq_len, num_features, tag)
         self.name = self.__class__.__name__
         self.class_weights = {}
+        self.task_weights_override = None
+
+    def _task_weights(self) -> Dict[str, float]:
+        """Per-instance task weights, normalised to sum to 1.0.
+
+        Returns ``task_weights_override`` if set (renormalised), otherwise
+        the module-level ``TASK_WEIGHTS`` default.
+        """
+        if self.task_weights_override is None:
+            return TASK_WEIGHTS
+        raw = dict(self.task_weights_override)
+        total = sum(raw.values())
+        if total <= 0:
+            return TASK_WEIGHTS
+        return {k: v / total for k, v in raw.items()}
 
     # -----------------------------------------------------------------------
     # Model creation (subclasses override)
@@ -358,12 +381,17 @@ class ClassifierMLXMultiTask(ClassifierMLX):
         # --- build per-task loss functions and global task weights ---
         loss_fns = self._build_task_loss_fns(self.class_weights)
         task_weight_keys = list(TASK_NAMES)
+        active_task_weights = self._task_weights()
         task_weight_arr = mx.array(
-            [TASK_WEIGHTS[t] for t in task_weight_keys], dtype=mx.float32
+            [active_task_weights[t] for t in task_weight_keys], dtype=mx.float32
+        )
+        weight_source = (
+            "instance override" if self.task_weights_override is not None
+            else "module default"
         )
         print(
-            f"    task weights (normalized, sum={float(mx.sum(task_weight_arr)):.3f}): "
-            f"{TASK_WEIGHTS}"
+            f"    task weights ({weight_source}, normalized, "
+            f"sum={float(mx.sum(task_weight_arr)):.3f}): {active_task_weights}"
         )
 
         # --- build optimizer ---
