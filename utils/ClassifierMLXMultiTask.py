@@ -390,7 +390,14 @@ class ClassifierMLXMultiTask(ClassifierMLX):
         # produce gradients large enough to spike Adam's running averages and
         # cascade the model weights to NaN — exactly what symptom #21 looked
         # like in early runs (smooth descent → sudden NaN with no recovery).
-        grad_clip_norm = 1.0
+        # 2026-05-16: tightened from 1.0 → 0.5 after Fix B1 (balance_multi_task
+        # ignoring collateral) more than doubled training set size to ~1.3M rows
+        # with much higher class diversity, which surfaced NaN cascades from
+        # epoch 44 onward with grad_clip_norm=1.0. The cascade let the model
+        # collapse into degenerate prediction modes (trading→all-Sell,
+        # profit→all-Hold) despite an improving val_trading_mcc. Tighter clip
+        # caps per-batch gradient impact so the optimizer state stays stable.
+        grad_clip_norm = 0.5
         # Match ClassifierKerasMultiTask: monitor val_trading_mcc, maximise.
         monitor_mode = "max"
         monitor_key = "val_trading_mcc"           # empirical winner — robust to class imbalance and degenerate predictions
