@@ -511,105 +511,22 @@ def balance_with_mt_wgan_mlx(
                 if k in kwargs: meta[k] = kwargs[k]
             gan.save(save_path, meta)
 
-    # 2. Augmentation (Multi-Task)
-    # We use task_target_ratios to decide what to generate
-    if task_target_ratios is None:
-        # Fallback to primary task
-        labels = train_labels[primary_task]
-        idx = np.argmax(labels, axis=1)
-        unique, counts = np.unique(idx, return_counts=True)
-        max_count = np.max(counts)
-        target_ratio = kwargs.get("target_ratio", 0.5)
-        task_target_ratios = {primary_task: target_ratio}
-
-    generation_needs = []
-    for task, ratio_spec in task_target_ratios.items():
-        if ratio_spec is None: continue
-        t_labels = train_labels[task]
-        t_idx = np.argmax(t_labels, axis=1)
-        u, c = np.unique(t_idx, return_counts=True)
-        counts_dict = dict(zip(u.tolist(), c.tolist()))
-        curr_max = np.max(c)
-        
-        ratios = ratio_spec if isinstance(ratio_spec, dict) else {i: ratio_spec for i in range(task_label_dims[task])}
-        
-        for class_i, ratio in ratios.items():
-            target = int(curr_max * ratio)
-            need = target - counts_dict.get(class_i, 0)
-            if need > 0:
-                # We store ratio to allow leak-aware re-calculation
-                generation_needs.append({
-                    "task": task,
-                    "class_idx": class_i,
-                    "initial_need": need,
-                    "ratio": ratio
-                })
-
-    if not generation_needs:
-        aug_x = train_data.reshape(num_samples, num_features) if original_2d else train_data
-        if kwargs.get("_return_model"):
-            return aug_x, train_labels, gan
-        return aug_x, train_labels
-
-    # Sort needs so we handle larger deficits or primary tasks first
-    generation_needs.sort(key=lambda x: x["initial_need"], reverse=True)
-
-    gen_x_list = [train_data]
-    # We'll use this to keep track of current totals to account for "leakage"
-    gen_y_accumulator = {t: [train_labels[t]] for t in train_labels}
-    
-    sorted_tasks = sorted(list(train_labels.keys()))
-    
-    for spec in generation_needs:
-        task_name = spec["task"]
-        class_idx = spec["class_idx"]
-        ratio = spec["ratio"]
-
-        # LEAK-AWARE CHECK:
-        # Re-evaluate how many we actually need based on what was added in previous steps
-        current_y_all = {t: np.concatenate(gen_y_accumulator[t], axis=0) for t in sorted_tasks}
-        task_labels_now = current_y_all[task_name]
-        counts_now = np.sum(task_labels_now, axis=0)
-        
-        # New target based on current majority (which might have grown!)
-        current_target = int(np.max(counts_now) * ratio)
-        needed_now = current_target - int(counts_now[class_idx])
-        
-        if needed_now <= 0:
-            if verbose:
-                print(f"    Task '{task_name}' class {class_idx} gap already filled by previous task leakage.")
-            continue
-
-        need = needed_now
-        
-        matching_indices = np.where(np.argmax(train_labels[task_name], axis=1) == class_idx)[0]
-        if len(matching_indices) == 0: continue
-        
-        sampled_idx = np.random.choice(matching_indices, size=need, replace=True)
-        sampled_labels = {t: train_labels[t][sampled_idx] for t in sorted_tasks}
-        cond_np = np.concatenate([sampled_labels[t] for t in sorted_tasks], axis=1)
-        
-        z = mx.random.normal((need, gan.latent_dim))
-        c = mx.array(cond_np, dtype=mx.float32)
-        
-        synth = gan.gen(z, c)
-        synth = gan._postprocess(synth)
-        mx.eval(synth)
-        
-        gen_x_list.append(np.array(synth))
-        for t in sorted_tasks:
-            gen_y_accumulator[t].append(sampled_labels[t])
-
-    aug_x = np.concatenate(gen_x_list, axis=0)
-    aug_y = {t: np.concatenate(gen_y_accumulator[t], axis=0) for t in sorted_tasks}
-    
+    # In-fit augmentation is intentionally a no-op. The backend always
+    # passes task_target_ratios={k: 0.0 for k in labels} via
+    # _build_mt_balance_config, so any in-function balancing here would
+    # be dead code at production callsites. Augmentation happens later
+    # in BaseNNMTStrategy.preprocess_training_data via the shared
+    # GANs.balance.balance_multi_task, which iterates with leak-aware
+    # deficit recomputation across all MT GAN backends.
+    #
+    # Previously this function carried its own single-pass augmentation
+    # loop; removed 2026-05-16 to match balance_with_mt_ddpm_mlx and
+    # consolidate iteration semantics in balance_multi_task.
     if original_2d:
-        aug_x = aug_x.reshape(aug_x.shape[0], num_features)
-    
-    p = np.random.permutation(len(aug_x))
+        train_data = train_data.reshape(num_samples, num_features)
     if kwargs.get("_return_model"):
-        return aug_x[p], {t: labels[p] for t, labels in aug_y.items()}, gan
-    return aug_x[p], {t: labels[p] for t, labels in aug_y.items()}
+        return train_data, train_labels, gan
+    return train_data, train_labels
 
 def load_mt_wgan_thresholds_mlx(save_path: str) -> Dict[str, Any]:
     if save_path in _META_CACHE:
