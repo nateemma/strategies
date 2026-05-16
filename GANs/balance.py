@@ -361,12 +361,24 @@ def balance_multi_task(
     running_labels: Dict[str, List[np.ndarray]] = {t: [v] for t, v in labels.items()}
     rng = np.random.default_rng()
 
-    before_summary = {t: _running_counts(running_labels, t).copy() for t in task_names}
+    # Snapshot the real-data class counts per task. Deficits are computed
+    # against (original + direct augmentation), NOT against running_labels —
+    # we ignore collateral fills so each task is forced to reach its target
+    # via dedicated rounds. See _compute_direct_deficits for the rationale.
+    original_counts: Dict[str, np.ndarray] = {
+        t: _running_counts({t: [v]}, t).copy() for t, v in labels.items()
+    }
+    direct_aug_counts: Dict[str, np.ndarray] = {
+        t: np.zeros_like(c) for t, c in original_counts.items()
+    }
+    before_summary = {t: c.copy() for t, c in original_counts.items()}
 
-    # --- Iterative greedy fill ------------------------------------------- #
+    # --- Iterative greedy fill (collateral-blind) ------------------------- #
     rounds_run = 0
     for rounds_run in range(1, max_rounds + 1):
-        deficits = _compute_deficits(running_labels, targets_by_task, task_names)
+        deficits = _compute_direct_deficits(
+            original_counts, direct_aug_counts, targets_by_task, task_names
+        )
         target_task, target_class, target_deficit = _pick_largest_deficit(deficits)
         if target_task is None or target_deficit <= 0:
             break
@@ -398,6 +410,11 @@ def balance_multi_task(
         running_data.append(gen_data)
         for t in task_names:
             running_labels[t].append(batch_labels[t])
+        # Direct augmentation only counts toward the explicitly-targeted task.
+        # Collateral additions to other tasks via batch_labels[other] are
+        # intentionally ignored — those other tasks still need their own
+        # dedicated rounds to clear their deficits.
+        direct_aug_counts[target_task][target_class] += n
 
         if rounds_run <= 5 or rounds_run % 10 == 0:
             debug_log(
@@ -523,7 +540,12 @@ def _compute_deficits(
     targets_by_task: Dict[str, int],
     task_names: List[str],
 ) -> Dict[str, np.ndarray]:
-    """Per-task ``max(0, target − running_count)`` array (shape: num_classes)."""
+    """Per-task ``max(0, target − running_count)`` array (shape: num_classes).
+
+    Uses *all* accumulated labels — including collateral additions from rounds
+    that targeted other tasks. See ``_compute_direct_deficits`` for the
+    collateral-blind variant used by ``balance_multi_task``.
+    """
     deficits: Dict[str, np.ndarray] = {}
     for task in task_names:
         if task not in targets_by_task:
@@ -533,6 +555,37 @@ def _compute_deficits(
         counts = _running_counts(running_labels, task)
         target = targets_by_task[task]
         deficits[task] = np.maximum(target - counts, 0)
+    return deficits
+
+
+def _compute_direct_deficits(
+    original_counts: Dict[str, np.ndarray],
+    direct_aug_counts: Dict[str, np.ndarray],
+    targets_by_task: Dict[str, int],
+    task_names: List[str],
+) -> Dict[str, np.ndarray]:
+    """Per-task deficits computed against *direct* augmentation only.
+
+    A round that targets ``profit=2`` adds collateral labels for trading,
+    regime, risk, etc. (because each generated sample needs labels for
+    every task). The collateral inflates the running label counts for
+    those other tasks without the algorithm having explicitly augmented
+    them — which can cause early loop exit before each task has reached
+    its expressed ratio via dedicated rounds.
+
+    This helper ignores collateral. ``direct_aug_counts[task][class]`` is
+    incremented only when ``task`` was the picked round target. Deficits
+    are then ``target − (original_count + direct_count)``, forcing each
+    task to be addressed in its own rounds until its target is met.
+    """
+    deficits: Dict[str, np.ndarray] = {}
+    for task in task_names:
+        if task not in targets_by_task:
+            deficits[task] = np.zeros_like(original_counts[task])
+            continue
+        target = targets_by_task[task]
+        combined = original_counts[task] + direct_aug_counts[task]
+        deficits[task] = np.maximum(target - combined, 0)
     return deficits
 
 
