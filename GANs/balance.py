@@ -373,19 +373,35 @@ def balance_multi_task(
     }
     before_summary = {t: c.copy() for t, c in original_counts.items()}
 
-    # --- Iterative greedy fill (collateral-blind) ------------------------- #
+    # --- Iterative greedy fill ------------------------------------------- #
+    # Two distinct deficit views used per round:
+    #   * direct_deficits — drives the exit condition and target-picking.
+    #     Ensures each task receives explicit direct augmentation regardless
+    #     of how collateral fills its classes (the Fix B1 guarantee).
+    #   * running_deficits — drives collateral-label sampling. Stops biasing
+    #     toward a class once it's actually been filled by any source, so
+    #     collateral doesn't pile up on minority classes long after they've
+    #     hit target via direct rounds + earlier collateral.
     rounds_run = 0
     for rounds_run in range(1, max_rounds + 1):
-        deficits = _compute_direct_deficits(
+        direct_deficits = _compute_direct_deficits(
             original_counts, direct_aug_counts, targets_by_task, task_names
         )
-        target_task, target_class, target_deficit = _pick_largest_deficit(deficits)
+        target_task, target_class, target_deficit = _pick_largest_deficit(direct_deficits)
         if target_task is None or target_deficit <= 0:
             break
 
         n = min(target_deficit, batch_size)
+        # Collateral sampling uses running-label deficits so already-filled
+        # classes (whether filled directly or via past collateral) stop
+        # attracting more samples. Without this the minority classes
+        # accumulate massive collateral overshoot — observed final ratio of
+        # 38/18/44 on trading task with ratio=0.8 (intended: ~31/38/31).
+        running_deficits = _compute_deficits(
+            running_labels, targets_by_task, task_names
+        )
         batch_labels = _build_batch_labels(
-            target_task, target_class, n, labels, deficits, rng
+            target_task, target_class, n, labels, running_deficits, rng
         )
 
         gen_result = interface.generate(n=n, task_labels=batch_labels)
