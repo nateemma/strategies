@@ -394,7 +394,8 @@ class ClassifierMLXMultiTask(ClassifierMLX):
         # Match ClassifierKerasMultiTask: monitor val_trading_mcc, maximise.
         monitor_mode = "max"
         # monitor_key = "val_trading_mcc"
-        monitor_key = "val_trading_precision_class_2"
+        # monitor_key = "val_trading_f1_class_2"  # F1 peaks at epoch 1 (untrained, high recall); 2026-05-15 run showed save-best stuck at epoch 1 while precision improved through epoch 21
+        monitor_key = "val_trading_precision"
         checkpoint_path = self.get_checkpoint_path()
 
         best_metric = -np.inf

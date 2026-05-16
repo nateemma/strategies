@@ -278,8 +278,8 @@ class ClassifierMLXNary(ClassifierMLX):
         # variant guards against.
         grad_clip_norm = 1.0
         monitor_mode = "max"  # we monitor val_precision
-        # monitor_key = "val_precision"
-        monitor_key = "val_f1_class_2"
+        monitor_key = "val_precision"
+        # monitor_key = "val_f1_class_2"  # F1 peaks at epoch 1 (untrained, high recall); unreliable for save-best in class-imbalanced runs
         # monitor_key = "val_mcc"
         checkpoint_path = self.get_checkpoint_path()
 
