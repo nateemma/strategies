@@ -17,27 +17,27 @@
       "max_open_trades": 10
     },
     "sell": {
-      "cexit_enable_profit_checks": true,
-      "cexit_max_days": 3,
-      "cexit_take_profit": 0.013,
       "enable_exit_signal": true,
       "exit_close_norm_threshold": 0.0,
       "exit_guard_threshold": 0.0,
-      "min_sell_loss_threshold": 0.008
+      "min_sell_loss_threshold": 0.005,
+      "cexit_enable_profit_checks": true,
+      "cexit_max_days": 1,
+      "cexit_take_profit": 0.002
     },
     "buy": {
       "entry_adx_threshold": 20.0,
-      "entry_atr_pct": 0.001,
+      "entry_atr_pct": 0.002,
       "entry_bb_width_threshold": 0.0,
       "entry_close_norm_threshold": 0.0,
       "entry_enable_guards": true,
       "entry_guard_threshold": -0.0,
       "entry_rvol_threshold": 1.0,
-      "prediction_threshold": 0.3,
-      "training_type": 16,
-      "min_buy_gain_threshold": 0.01
+      "min_buy_gain_threshold": 0.005,
+      "prediction_threshold": 0.7,
+      "training_type": 17
     }
   },
   "ft_stratparam_v": 1,
-  "export_time": "2026-05-10 17:41:46.297420+00:00"
+  "export_time": "2026-05-22 21:07:16.371326+00:00"
 }

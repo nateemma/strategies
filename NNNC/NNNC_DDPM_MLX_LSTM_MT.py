@@ -10,9 +10,9 @@ The point of this strategy: keep the single-task classifier (no
 auxiliary-task dilution) but feed it temporally-coherent 3D synthetic
 windows from MT_DDPM instead of iid rows from TAB_DDPM.
 
-GAN save path: saved_data/GANs/mt_ddpm/ (shared across all strategies;
-the existing MT_DDPM model trained by a CreateMTDDPM strategy is found
-here automatically — no separate retrain is required).
+GAN save path: saved_data/GANs_PostScale/mt_ddpm/ — uses the v2 pipeline
+(post-augmentation tensor scaling). The MT_DDPM model trained by
+CreateMTDDPM with the same flag is found here automatically.
 """
 
 import sys
@@ -29,3 +29,4 @@ class NNNC_DDPM_MLX_LSTM_MT(NNNC_DDPM_MLX_LSTM):
     gan_type = GANType.MT_DDPM
     gan_target_ratio = 0.8
     augment_training_data = True
+    use_post_gan_scaling = True

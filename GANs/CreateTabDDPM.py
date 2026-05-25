@@ -29,3 +29,7 @@ from Framework.BaseStrategy import GANType  # noqa: E402
 
 class CreateTabDDPM(CreateGAN):
     gan_type = GANType.TAB_DDPM
+    # v2 pipeline: writes to saved_data/GANs_PostScale/tab_ddpm/. Must match
+    # the same flag on NNNC_DDPM_MLX_LSTM (strategy side).
+    use_post_gan_scaling = True
+    gan_run_diagnostics = True

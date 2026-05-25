@@ -511,8 +511,17 @@ class MTDDPMMLX:
         synth_corr = np.corrcoef(synth_flat.T)
         corr_diff = np.abs(real_corr - synth_corr)
         iu = np.triu_indices_from(corr_diff, k=1)
-        print(f"  off-diagonal corr abs delta: mean {corr_diff[iu].mean():.4f}, "
-              f"max {corr_diff[iu].max():.4f}")
+        diff_pairs = corr_diff[iu]
+        max_pair_idx = int(np.argmax(diff_pairs))
+        # iu is a 2-tuple of row/col index arrays; pick the (i, j) at the max
+        i_worst = int(iu[0][max_pair_idx])
+        j_worst = int(iu[1][max_pair_idx])
+        print(
+            f"  off-diagonal corr abs delta: mean {diff_pairs.mean():.4f}, "
+            f"max {diff_pairs.max():.4f} (pair #{i_worst}×#{j_worst}: "
+            f"real={real_corr[i_worst, j_worst]:+.3f} "
+            f"synth={synth_corr[i_worst, j_worst]:+.3f})"
+        )
 
         # 3. Temporal autocorrelation (lag-1 and lag-5) per feature.
         def _lag_corr(data_3d: np.ndarray, lag: int) -> np.ndarray:

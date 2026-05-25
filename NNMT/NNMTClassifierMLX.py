@@ -740,8 +740,18 @@ class NNMTClassifierMLX_Base(MLXClassifierMultiTask):
         return _DefaultGRUCommon(num_filters)
 
     def _make_task_head(self, num_filters: int) -> nn.Module:
-        """Default task head.  Normal variants leave this alone."""
-        return _DefaultTaskHead(num_filters)
+        """Default task head.  Normal variants leave this alone — they
+        now get LSTM heads, matching what Multi_LSTM uses and giving a
+        clean backbone-only A/B across Normal variants (LSTM / Transformer
+        / Attention / etc. share the same head architecture).
+
+        Prior default was ``_DefaultTaskHead`` (simpler MLP-style head).
+        Switched 2026-05-23 after the NNMT_MLX / Multi_LSTM / Multi_Attention
+        backtest comparison showed LSTM heads produce the sparse-but-
+        confident softmax calibration the strategy filters rely on.
+        ``_DefaultTaskHead`` is preserved in this module for future A/B
+        testing but no longer the default."""
+        return _LSTMHead(num_filters)
 
     # ---------- create_model ----------
 

@@ -21,9 +21,9 @@ from functools import reduce
 import talib.abstract as ta
 
 # Local imports (must come after sys.path manipulation)
-from NNMTStrategy import NNMTStrategy, TradingAction, MarketRegime  # noqa: E402
+from NNMT.NNMTStrategy import NNMTStrategy, TradingAction, MarketRegime  # noqa: E402
 from utils.DataframePopulator import DataframePopulator, DatasetType  # noqa: E402
-from TrainingSignals import available_methods  # noqa: E402
+from Framework.TrainingSignals import available_methods  # noqa: E402
 
 # Third-party imports
 from freqtrade.strategy import (  # noqa: E402
@@ -38,11 +38,15 @@ class DebugTradingType(NNMTStrategy):
     Simple strategy that just uses the lookahead buy/sell signals
     """
 
-    # re-declare class variables so that we can override them later
-    MIN_BUY_GAIN_THRESHOLD = 0.009  # minimum gain for buy signals
-    MIN_SELL_LOSS_THRESHOLD = 0.011  # minimum loss for sell signals
-    TRAINING_TYPE = 16
-    PEAK_WINDOW = 36
+    # Overrides for triple-barrier label investigation. The threshold values
+    # match the Framework.TrainingConfig defaults but are re-declared
+    # explicitly because this debug strategy treats them as the experiment's
+    # independent variables. TRAINING_TYPE=1 is the intentional override
+    # (default in TrainingConfig is the indicator-combo type).
+    MIN_BUY_GAIN_THRESHOLD = 0.008
+    MIN_SELL_LOSS_THRESHOLD = 0.008
+    TRAINING_TYPE = 1
+    PEAK_WINDOW = 6
     augment_training_data = False
     aggregate_pairs = False
 
@@ -58,7 +62,7 @@ class DebugTradingType(NNMTStrategy):
                 # "predict_buy": {"color": "green"},
                 # "predict_sell": {"color": "red"},
                 # "trading_0": {"color": "green"},
-                # "trading_1": {"color": "purple"},
+                "trading_1": {"color": "purple"},
                 # "trading_2": {"color": "brown"},
                 # "trading_3": {"color": "blue"},
                 # "trading_4": {"color": "orange"},
@@ -74,8 +78,8 @@ class DebugTradingType(NNMTStrategy):
                 # "trading_14": {"color": "lime"},
                 # "trading_15": {"color": "gold"},
                 "trading_16": {"color": "orange"},
-                "trading_17": {"color": "black"},
-                "trading_18": {"color": "lightseagreen"},
+                # "trading_17": {"color": "black"},
+                # "trading_18": {"color": "lightseagreen"},
                 "trading_19": {"color": "purple"},
             },
         },

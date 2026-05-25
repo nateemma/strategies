@@ -232,11 +232,11 @@ class BaseStrategy(IStrategy):
     # Buy hyperspace params:
     buy_params = {
         "entry_adx_threshold": 20.0,
-        "entry_atr_pct": 0.001,
+        "entry_atr_pct": 0.02,
         "entry_bb_width_threshold": 0.0,
         "entry_close_norm_threshold": 0.0,
         "entry_enable_guards": True,
-        "entry_guard_threshold": -0.0,
+        "entry_guard_threshold": -0.5,
         "entry_rvol_threshold": 1.0,
         "prediction_threshold": 0.65,
     }
@@ -244,11 +244,11 @@ class BaseStrategy(IStrategy):
     # Sell hyperspace params:
     sell_params = {
         "cexit_enable_profit_checks": True,
-        "cexit_max_days": 3,
-        "cexit_take_profit": 0.013,
+        "cexit_max_days": 5,
+        "cexit_take_profit": 0.02,
         "enable_exit_signal": True,
         "exit_close_norm_threshold": 0.0,
-        "exit_guard_threshold": 0.0,
+        "exit_guard_threshold": 0.5,
     }
 
     # Trailing stop:
@@ -273,6 +273,15 @@ class BaseStrategy(IStrategy):
         [True, False], default=True, space="buy", load=True, optimize=True
     )
 
+    # Bear-market entry gate — causal (uses only past data, unlike the
+    # training-label regime which uses a centered rolling mean). Blocks
+    # entries when close is sustained below a long EMA by ``entry_bear_deadband``.
+    # Independent of the bull side: we only want to skip entries during bear
+    # legs, not skip them during sideways or transition periods.
+    entry_bear_filter_enable: bool = True
+    entry_bear_ema_period: int = 200      # ~200 candles back-look; 8 days on 1h
+    entry_bear_deadband: float = 0.02     # close must be 2% below EMA to count as bear
+
     entry_guard_threshold = DecimalParameter(
         -1.0, -0.0, default=-0.7, decimals=1, space="buy", load=True, optimize=True
     )
@@ -295,8 +304,8 @@ class BaseStrategy(IStrategy):
 
     entry_atr_pct = DecimalParameter(
         0.000,
-        0.006,
-        default=0.000,
+        0.060,
+        default=0.010,
         decimals=3,
         space="buy",
         load=True,
@@ -969,6 +978,26 @@ class BaseStrategy(IStrategy):
     # Freqtrade Callbacks — populate_entry_trend / populate_exit_trend
     # =========================================================================
 
+    def is_bear_market(self, dataframe: DataFrame):
+        """Causal bear-market detector for entry gating.
+
+        Returns a boolean Series of length len(dataframe), True where the
+        market is in a sustained bear regime relative to its trailing EMA.
+
+        Uses a standard (causal) EMA — only past data — because this is
+        evaluated at entry time when the future doesn't exist. Distinct
+        from ``BaseNNStrategy.get_market_regime`` which uses a *centered*
+        rolling mean (looks both ways) for training labels. Same idea,
+        different causality requirement.
+
+        Bear when ``close < EMA(entry_bear_ema_period) * (1 - entry_bear_deadband)``.
+        Deadband prevents flipping on small crosses; EMA gives multi-day
+        persistence on hourly bars.
+        """
+        close = dataframe["close"]
+        ema = close.ewm(span=self.entry_bear_ema_period, adjust=False).mean()
+        return close < ema * (1.0 - self.entry_bear_deadband)
+
     def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         """Common entry trend population - calls strategy-specific method for custom conditions"""
         conditions = []
@@ -989,6 +1018,12 @@ class BaseStrategy(IStrategy):
         # # DEBUG
         # entry_count = np.sum(model_conditions)
         # self.debug_print(f"BaseStrategy entry_count: {entry_count}")
+
+        # Bear-market gate — applies even when entry guards are off because
+        # avoiding bear-leg entries is a separate concern from the volatility/
+        # volume guards. Blocks new longs while close is below the long EMA.
+        if getattr(self, "entry_bear_filter_enable", False):
+            conditions.append(~self.is_bear_market(dataframe))
 
         # Common guard conditions
         if self.entry_enable_guards.value:
@@ -1084,13 +1119,22 @@ class BaseStrategy(IStrategy):
         after_fill: bool,
         **kwargs,
     ) -> float:
-        # Simplified trailing stoploss.
-
-        return self.stoploss
+        # No trailing — preserve the initial static stoploss from entry. The
+        # freqtrade convention is that a positive return value means
+        # "no change to the current stoploss", so the trade keeps the entry-
+        # time stop (self.stoploss = -0.05 by default) until exit.
+        #
+        # The previous implementation returned ``self.stoploss`` here, which
+        # freqtrade interprets relative to current_rate — ratcheting the stop
+        # up as price rises. That created an implicit trailing stop even with
+        # trailing_stop=False, and caught a large fraction of winners on
+        # normal volatility (see backtest 2024-04 to 2026-04: 950 trades
+        # exited via trailing_stop_loss at -4.24% avg).
+        return 1.0
 
         """
-        # Use the initial stoploss until the profit is above the threshold,
-        # then use a trailing stoploss of 50% of the current profit.
+        # Alternative: trail only when profitable. Restore by replacing the
+        # ``return 1.0`` above with the block below.
 
         if current_profit < self.cexit_take_profit.value:
             return self.stoploss
@@ -1183,6 +1227,50 @@ class BaseStrategy(IStrategy):
         if num_days >= self.cexit_max_days.value:  # max hold
             return "max_hold"
 
+        # Strategy-specific exit hook — last chance to exit before
+        # falling through to None (which delegates to the static stoploss
+        # / trailing-stop / minimal_roi config). Subclasses override
+        # ``strategy_custom_exit`` to add model-prediction-based bailouts,
+        # regime-shift exits, etc. without re-implementing the time/profit
+        # checks above. The default implementation returns None.
+        reason = self.strategy_custom_exit(
+            pair=pair,
+            trade=trade,
+            current_time=current_time,
+            current_rate=current_rate,
+            current_profit=current_profit,
+            dataframe=dataframe,
+            last_candle=last_candle,
+            **kwargs,
+        )
+        if reason is not None:
+            return reason
+
+        return None
+
+    def strategy_custom_exit(
+        self,
+        pair: str,
+        trade: "Trade",
+        current_time: "datetime",
+        current_rate: float,
+        current_profit: float,
+        dataframe,
+        last_candle,
+        **kwargs,
+    ) -> Optional[str]:
+        """Strategy-specific exit hook called from ``custom_exit`` after the
+        standard profit-based and time-based checks have declined to exit.
+
+        Return an exit-reason string to trigger an exit, or None to defer
+        to the static stoploss / trailing-stop. ``dataframe`` and
+        ``last_candle`` are passed in so subclasses can read indicator or
+        model-prediction columns without re-fetching the analyzed frame.
+
+        Default implementation is a no-op (returns None). Subclasses
+        like BaseNNMTStrategy override to inspect the model's per-bar
+        task predictions and bail out on adverse signal flips.
+        """
         return None
 
     # =========================================================================

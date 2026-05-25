@@ -4,7 +4,7 @@
 # pylint: disable=import-error
 
 """
-NNMT_MLX_MultiLSTM - Subclass of NNMTStrategy using MLX models
+NNMT_MLX_Transformer - Subclass of NNMTStrategy using MLX models
 """
 
 import sys
@@ -24,10 +24,13 @@ from NNMT.NNMTClassifierMLX import ClassifierTypeMLX, create_classifier_mlx
 # -----------
 
 
-class NNMT_MLX_MultiLSTM(NNMT_MLX):
+class NNMT_MLX_Transformer(NNMT_MLX):
+
+    buy_params = { **NNMT_MLX.buy_params,
+        "profit_prediction_threshold": 0.3
+        }
 
     def get_classifier_type(self):
         """Return the type of classifier used for training/predicting"""
-        return ClassifierTypeMLX.Multi_LSTM
-
+        return ClassifierTypeMLX.Transformer
 

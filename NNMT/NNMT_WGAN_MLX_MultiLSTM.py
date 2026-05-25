@@ -45,6 +45,7 @@ class NNMT_WGAN_MLX_MultiLSTM(NNMT_WGAN):
             clf, _ = create_classifier_mlx(
                 classifier_type, pair, num_features, seq_len
             )
+            self._apply_classifier_overrides(clf)
         else:
             print(
                 "ERROR: This strategy requires Apple's MLX package, and only runs on native Apple hardware"

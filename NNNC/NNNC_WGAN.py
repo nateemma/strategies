@@ -32,4 +32,13 @@ class NNNC_WGAN(NNNCStrategy):
     # majority class size.  See balance_single_task for semantics.
     gan_target_ratio = 0.8
 
+    # v2 pipeline: WGAN MLX generator outputs raw-space features (after
+    # internal z-score + inverse), strategy applies tensor scaling after
+    # augmentation. Reads model from saved_data/GANs_PostScale/wgan/.
+    use_post_gan_scaling = True
+
+    # Note: dataclasses.replace on strategy_config doesn't actually flip
+    # gan_run_diagnostics — that's a class-attribute lookup (see memory
+    # note reference_gan_run_diagnostics_quirk). Set as plain attr too.
+    gan_run_diagnostics = True
     strategy_config = dataclasses.replace(NNNCStrategy.strategy_config, gan_run_diagnostics=True)

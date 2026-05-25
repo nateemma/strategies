@@ -38,7 +38,45 @@ class NNMT_WGAN(NNMTStrategy):
     # dispatcher (gan_augment=False) because the augmentation is done
     # later in 3-D space.
     gan_type = GANType.MT_WGAN
-    gan_augment = False
+    gan_augment = True
+    gan_target_ratio = 0.8
+    learning_rate = 1e-5
+    batch_size = 1024
+
+    # v2 pipeline: GAN consumes raw features and a tensor-level scaler runs
+    # AFTER augmentation. Strategy looks for the model under
+    # saved_data/GANs_PostScale/mt_wgan/ rather than saved_data/GANs/mt_wgan/.
+    # Must match the same flag on CreateMTWGAN (training side); if they
+    # disagree, the load path won't find a model.
+    use_post_gan_scaling = True
+
+    # Per-instance task-weight override — shifts the multi-task loss budget
+    # heavily toward trading (and to a lesser extent profit) so the shared
+    # backbone prioritises the heads we actually trade on. Auxiliary tasks
+    # still train, just with much smaller gradient pull. Default weights
+    # (defined in utils.ClassifierMLXMultiTask) gave the trading head 25%
+    # of the loss budget and saw the model produce low-confidence Buy/Sell
+    # predictions even on balanced training data. Normalised at runtime
+    # by the classifier; raw ratios shown here for readability.
+    # _CLASSIFIER_TASK_WEIGHTS = {
+    #     "trading":  0.70,
+    #     "profit":   0.15,
+    #     "regime":   0.0375,
+    #     "risk":     0.0375,
+    #     "momentum": 0.0375,
+    #     "flow":     0.0375,
+    # }
+    _CLASSIFIER_TASK_WEIGHTS = {
+        "trading":  0.3,
+        "profit":   0.3,
+        "regime":   0.1,
+        "risk":     0.1,
+        "momentum": 0.1,
+        "flow":     0.1,
+    }
+
+    buy_params = { **NNMTStrategy.buy_params, 
+        "prediction_threshold": 0.5}
 
     # Per-task augmentation targets.  Accepts:
     #   * float                       — broadcast to every task in train_labels
@@ -54,16 +92,44 @@ class NNMT_WGAN(NNMTStrategy):
         "profit":   0.8,
     }
 
-    # Use only real signals as the basis; the GAN provides synthetic
-    # samples below, so layered signal augmentation would double-count.
-    augment_training_data = False
+    # Densify the trading-task Buy/Sell labels on real rows by extending
+    # each signal 2 bars earlier (see BaseNNStrategy.augment_training_signals).
+    # Complementary to GAN augmentation, not redundant: this expands the
+    # minority class label coverage on the real data the GAN is trained on,
+    # while GAN augmentation produces synthetic rows after the fact.
+    augment_training_data = True
 
     # When True, balance_multi_task emits a per-(task, class) fidelity
     # report (mean shift in σ, std ratio, mode-collapse / off-distribution
     # flags, plus a worst-feature drilldown).  Off by default; flip on
     # when training regresses with augmentation and you want to know
     # whether the GAN is producing usable samples.
-    gan_run_diagnostics: bool = False
+    gan_run_diagnostics: bool = True
+
+    # ---------------------------------------------------------------------- #
+    # Classifier wiring                                                       #
+    # ---------------------------------------------------------------------- #
+
+    def _apply_classifier_overrides(self, clf) -> None:
+        """Push strategy-level overrides down onto the classifier instance.
+
+        The framework doesn't auto-wire strategy class attributes through to
+        the classifier — ``learning_rate``, ``task_weights_override``, and
+        ``max_epochs`` are read off the classifier itself. Each WGAN variant's
+        ``get_classifier`` should call this immediately after creating the
+        classifier so values set here on NNMT_WGAN flow through.
+        """
+        if clf is None:
+            return
+        lr = getattr(self, "learning_rate", None)
+        if lr is not None:
+            clf.learning_rate = lr
+        weights = getattr(self, "_CLASSIFIER_TASK_WEIGHTS", None)
+        if weights:
+            clf.task_weights_override = weights
+        max_epochs = getattr(self, "_CLASSIFIER_MAX_EPOCHS", None)
+        if max_epochs is not None:
+            clf.max_epochs = int(max_epochs)
 
     # ---------------------------------------------------------------------- #
     # 3-D augmentation hook                                                  #
@@ -90,6 +156,7 @@ class NNMT_WGAN(NNMTStrategy):
                 self.get_storage_location(),
                 self.gan_type,
                 use_pca=bool(getattr(self, "use_pca_reduction", False)),
+                post_gan_scaling=bool(getattr(self, "use_post_gan_scaling", False)),
             )
 
             # Transform 3-D tensor (batch, seq_len, features) → minmax space.

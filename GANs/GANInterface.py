@@ -194,11 +194,18 @@ class GANInterface:
             "verbose":    True,
         },
         GANType.MT_WGAN: {
-            "epochs":     100,
+            # Bumped from 100 → 200 to give the model more iterations on
+            # minority-class conditional structure (f8 over-separation on
+            # momentum=0/2, profit=1 mean shifts). Variance and joint drift
+            # converged in 100; the remaining gaps are convergence-bound.
+            "epochs":     200,
             "batch_size": 2048,
             "n_critic":   6,
             "verbose":    True,
             "seq_len":    1,
+            # Note: dropout=0.05 is set as the MLX-backend default in
+            # df_mt_wgan_mlx.balance_with_mt_wgan_mlx, not here, because
+            # the TF fallback (df_mt_wgan_gp) doesn't accept the kwarg.
         },
         GANType.CTAB_GAN: {
             "epochs":                300,
@@ -236,8 +243,19 @@ class GANInterface:
             "verbose":           True,
         },
         GANType.TAB_DDPM: {
-            "epochs":            300,
+            # Longer training for the residual+LN block introduced in
+            # Step 2 of the GAN improvement plan — the deeper effective
+            # network needs more iterations to converge cleanly than the
+            # 300-epoch default that worked for the prior shallow MLP.
+            # Same budget covers the Step 3 attention head.
+            "epochs":            600,
             "batch_size":        4096,
+            # Step 3: cross-feature self-attention head, added as a
+            # residual to the main x_proj path so the model degrades
+            # cleanly to Step 2 when disabled.
+            "use_attention":     True,
+            "attn_d_feature":    32,
+            "attn_n_heads":      4,
             "learning_rate":     1e-3,
             "weight_decay":      1e-5,
             "num_timesteps":     1000,
@@ -270,6 +288,14 @@ class GANInterface:
             "class_balanced_sampling": False,
             "p_uncond":                0.0,
             "guidance_scale":          1.0,
+            # Reverted to cosine-β after EDM produced σ_syn/σ_real ≈ 2.5-3.7
+            # on this architecture (2026-05-21). EDM fixed bb_width lag-1
+            # collapse but blew out the marginal distributions — synth
+            # values landed 2-3σ outside the real feature ranges, with
+            # TEMPORAL_BROKEN/JOINT_BROKEN flagged on every bucket. Cosine-β
+            # has the bb_width issue but keeps the rest of the distribution
+            # within range. Until MT_DDPM gets architecture-specific EDM
+            # tuning, cosine-β is the safer default.
             "use_edm_schedule":        False,
             "verbose":                 True,
         },

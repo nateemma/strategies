@@ -30,6 +30,8 @@ class NNMT_WGAN_MLX(NNMT_WGAN):
     gan_target_ratio = 0.5
     gan_run_diagnostics = True
 
+    use_post_gan_scaling = True
+
     # default is LSTM type. Override get_classifier_type() in subclass
     def get_classifier_type(self):
         """Return the type of classifier used for training/predicting"""
@@ -49,6 +51,7 @@ class NNMT_WGAN_MLX(NNMT_WGAN):
             clf, _ = create_classifier_mlx(
                 classifier_type, pair, num_features, seq_len
             )
+            self._apply_classifier_overrides(clf)
         else:
             print(
                 "ERROR: This strategy requires Apple's MLX package, and only runs on native Apple hardware"

@@ -163,6 +163,135 @@ def swap_passthrough_columns(
     return _swap_ndarray(arr, pool, col_indices, rng)
 
 
+def swap_passthrough_columns_nn(
+    synth: Union[np.ndarray, pd.DataFrame],
+    real_pool: Union[np.ndarray, pd.DataFrame],
+    columns: Sequence[Union[int, str]],
+    feature_names: Optional[Sequence[str]] = None,
+) -> Union[np.ndarray, pd.DataFrame]:
+    """Like ``swap_passthrough_columns`` but the synth-to-real pairing is
+    nearest-neighbor by non-passthrough feature distance instead of random.
+
+    For each synth row, find the real row whose non-passthrough features
+    are closest (euclidean), and copy that real row's passthrough columns
+    onto the synth row.  This preserves the joint structure between
+    passthrough features and the GAN-generated features — e.g. if a synth
+    row has high atr_norm, it gets matched with a real row that also has
+    high atr_norm, and inherits that real row's time-of-day fields.
+
+    Only 2D inputs are supported (single-row tabular augmentation).  3D
+    sequence inputs fall back to random sampling because per-sequence
+    nearest-neighbor on flattened windows is significantly more expensive
+    and not needed for the current TAB_DDPM use case.
+    """
+    if not columns:
+        return synth
+
+    # Resolve string column names to integer indices once up front, using
+    # the same logic as swap_passthrough_columns so the two functions
+    # accept identical inputs.
+    if isinstance(synth, pd.DataFrame):
+        if not isinstance(real_pool, pd.DataFrame):
+            raise ValueError(
+                "swap_passthrough_columns_nn: synth is a DataFrame but "
+                "real_pool is not."
+            )
+        col_ref = list(real_pool.columns)
+    else:
+        arr = np.asarray(synth)
+        if arr.ndim == 3:
+            # Sequence path — fall back to random sampling for now.
+            rng = np.random.default_rng()
+            return swap_passthrough_columns(
+                synth=synth,
+                real_pool=real_pool,
+                columns=columns,
+                rng=rng,
+                feature_names=feature_names,
+            )
+        if isinstance(real_pool, pd.DataFrame):
+            col_ref = list(real_pool.columns)
+        elif feature_names is not None:
+            col_ref = list(feature_names)
+        else:
+            col_ref = None
+
+    col_indices: List[int] = []
+    for c in columns:
+        if isinstance(c, str):
+            if col_ref is None:
+                raise ValueError(
+                    f"swap_passthrough_columns_nn: got string column {c!r} "
+                    "but no feature_names were provided."
+                )
+            try:
+                col_indices.append(col_ref.index(c))
+            except ValueError:
+                raise ValueError(
+                    f"swap_passthrough_columns_nn: column {c!r} not found"
+                ) from None
+        else:
+            col_indices.append(int(c))
+
+    # Compute non-passthrough column indices once.
+    if isinstance(synth, pd.DataFrame):
+        n_features = synth.shape[1]
+    else:
+        n_features = np.asarray(synth).shape[-1]
+    passthrough_set = set(col_indices)
+    non_pt = [i for i in range(n_features) if i not in passthrough_set]
+    if not non_pt:
+        # Edge case — every column is a passthrough, nothing to match on.
+        # Fall back to random sampling.
+        rng = np.random.default_rng()
+        return swap_passthrough_columns(
+            synth=synth,
+            real_pool=real_pool,
+            columns=columns,
+            rng=rng,
+            feature_names=feature_names,
+        )
+
+    # Pull arrays for NN search.
+    synth_arr = (
+        synth.to_numpy() if isinstance(synth, pd.DataFrame) else np.asarray(synth)
+    )
+    real_arr = (
+        real_pool.to_numpy()
+        if isinstance(real_pool, pd.DataFrame)
+        else np.asarray(real_pool)
+    )
+
+    n_synth = synth_arr.shape[0]
+    n_real = real_arr.shape[0]
+    if n_real == 0 or n_synth == 0:
+        return synth.copy() if hasattr(synth, "copy") else np.array(synth)
+
+    # NN match on the non-passthrough subspace. KDTree (default for low
+    # dimensionality) keeps this O(n_synth · log n_real) rather than the
+    # O(n_synth · n_real) of a naive scan.
+    from sklearn.neighbors import NearestNeighbors
+
+    nn = NearestNeighbors(n_neighbors=1, algorithm="auto")
+    nn.fit(real_arr[:, non_pt])
+    _, nn_idx = nn.kneighbors(synth_arr[:, non_pt])
+    nn_idx = nn_idx[:, 0]
+
+    # Build the output with passthrough columns lifted from matched real rows.
+    if isinstance(synth, pd.DataFrame):
+        out = synth.copy()
+        name_columns = [list(real_pool.columns)[i] for i in col_indices]
+        sampled = real_pool.iloc[nn_idx][name_columns].reset_index(drop=True)
+        sampled.index = out.index
+        for col in name_columns:
+            out[col] = sampled[col].values
+        return out
+
+    out = synth_arr.copy()
+    out[:, col_indices] = real_arr[nn_idx][:, col_indices]
+    return out
+
+
 def resolve_column_indices(
     column_names: Sequence[str],
     feature_names: Sequence[str],

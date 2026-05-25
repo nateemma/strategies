@@ -38,9 +38,8 @@ class DebugRegimeIndicator(NNMTStrategy):
     Simple strategy that just uses the lookahead buy/sell signals
     """
 
-    # re-declare class variables so that we can override them later
-    MIN_BUY_GAIN_THRESHOLD = 0.008  # minimum gain for buy signals
-    MIN_SELL_LOSS_THRESHOLD = 0.008  # minimum loss for sell signals
+    # MIN_BUY_GAIN_THRESHOLD, MIN_SELL_LOSS_THRESHOLD inherit from
+    # BaseNNStrategy → Framework.TrainingConfig. Override here if needed.
     PEAK_WINDOW = 36
     augment_training_data = False
     aggregate_pairs = False

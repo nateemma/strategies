@@ -290,8 +290,10 @@ class DFCGAN(Model):
         # 2) Train generator (single step)
         random_z = tf.random.normal(shape=(batch_size, self.latent_dim))
         with tf.GradientTape() as tape:
+            # v2: linear output, z-scored space. real_x is z-scored upstream
+            # so both real and gen go through the discriminator in matching
+            # space — no _postprocess_gen inversion at training time.
             gen_x = self.generator([random_z, one_hot_c], training=True)
-            gen_x = self._postprocess_gen(gen_x)
             gen_logits, gen_feat = self.discriminator([add_noise(gen_x), one_hot_c], training=True)
             # want discriminator to predict real (1)
             adv_loss = self.loss_fn(tf.ones_like(gen_logits, dtype=gen_logits.dtype), gen_logits)
@@ -353,8 +355,12 @@ class DFCGAN(Model):
         return x.numpy()
 
     def _postprocess_gen(self, x):
-        # Tanh to bound, then rescale to real feature stats and clip to min/max
-        x = tf.tanh(x)
+        """Inverse z-score: maps z-scored generator output → real feature space.
+
+        Under v2 (since the tanh-bounded path was removed) this is called
+        only at generate time. Training-time discriminator comparison
+        happens entirely in z-scored space so train_step bypasses it.
+        """
         # Broadcast mean/std to (1,1,F)
         if self.feature_mean is not None and self.feature_std is not None:
             mean = tf.reshape(tf.cast(self.feature_mean, x.dtype), (1, 1, -1))
@@ -482,16 +488,22 @@ def balance_with_cgan(
     num_samples, seq_len, num_features = train_data.shape
     num_classes = train_labels.shape[1]
 
-    # Build tf.data pipeline
-    ds = tf.data.Dataset.from_tensor_slices((train_data.astype("float32"), train_labels.astype("float32")))
-    ds = ds.shuffle(buffer_size=min(8192, num_samples)).batch(batch_size).prefetch(tf.data.AUTOTUNE)
-
-    # Instantiate GAN
-    # Compute real feature statistics for rescaling/clipping
+    # v2 pipeline: z-score the training data BEFORE building the dataset
+    # so the generator trains in standardised space. Stats are persisted
+    # in metadata so _postprocess_gen inverts the transform at generate.
     real_feat_mean = train_data.mean(axis=(0, 1)).astype("float32")
-    real_feat_std = train_data.std(axis=(0, 1)).astype("float32")
+    real_feat_std = train_data.std(axis=(0, 1)).astype("float32") + 1e-8
     real_feat_min = train_data.min(axis=(0, 1)).astype("float32")
     real_feat_max = train_data.max(axis=(0, 1)).astype("float32")
+    _ZSCORE_CLIP = 4.0
+    train_data_zscored = (train_data.astype("float32") - real_feat_mean) / real_feat_std
+    train_data_zscored = np.clip(
+        train_data_zscored, -_ZSCORE_CLIP, _ZSCORE_CLIP
+    ).astype("float32")
+
+    # Build tf.data pipeline from z-scored data.
+    ds = tf.data.Dataset.from_tensor_slices((train_data_zscored, train_labels.astype("float32")))
+    ds = ds.shuffle(buffer_size=min(8192, num_samples)).batch(batch_size).prefetch(tf.data.AUTOTUNE)
 
     # Try to load existing model if save_path provided
     gan = None

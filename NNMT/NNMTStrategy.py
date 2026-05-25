@@ -57,19 +57,22 @@ class NNMTStrategy(BaseNNMTStrategy):
                 # "predict_buy": {"color": "blue"},
                 "%train_profit": {"color": "darkgreen"},
                 "%train_trading": {"color": "green"},
-                # "%train_risk": {"color": "purple"},
+                "%train_risk": {"color": "purple"},
                 "%train_flow": {"color": "orange"},
                 "%train_regime": {"color": "brown"},
                 "%trading": {"color": "cyan"},
                 "%regime": {"color": "magenta"},
                 "%flow": {"color": "yellow"},
-                # "%risk": {"color": "pink"},
+                "%risk": {"color": "pink"},
                 "%profit": {"color": "lightseagreen"},
                 "%momentum": {"color": "gray"},
                 "%train_momentum": {"color": "purple"},
             },
         },
     }
+
+
+    gan_run_diagnostics = True
 
     # -----------
     # Utility functions

@@ -100,18 +100,92 @@ class _SinusoidalTimeEmbed(nn.Module):
 
 
 class _MLPBlock(nn.Module):
-    """Linear → ReLU → Dropout, the TabDDPM paper's block primitive."""
+    """Pre-LN + SiLU + Linear with residual connection.
+
+    Modern DDPM block pattern (post-2021 TabDDPM follow-ups, improved
+    DDPM works) — LayerNorm before the linear stabilizes gradient flow
+    at depth, SiLU is smoother than ReLU (helps diffusion-noise
+    prediction), and the residual lets information bypass the block
+    when the linear's contribution is small. Replaces the prior
+    Linear→ReLU→Dropout primitive.
+
+    When ``d_in != d_out`` the residual path projects via a 1×1 linear
+    so the addition is dimension-correct. With current defaults
+    (d_model=256, d_layers=(256, 256)) all blocks are square and the
+    projection is the identity, but we keep the branch for safety so
+    subclasses can grow the hidden width without breaking the residual.
+    """
 
     def __init__(self, d_in: int, d_out: int, dropout: float = 0.0):
         super().__init__()
+        self.norm = nn.LayerNorm(d_in)
         self.linear = nn.Linear(d_in, d_out)
         self.dropout = nn.Dropout(dropout) if dropout > 0 else None
+        self.proj = nn.Linear(d_in, d_out) if d_in != d_out else None
 
     def __call__(self, x: mx.array) -> mx.array:
-        x = nn.relu(self.linear(x))
+        residual = x if self.proj is None else self.proj(x)
+        h = self.linear(nn.silu(self.norm(x)))
         if self.dropout is not None:
-            x = self.dropout(x)
-        return x
+            h = self.dropout(h)
+        return residual + h
+
+
+class _FeatureAttentionBlock(nn.Module):
+    """Per-feature self-attention block.
+
+    Each of ``num_features`` scalar inputs is mapped to a ``d_feature``
+    embedding (shared value→vector projection + per-feature learnable ID
+    embedding), then multi-head self-attention runs across the feature
+    tokens. The attended tokens are flattened and projected to ``d_model``
+    so the block's output can be added to ``x_proj(x)`` as a residual.
+
+    Why this exists: the shared-weight MLP blocks can model joint
+    feature interactions only implicitly via mixing weights. With 25
+    features and many subtle pairwise correlations (rsi × log_volume,
+    bb_width × adx, etc.), the MLP under-fits those joint structures
+    even at depth. Attention treats features as tokens and learns
+    explicit pairwise weights → directly addresses the inter-indicator
+    Δρ that's been stuck in the diagnostic across earlier improvements.
+    """
+
+    def __init__(
+        self,
+        num_features: int,
+        d_feature: int = 32,
+        n_heads: int = 4,
+        d_model: int = 256,
+    ):
+        super().__init__()
+        self.num_features = num_features
+        self.d_feature = d_feature
+        # Shared scalar → d_feature projection. Each feature value gets
+        # the same mapping; the per-feature distinction comes from the
+        # ID embedding below.
+        self.value_proj = nn.Linear(1, d_feature)
+        # Per-feature ID embedding. Gives feature i a unique "address"
+        # vector so attention can specialize per (feature_i, feature_j)
+        # pair instead of treating tokens interchangeably.
+        self.feat_id_embed = nn.Embedding(num_features, d_feature)
+        self.norm = nn.LayerNorm(d_feature)
+        self.attn = nn.MultiHeadAttention(dims=d_feature, num_heads=n_heads)
+        # Aggregate to d_model via flatten + linear so the output can be
+        # summed with the main x_proj path.
+        self.out_proj = nn.Linear(num_features * d_feature, d_model)
+
+    def __call__(self, x: mx.array) -> mx.array:
+        # x: (batch, num_features)
+        batch = x.shape[0]
+        value_emb = self.value_proj(mx.expand_dims(x, axis=-1))  # (B, F, d_f)
+        ids = mx.arange(self.num_features)
+        id_emb = self.feat_id_embed(ids)  # (F, d_f)
+        tokens = value_emb + mx.expand_dims(id_emb, axis=0)  # (B, F, d_f)
+        # Pre-LN + self-attention + residual within the token space.
+        normed = self.norm(tokens)
+        attended = self.attn(normed, normed, normed)
+        out_tokens = tokens + attended
+        flat = out_tokens.reshape(batch, self.num_features * self.d_feature)
+        return self.out_proj(flat)
 
 
 class _TabDDPMMLP(nn.Module):
@@ -131,6 +205,9 @@ class _TabDDPMMLP(nn.Module):
         d_layers: Sequence[int] = (256, 256),
         dropout: float = 0.0,
         num_pairs: int = 0,
+        use_attention: bool = True,
+        attn_d_feature: int = 32,
+        attn_n_heads: int = 4,
     ):
         super().__init__()
         self.x_proj = nn.Linear(num_features, d_model)
@@ -147,6 +224,19 @@ class _TabDDPMMLP(nn.Module):
             self.pair_embed = nn.Embedding(num_pairs, d_model)
         else:
             self.pair_embed = None
+        # Optional cross-feature self-attention head. Added as a residual
+        # to the main x_proj path, so use_attention=False degrades the
+        # model to the pre-Step-3 architecture exactly. Step 3 of the
+        # GAN improvement plan: explicit pairwise feature modelling.
+        if use_attention:
+            self.feat_attn = _FeatureAttentionBlock(
+                num_features=num_features,
+                d_feature=attn_d_feature,
+                n_heads=attn_n_heads,
+                d_model=d_model,
+            )
+        else:
+            self.feat_attn = None
 
         dims = [d_model, *d_layers]
         self.blocks = [
@@ -165,6 +255,8 @@ class _TabDDPMMLP(nn.Module):
         h = self.x_proj(x_t) + self.t_embed(t) + self.class_embed(class_idx)
         if self.pair_embed is not None and pair_idx is not None:
             h = h + self.pair_embed(pair_idx)
+        if self.feat_attn is not None:
+            h = h + self.feat_attn(x_t)
         for blk in self.blocks:
             h = blk(h)
         return self.head(h)
@@ -229,6 +321,13 @@ class TabDDPMMLX:
         edm_sigma_max: float = DEFAULT_SIGMA_MAX,
         edm_rho: float = DEFAULT_RHO,
         edm_sigma_data: float = DEFAULT_SIGMA_DATA,
+        # Cross-feature self-attention head (Step 3 of the GAN improvement
+        # plan). Default True — added as a residual contribution to the
+        # main MLP, so the model degrades to the pre-Step-3 architecture
+        # exactly when set False.
+        use_attention: bool = True,
+        attn_d_feature: int = 32,
+        attn_n_heads: int = 4,
         verbose: bool = True,
     ):
         self.num_features = num_features
@@ -238,6 +337,9 @@ class TabDDPMMLX:
         self.d_model = d_model
         self.d_layers = tuple(d_layers)
         self.dropout = dropout
+        self.use_attention = use_attention
+        self.attn_d_feature = attn_d_feature
+        self.attn_n_heads = attn_n_heads
         self.num_timesteps = num_timesteps
         self.num_sample_steps = num_sample_steps
         self.epochs = epochs
@@ -288,12 +390,18 @@ class TabDDPMMLX:
             d_model=self.d_model, d_layers=self.d_layers,
             dropout=self.dropout,
             num_pairs=self.num_pairs,
+            use_attention=self.use_attention,
+            attn_d_feature=self.attn_d_feature,
+            attn_n_heads=self.attn_n_heads,
         )
         self._ema_mlp = _TabDDPMMLP(
             self.num_features, self.num_classes,
             d_model=self.d_model, d_layers=self.d_layers,
             dropout=self.dropout,
             num_pairs=self.num_pairs,
+            use_attention=self.use_attention,
+            attn_d_feature=self.attn_d_feature,
+            attn_n_heads=self.attn_n_heads,
         )
 
     # ---------- training ---------- #
@@ -762,6 +870,9 @@ class TabDDPMMLX:
             "d_model":          self.d_model,
             "d_layers":         list(self.d_layers),
             "dropout":          self.dropout,
+            "use_attention":    self.use_attention,
+            "attn_d_feature":   self.attn_d_feature,
+            "attn_n_heads":     self.attn_n_heads,
             "num_timesteps":    self.num_timesteps,
             "num_sample_steps": self.num_sample_steps,
             "p_uncond":         self.p_uncond,
@@ -811,6 +922,12 @@ class TabDDPMMLX:
             edm_sigma_max=float(metadata.get("edm_sigma_max", DEFAULT_SIGMA_MAX)),
             edm_rho=float(metadata.get("edm_rho", DEFAULT_RHO)),
             edm_sigma_data=float(metadata.get("edm_sigma_data", DEFAULT_SIGMA_DATA)),
+            # Step 3 fields default to False/legacy defaults for backwards
+            # compatibility with models saved before the attention head
+            # was introduced.
+            use_attention=bool(metadata.get("use_attention", False)),
+            attn_d_feature=int(metadata.get("attn_d_feature", 32)),
+            attn_n_heads=int(metadata.get("attn_n_heads", 4)),
             verbose=False,
         )
         instance._ema_mlp.load_weights(weights_p)

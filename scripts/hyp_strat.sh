@@ -215,7 +215,7 @@ echo ""
 
 # set up path
 oldpath=${PYTHONPATH}
-export PYTHONPATH="./${group_dir}:./${strat_dir}:${PYTHONPATH}"
+export PYTHONPATH=".:./${group_dir}:./${strat_dir}:./${utils_dir}:${PYTHONPATH}"
 
 hypfile="${group_dir}/${strategy}.json"
 

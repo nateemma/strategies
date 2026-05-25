@@ -323,24 +323,28 @@ class TestGetMarketRegime:
         valid = {int(MarketRegime.BEAR), int(MarketRegime.SIDEWAYS), int(MarketRegime.BULL)}
         assert set(np.unique(regime)).issubset(valid)
 
-    def test_bull_regime_when_trend_and_cg_positive(self, strat, indicator_df):
+    def test_bull_regime_when_close_above_smoothed_plus_deadband(self, strat, indicator_df):
         df = indicator_df.copy()
-        df["trend_mode"] = 1
-        df["cg_ss"] = 1.0
+        # Steady uptrend: late bars sit above the centered rolling mean.
+        df["close"] = np.linspace(100.0, 200.0, len(df))
         regime = strat.get_market_regime(df)
-        assert np.all(regime == MarketRegime.BULL)
+        # Centered smoother symmetric around the trend midpoint, so only the
+        # back half clears the deadband — assert the last bar and that some
+        # BULL exists.
+        assert regime[-1] == MarketRegime.BULL
+        assert np.any(regime == MarketRegime.BULL)
 
-    def test_bear_regime_when_trend_and_cg_negative(self, strat, indicator_df):
+    def test_bear_regime_when_close_below_smoothed_minus_deadband(self, strat, indicator_df):
         df = indicator_df.copy()
-        df["trend_mode"] = 1
-        df["cg_ss"] = -1.0
+        df["close"] = np.linspace(200.0, 100.0, len(df))
         regime = strat.get_market_regime(df)
-        assert np.all(regime == MarketRegime.BEAR)
+        assert regime[-1] == MarketRegime.BEAR
+        assert np.any(regime == MarketRegime.BEAR)
 
-    def test_sideways_when_no_trend(self, strat, indicator_df):
+    def test_sideways_when_close_inside_deadband(self, strat, indicator_df):
         df = indicator_df.copy()
-        df["trend_mode"] = 0
-        df["cg_ss"] = 0.5
+        # Flat close: EMA matches exactly, deadband keeps every bar SIDEWAYS.
+        df["close"] = 100.0
         regime = strat.get_market_regime(df)
         assert np.all(regime == MarketRegime.SIDEWAYS)
 

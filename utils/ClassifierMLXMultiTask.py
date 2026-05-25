@@ -19,7 +19,7 @@ import sys
 import warnings
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import mlx.core as mx
@@ -185,6 +185,12 @@ class ClassifierMLXMultiTask(ClassifierMLX):
 
     clean_data_required: bool = False
     learning_rate: float = 1e-4
+    # Max training epochs. Early-stopping (early_patience=20 below) cuts
+    # off sooner if no improvement, so bumping this is safe — it just
+    # raises the ceiling when the model is still improving at the limit.
+    # Override via class attribute on the classifier instance (set in
+    # strategy.get_classifier or by the _apply_classifier_overrides hook).
+    max_epochs: int = 100
 
     # Internal state for per-task class weighting
     class_weights: Dict[str, list]
@@ -196,6 +202,23 @@ class ClassifierMLXMultiTask(ClassifierMLX):
     # When None, the module default TASK_WEIGHTS applies. Values are
     # normalised to sum to 1.0 at training time, same as the defaults.
     task_weights_override: Optional[Dict[str, float]]
+
+    # Entropy penalty applied to the softmax outputs during training.
+    # Adds  ``λ_t * mean(H(softmax_t))``  to the loss for each task t,
+    # where H is Shannon entropy. Pushes the model toward sharper
+    # (more confident) per-bar predictions — the strategy's filter
+    # mechanism benefits from sharp softmax over diffuse high-entropy
+    # outputs even at the same MCC.
+    #
+    # Accepts either a float or a dict:
+    #   * float — same penalty across all six task heads (legacy form).
+    #   * Dict[str, float] keyed by task name (subset of TASK_NAMES) —
+    #     per-task penalty so pressure can be concentrated on heads the
+    #     strategy actually depends on (typically trading + profit).
+    #     Missing keys default to 0.0 (no penalty on that task).
+    #
+    # Default 0.0 disables. Useful values 0.01-0.5 per task.
+    entropy_penalty_weight: Union[float, Dict[str, float]] = 0.0
 
     def __init__(self, pair, seq_len, num_features, tag=""):
         super().__init__(pair, seq_len, num_features, tag)
@@ -398,6 +421,25 @@ class ClassifierMLXMultiTask(ClassifierMLX):
         optimizer = optim.Adam(learning_rate=self.learning_rate)
 
         # --- forward + loss ---
+        # Resolve entropy_penalty_weight (float or dict) into a per-task
+        # dict so the loss inner-loop can index by task name directly.
+        ew_raw = getattr(self, "entropy_penalty_weight", 0.0)
+        if isinstance(ew_raw, dict):
+            entropy_per_task: Dict[str, float] = {
+                t: float(ew_raw.get(t, 0.0)) for t in TASK_NAMES
+            }
+        else:
+            entropy_per_task = {t: float(ew_raw) for t in TASK_NAMES}
+        entropy_active = any(v > 0.0 for v in entropy_per_task.values())
+        if entropy_active:
+            # Show only non-zero values for log compactness.
+            nz = {t: v for t, v in entropy_per_task.items() if v > 0}
+            print(
+                f"    entropy penalty (per-task): {nz} "
+                f"(pushes those softmax heads toward lower entropy / "
+                f"sharper predictions)"
+            )
+
         def forward_loss(model, X, y_dict):
             preds = model(X)  # dict of softmax outputs
             total = mx.zeros(())
@@ -405,12 +447,29 @@ class ClassifierMLXMultiTask(ClassifierMLX):
                 total = total + task_weight_arr[i] * loss_fns[task](
                     y_dict[task], preds[task]
                 )
+            # Entropy regularization: penalize high-entropy (diffuse)
+            # softmax outputs on selected task heads. Per-task weighting
+            # lets the strategy concentrate pressure on the heads that
+            # drive filter behavior (typically trading + profit) without
+            # collapsing aux heads. eps inside log avoids -inf when the
+            # model predicts a class with probability 0.
+            if entropy_active:
+                eps = 1e-8
+                for task in TASK_NAMES:
+                    lam = entropy_per_task[task]
+                    if lam <= 0.0:
+                        continue
+                    p = preds[task]
+                    h = -mx.sum(p * mx.log(p + eps), axis=-1)  # per-bar entropy
+                    total = total + lam * mx.mean(h)
             return total
 
         loss_and_grad = nn.value_and_grad(self.model, forward_loss)
 
         # --- training hyper-params ---
-        max_epochs = 100
+        # Read from the instance attribute (class default 100) so strategies
+        # can override by setting clf.max_epochs in get_classifier().
+        max_epochs = int(getattr(self, "max_epochs", 100))
         early_patience = 20
         plateau_patience = 8
         plateau_factor = 0.1
@@ -428,9 +487,13 @@ class ClassifierMLXMultiTask(ClassifierMLX):
         grad_clip_norm = 0.5
         # Match ClassifierKerasMultiTask: monitor val_trading_mcc, maximise.
         monitor_mode = "max"
-        monitor_key = "val_trading_mcc"           # empirical winner — robust to class imbalance and degenerate predictions
+        # monitor_key = "val_trading_mcc"           # empirical winner — robust to class imbalance and degenerate predictions
         # monitor_key = "val_trading_precision"   # 2026-05-15: drifts toward predicting class 1 (Hold/neutral) for most tasks; macro avg satisfied trivially
         # monitor_key = "val_trading_f1_class_2"  # 2026-05-15: peaks at epoch 1 (untrained, high recall); save-best traps the untrained model
+        # monitor_key = "val_avg_mcc_x_conf"      # 2026-05-23: composite (avg_mcc × mean_max_prob). Picked later epochs with marginally higher conf but worse backtest — the model's epoch-to-epoch conf variation was too small (~0.585→0.622) for the multiplicative weighting to be a useful signal.
+        # Sharpness pressure now applied via entropy penalty in the loss
+        # (see below) rather than via monitor selection.
+        monitor_key = "val_avg_mcc"
         checkpoint_path = self.get_checkpoint_path()
 
         best_metric = -np.inf
@@ -539,7 +602,26 @@ class ClassifierMLXMultiTask(ClassifierMLX):
                     val_y[task], val_preds[task], target_class=2, num_classes=3
                 )
 
+            # Mean max-class probability across tasks — measures softmax
+            # sharpness. Two models with equal MCC can have very different
+            # confidence distributions (LSTM heads ~ sharp, Attention heads
+            # ~ diffuse). The strategy's filter benefits from sharper
+            # outputs, so we add a confidence-weighted monitor below.
+            max_probs_per_task: List[float] = []
+            for task in TASK_NAMES:
+                max_probs_per_task.append(
+                    float(mx.mean(mx.max(val_preds[task], axis=-1)).item())
+                )
+            mean_max_prob = float(np.mean(max_probs_per_task))
+
             metrics_flat = self._flatten_metrics(per_task_metrics)
+            metrics_flat["val_mean_max_prob"]  = mean_max_prob
+            # Composite: rewards sharper softmax at equal MCC. Picks the
+            # epoch that's both accurate AND confident, biasing best-model
+            # selection toward the calibration profile the strategy uses.
+            metrics_flat["val_avg_mcc_x_conf"] = (
+                metrics_flat["val_avg_mcc"] * mean_max_prob
+            )
             current_metric = metrics_flat[monitor_key]
 
             clip_note = f"  clips:{epoch_clips}" if epoch_clips else ""
@@ -549,7 +631,10 @@ class ClassifierMLXMultiTask(ClassifierMLX):
                 f"val_trading_precision: {metrics_flat['val_trading_precision']:.4f}  "
                 f"val_trading_f1_class_2: {metrics_flat['val_trading_f1_class_2']:.4f}  "
                 f"val_trading_mcc: {metrics_flat['val_trading_mcc']:.4f}  "
-                f"val_avg_mcc: {metrics_flat['val_avg_mcc']:.4f}"
+                f"val_profit_mcc: {metrics_flat['val_profit_mcc']:.4f}  "
+                f"val_avg_mcc: {metrics_flat['val_avg_mcc']:.4f}  "
+                f"conf: {metrics_flat['val_mean_max_prob']:.4f}  "
+                f"avg_mcc×conf: {metrics_flat['val_avg_mcc_x_conf']:.4f}"
                 f"{clip_note}"
             )
 

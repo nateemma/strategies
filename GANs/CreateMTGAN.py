@@ -182,7 +182,13 @@ class CreateMTGAN(CreateMTGANBase, NNMTStrategy):
         train_labels: Dict[str, np.ndarray],
         save_path: str,
     ) -> None:
-        """MT WGAN-style: fit + save, no post-training generation."""
+        """MT WGAN-style: fit + save, optional post-training fidelity report.
+
+        When ``gan_run_diagnostics`` is True on the Create subclass, samples
+        ~50K synthetic rows after training and runs the same fidelity report
+        the strategy emits (mean/σ shifts, joint correlations, lag-1
+        autocorrelation). Diagnostic failures never break the training run.
+        """
         interface = GANInterface(self.gan_type, save_path=save_path)
         interface.fit(
             train_data.astype("float32"),
@@ -190,6 +196,48 @@ class CreateMTGAN(CreateMTGANBase, NNMTStrategy):
         )
         interface.save(**self._master_save_kwargs())
         print(f"    {self.gan_type.name} model saved to {save_path}")
+
+        if getattr(self, "gan_run_diagnostics", False):
+            try:
+                self._post_training_fidelity_report(
+                    interface=interface,
+                    train_data=train_data,
+                    train_labels=train_labels,
+                )
+            except Exception as exc:  # diagnostics must never tank a training run
+                print(f"    [diagnostics] skipped (error: {exc})")
+
+    def _post_training_fidelity_report(
+        self,
+        *,
+        interface: GANInterface,
+        train_data: np.ndarray,
+        train_labels: Dict[str, np.ndarray],
+        sample_size: int = 50_000,
+    ) -> None:
+        """Generate a representative synth sample and run the fidelity report."""
+        from GANs.diagnostics import summarize_real_vs_synthetic  # noqa: E402
+
+        n_real = train_data.shape[0]
+        n_sample = min(sample_size, n_real)
+        rng = np.random.default_rng(0)
+        idx = rng.choice(n_real, size=n_sample, replace=False)
+        real_sample = train_data[idx]
+        real_label_sample = {t: lbl[idx] for t, lbl in train_labels.items()}
+
+        synth_sample, synth_labels = interface.generate(
+            n=n_sample,
+            task_labels=real_label_sample,
+        )
+
+        print(f"\n    --- Post-training fidelity diagnostic ({n_sample} samples) ---")
+        summarize_real_vs_synthetic(
+            real_data=real_sample,
+            real_labels=real_label_sample,
+            synth_data=synth_sample,
+            synth_labels=synth_labels,
+            log=print,
+        )
 
     def _run_mt_ctab_training(
         self,

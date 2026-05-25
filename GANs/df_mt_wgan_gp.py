@@ -108,8 +108,9 @@ class _MTGenCNN(Model):
             x = layers.LayerNormalization()(x)
             x = layers.LeakyReLU(0.2)(x)
 
-            # Final projection: Dense → tanh directly (no BN/ReLU before tanh)
-            h = layers.Dense(num_features, activation="tanh")(x)
+            # Final projection: Dense → linear (v2 pipeline).
+            # _postprocess applies inverse z-score at generate time.
+            h = layers.Dense(num_features)(x)
             out = layers.Reshape((seq_len, num_features))(h)
         else:
             # seq_len>1 path: original CNN with FiLM conditioning
@@ -133,7 +134,8 @@ class _MTGenCNN(Model):
                 h = film(h, c_in, channels)
                 channels = max(channels // 2, 32)
 
-            h = layers.Conv1D(num_features, kernel_size=kernel_size, padding="same", activation="tanh")(h)
+            # v2: linear output, no Tanh. _postprocess inverts z-score at generate.
+            h = layers.Conv1D(num_features, kernel_size=kernel_size, padding="same")(h)
             out = _ResizeToLenLayer(target_len=seq_len)(h)
 
         self.model = Model([z_in, c_in], out, name="mt_wgangp_gen_cnn")
@@ -260,8 +262,13 @@ class MT_WGAN_GP(Model):
             self.task_loss_weights = dict(task_loss_weights)
 
     def _postprocess(self, x):
-        # Generator already outputs tanh, so we just need to rescale (no need to apply tanh again)
-        # x is already in [-1, 1] range from generator's tanh activation
+        """Inverse z-score: maps z-scored generator output → real feature space.
+
+        Under v2 the generator is linear (no Tanh) and trains in z-scored
+        space against z-scored real data, so train_step does NOT call this.
+        Invoked only at generate time to convert synthetic samples back to
+        the original feature distribution.
+        """
         if self.feature_mean is not None and self.feature_std is not None:
             mean = tf.reshape(tf.cast(self.feature_mean, x.dtype), (1, 1, -1))
             std = tf.reshape(tf.cast(self.feature_std, x.dtype), (1, 1, -1))
@@ -306,8 +313,9 @@ class MT_WGAN_GP(Model):
         for _ in range(self.n_critic):
             z = tf.random.normal((batch_size, self.latent_dim), dtype=real_x.dtype)
             with tf.GradientTape() as tape:
+                # v2: linear output, z-scored space; real_x is also z-scored
+                # upstream in balance_with_mt_wgan_gp. No _postprocess here.
                 fake_x = self.gen([z, c], training=True)
-                fake_x = self._postprocess(fake_x)
                 real_pred = self.critic([real_x, c], training=True)
                 fake_pred = self.critic([fake_x, c], training=True)
                 mean_fake = tf.reduce_mean(real_pred["adv"] * 0.0 + fake_pred["adv"])  # ensure tensor type
@@ -359,8 +367,8 @@ class MT_WGAN_GP(Model):
         # Train generator
         z = tf.random.normal((batch_size, self.latent_dim), dtype=real_x.dtype)
         with tf.GradientTape() as tape:
-            fake_x_raw = self.gen([z, c], training=True)   # tanh space: [-1, 1]
-            fake_x = self._postprocess(fake_x_raw)         # real data space
+            # v2: linear output, z-scored space. Critic also in z-scored space.
+            fake_x = self.gen([z, c], training=True)
             fake_pred = self.critic([fake_x, c], training=True)
             adv_loss = -tf.reduce_mean(fake_pred["adv"])  # generator tries to maximize critic score
             adv_loss = tf.cast(adv_loss, dtype=tf.float32)  # Cast to float32 for loss computation
@@ -381,23 +389,24 @@ class MT_WGAN_GP(Model):
             aux_g_loss = tf.clip_by_value(aux_g_loss, 0.0, 10.0)
             g_loss = adv_loss + aux_g_loss
 
-            # Class mean matching loss for the primary task (same logic as df_wgan_gp.py).
-            # Operates in tanh space so targets are always reachable; see df_wgan_gp.py for details.
+            # Class mean matching loss for the primary task.
+            # v2: operate in z-scored space (generator's native output space
+            # under v2). Normalize class_means via z-score for the target;
+            # no [-1, 1] clip since z-scored space spans ±_ZSCORE_CLIP.
             if (
                 self.class_means is not None
                 and self.feature_mean is not None
                 and self.feature_std is not None
                 and self.primary_task in labels
             ):
-                dtype = fake_x_raw.dtype
+                dtype = fake_x.dtype
                 feat_mean = tf.reshape(tf.cast(self.feature_mean, dtype), (1, 1, -1))
                 feat_std  = tf.reshape(tf.cast(self.feature_std,  dtype), (1, 1, -1))
                 class_means_norm = (tf.cast(self.class_means, dtype) - feat_mean[0]) / feat_std[0]
-                class_means_norm = tf.clip_by_value(class_means_norm, -1.0, 1.0)
                 c_task = tf.cast(labels[self.primary_task], dtype)      # (batch, num_classes)
                 target = tf.matmul(c_task, class_means_norm)            # (batch, num_features)
                 target = tf.expand_dims(target, 1)                      # (batch, 1, num_features)
-                fake_means = tf.reduce_mean(fake_x_raw, axis=1, keepdims=True)
+                fake_means = tf.reduce_mean(fake_x, axis=1, keepdims=True)
                 cond_loss = tf.reduce_mean(tf.square(fake_means - target))
                 cond_loss = tf.where(tf.math.is_finite(cond_loss), cond_loss, tf.zeros_like(cond_loss))
                 g_loss = g_loss + tf.cast(self.cond_loss_weight, g_loss.dtype) * cond_loss
@@ -674,25 +683,30 @@ def balance_with_mt_wgan_gp(
 
     data_f32 = train_data.astype("float32")
     labels_f32 = {task: labels.astype("float32") for task, labels in train_labels.items()}
-    
+
+    # v2 pipeline: compute z-score stats from RAW data, then apply forward
+    # z-score + ±_ZSCORE_CLIP σ clip before the dataset is built. Generator
+    # trains in z-scored space; _postprocess inverts at generate time.
+    feat_mean = data_f32.mean(axis=(0, 1)).astype("float32")
+    feat_std = data_f32.std(axis=(0, 1)).astype("float32") + 1e-8
+    feat_min = data_f32.min(axis=(0, 1)).astype("float32")
+    feat_max = data_f32.max(axis=(0, 1)).astype("float32")
+    _ZSCORE_CLIP = 4.0
+    data_f32 = (data_f32 - feat_mean) / feat_std
+    data_f32 = np.clip(data_f32, -_ZSCORE_CLIP, _ZSCORE_CLIP).astype("float32")
+
     # Create concatenated condition vectors
     cond_vectors = _concatenate_task_labels(labels_f32)
-    
+
     # Package labels dict into tensors for dataset
     labels_tensors = {task: tf.convert_to_tensor(arr, dtype=tf.float32) for task, arr in labels_f32.items()}
-    # Create dataset yielding (x, cond, labels_dict)
+    # Create dataset yielding (x, cond, labels_dict). data_f32 is z-scored.
     ds = (
         tf.data.Dataset.from_tensor_slices((data_f32, cond_vectors, labels_tensors))
         .shuffle(min(8192, n))
         .batch(batch_size)
         .prefetch(tf.data.AUTOTUNE)
     )
-    
-    # Stats for postprocess
-    feat_mean = data_f32.mean(axis=(0, 1)).astype("float32")
-    feat_std = data_f32.std(axis=(0, 1)).astype("float32") + 1e-8
-    feat_min = data_f32.min(axis=(0, 1)).astype("float32")
-    feat_max = data_f32.max(axis=(0, 1)).astype("float32")
 
     # Compute per-class feature means for the primary task (real-data space).
     # Used by the class mean matching loss to enforce conditioning (same approach as df_wgan_gp.py).

@@ -46,7 +46,10 @@ class DebugNNMTStrategy(NNMTStrategy):
     Simple strategy that just uses the lookahead buy/sell signals
     """
 
-    # re-declare class variables so that we can override them later
+    # Intentional debug overrides — different from the Framework.TrainingConfig
+    # defaults. Used to study indicator-combo signal type 16 with slightly
+    # asymmetric gain/loss thresholds. Keep explicit so the experiment's
+    # parameters are visible in this file.
     MIN_BUY_GAIN_THRESHOLD = 0.009
     MIN_SELL_LOSS_THRESHOLD = 0.01
     TRAINING_TYPE = 16

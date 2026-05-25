@@ -41,6 +41,39 @@ class NNMT_DDPM(NNMTStrategy):
     gan_type = GANType.MT_DDPM
     gan_augment = False
 
+    # v2 pipeline: GAN consumes raw features and a tensor-level scaler runs
+    # AFTER augmentation. Strategy looks for the model under
+    # saved_data/GANs_PostScale/mt_ddpm/ rather than saved_data/GANs/mt_ddpm/.
+    # Must match the same flag on CreateMTDDPM (training side).
+    use_post_gan_scaling = True
+
+    # Classifier-side overrides flowed through _apply_classifier_overrides.
+    # Mirror NNMT_WGAN so DDPM and WGAN comparisons share configuration.
+    # Set _CLASSIFIER_MAX_EPOCHS on the subclass to raise the training
+    # ceiling (early-stopping still cuts off at plateau).
+    _CLASSIFIER_TASK_WEIGHTS = None
+    _CLASSIFIER_MAX_EPOCHS = None
+
+    def _apply_classifier_overrides(self, clf) -> None:
+        """Push strategy-level overrides down onto the classifier instance.
+
+        Same wiring as NNMT_WGAN._apply_classifier_overrides — kept here so
+        the DDPM strategy chain can use it without inheritance gymnastics.
+        Override _CLASSIFIER_TASK_WEIGHTS / _CLASSIFIER_MAX_EPOCHS on a
+        subclass (or set learning_rate as a class attribute) to take effect.
+        """
+        if clf is None:
+            return
+        lr = getattr(self, "learning_rate", None)
+        if lr is not None:
+            clf.learning_rate = lr
+        weights = getattr(self, "_CLASSIFIER_TASK_WEIGHTS", None)
+        if weights:
+            clf.task_weights_override = weights
+        max_epochs = getattr(self, "_CLASSIFIER_MAX_EPOCHS", None)
+        if max_epochs is not None:
+            clf.max_epochs = int(max_epochs)
+
     # Per-task augmentation targets.  Accepts:
     #   * float                       — broadcast to every task in train_labels
     #   * Dict[task, float]           — per-task target
@@ -94,6 +127,7 @@ class NNMT_DDPM(NNMTStrategy):
                 self.get_storage_location(),
                 self.gan_type,
                 use_pca=bool(getattr(self, "use_pca_reduction", False)),
+                post_gan_scaling=bool(getattr(self, "use_post_gan_scaling", False)),
             )
 
             # Transform 3-D tensor (batch, seq_len, features) → minmax space.
@@ -121,6 +155,7 @@ class NNMT_DDPM(NNMTStrategy):
                     f"Run CreateMTDDPM first to train and save the model. "
                     f"Error: {load_err}"
                 ) from load_err
+            self._apply_gan_inference_overrides(interface)
 
             aug_x, aug_y = self._balance_iteratively(
                 interface=interface,

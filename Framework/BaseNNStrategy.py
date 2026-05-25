@@ -75,6 +75,7 @@ from Framework.BaseStrategy import (
     ModelType,
     GANType,
 )
+from Framework.TrainingConfig import TrainingConfig
 
 # --------------------------------
 # Global setup
@@ -87,6 +88,15 @@ log = logging.getLogger(__name__)
 # =========================================================================
 
 class BaseNNStrategy(BaseStrategy):
+
+    buy_params = { **BaseStrategy.buy_params,
+        "entry_atr_pct": 0.007,
+        "cexit_enable_profit_checks": True,
+        "cexit_max_days": 2,
+        "cexit_take_profit": 0.002,
+        "prediction_threshold": 0.7,
+        "profit_prediction_threshold": 0.3,
+        "apply_task_filters": True}
 
     # --------------------------------
     # NN-specific training parameters
@@ -122,9 +132,15 @@ class BaseNNStrategy(BaseStrategy):
     HORIZON = BaseStrategy.PEAK_WINDOW
     RISK_LOOKBACK = 200
     FLOW_LOOKBACK = 200
-    MIN_BUY_GAIN_THRESHOLD = 0.008  # minimum gain for buy signals
-    MIN_SELL_LOSS_THRESHOLD = 0.008  # minimum loss for sell signals
-    TRAINING_TYPE = 19
+    # Pulled from Framework.TrainingConfig so the strategy, the GAN trainer
+    # (CreateGANBase), and the GAN-metadata validator can never silently
+    # drift. Override on a subclass to customise.
+    MIN_BUY_GAIN_THRESHOLD = TrainingConfig.MIN_BUY_GAIN_THRESHOLD
+    MIN_SELL_LOSS_THRESHOLD = TrainingConfig.MIN_SELL_LOSS_THRESHOLD
+    TRAINING_TYPE = TrainingConfig.TRAINING_TYPE
+
+    # controls the profit estimation approach
+    use_forward_peak_profit_label = True
 
     # Signal augmentation gate — used by ``augment_training_signals``,
     # the peak-finding / wavelet-smoothed buy-sell pair generator.
@@ -186,14 +202,14 @@ class BaseNNStrategy(BaseStrategy):
 
     # Hyperopt param for training type
     from freqtrade.strategy import IntParameter
-    training_type = IntParameter(
-        0,
-        19,
-        default=16,
-        space="buy",
-        load=True,
-        optimize=False,
-    )
+    # training_type = IntParameter(
+    #     0,
+    #     19,
+    #     default=16,
+    #     space="buy",
+    #     load=True,
+    #     optimize=False,
+    # )
 
     # --------------------------------
     # Feature lists
@@ -563,6 +579,14 @@ class BaseNNStrategy(BaseStrategy):
         "flow": {"low": -0.05, "high": 0.05},
     }
 
+    # EMA spans for smoothing the underlying indicator before tri-state
+    # thresholding. The raw indicators (atr_norm, di_diff_scaled,
+    # aroonosc_scaled) update per-bar and flip on noise; smoothing turns
+    # them into slow-moving regime labels. Tune via subclass.
+    risk_smoothing_span: int = 50
+    flow_smoothing_span: int = 24
+    momentum_smoothing_span: int = 24
+
     def check_columns_included(self, required_columns: list, function_name: str):
         """Check that all required columns are in the include_list."""
         missing_columns = []
@@ -583,34 +607,53 @@ class BaseNNStrategy(BaseStrategy):
             )
             raise ValueError(error_msg)
 
+    # Slow-moving regime parameters — close vs EMA with a symmetric deadband.
+    # 200-bar EMA gives multi-day persistence on hourly candles; ±1.5% deadband
+    # prevents flips when price crosses the EMA on noise. Tune via subclass.
+    regime_ema_period: int = 200
+    regime_deadband: float = 0.015
+
     def get_market_regime(self, dataframe: DataFrame) -> np.ndarray:
-        """Classify SHORT-TERM market regimes using HT_TRENDMODE + direction (cg_ss)."""
-        regime_4 = np.ones(len(dataframe), dtype=int) * MarketRegime.SIDEWAYS
+        """Classify slow-moving bull/bear/sideways regimes via close vs a centered rolling mean.
 
-        trend_mode = dataframe["trend_mode"]
-        cg_ss = dataframe["cg_ss"]
+        BULL when close is ≥``regime_deadband`` above the smoothed reference;
+        BEAR when ≥deadband below; SIDEWAYS otherwise. Uses a CENTERED
+        rolling mean (window = ``regime_ema_period``) so the label at bar t
+        represents the regime around t with zero net lag — fine because this
+        is a training target (lookahead is allowed for labels, not features).
+        """
+        close = dataframe["close"]
+        smoothed = close.rolling(
+            window=self.regime_ema_period, center=True, min_periods=1
+        ).mean()
+        upper = smoothed * (1.0 + self.regime_deadband)
+        lower = smoothed * (1.0 - self.regime_deadband)
 
-        regime_4 = np.where(
-            (trend_mode == 1) & (cg_ss > 0),
-            MarketRegime.BULL,
-            regime_4,
-        )
-        regime_4 = np.where(
-            (trend_mode == 1) & (cg_ss < 0),
-            MarketRegime.BEAR,
-            regime_4,
-        )
+        regime = np.ones(len(dataframe), dtype=int) * MarketRegime.SIDEWAYS
+        regime = np.where(close > upper, MarketRegime.BULL, regime)
+        regime = np.where(close < lower, MarketRegime.BEAR, regime)
 
-        return regime_4
+        return regime
 
     def get_risk_level(self, dataframe: DataFrame) -> np.ndarray:
-        """Calculate tri-state risk classification: LOW=0, NORMAL=1, HIGH=2"""
+        """Calculate tri-state risk classification: LOW=0, NORMAL=1, HIGH=2.
+
+        Per-bar atr_norm flips on individual volatile/quiet candles; an EMA
+        over ``risk_smoothing_span`` bars produces a slow-moving vol-regime
+        label that aligns with how volatility regimes actually persist.
+        """
         self.check_columns_included(["atr_norm"], "get_risk_level")
 
         atr = pd.Series(
             dataframe.get("atr_norm", pd.Series(np.zeros(len(dataframe))))
         ).fillna(0)
         atr = np.nan_to_num(atr, nan=0.0, posinf=1.0, neginf=-1.0)
+        atr = (
+            pd.Series(atr)
+            .rolling(window=self.risk_smoothing_span, center=True, min_periods=1)
+            .mean()
+            .to_numpy()
+        )
 
         risk_class = np.ones(len(atr), dtype=int) * RiskLevel.NORMAL
         risk_class[atr < -0.33] = RiskLevel.LOW
@@ -619,32 +662,53 @@ class BaseNNStrategy(BaseStrategy):
         return risk_class
 
     def get_flow(self, dataframe: DataFrame) -> np.ndarray:
-        """Predict future directional bias using di_diff_scaled (Plus DI - Minus DI)."""
+        """Predict future directional bias using di_diff_scaled (Plus DI - Minus DI).
+
+        DI difference is a per-bar directional indicator; an EMA over
+        ``flow_smoothing_span`` bars stops the label flipping on each
+        short-term direction reversal.
+        """
         self.check_columns_included(["di_diff_scaled"], "get_flow")
 
         di_diff = dataframe.get("di_diff_scaled", pd.Series(np.zeros(len(dataframe))))
         di_diff = pd.Series(di_diff).fillna(0)
         di_diff = np.nan_to_num(di_diff.values, nan=0.0, posinf=1.0, neginf=-1.0)
-
-        di_diff_future = (
-            pd.Series(di_diff).shift(-self.lookahead_window).fillna(0).values
+        di_diff = (
+            pd.Series(di_diff)
+            .rolling(window=self.flow_smoothing_span, center=True, min_periods=1)
+            .mean()
+            .to_numpy()
         )
 
+        # Forward-shift is applied by the outer target layer (get_flow_target);
+        # threshold the current smoothed value here so the two shifts don't
+        # compound.
         flow_classes = np.ones(len(dataframe), dtype=int) * FlowDirection.NEUTRAL
-        flow_classes[di_diff_future < -0.15] = FlowDirection.DECREASE
-        flow_classes[di_diff_future > 0.15] = FlowDirection.INCREASE
+        flow_classes[di_diff < -0.15] = FlowDirection.DECREASE
+        flow_classes[di_diff > 0.15] = FlowDirection.INCREASE
 
         dataframe["flow"] = flow_classes
 
         return flow_classes
 
     def get_momentum(self, dataframe: DataFrame) -> np.ndarray:
-        """Calculate momentum using normalized aroonosc (pair-agnostic)"""
+        """Calculate momentum using normalized aroonosc (pair-agnostic).
+
+        Aroon Oscillator updates whenever the within-period high/low moves;
+        an EMA over ``momentum_smoothing_span`` bars produces a slow-moving
+        momentum-regime label instead of a per-bar oscillator state.
+        """
         self.check_columns_included(["aroonosc_scaled"], "get_momentum")
 
         momentum = dataframe.get("aroonosc_scaled", pd.Series(np.zeros(len(dataframe))))
         momentum = pd.Series(momentum).fillna(0)
         momentum = np.nan_to_num(momentum, nan=0.0, posinf=1.0, neginf=-1.0)
+        momentum = (
+            pd.Series(momentum)
+            .rolling(window=self.momentum_smoothing_span, center=True, min_periods=1)
+            .mean()
+            .to_numpy()
+        )
 
         momentum_classes = np.ones(len(dataframe), dtype=int) * MomentumDirection.STABLE
         momentum_classes[momentum < self.task_thresholds["momentum"]["low"]] = (
@@ -1195,6 +1259,43 @@ class BaseNNStrategy(BaseStrategy):
         "mod_sin", "mod_cos",
     ]
 
+    # Inference-time overrides applied to the loaded GAN model after
+    # ``interface.load()``. Default ``None`` preserves whatever the model
+    # was saved with — used to A/B-test sampling-side changes (more
+    # denoising steps, classifier-free guidance scale) without retraining.
+    # Currently honoured by DDPM-family backends (TAB_DDPM, MT_DDPM);
+    # GAN-family backends (WGAN, CTAB_GAN) silently ignore the knobs that
+    # don't apply to them.
+    gan_inference_sample_steps: Optional[int] = None
+    gan_inference_guidance_scale: Optional[float] = None
+
+    # Density-based rejection sampling on generated synth bars. Fits a
+    # per-class Gaussian mixture on the real same-class pool and drops
+    # the lowest-density synth samples (those that fell in low-likelihood
+    # regions of the real distribution). ``0.0`` disables the filter.
+    # The generator is called with an inflated count so the post-filter
+    # output still hits the requested ``need`` for each class.
+    gan_synth_density_reject_pct: float = 0.0
+    gan_synth_density_components: int = 8
+
+    def _apply_gan_inference_overrides(self, interface) -> None:
+        """Push strategy-level sampling knobs onto the loaded model.
+
+        Both attributes are best-effort — if the model doesn't have the
+        named attribute (e.g. WGAN doesn't have a guidance scale), we
+        skip silently rather than raise. That way the same hook is safe
+        to call from every GAN load path.
+        """
+        model = getattr(interface, "_model", None)
+        if model is None:
+            return
+        steps = getattr(self, "gan_inference_sample_steps", None)
+        if steps is not None and hasattr(model, "num_sample_steps"):
+            model.num_sample_steps = int(steps)
+        scale = getattr(self, "gan_inference_guidance_scale", None)
+        if scale is not None and hasattr(model, "guidance_scale"):
+            model.guidance_scale = float(scale)
+
     def _format_for_gan_scaler(self, array_2d):
         if isinstance(array_2d, pd.DataFrame):
             return array_2d
@@ -1650,6 +1751,7 @@ class BaseNNStrategy(BaseStrategy):
             self.get_storage_location(),
             self.gan_type,
             use_pca=bool(getattr(self, "use_pca_reduction", False)),
+            post_gan_scaling=bool(getattr(self, "use_post_gan_scaling", False)),
         )
         interface = GANInterface(self.gan_type, save_path=save_path)
 
@@ -1671,6 +1773,7 @@ class BaseNNStrategy(BaseStrategy):
             raise RuntimeError(
                 f"Failed to load GAN model at {save_path}: {load_err}"
             ) from load_err
+        self._apply_gan_inference_overrides(interface)
 
         # Normalise to GAN training space.  Keep the DataFrame view —
         # the balance helpers use it for column-aware passthrough and
@@ -1702,6 +1805,12 @@ class BaseNNStrategy(BaseStrategy):
             debug_log=self.debug_print,
             diagnostics=bool(self.gan_run_diagnostics),
             feature_names=list(train_df.columns),
+            density_reject_pct=float(
+                getattr(self, "gan_synth_density_reject_pct", 0.0)
+            ),
+            density_n_components=int(
+                getattr(self, "gan_synth_density_components", 8)
+            ),
             passthrough_columns=passthrough,
             pair_name=pair_name,
         )
@@ -1841,6 +1950,7 @@ class BaseNNStrategy(BaseStrategy):
             raise RuntimeError(
                 f"Failed to load GAN model at {save_path}: {load_err}"
             ) from load_err
+        self._apply_gan_inference_overrides(interface)
 
         T, F = int(train_data.shape[1]), int(train_data.shape[2])
         wrapped_interface = _UnflattenedGenerateWrapper(interface, T=T, F=F)
@@ -2202,22 +2312,22 @@ class BaseNNStrategy(BaseStrategy):
         # (The previous "GAN's saved thresholds silently win" path
         # masked label/GAN drift — see the threshold validation in
         # GANInterface.)
-        if (
-            hasattr(self, "buy_params")
-            and self.buy_params
-            and "min_buy_gain_threshold" in self.buy_params
-        ):
-            self.MIN_BUY_GAIN_THRESHOLD = self.buy_params["min_buy_gain_threshold"]
+        # if (
+        #     hasattr(self, "buy_params")
+        #     and self.buy_params
+        #     and "min_buy_gain_threshold" in self.buy_params
+        # ):
+        #     self.MIN_BUY_GAIN_THRESHOLD = self.buy_params["min_buy_gain_threshold"]
 
-        if (
-            hasattr(self, "sell_params")
-            and self.sell_params
-            and "min_sell_loss_threshold" in self.sell_params
-        ):
-            self.MIN_SELL_LOSS_THRESHOLD = self.sell_params["min_sell_loss_threshold"]
+        # if (
+        #     hasattr(self, "sell_params")
+        #     and self.sell_params
+        #     and "min_sell_loss_threshold" in self.sell_params
+        # ):
+        #     self.MIN_SELL_LOSS_THRESHOLD = self.sell_params["min_sell_loss_threshold"]
 
-        if not hasattr(self, "TRAINING_TYPE") or self.TRAINING_TYPE == 13:
-            self.TRAINING_TYPE = self.training_type.value
+        # if not hasattr(self, "TRAINING_TYPE") or self.TRAINING_TYPE == 13:
+        #     self.TRAINING_TYPE = self.training_type.value
 
     def iteration_init(self):
         """Called at the start of each populate_indicators() cycle.

@@ -36,6 +36,7 @@ class NNMT_DDPM_MLX_MultiLSTM(NNMT_DDPM):
     def get_classifier(self, classifier_type, pair, seq_len, num_features) -> ClassifierKeras:
         if hasattr(mx, "metal") and mx.metal.is_available():
             clf, _ = create_classifier_mlx(classifier_type, pair, num_features, seq_len)
+            self._apply_classifier_overrides(clf)
         else:
             print(
                 "ERROR: This strategy requires Apple's MLX package, and only runs on native Apple hardware"

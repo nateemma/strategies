@@ -23,3 +23,4 @@ from Framework.BaseStrategy import GANType  # noqa: E402
 
 class CreateMTDDPM(CreateMTGAN):
     gan_type = GANType.MT_DDPM
+    use_post_gan_scaling = True

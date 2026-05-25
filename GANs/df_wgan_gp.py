@@ -423,9 +423,11 @@ class _GenBaseline(Model):
         x = layers.Conv1D(base_filters // 2, kernel_size, padding="same")(x)
         x = layers.LeakyReLU(0.2)(x)
 
-        # Final projection
+        # Final projection — linear output for v2 pipeline. Generator
+        # trains in z-scored space; _postprocess inverts the z-score at
+        # generate time (see WGAN_GP._postprocess).
         h = layers.Conv1D(
-            num_features, kernel_size=kernel_size, padding="same", activation="tanh"
+            num_features, kernel_size=kernel_size, padding="same"
         )(x)
 
         out = _ResizeToLenLayer(target_len=seq_len)(h)
@@ -502,9 +504,10 @@ class _GenLSTM_CNN(Model):
         conv3_norm = layers.LayerNormalization()(conv3_out)
         conv3_act = layers.LeakyReLU(0.2)(conv3_norm)
 
-        # Final projection to features
+        # Final projection to features — linear (v2 pipeline). See
+        # WGAN_GP._postprocess for the inverse z-score applied at generate.
         h = layers.Conv1D(
-            num_features, kernel_size=kernel_size, padding="same", activation="tanh"
+            num_features, kernel_size=kernel_size, padding="same"
         )(conv3_act)
 
         out = _ResizeToLenLayer(target_len=seq_len)(h)
@@ -683,9 +686,11 @@ class _GenDCGAN(Model):
         x = layers.BatchNormalization()(x)
         x = layers.ReLU()(x)
 
-        # Output layer: DCGAN uses tanh for bounded output, NO BatchNormalization
+        # Output layer: linear (v2 pipeline). NO BatchNormalization — would
+        # shift the distribution. Generator output in z-scored space;
+        # _postprocess applies inverse z-score at generate time.
         h = layers.Conv1D(
-            num_features, kernel_size=kernel_size, padding="same", activation="tanh"
+            num_features, kernel_size=kernel_size, padding="same"
         )(x)
 
         # Ensure output matches exact sequence length
@@ -792,10 +797,12 @@ class _GenMLP(Model):
         x = layers.LayerNormalization()(x)
         x = layers.LeakyReLU(0.2)(x)
 
-        # Final projection: Dense → tanh directly.
-        # No BatchNorm/ReLU before tanh: BN would re-centre outputs to ~0 and
-        # ReLU would clamp the range to [0,1), both destroying class separation.
-        h = layers.Dense(num_features, activation="tanh")(x)
+        # Final projection: Dense → linear (v2 pipeline).
+        # No BatchNorm/ReLU here: BN would re-centre outputs to ~0 and
+        # ReLU would clamp to [0,∞), both destroying class separation.
+        # The generator output lives in z-scored space; _postprocess
+        # applies the inverse z-score at generate time.
+        h = layers.Dense(num_features)(x)
 
         # Reshape to (batch, seq_len, num_features) for compatibility
         # Since seq_len=1, this is just adding a dimension: (batch, 1, num_features)
@@ -1037,8 +1044,13 @@ class WGAN_GP(Model):
         self.d_optimizer = d_optimizer
 
     def _postprocess(self, x):
-        # Generator already outputs tanh, so we just need to rescale (no need to apply tanh again)
-        # x is already in [-1, 1] range from generator's tanh activation
+        """Inverse z-score: maps z-scored generator output → real feature space.
+
+        Under v2 the generator is linear (no Tanh) and trains in z-scored
+        space against z-scored real data, so train_step does NOT call this.
+        It is invoked only at generate time to convert synthetic samples
+        back to the original feature distribution.
+        """
         if self.feature_mean is not None and self.feature_std is not None:
             mean = tf.reshape(tf.cast(self.feature_mean, x.dtype), (1, 1, -1))
             std = tf.reshape(tf.cast(self.feature_std, x.dtype), (1, 1, -1))
@@ -1106,7 +1118,9 @@ class WGAN_GP(Model):
             z = tf.random.normal((batch_size, self.latent_dim), dtype=real_x.dtype)
             with tf.GradientTape() as tape:
                 fake_x = self.gen([z, c], training=True)
-                fake_x = self._postprocess(fake_x)
+                # v2: real_x is z-scored upstream (in balance_with_wgan_gp);
+                # generator output is also z-scored (no Tanh). Both spaces
+                # match, so no _postprocess inversion needed here.
                 real_scores = self.critic([real_x, c], training=True)
                 fake_scores = self.critic([fake_x, c], training=True)
 
@@ -1185,8 +1199,9 @@ class WGAN_GP(Model):
         # Train generator
         z = tf.random.normal((batch_size, self.latent_dim), dtype=real_x.dtype)
         with tf.GradientTape() as tape:
-            fake_x_raw = self.gen([z, c], training=True)  # tanh space: [-1, 1]
-            fake_x = self._postprocess(fake_x_raw)         # real data space
+            # v2: linear output, z-scored space. Critic is also operating
+            # in z-scored space because real_x was z-scored upstream.
+            fake_x = self.gen([z, c], training=True)
             fake_scores = self.critic([fake_x, c], training=True)
 
             # Clip scores to reasonable range to prevent NaN/Inf while preserving gradients
@@ -1225,28 +1240,29 @@ class WGAN_GP(Model):
 
             # Class mean matching loss: push generated samples toward their declared class mean.
             #
-            # IMPORTANT: operate in tanh space (pre-postprocess), not real data space.
-            # _postprocess maps tanh[-1,1] → [mean ± std], which may not cover the full
-            # range of per-class means. Normalizing class_means to tanh space ensures the
-            # target is reachable and gradients point in the right direction.
+            # v2: operate in z-scored space (which is the generator's native
+            # output space — linear output, trained against z-scored real
+            # data). Normalize class_means via the same z-score transform
+            # so the target matches what the generator produces.
             #
-            # tanh_space = (real_space - feat_mean) / feat_std, clipped to [-1, 1].
+            # zscored = (real_space - feat_mean) / feat_std (no clip — the
+            # data was clipped to ±_ZSCORE_CLIP at fit time; class means
+            # are well within that range).
             if (
                 self.class_means is not None
                 and self.feature_mean is not None
                 and self.feature_std is not None
             ):
-                dtype = fake_x_raw.dtype
+                dtype = fake_x.dtype
                 feat_mean = tf.reshape(tf.cast(self.feature_mean, dtype), (1, 1, -1))
                 feat_std  = tf.reshape(tf.cast(self.feature_std,  dtype), (1, 1, -1))
-                # Normalize class_means to tanh space: (num_classes, num_features)
+                # Normalize class_means to z-scored space: (num_classes, num_features)
                 class_means_norm = (tf.cast(self.class_means, dtype) - feat_mean[0]) / feat_std[0]
-                class_means_norm = tf.clip_by_value(class_means_norm, -1.0, 1.0)
                 # Per-sample target: (batch, num_features) via matmul with one-hot c
                 c_cast = tf.cast(c, dtype)
                 target = tf.matmul(c_cast, class_means_norm)               # (batch, num_features)
                 target = tf.expand_dims(target, 1)                          # (batch, 1, num_features)
-                fake_means = tf.reduce_mean(fake_x_raw, axis=1, keepdims=True)
+                fake_means = tf.reduce_mean(fake_x, axis=1, keepdims=True)
                 cond_loss = tf.reduce_mean(tf.square(fake_means - target))
                 cond_loss = tf.where(tf.math.is_finite(cond_loss), cond_loss, tf.zeros_like(cond_loss))
                 g_loss = g_loss + tf.cast(self.cond_loss_weight, g_loss.dtype) * cond_loss
@@ -1540,9 +1556,26 @@ def balance_with_wgan_gp(
     n = train_data.shape[0]
     data_f32 = train_data.astype("float32")
 
+    # v2 pipeline: z-score the training data so the generator trains in
+    # standardised space. Stats are persisted in metadata so _postprocess
+    # inverts the transform at generate time. Stored separately for
+    # downstream consumers that need the un-clipped min/max range.
+    feat_mean = data_f32.mean(axis=(0, 1)).astype("float32")
+    feat_std = data_f32.std(axis=(0, 1)).astype("float32") + 1e-8
+    feat_min = data_f32.min(axis=(0, 1)).astype("float32")
+    feat_max = data_f32.max(axis=(0, 1)).astype("float32")
+    _ZSCORE_CLIP = 4.0
+    data_f32 = (data_f32 - feat_mean) / feat_std
+    data_f32 = np.clip(data_f32, -_ZSCORE_CLIP, _ZSCORE_CLIP).astype("float32")
+
     if verbose:
         print(
             f"    GAN dataset shapes → data: {data_f32.shape}, labels: {labels_f32.shape}"
+        )
+        print(
+            f"    v2 z-score: mean range [{feat_mean.min():.3f}, {feat_mean.max():.3f}], "
+            f"std range [{feat_std.min():.3f}, {feat_std.max():.3f}], "
+            f"raw value range [{feat_min.min():.3f}, {feat_max.max():.3f}]"
         )
 
     # Create class-balanced dataset for better minority class learning
@@ -1655,19 +1688,10 @@ def balance_with_wgan_gp(
         )
         steps_per_epoch = (n + batch_size - 1) // batch_size  # Ceiling division
 
-    # Stats for postprocess
-    feat_mean = data_f32.mean(axis=(0, 1)).astype("float32")
-    feat_std = data_f32.std(axis=(0, 1)).astype("float32") + 1e-8
-    feat_min = data_f32.min(axis=(0, 1)).astype("float32")
-    feat_max = data_f32.max(axis=(0, 1)).astype("float32")
-
-    if verbose:
-        # Debug: show range of mean, std to understand rescaling
-        print(
-            f"    Data stats for rescaling: mean range [{feat_mean.min():.3f}, {feat_mean.max():.3f}], "
-            f"std range [{feat_std.min():.3f}, {feat_std.max():.3f}], "
-            f"value range [{feat_min.min():.3f}, {feat_max.max():.3f}]"
-        )
+    # feat_mean / feat_std / feat_min / feat_max already computed above
+    # from the RAW data_f32, then forward z-score was applied. We persist
+    # the RAW-data stats on the gan instance (below) so _postprocess can
+    # invert at generate time.
 
     # Calculate class weights if requested
     class_weights_dict = None

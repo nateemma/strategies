@@ -32,6 +32,7 @@ sys.path.append(group_dir)
 from Framework.BaseNNStrategy import BaseNNStrategy
 from Framework.BaseStrategy import MarketRegime, TradingAction, FlowDirection, MomentumDirection, RiskLevel
 from utils.ClassifierKeras import ClassifierKeras
+from utils import ForwardPeakRegressor as _FPR
 from freqtrade.strategy import DecimalParameter, IntParameter, BooleanParameter
 from GANs.GANType import GANType
 
@@ -137,8 +138,44 @@ class BaseNNMTStrategy(BaseNNStrategy):
     """
 
     profit_conflict_to_neutral = True
-    PROFIT_EMA_SPAN = 5
-    PROFIT_ATR_SCALE = 1.0
+    # EMA span used to smooth the close before measuring forward gain. Short
+    # span (≤2) preserves the moves we want the label to capture; longer
+    # spans hide them by averaging across the lookahead window.
+    PROFIT_EMA_SPAN = 2
+    # Scale factor on ATR% when computing the volatility-adjusted threshold.
+    # The effective threshold is max(MIN_GAIN, PROFIT_ATR_SCALE * atr_pct),
+    # so a smaller scale lets the fixed floor win more often and keeps
+    # volatile periods from ratcheting the threshold out of reach.
+    PROFIT_ATR_SCALE = 0.5
+    # Forward window the profit label looks at. Independent of HORIZON so
+    # tightening trading-peak detection doesn't also shorten the profit
+    # horizon; defaults to a multiple of the trading horizon so PROFIT/LOSS
+    # have a realistic chance of exceeding the threshold.
+    PROFIT_HORIZON = 8
+
+    # When True, ``get_profit_target`` returns path-independent peak-based
+    # labels (PROFIT = window max forward gain ≥ threshold regardless of
+    # whether downside hit first, LOSS = only downside, NEUTRAL = neither).
+    # Validated via DebugSignalLearnability as ~1.5× more learnable than the
+    # first-touch triple-barrier label. Default False preserves existing
+    # comparison runs; opt in per-subclass.
+    use_forward_peak_profit_label = True
+
+                                                                                                                       
+    use_forward_peak_regressor_filter = False 
+
+    stoploss = -0.04
+
+    # ATR-adaptive initial stoploss. When True, custom_stoploss sets the
+    # per-trade initial stop at after_fill to -atr_stoploss_multiplier *
+    # atr_pct_roll, clamped to [atr_stoploss_floor, atr_stoploss_cap].
+    # Volatile pairs (high ATR%) get tighter stops, calm pairs get looser
+    # stops — pair-agnostic. Falls back to the static `stoploss` if the
+    # column is missing or zero.
+    use_atr_adaptive_stoploss = True
+    atr_stoploss_multiplier = 2.5
+    atr_stoploss_floor = -0.04  # loosest stop allowed (most negative)
+    atr_stoploss_cap = -0.02    # tightest stop allowed (closest to zero)
 
     # -----------
     # Hyperopt parameters
@@ -190,12 +227,57 @@ class BaseNNMTStrategy(BaseNNStrategy):
         load=True,
     )
 
+    # Confidence floor applied to the profit-head argmax. The shared
+    # ``prediction_threshold`` (default 0.5) is too high for the profit head
+    # because the profit task has a much lower learnability ceiling (MCC ~0.10
+    # vs trading's 0.6+), so the model's max-class probability rarely clears
+    # 0.5 and every bar falls back to NEUTRAL.  Default 0.4 is the value that
+    # produced usable profit signals in manual testing.
+    profit_prediction_threshold = DecimalParameter(
+        0.2,
+        0.5,
+        default=0.4,
+        decimals=2,
+        space="buy",
+        optimize=True,
+        load=True,
+    )
+
     apply_task_filters = BooleanParameter(
         default=False,
         space="buy",
         optimize=True,
         load=True,
     )
+
+    # External forward-peak-gain regressor filter — opt-in.  When True,
+    # ``process_predictions`` loads a per-pair RandomForestRegressor from
+    # saved_data/ForwardPeakRegressor/<pair>.joblib (trained offline via
+    # Debug/TrainForwardPeakRegressor.py) and zeros out trading BUY
+    # predictions whose predicted vol-adjusted forward peak gain falls
+    # below ``forward_peak_regressor_threshold``.  Stacks on top of
+    # apply_task_filters — both can be enabled simultaneously.
+    use_forward_peak_regressor_filter = False
+    # Per-pair percentile cutoff applied to the regressor predictions.
+    # 0.0 = never reject; 0.5 = reject bars below this pair's median
+    # predicted forward peak; 0.9 = keep only the top 10%.  The percentile
+    # mapping is calibrated at training time against each pair's own
+    # score distribution, so the threshold has the same meaning across
+    # pairs with very different vol-adjusted score scales.
+    forward_peak_regressor_threshold = DecimalParameter(
+        0.0,
+        0.9,
+        default=0.5,
+        decimals=2,
+        space="buy",
+        optimize=True,
+        load=True,
+    )
+
+    # Per-pair regressor cache.  Models load lazily on first prediction;
+    # value ``False`` is sentinel for "tried and missing on disk" so we
+    # don't hit the filesystem on every call.
+    _forward_peak_regressor_cache: Dict[str, object] = {}
     # -----------
     # Class level parameters
     # -----------
@@ -350,22 +432,33 @@ class BaseNNMTStrategy(BaseNNStrategy):
     PROFIT_RANGE = 0.15  # Use this to cap the max expected profit magnitude
 
     def get_profit_target(self, dataframe: DataFrame) -> np.ndarray:
+        """Triple-barrier profit label.
 
-        # Simplified version: look ahead at EMA-smoothed close-to-close change only
-        # Classify based on future close after horizon using thresholds
+        Scan the next ``PROFIT_HORIZON`` bars; label by which barrier the
+        smoothed close hits FIRST:
+          - PROFIT if forward gain reaches +pt_eff before forward loss reaches -sl_eff
+          - LOSS   if forward loss reaches -sl_eff first
+          - NEUTRAL if neither barrier is hit anywhere in the window
+
+        Compared to the previous endpoint-at-t+H comparison: adjacent bars
+        scan windows that overlap by ~96%, so labels cluster into runs
+        instead of flipping bar-to-bar on a noisy endpoint sample. This is
+        the standard "triple-barrier" labeling from Lopez de Prado.
+
+        Set ``use_forward_peak_profit_label = True`` to use the
+        path-independent peak-based labeling instead.
+        """
+        if getattr(self, "use_forward_peak_profit_label", False):
+            return self._get_profit_target_peak(dataframe)
+
         # Note: "close", "high", "low" are raw columns, not normalized, so not checked
         df = dataframe
         n = len(df)
         classes = np.ones(n, dtype=int) * ProfitDirection.NEUTRAL
 
-        # Parameters - use the same thresholds as buy/sell signal generation for consistency
-        horizon = int(self.HORIZON)
-        pt = float(
-            self.MIN_BUY_GAIN_THRESHOLD
-        )  # Profit threshold (same as buy signal threshold)
-        sl = float(
-            self.MIN_SELL_LOSS_THRESHOLD
-        )  # Loss threshold (same as sell signal threshold)
+        horizon = int(self.PROFIT_HORIZON)
+        pt = float(self.MIN_BUY_GAIN_THRESHOLD)
+        sl = float(self.MIN_SELL_LOSS_THRESHOLD)
 
         close_raw = np.asarray(df["close"], dtype=float)
         close = (
@@ -387,27 +480,99 @@ class BaseNNMTStrategy(BaseNNStrategy):
         atr = pd.Series(tr).ewm(alpha=1.0 / 14, adjust=False).mean().to_numpy()
         atr_pct = atr / np.maximum(close_raw, 1e-12)
 
-        for t in range(n):
-            future_idx = t + horizon
-            if future_idx >= n:
+        atr_scale = float(self.PROFIT_ATR_SCALE)
+        for t in range(n - 1):
+            end_idx = min(t + horizon + 1, n)
+            window = close[t + 1 : end_idx]
+            if window.size == 0:
                 continue
-            entry = close[t]
-            future_close = close[future_idx]
 
-            gain = (future_close - entry) / entry
-            vol_adj = atr_pct[t] * float(self.PROFIT_ATR_SCALE)
+            entry = close[t]
+            gains = (window - entry) / entry
+
+            vol_adj = atr_pct[t] * atr_scale
             pt_eff = max(pt, vol_adj)
             sl_eff = max(sl, vol_adj)
 
-            if gain >= pt_eff:
-                classes[t] = ProfitDirection.PROFIT
-            elif gain <= -sl_eff:
-                classes[t] = ProfitDirection.LOSS
-            else:
+            profit_hits = np.flatnonzero(gains >= pt_eff)
+            loss_hits = np.flatnonzero(gains <= -sl_eff)
+            first_profit = profit_hits[0] if profit_hits.size else np.iinfo(np.int64).max
+            first_loss = loss_hits[0] if loss_hits.size else np.iinfo(np.int64).max
+
+            if first_profit == first_loss:  # neither hit (both sentinel)
                 classes[t] = ProfitDirection.NEUTRAL
+            elif first_profit < first_loss:
+                classes[t] = ProfitDirection.PROFIT
+            else:
+                classes[t] = ProfitDirection.LOSS
 
         # Note that we cannot add this to the main dataframe
         # because it is inherently looking ahead in time
+        return classes
+
+    def _get_profit_target_peak(self, dataframe: DataFrame) -> np.ndarray:
+        """Path-independent peak-based profit label.
+
+        For each bar t, look at the next ``PROFIT_HORIZON`` bars:
+          - PROFIT  if max forward gain ≥ +pt_eff (window had upside,
+                    regardless of whether downside also occurred)
+          - LOSS    if max forward gain < +pt_eff AND min forward gain
+                    ≤ -sl_eff (window had ONLY downside)
+          - NEUTRAL otherwise (neither barrier reached)
+
+        Both-hit bars are labeled PROFIT — the upside was capturable, so a
+        buy-side filter should let those through; the strategy's stop-loss
+        handles the downside.
+        """
+        df = dataframe
+        n = len(df)
+        classes = np.ones(n, dtype=int) * ProfitDirection.NEUTRAL
+
+        horizon = int(self.PROFIT_HORIZON)
+        pt = float(self.MIN_BUY_GAIN_THRESHOLD)
+        sl = float(self.MIN_SELL_LOSS_THRESHOLD)
+
+        close_raw = np.asarray(df["close"], dtype=float)
+        close = (
+            pd.Series(close_raw)
+            .ewm(span=int(self.PROFIT_EMA_SPAN), adjust=False)
+            .mean()
+            .to_numpy()
+        )
+
+        high = np.asarray(df["high"], dtype=float)
+        low = np.asarray(df["low"], dtype=float)
+        prev_close = np.roll(close_raw, 1)
+        prev_close[0] = close_raw[0]
+        tr = np.maximum(
+            high - low,
+            np.maximum(np.abs(high - prev_close), np.abs(low - prev_close)),
+        )
+        atr = pd.Series(tr).ewm(alpha=1.0 / 14, adjust=False).mean().to_numpy()
+        atr_pct = atr / np.maximum(close_raw, 1e-12)
+
+        atr_scale = float(self.PROFIT_ATR_SCALE)
+        for t in range(n - 1):
+            end_idx = min(t + horizon + 1, n)
+            window = close[t + 1 : end_idx]
+            if window.size == 0:
+                continue
+
+            entry = close[t]
+            gains = (window - entry) / entry
+
+            vol_adj = atr_pct[t] * atr_scale
+            pt_eff = max(pt, vol_adj)
+            sl_eff = max(sl, vol_adj)
+
+            max_gain = float(gains.max())
+            max_loss = float(gains.min())
+
+            if max_gain >= pt_eff:
+                classes[t] = ProfitDirection.PROFIT
+            elif max_loss <= -sl_eff:
+                classes[t] = ProfitDirection.LOSS
+
         return classes
 
     # -----------
@@ -769,6 +934,7 @@ class BaseNNMTStrategy(BaseNNStrategy):
             self.get_storage_location(),
             self.gan_type,
             use_pca=bool(getattr(self, "use_pca_reduction", False)),
+            post_gan_scaling=bool(getattr(self, "use_post_gan_scaling", False)),
         )
         interface = GANInterface(self.gan_type, save_path=save_path)
         expected = self._gan_expected_metadata(dataframe)
@@ -902,12 +1068,13 @@ class BaseNNMTStrategy(BaseNNStrategy):
         # convert the probability matrices into classes
         # Note the use of hyperparameters for the tasks that use bias
 
-        pred_threshold = self.prediction_threshold.value
+        trading_threshold = self.prediction_threshold.value
+        pred_threshold = min(trading_threshold, self.profit_prediction_threshold.value)
         # print(f"    prediction threshold: {pred_threshold}")
 
         predictions_dict["trading"] = self.argmax_with_threshold(
             trading_predictions,
-            threshold=pred_threshold,
+            threshold=trading_threshold,
             default_class=TradingAction.HOLD,
         )
         # predictions_dict["trading"] = self.argmax_with_bias(
@@ -948,13 +1115,13 @@ class BaseNNMTStrategy(BaseNNStrategy):
 
         # DEBUG:
         self.print_probability_stats(
-            "Trading", "Sell", profit_predictions[:, TradingAction.SELL], pred_threshold
+            "Trading", "Sell", profit_predictions[:, TradingAction.SELL], trading_threshold
         )
         self.print_probability_stats(
-            "Trading", "Hold", profit_predictions[:, TradingAction.HOLD], pred_threshold
+            "Trading", "Hold", profit_predictions[:, TradingAction.HOLD], trading_threshold
         )
         self.print_probability_stats(
-            "Trading", "Buy", profit_predictions[:, TradingAction.BUY], pred_threshold
+            "Trading", "Buy", profit_predictions[:, TradingAction.BUY], trading_threshold
         )
         return predictions_dict
 
@@ -979,6 +1146,11 @@ class BaseNNMTStrategy(BaseNNStrategy):
                 momentum_predictions,
                 flow_predictions,
                 risk_predictions,
+            )
+
+        if getattr(self, "use_forward_peak_regressor_filter", False):
+            trading_predictions = self._filter_trading_by_forward_peak(
+                trading_predictions, dataframe,
             )
 
         # Filter for consecutive buy predictions to reduce noise (VECTORIZED)
@@ -1041,6 +1213,181 @@ class BaseNNMTStrategy(BaseNNStrategy):
         )
         return dataframe
 
+    # -----------
+    # Forward-peak-gain regressor filter
+    # -----------
+
+    def _get_forward_peak_regressor(self, pair: str):
+        """Lazy-load the per-pair regressor; cache the result.
+
+        Caches ``False`` for pairs whose model file is missing so we don't
+        hit the filesystem on every call. Returns the sklearn model or
+        ``None`` if unavailable.
+        """
+        cached = self._forward_peak_regressor_cache.get(pair, None)
+        if cached is False:
+            return None
+        if cached is not None:
+            return cached
+
+        storage_root = Path(self.get_storage_location())
+        model = _FPR.load(_FPR.model_path(storage_root, pair))
+        if model is None:
+            log.warning(
+                f"ForwardPeakRegressor: no model on disk for {pair} at "
+                f"{_FPR.model_path(storage_root, pair)} — filter disabled "
+                f"for this pair. Run TrainForwardPeakRegressor.py first."
+            )
+            self._forward_peak_regressor_cache[pair] = False
+            return None
+        self._forward_peak_regressor_cache[pair] = model
+        return model
+
+    def _filter_trading_by_forward_peak(
+        self, trading_predictions: np.ndarray, dataframe: DataFrame,
+    ) -> np.ndarray:
+        """Zero out BUY predictions whose regressor score is below threshold.
+
+        Sells are not filtered — the regressor is trained on upside peaks
+        only (path-independent forward-max gain), so it has no view on the
+        downside that would justify a sell.
+        """
+        pair = getattr(self, "curr_pair", None)
+        if pair is None:
+            return trading_predictions
+        model = self._get_forward_peak_regressor(pair)
+        if model is None:
+            return trading_predictions
+
+        # Use percentile ranks so the threshold has the same meaning across
+        # pairs with very different vol-adjusted score scales.
+        ranks = _FPR.predict_percentile(model, dataframe)
+        # Predictions are bar-aligned to the tail of the dataframe (see
+        # offset handling in process_predictions). Align here too.
+        offset = len(ranks) - len(trading_predictions)
+        if offset > 0:
+            ranks = ranks[offset:]
+        elif offset < 0:
+            # Shouldn't happen — predictions vector is longer than dataframe.
+            return trading_predictions
+
+        threshold = float(self.forward_peak_regressor_threshold.value)
+        weak_buy = (trading_predictions == TradingAction.BUY) & (ranks < threshold)
+        out = trading_predictions.copy()
+        out[weak_buy] = TradingAction.HOLD
+
+        if int(weak_buy.sum()) > 0:
+            self.debug_print(
+                f"    ForwardPeakRegressor: rejected {int(weak_buy.sum())}/"
+                f"{int((trading_predictions == TradingAction.BUY).sum())} BUY "
+                f"signals on {pair} (percentile threshold={threshold:.2f})"
+            )
+        return out
+
+    # ------------------------------------------------------------------ #
+    # Model-prediction bailout                                            #
+    # ------------------------------------------------------------------ #
+    # When a trade is underwater, the model's per-bar predictions can flag
+    # that the setup has turned bad before the trailing-stop triggers.
+    # The hook below reads the latest %profit and %regime predictions
+    # (written into the dataframe by process_predictions) and exits when
+    # either flips to its adverse class. Catches falling-knife buys that
+    # the entry-side filters can't pre-screen — the leverage is on the
+    # exit side, where the model gets fresh evidence after entry.
+
+    # Only consider bailout when the trade is at least this deep underwater.
+    # Above this, normal profit-based exits handle things. Too tight and
+    # bailouts fire on tick noise; too loose and the trailing-stop fires
+    # first anyway. -1.5% is a starting point — trailing-stop bleeds at
+    # -5.23%, so saving even -3% per stopped trade is a meaningful lever.
+    bailout_min_loss: float = -1.0
+
+    # Minimum bars in trade before bailout is allowed. Prevents bailing
+    # on tick-zero noise where the model briefly disagrees with itself
+    # immediately after entry. 4 bars on 15m = 1 hour.
+    bailout_min_bars: int = 2
+
+    # When True, require BOTH profit==LOSS AND regime==BEAR before
+    # bailing (consensus mode). When False, either signal triggers exit
+    # (more permissive — fires earlier but with more false positives
+    # given the profit head's MCC ceiling of ~0.20).
+    bailout_require_consensus: bool = False
+
+    def custom_stoploss(
+        self,
+        pair: str,
+        trade,
+        current_time,
+        current_rate: float,
+        current_profit: float,
+        after_fill: bool,
+        **kwargs,
+    ) -> float:
+        """Set a volatility-adjusted initial stoploss at entry, then preserve
+        it for the rest of the trade. Same no-trailing semantics as
+        BaseStrategy.custom_stoploss — only the after_fill call returns a
+        non-1.0 value, so freqtrade locks the stop and leaves it static.
+        """
+        if self.use_atr_adaptive_stoploss and after_fill:
+            try:
+                dataframe, _ = self.dp.get_analyzed_dataframe(pair, self.timeframe)
+                if not dataframe.empty:
+                    atr_pct = float(dataframe.iloc[-1].get("atr_pct_roll", 0.0))
+                    if atr_pct > 0:
+                        stop = -self.atr_stoploss_multiplier * atr_pct
+                        return max(min(stop, self.atr_stoploss_cap), self.atr_stoploss_floor)
+            except Exception:
+                pass
+        return 1.0
+
+    def strategy_custom_exit(
+        self,
+        pair: str,
+        trade,
+        current_time,
+        current_rate: float,
+        current_profit: float,
+        dataframe,
+        last_candle,
+        **kwargs,
+    ) -> Optional[str]:
+        """Model-prediction bailout for underwater trades.
+
+        Reads ``%profit`` and ``%regime`` from the latest candle (written
+        by process_predictions). Returns an exit-reason string when the
+        model's view of the setup has turned adverse; otherwise None to
+        let the static stoploss / trailing-stop handle it.
+        """
+        if current_profit > self.bailout_min_loss:
+            return None
+
+        # Bars-in-trade gate — 15m candles assumed.
+        time_delta = current_time - trade.open_date_utc
+        minutes_in_trade = time_delta.total_seconds() / 60.0
+        if minutes_in_trade < self.bailout_min_bars * 15:
+            return None
+
+        try:
+            profit_pred = int(last_candle.get("%profit", ProfitDirection.NEUTRAL))
+            regime_pred = int(last_candle.get("%regime", MarketRegime.SIDEWAYS))
+        except (TypeError, ValueError):
+            return None
+
+        profit_says_loss = profit_pred == int(ProfitDirection.LOSS)
+        regime_says_bear = regime_pred == int(MarketRegime.BEAR)
+
+        if self.bailout_require_consensus:
+            should_bail = profit_says_loss and regime_says_bear
+        else:
+            should_bail = profit_says_loss or regime_says_bear
+
+        if should_bail:
+            tag = "bailout_consensus" if (profit_says_loss and regime_says_bear) else (
+                "bailout_profit" if profit_says_loss else "bailout_regime"
+            )
+            return tag
+        return None
+
     def _filter_trading_by_tasks(
         self,
         trading_predictions: np.ndarray,
@@ -1085,12 +1432,52 @@ class BaseNNMTStrategy(BaseNNStrategy):
         # sell_mask = (sell_conditions.sum(axis=0) >= required_matches-1)
         """
 
-        buy_mask = (trading_predictions == TradingAction.BUY) & (
-            momentum_predictions == MomentumDirection.POSITIVE
+        # Magnitude gate: the profit head explicitly predicts whether the
+        # forward window will reach the gain/loss thresholds — it's the
+        # closest thing we have to a per-trade magnitude predictor without
+        # adding a separate model. trading=BUY tells us the model thinks
+        # "this is a buy setup at the current label margin (0.3%)", but
+        # profit=PROFIT tells us "the forward window will reach a profitable
+        # magnitude" — that's the second-stage filter we want.
+        #
+        # See feedback in the May 2026 backtest comparison: raising
+        # prediction_threshold didn't help because it filters by confidence,
+        # not by predicted magnitude. The profit head is the magnitude proxy.
+        # Buy: 3-of-4 majority — at most one head may contradict.
+        # Sell: 2-of-4 majority — looser, so the model_exit can fire
+        # more often (an early exit at small profit/loss is preferable
+        # to letting trades run all the way to trailing_stop).
+        buy_conditions = np.stack(
+            [
+                profit_predictions != ProfitDirection.LOSS,
+                regime_predictions != MarketRegime.BEAR,
+                momentum_predictions != MomentumDirection.NEGATIVE,
+                flow_predictions != FlowDirection.DECREASE,
+            ],
+            axis=0,
         )
-        sell_mask = (trading_predictions == TradingAction.SELL) & (
-            momentum_predictions == MomentumDirection.NEGATIVE
+        sell_conditions = np.stack(
+            [
+                profit_predictions != ProfitDirection.PROFIT,
+                regime_predictions != MarketRegime.BULL,
+                momentum_predictions != MomentumDirection.POSITIVE,
+                flow_predictions != FlowDirection.INCREASE,
+            ],
+            axis=0,
         )
+
+        buy_mask = (
+            (trading_predictions == TradingAction.BUY)
+            & (buy_conditions.sum(axis=0) >= 3)
+        )
+        # sell_mask = (
+        #     (trading_predictions == TradingAction.SELL)
+        #     & (sell_conditions.sum(axis=0) >= 2)
+        # )
+        sell_mask = (
+            (trading_predictions == TradingAction.SELL)
+        )
+
 
         # Reset all to HOLD, then set BUY/SELL only where both conditions are met
         filtered = np.full_like(trading_predictions, TradingAction.HOLD)

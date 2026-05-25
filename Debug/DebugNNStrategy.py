@@ -46,10 +46,9 @@ class DebugNNStrategy(BaseNNStrategy):
     Simple strategy that just uses the lookahead buy/sell signals
     """
 
-    # re-declare class variables so that we can override them later
-    MIN_BUY_GAIN_THRESHOLD = 0.009  # minimum gain for buy signals
-    MIN_SELL_LOSS_THRESHOLD = 0.011  # minimum loss for sell signals
-    TRAINING_TYPE = 16
+    # MIN_BUY_GAIN_THRESHOLD, MIN_SELL_LOSS_THRESHOLD, TRAINING_TYPE all
+    # inherit from BaseNNStrategy → Framework.TrainingConfig. To override
+    # for a debug experiment, set the attribute directly here.
     PEAK_WINDOW = 6
     augment_training_data = False
     aggregate_pairs = False
@@ -87,37 +86,21 @@ class DebugNNStrategy(BaseNNStrategy):
     }
 
     # --------------------------------
-    # Buy hyperspace params:
-    buy_params = {
-        "entry_adx_threshold": 20.0,
-        "entry_atr_pct": 0.001,
-        "entry_bb_width_threshold": 0.0,
-        "entry_close_norm_threshold": 0.0,
-        "entry_enable_guards": True,
-        "entry_guard_threshold": -0.0,
-        "entry_rvol_threshold": 1.0,
-        "prediction_threshold": 0.3,
-    }
-
-    # Sell hyperspace params:
-    sell_params = {
-        "cexit_enable_profit_checks": True,
-        "cexit_max_days": 3,
-        "cexit_take_profit": 0.013,
-        "enable_exit_signal": True,
-        "exit_close_norm_threshold": 0.0,
-        "exit_guard_threshold": 0.0,
-    }
+    buy_params = { **BaseNNStrategy.buy_params, 
+        "min_buy_gain_threshold": 0.003,
+        "min_sell_gain_threshold": 0.003,
+        "training_type": 17}
 
     # override NNStrategy hyperopt params (mostly to disable optimization for now)
-    opt_framework_params = False
-    opt_train_signals = True
+    opt_framework_params = True
+    opt_train_signals = False
+    opt_guard_metrics = False
 
     # don't optimise this here because predictions are perfect
     prediction_threshold = DecimalParameter(
         0.3,
         0.7,
-        default=0.4,
+        default=0.5,
         decimals=1,
         space="buy",
         load=True,
@@ -126,10 +109,10 @@ class DebugNNStrategy(BaseNNStrategy):
 
     enable_exit_signal = CategoricalParameter(
         [True, False],
-        default=False,
+        default=True,
         space="sell",
         load=True,
-        optimize=opt_framework_params,
+        optimize=opt_guard_metrics,
     )
 
     entry_enable_guards = CategoricalParameter(
@@ -137,17 +120,17 @@ class DebugNNStrategy(BaseNNStrategy):
         default=True,
         space="buy",
         load=True,
-        optimize=opt_framework_params,
+        optimize=opt_guard_metrics,
     )
 
     entry_guard_threshold = DecimalParameter(
         -0.9,
         -0.0,
-        default=-0.7,
+        default=-0.0,
         decimals=1,
         space="buy",
         load=True,
-        optimize=opt_framework_params,
+        optimize=opt_guard_metrics,
     )
 
     entry_close_norm_threshold = DecimalParameter(
@@ -157,27 +140,27 @@ class DebugNNStrategy(BaseNNStrategy):
         decimals=1,
         space="buy",
         load=True,
-        optimize=opt_framework_params,
+        optimize=opt_guard_metrics,
     )
 
     entry_adx_threshold = DecimalParameter(
         50.0,
         80.0,
-        default=50.0,
+        default=20.0,
         decimals=0,
         space="buy",
         load=True,
-        optimize=opt_framework_params,
+        optimize=opt_guard_metrics,
     )
 
     entry_bb_width_threshold = DecimalParameter(
         0.01,
         0.08,
-        default=0.04,
+        default=0.01,
         decimals=2,
         space="buy",
         load=True,
-        optimize=opt_framework_params,
+        optimize=opt_guard_metrics,
     )
 
     entry_atr_pct = DecimalParameter(
@@ -187,7 +170,7 @@ class DebugNNStrategy(BaseNNStrategy):
         decimals=3,
         space="buy",
         load=True,
-        optimize=opt_framework_params,
+        optimize=opt_guard_metrics,
     )
 
     entry_rvol_threshold = DecimalParameter(
@@ -197,16 +180,16 @@ class DebugNNStrategy(BaseNNStrategy):
         decimals=1,
         space="buy",
         load=True,
-        optimize=opt_framework_params,
+        optimize=opt_guard_metrics,
     )
     exit_guard_threshold = DecimalParameter(
         0.0,
         0.9,
-        default=0.7,
+        default=0.0,
         decimals=1,
         space="sell",
         load=True,
-        optimize=opt_framework_params,
+        optimize=opt_guard_metrics,
     )
 
     exit_close_norm_threshold = DecimalParameter(
@@ -216,7 +199,7 @@ class DebugNNStrategy(BaseNNStrategy):
         decimals=1,
         space="sell",
         load=True,
-        optimize=opt_framework_params,
+        optimize=opt_guard_metrics,
     )
 
     cexit_enable_profit_checks = CategoricalParameter(
@@ -228,8 +211,8 @@ class DebugNNStrategy(BaseNNStrategy):
     )
 
     cexit_take_profit = DecimalParameter(
-        0.005,
-        0.025,
+        0.002,
+        0.02,
         default=0.008,
         decimals=3,
         space="sell",
@@ -250,7 +233,7 @@ class DebugNNStrategy(BaseNNStrategy):
     min_buy_gain_threshold = DecimalParameter(
         0.002,
         0.01,
-        default=0.03,
+        default=0.003,
         decimals=3,
         space="buy",
         load=True,
@@ -260,7 +243,7 @@ class DebugNNStrategy(BaseNNStrategy):
     min_sell_loss_threshold = DecimalParameter(
         0.002,
         0.01,
-        default=0.03,
+        default=0.003,
         decimals=3,
         space="sell",
         load=True,
@@ -271,7 +254,7 @@ class DebugNNStrategy(BaseNNStrategy):
     training_type = IntParameter(
         0,
         19,
-        default=16,
+        default=17,
         space="buy",
         load=True,
         optimize=False,

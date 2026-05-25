@@ -36,6 +36,7 @@ sys.path.append(group_dir)
 from utils.DataframePopulator import DatasetType  # noqa: E402
 from GANs.GANType import GANType  # noqa: E402
 from GANs.paths import gan_save_path  # noqa: E402
+from Framework.TrainingConfig import TrainingConfig  # noqa: E402
 
 
 class CreateGANBase:
@@ -70,9 +71,13 @@ class CreateGANBase:
     # the GAN metadata.  A strategy that later loads the GAN will pick up
     # these values automatically, so the labels the classifier was trained on
     # stay consistent with the ones the GAN was trained on.
-    MASTER_MIN_BUY_GAIN_THRESHOLD = 0.008
-    MASTER_MIN_SELL_LOSS_THRESHOLD = 0.008
-    MASTER_TRAINING_TYPE = 19
+    # Sourced from Framework.TrainingConfig so the GAN trainer never
+    # disagrees with the strategy on these values. The MASTER_* names are
+    # kept as a public-facing alias because downstream Create subclasses
+    # (CreateMTCtabGanPlus, CreateCtabGanPlus, etc.) reference them by name.
+    MASTER_MIN_BUY_GAIN_THRESHOLD = TrainingConfig.MIN_BUY_GAIN_THRESHOLD
+    MASTER_MIN_SELL_LOSS_THRESHOLD = TrainingConfig.MIN_SELL_LOSS_THRESHOLD
+    MASTER_TRAINING_TYPE = TrainingConfig.TRAINING_TYPE
 
     # Concrete subclasses set this to the GANType they create.  Staying
     # here as NONE means the caller must set it (or a subclass hard-codes it).

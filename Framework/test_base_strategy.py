@@ -347,24 +347,21 @@ class TestCustomStoploss:
             after_fill=False,
         )
 
-    def test_below_take_profit_returns_stoploss(self, strat):
-        strat.cexit_take_profit = MagicMock()
-        strat.cexit_take_profit.value = 0.013
-        result = self._call(strat, current_profit=0.005)
-        assert result == strat.stoploss
+    def test_returns_no_change_sentinel_when_underwater(self, strat):
+        # custom_stoploss now returns 1.0 (freqtrade "no change" sentinel)
+        # so the static stoploss from entry is preserved.
+        result = self._call(strat, current_profit=-0.02)
+        assert result == 1.0
 
-    def test_above_take_profit_returns_trailing(self, strat):
-        strat.cexit_take_profit = MagicMock()
-        strat.cexit_take_profit.value = 0.013
-        profit = 0.08
-        result = self._call(strat, current_profit=profit)
-        assert result == pytest.approx(-(profit / 2))
-
-    def test_trailing_stop_is_negative(self, strat):
-        strat.cexit_take_profit = MagicMock()
-        strat.cexit_take_profit.value = 0.01
+    def test_returns_no_change_sentinel_when_profitable(self, strat):
         result = self._call(strat, current_profit=0.05)
-        assert result < 0
+        assert result == 1.0
+
+    def test_returns_positive(self, strat):
+        # Positive return value = no change. Any negative value would
+        # tighten the stop relative to current_rate (implicit trailing).
+        result = self._call(strat, current_profit=0.05)
+        assert result > 0
 
 
 # ---------------------------------------------------------------------------

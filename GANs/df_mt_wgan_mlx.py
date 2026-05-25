@@ -8,71 +8,60 @@ import time
 import os
 import pickle
 
+# Conv1d residual block shared with MT_DDPM. LayerNorm → Conv1d(k=3) → GELU →
+# Dropout → Conv1d(k=3), residual. Operates on (B, T, channels) — MLX NLC
+# convention. Used in both generator and critic backbones for seq_len > 1.
+from GANs.df_mt_ddpm_mlx import _Conv1dResBlock  # noqa: E402
+
 # Global cache for loaded GAN models/metadata to avoid redundant reloads during multi-pair strategy runs
 _GAN_CACHE = {}
 _META_CACHE = {}
 
-class MTGenerator(nn.Module):
-    def __init__(self, seq_len: int, num_features: int, total_cond_dim: int, latent_dim: int = 64, hidden_dim: int = 256):
-        super().__init__()
-        self.seq_len = seq_len
-        self.num_features = num_features
-        
-        if seq_len > 1:
-            # Simple CNN-based generator for sequences
-            self.initial_dense = nn.Linear(latent_dim + total_cond_dim, hidden_dim * 2)
-            self.model = nn.Sequential(
-                nn.Linear(hidden_dim * 2, seq_len * hidden_dim),
-                nn.LeakyReLU(0.2),
-                # Note: For simplicity in tabular/time-series data, we can use Dense layers 
-                # or Conv1D. Here we use a flexible reshape + Dense approach for now.
-                nn.Linear(hidden_dim, num_features),
-                nn.Tanh()
-            )
-        else:
-            # Tabular generator
-            self.model = nn.Sequential(
-                nn.Linear(latent_dim + total_cond_dim, hidden_dim),
-                nn.LayerNorm(hidden_dim),
-                nn.LeakyReLU(0.2),
-                nn.Linear(hidden_dim, hidden_dim * 2),
-                nn.LayerNorm(hidden_dim * 2),
-                nn.LeakyReLU(0.2),
-                nn.Linear(hidden_dim * 2, num_features),
-                nn.Tanh()
-            )
-
-    def __call__(self, z, c):
-        # Concatenate z and condition
-        x = mx.concatenate([z, c], axis=-1)
-        
-        if self.seq_len > 1:
-            h = self.initial_dense(x)
-            h = mx.reshape(self.model[0](h), (-1, self.seq_len, 256)) # Manually handling part of Sequential for reshape
-            # Actually, let's just use a more structured approach for sequences
-            pass
-        
-        return self.model(x)
-
-# Redefining for sequence support more robustly
 class MTGeneratorMLX(nn.Module):
-    def __init__(self, seq_len: int, num_features: int, total_cond_dim: int, latent_dim: int = 64, hidden_dim: int = 256):
+    """Generator for MT WGAN-GP.
+
+    For ``seq_len > 1`` uses a Conv1d-over-time backbone:
+      (z, c) → Linear seed (B, T·H) → reshape (B, T, H)
+              → N × _Conv1dResBlock(H, k=3)
+              → Conv1d(H → F, k=1) → (B, T, F)
+    Modeling temporal correlations explicitly via kernel-3 convs gives the
+    sequence path a real shot at matching the lag-1 autocorrelation of the
+    real series, which the previous flatten-then-Linear approach couldn't.
+
+    Output activation is linear. WGAN-GP enforces the Lipschitz constraint
+    via gradient penalty on the critic, so the generator does not need to
+    bound its output. Tanh was a v1-pipeline leftover that squashed the
+    range to ±1σ in z-scored space; under v2 the training data is z-scored
+    and clipped to ±4σ, so a bounded output gave away ~75% of the
+    distribution. Linear lets adversarial pressure pull the generator's
+    output range toward the real data range.
+
+    For ``seq_len == 1`` the same logic applies to the tabular MLP.
+    """
+
+    def __init__(
+        self,
+        seq_len: int,
+        num_features: int,
+        total_cond_dim: int,
+        latent_dim: int = 64,
+        hidden_dim: int = 256,
+        d_layers: int = 2,
+        dropout: float = 0.0,
+    ):
         super().__init__()
         self.seq_len = seq_len
         self.num_features = num_features
-        
+        self.hidden_dim = hidden_dim
+
         if seq_len > 1:
-            # Sequence generation: Dense -> Reshape -> MLP per step 
-            # (Works well for shorter financial sequences like 10-30 steps)
-            self.trunk = nn.Sequential(
-                nn.Linear(latent_dim + total_cond_dim, hidden_dim * 2),
-                nn.LeakyReLU(0.2),
-                nn.Linear(hidden_dim * 2, seq_len * hidden_dim),
-                nn.LeakyReLU(0.2)
-            )
-            self.head = nn.Linear(hidden_dim, num_features)
+            # Seed projection → (B, seq_len * hidden_dim), reshaped to NLC.
+            self.seed = nn.Linear(latent_dim + total_cond_dim, seq_len * hidden_dim)
+            self.blocks = [_Conv1dResBlock(hidden_dim, dropout) for _ in range(d_layers)]
+            # 1×1 conv as the per-timestep projection out.
+            self.head = nn.Conv1d(hidden_dim, num_features, kernel_size=1)
         else:
-            # Tabular generation
+            # Tabular generation — linear output (see class docstring).
             self.model = nn.Sequential(
                 nn.Linear(latent_dim + total_cond_dim, hidden_dim),
                 nn.LayerNorm(hidden_dim),
@@ -81,58 +70,67 @@ class MTGeneratorMLX(nn.Module):
                 nn.LayerNorm(hidden_dim * 2),
                 nn.LeakyReLU(0.2),
                 nn.Linear(hidden_dim * 2, num_features),
-                nn.Tanh()
             )
 
     def __call__(self, z, c):
         x = mx.concatenate([z, c], axis=-1)
         if self.seq_len > 1:
-            h = self.trunk(x)
-            h = mx.reshape(h, (-1, self.seq_len, 256))
-            out = self.head(h)
-            return mx.tanh(out)
+            h = self.seed(x)
+            h = mx.reshape(h, (-1, self.seq_len, self.hidden_dim))
+            for blk in self.blocks:
+                h = blk(h, training=True)
+            T = h.shape[1]
+            return self.head(h)[:, :T, :]
         else:
             out = self.model(x)
             # If seq_len=1, return (B, 1, F) to match training data shape
             return mx.expand_dims(out, 1) if out.ndim == 2 else out
 
 class MTCriticMLX(nn.Module):
-    def __init__(self, seq_len: int, num_features: int, task_label_dims: Dict[str, int], total_cond_dim: int, hidden_dim: int = 256):
+    """Critic for MT WGAN-GP.
+
+    For ``seq_len > 1`` uses a Conv1d-over-time backbone:
+      x: (B, T, F)  c: (B, cond_dim)
+      → Conv1d(F → H, k=1) + Linear(cond → H) broadcast across T
+      → N × _Conv1dResBlock(H, k=3)
+      → mean-pool over T → (B, H)
+      → adv_head: Linear(H → 1)
+      → per-task heads: Linear(H → 64) → LReLU → Linear(64 → dim)
+
+    For ``seq_len == 1`` the original flatten-then-MLP path is preserved
+    unchanged (tabular data has no temporal axis to convolve over).
+    """
+
+    def __init__(
+        self,
+        seq_len: int,
+        num_features: int,
+        task_label_dims: Dict[str, int],
+        total_cond_dim: int,
+        hidden_dim: int = 256,
+        d_layers: int = 2,
+        dropout: float = 0.0,
+    ):
         super().__init__()
         self.seq_len = seq_len
         self.task_label_dims = task_label_dims
         self.sorted_tasks = sorted(list(task_label_dims.keys()))
-        
-        # Shared trunk
+        self.hidden_dim = hidden_dim
+
         if seq_len > 1:
-            self.trunk = nn.Sequential(
-                nn.Linear(num_features + total_cond_dim, hidden_dim),
-                nn.LeakyReLU(0.2),
-                # If sequence, we flatten for the trunk output
-                nn.Linear(hidden_dim, 64),
-                nn.LeakyReLU(0.2)
-            )
-            # Actually, for Critic with sequence, we should process the sequence then global pool or flatten
+            # 1×1 conv per-timestep in, Linear projection for the condition.
+            self.in_proj = nn.Conv1d(num_features, hidden_dim, kernel_size=1)
+            self.cond_proj = nn.Linear(total_cond_dim, hidden_dim)
+            self.blocks = [_Conv1dResBlock(hidden_dim, dropout) for _ in range(d_layers)]
         else:
-            self.trunk = nn.Sequential(
-                nn.Linear(num_features + total_cond_dim, hidden_dim),
-                nn.LeakyReLU(0.2),
-                nn.Linear(hidden_dim, hidden_dim * 2),
-                nn.LeakyReLU(0.2)
-            )
-        
-        # Head for Adversarial Score
-        if seq_len > 1:
-            # Sequence trunk: Process xin + repeat(cin)
-            pass
-        
-        # We'll use a simplified architecture that handles both
-        self.fc1 = nn.Linear((num_features if seq_len==1 else num_features*seq_len) + total_cond_dim, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
-        
+            # Tabular path — flatten-and-MLP, unchanged.
+            self.fc1 = nn.Linear(num_features + total_cond_dim, hidden_dim)
+            self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+
         self.adv_head = nn.Linear(hidden_dim, 1)
-        
-        # We manually register these heads as attributes so MLX finds their parameters
+
+        # Per-task auxiliary heads registered by explicit name so MLX
+        # discovers their parameters.
         self._task_names = []
         for i, (task, dim) in enumerate(task_label_dims.items()):
             head_name = f"task_head_{i}"
@@ -144,23 +142,27 @@ class MTCriticMLX(nn.Module):
             self._task_names.append((task, head_name))
 
     def __call__(self, x, c):
-        # Flatten x if sequence
         if self.seq_len > 1:
-            x_flat = mx.reshape(x, (x.shape[0], -1))
+            T = x.shape[1]
+            h = self.in_proj(x)[:, :T, :]            # (B, T, H)
+            cond_emb = self.cond_proj(c)             # (B, H)
+            h = h + cond_emb[:, None, :]             # broadcast across time
+            for blk in self.blocks:
+                h = blk(h, training=True)
+            h = mx.mean(h, axis=1)                   # (B, H) — global temporal pool
         else:
             # If seq_len=1, the input has shape (B, 1, F), squeeze to (B, F)
             x_flat = mx.squeeze(x, axis=1) if x.ndim == 3 else x
-            
-        h = mx.concatenate([x_flat, c], axis=-1)
-        h = nn.leaky_relu(self.fc1(h), 0.2)
-        h = nn.leaky_relu(self.fc2(h), 0.2)
-        
+            h = mx.concatenate([x_flat, c], axis=-1)
+            h = nn.leaky_relu(self.fc1(h), 0.2)
+            h = nn.leaky_relu(self.fc2(h), 0.2)
+
         adv_score = self.adv_head(h)
-        
+
         task_outputs = {}
         for task, head_name in self._task_names:
             task_outputs[task] = getattr(self, head_name)(h)
-            
+
         return adv_score, task_outputs
 
 class MTWGANMLX:
@@ -169,18 +171,43 @@ class MTWGANMLX:
     # before being fed to the generator/critic.
     _ZSCORE_CLIP: float = 4.0
 
-    def __init__(self, seq_len: int, num_features: int, task_label_dims: dict[str, int], latent_dim: int = 64, gp_weight: float = 10.0, learning_rate: float = 1e-4, task_loss_weights: dict[str, float] | None = None):
+    def __init__(
+        self,
+        seq_len: int,
+        num_features: int,
+        task_label_dims: dict[str, int],
+        latent_dim: int = 64,
+        gp_weight: float = 10.0,
+        learning_rate: float = 1e-4,
+        task_loss_weights: dict[str, float] | None = None,
+        hidden_dim: int = 192,
+        d_layers: int = 1,
+        dropout: float = 0.0,
+        n_critic: int = 5,
+    ):
         self.latent_dim = latent_dim
         self.task_label_dims = task_label_dims
         self.total_cond_dim = sum(task_label_dims.values())
         self.gp_weight = gp_weight
         self.seq_len = seq_len
         self.num_features = num_features
+
+        # Conv1d backbone capacity. Defaults tuned for WGAN's n_critic=5
+        # multiplier — both gen and critic forward/backward run 6 times per
+        # step, so each Conv1d op is expensive relative to DDPM (which only
+        # runs the backbone once per step). hidden_dim=128 and d_layers=1
+        # keep per-step cost close to the old MLP path while retaining the
+        # temporal-correlation benefit of kernel-3 convs over time.
+        self.gen = MTGeneratorMLX(
+            seq_len, num_features, self.total_cond_dim, latent_dim,
+            hidden_dim=hidden_dim, d_layers=d_layers, dropout=dropout,
+        )
+        self.critic = MTCriticMLX(
+            seq_len, num_features, task_label_dims, self.total_cond_dim,
+            hidden_dim=hidden_dim, d_layers=d_layers, dropout=dropout,
+        )
         
-        self.gen = MTGeneratorMLX(seq_len, num_features, self.total_cond_dim, latent_dim)
-        self.critic = MTCriticMLX(seq_len, num_features, task_label_dims, self.total_cond_dim)
-        
-        self.n_critic = 5
+        self.n_critic = n_critic
         self.task_loss_weights = task_loss_weights or {}
         
         # Initialize attributes for static analysis
@@ -390,14 +417,26 @@ def balance_with_mt_wgan_mlx(
     learning_rate = kwargs.get("learning_rate", 1e-4)
     gp_weight = kwargs.get("gp_weight", 10.0)
     task_loss_weights = kwargs.get("task_loss_weights")
-    
+    hidden_dim = kwargs.get("hidden_dim", 192)
+    d_layers = kwargs.get("d_layers", 1)
+    # Default dropout=0.05 targets manifold collapse on trend/momentum
+    # indicator pairs (f12/f14/f15/f18 over-coupling observed in the
+    # diagnostic). Set as the MLX-backend default rather than at the
+    # GANInterface level because the TF fallback doesn't accept this kwarg.
+    dropout = kwargs.get("dropout", 0.05)
+    n_critic_kwarg = kwargs.get("n_critic", 5)
+
     # 1. Preparation
     gan = MTWGANMLX(
         seq_len, num_features, task_label_dims,
         latent_dim=latent_dim,
         learning_rate=learning_rate,
         gp_weight=gp_weight,
-        task_loss_weights=task_loss_weights
+        task_loss_weights=task_loss_weights,
+        hidden_dim=hidden_dim,
+        d_layers=d_layers,
+        dropout=dropout,
+        n_critic=n_critic_kwarg,
     )
     
     # Stats for postprocess — computed from raw data BEFORE normalisation.
@@ -481,18 +520,27 @@ def balance_with_mt_wgan_mlx(
                     # Apply gradient clipping
                     grads_c, _ = optim.clip_grad_norm(grads_c, gan.grad_clip)
                     gan.critic_opt.update(gan.critic, grads_c)
-                
+                    # CRITICAL: eval ALL updated state every step so Metal doesn't
+                    # accumulate a lazy graph that overflows the ~500K resource
+                    # limit. Must include parameters AND optimizer.state — missing
+                    # the optimizer moments was what blew through 130 epochs of
+                    # the dropout run before crashing.
+                    mx.eval(
+                        gan.critic.parameters(),
+                        gan.critic_opt.state,
+                        loss_c,
+                    )
+
                 # Train generator 1 step
                 loss_g, grads_g = gen_grad_fn(gan.gen, z, real_c, batch_labels_mx)
                 # Apply gradient clipping
                 grads_g, _ = optim.clip_grad_norm(grads_g, gan.grad_clip)
                 gan.gen_opt.update(gan.gen, grads_g)
-                
-                # Optional: evaluate occasionally inside the batch loop if epochs are very long
-                if i % (10 * batch_size) == 0:
-                     mx.eval(loss_c, loss_g)
-            
-            mx.eval(gan.gen.parameters(), gan.critic.parameters())
+                mx.eval(
+                    gan.gen.parameters(),
+                    gan.gen_opt.state,
+                    loss_g,
+                )
             if verbose and ((epoch < 20) or ((epoch + 1) % 10 == 0)):
                 print(f"      Epoch {epoch+1}/{epochs} | D Loss: {loss_c.item():.4f} | G Loss: {loss_g.item():.4f}")
 

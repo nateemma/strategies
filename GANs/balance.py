@@ -38,7 +38,8 @@ import pandas as pd
 
 from GANs.diagnostics import summarize_real_vs_synthetic
 from GANs.GANType import GANType
-from GANs.passthrough import swap_passthrough_columns
+from GANs.passthrough import swap_passthrough_columns, swap_passthrough_columns_nn
+from GANs.density_filter import density_inflate_factor, filter_by_density
 
 
 # ---------------------------------------------------------------------------
@@ -74,6 +75,8 @@ def balance_single_task(
     feature_names: Optional[Sequence[str]] = None,
     passthrough_columns: Optional[Sequence[Union[int, str]]] = None,
     pair_name: Optional[str] = None,
+    density_reject_pct: float = 0.0,
+    density_n_components: int = 8,
 ) -> Tuple[Any, np.ndarray]:
     """
     Augment ``(data, labels)`` so each class reaches
@@ -170,14 +173,31 @@ def balance_single_task(
     aug_data_batches: List[Any] = []
     aug_label_batches: List[np.ndarray] = []
 
+    inflate = density_inflate_factor(density_reject_pct)
+
     for class_idx in classes_sorted:
         need = int(needs_map.get(int(class_idx), 0))
         if need <= 0:
             continue
 
+        # Pre-compute the same-class real pool — used by both the density
+        # filter (to fit the GMM) and the passthrough NN-match below.
+        same_class_mask = class_indices == int(class_idx)
+        if same_class_mask.any():
+            if isinstance(data, pd.DataFrame):
+                class_pool = data.iloc[same_class_mask]
+            else:
+                class_pool = np.asarray(data)[same_class_mask]
+        else:
+            class_pool = data  # defensive fallback (shouldn't trigger)
+
+        # Inflate the generation count so post-filter we still hit ``need``.
+        # ``int(ceil(...))`` would also work; ``+1`` is cheaper and safe.
+        n_generate = int(need * inflate) + 1 if density_reject_pct > 0 else need
+
         gen = _generate_for_class(
             interface=interface,
-            n=need,
+            n=n_generate,
             class_idx=int(class_idx),
             num_classes=num_classes,
             pair_label=pair_label,
@@ -186,12 +206,43 @@ def balance_single_task(
         if interface.gan_type in _SQUEEZE_SEQ_DIM_TYPES and getattr(gen, "ndim", 0) == 3:
             gen = gen[:, 0, :]
 
-        if passthrough_columns:
-            gen = swap_passthrough_columns(
+        # Density-based rejection sampling. Fits a per-class GMM on the
+        # real same-class pool, drops the lowest-density synth samples.
+        # Returns gen unchanged when reject_pct=0, pool too small to
+        # fit, or scoring fails — all non-fatal.
+        if density_reject_pct > 0:
+            before = len(gen) if hasattr(gen, "__len__") else 0
+            gen = filter_by_density(
                 synth=gen,
-                real_pool=data,
+                real_pool=class_pool,
+                reject_pct=density_reject_pct,
+                n_components=density_n_components,
+            )
+            # Trim to exactly ``need`` so caller-facing counts match
+            # what they would have without density filtering.
+            after = len(gen) if hasattr(gen, "__len__") else 0
+            if after > need:
+                if isinstance(gen, pd.DataFrame):
+                    gen = gen.iloc[:need].reset_index(drop=True)
+                else:
+                    gen = np.asarray(gen)[:need]
+            debug_log(
+                f"      density filter: kept {min(after, need)}/{before} "
+                f"synth samples for class {int(class_idx)} "
+                f"(reject_pct={density_reject_pct:.2f})"
+            )
+
+        if passthrough_columns:
+            # Nearest-neighbor pairing on the same-class pool (computed
+            # above): for each synth row, find the real row with closest
+            # non-passthrough features and copy its passthrough columns.
+            # Preserves the joint structure between passthrough and
+            # GAN-generated features that random swapping destroys.
+            # Falls back to random for 3D inputs internally.
+            gen = swap_passthrough_columns_nn(
+                synth=gen,
+                real_pool=class_pool,
                 columns=passthrough_columns,
-                rng=rng,
                 feature_names=feature_names,
             )
 

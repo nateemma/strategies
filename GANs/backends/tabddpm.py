@@ -32,6 +32,7 @@ _TABDDPM_CTOR_KEYS: frozenset = frozenset({
     "edm_p_mean", "edm_p_std",
     "edm_sigma_min", "edm_sigma_max", "edm_rho",
     "edm_sigma_data",
+    "use_attention", "attn_d_feature", "attn_n_heads",
     "verbose",
 })
 
