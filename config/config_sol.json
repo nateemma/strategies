@@ -49,24 +49,7 @@
     "ccxt_async_config": {
     },
     "pair_whitelist": [
-      // "SOL/USDT"
-      "SOL/USDT",
-      "BTC/USDT",
-      "ETH/USDT",
-      // "LPT/USDT",
-      // "SUI/USDT",
-      // "XRP/USDT",
-      "AAVE/USDT",
-      // "RENDER/USDT",
-      "NEAR/USDT",
-      // "ETC/USDT",
-      // "FET/USDT",
-      "ICP/USDT",
-      "FIL/USDT",
-      "LINK/USDT",
-      // "POL/USDT",
-      // "ADA/USDT",
-      "UNI/USDT"
+      "SOL/USDT"
     ],
     "pair_blacklist": [
     ]
