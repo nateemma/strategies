@@ -27,9 +27,9 @@ from GANs.GANType import GANType  # noqa: E402
 
 class NNNC_CGP_MLX(NNNC_CGP):
 
-    buy_params = { **BaseNNStrategy.buy_params,
-        "prediction_threshold": 0.6
-        }
+    # buy_params = { **BaseNNStrategy.buy_params,
+    #     "prediction_threshold": 0.6
+    #     }
 
     # GAN augmentation — single-task CTAB-GAN+.
     gan_type = GANType.CTAB_GAN

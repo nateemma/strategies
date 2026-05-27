@@ -229,9 +229,9 @@ class BaseNNStrategy(BaseStrategy):
         "adx_scaled",
         "aroonosc_scaled",
         "atr_norm",
-        # "bb_position",
+        "bb_position",
         "bb_width",
-        # "cci_scaled",
+        "cci_scaled",
         # "close_norm",
         "di_diff_scaled",
         # Calendar features dropped — empirical correlations with buy/sell
@@ -257,7 +257,13 @@ class BaseNNStrategy(BaseStrategy):
         # guard_metric (scaled RMI) is the variable type-17 labels are
         # derived from (alongside bb_width); including it gives the
         # classifier direct access to one of the two deciding inputs.
-        "guard_metric",
+        # Split into unimodal guard_metric_pos / guard_metric_neg
+        # (DebugAnalyseIndicators BC 0.56-0.60 on SOL/ZEC/ICP) — same
+        # treatment as macd_pos/neg. Original guard_metric is still
+        # computed in DataframePopulator for non-NN consumers.
+        # "guard_metric",
+        "guard_metric_pos",
+        "guard_metric_neg",
         # "hour_cos",
         # "hour_sin",
         # log_volume_norm dropped — composite rank 14, individual buy/sell
@@ -288,7 +294,7 @@ class BaseNNStrategy(BaseStrategy):
         # "regime",
         # "risk",
         "rsi_scaled",
-        # "rsi_sma",
+        # "rsi_sma",  # ABLATION C
         "sar_ratio",
         "spread_ma",
         # "volume_sma_norm",
@@ -323,6 +329,11 @@ class BaseNNStrategy(BaseStrategy):
         "dymi_scaled",
         "gain_norm",
         "guard_metric",
+        # guard_metric_pos / guard_metric_neg follow the macd_pos/neg
+        # convention: derived via clip(lower=0) from a [-1, 1] feature,
+        # so they're already in [0, 1] — pre-normalized.
+        "guard_metric_pos",
+        "guard_metric_neg",
         # "hour_cos",
         # "hour_sin",
         "mod_sin",

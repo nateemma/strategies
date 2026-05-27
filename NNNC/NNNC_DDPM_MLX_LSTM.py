@@ -67,6 +67,6 @@ class NNNC_DDPM_MLX_LSTM(NNNC_CGP_MLX_LSTM):
     # disabled; falling through to the Tier-1 sampling overrides.
     gan_synth_density_reject_pct = 0.0
 
-    buy_params = { **NNNC_CGP_MLX_LSTM.buy_params,
-        "prediction_threshold": 0.65
-        }
+    # buy_params = { **NNNC_CGP_MLX_LSTM.buy_params,
+    #     "prediction_threshold": 0.65
+    #     }

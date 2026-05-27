@@ -333,6 +333,12 @@ class DataframePopulator:
         # srmi scaled to -1 to 1 (PRE-NORMALIZED)
         srmi = 2.0 * (rmi - 50.0) / 100.0
         dataframe["guard_metric"] = srmi
+        # guard_metric bimodal split (BC 0.56-0.60 on SOL/ZEC/ICP): same
+        # pattern as macd_pos/neg — two unimodal features in [0, 1] that
+        # give the classifier explicit sign-magnitude and that the GAN's
+        # MLP regression can model without collapsing to the conditional mean.
+        dataframe["guard_metric_pos"] = dataframe["guard_metric"].clip(lower=0)
+        dataframe["guard_metric_neg"] = (-dataframe["guard_metric"]).clip(lower=0)
 
         # MACD (Absolute values - need scaling)
         macd = ta.MACD(dataframe)
