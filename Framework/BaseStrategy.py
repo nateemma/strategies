@@ -303,7 +303,7 @@ class BaseStrategy(IStrategy):
     # entries when close is sustained below a long EMA by ``entry_bear_deadband``.
     # Independent of the bull side: we only want to skip entries during bear
     # legs, not skip them during sideways or transition periods.
-    entry_bear_filter_enable: bool = True
+    entry_bear_filter_enable: bool = False
     entry_bear_ema_period: int = 200      # ~200 candles back-look; 8 days on 1h
     entry_bear_deadband: float = 0.02     # close must be 2% below EMA to count as bear
 
