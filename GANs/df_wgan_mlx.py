@@ -38,12 +38,17 @@ class Generator(nn.Module):
 class Critic(nn.Module):
     def __init__(self, num_features: int, num_classes: int, hidden_dim: int = 256):
         super().__init__()
+        # Critic width matches MT_WGAN's tabular-path critic (constant
+        # hidden_dim through the body, no 2x expansion). The previous
+        # hidden_dim*2 middle layer made the critic strictly more
+        # powerful than the generator and produced the classic WGAN-GP
+        # critic-dominance divergence around epoch 7-13 (2026-05-27).
         self.model = nn.Sequential(
             nn.Linear(num_features + num_classes, hidden_dim),
             nn.LeakyReLU(0.2),
-            nn.Linear(hidden_dim, hidden_dim * 2),
+            nn.Linear(hidden_dim, hidden_dim),
             nn.LeakyReLU(0.2),
-            nn.Linear(hidden_dim * 2, 1)
+            nn.Linear(hidden_dim, 1)
         )
 
     def __call__(self, x, c):
@@ -56,15 +61,19 @@ class WGANMLX:
     # before being fed to the generator/critic.
     _ZSCORE_CLIP: float = 4.0
 
-    def __init__(self, num_features: int, num_classes: int, latent_dim: int = 64, gp_weight: float = 10.0, learning_rate: float = 1e-4):
+    def __init__(self, num_features: int, num_classes: int, latent_dim: int = 64, gp_weight: float = 50.0, learning_rate: float = 1e-4, grad_clip: float = 10.0, critic_lr_ratio: float = 0.25):
         self.latent_dim = latent_dim
         self.num_classes = num_classes
         self.num_features = num_features
         self.gp_weight = gp_weight
+        self.grad_clip = grad_clip
         self.gen = Generator(latent_dim, num_classes, num_features)
         self.critic = Critic(num_features, num_classes)
+        # TTUR (Heusel 2017): critic LR < generator LR to slow critic
+        # relative to generator, fighting the critic-dominance imbalance
+        # observed in single-task WGAN runs.
         self.gen_opt = optim.Adam(learning_rate=learning_rate, betas=(0.5, 0.9))
-        self.critic_opt = optim.Adam(learning_rate=learning_rate, betas=(0.5, 0.9))
+        self.critic_opt = optim.Adam(learning_rate=learning_rate * critic_lr_ratio, betas=(0.5, 0.9))
         # Stats for inverse z-score in generate(). Set by balance_with_wgan_mlx
         # at fit time, persisted in metadata at save() time.
         self.feature_mean: Optional[np.ndarray] = None
@@ -250,18 +259,24 @@ def balance_with_wgan_mlx(
                 z = mx.random.normal((bs, gan.latent_dim))
 
                 # Update critic n_critic times per generator step.
+                # CRITICAL: eval ALL updated state every step so Metal doesn't
+                # accumulate a lazy graph (parameters AND optimizer.state AND loss).
+                # Mirrors df_mt_wgan_mlx.py:528 — missing the optimizer state
+                # caused late-training numerical drift and divergence around
+                # epoch 10-15 (2026-05-27 incident).
                 for _ in range(n_critic):
                     z_c = mx.random.normal((bs, gan.latent_dim))
                     loss_c, grads_c = critic_grad_fn(gan.critic, real_x, real_c, z_c, real_c)
+                    grads_c, _ = optim.clip_grad_norm(grads_c, gan.grad_clip)
                     gan.critic_opt.update(gan.critic, grads_c)
-                    mx.eval(gan.critic.parameters())
+                    mx.eval(gan.critic.parameters(), gan.critic_opt.state, loss_c)
                 loss_g, grads_g = gen_grad_fn(gan.gen, z, real_c)
+                grads_g, _ = optim.clip_grad_norm(grads_g, gan.grad_clip)
                 gan.gen_opt.update(gan.gen, grads_g)
+                mx.eval(gan.gen.parameters(), gan.gen_opt.state, loss_g)
 
                 if verbose and epoch == 0 and (i // batch_size) % 100 == 0:
                     print(f"        Batch {i // batch_size} / {num_samples // batch_size}...")
-
-            mx.eval(gan.gen.parameters(), gan.critic.parameters())
 
             d_val = loss_c.item()
             g_val = loss_g.item()

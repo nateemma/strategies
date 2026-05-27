@@ -30,7 +30,7 @@ class NNNC_WGAN(NNNCStrategy):
 
     # Single-task ratio: each minority class is brought up to 80% of the
     # majority class size.  See balance_single_task for semantics.
-    gan_target_ratio = 0.8
+    gan_target_ratio = 0.3
 
     # v2 pipeline: WGAN MLX generator outputs raw-space features (after
     # internal z-score + inverse), strategy applies tensor scaling after

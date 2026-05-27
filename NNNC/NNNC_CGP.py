@@ -32,7 +32,7 @@ class NNNC_CGP(NNNCStrategy):
     augment_training_data = True
 
     # Don't push above ~1.0 — the model starts overfitting to synthetic.
-    gan_target_ratio = 0.4
+    gan_target_ratio = 0.3
 
     # turn on diagnostics for the GAN (class-level override — the version
     # consumed by BaseNNStrategy at training time is the class attribute,
