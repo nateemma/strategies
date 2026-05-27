@@ -20,11 +20,16 @@ sys.path.append(group_dir)
 
 from NNNC_CGP import NNNC_CGP
 from NNNClassifierMLX import ClassifierTypeMLX, create_classifier_mlx
-from ClassifierKeras import ClassifierKeras
+from BaseNNStrategy import BaseNNStrategy
+from utils.ClassifierKeras import ClassifierKeras
 from GANs.GANType import GANType  # noqa: E402
 
 
 class NNNC_CGP_MLX(NNNC_CGP):
+
+    buy_params = { **BaseNNStrategy.buy_params,
+        "prediction_threshold": 0.6
+        }
 
     # GAN augmentation — single-task CTAB-GAN+.
     gan_type = GANType.CTAB_GAN
@@ -40,6 +45,11 @@ class NNNC_CGP_MLX(NNNC_CGP):
     # consumed by BaseNNStrategy at training time is the class attribute,
     # NOT the duplicate field on StrategyConfig).
     gan_run_diagnostics = True
+
+    # v2 pipeline: CTAB-GAN+ handles its own normalization via VGM; strategy
+    # passes raw features and the tensor scaler runs after augmentation.
+    # Reads model from saved_data/GANs_PostScale/ctab_gan/.
+    use_post_gan_scaling = True
 
     # default is LSTM type. Override get_classifier_type() in subclass
     def get_classifier_type(self):

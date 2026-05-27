@@ -89,7 +89,8 @@ shift $((OPTIND-1)) # remove parsed options and args from $@ list
 #fixed_args="-t 5m 15m 1h 1d"
 #fixed_args="-t 5m 15m 1h"
 # fixed_args="-t ${timeframe} --prepend"
-fixed_args="-t ${timeframe} --erase"
+# fixed_args="-t ${timeframe} --erase"
+fixed_args="-t ${timeframe}"
 
 if [[ $# -gt 0 ]] ; then
   echo "Running for exchange: ${1}"

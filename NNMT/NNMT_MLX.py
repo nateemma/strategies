@@ -26,10 +26,10 @@ from NNMT.NNMTClassifierMLX import ClassifierTypeMLX, create_classifier_mlx
 
 class NNMT_MLX(NNMTStrategy):
 
-    buy_params = { **NNMTStrategy.buy_params,
-        "prediction_threshold": 0.6,
-        "profit_prediction_threshold": 0.45
-        }
+    # buy_params = { **NNMTStrategy.buy_params,
+    #     "prediction_threshold": 0.6,
+    #     "profit_prediction_threshold": 0.45
+    #     }
 
     # ------------------------------------------------------------------ #
     # Classifier-side overrides — set on subclasses to push values onto   #

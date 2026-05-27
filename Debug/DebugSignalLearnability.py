@@ -150,7 +150,13 @@ def conditional_forward_gain(
     return float(np.nanmean(out)) if out.size else 0.0
 
 
-def _build_params(method: LabelMethod, threshold: float, horizon: int, side: str) -> dict:
+def _build_params(
+    method: LabelMethod,
+    threshold: float,
+    horizon: int,
+    side: str,
+    bb_width_threshold: Optional[float] = None,
+) -> dict:
     """Per-method param dict. Methods accept different param names; we
     whitelist what each function will actually consume so we don't crash."""
     params: dict = {}
@@ -166,6 +172,13 @@ def _build_params(method: LabelMethod, threshold: float, horizon: int, side: str
         params["min_loss"] = threshold
         params["min_gain"] = threshold
 
+    # Method-specific extra knobs. labels_gbb / labels_gbb_sell accept a
+    # bb_width_threshold (the regime gate). Only attach it when sweeping
+    # method=17, otherwise it would either be ignored or crash dispatchers
+    # that don't accept it.
+    if bb_width_threshold is not None and method == LabelMethod.gbb:
+        params["bb_width_threshold"] = bb_width_threshold
+
     # Indicator-vote families: keep the min_indicators_* knobs at defaults.
     # The dispatch in get_train_sell_signals filters unknown keys for sell
     # variants, but the buy dispatch passes everything through, so we keep
@@ -180,9 +193,19 @@ def evaluate_combo(
     threshold: float,
     horizon: int,
     side: str,
+    bb_width_threshold: Optional[float] = None,
 ) -> dict:
     """One row of the result table: (method, side, threshold) → metrics."""
-    params = _build_params(method, threshold, horizon, side)
+    params = _build_params(method, threshold, horizon, side, bb_width_threshold)
+    base_row = {
+        "method": method.name,
+        "method_id": int(method.value),
+        "side": side,
+        "threshold": threshold,
+        "bb_width_threshold": (
+            bb_width_threshold if bb_width_threshold is not None else float("nan")
+        ),
+    }
     try:
         if side == "buy":
             y_raw = get_train_buy_signals(df, method=method, params=params)
@@ -190,10 +213,7 @@ def evaluate_combo(
             y_raw = get_train_sell_signals(df, method=method, params=params)
     except Exception as exc:
         return {
-            "method": method.name,
-            "method_id": int(method.value),
-            "side": side,
-            "threshold": threshold,
+            **base_row,
             "n_signals": 0,
             "n_total": 0,
             "mcc": np.nan,
@@ -210,10 +230,7 @@ def evaluate_combo(
 
     if n_total < 200 or n_signals < 20:
         return {
-            "method": method.name,
-            "method_id": int(method.value),
-            "side": side,
-            "threshold": threshold,
+            **base_row,
             "n_signals": n_signals,
             "n_total": n_total,
             "mcc": np.nan,
@@ -232,10 +249,7 @@ def evaluate_combo(
     score = max(mcc, 0.0) * n_signals * ev
 
     return {
-        "method": method.name,
-        "method_id": int(method.value),
-        "side": side,
-        "threshold": threshold,
+        **base_row,
         "n_signals": n_signals,
         "n_total": n_total,
         "mcc": mcc,
@@ -555,6 +569,15 @@ def main() -> None:
         default=[0.003, 0.005, 0.007, 0.010, 0.013],
         help="min_gain / min_loss thresholds to sweep",
     )
+    ap.add_argument(
+        "--bb-width-thresholds",
+        nargs="+",
+        type=float,
+        default=None,
+        help="bb_width_threshold values to sweep. Only honoured for method 17 "
+             "(labels_gbb). When omitted, the function default is used and the "
+             "sweep dimension collapses to a single value.",
+    )
     ap.add_argument("--side", choices=["buy", "sell", "both"], default="buy")
     ap.add_argument(
         "--max-bars", type=int, default=0,
@@ -682,14 +705,37 @@ def main() -> None:
             )
     else:
         sides = ["buy", "sell"] if args.side == "both" else [args.side]
+        bb_widths = args.bb_width_thresholds if args.bb_width_thresholds else [None]
 
-        print(f"\nSweeping methods × thresholds × sides "
-              f"({len(args.methods)} × {len(args.thresholds)} × {len(sides)} = "
-              f"{len(args.methods) * len(args.thresholds) * len(sides)} combos)…\n")
-
-        print(f"  {'method':18s}  {'side':4s}  {'thresh':>7s}  "
-              f"{'N_sig':>6s}  {'MCC':>7s}  {'EV/sig%':>8s}  {'score':>10s}")
-        print(f"  {'-'*18}  {'-'*4}  {'-'*7}  {'-'*6}  {'-'*7}  {'-'*8}  {'-'*10}")
+        n_combos = (
+            len(args.methods) * len(args.thresholds) * len(sides) * len(bb_widths)
+        )
+        if bb_widths != [None]:
+            print(f"\nSweeping methods × thresholds × bb_widths × sides "
+                  f"({len(args.methods)} × {len(args.thresholds)} × "
+                  f"{len(bb_widths)} × {len(sides)} = {n_combos} combos)…\n")
+            header = (
+                f"  {'method':18s}  {'side':4s}  {'thresh':>7s}  {'bb_w':>6s}  "
+                f"{'N_sig':>6s}  {'MCC':>7s}  {'EV/sig%':>8s}  {'score':>10s}"
+            )
+            sep = (
+                f"  {'-'*18}  {'-'*4}  {'-'*7}  {'-'*6}  {'-'*6}  "
+                f"{'-'*7}  {'-'*8}  {'-'*10}"
+            )
+        else:
+            print(f"\nSweeping methods × thresholds × sides "
+                  f"({len(args.methods)} × {len(args.thresholds)} × "
+                  f"{len(sides)} = {n_combos} combos)…\n")
+            header = (
+                f"  {'method':18s}  {'side':4s}  {'thresh':>7s}  "
+                f"{'N_sig':>6s}  {'MCC':>7s}  {'EV/sig%':>8s}  {'score':>10s}"
+            )
+            sep = (
+                f"  {'-'*18}  {'-'*4}  {'-'*7}  {'-'*6}  "
+                f"{'-'*7}  {'-'*8}  {'-'*10}"
+            )
+        print(header)
+        print(sep)
 
         rows = []
         for mid in args.methods:
@@ -700,18 +746,37 @@ def main() -> None:
                 continue
             for side in sides:
                 for thresh in args.thresholds:
-                    row = evaluate_combo(df, features, method, thresh, args.horizon, side)
-                    rows.append(row)
-                    mcc_str = f"{row['mcc']:+.3f}" if not np.isnan(row["mcc"]) else "   n/a"
-                    ev_str = (
-                        f"{row['ev_per_signal_pct']:+6.2f}"
-                        if not np.isnan(row["ev_per_signal_pct"]) else "   n/a"
-                    )
-                    print(
-                        f"  {row['method']:18s}  {row['side']:4s}  "
-                        f"{row['threshold']:7.4f}  {row['n_signals']:6d}  "
-                        f"{mcc_str:>7s}  {ev_str:>8s}  {row['score']:10.2f}"
-                    )
+                    for bb_w in bb_widths:
+                        row = evaluate_combo(
+                            df, features, method, thresh, args.horizon, side, bb_w,
+                        )
+                        rows.append(row)
+                        mcc_str = (
+                            f"{row['mcc']:+.3f}" if not np.isnan(row["mcc"]) else "   n/a"
+                        )
+                        ev_str = (
+                            f"{row['ev_per_signal_pct']:+6.2f}"
+                            if not np.isnan(row["ev_per_signal_pct"]) else "   n/a"
+                        )
+                        if bb_widths != [None]:
+                            bbw_str = (
+                                f"{bb_w:6.4f}" if bb_w is not None else "  def "
+                            )
+                            print(
+                                f"  {row['method']:18s}  {row['side']:4s}  "
+                                f"{row['threshold']:7.4f}  {bbw_str}  "
+                                f"{row['n_signals']:6d}  "
+                                f"{mcc_str:>7s}  {ev_str:>8s}  "
+                                f"{row['score']:10.2f}"
+                            )
+                        else:
+                            print(
+                                f"  {row['method']:18s}  {row['side']:4s}  "
+                                f"{row['threshold']:7.4f}  "
+                                f"{row['n_signals']:6d}  "
+                                f"{mcc_str:>7s}  {ev_str:>8s}  "
+                                f"{row['score']:10.2f}"
+                            )
 
     table = pd.DataFrame(rows)
     if args.save_csv:
@@ -736,6 +801,8 @@ def main() -> None:
         )
         cols = ["method", "side", "threshold", "n_signals", "mcc",
                 "ev_per_signal_pct", "score"]
+        if "bb_width_threshold" in valid.columns and valid["bb_width_threshold"].notna().any():
+            cols.insert(3, "bb_width_threshold")
         print(best[cols].to_string(index=False))
     else:
         print("  (no rows with valid MCC — likely too few signals)")

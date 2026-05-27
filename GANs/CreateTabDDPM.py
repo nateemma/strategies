@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import Any, Dict
 
 group_dir = str(Path(__file__).parent)
 sys.path.append(group_dir)
@@ -33,3 +34,13 @@ class CreateTabDDPM(CreateGAN):
     # the same flag on NNNC_DDPM_MLX_LSTM (strategy side).
     use_post_gan_scaling = True
     gan_run_diagnostics = True
+
+    def get_default_gan_config(self) -> Dict[str, Any]:
+        # Enable balanced per-class batch sampling so minority classes (0/2)
+        # get equal gradient signal during training. Without this, class 1
+        # (Hold, ~75% of rows) dominates gradient and the model under-trains
+        # the volatility-feature tails on c0/c2 — exactly the joint-corr
+        # collapse signature observed on the g=1.0 clean-data baseline.
+        base = dict(super().get_default_gan_config())
+        base["class_balanced_sampling"] = True
+        return base

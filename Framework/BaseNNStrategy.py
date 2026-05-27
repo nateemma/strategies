@@ -90,13 +90,21 @@ log = logging.getLogger(__name__)
 class BaseNNStrategy(BaseStrategy):
 
     buy_params = { **BaseStrategy.buy_params,
-        "entry_atr_pct": 0.007,
+        "entry_atr_pct": 0.006,
         "cexit_enable_profit_checks": True,
         "cexit_max_days": 2,
         "cexit_take_profit": 0.002,
-        "prediction_threshold": 0.7,
+        "prediction_threshold": 0.8,
         "profit_prediction_threshold": 0.3,
         "apply_task_filters": True}
+
+    # ATR-adaptive initial stoploss enabled by default for every NN
+    # variant — definitions of the flag and its companion attrs
+    # (multiplier, floor, cap) live in BaseStrategy. Subclasses can
+    # override the multiplier / floor / cap as needed; setting this
+    # flag back to False here will turn off adaptive stops for the
+    # whole NN family.
+    use_atr_adaptive_stoploss = True
 
     # --------------------------------
     # NN-specific training parameters
@@ -226,10 +234,16 @@ class BaseNNStrategy(BaseStrategy):
         # "cci_scaled",
         # "close_norm",
         "di_diff_scaled",
-        "doy_cos",
-        "doy_sin",
-        "dow_cos",
-        "dow_sin",
+        # Calendar features dropped — empirical correlations with buy/sell
+        # signals are all < 0.06 on type-17 labels, mutual information barely
+        # above zero. Net cost (GAN modeling overhead + passthrough complexity)
+        # exceeded the negligible signal benefit. Reinstate (uncomment + drop
+        # from pre_normalized_columns) if a stronger time-of-day signal appears
+        # under a different label scheme.
+        # "doy_cos",
+        # "doy_sin",
+        # "dow_cos",
+        # "dow_sin",
         "ema_fast_norm",
         "fast_diff",
         # "fastd_scaled",
@@ -240,17 +254,33 @@ class BaseNNStrategy(BaseStrategy):
         # "fisher_wr",
         # "flow",
         "gain_norm",
-        # "guard_metric",
+        # guard_metric (scaled RMI) is the variable type-17 labels are
+        # derived from (alongside bb_width); including it gives the
+        # classifier direct access to one of the two deciding inputs.
+        "guard_metric",
         # "hour_cos",
         # "hour_sin",
-        "log_volume_norm",
-        "macd_norm",
+        # log_volume_norm dropped — composite rank 14, individual buy/sell
+        # correlation ~0.08. Its only meaningful structure was the joint
+        # with rsi_scaled (real |ρ|=0.27-0.35), which the GAN persistently
+        # collapses to ~0 across every augmentation block. Passthrough only
+        # fixes the marginal, not joints with non-passthrough features.
+        # "log_volume_norm",
+        # macd_norm split into unimodal pos/neg components — the original
+        # is bimodal around 0 (trend-up vs trend-down clusters), which
+        # MLP-regression-based GANs collapse to the conditional mean.
+        # Splitting gives both the GAN and classifier unimodal features
+        # with explicit sign. Original macd_norm is still computed in
+        # DataframePopulator for non-NN consumers (TSPredict, etc.).
+        "macd_pos",
+        "macd_neg",
         "macdhist_norm",
         # "macdsignal_norm",
         "mfi_scaled",
         # "minus_di_scaled",
-        "mod_cos",
-        "mod_sin",
+        # mod_sin/cos dropped together with the other calendar features above.
+        # "mod_cos",
+        # "mod_sin",
         # "momentum",
         # "obv_scaled",
         # "plus_di_scaled",
@@ -262,7 +292,9 @@ class BaseNNStrategy(BaseStrategy):
         "sar_ratio",
         "spread_ma",
         # "volume_sma_norm",
-        "vwap_ratio",
+        # vwap_ratio also bimodal — same split treatment as macd_norm.
+        "vwap_pos",
+        "vwap_neg",
         # "willr_scaled",
     ]
 
@@ -273,7 +305,9 @@ class BaseNNStrategy(BaseStrategy):
         "aroonosc_scaled",
         "atr_norm",
         "bb_position",
-        "bb_width",
+        # bb_width removed — DataframePopulator no longer fixed-normalises
+        # it (was /0.028 + clip to [-1, 1]). main_scaler now z-scores it
+        # like other unbounded ratio features.
         "cci_scaled",
         "close_norm",
         "doy_cos",
@@ -295,6 +329,10 @@ class BaseNNStrategy(BaseStrategy):
         "mod_cos",
         "log_volume_norm",
         "macd_norm",
+        # macd_pos / macd_neg follow macd_norm's "pre-normalized to
+        # [-1, 1]" convention since they're derived via clip(lower=0).
+        "macd_pos",
+        "macd_neg",
         "macdhist_norm",
         "mfi_scaled",
         "minus_di_scaled",
@@ -1248,16 +1286,12 @@ class BaseNNStrategy(BaseStrategy):
     # Columns the GAN should NOT generate — values for these are copied
     # from a random real sample at augmentation time.  Use for features
     # with rigid structure that GANs reliably mis-reproduce (calendar
-    # sin/cos pairs, one-hot categoricals).  Diagnostics on a real
-    # WGAN-GP showed all six calendar columns systematically biased and
-    # their pairwise correlations attenuated — copying them from real
-    # samples sidesteps that failure mode entirely without losing any
-    # information the classifier needs.  Empty list / None disables.
-    gan_passthrough_columns: List[str] = [
-        "dow_sin", "dow_cos",
-        "doy_sin", "doy_cos",
-        "mod_sin", "mod_cos",
-    ]
+    # sin/cos pairs, one-hot categoricals).  Empty default — the
+    # calendar features that previously lived here have been removed
+    # from include_list entirely (low signal didn't justify the GAN
+    # modeling overhead). Subclasses set this when they have specific
+    # features the GAN can't fit; see NNNC_DDPM_MLX_LSTM for an example.
+    gan_passthrough_columns: List[str] = []
 
     # Inference-time overrides applied to the loaded GAN model after
     # ``interface.load()``. Default ``None`` preserves whatever the model

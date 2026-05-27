@@ -279,13 +279,13 @@ class DataframePopulator:
         dataframe["bb_width"] = (
             dataframe["bb_upperband"] - dataframe["bb_lowerband"]
         ) / (dataframe["bb_middleband"] + epsilon)
-
-        # Let's use a conservative max to spread out the core data, and let the occasional
-        # higher values get clipped at the final pipeline step.
-        BB_WIDTH_FIXED_MAX = 0.028  # Empirical
-        dataframe["bb_width"] = (dataframe["bb_width"] / BB_WIDTH_FIXED_MAX).clip(
-            0, 1
-        ) * 2.0 - 1.0
+        # bb_width stays at its natural ratio scale (typically [0, 0.10]).
+        # The fixed-constant normalization that used to live here divided
+        # by 0.028 and clipped to [-1, 1], which made the label-side
+        # thresholds (e.g. labels_gbb's `bb_width_threshold = 0.03`)
+        # mean "1.44% raw" instead of the intended "3% raw". main_scaler /
+        # main_tensor_scaler now z-scores bb_width like other ratio
+        # features (see BaseNNStrategy.pre_normalized_columns).
 
         # ATR (normalised to recent prices)
         atr_raw = ta.ATR(
@@ -351,6 +351,15 @@ class DataframePopulator:
             )
             dataframe[col] = dataframe[col].fillna(0.0)
 
+        # macd_norm bimodal split: pos = max(x, 0), neg = -min(x, 0).
+        # Two unimodal features (each in [0, 1]) replace one bimodal
+        # feature in the NN include_list — the GAN's MLP regression
+        # can model unimodal distributions cleanly, and the classifier
+        # gets explicit sign-magnitude features instead of having to
+        # derive the sign internally.
+        dataframe["macd_pos"] = dataframe["macd_norm"].clip(lower=0)
+        dataframe["macd_neg"] = (-dataframe["macd_norm"]).clip(lower=0)
+
         # Stoch fast (0-100 range)
         stoch_fast = ta.STOCHF(dataframe, fastk_period=15)
         fastd = stoch_fast["fastd"]
@@ -403,7 +412,10 @@ class DataframePopulator:
         vwap_ratio = (vwap / close_safe) - 1.0  # deviation from current price
         dataframe["vwap_ratio"] = self.rolling_clip(
             vwap_ratio, window=wlen, lower_pct=5, upper_pct=95
-        ).fillna(0.0)
+        )
+        # Bimodal split — same rationale as macd_pos / macd_neg above.
+        dataframe["vwap_pos"] = dataframe["vwap_ratio"].clip(lower=0)
+        dataframe["vwap_neg"] = (-dataframe["vwap_ratio"]).clip(lower=0).fillna(0.0)
 
         # Directional Indicators - scale from 0-100 to -1 to 1 (PRE-NORMALIZED)
         plus_di = ta.PLUS_DI(dataframe, timeperiod=14)

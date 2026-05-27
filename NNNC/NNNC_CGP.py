@@ -39,3 +39,8 @@ class NNNC_CGP(NNNCStrategy):
     # NOT the duplicate field on StrategyConfig).
     gan_run_diagnostics = True
 
+    # v2 pipeline: CTAB-GAN+ handles its own normalization via VGM; strategy
+    # passes raw features and the tensor scaler runs after augmentation.
+    # Reads model from saved_data/GANs_PostScale/ctab_gan/.
+    use_post_gan_scaling = True
+

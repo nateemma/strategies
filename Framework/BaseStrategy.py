@@ -233,7 +233,7 @@ class BaseStrategy(IStrategy):
     buy_params = {
         "entry_adx_threshold": 20.0,
         "entry_atr_pct": 0.02,
-        "entry_bb_width_threshold": 0.0,
+        "entry_bb_width_threshold": 0.014,  # raw 1.4% bandwidth — preserves pre-unbug effective filter
         "entry_close_norm_threshold": 0.0,
         "entry_enable_guards": True,
         "entry_guard_threshold": -0.5,
@@ -260,6 +260,22 @@ class BaseStrategy(IStrategy):
     # Common ROI and stoploss
     minimal_roi = {"0": 0.03}
     stoploss = -0.05
+
+    # ATR-adaptive initial stoploss (opt-in).
+    # When True, custom_stoploss sets the per-trade initial stop at
+    # after_fill to -atr_stoploss_multiplier * atr_pct_roll, clamped to
+    # [atr_stoploss_floor, atr_stoploss_cap]. Volatile pairs (high
+    # ATR%) get looser stops, calm pairs get tighter stops — pair-
+    # agnostic. Falls back to the static `stoploss` if the column is
+    # missing or zero, or if the flag is False.
+    #
+    # Default False here so non-NN strategies retain the no-op
+    # custom_stoploss behaviour. BaseNNStrategy flips this on so every
+    # NN variant inherits adaptive stops by default.
+    use_atr_adaptive_stoploss = False
+    atr_stoploss_multiplier = 2.5
+    atr_stoploss_floor = -0.04  # loosest stop allowed (most negative)
+    atr_stoploss_cap = -0.02    # tightest stop allowed (closest to zero)
 
     prediction_threshold = DecimalParameter(
         0.2, 0.7, default=0.5, decimals=2, space="buy", load=True, optimize=True
@@ -295,7 +311,7 @@ class BaseStrategy(IStrategy):
     )
 
     entry_bb_width_threshold = DecimalParameter(
-        0.00, 0.08, default=0.04, decimals=2, space="buy", load=True, optimize=True
+        0.000, 0.100, default=0.015, decimals=3, space="buy", load=True, optimize=True,
     )
 
     entry_rvol_threshold = DecimalParameter(
@@ -1119,6 +1135,21 @@ class BaseStrategy(IStrategy):
         after_fill: bool,
         **kwargs,
     ) -> float:
+        # ATR-adaptive initial stop (opt-in via use_atr_adaptive_stoploss).
+        # Only the after_fill call returns a non-1.0 value, so freqtrade
+        # locks the volatility-adjusted stop at entry and leaves it static
+        # for the rest of the trade — no trailing semantics.
+        if self.use_atr_adaptive_stoploss and after_fill:
+            try:
+                dataframe, _ = self.dp.get_analyzed_dataframe(pair, self.timeframe)
+                if not dataframe.empty:
+                    atr_pct = float(dataframe.iloc[-1].get("atr_pct_roll", 0.0))
+                    if atr_pct > 0:
+                        stop = -self.atr_stoploss_multiplier * atr_pct
+                        return max(min(stop, self.atr_stoploss_cap), self.atr_stoploss_floor)
+            except Exception:
+                pass
+
         # No trailing — preserve the initial static stoploss from entry. The
         # freqtrade convention is that a positive return value means
         # "no change to the current stoploss", so the trade keeps the entry-

@@ -82,7 +82,7 @@ from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, Tradi
         # "entry_adx_threshold": 50.0,
         # "entry_bb_width_threshold": 0.05,
         "entry_adx_threshold": 0.0,
-        "entry_bb_width_threshold": 0.0,
+        "entry_bb_width_threshold": 0.014,  # raw 1.4% — preserves pre-unbug effective filter
         "entry_guard_threshold": 1.0,
         "entry_close_norm_threshold": 0.0,
         "min_buy_gain_threshold": 0.007,

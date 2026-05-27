@@ -23,7 +23,24 @@ from Framework.BaseStrategy import GANType
 class NNNC_DDPM_MLX_LSTM(NNNC_CGP_MLX_LSTM):
     gan_type = GANType.TAB_DDPM
 
-    gan_target_ratio = 0.5
+    gan_target_ratio = 0.3
+
+    # Extend the base calendar passthrough with the features TabDDPM
+    # consistently compresses on the clean-data retrain. The marginal
+    # diagnostic at g=1.0 shows synth means pulled toward 0 on these
+    # heavy-tailed / bimodal volatility & momentum features; copying
+    # real values for class-matched source rows sidesteps the
+    # MLP-regression-to-mean failure mode without disturbing the
+    # other features the GAN does fit well.
+    gan_passthrough_columns = [
+        # Heavy-tailed volatility features the MLP-regression GAN
+        # compresses on the conditional mean. The calendar features
+        # that used to live here have been removed from include_list
+        # entirely; vwap_ratio and macd_norm were split into pos/neg
+        # unimodal pairs in include_list, which sidesteps the failure
+        # mode at the source.
+        "atr_norm", "spread_ma",
+    ]
 
     # v2 pipeline: TAB_DDPM is naturally v2 (diffusion + internal z-score
     # + linear output). Strategy reads from saved_data/GANs_PostScale/tab_ddpm/.
@@ -31,13 +48,16 @@ class NNNC_DDPM_MLX_LSTM(NNNC_CGP_MLX_LSTM):
     use_post_gan_scaling = True
 
     # Tier-1 GAN sampling overrides — applied post-load, no retrain needed.
-    # More denoising steps (200 vs saved 50) + mild classifier-free
-    # guidance to nudge samples toward class modes without collapsing the
-    # tails. guidance=2.0 was tried and collapsed σ_ratio to ~0.52, so
-    # dialled back to 1.3. Both knobs honoured via
+    # More denoising steps (200 vs saved 50) + classifier-free guidance.
+    # guidance=1.8 on the clean-data retrain collapsed bb_width σ_ratio to
+    # 0.50 (worse than g=1.3's 0.77); CFG amplifies whatever class-
+    # conditional bias the model has, so on features with a biased learned
+    # mode (bb_width pinned high for non-hold classes) it commits harder
+    # to the bias. Backed off to 1.0 = pure conditional sampling, no
+    # amplification. Both knobs honoured via
     # BaseNNStrategy._apply_gan_inference_overrides at GAN load time.
     gan_inference_sample_steps = 200
-    gan_inference_guidance_scale = 1.3
+    gan_inference_guidance_scale = 1.0
 
     # Step 1 of the GAN improvement plan (density-based rejection) was
     # tested at reject_pct ∈ {0.10, 0.20} and n_components ∈ {4, 8}.

@@ -567,7 +567,7 @@ def labels_technical_indicators(
     buy_votes += (aroonosc <= -0.2).astype(int)  # Aroonosc oversold
     buy_votes += (guard <= -0.2).astype(int)  # Guard metric oversold
     buy_votes += (sar_ratio >= 0.2).astype(int)  # SAR ratio oversold
-    buy_votes += (bb_width >= 0.2).astype(int)  # BB width negative
+    buy_votes += (bb_width >= 0.017).astype(int)  # BB width >= 1.7% raw (was 0.2 normalized)
     buy_votes += (vwap_ratio >= 0.2).astype(int)  # VWAP ratio oversold
 
     # Buy: enough indicators agree AND future gain meets threshold
@@ -630,7 +630,7 @@ def labels_technical_indicators_sell(
     sell_votes += (sar_ratio <= -0.2).astype(
         int
     )  # SAR ratio overbought (price below SAR, bearish)
-    sell_votes += (bb_width <= -0.2).astype(int)  # BB width low (low volatility)
+    sell_votes += (bb_width <= 0.011).astype(int)  # BB width <= 1.1% raw, low vol (was -0.2 normalized)
     sell_votes += (vwap_ratio <= -0.2).astype(
         int
     )  # VWAP ratio overbought (price below VWAP)
@@ -704,7 +704,7 @@ def labels_indicators2(
     buy_votes += (gain <= -0.5).astype(int)  # Gain oversold
     buy_votes += (rsi <= -0.0).astype(int)  # RSI oversold
     buy_votes += (mfi <= -0.0).astype(int)  # MFI oversold
-    buy_votes += (bb_width <= -0.2).astype(int)  # BB width negative
+    buy_votes += (bb_width <= 0.011).astype(int)  # BB width <= 1.1% raw (was -0.2 normalized)
     buy_votes += (log_volume >= 0.2).astype(int)  # Log volume negative
     buy_votes += (close_norm <= -0.2).astype(int)  # Close norm negative
 
@@ -769,7 +769,7 @@ def labels_indicators2_sell(
     sell_votes += (gain >= 0.5).astype(int)  # Gain oversold
     sell_votes += (rsi >= 0.0).astype(int)  # RSI oversold
     sell_votes += (mfi >= 0.0).astype(int)  # MFI oversold
-    sell_votes += (bb_width >= 0.2).astype(int)  # BB width negative
+    sell_votes += (bb_width >= 0.017).astype(int)  # BB width >= 1.7% raw (was 0.2 normalized)
     sell_votes += (log_volume <= 0.2).astype(int)  # Log volume negative
     sell_votes += (close_norm >= 0.2).astype(int)  # Close norm negative
 
@@ -993,7 +993,7 @@ def labels_indicators4_sell(
 def labels_gbb(
     df: pd.DataFrame,
     guard_threshold: float = -0.2,
-    bb_width_threshold: float = 0.03,
+    bb_width_threshold: float = 0.035,
     min_gain: Optional[float] = 0.01,
     min_loss: Optional[float] = None,  # Ignored for buy
     horizon: Optional[int] = DEFAULT_HORIZON,
@@ -1030,7 +1030,7 @@ def labels_gbb(
 def labels_gbb_sell(
     df: pd.DataFrame,
     guard_threshold: float = 0.2,
-    bb_width_threshold: float = 0.03,
+    bb_width_threshold: float = 0.035,
     min_gain: Optional[float] = None,  # Ignored for sell
     min_loss: Optional[float] = 0.01,
     horizon: Optional[int] = DEFAULT_HORIZON,

@@ -57,5 +57,5 @@ class TrainingConfig:
     # sweep across ICP/ETH/BTC/ADA/LINK shows the learnability curve peaks
     # at ~0.003 — see docs/superpowers/specs/ if a learnability rerun is
     # needed before changing.
-    MIN_BUY_GAIN_THRESHOLD: float = 0.004
-    MIN_SELL_LOSS_THRESHOLD: float = 0.004
+    MIN_BUY_GAIN_THRESHOLD: float = 0.005
+    MIN_SELL_LOSS_THRESHOLD: float = 0.005

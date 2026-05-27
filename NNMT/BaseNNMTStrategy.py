@@ -137,6 +137,11 @@ class BaseNNMTStrategy(BaseNNStrategy):
     via this class — behavior is unchanged.
     """
 
+    buy_params = { **BaseNNStrategy.buy_params,
+        "prediction_threshold": 0.8,
+        "profit_prediction_threshold": 0.3
+        }
+
     profit_conflict_to_neutral = True
     # EMA span used to smooth the close before measuring forward gain. Short
     # span (≤2) preserves the moves we want the label to capture; longer
@@ -164,18 +169,11 @@ class BaseNNMTStrategy(BaseNNStrategy):
                                                                                                                        
     use_forward_peak_regressor_filter = False 
 
-    stoploss = -0.04
+    stoploss = -0.05
 
-    # ATR-adaptive initial stoploss. When True, custom_stoploss sets the
-    # per-trade initial stop at after_fill to -atr_stoploss_multiplier *
-    # atr_pct_roll, clamped to [atr_stoploss_floor, atr_stoploss_cap].
-    # Volatile pairs (high ATR%) get tighter stops, calm pairs get looser
-    # stops — pair-agnostic. Falls back to the static `stoploss` if the
-    # column is missing or zero.
-    use_atr_adaptive_stoploss = True
-    atr_stoploss_multiplier = 2.5
-    atr_stoploss_floor = -0.04  # loosest stop allowed (most negative)
-    atr_stoploss_cap = -0.02    # tightest stop allowed (closest to zero)
+    # ATR-adaptive stoploss now lives in BaseStrategy (flag + attrs) and
+    # is enabled by default in BaseNNStrategy. Override the multiplier /
+    # floor / cap here if NNMT-specific tuning diverges.
 
     # -----------
     # Hyperopt parameters
@@ -1312,33 +1310,6 @@ class BaseNNMTStrategy(BaseNNStrategy):
     # (more permissive — fires earlier but with more false positives
     # given the profit head's MCC ceiling of ~0.20).
     bailout_require_consensus: bool = False
-
-    def custom_stoploss(
-        self,
-        pair: str,
-        trade,
-        current_time,
-        current_rate: float,
-        current_profit: float,
-        after_fill: bool,
-        **kwargs,
-    ) -> float:
-        """Set a volatility-adjusted initial stoploss at entry, then preserve
-        it for the rest of the trade. Same no-trailing semantics as
-        BaseStrategy.custom_stoploss — only the after_fill call returns a
-        non-1.0 value, so freqtrade locks the stop and leaves it static.
-        """
-        if self.use_atr_adaptive_stoploss and after_fill:
-            try:
-                dataframe, _ = self.dp.get_analyzed_dataframe(pair, self.timeframe)
-                if not dataframe.empty:
-                    atr_pct = float(dataframe.iloc[-1].get("atr_pct_roll", 0.0))
-                    if atr_pct > 0:
-                        stop = -self.atr_stoploss_multiplier * atr_pct
-                        return max(min(stop, self.atr_stoploss_cap), self.atr_stoploss_floor)
-            except Exception:
-                pass
-        return 1.0
 
     def strategy_custom_exit(
         self,

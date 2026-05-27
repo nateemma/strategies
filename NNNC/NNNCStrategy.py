@@ -37,6 +37,19 @@ class NNNCStrategy(BaseNNStrategy):
 
     augment_training_data = True  # no GAn, so augment signals
 
+    # NNNC-family ATR-adaptive stoploss tuning. NNNC has no model-driven
+    # soft exit (unlike NNMT's strategy_custom_exit on the profit/regime
+    # heads), so the stop is the only safety net for losing trades.
+    # BaseNNStrategy defaults to multiplier=2.5, floor=-0.04, cap=-0.02
+    # (range [-2%, -4%]); on NNNC that fires too aggressively and kills
+    # trades that would have recovered (backtest 2026-05-26: 167 stops at
+    # -2.53% avg vs static -5% baseline at 75 stops, net -8pp).
+    # Loosen to range [-4%, -6%] — adaptive but with enough room for
+    # the unclog / model_exit winners to materialise.
+    atr_stoploss_multiplier = 4.0
+    atr_stoploss_floor = -0.06   # loosest stop allowed (most negative)
+    atr_stoploss_cap = -0.04     # tightest stop allowed (closest to zero)
+
     def get_classifier_type(self):
         """Return the type of classifier used for training/predicting"""
         return NNNClassifier.ClassifierType.LSTM

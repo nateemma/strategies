@@ -23,8 +23,5 @@ from Framework.BaseStrategy import GANType  # noqa: E402
 
 class CreateCtabGanPlus(CreateGAN):
     gan_type = GANType.CTAB_GAN
-
-    # Keep the local strategy defaults aligned with MASTER values
-    MIN_BUY_GAIN_THRESHOLD = CreateGAN.MASTER_MIN_BUY_GAIN_THRESHOLD
-    MIN_SELL_LOSS_THRESHOLD = CreateGAN.MASTER_MIN_SELL_LOSS_THRESHOLD
-    TRAINING_TYPE = CreateGAN.MASTER_TRAINING_TYPE
+    use_post_gan_scaling = True
+    gan_run_diagnostics = True

@@ -71,7 +71,7 @@ class NNGANomalyStrategy(NNAnomalyStrategy):
     # Buy hyperspace params:
     buy_params = {
         "entry_adx_threshold": 50.0,
-        "entry_bb_width_threshold": 0.05,
+        "entry_bb_width_threshold": 0.015,  # raw 1.5% — preserves pre-unbug effective filter (was 0.05 normalized)
         "entry_guard_threshold": -0.85,
         "entry_close_norm_threshold": 0.0,
         "min_buy_gain_threshold": 0.007,

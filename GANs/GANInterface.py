@@ -248,7 +248,7 @@ class GANInterface:
             # network needs more iterations to converge cleanly than the
             # 300-epoch default that worked for the prior shallow MLP.
             # Same budget covers the Step 3 attention head.
-            "epochs":            600,
+            "epochs":            300,
             "batch_size":        4096,
             # Step 3: cross-feature self-attention head, added as a
             # residual to the main x_proj path so the model degrades
@@ -262,9 +262,13 @@ class GANInterface:
             "num_sample_steps":  50,
             "d_model":           256,
             "d_layers":          (256, 256),
-            "dropout":           0.0,
+            "dropout":           0.1,
             "ema_decay":         0.999,
             "eval_frequency":    20,
+            # Dormant flags — preserved for tuning without code change.
+            # Mirrors the MT_DDPM block's pattern below.
+            "min_snr_gamma":           0.0,
+            "class_balanced_sampling": False,
             # EDM σ-schedule (Karras et al. 2022).  Set False to revert
             # to the cosine-β DDPM path used in earlier runs.
             "use_edm_schedule":  True,
