@@ -348,7 +348,11 @@ from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, Tradi
         return train_df, train_labels
 
     def prepare_training_data(
-        self, dataframes: List[DataFrame], labels_list: List[Any], norm: bool = True
+        self,
+        dataframes: List[DataFrame],
+        labels_list: List[Any],
+        norm: bool = True,
+        pair_names: Optional[List[str]] = None,
     ):
         """Prepare the training data"""
 

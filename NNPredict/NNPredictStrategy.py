@@ -30,7 +30,7 @@ Markov smoothing is disabled (only meaningful for discrete-state output).
 
 import sys
 from pathlib import Path
-from typing import Any, List
+from typing import Any, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -284,7 +284,11 @@ class NNPredictStrategy(BaseNNStrategy):
     # =========================================================================
 
     def prepare_training_data(
-        self, dataframe: List[DataFrame], labels: List[Any], norm: bool = True
+        self,
+        dataframe: List[DataFrame],
+        labels: List[Any],
+        norm: bool = True,
+        pair_names: Optional[List[str]] = None,
     ):
         """Mirror of BaseNNStrategy.prepare_training_data minus the
         one_hot_encode(labels, 3) step. Continuous targets pass through as
@@ -326,7 +330,14 @@ class NNPredictStrategy(BaseNNStrategy):
             train_labels = pair_labels[:train_end]
             test_labels = pair_labels[test_start:]
 
-            train_df, train_labels = self.enhance_training_data(train_df, train_labels)
+            pair_name = (
+                pair_names[i]
+                if pair_names is not None and i < len(pair_names)
+                else None
+            )
+            train_df, train_labels = self.enhance_training_data(
+                train_df, train_labels, pair_name=pair_name
+            )
 
             tsr_train = self.dataframeUtils.df_to_tensor(
                 train_df, self.seq_len, method=self.tensor_method
