@@ -15,7 +15,7 @@
     "unit": "minutes"
   },
   "entry_pricing": {
-    "price_side": "same",
+    "price_side": "other",
     "use_order_book": true,
     "order_book_top": 1,
     "price_last_balance": 0.0,
@@ -49,25 +49,23 @@
     "ccxt_async_config": {
     },
     "pair_whitelist": [
-      // "SOL/USDT"
-      "SOL/USDT",
-      // "BTC/USDT",
+      // 13-pair training set — live VolumePairList output filtered to
+      // pairs with full 720d history. Matches live execution more closely
+      // than the curated 9-pair set; tradeoff vs the 9-pair "generalize
+      // well" approach is captured in memory.
       "ZEC/USDT",
-      // "ETH/USDT",
-      // "LPT/USDT",
-      // "SUI/USDT",
       "XRP/USDT",
-      "AAVE/USDT",
-      // "RENDER/USDT",
-      "NEAR/USDT",
-      // "ETC/USDT",
-      // "FET/USDT",
-      "ICP/USDT",
-      "FIL/USDT",
+      "SOL/USDT",
       "LINK/USDT",
-      // "POL/USDT",
-      // "ADA/USDT",
-      "UNI/USDT"
+      "NEAR/USDT",
+      "AAVE/USDT",
+      "DASH/USDT",
+      "SUI/USDT",
+      "AVAX/USDT",
+      "LTC/USDT",
+      "BCH/USDT",
+      "DOT/USDT",
+      "NEO/USDT"
     ],
     "pair_blacklist": [
     ]

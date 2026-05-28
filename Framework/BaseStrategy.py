@@ -377,7 +377,12 @@ class BaseStrategy(IStrategy):
 
     # Common performance filtering parameters
     PEAK_WINDOW = 6
+    # Volume gate at trade-entry time. The candle's quote volume must be
+    # at least QUOTE_VOLUME_HEADROOM_MULT × the trade's own quote size
+    # (10× ≈ ≤10% market impact target). MIN_QUOTE_VOLUME is an absolute
+    # floor for the case where stake is tiny — keeps us out of dust pairs.
     MIN_QUOTE_VOLUME = 1000
+    QUOTE_VOLUME_HEADROOM_MULT = 10.0
 
     # --------------------------------
     # Strategy configuration (override in subclass)
@@ -1052,6 +1057,7 @@ class BaseStrategy(IStrategy):
 
         # Common guard conditions
         if self.entry_enable_guards.value:
+            conditions.append(dataframe["volume"] > 0.0)
             conditions.append(dataframe["rvol"] > self.entry_rvol_threshold.value)
             conditions.append(dataframe["atr_pct_roll"] > self.entry_atr_pct.value)
 
@@ -1340,32 +1346,36 @@ class BaseStrategy(IStrategy):
         **kwargs,
     ) -> bool:
 
-        # this only makes sense in 'live' modes
-        if self.dp.runmode.value in ("backtest", "plot", "hyperopt", "other"):
+        # Skip volume check only in plot / other modes (no trading happens).
+        # Run in backtest + hyperopt for live-parity; verbose logging is
+        # suppressed there since per-trade prints flood the output.
+        if self.dp.runmode.value in ("plot", "other"):
             return True
 
-        self.debug_print("")
-        s_rate = str(round(rate, 4))
-        out_str = "    Trade Entry: " + pair + ", rate: " + s_rate
-        self.debug_print(out_str)
+        is_live = self.dp.runmode.value in ("live", "dry_run")
+        if is_live:
+            self.debug_print("")
+            self.debug_print(f"    Trade Entry: {pair}, rate: {round(rate, 4)}")
 
-        # check volume
+        # check volume — require headroom over the trade's own quote size
+        # so our order doesn't dominate the candle (slippage protection).
         dataframe, _ = self.dp.get_analyzed_dataframe(
             pair=pair, timeframe=self.timeframe
         )
         last_candle = dataframe.iloc[-1].squeeze()
         quote_volume = last_candle["volume"] * last_candle["close"]
-        # filter out < $5k per candle (more reasonable threshold)
-        if quote_volume < self.MIN_QUOTE_VOLUME:
-            out_str = (
-                "    *** Reject Trade: "
-                + pair
-                + ", volume: "
-                + str(last_candle["volume"])
-                + ", quote volume: "
-                + str(quote_volume)
-            )
-            print(out_str)
+        trade_quote_size = amount * rate
+        required_volume = max(
+            self.MIN_QUOTE_VOLUME,
+            self.QUOTE_VOLUME_HEADROOM_MULT * trade_quote_size,
+        )
+        if quote_volume < required_volume:
+            if is_live:
+                print(
+                    f"    *** Reject Trade: {pair}, volume: {last_candle['volume']}, "
+                    f"quote volume: {quote_volume:.2f}, trade size: {trade_quote_size:.2f}, "
+                    f"required: {required_volume:.2f}"
+                )
             return False
 
         return True
