@@ -24,6 +24,7 @@ sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent.parent))
 
 from Predictors.MLXRegressorLinear import MLXRegressorLinear
+from Predictors.MLXRegressorMultiHorizon import MLXRegressorMultiHorizon
 
 
 # Dropout matches the Keras NNPredictor's get_estimation_layer (Dropout 0.2).
@@ -91,8 +92,66 @@ class NNPredictRegressorMLX_LSTM(MLXRegressorLinear):
         return _LSTMRegressorModel(seq_len, num_features, num_filters)
 
 
+class _MultiHorizonLSTMRegressorModel(nn.Module):
+    """Multi-output variant of _LSTMRegressorModel. Identical backbone
+    (resize + conv + LSTM + dropout) but the final Dense outputs
+    num_horizons values per sample instead of 1.
+
+    The model learns a shared representation across horizons; only the
+    output projection differentiates between them. This matches the
+    typical multi-task formulation where the loss is summed/averaged
+    across heads.
+    """
+
+    def __init__(
+        self,
+        seq_len: int,
+        num_features: int,
+        num_filters: int,
+        num_horizons: int,
+    ):
+        super().__init__()
+        self.num_filters = num_filters
+        self.num_horizons = num_horizons
+
+        self.resize = nn.Linear(num_features, num_filters)
+        self.conv1 = nn.Conv1d(num_filters, num_filters, kernel_size=2, padding=1)
+        self.dropout_conv = nn.Dropout(DROPOUT)
+        self.lstm = nn.LSTM(2 * num_filters, num_filters)
+        self.dropout_lstm = nn.Dropout(DROPOUT)
+        self.out = nn.Linear(num_filters, num_horizons)
+
+    def __call__(self, x: mx.array) -> mx.array:
+        x_r = mx.tanh(self.resize(x))
+        x_c = self.conv1(x_r)[:, : x_r.shape[1], :]
+        x_c = self.dropout_conv(x_c)
+
+        concat = mx.concatenate([x_r, x_c], axis=-1)
+
+        lstm_out, _ = self.lstm(concat)
+        last = lstm_out[:, -1, :]
+        last = self.dropout_lstm(last)
+
+        return self.out(last)  # (B, num_horizons)
+
+
+class NNPredictRegressorMLX_MultiHorizon_LSTM(MLXRegressorMultiHorizon):
+    is_trained = False
+    clean_data_required = False
+
+    # num_horizons inherited from RegressorMLXMultiHorizon (default 3).
+    # Strategy overrides via setattr if needed.
+
+    def create_model(self, seq_len: int, num_features: int) -> nn.Module:
+        num_filters = max(MIN_FILTER, nearest_power_of_2(num_features - 1))
+        return _MultiHorizonLSTMRegressorModel(
+            seq_len, num_features, num_filters, self.num_horizons
+        )
+
+
 class RegressorTypeMLX(Enum):
     LSTM = NNPredictRegressorMLX_LSTM
+    MULTI_HORIZON_LSTM = NNPredictRegressorMLX_MultiHorizon_LSTM
 
 
 def create_regressor_mlx(

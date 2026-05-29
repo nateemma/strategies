@@ -112,16 +112,45 @@ class NNPredictStrategy(BaseNNStrategy):
     # Floor on atr_pct to avoid divide-by-near-zero on dead pairs.
     atr_floor: float = 1e-3
 
-    # Rolling-quantile signal logic
+    # Signal logic — z-score with magnitude floor (Option A).
+    # Replaces rolling-quantile thresholding, which was variance-inverted:
+    # smoother predictions produced TIGHTER q90/q10 bands → MORE noise-driven
+    # signals (see feedback_nnpredict_label_smoothing_backfires in memory).
+    # Z-score keeps the per-pair adaptive normalization but uses a fixed σ
+    # threshold (independent of prediction width) and adds an absolute
+    # magnitude floor so tight-distribution scenarios can't over-fire.
+    rolling_window: int = 200
+    entry_z: float = 1.0         # require pred >= entry_z σ above rolling mean
+    min_magnitude: float = 0.10  # absolute floor on |pred|; raised by adaptive
+
+    # Adaptive magnitude floor — multiplied against rolling std of predictions.
+    # Effective floor = max(min_magnitude, mag_std_mult * rolling_std).
+    # KEPT AT 0 — empirically (2026-05-28) prediction std does NOT correlate
+    # with prediction quality. Winning pairs have HIGHER std (bold confident
+    # predictions); losing pairs have lower std (timid noise). At mult>=2.5
+    # the adaptive floor filters out winning trades while leaving losing
+    # trades alone. See feedback_nnpredict_adaptive_magnitude_inverse.
+    mag_std_mult: float = 0.0
+
+    # entry_quantile / exit_quantile kept for backward compat but UNUSED
+    # under the new logic.
     entry_quantile: float = 0.90
     exit_quantile: float = 0.10
-    rolling_window: int = 200
 
     # for a regressor, we need a smaller prediction window. Picked off
     # half-period of fisher_ss to break the "predict current state" shortcut
     # the model finds when H ≈ fisher_ss period / 2 (where -fisher_ss[i+H]
     # ≈ +fisher_ss[i]).
     HORIZON = 4
+
+    # Label smoothing window (bars on each side of i+H). The training target
+    # becomes the centered rolling mean of forward returns over a (2*W+1)-bar
+    # window centered at i+H. W=0 disables smoothing (original behaviour).
+    # KEEP AT 0 by default — smoother predictions trigger MORE rolling-quantile
+    # signals (the q90/q10 bands tighten with prediction variance), producing
+    # catastrophic stop-bleed. See feedback_nnpredict_label_smoothing_backfires
+    # in memory. Re-enable only if signal logic is also revised.
+    LABEL_SMOOTH_WINDOW: int = 0
 
     # =========================================================================
     # Classifier (regressor) selection
@@ -257,12 +286,13 @@ class NNPredictStrategy(BaseNNStrategy):
             )
 
         horizon = int(self.HORIZON)
-        labels = (
-            dataframe["current_gain"]
-            .shift(-horizon)
-            .fillna(0.0)
-            .to_numpy(dtype=np.float32)
-        )
+        smooth_w = int(getattr(self, "LABEL_SMOOTH_WINDOW", 0))
+        forward_gain = dataframe["current_gain"].shift(-horizon)
+        if smooth_w > 0:
+            forward_gain = forward_gain.rolling(
+                window=2 * smooth_w + 1, center=True, min_periods=1
+            ).mean()
+        labels = forward_gain.fillna(0.0).to_numpy(dtype=np.float32)
 
         # Expose for debugging — write through self.dbg_curr_df, which is
         # the dataframe the plot pipeline reads. Writing to the local
@@ -419,28 +449,30 @@ class NNPredictStrategy(BaseNNStrategy):
 
         gains_series = pd.Series(pred_gains_full)
         window = max(int(self.rolling_window), self.seq_len + 1)
-        # min_periods set to allow signals to start emitting before the full
-        # window is available — quantile estimates are noisy early but a
-        # backtest with min_periods=window would have zero entries for the
-        # first 200 bars on every pair.
-        q_high = gains_series.rolling(window, min_periods=self.seq_len).quantile(
-            self.entry_quantile
-        )
-        q_low = gains_series.rolling(window, min_periods=self.seq_len).quantile(
-            self.exit_quantile
+        mp = max(self.seq_len, 2)
+
+        # Z-score relative to rolling stats: how unusual is the current
+        # prediction vs the last `window` bars on this pair? Z is dimensionless
+        # so the threshold (entry_z) doesn't shift when the prediction
+        # distribution widens or tightens — the variance-inversion failure
+        # mode of the prior quantile logic is eliminated.
+        pred_mean = gains_series.rolling(window, min_periods=mp).mean()
+        pred_std = gains_series.rolling(window, min_periods=mp).std()
+        z_score = (gains_series - pred_mean) / (pred_std + 1e-6)
+
+        # Adaptive magnitude floor: max of static base and N * rolling std.
+        # On pairs where the model is uncertain (high pred_std), the floor
+        # rises proportionally so only outlier-magnitude signals fire. On
+        # confident pairs (low pred_std), the static base applies.
+        adaptive_floor = np.maximum(
+            self.min_magnitude, self.mag_std_mult * pred_std
         )
 
         actions = np.full(original_length, TradingAction.HOLD, dtype=int)
-        # Rolling-quantile threshold alone — the > 0 / < 0 sign filter that
-        # used to gate this was a vestige of the close-to-close target where
-        # "positive prediction = price up" was clean. With non-price-direction
-        # targets (e.g. -fisher_ss[i+H]), the prediction may sit predominantly
-        # on one side of zero per pair while still varying meaningfully against
-        # the rolling-window distribution. The quantile alone captures
-        # "this prediction is unusually high/low for this pair right now,"
-        # which is what we want.
-        buy_mask = gains_series > q_high
-        sell_mask = gains_series < q_low
+        # BOTH conditions required: unusual ranking (z) AND meaningful
+        # magnitude relative to the per-pair adaptive floor.
+        buy_mask = (z_score > self.entry_z) & (gains_series > adaptive_floor)
+        sell_mask = (z_score < -self.entry_z) & (gains_series < -adaptive_floor)
         actions[buy_mask.fillna(False).to_numpy()] = TradingAction.BUY
         actions[sell_mask.fillna(False).to_numpy()] = TradingAction.SELL
 
