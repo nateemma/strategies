@@ -353,6 +353,75 @@ def _mt_ctab_check_metadata_dims(self, meta):
 
 
 # ---------------------------------------------------------------------------
+# Generate / check callables — MT_DDPM (MLX)
+# ---------------------------------------------------------------------------
+
+def _mt_ddpm_fast_fit_kwargs(**overrides) -> dict:
+    base = dict(
+        backbone="mlp",       # avoid Conv1d weight-load issue at seq_len=1
+        d_model=16,
+        d_layers=1,
+        num_timesteps=50,
+        num_sample_steps=10,
+        epochs=FAST_EPOCHS,
+        batch_size=FAST_BATCH,
+        verbose=False,
+    )
+    base.update(overrides)
+    return base
+
+
+def _mt_ddpm_do_generate(iface, n):
+    trading_oh = np.zeros((n, N_MT_TRADING_CLASSES), dtype="float32")
+    trading_oh[:, 0] = 1.0
+    regime_oh = np.zeros((n, N_MT_REGIME_CLASSES), dtype="float32")
+    regime_oh[:, 0] = 1.0
+    return iface.generate(
+        n, task_labels={"trading": trading_oh, "regime": regime_oh}
+    )
+
+
+def _mt_ddpm_check_gen_output(self, result, n):
+    self.assertIsInstance(result, np.ndarray)
+    self.assertEqual(result.shape[0], n)
+    self.assertEqual(result.ndim, 3)          # (n, seq_len, F)
+    self.assertEqual(result.shape[1], SEQ_LEN)
+    self.assertEqual(result.shape[2], N_FEATURES)
+
+
+def _mt_ddpm_check_metadata_dims(self, meta):
+    self.assertEqual(meta["seq_len"],      SEQ_LEN)
+    self.assertEqual(meta["num_features"], N_FEATURES)
+    expected_dims = {"trading": N_MT_TRADING_CLASSES, "regime": N_MT_REGIME_CLASSES}
+    self.assertEqual(meta["task_label_dims"], expected_dims)
+
+
+# ---------------------------------------------------------------------------
+# Generate / check callables — MT_CTAB_GAN (MLX variant)
+# ---------------------------------------------------------------------------
+
+def _mt_ctab_mlx_fast_fit_kwargs(**overrides) -> dict:
+    base = dict(
+        epochs=FAST_EPOCHS,
+        batch_size=FAST_BATCH,
+        n_critic=FAST_N_CRITIC,
+        latent_dim=32,
+        hidden_dim=64,
+        verbose=False,
+    )
+    base.update(overrides)
+    return base
+
+
+def _mt_ctab_mlx_check_metadata_dims(self, meta):
+    # The MLX MT CTAB-GAN+ stores task_label_dims and column_order
+    # rather than the TF flat num_continuous/categorical counts.
+    self.assertEqual(len(meta["column_order"]), N_FEATURES)
+    expected_dims = {"trading": N_MT_TRADING_CLASSES, "regime": N_MT_REGIME_CLASSES}
+    self.assertEqual(meta["task_label_dims"], expected_dims)
+
+
+# ---------------------------------------------------------------------------
 # FitGen config dataclass
 # ---------------------------------------------------------------------------
 
@@ -492,6 +561,54 @@ _FITGEN_CONFIGS: list[FitGenSuiteConfig] = [
         check_metadata_dims=_tabddpm_check_metadata_dims,
         do_generate=_tabddpm_do_generate,
         check_gen_output=_tabddpm_check_gen_output,
+        prefer_mlx=True,
+    ),
+    FitGenSuiteConfig(
+        name="MTDDPM",
+        gan_type=GANType.MT_DDPM,
+        n_samples=N_SAMPLES,
+        n_features=N_FEATURES,
+        make_dataset=_make_mt_dataset,
+        copy_labels=lambda labels: {k: v.copy() for k, v in labels.items()},
+        fit_kwargs=_mt_ddpm_fast_fit_kwargs(),
+        # SEQ_LEN=1 → no _s{seq_len} suffix on the file basenames; see
+        # MTDDPMMLX._suffix() / _paths().
+        model_files=["mt_ddpm_gen_mlx.safetensors"],
+        metadata_filename="mt_ddpm_meta_mlx.pkl",
+        required_metadata_keys={
+            "seq_len", "num_features", "task_label_dims",
+            "backbone", "d_model", "d_layers",
+            "num_timesteps", "num_sample_steps",
+            "feature_mean", "feature_std",
+        },
+        check_metadata_dims=_mt_ddpm_check_metadata_dims,
+        do_generate=_mt_ddpm_do_generate,
+        check_gen_output=_mt_ddpm_check_gen_output,
+        prefer_mlx=True,
+    ),
+    FitGenSuiteConfig(
+        name="MTCTABGANMLX",
+        gan_type=GANType.MT_CTAB_GAN,
+        n_samples=N_SAMPLES,
+        n_features=N_FEATURES,
+        make_dataset=_make_mt_ctab_dataset,
+        copy_labels=lambda labels: {k: v.copy() for k, v in labels.items()},
+        fit_kwargs=_mt_ctab_mlx_fast_fit_kwargs(),
+        model_files=["gen_mlx.safetensors", "critic_mlx.safetensors"],
+        metadata_filename="metadata_mlx.pkl",
+        # See CTABGANMLXMT.save in df_mt_ctab_gan_mlx.py — the MLX backend
+        # writes column-aware metadata rather than the TF flat counts.
+        required_metadata_keys={
+            "column_order", "continuous_columns", "column_info",
+            "vgm_models", "continuous_info",
+            "total_dim", "task_label_dims", "total_cond_dim",
+            "latent_dim", "hidden_dim",
+        },
+        check_metadata_dims=_mt_ctab_mlx_check_metadata_dims,
+        # Generate has the same signature/return shape as the TF MT-CTAB
+        # config — task_labels in, (DataFrame, labels_dict) out.
+        do_generate=_mt_ctab_do_generate,
+        check_gen_output=_mt_ctab_check_gen_output,
         prefer_mlx=True,
     ),
 ]
