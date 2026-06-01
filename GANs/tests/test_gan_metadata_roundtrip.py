@@ -438,18 +438,47 @@ class TestMetadataValidatorRaises(unittest.TestCase):
         self.assertIn("b", ctx.exception.mismatches)
         self.assertEqual(ctx.exception.mismatches["b"], (2.0, 9.9))
 
-    def test_raises_when_expected_key_missing_from_saved(self):
-        with self.assertRaises(GANMetadataMismatchError) as ctx:
+    def test_missing_keys_warn_and_do_not_raise(self):
+        """Backward-compatibility: a saved-metadata key that's absent is
+        emitted as a warning and validation proceeds. This is the
+        deliberate 2026-05-30 behavior change so older GAN saves that
+        predate a newly-added validator key still load. See
+        feedback_*_missing → warn-not-raise note."""
+        with self.assertLogs(level="WARNING") as logs:
+            # No raise expected.
             _validate_metadata_against_expected(
                 saved={"a": 1},
                 expected={"a": 1, "min_buy_gain_threshold": 0.016},
                 gan_type=GANType.WGAN,
                 save_path="/tmp",
             )
-        self.assertIn("min_buy_gain_threshold", ctx.exception.mismatches)
-        saved_value, expected_value = ctx.exception.mismatches["min_buy_gain_threshold"]
-        self.assertEqual(saved_value, "<MISSING>")
-        self.assertEqual(expected_value, 0.016)
+        # The warning should mention the missing key and its expected value.
+        warning_text = "\n".join(logs.output)
+        self.assertIn("min_buy_gain_threshold", warning_text)
+        self.assertIn("0.016", warning_text)
+
+    def test_value_mismatch_still_raises_even_when_other_key_missing(self):
+        """The lenient missing-key treatment must NOT downgrade real
+        value mismatches. If one key is missing (warn) and another has a
+        wrong value (raise), the raise still wins — only mismatched
+        values surface in the exception."""
+        with self.assertRaises(GANMetadataMismatchError) as ctx:
+            with self.assertLogs(level="WARNING"):
+                _validate_metadata_against_expected(
+                    saved={"a": 1, "training_type": 1},
+                    expected={
+                        "a": 1,
+                        "min_buy_gain_threshold": 0.016,  # missing → warn
+                        "training_type": 17,              # mismatched → raise
+                    },
+                    gan_type=GANType.WGAN,
+                    save_path="/tmp",
+                )
+        self.assertIn("training_type", ctx.exception.mismatches)
+        self.assertNotIn(
+            "min_buy_gain_threshold", ctx.exception.mismatches,
+            "missing keys must not be reported as mismatches",
+        )
 
     def test_extra_saved_keys_are_allowed(self):
         """Saved metadata may include extra keys beyond what the caller
@@ -540,17 +569,20 @@ class TestGANInterfaceLoadValidation(unittest.TestCase):
         self.assertIn("min_buy_gain_threshold", ctx.exception.mismatches)
         self.assertNotIn("training_type", ctx.exception.mismatches)
 
-    def test_load_raises_when_expected_key_absent_from_saved(self):
-        """A strategy that adds a new metadata key won't silently load
-        models that predate it — the absence is treated as a mismatch."""
+    def test_load_warns_when_expected_key_absent_from_saved(self):
+        """Backward-compatibility: a strategy that adds a new metadata key
+        DOES load models that predate it; the absence is emitted as a
+        warning and load proceeds. This is the deliberate 2026-05-30
+        behavior change."""
         saved_metadata = {"num_features": 25}  # no thresholds saved
         with self._patch_load_with_fallback(saved_metadata):
             iface = GANInterface(GANType.WGAN, save_path="/tmp", prefer_mlx=True)
-            with self.assertRaises(GANMetadataMismatchError) as ctx:
-                iface.load(expected={"min_buy_gain_threshold": 0.016})
-        self.assertIn("min_buy_gain_threshold", ctx.exception.mismatches)
-        saved_value, _ = ctx.exception.mismatches["min_buy_gain_threshold"]
-        self.assertEqual(saved_value, "<MISSING>")
+            with self.assertLogs(level="WARNING") as logs:
+                # No raise expected.
+                metadata = iface.load(expected={"min_buy_gain_threshold": 0.016})
+        warning_text = "\n".join(logs.output)
+        self.assertIn("min_buy_gain_threshold", warning_text)
+        self.assertEqual(metadata["num_features"], 25)
 
     def test_load_no_expected_skips_validation(self):
         """Backwards-compat: load() without expected= just returns metadata."""

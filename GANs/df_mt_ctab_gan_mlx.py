@@ -608,13 +608,18 @@ class CTABGANMLXMT:
     _GEN_FILE: str = "gen_mlx.safetensors"
     _CRITIC_FILE: str = "critic_mlx.safetensors"
 
-    def save(
-        self,
-        filepath: str,
-        min_buy_gain_threshold: Optional[float] = None,
-        min_sell_loss_threshold: Optional[float] = None,
-        training_type: Optional[int] = None,
-    ) -> None:
+    def save(self, filepath: str, **extra_metadata: Any) -> None:
+        """Persist generator/critic weights and metadata.
+
+        Accepts arbitrary ``extra_metadata`` kwargs and stores them in the
+        pickled metadata dict. The permissive signature mirrors the
+        single-task ``CTABGANMLX.save`` so that ``_master_save_kwargs``
+        on the Create-class trainer can evolve (e.g. add ``horizon``,
+        ``feature_set_id``, …) without breaking persistence on every
+        backend. Known-typed keys (``min_buy_gain_threshold``,
+        ``min_sell_loss_threshold``, ``training_type``) are cast for
+        downstream determinism; everything else is stored as-is.
+        """
         if self.gen is None:
             raise RuntimeError("No fitted model to save.")
         os.makedirs(filepath, exist_ok=True)
@@ -633,12 +638,15 @@ class CTABGANMLXMT:
             "latent_dim": self.latent_dim,
             "hidden_dim": self.hidden_dim,
         }
-        if min_buy_gain_threshold is not None:
-            meta["min_buy_gain_threshold"] = float(min_buy_gain_threshold)
-        if min_sell_loss_threshold is not None:
-            meta["min_sell_loss_threshold"] = float(min_sell_loss_threshold)
-        if training_type is not None:
-            meta["training_type"] = int(training_type)
+        for key, value in extra_metadata.items():
+            if value is None:
+                continue
+            if key in ("min_buy_gain_threshold", "min_sell_loss_threshold"):
+                meta[key] = float(value)
+            elif key == "training_type":
+                meta[key] = int(value)
+            else:
+                meta[key] = value
 
         with open(os.path.join(filepath, self._META_FILE), "wb") as f:
             pickle.dump(meta, f)
