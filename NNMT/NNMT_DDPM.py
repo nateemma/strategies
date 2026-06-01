@@ -94,23 +94,30 @@ class NNMT_DDPM(NNMTStrategy):
 
     # Features the MT_DDPM systematically mis-reproduces — copy from real
     # class-matched rows during balancing instead of trusting the GAN's
-    # output. Identified from the post-training fidelity diagnostic
-    # (off-diagonal corr / lag-N autocorr deltas) that flagged:
-    #   - guard_metric_pos / guard_metric_neg (RMI-derived, high real
-    #     autocorr ~0.93 at lag-5; DDPM produces it too jittery and
-    #     breaks the guard×adx joint to a sign flip)
-    #   - vwap_pos / vwap_neg (VWAP-derived, high real lag-1 autocorr
-    #     ~0.91; DDPM compresses it toward ~0.50)
-    #   - atr_norm / spread_ma (heavy-tailed volatility; same pattern as
-    #     NNNC_DDPM_MLX passthrough, kept for consistency)
-    # Passthrough swaps these columns AFTER generation, before the AE
-    # filter runs, so the AE sees synth that has the correct values on
-    # the passthrough columns and only judges the GAN-generated rest.
+    # output. Passthrough breaks the joint between the passed-through
+    # column and other GAN-drawn features within the class (you take col
+    # X from real row A but cols Y,Z were drawn for a different X), so
+    # it's only worth doing on features whose marginal + per-feature
+    # autocorr matter MORE than their cross-feature joints.
+    #
+    # Safe to passthrough:
+    #   - atr_norm / spread_ma — heavy-tailed volatility scalars,
+    #     correlate weakly with other features, label-independent
+    #   - vwap_pos / vwap_neg — price-derived, label-independent, the
+    #     2026-05-31 MT_DDPM diagnostic flagged lag-1 autocorr 0.91→0.50
+    #
+    # NOT passthrough:
+    #   - guard_metric_pos / guard_metric_neg — even though the diagnostic
+    #     flagged lag-5 autocorr (0.93→0.56) and the corr-pair with
+    #     adx (-0.14→+0.42), guard_metric is the basis of the gbb label
+    #     and broadly correlated with adx/fastk/cci/bb_position. The
+    #     classifier's value comes from the (guard × everything) joints,
+    #     which passthrough would randomize within class. Let the AE
+    #     filter cull off-manifold synth instead — it catches multi-feature
+    #     drift that pure passthrough misses.
     gan_passthrough_columns = [
         "atr_norm",
         "spread_ma",
-        "guard_metric_pos",
-        "guard_metric_neg",
         "vwap_pos",
         "vwap_neg",
     ]
