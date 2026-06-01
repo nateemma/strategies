@@ -635,6 +635,9 @@ def balance_multi_task(
     feature_names: Optional[Sequence[str]] = None,
     passthrough_columns: Optional[Sequence[Union[int, str]]] = None,
     pair_name: Optional[str] = None,
+    autoencoder_threshold: Optional[float] = None,
+    autoencoder_model_root: Optional[str] = None,
+    autoencoder_task: str = "trading",
 ) -> Tuple[Any, Dict[str, np.ndarray]]:
     """
     Iteratively augment ``(data, labels)`` so every (task, class) pair
@@ -780,14 +783,54 @@ def balance_multi_task(
                 feature_names=feature_names,
             )
 
+        # Per-class autoencoder filter (Option B — trading-head only).
+        # The single-task AE filter trains one model per class on the
+        # primary task ('trading' by default). Here we apply it ONLY on
+        # rounds whose ``target_task`` matches ``autoencoder_task``,
+        # because that's when every generated sample shares the same
+        # primary-task class label (the one the AE was trained for).
+        # On rounds targeting other tasks the trading labels are
+        # sampled per-row collaterally; filtering would require per-row
+        # AE lookups which we skip in this minimal-MT integration.
+        # See project_h48_pred08_production_candidate.md and
+        # feedback_ddpm_collapses_at_sparse_classes.md for the AE rationale.
+        ae_kept = None  # filled if filter ran, else stays None
+        if (
+            autoencoder_threshold is not None
+            and autoencoder_model_root
+            and target_task == autoencoder_task
+        ):
+            before_filter = len(gen_data) if hasattr(gen_data, "__len__") else 0
+            gen_data, keep_mask = filter_by_autoencoder_threshold(
+                synth=gen_data,
+                class_idx=int(target_class),
+                threshold=float(autoencoder_threshold),
+                model_root=autoencoder_model_root,
+                return_kept_mask=True,
+            )
+            if keep_mask is not None:
+                # Synchronise batch_labels with the filtered rows so that
+                # running_labels stays row-aligned with running_data.
+                for t in task_names:
+                    batch_labels[t] = batch_labels[t][keep_mask]
+            ae_kept = len(gen_data) if hasattr(gen_data, "__len__") else 0
+            debug_log(
+                f"      autoencoder threshold filter: kept {ae_kept}/{before_filter} "
+                f"synth samples for {target_task}={target_class} "
+                f"(threshold={float(autoencoder_threshold):.4f})"
+            )
+
         running_data.append(gen_data)
         for t in task_names:
             running_labels[t].append(batch_labels[t])
         # Direct augmentation only counts toward the explicitly-targeted task.
         # Collateral additions to other tasks via batch_labels[other] are
         # intentionally ignored — those other tasks still need their own
-        # dedicated rounds to clear their deficits.
-        direct_aug_counts[target_task][target_class] += n
+        # dedicated rounds to clear their deficits. When the AE filter
+        # dropped samples, use the post-filter count so deficits stay
+        # honest and the loop keeps refilling until the target is met.
+        contributed = ae_kept if ae_kept is not None else n
+        direct_aug_counts[target_task][target_class] += contributed
 
         if rounds_run <= 5 or rounds_run % 10 == 0:
             debug_log(

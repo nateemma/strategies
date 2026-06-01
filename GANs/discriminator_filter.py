@@ -387,36 +387,53 @@ def filter_by_autoencoder_threshold(
     class_idx: int,
     threshold: float,
     model_root: str,
-) -> Union[np.ndarray, pd.DataFrame]:
+    *,
+    return_kept_mask: bool = False,
+) -> Union[
+    np.ndarray,
+    pd.DataFrame,
+    "tuple[Union[np.ndarray, pd.DataFrame], Optional[np.ndarray]]",
+]:
     """Keep only synth rows with reconstruction MSE below ``threshold``.
     Variable output count.
+
+    When ``return_kept_mask=True``, returns ``(filtered_synth, keep_mask)``
+    where ``keep_mask`` is a boolean ndarray of length ``len(synth)`` aligned
+    with the input rows, or ``None`` if the model is unavailable or input
+    fails validation (in which case ``filtered_synth`` is the original
+    ``synth`` unchanged). The mask lets callers synchronise external arrays
+    (e.g. multi-task label vectors) with the filtered rows.
     """
     model = _load_autoencoder(model_root, int(class_idx))
     if model is None:
-        return synth
+        return (synth, None) if return_kept_mask else synth
 
     synth_arr = (
         synth.to_numpy() if isinstance(synth, pd.DataFrame)
         else np.asarray(synth)
     )
     if synth_arr.ndim != 2 or not np.all(np.isfinite(synth_arr)):
-        return synth
+        return (synth, None) if return_kept_mask else synth
     if synth_arr.shape[1] != model.num_features:
-        return synth
+        return (synth, None) if return_kept_mask else synth
 
     mse = _score_autoencoder_mse(model, synth_arr)
     if mse is None:
-        return synth
+        return (synth, None) if return_kept_mask else synth
 
     keep_mask = mse < float(threshold)
     if not keep_mask.any():
         if isinstance(synth, pd.DataFrame):
-            return synth.iloc[0:0].reset_index(drop=True)
-        return synth_arr[:0]
+            empty = synth.iloc[0:0].reset_index(drop=True)
+        else:
+            empty = synth_arr[:0]
+        return (empty, keep_mask) if return_kept_mask else empty
 
     if isinstance(synth, pd.DataFrame):
-        return synth.iloc[keep_mask].reset_index(drop=True)
-    return synth_arr[keep_mask]
+        kept = synth.iloc[keep_mask].reset_index(drop=True)
+    else:
+        kept = synth_arr[keep_mask]
+    return (kept, keep_mask) if return_kept_mask else kept
 
 
 # ---------------------------------------------------------------------------

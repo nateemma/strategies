@@ -29,7 +29,11 @@ from NNMT.NNMTClassifierMLX import ClassifierTypeMLX, create_classifier_mlx
 class NNMT_DDPM_MLX_MultiLSTM(NNMT_DDPM):
 
     gan_target_ratio = 0.4
-    
+
+    # Per-class autoencoder filter — trading-head only (Option B).
+    # Same setting as NNMT_DDPM_MLX / NNNC_DDPM_MLX.
+    gan_synth_autoencoder_threshold = 0.005
+
     def get_classifier_type(self):
         return ClassifierTypeMLX.Multi_LSTM
 

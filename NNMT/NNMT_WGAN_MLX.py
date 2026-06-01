@@ -32,6 +32,10 @@ class NNMT_WGAN_MLX(NNMT_WGAN):
 
     use_post_gan_scaling = True
 
+    # Per-class autoencoder filter — trading-head only (Option B).
+    # Same setting as NNMT_DDPM_MLX / NNNC_DDPM_MLX.
+    gan_synth_autoencoder_threshold = 0.005
+
     # default is LSTM type. Override get_classifier_type() in subclass
     def get_classifier_type(self):
         """Return the type of classifier used for training/predicting"""

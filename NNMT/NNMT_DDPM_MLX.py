@@ -30,6 +30,13 @@ class NNMT_DDPM_MLX(NNMT_DDPM):
     gan_target_ratio = 0.5
     gan_run_diagnostics = True
 
+    # Per-class autoencoder filter — manifold-aware rejection of off-real
+    # synth samples (Option B integration: trading-head only). Same setting
+    # as NNNC_DDPM_MLX. Requires CreateAutoencoderFilter to have been
+    # trained for this strategy's storage location. See
+    # project_h48_pred08_production_candidate.md.
+    gan_synth_autoencoder_threshold = 0.005
+
     # default is LSTM type. Override get_classifier_type() in subclass
     def get_classifier_type(self):
         """Return the type of classifier used for training/predicting"""

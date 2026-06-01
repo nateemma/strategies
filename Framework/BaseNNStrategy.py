@@ -2173,6 +2173,10 @@ class BaseNNStrategy(BaseStrategy):
             diagnostics=bool(self.gan_run_diagnostics),
             feature_names=None,
             passthrough_columns=passthrough_indices,
+            autoencoder_threshold=getattr(
+                self, "gan_synth_autoencoder_threshold", None
+            ),
+            autoencoder_model_root=self._resolve_autoencoder_root(),
         )
 
         # Unwrap labels back to ndarray for the single-task classifier.
