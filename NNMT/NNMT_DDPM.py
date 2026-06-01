@@ -100,23 +100,33 @@ class NNMT_DDPM(NNMTStrategy):
     # it's only worth doing on features whose marginal + per-feature
     # autocorr matter MORE than their cross-feature joints.
     #
-    # Safe to passthrough:
+    # Safe to passthrough (label-independent features the GAN
+    # systematically mis-reproduces):
+    #   - adx_scaled — pre-passthrough diagnostic showed catastrophic
+    #     mode collapse: real μ=-0.80 σ≈0.15, synth μ=+0.10 σ≈0.06
+    #     (6σ wrong-direction shift across most buckets). adx IS used in
+    #     entry_adx_threshold but not in the gbb label formula. Randomised
+    #     (adx × other features) joints within class is strictly better
+    #     than mode-collapsed-to-the-wrong-mean adx.
+    #   - aroonosc_scaled / macd_neg / macdhist_norm — high real lag-1
+    #     autocorr (0.83-0.91) that the GAN compresses to 0.26-0.60.
+    #     Smoothed indicators DDPM treats as iid.
+    #   - vwap_pos / vwap_neg — same pattern (0.91→0.50 lag-1).
     #   - atr_norm / spread_ma — heavy-tailed volatility scalars,
-    #     correlate weakly with other features, label-independent
-    #   - vwap_pos / vwap_neg — price-derived, label-independent, the
-    #     2026-05-31 MT_DDPM diagnostic flagged lag-1 autocorr 0.91→0.50
+    #     defensive carryover from NNNC_DDPM_MLX.
     #
-    # NOT passthrough:
-    #   - guard_metric_pos / guard_metric_neg — even though the diagnostic
-    #     flagged lag-5 autocorr (0.93→0.56) and the corr-pair with
-    #     adx (-0.14→+0.42), guard_metric is the basis of the gbb label
-    #     and broadly correlated with adx/fastk/cci/bb_position. The
-    #     classifier's value comes from the (guard × everything) joints,
-    #     which passthrough would randomize within class. Let the AE
-    #     filter cull off-manifold synth instead — it catches multi-feature
-    #     drift that pure passthrough misses.
+    # NOT passthrough (label-coupled or critical for joint learning):
+    #   - guard_metric_pos / guard_metric_neg — directly used in the gbb
+    #     label formula and broadly correlated with adx/fastk/cci/
+    #     bb_position. Passthrough would randomise the (guard × everything)
+    #     joints the classifier needs. Let the downstream AE filter cull
+    #     off-manifold synth on this feature.
     gan_passthrough_columns = [
+        "adx_scaled",
+        "aroonosc_scaled",
         "atr_norm",
+        "macd_neg",
+        "macdhist_norm",
         "spread_ma",
         "vwap_pos",
         "vwap_neg",
