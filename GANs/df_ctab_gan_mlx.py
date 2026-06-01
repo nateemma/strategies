@@ -716,8 +716,9 @@ class CTABGANMLX:
         self.gen.load_weights(os.path.join(path, "gen_mlx.safetensors"))
         self.is_fitted = True
 
-        return {
-            "min_buy_gain_threshold": meta.get("min_buy_gain_threshold"),
-            "min_sell_loss_threshold": meta.get("min_sell_loss_threshold"),
-            "training_type": meta.get("training_type"),
-        }
+        # Return ALL persisted metadata keys, not just a hardcoded subset.
+        # See sibling CTABGANMLXMT.load — save() accepts arbitrary
+        # extra_metadata (including future-added keys like 'horizon'),
+        # so load must mirror that or the validator sees the saved file
+        # as "missing" keys it actually has.
+        return dict(meta)

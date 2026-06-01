@@ -1809,12 +1809,13 @@ class CTABGANPlusMT:
 
         self.is_fitted = True
 
-        # Return thresholds and training_type if they exist in metadata (for strategies to use)
-        return {
-            "min_buy_gain_threshold": metadata.get("min_buy_gain_threshold"),
-            "min_sell_loss_threshold": metadata.get("min_sell_loss_threshold"),
-            "training_type": metadata.get("training_type"),
-        }
+        # Return ALL persisted metadata keys, not just thresholds + type.
+        # save() accepts arbitrary **extra_metadata; _master_save_kwargs has
+        # grown over time (horizon added 2026-05-30, more likely later).
+        # Whitelisting on load drops those keys before the validator sees
+        # them, generating misleading 'missing key' warnings on metadata
+        # that actually has them.
+        return dict(metadata)
 
 
 class CTABGANPlusMTEnhanced(CTABGANPlusMT):

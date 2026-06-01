@@ -683,8 +683,13 @@ class CTABGANMLXMT:
         self.critic_opt = optim.Adam(learning_rate=self.learning_rate, betas=(0.5, 0.9))
         self.is_fitted = True
 
-        return {
-            "min_buy_gain_threshold": meta.get("min_buy_gain_threshold"),
-            "min_sell_loss_threshold": meta.get("min_sell_loss_threshold"),
-            "training_type": meta.get("training_type"),
-        }
+        # Return ALL persisted metadata keys, not just a hardcoded subset.
+        # The save() method accepts arbitrary **extra_metadata and writes
+        # whatever the caller passes — _master_save_kwargs in particular
+        # has grown (horizon, etc.). Whitelisting on load drops those new
+        # keys before the validator sees them, which makes pre-existing
+        # GAN saves look like they're missing fields they actually have.
+        # Internal structural keys (column_info, vgm_models, …) are already
+        # bound to self above; returning them again costs nothing but
+        # extra dict refs.
+        return dict(meta)
