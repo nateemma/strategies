@@ -148,7 +148,7 @@ class TestModelBasedAPI(unittest.TestCase):
     def test_fit_calls_underlying_model(self):
         mock_cls  = MagicMock(return_value=self._mock_ctab_model())
         mock_mod  = MagicMock()
-        mock_mod.CTABGANPlus = mock_cls
+        mock_mod.CTABGANPlusEnhanced = mock_cls
 
         data   = _dummy_data()
         labels = _dummy_labels_1hot()
@@ -165,7 +165,7 @@ class TestModelBasedAPI(unittest.TestCase):
         mock_model = self._mock_ctab_model()
         mock_cls   = MagicMock(return_value=mock_model)
         mock_mod   = MagicMock()
-        mock_mod.CTABGANPlus = mock_cls
+        mock_mod.CTABGANPlusEnhanced = mock_cls
 
         import pandas as pd
         df = pd.DataFrame(_dummy_data())
@@ -181,7 +181,7 @@ class TestModelBasedAPI(unittest.TestCase):
         mock_model = self._mock_ctab_model()
         mock_cls   = MagicMock(return_value=mock_model)
         mock_mod   = MagicMock()
-        mock_mod.CTABGANPlus = mock_cls
+        mock_mod.CTABGANPlusEnhanced = mock_cls
 
         import pandas as pd
         df = pd.DataFrame(_dummy_data())
@@ -199,7 +199,7 @@ class TestModelBasedAPI(unittest.TestCase):
         mock_model = self._mock_ctab_model()
         mock_cls   = MagicMock(return_value=mock_model)
         mock_mod   = MagicMock()
-        mock_mod.CTABGANPlus = mock_cls
+        mock_mod.CTABGANPlusEnhanced = mock_cls
 
         with patch.dict("sys.modules", {"GANs.df_ctab_gan": mock_mod}):
             iface     = GANInterface(GANType.CTAB_GAN, save_path="/tmp/ctab", prefer_mlx=False)
@@ -212,7 +212,7 @@ class TestModelBasedAPI(unittest.TestCase):
         mock_model = self._mock_ctab_model()
         mock_cls   = MagicMock(return_value=mock_model)
         mock_mod   = MagicMock()
-        mock_mod.CTABGANPlus = mock_cls
+        mock_mod.CTABGANPlusEnhanced = mock_cls
 
         with patch.dict("sys.modules", {"GANs.df_ctab_gan": mock_mod}):
             iface = GANInterface(GANType.CTAB_GAN, save_path="/tmp/ctab", prefer_mlx=False)
@@ -330,7 +330,10 @@ class TestCGANLifecycle(unittest.TestCase):
 class TestGANType(unittest.TestCase):
 
     def test_all_expected_members_present(self):
-        expected = {"NONE", "WGAN", "MT_WGAN", "CTAB_GAN", "MT_CTAB_GAN", "CGAN", "BOTH"}
+        expected = {
+            "NONE", "WGAN", "MT_WGAN", "CTAB_GAN", "MT_CTAB_GAN", "CGAN", "BOTH",
+            "TAB_DDPM", "MT_DDPM",
+        }
         actual   = {m.name for m in GANType}
         self.assertEqual(actual, expected)
 
@@ -506,7 +509,7 @@ class TestMLXRouting(unittest.TestCase):
 
         mock_ctab_tf = MagicMock()
         mock_tf_mod  = MagicMock()
-        mock_tf_mod.CTABGANPlus.return_value = mock_ctab_tf
+        mock_tf_mod.CTABGANPlusEnhanced.return_value = mock_ctab_tf
 
         with patch("GANs.GANInterface._HAS_MLX", True):
             with patch.dict("sys.modules", {
@@ -516,7 +519,7 @@ class TestMLXRouting(unittest.TestCase):
                 iface = GANInterface(GANType.CTAB_GAN, save_path="/tmp", prefer_mlx=True)
                 iface.fit(df, labels, epochs=1, batch_size=16)
 
-        mock_tf_mod.CTABGANPlus.assert_called_once()
+        mock_tf_mod.CTABGANPlusEnhanced.assert_called_once()
         mock_ctab_tf.fit.assert_called_once()
 
     def test_ctab_load_uses_mlx_when_metadata_file_present(self):
@@ -545,7 +548,7 @@ class TestMLXRouting(unittest.TestCase):
         mock_ctab_tf = MagicMock()
         mock_ctab_tf.load.return_value = {"tf_loaded": True}
         mock_tf_mod  = MagicMock()
-        mock_tf_mod.CTABGANPlus.return_value = mock_ctab_tf
+        mock_tf_mod.CTABGANPlusEnhanced.return_value = mock_ctab_tf
 
         with patch("GANs.GANInterface._HAS_MLX", True):
             # save_path with no metadata_mlx.pkl — even with prefer_mlx=True
@@ -553,7 +556,7 @@ class TestMLXRouting(unittest.TestCase):
                 iface = GANInterface(GANType.CTAB_GAN, save_path="/tmp/no_mlx_meta", prefer_mlx=True)
                 meta  = iface.load()
 
-        mock_tf_mod.CTABGANPlus.assert_called_once()
+        mock_tf_mod.CTABGANPlusEnhanced.assert_called_once()
         self.assertTrue(meta.get("tf_loaded"))
 
 
