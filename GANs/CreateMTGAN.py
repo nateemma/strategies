@@ -331,7 +331,8 @@ class CreateMTGAN(CreateMTGANBase, NNMTStrategy):
         print(
             f"      Stored thresholds: min_buy_gain={self.MASTER_MIN_BUY_GAIN_THRESHOLD:.4f}, "
             f"min_sell_loss={self.MASTER_MIN_SELL_LOSS_THRESHOLD:.4f}, "
-            f"training_type={self.MASTER_TRAINING_TYPE}"
+            f"training_type={self.MASTER_TRAINING_TYPE}, "
+            f"horizon={self.MASTER_HORIZON}"
         )
 
         self._evaluate_mt_ctab_model(interface, train_df, train_labels_processed)

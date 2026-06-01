@@ -35,10 +35,13 @@ Usage — CGAN (sequential, 3D input):
 
 from __future__ import annotations
 
+import logging
 import math
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 import numpy as np
+
+log = logging.getLogger(__name__)
 
 from GANs.GANType import GANType
 from GANs.GANBackend import (
@@ -623,22 +626,38 @@ def _validate_metadata_against_expected(
     gan_type: GANType,
     save_path: str,
 ) -> None:
-    """Raise ``GANMetadataMismatchError`` if any expected key is missing
-    or unequal in the persisted metadata.
+    """Raise ``GANMetadataMismatchError`` if any expected key has a value
+    that disagrees with the persisted metadata.
 
-    Strict by design: a mismatch means the GAN was trained against a
-    different config than the one currently active, and continuing
-    would silently corrupt training (e.g. labels generated under one
-    threshold combined with a GAN trained under another).  Either the
-    GAN must be retrained or the strategy must be updated to match —
-    we refuse to choose silently.
+    Strict on value mismatches (saved=X, expected=Y) because the GAN was
+    trained against a different config than the one currently active, and
+    continuing would silently corrupt training (e.g. labels generated under
+    one threshold combined with a GAN trained under another).
+
+    Lenient on missing keys (saved=<MISSING>) — these are typically fields
+    added to the expected set AFTER the GAN was trained (a new validation
+    knob landing in a later version). Emit a warning so the user knows the
+    field couldn't be checked, but don't block training. Retraining the
+    GAN will populate the field naturally.
     """
     mismatches: Dict[str, Any] = {}
+    missing: Dict[str, Any] = {}
     for key, expected_value in expected.items():
         saved_value = saved.get(key, _MISSING)
+        if saved_value is _MISSING:
+            missing[key] = expected_value
+            continue
         if not _values_match(saved_value, expected_value):
-            display_saved = "<MISSING>" if saved_value is _MISSING else saved_value
-            mismatches[key] = (display_saved, expected_value)
+            mismatches[key] = (saved_value, expected_value)
+
+    if missing:
+        missing_str = ", ".join(f"{k}={v}" for k, v in missing.items())
+        log.warning(
+            "GAN metadata at %s is missing keys that the current strategy "
+            "expects: %s. Treating as backward-compatible (assumed to match) "
+            "— retrain the GAN to populate these fields.",
+            save_path, missing_str,
+        )
 
     if mismatches:
         raise GANMetadataMismatchError(

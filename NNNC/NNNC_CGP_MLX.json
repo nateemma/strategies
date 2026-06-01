@@ -1,0 +1,40 @@
+{
+  "strategy_name": "NNNC_CGP_MLX",
+  "params": {
+    "roi": {
+      "0": 0.03
+    },
+    "stoploss": {
+      "stoploss": -0.05
+    },
+    "trailing": {
+      "trailing_stop": true,
+      "trailing_stop_positive": 0.01,
+      "trailing_stop_positive_offset": 0.03,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 10
+    },
+    "sell": {
+      "cexit_enable_profit_checks": true,
+      "enable_exit_signal": true,
+      "cexit_max_days": 28,
+      "cexit_take_profit": 0.04,
+      "exit_close_norm_threshold": -0.9,
+      "exit_guard_threshold": 0.7
+    },
+    "buy": {
+      "entry_enable_guards": true,
+      "entry_adx_threshold": 10.0,
+      "entry_atr_pct": 0.013,
+      "entry_bb_width_threshold": 0.094,
+      "entry_close_norm_threshold": 0.6,
+      "entry_guard_threshold": 0.1,
+      "entry_rvol_threshold": 1.9,
+      "prediction_threshold": 0.29
+    }
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2026-05-31 23:21:49.986955+00:00"
+}

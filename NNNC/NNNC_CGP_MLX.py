@@ -27,9 +27,9 @@ from GANs.GANType import GANType  # noqa: E402
 
 class NNNC_CGP_MLX(NNNC_CGP):
 
-    # buy_params = { **BaseNNStrategy.buy_params,
-    #     "prediction_threshold": 0.6
-    #     }
+    buy_params = { **NNNC_CGP.buy_params,
+        "prediction_threshold": 0.7
+        }
 
     # GAN augmentation — single-task CTAB-GAN+.
     gan_type = GANType.CTAB_GAN
@@ -40,6 +40,13 @@ class NNNC_CGP_MLX(NNNC_CGP):
 
     # Don't push above ~1.0 — the model starts overfitting to synthetic.
     gan_target_ratio = 0.4
+
+    # Per-class autoencoder filter — manifold-aware rejection of off-real
+    # synth samples. Same setting used on NNNC_DDPM_MLX (the AE filter is
+    # GAN-type-agnostic; see project_ae_filter_win.md). Requires
+    # CreateAutoencoderFilter to have been trained for this strategy's
+    # storage location.
+    gan_synth_autoencoder_threshold = 0.005
 
     # turn on diagnostics for the GAN (class-level override — the version
     # consumed by BaseNNStrategy at training time is the class attribute,

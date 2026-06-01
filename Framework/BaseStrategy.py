@@ -229,36 +229,83 @@ class BaseStrategy(IStrategy):
     # hyperopt parameters
     # --------------------------------
 
-    # Buy hyperspace params:
+    # # Buy hyperspace params:
+    # buy_params = {
+    #     "entry_adx_threshold": 20.0,
+    #     "entry_atr_pct": 0.02,
+    #     "entry_bb_width_threshold": 0.014,  # raw 1.4% bandwidth — preserves pre-unbug effective filter
+    #     "entry_close_norm_threshold": 0.0,
+    #     "entry_enable_guards": True,
+    #     "entry_guard_threshold": -0.5,
+    #     "entry_rvol_threshold": 1.0,
+    #     "prediction_threshold": 0.8,
+    # }
+
+    # # Sell hyperspace params:
+    # sell_params = {
+    #     "cexit_enable_profit_checks": True,
+    #     "cexit_max_days": 2,
+    #     "cexit_take_profit": 0.02,
+    #     "enable_exit_signal": True,
+    #     "exit_close_norm_threshold": 0.0,
+    #     "exit_guard_threshold": 0.5,
+    # }
+
+    # # Buy parameters:
+    # buy_params = {
+    #     "entry_adx_threshold": 11.0,
+    #     "entry_atr_pct": 0.005,
+    #     "entry_bb_width_threshold": 0.04,
+    #     "entry_close_norm_threshold": 0.7,
+    #     "entry_guard_threshold": -0.1,
+    #     "entry_rvol_threshold": 1.2,
+    #     "entry_enable_guards": True,  # value loaded from strategy
+    #     "min_buy_gain_threshold": 0.007,  # value loaded from strategy
+    #     "prediction_threshold": 0.8,  # value loaded from strategy
+    #     "training_type": 17,  # value loaded from strategy
+    # }
+
+    # # Sell parameters:
+    # sell_params = {
+    #     "cexit_enable_profit_checks": True,
+    #     "cexit_max_days": 4,
+    #     "cexit_take_profit": 0.009,
+    #     "exit_close_norm_threshold": 0.9,
+    #     "exit_guard_threshold": 0.2,
+    #     "enable_exit_signal": True,  # value loaded from strategy
+    #     "min_sell_loss_threshold": 0.007,  # value loaded from strategy
+    # }
+
+    # Buy parameters:
     buy_params = {
-        "entry_adx_threshold": 20.0,
-        "entry_atr_pct": 0.02,
-        "entry_bb_width_threshold": 0.014,  # raw 1.4% bandwidth — preserves pre-unbug effective filter
-        "entry_close_norm_threshold": 0.0,
-        "entry_enable_guards": True,
-        "entry_guard_threshold": -0.5,
-        "entry_rvol_threshold": 1.0,
-        "prediction_threshold": 0.65,
+        "entry_adx_threshold": 10.0,
+        "entry_atr_pct": 0.013,
+        "entry_bb_width_threshold": 0.094,
+        "entry_close_norm_threshold": 0.6,
+        "entry_guard_threshold": 0.1,
+        "entry_rvol_threshold": 1.9,
+        "prediction_threshold": 0.29,
+        "entry_enable_guards": True,  # value loaded from strategy
     }
 
-    # Sell hyperspace params:
+    # Sell parameters:
     sell_params = {
-        "cexit_enable_profit_checks": True,
-        "cexit_max_days": 5,
-        "cexit_take_profit": 0.02,
-        "enable_exit_signal": True,
-        "exit_close_norm_threshold": 0.0,
-        "exit_guard_threshold": 0.5,
+        "cexit_max_days": 28,
+        "cexit_take_profit": 0.04,
+        "exit_close_norm_threshold": -0.9,
+        "exit_guard_threshold": 0.7,
+        "cexit_enable_profit_checks": True,  # value loaded from strategy
+        "enable_exit_signal": True,  # value loaded from strategy
     }
 
     # Trailing stop:
-    trailing_stop = False
+    trailing_stop = True
     trailing_stop_positive = 0.01
     trailing_stop_positive_offset = 0.03
-    trailing_only_offset_is_reached = True
 
     # Common ROI and stoploss
     minimal_roi = {"0": 0.03}
+    # minimal_roi = {"0": 0.025, "60": 0.015, "180": 0.005, "360": 0}
     stoploss = -0.05
 
     # ATR-adaptive initial stoploss (opt-in).
@@ -287,15 +334,15 @@ class BaseStrategy(IStrategy):
     use_volume_confirmation_stoploss = True
 
     prediction_threshold = DecimalParameter(
-        0.2, 0.7, default=0.5, decimals=2, space="buy", load=True, optimize=True
+        0.2, 0.9, default=0.5, decimals=2, space="buy", load=True, optimize=True
     )
 
     enable_exit_signal = CategoricalParameter(
-        [True, False], default=False, space="sell", load=True, optimize=True
+        [True, False], default=True, space="sell", load=True, optimize=False
     )
 
     entry_enable_guards = CategoricalParameter(
-        [True, False], default=True, space="buy", load=True, optimize=True
+        [True, False], default=True, space="buy", load=True, optimize=False
     )
 
     # Bear-market entry gate — causal (uses only past data, unlike the
@@ -307,16 +354,25 @@ class BaseStrategy(IStrategy):
     entry_bear_ema_period: int = 200      # ~200 candles back-look; 8 days on 1h
     entry_bear_deadband: float = 0.02     # close must be 2% below EMA to count as bear
 
+    # Uptrend-only entry gate — stricter than the bear filter. Requires both
+    # close > EMA AND EMA rising. Designed to skip range-bound / mean-reverting
+    # regimes that pass the bear filter but still bleed via stop_loss because
+    # the model's directional signal doesn't translate to capturable moves
+    # without a tailwind. See project_gbb_labeler_exhausted.md.
+    entry_trend_filter_enable: bool = False
+    entry_trend_ema_period: int = 200       # ~50h on 15m — long-trend bias
+    entry_trend_slope_window: int = 20      # ~5h slope check on 15m
+
     entry_guard_threshold = DecimalParameter(
-        -1.0, -0.0, default=-0.7, decimals=1, space="buy", load=True, optimize=True
+        -1.0, 0.5, default=-0.7, decimals=1, space="buy", load=True, optimize=True
     )
 
     entry_close_norm_threshold = DecimalParameter(
-        -0.5, 0.0, default=0.0, decimals=1, space="buy", load=True, optimize=True
+        -0.5, 1.0, default=0.0, decimals=1, space="buy", load=True, optimize=True
     )
 
     entry_adx_threshold = DecimalParameter(
-        20.0, 80.0, default=50.0, decimals=0, space="buy", load=True, optimize=True
+        10.0, 90.0, default=50.0, decimals=0, space="buy", load=True, optimize=True
     )
 
     entry_bb_width_threshold = DecimalParameter(
@@ -338,19 +394,19 @@ class BaseStrategy(IStrategy):
     )
 
     exit_guard_threshold = DecimalParameter(
-        0.0, 1.0, default=0.7, decimals=1, space="sell", load=True, optimize=True
+        -0.5, 1.0, default=0.7, decimals=1, space="sell", load=True, optimize=True
     )
 
     exit_close_norm_threshold = DecimalParameter(
-        0.0, 1.0, default=0.0, decimals=1, space="sell", load=True, optimize=True
+        -1.0, 1.0, default=0.0, decimals=1, space="sell", load=True, optimize=True
     )
 
     cexit_enable_profit_checks = CategoricalParameter(
-        [True, False], default=True, space="sell", load=True, optimize=True
+        [True, False], default=True, space="sell", load=True, optimize=False
     )
 
     cexit_take_profit = DecimalParameter(
-        0.005, 0.025, default=0.008, decimals=3, space="sell", load=True, optimize=True
+        0.005, 0.04, default=0.008, decimals=3, space="sell", load=True, optimize=True
     )
 
     cexit_max_days = IntParameter(
@@ -1028,6 +1084,20 @@ class BaseStrategy(IStrategy):
         ema = close.ewm(span=self.entry_bear_ema_period, adjust=False).mean()
         return close < ema * (1.0 - self.entry_bear_deadband)
 
+    def is_uptrend(self, dataframe: DataFrame):
+        """Causal uptrend detector for entry gating.
+
+        Returns True where close > EMA(entry_trend_ema_period).
+
+        The slope check (EMA rising over a fixed window) was removed
+        2026-05-30 because it cut entries during normal mid-uptrend
+        pullbacks — SOL went from +4.63% to -1.19% under the slope variant.
+        ``close > EMA`` alone catches the regime gate without false negatives.
+        """
+        close = dataframe["close"]
+        ema = close.ewm(span=self.entry_trend_ema_period, adjust=False).mean()
+        return close > ema
+
     def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         """Common entry trend population - calls strategy-specific method for custom conditions"""
         conditions = []
@@ -1054,6 +1124,12 @@ class BaseStrategy(IStrategy):
         # volume guards. Blocks new longs while close is below the long EMA.
         if getattr(self, "entry_bear_filter_enable", False):
             conditions.append(~self.is_bear_market(dataframe))
+
+        # Uptrend-only gate — stricter than the bear filter. Requires close
+        # above a long EMA AND that EMA rising. Trips before stop_loss can
+        # eat the model's directional signal in range-bound regimes.
+        if getattr(self, "entry_trend_filter_enable", False):
+            conditions.append(self.is_uptrend(dataframe))
 
         # Common guard conditions
         if self.entry_enable_guards.value:

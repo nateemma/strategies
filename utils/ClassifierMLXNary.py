@@ -383,7 +383,9 @@ class ClassifierMLXNary(ClassifierMLX):
                 f"loss: {train_loss:.4f}  val_loss: {val_loss:.4f}  "
                 f"val_precision: {metrics['val_precision']:.4f}  "
                 f"val_f1_class_2: {metrics['val_f1_class_2']:.4f}  "
-                f"val_mcc: {metrics['val_mcc']:.4f}"
+                f"val_mcc: {metrics['val_mcc']:.4f}  "
+                f"val_conf: {metrics['val_confidence']:.4f}  "
+                f"val_conf_x_mcc: {metrics['val_confidence_x_mcc']:.4f}"
                 f"{clip_note}"
             )
 

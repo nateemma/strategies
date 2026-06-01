@@ -59,13 +59,13 @@
       "LINK/USDT",
       "NEAR/USDT",
       "AAVE/USDT",
-      "DASH/USDT",
+      // "DASH/USDT",
       "SUI/USDT",
       "AVAX/USDT",
       "LTC/USDT",
       "BCH/USDT",
-      "DOT/USDT",
-      "NEO/USDT"
+      "DOT/USDT"
+      // "NEO/USDT"
     ],
     "pair_blacklist": [
     ]

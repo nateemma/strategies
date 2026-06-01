@@ -28,6 +28,18 @@ class NNNC_MLX(NNNCStrategy):
     # samples below, so layered signal augmentation would double-count.
     augment_training_data = True
 
+    # Trend filter on entry (2026-05-30 experiment). Per
+    # project_gbb_labeler_exhausted.md: the gbb labeler's signal can't
+    # clear stop_loss without help. Restricting model_entry to confirmed
+    # uptrends removes bleed-pair losses (LTC/NEAR/AAVE/AVAX during
+    # range-bound periods) without naming them.
+    #
+    # EMA(200) filter (50h lookback on 15m) was too aggressive — cut 84%
+    # of trades to 163 / +4.32%. EMA(100) (25h) loosens the gate while
+    # still excluding clear bear/range regimes.
+    entry_trend_filter_enable = False
+    entry_trend_ema_period = 100
+
 
     # default is LSTM type. Override get_classifier_type() in subclass
     def get_classifier_type(self):

@@ -43,6 +43,8 @@ sys.path.insert(0, str(strat_dir))
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor  # noqa: E402
 from sklearn.metrics import matthews_corrcoef, r2_score  # noqa: E402
 from sklearn.model_selection import TimeSeriesSplit  # noqa: E402
+from sklearn.neural_network import MLPClassifier  # noqa: E402
+from sklearn.preprocessing import StandardScaler  # noqa: E402
 from scipy.stats import spearmanr  # noqa: E402
 
 from utils.DataframePopulator import DataframePopulator, DatasetType  # noqa: E402
@@ -85,33 +87,70 @@ def measure_learnability(
     X: pd.DataFrame,
     y: pd.Series,
     n_splits: int = 5,
-    n_estimators: int = 100,
-    max_depth: int = 8,
+    hidden_units: int = 64,
 ) -> float:
-    """TimeSeriesSplit-CV mean MCC. Returns 0.0 if all folds are degenerate.
+    """TimeSeriesSplit-CV mean MCC using a small MLP.
 
-    RandomForest with shallow depth — fast and a fair baseline. If a shallow
-    forest can find the signal, an LSTM almost certainly can.
+    The earlier RandomForest implementation overstated learnability by ~20-40%
+    relative to the production Conv1D-LSTM (e.g. H=24/thr=0.015 sweep MCC was
+    0.58 but the actual classifier reached ~0.13-0.20 on real data). Reasons:
+    RF with max_depth=8 + class_weight=balanced + CV averaging is materially
+    more powerful on imbalanced tabular data than the production NN, which has
+    no class_weight, sees a single train/val split, and is regularised by
+    early stopping.
+
+    This MLP version closes the gap: single hidden layer with capacity close
+    to the production final dense block, no class_weight (production has none
+    either — instead we oversample the minority class to mimic the signal-
+    augmentation effect), StandardScaler for the gradient optimizer, and
+    early stopping on a held-out 15% slice of each fold.
     """
     if y.nunique() < 2:
         return 0.0
 
     tscv = TimeSeriesSplit(n_splits=n_splits)
     mccs: List[float] = []
+    rng = np.random.RandomState(0)
     for train_idx, test_idx in tscv.split(X):
-        y_tr = y.iloc[train_idx]
-        y_te = y.iloc[test_idx]
-        if y_tr.nunique() < 2 or y_te.nunique() < 2:
+        y_tr = y.iloc[train_idx].values
+        y_te = y.iloc[test_idx].values
+        if len(np.unique(y_tr)) < 2 or len(np.unique(y_te)) < 2:
             continue
-        clf = RandomForestClassifier(
-            n_estimators=n_estimators,
-            max_depth=max_depth,
-            n_jobs=-1,
+
+        # Oversample minority to balance classes (sklearn MLP has no
+        # class_weight). Matches the imbalance-handling production gets
+        # from signal augmentation, without the synth-distribution drift
+        # risk that a real GAN run would introduce.
+        pos_idx = np.flatnonzero(y_tr == 1)
+        neg_idx = np.flatnonzero(y_tr == 0)
+        if len(pos_idx) == 0 or len(neg_idx) == 0:
+            continue
+        if len(pos_idx) < len(neg_idx):
+            extra = rng.choice(pos_idx, size=len(neg_idx) - len(pos_idx),
+                               replace=True)
+        else:
+            extra = rng.choice(neg_idx, size=len(pos_idx) - len(neg_idx),
+                               replace=True)
+        bal_idx = np.concatenate([np.arange(len(y_tr)), extra])
+        X_tr_bal = X.iloc[train_idx].values[bal_idx]
+        y_tr_bal = y_tr[bal_idx]
+
+        scaler = StandardScaler()
+        X_tr_s = scaler.fit_transform(X_tr_bal)
+        X_te_s = scaler.transform(X.iloc[test_idx].values)
+
+        clf = MLPClassifier(
+            hidden_layer_sizes=(hidden_units,),
+            max_iter=30,
+            early_stopping=True,
+            validation_fraction=0.15,
+            n_iter_no_change=5,
             random_state=0,
-            class_weight="balanced",
+            learning_rate_init=0.001,
+            alpha=0.001,
         )
-        clf.fit(X.iloc[train_idx], y_tr)
-        pred = clf.predict(X.iloc[test_idx])
+        clf.fit(X_tr_s, y_tr_bal)
+        pred = clf.predict(X_te_s)
         if len(np.unique(pred)) < 2 or len(np.unique(y_te)) < 2:
             mccs.append(0.0)
             continue
@@ -186,6 +225,26 @@ def _build_params(
     return params
 
 
+def _aug_risk(n_signals: int, n_total: int) -> str:
+    """Predict whether DDPM augmentation will collapse at this signal density.
+
+    Per memory (feedback_ddpm_collapses_at_sparse_classes.md): when per-pair
+    real Buy/Sell counts drop below ~3K, DDPM produces drifted synth and the
+    classifier collapses. In a typical 55K-bar training window that is a
+    signal frequency floor of ~5.5%. Sweep windows are usually larger than
+    the training window, so the cutoff applies as a frequency, not a raw
+    count.
+    """
+    if n_total <= 0:
+        return "n/a"
+    freq = n_signals / n_total
+    if freq < 0.055:
+        return "HIGH"
+    if freq < 0.09:
+        return "MEDIUM"
+    return "LOW"
+
+
 def evaluate_combo(
     df: pd.DataFrame,
     features: pd.DataFrame,
@@ -219,6 +278,7 @@ def evaluate_combo(
             "mcc": np.nan,
             "ev_per_signal_pct": np.nan,
             "score": 0.0,
+            "aug_risk": "n/a",
             "error": f"label-gen: {type(exc).__name__}: {exc}",
         }
 
@@ -236,6 +296,7 @@ def evaluate_combo(
             "mcc": np.nan,
             "ev_per_signal_pct": np.nan,
             "score": 0.0,
+            "aug_risk": _aug_risk(n_signals, n_total),
             "error": "too few signals or rows",
         }
 
@@ -255,6 +316,7 @@ def evaluate_combo(
         "mcc": mcc,
         "ev_per_signal_pct": ev * 100.0,
         "score": score,
+        "aug_risk": _aug_risk(n_signals, n_total),
         "error": "",
     }
 
@@ -716,10 +778,11 @@ def main() -> None:
                   f"{len(bb_widths)} × {len(sides)} = {n_combos} combos)…\n")
             header = (
                 f"  {'method':18s}  {'side':4s}  {'thresh':>7s}  {'bb_w':>6s}  "
-                f"{'N_sig':>6s}  {'MCC':>7s}  {'EV/sig%':>8s}  {'score':>10s}"
+                f"{'N_sig':>6s}  {'aug_risk':>8s}  {'MCC':>7s}  "
+                f"{'EV/sig%':>8s}  {'score':>10s}"
             )
             sep = (
-                f"  {'-'*18}  {'-'*4}  {'-'*7}  {'-'*6}  {'-'*6}  "
+                f"  {'-'*18}  {'-'*4}  {'-'*7}  {'-'*6}  {'-'*6}  {'-'*8}  "
                 f"{'-'*7}  {'-'*8}  {'-'*10}"
             )
         else:
@@ -728,10 +791,11 @@ def main() -> None:
                   f"{len(sides)} = {n_combos} combos)…\n")
             header = (
                 f"  {'method':18s}  {'side':4s}  {'thresh':>7s}  "
-                f"{'N_sig':>6s}  {'MCC':>7s}  {'EV/sig%':>8s}  {'score':>10s}"
+                f"{'N_sig':>6s}  {'aug_risk':>8s}  {'MCC':>7s}  "
+                f"{'EV/sig%':>8s}  {'score':>10s}"
             )
             sep = (
-                f"  {'-'*18}  {'-'*4}  {'-'*7}  {'-'*6}  "
+                f"  {'-'*18}  {'-'*4}  {'-'*7}  {'-'*6}  {'-'*8}  "
                 f"{'-'*7}  {'-'*8}  {'-'*10}"
             )
         print(header)
@@ -766,6 +830,7 @@ def main() -> None:
                                 f"  {row['method']:18s}  {row['side']:4s}  "
                                 f"{row['threshold']:7.4f}  {bbw_str}  "
                                 f"{row['n_signals']:6d}  "
+                                f"{row['aug_risk']:>8s}  "
                                 f"{mcc_str:>7s}  {ev_str:>8s}  "
                                 f"{row['score']:10.2f}"
                             )
@@ -774,6 +839,7 @@ def main() -> None:
                                 f"  {row['method']:18s}  {row['side']:4s}  "
                                 f"{row['threshold']:7.4f}  "
                                 f"{row['n_signals']:6d}  "
+                                f"{row['aug_risk']:>8s}  "
                                 f"{mcc_str:>7s}  {ev_str:>8s}  "
                                 f"{row['score']:10.2f}"
                             )

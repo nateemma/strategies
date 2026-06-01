@@ -53,9 +53,32 @@ class TrainingConfig:
 
     # Minimum forward gain (loss) magnitude required for a candidate bar to
     # be labelled as a Buy (Sell). Lower values produce more training data
-    # but smaller per-signal expected value. The DebugSignalLearnability
-    # sweep across ICP/ETH/BTC/ADA/LINK shows the learnability curve peaks
-    # at ~0.003 — see docs/superpowers/specs/ if a learnability rerun is
-    # needed before changing.
-    MIN_BUY_GAIN_THRESHOLD: float = 0.005
-    MIN_SELL_LOSS_THRESHOLD: float = 0.005
+    # but smaller per-signal expected value.
+    #
+    # 0.007 chosen 2026-05-31 from the H=[24,36,48] × thr=[0.007,0.010,0.013]
+    # sweep with the new MLP+aug_risk learnability tooling. (HORIZON=48,
+    # thr=0.007) is the first combo where MCC > 0.30 AND aug_risk != HIGH
+    # AND EV/signal > 3% (the stop_loss noise floor) hold simultaneously
+    # across XRP/SOL/LINK. Buy-side MCC 0.75-0.77, EV 3.20-3.80% — clears
+    # the floor with margin on every pair tested. See
+    # project_h48_viable_combo_found.md.
+    #
+    # The (HORIZON, threshold) pair MUST be retuned jointly — earlier
+    # univariate sweeps (e.g. 2026-05-28 H sweep) missed the inflection
+    # because at H<=24 there is no threshold that clears all three
+    # viability criteria together. See project_horizon_threshold_learnability_finding.md.
+    MIN_BUY_GAIN_THRESHOLD: float = 0.007
+    MIN_SELL_LOSS_THRESHOLD: float = 0.007
+
+    # Forward window (in bars) used by the gbb labeler and other label
+    # generators that look ahead from a candidate bar. Coupled with the
+    # gain/loss thresholds above — both must be retuned together.
+    #
+    # H=48 chosen 2026-05-31 = 12-hour forward window (48 × 15min). This
+    # is the shortest horizon at which the 2026-05-31 viability sweep
+    # found combos passing MCC > 0.30 AND aug_risk != HIGH AND EV > 3.0%
+    # on all three test pairs. Shorter horizons fail because EV/signal
+    # cannot clear the ~3% stop_loss noise floor without forcing the
+    # gain threshold so high that label density collapses and DDPM
+    # augmentation drifts.
+    HORIZON: int = 48

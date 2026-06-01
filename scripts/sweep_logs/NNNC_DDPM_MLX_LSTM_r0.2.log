@@ -1,0 +1,1991 @@
+2026-05-29 07:07:58,679 - freqtrade - INFO - freqtrade 2026.4-dev-63819fa7e
+2026-05-29 07:07:59,189 - numexpr.utils - INFO - NumExpr defaulting to 14 threads.
+
+Using config file: user_data/strategies/config/config.json and Strategy dir: user_data/strategies/NNNC
+
+Fri May 29 07:08:00 PDT 2026
+Testing strategy:NNNC_DDPM_MLX_LSTM for exchange:...
+freqtrade backtesting --cache none  --breakdown month --timerange=20240608-20260529 -c user_data/strategies/config/config.json --strategy-path user_data/strategies/NNNC --strategy-list NNNC_DDPM_MLX_LSTM
+2026-05-29 07:08:00,234 - freqtrade - INFO - freqtrade 2026.4-dev-63819fa7e
+2026-05-29 07:08:00,499 - numexpr.utils - INFO - NumExpr defaulting to 14 threads.
+2026-05-29 07:08:01,075 - freqtrade.configuration.load_config - INFO - Using config: user_data/strategies/config/config.json ...
+2026-05-29 07:08:01,076 - freqtrade.loggers - INFO - Enabling colorized output.
+2026-05-29 07:08:01,076 - freqtrade.loggers - INFO - Logfile configured
+2026-05-29 07:08:01,076 - freqtrade.loggers - INFO - Verbosity set to 0
+2026-05-29 07:08:01,076 - freqtrade.configuration.configuration - INFO - Using additional Strategy lookup path: user_data/strategies/NNNC
+2026-05-29 07:08:01,076 - freqtrade.configuration.configuration - INFO - Using max_open_trades: 10 ...
+2026-05-29 07:08:01,076 - freqtrade.configuration.configuration - INFO - Parameter --timerange detected: 20240608-20260529 ...
+2026-05-29 07:08:01,077 - freqtrade.configuration.configuration - INFO - Using user-data directory: /Users/philprice95/Documents/freqtrade/user_data ...
+2026-05-29 07:08:01,077 - freqtrade.configuration.configuration - INFO - Using data directory: /Users/philprice95/Documents/freqtrade/user_data/data/binanceus ...
+2026-05-29 07:08:01,077 - freqtrade.configuration.configuration - INFO - Using strategy list of 1 strategies
+2026-05-29 07:08:01,077 - freqtrade.configuration.configuration - INFO - Parameter --breakdown detected ...
+2026-05-29 07:08:01,077 - freqtrade.configuration.configuration - INFO - Parameter --cache=none detected ...
+2026-05-29 07:08:01,077 - freqtrade.configuration.configuration - INFO - Filter trades by timerange: 20240608-20260529
+2026-05-29 07:08:01,077 - freqtrade.exchange.check_exchange - INFO - Checking exchange...
+2026-05-29 07:08:01,084 - freqtrade.exchange.check_exchange - INFO - Exchange "binanceus" is officially supported by the Freqtrade development team.
+2026-05-29 07:08:01,084 - freqtrade.configuration.configuration - INFO - Using pairlist from configuration.
+2026-05-29 07:08:01,084 - freqtrade.configuration.config_validation - INFO - Validating configuration ...
+2026-05-29 07:08:01,085 - freqtrade.commands.optimize_commands - INFO - Starting freqtrade in Backtesting mode
+2026-05-29 07:08:01,085 - freqtrade.exchange.exchange - INFO - Instance is running with dry_run enabled
+2026-05-29 07:08:01,085 - freqtrade.exchange.exchange - INFO - Using CCXT 4.5.50
+2026-05-29 07:08:01,094 - freqtrade.exchange.exchange - INFO - Using Exchange "Binance US"
+2026-05-29 07:08:01,346 - freqtrade.resolvers.exchange_resolver - INFO - Using resolved exchange 'Binanceus'...
+/Users/philprice95/Documents/freqtrade/.venv/lib/python3.12/site-packages/_distutils_hack/__init__.py:15: UserWarning: Distutils was imported before Setuptools, but importing Setuptools also replaces the `distutils` module in `sys.modules`. This may lead to undesirable behaviors or errors. To avoid these issues, avoid using distutils directly, ensure that setuptools is installed in the traditional way (e.g. not an editable install), and/or make sure that setuptools is always imported before distutils.
+  warnings.warn(
+/Users/philprice95/Documents/freqtrade/.venv/lib/python3.12/site-packages/_distutils_hack/__init__.py:30: UserWarning: Setuptools is replacing distutils. Support for replacing an already imported distutils is deprecated. In the future, this condition will fail. Register concerns at https://github.com/pypa/setuptools/issues/new?template=distutils-deprecation.yml
+  warnings.warn(
+2026-05-29 07:08:04,062 - freqtrade.resolvers.iresolver - INFO - Using resolved strategy NNNC_DDPM_MLX_LSTM from 
+'/Users/philprice95/Documents/freqtrade/user_data/strategies/NNNC/NNNC_DDPM_MLX_LSTM.py'...
+2026-05-29 07:08:04,062 - freqtrade.strategy.hyper - INFO - Found no parameter file.
+2026-05-29 07:08:04,063 - freqtrade.resolvers.strategy_resolver - INFO - Override strategy 'timeframe' with value from the configuration: 15m.
+2026-05-29 07:08:04,063 - freqtrade.resolvers.strategy_resolver - INFO - Override strategy 'order_types' with value from the configuration: {'entry': 'limit', 'exit': 'market', 'emergency_exit': 
+'market', 'force_exit': 'market', 'force_entry': 'market', 'stoploss': 'market', 'stoploss_on_exchange': False, 'stoploss_price_type': 'last', 'stoploss_on_exchange_interval': 60, 
+'stoploss_on_exchange_limit_ratio': 0.99}.
+2026-05-29 07:08:04,063 - freqtrade.resolvers.strategy_resolver - INFO - Override strategy 'stake_currency' with value from the configuration: USDT.
+2026-05-29 07:08:04,063 - freqtrade.resolvers.strategy_resolver - INFO - Override strategy 'stake_amount' with value from the configuration: 900.
+2026-05-29 07:08:04,063 - freqtrade.resolvers.strategy_resolver - INFO - Override strategy 'unfilledtimeout' with value from the configuration: {'entry': 10, 'exit': 10, 'exit_timeout_count': 0, 
+'unit': 'minutes'}.
+2026-05-29 07:08:04,063 - freqtrade.resolvers.strategy_resolver - INFO - Override strategy 'max_open_trades' with value from the configuration: 10.
+2026-05-29 07:08:04,063 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using minimal_roi: {'0': 0.03}
+2026-05-29 07:08:04,063 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using timeframe: 15m
+2026-05-29 07:08:04,063 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using stoploss: -0.05
+2026-05-29 07:08:04,064 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using trailing_stop: False
+2026-05-29 07:08:04,064 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using trailing_stop_positive: 0.01
+2026-05-29 07:08:04,064 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using trailing_stop_positive_offset: 0.03
+2026-05-29 07:08:04,064 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using trailing_only_offset_is_reached: True
+2026-05-29 07:08:04,064 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using use_custom_stoploss: True
+2026-05-29 07:08:04,064 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using process_only_new_candles: True
+2026-05-29 07:08:04,064 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using order_types: {'entry': 'limit', 'exit': 'market', 'emergency_exit': 'market', 'force_exit': 'market', 
+'force_entry': 'market', 'stoploss': 'market', 'stoploss_on_exchange': False, 'stoploss_price_type': 'last', 'stoploss_on_exchange_interval': 60, 'stoploss_on_exchange_limit_ratio': 0.99}
+2026-05-29 07:08:04,064 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using order_time_in_force: {'entry': 'GTC', 'exit': 'GTC'}
+2026-05-29 07:08:04,064 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using stake_currency: USDT
+2026-05-29 07:08:04,064 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using stake_amount: 900
+2026-05-29 07:08:04,064 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using startup_candle_count: 64
+2026-05-29 07:08:04,065 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using unfilledtimeout: {'entry': 10, 'exit': 10, 'exit_timeout_count': 0, 'unit': 'minutes'}
+2026-05-29 07:08:04,065 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using use_exit_signal: True
+2026-05-29 07:08:04,065 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using exit_profit_only: True
+2026-05-29 07:08:04,065 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using ignore_roi_if_entry_signal: True
+2026-05-29 07:08:04,065 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using exit_profit_offset: 0.0
+2026-05-29 07:08:04,065 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using disable_dataframe_checks: False
+2026-05-29 07:08:04,065 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using ignore_buying_expired_candle_after: 0
+2026-05-29 07:08:04,065 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using position_adjustment_enable: False
+2026-05-29 07:08:04,065 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using max_entry_position_adjustment: -1
+2026-05-29 07:08:04,065 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using max_open_trades: 10
+2026-05-29 07:08:04,065 - freqtrade.configuration.config_validation - INFO - Validating configuration ...
+2026-05-29 07:08:04,069 - freqtrade.resolvers.iresolver - INFO - Using resolved pairlist StaticPairList from '/Users/philprice95/Documents/freqtrade/freqtrade/plugins/pairlist/StaticPairList.py'...
+2026-05-29 07:08:04,072 - freqtrade.optimize.backtesting - INFO - Using fee 0.1000% - worst case fee from exchange (lowest tier).
+2026-05-29 07:08:04,179 - freqtrade.data.history.datahandlers.idatahandler - WARNING - ZEC/USDT, spot, 15m, data ends at 2026-05-27 17:15:00
+2026-05-29 07:08:04,183 - freqtrade.data.history.datahandlers.idatahandler - INFO - Price jump in ZEC/USDT, 15m, spot between two candles of 33.14% detected.
+2026-05-29 07:08:04,195 - freqtrade.data.history.datahandlers.idatahandler - WARNING - XRP/USDT, spot, 15m, data ends at 2026-05-27 17:15:00
+2026-05-29 07:08:04,209 - freqtrade.data.history.datahandlers.idatahandler - WARNING - SOL/USDT, spot, 15m, data ends at 2026-05-27 17:15:00
+2026-05-29 07:08:04,223 - freqtrade.data.history.datahandlers.idatahandler - WARNING - LINK/USDT, spot, 15m, data ends at 2026-05-27 17:15:00
+2026-05-29 07:08:04,237 - freqtrade.data.history.datahandlers.idatahandler - WARNING - NEAR/USDT, spot, 15m, data ends at 2026-05-27 17:15:00
+2026-05-29 07:08:04,251 - freqtrade.data.history.datahandlers.idatahandler - WARNING - AAVE/USDT, spot, 15m, data ends at 2026-05-27 17:15:00
+2026-05-29 07:08:04,265 - freqtrade.data.history.datahandlers.idatahandler - WARNING - DASH/USDT, spot, 15m, data ends at 2026-05-28 15:45:00
+2026-05-29 07:08:04,269 - freqtrade.data.history.datahandlers.idatahandler - INFO - Price jump in DASH/USDT, 15m, spot between two candles of 61.49% detected.
+2026-05-29 07:08:04,279 - freqtrade.data.history.datahandlers.idatahandler - WARNING - SUI/USDT, spot, 15m, data ends at 2026-05-28 15:45:00
+2026-05-29 07:08:04,292 - freqtrade.data.history.datahandlers.idatahandler - WARNING - AVAX/USDT, spot, 15m, data ends at 2026-05-28 15:45:00
+2026-05-29 07:08:04,307 - freqtrade.data.history.datahandlers.idatahandler - WARNING - LTC/USDT, spot, 15m, data ends at 2026-05-28 15:45:00
+2026-05-29 07:08:04,321 - freqtrade.data.history.datahandlers.idatahandler - WARNING - BCH/USDT, spot, 15m, data ends at 2026-05-28 15:45:00
+2026-05-29 07:08:04,334 - freqtrade.data.history.datahandlers.idatahandler - WARNING - DOT/USDT, spot, 15m, data ends at 2026-05-28 15:45:00
+2026-05-29 07:08:04,350 - freqtrade.data.history.datahandlers.idatahandler - WARNING - NEO/USDT, spot, 15m, data ends at 2026-05-28 15:45:00
+2026-05-29 07:08:04,354 - freqtrade.data.history.datahandlers.idatahandler - INFO - Price jump in NEO/USDT, 15m, spot between two candles of 221.60% detected.
+2026-05-29 07:08:04,363 - freqtrade.optimize.backtesting - INFO - Loading data from 2024-06-07 08:00:00 up to 2026-05-28 15:45:00 (720 days).
+2026-05-29 07:08:07,074 - freqtrade.optimize.backtesting - INFO - Dataload complete. Calculating indicators
+2026-05-29 07:08:07,075 - freqtrade.optimize.backtesting - INFO - Running backtesting for Strategy NNNC_DDPM_MLX_LSTM
+2026-05-29 07:08:07,098 - freqtrade.strategy.hyper - INFO - Strategy Parameter: cexit_enable_profit_checks = True
+2026-05-29 07:08:07,099 - freqtrade.strategy.hyper - INFO - Strategy Parameter: cexit_max_days = 5
+2026-05-29 07:08:07,099 - freqtrade.strategy.hyper - INFO - Strategy Parameter: cexit_take_profit = 0.02
+2026-05-29 07:08:07,099 - freqtrade.strategy.hyper - INFO - Strategy Parameter: enable_exit_signal = True
+2026-05-29 07:08:07,099 - freqtrade.strategy.hyper - INFO - Strategy Parameter: exit_close_norm_threshold = 0.0
+2026-05-29 07:08:07,099 - freqtrade.strategy.hyper - INFO - Strategy Parameter: exit_guard_threshold = 0.5
+2026-05-29 07:08:07,099 - freqtrade.strategy.hyper - INFO - Strategy Parameter: entry_adx_threshold = 20.0
+2026-05-29 07:08:07,099 - freqtrade.strategy.hyper - INFO - Strategy Parameter: entry_atr_pct = 0.006
+2026-05-29 07:08:07,099 - freqtrade.strategy.hyper - INFO - Strategy Parameter: entry_bb_width_threshold = 0.014
+2026-05-29 07:08:07,099 - freqtrade.strategy.hyper - INFO - Strategy Parameter: entry_close_norm_threshold = 0.0
+2026-05-29 07:08:07,100 - freqtrade.strategy.hyper - INFO - Strategy Parameter: entry_enable_guards = True
+2026-05-29 07:08:07,100 - freqtrade.strategy.hyper - INFO - Strategy Parameter: entry_guard_threshold = -0.5
+2026-05-29 07:08:07,100 - freqtrade.strategy.hyper - INFO - Strategy Parameter: entry_rvol_threshold = 1.0
+2026-05-29 07:08:07,100 - freqtrade.strategy.hyper - INFO - Strategy Parameter: prediction_threshold = 0.5
+
+----------------------
+NNNC_DDPM_MLX_LSTM
+----------------------
+
+
+Software Environment:
+
+    freqtrade:  2026.4-dev-63819fa7e
+    OS Type:    darwin (MacOS), Version: macOS-26.4.1-arm64-arm-64bit
+    python:     ['3.12.13 (main, Mar  3 2026, 12:39:30) [Clang 21.0.0 (clang-2100.0.123.102)]']
+    sklearn:    1.8.0
+    tensorflow: 2.17.0, devices:[PhysicalDevice(name='/physical_device:CPU:0', device_type='CPU'), PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
+    keras:      3.14.0
+    pytorch:    (not installed)
+    lightning:  (not installed)
+    darts:      (not installed)
+
+
+    Current Hyperopt Parameters:
+      Buy Parameters:
+        entry_adx_threshold: 20.0
+        entry_atr_pct: 0.006
+        entry_bb_width_threshold: 0.014
+        entry_close_norm_threshold: 0.0
+        entry_enable_guards: True
+        entry_guard_threshold: -0.5
+        entry_rvol_threshold: 1.0
+        prediction_threshold: 0.5
+        cexit_enable_profit_checks: True
+        cexit_max_days: 2
+        cexit_take_profit: 0.002
+        profit_prediction_threshold: 0.3
+        apply_task_filters: True
+
+      Sell Parameters:
+        cexit_enable_profit_checks: True
+        cexit_max_days: 5
+        cexit_take_profit: 0.02
+        enable_exit_signal: True
+        exit_close_norm_threshold: 0.0
+        exit_guard_threshold: 0.5
+
+Strategy Parameters/Flags
+
+    refit_model:    False
+    model_per_pair: False
+    combine_models: False
+
+    ZEC/USDT - adding indicators...
+        Buy signals: found 4829 initial peaks, filtered to 4829 peaks with >=0.5% future gain
+        Sell signals: found 5517 initial peaks, filtered to 5517 peaks with >=0.5% future loss
+        Signal counts: buys=7092, sells=9463, conflicts=0
+        Final trading_classes counts: buys=7092, sells=9463
+        Trading distribution: [ 9463 52507  7092] [13.7%, 76.0%, 10.3%]
+        %train_buy/%train_sell counts: buys=7092, sells=9463, holds=52507
+    XRP/USDT - adding indicators...
+        Buy signals: found 2379 initial peaks, filtered to 2379 peaks with >=0.5% future gain
+        Sell signals: found 2415 initial peaks, filtered to 2415 peaks with >=0.5% future loss
+        Signal counts: buys=3982, sells=4355, conflicts=0
+        Final trading_classes counts: buys=3982, sells=4355
+        Trading distribution: [ 4355 60725  3982] [6.3%, 87.9%, 5.8%]
+        %train_buy/%train_sell counts: buys=3982, sells=4355, holds=60725
+    SOL/USDT - adding indicators...
+        Buy signals: found 2446 initial peaks, filtered to 2446 peaks with >=0.5% future gain
+        Sell signals: found 2126 initial peaks, filtered to 2126 peaks with >=0.5% future loss
+        Signal counts: buys=4204, sells=3870, conflicts=0
+        Final trading_classes counts: buys=4204, sells=3870
+        Trading distribution: [ 3870 60988  4204] [5.6%, 88.3%, 6.1%]
+        %train_buy/%train_sell counts: buys=4204, sells=3870, holds=60988
+    LINK/USDT - adding indicators...
+        Buy signals: found 2923 initial peaks, filtered to 2923 peaks with >=0.5% future gain
+        Sell signals: found 2800 initial peaks, filtered to 2800 peaks with >=0.5% future loss
+        Signal counts: buys=4895, sells=5081, conflicts=0
+        Final trading_classes counts: buys=4895, sells=5081
+        Trading distribution: [ 5081 59086  4895] [7.4%, 85.6%, 7.1%]
+        %train_buy/%train_sell counts: buys=4895, sells=5081, holds=59086
+    NEAR/USDT - adding indicators...
+        Buy signals: found 4662 initial peaks, filtered to 4662 peaks with >=0.5% future gain
+        Sell signals: found 4417 initial peaks, filtered to 4414 peaks with >=0.5% future loss
+        Signal counts: buys=7179, sells=7632, conflicts=0
+        Final trading_classes counts: buys=7179, sells=7632
+        Trading distribution: [ 7632 54251  7179] [11.1%, 78.6%, 10.4%]
+        %train_buy/%train_sell counts: buys=7179, sells=7632, holds=54251
+    AAVE/USDT - adding indicators...
+        Buy signals: found 3786 initial peaks, filtered to 3786 peaks with >=0.5% future gain
+        Sell signals: found 3808 initial peaks, filtered to 3808 peaks with >=0.5% future loss
+        Signal counts: buys=5945, sells=6640, conflicts=0
+        Final trading_classes counts: buys=5945, sells=6640
+        Trading distribution: [ 6640 56477  5945] [9.6%, 81.8%, 8.6%]
+        %train_buy/%train_sell counts: buys=5945, sells=6640, holds=56477
+    DASH/USDT - adding indicators...
+        Buy signals: found 3426 initial peaks, filtered to 3426 peaks with >=0.5% future gain
+        Sell signals: found 3642 initial peaks, filtered to 3642 peaks with >=0.5% future loss
+        Signal counts: buys=4989, sells=6180, conflicts=0
+        Final trading_classes counts: buys=4989, sells=6180
+        Trading distribution: [ 6180 57983  4989] [8.9%, 83.8%, 7.2%]
+        %train_buy/%train_sell counts: buys=4989, sells=6180, holds=57983
+    SUI/USDT - adding indicators...
+        Buy signals: found 4959 initial peaks, filtered to 4959 peaks with >=0.5% future gain
+        Sell signals: found 4712 initial peaks, filtered to 4712 peaks with >=0.5% future loss
+        Signal counts: buys=7872, sells=8272, conflicts=0
+        Final trading_classes counts: buys=7872, sells=8272
+        Trading distribution: [ 8272 53008  7872] [12.0%, 76.7%, 11.4%]
+        %train_buy/%train_sell counts: buys=7872, sells=8272, holds=53008
+    AVAX/USDT - adding indicators...
+        Buy signals: found 3181 initial peaks, filtered to 3181 peaks with >=0.5% future gain
+        Sell signals: found 2835 initial peaks, filtered to 2835 peaks with >=0.5% future loss
+        Signal counts: buys=5253, sells=5133, conflicts=0
+        Final trading_classes counts: buys=5253, sells=5133
+        Trading distribution: [ 5133 58766  5253] [7.4%, 85.0%, 7.6%]
+        %train_buy/%train_sell counts: buys=5253, sells=5133, holds=58766
+    LTC/USDT - adding indicators...
+        Buy signals: found 2624 initial peaks, filtered to 2624 peaks with >=0.5% future gain
+        Sell signals: found 2327 initial peaks, filtered to 2327 peaks with >=0.5% future loss
+        Signal counts: buys=4301, sells=4221, conflicts=0
+        Final trading_classes counts: buys=4301, sells=4221
+        Trading distribution: [ 4221 60630  4301] [6.1%, 87.7%, 6.2%]
+        %train_buy/%train_sell counts: buys=4301, sells=4221, holds=60630
+    BCH/USDT - adding indicators...
+        Buy signals: found 3033 initial peaks, filtered to 3033 peaks with >=0.5% future gain
+        Sell signals: found 2883 initial peaks, filtered to 2883 peaks with >=0.5% future loss
+        Signal counts: buys=4742, sells=5225, conflicts=0
+        Final trading_classes counts: buys=4742, sells=5225
+        Trading distribution: [ 5225 59185  4742] [7.6%, 85.6%, 6.9%]
+        %train_buy/%train_sell counts: buys=4742, sells=5225, holds=59185
+    DOT/USDT - adding indicators...
+        Buy signals: found 3212 initial peaks, filtered to 3212 peaks with >=0.5% future gain
+        Sell signals: found 2860 initial peaks, filtered to 2860 peaks with >=0.5% future loss
+        Signal counts: buys=5274, sells=5066, conflicts=0
+        Final trading_classes counts: buys=5274, sells=5066
+        Trading distribution: [ 5066 58812  5274] [7.3%, 85.0%, 7.6%]
+        %train_buy/%train_sell counts: buys=5274, sells=5066, holds=58812
+    NEO/USDT - adding indicators...
+        Buy signals: found 3090 initial peaks, filtered to 3090 peaks with >=0.5% future gain
+        Sell signals: found 3046 initial peaks, filtered to 3046 peaks with >=0.5% future loss
+        Signal counts: buys=4545, sells=5318, conflicts=0
+        Final trading_classes counts: buys=4545, sells=5318
+        Trading distribution: [ 5318 59289  4545] [7.7%, 85.7%, 6.6%]
+        %train_buy/%train_sell counts: buys=4545, sells=5318, holds=59289
+    Training model on 13 pairs
+    Main scaler loaded from /Users/philprice95/Documents/freqtrade/user_data/strategies/saved_data/
+    PCA data loaded: n_components=20
+    Columns exceeding ±10 before clipping: [('bb_width', -1.0001307528502497, 18.387945839670714)]
+    GAN scaler A loaded from /Users/philprice95/Documents/freqtrade/user_data/strategies/saved_data/
+      columns: ['bb_width', 'atr_norm', 'rsi_scaled', 'mfi_scaled', 'guard_metric_pos', 'guard_metric_neg', 'gain_norm', 'macdhist_norm', 'ema_fast_norm', 'macd_pos', 'macd_neg', 'fastk_scaled', 'fast_diff', 'adx_scaled', 'aroonosc_scaled', 'bb_position', 'vwap_pos', 'vwap_neg', 'di_diff_scaled', 'sar_ratio', 'spread_ma', 'cci_scaled', 'fisher_ss', 'cg_ss']
+    balance_single_task: class counts {0: 7531, 1: 42312, 2: 5391} (gan_type=TAB_DDPM)
+    balance_single_task: per-class additions {0: 931, 2: 3071}
+      generated 931 samples for class 0
+      generated 3071 samples for class 2
+    balance_single_task: rows 55234 -> 59236; counts {0: 7531, 1: 42312, 2: 5391} -> {0: 8462, 1: 42312, 2: 8462}
+    === GAN fidelity diagnostic (real vs synthetic) ===
+      real rows:      55234    synth rows:       4002    features: 24
+      task        cls     N_real      N_syn    |Δμ|max    σ_syn/σ_real  flag
+      ----------------------------------------------------------------------
+      class         0       7531        931      0.46σ   0.55/ 1.07  ok
+      class         1      42312          0          -               -  no synth
+      class         2       5391       3071      0.42σ   0.63/ 1.10  ok
+
+      worst features per bucket (top 2 by severity):
+        class==0:
+          bb_width              real μ= -0.450 σ= 0.333    syn μ= -0.602 σ= 0.184    Δμ=-0.46σ  σ_ratio=0.55
+          bb_position           real μ= +0.556 σ= 0.342    syn μ= +0.450 σ= 0.404    Δμ=-0.31σ  σ_ratio=1.18
+          rsi_scaled            real μ= +0.305 σ= 0.255    syn μ= +0.230 σ= 0.253    Δμ=-0.29σ  σ_ratio=0.99
+        class==2:
+          bb_width              real μ= -0.481 σ= 0.300    syn μ= -0.605 σ= 0.189    Δμ=-0.42σ  σ_ratio=0.63
+          sar_ratio             real μ= +0.529 σ= 0.510    syn μ= +0.353 σ= 0.611    Δμ=-0.35σ  σ_ratio=1.20
+          fastk_scaled          real μ= -0.653 σ= 0.427    syn μ= -0.508 σ= 0.518    Δμ=+0.34σ  σ_ratio=1.21
+
+    === Joint-distribution diagnostic (correlation matrix) ===
+      task        cls  used_real   used_syn   |Δρ|max   |Δρ|mean  flag
+      ----------------------------------------------------------------------
+      class         0       7531        931     0.209      0.052  ok
+      class         2       5391       3071     0.243      0.050  ok
+
+      worst feature PAIRS per bucket (top 2 by |Δρ|):
+        class==2:
+          guard_metric_pos   × bb_position         real ρ=+0.18  syn ρ=+0.43  Δρ=-0.24
+          guard_metric_pos   × cci_scaled          real ρ=+0.24  syn ρ=+0.42  Δρ=-0.18
+          guard_metric_pos   × guard_metric_neg    real ρ=-0.26  syn ρ=-0.44  Δρ=+0.18
+        class==0:
+          guard_metric_neg   × di_diff_scaled      real ρ=-0.19  syn ρ=-0.40  Δρ=+0.21
+          guard_metric_neg   × cci_scaled          real ρ=-0.30  syn ρ=-0.49  Δρ=+0.19
+          guard_metric_neg   × bb_position         real ρ=-0.32  syn ρ=-0.51  Δρ=+0.19
+    Columns exceeding ±10 before clipping: [('bb_width', -1.0001307528502497, 16.676458335376665)]
+    balance_single_task: class counts {0: 3852, 1: 47824, 2: 3558} (gan_type=TAB_DDPM)
+    balance_single_task: per-class additions {0: 5712, 2: 6006}
+      generated 5712 samples for class 0
+      generated 6006 samples for class 2
+    balance_single_task: rows 55234 -> 66952; counts {0: 3852, 1: 47824, 2: 3558} -> {0: 9564, 1: 47824, 2: 9564}
+    === GAN fidelity diagnostic (real vs synthetic) ===
+      real rows:      55234    synth rows:      11718    features: 24
+      task        cls     N_real      N_syn    |Δμ|max    σ_syn/σ_real  flag
+      ----------------------------------------------------------------------
+      class         0       3852       5712      1.43σ   0.69/ 1.38  shifted,joint_drift
+      class         1      47824          0          -               -  no synth
+      class         2       3558       6006      1.17σ   0.85/ 1.41  shifted,joint_drift
+
+      worst features per bucket (top 2 by severity):
+        class==0:
+          guard_metric_neg      real μ= +0.002 σ= 0.026    syn μ= +0.040 σ= 0.141    Δμ=+1.43σ  σ_ratio=5.34
+          bb_position           real μ= +0.600 σ= 0.305    syn μ= +0.445 σ= 0.408    Δμ=-0.51σ  σ_ratio=1.34
+          vwap_pos              real μ= -0.927 σ= 0.270    syn μ= -0.790 σ= 0.476    Δμ=+0.51σ  σ_ratio=1.76
+        class==2:
+          guard_metric_pos      real μ= +0.002 σ= 0.026    syn μ= +0.033 σ= 0.116    Δμ=+1.17σ  σ_ratio=4.45
+          bb_position           real μ= -0.654 σ= 0.279    syn μ= -0.478 σ= 0.403    Δμ=+0.63σ  σ_ratio=1.44
+          cci_scaled            real μ= -0.569 σ= 0.267    syn μ= -0.409 σ= 0.362    Δμ=+0.60σ  σ_ratio=1.35
+
+    === Joint-distribution diagnostic (correlation matrix) ===
+      task        cls  used_real   used_syn   |Δρ|max   |Δρ|mean  flag
+      ----------------------------------------------------------------------
+      class         0       3852       5712     0.376      0.074  joint_drift
+      class         2       3558       6006     0.319      0.077  joint_drift
+
+      worst feature PAIRS per bucket (top 2 by |Δρ|):
+        class==0:
+          rsi_scaled         × guard_metric_neg    real ρ=-0.14  syn ρ=-0.52  Δρ=+0.38
+          guard_metric_neg   × fastk_scaled        real ρ=-0.08  syn ρ=-0.41  Δρ=+0.33
+          guard_metric_neg   × bb_position         real ρ=-0.17  syn ρ=-0.48  Δρ=+0.32
+        class==2:
+          rsi_scaled         × guard_metric_pos    real ρ=+0.14  syn ρ=+0.46  Δρ=-0.32
+          guard_metric_pos   × bb_position         real ρ=+0.14  syn ρ=+0.45  Δρ=-0.31
+          guard_metric_pos   × fastk_scaled        real ρ=+0.05  syn ρ=+0.34  Δρ=-0.28
+    Columns exceeding ±10 before clipping: [('bb_width', -1.0001307528502497, 13.172310832388956)]
+    balance_single_task: class counts {0: 3320, 1: 48233, 2: 3681} (gan_type=TAB_DDPM)
+    balance_single_task: per-class additions {0: 6326, 2: 5965}
+      generated 6326 samples for class 0
+      generated 5965 samples for class 2
+    balance_single_task: rows 55234 -> 67525; counts {0: 3320, 1: 48233, 2: 3681} -> {0: 9646, 1: 48233, 2: 9646}
+    === GAN fidelity diagnostic (real vs synthetic) ===
+      real rows:      55234    synth rows:      12291    features: 24
+      task        cls     N_real      N_syn    |Δμ|max    σ_syn/σ_real  flag
+      ----------------------------------------------------------------------
+      class         0       3320       6326      1.03σ   0.95/ 1.44  shifted,joint_drift
+      class         1      48233          0          -               -  no synth
+      class         2       3681       5965      1.49σ   1.00/ 1.49  shifted,joint_drift
+
+      worst features per bucket (top 2 by severity):
+        class==2:
+          guard_metric_pos      real μ= +0.002 σ= 0.020    syn μ= +0.031 σ= 0.112    Δμ=+1.49σ  σ_ratio=5.70
+          guard_metric_neg      real μ= +0.695 σ= 0.239    syn μ= +0.526 σ= 0.315    Δμ=-0.70σ  σ_ratio=1.32
+          vwap_neg              real μ= -0.952 σ= 0.212    syn μ= -0.812 σ= 0.457    Δμ=+0.66σ  σ_ratio=2.16
+        class==0:
+          guard_metric_neg      real μ= +0.003 σ= 0.037    syn μ= +0.042 σ= 0.143    Δμ=+1.03σ  σ_ratio=3.85
+          vwap_pos              real μ= -0.956 σ= 0.212    syn μ= -0.782 σ= 0.483    Δμ=+0.82σ  σ_ratio=2.28
+          macd_neg              real μ= +0.025 σ= 0.103    syn μ= +0.107 σ= 0.235    Δμ=+0.80σ  σ_ratio=2.28
+
+    === Joint-distribution diagnostic (correlation matrix) ===
+      task        cls  used_real   used_syn   |Δρ|max   |Δρ|mean  flag
+      ----------------------------------------------------------------------
+      class         0       3320       6326     0.330      0.074  joint_drift
+      class         2       3681       5965     0.303      0.068  joint_drift
+
+      worst feature PAIRS per bucket (top 2 by |Δρ|):
+        class==0:
+          rsi_scaled         × guard_metric_neg    real ρ=-0.17  syn ρ=-0.50  Δρ=+0.33
+          guard_metric_neg   × fastk_scaled        real ρ=-0.12  syn ρ=-0.42  Δρ=+0.30
+          macd_neg           × sar_ratio           real ρ=-0.05  syn ρ=+0.23  Δρ=-0.28
+        class==2:
+          cci_scaled         × fisher_ss           real ρ=+0.45  syn ρ=+0.15  Δρ=+0.30
+          guard_metric_pos   × bb_position         real ρ=+0.14  syn ρ=+0.43  Δρ=-0.29
+          sar_ratio          × fisher_ss           real ρ=-0.45  syn ρ=-0.17  Δρ=-0.28
+    Columns exceeding ±10 before clipping: [('bb_width', -1.0001307528502497, 10.021823762426383)]
+    balance_single_task: class counts {0: 4584, 1: 46210, 2: 4440} (gan_type=TAB_DDPM)
+    balance_single_task: per-class additions {0: 4658, 2: 4802}
+      generated 4658 samples for class 0
+      generated 4802 samples for class 2
+    balance_single_task: rows 55234 -> 64694; counts {0: 4584, 1: 46210, 2: 4440} -> {0: 9242, 1: 46210, 2: 9242}
+    === GAN fidelity diagnostic (real vs synthetic) ===
+      real rows:      55234    synth rows:       9460    features: 24
+      task        cls     N_real      N_syn    |Δμ|max    σ_syn/σ_real  flag
+      ----------------------------------------------------------------------
+      class         0       4584       4658      1.29σ   0.89/ 1.38  shifted,joint_drift
+      class         1      46210          0          -               -  no synth
+      class         2       4440       4802      1.45σ   0.91/ 1.41  shifted,joint_drift
+
+      worst features per bucket (top 2 by severity):
+        class==2:
+          guard_metric_pos      real μ= +0.002 σ= 0.021    syn μ= +0.032 σ= 0.116    Δμ=+1.45σ  σ_ratio=5.56
+          guard_metric_neg      real μ= +0.684 σ= 0.245    syn μ= +0.519 σ= 0.317    Δμ=-0.67σ  σ_ratio=1.29
+          bb_position           real μ= -0.653 σ= 0.283    syn μ= -0.482 σ= 0.393    Δμ=+0.60σ  σ_ratio=1.39
+        class==0:
+          guard_metric_neg      real μ= +0.003 σ= 0.031    syn μ= +0.043 σ= 0.144    Δμ=+1.29σ  σ_ratio=4.73
+          bb_position           real μ= +0.621 σ= 0.299    syn μ= +0.447 σ= 0.411    Δμ=-0.58σ  σ_ratio=1.38
+          macd_neg              real μ= +0.035 σ= 0.129    syn μ= +0.109 σ= 0.236    Δμ=+0.57σ  σ_ratio=1.83
+
+    === Joint-distribution diagnostic (correlation matrix) ===
+      task        cls  used_real   used_syn   |Δρ|max   |Δρ|mean  flag
+      ----------------------------------------------------------------------
+      class         0       4584       4658     0.360      0.079  joint_drift
+      class         2       4440       4802     0.317      0.063  joint_drift
+
+      worst feature PAIRS per bucket (top 2 by |Δρ|):
+        class==0:
+          rsi_scaled         × guard_metric_neg    real ρ=-0.15  syn ρ=-0.51  Δρ=+0.36
+          guard_metric_neg   × vwap_pos            real ρ=+0.14  syn ρ=+0.48  Δρ=-0.34
+          guard_metric_neg   × fastk_scaled        real ρ=-0.09  syn ρ=-0.42  Δρ=+0.33
+        class==2:
+          rsi_scaled         × guard_metric_pos    real ρ=+0.14  syn ρ=+0.46  Δρ=-0.32
+          guard_metric_pos   × cci_scaled          real ρ=+0.18  syn ρ=+0.43  Δρ=-0.25
+          guard_metric_pos   × bb_position         real ρ=+0.18  syn ρ=+0.43  Δρ=-0.25
+    Columns exceeding ±10 before clipping: [('bb_width', -1.0001307528502497, 15.26941264658338)]
+    balance_single_task: class counts {0: 6416, 1: 42864, 2: 5954} (gan_type=TAB_DDPM)
+    balance_single_task: per-class additions {0: 2156, 2: 2618}
+      generated 2156 samples for class 0
+      generated 2618 samples for class 2
+    balance_single_task: rows 55234 -> 60008; counts {0: 6416, 1: 42864, 2: 5954} -> {0: 8572, 1: 42864, 2: 8572}
+    === GAN fidelity diagnostic (real vs synthetic) ===
+      real rows:      55234    synth rows:       4774    features: 24
+      task        cls     N_real      N_syn    |Δμ|max    σ_syn/σ_real  flag
+      ----------------------------------------------------------------------
+      class         0       6416       2156      0.80σ   0.97/ 1.28  ok
+      class         1      42864          0          -               -  no synth
+      class         2       5954       2618      0.96σ   0.92/ 1.28  joint_drift
+
+      worst features per bucket (top 2 by severity):
+        class==2:
+          guard_metric_pos      real μ= +0.004 σ= 0.031    syn μ= +0.033 σ= 0.117    Δμ=+0.96σ  σ_ratio=3.81
+          bb_position           real μ= -0.628 σ= 0.293    syn μ= -0.488 σ= 0.392    Δμ=+0.48σ  σ_ratio=1.34
+          vwap_neg              real μ= -0.933 σ= 0.249    syn μ= -0.818 σ= 0.455    Δμ=+0.46σ  σ_ratio=1.83
+        class==0:
+          guard_metric_neg      real μ= +0.006 σ= 0.045    syn μ= +0.042 σ= 0.143    Δμ=+0.80σ  σ_ratio=3.16
+          macd_neg              real μ= +0.040 σ= 0.132    syn μ= +0.118 σ= 0.247    Δμ=+0.59σ  σ_ratio=1.87
+          fastk_scaled          real μ= +0.694 σ= 0.404    syn μ= +0.461 σ= 0.562    Δμ=-0.58σ  σ_ratio=1.39
+
+    === Joint-distribution diagnostic (correlation matrix) ===
+      task        cls  used_real   used_syn   |Δρ|max   |Δρ|mean  flag
+      ----------------------------------------------------------------------
+      class         0       6416       2156     0.271      0.070  ok
+      class         2       5954       2618     0.301      0.058  joint_drift
+
+      worst feature PAIRS per bucket (top 2 by |Δρ|):
+        class==2:
+          rsi_scaled         × guard_metric_pos    real ρ=+0.15  syn ρ=+0.45  Δρ=-0.30
+          guard_metric_pos   × bb_position         real ρ=+0.17  syn ρ=+0.44  Δρ=-0.27
+          guard_metric_pos   × cci_scaled          real ρ=+0.17  syn ρ=+0.43  Δρ=-0.26
+        class==0:
+          rsi_scaled         × guard_metric_neg    real ρ=-0.21  syn ρ=-0.48  Δρ=+0.27
+          guard_metric_neg   × vwap_pos            real ρ=+0.21  syn ρ=+0.47  Δρ=-0.25
+          guard_metric_neg   × bb_position         real ρ=-0.23  syn ρ=-0.47  Δρ=+0.24
+    Columns exceeding ±10 before clipping: [('bb_width', -1.0001307528502497, 15.76205569340843)]
+    balance_single_task: class counts {0: 5994, 1: 43993, 2: 5247} (gan_type=TAB_DDPM)
+    balance_single_task: per-class additions {0: 2804, 2: 3551}
+      generated 2804 samples for class 0
+      generated 3551 samples for class 2
+    balance_single_task: rows 55234 -> 61589; counts {0: 5994, 1: 43993, 2: 5247} -> {0: 8798, 1: 43993, 2: 8798}
+    === GAN fidelity diagnostic (real vs synthetic) ===
+      real rows:      55234    synth rows:       6355    features: 24
+      task        cls     N_real      N_syn    |Δμ|max    σ_syn/σ_real  flag
+      ----------------------------------------------------------------------
+      class         0       5994       2804      0.79σ   0.91/ 1.25  ok
+      class         1      43993          0          -               -  no synth
+      class         2       5247       3551      0.88σ   0.94/ 1.24  joint_drift
+
+      worst features per bucket (top 2 by severity):
+        class==2:
+          guard_metric_pos      real μ= +0.004 σ= 0.035    syn μ= +0.034 σ= 0.116    Δμ=+0.88σ  σ_ratio=3.36
+          fastk_scaled          real μ= -0.715 σ= 0.396    syn μ= -0.496 σ= 0.526    Δμ=+0.55σ  σ_ratio=1.33
+          bb_position           real μ= -0.622 σ= 0.297    syn μ= -0.469 σ= 0.394    Δμ=+0.51σ  σ_ratio=1.32
+        class==0:
+          guard_metric_neg      real μ= +0.005 σ= 0.048    syn μ= +0.043 σ= 0.144    Δμ=+0.79σ  σ_ratio=3.01
+          fastk_scaled          real μ= +0.697 σ= 0.398    syn μ= +0.478 σ= 0.549    Δμ=-0.55σ  σ_ratio=1.38
+          vwap_pos              real μ= -0.925 σ= 0.287    syn μ= -0.776 σ= 0.486    Δμ=+0.52σ  σ_ratio=1.69
+
+    === Joint-distribution diagnostic (correlation matrix) ===
+      task        cls  used_real   used_syn   |Δρ|max   |Δρ|mean  flag
+      ----------------------------------------------------------------------
+      class         0       5994       2804     0.274      0.069  ok
+      class         2       5247       3551     0.302      0.060  joint_drift
+
+      worst feature PAIRS per bucket (top 2 by |Δρ|):
+        class==2:
+          rsi_scaled         × guard_metric_pos    real ρ=+0.15  syn ρ=+0.46  Δρ=-0.30
+          guard_metric_pos   × bb_position         real ρ=+0.17  syn ρ=+0.46  Δρ=-0.28
+          guard_metric_pos   × cci_scaled          real ρ=+0.17  syn ρ=+0.45  Δρ=-0.28
+        class==0:
+          rsi_scaled         × guard_metric_neg    real ρ=-0.23  syn ρ=-0.51  Δρ=+0.27
+          guard_metric_neg   × bb_position         real ρ=-0.23  syn ρ=-0.50  Δρ=+0.27
+          guard_metric_neg   × cci_scaled          real ρ=-0.23  syn ρ=-0.49  Δρ=+0.26
+    Columns exceeding ±10 before clipping: [('bb_width', -1.0001307528502497, 34.81767015448198)]
+    balance_single_task: class counts {0: 4825, 1: 46803, 2: 3678} (gan_type=TAB_DDPM)
+    balance_single_task: per-class additions {0: 4535, 2: 5682}
+      generated 4535 samples for class 0
+      generated 5682 samples for class 2
+    balance_single_task: rows 55306 -> 65523; counts {0: 4825, 1: 46803, 2: 3678} -> {0: 9360, 1: 46803, 2: 9360}
+    === GAN fidelity diagnostic (real vs synthetic) ===
+      real rows:      55306    synth rows:      10217    features: 24
+      task        cls     N_real      N_syn    |Δμ|max    σ_syn/σ_real  flag
+      ----------------------------------------------------------------------
+      class         0       4825       4535      0.46σ   0.49/ 1.03  ok
+      class         1      46803          0          -               -  no synth
+      class         2       3678       5682      0.54σ   0.59/ 1.06  joint_drift
+
+      worst features per bucket (top 2 by severity):
+        class==0:
+          bb_width              real μ= -0.426 σ= 0.380    syn μ= -0.602 σ= 0.185    Δμ=-0.46σ  σ_ratio=0.49
+          rsi_scaled            real μ= +0.342 σ= 0.294    syn μ= +0.231 σ= 0.273    Δμ=-0.38σ  σ_ratio=0.93
+          sar_ratio             real μ= -0.535 σ= 0.523    syn μ= -0.357 σ= 0.594    Δμ=+0.34σ  σ_ratio=1.13
+        class==2:
+          fastk_scaled          real μ= -0.741 σ= 0.415    syn μ= -0.518 σ= 0.513    Δμ=+0.54σ  σ_ratio=1.24
+          bb_width              real μ= -0.458 σ= 0.324    syn μ= -0.602 σ= 0.190    Δμ=-0.44σ  σ_ratio=0.59
+          rsi_scaled            real μ= -0.377 σ= 0.293    syn μ= -0.250 σ= 0.256    Δμ=+0.43σ  σ_ratio=0.87
+
+    === Joint-distribution diagnostic (correlation matrix) ===
+      task        cls  used_real   used_syn   |Δρ|max   |Δρ|mean  flag
+      ----------------------------------------------------------------------
+      class         0       4825       4535     0.202      0.054  ok
+      class         2       3678       5682     0.324      0.063  joint_drift
+
+      worst feature PAIRS per bucket (top 2 by |Δρ|):
+        class==2:
+          bb_width           × adx_scaled          real ρ=-0.12  syn ρ=+0.20  Δρ=-0.32
+          guard_metric_neg   × cci_scaled          real ρ=-0.40  syn ρ=-0.61  Δρ=+0.20
+          guard_metric_pos   × bb_position         real ρ=+0.23  syn ρ=+0.44  Δρ=-0.20
+        class==0:
+          bb_width           × adx_scaled          real ρ=-0.03  syn ρ=+0.17  Δρ=-0.20
+          di_diff_scaled     × cci_scaled          real ρ=+0.41  syn ρ=+0.59  Δρ=-0.18
+          guard_metric_pos   × cci_scaled          real ρ=+0.46  syn ρ=+0.63  Δρ=-0.17
+    Columns exceeding ±10 before clipping: [('bb_width', -1.0001307528502497, 13.282909868321585)]
+    balance_single_task: class counts {0: 7206, 1: 41195, 2: 6905} (gan_type=TAB_DDPM)
+    balance_single_task: per-class additions {0: 1033, 2: 1334}
+      generated 1033 samples for class 0
+      generated 1334 samples for class 2
+    balance_single_task: rows 55306 -> 57673; counts {0: 7206, 1: 41195, 2: 6905} -> {0: 8239, 1: 41195, 2: 8239}
+    === GAN fidelity diagnostic (real vs synthetic) ===
+      real rows:      55306    synth rows:       2367    features: 24
+      task        cls     N_real      N_syn    |Δμ|max    σ_syn/σ_real  flag
+      ----------------------------------------------------------------------
+      class         0       7206       1033      1.12σ   0.79/ 1.29  shifted,joint_drift
+      class         1      41195          0          -               -  no synth
+      class         2       6905       1334      0.89σ   0.96/ 1.29  joint_drift
+
+      worst features per bucket (top 2 by severity):
+        class==0:
+          guard_metric_neg      real μ= +0.005 σ= 0.040    syn μ= +0.050 σ= 0.158    Δμ=+1.12σ  σ_ratio=3.91
+          bb_position           real μ= +0.598 σ= 0.309    syn μ= +0.435 σ= 0.405    Δμ=-0.53σ  σ_ratio=1.31
+          macd_neg              real μ= +0.053 σ= 0.159    syn μ= +0.135 σ= 0.263    Δμ=+0.52σ  σ_ratio=1.65
+        class==2:
+          guard_metric_pos      real μ= +0.004 σ= 0.032    syn μ= +0.033 σ= 0.120    Δμ=+0.89σ  σ_ratio=3.72
+          bb_position           real μ= -0.630 σ= 0.293    syn μ= -0.467 σ= 0.401    Δμ=+0.56σ  σ_ratio=1.37
+          cci_scaled            real μ= -0.546 σ= 0.274    syn μ= -0.399 σ= 0.353    Δμ=+0.54σ  σ_ratio=1.29
+
+    === Joint-distribution diagnostic (correlation matrix) ===
+      task        cls  used_real   used_syn   |Δρ|max   |Δρ|mean  flag
+      ----------------------------------------------------------------------
+      class         0       7206       1033     0.365      0.089  joint_drift
+      class         2       6905       1334     0.320      0.060  joint_drift
+
+      worst feature PAIRS per bucket (top 2 by |Δρ|):
+        class==0:
+          rsi_scaled         × guard_metric_neg    real ρ=-0.17  syn ρ=-0.53  Δρ=+0.36
+          guard_metric_neg   × vwap_pos            real ρ=+0.15  syn ρ=+0.47  Δρ=-0.32
+          guard_metric_neg   × bb_position         real ρ=-0.20  syn ρ=-0.52  Δρ=+0.32
+        class==2:
+          rsi_scaled         × guard_metric_pos    real ρ=+0.17  syn ρ=+0.49  Δρ=-0.32
+          guard_metric_pos   × bb_position         real ρ=+0.20  syn ρ=+0.45  Δρ=-0.25
+          guard_metric_pos   × cci_scaled          real ρ=+0.21  syn ρ=+0.46  Δρ=-0.24
+    Columns exceeding ±10 before clipping: [('bb_width', -1.0001307528502497, 13.671443881083967)]
+    balance_single_task: class counts {0: 4637, 1: 45879, 2: 4790} (gan_type=TAB_DDPM)
+    balance_single_task: per-class additions {0: 4538, 2: 4385}
+      generated 4538 samples for class 0
+      generated 4385 samples for class 2
+    balance_single_task: rows 55306 -> 64229; counts {0: 4637, 1: 45879, 2: 4790} -> {0: 9175, 1: 45879, 2: 9175}
+    === GAN fidelity diagnostic (real vs synthetic) ===
+      real rows:      55306    synth rows:       8923    features: 24
+      task        cls     N_real      N_syn    |Δμ|max    σ_syn/σ_real  flag
+      ----------------------------------------------------------------------
+      class         0       4637       4538      1.06σ   0.98/ 1.39  shifted,joint_drift
+      class         1      45879          0          -               -  no synth
+      class         2       4790       4385      1.31σ   0.91/ 1.42  shifted,joint_drift
+
+      worst features per bucket (top 2 by severity):
+        class==2:
+          guard_metric_pos      real μ= +0.002 σ= 0.023    syn μ= +0.031 σ= 0.112    Δμ=+1.31σ  σ_ratio=4.93
+          guard_metric_neg      real μ= +0.685 σ= 0.240    syn μ= +0.515 σ= 0.318    Δμ=-0.71σ  σ_ratio=1.32
+          bb_position           real μ= -0.666 σ= 0.279    syn μ= -0.475 σ= 0.390    Δμ=+0.69σ  σ_ratio=1.40
+        class==0:
+          guard_metric_neg      real μ= +0.004 σ= 0.036    syn μ= +0.042 σ= 0.144    Δμ=+1.06σ  σ_ratio=3.96
+          macd_neg              real μ= +0.028 σ= 0.112    syn μ= +0.114 σ= 0.244    Δμ=+0.76σ  σ_ratio=2.18
+          vwap_pos              real μ= -0.947 σ= 0.236    syn μ= -0.780 σ= 0.487    Δμ=+0.71σ  σ_ratio=2.06
+
+    === Joint-distribution diagnostic (correlation matrix) ===
+      task        cls  used_real   used_syn   |Δρ|max   |Δρ|mean  flag
+      ----------------------------------------------------------------------
+      class         0       4637       4538     0.326      0.076  joint_drift
+      class         2       4790       4385     0.304      0.067  joint_drift
+
+      worst feature PAIRS per bucket (top 2 by |Δρ|):
+        class==0:
+          rsi_scaled         × guard_metric_neg    real ρ=-0.17  syn ρ=-0.50  Δρ=+0.33
+          guard_metric_neg   × bb_position         real ρ=-0.22  syn ρ=-0.51  Δρ=+0.28
+          guard_metric_neg   × vwap_pos            real ρ=+0.20  syn ρ=+0.47  Δρ=-0.27
+        class==2:
+          rsi_scaled         × guard_metric_pos    real ρ=+0.13  syn ρ=+0.44  Δρ=-0.30
+          cci_scaled         × fisher_ss           real ρ=+0.40  syn ρ=+0.13  Δρ=+0.27
+          macd_pos           × sar_ratio           real ρ=+0.02  syn ρ=-0.25  Δρ=+0.27
+    Columns exceeding ±10 before clipping: [('bb_width', -1.0001307528502497, 19.190928111705656)]
+    balance_single_task: class counts {0: 3686, 1: 47862, 2: 3758} (gan_type=TAB_DDPM)
+    balance_single_task: per-class additions {0: 5886, 2: 5814}
+      generated 5886 samples for class 0
+      generated 5814 samples for class 2
+    balance_single_task: rows 55306 -> 67006; counts {0: 3686, 1: 47862, 2: 3758} -> {0: 9572, 1: 47862, 2: 9572}
+    === GAN fidelity diagnostic (real vs synthetic) ===
+      real rows:      55306    synth rows:      11700    features: 24
+      task        cls     N_real      N_syn    |Δμ|max    σ_syn/σ_real  flag
+      ----------------------------------------------------------------------
+      class         0       3686       5886      1.05σ   0.91/ 1.35  shifted,joint_drift
+      class         1      47862          0          -               -  no synth
+      class         2       3758       5814      1.45σ   0.86/ 1.41  shifted,joint_drift
+
+      worst features per bucket (top 2 by severity):
+        class==2:
+          guard_metric_pos      real μ= +0.002 σ= 0.021    syn μ= +0.032 σ= 0.118    Δμ=+1.45σ  σ_ratio=5.56
+          bb_position           real μ= -0.652 σ= 0.282    syn μ= -0.489 σ= 0.388    Δμ=+0.58σ  σ_ratio=1.37
+          guard_metric_neg      real μ= +0.660 σ= 0.242    syn μ= +0.522 σ= 0.316    Δμ=-0.57σ  σ_ratio=1.31
+        class==0:
+          guard_metric_neg      real μ= +0.004 σ= 0.037    syn μ= +0.044 σ= 0.146    Δμ=+1.05σ  σ_ratio=3.90
+          vwap_pos              real μ= -0.941 σ= 0.236    syn μ= -0.771 σ= 0.489    Δμ=+0.72σ  σ_ratio=2.07
+          bb_position           real μ= +0.601 σ= 0.310    syn μ= +0.436 σ= 0.412    Δμ=-0.53σ  σ_ratio=1.33
+
+    === Joint-distribution diagnostic (correlation matrix) ===
+      task        cls  used_real   used_syn   |Δρ|max   |Δρ|mean  flag
+      ----------------------------------------------------------------------
+      class         0       3686       5886     0.326      0.071  joint_drift
+      class         2       3758       5814     0.346      0.067  joint_drift
+
+      worst feature PAIRS per bucket (top 2 by |Δρ|):
+        class==2:
+          rsi_scaled         × guard_metric_pos    real ρ=+0.11  syn ρ=+0.45  Δρ=-0.35
+          guard_metric_pos   × bb_position         real ρ=+0.10  syn ρ=+0.41  Δρ=-0.31
+          guard_metric_pos   × cci_scaled          real ρ=+0.13  syn ρ=+0.41  Δρ=-0.28
+        class==0:
+          rsi_scaled         × guard_metric_neg    real ρ=-0.18  syn ρ=-0.50  Δρ=+0.33
+          guard_metric_neg   × bb_position         real ρ=-0.20  syn ρ=-0.48  Δρ=+0.28
+          guard_metric_neg   × fastk_scaled        real ρ=-0.12  syn ρ=-0.39  Δρ=+0.27
+    Columns exceeding ±10 before clipping: [('bb_width', -1.0001307528502497, 10.502415466485646)]
+    balance_single_task: class counts {0: 4565, 1: 46674, 2: 4067} (gan_type=TAB_DDPM)
+    balance_single_task: per-class additions {0: 4769, 2: 5267}
+      generated 4769 samples for class 0
+      generated 5267 samples for class 2
+    balance_single_task: rows 55306 -> 65342; counts {0: 4565, 1: 46674, 2: 4067} -> {0: 9334, 1: 46674, 2: 9334}
+    === GAN fidelity diagnostic (real vs synthetic) ===
+      real rows:      55306    synth rows:      10036    features: 24
+      task        cls     N_real      N_syn    |Δμ|max    σ_syn/σ_real  flag
+      ----------------------------------------------------------------------
+      class         0       4565       4769      0.61σ   0.93/ 1.22  ok
+      class         1      46674          0          -               -  no synth
+      class         2       4067       5267      0.63σ   0.99/ 1.22  ok
+
+      worst features per bucket (top 2 by severity):
+        class==0:
+          guard_metric_neg      real μ= +0.008 σ= 0.057    syn μ= +0.043 σ= 0.142    Δμ=+0.61σ  σ_ratio=2.48
+          macd_neg              real μ= +0.042 σ= 0.135    syn μ= +0.113 σ= 0.236    Δμ=+0.53σ  σ_ratio=1.74
+          vwap_pos              real μ= -0.916 σ= 0.306    syn μ= -0.772 σ= 0.496    Δμ=+0.47σ  σ_ratio=1.62
+        class==2:
+          guard_metric_pos      real μ= +0.005 σ= 0.044    syn μ= +0.033 σ= 0.119    Δμ=+0.63σ  σ_ratio=2.68
+          macd_pos              real μ= +0.041 σ= 0.135    syn μ= +0.103 σ= 0.232    Δμ=+0.46σ  σ_ratio=1.72
+          fastk_scaled          real μ= -0.677 σ= 0.413    syn μ= -0.505 σ= 0.521    Δμ=+0.42σ  σ_ratio=1.26
+
+    === Joint-distribution diagnostic (correlation matrix) ===
+      task        cls  used_real   used_syn   |Δρ|max   |Δρ|mean  flag
+      ----------------------------------------------------------------------
+      class         0       4565       4769     0.254      0.061  ok
+      class         2       4067       5267     0.236      0.054  ok
+
+      worst feature PAIRS per bucket (top 2 by |Δρ|):
+        class==0:
+          macd_neg           × di_diff_scaled      real ρ=-0.20  syn ρ=-0.46  Δρ=+0.25
+          rsi_scaled         × guard_metric_neg    real ρ=-0.25  syn ρ=-0.50  Δρ=+0.25
+          guard_metric_neg   × cci_scaled          real ρ=-0.26  syn ρ=-0.49  Δρ=+0.23
+        class==2:
+          rsi_scaled         × guard_metric_pos    real ρ=+0.22  syn ρ=+0.45  Δρ=-0.24
+          macd_pos           × di_diff_scaled      real ρ=+0.23  syn ρ=+0.44  Δρ=-0.21
+          guard_metric_pos   × cci_scaled          real ρ=+0.23  syn ρ=+0.43  Δρ=-0.20
+    Columns exceeding ±10 before clipping: [('bb_width', -1.0001307528502497, 13.56570241164032)]
+    balance_single_task: class counts {0: 4049, 1: 47009, 2: 4248} (gan_type=TAB_DDPM)
+    balance_single_task: per-class additions {0: 5352, 2: 5153}
+      generated 5352 samples for class 0
+      generated 5153 samples for class 2
+    balance_single_task: rows 55306 -> 65811; counts {0: 4049, 1: 47009, 2: 4248} -> {0: 9401, 1: 47009, 2: 9401}
+    === GAN fidelity diagnostic (real vs synthetic) ===
+      real rows:      55306    synth rows:      10505    features: 24
+      task        cls     N_real      N_syn    |Δμ|max    σ_syn/σ_real  flag
+      ----------------------------------------------------------------------
+      class         0       4049       5352      1.09σ   0.98/ 1.36  shifted,joint_drift
+      class         1      47009          0          -               -  no synth
+      class         2       4248       5153      0.94σ   0.85/ 1.30  ok
+
+      worst features per bucket (top 2 by severity):
+        class==0:
+          guard_metric_neg      real μ= +0.004 σ= 0.036    syn μ= +0.044 σ= 0.145    Δμ=+1.09σ  σ_ratio=4.01
+          macd_neg              real μ= +0.034 σ= 0.121    syn μ= +0.112 σ= 0.242    Δμ=+0.65σ  σ_ratio=1.99
+          vwap_pos              real μ= -0.933 σ= 0.255    syn μ= -0.772 σ= 0.493    Δμ=+0.63σ  σ_ratio=1.94
+        class==2:
+          guard_metric_pos      real μ= +0.003 σ= 0.030    syn μ= +0.031 σ= 0.114    Δμ=+0.94σ  σ_ratio=3.80
+          bb_position           real μ= -0.641 σ= 0.294    syn μ= -0.483 σ= 0.386    Δμ=+0.54σ  σ_ratio=1.31
+          guard_metric_neg      real μ= +0.659 σ= 0.255    syn μ= +0.524 σ= 0.318    Δμ=-0.53σ  σ_ratio=1.25
+
+    === Joint-distribution diagnostic (correlation matrix) ===
+      task        cls  used_real   used_syn   |Δρ|max   |Δρ|mean  flag
+      ----------------------------------------------------------------------
+      class         0       4049       5352     0.339      0.074  joint_drift
+      class         2       4248       5153     0.285      0.054  ok
+
+      worst feature PAIRS per bucket (top 2 by |Δρ|):
+        class==0:
+          rsi_scaled         × guard_metric_neg    real ρ=-0.17  syn ρ=-0.50  Δρ=+0.34
+          guard_metric_neg   × bb_position         real ρ=-0.19  syn ρ=-0.49  Δρ=+0.30
+          guard_metric_neg   × cci_scaled          real ρ=-0.20  syn ρ=-0.48  Δρ=+0.28
+        class==2:
+          rsi_scaled         × guard_metric_pos    real ρ=+0.16  syn ρ=+0.45  Δρ=-0.28
+          guard_metric_pos   × cci_scaled          real ρ=+0.19  syn ρ=+0.42  Δρ=-0.23
+          guard_metric_pos   × bb_position         real ρ=+0.20  syn ρ=+0.42  Δρ=-0.22
+    Columns exceeding ±10 before clipping: [('bb_width', -1.0001307528502497, 98.36947836360874)]
+    balance_single_task: class counts {0: 4827, 1: 46520, 2: 3959} (gan_type=TAB_DDPM)
+    balance_single_task: per-class additions {0: 4477, 2: 5345}
+      generated 4477 samples for class 0
+      generated 5345 samples for class 2
+    balance_single_task: rows 55306 -> 65128; counts {0: 4827, 1: 46520, 2: 3959} -> {0: 9304, 1: 46520, 2: 9304}
+    === GAN fidelity diagnostic (real vs synthetic) ===
+      real rows:      55306    synth rows:       9822    features: 24
+      task        cls     N_real      N_syn    |Δμ|max    σ_syn/σ_real  flag
+      ----------------------------------------------------------------------
+      class         0       4827       4477      0.45σ   0.73/ 1.07  ok
+      class         1      46520          0          -               -  no synth
+      class         2       3959       5345      0.52σ   0.69/ 1.07  ok
+
+      worst features per bucket (top 2 by severity):
+        class==2:
+          rsi_scaled            real μ= -0.401 σ= 0.295    syn μ= -0.248 σ= 0.259    Δμ=+0.52σ  σ_ratio=0.88
+          fastk_scaled          real μ= -0.714 σ= 0.433    syn μ= -0.505 σ= 0.525    Δμ=+0.48σ  σ_ratio=1.21
+          guard_metric_neg      real μ= +0.639 σ= 0.290    syn μ= +0.522 σ= 0.318    Δμ=-0.40σ  σ_ratio=1.10
+        class==0:
+          rsi_scaled            real μ= +0.347 σ= 0.277    syn μ= +0.223 σ= 0.272    Δμ=-0.45σ  σ_ratio=0.98
+          fastk_scaled          real μ= +0.659 σ= 0.518    syn μ= +0.457 σ= 0.543    Δμ=-0.39σ  σ_ratio=1.05
+          macd_neg              real μ= +0.051 σ= 0.156    syn μ= +0.106 σ= 0.234    Δμ=+0.36σ  σ_ratio=1.50
+
+    === Joint-distribution diagnostic (correlation matrix) ===
+      task        cls  used_real   used_syn   |Δρ|max   |Δρ|mean  flag
+      ----------------------------------------------------------------------
+      class         0       4827       4477     0.223      0.057  ok
+      class         2       3959       5345     0.271      0.061  ok
+
+      worst feature PAIRS per bucket (top 2 by |Δρ|):
+        class==2:
+          guard_metric_pos   × fastk_scaled        real ρ=+0.05  syn ρ=+0.33  Δρ=-0.27
+          fastk_scaled       × cci_scaled          real ρ=+0.45  syn ρ=+0.70  Δρ=-0.25
+          fastk_scaled       × bb_position         real ρ=+0.54  syn ρ=+0.76  Δρ=-0.22
+        class==0:
+          macd_pos           × di_diff_scaled      real ρ=+0.27  syn ρ=+0.50  Δρ=-0.22
+          di_diff_scaled     × cci_scaled          real ρ=+0.40  syn ρ=+0.59  Δρ=-0.19
+          guard_metric_pos   × cci_scaled          real ρ=+0.45  syn ρ=+0.64  Δρ=-0.19
+    MLX model not found (/Users/philprice95/Documents/freqtrade/user_data/strategies/saved_data/NNNC_DDPM_MLX_LSTM/NNNC_DDPM_MLX_LSTM.safetensors)...
+    MLX model created.  Parameters: 12,483
+
+    Training MLX model: NNNC_DDPM_MLX_LSTM
+    train: (830716, 16, 24)  test: (179890, 16, 24)
+    batch_size: 2048  max_epochs: 100
+    grad clip (global L2 norm): 1.0
+    Epoch   1/100 — loss: 0.3977  val_loss: 0.2418  val_precision: 0.3479  val_f1_class_2: 0.4909  val_mcc: 0.5046  clips:18
+    ✓ Best model saved  (val_mcc: 0.5046)
+    Epoch   2/100 — loss: 0.2874  val_loss: 0.2124  val_precision: 0.3784  val_f1_class_2: 0.5229  val_mcc: 0.5319
+    ✓ Best model saved  (val_mcc: 0.5319)
+    Epoch   3/100 — loss: 0.2611  val_loss: 0.2047  val_precision: 0.3828  val_f1_class_2: 0.5305  val_mcc: 0.5396
+    ✓ Best model saved  (val_mcc: 0.5396)
+    Epoch   4/100 — loss: 0.2480  val_loss: 0.2005  val_precision: 0.3786  val_f1_class_2: 0.5303  val_mcc: 0.5455
+    ✓ Best model saved  (val_mcc: 0.5455)
+    Epoch   5/100 — loss: 0.2401  val_loss: 0.1973  val_precision: 0.3846  val_f1_class_2: 0.5356  val_mcc: 0.5483
+    ✓ Best model saved  (val_mcc: 0.5483)
+    Epoch   6/100 — loss: 0.2348  val_loss: 0.1958  val_precision: 0.3873  val_f1_class_2: 0.5389  val_mcc: 0.5514
+    ✓ Best model saved  (val_mcc: 0.5514)
+    Epoch   7/100 — loss: 0.2311  val_loss: 0.1941  val_precision: 0.3864  val_f1_class_2: 0.5388  val_mcc: 0.5514
+    Epoch   8/100 — loss: 0.2275  val_loss: 0.1928  val_precision: 0.3892  val_f1_class_2: 0.5417  val_mcc: 0.5539
+    ✓ Best model saved  (val_mcc: 0.5539)
+    Epoch   9/100 — loss: 0.2254  val_loss: 0.1922  val_precision: 0.3828  val_f1_class_2: 0.5376  val_mcc: 0.5533
+    Epoch  10/100 — loss: 0.2236  val_loss: 0.1912  val_precision: 0.3821  val_f1_class_2: 0.5376  val_mcc: 0.5543
+    ✓ Best model saved  (val_mcc: 0.5543)
+    Epoch  11/100 — loss: 0.2208  val_loss: 0.1906  val_precision: 0.3859  val_f1_class_2: 0.5407  val_mcc: 0.5558
+    ✓ Best model saved  (val_mcc: 0.5558)
+    Epoch  12/100 — loss: 0.2194  val_loss: 0.1900  val_precision: 0.3829  val_f1_class_2: 0.5391  val_mcc: 0.5559
+    ✓ Best model saved  (val_mcc: 0.5559)
+    Epoch  13/100 — loss: 0.2183  val_loss: 0.1888  val_precision: 0.3864  val_f1_class_2: 0.5415  val_mcc: 0.5573
+    ✓ Best model saved  (val_mcc: 0.5573)
+    Epoch  14/100 — loss: 0.2169  val_loss: 0.1884  val_precision: 0.3885  val_f1_class_2: 0.5432  val_mcc: 0.5583
+    ✓ Best model saved  (val_mcc: 0.5583)
+    Epoch  15/100 — loss: 0.2154  val_loss: 0.1878  val_precision: 0.3842  val_f1_class_2: 0.5407  val_mcc: 0.5582
+    Epoch  16/100 — loss: 0.2140  val_loss: 0.1875  val_precision: 0.3851  val_f1_class_2: 0.5407  val_mcc: 0.5591
+    ✓ Best model saved  (val_mcc: 0.5591)
+    Epoch  17/100 — loss: 0.2136  val_loss: 0.1867  val_precision: 0.3924  val_f1_class_2: 0.5463  val_mcc: 0.5604
+    ✓ Best model saved  (val_mcc: 0.5604)
+    Epoch  18/100 — loss: 0.2125  val_loss: 0.1867  val_precision: 0.3886  val_f1_class_2: 0.5438  val_mcc: 0.5598  clips:1
+    Epoch  19/100 — loss: 0.2114  val_loss: 0.1859  val_precision: 0.3875  val_f1_class_2: 0.5433  val_mcc: 0.5604
+    Epoch  20/100 — loss: 0.2104  val_loss: 0.1853  val_precision: 0.3912  val_f1_class_2: 0.5458  val_mcc: 0.5614
+    ✓ Best model saved  (val_mcc: 0.5614)
+    Epoch  21/100 — loss: 0.2096  val_loss: 0.1855  val_precision: 0.3856  val_f1_class_2: 0.5420  val_mcc: 0.5598
+    Epoch  22/100 — loss: 0.2093  val_loss: 0.1857  val_precision: 0.3835  val_f1_class_2: 0.5405  val_mcc: 0.5586
+    Epoch  23/100 — loss: 0.2083  val_loss: 0.1850  val_precision: 0.3836  val_f1_class_2: 0.5407  val_mcc: 0.5599
+    Epoch  24/100 — loss: 0.2075  val_loss: 0.1847  val_precision: 0.3845  val_f1_class_2: 0.5415  val_mcc: 0.5603
+    Epoch  25/100 — loss: 0.2071  val_loss: 0.1841  val_precision: 0.3850  val_f1_class_2: 0.5420  val_mcc: 0.5613
+    Epoch  26/100 — loss: 0.2068  val_loss: 0.1840  val_precision: 0.3883  val_f1_class_2: 0.5444  val_mcc: 0.5614
+    Epoch  27/100 — loss: 0.2061  val_loss: 0.1838  val_precision: 0.3846  val_f1_class_2: 0.5418  val_mcc: 0.5610
+    Epoch  28/100 — loss: 0.2051  val_loss: 0.1836  val_precision: 0.3924  val_f1_class_2: 0.5469  val_mcc: 0.5624
+    ✓ Best model saved  (val_mcc: 0.5624)
+    Epoch  29/100 — loss: 0.2054  val_loss: 0.1836  val_precision: 0.3904  val_f1_class_2: 0.5459  val_mcc: 0.5627
+    ✓ Best model saved  (val_mcc: 0.5627)
+    Epoch  30/100 — loss: 0.2047  val_loss: 0.1830  val_precision: 0.3842  val_f1_class_2: 0.5415  val_mcc: 0.5614
+    Epoch  31/100 — loss: 0.2042  val_loss: 0.1827  val_precision: 0.3920  val_f1_class_2: 0.5474  val_mcc: 0.5631
+    ✓ Best model saved  (val_mcc: 0.5631)
+    Epoch  32/100 — loss: 0.2043  val_loss: 0.1827  val_precision: 0.3899  val_f1_class_2: 0.5461  val_mcc: 0.5640
+    ✓ Best model saved  (val_mcc: 0.5640)
+    Epoch  33/100 — loss: 0.2035  val_loss: 0.1823  val_precision: 0.3914  val_f1_class_2: 0.5466  val_mcc: 0.5629  clips:1
+    Epoch  34/100 — loss: 0.2033  val_loss: 0.1823  val_precision: 0.3883  val_f1_class_2: 0.5447  val_mcc: 0.5626  clips:12026-05-29 07:15:50,311 - freqtrade.optimize.backtesting - INFO - Backtesting with data from 2024-06-08 00:00:00 up to 2026-05-28 15:45:00 (719 days).
+
+    Epoch  35/100 — loss: 0.2024  val_loss: 0.1822  val_precision: 0.3906  val_f1_class_2: 0.5461  val_mcc: 0.5627
+    Epoch  36/100 — loss: 0.2021  val_loss: 0.1818  val_precision: 0.3881  val_f1_class_2: 0.5447  val_mcc: 0.5635  clips:1
+    Epoch  37/100 — loss: 0.2018  val_loss: 0.1819  val_precision: 0.3912  val_f1_class_2: 0.5470  val_mcc: 0.5639  clips:1
+    Epoch  38/100 — loss: 0.2016  val_loss: 0.1818  val_precision: 0.3782  val_f1_class_2: 0.5370  val_mcc: 0.5604
+    Epoch  39/100 — loss: 0.2016  val_loss: 0.1813  val_precision: 0.3904  val_f1_class_2: 0.5465  val_mcc: 0.5636
+    Epoch  40/100 — loss: 0.2016  val_loss: 0.1812  val_precision: 0.3916  val_f1_class_2: 0.5471  val_mcc: 0.5643  clips:1
+    ✓ Best model saved  (val_mcc: 0.5643)
+    Epoch  41/100 — loss: 0.2011  val_loss: 0.1811  val_precision: 0.3867  val_f1_class_2: 0.5438  val_mcc: 0.5631
+    Epoch  42/100 — loss: 0.2003  val_loss: 0.1811  val_precision: 0.3926  val_f1_class_2: 0.5475  val_mcc: 0.5639
+    Epoch  43/100 — loss: 0.2006  val_loss: 0.1811  val_precision: 0.3928  val_f1_class_2: 0.5486  val_mcc: 0.5644
+    ✓ Best model saved  (val_mcc: 0.5644)
+    Epoch  44/100 — loss: 0.1999  val_loss: 0.1811  val_precision: 0.3932  val_f1_class_2: 0.5485  val_mcc: 0.5642
+    Epoch  45/100 — loss: 0.1995  val_loss: 0.1810  val_precision: 0.3847  val_f1_class_2: 0.5428  val_mcc: 0.5629
+    Epoch  46/100 — loss: 0.1999  val_loss: 0.1806  val_precision: 0.3927  val_f1_class_2: 0.5484  val_mcc: 0.5642
+    Epoch  47/100 — loss: 0.1992  val_loss: 0.1810  val_precision: 0.3918  val_f1_class_2: 0.5476  val_mcc: 0.5636
+    Epoch  48/100 — loss: 0.1992  val_loss: 0.1805  val_precision: 0.3919  val_f1_class_2: 0.5480  val_mcc: 0.5644  clips:1
+    Epoch  49/100 — loss: 0.1994  val_loss: 0.1804  val_precision: 0.3877  val_f1_class_2: 0.5449  val_mcc: 0.5630
+    Epoch  50/100 — loss: 0.1988  val_loss: 0.1802  val_precision: 0.3832  val_f1_class_2: 0.5413  val_mcc: 0.5629
+    Epoch  51/100 — loss: 0.1986  val_loss: 0.1802  val_precision: 0.3953  val_f1_class_2: 0.5502  val_mcc: 0.5649
+    ✓ Best model saved  (val_mcc: 0.5649)
+    Epoch  52/100 — loss: 0.1982  val_loss: 0.1800  val_precision: 0.3956  val_f1_class_2: 0.5503  val_mcc: 0.5658  clips:1
+    ✓ Best model saved  (val_mcc: 0.5658)
+    Epoch  53/100 — loss: 0.1982  val_loss: 0.1798  val_precision: 0.3945  val_f1_class_2: 0.5500  val_mcc: 0.5659
+    ✓ Best model saved  (val_mcc: 0.5659)
+    Epoch  54/100 — loss: 0.1975  val_loss: 0.1802  val_precision: 0.3886  val_f1_class_2: 0.5457  val_mcc: 0.5640
+    Epoch  55/100 — loss: 0.1971  val_loss: 0.1796  val_precision: 0.3912  val_f1_class_2: 0.5477  val_mcc: 0.5646
+    Epoch  56/100 — loss: 0.1976  val_loss: 0.1795  val_precision: 0.3853  val_f1_class_2: 0.5432  val_mcc: 0.5632
+    Epoch  57/100 — loss: 0.1974  val_loss: 0.1801  val_precision: 0.3822  val_f1_class_2: 0.5409  val_mcc: 0.5621
+    Epoch  58/100 — loss: 0.1977  val_loss: 0.1794  val_precision: 0.3837  val_f1_class_2: 0.5419  val_mcc: 0.5626
+    Epoch  59/100 — loss: 0.1974  val_loss: 0.1800  val_precision: 0.3978  val_f1_class_2: 0.5522  val_mcc: 0.5647  clips:1
+    Epoch  60/100 — loss: 0.1972  val_loss: 0.1794  val_precision: 0.3900  val_f1_class_2: 0.5473  val_mcc: 0.5643  clips:1
+    Epoch  61/100 — loss: 0.1965  val_loss: 0.1792  val_precision: 0.3920  val_f1_class_2: 0.5481  val_mcc: 0.5652
+    ReduceLROnPlateau → lr=1.00e-05
+    Epoch  62/100 — loss: 0.1961  val_loss: 0.1792  val_precision: 0.3896  val_f1_class_2: 0.5467  val_mcc: 0.5644
+    Epoch  63/100 — loss: 0.1960  val_loss: 0.1791  val_precision: 0.3912  val_f1_class_2: 0.5478  val_mcc: 0.5650
+    Epoch  64/100 — loss: 0.1961  val_loss: 0.1791  val_precision: 0.3902  val_f1_class_2: 0.5471  val_mcc: 0.5651
+    Epoch  65/100 — loss: 0.1962  val_loss: 0.1791  val_precision: 0.3907  val_f1_class_2: 0.5475  val_mcc: 0.5649
+    Epoch  66/100 — loss: 0.1963  val_loss: 0.1791  val_precision: 0.3888  val_f1_class_2: 0.5463  val_mcc: 0.5648  clips:2
+    Epoch  67/100 — loss: 0.1958  val_loss: 0.1791  val_precision: 0.3908  val_f1_class_2: 0.5476  val_mcc: 0.5652
+    Epoch  68/100 — loss: 0.1967  val_loss: 0.1791  val_precision: 0.3914  val_f1_class_2: 0.5480  val_mcc: 0.5651
+    Epoch  69/100 — loss: 0.1960  val_loss: 0.1791  val_precision: 0.3909  val_f1_class_2: 0.5477  val_mcc: 0.5647
+    ReduceLROnPlateau → lr=1.00e-06
+    Epoch  70/100 — loss: 0.1957  val_loss: 0.1791  val_precision: 0.3905  val_f1_class_2: 0.5474  val_mcc: 0.5649
+    Epoch  71/100 — loss: 0.1959  val_loss: 0.1791  val_precision: 0.3907  val_f1_class_2: 0.5476  val_mcc: 0.5648  clips:1
+    Epoch  72/100 — loss: 0.1960  val_loss: 0.1791  val_precision: 0.3907  val_f1_class_2: 0.5476  val_mcc: 0.5650
+    Epoch  73/100 — loss: 0.1960  val_loss: 0.1791  val_precision: 0.3902  val_f1_class_2: 0.5474  val_mcc: 0.5650
+    EarlyStopping at epoch 73 (no improvement for 20 epochs)
+    Restoring best weights from /tmp/NNNC_DDPM_MLX_LSTM/checkpoint.safetensors
+    Saving MLX model to: /Users/philprice95/Documents/freqtrade/user_data/strategies/saved_data/NNNC_DDPM_MLX_LSTM/NNNC_DDPM_MLX_LSTM.safetensors
+    Trading - Sell:
+        min: 0.000 max: 0.950, mean: 0.208
+        signals > 0.500: 16482 (23.9%)
+        counts: [39865, 5971, 2634, 1949, 2161, 7829, 7492, 1146, 11, 4, 0]
+        percentages: [0.58, 0.09, 0.04, 0.03, 0.03, 0.11, 0.11, 0.02, 0.0, 0.0, 0.0]
+        cumulative: [0.58, 0.66, 0.7, 0.73, 0.76, 0.87, 0.98, 1.0, 1.0, 1.0, 1.0]
+    Trading - Hold:
+        min: 0.034 max: 0.935, mean: 0.596
+        signals > 0.500: 35530 (51.4%)
+        counts: [8, 32, 2844, 13361, 17287, 4837, 3572, 5051, 18646, 3424, 0]
+        percentages: [0.0, 0.0, 0.04, 0.19, 0.25, 0.07, 0.05, 0.07, 0.27, 0.05, 0.0]
+        cumulative: [0.0, 0.0, 0.04, 0.24, 0.49, 0.56, 0.61, 0.68, 0.95, 1.0, 1.0]
+    Trading - Buy:
+        min: 0.000 max: 0.880, mean: 0.195
+        signals > 0.500: 14573 (21.1%)
+        counts: [41259, 5478, 2769, 2213, 2770, 7952, 5088, 1512, 21, 0, 0]
+        percentages: [0.6, 0.08, 0.04, 0.03, 0.04, 0.12, 0.07, 0.02, 0.0, 0.0, 0.0]
+        cumulative: [0.6, 0.68, 0.72, 0.75, 0.79, 0.9, 0.98, 1.0, 1.0, 1.0, 1.0]
+
+ZEC/USDT
+    Comparing actual vs predicted signals
+
+================================================================================
+CLASSIFICATION PERFORMANCE ASSESSMENT (Tri-State)
+================================================================================
+--- Detailed Classification Report ---
+              precision    recall  f1-score   support
+
+         0.0      0.504     0.877     0.640      9463
+         1.0      0.943     0.683     0.792     52507
+         2.0      0.412     0.847     0.554      7092
+
+    accuracy                          0.726     69062
+   macro avg      0.620     0.802     0.662     69062
+weighted avg      0.829     0.726     0.747     69062
+
+
+--- Confusion Matrix ---
+Rows = True, Columns = Predicted
+             Sell     Hold      Buy
+    Sell     8301     1098       64
+    Hold     8146    35856     8505
+     Buy       35     1053     6004
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Precision (Sell)          0.504   Okay. Acceptable, but needs improvement. Avoid false sell signals (support: 9463.0)
+Recall (Sell)             0.877   Excellent. Very strong performance.      Find all sell opportunities (support: 9463.0)
+F1-Score (Sell)           0.640   Good. Reliable performance.              Balanced performance on Sell signal (support: 9463.0)
+Precision (Hold)          0.943   Excellent. Very strong performance.      Correctly identify neutral periods (support: 52507.0)
+Recall (Hold)             0.683   Good. Reliable performance.              Find all neutral periods (support: 52507.0)
+F1-Score (Hold)           0.792   Good. Reliable performance.              Balanced performance on Hold signal (support: 52507.0)
+Precision (Buy)           0.412   Okay. Acceptable, but needs improvement. Avoid false buy signals (support: 7092.0)
+Recall (Buy)              0.847   Excellent. Very strong performance.      Find all buy opportunities (support: 7092.0)
+F1-Score (Buy)            0.554   Okay. Acceptable, but needs improvement. Balanced performance on Buy signal (support: 7092.0)
+
+--- Overall Performance Metrics ---
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Macro Avg Precision       0.620   Good. Reliable performance.              Average precision across all classes
+Macro Avg Recall          0.802   Excellent. Very strong performance.      Average recall across all classes
+Macro Avg F1-Score        0.662   Good. Reliable performance.              Average F1-score across all classes
+Weighted Avg Precision    0.829   Excellent. Very strong performance.      Support-weighted average precision
+Weighted Avg Recall       0.726   Good. Reliable performance.              Support-weighted average recall
+Weighted Avg F1-Score     0.747   Good. Reliable performance.              Support-weighted average F1-score
+MCC                       0.524   Good. Reliable positive correlation.     Correlation between prediction and reality
+Cohen's Kappa             0.481   Moderate. Meaningful agreement.          Agreement better than random chance
+
+--- Summary and Recommendation ---
+🌟 GOOD PERFORMANCE: The model shows strong balance (Macro F1-Score 0.662, Weighted F1-Score 0.747) and reliable correlation (MCC 0.524). All classes performing reasonably well.
+================================================================================
+    Trading - Sell:
+        min: 0.001 max: 0.801, mean: 0.119
+        signals > 0.500: 6611 (9.6%)
+        counts: [51376, 6805, 2161, 1148, 961, 1931, 4176, 503, 1, 0, 0]
+        percentages: [0.74, 0.1, 0.03, 0.02, 0.01, 0.03, 0.06, 0.01, 0.0, 0.0, 0.0]
+        cumulative: [0.74, 0.84, 0.87, 0.89, 0.9, 0.93, 0.99, 1.0, 1.0, 1.0, 1.0]
+    Trading - Hold:
+        min: 0.184 max: 0.941, mean: 0.765
+        signals > 0.500: 55879 (80.9%)
+        counts: [0, 3, 1415, 7568, 4197, 1871, 2126, 4439, 26776, 20667, 0]
+        percentages: [0.0, 0.0, 0.02, 0.11, 0.06, 0.03, 0.03, 0.06, 0.39, 0.3, 0.0]
+        cumulative: [0.0, 0.0, 0.02, 0.13, 0.19, 0.22, 0.25, 0.31, 0.7, 1.0, 1.0]
+    Trading - Buy:
+        min: 0.000 max: 0.811, mean: 0.116
+        signals > 0.500: 5916 (8.6%)
+        counts: [51772, 7423, 1947, 1062, 942, 1984, 3077, 854, 1, 0, 0]
+        percentages: [0.75, 0.11, 0.03, 0.02, 0.01, 0.03, 0.04, 0.01, 0.0, 0.0, 0.0]
+        cumulative: [0.75, 0.86, 0.89, 0.9, 0.91, 0.94, 0.99, 1.0, 1.0, 1.0, 1.0]
+
+XRP/USDT
+    Comparing actual vs predicted signals
+
+================================================================================
+CLASSIFICATION PERFORMANCE ASSESSMENT (Tri-State)
+================================================================================
+--- Detailed Classification Report ---
+              precision    recall  f1-score   support
+
+         0.0      0.604     0.917     0.728      4355
+         1.0      0.987     0.919     0.952     60725
+         2.0      0.606     0.900     0.724      3982
+
+    accuracy                          0.918     69062
+   macro avg      0.732     0.912     0.801     69062
+weighted avg      0.941     0.918     0.924     69062
+
+
+--- Confusion Matrix ---
+Rows = True, Columns = Predicted
+             Sell     Hold      Buy
+    Sell     3992      356        7
+    Hold     2605    55796     2324
+     Buy       14      383     3585
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Precision (Sell)          0.604   Good. Reliable performance.              Avoid false sell signals (support: 4355.0)
+Recall (Sell)             0.917   Excellent. Very strong performance.      Find all sell opportunities (support: 4355.0)
+F1-Score (Sell)           0.728   Good. Reliable performance.              Balanced performance on Sell signal (support: 4355.0)
+Precision (Hold)          0.987   Excellent. Very strong performance.      Correctly identify neutral periods (support: 60725.0)
+Recall (Hold)             0.919   Excellent. Very strong performance.      Find all neutral periods (support: 60725.0)
+F1-Score (Hold)           0.952   Excellent. Very strong performance.      Balanced performance on Hold signal (support: 60725.0)
+Precision (Buy)           0.606   Good. Reliable performance.              Avoid false buy signals (support: 3982.0)
+Recall (Buy)              0.900   Excellent. Very strong performance.      Find all buy opportunities (support: 3982.0)
+F1-Score (Buy)            0.724   Good. Reliable performance.              Balanced performance on Buy signal (support: 3982.0)
+
+--- Overall Performance Metrics ---
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Macro Avg Precision       0.732   Good. Reliable performance.              Average precision across all classes
+Macro Avg Recall          0.912   Excellent. Very strong performance.      Average recall across all classes
+Macro Avg F1-Score        0.801   Excellent. Very strong performance.      Average F1-score across all classes
+Weighted Avg Precision    0.941   Excellent. Very strong performance.      Support-weighted average precision
+Weighted Avg Recall       0.918   Excellent. Very strong performance.      Support-weighted average recall
+Weighted Avg F1-Score     0.924   Excellent. Very strong performance.      Support-weighted average F1-score
+MCC                       0.712   Excellent. Strong positive correlation.  Correlation between prediction and reality
+Cohen's Kappa             0.694   Substantial. Strong agreement.           Agreement better than random chance
+
+--- Summary and Recommendation ---
+🌟 GOOD PERFORMANCE: The model shows strong balance (Macro F1-Score 0.801, Weighted F1-Score 0.924) and reliable correlation (MCC 0.712). All classes performing reasonably well.
+================================================================================
+    Trading - Sell:
+        min: 0.000 max: 0.765, mean: 0.125
+        signals > 0.500: 6792 (9.8%)
+        counts: [49171, 7664, 2597, 1559, 1279, 2478, 4103, 211, 0, 0, 0]
+        percentages: [0.71, 0.11, 0.04, 0.02, 0.02, 0.04, 0.06, 0.0, 0.0, 0.0, 0.0]
+        cumulative: [0.71, 0.82, 0.86, 0.88, 0.9, 0.94, 1.0, 1.0, 1.0, 1.0, 1.0]
+    Trading - Hold:
+        min: 0.075 max: 0.947, mean: 0.748
+        signals > 0.500: 54987 (79.6%)
+        counts: [4, 9, 730, 7918, 5414, 2615, 2979, 5702, 28214, 15477, 0]
+        percentages: [0.0, 0.0, 0.01, 0.11, 0.08, 0.04, 0.04, 0.08, 0.41, 0.22, 0.0]
+        cumulative: [0.0, 0.0, 0.01, 0.13, 0.2, 0.24, 0.28, 0.37, 0.78, 1.0, 1.0]
+    Trading - Buy:
+        min: 0.000 max: 0.925, mean: 0.127
+        signals > 0.500: 6731 (9.7%)
+        counts: [48919, 8173, 2605, 1403, 1231, 2717, 3526, 475, 9, 4, 0]
+        percentages: [0.71, 0.12, 0.04, 0.02, 0.02, 0.04, 0.05, 0.01, 0.0, 0.0, 0.0]
+        cumulative: [0.71, 0.83, 0.86, 0.88, 0.9, 0.94, 0.99, 1.0, 1.0, 1.0, 1.0]
+
+SOL/USDT
+    Comparing actual vs predicted signals
+
+================================================================================
+CLASSIFICATION PERFORMANCE ASSESSMENT (Tri-State)
+================================================================================
+--- Detailed Classification Report ---
+              precision    recall  f1-score   support
+
+         0.0      0.517     0.908     0.659      3870
+         1.0      0.985     0.897     0.939     60988
+         2.0      0.548     0.877     0.675      4204
+
+    accuracy                          0.896     69062
+   macro avg      0.683     0.894     0.757     69062
+weighted avg      0.932     0.896     0.907     69062
+
+
+--- Confusion Matrix ---
+Rows = True, Columns = Predicted
+             Sell     Hold      Buy
+    Sell     3513      345       12
+    Hold     3271    54687     3030
+     Buy        8      507     3689
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Precision (Sell)          0.517   Okay. Acceptable, but needs improvement. Avoid false sell signals (support: 3870.0)
+Recall (Sell)             0.908   Excellent. Very strong performance.      Find all sell opportunities (support: 3870.0)
+F1-Score (Sell)           0.659   Good. Reliable performance.              Balanced performance on Sell signal (support: 3870.0)
+Precision (Hold)          0.985   Excellent. Very strong performance.      Correctly identify neutral periods (support: 60988.0)
+Recall (Hold)             0.897   Excellent. Very strong performance.      Find all neutral periods (support: 60988.0)
+F1-Score (Hold)           0.939   Excellent. Very strong performance.      Balanced performance on Hold signal (support: 60988.0)
+Precision (Buy)           0.548   Okay. Acceptable, but needs improvement. Avoid false buy signals (support: 4204.0)
+Recall (Buy)              0.877   Excellent. Very strong performance.      Find all buy opportunities (support: 4204.0)
+F1-Score (Buy)            0.675   Good. Reliable performance.              Balanced performance on Buy signal (support: 4204.0)
+
+--- Overall Performance Metrics ---
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Macro Avg Precision       0.683   Good. Reliable performance.              Average precision across all classes
+Macro Avg Recall          0.894   Excellent. Very strong performance.      Average recall across all classes
+Macro Avg F1-Score        0.757   Good. Reliable performance.              Average F1-score across all classes
+Weighted Avg Precision    0.932   Excellent. Very strong performance.      Support-weighted average precision
+Weighted Avg Recall       0.896   Excellent. Very strong performance.      Support-weighted average recall
+Weighted Avg F1-Score     0.907   Excellent. Very strong performance.      Support-weighted average F1-score
+MCC                       0.654   Excellent. Strong positive correlation.  Correlation between prediction and reality
+Cohen's Kappa             0.627   Substantial. Strong agreement.           Agreement better than random chance
+
+--- Summary and Recommendation ---
+🌟 GOOD PERFORMANCE: The model shows strong balance (Macro F1-Score 0.757, Weighted F1-Score 0.907) and reliable correlation (MCC 0.654). All classes performing reasonably well.
+================================================================================
+    Trading - Sell:
+        min: 0.001 max: 0.893, mean: 0.139
+        signals > 0.500: 8284 (12.0%)
+        counts: [47140, 7926, 2753, 1527, 1432, 2968, 4962, 352, 2, 0, 0]
+        percentages: [0.68, 0.11, 0.04, 0.02, 0.02, 0.04, 0.07, 0.01, 0.0, 0.0, 0.0]
+        cumulative: [0.68, 0.8, 0.84, 0.86, 0.88, 0.92, 0.99, 1.0, 1.0, 1.0, 1.0]
+    Trading - Hold:
+        min: 0.107 max: 0.940, mean: 0.724
+        signals > 0.500: 52253 (75.7%)
+        counts: [0, 3, 1159, 9153, 6494, 2784, 3064, 6168, 28054, 12183, 0]
+        percentages: [0.0, 0.0, 0.02, 0.13, 0.09, 0.04, 0.04, 0.09, 0.41, 0.18, 0.0]
+        cumulative: [0.0, 0.0, 0.02, 0.15, 0.24, 0.28, 0.33, 0.42, 0.82, 1.0, 1.0]
+    Trading - Buy:
+        min: 0.000 max: 0.817, mean: 0.137
+        signals > 0.500: 7708 (11.2%)
+        counts: [47337, 8390, 2731, 1521, 1375, 3133, 3844, 730, 1, 0, 0]
+        percentages: [0.69, 0.12, 0.04, 0.02, 0.02, 0.05, 0.06, 0.01, 0.0, 0.0, 0.0]
+        cumulative: [0.69, 0.81, 0.85, 0.87, 0.89, 0.93, 0.99, 1.0, 1.0, 1.0, 1.0]
+
+LINK/USDT
+    Comparing actual vs predicted signals
+
+================================================================================
+CLASSIFICATION PERFORMANCE ASSESSMENT (Tri-State)
+================================================================================
+--- Detailed Classification Report ---
+              precision    recall  f1-score   support
+
+         0.0      0.551     0.898     0.683      5081
+         1.0      0.980     0.880     0.927     59086
+         2.0      0.562     0.885     0.688      4895
+
+    accuracy                          0.882     69062
+   macro avg      0.698     0.888     0.766     69062
+weighted avg      0.919     0.882     0.892     69062
+
+
+--- Confusion Matrix ---
+Rows = True, Columns = Predicted
+             Sell     Hold      Buy
+    Sell     4563      509        9
+    Hold     3711    52010     3365
+     Buy       10      551     4334
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Precision (Sell)          0.551   Okay. Acceptable, but needs improvement. Avoid false sell signals (support: 5081.0)
+Recall (Sell)             0.898   Excellent. Very strong performance.      Find all sell opportunities (support: 5081.0)
+F1-Score (Sell)           0.683   Good. Reliable performance.              Balanced performance on Sell signal (support: 5081.0)
+Precision (Hold)          0.980   Excellent. Very strong performance.      Correctly identify neutral periods (support: 59086.0)
+Recall (Hold)             0.880   Excellent. Very strong performance.      Find all neutral periods (support: 59086.0)
+F1-Score (Hold)           0.927   Excellent. Very strong performance.      Balanced performance on Hold signal (support: 59086.0)
+Precision (Buy)           0.562   Okay. Acceptable, but needs improvement. Avoid false buy signals (support: 4895.0)
+Recall (Buy)              0.885   Excellent. Very strong performance.      Find all buy opportunities (support: 4895.0)
+F1-Score (Buy)            0.688   Good. Reliable performance.              Balanced performance on Buy signal (support: 4895.0)
+
+--- Overall Performance Metrics ---
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Macro Avg Precision       0.698   Good. Reliable performance.              Average precision across all classes
+Macro Avg Recall          0.888   Excellent. Very strong performance.      Average recall across all classes
+Macro Avg F1-Score        0.766   Good. Reliable performance.              Average F1-score across all classes
+Weighted Avg Precision    0.919   Excellent. Very strong performance.      Support-weighted average precision
+Weighted Avg Recall       0.882   Excellent. Very strong performance.      Support-weighted average recall
+Weighted Avg F1-Score     0.892   Excellent. Very strong performance.      Support-weighted average F1-score
+MCC                       0.662   Excellent. Strong positive correlation.  Correlation between prediction and reality
+Cohen's Kappa             0.638   Substantial. Strong agreement.           Agreement better than random chance
+
+--- Summary and Recommendation ---
+🌟 GOOD PERFORMANCE: The model shows strong balance (Macro F1-Score 0.766, Weighted F1-Score 0.892) and reliable correlation (MCC 0.662). All classes performing reasonably well.
+================================================================================
+    Trading - Sell:
+        min: 0.000 max: 0.877, mean: 0.192
+        signals > 0.500: 14048 (20.3%)
+        counts: [40149, 6998, 3287, 2260, 2320, 7016, 6606, 421, 5, 0, 0]
+        percentages: [0.58, 0.1, 0.05, 0.03, 0.03, 0.1, 0.1, 0.01, 0.0, 0.0, 0.0]
+        cumulative: [0.58, 0.68, 0.73, 0.76, 0.8, 0.9, 0.99, 1.0, 1.0, 1.0, 1.0]
+    Trading - Hold:
+        min: 0.042 max: 0.936, mean: 0.623
+        signals > 0.500: 40044 (58.0%)
+        counts: [7, 21, 1273, 12061, 15656, 5317, 4417, 6548, 18858, 4904, 0]
+        percentages: [0.0, 0.0, 0.02, 0.17, 0.23, 0.08, 0.06, 0.09, 0.27, 0.07, 0.0]
+        cumulative: [0.0, 0.0, 0.02, 0.19, 0.42, 0.5, 0.56, 0.66, 0.93, 1.0, 1.0]
+    Trading - Buy:
+        min: 0.000 max: 0.958, mean: 0.185
+        signals > 0.500: 12868 (18.6%)
+        counts: [41228, 6526, 3027, 2506, 2907, 7390, 4713, 750, 11, 4, 0]
+        percentages: [0.6, 0.09, 0.04, 0.04, 0.04, 0.11, 0.07, 0.01, 0.0, 0.0, 0.0]
+        cumulative: [0.6, 0.69, 0.74, 0.77, 0.81, 0.92, 0.99, 1.0, 1.0, 1.0, 1.0]
+
+NEAR/USDT
+    Comparing actual vs predicted signals
+
+================================================================================
+CLASSIFICATION PERFORMANCE ASSESSMENT (Tri-State)
+================================================================================
+--- Detailed Classification Report ---
+              precision    recall  f1-score   support
+
+         0.0      0.471     0.866     0.610      7632
+         1.0      0.947     0.736     0.828     54251
+         2.0      0.458     0.821     0.588      7179
+
+    accuracy                          0.759     69062
+   macro avg      0.625     0.808     0.675     69062
+weighted avg      0.843     0.759     0.779     69062
+
+
+--- Confusion Matrix ---
+Rows = True, Columns = Predicted
+             Sell     Hold      Buy
+    Sell     6610      995       27
+    Hold     7400    39906     6945
+     Buy       38     1245     5896
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Precision (Sell)          0.471   Okay. Acceptable, but needs improvement. Avoid false sell signals (support: 7632.0)
+Recall (Sell)             0.866   Excellent. Very strong performance.      Find all sell opportunities (support: 7632.0)
+F1-Score (Sell)           0.610   Good. Reliable performance.              Balanced performance on Sell signal (support: 7632.0)
+Precision (Hold)          0.947   Excellent. Very strong performance.      Correctly identify neutral periods (support: 54251.0)
+Recall (Hold)             0.736   Good. Reliable performance.              Find all neutral periods (support: 54251.0)
+F1-Score (Hold)           0.828   Excellent. Very strong performance.      Balanced performance on Hold signal (support: 54251.0)
+Precision (Buy)           0.458   Okay. Acceptable, but needs improvement. Avoid false buy signals (support: 7179.0)
+Recall (Buy)              0.821   Excellent. Very strong performance.      Find all buy opportunities (support: 7179.0)
+F1-Score (Buy)            0.588   Okay. Acceptable, but needs improvement. Balanced performance on Buy signal (support: 7179.0)
+
+--- Overall Performance Metrics ---
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Macro Avg Precision       0.625   Good. Reliable performance.              Average precision across all classes
+Macro Avg Recall          0.808   Excellent. Very strong performance.      Average recall across all classes
+Macro Avg F1-Score        0.675   Good. Reliable performance.              Average F1-score across all classes
+Weighted Avg Precision    0.843   Excellent. Very strong performance.      Support-weighted average precision
+Weighted Avg Recall       0.759   Good. Reliable performance.              Support-weighted average recall
+Weighted Avg F1-Score     0.779   Good. Reliable performance.              Support-weighted average F1-score
+MCC                       0.533   Good. Reliable positive correlation.     Correlation between prediction and reality
+Cohen's Kappa             0.496   Moderate. Meaningful agreement.          Agreement better than random chance
+
+--- Summary and Recommendation ---
+🌟 GOOD PERFORMANCE: The model shows strong balance (Macro F1-Score 0.675, Weighted F1-Score 0.779) and reliable correlation (MCC 0.533). All classes performing reasonably well.
+================================================================================
+    Trading - Sell:
+        min: 0.000 max: 0.882, mean: 0.179
+        signals > 0.500: 12114 (17.5%)
+        counts: [41329, 7773, 3343, 2168, 2335, 6216, 5422, 462, 14, 0, 0]
+        percentages: [0.6, 0.11, 0.05, 0.03, 0.03, 0.09, 0.08, 0.01, 0.0, 0.0, 0.0]
+        cumulative: [0.6, 0.71, 0.76, 0.79, 0.82, 0.91, 0.99, 1.0, 1.0, 1.0, 1.0]
+    Trading - Hold:
+        min: 0.014 max: 0.939, mean: 0.654
+        signals > 0.500: 44414 (64.3%)
+        counts: [9, 32, 1316, 9447, 13844, 5191, 4305, 6990, 22543, 5385, 0]
+        percentages: [0.0, 0.0, 0.02, 0.14, 0.2, 0.08, 0.06, 0.1, 0.33, 0.08, 0.0]
+        cumulative: [0.0, 0.0, 0.02, 0.16, 0.36, 0.43, 0.49, 0.6, 0.92, 1.0, 1.0]
+    Trading - Buy:
+        min: 0.000 max: 0.981, mean: 0.167
+        signals > 0.500: 10704 (15.5%)
+        counts: [43297, 6883, 3215, 2269, 2694, 6428, 3500, 754, 15, 7, 0]
+        percentages: [0.63, 0.1, 0.05, 0.03, 0.04, 0.09, 0.05, 0.01, 0.0, 0.0, 0.0]
+        cumulative: [0.63, 0.73, 0.77, 0.81, 0.85, 0.94, 0.99, 1.0, 1.0, 1.0, 1.0]
+
+AAVE/USDT
+    Comparing actual vs predicted signals
+
+================================================================================
+CLASSIFICATION PERFORMANCE ASSESSMENT (Tri-State)
+================================================================================
+--- Detailed Classification Report ---
+              precision    recall  f1-score   support
+
+         0.0      0.468     0.854     0.604      6640
+         1.0      0.957     0.783     0.861     56477
+         2.0      0.455     0.818     0.584      5945
+
+    accuracy                          0.793     69062
+   macro avg      0.626     0.818     0.683     69062
+weighted avg      0.866     0.793     0.813     69062
+
+
+--- Confusion Matrix ---
+Rows = True, Columns = Predicted
+             Sell     Hold      Buy
+    Sell     5668      947       25
+    Hold     6421    44242     5814
+     Buy       25     1055     4865
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Precision (Sell)          0.468   Okay. Acceptable, but needs improvement. Avoid false sell signals (support: 6640.0)
+Recall (Sell)             0.854   Excellent. Very strong performance.      Find all sell opportunities (support: 6640.0)
+F1-Score (Sell)           0.604   Good. Reliable performance.              Balanced performance on Sell signal (support: 6640.0)
+Precision (Hold)          0.957   Excellent. Very strong performance.      Correctly identify neutral periods (support: 56477.0)
+Recall (Hold)             0.783   Good. Reliable performance.              Find all neutral periods (support: 56477.0)
+F1-Score (Hold)           0.861   Excellent. Very strong performance.      Balanced performance on Hold signal (support: 56477.0)
+Precision (Buy)           0.455   Okay. Acceptable, but needs improvement. Avoid false buy signals (support: 5945.0)
+Recall (Buy)              0.818   Excellent. Very strong performance.      Find all buy opportunities (support: 5945.0)
+F1-Score (Buy)            0.584   Okay. Acceptable, but needs improvement. Balanced performance on Buy signal (support: 5945.0)
+
+--- Overall Performance Metrics ---
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Macro Avg Precision       0.626   Good. Reliable performance.              Average precision across all classes
+Macro Avg Recall          0.818   Excellent. Very strong performance.      Average recall across all classes
+Macro Avg F1-Score        0.683   Good. Reliable performance.              Average F1-score across all classes
+Weighted Avg Precision    0.866   Excellent. Very strong performance.      Support-weighted average precision
+Weighted Avg Recall       0.793   Good. Reliable performance.              Support-weighted average recall
+Weighted Avg F1-Score     0.813   Excellent. Very strong performance.      Support-weighted average F1-score
+MCC                       0.545   Good. Reliable positive correlation.     Correlation between prediction and reality
+Cohen's Kappa             0.510   Moderate. Meaningful agreement.          Agreement better than random chance
+
+--- Summary and Recommendation ---
+🌟 GOOD PERFORMANCE: The model shows strong balance (Macro F1-Score 0.683, Weighted F1-Score 0.813) and reliable correlation (MCC 0.545). All classes performing reasonably well.
+================================================================================
+    Trading - Sell:
+        min: 0.001 max: 0.802, mean: 0.179
+        signals > 0.500: 13130 (19.0%)
+        counts: [43328, 6461, 2432, 1771, 2030, 8130, 4390, 608, 2, 0, 0]
+        percentages: [0.63, 0.09, 0.04, 0.03, 0.03, 0.12, 0.06, 0.01, 0.0, 0.0, 0.0]
+        cumulative: [0.63, 0.72, 0.76, 0.78, 0.81, 0.93, 0.99, 1.0, 1.0, 1.0, 1.0]
+    Trading - Hold:
+        min: 0.088 max: 0.941, mean: 0.649
+        signals > 0.500: 41569 (60.1%)
+        counts: [1, 7, 1422, 8106, 18047, 4590, 3189, 4678, 24306, 4806, 0]
+        percentages: [0.0, 0.0, 0.02, 0.12, 0.26, 0.07, 0.05, 0.07, 0.35, 0.07, 0.0]
+        cumulative: [0.0, 0.0, 0.02, 0.14, 0.4, 0.47, 0.51, 0.58, 0.93, 1.0, 1.0]
+    Trading - Buy:
+        min: 0.000 max: 0.907, mean: 0.172
+        signals > 0.500: 12284 (17.8%)
+        counts: [45023, 5154, 2216, 1781, 2694, 8442, 3132, 705, 4, 1, 0]
+        percentages: [0.65, 0.07, 0.03, 0.03, 0.04, 0.12, 0.05, 0.01, 0.0, 0.0, 0.0]
+        cumulative: [0.65, 0.73, 0.76, 0.78, 0.82, 0.94, 0.99, 1.0, 1.0, 1.0, 1.0]
+
+DASH/USDT
+    Comparing actual vs predicted signals
+
+================================================================================
+CLASSIFICATION PERFORMANCE ASSESSMENT (Tri-State)
+================================================================================
+--- Detailed Classification Report ---
+              precision    recall  f1-score   support
+
+         0.0      0.394     0.837     0.536      6180
+         1.0      0.957     0.722     0.823     57983
+         2.0      0.329     0.809     0.468      4989
+
+    accuracy                          0.738     69152
+   macro avg      0.560     0.789     0.609     69152
+weighted avg      0.861     0.738     0.772     69152
+
+
+--- Confusion Matrix ---
+Rows = True, Columns = Predicted
+             Sell     Hold      Buy
+    Sell     5172      962       46
+    Hold     7926    41857     8200
+     Buy       32      919     4038
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Precision (Sell)          0.394   Poor. Significant room for improvement.  Avoid false sell signals (support: 6180.0)
+Recall (Sell)             0.837   Excellent. Very strong performance.      Find all sell opportunities (support: 6180.0)
+F1-Score (Sell)           0.536   Okay. Acceptable, but needs improvement. Balanced performance on Sell signal (support: 6180.0)
+Precision (Hold)          0.957   Excellent. Very strong performance.      Correctly identify neutral periods (support: 57983.0)
+Recall (Hold)             0.722   Good. Reliable performance.              Find all neutral periods (support: 57983.0)
+F1-Score (Hold)           0.823   Excellent. Very strong performance.      Balanced performance on Hold signal (support: 57983.0)
+Precision (Buy)           0.329   Poor. Significant room for improvement.  Avoid false buy signals (support: 4989.0)
+Recall (Buy)              0.809   Excellent. Very strong performance.      Find all buy opportunities (support: 4989.0)
+F1-Score (Buy)            0.468   Okay. Acceptable, but needs improvement. Balanced performance on Buy signal (support: 4989.0)
+
+--- Overall Performance Metrics ---
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Macro Avg Precision       0.560   Okay. Acceptable, but needs improvement. Average precision across all classes
+Macro Avg Recall          0.789   Good. Reliable performance.              Average recall across all classes
+Macro Avg F1-Score        0.609   Good. Reliable performance.              Average F1-score across all classes
+Weighted Avg Precision    0.861   Excellent. Very strong performance.      Support-weighted average precision
+Weighted Avg Recall       0.738   Good. Reliable performance.              Support-weighted average recall
+Weighted Avg F1-Score     0.772   Good. Reliable performance.              Support-weighted average F1-score
+MCC                       0.459   Good. Reliable positive correlation.     Correlation between prediction and reality
+Cohen's Kappa             0.405   Fair. Weak agreement.                    Agreement better than random chance
+
+--- Summary and Recommendation ---
+🚨 WARNING: Buy class precision is only 0.329. The model predicts 'Buy' but is **wrong 67% of the time**. This is dangerous for trading. **Priority: Improve Buy Precision.**
+================================================================================
+    Trading - Sell:
+        min: 0.000 max: 0.825, mean: 0.181
+        signals > 0.500: 12811 (18.5%)
+        counts: [41870, 7437, 3123, 2026, 1885, 4226, 7871, 710, 4, 0, 0]
+        percentages: [0.61, 0.11, 0.05, 0.03, 0.03, 0.06, 0.11, 0.01, 0.0, 0.0, 0.0]
+        cumulative: [0.61, 0.71, 0.76, 0.79, 0.81, 0.88, 0.99, 1.0, 1.0, 1.0, 1.0]
+    Trading - Hold:
+        min: 0.076 max: 0.939, mean: 0.635
+        signals > 0.500: 42267 (61.1%)
+        counts: [1, 25, 2255, 14594, 10010, 4175, 4293, 6985, 20778, 6036, 0]
+        percentages: [0.0, 0.0, 0.03, 0.21, 0.14, 0.06, 0.06, 0.1, 0.3, 0.09, 0.0]
+        cumulative: [0.0, 0.0, 0.03, 0.24, 0.39, 0.45, 0.51, 0.61, 0.91, 1.0, 1.0]
+    Trading - Buy:
+        min: 0.000 max: 0.924, mean: 0.183
+        signals > 0.500: 12400 (17.9%)
+        counts: [41337, 7397, 3398, 2418, 2202, 5009, 5962, 1409, 19, 1, 0]
+        percentages: [0.6, 0.11, 0.05, 0.03, 0.03, 0.07, 0.09, 0.02, 0.0, 0.0, 0.0]
+        cumulative: [0.6, 0.7, 0.75, 0.79, 0.82, 0.89, 0.98, 1.0, 1.0, 1.0, 1.0]
+
+SUI/USDT
+    Comparing actual vs predicted signals
+
+================================================================================
+CLASSIFICATION PERFORMANCE ASSESSMENT (Tri-State)
+================================================================================
+--- Detailed Classification Report ---
+              precision    recall  f1-score   support
+
+         0.0      0.578     0.895     0.703      8272
+         1.0      0.958     0.794     0.868     53008
+         2.0      0.550     0.866     0.673      7872
+
+    accuracy                          0.814     69152
+   macro avg      0.695     0.852     0.748     69152
+weighted avg      0.866     0.814     0.826     69152
+
+
+--- Confusion Matrix ---
+Rows = True, Columns = Predicted
+             Sell     Hold      Buy
+    Sell     7406      839       27
+    Hold     5377    42075     5556
+     Buy       28     1027     6817
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Precision (Sell)          0.578   Okay. Acceptable, but needs improvement. Avoid false sell signals (support: 8272.0)
+Recall (Sell)             0.895   Excellent. Very strong performance.      Find all sell opportunities (support: 8272.0)
+F1-Score (Sell)           0.703   Good. Reliable performance.              Balanced performance on Sell signal (support: 8272.0)
+Precision (Hold)          0.958   Excellent. Very strong performance.      Correctly identify neutral periods (support: 53008.0)
+Recall (Hold)             0.794   Good. Reliable performance.              Find all neutral periods (support: 53008.0)
+F1-Score (Hold)           0.868   Excellent. Very strong performance.      Balanced performance on Hold signal (support: 53008.0)
+Precision (Buy)           0.550   Okay. Acceptable, but needs improvement. Avoid false buy signals (support: 7872.0)
+Recall (Buy)              0.866   Excellent. Very strong performance.      Find all buy opportunities (support: 7872.0)
+F1-Score (Buy)            0.673   Good. Reliable performance.              Balanced performance on Buy signal (support: 7872.0)
+
+--- Overall Performance Metrics ---
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Macro Avg Precision       0.695   Good. Reliable performance.              Average precision across all classes
+Macro Avg Recall          0.852   Excellent. Very strong performance.      Average recall across all classes
+Macro Avg F1-Score        0.748   Good. Reliable performance.              Average F1-score across all classes
+Weighted Avg Precision    0.866   Excellent. Very strong performance.      Support-weighted average precision
+Weighted Avg Recall       0.814   Excellent. Very strong performance.      Support-weighted average recall
+Weighted Avg F1-Score     0.826   Excellent. Very strong performance.      Support-weighted average F1-score
+MCC                       0.630   Excellent. Strong positive correlation.  Correlation between prediction and reality
+Cohen's Kappa             0.605   Moderate. Meaningful agreement.          Agreement better than random chance
+
+--- Summary and Recommendation ---
+🌟 GOOD PERFORMANCE: The model shows strong balance (Macro F1-Score 0.748, Weighted F1-Score 0.826) and reliable correlation (MCC 0.630). All classes performing reasonably well.
+================================================================================
+    Trading - Sell:
+        min: 0.000 max: 0.765, mean: 0.145
+        signals > 0.500: 8804 (12.7%)
+        counts: [46130, 7881, 3008, 1774, 1555, 3382, 5159, 263, 0, 0, 0]
+        percentages: [0.67, 0.11, 0.04, 0.03, 0.02, 0.05, 0.07, 0.0, 0.0, 0.0, 0.0]
+        cumulative: [0.67, 0.78, 0.82, 0.85, 0.87, 0.92, 1.0, 1.0, 1.0, 1.0, 1.0]
+    Trading - Hold:
+        min: 0.163 max: 0.940, mean: 0.711
+        signals > 0.500: 51298 (74.2%)
+        counts: [0, 2, 1032, 9186, 7634, 3345, 3677, 6908, 26887, 10481, 0]
+        percentages: [0.0, 0.0, 0.01, 0.13, 0.11, 0.05, 0.05, 0.1, 0.39, 0.15, 0.0]
+        cumulative: [0.0, 0.0, 0.01, 0.15, 0.26, 0.31, 0.36, 0.46, 0.85, 1.0, 1.0]
+    Trading - Buy:
+        min: 0.000 max: 0.823, mean: 0.144
+        signals > 0.500: 8127 (11.8%)
+        counts: [46047, 8367, 3006, 1874, 1731, 3740, 3673, 713, 1, 0, 0]
+        percentages: [0.67, 0.12, 0.04, 0.03, 0.03, 0.05, 0.05, 0.01, 0.0, 0.0, 0.0]
+        cumulative: [0.67, 0.79, 0.83, 0.86, 0.88, 0.94, 0.99, 1.0, 1.0, 1.0, 1.0]
+
+AVAX/USDT
+    Comparing actual vs predicted signals
+
+================================================================================
+CLASSIFICATION PERFORMANCE ASSESSMENT (Tri-State)
+================================================================================
+--- Detailed Classification Report ---
+              precision    recall  f1-score   support
+
+         0.0      0.523     0.897     0.661      5133
+         1.0      0.976     0.867     0.919     58766
+         2.0      0.555     0.858     0.674      5253
+
+    accuracy                          0.869     69152
+   macro avg      0.685     0.874     0.751     69152
+weighted avg      0.910     0.869     0.881     69152
+
+
+--- Confusion Matrix ---
+Rows = True, Columns = Predicted
+             Sell     Hold      Buy
+    Sell     4604      515       14
+    Hold     4191    50971     3604
+     Buy        9      735     4509
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Precision (Sell)          0.523   Okay. Acceptable, but needs improvement. Avoid false sell signals (support: 5133.0)
+Recall (Sell)             0.897   Excellent. Very strong performance.      Find all sell opportunities (support: 5133.0)
+F1-Score (Sell)           0.661   Good. Reliable performance.              Balanced performance on Sell signal (support: 5133.0)
+Precision (Hold)          0.976   Excellent. Very strong performance.      Correctly identify neutral periods (support: 58766.0)
+Recall (Hold)             0.867   Excellent. Very strong performance.      Find all neutral periods (support: 58766.0)
+F1-Score (Hold)           0.919   Excellent. Very strong performance.      Balanced performance on Hold signal (support: 58766.0)
+Precision (Buy)           0.555   Okay. Acceptable, but needs improvement. Avoid false buy signals (support: 5253.0)
+Recall (Buy)              0.858   Excellent. Very strong performance.      Find all buy opportunities (support: 5253.0)
+F1-Score (Buy)            0.674   Good. Reliable performance.              Balanced performance on Buy signal (support: 5253.0)
+
+--- Overall Performance Metrics ---
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Macro Avg Precision       0.685   Good. Reliable performance.              Average precision across all classes
+Macro Avg Recall          0.874   Excellent. Very strong performance.      Average recall across all classes
+Macro Avg F1-Score        0.751   Good. Reliable performance.              Average F1-score across all classes
+Weighted Avg Precision    0.910   Excellent. Very strong performance.      Support-weighted average precision
+Weighted Avg Recall       0.869   Excellent. Very strong performance.      Support-weighted average recall
+Weighted Avg F1-Score     0.881   Excellent. Very strong performance.      Support-weighted average F1-score
+MCC                       0.640   Excellent. Strong positive correlation.  Correlation between prediction and reality
+Cohen's Kappa             0.614   Substantial. Strong agreement.           Agreement better than random chance
+
+--- Summary and Recommendation ---
+🌟 GOOD PERFORMANCE: The model shows strong balance (Macro F1-Score 0.751, Weighted F1-Score 0.881) and reliable correlation (MCC 0.640). All classes performing reasonably well.
+================================================================================
+    Trading - Sell:
+        min: 0.000 max: 0.955, mean: 0.125
+        signals > 0.500: 6334 (9.2%)
+        counts: [48832, 8321, 2788, 1606, 1271, 2022, 3982, 321, 4, 5, 0]
+        percentages: [0.71, 0.12, 0.04, 0.02, 0.02, 0.03, 0.06, 0.0, 0.0, 0.0, 0.0]
+        cumulative: [0.71, 0.83, 0.87, 0.89, 0.91, 0.94, 1.0, 1.0, 1.0, 1.0, 1.0]
+    Trading - Hold:
+        min: 0.033 max: 0.942, mean: 0.749
+        signals > 0.500: 55552 (80.3%)
+        counts: [7, 21, 1104, 7465, 5003, 2756, 3094, 5890, 28609, 15203, 0]
+        percentages: [0.0, 0.0, 0.02, 0.11, 0.07, 0.04, 0.04, 0.09, 0.41, 0.22, 0.0]
+        cumulative: [0.0, 0.0, 0.02, 0.12, 0.2, 0.24, 0.28, 0.37, 0.78, 1.0, 1.0]
+    Trading - Buy:
+        min: 0.000 max: 0.943, mean: 0.126
+        signals > 0.500: 6403 (9.3%)
+        counts: [49464, 7946, 2450, 1537, 1352, 2572, 3098, 719, 12, 2, 0]
+        percentages: [0.72, 0.11, 0.04, 0.02, 0.02, 0.04, 0.04, 0.01, 0.0, 0.0, 0.0]
+        cumulative: [0.72, 0.83, 0.87, 0.89, 0.91, 0.94, 0.99, 1.0, 1.0, 1.0, 1.0]
+
+LTC/USDT
+    Comparing actual vs predicted signals
+
+================================================================================
+CLASSIFICATION PERFORMANCE ASSESSMENT (Tri-State)
+================================================================================
+--- Detailed Classification Report ---
+              precision    recall  f1-score   support
+
+         0.0      0.586     0.879     0.703      4221
+         1.0      0.981     0.913     0.946     60630
+         2.0      0.583     0.867     0.697      4301
+
+    accuracy                          0.908     69152
+   macro avg      0.716     0.886     0.782     69152
+weighted avg      0.932     0.908     0.916     69152
+
+
+--- Confusion Matrix ---
+Rows = True, Columns = Predicted
+             Sell     Hold      Buy
+    Sell     3710      500       11
+    Hold     2617    55351     2662
+     Buy        7      564     3730
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Precision (Sell)          0.586   Okay. Acceptable, but needs improvement. Avoid false sell signals (support: 4221.0)
+Recall (Sell)             0.879   Excellent. Very strong performance.      Find all sell opportunities (support: 4221.0)
+F1-Score (Sell)           0.703   Good. Reliable performance.              Balanced performance on Sell signal (support: 4221.0)
+Precision (Hold)          0.981   Excellent. Very strong performance.      Correctly identify neutral periods (support: 60630.0)
+Recall (Hold)             0.913   Excellent. Very strong performance.      Find all neutral periods (support: 60630.0)
+F1-Score (Hold)           0.946   Excellent. Very strong performance.      Balanced performance on Hold signal (support: 60630.0)
+Precision (Buy)           0.583   Okay. Acceptable, but needs improvement. Avoid false buy signals (support: 4301.0)
+Recall (Buy)              0.867   Excellent. Very strong performance.      Find all buy opportunities (support: 4301.0)
+F1-Score (Buy)            0.697   Good. Reliable performance.              Balanced performance on Buy signal (support: 4301.0)
+
+--- Overall Performance Metrics ---
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Macro Avg Precision       0.716   Good. Reliable performance.              Average precision across all classes
+Macro Avg Recall          0.886   Excellent. Very strong performance.      Average recall across all classes
+Macro Avg F1-Score        0.782   Good. Reliable performance.              Average F1-score across all classes
+Weighted Avg Precision    0.932   Excellent. Very strong performance.      Support-weighted average precision
+Weighted Avg Recall       0.908   Excellent. Very strong performance.      Support-weighted average recall
+Weighted Avg F1-Score     0.916   Excellent. Very strong performance.      Support-weighted average F1-score
+MCC                       0.681   Excellent. Strong positive correlation.  Correlation between prediction and reality
+Cohen's Kappa             0.664   Substantial. Strong agreement.           Agreement better than random chance
+
+--- Summary and Recommendation ---
+🌟 GOOD PERFORMANCE: The model shows strong balance (Macro F1-Score 0.782, Weighted F1-Score 0.916) and reliable correlation (MCC 0.681). All classes performing reasonably well.
+================================================================================
+    Trading - Sell:
+        min: 0.000 max: 0.941, mean: 0.150
+        signals > 0.500: 8747 (12.6%)
+        counts: [44960, 8449, 3217, 1881, 1898, 4297, 4166, 274, 8, 2, 0]
+        percentages: [0.65, 0.12, 0.05, 0.03, 0.03, 0.06, 0.06, 0.0, 0.0, 0.0, 0.0]
+        cumulative: [0.65, 0.77, 0.82, 0.85, 0.87, 0.94, 1.0, 1.0, 1.0, 1.0, 1.0]
+    Trading - Hold:
+        min: 0.024 max: 0.940, mean: 0.707
+        signals > 0.500: 50694 (73.3%)
+        counts: [11, 21, 735, 7583, 10108, 4017, 3814, 6674, 25855, 10334, 0]
+        percentages: [0.0, 0.0, 0.01, 0.11, 0.15, 0.06, 0.06, 0.1, 0.37, 0.15, 0.0]
+        cumulative: [0.0, 0.0, 0.01, 0.12, 0.27, 0.33, 0.38, 0.48, 0.85, 1.0, 1.0]
+    Trading - Buy:
+        min: 0.000 max: 0.976, mean: 0.144
+        signals > 0.500: 7996 (11.6%)
+        counts: [46224, 7965, 2932, 2006, 2029, 4755, 2831, 392, 12, 6, 0]
+        percentages: [0.67, 0.12, 0.04, 0.03, 0.03, 0.07, 0.04, 0.01, 0.0, 0.0, 0.0]
+        cumulative: [0.67, 0.78, 0.83, 0.86, 0.88, 0.95, 0.99, 1.0, 1.0, 1.0, 1.0]
+
+BCH/USDT
+    Comparing actual vs predicted signals
+
+================================================================================
+CLASSIFICATION PERFORMANCE ASSESSMENT (Tri-State)
+================================================================================
+--- Detailed Classification Report ---
+              precision    recall  f1-score   support
+
+         0.0      0.498     0.833     0.623      5225
+         1.0      0.965     0.855     0.907     59185
+         2.0      0.470     0.792     0.590      4742
+
+    accuracy                          0.849     69152
+   macro avg      0.644     0.827     0.707     69152
+weighted avg      0.896     0.849     0.864     69152
+
+
+--- Confusion Matrix ---
+Rows = True, Columns = Predicted
+             Sell     Hold      Buy
+    Sell     4355      844       26
+    Hold     4370    50600     4215
+     Buy       22      965     3755
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Precision (Sell)          0.498   Okay. Acceptable, but needs improvement. Avoid false sell signals (support: 5225.0)
+Recall (Sell)             0.833   Excellent. Very strong performance.      Find all sell opportunities (support: 5225.0)
+F1-Score (Sell)           0.623   Good. Reliable performance.              Balanced performance on Sell signal (support: 5225.0)
+Precision (Hold)          0.965   Excellent. Very strong performance.      Correctly identify neutral periods (support: 59185.0)
+Recall (Hold)             0.855   Excellent. Very strong performance.      Find all neutral periods (support: 59185.0)
+F1-Score (Hold)           0.907   Excellent. Very strong performance.      Balanced performance on Hold signal (support: 59185.0)
+Precision (Buy)           0.470   Okay. Acceptable, but needs improvement. Avoid false buy signals (support: 4742.0)
+Recall (Buy)              0.792   Good. Reliable performance.              Find all buy opportunities (support: 4742.0)
+F1-Score (Buy)            0.590   Okay. Acceptable, but needs improvement. Balanced performance on Buy signal (support: 4742.0)
+
+--- Overall Performance Metrics ---
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Macro Avg Precision       0.644   Good. Reliable performance.              Average precision across all classes
+Macro Avg Recall          0.827   Excellent. Very strong performance.      Average recall across all classes
+Macro Avg F1-Score        0.707   Good. Reliable performance.              Average F1-score across all classes
+Weighted Avg Precision    0.896   Excellent. Very strong performance.      Support-weighted average precision
+Weighted Avg Recall       0.849   Excellent. Very strong performance.      Support-weighted average recall
+Weighted Avg F1-Score     0.864   Excellent. Very strong performance.      Support-weighted average F1-score
+MCC                       0.573   Good. Reliable positive correlation.     Correlation between prediction and reality
+Cohen's Kappa             0.548   Moderate. Meaningful agreement.          Agreement better than random chance
+
+--- Summary and Recommendation ---
+🌟 GOOD PERFORMANCE: The model shows strong balance (Macro F1-Score 0.707, Weighted F1-Score 0.864) and reliable correlation (MCC 0.573). All classes performing reasonably well.
+================================================================================
+    Trading - Sell:
+        min: 0.000 max: 0.822, mean: 0.148
+        signals > 0.500: 8747 (12.6%)
+        counts: [45020, 8392, 3298, 1964, 1731, 3967, 4485, 291, 4, 0, 0]
+        percentages: [0.65, 0.12, 0.05, 0.03, 0.03, 0.06, 0.06, 0.0, 0.0, 0.0, 0.0]
+        cumulative: [0.65, 0.77, 0.82, 0.85, 0.87, 0.93, 1.0, 1.0, 1.0, 1.0, 1.0]
+    Trading - Hold:
+        min: 0.037 max: 0.938, mean: 0.704
+        signals > 0.500: 50756 (73.4%)
+        counts: [3, 7, 949, 8329, 9108, 3890, 4007, 7387, 25993, 9479, 0]
+        percentages: [0.0, 0.0, 0.01, 0.12, 0.13, 0.06, 0.06, 0.11, 0.38, 0.14, 0.0]
+        cumulative: [0.0, 0.0, 0.01, 0.13, 0.27, 0.32, 0.38, 0.49, 0.86, 1.0, 1.0]
+    Trading - Buy:
+        min: 0.000 max: 0.963, mean: 0.148
+        signals > 0.500: 8453 (12.2%)
+        counts: [45132, 8394, 3125, 2052, 1996, 4477, 3383, 588, 2, 3, 0]
+        percentages: [0.65, 0.12, 0.05, 0.03, 0.03, 0.06, 0.05, 0.01, 0.0, 0.0, 0.0]
+        cumulative: [0.65, 0.77, 0.82, 0.85, 0.88, 0.94, 0.99, 1.0, 1.0, 1.0, 1.0]
+
+DOT/USDT
+    Comparing actual vs predicted signals
+
+================================================================================
+CLASSIFICATION PERFORMANCE ASSESSMENT (Tri-State)
+================================================================================
+--- Detailed Classification Report ---
+              precision    recall  f1-score   support
+
+         0.0      0.505     0.872     0.640      5066
+         1.0      0.971     0.857     0.910     58812
+         2.0      0.516     0.827     0.635      5274
+
+    accuracy                          0.856     69152
+   macro avg      0.664     0.852     0.729     69152
+weighted avg      0.902     0.856     0.870     69152
+
+
+--- Confusion Matrix ---
+Rows = True, Columns = Predicted
+             Sell     Hold      Buy
+    Sell     4418      628       20
+    Hold     4315    50425     4072
+     Buy       14      899     4361
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Precision (Sell)          0.505   Okay. Acceptable, but needs improvement. Avoid false sell signals (support: 5066.0)
+Recall (Sell)             0.872   Excellent. Very strong performance.      Find all sell opportunities (support: 5066.0)
+F1-Score (Sell)           0.640   Good. Reliable performance.              Balanced performance on Sell signal (support: 5066.0)
+Precision (Hold)          0.971   Excellent. Very strong performance.      Correctly identify neutral periods (support: 58812.0)
+Recall (Hold)             0.857   Excellent. Very strong performance.      Find all neutral periods (support: 58812.0)
+F1-Score (Hold)           0.910   Excellent. Very strong performance.      Balanced performance on Hold signal (support: 58812.0)
+Precision (Buy)           0.516   Okay. Acceptable, but needs improvement. Avoid false buy signals (support: 5274.0)
+Recall (Buy)              0.827   Excellent. Very strong performance.      Find all buy opportunities (support: 5274.0)
+F1-Score (Buy)            0.635   Good. Reliable performance.              Balanced performance on Buy signal (support: 5274.0)
+
+--- Overall Performance Metrics ---
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Macro Avg Precision       0.664   Good. Reliable performance.              Average precision across all classes
+Macro Avg Recall          0.852   Excellent. Very strong performance.      Average recall across all classes
+Macro Avg F1-Score        0.729   Good. Reliable performance.              Average F1-score across all classes
+Weighted Avg Precision    0.902   Excellent. Very strong performance.      Support-weighted average precision
+Weighted Avg Recall       0.856   Excellent. Very strong performance.      Support-weighted average recall
+Weighted Avg F1-Score     0.870   Excellent. Very strong performance.      Support-weighted average F1-score
+MCC                       0.606   Excellent. Strong positive correlation.  Correlation between prediction and reality
+Cohen's Kappa             0.580   Moderate. Meaningful agreement.          Agreement better than random chance
+
+--- Summary and Recommendation ---
+🌟 GOOD PERFORMANCE: The model shows strong balance (Macro F1-Score 0.729, Weighted F1-Score 0.870) and reliable correlation (MCC 0.606). All classes performing reasonably well.
+================================================================================
+    Trading - Sell:
+        min: 0.000 max: 0.902, mean: 0.180
+        signals > 0.500: 13173 (19.0%)
+        counts: [42214, 7162, 2621, 1799, 2183, 8965, 4013, 193, 1, 1, 0]
+        percentages: [0.61, 0.1, 0.04, 0.03, 0.03, 0.13, 0.06, 0.0, 0.0, 0.0, 0.0]
+        cumulative: [0.61, 0.71, 0.75, 0.78, 0.81, 0.94, 1.0, 1.0, 1.0, 1.0, 1.0]
+    Trading - Hold:
+        min: 0.062 max: 0.934, mean: 0.654
+        signals > 0.500: 42088 (60.9%)
+        counts: [3, 7, 546, 6883, 19625, 4886, 3169, 4839, 24508, 4686, 0]
+        percentages: [0.0, 0.0, 0.01, 0.1, 0.28, 0.07, 0.05, 0.07, 0.35, 0.07, 0.0]
+        cumulative: [0.0, 0.0, 0.01, 0.11, 0.39, 0.46, 0.51, 0.58, 0.93, 1.0, 1.0]
+    Trading - Buy:
+        min: 0.000 max: 0.929, mean: 0.165
+        signals > 0.500: 11680 (16.9%)
+        counts: [45717, 5059, 2082, 1840, 2774, 9037, 2337, 298, 6, 2, 0]
+        percentages: [0.66, 0.07, 0.03, 0.03, 0.04, 0.13, 0.03, 0.0, 0.0, 0.0, 0.0]
+        cumulative: [0.66, 0.73, 0.76, 0.79, 0.83, 0.96, 1.0, 1.0, 1.0, 1.0, 1.0]
+
+NEO/USDT
+    Comparing actual vs predicted signals
+
+================================================================================
+CLASSIFICATION PERFORMANCE ASSESSMENT (Tri-State)
+================================================================================
+--- Detailed Classification Report ---
+              precision    recall  f1-score   support
+
+         0.0      0.332     0.822     0.473      5318
+         1.0      0.957     0.715     0.819     59289
+         2.0      0.302     0.777     0.435      4545
+
+    accuracy                          0.727     69152
+   macro avg      0.530     0.771     0.576     69152
+weighted avg      0.866     0.727     0.767     69152
+
+
+--- Confusion Matrix ---
+Rows = True, Columns = Predicted
+             Sell     Hold      Buy
+    Sell     4371      903       44
+    Hold     8785    42400     8104
+     Buy       17      996     3532
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Precision (Sell)          0.332   Poor. Significant room for improvement.  Avoid false sell signals (support: 5318.0)
+Recall (Sell)             0.822   Excellent. Very strong performance.      Find all sell opportunities (support: 5318.0)
+F1-Score (Sell)           0.473   Okay. Acceptable, but needs improvement. Balanced performance on Sell signal (support: 5318.0)
+Precision (Hold)          0.957   Excellent. Very strong performance.      Correctly identify neutral periods (support: 59289.0)
+Recall (Hold)             0.715   Good. Reliable performance.              Find all neutral periods (support: 59289.0)
+F1-Score (Hold)           0.819   Excellent. Very strong performance.      Balanced performance on Hold signal (support: 59289.0)
+Precision (Buy)           0.302   Poor. Significant room for improvement.  Avoid false buy signals (support: 4545.0)
+Recall (Buy)              0.777   Good. Reliable performance.              Find all buy opportunities (support: 4545.0)
+F1-Score (Buy)            0.435   Okay. Acceptable, but needs improvement. Balanced performance on Buy signal (support: 4545.0)
+
+--- Overall Performance Metrics ---
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Macro Avg Precision       0.530   Okay. Acceptable, but needs improvement. Average precision across all classes
+Macro Avg Recall          0.771   Good. Reliable performance.              Average recall across all classes
+Macro Avg F1-Score        0.576   Okay. Acceptable, but needs improvement. Average F1-score across all classes2026-05-29 07:16:00,557 - freqtrade.misc - INFO - dumping json to "/Users/philprice95/Documents/freqtrade/user_data/backtest_results/backtest-result-2026-05-29_07-16-00.meta.json"
+
+Weighted Avg Precision    0.866   Excellent. Very strong performance.      Support-weighted average precision
+Weighted Avg Recall       0.727   Good. Reliable performance.              Support-weighted average recall
+Weighted Avg F1-Score     0.767   Good. Reliable performance.              Support-weighted average F1-score
+MCC                       0.417   Good. Reliable positive correlation.     Correlation between prediction and reality
+Cohen's Kappa             0.359   Fair. Weak agreement.                    Agreement better than random chance
+
+--- Summary and Recommendation ---
+🚨 WARNING: Buy class precision is only 0.302. The model predicts 'Buy' but is **wrong 69% of the time**. This is dangerous for trading. **Priority: Improve Buy Precision.**
+================================================================================
+Result for strategy NNNC_DDPM_MLX_LSTM
+                                              BACKTESTING REPORT                                              
+┏━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃      Pair ┃ Trades ┃ Avg Profit % ┃ Tot Profit USDT ┃ Tot Profit % ┃ Avg Duration ┃  Win  Draw  Loss  Win% ┃
+┡━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━┩
+│  XRP/USDT │    211 │         0.29 │         553.060 │         5.53 │      4:06:00 │  127     0    84  60.2 │
+│  SUI/USDT │    154 │          0.3 │         410.453 │          4.1 │      3:46:00 │   84     0    70  54.5 │
+│ DASH/USDT │      6 │         3.98 │         215.060 │         2.15 │      1:25:00 │    6     0     0   100 │
+│  ZEC/USDT │    112 │         0.15 │         148.477 │         1.48 │      2:55:00 │   56     0    56  50.0 │
+│  DOT/USDT │     36 │         0.23 │          74.849 │         0.75 │      2:35:00 │   20     0    16  55.6 │
+│  SOL/USDT │    189 │         0.01 │          23.191 │         0.23 │      4:58:00 │  103     0    86  54.5 │
+│ LINK/USDT │     87 │         0.01 │           4.905 │         0.05 │      3:19:00 │   41     0    46  47.1 │
+│  BCH/USDT │      5 │        -0.06 │          -2.706 │        -0.03 │      2:57:00 │    2     0     3  40.0 │
+│  NEO/USDT │      3 │        -0.93 │         -25.212 │        -0.25 │      1:50:00 │    1     0     2  33.3 │
+│ NEAR/USDT │     20 │        -0.27 │         -49.265 │        -0.49 │      2:13:00 │   12     0     8  60.0 │
+│  LTC/USDT │     87 │        -0.08 │         -64.486 │        -0.64 │      2:59:00 │   43     0    44  49.4 │
+│ AAVE/USDT │     18 │        -0.44 │         -71.090 │        -0.71 │      1:48:00 │   10     0     8  55.6 │
+│ AVAX/USDT │     58 │        -0.41 │        -212.872 │        -2.13 │      2:21:00 │   26     0    32  44.8 │
+│     TOTAL │    986 │         0.11 │        1004.363 │        10.04 │      3:39:00 │  531     0   455  53.9 │
+└───────────┴────────┴──────────────┴─────────────────┴──────────────┴──────────────┴────────────────────────┘
+                                         LEFT OPEN TRADES REPORT                                          
+┏━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃  Pair ┃ Trades ┃ Avg Profit % ┃ Tot Profit USDT ┃ Tot Profit % ┃ Avg Duration ┃  Win  Draw  Loss  Win% ┃
+┡━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ TOTAL │      0 │          0.0 │           0.000 │          0.0 │         0:00 │    0     0     0     0 │
+└───────┴────────┴──────────────┴─────────────────┴──────────────┴──────────────┴────────────────────────┘
+                                                 ENTER TAG STATS                                                  
+┏━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃    Enter Tag ┃ Entries ┃ Avg Profit % ┃ Tot Profit USDT ┃ Tot Profit % ┃ Avg Duration ┃  Win  Draw  Loss  Win% ┃
+┡━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━┩
+│  model_entry │     986 │         0.11 │        1004.363 │        10.04 │      3:39:00 │  531     0   455  53.9 │
+│        TOTAL │     986 │         0.11 │        1004.363 │        10.04 │      3:39:00 │  531     0   455  53.9 │
+└──────────────┴─────────┴──────────────┴─────────────────┴──────────────┴──────────────┴────────────────────────┘
+                                                EXIT REASON STATS                                                
+┏━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Exit Reason ┃ Exits ┃ Avg Profit % ┃ Tot Profit USDT ┃ Tot Profit % ┃   Avg Duration ┃  Win  Draw  Loss  Win% ┃
+┡━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ take_profit │   370 │          2.9 │        9673.893 │        96.74 │        2:39:00 │  370     0     0   100 │
+│         roi │    96 │          3.0 │        2594.193 │        25.94 │        3:05:00 │   96     0     0   100 │
+│  model_exit │    32 │         1.73 │         497.489 │         4.97 │        6:59:00 │   32     0     0   100 │
+│  unclog_12h │    32 │         0.85 │         246.160 │         2.46 │       13:38:00 │   32     0     0   100 │
+│   unclog_1d │     1 │         0.15 │           1.359 │         0.01 │ 1 day, 2:45:00 │    1     0     0   100 │
+│   stop_loss │   455 │        -2.93 │      -12008.731 │      -120.09 │        3:35:00 │    0     0   455     0 │
+│       TOTAL │   986 │         0.11 │        1004.363 │        10.04 │        3:39:00 │  531     0   455  53.9 │
+└─────────────┴───────┴──────────────┴─────────────────┴──────────────┴────────────────┴────────────────────────┘
+                                                         MIXED TAG STATS                                                         
+┏━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃    Enter Tag ┃ Exit Reason ┃ Trades ┃ Avg Profit % ┃ Tot Profit USDT ┃ Tot Profit % ┃   Avg Duration ┃  Win  Draw  Loss  Win% ┃
+┡━━━━━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━┩
+│  model_entry │ take_profit │    370 │          2.9 │        9673.893 │        96.74 │        2:39:00 │  370     0     0   100 │
+│  model_entry │         roi │     96 │          3.0 │        2594.193 │        25.94 │        3:05:00 │   96     0     0   100 │
+│  model_entry │  model_exit │     32 │         1.73 │         497.489 │         4.97 │        6:59:00 │   32     0     0   100 │
+│  model_entry │  unclog_12h │     32 │         0.85 │         246.160 │         2.46 │       13:38:00 │   32     0     0   100 │
+│  model_entry │   unclog_1d │      1 │         0.15 │           1.359 │         0.01 │ 1 day, 2:45:00 │    1     0     0   100 │
+│  model_entry │   stop_loss │    455 │        -2.93 │      -12008.731 │      -120.09 │        3:35:00 │    0     0   455     0 │
+│        TOTAL │             │    986 │         0.11 │        1004.363 │        10.04 │        3:39:00 │  531     0   455  53.9 │
+└──────────────┴─────────────┴────────┴──────────────┴─────────────────┴──────────────┴────────────────┴────────────────────────┘
+                                 MONTH BREAKDOWN                                  
+┏━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃      Month ┃ Trades ┃ Tot Profit USDT ┃ Profit Factor ┃  Win  Draw  Loss  Win% ┃
+┡━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ 30/06/2024 │      8 │          36.553 │          1.56 │    5     0     3  62.5 │
+│ 31/07/2024 │     14 │         -20.532 │          0.88 │    7     0     7  50.0 │
+│ 31/08/2024 │     39 │         -92.704 │          0.86 │   18     0    21  46.2 │
+│ 30/09/2024 │      7 │          57.135 │          2.41 │    5     0     2  71.4 │
+│ 31/10/2024 │     25 │         -17.522 │          0.94 │   14     0    11  56.0 │
+│ 30/11/2024 │    104 │         650.461 │          1.73 │   67     0    37  64.4 │
+│ 31/12/2024 │    177 │         281.643 │          1.14 │   99     0    78  55.9 │
+│ 31/01/2025 │     87 │         484.476 │          1.66 │   55     0    32  63.2 │
+│ 28/02/2025 │    109 │        -507.085 │           0.7 │   51     0    58  46.8 │
+│ 31/03/2025 │     57 │         -86.218 │          0.89 │   27     0    30  47.4 │
+│ 30/04/2025 │     29 │        -125.371 │           0.7 │   13     0    16  44.8 │
+│ 31/05/2025 │     17 │         -51.929 │          0.74 │    8     0     9  47.1 │
+│ 30/06/2025 │      5 │          96.128 │           0.0 │    5     0     0   100 │
+│ 31/07/2025 │     32 │          -0.141 │           1.0 │   17     0    15  53.1 │
+│ 31/08/2025 │     25 │         -39.859 │          0.83 │   13     0    12  52.0 │
+│ 30/09/2025 │      3 │          18.258 │          1.93 │    2     0     1  66.7 │
+│ 31/10/2025 │     62 │         206.245 │          1.23 │   31     0    31  50.0 │
+│ 30/11/2025 │     97 │         343.454 │          1.27 │   51     0    46  52.6 │
+│ 31/12/2025 │     19 │         -91.478 │          0.68 │    9     0    10  47.4 │
+│ 31/01/2026 │     16 │          64.974 │          1.39 │   11     0     5  68.8 │
+│ 28/02/2026 │     33 │         -49.023 │           0.9 │   15     0    18  45.5 │
+│ 31/03/2026 │      3 │          -9.738 │          0.51 │    2     0     1  66.7 │
+│ 30/04/2026 │      2 │          -7.069 │          0.64 │    1     0     1  50.0 │
+│ 31/05/2026 │     16 │        -136.294 │          0.45 │    5     0    11  31.2 │
+└────────────┴────────┴─────────────────┴───────────────┴────────────────────────┘
+                                   SUMMARY METRICS                                    
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Metric                                 ┃ Value                                     ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ Backtesting from                       │ 2024-06-08 00:00:00                       │
+│ Backtesting to                         │ 2026-05-28 15:45:00                       │
+│ Trading Mode                           │ Spot                                      │
+│ Max open trades                        │ 10                                        │
+│                                        │                                           │
+│ Total/Daily Avg Trades                 │ 986 / 1.37                                │
+│ Starting balance                       │ 10000 USDT                                │
+│ Final balance                          │ 11004.363 USDT                            │
+│ Absolute profit                        │ 1004.363 USDT                             │
+│ Total profit %                         │ 10.04%                                    │
+│ CAGR %                                 │ 4.98%                                     │
+│ Sharpe (closed trades)                 │ 0.93                                      │
+│ Sortino (closed trades)                │ 2.03                                      │
+│ Calmar (closed trades)                 │ 3.38                                      │
+│ SQN                                    │ 1.12                                      │
+│ Profit factor                          │ 1.08                                      │
+│ Expectancy (Ratio)                     │ 1.02 (0.04)                               │
+│ Avg. daily profit                      │ 1.397 USDT                                │
+│ Avg. stake amount                      │ 899.88 USDT                               │
+│ Market change                          │ 138.98%                                   │
+│ Total trade volume                     │ 1779121.513 USDT                          │
+│                                        │                                           │
+│ Best Pair                              │ XRP/USDT 5.53%                            │
+│ Worst Pair                             │ AVAX/USDT -2.13%                          │
+│ Best trade                             │ XRP/USDT 15.25%                           │
+│ Worst trade                            │ LTC/USDT -17.45%                          │
+│ Best day                               │ 286.655 USDT                              │
+│ Worst day                              │ -347.96 USDT                              │
+│ Days win/draw/lose                     │ 164 / 439 / 111                           │
+│ Min/Max/Avg. Duration Winners          │ 0d 01:00 / 1d 02:45 / 0d 03:41            │
+│ Min/Max/Avg. Duration Losers           │ 0d 01:00 / 1d 08:15 / 0d 03:35            │
+│ Max Consecutive Wins / Loss            │ 12 / 12                                   │
+│ Rejected Entry signals                 │ 1                                         │
+│ Entry/Exit Timeouts                    │ 0 / 0                                     │
+│                                        │                                           │
+│ Min/Max balance (closed trades)        │ 9551.143 USDT / 11443.934 USDT            │
+│ Max % of account underwater            │ 7.88%                                     │
+│ Absolute drawdown                      │ 902.279 USDT (7.88%)                      │
+│ Drawdown duration                      │ 63 days 23:00:00                          │
+│ Profit at drawdown start               │ 1443.934 USDT                             │
+│ Profit at drawdown end                 │ 541.655 USDT                              │
+│ Drawdown start                         │ 2025-02-02 08:30:00                       │
+│ Drawdown end                           │ 2025-04-07 07:30:00                       │
+│                                        │                                           │
+│ Wallet based Metrics                   │                                           │
+│ Min/Max balance (wallet balance)       │ 9521.135 USDT / 11459.828 USDT            │
+│ Min/Max balance dates (wallet balance) │ 2024-08-05 06:45:00 / 2025-02-02 10:00:00 │
+│ Max % of account underwater (balance)  │ 8.12%                                     │
+│ Absolute drawdown (wallet balance)     │ 931.048 USDT (8.12%)                      │
+│ Drawdown duration                      │ 63 days 21:00:00                          │
+│ Profit at drawdown start               │ 1459.828 USDT                             │
+│ Profit at drawdown end                 │ 528.781 USDT                              │
+│ Drawdown start                         │ 2025-02-02 10:00:00                       │
+│ Drawdown end                           │ 2025-04-07 07:00:00                       │
+│ Sharpe (daily wallet balance)          │ 0.75                                      │
+│ Sortino (daily wallet balance)         │ 0.53                                      │
+│ Calmar (daily wallet balance)          │ 3.28                                      │
+└────────────────────────────────────────┴───────────────────────────────────────────┘
+
+Backtested 2024-06-08 00:00:00 -> 2026-05-28 15:45:00 | Max open trades : 10
+                                                              STRATEGY SUMMARY                                                               
+┏━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━┓
+┃           Strategy ┃ Trades ┃ Avg Profit % ┃ Tot Profit USDT ┃ Tot Profit % ┃ Avg Duration ┃  Win  Draw  Loss  Win% ┃            Drawdown ┃
+┡━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━┩
+│ NNNC_DDPM_MLX_LSTM │    986 │         0.11 │        1004.363 │        10.04 │      3:39:00 │  531     0   455  53.9 │ 902.279 USDT  7.88% │
+└────────────────────┴────────┴──────────────┴─────────────────┴──────────────┴──────────────┴────────────────────────┴─────────────────────┘
+

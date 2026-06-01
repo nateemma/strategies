@@ -90,11 +90,7 @@ log = logging.getLogger(__name__)
 class BaseNNStrategy(BaseStrategy):
 
     buy_params = { **BaseStrategy.buy_params,
-        "entry_atr_pct": 0.006,
-        "cexit_enable_profit_checks": True,
-        "cexit_max_days": 2,
-        "cexit_take_profit": 0.002,
-        "prediction_threshold": 0.8,
+        "prediction_threshold": 0.6,
         "profit_prediction_threshold": 0.3,
         "apply_task_filters": True}
 
@@ -137,15 +133,18 @@ class BaseNNStrategy(BaseStrategy):
     # Training signal parameters
     filter_signals = False  # filter signals based on guard metric
     lookahead_window = BaseStrategy.PEAK_WINDOW
-    HORIZON = BaseStrategy.PEAK_WINDOW
     RISK_LOOKBACK = 200
     FLOW_LOOKBACK = 200
     # Pulled from Framework.TrainingConfig so the strategy, the GAN trainer
     # (CreateGANBase), and the GAN-metadata validator can never silently
-    # drift. Override on a subclass to customise.
+    # drift. Override on a subclass to customise. HORIZON moved here from
+    # ``BaseStrategy.PEAK_WINDOW`` so it stays coupled with the gain/loss
+    # thresholds — both are labeling-time parameters and must be retuned
+    # together (see project_horizon_threshold_learnability_finding.md).
     MIN_BUY_GAIN_THRESHOLD = TrainingConfig.MIN_BUY_GAIN_THRESHOLD
     MIN_SELL_LOSS_THRESHOLD = TrainingConfig.MIN_SELL_LOSS_THRESHOLD
     TRAINING_TYPE = TrainingConfig.TRAINING_TYPE
+    HORIZON = TrainingConfig.HORIZON
 
     # controls the profit estimation approach
     use_forward_peak_profit_label = True
@@ -1323,6 +1322,123 @@ class BaseNNStrategy(BaseStrategy):
     gan_synth_density_reject_pct: float = 0.0
     gan_synth_density_components: int = 8
 
+    # Discriminator-based rejection sampling on generated synth bars.
+    # Trains a binary classifier on (real_pool, synth) per class and
+    # drops the bottom-fraction by P(real). Catches joint-correlation
+    # drift the density filter (diagonal-cov GMM) misses. ``0.0``
+    # disables; the generator is called with an inflated count so the
+    # post-filter output still hits each class's requested ``need``.
+    gan_synth_discrim_reject_pct: float = 0.0
+
+    # Neural-discriminator rejection sampling. Uses the unified
+    # RealnessDiscriminator trained once by CreateDiscriminator across
+    # synth from every saved GAN. Independent of the in-loop HistGB
+    # filter above — both can run, inflates multiply. ``0.0`` disables.
+    # ``gan_synth_neural_discrim_model_path`` defaults to the
+    # conventional save location written by CreateDiscriminator (under
+    # the strategy's storage location).
+    gan_synth_neural_discrim_reject_pct: float = 0.0
+    gan_synth_neural_discrim_model_path: Optional[str] = None
+
+    # Realsignal rejection sampling. Loads per-class binary classifiers
+    # trained ONLY on real data (no GAN samples) — drop synth rows whose
+    # features don't look like a real example of the class they claim
+    # to be. Default save root is ``saved_data/Discriminators/realsignal/``
+    # written by CreateRealsignalDiscriminator. ``0.0`` disables.
+    gan_synth_realsignal_reject_pct: float = 0.0
+    gan_synth_realsignal_model_root: Optional[str] = None
+
+    # Confidence-threshold variants of the two NN filters. When set,
+    # the filter keeps every synth row scoring above the threshold
+    # (variable output count) instead of the rank-based bottom-fraction
+    # drop. Mutually exclusive with the matching reject_pct — set only
+    # one of (reject_pct, threshold) per filter. ``None`` disables.
+    gan_synth_neural_discrim_threshold: Optional[float] = None
+    gan_synth_realsignal_threshold: Optional[float] = None
+
+    # Mahalanobis-distance rejection. Fits a Ledoit-Wolf shrinkage
+    # multivariate Gaussian on the real same-class pool and scores
+    # each synth row by squared Mahalanobis distance. Lower = closer
+    # to the real distribution centroid. Captures joint structure
+    # (covariance) which the realsignal classifier and diagonal-cov
+    # density filter both miss. ``_reject_pct`` drops the top-fraction
+    # by distance (highest-distance = most off-distribution); ``_threshold``
+    # keeps rows with d² below the cutoff (under MVN, d² is
+    # χ²-distributed with F degrees of freedom, so for F=24 a threshold
+    # in [20, 50] is sensible).
+    gan_synth_mahalanobis_reject_pct: float = 0.0
+    gan_synth_mahalanobis_threshold: Optional[float] = None
+
+    # Autoencoder rejection sampling. Loads per-class MLP autoencoders
+    # trained ONLY on real same-class data (no GAN samples) by
+    # CreateAutoencoderFilter. Scores each synth row by reconstruction
+    # MSE — low MSE = on the real manifold = keep; high MSE = off
+    # manifold = drop. Manifold-aware: unlike Mahalanobis it doesn't
+    # reward centroid clustering, so real tail samples reconstruct well
+    # while off-distribution synth (broken joints, missing structure)
+    # have high error regardless of their distance from the centroid.
+    # Default save root is ``saved_data/Discriminators/autoencoder/``.
+    # ``_reject_pct`` drops the top-fraction by MSE; ``_threshold``
+    # keeps rows below the cutoff (typical scale: 0.005-0.05 depending
+    # on normalization).
+    gan_synth_autoencoder_reject_pct: float = 0.0
+    gan_synth_autoencoder_model_root: Optional[str] = None
+    gan_synth_autoencoder_threshold: Optional[float] = None
+
+    def _resolve_neural_discriminator_path(self) -> Optional[str]:
+        """Return the configured path or the conventional default under
+        the strategy's storage location. Returns None when the filter
+        is disabled (both reject_pct and threshold inactive)."""
+        rej = float(getattr(self, "gan_synth_neural_discrim_reject_pct", 0.0))
+        thr = getattr(self, "gan_synth_neural_discrim_threshold", None)
+        if rej <= 0.0 and thr is None:
+            return None
+        explicit = getattr(self, "gan_synth_neural_discrim_model_path", None)
+        if explicit:
+            return str(explicit)
+        try:
+            return os.path.join(
+                self.get_storage_location(), "Discriminators", "realness"
+            )
+        except Exception:
+            return None
+
+    def _resolve_realsignal_root(self) -> Optional[str]:
+        """Return the configured path or the conventional default for
+        the per-class realsignal classifiers. Returns None when the
+        filter is disabled (both reject_pct and threshold inactive)."""
+        rej = float(getattr(self, "gan_synth_realsignal_reject_pct", 0.0))
+        thr = getattr(self, "gan_synth_realsignal_threshold", None)
+        if rej <= 0.0 and thr is None:
+            return None
+        explicit = getattr(self, "gan_synth_realsignal_model_root", None)
+        if explicit:
+            return str(explicit)
+        try:
+            return os.path.join(
+                self.get_storage_location(), "Discriminators", "realsignal"
+            )
+        except Exception:
+            return None
+
+    def _resolve_autoencoder_root(self) -> Optional[str]:
+        """Return the configured path or the conventional default for
+        the per-class autoencoders. Returns None when the filter is
+        disabled (both reject_pct and threshold inactive)."""
+        rej = float(getattr(self, "gan_synth_autoencoder_reject_pct", 0.0))
+        thr = getattr(self, "gan_synth_autoencoder_threshold", None)
+        if rej <= 0.0 and thr is None:
+            return None
+        explicit = getattr(self, "gan_synth_autoencoder_model_root", None)
+        if explicit:
+            return str(explicit)
+        try:
+            return os.path.join(
+                self.get_storage_location(), "Discriminators", "autoencoder"
+            )
+        except Exception:
+            return None
+
     def _apply_gan_inference_overrides(self, interface) -> None:
         """Push strategy-level sampling knobs onto the loaded model.
 
@@ -1856,6 +1972,36 @@ class BaseNNStrategy(BaseStrategy):
             density_n_components=int(
                 getattr(self, "gan_synth_density_components", 8)
             ),
+            discrim_reject_pct=float(
+                getattr(self, "gan_synth_discrim_reject_pct", 0.0)
+            ),
+            neural_discrim_reject_pct=float(
+                getattr(self, "gan_synth_neural_discrim_reject_pct", 0.0)
+            ),
+            neural_discrim_model_path=self._resolve_neural_discriminator_path(),
+            neural_discrim_threshold=getattr(
+                self, "gan_synth_neural_discrim_threshold", None
+            ),
+            realsignal_reject_pct=float(
+                getattr(self, "gan_synth_realsignal_reject_pct", 0.0)
+            ),
+            realsignal_model_root=self._resolve_realsignal_root(),
+            realsignal_threshold=getattr(
+                self, "gan_synth_realsignal_threshold", None
+            ),
+            mahalanobis_reject_pct=float(
+                getattr(self, "gan_synth_mahalanobis_reject_pct", 0.0)
+            ),
+            mahalanobis_threshold=getattr(
+                self, "gan_synth_mahalanobis_threshold", None
+            ),
+            autoencoder_reject_pct=float(
+                getattr(self, "gan_synth_autoencoder_reject_pct", 0.0)
+            ),
+            autoencoder_model_root=self._resolve_autoencoder_root(),
+            autoencoder_threshold=getattr(
+                self, "gan_synth_autoencoder_threshold", None
+            ),
             passthrough_columns=passthrough,
             pair_name=pair_name,
         )
@@ -1904,6 +2050,7 @@ class BaseNNStrategy(BaseStrategy):
             "min_buy_gain_threshold": float(self.MIN_BUY_GAIN_THRESHOLD),
             "min_sell_loss_threshold": float(self.MIN_SELL_LOSS_THRESHOLD),
             "training_type": int(self.TRAINING_TYPE),
+            "horizon": int(self.HORIZON),
         }
 
     def _resolve_gan_passthrough_for_dispatcher(

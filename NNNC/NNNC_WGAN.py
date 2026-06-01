@@ -32,6 +32,11 @@ class NNNC_WGAN(NNNCStrategy):
     # majority class size.  See balance_single_task for semantics.
     gan_target_ratio = 0.3
 
+    # Per-class autoencoder filter — manifold-aware rejection of off-real
+    # synth samples. Same setting used on NNNC_DDPM_MLX (the AE filter is
+    # GAN-type-agnostic; see project_ae_filter_win.md).
+    gan_synth_autoencoder_threshold = 0.010
+
     # v2 pipeline: WGAN MLX generator outputs raw-space features (after
     # internal z-score + inverse), strategy applies tensor scaling after
     # augmentation. Reads model from saved_data/GANs_PostScale/wgan/.

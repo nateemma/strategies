@@ -103,6 +103,7 @@ def summarize_real_vs_synthetic(
     log: Any = print,
     max_samples_for_corr: int = _DEFAULT_MAX_SAMPLES_FOR_CORR,
     rng: Optional[np.random.Generator] = None,
+    pair_name: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Print a per-(task, class) fidelity summary comparing real and
@@ -171,7 +172,8 @@ def summarize_real_vs_synthetic(
     if rng is None:
         rng = np.random.default_rng()
 
-    log("    === GAN fidelity diagnostic (real vs synthetic) ===")
+    header_suffix = f" — pair={pair_name}" if pair_name else ""
+    log(f"    === GAN fidelity diagnostic (real vs synthetic){header_suffix} ===")
     log(f"      real rows: {real_flat.shape[0]:>10d}    "
         f"synth rows: {synth_flat.shape[0]:>10d}    "
         f"features: {real_flat.shape[1]}")

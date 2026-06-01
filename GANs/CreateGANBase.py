@@ -78,6 +78,7 @@ class CreateGANBase:
     MASTER_MIN_BUY_GAIN_THRESHOLD = TrainingConfig.MIN_BUY_GAIN_THRESHOLD
     MASTER_MIN_SELL_LOSS_THRESHOLD = TrainingConfig.MIN_SELL_LOSS_THRESHOLD
     MASTER_TRAINING_TYPE = TrainingConfig.TRAINING_TYPE
+    MASTER_HORIZON = TrainingConfig.HORIZON
 
     # Concrete subclasses set this to the GANType they create.  Staying
     # here as NONE means the caller must set it (or a subclass hard-codes it).
@@ -119,6 +120,8 @@ class CreateGANBase:
             self.MIN_SELL_LOSS_THRESHOLD = self.MASTER_MIN_SELL_LOSS_THRESHOLD
         if hasattr(self, "TRAINING_TYPE"):
             self.TRAINING_TYPE = self.MASTER_TRAINING_TYPE
+        if hasattr(self, "HORIZON"):
+            self.HORIZON = self.MASTER_HORIZON
 
         self._is_gan_creation_strategy = True
 
@@ -137,11 +140,13 @@ class CreateGANBase:
             "MASTER_MIN_BUY_GAIN_THRESHOLD": BaseNNStrategy.MIN_BUY_GAIN_THRESHOLD,
             "MASTER_MIN_SELL_LOSS_THRESHOLD": BaseNNStrategy.MIN_SELL_LOSS_THRESHOLD,
             "MASTER_TRAINING_TYPE": BaseNNStrategy.TRAINING_TYPE,
+            "MASTER_HORIZON": BaseNNStrategy.HORIZON,
         }
         local_vals = {
             "MASTER_MIN_BUY_GAIN_THRESHOLD": self.MASTER_MIN_BUY_GAIN_THRESHOLD,
             "MASTER_MIN_SELL_LOSS_THRESHOLD": self.MASTER_MIN_SELL_LOSS_THRESHOLD,
             "MASTER_TRAINING_TYPE": self.MASTER_TRAINING_TYPE,
+            "MASTER_HORIZON": self.MASTER_HORIZON,
         }
         mismatches = {
             key: (strategy_vals[key], local_vals[key])
@@ -371,12 +376,14 @@ class CreateGANBase:
             f"{self.MASTER_MIN_SELL_LOSS_THRESHOLD:.4f}"
         )
         print(f"      MASTER_TRAINING_TYPE = {self.MASTER_TRAINING_TYPE}")
+        print(f"      MASTER_HORIZON = {self.MASTER_HORIZON}")
 
     def _master_save_kwargs(self) -> Dict[str, Any]:
         return {
             "min_buy_gain_threshold": self.MASTER_MIN_BUY_GAIN_THRESHOLD,
             "min_sell_loss_threshold": self.MASTER_MIN_SELL_LOSS_THRESHOLD,
             "training_type": self.MASTER_TRAINING_TYPE,
+            "horizon": self.MASTER_HORIZON,
         }
 
     def _ensure_dataframe(self, data: Any, reference: DataFrame) -> DataFrame:

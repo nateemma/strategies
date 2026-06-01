@@ -138,7 +138,7 @@ class BaseNNMTStrategy(BaseNNStrategy):
     """
 
     buy_params = { **BaseNNStrategy.buy_params,
-        "prediction_threshold": 0.8,
+        "prediction_threshold": 0.6,
         "profit_prediction_threshold": 0.3
         }
 

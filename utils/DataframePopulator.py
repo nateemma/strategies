@@ -333,12 +333,19 @@ class DataframePopulator:
         # srmi scaled to -1 to 1 (PRE-NORMALIZED)
         srmi = 2.0 * (rmi - 50.0) / 100.0
         dataframe["guard_metric"] = srmi
-        # guard_metric bimodal split (BC 0.56-0.60 on SOL/ZEC/ICP): same
-        # pattern as macd_pos/neg — two unimodal features in [0, 1] that
-        # give the classifier explicit sign-magnitude and that the GAN's
-        # MLP regression can model without collapsing to the conditional mean.
-        dataframe["guard_metric_pos"] = dataframe["guard_metric"].clip(lower=0)
-        dataframe["guard_metric_neg"] = (-dataframe["guard_metric"]).clip(lower=0)
+        # guard_metric smooth bimodal split (was hard clip; produced a
+        # Dirac at 0 in the opposite-class samples that no continuous-
+        # output GAN could match — real class-2 σ(guard_metric_pos) was
+        # ~0.026, GAN synth was ~0.14, σ_ratio ~5x, persistent across
+        # all filter sweeps). Softplus preserves the same sign-magnitude
+        # signal for the classifier (high for positive guard_metric, low
+        # for negative) but every row has a small non-zero value, so the
+        # σ never collapses and the GAN can model the distribution
+        # without a discontinuity at 0.
+        _gm_scale = 0.2
+        _gm = dataframe["guard_metric"]
+        dataframe["guard_metric_pos"] = _gm_scale * np.log1p(np.exp(_gm / _gm_scale))
+        dataframe["guard_metric_neg"] = _gm_scale * np.log1p(np.exp(-_gm / _gm_scale))
 
         # MACD (Absolute values - need scaling)
         macd = ta.MACD(dataframe)

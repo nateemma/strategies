@@ -49,9 +49,10 @@ class DebugNNStrategy(BaseNNStrategy):
     # MIN_BUY_GAIN_THRESHOLD, MIN_SELL_LOSS_THRESHOLD, TRAINING_TYPE all
     # inherit from BaseNNStrategy → Framework.TrainingConfig. To override
     # for a debug experiment, set the attribute directly here.
-    PEAK_WINDOW = 6
+    PEAK_WINDOW = 48
     augment_training_data = False
     aggregate_pairs = False
+    entry_trend_filter_enable = False
 
     # --------------------------------
 
@@ -94,12 +95,12 @@ class DebugNNStrategy(BaseNNStrategy):
     # override NNStrategy hyperopt params (mostly to disable optimization for now)
     opt_framework_params = True
     opt_train_signals = False
-    opt_guard_metrics = False
+    opt_guard_metrics = True
 
     # don't optimise this here because predictions are perfect
     prediction_threshold = DecimalParameter(
         0.3,
-        0.7,
+        0.9,
         default=0.5,
         decimals=1,
         space="buy",
@@ -112,7 +113,7 @@ class DebugNNStrategy(BaseNNStrategy):
         default=True,
         space="sell",
         load=True,
-        optimize=opt_guard_metrics,
+        optimize=False,
     )
 
     entry_enable_guards = CategoricalParameter(
@@ -120,12 +121,12 @@ class DebugNNStrategy(BaseNNStrategy):
         default=True,
         space="buy",
         load=True,
-        optimize=opt_guard_metrics,
+        optimize=False,
     )
 
     entry_guard_threshold = DecimalParameter(
         -0.9,
-        -0.0,
+        0.9,
         default=-0.0,
         decimals=1,
         space="buy",
@@ -134,8 +135,8 @@ class DebugNNStrategy(BaseNNStrategy):
     )
 
     entry_close_norm_threshold = DecimalParameter(
-        -0.5,
-        0.0,
+        -0.9,
+        1.0,
         default=0.0,
         decimals=1,
         space="buy",
@@ -144,8 +145,8 @@ class DebugNNStrategy(BaseNNStrategy):
     )
 
     entry_adx_threshold = DecimalParameter(
-        50.0,
-        80.0,
+        10.0,
+        90.0,
         default=20.0,
         decimals=0,
         space="buy",
@@ -154,8 +155,8 @@ class DebugNNStrategy(BaseNNStrategy):
     )
 
     entry_bb_width_threshold = DecimalParameter(
-        0.01,
-        0.08,
+        0.005,
+        0.10,
         default=0.01,
         decimals=2,
         space="buy",
@@ -183,7 +184,7 @@ class DebugNNStrategy(BaseNNStrategy):
         optimize=opt_guard_metrics,
     )
     exit_guard_threshold = DecimalParameter(
-        0.0,
+        -0.9,
         0.9,
         default=0.0,
         decimals=1,
@@ -193,7 +194,7 @@ class DebugNNStrategy(BaseNNStrategy):
     )
 
     exit_close_norm_threshold = DecimalParameter(
-        0.0,
+        -0.9,
         1.0,
         default=0.0,
         decimals=1,
@@ -212,7 +213,7 @@ class DebugNNStrategy(BaseNNStrategy):
 
     cexit_take_profit = DecimalParameter(
         0.002,
-        0.02,
+        0.04,
         default=0.008,
         decimals=3,
         space="sell",
@@ -223,7 +224,7 @@ class DebugNNStrategy(BaseNNStrategy):
     cexit_max_days = IntParameter(
         1,
         30,
-        default=21,
+        default=3,
         space="sell",
         load=True,
         optimize=opt_framework_params,
@@ -232,7 +233,7 @@ class DebugNNStrategy(BaseNNStrategy):
     # hyperparams to control buy/sell signals
     min_buy_gain_threshold = DecimalParameter(
         0.002,
-        0.01,
+        0.03,
         default=0.003,
         decimals=3,
         space="buy",
@@ -242,7 +243,7 @@ class DebugNNStrategy(BaseNNStrategy):
 
     min_sell_loss_threshold = DecimalParameter(
         0.002,
-        0.01,
+        0.02,
         default=0.003,
         decimals=3,
         space="sell",

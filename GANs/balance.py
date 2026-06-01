@@ -40,6 +40,21 @@ from GANs.diagnostics import summarize_real_vs_synthetic
 from GANs.GANType import GANType
 from GANs.passthrough import swap_passthrough_columns, swap_passthrough_columns_nn
 from GANs.density_filter import density_inflate_factor, filter_by_density
+from GANs.discriminator_filter import (
+    discriminator_inflate_factor,
+    filter_by_autoencoder,
+    filter_by_autoencoder_threshold,
+    filter_by_discriminator,
+    filter_by_neural_discriminator,
+    filter_by_neural_discriminator_threshold,
+    filter_by_realsignal,
+    filter_by_realsignal_threshold,
+)
+from GANs.mahalanobis_filter import (
+    filter_by_mahalanobis,
+    filter_by_mahalanobis_threshold,
+    mahalanobis_inflate_factor,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -77,6 +92,18 @@ def balance_single_task(
     pair_name: Optional[str] = None,
     density_reject_pct: float = 0.0,
     density_n_components: int = 8,
+    discrim_reject_pct: float = 0.0,
+    neural_discrim_reject_pct: float = 0.0,
+    neural_discrim_model_path: Optional[str] = None,
+    neural_discrim_threshold: Optional[float] = None,
+    realsignal_reject_pct: float = 0.0,
+    realsignal_model_root: Optional[str] = None,
+    realsignal_threshold: Optional[float] = None,
+    mahalanobis_reject_pct: float = 0.0,
+    mahalanobis_threshold: Optional[float] = None,
+    autoencoder_reject_pct: float = 0.0,
+    autoencoder_model_root: Optional[str] = None,
+    autoencoder_threshold: Optional[float] = None,
 ) -> Tuple[Any, np.ndarray]:
     """
     Augment ``(data, labels)`` so each class reaches
@@ -173,7 +200,27 @@ def balance_single_task(
     aug_data_batches: List[Any] = []
     aug_label_batches: List[np.ndarray] = []
 
-    inflate = density_inflate_factor(density_reject_pct)
+    inflate = (
+        density_inflate_factor(density_reject_pct)
+        * discriminator_inflate_factor(discrim_reject_pct)
+        * discriminator_inflate_factor(neural_discrim_reject_pct)
+        * discriminator_inflate_factor(realsignal_reject_pct)
+        * mahalanobis_inflate_factor(mahalanobis_reject_pct)
+        * discriminator_inflate_factor(autoencoder_reject_pct)
+    )
+
+    threshold_mode = (
+        (neural_discrim_threshold is not None and neural_discrim_model_path)
+        or (realsignal_threshold is not None and realsignal_model_root)
+        or (mahalanobis_threshold is not None)
+        or (autoencoder_threshold is not None and autoencoder_model_root)
+    )
+    # In threshold mode the kept fraction is unknown a priori, so the
+    # rank-mode inflate doesn't compensate. Iterate up to N attempts,
+    # sizing each subsequent batch from the observed pass rate, until
+    # we hit ``need`` or run out of attempts. Rank-only mode keeps the
+    # original single-pass behaviour (max_attempts=1).
+    max_attempts = 5 if threshold_mode else 1
 
     for class_idx in classes_sorted:
         need = int(needs_map.get(int(class_idx), 0))
@@ -191,54 +238,303 @@ def balance_single_task(
         else:
             class_pool = data  # defensive fallback (shouldn't trigger)
 
-        # Inflate the generation count so post-filter we still hit ``need``.
-        # ``int(ceil(...))`` would also work; ``+1`` is cheaper and safe.
-        n_generate = int(need * inflate) + 1 if density_reject_pct > 0 else need
+        accumulated: List[Any] = []
+        total_kept = 0
+        total_generated = 0
+        # Suffix appended to per-filter log lines so iteration is visible.
+        # Empty in single-pass mode for log-stability with prior runs.
+        def _attempt_suffix(a):
+            return f", attempt {a+1}" if threshold_mode else ""
 
-        gen = _generate_for_class(
-            interface=interface,
-            n=n_generate,
-            class_idx=int(class_idx),
-            num_classes=num_classes,
-            pair_label=pair_label,
-        )
-        # Squeeze seq dimension for WGAN's (n, 1, F) → (n, F).
-        if interface.gan_type in _SQUEEZE_SEQ_DIM_TYPES and getattr(gen, "ndim", 0) == 3:
-            gen = gen[:, 0, :]
+        for attempt in range(max_attempts):
+            if total_kept >= need:
+                break
+            remaining = need - total_kept
 
-        # Density-based rejection sampling. Fits a per-class GMM on the
-        # real same-class pool, drops the lowest-density synth samples.
-        # Returns gen unchanged when reject_pct=0, pool too small to
-        # fit, or scoring fails — all non-fatal.
-        if density_reject_pct > 0:
-            before = len(gen) if hasattr(gen, "__len__") else 0
-            gen = filter_by_density(
-                synth=gen,
-                real_pool=class_pool,
-                reject_pct=density_reject_pct,
-                n_components=density_n_components,
+            if attempt == 0:
+                # First pass: use the rank-based inflate. In threshold
+                # mode this gives the first attempt some headroom; later
+                # attempts size from observed pass rate below.
+                n_generate = (
+                    int(remaining * inflate) + 1
+                    if (
+                        density_reject_pct > 0
+                        or discrim_reject_pct > 0
+                        or neural_discrim_reject_pct > 0
+                        or realsignal_reject_pct > 0
+                        or mahalanobis_reject_pct > 0
+                        or autoencoder_reject_pct > 0
+                    )
+                    else remaining
+                )
+            else:
+                # Subsequent attempts: size from observed pass rate,
+                # clipped at 5% to keep generation bounded when the
+                # filter is extremely strict.
+                pass_rate = total_kept / max(1, total_generated)
+                pass_rate = max(0.05, pass_rate)
+                n_generate = int(remaining / pass_rate * 1.2) + 1
+
+            gen = _generate_for_class(
+                interface=interface,
+                n=n_generate,
+                class_idx=int(class_idx),
+                num_classes=num_classes,
+                pair_label=pair_label,
             )
-            # Trim to exactly ``need`` so caller-facing counts match
-            # what they would have without density filtering.
-            after = len(gen) if hasattr(gen, "__len__") else 0
-            if after > need:
-                if isinstance(gen, pd.DataFrame):
-                    gen = gen.iloc[:need].reset_index(drop=True)
-                else:
-                    gen = np.asarray(gen)[:need]
+            # Squeeze seq dimension for WGAN's (n, 1, F) → (n, F).
+            if interface.gan_type in _SQUEEZE_SEQ_DIM_TYPES and getattr(gen, "ndim", 0) == 3:
+                gen = gen[:, 0, :]
+
+            # Density-based rejection sampling. Per-filter trims to
+            # ``remaining`` (not ``need``) so iteration works correctly
+            # in threshold mode; in single-pass mode remaining == need
+            # by construction.
+            if density_reject_pct > 0:
+                before = len(gen) if hasattr(gen, "__len__") else 0
+                gen = filter_by_density(
+                    synth=gen,
+                    real_pool=class_pool,
+                    reject_pct=density_reject_pct,
+                    n_components=density_n_components,
+                )
+                after = len(gen) if hasattr(gen, "__len__") else 0
+                if after > remaining:
+                    if isinstance(gen, pd.DataFrame):
+                        gen = gen.iloc[:remaining].reset_index(drop=True)
+                    else:
+                        gen = np.asarray(gen)[:remaining]
+                debug_log(
+                    f"      density filter: kept {min(after, remaining)}/{before} "
+                    f"synth samples for class {int(class_idx)} "
+                    f"(reject_pct={density_reject_pct:.4f}{_attempt_suffix(attempt)})"
+                )
+
+            if discrim_reject_pct > 0:
+                before = len(gen) if hasattr(gen, "__len__") else 0
+                gen = filter_by_discriminator(
+                    synth=gen,
+                    real_pool=class_pool,
+                    reject_pct=discrim_reject_pct,
+                )
+                after = len(gen) if hasattr(gen, "__len__") else 0
+                if after > remaining:
+                    if isinstance(gen, pd.DataFrame):
+                        gen = gen.iloc[:remaining].reset_index(drop=True)
+                    else:
+                        gen = np.asarray(gen)[:remaining]
+                debug_log(
+                    f"      discriminator filter: kept {min(after, remaining)}/{before} "
+                    f"synth samples for class {int(class_idx)} "
+                    f"(reject_pct={discrim_reject_pct:.4f}{_attempt_suffix(attempt)})"
+                )
+
+            if neural_discrim_reject_pct > 0 and neural_discrim_model_path:
+                before = len(gen) if hasattr(gen, "__len__") else 0
+                gen = filter_by_neural_discriminator(
+                    synth=gen,
+                    class_idx=int(class_idx),
+                    num_classes=int(num_classes),
+                    reject_pct=neural_discrim_reject_pct,
+                    model_path=neural_discrim_model_path,
+                )
+                after = len(gen) if hasattr(gen, "__len__") else 0
+                if after > remaining:
+                    if isinstance(gen, pd.DataFrame):
+                        gen = gen.iloc[:remaining].reset_index(drop=True)
+                    else:
+                        gen = np.asarray(gen)[:remaining]
+                debug_log(
+                    f"      neural-discrim filter: kept {min(after, remaining)}/{before} "
+                    f"synth samples for class {int(class_idx)} "
+                    f"(reject_pct={neural_discrim_reject_pct:.4f}{_attempt_suffix(attempt)})"
+                )
+
+            if realsignal_reject_pct > 0 and realsignal_model_root:
+                before = len(gen) if hasattr(gen, "__len__") else 0
+                gen = filter_by_realsignal(
+                    synth=gen,
+                    class_idx=int(class_idx),
+                    reject_pct=realsignal_reject_pct,
+                    model_root=realsignal_model_root,
+                )
+                after = len(gen) if hasattr(gen, "__len__") else 0
+                if after > remaining:
+                    if isinstance(gen, pd.DataFrame):
+                        gen = gen.iloc[:remaining].reset_index(drop=True)
+                    else:
+                        gen = np.asarray(gen)[:remaining]
+                debug_log(
+                    f"      realsignal filter: kept {min(after, remaining)}/{before} "
+                    f"synth samples for class {int(class_idx)} "
+                    f"(reject_pct={realsignal_reject_pct:.4f}{_attempt_suffix(attempt)})"
+                )
+
+            if mahalanobis_reject_pct > 0:
+                before = len(gen) if hasattr(gen, "__len__") else 0
+                gen = filter_by_mahalanobis(
+                    synth=gen,
+                    real_pool=class_pool,
+                    reject_pct=mahalanobis_reject_pct,
+                )
+                after = len(gen) if hasattr(gen, "__len__") else 0
+                if after > remaining:
+                    if isinstance(gen, pd.DataFrame):
+                        gen = gen.iloc[:remaining].reset_index(drop=True)
+                    else:
+                        gen = np.asarray(gen)[:remaining]
+                debug_log(
+                    f"      mahalanobis filter: kept {min(after, remaining)}/{before} "
+                    f"synth samples for class {int(class_idx)} "
+                    f"(reject_pct={mahalanobis_reject_pct:.4f}{_attempt_suffix(attempt)})"
+                )
+
+            if autoencoder_reject_pct > 0 and autoencoder_model_root:
+                before = len(gen) if hasattr(gen, "__len__") else 0
+                gen = filter_by_autoencoder(
+                    synth=gen,
+                    class_idx=int(class_idx),
+                    reject_pct=autoencoder_reject_pct,
+                    model_root=autoencoder_model_root,
+                )
+                after = len(gen) if hasattr(gen, "__len__") else 0
+                if after > remaining:
+                    if isinstance(gen, pd.DataFrame):
+                        gen = gen.iloc[:remaining].reset_index(drop=True)
+                    else:
+                        gen = np.asarray(gen)[:remaining]
+                debug_log(
+                    f"      autoencoder filter: kept {min(after, remaining)}/{before} "
+                    f"synth samples for class {int(class_idx)} "
+                    f"(reject_pct={autoencoder_reject_pct:.4f}{_attempt_suffix(attempt)})"
+                )
+
+            # --- Threshold-mode filters ---------------------------- #
+            if neural_discrim_threshold is not None and neural_discrim_model_path:
+                before = len(gen) if hasattr(gen, "__len__") else 0
+                gen = filter_by_neural_discriminator_threshold(
+                    synth=gen,
+                    class_idx=int(class_idx),
+                    num_classes=int(num_classes),
+                    threshold=float(neural_discrim_threshold),
+                    model_path=neural_discrim_model_path,
+                )
+                after = len(gen) if hasattr(gen, "__len__") else 0
+                if after > remaining:
+                    if isinstance(gen, pd.DataFrame):
+                        gen = gen.iloc[:remaining].reset_index(drop=True)
+                    else:
+                        gen = np.asarray(gen)[:remaining]
+                debug_log(
+                    f"      neural-discrim threshold filter: kept "
+                    f"{min(after, remaining)}/{before} synth samples for class "
+                    f"{int(class_idx)} "
+                    f"(threshold={float(neural_discrim_threshold):.4f}"
+                    f"{_attempt_suffix(attempt)})"
+                )
+
+            if realsignal_threshold is not None and realsignal_model_root:
+                before = len(gen) if hasattr(gen, "__len__") else 0
+                gen = filter_by_realsignal_threshold(
+                    synth=gen,
+                    class_idx=int(class_idx),
+                    threshold=float(realsignal_threshold),
+                    model_root=realsignal_model_root,
+                )
+                after = len(gen) if hasattr(gen, "__len__") else 0
+                if after > remaining:
+                    if isinstance(gen, pd.DataFrame):
+                        gen = gen.iloc[:remaining].reset_index(drop=True)
+                    else:
+                        gen = np.asarray(gen)[:remaining]
+                debug_log(
+                    f"      realsignal threshold filter: kept "
+                    f"{min(after, remaining)}/{before} synth samples for class "
+                    f"{int(class_idx)} "
+                    f"(threshold={float(realsignal_threshold):.4f}"
+                    f"{_attempt_suffix(attempt)})"
+                )
+
+            if mahalanobis_threshold is not None:
+                before = len(gen) if hasattr(gen, "__len__") else 0
+                gen = filter_by_mahalanobis_threshold(
+                    synth=gen,
+                    real_pool=class_pool,
+                    threshold=float(mahalanobis_threshold),
+                )
+                after = len(gen) if hasattr(gen, "__len__") else 0
+                if after > remaining:
+                    if isinstance(gen, pd.DataFrame):
+                        gen = gen.iloc[:remaining].reset_index(drop=True)
+                    else:
+                        gen = np.asarray(gen)[:remaining]
+                debug_log(
+                    f"      mahalanobis threshold filter: kept "
+                    f"{min(after, remaining)}/{before} synth samples for class "
+                    f"{int(class_idx)} "
+                    f"(threshold={float(mahalanobis_threshold):.4f}"
+                    f"{_attempt_suffix(attempt)})"
+                )
+
+            if autoencoder_threshold is not None and autoencoder_model_root:
+                before = len(gen) if hasattr(gen, "__len__") else 0
+                gen = filter_by_autoencoder_threshold(
+                    synth=gen,
+                    class_idx=int(class_idx),
+                    threshold=float(autoencoder_threshold),
+                    model_root=autoencoder_model_root,
+                )
+                after = len(gen) if hasattr(gen, "__len__") else 0
+                if after > remaining:
+                    if isinstance(gen, pd.DataFrame):
+                        gen = gen.iloc[:remaining].reset_index(drop=True)
+                    else:
+                        gen = np.asarray(gen)[:remaining]
+                debug_log(
+                    f"      autoencoder threshold filter: kept "
+                    f"{min(after, remaining)}/{before} synth samples for class "
+                    f"{int(class_idx)} "
+                    f"(threshold={float(autoencoder_threshold):.4f}"
+                    f"{_attempt_suffix(attempt)})"
+                )
+
+            kept_this = len(gen) if hasattr(gen, "__len__") else 0
+            total_generated += n_generate
+            if kept_this > 0:
+                accumulated.append(gen)
+                total_kept += kept_this
+            else:
+                # Filter rejected everything in this attempt — bail to
+                # avoid burning iterations with no progress.
+                debug_log(
+                    f"      class {int(class_idx)}: 0 synth kept in attempt "
+                    f"{attempt+1} — bailing"
+                )
+                break
+
+        if not accumulated:
             debug_log(
-                f"      density filter: kept {min(after, need)}/{before} "
-                f"synth samples for class {int(class_idx)} "
-                f"(reject_pct={density_reject_pct:.2f})"
+                f"      class {int(class_idx)}: 0 synth survived the filter "
+                f"chain — skipping this class's contribution"
             )
+            continue
+
+        # Concatenate accumulated batches across attempts (a no-op in
+        # rank-only single-pass mode), then trim to ``need``.
+        if isinstance(accumulated[0], pd.DataFrame):
+            gen = pd.concat(
+                [df.reset_index(drop=True) for df in accumulated],
+                ignore_index=True,
+            )
+        else:
+            gen = np.concatenate([np.asarray(b) for b in accumulated], axis=0)
+        if len(gen) > need:
+            if isinstance(gen, pd.DataFrame):
+                gen = gen.iloc[:need].reset_index(drop=True)
+            else:
+                gen = gen[:need]
 
         if passthrough_columns:
-            # Nearest-neighbor pairing on the same-class pool (computed
-            # above): for each synth row, find the real row with closest
-            # non-passthrough features and copy its passthrough columns.
-            # Preserves the joint structure between passthrough and
-            # GAN-generated features that random swapping destroys.
-            # Falls back to random for 3D inputs internally.
             gen = swap_passthrough_columns_nn(
                 synth=gen,
                 real_pool=class_pool,
@@ -246,19 +542,27 @@ def balance_single_task(
                 feature_names=feature_names,
             )
 
+        actual_n = len(gen) if hasattr(gen, "__len__") else need
         aug_data_batches.append(gen)
         aug_label_batches.append(
             _build_single_task_labels(
                 class_idx=int(class_idx),
-                n=need,
+                n=actual_n,
                 num_classes=num_classes,
                 shape=label_shape,
                 dtype=labels.dtype,
             )
         )
-        debug_log(
-            f"      generated {need} samples for class {int(class_idx)}"
-        )
+        if threshold_mode:
+            debug_log(
+                f"      generated {actual_n} samples for class {int(class_idx)} "
+                f"(target {need}, {len(accumulated)} attempts, "
+                f"{total_generated} drawn)"
+            )
+        else:
+            debug_log(
+                f"      generated {actual_n} samples for class {int(class_idx)}"
+            )
 
     if not aug_data_batches:
         debug_log("    balance_single_task: no batches generated — returning original")
@@ -301,6 +605,7 @@ def balance_single_task(
                 synth_labels={"class": synth_oh},
                 feature_names=feature_names,
                 log=debug_log,
+                pair_name=pair_name,
             )
         except Exception as exc:  # diagnostics must never tank a training run
             log(f"    [diagnostics] skipped (error: {exc})")
@@ -329,6 +634,7 @@ def balance_multi_task(
     diagnostics: bool = False,
     feature_names: Optional[Sequence[str]] = None,
     passthrough_columns: Optional[Sequence[Union[int, str]]] = None,
+    pair_name: Optional[str] = None,
 ) -> Tuple[Any, Dict[str, np.ndarray]]:
     """
     Iteratively augment ``(data, labels)`` so every (task, class) pair
@@ -544,6 +850,7 @@ def balance_multi_task(
                 synth_labels=synth_labels_per_task,
                 feature_names=feature_names,
                 log=debug_log,
+                pair_name=pair_name,
             )
         except Exception as exc:  # diagnostics must never tank a training run
             log(f"    [diagnostics] skipped (error: {exc})")

@@ -99,15 +99,45 @@ def accuracy_mlx(y_true: mx.array, y_pred: mx.array) -> float:
 # Compute all validation metrics at once
 # ---------------------------------------------------------
 
+def confidence_non_hold_mlx(y_pred: mx.array, hold_class: int = 1) -> float:
+    """Mean max-probability across predictions that are NOT Hold — the
+    single-task analog of the multi-task variant's "task-agreement
+    confidence" metric. Hold-dominated datasets would bias raw avg
+    max-prob upward via the Hold majority, so we restrict to actionable
+    predictions (Buy/Sell). Returns 0.0 when nothing is predicted as
+    non-Hold (which is itself a degenerate-prediction signal worth
+    seeing in the logs).
+    """
+    pred_classes = mx.argmax(y_pred, axis=-1)
+    max_probs = mx.max(y_pred, axis=-1)
+    non_hold_mask = pred_classes != hold_class
+    n_non_hold = int(mx.sum(non_hold_mask.astype(mx.int32)).item())
+    if n_non_hold == 0:
+        return 0.0
+    masked_probs = mx.where(non_hold_mask, max_probs, mx.zeros_like(max_probs))
+    return float((mx.sum(masked_probs) / n_non_hold).item())
+
+
 def compute_val_metrics(y_true: mx.array, y_pred: mx.array,
                         target_class: int = 2, num_classes: int = 3) -> dict:
     """
     Returns a dict of all metrics used during training.
     Key names mirror the Keras metric names so that monitoring logic is identical.
+
+    ``val_confidence`` and ``val_confidence_x_mcc`` are diagnostic — they
+    are NOT used by the monitor or early-stop logic (see ClassifierMLXNary
+    where ``monitor_key = "val_mcc"``). They expose whether the model is
+    being decisive on actionable predictions and whether decisiveness
+    correlates with backtest performance, without changing training
+    dynamics.
     """
+    mcc = mcc_mlx(y_true, y_pred, num_classes)
+    confidence = confidence_non_hold_mlx(y_pred, hold_class=1)
     return {
-        "val_precision":   precision_class_mlx(y_true, y_pred, target_class),
-        "val_f1_class_2":  per_class_f1_mlx(y_true, y_pred, target_class, num_classes),
-        "val_mcc":         mcc_mlx(y_true, y_pred, num_classes),
-        "val_accuracy":    accuracy_mlx(y_true, y_pred),
+        "val_precision":         precision_class_mlx(y_true, y_pred, target_class),
+        "val_f1_class_2":        per_class_f1_mlx(y_true, y_pred, target_class, num_classes),
+        "val_mcc":               mcc,
+        "val_accuracy":          accuracy_mlx(y_true, y_pred),
+        "val_confidence":        confidence,
+        "val_confidence_x_mcc":  confidence * mcc,
     }

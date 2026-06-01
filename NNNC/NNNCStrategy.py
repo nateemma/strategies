@@ -50,13 +50,12 @@ class NNNCStrategy(BaseNNStrategy):
     atr_stoploss_floor = -0.06   # loosest stop allowed (most negative)
     atr_stoploss_cap = -0.04     # tightest stop allowed (closest to zero)
 
-    # HORIZON sweep finding (2026-05-28): H=3 beats the inherited H=6
-    # default substantially (+21.68% vs +15.97% on the 13-pair config).
-    # Curve saturates at H>=6 — the gbb labeler's 1% min_gain is achievable
-    # for nearly all buy candidates within 6 bars, so longer horizons add
-    # no candidates. H=2 is essentially tied with H=3 (best DD/Calmar
-    # trade-off); H=3 chosen for best absolute profit and Sharpe.
-    HORIZON = 3
+    # HORIZON is now inherited from BaseNNStrategy → TrainingConfig.HORIZON.
+    # Production = 3. The 2026-05-28 univariate H sweep landed at H=3 at
+    # threshold=0.005 (+21.68% vs +15.97%); the 2026-05-30 learnability
+    # sweep then showed (H=3, threshold=0.003) is the right joint setting.
+    # Threshold lives in TrainingConfig too — change them together, not
+    # in isolation. Don't reintroduce the override here.
 
     def get_classifier_type(self):
         """Return the type of classifier used for training/predicting"""

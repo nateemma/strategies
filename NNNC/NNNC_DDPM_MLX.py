@@ -1,13 +1,11 @@
 """
-NNNC_DDPM_MLX_LSTM — NNNC MLX-LSTM classifier with TabDDPM augmentation.
+NNNC_DDPM_MLX — NNNC MLX-LSTM classifier with TabDDPM augmentation.
 
-Same architecture as NNNC_CGP_MLX_LSTM (MLX LSTM backbone, NNNC family);
-swaps the augmentation backend from CTAB-GAN+ to TabDDPM by setting
-``gan_type = GANType.TAB_DDPM``.
+MLX LSTM backbone, NNNC family
 
 Train the GAN first with CreateTabDDPM, then train this strategy — the
 saved TabDDPM model will be loaded from
-``saved_data/NNNC_DDPM_MLX_LSTM/GANs/tab_ddpm/`` 
+``saved_data/NNNC_DDPM_MLX/GANs/tab_ddpm/`` 
 """
 
 import sys
@@ -16,14 +14,25 @@ from pathlib import Path
 group_dir = str(Path(__file__).parent)
 sys.path.append(group_dir)
 
-from NNNC_CGP_MLX_LSTM import NNNC_CGP_MLX_LSTM
+from NNNC_MLX import NNNC_MLX
 from Framework.BaseStrategy import GANType
 
 
-class NNNC_DDPM_MLX_LSTM(NNNC_CGP_MLX_LSTM):
+class NNNC_DDPM_MLX(NNNC_MLX):
+
+
+    buy_params = { **NNNC_MLX.buy_params,
+        "prediction_threshold": 0.75
+        }
+
+    # Trend filter on NNNC_MLX was an experiment specific to the H=24
+    # gbb labeler path; production DDPM uses its own augmentation and
+    # doesn't need (and shouldn't get) the upstream filter.
+    entry_trend_filter_enable = False
+
     gan_type = GANType.TAB_DDPM
 
-    gan_target_ratio = 0.3
+    gan_target_ratio = 0.5
 
     # Extend the base calendar passthrough with the features TabDDPM
     # consistently compresses on the clean-data retrain. The marginal
@@ -67,6 +76,13 @@ class NNNC_DDPM_MLX_LSTM(NNNC_CGP_MLX_LSTM):
     # disabled; falling through to the Tier-1 sampling overrides.
     gan_synth_density_reject_pct = 0.0
 
-    # buy_params = { **NNNC_CGP_MLX_LSTM.buy_params,
-    #     "prediction_threshold": 0.65
-    #     }
+    # gan_synth_realsignal_reject_pct = 0.3
+    # gan_synth_realsignal_threshold = 0.5
+    gan_synth_autoencoder_threshold = 0.005
+
+    gan_run_diagnostics = True
+
+    augment_training_data = True
+
+
+
