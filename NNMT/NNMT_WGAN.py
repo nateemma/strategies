@@ -283,6 +283,10 @@ class NNMT_WGAN(NNMTStrategy):
             diagnostics=bool(getattr(self, "gan_run_diagnostics", False)),
             feature_names=feature_names,
             passthrough_columns=passthrough_columns,
+            autoencoder_threshold=getattr(
+                self, "gan_synth_autoencoder_threshold", None
+            ),
+            autoencoder_model_root=self._resolve_autoencoder_root(),
         )
 
     def _format_for_gan_scaler(self, array_2d: np.ndarray):

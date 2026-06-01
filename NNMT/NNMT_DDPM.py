@@ -92,6 +92,29 @@ class NNMT_DDPM(NNMTStrategy):
     # samples below, so layered signal augmentation would double-count.
     augment_training_data = False
 
+    # Features the MT_DDPM systematically mis-reproduces — copy from real
+    # class-matched rows during balancing instead of trusting the GAN's
+    # output. Identified from the post-training fidelity diagnostic
+    # (off-diagonal corr / lag-N autocorr deltas) that flagged:
+    #   - guard_metric_pos / guard_metric_neg (RMI-derived, high real
+    #     autocorr ~0.93 at lag-5; DDPM produces it too jittery and
+    #     breaks the guard×adx joint to a sign flip)
+    #   - vwap_pos / vwap_neg (VWAP-derived, high real lag-1 autocorr
+    #     ~0.91; DDPM compresses it toward ~0.50)
+    #   - atr_norm / spread_ma (heavy-tailed volatility; same pattern as
+    #     NNNC_DDPM_MLX passthrough, kept for consistency)
+    # Passthrough swaps these columns AFTER generation, before the AE
+    # filter runs, so the AE sees synth that has the correct values on
+    # the passthrough columns and only judges the GAN-generated rest.
+    gan_passthrough_columns = [
+        "atr_norm",
+        "spread_ma",
+        "guard_metric_pos",
+        "guard_metric_neg",
+        "vwap_pos",
+        "vwap_neg",
+    ]
+
     # When True, balance_multi_task emits a per-(task, class) fidelity
     # report (mean shift in σ, std ratio, mode-collapse / off-distribution
     # flags, plus a worst-feature drilldown).  Off by default; flip on
@@ -255,6 +278,10 @@ class NNMT_DDPM(NNMTStrategy):
             diagnostics=bool(getattr(self, "gan_run_diagnostics", False)),
             feature_names=feature_names,
             passthrough_columns=passthrough_columns,
+            autoencoder_threshold=getattr(
+                self, "gan_synth_autoencoder_threshold", None
+            ),
+            autoencoder_model_root=self._resolve_autoencoder_root(),
         )
 
     def _format_for_gan_scaler(self, array_2d: np.ndarray):
