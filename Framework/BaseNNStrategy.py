@@ -1509,6 +1509,53 @@ class BaseNNStrategy(BaseStrategy):
         indices = resolve_column_indices(configured, feature_names)
         return indices or None
 
+    def _invoke_balance_multi_task(
+        self,
+        interface: Any,
+        data: np.ndarray,
+        labels: Dict[str, np.ndarray],
+        *,
+        dataframe: Any = None,
+    ) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
+        """Single dispatch point for multi-task GAN augmentation.
+
+        Resolves feature names, passthrough indices, and AE-filter config
+        from instance state, then calls ``GANs.balance.balance_multi_task``.
+        All four multi-task augmentation call sites
+        (BaseNNStrategy single-task + MT-GAN, BaseNNMTStrategy multi-task,
+        NNMT_DDPM, NNMT_WGAN) funnel through here so any future kwarg
+        addition lands in one place.
+        """
+        from GANs.balance import balance_multi_task  # noqa: E402
+
+        feature_names: Optional[List[str]] = None
+        scaler = getattr(self, "gan_scaler_a", None)
+        if scaler is not None and hasattr(scaler, "feature_names_in_"):
+            try:
+                feature_names = list(scaler.feature_names_in_)
+            except Exception:
+                feature_names = None
+
+        passthrough_indices = self._resolve_gan_passthrough_indices(
+            train_minmax=None, train_df=dataframe
+        )
+
+        return balance_multi_task(
+            interface=interface,
+            data=data,
+            labels=labels,
+            target_ratios=self.gan_target_ratio,
+            log=print,
+            debug_log=self.debug_print,
+            diagnostics=bool(getattr(self, "gan_run_diagnostics", False)),
+            feature_names=feature_names,
+            passthrough_columns=passthrough_indices,
+            autoencoder_threshold=getattr(
+                self, "gan_synth_autoencoder_threshold", None
+            ),
+            autoencoder_model_root=self._resolve_autoencoder_root(),
+        )
+
     def get_classifier_type(self):
         """Return the type of classifier used for training/predicting"""
         raise NotImplementedError("get_classifier_type() not implemented")
@@ -2112,7 +2159,6 @@ class BaseNNStrategy(BaseStrategy):
         wrapped_labels = {"trading": one_hot}
 
         # Lazy imports — keep GAN stack out of strategies that never use it.
-        from GANs.balance import balance_multi_task  # noqa: E402
         from GANs.GANInterface import GANInterface, GANMetadataMismatchError  # noqa: E402
         from GANs.paths import gan_save_path  # noqa: E402
         from NNMT.BaseNNMTStrategy import (  # noqa: E402
@@ -2159,24 +2205,11 @@ class BaseNNStrategy(BaseStrategy):
                 wrapped_interface, expected_task_label_dims=gan_task_dims
             )
 
-        passthrough_indices = self._resolve_gan_passthrough_indices(
-            train_minmax=None, train_df=dataframe
-        )
-
-        aug_train_data, aug_labels_dict = balance_multi_task(
-            interface=wrapped_interface,
-            data=train_data,
-            labels=wrapped_labels,
-            target_ratios=self.gan_target_ratio,
-            log=print,
-            debug_log=self.debug_print,
-            diagnostics=bool(self.gan_run_diagnostics),
-            feature_names=None,
-            passthrough_columns=passthrough_indices,
-            autoencoder_threshold=getattr(
-                self, "gan_synth_autoencoder_threshold", None
-            ),
-            autoencoder_model_root=self._resolve_autoencoder_root(),
+        aug_train_data, aug_labels_dict = self._invoke_balance_multi_task(
+            wrapped_interface,
+            train_data,
+            wrapped_labels,
+            dataframe=dataframe,
         )
 
         # Unwrap labels back to ndarray for the single-task classifier.

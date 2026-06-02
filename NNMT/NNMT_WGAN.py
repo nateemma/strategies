@@ -241,52 +241,15 @@ class NNMT_WGAN(NNMTStrategy):
         train_minmax: np.ndarray,
         train_labels: Dict[str, np.ndarray],
     ) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
-        """Delegate to ``GANs.balance.balance_multi_task``.
+        """Delegate to ``BaseNNStrategy._invoke_balance_multi_task``.
 
         Thin wrapper kept so subclasses can override scheduling without
-        touching the augmentation policy itself — the algorithm lives
-        in the shared utility because it isn't WGAN-specific.
+        touching the augmentation policy itself.
         """
-        from GANs.balance import balance_multi_task  # noqa: E402
-        from GANs.passthrough import resolve_column_indices  # noqa: E402
-
-        # Pass feature names through when the scaler knows them — gives
-        # the diagnostic worst-feature drilldown human-readable column
-        # names instead of f0..fF, and lets the passthrough config
-        # specify columns by name.
-        feature_names = None
-        scaler = getattr(self, "gan_scaler_a", None)
-        if scaler is not None and hasattr(scaler, "feature_names_in_"):
-            try:
-                feature_names = list(scaler.feature_names_in_)
-            except Exception:
-                feature_names = None
-
-        # Translate passthrough column names → integer indices for the
-        # 3-D ndarray backend.  Names not present in the scaler's
-        # column set are silently dropped so an over-broad config
-        # doesn't crash augmentation.
-        passthrough_columns = None
-        configured = getattr(self, "gan_passthrough_columns", None)
-        if configured and feature_names:
-            indices = resolve_column_indices(configured, feature_names)
-            if indices:
-                passthrough_columns = indices
-
-        return balance_multi_task(
-            interface=interface,
-            data=train_minmax,
-            labels=train_labels,
-            target_ratios=self.gan_target_ratio,
-            log=print,
-            debug_log=self.debug_print,
-            diagnostics=bool(getattr(self, "gan_run_diagnostics", False)),
-            feature_names=feature_names,
-            passthrough_columns=passthrough_columns,
-            autoencoder_threshold=getattr(
-                self, "gan_synth_autoencoder_threshold", None
-            ),
-            autoencoder_model_root=self._resolve_autoencoder_root(),
+        return self._invoke_balance_multi_task(
+            interface,
+            train_minmax,
+            train_labels,
         )
 
     def _format_for_gan_scaler(self, array_2d: np.ndarray):

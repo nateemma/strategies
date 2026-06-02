@@ -924,7 +924,6 @@ class BaseNNMTStrategy(BaseNNStrategy):
 
         # Lazy imports -- the GAN stack pulls in TF / MLX which we don't
         # want to import for strategies that never enable augmentation.
-        from GANs.balance import balance_multi_task  # noqa: E402
         from GANs.GANInterface import GANInterface, GANMetadataMismatchError  # noqa: E402
         from GANs.paths import gan_save_path  # noqa: E402
 
@@ -955,28 +954,11 @@ class BaseNNMTStrategy(BaseNNStrategy):
         T, F = int(train_data.shape[1]), int(train_data.shape[2])
         wrapped_interface = _UnflattenedGenerateWrapper(interface, T=T, F=F)
 
-        # Resolve passthrough column names to integer indices into the F
-        # axis. _resolve_gan_passthrough_indices uses the GAN scaler's
-        # feature_names_in_ as the column-order reference, which matches
-        # the order the GAN was trained on.
-        passthrough_indices = self._resolve_gan_passthrough_indices(
-            train_minmax=None, train_df=dataframe
-        )
-
-        aug_train_data, aug_train_labels = balance_multi_task(
-            interface=wrapped_interface,
-            data=train_data,
-            labels=train_labels,
-            target_ratios=self.gan_target_ratio,
-            log=print,
-            debug_log=self.debug_print,
-            diagnostics=bool(self.gan_run_diagnostics),
-            feature_names=None,
-            passthrough_columns=passthrough_indices,
-            autoencoder_threshold=getattr(
-                self, "gan_synth_autoencoder_threshold", None
-            ),
-            autoencoder_model_root=self._resolve_autoencoder_root(),
+        aug_train_data, aug_train_labels = self._invoke_balance_multi_task(
+            wrapped_interface,
+            train_data,
+            train_labels,
+            dataframe=dataframe,
         )
 
         return aug_train_data, test_data, aug_train_labels, test_labels
