@@ -30,13 +30,10 @@ class NNMT_MLX_MultiAttention(NNMT_MLX):
     # _CLASSIFIER_ENTROPY_PENALTY = 0.05
     _CLASSIFIER_ENTROPY_PENALTY = {"trading": 0.10, "profit": 0.05}
 
-    buy_params = { **NNMT_MLX.buy_params, 
+    buy_params = { **NNMT_MLX.buy_params,
         "prediction_threshold": 0.5,
         "profit_prediction_threshold": 0.45
         }
 
-    # Attention type. Override get_classifier_type() in subclass
-    def get_classifier_type(self):
-        """Return the type of classifier used for training/predicting"""
-        return ClassifierTypeMLX.Multi_Attention
+    classifier_type = ClassifierTypeMLX.Multi_Attention
 

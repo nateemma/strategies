@@ -23,8 +23,4 @@ import NNMTClassifier
 
 class NNMT_CGP_Attention(NNMT_CGP):
 
-    # -----------
-
-    def get_classifier_type(self):
-        """Return the type of classifier used for training/predicting"""
-        return NNMTClassifier.ClassifierType.Attention
+    classifier_type = NNMTClassifier.ClassifierType.Attention

@@ -74,6 +74,12 @@ class NNMTStrategy(BaseNNMTStrategy):
 
     gan_run_diagnostics = True
 
+    # Model architecture is selected declaratively: subclasses set
+    # ``classifier_type`` to a ``NNMTClassifier.ClassifierType`` (Keras) or a
+    # ``ClassifierTypeMLX`` (MLX, via MLXMultiTaskClassifierMixin) value
+    # instead of overriding ``get_classifier_type()``.
+    classifier_type = NNMTClassifier.ClassifierType.Multi_LSTM
+
     # -----------
     # Utility functions
     # -----------
@@ -208,7 +214,7 @@ class NNMTStrategy(BaseNNMTStrategy):
 
     def get_classifier_type(self):
         """Return the type of classifier used for training/predicting"""
-        return NNMTClassifier.ClassifierType.Multi_LSTM
+        return self.classifier_type
 
     # -----------
 

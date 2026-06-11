@@ -11,39 +11,25 @@ and the GANInterface constructor call in preprocess_training_data.  A simple
 attribute override is therefore insufficient; NNMT_DDPM.py is the sibling base
 that replaces both references with GANType.MT_DDPM.
 
-This class only overrides the classifier factory methods.
+The MLX classifier factory is provided by MLXMultiTaskClassifierMixin.
 """
 
 import sys
 from pathlib import Path
-import mlx.core as mx
 
 group_dir = str(Path(__file__).parent)
 sys.path.append(group_dir)
 
 from NNMT_DDPM import NNMT_DDPM
-from ClassifierKeras import ClassifierKeras
-from NNMT.NNMTClassifierMLX import ClassifierTypeMLX, create_classifier_mlx
+from NNMT.NNMTClassifierMLX import ClassifierTypeMLX, MLXMultiTaskClassifierMixin
 
 
-class NNMT_DDPM_MLX_MultiLSTM(NNMT_DDPM):
+class NNMT_DDPM_MLX_MultiLSTM(MLXMultiTaskClassifierMixin, NNMT_DDPM):
+
+    classifier_type = ClassifierTypeMLX.Multi_LSTM
 
     gan_target_ratio = 0.4
 
     # Per-class autoencoder filter — trading-head only (Option B).
     # Same setting as NNMT_DDPM_MLX / NNNC_DDPM_MLX.
     gan_synth_autoencoder_threshold = 0.005
-
-    def get_classifier_type(self):
-        return ClassifierTypeMLX.Multi_LSTM
-
-    def get_classifier(self, classifier_type, pair, seq_len, num_features) -> ClassifierKeras:
-        if hasattr(mx, "metal") and mx.metal.is_available():
-            clf, _ = create_classifier_mlx(classifier_type, pair, num_features, seq_len)
-            self._apply_classifier_overrides(clf)
-        else:
-            print(
-                "ERROR: This strategy requires Apple's MLX package, and only runs on native Apple hardware"
-            )
-            clf = None
-        return clf

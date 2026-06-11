@@ -26,11 +26,11 @@ from NNMT.NNMTClassifierMLX import ClassifierTypeMLX, create_classifier_mlx
 
 class NNMT_CGP_MLX_MultiLSTM(NNMT_CGP):
 
-    # default is LSTM type. Override get_classifier_type() in subclass
-    def get_classifier_type(self):
-        """Return the type of classifier used for training/predicting"""
-        return ClassifierTypeMLX.Multi_LSTM
+    classifier_type = ClassifierTypeMLX.Multi_LSTM
 
+    # NOTE: this get_classifier intentionally does NOT call
+    # _apply_classifier_overrides (unlike the MLXMultiTaskClassifierMixin
+    # version) — preserved as-is from before the refactor.
     def get_classifier(
         self, classifier_type, pair, seq_len, num_features
     ) -> ClassifierKeras:

@@ -16,7 +16,7 @@ inherit them without duplicating NNMTStrategy.
 import sys
 from pathlib import Path
 from enum import IntEnum
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from pandas import DataFrame
 import numpy as np
 import pandas as pd
@@ -1495,3 +1495,56 @@ class BaseNNMTStrategy(BaseNNStrategy):
         return trading_classes
 
     # -----------
+    # Shared GAN-augmentation helpers (hoisted from the identical copies in
+    # NNMT_DDPM / NNMT_WGAN). Subclasses with richer classifier wiring (e.g.
+    # NNMT_MLX) override _apply_classifier_overrides; the 3-D preprocess hooks
+    # call these.
+    # -----------
+
+    def _apply_classifier_overrides(self, clf) -> None:
+        """Push strategy-level overrides down onto the classifier instance.
+
+        Reads ``learning_rate``, ``_CLASSIFIER_TASK_WEIGHTS`` and
+        ``_CLASSIFIER_MAX_EPOCHS`` off the strategy (set as class attributes on
+        subclasses) and applies them to a freshly-built classifier. Subclasses
+        that tune additional knobs (e.g. entropy penalty) override this.
+        """
+        if clf is None:
+            return
+        lr = getattr(self, "learning_rate", None)
+        if lr is not None:
+            clf.learning_rate = lr
+        weights = getattr(self, "_CLASSIFIER_TASK_WEIGHTS", None)
+        if weights:
+            clf.task_weights_override = weights
+        max_epochs = getattr(self, "_CLASSIFIER_MAX_EPOCHS", None)
+        if max_epochs is not None:
+            clf.max_epochs = int(max_epochs)
+
+    def _balance_iteratively(
+        self,
+        interface,
+        train_minmax: np.ndarray,
+        train_labels: Dict[str, np.ndarray],
+    ) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
+        """Delegate to ``BaseNNStrategy._invoke_balance_multi_task``.
+
+        Thin wrapper kept so subclasses can override scheduling without
+        touching the augmentation policy itself.
+        """
+        return self._invoke_balance_multi_task(
+            interface,
+            train_minmax,
+            train_labels,
+        )
+
+    def _format_for_gan_scaler(self, array_2d: np.ndarray):
+        if isinstance(array_2d, pd.DataFrame):
+            return array_2d
+        if hasattr(self.gan_scaler_a, "feature_names_in_"):
+            feature_names = list(self.gan_scaler_a.feature_names_in_)
+            try:
+                return pd.DataFrame(array_2d, columns=feature_names)
+            except ValueError:
+                pass
+        return array_2d

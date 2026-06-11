@@ -30,7 +30,5 @@ class NNMT_MLX_Transformer(NNMT_MLX):
         "profit_prediction_threshold": 0.3
         }
 
-    def get_classifier_type(self):
-        """Return the type of classifier used for training/predicting"""
-        return ClassifierTypeMLX.Transformer
+    classifier_type = ClassifierTypeMLX.Transformer
 

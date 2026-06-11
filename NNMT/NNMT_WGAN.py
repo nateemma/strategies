@@ -39,7 +39,7 @@ class NNMT_WGAN(NNMTStrategy):
     # later in 3-D space.
     gan_type = GANType.MT_WGAN
     gan_augment = True
-    gan_target_ratio = 0.8
+    # Active gan_target_ratio is the per-task dict declared below.
     learning_rate = 1e-5
     batch_size = 1024
 
@@ -106,30 +106,8 @@ class NNMT_WGAN(NNMTStrategy):
     # whether the GAN is producing usable samples.
     gan_run_diagnostics: bool = True
 
-    # ---------------------------------------------------------------------- #
-    # Classifier wiring                                                       #
-    # ---------------------------------------------------------------------- #
-
-    def _apply_classifier_overrides(self, clf) -> None:
-        """Push strategy-level overrides down onto the classifier instance.
-
-        The framework doesn't auto-wire strategy class attributes through to
-        the classifier — ``learning_rate``, ``task_weights_override``, and
-        ``max_epochs`` are read off the classifier itself. Each WGAN variant's
-        ``get_classifier`` should call this immediately after creating the
-        classifier so values set here on NNMT_WGAN flow through.
-        """
-        if clf is None:
-            return
-        lr = getattr(self, "learning_rate", None)
-        if lr is not None:
-            clf.learning_rate = lr
-        weights = getattr(self, "_CLASSIFIER_TASK_WEIGHTS", None)
-        if weights:
-            clf.task_weights_override = weights
-        max_epochs = getattr(self, "_CLASSIFIER_MAX_EPOCHS", None)
-        if max_epochs is not None:
-            clf.max_epochs = int(max_epochs)
+    # _apply_classifier_overrides is inherited from BaseNNMTStrategy; the
+    # _CLASSIFIER_TASK_WEIGHTS attr above flows through it.
 
     # ---------------------------------------------------------------------- #
     # 3-D augmentation hook                                                  #
@@ -231,34 +209,5 @@ class NNMT_WGAN(NNMTStrategy):
             self._augmented_labels = None
             return train_data, test_data, train_labels, test_labels
 
-    # ---------------------------------------------------------------------- #
-    # Helpers                                                                 #
-    # ---------------------------------------------------------------------- #
-
-    def _balance_iteratively(
-        self,
-        interface,
-        train_minmax: np.ndarray,
-        train_labels: Dict[str, np.ndarray],
-    ) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
-        """Delegate to ``BaseNNStrategy._invoke_balance_multi_task``.
-
-        Thin wrapper kept so subclasses can override scheduling without
-        touching the augmentation policy itself.
-        """
-        return self._invoke_balance_multi_task(
-            interface,
-            train_minmax,
-            train_labels,
-        )
-
-    def _format_for_gan_scaler(self, array_2d: np.ndarray):
-        if isinstance(array_2d, pd.DataFrame):
-            return array_2d
-        if hasattr(self.gan_scaler_a, "feature_names_in_"):
-            feature_names = list(self.gan_scaler_a.feature_names_in_)
-            try:
-                return pd.DataFrame(array_2d, columns=feature_names)
-            except ValueError:
-                pass
-        return array_2d
+    # _balance_iteratively / _format_for_gan_scaler are inherited from
+    # BaseNNMTStrategy (shared with NNMT_DDPM).
