@@ -197,3 +197,33 @@ so it runs once per trade entry, not per-candle as the plan assumed — not wort
 broadening the shared `populate_indicators` path. E3–E6 (DataframePopulator debug
 scans, `adaptive_super_smoother` memoization, `sliding_window_view`) remain
 available but unaddressed; lower confidence / lower value.
+
+---
+
+## B4 / B5 — EVALUATED, NOT EXECUTED (flagged, with reasons)
+
+After measuring byte-identity, both were judged poor risk/reward and left for an
+explicit future decision rather than executed.
+
+**B4 — indicator-math dedup (DataframePopulator ↔ EhlersBase/EWO/TSPredict):**
+Byte-identical pairs confirmed: `DataframePopulator` == `EhlersBase` for
+`super_smoother`, `adaptive_super_smoother`, `rolling_normalize`, `safe_cg`;
+`DataframePopulator` == `EWO` for `ewo`; `DataframePopulator` == `TSPredict` for
+`williams_r`. **But** `TSPredict.super_smoother` has *drifted* (different body) —
+must NOT be merged. Real dedup requires editing the production `DataframePopulator`
+to delegate to a shared `utils/indicators.py`, purely to remove duplication in
+non-production simple strategies. Recommendation: only do this if/when
+`DataframePopulator` is being touched anyway; gate with a bit-identical backtest.
+
+**B5 — TransformerBlock dedup (Anomaly NNGANomaly/NNAnomaly):**
+The `TransformerBlock` (`tf.keras.layers.Layer`) is byte-identical between
+`Anomaly/NNGANomalyClassifier.py` and `Anomaly/NNAnomalyClassifier.py` (the
+`Sklearn/NNDetector.py` copy has drifted — only `call` matches). HOWEVER:
+`NNGANomalyClassifier` loads its model via `keras.models.load_model(path,
+compile=False)` with NO `custom_objects` and the class has no
+`@register_keras_serializable`. There is a saved `saved_data/NNAnomalyStrategy.keras`.
+Moving the class to a shared module risks breaking deserialization of that saved
+model (Keras resolves custom layers by stored module/class name). Not worth the
+risk for a non-production dedup without a model-load verification. Recommendation:
+if pursued, re-export from the original modules to preserve the qualified name and
+verify the saved model still loads before/after.
