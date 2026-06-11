@@ -32,10 +32,10 @@ os.environ['TF_RUN_EAGER_OP_AS_FUNCTION'] = '0'
 
 import tensorflow as tf
 
-from utils.AnyAnomaly import AnyAnomaly
+from utils.ClassifierKerasAnomaly import ClassifierKerasAnomaly
 
 # Base class for anomaly classifiers
-class AnomalyClassifierBase(AnyAnomaly):
+class AnomalyClassifierBase(ClassifierKerasAnomaly):
     is_trained = False
     clean_data_required = False  # training data cannot contain anomalies
 

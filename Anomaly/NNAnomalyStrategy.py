@@ -32,9 +32,6 @@ sys.path.append(group_dir)
 from Framework.BaseNNStrategy import BaseNNStrategy, HAS_MLX, StrategyConfig
 from utils.Environment import Environment
 from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, TradingAction, FlowDirection, MomentumDirection, RiskLevel, GANType
-from Framework.BaseNNStrategy import BaseNNStrategy, HAS_MLX, StrategyConfig
-from utils.Environment import Environment
-from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, TradingAction, FlowDirection, MomentumDirection, RiskLevel, GANType
 
 from Predictors.KerasAnomalyDetector import KerasAnomalyDetector
 import NNAnomalyClassifier
@@ -51,11 +48,7 @@ class NNAnomalyStrategy(BaseNNStrategy):
 
     This is a base class for different multi-task model variants (LSTM, Transformer, etc.)
     Inherits from Framework.BaseNNStrategy import BaseNNStrategy, HAS_MLX, StrategyConfig
-from utils.Environment import Environment
-from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, TradingAction, FlowDirection, MomentumDirection, RiskLevel, GANType
-from Framework.BaseNNStrategy import BaseNNStrategy, HAS_MLX, StrategyConfig
-from utils.Environment import Environment
-from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, TradingAction, FlowDirection, MomentumDirection, RiskLevel, GANType
+    """
 
     plot_config = {
         "main_plot": {
@@ -77,32 +70,13 @@ from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, Tradi
     # Hyperopt parameters
     # -----------
 
-    # Buy hyperspace params:
-    buy_params = {
-        # "entry_adx_threshold": 50.0,
-        # "entry_bb_width_threshold": 0.05,
-        "entry_adx_threshold": 0.0,
-        "entry_bb_width_threshold": 0.014,  # raw 1.4% — preserves pre-unbug effective filter
-        "entry_guard_threshold": 1.0,
-        "entry_close_norm_threshold": 0.0,
-        "min_buy_gain_threshold": 0.007,
-        "prediction_threshold": 0.5,
-        "training_type": 16,
+    buy_params = { **BaseNNStrategy.buy_params,
+        "prediction_threshold": 0.45,
         "anomaly_threshold_multiplier": 1.8,
         "min_anomaly_duration": 2,
-        "entry_error_threshold": 0.035,
-    }
-
-    # Sell hyperspace params:
-    sell_params = {
-        "cexit_enable_profit_checks": True,
-        "cexit_max_days": 14,
-        "cexit_take_profit": 0.024,
-        "enable_exit_signal": True,
-        "exit_guard_threshold": 0.5,
-        "exit_close_norm_threshold": 0.0,
-        "min_sell_loss_threshold": 0.009,
-    }
+        "entry_error_threshold": 0.04,
+        }
+    
 
     # Anomaly-specific hyperparams
     anomaly_threshold_multiplier = DecimalParameter(
@@ -674,7 +648,7 @@ from Framework.BaseStrategy import BaseStrategy, ScalerType, MarketRegime, Tradi
         return dataframe
 
     def _analyze_reconstruction_error_by_signal(self, dataframe: DataFrame, start_idx: int, plen: int):
-        """Analyze reconstruction_error statistics grouped by %train_trading signal"""
+        # Analyze reconstruction_error statistics grouped by %train_trading signal
 
         # Get aligned data (only where we have predictions)
         if "%train_trading" not in dataframe.columns or "reconstruction_error" not in dataframe.columns:
