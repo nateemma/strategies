@@ -25,7 +25,4 @@ from ClassifierKeras import ClassifierKeras
 
 class NNNC_CGP_MLX_Transformer(NNNC_CGP_MLX):
 
-    # default is LSTM type. Override get_classifier_type() in subclass
-    def get_classifier_type(self):
-        """Return the type of classifier used for training/predicting"""
-        return ClassifierTypeMLX.Transformer
+    classifier_type = ClassifierTypeMLX.Transformer

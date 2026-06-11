@@ -21,6 +21,4 @@ import NNNClassifier
 
 class NNNC_CGP_Wavenet3(NNNC_CGP):
 
-    def get_classifier_type(self):
-        """Return the type of classifier used for training/predicting"""
-        return NNNClassifier.ClassifierType.Wavenet3
+    classifier_type = NNNClassifier.ClassifierType.Wavenet3

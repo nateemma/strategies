@@ -908,3 +908,30 @@ def create_classifier_mlx(
     clf = clf_type.value(pair, seq_len, nfeatures, tag=tag)
     clf.num_classes = nclasses
     return clf, clf_name
+
+
+class MLXClassifierMixin:
+    """Shared MLX classifier construction for NNNC strategy bases.
+
+    Mixed in (before the family base) by NNNC_MLX / NNNC_CGP_MLX /
+    NNNC_WGAN_MLX so the MLX ``get_classifier`` lives in exactly one place
+    instead of being copy-pasted into each base. Architecture selection is
+    declarative: set ``classifier_type`` to a ``ClassifierTypeMLX`` value on
+    the subclass (default LSTM). ``get_classifier_type`` is inherited from
+    NNNCStrategy and returns ``self.classifier_type``.
+    """
+
+    classifier_type = ClassifierTypeMLX.LSTM
+
+    def get_classifier(self, classifier_type, pair, seq_len, num_features):
+        """Return the MLX classifier used for training/predicting."""
+        if hasattr(mx, "metal") and mx.metal.is_available():
+            clf, _ = create_classifier_mlx(
+                classifier_type, pair, num_features, seq_len, 3
+            )
+        else:
+            print(
+                "ERROR: This strategy requires Apple's MLX package, and only runs on native Apple hardware"
+            )
+            clf = None
+        return clf

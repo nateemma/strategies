@@ -24,7 +24,4 @@ from NNNClassifierMLX import ClassifierTypeMLX, create_classifier_mlx
 
 class NNNC_MLX_Transformer(NNNC_MLX):
 
-    # default is LSTM type. Override get_classifier_type() in subclass
-    def get_classifier_type(self):
-        """Return the type of classifier used for training/predicting"""
-        return ClassifierTypeMLX.Transformer
+    classifier_type = ClassifierTypeMLX.Transformer

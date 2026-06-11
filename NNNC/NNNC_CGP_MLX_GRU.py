@@ -9,5 +9,4 @@ from NNNClassifierMLX import ClassifierTypeMLX
 
 class NNNC_CGP_MLX_GRU(NNNC_CGP_MLX):
 
-    def get_classifier_type(self):
-        return ClassifierTypeMLX.GRU
+    classifier_type = ClassifierTypeMLX.GRU

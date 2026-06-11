@@ -9,6 +9,4 @@ from NNNClassifierMLX import ClassifierTypeMLX
 
 class NNNC_MLX_TSMamba(NNNC_MLX):
 
-    # default is LSTM type. Override get_classifier_type() in subclass
-    def get_classifier_type(self):
-        return ClassifierTypeMLX.TSMamba
+    classifier_type = ClassifierTypeMLX.TSMamba

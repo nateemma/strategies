@@ -12,17 +12,14 @@ import sys
 from pathlib import Path
 import os
 
-import mlx.core as mx
-
 group_dir = str(Path(__file__).parent)
 sys.path.append(group_dir)
 
 from NNNCStrategy import NNNCStrategy
-from NNNClassifierMLX import ClassifierTypeMLX, create_classifier_mlx
-from ClassifierKeras import ClassifierKeras
+from NNNClassifierMLX import MLXClassifierMixin, ClassifierTypeMLX
 
 
-class NNNC_MLX(NNNCStrategy):
+class NNNC_MLX(MLXClassifierMixin, NNNCStrategy):
 
     # Use only real signals as the basis; the GAN provides synthetic
     # samples below, so layered signal augmentation would double-count.
@@ -40,23 +37,6 @@ class NNNC_MLX(NNNCStrategy):
     entry_trend_filter_enable = False
     entry_trend_ema_period = 100
 
-
-    # default is LSTM type. Override get_classifier_type() in subclass
-    def get_classifier_type(self):
-        """Return the type of classifier used for training/predicting"""
-        return ClassifierTypeMLX.LSTM
-
-    def get_classifier(
-        self, classifier_type, pair, seq_len, num_features
-    ) -> ClassifierKeras:
-        if hasattr(mx, "metal") and mx.metal.is_available():
-            """Return the classifier used for training/predicting"""
-            clf, _ = create_classifier_mlx(
-                classifier_type, pair, num_features, seq_len, 3
-            )
-        else:
-            print(
-                "ERROR: This strategy requires Apple's MLX package, and only runs on native Apple hardware"
-            )
-            clf = None
-        return clf
+    # Architecture: MLX LSTM (default from MLXClassifierMixin). Subclasses
+    # set ``classifier_type`` to a different ClassifierTypeMLX value.
+    classifier_type = ClassifierTypeMLX.LSTM

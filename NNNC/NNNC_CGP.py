@@ -41,7 +41,7 @@ class NNNC_CGP(NNNCStrategy):
     # Per-class autoencoder filter — manifold-aware rejection of off-real
     # synth samples. Same setting used on NNNC_DDPM_MLX (the AE filter is
     # GAN-type-agnostic; see project_ae_filter_win.md).
-    gan_synth_autoencoder_threshold = 0.010
+    gan_synth_autoencoder_threshold = 0.005
 
     # turn on diagnostics for the GAN (class-level override — the version
     # consumed by BaseNNStrategy at training time is the class attribute,
@@ -52,6 +52,3 @@ class NNNC_CGP(NNNCStrategy):
     # passes raw features and the tensor scaler runs after augmentation.
     # Reads model from saved_data/GANs_PostScale/ctab_gan/.
     use_post_gan_scaling = True
-
-
-    gan_synth_autoencoder_threshold = 0.005

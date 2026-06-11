@@ -9,5 +9,4 @@ from NNNClassifierMLX import ClassifierTypeMLX
 
 class NNNC_MLX_Mamba2(NNNC_MLX):
 
-    def get_classifier_type(self):
-        return ClassifierTypeMLX.Mamba2
+    classifier_type = ClassifierTypeMLX.Mamba2

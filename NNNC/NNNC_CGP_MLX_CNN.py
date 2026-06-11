@@ -10,5 +10,4 @@ from NNNClassifierMLX import ClassifierTypeMLX
 
 class NNNC_CGP_MLX_CNN(NNNC_CGP_MLX):
 
-    def get_classifier_type(self):
-        return ClassifierTypeMLX.CNN
+    classifier_type = ClassifierTypeMLX.CNN
