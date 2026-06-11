@@ -136,3 +136,46 @@ to `NNMT_CGP` would drop the MLX trading-head tuning that comes from `NNMT_MLX`
 `_apply_classifier_overrides`). That tuning is load-bearing for entry quality,
 so **the current inheritance is intentional and is kept as-is.** The `gan_type`
 re-declaration is the correct trade-off, not a bug to "fix" by re-parenting.
+
+---
+
+## B3 — extract `utils/ClassifierBase`
+
+**Behaviour:** neutral (verified, incl. bit-identical backtest). Net −25 lines.
+
+**New:** `utils/ClassifierBase.py` — shared base for the 5 classifier backends
+(`ClassifierKeras/MLX/Sklearn/Darts/PyTorch`), which previously inherited from
+nothing and each re-declared the same stubs. Hoisted only methods that are
+**byte-identical across every backend that defines them** (verified by AST hash):
+
+- Universal (identical in all 5, deleted from all): `needs_clean_data`,
+  `needs_dataframes`, `prescale_data`, `returns_single_prediction`.
+- `mad_score` (identical in Keras/MLX/Darts/PyTorch; Sklearn lacked it → now
+  inherits it, purely additive).
+- `model_is_trained` and `get_model_root_dir` — base carries the
+  Sklearn/Darts/PyTorch body (`return self.is_trained` / `utils/models/`);
+  **Keras and MLX keep their own overrides** (different bodies), so their
+  behaviour is unchanged. (`get_model_root_dir` uses `Path(__file__)`; base lives
+  in `utils/` like the originals, so the resolved path stays `utils/models/`.)
+
+**Changed:** the 5 backends now `class ClassifierX(ClassifierBase)` and had their
+redundant copies deleted (codemod asserted each deleted body's hash matched the
+expected value before removing it).
+
+**Verification:**
+- `ClassifierBase`'s 7 method bodies hash-match the canonical originals.
+- Runtime resolution check (Keras/MLX/Sklearn + subclasses MLXNary / MLXMultiTask
+  / KerasNary): every one of the 7 methods resolves via MRO to the **same body**
+  it had pre-refactor. Darts/PyTorch can't be imported in this env (no `torch`,
+  pre-existing) but are statically proven (deleted-body hashes == base bodies).
+- Bit-identical backtest: `NNNC_DDPM_MLX` (86 result rows) and `NNMT_DDPM_MLX`
+  (78 rows) byte-for-byte unchanged vs the B2 commit.
+- `utils/test_classifier.py` fails identically on master (pre-existing Keras-version
+  issue, unrelated).
+- `/code-review` → no findings.
+
+**Not hoisted (left as backend overrides):** methods that diverge across backends
+(`save`, `load`, `train`, `predict`, `__init__`, `create_model`, `set_model_path`,
+etc.) and the subset-identical ones (`reconstruct`/`transform`, `backtest`,
+`new_model_created`) — a future opportunity, deferred to keep this batch
+provably neutral.

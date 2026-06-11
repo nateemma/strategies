@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Optional
 
 import numpy as np
+from ClassifierBase import ClassifierBase
 import mlx.core as mx
 import mlx.nn as nn
 
@@ -37,7 +38,7 @@ mx.random.seed(SEED)
 
 # -----------------------------------------------------------------------
 
-class ClassifierMLX:
+class ClassifierMLX(ClassifierBase):
     """
     Base class for MLX-based classifier/encoder models.
     Provides model lifecycle management (load/save/path) with the same
@@ -234,17 +235,9 @@ class ClassifierMLX:
     def new_model_created(self) -> bool:
         return ClassifierMLX.new_model
 
-    def needs_clean_data(self) -> bool:
-        return self.clean_data_required
 
-    def needs_dataframes(self) -> bool:
-        return self.requires_dataframes
 
-    def prescale_data(self) -> bool:
-        return self.prescale_dataframe
 
-    def returns_single_prediction(self) -> bool:
-        return self.single_prediction
 
     # -----------------------------------------------------------------------
     # Utility
@@ -257,8 +250,3 @@ class ClassifierMLX:
     def backtest(self, data):
         return self.predict(data)
 
-    def mad_score(self, points):
-        m = np.median(points)
-        ad = np.abs(points - m)
-        mad = np.median(ad)
-        return 0.6745 * ad / mad

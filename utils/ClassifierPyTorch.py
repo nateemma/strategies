@@ -65,11 +65,12 @@ random.seed(seed)
 np.random.seed(seed)
 
 from DataframeUtils import DataframeUtils
+from ClassifierBase import ClassifierBase
 
 
 # ---------------------------
 
-class ClassifierPyTorch():
+class ClassifierPyTorch(ClassifierBase):
     num_features = 64
     seq_len = 12
     lookahead = 12
@@ -500,13 +501,6 @@ class ClassifierPyTorch():
     # ---------------------------
 
     # returns path to the root directory used for storing models
-    def get_model_root_dir(self):
-        # set as subdirectory of location of this file (so that it can be included in the repository)
-        file_dir = os.path.dirname(str(Path(__file__)))
-        root_dir = file_dir + "/models/"
-        if not os.path.exists(root_dir):
-            os.makedirs(root_dir)
-        return root_dir
 
     # ---------------------------
 
@@ -608,29 +602,18 @@ class ClassifierPyTorch():
 
     # ---------------------------
 
-    def model_is_trained(self) -> bool:
-        return self.is_trained
 
     # ---------------------------
 
-    def needs_clean_data(self) -> bool:
-        # print("    clean_data_required: ", self.clean_data_required)
-        return self.clean_data_required
 
     # ---------------------------
 
-    def needs_dataframes(self) -> bool:
-        return self.requires_dataframes
 
     # ---------------------------
 
-    def prescale_data(self) -> bool:
-        return self.prescale_dataframe
 
     # ---------------------------
 
-    def returns_single_prediction(self) -> bool:
-        return self.single_prediction
 
     # ---------------------------
 
@@ -651,10 +634,3 @@ class ClassifierPyTorch():
     # ---------------------------
 
     # Median Absolute Deviation
-    def mad_score(self, points):
-        """https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm """
-        m = np.median(points)
-        ad = np.abs(points - m)
-        mad = np.median(ad)
-
-        return 0.6745 * ad / mad
