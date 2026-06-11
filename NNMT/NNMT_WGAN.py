@@ -162,6 +162,7 @@ class NNMT_WGAN(NNMTStrategy):
                     f"Run CreateMTWGAN first to train and save the model. "
                     f"Error: {load_err}"
                 ) from load_err
+            self._apply_gan_inference_overrides(interface)
 
             aug_x, aug_y = self._balance_iteratively(
                 interface=interface,

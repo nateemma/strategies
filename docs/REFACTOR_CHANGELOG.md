@@ -110,3 +110,16 @@ all match pre-refactor); hoisted bodies hash-identical to HEAD; import smoke;
 **Observed, not changed (out of scope):** `NNMT_WGAN.gan_augment = True` while
 its docstring says the 2-D dispatcher is turned off (`= False`) — a pre-existing
 code/comment mismatch, flagged for your review (not touched).
+
+---
+
+## B2b — H3 fix (⚠ BEHAVIOUR CHANGE — isolated commit)
+
+- `NNMT_WGAN.preprocess_training_data` now calls
+  `self._apply_gan_inference_overrides(interface)` after loading the GAN, at the
+  same point `NNMT_DDPM` already did. Previously `NNMT_WGAN` skipped it.
+- **This changes NNMT_WGAN/NNMT_WGAN_MLX training behaviour** (inference-time GAN
+  overrides are now applied). `NNMT_WGAN_MLX` has a saved model — **re-backtest /
+  retrain to validate** before relying on it. Committed separately so it can be
+  reverted independently of the neutral B2 consolidation.
+- `_apply_gan_inference_overrides` is defined on `BaseNNStrategy:1442`.
