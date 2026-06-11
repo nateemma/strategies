@@ -179,3 +179,21 @@ expected value before removing it).
 etc.) and the subset-identical ones (`reconstruct`/`transform`, `backtest`,
 `new_model_created`) — a future opportunity, deferred to keep this batch
 provably neutral.
+
+---
+
+## B6 — efficiency (E2)
+
+**Behaviour:** neutral (bit-identical backtest). 
+
+- `BaseNNStrategy.rolling_dataframe_normalise` (E2) — removed the redundant
+  second `df.copy()`. `df_to_scale` is already a local copy of the caller's df,
+  so the scaler transform now writes in place; the subsequent `np.clip` already
+  returns a fresh frame. One fewer full-frame copy per normalize call (per pair,
+  per iteration). Verified `NNNC_DDPM_MLX`/`NNMT_DDPM_MLX` backtests byte-identical.
+
+**E1 dropped:** the `custom_stoploss` volume rolling-mean is gated by `after_fill`,
+so it runs once per trade entry, not per-candle as the plan assumed — not worth
+broadening the shared `populate_indicators` path. E3–E6 (DataframePopulator debug
+scans, `adaptive_super_smoother` memoization, `sliding_window_view`) remain
+available but unaddressed; lower confidence / lower value.
