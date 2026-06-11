@@ -60,27 +60,5 @@ class NNMT_MLX(MLXMultiTaskClassifierMixin, NNMTStrategy):
     # _CLASSIFIER_ENTROPY_PENALTY = None
     _CLASSIFIER_ENTROPY_PENALTY = {"trading": 0.5, "profit": 0.5, "regime": 0.5}
 
-    def _apply_classifier_overrides(self, clf) -> None:
-        """Push strategy-level classifier overrides onto a freshly-built
-        MLX classifier. Subclasses that swap classifier types or tune
-        training-side knobs override ``_CLASSIFIER_*`` class attributes
-        rather than re-implementing this helper."""
-        if clf is None:
-            return
-        lr = getattr(self, "learning_rate", None)
-        if lr is not None:
-            clf.learning_rate = lr
-        weights = getattr(self, "_CLASSIFIER_TASK_WEIGHTS", None)
-        if weights:
-            clf.task_weights_override = weights
-        max_epochs = getattr(self, "_CLASSIFIER_MAX_EPOCHS", None)
-        if max_epochs is not None:
-            clf.max_epochs = int(max_epochs)
-        entropy_penalty = getattr(self, "_CLASSIFIER_ENTROPY_PENALTY", None)
-        if entropy_penalty is not None:
-            # Pass dict through unchanged so the classifier can route
-            # per-task; coerce scalars to float for the uniform form.
-            if isinstance(entropy_penalty, dict):
-                clf.entropy_penalty_weight = dict(entropy_penalty)
-            else:
-                clf.entropy_penalty_weight = float(entropy_penalty)
+    # _apply_classifier_overrides is inherited from BaseNNMTStrategy (it reads
+    # the _CLASSIFIER_* attrs above, including _CLASSIFIER_ENTROPY_PENALTY).

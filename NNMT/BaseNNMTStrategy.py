@@ -1502,12 +1502,12 @@ class BaseNNMTStrategy(BaseNNStrategy):
     # -----------
 
     def _apply_classifier_overrides(self, clf) -> None:
-        """Push strategy-level overrides down onto the classifier instance.
-
-        Reads ``learning_rate``, ``_CLASSIFIER_TASK_WEIGHTS`` and
-        ``_CLASSIFIER_MAX_EPOCHS`` off the strategy (set as class attributes on
-        subclasses) and applies them to a freshly-built classifier. Subclasses
-        that tune additional knobs (e.g. entropy penalty) override this.
+        """Push strategy-level classifier overrides onto a freshly-built
+        classifier. Each knob reads a ``_CLASSIFIER_*`` class attribute (or
+        ``learning_rate``) off the strategy and is skipped when unset, so
+        subclasses tune by setting attributes rather than re-implementing this.
+        ``_CLASSIFIER_ENTROPY_PENALTY`` is only used by the MLX multi-task
+        classifier; strategies that don't set it are unaffected.
         """
         if clf is None:
             return
@@ -1520,6 +1520,14 @@ class BaseNNMTStrategy(BaseNNStrategy):
         max_epochs = getattr(self, "_CLASSIFIER_MAX_EPOCHS", None)
         if max_epochs is not None:
             clf.max_epochs = int(max_epochs)
+        entropy_penalty = getattr(self, "_CLASSIFIER_ENTROPY_PENALTY", None)
+        if entropy_penalty is not None:
+            # Pass dict through unchanged so the classifier can route
+            # per-task; coerce scalars to float for the uniform form.
+            if isinstance(entropy_penalty, dict):
+                clf.entropy_penalty_weight = dict(entropy_penalty)
+            else:
+                clf.entropy_penalty_weight = float(entropy_penalty)
 
     def _balance_iteratively(
         self,

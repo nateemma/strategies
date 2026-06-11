@@ -227,3 +227,34 @@ model (Keras resolves custom layers by stored module/class name). Not worth the
 risk for a non-production dedup without a model-load verification. Recommendation:
 if pursued, re-export from the original modules to preserve the qualified name and
 verify the saved model still loads before/after.
+
+---
+
+## B2c — hoist the (superset) `_apply_classifier_overrides` to BaseNNMTStrategy
+
+**Behaviour:** neutral (verified, incl. bit-identical backtest). Follow-up to a
+review observation: the tuning *mechanism* was misplaced.
+
+In B2 I treated `NNMT_MLX._apply_classifier_overrides` (hash `582a`) as divergent
+from the base (`bd0f`) and kept it. It isn't divergent — `582a` is exactly `bd0f`
+plus a trailing entropy-penalty block gated on
+`getattr(self, "_CLASSIFIER_ENTROPY_PENALTY", None) is not None`. So:
+
+- Moved the superset (`582a`) up to `BaseNNMTStrategy._apply_classifier_overrides`
+  and deleted `NNMT_MLX`'s copy. The entropy block is a no-op for any strategy
+  that doesn't set `_CLASSIFIER_ENTROPY_PENALTY` (NNMT_DDPM/WGAN MLX), so it's
+  behaviour-neutral for them; NNMT_MLX and NNMT_MLX_MultiAttention read their own
+  values, unchanged.
+- This removes the last duplicated `_apply_classifier_overrides` and makes the
+  override uniform across all MLX-MT strategies. The tuning **values**
+  (`_CLASSIFIER_TASK_WEIGHTS`, `_CLASSIFIER_ENTROPY_PENALTY`) correctly stay
+  per-strategy.
+
+**Verification:** all 5 MLX-MT classes resolve `_apply_classifier_overrides` to
+`BaseNNMTStrategy`; entropy gating confirmed (set on NNMT_MLX subtree, None
+elsewhere); `NNMT_DDPM_MLX` backtest byte-identical to the committed baseline (78
+rows); `NNMT_MLX` runs clean.
+
+**Note:** this does not change the H2 decision — the tuning *values* still live on
+NNMT_MLX, so re-parenting NNMT_CGP_MLX would still drop them. NNMT_CGP_MLX stays
+as-is.
