@@ -19,20 +19,21 @@ from typing import Any
 group_dir = str(Path(__file__).parent)
 sys.path.append(group_dir)
 
-from NNMTStrategy import NNMTStrategy  # noqa: E402
+from NNMT_MLX import NNMT_MLX  # noqa: E402
 from GANs.GANType import GANType  # noqa: E402
 
 
-class NNMT_CGP(NNMTStrategy):
+class NNMT_CGP_MLX(NNMT_MLX):
 
-    buy_params = { **NNMTStrategy.buy_params,
-        "prediction_threshold": 0.6,
+    buy_params = { **NNMT_MLX.buy_params,
+        "prediction_threshold": 0.45,
         }
 
     # GAN augmentation — multi-task CTAB-GAN+, applied at the 2-D
     # tabular stage via the BaseNN dispatcher.
     gan_type = GANType.MT_CTAB_GAN
     augment_training_data = True
+
     gan_run_diagnostics = True
     entry_trend_filter_enable = False
     gan_synth_autoencoder_threshold = 0.005
