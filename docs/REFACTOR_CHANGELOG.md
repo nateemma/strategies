@@ -123,3 +123,16 @@ code/comment mismatch, flagged for your review (not touched).
   retrain to validate** before relying on it. Committed separately so it can be
   reverted independently of the neutral B2 consolidation.
 - `_apply_gan_inference_overrides` is defined on `BaseNNStrategy:1442`.
+
+---
+
+## H2 — NOT changed (decision: keep current inheritance)
+
+`NNMT_CGP_MLX` inherits `NNMT_MLX` (not `NNMT_CGP`) and re-declares
+`gan_type = GANType.MT_CTAB_GAN`. This looks like an oddity, but re-parenting it
+to `NNMT_CGP` would drop the MLX trading-head tuning that comes from `NNMT_MLX`
+(`_CLASSIFIER_TASK_WEIGHTS = {trading:4, regime:2, …, profit:3}`,
+`_CLASSIFIER_ENTROPY_PENALTY = {trading:0.5, …}`, and NNMT_MLX's richer
+`_apply_classifier_overrides`). That tuning is load-bearing for entry quality,
+so **the current inheritance is intentional and is kept as-is.** The `gan_type`
+re-declaration is the correct trade-off, not a bug to "fix" by re-parenting.
