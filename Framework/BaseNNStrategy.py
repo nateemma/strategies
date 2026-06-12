@@ -2163,7 +2163,7 @@ class BaseNNStrategy(BaseStrategy):
         # Lazy imports — keep GAN stack out of strategies that never use it.
         from GANs.GANInterface import GANInterface, GANMetadataMismatchError  # noqa: E402
         from GANs.paths import gan_save_path  # noqa: E402
-        from NNMT.BaseNNMTStrategy import (  # noqa: E402
+        from NNMT.NNMTStrategy import (  # noqa: E402
             _PadMissingTaskLabelsWrapper,
             _UnflattenedGenerateWrapper,
         )

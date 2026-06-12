@@ -900,7 +900,7 @@ class MLXMultiTaskClassifierMixin:
     The multi-task MLX factory takes no ``nclasses`` argument — each of the six
     task heads emits a fixed 3-way softmax. ``_apply_classifier_overrides`` is
     intentionally NOT defined here: it is resolved through each subclass's own
-    MRO (NNMT_MLX carries a richer variant than the BaseNNMTStrategy default),
+    MRO (NNMT_MLX carries a richer variant than the NNMTStrategy default),
     so the hoist must not flatten that difference.
     """
 

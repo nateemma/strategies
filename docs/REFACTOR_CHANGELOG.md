@@ -298,3 +298,26 @@ retrain-parity, which isn't runnable in this environment.
 **Deferred (the actual B7 goal):** unifying the divergent training loops needs a
 dedicated effort gated by GAN retrain-parity, ideally alongside the TF/MLX parity
 pass (`project_tf_mlx_gan_parity`).
+
+---
+
+## A — merge BaseNNMTStrategy → NNMTStrategy
+
+**Behaviour:** neutral (bit-identical backtest).
+
+`BaseNNMTStrategy` and `NNMTStrategy` were a single-child chain left over from an
+incomplete migration (the base's own docstring: "Empty in this commit; subsequent
+phases move attributes and methods up from NNMTStrategy"). The two had disjoint
+methods, so they're merged into one `NNMTStrategy` (the public name) that inherits
+`BaseNNStrategy` directly.
+
+- Folded `NNMTStrategy`'s 6 methods + `plot_config` / `classifier_type` /
+  `gan_run_diagnostics` into the (renamed) base class; module file renamed
+  `BaseNNMTStrategy.py → NNMTStrategy.py`. `ProfitDirection` and the two task-label
+  wrapper classes (`_UnflattenedGenerateWrapper`, `_PadMissingTaskLabelsWrapper`)
+  preserved, as are the `TradingAction`/`MarketRegime` re-exports.
+- Updated the one framework import (`Framework/BaseNNStrategy.py`) of the wrappers.
+
+**Verification:** `NNMTStrategy` MRO now `NNMTStrategy → BaseNNStrategy → …`
+(BaseNNMTStrategy gone); re-exports + wrappers intact; NNMT_MLX/DDPM_MLX/WGAN_MLX
+import with all merged methods; `NNMT_DDPM_MLX` backtest byte-identical (78 rows).
