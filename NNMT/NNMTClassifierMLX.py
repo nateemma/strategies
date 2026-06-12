@@ -34,7 +34,7 @@ sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent.parent))
 
 from Predictors.MLXClassifierMultiTask import MLXClassifierMultiTask
-from utils.ClassifierMLXMultiTask import TASK_NAMES
+from Predictors.MLXClassifierMultiTask import TASK_NAMES
 
 
 # ---------------------------------------------------------------------------

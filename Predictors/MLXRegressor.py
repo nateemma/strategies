@@ -1,7 +1,7 @@
 # MLX regressor base class.
 # Functionally parallel to utils/ClassifierKerasLinear.py (which despite its
 # name is a regressor — its own docstring acknowledges as much). Mirrors the
-# training-loop scaffolding of ClassifierMLXNary but with:
+# training-loop scaffolding of MLXClassifierNary but with:
 #   - linear single-value output (Dense(1)) instead of softmax
 #   - MSE loss instead of focal loss
 #   - val_loss (min) instead of val_mcc (max) for early stopping
@@ -30,7 +30,8 @@ from mlx.utils import tree_flatten, tree_map
 sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent.parent))
 
-from ClassifierMLX import ClassifierMLX
+from Predictors.MLXBasePredictor import MLXBasePredictor
+from Predictors.BaseRegressor import BaseRegressor
 
 log = logging.getLogger(__name__)
 warnings.simplefilter(action="ignore", category=FutureWarning)
@@ -43,7 +44,7 @@ def _filter_nonfinite_rows(
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Drop rows where the input tensor or targets contain NaN/Inf.
 
-    Same purpose as the equivalent helper in ClassifierMLXNary — pathological
+    Same purpose as the equivalent helper in MLXClassifierNary — pathological
     rows from upstream data corrupt training. Filtering up-front is cheaper
     than catching bad batches in the loop.
     """
@@ -101,7 +102,7 @@ def _batch_iter(
         yield X_mx[b_idx], y_mx[b_idx]
 
 
-class RegressorMLXLinear(ClassifierMLX):
+class MLXRegressor(MLXBasePredictor, BaseRegressor):
     """MLX linear regressor: single continuous output, MSE loss."""
 
     clean_data_required: bool = False

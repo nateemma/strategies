@@ -1,18 +1,14 @@
 """
-MLXBaseClassifier - MLX-backed marker for classifier predictors.
+MLXBaseClassifier - MLX classifier base.
 
-Pure marker class. Concrete MLX classifier predictors (e.g.
-MLXClassifierNary, MLXClassifierMultiTask) inherit from this PLUS the
-corresponding utils.Classifier* class via multiple inheritance -- that
-is where the actual MLX behavior comes from.
-
-See KerasBaseClassifier for the design rationale (avoiding a broken
-diamond MRO caused by sibling-style imports in utils/).
+Combines the task-agnostic MLX infrastructure (MLXBasePredictor) with the
+BaseClassifier task marker. Concrete MLX classifiers (MLXClassifierNary,
+MLXClassifierMultiTask) inherit this.
 """
 
+from Predictors.MLXBasePredictor import MLXBasePredictor
 from Predictors.BaseClassifier import BaseClassifier
 
 
-class MLXBaseClassifier(BaseClassifier):
-    """Marker for MLX-backed classifier predictors. Carries no behavior on its own."""
+class MLXBaseClassifier(MLXBasePredictor, BaseClassifier):
     pass

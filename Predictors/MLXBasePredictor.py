@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Optional
 
 import numpy as np
-from ClassifierBase import ClassifierBase
+from Predictors.BasePredictor import BasePredictor
 import mlx.core as mx
 import mlx.nn as nn
 
@@ -38,7 +38,7 @@ mx.random.seed(SEED)
 
 # -----------------------------------------------------------------------
 
-class ClassifierMLX(ClassifierBase):
+class MLXBasePredictor(BasePredictor):
     """
     Base class for MLX-based classifier/encoder models.
     Provides model lifecycle management (load/save/path) with the same
@@ -85,7 +85,7 @@ class ClassifierMLX(ClassifierBase):
 
         # Lazy import so that TF/Keras is NOT imported at module load time
         if self.dataframeUtils is None:
-            from DataframeUtils import DataframeUtils
+            from utils.DataframeUtils import DataframeUtils
             self.dataframeUtils = DataframeUtils()
 
         # Build name from class name + optional pair/tag suffix
@@ -233,7 +233,7 @@ class ClassifierMLX(ClassifierBase):
         return False
 
     def new_model_created(self) -> bool:
-        return ClassifierMLX.new_model
+        return MLXBasePredictor.new_model
 
 
 

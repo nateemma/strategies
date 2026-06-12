@@ -321,3 +321,39 @@ methods, so they're merged into one `NNMTStrategy` (the public name) that inheri
 **Verification:** `NNMTStrategy` MRO now `NNMTStrategy → BaseNNStrategy → …`
 (BaseNNMTStrategy gone); re-exports + wrappers intact; NNMT_MLX/DDPM_MLX/WGAN_MLX
 import with all merged methods; `NNMT_DDPM_MLX` backtest byte-identical (78 rows).
+
+---
+
+## B Phase 1 — relocate the MLX backend into Predictors (utils → Predictors)
+
+**Behaviour:** neutral (bit-identical classifier backtests; regressor verified by
+import + MRO). The MLX backend implementations move OUT of utils/ and INTO the
+Predictors task-type hierarchy; the utils/ MLX files are deleted.
+
+Clean split (per design decision): `ClassifierMLX` is task-agnostic infra, so it
+becomes `MLXBasePredictor`; the regressor inherits the infra directly rather than
+"being a classifier".
+
+| was (utils, deleted) | now (Predictors) | base |
+|---|---|---|
+| `ClassifierMLX` | `MLXBasePredictor` | `BasePredictor` |
+| (empty marker) | `MLXBaseClassifier` | `MLXBasePredictor, BaseClassifier` |
+| `ClassifierMLXNary` | `MLXClassifierNary` | `MLXBaseClassifier` |
+| `ClassifierMLXMultiTask` | `MLXClassifierMultiTask` | `MLXBaseClassifier` |
+| `RegressorMLXLinear` | `MLXRegressor` (renamed — "Linear" was redundant) | `MLXBasePredictor, BaseRegressor` |
+| `RegressorMLXMultiHorizon` | `MLXRegressorMultiHorizon` | `MLXRegressor` |
+
+- Bare utils sibling imports that stay in utils were qualified
+  (`DataframeUtils`/`CustomLossMLX`/`CustomMetricMLX` → `utils.*`).
+- Importers updated: `NNMTClassifierMLX` (TASK_NAMES), `NNPredictRegressorMLX`
+  (`MLXRegressorLinear → MLXRegressor`). The classifier model files already
+  imported the Predictors names, so they were unchanged.
+
+**Verification:** full MLX stack imports; MROs correct
+(`NNNClassifierMLX_LSTM → MLXClassifierNary → MLXBaseClassifier → MLXBasePredictor →
+BaseClassifier → BasePredictor`; regressor → `MLXRegressor → MLXBasePredictor →
+BaseRegressor`); `NNNC_DDPM_MLX` + `NNMT_DDPM_MLX` backtests byte-identical;
+Predictors MRO test (8) passes; no dangling imports of the deleted modules.
+
+**Still pending:** Keras / Sklearn / Darts+PyTorch phases (then delete
+`utils/ClassifierBase`); naming fix `ClassifierKerasLinear` (a regressor).
