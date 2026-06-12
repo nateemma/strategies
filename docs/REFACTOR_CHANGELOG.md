@@ -258,3 +258,43 @@ rows); `NNMT_MLX` runs clean.
 **Note:** this does not change the H2 decision — the tuning *values* still live on
 NNMT_MLX, so re-parenting NNMT_CGP_MLX would still drop them. NNMT_CGP_MLX stays
 as-is.
+
+---
+
+## B7 (safe subset) — shared GAN-trainer base / layer modules
+
+**Behaviour:** neutral (verified — the hoisted methods/classes are the *same
+function objects* across single/multi). Net −194 lines; ~575 lines of
+duplication removed. Only the provably byte-identical subset was extracted; the
+divergent single/multi training loops (`_train`/`fit`/`_create_models`/
+`train_step`, ~700 lines) were left untouched — unifying them needs GAN
+retrain-parity, which isn't runnable in this environment.
+
+**New:**
+- `GANs/ctab_gan_base.py` — `CTABGANPlusBase` (6 byte-identical methods:
+  `_transform_data`, `_compute_validity_metrics`, `evaluate_with_dataframes`,
+  `_compute_overall_score`, `_set_random_seeds`, `_wasserstein_loss`) +
+  `CTABGANPlusEnhancedMixin` (`_train_auxiliary_step`, `save`, `load`).
+  `CTABGANPlus`/`CTABGANPlusMT` now inherit the base; the `…Enhanced` classes mix
+  in the mixin. Base-class `save`/`load` differ between single/multi, so they
+  were correctly NOT hoisted.
+- `GANs/wgan_layers.py` — the 3 byte-identical Keras layer classes
+  (`_SplitLayer`, `_ResizeToLenLayer`, `_MinibatchStdLayer`), imported by
+  `df_wgan_gp.py` and `df_mt_wgan_gp.py`. Safe because WGAN persists weights
+  (`save_weights`/`load_weights`), rebuilding architecture from code — no
+  deserialization-by-module-path dependency.
+
+**Verification:**
+- Same-object resolution: all 6+3 CTAB methods and all 3 WGAN layers are the
+  identical shared object across single and multi (provably the same code).
+- Static scan of `ctab_gan_base.py`: no unresolved module-level names (no
+  call-time `NameError`); `random` is a local import inside `_set_random_seeds`.
+- Both trainer pairs import; `pytest` GANs: `test_mlx_suite` 29, `test_balance`
+  12, `test_gan_output_contracts` 15, `test_gan_metadata_roundtrip` 27,
+  `test_tabddpm_mlx` 14 pass (run individually).
+- `test_functional_suite.py` crashes with a TF `Fatal Python error: Aborted` —
+  **confirmed pre-existing on master** (before B7), an env issue, not this change.
+
+**Deferred (the actual B7 goal):** unifying the divergent training loops needs a
+dedicated effort gated by GAN retrain-parity, ideally alongside the TF/MLX parity
+pass (`project_tf_mlx_gan_parity`).
