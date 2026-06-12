@@ -34,9 +34,10 @@ from GANs.paths import gan_save_path  # noqa: E402
 class NNMT_WGAN(NNMTStrategy):
 
     # GAN augmentation — multi-task WGAN-GP, applied to 3-D sequential
-    # tensors in preprocess_training_data.  We turn off the BaseNN 2-D
-    # dispatcher (gan_augment=False) because the augmentation is done
-    # later in 3-D space.
+    # tensors in preprocess_training_data. For multi-task (dict) labels the
+    # BaseNN 2-D dispatcher (enhance_training_data) passes through unchanged
+    # regardless of this flag, so gan_augment does not double-augment; the
+    # real balancing happens in preprocess_training_data on the 3-D tensor.
     gan_type = GANType.MT_WGAN
     gan_augment = True
     # Active gan_target_ratio is the per-task dict declared below.
