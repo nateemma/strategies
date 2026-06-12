@@ -21,6 +21,4 @@ import NNNClassifier
 
 class NNNC_CGP_GRU(NNNC_CGP):
 
-    def get_classifier_type(self):
-        """Return the type of classifier used for training/predicting"""
-        return NNNClassifier.ClassifierType.GRU
+    classifier_type = NNNClassifier.ClassifierType.GRU

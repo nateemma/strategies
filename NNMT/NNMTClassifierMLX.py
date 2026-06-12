@@ -885,3 +885,37 @@ def create_classifier_mlx(
     clf_name = str(clf_type).split(".")[-1]
     clf = clf_type.value(pair, seq_len, nfeatures, tag=tag)
     return clf, clf_name
+
+
+class MLXMultiTaskClassifierMixin:
+    """Shared MLX classifier construction for the NNMT (multi-task) strategy bases.
+
+    Mixed in (before the family base) by NNMT_MLX / NNMT_DDPM_MLX /
+    NNMT_WGAN_MLX so the MLX ``get_classifier`` lives in exactly one place
+    instead of being copy-pasted into each base. Architecture selection is
+    declarative: set ``classifier_type`` to a ``ClassifierTypeMLX`` value on the
+    subclass (default LSTM). ``get_classifier_type`` is inherited from
+    NNMTStrategy and returns ``self.classifier_type``.
+
+    The multi-task MLX factory takes no ``nclasses`` argument — each of the six
+    task heads emits a fixed 3-way softmax. ``_apply_classifier_overrides`` is
+    intentionally NOT defined here: it is resolved through each subclass's own
+    MRO (NNMT_MLX carries a richer variant than the BaseNNMTStrategy default),
+    so the hoist must not flatten that difference.
+    """
+
+    classifier_type = ClassifierTypeMLX.LSTM
+
+    def get_classifier(self, classifier_type, pair, seq_len, num_features):
+        """Return the MLX multi-task classifier used for training/predicting."""
+        if hasattr(mx, "metal") and mx.metal.is_available():
+            clf, _ = create_classifier_mlx(
+                classifier_type, pair, num_features, seq_len
+            )
+            self._apply_classifier_overrides(clf)
+        else:
+            print(
+                "ERROR: This strategy requires Apple's MLX package, and only runs on native Apple hardware"
+            )
+            clf = None
+        return clf

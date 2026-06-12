@@ -24,7 +24,4 @@ from NNNClassifierMLX import ClassifierTypeMLX
 
 class NNNC_WGAN_MLX_MLP(NNNC_WGAN_MLX):
 
-    # default is LSTM type. Override get_classifier_type() in subclass
-    def get_classifier_type(self):
-        """Return the type of classifier used for training/predicting"""
-        return ClassifierTypeMLX.MLP
+    classifier_type = ClassifierTypeMLX.MLP

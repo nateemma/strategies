@@ -9,5 +9,4 @@ from NNNClassifierMLX import ClassifierTypeMLX
 
 class NNNC_CGP_MLX_LSTM2(NNNC_CGP_MLX):
 
-    def get_classifier_type(self):
-        return ClassifierTypeMLX.LSTM2
+    classifier_type = ClassifierTypeMLX.LSTM2

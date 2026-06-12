@@ -35,9 +35,10 @@ from tensorflow.keras import backend as K
 # from keras import backend as K
 
 from DataframeUtils import DataframeUtils
+from ClassifierBase import ClassifierBase
 
 @keras.saving.register_keras_serializable(package="ClassifierKeras")
-class ClassifierKeras():
+class ClassifierKeras(ClassifierBase):
     model = None
     is_trained = False
     model_path = ""
@@ -598,19 +599,12 @@ class ClassifierKeras():
         return False
     # ---------------------------
 
-    def needs_clean_data(self) -> bool:
-        # print("    clean_data_required: ", self.clean_data_required)
-        return self.clean_data_required
 
     # ---------------------------
 
-    def needs_dataframes(self) -> bool:
-        return self.requires_dataframes
 
     # ---------------------------
 
-    def prescale_data(self) -> bool:
-        return self.prescale_dataframe
 
     # ---------------------------
 
@@ -619,8 +613,6 @@ class ClassifierKeras():
 
     # ---------------------------
 
-    def returns_single_prediction(self) -> bool:
-        return self.single_prediction
 
     # ---------------------------
 
@@ -644,13 +636,6 @@ class ClassifierKeras():
     # ---------------------------
 
     # Median Absolute Deviation
-    def mad_score(self, points):
-        """https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm """
-        m = np.median(points)
-        ad = np.abs(points - m)
-        mad = np.median(ad)
-
-        return 0.6745 * ad / mad
 
     # ---------------------------
     # get the latest sequence and collapse to 2D (suitable for input to a Dense layer)

@@ -16,7 +16,7 @@ inherit them without duplicating NNMTStrategy.
 import sys
 from pathlib import Path
 from enum import IntEnum
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from pandas import DataFrame
 import numpy as np
 import pandas as pd
@@ -1495,3 +1495,64 @@ class BaseNNMTStrategy(BaseNNStrategy):
         return trading_classes
 
     # -----------
+    # Shared GAN-augmentation helpers (hoisted from the identical copies in
+    # NNMT_DDPM / NNMT_WGAN). Subclasses with richer classifier wiring (e.g.
+    # NNMT_MLX) override _apply_classifier_overrides; the 3-D preprocess hooks
+    # call these.
+    # -----------
+
+    def _apply_classifier_overrides(self, clf) -> None:
+        """Push strategy-level classifier overrides onto a freshly-built
+        classifier. Each knob reads a ``_CLASSIFIER_*`` class attribute (or
+        ``learning_rate``) off the strategy and is skipped when unset, so
+        subclasses tune by setting attributes rather than re-implementing this.
+        ``_CLASSIFIER_ENTROPY_PENALTY`` is only used by the MLX multi-task
+        classifier; strategies that don't set it are unaffected.
+        """
+        if clf is None:
+            return
+        lr = getattr(self, "learning_rate", None)
+        if lr is not None:
+            clf.learning_rate = lr
+        weights = getattr(self, "_CLASSIFIER_TASK_WEIGHTS", None)
+        if weights:
+            clf.task_weights_override = weights
+        max_epochs = getattr(self, "_CLASSIFIER_MAX_EPOCHS", None)
+        if max_epochs is not None:
+            clf.max_epochs = int(max_epochs)
+        entropy_penalty = getattr(self, "_CLASSIFIER_ENTROPY_PENALTY", None)
+        if entropy_penalty is not None:
+            # Pass dict through unchanged so the classifier can route
+            # per-task; coerce scalars to float for the uniform form.
+            if isinstance(entropy_penalty, dict):
+                clf.entropy_penalty_weight = dict(entropy_penalty)
+            else:
+                clf.entropy_penalty_weight = float(entropy_penalty)
+
+    def _balance_iteratively(
+        self,
+        interface,
+        train_minmax: np.ndarray,
+        train_labels: Dict[str, np.ndarray],
+    ) -> Tuple[np.ndarray, Dict[str, np.ndarray]]:
+        """Delegate to ``BaseNNStrategy._invoke_balance_multi_task``.
+
+        Thin wrapper kept so subclasses can override scheduling without
+        touching the augmentation policy itself.
+        """
+        return self._invoke_balance_multi_task(
+            interface,
+            train_minmax,
+            train_labels,
+        )
+
+    def _format_for_gan_scaler(self, array_2d: np.ndarray):
+        if isinstance(array_2d, pd.DataFrame):
+            return array_2d
+        if hasattr(self.gan_scaler_a, "feature_names_in_"):
+            feature_names = list(self.gan_scaler_a.feature_names_in_)
+            try:
+                return pd.DataFrame(array_2d, columns=feature_names)
+            except ValueError:
+                pass
+        return array_2d

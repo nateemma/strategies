@@ -21,6 +21,4 @@ import NNNClassifier
 
 class NNNC_CGP_VAE(NNNC_CGP):
 
-    def get_classifier_type(self):
-        """Return the type of classifier used for training/predicting"""
-        return NNNClassifier.ClassifierType.VAE
+    classifier_type = NNNClassifier.ClassifierType.VAE

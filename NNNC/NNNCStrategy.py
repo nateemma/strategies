@@ -37,6 +37,14 @@ class NNNCStrategy(BaseNNStrategy):
 
     augment_training_data = True  # no GAn, so augment signals
 
+    # Model architecture is selected declaratively: subclasses set
+    # ``classifier_type`` to a ``NNNClassifier.ClassifierType`` (Keras) or a
+    # ``ClassifierTypeMLX`` (MLX, via MLXClassifierMixin) value instead of
+    # overriding ``get_classifier_type()``. The framework reads it through
+    # ``get_classifier_type()`` below (see BaseNNStrategy: it caches
+    # ``self.classifier_type = self.get_classifier_type()`` before building).
+    classifier_type = NNNClassifier.ClassifierType.LSTM
+
     # NNNC-family ATR-adaptive stoploss tuning. NNNC has no model-driven
     # soft exit (unlike NNMT's strategy_custom_exit on the profit/regime
     # heads), so the stop is the only safety net for losing trades.
@@ -59,7 +67,7 @@ class NNNCStrategy(BaseNNStrategy):
 
     def get_classifier_type(self):
         """Return the type of classifier used for training/predicting"""
-        return NNNClassifier.ClassifierType.LSTM
+        return self.classifier_type
 
     def get_classifier(
         self, classifier_type, pair, seq_len, num_features

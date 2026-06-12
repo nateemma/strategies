@@ -9,5 +9,4 @@ from NNNClassifierMLX import ClassifierTypeMLX
 
 class NNNC_CGP_MLX_Attention(NNNC_CGP_MLX):
 
-    def get_classifier_type(self):
-        return ClassifierTypeMLX.Attention
+    classifier_type = ClassifierTypeMLX.Attention

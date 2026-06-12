@@ -835,8 +835,10 @@ class BaseNNStrategy(BaseStrategy):
                         "    No columns require fitting (all pre-normalized or one-hot)."
                     )
 
-        # Transform using the fitted scaler
-        df_scaled = df_to_scale.copy()
+        # Transform using the fitted scaler. df_to_scale is already a local
+        # copy of the caller's df (line above), so transform in place rather
+        # than taking a second full-frame copy.
+        df_scaled = df_to_scale
         df_scaled[needs_norm_columns] = self.main_scaler.transform(
             df_to_scale[needs_norm_columns]
         )

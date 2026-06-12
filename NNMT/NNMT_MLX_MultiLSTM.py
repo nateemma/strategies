@@ -26,8 +26,6 @@ from NNMT.NNMTClassifierMLX import ClassifierTypeMLX, create_classifier_mlx
 
 class NNMT_MLX_MultiLSTM(NNMT_MLX):
 
-    def get_classifier_type(self):
-        """Return the type of classifier used for training/predicting"""
-        return ClassifierTypeMLX.Multi_LSTM
+    classifier_type = ClassifierTypeMLX.Multi_LSTM
 
 

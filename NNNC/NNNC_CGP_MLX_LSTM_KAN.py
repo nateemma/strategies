@@ -9,6 +9,4 @@ from NNNClassifierMLX import ClassifierTypeMLX
 
 class NNNC_CGP_MLX_LSTM_KAN(NNNC_CGP_MLX):
 
-    # default is LSTM type. Override get_classifier_type() in subclass
-    def get_classifier_type(self):
-        return ClassifierTypeMLX.LSTM_KAN
+    classifier_type = ClassifierTypeMLX.LSTM_KAN
