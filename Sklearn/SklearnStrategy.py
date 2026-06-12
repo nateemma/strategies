@@ -23,7 +23,7 @@ sys.path.append(strat_dir)
 
 from Framework.BaseNNStrategy import BaseNNStrategy  # noqa: E402
 from Framework.BaseStrategy import TradingAction  # noqa: E402
-from utils.ClassifierSklearn import ClassifierSklearn  # noqa: E402
+from Predictors.SklearnBaseClassifier import SklearnBaseClassifier  # noqa: E402
 from utils.ClassifierKeras import ClassifierKeras  # noqa: E402
 import SklearnClassifier  # noqa: E402
 
@@ -49,20 +49,20 @@ class SklearnStrategy(BaseNNStrategy):
 
     def get_classifier(
         self, classifier_type, pair, seq_len, num_features
-    ) -> ClassifierSklearn:
+    ) -> SklearnBaseClassifier:
         """Return the sklearn classifier used for training/predicting"""
         # seq_len is ignored for sklearn (set to 1), but we pass it for compatibility
         clf, _ = SklearnClassifier.create_classifier(
             classifier_type, pair, num_features, seq_len, 3  # 3 classes: Sell/Hold/Buy
         )
-        # Sklearn classifiers don't use batch_size, but set_model_path is handled by ClassifierSklearn
+        # Sklearn classifiers don't use batch_size, but set_model_path is handled by SklearnBaseClassifier
         return clf
 
     def train_model(
         self,
         dataframes: List[DataFrame],
         labels: List[Any],
-        classifier: ClassifierSklearn,
+        classifier: SklearnBaseClassifier,
     ):
         """
         Train the sklearn model.
@@ -111,7 +111,7 @@ class SklearnStrategy(BaseNNStrategy):
 
         return None
 
-    def get_predictions(self, dataframe: DataFrame, classifier: ClassifierSklearn):
+    def get_predictions(self, dataframe: DataFrame, classifier: SklearnBaseClassifier):
         """
         Get predictions from the sklearn model.
         Overrides NNStrategy.get_predictions() to work with DataFrames instead of tensors.

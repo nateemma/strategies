@@ -420,3 +420,15 @@ passes (8); `NNNC_DDPM_MLX` byte-identical (MLX unaffected); Keras
 
 **Still pending:** Sklearn (Phase 3), Darts+PyTorch (Phase 4), then delete
 `utils/ClassifierBase`.
+
+---
+
+## B Phase 3 — relocate the Sklearn backend (utils → Predictors)
+
+**Behaviour:** neutral (import/MRO; Sklearn is non-production, no saved model).
+
+`utils/ClassifierSklearn` had no regressor/variants, so it migrates as one class:
+`ClassifierSklearn → Predictors/SklearnBaseClassifier(BaseClassifier)` (the former
+empty combiner becomes the real class). The 9 `SklearnClassifier_*` model classes
+already inherited the `SklearnBaseClassifier` name, so only `SklearnStrategy`'s
+import + type hints changed. utils file deleted; ruff-formatted; MRO test passes.
