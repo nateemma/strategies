@@ -5,8 +5,7 @@
 """
 CreateMTGAN — multi-task GAN creator strategy.
 
-Replaces the one-class-per-backend variants (CreateMTWGAN,
-CreateMTCtabGanPlus).  The GAN backend is selected via the ``gan_type``
+Replaces the former one-class-per-backend creator variants.  The GAN backend is selected via the ``gan_type``
 class attribute; backend-specific dispatch lives in ``run_gan_training``.
 
 To create a Multi-Task WGAN-GP:

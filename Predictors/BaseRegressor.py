@@ -1,8 +1,8 @@
 """
 BaseRegressor - base for predictors that produce continuous values.
 
-Marker class. The current single concrete is KerasRegressorLinear
-(combining BaseRegressor with utils.ClassifierKerasLinear).
+Marker class. Concrete regressors combine this with a framework-specific
+implementation.
 """
 
 from Predictors.BasePredictor import BasePredictor

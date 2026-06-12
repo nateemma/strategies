@@ -18,9 +18,9 @@ Provides:
  - Classification assessment/reporting
 
 Subclasses (or intermediate bases) add family-specific logic:
- - BaseNNStrategy  → neural-net training, GAN augmentation, normalization
- - SimpleStrategy  → signal-based entry/exit with strategy-type filtering
- - TSPredict       → wavelet / time-series regression pipeline
+ - the neural-net family → training, GAN augmentation, normalization
+ - the simple-strategy family → signal-based entry/exit
+ - the time-series family → wavelet / time-series regression
 """
 
 # --------------------------------
@@ -121,10 +121,10 @@ class NormalizationType(Enum):
 
 
 class ModelType(Enum):
-    NONE = auto()  # SimpleStrategies — no ML model
-    KERAS = auto()  # NNNCStrategy, NNMTStrategy
-    SKLEARN = auto()  # SklearnStrategy
-    CUSTOM = auto()  # TSPredict — custom regressor pipeline
+    NONE = auto()  # no ML model
+    KERAS = auto()  # Keras NN families
+    SKLEARN = auto()  # sklearn family
+    CUSTOM = auto()  # custom regressor pipeline
 
 
 # GANType lives in the GAN subsystem so it stays independent of strategy code.
@@ -317,8 +317,8 @@ class BaseStrategy(IStrategy):
     # missing or zero, or if the flag is False.
     #
     # Default False here so non-NN strategies retain the no-op
-    # custom_stoploss behaviour. BaseNNStrategy flips this on so every
-    # NN variant inherits adaptive stops by default.
+    # custom_stoploss behaviour. The NN base flips this on so every NN variant
+    # inherits adaptive stops by default.
     use_atr_adaptive_stoploss = False
     atr_stoploss_multiplier = 2.5
     atr_stoploss_floor = -0.04  # loosest stop allowed (most negative)
@@ -1037,7 +1037,7 @@ class BaseStrategy(IStrategy):
         """Common indicator population using DataframePopulator minimal set.
 
         Subclasses should override this (calling super()) to add their own logic
-        (e.g. training loop in BaseNNStrategy, signal generation in SimpleStrategy).
+        (e.g. a training loop, or signal generation).
         """
 
         curr_pair = metadata["pair"]
@@ -1071,10 +1071,9 @@ class BaseStrategy(IStrategy):
         market is in a sustained bear regime relative to its trailing EMA.
 
         Uses a standard (causal) EMA — only past data — because this is
-        evaluated at entry time when the future doesn't exist. Distinct
-        from ``BaseNNStrategy.get_market_regime`` which uses a *centered*
-        rolling mean (looks both ways) for training labels. Same idea,
-        different causality requirement.
+        evaluated at entry time when the future doesn't exist. Distinct from
+        the *centered* rolling mean (looks both ways) used to build training
+        labels. Same idea, different causality requirement.
 
         Bear when ``close < EMA(entry_bear_ema_period) * (1 - entry_bear_deadband)``.
         Deadband prevents flipping on small crosses; EMA gives multi-day

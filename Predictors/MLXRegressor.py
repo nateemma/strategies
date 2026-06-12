@@ -108,7 +108,7 @@ class MLXRegressor(MLXBasePredictor, BaseRegressor):
     clean_data_required: bool = False
 
     # Training-loop knobs as class attributes so strategies / subclasses can
-    # override per-instance (e.g. NNPredictRegressorMLX_LSTM.max_epochs = 300)
+    # override per-instance (e.g. set max_epochs = 300 on a concrete regressor)
     # without changing the framework default for everyone else.
     max_epochs: int = 100
     early_patience: int = 20

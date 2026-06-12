@@ -1,10 +1,9 @@
 """
 BasePredictor - root of the Predictors hierarchy.
 
-Subclasses are organized by task type:
-  - BaseClassifier (discrete-label prediction)
-  - BaseRegressor (continuous-value prediction)
-  - BaseAnomalyDetector (one-class / reconstruction-based scoring)
+Subclasses are organized by task type: classifiers (discrete labels),
+regressors (continuous values), and anomaly detectors (one-class /
+reconstruction-based scoring).
 
 This root carries the small capability stubs shared by every predictor backend
 (previously in utils/ClassifierBase, the B3 extraction). Backend bases override

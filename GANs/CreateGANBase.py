@@ -44,7 +44,7 @@ class CreateGANBase:
     Mixin-style base class that encapsulates the common workflow for gathering,
     normalising, and shuffling data prior to training a GAN.
 
-    Subclasses (CreateGAN, CreateMTGAN) implement ``run_gan_training`` to
+    Subclasses implement ``run_gan_training`` to
     perform the backend-specific interface call.
     """
 
@@ -74,7 +74,7 @@ class CreateGANBase:
     # Sourced from Framework.TrainingConfig so the GAN trainer never
     # disagrees with the strategy on these values. The MASTER_* names are
     # kept as a public-facing alias because downstream Create subclasses
-    # (CreateMTCtabGanPlus, CreateCtabGanPlus, etc.) reference them by name.
+    # reference them by name.
     MASTER_MIN_BUY_GAIN_THRESHOLD = TrainingConfig.MIN_BUY_GAIN_THRESHOLD
     MASTER_MIN_SELL_LOSS_THRESHOLD = TrainingConfig.MIN_SELL_LOSS_THRESHOLD
     MASTER_TRAINING_TYPE = TrainingConfig.TRAINING_TYPE

@@ -1,9 +1,8 @@
 """
 BaseClassifier - base for predictors that produce discrete class labels.
 
-Marker class. Concrete classifiers (e.g. KerasClassifierNary,
-SklearnBaseClassifier) inherit from this plus a framework-specific
-implementation from utils/Classifier*.
+Marker class. Concrete classifiers inherit from this plus a
+framework-specific implementation.
 """
 
 from Predictors.BasePredictor import BasePredictor

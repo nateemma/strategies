@@ -1,8 +1,7 @@
 """Shared base for the CTAB-GAN+ trainers.
 
 Holds the methods that were byte-identical between the single-task
-(``CTABGANPlus``, ``df_ctab_gan.py``) and multi-task (``CTABGANPlusMT``,
-``df_mt_ctab_gan.py``) trainers, so they live in exactly one place. The
+(``df_ctab_gan.py``) and multi-task (``df_mt_ctab_gan.py``) trainers, so they live in exactly one place. The
 single/multi-specific logic (``__init__``, ``_create_models``, ``_train``,
 ``fit``, ``generate``, ``save``/``load`` on the base classes, the metric
 sub-computations) stays on the subclasses and resolves via normal MRO.

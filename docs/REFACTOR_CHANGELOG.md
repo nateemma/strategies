@@ -357,3 +357,27 @@ Predictors MRO test (8) passes; no dangling imports of the deleted modules.
 
 **Still pending:** Keras / Sklearn / Darts+PyTorch phases (then delete
 `utils/ClassifierBase`); naming fix `ClassifierKerasLinear` (a regressor).
+
+---
+
+## Convention: bases never reference subclasses (AGENT_GUIDE one-way dependency rule)
+
+**Behaviour:** neutral (one code relocation verified bit-identical; the rest are
+docstring/comment edits).
+
+Scanned the inheritance graph for any base file that names one of its own
+descendants (code/import/docstring/comment) and fixed every genuine one:
+
+- **Import (real layering fix):** `BaseNNStrategy` imported the MT-label wrappers
+  `_UnflattenedGenerateWrapper` / `_PadMissingTaskLabelsWrapper` from its subclass
+  module `NNMTStrategy`. Relocated them to a neutral home `GANs/mt_label_wrappers.py`
+  (they wrap a `GANInterface`); both the base and `NNMTStrategy` now import from
+  there. Verified `NNMT_DDPM_MLX` bit-identical.
+- **Docstrings/comments:** rephrased base-class docstrings to drop specific
+  subclass names (kept generic role descriptions) across `BaseStrategy`,
+  `BaseNNStrategy`, `NNMTStrategy`, the `MLXClassifierMixin` /
+  `MLXMultiTaskClassifierMixin`, `CTABGANPlusBase`, the `CreateGAN`/`CreateMTGAN`/
+  `CreateGANBase` bases, and the Predictors marker classes.
+
+Re-scan is clean apart from a false positive (`ta.ROC` vs the `ROC` strategy) and
+`utils/ClassifierBase` (slated for deletion in a later Predictors phase).

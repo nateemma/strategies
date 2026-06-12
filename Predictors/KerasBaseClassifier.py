@@ -1,9 +1,8 @@
 """
 KerasBaseClassifier - Keras-backed marker for classifier predictors.
 
-Pure marker class. Concrete Keras classifier predictors (e.g.
-KerasClassifierNary, KerasClassifierMultiTask) inherit from this PLUS
-the corresponding utils.Classifier* class via multiple inheritance --
+Pure marker class. Concrete Keras classifier predictors inherit from this
+PLUS the corresponding utils.Classifier* class via multiple inheritance --
 that is where the actual Keras behavior comes from.
 
 This class deliberately does NOT inherit from utils.ClassifierKeras.
