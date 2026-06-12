@@ -24,21 +24,21 @@ import warnings
 import random
 import os
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
-os.environ['TF_DETERMINISTIC_OPS'] = '1'
-os.environ['TF_RUN_EAGER_OP_AS_FUNCTION'] = '0'
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "1"
+os.environ["TF_DETERMINISTIC_OPS"] = "1"
+os.environ["TF_RUN_EAGER_OP_AS_FUNCTION"] = "0"
 
 import tensorflow as tf
 import keras
 
-from tensorflow.keras import backend as K
 # from keras import backend as K
 
-from DataframeUtils import DataframeUtils
-from ClassifierBase import ClassifierBase
+from utils.DataframeUtils import DataframeUtils
+from Predictors.BasePredictor import BasePredictor
 
-@keras.saving.register_keras_serializable(package="ClassifierKeras")
-class ClassifierKeras(ClassifierBase):
+
+@keras.saving.register_keras_serializable(package="KerasBasePredictor")
+class KerasBasePredictor(BasePredictor):
     model = None
     is_trained = False
     model_path = ""
@@ -48,7 +48,7 @@ class ClassifierKeras(ClassifierBase):
     checkpoint_path = "/tmp/model.weights.h5"
     seq_len = 8
     num_features = 64
-    encoder_layer = 'encoder_output'
+    encoder_layer = "encoder_output"
     encoder = None
     default_max_epochs = 256
     num_epochs = default_max_epochs  # number of iterations for training (can be set)
@@ -60,9 +60,15 @@ class ClassifierKeras(ClassifierBase):
     model_per_pair = False  # set to False to combine across all pairs
     new_model = False  # True if a new model was created this run
     dataframeUtils = None
-    requires_dataframes = False  # set to True if classifier takes dataframes rather than tensors
-    prescale_dataframe = True  # set to True if algorithms need dataframes to be pre-scaled
-    single_prediction = False  # True if algorithm only produces 1 prediction (not entire data array)
+    requires_dataframes = (
+        False  # set to True if classifier takes dataframes rather than tensors
+    )
+    prescale_dataframe = (
+        True  # set to True if algorithms need dataframes to be pre-scaled
+    )
+    single_prediction = (
+        False  # True if algorithm only produces 1 prediction (not entire data array)
+    )
     combine_models = False  # True means combine models for all pairs (unless model per pair). False will train only on 1st pair
 
     # ---------------------------
@@ -73,23 +79,23 @@ class ClassifierKeras(ClassifierBase):
         # environment setup
         log = logging.getLogger(__name__)
         # log.setLevel(logging.DEBUG)
-        warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
+        warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
         tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
         logging.disable(logging.WARNING)
-        os.environ["TF_CPP_MIN_LOG_LEVEL"] = '3'
+        os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
         # workaround for memory leak in tensorflow 2.10
-        os.environ['TF_RUN_EAGER_OP_AS_FUNCTION'] = '0'
+        os.environ["TF_RUN_EAGER_OP_AS_FUNCTION"] = "0"
         mem_fraction = 0.4
-        config = tf.compat.v1.ConfigProto(device_count={'GPU': 0})
+        config = tf.compat.v1.ConfigProto(device_count={"GPU": 0})
         config.gpu_options.allow_growth = True
         config.gpu_options.per_process_gpu_memory_fraction = mem_fraction
         # sess = tf.compat.v1.Session(config=config)
         # tf.compat.v1.keras.backend.set_session(sess)
 
         seed = 41
-        os.environ['PYTHONHASHSEED'] = str(seed)
+        os.environ["PYTHONHASHSEED"] = str(seed)
         random.seed(seed)
         tf.random.set_seed(seed)
         np.random.seed(seed)
@@ -111,26 +117,26 @@ class ClassifierKeras(ClassifierBase):
     # needed for serialisation
     def get_config(self):
         config = {
-            'model': self.model,
-            'is_trained': self.is_trained,
-            'model_path': self.model_path,
-            'model_ext': self.model_ext,
-            'name': self.name,
-            'checkpoint_path': self.checkpoint_path,
-            'seq_len': self.seq_len,
-            'num_features': self.num_features,
-            'encoder_layer': self.encoder_layer,
-            'encoder': self.encoder,
-            'num_epochs': self.num_epochs,
-            'batch_size': self.batch_size,
-            'clean_data_required': self.clean_data_required ,
-            'model_per_pair': self.model_per_pair,
-            'new_model': self.new_model,
-            'dataframeUtils': self.dataframeUtils,
-            'requires_dataframes': self.requires_dataframes,
-            'prescale_dataframe': self.prescale_dataframe,
-            'single_prediction': self.single_prediction,
-            'combine_models': self.combine_models
+            "model": self.model,
+            "is_trained": self.is_trained,
+            "model_path": self.model_path,
+            "model_ext": self.model_ext,
+            "name": self.name,
+            "checkpoint_path": self.checkpoint_path,
+            "seq_len": self.seq_len,
+            "num_features": self.num_features,
+            "encoder_layer": self.encoder_layer,
+            "encoder": self.encoder,
+            "num_epochs": self.num_epochs,
+            "batch_size": self.batch_size,
+            "clean_data_required": self.clean_data_required,
+            "model_per_pair": self.model_per_pair,
+            "new_model": self.new_model,
+            "dataframeUtils": self.dataframeUtils,
+            "requires_dataframes": self.requires_dataframes,
+            "prescale_dataframe": self.prescale_dataframe,
+            "single_prediction": self.single_prediction,
+            "combine_models": self.combine_models,
             # 'last_time_step': self.last_time_step
         }
         return {**config}
@@ -168,8 +174,8 @@ class ClassifierKeras(ClassifierBase):
             self.learning_rate = self.default_learning_rate
         else:
             self.learning_rate = max(rate, 1e-5)
-        return  
-        
+        return
+
     # ---------------------------
 
     def set_batch_size(self, batch_size):
@@ -180,7 +186,7 @@ class ClassifierKeras(ClassifierBase):
     # ---------------------------
     # utility function to find the nearest power of 2 greater than the supplied number
     def nearest_power_of_2(self, n):
-        return 2**n.bit_length()
+        return 2 ** n.bit_length()
 
     # ---------------------------
 
@@ -196,13 +202,23 @@ class ClassifierKeras(ClassifierBase):
         model = keras.Sequential(name=self.name)
 
         # Encoder
-        model.add(keras.layers.Dense(outer_dim, activation='relu', input_shape=(seq_len, num_features)))
-        model.add(keras.layers.Dense(2 * outer_dim, activation='relu'))
-        model.add(keras.layers.Dense(inner_dim, activation='relu', name=self.encoder_layer))  # name is mandatory
+        model.add(
+            keras.layers.Dense(
+                outer_dim, activation="relu", input_shape=(seq_len, num_features)
+            )
+        )
+        model.add(keras.layers.Dense(2 * outer_dim, activation="relu"))
+        model.add(
+            keras.layers.Dense(inner_dim, activation="relu", name=self.encoder_layer)
+        )  # name is mandatory
 
         # Decoder
-        model.add(keras.layers.Dense(2 * outer_dim, activation='relu', input_shape=(1, inner_dim)))
-        model.add(keras.layers.Dense(outer_dim, activation='relu'))
+        model.add(
+            keras.layers.Dense(
+                2 * outer_dim, activation="relu", input_shape=(1, inner_dim)
+            )
+        )
+        model.add(keras.layers.Dense(outer_dim, activation="relu"))
 
         model.add(keras.layers.Dense(num_features, activation=None))
         return model
@@ -216,8 +232,8 @@ class ClassifierKeras(ClassifierBase):
         # workaround for tensorflow issues with Adam:
         # optimizer = keras.optimizers.legacy.Adam(learning_rate=0.01)
 
-        model.compile(metrics=['accuracy', 'mse'], loss='mse', optimizer=optimizer)
-        loss=tf.keras.losses.Huber(delta=1.0)
+        model.compile(metrics=["accuracy", "mse"], loss="mse", optimizer=optimizer)
+        loss = tf.keras.losses.Huber(delta=1.0)
 
         return model
 
@@ -225,7 +241,15 @@ class ClassifierKeras(ClassifierBase):
 
     # update training using the supplied (normalised) dataframe. Training is cumulative
     # the 'labels' args should contain 0.0 for normal results, '1.0' for anomalies (buy or sell)
-    def train(self, df_train_norm, df_test_norm, train_results, test_results, force_train=False, class_weights=None):
+    def train(
+        self,
+        df_train_norm,
+        df_test_norm,
+        train_results,
+        test_results,
+        force_train=False,
+        class_weights=None,
+    ):
 
         # lazy loading because params can change up to this point
         if self.model is None:
@@ -233,7 +257,7 @@ class ClassifierKeras(ClassifierBase):
             self.model = self.load()
 
         # just return if model has already been trained, unless force_train is set, or this was a new model
-        if self.model_is_trained() and (not force_train) :
+        if self.model_is_trained() and (not force_train):
             return
 
         if self.model is None:
@@ -249,14 +273,14 @@ class ClassifierKeras(ClassifierBase):
             # remove rows with positive labels?!
             if self.clean_data_required:
                 df1 = df_train_norm.copy()
-                df1['%labels'] = train_results
-                df1 = df1[(df1['%labels'] < 0.1)]
-                df_train = df1.drop('%labels', axis=1)
+                df1["%labels"] = train_results
+                df1 = df1[(df1["%labels"] < 0.1)]
+                df_train = df1.drop("%labels", axis=1)
 
                 df2 = df_train_norm.copy()
-                df2['%labels'] = train_results
-                df2 = df2[(df2['%labels'] < 0.1)]
-                df_test = df2.drop('%labels', axis=1)
+                df2["%labels"] = train_results
+                df2 = df2[(df2["%labels"] < 0.1)]
+                df_test = df2.drop("%labels", axis=1)
             else:
                 df_train = df_train_norm.copy()
                 df_test = df_test_norm.copy()
@@ -268,7 +292,7 @@ class ClassifierKeras(ClassifierBase):
             train_tensor = df_train_norm.copy()
             test_tensor = df_test_norm.copy()
 
-        monitor_field = 'loss'
+        monitor_field = "loss"
         monitor_mode = "min"
         early_patience = 4
         plateau_patience = 4
@@ -280,7 +304,8 @@ class ClassifierKeras(ClassifierBase):
             patience=early_patience,
             min_delta=0.0001,
             restore_best_weights=True,
-            verbose=1)
+            verbose=1,
+        )
 
         plateau_callback = keras.callbacks.ReduceLROnPlateau(
             monitor=monitor_field,
@@ -288,7 +313,8 @@ class ClassifierKeras(ClassifierBase):
             factor=0.1,
             min_delta=0.0001,
             patience=plateau_patience,
-            verbose=0)
+            verbose=0,
+        )
 
         # callback to control saving of 'best' model
         # Note that we use validation loss as the metric, not training loss
@@ -298,7 +324,8 @@ class ClassifierKeras(ClassifierBase):
             monitor=monitor_field,
             mode=monitor_mode,
             save_best_only=True,
-            verbose=0)
+            verbose=0,
+        )
 
         callbacks = [plateau_callback, early_callback, checkpoint_callback]
 
@@ -309,12 +336,15 @@ class ClassifierKeras(ClassifierBase):
         # print("    train_tensor:{} test_tensor:{}".format(np.shape(train_tensor), np.shape(test_tensor)))
 
         # Model weights are saved at the end of every epoch, if it's the best seen so far.
-        fhis = self.model.fit(train_tensor, train_tensor,
-                              batch_size=self.batch_size,
-                              epochs=self.num_epochs,
-                              callbacks=callbacks,
-                              validation_data=(test_tensor, test_tensor),
-                              verbose=0)
+        fhis = self.model.fit(
+            train_tensor,
+            train_tensor,
+            batch_size=self.batch_size,
+            epochs=self.num_epochs,
+            callbacks=callbacks,
+            validation_data=(test_tensor, test_tensor),
+            verbose=0,
+        )
 
         # # The model weights (that are considered the best) are loaded into th model.
         # self.update_model_weights()
@@ -351,6 +381,7 @@ class ClassifierKeras(ClassifierBase):
         # If tensor is an MLX array, convert it to numpy for Keras
         try:
             import mlx.core as mx
+
             if isinstance(tensor, mx.array):
                 tensor = np.array(tensor)
         except (ImportError, ModuleNotFoundError):
@@ -360,7 +391,11 @@ class ClassifierKeras(ClassifierBase):
 
         # not sure why, but predict sometimes returns an odd length
         if np.shape(predict_tensor)[0] != np.shape(tensor)[0]:
-            print("    ERR: prediction length mismatch ({} vs {})".format(len(predict_tensor), np.shape(tensor)[0]))
+            print(
+                "    ERR: prediction length mismatch ({} vs {})".format(
+                    len(predict_tensor), np.shape(tensor)[0]
+                )
+            )
             predictions = np.zeros(np.shape(tensor)[0], dtype=float)
         else:
             # get losses by comparing input to output
@@ -420,15 +455,23 @@ class ClassifierKeras(ClassifierBase):
 
         # rpreds = preds.reshape(-1,1)
         if preds.shape != results.shape:
-            print(f"    Dimension mismatch. predictions:{np.shape(preds)} results:{np.shape(results)}")
+            print(
+                f"    Dimension mismatch. predictions:{np.shape(preds)} results:{np.shape(results)}"
+            )
             return
 
         loss = keras.metrics.mean_squared_error(preds, results)
         if loss.ndim > 1:
             # loss = np.array(loss[0])
-            print("    loss: sum:{:.3f} min:{:.3f} max:{:.3f} mean:{:.3f} std:{:.3f}".format(np.sum(loss),
-                                                                                            np.min(loss), np.max(loss),
-                                                                                            np.mean(loss), np.std(loss)))
+            print(
+                "    loss: sum:{:.3f} min:{:.3f} max:{:.3f} mean:{:.3f} std:{:.3f}".format(
+                    np.sum(loss),
+                    np.min(loss),
+                    np.max(loss),
+                    np.mean(loss),
+                    np.std(loss),
+                )
+            )
         else:
             print("    loss: {}".format(loss))
 
@@ -449,7 +492,9 @@ class ClassifierKeras(ClassifierBase):
         encoded_tensor = self.model.predict(tensor, verbose=1)
         # print("    encoded_tensor:{}".format(np.shape(encoded_tensor)))
         encode_array = encoded_tensor[:, 0, :]
-        encoded_array = encode_array.reshape(np.shape(encoded_tensor)[0], np.shape(encoded_tensor)[2])
+        encoded_array = encode_array.reshape(
+            np.shape(encoded_tensor)[0], np.shape(encoded_tensor)[2]
+        )
         # print("    encoded_array:{}".format(np.shape(encoded_array)))
 
         return pd.DataFrame(encoded_array, columns=cols)
@@ -470,7 +515,9 @@ class ClassifierKeras(ClassifierBase):
         # tensor = np.array(df_norm).reshape(df_norm.shape[0], 1, df_norm.shape[1])
         tensor = self.dataframeUtils.df_to_tensor(df_norm, self.seq_len)
         encoded_tensor = self.encoder.predict(tensor, verbose=1)
-        encoded_array = encoded_tensor.reshape(np.shape(encoded_tensor)[0], np.shape(encoded_tensor)[2])
+        encoded_array = encoded_tensor.reshape(
+            np.shape(encoded_tensor)[0], np.shape(encoded_tensor)[2]
+        )
 
         return pd.DataFrame(encoded_array, columns=cols)
 
@@ -494,7 +541,7 @@ class ClassifierKeras(ClassifierBase):
     def get_model_root_dir(self):
 
         if len(self.root_dir) > 0:
-            return self.root_dir       
+            return self.root_dir
 
         print("*** ERR: model path not set ***")
 
@@ -509,7 +556,7 @@ class ClassifierKeras(ClassifierBase):
     # ---------------------------
 
     def get_checkpoint_path(self):
-        checkpoint_dir = '/tmp' + "/" + self.name + "/"
+        checkpoint_dir = "/tmp" + "/" + self.name + "/"
         if not os.path.exists(checkpoint_dir):
             os.makedirs(checkpoint_dir)
         # model_path = checkpoint_dir + "checkpoint." + self.model_ext
@@ -555,9 +602,12 @@ class ClassifierKeras(ClassifierBase):
                 else:
                     # Enable unsafe deserialization to handle Lambda layers with Python lambda functions
                     import keras
+
                     keras.config.enable_unsafe_deserialization()
                     # model = tf.keras.models.load_model(path, compile=False, custom_objects={'last_time_step': self.last_time_step})
-                    model = tf.keras.models.load_model(path, compile=False, safe_mode=False)
+                    model = tf.keras.models.load_model(
+                        path, compile=False, safe_mode=False
+                    )
                 self.compile_model(model)
                 self.is_trained = True
                 self.new_model = False
@@ -566,15 +616,17 @@ class ClassifierKeras(ClassifierBase):
                 print(f"    Error loading model from {path}: {str(e)}")
                 print(f"    Traceback: {traceback.format_exc()}")
                 # Raise the exception instead of returning None to help diagnose issues in hyperopt
-                raise RuntimeError(f"Failed to load model from {path}. Error: {str(e)}") from e
+                raise RuntimeError(
+                    f"Failed to load model from {path}. Error: {str(e)}"
+                ) from e
         else:
             print("    model not found ({})...".format(path))
             # flag this as a new model. Note that this is a class global variable because we need to track this
             # across multiple instances (e.g. if we are combining all pairs into one model)
             # if self.combine_models:
-            #     ClassifierKeras.new_model = True
+            #     KerasBasePredictor.new_model = True
             # else:
-            #     ClassifierKeras.new_model = False
+            #     KerasBasePredictor.new_model = False
             self.new_model = True
 
             self.is_trained = False
@@ -597,22 +649,19 @@ class ClassifierKeras(ClassifierBase):
                 # print('Model already trained')
                 return True
         return False
-    # ---------------------------
-
 
     # ---------------------------
 
-
     # ---------------------------
 
+    # ---------------------------
 
     # ---------------------------
 
     def new_model_created(self) -> bool:
-        return ClassifierKeras.new_model
+        return KerasBasePredictor.new_model
 
     # ---------------------------
-
 
     # ---------------------------
 
@@ -626,8 +675,11 @@ class ClassifierKeras(ClassifierBase):
             try:
                 self.model.load_weights(self.checkpoint_path)
             except:
-                print("    Error loading weights from {}. Check whether model format changed".format(
-                    self.checkpoint_path))
+                print(
+                    "    Error loading weights from {}. Check whether model format changed".format(
+                        self.checkpoint_path
+                    )
+                )
         else:
             print("    model not found ({})...".format(self.checkpoint_path))
 

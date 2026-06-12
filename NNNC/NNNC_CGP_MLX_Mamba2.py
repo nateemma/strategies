@@ -20,7 +20,6 @@ sys.path.append(group_dir)
 
 from NNNC_CGP_MLX import NNNC_CGP_MLX
 from NNNClassifierMLX import ClassifierTypeMLX, create_classifier_mlx
-from ClassifierKeras import ClassifierKeras
 
 
 class NNNC_CGP_MLX_Mamba2(NNNC_CGP_MLX):

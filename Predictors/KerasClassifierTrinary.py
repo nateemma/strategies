@@ -2,7 +2,7 @@
 # This class implements a keras classifier that provides a trinary result (nothing, buy, sell)
 
 # subclasses should override the create_model() method
-from enum import Enum, auto
+from enum import Enum
 
 import numpy as np
 import pandas as pd
@@ -16,13 +16,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent.parent))
 
-import logging
-import warnings
-import random
-import os
-import weakref
 
-import tensorflow as tf
 import keras
 
 # log = logging.getLogger(__name__)
@@ -35,7 +29,6 @@ import keras
 # logging.getLogger('pickle').setLevel(logging.CRITICAL)
 
 # warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
-
 
 
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # errors only
@@ -54,12 +47,9 @@ import keras
 
 # tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.WARN)
 
-import sklearn
-from sklearn.metrics import f1_score
 
-from ClassifierKeras import ClassifierKeras
-from CustomWeightedLoss import CustomWeightedLoss
-from CustomAdam import CustomAdam
+from Predictors.KerasBaseClassifier import KerasBaseClassifier
+from utils.CustomWeightedLoss import CustomWeightedLoss
 
 
 # enum for results
@@ -69,10 +59,10 @@ class Result(Enum):
     SELL = 2
 
 
-@keras.saving.register_keras_serializable(package="ClassifierKeras")
-class ClassifierKerasTrinary(ClassifierKeras):
+@keras.saving.register_keras_serializable(package="KerasBaseClassifier")
+class KerasClassifierTrinary(KerasBaseClassifier):
     clean_data_required = False
-    custom_objects = {'CustomWeightedLoss': CustomWeightedLoss}
+    custom_objects = {"CustomWeightedLoss": CustomWeightedLoss}
 
     # create model - subclasses should overide this
     def create_model(self, seq_len, num_features):
@@ -87,11 +77,18 @@ class ClassifierKerasTrinary(ClassifierKeras):
         # NOTE: don't use relu with LSTMs, cannot use GPU if you do (much slower). Use tanh
 
         # simplest possible model:
-        model.add(keras.layers.LSTM(128, return_sequences=True, activation='tanh', input_shape=(seq_len, num_features)))
+        model.add(
+            keras.layers.LSTM(
+                128,
+                return_sequences=True,
+                activation="tanh",
+                input_shape=(seq_len, num_features),
+            )
+        )
         model.add(keras.layers.Dropout(rate=0.1))
 
         # last layer is a trinary decision - do not change
-        model.add(keras.layers.Dense(3, activation='softmax'))
+        model.add(keras.layers.Dense(3, activation="softmax"))
 
         return model
 
@@ -118,16 +115,18 @@ class ClassifierKerasTrinary(ClassifierKeras):
         # Try some custom loss functions, where we can weight the los based on actual class distribution
         # loss = CustomWeightedLoss(CustomWeightedLoss.WeightedLossType.CATEGORICAL_FOCAL, self.get_class_weights())
         # loss = CustomWeightedLoss(CustomWeightedLoss.WeightedLossType.WEIGHTED_CATEGORICAL, self.get_class_weights())
-        
+
         # loss = CustomWeightedLoss(CustomWeightedLoss.WeightedLossType.F1_MACRO, self.get_class_weights())
-        loss = CustomWeightedLoss(CustomWeightedLoss.WeightedLossType.F1_WEIGHTED, self.get_class_weights())
+        loss = CustomWeightedLoss(
+            CustomWeightedLoss.WeightedLossType.F1_WEIGHTED, self.get_class_weights()
+        )
         # loss = CustomWeightedLoss(CustomWeightedLoss.WeightedLossType.PRECISION_WEIGHTED, self.get_class_weights())
         # print(f"weights: {self.get_class_weights()}")
 
         # buy_a = keras.metrics.Accuracy(class_id=1)  # not available in keras 3.1.0
         # buy_a = keras.metrics.Accuracy()
         # buy_p = keras.metrics.Precision()
-        buy_f1 = keras.metrics.F1Score(average='weighted')
+        buy_f1 = keras.metrics.F1Score(average="weighted")
         precision = keras.metrics.Precision()
         # f1_metric = f1_score(y_true, y_pred, average='macro')
         metrics = ["categorical_accuracy", buy_f1, precision]
@@ -142,7 +141,14 @@ class ClassifierKerasTrinary(ClassifierKeras):
 
     # update training using the suplied (normalised) dataframe. Training is cumulative
     # the 'labels' args should contain 0.0 for normal results, '1.0' for buys, 2.0 for sells
-    def train(self, df_train_norm, df_test_norm, train_results, test_results, force_train=False):
+    def train(
+        self,
+        df_train_norm,
+        df_test_norm,
+        train_results,
+        test_results,
+        force_train=False,
+    ):
 
         # lazy loading because params can change up to this point
         if self.model is None:
@@ -154,8 +160,12 @@ class ClassifierKerasTrinary(ClassifierKeras):
         # print("    train_tensor:{} test_tensor:{}".format(np.shape(train_tensor), np.shape(test_tensor)))
 
         # if model is already trained, and caller is not requesting a re-train, then just return
-        if (self.model is not None) and self.model_is_trained() and (not force_train) and (
-                not self.new_model_created()):
+        if (
+            (self.model is not None)
+            and self.model_is_trained()
+            and (not force_train)
+            and (not self.new_model_created())
+        ):
             # print(f"    Not training. is_trained:{self.is_trained} force_train:{force_train} new_model:{self.new_model}")
             print("    Model is already trained")
             return
@@ -164,14 +174,14 @@ class ClassifierKerasTrinary(ClassifierKeras):
             # remove rows with positive labels?!
             if self.clean_data_required:
                 df1 = df_train_norm.copy()
-                df1['%labels'] = train_results
-                df1 = df1[(df1['%labels'] < 0.1)]
-                df_train = df1.drop('%labels', axis=1)
+                df1["%labels"] = train_results
+                df1 = df1[(df1["%labels"] < 0.1)]
+                df_train = df1.drop("%labels", axis=1)
 
                 df2 = df_train_norm.copy()
-                df2['%labels'] = train_results
-                df2 = df2[(df2['%labels'] < 0.1)]
-                df_test = df2.drop('%labels', axis=1)
+                df2["%labels"] = train_results
+                df2 = df2[(df2["%labels"] < 0.1)]
+                df_test = df2.drop("%labels", axis=1)
             else:
                 df_train = df_train_norm.copy()
                 df_test = df_test_norm.copy()
@@ -182,7 +192,6 @@ class ClassifierKerasTrinary(ClassifierKeras):
             # already in tensor format
             train_tensor = df_train_norm.copy()
             test_tensor = df_test_norm.copy()
-
 
         # set class weights (used by custom loss and metric functions)
         self.set_class_weights(train_results)
@@ -196,11 +205,10 @@ class ClassifierKerasTrinary(ClassifierKeras):
             self.model = self.compile_model(self.model)
             self.model.summary()
 
-
         # monitor_field = 'val_loss' # assess based on validation loss, rather than training loss
 
         monitor_mode = "min"
-        monitor_field = 'loss'
+        monitor_field = "loss"
         # monitor_mode = "max"
         # monitor_field = 'precision'
         # monitor_mode = "max"
@@ -221,7 +229,8 @@ class ClassifierKerasTrinary(ClassifierKeras):
             patience=early_patience,
             min_delta=min_delta,
             restore_best_weights=True,
-            verbose=0)
+            verbose=0,
+        )
 
         plateau_callback = keras.callbacks.ReduceLROnPlateau(
             monitor=monitor_field,
@@ -229,7 +238,8 @@ class ClassifierKerasTrinary(ClassifierKeras):
             factor=0.1,
             min_delta=min_delta,
             patience=plateau_patience,
-            verbose=0)
+            verbose=0,
+        )
 
         # callback to control saving of 'best' model
         checkpoint_callback = keras.callbacks.ModelCheckpoint(
@@ -238,7 +248,8 @@ class ClassifierKerasTrinary(ClassifierKeras):
             monitor=monitor_field,
             mode=monitor_mode,
             save_best_only=True,
-            verbose=0)
+            verbose=0,
+        )
 
         callbacks = [plateau_callback, early_callback, checkpoint_callback]
 
@@ -251,13 +262,16 @@ class ClassifierKerasTrinary(ClassifierKeras):
         # print("    train_tensor:{} test_tensor:{}".format(np.shape(train_tensor), np.shape(test_tensor)))
 
         # Model weights are saved at the end of every epoch, if it's the best seen so far.
-        fhis = self.model.fit(train_tensor, train_results,
-                              batch_size=self.batch_size,
-                              epochs=self.num_epochs,
-                              callbacks=callbacks,
-                              validation_data=(test_tensor, test_results),
-                              # class_weight=self.get_class_weight_dict(),
-                              verbose=1)
+        fhis = self.model.fit(
+            train_tensor,
+            train_results,
+            batch_size=self.batch_size,
+            epochs=self.num_epochs,
+            callbacks=callbacks,
+            validation_data=(test_tensor, test_results),
+            # class_weight=self.get_class_weight_dict(),
+            verbose=1,
+        )
 
         # The model weights (that are considered the best) are loaded into th model.
         # Note: don't need to do this if restore_best_weights=True in early_callback
@@ -308,7 +322,7 @@ class ClassifierKerasTrinary(ClassifierKeras):
     class_weight_dict = {}
 
     def set_class_weights(self, label_tensor):
-        '''
+        """
         # Assuming your labels are one-hot encoded, you need to convert them to integers first
         y_train = tf.argmax(label_tensor,
                             axis=-1)  # creates tensor of shape (batch_size, timesteps) with integers 0, 1, or 2
@@ -332,14 +346,16 @@ class ClassifierKerasTrinary(ClassifierKeras):
         # self.class_weights = self.class_weights / np.sum(self.class_weights)
         self.class_weights = self.class_weights / np.max(self.class_weights)
 
-        '''
+        """
         # Hack: set class weights to something that works
         # self.class_weights = np.array([1.0, 5.0, 5.0])
         # self.class_weights = np.array([1.0, 8.0, 8.0]) # 8:1:1 holds/buys/sells
-        self.class_weights = np.array([1.0, 3.0, 3.0]) # 3:1:1 holds/buys/sells
-        self.class_weights = self.class_weights / np.max(self.class_weights) # normalise to 0..1 range
+        self.class_weights = np.array([1.0, 3.0, 3.0])  # 3:1:1 holds/buys/sells
+        self.class_weights = self.class_weights / np.max(
+            self.class_weights
+        )  # normalise to 0..1 range
 
-        print(f'class_weights: {self.class_weights}')
+        print(f"class_weights: {self.class_weights}")
 
         # You can then use the class_weights array as a dictionary for the class_weight argument in Keras
         self.class_weight_dict = dict(enumerate(self.class_weights))
@@ -351,12 +367,11 @@ class ClassifierKerasTrinary(ClassifierKeras):
 
     def get_class_weight_dict(self):
         return self.class_weight_dict
-    
+
     def get_config(self):
         config = super().get_config()
-        config['clean_data_required'] = self.clean_data_required,
-        config['is_trained'] = self.is_trained,
-        config['custom_objects'] = self.custom_objects
+        config["clean_data_required"] = (self.clean_data_required,)
+        config["is_trained"] = (self.is_trained,)
+        config["custom_objects"] = self.custom_objects
         # config['optimizer'] = weakref.proxy(self.optimizer)
         return {**config}
-

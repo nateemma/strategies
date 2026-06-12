@@ -31,7 +31,7 @@ sys.path.append(group_dir)
 
 from Framework.BaseNNStrategy import BaseNNStrategy
 from Framework.BaseStrategy import MarketRegime, TradingAction, FlowDirection, MomentumDirection, RiskLevel
-from utils.ClassifierKeras import ClassifierKeras
+from Predictors.KerasBasePredictor import KerasBasePredictor
 import NNMTClassifier
 from utils import ForwardPeakRegressor as _FPR
 from freqtrade.strategy import DecimalParameter, IntParameter, BooleanParameter
@@ -893,7 +893,7 @@ class NNMTStrategy(BaseNNStrategy):
 
     # -----------
 
-    def get_predictions(self, dataframe: DataFrame, classifier: ClassifierKeras):
+    def get_predictions(self, dataframe: DataFrame, classifier: KerasBasePredictor):
         """Get the predictions from the model"""
 
         # empty dictionary for use in error cases
@@ -1657,7 +1657,7 @@ class NNMTStrategy(BaseNNStrategy):
 
     def get_classifier(
         self, classifier_type, pair, seq_len, num_features
-    ) -> ClassifierKeras:
+    ) -> KerasBasePredictor:
         """Return the classifier used for training/predicting"""
 
         classifier, _ = NNMTClassifier.create_classifier(

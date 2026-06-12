@@ -119,14 +119,14 @@ def test_keras_anomaly_detector_instantiates():
 
 
 def test_keras_regressor_linear_instantiates():
-    """KerasRegressorLinear must construct without TypeError.
+    """KerasRegressor must construct without TypeError.
 
     No strategy-side concrete class uses this yet; test directly.
     """
-    from Predictors.KerasRegressorLinear import KerasRegressorLinear
+    from Predictors.KerasRegressor import KerasRegressor
     _try_init(
-        "KerasRegressorLinear",
-        lambda: KerasRegressorLinear("TEST/USDT", 16, 5),
+        "KerasRegressor",
+        lambda: KerasRegressor("TEST/USDT", 16, 5),
     )
 
 
@@ -140,9 +140,9 @@ def test_mro_contains_single_classifier_keras():
     """
     import NNMTClassifier
     cls = NNMTClassifier.NNMTClassifier_LSTM
-    keras_count = sum(1 for c in cls.__mro__ if c.__name__ == "ClassifierKeras")
+    keras_count = sum(1 for c in cls.__mro__ if c.__name__ == "KerasBasePredictor")
     assert keras_count == 1, (
-        f"NNMTClassifier_LSTM has {keras_count} copies of ClassifierKeras in MRO "
+        f"NNMTClassifier_LSTM has {keras_count} copies of KerasBasePredictor in MRO "
         f"(expected 1). MRO: {[c.__name__ for c in cls.__mro__]}"
     )
 

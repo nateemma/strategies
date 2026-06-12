@@ -8,7 +8,7 @@
 BaseNNStrategy - Base class for all Neural Network trading strategies.
 
 Inherits from BaseStrategy and adds:
- - NN-specific imports (tensorflow, ClassifierKeras, GANs, TrainingSignals)
+ - NN-specific imports (tensorflow, KerasBasePredictor, GANs, TrainingSignals)
  - Training parameters (seq_len, epochs, batch_size, etc.)
  - Normalization pipeline (rolling_dataframe_normalise, scalers, PCA)
  - Feature list management (include_list, pre_normalized_columns)
@@ -56,7 +56,7 @@ from sklearn.utils import shuffle
 
 from utils.DataframeUtils import ScalerType, DataframeUtils
 from utils.DataframePopulator import DataframePopulator, DatasetType
-from utils.ClassifierKeras import ClassifierKeras
+from Predictors.KerasBasePredictor import KerasBasePredictor
 
 from utils.Scalers import scaler_exists, save_scaler, load_scaler
 from GANs.GANInterface import GANInterface  # noqa: E402
@@ -1563,7 +1563,7 @@ class BaseNNStrategy(BaseStrategy):
 
     def get_classifier(
         self, classifier_type, pair, seq_len, num_features
-    ) -> ClassifierKeras:
+    ) -> KerasBasePredictor:
         """Return the classifier used for training/predicting"""
         raise NotImplementedError("get_classifier() not implemented")
         return None
@@ -2231,7 +2231,7 @@ class BaseNNStrategy(BaseStrategy):
         self,
         dataframes: [DataFrame],
         labels: [Any],
-        classifier: ClassifierKeras,
+        classifier: KerasBasePredictor,
         pair_names: Optional[List[str]] = None,
     ):
         """Train the model - default implementation"""
@@ -2325,7 +2325,7 @@ class BaseNNStrategy(BaseStrategy):
     # Prediction pipeline
     # =========================================================================
 
-    def get_predictions(self, dataframe: DataFrame, classifier: ClassifierKeras):
+    def get_predictions(self, dataframe: DataFrame, classifier: KerasBasePredictor):
         """Get the predictions from the model"""
 
         pred_threshold = self.prediction_threshold.value

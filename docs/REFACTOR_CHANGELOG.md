@@ -381,3 +381,42 @@ descendants (code/import/docstring/comment) and fixed every genuine one:
 
 Re-scan is clean apart from a false positive (`ta.ROC` vs the `ROC` strategy) and
 `utils/ClassifierBase` (slated for deletion in a later Predictors phase).
+
+---
+
+## B Phase 2 — relocate the Keras backend (utils → Predictors)
+
+**Behaviour:** neutral (production MLX + Keras `NNAnomalyStrategy` backtests
+byte-identical vs master).
+
+Relocated all 9 Keras backend files into the Predictors task-type hierarchy
+(clean split, same as MLX) and deleted the utils originals:
+
+| was (utils, deleted) | now (Predictors) |
+|---|---|
+| `ClassifierKeras` | `KerasBasePredictor` (task-agnostic infra) |
+| (marker) | `KerasBaseClassifier` = `KerasBasePredictor` + `BaseClassifier` |
+| `ClassifierKerasNary/MultiTask/Binary/Encoder/Trinary` | `KerasClassifier{Nary,MultiTask,Binary,Encoder,Trinary}` |
+| `ClassifierKerasAnomaly` | `KerasAnomalyDetector` (`KerasBasePredictor` + `BaseAnomalyDetector`) |
+| `ClassifierKerasLinear` | `KerasRegressor` (renamed — "Linear" redundant; `KerasBasePredictor` + `BaseRegressor`) |
+| `ClassifierKerasTFT` | `KerasRegressorTFT` (`KerasRegressor`) |
+
+- **Fixed the fragile `Predictors/__init__` bootstrap first** — it imported
+  `utils.ClassifierKeras` (the file being moved) as a sys.path side-effect.
+  Rewrote it to put `<strategies>` and `<strategies>/utils` on `sys.path`
+  explicitly, removing the dependency on any one classifier file.
+- Updated all importers (Anomaly classifiers, `NNPredictors`, `BaseNNStrategy`
+  + `NNMTStrategy` type hints, `test_classifier`); removed 7 stale
+  `from ClassifierKeras import` lines from MLX leaf files; updated the
+  `test_predictors_mro` assertions; **preserved the
+  `@register_keras_serializable(package="ClassifierKeras")` strings** (changing
+  them would break loading of the saved `NNAnomalyStrategy.keras` model).
+- ruff format + safe fixes applied to the new files (81 pre-existing lint
+  issues left).
+
+**Verification:** full Keras/MLX/anomaly stacks import; `test_predictors_mro`
+passes (8); `NNNC_DDPM_MLX` byte-identical (MLX unaffected); Keras
+`NNAnomalyStrategy` byte-identical vs master (saved-model load intact).
+
+**Still pending:** Sklearn (Phase 3), Darts+PyTorch (Phase 4), then delete
+`utils/ClassifierBase`.
