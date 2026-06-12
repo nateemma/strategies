@@ -420,3 +420,33 @@ passes (8); `NNNC_DDPM_MLX` byte-identical (MLX unaffected); Keras
 
 **Still pending:** Sklearn (Phase 3), Darts+PyTorch (Phase 4), then delete
 `utils/ClassifierBase`.
+
+---
+
+## B Phase 3 — relocate the Sklearn backend (utils → Predictors)
+
+**Behaviour:** neutral (import/MRO; Sklearn is non-production, no saved model).
+
+`utils/ClassifierSklearn` had no regressor/variants, so it migrates as one class:
+`ClassifierSklearn → Predictors/SklearnBaseClassifier(BaseClassifier)` (the former
+empty combiner becomes the real class). The 9 `SklearnClassifier_*` model classes
+already inherited the `SklearnBaseClassifier` name, so only `SklearnStrategy`'s
+import + type hints changed. utils file deleted; ruff-formatted; MRO test passes.
+
+---
+
+## B Phase 4 — relocate Darts/PyTorch + delete ClassifierBase (migration complete)
+
+**Behaviour:** neutral (Darts/PyTorch are unused + can't import here without torch
+— AST/parse verified; production MLX bit-identical; MRO test passes).
+
+- `ClassifierDarts → Predictors/DartsBaseClassifier(BaseClassifier)`,
+  `ClassifierPyTorch → Predictors/PyTorchBaseClassifier(BaseClassifier)`. No
+  importers existed (both unused), so it's a clean relocation for completeness.
+- **Deleted `utils/ClassifierBase.py`** — every backend now inherits the shared
+  stubs from `Predictors.BasePredictor`, so the B3 transitional base is gone.
+
+**Migration complete:** no `utils/Classifier*` / `utils/Regressor*` files remain.
+The Predictors task-type hierarchy (`BasePredictor → BaseClassifier/BaseRegressor/
+BaseAnomalyDetector → <Backend>…`) now owns all predictor implementations; the
+`<Backend>BasePredictor` infra/task split is consistent across MLX and Keras.
