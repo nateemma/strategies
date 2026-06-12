@@ -23,7 +23,7 @@ import mlx.nn as nn
 sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent.parent))
 
-from Predictors.MLXRegressorLinear import MLXRegressorLinear
+from Predictors.MLXRegressor import MLXRegressor
 from Predictors.MLXRegressorMultiHorizon import MLXRegressorMultiHorizon
 
 
@@ -83,7 +83,7 @@ class _LSTMRegressorModel(nn.Module):
         return self.out(last)
 
 
-class NNPredictRegressorMLX_LSTM(MLXRegressorLinear):
+class NNPredictRegressorMLX_LSTM(MLXRegressor):
     is_trained = False
     clean_data_required = False
 

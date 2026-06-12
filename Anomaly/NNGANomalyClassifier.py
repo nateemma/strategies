@@ -32,13 +32,13 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 os.environ["TF_DETERMINISTIC_OPS"] = "1"
 os.environ["TF_RUN_EAGER_OP_AS_FUNCTION"] = "0"
 
-from utils.ClassifierKerasAnomaly import ClassifierKerasAnomaly
+from Predictors.KerasAnomalyDetector import KerasAnomalyDetector
 
 log = logging.getLogger(__name__)
 
 
 # Base class for GANomaly classifiers
-class GANomalyClassifierBase(ClassifierKerasAnomaly):
+class GANomalyClassifierBase(KerasAnomalyDetector):
     """
     Base class for GANomaly classifiers that combine:
     - GAN training (generator + discriminator)

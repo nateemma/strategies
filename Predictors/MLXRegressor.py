@@ -1,7 +1,7 @@
 # MLX regressor base class.
 # Functionally parallel to utils/ClassifierKerasLinear.py (which despite its
 # name is a regressor — its own docstring acknowledges as much). Mirrors the
-# training-loop scaffolding of ClassifierMLXNary but with:
+# training-loop scaffolding of MLXClassifierNary but with:
 #   - linear single-value output (Dense(1)) instead of softmax
 #   - MSE loss instead of focal loss
 #   - val_loss (min) instead of val_mcc (max) for early stopping
@@ -30,7 +30,8 @@ from mlx.utils import tree_flatten, tree_map
 sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent.parent))
 
-from ClassifierMLX import ClassifierMLX
+from Predictors.MLXBasePredictor import MLXBasePredictor
+from Predictors.BaseRegressor import BaseRegressor
 
 log = logging.getLogger(__name__)
 warnings.simplefilter(action="ignore", category=FutureWarning)
@@ -43,14 +44,16 @@ def _filter_nonfinite_rows(
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Drop rows where the input tensor or targets contain NaN/Inf.
 
-    Same purpose as the equivalent helper in ClassifierMLXNary — pathological
+    Same purpose as the equivalent helper in MLXClassifierNary — pathological
     rows from upstream data corrupt training. Filtering up-front is cheaper
     than catching bad batches in the loop.
     """
     n = len(tensor)
     feature_axes = tuple(range(1, tensor.ndim))
     finite_mask = (
-        np.isfinite(tensor).all(axis=feature_axes) if feature_axes else np.isfinite(tensor)
+        np.isfinite(tensor).all(axis=feature_axes)
+        if feature_axes
+        else np.isfinite(tensor)
     )
     if targets.ndim == 1:
         finite_mask &= np.isfinite(targets)
@@ -64,11 +67,11 @@ def _filter_nonfinite_rows(
         return tensor, targets
 
     pct = 100.0 * n_dropped / n
-    print(f"    Filtered {n_dropped}/{n} ({pct:.2f}%) non-finite rows from {label} data")
+    print(
+        f"    Filtered {n_dropped}/{n} ({pct:.2f}%) non-finite rows from {label} data"
+    )
     if n_kept == 0:
-        raise RuntimeError(
-            f"All {label} rows contained NaN/Inf — nothing to train on."
-        )
+        raise RuntimeError(f"All {label} rows contained NaN/Inf — nothing to train on.")
     return tensor[finite_mask], targets[finite_mask]
 
 
@@ -101,13 +104,13 @@ def _batch_iter(
         yield X_mx[b_idx], y_mx[b_idx]
 
 
-class RegressorMLXLinear(ClassifierMLX):
+class MLXRegressor(MLXBasePredictor, BaseRegressor):
     """MLX linear regressor: single continuous output, MSE loss."""
 
     clean_data_required: bool = False
 
     # Training-loop knobs as class attributes so strategies / subclasses can
-    # override per-instance (e.g. NNPredictRegressorMLX_LSTM.max_epochs = 300)
+    # override per-instance (e.g. set max_epochs = 300 on a concrete regressor)
     # without changing the framework default for everyone else.
     max_epochs: int = 100
     early_patience: int = 20
@@ -158,8 +161,12 @@ class RegressorMLXLinear(ClassifierMLX):
         if self.dataframeUtils.is_dataframe(df_train_norm):
             df_train = df_train_norm.copy()
             df_test = df_test_norm.copy()
-            train_tensor = self.dataframeUtils.df_to_tensor(df_train, self.seq_len, method=3)
-            test_tensor = self.dataframeUtils.df_to_tensor(df_test, self.seq_len, method=3)
+            train_tensor = self.dataframeUtils.df_to_tensor(
+                df_train, self.seq_len, method=3
+            )
+            test_tensor = self.dataframeUtils.df_to_tensor(
+                df_test, self.seq_len, method=3
+            )
         else:
             train_tensor = np.array(df_train_norm)
             test_tensor = np.array(df_test_norm)
@@ -278,7 +285,9 @@ class RegressorMLXLinear(ClassifierMLX):
             ):
                 loss_val, grads = loss_and_grad(self.model, X_batch, y_batch)
                 loss_value = float(loss_val.item())
-                clipped_grads, total_norm = _clip_grads_by_global_norm(grads, grad_clip_norm)
+                clipped_grads, total_norm = _clip_grads_by_global_norm(
+                    grads, grad_clip_norm
+                )
                 norm_value = float(total_norm.item())
 
                 if not (np.isfinite(loss_value) and np.isfinite(norm_value)):
@@ -290,7 +299,7 @@ class RegressorMLXLinear(ClassifierMLX):
                         if not np.isfinite(norm_value):
                             cause.append(f"grad_norm={norm_value}")
                         print(
-                            f"    WARNING: non-finite update at epoch {epoch+1} "
+                            f"    WARNING: non-finite update at epoch {epoch + 1} "
                             f"({', '.join(cause)}; consecutive: {consecutive_nan_batches}); skipping"
                         )
                     if consecutive_nan_batches >= max_consecutive_nan_batches:
@@ -328,6 +337,7 @@ class RegressorMLXLinear(ClassifierMLX):
             val_preds_np = np.array(val_preds).reshape(-1)
             try:
                 from scipy.stats import spearmanr
+
                 spearman = float(spearmanr(val_preds_np, test_targets).correlation)
                 # Shortcut diagnostic: ρ between predictions and the target
                 # shifted backward by horizon. If ρ_shortcut is close to ρ
@@ -357,7 +367,7 @@ class RegressorMLXLinear(ClassifierMLX):
                 f"min={val_preds_np.min():.4f} max={val_preds_np.max():.4f}"
             )
             print(
-                f"    Epoch {epoch+1:3d}/{max_epochs} — "
+                f"    Epoch {epoch + 1:3d}/{max_epochs} — "
                 f"loss: {train_loss:.6f}  val_loss: {val_loss:.6f}{clip_note}{pred_note}"
             )
 
@@ -386,7 +396,7 @@ class RegressorMLXLinear(ClassifierMLX):
 
             if no_improve_cnt >= early_patience:
                 print(
-                    f"    EarlyStopping at epoch {epoch+1} "
+                    f"    EarlyStopping at epoch {epoch + 1} "
                     f"(no improvement for {early_patience} epochs)"
                 )
                 break

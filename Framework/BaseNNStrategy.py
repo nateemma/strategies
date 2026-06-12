@@ -8,7 +8,7 @@
 BaseNNStrategy - Base class for all Neural Network trading strategies.
 
 Inherits from BaseStrategy and adds:
- - NN-specific imports (tensorflow, ClassifierKeras, GANs, TrainingSignals)
+ - NN-specific imports (tensorflow, KerasBasePredictor, GANs, TrainingSignals)
  - Training parameters (seq_len, epochs, batch_size, etc.)
  - Normalization pipeline (rolling_dataframe_normalise, scalers, PCA)
  - Feature list management (include_list, pre_normalized_columns)
@@ -18,8 +18,8 @@ Inherits from BaseStrategy and adds:
  - Training / prediction pipeline
  - Aggregation helpers for multi-pair training
 
-Subclasses (NNNCStrategy, NNMTStrategy, SklearnStrategy, etc.) override
-get_classifier_type() and get_classifier() to provide specific model architectures.
+Subclasses override get_classifier_type() and get_classifier() to provide
+specific model architectures.
 """
 
 # --------------------------------
@@ -56,7 +56,7 @@ from sklearn.utils import shuffle
 
 from utils.DataframeUtils import ScalerType, DataframeUtils
 from utils.DataframePopulator import DataframePopulator, DatasetType
-from utils.ClassifierKeras import ClassifierKeras
+from Predictors.KerasBasePredictor import KerasBasePredictor
 
 from utils.Scalers import scaler_exists, save_scaler, load_scaler
 from GANs.GANInterface import GANInterface  # noqa: E402
@@ -1333,11 +1333,11 @@ class BaseNNStrategy(BaseStrategy):
     gan_synth_discrim_reject_pct: float = 0.0
 
     # Neural-discriminator rejection sampling. Uses the unified
-    # RealnessDiscriminator trained once by CreateDiscriminator across
+    # RealnessDiscriminator trained once by the discriminator-creator strategy across
     # synth from every saved GAN. Independent of the in-loop HistGB
     # filter above — both can run, inflates multiply. ``0.0`` disables.
     # ``gan_synth_neural_discrim_model_path`` defaults to the
-    # conventional save location written by CreateDiscriminator (under
+    # conventional save location written by that creator strategy (under
     # the strategy's storage location).
     gan_synth_neural_discrim_reject_pct: float = 0.0
     gan_synth_neural_discrim_model_path: Optional[str] = None
@@ -1346,7 +1346,7 @@ class BaseNNStrategy(BaseStrategy):
     # trained ONLY on real data (no GAN samples) — drop synth rows whose
     # features don't look like a real example of the class they claim
     # to be. Default save root is ``saved_data/Discriminators/realsignal/``
-    # written by CreateRealsignalDiscriminator. ``0.0`` disables.
+    # written by the realsignal-discriminator creator strategy. ``0.0`` disables.
     gan_synth_realsignal_reject_pct: float = 0.0
     gan_synth_realsignal_model_root: Optional[str] = None
 
@@ -1372,8 +1372,8 @@ class BaseNNStrategy(BaseStrategy):
     gan_synth_mahalanobis_threshold: Optional[float] = None
 
     # Autoencoder rejection sampling. Loads per-class MLP autoencoders
-    # trained ONLY on real same-class data (no GAN samples) by
-    # CreateAutoencoderFilter. Scores each synth row by reconstruction
+    # trained ONLY on real same-class data (no GAN samples) by the
+    # autoencoder-filter creator strategy. Scores each synth row by reconstruction
     # MSE — low MSE = on the real manifold = keep; high MSE = off
     # manifold = drop. Manifold-aware: unlike Mahalanobis it doesn't
     # reward centroid clustering, so real tail samples reconstruct well
@@ -1523,10 +1523,8 @@ class BaseNNStrategy(BaseStrategy):
 
         Resolves feature names, passthrough indices, and AE-filter config
         from instance state, then calls ``GANs.balance.balance_multi_task``.
-        All four multi-task augmentation call sites
-        (BaseNNStrategy single-task + MT-GAN, BaseNNMTStrategy multi-task,
-        NNMT_DDPM, NNMT_WGAN) funnel through here so any future kwarg
-        addition lands in one place.
+        All the multi-task augmentation call sites funnel through here so any
+        future kwarg addition lands in one place.
         """
         from GANs.balance import balance_multi_task  # noqa: E402
 
@@ -1565,7 +1563,7 @@ class BaseNNStrategy(BaseStrategy):
 
     def get_classifier(
         self, classifier_type, pair, seq_len, num_features
-    ) -> ClassifierKeras:
+    ) -> KerasBasePredictor:
         """Return the classifier used for training/predicting"""
         raise NotImplementedError("get_classifier() not implemented")
         return None
@@ -2163,7 +2161,7 @@ class BaseNNStrategy(BaseStrategy):
         # Lazy imports — keep GAN stack out of strategies that never use it.
         from GANs.GANInterface import GANInterface, GANMetadataMismatchError  # noqa: E402
         from GANs.paths import gan_save_path  # noqa: E402
-        from NNMT.BaseNNMTStrategy import (  # noqa: E402
+        from GANs.mt_label_wrappers import (  # noqa: E402
             _PadMissingTaskLabelsWrapper,
             _UnflattenedGenerateWrapper,
         )
@@ -2233,7 +2231,7 @@ class BaseNNStrategy(BaseStrategy):
         self,
         dataframes: [DataFrame],
         labels: [Any],
-        classifier: ClassifierKeras,
+        classifier: KerasBasePredictor,
         pair_names: Optional[List[str]] = None,
     ):
         """Train the model - default implementation"""
@@ -2327,7 +2325,7 @@ class BaseNNStrategy(BaseStrategy):
     # Prediction pipeline
     # =========================================================================
 
-    def get_predictions(self, dataframe: DataFrame, classifier: ClassifierKeras):
+    def get_predictions(self, dataframe: DataFrame, classifier: KerasBasePredictor):
         """Get the predictions from the model"""
 
         pred_threshold = self.prediction_threshold.value

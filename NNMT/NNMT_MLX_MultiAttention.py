@@ -18,7 +18,6 @@ group_dir = str(Path(__file__).parent)
 sys.path.append(group_dir)
 
 from NNMT_MLX import NNMT_MLX  # noqa: E402
-from ClassifierKeras import ClassifierKeras
 from NNMT.NNMTClassifierMLX import ClassifierTypeMLX, create_classifier_mlx
 
 # -----------

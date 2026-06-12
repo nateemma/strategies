@@ -29,7 +29,7 @@ import tensorflow as tf
 # from tensorflow import keras
 from tensorflow.keras import Input, Model, layers, regularizers # type: ignore
 
-from ClassifierKerasLinear import ClassifierKerasLinear
+from Predictors.KerasRegressor import KerasRegressor
 from TCN import TCN as TCN
 from NBeatsNet import NBeatsNet as NBeatsNet
 from PositionalEncoding import PositionalEncoding
@@ -39,7 +39,7 @@ from PositionalEncoding import PositionalEncoding
 # all actual instantiations follow this base class
 
 
-class NNPredictor(ClassifierKerasLinear):
+class NNPredictor(KerasRegressor):
 
     is_trained = False
     clean_data_required = False  # training data can contain anomalies

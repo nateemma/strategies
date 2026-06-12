@@ -1,8 +1,7 @@
 """Shared base for the CTAB-GAN+ trainers.
 
 Holds the methods that were byte-identical between the single-task
-(``CTABGANPlus``, ``df_ctab_gan.py``) and multi-task (``CTABGANPlusMT``,
-``df_mt_ctab_gan.py``) trainers, so they live in exactly one place. The
+(``df_ctab_gan.py``) and multi-task (``df_mt_ctab_gan.py``) trainers, so they live in exactly one place. The
 single/multi-specific logic (``__init__``, ``_create_models``, ``_train``,
 ``fit``, ``generate``, ``save``/``load`` on the base classes, the metric
 sub-computations) stays on the subclasses and resolves via normal MRO.
@@ -11,12 +10,11 @@ These methods call ``self.*`` helpers that differ per subclass; because the
 bodies are byte-identical and ``self`` resolves per-instance, hoisting is
 behaviour-neutral.
 """
+
 from __future__ import annotations
 
 import os
-import pickle
-import warnings
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import numpy as np
 import pandas as pd
@@ -24,7 +22,6 @@ import tensorflow as tf
 
 
 class CTABGANPlusBase:
-
     def _set_random_seeds(self, seed: int):
         """Set random seeds for reproducibility across all libraries."""
         # Set Python's built-in random seed
@@ -48,7 +45,6 @@ class CTABGANPlusBase:
 
         if self.verbose:
             print(f"    Random seed set to {seed} for reproducibility")
-
 
     def _transform_data(self, df: pd.DataFrame) -> np.ndarray:
         """Transform dataframe to numpy array.
@@ -128,11 +124,9 @@ class CTABGANPlusBase:
                 return categorical_data
         return continuous_data
 
-
     def _wasserstein_loss(self, y_true, y_pred):
         """Wasserstein loss for WGAN."""
         return tf.reduce_mean(y_pred)
-
 
     def _compute_validity_metrics(self, generated_data: pd.DataFrame) -> Dict[str, Any]:
         """Check validity of generated samples."""
@@ -185,7 +179,6 @@ class CTABGANPlusBase:
 
         return metrics
 
-
     def _compute_overall_score(self, metrics: Dict[str, Any]) -> Dict[str, float]:
         """Compute overall quality score from all metrics."""
         score = {}
@@ -223,7 +216,6 @@ class CTABGANPlusBase:
         )
 
         return score
-
 
     def evaluate_with_dataframes(
         self, real_data: pd.DataFrame, generated_data: pd.DataFrame
@@ -271,9 +263,7 @@ class CTABGANPlusBase:
         return metrics
 
 
-
 class CTABGANPlusEnhancedMixin:
-
     def _train_auxiliary_step(
         self, real_data: tf.Tensor, real_labels: tf.Tensor
     ) -> None:
@@ -281,7 +271,6 @@ class CTABGANPlusEnhancedMixin:
         if self.auxiliary is None:
             return
         self.auxiliary.train_on_batch(real_data, real_labels)
-
 
     def save(
         self,
@@ -300,7 +289,6 @@ class CTABGANPlusEnhancedMixin:
         if self.auxiliary is not None:
             self.auxiliary.save(os.path.join(filepath, "auxiliary.keras"))
 
-
     def load(self, filepath: str) -> Dict[str, Optional[float]]:
         """Load generator, discriminator, and auxiliary if saved."""
         result = super().load(filepath)
@@ -308,4 +296,3 @@ class CTABGANPlusEnhancedMixin:
         if os.path.exists(aux_path):
             self.auxiliary = tf.keras.models.load_model(aux_path)
         return result
-

@@ -913,9 +913,9 @@ def create_classifier_mlx(
 class MLXClassifierMixin:
     """Shared MLX classifier construction for NNNC strategy bases.
 
-    Mixed in (before the family base) by NNNC_MLX / NNNC_CGP_MLX /
-    NNNC_WGAN_MLX so the MLX ``get_classifier`` lives in exactly one place
-    instead of being copy-pasted into each base. Architecture selection is
+    Mixed in (before the family base) by the MLX single-task strategy bases
+    so the MLX ``get_classifier`` lives in exactly one place instead of being
+    copy-pasted into each base. Architecture selection is
     declarative: set ``classifier_type`` to a ``ClassifierTypeMLX`` value on
     the subclass (default LSTM). ``get_classifier_type`` is inherited from
     NNNCStrategy and returns ``self.classifier_type``.

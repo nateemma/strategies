@@ -5,8 +5,6 @@
 # pragma pylint: disable=W0105, C0103, C0114, C0115, C0116, C0301, C0302, C0303, C0325, C0411, C0413, W0611, W1203, W291
 
 import numpy as np
-import numpy
-from pandas import DataFrame, Series
 import pandas as pd
 
 pd.options.mode.chained_assignment = None  # default='warn'
@@ -19,15 +17,13 @@ sys.path.append(str(Path(__file__).parent))
 
 import logging
 import warnings
-import random
-import os
 import tensorflow as tf
-import tensorflow.experimental.numpy as tnp # type: ignore
+import tensorflow.experimental.numpy as tnp  # type: ignore
 import traceback
 
 log = logging.getLogger(__name__)
 # log.setLevel(logging.DEBUG)
-warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
+warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
 
 # os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
@@ -46,14 +42,13 @@ import keras
 # from keras import layers
 # from keras import backend as K
 
-import h5py
 
-from DataframeUtils import DataframeUtils
-from ClassifierKeras import ClassifierKeras
+from Predictors.KerasBasePredictor import KerasBasePredictor
+from Predictors.BaseRegressor import BaseRegressor
 
 
-@keras.saving.register_keras_serializable(package="ClassifierKerasLinear")
-class ClassifierKerasLinear(ClassifierKeras):
+@keras.saving.register_keras_serializable(package="KerasRegressor")
+class KerasRegressor(KerasBasePredictor, BaseRegressor):
     clean_data_required = False
     combine_models = True
 
@@ -65,12 +60,18 @@ class ClassifierKerasLinear(ClassifierKeras):
         model = tf.keras.Sequential()
 
         # simplest possible model:
-        model.add(tf.keras.layers.LSTM(64, return_sequences=True, activation='tanh', input_shape=(seq_len, num_features)))
+        model.add(
+            tf.keras.layers.LSTM(
+                64,
+                return_sequences=True,
+                activation="tanh",
+                input_shape=(seq_len, num_features),
+            )
+        )
         model.add(tf.keras.layers.Dropout(rate=0.1))
-        model.add(tf.keras.layers.Dense(1, activation='linear'))
+        model.add(tf.keras.layers.Dense(1, activation="linear"))
 
         return model
-
 
     def smape_loss(self, y_true, y_pred):
         """
@@ -84,23 +85,23 @@ class ClassifierKerasLinear(ClassifierKeras):
         mask = tf.cast(mask, tf.float32)
         sym_sum = tf.abs(y_true) + tf.abs(y_pred)
         condition = tf.cast(sym_sum, tf.bool)
-        weights = tf.where(condition, 1. / (sym_sum + 1e-8), 0.0)
+        weights = tf.where(condition, 1.0 / (sym_sum + 1e-8), 0.0)
         return 200 * tnp.nanmean(tf.abs(y_pred - y_true) * weights * mask)
 
     def log_cosh_loss(self, y_true, y_pred):
         def _log_cosh(x):
-            return x + tf.math.softplus(-2. * x) - tf.math.log(2.)
-        return tf.reduce_mean(_log_cosh(y_pred - y_true))
+            return x + tf.math.softplus(-2.0 * x) - tf.math.log(2.0)
 
+        return tf.reduce_mean(_log_cosh(y_pred - y_true))
 
     def compile_model(self, model):
         # optimizer = tf.keras.optimizers.Adam(learning_rate=0.01)
         # workaround for tensorflow issues with Adam:
         # optimizer = tf.keras.optimizers.legacy.Adam(learning_rate=self.learning_rate)
-        optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate) # type: ignore
+        optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate)  # type: ignore
         # optimizer = tf.keras.optimizers.SGD(learning_rate=1, momentum=0.9)
 
-        metric = 'mse'
+        metric = "mse"
         # model.compile(metrics=['mae', 'mse'], loss='mse', optimizer=optimizer)
         model.compile(metrics=[metric], loss=metric, optimizer=optimizer)
         # model.compile(metrics=['mae', 'mse'], loss=self.smape_loss, optimizer=optimizer)
@@ -112,7 +113,17 @@ class ClassifierKerasLinear(ClassifierKeras):
     # update training using the suplied (normalised) dataframe. Training is cumulative
     # class_weights is accepted (and ignored) so the same call site in BaseNNStrategy.train_model
     # works for both classifier and regressor subclasses without a fork.
-    def train(self, df_train_norm, df_test_norm, train_results, test_results, force_train=False, save_model=True, class_weights=None, **kwargs):
+    def train(
+        self,
+        df_train_norm,
+        df_test_norm,
+        train_results,
+        test_results,
+        force_train=False,
+        save_model=True,
+        class_weights=None,
+        **kwargs,
+    ):
 
         # lazy loading because params can change up to this point
         if self.model is None:
@@ -126,7 +137,7 @@ class ClassifierKerasLinear(ClassifierKeras):
 
         # if model is already trained, and caller is not requesting a re-train or combined model, then just return
 
-        if self.model_is_trained() and (not force_train) :
+        if self.model_is_trained() and (not force_train):
             return
 
         # if model doesn't exist, create it (lazy initialisation)
@@ -146,14 +157,14 @@ class ClassifierKerasLinear(ClassifierKeras):
             # remove rows with positive labels?!
             if self.clean_data_required:
                 df1 = df_train_norm.copy()
-                df1['%labels'] = train_results
-                df1 = df1[(df1['%labels'] < 0.1)]
-                df_train = df1.drop('%labels', axis=1)
+                df1["%labels"] = train_results
+                df1 = df1[(df1["%labels"] < 0.1)]
+                df_train = df1.drop("%labels", axis=1)
 
                 df2 = df_train_norm.copy()
-                df2['%labels'] = train_results
-                df2 = df2[(df2['%labels'] < 0.1)]
-                df_test = df2.drop('%labels', axis=1)
+                df2["%labels"] = train_results
+                df2 = df2[(df2["%labels"] < 0.1)]
+                df_test = df2.drop("%labels", axis=1)
             else:
                 df_train = df_train_norm.copy()
                 df_test = df_test_norm.copy()
@@ -167,7 +178,7 @@ class ClassifierKerasLinear(ClassifierKeras):
 
         # set up callbacks
         # monitor_field = 'loss'
-        monitor_field = 'val_loss'
+        monitor_field = "val_loss"
         # monitor_field = 'val_mse'
         monitor_mode = "min"
         early_patience = 6
@@ -182,7 +193,8 @@ class ClassifierKerasLinear(ClassifierKeras):
             patience=early_patience,
             min_delta=0.00001,
             restore_best_weights=True,
-            verbose=1)
+            verbose=1,
+        )
 
         plateau_callback = tf.keras.callbacks.ReduceLROnPlateau(
             monitor=monitor_field,
@@ -190,7 +202,8 @@ class ClassifierKerasLinear(ClassifierKeras):
             factor=0.1,
             min_delta=0.001,
             patience=plateau_patience,
-            verbose=0)
+            verbose=0,
+        )
 
         # callback to control saving of 'best' model
         # Note that we use validation loss as the metric, not training loss
@@ -200,29 +213,39 @@ class ClassifierKerasLinear(ClassifierKeras):
             monitor=monitor_field,
             mode=monitor_mode,
             save_best_only=True,
-            verbose=0)
+            verbose=0,
+        )
 
         class _ValPredStatsCallback(tf.keras.callbacks.Callback):
             def __init__(self, val_x, val_y):
                 super().__init__()
                 self.val_x = val_x
                 self.val_y = np.asarray(val_y).reshape(-1)
+
             def on_epoch_end(self, epoch, logs=None):
-                preds = np.asarray(self.model.predict(self.val_x, verbose=0)).reshape(-1)
+                preds = np.asarray(self.model.predict(self.val_x, verbose=0)).reshape(
+                    -1
+                )
                 try:
                     from scipy.stats import spearmanr
+
                     spearman = float(spearmanr(preds, self.val_y).correlation)
                 except Exception:
                     spearman = float("nan")
                 print(
-                    f"    epoch {epoch+1} val pred stats: "
+                    f"    epoch {epoch + 1} val pred stats: "
                     f"ρ={spearman:.4f} "
                     f"mean={preds.mean():.4f} std={preds.std():.4f} "
                     f"min={preds.min():.4f} max={preds.max():.4f}"
                 )
 
         val_pred_stats_callback = _ValPredStatsCallback(test_tensor, test_results)
-        callbacks = [plateau_callback, early_callback, checkpoint_callback, val_pred_stats_callback]
+        callbacks = [
+            plateau_callback,
+            early_callback,
+            checkpoint_callback,
+            val_pred_stats_callback,
+        ]
 
         train_results_arr = np.asarray(train_results, dtype=np.float32).reshape(-1)
         test_results_arr = np.asarray(test_results, dtype=np.float32).reshape(-1)
@@ -247,12 +270,15 @@ class ClassifierKerasLinear(ClassifierKeras):
         # print("    test_tensor:{}  test_results:{}".format(np.shape(test_tensor), np.shape(test_results)))
 
         # Model weights are saved at the end of every epoch, if it's the best seen so far.
-        fhis = self.model.fit(train_tensor, train_results,
-                                batch_size=self.batch_size,
-                                epochs=self.num_epochs,
-                                callbacks=callbacks,
-                                validation_data=(test_tensor, test_results),
-                                verbose=1)
+        fhis = self.model.fit(
+            train_tensor,
+            train_results,
+            batch_size=self.batch_size,
+            epochs=self.num_epochs,
+            callbacks=callbacks,
+            validation_data=(test_tensor, test_results),
+            verbose=1,
+        )
 
         try:
             val_loss_hist = fhis.history.get("val_loss", [])
@@ -269,7 +295,7 @@ class ClassifierKerasLinear(ClassifierKeras):
         # reset learning rate
         if self.combine_models:
             # tf.keras.backend.set_value(self.model.optimizer.learning_rate, self.learning_rate) # keras 2.x
-            self.model.optimizer.learning_rate.assign(self.learning_rate) # keras 3.x
+            self.model.optimizer.learning_rate.assign(self.learning_rate)  # keras 3.x
 
         # # The model weights (that are considered the best) are loaded into th model.
         # self.update_model_weights()

@@ -5,8 +5,7 @@
 """
 CreateGAN — single-task GAN creator strategy.
 
-Replaces the one-class-per-backend variants (CreateWGAN, CreateCtabGanPlus,
-Create_CGP_PCA).  The GAN backend is selected via the ``gan_type`` class
+Replaces the former one-class-per-backend creator variants.  The GAN backend is selected via the ``gan_type`` class
 attribute; defaults for that backend are resolved automatically from
 ``_DEFAULTS_BY_TYPE``.
 

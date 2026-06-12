@@ -7,7 +7,7 @@ Test script for ClassifierKerasBinary to debug prediction issues
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from ClassifierKerasBinary import ClassifierKerasBinary
+from Predictors.KerasClassifierBinary import KerasClassifierBinary
 from DataframeUtils import DataframeUtils
 
 def test_classifier():
@@ -33,7 +33,7 @@ def test_classifier():
     print(f"Label distribution: {np.bincount(labels)}")
     
     # Initialize classifier
-    classifier = ClassifierKerasBinary("TEST/USDT", seq_len, n_features)
+    classifier = KerasClassifierBinary("TEST/USDT", seq_len, n_features)
     classifier.batch_size = 32
     classifier.num_epochs = 5
     classifier.dataframeUtils = DataframeUtils()

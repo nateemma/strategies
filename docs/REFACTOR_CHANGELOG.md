@@ -298,3 +298,125 @@ retrain-parity, which isn't runnable in this environment.
 **Deferred (the actual B7 goal):** unifying the divergent training loops needs a
 dedicated effort gated by GAN retrain-parity, ideally alongside the TF/MLX parity
 pass (`project_tf_mlx_gan_parity`).
+
+---
+
+## A — merge BaseNNMTStrategy → NNMTStrategy
+
+**Behaviour:** neutral (bit-identical backtest).
+
+`BaseNNMTStrategy` and `NNMTStrategy` were a single-child chain left over from an
+incomplete migration (the base's own docstring: "Empty in this commit; subsequent
+phases move attributes and methods up from NNMTStrategy"). The two had disjoint
+methods, so they're merged into one `NNMTStrategy` (the public name) that inherits
+`BaseNNStrategy` directly.
+
+- Folded `NNMTStrategy`'s 6 methods + `plot_config` / `classifier_type` /
+  `gan_run_diagnostics` into the (renamed) base class; module file renamed
+  `BaseNNMTStrategy.py → NNMTStrategy.py`. `ProfitDirection` and the two task-label
+  wrapper classes (`_UnflattenedGenerateWrapper`, `_PadMissingTaskLabelsWrapper`)
+  preserved, as are the `TradingAction`/`MarketRegime` re-exports.
+- Updated the one framework import (`Framework/BaseNNStrategy.py`) of the wrappers.
+
+**Verification:** `NNMTStrategy` MRO now `NNMTStrategy → BaseNNStrategy → …`
+(BaseNNMTStrategy gone); re-exports + wrappers intact; NNMT_MLX/DDPM_MLX/WGAN_MLX
+import with all merged methods; `NNMT_DDPM_MLX` backtest byte-identical (78 rows).
+
+---
+
+## B Phase 1 — relocate the MLX backend into Predictors (utils → Predictors)
+
+**Behaviour:** neutral (bit-identical classifier backtests; regressor verified by
+import + MRO). The MLX backend implementations move OUT of utils/ and INTO the
+Predictors task-type hierarchy; the utils/ MLX files are deleted.
+
+Clean split (per design decision): `ClassifierMLX` is task-agnostic infra, so it
+becomes `MLXBasePredictor`; the regressor inherits the infra directly rather than
+"being a classifier".
+
+| was (utils, deleted) | now (Predictors) | base |
+|---|---|---|
+| `ClassifierMLX` | `MLXBasePredictor` | `BasePredictor` |
+| (empty marker) | `MLXBaseClassifier` | `MLXBasePredictor, BaseClassifier` |
+| `ClassifierMLXNary` | `MLXClassifierNary` | `MLXBaseClassifier` |
+| `ClassifierMLXMultiTask` | `MLXClassifierMultiTask` | `MLXBaseClassifier` |
+| `RegressorMLXLinear` | `MLXRegressor` (renamed — "Linear" was redundant) | `MLXBasePredictor, BaseRegressor` |
+| `RegressorMLXMultiHorizon` | `MLXRegressorMultiHorizon` | `MLXRegressor` |
+
+- Bare utils sibling imports that stay in utils were qualified
+  (`DataframeUtils`/`CustomLossMLX`/`CustomMetricMLX` → `utils.*`).
+- Importers updated: `NNMTClassifierMLX` (TASK_NAMES), `NNPredictRegressorMLX`
+  (`MLXRegressorLinear → MLXRegressor`). The classifier model files already
+  imported the Predictors names, so they were unchanged.
+
+**Verification:** full MLX stack imports; MROs correct
+(`NNNClassifierMLX_LSTM → MLXClassifierNary → MLXBaseClassifier → MLXBasePredictor →
+BaseClassifier → BasePredictor`; regressor → `MLXRegressor → MLXBasePredictor →
+BaseRegressor`); `NNNC_DDPM_MLX` + `NNMT_DDPM_MLX` backtests byte-identical;
+Predictors MRO test (8) passes; no dangling imports of the deleted modules.
+
+**Still pending:** Keras / Sklearn / Darts+PyTorch phases (then delete
+`utils/ClassifierBase`); naming fix `ClassifierKerasLinear` (a regressor).
+
+---
+
+## Convention: bases never reference subclasses (AGENT_GUIDE one-way dependency rule)
+
+**Behaviour:** neutral (one code relocation verified bit-identical; the rest are
+docstring/comment edits).
+
+Scanned the inheritance graph for any base file that names one of its own
+descendants (code/import/docstring/comment) and fixed every genuine one:
+
+- **Import (real layering fix):** `BaseNNStrategy` imported the MT-label wrappers
+  `_UnflattenedGenerateWrapper` / `_PadMissingTaskLabelsWrapper` from its subclass
+  module `NNMTStrategy`. Relocated them to a neutral home `GANs/mt_label_wrappers.py`
+  (they wrap a `GANInterface`); both the base and `NNMTStrategy` now import from
+  there. Verified `NNMT_DDPM_MLX` bit-identical.
+- **Docstrings/comments:** rephrased base-class docstrings to drop specific
+  subclass names (kept generic role descriptions) across `BaseStrategy`,
+  `BaseNNStrategy`, `NNMTStrategy`, the `MLXClassifierMixin` /
+  `MLXMultiTaskClassifierMixin`, `CTABGANPlusBase`, the `CreateGAN`/`CreateMTGAN`/
+  `CreateGANBase` bases, and the Predictors marker classes.
+
+Re-scan is clean apart from a false positive (`ta.ROC` vs the `ROC` strategy) and
+`utils/ClassifierBase` (slated for deletion in a later Predictors phase).
+
+---
+
+## B Phase 2 — relocate the Keras backend (utils → Predictors)
+
+**Behaviour:** neutral (production MLX + Keras `NNAnomalyStrategy` backtests
+byte-identical vs master).
+
+Relocated all 9 Keras backend files into the Predictors task-type hierarchy
+(clean split, same as MLX) and deleted the utils originals:
+
+| was (utils, deleted) | now (Predictors) |
+|---|---|
+| `ClassifierKeras` | `KerasBasePredictor` (task-agnostic infra) |
+| (marker) | `KerasBaseClassifier` = `KerasBasePredictor` + `BaseClassifier` |
+| `ClassifierKerasNary/MultiTask/Binary/Encoder/Trinary` | `KerasClassifier{Nary,MultiTask,Binary,Encoder,Trinary}` |
+| `ClassifierKerasAnomaly` | `KerasAnomalyDetector` (`KerasBasePredictor` + `BaseAnomalyDetector`) |
+| `ClassifierKerasLinear` | `KerasRegressor` (renamed — "Linear" redundant; `KerasBasePredictor` + `BaseRegressor`) |
+| `ClassifierKerasTFT` | `KerasRegressorTFT` (`KerasRegressor`) |
+
+- **Fixed the fragile `Predictors/__init__` bootstrap first** — it imported
+  `utils.ClassifierKeras` (the file being moved) as a sys.path side-effect.
+  Rewrote it to put `<strategies>` and `<strategies>/utils` on `sys.path`
+  explicitly, removing the dependency on any one classifier file.
+- Updated all importers (Anomaly classifiers, `NNPredictors`, `BaseNNStrategy`
+  + `NNMTStrategy` type hints, `test_classifier`); removed 7 stale
+  `from ClassifierKeras import` lines from MLX leaf files; updated the
+  `test_predictors_mro` assertions; **preserved the
+  `@register_keras_serializable(package="ClassifierKeras")` strings** (changing
+  them would break loading of the saved `NNAnomalyStrategy.keras` model).
+- ruff format + safe fixes applied to the new files (81 pre-existing lint
+  issues left).
+
+**Verification:** full Keras/MLX/anomaly stacks import; `test_predictors_mro`
+passes (8); `NNNC_DDPM_MLX` byte-identical (MLX unaffected); Keras
+`NNAnomalyStrategy` byte-identical vs master (saved-model load intact).
+
+**Still pending:** Sklearn (Phase 3), Darts+PyTorch (Phase 4), then delete
+`utils/ClassifierBase`.

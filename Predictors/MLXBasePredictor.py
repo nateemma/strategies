@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Optional
 
 import numpy as np
-from ClassifierBase import ClassifierBase
+from Predictors.BasePredictor import BasePredictor
 import mlx.core as mx
 import mlx.nn as nn
 
@@ -38,7 +38,8 @@ mx.random.seed(SEED)
 
 # -----------------------------------------------------------------------
 
-class ClassifierMLX(ClassifierBase):
+
+class MLXBasePredictor(BasePredictor):
     """
     Base class for MLX-based classifier/encoder models.
     Provides model lifecycle management (load/save/path) with the same
@@ -67,7 +68,7 @@ class ClassifierMLX(ClassifierBase):
     model_per_pair: bool = False
     new_model: bool = False
 
-    requires_dataframes: bool = False   # accept tensors (numpy arrays)
+    requires_dataframes: bool = False  # accept tensors (numpy arrays)
     prescale_dataframe: bool = True
     single_prediction: bool = False
     combine_models: bool = False
@@ -85,14 +86,15 @@ class ClassifierMLX(ClassifierBase):
 
         # Lazy import so that TF/Keras is NOT imported at module load time
         if self.dataframeUtils is None:
-            from DataframeUtils import DataframeUtils
+            from utils.DataframeUtils import DataframeUtils
+
             self.dataframeUtils = DataframeUtils()
 
         # Build name from class name + optional pair/tag suffix
         pair_suffix = ("_" + pair.split("/")[0]) if self.model_per_pair else ""
-        tag_suffix  = ("_" + tag) if tag else ""
+        tag_suffix = ("_" + tag) if tag else ""
         self.category = self.__class__.__name__
-        self.name     = self.category + pair_suffix + tag_suffix
+        self.name = self.category + pair_suffix + tag_suffix
 
     # -----------------------------------------------------------------------
     # Path management — same convention as ClassifierKeras
@@ -137,10 +139,14 @@ class ClassifierMLX(ClassifierBase):
         pass
 
     def set_num_epochs(self, num_epochs: int | None = None):
-        self.num_epochs = num_epochs if num_epochs is not None else self.default_max_epochs
+        self.num_epochs = (
+            num_epochs if num_epochs is not None else self.default_max_epochs
+        )
 
     def set_learning_rate(self, rate: float | None = None):
-        self.learning_rate = max(rate, 1e-5) if rate is not None else self.default_learning_rate
+        self.learning_rate = (
+            max(rate, 1e-5) if rate is not None else self.default_learning_rate
+        )
 
     def set_batch_size(self, batch_size: int):
         self.batch_size = batch_size
@@ -192,22 +198,24 @@ class ClassifierMLX(ClassifierBase):
             model = self.create_model(self.seq_len, self.num_features)
             if model is None:
                 raise RuntimeError("create_model() returned None — cannot load weights")
-                
+
             model.input_shape = (None, self.seq_len, self.num_features)
             model.load_weights(path)
             mx.eval(model.parameters())
-            
+
             self.is_trained = True
-            self.new_model  = False
+            self.new_model = False
             self.loaded_from_file = True
             self.model = model
-            
+
             print(f"    MLX model loaded: {path}")
             return model
         except Exception as e:
             print(f"    Error loading MLX model from {path}: {e}")
             print(f"    Traceback: {traceback.format_exc()}")
-            raise RuntimeError(f"Failed to load MLX model from {path}. Error: {e}") from e
+            raise RuntimeError(
+                f"Failed to load MLX model from {path}. Error: {e}"
+            ) from e
 
     def update_model_weights(self):
         """Reload best checkpoint into self.model (mirrors ClassifierKeras)."""
@@ -233,11 +241,7 @@ class ClassifierMLX(ClassifierBase):
         return False
 
     def new_model_created(self) -> bool:
-        return ClassifierMLX.new_model
-
-
-
-
+        return MLXBasePredictor.new_model
 
     # -----------------------------------------------------------------------
     # Utility
@@ -249,4 +253,3 @@ class ClassifierMLX(ClassifierBase):
     # Kept for API compatibility with ClassifierKeras
     def backtest(self, data):
         return self.predict(data)
-
