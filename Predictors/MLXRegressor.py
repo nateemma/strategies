@@ -51,7 +51,9 @@ def _filter_nonfinite_rows(
     n = len(tensor)
     feature_axes = tuple(range(1, tensor.ndim))
     finite_mask = (
-        np.isfinite(tensor).all(axis=feature_axes) if feature_axes else np.isfinite(tensor)
+        np.isfinite(tensor).all(axis=feature_axes)
+        if feature_axes
+        else np.isfinite(tensor)
     )
     if targets.ndim == 1:
         finite_mask &= np.isfinite(targets)
@@ -65,11 +67,11 @@ def _filter_nonfinite_rows(
         return tensor, targets
 
     pct = 100.0 * n_dropped / n
-    print(f"    Filtered {n_dropped}/{n} ({pct:.2f}%) non-finite rows from {label} data")
+    print(
+        f"    Filtered {n_dropped}/{n} ({pct:.2f}%) non-finite rows from {label} data"
+    )
     if n_kept == 0:
-        raise RuntimeError(
-            f"All {label} rows contained NaN/Inf — nothing to train on."
-        )
+        raise RuntimeError(f"All {label} rows contained NaN/Inf — nothing to train on.")
     return tensor[finite_mask], targets[finite_mask]
 
 
@@ -159,8 +161,12 @@ class MLXRegressor(MLXBasePredictor, BaseRegressor):
         if self.dataframeUtils.is_dataframe(df_train_norm):
             df_train = df_train_norm.copy()
             df_test = df_test_norm.copy()
-            train_tensor = self.dataframeUtils.df_to_tensor(df_train, self.seq_len, method=3)
-            test_tensor = self.dataframeUtils.df_to_tensor(df_test, self.seq_len, method=3)
+            train_tensor = self.dataframeUtils.df_to_tensor(
+                df_train, self.seq_len, method=3
+            )
+            test_tensor = self.dataframeUtils.df_to_tensor(
+                df_test, self.seq_len, method=3
+            )
         else:
             train_tensor = np.array(df_train_norm)
             test_tensor = np.array(df_test_norm)
@@ -279,7 +285,9 @@ class MLXRegressor(MLXBasePredictor, BaseRegressor):
             ):
                 loss_val, grads = loss_and_grad(self.model, X_batch, y_batch)
                 loss_value = float(loss_val.item())
-                clipped_grads, total_norm = _clip_grads_by_global_norm(grads, grad_clip_norm)
+                clipped_grads, total_norm = _clip_grads_by_global_norm(
+                    grads, grad_clip_norm
+                )
                 norm_value = float(total_norm.item())
 
                 if not (np.isfinite(loss_value) and np.isfinite(norm_value)):
@@ -291,7 +299,7 @@ class MLXRegressor(MLXBasePredictor, BaseRegressor):
                         if not np.isfinite(norm_value):
                             cause.append(f"grad_norm={norm_value}")
                         print(
-                            f"    WARNING: non-finite update at epoch {epoch+1} "
+                            f"    WARNING: non-finite update at epoch {epoch + 1} "
                             f"({', '.join(cause)}; consecutive: {consecutive_nan_batches}); skipping"
                         )
                     if consecutive_nan_batches >= max_consecutive_nan_batches:
@@ -329,6 +337,7 @@ class MLXRegressor(MLXBasePredictor, BaseRegressor):
             val_preds_np = np.array(val_preds).reshape(-1)
             try:
                 from scipy.stats import spearmanr
+
                 spearman = float(spearmanr(val_preds_np, test_targets).correlation)
                 # Shortcut diagnostic: ρ between predictions and the target
                 # shifted backward by horizon. If ρ_shortcut is close to ρ
@@ -358,7 +367,7 @@ class MLXRegressor(MLXBasePredictor, BaseRegressor):
                 f"min={val_preds_np.min():.4f} max={val_preds_np.max():.4f}"
             )
             print(
-                f"    Epoch {epoch+1:3d}/{max_epochs} — "
+                f"    Epoch {epoch + 1:3d}/{max_epochs} — "
                 f"loss: {train_loss:.6f}  val_loss: {val_loss:.6f}{clip_note}{pred_note}"
             )
 
@@ -387,7 +396,7 @@ class MLXRegressor(MLXBasePredictor, BaseRegressor):
 
             if no_improve_cnt >= early_patience:
                 print(
-                    f"    EarlyStopping at epoch {epoch+1} "
+                    f"    EarlyStopping at epoch {epoch + 1} "
                     f"(no improvement for {early_patience} epochs)"
                 )
                 break

@@ -20,7 +20,6 @@ import os
 import sys
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 import mlx.core as mx
@@ -83,8 +82,12 @@ class MLXRegressorMultiHorizon(MLXRegressor):
         if self.dataframeUtils.is_dataframe(df_train_norm):
             df_train = df_train_norm.copy()
             df_test = df_test_norm.copy()
-            train_tensor = self.dataframeUtils.df_to_tensor(df_train, self.seq_len, method=3)
-            test_tensor = self.dataframeUtils.df_to_tensor(df_test, self.seq_len, method=3)
+            train_tensor = self.dataframeUtils.df_to_tensor(
+                df_train, self.seq_len, method=3
+            )
+            test_tensor = self.dataframeUtils.df_to_tensor(
+                df_test, self.seq_len, method=3
+            )
         else:
             train_tensor = np.array(df_train_norm)
             test_tensor = np.array(df_test_norm)
@@ -121,7 +124,9 @@ class MLXRegressorMultiHorizon(MLXRegressor):
             total_params = sum(
                 p.size for k, p in tree_flatten(self.model.trainable_parameters())
             )
-            print(f"    MLX multi-horizon regressor created. Parameters: {total_params:,}")
+            print(
+                f"    MLX multi-horizon regressor created. Parameters: {total_params:,}"
+            )
 
         def mse_loss(y_true: mx.array, y_pred: mx.array) -> mx.array:
             # Both (B, H). MSE averaged across batch and horizons.
@@ -166,7 +171,9 @@ class MLXRegressorMultiHorizon(MLXRegressor):
             ):
                 loss_val, grads = loss_and_grad(self.model, X_batch, y_batch)
                 loss_value = float(loss_val.item())
-                clipped_grads, total_norm = _clip_grads_by_global_norm(grads, grad_clip_norm)
+                clipped_grads, total_norm = _clip_grads_by_global_norm(
+                    grads, grad_clip_norm
+                )
                 norm_value = float(total_norm.item())
 
                 if not (np.isfinite(loss_value) and np.isfinite(norm_value)):
@@ -193,6 +200,7 @@ class MLXRegressorMultiHorizon(MLXRegressor):
             # Per-horizon ρ for diagnostics
             try:
                 from scipy.stats import spearmanr
+
                 val_preds_np = np.asarray(val_preds)  # (N, H)
                 rhos = []
                 for j in range(h):
@@ -204,7 +212,7 @@ class MLXRegressorMultiHorizon(MLXRegressor):
 
             clip_note = f"  clips:{epoch_clips}" if epoch_clips else ""
             print(
-                f"    Epoch {epoch+1:>3}/{max_epochs} — "
+                f"    Epoch {epoch + 1:>3}/{max_epochs} — "
                 f"loss: {train_loss:.6f}  val_loss: {val_loss:.6f}  "
                 f"{rho_str}{clip_note}"
             )
@@ -231,7 +239,7 @@ class MLXRegressorMultiHorizon(MLXRegressor):
 
             if no_improve_cnt >= early_patience:
                 print(
-                    f"    EarlyStopping at epoch {epoch+1} "
+                    f"    EarlyStopping at epoch {epoch + 1} "
                     f"(no improvement for {early_patience} epochs)"
                 )
                 break

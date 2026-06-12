@@ -18,7 +18,6 @@ import numpy as np
 
 
 class BasePredictor:
-
     # --- capability flags (identical across all backends) ---
 
     def needs_clean_data(self) -> bool:
@@ -53,7 +52,7 @@ class BasePredictor:
     # --- misc shared utility ---
 
     def mad_score(self, points):
-        """https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm """
+        """https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm"""
         m = np.median(points)
         ad = np.abs(points - m)
         mad = np.median(ad)

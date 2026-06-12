@@ -5,6 +5,7 @@ Byte-identical between df_wgan_gp.py (single-task) and df_mt_wgan_gp.py
 load_weights), rebuilding the architecture from code, so these layers can live
 in a shared module without affecting model load.
 """
+
 from __future__ import annotations
 
 import tensorflow as tf

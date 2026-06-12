@@ -16,7 +16,7 @@ import sys
 import warnings
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Union, Optional, Dict, Tuple
+from typing import Union, Tuple
 
 import numpy as np
 import mlx.core as mx
@@ -57,8 +57,11 @@ def _filter_nonfinite_rows(
     n = len(tensor)
 
     feature_axes = tuple(range(1, tensor.ndim))
-    finite_mask = np.isfinite(tensor).all(axis=feature_axes) if feature_axes \
+    finite_mask = (
+        np.isfinite(tensor).all(axis=feature_axes)
+        if feature_axes
         else np.isfinite(tensor)
+    )
 
     if labels.ndim == 1:
         finite_mask &= np.isfinite(labels)
@@ -74,8 +77,7 @@ def _filter_nonfinite_rows(
 
     pct = 100.0 * n_dropped / n
     print(
-        f"    Filtered {n_dropped}/{n} ({pct:.2f}%) non-finite rows from "
-        f"{label} data"
+        f"    Filtered {n_dropped}/{n} ({pct:.2f}%) non-finite rows from {label} data"
     )
 
     if n_kept == 0:
@@ -110,7 +112,12 @@ def _clip_grads_by_global_norm(grads, max_norm: float):
     return clipped, total_norm
 
 
-def _batch_iter(X: Union[np.ndarray, mx.array], y: Union[np.ndarray, mx.array], batch_size: int, shuffle: bool = True):
+def _batch_iter(
+    X: Union[np.ndarray, mx.array],
+    y: Union[np.ndarray, mx.array],
+    batch_size: int,
+    shuffle: bool = True,
+):
     """Yield (mx.array X_batch, mx.array y_batch) mini-batches."""
     n = len(X)
     idx = np.random.permutation(n) if shuffle else np.arange(n)
@@ -123,7 +130,7 @@ def _batch_iter(X: Union[np.ndarray, mx.array], y: Union[np.ndarray, mx.array], 
     for start in range(0, n, batch_size):
         b_idx_np = idx[start : start + batch_size]
         # Convert batch indices to mx.array for compatible indexing
-        b_idx = mx.array(b_idx_np) 
+        b_idx = mx.array(b_idx_np)
         yield X_mx[b_idx], y_mx[b_idx]
 
 
@@ -208,8 +215,12 @@ class MLXClassifierNary(MLXBaseClassifier):
                 df_train = df_train_norm.copy()
                 df_test = df_test_norm.copy()
 
-            train_tensor = self.dataframeUtils.df_to_tensor(df_train, self.seq_len, method=3)
-            test_tensor = self.dataframeUtils.df_to_tensor(df_test, self.seq_len, method=3)
+            train_tensor = self.dataframeUtils.df_to_tensor(
+                df_train, self.seq_len, method=3
+            )
+            test_tensor = self.dataframeUtils.df_to_tensor(
+                df_test, self.seq_len, method=3
+            )
         else:
             # already numpy tensors
             train_tensor = np.array(df_train_norm)
@@ -280,7 +291,7 @@ class MLXClassifierNary(MLXBaseClassifier):
         monitor_mode = "max"
         # monitor_key = "val_precision"     # 2026-05-15: drifts toward all-Hold predictions; macro avg goes up by collapsing the minority classes
         # monitor_key = "val_f1_class_2"    # 2026-05-15: peaks at epoch 1 (untrained, high recall); save-best traps the untrained model
-        monitor_key = "val_mcc"             # empirical winner — robust to class imbalance and degenerate predictions
+        monitor_key = "val_mcc"  # empirical winner — robust to class imbalance and degenerate predictions
         checkpoint_path = self.get_checkpoint_path()
 
         best_metric = -np.inf
@@ -334,7 +345,7 @@ class MLXClassifierNary(MLXBaseClassifier):
                         if not np.isfinite(norm_value):
                             cause.append(f"grad_norm={norm_value}")
                         print(
-                            f"    WARNING: non-finite update at epoch {epoch+1} "
+                            f"    WARNING: non-finite update at epoch {epoch + 1} "
                             f"({', '.join(cause)}; consecutive: "
                             f"{consecutive_nan_batches}); skipping"
                         )
@@ -379,7 +390,7 @@ class MLXClassifierNary(MLXBaseClassifier):
 
             clip_note = f"  clips:{epoch_clips}" if epoch_clips else ""
             print(
-                f"    Epoch {epoch+1:3d}/{max_epochs} — "
+                f"    Epoch {epoch + 1:3d}/{max_epochs} — "
                 f"loss: {train_loss:.4f}  val_loss: {val_loss:.4f}  "
                 f"val_precision: {metrics['val_precision']:.4f}  "
                 f"val_f1_class_2: {metrics['val_f1_class_2']:.4f}  "
@@ -416,7 +427,7 @@ class MLXClassifierNary(MLXBaseClassifier):
             # ---- EarlyStopping ----
             if no_improve_cnt >= early_patience:
                 print(
-                    f"    EarlyStopping at epoch {epoch+1} "
+                    f"    EarlyStopping at epoch {epoch + 1} "
                     f"(no improvement for {early_patience} epochs)"
                 )
                 break

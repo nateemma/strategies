@@ -53,12 +53,12 @@ TASK_NAMES: Tuple[str, ...] = (
 # Per-task loss weights — must sum to 1.0 after normalisation.
 # These mirror the values in ClassifierKerasMultiTask.compile_model().
 _TASK_WEIGHTS_RAW: Dict[str, float] = {
-    "trading":  2.0,
-    "regime":   1.0,
-    "risk":     1.0,
+    "trading": 2.0,
+    "regime": 1.0,
+    "risk": 1.0,
     "momentum": 1.0,
-    "flow":     1.0,
-    "profit":   2.0,
+    "flow": 1.0,
+    "profit": 2.0,
 }
 _TASK_WEIGHT_TOTAL = sum(_TASK_WEIGHTS_RAW.values())
 TASK_WEIGHTS: Dict[str, float] = {
@@ -89,8 +89,11 @@ def _filter_nonfinite_rows(
 
     # Reduce over every dimension except the leading "samples" axis.
     feature_axes = tuple(range(1, tensor.ndim))
-    finite_mask = np.isfinite(tensor).all(axis=feature_axes) if feature_axes \
+    finite_mask = (
+        np.isfinite(tensor).all(axis=feature_axes)
+        if feature_axes
         else np.isfinite(tensor)
+    )
 
     for task, lbls in labels_dict.items():
         if lbls.ndim == 1:
@@ -107,8 +110,7 @@ def _filter_nonfinite_rows(
 
     pct = 100.0 * n_dropped / n
     print(
-        f"    Filtered {n_dropped}/{n} ({pct:.2f}%) non-finite rows from "
-        f"{label} data"
+        f"    Filtered {n_dropped}/{n} ({pct:.2f}%) non-finite rows from {label} data"
     )
 
     if n_kept == 0:
@@ -161,7 +163,9 @@ def _batch_iter_multi(
 
     X_mx = mx.array(X, dtype=mx.float32) if not isinstance(X, mx.array) else X
     y_mx = {
-        task: (mx.array(arr, dtype=mx.float32) if not isinstance(arr, mx.array) else arr)
+        task: (
+            mx.array(arr, dtype=mx.float32) if not isinstance(arr, mx.array) else arr
+        )
         for task, arr in y_dict.items()
     }
 
@@ -292,9 +296,7 @@ class MLXClassifierMultiTask(MLXBaseClassifier):
                 raw = default_alpha
             alpha = self.calculate_alpha(raw)
             gamma = self.calculate_gamma(alpha)
-            loss_fns[task] = multi_class_focal_loss_mlx(
-                gamma=gamma, alpha_vector=alpha
-            )
+            loss_fns[task] = multi_class_focal_loss_mlx(gamma=gamma, alpha_vector=alpha)
         return loss_fns
 
     # -----------------------------------------------------------------------
@@ -409,7 +411,8 @@ class MLXClassifierMultiTask(MLXBaseClassifier):
             [active_task_weights[t] for t in task_weight_keys], dtype=mx.float32
         )
         weight_source = (
-            "instance override" if self.task_weights_override is not None
+            "instance override"
+            if self.task_weights_override is not None
             else "module default"
         )
         print(
@@ -490,7 +493,7 @@ class MLXClassifierMultiTask(MLXBaseClassifier):
         # monitor_key = "val_trading_mcc"           # empirical winner — robust to class imbalance and degenerate predictions
         # monitor_key = "val_trading_precision"   # 2026-05-15: drifts toward predicting class 1 (Hold/neutral) for most tasks; macro avg satisfied trivially
         # monitor_key = "val_trading_f1_class_2"  # 2026-05-15: peaks at epoch 1 (untrained, high recall); save-best traps the untrained model
-        monitor_key = "val_avg_mcc_x_conf"      # 2026-05-23: composite (avg_mcc × mean_max_prob). Picked later epochs with marginally higher conf but worse backtest — the model's epoch-to-epoch conf variation was too small (~0.585→0.622) for the multiplicative weighting to be a useful signal.
+        monitor_key = "val_avg_mcc_x_conf"  # 2026-05-23: composite (avg_mcc × mean_max_prob). Picked later epochs with marginally higher conf but worse backtest — the model's epoch-to-epoch conf variation was too small (~0.585→0.622) for the multiplicative weighting to be a useful signal.
         # Sharpness pressure now applied via entropy penalty in the loss
         # (see below) rather than via monitor selection.
         # monitor_key = "val_avg_mcc"
@@ -548,7 +551,7 @@ class MLXClassifierMultiTask(MLXBaseClassifier):
                         if not np.isfinite(norm_value):
                             cause.append(f"grad_norm={norm_value}")
                         print(
-                            f"    WARNING: non-finite update at epoch {epoch+1} "
+                            f"    WARNING: non-finite update at epoch {epoch + 1} "
                             f"({', '.join(cause)}; consecutive: "
                             f"{consecutive_nan_batches}); skipping"
                         )
@@ -615,7 +618,7 @@ class MLXClassifierMultiTask(MLXBaseClassifier):
             mean_max_prob = float(np.mean(max_probs_per_task))
 
             metrics_flat = self._flatten_metrics(per_task_metrics)
-            metrics_flat["val_mean_max_prob"]  = mean_max_prob
+            metrics_flat["val_mean_max_prob"] = mean_max_prob
             # Composite: rewards sharper softmax at equal MCC. Picks the
             # epoch that's both accurate AND confident, biasing best-model
             # selection toward the calibration profile the strategy uses.
@@ -626,7 +629,7 @@ class MLXClassifierMultiTask(MLXBaseClassifier):
 
             clip_note = f"  clips:{epoch_clips}" if epoch_clips else ""
             print(
-                f"    Epoch {epoch+1:3d}/{max_epochs} — "
+                f"    Epoch {epoch + 1:3d}/{max_epochs} — "
                 f"loss: {train_loss:.4f}  val_loss: {val_loss:.4f}  "
                 f"val_trading_precision: {metrics_flat['val_trading_precision']:.4f}  "
                 f"val_trading_f1_class_2: {metrics_flat['val_trading_f1_class_2']:.4f}  "
@@ -639,9 +642,9 @@ class MLXClassifierMultiTask(MLXBaseClassifier):
             )
 
             # ---- ModelCheckpoint (save best) ----
-            improved = (
-                monitor_mode == "max" and current_metric > best_metric
-            ) or (monitor_mode == "min" and current_metric < best_metric)
+            improved = (monitor_mode == "max" and current_metric > best_metric) or (
+                monitor_mode == "min" and current_metric < best_metric
+            )
 
             if improved:
                 best_metric = current_metric
@@ -665,7 +668,7 @@ class MLXClassifierMultiTask(MLXBaseClassifier):
             # ---- EarlyStopping ----
             if no_improve_cnt >= early_patience:
                 print(
-                    f"    EarlyStopping at epoch {epoch+1} "
+                    f"    EarlyStopping at epoch {epoch + 1} "
                     f"(no improvement for {early_patience} epochs)"
                 )
                 break
@@ -721,9 +724,7 @@ class MLXClassifierMultiTask(MLXBaseClassifier):
             weights = weights / s
         return weights
 
-    def _flatten_metrics(
-        self, per_task: Dict[str, dict]
-    ) -> Dict[str, float]:
+    def _flatten_metrics(self, per_task: Dict[str, dict]) -> Dict[str, float]:
         """
         Convert {task: {val_precision, val_f1_class_2, val_mcc, val_accuracy}}
         into a flat dict keyed by ``val_<task>_<metric>``, plus an aggregate
@@ -732,10 +733,10 @@ class MLXClassifierMultiTask(MLXBaseClassifier):
         flat: Dict[str, float] = {}
         mccs = []
         for task, m in per_task.items():
-            flat[f"val_{task}_precision"]  = m["val_precision"]
+            flat[f"val_{task}_precision"] = m["val_precision"]
             flat[f"val_{task}_f1_class_2"] = m["val_f1_class_2"]
-            flat[f"val_{task}_mcc"]        = m["val_mcc"]
-            flat[f"val_{task}_accuracy"]   = m["val_accuracy"]
+            flat[f"val_{task}_mcc"] = m["val_mcc"]
+            flat[f"val_{task}_accuracy"] = m["val_accuracy"]
             mccs.append(m["val_mcc"])
         flat["val_avg_mcc"] = float(np.mean(mccs)) if mccs else 0.0
         return flat
