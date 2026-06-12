@@ -17,11 +17,10 @@
 import multiprocessing
 
 import torch
-import pytorch_lightning
 
 from pytorch_lightning import Trainer
 import numpy as np
-from pandas import DataFrame, Series
+from pandas import DataFrame
 import pandas as pd
 
 from pytorch_lightning.callbacks import EarlyStopping
@@ -41,11 +40,12 @@ import warnings
 
 log = logging.getLogger(__name__)
 # log.setLevel(logging.DEBUG)
-warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
+warnings.simplefilter(action="ignore", category=pd.errors.PerformanceWarning)
 
 logging.getLogger("lightning").setLevel(logging.WARN)
 logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
 from pytorch_lightning.utilities.warnings import PossibleUserWarning
+
 warnings.filterwarnings("ignore", category=PossibleUserWarning)
 warnings.filterwarnings("ignore", ".*MPS available but not used.*")
 
@@ -53,24 +53,25 @@ import random
 
 import os
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
-os.environ['TF_DETERMINISTIC_OPS'] = '1'
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "1"
+os.environ["TF_DETERMINISTIC_OPS"] = "1"
 
 # not all layers are supported on the GPU yet, so fallback to CPU
-os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'
+os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
 seed = 42
-os.environ['PYTHONHASHSEED'] = str(seed)
+os.environ["PYTHONHASHSEED"] = str(seed)
 random.seed(seed)
 np.random.seed(seed)
 
-from DataframeUtils import DataframeUtils
-from ClassifierBase import ClassifierBase
+from utils.DataframeUtils import DataframeUtils
+from Predictors.BaseClassifier import BaseClassifier
 
 
 # ---------------------------
 
-class ClassifierPyTorch(ClassifierBase):
+
+class PyTorchBaseClassifier(BaseClassifier):
     num_features = 64
     seq_len = 12
     lookahead = 12
@@ -82,23 +83,31 @@ class ClassifierPyTorch(ClassifierBase):
     name = ""
     model_path = ""
     model_ext = ".pt"
-    checkpoint_path = "/tmp/model" + model_ext # will be overwritten later
+    checkpoint_path = "/tmp/model" + model_ext  # will be overwritten later
 
     loaded_from_file = False
-    contamination = 0.01  # ratio of signals to samples. Used in several algorithms, so saved
+    contamination = (
+        0.01  # ratio of signals to samples. Used in several algorithms, so saved
+    )
 
     clean_data_required = False  # train with positive rows removed
     model_per_pair = False  # set to False to combine across all pairs
     new_model = False  # True if a new model was created this run
 
     dataframeUtils = None
-    requires_dataframes = True  # set to True if classifier takes dataframes rather than tensors
-    prescale_dataframe = False  # set to True if algorithms need dataframes to be pre-scaled
-    single_prediction = True  # True if algorithm only produces 1 prediction (not entire data array)
+    requires_dataframes = (
+        True  # set to True if classifier takes dataframes rather than tensors
+    )
+    prescale_dataframe = (
+        False  # set to True if algorithms need dataframes to be pre-scaled
+    )
+    single_prediction = (
+        True  # True if algorithm only produces 1 prediction (not entire data array)
+    )
 
     trainer = None
     num_cpus = 1
-    use_gpu = True # Note: not all classifiers can use the GPU, and some are slower when they do
+    use_gpu = True  # Note: not all classifiers can use the GPU, and some are slower when they do
 
     train_cols = []  # used for debug
 
@@ -148,10 +157,10 @@ class ClassifierPyTorch(ClassifierBase):
             monitor="val_loss",
             patience=8,
             min_delta=0.001,
-            mode='min',
+            mode="min",
         )
 
-        accel = 'auto' if self.is_gpu_available() else 'cpu'
+        accel = "auto" if self.is_gpu_available() else "cpu"
 
         self.trainer = Trainer(
             accelerator=accel,
@@ -159,7 +168,7 @@ class ClassifierPyTorch(ClassifierBase):
             callbacks=[early_callback],
             auto_lr_find=True,
             benchmark=True,
-            auto_scale_batch_size=True
+            auto_scale_batch_size=True,
         )
 
         print(f"    CPUs:{self.num_cpus} GPU:{self.is_gpu_available()}")
@@ -171,7 +180,7 @@ class ClassifierPyTorch(ClassifierBase):
     # caller will have to take care of adding pair names, tag etc.
     def set_model_name(self, category, model_name):
         root_dir = self.get_model_root_dir()
-        save_dir = root_dir + category + '/'
+        save_dir = root_dir + category + "/"
         file_path = save_dir + model_name + self.model_ext
 
         # update tracking vars (need to override defaults)
@@ -194,10 +203,14 @@ class ClassifierPyTorch(ClassifierBase):
 
         model = None
 
-        print("    WARN: subclass must override create_model(). Using NBeats prediction model as reference")
+        print(
+            "    WARN: subclass must override create_model(). Using NBeats prediction model as reference"
+        )
 
         # use NBeats because it is used as an example
-        model = NBEATSModel(input_chunk_length=seq_len, output_chunk_length=self.lookahead)
+        model = NBEATSModel(
+            input_chunk_length=seq_len, output_chunk_length=self.lookahead
+        )
 
         return model
 
@@ -215,7 +228,11 @@ class ClassifierPyTorch(ClassifierBase):
             self.model = self.load()
 
         # just return if model has already been trained, unless force_train is set, or this was a new model
-        if self.model_is_trained() and (not force_train) and (not self.new_model_created()):
+        if (
+            self.model_is_trained()
+            and (not force_train)
+            and (not self.new_model_created())
+        ):
             return
 
         # no model? Create it from scratch
@@ -233,10 +250,10 @@ class ClassifierPyTorch(ClassifierBase):
         if self.clean_data_required:
             # only use entries that do not have buy/sell signal
             df1 = df_train.copy()
-            df1['%labels'] = train_results
-            df1 = df1[(df1['%labels'] < 0.1)]
-            results = df1['%labels']
-            df_train = df1.drop('%labels', axis=1)
+            df1["%labels"] = train_results
+            df1 = df1[(df1["%labels"] < 0.1)]
+            results = df1["%labels"]
+            df_train = df1.drop("%labels", axis=1)
         else:
             # df_train = df_train.copy()
             results = train_results
@@ -244,21 +261,29 @@ class ClassifierPyTorch(ClassifierBase):
         # convert various arrays to format expected by PyTorch
 
         # convert time formats
-        df_train['date'] = pd.to_datetime(df_train.date).dt.tz_localize(None)
-        df_test['date'] = pd.to_datetime(df_test.date).dt.tz_localize(None)
+        df_train["date"] = pd.to_datetime(df_train.date).dt.tz_localize(None)
+        df_test["date"] = pd.to_datetime(df_test.date).dt.tz_localize(None)
 
         # convert to timeseries
-        train_time_series = darts.TimeSeries.from_dataframe(df_train, time_col='date', fillna_value=0)
-        test_time_series = darts.TimeSeries.from_dataframe(df_test, time_col='date', fillna_value=0)
+        train_time_series = darts.TimeSeries.from_dataframe(
+            df_train, time_col="date", fillna_value=0
+        )
+        test_time_series = darts.TimeSeries.from_dataframe(
+            df_test, time_col="date", fillna_value=0
+        )
 
         # convert results. Put into dataframe format first, because we need to match the date index
         df2 = df_train.copy()
-        df2['close'] = train_results
-        train_price_series = darts.TimeSeries.from_dataframe(df2, time_col='date', value_cols='close', fillna_value=0)
+        df2["close"] = train_results
+        train_price_series = darts.TimeSeries.from_dataframe(
+            df2, time_col="date", value_cols="close", fillna_value=0
+        )
 
         df3 = df_test.copy()
-        df3['close'] = test_results
-        test_price_series = darts.TimeSeries.from_dataframe(df3, time_col='date', value_cols='close', fillna_value=0)
+        df3["close"] = test_results
+        test_price_series = darts.TimeSeries.from_dataframe(
+            df3, time_col="date", value_cols="close", fillna_value=0
+        )
 
         # convert to 32-bit (allows use of GPU)
         if self.is_gpu_available():
@@ -282,7 +307,6 @@ class ClassifierPyTorch(ClassifierBase):
 
         # check for nans
 
-
         # print (f'covariate_series:{covariate_series}')
         # print (f'price_series:{price_series}')
 
@@ -296,18 +320,20 @@ class ClassifierPyTorch(ClassifierBase):
         # print(f'df_train: {np.shape(df_train)} train_results:{np.shape(train_results)}')
         # print(f'train_covariate_series: {train_covariate_series.n_samples} train_target_series:{train_target_series.n_samples}')
 
-        self.model = self.model.fit(train_target_series,
-                                    past_covariates=train_covariate_series,
-                                    val_series=test_target_series,
-                                    val_past_covariates=test_covariate_series,
-                                    epochs=epochs,
-                                    # num_loader_workers=self.num_cpus,
-                                    verbose=True)
+        self.model = self.model.fit(
+            train_target_series,
+            past_covariates=train_covariate_series,
+            val_series=test_target_series,
+            val_past_covariates=test_covariate_series,
+            epochs=epochs,
+            # num_loader_workers=self.num_cpus,
+            verbose=True,
+        )
 
         # only save if this is the first time training
         if not self.is_trained:
             self.save()
-            print(f'Model: {self.model_path}')
+            print(f"Model: {self.model_path}")
             # summary(self.model, input_size=(self.batch_size, self.seq_len, self.num_features))
 
         self.is_trained = True
@@ -328,22 +354,24 @@ class ClassifierPyTorch(ClassifierBase):
         col_diffs = list(set(predict_cols) - set(self.train_cols))
         if len(predict_cols) != len(self.train_cols):
             print("ERR: mismatching columns")
-            print(f'diff:{col_diffs}')
+            print(f"diff:{col_diffs}")
             print(f"  train_cols:{self.train_cols}")
             print(f"  predict_cols:{predict_cols}")
 
         # use the whole dataframe the 'covariate' series
         df = dataframe.copy()
-        df['date'] = pd.to_datetime(df.date).dt.tz_localize(None)
+        df["date"] = pd.to_datetime(df.date).dt.tz_localize(None)
 
         # convert closing price column to time series & scale
-        price_series = darts.TimeSeries.from_dataframe(df, time_col='date', value_cols='close')
+        price_series = darts.TimeSeries.from_dataframe(
+            df, time_col="date", value_cols="close"
+        )
         price_scaler = Scaler(RobustScaler())
         price_scaler = price_scaler.fit(price_series)
         price_series = price_scaler.transform(price_series)
 
         # convert dataframe to timeseries
-        df_time_series = darts.TimeSeries.from_dataframe(df, time_col='date')
+        df_time_series = darts.TimeSeries.from_dataframe(df, time_col="date")
 
         # convert to 32-bit (allows use of GPU)
         if self.is_gpu_available():
@@ -354,27 +382,31 @@ class ClassifierPyTorch(ClassifierBase):
         df_scaler = Scaler(RobustScaler())
         covariate_series = df_scaler.fit_transform(df_time_series)
 
-        time_est = dataframe.shape[0] / 600.0 # ~10 it/sec
-        print(f"    backtesting {dataframe.shape[0]} samples. Estimated time:{time_est:.2f} (mins)")
+        time_est = dataframe.shape[0] / 600.0  # ~10 it/sec
+        print(
+            f"    backtesting {dataframe.shape[0]} samples. Estimated time:{time_est:.2f} (mins)"
+        )
         # run backtesting
         # with torch.no_grad():
         with torch.inference_mode():
-            preds = self.model.historical_forecasts(price_series,
-                                                    past_covariates=covariate_series,
-                                                    forecast_horizon=self.lookahead,
-                                                    last_points_only=True,
-                                                    retrain=False,
-                                                    verbose=False)
+            preds = self.model.historical_forecasts(
+                price_series,
+                past_covariates=covariate_series,
+                forecast_horizon=self.lookahead,
+                last_points_only=True,
+                retrain=False,
+                verbose=False,
+            )
 
         # reverse scaling
         preds2 = price_scaler.inverse_transform(preds)
 
         # get the underlying dataframe and column
         df = preds2.pd_dataframe()
-        scaled_preds = np.array(df['close'])
+        scaled_preds = np.array(df["close"])
 
         # predictions = np.zeros(np.shape(dataframe)[0])
-        predictions = np.array(dataframe['close'])
+        predictions = np.array(dataframe["close"])
 
         # predictions are usually shorter than the original data (need some values to feed the pipeline)
         start = len(predictions) - len(scaled_preds)
@@ -404,23 +436,24 @@ class ClassifierPyTorch(ClassifierBase):
         col_diffs = list(set(predict_cols) - set(self.train_cols))
         if len(predict_cols) != len(self.train_cols):
             print("ERR: mismatching columns")
-            print(f'diff:{col_diffs}')
+            print(f"diff:{col_diffs}")
             print(f"  train_cols:{self.train_cols}")
             print(f"  predict_cols:{predict_cols}")
 
         # use the whole dataframe the 'covariate' series
         df = dataframe.copy()
-        df['date'] = pd.to_datetime(df.date).dt.tz_localize(None)
-
+        df["date"] = pd.to_datetime(df.date).dt.tz_localize(None)
 
         # convert closing price column to time series & scale
-        price_series = darts.TimeSeries.from_dataframe(df, time_col='date', value_cols='close')
+        price_series = darts.TimeSeries.from_dataframe(
+            df, time_col="date", value_cols="close"
+        )
         price_scaler = Scaler(RobustScaler())
         price_scaler = price_scaler.fit(price_series)
         price_series = price_scaler.transform(price_series)
 
         # convert dataframe to timeseries
-        df_time_series = darts.TimeSeries.from_dataframe(df, time_col='date')
+        df_time_series = darts.TimeSeries.from_dataframe(df, time_col="date")
 
         # # convert to 32-bit (allows use of GPU)
         # if self.is_gpu_available():
@@ -435,16 +468,18 @@ class ClassifierPyTorch(ClassifierBase):
         df_scaler = Scaler(RobustScaler())
         covariate_series = df_scaler.fit_transform(df_time_series)
 
-        self.trainer = Trainer(accelerator='mps', devices=1)
+        self.trainer = Trainer(accelerator="mps", devices=1)
         # print(f'Prediction data size: {np.shape(df)}')
         # with torch.no_grad():
         with torch.inference_mode():
-            preds = self.model.predict(n=self.lookahead,
-                                       series=price_series,
-                                       past_covariates=covariate_series,
-                                       batch_size=self.batch_size,
-                                       # num_loader_workers=self.num_cpus,
-                                       verbose=False)
+            preds = self.model.predict(
+                n=self.lookahead,
+                series=price_series,
+                past_covariates=covariate_series,
+                batch_size=self.batch_size,
+                # num_loader_workers=self.num_cpus,
+                verbose=False,
+            )
 
         # print (preds)
         # convert to dataframe so that we cann access the predictions
@@ -457,7 +492,7 @@ class ClassifierPyTorch(ClassifierBase):
 
         # get the underlying dataframe and column
         df = preds2.pd_dataframe()
-        scaled_preds = np.array(df['close'])
+        scaled_preds = np.array(df["close"])
 
         predictions = scaled_preds
 
@@ -507,7 +542,7 @@ class ClassifierPyTorch(ClassifierBase):
     # returns path to 'full' model file
     def get_model_path(self):
         root_dir = self.get_model_root_dir()
-        save_dir = root_dir + self.category + '/'
+        save_dir = root_dir + self.category + "/"
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
         model_path = save_dir + self.name + self.model_ext
@@ -518,16 +553,16 @@ class ClassifierPyTorch(ClassifierBase):
     # returns path to the coreml model file
     def get_coreml_model_path(self):
         root_dir = self.get_model_root_dir()
-        save_dir = root_dir + self.category + '/'
+        save_dir = root_dir + self.category + "/"
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
-        model_path = save_dir + self.name + '.coreml'
+        model_path = save_dir + self.name + ".coreml"
         return model_path
 
     # ---------------------------
 
     def get_checkpoint_path(self):
-        checkpoint_dir = '/tmp' + "/" + self.name + "/"
+        checkpoint_dir = "/tmp" + "/" + self.name + "/"
         if not os.path.exists(checkpoint_dir):
             os.makedirs(checkpoint_dir)
         model_path = checkpoint_dir + "checkpoint" + self.model_ext
@@ -562,7 +597,6 @@ class ClassifierPyTorch(ClassifierBase):
 
     # ---------------------------
 
-
     def load(self, path=""):
 
         if len(path) == 0:
@@ -578,7 +612,7 @@ class ClassifierPyTorch(ClassifierBase):
             self.model = self.load_from_file(self.model_path)
             self.loaded_from_file = True
             self.is_trained = True
-            print(f'Model: {self.model_path}')
+            print(f"Model: {self.model_path}")
             # summary(self.model, input_size=(self.batch_size, self.seq_len, self.num_features))
         else:
             print("    model not found ({})...".format(path))
@@ -592,7 +626,9 @@ class ClassifierPyTorch(ClassifierBase):
 
     # subclasses should override this, because data format is calss-specific in darts/pytorch
     def load_from_file(self, model_path):
-        return darts.models.forecasting.torch_forecasting_model.PastCovariatesTorchModel.load(model_path)
+        return darts.models.forecasting.torch_forecasting_model.PastCovariatesTorchModel.load(
+            model_path
+        )
 
     # ---------------------------
 
@@ -602,18 +638,13 @@ class ClassifierPyTorch(ClassifierBase):
 
     # ---------------------------
 
+    # ---------------------------
 
     # ---------------------------
 
-
     # ---------------------------
 
-
     # ---------------------------
-
-
-    # ---------------------------
-
 
     # ---------------------------
 
