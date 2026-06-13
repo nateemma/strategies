@@ -436,3 +436,90 @@ Rare.  Add when the existing types can't capture the new behaviour
    `test_gan_metadata_roundtrip.py` (what gets persisted),
    `test_gan_output_contracts.py` (shape/dtype/finiteness),
    and (gated) `test_gan_robustness.py`.
+
+---
+
+## Python Conventions
+
+These apply to all code under `user_data/strategies/`. When in doubt, match the
+surrounding file; consistency within a module beats global purity.
+
+- **Formatting / linting**: `ruff` is the source of truth (formatter + linter).
+  88-character lines. Run `ruff format` and `ruff check --fix` before declaring
+  a change done. Don't hand-format what the formatter owns.
+- **Naming**: `snake_case` for functions and variables, `PascalCase` for
+  classes, `UPPER_CASE` for module-level constants. Strategy class names are
+  load-bearing — they're referenced by configs, `saved_data/` directories, and
+  the `test_*.sh` scripts — so **never rename a strategy class as a side effect**
+  of a refactor. If a rename is genuinely needed, list it explicitly and update
+  the matching `saved_data/<Name>/` dir and any `<Name>.json`.
+- **Type hints** on all new/edited function signatures (params and return).
+  Prefer `from __future__ import annotations` at module top so forward
+  references and `X | None` work without runtime cost.
+- **Docstrings** on public classes and methods — one line on *what* and *why*,
+  not a restatement of the signature. Document the contract (shapes, units,
+  side effects), especially for anything touching the NN pipeline.
+- **No secrets in code.** Exchange keys, API tokens, etc. live in config/env,
+  never in `.py` files, and configs with secrets stay out of git.
+- **Imports**: absolute within the strategies tree (the directory is on
+  `PYTHONPATH`). No wildcard imports except the deliberate
+  `from . import <name>  # noqa: F401` registry pattern in `GANs/backends/`.
+- **Lookahead safety is a hard rule, not a style preference.** No global
+  `mean/min/max` over a full column; rolling ops use `min_periods` and only look
+  backwards (see Troubleshooting). A "cleaner" refactor that introduces lookahead
+  bias is a regression — verify with `check_bias.sh`.
+
+---
+
+## Object-Oriented Design Rules
+
+The hierarchy here grew over a long time and has drifted. These rules are the
+target state; the refactor work should move code toward them.
+
+### Dependency direction is one-way: bases never know their subclasses
+- **A base class must never reference a subclass — not in code, not in type
+  hints, not even in comments or docstrings.** No imports from a subclass module,
+  no `isinstance(self, NNNC_CGP_MLX)`, no "used by NNMT_WGAN" notes in
+  `BaseNNStrategy`. If a base needs subclass-specific behavior, that's a signal
+  to invert the dependency: expose a hook/abstract method the subclass overrides,
+  or a registry the subclass registers into (the `@register_backend` pattern in
+  `GANs/` is the model to copy).
+- Imports flow **upward only**: `NNNC_CGP → NNNCStrategy → BaseNNStrategy →
+  BaseStrategy`. A lower layer importing from a higher/sibling family layer is a
+  layering violation to flag.
+
+### Prefer shallow hierarchies + composition over deep inheritance
+- Inheritance is for genuine *is-a* with shared behavior. The current
+  `Base → NNNCStrategy → NNNC_CGP → NNNC_CGP_MLX → NNNC_CGP_MLX_LSTM` depth is a
+  smell — each level should earn its existence with real differentiated
+  behavior, not just hold one overridden constant.
+- When subclasses differ only in a **value** (model name, a threshold, a backend
+  choice), that's configuration, not a class. Collapse them into one
+  parameterized class or a small data-driven table rather than N near-identical
+  files. (`DataframePopulator`, `GANInterface`, and the `CreateGAN`/`CreateMTGAN`
+  shims already embody this — extend that style.)
+- Reach for **mixins/composition** when behavior is shared across siblings in
+  *different* branches (e.g. an MLX-device concern shared by NNNC and NNMT). A
+  mixin shared by two families belongs in `Framework/` or `utils/`, not duplicated
+  in each family dir.
+
+### Keep the override contract honest
+- A subclass override that is byte-identical to the parent should be deleted —
+  it's dead weight and hides where behavior actually lives.
+- An override that changes behavior must respect the parent contract: same shapes
+  / return types / side effects. If it can't, the method is mis-placed in the
+  hierarchy.
+- Lifecycle hooks that the framework chains (`bot_start`, `iteration_init`) **must
+  call `super()`** — overriding without `super()` silently drops base setup. Flag
+  any override that doesn't.
+
+### Single responsibility & explicit interfaces
+- One class, one job. The base strategies are already large; new behavior should
+  go into a collaborator (`utils/`, a backend, a populator) the strategy *uses*,
+  not another `if`-branch in the base.
+- Cross-family shared logic lives in exactly one place. Duplicate helper methods
+  across family bases are consolidation targets — lift them to `BaseNNStrategy`
+  or a `utils/` helper.
+- Abstract bases (`GANBackend`, the family bases' required overrides) should
+  declare their required methods explicitly (`@abstractmethod`) so a half-built
+  subclass fails loudly at construction, not deep in a backtest.
