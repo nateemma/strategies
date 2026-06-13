@@ -525,7 +525,12 @@ class GANomalyClassifierBase(KerasAnomalyDetector):
                 
                 # Train Discriminator
                 noise = np.random.normal(0, 1, (current_batch_size, noise_dim))
-                fake_batch = temp_generator.predict(noise, verbose=0)
+                # Use a direct eager call (not model.predict) — predict() inside a
+                # tight loop leaks memory (rebuilds its internal function/iterator
+                # every call), which OOM-kills the process mid-training on large
+                # datasets. model(x, training=False) is the same inference-mode
+                # forward pass without the leak.
+                fake_batch = temp_generator(noise, training=False).numpy()
                 
                 # Train discriminator on real and fake batches (both 3D)
                 d_loss_real = self.discriminator.train_on_batch(real_batch, real_labels_batch)
