@@ -503,7 +503,9 @@ class GANomalyClassifierBase(KerasAnomalyDetector):
         for epoch in range(epochs):
             epoch_d_losses = []
             epoch_g_losses = []
-            
+            epoch_d_accs = []  # diagnostic: D accuracy on real/fake (should be ~0.5-0.7)
+            epoch_gen_stds = []  # diagnostic: generator output spread (mode-collapse check)
+
             # Shuffle data at start of each epoch
             indices = np.random.permutation(num_samples)
             
@@ -531,12 +533,14 @@ class GANomalyClassifierBase(KerasAnomalyDetector):
                 # datasets. model(x, training=False) is the same inference-mode
                 # forward pass without the leak.
                 fake_batch = temp_generator(noise, training=False).numpy()
-                
+                epoch_gen_stds.append(float(np.std(fake_batch)))
+
                 # Train discriminator on real and fake batches (both 3D)
                 d_loss_real = self.discriminator.train_on_batch(real_batch, real_labels_batch)
                 d_loss_fake = self.discriminator.train_on_batch(fake_batch, fake_labels_batch)
                 d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
                 epoch_d_losses.append(float(d_loss[0]))
+                epoch_d_accs.append(float(d_loss[1]))  # metrics=["accuracy"] -> [loss, acc]
                 
                 # Train Generator (train generator every discriminator update)
                 noise = np.random.normal(0, 1, (current_batch_size, noise_dim))
@@ -551,8 +555,12 @@ class GANomalyClassifierBase(KerasAnomalyDetector):
             self.g_loss_history.append(g_loss_avg)
 
             if epoch % 20 == 0:
+                d_acc_avg = np.mean(epoch_d_accs)
+                gen_std_avg = np.mean(epoch_gen_stds)
                 print(
-                    f"      Epoch {epoch}/{epochs} - D Loss: {d_loss_avg:.4f}, G Loss: {g_loss_avg:.4f}"
+                    f"      Epoch {epoch}/{epochs} - D Loss: {d_loss_avg:.4f}, "
+                    f"G Loss: {g_loss_avg:.4f}, D Acc: {d_acc_avg:.3f}, "
+                    f"Gen Std: {gen_std_avg:.4f}"
                 )
 
         # Store trained generator weights for later use
