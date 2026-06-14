@@ -54,11 +54,11 @@ class NNGANomalyStrategy(NNAnomalyStrategy):
         },
         "subplots": {
             "Diff": {
-                "predict_buy": {"color": "blue"},
-                "predict_sell": {"color": "purple"},
+                "predict_buy": {"color": "green"},
+                "predict_sell": {"color": "red"},
                 "%train_trading": {"color": "green"},
                 "%trading": {"color": "cyan"},
-                "anomaly_threshold": {"color": "red"},
+                "anomaly_threshold": {"color": "purple"},
                 "reconstruction_error": {"color": "orange"},
             },
         },
@@ -69,29 +69,13 @@ class NNGANomalyStrategy(NNAnomalyStrategy):
     # -----------
 
     # Buy hyperspace params:
-    buy_params = {
-        "entry_adx_threshold": 50.0,
-        "entry_bb_width_threshold": 0.015,  # raw 1.5% — preserves pre-unbug effective filter (was 0.05 normalized)
-        "entry_guard_threshold": -0.85,
-        "entry_close_norm_threshold": 0.0,
-        "min_buy_gain_threshold": 0.007,
-        "prediction_threshold": 0.5,
-        "training_type": 16,
+    buy_params = { **NNAnomalyStrategy.buy_params,
+        "prediction_threshold": 0.6,
         "anomaly_threshold_multiplier": 1.8,
         "min_anomaly_duration": 2,
-        "entry_error_threshold": 0.36,
+        "entry_error_threshold": 0.01,
     }
 
-    # Sell hyperspace params:
-    sell_params = {
-        "cexit_enable_profit_checks": True,
-        "cexit_max_days": 14,
-        "cexit_take_profit": 0.024,
-        "enable_exit_signal": True,
-        "exit_guard_threshold": 0.5,
-        "exit_close_norm_threshold": 0.0,
-        "min_sell_loss_threshold": 0.009,
-    }
 
     # -----------
     # Class level parameters

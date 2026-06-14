@@ -37,6 +37,14 @@ class NNGANomalyStrategyMLX(NNGANomalyStrategy):
 
     augment_training_data = False  # GANomaly doesn't use external GAN augmentation
 
+    # Buy hyperspace params:
+    buy_params = { **NNGANomalyStrategy.buy_params,
+        "prediction_threshold": 0.85,
+        "anomaly_threshold_multiplier": 1.8,
+        "min_anomaly_duration": 2,
+        "entry_error_threshold": 0.01,
+    }
+
     def get_classifier_type(self):
         if not HAS_MLX:
             raise RuntimeError("NNGANomalyStrategyMLX requires MLX (Apple mlx) — not available")

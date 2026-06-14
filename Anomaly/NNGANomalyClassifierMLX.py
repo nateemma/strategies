@@ -481,8 +481,14 @@ class GANomalyDetectorMLXBase(MLXBaseAnomalyDetector):
         print("    Phase 2: Training autoencoder (encoder + decoder)...")
         self._train_autoencoder_phase(normal_data)
 
-        print("    Phase 3: Training classifier head...")
-        self._train_classifier_phase(signal_data, signal_labels)
+        # Phase 3 trains the head on ALL classes (Hold/Buy/Sell) so it models
+        # Hold natively instead of only Buy/Sell (which collapses Hold to 0).
+        print("    Phase 3: Training classifier head (all classes)...")
+        if isinstance(train_results, dict) and "trading" in train_results:
+            full_labels = np.asarray(train_results["trading"])
+        else:
+            full_labels = signal_labels
+        self._train_classifier_phase(train_tensor, full_labels)
 
         self.save()
         self.is_trained = True
@@ -628,36 +634,49 @@ class GANomalyDetectorMLXBase(MLXBaseAnomalyDetector):
 
     # ---- Phase 3: Classifier head -------------------------------------
 
-    def _train_classifier_phase(self, signal_data, signal_labels):
-        if len(signal_data) == 0:
-            print("      No signal data; skipping classifier phase")
+    def _train_classifier_phase(self, data, labels):
+        if len(data) == 0:
+            print("      No data; skipping classifier phase")
             return
 
         encoder = self.model.encoder
         head = self.model.classifier_head
 
-        if signal_labels.ndim > 1:
-            labels_1d = np.argmax(signal_labels, axis=1)
+        if labels.ndim > 1:
+            labels_1d = np.argmax(labels, axis=1)
         else:
-            labels_1d = signal_labels.astype(int)
+            labels_1d = labels.astype(int)
         labels_oh = np.eye(3, dtype=np.float32)[labels_1d]
 
+        # Inverse-frequency class weights: the head trains on ALL three classes,
+        # and Hold is the dominant class — without weighting the head would
+        # collapse to all-Hold. Weights normalised so the mean weight is ~1.
+        counts = np.bincount(labels_1d, minlength=3).astype(np.float32)
+        inv = np.where(counts > 0, 1.0 / counts, 0.0)
+        cls_w = (inv / inv.sum() * 3.0) if inv.sum() > 0 else np.ones(3, np.float32)
+        cls_w = cls_w.astype(np.float32)
+        w_vec = mx.array(cls_w)
+        print(
+            f"      Class counts (Sell/Hold/Buy): {counts.astype(int).tolist()}, "
+            f"weights: {[round(float(x), 2) for x in cls_w]}"
+        )
+
         # 80/20 split
-        n = len(signal_data)
+        n = len(data)
         perm = np.random.permutation(n)
         split = max(1, int(0.8 * n))
         tr_idx, val_idx = perm[:split], perm[split:]
-        x_tr, y_tr = signal_data[tr_idx], labels_oh[tr_idx]
-        x_val, y_val = signal_data[val_idx], labels_oh[val_idx]
+        x_tr, y_tr = data[tr_idx], labels_oh[tr_idx]
+        x_val, y_val = data[val_idx], labels_oh[val_idx]
 
         opt = optim.Adam(learning_rate=1e-3)
 
-        # Only the classifier_head is updated; encoder output is detached.
+        # Class-weighted cross-entropy; only the head is updated (encoder detached).
         def clf_loss_fn(head_model, z_detached, y):
-            probs = head_model(z_detached)
-            eps = 1e-7
-            probs = mx.clip(probs, eps, 1.0)
-            return -mx.mean(mx.sum(y * mx.log(probs), axis=-1))
+            probs = mx.clip(head_model(z_detached), 1e-7, 1.0)
+            ce = -mx.sum(y * mx.log(probs), axis=-1)
+            sw = mx.sum(y * w_vec, axis=-1)
+            return mx.mean(sw * ce)
 
         clf_grad = nn.value_and_grad(head, clf_loss_fn)
 
@@ -680,12 +699,15 @@ class GANomalyDetectorMLXBase(MLXBaseAnomalyDetector):
                 mx.eval(head.parameters(), opt.state, loss)
                 tr_loss += loss.item()
 
-            # Validation loss
+            # Weighted validation loss (same objective as training)
             if len(x_val) > 0:
                 head.eval()
                 z = mx.stop_gradient(encoder(mx.array(x_val)))
                 probs = mx.clip(head(z), 1e-7, 1.0)
-                vloss = -mx.mean(mx.sum(mx.array(y_val) * mx.log(probs), axis=-1))
+                yv = mx.array(y_val)
+                ce = -mx.sum(yv * mx.log(probs), axis=-1)
+                sw = mx.sum(yv * w_vec, axis=-1)
+                vloss = mx.mean(sw * ce)
                 mx.eval(vloss)
                 v = vloss.item()
             else:

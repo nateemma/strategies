@@ -71,7 +71,7 @@ class NNAnomalyStrategy(BaseNNStrategy):
     # -----------
 
     buy_params = { **BaseNNStrategy.buy_params,
-        "prediction_threshold": 0.45,
+        "prediction_threshold": 0.5,
         "anomaly_threshold_multiplier": 1.8,
         "min_anomaly_duration": 2,
         "entry_error_threshold": 0.04,
@@ -516,7 +516,7 @@ class NNAnomalyStrategy(BaseNNStrategy):
 
         # convert the probability matrices into classes
 
-        pred_threshold = 0.5
+        pred_threshold = self.prediction_threshold.value
 
         predictions_dict["trading"] = self.argmax_with_threshold(
             trading_predictions, threshold=pred_threshold, default_class=TradingAction.HOLD
