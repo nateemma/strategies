@@ -113,26 +113,10 @@ class KerasClassifierNary(KerasBaseClassifier):
 
         # print(f"    focal_alpha: {focal_alpha} gamma: {gamma}")
 
-        # Enable mixed precision training for better GPU utilization (2x speedup on modern GPUs)
-        use_mixed_precision = True
-        if use_mixed_precision:
-            try:
-                policy = tf.keras.mixed_precision.Policy("mixed_float16")
-                tf.keras.mixed_precision.set_global_policy(policy)
-                # print("    Mixed precision training enabled (float16/float32)")
-            except (AttributeError, RuntimeError):
-                # Mixed precision not available - that's okay
-                use_mixed_precision = False
-                # print("    Mixed precision not available, using float32")
-
-        # Create base optimizer
-        base_optimizer = keras.optimizers.Adam(learning_rate=0.0001)
-
-        # Wrap with LossScaleOptimizer for mixed precision if enabled
-        if use_mixed_precision:
-            optimizer = tf.keras.mixed_precision.LossScaleOptimizer(base_optimizer)
-        else:
-            optimizer = base_optimizer
+        # Precision: float32 (Keras/TF default). mixed_float16 removed — no
+        # measurable speedup on tensorflow-metal and it added fp16 precision risk
+        # (plus an import-order-dependent global policy). Plain Adam, no LossScale.
+        optimizer = keras.optimizers.Adam(learning_rate=0.0001)
 
         # Use standard cross entropy for now - focal loss is causing overfitting
         # loss = "categorical_crossentropy"

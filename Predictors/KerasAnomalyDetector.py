@@ -18,8 +18,11 @@ import os
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 # Performance optimizations
-# Option 1: Enable mixed precision for faster training
-tf.keras.mixed_precision.set_global_policy("mixed_float16")
+# Precision: float32 (the Keras/TF default). A mixed_float16 global policy was
+# removed here — on tensorflow-metal it gave no measurable training speedup and
+# added fp16 precision/overflow risk. Precision is intentionally NOT set as an
+# import-time global side effect (that made the active policy import-order
+# dependent across the predictor backends).
 
 # Option 2: Optimize GPU memory growth
 gpus = tf.config.experimental.list_physical_devices("GPU")

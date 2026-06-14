@@ -18,8 +18,8 @@ import os
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 # Performance optimizations
-# Option 1: Enable mixed precision for faster training
-tf.keras.mixed_precision.set_global_policy("mixed_float16")
+# Precision: float32 (Keras/TF default) — mixed_float16 removed (no speedup on
+# tensorflow-metal, added fp16 risk; no longer an import-time global side effect).
 
 # Option 2: Optimize GPU memory growth
 gpus = tf.config.experimental.list_physical_devices("GPU")
@@ -224,11 +224,9 @@ class KerasClassifierMultiTask(KerasBaseClassifier):
         # task_weights = task_weights_raw
 
         model.compile(
-            optimizer=tf.keras.mixed_precision.LossScaleOptimizer(
-                tf.keras.optimizers.Adam(
-                    # learning_rate=self.learning_rate, clipnorm=0.5  # Reduced clipping
-                    learning_rate=self.learning_rate
-                )
+            optimizer=tf.keras.optimizers.Adam(
+                # learning_rate=self.learning_rate, clipnorm=0.5  # Reduced clipping
+                learning_rate=self.learning_rate
             ),
             loss={
                 "trading": trading_loss_fn,
