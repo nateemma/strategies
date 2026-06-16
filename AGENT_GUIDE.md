@@ -7,7 +7,7 @@ This file is intended to orient an AI agent (or a new developer) on how to build
 ## Environment
 
 - **Shell**: `zsh` (macOS default). All scripts use `zsh`, not `bash`.
-- **Python**: Conda-managed environment. Activate with `source .venv/bin/activate` before running any Python or freqtrade commands.
+- **Python**: A virtualenv at `.venv`. Activate with `source .venv/bin/activate` before running any Python or freqtrade commands. (Not conda.)
 - **Working directory**: Most freqtrade commands and scripts should be run from `~/freqtrade/` (the project root).
 - **PYTHONPATH**: The scripts set this automatically. If running manually, export:
   ```

@@ -462,6 +462,83 @@ def evaluate_profit_combo(
     }
 
 
+# The four labelers NNProfitStrategy.get_profit_target dispatches to.
+PROFIT_METHODS = (
+    "triple_barrier",
+    "fixed_thresholds",
+    "quantile_thresholds",
+    "rank_based",
+)
+
+
+def _make_profit_label_shim(horizon: int):
+    """A bare NNProfitStrategy (no __init__) for calling its real
+    get_profit_target_* labelers directly. It carries the class-level config
+    (thresholds, quantiles, conflict policy); HORIZON is overridden with the
+    sweep value so every method is compared on the same forward window.
+    Imported lazily — pulling in NNProfitStrategy initialises the heavy NN
+    stack, which the other --target modes don't need."""
+    nnnc_dir = str(strat_dir / "NNNC")
+    if nnnc_dir not in sys.path:
+        sys.path.insert(0, nnnc_dir)
+    from NNProfitStrategy import NNProfitStrategy
+
+    shim = NNProfitStrategy.__new__(NNProfitStrategy)
+    shim.HORIZON = horizon
+    return shim
+
+
+def generate_profit_labels_via_method(
+    df: pd.DataFrame, method: str, horizon: int,
+) -> np.ndarray:
+    """3-class profit labels (LOSS=0, NEUTRAL=1, PROFIT=2) from the REAL
+    NNProfitStrategy.get_profit_target_<method> — no reimplementation, so the
+    learnability number reflects production labeling exactly."""
+    shim = _make_profit_label_shim(horizon)
+    labeller = getattr(shim, f"get_profit_target_{method}")
+    return np.asarray(labeller(df), dtype=int)
+
+
+def evaluate_profit_method_combo(
+    df: pd.DataFrame, features: pd.DataFrame, method: str, horizon: int,
+) -> dict:
+    """One row of the profit-method sweep: (method) → 3-class learnability."""
+    try:
+        labels = generate_profit_labels_via_method(df, method, horizon)
+    except Exception as exc:
+        return {
+            "method": method, "n_total": 0,
+            "n_loss": 0, "n_neutral": 0, "n_profit": 0,
+            "overall_mcc": np.nan, "binary_mcc_profit": np.nan,
+            "error": f"label-gen: {type(exc).__name__}: {exc}",
+        }
+
+    y_series = pd.Series(labels, index=df.index, name="y")
+    aligned = pd.concat([features, y_series], axis=1).dropna()
+    n_total = int(len(aligned))
+    n_loss = int((aligned["y"] == 0).sum())
+    n_neutral = int((aligned["y"] == 1).sum())
+    n_profit = int((aligned["y"] == 2).sum())
+
+    if n_total < 200 or min(n_loss, n_neutral, n_profit) < 20:
+        return {
+            "method": method, "n_total": n_total, "n_loss": n_loss,
+            "n_neutral": n_neutral, "n_profit": n_profit,
+            "overall_mcc": np.nan, "binary_mcc_profit": np.nan,
+            "error": "too few samples in one of the three classes",
+        }
+
+    X = aligned.drop(columns=["y"])
+    yy = aligned["y"]
+    overall_mcc, binary_mcc = measure_learnability_multiclass(X, yy)
+    return {
+        "method": method, "n_total": n_total, "n_loss": n_loss,
+        "n_neutral": n_neutral, "n_profit": n_profit,
+        "overall_mcc": overall_mcc, "binary_mcc_profit": binary_mcc,
+        "error": "",
+    }
+
+
 def generate_forward_gain(
     df: pd.DataFrame, horizon: int = 24,
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -652,11 +729,14 @@ def main() -> None:
     )
     ap.add_argument(
         "--target",
-        choices=["trading", "profit", "forward_peak", "forward_gain"],
+        choices=["trading", "profit", "profit_methods", "forward_peak", "forward_gain"],
         default="trading",
         help="What labels to assess. 'trading' = TrainingSignals method labels "
              "(method × threshold sweep); 'profit' = BaseNNMTStrategy triple-barrier "
-             "profit labels (threshold sweep, --methods ignored); 'forward_peak' = "
+             "profit labels (threshold sweep, --methods ignored); 'profit_methods' = "
+             "compare NNProfitStrategy's four get_profit_target_* labelers "
+             "(triple_barrier / fixed_thresholds / quantile_thresholds / rank_based) "
+             "for learnability at --horizon (--thresholds ignored); 'forward_peak' = "
              "path-independent forward peak gain — binary MCC sweep across thresholds "
              "plus continuous regression R² / Spearman ρ for vol-adjusted target; "
              "'forward_gain' = same as forward_peak but uses end-of-window return "
@@ -765,6 +845,31 @@ def main() -> None:
                 f"{row['n_neutral']:8d}  {row['n_profit']:8d}  "
                 f"{oma:>11s}  {bma:>18s}"
             )
+    elif args.target == "profit_methods":
+        # Profit-LABEL-METHOD sweep: compare NNProfitStrategy's four
+        # get_profit_target_* labelers for learnability at a fixed horizon.
+        # --thresholds is ignored; each method applies its own threshold logic.
+        print(f"\nSweeping PROFIT LABEL METHODS "
+              f"({len(PROFIT_METHODS)} methods, horizon={args.horizon})…\n")
+        print(f"  {'method':>20s}  {'N_loss':>8s}  {'N_neut':>8s}  {'N_prof':>8s}  "
+              f"{'overall_MCC':>11s}  {'binary_MCC(PROFIT)':>18s}")
+        print(f"  {'-'*20}  {'-'*8}  {'-'*8}  {'-'*8}  {'-'*11}  {'-'*18}")
+
+        rows = []
+        for method in PROFIT_METHODS:
+            row = evaluate_profit_method_combo(df, features, method, args.horizon)
+            rows.append(row)
+            oma = (f"{row['overall_mcc']:+.3f}"
+                   if not np.isnan(row.get("overall_mcc", np.nan)) else "   n/a")
+            bma = (f"{row['binary_mcc_profit']:+.3f}"
+                   if not np.isnan(row.get("binary_mcc_profit", np.nan)) else "   n/a")
+            print(
+                f"  {row['method']:>20s}  {row['n_loss']:8d}  "
+                f"{row['n_neutral']:8d}  {row['n_profit']:8d}  "
+                f"{oma:>11s}  {bma:>18s}"
+            )
+            if row.get("error"):
+                print(f"       └─ {row['error']}")
     else:
         sides = ["buy", "sell"] if args.side == "both" else [args.side]
         bb_widths = args.bb_width_thresholds if args.bb_width_thresholds else [None]
@@ -850,7 +955,7 @@ def main() -> None:
         table.to_csv(out, index=False)
         print(f"\nSaved CSV: {out}")
 
-    if args.target in ("profit", "forward_peak"):
+    if args.target in ("profit", "profit_methods", "forward_peak"):
         # No "best by score" — just print the table as-is. User picks the
         # threshold that keeps the relevant MCC above their bar.
         return

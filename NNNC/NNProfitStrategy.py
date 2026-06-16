@@ -43,7 +43,6 @@ class ProfitDirection(IntEnum):
 
 class NNProfitStrategy(BaseNNStrategy):
 
-    augment_training_data = False
     profit_conflict_to_neutral = True
     # Options: "triple_barrier", "fixed_thresholds", "quantile_thresholds", "rank_based"
     profit_label_method = "triple_barrier"
@@ -272,7 +271,17 @@ class NNProfitStrategy(BaseNNStrategy):
         return classes
 
     def get_profit_target_rank_based(self, dataframe: DataFrame) -> np.ndarray:
-        """Label profit by ranking max gains/losses over the horizon."""
+        """Label profit by ranking the NET forward move (max gain - max loss)
+        over the horizon.
+
+        Distinct from quantile_thresholds, which ranks gains and losses
+        *independently* and — under the default config — collapses to identical
+        labels. Here a bar is PROFIT only when its upside dominates its downside
+        enough to land in the top ``rank_top_pct`` of the net distribution, LOSS
+        when downside dominates (bottom ``rank_top_pct``), NEUTRAL otherwise. The
+        two tails are disjoint by construction, so ``profit_conflict_to_neutral``
+        does not apply.
+        """
         df = dataframe
         n = len(df)
         classes = np.ones(n, dtype=int) * ProfitDirection.NEUTRAL
@@ -284,9 +293,7 @@ class NNProfitStrategy(BaseNNStrategy):
         high = np.asarray(df["high"], dtype=float)
         low = np.asarray(df["low"], dtype=float)
 
-        max_gains = np.zeros(n, dtype=float)
-        max_losses = np.zeros(n, dtype=float)
-
+        net = np.full(n, np.nan, dtype=float)  # NaN where no forward window exists
         for t in range(n):
             end = min(n, t + horizon + 1)
             if t + 1 >= end:
@@ -296,22 +303,19 @@ class NNProfitStrategy(BaseNNStrategy):
             future_low = low[t + 1 : end]
             if len(future_high) == 0 or len(future_low) == 0:
                 continue
-            max_gains[t] = (np.max(future_high) - entry) / entry
-            max_losses[t] = (entry - np.min(future_low)) / entry
+            max_gain = (np.max(future_high) - entry) / entry
+            max_loss = (entry - np.min(future_low)) / entry
+            net[t] = max_gain - max_loss
 
-        gain_thr = float(np.nanquantile(max_gains, 1.0 - top_pct))
-        loss_thr = float(np.nanquantile(max_losses, 1.0 - top_pct))
+        if not np.any(np.isfinite(net)):
+            return classes
 
-        buy_mask = max_gains >= gain_thr
-        sell_mask = max_losses >= loss_thr
+        profit_thr = float(np.nanquantile(net, 1.0 - top_pct))
+        loss_thr = float(np.nanquantile(net, top_pct))
 
-        if self.profit_conflict_to_neutral:
-            conflict_mask = buy_mask & sell_mask
-            buy_mask = buy_mask & ~conflict_mask
-            sell_mask = sell_mask & ~conflict_mask
-
-        classes[buy_mask] = ProfitDirection.PROFIT
-        classes[sell_mask] = ProfitDirection.LOSS
+        # NaN comparisons evaluate False, so windowless bars stay NEUTRAL.
+        classes[net >= profit_thr] = ProfitDirection.PROFIT
+        classes[net <= loss_thr] = ProfitDirection.LOSS
 
         return classes
 

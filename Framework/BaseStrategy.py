@@ -333,16 +333,18 @@ class BaseStrategy(IStrategy):
     # NNNC it produced +0.28pp profit / -1.17pp DD / +65% Calmar vs ATR-only.
     use_volume_confirmation_stoploss = True
 
+    opt_base_params = True # flag that allws subclasses to disable framework optimisation
+
     prediction_threshold = DecimalParameter(
-        0.2, 0.9, default=0.5, decimals=2, space="buy", load=True, optimize=True
+        0.2, 0.9, default=0.5, decimals=2, space="buy", load=True, optimize=opt_base_params
     )
 
     enable_exit_signal = CategoricalParameter(
-        [True, False], default=True, space="sell", load=True, optimize=False
+        [True, False], default=True, space="sell", load=True, optimize=opt_base_params
     )
 
     entry_enable_guards = CategoricalParameter(
-        [True, False], default=True, space="buy", load=True, optimize=False
+        [True, False], default=True, space="buy", load=True, optimize=opt_base_params
     )
 
     # Bear-market entry gate — causal (uses only past data, unlike the
@@ -364,23 +366,23 @@ class BaseStrategy(IStrategy):
     entry_trend_slope_window: int = 20      # ~5h slope check on 15m
 
     entry_guard_threshold = DecimalParameter(
-        -1.0, 0.5, default=-0.7, decimals=1, space="buy", load=True, optimize=True
+        -1.0, 0.5, default=-0.7, decimals=1, space="buy", load=True, optimize=opt_base_params
     )
 
     entry_close_norm_threshold = DecimalParameter(
-        -0.5, 1.0, default=0.0, decimals=1, space="buy", load=True, optimize=True
+        -0.5, 1.0, default=0.0, decimals=1, space="buy", load=True, optimize=opt_base_params
     )
 
     entry_adx_threshold = DecimalParameter(
-        10.0, 90.0, default=50.0, decimals=0, space="buy", load=True, optimize=True
+        10.0, 90.0, default=50.0, decimals=0, space="buy", load=True, optimize=opt_base_params
     )
 
     entry_bb_width_threshold = DecimalParameter(
-        0.000, 0.100, default=0.015, decimals=3, space="buy", load=True, optimize=True,
+        0.000, 0.100, default=0.015, decimals=3, space="buy", load=True, optimize=opt_base_params,
     )
 
     entry_rvol_threshold = DecimalParameter(
-        0.0, 5.0, default=2.0, decimals=1, space="buy", load=True, optimize=True
+        0.0, 5.0, default=2.0, decimals=1, space="buy", load=True, optimize=opt_base_params
     )
 
     entry_atr_pct = DecimalParameter(
@@ -390,15 +392,15 @@ class BaseStrategy(IStrategy):
         decimals=3,
         space="buy",
         load=True,
-        optimize=True,
+        optimize=opt_base_params,
     )
 
     exit_guard_threshold = DecimalParameter(
-        -0.5, 1.0, default=0.7, decimals=1, space="sell", load=True, optimize=True
+        -0.5, 1.0, default=0.7, decimals=1, space="sell", load=True, optimize=opt_base_params
     )
 
     exit_close_norm_threshold = DecimalParameter(
-        -1.0, 1.0, default=0.0, decimals=1, space="sell", load=True, optimize=True
+        -1.0, 1.0, default=0.0, decimals=1, space="sell", load=True, optimize=opt_base_params
     )
 
     cexit_enable_profit_checks = CategoricalParameter(
@@ -406,11 +408,11 @@ class BaseStrategy(IStrategy):
     )
 
     cexit_take_profit = DecimalParameter(
-        0.005, 0.04, default=0.008, decimals=3, space="sell", load=True, optimize=True
+        0.005, 0.04, default=0.008, decimals=3, space="sell", load=True, optimize=opt_base_params
     )
 
     cexit_max_days = IntParameter(
-        1, 30, default=21, space="sell", load=True, optimize=True
+        1, 30, default=21, space="sell", load=True, optimize=opt_base_params
     )
 
     # --------------------------------
