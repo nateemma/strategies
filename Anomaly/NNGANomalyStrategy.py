@@ -48,21 +48,6 @@ class NNGANomalyStrategy(NNAnomalyStrategy):
     Inherits from NNAnomalyStrategy to reuse the anomaly detection framework.
     """
 
-    plot_config = {
-        "main_plot": {
-            "close": {"color": "lightsteelblue"},
-        },
-        "subplots": {
-            "Diff": {
-                "predict_buy": {"color": "green"},
-                "predict_sell": {"color": "red"},
-                "%train_trading": {"color": "green"},
-                "%trading": {"color": "cyan"},
-                "anomaly_threshold": {"color": "purple"},
-                "reconstruction_error": {"color": "orange"},
-            },
-        },
-    }
 
     # -----------
     # Hyperopt parameters
@@ -70,18 +55,12 @@ class NNGANomalyStrategy(NNAnomalyStrategy):
 
     # Buy hyperspace params:
     buy_params = { **NNAnomalyStrategy.buy_params,
-        "prediction_threshold": 0.6,
-        "anomaly_threshold_multiplier": 1.8,
-        "min_anomaly_duration": 2,
-        "entry_error_threshold": 0.01,
+        "anomaly_threshold_multiplier": 1.2,
+        "entry_error_threshold": 0.046,
+        "min_anomaly_duration": 3,
+        "prediction_threshold": 0.2,
     }
 
-
-    # -----------
-    # Class level parameters
-    # -----------
-
-    augment_training_data = False  # GANomaly doesn't use external GAN augmentation
 
     # -----------
     # Override functions

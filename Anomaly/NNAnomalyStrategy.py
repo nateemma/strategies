@@ -62,6 +62,7 @@ class NNAnomalyStrategy(BaseNNStrategy):
                 "%trading": {"color": "cyan"},
                 "anomaly_threshold": {"color": "red"},
                 "reconstruction_error": {"color": "orange"},
+                "anomaly_detected": {"color": "magenta"},
             },
         },
     }
@@ -71,10 +72,12 @@ class NNAnomalyStrategy(BaseNNStrategy):
     # -----------
 
     buy_params = { **BaseNNStrategy.buy_params,
-        "prediction_threshold": 0.5,
-        "anomaly_threshold_multiplier": 1.8,
+        "anomaly_threshold_multiplier": 1.2,
+        "entry_error_threshold": 0.051,
         "min_anomaly_duration": 2,
-        "entry_error_threshold": 0.04,
+        "prediction_threshold": 0.89,
+        # temp: loosen gates:
+        "entry_enable_guards": False,
         }
     
 
@@ -83,19 +86,50 @@ class NNAnomalyStrategy(BaseNNStrategy):
         1.0, 2.5, default=1.8, decimals=1, space="buy", load=True, optimize=True
     )
 
+    # optimize=False: the consecutive-signal filter that consumed this is
+    # currently commented out (see populate path), so searching it is a no-op.
     min_anomaly_duration = IntParameter(
-        2, 8, default=2, space="buy", load=True, optimize=True
+        1, 4, default=2, space="buy", load=True, optimize=True
     )
 
+    # Upper bound matched to the reconstruction-error scale (median ~0.018,
+    # mean ~0.031, max ~3.39 but fat-tailed). Anything above ~0.10 sits in the
+    # tail where almost no candle clears the absolute floor → empty backtests.
     entry_error_threshold = DecimalParameter(
-        0.01, 3.0, default=0.035, decimals=3, space="buy", load=True, optimize=True
+        0.005, 0.10, default=0.035, decimals=3, space="buy", load=True, optimize=True
     )
 
-    # -----------
-    # Class level parameters
-    # -----------
+    # Anomaly strategies hyperopt their own anomaly-specific params (above), not
+    # the framework guard/exit params. Disable optimisation of those here for the
+    # whole family. `.optimize` is only read by hyperopt when it builds the search
+    # space, and hyperopt loads a single strategy, so mutating the shared base
+    # parameter objects in place is safe. Runs at import, before hyperopt reads
+    # `.optimize`. (BaseStrategy.opt_base_params can't do this — the flag is baked
+    # in at base class-definition time.)
+    opt_framework = False
+    opt_guards = False
 
-    augment_training_data = False  # no GAn, so augment signals
+    for _name in (
+        "enable_exit_signal",
+        "cexit_take_profit",
+        "cexit_max_days",
+    ):
+        getattr(BaseStrategy, _name).optimize = opt_framework
+    del _name
+
+    for _name in (
+        "entry_enable_guards",
+        "entry_guard_threshold",
+        "entry_close_norm_threshold",
+        "entry_adx_threshold",
+        "entry_bb_width_threshold",
+        "entry_rvol_threshold",
+        "entry_atr_pct",
+        "exit_guard_threshold",
+        "exit_close_norm_threshold",
+    ):
+        getattr(BaseStrategy, _name).optimize = opt_guards
+    del _name
 
     # -----------
     # Utility functions
@@ -503,9 +537,15 @@ class NNAnomalyStrategy(BaseNNStrategy):
             trading_predictions, nan=0.0, posinf=0.0, neginf=0.0
         )
 
-        # convert reconstruction into mse
-        # For 3D data, average across the sequence dimension
-        if len(reconstruction_predictions.shape) == 3:
+        # Anomaly score. Paper-faithful GANomaly detectors supply a latent score
+        # (‖z-ẑ‖) directly via "anomaly_score"; use it when present. Otherwise
+        # fall back to the autoencoder input-reconstruction MSE.
+        if "anomaly_score" in multi_predictions:
+            errors = np.nan_to_num(
+                np.asarray(multi_predictions["anomaly_score"], dtype=float),
+                nan=0.0, posinf=0.0, neginf=0.0,
+            )
+        elif len(reconstruction_predictions.shape) == 3:
             errors = np.mean(
                 np.square(df_tensor - reconstruction_predictions), axis=(1, 2)
             )
@@ -582,6 +622,12 @@ class NNAnomalyStrategy(BaseNNStrategy):
             + self.anomaly_threshold_multiplier.value * entry_rolling_std
         )
         dataframe["anomaly_threshold"] = threshold
+
+        # Flag where reconstruction error exceeds the adaptive threshold, purely for
+        # plotting/inspection of where anomalies are detected (not used for entries).
+        dataframe["anomaly_detected"] = (
+            dataframe["reconstruction_error"] > dataframe["anomaly_threshold"]
+        ).astype(int)
 
         # Find anomalies (high reconstruction error) - use dataframe column to ensure alignment
         reconstruction_error_col = dataframe["reconstruction_error"].iloc[start_idx:start_idx + plen].values

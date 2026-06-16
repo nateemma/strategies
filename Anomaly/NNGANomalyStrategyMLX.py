@@ -35,15 +35,14 @@ class NNGANomalyStrategyMLX(NNGANomalyStrategy):
     plot config from NNGANomalyStrategy; only swaps the classifier backend.
     """
 
-    augment_training_data = False  # GANomaly doesn't use external GAN augmentation
-
     # Buy hyperspace params:
-    buy_params = { **NNGANomalyStrategy.buy_params,
-        "prediction_threshold": 0.85,
-        "anomaly_threshold_multiplier": 1.8,
-        "min_anomaly_duration": 2,
-        "entry_error_threshold": 0.01,
-    }
+    # buy_params = {
+    #     **NNGANomalyStrategy.buy_params,
+    #     "prediction_threshold": 0.65,
+    #     "anomaly_threshold_multiplier": 1.1,
+    #     "min_anomaly_duration": 3,
+    #     "entry_error_threshold": 0.3,
+    # }
 
     def get_classifier_type(self):
         if not HAS_MLX:

@@ -91,6 +91,33 @@ class GANomalyModel(nn.Module):
         return rec, trd
 
 
+class GANomalyBowTie(nn.Module):
+    """
+    Paper-faithful GANomaly generator (Akcay et al., ACCV 2018): an
+    encoder-decoder-encoder "bow-tie". encoder Gₑ(x)->z, decoder G_d(z)->x̂,
+    second encoder E(x̂)->ẑ. The anomaly score is the latent distance ‖z-ẑ‖
+    (computed in predict), not the input-space reconstruction error.
+
+    classifier_head is a codebase-specific trading head (not part of GANomaly),
+    trained on z. __call__ returns (reconstruction, trading) so the model still
+    satisfies the predict() contract; training/scoring use the sub-encoders
+    directly.
+    """
+
+    def __init__(self, encoder, decoder, encoder2, latent_size: int):
+        super().__init__()
+        self.encoder = encoder
+        self.decoder = decoder
+        self.encoder2 = encoder2
+        self.classifier_head = ClassifierHead(latent_size)
+
+    def __call__(self, x: mx.array):
+        z = self.encoder(x)
+        rec = self.decoder(z)
+        trd = self.classifier_head(z)
+        return rec, trd
+
+
 # -----------------------------------------------------------------------
 # Transformer block (encoder-style: self-attn + FFN, pre-norm residuals)
 # -----------------------------------------------------------------------
@@ -240,12 +267,16 @@ class _LSTMDiscriminator(nn.Module):
         self.out = nn.Linear(128, 1)
 
     def __call__(self, x):
+        return mx.sigmoid(self.out(self.features(x)))
+
+    def features(self, x):
+        """Penultimate (pre-logit) activations — the feature layer used for the
+        GANomaly feature-matching adversarial loss ‖f(x) - f(x̂)‖."""
         out, _ = self.lstm1(x)
         out = self.drop1(out)
         out, _ = self.lstm2(out)
         last = self.drop2(out[:, -1, :])
-        h = self.drop3(nn.relu(self.fc(last)))
-        return mx.sigmoid(self.out(h))
+        return self.drop3(nn.relu(self.fc(last)))
 
 
 # --- Attention ---------------------------------------------------------
@@ -394,10 +425,10 @@ class GANomalyDetectorMLXBase(MLXBaseAnomalyDetector):
     ganomaly_discriminator_lr = 0.0002
     ganomaly_beta1 = 0.5
     ganomaly_beta2 = 0.999
-    ganomaly_batch_size = 1024
+    ganomaly_batch_size = 2048
 
     # Per-phase epoch counts (overridable, e.g. for smoke tests)
-    gan_epochs = 50
+    gan_epochs = 100
     ae_epochs = 50
     clf_epochs = 100
 
@@ -475,23 +506,33 @@ class GANomalyDetectorMLXBase(MLXBaseAnomalyDetector):
         # Build unified model + discriminator
         self.model = self.create_model(self.seq_len, self.num_features)
 
+        # Phase 3 trains the head on ALL classes (Hold/Buy/Sell) so it models
+        # Hold natively instead of only Buy/Sell (which collapses Hold to 0).
+        if isinstance(train_results, dict) and "trading" in train_results:
+            full_labels = np.asarray(train_results["trading"])
+        else:
+            full_labels = signal_labels
+
+        # Variant-specific training core. Base = the legacy 3-phase flow; the
+        # LSTM variant overrides this with paper-faithful joint bow-tie training.
+        self._train_core(normal_data, train_tensor, full_labels)
+
+        self.save()
+        self.is_trained = True
+
+    def _train_core(self, normal_data, train_tensor, full_labels):
+        """Legacy 3-phase GANomaly training (noise-GAN warm-start, autoencoder,
+        classifier head). Variants may override; the base keeps this for the
+        Dense/Attention/Transformer bodies that were not converted to the
+        paper-faithful encoder-decoder-encoder form."""
         print("    Phase 1: Training GAN (decoder vs discriminator)...")
         self._train_gan_phase(normal_data)
 
         print("    Phase 2: Training autoencoder (encoder + decoder)...")
         self._train_autoencoder_phase(normal_data)
 
-        # Phase 3 trains the head on ALL classes (Hold/Buy/Sell) so it models
-        # Hold natively instead of only Buy/Sell (which collapses Hold to 0).
         print("    Phase 3: Training classifier head (all classes)...")
-        if isinstance(train_results, dict) and "trading" in train_results:
-            full_labels = np.asarray(train_results["trading"])
-        else:
-            full_labels = signal_labels
         self._train_classifier_phase(train_tensor, full_labels)
-
-        self.save()
-        self.is_trained = True
 
     # ---- Phase 1: GAN -------------------------------------------------
 
@@ -562,6 +603,11 @@ class GANomalyDetectorMLXBase(MLXBaseAnomalyDetector):
                     f"D {d_acc / batches:.4f}, G {g_acc / batches:.4f}"
                 )
 
+            # Release MLX's Metal buffer cache each epoch; otherwise freed
+            # buffers accumulate and the allocator thrashes, inflating memory
+            # and slowing training (mirrors df_ctab_gan_mlx.py).
+            mx.clear_cache()
+
     # ---- Phase 2: Autoencoder -----------------------------------------
 
     def _train_autoencoder_phase(self, normal_data):
@@ -606,14 +652,22 @@ class GANomalyDetectorMLXBase(MLXBaseAnomalyDetector):
                 mx.eval(ae.parameters(), opt.state, loss)
                 tr_loss += loss.item()
 
-            # Validation
+            # Validation (batched: a single forward pass over the whole val
+            # split materialises activations for every sample at once).
             if len(val_split) > 0:
                 ae.eval()
-                vx = mx.array(val_split)
-                vrec = decoder(encoder(vx))
-                vloss = mx.mean(mx.square(vrec - vx))
-                mx.eval(vloss)
-                v = vloss.item()
+                vbs = 256
+                sse = 0.0
+                cnt = 0
+                for vs in range(0, len(val_split), vbs):
+                    vb = mx.array(val_split[vs : vs + vbs])
+                    vrec = decoder(encoder(vb))
+                    bsse = mx.sum(mx.square(vrec - vb))
+                    mx.eval(bsse)
+                    sse += bsse.item()
+                    cnt += int(vb.size)
+                    mx.clear_cache()
+                v = sse / max(1, cnt)
             else:
                 v = tr_loss / batches
 
@@ -628,6 +682,7 @@ class GANomalyDetectorMLXBase(MLXBaseAnomalyDetector):
                     f"      AE epoch {epoch}/{self.ae_epochs} - "
                     f"train {tr_loss / batches:.5f}, val {v:.5f}"
                 )
+            mx.clear_cache()
             if bad >= patience:
                 print(f"      AE early stop at epoch {epoch} (val {best_val:.5f})")
                 break
@@ -699,17 +754,27 @@ class GANomalyDetectorMLXBase(MLXBaseAnomalyDetector):
                 mx.eval(head.parameters(), opt.state, loss)
                 tr_loss += loss.item()
 
-            # Weighted validation loss (same objective as training)
+            # Weighted validation loss (same objective as training), batched
+            # so the encoder forward pass doesn't run over all val samples at
+            # once. Accumulate the summed weighted CE and divide by sample
+            # count to reproduce mx.mean(sw * ce) exactly.
             if len(x_val) > 0:
                 head.eval()
-                z = mx.stop_gradient(encoder(mx.array(x_val)))
-                probs = mx.clip(head(z), 1e-7, 1.0)
-                yv = mx.array(y_val)
-                ce = -mx.sum(yv * mx.log(probs), axis=-1)
-                sw = mx.sum(yv * w_vec, axis=-1)
-                vloss = mx.mean(sw * ce)
-                mx.eval(vloss)
-                v = vloss.item()
+                num = 0.0
+                cnt = 0
+                for vs in range(0, len(x_val), bs):
+                    xb = mx.array(x_val[vs : vs + bs])
+                    yb = mx.array(y_val[vs : vs + bs])
+                    z = mx.stop_gradient(encoder(xb))
+                    probs = mx.clip(head(z), 1e-7, 1.0)
+                    ce = -mx.sum(yb * mx.log(probs), axis=-1)
+                    sw = mx.sum(yb * w_vec, axis=-1)
+                    s = mx.sum(sw * ce)
+                    mx.eval(s)
+                    num += s.item()
+                    cnt += int(xb.shape[0])
+                    mx.clear_cache()
+                v = num / max(1, cnt)
             else:
                 v = tr_loss / batches
 
@@ -724,6 +789,7 @@ class GANomalyDetectorMLXBase(MLXBaseAnomalyDetector):
                     f"      CLF epoch {epoch}/{self.clf_epochs} - "
                     f"train {tr_loss / batches:.5f}, val {v:.5f}"
                 )
+            mx.clear_cache()
             if bad >= patience:
                 print(f"      CLF early stop at epoch {epoch} (val {best_val:.5f})")
                 break
@@ -743,7 +809,19 @@ class GANomalyClassifierMLX_Dense(GANomalyDetectorMLXBase):
 
 
 class GANomalyClassifierMLX_LSTM(GANomalyDetectorMLXBase):
+    """Paper-faithful GANomaly (Akcay et al., 2018) on an LSTM backbone:
+    encoder-decoder-encoder bow-tie, joint adversarial + contextual + encoder
+    training, and a latent ‖z-ẑ‖ anomaly score. (The other variants in this
+    file still use the legacy 3-phase autoencoder form.)"""
+
     lstm_units = 128
+
+    # Joint-loss weights. Akcay et al. use w_adv=1, w_con=50, w_enc=1.
+    # adv_weight=0 disables the adversarial term → a non-GAN bow-tie ablation
+    # (used by NNAnomaly_MLX).
+    adv_weight = 1.0
+    con_weight = 50.0
+    enc_weight = 1.0
 
     def _build_components(self, seq_len, num_features, latent_size):
         u = self.lstm_units
@@ -751,6 +829,157 @@ class GANomalyClassifierMLX_LSTM(GANomalyDetectorMLXBase):
         dec = _LSTMDecoder(seq_len, num_features, latent_size, u)
         disc = _LSTMDiscriminator(seq_len, num_features, u)
         return enc, dec, disc
+
+    def create_model(self, seq_len: int, num_features: int) -> nn.Module:
+        self.seq_len = seq_len
+        self.num_features = num_features
+        latent = self.ganomaly_latent_dim
+        u = self.lstm_units
+        enc = _LSTMEncoder(seq_len, num_features, latent, u)
+        dec = _LSTMDecoder(seq_len, num_features, latent, u)
+        enc2 = _LSTMEncoder(seq_len, num_features, latent, u)  # second encoder E
+        self.discriminator = _LSTMDiscriminator(seq_len, num_features, u)
+        model = GANomalyBowTie(enc, dec, enc2, latent)
+        mx.eval(model.parameters())
+        mx.eval(self.discriminator.parameters())
+        return model
+
+    def _train_core(self, normal_data, train_tensor, full_labels):
+        print("    GANomaly joint training (adv feature-match + L1 con + L2 enc)...")
+        self._train_ganomaly_joint(normal_data)
+        print("    Training classifier head (all classes)...")
+        self._train_classifier_phase(train_tensor, full_labels)
+
+    def _train_ganomaly_joint(self, normal_data):
+        """Joint bow-tie training. D discriminates real x vs reconstruction
+        x̂=G(x); G minimises feature-matching adversarial + L1 contextual +
+        L2 encoder loss. With adv_weight=0 the D updates and adv term are
+        skipped (pure bow-tie autoencoder + latent-consistency)."""
+        if len(normal_data) == 0:
+            print("      No normal data; skipping GANomaly training")
+            return
+
+        enc = self.model.encoder
+        dec = self.model.decoder
+        enc2 = self.model.encoder2
+        disc = self.discriminator
+        use_adv = self.adv_weight > 0.0
+
+        # Wrap the three sub-encoders so a single grad covers all generator params.
+        gen = nn.Module()
+        gen.encoder = enc
+        gen.decoder = dec
+        gen.encoder2 = enc2
+
+        betas = (self.ganomaly_beta1, self.ganomaly_beta2)
+        g_opt = optim.Adam(learning_rate=self.ganomaly_generator_lr, betas=betas)
+        d_opt = optim.Adam(learning_rate=self.ganomaly_discriminator_lr, betas=betas)
+        w_adv, w_con, w_enc = self.adv_weight, self.con_weight, self.enc_weight
+
+        # D: real -> 0.9 (label smoothing), reconstruction (detached) -> 0.0
+        def d_loss_fn(disc_model, real):
+            x_hat = mx.stop_gradient(dec(enc(real)))
+            loss_real = _bce(disc_model(real), mx.full(real.shape[0], 0.9))
+            loss_fake = _bce(disc_model(x_hat), mx.zeros((real.shape[0],)))
+            return 0.5 * (loss_real + loss_fake)
+
+        # G: feature-matching adversarial + L1 contextual + L2 encoder loss.
+        def g_loss_fn(gen_model, real):
+            z = gen_model.encoder(real)
+            x_hat = gen_model.decoder(z)
+            z_hat = gen_model.encoder2(x_hat)
+            l_con = mx.mean(mx.abs(real - x_hat))
+            l_enc = mx.mean(mx.square(z - z_hat))
+            if use_adv:
+                f_real = mx.stop_gradient(disc.features(real))
+                f_fake = disc.features(x_hat)
+                l_adv = mx.mean(mx.square(f_fake - f_real))
+            else:
+                l_adv = mx.zeros(())
+            return w_adv * l_adv + w_con * l_con + w_enc * l_enc
+
+        d_grad = nn.value_and_grad(disc, d_loss_fn)
+        g_grad = nn.value_and_grad(gen, g_loss_fn)
+
+        n = len(normal_data)
+        bs = min(self.ganomaly_batch_size, n)
+        batches = max(1, n // bs)
+        for epoch in range(self.gan_epochs):
+            perm = np.random.permutation(n)
+            disc.train()
+            self.model.train()
+            d_acc, g_acc = 0.0, 0.0
+            for bi in range(batches):
+                idx = perm[bi * bs : (bi + 1) * bs]
+                real = mx.array(normal_data[idx])
+
+                if use_adv:
+                    ld, gd = d_grad(disc, real)
+                    d_opt.update(disc, gd)
+                    mx.eval(disc.parameters(), d_opt.state, ld)
+                    d_acc += ld.item()
+
+                lg, gg = g_grad(gen, real)
+                g_opt.update(gen, gg)
+                mx.eval(self.model.parameters(), g_opt.state, lg)
+                g_acc += lg.item()
+
+            if epoch % 20 == 0 or epoch == self.gan_epochs - 1:
+                print(
+                    f"      epoch {epoch}/{self.gan_epochs} - "
+                    f"D {d_acc / batches:.4f}, G {g_acc / batches:.4f}"
+                )
+            mx.clear_cache()
+
+    def predict(self, data):
+        """GANomaly inference. Returns the (N,S,F) reconstruction and (N,3)
+        trading probs as before, plus the paper's latent anomaly score
+        ``anomaly_score`` (N,) = mean|z - ẑ|, which the strategy uses in place
+        of the input-reconstruction MSE."""
+        if self.model is None:
+            self.model = self.load()
+        if self.model is None:
+            log.error("    ERR: no model for predictions")
+            n = np.shape(data)[0]
+            return {
+                "reconstruction": np.zeros((n, self.seq_len, self.num_features), np.float32),
+                "trading": np.zeros((n, 3), np.float32),
+                "anomaly_score": np.zeros((n,), np.float32),
+            }
+
+        if self.dataframeUtils.is_dataframe(data):
+            df_tensor = self.dataframeUtils.df_to_tensor(data, self.seq_len)
+        else:
+            df_tensor = data
+        df_tensor = np.asarray(df_tensor, dtype=np.float32)
+
+        self.model.eval()
+        n = df_tensor.shape[0]
+        bs = max(1, int(getattr(self, "batch_size", 256) or 256))
+        rec_parts, trd_parts, score_parts = [], [], []
+        for start in range(0, n, bs):
+            xb = mx.array(df_tensor[start : start + bs])
+            z = self.model.encoder(xb)
+            rec_b = self.model.decoder(z)
+            z_hat = self.model.encoder2(rec_b)
+            trd_b = self.model.classifier_head(z)
+            score_b = mx.mean(mx.abs(z - z_hat), axis=-1)
+            mx.eval(rec_b, trd_b, score_b)
+            rec_parts.append(np.array(rec_b, dtype=np.float32))
+            trd_parts.append(np.array(trd_b, dtype=np.float32))
+            score_parts.append(np.array(score_b, dtype=np.float32))
+            mx.clear_cache()
+
+        if rec_parts:
+            rec = np.concatenate(rec_parts, axis=0)
+            trd = np.concatenate(trd_parts, axis=0)
+            score = np.concatenate(score_parts, axis=0)
+        else:
+            rec = np.zeros((0, self.seq_len, self.num_features), np.float32)
+            trd = np.zeros((0, 3), np.float32)
+            score = np.zeros((0,), np.float32)
+
+        return {"reconstruction": rec, "trading": trd, "anomaly_score": score}
 
 
 class GANomalyClassifierMLX_Attention(GANomalyDetectorMLXBase):
