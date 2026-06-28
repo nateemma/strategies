@@ -5,7 +5,7 @@
 # flake8: noqa: E402
 
 """
-NNGANomalyStrategyMLX - MLX (Apple mlx) GANomaly strategy.
+NNGANomaly_MLX - MLX (Apple mlx) GANomaly strategy.
 
 Mirrors NNGANomalyStrategy but selects the MLX classifier port
 (NNGANomalyClassifierMLX). Requires MLX / Metal to be available.
@@ -29,7 +29,7 @@ from NNGANomalyStrategy import NNGANomalyStrategy
 # -----------
 
 
-class NNGANomalyStrategyMLX(NNGANomalyStrategy):
+class NNGANomaly_MLX(NNGANomalyStrategy):
     """
     GANomaly strategy using the MLX classifier port. Inherits all params and
     plot config from NNGANomalyStrategy; only swaps the classifier backend.
@@ -46,7 +46,7 @@ class NNGANomalyStrategyMLX(NNGANomalyStrategy):
 
     def get_classifier_type(self):
         if not HAS_MLX:
-            raise RuntimeError("NNGANomalyStrategyMLX requires MLX (Apple mlx) — not available")
+            raise RuntimeError("NNGANomaly_MLX requires MLX (Apple mlx) — not available")
         return NNGANomalyClassifierMLX.ClassifierTypeMLX.LSTM
 
     def get_classifier(self, classifier_type, pair, seq_len, num_features):

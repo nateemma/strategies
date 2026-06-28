@@ -12,7 +12,7 @@ head, no adversarial GAN). There is no standalone MLX autoencoder detector — t
 MLX GANomaly detector becomes a pure autoencoder when its adversarial Phase 1 is
 skipped (gan_epochs=0). Reusing it (rather than duplicating the encoder/decoder/
 head) keeps the architecture, training, and scoring byte-identical to
-NNGANomalyStrategyMLX *minus* the GAN, so the two form a clean GAN vs no-GAN pair
+NNGANomaly_MLX *minus* the GAN, so the two form a clean GAN vs no-GAN pair
 on the same MLX path. Requires MLX / Metal to be available.
 """
 
@@ -57,6 +57,6 @@ class NNAnomaly_MLX(NNAnomalyStrategy):
         # objective, leaving the same encoder-decoder-encoder bow-tie trained on
         # contextual (L1) + encoder (L2) loss only — i.e. the no-GAN ablation of
         # the exact same architecture/score. Instance-scoped, so
-        # NNGANomalyStrategyMLX's adv_weight is untouched.
+        # NNGANomaly_MLX's adv_weight is untouched.
         classifier.adv_weight = 0.0
         return classifier

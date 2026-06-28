@@ -76,7 +76,7 @@ class NNAnomalyStrategy(BaseNNStrategy):
         "entry_error_threshold": 0.051,
         "min_anomaly_duration": 2,
         "prediction_threshold": 0.89,
-        # temp: loosen gates:
+        # high confidence predictions are better than using gates, so disable:
         "entry_enable_guards": False,
         }
     

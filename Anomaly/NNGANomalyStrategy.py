@@ -54,12 +54,12 @@ class NNGANomalyStrategy(NNAnomalyStrategy):
     # -----------
 
     # Buy hyperspace params:
-    buy_params = { **NNAnomalyStrategy.buy_params,
-        "anomaly_threshold_multiplier": 1.2,
-        "entry_error_threshold": 0.046,
-        "min_anomaly_duration": 3,
-        "prediction_threshold": 0.2,
-    }
+    # buy_params = { **NNAnomalyStrategy.buy_params,
+    #     "anomaly_threshold_multiplier": 1.2,
+    #     "entry_error_threshold": 0.046,
+    #     "min_anomaly_duration": 3,
+    #     "prediction_threshold": 0.2,
+    # }
 
 
     # -----------
