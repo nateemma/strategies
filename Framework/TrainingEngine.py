@@ -319,3 +319,67 @@ class TrainingEngine:
         row_sums = counts.sum(axis=1, keepdims=True)
         row_sums[row_sums == 0] = 1.0
         return counts / row_sums
+
+    # ====================================================================
+    # Training trigger (called from the populate_indicators hook)
+    # ====================================================================
+
+    def maybe_train(self, dataframe: DataFrame, labels, curr_pair: str) -> DataFrame:
+        """Lazily build the classifier and run the training trigger.
+
+        Multi-pair aggregation path: buffer each pair's (frame, labels); once the
+        last whitelist pair is seen, build the sequential index and train on the
+        full set (when training is needed and no model exists yet), then return
+        the current pair's indexed frame. Single-pair path: train if no model
+        exists, then return the frame. Relocated verbatim from
+        populate_indicators so the engine — not the freqtrade hook — owns the
+        training trigger; all collaborators are resolved via self."""
+        # set up the classifier if it doesn't already exist
+        if self.classifier is None:
+            num_features = self.get_normalized_size(dataframe)
+            self.classifier_type = self.get_classifier_type()
+            self.classifier = self.get_classifier(
+                self.classifier_type, self.curr_pair, self.seq_len, num_features
+            )
+            self.classifier.set_model_path(self.get_model_path())
+            self.classifier.set_batch_size(self.batch_size)
+
+        if self.aggregate_pairs:
+            whitelist = self.dp.current_whitelist()
+
+            self.df_array.append(dataframe)
+            self.label_array.append(labels)
+            self.pair_count += 1
+
+            if self.pair_count == len(whitelist):
+                self.df_array = self.add_sequential_index(self.df_array)
+
+                if self.training_needed and not self.model_exists():
+                    self.debug_print(f"    Training model on {self.pair_count} pairs")
+                    self.train_model(
+                        self.df_array,
+                        self.label_array,
+                        self.classifier,
+                        pair_names=list(whitelist),
+                    )
+
+            if self.pair_count == len(whitelist):
+                pair_index = (
+                    whitelist.index(curr_pair) if curr_pair in whitelist else -1
+                )
+                if pair_index >= 0 and pair_index < len(self.df_array):
+                    dataframe = self.df_array[pair_index]
+                else:
+                    dataframe = self.df_array[-1]
+
+        else:
+            if not self.model_exists():
+                self.train_model(
+                    [dataframe], [labels], self.classifier,
+                    pair_names=[self.curr_pair],
+                )
+
+            self.dbg_curr_df = dataframe
+            dataframe = self.add_debug_indicators(dataframe)
+
+        return dataframe

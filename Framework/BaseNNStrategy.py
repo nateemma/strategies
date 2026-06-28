@@ -1735,53 +1735,8 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
         # Debug
         dataframe["%train_labels"] = labels
 
-        # set up the classifier if it doesn't already exist
-        if self.classifier is None:
-            num_features = self.get_normalized_size(dataframe)
-            self.classifier_type = self.get_classifier_type()
-            self.classifier = self.get_classifier(
-                self.classifier_type, self.curr_pair, self.seq_len, num_features
-            )
-            self.classifier.set_model_path(self.get_model_path())
-            self.classifier.set_batch_size(self.batch_size)
-
-        if self.aggregate_pairs:
-            whitelist = self.dp.current_whitelist()
-
-            self.df_array.append(dataframe)
-            self.label_array.append(labels)
-            self.pair_count += 1
-
-            if self.pair_count == len(whitelist):
-                self.df_array = self.add_sequential_index(self.df_array)
-
-                if self.training_needed and not self.model_exists():
-                    self.debug_print(f"    Training model on {self.pair_count} pairs")
-                    self.train_model(
-                        self.df_array,
-                        self.label_array,
-                        self.classifier,
-                        pair_names=list(whitelist),
-                    )
-
-            if self.pair_count == len(whitelist):
-                pair_index = (
-                    whitelist.index(curr_pair) if curr_pair in whitelist else -1
-                )
-                if pair_index >= 0 and pair_index < len(self.df_array):
-                    dataframe = self.df_array[pair_index]
-                else:
-                    dataframe = self.df_array[-1]
-
-        else:
-            if not self.model_exists():
-                self.train_model(
-                    [dataframe], [labels], self.classifier,
-                    pair_names=[self.curr_pair],
-                )
-
-            self.dbg_curr_df = dataframe
-            dataframe = self.add_debug_indicators(dataframe)
+        # Classifier setup + training trigger now live on TrainingEngine.
+        dataframe = self.maybe_train(dataframe, labels, curr_pair)
 
         return dataframe
 
