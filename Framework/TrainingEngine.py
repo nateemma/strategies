@@ -283,3 +283,39 @@ class TrainingEngine:
             np.save(markov_path, self.markov_transition_matrix)
 
         return None
+
+    # ====================================================================
+    # Markov smoothing helpers
+    # ====================================================================
+
+    def _labels_to_class_indices(self, labels) -> np.ndarray:
+        """Normalize label formats to 1D class index array."""
+        if isinstance(labels, dict):
+            if "trading" in labels:
+                labels = labels["trading"]
+            else:
+                labels = next(iter(labels.values()))
+
+        arr = np.asarray(labels)
+        if arr.ndim > 1:
+            return np.argmax(arr, axis=1).astype(int)
+        return arr.astype(int)
+    @staticmethod
+    def _compute_markov_transition_matrix(
+        label_seq: np.ndarray, num_classes: int
+    ) -> np.ndarray:
+        """Compute transition probabilities P(next_state | current_state)."""
+        if label_seq is None or len(label_seq) < 2:
+            return np.eye(num_classes, dtype=float)
+
+        counts = np.zeros((num_classes, num_classes), dtype=float)
+        prev = label_seq[:-1]
+        nxt = label_seq[1:]
+
+        for a, b in zip(prev, nxt):
+            if 0 <= a < num_classes and 0 <= b < num_classes:
+                counts[int(a), int(b)] += 1.0
+
+        row_sums = counts.sum(axis=1, keepdims=True)
+        row_sums[row_sums == 0] = 1.0
+        return counts / row_sums
