@@ -103,6 +103,13 @@ def _run_pipeline(tensor_method: int) -> dict:
         train_labels=train_labels, validation_labels=test_labels
     )
 
+    # Markov transition matrix — deterministic given the held-out labels;
+    # exercises _labels_to_class_indices + _compute_markov_transition_matrix
+    # (the markov branch train_model runs when use_markov_smoothing is on).
+    markov = s._compute_markov_transition_matrix(
+        s._labels_to_class_indices(test_labels), num_classes=3
+    )
+
     if s.shuffle_train_data:
         tsr_train = np.asarray(tsr_train)
         train_labels = np.asarray(train_labels)
@@ -114,6 +121,7 @@ def _run_pipeline(tensor_method: int) -> dict:
         "train_labels": np.asarray(train_labels),
         "test_labels": np.asarray(test_labels),
         "class_weights": np.asarray(class_weights, dtype=np.float64),
+        "markov_matrix": np.asarray(markov, dtype=np.float64),
     }
 
 
