@@ -73,6 +73,25 @@ DEFAULT_MAX_ROUNDS: int = 200
 _SQUEEZE_SEQ_DIM_TYPES: set = {GANType.WGAN, GANType.TAB_DDPM}
 
 
+def _seed_generation(seed: Optional[int]) -> None:
+    """Seed the global MLX RNG so synthetic-sample generation is reproducible.
+
+    MLX backends draw the latent ``z`` via ``mx.random.normal`` from the global
+    RNG; seeding it here makes an augmented training run repeatable. The numpy
+    Generator used for label sampling is seeded separately by each entry point.
+    No-op (and so non-deterministic, the prior behaviour) when ``seed`` is None,
+    or when MLX isn't installed (e.g. a TF backend on a non-Apple host).
+    """
+    if seed is None:
+        return
+    try:
+        import mlx.core as _mx
+
+        _mx.random.seed(int(seed))
+    except (ImportError, ModuleNotFoundError):
+        pass
+
+
 # ---------------------------------------------------------------------------
 # Public API — single-task
 # ---------------------------------------------------------------------------
@@ -104,6 +123,7 @@ def balance_single_task(
     autoencoder_reject_pct: float = 0.0,
     autoencoder_model_root: Optional[str] = None,
     autoencoder_threshold: Optional[float] = None,
+    seed: Optional[int] = None,
 ) -> Tuple[Any, np.ndarray]:
     """
     Augment ``(data, labels)`` so each class reaches
@@ -196,7 +216,8 @@ def balance_single_task(
     pair_label = _resolve_pair_label(interface, pair_name, log)
 
     # --- Generate per class --------------------------------------------- #
-    rng = np.random.default_rng()
+    _seed_generation(seed)
+    rng = np.random.default_rng(seed)
     aug_data_batches: List[Any] = []
     aug_label_batches: List[np.ndarray] = []
 
@@ -638,6 +659,7 @@ def balance_multi_task(
     autoencoder_threshold: Optional[float] = None,
     autoencoder_model_root: Optional[str] = None,
     autoencoder_task: str = "trading",
+    seed: Optional[int] = None,
 ) -> Tuple[Any, Dict[str, np.ndarray]]:
     """
     Iteratively augment ``(data, labels)`` so every (task, class) pair
@@ -719,7 +741,8 @@ def balance_multi_task(
     # --- Running state: list of batches, concatenated at the end ---------- #
     running_data: List[Any] = [data]
     running_labels: Dict[str, List[np.ndarray]] = {t: [v] for t, v in labels.items()}
-    rng = np.random.default_rng()
+    _seed_generation(seed)
+    rng = np.random.default_rng(seed)
 
     # Snapshot the real-data class counts per task. Deficits are computed
     # against (original + direct augmentation), NOT against running_labels —

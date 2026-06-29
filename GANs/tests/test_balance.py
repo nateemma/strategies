@@ -456,5 +456,53 @@ class TestBalanceSingleTaskCTAB(unittest.TestCase):
         self.assertEqual(len(iface.calls), 0)
 
 
+def _mlx_available() -> bool:
+    try:
+        import mlx.core as mx  # type: ignore
+        return hasattr(mx, "metal") and mx.metal.is_available()
+    except (ImportError, ModuleNotFoundError):
+        return False
+
+
+@unittest.skipUnless(_mlx_available(), "MLX not available (requires Apple Silicon + mlx)")
+class TestBalanceSeedingDeterminism(unittest.TestCase):
+    """The ``seed`` arg makes synthetic generation reproducible: MLX backends
+    draw the latent z from the global MLX RNG, so seeding it yields identical
+    synthetic rows across runs (the prerequisite for byte-validating the GAN
+    augmentation path)."""
+
+    class _MLXGenInterface:
+        """WGAN-style stub whose generate() draws from mx.random.normal, so its
+        output is RNG-driven and seeding actually has an effect."""
+
+        def __init__(self, num_features: int):
+            self.gan_type = GANType.WGAN
+            self.num_features = num_features
+
+        def generate(self, n: int, **kwargs):
+            import mlx.core as mx
+            z = mx.random.normal((n, 1, self.num_features))
+            mx.eval(z)
+            return np.array(z, dtype=np.float32)
+
+    def _run(self, seed):
+        labels = np.repeat([0, 1, 2], [80, 10, 10]).astype(np.int64)
+        data = np.zeros((100, 4), dtype=np.float32)
+        iface = self._MLXGenInterface(num_features=4)
+        out_data, _ = balance_single_task(
+            iface, data, labels, target_ratio=0.5,
+            log=lambda *_: None, debug_log=lambda *_: None, seed=seed,
+        )
+        return np.asarray(out_data)
+
+    def test_same_seed_is_reproducible(self):
+        np.testing.assert_array_equal(self._run(42), self._run(42))
+
+    def test_no_seed_is_nondeterministic(self):
+        # Unseeded generation must differ run-to-run (otherwise the seed arg
+        # isn't what's producing the determinism above).
+        self.assertFalse(np.array_equal(self._run(None), self._run(None)))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

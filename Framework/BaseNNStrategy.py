@@ -166,6 +166,11 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
     gan_augment: bool = True
     gan_target_ratio: Any = 0.8         # float or Dict — see balance.py
     gan_run_diagnostics: bool = False
+    # Seed for synthetic-sample generation. A fixed value makes augmented
+    # training runs reproducible (default 42, matching the codebase's
+    # train/test_shuffle_seed convention); set to None for non-deterministic
+    # augmentation.
+    gan_augment_seed: Optional[int] = 42
 
     # When True, route the GAN augmentation through the post-GAN scaling
     # pipeline: the GAN sees RAW (B, T, F) tensors, does its own internal
@@ -959,6 +964,7 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
                 self, "gan_synth_autoencoder_threshold", None
             ),
             autoencoder_model_root=self._resolve_autoencoder_root(),
+            seed=self.gan_augment_seed,
         )
 
     def get_classifier_type(self):
@@ -1299,6 +1305,7 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
             ),
             passthrough_columns=passthrough,
             pair_name=pair_name,
+            seed=self.gan_augment_seed,
         )
 
         # Denormalise back to the strategy's input space and restore
