@@ -89,7 +89,7 @@ tree -d -L 1
 - _archived_ — abandoned strategies kept for reference/cut & paste
 - _config_ — exchange-specific config files (replaces old per-exchange subdirectories)
 - _Debug_ — debug/visualisation strategies (all begin with `Debug`)
-- _Framework_ — universal base classes (`BaseStrategy`, `BaseNNStrategy`, `TrainingSignals`, `CreateScalers`)
+- _Framework_ — universal base classes (`BaseStrategy`, `BaseNNStrategy`) and the mixins they compose (`StrategyDiagnostics`, `FeatureNormalizer`, `TrainingEngine`), plus `TrainingSignals` and `CreateScalers`
 - _GANs_ — GAN implementations + the unified `GANInterface` / `GANBackend` system that wraps them.  See `GANs/README.md` for backend details.
 - _hyperopts_ — custom hyperopt loss functions (copy to `user_data/hyperopts` to use)
 - _MLX_ — Apple MLX neural network components (Mamba, etc.) shared across strategy families
@@ -119,8 +119,8 @@ _NOTES_:
 ## Strategy Class Hierarchy
 
 ```
-BaseStrategy (Framework/)
-├── BaseNNStrategy (Framework/)
+BaseStrategy(StrategyDiagnostics, IStrategy)                       (Framework/)
+├── BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy)  (Framework/)
 │   ├── NNNCStrategy (NNNC/)        – N-ary (trinary) classifiers
 │   ├── NNMTStrategy (NNMT/)        – Multi-task classifiers
 │   ├── NNAnomalyStrategy (Anomaly/) – Anomaly detection
@@ -131,7 +131,13 @@ BaseStrategy (Framework/)
 
 `BaseStrategy` provides the universal boilerplate: ROI tables, stop-loss, trailing stops, `custom_exit`, guard conditions, and `DataframePopulator` integration. `bot_start()` (freqtrade's one-time-init hook) handles environment setup, hyperopt-parameter printing, and shared utility instantiation; `iteration_init()` runs per-iteration scaler reset.
 
-`BaseNNStrategy` adds the full ML pipeline on top: classifier construction, training-signal generation, GAN augmentation via `enhance_training_data` (a single dispatcher that routes through `GANs.balance.balance_single_task` / `balance_multi_task` based on `gan_type`), and per-task class-weight computation.  Family bases (`NNNCStrategy`, `NNMTStrategy`, etc.) wire in the family-specific classifier factory and label format.
+`BaseNNStrategy` adds the full ML pipeline, decomposed into focused mixins (composed in MRO order — mixin first) rather than one monolithic class:
+
+- **`StrategyDiagnostics`** (mixed into `BaseStrategy`) — all classification-assessment / probability-distribution / correlation printing. Pure diagnostics; no effect on training or trading.
+- **`FeatureNormalizer`** — the feature-selection + normalization layer: the `include_list` / `pre_normalized_columns` / `one_hot_columns` feature lists, scaler + PCA state and persistence, and every method that consumes them (`rolling_dataframe_normalise`, `normalise_for_gan`, `clean_for_tensor`, `apply_pca`, `get_normalized_size`, …). A generic engine — list *contents* are overridable class attributes the families set. (Actual indicator *computation* lives in `utils/DataframePopulator`.)
+- **`TrainingEngine`** — the whole training pipeline: `prepare_training_data`, `get_training_class_weights`, `train_model`, the markov-smoothing helpers, GAN augmentation (`enhance_training_data` single-task + `preprocess_training_data` multi-task, routing through `GANs.balance.balance_single_task` / `balance_multi_task` by `gan_type`), and `maybe_train` (the classifier-setup + multi-pair-aggregation + training trigger that `populate_indicators` delegates to).
+
+`BaseNNStrategy` itself retains the freqtrade lifecycle hooks, label generation, prediction, and entry/exit wiring. Family bases (`NNNCStrategy`, `NNMTStrategy`, etc.) wire in the family-specific classifier factory and label format.
 
 Subclasses add family-specific logic and need only override a small number of methods.
 

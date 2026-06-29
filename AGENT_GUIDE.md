@@ -20,12 +20,18 @@ This file is intended to orient an AI agent (or a new developer) on how to build
 
 ```
 user_data/strategies/
-├── Framework/           ← Universal base classes
+├── Framework/           ← Universal base classes + mixins
 │   ├── BaseStrategy.py  ← Root base class for ALL strategies (ROI, stoploss,
 │   │                      bot_start lifecycle, custom_exit, guards)
-│   ├── BaseNNStrategy.py← NN ML pipeline base (inherits BaseStrategy):
-│   │                      classifier construction, training-signal labels,
-│   │                      GAN augmentation hooks, class-weight handling
+│   ├── BaseNNStrategy.py← NN base (inherits the mixins below + BaseStrategy):
+│   │                      lifecycle hooks, label generation, prediction,
+│   │                      entry/exit wiring
+│   ├── StrategyDiagnostics.py ← mixin: assessment/probability/correlation
+│   │                      printing (pure diagnostics; mixed into BaseStrategy)
+│   ├── FeatureNormalizer.py   ← mixin: feature lists (include_list /
+│   │                      pre_normalized_columns), scaler + PCA state/methods
+│   ├── TrainingEngine.py      ← mixin: training pipeline — prepare/class-weights/
+│   │                      train_model, markov, GAN augmentation, maybe_train
 │   ├── TrainingSignals.py  ← Future-aware label generation
 │   └── CreateScalers.py ← Run once to generate normalization scalers
 ├── utils/               ← Shared utility code
@@ -82,8 +88,8 @@ user_data/strategies/
 ## Class Hierarchy
 
 ```
-BaseStrategy (Framework/BaseStrategy.py)
-├── BaseNNStrategy (Framework/BaseNNStrategy.py)  ← full ML pipeline
+BaseStrategy(StrategyDiagnostics, IStrategy)            (Framework/BaseStrategy.py)
+├── BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy)  ← composes the ML mixins
 │   ├── NNNCStrategy (NNNC/NNNCStrategy.py)
 │   │   └── NNNC_CGP, NNNC_CGP_LSTM2, NNNC_CGP_MLX_*, ... (concrete strategies)
 │   ├── NNMTStrategy (NNMT/NNMTStrategy.py)
@@ -104,6 +110,26 @@ pipeline base and the per-family bases (NNNC/NNMT/Anomaly/Sklearn)
 inherit directly from it.  Older docs may still reference `NNStrategy`;
 that's stale.
 
+The ML pipeline is decomposed into **mixins** (composed in MRO order, mixin
+first) rather than a single monolith — each is byte-identical-relocated, not
+rewritten:
+- **`StrategyDiagnostics`** (into `BaseStrategy`) — assessment / probability /
+  correlation printing. Pure diagnostics; no effect on training or trading.
+- **`FeatureNormalizer`** (into `BaseNNStrategy`) — feature-list selection
+  (`include_list` / `pre_normalized_columns` / `one_hot_columns`) + scaler/PCA
+  state and the methods that consume them (`rolling_dataframe_normalise`,
+  `normalise_for_gan`, `clean_for_tensor`, `apply_pca`, `get_normalized_size`).
+  Generic engine — list *contents* are overridable class attrs the families set.
+- **`TrainingEngine`** (into `BaseNNStrategy`) — `prepare_training_data`,
+  `get_training_class_weights`, `train_model`, markov helpers, GAN augmentation
+  (`enhance_training_data` / `preprocess_training_data` + their helpers), and
+  `maybe_train` (the training trigger `populate_indicators` delegates to).
+
+The mixins assume composition (they call collaborators via `self`, e.g.
+`TrainingEngine` calls `FeatureNormalizer.scale_dataframe`) and introduce no
+literal references to their host class — consistent with the one-way dependency
+rule below.
+
 ### BaseStrategy responsibilities
 - ROI table, stoploss, trailing stop config
 - `bot_start()` — freqtrade's one-time-init hook.  Handles environment
@@ -118,22 +144,37 @@ that's stale.
 - Guard conditions (disable trading in bad market conditions)
 - Hyperopt parameters: guards, prediction threshold
 - `populate_indicators()` calls `DataframePopulator` to add all technical indicators
+- Assessment / distribution / correlation printing — via the `StrategyDiagnostics`
+  mixin (pure diagnostics; safe to ignore when tracing trading behaviour)
 
 ### BaseNNStrategy responsibilities (in addition to BaseStrategy's)
-- Classifier construction via `get_classifier_type()` + `get_classifier()`
-- Training-signal generation via `TrainingSignals` + MASTER thresholds
-- GAN augmentation via a single dispatcher: `enhance_training_data`
-  inspects `gan_type` and the label shape (ndarray vs dict), validates
-  the saved GAN's metadata against the strategy's current config, and
-  routes to `GANs.balance.balance_single_task` or `balance_multi_task`.
-  Concrete strategies declare `gan_type` (and optionally
-  `gan_target_ratio`, `gan_run_diagnostics`, `gan_passthrough_columns`)
-  — they don't see GAN-type-specific code.  Multi-task 3-D pipelines
-  (e.g. `NNMT_WGAN`) turn off the 2-D dispatcher with
-  `gan_augment = False` and run their own `preprocess_training_data`
-  that delegates to `balance_multi_task` on the 3-D tensor.
-- Per-task class-weight computation
-- Train / save / load lifecycle wired into `populate_indicators()`
+`BaseNNStrategy` itself keeps the freqtrade lifecycle (`bot_start`/`iteration_init`/
+`populate_indicators`), label generation (`get_training_labels` + `TrainingSignals`
++ MASTER thresholds), prediction, and entry/exit wiring. The rest is provided by
+its composed mixins:
+- **Classifier construction** via `get_classifier_type()` + `get_classifier()`
+  (family-specific; called from `TrainingEngine.maybe_train`).
+- **Normalization / feature lists** → `FeatureNormalizer`.
+- **Training + GAN augmentation + class weights** → `TrainingEngine`. GAN
+  augmentation is a single dispatcher: `enhance_training_data` inspects `gan_type`
+  and the label shape (ndarray vs dict), validates the saved GAN's metadata
+  against the strategy's current config, and routes to
+  `GANs.balance.balance_single_task` / `balance_multi_task`. Concrete strategies
+  declare `gan_type` (and optionally `gan_target_ratio`, `gan_run_diagnostics`,
+  `gan_passthrough_columns`, `gan_augment_seed`) — they don't see GAN-type-specific
+  code. Multi-task 3-D pipelines (e.g. `NNMT_WGAN`) turn off the 2-D dispatcher
+  with `gan_augment = False` and run their own `preprocess_training_data`.
+- **Train / save / load lifecycle** — `populate_indicators()` delegates to
+  `TrainingEngine.maybe_train()` (classifier setup + multi-pair aggregation +
+  training trigger).
+
+> **Reproducibility:** GAN augmentation seeds its sampler from `gan_augment_seed`
+> (default 42). Seeded runs are byte-reproducible **across separate processes**
+> (each cold-starts identically), but NOT across repeated augmentations *within*
+> one process — the AE-filter's lazy model load draws `mx.random` on first call,
+> polluting the seeded stream. Validate GAN-path changes with a separate-process
+> augmentation diff, not an in-process golden. Set `gan_augment_seed = None` for
+> non-deterministic augmentation.
 
 ### Adding a new strategy (NN family)
 1. Create a new `.py` file in the appropriate family directory (e.g., `NNNC/`, `NNMT/`, `NNPredict/`, `Anomaly/`, `Sklearn/`)
@@ -270,7 +311,7 @@ zsh user_data/strategies/scripts/run_strat.sh NNNC NNNC_CGP
 
 ## BaseNNStrategy Pipeline
 
-Understanding the data flow is critical for debugging or extending NN strategies.  The pipeline lives in `Framework/BaseNNStrategy.py` and is shared across NNNC, NNMT, Anomaly, and Sklearn family bases.
+Understanding the data flow is critical for debugging or extending NN strategies.  The pipeline lives in `Framework/BaseNNStrategy.py` and its mixins (`FeatureNormalizer` = normalization, `TrainingEngine` = training/GAN), and is shared across NNNC, NNMT, Anomaly, and Sklearn family bases.
 
 ### `bot_start(**kwargs)` (one-time, called once per backtest/dry-run/live)
 1. Calls `super().bot_start()` (BaseStrategy: banner, environment, helpers).
@@ -283,10 +324,11 @@ Understanding the data flow is critical for debugging or extending NN strategies
 ### `populate_indicators(dataframe, metadata)` (per pair, per iteration)
 1. Checks that scalers exist in `saved_data/`.
 2. Calls `DataframePopulator` to add all technical indicators.
-3. Adds training labels via `TrainingSignals`.
-4. Normalizes features using pre-computed scalers.
-5. If no saved model: collects dataframes from all pairs, trains, saves.
-6. If model exists: loads it.
+3. Adds training labels via `get_training_labels` (`TrainingSignals`).
+4. Delegates to `TrainingEngine.maybe_train()`: sets up the classifier, and
+   (if no saved model) collects dataframes across the whitelist, trains via
+   `train_model` — which normalizes (`FeatureNormalizer`), GAN-augments, computes
+   class weights, and fits — then saves. If a model exists, training is skipped.
 
 ### `get_predictions(dataframe)`
 1. Normalizes the dataframe
@@ -514,9 +556,14 @@ target state; the refactor work should move code toward them.
   any override that doesn't.
 
 ### Single responsibility & explicit interfaces
-- One class, one job. The base strategies are already large; new behavior should
-  go into a collaborator (`utils/`, a backend, a populator) the strategy *uses*,
-  not another `if`-branch in the base.
+- One class, one job. New behavior should go into a collaborator (`utils/`, a
+  backend, a populator) the strategy *uses*, or one of the Framework mixins, not
+  another `if`-branch in the base.
+- The `BaseNNStrategy` decomposition into `StrategyDiagnostics` /
+  `FeatureNormalizer` / `TrainingEngine` mixins is the realized example of this:
+  each was a behavior-preserving (byte-identical) relocation, verified by the
+  training-pipeline characterization fixtures + scaler-diff/plot/backtest. Add to
+  the matching mixin rather than re-growing `BaseNNStrategy`.
 - Cross-family shared logic lives in exactly one place. Duplicate helper methods
   across family bases are consolidation targets — lift them to `BaseNNStrategy`
   or a `utils/` helper.
