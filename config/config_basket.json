@@ -1,0 +1,96 @@
+{
+  // Dedicated config for the Basket rebalancing strategies (ConstantMixBasket,
+  // CppiBasket). Kept separate from config.json because these need a coarse
+  // timeframe, a small basket, and max_open_trades == number of coins.
+  "max_open_trades": 5,
+  "stake_currency": "USDT",
+  "dry_run_wallet": 10000,
+  // custom_stake_amount() sizes each entry to its target weight of portfolio
+  // value, so let it size freely (don't cap with a fixed stake_amount).
+  "stake_amount": "unlimited",
+  // The cash bucket is enforced by custom_stake_amount sizing, so the full
+  // balance can be tradable.
+  "tradable_balance_ratio": 1.0,
+  "fiat_display_currency": "USD",
+  // Coarse timing: adjust_trade_position runs once per open trade PER CANDLE,
+  // so a fine timeframe just multiplies Freqtrade's per-call deepcopy cost.
+  "timeframe": "4h",
+  "dry_run": true,
+  "cancel_open_orders_on_exit": false,
+  "unfilledtimeout": {
+    "entry": 10,
+    "exit": 10,
+    "exit_timeout_count": 0,
+    "unit": "minutes"
+  },
+  "entry_pricing": {
+    "price_side": "other",
+    "use_order_book": true,
+    "order_book_top": 1,
+    "price_last_balance": 0.0,
+    "check_depth_of_market": {
+      "enabled": false,
+      "bids_to_ask_delta": 1
+    }
+  },
+  "exit_pricing": {
+    "price_side": "other",
+    "use_order_book": true,
+    "order_book_top": 1
+  },
+  "order_types": {
+    "entry": "limit",
+    "exit": "market",
+    "emergency_exit": "market",
+    "force_exit": "market",
+    "force_entry": "market",
+    "stoploss": "market",
+    "stoploss_on_exchange": false
+  },
+  "exchange": {
+    "name": "binanceus",
+    "key": "",
+    "secret": "",
+    "ccxt_config": {},
+    "ccxt_async_config": {},
+    "pair_whitelist": [
+      // 5-coin BTC-anchored basket, all with full 2-year history. Chosen for
+      // diversification across buckets (anchor / L1 / payments / DeFi / old-
+      // guard), NOT recent performance. max_open_trades above MUST equal this
+      // count. The strategy derives per-coin weight from the whitelist size.
+      "BTC/USDT",
+      "SOL/USDT",
+      "XRP/USDT",
+      "LINK/USDT",
+      "LTC/USDT"
+    ],
+    "pair_blacklist": []
+  },
+  "pairlists": [
+    {
+      "method": "StaticPairList"
+    }
+  ],
+  "telegram": {
+    "enabled": false,
+    "token": "",
+    "chat_id": ""
+  },
+  "api_server": {
+    "enabled": false,
+    "listen_ip_address": "127.0.0.1",
+    "listen_port": 8080,
+    "verbosity": "error",
+    "enable_openapi": false,
+    "jwt_secret_key": "",
+    "CORS_origins": [],
+    "username": "",
+    "password": ""
+  },
+  "bot_name": "basket",
+  "initial_state": "running",
+  "force_enter_enable": false,
+  "internals": {
+    "process_throttle_secs": 5
+  }
+}
