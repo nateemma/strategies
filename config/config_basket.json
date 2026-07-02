@@ -2,7 +2,7 @@
   // Dedicated config for the Basket rebalancing strategies (ConstantMixBasket,
   // CppiBasket). Kept separate from config.json because these need a coarse
   // timeframe, a small basket, and max_open_trades == number of coins.
-  "max_open_trades": 5,
+  "max_open_trades": 20,
   "stake_currency": "USDT",
   "dry_run_wallet": 10000,
   // custom_stake_amount() sizes each entry to its target weight of portfolio
@@ -54,15 +54,26 @@
     "ccxt_config": {},
     "ccxt_async_config": {},
     "pair_whitelist": [
-      // 5-coin BTC-anchored basket, all with full 2-year history. Chosen for
-      // diversification across buckets (anchor / L1 / payments / DeFi / old-
-      // guard), NOT recent performance. max_open_trades above MUST equal this
-      // count. The strategy derives per-coin weight from the whitelist size.
+      "AAVE/USDT",
+      "AVAX/USDT",
+      "BCH/USDT",
       "BTC/USDT",
-      "SOL/USDT",
-      "XRP/USDT",
+      "DOT/USDT",
       "LINK/USDT",
-      "LTC/USDT"
+      "LTC/USDT",
+      "NEAR/USDT",
+      "SOL/USDT",
+      "SUI/USDT",
+      "XRP/USDT",
+      "ZEC/USDT",
+      "ETH/USDT",
+      "ADA/USDT",
+      "DOGE/USDT",
+      "XLM/USDT",
+      "ATOM/USDT",
+      "UNI/USDT",
+      "ETC/USDT",
+      "BNB/USDT"
     ],
     "pair_blacklist": []
   },

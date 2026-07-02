@@ -92,7 +92,9 @@ class CppiBasket(BasketStrategy):
             return 0.0
         self._update_reference(pv)
         cushion = max(pv - self._floor_value(), 0.0)
-        frac = (self.cppi_multiplier.value * cushion) / pv
+        m = self.cppi_multiplier
+        m = m.value if hasattr(m, "value") else m
+        frac = (m * cushion) / pv
         return min(1.0, max(0.0, frac))  # cap 100%, floor 0%
 
     def get_target_weight(

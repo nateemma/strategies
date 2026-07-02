@@ -101,6 +101,13 @@ class BasketStrategy(IStrategy):
     # weight coins unequally.
     target_weight_per_coin: float | None = None
 
+    # Hard per-position concentration cap (plain attr, not hyperopt). None =>
+    # off. Set e.g. 0.20 so no single coin may exceed 20% of portfolio value:
+    # a runaway winner is trimmed back to the cap IMMEDIATELY, bypassing the
+    # rebalance cadence and BB timing gate. Bounds single-coin tail risk when a
+    # coin runs hard between deliberate rebalances (the normal band-trim can lag).
+    max_position_weight: float | None = None
+
     # --- Bollinger timing gate -----------------------------------------
     # The mid-BB is an EXECUTION-TIMING filter, not a second signal. The
     # drift band is the primary trigger; the BB only decides whether a
@@ -115,6 +122,13 @@ class BasketStrategy(IStrategy):
     # Master switch for the BB timing gate. True = gated (deliberate timing).
     # False = "raw band-rebalance" arm (entries fire ASAP, rebalances ignore BB).
     use_bb_gate = BooleanParameter(default=True, space="buy")
+
+    # How far BELOW mid-BB price must be to count as a "dip" for BUYING (both
+    # initial entry and rebalance top-ups). 0.0 (default) = plain `close < mid`,
+    # which is loose (true ~half the time). e.g. 0.02 requires price 2% under
+    # mid-BB — a more selective entry/add, at the cost of filling more slowly.
+    # Sell-side (trim) gating is unaffected.
+    entry_band = DecimalParameter(0.0, 0.10, default=0.0, decimals=3, space="buy")
 
     # --- Band rebalancing ----------------------------------------------
     # Only act when a coin's weight drifts more than this from target.
@@ -169,7 +183,10 @@ class BasketStrategy(IStrategy):
         # the basket. Actual size is set in custom_stake_amount().
         # LOOKAHEAD: close and bb_mid are same-row, current-candle values.
         if self.use_bb_gate.value:
-            dataframe.loc[dataframe["close"] < dataframe["bb_mid"], "enter_long"] = 1
+            eb = self.entry_band
+            eb = eb.value if hasattr(eb, "value") else eb
+            thresh = dataframe["bb_mid"] * (1.0 - eb)
+            dataframe.loc[dataframe["close"] < thresh, "enter_long"] = 1
         else:
             # Raw arm: fill the basket ASAP, no BB timing.
             dataframe["enter_long"] = 1
@@ -355,12 +372,15 @@ class BasketStrategy(IStrategy):
     def _bb_gate_allows(
         self, adding: bool, current_rate: float, bb_mid: float, pair: str, drift: float
     ) -> bool:
-        """Execution-timing gate. Add only below mid-BB; trim only above.
+        """Execution-timing gate. Add only below mid-BB (by entry_band); trim
+        only above mid-BB.
 
         Subclasses may widen this (e.g. constant-mix's runaway override).
         """
         if adding:
-            return current_rate < bb_mid
+            eb = self.entry_band
+            eb = eb.value if hasattr(eb, "value") else eb
+            return current_rate < bb_mid * (1.0 - eb)
         return current_rate > bb_mid
 
     def adjust_trade_position(
@@ -378,6 +398,22 @@ class BasketStrategy(IStrategy):
         **kwargs,
     ) -> float | None:
         pair = trade.pair
+
+        # Hard per-position cap: if this coin's live weight exceeds the cap,
+        # trim it straight back to the cap NOW — bypassing the cadence and BB
+        # gates below. This is a safety bound on single-coin concentration, not
+        # a normal rebalance, so it runs before the deliberate-cadence path.
+        cap = self.max_position_weight
+        cap = cap.value if hasattr(cap, "value") else cap
+        if cap and cap > 0:
+            total_cap = self._deployable_value(current_time)
+            if total_cap > 0:
+                cur_val = trade.amount * current_rate
+                if cur_val / total_cap > cap:
+                    delta = cap * total_cap - cur_val  # negative => trim
+                    if not min_stake or abs(delta) >= min_stake:
+                        self._last_rebalance[pair] = current_time
+                        return delta
 
         # Cadence gate: CHECK at most once per rebalance_interval_hours per
         # coin — deliberate over responsive. We stamp the check time now,

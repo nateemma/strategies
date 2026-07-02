@@ -25,3 +25,12 @@ class CppiSkimBasket(CppiBasket):
     # Fixed income policy (plain values → not part of the hyperopt space).
     profit_skim_enable = True
     skim_fraction = 0.25  # bank 25% of each new equity high
+
+    # Risk policy (plain values → pinned, not tuned):
+    #  * multiplier 1.5 keeps modest upside participation at ~half the drawdown
+    #    of the levered default (3.0), and stops hyperopt levering into whatever
+    #    coin happens to moon in-sample.
+    #  * cap any single coin at 20% of the book so a runaway winner can't quietly
+    #    become the portfolio between rebalances.
+    cppi_multiplier = 1.5
+    max_position_weight = 0.20
