@@ -203,9 +203,12 @@ class BasketStrategy(IStrategy):
     def get_target_weight(self, pair: str, current_time: datetime, dataframe: DataFrame) -> float:
         """Target weight (fraction of total portfolio value) for `pair`.
 
-        Subclasses implement the portfolio philosophy here.
+        Subclasses implement the portfolio philosophy here. The base returns 0.0
+        so BasketStrategy is directly RUNNABLE without a subclass — it just does
+        nothing (zero target weight => custom_stake_amount sizes no entry and
+        adjust_trade_position holds nothing), rather than raising at runtime.
         """
-        raise NotImplementedError
+        return 0.0
 
     def _portfolio_value(self) -> float:
         """Current MARK-TO-MARKET portfolio value = free cash + Σ position values.
@@ -302,19 +305,19 @@ class BasketStrategy(IStrategy):
             years = max((self._skim_last - self._skim_start).days / 365.25, 1e-9)
             inc_pct = (banked / start * 100.0) if start else 0.0
             tot_ret = ((final_pv - start) / start * 100.0) if start else 0.0
-            log.info("=" * 62)
-            log.info("SKIM / INCOME SUMMARY  (%s)", self.__class__.__name__)
-            log.info("  starting balance     : %10.2f", start)
-            log.info("  income banked (cash) : %10.2f  (%.1f%% of start, %.1f%%/yr)",
-                     banked, inc_pct, inc_pct / years)
-            log.info("  skim events (new HWM): %10d", self._skim_events)
-            log.info("  peak portfolio (HWM) : %10.2f", self._skim_hwm)
-            log.info("  final at-risk sleeve : %10.2f", at_risk)
-            log.info("  final total value    : %10.2f  (%.1f%% total return)",
-                     final_pv, tot_ret)
-            log.info("=" * 62)
+            # print() (not logging) so it lands in stdout / the captured results
+            # log for parsing. Single tagged line, keyed by the actual strategy
+            # class name (self is the concrete subclass being run).
+            print(
+                f"SKIM_SUMMARY strategy={self.__class__.__name__} "
+                f"start={start:.2f} banked={banked:.2f} "
+                f"banked_pct={inc_pct:.2f} banked_pct_per_yr={inc_pct / years:.2f} "
+                f"skim_events={self._skim_events} hwm={self._skim_hwm:.2f} "
+                f"at_risk={at_risk:.2f} final={final_pv:.2f} total_ret_pct={tot_ret:.2f}",
+                flush=True,
+            )
         except Exception as exc:  # never let a summary crash the process exit
-            log.warning("income summary failed: %s", exc)
+            print(f"SKIM_SUMMARY strategy={self.__class__.__name__} error={exc}", flush=True)
 
     def _n_coins(self) -> int:
         return max(1, len(self.dp.current_whitelist()))
