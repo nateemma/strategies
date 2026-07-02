@@ -444,22 +444,6 @@ class BasketStrategy(IStrategy):
     ) -> float | None:
         pair = trade.pair
 
-        # Hard per-position cap: if this coin's live weight exceeds the cap,
-        # trim it straight back to the cap NOW — bypassing the cadence and BB
-        # gates below. This is a safety bound on single-coin concentration, not
-        # a normal rebalance, so it runs before the deliberate-cadence path.
-        cap = self.max_position_weight
-        cap = cap.value if hasattr(cap, "value") else cap
-        if cap and cap > 0:
-            total_cap = self._deployable_value(current_time)
-            if total_cap > 0:
-                cur_val = trade.amount * current_rate
-                if cur_val / total_cap > cap:
-                    delta = cap * total_cap - cur_val  # negative => trim
-                    if not min_stake or abs(delta) >= min_stake:
-                        self._last_rebalance[pair] = current_time
-                        return delta
-
         # Cadence gate: CHECK at most once per rebalance_interval_hours per
         # coin — deliberate over responsive. We stamp the check time now,
         # before evaluating, so a look that finds nothing to do (or is blocked
@@ -485,6 +469,19 @@ class BasketStrategy(IStrategy):
         # Current weight of this coin = position value / total portfolio value.
         current_value = trade.amount * current_rate
         current_weight = current_value / total
+
+        # Hard per-position cap: a coin over the cap is trimmed straight back to
+        # it, bypassing the drift band AND the BB timing gate below — a runaway
+        # winner shouldn't have to wait for price to sit above mid-BB to be
+        # de-risked. Reuses `total` (no extra valuation), so it's ~free; it fires
+        # at the rebalance cadence, which is frequent enough for a safety bound.
+        cap = self.max_position_weight
+        cap = cap.value if hasattr(cap, "value") else cap
+        if cap and cap > 0 and current_weight > cap:
+            delta = cap * total - current_value  # negative => trim
+            if not min_stake or abs(delta) >= min_stake:
+                return delta
+
         target_weight = self.get_target_weight(pair, current_time, df)
 
         drift = current_weight - target_weight  # +ve == overweight
