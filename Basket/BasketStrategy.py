@@ -33,6 +33,7 @@ Spots that need care are flagged inline with ``# LOOKAHEAD:``.
 
 from __future__ import annotations
 
+import atexit
 import logging
 from datetime import datetime, timedelta
 
@@ -254,12 +255,20 @@ class BasketStrategy(IStrategy):
             self._skim_hwm = pv
             self._skim_last = None
             self._skim_log = current_time
+            # Completion-summary state (freqtrade has no backtest-end hook, so
+            # we print the income summary via atexit — see _log_income_summary).
+            self._skim_events = 0
+            self._skim_start = current_time
+            self._skim_last_pv = pv
+            atexit.register(self._log_income_summary)
         # Ratchet once per candle: bank a slice of any new equity high.
         if current_time != self._skim_last:
             self._skim_last = current_time
+            self._skim_last_pv = pv
             if pv > self._skim_hwm:
                 self._banked += frac * (pv - self._skim_hwm)
                 self._skim_hwm = pv
+                self._skim_events += 1
             # Monthly income visibility — cumulative amount taken off the table.
             if (current_time - self._skim_log) >= timedelta(days=30):
                 self._skim_log = current_time
@@ -270,6 +279,42 @@ class BasketStrategy(IStrategy):
                     current_time.date(), self._banked, pct, pv - self._banked,
                 )
         return max(pv - self._banked, 0.0)
+
+    def _log_income_summary(self) -> None:
+        """Print a skim/income summary at backtest completion.
+
+        Registered via atexit because Freqtrade has no backtest-end strategy
+        hook. Only fires in BACKTEST runmode (skipped for hyperopt/dry/live) and
+        only when the skim overlay actually ran. Reports the banked cash — the
+        income you'd have withdrawn — which Freqtrade's own summary never sees,
+        since it's reserved strategy-internal state, not a closed trade.
+        """
+        try:
+            if not hasattr(self, "_banked"):
+                return  # skim overlay never ran
+            rm = getattr(self.dp, "runmode", None)
+            if rm is not None and getattr(rm, "value", "") != "backtest":
+                return
+            start = float(self.config.get("dry_run_wallet") or 0.0)
+            banked = self._banked
+            final_pv = self._skim_last_pv
+            at_risk = max(final_pv - banked, 0.0)
+            years = max((self._skim_last - self._skim_start).days / 365.25, 1e-9)
+            inc_pct = (banked / start * 100.0) if start else 0.0
+            tot_ret = ((final_pv - start) / start * 100.0) if start else 0.0
+            log.info("=" * 62)
+            log.info("SKIM / INCOME SUMMARY  (%s)", self.__class__.__name__)
+            log.info("  starting balance     : %10.2f", start)
+            log.info("  income banked (cash) : %10.2f  (%.1f%% of start, %.1f%%/yr)",
+                     banked, inc_pct, inc_pct / years)
+            log.info("  skim events (new HWM): %10d", self._skim_events)
+            log.info("  peak portfolio (HWM) : %10.2f", self._skim_hwm)
+            log.info("  final at-risk sleeve : %10.2f", at_risk)
+            log.info("  final total value    : %10.2f  (%.1f%% total return)",
+                     final_pv, tot_ret)
+            log.info("=" * 62)
+        except Exception as exc:  # never let a summary crash the process exit
+            log.warning("income summary failed: %s", exc)
 
     def _n_coins(self) -> int:
         return max(1, len(self.dp.current_whitelist()))
