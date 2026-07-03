@@ -1,3 +1,5 @@
+and now for something completely different...
+
 # Basket — slow portfolio-rebalancing strategies
 
 A family of **portfolio-rebalancing** strategies for Freqtrade. These do *not*
@@ -6,6 +8,8 @@ periodically nudge them back toward target weights**, plus a stablecoin cash
 bucket. Think automated portfolio management, not fast trading.
 
 Targets **Freqtrade 2026.4-dev** (INTERFACE_VERSION 3).
+
+Note that these strategies are _very_ different from most other strategies, and it gets a little complicated implementing these in freqtade. For example, the normal hyperopt loss functions and backtests do not work well because there are no trades beyond the initial entries. This resulted in the need for a custom hyperopt loss function (WalletCalmarHyperOptLoss) and scripts to help evaluate (walk_forward.sh). Also, these strategies only work over long time periods (months-years) - they are not get-rich-quick strategies. They should perform (slughtly) better than market conditions, but cannot perform well in bear markets (but they do move to cash in such cases).
 
 ---
 
@@ -181,8 +185,12 @@ a hyperopt writes optimised values to `<Strategy>.json`, which then **overrides*
 the defaults on later backtests (delete that file to revert).
 
 - **Base (all variants):** `cash_target_weight`, `bb_period`, `use_bb_gate`,
-  `rebalance_band`, `rebalance_interval_hours`, `profit_skim_enable`,
-  `skim_fraction` (income overlay, off by default).
+  `entry_band`, `rebalance_band`, `rebalance_interval_hours`,
+  `profit_skim_enable`, `skim_fraction` (last two = income overlay, off by
+  default). `entry_band` (default 0.0) requires price to be that fraction BELOW
+  mid-BB to buy (entry + top-ups) — 0.0 is the loose `close < mid`; raise it
+  for a more selective dip-buy (fills slower). Walk-forward it before trusting
+  a value — its effect is non-monotonic.
   (`target_weight_per_coin` is a plain override — `None` = equal split. Only the
   BB *mid* band is used, so there is no `bb_std` knob.)
 - **ConstantMix:** `runaway_trend_override`, `hard_drift_ceiling`.

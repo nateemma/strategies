@@ -22,7 +22,7 @@ class NNNC_DDPM_MLX(NNNC_MLX):
 
 
     buy_params = { **NNNC_MLX.buy_params,
-        "prediction_threshold": 0.75
+        "prediction_threshold": 0.6
         }
 
     # Trend filter on NNNC_MLX was an experiment specific to the H=24
