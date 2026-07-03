@@ -161,6 +161,25 @@ class BasketStrategy(IStrategy):
         if not hasattr(self, "_last_rebalance"):
             self._last_rebalance = {}
 
+        # NAV tracking for the exit summary — for ALL basket strategies, not
+        # just skim. A held book is evaluated on its mark-to-market NAV and its
+        # cash/deployed split, not on (never-intended) realized trades. Snapshot
+        # once per candle: final value, cash bucket, and average cash weight.
+        if not hasattr(self, "_nav_count"):
+            self._nav_count = 0
+            self._nav_cash_sum = 0.0
+            self._nav_last_pv = 0.0
+            self._nav_last_cash = 0.0
+            self._nav_start = float(self.config.get("dry_run_wallet") or 0.0)
+            atexit.register(self._log_basket_summary)
+        pv = self._portfolio_value()
+        cash = self.wallets.get_free(self.config["stake_currency"])
+        self._nav_last_pv = pv
+        self._nav_last_cash = cash
+        if pv > 0:
+            self._nav_cash_sum += cash / pv
+            self._nav_count += 1
+
     # ------------------------------------------------------------------
     # Indicators
     # ------------------------------------------------------------------
@@ -258,16 +277,10 @@ class BasketStrategy(IStrategy):
             self._skim_hwm = pv
             self._skim_last = None
             self._skim_log = current_time
-            # Completion-summary state (freqtrade has no backtest-end hook, so
-            # we print the income summary via atexit — see _log_income_summary).
-            self._skim_events = 0
-            self._skim_start = current_time
-            self._skim_last_pv = pv
-            atexit.register(self._log_income_summary)
+            self._skim_events = 0  # counted for the exit summary
         # Ratchet once per candle: bank a slice of any new equity high.
         if current_time != self._skim_last:
             self._skim_last = current_time
-            self._skim_last_pv = pv
             if pv > self._skim_hwm:
                 self._banked += frac * (pv - self._skim_hwm)
                 self._skim_hwm = pv
@@ -283,41 +296,48 @@ class BasketStrategy(IStrategy):
                 )
         return max(pv - self._banked, 0.0)
 
-    def _log_income_summary(self) -> None:
-        """Print a skim/income summary at backtest completion.
+    def _log_basket_summary(self) -> None:
+        """Print a NAV / cash summary at backtest completion, for ANY basket
+        strategy (skim or not).
 
-        Registered via atexit because Freqtrade has no backtest-end strategy
-        hook. Only fires in BACKTEST runmode (skipped for hyperopt/dry/live) and
-        only when the skim overlay actually ran. Reports the banked cash — the
-        income you'd have withdrawn — which Freqtrade's own summary never sees,
-        since it's reserved strategy-internal state, not a closed trade.
+        Registered via atexit because Freqtrade has no backtest-end hook. A
+        held book is evaluated on its mark-to-market NAV (`total`) and its
+        cash/deployed split — not on realized trades — so this surfaces the
+        composition Freqtrade's own summary can't: `deployed` (Σ positions),
+        `cash` (undeployed), `banked` (skim-reserved, 0 if none) and the
+        average cash weight over the run (how defensive it was). Single
+        parseable line to stdout; only fires in BACKTEST runmode.
         """
         try:
-            if not hasattr(self, "_banked"):
-                return  # skim overlay never ran
+            if not hasattr(self, "_nav_last_pv"):
+                return  # never ran
             rm = getattr(self.dp, "runmode", None)
             if rm is not None and getattr(rm, "value", "") != "backtest":
                 return
-            start = float(self.config.get("dry_run_wallet") or 0.0)
-            banked = self._banked
-            final_pv = self._skim_last_pv
-            at_risk = max(final_pv - banked, 0.0)
-            years = max((self._skim_last - self._skim_start).days / 365.25, 1e-9)
-            inc_pct = (banked / start * 100.0) if start else 0.0
-            tot_ret = ((final_pv - start) / start * 100.0) if start else 0.0
-            # print() (not logging) so it lands in stdout / the captured results
-            # log for parsing. Single tagged line, keyed by the actual strategy
-            # class name (self is the concrete subclass being run).
+            start = self._nav_start
+            total = self._nav_last_pv
+            cash = self._nav_last_cash
+            deployed = max(total - cash, 0.0)
+            banked = float(getattr(self, "_banked", 0.0))
+            banked_pct = (banked / start * 100.0) if start else 0.0
+            avg_cash_pct = (
+                self._nav_cash_sum / self._nav_count * 100.0 if self._nav_count else 0.0
+            )
+            tot_ret = ((total - start) / start * 100.0) if start else 0.0
             print(
-                f"SKIM_SUMMARY strategy={self.__class__.__name__} "
-                f"start={start:.2f} banked={banked:.2f} "
-                f"banked_pct={inc_pct:.2f} banked_pct_per_yr={inc_pct / years:.2f} "
-                f"skim_events={self._skim_events} hwm={self._skim_hwm:.2f} "
-                f"at_risk={at_risk:.2f} final={final_pv:.2f} total_ret_pct={tot_ret:.2f}",
+                f"BASKET_SUMMARY strategy={self.__class__.__name__} "
+                f"start={start:.2f} total={total:.2f} deployed={deployed:.2f} "
+                f"cash={cash:.2f} banked={banked:.2f} banked_pct={banked_pct:.2f} "
+                f"avg_cash_pct={avg_cash_pct:.1f} "
+                f"skim_events={int(getattr(self, '_skim_events', 0))} "
+                f"total_ret_pct={tot_ret:.2f}",
                 flush=True,
             )
         except Exception as exc:  # never let a summary crash the process exit
-            print(f"SKIM_SUMMARY strategy={self.__class__.__name__} error={exc}", flush=True)
+            print(
+                f"BASKET_SUMMARY strategy={self.__class__.__name__} error={exc}",
+                flush=True,
+            )
 
     def _n_coins(self) -> int:
         return max(1, len(self.dp.current_whitelist()))
