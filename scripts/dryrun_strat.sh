@@ -9,7 +9,9 @@ show_usage () {
 
 Usage: zsh $script [options] <group> <strategy>
 
-[options]:  -k | --keep-db    saves the existing database. Removed by default
+[options]:  -c | --config     path to config file. Overrides the default
+                              (config.json / config_<exchange>.json). Optional
+            -k | --keep-db    saves the existing database. Removed by default
             -l | --leveraged  Use 'leveraged' config file
             -p | --port       port number (used for naming). Optional
             -s | --short      Use 'short' config file. Optional
@@ -38,12 +40,13 @@ keep_db=0
 port=""
 short=0
 leveraged=0
+config_file=""
 
 # process options
 die() { echo "$*" >&2; exit 2; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
-while getopts klp:s-: OPT; do
+while getopts c:klp:s-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
@@ -51,6 +54,7 @@ while getopts klp:s-: OPT; do
     OPTARG="${OPTARG#=}"      # if long option argument, remove assigning `=`
   fi
   case "$OPT" in
+    c | config )     needs_arg; config_file="$OPTARG" ;;
     k | keep-db )    keep_db=1 ;;
     l | leveraged )  leveraged=1 ;;
     p | port )       needs_arg; port="_$OPTARG" ;;
@@ -95,6 +99,11 @@ fi
 if [[ leveraged -ne 0 ]] ; then
     # base_config="config_${group}_leveraged.json"
     base_config=$(echo "${base_config}" | sed "s/.json/_leveraged.json/g")
+fi
+
+# explicit config via -c/--config overrides the computed default
+if [ -n "${config_file}" ]; then
+  base_config="${config_file}"
 fi
 
 if [ ! -f ${base_config} ]; then
