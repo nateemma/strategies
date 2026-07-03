@@ -486,11 +486,12 @@ def main():
         # print(strat)
         # print("------------")
         # print("")
-        # copyto('TOTAL', anywhere=True)
-        if skipto("TOTAL", anywhere=True):
+        # Bound TOTAL / SUMMARY METRICS to this strategy's block: a 0-trade
+        # strategy has NO data tables ("No trades made"), so an unbounded
+        # forward scan would consume the NEXT strategy's block and drop it.
+        if skipto("TOTAL", anywhere=True, stop="Result for strategy"):
             process_totals(strat, curr_line.rstrip())
-            # copyto('================== SUMMARY METRICS', anywhere=True)
-            if skipto(" SUMMARY METRICS", anywhere=True):
+            if skipto(" SUMMARY METRICS", anywhere=True, stop="Result for strategy"):
                 if strat_results[strat]["entries"] > 0:
                     if skipto("Expectancy", anywhere=True):
                         process_expectancy(strat, curr_line.rstrip())
