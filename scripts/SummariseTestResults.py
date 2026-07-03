@@ -21,8 +21,12 @@ exchange = ""
 issues_found = False
 
 
-# routine to skip to requested pattern
-def skipto(pattern, anywhere=False) -> bool:
+# routine to skip to requested pattern.
+# `stop`: if given, abort (return False) as soon as a line containing `stop` is
+# seen, LEAVING curr_line on that boundary line (so a caller scanning for the
+# next strategy block isn't consumed past it). This keeps an optional per-block
+# lookahead (e.g. drawdown/Calmar) from running to EOF when the line is absent.
+def skipto(pattern, anywhere=False, stop=None) -> bool:
     global curr_line
     global infile
 
@@ -40,14 +44,13 @@ def skipto(pattern, anywhere=False) -> bool:
                 pattern
             )  # string starts with pattern (ignoring whitespace)
         if found:
-            break
+            return True
+        if stop is not None and stop in curr_line:
+            return False  # hit the boundary; leave curr_line here for the caller
         curr_line = infile.readline()
 
-    if curr_line:
-        return True
-    else:
-        # print(f"*** Target not found: {pattern}")
-        return False
+    # EOF
+    return False
 
 
 # copies the input file and prints each line until pattern is found.
@@ -153,6 +156,8 @@ def get_empty_strat_result():
     entry["expectancy"] = 0
     entry["daily_profit"] = 0
     entry["vs_market"] = 0
+    entry["drawdown"] = 0.0
+    entry["calmar"] = 0.0
     return entry
 
 
@@ -190,6 +195,8 @@ def process_totals(strat, line):
     entry["expectancy"] = 0  # updated later
     entry["daily_profit"] = 0  # updated later
     entry["vs_market"] = 0  # updated later
+    entry["drawdown"] = 0.0  # updated later
+    entry["calmar"] = 0.0  # updated later
 
     strat_results[strat] = entry
 
@@ -264,6 +271,44 @@ def process_market_change(strat, line):
     return
 
 
+def process_drawdown(strat, line):
+    global strat_results
+
+    # format of line (wallet-based = TRUE mark-to-market drawdown):
+    # │ Max % of account underwater (balance)  │ 28.50%                 │
+    if "|" not in line and "│" not in line:
+        return
+    sep = "|" if "|" in line else "│"
+    cols = [c.strip() for c in line.strip().split(sep)]
+    cols = [c for c in cols if c]
+    if len(cols) < 2:
+        return
+    try:
+        strat_results[strat]["drawdown"] = float(str(cols[-1]).strip().strip("%"))
+    except ValueError:
+        pass
+    return
+
+
+def process_calmar(strat, line):
+    global strat_results
+
+    # format of line:
+    # │ Calmar (daily wallet balance)          │ 4.59                   │
+    if "|" not in line and "│" not in line:
+        return
+    sep = "|" if "|" in line else "│"
+    cols = [c.strip() for c in line.strip().split(sep)]
+    cols = [c for c in cols if c]
+    if len(cols) < 2:
+        return
+    try:
+        strat_results[strat]["calmar"] = float(str(cols[-1]).strip())
+    except ValueError:
+        pass
+    return
+
+
 def print_results(test_results):
     global market_change
     global issues_found
@@ -289,6 +334,8 @@ def print_results(test_results):
                     test_results[strategy]["ave_profit"],
                     test_results[strategy]["tot_profit"],
                     test_results[strategy]["vs_market"],
+                    test_results[strategy]["drawdown"],
+                    test_results[strategy]["calmar"],
                     test_results[strategy]["win_pct"],
                     test_results[strategy]["expectancy"],
                     test_results[strategy]["daily_profit"],
@@ -306,6 +353,8 @@ def print_results(test_results):
                 "Average%",
                 "Total%",
                 "vs Mkt%",
+                "MaxDD%",
+                "Calmar",
                 "Win%",
                 "Expectancy",
                 "Daily%",
@@ -319,10 +368,20 @@ def print_results(test_results):
         rank3 = df["Win%"].rank(ascending=False, method="min", pct=False)
         rank4 = df["Expectancy"].rank(ascending=False, method="min", pct=False)
         rank5 = df["Total%"].rank(ascending=False, method="min", pct=False)
+        # risk terms: lower drawdown = better (ascending); higher Calmar
+        # (risk-adjusted return) = better (descending).
+        rank6 = df["MaxDD%"].rank(ascending=True, method="min", pct=False)
+        rank7 = df["Calmar"].rank(ascending=False, method="min", pct=False)
         # rank_mean = np.mean([rank1, rank2, rank3, rank4, rank5], axis=0)
-        # rank_mean = np.mean([rank1, rank2, rank4, rank5], axis=0)
-        # rank_mean = np.mean([rank1, rank3, rank4, rank5], axis=0)
-        rank_mean = np.mean([rank2, rank4, rank5], axis=0)
+        # NOTE: Daily% == Total%/num_days, i.e. the SAME ranking within a run, so
+        # include only Daily% (drop Total%) to avoid double-weighting aggregate
+        # return. Rank = aggregate return (Daily%) + frequency (Win%, immune to
+        # a single big gain) + per-trade edge (Expectancy) + risk (drawdown) +
+        # risk-adjusted return (Calmar).
+        rank_mean = np.mean([rank2, rank3, rank4, rank6, rank7], axis=0)
+        # 0-trade strategies (a failed model, or the inert base) otherwise rank
+        # WELL on the 0-default DD/Calmar terms — force them to the bottom.
+        rank_mean = np.where(df["Trades"].values == 0, len(df) + 1, rank_mean)
         # print(f'rank_mean: {rank_mean}')
         df["Rank"] = scipy.stats.rankdata(rank_mean)
 
@@ -341,6 +400,8 @@ def print_results(test_results):
                     ".2f",
                     ".1f",
                     ".1f",
+                    ".1f",
+                    ".2f",
                     ".1f",
                     ".2f",
                     ".2f",
@@ -415,7 +476,8 @@ def main():
             process_time_range(curr_line.rstrip())
 
     # repeatedly scan file and find header of new run, then print results
-    while skipto("Result for strategy ", anywhere=True):
+    found_marker = skipto("Result for strategy ", anywhere=True)
+    while found_marker:
         strat = curr_line.rstrip().split(" ")[-1]
         strat_results[strat] = get_empty_strat_result()
 
@@ -443,10 +505,36 @@ def main():
                             else:
                                 market_change = 0.0
 
+                        # Risk metrics — wallet-based (the TRUE mark-to-market
+                        # drawdown / Calmar, correct for hold and fast strategies
+                        # alike). Standard freqtrade output, so group-agnostic.
+                        # Bounded by stop="Result for strategy" so that a log
+                        # WITHOUT these lines (older runs) doesn't consume the
+                        # rest of the file — it just leaves the defaults (0.0).
+                        if skipto(
+                            "Max % of account underwater (balance)",
+                            anywhere=True,
+                            stop="Result for strategy",
+                        ):
+                            process_drawdown(strat, curr_line.rstrip())
+                            if skipto(
+                                "Calmar (daily wallet",
+                                anywhere=True,
+                                stop="Result for strategy",
+                            ):
+                                process_calmar(strat, curr_line.rstrip())
+
                         # copyto('===============================')
                         # skipto('===============================')
                         # print(curr_line.rstrip())
                         # print("")
+
+        # A bounded DD/Calmar lookahead may have stopped ON the next strategy
+        # marker; if so, process it rather than skipping past it.
+        if "Result for strategy " in curr_line:
+            found_marker = True
+        else:
+            found_marker = skipto("Result for strategy ", anywhere=True)
 
     print_results(strat_results)
     print("")
