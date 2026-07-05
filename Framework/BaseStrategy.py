@@ -231,53 +231,6 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
     # hyperopt parameters
     # --------------------------------
 
-    # # Buy hyperspace params:
-    # buy_params = {
-    #     "entry_adx_threshold": 20.0,
-    #     "entry_atr_pct": 0.02,
-    #     "entry_bb_width_threshold": 0.014,  # raw 1.4% bandwidth — preserves pre-unbug effective filter
-    #     "entry_close_norm_threshold": 0.0,
-    #     "entry_enable_guards": True,
-    #     "entry_guard_threshold": -0.5,
-    #     "entry_rvol_threshold": 1.0,
-    #     "prediction_threshold": 0.8,
-    # }
-
-    # # Sell hyperspace params:
-    # sell_params = {
-    #     "cexit_enable_profit_checks": True,
-    #     "cexit_max_days": 2,
-    #     "cexit_take_profit": 0.02,
-    #     "enable_exit_signal": True,
-    #     "exit_close_norm_threshold": 0.0,
-    #     "exit_guard_threshold": 0.5,
-    # }
-
-    # # Buy parameters:
-    # buy_params = {
-    #     "entry_adx_threshold": 11.0,
-    #     "entry_atr_pct": 0.005,
-    #     "entry_bb_width_threshold": 0.04,
-    #     "entry_close_norm_threshold": 0.7,
-    #     "entry_guard_threshold": -0.1,
-    #     "entry_rvol_threshold": 1.2,
-    #     "entry_enable_guards": True,  # value loaded from strategy
-    #     "min_buy_gain_threshold": 0.007,  # value loaded from strategy
-    #     "prediction_threshold": 0.8,  # value loaded from strategy
-    #     "training_type": 17,  # value loaded from strategy
-    # }
-
-    # # Sell parameters:
-    # sell_params = {
-    #     "cexit_enable_profit_checks": True,
-    #     "cexit_max_days": 4,
-    #     "cexit_take_profit": 0.009,
-    #     "exit_close_norm_threshold": 0.9,
-    #     "exit_guard_threshold": 0.2,
-    #     "enable_exit_signal": True,  # value loaded from strategy
-    #     "min_sell_loss_threshold": 0.007,  # value loaded from strategy
-    # }
-
     # Buy parameters:
     buy_params = {
         "entry_adx_threshold": 10.0,
@@ -1001,6 +954,44 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
     # =========================================================================
     # Confirm Trade Entry / Exit
     # =========================================================================
+
+    def custom_stake_amount(
+        self,
+        pair: str,
+        current_time: datetime,
+        current_rate: float,
+        proposed_stake: float,
+        min_stake: Optional[float],
+        max_stake: float,
+        leverage: float,
+        entry_tag: Optional[str],
+        side: str,
+        **kwargs,
+    ) -> float:
+        """Reduce (rather than cancel) entries that would dominate a thin candle.
+
+        ``confirm_trade_entry`` rejects any order whose quote size exceeds
+        1 / QUOTE_VOLUME_HEADROOM_MULT of the candle's traded quote volume
+        (the ≤10% market-impact target). Here we instead cap the stake at the
+        largest size that stays within that headroom, so a marginal-liquidity
+        entry still happens at a fillable size instead of being dropped.
+
+        The absolute floors are left to the existing gate: if the reduced
+        stake falls below ``min_stake`` (or the candle's quote volume is under
+        MIN_QUOTE_VOLUME), ``confirm_trade_entry`` still cancels — so the
+        phantom-fill protection is preserved by construction, since any order
+        that does enter is ≤10% of the candle by definition.
+        """
+        if self.dp.runmode.value in ("plot", "other"):
+            return proposed_stake
+
+        dataframe, _ = self.dp.get_analyzed_dataframe(
+            pair=pair, timeframe=self.timeframe
+        )
+        last_candle = dataframe.iloc[-1].squeeze()
+        quote_volume = last_candle["volume"] * last_candle["close"]
+        fillable_stake = quote_volume / self.QUOTE_VOLUME_HEADROOM_MULT
+        return min(proposed_stake, fillable_stake)
 
     def confirm_trade_entry(
         self,
