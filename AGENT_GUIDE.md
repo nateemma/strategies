@@ -8,7 +8,7 @@ This file is intended to orient an AI agent (or a new developer) on how to build
 
 - **Shell**: `zsh` (macOS default). All scripts use `zsh`, not `bash`.
 - **Python**: A virtualenv at `.venv`. Activate with `source .venv/bin/activate` before running any Python or freqtrade commands. (Not conda.)
-- **Working directory**: Most freqtrade commands and scripts should be run from `~/freqtrade/` (the project root).
+- **Working directory**: All scripts in `scripts/` and freqtrade commands **must** be run from the project root (`~/freqtrade/`), not from `scripts/` or any subdir. The scripts use relative paths (`strat_dir="user_data/strategies"`, config at `user_data/strategies/config/…`) and prepend `.` to `PYTHONPATH` so the in-tree `freqtrade` package resolves — both only work when the CWD is the repo root. Running from the wrong directory fails with a *misleading* `ModuleNotFoundError: No module named 'freqtrade'` + `config file not found` (see Troubleshooting).
 - **PYTHONPATH**: The scripts set this automatically. If running manually, export:
   ```
   export PYTHONPATH=~/freqtrade/user_data/strategies:$PYTHONPATH
@@ -397,7 +397,16 @@ rm -rf user_data/strategies/saved_data/<StrategyName>/*
 ```
 
 ### `ImportError` or `ModuleNotFoundError`
-Make sure PYTHONPATH includes the strategies directory:
+First check your **working directory** — `ModuleNotFoundError: No module named 'freqtrade'`
+(usually alongside `config file not found: user_data/strategies/config/config.json`) when
+running a `scripts/*.sh` almost always means you launched it from the wrong CWD. The scripts
+use relative paths and a `.`-prefixed `PYTHONPATH`, so they only work from the project root:
+```zsh
+cd ~/freqtrade
+zsh user_data/strategies/scripts/test_strat.sh NNNC NNNC_CGP
+```
+If you're running Python/freqtrade manually, also make sure PYTHONPATH includes the
+strategies directory:
 ```zsh
 export PYTHONPATH=~/freqtrade/user_data/strategies:$PYTHONPATH
 ```
