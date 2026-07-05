@@ -61,6 +61,15 @@ class TS_Gain(TSPredict):
 
     forecaster_type = Forecasters.ForecasterType.PA
 
+    # Run add_rolling_predictions through the declared forecaster (PA) rather than
+    # the hardcoded MLX-MLP / LightGBM paths. The MLX path (a from-scratch 256-128
+    # MLP, full-batch, 100 epochs per chunk) is what hung on the ~750k-row
+    # aggregate; LightGBM ran but overfit the smoothed-gain target into
+    # near-constant forecasts (1 trade in 2yr). PA generalises (11 trades, PF 3.02,
+    # Calmar 5.51) and matches the live path, which already forecasts via
+    # self.forecaster.
+    use_forecaster = True
+
     # exclude indicators from base class (we only want gain history)
     include_list = []
 

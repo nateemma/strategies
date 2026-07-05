@@ -275,6 +275,18 @@ class TSPredict(BaseStrategy):
     win_size = min(32, wavelet_size)
     model_window = wavelet_size  # longer = slower
 
+    # Bound the walk-forward training window in add_rolling_predictions. The
+    # anchored expanding window (data[:train_end]) retrains on ALL history every
+    # chunk, so cost grows quadratically with dataset size (crippling on the
+    # aggregate_pairs concatenation of ~750k rows). A fixed lookback keeps each
+    # retrain O(train_window) instead. None = old anchored-expanding behaviour.
+    train_window = 50000
+
+    # add_rolling_predictions model selection. Default False → the hardcoded
+    # use_mlx / LightGBM branches. True → use the configured forecaster_type
+    # (e.g. PassiveAggressive), the model the strategy actually declares.
+    use_forecaster = False
+
     profit_nstd = 2.6
     loss_nstd = 2.6
 
@@ -507,7 +519,12 @@ class TSPredict(BaseStrategy):
         ):
             return data
 
-        backend = "MLX (Metal)" if self.use_mlx else "LightGBM"
+        if self.use_forecaster:
+            backend = self.forecaster.get_name()
+        elif self.use_mlx:
+            backend = "MLX (Metal)"
+        else:
+            backend = "LightGBM"
         self.debug_print(
             f"    Running Aggregate Training/Prediction ({backend}) for {len(data)} pairs"
         )
@@ -1101,9 +1118,13 @@ class TSPredict(BaseStrategy):
             chunk_size = 2500  # Re-train every 2500 candles for speed
             initial_train_size = max(self.train_min_len, 2000)
 
-            print(
-                f"    Training TSPredict Causal Model ({'MLX' if self.use_mlx else 'LightGBM'})..."
-            )
+            if self.use_forecaster:
+                model_label = self.forecaster.get_name()
+            elif self.use_mlx:
+                model_label = "MLX"
+            else:
+                model_label = "LightGBM"
+            print(f"    Training TSPredict Causal Model ({model_label})...")
 
             for win_end in range(initial_train_size, nrows, chunk_size):
                 # train_end must be behind win_end by at least lookahead
@@ -1115,8 +1136,15 @@ class TSPredict(BaseStrategy):
                 if train_end <= 0:
                     continue
 
-                X_train = data[:train_end]
-                y_train = future_gain_data[:train_end]
+                # Bounded lookback (fixed window) instead of anchored expanding —
+                # keeps each retrain O(train_window). None = train on all history.
+                train_start = (
+                    max(0, train_end - self.train_window)
+                    if self.train_window
+                    else 0
+                )
+                X_train = data[train_start:train_end]
+                y_train = future_gain_data[train_start:train_end]
                 X_predict = data[win_end:predict_end]
 
                 if len(X_predict) == 0:
@@ -1166,7 +1194,20 @@ class TSPredict(BaseStrategy):
                         X_predict[:, needs_scale_indices]
                     )
 
-                if self.use_mlx:
+                if self.use_forecaster:
+                    # Configured-forecaster path (e.g. PassiveAggressive) — honor
+                    # forecaster_type instead of a hardcoded model. Fresh instance
+                    # per chunk (parallels the LightGBM arm) on the same scaled
+                    # features; detrend is disabled because the chunk features are
+                    # already scaled here (the forecaster's stateful detrender is
+                    # meant for the raw single-column predict() path).
+                    forecaster = Forecasters.make_forecaster(self.forecaster_type)
+                    forecaster.set_detrend(False)
+                    forecaster.train(X_train_processed, y_train, incremental=False)
+                    chunk_preds = forecaster.forecast(
+                        X_predict_processed, self.lookahead
+                    )
+                elif self.use_mlx:
                     # MLX Path
                     # Increased epochs for better convergence on pooled data
                     model = train_mlx_global(X_train_processed, y_train, epochs=100)
