@@ -132,6 +132,18 @@ class NNPredictStrategy(BaseNNStrategy):
     # trades alone. See feedback_nnpredict_adaptive_magnitude_inverse.
     mag_std_mult: float = 0.0
 
+    # Magnitude-floor mode:
+    #   "absolute"   — floor = max(min_magnitude, mag_std_mult * rolling_std)
+    #                  (the existing behaviour; unchanged default).
+    #   "percentile" — floor = rolling `magnitude_pctile` quantile of |pred|.
+    # The absolute floor (0.10) is calibrated on the TARGET scale (~0.23) but is
+    # applied to the raw predictions, which regress-to-mean and compress to a much
+    # smaller, predictor-dependent scale (Ridge vs LSTM differ). A percentile
+    # floor is scale-invariant: it always passes the top (1-pctile) fraction of
+    # |pred|, so it self-calibrates to whatever amplitude the model outputs.
+    magnitude_floor_mode: str = "absolute"
+    magnitude_pctile: float = 0.60
+
     # entry_quantile / exit_quantile kept for backward compat but UNUSED
     # under the new logic.
     entry_quantile: float = 0.90
@@ -464,9 +476,19 @@ class NNPredictStrategy(BaseNNStrategy):
         # On pairs where the model is uncertain (high pred_std), the floor
         # rises proportionally so only outlier-magnitude signals fire. On
         # confident pairs (low pred_std), the static base applies.
-        adaptive_floor = np.maximum(
-            self.min_magnitude, self.mag_std_mult * pred_std
-        )
+        if self.magnitude_floor_mode == "percentile":
+            # Scale-invariant floor: rolling percentile of |pred|. Self-calibrates
+            # to the predictor's output amplitude, so compression / predictor
+            # choice doesn't shift the effective threshold.
+            adaptive_floor = (
+                gains_series.abs()
+                .rolling(window, min_periods=mp)
+                .quantile(self.magnitude_pctile)
+            )
+        else:
+            adaptive_floor = np.maximum(
+                self.min_magnitude, self.mag_std_mult * pred_std
+            )
 
         actions = np.full(original_length, TradingAction.HOLD, dtype=int)
         # BOTH conditions required: unusual ranking (z) AND meaningful
