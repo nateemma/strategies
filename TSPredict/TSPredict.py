@@ -84,7 +84,7 @@ sys.path.append(group_dir)
 
 
 import utils.custom_indicators as cta
-from utils.Scalers import load_scaler, scaler_exists
+from utils.Scalers import load_scaler, save_scaler, scaler_exists
 
 import utils.Wavelets as Wavelets
 import utils.Forecasters as Forecasters
@@ -98,6 +98,36 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 warnings.simplefilter(action="ignore", category=UserWarning)
 
 pd.options.mode.chained_assignment = None  # default='warn'
+
+# Parallel-hyperopt pickling fix.
+#
+# freqtrade's ``hyperopt_pickle_magic`` (optimize/hyperopt/hyperopt_optimizer.py)
+# walks the strategy's base-class MRO and registers each base's module for
+# cloudpickle pickle-by-value, so strategies subclassed across files can be sent
+# to hyperopt workers. That walk reaches ``object`` (e.g. via the mixin bases
+# such as ``StrategyDiagnostics.__bases__ == (object,)``) and registers
+# ``object.__module__`` == ``"builtins"``. Once ``builtins`` is pickled by value,
+# cloudpickle serialises ``type`` by value too; because ``type``'s metaclass is
+# ``type`` this recurses forever and parallel hyperopt dies with
+# "Could not pickle object as excessively deep recursion required".
+#
+# Guard the registration so builtins / stdlib modules are never registered
+# by-value — they are always importable by reference, so this is always safe and
+# simply undoes the accidental over-registration. (Applied here rather than in
+# freqtrade core, which is upstream.)
+from joblib.externals import cloudpickle as _ftcp
+
+if not getattr(_ftcp.register_pickle_by_value, "_ts_guarded", False):
+    _orig_register_pbv = _ftcp.register_pickle_by_value
+
+    def _guarded_register_pbv(module):
+        name = getattr(module, "__name__", "")
+        if name == "builtins" or name in getattr(sys, "stdlib_module_names", ()):
+            return
+        return _orig_register_pbv(module)
+
+    _guarded_register_pbv._ts_guarded = True
+    _ftcp.register_pickle_by_value = _guarded_register_pbv
 
 
 # -----------------------------------------------------------------------
@@ -287,6 +317,24 @@ class TSPredict(BaseStrategy):
     # (e.g. PassiveAggressive), the model the strategy actually declares.
     use_forecaster = False
 
+    # Candles of history required before the FIRST walk-forward prediction in
+    # add_rolling_predictions (predicted_gain is 0 until then → no entries).
+    # This is a fixed CANDLE count, so the dead zone scales with timeframe:
+    # 2000 ≈ 20d at 15m but ≈ 333d at 4h. Lower it (per strategy/timeframe) to
+    # shorten the startup ramp; the only cost is a noisier first chunk.
+    initial_train_min = 2000
+
+    # Static-model mode (LIVE-SAFE). The walk-forward add_rolling_predictions
+    # retrains inside the dataframe, which needs tens of thousands of rows and
+    # so cannot run live (the exchange buffer is ~950 candles). With static_model
+    # the forecaster is trained ONCE (offline / first pass) on the full history
+    # and persisted; every later pass — backtest, plot AND live — just LOADS the
+    # model + its feature scaler and predicts per bar from the small feature
+    # window. Inference needs only the get_data lookback (16 candles for TS_Gain),
+    # so backtest and live use identical inference. Default False → unchanged
+    # walk-forward path for the wavelet subclasses.
+    static_model = False
+
     profit_nstd = 2.6
     loss_nstd = 2.6
 
@@ -465,7 +513,8 @@ class TSPredict(BaseStrategy):
             * (dataframe["close"] - dataframe["close"].shift(self.lookahead))
             / dataframe["close"].shift(self.lookahead)
         ).fillna(0.0)
-        dataframe["gain"] = self.super_smoother(gain, 10).fillna(0.0)
+        # dataframe["gain"] = self.super_smoother(gain, 10).fillna(0.0)
+        dataframe["gain"] = gain
         dataframe["gain"] = dataframe["gain"].round(4)
 
         # need to save the gain data for later scaling
@@ -622,8 +671,8 @@ class TSPredict(BaseStrategy):
     # look ahead to get future gain. Do *not* put this into the main dataframe!
     def get_future_gain(self, dataframe):
         df = self.convert_dataframe(dataframe)
-        future_gain = df["gain"].shift(-self.lookahead).fillna(0.0)
-        future_gain = self.super_smoother(future_gain, 10).fillna(0.0).to_numpy().copy()
+        future_gain = df["gain"].shift(-self.lookahead).fillna(0.0).to_numpy().copy()
+        # future_gain = self.super_smoother(future_gain, 10).fillna(0.0).to_numpy().copy()
         future_gain[-self.lookahead :] = 0.0
         future_gain = np.round(future_gain, decimals=3)
         future_gain = np.nan_to_num(future_gain)
@@ -1116,7 +1165,7 @@ class TSPredict(BaseStrategy):
 
             # Walk-forward training to avoid lookahead bias and speed up processing
             chunk_size = 2500  # Re-train every 2500 candles for speed
-            initial_train_size = max(self.train_min_len, 2000)
+            initial_train_size = max(self.train_min_len, self.initial_train_min)
 
             if self.use_forecaster:
                 model_label = self.forecaster.get_name()
@@ -1334,6 +1383,85 @@ class TSPredict(BaseStrategy):
     # -------------
 
     # add predictions to dataframe['predicted_gain']
+    # =====================================================================
+    # Static-model (live-safe) training + inference
+    # =====================================================================
+
+    def _static_scaler_loc(self) -> str:
+        # co-locate the feature scaler with the saved model
+        return self.get_storage_location() + self.__class__.__name__
+
+    def train_static_model(self, dataframe: DataFrame) -> None:
+        """Train the forecaster ONCE on the full history and persist it plus the
+        feature scaler. Called on the training pass (no saved model yet)."""
+        features, _ = self.get_data(dataframe)
+        labels = self.get_future_gain(dataframe)
+
+        # drop the tail where the forward label is undefined
+        n = max(0, len(features) - self.lookahead - 1)
+        X = np.nan_to_num(features[:n])
+        y = np.nan_to_num(labels[:n])
+        if len(X) == 0:
+            print("    *** static training: no data")
+            return
+
+        scaler = RobustScaler().fit(X)
+        save_scaler(scaler, self._static_scaler_loc(), "ts_feature_scaler")
+
+        # detrend disabled: features are already scaled here, and the
+        # forecaster's stateful detrender is for the raw single-column path.
+        self.forecaster.set_detrend(False)
+        self.forecaster.train(scaler.transform(X), y, incremental=False)
+
+        self.model = self.forecaster.get_model()
+        self.model_trained = True
+        self.save_model()
+        print(f"    static model trained on {len(X)} rows and saved")
+
+    def add_static_predictions(self, dataframe: DataFrame) -> DataFrame:
+        """Live-safe prediction. On the training pass, train + save; otherwise
+        load the persisted feature scaler and predict per bar with the loaded
+        model. Identical inference for any buffer size (~950 live candles or a
+        full backtest), so backtest and live match."""
+        try:
+            if self.training_mode:
+                self.train_static_model(dataframe)
+                dataframe["predicted_gain"] = 0.0
+                return dataframe
+
+            features, _ = self.get_data(dataframe)
+            features = np.nan_to_num(features)
+
+            loc = self._static_scaler_loc()
+            if scaler_exists(loc, "ts_feature_scaler"):
+                features = load_scaler(loc, "ts_feature_scaler").transform(features)
+
+            self.forecaster.set_detrend(False)
+            preds = self.forecaster.forecast(features, self.lookahead)
+            preds = np.clip(np.nan_to_num(preds), -3.0, 3.0)
+
+            dataframe["predicted_gain"] = preds
+            # dataframe["predicted_gain"] = self.super_smoother(
+            #     dataframe["predicted_gain"], 4
+            # ).fillna(0.0)
+            dataframe["curr_target"] = dataframe["close"] * (
+                1.0 + dataframe["predicted_gain"] / 100.0
+            )
+
+            self.custom_trade_info[self.curr_pair]["curr_prediction"] = dataframe[
+                "predicted_gain"
+            ].iloc[-1]
+            self.custom_trade_info[self.curr_pair]["curr_target"] = dataframe[
+                "curr_target"
+            ].iloc[-1]
+        except Exception as e:
+            print("*** Exception in add_static_predictions()")
+            print(e)
+            print(traceback.format_exc())
+            dataframe["predicted_gain"] = 0.0
+
+        return dataframe
+
     def add_predictions(self, dataframe: DataFrame) -> DataFrame:
         # print(f"    {self.curr_pair} adding predictions")
 
@@ -1344,6 +1472,20 @@ class TSPredict(BaseStrategy):
             prof.enable()
 
         self.scaler = RobustScaler()  # reset scaler each time
+
+        # Static-model (live-safe) path: train once + persist, else load + infer
+        # per bar. Bypasses the walk-forward retrain that can't run live.
+        if self.static_model:
+            if self.curr_pair not in self.custom_trade_info:
+                self.custom_trade_info[self.curr_pair] = {
+                    "curr_prediction": 0.0,
+                    "curr_target": 0.0,
+                }
+            dataframe = self.add_static_predictions(dataframe)
+            dataframe["shifted_pred"] = dataframe["predicted_gain"].shift(
+                self.lookahead
+            )
+            return dataframe
 
         self.init_model(dataframe)
 
@@ -1389,10 +1531,10 @@ class TSPredict(BaseStrategy):
             # predictions can spike, so constrain range and smooth slightly
             dataframe["predicted_gain"] = (
                 dataframe["predicted_gain"].fillna(0.0).clip(lower=-3.0, upper=3.0)
-            )
-            dataframe["predicted_gain"] = self.super_smoother(
-                dataframe["predicted_gain"], 4
             ).fillna(0.0)
+            # dataframe["predicted_gain"] = self.super_smoother(
+            #     dataframe["predicted_gain"], 4
+            # ).fillna(0.0)
 
             # save target rate for later use
             dataframe["curr_target"] = dataframe["close"] * (
@@ -1430,10 +1572,17 @@ class TSPredict(BaseStrategy):
         # (choose one)
         breakout_threshold = dataframe["target_profit"]
         reversion_threshold = dataframe["target_loss"]
+        # model_cond = (
+        #     # prediction crossed target
+        #     qtpylib.crossed_above(dataframe["predicted_gain"], breakout_threshold)
+        #     | qtpylib.crossed_above(dataframe["predicted_gain"], reversion_threshold)
+        # )
         model_cond = (
             # prediction crossed target
-            qtpylib.crossed_above(dataframe["predicted_gain"], breakout_threshold)
-            | qtpylib.crossed_above(dataframe["predicted_gain"], reversion_threshold)
+            # (dataframe["predicted_gain"] > breakout_threshold)
+            # | (dataframe["predicted_gain"] > reversion_threshold)
+
+            dataframe["predicted_gain"] > dataframe["target_profit"]
         )
 
         return model_cond
@@ -1447,10 +1596,16 @@ class TSPredict(BaseStrategy):
             return pd.Series([False] * len(dataframe))
 
         # model triggers
+        # model_cond = (
+        #     # prediction crossed target
+        #     qtpylib.crossed_below(
+        #         dataframe["predicted_gain"], dataframe["target_profit"]
+        #     )
+        # )
         model_cond = (
             # prediction crossed target
-            qtpylib.crossed_below(
-                dataframe["predicted_gain"], dataframe["target_profit"]
+            (
+                dataframe["predicted_gain"] < dataframe["target_loss"]
             )
         )
 
