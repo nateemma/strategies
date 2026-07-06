@@ -65,7 +65,7 @@ Note: yes, I know there many other algorithms that could be used. If you don't s
 
 ## Indicators
 
-If you want to add indicators, then you should crate a new strategy that inherits from the strategy that you want to modify, and override the function add_strategy_indicators(). Then, follow the steps below to create a model for the new strategy (unless you are subclassing one of the TS_Wavelet strategies, which does not use stored models).
+If you want to add indicators, then you should create a new strategy that inherits from the strategy that you want to modify, and override the function add_strategy_indicators(). Then, follow the steps below to create a model for the new strategy (unless you are subclassing one of the TS_Wavelet strategies, which does not use stored models).
 
 ## Models
 

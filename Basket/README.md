@@ -9,7 +9,7 @@ bucket. Think automated portfolio management, not fast trading.
 
 Targets **Freqtrade 2026.4-dev** (INTERFACE_VERSION 3).
 
-Note that these strategies are _very_ different from most other strategies, and it gets a little complicated implementing these in freqtade. For example, the normal hyperopt loss functions and backtests do not work well because there are no trades beyond the initial entries. This resulted in the need for a custom hyperopt loss function (WalletCalmarHyperOptLoss) and scripts to help evaluate (walk_forward.sh). Also, these strategies only work over long time periods (months-years) - they are not get-rich-quick strategies. They should perform (slughtly) better than market conditions, but cannot perform well in bear markets (but they do move to cash in such cases).
+Note that these strategies are _very_ different from most other strategies, and it gets a little complicated implementing these in freqtrade. For example, the normal hyperopt loss functions and backtests do not work well because there are no trades beyond the initial entries. This resulted in the need for a custom hyperopt loss function (WalletCalmarHyperOptLoss) and scripts to help evaluate (walk_forward.sh). Also, these strategies only work over long time periods (months-years) - they are not get-rich-quick strategies. They should perform (slightly) better than market conditions, but cannot perform well in bear markets (but they do move to cash in such cases).
 
 ---
 
