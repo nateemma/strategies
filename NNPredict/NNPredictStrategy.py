@@ -164,6 +164,17 @@ class NNPredictStrategy(BaseNNStrategy):
     # in memory. Re-enable only if signal logic is also revised.
     LABEL_SMOOTH_WINDOW: int = 0
 
+    # Target formulation:
+    #   "point"     — H-bar-forward point return (close[i+H] vs close[i]). Default.
+    #   "excursion" — the dominant signed move over the next H bars (largest
+    #                 favorable rise vs adverse fall), i.e. the move a trade could
+    #                 actually capture rather than the arbitrary endpoint. Causal
+    #                 forward mirror of recent_gain, same sign/ATR/cap convention.
+    # Validated on the wavelet-coeff family (NNPredict_Coeff_Exc): "excursion" was
+    # the one change where ρ AND OOS P&L moved together. Feature-agnostic, so any
+    # NNPredict strategy can opt in. Judge on walk-forward P&L, not ρ/R².
+    target_mode: str = "point"
+
     # =========================================================================
     # Classifier (regressor) selection
     # =========================================================================
@@ -289,6 +300,9 @@ class NNPredictStrategy(BaseNNStrategy):
         Note: atr_pct is sampled at i+H here (consistent with current_gain's
         backward definition), not at i as the prior implementation used.
         """
+        if self.target_mode == "excursion":
+            return self._excursion_labels(dataframe)
+
         self.dbg_curr_df = dataframe
 
         if "current_gain" not in dataframe.columns:
@@ -319,6 +333,37 @@ class NNPredictStrategy(BaseNNStrategy):
                 f"std={labels.std():.4f} min={labels.min():.4f} max={labels.max():.4f}"
             )
 
+        return labels
+
+    def _excursion_labels(self, dataframe: DataFrame):
+        """Dominant signed excursion over the forward window [i+1 .. i+H]:
+            up   = (max(high[i+1:i+H]) - close[i]) / close[i]   (rise potential)
+            down = (close[i] - min(low[i+1:i+H])) / close[i]    (fall potential)
+            raw  = up if up >= down else -down                  (dominant move)
+            gain = raw / atr_pct  -> clip to ±cap -> /cap in [-1, 1]
+        Same sign convention + ATR normalization + cap as current_gain, so the
+        z-score / magnitude signal logic is unchanged. Feature-agnostic."""
+        self.dbg_curr_df = dataframe
+        close = dataframe["close"].astype(float)
+        high = dataframe["high"].astype(float)
+        low = dataframe["low"].astype(float)
+        atr_pct = pd.Series(
+            dataframe.get("atr_pct", pd.Series(np.zeros(len(close)), index=close.index))
+        ).fillna(0.0)
+        atr_pct = np.maximum(atr_pct.to_numpy(dtype=float), self.atr_floor)
+        h = int(self.HORIZON)
+
+        c = close.to_numpy(dtype=float)
+        fwd_high = high.rolling(h).max().shift(-h).to_numpy(dtype=float)
+        fwd_low = low.rolling(h).min().shift(-h).to_numpy(dtype=float)
+        up = (fwd_high - c) / c
+        down = (c - fwd_low) / c
+        raw = np.where(up >= down, up, -down)
+        gain_atr = np.nan_to_num(raw / atr_pct, nan=0.0, posinf=0.0, neginf=0.0)
+        cap = float(max(self.target_max_gain, self.target_max_loss))
+        labels = np.nan_to_num(np.clip(gain_atr, -cap, cap) / cap).astype(np.float32)
+
+        self.dbg_curr_df["%train_gain"] = labels
         return labels
 
     # =========================================================================

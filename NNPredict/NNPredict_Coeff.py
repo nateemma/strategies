@@ -82,13 +82,7 @@ class NNPredict_Coeff(NNPredictStrategy):
     gain_smoother = None
     gain_smooth_period = 8
 
-    # Target formulation:
-    #   "point"     — H-bar-forward point return (NNPredict default).
-    #   "excursion" — the dominant signed move over the next H bars (largest
-    #                 favorable rise vs adverse fall), i.e. the move a trade could
-    #                 actually capture rather than the arbitrary endpoint. Causal
-    #                 forward mirror of recent_gain. Judge on OOS P&L, not ρ.
-    target_mode = "point"
+    # target_mode ("point" | "excursion") is inherited from NNPredictStrategy.
 
     _wavelet = None  # lazily created transform instance
 
@@ -175,40 +169,6 @@ class NNPredict_Coeff(NNPredictStrategy):
 
         out = transformer.transform(np.nan_to_num(coeff_table))
         return np.clip(out, -10.0, 10.0)
-
-    def get_training_labels(self, dataframe: DataFrame):
-        if self.target_mode != "excursion":
-            return super().get_training_labels(dataframe)
-
-        # Dominant signed excursion over the forward window [i+1 .. i+H]:
-        #   up   = (max(high[i+1:i+H]) - close[i]) / close[i]   (rise potential)
-        #   down = (close[i] - min(low[i+1:i+H])) / close[i]    (fall potential)
-        #   raw  = up if up >= down else -down                  (dominant move)
-        #   gain = raw / atr_pct  -> clip to ±cap -> /cap in [-1, 1]
-        # Same sign convention + ATR normalization + cap as current_gain, so the
-        # z-score / magnitude signal logic is unchanged.
-        self.dbg_curr_df = dataframe
-        close = dataframe["close"].astype(float)
-        high = dataframe["high"].astype(float)
-        low = dataframe["low"].astype(float)
-        atr_pct = pd.Series(
-            dataframe.get("atr_pct", pd.Series(np.zeros(len(close)), index=close.index))
-        ).fillna(0.0)
-        atr_pct = np.maximum(atr_pct.to_numpy(dtype=float), self.atr_floor)
-        h = int(self.HORIZON)
-
-        c = close.to_numpy(dtype=float)
-        fwd_high = high.rolling(h).max().shift(-h).to_numpy(dtype=float)
-        fwd_low = low.rolling(h).min().shift(-h).to_numpy(dtype=float)
-        up = (fwd_high - c) / c
-        down = (c - fwd_low) / c
-        raw = np.where(up >= down, up, -down)
-        gain_atr = np.nan_to_num(raw / atr_pct, nan=0.0, posinf=0.0, neginf=0.0)
-        cap = float(max(self.target_max_gain, self.target_max_loss))
-        labels = np.nan_to_num(np.clip(gain_atr, -cap, cap) / cap).astype(np.float32)
-
-        self.dbg_curr_df["%train_gain"] = labels
-        return labels
 
     @staticmethod
     def _wma(s: pd.Series, period: int) -> pd.Series:
