@@ -57,8 +57,14 @@ class NNWaveletStrategy(NNPredict_Coeff):
     coeff_pca_components = None  # no dimensionality reduction on this path
     gain_smoother = None         # coeffs must match the gain we reconstruct
 
-    # own scaler namespace so we don't collide with NNPredict_Coeff's
-    coeff_scaler_name = "nnwavelet_coeff_scaler"
+    # Own scaler namespace, keyed by wavelet type + size. Different wavelets
+    # produce different coefficient counts, so a fixed name would load a scaler
+    # fit for the old dimensionality after switching wavelet_type/size ("X has N
+    # features, but RobustScaler is expecting M"). Keying on the wavelet gives
+    # each its own persisted scaler.
+    @property
+    def coeff_scaler_name(self):
+        return f"nnwavelet_coeff_{self.wavelet_type.name}_{self.wavelet_size}"
 
     # reconstructed gain is in raw gain units, not the normalised target scale,
     # so the static min_magnitude floor would be wrong — use the self-calibrating
