@@ -64,7 +64,8 @@ class NNPredictStrategy(BaseNNStrategy):
                 "predict_sell": {"color": "red"},
                 "%train_gain": { "color": "blue"},
                 "%predict_gain": { "color": "purple"},
-                "fisher_ss": { "color": "lightsteelblue"}
+                "%entry_threshold": { "color": "green"},
+                "%exit_threshold": { "color": "red"},
             },
         },
     }
@@ -557,5 +558,20 @@ class NNPredictStrategy(BaseNNStrategy):
         # path stores per-class probabilities; the equivalent here is the raw
         # predicted gain.
         dataframe["%predict_gain"] = pred_gains_full
+
+        # The buy/sell tests (z > entry_z AND |gain| > floor) are equivalent to
+        # gain crossing a dynamic band; express those bands in gain units so they
+        # can be plotted against %predict_gain (mirrors TSPredict's target_profit
+        # / target_loss). Entry fires when %predict_gain rises above
+        # %entry_threshold, exit when it drops below %exit_threshold.
+        mean_arr = pred_mean.to_numpy(dtype=float)
+        std_arr = pred_std.to_numpy(dtype=float)
+        floor_arr = np.asarray(adaptive_floor, dtype=float)
+        dataframe["%entry_threshold"] = np.nan_to_num(
+            np.maximum(mean_arr + self.entry_z * std_arr, floor_arr)
+        )
+        dataframe["%exit_threshold"] = np.nan_to_num(
+            np.minimum(mean_arr - self.entry_z * std_arr, -floor_arr)
+        )
 
         return actions
