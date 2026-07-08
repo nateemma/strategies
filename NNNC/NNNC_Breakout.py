@@ -42,6 +42,7 @@ class NNNC_Breakout(NNNC_MLX, BtcRegimeGate):
         **NNNC_MLX.buy_params,
         "entry_close_norm_threshold": 5.0,
         "entry_guard_threshold": 5.0,
+        "prediction_threshold": 0.15,   # lowered for measurable trade volume in the A/B
     }
 
     # --- BTC-uptrend state filter, now aligned with a momentum strategy ---

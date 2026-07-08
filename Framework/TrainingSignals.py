@@ -2627,6 +2627,42 @@ def labels_breakout_consensus(
     return pd.Series(labels, index=df.index)
 
 
+def labels_breakout_consensus_sell(
+    df: pd.DataFrame,
+    min_loss: float = 0.01,
+    horizon: int = DEFAULT_HORIZON,
+    min_indicators_sell: int = 4,
+    min_gain: Optional[float] = None,
+) -> pd.Series:
+    """Breakdown (momentum-down) consensus — mirror of labels_breakout_consensus:
+    directional oscillators flipped to WEAK (guard<=-0.2, aroonosc<=-0.2), bearish
+    sar/vwap, keeping trend/volatility filters + future follow-through DOWN."""
+    close = _safe_close(df)
+    n = len(close)
+    labels = np.zeros(n, dtype=float)
+
+    def _g(c):
+        return np.nan_to_num(np.asarray(df.get(c, pd.Series(np.zeros(n))), dtype=float), nan=0.0)
+
+    adx = _g("adx_scaled"); aroonosc = _g("aroonosc_scaled"); guard = _g("guard_metric")
+    sar_ratio = _g("sar_ratio"); bb_width = _g("bb_width"); vwap_ratio = _g("vwap_ratio")
+    min_future = _rolling_min_forward(close, horizon)
+    future_loss = (close - min_future) / close
+
+    votes = np.zeros(n, dtype=int)
+    votes += (adx >= 0.1).astype(int)
+    votes += (aroonosc <= -0.2).astype(int)
+    votes += (guard <= -0.2).astype(int)
+    votes += (sar_ratio <= -0.2).astype(int)
+    votes += (bb_width >= 0.017).astype(int)
+    votes += (vwap_ratio <= -0.2).astype(int)
+    ml = min_loss if min_loss is not None else 0.0
+    sell = (votes >= min_indicators_sell) & (future_loss >= ml)
+    sell = np.where(np.isnan(future_loss), False, sell)
+    labels[sell] = 1.0
+    return pd.Series(labels, index=df.index)
+
+
 # ------------------------------
 # Accessors
 # ------------------------------
@@ -2919,6 +2955,13 @@ def get_train_sell_signals(
         allowed = {"min_loss", "horizon", "guard_threshold", "bb_width_threshold"}
         local = {k: v for k, v in local.items() if k in allowed}
         return labels_breakout_gbb_sell(df, **local).astype(float)
+
+    if method_enum == LabelMethod.breakout_consensus:
+        # Inverse-consensus breakdown sell variant
+        local = dict(params or {})
+        allowed = {"min_loss", "horizon", "min_indicators_sell"}
+        local = {k: v for k, v in local.items() if k in allowed}
+        return labels_breakout_consensus_sell(df, **local).astype(float)
 
     if method_enum == LabelMethod.quantile_future:
         # Use dedicated sell variant for quantile future return
