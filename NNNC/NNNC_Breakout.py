@@ -38,11 +38,21 @@ class NNNC_Breakout(NNNC_MLX, BtcRegimeGate):
 
     # --- neutralise the dip guards (breakouts have HIGH close_norm/guard_metric);
     #     keep volume/rvol/atr/adx/bb_width guards, which confirm real breakouts ---
+    # NNNC_Breakout has no <Strategy>.json, so it inherits the RAW un-tuned
+    # BaseStrategy guard defaults (entry_bb_width_threshold=0.094,
+    # entry_atr_pct=0.013) which pass only ~1% of bars each and ~0% combined —
+    # they annihilate the (dense) predict_buy signal. Relax the volatility/volume
+    # guards to permissive values so the model + BTC gate are the real filters;
+    # keep a light rvol confirmation (breakouts want volume). The two dip guards
+    # (close_norm/guard_metric) stay neutralised.
     buy_params = {
         **NNNC_MLX.buy_params,
         "entry_close_norm_threshold": 5.0,
         "entry_guard_threshold": 5.0,
-        "prediction_threshold": 0.15,   # lowered for measurable trade volume in the A/B
+        "entry_bb_width_threshold": 0.0,     # was 0.094 (1% pass) — neutralised
+        "entry_atr_pct": 0.0,                # was 0.013 (1% pass) — neutralised
+        "entry_rvol_threshold": 1.0,         # was 1.9 — light volume confirmation
+        "prediction_threshold": 0.15,
     }
 
     # --- BTC-uptrend state filter, now aligned with a momentum strategy ---
