@@ -2390,6 +2390,148 @@ def labels_geometry_sell(
     return pd.Series(labels, index=df.index)
 
 
+def labels_breakout(
+    df: pd.DataFrame,
+    min_gain: float = 0.01,
+    horizon: Optional[int] = DEFAULT_HORIZON,
+    lookback: int = 20,
+    min_loss: Optional[float] = None,  # ignored for buy (call-site compat)
+) -> pd.Series:
+    """
+    Breakout (momentum) BUY labels — the opposite entry condition to the
+    mean-reversion labelers (gbb/trends buy dips). Label a bar as Buy when the
+    close breaks OUT above the prior `lookback`-bar high (a Donchian upside
+    breakout) AND the move follows through (max future gain over `horizon`
+    >= min_gain). A model trained on this buys STRENGTH, not weakness — so a
+    BTC-uptrend / trend filter is ALIGNED with it rather than fighting it.
+    """
+    close = _safe_close(df)
+    n = len(close)
+    labels = np.zeros(n, dtype=float)
+    high = np.nan_to_num(np.asarray(df.get("high", pd.Series(close)), dtype=float))
+    prior_high = pd.Series(high).rolling(lookback).max().shift(1).to_numpy()
+    breakout = close > prior_high                       # new lookback-bar high
+    max_future = _rolling_max_forward(close, horizon)
+    future_gain = (max_future - close) / close
+    min_gain_val = min_gain if min_gain is not None else 0.0
+    buy_mask = breakout & (future_gain >= min_gain_val)
+    buy_mask = np.where(np.isnan(future_gain) | np.isnan(prior_high), False, buy_mask)
+    labels[buy_mask] = 1.0
+    return pd.Series(labels, index=df.index)
+
+
+def labels_breakout_sell(
+    df: pd.DataFrame,
+    min_loss: float = 0.01,
+    horizon: Optional[int] = DEFAULT_HORIZON,
+    lookback: int = 20,
+    min_gain: Optional[float] = None,  # ignored for sell (call-site compat)
+) -> pd.Series:
+    """
+    Breakdown (momentum-down) SELL labels: close breaks BELOW the prior
+    `lookback`-bar low AND the drop follows through (max future loss over
+    `horizon` >= min_loss). Mirror of labels_breakout for the sell side.
+    """
+    close = _safe_close(df)
+    n = len(close)
+    labels = np.zeros(n, dtype=float)
+    low = np.nan_to_num(np.asarray(df.get("low", pd.Series(close)), dtype=float))
+    prior_low = pd.Series(low).rolling(lookback).min().shift(1).to_numpy()
+    breakdown = close < prior_low                       # new lookback-bar low
+    min_future = _rolling_min_forward(close, horizon)
+    future_loss = (close - min_future) / close
+    min_loss_val = min_loss if min_loss is not None else 0.0
+    sell_mask = breakdown & (future_loss >= min_loss_val)
+    sell_mask = np.where(np.isnan(future_loss) | np.isnan(prior_low), False, sell_mask)
+    labels[sell_mask] = 1.0
+    return pd.Series(labels, index=df.index)
+
+
+def labels_breakout_tb(
+    df: pd.DataFrame,
+    min_gain: float = 0.01,
+    horizon: Optional[int] = DEFAULT_HORIZON,
+    lookback: int = 20,
+    min_loss: Optional[float] = None,
+) -> pd.Series:
+    """Breakout with CLEAN (path-aware) follow-through — the fix for the crude
+    labels_breakout target. Label Buy only when the breakout price is still up at
+    the horizon END (not a transient spike) AND the drawdown during the window
+    stayed shallow (<= min_gain). Removes the fakeouts that pollute the max-
+    favorable-excursion target and cap its learnability/EV."""
+    close = _safe_close(df)
+    n = len(close)
+    labels = np.zeros(n, dtype=float)
+    high = np.nan_to_num(np.asarray(df.get("high", pd.Series(close)), dtype=float))
+    prior_high = pd.Series(high).rolling(lookback).max().shift(1).to_numpy()
+    breakout = close > prior_high
+    end = pd.Series(close).shift(-horizon).to_numpy()
+    fwd_end = (end - close) / close                         # return held to t+H
+    min_future = _rolling_min_forward(close, horizon)
+    mae = (close - min_future) / close                      # max drawdown in window
+    mg = min_gain if min_gain is not None else 0.0
+    buy = breakout & (fwd_end >= mg) & (mae <= mg)
+    buy = np.where(np.isnan(fwd_end) | np.isnan(prior_high), False, buy)
+    labels[buy] = 1.0
+    return pd.Series(labels, index=df.index)
+
+
+def labels_breakout_vol(
+    df: pd.DataFrame,
+    min_gain: float = 0.01,
+    horizon: Optional[int] = DEFAULT_HORIZON,
+    lookback: int = 20,
+    rvol_min: float = 1.5,
+    min_loss: Optional[float] = None,
+) -> pd.Series:
+    """Volume-confirmed breakout: new lookback-high AND above-average relative
+    volume (real breakouts trade on volume; low-volume breaks tend to fail)."""
+    close = _safe_close(df)
+    n = len(close)
+    labels = np.zeros(n, dtype=float)
+    high = np.nan_to_num(np.asarray(df.get("high", pd.Series(close)), dtype=float))
+    prior_high = pd.Series(high).rolling(lookback).max().shift(1).to_numpy()
+    breakout = close > prior_high
+    rvol = np.nan_to_num(np.asarray(df.get("rvol", pd.Series(np.ones(n))), dtype=float), nan=1.0)
+    max_future = _rolling_max_forward(close, horizon)
+    fg = (max_future - close) / close
+    mg = min_gain if min_gain is not None else 0.0
+    buy = breakout & (rvol > rvol_min) & (fg >= mg)
+    buy = np.where(np.isnan(fg) | np.isnan(prior_high), False, buy)
+    labels[buy] = 1.0
+    return pd.Series(labels, index=df.index)
+
+
+def labels_breakout_squeeze(
+    df: pd.DataFrame,
+    min_gain: float = 0.01,
+    horizon: Optional[int] = DEFAULT_HORIZON,
+    lookback: int = 20,
+    squeeze_pct: float = 0.3,
+    min_loss: Optional[float] = None,
+) -> pd.Series:
+    """Squeeze breakout: breakout out of a low-volatility consolidation (prior
+    bb_width in the bottom `squeeze_pct` of its recent 100-bar range) — the
+    energy-release setups that tend to follow through hardest."""
+    close = _safe_close(df)
+    n = len(close)
+    labels = np.zeros(n, dtype=float)
+    high = np.nan_to_num(np.asarray(df.get("high", pd.Series(close)), dtype=float))
+    prior_high = pd.Series(high).rolling(lookback).max().shift(1).to_numpy()
+    breakout = close > prior_high
+    bb_width = pd.Series(np.nan_to_num(np.asarray(df.get("bb_width", pd.Series(np.zeros(n))), dtype=float)))
+    bw_prev = bb_width.shift(1)
+    bw_thresh = bb_width.rolling(100).quantile(squeeze_pct)
+    squeeze = (bw_prev <= bw_thresh).to_numpy()
+    max_future = _rolling_max_forward(close, horizon)
+    fg = (max_future - close) / close
+    mg = min_gain if min_gain is not None else 0.0
+    buy = breakout & squeeze & (fg >= mg)
+    buy = np.where(np.isnan(fg) | np.isnan(prior_high), False, buy)
+    labels[buy] = 1.0
+    return pd.Series(labels, index=df.index)
+
+
 # ------------------------------
 # Accessors
 # ------------------------------
@@ -2416,6 +2558,10 @@ class LabelMethod(IntEnum):
     gbb = 17
     bands = 18
     indicators4 = 19
+    breakout = 20
+    breakout_tb = 21
+    breakout_vol = 22
+    breakout_squeeze = 23
 
 
 METHODS = {
@@ -2439,6 +2585,10 @@ METHODS = {
     LabelMethod.gbb: labels_gbb,
     LabelMethod.bands: labels_bands,
     LabelMethod.indicators4: labels_indicators4,
+    LabelMethod.breakout: labels_breakout,
+    LabelMethod.breakout_tb: labels_breakout_tb,
+    LabelMethod.breakout_vol: labels_breakout_vol,
+    LabelMethod.breakout_squeeze: labels_breakout_squeeze,
 }
 
 
@@ -2656,6 +2806,13 @@ def get_train_sell_signals(
         allowed = {"min_loss", "horizon"}
         local = {k: v for k, v in local.items() if k in allowed}
         return labels_bands_sell(df, **local).astype(float)
+
+    if method_enum == LabelMethod.breakout:
+        # Breakdown sell variant (mirror of the momentum breakout buy)
+        local = dict(params or {})
+        allowed = {"min_loss", "horizon", "lookback"}
+        local = {k: v for k, v in local.items() if k in allowed}
+        return labels_breakout_sell(df, **local).astype(float)
 
     if method_enum == LabelMethod.quantile_future:
         # Use dedicated sell variant for quantile future return
