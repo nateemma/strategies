@@ -2532,6 +2532,62 @@ def labels_breakout_squeeze(
     return pd.Series(labels, index=df.index)
 
 
+def labels_breakout_gbb(
+    df: pd.DataFrame,
+    guard_threshold: float = 0.2,
+    bb_width_threshold: float = 0.035,
+    min_gain: float = 0.01,
+    horizon: Optional[int] = DEFAULT_HORIZON,
+    min_loss: Optional[float] = None,
+) -> pd.Series:
+    """Inverse-gbb BREAKOUT label — the EXACT gbb structure and indicators
+    (guard_metric, bb_width), but the guard condition FLIPPED: buy when
+    guard_metric is HIGH (strong / overbought momentum) instead of low (a dip),
+    still volatile (bb_width) and with future follow-through. gbb is highly
+    learnable partly because it is defined on guard_metric — a feature the model
+    sees directly; this tests whether a FEATURE-based breakout is more learnable
+    than the price-based labels_breakout (i.e. is the breakout problem the label
+    FORM, or the momentum PHENOMENON?).
+    """
+    close = _safe_close(df)
+    n = len(close)
+    labels = np.zeros(n, dtype=float)
+    guard_metric = np.nan_to_num(np.asarray(df.get("guard_metric", pd.Series(np.zeros(n))), dtype=float), nan=0.0)
+    bb_width = np.nan_to_num(np.asarray(df.get("bb_width", pd.Series(np.zeros(n))), dtype=float), nan=0.0)
+    max_future = _rolling_max_forward(close, horizon)
+    future_gain = (max_future - close) / close
+    mg = min_gain if min_gain is not None else 0.0
+    buy_mask = (guard_metric > guard_threshold) & (bb_width > bb_width_threshold) & (future_gain >= mg)
+    buy_mask = np.where(np.isnan(future_gain), False, buy_mask)
+    labels[buy_mask] = 1.0
+    return pd.Series(labels, index=df.index)
+
+
+def labels_breakout_gbb_sell(
+    df: pd.DataFrame,
+    guard_threshold: float = 0.2,
+    bb_width_threshold: float = 0.035,
+    min_loss: float = 0.01,
+    horizon: Optional[int] = DEFAULT_HORIZON,
+    min_gain: Optional[float] = None,
+) -> pd.Series:
+    """Inverse-gbb breakDOWN sell label: sell when guard_metric is LOW (weak /
+    breaking down) + volatile + future follow-through DOWN. Mirror of
+    labels_breakout_gbb for the sell side."""
+    close = _safe_close(df)
+    n = len(close)
+    labels = np.zeros(n, dtype=float)
+    guard_metric = np.nan_to_num(np.asarray(df.get("guard_metric", pd.Series(np.zeros(n))), dtype=float), nan=0.0)
+    bb_width = np.nan_to_num(np.asarray(df.get("bb_width", pd.Series(np.zeros(n))), dtype=float), nan=0.0)
+    min_future = _rolling_min_forward(close, horizon)
+    future_loss = (close - min_future) / close
+    ml = min_loss if min_loss is not None else 0.0
+    sell_mask = (guard_metric < -guard_threshold) & (bb_width > bb_width_threshold) & (future_loss >= ml)
+    sell_mask = np.where(np.isnan(future_loss), False, sell_mask)
+    labels[sell_mask] = 1.0
+    return pd.Series(labels, index=df.index)
+
+
 # ------------------------------
 # Accessors
 # ------------------------------
@@ -2562,6 +2618,7 @@ class LabelMethod(IntEnum):
     breakout_tb = 21
     breakout_vol = 22
     breakout_squeeze = 23
+    breakout_gbb = 24
 
 
 METHODS = {
@@ -2589,6 +2646,7 @@ METHODS = {
     LabelMethod.breakout_tb: labels_breakout_tb,
     LabelMethod.breakout_vol: labels_breakout_vol,
     LabelMethod.breakout_squeeze: labels_breakout_squeeze,
+    LabelMethod.breakout_gbb: labels_breakout_gbb,
 }
 
 
@@ -2813,6 +2871,13 @@ def get_train_sell_signals(
         allowed = {"min_loss", "horizon", "lookback"}
         local = {k: v for k, v in local.items() if k in allowed}
         return labels_breakout_sell(df, **local).astype(float)
+
+    if method_enum == LabelMethod.breakout_gbb:
+        # Inverse-gbb breakdown sell variant
+        local = dict(params or {})
+        allowed = {"min_loss", "horizon", "guard_threshold", "bb_width_threshold"}
+        local = {k: v for k, v in local.items() if k in allowed}
+        return labels_breakout_gbb_sell(df, **local).astype(float)
 
     if method_enum == LabelMethod.quantile_future:
         # Use dedicated sell variant for quantile future return

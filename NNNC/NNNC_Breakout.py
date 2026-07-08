@@ -27,9 +27,14 @@ from Framework.TrainingSignals import LabelMethod
 class NNNC_Breakout(NNNC_MLX, BtcRegimeGate):
 
     # --- label change: momentum breakouts, not dips ---
-    TRAINING_TYPE = int(LabelMethod.breakout)   # 20
-    MIN_BUY_GAIN_THRESHOLD = 0.003              # keeps aug_risk MEDIUM, MCC ~0.70
-    MIN_SELL_LOSS_THRESHOLD = 0.003
+    # Use the INVERSE-GBB breakout (guard_metric HIGH + bb_width + follow-through) —
+    # a FEATURE-based breakout that screens nearly as learnable as gbb (MCC 0.73-0.77)
+    # with comparable/better EV (2.96-4.15%), robust SOL/LINK/XRP/BCH. The crude
+    # price-based labels_breakout (20) was far less learnable (see
+    # feedback_breakout_labels_unlearnable).
+    TRAINING_TYPE = int(LabelMethod.breakout_gbb)   # 24
+    MIN_BUY_GAIN_THRESHOLD = 0.005                  # MEDIUM aug_risk, MCC ~0.77
+    MIN_SELL_LOSS_THRESHOLD = 0.005
 
     # --- neutralise the dip guards (breakouts have HIGH close_norm/guard_metric);
     #     keep volume/rvol/atr/adx/bb_width guards, which confirm real breakouts ---
