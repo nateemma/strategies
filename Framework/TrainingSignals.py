@@ -2588,6 +2588,45 @@ def labels_breakout_gbb_sell(
     return pd.Series(labels, index=df.index)
 
 
+def labels_breakout_consensus(
+    df: pd.DataFrame,
+    min_gain: float = 0.01,
+    horizon: int = DEFAULT_HORIZON,
+    min_indicators_buy: int = 4,
+    min_loss: Optional[float] = None,
+) -> pd.Series:
+    """Inverse of labels_technical_indicators — a MOMENTUM/breakout indicator
+    consensus. Same indicators, but the directional oscillators flipped to
+    OVERBOUGHT/strong (guard_metric>=+0.2, aroonosc>=+0.2); keeps the trend/
+    volatility/bullish filters (adx trending, bb_width volatile, sar/vwap
+    bullish). A HIGH-THROUGHPUT feature-based breakout candidate (cf. inverse-gbb),
+    aimed at fixing the sparsity that made NNNC_Breakout untestable."""
+    close = _safe_close(df)
+    n = len(close)
+    labels = np.zeros(n, dtype=float)
+
+    def _g(c):
+        return np.nan_to_num(np.asarray(df.get(c, pd.Series(np.zeros(n))), dtype=float), nan=0.0)
+
+    adx = _g("adx_scaled"); aroonosc = _g("aroonosc_scaled"); guard = _g("guard_metric")
+    sar_ratio = _g("sar_ratio"); bb_width = _g("bb_width"); vwap_ratio = _g("vwap_ratio")
+    max_future = _rolling_max_forward(close, horizon)
+    future_gain = (max_future - close) / close
+
+    votes = np.zeros(n, dtype=int)
+    votes += (adx >= 0.1).astype(int)            # trending (keep)
+    votes += (aroonosc >= 0.2).astype(int)       # aroon UP (flipped)
+    votes += (guard >= 0.2).astype(int)          # strong/overbought (flipped)
+    votes += (sar_ratio >= 0.2).astype(int)      # SAR bullish (keep)
+    votes += (bb_width >= 0.017).astype(int)     # volatile (keep)
+    votes += (vwap_ratio >= 0.2).astype(int)     # above VWAP / momentum (keep)
+    mg = min_gain if min_gain is not None else 0.0
+    buy = (votes >= min_indicators_buy) & (future_gain >= mg)
+    buy = np.where(np.isnan(future_gain), False, buy)
+    labels[buy] = 1.0
+    return pd.Series(labels, index=df.index)
+
+
 # ------------------------------
 # Accessors
 # ------------------------------
@@ -2619,6 +2658,7 @@ class LabelMethod(IntEnum):
     breakout_vol = 22
     breakout_squeeze = 23
     breakout_gbb = 24
+    breakout_consensus = 25
 
 
 METHODS = {
@@ -2647,6 +2687,7 @@ METHODS = {
     LabelMethod.breakout_vol: labels_breakout_vol,
     LabelMethod.breakout_squeeze: labels_breakout_squeeze,
     LabelMethod.breakout_gbb: labels_breakout_gbb,
+    LabelMethod.breakout_consensus: labels_breakout_consensus,
 }
 
 
