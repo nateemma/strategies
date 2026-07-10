@@ -208,11 +208,16 @@ majority of the net return, the meme breadth deflates under real fills, and — 
 *Drawdown investigation.* The 52% drawdown turned out to be a **risk-on** drawdown — the whole Dec 2024→Jun
 2025 bleed accrued *while BTC held above its SMA100*, so the regime filter never engaged; the failure mode is
 buying alt/meme pumps that have already rolled over (not "least-bad losers" — an absolute-momentum gate does
-nothing). The lever that helps is a **per-coin trend filter** (drop any held coin below its own 50d SMA):
-closed-trade DD 52→44%, wallet DD 64→58%, Calmar 4.8→4.9, at an ~8pp return cost (+114%→+105%). Faster
-windows and a faster BTC regime both whipsaw and do worse. It's a real but *modest* fix — the residual DD is
-largely **structural to the convex/lottery payoff** (27% win rate; you bleed for months awaiting the rare
-blow-off), and sizing down to shrink it just scales the return down with it. The filter is on by default.
+nothing). Two levers were folded in. A **per-coin trend filter** (drop any held coin below its own 50d SMA) exits
+faders and refuses freshly-dumping pumps; and a **max-position-weight cap** (trim a runaway winner back to
+~45% of the book) banks the excess and redeploys it into the next-best momentum coin. Faster trend windows and
+a faster BTC regime both whipsaw and do worse; the cap has a clean inverted-U with a sweet spot at 0.45.
+Together, vs the original: **return +114%→+134%, closed-trade DD 52%→41%, Sharpe 0.88→0.98, Calmar
+4.8→6.3.** Note the honest split: the *trend filter* helps drawdown modestly, while the *cap* turned out to be
+a **return/risk-adjusted** lever (a rebalancing gain), not a drawdown one. The **wallet drawdown stays ~58% at
+every cap level** — that residual is **structural to the convex/lottery payoff** (27% win rate; you bleed for
+months awaiting the rare blow-off) and can't be sized away without scaling the return down with it. Both
+levers are on by default.
 
 ---
 

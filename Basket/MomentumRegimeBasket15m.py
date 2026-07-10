@@ -24,7 +24,8 @@ reaches its equal-weight target. That is implemented via position adjustment
 NOT a single entry. Phantom-fill protection (custom_stake_amount caps every add to
 <=10% of candle quote volume; confirm_trade_entry rejects dust) runs in backtest too,
 so fills are realistic. Full exit (populate_exit_trend) when a coin leaves the top-N
-or the regime turns risk-off; no partial trim (mirrors the daily strategy's design).
+or the regime turns risk-off; a runaway winner is partial-trimmed back toward the
+equal-weight cap (see MAX_POSITION_WEIGHT — a return/risk-adjusted improvement).
 
 *** CAVEATS (unchanged from the vectorized study) ***
   - SURVIVORSHIP BIAS inflates the MAGNITUDE (dead pump-and-die coins are absent,
@@ -76,6 +77,12 @@ class MomentumRegimeBasket15m(IStrategy):
     # cuts maxDD ~40%->23% while RAISING return (it removes losing tail trades).
     TREND_FILTER_ENABLE = True
     PER_COIN_SMA = 50        # a held coin must be above its own DAILY SMA(this)
+
+    # Max-position-weight cap — trim a runaway winner back toward this fraction of the
+    # portfolio (equal weight is 1/TOP_N ~= 0.33). Banks the excess into cash so a
+    # retracing winner has less at risk, attacking the UNREALIZED give-back (wallet DD
+    # > closed DD). 0.0 = off.
+    MAX_POSITION_WEIGHT = 0.45
 
     # liquidity-aware sizing (same discipline as FundingCarry / the NN family)
     MIN_QUOTE_VOLUME = 1000
@@ -214,10 +221,16 @@ class MomentumRegimeBasket15m(IStrategy):
         if df is None or len(df) == 0:
             return None
         last = df.iloc[-1].squeeze()
+        pv = self._portfolio_value()
+        current_value = trade.amount * current_rate
+        # max-position-weight cap: trim a runaway winner first (banks profit into cash)
+        if self.MAX_POSITION_WEIGHT and pv > 0 and current_value > self.MAX_POSITION_WEIGHT * pv:
+            trim = self.MAX_POSITION_WEIGHT * pv - current_value   # negative => reduce
+            if not min_stake or abs(trim) >= min_stake:
+                return trim
         if not bool(last["hold"]):
             return None   # leaving the basket -> full exit is handled by the exit signal
-        target = self._portfolio_value() / self.TOP_N
-        current_value = trade.amount * current_rate
+        target = pv / self.TOP_N
         if current_value >= target * 0.98:
             return None   # already at target weight
         fillable = (last["volume"] * last["close"]) / self.QUOTE_VOLUME_HEADROOM_MULT
