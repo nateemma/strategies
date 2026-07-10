@@ -4,10 +4,11 @@
 retail trader can predict and profitably trade a basket of crypto alts on a **US spot-only
 venue (Binance.US)**, and where the real limits are.*
 
-**Setup:** freqtrade; ~11 liquid-ish alt pairs (ZEC, XRP, SOL, LINK, NEAR, AAVE, SUI, AVAX,
-LTC, BCH, DOT); 15m and 1h timeframes; MLX/Keras NN classifiers (conv1d→LSTM) plus rule-based
-strategies. All backtests are walk-forward (train 240d / test 55–180d, multiple eras 2024–2026)
-with realistic fees and (where noted) liquidity-aware fill modeling.
+**Setup:** freqtrade; a ~11-to-75 alt universe (core: ZEC, XRP, SOL, LINK, NEAR, AAVE, SUI,
+AVAX, LTC, BCH, DOT); 15m/1h timeframes for the intraday NN work and 1d for the longer-horizon
+momentum work; MLX/Keras NN classifiers (conv1d→LSTM) plus rule-based strategies. All backtests are
+walk-forward (train 240d / test 55–180d, multiple eras 2024–2026) with realistic fees and (where
+noted) liquidity-aware fill modeling.
 
 ---
 
@@ -23,8 +24,11 @@ precise than "you can/can't beat the market":
    ceiling (Spearman ρ ≈ 0.15 for forward returns). That number is an **information limit**, not a
    modeling failure. You cannot out-model your way past it on the same inputs.
 3. **The remaining edges are real but *un-capturable* on US spot.** The genuinely persistent signals
-   (funding-rate reversion, market-neutral spreads, cross-sectional reversion) exist but are blocked
-   by the operator's structural constraints: **no shorting, thin US-spot liquidity, OHLCV-only data.**
+   (funding-rate reversion, market-neutral spreads, cross-sectional reversion, longer-horizon momentum)
+   exist but are blocked by the operator's structural constraints: **no shorting, thin US-spot liquidity,
+   OHLCV-only data.** Tellingly, *four independent strategy families* — intraday mean-reversion, funding,
+   cross-sectional reversion, and cross-sectional momentum — all reduce to the **same one illiquid coin
+   (ZEC)**: the alpha isn't in any strategy, it's in a handful of rare, un-tradeable liquidity events.
 4. **So the frontier is structural, not algorithmic:** new *information* (order flow, funding, on-chain)
    or a venue/instrument (leverage/shorting, deeper liquidity) — not a better model.
 
@@ -129,6 +133,40 @@ The single most promising find, and the only signal to survive distant-era valid
   show ~73% of the entries are un-fillable illiquid moments, leaving a **marginal ~+6.6% / Sharpe 0.89**.
   Real edge, marginal capture. `FundingCarry.py` is committed as a documented research artifact.
 
+## The longer-horizon detour: cross-sectional momentum — and how it reduces to the same wall
+
+Everything above is intraday (2–24h). The obvious escape is to change the *horizon*, not the model:
+maybe a **weeks-to-months cross-sectional momentum** strategy — hold the top-N trailing-return alts,
+rebalance slowly — sidesteps the intraday information ceiling and the fee drag entirely. It's long-only
+and US-spot-legal. For a while it looked like the first genuinely deployable, all-weather US edge:
+
+- **The apparent win.** Rank the universe by 90-day trailing return, hold an equal-weight top-3 basket,
+  and — critically — **go fully to cash when BTC is below its 100-day SMA** (a regime circuit-breaker).
+  This flipped the 2026 bear from ~−40% to positive, roughly **halved max drawdown**, and beat
+  buy-and-hold across the sample (frictionless +205% vs −11%, Sharpe ~1.3). It looked *all-weather*.
+- **Then the same four walls closed in.** Under scrutiny the headline dismantled itself:
+  1. **It's ZEC — again.** Remove ZEC and the recent-period edge collapses **+120% → −13%.** The
+     "cross-sectional momentum edge" is really ZEC-momentum with a regime filter — the *same single
+     illiquid coin* that carries gbb, the cross-sectional-reversion study, and half of funding.
+  2. **Concentration.** ~**2 months** (Oct 2025 + Jun 2026) account for **123% of profit**; the other
+     17 months net *negative*. It's a positive-skew pump lottery with n≈2 payoff events — magnitude
+     *and sign* are fragile.
+  3. **Broadening doesn't help.** Expanding 20 → 75 coins de-concentrates it (ZEC 82% → 31%) but adds
+     no profit, deepens drawdown (−52%), and worsens realistic-fill capture — the new contributors are
+     thin meme-coins whose pumps are *un-executable* on daily next-candle fills. Frictionless **+329%
+     → +59%** in freqtrade, and what survives is still ZEC.
+  4. **Finer timeframe is the wall in its purest form.** Rebalancing on 15m/hourly candles captures
+     *more* of the frictionless move (**+653%**) — but liquidity-aware fills turn it into **−17%**.
+     The moves that drive the return happen exactly where you cannot cheaply trade, and no timeframe is
+     both **on-time and fillable**: slow-enough-to-fill misses the pump, fast-enough-to-catch-it can't
+     get filled.
+
+**Verdict:** changing the horizon does *not* change the answer. Longer-horizon momentum reduces to the
+identical phenomenon as every other family — **ZEC's rare, violent, illiquid pumps are the only alpha,
+and they are un-capturable at size on US spot at any speed.** `MomentumRegimeBasket.py` is committed as a
+documented research artifact (a standalone signal-based rotation strategy), explicitly flagged
+"NOT deploy-ready — a concentrated, illiquid pump lottery."
+
 ---
 
 ## What might be worth pursuing on a leverage venue (outside the US)
@@ -177,8 +215,11 @@ on-chain), on *any* venue.
 ## Bottom line
 
 This program didn't prove the market is unpredictable — it **mapped the box.** For an OHLCV-only,
-retail-timescale, US-spot operator, prediction is near its ceiling and the deployed mean-reversion edge is
-about as good as this input/venue combination allows. The remaining upside is entirely structural:
+US-spot operator, prediction is near its ceiling and the deployed mean-reversion edge is about as good as
+this input/venue combination allows. Both escape routes were tested and both hit the same wall: a *different
+model* (learned CNNs) can't beat the information ceiling, and a *different horizon* (weeks-to-months
+momentum) can't beat the liquidity wall — it just re-discovers that the alpha lives in ZEC's un-tradeable
+pumps. The remaining upside is entirely structural:
 **new information, or a venue that supports shorting and deep liquidity.** Knowing exactly where the walls
 are — and that they're made of constraints, not randomness — is the precondition for spending the next
 effort on something that can actually move the ceiling instead of polishing a model against it.
