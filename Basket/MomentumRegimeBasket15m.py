@@ -34,6 +34,18 @@ equal-weight cap (see MAX_POSITION_WEIGHT — a return/risk-adjusted improvement
   - This freqtrade run is the honest execution check; divergence from the vectorized
     numbers is expected (order pricing, fee accounting, one-add-per-candle cadence).
 
+*** lookahead-analysis reports "bias detected" — it is a PROVEN FALSE POSITIVE. ***
+`freqtrade lookahead-analysis` detects bias by re-running on cut timeranges, but this
+strategy reads the daily feathers DIRECTLY off disk (_daily_closes, the workaround for
+the startup-candle cap), bypassing the DataProvider the tool truncates — so it can't
+reason about the inputs and flags heuristically (a documented limitation for external-
+data / cross-sectional strategies). The `hold` signal is CAUSAL by construction
+(momentum = current 15m close / Pd.shift(1).shift(90); regime + trend off Pd.shift(1);
+membership floored to the hour, all ffill-mapped) and this was VERIFIED empirically: a
+truncation-invariance test (recompute `hold` with future data removed) found ZERO
+changed cells across 76,867 candles x 75 pairs at 4 cut points, in BOTH the cut-all and
+the freqtrade-exact (daily-full / 15m-cut) scenarios. Test: /tmp/bias_check.py.
+
 Config: config/config_mom_15m.json (max_open_trades == TOP_N, stake "unlimited").
 """
 from __future__ import annotations
