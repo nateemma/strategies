@@ -10,8 +10,11 @@ spot, DISCRETE signal-based rotation. Design choices (validated): (1) DISCRETE t
 concentration (N=2-3 — N>=5 dilutes the edge, Sharpe ~1.3->0.8); (2) BTC-REGIME cash
 gate, which flips the 2026 bear from ~-40% to positive and ~halves max drawdown.
 
-Headline (vectorized + freqtrade port match: +125% / Sharpe 1.17 on the 2024-11+
-sub-period; +200-400% full 2yr): looks great, BUT the scrutiny below dismantles it.
+Headline: 20-coin universe reproduces frictionless research under real execution
+(+125% / Sharpe 1.17). BUT on a broad 75-coin universe the frictionless +329%
+collapses to ~+59% in freqtrade — the meme-coin pumps that drove it are
+UN-EXECUTABLE (daily next-candle fills miss a coin that pumps 100% in a day), and
+what survives is still ZEC-dominated. So the scrutiny below dismantles the headline.
 
 *** CAVEATS (why this is a research artifact, not a strategy) ***
   - RETURN CONCENTRATION: the entire profit is ~2 MONTHS (Oct 2025 + Jun 2026 = 123%
@@ -45,7 +48,7 @@ class MomentumRegimeBasket(IStrategy):
     timeframe = "1d"
     can_short = False
     process_only_new_candles = True
-    startup_candle_count = 210
+    startup_candle_count = 100   # momentum needs 90; higher excludes recent listings
     stoploss = -0.99          # rotation is via signals, not stops
     minimal_roi = {"0": 100}  # ROI off
     trailing_stop = False
@@ -56,14 +59,25 @@ class MomentumRegimeBasket(IStrategy):
     REGIME_SMA = 100     # BTC trend window (days)
     REGIME_REF = "BTC/USDT"
 
-    _xs = None  # cached (top-N membership matrix, risk-on series)
+    _xs = None       # cached (top-N membership matrix, risk-on series)
+    _xs_key = None   # cache key: (latest candle date, whitelist) — refresh when either changes
 
     def _compute_xs(self):
-        """Causal cross-sectional top-N membership + BTC risk-on, per date. Cached."""
-        if self._xs is not None:
+        """Causal cross-sectional top-N membership + BTC risk-on, per date.
+
+        Cache keyed on (latest candle date, whitelist) so it recomputes as new
+        candles arrive AND when a dynamic pairlist changes the universe. In
+        backtest the latest date is constant (full history present up front) so
+        this computes once; in live/dry-run it refreshes every new candle.
+        """
+        wl = tuple(sorted(self.dp.current_whitelist()))
+        ref = self.dp.get_pair_dataframe(self.REGIME_REF, self.timeframe)
+        asof = ref["date"].iloc[-1] if ref is not None and len(ref) else None
+        key = (asof, wl)
+        if self._xs is not None and self._xs_key == key:
             return self._xs
         closes = {}
-        for p in self.dp.current_whitelist():
+        for p in wl:
             df = self.dp.get_pair_dataframe(p, self.timeframe)
             if df is not None and len(df):
                 s = df.copy(); s["date"] = pd.to_datetime(s["date"], utc=True)
@@ -75,6 +89,7 @@ class MomentumRegimeBasket(IStrategy):
         risk_on = (btc > btc.rolling(self.REGIME_SMA).mean()) if btc is not None \
             else pd.Series(True, index=P.index)
         self._xs = (member, risk_on.rename("risk_on"))
+        self._xs_key = key
         return self._xs
 
     def _hold_flag(self, pair: str, dates: pd.Series) -> pd.Series:
