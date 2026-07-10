@@ -23,12 +23,13 @@ precise than "you can/can't beat the market":
    an 85-indicator battery, and learned CNNs on raw OHLCV — converges on the same predictability
    ceiling (Spearman ρ ≈ 0.15 for forward returns). That number is an **information limit**, not a
    modeling failure. You cannot out-model your way past it on the same inputs.
-3. **The remaining edges are real but *un-capturable* on US spot.** The genuinely persistent signals
-   (funding-rate reversion, market-neutral spreads, cross-sectional reversion, longer-horizon momentum)
-   exist but are blocked by the operator's structural constraints: **no shorting, thin US-spot liquidity,
-   OHLCV-only data.** Tellingly, *four independent strategy families* — intraday mean-reversion, funding,
-   cross-sectional reversion, and cross-sectional momentum — all reduce to the **same one illiquid coin
-   (ZEC)**: the alpha isn't in any strategy, it's in a handful of rare, un-tradeable liquidity events.
+3. **Most remaining edges are real but *un-capturable* on US spot — with one exception.** The persistent
+   intraday signals (funding-rate reversion, market-neutral spreads, cross-sectional reversion) are blocked
+   by structural constraints (**no shorting, thin liquidity, OHLCV-only**), and *three* of them reduce to the
+   **same one illiquid coin (ZEC)**. **The exception is longer-horizon cross-sectional momentum with fast
+   (hourly) execution:** it is genuinely diversified beyond ZEC and positive across 2024/2025/2026 (details
+   below). It's the one branch where the "it's all ZEC / edge lives where you can't trade" pattern breaks —
+   because *accumulating* fills over a hold window captures pumps that single-shot fills miss.
 4. **So the frontier is structural, not algorithmic:** new *information* (order flow, funding, on-chain)
    or a venue/instrument (leverage/shorting, deeper liquidity) — not a better model.
 
@@ -151,21 +152,43 @@ and US-spot-legal. For a while it looked like the first genuinely deployable, al
   2. **Concentration.** ~**2 months** (Oct 2025 + Jun 2026) account for **123% of profit**; the other
      17 months net *negative*. It's a positive-skew pump lottery with n≈2 payoff events — magnitude
      *and sign* are fragile.
-  3. **Broadening doesn't help.** Expanding 20 → 75 coins de-concentrates it (ZEC 82% → 31%) but adds
-     no profit, deepens drawdown (−52%), and worsens realistic-fill capture — the new contributors are
-     thin meme-coins whose pumps are *un-executable* on daily next-candle fills. Frictionless **+329%
-     → +59%** in freqtrade, and what survives is still ZEC.
-  4. **Finer timeframe is the wall in its purest form.** Rebalancing on 15m/hourly candles captures
-     *more* of the frictionless move (**+653%**) — but liquidity-aware fills turn it into **−17%**.
-     The moves that drive the return happen exactly where you cannot cheaply trade, and no timeframe is
-     both **on-time and fillable**: slow-enough-to-fill misses the pump, fast-enough-to-catch-it can't
-     get filled.
+  3. **Broadening the universe doesn't help *at daily rebalance*.** Expanding 20 → 75 coins
+     de-concentrates it (ZEC 82% → 31%) but the new contributors are thin meme-coins whose pumps are
+     *un-executable* on daily next-candle fills: frictionless **+329% → +59%** in freqtrade, and what
+     survives is still ZEC.
 
-**Verdict:** changing the horizon does *not* change the answer. Longer-horizon momentum reduces to the
-identical phenomenon as every other family — **ZEC's rare, violent, illiquid pumps are the only alpha,
-and they are un-capturable at size on US spot at any speed.** `MomentumRegimeBasket.py` is committed as a
-documented research artifact (a standalone signal-based rotation strategy), explicitly flagged
-"NOT deploy-ready — a concentrated, illiquid pump lottery."
+At this point the arc looked like every other family — *it's just ZEC, un-capturable*. **That conclusion
+was wrong, and finding out why is the most interesting result of the momentum work.**
+
+**The correction — execution *timeframe*, honestly modeled, breaks the wall.** The "daily is the only
+capturable version" claim rested on a flawed liquidity model. A first pass suggested 15m-data/hourly
+rebalancing was *catastrophic* (−17%) — but that model judged fillability on a **single 15m candle** while
+holding for hours, and re-drew the whole position each hour, booking phantom turnover fees that manufactured
+the negative sign. Rebuilt honestly — a **persistent, accumulating** position (you don't fill in one candle;
+a sticky 90-day ranking lets you *build the position up* over the whole hold window, and you fill *something*
+every period), fills priced at the **volume-weighted price** over the window (so pump-chasing is penalized),
+fees only on real trades — the picture inverts:
+
+  | universe | total | 2024 | 2025 | 2026 | ex-ZEC |
+  |---|---:|---:|---:|---:|---:|
+  | Core 20 | **+223%** | +98 | +90 | +35 | **+158%** |
+  | Broad 77 | **+155%** | +43 | +83 | +29 | **+116%** |
+
+  (conservative VWAP fills, $50k account, per-year contributions). Three earlier conclusions flip:
+  **(a)** finer timeframe is *not* the wall — hourly action on a slow, sticky signal is the *best*
+  execution, because you accumulate fills across many thin candles instead of needing one fat one;
+  **(b)** it is *not* just ZEC — ex-ZEC is positive in **every** year including the 2026 chop (it passes
+  the distant-window rule the *daily* version failed), because fast rotation catches fast pumps across many
+  coins that daily rebalance sleeps through; **(c)** the broad meme universe that was un-executable at daily
+  (+59%) *is* capturable at 15m/hourly (**+155%**).
+
+**Verdict:** changing the *execution timeframe* — not the model — is what moved the needle. Fast-execution
+momentum is the program's **most genuinely diversified, multi-year-positive, US-spot-legal** edge, and it is
+*not* reducible to ZEC. The honest limits are now **(1) survivorship bias** — these are surviving coins;
+pump-and-die names are absent, so the *magnitude* is inflated (worst for the broad meme set) even though the
+*sign and multi-year robustness* are real — and **(2)** the real test is still a freqtrade build with actual
+next-candle fills, not a vectorized model. `MomentumRegimeBasket.py` (daily, standalone signal-based
+rotation) is committed as a research artifact; the 15m/hourly variant is the clear next build.
 
 ---
 
@@ -216,10 +239,12 @@ on-chain), on *any* venue.
 
 This program didn't prove the market is unpredictable — it **mapped the box.** For an OHLCV-only,
 US-spot operator, prediction is near its ceiling and the deployed mean-reversion edge is about as good as
-this input/venue combination allows. Both escape routes were tested and both hit the same wall: a *different
-model* (learned CNNs) can't beat the information ceiling, and a *different horizon* (weeks-to-months
-momentum) can't beat the liquidity wall — it just re-discovers that the alpha lives in ZEC's un-tradeable
-pumps. The remaining upside is entirely structural:
+this input/venue combination allows. Of the two escape routes tested, one held and one broke: a *different
+model* (learned CNNs) can't beat the information ceiling — but a *different horizon* (cross-sectional
+momentum) **did**, once execution was modeled honestly. Fast-execution momentum is diversified beyond ZEC and
+positive across three years — the program's one genuinely deployable, US-spot-legal frontier, pending a
+freqtrade build and mindful of survivorship bias. For the intraday OHLCV problem, though, the remaining upside
+is entirely structural:
 **new information, or a venue that supports shorting and deep liquidity.** Knowing exactly where the walls
 are — and that they're made of constraints, not randomness — is the precondition for spending the next
 effort on something that can actually move the ceiling instead of polishing a model against it.
