@@ -8,6 +8,8 @@ All strategies share a common framework for entry/exit processing, custom exits,
 
 Many of the strategies use Neural Networks (Machine Learning), which requires training the underlying models on lots of data. Even then, I had to implement Generative Adversarial Network (GAN) models to artificially enhance the data because there are simply not enough buy/sell signals to train the stategy models. Look in the GANs directory for more info.
 
+I have done a lot of satistical studies on indicators, coins, timeframes etc. Those findings are summarised [here](us_spot_market_study.md). The quick summary is that it is unlikely that I can do any better through improved algorithms/models because there just isn't any more information to extract from the data. However, there are approaches using leverage (shorting) that might work, but I can't run those in the USA.
+
 ## Quickstart
 
 There are a bunch of scripts available to help, I recommend using them. Note that I use a Mac so I have to use the zsh shell, but I think most of these will run with bash.
