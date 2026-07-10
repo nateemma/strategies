@@ -203,8 +203,16 @@ real diversification; fast-execution momentum beats a falling market across mult
 program's best US-spot-legal candidate. But it is **not a clean deployable edge yet**: ZEC still carries the
 majority of the net return, the meme breadth deflates under real fills, and — now the binding problem — the
 **drawdown is severe (52–64%, a 205-day underwater stretch)**. `MomentumRegimeBasket.py` (daily) and
-`MomentumRegimeBasket15m.py` (15m/hourly, accumulating) are both committed as research artifacts. The open
-lever is taming that drawdown (regime-filter engagement / position sizing), not more return.
+`MomentumRegimeBasket15m.py` (15m/hourly, accumulating) are both committed as research artifacts.
+
+*Drawdown investigation.* The 52% drawdown turned out to be a **risk-on** drawdown — the whole Dec 2024→Jun
+2025 bleed accrued *while BTC held above its SMA100*, so the regime filter never engaged; the failure mode is
+buying alt/meme pumps that have already rolled over (not "least-bad losers" — an absolute-momentum gate does
+nothing). The lever that helps is a **per-coin trend filter** (drop any held coin below its own 50d SMA):
+closed-trade DD 52→44%, wallet DD 64→58%, Calmar 4.8→4.9, at an ~8pp return cost (+114%→+105%). Faster
+windows and a faster BTC regime both whipsaw and do worse. It's a real but *modest* fix — the residual DD is
+largely **structural to the convex/lottery payoff** (27% win rate; you bleed for months awaiting the rare
+blow-off), and sizing down to shrink it just scales the return down with it. The filter is on by default.
 
 ---
 

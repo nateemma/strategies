@@ -3,9 +3,10 @@
 *** RESEARCH ARTIFACT (2026-07) — the real-execution test of a vectorized finding. ***
 
 Same signal as MomentumRegimeBasket (cross-sectional top-N momentum on a 90-day
-lookback + BTC>SMA100 daily regime, long-only spot), but run on 15m candles and
-rebalanced hourly. The point of this variant is to test — with freqtrade's real
-next-candle fills — a vectorized result that overturned an earlier "wall":
+lookback + BTC>SMA100 daily regime, long-only spot), plus a per-coin trend filter
+(the drawdown fix — see TREND_FILTER_ENABLE), run on 15m candles and rebalanced
+hourly. The point of this variant is to test — with freqtrade's real next-candle
+fills — a vectorized result that overturned an earlier "wall":
 
   Vectorized (conservative VWAP fills, $50k, per-year contributions):
     CORE-20  full +223% [2024 +98/2025 +90/2026 +35],  ex-ZEC +158%
@@ -67,6 +68,15 @@ class MomentumRegimeBasket15m(IStrategy):
     REGIME_REF = "BTC/USDT"
     REBALANCE_HOURLY = True  # only change top-N membership on the hour (matches the test)
 
+    # Per-coin trend filter — the drawdown fix. The BTC>SMA100 regime is a RISK-ON
+    # gate that doesn't protect against alt-specific bleeds (the 52% drawdown accrued
+    # while BTC held above its SMA100). Requiring each held coin to be above its OWN
+    # daily SMA drops it as soon as it rolls over — exits faders, refuses freshly
+    # dumping pumps, and holds <TOP_N (more cash) when few coins trend. Vectorized:
+    # cuts maxDD ~40%->23% while RAISING return (it removes losing tail trades).
+    TREND_FILTER_ENABLE = True
+    PER_COIN_SMA = 50        # a held coin must be above its own DAILY SMA(this)
+
     # liquidity-aware sizing (same discipline as FundingCarry / the NN family)
     MIN_QUOTE_VOLUME = 1000
     QUOTE_VOLUME_HEADROOM_MULT = 10.0   # fill <= 1/10 of a candle's quote volume
@@ -126,6 +136,10 @@ class MomentumRegimeBasket15m(IStrategy):
         risk_on = ron_d.reindex(P15.index, method="ffill").fillna(False)
         mom = P15 / ref90_15 - 1                                  # intraday-responsive 90d momentum
         member = mom.rank(axis=1, ascending=False, method="first") <= self.TOP_N
+        if self.TREND_FILTER_ENABLE:                              # drop coins below their own trend
+            trend_ok = (known > known.rolling(self.PER_COIN_SMA).mean())
+            trend_ok_15 = trend_ok.reindex(columns=P15.columns).reindex(P15.index, method="ffill").fillna(False)
+            member = member & trend_ok_15
         want = member.apply(lambda col: col & risk_on)            # bool DataFrame
         if self.REBALANCE_HOURLY:
             hourly = want[want.index.minute == 0]                 # decision at each :00
