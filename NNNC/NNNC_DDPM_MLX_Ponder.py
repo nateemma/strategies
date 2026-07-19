@@ -40,6 +40,7 @@ class NNNC_DDPM_MLX_Ponder(PonderStrategyMixin, NNNC_DDPM_MLX):
     # Non-GAN: sidesteps the stale gan_scaler crash; no-GAN is a valid regime here.
     gan_type = GANType.NONE
 
-    # Swept via distinct-name subclasses (retrain per N). ponder_steps=0 is the
-    # matched (non-GAN) control (identical forward to production _LSTMModel).
-    ponder_steps = 3
+    # N=2 = confirmed robust optimum of the inverted-U (peak at all seeds; N2 beats
+    # the N0 control 6/6 across seeds+eras, ~+0.9pp). ponder_steps=0 = matched
+    # (non-GAN) control, byte-identical forward to production _LSTMModel.
+    ponder_steps = 2
