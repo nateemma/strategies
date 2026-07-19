@@ -149,6 +149,12 @@ class MLXClassifierNary(MLXBaseClassifier):
     clean_data_required: bool = False
     num_classes: int = 3
 
+    # Optional per-instance training seed. When set (not None), the RNG is
+    # re-seeded at the top of train() so weight init + batch shuffling are
+    # reproducible from this seed — used to measure training-seed robustness of
+    # a result. Default None preserves the existing module-level SEED behaviour.
+    train_seed: int | None = None
+
     # Internal state for class weighting
     class_weights: list = []
     class_weight_dict: dict = {}
@@ -184,6 +190,16 @@ class MLXClassifierNary(MLXBaseClassifier):
         force_train                  : ignore is_trained flag
         class_weights                : optional per-class weight array
         """
+        # --- optional training-seed reset (robustness sweeps) ---
+        # Re-seed BEFORE create_model so both weight init and batch shuffling
+        # derive from train_seed. None => leave the module-level seed untouched.
+        if self.train_seed is not None:
+            import random as _random
+
+            mx.random.seed(int(self.train_seed))
+            np.random.seed(int(self.train_seed))
+            _random.seed(int(self.train_seed))
+
         # --- lazy load existing model ---
         if self.model is None:
             self.model = self.load()

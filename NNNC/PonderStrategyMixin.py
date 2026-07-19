@@ -21,9 +21,12 @@ the ponder head. Mix in *before* the NNNC base:
 class PonderStrategyMixin:
     # Number of shared refinement steps; ponder_steps=0 == production arch.
     ponder_steps = 3
+    # Optional training-seed override for robustness sweeps (None = default).
+    train_seed = None
 
     def get_classifier(self, classifier_type, pair, seq_len, num_features):
         clf = super().get_classifier(classifier_type, pair, seq_len, num_features)
         if clf is not None:
             clf.ponder_steps = self.ponder_steps
+            clf.train_seed = self.train_seed
         return clf
