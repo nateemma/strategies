@@ -223,6 +223,66 @@ class NNNClassifierMLX_LSTM(MLXClassifierNary):
 
 
 # -----------------------------------------------------------------------
+# Stage-2 looped "pondering" (COCONUT) — recurrent latent refinement.
+# -----------------------------------------------------------------------
+
+
+class Ponder(nn.Module):
+    """Shared residual refinement block, reused N times on the latent.
+
+    The parameter-tied reuse across steps is the "continuous thought": the model
+    refines its latent with the SAME transform before decoding.
+    """
+
+    def __init__(self, dim: int):
+        super().__init__()
+        self.ln = nn.LayerNorm(dim)
+        self.fc1 = nn.Linear(dim, dim)
+        self.fc2 = nn.Linear(dim, dim)
+
+    def __call__(self, h: mx.array) -> mx.array:
+        return h + self.fc2(nn.gelu(self.fc1(self.ln(h))))
+
+
+class _LSTMPonderModel(_LSTMModel):
+    """``_LSTMModel`` + N shared ``Ponder`` steps on the latent before decode.
+
+    ``ponder_steps=0`` skips the loop, so the forward pass is identical to the
+    production ``_LSTMModel`` — the matched control for the A/B.
+    """
+
+    def __init__(
+        self,
+        seq_len: int,
+        num_features: int,
+        num_classes: int,
+        num_filters: int,
+        ponder_steps: int,
+    ):
+        super().__init__(seq_len, num_features, num_classes, num_filters)
+        self.ponder_steps = ponder_steps
+        self.ponder = Ponder(num_filters)
+
+    def __call__(self, x: mx.array) -> mx.array:
+        h = self.encode(x)
+        for _ in range(self.ponder_steps):
+            h = self.ponder(h)
+        return self.decode(h)
+
+
+class NNNClassifierMLX_LSTM_Ponder(MLXClassifierNary):
+    is_trained = False
+    clean_data_required = False
+    ponder_steps = 3
+
+    def create_model(self, seq_len: int, num_features: int) -> nn.Module:
+        num_filters = max(MIN_FILTER, nearest_power_of_2(num_features - 1))
+        return _LSTMPonderModel(
+            seq_len, num_features, self.num_classes, num_filters, self.ponder_steps
+        )
+
+
+# -----------------------------------------------------------------------
 # NNNClassifierMLX_LSTM_KAN
 # -----------------------------------------------------------------------
 
@@ -916,6 +976,7 @@ class ClassifierTypeMLX(Enum):
     LSTM_KAN = NNNClassifierMLX_LSTM_KAN
     LSTM_INJIT = NNNClassifierMLX_LSTM_InJit
     LSTM_NOISY = NNNClassifierMLX_LSTM_Noisy
+    LSTM_PONDER = NNNClassifierMLX_LSTM_Ponder
 
 
 def create_classifier_mlx(

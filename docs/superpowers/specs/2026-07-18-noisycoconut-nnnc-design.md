@@ -98,9 +98,49 @@ p = mean_k(p_k)
   σ sweep `{0.05, 0.1, 0.2, 0.4}`, K = 16.
 - Encode runs once; only the decode head runs K times.
 
-### Stage 2 — Looped pondering (retrain) — DEFERRED
+### Stage 2 — Looped pondering (retrain)
 
-Only justified if Stage 0 or 1 shows life. Not designed here.
+Designed 2026-07-19. Gate note: Stages 0/1 (training-free) showed no life
+(latent monotonically harmful; input inert). Stage 2 is pursued anyway by
+explicit user decision — it is a mechanistically distinct hypothesis (test-time
+compute via iterative refinement, not noise-voting). Honest caveat: COCONUT's
+curriculum assumes explicit CoT tokens to progressively internalise; NNNC has no
+intermediate supervision, so there is nothing to replace. Stage 2 therefore
+reduces to a **recurrent, weight-tied refinement head trained end-to-end** — a
+deeper head on the same inputs (so the information-ceiling caveat applies). No
+curriculum.
+
+**Mechanism** (deterministic, no noise):
+
+```
+h_0 = encode(X)                              # existing LSTM latent (B, F)
+for t in 1..N:  h_t = h_{t-1} + ponder(h_{t-1})   # SAME cell reused each step
+decode(h_N)  → softmax
+```
+
+- **Ponder cell** (user choice): shared residual MLP —
+  `h + fc2(gelu(fc1(layernorm(h))))`, parameter-tied across all N steps.
+- **N = `ponder_steps`**: class attribute, swept 1→4. `ponder_steps=0` skips the
+  loop → **identical forward to production `_LSTMModel`** = the matched control.
+- `_LSTMPonderModel` subclasses `_LSTMModel` (reuses `encode`/`decode`, inserts
+  the ponder loop in `__call__`).
+
+**Retrain** (new params, cannot reuse production weights): trains its own model
+under `saved_data/NNNC_DDPM_MLX_Ponder*/`. Auto-reuses the **shared** production
+TabDDPM (`GANs_PostScale/tab_ddpm/`) + scalers (shared `saved_data/` root), so the
+ONLY variable vs production is the ponder head. Same MCC monitor / focal loss /
+data pipeline. **Pinned timerange** for all runs (the sliding-window lesson).
+
+**Gate (A/B, retrain each):** train + backtest `ponder_steps ∈ {0, 2, 4}` (0 =
+matched control) on one pinned window, seed=42. Escalate N or refine only if a
+positive `ponder_steps` beats the N=0 control beyond the ~1-trade noise floor;
+otherwise reject. Watch the val_mcc curve (deeper head may overfit the small
+signal).
+
+**Components:** `Ponder` + `_LSTMPonderModel` + `NNNClassifierMLX_LSTM_Ponder`
+(+ enum `LSTM_PONDER`) in `NNNClassifierMLX.py`; `PonderStrategyMixin` (stamps
+`ponder_steps`, NO weight-reuse / NO get_model_path override — it trains fresh);
+strategy `NNNC_DDPM_MLX_Ponder`.
 
 ## Components
 
