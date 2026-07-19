@@ -38,8 +38,14 @@ def sigma_tag(sigma: float) -> str:
     return f"s{str(sigma).replace('.', '_')}"
 
 
-def make_temp_strategy(base: str, sigma: float) -> tuple[str, pathlib.Path]:
+def make_temp_strategy(
+    base: str, sigma: float, seed: int | None = None
+) -> tuple[str, pathlib.Path]:
     cls = f"NNNCSweep_{base}_{sigma_tag(sigma)}"
+    seed_line = ""
+    if seed is not None:
+        cls += f"_seed{seed}"
+        seed_line = f"    noisy_seed = {seed}\n"
     content = (
         "import sys\n"
         "from pathlib import Path\n"
@@ -47,6 +53,7 @@ def make_temp_strategy(base: str, sigma: float) -> tuple[str, pathlib.Path]:
         f"from {base} import {base}\n\n\n"
         f"class {cls}({base}):\n"
         f"    noisy_sigma = {sigma}\n"
+        f"{seed_line}"
     )
     path = STRAT_DIR / f"{cls}.py"
     path.write_text(content)
@@ -85,15 +92,30 @@ def main() -> int:
     ap.add_argument("sigmas", nargs="+", type=float)
     ap.add_argument("--ndays", type=int, default=720)
     ap.add_argument("--offset", type=int, default=30)
+    ap.add_argument(
+        "--seeds",
+        nargs="+",
+        type=int,
+        help="Seed-robustness mode: fix sigma to sigmas[0] and vary noisy_seed.",
+    )
     args = ap.parse_args()
 
     base = FAMILY[args.family]
     LOGDIR.mkdir(parents=True, exist_ok=True)
     rows = []
 
-    for sigma in args.sigmas:
-        cls, path = make_temp_strategy(base, sigma)
-        print(f"[sweep] {base} sigma={sigma} -> {cls} ...", flush=True)
+    # (label, sigma, seed) work items. Seed mode fixes sigma, varies seed.
+    if args.seeds:
+        sigma0 = args.sigmas[0]
+        items = [(f"seed={s}", sigma0, s) for s in args.seeds]
+        col = "seed"
+    else:
+        items = [(f"sigma={sig}", sig, None) for sig in args.sigmas]
+        col = "sigma"
+
+    for label, sigma, seed in items:
+        cls, path = make_temp_strategy(base, sigma, seed)
+        print(f"[sweep] {base} {label} -> {cls} ...", flush=True)
         try:
             out = run_backtest(cls, args.ndays, args.offset)
             (LOGDIR / f"{cls}.log").write_text(out)
@@ -103,21 +125,24 @@ def main() -> int:
             pyc = path.parent / "__pycache__"
             for f in pyc.glob(f"{cls}.*.pyc"):
                 f.unlink(missing_ok=True)
-        rows.append((sigma, m))
+        rows.append((seed if seed is not None else sigma, m))
         print(
             f"    profit={m['profit']}%  calmar={m['calmar']}  dd={m['dd']}%  "
             f"pf={m['pf']}  trades={m['trades']}  stops={m['stops']}",
             flush=True,
         )
 
-    print(f"\n=== NoisyCoconut sweep: {base} ({args.ndays}d/-{args.offset}) ===")
-    print(f"{'sigma':>7} | {'profit%':>8} | {'calmar':>7} | {'dd%':>5} | "
+    title = f"{base} ({args.ndays}d/-{args.offset})"
+    if args.seeds:
+        title += f"  sigma={args.sigmas[0]} FIXED, seed-robustness"
+    print(f"\n=== NoisyCoconut sweep: {title} ===")
+    print(f"{col:>7} | {'profit%':>8} | {'calmar':>7} | {'dd%':>5} | "
           f"{'pf':>5} | {'trades':>6} | {'stops':>5}")
     print("-" * 60)
-    for sigma, m in rows:
-        print(f"{sigma:>7} | {m['profit']:>8} | {m['calmar']:>7} | {m['dd']:>5} | "
+    for key, m in rows:
+        print(f"{key:>7} | {m['profit']:>8} | {m['calmar']:>7} | {m['dd']:>5} | "
               f"{m['pf']:>5} | {m['trades']:>6} | {m['stops']:>5}")
-    print("\n(sigma=0.0 should match production; per-run logs in scripts/sweep_logs/)")
+    print("\n(per-run logs in scripts/sweep_logs/)")
     return 0
 
 
