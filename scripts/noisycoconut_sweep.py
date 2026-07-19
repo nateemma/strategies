@@ -60,8 +60,15 @@ def make_temp_strategy(
     return cls, path
 
 
-def run_backtest(cls: str, ndays: int, offset: int) -> str:
-    cmd = ["zsh", str(TEST_STRAT), "-n", str(ndays), "-o", str(offset), "NNNC", cls]
+def run_backtest(cls: str, ndays: int, offset: int, timerange: str | None) -> str:
+    # A pinned --timerange (-t) is REQUIRED for multi-day A/B: -n/-o are relative
+    # to today, so the window silently slides one day per calendar day and runs
+    # taken on different days are not comparable.
+    if timerange:
+        window = ["-t", timerange]
+    else:
+        window = ["-n", str(ndays), "-o", str(offset)]
+    cmd = ["zsh", str(TEST_STRAT), *window, "NNNC", cls]
     env = {**__import__("os").environ}
     env["PATH"] = str(REPO / ".venv" / "bin") + ":" + env.get("PATH", "")
     proc = subprocess.run(
@@ -93,6 +100,12 @@ def main() -> int:
     ap.add_argument("--ndays", type=int, default=720)
     ap.add_argument("--offset", type=int, default=30)
     ap.add_argument(
+        "--timerange",
+        default=None,
+        help="Pinned window YYYYMMDD-YYYYMMDD (passed to test_strat.sh -t). "
+        "STRONGLY recommended for A/B: -n/-o slide one day per calendar day.",
+    )
+    ap.add_argument(
         "--seeds",
         nargs="+",
         type=int,
@@ -117,7 +130,7 @@ def main() -> int:
         cls, path = make_temp_strategy(base, sigma, seed)
         print(f"[sweep] {base} {label} -> {cls} ...", flush=True)
         try:
-            out = run_backtest(cls, args.ndays, args.offset)
+            out = run_backtest(cls, args.ndays, args.offset, args.timerange)
             (LOGDIR / f"{cls}.log").write_text(out)
             m = parse(out)
         finally:
@@ -132,7 +145,8 @@ def main() -> int:
             flush=True,
         )
 
-    title = f"{base} ({args.ndays}d/-{args.offset})"
+    window = args.timerange if args.timerange else f"{args.ndays}d/-{args.offset} (SLIDING)"
+    title = f"{base} ({window})"
     if args.seeds:
         title += f"  sigma={args.sigmas[0]} FIXED, seed-robustness"
     print(f"\n=== NoisyCoconut sweep: {title} ===")
