@@ -24,6 +24,7 @@ sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent.parent))
 
 from Predictors.MLXClassifierNary import MLXClassifierNary
+from Predictors.NoisyCoconut import NoisyCoconutMixin
 
 # -----------------------------------------------------------------------
 # Shared constants (mirrors NNNClassifier.py)
@@ -180,8 +181,8 @@ class _LSTMModel(nn.Module):
         self.dropout_bn = nn.Dropout(DROPOUT)
         self.out = nn.Linear(num_filters, num_classes)
 
-    def __call__(self, x: mx.array) -> mx.array:
-        # x: (batch, seq, features)
+    def encode(self, x: mx.array) -> mx.array:
+        # x: (batch, seq, features) → latent (batch, num_filters)
         x_r = nn.relu(self.resize(x))  # (B, S, F)
 
         # Conv1D block — Conv1d output is (B, S, F) (note: padding=1 for kernel=2 adds 1 extra; trim)
@@ -197,12 +198,19 @@ class _LSTMModel(nn.Module):
         lstm_last = lstm_out[:, -1, :]  # (B, F)  — last timestep
         lstm_last = self.ln_lstm(lstm_last)
         lstm_last = self.dropout_lstm(lstm_last)
+        return lstm_last
 
-        # Bottleneck
+    def decode(self, lstm_last: mx.array) -> mx.array:
+        # latent (batch, num_filters) → softmax (batch, num_classes)
         h = nn.elu(self.bottleneck(lstm_last))
         h = self.dropout_bn(h)
-
         return mx.softmax(self.out(h), axis=-1)
+
+    def __call__(self, x: mx.array) -> mx.array:
+        # Split into encode()/decode() so latent-space perturbation
+        # (NoisyCoconut) can hook the latent between them. This composition
+        # is byte-identical to the original single-pass forward.
+        return self.decode(self.encode(x))
 
 
 class NNNClassifierMLX_LSTM(MLXClassifierNary):
@@ -871,6 +879,23 @@ class NNNClassifierMLX_TSMamba(MLXClassifierNary):
 
 
 # -----------------------------------------------------------------------
+# NoisyCoconut LSTM variants (training-free — reuse the trained LSTM weights)
+# -----------------------------------------------------------------------
+
+
+class NNNClassifierMLX_LSTM_InJit(NoisyCoconutMixin, NNNClassifierMLX_LSTM):
+    """Stage-0 pre-gate: input-space jitter multi-path over the full model."""
+
+    noisy_perturb_space = "input"
+
+
+class NNNClassifierMLX_LSTM_Noisy(NoisyCoconutMixin, NNNClassifierMLX_LSTM):
+    """Stage-1: latent-space (COCONUT) jitter — perturbs the LSTM latent."""
+
+    noisy_perturb_space = "latent"
+
+
+# -----------------------------------------------------------------------
 # ClassifierTypeMLX enum + factory
 # -----------------------------------------------------------------------
 
@@ -889,6 +914,8 @@ class ClassifierTypeMLX(Enum):
     Mamba2 = NNNClassifierMLX_Mamba2
     TSMamba = NNNClassifierMLX_TSMamba
     LSTM_KAN = NNNClassifierMLX_LSTM_KAN
+    LSTM_INJIT = NNNClassifierMLX_LSTM_InJit
+    LSTM_NOISY = NNNClassifierMLX_LSTM_Noisy
 
 
 def create_classifier_mlx(
