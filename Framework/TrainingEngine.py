@@ -132,9 +132,21 @@ class TrainingEngine:
         aggr_train_labels = None
         aggr_test_labels = None
 
+        # Optional per-sample P&L-magnitude weights, carried in the "%pnl_weight"
+        # column when a strategy opts in (get_training_labels sets it). Accumulated
+        # in parallel with train_labels through the SAME slicing so alignment
+        # holds. have_weights stays False → returns None (default: no weighting).
+        train_weights_parts = []
+        have_weights = True
+
         for i in range(num_pairs):
 
             pair_labels = np.asarray(labels[i])
+            pair_weights_full = None
+            if "%pnl_weight" in dataframe[i].columns:
+                pair_weights_full = np.asarray(
+                    dataframe[i]["%pnl_weight"].values, dtype=np.float64
+                )
             if norm:
                 df_norm = self.scale_dataframe(dataframe[i])
             else:
@@ -152,6 +164,11 @@ class TrainingEngine:
 
             train_labels = pair_labels[:train_end]
             test_labels = pair_labels[test_start:]
+            train_weights = (
+                pair_weights_full[:train_end]
+                if pair_weights_full is not None
+                else None
+            )
 
             pair_name = (
                 pair_names[i]
@@ -180,6 +197,12 @@ class TrainingEngine:
             train_labels = train_labels[offset:]
             test_labels = test_labels[offset:]
 
+            if train_weights is not None:
+                train_weights = train_weights[offset:]
+                train_weights_parts.append(train_weights)
+            else:
+                have_weights = False
+
             if aggr_tsr_train is None:
                 aggr_tsr_train = tsr_train
                 aggr_tsr_test = tsr_test
@@ -195,7 +218,20 @@ class TrainingEngine:
                     [aggr_test_labels, test_labels], axis=0
                 )
 
-        return aggr_tsr_train, aggr_tsr_test, aggr_train_labels, aggr_test_labels
+        aggr_train_weights = (
+            np.concatenate(train_weights_parts, axis=0)
+            if have_weights and train_weights_parts
+            else None
+        )
+
+        return (
+            aggr_tsr_train,
+            aggr_tsr_test,
+            aggr_train_labels,
+            aggr_test_labels,
+            aggr_train_weights,
+        )
+
     def train_model(
         self,
         dataframes: [DataFrame],
@@ -205,8 +241,10 @@ class TrainingEngine:
     ):
         """Train the model - default implementation"""
 
-        tsr_train, tsr_test, train_labels, test_labels = self.prepare_training_data(
-            dataframes, labels, pair_names=pair_names,
+        tsr_train, tsr_test, train_labels, test_labels, train_weights = (
+            self.prepare_training_data(
+                dataframes, labels, pair_names=pair_names,
+            )
         )
 
         if tsr_train is not None and len(tsr_train.shape) >= 2:
@@ -273,12 +311,24 @@ class TrainingEngine:
                 }
             else:
                 train_labels = np.asarray(train_labels)
-                tsr_train, train_labels = shuffle(
-                    tsr_train, train_labels, random_state=42
-                )
+                if train_weights is not None:
+                    # Shuffle weights in lockstep so P&L weighting stays aligned.
+                    tsr_train, train_labels, train_weights = shuffle(
+                        tsr_train, train_labels, train_weights, random_state=42
+                    )
+                else:
+                    tsr_train, train_labels = shuffle(
+                        tsr_train, train_labels, random_state=42
+                    )
 
+        # Pass sample_weights only when present, so classifiers whose train()
+        # doesn't accept the kwarg (Keras, other backends) are unaffected. Only
+        # the opt-in P&L-weighted path (MLXClassifierNary) ever receives it.
+        train_kwargs = {"class_weights": class_weights}
+        if train_weights is not None:
+            train_kwargs["sample_weights"] = train_weights
         classifier.train(
-            tsr_train, tsr_test, train_labels, test_labels, class_weights=class_weights
+            tsr_train, tsr_test, train_labels, test_labels, **train_kwargs
         )
 
         if self.use_markov_smoothing and self.markov_transition_matrix is not None:

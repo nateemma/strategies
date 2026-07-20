@@ -71,6 +71,21 @@ def _rolling_min_forward(arr: np.ndarray, horizon: int) -> np.ndarray:
     return out
 
 
+def forward_excursion(df: pd.DataFrame, horizon: int):
+    """Per-row max favorable excursion over ``horizon``, for buy (up) and sell
+    (down) directions, as fractional returns aligned with df rows.
+
+    Uses the same primitives as ``labels_forward_return_mae_cap`` so the returned
+    magnitude matches the quantity the gbb labeler thresholds on (buy → mfe,
+    sell → downside mfe). Intended as a per-sample P&L-magnitude weight for
+    training; it is future-looking and MUST NOT be used as a model feature.
+    """
+    close = _safe_close(df)
+    buy_mfe = (_rolling_max_forward(close, horizon) - close) / close
+    sell_mfe = (close - _rolling_min_forward(close, horizon)) / close
+    return buy_mfe, sell_mfe
+
+
 def _max_adverse_excursion(close: np.ndarray, horizon: int) -> np.ndarray:
     # MAE as worst adverse move from entry within future window
     n = len(close)

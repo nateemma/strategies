@@ -32,7 +32,9 @@ def multi_class_focal_loss_mlx(gamma: float = 0.5, alpha_vector=None):
     # Materialise as constant MLX array so it lives in the compute graph
     alpha_mx = mx.array(np.array(alpha_vector, dtype=np.float32))
 
-    def focal_loss_fixed(y_true: mx.array, y_pred: mx.array) -> mx.array:
+    def focal_loss_fixed(
+        y_true: mx.array, y_pred: mx.array, sample_weights: mx.array = None
+    ) -> mx.array:
         epsilon = 1e-7
 
         # Guard against log(0) / division by zero
@@ -48,11 +50,17 @@ def multi_class_focal_loss_mlx(gamma: float = 0.5, alpha_vector=None):
         # Per-class alpha weighting
         alpha_factor = y_true * alpha_mx
 
-        # Focal loss
+        # Focal loss, summed over classes → per-sample loss
         fl = modulating_factor * alpha_factor * cross_entropy
+        per_sample = mx.sum(fl, axis=-1)  # (batch,)
 
-        # Sum over classes, mean over batch  (× 10 matches the Keras version)
-        return 10.0 * mx.mean(mx.sum(fl, axis=-1))
+        # Optional per-sample weighting (e.g. P&L-magnitude weighting). None ⇒
+        # unchanged. Weights should have mean ≈ 1 so the loss scale is preserved.
+        if sample_weights is not None:
+            per_sample = per_sample * sample_weights
+
+        # Mean over batch  (x10 matches the Keras version)
+        return 10.0 * mx.mean(per_sample)
 
     return focal_loss_fixed
 

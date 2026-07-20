@@ -117,8 +117,10 @@ def _batch_iter(
     y: Union[np.ndarray, mx.array],
     batch_size: int,
     shuffle: bool = True,
+    weights=None,
 ):
-    """Yield (mx.array X_batch, mx.array y_batch) mini-batches."""
+    """Yield (X_batch, y_batch, w_batch) mini-batches; w_batch is None when
+    ``weights`` is None (unweighted loss)."""
     n = len(X)
     idx = np.random.permutation(n) if shuffle else np.arange(n)
     # Pre-convert labels to mx.array once if they aren't already
@@ -126,12 +128,14 @@ def _batch_iter(
     # Pre-convert data to mx.array once if it isn't already
     # (though method=3 already does this, this helps other methods)
     X_mx = mx.array(X, dtype=mx.float32) if not isinstance(X, mx.array) else X
+    w_mx = mx.array(weights, dtype=mx.float32) if weights is not None else None
 
     for start in range(0, n, batch_size):
         b_idx_np = idx[start : start + batch_size]
         # Convert batch indices to mx.array for compatible indexing
         b_idx = mx.array(b_idx_np)
-        yield X_mx[b_idx], y_mx[b_idx]
+        w_batch = w_mx[b_idx] if w_mx is not None else None
+        yield X_mx[b_idx], y_mx[b_idx], w_batch
 
 
 # -----------------------------------------------------------------------
@@ -154,6 +158,12 @@ class MLXClassifierNary(MLXBaseClassifier):
     # reproducible from this seed — used to measure training-seed robustness of
     # a result. Default None preserves the existing module-level SEED behaviour.
     train_seed: int | None = None
+
+    # P&L-magnitude loss weighting blend. None/0 ⇒ standard (unweighted) loss;
+    # in (0, 1] blends the per-sample forward-excursion magnitude into the loss
+    # (w = (1-alpha) + alpha * normalised_magnitude). Requires sample_weights
+    # (raw magnitudes) to be passed to train().
+    pnl_loss_alpha: float | None = None
 
     # Internal state for class weighting
     class_weights: list = []
@@ -180,6 +190,7 @@ class MLXClassifierNary(MLXBaseClassifier):
         test_results,
         force_train: bool = False,
         class_weights=None,
+        sample_weights=None,
     ):
         """
         Train the model.  Signature identical to ClassifierKerasNary.train().
@@ -258,6 +269,39 @@ class MLXClassifierNary(MLXBaseClassifier):
             test_tensor, test_results_np, label="validation"
         )
 
+        # --- optional P&L-magnitude loss weighting ---
+        # sample_weights are raw per-row forward-excursion magnitudes (NaN for
+        # Hold rows), aligned with the (non-GAN) training rows. Blend:
+        #   w = (1-alpha) + alpha * (clip(mag) / mean)   → mean ≈ 1, alpha=0 ⇒ all 1.
+        # If a length mismatch appears (rows were filtered), weighting is disabled
+        # rather than misaligned.
+        train_w = None
+        alpha = getattr(self, "pnl_loss_alpha", None)
+        if sample_weights is not None and alpha:
+            mag = np.asarray(sample_weights, dtype=np.float64)
+            if len(mag) == len(train_tensor):
+                baseline = np.nanmedian(mag)
+                if not np.isfinite(baseline):
+                    baseline = 0.0
+                mag = np.where(np.isnan(mag), baseline, mag)
+                cap = np.quantile(mag, 0.95)
+                mag = np.clip(mag, 0.0, cap if cap > 0 else None)
+                mean_mag = float(mag.mean())
+                mag = mag / mean_mag if mean_mag > 0 else np.ones_like(mag)
+                train_w = (
+                    (1.0 - float(alpha)) + float(alpha) * mag
+                ).astype(np.float32)
+                print(
+                    f"    P&L-weighted loss: alpha={alpha}  clip@95pct={cap:.4f}  "
+                    f"w[min/mean/max]={train_w.min():.3f}/{train_w.mean():.3f}/"
+                    f"{train_w.max():.3f}"
+                )
+            else:
+                print(
+                    f"    WARNING: pnl sample_weights len {len(mag)} != train rows "
+                    f"{len(train_tensor)}; disabling P&L weighting"
+                )
+
         # --- create model if missing ---
         if self.model is None:
             self.num_features = train_tensor.shape[-1]
@@ -288,9 +332,9 @@ class MLXClassifierNary(MLXBaseClassifier):
         optimizer = optim.Adam(learning_rate=self.learning_rate)
 
         # ---- define per-step loss+grad function ----
-        def forward_loss(model, X, y):
+        def forward_loss(model, X, y, w):
             preds = model(X)
-            return loss_fn(y, preds)
+            return loss_fn(y, preds, w)
 
         loss_and_grad = nn.value_and_grad(self.model, forward_loss)
 
@@ -334,10 +378,16 @@ class MLXClassifierNary(MLXBaseClassifier):
             epoch_losses = []
             epoch_clips = 0  # how many batches in this epoch had grads clipped
 
-            for X_batch, y_batch in _batch_iter(
-                train_tensor, train_results_np, self.batch_size, shuffle=True
+            for X_batch, y_batch, w_batch in _batch_iter(
+                train_tensor,
+                train_results_np,
+                self.batch_size,
+                shuffle=True,
+                weights=train_w,
             ):
-                loss_val, grads = loss_and_grad(self.model, X_batch, y_batch)
+                loss_val, grads = loss_and_grad(
+                    self.model, X_batch, y_batch, w_batch
+                )
                 loss_value = float(loss_val.item())
 
                 # We have to check BOTH the loss and the gradient norm before

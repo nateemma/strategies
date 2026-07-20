@@ -80,11 +80,16 @@ so production and other strategies are unaffected.
 
 ## Strategy
 
-`NNNC_DDPM_MLX_PnlLoss` — inherits the non-GAN ponder base config
-(`NNNC_DDPM_MLX_Ponder` with `ponder_steps=0` to isolate the loss from the ponder
-head), sets the `pnl_loss_alpha` class attribute (stamped onto the classifier via
-a small mixin, like `train_seed`). Distinct-name subclasses per alpha for the
-sweep, each retrains its own model.
+`NNNC_MLX_PnlLoss` — inherits the **plain non-GAN `NNNC_MLX`** base (gan_type=NONE,
+**post_gan_scaling=False**; NOT `NNNC_DDPM_MLX`, whose `NNNC_DDPM_` prefix means GAN
+and which carries `post_gan_scaling=True`). Plain LSTM (no ponder) isolates the
+loss effect. Sets `pnl_loss_alpha` (stamped onto the classifier via
+`PnlLossStrategyMixin`, alongside `train_seed`). Distinct-name subclasses per alpha
+for the sweep, each retrains its own model.
+
+Note: the `NNNC_MLX` path uses the name-aware df `main_scaler`. If it is stale
+(pre `di_diff_scaled`/`spread_ma`, like `gan_scaler_a` was), `CreateScalers` is
+required first (a shared-artifact regen — flag before running).
 
 ## Validation gate
 
