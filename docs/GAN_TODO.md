@@ -42,11 +42,17 @@ clip → synth σ ~4-5× real, `OFF_DIST` on all 18 buckets in the fidelity repo
 co-scaled correctly or not, so it adds similar noise either way. Same information-ceiling
 pattern as NNNC ([[feedback_gan_ratio_sweep_no_gan_wins]]).
 
+**Three-way confirmation (2026-07-20, same window, plain + path-A are fresh retrains):**
+plain NNMT_MLX (no GAN) +3.84% / 35 tr / Calmar 10.72; NNMT_DDPM pre-fix +3.75% / 29 tr;
+NNMT_DDPM path-A +3.98% / 29 tr. **All within 0.23pp — the DDPM GAN is P&L-NEUTRAL for
+NNMT** (plain ≈ GAN, like NNNC). The GAN slightly cut trade count (29 vs 35) + confidence.
+
 **Two takeaways:** (a) KEEP path A — mechanically correct, removes the bug, makes the
-fidelity diagnostic trustworthy. (b) The NNMT-vs-NNNC gap (~4% vs ~12%) is NOT scaling —
-it's the multi-task architecture + low trade count (29 vs ~167) + poor synth. The synth
-lever, if ever chased, is DDPM quality (epochs / DDIM steps / tighter clip / backbone),
-but #4's prior says better synth hasn't moved P&L. Original plan retained below.
+fidelity diagnostic trustworthy. (b) The NNMT-vs-NNNC gap (~4% vs ~12%) is NEITHER
+scaling NOR the GAN (plain ≈ GAN) — it's the **multi-task architecture**, manifest as
+extreme selectivity (29-35 trades vs NNNC's ~167). The synth lever, if ever chased, is
+DDPM quality (epochs / DDIM steps / tighter clip / backbone), but #4's prior + this
+result say better synth won't move P&L. Original plan retained below.
 
 ---
 ### Original path A plan (kept for reference)
