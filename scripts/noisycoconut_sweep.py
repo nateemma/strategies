@@ -31,6 +31,9 @@ TEST_STRAT = REPO / "user_data" / "strategies" / "scripts" / "test_strat.sh"
 FAMILY = {
     "latent": "NNNC_DDPM_MLX_Noisy",
     "input": "NNNC_DDPM_MLX_InJit",
+    # Non-GAN base (correct for isolating the classifier-head mechanism).
+    "latent_mlx": "NNNC_MLX_Noisy",
+    "input_mlx": "NNNC_MLX_InJit",
 }
 
 
