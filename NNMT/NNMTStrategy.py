@@ -785,7 +785,9 @@ class NNMTStrategy(BaseNNStrategy):
 
         self._augmented_labels = aggr_train_labels
 
-        return aggr_tsr_train, aggr_tsr_test, aggr_train_labels, aggr_test_labels
+        # 5th value = per-sample P&L weights (base train_model unpacks 5); the
+        # multi-task path does not use P&L-magnitude weighting, so None.
+        return aggr_tsr_train, aggr_tsr_test, aggr_train_labels, aggr_test_labels, None
 
     # -----------
 
