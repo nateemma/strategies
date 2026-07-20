@@ -46,8 +46,23 @@ normalization (the opposite unification from the original v2 intent, but the cor
 one). Caveat: the multi-task GAN must then also train/generate in the
 dataframe-normalized space (`CreateMTDDPM` on `scale_dataframe`'d data, no tensor
 scaler).
-**Next:** after #1, wire multi-task to normalize the dataframe up front, retrain an
-NNMT variant, check the gap to NNNC closes.
+**Reframed via `v1_to_v2_gan_transition_prompt.md` (2026-07-20):** v2/post_gan_scaling
+was a deliberate fix for a GAN VARIANCE bug (v1 MinMax[-1,1]+Tanh capped
+σ_syn/σ_real≈0.7; v2 = internal z-score + LINEAR output → σ≈1.0). Crucial: that
+variance fix lives in the GAN ARCHITECTURE (internal z-score + linear), NOT in the
+tensor-level scaling. So the two are separable — this fix KEEPS the v2 GAN
+architecture and only swaps the pipeline scaling tensor→dataframe. It's a refinement
+of v2, not a revert.
+
+**Concrete change:** predict (`BaseNNStrategy:994`) and training preprocess
+(`TrainingEngine:950`) drop the `main_tensor_scaler` step and use `scale_dataframe →
+df_to_tensor` (GAN then trains/generates in the dataframe-normalised space, z-scoring
+internally). `main_tensor_scaler` (fit in `CreateScalers:65`) becomes unused. Touches
+the deliberately-designed v2 pipeline + needs a rebuild.
+**Validate:** retrain an NNMT variant; check BOTH (a) σ_syn/σ_real stays ≈1.0 (the v2
+variance fix survives — it should, it's in the GAN arch) AND (b) NNMT gap to NNNC
+closes (pre_normalized columns preserved). Substantial change — scope as a focused
+effort, don't rush.
 
 ## 3. Review current state of `post_gan_scaling` logic
 
