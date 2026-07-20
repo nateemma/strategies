@@ -686,7 +686,13 @@ class NNMTStrategy(BaseNNStrategy):
 
             pair_labels = {task: np.asarray(values) for task, values in labels.items()}
             if norm:
-                df_norm = self.scale_dataframe(dataframe)
+                if getattr(self, "use_post_gan_scaling", False):
+                    # v2 path A: feed the GAN raw (clean_for_tensor), matching
+                    # CreateMTGANBase. The column-aware main_tensor_scaler is
+                    # applied AFTER augmentation in preprocess_training_data.
+                    df_norm = self.clean_for_tensor(dataframe)
+                else:
+                    df_norm = self.scale_dataframe(dataframe)
             else:
                 df_norm = dataframe.copy()
 
@@ -1473,6 +1479,23 @@ class NNMTStrategy(BaseNNStrategy):
             train_minmax,
             train_labels,
         )
+
+    def _apply_post_gan_scaler(self, train_data, test_data):
+        """Normalise raw post-GAN tensors with the column-aware tensor scaler.
+
+        v2 path A: under use_post_gan_scaling the MT tensors are built + augmented
+        in raw (clean_for_tensor) space. This applies the column-aware
+        main_tensor_scaler (RobustScale needs_norm, pass pre_normalized through,
+        clip ±10), yielding the same space scale_dataframe produces at inference —
+        so the classifier trains and predicts in one consistent space.
+        """
+        from utils.Scalers import load_scaler  # noqa: E402
+
+        tensor_scaler = load_scaler(self.get_storage_location(), "main_tensor_scaler")
+        train_data = tensor_scaler.transform(train_data)
+        if test_data is not None and len(test_data) > 0:
+            test_data = tensor_scaler.transform(test_data)
+        return train_data, test_data
 
     def _format_for_gan_scaler(self, array_2d: np.ndarray):
         if isinstance(array_2d, pd.DataFrame):

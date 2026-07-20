@@ -58,13 +58,23 @@ class CreateScalers(BaseNNStrategy):
         # post-GAN pipeline will actually feed through. clean_for_tensor applies
         # the include_list filter + debug-column drop + NaN/inf handling but
         # SKIPS scaling — so stats here match what v2 strategies see at
-        # train/inference time.
+        # train/inference time. Column-aware: RobustScale needs_norm columns and
+        # pass pre_normalized_columns through, mirroring scale_dataframe so the
+        # post-GAN normalise on a raw tensor equals scale_dataframe per-feature.
         print("    Fitting polymorphic tensor scaler on clean_for_tensor output")
         cleaned_df = self.clean_for_tensor(combined_df)
+        passthrough_indices = [
+            i for i, c in enumerate(cleaned_df.columns)
+            if c in self.pre_normalized_columns
+        ]
         raw_features = cleaned_df.to_numpy(dtype=np.float32)
-        tensor_scaler = FeatureScaler().fit(raw_features)
+        tensor_scaler = FeatureScaler(passthrough_indices=passthrough_indices).fit(raw_features)
         save_scaler(tensor_scaler, self.get_storage_location(), self.tensor_scaler_name)
-        print(f"    Saved tensor scaler ({raw_features.shape[1]} features) as '{self.tensor_scaler_name}'")
+        print(
+            f"    Saved tensor scaler ({raw_features.shape[1]} features, "
+            f"{len(passthrough_indices)} pre-normalized passthrough) "
+            f"as '{self.tensor_scaler_name}'"
+        )
 
         # Fit PCA on all numeric columns (both pre-normalized and RobustScaler-normalized)
         pca_cols = [

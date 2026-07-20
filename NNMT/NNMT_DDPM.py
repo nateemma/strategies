@@ -20,7 +20,6 @@ from pathlib import Path
 from typing import Any, Dict, Tuple
 
 import numpy as np
-import pandas as pd
 from pandas import DataFrame
 
 group_dir = str(Path(__file__).parent)
@@ -122,94 +121,89 @@ class NNMT_DDPM(NNMTStrategy):
         train_labels: Dict[str, np.ndarray],
         test_labels: Dict[str, np.ndarray],
     ) -> Tuple[np.ndarray, np.ndarray, Dict[str, np.ndarray], Dict[str, np.ndarray]]:
-        """Balance 3-D sequential training data via MT-DDPM."""
+        """Balance 3-D sequential training data via MT-DDPM.
+
+        v2 path A: train_data arrives RAW (clean_for_tensor space) — the space
+        the MT-DDPM was trained on (CreateMTGANBase). The GAN self-z-scores
+        internally, so it is fed the raw tensor directly (no normalise_for_gan
+        round-trip). The combined real+synth tensor is then normalised by the
+        column-aware main_tensor_scaler, matching the space get_predictions
+        produces via scale_dataframe at inference time.
+        """
         self._augmented_labels = None
         original_shape = np.shape(train_data)
 
+        aug_x, aug_y = train_data, train_labels
+
         if len(train_data) == 0:
             print("    No training data to balance")
-            return train_data, test_data, train_labels, test_labels
-
-        try:
-            save_path = gan_save_path(
-                self.get_storage_location(),
-                self.gan_type,
-                use_pca=bool(getattr(self, "use_pca_reduction", False)),
-                post_gan_scaling=bool(getattr(self, "use_post_gan_scaling", False)),
-            )
-
-            # Transform 3-D tensor (batch, seq_len, features) → minmax space.
-            train_data_shape = train_data.shape
-            num_features = train_data.shape[-1]
-            train_2d = train_data.reshape(-1, num_features)
-            gan_input = self._format_for_gan_scaler(train_2d)
-            train_minmax_2d = self.normalise_for_gan(gan_input)
-            if isinstance(train_minmax_2d, pd.DataFrame):
-                train_minmax_2d = train_minmax_2d.to_numpy()
-            train_minmax = train_minmax_2d.reshape(train_data_shape)
-
-            print("    Balancing training data with MT DDPM (via GANInterface)")
-            interface = GANInterface(GANType.MT_DDPM, save_path=save_path)
+        else:
             try:
-                interface.load(expected=self._gan_expected_metadata(dataframe))
-                print(f"    Loaded existing MT DDPM model from {save_path}.")
-            except GANMetadataMismatchError:
-                # Strict validation rejects stale models — propagate so
-                # the operator sees the per-key diff.
-                raise
-            except FileNotFoundError as load_err:
-                raise RuntimeError(
-                    f"MT DDPM model not found at {save_path}. "
-                    f"Run CreateMTDDPM first to train and save the model. "
-                    f"Error: {load_err}"
-                ) from load_err
-            self._apply_gan_inference_overrides(interface)
-
-            aug_x, aug_y = self._balance_iteratively(
-                interface=interface,
-                train_minmax=train_minmax,
-                train_labels=train_labels,
-            )
-
-            # Log per-task augmentation summary using the first configured task.
-            display_task = None
-            if isinstance(self.gan_target_ratio, dict):
-                display_task = next(iter(self.gan_target_ratio), None)
-            if display_task and display_task in aug_y:
-                aug_task_idx = aug_y[display_task].argmax(axis=1)
-                aug_classes, aug_counts = np.unique(aug_task_idx, return_counts=True)
-                aug_counts_map = dict(zip(aug_classes.tolist(), aug_counts.tolist()))
-                print("    MT DDPM augmentation complete")
-                print(
-                    f"    Augmented train size: {len(aug_x)}  "
-                    f"{display_task} class counts: {aug_counts_map}"
+                save_path = gan_save_path(
+                    self.get_storage_location(),
+                    self.gan_type,
+                    use_pca=bool(getattr(self, "use_pca_reduction", False)),
+                    post_gan_scaling=bool(getattr(self, "use_post_gan_scaling", False)),
                 )
-            else:
-                print("    MT DDPM augmentation complete")
-                print(f"    Augmented train size: {len(aug_x)}")
-            print(f"    MT DDPM effect: shape {original_shape} -> {np.shape(aug_x)}")
 
-            self._augmented_labels = aug_y
+                print("    Balancing training data with MT DDPM (via GANInterface)")
+                interface = GANInterface(GANType.MT_DDPM, save_path=save_path)
+                try:
+                    interface.load(expected=self._gan_expected_metadata(dataframe))
+                    print(f"    Loaded existing MT DDPM model from {save_path}.")
+                except GANMetadataMismatchError:
+                    # Strict validation rejects stale models — propagate so
+                    # the operator sees the per-key diff.
+                    raise
+                except FileNotFoundError as load_err:
+                    raise RuntimeError(
+                        f"MT DDPM model not found at {save_path}. "
+                        f"Run CreateMTDDPM first to train and save the model. "
+                        f"Error: {load_err}"
+                    ) from load_err
+                self._apply_gan_inference_overrides(interface)
 
-            # Transform aug_x back from minmax space to normalised space.
-            aug_shape = aug_x.shape
-            aug_2d = aug_x.reshape(-1, num_features)
-            aug_input = self._format_for_gan_scaler(aug_2d)
-            aug_2d_norm = self.denormalise_from_gan(aug_input)
-            if isinstance(aug_2d_norm, pd.DataFrame):
-                aug_2d_norm = aug_2d_norm.to_numpy()
-            aug_x = aug_2d_norm.reshape(aug_shape)
+                # GAN trained on raw; feed the raw tensor directly (it z-scores
+                # internally and returns raw-space synth).
+                aug_x, aug_y = self._balance_iteratively(
+                    interface=interface,
+                    train_minmax=train_data,
+                    train_labels=train_labels,
+                )
 
-            return aug_x, test_data, aug_y, test_labels
+                # Log per-task augmentation summary using the first configured task.
+                display_task = None
+                if isinstance(self.gan_target_ratio, dict):
+                    display_task = next(iter(self.gan_target_ratio), None)
+                if display_task and display_task in aug_y:
+                    aug_task_idx = aug_y[display_task].argmax(axis=1)
+                    aug_classes, aug_counts = np.unique(aug_task_idx, return_counts=True)
+                    aug_counts_map = dict(zip(aug_classes.tolist(), aug_counts.tolist()))
+                    print("    MT DDPM augmentation complete")
+                    print(
+                        f"    Augmented train size: {len(aug_x)}  "
+                        f"{display_task} class counts: {aug_counts_map}"
+                    )
+                else:
+                    print("    MT DDPM augmentation complete")
+                    print(f"    Augmented train size: {len(aug_x)}")
+                print(f"    MT DDPM effect: shape {original_shape} -> {np.shape(aug_x)}")
 
-        except GANMetadataMismatchError:
-            raise
-        except Exception as exc:
-            print("    MT DDPM encountered an error; returning original data")
-            print(f"      Error: {exc}")
-            print(traceback.format_exc())
-            self._augmented_labels = None
-            return train_data, test_data, train_labels, test_labels
+                self._augmented_labels = aug_y
+
+            except GANMetadataMismatchError:
+                raise
+            except Exception as exc:
+                print("    MT DDPM encountered an error; returning original data")
+                print(f"      Error: {exc}")
+                print(traceback.format_exc())
+                self._augmented_labels = None
+                aug_x, aug_y = train_data, train_labels
+
+        # Post-GAN column-aware normalise: raw -> normalised (scale_dataframe space).
+        aug_x, test_data = self._apply_post_gan_scaler(aug_x, test_data)
+
+        return aug_x, test_data, aug_y, test_labels
 
     # _balance_iteratively / _format_for_gan_scaler are inherited from
     # BaseNNMTStrategy (shared with NNMT_WGAN).
