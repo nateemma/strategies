@@ -1,11 +1,12 @@
 # COCONUT / continuous-latent-reasoning on a crypto direction classifier — study findings
 
 **Verdict:** COCONUT-style continuous latent reasoning does **not** improve the NNNC
-LSTM direction classifier. Training-free latent/input "noise voting" is inert-to-harmful;
-the trained recurrent-refinement ("pondering") variant showed an apparent edge that turned
-out to be a scaling-pipeline artifact and did not survive on a correct baseline. The result
-is consistent with an information-ceiling argument: adding test-time compute or head capacity
-on the same OHLCV inputs does not add tradeable edge.
+LSTM direction classifier. On the correct non-GAN base, training-free latent/input "noise
+voting" is **inert** (it barely perturbs a well-trained model's decisions); the trained
+recurrent-refinement ("pondering") variant showed an apparent edge that turned out to be a
+scaling-pipeline artifact and did not survive on a correct baseline. The result is consistent
+with an information-ceiling argument: adding test-time compute or head capacity on the same
+OHLCV inputs does not add tradeable edge.
 
 Dates: 2026-07-18 → 07-20. Prompted by external interest in COCONUT (Chain Of CONtinUous
 Thought) applied to time series.
@@ -28,28 +29,47 @@ Backtests on 11 high-volatility alt pairs, pinned window 2024-06-29 → 2026-06-
 unless a seed sweep is stated, volume filter on. `σ=0` / `N=0` reproduce the unmodified model
 exactly (a built-in identity/sanity check).
 
+**Base model (a correction).** The right control for a classifier-head mechanism is the plain,
+non-GAN **`NNNC_MLX`** — no GAN augmentation, no post-GAN scaling. Earlier runs used the
+`NNNC_DDPM_MLX` (GAN) base, which (a) adds augmentation as a confound and (b) carried a
+train/predict scaling bug — and that buggy base is what manufactured the false Stage-2 "ponder
+edge" and inflated the Stage-1 "harm" (see each stage). Stages 0/1 are training-free (they wrap
+a trained model), so they were re-run against `NNNC_MLX` for this write-up; the σ=0 identity
+check reproduces the `NNNC_MLX` base exactly (13.68%, 166 trades).
+
 ## Results
 
 ### Stage 0 — input-space jitter: inert
 
 | σ_in | 0.0 | 0.01 | 0.02 | 0.05 | 0.1 |
 |---|---|---|---|---|---|
-| profit % | 10.64 | 10.64 | 10.64 | 10.64 | 10.89 |
+| profit % | 13.68 | 13.68 | 13.68 | 13.40 | 13.40 |
+| trades | 166 | 166 | 166 | 164 | 164 |
 
-Perturbation below σ=0.05 flips no decisions; at 0.1 it changes a single (winning) trade.
-No systematic effect. **Rejected.**
+Perturbation below σ=0.05 flips no decisions; at σ≥0.05 it changes two (winning) trades,
+costing 0.28pp. No systematic benefit. **Rejected.**
 
-### Stage 1 — latent-space jitter: monotonically harmful
+### Stage 1 — latent-space jitter: inert on the correct base
 
-| σ | 0.0 | 0.1 | 0.2 | 0.4 |
-|---|---|---|---|---|
-| profit % | 10.64 | 10.37 | 9.71 | 9.36 |
-| Calmar | 9.04 | 8.41 | 7.82 | 7.52 |
-| stop-outs | 47 | 47 | 48 | 49 |
+| σ | 0.0 | 0.05 | 0.1 | 0.2 | 0.4 |
+|---|---|---|---|---|---|
+| profit % | 13.68 | 13.68 | 13.68 | 13.68 | 13.68 |
+| trades | 166 | 166 | 166 | 166 | 166 |
 
-Every metric degrades monotonically with the noise level; voting *adds* losing trades rather
-than filtering them. A seed sweep at σ=0.2 gave 9.71–10.74% across seeds — all at or below the
-unperturbed 10.64%. **Rejected.**
+On the non-GAN `NNNC_MLX` base, latent voting is **near-inert**: flat across the whole σ range
+at the default seed, and a seed sweep at σ=0.2 gives 13.61–13.68% (a single-trade flip at one
+seed). The correctly-trained model's decisions are margin-separated enough that latent
+perturbation barely moves them. No benefit. **Rejected.**
+
+> **Why this differs from the earlier write-up (base choice, and what it revealed).** An earlier
+> version of this study ran Stage 1 on the `NNNC_DDPM_MLX` (GAN) base and reported *monotonic
+> harm* (10.64 → 9.36 as σ: 0 → 0.4). Two problems: (1) that base is the wrong control for a
+> classifier-head mechanism — it adds GAN augmentation and, at the time, a train/predict scaling
+> bug; (2) the "harm" was largely that base's **fragility**, not the mechanism. Re-run on the
+> current GAN base, the same latent noise still flips several trades per seed (σ=0.2 → 11.98–12.79%
+> across seeds), confirming the mechanism is live — it just does essentially *nothing* on the
+> robust `NNNC_MLX` base. So the correct-base verdict is "inert," and the mechanism is live, not
+> broken.
 
 > **Methodology note (a false positive we caught):** an early single-seed sweep suggested an
 > inverted-U with a "+0.6pp peak at σ=0.2". Two checks killed it: (1) the effect was inside
@@ -80,15 +100,18 @@ better classification ≠ better trading.)
 
 ## Conclusions
 
-1. **None of the three COCONUT translations improves the classifier.** Input jitter is inert,
-   latent jitter is harmful, and trained pondering has no robust edge once measured on a
-   correct pipeline.
+1. **None of the three COCONUT translations improves the classifier.** On the correct non-GAN
+   base, input jitter is inert and latent jitter is inert (it barely perturbs the well-trained
+   model); trained pondering has no robust edge once measured on a correct pipeline. (Latent
+   jitter *looked* harmful on the earlier GAN base, but that was the base's fragility.)
 2. **Why:** the mechanism is test-time compute / added head capacity on the *same* OHLCV
-   inputs. It cannot exceed the information ceiling of those inputs. Latent voting further acts
-   as a smoother, which pulls marginal decisions toward the mean and adds losing entries. This
-   matches independent findings on this codebase that the predictive ceiling moves only with
-   *new information* (order flow, funding, cross-asset), not with a cleverer head or more
-   inference compute.
+   inputs. It cannot exceed the information ceiling of those inputs. On a well-trained model the
+   decisions are margin-separated, so K-path latent/input voting mostly reproduces the argmax
+   and nets to nothing; on a fragile (mis-scaled) model the same voting smears marginal
+   decisions and loses trades — which is what the earlier GAN-base run showed. Either way it adds
+   no edge. This matches independent findings on this codebase that the predictive ceiling moves
+   only with *new information* (order flow, funding, cross-asset), not with a cleverer head or
+   more inference compute.
 3. **`val_mcc` ≠ P&L.** Interventions that improved the classification metric (pondering depth;
    also a separately-tested P&L-magnitude-weighted loss) did not improve backtest P&L.
 
@@ -100,16 +123,23 @@ better classification ≠ better trading.)
   taken on different days non-comparable — this produced a convincing false positive.
 - **Cross-check the baseline.** The Stage-2 "edge" was only exposed by comparing two bases that
   *should* have been identical; the discrepancy uncovered a real scaling bug.
+- **Pick the right control base.** These mechanisms are classifier-head changes, so the control
+  is the plain non-GAN model — not a GAN variant that adds augmentation and (here) a scaling bug.
+  The wrong base both created a false Stage-2 signal and exaggerated the Stage-1 "harm."
 
 ## Reproducibility
 
-Strategies (in `NNNC/`): `NNNC_DDPM_MLX_InJit` (Stage 0), `NNNC_DDPM_MLX_Noisy` (Stage 1),
+Correct-base (non-GAN) strategies for Stage 0/1 (in `NNNC/`): `NNNC_MLX_InJit` (Stage 0),
+`NNNC_MLX_Noisy` (Stage 1) — both `reuse_model_from = "NNNC_MLX"`, training-free. The original
+GAN-base variants are kept for reference: `NNNC_DDPM_MLX_InJit`, `NNNC_DDPM_MLX_Noisy`,
 `NNNC_DDPM_MLX_Ponder` + `_N0/_N2/_N4` (Stage 2). Wrapper/predictor infra:
 `Predictors/NoisyCoconut.py`, `NNNC/NoisyCoconutStrategyMixin.py`, `NNNC/PonderStrategyMixin.py`,
 `NNNClassifierMLX.py` (`_LSTMPonderModel`, `ClassifierTypeMLX.LSTM_{INJIT,NOISY,PONDER}`).
-Sweep harness: `scripts/noisycoconut_sweep.py` (`latent|input <sigmas...>`, `--seeds`,
-`--timerange`). Design spec: `docs/superpowers/specs/2026-07-18-noisycoconut-nnnc-design.md`.
+Sweep harness: `scripts/noisycoconut_sweep.py` (`input_mlx|latent_mlx|input|latent <sigmas...>`,
+`--seeds`, `--timerange`). Design spec:
+`docs/superpowers/specs/2026-07-18-noisycoconut-nnnc-design.md`.
 
-*Caveat on absolute numbers:* Stage 0/1 baselines (10.64%) were measured on the pre-fix
-pipeline; the reported effects are deltas against the same-base control, so the conclusions
-hold regardless. The scaling bug found via Stage 2 was subsequently fixed.
+*Note on absolute numbers:* Stage 0/1 are now reported on the non-GAN `NNNC_MLX` base (σ=0 =
+13.68%). Earlier revisions reported them on the pre-fix `NNNC_DDPM_MLX` base (σ=0 = 10.64%); the
+verdicts (both rejected) are unchanged. The scaling bug found via Stage 2 was subsequently
+fixed.
