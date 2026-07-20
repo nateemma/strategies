@@ -54,15 +54,45 @@ tensor-level scaling. So the two are separable — this fix KEEPS the v2 GAN
 architecture and only swaps the pipeline scaling tensor→dataframe. It's a refinement
 of v2, not a revert.
 
-**Concrete change:** predict (`BaseNNStrategy:994`) and training preprocess
-(`TrainingEngine:950`) drop the `main_tensor_scaler` step and use `scale_dataframe →
-df_to_tensor` (GAN then trains/generates in the dataframe-normalised space, z-scoring
-internally). `main_tensor_scaler` (fit in `CreateScalers:65`) becomes unused. Touches
-the deliberately-designed v2 pipeline + needs a rebuild.
-**Validate:** retrain an NNMT variant; check BOTH (a) σ_syn/σ_real stays ≈1.0 (the v2
-variance fix survives — it should, it's in the GAN arch) AND (b) NNMT gap to NNNC
-closes (pre_normalized columns preserved). Substantial change — scope as a focused
-effort, don't rush.
+**FULLY SPECED (2026-07-20, user-confirmed design). DO NOT feed the GAN scaled data
+— it consumes RAW and self-z-scores; scaling it would break it + need a GAN retrain.**
+
+Intended pipeline:
+- **GAN:** raw (`clean_for_tensor`) in → raw synth out (internal z-score). UNCHANGED.
+- **Classifier (train AND predict):** NORMALISED data with column processing —
+  RobustScale `needs_norm` columns, PASS THROUGH `pre_normalized_columns` (exactly
+  what `scale_dataframe`/`rolling_dataframe_normalise` does).
+- **Order:** normalise AFTER the GAN, on the combined raw real+synth.
+
+Three confirmed inconsistencies in the current MT path (all vs the above):
+1. Real data is fed to the GAN PRE-SCALED — `prepare_training_data` runs
+   `scale_dataframe` before the MT aug, but the GAN was trained on RAW
+   (`CreateMTGANBase:67` uses `clean_for_tensor`). Classifier aug
+   (`TrainingEngine.preprocess_training_data`, `_invoke_balance_multi_task`) feeds
+   the GAN the `scale_dataframe`'d `tsr_train`.
+2. Post-GAN `main_tensor_scaler` is a RobustScaler over ALL columns → steamrolls
+   `pre_normalized_columns` (the NNMT<NNNC mechanism).
+3. Classifier trains on `scale_dataframe→GAN→main_tensor_scaler` but predicts on
+   `raw→main_tensor_scaler` (`BaseNNStrategy:994`) → train/predict mismatch.
+
+**Fix (chosen approach A — column-aware tensor scaler, no df round-trip):**
+- Feed the GAN RAW at MT aug time (`clean_for_tensor`), matching how the GAN was
+  trained. → touch `prepare_training_data`/`preprocess` GATED ON MULTI-TASK (single-
+  task is already correct on `scale_dataframe` after d156c11 — DO NOT break it).
+- Make the post-GAN scaler (`main_tensor_scaler`/`FeatureScaler`) COLUMN-AWARE: fit +
+  apply only on `needs_norm` columns, pass `pre_normalized` through (per-feature
+  scaling is invariant to windowing, so this equals `scale_dataframe`). Requires
+  `FeatureScaler` to know the pre_normalized column indices; `CreateScalers:65` fits
+  it on `needs_norm` only. Apply post-GAN in preprocess AND at predict.
+- **No GAN retrain** (GAN stays raw). Validate: `CreateScalers` (re-fit column-aware)
+  + retrain NNMT; check σ_syn/σ_real ≈1.0 (unchanged) AND NNMT gap to NNNC closes.
+
+**Diagnostic sub-step option:** fix #1 (train uses raw, matching predict+GAN) ALONE
+first — if it closes the NNMT gap, the mismatch was the killer and #2 (column-aware
+scaler) may be unnecessary. Cheap: just retrain NNMT, no scaler/GAN change.
+
+Complexity: ~5 coordinated spots across shared single/multi-task code + a rebuild.
+Execute as a focused effort with per-change verification; don't rush.
 
 ## 3. Review current state of `post_gan_scaling` logic
 
