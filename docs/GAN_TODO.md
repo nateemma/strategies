@@ -23,7 +23,33 @@ trustworthy, not a scaling artifact). The scaling fix (#3) was still worth it �
 took the GAN 10.64%→12.25% and narrowed the gap from ~2.6pp to ~1pp — but didn't flip
 the verdict.
 
-## 2. NNMT_DDPM/WGAN GAN train-vs-generate scaling mismatch — IN PROGRESS (path A)
+## 2. NNMT_DDPM/WGAN GAN train-vs-generate scaling mismatch — DONE (path A, P&L-neutral)
+
+**VALIDATED 2026-07-20 (commits bc50253 + 7f16219).** Path A implemented (GAN on raw
+everywhere; column-aware post-GAN tensor scaler; predict unchanged). Confirmed in code
+that the MT_DDPM **self-scales**: `df_mt_ddpm_mlx.py` z-scores at fit (:356), samples
+from noise + clips to ±4σ + de-z-scores to raw at generate (:600-618). So `generate()`
+output is ALWAYS raw-scale regardless of input scale → the old
+`normalise_for_gan`/`denormalise_from_gan` round-trip left real (MinMax) and synth
+(raw) at DIFFERENT scales in the training mix. Path A co-scales them (both raw) then
+normalises.
+
+**A/B (old model load vs path-A retrain, same window -n720 -o30, 0-epoch load confirmed):**
+pre-fix +3.75% / DD 0.70% / Calmar 9.87 vs path-A +3.98% / DD 0.84% / Calmar 9.19,
+both 29 trades. **P&L-neutral (+0.23pp, within noise).** The bug was real but wasn't
+costing P&L: the DDPM synth is low-quality (over-dispersed — z-scores saturate the ±4σ
+clip → synth σ ~4-5× real, `OFF_DIST` on all 18 buckets in the fidelity report) whether
+co-scaled correctly or not, so it adds similar noise either way. Same information-ceiling
+pattern as NNNC ([[feedback_gan_ratio_sweep_no_gan_wins]]).
+
+**Two takeaways:** (a) KEEP path A — mechanically correct, removes the bug, makes the
+fidelity diagnostic trustworthy. (b) The NNMT-vs-NNNC gap (~4% vs ~12%) is NOT scaling —
+it's the multi-task architecture + low trade count (29 vs ~167) + poor synth. The synth
+lever, if ever chased, is DDPM quality (epochs / DDIM steps / tighter clip / backbone),
+but #4's prior says better synth hasn't moved P&L. Original plan retained below.
+
+---
+### Original path A plan (kept for reference)
 
 **Prior framing (in this doc + `project_ddpm_base_vs_nnnc_mlx_anomaly` memory) was
 WRONG** — it described the *single-task + MT-GAN* path
