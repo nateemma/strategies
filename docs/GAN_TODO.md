@@ -6,20 +6,22 @@ train/predict scaling mismatch. Previous v1→v2 migration plan:
 
 ---
 
-## 1. Finish the GAN / no-GAN study
+## 1. Finish the GAN / no-GAN study — DONE (2026-07-20): non-GAN wins
 
-**Status: RUNNING.** Seed-robust A/B on the FIXED pipeline — GAN (`NNNC_DDPM_MLX`)
-vs non-GAN (plain `NNNC_MLX`), identical LSTM + threshold, differing only in the GAN
-aug, seeds {1,7,13}, pinned window `20240629-20260619`, both retrained on
-freshly-regenerated scalers. Variants: `NNNC_DDPM_MLX_s{1,7,13}` /
-`NNNC_MLX_s{1,7,13}` (via `TrainSeedStrategyMixin`).
+Seed-robust paired A/B on the FIXED pipeline — GAN (`NNNC_DDPM_MLX`) vs non-GAN
+(plain `NNNC_MLX`), identical LSTM + threshold, seeds {1,7,13}, pinned window, both
+retrained on fresh scalers.
 
-Why it matters: every prior GAN-vs-non-GAN comparison (incl. the "no-GAN wins /
-augmentation is net-noise" conclusion) was measured on a mis-scaled GAN predict path
-(see #3). This is the first trustworthy read.
-- GAN ≥ non-GAN across seeds → augmentation was helping; "no-GAN wins" was a
-  scaling-bug artifact.
-- GAN < non-GAN still → augmentation genuinely doesn't help even correctly scaled.
+**Result: non-GAN wins.** profit GAN {12.89, 11.90, 11.97} (mean 12.25) vs non-GAN
+{12.60, 13.53, 13.53} (mean 13.22); GAN−nonGAN = +0.29 / −1.63 / −1.56 (non-GAN wins
+2/3, decisively at seeds 7/13). **Decoupling:** GAN val_mcc HIGHER at all 3 seeds
+(~0.612 vs ~0.601) — augmentation improves classification but WORSENS P&L. Same
+learnability≠edge wall as the P&L-weighted-loss probe.
+
+**Conclusion: "no-GAN wins" survives on the correctly-scaled pipeline** (now
+trustworthy, not a scaling artifact). The scaling fix (#3) was still worth it — it
+took the GAN 10.64%→12.25% and narrowed the gap from ~2.6pp to ~1pp — but didn't flip
+the verdict.
 
 ## 2. Review NNMT dataframe-vs-tensor scaling (likely NNMT-underperformance cause)
 
@@ -71,14 +73,19 @@ exist at all, or be redefined as "normalize dataframe up front." Check the v2
 transition doc against current behaviour; the multi-task tensor-scaler path is the
 remaining place the pre-normalization is lost.
 
-## 4. If GANs are not helping — investigate why
+## 4. If GANs are not helping — investigate why  (#1 confirmed they don't)
 
-**Gated on #1.** Only pursue if the fixed-pipeline GAN/no-GAN study (#1) shows GAN ≤
-non-GAN. Prior context: [[feedback_gan_ratio_sweep_no_gan_wins]] (no-GAN won a 9-run
-sweep) and [[project_ae_filter_win]] (AE-filtered DDPM once beat no-GAN) were both on
-the pre-fix pipeline, so re-establish the baseline first. Candidate angles if still
-not helping: synth fidelity (regression-to-mean on heavy-tailed features — see
-`gan_passthrough_columns`), quality-filter thresholds (AE/density/discriminator),
-`gan_target_ratio`, and whether the classifier's information ceiling
-([[feedback_triple_barrier_is_a_data_problem]]) leaves any room for synth to help at
-all.
+**Partial answer from #1:** even correctly scaled, the GAN improves val_mcc but
+worsens P&L (learnability≠edge). Synth generated from the same OHLCV distribution
+fits the classification objective better but doesn't add tradeable information — the
+information-ceiling wall ([[feedback_triple_barrier_is_a_data_problem]]). So a GAN on
+the same features is structurally unlikely to help P&L, regardless of quality knobs.
+
+Remaining angles ONLY if you want to squeeze it (low prior): synth fidelity /
+regression-to-mean on heavy-tailed features (`gan_passthrough_columns`),
+quality-filter thresholds (AE/density/discriminator), `gan_target_ratio`. But the #1
+result suggests the ceiling is the target/features, not the GAN — new information
+(order flow / funding / cross-asset) is the only lever that moves it, not synth.
+
+Note: still worth doing #2 (NNMT scaling fix) — that's about NNMT not being crippled
+by the tensor-scaler, independent of whether GAN aug helps.
