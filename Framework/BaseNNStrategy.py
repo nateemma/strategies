@@ -971,7 +971,16 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
                 f"Please ensure add_additional_indicators() and add_sequential_index() are called."
             )
 
-        if getattr(self, "use_post_gan_scaling", False):
+        # Post-GAN scaling only applies when a GAN actually augments training.
+        # With gan_type==NONE, preprocess_training_data early-returns and the
+        # model is TRAINED via scale_dataframe (df-level), so predicting through
+        # the tensor scaler here would mismatch train/predict normalization and
+        # degrade results. Gate on gan_type so a non-GAN strategy falls back to
+        # the df-level path it was trained on.
+        if (
+            getattr(self, "use_post_gan_scaling", False)
+            and self.gan_type != GANType.NONE
+        ):
             # Post-GAN scaling path: skip DataFrame-level normalization but
             # still do the column filtering (drop non-numeric / debug cols)
             # so df_to_tensor doesn't trip on object dtypes. Then apply the
