@@ -86,23 +86,35 @@ log = logging.getLogger(__name__)
 
 
 # --------------------------------------------------------------------------
-# Hyperopt / joblib pickling ceiling.
-# Under -j>1, freqtrade dispatches the analyzed strategy task to loky workers
-# via cloudpickle. The task's object graph (backtest context + strategy +
-# trained model) nests deeper than Python's default 1000-frame recursion limit,
-# so cloudpickle aborts with "Could not pickle object as excessively deep
-# recursion required". The graph is finite-deep, so raise the ceiling — and
-# enlarge new threads' C stack so the loky feeder thread's deeper recursion
-# doesn't overflow the stack. No effect on single-process backtest/train/live.
-# See also BaseNNStrategy.__getstate__ (drops the un-needed model from workers).
-if sys.getrecursionlimit() < 10000:
-    sys.setrecursionlimit(10000)
-try:
-    import threading as _threading
-    if _threading.stack_size() < 64 * 1024 * 1024:
-        _threading.stack_size(64 * 1024 * 1024)
-except (ValueError, RuntimeError, OSError):
-    pass
+# Parallel-hyperopt pickling fix (same guard as TSPredict/TSPredict.py).
+#
+# freqtrade's ``hyperopt_pickle_magic`` (optimize/hyperopt/hyperopt_optimizer.py)
+# recursively walks the strategy's base-class MRO and registers each base's
+# module for cloudpickle pickle-by-value, so strategies subclassed across files
+# reach the hyperopt workers. That walk reaches ``object`` (via mixin bases such
+# as ``StrategyDiagnostics.__bases__ == (object,)``) and registers
+# ``object.__module__ == "builtins"``. Once ``builtins`` is pickled by value,
+# cloudpickle serialises ``type`` by value too; because ``type``'s metaclass is
+# ``type`` this recurses FOREVER and parallel hyperopt (-j>1) dies with
+# "Could not pickle object as excessively deep recursion required" (works at -j 1).
+#
+# Guard the registration so builtins / stdlib modules are never registered
+# by-value — they are always importable by reference, so this is always safe and
+# just undoes the accidental over-registration. Idempotent (``_ts_guarded``
+# flag, shared with TSPredict). Applied here, not freqtrade core (upstream).
+from joblib.externals import cloudpickle as _ftcp
+
+if not getattr(_ftcp.register_pickle_by_value, "_ts_guarded", False):
+    _orig_register_pbv = _ftcp.register_pickle_by_value
+
+    def _guarded_register_pbv(module):
+        name = getattr(module, "__name__", "")
+        if name == "builtins" or name in getattr(sys, "stdlib_module_names", ()):
+            return
+        return _orig_register_pbv(module)
+
+    _guarded_register_pbv._ts_guarded = True
+    _ftcp.register_pickle_by_value = _guarded_register_pbv
 
 
 # =========================================================================
@@ -298,21 +310,6 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
 
 
 
-
-    def __getstate__(self):
-        """Drop the trained classifier from the pickle sent to hyperopt workers.
-
-        Hyperopt (-j>1) cloudpickles the analyzed strategy to loky workers. The
-        trained MLX classifier is a deeply-nested graph that is both the bulk of
-        the recursion depth that trips cloudpickle and un-needed in the worker —
-        hyperopt pre-computes indicators/predictions in the parent, and per-epoch
-        workers only apply entry/exit params to the analyzed dataframe. Restored
-        to None (its class default) on unpickle; it lazily reloads if accessed.
-        No effect on single-process backtest/train/live (nothing pickles there).
-        """
-        state = self.__dict__.copy()
-        state["classifier"] = None
-        return state
 
     def model_exists(self) -> bool:
         """Check if model exists on disk"""
