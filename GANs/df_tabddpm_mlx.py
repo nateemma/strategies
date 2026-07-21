@@ -414,6 +414,18 @@ class TabDDPMMLX:
     # actually seen.
     _ZSCORE_CLIP: float = 4.0
 
+    # Inference-time dispersion scale on the FINAL (de-z-scored) output. The
+    # trained denoiser is mode-seeking and UNDER-disperses (σ_syn/σ_real < 1) —
+    # teaching the classifier a too-tight Buy/Sell region so it rejects
+    # net-winning marginal entries (GAN_TODO #5 diagnosis). The under-dispersion
+    # is baked into the model's score (sampler stochasticity can't fix it — it
+    # denoises back to the modes), so we widen the OUTPUT: scale each feature
+    # around its per-class mean by this factor. Scaling centered features by one
+    # factor leaves correlations EXACTLY unchanged (validated) and applies after
+    # the ±_ZSCORE_CLIP + inverse z-score, so no clip truncation. 1.0 = off.
+    # Pushed on via _apply_gan_inference_overrides(gan_inference_dispersion_scale).
+    _DISPERSION_SCALE: float = 1.0
+
     def _zscore_fit(self, data: np.ndarray) -> np.ndarray:
         """Per-feature z-score normalisation with outlier clipping.
 
@@ -845,6 +857,14 @@ class TabDDPMMLX:
         # then inverse z-score back to original feature ranges.
         x0_np = np.clip(np.asarray(x0_mx), -self._ZSCORE_CLIP, self._ZSCORE_CLIP)
         x0_np = self._zscore_invert(x0_np)
+        # Optional dispersion widening on the FINAL output (counteract the
+        # denoiser's under-dispersion). generate() is called per-class, so the
+        # batch mean is the class mean; scaling around it by one factor widens σ
+        # while leaving feature correlations exactly unchanged.
+        scale = float(getattr(self, "_DISPERSION_SCALE", 1.0))
+        if scale != 1.0 and x0_np.shape[0] > 1:
+            mu = x0_np.mean(axis=0, keepdims=True)
+            x0_np = mu + scale * (x0_np - mu)
         return x0_np.reshape(n, 1, self.num_features).astype(np.float32)
 
     # ---------- persistence ---------- #

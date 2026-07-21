@@ -519,6 +519,9 @@ class TrainingEngine:
         clip = getattr(self, "gan_inference_zscore_clip", None)
         if clip is not None and hasattr(model, "_ZSCORE_CLIP"):
             model._ZSCORE_CLIP = float(clip)
+        disp = getattr(self, "gan_inference_dispersion_scale", None)
+        if disp is not None and hasattr(model, "_DISPERSION_SCALE"):
+            model._DISPERSION_SCALE = float(disp)
     def _format_for_gan_scaler(self, array_2d):
         if isinstance(array_2d, pd.DataFrame):
             return array_2d

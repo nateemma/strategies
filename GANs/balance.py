@@ -296,6 +296,12 @@ def balance_single_task(
                 pass_rate = max(0.05, pass_rate)
                 n_generate = int(remaining / pass_rate * 1.2) + 1
 
+            # Safety cap: keep a single generate() below MLX/Metal's ~500K-element
+            # limit. A very low pass rate (e.g. widened / off-manifold synth that
+            # a strict filter rejects) can otherwise blow the draw count up and
+            # crash the process.
+            n_generate = min(n_generate, 400_000)
+
             gen = _generate_for_class(
                 interface=interface,
                 n=n_generate,
