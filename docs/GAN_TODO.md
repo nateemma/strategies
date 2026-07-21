@@ -170,3 +170,45 @@ result suggests the ceiling is the target/features, not the GAN — new informat
 
 Note: still worth doing #2 (NNMT scaling fix) — that's about NNMT not being crippled
 by the tensor-scaler, independent of whether GAN aug helps.
+
+## 5. GAN sample-quality improvement plan (staged) — STARTED 2026-07-20
+
+Motivation: MT_DDPM synth is over-dispersed (z-scores saturate the ±4σ clip →
+σ_syn ≈ 4-5× σ_real, OFF_DIST on all 18 fidelity buckets). User ideas: (1) stricter
+acceptance filters, (2) discriminator/critic rejection, (3) loss that punishes bad
+samples. Reframed with a 4th (fix the sampler root cause) and ordered cheapest-first.
+**Rules:** measure before build, one lever at a time, P&L-gate every fidelity gain
+(fidelity ≠ edge is what we're TESTING, not assuming — [[feedback_triple_barrier_is_a_data_problem]]).
+Note MT_DDPM is DIFFUSION (no discriminator) — idea (2) applies to MT_WGAN's critic;
+for DDPM a learned rejector = a stronger AE filter (folds into Phase 2).
+
+**Phase 0 — powered, trustworthy baseline (precondition, no model changes).** The
+current GAN-vs-non-GAN test is under-powered (~29-35 trades at tight guards). Loosen
+guards for trade volume; retrain the DDPM variant + non-GAN control; paired seeds,
+pinned window. Output = powered P&L delta (with seed spread) + current fidelity report
+(OFF_DIST/σ baseline). DECISIONS: (a) target family — NNMT MT_DDPM (defect diagnosed,
+richest fidelity report) vs NNNC TabDDPM (already trade-powered, AE-filter win
+[[project_ae_filter_win]]); (b) which guards to loosen (NNMT: apply_task_filters is the
+dominant lever, disable → ~4.5× trades [[feedback_sell_filter_is_capital_pacing]]).
+
+**Phase 1 — root-cause sampler tweaks (idea 4), NO GAN retrain.** DDIM steps and
+generate-time clip are inference-time (decoupled from training) → re-augment + retrain
+classifier only. Grid `num_sample_steps` 50→100/250, generate `_ZSCORE_CLIP` 4→3/2.5,
+sampling-noise scale (via `_apply_gan_inference_overrides`). Fidelity gate: σ_syn/σ_real
+→~1, OFF_DIST shrinks. Then P&L-gate on Phase-0 A/B. Highest value-per-effort.
+
+**Phase 2 — moment/range acceptance filter (idea 1), NO GAN retrain.** In
+`balance_multi_task` accept loop: reject windows whose per-feature CLASS-CONDITIONAL
+μ/σ deviate > N MADs from real, or with features pinned at the clip band. Tune N via
+fidelity report; compose with the existing AE filter. Fidelity gate → P&L-gate.
+
+**Phase 3 — training-time work (idea 3; idea 2 for WGAN), ONLY if Phase 1-2 P&L moves.**
+#3: distribution/moment-matching aux term on DDPM denoising loss, OR tune MT_CTAB_GAN
+(already carries this objective) before new loss code. #2: MT_WGAN critic-score accept
+threshold. Expensive (GAN retrains) → last + conditional. Watch the P&L-loss prior:
+shaping loss raised val_mcc not P&L ([[feedback_pnl_weighted_loss_raises_mcc_not_pnl]]);
+a fidelity loss differs but the "metric-not-trade" pattern is the risk.
+
+**Every phase reports fidelity AND powered-A/B P&L.** Two clean outcomes: synth moves
+P&L → ceiling broken for this target, Phase 3 justified; or fidelity climbs / P&L flat
+across cheap Phases 1-2 → high-confidence cheap reading that the lever is elsewhere.
