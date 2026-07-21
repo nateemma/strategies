@@ -212,3 +212,19 @@ a fidelity loss differs but the "metric-not-trade" pattern is the risk.
 **Every phase reports fidelity AND powered-A/B P&L.** Two clean outcomes: synth moves
 P&L → ceiling broken for this target, Phase 3 justified; or fidelity climbs / P&L flat
 across cheap Phases 1-2 → high-confidence cheap reading that the lever is elsewhere.
+
+**Phase 0 DONE (2026-07-20) — target NNNC TabDDPM, loosen via prediction_threshold.**
+prediction_threshold is inference-time, so the baseline reuses the existing
+NNNC_MLX / NNNC_DDPM_MLX weights (0-epoch, NO retrain) via isolated subclasses
+`NNNC_MLX_P0` / `NNNC_DDPM_MLX_P0` (own class → never touch NNNC_MLX.json, which the
+hyperopt owns). At **prediction_threshold 0.45** (pinned 20240629-20260619):
+- **Power achieved:** ~580 trades (vs ~166 at 0.6, ~3.5×) — discriminating.
+- **Baseline A/B (single-seed):** non-GAN +21.24% / 599 tr / DD 4.09% vs GAN +20.72% /
+  573 tr / DD 3.84% / Calmar 10.54 → **non-GAN marginally ahead (−0.52pp)**, GAN slightly
+  fewer trades. Consistent with all priors (non-GAN ≥ GAN).
+- **Fidelity baseline:** deferred to Phase 1's control run (unchanged sampler) — single-
+  task `balance_single_task` emits a per-class fidelity report and NNNC_DDPM_MLX has
+  `gan_run_diagnostics=True`.
+- **Seed spread:** deferred — add paired seeds {1,7,13} to get the noise band WHEN a
+  Phase-1/2 variant shows a P&L delta worth testing for significance (−0.52pp is almost
+  certainly within noise at this trade count).
