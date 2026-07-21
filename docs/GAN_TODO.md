@@ -250,3 +250,27 @@ override added to `_apply_gan_inference_overrides` (TrainingEngine).
 **Where quality DOES have traction: NNMT MT_DDPM (bad synth). To test "does fixing bad
 synth quality move P&L", re-point the plan at NNMT + loosen its guards (disable
 apply_task_filters). Open decision.**
+
+**Phase 2 DONE (2026-07-21) — the premise was WRONG; GAN BEATS non-GAN at the powered
+operating point.** Chased "why is the GAN consistently worse" and found it isn't.
+Journey: (a) diagnosed conservatism — GAN takes 24 fewer trades, dropping net-winning
+marginals (−0.76pp); traced to under-dispersed synth (σ_ratio ~0.5). (b) Tried to widen:
+post-hoc z-space scale broke joints (clip truncation); DDIM η hit the wrong sampler
+(model uses EDM/Heun); EDM churn joint-safe but INEFFECTIVE (denoiser denoises noise back
+to modes — under-dispersion is baked into the score); post-hoc OUTPUT scale widens σ +
+preserves correlations EXACTLY (validated) BUT is off the nonlinear manifold → AE rejects
+~98% → Metal ~500K crash (→ added 400K draw cap in balance.py). **Dispersion widening =
+DEAD END** (off-manifold, P&L-negative). (c) Turned the AE filter OFF (draw cap makes it
+safe) — and the GAN jumped. **Paired seeds {default,1,7,13} @ pred_thr 0.45 (guards on,
+config confirmed consistent):** non-GAN mean 20.29 vs AE-on 21.40 vs AE-off **21.96**.
+**AE-off > non-GAN 4/4 (mean +1.68pp); AE-on > non-GAN 3/4 (+1.11); AE-off > AE-on 3/4
+(+0.57, seed13 flips).** So BOTH GAN variants beat non-GAN on average — the "consistent
+underperformance" ([[feedback_gan_ratio_sweep_no_gan_wins]]) was tight-guard + single-seed.
+AE filter is neutral-to-slightly-negative at powered guards (helpful at tight guards,
+[[project_ae_filter_win]]) — same operating-point flip as everything else
+([[feedback_evaluate_interventions_at_powered_operating_point]]). **CAVEAT:** the edge
+(~1.5pp) shows at the LOOSE operating point (0.45, ~580 tr), NOT the tight deployment
+(0.6, ~166 tr, where non-GAN won). Opens: is loose-guards+GAN > tight-guards+non-GAN? —
+a deployment-config question. Repro: `NNNC_DDPM_MLX_P2_aeoff` (+ seed variants via
+TrainSeedStrategyMixin). Kills: LONG background batches get SIGKILLed (external, not OOM —
+mem 94% free, no traceback); single runs survive → run seed sweeps one-at-a-time.
