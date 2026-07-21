@@ -228,3 +228,25 @@ hyperopt owns). At **prediction_threshold 0.45** (pinned 20240629-20260619):
 - **Seed spread:** deferred — add paired seeds {1,7,13} to get the noise band WHEN a
   Phase-1/2 variant shows a P&L delta worth testing for significance (−0.52pp is almost
   certainly within noise at this trade count).
+
+**Phase 1 DONE (2026-07-20) — REFRAMED: NNNC TabDDPM synth is ALREADY good; ceiling
+confirmed.** The control run's fidelity report was the key diagnostic: single-task
+TabDDPM synth is high-fidelity — both signal classes flag `ok`, σ_syn/σ_real ~0.5-1.0,
+worst-feature |Δμ| < 0.5σ, AE-filtered (kept ~70% @ thr 0.005). **The over-dispersion
+(σ 4-5×, OFF_DIST all buckets, 10σ shifts) was MT_DDPM-SPECIFIC (NNMT), NOT TabDDPM.**
+So Phase 1's sampler tweaks aimed at an absent defect. Ran the grid anyway to confirm
+(fresh 44-epoch trains, pred_thr 0.45, own class names → production untouched):
+| variant | class0/2 σ_ratio | P&L | tr |
+| non-GAN | — | 21.24% | 599 |
+| control (steps50/clip4) | 0.47/0.55 | 20.48% | 575 |
+| clip25 (clip2.5) | 0.40/0.45 | 20.28% | 574 |
+| steps250 (250 steps) | 0.48/0.54 | 20.36% | 575 |
+clip25 WORSENED the (already slight) under-dispersion as predicted; steps250 left
+fidelity unchanged; both P&L flat-to-worse. **All GAN variants ~0.8pp UNDER non-GAN.**
+Cleanest information-ceiling evidence yet: high-fidelity, AE-filtered GAN synth at a
+POWERED operating point (~580 tr) still adds no edge → quality is NOT the NNNC
+bottleneck. Phase 2/3 on NNNC would solve a non-problem. `gan_inference_zscore_clip`
+override added to `_apply_gan_inference_overrides` (TrainingEngine).
+**Where quality DOES have traction: NNMT MT_DDPM (bad synth). To test "does fixing bad
+synth quality move P&L", re-point the plan at NNMT + loosen its guards (disable
+apply_task_filters). Open decision.**

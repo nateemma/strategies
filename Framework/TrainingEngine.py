@@ -516,6 +516,9 @@ class TrainingEngine:
         scale = getattr(self, "gan_inference_guidance_scale", None)
         if scale is not None and hasattr(model, "guidance_scale"):
             model.guidance_scale = float(scale)
+        clip = getattr(self, "gan_inference_zscore_clip", None)
+        if clip is not None and hasattr(model, "_ZSCORE_CLIP"):
+            model._ZSCORE_CLIP = float(clip)
     def _format_for_gan_scaler(self, array_2d):
         if isinstance(array_2d, pd.DataFrame):
             return array_2d
