@@ -85,6 +85,26 @@ from Framework.TrainingConfig import TrainingConfig
 log = logging.getLogger(__name__)
 
 
+# --------------------------------------------------------------------------
+# Hyperopt / joblib pickling ceiling.
+# Under -j>1, freqtrade dispatches the analyzed strategy task to loky workers
+# via cloudpickle. The task's object graph (backtest context + strategy +
+# trained model) nests deeper than Python's default 1000-frame recursion limit,
+# so cloudpickle aborts with "Could not pickle object as excessively deep
+# recursion required". The graph is finite-deep, so raise the ceiling — and
+# enlarge new threads' C stack so the loky feeder thread's deeper recursion
+# doesn't overflow the stack. No effect on single-process backtest/train/live.
+# See also BaseNNStrategy.__getstate__ (drops the un-needed model from workers).
+if sys.getrecursionlimit() < 10000:
+    sys.setrecursionlimit(10000)
+try:
+    import threading as _threading
+    if _threading.stack_size() < 64 * 1024 * 1024:
+        _threading.stack_size(64 * 1024 * 1024)
+except (ValueError, RuntimeError, OSError):
+    pass
+
+
 # =========================================================================
 # BaseNNStrategy
 # =========================================================================
@@ -278,6 +298,21 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
 
 
 
+
+    def __getstate__(self):
+        """Drop the trained classifier from the pickle sent to hyperopt workers.
+
+        Hyperopt (-j>1) cloudpickles the analyzed strategy to loky workers. The
+        trained MLX classifier is a deeply-nested graph that is both the bulk of
+        the recursion depth that trips cloudpickle and un-needed in the worker —
+        hyperopt pre-computes indicators/predictions in the parent, and per-epoch
+        workers only apply entry/exit params to the analyzed dataframe. Restored
+        to None (its class default) on unpickle; it lazily reloads if accessed.
+        No effect on single-process backtest/train/live (nothing pickles there).
+        """
+        state = self.__dict__.copy()
+        state["classifier"] = None
+        return state
 
     def model_exists(self) -> bool:
         """Check if model exists on disk"""
