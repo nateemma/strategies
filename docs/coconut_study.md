@@ -1,12 +1,15 @@
 # COCONUT / continuous-latent-reasoning on a crypto direction classifier — study findings
 
 **Verdict:** COCONUT-style continuous latent reasoning does **not** improve the NNNC
-LSTM direction classifier. On the correct non-GAN base, training-free latent/input "noise
-voting" is **inert** (it barely perturbs a well-trained model's decisions); the trained
-recurrent-refinement ("pondering") variant showed an apparent edge that turned out to be a
-scaling-pipeline artifact and did not survive on a correct baseline. The result is consistent
-with an information-ceiling argument: adding test-time compute or head capacity on the same
-OHLCV inputs does not add tradeable edge.
+LSTM direction classifier. On the correct non-GAN base, training-free input "noise voting"
+is inert, and latent "noise voting" is inert at the production gate — and when a loosened
+gate exposes it, it's **noise-dominated, not edge** (it straddles the no-voting baseline
+across the perturbation RNG). The trained recurrent-refinement ("pondering") variant showed
+an apparent edge that turned out to be a scaling-pipeline artifact and did not survive on a
+correct baseline. The result is consistent with an information-ceiling argument: adding
+test-time compute or head capacity on the same OHLCV inputs does not add tradeable edge.
+(Methodology lesson from the powered re-run: judge such interventions where marginal
+decisions actually trade, not at a tight gate that trades only the confident tail.)
 
 Dates: 2026-07-18 → 07-20. Prompted by external interest in COCONUT (Chain Of CONtinUous
 Thought) applied to time series.
@@ -60,6 +63,22 @@ On the non-GAN `NNNC_MLX` base, latent voting is **near-inert**: flat across the
 at the default seed, and a seed sweep at σ=0.2 gives 13.61–13.68% (a single-trade flip at one
 seed). The correctly-trained model's decisions are margin-separated enough that latent
 perturbation barely moves them. No benefit. **Rejected.**
+
+> **The tight entry gate was masking the mechanism (powered re-run, 2026-07-20).** The sweeps
+> above run at the production `prediction_threshold=0.6`, which trades only the *confident tail* —
+> exactly where voting has no leverage (it acts on marginal, high-entropy decisions). Re-running at
+> a **loosened gate** (`prediction_threshold=0.45`, ~599 trades) makes those marginal decisions
+> trade, and the mechanism **becomes visible**: input jitter is still inert (21.24% flat to σ=0.05,
+> −0.27pp at 0.1), but *latent* jitter now moves P&L — the default seed gave 21.24→**21.80%** flat
+> across σ 0.05–0.4 (culling one marginal stop-out). **But it's noise, not edge:** a voting-seed
+> sweep at σ=0.2 gives 20.99 / 21.80 / 21.80% (seeds 1/7/13) — it **straddles** the no-voting
+> baseline (21.24%), flipping sign on the perturbation RNG. So latent voting adds *variance*, not
+> consistent gain. Verdict upgrades from "inert" to **"active but noise-dominated at a powered
+> operating point"** — still not a tradeable edge. **Methodology lesson (generalises to GAN aug):
+> judge test-time / augmentation interventions at a POWERED operating point — tight guards trade
+> only the confident tail, where these interventions have least effect, so they hide both harm and
+> benefit.** (Repro: `NNNC_MLX_InJit_P0` / `NNNC_MLX_Noisy_P0`, sweep families `input_mlx_p0` /
+> `latent_mlx_p0`.)
 
 > **Why this differs from the earlier write-up (base choice, and what it revealed).** An earlier
 > version of this study ran Stage 1 on the `NNNC_DDPM_MLX` (GAN) base and reported *monotonic

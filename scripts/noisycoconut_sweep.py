@@ -34,6 +34,10 @@ FAMILY = {
     # Non-GAN base (correct for isolating the classifier-head mechanism).
     "latent_mlx": "NNNC_MLX_Noisy",
     "input_mlx": "NNNC_MLX_InJit",
+    # Non-GAN base at the LOOSENED (powered) operating point (prediction_threshold
+    # 0.45) — voting acts on marginal decisions that tight guards filter out.
+    "latent_mlx_p0": "NNNC_MLX_Noisy_P0",
+    "input_mlx_p0": "NNNC_MLX_InJit_P0",
 }
 
 
