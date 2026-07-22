@@ -10,6 +10,7 @@ jarg=""
 config_file=""
 short=0
 leveraged=0
+force_retrain=0
 
 spaces="buy sell"
 
@@ -52,6 +53,7 @@ show_usage () {
 Usage: zsh $script [options] <group> <strategy>
 
 [options]:  -c | --config      path to config file (default: ${default_config}
+            -f | --force-retrain  Delete the existing saved model (if any) before running, forcing a retrain
             -l | --leveraged   Use 'leveraged' config file
             -n | --ndays       Number of days of backtesting. Defaults to ${num_days}
             -o | --offset      Offset testing by this many days (i.e. don't use the last N days). Defaults to 0
@@ -72,7 +74,7 @@ END
 die() { echo "$*" >&2; exit 2; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
-while getopts :c:e:j:ln:o:st:-: OPT; do
+while getopts :c:e:fj:ln:o:st:-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
     OPT="${OPTARG%%=*}"       # extract long option name
@@ -82,6 +84,7 @@ while getopts :c:e:j:ln:o:st:-: OPT; do
   case "$OPT" in
     c | config )     needs_arg; config_file="$OPTARG" ;;
     e | epochs )     needs_arg; epochs="$OPTARG" ;;
+    f | force-retrain ) force_retrain=1 ;;
     l | leveraged )  leveraged=1 ;;
     j | jobs )       needs_arg; jarg="-j $OPTARG" ;;
     n | ndays )      needs_arg; num_days="$OPTARG"; set_start_date; if [ "$offset_days" -gt 0 ]; then timerange="${start_date}-${end_date}"; else timerange="${start_date}-${today}"; fi ;;
@@ -179,6 +182,18 @@ today=`date`
 echo $today
 echo "Testing strategy:$strategy for exchange:$exchange..."
 
+
+# force-retrain: remove the existing saved model so the strategy retrains from scratch
+if [[ $force_retrain -ne 0 ]]; then
+    model_dir="${strat_dir}/saved_data/${strategy}"
+    for ext in keras sav safetensors; do
+        model_file="${model_dir}/${strategy}.${ext}"
+        if [ -f "${model_file}" ]; then
+            echo "force-retrain: removing ${model_file}"
+            rm -f "${model_file}"
+        fi
+    done
+fi
 
 cmd="freqtrade backtesting --cache none  --breakdown month --timerange=${timerange} -c ${config_file} --strategy-path ${group_dir} --strategy-list ${strategy}"
 #cmd="freqtrade backtesting --breakdown month --timerange=${timerange} -c ${config_file} --strategy-path ${group_dir} --strategy-list ${strategy}"

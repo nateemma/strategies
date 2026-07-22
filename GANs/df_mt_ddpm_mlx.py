@@ -32,6 +32,11 @@ from GANs.diffusion_mlx import (
     q_sample,
     ddim_sample,
 )
+from GANs.diffusion_edm_mlx import (
+    build_sigma_schedule,
+    heun_sample,
+    sample_log_normal_sigma,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -409,7 +414,13 @@ class MTDDPMMLX:
         # that need gradients (x0, noise) go as positional args.
         _batch_labels: Dict[str, mx.array] = {}
 
-        def loss_fn(mlp, x0, t, noise):
+        # Min-SNR-γ loss weighting (Hang et al. 2023) — mirrors
+        # df_tabddpm_mlx.py's use_min_snr gate. Disabled (min_snr_gamma=0.0)
+        # gives plain uniform per-sample-step weighting, identical to the
+        # prior behaviour.
+        use_min_snr = self.min_snr_gamma > 0.0
+
+        def loss_fn_ddpm(mlp, x0, t, noise):
             # q_sample uses [:, None] broadcast — designed for (B, F).
             # Flatten (B, T, F) → (B, T*F) before the call, then reshape.
             b = x0.shape[0]
@@ -419,8 +430,43 @@ class MTDDPMMLX:
             x_noisy = x_noisy_flat.reshape(b, T, F)
             eps_hat = mlp(x_noisy, t.astype(mx.float32), _batch_labels, training=True)
             noise_shaped = noise_flat.reshape(b, T, F)
-            return mx.mean((eps_hat - noise_shaped) ** 2)
+            sq_err = (eps_hat - noise_shaped) ** 2
+            if not use_min_snr:
+                return mx.mean(sq_err)
+            per_sample_sq_err = mx.mean(sq_err, axis=(1, 2))
+            ac_t = self._schedule.alphas_cumprod[t]
+            one_minus_ac = mx.maximum(1.0 - ac_t, 1e-8)
+            snr_t = ac_t / one_minus_ac
+            weights = mx.minimum(snr_t, self.min_snr_gamma) / snr_t
+            return mx.mean(weights * per_sample_sq_err)
 
+        def loss_fn_edm(mlp, x0, sigma, noise):
+            """EDM-style σ-schedule loss with ε-prediction + c_in
+            preconditioning (mirrors df_tabddpm_mlx.loss_fn_edm).
+
+            No flatten/reshape needed here — unlike the DDPM path, EDM's
+            forward process (x_σ = x0 + σ·ε) is a plain per-sample affine
+            combination, so it applies directly to (B, T, F) with σ
+            broadcast over both the time and feature axes.
+
+            Min-SNR-γ weighting (when enabled) uses the continuous-σ SNR
+            definition SNR(σ) = σ_data² / σ², the EDM analogue of the
+            DDPM path's ᾱ_t / (1-ᾱ_t).
+            """
+            sigma_data = self.edm_sigma_data
+            x_sigma = x0 + sigma[:, None, None] * noise
+            c_in = 1.0 / mx.sqrt(sigma**2 + sigma_data**2)
+            c_noise = 0.25 * mx.log(sigma)
+            eps_hat = mlp(c_in[:, None, None] * x_sigma, c_noise, _batch_labels, training=True)
+            sq_err = (eps_hat - noise) ** 2
+            if not use_min_snr:
+                return mx.mean(sq_err)
+            per_sample_sq_err = mx.mean(sq_err, axis=(1, 2))
+            snr = (sigma_data ** 2) / (sigma ** 2)
+            weights = mx.minimum(snr, self.min_snr_gamma) / snr
+            return mx.mean(weights * per_sample_sq_err)
+
+        loss_fn = loss_fn_edm if self.use_edm_schedule else loss_fn_ddpm
         loss_and_grad = nn.value_and_grad(self._mlp, loss_fn)
 
         self._loss_history: List[float] = []
@@ -437,13 +483,19 @@ class MTDDPMMLX:
                 if len(idx) == 0:
                     continue
                 x0 = x_data[mx.array(idx, dtype=mx.int32)]
-                t = mx.random.randint(0, self.num_timesteps, (len(idx),))
+                if self.use_edm_schedule:
+                    # Log-normal σ sampling per EDM Eq. 5 (same as TabDDPM).
+                    t_or_sigma = sample_log_normal_sigma(
+                        len(idx), p_mean=self.edm_p_mean, p_std=self.edm_p_std,
+                    )
+                else:
+                    t_or_sigma = mx.random.randint(0, self.num_timesteps, (len(idx),))
                 noise = mx.random.normal(x0.shape)
                 # Update the closure-captured dict in place before each step.
                 for name, arr in task_arrays.items():
                     _batch_labels[name] = arr[mx.array(idx, dtype=mx.int32)]
 
-                loss, grads = loss_and_grad(self._mlp, x0, t, noise)
+                loss, grads = loss_and_grad(self._mlp, x0, t_or_sigma, noise)
                 optimizer.update(self._mlp, grads)
 
                 self._ema_update()
@@ -581,30 +633,55 @@ class MTDDPMMLX:
         # Use best-loss EMA snapshot if available, else current EMA.
         model = getattr(self, "_best_state", None) or self._ema_mlp or self._mlp
 
-        # ddim_sample is 2D-hardcoded. Flatten-before-call: have ddim see
-        # (n, T*F), reshape inside model_fn and on output.
         T = self.seq_len
         F = self.num_features
-
-        def model_fn(x_t_flat: mx.array, t: mx.array, cond) -> mx.array:
-            # cond is passed through by ddim_sample but unused here — labels
-            # come from the closure over `label_arrays`.
-            x_t_3d = x_t_flat.reshape(x_t_flat.shape[0], T, F)
-            eps_3d = model(x_t_3d, t.astype(mx.float32), label_arrays, training=False)
-            return eps_3d.reshape(eps_3d.shape[0], T * F)
-
-        flat_shape = (n, T * F)
         # The `cond` arg is unused by our model_fn; pass a dummy placeholder.
         dummy_cond = mx.zeros((n,), dtype=mx.int32)
 
-        samples_flat = ddim_sample(
-            model_fn,
-            flat_shape,
-            dummy_cond,
-            self._schedule,
-            num_steps=self.num_sample_steps,
-        )
-        samples_3d = samples_flat.reshape(n, T, F)
+        if self.use_edm_schedule:
+            # heun_sample operates directly on the (n, T, F) shape — no
+            # flatten needed since, unlike ddim_sample's cosine-β math,
+            # the EDM sampler only needs a shape to seed x_init and
+            # broadcasts σ as a per-sample scalar.
+            def model_fn(x_t: mx.array, sigma: mx.array, cond) -> mx.array:
+                sigma_data = self.edm_sigma_data
+                c_in = 1.0 / mx.sqrt(sigma**2 + sigma_data**2)
+                c_noise = 0.25 * mx.log(sigma)
+                x_in = c_in[:, None, None] * x_t
+                return model(x_in, c_noise, label_arrays, training=False)
+
+            sigmas = build_sigma_schedule(
+                self.num_sample_steps,
+                sigma_min=self.edm_sigma_min,
+                sigma_max=self.edm_sigma_max,
+                rho=self.edm_rho,
+            )
+            samples_3d = heun_sample(
+                model_fn=model_fn,
+                shape=(n, T, F),
+                cond=dummy_cond,
+                sigmas=sigmas,
+            )
+        else:
+            # ddim_sample is 2D-hardcoded. Flatten-before-call: have ddim
+            # see (n, T*F), reshape inside model_fn and on output.
+            def model_fn(x_t_flat: mx.array, t: mx.array, cond) -> mx.array:
+                # cond is passed through by ddim_sample but unused here —
+                # labels come from the closure over `label_arrays`.
+                x_t_3d = x_t_flat.reshape(x_t_flat.shape[0], T, F)
+                eps_3d = model(x_t_3d, t.astype(mx.float32), label_arrays, training=False)
+                return eps_3d.reshape(eps_3d.shape[0], T * F)
+
+            flat_shape = (n, T * F)
+            samples_flat = ddim_sample(
+                model_fn,
+                flat_shape,
+                dummy_cond,
+                self._schedule,
+                num_steps=self.num_sample_steps,
+            )
+            samples_3d = samples_flat.reshape(n, T, F)
+
         samples_np = np.asarray(samples_3d, dtype=np.float32)
         # Clip to the training-time z-score band (±_ZSCORE_CLIP) before
         # inverting. The model trained on clipped data; values outside
@@ -648,6 +725,13 @@ class MTDDPMMLX:
             "dropout":          self.dropout,
             "num_timesteps":    self.num_timesteps,
             "num_sample_steps": self.num_sample_steps,
+            "use_edm_schedule": self.use_edm_schedule,
+            "edm_p_mean":       self.edm_p_mean,
+            "edm_p_std":        self.edm_p_std,
+            "edm_sigma_min":    self.edm_sigma_min,
+            "edm_sigma_max":    self.edm_sigma_max,
+            "edm_rho":          self.edm_rho,
+            "edm_sigma_data":   self.edm_sigma_data,
         }
         if self.feature_mean is not None:
             metadata["feature_mean"] = np.asarray(self.feature_mean, dtype=np.float32)
@@ -682,6 +766,13 @@ class MTDDPMMLX:
             dropout=float(metadata.get("dropout", 0.1)),
             num_timesteps=int(metadata["num_timesteps"]),
             num_sample_steps=int(metadata["num_sample_steps"]),
+            use_edm_schedule=bool(metadata.get("use_edm_schedule", False)),
+            edm_p_mean=float(metadata.get("edm_p_mean", -1.2)),
+            edm_p_std=float(metadata.get("edm_p_std", 1.2)),
+            edm_sigma_min=float(metadata.get("edm_sigma_min", 0.002)),
+            edm_sigma_max=float(metadata.get("edm_sigma_max", 10.0)),
+            edm_rho=float(metadata.get("edm_rho", 7.0)),
+            edm_sigma_data=float(metadata.get("edm_sigma_data", 1.0)),
             verbose=False,
         )
 

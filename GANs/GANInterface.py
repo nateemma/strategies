@@ -291,19 +291,19 @@ class GANInterface:
             "eval_frequency":      10,
             "lr_min_ratio":        0.1,
             # Dormant flags — preserved for tuning without code change.
-            "min_snr_gamma":           0.0,
+            "min_snr_gamma":           5.0,
             "class_balanced_sampling": False,
             "p_uncond":                0.0,
             "guidance_scale":          1.0,
-            # Reverted to cosine-β after EDM produced σ_syn/σ_real ≈ 2.5-3.7
-            # on this architecture (2026-05-21). EDM fixed bb_width lag-1
-            # collapse but blew out the marginal distributions — synth
-            # values landed 2-3σ outside the real feature ranges, with
-            # TEMPORAL_BROKEN/JOINT_BROKEN flagged on every bucket. Cosine-β
-            # has the bb_width issue but keeps the rest of the distribution
-            # within range. Until MT_DDPM gets architecture-specific EDM
-            # tuning, cosine-β is the safer default.
-            "use_edm_schedule":        False,
+            # Re-enabled 2026-07-21: the earlier revert (2026-05-21, EDM
+            # produced σ_syn/σ_real ≈ 2.5-3.7 / TEMPORAL_BROKEN/JOINT_BROKEN)
+            # predates the EDM preconditioning port (c_in/c_noise scaling +
+            # heun_sample) that keeps the network target unit-variance at
+            # every noise level — that's what was over-dispersing before.
+            # Now paired with Min-SNR-γ=5.0 loss weighting. edm_* params
+            # (sigma_data=1.0 etc.) left at ctor defaults, correct for the
+            # z-scored training data.
+            "use_edm_schedule":        True,
             "verbose":                 True,
         },
     }
