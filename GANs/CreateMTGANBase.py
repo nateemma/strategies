@@ -117,6 +117,27 @@ class CreateMTGANBase(CreateGANBase):
                 class_counts = np.sum(lbls, axis=0).astype(int).tolist()
                 print(f"      Task '{task}' class distribution: {class_counts}")
 
+        # 3b. Restrict which tasks the GAN conditions on. When
+        # ``gan_condition_tasks`` is set, keep only those tasks in the label
+        # dict handed to the GAN so the trained model's ``task_label_dims``
+        # includes ONLY them. ``None`` ⇒ no filtering (byte-identical).
+        condition_tasks = getattr(self, "gan_condition_tasks", None)
+        if condition_tasks:
+            missing = [t for t in condition_tasks if t not in train_labels]
+            if missing:
+                print(
+                    f"    WARNING: gan_condition_tasks references unknown "
+                    f"task(s) {missing}; available: {list(train_labels.keys())}"
+                )
+            kept = [t for t in train_labels if t in condition_tasks]
+            dropped = [t for t in train_labels if t not in condition_tasks]
+            train_labels = {t: train_labels[t] for t in kept}
+            print(
+                f"    GAN conditioning restricted to {kept} "
+                f"(dropped {dropped}); task_label_dims will include only "
+                f"the kept tasks"
+            )
+
         # 4. Global Shuffling (preserving multi-task/tensor alignment)
         if config.get("shuffle_before_gan", True):
             seed = config.get("train_shuffle_seed", 42)

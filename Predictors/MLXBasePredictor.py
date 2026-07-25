@@ -30,7 +30,7 @@ log = logging.getLogger(__name__)
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 # Reproducibility
-SEED = 42
+SEED = int(os.environ.get("MLX_SEED", "42"))
 random.seed(SEED)
 np.random.seed(SEED)
 mx.random.seed(SEED)

@@ -178,6 +178,10 @@ echo ""
 oldpath=${PYTHONPATH}
 export PYTHONPATH=".:./${group_dir}:./${strat_dir}:./${utils_dir}:${PYTHONPATH}"
 
+# Unbuffer Python stdout so long training loops (per-epoch prints) stream to
+# the log/terminal live instead of block-buffering until the process exits.
+export PYTHONUNBUFFERED=1
+
 today=`date`
 echo $today
 echo "Testing strategy:$strategy for exchange:$exchange..."

@@ -635,6 +635,8 @@ class MLXClassifierMultiTask(MLXBaseClassifier):
                 f"val_trading_f1_class_2: {metrics_flat['val_trading_f1_class_2']:.4f}  "
                 f"val_trading_mcc: {metrics_flat['val_trading_mcc']:.4f}  "
                 f"val_profit_mcc: {metrics_flat['val_profit_mcc']:.4f}  "
+                f"[reg: {metrics_flat['val_regime_mcc']:.3f} risk: {metrics_flat['val_risk_mcc']:.3f} "
+                f"mom: {metrics_flat['val_momentum_mcc']:.3f} flow: {metrics_flat['val_flow_mcc']:.3f}]  "
                 f"val_avg_mcc: {metrics_flat['val_avg_mcc']:.4f}  "
                 f"conf: {metrics_flat['val_mean_max_prob']:.4f}  "
                 f"avg_mcc×conf: {metrics_flat['val_avg_mcc_x_conf']:.4f}"

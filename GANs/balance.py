@@ -665,6 +665,8 @@ def balance_multi_task(
     autoencoder_threshold: Optional[float] = None,
     autoencoder_model_root: Optional[str] = None,
     autoencoder_task: str = "trading",
+    entropy_fn: Optional[Any] = None,
+    entropy_select_fraction: float = 0.5,
     seed: Optional[int] = None,
 ) -> Tuple[Any, Dict[str, np.ndarray]]:
     """
@@ -719,6 +721,18 @@ def balance_multi_task(
                         that GANs reliably mis-reproduce.  Names for
                         DataFrame backends, integer indices for ndarray
                         backends.  ``None`` disables the swap.
+        entropy_fn:     Optional scorer ``ndarray[n,T,F] -> ndarray[n]``
+                        returning per-sample trading-head Shannon entropy
+                        from a frozen real-data classifier.  When given,
+                        each trading-head round keeps the highest-entropy
+                        ``entropy_select_fraction`` of the AE-passed synth
+                        (nearest the decision boundary).  Generation is
+                        inflated by ``1/entropy_select_fraction`` so the
+                        post-cut count still meets the round target.
+                        ``None`` disables the selection entirely (the
+                        default — hot path unchanged).
+        entropy_select_fraction: Fraction of AE-passed synth to keep when
+                        ``entropy_fn`` is set.  Ignored otherwise.
 
     Returns:
         ``(aug_data, aug_labels)`` — same types as the inputs, augmented in
@@ -781,6 +795,26 @@ def balance_multi_task(
             break
 
         n = min(target_deficit, batch_size)
+        # Entropy selection cuts the AE-passed synth down to its highest-
+        # entropy fraction. Inflate the draw by 1/fraction so ~n survivors
+        # remain after the cut. Only trading-head rounds are inflated (that
+        # is where entropy selection runs — see below). Cap the inflated
+        # draw at the ~400K Metal-safe limit; log when the ideal draw is
+        # unreachable so a thin survivor count is diagnosable.
+        gen_n = n
+        entropy_active = (
+            entropy_fn is not None and target_task == autoencoder_task
+        )
+        if entropy_active:
+            frac = max(float(entropy_select_fraction), 1e-6)
+            inflated = int(np.ceil(n / frac))
+            gen_n = min(inflated, 400_000)
+            if inflated > 400_000:
+                debug_log(
+                    f"      entropy selection: draw capped at 400000 "
+                    f"(wanted {inflated}) for {target_task}={target_class} — "
+                    f"fewer-than-ideal candidates available"
+                )
         # Collateral sampling uses running-label deficits so already-filled
         # classes (whether filled directly or via past collateral) stop
         # attracting more samples. Without this the minority classes
@@ -790,10 +824,10 @@ def balance_multi_task(
             running_labels, targets_by_task, task_names
         )
         batch_labels = _build_batch_labels(
-            target_task, target_class, n, labels, running_deficits, rng
+            target_task, target_class, gen_n, labels, running_deficits, rng
         )
 
-        gen_result = interface.generate(n=n, task_labels=batch_labels)
+        gen_result = interface.generate(n=gen_n, task_labels=batch_labels)
         if isinstance(gen_result, tuple) and len(gen_result) == 2:
             gen_data, _ = gen_result
         else:  # defensive — older / non-conforming backends
@@ -848,6 +882,38 @@ def balance_multi_task(
                 f"synth samples for {target_task}={target_class} "
                 f"(threshold={float(autoencoder_threshold):.4f})"
             )
+
+        # Feedback-guided entropy SELECTION (trading-head rounds only).
+        # AE has already dropped off-manifold synth; here we keep the
+        # samples the frozen classifier is most UNCERTAIN about (highest
+        # trading-head Shannon entropy). Only cut when there is a genuine
+        # surplus over the round target ``n`` — otherwise the round would
+        # under-deliver and the loop would just refill it anyway.
+        if entropy_active:
+            synth_arr = np.asarray(gen_data)
+            m = synth_arr.shape[0]
+            if m > n:
+                scores = np.asarray(entropy_fn(synth_arr)).reshape(-1)
+                order = np.argsort(scores)[::-1]  # high entropy first
+                n_keep = int(round(entropy_select_fraction * m))
+                n_keep = max(n_keep, n)      # never under-deliver the round
+                n_keep = min(n_keep, m)
+                keep_idx = order[:n_keep]
+                drop_idx = order[n_keep:]
+                mean_kept = float(scores[keep_idx].mean()) if n_keep > 0 else float("nan")
+                mean_drop = (
+                    float(scores[drop_idx].mean()) if drop_idx.size > 0 else float("nan")
+                )
+                gen_data = synth_arr[keep_idx]
+                for t in task_names:
+                    batch_labels[t] = batch_labels[t][keep_idx]
+                ae_kept = n_keep  # keep deficit accounting honest post-cut
+                debug_log(
+                    f"      entropy selection: kept {n_keep}/{m} synth for "
+                    f"{target_task}={target_class} "
+                    f"(fraction={entropy_select_fraction:.3f}, "
+                    f"mean H kept={mean_kept:.4f} vs dropped={mean_drop:.4f})"
+                )
 
         running_data.append(gen_data)
         for t in task_names:

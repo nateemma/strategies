@@ -59,21 +59,36 @@ class _UnflattenedGenerateWrapper:
 
 
 class _PadMissingTaskLabelsWrapper:
-    """Wraps a GANInterface so generate() pads missing task labels with
-    uniform-random one-hot encodings.
+    """Wraps a GANInterface so generate()'s ``task_labels`` are reconciled to
+    EXACTLY the task set the loaded GAN was trained on: tasks the GAN expects
+    but the caller didn't supply are padded with uniform-random one-hots, and
+    tasks the caller supplied that the GAN was NOT trained on are dropped.
 
-    Used by single-task NNNC strategies running against a multi-task GAN:
-    the strategy provides only ``{"trading": one_hot}``, but the loaded GAN
-    was trained conditioned on N tasks. Calling generate() with only one
-    task is an OOD input regime for the model — diagnostics showed this
-    degrades sample quality (synth lag-1 autocorrelation flips negative
-    against a real autocorrelation of +0.98 — see the NNNC_DDPM_MLX_LSTM_MT
-    diagnostic at 2026-05-13). Filling the missing task slots with
-    uniform-random one-hots restores in-distribution conditioning.
+    Two callers rely on this:
 
-    The "uniform-random" choice is a deliberate non-informative prior on
-    the auxiliary tasks; we don't want their values to systematically bias
-    the trading-task generation.
+    * Single-task NNNC strategies running against a multi-task GAN provide
+      only ``{"trading": one_hot}``, but the loaded GAN was trained
+      conditioned on N tasks. Calling generate() with only one task is an OOD
+      input regime for the model — diagnostics showed this degrades sample
+      quality (synth lag-1 autocorrelation flips negative against a real
+      autocorrelation of +0.98 — see the NNNC_DDPM_MLX_LSTM_MT diagnostic at
+      2026-05-13). Filling the MISSING task slots with uniform-random one-hots
+      restores in-distribution conditioning.
+
+    * Multi-task classifiers running against a REDUCED-task GAN (one trained
+      with ``gan_condition_tasks`` restricting conditioning to a subset)
+      supply the full label dict (all classifier heads), but the GAN only
+      knows the subset. Passing a task the GAN's ``_TaskLabelEmbed`` has no
+      embedding for would KeyError, so the EXTRA tasks are dropped here before
+      generate(). The classifier's synth labels for those dropped tasks are
+      still produced by the balancer (from its own ``labels`` bookkeeping),
+      so the classifier keeps all its heads — those heads just condition on
+      labels the GAN didn't shape (harmless when they're weight-0).
+
+    The "uniform-random" choice for padding is a deliberate non-informative
+    prior on the auxiliary tasks; we don't want their values to systematically
+    bias the trading-task generation. When the supplied task set already
+    matches the GAN's exactly (the common case), this is a no-op.
     """
 
     def __init__(self, interface, expected_task_label_dims: Dict[str, int]):
@@ -85,11 +100,15 @@ class _PadMissingTaskLabelsWrapper:
         return getattr(self._interface, name)
 
     def generate(self, n, **kwargs):
-        task_labels = dict(kwargs.get("task_labels", {}))
+        supplied = dict(kwargs.get("task_labels", {}))
+        # Pad tasks the GAN expects but the caller didn't supply.
         for task, dim in self._task_dims.items():
-            if task in task_labels:
+            if task in supplied:
                 continue
             idx = np.random.randint(0, dim, size=n)
-            task_labels[task] = np.eye(dim, dtype=np.float32)[idx]
+            supplied[task] = np.eye(dim, dtype=np.float32)[idx]
+        # Drop tasks the caller supplied that the GAN was not trained on —
+        # the GAN's label embedding has no slot for them.
+        task_labels = {t: v for t, v in supplied.items() if t in self._task_dims}
         kwargs["task_labels"] = task_labels
         return self._interface.generate(n, **kwargs)

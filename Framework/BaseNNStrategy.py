@@ -204,6 +204,19 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
     # augmentation.
     gan_augment_seed: Optional[int] = 42
 
+    # Restrict which task labels the multi-task GAN CONDITIONS on. ``None``
+    # (default) ⇒ the GAN conditions on every task the label dict carries
+    # (current behavior — byte-identical). When set to a list of task names
+    # (e.g. ``["trading", "risk", "momentum", "flow"]``), the GAN-training
+    # path filters the label dict to those tasks before the GAN sees it, so
+    # the trained GAN's ``task_label_dims`` includes ONLY those tasks. The
+    # classifier still trains on all its heads — the aug/generation path
+    # reconciles the passed task_labels to whatever tasks the loaded GAN was
+    # trained on (dropping tasks the GAN doesn't know, padding any it expects
+    # but the classifier doesn't supply). Used to drop noisy conditioning
+    # tasks (profit / regime) from the GAN without changing the classifier.
+    gan_condition_tasks: Optional[list] = None
+
     # When True, route the GAN augmentation through the post-GAN scaling
     # pipeline: the GAN sees RAW (B, T, F) tensors, does its own internal
     # z-score, and a polymorphic tensor scaler is applied to the augmented
@@ -822,6 +835,18 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
     gan_synth_autoencoder_model_root: Optional[str] = None
     gan_synth_autoencoder_threshold: Optional[float] = None
 
+    # --- Feedback-guided entropy SELECTION (multi-task GAN aug) ---------- #
+    # After the AE fidelity filter culls off-manifold synth, keep the
+    # synthetic samples a frozen real-data classifier is most UNCERTAIN
+    # about (highest trading-head Shannon entropy = nearest the decision
+    # boundary). Fidelity is already solved by the AE guardrail; the
+    # remaining gap is downstream trading utility, which uncertain samples
+    # target directly. Master gate OFF ⇒ byte-identical to current behavior.
+    gan_entropy_guidance: bool = False
+    # Fraction of the AE-passed synth to KEEP, highest-entropy first.
+    gan_entropy_select_fraction: float = 0.5
+    # Trained model dir under saved_data/ used as the frozen scorer.
+    gan_entropy_guidance_model: str = "NNMT_MLX"
 
 
 

@@ -10,6 +10,53 @@ helpers (`balance_single_task` / `balance_multi_task` in `balance.py`).
 
 ---
 
+## Status — multi-task (NNMT) GAN augmentation: NOT recommended
+
+**Finding (2026-07): GAN augmentation does not help the multi-task NNMT strategies and
+should not be used for them.** Across an exhaustive sweep, MT-GAN-augmented classifiers
+tied or lost to the identical non-GAN classifier in *every* configuration tested — 6-head,
+trading-only, and reduced-head; 6-task and 4-task conditioning; and after fidelity fixes
+(EDM + Min-SNR), entropy-based synth selection, moment-matching loss, and a flat-MLP
+backbone. The deep testing was on `MT_DDPM`, but the reasons below are structural and apply
+to the multi-task GAN family generally (whole-window generation over this feature set), so
+they are assumed to hold for all `NNMT_*` GAN variants. **Use the non-GAN classifiers
+(`NNMT_MLX`, or a trading-head-weighted variant) instead.**
+
+Why it fails — the mechanistic picture:
+
+1. **Utility gap, not a fidelity problem.** Synth fidelity is *good* (σ_syn/σ_real ≈ 1, all
+   distribution buckets pass, AE filter keeps ~100%) — yet P&L never improves. The synth is
+   realistic but not *informative*: it fills regions the real data already covers and adds no
+   new decision-boundary information. High fidelity ≠ downstream utility.
+2. **Confidence collapse / boundary muddying.** GAN-augmented models are systematically
+   *less confident* (val mean-max-prob ≈ 0.59 vs ≈ 0.82 non-GAN) and have slightly lower
+   trading MCC. The classifier can't cleanly fit real+synth together, so it hedges. At a
+   fixed `prediction_threshold` this yields fewer / lower-quality signals — actively worse,
+   not better-calibrated (P&L confirms).
+3. **Passthrough grafting (~1/3 of features).** ~8 of 24 features are deterministic
+   indicators (ADX, ATR, VWAP position, MACD, Aroon, spread) the diffusion model can't
+   generate without violating their constraints, so they are copied from the nearest real
+   sample (`gan_passthrough_columns`, see `passthrough.py`). This preserves each feature's
+   *marginal* but (a) makes ~1/3 of every synth sample real-copied → low novelty, feeding the
+   utility gap, and (b) leaves the *joint* coupling between generated and grafted columns only
+   as good as the NN-match → subtly-incoherent joints → contributes to the confidence collapse.
+4. **Cleaning the conditioning doesn't rescue it.** Dropping the least-learnable labels
+   (profit MCC ≈ 0.23, regime ≈ 0.37) from the GAN's task conditioning (`gan_condition_tasks`)
+   narrowed the deficit slightly but did not flip it.
+5. **The single-task win does not transfer.** `TAB_DDPM` on single-task `NNNC` (per-*row*
+   augmentation of a Buy/Hold/Sell head) *does* beat no-GAN. `MT_DDPM` on NNMT generates whole
+   temporal *windows* conditioned on all heads — a much harder job — and does not. Note the
+   flat-MLP (tabular) backbone was strictly worse: it broke the temporal structure
+   (`TEMPORAL_BROKEN`, σ→3×), so the conv1d temporal representation is necessary, not the
+   problem.
+
+**What worked instead (non-GAN):** the real NNMT lever is the *classifier*, not synth —
+up-weighting the trading head (aux heads give no positive transfer; profit/regime are
+near-unlearnable and dilute). `trading-only` non-GAN ≈ +0.2pp over the 6-head baseline,
+robust across seeds.
+
+---
+
 ## GAN types
 
 | Type | Class | Input | Labels | Backend |

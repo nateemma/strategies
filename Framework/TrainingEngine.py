@@ -601,6 +601,31 @@ class TrainingEngine:
             train_minmax=None, train_df=dataframe
         )
 
+        entropy_fn = None
+        if getattr(self, "gan_entropy_guidance", False):
+            entropy_fn = self._build_entropy_scorer(data, labels)
+
+        # Reconcile the task_labels the balancer passes to generate() with the
+        # task set the loaded GAN was actually trained on. This is the single
+        # chokepoint every multi-task-GAN aug path funnels through (the
+        # single-task NNNC path, NNMTStrategy's multi-task path, and the
+        # NNMT_DDPM override via _balance_iteratively), so wrapping here
+        # covers them all. When the GAN was trained with gan_condition_tasks
+        # restricting conditioning to a subset (e.g. dropping profit/regime),
+        # the classifier's full label dict carries tasks the GAN has no
+        # embedding for — passing them KeyErrors in _TaskLabelEmbed. The
+        # wrapper drops those extras (and pads any the GAN expects but the
+        # caller omits). Idempotent and a no-op when the task sets already
+        # match, so double-wrapping (path 1 already wraps before calling here)
+        # and the gan_condition_tasks=None case are both byte-identical.
+        gan_model = getattr(interface, "_model", None)
+        gan_task_dims = getattr(gan_model, "task_label_dims", None)
+        if gan_task_dims:
+            from GANs.mt_label_wrappers import _PadMissingTaskLabelsWrapper  # noqa: E402
+            interface = _PadMissingTaskLabelsWrapper(
+                interface, expected_task_label_dims=gan_task_dims
+            )
+
         return balance_multi_task(
             interface=interface,
             data=data,
@@ -615,8 +640,176 @@ class TrainingEngine:
                 self, "gan_synth_autoencoder_threshold", None
             ),
             autoencoder_model_root=self._resolve_autoencoder_root(),
+            entropy_fn=entropy_fn,
+            entropy_select_fraction=float(
+                getattr(self, "gan_entropy_select_fraction", 0.5)
+            ),
             seed=self.gan_augment_seed,
         )
+
+    def _build_entropy_scorer(self, data: np.ndarray, labels=None):
+        """Build the frozen-classifier trading-head entropy scorer.
+
+        Returns a callable ``ndarray[n,T,F] -> ndarray[n]`` giving per-sample
+        Shannon entropy of the guidance classifier's trading softmax, or
+        ``None`` if the classifier / scaler cannot be loaded (entropy
+        selection then silently disables — the AE guardrail still runs).
+
+        Scaling: the guidance model default (``NNMT_MLX``) is a NON-GAN model
+        (``use_post_gan_scaling=False``), so it was trained — and must be
+        predicted — in ``scale_dataframe`` / ``main_scaler`` space, NOT the
+        post-GAN ``main_tensor_scaler`` space (see get_predictions, the
+        ``use_post_gan_scaling and gan_type in _MULTI_TASK_GAN_TYPES`` fork:
+        multi-task-GAN models predict through the tensor scaler, everything
+        else through scale_dataframe). Predicting a non-GAN model through the
+        tensor scaler is the d156c11 "wrong scaler" trap.
+
+        The raw synth (same space as ``data`` entering balance_multi_task)
+        is mapped into that space exactly as ``rolling_dataframe_normalise``
+        does: ``main_scaler.transform`` is applied ONLY to the
+        ``needs_norm_columns`` (== ``main_scaler.feature_names_in_``), the
+        remaining pre-normalized columns are left raw, and the whole tensor is
+        clipped to [-10, 10] (FeatureNormalizer.py ~L384-398). Column→index
+        mapping uses the GAN feature-column order (``gan_scaler_a
+        .feature_columns``), which is the F-axis order of the tensor.
+        ``MLXClassifierMultiTask.predict`` does NOT scale internally, so the
+        input must already be scaled.
+
+        Loaded once and cached on ``self`` keyed by (model, seq_len, features).
+        """
+        seq_len = int(data.shape[1])
+        num_features = int(data.shape[2])
+        model_name = str(getattr(self, "gan_entropy_guidance_model", "NNMT_MLX"))
+        cache_key = (model_name, seq_len, num_features)
+
+        cached = getattr(self, "_entropy_guidance_cache", None)
+        if cached is not None and cached[0] == cache_key:
+            guidance_clf, main_scaler, norm_cols, norm_idx = (
+                cached[1], cached[2], cached[3], cached[4]
+            )
+        else:
+            from utils.Scalers import load_scaler  # noqa: E402
+
+            guidance_clf = self.get_classifier(
+                self.get_classifier_type(), self.curr_pair, seq_len, num_features
+            )
+            if guidance_clf is None:
+                print(
+                    "    entropy guidance: classifier unavailable "
+                    "(non-MLX runtime?) — selection disabled"
+                )
+                return None
+            model_path = os.path.join(
+                self.get_storage_location(), model_name, f"{model_name}.safetensors"
+            )
+            if not os.path.exists(model_path):
+                print(
+                    f"    entropy guidance: model not found at {model_path} — "
+                    f"selection disabled"
+                )
+                return None
+            guidance_clf.set_model_path(model_path)
+            if guidance_clf.load() is None:
+                print(
+                    f"    entropy guidance: failed to load {model_path} — "
+                    f"selection disabled"
+                )
+                return None
+
+            loc = self.get_storage_location()
+            main_scaler = getattr(self, "main_scaler", None)
+            if main_scaler is None:
+                main_scaler = load_scaler(loc, self.main_scaler_name)
+            # F-axis column order = the GAN feature-column order.
+            gan_scaler = getattr(self, "gan_scaler_a", None)
+            full_cols = list(getattr(gan_scaler, "feature_columns", []) or [])
+            if not full_cols:
+                full_cols = list(
+                    load_scaler(loc, self.gan_scaler_a_name).feature_columns
+                )
+            norm_cols = list(main_scaler.feature_names_in_)
+            try:
+                norm_idx = [full_cols.index(c) for c in norm_cols]
+            except ValueError as exc:
+                print(
+                    f"    entropy guidance: feature-column mismatch ({exc}) — "
+                    f"selection disabled"
+                )
+                return None
+            self._entropy_guidance_cache = (
+                cache_key, guidance_clf, main_scaler, norm_cols, norm_idx
+            )
+            print(
+                f"    entropy guidance: loaded {model_name} "
+                f"(seq_len={seq_len}, features={num_features}); scoring in "
+                f"scale_dataframe/main_scaler space over norm cols "
+                f"{norm_cols} at tensor idx {norm_idx}"
+            )
+
+        def entropy_fn(synth_raw_3d: np.ndarray) -> np.ndarray:
+            arr = np.asarray(synth_raw_3d, dtype=np.float64)
+            n, T, F = arr.shape
+            flat = np.nan_to_num(
+                arr.reshape(n * T, F), nan=0.0, posinf=0.0, neginf=0.0
+            )
+            # Mirror rolling_dataframe_normalise: scale only needs_norm cols
+            # (passed as a named DataFrame in feature_names_in_ order, exactly
+            # like the training call), leave the rest raw, then clip all cols.
+            sub = pd.DataFrame(flat[:, norm_idx], columns=norm_cols)
+            flat[:, norm_idx] = main_scaler.transform(sub)
+            flat = np.clip(flat, -10.0, 10.0)
+            scaled = flat.reshape(n, T, F).astype(np.float32)
+            probs = np.asarray(
+                guidance_clf.predict(scaled)["trading"], dtype=np.float64
+            )
+            return -np.sum(probs * np.log(probs + 1e-12), axis=1)
+
+        # Mandatory scaling sanity check on REAL training windows: if scaling
+        # (or model load) is wrong, real windows come out near-uniform (~ln3).
+        if labels is not None:
+            try:
+                self._entropy_scorer_sanity_check(entropy_fn, data, labels)
+            except Exception as exc:  # never tank a training run
+                print(f"    entropy guidance: sanity check skipped ({exc})")
+
+        return entropy_fn
+
+    def _entropy_scorer_sanity_check(self, entropy_fn, data, labels):
+        """Log mean trading-head entropy of REAL training windows per class.
+
+        Real windows of a trained model should be MORE confident (entropy well
+        below the uniform max ln3 ≈ 1.0986). A flat ~1.0986 across classes
+        signals the scaling / model load is still wrong.
+        """
+        trading = labels.get("trading") if isinstance(labels, dict) else labels
+        if trading is None:
+            return
+        y = np.argmax(np.asarray(trading), axis=1)
+        arr = np.asarray(data)
+        rng = np.random.default_rng(0)
+        names = {0: "Sell", 1: "Hold", 2: "Buy"}
+        parts, all_scores = [], []
+        for c in (0, 1, 2):
+            idx = np.where(y == c)[0]
+            if idx.size == 0:
+                continue
+            take = idx if idx.size <= 512 else rng.choice(idx, size=512, replace=False)
+            H = entropy_fn(arr[take])
+            all_scores.append(H)
+            parts.append(f"{names[c]}={float(H.mean()):.4f}(n={take.size})")
+        overall = (
+            float(np.concatenate(all_scores).mean()) if all_scores else float("nan")
+        )
+        print(
+            f"    entropy guidance SANITY (real windows; ln3={float(np.log(3)):.4f} "
+            f"= uniform max): {'  '.join(parts)}  overall={overall:.4f}"
+        )
+        if overall > 1.05:
+            print(
+                "    entropy guidance WARNING: real-window entropy ~uniform — "
+                "scaling or model load is likely WRONG; entropy selection "
+                "would be meaningless"
+            )
     def enhance_training_data(
         self,
         train_df: DataFrame,
