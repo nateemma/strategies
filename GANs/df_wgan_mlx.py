@@ -166,6 +166,13 @@ class WGANMLX:
         synth = self.gen(z, c)
         mx.eval(synth)
         out = np.array(synth)
+        # Clip to the training-time z-score band (±_ZSCORE_CLIP σ) before
+        # inverting. The generator's final layer is linear/unbounded, so a
+        # non-converged (or occasionally converged) run can emit extreme
+        # values that blow up after de-normalisation and trip
+        # GANInterface._assert_generated_finite, crashing augmentation.
+        # Mirrors TabDDPMMLX.generate().
+        out = np.clip(out, -self._ZSCORE_CLIP, self._ZSCORE_CLIP)
         if self.feature_mean is not None and self.feature_std is not None:
             out = out * self.feature_std[None, :] + self.feature_mean[None, :]
         return out[:, np.newaxis, :]  # (n, 1, F)
@@ -374,6 +381,9 @@ def balance_with_wgan_mlx(
         mx.eval(synth)
         synth_np = np.array(synth)
 
+        # Clip to the training-time z-score band before inverting (see
+        # WGANMLX.generate — bounds the unbounded linear generator output).
+        synth_np = np.clip(synth_np, -WGANMLX._ZSCORE_CLIP, WGANMLX._ZSCORE_CLIP)
         # Inverse z-score → raw feature space.
         synth_np = synth_np * gan.feature_std[None, :] + gan.feature_mean[None, :]
 
