@@ -408,6 +408,43 @@ class TestConfirmTradeExit:
         strat.dp.runmode.value = "backtest"
         assert self._call(strat, trade, now, exit_reason="force_exit") is True
 
+    def test_stop_loss_bypasses_hold_check(self, strat):
+        # Risk-management exits must never be blocked by the min-hold pacing.
+        trade = MagicMock()
+        now = datetime.now(timezone.utc)
+        trade.open_date_utc = now - timedelta(minutes=5)
+        trade.open_rate = 100.0
+        trade.calc_profit_ratio.return_value = -0.05
+        strat.dp.runmode.value = "backtest"
+        assert self._call(strat, trade, now, exit_reason="stop_loss") is True
+
+    def test_trailing_stop_loss_bypasses_hold_check(self, strat):
+        trade = MagicMock()
+        now = datetime.now(timezone.utc)
+        trade.open_date_utc = now - timedelta(minutes=5)
+        trade.open_rate = 100.0
+        trade.calc_profit_ratio.return_value = -0.03
+        strat.dp.runmode.value = "backtest"
+        assert self._call(strat, trade, now, exit_reason="trailing_stop_loss") is True
+
+    def test_stoploss_on_exchange_bypasses_hold_check(self, strat):
+        trade = MagicMock()
+        now = datetime.now(timezone.utc)
+        trade.open_date_utc = now - timedelta(minutes=5)
+        trade.open_rate = 100.0
+        trade.calc_profit_ratio.return_value = -0.05
+        strat.dp.runmode.value = "backtest"
+        assert self._call(strat, trade, now, exit_reason="stoploss_on_exchange") is True
+
+    def test_liquidation_bypasses_hold_check(self, strat):
+        trade = MagicMock()
+        now = datetime.now(timezone.utc)
+        trade.open_date_utc = now - timedelta(minutes=5)
+        trade.open_rate = 100.0
+        trade.calc_profit_ratio.return_value = -0.10
+        strat.dp.runmode.value = "backtest"
+        assert self._call(strat, trade, now, exit_reason="liquidation") is True
+
 
 # ---------------------------------------------------------------------------
 # print_hyperopt_parameters (smoke — should not raise)

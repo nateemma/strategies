@@ -1053,9 +1053,18 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
         **kwargs,
     ) -> bool:
 
-        # Reject exit if trade has been open for less than 1 hour
-        # (Exception for emergency exits)
-        if exit_reason not in ["force_exit", "emergency_exit"]:
+        # Reject exit if trade has been open for less than 1 hour. This paces
+        # only DISCRETIONARY exits (exit_signal / roi). Risk-management and
+        # forced exits must always be honoured — never hold a position past
+        # its stop just because the trade is young.
+        if exit_reason not in [
+            "force_exit",
+            "emergency_exit",
+            "stop_loss",
+            "trailing_stop_loss",
+            "stoploss_on_exchange",
+            "liquidation",
+        ]:
             # Ensure timezone awareness for comparison
             from datetime import timezone
             t_current = current_time
