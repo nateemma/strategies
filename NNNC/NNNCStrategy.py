@@ -58,6 +58,12 @@ class NNNCStrategy(BaseNNStrategy):
     atr_stoploss_floor = -0.06   # loosest stop allowed (most negative)
     atr_stoploss_cap = -0.04     # tightest stop allowed (closest to zero)
 
+    # First-hour stop-loss grace (BaseStrategy): wide stop for the first 3h,
+    # then tighten to the ATR-adaptive stop. Restores the pre-confirm_trade_exit
+    # "don't stop out on entry noise" behaviour, safely. See NNMT sweep (3h/-0.15).
+    stoploss_grace_hours = 3.0
+    stoploss_grace_level = -0.15
+
     # HORIZON is now inherited from BaseNNStrategy → TrainingConfig.HORIZON.
     # Production = 3. The 2026-05-28 univariate H sweep landed at H=3 at
     # threshold=0.005 (+21.68% vs +15.97%); the 2026-05-30 learnability
@@ -65,6 +71,17 @@ class NNNCStrategy(BaseNNStrategy):
     # Threshold lives in TrainingConfig too — change them together, not
     # in isolation. Don't reintroduce the override here.
 
+    buy_params = {
+        "entry_adx_threshold": 38.0,
+        "entry_atr_pct": 0.006,
+        "entry_bb_width_threshold": 0.06,
+        "entry_close_norm_threshold": -0.1,
+        "entry_enable_guards": True,
+        "entry_guard_threshold": 0.3,
+        "entry_rvol_threshold": 0.5,
+        "prediction_threshold": 0.69,
+    }
+    
     def get_classifier_type(self):
         """Return the type of classifier used for training/predicting"""
         return self.classifier_type

@@ -65,10 +65,22 @@ class NNMTStrategy(BaseNNStrategy):
     Inherits from NNBase for clean(-ish) architecture
     """
 
-    buy_params = { **BaseNNStrategy.buy_params,
-        "prediction_threshold": 0.6,
+    # buy_params = { **BaseNNStrategy.buy_params,
+    #     "prediction_threshold": 0.6,
+    #     "profit_prediction_threshold": 0.3
+    #     }
+    
+    buy_params = {
+        "entry_adx_threshold": 38.0,
+        "entry_atr_pct": 0.006,
+        "entry_bb_width_threshold": 0.06,
+        "entry_close_norm_threshold": -0.1,
+        "entry_enable_guards": True,
+        "entry_guard_threshold": 0.3,
+        "entry_rvol_threshold": 0.5,
+        "prediction_threshold": 0.5,
         "profit_prediction_threshold": 0.3
-        }
+    }
 
     profit_conflict_to_neutral = True
     # EMA span used to smooth the close before measuring forward gain. Short
@@ -98,6 +110,13 @@ class NNMTStrategy(BaseNNStrategy):
     use_forward_peak_regressor_filter = False 
 
     stoploss = -0.05
+
+    # First-hour stop-loss grace (BaseStrategy): hold a wide stop for the
+    # first 3h, then tighten to the -5% stop. Restores the "don't stop out on
+    # entry noise" behaviour the confirm_trade_exit min-hold used to provide.
+    # Sweep best (NNMT_MLX, no-retrain): 3h/-0.15 -> +3.4% vs -17% at 0h.
+    stoploss_grace_hours = 3.0
+    stoploss_grace_level = -0.15
 
     # ATR-adaptive stoploss now lives in BaseStrategy (flag + attrs) and
     # is enabled by default in BaseNNStrategy. Override the multiplier /
@@ -1035,13 +1054,13 @@ class NNMTStrategy(BaseNNStrategy):
 
         # DEBUG:
         self.print_probability_stats(
-            "Trading", "Sell", profit_predictions[:, TradingAction.SELL], trading_threshold
+            "Trading", "Sell", trading_predictions[:, TradingAction.SELL], trading_threshold
         )
         self.print_probability_stats(
-            "Trading", "Hold", profit_predictions[:, TradingAction.HOLD], trading_threshold
+            "Trading", "Hold", trading_predictions[:, TradingAction.HOLD], trading_threshold
         )
         self.print_probability_stats(
-            "Trading", "Buy", profit_predictions[:, TradingAction.BUY], trading_threshold
+            "Trading", "Buy", trading_predictions[:, TradingAction.BUY], trading_threshold
         )
         return predictions_dict
 
