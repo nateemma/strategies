@@ -12,6 +12,7 @@ from pathlib import Path
 from pandas import DataFrame
 import numpy as np
 import traceback
+from freqtrade.strategy import DecimalParameter
 
 # Add parent directory to path to import NNNC
 group_dir = str(Path(__file__).parent)
@@ -61,8 +62,12 @@ class NNNCStrategy(BaseNNStrategy):
     # First-hour stop-loss grace (BaseStrategy): wide stop for the first 3h,
     # then tighten to the ATR-adaptive stop. Restores the pre-confirm_trade_exit
     # "don't stop out on entry noise" behaviour, safely. See NNMT sweep (3h/-0.15).
-    stoploss_grace_hours = 3.0
-    stoploss_grace_level = -0.15
+    stoploss_grace_hours = DecimalParameter(
+        0.0, 6.0, default=3.0, decimals=1, space="sell", load=True, optimize=True
+    )
+    stoploss_grace_level = DecimalParameter(
+        -0.30, -0.05, default=-0.15, decimals=2, space="sell", load=True, optimize=True
+    )
 
     # HORIZON is now inherited from BaseNNStrategy → TrainingConfig.HORIZON.
     # Production = 3. The 2026-05-28 univariate H sweep landed at H=3 at

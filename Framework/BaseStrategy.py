@@ -300,8 +300,16 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
     # passes; the tightened stop is anchored to the entry price so it does not
     # trail winners. Disabled by default (0.0) — behaviour is unchanged until a
     # subclass sets ``stoploss_grace_hours`` > 0.
-    stoploss_grace_hours: float = 0.0
-    stoploss_grace_level: float = -0.15
+    # Exposed as hyperopt params (sell space) so the window + level can be
+    # tuned alongside the roi/trailing exits. Default OFF (0.0 hours);
+    # NNNC/NNMT override the default to 3.0h. The custom_stoploss reads them
+    # robustly, so a subclass may also set them as plain floats.
+    stoploss_grace_hours = DecimalParameter(
+        0.0, 6.0, default=0.0, decimals=1, space="sell", load=True, optimize=True
+    )
+    stoploss_grace_level = DecimalParameter(
+        -0.30, -0.05, default=-0.15, decimals=2, space="sell", load=True, optimize=True
+    )
 
     opt_base_params = True # flag that allws subclasses to disable framework optimisation
 
@@ -818,14 +826,17 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
         # the trade out, then tighten to the normal stop. The stop still fires
         # if the wide level is hit (safe), unlike the old min-hold that rejected
         # the exit outright.
-        grace_hours = getattr(self, "stoploss_grace_hours", 0.0) or 0.0
+        _gh = getattr(self, "stoploss_grace_hours", 0.0)
+        grace_hours = float(getattr(_gh, "value", _gh) or 0.0)  # Parameter or float
         if grace_hours > 0.0:
+            _gl = getattr(self, "stoploss_grace_level", -0.15)
+            grace_level = float(getattr(_gl, "value", _gl))
             age_h = (current_time - trade.open_date_utc).total_seconds() / 3600.0
             if age_h < grace_hours:
                 # Wide stop through the window. freqtrade lets the INITIAL stop
                 # (set at after_fill) be arbitrarily wide; leave it unchanged
                 # for the rest of the window.
-                return self.stoploss_grace_level if after_fill else 1.0
+                return grace_level if after_fill else 1.0
             # Window expired -> tighten to the normal stop, anchored to the
             # entry price so the tightened stop is fixed (no trailing on
             # winners). freqtrade only tightens, so this applies once.

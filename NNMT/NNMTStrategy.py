@@ -115,8 +115,12 @@ class NNMTStrategy(BaseNNStrategy):
     # first 3h, then tighten to the -5% stop. Restores the "don't stop out on
     # entry noise" behaviour the confirm_trade_exit min-hold used to provide.
     # Sweep best (NNMT_MLX, no-retrain): 3h/-0.15 -> +3.4% vs -17% at 0h.
-    stoploss_grace_hours = 3.0
-    stoploss_grace_level = -0.15
+    stoploss_grace_hours = DecimalParameter(
+        0.0, 6.0, default=3.0, decimals=1, space="sell", load=True, optimize=True
+    )
+    stoploss_grace_level = DecimalParameter(
+        -0.30, -0.05, default=-0.15, decimals=2, space="sell", load=True, optimize=True
+    )
 
     # ATR-adaptive stoploss now lives in BaseStrategy (flag + attrs) and
     # is enabled by default in BaseNNStrategy. Override the multiplier /
