@@ -288,6 +288,21 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
     # NNNC it produced +0.28pp profit / -1.17pp DD / +65% Calmar vs ATR-only.
     use_volume_confirmation_stoploss = True
 
+    # Stop-loss GRACE window. For the first ``stoploss_grace_hours`` of a trade
+    # the stop is held wide (``stoploss_grace_level``) so entry-noise doesn't
+    # stop the trade out; once the window expires it tightens to the normal
+    # stop (ATR-adaptive if enabled, else ``self.stoploss``). This restores the
+    # "don't stop out immediately" effect the confirm_trade_exit min-hold used
+    # to provide as a side effect — but SAFELY: the stop still fires if hit,
+    # it's just wider early, rather than the exit being rejected outright.
+    # freqtrade only lets a stop tighten over a trade's life, so the wide grace
+    # stop is set at entry (after_fill) and the tighten happens once the window
+    # passes; the tightened stop is anchored to the entry price so it does not
+    # trail winners. Disabled by default (0.0) — behaviour is unchanged until a
+    # subclass sets ``stoploss_grace_hours`` > 0.
+    stoploss_grace_hours: float = 0.0
+    stoploss_grace_level: float = -0.15
+
     opt_base_params = True # flag that allws subclasses to disable framework optimisation
 
     prediction_threshold = DecimalParameter(
@@ -762,6 +777,32 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
     # Custom Stoploss
     # =========================================================================
 
+    def _resolve_normal_stop(self, pair: str) -> float:
+        """Normal (post-grace) stop level relative to entry: ATR-adaptive if
+        enabled, else the static ``self.stoploss``. Mirrors the after_fill ATR
+        logic in ``custom_stoploss``."""
+        if self.use_atr_adaptive_stoploss:
+            try:
+                dataframe, _ = self.dp.get_analyzed_dataframe(pair, self.timeframe)
+                if not dataframe.empty:
+                    atr_pct = float(dataframe.iloc[-1].get("atr_pct_roll", 0.0))
+                    if atr_pct > 0:
+                        stop = -self.atr_stoploss_multiplier * atr_pct
+                        stop = max(min(stop, self.atr_stoploss_cap), self.atr_stoploss_floor)
+                        if self.use_volume_confirmation_stoploss:
+                            vol_mean = float(
+                                dataframe["volume"].rolling(20, min_periods=5).mean().iloc[-1]
+                            )
+                            cur_vol = float(dataframe.iloc[-1].get("volume", 0.0))
+                            if vol_mean > 0:
+                                rvol = cur_vol / vol_mean
+                                if rvol > 1.0:
+                                    stop = min(stop / (rvol ** 0.5), -0.02)
+                        return stop
+            except Exception:
+                pass
+        return self.stoploss
+
     def custom_stoploss(
         self,
         pair: str,
@@ -772,6 +813,27 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
         after_fill: bool,
         **kwargs,
     ) -> float:
+        # First-hour stop-loss GRACE (opt-in via stoploss_grace_hours > 0).
+        # Hold a wide stop for the initial window so entry noise doesn't stop
+        # the trade out, then tighten to the normal stop. The stop still fires
+        # if the wide level is hit (safe), unlike the old min-hold that rejected
+        # the exit outright.
+        grace_hours = getattr(self, "stoploss_grace_hours", 0.0) or 0.0
+        if grace_hours > 0.0:
+            age_h = (current_time - trade.open_date_utc).total_seconds() / 3600.0
+            if age_h < grace_hours:
+                # Wide stop through the window. freqtrade lets the INITIAL stop
+                # (set at after_fill) be arbitrarily wide; leave it unchanged
+                # for the rest of the window.
+                return self.stoploss_grace_level if after_fill else 1.0
+            # Window expired -> tighten to the normal stop, anchored to the
+            # entry price so the tightened stop is fixed (no trailing on
+            # winners). freqtrade only tightens, so this applies once.
+            normal = self._resolve_normal_stop(pair)
+            if trade.open_rate and current_rate and current_rate > 0:
+                return (trade.open_rate * (1.0 + normal) / current_rate) - 1.0
+            return normal
+
         # ATR-adaptive initial stop (opt-in via use_atr_adaptive_stoploss).
         # Only the after_fill call returns a non-1.0 value, so freqtrade
         # locks the volatility-adjusted stop at entry and leaves it static
