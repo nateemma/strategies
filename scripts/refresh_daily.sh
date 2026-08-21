@@ -16,8 +16,8 @@
 # 1d feather and so won't be rankable until added to that config's whitelist.
 #
 # Cron (user crontab; macOS may need Full Disk Access for cron/launchd):
-#   10 0 * * * /Users/philprice95/Documents/freqtrade/user_data/strategies/scripts/refresh_daily.sh \
-#     >> /Users/philprice95/Documents/freqtrade/user_data/logs/refresh_daily.log 2>&1
+#   10 0 * * * /Users/philprice95/projects/freqtrade/user_data/strategies/scripts/refresh_daily.sh \
+#     >> /Users/philprice95/projects/freqtrade/user_data/logs/refresh_daily.log 2>&1
 set -euo pipefail
 cd "$(dirname "$0")/../../.."   # -> repo root
 exec .venv/bin/freqtrade download-data \

@@ -64,7 +64,7 @@ class NNPredictStrategy(BaseNNStrategy):
                 "predict_sell": {"color": "red"},
                 "%train_gain": { "color": "blue"},
                 "%predict_gain": { "color": "purple"},
-                "gain": {"color": "lightgreen"},
+                "current_gain": {"color": "lightgreen"},
                 "%entry_threshold": { "color": "green"},
                 "%exit_threshold": { "color": "red"},
             },

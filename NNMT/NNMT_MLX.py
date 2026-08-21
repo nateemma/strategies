@@ -28,9 +28,9 @@ class NNMT_MLX(MLXMultiTaskClassifierMixin, NNMTStrategy):
     # ``classifier_type`` to a different ClassifierTypeMLX value.
     classifier_type = ClassifierTypeMLX.LSTM
 
-    buy_params = { **NNMTStrategy.buy_params,
-        "prediction_threshold": 0.5,
-        }
+    # buy_params = { **NNMTStrategy.buy_params,
+    #     "prediction_threshold": 0.5,
+    #     }
 
     # ------------------------------------------------------------------ #
     # Classifier-side overrides — set on subclasses to push values onto   #
@@ -39,7 +39,9 @@ class NNMT_MLX(MLXMultiTaskClassifierMixin, NNMTStrategy):
     # ------------------------------------------------------------------ #
     # Per-task loss-weight override (passed to clf.task_weights_override).
     # _CLASSIFIER_TASK_WEIGHTS = None
-    _CLASSIFIER_TASK_WEIGHTS = {'trading': 4.0, 'regime': 2.0, 'risk': 1.0, 'momentum': 1.0, 'flow': 1.0, 'profit': 3.0}
+    # profit (MCC ~0.23) and regime (~0.37) are near-unlearnable and dilute the
+    # shared backbone -> disabled (weight 0). Keep the learnable aux heads.
+    _CLASSIFIER_TASK_WEIGHTS = {'trading': 4.0, 'regime': 0.0, 'risk': 1.0, 'momentum': 1.0, 'flow': 1.0, 'profit': 0.0}
 
     # Training-epoch ceiling override (passed to clf.max_epochs).
     _CLASSIFIER_MAX_EPOCHS = None

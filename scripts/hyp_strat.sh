@@ -199,15 +199,15 @@ timerange="${start}-${end}"
 
 #echo "timerange:${timerange} start:${start} end:${end}"
 
-# calculate diff
+# calculate diff (in days)
 zmodload zsh/datetime
 diff=$(( ( $(strftime -r %Y%m%d "$end") - $(strftime -r %Y%m%d "$start") ) / 86400 ))
 # min_trades=$((diff / 2))
 
 # set min trades based on # days (N per day)
 # min_trades=$((diff * 2))
-# min_trades=$((diff / 16))
-min_trades=1
+min_trades=$((diff / 12))
+# min_trades=1
 
 
 echo ""

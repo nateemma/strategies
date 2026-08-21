@@ -6,7 +6,7 @@
 
 set -uo pipefail
 
-ROOT="/Users/philprice95/Documents/freqtrade"
+ROOT="/Users/philprice95/projects/freqtrade"
 cd "$ROOT"
 
 LOG_DIR="${ROOT}/user_data/strategies/scripts/sweep_logs"

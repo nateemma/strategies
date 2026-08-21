@@ -23,7 +23,7 @@
 
 set -uo pipefail
 
-ROOT="/Users/philprice95/Documents/freqtrade"
+ROOT="/Users/philprice95/projects/freqtrade"
 cd "$ROOT"
 
 PAIR="${PAIR:-XRP_USDT}"

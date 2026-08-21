@@ -15,8 +15,8 @@ freqtrade backtesting --cache none  --breakdown month --timerange=20240608-20260
 2026-05-29 07:26:56,415 - freqtrade.configuration.configuration - INFO - Using additional Strategy lookup path: user_data/strategies/NNNC
 2026-05-29 07:26:56,415 - freqtrade.configuration.configuration - INFO - Using max_open_trades: 10 ...
 2026-05-29 07:26:56,415 - freqtrade.configuration.configuration - INFO - Parameter --timerange detected: 20240608-20260529 ...
-2026-05-29 07:26:56,416 - freqtrade.configuration.configuration - INFO - Using user-data directory: /Users/philprice95/Documents/freqtrade/user_data ...
-2026-05-29 07:26:56,416 - freqtrade.configuration.configuration - INFO - Using data directory: /Users/philprice95/Documents/freqtrade/user_data/data/binanceus ...
+2026-05-29 07:26:56,416 - freqtrade.configuration.configuration - INFO - Using user-data directory: /Users/philprice95/projects/freqtrade/user_data ...
+2026-05-29 07:26:56,416 - freqtrade.configuration.configuration - INFO - Using data directory: /Users/philprice95/projects/freqtrade/user_data/data/binanceus ...
 2026-05-29 07:26:56,416 - freqtrade.configuration.configuration - INFO - Using strategy list of 1 strategies
 2026-05-29 07:26:56,416 - freqtrade.configuration.configuration - INFO - Parameter --breakdown detected ...
 2026-05-29 07:26:56,416 - freqtrade.configuration.configuration - INFO - Parameter --cache=none detected ...
@@ -30,11 +30,11 @@ freqtrade backtesting --cache none  --breakdown month --timerange=20240608-20260
 2026-05-29 07:26:56,425 - freqtrade.exchange.exchange - INFO - Using CCXT 4.5.50
 2026-05-29 07:26:56,434 - freqtrade.exchange.exchange - INFO - Using Exchange "Binance US"
 2026-05-29 07:26:56,823 - freqtrade.resolvers.exchange_resolver - INFO - Using resolved exchange 'Binanceus'...
-/Users/philprice95/Documents/freqtrade/.venv/lib/python3.12/site-packages/_distutils_hack/__init__.py:15: UserWarning: Distutils was imported before Setuptools, but importing Setuptools also replaces the `distutils` module in `sys.modules`. This may lead to undesirable behaviors or errors. To avoid these issues, avoid using distutils directly, ensure that setuptools is installed in the traditional way (e.g. not an editable install), and/or make sure that setuptools is always imported before distutils.
+/Users/philprice95/projects/freqtrade/.venv/lib/python3.12/site-packages/_distutils_hack/__init__.py:15: UserWarning: Distutils was imported before Setuptools, but importing Setuptools also replaces the `distutils` module in `sys.modules`. This may lead to undesirable behaviors or errors. To avoid these issues, avoid using distutils directly, ensure that setuptools is installed in the traditional way (e.g. not an editable install), and/or make sure that setuptools is always imported before distutils.
   warnings.warn(
-/Users/philprice95/Documents/freqtrade/.venv/lib/python3.12/site-packages/_distutils_hack/__init__.py:30: UserWarning: Setuptools is replacing distutils. Support for replacing an already imported distutils is deprecated. In the future, this condition will fail. Register concerns at https://github.com/pypa/setuptools/issues/new?template=distutils-deprecation.yml
+/Users/philprice95/projects/freqtrade/.venv/lib/python3.12/site-packages/_distutils_hack/__init__.py:30: UserWarning: Setuptools is replacing distutils. Support for replacing an already imported distutils is deprecated. In the future, this condition will fail. Register concerns at https://github.com/pypa/setuptools/issues/new?template=distutils-deprecation.yml
   warnings.warn(
-2026-05-29 07:26:59,523 - freqtrade.resolvers.iresolver - INFO - Using resolved strategy NNNC_CGP_MLX from '/Users/philprice95/Documents/freqtrade/user_data/strategies/NNNC/NNNC_CGP_MLX.py'...
+2026-05-29 07:26:59,523 - freqtrade.resolvers.iresolver - INFO - Using resolved strategy NNNC_CGP_MLX from '/Users/philprice95/projects/freqtrade/user_data/strategies/NNNC/NNNC_CGP_MLX.py'...
 2026-05-29 07:26:59,524 - freqtrade.strategy.hyper - INFO - Found no parameter file.
 2026-05-29 07:26:59,524 - freqtrade.resolvers.strategy_resolver - INFO - Override strategy 'timeframe' with value from the configuration: 15m.
 2026-05-29 07:26:59,524 - freqtrade.resolvers.strategy_resolver - INFO - Override strategy 'order_types' with value from the configuration: {'entry': 'limit', 'exit': 'market', 'emergency_exit': 
@@ -71,7 +71,7 @@ freqtrade backtesting --cache none  --breakdown month --timerange=20240608-20260
 2026-05-29 07:26:59,527 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using max_entry_position_adjustment: -1
 2026-05-29 07:26:59,527 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using max_open_trades: 10
 2026-05-29 07:26:59,527 - freqtrade.configuration.config_validation - INFO - Validating configuration ...
-2026-05-29 07:26:59,530 - freqtrade.resolvers.iresolver - INFO - Using resolved pairlist StaticPairList from '/Users/philprice95/Documents/freqtrade/freqtrade/plugins/pairlist/StaticPairList.py'...
+2026-05-29 07:26:59,530 - freqtrade.resolvers.iresolver - INFO - Using resolved pairlist StaticPairList from '/Users/philprice95/projects/freqtrade/freqtrade/plugins/pairlist/StaticPairList.py'...
 2026-05-29 07:26:59,534 - freqtrade.optimize.backtesting - INFO - Using fee 0.1000% - worst case fee from exchange (lowest tier).
 2026-05-29 07:26:59,639 - freqtrade.data.history.datahandlers.idatahandler - WARNING - ZEC/USDT, spot, 15m, data ends at 2026-05-27 17:15:00
 2026-05-29 07:26:59,643 - freqtrade.data.history.datahandlers.idatahandler - INFO - Price jump in ZEC/USDT, 15m, spot between two candles of 33.14% detected.
@@ -247,10 +247,10 @@ Strategy Parameters/Flags
         Trading distribution: [ 5318 59289  4545] [7.7%, 85.7%, 6.6%]
         %train_buy/%train_sell counts: buys=4545, sells=5318, holds=59289
     Training model on 13 pairs
-    Main scaler loaded from /Users/philprice95/Documents/freqtrade/user_data/strategies/saved_data/
+    Main scaler loaded from /Users/philprice95/projects/freqtrade/user_data/strategies/saved_data/
     PCA data loaded: n_components=20
     Columns exceeding ±10 before clipping: [('bb_width', -1.0001307528502497, 18.387945839670714)]
-    GAN scaler A loaded from /Users/philprice95/Documents/freqtrade/user_data/strategies/saved_data/
+    GAN scaler A loaded from /Users/philprice95/projects/freqtrade/user_data/strategies/saved_data/
       columns: ['bb_width', 'atr_norm', 'rsi_scaled', 'mfi_scaled', 'guard_metric_pos', 'guard_metric_neg', 'gain_norm', 'macdhist_norm', 'ema_fast_norm', 'macd_pos', 'macd_neg', 'fastk_scaled', 'fast_diff', 'adx_scaled', 'aroonosc_scaled', 'bb_position', 'vwap_pos', 'vwap_neg', 'di_diff_scaled', 'sar_ratio', 'spread_ma', 'cci_scaled', 'fisher_ss', 'cg_ss']
     balance_single_task: class counts {0: 7531, 1: 42312, 2: 5391} (gan_type=CTAB_GAN)
     balance_single_task: per-class additions {}
@@ -558,7 +558,7 @@ Strategy Parameters/Flags
           fastk_scaled       × fast_diff           real ρ=-0.44  syn ρ=-0.22  Δρ=-0.22
           fast_diff          × bb_position         real ρ=-0.33  syn ρ=-0.12  Δρ=-0.21
           bb_width           × cci_scaled          real ρ=+0.06  syn ρ=-0.14  Δρ=+0.20
-    MLX model not found (/Users/philprice95/Documents/freqtrade/user_data/strategies/saved_data/NNNC_CGP_MLX/NNNC_CGP_MLX.safetensors)...
+    MLX model not found (/Users/philprice95/projects/freqtrade/user_data/strategies/saved_data/NNNC_CGP_MLX/NNNC_CGP_MLX.safetensors)...
     MLX model created.  Parameters: 12,483
 
     Training MLX model: NNNC_CGP_MLX
@@ -656,7 +656,7 @@ Strategy Parameters/Flags
     Epoch  65/100 — loss: 0.1803  val_loss: 0.1456  val_precision: 0.3616  val_f1_class_2: 0.5224  val_mcc: 0.5486  clips:1
     EarlyStopping at epoch 65 (no improvement for 20 epochs)
     Restoring best weights from /tmp/NNNC_CGP_MLX/checkpoint.safetensors
-    Saving MLX model to: /Users/philprice95/Documents/freqtrade/user_data/strategies/saved_data/NNNC_CGP_MLX/NNNC_CGP_MLX.safetensors
+    Saving MLX model to: /Users/philprice95/projects/freqtrade/user_data/strategies/saved_data/NNNC_CGP_MLX/NNNC_CGP_MLX.safetensors
     Trading - Sell:
         min: 0.001 max: 0.874, mean: 0.242
         signals > 0.500: 18051 (26.1%)
@@ -1595,7 +1595,7 @@ Metric                    Score   Assessment                               Tradi
 Precision (Sell)          0.319   Poor. Significant room for improvement.  Avoid false sell signals (support: 5318.0)
 Recall (Sell)             0.886   Excellent. Very strong performance.      Find all sell opportunities (support: 5318.0)
 F1-Score (Sell)           0.469   Okay. Acceptable, but needs improvement. Balanced performance on Sell signal (support: 5318.0)
-Precision (Hold)          0.971   Excellent. Very strong performance.      Correctly identify neutral periods (support: 59289.0)2026-05-29 07:32:01,474 - freqtrade.misc - INFO - dumping json to "/Users/philprice95/Documents/freqtrade/user_data/backtest_results/backtest-result-2026-05-29_07-32-01.meta.json"
+Precision (Hold)          0.971   Excellent. Very strong performance.      Correctly identify neutral periods (support: 59289.0)2026-05-29 07:32:01,474 - freqtrade.misc - INFO - dumping json to "/Users/philprice95/projects/freqtrade/user_data/backtest_results/backtest-result-2026-05-29_07-32-01.meta.json"
 
 Recall (Hold)             0.667   Good. Reliable performance.              Find all neutral periods (support: 59289.0)
 F1-Score (Hold)           0.791   Good. Reliable performance.              Balanced performance on Hold signal (support: 59289.0)

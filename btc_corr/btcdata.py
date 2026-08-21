@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-DATA = Path("/Users/philprice95/Documents/freqtrade/user_data/data/binanceus")
+DATA = Path("/Users/philprice95/projects/freqtrade/user_data/data/binanceus")
 
 # pairs with native 1h data (no ETH at 1h); 4h has full coverage incl ETH
 ALTS_1H = ["ETH", "SOL", "LTC", "AVAX", "LINK", "XRP", "BCH", "AAVE", "DOT", "NEAR", "SUI", "ZEC"]

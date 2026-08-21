@@ -24,9 +24,9 @@ class NNMT_DDPM_MLX(MLXMultiTaskClassifierMixin, NNMT_DDPM):
     # MLX LSTM (default from MLXMultiTaskClassifierMixin).
     classifier_type = ClassifierTypeMLX.LSTM
 
-    buy_params = { **NNMT_DDPM.buy_params,
-        "prediction_threshold": 0.5
-        }
+    # buy_params = { **NNMT_DDPM.buy_params,
+    #     "prediction_threshold": 0.5
+    #     }
 
     gan_target_ratio = 0.3
     gan_run_diagnostics = True

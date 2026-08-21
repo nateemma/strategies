@@ -231,26 +231,58 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
     # hyperopt parameters
     # --------------------------------
 
+    # # Buy parameters:
+    # buy_params = {
+    #     "entry_adx_threshold": 10.0,
+    #     "entry_atr_pct": 0.013,
+    #     "entry_bb_width_threshold": 0.094,
+    #     "entry_close_norm_threshold": 0.6,
+    #     "entry_guard_threshold": 0.1,
+    #     "entry_rvol_threshold": 1.9,
+    #     "prediction_threshold": 0.29,
+    #     "entry_enable_guards": True,  # value loaded from strategy
+    # }
+
+    # # Sell parameters:
+    # sell_params = {
+    #     "cexit_max_days": 28,
+    #     "cexit_take_profit": 0.04,
+    #     "exit_close_norm_threshold": -0.9,
+    #     "exit_guard_threshold": 0.7,
+    #     "cexit_enable_profit_checks": True,  # value loaded from strategy
+    #     "enable_exit_signal": True,  # value loaded from strategy
+    # }
+
     # Buy parameters:
     buy_params = {
-        "entry_adx_threshold": 10.0,
-        "entry_atr_pct": 0.013,
-        "entry_bb_width_threshold": 0.094,
-        "entry_close_norm_threshold": 0.6,
-        "entry_guard_threshold": 0.1,
-        "entry_rvol_threshold": 1.9,
-        "prediction_threshold": 0.29,
+        "apply_task_filters": False,  # value loaded from strategy
+        "bias_profit_high": 0.08,  # value loaded from strategy
+        "bias_profit_low": 0.09,  # value loaded from strategy
+        "bias_trading_buy": 0.05,  # value loaded from strategy
+        "bias_trading_sell": 0.03,  # value loaded from strategy
+        "entry_adx_threshold": 38.0,  # value loaded from strategy
+        "entry_atr_pct": 0.006,  # value loaded from strategy
+        "entry_bb_width_threshold": 0.06,  # value loaded from strategy
+        "entry_close_norm_threshold": -0.1,  # value loaded from strategy
         "entry_enable_guards": True,  # value loaded from strategy
+        "entry_guard_threshold": 0.3,  # value loaded from strategy
+        "entry_rvol_threshold": 0.5,  # value loaded from strategy
+        "forward_peak_regressor_threshold": 0.5,  # value loaded from strategy
+        "min_consecutive_buys": 1,  # value loaded from strategy
+        "prediction_threshold": 0.5,  # value loaded from strategy
+        "profit_prediction_threshold": 0.3,  # value loaded from strategy
     }
 
     # Sell parameters:
     sell_params = {
-        "cexit_max_days": 28,
-        "cexit_take_profit": 0.04,
-        "exit_close_norm_threshold": -0.9,
-        "exit_guard_threshold": 0.7,
+        "cexit_max_days": 21,
+        "cexit_take_profit": 0.032,
+        "enable_exit_signal": False,
+        "exit_close_norm_threshold": 0.6,
+        "exit_guard_threshold": -0.2,
+        "stoploss_grace_hours": 2.6,
+        "stoploss_grace_level": -0.17,
         "cexit_enable_profit_checks": True,  # value loaded from strategy
-        "enable_exit_signal": True,  # value loaded from strategy
     }
 
     # Trailing stop:
