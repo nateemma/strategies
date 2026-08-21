@@ -1,5 +1,12 @@
 # Phil's Custom freqtrade Crypto Trading Strategies (Version 2)
 
+> [!IMPORTANT]
+> **My studies have led me to conclude that no strategy is likely to be particularly profitable on US crypto exchanges.** There are two structural reasons:
+> 1. **Not enough depth in the order books** — most of the volatility (and therefore the tradeable signal) is concentrated in altcoins with thin volume, so realistic fills erode any edge you find in a backtest.
+> 2. **Shorting is not allowed on US exchanges** — the approaches that do look promising rely on leverage/shorting, which I can't run in the USA.
+>
+> More details are in the [US spot-market study](us_spot_market_study.md).
+
 _**The directory structure and code architecture have completely changed. The older code is available on branch v1, but I will not be maintaining that**_
 
 Note that, like the rest of the software world, I have been playing with agent-assisted coding, so some of the code might look a little strange. I added a file AGENT_GUIDE.md that should be useful for agents (or humans) looking at the code.
@@ -204,6 +211,8 @@ Strategies consume a GAN by setting `gan_type = GANType.X` on the class.  The ba
 
 Internally, every GAN type is wrapped by a `GANBackend` subclass (in `GANs/backends/`) so the `fit / generate / save / load` lifecycle is uniform across types and across MLX/TF backends.  Adding a new variant of an existing type is a one-class change in `GANs/`; adding a genuinely new GAN type means a new `GANBackend` in `GANs/backends/`.  See `GANs/README.md` for backend details and `GANs/tests/` for the contract tests.
 
+**Multi-task caveat:** extensive testing found that GAN augmentation does *not* improve the multi-task (NNMT) strategies — it ties or loses in every configuration I tried (fidelity fixes, entropy selection, moment-matching, conditioning cleanup). It's a utility problem, not a fidelity one. Single-task (NNNC) augmentation still helps. The mechanistic write-up is in `GANs/README.md`.
+
 ### NNNC Family
 
 `NNNC/` contains N-ary (trinary: sell/hold/buy) classifiers. Variants differ by model architecture:
@@ -372,6 +381,8 @@ zsh user_data/strategies/scripts/hyp_group.sh <directory> <pattern>
 ### Stoploss
 
 I typically do _not_ optimise for stoploss — I set it manually to 10% (`-0.1`). Optimising stoploss tends to give better backtest numbers but worse real-world results: one losing trade with a large stoploss wipes out many winners.
+
+The NN strategies (NNNC/NNMT) add a **first-hour stop-loss grace period** — `stoploss_grace_hours` and `stoploss_grace_level`, both hyperopt-tunable in the `sell` space. The stop stays wide for the first few hours so trades aren't stopped out on entry noise, then tightens to the normal (ATR-adaptive) stop.
 
 ## Hyperopt Loss Functions
 
