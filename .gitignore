@@ -18,3 +18,9 @@ saved_data/*
 # whether to promote it to a submodule (needs a remote URL) or absorb its
 # files into this repo (needs its .git/ removed first).
 NeuralNets/
+
+# macOS Finder metadata
+.DS_Store
+
+# Obsidian vault config for docs/ — local editor state, not content.
+docs/.obsidian/
