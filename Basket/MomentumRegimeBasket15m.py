@@ -27,12 +27,51 @@ so fills are realistic. Full exit (populate_exit_trend) when a coin leaves the t
 or the regime turns risk-off; a runaway winner is partial-trimmed back toward the
 equal-weight cap (see MAX_POSITION_WEIGHT — a return/risk-adjusted improvement).
 
+*** MEASURED (freqtrade, 15mFast, 2024-08-31..2026-08-20, config_mom_15m.json) ***
+  596 trades, win rate 32.7%, +444.20% vs market -20.61%, PF 1.64, CAGR 136%.
+  Sharpe 1.28 / Calmar 11.48 (daily wallet balance). MAX DRAWDOWN 61.68% (wallet;
+  58.48% closed) over ~152 days, Dec-2024 -> May-2025.
+
+  NOTE the drawdown: earlier notes on this family quoted ~26% from the VECTORIZED
+  sweep. The honest fill-aware run is 58-62%. Use these numbers, not those.
+
+  Diversification DOES hold here, unlike on the 11-pair config.json: ZEC is 28% of
+  net (not 81%), and removing ANY single pair still leaves $33-39k of $44k at
+  PF~1.5. Net by year 2024 $15.8k / 2025 $13.2k / 2026 $15.4k.
+
+  BUT the profit is tail-carried at the TRADE level: the top 5 trades of 596 are
+  107% of net, i.e. trades 6..596 are collectively negative, and the top 3 PAIRS
+  (ZEC/PENGU/TROLL) are 76%. Median win +1.22% vs median loss -1.51% -- the typical
+  winner is SMALLER than the typical loser; the payoff ratio (2.75 vs 2.12 needed at
+  this win rate) comes entirely from the right tail. Judge this strategy on that
+  tail surviving, not on the trade count.
+
 *** CAVEATS (unchanged from the vectorized study) ***
   - SURVIVORSHIP BIAS inflates the MAGNITUDE (dead pump-and-die coins are absent,
     worst for the broad meme set). Trust the SIGN + multi-year robustness, not the %.
+    Acute here: TROLL earns ~$11k on TWO trades, and PENGU/BONK/FLOKI/PEPE are in
+    the carrying set.
   - Short ~2yr / one-cycle sample.
   - This freqtrade run is the honest execution check; divergence from the vectorized
     numbers is expected (order pricing, fee accounting, one-add-per-candle cadence).
+  - Fill sizing rests on QUOTE_VOLUME_HEADROOM_MULT. SWEPT (2026-08, 15mFast,
+    FILL_VOLUME_LAG=1); net / PF / maxDD and the carrying names' contribution:
+
+      MULT   net %   PF    maxDD    ZEC     PENGU   TROLL   HBAR    XLM
+        10   444.2  1.64   58.5%   12,316  10,007  11,347   7,695   7,444
+        20   364.9  1.58   50.8%   11,343   8,800   6,181   6,648   6,715
+        50   291.5  1.59   44.8%    9,620   6,459   2,150   6,253   6,587
+       100   285.2  1.83   36.3%    7,209   4,396   1,067   6,349   6,952
+
+    READ THIS AS: TROLL scales ~linearly with the cap (11.3k -> 1.1k for a 10x
+    tighter fill) -- its contribution is a SIZING ASSUMPTION, not an edge, and any
+    result leaning on it should be discounted. PENGU is ~half assumption. ZEC decays
+    gently (1.7x). HBAR and XLM are FLAT across the whole sweep -- those are real.
+    The edge survives a 10x tighter cap (+285%), and tightening IMPROVES PF
+    (1.64->1.83) and maxDD (58%->36%): the marginal fill at MULT=10 was buying
+    return with drawdown, largely in illiquid names. MULT=100 has the best
+    return/maxDD (7.85 vs 7.60). Default stays 10, but quote the sweep, not the
+    headline, when judging this family.
 
 *** lookahead-analysis reports "bias detected" — it is a STRUCTURAL FALSE POSITIVE. ***
 freqtrade/optimize/analysis/lookahead.py builds every comparison run per trade with a
@@ -120,6 +159,13 @@ class MomentumRegimeBasket15m(IStrategy):
     # liquidity-aware sizing (same discipline as FundingCarry / the NN family)
     MIN_QUOTE_VOLUME = 1000
     QUOTE_VOLUME_HEADROOM_MULT = 10.0   # fill <= 1/10 of a candle's quote volume
+
+    # Which candle's quote volume bounds a fill. In BACKTEST get_analyzed_dataframe()
+    # is sliced to the CURRENT candle, so iloc[-1] is that candle's COMPLETED volume --
+    # which is not knowable at the moment the order is placed. Sizing against it is
+    # optimistic exactly where it matters most (an illiquid name's pump candle).
+    # 1 = last completed candle (causal, the default). 0 = old behaviour, for A/B only.
+    FILL_VOLUME_LAG = 1
 
     _xs = None       # cached membership matrix (bool DataFrame, per pair)
     _xs_key = None   # cache key: (latest candle date, whitelist)
@@ -220,6 +266,14 @@ class MomentumRegimeBasket15m(IStrategy):
         dataframe.loc[~dataframe["hold"], "exit_long"] = 1   # exit when out of top-N or risk-off
         return dataframe
 
+    def _quote_volume(self, df) -> float:
+        """Quote volume of the candle FILL_VOLUME_LAG bars back (0 => current)."""
+        i = -1 - self.FILL_VOLUME_LAG
+        if df is None or len(df) < abs(i):
+            return 0.0
+        bar = df.iloc[i].squeeze()
+        return float(bar["volume"]) * float(bar["close"])
+
     # --- liquidity-aware sizing: cap the INITIAL fill to the equal-weight target
     #     AND to <=10% of the candle's quote volume ---
     def custom_stake_amount(self, pair, current_time, current_rate, proposed_stake,
@@ -227,8 +281,7 @@ class MomentumRegimeBasket15m(IStrategy):
         if self.dp.runmode.value in ("plot", "other"):
             return proposed_stake
         df, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
-        last = df.iloc[-1].squeeze()
-        fillable = (last["volume"] * last["close"]) / self.QUOTE_VOLUME_HEADROOM_MULT
+        fillable = self._quote_volume(df) / self.QUOTE_VOLUME_HEADROOM_MULT
         target = self._portfolio_value() / self.TOP_N
         stake = min(proposed_stake, target, fillable, max_stake)
         if min_stake and stake < min_stake:
@@ -240,8 +293,7 @@ class MomentumRegimeBasket15m(IStrategy):
         if self.dp.runmode.value in ("plot", "other"):
             return True
         df, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
-        last = df.iloc[-1].squeeze()
-        return (last["volume"] * last["close"]) >= self.MIN_QUOTE_VOLUME   # reject dust
+        return self._quote_volume(df) >= self.MIN_QUOTE_VOLUME   # reject dust
 
     # --- ACCUMULATION: add toward the equal-weight target each candle, capped to
     #     <=10% of the candle's quote volume, while the coin is still in the basket ---
@@ -266,7 +318,7 @@ class MomentumRegimeBasket15m(IStrategy):
         target = pv / self.TOP_N
         if current_value >= target * 0.98:
             return None   # already at target weight
-        fillable = (last["volume"] * last["close"]) / self.QUOTE_VOLUME_HEADROOM_MULT
+        fillable = self._quote_volume(df) / self.QUOTE_VOLUME_HEADROOM_MULT
         add = min(target - current_value, fillable, max_stake)
         if add <= 0 or (min_stake and add < min_stake):
             return None
