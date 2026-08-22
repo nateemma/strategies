@@ -34,17 +34,38 @@ equal-weight cap (see MAX_POSITION_WEIGHT — a return/risk-adjusted improvement
   - This freqtrade run is the honest execution check; divergence from the vectorized
     numbers is expected (order pricing, fee accounting, one-add-per-candle cadence).
 
-*** lookahead-analysis reports "bias detected" — it is a PROVEN FALSE POSITIVE. ***
-`freqtrade lookahead-analysis` detects bias by re-running on cut timeranges, but this
-strategy reads the daily feathers DIRECTLY off disk (_daily_closes, the workaround for
-the startup-candle cap), bypassing the DataProvider the tool truncates — so it can't
-reason about the inputs and flags heuristically (a documented limitation for external-
-data / cross-sectional strategies). The `hold` signal is CAUSAL by construction
-(momentum = current 15m close / Pd.shift(1).shift(90); regime + trend off Pd.shift(1);
-membership floored to the hour, all ffill-mapped) and this was VERIFIED empirically: a
-truncation-invariance test (recompute `hold` with future data removed) found ZERO
-changed cells across 76,867 candles x 75 pairs at 4 cut points, in BOTH the cut-all and
-the freqtrade-exact (daily-full / 15m-cut) scenarios. Test: /tmp/bias_check.py.
+*** lookahead-analysis reports "bias detected" — it is a STRUCTURAL FALSE POSITIVE. ***
+freqtrade/optimize/analysis/lookahead.py builds every comparison run per trade with a
+SINGLE-pair whitelist:
+
+    self.prepare_data(entry_varHolder, [result_row["pair"]])
+    prepare_data_config["exchange"]["pair_whitelist"] = pairs_to_load
+
+Under that substitution _compute_xs degenerates two ways: mom.rank(axis=1) <= TOP_N
+ranks across one column, so the top-N constraint is vacuously true on every candle;
+and known.get(REGIME_REF) finds no BTC/USDT column, so the `ron_d = pd.Series(True)`
+fallback silently disables the risk-on gate. `hold` MUST therefore differ from the
+full-whitelist reference run, however causal the strategy is — the tool cannot
+validate ANY cross-sectional or regime-gated strategy, with any config.
+(NB: reading the daily feathers directly off disk is NOT the cause; that is what
+keeps the daily inputs identical across runs. The 15m whitelist collapse is.)
+
+The `hold` signal is CAUSAL by construction (momentum = current 15m close /
+Pd.shift(1).shift(MOM_LOOKBACK_DAYS); regime + trend off Pd.shift(1); membership
+floored to the hour, all ffill-mapped), and that is now PROVEN BY A COMMITTED TEST
+rather than prose: Basket/test_momentum_regime_bias.py asserts zero changed
+membership cells when future data is removed, at 4 cut points x {cut-all,
+freqtrade-exact} x {hourly, per-candle}, and separately pins the single-pair
+collapse above. It is mutation-tested — a one-candle peek (P15.shift(-1)) and a
+full-sample normalisation both turn it red.
+
+  CAVEAT ON COVERAGE: in the "freqtrade-exact" scenario the daily panel is never
+  truncated (it comes off disk), so that scenario cannot catch lookahead introduced
+  on the DAILY inputs; the "cut-all" scenario is what covers those. Keep both.
+
+  NB: run check_bias.sh with -c config/config_mom_15m.json. Its default config.json
+  is an 11-pair whitelist with NO BTC/USDT (regime gate off), max_open_trades 10 vs
+  TOP_N 3, and a fixed 900 stake — that measures a different strategy entirely.
 
 Config: config/config_mom_15m.json (max_open_trades == TOP_N, stake "unlimited").
 """
