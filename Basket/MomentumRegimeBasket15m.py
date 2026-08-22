@@ -32,8 +32,11 @@ equal-weight cap (see MAX_POSITION_WEIGHT — a return/risk-adjusted improvement
   Sharpe 1.28 / Calmar 11.48 (daily wallet balance). MAX DRAWDOWN 61.68% (wallet;
   58.48% closed) over ~152 days, Dec-2024 -> May-2025.
 
-  NOTE the drawdown: earlier notes on this family quoted ~26% from the VECTORIZED
-  sweep. The honest fill-aware run is 58-62%. Use these numbers, not those.
+  NOTE the drawdown. It is consistent with the earlier persistence study, which
+  also measured ~58% closed on the full window -- the "26% DD" in commit a9093ac
+  refers specifically to the LATE window (W2, 2025-06->2026-08), where Fast doubled
+  base's return at equal drawdown. Do not read that 26% as full-period risk: the
+  deep drawdown sits in the 2024 window, and over the whole sample it is 58-62%.
 
   Diversification DOES hold here, unlike on the 11-pair config.json: ZEC is 28% of
   net (not 81%), and removing ANY single pair still leaves $33-39k of $44k at
