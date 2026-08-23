@@ -28,6 +28,9 @@ or the regime turns risk-off; a runaway winner is partial-trimmed back toward th
 equal-weight cap (see MAX_POSITION_WEIGHT — a return/risk-adjusted improvement).
 
 *** MEASURED (freqtrade, 15mFast, 2024-08-31..2026-08-20, config_mom_15m.json) ***
+  NB: these are EXIT_RANK_N=None (pre-hysteresis) numbers, kept because the tail
+  and liquidity analysis below refers to them. For the CURRENT default (9) see
+  the EXIT_RANK_N block: P3 is +798% at 32.6% maxDD over the same window.
   596 trades, win rate 32.7%, +444.20% vs market -20.61%, PF 1.64, CAGR 136%.
   Sharpe 1.28 / Calmar 11.48 (daily wallet balance). MAX DRAWDOWN 61.68% (wallet;
   58.48% closed) over ~152 days, Dec-2024 -> May-2025.
@@ -49,37 +52,46 @@ equal-weight cap (see MAX_POSITION_WEIGHT — a return/risk-adjusted improvement
   this win rate) comes entirely from the right tail. Judge this strategy on that
   tail surviving, not on the trade count.
 
-*** EXIT_RANK_N (exit hysteresis) -- SWEPT, NOT YET DEFAULTED ***
-  Diagnosis: bleed is a HOLDING-PERIOD effect. On 15mFast every duration bucket
-  under 24h loses (<2h -$5.7k / 2-6h -$3.3k / 6-24h -$10.3k, 467 of 596 trades),
-  while the 32 trades held >7d make +$57.7k. With entry and exit sharing one
-  threshold, rank oscillation across TOP_N is itself the churn.
+*** EXIT_RANK_N (exit hysteresis) -- DEFAULT 9, VALIDATED ACROSS 3 REGIMES ***
+  Diagnosis: the bleed is a HOLDING-PERIOD effect. On 15mFast every duration
+  bucket under 24h loses (<2h -$5.7k / 2-6h -$3.3k / 6-24h -$10.3k, 467 of 596
+  trades), while the 32 trades held >7d make +$57.7k. With entry and exit sharing
+  one threshold, rank oscillation across TOP_N IS the churn.
 
-  Sweep (15mFast, MULT=10, FILL_VOLUME_LAG=1). ex-top5 = net excluding the 5
-  biggest trades, i.e. whether the BODY pays for itself:
+  Total return %, N=3 (no hysteresis) vs widened, each window a standalone
+  backtest from a fresh 10k, config_mom_15m.json, 75 pairs:
 
-    N     trades  net%    PF   maxDD  ret/DD   ex-top5   illiq%
-    3(=)     596  444.2  1.64  58.5%   7.60    -3,425     55%
-    4        264  551.8  1.92  57.2%   9.64    +2,953     48%
-    5        196  388.8  1.84  57.9%   6.71      +903     51%
-    6        156  711.0  2.68  43.7%  16.28   +12,804     46%
-    7        140  625.3  2.64  34.0%  18.42    +8,616     43%
-    8        133  554.6  2.43  33.4%  16.63    +6,130     43%
-    9        120  714.8  2.83  32.6%  21.94   +14,381     41%
-    11       111  661.1  3.13  36.1%  18.29   +14,893     43%
-    15       102  508.7  2.78  45.3%  11.24    +4,806     59%
+    N     P1 2021-05..2022-12   P2 2023-01..2024-08   P3 2024-09..2026-08
+    3(=)        -29.7               -19.8                 +463
+    5           -35.9              +107.8                 +389
+    6           -25.9               +92.4                 +711
+    7            +1.9               +50.7                 +625
+    8           +21.4              +214.3                 +555
+    9           +35.6              +166.2                 +798
+    11          +36.8               +99.2                 +661
+    15         +112.0              +136.1                 +509
 
-  PLATEAU 6..11 (not a spike): PF 2.4-3.1, ret/DD 16-22, all years positive,
-  trades/duration/win-rate all monotonic in N. N=5 is an isolated dip between two
-  strong neighbours -- noise. Falls off at 15 (DD back up, illiquid share 59%).
-  Pick from the MIDDLE of the plateau (~8-9), never the peak.
+  THE ROBUST RESULT is not any single N: it is that EVERY N >= 7 beats N=3 in
+  EVERY window -- 15 of 15 arm-window comparisons. N=5 is WORSE than baseline in
+  both P1 and P3 and N=6 only scrapes it in P1, so the band must be substantially
+  wider than TOP_N, not marginally.
 
-  Not a liquidity artifact: at MULT=50, N=7 gives 411.9% / PF 2.47 / DD 27.0% vs
-  N=3's 291.5% / PF 1.59 / DD 44.8% -- still better on every axis.
+  DO NOT RE-TUNE ON ONE WINDOW. The per-window optimum drifts (P1 rises
+  monotonically to 15; P2 is erratic, adjacent N swinging 2-4x; only P3 shows the
+  tidy 6..11 plateau). An earlier note claiming a general "plateau at 6..11" was
+  derived from P3 alone and was wrong. Anything in 8..11 is equivalent within
+  regime noise; 9 is the default. 15 wins P1 but is the weakest qualifying arm in
+  P3 with its illiquid share up at 59%.
 
-  DEFAULT REMAINS None (no hysteresis). This is ONE in-sample window; per the
-  house rule an edge must show in BOTH halves of a persistence split before it is
-  promoted. Run W1/W2 the way MOM_LOOKBACK_DAYS=14 was validated, then flip.
+  BIGGEST FINDING: the pre-hysteresis default LOSES MONEY in two of three regimes
+  (-29.7%, -19.8%) and only worked in P3. This is not a tuning improvement -- it
+  is the difference between a one-regime strategy and a three-regime one.
+
+  STILL TRUE AT N=9: drawdown is severe (43% / 58% / 33% across P1/P2/P3), and
+  P1/P2 carry heavy survivorship bias (today's 75-name whitelist applied back to
+  54 survivors), so their ABSOLUTE returns are flattered. The N-vs-baseline
+  comparison is fair -- both arms see an identical universe -- but do not quote
+  the absolute P1/P2 figures.
 
 *** CAVEATS (unchanged from the vectorized study) ***
   - SURVIVORSHIP BIAS inflates the MAGNITUDE (dead pump-and-die coins are absent,
@@ -177,14 +189,17 @@ class MomentumRegimeBasket15m(IStrategy):
     REGIME_REF = "BTC/USDT"
     REBALANCE_HOURLY = True  # only change top-N membership on the hour (matches the test)
 
-    # Exit hysteresis. Entry is always rank <= TOP_N; a HELD coin is kept until its
-    # rank passes EXIT_RANK_N. None => TOP_N => no hysteresis (original behaviour).
+    # Exit hysteresis. Entry is always rank <= TOP_N; a HELD coin keeps its slot
+    # until its rank passes EXIT_RANK_N. None => TOP_N => no hysteresis.
     # Rationale: with a short MOM_LOOKBACK_DAYS the rank oscillates across the TOP_N
     # boundary, and every oscillation is a round-trip. Measured on 15mFast: 467 of
     # 596 trades were held <24h and lost $19.3k in aggregate, while the 32 trades
     # held >7d made $57.7k. A buffer converts boundary churn into continuous holds
     # and stops winners being shaken out by a one-hour dip to rank TOP_N+1.
-    EXIT_RANK_N = None
+    # 9 is validated across three regimes (see the block above). The exact value is
+    # NOT identifiable -- anything in 8..11 is equivalent within regime noise. Do
+    # NOT re-tune it on a single window; the per-window optimum drifts (15/8/9).
+    EXIT_RANK_N = 9
 
     # Per-coin trend filter — the drawdown fix. The BTC>SMA100 regime is a RISK-ON
     # gate that doesn't protect against alt-specific bleeds (the 52% drawdown accrued

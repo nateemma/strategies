@@ -131,12 +131,17 @@ def _make_data(seed: int = 0):
     return pd.DataFrame(daily).sort_index(), frames
 
 
+_KEEP = object()   # sentinel: leave the class default alone (None is a real value)
+
+
 def _membership(strategy_cls, daily: pd.DataFrame, frames: dict,
-                rebalance_hourly=None) -> pd.DataFrame:
+                rebalance_hourly=None, exit_rank_n=_KEEP) -> pd.DataFrame:
     """Run the REAL _compute_xs against injected daily/15m panels."""
     strat = object.__new__(strategy_cls)      # skip IStrategy.__init__
     if rebalance_hourly is not None:
         strat.REBALANCE_HOURLY = rebalance_hourly
+    if exit_rank_n is not _KEEP:
+        strat.EXIT_RANK_N = exit_rank_n
     strat.dp = _FakeDP(frames)
     strat._xs = None                           # defeat the class-level cache
     strat._xs_key = None
@@ -169,19 +174,23 @@ def _changed_cells(full: pd.DataFrame, cut: pd.DataFrame) -> int:
 @pytest.mark.parametrize("fraction", CUT_FRACTIONS)
 @pytest.mark.parametrize("scenario", ["cut_all", "ft_exact"])
 @pytest.mark.parametrize("hourly", [True, False], ids=["hourly", "per_candle"])
-def test_membership_is_truncation_invariant(strategy_cls, fraction, scenario, hourly):
+@pytest.mark.parametrize("exit_rank_n", [None, 9], ids=["no_hyst", "hyst9"])
+def test_membership_is_truncation_invariant(strategy_cls, fraction, scenario, hourly,
+                                            exit_rank_n):
     """hold[t] must not change when data after t is removed.
 
     `hourly=False` disables the rebalance floor so every candle's membership is
     compared directly -- without it the ffill masks boundary-only divergence.
     """
     daily, frames = _make_data()
-    full = _membership(strategy_cls, daily, frames, rebalance_hourly=hourly)
+    full = _membership(strategy_cls, daily, frames, rebalance_hourly=hourly,
+                       exit_rank_n=exit_rank_n)
 
     cut_daily_panel, cut_frames, cut_ts = _truncate(
         daily, frames, fraction, cut_daily=(scenario == "cut_all")
     )
-    cut = _membership(strategy_cls, cut_daily_panel, cut_frames, rebalance_hourly=hourly)
+    cut = _membership(strategy_cls, cut_daily_panel, cut_frames, rebalance_hourly=hourly,
+                      exit_rank_n=exit_rank_n)
 
     assert len(cut) > 0, "truncated run produced no rows"
     changed = _changed_cells(full, cut)
@@ -239,13 +248,13 @@ def test_single_pair_whitelist_collapses_membership(strategy_cls):
 def test_exit_hysteresis_default_is_a_noop(strategy_cls):
     """EXIT_RANK_N None/TOP_N must reproduce plain top-N membership exactly.
 
-    The hysteresis sweep is only a valid A/B if its baseline arm is bit-identical
-    to the pre-hysteresis strategy. The slot scan is written so that stay_ok ==
+    The default is now 9, but the None path must stay exactly equivalent to plain
+    top-N: it is the control arm every sweep in the docstring is measured against. The slot scan is written so that stay_ok ==
     enter_ok collapses to "the enter_ok set", but that is an argument, not a
     guarantee -- pin it.
     """
     daily, frames = _make_data()
-    none_ = _membership(strategy_cls, daily, frames)              # EXIT_RANK_N = None
+    none_ = _membership(strategy_cls, daily, frames, exit_rank_n=None)
 
     strat = object.__new__(strategy_cls)
     strat.EXIT_RANK_N = strategy_cls.TOP_N                        # explicit, same thing
@@ -277,5 +286,5 @@ def test_exit_hysteresis_widens_and_respects_slots(strategy_cls, exit_n):
         f"hysteresis held {held.max()} positions, TOP_N is {strategy_cls.TOP_N} -- "
         "slot accounting is broken and the equal-weight target (pv/TOP_N) would be wrong"
     )
-    base = _membership(strategy_cls, daily, frames)
+    base = _membership(strategy_cls, daily, frames, exit_rank_n=None)
     assert wide.values.sum() >= base.values.sum(), "wider exit band held FEWER candle-slots"
