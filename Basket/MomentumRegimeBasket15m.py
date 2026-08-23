@@ -49,6 +49,38 @@ equal-weight cap (see MAX_POSITION_WEIGHT — a return/risk-adjusted improvement
   this win rate) comes entirely from the right tail. Judge this strategy on that
   tail surviving, not on the trade count.
 
+*** EXIT_RANK_N (exit hysteresis) -- SWEPT, NOT YET DEFAULTED ***
+  Diagnosis: bleed is a HOLDING-PERIOD effect. On 15mFast every duration bucket
+  under 24h loses (<2h -$5.7k / 2-6h -$3.3k / 6-24h -$10.3k, 467 of 596 trades),
+  while the 32 trades held >7d make +$57.7k. With entry and exit sharing one
+  threshold, rank oscillation across TOP_N is itself the churn.
+
+  Sweep (15mFast, MULT=10, FILL_VOLUME_LAG=1). ex-top5 = net excluding the 5
+  biggest trades, i.e. whether the BODY pays for itself:
+
+    N     trades  net%    PF   maxDD  ret/DD   ex-top5   illiq%
+    3(=)     596  444.2  1.64  58.5%   7.60    -3,425     55%
+    4        264  551.8  1.92  57.2%   9.64    +2,953     48%
+    5        196  388.8  1.84  57.9%   6.71      +903     51%
+    6        156  711.0  2.68  43.7%  16.28   +12,804     46%
+    7        140  625.3  2.64  34.0%  18.42    +8,616     43%
+    8        133  554.6  2.43  33.4%  16.63    +6,130     43%
+    9        120  714.8  2.83  32.6%  21.94   +14,381     41%
+    11       111  661.1  3.13  36.1%  18.29   +14,893     43%
+    15       102  508.7  2.78  45.3%  11.24    +4,806     59%
+
+  PLATEAU 6..11 (not a spike): PF 2.4-3.1, ret/DD 16-22, all years positive,
+  trades/duration/win-rate all monotonic in N. N=5 is an isolated dip between two
+  strong neighbours -- noise. Falls off at 15 (DD back up, illiquid share 59%).
+  Pick from the MIDDLE of the plateau (~8-9), never the peak.
+
+  Not a liquidity artifact: at MULT=50, N=7 gives 411.9% / PF 2.47 / DD 27.0% vs
+  N=3's 291.5% / PF 1.59 / DD 44.8% -- still better on every axis.
+
+  DEFAULT REMAINS None (no hysteresis). This is ONE in-sample window; per the
+  house rule an edge must show in BOTH halves of a persistence split before it is
+  promoted. Run W1/W2 the way MOM_LOOKBACK_DAYS=14 was validated, then flip.
+
 *** CAVEATS (unchanged from the vectorized study) ***
   - SURVIVORSHIP BIAS inflates the MAGNITUDE (dead pump-and-die coins are absent,
     worst for the broad meme set). Trust the SIGN + multi-year robustness, not the %.
@@ -116,6 +148,7 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 from pandas import DataFrame
 from freqtrade.persistence import Trade
@@ -143,6 +176,15 @@ class MomentumRegimeBasket15m(IStrategy):
     REGIME_SMA = 100         # BTC trend window, in DAILY candles
     REGIME_REF = "BTC/USDT"
     REBALANCE_HOURLY = True  # only change top-N membership on the hour (matches the test)
+
+    # Exit hysteresis. Entry is always rank <= TOP_N; a HELD coin is kept until its
+    # rank passes EXIT_RANK_N. None => TOP_N => no hysteresis (original behaviour).
+    # Rationale: with a short MOM_LOOKBACK_DAYS the rank oscillates across the TOP_N
+    # boundary, and every oscillation is a round-trip. Measured on 15mFast: 467 of
+    # 596 trades were held <24h and lost $19.3k in aggregate, while the 32 trades
+    # held >7d made $57.7k. A buffer converts boundary churn into continuous holds
+    # and stops winners being shaken out by a one-hour dip to rank TOP_N+1.
+    EXIT_RANK_N = None
 
     # Per-coin trend filter — the drawdown fix. The BTC>SMA100 regime is a RISK-ON
     # gate that doesn't protect against alt-specific bleeds (the 52% drawdown accrued
@@ -224,18 +266,58 @@ class MomentumRegimeBasket15m(IStrategy):
         ref90_15 = ref90.reindex(columns=P15.columns).reindex(P15.index, method="ffill")
         risk_on = ron_d.reindex(P15.index, method="ffill").fillna(False)
         mom = P15 / ref90_15 - 1                                  # intraday-responsive 90d momentum
-        member = mom.rank(axis=1, ascending=False, method="first") <= self.TOP_N
+        rank = mom.rank(axis=1, ascending=False, method="first")
+
+        # Hard gates (NO hysteresis on these -- they are the risk controls, so a
+        # failing trend or a risk-off regime drops the coin immediately).
+        gate = pd.DataFrame(True, index=P15.index, columns=P15.columns)
         if self.TREND_FILTER_ENABLE:                              # drop coins below their own trend
             trend_ok = (known > known.rolling(self.PER_COIN_SMA).mean())
             trend_ok_15 = trend_ok.reindex(columns=P15.columns).reindex(P15.index, method="ffill").fillna(False)
-            member = member & trend_ok_15
-        want = member.apply(lambda col: col & risk_on)            # bool DataFrame
-        if self.REBALANCE_HOURLY:
-            hourly = want[want.index.minute == 0]                 # decision at each :00
-            want = hourly.reindex(want.index, method="ffill").fillna(False)
+            gate = gate & trend_ok_15
+        gate = gate.apply(lambda col: col & risk_on)
+
+        exit_n = self.TOP_N if self.EXIT_RANK_N is None else self.EXIT_RANK_N
+        enter_ok = (rank <= self.TOP_N) & gate
+        stay_ok = (rank <= exit_n) & gate
+
+        # Decision points: hourly if rebalancing hourly, else every candle.
+        idx = P15.index[P15.index.minute == 0] if self.REBALANCE_HOURLY else P15.index
+        held = self._hysteresis_membership(rank.loc[idx], enter_ok.loc[idx], stay_ok.loc[idx])
+        want = held.reindex(P15.index, method="ffill").fillna(False).astype(bool)
         self._xs = want
         self._xs_key = key
         return self._xs
+
+    def _hysteresis_membership(self, rank: DataFrame, enter_ok: DataFrame,
+                               stay_ok: DataFrame) -> DataFrame:
+        """Slot-based forward scan over the decision index.
+
+        TOP_N slots. A slot is vacated only when its occupant stops satisfying
+        stay_ok (rank > EXIT_RANK_N, or a hard gate fails); vacant slots are then
+        filled by the best-ranked pairs satisfying enter_ok. With EXIT_RANK_N None
+        (or == TOP_N) stay_ok == enter_ok and this reduces EXACTLY to the plain
+        "top-N each decision" behaviour, so it is a no-op by default.
+
+        CAUSAL: state at row i depends only on row i-1 and row i -- never forward.
+        Guarded by test_momentum_regime_bias.py.
+        """
+        r = rank.to_numpy()
+        e = enter_ok.to_numpy()
+        st = stay_ok.to_numpy()
+        n_rows, n_cols = e.shape
+        out = np.zeros((n_rows, n_cols), dtype=bool)
+        held = np.zeros(n_cols, dtype=bool)
+        for i in range(n_rows):
+            held &= st[i]                                  # vacate slots that failed
+            free = self.TOP_N - int(held.sum())
+            if free > 0:
+                cand = np.flatnonzero(e[i] & ~held)
+                if cand.size:
+                    cand = cand[np.argsort(r[i][cand], kind="stable")]
+                    held[cand[:free]] = True
+            out[i] = held
+        return DataFrame(out, index=enter_ok.index, columns=enter_ok.columns)
 
     def _hold_flag(self, pair: str, dates: pd.Series) -> pd.Series:
         want = self._compute_xs()

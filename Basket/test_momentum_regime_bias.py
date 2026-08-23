@@ -233,3 +233,49 @@ def test_single_pair_whitelist_collapses_membership(strategy_cls):
         "re-derive the false-positive explanation in MomentumRegimeBasket15m's "
         "docstring before trusting a clean lookahead-analysis report"
     )
+
+
+@pytest.mark.parametrize("strategy_cls", STRATEGIES, ids=STRATEGY_IDS)
+def test_exit_hysteresis_default_is_a_noop(strategy_cls):
+    """EXIT_RANK_N None/TOP_N must reproduce plain top-N membership exactly.
+
+    The hysteresis sweep is only a valid A/B if its baseline arm is bit-identical
+    to the pre-hysteresis strategy. The slot scan is written so that stay_ok ==
+    enter_ok collapses to "the enter_ok set", but that is an argument, not a
+    guarantee -- pin it.
+    """
+    daily, frames = _make_data()
+    none_ = _membership(strategy_cls, daily, frames)              # EXIT_RANK_N = None
+
+    strat = object.__new__(strategy_cls)
+    strat.EXIT_RANK_N = strategy_cls.TOP_N                        # explicit, same thing
+    strat.dp = _FakeDP(frames)
+    strat._xs = None
+    strat._xs_key = None
+    strat._daily_closes = lambda pairs: daily[[p for p in pairs if p in daily.columns]]
+    explicit = strat._compute_xs()
+
+    assert _changed_cells(none_, explicit) == 0, "None and TOP_N must agree"
+
+
+@pytest.mark.parametrize("strategy_cls", STRATEGIES, ids=STRATEGY_IDS)
+@pytest.mark.parametrize("exit_n", [5, 7])
+def test_exit_hysteresis_widens_and_respects_slots(strategy_cls, exit_n):
+    """A wider exit band may only LENGTHEN holds, never exceed TOP_N slots."""
+    daily, frames = _make_data()
+
+    strat = object.__new__(strategy_cls)
+    strat.EXIT_RANK_N = exit_n
+    strat.dp = _FakeDP(frames)
+    strat._xs = None
+    strat._xs_key = None
+    strat._daily_closes = lambda pairs: daily[[p for p in pairs if p in daily.columns]]
+    wide = strat._compute_xs()
+
+    held = wide.values.sum(axis=1)
+    assert held.max() <= strategy_cls.TOP_N, (
+        f"hysteresis held {held.max()} positions, TOP_N is {strategy_cls.TOP_N} -- "
+        "slot accounting is broken and the equal-weight target (pv/TOP_N) would be wrong"
+    )
+    base = _membership(strategy_cls, daily, frames)
+    assert wide.values.sum() >= base.values.sum(), "wider exit band held FEWER candle-slots"
