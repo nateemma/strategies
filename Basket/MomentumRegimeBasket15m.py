@@ -62,17 +62,17 @@ equal-weight cap (see MAX_POSITION_WEIGHT — a return/risk-adjusted improvement
   backtest from a fresh 10k, config_mom_15m.json, 75 pairs:
 
     N     P1 2021-05..2022-12   P2 2023-01..2024-08   P3 2024-09..2026-08
-    3(=)        -29.7               -19.8                 +463
-    5           -35.9              +107.8                 +389
-    6           -25.9               +92.4                 +711
-    7            +1.9               +50.7                 +625
-    8           +21.4              +214.3                 +555
-    9           +35.6              +166.2                 +798
-    11          +36.8               +99.2                 +661
-    15         +112.0              +136.1                 +509
+    3(=)        -28.3               -21.3                 +483
+    5           -34.6              +110.6                 +476
+    7            +2.0               +51.1                 +714
+    9           +34.0              +163.1                 +834   <- default
+    11          +38.4               +96.8                 +773
+    15         +112.3              +133.9                 +579
+  (re-measured at FILL_VOLUME_LAG=0 after that flag was reverted; the earlier
+  lag=1 table differed by <5pp everywhere and changed no conclusion.)
 
   THE ROBUST RESULT is not any single N: it is that EVERY N >= 7 beats N=3 in
-  EVERY window -- 15 of 15 arm-window comparisons. N=5 is WORSE than baseline in
+  EVERY window -- 12 of 12 arm-window comparisons at lag=0 (15/15 at lag=1). N=5 is WORSE than baseline in
   both P1 and P3 and N=6 only scrapes it in P1, so the band must be substantially
   wider than TOP_N, not marginally.
 
@@ -87,11 +87,51 @@ equal-weight cap (see MAX_POSITION_WEIGHT — a return/risk-adjusted improvement
   (-29.7%, -19.8%) and only worked in P3. This is not a tuning improvement -- it
   is the difference between a one-regime strategy and a three-regime one.
 
-  STILL TRUE AT N=9: drawdown is severe (43% / 58% / 33% across P1/P2/P3), and
+  STILL TRUE AT N=9: drawdown is severe (44% / 58% / 32% across P1/P2/P3), and
   P1/P2 carry heavy survivorship bias (today's 75-name whitelist applied back to
   54 survivors), so their ABSOLUTE returns are flattered. The N-vs-baseline
   comparison is fair -- both arms see an identical universe -- but do not quote
   the absolute P1/P2 figures.
+
+*** LOOKAHEAD AUDIT (2026-08-23) -- CLEAN, three independent checks ***
+  1. Signal path: test_momentum_regime_bias.py, 74 tests, truncation-invariance
+     over 4 cut points x {cut-all, ft-exact} x {hourly, per-candle} x {no-hyst,
+     hyst9}. Mutation-tested (a one-candle peek and a full-sample normalisation
+     both turn it red).
+  2. Within-candle: MEASURED that df.iloc[-1] inside custom_stake_amount /
+     confirm_trade_entry / adjust_trade_position is the PREVIOUS COMPLETED candle
+     -- lag exactly one timeframe, 8000/8000 + 200/200 + 100/100 calls. So
+     _portfolio_value's mark-to-market, adjust's last["hold"], and _quote_volume
+     are all causal as written. See FILL_VOLUME_LAG.
+  3. End-to-end: two backtests differing ONLY in end date (2026-08-23 vs
+     2025-12-31); of the trades closing before 2025-12-01, all 111 are IDENTICAL
+     on pair / open+close date / stake / amount / open+close rate / profit / exit
+     reason. Strategy file md5 verified unchanged across both runs.
+
+  These cover DIFFERENT failure modes and none is sufficient alone: (3) is
+  structurally blind to within-candle leakage (it looks the same in both runs),
+  which is exactly what (2) covers; (1) is the only one that localises a fault.
+  NB freqtrade's own `lookahead-analysis` cannot be used here -- see the
+  false-positive section above.
+
+*** MOM_LOOKBACK_DAYS -- 14 IS A P3 ARTIFACT, NOT VALIDATED CROSS-REGIME ***
+  Same sweep protocol, EXIT_RANK_N=9. Total return %, rank in brackets:
+
+    lb     P1              P2              P3
+     7     +21.7 (6)       +73.9 (6)      +243.7 (4)
+    14     +35.6 (5)      +166.2 (2)      +834.5 (1)   <- 15mFast's defining value
+    21     +95.8 (1)      +186.0 (1)      +345.7 (2)
+    30     +76.3 (2)      +163.7 (3)      +189.2 (5)
+    60     +48.1 (4)       +87.9 (5)       +94.4 (6)
+    90     +67.2 (3)      +118.6 (4)      +263.8 (3)
+
+  lb=14 ranks FIFTH OF SIX in P1. Its dominance is a P3 phenomenon (there it is
+  2.4x the runner-up). lb=21 is 1st/1st/2nd -- the only value strong everywhere.
+  The original lb=14 "persistence" study split 2024-05..2026-08 in half, which is
+  ENTIRELY INSIDE P3, so both halves shared one regime and it could not have
+  detected this. NOT CHANGED: lb=14 is the identity of MomentumRegimeBasket15mFast
+  and there is a real trade-off (lb=14 ret/DD 26.2 in P3 vs lb=21's 7.8). Decide
+  deliberately; do not treat 14 as validated.
 
 *** CAVEATS (unchanged from the vectorized study) ***
   - SURVIVORSHIP BIAS inflates the MAGNITUDE (dead pump-and-die coins are absent,
@@ -102,7 +142,8 @@ equal-weight cap (see MAX_POSITION_WEIGHT — a return/risk-adjusted improvement
   - This freqtrade run is the honest execution check; divergence from the vectorized
     numbers is expected (order pricing, fee accounting, one-add-per-candle cadence).
   - Fill sizing rests on QUOTE_VOLUME_HEADROOM_MULT. SWEPT (2026-08, 15mFast,
-    FILL_VOLUME_LAG=1); net / PF / maxDD and the carrying names' contribution:
+    FILL_VOLUME_LAG=1 -- since reverted to 0, see below); net / PF / maxDD and
+    the carrying names' contribution:
 
       MULT   net %   PF    maxDD    ZEC     PENGU   TROLL   HBAR    XLM
         10   444.2  1.64   58.5%   12,316  10,007  11,347   7,695   7,444
@@ -220,12 +261,22 @@ class MomentumRegimeBasket15m(IStrategy):
     MIN_QUOTE_VOLUME = 1000
     QUOTE_VOLUME_HEADROOM_MULT = 10.0   # fill <= 1/10 of a candle's quote volume
 
-    # Which candle's quote volume bounds a fill. In BACKTEST get_analyzed_dataframe()
-    # is sliced to the CURRENT candle, so iloc[-1] is that candle's COMPLETED volume --
-    # which is not knowable at the moment the order is placed. Sizing against it is
-    # optimistic exactly where it matters most (an illiquid name's pump candle).
-    # 1 = last completed candle (causal, the default). 0 = old behaviour, for A/B only.
-    FILL_VOLUME_LAG = 1
+    # Extra lag, in candles, on the quote volume that bounds a fill. 0 = the frame
+    # get_analyzed_dataframe() returns, i.e. df.iloc[-1].
+    #
+    # MEASURED (do not "fix" this again without re-measuring): in BACKTEST,
+    # df.iloc[-1] inside custom_stake_amount / confirm_trade_entry /
+    # adjust_trade_position is the PREVIOUS, COMPLETED candle -- lag exactly one
+    # timeframe (15.0 min in 8000/8000 adjust calls, 200/200 stake, 100/100
+    # confirm). backtesting.py bumps row_index BEFORE _set_dataframe_max_index and
+    # the slice is exclusive-end, which reads like it includes the current candle;
+    # it does not. So lag 0 is ALREADY CAUSAL and is the correct default.
+    #
+    # A previous commit (be80e63) defaulted this to 1 on the false premise that
+    # iloc[-1] was the in-progress candle. That cost ~4.3% of return for no
+    # correctness reason. Retained only as a deliberate conservatism / stress
+    # lever: 1 sizes off a candle two bars old.
+    FILL_VOLUME_LAG = 0
 
     _xs = None       # cached membership matrix (bool DataFrame, per pair)
     _xs_key = None   # cache key: (latest candle date, whitelist)
@@ -367,7 +418,11 @@ class MomentumRegimeBasket15m(IStrategy):
         return dataframe
 
     def _quote_volume(self, df) -> float:
-        """Quote volume of the candle FILL_VOLUME_LAG bars back (0 => current)."""
+        """Quote volume of the fill-reference candle, plus FILL_VOLUME_LAG extra bars.
+
+        NOTE: lag 0 is the last COMPLETED candle in backtest, not the in-progress
+        one -- see FILL_VOLUME_LAG. It is causal as-is.
+        """
         i = -1 - self.FILL_VOLUME_LAG
         if df is None or len(df) < abs(i):
             return 0.0
