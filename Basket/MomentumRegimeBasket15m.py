@@ -117,6 +117,44 @@ equal-weight cap (see MAX_POSITION_WEIGHT — a return/risk-adjusted improvement
     best-supported middle. This SHARPENS the lb=21 open decision, it does not
     settle it.
 
+*** PER-WINDOW HYPEROPT (2026-08-24) -- lb NOT identifiable, N=9 confirmed ***
+  Ran hyperopt SEPARATELY per window (identifiability probe, not optimisation),
+  60 epochs each, WalletCalmarHyperOptLoss, same random-state. Winners:
+
+    P1 2021-05..2022-12   lb=33  N=9     P2 ...   lb=28  N=11     P3 ...  lb=13  N=7
+
+  Each winner then evaluated in ALL three windows (diagonal = where it was tuned):
+
+    config                    P1        P2        P3      WORST
+    P1 win  lb=33/N=9      100.1%     58.2%    151.4%    +58.2%   <- most robust
+    P2 win  lb=28/N=11      47.9%    340.4%    264.0%    +47.9%
+    P3 win  lb=13/N=7      -31.1%     75.0%    724.4%    -31.1%   <- LOSES in P1
+    PRODUCTION lb=14/N=9    34.0%    163.1%    834.5%    +34.0%
+
+  - lb is NOT identifiable: winners 33/28/13 are monotonic in recency (old regimes
+    want LONG, recent wants SHORT) -- a regime property, not a tunable constant.
+  - A P3-ONLY hyperopt returns lb=13/N=7 with a compelling +724% objective, and
+    that config LOSES 31% in P1. This is the concrete cost of single-window tuning.
+  - N=9 confirmed a 4th independent way (P1's winner, production, and the exit band
+    of the best-worst-case config). Every method lands in 7..11.
+  - Long lookbacks (28-33) are the transferable family. lb=21 was NOBODY's winner --
+    if the goal is robustness the evidence points to ~30, not to splitting the
+    difference. Production lb=14 is not dominated; it is a deliberate bet on the
+    current regime (+834% P3 vs +151% for lb=33).
+
+  HARNESS GOTCHAS -- hyperopt of these params is silently INERT without both:
+   1. `--analyze-per-epoch`. freqtrade computes indicators ONCE and pickles them
+      (hyperopt_optimizer.py: `if not self.analyze_per_epoch`), re-running only
+      populate_entry/exit_trend per epoch. MOM_LOOKBACK_DAYS and EXIT_RANK_N act
+      entirely through `hold` in populate_indicators, so without this flag they are
+      frozen at defaults. Proof: 60 distinct param combos -> 1 distinct trade count.
+   2. Delete <Strategy>.json between runs. hyperopt WRITES it, and the next run
+      LOADS it as fixed values ("Strategy Parameter: ..." at startup).
+   3. They also need the _xs cache key to include them -- see _xs_params().
+  All three failure modes look identical: a flat objective that reads as "this
+  parameter does not matter". DIAGNOSE VIA THE .fthypt FILE (every epoch's params +
+  metrics); console output cannot distinguish "did not vary" from "did not improve".
+
 *** LOOKAHEAD AUDIT (2026-08-23) -- CLEAN, three independent checks ***
   1. Signal path: test_momentum_regime_bias.py, 74 tests, truncation-invariance
      over 4 cut points x {cut-all, ft-exact} x {hourly, per-candle} x {no-hyst,
