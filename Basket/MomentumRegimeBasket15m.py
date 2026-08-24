@@ -93,6 +93,30 @@ equal-weight cap (see MAX_POSITION_WEIGHT — a return/risk-adjusted improvement
   comparison is fair -- both arms see an identical universe -- but do not quote
   the absolute P1/P2 figures.
 
+*** JOINT lb x EXIT_RANK_N GRID (2026-08-24) -- the two DO interact ***
+  The two sweeps above each fixed the other parameter, so neither could see the
+  interaction. 12 combinations x 3 windows. WORST-of-3-windows total return %
+  (the robustness objective; every cell is POSITIVE in all three windows):
+
+              N=7      N=9     N=11     N=15
+     lb=14    +2.0    +34.0    +38.4   +112.3
+     lb=21   +40.5    +96.1    +53.1    +25.4
+     lb=30   +57.0    +69.9    +35.8    +79.2
+
+  READ IT COLUMN-WISE, NOT BY BEST CELL.
+  - ALL 12 cells beat the N=3 baseline (-28% P1 / -21% P2) in every window. The
+    DIRECTION (widen the exit band) is robust to the lookback. That is the result.
+  - DO NOT pick lb=14/N=15 for its best worst-case (+112.3): its neighbours are
+    +38.4 and +25.4, i.e. an isolated spike on a noisy surface. Exactly the trap
+    the retracted "plateau at 6..11" was.
+  - N=9 is the only column with no weak cell (+34.0/+96.1/+69.9), which supports
+    the default INDEPENDENTLY of lb -- a better argument than the original one,
+    which assumed lb=14.
+  - lb=30 is the most robust to getting N wrong (worst cell +35.8 vs lb=14's
+    +2.0) but surrenders most of P3 (173-249% vs 579-835%). lb=21/N=9 is the
+    best-supported middle. This SHARPENS the lb=21 open decision, it does not
+    settle it.
+
 *** LOOKAHEAD AUDIT (2026-08-23) -- CLEAN, three independent checks ***
   1. Signal path: test_momentum_regime_bias.py, 74 tests, truncation-invariance
      over 4 cut points x {cut-all, ft-exact} x {hourly, per-candle} x {no-hyst,
@@ -279,7 +303,7 @@ class MomentumRegimeBasket15m(IStrategy):
     FILL_VOLUME_LAG = 0
 
     _xs = None       # cached membership matrix (bool DataFrame, per pair)
-    _xs_key = None   # cache key: (latest candle date, whitelist)
+    _xs_key = None   # cache key: (latest candle date, whitelist, *_xs_params())
 
     def _daily_closes(self, pairs) -> DataFrame:
         """Full-history daily close panel, read straight from the feathers."""
@@ -291,6 +315,29 @@ class MomentumRegimeBasket15m(IStrategy):
                 d["date"] = pd.to_datetime(d["date"], utc=True)
                 out[p] = d.set_index("date")["close"]
         return pd.DataFrame(out).sort_index()
+
+    def _xs_params(self) -> tuple:
+        """Every attribute that changes the membership matrix, for the cache key.
+
+        MUST include anything _compute_xs reads. freqtrade's hyperopt mutates
+        parameters IN PLACE on a single reused strategy instance (see
+        hyperopt_optimizer.generate_optimizer: `attr.value = params_dict[...]`),
+        while `asof` and the whitelist are constant within a backtest. With a key
+        of only (asof, whitelist), epoch 2 onward would hit the cache and silently
+        reuse epoch 1's matrix -- and since these attributes affect NOTHING else,
+        every epoch would score identically and hyperopt would conclude the
+        parameters are inert. It would not error. Keep this in sync.
+        """
+        return (
+            int(self.MOM_LOOKBACK_DAYS),
+            int(self.TOP_N),
+            int(self.REGIME_SMA),
+            str(self.REGIME_REF),
+            bool(self.REBALANCE_HOURLY),
+            bool(self.TREND_FILTER_ENABLE),
+            int(self.PER_COIN_SMA),
+            None if self.EXIT_RANK_N is None else int(self.EXIT_RANK_N),
+        )
 
     def _compute_xs(self) -> DataFrame:
         """Causal top-N membership AND-ed with BTC daily risk-on, per 15m date.
@@ -305,7 +352,7 @@ class MomentumRegimeBasket15m(IStrategy):
         wl = tuple(sorted(self.dp.current_whitelist()))
         ref = self.dp.get_pair_dataframe(self.REGIME_REF, self.timeframe)
         asof = ref["date"].iloc[-1] if ref is not None and len(ref) else None
-        key = (asof, wl)
+        key = (asof, wl) + self._xs_params()
         if self._xs is not None and self._xs_key == key:
             return self._xs
 

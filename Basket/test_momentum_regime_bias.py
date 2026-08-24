@@ -288,3 +288,75 @@ def test_exit_hysteresis_widens_and_respects_slots(strategy_cls, exit_n):
     )
     base = _membership(strategy_cls, daily, frames, exit_rank_n=None)
     assert wide.values.sum() >= base.values.sum(), "wider exit band held FEWER candle-slots"
+
+
+@pytest.mark.parametrize("attr,a,b", [
+    ("EXIT_RANK_N", 9, 15),
+    ("MOM_LOOKBACK_DAYS", 14, 21),
+    ("PER_COIN_SMA", 50, 20),
+    ("TOP_N", 3, 5),
+])
+def test_xs_cache_invalidates_on_param_change(attr, a, b):
+    """Mutating a param IN PLACE on one instance must force a RECOMPUTE.
+
+    This is precisely how freqtrade hyperopt drives a strategy: it reuses a single
+    instance across epochs and assigns `attr.value = params_dict[name]`
+    (hyperopt_optimizer.generate_optimizer). `asof` and the whitelist are constant
+    within a backtest, so a cache keyed only on those would hand epoch 2 the matrix
+    computed in epoch 1. Because these attributes affect nothing outside
+    _compute_xs, EVERY epoch would then score identically and hyperopt would report
+    the parameters as inert -- silently, with no error.
+
+    Asserted on OBJECT IDENTITY, not on values: a stale cache returns the very same
+    DataFrame object, whereas whether the values differ is data-dependent (on a
+    small synthetic universe the trend gate can bind before a rank threshold does,
+    so e.g. EXIT_RANK_N 9 vs 15 can legitimately agree).
+    """
+    daily, frames = _make_data()
+    strat = object.__new__(MomentumRegimeBasket15m)
+    strat.dp = _FakeDP(frames)
+    strat._xs = None
+    strat._xs_key = None
+    strat._daily_closes = lambda pairs: daily[[p for p in pairs if p in daily.columns]]
+
+    setattr(strat, attr, a)
+    first = strat._compute_xs()
+    key_a = strat._xs_key
+    setattr(strat, attr, b)                 # in-place, exactly as hyperopt does
+    second = strat._compute_xs()
+
+    assert key_a != strat._xs_key, f"{attr} is missing from _xs_params()"
+    assert second is not first, (
+        f"changing {attr} {a}->{b} on a live instance returned the CACHED object -- "
+        "any hyperopt over it would silently score every epoch identically"
+    )
+
+
+def test_xs_param_change_can_change_membership():
+    """Prove the params are actually consumed, not merely part of the cache key."""
+    daily, frames = _make_data()
+
+    def run(lb):
+        strat = object.__new__(MomentumRegimeBasket15m)
+        strat.dp = _FakeDP(frames)
+        strat._xs = None
+        strat._xs_key = None
+        strat.MOM_LOOKBACK_DAYS = lb
+        strat._daily_closes = lambda pairs: daily[[p for p in pairs if p in daily.columns]]
+        return strat._compute_xs()
+
+    assert not run(14).equals(run(60)), "MOM_LOOKBACK_DAYS had no effect on membership"
+
+
+def test_xs_cache_still_caches():
+    """Guard the guard: the key must not be so volatile that caching never hits."""
+    daily, frames = _make_data()
+    strat = object.__new__(MomentumRegimeBasket15m)
+    strat.dp = _FakeDP(frames)
+    strat._xs = None
+    strat._xs_key = None
+    strat._daily_closes = lambda pairs: daily[[p for p in pairs if p in daily.columns]]
+
+    first = strat._compute_xs()
+    second = strat._compute_xs()            # nothing changed -> must be the SAME object
+    assert first is second, "cache never hits; _xs_params() includes something unstable"
