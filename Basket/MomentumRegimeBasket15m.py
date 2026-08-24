@@ -117,6 +117,44 @@ equal-weight cap (see MAX_POSITION_WEIGHT — a return/risk-adjusted improvement
     best-supported middle. This SHARPENS the lb=21 open decision, it does not
     settle it.
 
+*** DYNAMIC LOOKBACK -- REJECTED (2026-08-24). DO NOT RE-PROPOSE. ***
+  Gate before building anything: is the optimal lookback TRACKABLE? Vectorised
+  daily proxy (same causal structure as _compute_xs), every lb 5..60, rolling
+  windows, asking whether this window's best lb predicts the next window's.
+  Tool: Basket/tools/rolling_optimal_lookback.py
+
+    window   corr(now,next)   MAE adaptive   MAE constant   verdict
+        60         +0.025          17.5          12.8    CONSTANT WINS
+        90         -0.123          19.0          12.3    CONSTANT WINS
+       180         -0.062          13.4           9.1    CONSTANT WINS
+       365         -0.184           8.0           4.8    CONSTANT WINS
+
+  The optimum genuinely MOVES (rolling-180d range 5..60, median 17, std 13.5) but
+  its movement is NOISE: next window's optimum is uncorrelated with this one's at
+  every horizon, and using the trailing best as a forecast is WORSE THAN A FIXED
+  CONSTANT everywhere. No causal signal tracks it either -- BTC realised vol
+  +0.20, return autocorr -0.10, breadth -0.16, xs dispersion +0.05.
+  (The +0.42 autocorr at 30d lag is mechanical: 180d windows 30d apart share 83%
+  of their data. At a true 180d lag it is -0.06.)
+
+  RETRACTION -- this corrects an earlier claim in this file. The per-window
+  hyperopt winners 33/28/13 were described as "monotonic in recency, a regime
+  property". With 1681 rolling observations instead of 3 coarse windows the yearly
+  medians are 25/10/11/19/14 -- NO monotonic trend. Three points were read as a
+  line. The accurate statement is that the optimal lookback WANDERS UNPREDICTABLY.
+
+  CONSEQUENCE FOR BOTH OPEN DECISIONS: if you cannot predict which lookback the
+  next period rewards, matching a regime is off the table and the right criterion
+  is how bad you are WHEN WRONG -- i.e. the worst-case column. That favours lb=21
+  over lb=14, and N=15 over N=9, on grounds independent of any regime story or of
+  the survivorship argument.
+
+  SCOPE: daily vectorised proxy -- no accumulation, liquidity cap or hourly
+  rebalance -- so the LEVEL of its optimum need not match the real strategy's. For
+  "is the optimum trackable at all" it is adequate, and the answer is no.
+  A dynamic EXIT_RANK_N was never motivated: hyperopt picked 9/11/7 across the
+  three windows, i.e. it does not move with regime in the first place.
+
 *** EXIT_RANK_N RE-SWEPT UNDER CAPPED EXITS (2026-08-24) ***
   N=9 was selected under FREE exits, so it had to be re-checked once the cap became
   the default. lb=14, cap ON, standalone per window, total return %:
