@@ -117,6 +117,66 @@ equal-weight cap (see MAX_POSITION_WEIGHT — a return/risk-adjusted improvement
     best-supported middle. This SHARPENS the lb=21 open decision, it does not
     settle it.
 
+*** EXIT LIQUIDITY (2026-08-24) -- entries were capped, EXITS WERE NOT ***
+  populate_exit_trend dumped the WHOLE position with no volume check. Measured on
+  the P3 production run (128 trades, $83,449 net):
+
+    exits into a ZERO-volume candle      33 trades   $17,437 of profit
+    exit > 100% of the candle's volume   84 trades   $45,319
+    zero-vol OR >100%                   117 of 128   $62,755 = 75% OF NET PROFIT
+
+  Worst: PENGU exiting $19,602 into a ZERO-volume candle (+$14,544); BONK $18,245
+  into $156 (117x); PUMP $35,074 into $1,210 (29x). Context: TROLL trades in 4.6%
+  of candles and its ENTIRE quote volume over P3 is $611k (~$850/day), yet the
+  strategy booked $11,347 from it.
+
+  EXIT_LIQUIDITY_CAP (default OFF) makes exits symmetric with entries:
+  confirm_trade_exit refuses a full exit the candle cannot absorb, and
+  adjust_trade_position shaves the position down over subsequent candles.
+
+  lb sweep, total return %, free exit -> capped exit:
+
+    lb      P1              P2                P3
+     7    +21.7 -> +15.6   +73.9 -> +61.1   +243.7 -> +206.0
+    14    +35.6 -> +38.8  +163.1 -> +197.1  +834.5 -> +401.7   <- -52% in P3
+    21    +95.8 -> +79.6  +186.0 -> +144.9  +345.7 -> +177.0
+    30    +76.3 -> +54.1  +163.7 ->  +99.2  +189.2 -> +184.6
+    60    +48.1 -> +42.1   +87.9 ->  +24.1   +94.4 ->  +79.4
+    90    +67.2 -> +66.7  +118.6 ->  +78.9  +263.8 -> +121.1
+
+  - The cap bites ONLY in P3 (neutral-to-POSITIVE in P1/P2) -- the signature of a
+    real liquidity correction, not a blanket tax. In liquid windows it helps short
+    lookbacks by slowing rotation, the same medicine EXIT_RANK_N administers.
+  - lb=14 loses 52% of its P3 return but STILL WINS P3 (+401.7 vs +206 next).
+    Its edge is reduced, not manufactured.
+  - Worst-of-3 ranking is UNCHANGED by the cap: lb=21 best (+79.6 capped / +95.8
+    free), lb=14 fourth (+38.8). Realistic exits shrink magnitudes without
+    resolving the short-vs-long trade-off.
+  - COST: capped lb=14 in P3 carries 42.1% maxDD vs 31.8% uncapped -- being unable
+    to exit means wearing more downside. Real, not an artifact.
+
+*** UNIVERSE CONFOUND (2026-08-24) -- partial, does NOT overturn lb=14 ***
+  Is P3's preference for a short lookback just the meme cohort that did not exist
+  earlier? Re-ran P3 on the 55 pairs that existed BEFORE P3 began (excluding PENGU,
+  TROLL, BONK, PEPE, HYPE, PUMP + 14 others). Total return %:
+
+    lb        7      14      21      30      60      90
+    full   243.7   834.5   345.7   189.2    94.4   263.8
+    pre-P3 278.2   440.2   183.9   211.2   134.8   161.3
+
+  New listings account for ~HALF of lb=14's advantage (834 -> 440), but lb=14 still
+  WINS OUTRIGHT on the pre-existing universe, by a wider relative margin. So P3's
+  short-lookback preference is a genuine regime property, NOT a new-listing
+  artifact. The magnitude was inflated ~2x; the direction is real.
+
+  OPEN: whether prior windows had pump-and-dump names (now delisted, hence absent)
+  that a short lookback would also have caught. Cannot be tested by removing coins
+  from P3 -- it needs missing coins RESTORED to P1/P2, i.e. delisted data we do not
+  have. Exchanges do not serve delisted symbols; partial routes are Binance global's
+  public archives, paid vendors, or daily-only sources (which would suffice, since
+  the ranking panel is daily). Nearest cheap proxy: inject synthetic pump-then-die
+  coins and check whether the short lookback still wins.
+
 *** PER-WINDOW HYPEROPT (2026-08-24) -- lb NOT identifiable, N=9 confirmed ***
   Ran hyperopt SEPARATELY per window (identifiability probe, not optimisation),
   60 epochs each, WalletCalmarHyperOptLoss, same random-state. Winners:
@@ -318,6 +378,21 @@ class MomentumRegimeBasket15m(IStrategy):
     # retracing winner has less at risk, attacking the UNREALIZED give-back (wallet DD
     # > closed DD). 0.0 = off.
     MAX_POSITION_WEIGHT = 0.45
+
+    # Cap EXITS to the same share of a candle's volume as entries. Default OFF so
+    # historical results stay comparable -- turning it on materially changes them.
+    #
+    # WHY IT EXISTS: entries were liquidity-capped but populate_exit_trend dumped the
+    # WHOLE position with no volume check. Measured on the P3 production run: 33 of
+    # 128 exits landed in a ZERO-volume candle, 84 exceeded 100% of their candle's
+    # volume, and trades that were zero-vol-or->100% carried $62,755 of $83,449 --
+    # 75% of net profit. Worst: PENGU exiting $19,602 into a zero-volume candle,
+    # BONK $18,245 into $156 (117x), PUMP $35,074 into $1,210 (29x).
+    #
+    # CONSEQUENCE when enabled: a position that leaves the basket is unwound over
+    # many candles instead of instantly, so it keeps occupying one of the TOP_N
+    # slots and blocks rotation. That is the real constraint, not a bug.
+    EXIT_LIQUIDITY_CAP = False
 
     # liquidity-aware sizing (same discipline as FundingCarry / the NN family)
     MIN_QUOTE_VOLUME = 1000
@@ -535,6 +610,18 @@ class MomentumRegimeBasket15m(IStrategy):
         df, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
         return self._quote_volume(df) >= self.MIN_QUOTE_VOLUME   # reject dust
 
+    def confirm_trade_exit(self, pair, trade, order_type, amount, rate, time_in_force,
+                           exit_reason, current_time, **kwargs):
+        """Refuse a full exit the candle cannot absorb; adjust_trade_position then
+        shaves the position down over subsequent candles until it can."""
+        if not self.EXIT_LIQUIDITY_CAP or self.dp.runmode.value in ("plot", "other"):
+            return True
+        if exit_reason in ("force_exit", "stop_loss", "liquidation"):
+            return True                      # never block a forced exit
+        df, _ = self.dp.get_analyzed_dataframe(pair=pair, timeframe=self.timeframe)
+        sellable = self._quote_volume(df) / self.QUOTE_VOLUME_HEADROOM_MULT
+        return (amount * rate) <= sellable
+
     # --- ACCUMULATION: add toward the equal-weight target each candle, capped to
     #     <=10% of the candle's quote volume, while the coin is still in the basket ---
     def adjust_trade_position(self, trade, current_time, current_rate, current_profit,
@@ -554,7 +641,17 @@ class MomentumRegimeBasket15m(IStrategy):
             if not min_stake or abs(trim) >= min_stake:
                 return trim
         if not bool(last["hold"]):
-            return None   # leaving the basket -> full exit is handled by the exit signal
+            if not self.EXIT_LIQUIDITY_CAP:
+                return None   # leaving the basket -> full exit handled by the exit signal
+            # Liquidity-capped unwind: release only what this candle can absorb. When
+            # the remainder fits, confirm_trade_exit lets the exit signal finish it.
+            sellable = self._quote_volume(df) / self.QUOTE_VOLUME_HEADROOM_MULT
+            if sellable <= 0 or sellable >= current_value:
+                return None
+            reduce = -min(sellable, current_value)
+            if min_stake and abs(reduce) < min_stake:
+                return None
+            return reduce
         target = pv / self.TOP_N
         if current_value >= target * 0.98:
             return None   # already at target weight
