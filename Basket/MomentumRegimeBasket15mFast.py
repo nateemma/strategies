@@ -43,6 +43,16 @@ TO ACT ON IT: set MOM_LOOKBACK_DAYS = 21 below, re-run the three windows, and
 re-check the EXIT_RANK_N default -- the two interact (the sweep above fixed
 EXIT_RANK_N=9, which was itself chosen with lb=14). Tune one at a time.
 
+*** SECOND OPEN DECISION: EXIT_RANK_N 9 vs 15. ***
+Re-swept under capped exits (now the default). At this class's lb=14, worst-of-3
+windows: N=9 gives +38.8%, N=15 gives +112.5% -- ~3x better, and positive in all
+three windows. It replicates under free exits (+112.3%), so it is not an artifact
+of the execution model. For N=9: better in the deployment regime (P3 +401.7 vs
++313.6), trades more (102 vs 85 in P3, so less sample noise), and per-window
+hyperopt picked 9/11/7 with nothing near 15. Same shape of trade-off as the
+lookback below -- recent-regime return vs cross-regime robustness. See the base
+class docstring for the full table. NOT changed.
+
 Config: config/config_mom_15m.json (same as the base).
 """
 from __future__ import annotations

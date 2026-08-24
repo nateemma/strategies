@@ -117,6 +117,39 @@ equal-weight cap (see MAX_POSITION_WEIGHT — a return/risk-adjusted improvement
     best-supported middle. This SHARPENS the lb=21 open decision, it does not
     settle it.
 
+*** EXIT_RANK_N RE-SWEPT UNDER CAPPED EXITS (2026-08-24) ***
+  N=9 was selected under FREE exits, so it had to be re-checked once the cap became
+  the default. lb=14, cap ON, standalone per window, total return %:
+
+    N       P1       P2       P3     WORST
+    3     -30.9   +167.0   +604.9   -30.9    <- no hysteresis
+    5     -41.0   +198.8   +217.0   -41.0
+    7      -0.8   +158.1   +320.8    -0.8
+    9     +38.8   +197.1   +401.7   +38.8    <- current default
+    11    +34.3    +91.6   +462.3   +34.3
+    15   +112.5   +134.0   +313.6  +112.5    <- best worst-case
+
+  1. THE CASE FOR HYSTERESIS SURVIVES. N=3 still loses money in P1 (-30.9%), so the
+     original justification holds under the honest execution model.
+  2. BUT THE CAP PARTLY SUBSTITUTES FOR HYSTERESIS. In P3, N=3 now BEATS N=9
+     (+604.9 vs +401.7) -- a REVERSAL of the free-exit result (+482.6 vs +834.5).
+     The cap already slows rotation, so hysteresis adds little in the illiquid
+     window and costs return there. The two mechanisms overlap.
+  3. N=15 has ~3x N=9's worst-case (+112.5 vs +38.8) and is positive in all three
+     windows. It reproduces under free exits (+112.3), so it is NOT an
+     execution-model artifact.
+
+  RETRACTION: an earlier note dismissed lb=14/N=15 as "an isolated spike on a noisy
+  surface" from the joint grid. At lb=14 -- what production actually runs -- N=15
+  had the best worst-case under free exits too, and has now replicated across a
+  changed execution model. That dismissal was too quick.
+
+  OPEN DECISION #2 (alongside lb=21): N=9 vs N=15. Same shape as the lookback
+  trade-off. For 9: better in the deployment regime (+401.7 vs +313.6), trades more
+  (102 vs 85 in P3, so less sample noise), and per-window hyperopt landed on
+  9/11/7 with nothing near 15. For 15: ~3x the worst-case, positive everywhere,
+  replicated across execution models. NOT changed -- decide deliberately.
+
 *** CURRENT PRODUCTION BASELINE (2026-08-24, capped exits ON) ***
   MomentumRegimeBasket15mFast (lb=14, EXIT_RANK_N=9, FILL_VOLUME_LAG=0,
   EXIT_LIQUIDITY_CAP=True), config_mom_15m.json, standalone per window:
