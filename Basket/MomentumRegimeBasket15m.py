@@ -117,6 +117,38 @@ equal-weight cap (see MAX_POSITION_WEIGHT — a return/risk-adjusted improvement
     best-supported middle. This SHARPENS the lb=21 open decision, it does not
     settle it.
 
+*** SYNTHETIC-DEATH BOUND (2026-08-24) -- survivorship cuts BOTH ways ***
+  P1's universe is missing the coins that pumped and then delisted. Does that
+  understate a SHORT lookback (which would have caught those pumps)? Injected 30
+  synthetic pump-then-die coins into P1 (carried on real exchange tickers we hold
+  no data for, so pairlist validation passes), EXIT_LIQUIDITY_CAP on, profile
+  calibrated on SHIB/APE/GALA (4-25x run-up, dies to 2-12% of peak, VOLUME TRACKS
+  THE PUMP -- a coin that never trades is harmless and would make the test
+  toothless). Total return %:
+
+    lb    control   soft deaths     hard rugs (3 seeds)        mean   worst
+    14     +38.8      +67.2      -16.9 / -20.4 / -63.7        -33.7   -63.7
+    21     +79.6      +74.0      +44.0 / -34.8 / +19.6         +9.6   -34.8
+    30     +54.1     +161.0      -25.2 / -38.2  / +2.9        -20.2   -38.2
+
+  SOFT (decay over weeks, the exit can fire): every lookback improves; lb=14
+  nearly doubles. Momentum rides the pump and leaves -- as designed.
+  HARD (90% gone in ONE candle, no exit can outrun it): lb=14 is negative in 3/3
+  seeds with the worst mean and worst single outcome. A short lookback chases
+  pumps hardest, so it eats the most rugs.
+
+  CONCLUSION: the survivorship question resolves in OPPOSITE directions depending
+  on how the missing coins died -- which is exactly what the data cannot show. So
+  lb=14's 5th-of-6 ranking in P1 can be neither excused as survivorship nor
+  confirmed as real. The usable finding is FRAGILITY, not expected return: lb=14
+  swings ~130pp across death profiles it cannot see coming; lb=21 swings less and
+  centres higher. That is the strongest argument for the longer lookback so far,
+  and the only one not resting on in-sample return.
+
+  CAVEATS: magnitudes are heavily seed-dependent (lb=14 spans -17% to -64%); only
+  the ORDERING is stable. The arrival rate (30 coins/window) is a guess and scales
+  the effect. Do not quote the levels; quote the ordering and the spread.
+
 *** EXIT LIQUIDITY (2026-08-24) -- entries were capped, EXITS WERE NOT ***
   populate_exit_trend dumped the WHOLE position with no volume check. Measured on
   the P3 production run (128 trades, $83,449 net):
