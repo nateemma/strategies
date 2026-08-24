@@ -117,6 +117,47 @@ equal-weight cap (see MAX_POSITION_WEIGHT — a return/risk-adjusted improvement
     best-supported middle. This SHARPENS the lb=21 open decision, it does not
     settle it.
 
+*** CURRENT PRODUCTION BASELINE (2026-08-24, capped exits ON) ***
+  MomentumRegimeBasket15mFast (lb=14, EXIT_RANK_N=9, FILL_VOLUME_LAG=0,
+  EXIT_LIQUIDITY_CAP=True), config_mom_15m.json, standalone per window:
+
+    P1 2021-05..2022-12   66 trades   +38.8%   maxDD 46.4%
+    P2 2023-01..2024-08  160 trades  +197.1%   maxDD 51.4%
+    P3 2024-09..2026-08  102 trades  +401.7%   maxDD 42.1%
+
+  These SUPERSEDE every free-exit figure above (P3 was +834.5% / 31.8% DD before
+  the cap). Quote these.
+
+  OPEN: EXIT_RANK_N=9 was selected under FREE exits. The cap slows rotation --
+  which is why it helped short lookbacks in P1/P2 -- i.e. the same medicine
+  hysteresis provides, so the two are now partly redundant. The 12/12 validation
+  behind N=9 assumed instant exits. RE-SWEEP N under capped exits before treating
+  9 as settled.
+
+*** ACTUAL CRASH FREQUENCY (2026-08-24) -- calibrates the synthetic-death test ***
+  Single-candle drops among SURVIVING pairs (volume-bearing candles only):
+
+    year   <=-50%   <=-80%   <=-90%
+    2022      3        0        0
+    2023      9        1        0
+    2024      3        2        2
+    2025     13        3        2
+    2026     21        4        2
+
+  True one-candle rugs are ~0 before 2024 and ~2/yr since -- RARE. By contrast 42
+  of 75 pairs fell >=90% from peak and never recovered half of it, but those are
+  COMP/FIL/ONT/BCH/UNI/VET/ETC/CRV/LTC/AVAX/ADA clustered in May-Nov 2022: the
+  bear market, playing out over months. So reality sits close to the SOFT profile,
+  where lb=14 improves (+38.8 -> +67.2), NOT the hard-rug case that inverted it.
+  The fragility argument for lb=21 rests on a TAIL scenario, not a base case.
+
+  CAVEATS: survivors only -- delisted coins are precisely those most likely to have
+  rugged hard, so 0-2/yr is a FLOOR not an estimate. Some -50% candles are likely
+  data artifacts (freqtrade flags "Price jump" on ZIL 100.6%, XNO 75.3%). To get a
+  real number: Binance US delisting announcements give the death arrival rate;
+  Binance global's public archives give the delisted coins' profiles so each death
+  could be classified soft vs hard.
+
 *** SYNTHETIC-DEATH BOUND (2026-08-24) -- survivorship cuts BOTH ways ***
   P1's universe is missing the coins that pumped and then delisted. Does that
   understate a SHORT lookback (which would have caught those pumps)? Injected 30
@@ -162,7 +203,7 @@ equal-weight cap (see MAX_POSITION_WEIGHT — a return/risk-adjusted improvement
   of candles and its ENTIRE quote volume over P3 is $611k (~$850/day), yet the
   strategy booked $11,347 from it.
 
-  EXIT_LIQUIDITY_CAP (default OFF) makes exits symmetric with entries:
+  EXIT_LIQUIDITY_CAP (DEFAULT ON since 2026-08-24) makes exits symmetric with entries:
   confirm_trade_exit refuses a full exit the candle cannot absorb, and
   adjust_trade_position shaves the position down over subsequent candles.
 
@@ -411,8 +452,10 @@ class MomentumRegimeBasket15m(IStrategy):
     # > closed DD). 0.0 = off.
     MAX_POSITION_WEIGHT = 0.45
 
-    # Cap EXITS to the same share of a candle's volume as entries. Default OFF so
-    # historical results stay comparable -- turning it on materially changes them.
+    # Cap EXITS to the same share of a candle's volume as entries. ON by default
+    # since 2026-08-24: leaving it off models exits that cannot happen. Set False
+    # to reproduce any result recorded before that date -- every absolute figure in
+    # this docstring predating the switch was measured with FREE exits.
     #
     # WHY IT EXISTS: entries were liquidity-capped but populate_exit_trend dumped the
     # WHOLE position with no volume check. Measured on the P3 production run: 33 of
@@ -424,7 +467,7 @@ class MomentumRegimeBasket15m(IStrategy):
     # CONSEQUENCE when enabled: a position that leaves the basket is unwound over
     # many candles instead of instantly, so it keeps occupying one of the TOP_N
     # slots and blocks rotation. That is the real constraint, not a bug.
-    EXIT_LIQUIDITY_CAP = False
+    EXIT_LIQUIDITY_CAP = True
 
     # liquidity-aware sizing (same discipline as FundingCarry / the NN family)
     MIN_QUOTE_VOLUME = 1000
