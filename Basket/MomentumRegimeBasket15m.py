@@ -117,6 +117,39 @@ equal-weight cap (see MAX_POSITION_WEIGHT — a return/risk-adjusted improvement
     best-supported middle. This SHARPENS the lb=21 open decision, it does not
     settle it.
 
+*** EASING THE BTC GATE -- DEAD END. DO NOT RE-PROPOSE. (2026-08-25) ***
+  Re-tested because the original "the gate is load-bearing" finding came from the
+  VECTORISED screen, before EXIT_RANK_N, EXIT_LIQUIDITY_CAP and the 2021+ data. The
+  hypothesis was that hysteresis might now be doing the gate's risk management, making
+  the two substitutes. IT IS NOT. P1 2021-05..2022-12 (the 2022 bear -- the window
+  where a regime gate must earn its keep), total return / maxDD:
+
+    REGIME_TOLERANCE (risk_on = btc > SMA100 * (1 - tol)), all at EXIT_RANK_N=9:
+      0%   +38.8%  DD 46%   <- production
+      5%    +7.6%  DD 66%
+     10%   -40.2%  DD 84%
+     20%   -52.1%  DD 87%
+      off  -80.5%  DD 87%
+    alternative windows at tol 0: SMA50 -5.4% | SMA30 +8.2% | SMA200 -21.8%
+
+  MONOTONIC DEGRADATION -- even a 5% band costs 31pp of return and adds 20pp of
+  drawdown. No SMA beats 100.
+
+  THE 2x2 (gate x hysteresis), P1 total return:
+
+                    no hysteresis (N=3)   hysteresis (N=9)
+      gate ON             -30.9%              +38.8%
+      gate OFF            -91.1%              -80.5%
+
+  Hysteresis is worth ~+70pp WITH the gate but only ~+11pp without it -- it rescues a
+  tenth of a 91% loss. **The gate and the hysteresis are COMPLEMENTS, not substitutes.**
+  Nothing in the exit logic substitutes for simply not being in the market: the gate is
+  what stops the basket holding high-beta alts through a bear.
+
+  REGIME_TOLERANCE is retained (default 0.0 = no behaviour change) ONLY so this negative
+  result stays reproducible. It is in _xs_params() and covered by the cache-staleness
+  test. There is no known setting of it that helps.
+
 *** ENTRY TIMING -- NOISE. COLD-START RISK IS REGIME, NOT PRICE. (2026-08-24) ***
   Prompted by a dry run whose first fills landed at a local high. Two diagnostics:
 
@@ -539,6 +572,11 @@ class MomentumRegimeBasket15m(IStrategy):
     TOP_N = 3                # == config max_open_trades
     REGIME_SMA = 100         # BTC trend window, in DAILY candles
     REGIME_REF = "BTC/USDT"
+
+    # Tolerance band on the risk-on test: risk_on = btc > SMA * (1 - REGIME_TOLERANCE).
+    # 0.0 = the strict gate (default, no behaviour change). 1.0 disables the gate
+    # entirely. Lets the gate be EASED by degree rather than only by changing REGIME_SMA.
+    REGIME_TOLERANCE = 0.0
     REBALANCE_HOURLY = True  # only change top-N membership on the hour (matches the test)
 
     # Exit hysteresis. Entry is always rank <= TOP_N; a HELD coin keeps its slot
@@ -636,6 +674,7 @@ class MomentumRegimeBasket15m(IStrategy):
             int(self.MOM_LOOKBACK_DAYS),
             int(self.TOP_N),
             int(self.REGIME_SMA),
+            float(self.REGIME_TOLERANCE),
             str(self.REGIME_REF),
             bool(self.REBALANCE_HOURLY),
             bool(self.TREND_FILTER_ENABLE),
@@ -666,7 +705,8 @@ class MomentumRegimeBasket15m(IStrategy):
         ref90 = known.shift(self.MOM_LOOKBACK_DAYS)               # daily close ~90d ago
         btc_d = known.get(self.REGIME_REF)
         if btc_d is not None:
-            ron_d = (btc_d > btc_d.rolling(self.REGIME_SMA).mean())
+            ron_d = (btc_d > btc_d.rolling(self.REGIME_SMA).mean()
+                     * (1.0 - self.REGIME_TOLERANCE))
         else:
             ron_d = pd.Series(True, index=Pd.index)
 

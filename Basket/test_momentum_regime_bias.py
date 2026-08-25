@@ -295,6 +295,7 @@ def test_exit_hysteresis_widens_and_respects_slots(strategy_cls, exit_n):
     ("MOM_LOOKBACK_DAYS", 14, 21),
     ("PER_COIN_SMA", 50, 20),
     ("TOP_N", 3, 5),
+    ("REGIME_TOLERANCE", 0.0, 0.10),
 ])
 def test_xs_cache_invalidates_on_param_change(attr, a, b):
     """Mutating a param IN PLACE on one instance must force a RECOMPUTE.
