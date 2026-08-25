@@ -117,6 +117,51 @@ equal-weight cap (see MAX_POSITION_WEIGHT — a return/risk-adjusted improvement
     best-supported middle. This SHARPENS the lb=21 open decision, it does not
     settle it.
 
+*** ENTRY TIMING -- NOISE. COLD-START RISK IS REGIME, NOT PRICE. (2026-08-24) ***
+  Prompted by a dry run whose first fills landed at a local high. Two diagnostics:
+
+  1. DOES ENTRY AGE MATTER? P&L bucketed by how long the coin had ALREADY been in
+     the basket when bought (membership age at entry, real _compute_xs matrix):
+
+       bucket   n     net    ex-top1   ex-top2   biggest
+       <1h     28  +19,974  +11,164    +5,963   HBAR  $8,810
+       1-6h    23   +6,164     -938    -4,994   DOGE  $7,103
+       6-24h   19   -6,456   -9,021    -9,727   ADA   $2,565
+       1-3d    16     +822   -1,222    -2,377   TROLL $2,044
+       3-7d    12  +20,901   +8,698    +2,279   PENGU $12,203
+       >7d      4   -1,231   -2,715    -2,617   AVAX  $1,483
+
+     Every bucket collapses on removing 1-2 trades; the apparent "fresh entries
+     earn 2x" ($26,138 vs $14,036) is HBAR + DOGE. Non-monotonic (6-24h worst,
+     3-7d best -- no mechanism produces that). Mann-Whitney fresh vs stale
+     p = 0.49. NO SIGNAL. Matches the earlier entry_band result on CppiSkim.
+
+  2. START-DATE DISPERSION. A = 8 starts 3 days apart, identical end (isolates
+     fill-price luck); B = 8 monthly starts, equal 180d horizons (total switch-on
+     risk). NB the first attempt at A was VACUOUS -- the stagger window sat before
+     the first trade (2024-09-19) so the strategy held cash and 7 of 8 runs were
+     identical to the cent. Redone inside the busiest month.
+
+       A: 95.7 105.3 106.7 108.6 114.6 117.0 117.1 118.8   spread 23.1pp = 0.21x median
+       B: -8.9  -6.8   +9.9 +17.5 +17.5 +43.3 +52.2 +59.2   spread 68.2pp = 3.89x median
+
+     Fill luck washes out over a 19-month run: all A starts profitable, DD 33-40%,
+     no trend with start date. Switch-on timing does NOT: 3x the dispersion and
+     2 of 8 windows NEGATIVE, driven by how much of the window is risk-on (trade
+     counts 25 vs 2 across B).
+
+  CONCLUSION: do NOT build entry timing, and do NOT phase the initial position in
+  either -- A's dispersion is small and directionless, so phasing would cost
+  expected return in exactly the trending markets this strategy targets. The real
+  cold-start risk is WHICH REGIME you switch on into, which no entry rule can fix.
+  Practical consequence: judge a live run over a full regime cycle, and expect long
+  idle stretches -- nine months of ZERO entries across late-2025/early-2026 is
+  normal behaviour for the BTC>SMA100 gate, not a fault.
+
+  CAVEAT: B's eight overlapping 180d windows from one two-year sample are not eight
+  independent observations; 26pp is indicative, not a real sd. The A-vs-B gap is
+  large enough not to hinge on it.
+
 *** DYNAMIC LOOKBACK -- REJECTED (2026-08-24). DO NOT RE-PROPOSE. ***
   Gate before building anything: is the optimal lookback TRACKABLE? Vectorised
   daily proxy (same causal structure as _compute_xs), every lb 5..60, rolling
