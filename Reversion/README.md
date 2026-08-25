@@ -1,4 +1,4 @@
-# Oversold-reversion study (2026-08-24) — VALIDATES STANDALONE, WORTH BUILDING
+# OversoldReversion — BUILT AND VALIDATED (2026-08-24)
 
 The "opposite end of momentum" question: is there a rebound/reversion analogue to
 `Basket/MomentumRegimeBasket15m`? A cross-sectional version was already built and
@@ -107,3 +107,40 @@ Weaker than the momentum book on return, much better on drawdown.
 - "Liquid-15" median is ~$4.4k quote volume per HOUR on Binance US — a thin venue.
 - Do NOT reuse the momentum whitelist: liquid-only is a design constraint here, not a
   robustness check. `max_open_trades=3` is also likely wrong — reversion wants many small bets.
+
+
+## 5. REAL FREQTRADE BUILD — `OversoldReversion.py`
+
+`config/config_reversion_1h.json` (1h, max_open_trades=12, liquid-15 whitelist INCLUDING
+ONE -- the ex-ONE figures above were a concentration robustness check, not the intended
+universe). EXIT_LIQUIDITY_CAP on from the start, entries liquidity-capped too.
+
+| window | sim CAGR | **real CAGR** | sim Sharpe | **real Sharpe** | real maxDD | trades | win% | PF |
+|---|---|---|---|---|---|---|---|---|
+| P1 2021-05..2022-12 | +19.7% | **+19.70%** | 0.72 | **0.72** | **42.6%** | 190 | 60.5% | 1.32 |
+| P2 2023-01..2024-08 | +2.3% | +5.51% | 1.07 | 1.37 | 2.9% | 13 | 76.9% | 19.44 |
+| P3 2024-09..2026-08 | +13.6% | **+13.59%** | 1.30 | 1.53 | 9.1% | 63 | 71.4% | 4.20 |
+
+**The vectorised sim held up** — P1 matches to two decimals on CAGR and Sharpe, P3 on CAGR,
+P2 comes in better. Liquidity-capped fills and next-bar execution roughly cancelled the
+sim's optimism instead of gutting it. Real build takes 266 trades vs the sim's ~539: the
+caps and one-trade-per-pair reject about half the signals without hurting returns.
+
+**WORSE THAN THE SIM, and it matters:**
+- **P1 maxDD is 42.6%, not 29%** — the sim understated it by half. Buying 30%-below-trend
+  dislocations through a sustained bear means catching falling knives until the regime
+  turns. NOTE this is the SAME window where the momentum book does worst, so the two books
+  do NOT offset there.
+- **P2 has only 13 trades** — "Sharpe 1.37" rests on almost nothing. Realistically this is
+  TWO informative windows, not three.
+
+**BUILD GOTCHA:** `use_exit_signal = False` SILENTLY DISABLES `custom_exit` — freqtrade
+wraps the call in `if self.use_exit_signal:` (interface.py:1461). Set False on the
+reasoning that exits come from custom_exit rather than populate_exit_trend, trades ran
+**184 days instead of 72 hours**. Documented inline in the strategy.
+
+**DATA GOTCHA:** the study resampled 15m->1h in pandas, but freqtrade needs real
+`*-1h.feather` files. The first three-window run was VOID (P1 errored "No data found",
+P2/P3 ran on a fragment starting 2024-04-28). Also `download-data` EXTENDS FORWARD from
+existing data and will NOT backfill behind it -- pairs with stub 1h files needed
+`--erase` (scoped to `-t 1h`; 15m verified byte-identical by md5 afterwards).
