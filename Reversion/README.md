@@ -167,9 +167,8 @@ Baseline P1 +34.98% / DD 39.64%; P3 +28.63% / DD 1.60%.
   0.20). P1 is high-vol throughout, so the scale sits at its floor exactly when reversion
   pays best. Same finding as the vol-targeting result on the momentum side.
 - **HALF SIZE is proportional** — identical to allocating half the capital, no ratio gain.
-- **BUY-THE-TURN doesn't fix P1** (return −39%, DD barely moves) but IMPROVES P3
-  (+28.63→+33.67 at similar DD). Separate idea worth a proper 3-window test; do NOT adopt
-  it off one window.
+- **BUY-THE-TURN — REJECTED on the full 3-window test (see section 7).** It does not fix
+  P1, and on Sharpe it is worse in 2 of 3 windows.
 
 **CONCLUSION: P1's drawdown is INTRINSIC.** It is simultaneously the best-returning window
 (+19.70% CAGR) and the worst drawdown because they are the SAME TRADES at different
@@ -181,3 +180,25 @@ capital.
 accumulates the position back up to the unscaled `pv/MAX_POSITIONS` target. The first
 vol-scaling run showed a 0.3pp difference and identical trade counts for exactly this
 reason. Any sizing change MUST also scale the accumulation target.
+
+
+## 7. BUY-THE-TURN (RSI crossing back UP through 30) — REJECTED
+
+Full three-window test against the baseline:
+
+| window | baseline ret / Sharpe / DD | buy-the-turn ret / Sharpe / DD |
+|---|---|---|
+| P1 | +34.98% / **0.72** / 42.6% | +21.40% / **0.53** / 41.8% |
+| P2 | +9.35% / 1.37 / 2.9% | +10.18% / **1.42** / 3.0% |
+| P3 | +28.63% / **1.53** / 9.1% | **+33.67%** / 1.27 / **7.2%** |
+
+**Worse on Sharpe in 2 of 3 windows**, and the one it wins (P2) has 14 trades.
+
+**CORRECTS the section-6 note** that called P3 "an improvement": that was based on RETURN
+alone (+33.67 vs +28.63). On RISK-ADJUSTED terms P3 is WORSE (Sharpe 1.27 vs 1.53) — the
+higher return comes with more volatile daily returns. Judging a variant on return rather
+than Sharpe is the same error the momentum side kept producing; return is the noisiest
+metric in this family.
+
+It also fails at its nominated purpose: P1's drawdown barely moves (42.6→41.8) while return
+drops 39%. Not adopted.
