@@ -144,3 +144,40 @@ reasoning that exits come from custom_exit rather than populate_exit_trend, trad
 P2/P3 ran on a fragment starting 2024-04-28). Also `download-data` EXTENDS FORWARD from
 existing data and will NOT backfill behind it -- pairs with stub 1h files needed
 `--erase` (scoped to `-t 1h`; 15m verified byte-identical by md5 afterwards).
+
+
+## 6. CAN THE P1 DRAWDOWN BE REDUCED? — NO, not by strategy levers
+
+Baseline P1 +34.98% / DD 39.64%; P3 +28.63% / DD 1.60%.
+
+| variant | P1 ret | P1 DD | P1 ret/DD | P3 ret | P3 DD |
+|---|---|---|---|---|---|
+| baseline | **+34.98%** | 39.64% | **0.88** | +28.63% | 1.60% |
+| stop −15% | −0.13% | 33.51% | −0.00 | +25.07% | 2.64% |
+| stop −10% | −10.23% | 30.77% | −0.33 | +23.38% | 4.00% |
+| buy-the-turn (RSI cross UP) | +21.40% | 38.22% | 0.56 | **+33.67%** | 2.15% |
+| buy-the-turn + stop −15% | +0.06% | 37.97% | 0.00 | +25.17% | 4.38% |
+| half size (pv/24) | +21.17% | 21.43% | 0.99 | +14.59% | 1.05% |
+| vol-scaled (VOL_REF 3%) | +4.44% | **22.69%** | 0.20 | +14.86% | 1.10% |
+| vol-scaled (VOL_REF 5%) | +2.06% | 34.30% | 0.06 | +23.93% | 1.52% |
+
+- **STOPS DESTROY THE EDGE.** −15% takes P1 from +34.98% to −0.13%. The stop fires at
+  the bottom, which is where the reversion is. Do not re-propose stops for this book.
+- **VOL-SCALING FIGHTS THE EDGE** — best DD reduction (39.6→22.7) but worst ratio (0.88→
+  0.20). P1 is high-vol throughout, so the scale sits at its floor exactly when reversion
+  pays best. Same finding as the vol-targeting result on the momentum side.
+- **HALF SIZE is proportional** — identical to allocating half the capital, no ratio gain.
+- **BUY-THE-TURN doesn't fix P1** (return −39%, DD barely moves) but IMPROVES P3
+  (+28.63→+33.67 at similar DD). Separate idea worth a proper 3-window test; do NOT adopt
+  it off one window.
+
+**CONCLUSION: P1's drawdown is INTRINSIC.** It is simultaneously the best-returning window
+(+19.70% CAGR) and the worst drawdown because they are the SAME TRADES at different
+moments — the drawdown is the pre-reversion phase of the positions that go on to pay. The
+only lever that reduces it without costing ratio is the PORTFOLIO one: allocate less
+capital.
+
+**GOTCHA found here:** scaling only `custom_stake_amount` is a NO-OP — `adjust_trade_position`
+accumulates the position back up to the unscaled `pv/MAX_POSITIONS` target. The first
+vol-scaling run showed a 0.3pp difference and identical trade counts for exactly this
+reason. Any sizing change MUST also scale the accumulation target.
