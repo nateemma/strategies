@@ -1,0 +1,14 @@
+momentum equity from backtest-result-2026-08-24_17-31-34.zip: 2025-01-26 -> 2026-08-23 (574 daily returns)
+reversion book (ex-ONE, deep filter): 2021-01-01 -> 2026-08-23, avg concurrent positions 3.8, invested 22% of hours
+
+=== overlap: 422 common days (2025-01-27 -> 2026-08-23) ===
+  corr(daily)          = +0.042
+  corr(weekly)         = +0.047
+  corr on days BOTH active (n=75) = +0.354
+
+  momentum: mean +0.223%/d  sd 2.93%
+  reversion: mean +0.037%/d  sd 2.73%
+
+  50/50 blend: mean +0.130%/d  sd 2.05%  Sharpe(ann) 1.21
+  momentum   Sharpe(ann) 1.45
+  reversion  Sharpe(ann) 0.26

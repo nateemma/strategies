@@ -1,0 +1,28 @@
+pairs analysed: 75   liquid-15 = ['ADA', 'ATOM', 'AVAX', 'BNB', 'BTC', 'DOGE', 'ETH', 'LINK', 'LTC', 'ONE', 'SHIB', 'SOL', 'VET', 'XLM', 'XRP']
+median 1h quote volume: liquid-15 $4,413  rest $43
+
+=== mean forward return (bp) after RSI(14) crosses below 30 ===
+ horizon              ALL pairs           LIQUID-15 only
+     4h           64.1 (n= 33390)           67.6 (n=  9291)
+     8h           73.4 (n= 33390)           65.2 (n=  9291)
+    12h           80.5 (n= 33390)           70.0 (n=  9291)
+    24h           98.6 (n= 33390)           91.0 (n=  9291)
+    48h          105.2 (n= 33390)          109.6 (n=  9291)
+    72h          126.1 (n= 33390)          138.7 (n=  9291)
+    96h          109.0 (n= 33390)          115.9 (n=  9291)
+
+=== h=48 LIQUID-15: persistence across the three windows ===
+  P1 2021-05..2022-12: n= 2992  mean   +15.5 bp  median   +17.9 bp
+  P2 2023-01..2024-08: n= 2628  mean   +38.5 bp  median   +43.8 bp
+  P3 2024-09..2026-08: n= 3397  mean  +175.8 bp  median   +36.0 bp
+
+=== h=48 LIQUID-15: concentration (the ZEC test) ===
+           size  mean       sum
+pair                           
+ONE/USDT    685 741.0 507,608.4
+DOGE/USDT   651 214.0 139,330.7
+XLM/USDT    578 121.5  70,247.7
+VET/USDT    622  75.2  46,767.4
+ATOM/USDT   603  63.3  38,161.5
+  top pair = 50% of total signal contribution
+  ex-top-pair mean = +59.3 bp
