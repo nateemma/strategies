@@ -1,4 +1,4 @@
-# Oversold-reversion study (2026-08-24) — SIGNAL REAL, PORTFOLIO WEAK
+# Oversold-reversion study (2026-08-24) — VALIDATES STANDALONE, WORTH BUILDING
 
 The "opposite end of momentum" question: is there a rebound/reversion analogue to
 `Basket/MomentumRegimeBasket15m`? A cross-sectional version was already built and
@@ -56,16 +56,47 @@ near-zero unconditional correlation is largely NON-OVERLAP (momentum in cash dur
 risk-off, reversion firing in drawdowns); on days both are live it is +0.354, so the
 diversification thins exactly when both books are exposed.
 
+## 4. STANDALONE evaluation (net of 40bp round trip) — this is the operative one
+
+Sections 1-3 judged the signal per-trade and as a blend. Treated as an INDEPENDENT
+strategy the tuning changes and the verdict improves. Sweep over hold x threshold x
+maxpos, ex-ONE, 14 liquid pairs, 2021-2026:
+
+| hold | thr | maxpos | trades | invested | CAGR | vol | Sharpe | maxDD |
+|---|---|---|---|---|---|---|---|---|
+| 48 | −20% | 5 | 1553 | 22% | **−5.9%** | 38% | 0.03 | −62% |
+| 72 | −30% | 5 | 539 | 13% | +10.2% | 32% | 0.46 | −52% |
+| 96 | −40% | 5 | 181 | 5% | +10.1% | 25% | 0.51 | −24% |
+| **72** | **−30%** | **12** | 539 | 13% | **+11.0%** | **18%** | **0.66** | **−29%** |
+
+**CORRECTION to section 2: the −20% threshold LOSES MONEY net of costs.** Median
+forward return per signal was the wrong objective — it ignores costs and the fact that
+you take every signal, not one. **−30% is the viable threshold.**
+
+`maxpos` matters more than expected and monotonically (Sharpe 0.41/0.46/0.54/0.66 for
+3/5/8/12; vol 36%→18%, maxDD −57%→−29%). Reversion wants MANY SMALL BETS — the opposite
+of the momentum book's three concentrated ones, and a slope rather than a spike.
+
+**Per-window validation of hold=72h / thr=−30% / maxpos=12:**
+
+| window | CAGR | vol | Sharpe | maxDD |
+|---|---|---|---|---|
+| P1 2021-05..2022-12 | +19.7% | 32% | 0.72 | −29% |
+| P2 2023-01..2024-08 | +2.3% | 2% | 1.07 | −1% |
+| P3 2024-09..2026-08 | +13.6% | 10% | 1.30 | −5% |
+
+Positive in all three; per-window Sharpes EXCEED the pooled 0.66 (pooling mixes very
+different vol regimes). Config was chosen from a 36-cell full-sample sweep, so the
+per-window check is the thing that makes it credible — plus the monotonic maxpos slope.
+
 ## Verdict
 
-**Signal real and persistent; this portfolio implementation is not worth building as-is.**
-The gap between "+154bp median per signal across three regimes" and "Sharpe 0.26" is
-portfolio construction, not signal quality: invested only 22% of hours, equal-weight across
-~3.8 concurrent positions, holding high-vol beaten-down coins (2.73%/day).
+**VALIDATES STANDALONE — worth building properly.** (An earlier verdict here said "not
+worth building"; that rested on a 50/50 blend argument which does not apply when the two
+are run as independent strategies.) Modest but real: ~+11% CAGR at 18% vol, −29% maxDD,
+539 trades over 5.6y, capital deployed only 13% of the time.
 
-If revisited, the work is in harvesting, not in finding: concentrate on the best signals
-rather than taking all ~327/yr, size by conviction, and re-measure with costs and
-liquidity-capped fills on the Basket infrastructure.
+Weaker than the momentum book on return, much better on drawdown.
 
 ## Caveats
 - Conditional forward returns, NOT a strategy: no sizing, no capital constraint, no

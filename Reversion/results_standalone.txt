@@ -1,0 +1,39 @@
+standalone, net of 40bp round trip, ex-ONE, 14 liquid pairs, 2021-2026
+
+ hold    thr maxpos  trades   inv    CAGR   vol  Sharpe  maxDD
+   48   -20%      5    1553   22%   -5.9%   38%    0.03   -62%
+   48   -30%      5     539   10%   +6.8%   30%    0.37   -55%
+   48   -40%      5     181    4%   +3.0%   21%    0.24   -36%
+   72   -20%      5    1553   28%   -4.8%   42%    0.09   -63%
+   72   -30%      5     539   13%  +10.2%   32%    0.46   -52%
+   72   -40%      5     181    5%   +9.2%   23%    0.49   -30%
+   96   -20%      5    1553   32%  -12.8%   46%   -0.07   -64%
+   96   -30%      5     539   15%   +7.3%   35%    0.38   -48%
+   96   -40%      5     181    5%  +10.1%   25%    0.51   -24%
+
+   72   -30%      3     539   13%   +8.7%   36%    0.41   -57%
+   72   -30%      5     539   13%  +10.2%   32%    0.46   -52%
+   72   -30%      8     539   13%  +11.1%   26%    0.54   -44%
+   72   -30%     12     539   13%  +11.0%   18%    0.66   -29%
+
+=== per-window validation (net of 40bp), the tuned configs ===
+
+hold=72h thr=-30% maxpos=12
+   P1  CAGR  +19.7%  vol  32%  Sharpe  0.72  maxDD  -29%
+   P2  CAGR   +2.3%  vol   2%  Sharpe  1.07  maxDD   -1%
+   P3  CAGR  +13.6%  vol  10%  Sharpe  1.30  maxDD   -5%
+
+hold=72h thr=-30% maxpos=8
+   P1  CAGR  +10.7%  vol  45%  Sharpe  0.45  maxDD  -44%
+   P2  CAGR   +3.5%  vol   3%  Sharpe  1.07  maxDD   -1%
+   P3  CAGR  +20.6%  vol  15%  Sharpe  1.29  maxDD   -8%
+
+hold=96h thr=-40% maxpos=5
+   P1  CAGR  +34.2%  vol  45%  Sharpe  0.87  maxDD  -24%
+   P2    n/a
+   P3  CAGR   +2.7%  vol   3%  Sharpe  0.80  maxDD   -1%
+
+hold=72h thr=-30% maxpos=5
+   P1  CAGR   +0.4%  vol  55%  Sharpe  0.29  maxDD  -52%
+   P2  CAGR   +5.6%  vol   5%  Sharpe  1.06  maxDD   -2%
+   P3  CAGR  +25.5%  vol  21%  Sharpe  1.19  maxDD  -13%
