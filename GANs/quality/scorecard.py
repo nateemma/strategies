@@ -67,8 +67,16 @@ class Adapter:
 
 
 def _one_hot_gen(iface, n, y):
+    """Generate a CLASS-BALANCED synth set.
+
+    Conditioning every sample on one class (the obvious first draft) makes the
+    utility probe measure class-imbalance damage rather than synth quality --
+    it depresses delta_val_mcc for every variant regardless of how good the
+    samples are.
+    """
+    cls = np.arange(n) % N_CLASSES
     oh = np.zeros((n, N_CLASSES), dtype="float32")
-    oh[:, 1] = 1.0
+    oh[np.arange(n), cls] = 1.0
     return iface.generate(n, one_hot=oh), oh
 
 
@@ -78,9 +86,23 @@ def _task_gen(iface, n, y):
 
 
 def _class_label_gen(iface, n, y):
-    oh = np.zeros((n, N_CLASSES), dtype="float32")
-    oh[:, 1] = 1.0
-    return iface.generate(n, class_label=1), oh
+    """CTAB conditions on a single int, so draw each class separately and stack
+    -- same class-balance reasoning as _one_hot_gen."""
+    per = max(1, n // N_CLASSES)
+    parts, labels = [], []
+    for c in range(N_CLASSES):
+        out = iface.generate(per, class_label=c)
+        parts.append(out)
+        oh = np.zeros((per, N_CLASSES), dtype="float32")
+        oh[:, c] = 1.0
+        labels.append(oh)
+    try:
+        import pandas as pd
+        joined = (pd.concat(parts, ignore_index=True)
+                  if isinstance(parts[0], pd.DataFrame) else np.concatenate(parts, 0))
+    except Exception:
+        joined = np.concatenate([np.asarray(p) for p in parts], 0)
+    return joined, np.concatenate(labels, 0)
 
 
 def _as_df(x, y):

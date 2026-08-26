@@ -100,11 +100,31 @@ Replacement work, done: `manifold.bound_saturation` — saturation measured in
 decoded-value space so it detects BOTH bounding mechanisms. `clip_band_fraction`
 alone would report ~0 for every CTAB row regardless of how saturated it was.
 
-## Task D — driven by Phase B
+## Task D — driven by Phase B (now populated)
 
-Intentionally empty. Populated after the scorecard runs, one variant at a time,
-each fix landing in BOTH backends (spec D5) and re-verified by re-running the
-scorecard.
+Baseline: `docs/GAN_SCORECARD.md`. Ordered by evidence strength.
+
+**D1 — measure POST-FILTER fidelity alongside raw.** Highest value. The scorecard
+measures raw `generate()`; production consumes output filtered by density (:322),
+discriminator (:342) and autoencoder in `balance.py`, and GAN_TODO §5's numbers
+are post-filter. Until both are in the table, scorecard rows cannot be compared
+against any historical finding. This also reframes D2.
+
+**D2 — WGAN-MLX joint structure.** WGAN-MLX max dcorr 1.141 and worst dmu 2.212
+against TF's 0.211 / 0.229 on identical data. MLX is the WEAKER implementation
+here, inverting the premise that TF is the laggard. Diagnose before fixing:
+TTUR / critic-LR ratio and the absence of EMA in `df_wgan_mlx.py` are the
+candidates. Same check for MT_WGAN-MLX (dcorr 1.030 vs TF 0.559).
+
+**D3 — CGAN MLX backend.** The only type with no MLX path. Whether it is worth
+building depends on whether CGAN is still used; decide before implementing.
+
+**D4 — coverage holes in the threshold suite** (WGAN-MLX, MT_WGAN-MLX, MT_DDPM,
+CGAN). Mechanical once D1/D2 settle what the thresholds should be.
+
+NOT on the list: DDPM raw-output dispersion. Established as neither
+under-training nor under-capacity, and the AE filter exists downstream to handle
+it — revisit only if D1 shows it survives filtering.
 
 ## Task E — deferred
 
