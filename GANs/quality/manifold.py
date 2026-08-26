@@ -75,3 +75,30 @@ def nn_distance_ratio(real: np.ndarray, synth: np.ndarray,
     if not np.isfinite(base) or base <= 0:
         return float("nan")
     return _median_nn(s, r, False) / base
+
+
+def bound_saturation(real: np.ndarray, synth: np.ndarray, tol: float = 1e-4) -> float:
+    """Fraction of synth values sitting AT the real per-column [min, max].
+
+    Mechanism-agnostic companion to ``clip_band_fraction``. The family bounds
+    output two different ways and a single z-space metric cannot see both:
+
+      * WGAN / CGAN / DDPM clip to ±_ZSCORE_CLIP σ in z-space
+        (``df_wgan_mlx.py`` :172-178)
+      * CTAB clips per column to the training-time [min, max] AFTER the VGM
+        inverse transform (``mlx_ctab_helpers.py`` :35) -- a STRONGER guard,
+        and invisible to a ±4σ check, which is why a grep for _ZSCORE_CLIP
+        wrongly suggests CTAB is unguarded.
+
+    Measured in the DECODED value space, so it reports saturation regardless of
+    which mechanism produced it. High values mean the generator is pushing past
+    the data range and a clip is masking it rather than the model fitting it.
+    """
+    r, s = _flat(real), _flat(synth)
+    if r.size == 0 or s.size == 0 or r.shape[1] != s.shape[1]:
+        return float("nan")
+    lo, hi = r.min(axis=0), r.max(axis=0)
+    span = np.where((hi - lo) > 1e-12, hi - lo, 1.0)
+    at_lo = np.abs(s - lo[None, :]) <= tol * span[None, :]
+    at_hi = np.abs(s - hi[None, :]) <= tol * span[None, :]
+    return float((at_lo | at_hi).mean())

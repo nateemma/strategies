@@ -29,9 +29,17 @@ This spec covers building that assessment and running it — not guessing at fix
   same table, so variants can be ranked and regressions caught.
 - **G2.** Close the assessment coverage holes: WGAN-MLX, MT_WGAN-MLX, MT_DDPM,
   CGAN are absent from the quality suite today (7 of 11 covered).
-- **G3.** Fix the one unambiguous correctness gap found in review: no CTAB
-  variant (TF or MLX, single or multi-task) clips generator output to the
-  z-score band, which is the crash risk `e44662f` fixed for WGAN.
+- **G3. RETRACTED 2026-08-26 — the premise was wrong.** Review greppped for
+  `_ZSCORE_CLIP` and concluded no CTAB variant bounds its generator output.
+  It does: `mlx_ctab_helpers.py:35` clips per column to the training-time
+  `[min, max]` after the VGM inverse transform — a *stronger* guard than the
+  ±4σ z-band, since it bounds to the observed data range rather than a
+  distributional assumption. It is invisible to a `_ZSCORE_CLIP` grep because
+  it acts in decoded-value space. **Every variant bounds its output; the family
+  simply uses two mechanisms.** Adding a z-clip on top would be redundant at
+  best and double-clipping at worst. Consequence for the scorecard: a z-space
+  saturation metric cannot see CTAB's guard, so `bound_saturation` (decoded
+  space, mechanism-agnostic) was added alongside `clip_band_fraction`.
 - **G4.** Bring TF and MLX to functional parity **as peers**. TF is the
   supported path for non-Mac users of this open-source repo; it is not legacy.
 - **G5.** Unify the lifecycle so the interface layer stops special-casing:

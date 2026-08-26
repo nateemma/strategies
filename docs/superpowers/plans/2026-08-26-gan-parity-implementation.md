@@ -89,21 +89,16 @@ synthetic noise) and commit `docs/GAN_SCORECARD.md`.
 **This is the deliverable that answers the original question.** Everything after
 is driven by it.
 
-## Task C1: CTAB z-band output clipping
+## Task C1: CTAB z-band output clipping — CANCELLED
 
-`df_ctab_gan_mlx.py`, `df_mt_ctab_gan_mlx.py`, `df_ctab_gan.py`,
-`df_mt_ctab_gan.py`: add `_ZSCORE_CLIP: float = 4.0` and clip generator output
-before the inverse transform, mirroring `WGANMLX.generate()` (`df_wgan_mlx.py`
-:172-178) and `TabDDPMMLX.generate()`.
+The plan required verifying against `mlx_ctab_helpers.transform_vgm` before
+transplanting the WGAN call site. That check killed the task: CTAB already clips
+per column to the training-time `[min, max]` (`mlx_ctab_helpers.py:35`), which is
+a stronger bound than ±4σ. No work needed. See spec G3 (retracted).
 
-Note the CTAB path de-normalises through the VGM/BGM inverse rather than a plain
-z-score, so the clip applies to the *scalar* component in z-space before
-`inverse_transform`. Verify against `mlx_ctab_helpers.transform_vgm` — do not
-assume the WGAN call site transplants unchanged.
-
-Acceptance: scorecard `clip_band_fraction` becomes reportable for CTAB rows (it
-is undefined today); existing CTAB quality tests unchanged; a regression test
-that a generator emitting extreme values yields finite de-normalised output.
+Replacement work, done: `manifold.bound_saturation` — saturation measured in
+decoded-value space so it detects BOTH bounding mechanisms. `clip_band_fraction`
+alone would report ~0 for every CTAB row regardless of how saturated it was.
 
 ## Task D — driven by Phase B
 

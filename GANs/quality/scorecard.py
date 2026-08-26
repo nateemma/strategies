@@ -27,7 +27,8 @@ from typing import Any, Callable, Dict, List, Optional
 import numpy as np
 
 from GANs.GANType import GANType
-from GANs.quality.manifold import clip_band_fraction, nn_distance_ratio
+from GANs.quality.manifold import (bound_saturation, clip_band_fraction,
+                                   nn_distance_ratio)
 from GANs.quality.utility_probe import delta_val_mcc
 
 N_CLASSES = 3
@@ -137,7 +138,8 @@ def _to_2d(a: Any) -> Optional[np.ndarray]:
 # ---------------------------------------------------------------------------
 # Driver
 # ---------------------------------------------------------------------------
-def score_one(gan_type: GANType, prefer_mlx: bool, x, y, *, seed=42) -> Dict[str, Any]:
+def score_one(gan_type: GANType, prefer_mlx: bool, x, y, *, seed=42,
+              fit_overrides: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     import GANs.backends  # noqa: F401 -- populates the registry
     from GANs.GANBackend import resolve_backend
 
@@ -145,7 +147,7 @@ def score_one(gan_type: GANType, prefer_mlx: bool, x, y, *, seed=42) -> Dict[str
         "type": gan_type.name, "backend": "MLX" if prefer_mlx else "TF",
         "available": False, "fit_s": None, "n_synth": 0,
         "worst_dmu": None, "sigma_ratio": None, "max_dcorr": None,
-        "clip_band": None, "nn_ratio": None, "delta_mcc": None,
+        "clip_band": None, "bound_sat": None, "nn_ratio": None, "delta_mcc": None,
         "status": "", "note": "",
     }
     try:
@@ -167,9 +169,11 @@ def score_one(gan_type: GANType, prefer_mlx: bool, x, y, *, seed=42) -> Dict[str
 
     try:
         data, labels = ad.to_fit(x, y)
+        kw = dict(ad.fit_kwargs)
+        kw.update(fit_overrides or {})
         iface = cls()
         t0 = time.time()
-        iface.fit(data, labels, **ad.fit_kwargs)
+        iface.fit(data, labels, **kw)
         row["fit_s"] = round(time.time() - t0, 1)
     except Exception as e:
         row["status"] = "fit-failed"
@@ -211,7 +215,11 @@ def score_one(gan_type: GANType, prefer_mlx: bool, x, y, *, seed=42) -> Dict[str
         pass
 
     # manifold
+    # clip_band is z-space (WGAN/CGAN/DDPM mechanism); bound_sat is decoded-value
+    # space and also catches CTAB's per-column [min,max] clip, which a +/-4-sigma
+    # check cannot see. Report both -- they detect different guards.
     row["clip_band"] = round(clip_band_fraction((synth - mu_r) / sd_r, 4.0), 4)
+    row["bound_sat"] = round(bound_saturation(real2d, synth), 4)
     row["nn_ratio"] = round(nn_distance_ratio(real2d, synth), 3)
 
     # utility
@@ -222,7 +230,8 @@ def score_one(gan_type: GANType, prefer_mlx: bool, x, y, *, seed=42) -> Dict[str
     return row
 
 
-def build_scorecard(x=None, y=None, *, types=None, seed=42) -> List[Dict[str, Any]]:
+def build_scorecard(x=None, y=None, *, types=None, seed=42,
+                    fit_overrides: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
     if x is None:
         x, y = make_fixture(seed=seed)
     wanted = types or [t for t in GANType if t.name not in ("NONE", "BOTH")]
@@ -230,7 +239,8 @@ def build_scorecard(x=None, y=None, *, types=None, seed=42) -> List[Dict[str, An
     for t in wanted:
         for prefer in (False, True):          # TF first: it is a peer, not an afterthought
             try:
-                rows.append(score_one(t, prefer, x, y, seed=seed))
+                rows.append(score_one(t, prefer, x, y, seed=seed,
+                                      fit_overrides=fit_overrides))
             except Exception as e:            # belt and braces -- never abort the sweep
                 rows.append({"type": t.name, "backend": "MLX" if prefer else "TF",
                              "status": "driver-error", "note": f"{type(e).__name__}",
@@ -243,7 +253,8 @@ def render_markdown(rows: List[Dict[str, Any]]) -> str:
     cols = [("type", "type"), ("backend", "be"), ("status", "status"),
             ("fit_s", "fit s"), ("n_synth", "n"), ("worst_dmu", "worst Δμ/σ"),
             ("sigma_ratio", "σ_syn/σ_real"), ("max_dcorr", "max Δcorr"),
-            ("clip_band", "clip band"), ("nn_ratio", "NN ratio"),
+            ("clip_band", "clip band"), ("bound_sat", "bound sat"),
+            ("nn_ratio", "NN ratio"),
             ("delta_mcc", "Δval_mcc"), ("note", "note")]
     out = ["| " + " | ".join(h for _, h in cols) + " |",
            "|" + "|".join("---" for _ in cols) + "|"]
