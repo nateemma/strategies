@@ -155,6 +155,41 @@ diverge -- early (init / input scaling) or late (collapse during training). That
 localises the fault instead of proposing another candidate. Only then propose a
 fix.
 
+INSTRUMENTATION RESULT (2026-08-26) -- THE MLX GENERATOR DOES NOT LEARN.
+Same MLP architecture, same data, fit at increasing budgets:
+
+    epochs |  TF-mlp σ   Δcorr |    MLX σ   Δcorr
+         1 |     0.597   1.198 |    0.332   1.183   <- identical start
+         5 |     0.755   0.497 |    0.353   1.050
+        20 |     0.791   0.218 |    0.353   1.087
+        40 |     0.809   0.128 |    0.373   1.078
+        80 |     0.788   0.151 |    0.407   1.055
+
+Both START in the same place, so init and input handling are fine (this rules out
+the z-score/±4σ clip applied to MLX training data). TF then LEARNS -- Δcorr 1.20
+-> 0.13 -- while MLX is FLAT for 80 epochs. Not under-training, not a convergence
+rate: the curve does not move.
+
+FOURTH REFUTATION -- checkpoint selection. df_wgan_mlx.py:290 computes
+`epoch_score = abs(d_val) + abs(g_val)` and restores the minimum. Since d_val is
+pinned at ~gp_weight*gp (~49.7, near-constant), the score is effectively |g_val|
+-- and in WGAN-GP g_loss = -E[critic(fake)], so an IMPROVING generator goes MORE
+NEGATIVE. Taking abs() inverts the objective and selects the LEAST-trained
+generator. Observed: G went -0.018 -> -0.98 over 30 epochs while the selector
+restored epoch 6 (G = -0.0126, closest to zero).
+
+THIS IS A REAL BUG AND SHOULD BE FIXED -- but it is NOT this defect. Patching the
+score to g_val (which also makes the last epoch best, so the restore never fires)
+leaves Δcorr at 1.15-1.25, still flat. Even with NO rollback, MLX does not learn.
+
+REMAINING SIGNAL -- THE CRITIC. D Loss ~49.7 ≈ gp_weight(50) * gp(~1), so the
+Wasserstein component is a rounding error inside the gradient penalty. G Loss DOES
+move, so gradients reach the generator; but if the critic is not separating real
+from fake, that movement is the generator exploiting an uninformative critic.
+NEXT PROBE: log the Wasserstein and GP components of the critic loss separately.
+If w_loss ~ 0 throughout, the critic never learns to discriminate and that is the
+root cause. Do NOT propose a fix before that probe.
+
 Superseded note -- ARCHITECTURE INVENTORY (still true, just not the cause). WGAN-TF offers four generator
 architectures (BASELINE / CNN / DCGAN / MLP) and defaults to a Conv1D residual
 CNN (`wgangp_gen_cnn`). WGAN-MLX has ZERO architecture options -- grep for
