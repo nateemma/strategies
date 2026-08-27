@@ -184,6 +184,7 @@ class MTWGANMLX:
         d_layers: int = 1,
         dropout: float = 0.0,
         n_critic: int = 5,
+        cond_loss_weight: float = 10.0,
     ):
         self.latent_dim = latent_dim
         self.task_label_dims = task_label_dims
@@ -218,6 +219,10 @@ class MTWGANMLX:
         self.feature_std = None
         self.feature_min = None
         self.feature_max = None
+        self.cond_loss_weight = cond_loss_weight
+        # Per-conditioning-column feature means in the generator's native
+        # (z-scored) space. Set at fit time; used only by loss_gen.
+        self.class_means = None
 
         self._create_optimizers(learning_rate, task_label_dims)
         
@@ -264,9 +269,13 @@ class MTWGANMLX:
 
     def loss_critic(self, model, real_x, real_c, z, batch_labels_mx):
         # We use the 'model' argument for the critic to ensure MLX traces gradients correctly
+        # NO _postprocess here. real_x is z-scored (see balance_with_mt_wgan_mlx),
+        # so de-normalising the fake side made the critic compare z-scored real
+        # against raw-space fake. Measured at step 0: real_x std 1.00 / range
+        # +-4.0 vs fake std 0.29 / range +-1.0 -- separable on magnitude alone.
+        # _postprocess belongs on the OUTPUT path (generate) only.
         fake_x = self.gen(z, real_c)
-        fake_x = self._postprocess(fake_x)
-        
+
         real_score, real_task_preds = model(real_x, real_c)
         fake_score, fake_task_preds = model(fake_x, real_c)
         
@@ -308,9 +317,8 @@ class MTWGANMLX:
 
     def loss_gen(self, model, z, c, batch_labels_mx):
         # We use the 'model' argument for the generator to ensure MLX traces gradients correctly
-        fake_x = model(z, c)
-        fake_x = self._postprocess(fake_x)
-        
+        fake_x = model(z, c)   # z-space; see loss_critic on why no _postprocess
+
         fake_score, fake_task_preds = self.critic(fake_x, c)
         
         adv_loss = -mx.mean(fake_score)
@@ -323,8 +331,34 @@ class MTWGANMLX:
             aux_loss += weight * mx.mean(nn.losses.cross_entropy(pred_fake, y_true))
             
         aux_loss = mx.clip(aux_loss, 0.0, 5.0)
-            
-        return adv_loss + aux_loss
+
+        loss = adv_loss + aux_loss
+
+        # Class-mean matching, as added to the single-task path (df_wgan_mlx).
+        # The aux task heads supervise CLASSIFIABILITY, not placement, so the
+        # generator still had no direct signal for where each class sits.
+        # Matches the per-class BATCH mean (not per-sample: that form collapses
+        # dispersion at seq_len=1 -- measured sigma_ratio 0.40 -> 0.18 on the
+        # single-task path).
+        #
+        # c concatenates every task's one-hot, so a per-COLUMN mean generalises
+        # across tasks without needing to know which task is primary.
+        #
+        # This only works in combination with dropping _postprocess above: with
+        # the fake side de-normalised the target space was incoherent and the
+        # term alone bought little (measured dcorr 0.954 -> 0.903); together
+        # they give 0.954 -> 0.532.
+        if self.cond_loss_weight and self.class_means is not None:
+            fx = mx.reshape(fake_x, (fake_x.shape[0], -1))
+            present = mx.sum(c, axis=0)
+            cls_mean = (c.T @ fx) / mx.maximum(present[:, None], 1e-6)
+            err = mx.mean(mx.square(cls_mean - self.class_means), axis=1)
+            mask = (present > 0).astype(mx.float32)
+            loss = loss + self.cond_loss_weight * (
+                mx.sum(err * mask) / mx.maximum(mx.sum(mask), 1.0)
+            )
+
+        return loss
 
     def save(self, path: str, metadata: dict):
         os.makedirs(path, exist_ok=True)
@@ -453,16 +487,24 @@ def balance_with_mt_wgan_mlx(
     # so the two transforms cancel correctly on the way out.
     # Mirrors MTDDPMMLX._zscore_fit_3d and TabDDPMMLX._zscore_fit.
     #
-    # Note: the generator's final Tanh activation bounds its output to
-    # (-1, 1) in z-scored space, which corresponds to roughly ±1σ in
-    # real-data space.  MT_WGAN can reproduce the central mass of each
-    # feature's distribution but cannot reach the tails beyond ±1σ.
-    # To produce wider distributions the Tanh should be replaced with a
-    # scaled variant (e.g. `4 * tanh(x)`) or removed.  Not addressed in
-    # this patch — out of scope; see findings doc
-    # 2026-05-15-mt-wgan-audit-findings.md.
+    # Note: an earlier comment here described a final Tanh bounding the
+    # generator to ±1σ. That Tanh is gone — MTGeneratorMLX's tabular path
+    # ends in nn.Linear — so the ±1σ ceiling it described no longer applies.
+    # Measured under-dispersion (σ_syn/σ_real ≈ 0.5) came from missing
+    # class-mean supervision, not from a bounded activation; see loss_gen.
     train_data = (train_data - gan.feature_mean) / gan.feature_std
     train_data = np.clip(train_data, -MTWGANMLX._ZSCORE_CLIP, MTWGANMLX._ZSCORE_CLIP).astype(np.float32)
+
+    # Per-conditioning-column means in the generator's native (z-scored) space —
+    # target for the class-mean matching term in MTWGANMLX.loss_gen. Columns
+    # mirror C_full below (every task's one-hot, concatenated in sorted order).
+    _c_full = np.concatenate([train_labels[t] for t in sorted(train_labels.keys())], axis=1)
+    _flat = train_data.reshape(len(train_data), -1)
+    gan.class_means = mx.array(np.stack([
+        _flat[_c_full[:, j] > 0].mean(axis=0)
+        if np.any(_c_full[:, j] > 0) else np.zeros(_flat.shape[1], dtype="float32")
+        for j in range(_c_full.shape[1])
+    ]).astype("float32"))
 
     save_path = kwargs.get("save_path")
     model_loaded = False

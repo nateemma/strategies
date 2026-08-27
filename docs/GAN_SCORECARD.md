@@ -287,3 +287,65 @@ mean placement. Utility (Δval_mcc) remains below the probe's resolution floor, 
 MT_WGAN-MLX has no class-mean term either. It supervises conditioning through
 multi-task aux heads instead, which is consistent with its intermediate profile
 (Δμ ~1.0 vs single-task's ~2.9, but σ still 0.55). Untested there.
+
+## MT_WGAN-MLX — same missing term, plus a real scale mismatch
+
+MT_WGAN-MLX showed the same fingerprint as the single-task path (σ ~0.52,
+Δμ ~1.2). Two defects, and they only pay off TOGETHER.
+
+### 1. The critic compared two different spaces
+
+`_postprocess` de-normalises z-scored output back to raw space and clips to the
+real [min,max]. It was applied to `fake_x` inside BOTH training losses, while
+`real_x` is z-scored. Measured at step 0:
+
+| tensor the critic sees | mean | std | min | max |
+|---|---|---|---|---|
+| real_x | 0.006 | 1.002 | -4.000 | 4.000 |
+| fake (post-`_postprocess`) | 0.043 | 0.289 | -0.999 | 1.000 |
+
+The critic could separate real from fake on magnitude alone. `_postprocess`
+belongs on the OUTPUT path (`generate`) only, which is what the surrounding
+comment always said it was for.
+
+### 2. No class-mean supervision
+
+The aux task heads supervise CLASSIFIABILITY, not PLACEMENT, so — as in the
+single-task path — nothing told the generator where each class sits.
+
+### They are not independent (3 seeds)
+
+| variant | worst Δμ/σ | σ_ratio | max Δcorr |
+|---|---|---|---|
+| current | 0.997/0.983/0.911 | 0.50/0.57/0.57 | 0.954/0.868/1.182 |
+| remove `_postprocess` ONLY | 0.894/1.021/0.841 | 0.43/0.41/0.49 | 1.124/1.027/1.043 |
+| class-mean ONLY (raw space) | 0.828/0.786/0.939 | 0.77/0.77/0.70 | 0.903/0.702/1.052 |
+| **BOTH (z-space, w=10)** | **0.219/0.202/0.207** | **0.96/0.92/0.88** | **0.532/0.630/0.611** |
+
+**Removing `_postprocess` alone does nothing** — it looks like a dead end in
+isolation. It only matters because it makes the target space coherent for the
+class-mean term. Either fix alone would have been recorded as a weak result.
+
+`cond_loss_weight=10.0` here vs 2.0 single-task: MT's loss carries adversarial +
+aux terms, so the same relative weight needs a larger constant. Both were picked
+for stability across all three seeds, not best-on-one.
+
+### Result (scorecard, 3 seeds, vs the original baseline at the top of this doc)
+
+| | Δμ/σ | σ_ratio | max Δcorr | NN |
+|---|---|---|---|---|
+| WGAN/MLX | 2.43 → **0.14** | 0.426 → **1.072** | 1.246 → **0.826** | 1.892 → **1.545** |
+| MT_WGAN/MLX | 1.20 → **0.22** | 0.515 → **0.915** | 0.956 → **0.564** | 1.245 → 1.311 |
+
+Both now hold the best mean-placement in the table and sit at σ ≈ 1.
+
+**This inverts finding 1 for the WGAN family.** MT_WGAN-MLX now beats MT_WGAN-TF
+on all four metrics (TF: Δμ 1.83, σ 0.175, Δcorr 0.614, NN 1.353). TF's MT_WGAN
+is now the severely under-dispersed one (σ 0.175) and is the next candidate for
+the same treatment.
+
+Also corrected: a stale comment claimed the MT generator ends in a Tanh bounding
+it to ±1σ. It does not — `MTGeneratorMLX`'s tabular path ends in `nn.Linear`.
+That comment sent this investigation after a nonexistent activation ceiling.
+
+Fidelity only; Δval_mcc remains below the probe's resolution floor.
