@@ -117,7 +117,40 @@ discriminator (:342) and autoencoder in `balance.py`, and GAN_TODO §5's numbers
 are post-filter. Until both are in the table, scorecard rows cannot be compared
 against any historical finding. This also reframes D2.
 
-**D2 — WGAN-MLX joint structure.** WGAN-MLX max dcorr 1.141 and worst dmu 2.212
+**D2 — WGAN-MLX joint structure. DIAGNOSED 2026-08-26: NOT a hyperparameter.**
+Two controlled within-variant sweeps on the real fixture, both REFUTED:
+
+    gp_weight   σ_ratio   max Δcorr   NN     Δμ/σ
+            2     0.380       0.982  1.588  1.378   <- WGAN-TF's value
+           10     0.400       1.151  1.712  1.320
+           50     0.428       1.016  1.713  2.204   <- current
+
+    critic_lr_ratio   σ_ratio   max Δcorr   NN     Δμ/σ
+               0.25     0.386       0.999  1.894  1.703   <- current (TTUR)
+               0.50     0.465       0.848  2.071  2.930
+               1.00     0.448       0.973  2.118  2.618   <- TF-equivalent
+
+Δcorr is flat-to-noisy across both; NN gets WORSE without TTUR. The gp_weight
+hypothesis came from a CROSS-VARIANT correlation (TF 2.0 / MT-TF 10.0 / MLX 50.0
+mapping to best/worse/worst) with n=3 and no controls -- the controlled test kills
+it. `df_wgan_gp.py:933` does carry the comment "Reduced from 10.0 to prevent
+gradient penalty from dominating", so the fix was real FOR TF; it just does not
+transfer.
+
+REMAINING CANDIDATE -- ARCHITECTURE, not tuning. WGAN-TF offers four generator
+architectures (BASELINE / CNN / DCGAN / MLP) and defaults to a Conv1D residual
+CNN (`wgangp_gen_cnn`). WGAN-MLX has ZERO architecture options -- grep for
+`architecture|Conv` returns 0; it is a pure nn.Linear MLP. So the WGAN parity gap
+is an absent architecture on the MLX side, which is a port rather than a tweak.
+NOTE this inverts the framing the work began with: here MLX is missing what TF
+has. Confirm by forcing TF to architecture="mlp" and checking its Δcorr degrades
+toward MLX's before committing to the port.
+
+ALSO FOUND: `gp_weight` is not reachable through the MLX path at all --
+`balance_with_wgan_mlx` has no such parameter, so WGAN-MLX is hardwired to 50.0.
+A configurability gap independent of whether 50.0 is the right value.
+
+**D2 (original text) — WGAN-MLX joint structure.** WGAN-MLX max dcorr 1.141 and worst dmu 2.212
 against TF's 0.211 / 0.229 on identical data. MLX is the WEAKER implementation
 here, inverting the premise that TF is the laggard. Diagnose before fixing:
 TTUR / critic-LR ratio and the absence of EMA in `df_wgan_mlx.py` are the
