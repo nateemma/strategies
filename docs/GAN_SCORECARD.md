@@ -398,9 +398,14 @@ CTAB_GAN/TF and MT_CTAB_GAN/TF hold the worst joint structure left in the table
 (Δcorr ~1.03-1.08) while CTAB_GAN/MLX reaches 0.37. Investigated; two findings,
 neither yet actioned.
 
-### 1. Model selection restores epoch 1 and discards all training
+### 1. Model selection can restore epoch 1 and discard all training
 
-Verified in fresh processes (seed 42, one process per row):
+CORRECTION: an earlier draft of this section called this universal. It is NOT —
+it is seed-dependent. On seeds 7 and 13 `eval_quality` selects epoch 26; only
+seed 42 collapses to epoch 1. It is a catastrophic TAIL, not the typical case,
+and that is still reason enough to fix it (see the worst-case column below).
+
+Verified in fresh processes (seed 42 — the collapsing seed, one process per row):
 
 | epochs | σ_ratio | max Δcorr | best epoch |
 |---|---|---|---|
@@ -450,3 +455,39 @@ needs a decision rather than a unilateral edit.
 METHOD NOTE: an earlier version of this sweep ran every config in ONE process
 and was wrong — MLX rows share a global RNG, so each row sat at a different
 point in the stream. Run one process per configuration when comparing.
+
+## CTAB composite FIXED — selection no longer rewards an untrained generator
+
+Actioned after the finding above. `correlation_score` now derives from
+`correlation_error` (mean |real_corr − gen_corr|), which falls monotonically as
+the model learns, instead of `corr(real_corr_vec, gen_corr_vec)` clamped at 0,
+which pins at 0.000 for exactly as long as the model has not learned joint
+structure — and so stops ranking epochs precisely when ranking matters.
+
+Applied to BOTH backends (`ctab_gan_base.py` and `mlx_ctab_helpers.py`), which
+carried structurally identical composites. Keeping them in parity is the point.
+
+### CTAB_GAN-TF, 40 epochs, 3 seeds (one process per run)
+
+| criterion | mean Δμ | mean σ | mean Δcorr | mean NN | WORST-CASE σ |
+|---|---|---|---|---|---|
+| eval_quality (was) | 1.033 | 1.016 | 1.062 | **1.961** | **0.828** (ep 1 collapse) |
+| eval_statistical | 0.923 | 1.057 | **1.029** | 2.083 | 1.016 |
+| **fixed composite (now)** | **0.823** | 1.111 | 1.063 | 2.052 | **1.101** |
+
+Chosen on WORST CASE, not mean: the means are close, but the old criterion has a
+tail where it throws away every epoch of training. The fix removes that tail and
+gives the best mean placement. `eval_statistical` was the alternative — better
+Δcorr, but it leaves the composite itself broken for every other consumer.
+
+### Honest limits of this fix
+
+- **Joint structure is NOT fixed.** Δcorr stays ~1.06. This repairs SELECTION,
+  not learning. CTAB-TF still fails to learn correlation at every epoch while
+  CTAB-MLX reaches 0.26 — that gap remains unexplained.
+- **NN ratio gets worse** (1.961 → 2.052): the selected model is further
+  off-manifold than the untrained one. Off-manifold is the one defect the
+  downstream AE/density filters DO repair (see D1 above), so this is the
+  acceptable side of the trade — but it is a real regression on that metric.
+- Scorecard rows move little because it runs CTAB at 8 epochs, where there is
+  barely any training to preserve. The 40-epoch table above is the evidence.

@@ -476,7 +476,26 @@ def _compute_overall_score(metrics: Dict[str, Any]) -> Dict[str, float]:
     diversity_score = 1.0 - abs(1.0 - diversity_ratio) * 0.5
     diversity_score = max(0.0, min(1.0, diversity_score))
 
-    corr_pres = metrics["correlation"].get("correlation_preservation", 0.0)
+    # correlation_preservation is corr(real_corr_vec, gen_corr_vec) clamped
+    # at 0. Whenever the generator has not yet learned joint structure it is
+    # <= 0, so 40% of `overall` becomes a CONSTANT and stops ranking epochs,
+    # leaving diversity -- which is MAXIMAL for an untrained generator
+    # (ratio 1.0 at init) -- to decide. Self-reinforcing: the selected model
+    # never learns correlation, so the term never unpins. Measured on
+    # CTAB-TF seed 42: best epoch = 1 at 8, 40 AND 100 epochs, identical
+    # eval_quality=0.5766 -- every epoch of training discarded.
+    #
+    # correlation_error (mean |real_corr - gen_corr|) falls monotonically as
+    # the model learns, so it keeps ranking below the point where
+    # corr-of-corr saturates. Across 3 seeds this removed the failure mode
+    # (worst-case sigma_ratio 0.828 -> 1.101) and gave the best mean
+    # placement (worst dmu 1.033 -> 0.823). Joint structure itself is
+    # unchanged (dcorr ~1.06) -- this fixes SELECTION, not learning.
+    corr_err = metrics["correlation"].get("correlation_error")
+    if corr_err is not None:
+        corr_pres = 1.0 - float(corr_err)
+    else:
+        corr_pres = metrics["correlation"].get("correlation_preservation", 0.0)
     correlation_score = max(0.0, min(1.0, corr_pres))
 
     mean_err = metrics["statistics"].get("mean_error_avg", 1.0)
