@@ -49,6 +49,7 @@ def build_real_fixture(
     n_rows: int = 4000,
     horizon: int = 8,
     start: str = "2025-01-01",
+    seed: int = 42,
 ) -> Tuple[np.ndarray, np.ndarray, List[str]]:
     """Return (X, one-hot y, feature_names) from the production indicator set."""
     from Framework.FeatureNormalizer import FeatureNormalizer
@@ -85,7 +86,7 @@ def build_real_fixture(
     allf = pd.concat(frames, ignore_index=True)
     feat_cols = [c for c in allf.columns if c != "_fwd"]
     if len(allf) > n_rows:
-        allf = allf.sample(n_rows, random_state=42).reset_index(drop=True)
+        allf = allf.sample(n_rows, random_state=seed).reset_index(drop=True)
 
     x = allf[feat_cols].to_numpy(dtype="float32")
     q = allf["_fwd"].quantile([1 / 3, 2 / 3]).to_numpy()

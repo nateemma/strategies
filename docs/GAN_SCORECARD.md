@@ -60,10 +60,10 @@ mechanisms; a variant can be saturated under one and read 0 under the other.
    under-capacity (production d_model=256 gives 3.88 vs toy d32's 3.94). This is
    what the AE filter downstream exists to clean up — see the caveat above.
 
-3. **Every variant has a NEGATIVE delta_val_mcc** (-0.002 to -0.034) on this
-   target. Consistent with GAN_TODO §4/§5: augmentation on the same features does
-   not add information. Best is MT_CTAB_GAN-MLX (-0.0024), worst MT_WGAN-MLX
-   (-0.0338). Do not over-read the ordering — these are all near zero.
+3. ~~Every variant has a NEGATIVE delta_val_mcc.~~ **RETRACTED — that was
+   single-seed noise.** Across 3 seeds, 10 of 11 variants FLIP SIGN (see the
+   3-seed section). The utility probe as built cannot resolve an effect this
+   small. Do not use the utility column for anything until it is strengthened.
 
 4. **CGAN has no MLX backend**; `resolve_backend(prefer_mlx=True)` silently falls
    back to TF. The driver records this rather than double-counting the TF row.
@@ -76,3 +76,48 @@ mechanisms; a variant can be saturated under one and read 0 under the other.
 Task D is populated from this table. The highest-value follow-up is measuring
 **post-filter** fidelity alongside raw, since that is what production consumes and
 what §5's numbers describe.
+
+
+## 3-seed replication (seeds 42 / 7 / 13)
+
+| variant | σ_syn/σ_real | max Δcorr | NN ratio | Δval_mcc | utility sign |
+|---|---|---|---|---|---|
+| CGAN-TF | 0.56/0.53/0.56 | 0.40/0.40/0.34 | 1.17/1.18/1.17 | -0.013/+0.019/+0.004 | **FLIPS** |
+| CTAB_GAN-MLX | 1.03/1.04/1.04 | 0.41/0.41/0.32 | 1.35/1.29/1.35 | -0.035/+0.006/-0.005 | **FLIPS** |
+| CTAB_GAN-TF | 0.83/1.11/1.11 | 1.03/1.01/1.14 | 1.79/2.01/2.08 | -0.005/-0.016/+0.001 | **FLIPS** |
+| MT_CTAB_GAN-MLX | 1.02/1.03/1.03 | 0.41/0.40/0.36 | 1.34/1.28/1.33 | -0.013/-0.006/+0.003 | **FLIPS** |
+| MT_CTAB_GAN-TF | 0.95/0.92/1.07 | 1.08/1.03/1.13 | 2.07/2.11/2.18 | -0.013/+0.030/-0.007 | **FLIPS** |
+| MT_DDPM-MLX | 3.97/3.98/3.86 | 1.08/0.94/1.28 | 7.43/7.40/7.32 | -0.030/+0.010/-0.016 | **FLIPS** |
+| MT_WGAN-MLX | 0.50/0.50/0.55 | 1.06/0.89/0.92 | 1.22/1.31/1.21 | -0.016/+0.018/+0.003 | **FLIPS** |
+| MT_WGAN-TF | 0.17/0.18/0.17 | 0.53/0.49/0.69 | 1.46/1.35/1.28 | -0.021/+0.011/-0.025 | **FLIPS** |
+| TAB_DDPM-MLX | 3.93/3.91/3.95 | 0.76/0.67/0.87 | 6.61/6.86/6.81 | -0.028/-0.001/-0.033 | stable |
+| WGAN-MLX | 0.42/0.45/0.41 | 1.23/1.23/1.28 | 1.75/1.68/2.25 | -0.015/+0.015/-0.016 | **FLIPS** |
+| WGAN-TF | 0.80/0.79/0.78 | 0.22/0.22/0.21 | 1.05/1.04/1.06 | -0.022/+0.011/-0.013 | **FLIPS** |
+
+Independent runs: different 4000-row fixture draw, different train/val split, and
+non-deterministic GAN init. Each seed run in its OWN PROCESS (see robustness note).
+
+**Fidelity REPLICATES — every gap holds across all three seeds.** MT_WGAN-TF's
+severe under-dispersion is 0.17/0.18/0.17; WGAN-MLX's joint-structure loss is
+1.23/1.23/1.28; CTAB-MLX is the correlation reference at 0.32-0.41. The fidelity
+metrics are a reliable instrument and the fix list can rest on them.
+
+**UTILITY DOES NOT REPLICATE — 10 of 11 variants flip sign.** Only TAB_DDPM-MLX is
+sign-stable. The probe (300 synth vs ~2800 train rows, MCC on a 1200-row val
+split) has less resolution than the effect it measures. Fix before use: many more
+synthetic samples, averaging over repeats inside the probe, and/or a larger
+fixture. Until then the utility column is decoration.
+
+**This is why the gate existed.** Four of five single-seed claims survived; the
+fifth was noise and would have put half the fix list on a metric that cannot
+support it.
+
+## Robustness note — do NOT run all backends in one process
+
+Alternating tensorflow-metal and MLX fits in a single process can trip
+`MPSGraphExecutable.mm:3457: failed assertion 'Incompatible element type for
+parameter at index 0, mlir module expected element type f32 but received f16'`,
+which SIGABRTs (exit 134) and therefore cannot be caught. Non-deterministic: one
+seed completed the identical sequence, the next died at the same TF->MLX
+transition. Run one process per seed (or per backend). Rhymes with the
+long-background-batch SIGKILLs noted in project_noisycoconut_infra: isolate runs.

@@ -104,6 +104,13 @@ alone would report ~0 for every CTAB row regardless of how saturated it was.
 
 Baseline: `docs/GAN_SCORECARD.md`. Ordered by evidence strength.
 
+**D0 — STRENGTHEN THE UTILITY PROBE (blocks any utility-driven work).** 3-seed
+replication showed 10 of 11 variants FLIP SIGN on delta_val_mcc. The probe cannot
+currently resolve the effect. Raise n_synth well above 300, average over repeats
+inside the probe, enlarge the fixture, and re-verify that a known-bad synth
+(random labels) still reads clearly negative while the seed spread on a
+known-good one closes. Until this lands, NO decision may cite the utility column.
+
 **D1 — measure POST-FILTER fidelity alongside raw.** Highest value. The scorecard
 measures raw `generate()`; production consumes output filtered by density (:322),
 discriminator (:342) and autoencoder in `balance.py`, and GAN_TODO §5's numbers
