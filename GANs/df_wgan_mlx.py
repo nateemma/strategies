@@ -61,12 +61,16 @@ class WGANMLX:
     # before being fed to the generator/critic.
     _ZSCORE_CLIP: float = 4.0
 
-    def __init__(self, num_features: int, num_classes: int, latent_dim: int = 64, gp_weight: float = 50.0, learning_rate: float = 1e-4, grad_clip: float = 10.0, critic_lr_ratio: float = 0.25):
+    def __init__(self, num_features: int, num_classes: int, latent_dim: int = 64, gp_weight: float = 50.0, learning_rate: float = 1e-4, grad_clip: float = 10.0, critic_lr_ratio: float = 0.25, cond_loss_weight: float = 2.0):
         self.latent_dim = latent_dim
         self.num_classes = num_classes
         self.num_features = num_features
         self.gp_weight = gp_weight
         self.grad_clip = grad_clip
+        self.cond_loss_weight = cond_loss_weight
+        # Per-class feature means in the generator's native (z-scored,
+        # clipped) space. Set at fit time; used only by loss_gen.
+        self.class_means: Optional[mx.array] = None
         self.gen = Generator(latent_dim, num_classes, num_features)
         self.critic = Critic(num_features, num_classes)
         # TTUR (Heusel 2017): critic LR < generator LR to slow critic
@@ -100,7 +104,32 @@ class WGANMLX:
     def loss_gen(self, model, z, c):
         fake_x = self.gen(z, c)
         fake_score = self.critic(fake_x, c)
-        return -mx.mean(fake_score)
+        loss = -mx.mean(fake_score)
+
+        # Class-mean matching. Without this the generator's ONLY conditioning
+        # signal is the critic, and the critic's Wasserstein term was measured
+        # at ~0.7% of its loss (the gradient penalty dominates at gp=50), so
+        # class placement never got learned. Raw MLX WGAN scored
+        # worst dmu/sigma ~3.2 and sigma_syn/sigma_real ~0.42.
+        #
+        # This matches the per-class BATCH mean, NOT each sample to its class
+        # mean. df_wgan_gp.py:1229 uses the per-sample form because it reduces
+        # over a seq axis first; at seq_len=1 that form degenerates to pulling
+        # every sample onto its class centroid and collapses dispersion
+        # (measured: sigma_ratio 0.40 -> 0.18). The moment form improved dmu,
+        # sigma, dcorr AND nn_ratio on 3/3 seeds; w=2.0 was the only weight
+        # stable across all three (0.5 and 10.0 each regressed on seed 13).
+        if self.cond_loss_weight and self.class_means is not None:
+            present = mx.sum(c, axis=0)                       # (K,)
+            cls_mean = (c.T @ fake_x) / mx.maximum(present[:, None], 1e-6)
+            err = mx.mean(mx.square(cls_mean - self.class_means), axis=1)
+            # Mask classes absent from this batch: their cls_mean is 0/eps and
+            # would otherwise contribute a meaningless penalty.
+            mask = (present > 0).astype(mx.float32)
+            loss = loss + self.cond_loss_weight * (
+                mx.sum(err * mask) / mx.maximum(mx.sum(mask), 1.0)
+            )
+        return loss
 
     def save(self, path: str):
         """Persist generator weights + the z-score stats needed by generate().
@@ -217,6 +246,15 @@ def balance_with_wgan_mlx(
     ).astype(np.float32)
 
     X = mx.array(train_data_zscored, dtype=mx.float32)
+
+    # Per-class means in the generator's native space — target for the
+    # class-mean matching term in WGANMLX.loss_gen.
+    _cls_idx = np.asarray(train_labels).argmax(axis=1)
+    gan.class_means = mx.array(np.stack([
+        train_data_zscored[_cls_idx == k].mean(axis=0)
+        if np.any(_cls_idx == k) else np.zeros(num_features, dtype="float32")
+        for k in range(num_classes)
+    ]).astype("float32"))
     y = mx.array(train_labels, dtype=mx.float32)
     
     save_path = kwargs.get("save_path")

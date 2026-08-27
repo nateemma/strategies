@@ -234,3 +234,56 @@ just does not convert that into joint structure.
 **Status: root cause unfound.** The defect is generator-side conversion of a
 working critic signal, not the critic, the penalty, or the architecture. Do not
 re-test the five items above.
+
+## D2 RESOLVED (partly) — the missing term was class-mean supervision
+
+Found by diffing the TF and MLX **generator losses**, after the five model-side
+hypotheses above were refuted.
+
+`df_wgan_gp.py:1229` adds a class-mean matching term to the TF generator loss.
+`df_wgan_mlx.py` had no equivalent: its `loss_gen` was `-mean(critic(fake))` and
+nothing else. So the MLX generator's ONLY conditioning signal was the critic —
+and the critic's Wasserstein term is ~0.7% of its loss, the rest being the
+gradient penalty. Class placement therefore never got learned. The fingerprint
+was in the table the whole time: MLX `worst Δμ/σ` ~2.9-3.5 vs TF ~0.2, a pure
+mean-placement failure, not a capacity or optimisation failure.
+
+### The form matters: match the BATCH mean, not each sample
+
+TF reduces over a seq axis before comparing (`reduce_mean(fake_x, axis=1)`). At
+seq_len=1 — which is what tabular use is — that degenerates into pulling every
+sample onto its class centroid, which destroys dispersion. Measured, seed 42:
+
+| form | worst Δμ/σ | σ_ratio | max Δcorr |
+|---|---|---|---|
+| none | 3.544 | 0.400 | 1.302 |
+| per-sample (TF's literal form) w=2.0 | 1.562 | **0.180** | 0.986 |
+| per-class batch mean w=2.0 | 0.277 | **1.171** | 0.707 |
+
+**Porting TF's code verbatim would have made dispersion worse.** The moment form
+is the correct one at seq_len=1. w=2.0 was the only weight stable on all three
+seeds (w=0.5 and w=10.0 each regressed on seed 13).
+
+### Result (scorecard, 3 seeds, `cond_loss_weight=2.0` default)
+
+| WGAN/MLX | before | after | WGAN/TF for reference |
+|---|---|---|---|
+| worst Δμ/σ | 2.87 | **0.18** | 0.24 |
+| σ_syn/σ_real | 0.382 | **1.108** | 0.785 |
+| max Δcorr | 1.241 | **0.781** | 0.224 |
+| NN ratio | 2.402 | **1.608** | 1.029 |
+
+Under-dispersion is GONE (0.38 → 1.11) and mean placement is now the best in the
+table. **This also removes WGAN-MLX from the "filters can't fix under-dispersion"
+problem recorded above** — that finding was measured on the broken generator.
+
+### Still open
+
+`max Δcorr` 0.78 vs TF's 0.22. Joint structure improved 37% but is not fixed;
+the remaining gap is genuine joint-distribution learning, no longer confounded by
+mean placement. Utility (Δval_mcc) remains below the probe's resolution floor, so
+**no trading claim is made here — this is a fidelity result only.**
+
+MT_WGAN-MLX has no class-mean term either. It supervises conditioning through
+multi-task aux heads instead, which is consistent with its intermediate profile
+(Δμ ~1.0 vs single-task's ~2.9, but σ still 0.55). Untested there.
