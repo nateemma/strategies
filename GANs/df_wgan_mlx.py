@@ -287,62 +287,70 @@ def balance_with_wgan_mlx(
 
             d_val = loss_c.item()
             g_val = loss_g.item()
+            # Magnitude score. Used ONLY for divergence detection, where abs()
+            # is correct because a diverging WGAN explodes in either direction.
+            # It must NOT rank epochs by quality: in WGAN-GP
+            # g_loss = -E[critic(fake)], so an IMPROVING generator goes MORE
+            # NEGATIVE and abs() would rank the LEAST-trained generator best.
+            # Measured before this fix: G moved -0.018 -> -0.98 across 30 epochs
+            # while the old abs()-scored selector restored epoch 6 (G=-0.0126).
             epoch_score = abs(d_val) + abs(g_val)
 
             if verbose:
                 if (epoch < 10) or ((epoch + 1) % 5 == 0):
                     print(f"      Epoch {epoch+1}/{epochs} | D Loss: {d_val:.4f} | G Loss: {g_val:.4f}")
 
-            # --- best checkpoint ---
+            # --- divergence tracking + last-known-good checkpoint ---
+            # The checkpoint exists to RECOVER FROM DIVERGENCE, so it snapshots
+            # the most recent NON-divergent epoch rather than a "best" one.
             if epoch_score < best_score:
-                best_score = epoch_score
-                best_epoch = epoch
-                diverge_count = 0          # reset patience on improvement
+                best_score = epoch_score      # reference magnitude for the ratio test
+            is_divergent = (
+                epoch_score > degrade_factor * best_score
+                or abs(d_val) > abs_d_ceil
+                or abs(g_val) > abs_g_ceil
+            )
+            if not is_divergent:
+                best_epoch = epoch            # last known good
+                diverge_count = max(0, diverge_count - 1)
                 try:
                     gan.gen.save_weights(best_gen_path)
                     gan.critic.save_weights(best_critic_path)
                 except Exception:
                     pass  # checkpoint is best-effort
             else:
-                # Count as divergent if score is far worse than best OR above ceiling
-                is_divergent = (
-                    epoch_score > degrade_factor * best_score
-                    or abs(d_val) > abs_d_ceil
-                    or abs(g_val) > abs_g_ceil
-                )
-                if is_divergent:
-                    diverge_count += 1
+                diverge_count += 1
+                if verbose:
+                    print(
+                        f"      WARNING: loss divergence detected "
+                        f"(D={d_val:.2f}, G={g_val:.2f}), "
+                        f"count {diverge_count}/{diverge_patience}"
+                    )
+                if diverge_count >= diverge_patience:
                     if verbose:
                         print(
-                            f"      WARNING: loss divergence detected "
-                            f"(D={d_val:.2f}, G={g_val:.2f}), "
-                            f"count {diverge_count}/{diverge_patience}"
+                            f"    Stopping early at epoch {epoch+1} due to divergence. "
+                            f"Last good epoch was {best_epoch+1}."
                         )
-                    if diverge_count >= diverge_patience:
-                        if verbose:
-                            print(
-                                f"    Stopping early at epoch {epoch+1} due to divergence. "
-                                f"Best was epoch {best_epoch+1} "
-                                f"(score={best_score:.4f})."
-                            )
-                        stopped_early = True
-                        break
-                else:
-                    diverge_count = max(0, diverge_count - 1)
+                    stopped_early = True
+                    break
 
         if verbose:
             print(f"    MLX WGAN training complete in {time.time() - start_time:.2f}s")
 
-        # Restore best checkpoint if training diverged or ended past the best epoch
-        if best_epoch >= 0 and (stopped_early or best_epoch < last_epoch - 1):
+        # Restore ONLY on divergence. The old condition also fired whenever
+        # best_epoch < last_epoch - 1 which, with a score that favours an
+        # untrained generator, rolled back nearly every run and discarded most
+        # of training.
+        if stopped_early and best_epoch >= 0:
             try:
                 gan.gen.load_weights(best_gen_path)
                 gan.critic.load_weights(best_critic_path)
                 mx.eval(gan.gen.parameters(), gan.critic.parameters())
                 if verbose:
                     print(
-                        f"    Restored best model from epoch {best_epoch+1} "
-                        f"(score={best_score:.4f})"
+                        f"    Diverged -- restored last good model from "
+                        f"epoch {best_epoch+1}"
                     )
             except Exception as e:
                 if verbose:
