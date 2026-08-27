@@ -179,3 +179,58 @@ generator-side; DROP off-manifold from the list (filters handle it).
 CAVEAT: the AE filter here is a nearest-neighbour STAND-IN. The real
 `filter_by_autoencoder` needs a pretrained artifact from a CreateAutoencoderFilter
 run. Re-verify against the real filter before acting on the AE-specific reading.
+
+## D2 — WGAN-MLX joint-structure failure (root cause OPEN)
+
+WGAN-MLX is the widest gap in the table: max Δcorr ~1.24 vs WGAN-TF's ~0.21, on
+identical data and a matched MLP architecture. One real bug was found and fixed;
+it did NOT close the gap.
+
+### Bug found and fixed (commit `ac70690`)
+
+The MLX checkpoint selector ranked epochs by `abs(d_loss) + abs(g_loss)`. In
+WGAN-GP `g_loss = -E[critic(fake)]`, so an improving generator moves MORE
+NEGATIVE and `abs()` scores it as worse. Measured: G moved -0.018 → -0.98 over
+30 epochs while the selector restored epoch 6 (G=-0.0126) — it reliably threw
+training away. The checkpoint now snapshots the last non-divergent epoch and
+restores only on early stop; `abs()` is kept for divergence detection, where it
+is correct.
+
+### Effect of the fix on fidelity: NONE (3 seeds, 42/7/13)
+
+| variant | σ pre → post | max Δcorr pre → post | post sd |
+|---|---|---|---|
+| WGAN-MLX | 0.426 → 0.382 | 1.246 → **1.241** | 0.144 |
+| MT_WGAN-MLX | 0.515 → 0.548 | 0.956 → 1.021 | 0.116 |
+
+Δcorr is unchanged well inside seed noise. **The fix is correct on its own merits
+— it stopped discarding training — but it is not the cause of the gap.**
+
+NOTE: non-WGAN **MLX** rows also shift slightly post-fix (TAB_DDPM Δcorr
+0.769→0.591) while every **TF** row is byte-identical. The fix touched only
+`df_wgan_mlx.py`; the MLX moves are shared-global-RNG drift from WGAN now running
+its full epoch budget. Treat them as re-draws, not effects. MT_WGAN-**TF** is also
+not reproducible run-to-run (0.571→0.638 with no TF code change).
+
+### Hypotheses tested and REFUTED
+
+Five candidate causes were measured and eliminated. None is the cause:
+
+1. **Checkpoint selection** — fixed above; Δcorr unchanged.
+2. **`gp_weight` too high (50)** — swept 0.0/0.05/0.2/1.0/50.0. At `gp_weight=0`,
+   with the gradient penalty entirely disabled, Δcorr is still 1.145.
+3. **GP dominating the loss** — confirmed true (GP contributes ~50 vs Wasserstein
+   0.36, i.e. Wasserstein is 0.71% of critic loss) but NOT causal, per (2).
+4. **Architecture (CNN vs MLP)** — WGAN-TF forced to `architecture=mlp` still
+   reaches Δcorr 0.239. Architecture is not the discriminator.
+5. **TTUR / critic capacity** — no trajectory change.
+
+Also measured, non-causal: the critic's input-gradient norm is ~0.0013, ~800x
+below the penalty's target of 1.0, so `gp` sits pinned at ~0.997. The critic is
+NOT dead — `critic(x)` mean +0.041 vs `critic(2x)` mean -0.014, and w_loss
+improves (E[C(real)] 1.17 vs E[C(fake)] 0.68). It discriminates; the generator
+just does not convert that into joint structure.
+
+**Status: root cause unfound.** The defect is generator-side conversion of a
+working critic signal, not the critic, the penalty, or the architecture. Do not
+re-test the five items above.
