@@ -137,7 +137,25 @@ it. `df_wgan_gp.py:933` does carry the comment "Reduced from 10.0 to prevent
 gradient penalty from dominating", so the fix was real FOR TF; it just does not
 transfer.
 
-REMAINING CANDIDATE -- ARCHITECTURE, not tuning. WGAN-TF offers four generator
+ARCHITECTURE ALSO REFUTED (2026-08-26). Forcing TF to the same MLP generator
+leaves it just as good, so an MLP can clearly learn this joint structure:
+
+    config                      σ_ratio   max Δcorr    NN    Δμ/σ
+    WGAN-TF default (CNN)         0.788       0.214  1.055   0.258
+    WGAN-TF architecture="mlp"    0.814       0.239  1.048   0.169
+    WGAN-MLX (MLP-only)           0.385       1.270  1.320   1.281
+
+MLX at the SAME architecture is ~5x worse on Δcorr and half the dispersion.
+THREE hypotheses now refuted (gp_weight, TTUR, architecture), every one formed by
+READING CODE and comparing implementations. STOP HYPOTHESISING FROM SOURCE.
+
+NEXT STEP IS INSTRUMENTATION, not another guess: log per-epoch generator output
+std and max Δcorr for TF-MLP and MLX-MLP on identical data, and find WHERE they
+diverge -- early (init / input scaling) or late (collapse during training). That
+localises the fault instead of proposing another candidate. Only then propose a
+fix.
+
+Superseded note -- ARCHITECTURE INVENTORY (still true, just not the cause). WGAN-TF offers four generator
 architectures (BASELINE / CNN / DCGAN / MLP) and defaults to a Conv1D residual
 CNN (`wgangp_gen_cnn`). WGAN-MLX has ZERO architecture options -- grep for
 `architecture|Conv` returns 0; it is a pure nn.Linear MLP. So the WGAN parity gap
