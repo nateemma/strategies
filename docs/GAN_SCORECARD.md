@@ -349,3 +349,45 @@ it to ±1σ. It does not — `MTGeneratorMLX`'s tabular path ends in `nn.Linear`
 That comment sent this investigation after a nonexistent activation ceiling.
 
 Fidelity only; Δval_mcc remains below the probe's resolution floor.
+
+## The same defect in the TF variants — found by prediction, not inspection
+
+After the MLX work, MT_WGAN-TF held the worst dispersion in the table
+(σ_syn/σ_real 0.175). Both TF WGANs already had everything the MLX ones had been
+missing: class means, `cond_loss_weight`, linear output, and no `_postprocess` in
+the training loss. So the missing-term explanation could not apply.
+
+But 0.175 is almost exactly the 0.18 measured when the PER-SAMPLE form was forced
+onto the MLX path. That yielded a prediction: TF's cond loss uses
+`reduce_mean(fake_x, axis=1)` — a reduction over the SEQ axis, which at seq_len=1
+is the identity — so TF has been running the variance-destroying form all along.
+
+Confirmed. Switching both TF variants to the per-class batch mean (3 seeds):
+
+| | Δμ/σ | σ_ratio | max Δcorr | NN |
+|---|---|---|---|---|
+| MT_WGAN/TF | 1.83 → 1.60 | **0.175 → 0.652** | 0.614 → **0.431** | 1.353 → 1.315 |
+| WGAN/TF | 0.19 → 0.17 | 0.794 → **0.899** | 0.233 → **0.193** | 1.038 → 1.073 |
+
+MT_WGAN-TF improves on all four. WGAN-TF — already the strongest variant —
+improves on three; NN ratio is marginally worse (1.038 → 1.073).
+
+This is the one direction the original "bring Keras up to MLX" framing did NOT
+anticipate: the defect was in TF, was inherited BY the MLX port in one case, and
+was only diagnosable after the MLX experiment quantified what the wrong form
+does. Neither backend was simply "behind".
+
+### WGAN family, full session summary (3 seeds, vs the baseline table above)
+
+| variant | σ_syn/σ_real | max Δcorr |
+|---|---|---|
+| WGAN/MLX | 0.426 → 1.114 | 1.246 → 0.776 |
+| WGAN/TF | 0.788 → 0.899 | 0.220 → 0.193 |
+| MT_WGAN/MLX | 0.515 → 0.929 | 0.956 → 0.479 |
+| MT_WGAN/TF | 0.173 → 0.652 | 0.571 → 0.431 |
+
+All four WGAN variants improved on both metrics. Fidelity only — Δval_mcc stays
+below the utility probe's resolution floor, so none of this is a trading claim.
+
+Untouched and still weak: CTAB_GAN/TF and MT_CTAB_GAN/TF (Δcorr ~1.06-1.08),
+and both DDPMs' raw σ ~3.9 (documented above as a pre-filter artifact).

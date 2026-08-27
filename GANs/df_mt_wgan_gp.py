@@ -373,10 +373,22 @@ class MT_WGAN_GP(Model):
                 feat_std  = tf.reshape(tf.cast(self.feature_std,  dtype), (1, 1, -1))
                 class_means_norm = (tf.cast(self.class_means, dtype) - feat_mean[0]) / feat_std[0]
                 c_task = tf.cast(labels[self.primary_task], dtype)      # (batch, num_classes)
-                target = tf.matmul(c_task, class_means_norm)            # (batch, num_features)
-                target = tf.expand_dims(target, 1)                      # (batch, 1, num_features)
-                fake_means = tf.reduce_mean(fake_x, axis=1, keepdims=True)
-                cond_loss = tf.reduce_mean(tf.square(fake_means - target))
+                # Per-class BATCH mean, NOT per-sample. reduce_mean(fake_x, axis=1)
+                # reduces over the SEQ axis, so at seq_len=1 -- which is all
+                # tabular use -- it degenerates into pulling every sample onto
+                # its class centroid and destroys dispersion. Measured on the
+                # MLX port: sigma_syn/sigma_real 0.40 (no term) -> 0.18
+                # (per-sample) -> 1.17 (batch mean).
+                fake_tavg = tf.reduce_mean(fake_x, axis=1)              # (batch, F)
+                present = tf.reduce_sum(c_task, axis=0)                    # (K,)
+                cls_mean = tf.matmul(c_task, fake_tavg, transpose_a=True) / tf.maximum(
+                    tf.expand_dims(present, -1), 1e-6
+                )                                                        # (K, F)
+                err = tf.reduce_mean(tf.square(cls_mean - class_means_norm), axis=1)
+                mask = tf.cast(present > 0, err.dtype)
+                cond_loss = tf.reduce_sum(err * mask) / tf.maximum(
+                    tf.reduce_sum(mask), tf.constant(1.0, dtype=mask.dtype)
+                )
                 cond_loss = tf.where(tf.math.is_finite(cond_loss), cond_loss, tf.zeros_like(cond_loss))
                 g_loss = g_loss + tf.cast(self.cond_loss_weight, g_loss.dtype) * cond_loss
 
