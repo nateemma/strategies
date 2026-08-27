@@ -135,6 +135,74 @@ equal-weight cap (see MAX_POSITION_WEIGHT — a return/risk-adjusted improvement
   MONOTONIC DEGRADATION -- even a 5% band costs 31pp of return and adds 20pp of
   drawdown. No SMA beats 100.
 
+  ALL THREE WINDOWS (total return %), completing the P1 table above:
+
+    setting        P1       P2       P3     WORST
+    tol 0%       +38.8   +197.1   +401.7   +38.8   <- production, best worst-case
+    tol 5%        +7.6   +144.2   +318.9    +7.6
+    SMA30         +8.2   +200.8   +281.4    +8.2
+    SMA50         -5.4   +305.5   +304.4    -5.4
+    SMA200       -21.8   +174.0   +401.9   -21.8
+    tol 10%      -40.2   +220.5   +251.5   -40.2
+    gate off     -80.5   +198.1   +165.8   -80.5
+
+  Production wins P1 AND P3 outright and has the best worst-case by a wide
+  margin. SMA50's P2 win (+305.5) is the only attractive alternative and it costs
+  44pp in P1. NOTE: in P2, GateTol20 and GateOff return IDENTICAL numbers (187
+  trades, same to the cent) -- BTC never fell more than 20% below its SMA100
+  during 2023-24, so a 20% band IS no gate in that window. Useful as a check that
+  the tolerance knob behaves as intended.
+
+*** SECTOR-BASED SELECTION -- DEAD END, both premises false (2026-08-25) ***
+  Would a sector-aware basket (top-N per sector, or sector rotation) beat plain
+  top-N? Classified the 75-pair universe into 10 sectors (L1 24, MEME 14, PAY 8,
+  INFRA 7, DEFI 7, L2 5, AI 5, GAME 2, CEX 1, unclassified 2).
+
+  1. THE CONCENTRATION IT WOULD FIX DOES NOT EXIST. Over the 751 days holding a
+     full basket, all three positions sit in ONE sector only 6.9% of the time;
+     mean distinct sectors held is 2.39 of 3 (1 sector: 52 days, 2: 355, 3: 344).
+     The top-3 are already spread. Forcing diversification would only push the
+     basket into lower-momentum names.
+     Aside: the most-held sector is L1 at 38%, MEME only 9% -- the strategy mostly
+     holds large caps and OCCASIONALLY catches a meme that runs. The tail names
+     dominate PROFIT, not holdings.
+  2. THE ROTATION IT WOULD EXPLOIT IS NOT THERE. Cross-sectional rank IC of
+     trailing sector momentum vs forward sector return: +0.037 (14d), +0.014
+     (30d), +0.011 (60d). Zero at every horizon.
+
+  Sector-relative (de-meaned) momentum is unlikely to differ from raw momentum
+  either, since sectors carry no differential momentum to de-mean. Consistent
+  with Study 4: universe/pair-selection has no lever here. CAVEAT: the sector map
+  is hand-built and arguable, but no relabelling turns "spread across 2.39
+  sectors" into "concentrated".
+
+*** TOP_N SWEPT (2026-08-25) -- 3 is right; concurrency is book-specific ***
+  TOP_N had never been swept. EXIT_RANK_N scaled 3x with it to preserve the
+  validated band ratio, so arms differ in two parameters -- read as (TOP_N,
+  EXIT_RANK_N) pairs. Sharpe (daily wallet balance):
+
+    TOP_N     P1     P2     P3    WORST
+      3     0.48   1.19   1.72     0.48
+      5     0.61   1.02   1.66     0.61   <- best worst-case
+      8     0.37   0.83   1.37     0.37
+      12    0.35   1.03   1.22     0.35
+
+  3 wins Sharpe in 2 of 3 windows; 5 wins P1 and has the better worst-case. Total
+  return across windows is near-identical (637.6 vs 605.3) and mean Sharpe is
+  1.13 vs 1.10 -- the 3-vs-5 gap is inside the noise band this family shows
+  everywhere. 8 and 12 are clearly worse. KEEP 3.
+
+  THE REAL FINDING IS THE CONTRAST WITH THE REVERSION BOOK. Concurrency works in
+  OPPOSITE directions on the two: momentum Sharpe FALLS 1.13 -> 0.70 going 3 ->
+  12, while OversoldReversion RISES 0.41 -> 0.66 over the same range. That
+  follows from their payoff shapes -- momentum has a NEGATIVE median trade and
+  earns from a fat right tail, so spreading capital dilutes the rare winners;
+  reversion has a POSITIVE median and a high win rate, so more positions harvest
+  more of a reliable body. max_open_trades=3 for momentum and 12 for reversion is
+  not an inconsistency, it is the correct response to two different
+  distributions.
+
+
   THE 2x2 (gate x hysteresis), P1 total return:
 
                     no hysteresis (N=3)   hysteresis (N=9)
