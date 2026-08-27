@@ -491,3 +491,53 @@ gives the best mean placement. `eval_statistical` was the alternative — better
   acceptable side of the trade — but it is a real regression on that metric.
 - Scorecard rows move little because it runs CTAB at 8 epochs, where there is
   barely any training to preserve. The 40-epoch table above is the evidence.
+
+## CTAB-TF joint structure: LOCALIZED to the generator, cause NOT found
+
+The remaining CTAB gap is not weak learning — it is active decorrelation.
+Measured at 40 epochs, seed 42:
+
+| | mean abs off-diagonal corr | corr-of-corr vs real |
+|---|---|---|
+| REAL features | 0.306 | — |
+| CTAB-**MLX** output | 0.265 | **+0.976** |
+| CTAB-**TF** output | 0.059 | −0.046 |
+
+MLX reproduces the real correlation structure almost exactly. TF emits features
+that are very nearly INDEPENDENT.
+
+### Where it happens: inside the generator, before any post-processing
+
+| stage (TF) | mean abs corr |
+|---|---|
+| REAL | 0.306 |
+| raw generator SCALARS (pre-VGM) | **0.078** |
+| final output (post-VGM inverse) | 0.059 |
+
+The generator's own scalar outputs are already decorrelated. The VGM/mode step
+only trims 0.078 → 0.059, so it is NOT the decorrelator. Mode usage is healthy
+too: 9.79 of 10 VGM modes used per column (min 8, max 10) — not mode collapse.
+
+### Tested and REFUTED as the cause
+
+Do not re-test these:
+
+1. **Model selection** — fixed (see above); Δcorr unchanged at ~1.06.
+2. **Training budget** — 8 / 40 / 100 epochs all give Δcorr ~1.03-1.07.
+3. **CTAB-GAN+ aux losses** — `info_loss_weight` / `downstream_loss_weight` at
+   1.0 change `g_loss` (6.00 → 7.14) but not Δcorr (1.066/1.066/1.067).
+4. **VGM inverse / per-column mode sampling** — both backends use deterministic
+   `argmax`, and the split above clears the VGM step.
+5. **BatchNorm inference statistics** — `generator(training=True)` and
+   `training=False` give an identical raw-scalar mean|corr| of 0.078.
+6. **BatchNorm vs LayerNorm** (the one clear architectural difference from MLX,
+   which uses LayerNorm) — swapping it is WORSE, 3 seeds: mean Δμ 0.823 → 1.037,
+   mean Δcorr 1.063 → 1.081. Reverted, not committed.
+7. **CNN backbone** — `use_cnn` already defaults to False; TF is on the MLP path.
+8. **PacGAN packing** — already on at `pac=10`, the mechanism intended to let the
+   critic see joint structure.
+
+The defect is in what the TF generator learns, and none of the architectural or
+scheduling differences examined explain it. CTAB-**MLX** is the working path and
+should be preferred for CTAB use on Apple silicon; CTAB-TF remains usable but
+does not reproduce joint structure.
