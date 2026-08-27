@@ -391,3 +391,62 @@ below the utility probe's resolution floor, so none of this is a trading claim.
 
 Untouched and still weak: CTAB_GAN/TF and MT_CTAB_GAN/TF (Δcorr ~1.06-1.08),
 and both DDPMs' raw σ ~3.9 (documented above as a pre-filter artifact).
+
+## CTAB_GAN-TF — two separate defects; NO default changed
+
+CTAB_GAN/TF and MT_CTAB_GAN/TF hold the worst joint structure left in the table
+(Δcorr ~1.03-1.08) while CTAB_GAN/MLX reaches 0.37. Investigated; two findings,
+neither yet actioned.
+
+### 1. Model selection restores epoch 1 and discards all training
+
+Verified in fresh processes (seed 42, one process per row):
+
+| epochs | σ_ratio | max Δcorr | best epoch |
+|---|---|---|---|
+| 8 | 0.839 | 1.066 | **1** |
+| 40 | 0.828 | 1.033 | **1** |
+| 100 | 0.828 | 1.033 | **1** |
+
+Identical `eval_quality=0.5766` at all three budgets: 100 epochs of compute
+return the epoch-1 model. Mechanism, from `ctab_gan_base.py:211`:
+
+    overall = 0.4*diversity + 0.4*correlation + 0.15*statistical + 0.05*validity
+
+`correlation_preservation` is `corr(real_corr_vec, gen_corr_vec)` clamped by
+`max(0.0, ...)`. It reads 0.000 at EVERY epoch — truthfully, since the model
+never learns correlation structure — so 40% of the criterion is a constant and
+provides no ranking. Selection then falls to `diversity`, which is maximal for
+an untrained generator (ratio 1.000 at epoch 1, decaying to 0.993). Epoch 1
+wins, correlation never improves, and the trap is self-reinforcing.
+
+Note the CTAB-GAN+ auxiliary losses are inert for the same reason: setting
+`info_loss_weight` / `downstream_loss_weight` to 1.0 changes `g_loss`
+(6.00 -> 7.14) but leaves Δcorr at 1.066/1.066/1.067 — the trained model is
+discarded either way. `use_auxiliary=True` still builds and trains the aux
+network, so that compute is spent for nothing.
+
+### 2. Joint structure is bad at EVERY epoch — selection is not the cause
+
+Changing the criterion does pick real epochs, but does not fix Δcorr (40 epochs):
+
+| monitor_metric | best epoch | Δμ/σ | σ_ratio | max Δcorr | NN |
+|---|---|---|---|---|---|
+| eval_quality (current) | 1 | 1.13 | 0.828 | 1.033 | 1.786 |
+| eval_statistical | 13 | 0.67 | 1.016 | 1.017 | 2.085 |
+| eval_correlation | 1 | 1.13 | 0.828 | 1.033 | 1.786 |
+| combined | 18 | 0.59 | 1.053 | 1.156 | 2.074 |
+
+Better selection buys mean and dispersion (Δμ 1.13 -> 0.59, σ 0.83 -> 1.05) but
+Δcorr stays ~1.0 and NN ratio gets WORSE. Meanwhile CTAB_GAN/MLX on the same
+fixture improves monotonically with budget (Δcorr 0.95 @8 -> 0.39 @40 ->
+0.26 @100). So TF CTAB fails to learn joint structure at any epoch, and that
+difference from MLX is still unexplained.
+
+**No default was changed.** Switching `monitor_metric` is a mixed trade (better
+Δμ/σ, worse NN, Δcorr unchanged) and touches production model selection, so it
+needs a decision rather than a unilateral edit.
+
+METHOD NOTE: an earlier version of this sweep ran every config in ONE process
+and was wrong — MLX rows share a global RNG, so each row sat at a different
+point in the stream. Run one process per configuration when comparing.
