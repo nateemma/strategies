@@ -121,3 +121,61 @@ which SIGABRTs (exit 134) and therefore cannot be caught. Non-deterministic: one
 seed completed the identical sequence, the next died at the same TF->MLX
 transition. Run one process per seed (or per backend). Rhymes with the
 long-background-batch SIGKILLs noted in project_noisycoconut_infra: isolate runs.
+
+## D0 — utility probe strengthened, and its floor measured
+
+The probe now averages `n_repeats=10` PAIRED repeats (one split per repeat, used
+for both arms, so the split cancels) and reports `delta_sd` plus a `resolvable`
+flag that is true only when |delta| exceeds its own spread.
+
+Validated on synthetic ground truth: known-BAD synth (random labels) reads ~-0.05
+stably at every budget; known-GOOD synth FLIPS SIGN at k=1 and tightens to an
+across-seed spread of 0.0002 by k=15.
+
+**On the real variants the effect is BELOW THE FLOOR.** At k=10 across 3 seeds,
+sign flips fell from 10/11 to 7/11, but `resolvable` is 0/3 for essentially every
+row: within-run sd is +/-0.016 to +/-0.024 while the deltas are +/-0.001 to
++/-0.008. The effect is 3-20x smaller than its own noise, and averaging pulled
+every variant toward zero.
+
+**Consequence: utility CANNOT RANK these variants.** Differences are smaller than
+~0.007 MCC. Rank on FIDELITY (which replicates to 3 significant figures); use
+utility only as a coarse safety check — does a variant actively poison the
+classifier. This amends spec decision D2, which weighted both axes equally.
+
+Third independent line of evidence for the GAN_TODO §4/§5 information ceiling:
+different target, different classifier, eleven implementations, same conclusion.
+
+## D1 — do the filters repair the defects?  NO (except off-manifold)
+
+Raw `generate()` output vs post-filter (`filter_by_density` reject 0.2, then a
+nearest-neighbour stand-in for the AE at reject 0.3), seeds 42/7:
+
+| variant | σ raw → filt | Δcorr raw → filt | NN raw → filt |
+|---|---|---|---|
+| MT_WGAN-TF | 0.17 → **0.15** | 0.57 → 0.61 | 1.45 → 0.84 |
+| WGAN-MLX | 0.36 → 0.35 | 1.14 → 1.14 | 1.58 → 1.52 |
+| MT_CTAB_GAN-TF | 0.95 → 0.93 | 1.08 → 1.15 | 2.07 → 1.87 |
+| CTAB_GAN-TF | 0.83 → 0.81 | 1.03 → 0.92 | 1.79 → 1.61 |
+| MT_DDPM-MLX | 3.96 → 3.97 | 1.12 → 0.97 | 7.36 → 7.25 |
+| WGAN-TF | 0.78 → 0.79 | 0.21 → 0.26 | 1.04 → 0.99 |
+
+- **Under-dispersion SURVIVES and slightly WORSENS.** The filters are REJECTION
+  mechanisms: rejecting outliers narrows an already-narrow distribution. Rejection
+  cannot add variance that was never generated.
+- **Joint-structure loss SURVIVES untouched.** A filter cannot repair a
+  correlation structure that is wrong across the whole population.
+- **Off-manifold-ness IS repaired** (NN drops 5-40%) — that is what the AE
+  targets, and it is therefore already handled downstream.
+
+**This explains GAN_TODO §5's AE-off > AE-on result.** §5 recorded it as an
+operating-point flip; the mechanism is that the AE filter narrows an already
+under-dispersed distribution. Every GAN in this family has sigma_ratio < 1, so the
+filter is counterproductive on dispersion while helping only on manifold.
+
+**Phase F scope, now evidence-backed:** fix under-dispersion and joint structure
+generator-side; DROP off-manifold from the list (filters handle it).
+
+CAVEAT: the AE filter here is a nearest-neighbour STAND-IN. The real
+`filter_by_autoencoder` needs a pretrained artifact from a CreateAutoencoderFilter
+run. Re-verify against the real filter before acting on the AE-specific reading.

@@ -102,3 +102,35 @@ def bound_saturation(real: np.ndarray, synth: np.ndarray, tol: float = 1e-4) -> 
     at_lo = np.abs(s - lo[None, :]) <= tol * span[None, :]
     at_hi = np.abs(s - hi[None, :]) <= tol * span[None, :]
     return float((at_lo | at_hi).mean())
+
+
+def manifold_reject(real: np.ndarray, synth: np.ndarray, reject_pct: float,
+                    *, max_n: int = 2000, seed: int = 0) -> np.ndarray:
+    """Drop the ``reject_pct`` fraction of synth furthest from the real manifold.
+
+    Stand-in for the production autoencoder filter, which rejects samples with
+    high reconstruction error i.e. those off the learned manifold. The real AE
+    filter needs a pretrained artifact from a CreateAutoencoderFilter run; this
+    approximates its INTENT with nearest-neighbour distance so post-filter
+    fidelity can be measured without that dependency.
+
+    NOT a substitute for the real filter in production -- it exists so the
+    scorecard can answer "do the filters repair these defects" cheaply.
+    """
+    if reject_pct <= 0:
+        return synth
+    r, s = _flat(real), _flat(synth)
+    if r.size == 0 or s.size == 0 or r.shape[1] != s.shape[1] or len(s) < 3:
+        return synth
+    mu, sd = r.mean(0), r.std(0)
+    sd = np.where(sd > 1e-12, sd, 1.0)
+    rz, sz = (r - mu) / sd, (s - mu) / sd
+    if not (np.isfinite(rz).all() and np.isfinite(sz).all()):
+        return synth
+    rng = np.random.default_rng(seed)
+    ref = rz[rng.choice(len(rz), max_n, replace=False)] if len(rz) > max_n else rz
+    d = np.linalg.norm(sz[:, None, :] - ref[None, :, :], axis=-1).min(axis=1)
+    keep = int(round(len(s) * (1.0 - reject_pct)))
+    if keep < 2:
+        return synth
+    return synth[np.argsort(d)[:keep]]

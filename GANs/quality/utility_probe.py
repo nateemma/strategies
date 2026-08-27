@@ -43,22 +43,33 @@ def delta_val_mcc(
     *,
     seed: int = 42,
     val_fraction: float = 0.3,
+    n_repeats: int = 10,      # k=1 FLIPS SIGN across seeds; see the docstring
 ) -> Dict[str, Any]:
     """MCC of a classifier trained on real vs real+synth, evaluated on real only.
 
     The validation split NEVER sees synthetic data -- otherwise a GAN that
     memorises the training set scores well for the wrong reason.
 
-    Returns a dict with ``delta`` = mcc_aug - mcc_real. ``delta`` is None with a
-    ``reason`` when the probe cannot run; a broken variant must still yield a
-    scorecard row rather than raising and aborting the whole sweep.
+    Returns a dict with ``delta`` = mcc_aug - mcc_real, averaged over
+    ``n_repeats`` PAIRED repeats (each repeat uses one split for both arms, so
+    the split cancels). ``delta_sd`` reports the spread; a delta smaller than its
+    own sd is not resolvable and must not be acted on.
+
+    The single-repeat version of this probe was NOT resolvable: a 3-seed
+    replication flipped the SIGN on 10 of 11 GAN variants, because one 300-sample
+    draw against ~2800 training rows moves MCC by less than the classifier's own
+    run-to-run noise. Repeats shrink that as 1/sqrt(k).
+
+    ``delta`` is None with a ``reason`` when the probe cannot run; a broken
+    variant must still yield a scorecard row rather than aborting the sweep.
     """
     from sklearn.ensemble import HistGradientBoostingClassifier
     from sklearn.metrics import matthews_corrcoef
     from sklearn.model_selection import train_test_split
 
-    out: Dict[str, Any] = {"mcc_real": None, "mcc_aug": None,
-                           "delta": None, "n_synth": 0, "reason": ""}
+    out: Dict[str, Any] = {"mcc_real": None, "mcc_aug": None, "delta": None,
+                           "delta_sd": None, "resolvable": None,
+                           "n_synth": 0, "n_repeats": n_repeats, "reason": ""}
 
     rx, ry = _flatten_2d(real_x), _as_1d_labels(real_y)
     if len(rx) != len(ry):
@@ -68,33 +79,54 @@ def delta_val_mcc(
         out["reason"] = "real labels are single-class"
         return out
 
-    strat = ry if np.min(np.bincount(ry.astype(int))) >= 2 else None
-    xtr, xva, ytr, yva = train_test_split(
-        rx, ry, test_size=val_fraction, random_state=seed, stratify=strat)
+    def _one(rep: int):
+        rs = seed + 1000 * rep
+        strat = ry if np.min(np.bincount(ry.astype(int))) >= 2 else None
+        xtr, xva, ytr, yva = train_test_split(
+            rx, ry, test_size=val_fraction, random_state=rs, stratify=strat)
 
-    def _fit_mcc(x, y):
-        clf = HistGradientBoostingClassifier(max_iter=60, random_state=seed)
-        clf.fit(x, y)
-        return float(matthews_corrcoef(yva, clf.predict(xva)))
+        def _fit_mcc(x, y):
+            clf = HistGradientBoostingClassifier(max_iter=60, random_state=rs)
+            clf.fit(x, y)
+            return float(matthews_corrcoef(yva, clf.predict(xva)))
 
-    out["mcc_real"] = _fit_mcc(xtr, ytr)
+        base = _fit_mcc(xtr, ytr)
+        if sx is None:
+            return base, None
+        return base, _fit_mcc(np.vstack([xtr, sx]), np.concatenate([ytr, sy]))
 
-    if synth_x is None or len(synth_x) == 0:
+    sx = sy = None
+    if synth_x is not None and len(synth_x) > 0:
+        cand = _flatten_2d(synth_x)
+        if cand.shape[1] != rx.shape[1]:
+            out["reason"] = f"synth feature dim {cand.shape[1]} != real {rx.shape[1]}"
+        elif not np.isfinite(cand).all():
+            out["reason"] = "synthetic samples contain non-finite values"
+        else:
+            cy = _as_1d_labels(synth_y) if synth_y is not None else None
+            if cy is None or len(cy) != len(cand):
+                out["reason"] = "synthetic labels missing or mis-shaped"
+            else:
+                sx, sy = cand, cy
+                out["n_synth"] = int(len(sx))
+    elif synth_x is None or len(synth_x) == 0:
         out["reason"] = "no synthetic samples"
-        return out
-    sx = _flatten_2d(synth_x)
-    if sx.shape[1] != xtr.shape[1]:
-        out["reason"] = f"synth feature dim {sx.shape[1]} != real {xtr.shape[1]}"
-        return out
-    if not np.isfinite(sx).all():
-        out["reason"] = "synthetic samples contain non-finite values"
-        return out
-    sy = _as_1d_labels(synth_y) if synth_y is not None else None
-    if sy is None or len(sy) != len(sx):
-        out["reason"] = "synthetic labels missing or mis-shaped"
-        return out
 
-    out["n_synth"] = int(len(sx))
-    out["mcc_aug"] = _fit_mcc(np.vstack([xtr, sx]), np.concatenate([ytr, sy]))
-    out["delta"] = out["mcc_aug"] - out["mcc_real"]
+    bases, augs = [], []
+    for rep in range(max(1, n_repeats)):
+        b, a = _one(rep)
+        bases.append(b)
+        if a is not None:
+            augs.append(a)
+
+    out["mcc_real"] = float(np.mean(bases))
+    if not augs:
+        return out
+    out["mcc_aug"] = float(np.mean(augs))
+    deltas = np.asarray(augs) - np.asarray(bases)
+    out["delta"] = float(deltas.mean())
+    out["delta_sd"] = float(deltas.std(ddof=1)) if len(deltas) > 1 else None
+    # A delta smaller than its own spread is not resolvable at this budget.
+    out["resolvable"] = (out["delta_sd"] is not None
+                         and abs(out["delta"]) > out["delta_sd"])
     return out

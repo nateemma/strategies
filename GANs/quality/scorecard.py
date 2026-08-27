@@ -28,7 +28,7 @@ import numpy as np
 
 from GANs.GANType import GANType
 from GANs.quality.manifold import (bound_saturation, clip_band_fraction,
-                                   nn_distance_ratio)
+                                   manifold_reject, nn_distance_ratio)
 from GANs.quality.utility_probe import delta_val_mcc
 
 N_CLASSES = 3
@@ -169,7 +169,9 @@ def score_one(gan_type: GANType, prefer_mlx: bool, x, y, *, seed=42,
         "type": gan_type.name, "backend": "MLX" if prefer_mlx else "TF",
         "available": False, "fit_s": None, "n_synth": 0,
         "worst_dmu": None, "sigma_ratio": None, "max_dcorr": None,
-        "clip_band": None, "bound_sat": None, "nn_ratio": None, "delta_mcc": None,
+        "clip_band": None, "bound_sat": None, "nn_ratio": None,
+        "delta_mcc": None, "delta_sd": None, "resolvable": None,
+        "f_sigma": None, "f_dcorr": None, "f_nn": None,
         "status": "", "note": "",
     }
     try:
@@ -244,9 +246,32 @@ def score_one(gan_type: GANType, prefer_mlx: bool, x, y, *, seed=42,
     row["bound_sat"] = round(bound_saturation(real2d, synth), 4)
     row["nn_ratio"] = round(nn_distance_ratio(real2d, synth), 3)
 
+    # ---- POST-FILTER fidelity (D1) -------------------------------------
+    # Production does not consume raw generate() output: balance.py applies
+    # density (:322), discriminator (:342) and autoencoder filters first, and
+    # GAN_TODO §5's numbers are post-filter. Measuring only raw output makes
+    # scorecard rows incomparable with every historical finding.
+    try:
+        from GANs.density_filter import filter_by_density
+        filt = filter_by_density(synth, real2d, reject_pct=0.2)
+        filt = manifold_reject(real2d, np.asarray(filt), reject_pct=0.3)
+        if filt is not None and len(filt) >= 10:
+            fz = np.asarray(filt, dtype=float)
+            row["f_sigma"] = round(float(np.median(fz.std(0) / sd_r)), 3)
+            row["f_nn"] = round(nn_distance_ratio(real2d, fz), 3)
+            try:
+                fdc = np.corrcoef(fz, rowvar=False) - np.corrcoef(real2d, rowvar=False)
+                row["f_dcorr"] = round(float(np.nanmax(np.abs(fdc))), 3)
+            except Exception:
+                pass
+    except Exception as e:
+        row["note"] = f"filter: {type(e).__name__}"
+
     # utility
     u = delta_val_mcc(real2d, y, synth, synth_y, seed=seed)
     row["delta_mcc"] = None if u["delta"] is None else round(u["delta"], 4)
+    row["delta_sd"] = None if u.get("delta_sd") is None else round(u["delta_sd"], 4)
+    row["resolvable"] = u.get("resolvable")
     row["status"] = "ok" if u["delta"] is not None else "no-utility"
     row["note"] = row["note"] or u.get("reason", "")
     return row
@@ -276,8 +301,10 @@ def render_markdown(rows: List[Dict[str, Any]]) -> str:
             ("fit_s", "fit s"), ("n_synth", "n"), ("worst_dmu", "worst Δμ/σ"),
             ("sigma_ratio", "σ_syn/σ_real"), ("max_dcorr", "max Δcorr"),
             ("clip_band", "clip band"), ("bound_sat", "bound sat"),
-            ("nn_ratio", "NN ratio"),
-            ("delta_mcc", "Δval_mcc"), ("note", "note")]
+            ("nn_ratio", "NN ratio"), ("f_sigma", "σ post-filt"),
+            ("f_dcorr", "Δcorr post-filt"), ("f_nn", "NN post-filt"),
+            ("delta_mcc", "Δval_mcc"), ("delta_sd", "±sd"),
+            ("resolvable", "resolv?"), ("note", "note")]
     out = ["| " + " | ".join(h for _, h in cols) + " |",
            "|" + "|".join("---" for _ in cols) + "|"]
     for r in rows:
