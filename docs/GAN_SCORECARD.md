@@ -541,3 +541,47 @@ The defect is in what the TF generator learns, and none of the architectural or
 scheduling differences examined explain it. CTAB-**MLX** is the working path and
 should be preferred for CTAB use on Apple silicon; CTAB-TF remains usable but
 does not reproduce joint structure.
+
+## CGAN-TF under-dispersion — NOT fixable by moment penalties; and it is NOISY
+
+CGAN/TF holds the worst remaining dispersion (σ_syn/σ_real ~0.44-0.55). It has no
+class-mean term, so it looked like the WGAN case. It is not.
+
+### Localized to the generator (postprocess is innocent)
+
+| stage | median std |
+|---|---|
+| z-space real (clipped ±4σ) | 1.000 |
+| generator RAW output (z-space) | **0.462** |
+| final output (σ_ratio) | 0.454 |
+
+Only 1.9% of final values are pinned at the [min,max] bound, and the output layer
+is linear (`df_cgan.py:106`) — no activation ceiling. The generator simply emits
+~46% of the required variance and the inverse z-score faithfully carries that
+through.
+
+### Two moment penalties added, tested, REVERTED
+
+Both were implemented properly (wired through `backends/cgan.py`, default 0.0) and
+neither moved dispersion:
+
+- **Data-space per-feature std matching**, w ∈ {1, 5, 20}: σ 0.515 / 0.497 /
+  0.510 / 0.514. Flat. The term IS active — Δcorr swings 0.824 → 0.657 → 0.901 —
+  so the adversarial signal simply out-muscles a direct variance penalty even at
+  w=20. Raw generator std moves only 0.462 → 0.487.
+- **Class-conditional mean matching** (the term that fixed the WGAN family),
+  w ∈ {2, 10}: 3 seeds, mean Δμ 0.450 → 0.493 (worse), mean Δcorr 0.797 → 0.866
+  (worse), mean σ 0.437 → 0.475. Rejected.
+
+**The WGAN fix does not transfer to CGAN.** CGAN's existing `fm_var` term already
+matches variance — but of DISCRIMINATOR FEATURES, which does not constrain data
+space. Adding data-space moment terms does not overcome the adversarial pressure.
+
+### CGAN-TF is not run-to-run reproducible
+
+The SAME config at the SAME seed gave Δμ 0.57 then 0.45, and σ 0.438 then 0.391.
+An early single-seed read of the class-mean term looked like a win (Δμ 0.57 →
+0.41) and was pure noise — the 3-seed repeat reversed it.
+
+**Any CGAN comparison needs repeats.** Single-run CGAN deltas mean nothing, and
+the CGAN row of the baseline scorecard should be read with that spread in mind.
