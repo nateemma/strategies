@@ -658,3 +658,73 @@ produced no P&L movement at all.
   leaving a known bug in the control would confound the comparison.
 - `test_strat.sh` exits **0** when `freqtrade` is not on PATH — a run can
   "succeed" having done nothing. Read the log, never the exit code.
+
+## CTAB-TF: it NEVER LEARNS joint structure (it does not destroy it)
+
+Budget ladder, `GANs/quality/ctab_corr_probe.py`, one process per config, real
+fixture, seed 42, 2400 synth samples (300 is too few for a stable 24x24
+correlation estimate):
+
+| epochs | MLX mean\|corr\| | MLX corr-of-corr | MLX σ | TF mean\|corr\| | TF corr-of-corr | TF σ |
+|---|---|---|---|---|---|---|
+| 1 | 0.063 | -0.01 | 0.338 | 0.049 | -0.03 | 0.824 |
+| 2 | 0.042 | +0.03 | 0.370 | 0.051 | -0.03 | 0.821 |
+| 5 | 0.052 | -0.05 | 0.838 | 0.049 | -0.04 | 0.904 |
+| 10 | 0.139 | **+0.851** | 1.040 | 0.046 | -0.05 | 0.997 |
+| 20 | 0.217 | **+0.973** | 1.051 | 0.045 | -0.09 | 1.023 |
+| 40 | 0.251 | **+0.983** | 1.068 | 0.043 | -0.05 | 1.092 |
+
+REAL mean|off-diag corr| = 0.306.
+
+**Both backends START decorrelated** (~0.05 at epoch 1, corr-of-corr ~0). So the
+earlier "TF emits nearly INDEPENDENT features" reading is right about the
+endpoint but wrong about the mechanism: TF is not decorrelating anything, it is
+sitting at the untrained initialisation forever on this axis.
+
+**MLX has a clear ONSET between epochs 5 and 10** — corr-of-corr jumps -0.05 →
++0.851 → +0.973 → +0.983. Joint structure is learnable from this data by this
+architecture, and it arrives suddenly rather than accumulating.
+
+**TF is FLAT at every budget** while its σ ratio improves over the same span
+(0.824 → 1.092). That rules out "TF is not training": the marginals move, the
+joints never start. Same shape as the WGAN-MLX finding (D2), backends swapped.
+
+This is now a LEARNING failure with a known onset in the working backend, which
+is a much sharper target than "unexplained gap". NOT re-testable as a
+hypothesis-from-source question — eight of those were already refuted.
+
+**Value caveat, recorded honestly:** the powered A/B above showed WGAN fidelity
+repair bought ZERO P&L, so this is a parity/code-quality investigation, not a
+P&L lever. CTAB-MLX remains the working path on Apple silicon.
+
+### PacGAN packing REFUTED as the cause (9th refutation — this one by intervention)
+
+Packing was the last clear structural difference between the backends: TF packs
+`pac=10` samples into every discriminator input, MLX has NO packing at all (grep
+for `pac` in `df_ctab_gan_mlx.py`: 0 hits). Both otherwise run the same WGAN-GP
+loss at the same `gp_weight=10.0`, so this was the leading suspect.
+
+Tested rather than argued — TF at pac ∈ {1, 2}, same ladder:
+
+| epochs | pac=10 (default) | pac=2 | pac=1 |
+|---|---|---|---|
+| 10 | -0.05 | -0.05 | -0.04 |
+| 20 | -0.09 | -0.08 | -0.08 |
+| 40 | -0.05 | -0.06 | -0.06 |
+
+(corr-of-corr; mean|corr| is 0.045-0.047 in every cell.)
+
+Unpacking TF changes NOTHING. Verified the knob is real, not a silent no-op:
+`pac=1` vs `pac=10` gives discriminator input dim 66 vs 660, and `model.pac`
+reads back correctly through the backend's `fit()`.
+
+So the cause is NOT: model selection, training budget, aux losses, VGM inverse,
+BatchNorm inference stats, BatchNorm-vs-LayerNorm, CNN backbone, packing, or
+gp_weight/loss formulation (identical across backends). Nine down.
+
+**Next probe — is the SIGNAL there at all?** Score real data against
+column-shuffled real (identical marginals, joints destroyed) with each trained
+discriminator. If TF's D scores them alike while MLX's D separates them, the
+defect is a blind DISCRIMINATOR — the generator is never told joint structure is
+missing — and that is a different fix from anything tried so far. Measure this
+before proposing another cause.
