@@ -585,3 +585,76 @@ An early single-seed read of the class-mean term looked like a win (Δμ 0.57 �
 
 **Any CGAN comparison needs repeats.** Single-run CGAN deltas mean nothing, and
 the CGAN row of the baseline scorecard should be read with that spread in mind.
+
+## POWERED A/B — the WGAN fidelity fixes do NOT move P&L, and WGAN aug costs ~3pp
+
+The GAN_TODO §5 powered protocol run on the WGAN family, to answer whether the
+fidelity gains recorded above buy anything in trading. **They do not.**
+
+Protocol: `prediction_threshold=0.45` (powered — 555-562 trades/run), PINNED
+timerange `20240629-20260619`, paired seeds {1,7,13,42} via
+`TrainSeedStrategyMixin`, one throwaway strategy class per (arm, seed) so no
+production weights are read or deleted. Runner: `scripts/wgan_ab.py`.
+Both GAN arms trained on identical data (761,035 rows, same class counts) and
+differ ONLY in `cond_loss_weight`.
+
+| seed | nogan | w0 (class-mean OFF) | w2 (class-mean ON) |
+|---|---|---|---|
+| 1 | 4.39 | 1.36 | 1.16 |
+| 7 | 4.50 | 1.46 | 1.38 |
+| 13 | 4.09 | 1.43 | 1.43 |
+| 42 | 4.23 | 1.13 | 1.16 |
+| **mean** | **4.30** | **1.35** | **1.28** |
+
+Drawdown and Calmar tell the same story: nogan DD 7.48-7.73% / Calmar 1.40-1.60
+vs both GAN arms DD 8.21-8.51% / Calmar 0.35-0.47.
+
+**1. The fix is P&L-NEUTRAL.** w2 − w0 = −0.06pp mean; per seed −0.20 / −0.08 /
+0.00 / +0.03. w2 is worse on 2 seeds, tied on 1, better on 1. That is noise, and
+the sign is if anything negative.
+
+**2. But the fix DID work — measured in the deployed pipeline, not just the
+scorecard.** Same runs, `gan_run_diagnostics` output, ZEC/USDT:
+
+| arm | class 0 \|Δμ\|max | class 2 \|Δμ\|max | XRP class 0 flag |
+|---|---|---|---|
+| w0 | 0.60σ | 0.63σ | joint_drift |
+| w2 | 0.58σ | **0.47σ** | **ok** |
+
+So this is a clean, well-controlled instance of the pattern this repo keeps
+finding: **fidelity improved, P&L did not move.** Not a failed fix — a fix to a
+metric that is not the bottleneck.
+
+**3. The bigger finding: WGAN augmentation is NET-HARMFUL at ~3pp, 4/4 seeds.**
+non-GAN beats BOTH WGAN arms on every seed (+2.96pp vs w0, +3.02pp vs w2), with
+a seed spread of only ±0.2pp. This is far outside noise and much larger than
+anything the fix moves. Note the contrast with TabDDPM, where at this SAME
+operating point the GAN arm BEAT non-GAN by ~1.7pp
+(GAN_TODO §5 Phase 2) — so "GAN augmentation helps at loose guards" does NOT
+generalise across GAN types. WGAN is the type the scorecard ranks worst on
+joint structure, and it is the one that loses ~3pp of P&L.
+
+**Consequence for the fix list.** Ranking WGAN variants on fidelity is still the
+right call for *fidelity* work, but no fidelity improvement on this family should
+be sold as a trading improvement without its own powered A/B. The remaining
+open fidelity defects (CTAB-TF joint structure, CGAN-TF under-dispersion) are now
+much weaker candidates for P&L work: the one family whose fidelity we DID repair
+produced no P&L movement at all.
+
+### Method notes
+
+- Absolute level differs from §5's numbers (nogan +4.30% here vs +21.24% there)
+  because those runs REUSED production weights trained over a longer history,
+  while every arm here retrains from scratch inside the pinned window. Arms are
+  internally comparable — which is what the A/B needs — but do NOT compare these
+  absolute numbers against §5's.
+- `cond_loss_weight` was previously UNREACHABLE from any caller:
+  `balance_with_wgan_mlx` swallowed it in `**kwargs` and built
+  `WGANMLX(num_features, num_classes)` with hardcoded defaults, so setting it in
+  a config was a silent no-op. Now plumbed explicitly and verified (2.0/0.0/7.5
+  all reach the model). Same class of gap as the `gp_weight` one noted in D2.
+- The control ablates ONLY the class-mean term. The checkpoint-selection fix
+  (`ac70690`) stays active in both arms — it was measured fidelity-neutral, and
+  leaving a known bug in the control would confound the comparison.
+- `test_strat.sh` exits **0** when `freqtrade` is not on PATH — a run can
+  "succeed" having done nothing. Read the log, never the exit code.

@@ -215,6 +215,7 @@ def balance_with_wgan_mlx(
     augmentation_target_ratio: float = 0.5,
     noise_std: float = 0.0,
     verbose: bool = True,
+    cond_loss_weight: float = 2.0,
     **kwargs
 ) -> Tuple[np.ndarray, np.ndarray]:
     """MLX-accelerated WGAN-GP for tabular data balancing."""
@@ -227,7 +228,10 @@ def balance_with_wgan_mlx(
     num_classes = train_labels.shape[1]
 
     # 1. Preparation
-    gan = WGANMLX(num_features, num_classes)
+    # cond_loss_weight is passed explicitly: the constructor default was
+    # previously unreachable from any caller (**kwargs swallowed it), so
+    # setting it in a config was a silent no-op.
+    gan = WGANMLX(num_features, num_classes, cond_loss_weight=cond_loss_weight)
 
     # Compute z-score stats from raw input. The generator trains in
     # z-scored space; the augmentation step below inverts the z-score on
