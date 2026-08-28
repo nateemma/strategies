@@ -728,3 +728,75 @@ discriminator. If TF's D scores them alike while MLX's D separates them, the
 defect is a blind DISCRIMINATOR — the generator is never told joint structure is
 missing — and that is a different fix from anything tried so far. Measure this
 before proposing another cause.
+
+## CTAB-TF ROOT CAUSE FOUND — the discriminator is BLIND to joint structure
+
+`GANs/quality/ctab_disc_probe.py`. Each trained discriminator scores three inputs
+in its own encoded space: **real**, **shuffled** (every column independently
+permuted WITHIN each class — class-conditional marginals preserved exactly,
+cross-feature structure destroyed: mean|corr| 0.306 → 0.017), and **fake** (the
+generator's own output, decoded then re-encoded so all three arrive in the same
+space).
+
+    joint_sensitivity = (d_real - d_shuffled) / (d_real - d_fake)
+
+~0 = the discriminator scores joint-destroyed data like real data, i.e. it cannot
+see the defect. ~1 = destroying joints is as detectable to it as fake data.
+
+### Seed 42, budget ladder
+
+| epochs | MLX joint_sens | TF joint_sens |
+|---|---|---|
+| 2 | 0.057 | 0.339 † |
+| 5 | 0.252 | -0.003 |
+| 10 | **1.153** | 0.014 |
+| 20 | 0.943 | 0.029 |
+| 40 | 0.751 | 0.075 |
+
+† discount: at epoch 2 TF's scores are -0.018 / -0.021 / -0.026, so the ratio is
+noise over a near-zero denominator, not sensitivity.
+
+### 3-seed replication at 40 epochs
+
+| backend | seed 42 | seed 7 | seed 13 | mean |
+|---|---|---|---|---|
+| MLX | 0.751 | 0.572 | 0.677 | **0.67** |
+| TF | 0.075 | 0.030 | 0.030 | **0.045** |
+
+A ~15x gap with no overlap across seeds.
+
+**TF's discriminator works — it just cannot see joints.** At 40 epochs it
+separates real from fake perfectly well (5.35 vs 4.83) while scoring
+joint-destroyed data as essentially real (5.3516 vs 5.3125 — a 0.04 gap against a
+0.52 real-vs-fake gap). It is a competent marginal detector and a blind joint
+detector, which is EXACTLY the generator behaviour observed: TF learns marginals
+(σ 0.824 → 1.092) and never starts on joints.
+
+**MLX's critic acquires joint sensitivity at epoch 10 — the same epoch its
+generator's correlation onset happens** (corr-of-corr -0.05 @5 → +0.851 @10). The
+critic learns to detect joint structure first, and the generator follows. That is
+the mechanism, measured on both sides rather than inferred.
+
+### What this means for the fix
+
+The defect is DISCRIMINATOR-SIDE. No generator-side change can fix it — the
+generator is never told joint structure is missing, so there is no gradient
+pointing at it. This retro-explains why every generator-side thing tried was
+inert: the CTAB-GAN+ aux losses (info / downstream), architecture swaps,
+BatchNorm-vs-LayerNorm, and the budget ladder all leave Δcorr at ~1.06.
+
+It also explains the pac result without contradicting it: packing changes what
+the discriminator is SHOWN, but TF's D fails to use joint information even when
+packed 10-wide, so unpacking it changes nothing.
+
+Candidate fixes, discriminator-side, none yet tested:
+1. An explicit correlation-matching term (feature-matching on the off-diagonal
+   correlation vector), which supplies the missing gradient directly rather than
+   hoping the D learns to supply it.
+2. Diagnose WHY TF's D cannot learn joints when MLX's can, on identical encoded
+   input — the two Ds differ in width/normalisation, and that is now a much
+   narrower search than the whole pipeline.
+
+Given the powered A/B verdict (WGAN fidelity repair bought ZERO P&L), option 1 is
+the cheap one worth doing only if CTAB-TF parity is wanted for its own sake.
+CTAB-MLX remains the working path on Apple silicon.
