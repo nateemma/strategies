@@ -894,6 +894,23 @@ still randomised -- so nothing could have shown a difference.  Re-test
 architecture nulls after a mechanism fix lands, not before
 ([[feedback_evaluate_interventions_at_powered_operating_point]]).
 
+### Now the DEFAULT (2026-08-29)
+
+`CTABGANPlus` and `CTABGANPlusEnhanced` now ship the fixed config:
+`generator_layers=[256,512,256]`, `generator_norm="layer"`,
+`corr_loss_weight=15.0`, `gumbel_noise=False`, `g_grad_clip_norm=None`
+(`d_grad_clip_norm` stays 1.0 -- removing it is harmful, see above).  Stock
+defaults at seed 42 reproduce the validated config: mean|corr| 0.232,
+corr-of-corr +0.944, mean_dcorr 0.122, sigma 1.101.
+
+This changes the generator's architecture, so previously trained TF CTAB models
+would need retraining.  In practice nothing on disk is affected: every saved GAN
+artefact in `saved_data/` is MLX (`*_mlx.safetensors`) and there are no saved TF
+`.keras` CTAB models at all.  Loading is safe regardless -- `load()`
+deserialises the whole `.keras` graph and restores `generator_layers` from
+metadata, and an old `GumbelSoftmax` config without `use_noise` defaults to
+`True`, preserving legacy behaviour.
+
 ### Scope
 
 `df_ctab_gan.py` (single-task, TF) only.  **`df_mt_ctab_gan.py` (MT_CTAB-TF) has
