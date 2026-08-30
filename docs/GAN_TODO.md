@@ -369,9 +369,34 @@ backlog. CAVEAT: WGAN-MLX training is unseeded (`mx.random.seed` never called),
 so every run is an independent draw — the sigma gain at cw=1 is within noise and
 is NOT claimed; only "does not degrade sigma". Full tables in GAN_SCORECARD.md.
 
-## Task 4 — diagnose MT_WGAN-TF sigma = 0.17
+## Task 4 — diagnose MT_WGAN-TF sigma = 0.17  [VOID 2026-08-30: sigma is 0.699, not 0.17]
 
 Emits 17% of the required variance — the most severe single defect in the table,
 and worse than CGAN's 0.44-0.55. Diagnose BEFORE attempting a fix (the D2/CTAB
 playbook: budget ladder, then probe the component the divergence implicates).
 Do not assume it is the same cause as CGAN's under-dispersion.
+
+**VOID.** Re-measured first: MT_WGAN-TF is sigma 0.699 with EXCELLENT joint
+structure (dcorr 0.087, coc +0.965, 3 runs) — one of the healthier variants.
+D1's 0.17 predates fixes that have since landed. **D1's sigma column is retired**
+and with it this backlog's "under-dispersion is the dominant unsolved defect
+class" framing: on re-measurement most variants are sigma 0.70-1.09, coc +0.86
+to +0.99. See the re-measured inventory in GAN_SCORECARD.md.
+
+## Task 5 — TAB_DDPM / MT_DDPM: the actual worst defect  [OPEN]
+
+Surfaced by task 4's re-measurement. TAB_DDPM-MLX has BOTH failure modes:
+sigma 3.946 (4x over-dispersed) AND corr-of-corr -0.026 — ZERO joint structure,
+indistinguishable from CTAB-TF pre-fix. MT_DDPM-MLX likewise (3.964 / +0.284).
+Every other variant is now +0.86 or better. This is also the production
+augmentation path.
+
+**FIRST STEP IS NOT A FIX.** GAN_TODO §5 Phase 1 recorded the opposite for this
+model ("high-fidelity, sigma_syn/sigma_real ~0.5-1.0") from the PRODUCTION
+fidelity report. Raw-generator-on-fixture vs post-scaling-production-report
+cannot both be right. Run both on the same model instance and find where they
+diverge before designing anything. Task 4 is a worked example of what building
+on an unverified baseline costs.
+
+Note the correlation term does not port here as-is: diffusion has no adversarial
+generator step to attach it to, so it would need a different attachment point.

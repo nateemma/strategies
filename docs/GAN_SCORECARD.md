@@ -1202,3 +1202,59 @@ it the right default, since cw>=2 degrades sigma well outside the noise band
 Also corrects the D1 table's WGAN-MLX sigma of 0.36: on this probe the baseline
 is ~1.13, i.e. NOT under-dispersed. D1's figure predates the class-mean fix or
 uses a different measure.
+
+
+## Backlog task 4 — VOID ON PREMISE; the D1 defect table is STALE
+
+Task 4 was "diagnose MT_WGAN-TF sigma=0.17, the most severe defect in the table".
+Re-measured it first, because D1's WGAN-MLX sigma of 0.36 had already been shown
+to read ~1.13 on this probe. **MT_WGAN-TF is at sigma 0.699, not 0.17, and its
+joint structure is EXCELLENT** (dcorr 0.087, corr-of-corr +0.965, 3 runs). It is
+one of the healthier variants, not the worst. Task 4 was aimed at a defect that
+other work had already fixed.
+
+### Re-measured inventory (this probe, 40 epochs, real fixture)
+
+| variant | sigma | mean_dcorr | corr-of-corr |
+|---|---|---|---|
+| WGAN-TF | 0.887 | 0.036 | +0.994 |
+| WGAN-MLX (cw=1.0) | ~1.10 | 0.135 | +0.923 |
+| MT_WGAN-TF | 0.699 | 0.087 | +0.965 |
+| MT_WGAN-MLX | 0.939 | 0.143 | +0.906 |
+| CTAB_GAN-TF (fixed) | 1.091 | 0.122 | +0.945 |
+| CTAB_GAN-MLX | 1.037 | 0.096 | +0.977 |
+| MT_CTAB-TF (fixed) | 1.001 | 0.211 | +0.858 |
+| CGAN-TF | 0.547 | — | +0.982 |
+| **TAB_DDPM-MLX** | **3.946** | **0.409** | **-0.026** |
+| **MT_DDPM-MLX** | **3.964** | **0.322** | **+0.284** |
+
+**RETIRE D1's sigma column.** Two of its figures are now known wrong (WGAN-MLX
+0.36 -> ~1.13; MT_WGAN-TF 0.17 -> 0.699), both measured before fixes that have
+since landed. The backlog's central claim — "under-dispersion is the dominant
+unsolved defect class, 5 of 6 variants under" — rested entirely on that column
+and does NOT survive: most variants sit at sigma 0.70-1.09 with correlation
++0.86 to +0.99.
+
+### The real worst defect: the DDPM pair (3 runs each)
+
+    TAB_DDPM-MLX  sigma 3.946 [3.98 3.94 3.92]  coc -0.026 [+0.015 -0.080 -0.013]
+    MT_DDPM-MLX   sigma 3.964 [3.97 3.95 3.97]  coc +0.284 [+0.230 +0.165 +0.457]
+
+TAB_DDPM has **BOTH failure modes at once**: ~4x over-dispersion AND zero joint
+structure. Its corr-of-corr is indistinguishable from CTAB-TF's pre-fix -0.047 —
+the same disease, in the one variant that had never been probed for it. Every
+other variant in the family is now +0.86 or better.
+
+### UNRECONCILED — do not act on this without resolving it first
+
+GAN_TODO §5 Phase 1 recorded the OPPOSITE for this model: "single-task TabDDPM
+synth is high-fidelity — both signal classes flag ok, sigma_syn/sigma_real
+~0.5-1.0". That reading came from the production pipeline's own fidelity report
+(post-scaling, AE-filtered, production features); this one is the raw generator
+on the scorecard fixture. They cannot both describe the same thing.
+
+**Resolve which measurement path is authoritative BEFORE building a fix.** The
+cheap test is to run the production fidelity report and this probe on the same
+model instance and see where they diverge. Acting on either number alone risks
+fixing a defect that only exists in one measurement path — exactly the mistake
+task 4 was built on.
