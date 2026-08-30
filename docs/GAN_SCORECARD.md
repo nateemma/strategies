@@ -1225,8 +1225,16 @@ other work had already fixed.
 | CTAB_GAN-MLX | 1.037 | 0.096 | +0.977 |
 | MT_CTAB-TF (fixed) | 1.001 | 0.211 | +0.858 |
 | CGAN-TF | 0.547 | — | +0.982 |
-| **TAB_DDPM-MLX** | **3.946** | **0.409** | **-0.026** |
-| **MT_DDPM-MLX** | **3.964** | **0.322** | **+0.284** |
+| TAB_DDPM-MLX † | 3.946 | 0.409 | -0.026 |
+| MT_DDPM-MLX † | 3.964 | 0.322 | +0.284 |
+
+† **NOT COMPARABLE TO THE ROWS ABOVE.** The scorecard's DDPM adapters run a toy
+fast-config (`d_model=32`, `d_layers=(32,32)`, `num_timesteps=100` vs production
+`256 / (256,256) / 1000`), so these are under-capacity numbers, not model
+defects. At production shape TAB_DDPM's corr-of-corr is **+0.496**, not -0.026 —
+see the task 5 section. Sigma ~3.9 does survive the capacity ladder, but is
+unreconciled with the production fidelity report. Do not read these two rows as
+a defect ranking.
 
 **RETIRE D1's sigma column.** Two of its figures are now known wrong (WGAN-MLX
 0.36 -> ~1.13; MT_WGAN-TF 0.17 -> 0.699), both measured before fixes that have
