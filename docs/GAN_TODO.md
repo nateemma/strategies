@@ -383,7 +383,7 @@ and with it this backlog's "under-dispersion is the dominant unsolved defect
 class" framing: on re-measurement most variants are sigma 0.70-1.09, coc +0.86
 to +0.99. See the re-measured inventory in GAN_SCORECARD.md.
 
-## Task 5 — TAB_DDPM / MT_DDPM  [PARTIALLY RETRACTED; sigma still open]
+## Task 5 — TAB_DDPM / MT_DDPM  [MECHANISM FOUND: clip saturation; production check open]
 
 Surfaced by task 4's re-measurement. TAB_DDPM-MLX has BOTH failure modes:
 sigma 3.946 (4x over-dispersed) AND corr-of-corr -0.026 — ZERO joint structure,
@@ -466,3 +466,18 @@ gradient clip and not a startup transient (a warm-up ramp only delays it).
 
 Bounds achievable magnitude but blocks nothing; both families ship safely below
 it. Deliberately parked — do not spend runs guessing at it without a new lead.
+
+
+### Task 5 mechanism (2026-08-30)
+
+sigma ~4 is **CLIP SATURATION**, not a training failure: **99.8% of generated
+values sit at `_ZSCORE_CLIP = ±4`** (mean |z| 3.997, p99 4.000) against real
+0.1%. sigma ~3.9 is arithmetic. Eliminated first, on one model instance:
+aggregation (per-class 3.320 vs pooled 3.280), filtering (|z|<=4 keeps ZERO
+synth, so it cannot narrow anything), data volume (3.4-3.9 at 4k/12k/40k rows),
+and capacity/timesteps/epochs. Repro: `GANs/quality/ddpm_clip_probe.py`.
+
+**Open:** does production saturate too? It feeds PRE-SCALED data where the probe
+feeds raw, and its report reads 0.5-1.0 — so pre-scaling probably avoids it.
+Run the clip probe against a production-path instance and compare the boundary
+fraction. Do NOT build a sampler fix first.

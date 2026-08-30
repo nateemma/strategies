@@ -1319,3 +1319,45 @@ Both produced confident, replicated, wrong headlines. **Three runs agreeing
 confirms the CONFIGURATION is consistent, not that the finding is valid.** When a
 variant lands far outside the family's range (+0.86-0.99 everywhere, -0.026
 here), check the harness before believing the model.
+
+
+## Task 5 RECONCILED (mechanism) — TabDDPM sigma ~4 is CLIP SATURATION
+
+Chased the probe-vs-production sigma disagreement (probe ~3.9, production
+fidelity report ~0.5-1.0) by eliminating each difference on the SAME model
+instance. `GANs/quality/ddpm_clip_probe.py` reproduces the finding.
+
+**Eliminated, one at a time:**
+
+| candidate | result |
+|---|---|
+| Aggregation (probe pools + median; diagnostics.py is PER CLASS, mean/min) | per-class 3.320 vs pooled 3.280 — NOT it |
+| Filtering (production reports on post-AE/density `aug_data_batches`) | at \|z\|<=6 **100%** of synth is kept, at \|z\|<=4 **zero** survives — filtering would reject everything, not narrow to 1.0 |
+| Data volume (4,000-row fixture vs ~800K production) | sigma 3.398 / 3.901 / 3.889 at 4k / 12k / 40k rows — NOT it |
+| Capacity, timesteps, epochs | already refuted by the capacity ladder above |
+
+**MECHANISM — the samples pile at the clip boundary:**
+
+| | std (z-space) | \|z\| mean | \|z\| p99 | at ±4 boundary |
+|---|---|---|---|---|
+| real | 1.000 | 0.860 | 2.139 | 0.1% |
+| synth | 3.816 | **3.997** | **4.000** | **99.8%** |
+
+99.8% of generated values sit AT `_ZSCORE_CLIP = ±4`. sigma ~3.7-3.9 is
+ARITHMETIC, not a training failure: clamp everything to ±4 against a real sigma
+of 1 and you get ~4x. That is why no training-side variable moved it, and it is
+the same signature GAN_TODO section 2 documents for MT_DDPM.
+
+### What is still open
+
+Whether this occurs in PRODUCTION. Production feeds the GAN pre-scaled data
+(`scale_dataframe`) whereas this probe feeds the raw fixture, so the model's
+internal z-scoring operates on a different distribution. If production saturated
+the clip its own fidelity report would read ~4 as well, and it reads 0.5-1.0 —
+so the pre-scaling most likely avoids the saturation.
+
+**Next step, now sharp and cheap:** run `ddpm_clip_probe` logic against a
+production-path TabDDPM instance and check the boundary fraction. If production
+is at ~0% and the probe at 99.8%, the defect is the RAW-INPUT path only, and the
+scorecard's DDPM rows should be scoped to that path rather than read as a model
+defect. Do NOT build a sampler fix before that check.
