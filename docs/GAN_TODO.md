@@ -274,3 +274,74 @@ AE filter is neutral-to-slightly-negative at powered guards (helpful at tight gu
 a deployment-config question. Repro: `NNNC_DDPM_MLX_P2_aeoff` (+ seed variants via
 TrainSeedStrategyMixin). Kills: LONG background batches get SIGKILLed (external, not OOM —
 mem 94% free, no traceback); single runs survive → run seed sweeps one-at-a-time.
+
+---
+
+# Fidelity / parity backlog (opened 2026-08-29, after the CTAB-TF fix)
+
+Context: [[project_ctab_tf_joint_structure_fixed]] closed CTAB-TF's joint-structure
+defect (mean|corr| 0.043 → 0.240, 95% of MLX). That fixed ONE defect in ONE family.
+The scorecard's D1 table still shows the rest:
+
+| variant | sigma ratio | dcorr | state |
+|---|---|---|---|
+| CTAB-TF | 0.83 | 1.03 -> **0.12** | joint structure FIXED |
+| MT_CTAB-TF | 0.95 | 1.08 -> **~0.23** | FIXED but PARTIAL -> task 1 |
+| MT_WGAN-TF | **0.17** | 0.57 | worst under-dispersion -> task 4 |
+| WGAN-MLX | 0.36 | **1.14** | widest joint gap -> task 3 |
+| MT_DDPM-MLX | **3.96** | 1.12 | over-dispersed ~4x |
+| WGAN-TF | 0.78 | 0.21 | best joints, still under-dispersed |
+
+**Under-dispersion is the dominant unsolved defect class** — 5 of 6 variants emit
+too little variance, one emits ~4x too much. D1 proved the filters cannot repair
+it (rejection cannot add variance that was never generated).
+
+Note on priority: GAN augmentation does not move P&L on this pipeline regardless
+of fidelity (the information ceiling, §4/§5 above). These tasks are FIDELITY /
+PARITY work — justified because TF is the only backend for users not on Apple
+silicon, not because they are expected to show up in a backtest.
+
+## Task 1 — sweep `corr_loss_weight` for MT_CTAB-TF  [IN PROGRESS]
+
+MT reached 0.126 / +0.834, only ~51% of MT-MLX, where single-task reached 95%.
+`corr_loss_weight=15` was tuned on the SINGLE-TASK objective; MT's generator loss
+also carries info and downstream terms, so its optimum is very likely different.
+Sweep, then 3-seed the winner. Cheapest known headroom.
+Gate: `ctab_corr_probe --gan-type MT_CTAB_GAN`.
+
+## Task 2 — re-test CGAN-TF dispersion penalties with the G clip REMOVED
+
+The scorecard refuted CGAN's data-space std-matching penalty as "flat at
+w=1/5/20 — the adversarial signal out-muscles it even at w=20". **But CGAN-TF
+clips its generator at `clipnorm=1.0`** (`df_cgan.py:433,547`, via Adam), and
+under a norm clip raising the weight CANNOT increase update magnitude — it only
+rotates the direction, and past a threshold destabilises. That is exactly the
+behaviour measured on CTAB today (monotone gain to cw=15, collapse at 20, plus a
+further gain from removing the clip that no weight could buy).
+
+So the null was measured under the very constraint that plausibly caused it.
+Add a G-clip knob to CGAN and re-run the std-matching sweep with it off.
+Same "re-test nulls after a mechanism fix" lesson as BatchNorm-vs-LayerNorm.
+
+**The clip is systematic across the family** — every TF variant clips G at 1.0
+(`df_ctab_gan`, `df_mt_ctab_gan`, `df_wgan_gp`, `df_cgan`), while WGAN-MLX clips
+at 10.0 and CTAB-MLX not at all. If task 2 confirms, sweep the clip everywhere.
+
+CAVEAT: CGAN-TF is NOT run-to-run reproducible (same config/seed gave sigma
+0.438 then 0.391). Any CGAN comparison needs repeats; single-run deltas mean
+nothing.
+
+## Task 3 — port the correlation term to WGAN-MLX
+
+WGAN-MLX holds the widest joint gap left (dcorr 1.14). The mechanism is generic —
+supply the gradient the critic does not — and now lives in `CTABGANPlusBase`.
+WGAN has no VGM mode heads, so there is no soft-decode step: match correlation on
+the raw generator output directly. Note WGAN-MLX already got the class-mean fix
+(D2) and its dcorr stayed 1.14, so the joint defect is untouched by that.
+
+## Task 4 — diagnose MT_WGAN-TF sigma = 0.17
+
+Emits 17% of the required variance — the most severe single defect in the table,
+and worse than CGAN's 0.44-0.55. Diagnose BEFORE attempting a fix (the D2/CTAB
+playbook: budget ladder, then probe the component the divergence implicates).
+Do not assume it is the same cause as CGAN's under-dispersion.
