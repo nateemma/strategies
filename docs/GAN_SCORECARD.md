@@ -1469,3 +1469,59 @@ elimination.
 **Standing rule for DDPM: evaluate against the production-trained model on disk
 (`saved_data/GANs_PostScale/tab_ddpm`), not a fixture-trained one.** The fixture
 path is not a valid DDPM harness and this section is the evidence.
+
+
+## Task 7 — CGAN dispersion is an ADVERSARIAL EQUILIBRIUM, not a parameterisation limit
+
+Hypothesis: CGAN's output layer is already LINEAR (no activation ceiling), so
+expanding variance requires growing the whole final projection in a coordinated
+way — an expensive gradient direction. A learnable per-feature output gain would
+make it a single cheap parameter. Same gradient-vs-mechanism split that fixed
+CTAB-TF, where the correlation term supplied the gradient, removing the
+per-column Gumbel noise supplied the capacity, and NEITHER worked alone.
+
+**REFUTED.** 3 seeds, 40 epochs:
+
+| config | sigma | per-seed | corr-of-corr |
+|---|---|---|---|
+| baseline | 0.558 | 0.555 0.547 0.571 | +0.977 |
+| + learnable output gain | 0.553 | 0.555 0.548 0.556 | +0.978 |
+| + std penalty w=20 | 0.575 | 0.570 0.576 0.578 | +0.983 |
+| + BOTH | 0.573 | 0.575 0.569 0.576 | +0.984 |
+
+The gain is inert alone and adds NOTHING to the penalty. No interaction.
+
+### The diagnostic that explains why
+
+Inspected the learned gain (initialised at 1.0):
+
+    gain only       mean 0.974  (0.826 - 1.110)
+    gain + penalty  mean 0.982  (0.859 - 1.037)
+
+**The gain never grows — even with an explicit data-space std penalty at weight
+20 demanding more variance.** Scaling one multiplicative parameter is the
+CHEAPEST possible route to higher sigma, and the generator declines to take it.
+
+So the bottleneck is not mechanism, not parameterisation, and not gradient
+supply. The adversarial loss is actively opposing dispersion increases harder
+than the penalty pushes. **CGAN's under-dispersion is an ADVERSARIAL EQUILIBRIUM
+property** — the discriminator prefers narrow, mode-seeking samples near the data
+centre — not a generator-side limitation.
+
+This also retro-explains task 2: a penalty saturating at ~0.58 regardless of
+weight (to 500) and regardless of the gradient clip is what an equilibrium looks
+like, not what a weak lever looks like.
+
+### Consequence for any future attempt
+
+Generator-side work on CGAN dispersion is CLOSED: the loss (task 2), the weight
+(to 500), the gradient clip (task 2) and the output parameterisation (here) are
+all eliminated. **Any fix must change the adversarial game itself** — the
+discriminator's objective, or a divergence that penalises under-dispersion
+(the current D scores narrow samples as real).
+
+Note CGAN's joint structure is EXCELLENT and stayed excellent throughout
+(+0.977 to +0.984, mean_dcorr 0.064) — the best correlation in the family. Only
+dispersion is wrong, and it is wrong for a reason that lives in D.
+
+The inert gain layer was reverted; this section is its result.

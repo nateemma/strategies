@@ -439,7 +439,7 @@ Related: MT_CTAB's correlation sits at +0.858 vs MT-MLX's +0.985. Likely the sam
 stall rather than a separate defect — do not chase it independently until task 6
 resolves.
 
-## Task 7 — CGAN dispersion: the GENERATOR OUTPUT PARAMETERISATION  [OPEN]
+## Task 7 — CGAN dispersion: the GENERATOR OUTPUT PARAMETERISATION  [DONE 2026-08-30: REFUTED — adversarial equilibrium]
 
 sigma 0.547 against a target of 1.0. **The loss-side lever is EXHAUSTED** (task
 2): data-space std penalties saturate at sigma ~0.58 and destroy joint structure
@@ -508,3 +508,20 @@ difference is the DATA itself.**
 invalid rather than emitting garbage (TAB_DDPM 100.0% warns; WGAN 0.1% silent).
 **Standing rule: evaluate DDPM against the production-trained model on disk, not
 a fixture-trained one.**
+
+
+### Task 7 result (2026-08-30) — REFUTED, and it closes the generator side
+
+A learnable per-feature output gain is INERT (sigma 0.553 vs baseline 0.558) and
+adds nothing to the std penalty (0.573 vs 0.575), 3 seeds.
+
+**Diagnostic:** the learned gain stays at ~0.97-0.98 (init 1.0) EVEN WITH the std
+penalty at w=20 demanding more variance. Scaling one parameter is the cheapest
+route to higher sigma and the generator declines it — so the adversarial loss
+actively opposes dispersion harder than the penalty pushes.
+
+**CGAN under-dispersion is an ADVERSARIAL EQUILIBRIUM, not a generator defect.**
+Generator-side work is CLOSED: loss (task 2), weight to 500, gradient clip, and
+output parameterisation all eliminated. Any fix must change D's objective or use
+a divergence that penalises under-dispersion. Retro-explains task 2's saturation
+at ~0.58 — an equilibrium, not a weak lever.
