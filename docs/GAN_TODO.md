@@ -417,7 +417,7 @@ for this model; capacity does not explain the gap. Run BOTH paths on the SAME
 model instance before designing any fix. Not yet run.
 
 
-## Task 6 — MT_CTAB-TF residual gap: the DISCRIMINATOR side  [OPEN]
+## Task 6 — MT_CTAB-TF residual gap: the DISCRIMINATOR side  [DONE 2026-08-30: partial — D sets the LEVEL, not the stall]
 
 MT stalls after ~epoch 15 while single-task keeps climbing, at MATCHED corr
 weight and byte-identical networks (G 366,600 params, D 749,825). MT is even
@@ -525,3 +525,23 @@ Generator-side work is CLOSED: loss (task 2), weight to 500, gradient clip, and
 output parameterisation all eliminated. Any fix must change D's objective or use
 a divergence that penalises under-dispersion. Retro-explains task 2's saturation
 at ~0.58 — an equilibrium, not a weak lever.
+
+
+### Task 6 result (2026-08-30) — partial; stall still unexplained (8th hypothesis)
+
+D-side code is functionally identical to single-task's, so tested behaviour:
+weakening D should let the corr term settle higher if the plateau is an
+adversarial equilibrium.
+
+**Confirmed for the LEVEL.** `n_critic=2`, 3 seeds, tight (0.172/0.171/0.170, no
+overlap with baseline): |corr| 0.146 -> 0.171, dcorr 0.211 -> 0.186, coc +0.858
+-> +0.880. Clean differential — weakening D HURTS single-task (0.232 -> 0.219),
+so it relieves an MT-specific constraint. `gp_weight` is not a lever.
+
+**NOT confirmed for the STALL.** Trajectory (selection off) still peaks ~ep20 and
+declines by ep40 — the plateau sits higher, it does not lift. D pressure sets
+where MT settles, not why it stalls. **Stall unexplained after 8 hypotheses.**
+
+**Default unchanged:** n_critic=2 trades sigma (1.001 -> 0.952) for correlation.
+Not strictly dominant, unlike every default changed this session. Use it if
+correlation matters more than dispersion.

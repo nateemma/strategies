@@ -1525,3 +1525,72 @@ Note CGAN's joint structure is EXCELLENT and stayed excellent throughout
 dispersion is wrong, and it is wrong for a reason that lives in D.
 
 The inert gain layer was reverted; this section is its result.
+
+
+## Task 6 — D pressure sets MT's LEVEL, but does NOT cause the stall
+
+Eighth attempt at MT_CTAB-TF's residual gap. Code reading is exhausted: the D
+step and gradient penalty are functionally IDENTICAL to single-task's (MT adds
+only truncation and dtype casts). So this tested a behavioural hypothesis
+instead.
+
+**Reasoning (from task 7):** the corr term feeds the generator a correlation
+gradient DIRECTLY, bypassing D. A plateau therefore cannot mean D fails to
+supply signal — something must actively OPPOSE it. That is the equilibrium
+CGAN turned out to sit in. Prediction: weakening D lets the corr term settle
+higher.
+
+**Confirmed, and the control makes it interpretable** (seed 42):
+
+| config | mean\|corr\| | corr-of-corr | sigma |
+|---|---|---|---|
+| MT n_critic=5 (baseline) | 0.154 | +0.888 | 1.015 |
+| MT n_critic=2 | 0.172 | +0.896 | 0.938 |
+| MT n_critic=1 | 0.170 | +0.882 | 0.889 |
+| MT gp_weight=1 | 0.122 | +0.793 | 0.990 |
+| MT gp_weight=50 | 0.151 | +0.874 | 1.003 |
+| ST n_critic=5 (baseline) | 0.232 | +0.944 | 1.101 |
+| **ST n_critic=1 (control)** | **0.219** | +0.932 | 0.814 |
+
+Weakening D HELPS MT and HURTS single-task — a clean differential, so the knob
+is relieving an MT-specific constraint rather than doing something generic.
+`gp_weight` is NOT the lever (1 is worse, 50 flat).
+
+**3-seed replication** — tight, no overlap with baseline (min 0.170 > max 0.154):
+
+| config | mean\|corr\| | per-seed | corr-of-corr | mean_dcorr | sigma |
+|---|---|---|---|---|---|
+| n_critic=5 | 0.146 | 0.154 0.132 0.152 | +0.858 | 0.211 | **1.001** |
+| n_critic=2 | **0.171** | 0.172 0.171 0.170 | +0.880 | **0.186** | 0.952 |
+
+### But the plateau is NOT fixed — it just sits higher
+
+Trajectory, selection OFF so each rung is the model AT that epoch:
+
+| epoch | n_critic=2 | n_critic=5 |
+|---|---|---|
+| 15 | 0.161 | 0.137 |
+| 20 | **0.174** | 0.107 |
+| 40 | 0.155 | 0.122 |
+
+Still peaks ~epoch 20 and declines by 40, same shape as baseline. **D pressure
+sets WHERE MT settles; it is not what causes the stalling.** The endpoint numbers
+alone would have supported the stronger (wrong) claim that weakening D fixes the
+stall — the trajectory is what distinguishes them.
+
+**MT's stall remains unexplained after eight hypotheses.**
+
+### Default NOT changed — this is a trade, not a win
+
+n_critic=2 buys correlation (dcorr 0.211 -> 0.186) with dispersion (sigma
+1.001 -> 0.952, away from ideal). MT's sigma is currently the BEST in the family
+and its correlation the worst, so the trade is arguable either way — but it is
+not strictly dominant, and every default changed this session was. Recorded as a
+validated option: **set `n_critic=2` if correlation matters more than dispersion
+for a given use.**
+
+Third instance of the same trade shape today: CGAN's penalty bought sigma with
+correlation, WGAN-MLX's weight bought correlation with sigma, and this buys
+correlation with sigma. These generators appear unable to satisfy both moments
+at once — which is a more useful summary of the family's ceiling than any single
+variant's number.
