@@ -415,3 +415,54 @@ not the CTAB-TF disease.
 **BLOCKED on reconciliation.** Production's fidelity report says sigma ~0.5-1.0
 for this model; capacity does not explain the gap. Run BOTH paths on the SAME
 model instance before designing any fix. Not yet run.
+
+
+## Task 6 — MT_CTAB-TF residual gap: the DISCRIMINATOR side  [OPEN]
+
+MT stalls after ~epoch 15 while single-task keeps climbing, at MATCHED corr
+weight and byte-identical networks (G 366,600 params, D 749,825). MT is even
+AHEAD at epoch 10. The defect is a PLATEAU, not a deficit.
+
+**Seven hypotheses refuted** (full detail in GAN_SCORECARD.md): architecture
+(measured identical), the downstream BCE-vs-CE loss, model selection (it HELPS),
+the LR schedule (fires after the selected epoch), a cw confound in the first
+ladder, per-batch corr-target noise (global target inert), and
+Training-By-Sampling (inert on balanced AND 6.7:1 imbalanced fixtures).
+
+**Untested surface: the discriminator.** D's update rule, the gradient-penalty
+term, `n_critic`. Everything on the generator side, the losses, the sampler,
+selection and the schedule is excluded. Use the budget-ladder-then-probe method
+that root-caused CTAB-TF: instrument both implementations, find where they
+diverge, then probe the component the divergence implicates.
+
+Related: MT_CTAB's correlation sits at +0.858 vs MT-MLX's +0.985. Likely the same
+stall rather than a separate defect — do not chase it independently until task 6
+resolves.
+
+## Task 7 — CGAN dispersion: the GENERATOR OUTPUT PARAMETERISATION  [OPEN]
+
+sigma 0.547 against a target of 1.0. **The loss-side lever is EXHAUSTED** (task
+2): data-space std penalties saturate at sigma ~0.58 and destroy joint structure
+when pushed (corr-of-corr +0.982 -> +0.262 at w=500), and the gradient clip is
+not the limiter.
+
+Remaining lead is the generator's own output: the layer is LINEAR with no
+activation ceiling, and only 1.9% of values pin at the [min,max] bound, so the
+generator simply emits ~46% of the required variance from its own score. Same
+shape as the MT_DDPM "under-dispersion is baked into the denoiser" finding, where
+post-hoc and loss-side corrections both failed.
+
+NOTE CGAN's joint structure is EXCELLENT (+0.982, better than the fixed CTAB-TF).
+Any dispersion fix must not cost correlation — the penalty route fails precisely
+because it does.
+
+## Parked — the corr-weight divergence cliff  [CHARACTERISED, NOT EXPLAINED]
+
+Above cw ~15-20 (single-task) / ~40-50 (MT) training diverges, the guard fires
+and restores an untrained epoch. **Characterised:** it is a SHARE of the
+generator loss, not an absolute scale — which correctly predicted MT's higher
+cliff from its larger non-adversarial loss mass. **Not explained:** it is neither
+gradient clip and not a startup transient (a warm-up ramp only delays it).
+
+Bounds achievable magnitude but blocks nothing; both families ship safely below
+it. Deliberately parked — do not spend runs guessing at it without a new lead.
