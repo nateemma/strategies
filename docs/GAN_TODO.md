@@ -495,6 +495,16 @@ Phase 1 was right.**
 in two layers: the adapter's toy config (killed joint structure) and training on
 the RAW fixture rather than production's pre-scaled data (saturates the clip).
 
-**Remaining actionable item (small):** the scorecard's DDPM adapters train on raw
-fixture data, so their rows measure a degenerate config. Either feed them
-production-style pre-scaled data or drop the rows. GAN variants are unaffected.
+**Adapter fix attempted — the pre-scaling idea was a NO-OP.** The fixture is
+already in production-like space (std median 0.580 vs production 0.609);
+`build_real_fixture` normalises. Also eliminated: dropout (the only config
+difference), training steps up to production's own 58,500, 10x rows, and the
+degenerate `bb_width` feature. The fixture path still pins 95.9-99.8% of values
+at the clip where production hits 0.2%. **Cause unresolved — the remaining
+difference is the DATA itself.**
+
+**Shipped instead: a clip-saturation guard.** `ctab_corr_probe` reports
+`clipsat=` and warns loudly above 20%, so the harness declares its own results
+invalid rather than emitting garbage (TAB_DDPM 100.0% warns; WGAN 0.1% silent).
+**Standing rule: evaluate DDPM against the production-trained model on disk, not
+a fixture-trained one.**

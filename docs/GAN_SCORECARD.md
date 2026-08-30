@@ -1411,3 +1411,61 @@ replicated, wrong headlines. **When a variant lands far outside the family's
 range, suspect the harness before the model — and when a production artifact
 exists on disk, measure THAT rather than reconstructing it.** The decisive check
 here took one load and one generate; it was available from the start.
+
+
+## DDPM adapter fix — the requested change was a NO-OP; shipped a guard instead
+
+Asked to "feed the DDPM adapters pre-scaled data". **That fix does not exist:
+the fixture is ALREADY in production-like space.** `build_real_fixture` runs
+through `FeatureNormalizer`, and the loaded production model's own stored stats
+confirm it:
+
+| | mean (median) | std (median) | std range |
+|---|---|---|---|
+| production input space | -0.005 | 0.609 | 0.193-0.846 |
+| raw fixture (what adapters feed) | -0.002 | 0.580 | 0.019-0.849 |
+
+My earlier recommendation to add pre-scaling was wrong — inferred from the
+production pipeline's `scale_dataframe` step without checking what the fixture
+builder already does.
+
+### Everything else eliminated too
+
+Diffed the full config against the production model: `d_model`, `d_layers`,
+timesteps, sample steps, EDM sigma params, attention heads, EMA, LR, weight
+decay all MATCH. Only `dropout` differed (prod 0.1 vs probe 0.0).
+
+| variable tested | boundary % | verdict |
+|---|---|---|
+| probe as-is | 99.9% | — |
+| dropout 0.1 (production value) | 99.8% | not it |
+| 10x epochs (9,000 steps) | 98.1% | not it |
+| 10x rows (11,700 steps) | 98.4% | not it |
+| 10x rows + 5x epochs (58,500 steps = production's count) | 95.9% | not it |
+| drop `bb_width` (fixture std 0.0194 vs production min 0.193) | 99.8% | not it |
+| drop every feature with std < 0.1 | 99.7% | not it |
+| **production-trained model** | **0.2%** | — |
+
+**Unresolved.** Same architecture, same sampler, production's own step count and
+dropout, and the fixture path still pins 95.9% of values at the clip. The only
+remaining difference is the DATA itself (real market data, ~800K rows, 12 pairs)
+versus the fixture. I could not reproduce production behaviour on this fixture
+and do not know why.
+
+### What shipped instead: a self-diagnosing harness
+
+`ctab_corr_probe` now measures the fraction of generated values sitting at the
+model's own z-score clip, reports it as `clipsat=`, and prints a loud warning
+above 20%:
+
+    TAB_DDPM  ->  *** WARNING ... 100.0% ... EVERY fidelity number is meaningless
+    WGAN      ->  no warning, clipsat=0.1%
+
+A generator whose samples pile at its clip yields sigma == clip by ARITHMETIC,
+so every fidelity number from it is noise. **This guard would have caught the
+TabDDPM false alarm automatically** rather than after a day of hypothesis
+elimination.
+
+**Standing rule for DDPM: evaluate against the production-trained model on disk
+(`saved_data/GANs_PostScale/tab_ddpm`), not a fixture-trained one.** The fixture
+path is not a valid DDPM harness and this section is the evidence.
