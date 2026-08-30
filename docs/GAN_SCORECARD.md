@@ -1057,10 +1057,25 @@ defect is a plateau, not a deficit.
    before accepting the negative. Reverted — a batch estimate over 1024 rows is
    already accurate enough. Do not re-implement.
 
-### Still open — the untested candidate
+7. **Training-By-Sampling (the sampler itself).** Ported ST's class-balanced
+   bootstrap sampler into MT's loop, grouping by the JOINT task-label tuple
+   (reduces exactly to ST's per-class behaviour at one task). Verified engaged
+   from the log (`3 label groups x 341 samples/group`). **Inert**: 0.145 vs
+   0.146, and the plateau trajectory is unchanged (0.138 / 0.108 / 0.122 vs
+   0.137 / 0.107 / 0.122).
 
-Refutation 6 killed the target-noise MECHANISM but NOT the sampler difference
-itself. MT never got Training-By-Sampling; it may matter through some other route
-(class balance in what D sees, gradient variance, effective epoch composition).
-**Porting ST's class-balanced bootstrap sampler to MT's training loop is the
-obvious next test and has not been run.**
+   **First attempt was underpowered and nearly filed as a refutation anyway.**
+   The stock fixture is PERFECTLY balanced (1333/1333/1334), so a shuffled
+   sequential pass and class-balanced sampling produce statistically equivalent
+   batches — only with- vs without-replacement varied. Re-ran on a subsampled
+   1333/200/200 fixture (6.7:1, closer to production's ~5% signal frequency) via
+   the new `--imbalance` probe flag: STILL inert, 0.164 vs 0.164, coc +0.877 vs
+   +0.875. Reverted. **Check that a fixture can express the effect before
+   believing a null.**
+
+### Still open — no cause found
+
+Seven hypotheses, seven refuted. MT's plateau after ~epoch 15 is real,
+replicated, and unexplained. The remaining untested surface is the discriminator
+side (D's updates, the GP term, n_critic) — the generator side, the losses, the
+sampler, selection and the schedule are all now excluded.

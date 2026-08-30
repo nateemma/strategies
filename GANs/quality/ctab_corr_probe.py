@@ -64,7 +64,8 @@ def run(backend: str, epochs: int, seed: int, n_synth: int,
         gen_norm: str | None = None, gen_layers: str | None = None,
         disc_layers: str | None = None,
         gan_type: str = "CTAB_GAN",
-        extra: dict | None = None) -> dict:
+        extra: dict | None = None,
+        imbalance: float | None = None) -> dict:
     import GANs.backends  # noqa: F401 -- populates the registry
     from GANs.GANBackend import resolve_backend
     from GANs.GANType import GANType
@@ -73,6 +74,28 @@ def run(backend: str, epochs: int, seed: int, n_synth: int,
 
     prefer_mlx = backend == "mlx"
     x, y, _names = build_real_fixture(seed=seed)
+    if imbalance is not None:
+        # The stock fixture is PERFECTLY balanced (1333/1333/1334), so both
+        # samplers produce equivalent batches on it and a class-balance effect
+        # is undetectable.  Production trading labels are heavily skewed
+        # (signal frequency ~5%), so subsample the minority classes to make the
+        # comparison meaningful.
+        lab = y.argmax(1) if y.ndim > 1 else y
+        rng = np.random.default_rng(seed)
+        keep = []
+        for c in np.unique(lab):
+            idx = np.where(lab == c)[0]
+            n = len(idx) if c == 0 else max(1, int(round(len(idx) * imbalance)))
+            keep.append(rng.choice(idx, size=n, replace=False))
+        keep = np.sort(np.concatenate(keep))
+        x, y = x[keep], y[keep]
+        counts = np.bincount((y.argmax(1) if y.ndim > 1 else y).astype(int))
+        # The MT adapter generates with y[:n], so n cannot exceed the rows left.
+        n_synth = min(n_synth, len(y))
+        print(
+            f"    imbalanced fixture: class counts {counts.tolist()}, "
+            f"n_synth={n_synth}"
+        )
     cls = resolve_backend(getattr(GANType, gan_type), prefer_mlx=prefer_mlx)
     if cls.__name__.endswith("MLXBackend") != prefer_mlx:
         raise SystemExit(f"asked for {backend}, resolved {cls.__name__}")
@@ -122,6 +145,7 @@ def run(backend: str, epochs: int, seed: int, n_synth: int,
         "seed": seed,
         "pac": pac,
         "gan_type": gan_type,
+        "imbalance": imbalance,
         "extra": extra,
         "corr_weight": corr_weight,
         "gumbel_noise": gumbel_noise,
@@ -176,6 +200,9 @@ def main() -> int:
                     help="TF only: D gradient clip norm, or 'none' to disable.")
     ap.add_argument("--g-clip", default=None,
                     help="TF only: G gradient clip norm, or 'none' to disable.")
+    ap.add_argument("--imbalance", type=float, default=None,
+                    help="Subsample non-zero classes to this fraction, e.g. "
+                         "0.15, to make a class-balance effect detectable.")
     ap.add_argument("--set", dest="extra", action="append", default=None,
                     metavar="KEY=VALUE",
                     help="Pass an arbitrary ctor kwarg through, repeatable. "
@@ -199,12 +226,12 @@ def main() -> int:
     r = run(a.backend, a.epochs, a.seed, a.n_synth, a.pac, a.corr_weight,
             a.gumbel_noise, a.corr_warmup, a.d_clip, a.g_clip,
             a.gen_norm, a.gen_layers, a.disc_layers, a.gan_type,
-            _parse_set(a.extra))
+            _parse_set(a.extra), a.imbalance)
     print(
         "RESULT "
         f"backend={r['backend']} type={r['gan_type']} "
         f"epochs={r['epochs']} seed={r['seed']} "
-        f"pac={r['pac']} cw={r['corr_weight']} gn={r['gumbel_noise']} wu={r['corr_warmup']} dc={r['d_clip']} gc={r['g_clip']} gnorm={r['gen_norm']} gl={r['gen_layers']} dl={r['disc_layers']} set={r['extra']} "
+        f"pac={r['pac']} cw={r['corr_weight']} gn={r['gumbel_noise']} wu={r['corr_warmup']} dc={r['d_clip']} gc={r['g_clip']} gnorm={r['gen_norm']} gl={r['gen_layers']} dl={r['disc_layers']} set={r['extra']} imb={r['imbalance']} "
         f"mean_abs_corr={r['mean_abs_corr']:.3f} "
         f"real={r['real_mean_abs_corr']:.3f} "
         f"corr_of_corr={r['corr_of_corr']:+.3f} "

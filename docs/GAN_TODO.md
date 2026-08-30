@@ -315,8 +315,15 @@ MT 51% -> 62% of MT-MLX. Full tables in GAN_SCORECARD.md.
 **Key finding for task 2: the cliff is a SHARE of the generator loss, not an
 absolute scale** (single-task ~15-20, MT ~40-50, MT carries more non-adversarial
 loss). Residual MT-vs-single-task gap is unexplained and still open.
-Side observation: selection restores epoch 14/40 at high cw — may be discarding
-a better generator; untested.
+Side observation: selection restores epoch 14/40 at high cw — TESTED, selection
+HELPS (turning it off is worse); not a defect.
+
+**MT residual gap chased separately: SEVEN hypotheses refuted, cause NOT found.**
+See GAN_SCORECARD.md. Excluded: architecture (measured identical), downstream
+loss, selection, LR schedule, the cw confound, per-batch corr-target noise, and
+Training-By-Sampling (tested on both a balanced and a 6.7:1 imbalanced fixture).
+Remaining untested surface is the DISCRIMINATOR side (D updates, GP term,
+n_critic). Recommend task 2 ahead of resuming this.
 
 ## Task 2 — re-test CGAN-TF dispersion penalties with the G clip REMOVED
 
