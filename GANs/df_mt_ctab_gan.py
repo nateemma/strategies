@@ -112,7 +112,7 @@ class CTABGANPlusMT(CTABGANPlusBase):
             str
         ] = [],  # Columns to treat as simple continuous (linear) without VGM
         n_critic: int = 5,  # WGAN-GP discriminator updates per generator update
-        corr_loss_weight: float = 15.0,  # Off-diagonal correlation matching (0 = off)
+        corr_loss_weight: float = 30.0,  # Off-diagonal correlation matching (0 = off)
         gumbel_noise: bool = False,  # False = deterministic softmax, as in MLX
         corr_loss_warmup_epochs: int = 0,  # Ramp corr weight 0 -> full over N epochs
         d_grad_clip_norm: Optional[float] = 1.0,  # None disables D grad clipping
@@ -1727,7 +1727,7 @@ class CTABGANPlusMTEnhanced(CTABGANPlusEnhancedMixin, CTABGANPlusMT):
         info_loss_weight: float = 0.0,
         downstream_loss_weight: float = 0.0,
         generator_loss_weight: float = 0.0,
-        corr_loss_weight: float = 15.0,
+        corr_loss_weight: float = 30.0,
         gumbel_noise: bool = False,
         corr_loss_warmup_epochs: int = 0,
         d_grad_clip_norm: Optional[float] = 1.0,

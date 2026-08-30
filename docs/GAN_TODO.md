@@ -301,13 +301,22 @@ of fidelity (the information ceiling, §4/§5 above). These tasks are FIDELITY /
 PARITY work — justified because TF is the only backend for users not on Apple
 silicon, not because they are expected to show up in a backtest.
 
-## Task 1 — sweep `corr_loss_weight` for MT_CTAB-TF  [IN PROGRESS]
+## Task 1 — sweep `corr_loss_weight` for MT_CTAB-TF  [DONE 2026-08-29: cw 15 -> 30]
 
 MT reached 0.126 / +0.834, only ~51% of MT-MLX, where single-task reached 95%.
 `corr_loss_weight=15` was tuned on the SINGLE-TASK objective; MT's generator loss
 also carries info and downstream terms, so its optimum is very likely different.
 Sweep, then 3-seed the winner. Cheapest known headroom.
 Gate: `ctab_corr_probe --gan-type MT_CTAB_GAN`.
+
+**RESULT:** optimum is 40 (0.155 / +0.862), shipped 30 (0.146 / +0.858) for
+margin — the cliff at 40-50 fails SILENTLY (restores epoch 2, worse than no fix).
+MT 51% -> 62% of MT-MLX. Full tables in GAN_SCORECARD.md.
+**Key finding for task 2: the cliff is a SHARE of the generator loss, not an
+absolute scale** (single-task ~15-20, MT ~40-50, MT carries more non-adversarial
+loss). Residual MT-vs-single-task gap is unexplained and still open.
+Side observation: selection restores epoch 14/40 at high cw — may be discarding
+a better generator; untested.
 
 ## Task 2 — re-test CGAN-TF dispersion penalties with the G clip REMOVED
 

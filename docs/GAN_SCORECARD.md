@@ -935,9 +935,7 @@ than duplicating ~130 lines.  Same defaults as single-task.
 | MT-MLX reference | 0.247 | +0.979 |
 
 Real and replicated, but only ~51% of MT-MLX where single-task reached 95%.
-**`corr_loss_weight=15` was tuned on the single-task objective**; MT's generator
-loss also carries info and downstream terms, so its optimum weight is very
-likely different.  Sweeping it for MT is the open headroom.
+Weight swept below.
 
 ### Trap worth recording (3rd occurrence in this family)
 
@@ -949,3 +947,58 @@ probe caught it.  Same shape as `cond_loss_weight` being swallowed by `**kwargs`
 (WGAN) and the predict-time scaling gate.  **Duplicated generator steps across
 base/Enhanced/MT/MT-Enhanced are the recurring hazard in this file family: after
 touching a training step, verify by MEASUREMENT, never by wiring inspection.**
+
+
+## MT_CTAB-TF weight sweep (backlog task 1) — DONE, cw 15 -> 30
+
+`corr_loss_weight=15` was inherited from the single-task objective.  MT carries
+much more non-adversarial loss mass (downstream CE at weight 5.0, capped at 50
+vs single-task's 10), so its optimum is higher.  Seed 42 ladder:
+
+| cw | mean\|corr\| | corr-of-corr | mean_dcorr | sigma | stable |
+|---|---|---|---|---|---|
+| 5 | 0.094 | +0.775 | 0.249 | 0.985 | yes |
+| 15 | 0.112 | +0.801 | 0.244 | 0.992 | yes |
+| 25 | 0.140 | +0.859 | 0.210 | 1.005 | yes |
+| 40 | **0.152** | **+0.870** | **0.195** | 0.984 | yes |
+| 50 | 0.047 | +0.005 | 0.313 | 0.796 | NO (ep2) |
+| 60 | 0.046 | +0.015 | 0.313 | 0.795 | NO (ep2) |
+| 100 | 0.045 | +0.062 | 0.311 | 0.776 | NO (ep2) |
+
+3 seeds (42/7/13), all 0/3 divergences:
+
+| config | mean\|corr\| | corr-of-corr | mean_dcorr | sigma |
+|---|---|---|---|---|
+| cw=15 (was) | 0.126 | +0.834 | 0.229 | 1.002 |
+| **cw=30 (now default)** | **0.146** | **+0.858** | 0.211 | 1.001 |
+| cw=40 (measured optimum) | 0.155 | +0.862 | 0.205 | 1.000 |
+| MT-MLX | 0.249 | +0.985 | 0.083 | 1.045 |
+
+**Shipped 30, not the optimum 40, deliberately.** The cliff is between 40 and 50,
+and its failure mode is SILENT and catastrophic — the divergence guard fires,
+restores epoch 2, and the result is WORSE than no fix at all, with no error
+raised.  cw=30 keeps 94% of cw=40's magnitude with 67% margin to the cliff
+instead of 25%.  For a default that runs on other people's data that trade is
+worth 0.009 of mean|corr|.
+
+**THE CLIFF IS A SHARE OF THE LOSS, NOT AN ABSOLUTE SCALE.** Single-task's cliff
+is ~15-20, MT's is ~40-50, and MT carries proportionally more non-adversarial
+loss.  This is the first real characterisation of the cliff (open since the
+single-task work) and it directly supports backlog task 2: if what matters is
+the share of the update an auxiliary term commands, a norm-1.0 clip — which caps
+total update magnitude so weight can only ROTATE the direction — is exactly the
+mechanism that would make CGAN's dispersion penalty read "flat even at w=20".
+
+**MT remains behind single-task** (62% of its MLX counterpart at cw=40 vs 95%).
+The weight was not the whole story; the residual MT gap is unexplained.
+
+### Noted, not chased: model selection picks epoch 14
+
+At cw=25 and 40 selection restores epoch 14 of 40 (cw=5 restores 38), with no
+divergence — the `eval_quality` composite peaks early and declines.  The probe
+measures the SELECTED model, so the numbers above are what a user actually gets
+and the result stands.  But correlation may keep improving past epoch 14 while
+the composite pulls the other way, in which case selection is discarding a better
+generator.  This family has been bitten by that before (see the CTAB composite
+section).  Cheap test: measure correlation at a fixed final epoch vs the selected
+one.
