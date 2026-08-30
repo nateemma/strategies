@@ -1258,3 +1258,56 @@ cheap test is to run the production fidelity report and this probe on the same
 model instance and see where they diverge. Acting on either number alone risks
 fixing a defect that only exists in one measurement path — exactly the mistake
 task 4 was built on.
+
+
+## Task 5 — TabDDPM: HALF the earlier claim was a probe artifact
+
+The previous section called TAB_DDPM "the real worst defect — zero joint
+structure AND 4x over-dispersion". **Half of that was my measurement error.**
+
+The scorecard's TAB_DDPM adapter passes a deliberately tiny fast-config:
+`d_model=32, d_layers=(32,32), num_timesteps=100, num_sample_steps=20,
+batch_size=128` against production defaults of `256 / (256,256) / 1000 / 50 /
+4096`. A ~64x-smaller network with 10x fewer diffusion steps. Forcing `--epochs`
+overrode only the epochs; every other toy value stayed.
+
+Capacity ladder (seed 42, real fixture):
+
+| config | sigma | corr-of-corr | mean_dcorr |
+|---|---|---|---|
+| probe toy, 40ep | 3.905 | +0.037 | 0.389 |
+| +width only (256), 100ep | 3.944 | +0.228 | 0.334 |
+| +timesteps only (1000), 100ep | 3.889 | +0.037 | 0.360 |
+| full production shape, 100ep | 3.915 | +0.282 | 0.325 |
+| full production shape, 300ep | **3.718** | **+0.496** | 0.288 |
+
+**RETRACTED — "zero joint structure".** corr-of-corr moves -0.026 -> +0.496 with
+capacity, a 13x change driven by WIDTH (alone: +0.228) not timesteps (alone:
++0.037). It remains the family's worst (+0.496 vs +0.86-0.99 elsewhere) but that
+is a far weaker claim than "the CTAB-TF disease".
+
+**STANDS — sigma ~3.9.** Invariant across an 8x width increase, 10x timesteps and
+a 7.5x training budget (3.718-3.944). Not under-capacity. This is the +/-4 sigma
+clip-saturation signature already documented in GAN_TODO section 2 for MT_DDPM:
+sampled z-scores saturate the clip and de-z-score to ~4x the real std.
+
+### STILL UNRECONCILED — the measurement paths disagree on sigma
+
+GAN_TODO section 5 Phase 1 reports sigma_syn/sigma_real ~0.5-1.0 for this same
+model from the PRODUCTION fidelity report. Capacity does NOT explain the gap, so
+the difference is in the measurement path itself. Candidates, none tested:
+raw `generate()` output vs post-scaling; the AE filter; per-class vs pooled
+sigma; the 4,000-row fixture vs production's ~800K rows.
+
+**Next step is unchanged and has not been run: the production fidelity report
+and this probe on the SAME model instance.** Do not build a dispersion fix until
+one path is established as authoritative — a fix aimed at the wrong path is a
+fix for a defect that does not exist.
+
+### Method note recorded twice in one day
+
+Task 4 built on a stale D1 number; task 5 built on an unexamined harness config.
+Both produced confident, replicated, wrong headlines. **Three runs agreeing
+confirms the CONFIGURATION is consistent, not that the finding is valid.** When a
+variant lands far outside the family's range (+0.86-0.99 everywhere, -0.026
+here), check the harness before believing the model.

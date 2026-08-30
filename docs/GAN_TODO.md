@@ -383,7 +383,7 @@ and with it this backlog's "under-dispersion is the dominant unsolved defect
 class" framing: on re-measurement most variants are sigma 0.70-1.09, coc +0.86
 to +0.99. See the re-measured inventory in GAN_SCORECARD.md.
 
-## Task 5 — TAB_DDPM / MT_DDPM: the actual worst defect  [OPEN]
+## Task 5 — TAB_DDPM / MT_DDPM  [PARTIALLY RETRACTED; sigma still open]
 
 Surfaced by task 4's re-measurement. TAB_DDPM-MLX has BOTH failure modes:
 sigma 3.946 (4x over-dispersed) AND corr-of-corr -0.026 — ZERO joint structure,
@@ -400,3 +400,18 @@ on an unverified baseline costs.
 
 Note the correlation term does not port here as-is: diffusion has no adversarial
 generator step to attach it to, so it would need a different attachment point.
+
+
+### Task 5 update (2026-08-30)
+
+**"Zero joint structure" RETRACTED** — a probe artifact. The scorecard adapter
+runs a toy config (d_model 32 vs 256, timesteps 100 vs 1000). At production shape
++ 300 epochs corr-of-corr is +0.496, not -0.026. Still the family's worst, but
+not the CTAB-TF disease.
+
+**sigma ~3.9 STANDS** — invariant to 8x width, 10x timesteps, 7.5x budget. The
++/-4 sigma clip-saturation signature.
+
+**BLOCKED on reconciliation.** Production's fidelity report says sigma ~0.5-1.0
+for this model; capacity does not explain the gap. Run BOTH paths on the SAME
+model instance before designing any fix. Not yet run.
