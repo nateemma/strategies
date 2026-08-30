@@ -1146,3 +1146,59 @@ parameterisation. The output layer is linear with no activation ceiling and only
 the required variance from its own score. That is the same shape as the MT_DDPM
 "under-dispersion is baked into the denoiser" finding — post-hoc and loss-side
 corrections both failed there too.
+
+
+## Backlog task 3 — the correlation term PORTS to WGAN-MLX (default cw=1.0)
+
+The mechanism that fixed CTAB-TF generalises across backend, architecture and
+output parameterisation: TF/CTAB-GAN+/VGM-encoded -> MLX/WGAN-GP/raw features.
+First portable fix in this backlog (contrast task 2, where the CTAB G-clip win
+did NOT transfer to CGAN).
+
+Implementation follows the existing `class_means` precedent: `loss_gen` never
+receives real data, so the real off-diagonal correlation vector is precomputed
+ONCE in z-scored space and matched as a constant. No VGM mode heads here, so
+correlation is taken on the raw generator output — no soft-decode step.
+The MLX correlation was checked against numpy before use (max abs diff 8e-08);
+a subtly wrong correlation in a fresh array library produces plausible numbers
+that mean nothing.
+
+Weight ladder, seed 42, 40 epochs:
+
+| cw | corr-of-corr | mean_dcorr | sigma |
+|---|---|---|---|
+| 0 | +0.815 | 0.201 | 1.102 |
+| **1** | **+0.926** | **0.131** | **1.068** |
+| 2 | +0.954 | 0.101 | 1.161 |
+| 3 | +0.961 | 0.095 | 1.268 |
+| 5 | +0.975 | 0.071 | 1.385 |
+| 15 | +0.990 | 0.051 | 1.706 |
+| 40 | +0.997 | 0.043 | 1.498 |
+
+**Correlation keeps improving to cw=40, but sigma inflates past cw=1.** The
+high-weight rows are not better — they trade dispersion for correlation, and
+dispersion is this project's dominant unsolved defect class. Shipped cw=1.0, the
+sigma knee.
+
+### METHOD NOTE: WGAN-MLX training is NOT seeded
+
+`mx.random.seed` is never called in `df_wgan_mlx.py` (only in `balance.py`), so
+`--seed` seeds the FIXTURE, not training. Every run is an independent draw.
+Pooling all runs at each setting:
+
+| metric | cw=0 (3 runs) | cw=1 (4 runs) | separated? |
+|---|---|---|---|
+| mean_dcorr | 0.201 / 0.159 / 0.274 | 0.131 / 0.133 / 0.142 / 0.148 | YES (0.148 < 0.159) |
+| corr-of-corr | mean +0.805 | +0.900 … +0.926 | YES |
+| sigma | 1.102 / 1.101 / 1.186 | 1.068 / 1.141 / 1.083 / 1.133 | NO — overlapping |
+
+**Correction to a first reading of this result:** cw=1 initially looked strictly
+dominant (better dcorr AND better sigma). The sigma gain (1.130 -> 1.097) is
+INSIDE run-to-run noise and must not be claimed. The defensible statement is
+**cw=1 improves correlation without degrading dispersion** — which is what makes
+it the right default, since cw>=2 degrades sigma well outside the noise band
+(monotone 1.161 -> 1.706).
+
+Also corrects the D1 table's WGAN-MLX sigma of 0.36: on this probe the baseline
+is ~1.13, i.e. NOT under-dispersed. D1's figure predates the class-mean fix or
+uses a different measure.

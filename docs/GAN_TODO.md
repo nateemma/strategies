@@ -353,13 +353,21 @@ CAVEAT: CGAN-TF is NOT run-to-run reproducible (same config/seed gave sigma
 0.438 then 0.391). Any CGAN comparison needs repeats; single-run deltas mean
 nothing.
 
-## Task 3 — port the correlation term to WGAN-MLX
+## Task 3 — port the correlation term to WGAN-MLX  [DONE 2026-08-30: default cw=1.0]
 
 WGAN-MLX holds the widest joint gap left (dcorr 1.14). The mechanism is generic —
 supply the gradient the critic does not — and now lives in `CTABGANPlusBase`.
 WGAN has no VGM mode heads, so there is no soft-decode step: match correlation on
 the raw generator output directly. Note WGAN-MLX already got the class-mean fix
 (D2) and its dcorr stayed 1.14, so the joint defect is untouched by that.
+
+**RESULT: WORKS — the mechanism ports.** corr-of-corr +0.805 -> +0.923,
+mean_dcorr 0.211 -> 0.135 (3 seeds, no overlap with baseline). Shipped cw=1.0,
+the sigma knee: correlation keeps improving to cw=40 but sigma inflates past 1
+(1.10 -> 1.71), trading dispersion for correlation. First PORTABLE fix in this
+backlog. CAVEAT: WGAN-MLX training is unseeded (`mx.random.seed` never called),
+so every run is an independent draw — the sigma gain at cw=1 is within noise and
+is NOT claimed; only "does not degrade sigma". Full tables in GAN_SCORECARD.md.
 
 ## Task 4 — diagnose MT_WGAN-TF sigma = 0.17
 

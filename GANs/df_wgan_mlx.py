@@ -61,16 +61,28 @@ class WGANMLX:
     # before being fed to the generator/critic.
     _ZSCORE_CLIP: float = 4.0
 
-    def __init__(self, num_features: int, num_classes: int, latent_dim: int = 64, gp_weight: float = 50.0, learning_rate: float = 1e-4, grad_clip: float = 10.0, critic_lr_ratio: float = 0.25, cond_loss_weight: float = 2.0):
+    def __init__(self, num_features: int, num_classes: int, latent_dim: int = 64, gp_weight: float = 50.0, learning_rate: float = 1e-4, grad_clip: float = 10.0, critic_lr_ratio: float = 0.25, cond_loss_weight: float = 2.0, corr_loss_weight: float = 1.0):
         self.latent_dim = latent_dim
         self.num_classes = num_classes
         self.num_features = num_features
         self.gp_weight = gp_weight
         self.grad_clip = grad_clip
         self.cond_loss_weight = cond_loss_weight
+        # Off-diagonal correlation matching.  WGAN-MLX holds the widest joint
+        # gap in the scorecard (dcorr ~1.14) and the class-mean fix did not
+        # touch it.  Same mechanism that fixed CTAB-TF: supply the joint
+        # gradient directly rather than waiting for the critic to.  There are
+        # no VGM mode heads here, so the correlation is taken on the raw
+        # generator output -- no soft-decode step.
+        self.corr_loss_weight = corr_loss_weight
         # Per-class feature means in the generator's native (z-scored,
         # clipped) space. Set at fit time; used only by loss_gen.
         self.class_means: Optional[mx.array] = None
+        # Real off-diagonal correlation vector + the flat indices that select
+        # it. Precomputed once in z-scored space, like class_means: loss_gen
+        # never sees real data, so the target has to be a constant.
+        self.corr_target: Optional[mx.array] = None
+        self._corr_idx: Optional[mx.array] = None
         self.gen = Generator(latent_dim, num_classes, num_features)
         self.critic = Critic(num_features, num_classes)
         # TTUR (Heusel 2017): critic LR < generator LR to slow critic
@@ -128,6 +140,16 @@ class WGANMLX:
             mask = (present > 0).astype(mx.float32)
             loss = loss + self.cond_loss_weight * (
                 mx.sum(err * mask) / mx.maximum(mx.sum(mask), 1.0)
+            )
+
+        if self.corr_loss_weight and self.corr_target is not None:
+            xc = fake_x - mx.mean(fake_x, axis=0, keepdims=True)
+            sd = mx.sqrt(mx.mean(xc * xc, axis=0, keepdims=True) + 1e-8)
+            xn = xc / sd
+            corr = (xn.T @ xn) / xn.shape[0]
+            v = corr.reshape(-1)[self._corr_idx]
+            loss = loss + self.corr_loss_weight * mx.mean(
+                mx.square(v - self.corr_target)
             )
         return loss
 
@@ -216,6 +238,7 @@ def balance_with_wgan_mlx(
     noise_std: float = 0.0,
     verbose: bool = True,
     cond_loss_weight: float = 2.0,
+    corr_loss_weight: float = 1.0,
     **kwargs
 ) -> Tuple[np.ndarray, np.ndarray]:
     """MLX-accelerated WGAN-GP for tabular data balancing."""
@@ -231,7 +254,12 @@ def balance_with_wgan_mlx(
     # cond_loss_weight is passed explicitly: the constructor default was
     # previously unreachable from any caller (**kwargs swallowed it), so
     # setting it in a config was a silent no-op.
-    gan = WGANMLX(num_features, num_classes, cond_loss_weight=cond_loss_weight)
+    gan = WGANMLX(
+        num_features,
+        num_classes,
+        cond_loss_weight=cond_loss_weight,
+        corr_loss_weight=corr_loss_weight,
+    )
 
     # Compute z-score stats from raw input. The generator trains in
     # z-scored space; the augmentation step below inverts the z-score on
@@ -259,6 +287,16 @@ def balance_with_wgan_mlx(
         if np.any(_cls_idx == k) else np.zeros(num_features, dtype="float32")
         for k in range(num_classes)
     ]).astype("float32"))
+    # Real off-diagonal correlation, in the generator's native (z-scored)
+    # space -- the constant target for the correlation term in loss_gen.
+    if corr_loss_weight:
+        _cm = np.nan_to_num(np.corrcoef(train_data_zscored, rowvar=False))
+        _iu = np.triu_indices(num_features, k=1)
+        gan._corr_idx = mx.array(
+            (_iu[0] * num_features + _iu[1]).astype(np.int32)
+        )
+        gan.corr_target = mx.array(_cm[_iu].astype("float32"))
+
     y = mx.array(train_labels, dtype=mx.float32)
     
     save_path = kwargs.get("save_path")
