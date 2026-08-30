@@ -913,9 +913,39 @@ metadata, and an old `GumbelSoftmax` config without `use_noise` defaults to
 
 ### Scope
 
-`df_ctab_gan.py` (single-task, TF) only.  **`df_mt_ctab_gan.py` (MT_CTAB-TF) has
-the identical per-column Gumbel defect in its own copy of the code and gets
-nothing from this work** -- same fix still to port.  The MLX CTAB variants use a
-deterministic softmax and are unaffected.  WGAN / MT_WGAN / CGAN / TabDDPM /
+Single-task TF, plus MT_CTAB-TF (ported 2026-08-29, below).  The MLX CTAB
+variants use a deterministic softmax and are unaffected.  WGAN / MT_WGAN / CGAN / TabDDPM /
 MT_DDPM have no VGM mode heads at all (their only noise is per-sample latent z
 and the GP interpolation alpha), so cause 2 cannot occur there.
+
+
+## MT_CTAB-TF — same four fixes ported, PARTIAL (weight unswept)
+
+Shared machinery (`_soft_decode`, `_corr_offdiag`, `_correlation_loss`,
+`_build_corr_decode_tables`, `_clip_grads`) moved to `CTABGANPlusBase`, which
+both `CTABGANPlus` and `CTABGANPlusMT` already inherit, so MT reuses it rather
+than duplicating ~130 lines.  Same defaults as single-task.
+
+3 seeds (42/7/13), MT_CTAB-TF:
+
+| | mean\|corr\| | corr-of-corr |
+|---|---|---|
+| before | ~0.043 | -0.083 / -0.012 |
+| after | 0.112 / 0.123 / 0.143 (mean **0.126**) | +0.801 / +0.829 / +0.871 (mean **+0.834**) |
+| MT-MLX reference | 0.247 | +0.979 |
+
+Real and replicated, but only ~51% of MT-MLX where single-task reached 95%.
+**`corr_loss_weight=15` was tuned on the single-task objective**; MT's generator
+loss also carries info and downstream terms, so its optimum weight is very
+likely different.  Sweeping it for MT is the open headroom.
+
+### Trap worth recording (3rd occurrence in this family)
+
+The first MT port silently did NOTHING -- corr-of-corr -0.070 where +0.94 was
+expected.  `CTABGANPlusMTEnhanced` overrides `_train_generator_step`, and the
+patch had matched only `CTABGANPlusMT`'s copy; the backend builds the Enhanced
+class.  Defaults, plumbing assertions and compile ALL passed -- only running the
+probe caught it.  Same shape as `cond_loss_weight` being swallowed by `**kwargs`
+(WGAN) and the predict-time scaling gate.  **Duplicated generator steps across
+base/Enhanced/MT/MT-Enhanced are the recurring hazard in this file family: after
+touching a training step, verify by MEASUREMENT, never by wiring inspection.**

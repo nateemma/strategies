@@ -41,18 +41,26 @@ class GumbelSoftmax(keras.layers.Layer):
     Returns sharp distributions during training while remaining differentiable,
     and returns standard softmax probabilities during inference."""
 
-    def __init__(self, temperature=0.2, **kwargs):
+    def __init__(self, temperature=0.2, use_noise=True, **kwargs):
         super().__init__(**kwargs)
         self.temperature = temperature
+        self.use_noise = use_noise
 
     def call(self, logits, training=None):
         if training:
+            temp = tf.cast(self.temperature, dtype=logits.dtype)
+            if not self.use_noise:
+                # Deterministic given the shared trunk, matching the MLX
+                # backend.  An INDEPENDENT per-column Gumbel draw decorrelates
+                # mode selection across columns, and since a decoded value is
+                # mean[mode] + scalar*4*std[mode], that is exactly what
+                # cross-feature correlation is made of.
+                return tf.nn.softmax(logits / temp)
             # Add Gumbel noise for sharp sampling (ensure dtype matches logits for mixed precision)
             uniform = tf.random.uniform(
                 tf.shape(logits), minval=1e-5, maxval=1.0 - 1e-5, dtype=logits.dtype
             )
             gumbel_noise = -tf.math.log(-tf.math.log(uniform))
-            temp = tf.cast(self.temperature, dtype=logits.dtype)
             return tf.nn.softmax((logits + gumbel_noise) / temp)
         else:
             # Standard softmax during inference
@@ -60,7 +68,9 @@ class GumbelSoftmax(keras.layers.Layer):
 
     def get_config(self):
         config = super().get_config()
-        config.update({"temperature": self.temperature})
+        config.update(
+            {"temperature": self.temperature, "use_noise": self.use_noise}
+        )
         return config
 
 
@@ -75,7 +85,7 @@ class CTABGANPlusMT(CTABGANPlusBase):
     def __init__(
         self,
         latent_dim: int = 128,
-        generator_layers: List[int] = [256, 256],
+        generator_layers: List[int] = [256, 512, 256],
         discriminator_layers: List[int] = [256, 256],
         batch_size: int = 1024,  # Power of 2 for optimal GPU utilization
         epochs: int = 300,
@@ -102,6 +112,12 @@ class CTABGANPlusMT(CTABGANPlusBase):
             str
         ] = [],  # Columns to treat as simple continuous (linear) without VGM
         n_critic: int = 5,  # WGAN-GP discriminator updates per generator update
+        corr_loss_weight: float = 15.0,  # Off-diagonal correlation matching (0 = off)
+        gumbel_noise: bool = False,  # False = deterministic softmax, as in MLX
+        corr_loss_warmup_epochs: int = 0,  # Ramp corr weight 0 -> full over N epochs
+        d_grad_clip_norm: Optional[float] = 1.0,  # None disables D grad clipping
+        g_grad_clip_norm: Optional[float] = None,  # None disables G grad clipping
+        generator_norm: str = "layer",  # "batch" | "layer" | "none" (MLX uses layer)
     ):
         """
         Initialize Multi-Task CTAB-GAN+ model.
@@ -152,8 +168,28 @@ class CTABGANPlusMT(CTABGANPlusBase):
         self.random_seed = random_seed
         self.integer_columns = integer_columns
         self.n_critic = n_critic
+        self.corr_loss_weight = float(corr_loss_weight)
+        self.gumbel_noise = bool(gumbel_noise)
+        self.corr_loss_warmup_epochs = int(corr_loss_warmup_epochs)
+        self.d_grad_clip_norm = d_grad_clip_norm
+        self.g_grad_clip_norm = g_grad_clip_norm
+        if generator_norm not in ("batch", "layer", "none"):
+            raise ValueError(
+                f"generator_norm={generator_norm!r} must be "
+                f"'batch', 'layer' or 'none'"
+            )
+        self.generator_norm = generator_norm
+        # Populated by _build_corr_decode_tables during fit; empty until then
+        # (and on the load() path, which never trains).
+        self._corr_decode_plan: List[dict] = []
 
         # Temperature variable for Gumbel-Softmax annealing
+        self._corr_weight_var = tf.Variable(
+            self.corr_loss_weight,
+            trainable=False,
+            dtype=tf.float32,
+            name="corr_loss_weight",
+        )
         self.temperature = tf.Variable(
             0.9, trainable=False, dtype=tf.float32, name="gumbel_temperature"
         )
@@ -482,6 +518,8 @@ class CTABGANPlusMT(CTABGANPlusBase):
         self.continuous_dim = sum(val + modes for val, modes in self.continuous_info)
         self.total_feature_dim = self.continuous_dim + self.categorical_dim
 
+        self._build_corr_decode_tables()
+
         # Create models
         self._create_models()
 
@@ -641,7 +679,10 @@ class CTABGANPlusMT(CTABGANPlusBase):
 
         for layer_size in self.generator_layers:
             x = layers.Dense(layer_size)(x)
-            x = layers.BatchNormalization()(x)
+            if self.generator_norm == "batch":
+                x = layers.BatchNormalization()(x)
+            elif self.generator_norm == "layer":
+                x = layers.LayerNormalization()(x)
             x = layers.ReLU()(x)
 
         # Build per-column output branches (same structure as single-task CTABGANPlus)
@@ -652,16 +693,20 @@ class CTABGANPlusMT(CTABGANPlusBase):
             if num_modes > 0:
                 mode_logits = layers.Dense(num_modes, name=f"cont_mode_logits_{i}")(x)
                 mode_probs = GumbelSoftmax(
-                    temperature=self.temperature, name=f"cont_mode_probs_{i}"
+                    temperature=self.temperature,
+                    use_noise=self.gumbel_noise,
+                    name=f"cont_mode_probs_{i}",
                 )(mode_logits)
                 outputs.append(mode_probs)
 
         cat_outputs = []
         for i, num_cats in enumerate(self.categorical_info):
             logits = layers.Dense(num_cats, name=f"cat_logits_{i}")(x)
-            probs = GumbelSoftmax(temperature=self.temperature, name=f"cat_probs_{i}")(
-                logits
-            )
+            probs = GumbelSoftmax(
+                temperature=self.temperature,
+                use_noise=self.gumbel_noise,
+                name=f"cat_probs_{i}",
+            )(logits)
             cat_outputs.append(probs)
 
         if cat_outputs:
@@ -827,7 +872,7 @@ class CTABGANPlusMT(CTABGANPlusBase):
             d_loss = tf.where(tf.math.is_finite(d_loss), d_loss, tf.zeros_like(d_loss))
 
         d_grads = d_tape.gradient(d_loss, self.discriminator.trainable_variables)
-        d_grads = [tf.clip_by_norm(g, 1.0) if g is not None else None for g in d_grads]
+        d_grads = self._clip_grads(d_grads, self.d_grad_clip_norm)
         valid_grads = [
             (g, v)
             for g, v in zip(d_grads, self.discriminator.trainable_variables)
@@ -857,8 +902,25 @@ class CTABGANPlusMT(CTABGANPlusBase):
             fake_scores = self.discriminator([fake_data_pac, labels_pac], training=True)
             g_loss = -tf.reduce_mean(fake_scores)
 
+            # Correlation matching -- supplies the joint-structure gradient the
+            # discriminator is blind to.  See docs/GAN_SCORECARD.md.
+            if (
+                real_data is not None
+                and self.corr_loss_weight > 0
+                and self._corr_decode_plan
+            ):
+                corr_loss = tf.cast(
+                    self._correlation_loss(real_data, fake_data), g_loss.dtype
+                )
+                g_loss = (
+                    g_loss + tf.cast(self._corr_weight_var, g_loss.dtype) * corr_loss
+                )
+                g_loss = tf.where(
+                    tf.math.is_finite(g_loss), g_loss, -tf.reduce_mean(fake_scores)
+                )
+
         g_grads = g_tape.gradient(g_loss, self.generator.trainable_variables)
-        g_grads = [tf.clip_by_norm(g, 1.0) if g is not None else None for g in g_grads]
+        g_grads = self._clip_grads(g_grads, self.g_grad_clip_norm)
         valid_grads = [
             (g, v)
             for g, v in zip(g_grads, self.generator.trainable_variables)
@@ -901,6 +963,13 @@ class CTABGANPlusMT(CTABGANPlusBase):
             )
 
         for epoch in range(self.epochs):
+            if self.corr_loss_weight > 0:
+                ramp = (
+                    min(1.0, (epoch + 1) / self.corr_loss_warmup_epochs)
+                    if self.corr_loss_warmup_epochs > 0
+                    else 1.0
+                )
+                self._corr_weight_var.assign(self.corr_loss_weight * ramp)
             # Shuffle data (use seeded random state for reproducibility)
             if self.random_seed is not None:
                 rng = np.random.RandomState(self.random_seed + epoch)
@@ -1632,7 +1701,7 @@ class CTABGANPlusMTEnhanced(CTABGANPlusEnhancedMixin, CTABGANPlusMT):
     def __init__(
         self,
         latent_dim: int = 128,
-        generator_layers: List[int] = [256, 256],
+        generator_layers: List[int] = [256, 512, 256],
         discriminator_layers: List[int] = [256, 256],
         batch_size: int = 1024,
         epochs: int = 300,
@@ -1658,6 +1727,12 @@ class CTABGANPlusMTEnhanced(CTABGANPlusEnhancedMixin, CTABGANPlusMT):
         info_loss_weight: float = 0.0,
         downstream_loss_weight: float = 0.0,
         generator_loss_weight: float = 0.0,
+        corr_loss_weight: float = 15.0,
+        gumbel_noise: bool = False,
+        corr_loss_warmup_epochs: int = 0,
+        d_grad_clip_norm: Optional[float] = 1.0,
+        g_grad_clip_norm: Optional[float] = None,
+        generator_norm: str = "layer",
     ):
         """
         Extra args over CTABGANPlusMT:
@@ -1691,6 +1766,12 @@ class CTABGANPlusMTEnhanced(CTABGANPlusEnhancedMixin, CTABGANPlusMT):
             random_seed=random_seed,
             integer_columns=integer_columns,
             n_critic=n_critic,
+            corr_loss_weight=corr_loss_weight,
+            gumbel_noise=gumbel_noise,
+            corr_loss_warmup_epochs=corr_loss_warmup_epochs,
+            d_grad_clip_norm=d_grad_clip_norm,
+            g_grad_clip_norm=g_grad_clip_norm,
+            generator_norm=generator_norm,
         )
         self.use_cnn = use_cnn
         self.use_auxiliary = use_auxiliary
@@ -1762,16 +1843,20 @@ class CTABGANPlusMTEnhanced(CTABGANPlusEnhancedMixin, CTABGANPlusMT):
             if num_modes > 0:
                 mode_logits = layers.Dense(num_modes, name=f"cont_mode_logits_{i}")(x)
                 mode_probs = GumbelSoftmax(
-                    temperature=self.temperature, name=f"cont_mode_probs_{i}"
+                    temperature=self.temperature,
+                    use_noise=self.gumbel_noise,
+                    name=f"cont_mode_probs_{i}",
                 )(mode_logits)
                 outputs.append(mode_probs)
 
         cat_outputs = []
         for i, num_cats in enumerate(self.categorical_info):
             logits = layers.Dense(num_cats, name=f"cat_logits_{i}")(x)
-            probs = GumbelSoftmax(temperature=self.temperature, name=f"cat_probs_{i}")(
-                logits
-            )
+            probs = GumbelSoftmax(
+                temperature=self.temperature,
+                use_noise=self.gumbel_noise,
+                name=f"cat_probs_{i}",
+            )(logits)
             cat_outputs.append(probs)
 
         if cat_outputs:
@@ -1935,6 +2020,20 @@ class CTABGANPlusMTEnhanced(CTABGANPlusEnhancedMixin, CTABGANPlusMT):
                     g_loss_float32 + tf.cast(down_weight, tf.float32) * down_loss
                 )
 
+            # Correlation matching -- supplies the joint-structure gradient the
+            # discriminator is blind to.  _correlation_loss already returns
+            # float32, matching this accumulator.  See docs/GAN_SCORECARD.md.
+            if (
+                real_data is not None
+                and self.corr_loss_weight > 0
+                and self._corr_decode_plan
+            ):
+                corr_loss = self._correlation_loss(real_data, fake_data)
+                g_loss_float32 = (
+                    g_loss_float32
+                    + tf.cast(self._corr_weight_var, tf.float32) * corr_loss
+                )
+
             # Fallback to pure g_loss if auxiliary parts are NaN
             g_loss_float32 = tf.where(
                 tf.math.is_finite(g_loss_float32), g_loss_float32, g_loss
@@ -1943,7 +2042,7 @@ class CTABGANPlusMTEnhanced(CTABGANPlusEnhancedMixin, CTABGANPlusMT):
             g_loss = tf.cast(g_loss_float32, g_loss.dtype)
 
         g_grads = g_tape.gradient(g_loss, self.generator.trainable_variables)
-        g_grads = [tf.clip_by_norm(g, 1.0) if g is not None else None for g in g_grads]
+        g_grads = self._clip_grads(g_grads, self.g_grad_clip_norm)
         valid_grads = [
             (g, v)
             for g, v in zip(g_grads, self.generator.trainable_variables)

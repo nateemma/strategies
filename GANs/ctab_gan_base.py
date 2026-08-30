@@ -124,6 +124,119 @@ class CTABGANPlusBase:
                 return categorical_data
         return continuous_data
 
+    # ------------------------------------------------------------------
+    # Correlation matching (off-diagonal feature-matching)
+    # ------------------------------------------------------------------
+    #
+    # CTAB-TF's discriminator is BLIND to joint structure: it scores
+    # class-conditionally column-shuffled real data (marginals preserved
+    # exactly, correlations destroyed) as essentially real
+    # (joint_sensitivity 0.045 vs MLX 0.67, 3 seeds -- see
+    # docs/GAN_SCORECARD.md).  The generator is therefore never told that
+    # correlation is missing and never starts learning it, which is why
+    # every generator-side change tried so far came back inert.
+    #
+    # This term supplies the missing gradient directly rather than waiting
+    # for the discriminator to learn to supply it: match the off-diagonal
+    # correlation vector of fake to real, in the DECODED feature space that
+    # the fidelity probe measures.  Note the existing info_loss matches
+    # first moments (mean/std) in ENCODED space -- this is the second-order
+    # analogue, and the space matters because the metric under test
+    # (mean|corr|, corr-of-corr) is computed post-decode.
+
+    def _build_corr_decode_tables(self) -> None:
+        """Precompute the VGM mode means/stds for a differentiable decode.
+
+        ``generate`` decodes a continuous column as
+        ``scalar * 4 * std[argmax(modes)] + mean[argmax(modes)]``.  The
+        correlation loss needs the same quantity but differentiable, so the
+        hard argmax is replaced by the Gumbel-Softmax mode probabilities the
+        generator already emits.  For real data the mode block is exactly
+        one-hot, so the soft decode reproduces the hard decode exactly and
+        both sides of the loss are measured on the same footing.
+        """
+        plan: List[dict] = []
+        offset = 0
+        for col in self.continuous_columns:
+            info = self.column_info[col]
+            n_modes = int(info.get("vgm_components", 0))
+            entry: dict = {"scalar_idx": offset, "n_modes": n_modes}
+            if n_modes > 0:
+                bgm = self.vgm_models[col]
+                entry["mode_start"] = offset + 1
+                entry["means"] = bgm.means_.reshape(-1).astype(np.float32)
+                entry["stds"] = (
+                    np.sqrt(bgm.covariances_).reshape(-1).astype(np.float32)
+                )
+            else:
+                # Fallback min-max columns: decode is affine in the scalar.
+                span = 0.5 * (info["max"] - info["min"])
+                entry["scale"] = np.float32(span)
+                entry["shift"] = np.float32(span + info["min"])
+            plan.append(entry)
+            offset += 1 + n_modes
+        self._corr_decode_plan = plan
+
+    def _soft_decode(self, encoded):
+        """Differentiably decode the continuous block to raw feature values."""
+        cols = []
+        for e in self._corr_decode_plan:
+            scalar = encoded[:, e["scalar_idx"]]
+            if e["n_modes"] > 0:
+                start = e["mode_start"]
+                probs = encoded[:, start : start + e["n_modes"]]
+                means = tf.constant(e["means"], dtype=encoded.dtype)
+                stds = tf.constant(e["stds"], dtype=encoded.dtype)
+                # Expectation over modes rather than argmax -- exact when the
+                # mode block is one-hot, which it is for real data and which
+                # the annealing Gumbel temperature drives fake towards.
+                m = tf.reduce_sum(probs * means, axis=1)
+                s = tf.reduce_sum(probs * stds, axis=1)
+                cols.append(scalar * 4.0 * s + m)
+            else:
+                cols.append(
+                    scalar * tf.cast(e["scale"], encoded.dtype)
+                    + tf.cast(e["shift"], encoded.dtype)
+                )
+        return tf.stack(cols, axis=1)
+
+    @staticmethod
+    def _corr_offdiag(x):
+        """Upper-triangular off-diagonal entries of the correlation matrix."""
+        xc = x - tf.reduce_mean(x, axis=0, keepdims=True)
+        denom = tf.sqrt(tf.reduce_mean(tf.square(xc), axis=0, keepdims=True) + 1e-8)
+        xn = xc / denom
+        n = tf.cast(tf.shape(xn)[0], xn.dtype)
+        corr = tf.matmul(xn, xn, transpose_a=True) / n
+        d = xn.shape[1]
+        mask = tf.constant(np.triu(np.ones((d, d), dtype=bool), k=1))
+        return tf.boolean_mask(corr, mask)
+
+    def _correlation_loss(self, real_data, fake_data):
+        """MSE between the off-diagonal correlation vectors of real and fake.
+
+        Forced to float32 regardless of the mixed-precision policy: the
+        correlation is a sum of ~1e3 products, which fp16 accumulates too
+        coarsely to give a usable gradient.  The caller casts the scalar
+        back to the loss dtype.
+        """
+        real_d = self._soft_decode(tf.cast(real_data, tf.float32))
+        fake_d = self._soft_decode(tf.cast(fake_data, tf.float32))
+        loss = tf.reduce_mean(
+            tf.square(self._corr_offdiag(fake_d) - self._corr_offdiag(real_d))
+        )
+        # Same NaN/blow-up discipline as the existing info/downstream terms.
+        loss = tf.minimum(loss, 10.0)
+        return tf.where(tf.math.is_finite(loss), loss, tf.zeros_like(loss))
+
+    @staticmethod
+    def _clip_grads(grads, clip_norm):
+        """Per-tensor norm clipping; ``None`` passes gradients through."""
+        if clip_norm is None:
+            return grads
+        return [tf.clip_by_norm(g, clip_norm) if g is not None else None
+                for g in grads]
+
     def _wasserstein_loss(self, y_true, y_pred):
         """Wasserstein loss for WGAN."""
         return tf.reduce_mean(y_pred)

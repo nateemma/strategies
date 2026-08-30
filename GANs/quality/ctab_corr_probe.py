@@ -62,7 +62,8 @@ def run(backend: str, epochs: int, seed: int, n_synth: int,
         corr_warmup: int | None = None,
         d_clip: str | None = None, g_clip: str | None = None,
         gen_norm: str | None = None, gen_layers: str | None = None,
-        disc_layers: str | None = None) -> dict:
+        disc_layers: str | None = None,
+        gan_type: str = "CTAB_GAN") -> dict:
     import GANs.backends  # noqa: F401 -- populates the registry
     from GANs.GANBackend import resolve_backend
     from GANs.GANType import GANType
@@ -71,11 +72,11 @@ def run(backend: str, epochs: int, seed: int, n_synth: int,
 
     prefer_mlx = backend == "mlx"
     x, y, _names = build_real_fixture(seed=seed)
-    cls = resolve_backend(GANType.CTAB_GAN, prefer_mlx=prefer_mlx)
+    cls = resolve_backend(getattr(GANType, gan_type), prefer_mlx=prefer_mlx)
     if cls.__name__.endswith("MLXBackend") != prefer_mlx:
         raise SystemExit(f"asked for {backend}, resolved {cls.__name__}")
 
-    ad = ADAPTERS["CTAB_GAN"]
+    ad = ADAPTERS[gan_type]
     data, labels = ad.to_fit(x, y)
     iface = cls()
     fit_kw = {"epochs": epochs}
@@ -117,6 +118,7 @@ def run(backend: str, epochs: int, seed: int, n_synth: int,
         "epochs": epochs,
         "seed": seed,
         "pac": pac,
+        "gan_type": gan_type,
         "corr_weight": corr_weight,
         "gumbel_noise": gumbel_noise,
         "corr_warmup": corr_warmup,
@@ -153,6 +155,8 @@ def main() -> int:
                     help="TF only: D gradient clip norm, or 'none' to disable.")
     ap.add_argument("--g-clip", default=None,
                     help="TF only: G gradient clip norm, or 'none' to disable.")
+    ap.add_argument("--gan-type", choices=("CTAB_GAN", "MT_CTAB_GAN"),
+                    default="CTAB_GAN")
     ap.add_argument("--gen-norm", choices=("batch", "layer", "none"),
                     default=None, help="TF only: generator normalisation.")
     ap.add_argument("--gen-layers", default=None,
@@ -167,10 +171,11 @@ def main() -> int:
     a = ap.parse_args()
     r = run(a.backend, a.epochs, a.seed, a.n_synth, a.pac, a.corr_weight,
             a.gumbel_noise, a.corr_warmup, a.d_clip, a.g_clip,
-            a.gen_norm, a.gen_layers, a.disc_layers)
+            a.gen_norm, a.gen_layers, a.disc_layers, a.gan_type)
     print(
         "RESULT "
-        f"backend={r['backend']} epochs={r['epochs']} seed={r['seed']} "
+        f"backend={r['backend']} type={r['gan_type']} "
+        f"epochs={r['epochs']} seed={r['seed']} "
         f"pac={r['pac']} cw={r['corr_weight']} gn={r['gumbel_noise']} wu={r['corr_warmup']} dc={r['d_clip']} gc={r['g_clip']} gnorm={r['gen_norm']} gl={r['gen_layers']} dl={r['disc_layers']} "
         f"mean_abs_corr={r['mean_abs_corr']:.3f} "
         f"real={r['real_mean_abs_corr']:.3f} "
