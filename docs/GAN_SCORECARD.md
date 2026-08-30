@@ -800,3 +800,105 @@ Candidate fixes, discriminator-side, none yet tested:
 Given the powered A/B verdict (WGAN fidelity repair bought ZERO P&L), option 1 is
 the cheap one worth doing only if CTAB-TF parity is wanted for its own sake.
 CTAB-MLX remains the working path on Apple silicon.
+
+---
+
+## CTAB-TF JOINT STRUCTURE FIXED — four compounding causes, 0.043 → 0.240
+
+The previous section root-caused the defect to a discriminator that cannot see
+joint structure.  Acting on that finding closed most of the gap to MLX.  Four
+independent changes compound; each is opt-in and defaults are unchanged.
+
+All numbers: `GANs/quality/ctab_corr_probe.py`, TF backend, 40 epochs, real
+fixture, 2400 synth samples, one process per config.  `real mean|corr| = 0.306`.
+
+### The ladder (seed 42)
+
+| step | mean\|corr\| | corr-of-corr | mean_dcorr | sigma |
+|---|---|---|---|---|
+| as shipped | 0.043 | -0.047 | 0.316 | 1.092 |
+| + correlation-matching term (cw=15) | 0.086 | +0.810 | 0.252 | 1.109 |
+| + drop per-column Gumbel noise | 0.139 | +0.938 | 0.194 | 1.159 |
+| + drop G gradient clip | 0.181 | +0.952 | 0.155 | 1.180 |
+| + generator 256,512,256 | 0.223 | +0.951 | 0.116 | 1.220 |
+| + LayerNorm (FINAL) | 0.232 | +0.944 | 0.126 | 1.089 |
+
+### 3-seed replication (42 / 7 / 13), final config vs MLX
+
+| config | mean\|corr\| | corr-of-corr | mean_dcorr | sigma |
+|---|---|---|---|---|
+| FINAL (gl+LN) | **0.240** | **+0.945** | 0.122 | **1.091** |
+| gen-width alone (BatchNorm) | 0.223 | +0.952 | 0.118 | 1.202 |
+| MLX reference | 0.253 | +0.981 | 0.087 | 1.029 |
+
+**95% of MLX on magnitude, near-parity on structure, marginals untouched** —
+final sigma 1.091 vs the shipped baseline's 1.092.  LayerNorm is the tiebreak:
+correlation fidelity is a wash against the BatchNorm variant (dcorr 0.122 vs
+0.118) but it holds sigma at baseline instead of 1.202.
+
+### The four causes
+
+1. **No gradient pointed at joints** (the blind D).  `corr_loss_weight` adds
+   `MSE(corr_offdiag(fake), corr_offdiag(real))` to the generator loss,
+   supplying the gradient directly instead of waiting for D to supply it.
+   Matched in DECODED space (where the metric lives), which needs a
+   differentiable decode: `_soft_decode` replaces the hard `argmax(modes)` with
+   the mode probabilities the generator already emits.  Exact for real data,
+   whose mode block is one-hot.  Forced to float32 -- a correlation is a sum of
+   ~1e3 products and fp16 accumulates it too coarsely to give a usable gradient.
+   Alone: -0.047 -> +0.810.
+
+2. **No capacity to express them.**  TF gave every column its own
+   `GumbelSoftmax` drawing INDEPENDENT noise; MLX uses a plain
+   `softmax(logits/temp)`, deterministic given the shared trunk (it defines a
+   GumbelSoftmax class and never calls it).  A decoded value is
+   `mean[mode] + scalar*4*std[mode]`, so cross-column correlation IS correlated
+   mode selection -- and independent per-column noise destroys it structurally.
+   Demonstration: feed 4096 rows of identical logits, noise-ON gives per-row std
+   0.295 on the first mode's probability, noise-OFF gives 0.0.
+   **Alone it is INERT** (-0.047 -> +0.012): capacity with no gradient to use.
+   It only pays in combination, +0.810 -> +0.938 and magnitude +62%.
+
+3. **The G gradient clip.**  Both losses are summed then clipped per-tensor to
+   norm 1.0, so the update is a pure direction.  Removing it: 0.139 -> 0.181.
+   (It is NOT the cause of the divergence cliff -- see below.)
+
+4. **Generator capacity.**  TF's trunk is 2 layers `[256,256]` + BatchNorm;
+   MLX's is 3 layers `256->512->256` + LayerNorm.  Width is the magnitude lever
+   (0.181 -> 0.223); LayerNorm restores sigma discipline.
+
+### Refuted here — do not retry
+
+- **Warm-up ramp on the corr weight.**  Above cw~15-20 training diverges (guard
+  fires, restores an untrained generator).  Ramping 0->target over 10 epochs only
+  DELAYED it (epoch 4 -> 8 at cw=20, which is where the ramp reached ~16).  It is
+  a hard threshold on the EFFECTIVE weight, not a startup transient.
+- **Removing the D gradient clip.**  Was the leading hypothesis for D's
+  blindness.  At cw=0 it leaves joint structure flat (+0.018 vs +0.012 baseline),
+  so the clip is NOT what blinds D; and combined with the corr term it
+  destabilises training (diverges epoch 4).  Keep `d_grad_clip_norm=1.0`.
+- **Critic width** `[256,512]` (matching MLX): 0.182 vs 0.181.  Inert.
+- **corr weight above ~15** by any route tried (raw, ramped, G-clip off).
+
+### Still open
+
+The divergence cliff at cw~15-20 is unexplained.  It is not either gradient clip
+and not a startup transient.  cw=15 sits safely below it, so it bounds achievable
+magnitude but does not block the fix.
+
+### Method note
+
+Points 2-4 were all measured as INERT in earlier sessions.  They were tested at
+an operating point where no gradient pointed at joints and mode selection was
+still randomised -- so nothing could have shown a difference.  Re-test
+architecture nulls after a mechanism fix lands, not before
+([[feedback_evaluate_interventions_at_powered_operating_point]]).
+
+### Scope
+
+`df_ctab_gan.py` (single-task, TF) only.  **`df_mt_ctab_gan.py` (MT_CTAB-TF) has
+the identical per-column Gumbel defect in its own copy of the code and gets
+nothing from this work** -- same fix still to port.  The MLX CTAB variants use a
+deterministic softmax and are unaffected.  WGAN / MT_WGAN / CGAN / TabDDPM /
+MT_DDPM have no VGM mode heads at all (their only noise is per-sample latent z
+and the GP interpolation alpha), so cause 2 cannot occur there.

@@ -43,6 +43,8 @@ _CTAB_CTOR_KEYS: frozenset = frozenset({
     # Enhanced-only extras
     "use_cnn", "use_auxiliary",
     "info_loss_weight", "downstream_loss_weight", "generator_loss_weight",
+    "corr_loss_weight", "gumbel_noise", "corr_loss_warmup_epochs",
+    "d_grad_clip_norm", "g_grad_clip_norm", "generator_norm",
 })
 
 # Keys that belong to other backends or to the surrounding strategy
