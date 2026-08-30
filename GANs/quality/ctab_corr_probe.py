@@ -63,7 +63,8 @@ def run(backend: str, epochs: int, seed: int, n_synth: int,
         d_clip: str | None = None, g_clip: str | None = None,
         gen_norm: str | None = None, gen_layers: str | None = None,
         disc_layers: str | None = None,
-        gan_type: str = "CTAB_GAN") -> dict:
+        gan_type: str = "CTAB_GAN",
+        extra: dict | None = None) -> dict:
     import GANs.backends  # noqa: F401 -- populates the registry
     from GANs.GANBackend import resolve_backend
     from GANs.GANType import GANType
@@ -102,6 +103,8 @@ def run(backend: str, epochs: int, seed: int, n_synth: int,
         fit_kw["generator_layers"] = [int(v) for v in gen_layers.split(",")]
     if disc_layers is not None:
         fit_kw["discriminator_layers"] = [int(v) for v in disc_layers.split(",")]
+    if extra:
+        fit_kw.update(extra)
     t0 = time.time()
     iface.fit(data, labels, **fit_kw)
     fit_s = time.time() - t0
@@ -119,6 +122,7 @@ def run(backend: str, epochs: int, seed: int, n_synth: int,
         "seed": seed,
         "pac": pac,
         "gan_type": gan_type,
+        "extra": extra,
         "corr_weight": corr_weight,
         "gumbel_noise": gumbel_noise,
         "corr_warmup": corr_warmup,
@@ -131,6 +135,23 @@ def run(backend: str, epochs: int, seed: int, n_synth: int,
         "fit_s": round(fit_s, 1),
         "sigma_ratio": float(np.median(synth.std(0) / sd_r)),
     })
+    return out
+
+
+def _parse_set(items) -> dict | None:
+    """Parse repeated --set KEY=VALUE into a ctor-kwargs dict."""
+    if not items:
+        return None
+    import ast
+    out = {}
+    for it in items:
+        if "=" not in it:
+            raise SystemExit(f"--set expects KEY=VALUE, got {it!r}")
+        k, v = it.split("=", 1)
+        try:
+            out[k] = ast.literal_eval(v)
+        except (ValueError, SyntaxError):
+            out[k] = v  # bare string
     return out
 
 
@@ -155,6 +176,12 @@ def main() -> int:
                     help="TF only: D gradient clip norm, or 'none' to disable.")
     ap.add_argument("--g-clip", default=None,
                     help="TF only: G gradient clip norm, or 'none' to disable.")
+    ap.add_argument("--set", dest="extra", action="append", default=None,
+                    metavar="KEY=VALUE",
+                    help="Pass an arbitrary ctor kwarg through, repeatable. "
+                         "Value is parsed as a Python literal "
+                         "(e.g. --set generator_loss_weight=0.0 "
+                         "--set restore_best_weights=False).")
     ap.add_argument("--gan-type", choices=("CTAB_GAN", "MT_CTAB_GAN"),
                     default="CTAB_GAN")
     ap.add_argument("--gen-norm", choices=("batch", "layer", "none"),
@@ -171,12 +198,13 @@ def main() -> int:
     a = ap.parse_args()
     r = run(a.backend, a.epochs, a.seed, a.n_synth, a.pac, a.corr_weight,
             a.gumbel_noise, a.corr_warmup, a.d_clip, a.g_clip,
-            a.gen_norm, a.gen_layers, a.disc_layers, a.gan_type)
+            a.gen_norm, a.gen_layers, a.disc_layers, a.gan_type,
+            _parse_set(a.extra))
     print(
         "RESULT "
         f"backend={r['backend']} type={r['gan_type']} "
         f"epochs={r['epochs']} seed={r['seed']} "
-        f"pac={r['pac']} cw={r['corr_weight']} gn={r['gumbel_noise']} wu={r['corr_warmup']} dc={r['d_clip']} gc={r['g_clip']} gnorm={r['gen_norm']} gl={r['gen_layers']} dl={r['disc_layers']} "
+        f"pac={r['pac']} cw={r['corr_weight']} gn={r['gumbel_noise']} wu={r['corr_warmup']} dc={r['d_clip']} gc={r['g_clip']} gnorm={r['gen_norm']} gl={r['gen_layers']} dl={r['disc_layers']} set={r['extra']} "
         f"mean_abs_corr={r['mean_abs_corr']:.3f} "
         f"real={r['real_mean_abs_corr']:.3f} "
         f"corr_of_corr={r['corr_of_corr']:+.3f} "

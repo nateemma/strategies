@@ -113,6 +113,7 @@ class CTABGANPlusMT(CTABGANPlusBase):
         ] = [],  # Columns to treat as simple continuous (linear) without VGM
         n_critic: int = 5,  # WGAN-GP discriminator updates per generator update
         corr_loss_weight: float = 30.0,  # Off-diagonal correlation matching (0 = off)
+        restore_best_weights: bool = True,  # False = keep the final epoch
         gumbel_noise: bool = False,  # False = deterministic softmax, as in MLX
         corr_loss_warmup_epochs: int = 0,  # Ramp corr weight 0 -> full over N epochs
         d_grad_clip_norm: Optional[float] = 1.0,  # None disables D grad clipping
@@ -169,6 +170,10 @@ class CTABGANPlusMT(CTABGANPlusBase):
         self.integer_columns = integer_columns
         self.n_critic = n_critic
         self.corr_loss_weight = float(corr_loss_weight)
+        # Diagnostic knob: eval_quality selection can restore an early epoch
+        # (epoch 14 of 40 at high corr weight).  Divergence RECOVERY restores
+        # are unaffected -- those are a safety mechanism, not selection.
+        self.restore_best_weights = bool(restore_best_weights)
         self.gumbel_noise = bool(gumbel_noise)
         self.corr_loss_warmup_epochs = int(corr_loss_warmup_epochs)
         self.d_grad_clip_norm = d_grad_clip_norm
@@ -1212,7 +1217,7 @@ class CTABGANPlusMT(CTABGANPlusBase):
                             f"({self.monitor_metric}={best_metric:.4f})"
                         )
                 # Restore best weights
-                if best_generator_weights is not None:
+                if best_generator_weights is not None and self.restore_best_weights:
                     self.generator.set_weights(best_generator_weights)
                 if best_discriminator_weights is not None:
                     self.discriminator.set_weights(best_discriminator_weights)
@@ -1267,6 +1272,7 @@ class CTABGANPlusMT(CTABGANPlusBase):
         # (Early stopping already restores weights, so this handles normal completion)
         if (
             best_generator_weights is not None
+            and self.restore_best_weights
             and best_discriminator_weights is not None
         ):
             if patience_counter < self.early_stopping_patience:
@@ -1728,6 +1734,7 @@ class CTABGANPlusMTEnhanced(CTABGANPlusEnhancedMixin, CTABGANPlusMT):
         downstream_loss_weight: float = 0.0,
         generator_loss_weight: float = 0.0,
         corr_loss_weight: float = 30.0,
+        restore_best_weights: bool = True,
         gumbel_noise: bool = False,
         corr_loss_warmup_epochs: int = 0,
         d_grad_clip_norm: Optional[float] = 1.0,
@@ -1767,6 +1774,7 @@ class CTABGANPlusMTEnhanced(CTABGANPlusEnhancedMixin, CTABGANPlusMT):
             integer_columns=integer_columns,
             n_critic=n_critic,
             corr_loss_weight=corr_loss_weight,
+            restore_best_weights=restore_best_weights,
             gumbel_noise=gumbel_noise,
             corr_loss_warmup_epochs=corr_loss_warmup_epochs,
             d_grad_clip_norm=d_grad_clip_norm,

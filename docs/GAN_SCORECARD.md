@@ -1002,3 +1002,65 @@ the composite pulls the other way, in which case selection is discarding a bette
 generator.  This family has been bitten by that before (see the CTAB composite
 section).  Cheap test: measure correlation at a fixed final epoch vs the selected
 one.
+
+## MT_CTAB-TF residual gap — SIX hypotheses refuted, cause still OPEN
+
+MT sits at 62% of MT-MLX where single-task reached 95%. Chased it; did not close
+it. Recording the refutations so none are retried.
+
+**The phenomenon, isolated.** Budget ladder, seed 42, selection OFF so each rung
+measures the model AT that epoch:
+
+| epoch | MT cw=15 | ST cw=15 |
+|---|---|---|
+| 15 | 0.108 / +0.791 | 0.110 / +0.849 |
+| 20 | 0.098 / +0.777 | **0.175** / +0.881 |
+| 40 | 0.112 / +0.767 | **0.232** / +0.944 |
+
+At MATCHED weight and byte-identical networks the two are level at epoch 15,
+then single-task doubles while MT flatlines. **MT is not slower — it stalls.** At
+cw=30 MT is even AHEAD early (0.133 @10 vs ST 0.069) before stalling. So the
+defect is a plateau, not a deficit.
+
+### Refuted
+
+1. **Architecture.** Measured, not assumed: on this fixture both build the SAME
+   networks — generator 366,600 params `[256,512,256]`+LayerNorm, discriminator
+   749,825, `total_feature_dim=264`, cond dim 3, 24-column decode plan. The MT
+   adapter collapses to one 3-class task.
+2. **Downstream loss** (MT uses `binary_crossentropy` cap 50, ST
+   `categorical_crossentropy` cap 10). `generator_loss_weight=0`: MT
+   0.154 -> 0.155, ST 0.232 -> 0.228. Inert in BOTH.
+3. **Model selection.** MT restores epoch ~13 of 40. Turning restore OFF is
+   WORSE (0.146 -> 0.129, 3 seeds) — selection is rescuing a degrading model,
+   not discarding a better one.
+4. **LR scheduler.** MT's `eval_quality` plateaus ~epoch 11 so ReduceLROnPlateau
+   halves LR twice; ST's climbs and never triggers. Looked causal, ISN'T:
+   selection returns epoch 13 and the first reduction fires ~epoch 23, so the
+   selected model never sees it — and the decline starts by epoch 20, BEFORE the
+   drop. `reduce_lr_patience=999` is bit-identical (0.146/+0.858, 3 seeds).
+   A plateau CAUSES an LR reduction; check the epoch ordering before believing
+   the reverse.
+5. **The cw confound.** The first ladder compared MT@cw=30 vs ST@cw=15 (their
+   respective defaults) — two operating points, not two implementations. Redone
+   at matched cw=15: MT still plateaus, so the effect is real. (Separately, ST at
+   cw=30 is fully collapsed, 0.048/+0.197 flat at every epoch — past its cliff,
+   independent confirmation of the loss-share finding.)
+6. **Noisy per-batch correlation target.** ST uses class-balanced bootstrap
+   batches (`rng.choice(..., replace=True)` per class); MT takes a plain
+   sequential pass (`rng.permutation` then slices). `_correlation_loss`
+   re-estimates the REAL correlation per batch, so its batch-to-batch variance is
+   the gradient's noise floor — which would explain "learns fast, then plateaus".
+   Implemented a global target computed once over all training data. **Inert**:
+   MT 0.146 -> 0.146, ST 0.240 -> 0.239 (3 seeds each). Verified the path
+   actually ran (`_corr_target` set, shape (276,), mean|t| 0.3064 vs real 0.306)
+   before accepting the negative. Reverted — a batch estimate over 1024 rows is
+   already accurate enough. Do not re-implement.
+
+### Still open — the untested candidate
+
+Refutation 6 killed the target-noise MECHANISM but NOT the sampler difference
+itself. MT never got Training-By-Sampling; it may matter through some other route
+(class balance in what D sees, gradient variance, effective epoch composition).
+**Porting ST's class-balanced bootstrap sampler to MT's training loop is the
+obvious next test and has not been run.**
