@@ -104,6 +104,7 @@ class CGANTFBackend(GANBackend):
             label_smoothing=bool(kwargs.get("label_smoothing", True)),
             fm_weight=float(kwargs.get("fm_weight", 1.0)),
             fm_var_weight=float(kwargs.get("fm_var_weight", 0.5)),
+            std_match_weight=float(kwargs.get("std_match_weight", 0.0)),
             mmd_weight=float(kwargs.get("mmd_weight", 0.5)),
             feature_mean=feature_mean,
             feature_std=feature_std,
@@ -114,9 +115,15 @@ class CGANTFBackend(GANBackend):
             gen_kernel_size=int(kwargs.get("gen_kernel_size", 3)),
             gen_upsample_blocks=int(kwargs.get("gen_upsample_blocks", 2)),
         )
+        # Per-tensor gradient clip.  Both losses are summed and then clipped,
+        # so the clip caps update MAGNITUDE and a loss weight can only ROTATE
+        # the update direction -- which is why raising an auxiliary weight can
+        # read as "flat" (docs/GAN_SCORECARD.md, backlog task 2).
+        g_clip = kwargs.get("g_clip_norm", 1.0)
+        d_clip = kwargs.get("d_clip_norm", 1.0)
         gan.compile(
-            d_optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate, clipnorm=1.0),
-            g_optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate, clipnorm=1.0),
+            d_optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate, clipnorm=d_clip),
+            g_optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate, clipnorm=g_clip),
             loss_fn=tf.keras.losses.BinaryCrossentropy(from_logits=True),
         )
 
@@ -139,6 +146,7 @@ class CGANTFBackend(GANBackend):
             "label_smoothing": gan.label_smoothing,
             "fm_weight": gan.fm_weight,
             "fm_var_weight": gan.fm_var_weight,
+            "std_match_weight": gan.std_match_weight,
             "mmd_weight": gan.mmd_weight,
             "feature_mean": feature_mean,
             "feature_std": feature_std,

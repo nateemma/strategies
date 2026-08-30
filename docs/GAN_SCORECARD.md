@@ -1079,3 +1079,70 @@ Seven hypotheses, seven refuted. MT's plateau after ~epoch 15 is real,
 replicated, and unexplained. The remaining untested surface is the discriminator
 side (D's updates, the GP term, n_critic) — the generator side, the losses, the
 sampler, selection and the schedule are all now excluded.
+
+
+## Backlog task 2 — CGAN dispersion: clip hypothesis REFUTED, penalty ceiling REAL
+
+The task-2 premise was that CGAN's data-space std penalty read "flat at w=1/5/20"
+only because `clipnorm=1.0` caps update MAGNITUDE, letting a weight rotate the
+update direction but never enlarge it — the mechanism task 1 established for the
+corr-weight cliff. **Wrong.** Implemented a real data-space per-feature std term
+(the `fm_*` terms match DISCRIMINATOR FEATURES, which does not bound output
+dispersion) plus `g_clip_norm` / `d_clip_norm` knobs. Both verified reaching the
+model and optimizer before running — the CGAN backend reads kwargs with bare
+`.get()` and silently drops unknowns.
+
+2x2, 3 seeds, 40 epochs (sigma target = 1.0, real is z-scored):
+
+| config | sigma | per-seed |
+|---|---|---|
+| w=0  clip=1.0 (shipped) | 0.547 | 0.548 0.549 0.545 |
+| w=20 clip=1.0 | 0.573 | 0.568 0.575 0.577 |
+| w=0  clip=OFF | 0.538 | 0.548 0.549 0.517 |
+| w=20 clip=OFF | 0.571 | 0.580 0.559 0.575 |
+
+**No interaction.** The penalty gains +0.026 clipped and +0.033 unclipped — the
+clip is not what suppressed it. The CTAB result (removing the G clip gained
+0.139 -> 0.181) is CTAB-SPECIFIC, not a family-wide effect. The "every TF variant
+clips at 1.0 while MLX does not" pattern is real but is NOT a general lever.
+
+Weight ladder (clip on), 3 seeds:
+
+| w | sigma | mean\|corr\| | corr-of-corr |
+|---|---|---|---|
+| 0 | 0.547 | 0.314 | +0.982 |
+| 20 | 0.573 | 0.310 | +0.981 |
+| 100 | 0.568 | 0.258 | +0.971 |
+| 500 | 0.580 | **0.113** | **+0.262** |
+
+**Sigma saturates at ~0.58**: 25x more weight (20 -> 500) buys 0.007, while joint
+structure COLLAPSES (+0.982 -> +0.262). Pushing dispersion through this term
+destroys correlation long before it fixes variance.
+
+**Verdict: the scorecard's original conclusion stands, on stronger evidence** —
+weights to 500 and both clip settings, not just w<=20. A direct data-space moment
+penalty cannot overcome CGAN's adversarial pressure. The ceiling is intrinsic to
+the approach, not the weight and not the clip.
+
+### Correction to the earlier reading
+
+The penalty is not literally "flat" — it moves sigma 0.547 -> 0.573 on 3/3 seeds
+in both clip conditions. Small, consistent, and real, but trivial against a gap
+that needs 1.0. Kept behind `std_match_weight` (default 0.0, behaviour
+unchanged): a +0.026 sigma gain does not justify a default change on one fixture
+when the defect itself is untouched.
+
+### Newly noted: CGAN's profile is the MIRROR of CTAB-TF's
+
+CGAN's joint structure is EXCELLENT — mean|corr| 0.314 vs real ~0.31,
+corr-of-corr +0.982, better than the fixed CTAB-TF (+0.945). Dispersion is its
+SOLE defect. CTAB-TF was the opposite (good sigma, no joint structure). Whatever
+fixes CGAN dispersion must not cost correlation — and this penalty does exactly
+that when pushed, which is why it is a dead end rather than an underweighted one.
+
+**Where to look next for CGAN dispersion:** the generator's output
+parameterisation. The output layer is linear with no activation ceiling and only
+1.9% of values pin at the [min,max] bound, so the generator simply emits ~46% of
+the required variance from its own score. That is the same shape as the MT_DDPM
+"under-dispersion is baked into the denoiser" finding — post-hoc and loss-side
+corrections both failed there too.

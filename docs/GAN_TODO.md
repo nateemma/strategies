@@ -325,7 +325,7 @@ Training-By-Sampling (tested on both a balanced and a 6.7:1 imbalanced fixture).
 Remaining untested surface is the DISCRIMINATOR side (D updates, GP term,
 n_critic). Recommend task 2 ahead of resuming this.
 
-## Task 2 — re-test CGAN-TF dispersion penalties with the G clip REMOVED
+## Task 2 — re-test CGAN-TF dispersion penalties with the G clip REMOVED  [DONE 2026-08-30: REFUTED]
 
 The scorecard refuted CGAN's data-space std-matching penalty as "flat at
 w=1/5/20 — the adversarial signal out-muscles it even at w=20". **But CGAN-TF
@@ -339,9 +339,15 @@ So the null was measured under the very constraint that plausibly caused it.
 Add a G-clip knob to CGAN and re-run the std-matching sweep with it off.
 Same "re-test nulls after a mechanism fix" lesson as BatchNorm-vs-LayerNorm.
 
-**The clip is systematic across the family** — every TF variant clips G at 1.0
-(`df_ctab_gan`, `df_mt_ctab_gan`, `df_wgan_gp`, `df_cgan`), while WGAN-MLX clips
-at 10.0 and CTAB-MLX not at all. If task 2 confirms, sweep the clip everywhere.
+**RESULT: REFUTED.** No interaction — the penalty gains +0.026 clipped and
++0.033 unclipped. The clip is NOT what suppressed it, and the CTAB G-clip win is
+CTAB-SPECIFIC rather than family-wide. **Do not sweep the clip everywhere.**
+Weight escalation also refuted: sigma saturates at ~0.58 (w 20->500 buys 0.007)
+while joint structure collapses (+0.982 -> +0.262). The scorecard's original
+"moment penalties do not fix CGAN dispersion" stands on stronger evidence.
+Kept `std_match_weight` (default 0.0) + `g_clip_norm`/`d_clip_norm` knobs.
+Next lead for CGAN dispersion is the GENERATOR OUTPUT PARAMETERISATION, not the
+loss. Full tables in GAN_SCORECARD.md.
 
 CAVEAT: CGAN-TF is NOT run-to-run reproducible (same config/seed gave sigma
 0.438 then 0.391). Any CGAN comparison needs repeats; single-run deltas mean

@@ -190,6 +190,7 @@ class DFCGAN(Model):
         label_smoothing: bool = True,
         fm_weight: float = 1.0,
         fm_var_weight: float = 0.5,
+        std_match_weight: float = 0.0,
         mmd_weight: float = 0.5,
         feature_mean: np.ndarray | None = None,
         feature_std: np.ndarray | None = None,
@@ -210,6 +211,10 @@ class DFCGAN(Model):
         self.label_smoothing = bool(label_smoothing)
         self.fm_weight = float(fm_weight)
         self.fm_var_weight = float(fm_var_weight)
+        # Data-space per-feature std matching.  The fm_* terms constrain the
+        # DISCRIMINATOR'S FEATURES, which does not bound output dispersion --
+        # CGAN-TF emits sigma ~0.46 in z-scored space where real is 1.0.
+        self.std_match_weight = float(std_match_weight)
         self.mmd_weight = float(mmd_weight)
         # Store feature stats for output rescaling/clipping
         self.feature_mean = None if feature_mean is None else tf.convert_to_tensor(feature_mean, dtype=tf.float32)
@@ -330,11 +335,21 @@ class DFCGAN(Model):
             K_xy = _rbf(gen_feat_n, real_feat_n, sigma)
             mmd = tf.reduce_mean(K_xx) + tf.reduce_mean(K_yy) - 2.0 * tf.reduce_mean(K_xy)
 
+            # Data-space per-feature std matching (real_x is z-scored, so its
+            # per-feature std is ~1).  Unlike fm_var this acts directly on the
+            # generator's OUTPUT distribution.
+            std_loss = tf.constant(0.0, dtype=feat_dtype)
+            if self.std_match_weight > 0:
+                real_sd = tf.math.reduce_std(tf.cast(real_x, feat_dtype), axis=0)
+                gen_sd = tf.math.reduce_std(tf.cast(gen_x, feat_dtype), axis=0)
+                std_loss = tf.reduce_mean(tf.abs(real_sd - gen_sd))
+
             g_loss = (
                 tf.cast(adv_loss, feat_dtype)
                 + tf.cast(self.fm_weight, feat_dtype) * fm_mean
                 + tf.cast(self.fm_var_weight, feat_dtype) * fm_var
                 + tf.cast(self.mmd_weight, feat_dtype) * mmd
+                + tf.cast(self.std_match_weight, feat_dtype) * std_loss
             )
         g_grads = tape.gradient(g_loss, self.generator.trainable_variables)
         self.g_optimizer.apply_gradients(zip(g_grads, self.generator.trainable_variables))
@@ -418,6 +433,7 @@ def _load_cgan_model(save_path: str, verbose: bool = False) -> tuple[DFCGAN | No
             label_smoothing=metadata.get("label_smoothing", True),
             fm_weight=metadata.get("fm_weight", 1.0),
             fm_var_weight=metadata.get("fm_var_weight", 0.5),
+            std_match_weight=metadata.get("std_match_weight", 0.0),
             mmd_weight=metadata.get("mmd_weight", 0.5),
             feature_mean=metadata.get("feature_mean"),
             feature_std=metadata.get("feature_std"),

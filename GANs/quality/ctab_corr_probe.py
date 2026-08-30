@@ -209,7 +209,7 @@ def main() -> int:
                          "Value is parsed as a Python literal "
                          "(e.g. --set generator_loss_weight=0.0 "
                          "--set restore_best_weights=False).")
-    ap.add_argument("--gan-type", choices=("CTAB_GAN", "MT_CTAB_GAN"),
+    ap.add_argument("--gan-type", choices=("CTAB_GAN", "MT_CTAB_GAN", "CGAN"),
                     default="CTAB_GAN")
     ap.add_argument("--gen-norm", choices=("batch", "layer", "none"),
                     default=None, help="TF only: generator normalisation.")
