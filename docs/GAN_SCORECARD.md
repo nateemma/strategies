@@ -1361,3 +1361,53 @@ production-path TabDDPM instance and check the boundary fraction. If production
 is at ~0% and the probe at 99.8%, the defect is the RAW-INPUT path only, and the
 scorecard's DDPM rows should be scoped to that path rather than read as a model
 defect. Do NOT build a sampler fix before that check.
+
+
+## Task 5 CLOSED — production TabDDPM is HEALTHY; the defect was the harness
+
+Ran the clip probe against the **production-trained** TabDDPM on disk
+(`saved_data/GANs_PostScale/tab_ddpm`), which carries the SAME architecture the
+capacity ladder used (d_model 256, d_layers (256,256), 1000 timesteps, 50 sample
+steps, clip ±4). Architecture was never the variable.
+
+| | synth std (z-space) | \|z\| mean | \|z\| p99 | at ±4 boundary |
+|---|---|---|---|---|
+| **production-trained model** | **1.025** | **0.878** | **2.271** | **0.2%** |
+| probe, raw-fixture training | 3.816 | 3.997 | 4.000 | 99.8% |
+| real data reference | 1.000 | 0.860 | 2.139 | 0.1% |
+
+**Production does not saturate the clip.** sigma 1.025 against a target of 1.0,
+with a \|z\| distribution nearly identical to real data. GAN_TODO section 5
+Phase 1 ("high-fidelity, sigma_syn/sigma_real ~0.5-1.0") was correct.
+
+### FULLY RETRACTED
+
+"TAB_DDPM-MLX is the family's worst defect — zero joint structure AND 4x
+over-dispersion" was **a harness artifact end to end**, in two layers:
+
+1. the scorecard adapter's toy config (d_model 32, timesteps 100) — which killed
+   joint structure; and
+2. training on the RAW 4,000-row fixture instead of production's pre-scaled
+   ~800K rows — which is what saturates the clip.
+
+Neither reflects the shipped model. Every downstream inference from that claim is
+withdrawn.
+
+### ACTIONABLE — the scorecard cannot validly measure DDPM on this fixture
+
+The DDPM rows measure a degenerate harness configuration, not the models. Either
+feed the DDPM adapters production-style PRE-SCALED data, or drop those rows.
+Until one of those happens the rows carry the "not comparable" caveat and must
+not be read as a defect ranking.
+
+The GAN variants are unaffected — they train fine on the raw fixture, which is
+why every other row in the inventory is consistent with its production behaviour.
+
+### The lesson, third instance today
+
+Task 4 built on a stale number, task 5 on an unexamined harness config and then
+on a training path that does not match production. All three produced confident,
+replicated, wrong headlines. **When a variant lands far outside the family's
+range, suspect the harness before the model — and when a production artifact
+exists on disk, measure THAT rather than reconstructing it.** The decisive check
+here took one load and one generate; it was available from the start.

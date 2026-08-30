@@ -383,7 +383,7 @@ and with it this backlog's "under-dispersion is the dominant unsolved defect
 class" framing: on re-measurement most variants are sigma 0.70-1.09, coc +0.86
 to +0.99. See the re-measured inventory in GAN_SCORECARD.md.
 
-## Task 5 — TAB_DDPM / MT_DDPM  [MECHANISM FOUND: clip saturation; production check open]
+## Task 5 — TAB_DDPM / MT_DDPM  [CLOSED 2026-08-30: NO production defect; harness artifact]
 
 Surfaced by task 4's re-measurement. TAB_DDPM-MLX has BOTH failure modes:
 sigma 3.946 (4x over-dispersed) AND corr-of-corr -0.026 — ZERO joint structure,
@@ -481,3 +481,20 @@ and capacity/timesteps/epochs. Repro: `GANs/quality/ddpm_clip_probe.py`.
 feeds raw, and its report reads 0.5-1.0 — so pre-scaling probably avoids it.
 Run the clip probe against a production-path instance and compare the boundary
 fraction. Do NOT build a sampler fix first.
+
+
+### Task 5 CLOSED (2026-08-30)
+
+Production-trained TabDDPM (`saved_data/GANs_PostScale/tab_ddpm`, same
+architecture as the ladder) does **NOT** saturate: sigma 1.025 in z-space,
+|z| mean 0.878, **0.2%** at the ±4 boundary — versus the probe's 99.8%. Real
+data reference is 0.1%. **The production model is healthy and GAN_TODO §5
+Phase 1 was right.**
+
+"TAB_DDPM is the family's worst defect" is FULLY RETRACTED — a harness artifact
+in two layers: the adapter's toy config (killed joint structure) and training on
+the RAW fixture rather than production's pre-scaled data (saturates the clip).
+
+**Remaining actionable item (small):** the scorecard's DDPM adapters train on raw
+fixture data, so their rows measure a degenerate config. Either feed them
+production-style pre-scaled data or drop the rows. GAN variants are unaffected.
