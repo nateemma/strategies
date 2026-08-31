@@ -633,7 +633,7 @@ on, none tried here:
 Cheap, and it attacks the equilibrium directly rather than through a penalty
 (which task 7 proved cannot win against it).
 
-## Task 12 — does working synth move P&L?  [OPEN — needs task 8/port first]
+## Task 12 — does working synth move P&L?  [OPEN — UNBLOCKED 2026-08-31 by task 8]
 
 Prior work concluded GAN augmentation does not move P&L at any fidelity (the
 information ceiling). **That was measured on generators that emitted essentially
@@ -699,3 +699,24 @@ the term.
 
 Also refuted: soft-decode variance bias (fake mode-block max prob 0.870 vs real
 1.000, but only a ~1.4% sigma bias — too small to matter).
+
+
+### Task 12 UNBLOCKED (2026-08-31)
+
+Its stated blocker was "the fixes are TF and production runs MLX, so the corr
+term must reach the production path first". **Task 8 did exactly that.**
+WGAN-MLX now ships covariance/100 and produces mean|corr| 0.303 (real 0.306),
+corr-of-corr +0.998, mean_dcorr **0.021**, sigma **1.020** — roughly a 10x
+fidelity improvement over the state in which the information-ceiling conclusion
+was measured (dcorr ~0.21 with sigma drifting).
+
+`saved_data/NNNC_WGAN_MLX/` and `NNMT_WGAN_MLX/` exist, so WGAN-MLX-augmented
+strategies are real and trained — the A/B needs a retrain, not new plumbing.
+
+**The premise of "GAN augmentation does not move P&L at any fidelity" no longer
+holds:** it was established on generators emitting badly wrong joint structure.
+This is now a clean test of a conclusion whose premise has changed.
+
+Protocol (unchanged): pinned timerange, paired seeds, guards loosened for trade
+volume ([[feedback_evaluate_interventions_at_powered_operating_point]]), and
+judge on P&L not val_mcc ([[feedback_learnability_mcc_doesnt_equal_edge]]).
