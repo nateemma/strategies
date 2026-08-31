@@ -720,3 +720,57 @@ This is now a clean test of a conclusion whose premise has changed.
 Protocol (unchanged): pinned timerange, paired seeds, guards loosened for trade
 volume ([[feedback_evaluate_interventions_at_powered_operating_point]]), and
 judge on P&L not val_mcc ([[feedback_learnability_mcc_doesnt_equal_edge]]).
+
+
+---
+
+# COVERAGE GAP — the term reaches only 3 of 9 variants (opened 2026-08-31)
+
+Tasks 3 and 8 built and validated the joint-structure term but only ever wired it
+into `df_ctab_gan`, `df_mt_ctab_gan` and `df_wgan_mlx`. Six variants never got
+it. Cross-referenced against the re-measured inventory, ranked by defect size.
+**Apply the task-8 rule: check sigma FIRST, then pick the mode** — covariance
+where dispersion is broken and the diagonal can move it, correlation where
+dispersion is already near-correct.
+
+| variant | sigma | dcorr | has term | action |
+|---|---|---|---|---|
+| WGAN-MLX | 1.020 | 0.021 | covariance | done (task 8) |
+| CTAB-TF | 1.091 | 0.122 | correlation | done (sigma fine -> correlation) |
+| MT_CTAB-TF | 1.001 | 0.211 | correlation | done; dcorr still worst of the three |
+| **MT_WGAN-MLX** | 0.939 | **0.143** | NO | **task 14 — port; worst dcorr in the WGAN family** |
+| **MT_WGAN-TF** | **0.699** | 0.087 | NO | **task 15 — port; sigma broken, so covariance** |
+| **CGAN-TF** | **0.547** | — | NO | **task 16 — worst sigma in family; see caveat** |
+| WGAN-TF | 0.887 | 0.036 | NO | task 17 — already good, modest upside |
+| TabDDPM / MT_DDPM | — | — | NO | blocked: fixture harness invalid for diffusion (task 13) |
+
+## Task 14 — port the term to MT_WGAN-MLX  [OPEN — recommended first]
+
+Worst dcorr in the WGAN family (0.143 vs single-task's 0.021 after task 8) and
+sigma 0.939. Same MLX code pattern that already works in `df_wgan_mlx`
+(precomputed constant target, `loss_gen` sees no real data), so this is a proven
+port rather than new design. Sigma is near 1, so start with `correlation`, but
+test both — 0.939 is far enough off that the diagonal may have real work.
+
+## Task 15 — port the term to MT_WGAN-TF  [OPEN]
+
+Sigma 0.699 is the most broken dispersion outside CGAN, and dcorr 0.087 is
+already decent. **By the task-8 rule this is the strongest covariance
+candidate**: the diagonal has genuine work to do. TF/pac code pattern, closer to
+`df_ctab_gan` than to the MLX ports.
+
+## Task 16 — covariance on CGAN-TF  [OPEN — low prior, big prize]
+
+Sigma 0.547 is the worst dispersion in the family and correlation is EXCELLENT
+(+0.982), so the profile is exactly what covariance is for.
+**CAVEAT — expect it to fail.** Task 7 established CGAN's under-dispersion is an
+ADVERSARIAL EQUILIBRIUM: a learnable per-feature gain never moved off 1.0 even
+with an explicit std penalty at w=20 demanding more variance. A covariance term
+is still a generator-side penalty and will probably hit the same wall. Worth ONE
+test because the defect is the largest left; do not iterate if it behaves like
+task 7.
+
+## Task 17 — port the term to WGAN-TF  [OPEN — low priority]
+
+Already the best joint structure in the family (dcorr 0.036) with sigma 0.887.
+Little headroom; do last, if at all.
