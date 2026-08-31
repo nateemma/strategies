@@ -545,3 +545,115 @@ where MT settles, not why it stalls. **Stall unexplained after 8 hypotheses.**
 **Default unchanged:** n_critic=2 trades sigma (1.001 -> 0.952) for correlation.
 Not strictly dominant, unlike every default changed this session. Use it if
 correlation matters more than dispersion.
+
+
+---
+
+# Research backlog (opened 2026-08-31, after tasks 1-7 closed)
+
+Tasks 1-7 exhausted the *debugging* seam: every remaining item needs a new
+mechanism or a new instrument, not another tuning hypothesis. Ranked by how
+well-grounded each is in what tasks 1-7 actually measured.
+
+**The finding these are built on:** three independent instances showed the
+generators cannot satisfy BOTH moments at once — CGAN's std penalty bought sigma
+and collapsed correlation (+0.982 -> +0.262); WGAN-MLX's corr weight bought
+correlation and inflated sigma (1.10 -> 1.71); MT_CTAB's `n_critic=2` buys
+correlation with sigma (1.001 -> 0.952). Every default shipped was chosen on
+STRICT DOMINANCE, never on the best single metric.
+
+## Task 8 — match COVARIANCE, not correlation  [OPEN — recommended first]
+
+`_correlation_loss` is **scale-invariant by construction**: it normalises each
+feature before comparing, so it constrains the correlation structure and says
+NOTHING about sigma. That is exactly why raising it inflates dispersion on
+WGAN-MLX, and the mirror of why CGAN's sigma penalty destroys correlation — each
+term pins one moment and leaves the other free.
+
+Covariance = correlation x the two sigmas. **Matching the covariance matrix
+constrains both jointly, in one term.**
+
+- Small edit: drop the per-feature normalisation in `_corr_offdiag` /
+  `_correlation_loss` (`GANs/ctab_gan_base.py`), reusing all existing plumbing,
+  probes and the `--set` passthrough.
+- **Falsifiable prediction:** the sigma inflation at high corr weight disappears.
+- Either outcome is informative — if the tradeoff is an artifact of scale-free
+  targets it dissolves; if covariance matching hits the same wall, the tradeoff
+  is intrinsic to these generators, which is worth knowing.
+- Gate on BOTH axes (dcorr and sigma) and 3 seeds, as everything else was.
+- Applies to CTAB-TF, MT_CTAB-TF and WGAN-MLX — all three already carry the term.
+
+## Task 9 — repair D's joint blindness instead of bypassing it  [OPEN]
+
+The ORIGINAL root cause is still unfixed. CTAB-TF's discriminator scores
+class-conditionally column-shuffled data as real: `joint_sensitivity` 0.045 vs
+CTAB-MLX's 0.67, 3 seeds, no overlap. The corr term routes AROUND this rather
+than repairing it.
+
+Unexplained: why MLX's critic acquires joint sensitivity at epoch 10 (the same
+epoch its generator's correlation onset happens) and TF's never does, on
+near-identical architectures. The instrument already exists
+(`GANs/quality/ctab_disc_probe.py`).
+
+Most principled remaining question in the family — and task 7 pointed at D's
+objective independently, from the other direction. **Worst track record though:**
+nine causes refuted before this session, plus the gradient-clip hypothesis
+refuted in task 2. Do not start without a new idea about D specifically.
+
+## Task 10 — build a gradient-balance instrument  [OPEN — highest leverage per hour]
+
+Two open items are the same shape: "the adversarial term and an auxiliary term
+interact in a way I cannot see."
+
+- **MT's stall** — 8 hypotheses refuted. Task 6 showed D pressure sets the LEVEL
+  but not the stall; the trajectory still peaks ~ep20 and declines.
+- **The cw cliff** — characterised as a SHARE of the generator loss (which
+  correctly predicted MT's higher cliff) but never explained.
+
+Log per-epoch gradient norms of each loss component (adversarial, corr,
+downstream) for MT vs single-task. That shows directly whether the corr gradient
+vanishes, gets overwhelmed, or starts OPPOSING around epoch 15.
+
+**One instrument, two parked questions.** Eight hypotheses died on the stall
+because they guessed at causes instead of measuring the interaction — this is the
+measurement.
+
+## Task 11 — G/D balance beyond `n_critic`  [OPEN]
+
+Task 6 found a real differential — weakening D HELPS MT (0.146 -> 0.171) and
+HURTS single-task (0.232 -> 0.219) — probed with only one crude knob.
+
+Standard levers for exactly the equilibrium pathology tasks 6 and 7 both landed
+on, none tried here:
+- `critic_lr_ratio` — already exists on WGAN-MLX, never swept.
+- TTUR (separate G and D learning rates).
+- Spectral normalisation on D in place of the gradient penalty (known to affect
+  mode coverage, which is what an under-dispersion equilibrium is).
+
+Cheap, and it attacks the equilibrium directly rather than through a penalty
+(which task 7 proved cannot win against it).
+
+## Task 12 — does working synth move P&L?  [OPEN — needs task 8/port first]
+
+Prior work concluded GAN augmentation does not move P&L at any fidelity (the
+information ceiling). **That was measured on generators that emitted essentially
+independent features.** CTAB-TF went from corr-of-corr -0.047 to +0.945.
+
+A powered A/B would test whether that conclusion survives working synth.
+**Blocker:** the fixes are TF and production runs MLX, so the correlation term
+must reach the production path first (CTAB-MLX already has good joint structure,
+so the honest test is TabDDPM or the MLX WGAN path).
+
+Use the established protocol — pinned timerange, paired seeds, loosened guards
+for trade volume ([[feedback_evaluate_interventions_at_powered_operating_point]]).
+
+## Task 13 — make the scorecard able to measure diffusion  [OPEN — small]
+
+The DDPM adapters train on the raw fixture and produce a degenerate model
+(95.9-99.8% of values pinned at the +/-4 clip vs a production-trained model's
+0.2%). Cause unresolved after eliminating scaling, dropout, steps to production's
+own count, 10x rows, capacity, timesteps and the degenerate `bb_width` feature.
+
+The `clipsat=` guard now makes this LOUD rather than silent, so nothing is
+blocked. Either make the harness train DDPM the way production does, or drop the
+DDPM rows and evaluate them only against the production-trained model on disk.
