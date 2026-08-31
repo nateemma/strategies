@@ -1670,3 +1670,60 @@ common to all of them. Same shape as the DDPM false alarm, where three agreeing
 runs confirmed only that the misconfiguration was consistent. **Consistency
 across subjects does not protect against a flaw in the measure applied to all of
 them.**
+
+
+## Why covariance matching WINS on WGAN-MLX and LOSES on CTAB-TF
+
+Decomposed the term into its two differences from correlation mode, via a third
+mode `covariance_offdiag` (scale-sensitive, no diagonal). CTAB-TF, cw=15, seed 42:
+
+| mode | scale-sensitive | diagonal | mean\|corr\| | dcorr | sigma |
+|---|---|---|---|---|---|
+| correlation | no | no | **0.232** | **0.122** | 1.101 |
+| covariance_offdiag | YES | no | 0.196 | 0.152 | 1.116 |
+| covariance | YES | YES | 0.181 | 0.167 | 1.126 |
+
+**Scale-sensitivity is the bigger cost** (dcorr 0.122 -> 0.152); the diagonal adds
+less (-> 0.167). The initial guess that the diagonal was the culprit is only
+partly right — it is the minority contributor.
+
+### The mechanism
+
+Covariance off-diagonal is `corr_ij * sigma_i * sigma_j`. **When sigma != 1,
+matching it forces correlation to compensate in the WRONG direction**: an
+over-dispersed generator must UNDER-correlate to make the product match. Measured
+exactly that — |corr| 0.196 under covariance vs 0.232 under correlation, against
+a real 0.306.
+
+The DIAGONAL exists to drive sigma -> 1, which makes that coupling harmless.
+
+- **WGAN-MLX: the diagonal works.** sigma 1.706 -> 1.008. Once sigma == 1,
+  covariance == correlation and both moments land together. Strictly dominant.
+- **CTAB-TF: the diagonal does NOT work.** sigma goes 1.101 -> 1.116 -> 1.126
+  across the three modes — slightly WORSE, never corrected. So CTAB pays the
+  coupling distortion and gets no dispersion correction in return.
+
+### Predictive rule
+
+**Covariance matching helps exactly where dispersion is BROKEN and the diagonal
+can move it; it hurts where dispersion is already near-correct.** WGAN-MLX's
+sigma was genuinely wrong (drifting to 1.7) so the diagonal had real work to do.
+CTAB-TF's sigma was already ~1.10 and is held there by something the diagonal
+cannot overcome — the same shape as CGAN's adversarial-equilibrium dispersion
+(task 7), where a direct penalty could not move sigma either.
+
+So the choice of term is not a matter of taste: **check whether sigma is wrong
+first.** If it is, covariance. If it is not, correlation, because the coupling
+buys nothing and costs correlation accuracy.
+
+### Also refuted here: the soft-decode bias
+
+CTAB's `_soft_decode` averages over Gumbel-Softmax mode probabilities for fake
+data while real data's mode block is exactly one-hot, so the fake's decoded
+variance could have been biased. It is real but tiny: fake mode-block max
+probability 0.870 vs real 1.000, yet the resulting sigma bias is only ~1.4%
+(fake soft/hard ratio 1.014) — nowhere near enough to explain a dcorr gap of
+0.045. Not the cause.
+
+`covariance_offdiag` is kept as a diagnostic mode; it is what made this
+decomposition measurable.

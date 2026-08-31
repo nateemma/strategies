@@ -247,7 +247,8 @@ class CTABGANPlusBase:
         """
         real_d = self._soft_decode(tf.cast(real_data, tf.float32))
         fake_d = self._soft_decode(tf.cast(fake_data, tf.float32))
-        if getattr(self, "corr_loss_mode", "correlation") == "covariance":
+        _mode = getattr(self, "corr_loss_mode", "correlation")
+        if _mode in ("covariance", "covariance_offdiag"):
             # Normalise both sides by the REAL batch stats so the comparison
             # is on one scale and the diagonal carries the dispersion ratio.
             mu = tf.reduce_mean(real_d, axis=0, keepdims=True)
@@ -255,10 +256,11 @@ class CTABGANPlusBase:
                 tf.reduce_mean(tf.square(real_d - mu), axis=0, keepdims=True)
                 + 1e-8
             )
+            _diag = _mode == "covariance"
             loss = tf.reduce_mean(
                 tf.square(
-                    self._second_moment(fake_d, mu, sd)
-                    - self._second_moment(real_d, mu, sd)
+                    self._second_moment(fake_d, mu, sd, _diag)
+                    - self._second_moment(real_d, mu, sd, _diag)
                 )
             )
         else:

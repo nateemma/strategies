@@ -676,3 +676,26 @@ correlation ~1); change both together.
 **CTAB-TF: covariance is WORSE (dcorr 0.167 vs 0.122) at every weight, and still
 has a cliff. Default unchanged — OPEN question why the same term dominates on one
 family and loses on the other.**
+
+
+### Task 8 follow-up (2026-08-31) — WHY covariance loses on CTAB-TF: ANSWERED
+
+Decomposed via a third mode `covariance_offdiag` (scale-sensitive, no diagonal),
+CTAB-TF cw=15: correlation dcorr 0.122 -> covariance_offdiag 0.152 -> covariance
+0.167. **Scale-sensitivity is the bigger cost; the diagonal adds less.**
+
+**Mechanism:** covariance off-diagonal is `corr * sigma_i * sigma_j`, so when
+sigma != 1 matching it forces correlation to compensate the WRONG way (an
+over-dispersed generator must UNDER-correlate). Measured: |corr| 0.196 vs 0.232,
+real 0.306. The diagonal is what drives sigma -> 1 and makes the coupling
+harmless — **it works on WGAN-MLX (1.706 -> 1.008) and does NOT on CTAB-TF
+(1.101 -> 1.126, slightly worse).**
+
+**PREDICTIVE RULE: use covariance where dispersion is BROKEN and the diagonal can
+move it; use correlation where dispersion is already near-correct.** CTAB's sigma
+is held near 1.10 by something the diagonal cannot overcome — same shape as
+CGAN's adversarial-equilibrium dispersion (task 7). Check sigma FIRST, then pick
+the term.
+
+Also refuted: soft-decode variance bias (fake mode-block max prob 0.870 vs real
+1.000, but only a ~1.4% sigma bias — too small to matter).

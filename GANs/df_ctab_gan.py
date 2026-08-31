@@ -169,10 +169,12 @@ class CTABGANPlus(CTABGANPlusBase):
         self.corr_loss_weight = float(corr_loss_weight)
         self.gumbel_noise = bool(gumbel_noise)
         self.corr_loss_warmup_epochs = int(corr_loss_warmup_epochs)
-        if corr_loss_mode not in ("correlation", "covariance"):
+        if corr_loss_mode not in (
+            "correlation", "covariance", "covariance_offdiag"
+        ):
             raise ValueError(
                 f"corr_loss_mode={corr_loss_mode!r} must be "
-                f"'correlation' or 'covariance'"
+                f"'correlation', 'covariance' or 'covariance_offdiag'"
             )
         self.corr_loss_mode = corr_loss_mode
         # Per-tensor gradient clipping.  Both losses are SUMMED and then
