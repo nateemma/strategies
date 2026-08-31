@@ -1933,3 +1933,62 @@ Derived on WGAN-MLX; confirmed negatively (task 14), positively with a control
 (task 15), and qualified by its failure case (task 16). It now predicts mode
 selection without sweeping — weight still must be swept, having never transferred
 (15, 30, 100, 15, 40 across five variants).
+
+
+---
+
+# FIDELITY SNAPSHOT — all GAN types, 2026-08-31
+
+State of the family after tasks 1-17. Measured with
+`GANs/quality/ctab_corr_probe.py` on the real fixture, 40 epochs, at each
+variant's SHIPPED defaults. Real reference: mean|corr| **0.306**, sigma target
+**1.000**. Lower `dcorr` is better; `coc` is correlation-of-correlations.
+
+| variant | term | n | mean\|corr\| | coc | dcorr | sigma |
+|---|---|---|---|---|---|---|
+| **WGAN-MLX** | covariance / 100 | 3 | 0.304 | **+0.998** | **0.022** | **1.008** |
+| **MT_WGAN-TF** | covariance / 40 | 3 | 0.305 | +0.989 | 0.047 | 0.853 |
+| WGAN-TF | off | 1 | 0.314 | +0.995 | 0.034 | 0.891 |
+| MT_WGAN-MLX | correlation / 15 | 3 | 0.305 | +0.980 | 0.066 | 0.951 |
+| CTAB_GAN-MLX | — | 3 | 0.253 | +0.981 | 0.087 | 1.029 |
+| MT_CTAB-MLX | — | 3 | 0.249 | +0.985 | 0.083 | 1.045 |
+| CTAB_GAN-TF | correlation / 15 | 3 | 0.240 | +0.945 | 0.122 | 1.091 |
+| MT_CTAB-TF | correlation / 30 | 3 | 0.146 | +0.858 | **0.211** | 1.001 |
+| CGAN-TF | off | 1 | 0.308 | +0.986 | 0.053 | **0.571** |
+
+## Reading it
+
+**The WGAN family is now the strongest in the codebase.** WGAN-MLX is essentially
+exact (0.304 against a real 0.306, sigma 1.008) and three of the four WGAN
+variants sit at dcorr <= 0.066.
+
+**The TF variants have OVERTAKEN MLX in the WGAN family** (MT_WGAN-TF dcorr 0.047
+vs MT_WGAN-MLX 0.066) — a reversal of this whole workstream's original premise,
+which was that TF was the broken backend and MLX the reference. In the CTAB
+family MLX is still ahead (0.087 vs 0.122).
+
+## The two remaining defects, both characterised
+
+- **CGAN-TF sigma 0.571** — the worst number in the table. **Immovable from the
+  generator side:** a free per-feature gain (task 7), a direct std penalty
+  (task 2) and the second-moment diagonal (task 16) all hit the identical ~0.58
+  wall. Requires a change to D's objective, not another penalty.
+- **MT_CTAB-TF dcorr 0.211** — the worst joint structure. Its stall after
+  ~epoch 15 survived EIGHT hypotheses (task 6); weakening D raises the LEVEL but
+  does not fix the stall.
+
+## Not measurable here: TabDDPM / MT_DDPM
+
+The fixture harness cannot validly measure diffusion. Fixture-trained DDPMs pin
+95.9-99.8% of generated values at the +/-4 sigma clip where the
+**production-trained** model sits at 0.2% (sigma 1.025, |z| distribution
+matching real). No known defect — no valid fixture measurement. The `clipsat=`
+guard now makes that degeneracy loud rather than silent. Evaluate DDPM against
+the production model on disk (task 13).
+
+## Caveats
+
+- WGAN-TF and CGAN-TF rows are SINGLE-run; the scorecard records CGAN-TF as
+  run-to-run noisy, so read its dcorr loosely.
+- These are FIXTURE measurements (4,000 rows). The production rebuild trains on
+  real data across ~12 pairs and is a different, more demanding test.
