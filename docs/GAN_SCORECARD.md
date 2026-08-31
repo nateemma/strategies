@@ -1825,3 +1825,59 @@ WGAN-MLX it reached 1.008. **The diagonal's authority varies by variant** — wh
 is the "AND the diagonal can move it" clause the rule already carries. CGAN
 (sigma 0.547, task 16) is the extreme case, and task 7 predicts its adversarial
 equilibrium will refuse to move at all.
+
+
+## Task 16 — CGAN second-moment term: REFUTED. Three mechanisms, one wall.
+
+Two principles disagreed here, which is what made it worth one run:
+**task 7** said no (CGAN's under-dispersion is an adversarial equilibrium);
+**the task-8 rule** said yes (sigma 0.547 is the family's worst dispersion and
+correlation is already excellent, so nothing to trade). Task 7 wins.
+
+Seed 42, second-moment term (covariance form, diagonal included):
+
+| config | sigma | dcorr | coc | mean\|corr\| |
+|---|---|---|---|---|
+| term OFF | 0.571 | 0.053 | +0.986 | 0.308 |
+| cw=5 | 0.585 | 0.055 | +0.983 | 0.295 |
+| cw=20 | 0.565 | 0.040 | +0.991 | 0.310 |
+| cw=100 | 0.556 | 0.050 | +0.987 | 0.315 |
+| cw=500 | 0.563 | 0.034 | +0.994 | 0.313 |
+
+**Sigma is FLAT at 0.556-0.585 across a 100x weight range** — the same ~0.58
+saturation the std penalty hit in task 7.
+
+### Three distinct generator-side mechanisms, identical failure
+
+1. **A free per-feature output gain** (task 7) — never moved off 1.0 even with an
+   explicit std penalty demanding more variance.
+2. **A direct data-space std penalty** (task 2) — saturates at ~0.58 regardless
+   of weight to 500 and regardless of the gradient clip.
+3. **The second-moment diagonal** (here) — flat to cw=500.
+
+Triangulated: **CGAN's under-dispersion cannot be moved from the generator side.**
+Any fix must change the adversarial game — D's objective, or a divergence that
+penalises under-dispersion.
+
+### The rule gains its necessary qualifier
+
+Covariance helps where sigma is broken **AND THE DIAGONAL CAN MOVE IT**. The
+diagonal's authority varies by variant and is not guaranteed:
+
+| variant | sigma before -> after | diagonal authority |
+|---|---|---|
+| WGAN-MLX | 1.706 -> 1.008 | full |
+| MT_WGAN-TF | 0.723 -> 0.853 | partial |
+| CTAB-TF | 1.101 -> 1.126 | none (sigma already fine) |
+| **CGAN-TF** | **0.571 -> 0.563** | **none (equilibrium)** |
+
+**Check sigma to pick the mode; check whether the diagonal MOVES it to know
+whether the fix will hold.**
+
+### Not defaulted on
+
+The term does improve CGAN's correlation slightly (dcorr 0.053 -> 0.034, coc
++0.986 -> +0.994 at cw=500) with sigma unchanged. But that is single-seed on a
+variant the scorecard records as run-to-run noisy, and correlation was never
+CGAN's problem. Default stays 0.0. Not iterating — it behaved exactly as task 7
+predicted, and that was the stated stopping condition.

@@ -191,6 +191,7 @@ class DFCGAN(Model):
         fm_weight: float = 1.0,
         fm_var_weight: float = 0.5,
         std_match_weight: float = 0.0,
+        corr_loss_weight: float = 0.0,
         mmd_weight: float = 0.5,
         feature_mean: np.ndarray | None = None,
         feature_std: np.ndarray | None = None,
@@ -215,6 +216,14 @@ class DFCGAN(Model):
         # DISCRIMINATOR'S FEATURES, which does not bound output dispersion --
         # CGAN-TF emits sigma ~0.46 in z-scored space where real is 1.0.
         self.std_match_weight = float(std_match_weight)
+        # Joint-structure / second-moment term. CGAN's correlation is already
+        # the best in the family (+0.982) and its sigma the worst (~0.55), so
+        # the task-8 rule points at COVARIANCE -- the diagonal is what pins
+        # dispersion. CAVEAT: task 7 showed CGAN's under-dispersion is an
+        # ADVERSARIAL EQUILIBRIUM (a free per-feature gain never moved off 1.0
+        # even under an explicit std penalty at w=20), so this may hit the same
+        # wall. One test; do not iterate if it behaves like task 7.
+        self.corr_loss_weight = float(corr_loss_weight)
         self.mmd_weight = float(mmd_weight)
         # Store feature stats for output rescaling/clipping
         self.feature_mean = None if feature_mean is None else tf.convert_to_tensor(feature_mean, dtype=tf.float32)
@@ -344,12 +353,42 @@ class DFCGAN(Model):
                 gen_sd = tf.math.reduce_std(tf.cast(gen_x, feat_dtype), axis=0)
                 std_loss = tf.reduce_mean(tf.abs(real_sd - gen_sd))
 
+            # Second-moment matching in data space, normalised by the REAL
+            # batch stats so the diagonal carries (sigma_fake/sigma_real)^2.
+            corr_loss = tf.constant(0.0, dtype=feat_dtype)
+            if self.corr_loss_weight > 0:
+                _r = tf.cast(tf.reshape(real_x, (tf.shape(real_x)[0], -1)), tf.float32)
+                _f = tf.cast(tf.reshape(gen_x, (tf.shape(gen_x)[0], -1)), tf.float32)
+                _mu = tf.reduce_mean(_r, axis=0, keepdims=True)
+                _sd = tf.sqrt(
+                    tf.reduce_mean(tf.square(_r - _mu), axis=0, keepdims=True) + 1e-8
+                )
+
+                def _sm(v):
+                    z = (v - _mu) / _sd
+                    z = z - tf.reduce_mean(z, axis=0, keepdims=True)
+                    n = tf.cast(tf.shape(z)[0], tf.float32)
+                    return tf.matmul(z, z, transpose_a=True) / n
+
+                _a, _b = _sm(_f), _sm(_r)
+                _dim = tf.shape(_a)[0]
+                _mask = tf.linalg.band_part(tf.ones((_dim, _dim)), 0, -1)
+                _cl = tf.reduce_sum(tf.square(_a - _b) * _mask) / tf.maximum(
+                    tf.reduce_sum(_mask), 1.0
+                )
+                _cl = tf.minimum(_cl, 10.0)
+                corr_loss = tf.cast(
+                    tf.where(tf.math.is_finite(_cl), _cl, tf.zeros_like(_cl)),
+                    feat_dtype,
+                )
+
             g_loss = (
                 tf.cast(adv_loss, feat_dtype)
                 + tf.cast(self.fm_weight, feat_dtype) * fm_mean
                 + tf.cast(self.fm_var_weight, feat_dtype) * fm_var
                 + tf.cast(self.mmd_weight, feat_dtype) * mmd
                 + tf.cast(self.std_match_weight, feat_dtype) * std_loss
+                + tf.cast(self.corr_loss_weight, feat_dtype) * corr_loss
             )
         g_grads = tape.gradient(g_loss, self.generator.trainable_variables)
         self.g_optimizer.apply_gradients(zip(g_grads, self.generator.trainable_variables))
@@ -434,6 +473,7 @@ def _load_cgan_model(save_path: str, verbose: bool = False) -> tuple[DFCGAN | No
             fm_weight=metadata.get("fm_weight", 1.0),
             fm_var_weight=metadata.get("fm_var_weight", 0.5),
             std_match_weight=metadata.get("std_match_weight", 0.0),
+            corr_loss_weight=metadata.get("corr_loss_weight", 0.0),
             mmd_weight=metadata.get("mmd_weight", 0.5),
             feature_mean=metadata.get("feature_mean"),
             feature_std=metadata.get("feature_std"),

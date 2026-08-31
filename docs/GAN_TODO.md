@@ -759,7 +759,7 @@ already decent. **By the task-8 rule this is the strongest covariance
 candidate**: the diagonal has genuine work to do. TF/pac code pattern, closer to
 `df_ctab_gan` than to the MLX ports.
 
-## Task 16 — covariance on CGAN-TF  [OPEN — low prior, big prize]
+## Task 16 — covariance on CGAN-TF  [DONE 2026-08-31: REFUTED, as predicted]
 
 Sigma 0.547 is the worst dispersion in the family and correlation is EXCELLENT
 (+0.982), so the profile is exactly what covariance is for.
@@ -809,3 +809,21 @@ picked from measured sigma without sweeping both** (weight still needs sweeping:
 Limit: sigma 0.853 is not 1.0. The diagonal's authority VARIES by variant
 (WGAN-MLX reached 1.008). That is the rule's "and the diagonal can move it"
 clause; CGAN is the extreme test.
+
+
+### Task 16 result (2026-08-31) — REFUTED; task 7 beats the task-8 rule
+
+sigma FLAT at 0.556-0.585 across a 100x weight range (cw 5 -> 500), the same
+~0.58 saturation the std penalty hit in task 7.
+
+**Three distinct generator-side mechanisms now fail identically on CGAN:** a free
+per-feature gain (task 7), a direct std penalty (task 2), and the second-moment
+diagonal (here). **CGAN's under-dispersion cannot be moved from the generator
+side** — any fix must change D's objective.
+
+**The rule gains its qualifier:** covariance helps where sigma is broken AND THE
+DIAGONAL CAN MOVE IT. Authority varies: WGAN-MLX full (1.706 -> 1.008),
+MT_WGAN-TF partial (0.723 -> 0.853), CGAN none (0.571 -> 0.563).
+
+Default stays 0.0. A marginal correlation gain exists (dcorr 0.053 -> 0.034) but
+is single-seed on a noisy variant, and correlation was never CGAN's problem.
