@@ -115,7 +115,8 @@ class CTABGANPlus(CTABGANPlusBase):
         n_critic: int = 5,  # WGAN-GP discriminator updates per generator update
         corr_loss_weight: float = 15.0,  # Off-diagonal correlation matching (0 = off)
         gumbel_noise: bool = False,  # False = deterministic softmax, as in MLX
-        corr_loss_warmup_epochs: int = 0,  # Ramp corr weight 0 -> full over N epochs
+        corr_loss_warmup_epochs: int = 0,
+        corr_loss_mode: str = "correlation",  # or "covariance" (pins BOTH moments)  # Ramp corr weight 0 -> full over N epochs
         d_grad_clip_norm: Optional[float] = 1.0,  # None disables D grad clipping
         g_grad_clip_norm: Optional[float] = None,  # None disables G grad clipping
         generator_norm: str = "layer",  # "batch" | "layer" | "none" (MLX uses layer)
@@ -168,6 +169,12 @@ class CTABGANPlus(CTABGANPlusBase):
         self.corr_loss_weight = float(corr_loss_weight)
         self.gumbel_noise = bool(gumbel_noise)
         self.corr_loss_warmup_epochs = int(corr_loss_warmup_epochs)
+        if corr_loss_mode not in ("correlation", "covariance"):
+            raise ValueError(
+                f"corr_loss_mode={corr_loss_mode!r} must be "
+                f"'correlation' or 'covariance'"
+            )
+        self.corr_loss_mode = corr_loss_mode
         # Per-tensor gradient clipping.  Both losses are SUMMED and then
         # clipped, so the clip turns the update into a pure direction and the
         # loss weight only sets the mix -- which is why a large corr weight
@@ -2028,6 +2035,7 @@ class CTABGANPlusEnhanced(CTABGANPlusEnhancedMixin, CTABGANPlus):
         corr_loss_weight: float = 15.0,
         gumbel_noise: bool = False,
         corr_loss_warmup_epochs: int = 0,
+        corr_loss_mode: str = "correlation",  # or "covariance" (pins BOTH moments)
         d_grad_clip_norm: Optional[float] = 1.0,
         g_grad_clip_norm: Optional[float] = None,
         generator_norm: str = "layer",
@@ -2067,6 +2075,7 @@ class CTABGANPlusEnhanced(CTABGANPlusEnhancedMixin, CTABGANPlus):
             corr_loss_weight=corr_loss_weight,
             gumbel_noise=gumbel_noise,
             corr_loss_warmup_epochs=corr_loss_warmup_epochs,
+            corr_loss_mode=corr_loss_mode,
             d_grad_clip_norm=d_grad_clip_norm,
             g_grad_clip_norm=g_grad_clip_norm,
             generator_norm=generator_norm,

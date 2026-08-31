@@ -562,7 +562,7 @@ correlation and inflated sigma (1.10 -> 1.71); MT_CTAB's `n_critic=2` buys
 correlation with sigma (1.001 -> 0.952). Every default shipped was chosen on
 STRICT DOMINANCE, never on the best single metric.
 
-## Task 8 — match COVARIANCE, not correlation  [OPEN — recommended first]
+## Task 8 — match COVARIANCE, not correlation  [DONE 2026-08-31: CONFIRMED on WGAN-MLX; the tradeoff was an artifact]
 
 `_correlation_loss` is **scale-invariant by construction**: it normalises each
 feature before comparing, so it constrains the correlation structure and says
@@ -657,3 +657,22 @@ own count, 10x rows, capacity, timesteps and the degenerate `bb_width` feature.
 The `clipsat=` guard now makes this LOUD rather than silent, so nothing is
 blocked. Either make the harness train DDPM the way production does, or drop the
 DDPM rows and evaluate them only against the production-trained model on disk.
+
+
+### Task 8 result (2026-08-31) — CONFIRMED, and it retracts the tradeoff finding
+
+`_corr_offdiag` is blind to dispersion BY CONSTRUCTION — a 2x sigma error scores
+**0.000000** under it. The "generators cannot satisfy both moments" conclusion
+was an artifact of that, not a property of the models.
+
+**WGAN-MLX: covariance mode is strictly dominant at EVERY weight.** Sigma pinned
+at 1.01-1.05 across a ladder where correlation mode ran to 1.706, with BETTER
+correlation throughout, and NO cliff to cw=200. New default
+`corr_loss_mode="covariance"`, `corr_loss_weight=100`: mean|corr| 0.303 (real
+0.306), coc +0.998, dcorr 0.021, sigma 1.020 — 6x better dcorr than the previous
+default with sigma essentially at 1. Weight is MODE-DEPENDENT (covariance ~100,
+correlation ~1); change both together.
+
+**CTAB-TF: covariance is WORSE (dcorr 0.167 vs 0.122) at every weight, and still
+has a cliff. Default unchanged — OPEN question why the same term dominates on one
+family and loses on the other.**

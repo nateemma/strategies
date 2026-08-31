@@ -61,7 +61,7 @@ class WGANMLX:
     # before being fed to the generator/critic.
     _ZSCORE_CLIP: float = 4.0
 
-    def __init__(self, num_features: int, num_classes: int, latent_dim: int = 64, gp_weight: float = 50.0, learning_rate: float = 1e-4, grad_clip: float = 10.0, critic_lr_ratio: float = 0.25, cond_loss_weight: float = 2.0, corr_loss_weight: float = 1.0):
+    def __init__(self, num_features: int, num_classes: int, latent_dim: int = 64, gp_weight: float = 50.0, learning_rate: float = 1e-4, grad_clip: float = 10.0, critic_lr_ratio: float = 0.25, cond_loss_weight: float = 2.0, corr_loss_weight: float = 100.0, corr_loss_mode: str = "covariance"):
         self.latent_dim = latent_dim
         self.num_classes = num_classes
         self.num_features = num_features
@@ -74,7 +74,21 @@ class WGANMLX:
         # gradient directly rather than waiting for the critic to.  There are
         # no VGM mode heads here, so the correlation is taken on the raw
         # generator output -- no soft-decode step.
+        # NOTE the weight is mode-dependent: covariance wants ~100, correlation
+        # ~1 (correlation diverges well below 100).  Change both together.
         self.corr_loss_weight = corr_loss_weight
+        # "covariance" matches the second-moment matrix INCLUDING the diagonal.
+        # Training data here is already z-scored, so the real diagonal is ~1 and
+        # the fake diagonal is sigma^2 -- the term therefore constrains BOTH
+        # dispersion and correlation, where "correlation" is scale-invariant by
+        # construction and cannot see dispersion at all (verified: a 2x
+        # dispersion error scores 0.000000 under it).
+        if corr_loss_mode not in ("correlation", "covariance"):
+            raise ValueError(
+                f"corr_loss_mode={corr_loss_mode!r} must be "
+                f"'correlation' or 'covariance'"
+            )
+        self.corr_loss_mode = corr_loss_mode
         # Per-class feature means in the generator's native (z-scored,
         # clipped) space. Set at fit time; used only by loss_gen.
         self.class_means: Optional[mx.array] = None
@@ -144,9 +158,14 @@ class WGANMLX:
 
         if self.corr_loss_weight and self.corr_target is not None:
             xc = fake_x - mx.mean(fake_x, axis=0, keepdims=True)
-            sd = mx.sqrt(mx.mean(xc * xc, axis=0, keepdims=True) + 1e-8)
-            xn = xc / sd
-            corr = (xn.T @ xn) / xn.shape[0]
+            if self.corr_loss_mode == "covariance":
+                # No per-feature renormalisation: the diagonal then carries
+                # sigma^2 and the term sees dispersion.
+                corr = (xc.T @ xc) / xc.shape[0]
+            else:
+                sd = mx.sqrt(mx.mean(xc * xc, axis=0, keepdims=True) + 1e-8)
+                xn = xc / sd
+                corr = (xn.T @ xn) / xn.shape[0]
             v = corr.reshape(-1)[self._corr_idx]
             loss = loss + self.corr_loss_weight * mx.mean(
                 mx.square(v - self.corr_target)
@@ -238,7 +257,8 @@ def balance_with_wgan_mlx(
     noise_std: float = 0.0,
     verbose: bool = True,
     cond_loss_weight: float = 2.0,
-    corr_loss_weight: float = 1.0,
+    corr_loss_weight: float = 100.0,
+    corr_loss_mode: str = "covariance",
     **kwargs
 ) -> Tuple[np.ndarray, np.ndarray]:
     """MLX-accelerated WGAN-GP for tabular data balancing."""
@@ -259,6 +279,7 @@ def balance_with_wgan_mlx(
         num_classes,
         cond_loss_weight=cond_loss_weight,
         corr_loss_weight=corr_loss_weight,
+        corr_loss_mode=corr_loss_mode,
     )
 
     # Compute z-score stats from raw input. The generator trains in
@@ -290,8 +311,12 @@ def balance_with_wgan_mlx(
     # Real off-diagonal correlation, in the generator's native (z-scored)
     # space -- the constant target for the correlation term in loss_gen.
     if corr_loss_weight:
-        _cm = np.nan_to_num(np.corrcoef(train_data_zscored, rowvar=False))
-        _iu = np.triu_indices(num_features, k=1)
+        if corr_loss_mode == "covariance":
+            _cm = np.nan_to_num(np.cov(train_data_zscored, rowvar=False, bias=True))
+            _iu = np.triu_indices(num_features, k=0)   # INCLUDE the diagonal
+        else:
+            _cm = np.nan_to_num(np.corrcoef(train_data_zscored, rowvar=False))
+            _iu = np.triu_indices(num_features, k=1)
         gan._corr_idx = mx.array(
             (_iu[0] * num_features + _iu[1]).astype(np.int32)
         )

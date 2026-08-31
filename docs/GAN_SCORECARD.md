@@ -1594,3 +1594,79 @@ correlation, WGAN-MLX's weight bought correlation with sigma, and this buys
 correlation with sigma. These generators appear unable to satisfy both moments
 at once — which is a more useful summary of the family's ceiling than any single
 variant's number.
+
+
+## Task 8 — COVARIANCE matching. The "two-moment tradeoff" was MY ARTIFACT
+
+**RETRACTS the cross-cutting finding of the previous sessions.** Three variants
+appeared to show these generators cannot satisfy both moments at once (CGAN's std
+penalty bought sigma and collapsed correlation; WGAN-MLX's corr weight bought
+correlation and inflated sigma 1.10 -> 1.71; MT_CTAB's n_critic=2 bought
+correlation with sigma). **They can. All three shared a hidden common cause: a
+SCALE-INVARIANT correlation target on one side of the trade.**
+
+`_corr_offdiag` normalises each side by its OWN std before comparing, so it is
+blind to dispersion by construction. Verified numerically — feed it data at
+exactly HALF the correct dispersion with correlation unchanged:
+
+    correlation-mode loss for a 2x dispersion error: 0.000000   <- blind
+    covariance-mode  loss for the same error       : 0.201888   <- sees it
+
+The term could not perceive a doubling of sigma. So sigma drifted wherever the
+adversarial equilibrium put it, and that drift was read as a property of the
+generators.
+
+### The fix: match the second-moment matrix INCLUDING the diagonal
+
+Both sides are normalised by the SAME (real) feature stats, so on the fake side
+the diagonal is `(sigma_fake/sigma_real)^2` — the dispersion ratio — and the
+off-diagonal is correlation scaled by those ratios. One term, both moments.
+`corr_loss_mode = "correlation" | "covariance"`.
+
+### WGAN-MLX — strictly dominant at EVERY weight (3 runs each)
+
+| cw | correlation coc / dcorr / sigma | covariance coc / dcorr / sigma |
+|---|---|---|
+| 1 | +0.926 / 0.131 / 1.068 | **+0.978 / 0.071 / 1.037** |
+| 5 | +0.975 / 0.071 / 1.385 | **+0.994 / 0.035 / 1.044** |
+| 15 | +0.990 / 0.051 / **1.706** | **+0.996 / 0.037 / 1.045** |
+| 40 | +0.997 / 0.043 / 1.498 | **+0.997 / 0.029 / 1.034** |
+| 100 | — | **+0.998 / 0.022 / 1.008** |
+| 200 | — | +0.998 / 0.020 / 1.007 |
+
+Sigma stays pinned at 1.01-1.05 across the whole ladder where correlation mode
+ran to 1.706 — **and correlation is BETTER at every weight, not traded away.**
+There is also **no divergence cliff up to cw=200**, because the term now
+constrains sigma instead of letting it run; correlation mode had one.
+
+**New WGAN-MLX default: `corr_loss_mode="covariance"`, `corr_loss_weight=100`.**
+Stock run: mean|corr| 0.303 (real 0.306), corr-of-corr +0.998, mean_dcorr 0.021,
+sigma 1.020. Against the previous default (+0.923 / 0.135 / 1.097) that is 6x
+better dcorr with sigma essentially at 1.
+
+NOTE the weight is MODE-DEPENDENT: covariance wants ~100, correlation ~1
+(correlation diverges far below 100). Change both together.
+
+### CTAB-TF — covariance is WORSE there.  Default unchanged.  OPEN.
+
+| mode / cw | mean\|corr\| | coc | dcorr | sigma |
+|---|---|---|---|---|
+| correlation cw=15 (shipped) | **0.232** | **+0.944** | **0.122** | 1.101 |
+| covariance cw=15 | 0.181 | +0.928 | 0.167 | 1.126 |
+| covariance cw=1 / 5 | 0.052 / 0.051 | -0.041 / +0.238 | 0.318 / 0.303 | — |
+| covariance cw=40 / 100 | 0.047 | -0.126 | 0.318 | collapsed |
+
+Worse at every weight, and it still has a cliff (40+). **Why the same term is
+strictly dominant on WGAN-MLX and worse on CTAB-TF is unexplained** — candidate:
+CTAB's sigma was already ~1.10, so there is little dispersion error for the
+diagonal to correct, while the diagonal's gradient competes with the correlation
+signal. Do NOT flip the CTAB default on WGAN's result.
+
+### The lesson
+
+Three consistent observations across different variants felt like strong
+evidence for a property of the models. They shared a defect in the INSTRUMENT
+common to all of them. Same shape as the DDPM false alarm, where three agreeing
+runs confirmed only that the misconfiguration was consistent. **Consistency
+across subjects does not protect against a flaw in the measure applied to all of
+them.**

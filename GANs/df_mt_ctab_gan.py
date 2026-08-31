@@ -115,7 +115,8 @@ class CTABGANPlusMT(CTABGANPlusBase):
         corr_loss_weight: float = 30.0,  # Off-diagonal correlation matching (0 = off)
         restore_best_weights: bool = True,  # False = keep the final epoch
         gumbel_noise: bool = False,  # False = deterministic softmax, as in MLX
-        corr_loss_warmup_epochs: int = 0,  # Ramp corr weight 0 -> full over N epochs
+        corr_loss_warmup_epochs: int = 0,
+        corr_loss_mode: str = "correlation",  # or "covariance" (pins BOTH moments)  # Ramp corr weight 0 -> full over N epochs
         d_grad_clip_norm: Optional[float] = 1.0,  # None disables D grad clipping
         g_grad_clip_norm: Optional[float] = None,  # None disables G grad clipping
         generator_norm: str = "layer",  # "batch" | "layer" | "none" (MLX uses layer)
@@ -176,6 +177,12 @@ class CTABGANPlusMT(CTABGANPlusBase):
         self.restore_best_weights = bool(restore_best_weights)
         self.gumbel_noise = bool(gumbel_noise)
         self.corr_loss_warmup_epochs = int(corr_loss_warmup_epochs)
+        if corr_loss_mode not in ("correlation", "covariance"):
+            raise ValueError(
+                f"corr_loss_mode={corr_loss_mode!r} must be "
+                f"'correlation' or 'covariance'"
+            )
+        self.corr_loss_mode = corr_loss_mode
         self.d_grad_clip_norm = d_grad_clip_norm
         self.g_grad_clip_norm = g_grad_clip_norm
         if generator_norm not in ("batch", "layer", "none"):
@@ -1737,6 +1744,7 @@ class CTABGANPlusMTEnhanced(CTABGANPlusEnhancedMixin, CTABGANPlusMT):
         restore_best_weights: bool = True,
         gumbel_noise: bool = False,
         corr_loss_warmup_epochs: int = 0,
+        corr_loss_mode: str = "correlation",  # or "covariance" (pins BOTH moments)
         d_grad_clip_norm: Optional[float] = 1.0,
         g_grad_clip_norm: Optional[float] = None,
         generator_norm: str = "layer",
@@ -1777,6 +1785,7 @@ class CTABGANPlusMTEnhanced(CTABGANPlusEnhancedMixin, CTABGANPlusMT):
             restore_best_weights=restore_best_weights,
             gumbel_noise=gumbel_noise,
             corr_loss_warmup_epochs=corr_loss_warmup_epochs,
+            corr_loss_mode=corr_loss_mode,
             d_grad_clip_norm=d_grad_clip_norm,
             g_grad_clip_norm=g_grad_clip_norm,
             generator_norm=generator_norm,

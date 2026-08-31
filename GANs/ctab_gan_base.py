@@ -212,6 +212,31 @@ class CTABGANPlusBase:
         mask = tf.constant(np.triu(np.ones((d, d), dtype=bool), k=1))
         return tf.boolean_mask(corr, mask)
 
+    @staticmethod
+    def _second_moment(x, mu, sd, include_diag=True):
+        """Second-moment matrix of x, normalised by the REAL feature stats.
+
+        BOTH sides are divided by the SAME (real) sd, so on the fake side the
+        DIAGONAL is (sigma_fake / sigma_real)^2 -- the dispersion ratio -- and
+        the off-diagonal is correlation scaled by those ratios.  Matching this
+        matrix therefore pins BOTH moments in a single term.
+
+        `_corr_offdiag` normalises each side by its OWN std, which is
+        scale-invariant by construction: it cannot see dispersion at all, which
+        is why raising its weight inflates sigma on WGAN-MLX (1.10 -> 1.71) and
+        why CGAN's sigma penalty destroys correlation.  Each term pins one
+        moment and leaves the other free.
+        """
+        z = (x - mu) / sd
+        zc = z - tf.reduce_mean(z, axis=0, keepdims=True)
+        n = tf.cast(tf.shape(zc)[0], zc.dtype)
+        cov = tf.matmul(zc, zc, transpose_a=True) / n
+        d = zc.shape[1]
+        mask = tf.constant(
+            np.triu(np.ones((d, d), dtype=bool), k=0 if include_diag else 1)
+        )
+        return tf.boolean_mask(cov, mask)
+
     def _correlation_loss(self, real_data, fake_data):
         """MSE between the off-diagonal correlation vectors of real and fake.
 
@@ -222,9 +247,24 @@ class CTABGANPlusBase:
         """
         real_d = self._soft_decode(tf.cast(real_data, tf.float32))
         fake_d = self._soft_decode(tf.cast(fake_data, tf.float32))
-        loss = tf.reduce_mean(
-            tf.square(self._corr_offdiag(fake_d) - self._corr_offdiag(real_d))
-        )
+        if getattr(self, "corr_loss_mode", "correlation") == "covariance":
+            # Normalise both sides by the REAL batch stats so the comparison
+            # is on one scale and the diagonal carries the dispersion ratio.
+            mu = tf.reduce_mean(real_d, axis=0, keepdims=True)
+            sd = tf.sqrt(
+                tf.reduce_mean(tf.square(real_d - mu), axis=0, keepdims=True)
+                + 1e-8
+            )
+            loss = tf.reduce_mean(
+                tf.square(
+                    self._second_moment(fake_d, mu, sd)
+                    - self._second_moment(real_d, mu, sd)
+                )
+            )
+        else:
+            loss = tf.reduce_mean(
+                tf.square(self._corr_offdiag(fake_d) - self._corr_offdiag(real_d))
+            )
         # Same NaN/blow-up discipline as the existing info/downstream terms.
         loss = tf.minimum(loss, 10.0)
         return tf.where(tf.math.is_finite(loss), loss, tf.zeros_like(loss))
