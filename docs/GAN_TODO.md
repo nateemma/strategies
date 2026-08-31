@@ -752,7 +752,7 @@ sigma 0.939. Same MLX code pattern that already works in `df_wgan_mlx`
 port rather than new design. Sigma is near 1, so start with `correlation`, but
 test both — 0.939 is far enough off that the diagonal may have real work.
 
-## Task 15 — port the term to MT_WGAN-TF  [OPEN]
+## Task 15 — port the term to MT_WGAN-TF  [DONE 2026-08-31: default covariance/40; RULE CONFIRMED]
 
 Sigma 0.699 is the most broken dispersion outside CGAN, and dcorr 0.087 is
 already decent. **By the task-8 rule this is the strongest covariance
@@ -791,3 +791,21 @@ scale-freedom only runs away when sigma has room to grow.
 **The rule is now trustworthy enough to pick the MODE for tasks 15-17 without
 sweeping both.** Weight still needs sweeping — it has never transferred (15, 30,
 100, 15 across four variants so far).
+
+
+### Task 15 result (2026-08-31) — port + the predictive rule CONFIRMED
+
+3 runs, no overlap on either axis: dcorr 0.069 -> **0.047**, sigma 0.723 ->
+**0.853**. Shipped `covariance` / cw=40. Stock: mean|corr| 0.304 (real 0.306),
+coc +0.991, dcorr 0.043, sigma 0.847.
+
+**RULE CONFIRMED in the positive direction, on a variant not used to build it.**
+Correlation-mode control at cw=15 reaches the SAME dcorr (0.056 vs 0.055) but
+leaves sigma at 0.666 — unchanged from the 0.673 baseline, exactly as a
+scale-blind term must — while covariance moves it to 0.860. **Mode can now be
+picked from measured sigma without sweeping both** (weight still needs sweeping:
+15, 30, 100, 15, 40 across five variants).
+
+Limit: sigma 0.853 is not 1.0. The diagonal's authority VARIES by variant
+(WGAN-MLX reached 1.008). That is the rule's "and the diagonal can move it"
+clause; CGAN is the extreme test.

@@ -1771,3 +1771,57 @@ variant started under-dispersed.
 the MODE without sweeping both, which roughly halves the run budget for tasks
 15-17. Weight still must be swept — it has never transferred between variants
 (15 single-task CTAB, 30 MT_CTAB, 100 WGAN-MLX covariance, 15 here).
+
+
+## Task 15 — port to MT_WGAN-TF (default covariance/40) + the RULE CONFIRMED
+
+MT_WGAN-TF had the most broken dispersion outside CGAN (sigma 0.699). Unlike the
+MLX paths, `train_step` HAS the real batch, so the target is computed per batch
+like CTAB rather than plumbed as a constant (task 8 established that a per-batch
+real target is not a meaningful noise source — the global-target experiment was
+inert).
+
+Seed 42 ladder, plus a correlation-mode control:
+
+| config | mean\|corr\| | coc | dcorr | sigma |
+|---|---|---|---|---|
+| term OFF | 0.286 | +0.966 | 0.088 | 0.673 |
+| covariance cw=1 | 0.295 | +0.978 | 0.068 | 0.717 |
+| covariance cw=5 | 0.304 | +0.987 | 0.052 | 0.788 |
+| covariance cw=15 | 0.314 | +0.984 | 0.055 | 0.782 |
+| **covariance cw=40** | 0.311 | +0.988 | **0.049** | **0.860** |
+| covariance cw=100 | 0.309 | +0.988 | 0.052 | 0.856 |
+| **correlation cw=15 (control)** | 0.300 | +0.984 | 0.056 | **0.666** |
+
+3-run replication, no overlap on EITHER axis:
+
+| config | dcorr | per-run | sigma | per-run |
+|---|---|---|---|---|
+| term OFF | 0.069 | 0.055-0.088 | 0.723 | 0.673-0.748 |
+| **covariance cw=40** | **0.047** | 0.045-0.049 | **0.853** | 0.841-0.860 |
+
+Stock run: mean|corr| 0.304 (real 0.306), coc +0.991, dcorr 0.043, sigma 0.847.
+
+### THE PREDICTIVE RULE IS CONFIRMED — in the direction that mattered
+
+The rule came FROM WGAN-MLX, so that variant cannot confirm it. Task 14 checked
+the negative case (sigma fine -> correlation competitive). **This checked the
+POSITIVE case on a variant not used to build the rule, and the correlation-mode
+control makes the mechanism visible rather than inferred:**
+
+At cw=15 both modes reach essentially the same dcorr (0.055 vs 0.056) — but
+correlation leaves sigma at **0.666**, unchanged from the 0.673 baseline, exactly
+as a scale-blind term must; covariance moves it to 0.782-0.860.
+
+**Consequence: mode can now be chosen from the measured sigma without sweeping
+both.** Weight still must be swept — it has never transferred (15, 30, 100, 15,
+40 across five variants).
+
+### Honest limit
+
+sigma 0.853 is a large gain from 0.723 but is NOT 1.0. The diagonal moves this
+variant's dispersion substantially without fully correcting it, where on
+WGAN-MLX it reached 1.008. **The diagonal's authority varies by variant** — which
+is the "AND the diagonal can move it" clause the rule already carries. CGAN
+(sigma 0.547, task 16) is the extreme case, and task 7 predicts its adversarial
+equilibrium will refuse to move at all.

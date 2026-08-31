@@ -171,6 +171,8 @@ class MT_WGAN_GP(Model):
         primary_task: str = "trading",
         class_means: np.ndarray | None = None,
         cond_loss_weight: float = 2.0,
+        corr_loss_weight: float = 40.0,
+        corr_loss_mode: str = "covariance",
     ):
         super().__init__(name="mt_wgan_gp")
         self.seq_len = seq_len
@@ -187,6 +189,19 @@ class MT_WGAN_GP(Model):
             tf.constant(class_means, dtype=tf.float32) if class_means is not None else None
         )
         self.cond_loss_weight = cond_loss_weight
+        # Joint-structure term. train_step HAS the real batch (unlike the MLX
+        # paths, whose loss_gen does not), so the target is computed per batch
+        # like CTAB rather than plumbed as a constant.
+        # Mode picked by the task-8 rule: this variant's sigma is ~0.70, i.e.
+        # genuinely broken, so "covariance" (which pins dispersion via the
+        # diagonal) is the prediction.  See docs/GAN_SCORECARD.md.
+        if corr_loss_mode not in ("correlation", "covariance"):
+            raise ValueError(
+                f"corr_loss_mode={corr_loss_mode!r} must be "
+                f"'correlation' or 'covariance'"
+            )
+        self.corr_loss_weight = float(corr_loss_weight)
+        self.corr_loss_mode = corr_loss_mode
         self.gen = _MTGenCNN(seq_len, num_features, task_label_dims, latent_dim, gen_base_filters, gen_kernel_size, gen_up_blocks)
         self.critic = _MTCritic(seq_len, num_features, task_label_dims)
 
@@ -357,6 +372,45 @@ class MT_WGAN_GP(Model):
             # Clip auxiliary loss to prevent it from dominating
             aux_g_loss = tf.clip_by_value(aux_g_loss, 0.0, 10.0)
             g_loss = adv_loss + aux_g_loss
+
+            # Joint-structure matching, on the flattened (seq x feature) view.
+            if self.corr_loss_weight > 0:
+                _rd = tf.cast(tf.reshape(real_x, (tf.shape(real_x)[0], -1)), tf.float32)
+                _fd = tf.cast(tf.reshape(fake_x, (tf.shape(fake_x)[0], -1)), tf.float32)
+                _mu = tf.reduce_mean(_rd, axis=0, keepdims=True)
+                _sd = tf.sqrt(
+                    tf.reduce_mean(tf.square(_rd - _mu), axis=0, keepdims=True) + 1e-8
+                )
+
+                def _mom(v):
+                    if self.corr_loss_mode == "covariance":
+                        # Normalised by the REAL stats, so the diagonal carries
+                        # (sigma_fake/sigma_real)^2 and the term sees dispersion.
+                        zc = (v - _mu) / _sd
+                        zc = zc - tf.reduce_mean(zc, axis=0, keepdims=True)
+                    else:
+                        zc = v - tf.reduce_mean(v, axis=0, keepdims=True)
+                        zc = zc / tf.sqrt(
+                            tf.reduce_mean(tf.square(zc), axis=0, keepdims=True) + 1e-8
+                        )
+                    n = tf.cast(tf.shape(zc)[0], tf.float32)
+                    return tf.matmul(zc, zc, transpose_a=True) / n
+
+                _cr, _cf = _mom(_rd), _mom(_fd)
+                if self.corr_loss_mode == "correlation":
+                    _d = tf.shape(_cr)[0]
+                    _m = tf.linalg.band_part(tf.ones((_d, _d)), 0, -1) - tf.eye(_d)
+                else:
+                    _d = tf.shape(_cr)[0]
+                    _m = tf.linalg.band_part(tf.ones((_d, _d)), 0, -1)
+                _cl = tf.reduce_sum(tf.square(_cf - _cr) * _m) / tf.maximum(
+                    tf.reduce_sum(_m), 1.0
+                )
+                _cl = tf.minimum(_cl, 10.0)
+                _cl = tf.where(tf.math.is_finite(_cl), _cl, tf.zeros_like(_cl))
+                g_loss = g_loss + tf.cast(self.corr_loss_weight, g_loss.dtype) * tf.cast(
+                    _cl, g_loss.dtype
+                )
 
             # Class mean matching loss for the primary task.
             # v2: operate in z-scored space (generator's native output space
@@ -545,6 +599,8 @@ def balance_with_mt_wgan_gp(
     assess_quality: bool = True,
     n_critic: int = 5,
     primary_task: str = "trading",
+    corr_loss_weight: float = 40.0,
+    corr_loss_mode: str = "covariance",
     task_target_ratios: dict[str, float | dict[int, float] | None] | None = None,
     task_loss_weights: dict[str, float] | None = None,  # Default: trading=0.1, others=0.02
     seq_len: int | None = None,
@@ -716,6 +772,9 @@ def balance_with_mt_wgan_gp(
             primary_task=primary_task,
             class_means=class_means_arr,
             cond_loss_weight=10.0,
+            # Explicit: an unreachable ctor default is a silent no-op.
+            corr_loss_weight=corr_loss_weight,
+            corr_loss_mode=corr_loss_mode,
         )
         gan.feature_mean = tf.convert_to_tensor(feat_mean)
         gan.feature_std = tf.convert_to_tensor(feat_std)
