@@ -770,7 +770,7 @@ is still a generator-side penalty and will probably hit the same wall. Worth ONE
 test because the defect is the largest left; do not iterate if it behaves like
 task 7.
 
-## Task 17 — port the term to WGAN-TF  [OPEN — low priority]
+## Task 17 — port the term to WGAN-TF  [DONE 2026-08-31: INERT, as predicted — default off]
 
 Already the best joint structure in the family (dcorr 0.036) with sigma 0.887.
 Little headroom; do last, if at all.
@@ -827,3 +827,30 @@ MT_WGAN-TF partial (0.723 -> 0.853), CGAN none (0.571 -> 0.563).
 
 Default stays 0.0. A marginal correlation gain exists (dcorr 0.053 -> 0.034) but
 is single-seed on a noisy variant, and correlation was never CGAN's problem.
+
+
+### Task 17 result + COVERAGE WORK COMPLETE (2026-08-31)
+
+WGAN-TF: inert (dcorr 0.034 baseline vs 0.030/0.038/0.041 across weights —
+non-monotonic, spread ~ the difference from baseline). Nothing to fix; the
+variant already had the family's best joint structure. Default stays 0.0; the
+term is wired and available.
+
+**Coverage complete — the term now reaches every variant where it can help:**
+
+| variant | dcorr | sigma | mode / weight |
+|---|---|---|---|
+| WGAN-MLX | 0.021 | 1.020 | covariance / 100 |
+| MT_WGAN-TF | 0.043 | 0.847 | covariance / 40 |
+| MT_WGAN-MLX | 0.074 | 0.945 | correlation / 15 |
+| CTAB-TF | 0.122 | 1.091 | correlation / 15 |
+| MT_CTAB-TF | 0.211 | 1.001 | correlation / 30 |
+| WGAN-TF | 0.034 | 0.891 | off — nothing to fix |
+| CGAN-TF | 0.064 | 0.547 | off — dispersion is an EQUILIBRIUM |
+
+**Remaining fidelity items are all low-yield or blocked:** tasks 9 (D joint
+blindness, 10 refutations behind it), 10 (gradient-balance instrument, serves two
+parked puzzles), 11 (G/D balance), 13 (DDPM harness). None has a specific
+untested mechanism of the kind tasks 8/14/15 had.
+
+**NEXT: task 12 — the P&L A/B.** The fidelity list is complete.

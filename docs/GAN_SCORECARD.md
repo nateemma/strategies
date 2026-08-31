@@ -1881,3 +1881,55 @@ The term does improve CGAN's correlation slightly (dcorr 0.053 -> 0.034, coc
 variant the scorecard records as run-to-run noisy, and correlation was never
 CGAN's problem. Default stays 0.0. Not iterating — it behaved exactly as task 7
 predicted, and that was the stated stopping condition.
+
+
+## Task 17 — WGAN-TF: INERT, as predicted. Coverage work complete.
+
+WGAN-TF already had the family's best joint structure (dcorr 0.036) and
+near-correct sigma (0.887), so the rule predicted correlation mode and little
+headroom. Seed 42:
+
+| config | dcorr | coc | sigma |
+|---|---|---|---|
+| term OFF | 0.034 | +0.995 | 0.891 |
+| correlation cw=5 | 0.038 | +0.995 | 0.907 |
+| correlation cw=15 | 0.030 | +0.997 | 0.891 |
+| correlation cw=40 | 0.041 | +0.996 | 0.885 |
+
+Non-monotonic (0.030 / 0.038 / 0.041) with the spread comparable to the
+difference from baseline — noise, not signal. **Default stays 0.0.** The term is
+wired and available; there is simply nothing to fix on this variant. Kept rather
+than reverted because it is the same proven machinery now present in five other
+variants and it is default-off — unlike the learnable gain (task 7), which was a
+novel mechanism that did not work.
+
+## FAMILY STATE after the coverage work
+
+| variant | dcorr | sigma | term | mode / weight |
+|---|---|---|---|---|
+| WGAN-MLX | **0.021** | **1.020** | ON | covariance / 100 |
+| MT_WGAN-TF | **0.043** | 0.847 | ON | covariance / 40 |
+| WGAN-TF | 0.034 | 0.891 | off | nothing to fix |
+| MT_WGAN-MLX | **0.074** | 0.945 | ON | correlation / 15 |
+| CTAB-TF | 0.122 | 1.091 | ON | correlation / 15 |
+| MT_CTAB-TF | 0.211 | 1.001 | ON | correlation / 30 |
+| CGAN-TF | 0.064 | **0.547** | off | dispersion is an EQUILIBRIUM (tasks 2/7/16) |
+| TabDDPM / MT_DDPM | — | — | n/a | production healthy; fixture harness invalid |
+
+### The predictive rule, validated across four variants
+
+**Use covariance where sigma is BROKEN and the diagonal CAN MOVE IT; use
+correlation otherwise.**
+
+| variant | sigma before -> after | diagonal authority | mode chosen | outcome |
+|---|---|---|---|---|
+| WGAN-MLX | 1.706 -> 1.008 | full | covariance | strictly dominant |
+| MT_WGAN-TF | 0.723 -> 0.853 | partial | covariance | dominant, no overlap |
+| MT_WGAN-MLX | ~0.95, near-correct | n/a | correlation | dcorr 2.2x, sigma held |
+| CGAN-TF | 0.571 -> 0.563 | **none** | — | refuted, equilibrium |
+| WGAN-TF | 0.891, near-correct | n/a | correlation | inert (nothing to fix) |
+
+Derived on WGAN-MLX; confirmed negatively (task 14), positively with a control
+(task 15), and qualified by its failure case (task 16). It now predicts mode
+selection without sweeping — weight still must be swept, having never transferred
+(15, 30, 100, 15, 40 across five variants).

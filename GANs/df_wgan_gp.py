@@ -942,6 +942,8 @@ class WGAN_GP(Model):
         feature_matching_weight: float = 0.1,
         class_means: np.ndarray | None = None,
         cond_loss_weight: float = 0.5,
+        corr_loss_weight: float = 0.0,
+        corr_loss_mode: str = "correlation",
     ):
         super().__init__(name="wgan_gp")
         self.seq_len = seq_len
@@ -962,6 +964,13 @@ class WGAN_GP(Model):
             tf.constant(class_means, dtype=tf.float32) if class_means is not None else None
         )
         self.cond_loss_weight = cond_loss_weight
+        if corr_loss_mode not in ("correlation", "covariance"):
+            raise ValueError(
+                f"corr_loss_mode={corr_loss_mode!r} must be "
+                f"'correlation' or 'covariance'"
+            )
+        self.corr_loss_weight = float(corr_loss_weight)
+        self.corr_loss_mode = corr_loss_mode
 
         # Create generator and critic using factory
         self.gen, self.critic = create_wgan_models(
@@ -1261,6 +1270,45 @@ class WGAN_GP(Model):
                 # Guard against NaN in combined loss
                 g_loss = tf.where(tf.math.is_finite(g_loss), g_loss, g_loss_adv)
 
+            # Joint-structure matching on the flattened view. Mode picked by
+            # the task-8 rule: this variant's sigma is ~0.89 (near-correct) and
+            # its correlation already the family's best, so "correlation" is the
+            # default -- the covariance coupling would cost accuracy for a
+            # dispersion correction that is not needed here.
+            if getattr(self, "corr_loss_weight", 0.0) > 0:
+                _r = tf.cast(tf.reshape(real_x, (tf.shape(real_x)[0], -1)), tf.float32)
+                _f = tf.cast(tf.reshape(fake_x, (tf.shape(fake_x)[0], -1)), tf.float32)
+                _mu = tf.reduce_mean(_r, axis=0, keepdims=True)
+                _sd = tf.sqrt(
+                    tf.reduce_mean(tf.square(_r - _mu), axis=0, keepdims=True) + 1e-8
+                )
+
+                def _sm(v):
+                    if self.corr_loss_mode == "covariance":
+                        z = (v - _mu) / _sd
+                        z = z - tf.reduce_mean(z, axis=0, keepdims=True)
+                    else:
+                        z = v - tf.reduce_mean(v, axis=0, keepdims=True)
+                        z = z / tf.sqrt(
+                            tf.reduce_mean(tf.square(z), axis=0, keepdims=True) + 1e-8
+                        )
+                    n = tf.cast(tf.shape(z)[0], tf.float32)
+                    return tf.matmul(z, z, transpose_a=True) / n
+
+                _a, _b = _sm(_f), _sm(_r)
+                _dim = tf.shape(_a)[0]
+                _mask = tf.linalg.band_part(tf.ones((_dim, _dim)), 0, -1)
+                if self.corr_loss_mode == "correlation":
+                    _mask = _mask - tf.eye(_dim)
+                _cl = tf.reduce_sum(tf.square(_a - _b) * _mask) / tf.maximum(
+                    tf.reduce_sum(_mask), 1.0
+                )
+                _cl = tf.minimum(_cl, 10.0)
+                _cl = tf.where(tf.math.is_finite(_cl), _cl, tf.zeros_like(_cl))
+                g_loss = g_loss + tf.cast(self.corr_loss_weight, g_loss.dtype) * tf.cast(
+                    _cl, g_loss.dtype
+                )
+
             # Final guard: if loss is still NaN, use unweighted loss
             g_loss = tf.where(
                 tf.math.is_finite(g_loss), g_loss, -tf.reduce_mean(fake_scores)
@@ -1446,6 +1494,8 @@ def balance_with_wgan_gp(
     feature_matching_weight: float = 0.1,
     noise_std: float = 0.02,  # Standard deviation of Gaussian noise to add to generated samples (reduces overfitting)
     cond_loss_weight: float = 2.0,  # Weight for class mean matching loss (higher = stronger conditioning)
+    corr_loss_weight: float = 0.0,
+    corr_loss_mode: str = "correlation",
     _return_model: bool = False,  # When True, return (aug_x, aug_y, trained_gan) instead of (aug_x, aug_y)
 ):
     _ = seq_len  # retained for backward-compatible signature
@@ -1714,6 +1764,9 @@ def balance_with_wgan_gp(
             feature_matching_weight=feature_matching_weight,
             class_means=class_means_arr,
             cond_loss_weight=cond_loss_weight,
+            # Explicit: an unreachable ctor default is a silent no-op.
+            corr_loss_weight=corr_loss_weight,
+            corr_loss_mode=corr_loss_mode,
         )
         gan.feature_mean = tf.convert_to_tensor(feat_mean)
         gan.feature_std = tf.convert_to_tensor(feat_std)
