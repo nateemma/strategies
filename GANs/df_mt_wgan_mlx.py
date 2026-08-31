@@ -185,6 +185,8 @@ class MTWGANMLX:
         dropout: float = 0.0,
         n_critic: int = 5,
         cond_loss_weight: float = 10.0,
+        corr_loss_weight: float = 15.0,
+        corr_loss_mode: str = "correlation",
     ):
         self.latent_dim = latent_dim
         self.task_label_dims = task_label_dims
@@ -220,6 +222,22 @@ class MTWGANMLX:
         self.feature_min = None
         self.feature_max = None
         self.cond_loss_weight = cond_loss_weight
+        # Joint-structure term, same mechanism as df_wgan_mlx: loss_gen never
+        # sees real data, so the target is precomputed once as a constant.
+        # Computed on the FLATTENED (seq_len x features) view, matching both
+        # class_means above and what the probe measures.
+        # Mode: "covariance" also pins dispersion via the diagonal, which helps
+        # only where sigma is actually broken AND the diagonal can move it
+        # (docs/GAN_SCORECARD.md); "correlation" is scale-free.
+        if corr_loss_mode not in ("correlation", "covariance"):
+            raise ValueError(
+                f"corr_loss_mode={corr_loss_mode!r} must be "
+                f"'correlation' or 'covariance'"
+            )
+        self.corr_loss_weight = corr_loss_weight
+        self.corr_loss_mode = corr_loss_mode
+        self.corr_target = None
+        self._corr_idx = None
         # Per-conditioning-column feature means in the generator's native
         # (z-scored) space. Set at fit time; used only by loss_gen.
         self.class_means = None
@@ -358,6 +376,20 @@ class MTWGANMLX:
                 mx.sum(err * mask) / mx.maximum(mx.sum(mask), 1.0)
             )
 
+        if self.corr_loss_weight and self.corr_target is not None:
+            fx2 = mx.reshape(fake_x, (fake_x.shape[0], -1))
+            xc = fx2 - mx.mean(fx2, axis=0, keepdims=True)
+            if self.corr_loss_mode == "covariance":
+                cm = (xc.T @ xc) / xc.shape[0]
+            else:
+                sd = mx.sqrt(mx.mean(xc * xc, axis=0, keepdims=True) + 1e-8)
+                xn = xc / sd
+                cm = (xn.T @ xn) / xn.shape[0]
+            v = cm.reshape(-1)[self._corr_idx]
+            loss = loss + self.corr_loss_weight * mx.mean(
+                mx.square(v - self.corr_target)
+            )
+
         return loss
 
     def save(self, path: str, metadata: dict):
@@ -432,6 +464,8 @@ def balance_with_mt_wgan_mlx(
     verbose: bool = True,
     primary_task: str = "trading",
     task_target_ratios: dict[str, Any] | None = None,
+    corr_loss_weight: float = 15.0,
+    corr_loss_mode: str = "correlation",
     **kwargs
 ) -> tuple[np.ndarray, dict[str, np.ndarray]]:
     """MLX-accelerated Multi-Task WGAN-GP."""
@@ -471,6 +505,10 @@ def balance_with_mt_wgan_mlx(
         d_layers=d_layers,
         dropout=dropout,
         n_critic=n_critic_kwarg,
+        # Passed explicitly: a ctor default unreachable from callers is a
+        # silent no-op (the cond_loss_weight bug, docs/GAN_SCORECARD.md).
+        corr_loss_weight=corr_loss_weight,
+        corr_loss_mode=corr_loss_mode,
     )
     
     # Stats for postprocess — computed from raw data BEFORE normalisation.
@@ -505,6 +543,19 @@ def balance_with_mt_wgan_mlx(
         if np.any(_c_full[:, j] > 0) else np.zeros(_flat.shape[1], dtype="float32")
         for j in range(_c_full.shape[1])
     ]).astype("float32"))
+
+    # Joint-structure target, in the generator's native (z-scored, flattened)
+    # space -- the constant target for the corr term in loss_gen.
+    if corr_loss_weight:
+        _d = _flat.shape[1]
+        if corr_loss_mode == "covariance":
+            _cm = np.nan_to_num(np.cov(_flat, rowvar=False, bias=True))
+            _iu = np.triu_indices(_d, k=0)   # INCLUDE the diagonal
+        else:
+            _cm = np.nan_to_num(np.corrcoef(_flat, rowvar=False))
+            _iu = np.triu_indices(_d, k=1)
+        gan._corr_idx = mx.array((_iu[0] * _d + _iu[1]).astype(np.int32))
+        gan.corr_target = mx.array(np.asarray(_cm)[_iu].astype("float32"))
 
     save_path = kwargs.get("save_path")
     model_loaded = False

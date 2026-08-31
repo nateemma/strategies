@@ -744,7 +744,7 @@ dispersion is already near-correct.
 | WGAN-TF | 0.887 | 0.036 | NO | task 17 — already good, modest upside |
 | TabDDPM / MT_DDPM | — | — | NO | blocked: fixture harness invalid for diffusion (task 13) |
 
-## Task 14 — port the term to MT_WGAN-MLX  [OPEN — recommended first]
+## Task 14 — port the term to MT_WGAN-MLX  [DONE 2026-08-31: default correlation/15]
 
 Worst dcorr in the WGAN family (0.143 vs single-task's 0.021 after task 8) and
 sigma 0.939. Same MLX code pattern that already works in `df_wgan_mlx`
@@ -774,3 +774,20 @@ task 7.
 
 Already the best joint structure in the family (dcorr 0.036) with sigma 0.887.
 Little headroom; do last, if at all.
+
+
+### Task 14 result (2026-08-31)
+
+dcorr 0.148 -> **0.066** (3 runs, tight) with sigma statistically unchanged
+(0.951 vs 0.958, overlapping). Shipped `correlation` / cw=15. cw=40 reaches dcorr
+0.039 but drifts sigma to 0.923 — a trade, not a dominance; available as an
+option. Stock run: mean|corr| 0.299 (real 0.306), coc +0.976, sigma 0.945.
+
+**The task-8 predictive rule survived**: sigma was near-correct (0.917-0.958) and
+correlation was indeed competitive; covariance offered no advantage. Correlation
+mode did NOT inflate sigma here because this variant starts UNDER-dispersed —
+scale-freedom only runs away when sigma has room to grow.
+
+**The rule is now trustworthy enough to pick the MODE for tasks 15-17 without
+sweeping both.** Weight still needs sweeping — it has never transferred (15, 30,
+100, 15 across four variants so far).

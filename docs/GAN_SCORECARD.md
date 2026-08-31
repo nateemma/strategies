@@ -1727,3 +1727,47 @@ probability 0.870 vs real 1.000, yet the resulting sigma bias is only ~1.4%
 
 `covariance_offdiag` is kept as a diagnostic mode; it is what made this
 decomposition measurable.
+
+
+## Task 14 — port the joint-structure term to MT_WGAN-MLX (default cw=15)
+
+The term reached only 3 of 9 variants; MT_WGAN-MLX had the worst joint structure
+in the WGAN family. Same MLX pattern as `df_wgan_mlx` (constant target
+precomputed once, `loss_gen` never sees real data), computed on the FLATTENED
+seq_len x features view to match both `class_means` and what the probe measures.
+Ctor args passed explicitly — an unreachable ctor default is a silent no-op
+(the `cond_loss_weight` bug).
+
+3 runs each (this path is unseeded — `--seed` varies the fixture, not training):
+
+| config | dcorr | per-run | sigma | per-run | coc |
+|---|---|---|---|---|---|
+| term OFF (baseline) | 0.148 | 0.165 0.151 0.129 | 0.958 | 0.917 0.937 1.021 | +0.896 |
+| **correlation cw=15** | **0.066** | 0.071 0.064 0.063 | **0.951** | 0.973 0.919 0.962 | +0.980 |
+| correlation cw=40 | 0.039 | 0.040 0.041 0.037 | 0.923 | 0.896 0.948 | +0.993 |
+
+**Shipped cw=15**: dcorr 2.2x better with sigma statistically UNCHANGED (0.951 vs
+0.958, fully overlapping ranges). cw=40 buys more correlation but drifts sigma to
+0.923 — a trade, not a dominance, so it does not get the default. Available if
+correlation matters more than dispersion.
+
+Stock run: mean|corr| 0.299 (real 0.306), corr-of-corr +0.976, dcorr 0.074,
+sigma 0.945.
+
+### The task-8 predictive rule SURVIVED its first test
+
+The rule says covariance helps only where sigma is BROKEN and the diagonal can
+move it. MT_WGAN-MLX's sigma was 0.917-0.958 — near-correct — so the rule
+predicted correlation would be competitive. It was: covariance offered no clear
+advantage at any weight (cw=15: cov dcorr 0.060 / sigma 0.945 vs corr 0.071 /
+0.973).
+
+Also worth noting: **correlation mode did NOT inflate sigma here** (0.917 ->
+0.924-0.973, i.e. TOWARD 1). On single-task WGAN-MLX the same mode ran sigma to
+1.706. Scale-freedom is only dangerous when sigma has room to run UPWARD; this
+variant started under-dispersed.
+
+**Consequence for the remaining ports:** the rule is trustworthy enough to pick
+the MODE without sweeping both, which roughly halves the run budget for tasks
+15-17. Weight still must be swept — it has never transferred between variants
+(15 single-task CTAB, 30 MT_CTAB, 100 WGAN-MLX covariance, 15 here).
