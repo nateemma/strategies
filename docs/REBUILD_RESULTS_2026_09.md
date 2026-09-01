@@ -19,7 +19,7 @@ like-for-like comparison with it.
 |---|---|---|---|---|---|---|
 | NNNC_MLX | none (baseline) | 501 | 0.18 | **+3.98** | 7.26% | 57.7 |
 | NNNC_DDPM_MLX | TabDDPM | 490 | 0.15 | **+4.34** | **6.64%** | 57.3 |
-| NNNC_WGAN_MLX | WGAN-MLX | _pending_ | | | | |
+| NNNC_WGAN_MLX | WGAN-MLX | 512 | 0.09 | **+1.43** | 8.41% | 57.0 |
 | NNNC_CGP_MLX | CTAB-GAN+ | _pending_ | | | | |
 | NNMT_MLX | none (baseline) | _pending_ | | | | |
 | NNMT_DDPM_MLX | MT_DDPM | _pending_ | | | | |
@@ -42,6 +42,31 @@ What HAS changed since that verdict is the input: those runs used generators
 emitting badly wrong joint structure, and these do not
 (see the production-fidelity table). So the question is genuinely reopened, even
 though this single pair of runs does not settle it.
+
+## Fidelity and P&L are running close to INVERSE
+
+Three arms in, the ordering on P&L is the reverse of the ordering on fidelity:
+
+| strategy | tot % | drawdown | GAN dcorr | GAN sigma |
+|---|---|---|---|---|
+| NNNC_DDPM_MLX | **+4.34** | **6.64%** | 0.028 | 1.025 |
+| NNNC_MLX (no GAN) | +3.98 | 7.26% | — | — |
+| NNNC_WGAN_MLX | **+1.43** | 8.41% | **0.064** | 1.061 |
+
+WGAN-MLX is among the BEST models in the family on fidelity and its strategy is
+the WORST on P&L — 2.55pp below the non-GAN baseline with a worse drawdown.
+
+**This REPLICATES a prior finding rather than contradicting one.**
+[[project_wgan_fidelity_fix_pnl_neutral]] recorded that WGAN augmentation costs
+~3pp on 4/4 seeds while TabDDPM beat non-GAN at the same operating point. The
+same ordering reproduces here, on rebuilt generators whose fidelity is far
+better. So the WGAN penalty is not a fidelity defect — improving fidelity by ~6x
+on dcorr did not rescue it, which is about as direct a test of
+"fidelity != edge" as this codebase has produced.
+
+It also means the two GAN arms are not interchangeable: TabDDPM helps (or is
+neutral), WGAN hurts, and that split is stable across two independent
+investigations with different generators.
 
 ## Method note — run strategies ONE PER PROCESS
 
