@@ -24,7 +24,7 @@ like-for-like comparison with it.
 | NNMT_MLX | none (baseline) | 531 | 0.17 | **+7.90** | 5.77% | 53.9 |
 | NNMT_DDPM_MLX | MT_DDPM | 524 | 0.14 | **+4.38** | 6.26% | 53.4 |
 | NNMT_WGAN_MLX | MT_WGAN | 508 | 0.16 | **+5.29** | 5.69% | 54.1 |
-| NNMT_CGP_MLX | MT_CTAB-GAN+ | _pending_ | | | | |
+| NNMT_CGP_MLX | MT_CTAB-GAN+ | 524 | 0.20 | **+7.29** | 6.27% | 54.2 |
 
 ## Reading so far — encouraging, NOT established
 
@@ -219,3 +219,65 @@ does to the classifier, it is not something better marginals or joints fix.
 
 This is the strongest fidelity-vs-edge evidence in the codebase: same
 intervention, three fidelity levels, one outcome.
+
+
+---
+
+# FINAL VERDICT — all 8 arms, task 12 answered
+
+## The clean comparison: NNMT family, no parameter files anywhere
+
+| arm | trades | tot % | delta vs baseline | drawdown | GAN fidelity |
+|---|---|---|---|---|---|
+| **NNMT_MLX (no GAN)** | 531 | **+7.90** | — | **5.77%** | — |
+| NNMT_CGP_MLX | 524 | +7.29 | **-0.61** | 6.27% | dcorr n/a, sigma 1.073 |
+| NNMT_WGAN_MLX | 508 | +5.29 | **-2.61** | 5.69% | dcorr 0.043, sigma 1.002 |
+| NNMT_DDPM_MLX | 524 | +4.38 | **-3.52** | 6.26% | sigma 2.13 (defective) |
+
+**No GAN arm beats the baseline. The best is neutral, the rest are harmful.**
+All four run identical class defaults, so this is a clean four-way test.
+
+## NNNC family (CGP row confounded — it is the only arm with a tuned JSON)
+
+| arm | trades | tot % | delta | drawdown |
+|---|---|---|---|---|
+| NNNC_MLX (no GAN) | 501 | +3.98 | — | 7.26% |
+| NNNC_DDPM_MLX | 490 | +4.34 | +0.36 | 6.64% |
+| NNNC_WGAN_MLX | 512 | +1.43 | -2.55 | 8.41% |
+| NNNC_CGP_MLX (tuned JSON) | 147 | +4.34 | n/c | 2.92% |
+
+The single positive delta in the whole study (+0.36pp) sits inside the documented
+noise band at this trade count.
+
+## Task 12 answered: working synth does NOT move P&L
+
+The rebuild's purpose was to re-test "GAN augmentation does not help at any
+fidelity" using generators that actually work. Five of six GANs are now healthy
+on BOTH axes on real production data (sigma 1.00-1.07, dcorr 0.028-0.083 — see
+GAN_SCORECARD.md). **The verdict holds.** Across 6 like-for-like GAN-vs-baseline
+comparisons, the best outcome is neutral.
+
+**The WGAN result is the sharpest evidence.** The penalty is -2.55pp (NNNC) and
+-2.61pp (NNMT) — identical to within 0.06pp across two families and two
+separately-trained models — and it matches the ~3pp measured on 4/4 seeds with
+the PRE-FIX generators. MT_WGAN-MLX is the best-fidelity model in the codebase
+(sigma 1.002, dcorr 0.043) and still costs 2.61pp. Same intervention, three
+fidelity levels spanning broken to near-perfect, one outcome.
+
+## The bigger finding is not about GANs
+
+**The multi-task baseline nearly doubles the single-task baseline**: +7.90% vs
++3.98% at a lower drawdown (5.77% vs 7.26%), on a comparable trade count, with a
+LOWER win rate — so the edge is payoff size, not hit rate. That gap dwarfs every
+GAN effect measured here. If there is upside on this pipeline it is in the
+NNMT direction, not in synth quality.
+
+## What this does NOT establish
+
+- **Parameters were never tuned per arm.** Every arm except NNNC_CGP runs
+  `prediction_threshold` 0.69; the one tuned config uses **0.29**. A user
+  inspection found NNNC_WGAN's entry signals look good on a plot despite poor
+  P&L. So "harmful" here means **harmful AT THESE PARAMETERS** — a per-arm
+  hyperopt could change the ordering, and is the obvious next experiment.
+- Single seed, single window, no paired-seed protocol.
+- MT_DDPM's fidelity defect (sigma 2.13) is a real confound for that one row.
