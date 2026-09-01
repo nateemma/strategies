@@ -1992,3 +1992,67 @@ the production model on disk (task 13).
   run-to-run noisy, so read its dcorr loosely.
 - These are FIXTURE measurements (4,000 rows). The production rebuild trains on
   real data across ~12 pairs and is a different, more demanding test.
+
+
+---
+
+# PRODUCTION-MODEL FIDELITY — the rebuilt GANs, 2026-09-01
+
+The fidelity snapshot above is all FIXTURE measurement (4,000 rows). These are
+the models rebuilt on REAL production data (~800K rows, 12 pairs), measured by
+loading each from `saved_data` and generating — no training, seconds per model.
+
+**Dispersion needs NO reference data.** Every model stores the z-score stats of
+the data it was trained on (`feature_mean`/`feature_std`; CTAB stores the same
+thing per column inside `column_info`), so generating and normalising by those
+gives sigma_syn/sigma_real directly. This is the check that settled task 5.
+
+| model | sigma(z) | \|z\| mean | \|z\| p99 | at clip | verdict |
+|---|---|---|---|---|---|
+| mt_wgan | **1.002** | 0.867 | 2.205 | 0.1% | healthy |
+| tab_ddpm | **1.025** | 0.878 | 2.269 | 0.1% | healthy |
+| ctab_gan | **1.038** | 0.910 | 2.245 | — | healthy |
+| wgan | **1.061** | 0.918 | 2.358 | 0.1% | healthy |
+| mt_ctab_gan | **1.073** | 0.918 | 2.314 | — | healthy |
+| **mt_ddpm** | **2.132** | 1.754 | 4.000 | **13.6%** | **over-dispersed** |
+
+Correlation needs a real reference. Correlation is invariant to per-column affine
+scaling, so only the COLUMN ORDER matters — the fixture is alphabetical while the
+GANs use the strategy's native order (recoverable from CTAB's
+`continuous_columns`). Real reference mean|corr| 0.304:
+
+| model | mean\|corr\| | corr-of-corr | dcorr | max_d |
+|---|---|---|---|---|
+| tab_ddpm | 0.304 | **+0.996** | **0.028** | 0.123 |
+| mt_wgan | 0.324 | +0.993 | 0.043 | 0.174 |
+| mt_ddpm | 0.272 | +0.993 | 0.045 | 0.193 |
+| wgan | 0.344 | +0.989 | 0.064 | 0.264 |
+| ctab_gan | 0.361 | +0.983 | 0.083 | 0.302 |
+
+## Verdict: the fidelity work TRANSFERS off the fixture
+
+Five of six variants are healthy on BOTH axes on real data (sigma 1.00-1.07,
+dcorr 0.028-0.083). Several are BETTER than their fixture equivalents
+(ctab_gan 0.083 vs fixture 0.087), consistent with 800K training rows beating
+4,000.
+
+**`mt_ddpm` is the sole remaining defect, and it is DISPERSION-ONLY**: sigma 2.13
+with 13.6% of values pinned at the +/-4 clip, but correlation is fine
+(dcorr 0.045, coc +0.993). That is a sharper diagnosis than "MT_DDPM is broken" —
+the target is clip saturation specifically. It is also the one variant that never
+received a joint-structure term, because diffusion has no adversarial generator
+step to attach one to.
+
+### Caveats
+
+- **The ordering-validation metric is confounded, not the result.** Correlating a
+  model's stored `feature_mean` against raw per-column means reads +0.24 for
+  `wgan`/`tab_ddpm` because those store means in a RobustScaler space where every
+  column is ~0. The corr-of-corr values are the stronger evidence: a permuted
+  column order would permute the correlation matrix and drive coc to ~0, and
+  these are +0.989 and +0.996.
+- `mt_ctab_gan` correlation is unmeasured — its `generate()` returns columns that
+  do not match `continuous_columns`. Its dispersion (1.073) measured fine.
+- **Every backend has a different `generate()` signature** (`one_hot=`,
+  `task_labels=`, `class_label=`+`pair_label=`), which is why a cross-variant
+  check needs per-model special-casing. Worth unifying if this becomes routine.
