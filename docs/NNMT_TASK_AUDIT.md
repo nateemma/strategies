@@ -1,100 +1,83 @@
-# NNMT multi-task audit — pre-screens before any task-combination search
+# NNMT multi-task audit — pre-screens before a task-combination search
 
-Question: is there a cheap way to find the best combination of tasks, without
-training all 2^n? Answer: the pre-screens found the configuration is
-**internally inconsistent**, so a combination search would currently be
-measuring noise. Fix the inconsistency first.
+Question: is there a cheap way to find the best combination of tasks without
+training all 2^n? `trading` is always present. Findings below are from code
+reading + static model inspection — **zero training runs**.
 
-`trading` is always present by requirement. All findings below are from code
-reading and a static model inspection — **zero training runs**.
+> **CORRECTION (2026-09-01).** A first version of this audit claimed the
+> inference task-filter gates entries using untrained heads. **That was wrong.**
+> `apply_task_filters` resolves to **False**, so the inference filter does not
+> run. The tasks act as MTL regularisers, as designed. The corrected analysis is
+> below; what survives is smaller but still relevant to task reduction.
+>
+> Why the error: `Framework/BaseNNStrategy.buy_params` sets
+> `"apply_task_filters": True`, and I took that as the effective value.
+> But `NNMTStrategy.buy_params` **REPLACES** that dict rather than merging it
+> (the `{**BaseNNStrategy.buy_params, ...}` form is commented out at
+> NNMTStrategy.py:68), so the key never reaches NNMT and the
+> `BooleanParameter(default=False)` applies. Resolution order matters here and
+> I asserted it instead of tracing it.
 
-## The current configuration
+## Where each task actually acts
 
-`NNMT_MLX._CLASSIFIER_TASK_WEIGHTS = {trading 4.0, regime 0.0, risk 1.0,
-momentum 1.0, flow 1.0, profit 0.0}`
+`_CLASSIFIER_TASK_WEIGHTS = {trading 4.0, regime 0.0, risk 1.0, momentum 1.0,
+flow 1.0, profit 0.0}`
 
-| task | loss weight | trained? | used in the filter? | verdict |
-|---|---|---|---|---|
-| trading | 4.0 | yes | — (it is what gets filtered) | primary |
-| **profit** | **0.0** | **NO** | **YES** | **untrained head gates entries** |
-| **regime** | **0.0** | **NO** | **YES** | **untrained head gates entries** |
-| momentum | 1.0 | yes | YES | working gate |
-| flow | 1.0 | yes | YES | working gate |
-| **risk** | 1.0 | **yes** | **NO** | **trained but never consumed** |
+| task | shapes the trading LABEL? | trained as an aux head? |
+|---|---|---|
+| trading | it *is* the label | yes (4.0) |
+| profit | **YES** (ground truth) | **NO** (0.0) |
+| regime | **YES** (ground truth) | **NO** (0.0) |
+| momentum | YES (ground truth) | yes (1.0) |
+| flow | YES (ground truth) | yes (1.0) |
+| **risk** | **NO** | yes (1.0) |
 
-### 1. Weight 0 means the head is never trained
+Two mechanisms, and they are NOT the same set:
 
-`MLXClassifierMultiTask` line 450: `total = total + task_weight_arr[i] *
-loss_fns[task](...)`. Weights are renormalised, so a 0.0 entry contributes
-nothing to the loss and its head receives **no gradient** — it stays at
-initialisation. `regime` and `profit` are both 0.0.
+1. **Label definition (always on).** `get_trading_classes` calls
+   `_filter_trading_by_tasks` unconditionally with GROUND-TRUTH task values:
+   `buy = raw_buy & (>=3 of [profit!=LOSS, regime!=BEAR, momentum!=NEG,
+   flow!=DECREASE])`; the sell side is unfiltered. So profit/regime/momentum/flow
+   shape the target. `risk` does not — it is never referenced in the live body
+   (verified by AST; it appears only inside a 32-line dead string literal).
+2. **Auxiliary MTL heads (the intended mechanism).** Only tasks with non-zero
+   loss weight get gradient: `MLXClassifierMultiTask:450` multiplies each task
+   loss by its normalised weight. So the actual regularisers are
+   **risk, momentum, flow**.
 
-### 2. ...but both are used to gate entries
+## What survives, and why it matters for task reduction
 
-`_filter_trading_by_tasks` (the LIVE code — statement [1] of that function is a
-32-line dead string literal holding an older 5-condition version):
+- **`regime` and `profit` are dead heads.** Weight 0.0 means no gradient, and
+  with the inference filter off their predictions are never consumed either. They
+  contribute nothing as regularisers. **The effective config is already 4 tasks
+  (trading + risk + momentum + flow), not 6** — two are removed in all but name.
+  Note this does NOT mean they are irrelevant: their GROUND-TRUTH labels still
+  shape the target. Not predicting something is compatible with it defining your
+  label.
+- **`risk` is the only pure regulariser** — trained, but it neither shapes the
+  label nor gates anything. It is the cleanest single ablation candidate: drop it
+  and the target is unchanged, so the run isolates the MTL effect exactly.
+- **The dead 32-line string literal** in `_filter_trading_by_tasks` should go; it
+  documents a rule that is not the live one and it is what made `risk` look used.
 
-    buy_conditions = [profit != LOSS, regime != BEAR,
-                      momentum != NEGATIVE, flow != DECREASE]
-    buy_mask  = (trading == BUY) & (buy_conditions.sum() >= 3)
-    sell_mask = (trading == SELL)          # sell side is NOT filtered
+## The cheap search (still not 2^n)
 
-So the buy gate is 3-of-4, and **two of those four inputs are untrained heads.**
+The filter-side exhaustive sweep proposed earlier is **moot** — the inference
+filter is off, so there is nothing to sweep. What remains is the MTL question,
+and it is the cheap one:
 
-**Why this is worse than it looks.** An untrained head emits an arbitrary but
-roughly constant class. If the untrained `regime` head happens to settle on
-anything other than BEAR, `regime != BEAR` is permanently True — a free pass, and
-the gate degenerates to 2-of-3 on the real signals. If it settles on BEAR, that
-condition is permanently False and the gate hardens to 3-of-3. **Which of those
-you get is random per training run**, so the effective entry strictness varies
-seed to seed for reasons unrelated to the data. That is a plausible contributor
-to NNMT's seed instability.
+1. **Leave-one-out, n+1 runs.** Only 3 tasks are actually trained, so this is
+   ~4 runs: all-tasks, minus-risk, minus-momentum, minus-flow (plus the existing
+   `NNMT_MLX_tronly` as the zero-aux end). Changing a task's WEIGHT does not
+   change the target, so these runs are clean comparisons.
+2. **One run, gradient affinity.** Log the cosine between each aux head's
+   gradient and the trading head's gradient on the shared trunk. Negative cosine
+   identifies a task that actively fights trading. Gives the full picture from a
+   single training run.
+3. **Free pre-screen: label correlation.** Correlate the six task label vectors.
+   Highly correlated auxiliaries are redundant regularisers.
 
-### 3. `risk` is trained but never consumed
-
-Verified by AST: `risk_predictions` is a parameter of
-`_filter_trading_by_tasks` and is **never referenced in the live body** — only in
-the dead string literal. It costs a head, gradient and capacity, and its only
-possible remaining value is as an MTL regulariser on the shared trunk.
-
-### 4. The trading LABEL is built from the other tasks
-
-`get_trading_classes` calls the SAME `_filter_trading_by_tasks`, using
-**ground-truth** task labels. So the filter is applied twice:
-
-- **training**: labels = raw buy/sell signals filtered by TRUE task values
-- **inference**: predictions = trading head filtered by PREDICTED task values
-
-The auxiliary tasks are therefore not independent regularisers — they are the
-components that *define* the target. And there is a train/inference mismatch: the
-label was defined with a real profit/regime filter, while inference gates on
-untrained profit/regime heads.
-
-## What this means for the original question
-
-A 2^n combination search is premature. Two of the four gates are noise and one
-trained task is unused, so any ranking would mostly measure which random
-initialisation each untrained head landed on.
-
-**Cheapest fixes, in order — none needs a combination search:**
-
-1. **Resolve the weight-0 / in-filter contradiction.** Either train `profit` and
-   `regime` (non-zero weight) or drop them from the filter. This is a one-line
-   change either way and is very likely the single highest-value edit here.
-2. **Decide `risk`'s purpose** — drop it, or use it in the filter. Currently it
-   is paying training cost for at most an MTL side-effect.
-3. **Delete the 32-line dead literal** in `_filter_trading_by_tasks` so the live
-   rule is unambiguous.
-
-## Only then, the cheap search (still not 2^n)
-
-- **Filter side (inference):** dump per-task predictions + trading predictions +
-  forward returns from ONE backtest, then enumerate all subsets and every k-of-n
-  threshold offline by boolean masking. Seconds, exhaustive, no retraining.
-  Valid because the inference filter is a SECOND gate on top of an
-  already-filtered target.
-- **MTL side (training):** leave-one-out is n+1 runs, not 2^n. Cheaper still,
-  log per-task gradient cosine against the trading head on the shared trunk in a
-  single run — negative cosine identifies tasks that actively fight trading.
-- Note the label-definition question ("which tasks should DEFINE the target")
-  does require retraining, because changing it changes the target.
+Separately, and more expensive: "which tasks should DEFINE the label" (the
+`>=3 of 4` rule in `get_trading_classes`) does require retraining per variant,
+because changing it changes the target. Worth keeping distinct from the MTL
+question — they are different experiments that happen to touch the same names.
