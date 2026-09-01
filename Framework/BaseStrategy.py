@@ -254,12 +254,15 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
     # }
 
     # Buy parameters:
+    # NOTE: multi-task-only parameters do NOT belong here. apply_task_filters,
+    # bias_profit_high/low and bias_trading_buy/sell are declared as Parameters
+    # solely in NNMTStrategy, so entries here were dead config for every other
+    # strategy — carried into SimpleStrategy, TSPredict, NNAnomalyStrategy and
+    # DebugNNStrategy via `{**BaseStrategy.buy_params, ...}` with no Parameter
+    # to receive them. They arrived as hyperopt-dump leftovers (hence the
+    # "value loaded from strategy" markers) and were actively misleading: they
+    # made apply_task_filters look enabled base-wide when NNMT never read them.
     buy_params = {
-        "apply_task_filters": False,  # value loaded from strategy
-        "bias_profit_high": 0.08,  # value loaded from strategy
-        "bias_profit_low": 0.09,  # value loaded from strategy
-        "bias_trading_buy": 0.05,  # value loaded from strategy
-        "bias_trading_sell": 0.03,  # value loaded from strategy
         "entry_adx_threshold": 38.0,  # value loaded from strategy
         "entry_atr_pct": 0.006,  # value loaded from strategy
         "entry_bb_width_threshold": 0.06,  # value loaded from strategy

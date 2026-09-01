@@ -121,3 +121,45 @@ code is currently harmless only because a default happens to be False.
 The label-path equivalence is the important one: `get_trading_classes` runs
 regardless of `apply_task_filters`, so any change there would have altered every
 NNMT target. It does not.
+
+
+## Ownership fix (2026-09-01) — MT-only params removed from the base classes
+
+`apply_task_filters` is multi-task-only: it is declared as a `Parameter` solely
+in `NNMTStrategy` and read only at `NNMTStrategy:1083`. It had no business in the
+shared base classes, and its presence there is what produced the wrong reading in
+the first version of this audit.
+
+It was in TWO base dicts:
+
+- `BaseStrategy.buy_params` → `False`
+- `BaseNNStrategy.buy_params` → `True` (overriding the above)
+
+Neither ever reached NNMT — `NNMTStrategy.buy_params` is a fresh dict, not a
+merge — but both propagated a dead key into every strategy that DOES merge:
+`SimpleStrategy`, `TSPredict`, `NNAnomalyStrategy`, `DebugNNStrategy`. Those
+carry a buy_params entry with no `Parameter` to receive it.
+
+The same applied to four neighbours in the same dict — `bias_profit_high`,
+`bias_profit_low`, `bias_trading_buy`, `bias_trading_sell` — all declared as
+Parameters only in `NNMTStrategy`. All five arrived as hyperopt-dump leftovers
+(hence the `# value loaded from strategy` markers on every line).
+
+**Removed all five from `BaseStrategy.buy_params`, and `apply_task_filters` from
+`BaseNNStrategy.buy_params`.** Verified inert:
+
+| class | buy_params keys | MT-only leaked |
+|---|---|---|
+| BaseStrategy | 11 | none |
+| BaseNNStrategy | 11 | none |
+| NNNCStrategy | 8 | none |
+| NNMTStrategy | 9 | none |
+
+`NNMTStrategy.apply_task_filters` still exists as the `BooleanParameter` and
+still defaults to `False` — behaviour is unchanged everywhere, because the
+removed entries were already shadowed by the fresh dicts in NNNC and NNMT.
+
+**Deliberately NOT re-added to `NNMTStrategy.buy_params`.** The `BooleanParameter`
+default is now the single source of truth; adding a redundant buy_params entry
+would recreate the same two-places-define-it problem that caused the original
+misreading.

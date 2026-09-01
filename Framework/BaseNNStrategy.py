@@ -123,10 +123,13 @@ if not getattr(_ftcp.register_pickle_by_value, "_ts_guarded", False):
 
 class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
 
+    # apply_task_filters is MULTI-TASK ONLY — declared as a Parameter in
+    # NNMTStrategy and read nowhere else. It used to be set True here, which
+    # never reached NNMT (NNMTStrategy defines a fresh buy_params rather than
+    # merging) but did propagate a dead key to every other NN strategy.
     buy_params = { **BaseStrategy.buy_params,
         "prediction_threshold": 0.6,
-        "profit_prediction_threshold": 0.3,
-        "apply_task_filters": True}
+        "profit_prediction_threshold": 0.3}
 
     # ATR-adaptive initial stoploss enabled by default for every NN
     # variant — definitions of the flag and its companion attrs
