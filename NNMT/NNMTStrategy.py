@@ -1082,13 +1082,20 @@ class NNMTStrategy(BaseNNStrategy):
 
         apply_task_filters = self.apply_task_filters.value
         if apply_task_filters:
+            active = self._active_filter_tasks()
+            skipped = [t for t in self._FILTER_TASKS if t not in active]
+            if skipped:
+                self.debug_print(
+                    f"    task filter: ignoring {skipped} — loss weight 0, so "
+                    f"those heads are untrained and their predictions are noise"
+                )
             trading_predictions = self._filter_trading_by_tasks(
                 trading_predictions,
                 profit_predictions,
                 regime_predictions,
                 momentum_predictions,
                 flow_predictions,
-                risk_predictions,
+                active_tasks=active,
             )
 
         if getattr(self, "use_forward_peak_regressor_filter", False):
@@ -1304,6 +1311,30 @@ class NNMTStrategy(BaseNNStrategy):
             return tag
         return None
 
+    # Tasks the filter can consult, in the order their conditions are built.
+    # NOTE ``risk`` is deliberately absent: it was accepted as an argument for a
+    # long time and never referenced, which made it look load-bearing.
+    _FILTER_TASKS = ("profit", "regime", "momentum", "flow")
+
+    def _active_filter_tasks(self) -> tuple:
+        """Filter tasks whose heads actually receive gradient.
+
+        A task with loss weight 0 is never trained (``MLXClassifierMultiTask``
+        multiplies each task loss by its normalised weight), so its predictions
+        are whatever the initialisation produced.  Gating entries on that is
+        gating on noise — and worse, an untrained head settles on an arbitrary
+        near-constant class, so its condition is either a permanent free pass or
+        permanently false, at random per training run.
+
+        This matters even while ``apply_task_filters`` defaults to False,
+        because it is a hyperopt ``BooleanParameter(optimize=True)`` and can be
+        switched on by a search.
+        """
+        weights = getattr(self, "_CLASSIFIER_TASK_WEIGHTS", None)
+        if not weights:
+            return self._FILTER_TASKS
+        return tuple(t for t in self._FILTER_TASKS if float(weights.get(t, 1.0)) > 0.0)
+
     def _filter_trading_by_tasks(
         self,
         trading_predictions: np.ndarray,
@@ -1311,94 +1342,44 @@ class NNMTStrategy(BaseNNStrategy):
         regime_predictions: np.ndarray,
         momentum_predictions: np.ndarray,
         flow_predictions: np.ndarray,
-        risk_predictions: np.ndarray,
+        active_tasks: tuple | None = None,
     ) -> np.ndarray:
-        """Apply task-aligned filters to trading predictions."""
+        """Gate BUY signals on agreement from the auxiliary task heads.
 
+        ``active_tasks`` selects which conditions participate.  ``None`` uses
+        every task in ``_FILTER_TASKS`` — which is what LABEL construction wants,
+        since ``get_trading_classes`` passes GROUND-TRUTH task values and those
+        are valid whether or not the corresponding head is trained.  Inference
+        passes only the trained subset, because there it is the model's
+        PREDICTIONS being consulted.
+
+        The threshold keeps the original "tolerate one dissenting task"
+        semantics: with the full four tasks this is the historical 3-of-4.
         """
-        trading_buy_mask = (trading_predictions == TradingAction.BUY)
-        trading_sell_mask = (trading_predictions == TradingAction.SELL)
+        tasks = tuple(active_tasks) if active_tasks is not None else self._FILTER_TASKS
 
-        required_matches = 3
+        by_task = {
+            "profit": profit_predictions != ProfitDirection.LOSS,
+            "regime": regime_predictions != MarketRegime.BEAR,
+            "momentum": momentum_predictions != MomentumDirection.NEGATIVE,
+            "flow": flow_predictions != FlowDirection.DECREASE,
+        }
+        conds = [by_task[t] for t in tasks if t in by_task]
 
-        buy_conditions = np.stack(
-            [
-                profit_predictions == ProfitDirection.PROFIT,
-                regime_predictions == MarketRegime.BULL,
-                momentum_predictions == MomentumDirection.POSITIVE,
-                flow_predictions == FlowDirection.INCREASE,
-                risk_predictions == RiskLevel.LOW,
-            ],
-            axis=0,
-        )
-        sell_conditions = np.stack(
-            [
-                profit_predictions == ProfitDirection.LOSS,
-                regime_predictions == MarketRegime.BEAR,
-                momentum_predictions == MomentumDirection.NEGATIVE,
-                flow_predictions == FlowDirection.DECREASE,
-                risk_predictions == RiskLevel.HIGH,
-            ],
-            axis=0,
-        )
-
-        buy_mask = trading_buy_mask & (buy_conditions.sum(axis=0) >= required_matches)
-        sell_mask = trading_sell_mask & (sell_conditions.sum(axis=0) >= required_matches)
-        # buy_mask = (buy_conditions.sum(axis=0) >= required_matches)
-        # sell_mask = (sell_conditions.sum(axis=0) >= required_matches-1)
-        """
-
-        # Magnitude gate: the profit head explicitly predicts whether the
-        # forward window will reach the gain/loss thresholds — it's the
-        # closest thing we have to a per-trade magnitude predictor without
-        # adding a separate model. trading=BUY tells us the model thinks
-        # "this is a buy setup at the current label margin (0.3%)", but
-        # profit=PROFIT tells us "the forward window will reach a profitable
-        # magnitude" — that's the second-stage filter we want.
-        #
-        # See feedback in the May 2026 backtest comparison: raising
-        # prediction_threshold didn't help because it filters by confidence,
-        # not by predicted magnitude. The profit head is the magnitude proxy.
-        # Buy: 3-of-4 majority — at most one head may contradict.
-        # Sell: 2-of-4 majority — looser, so the model_exit can fire
-        # more often (an early exit at small profit/loss is preferable
-        # to letting trades run all the way to trailing_stop).
-        buy_conditions = np.stack(
-            [
-                profit_predictions != ProfitDirection.LOSS,
-                regime_predictions != MarketRegime.BEAR,
-                momentum_predictions != MomentumDirection.NEGATIVE,
-                flow_predictions != FlowDirection.DECREASE,
-            ],
-            axis=0,
-        )
-        sell_conditions = np.stack(
-            [
-                profit_predictions != ProfitDirection.PROFIT,
-                regime_predictions != MarketRegime.BULL,
-                momentum_predictions != MomentumDirection.POSITIVE,
-                flow_predictions != FlowDirection.INCREASE,
-            ],
-            axis=0,
-        )
-
-        buy_mask = (
-            (trading_predictions == TradingAction.BUY)
-            & (buy_conditions.sum(axis=0) >= 3)
-        )
-        # sell_mask = (
-        #     (trading_predictions == TradingAction.SELL)
-        #     & (sell_conditions.sum(axis=0) >= 2)
-        # )
-        sell_mask = (
-            (trading_predictions == TradingAction.SELL)
-        )
-
-
-        # Reset all to HOLD, then set BUY/SELL only where both conditions are met
         filtered = np.full_like(trading_predictions, TradingAction.HOLD)
-        filtered[buy_mask] = TradingAction.BUY
-        filtered[sell_mask] = TradingAction.SELL
+        if not conds:
+            # No usable task heads — pass trading through unchanged rather than
+            # silently blocking every entry.
+            filtered[trading_predictions == TradingAction.BUY] = TradingAction.BUY
+        else:
+            required = max(1, len(conds) - 1)
+            agree = np.stack(conds, axis=0).sum(axis=0)
+            filtered[
+                (trading_predictions == TradingAction.BUY) & (agree >= required)
+            ] = TradingAction.BUY
+
+        # Sell side is intentionally unfiltered.
+        filtered[trading_predictions == TradingAction.SELL] = TradingAction.SELL
         return filtered
 
     def get_trading_classes(
@@ -1432,13 +1413,15 @@ class NNMTStrategy(BaseNNStrategy):
         trading_classes[sell_signals.astype(bool)] = TradingAction.SELL
 
         # apply any filters based on the other tasks
+        # Ground-truth task values -> every task is usable here, trained or
+        # not, so no active_tasks restriction. This keeps the label definition
+        # byte-identical to before.
         filtered_trading_classes = self._filter_trading_by_tasks(
             trading_classes,
             np.asarray(profit_targets),
             np.asarray(regime_targets),
             np.asarray(momentum_targets),
             np.asarray(flow_targets),
-            np.asarray(risk_targets),
         )
 
         buy_signals = filtered_trading_classes == TradingAction.BUY

@@ -81,3 +81,43 @@ Separately, and more expensive: "which tasks should DEFINE the label" (the
 `>=3 of 4` rule in `get_trading_classes`) does require retraining per variant,
 because changing it changes the target. Worth keeping distinct from the MTL
 question — they are different experiments that happen to touch the same names.
+
+
+## FIXED (2026-09-01) — the latent trap is closed
+
+`apply_task_filters` is `BooleanParameter(optimize=True)`, so a hyperopt search
+can switch it on. If it did, the filter would have gated entries on `profit` and
+`regime` — heads with loss weight 0, i.e. never trained. That is the trap: the
+code is currently harmless only because a default happens to be False.
+
+**Fix, in `_filter_trading_by_tasks`:**
+
+- New `active_tasks` argument. `None` (the default) uses all four tasks, which is
+  what LABEL construction wants — `get_trading_classes` passes GROUND-TRUTH task
+  values, and those are valid whether or not the head is trained.
+- The inference path now passes `self._active_filter_tasks()`, which returns only
+  tasks with non-zero `_CLASSIFIER_TASK_WEIGHTS`. Under the current weights that
+  is `('momentum', 'flow')`; `profit` and `regime` are excluded automatically,
+  and it self-corrects if the weights change later.
+- Threshold generalised from a hardcoded `>= 3` to `len(conds) - 1` — the same
+  "tolerate one dissenting task" rule, which reproduces 3-of-4 exactly when all
+  four are active. A hardcoded 3 with only 2 active tasks would have been
+  unsatisfiable and blocked every buy.
+- Degenerate case (no trained filter tasks) passes trading through unchanged
+  rather than silently blocking all entries.
+- Removed the unused `risk_predictions` parameter and the 32-line dead string
+  literal. Between them they were what made `risk` look load-bearing.
+- Logs which tasks it is ignoring and why, when the filter is enabled.
+
+**Verified on 20k random rows:**
+
+| property | result |
+|---|---|
+| label path identical to previous implementation | **True** |
+| inference path with trained-only heads differs | True (3989 -> 5945 buys) |
+| no usable heads -> passes through, does not block all | True |
+| `_active_filter_tasks()` under current weights | `('momentum', 'flow')` |
+
+The label-path equivalence is the important one: `get_trading_classes` runs
+regardless of `apply_task_filters`, so any change there would have altered every
+NNMT target. It does not.
