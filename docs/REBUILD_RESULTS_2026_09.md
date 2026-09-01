@@ -43,6 +43,48 @@ emitting badly wrong joint structure, and these do not
 (see the production-fidelity table). So the question is genuinely reopened, even
 though this single pair of runs does not settle it.
 
+## !! CONFOUND — only ONE arm has hyperopt parameters !!
+
+**`NNNC_CGP_MLX` is the only strategy with a tuned parameter file.** Confirmed in
+the logs: it loads `NNNC/NNNC_CGP_MLX.json` (and reports
+`minimal_roi: {'0': 0.03}`); the other three load nothing and fall back to
+`NNNCStrategy.buy_params`.
+
+| param | CGP (tuned JSON) | the other three (class default) |
+|---|---|---|
+| `prediction_threshold` | **0.29** | **0.69** |
+| `entry_adx_threshold` | 10.0 | 38.0 |
+| `entry_rvol_threshold` | 1.9 | 0.5 |
+| `entry_close_norm_threshold` | 0.6 | -0.1 |
+| `entry_guard_threshold` | 0.1 | 0.3 |
+| ROI / stoploss | 0.03 / -0.05 | class default |
+| **trailing stop** | **enabled** (0.01 / 0.03) | not set |
+| exit params | tuned (`cexit_take_profit` 0.04, `enable_exit_signal` true, ...) | class default |
+
+CGP does not merely have different entry thresholds — it has an entirely
+different RISK-MANAGEMENT configuration: trailing stop on, 3% ROI, -5% stoploss,
+tuned exits, `max_open_trades` 10.
+
+**Consequence: the CGP row measures hyperopt configuration at least as much as it
+measures the GAN.** Its standout drawdown (2.92% vs 6.64%) is very plausibly the
+trailing stop and ROI, not CTAB-GAN+. **The earlier "CTAB-GAN+ is the standout"
+reading is withdrawn** — it is not a valid GAN comparison.
+
+**What still IS valid:** `NNNC_MLX`, `NNNC_DDPM_MLX` and `NNNC_WGAN_MLX` all run
+the SAME class defaults with no parameter file, so those three ARE comparable to
+each other. The WGAN finding below survives; the CGP finding does not.
+
+**Also supports a plot-level observation from the user:** NNNC_WGAN_MLX's entry
+signals look good on inspection while its P&L is poor. It runs
+`prediction_threshold` 0.69 and `entry_adx_threshold` 38 — parameters never tuned
+against a WGAN-augmented model. Good signals gated by mismatched thresholds is
+consistent with what the backtest shows.
+
+**To get a real GAN comparison:** run every arm under IDENTICAL parameters (the
+cheap option — ignore/rename the one JSON), or hyperopt each arm separately (the
+expensive but fairer one). Until then, cross-arm P&L differences confound GAN
+choice with parameter tuning.
+
 ## Fidelity does NOT predict P&L — in either direction
 
 **CORRECTION.** With three arms this looked "close to inverse"; the fourth shows
@@ -51,7 +93,7 @@ independent, and WGAN is separately harmful.
 
 | strategy | trades | tot % | drawdown | win% | profit/DD | GAN dcorr | GAN sigma |
 |---|---|---|---|---|---|---|---|
-| **NNNC_CGP_MLX** | 147 | **+4.34** | **2.92%** | **62.6** | **1.49** | 0.083 (worst) | 1.038 |
+| NNNC_CGP_MLX ⚠ | 147 | +4.34 | 2.92% | 62.6 | 1.49 | 0.083 (worst) | 1.038 |
 | NNNC_DDPM_MLX | 490 | +4.34 | 6.64% | 57.3 | 0.65 | 0.028 (best) | 1.025 |
 | NNNC_MLX (no GAN) | 501 | +3.98 | 7.26% | 57.7 | 0.55 | — | — |
 | NNNC_WGAN_MLX | 512 | +1.43 | 8.41% | 57.0 | 0.17 | 0.064 | 1.061 |
@@ -67,8 +109,10 @@ direction.
    baseline with a worse drawdown, replicating
    [[project_wgan_fidelity_fix_pnl_neutral]] (~3pp on 4/4 seeds). Improving its
    dcorr ~6x did not rescue it, so the penalty is not a fidelity defect.
-2. **CTAB-GAN+ is the standout on risk-adjusted return** — same profit as DDPM at
-   44% of the drawdown and a 5pp higher win rate. profit/DD 1.49 vs 0.65.
+2. ~~CTAB-GAN+ is the standout on risk-adjusted return~~ **WITHDRAWN** — see the
+   confound above. CGP is the only arm with a tuned parameter file (trailing stop,
+   ROI, stoploss, tuned entries and exits), so its numbers are not comparable to
+   the other three.
 
 CTAB-GAN+ is also the family this session's main work targeted (joint structure
 0.043 -> 0.240 on the fixture; the production model measures dcorr 0.083,
