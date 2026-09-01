@@ -22,7 +22,7 @@ like-for-like comparison with it.
 | NNNC_WGAN_MLX | WGAN-MLX | 512 | 0.09 | **+1.43** | 8.41% | 57.0 |
 | NNNC_CGP_MLX | CTAB-GAN+ | 147 | 0.47 | **+4.34** | **2.92%** | **62.6** |
 | NNMT_MLX | none (baseline) | 531 | 0.17 | **+7.90** | 5.77% | 53.9 |
-| NNMT_DDPM_MLX | MT_DDPM | _pending_ | | | | |
+| NNMT_DDPM_MLX | MT_DDPM | 524 | 0.14 | **+4.38** | 6.26% | 53.4 |
 | NNMT_WGAN_MLX | MT_WGAN | _pending_ | | | | |
 | NNMT_CGP_MLX | MT_CTAB-GAN+ | _pending_ | | | | |
 
@@ -162,3 +162,34 @@ ground-truth task values — see NNMT_TASK_AUDIT.md). The label definition alone
 could account for the gap. What it does establish is that the multi-task FAMILY
 is the stronger starting point on this window, which raises the value of the
 queued task-ablation runs.
+
+
+## GAN augmentation vs its own baseline — both families, class defaults only
+
+Comparing each GAN arm ONLY against the baseline in its own family, and only
+where neither has a parameter file (so these are like-for-like):
+
+| family | arm | tot % | delta vs baseline | drawdown | GAN fidelity |
+|---|---|---|---|---|---|
+| NNNC | baseline | +3.98 | — | 7.26% | — |
+| NNNC | TabDDPM | +4.34 | **+0.36** | 6.64% | healthy (dcorr 0.028, sigma 1.025) |
+| NNNC | WGAN | +1.43 | **-2.55** | 8.41% | healthy (dcorr 0.064, sigma 1.061) |
+| NNMT | baseline | +7.90 | — | 5.77% | — |
+| NNMT | MT_DDPM | +4.38 | **-3.52** | 6.26% | **DEFECTIVE (sigma 2.13, 13.6% clipped)** |
+
+**Three of the four GAN arms so far are neutral-to-harmful**, and the one
+positive delta (+0.36pp) sits inside the noise band this project documents at
+this trade count.
+
+### The fidelity-to-P&L link is still not clean
+
+Tempting story: MT_DDPM is the one GAN with a fidelity DEFECT and it produces the
+worst delta (-3.52pp), so bad fidelity causes bad P&L. **But WGAN-MLX has
+EXCELLENT fidelity (dcorr 0.064, sigma 1.061) and is also strongly harmful
+(-2.55pp).** So a fidelity defect is not necessary for a P&L penalty, and good
+fidelity is not sufficient to avoid one.
+
+The most defensible summary remains: **GAN augmentation on this pipeline ranges
+from neutral to harmful, and fidelity does not predict which.** That is the
+information-ceiling conclusion, now re-tested against generators far better than
+the ones it was originally established on.
