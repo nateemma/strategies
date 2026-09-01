@@ -21,7 +21,7 @@ like-for-like comparison with it.
 | NNNC_DDPM_MLX | TabDDPM | 490 | 0.15 | **+4.34** | **6.64%** | 57.3 |
 | NNNC_WGAN_MLX | WGAN-MLX | 512 | 0.09 | **+1.43** | 8.41% | 57.0 |
 | NNNC_CGP_MLX | CTAB-GAN+ | 147 | 0.47 | **+4.34** | **2.92%** | **62.6** |
-| NNMT_MLX | none (baseline) | _pending_ | | | | |
+| NNMT_MLX | none (baseline) | 531 | 0.17 | **+7.90** | 5.77% | 53.9 |
 | NNMT_DDPM_MLX | MT_DDPM | _pending_ | | | | |
 | NNMT_WGAN_MLX | MT_WGAN | _pending_ | | | | |
 | NNMT_CGP_MLX | MT_CTAB-GAN+ | _pending_ | | | | |
@@ -140,3 +140,25 @@ needs the venv on PATH. Run without it, every step failed instantly with
 `command not found` while the script — which has no `set -e` — still exited 0,
 AFTER its `rm -rf saved_data` had already succeeded. Back up `saved_data` before
 running it.
+
+
+## NNMT (multi-task) baseline roughly DOUBLES the NNNC (single-task) baseline
+
+Both run class defaults with no parameter file, so this pair IS comparable:
+
+| baseline | trades | tot % | drawdown | win% | profit/DD |
+|---|---|---|---|---|---|
+| **NNMT_MLX** (multi-task) | 531 | **+7.90** | **5.77%** | 53.9 | **1.37** |
+| NNNC_MLX (single-task) | 501 | +3.98 | 7.26% | 57.7 | 0.55 |
+
+Nearly 2x the profit at a LOWER drawdown, on a similar trade count — and NNMT
+gets there with a LOWER win rate (53.9% vs 57.7%), so the edge is in payoff size,
+not hit rate.
+
+**Do not read this as "multi-task learning works".** NNMT and NNNC differ in more
+than the auxiliary heads: different architecture, and critically a different
+TRADING LABEL (NNMT's is built by filtering raw buy/sell signals through the
+ground-truth task values — see NNMT_TASK_AUDIT.md). The label definition alone
+could account for the gap. What it does establish is that the multi-task FAMILY
+is the stronger starting point on this window, which raises the value of the
+queued task-ablation runs.
