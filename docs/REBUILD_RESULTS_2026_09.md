@@ -23,7 +23,7 @@ like-for-like comparison with it.
 | NNNC_CGP_MLX | CTAB-GAN+ | 147 | 0.47 | **+4.34** | **2.92%** | **62.6** |
 | NNMT_MLX | none (baseline) | 531 | 0.17 | **+7.90** | 5.77% | 53.9 |
 | NNMT_DDPM_MLX | MT_DDPM | 524 | 0.14 | **+4.38** | 6.26% | 53.4 |
-| NNMT_WGAN_MLX | MT_WGAN | _pending_ | | | | |
+| NNMT_WGAN_MLX | MT_WGAN | 508 | 0.16 | **+5.29** | 5.69% | 54.1 |
 | NNMT_CGP_MLX | MT_CTAB-GAN+ | _pending_ | | | | |
 
 ## Reading so far — encouraging, NOT established
@@ -193,3 +193,29 @@ The most defensible summary remains: **GAN augmentation on this pipeline ranges
 from neutral to harmful, and fidelity does not predict which.** That is the
 information-ceiling conclusion, now re-tested against generators far better than
 the ones it was originally established on.
+
+
+## The WGAN penalty REPLICATES across families — and it is not fidelity
+
+| family | baseline | WGAN arm | delta | WGAN model fidelity |
+|---|---|---|---|---|
+| NNNC | +3.98 | +1.43 | **-2.55pp** | dcorr 0.064, sigma 1.061 |
+| NNMT | +7.90 | +5.29 | **-2.61pp** | **dcorr 0.043, sigma 1.002** |
+
+Two different families, two separately-trained WGAN models, and the penalty is
+the same size to within 0.06pp. It also matches the ~3pp cost measured on 4/4
+seeds in [[project_wgan_fidelity_fix_pnl_neutral]], which used the PRE-FIX
+generators.
+
+**MT_WGAN-MLX is the single best-fidelity model in the whole family**
+(sigma 1.002, dcorr 0.043 — see the production-fidelity table) and it still costs
+2.61pp. Three independent observations now, spanning generators from badly-broken
+to near-perfect, all showing the same ~2.6-3pp WGAN penalty.
+
+**Conclusion: the WGAN penalty is a property of WGAN augmentation itself, not of
+synth quality.** Improving WGAN fidelity — which this session did substantially,
+dcorr ~0.21 -> 0.043 on the MT variant — moved it not at all. Whatever WGAN synth
+does to the classifier, it is not something better marginals or joints fix.
+
+This is the strongest fidelity-vs-edge evidence in the codebase: same
+intervention, three fidelity levels, one outcome.
