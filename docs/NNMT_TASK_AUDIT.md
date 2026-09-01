@@ -163,3 +163,88 @@ removed entries were already shadowed by the fresh dicts in NNNC and NNMT.
 default is now the single source of truth; adding a redundant buy_params entry
 would recreate the same two-places-define-it problem that caused the original
 misreading.
+
+
+## Label-space analysis (2026-09-01) — zero training runs
+
+107,129 rows, 6 pairs, 15m, real feathers. Labels produced by the actual
+strategy functions (`DataframePopulator.add_minimal_indicators` ->
+`add_additional_indicators` -> the `get_*_target` functions), so these are the
+labels the model is really trained against.
+
+### Class balance
+
+| task | 0 | 1 | 2 |
+|---|---|---|---|
+| **trading** | 0.071 | 0.869 | 0.059 |
+| profit | 0.218 | 0.550 | 0.232 |
+| regime | 0.228 | 0.554 | 0.218 |
+| momentum | 0.168 | 0.749 | 0.083 |
+| risk | 0.420 | 0.455 | 0.125 |
+| flow | 0.437 | 0.171 | 0.392 |
+
+`trading` is heavily imbalanced (5.9% buy, 7.1% sell); the auxiliaries are all
+far better balanced, which is part of why they can act as regularisers at all.
+
+### Normalised mutual information with `trading`
+
+| task | NMI | trained today? |
+|---|---|---|
+| **profit** | **0.130** | **NO (weight 0)** |
+| risk | 0.035 | yes |
+| momentum | 0.028 | yes |
+| regime | 0.017 | NO (weight 0) |
+| flow | 0.011 | yes |
+
+**The current configuration trains the three tasks with the LOWEST
+trading-relevance and excludes the one with by far the highest.** `profit`
+carries 4x the mutual information of the next-best task and 12x that of `flow`.
+
+That is not an artefact of the metric: `profit` is the triple-barrier label, and
+`trading` is constructed from buy/sell signals gated on it (among others). It is
+the most trading-aligned auxiliary available, and it is switched off.
+
+### Pairwise NMI among the auxiliaries — all near zero
+
+|  | profit | regime | momentum | risk | flow |
+|---|---|---|---|---|---|
+| profit | 1.000 | 0.009 | 0.018 | 0.047 | 0.037 |
+| regime | 0.009 | 1.000 | 0.039 | 0.002 | 0.006 |
+| momentum | 0.018 | 0.039 | 1.000 | 0.007 | 0.088 |
+| risk | 0.047 | 0.002 | 0.007 | 1.000 | 0.002 |
+| flow | 0.037 | 0.006 | 0.088 | 0.002 | 1.000 |
+
+Maximum off-diagonal is 0.088. The auxiliaries are **essentially mutually
+independent**, so there is no redundancy to exploit — you cannot drop one on the
+grounds that another covers it. Each carries distinct information, or distinct
+noise.
+
+### What this does and does not establish
+
+NMI measures ALIGNMENT WITH THE TARGET, not MTL benefit. High alignment can mean
+positive transfer or it can mean "no new signal"; low alignment can mean useless
+noise or valuable orthogonal regularisation. **This ranks candidates; it does not
+decide.** The decision needs the leave-one-out runs below.
+
+## Queued confirmatory runs (after the rebuild)
+
+Only 3 tasks are trained today, so the space is small and leave-one-out is cheap.
+Ordered by predicted value:
+
+1. **Re-enable `profit`** (weight 0 -> 1.0). Highest NMI by 4x, independent of
+   the others, currently contributing nothing. The single highest-value
+   experiment here.
+2. **Drop `flow`** (weight 1.0 -> 0). Weakest current auxiliary (NMI 0.011).
+3. **Drop `risk`** (weight 1.0 -> 0). The cleanest PURE ablation: `risk` does not
+   appear in the label filter, so removing it changes the MTL effect ONLY and
+   leaves the target identical. Best isolation of the multi-task effect itself.
+4. **Drop `momentum`** (weight 1.0 -> 0), to complete leave-one-out.
+5. Existing `NNMT_MLX_tronly` provides the zero-auxiliary end of the range.
+
+Changing a task WEIGHT does not change the target (the label filter uses
+ground-truth values regardless), so these are clean comparisons against the same
+labels — no confound from a shifting target.
+
+**Still expensive and kept separate:** changing which tasks DEFINE the label (the
+`>= n-1` rule in `get_trading_classes`) does alter the target and needs its own
+retrain per variant. Do not mix it with the MTL question.
