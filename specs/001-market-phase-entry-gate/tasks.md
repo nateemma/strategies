@@ -88,9 +88,9 @@ Applies to T013, T018–T020 (User Story 2) and every Phase 6/7 arm. Not optiona
 
 ### Instruments (independent of each other)
 
-- [ ] T007 [P] [US1] Implement the **BTC-level** baseline instrument in `regime/instruments.py`, reproducing the exp4 taxonomy **verbatim**: `talib.EMA(close, 50)` with `pct_change(24)` for direction × `talib.ADX(high, low, close, 14)` for strength, cut at ADX<20 Sideways / 20–30 Weak / ≥30 Strong. Add `btc_vol24` and `btc_adx` as state variables — BTC's predictive content is in its state, not its returns (FR-004, research R10)
-- [ ] T008 [P] [US1] Implement the **asset-level** instruments in `regime/instruments.py`: variance ratio at `q ∈ {2,4,8,24}`, Hurst from the VR curve, rolling autocorr(1) — all via T003 — plus the existing free indicators (`adx`, `atr_pct_roll`, `bb_width`, `dwt_trend`, `dwt_slope`, `dwt_nseq_up/dn`, `dc_dist`) (FR-003)
-- [ ] T009 [P] [US1] Implement the **market-level** instruments in `regime/instruments.py`: cross-sectional return dispersion, breadth (share of universe above its own EMA200), and median pairwise correlation — all under the T004 coverage rule, emitting `UNKNOWN` below threshold (FR-005)
+- [x] T007 [P] [US1] Implement the **BTC-level** baseline instrument in `regime/instruments.py`, reproducing the exp4 taxonomy **verbatim**: `talib.EMA(close, 50)` with `pct_change(24)` for direction × `talib.ADX(high, low, close, 14)` for strength, cut at ADX<20 Sideways / 20–30 Weak / ≥30 Strong. Add `btc_vol24` and `btc_adx` as state variables — BTC's predictive content is in its state, not its returns (FR-004, research R10)
+- [x] T008 [P] [US1] Implement the **asset-level** instruments in `regime/instruments.py`: variance ratio at `q ∈ {2,4,8,24}`, Hurst from the VR curve, rolling autocorr(1) — all via T003 — plus the existing free indicators (`adx`, `atr_pct_roll`, `bb_width`, `dwt_trend`, `dwt_slope`, `dwt_nseq_up/dn`, `dc_dist`) (FR-003)
+- [x] T009 [P] [US1] Implement the **market-level** instruments in `regime/instruments.py`: cross-sectional return dispersion, breadth (share of universe above its own EMA200), and median pairwise correlation — all under the T004 coverage rule, emitting `UNKNOWN` below threshold (FR-005)
 
 ### Classification and the lookahead gate
 

@@ -268,10 +268,17 @@ def correlation_state(panel: pd.DataFrame, cov_ok: pd.Series, window: int = 96) 
     # Fraction of each bar's cross-sectional variance explained by the market move.
     num = (mkt ** 2) * panel.notna().sum(axis=1)
     den = (r ** 2).sum(axis=1)
-    frac = (num / den.replace(0, np.nan)).rolling(window).mean()
+
+    # A bar where NOTHING moved (den == 0) has undefined correlation - it is
+    # skipped, not treated as a value. min_periods stops one such bar from
+    # blanking the whole averaging window: without it a single all-flat bar
+    # (observed 2026-08-31 03:45, all 75 pairs unchanged) propagated NaN
+    # through 96 bars and produced UNKNOWN labels inside W1.
+    frac = (num / den.replace(0, np.nan)).rolling(window, min_periods=window // 2).mean()
 
     out = pd.Series(UNKNOWN, index=panel.index, dtype=object)
-    lo, hi = frac.rolling(WINDOW).quantile(0.33), frac.rolling(WINDOW).quantile(0.67)
+    lo = frac.rolling(WINDOW, min_periods=WINDOW // 2).quantile(0.33)
+    hi = frac.rolling(WINDOW, min_periods=WINDOW // 2).quantile(0.67)
     out[frac <= lo] = "Decoupled"
     out[(frac > lo) & (frac < hi)] = "Mid Correlation"
     out[frac >= hi] = "Coupled"
