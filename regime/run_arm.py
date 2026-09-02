@@ -210,7 +210,11 @@ def _wallet_stats(result_path: Path) -> dict:
         s = list(st["strategy"].values())[0]
         return {"wallet_profit_pct": round(float(s.get("profit_total", 0)) * 100, 3),
                 "max_drawdown_pct": round(float(s.get("max_drawdown_account", 0)) * 100, 3),
-                "profit_factor": round(float(s.get("profit_factor", 0)), 3)}
+                "profit_factor": round(float(s.get("profit_factor", 0)), 3),
+                "calmar": round(float(s.get("calmar", 0)), 3),
+                "sortino": round(float(s.get("sortino", 0)), 3),
+                "sqn": round(float(s.get("sqn", 0)), 3),
+                "expectancy_ratio": round(float(s.get("expectancy_ratio", 0)), 4)}
     except Exception as e:
         return {"wallet_profit_pct": None, "max_drawdown_pct": None,
                 "profit_factor": None, "stats_error": str(e)[:80]}

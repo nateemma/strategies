@@ -591,3 +591,75 @@ scope: **un-truncated outcomes** (so magnitude is measurable) and a **sizing
 mechanism** rather than a gate. Neither is a small change, and neither should be
 started on this evidence alone — a stable ranking across three windows is
 suggestive, not a validated edge.
+
+---
+
+# BREAKOUT FEASIBILITY GATE: FAIL (well-powered)
+
+Ran before adding a breakout `TrainingSignal`, per Constitution VII. No training,
+no model — a price-based test of the *phenomenon*, because a label form can be
+redesigned but an absent phenomenon cannot.
+
+## The mirror hypothesis is not just unsupported, it is inverted
+
+Phase C found reverting states best for the DIP model. The mirror claim was that
+breakout entries should do best in TRENDING states. Mean forward return at
+H=48, conditioned on `asset_vr24` at the signal bar:
+
+| state | breakout W1 | W2 | W3 | | dip W1 | W2 | W3 |
+|---|---|---|---|---|---|---|---|
+| Reverting | −8.3 | **+15.0** | **+17.7** | | +10.0 | +27.0 | +35.6 |
+| Neutral | +0.3 | −19.3 | −1.4 | | +17.0 | +5.2 | +41.5 |
+| **Trending** | −3.7 | **−1.7** | **−8.8** | | −9.2 | +57.1 | +32.3 |
+
+`Trending − Reverting` for breakouts: **+4.6 / −16.7 / −26.5 bp**. Negative in
+two of three windows including the distant era. **Trending is the *worst* state
+for breakouts in W2 and W3** — the opposite of the hypothesis.
+
+`asset_hurst` agrees: the Persistent (trending) state gives breakout EV
++37.2 / −6.1 / **−18.7** — sign-flipping, worst in the distant era.
+
+## Dips beat breakouts in 26 of 27 configurations
+
+Robustness across lookback L and horizon H, pooled forward EV in bp:
+
+| L | H | breakout W1/W2/W3 | dip W1/W2/W3 |
+|---|---|---|---|
+| 24 | 24 | −5.0 / −0.0 / +1.4 | +9.8 / +21.5 / +30.0 |
+| 24 | 48 | −9.4 / +4.6 / +12.1 | +10.2 / +26.5 / +32.7 |
+| 24 | 96 | −8.7 / +13.5 / +33.6 | +6.5 / +42.2 / +55.1 |
+| 48 | 24 | −0.1 / +0.7 / +3.3 | +12.9 / +25.8 / +35.0 |
+| 48 | 48 | −6.6 / +8.0 / +13.2 | +9.1 / +26.3 / +36.4 |
+| 48 | 96 | −5.0 / +19.0 / +35.9 | +5.0 / +46.8 / +62.7 |
+| 96 | 24 | +7.0 / +5.4 / +7.0 | +13.0 / +23.0 / +41.6 |
+| 96 | 48 | +5.7 / +8.8 / +15.3 | +11.3 / +24.7 / +45.5 |
+| 96 | 96 | **+15.9** / +20.8 / +30.4 | +7.9 / +46.6 / +69.3 |
+
+The single exception is W1 at L=96/H=96 (breakout +15.9 vs dip +7.9) — and in
+that same configuration dip wins W2 by 26pp and W3 by 39pp.
+
+Breakout EV does improve at longer lookback and horizon, turning positive
+everywhere at L=96. So momentum is not *absent* on these assets — it is simply
+dominated by reversion at every horizon tested.
+
+## Why this is a strong FAIL rather than a weak one
+
+**~17,000–22,000 signals per window**, against Phase C's 26 marginal trades.
+This is not a power-limited null. "No effect detected" is close to "no effect
+exists" here, which is the opposite of the Phase C caveat.
+
+It also corroborates the 2026-07 verdict ("breakout has no tradeable long edge at
+ANY timeframe, with ANY exit") and supplies the mechanism that verdict lacked:
+it is not that breakout *labels* are unlearnable — `labels_breakout_gbb` reached
+MCC 0.73–0.77 — it is that **momentum does not pay on these assets at these
+horizons, in any phase**. A better label cannot fix that.
+
+## On the basket-strategy result that motivated this
+
+Breakout strategies being greatly helped by market phase in the basket work is
+consistent with all of this. Those are **cross-sectional** momentum books over a
+**wide universe** at **slow cadence**, where the edge is relative ranking. This
+is **single-pair** entry timing at **15m** on **11 alts measured as strongly
+mean-reverting** (`asset_vr24` Reverting 56–72% of bars). The phase→momentum
+relationship does not transfer across that gap, and this gate is the cheap way
+that was established — an afternoon instead of a training cycle.

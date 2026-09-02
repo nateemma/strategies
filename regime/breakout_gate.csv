@@ -1,0 +1,55 @@
+instrument,window,signal,state,n,fwd_bp,mfe_bp
+asset_autocorr,W1,breakout,Neg Autocorr,8774,-4.1,217.6
+asset_autocorr,W1,breakout,No Autocorr,7615,-11.2,210.2
+asset_autocorr,W1,breakout,Pos Autocorr,1994,0.0,227.9
+asset_autocorr,W1,dip,Neg Autocorr,9540,0.8,220.7
+asset_autocorr,W1,dip,No Autocorr,7690,13.7,205.5
+asset_autocorr,W1,dip,Pos Autocorr,2084,29.7,200.8
+asset_autocorr,W2,breakout,Neg Autocorr,8032,13.0,258.4
+asset_autocorr,W2,breakout,No Autocorr,10730,0.6,237.7
+asset_autocorr,W2,breakout,Pos Autocorr,3481,19.3,249.2
+asset_autocorr,W2,dip,Neg Autocorr,8001,49.7,293.5
+asset_autocorr,W2,dip,No Autocorr,10317,7.3,252.6
+asset_autocorr,W2,dip,Pos Autocorr,3397,28.9,260.8
+asset_autocorr,W3,breakout,Neg Autocorr,6611,7.0,214.1
+asset_autocorr,W3,breakout,No Autocorr,7690,24.1,214.0
+asset_autocorr,W3,breakout,Pos Autocorr,2677,-2.8,186.0
+asset_autocorr,W3,dip,Neg Autocorr,5247,47.0,236.2
+asset_autocorr,W3,dip,No Autocorr,6381,34.5,200.7
+asset_autocorr,W3,dip,Pos Autocorr,2645,19.3,170.6
+asset_hurst,W1,breakout,Anti-persistent,10423,-3.0,205.8
+asset_hurst,W1,breakout,Persistent,666,37.2,282.9
+asset_hurst,W1,breakout,Random,7294,-15.8,223.6
+asset_hurst,W1,dip,Anti-persistent,10881,18.4,219.0
+asset_hurst,W1,dip,Persistent,930,-3.5,198.1
+asset_hurst,W1,dip,Random,7503,-3.0,204.9
+asset_hurst,W2,breakout,Anti-persistent,12474,9.9,248.2
+asset_hurst,W2,breakout,Persistent,701,-6.1,238.6
+asset_hurst,W2,breakout,Random,9068,6.6,246.0
+asset_hurst,W2,dip,Anti-persistent,12444,29.3,266.4
+asset_hurst,W2,dip,Persistent,622,52.5,340.4
+asset_hurst,W2,dip,Random,8649,20.0,267.4
+asset_hurst,W3,breakout,Anti-persistent,10028,14.6,192.7
+asset_hurst,W3,breakout,Persistent,365,-18.7,254.8
+asset_hurst,W3,breakout,Random,6584,12.8,232.9
+asset_hurst,W3,dip,Anti-persistent,8579,38.0,202.8
+asset_hurst,W3,dip,Persistent,316,3.0,209.9
+asset_hurst,W3,dip,Random,5377,35.2,216.6
+asset_vr24,W1,breakout,Neutral,2833,0.3,239.8
+asset_vr24,W1,breakout,Reverting,14131,-8.3,209.0
+asset_vr24,W1,breakout,Trending,1419,-3.7,233.5
+asset_vr24,W1,dip,Neutral,2768,17.0,218.2
+asset_vr24,W1,dip,Reverting,14578,10.0,215.8
+asset_vr24,W1,dip,Trending,1968,-9.2,180.2
+asset_vr24,W2,breakout,Neutral,3490,-19.3,231.3
+asset_vr24,W2,breakout,Reverting,16616,15.0,251.9
+asset_vr24,W2,breakout,Trending,2137,-1.7,234.6
+asset_vr24,W2,dip,Neutral,3396,5.2,261.7
+asset_vr24,W2,dip,Reverting,16397,27.0,265.9
+asset_vr24,W2,dip,Trending,1922,57.1,307.3
+asset_vr24,W3,breakout,Neutral,2303,-1.4,222.1
+asset_vr24,W3,breakout,Reverting,13436,17.7,205.0
+asset_vr24,W3,breakout,Trending,1238,-8.8,236.2
+asset_vr24,W3,dip,Neutral,2031,41.5,223.1
+asset_vr24,W3,dip,Reverting,11113,35.6,204.2
+asset_vr24,W3,dip,Trending,1128,32.3,219.8

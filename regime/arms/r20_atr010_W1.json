@@ -1,0 +1,32 @@
+{
+  "tag": "r20_atr010",
+  "window": "W1",
+  "timerange": "20250901-20260831",
+  "strategy": "NNNC_MLX",
+  "prediction_threshold": 0.69,
+  "guards": "on",
+  "overrides": {
+    "entry_rvol_threshold": 2.0,
+    "entry_atr_pct": 0.01
+  },
+  "exit_config_hash": "0b85d05b23ae988e",
+  "volume_filter_active": true,
+  "returncode": 0,
+  "result_file": "backtest-result-2026-09-02_13-37-01.zip",
+  "n_trades": 33,
+  "n_pairs": 7,
+  "trades_hash": "d4cdb14a2e1831cd",
+  "profit_pct": 19.759,
+  "win_rate": 63.6,
+  "duration_h_median": 1.5,
+  "duration_h_p25": 0.5,
+  "duration_h_p75": 4.75,
+  "trades_per_day": 0.1352,
+  "wallet_profit_pct": 0.805,
+  "max_drawdown_pct": 1.689,
+  "profit_factor": 1.213,
+  "calmar": 2.503,
+  "sortino": 0.12,
+  "sqn": 0.406,
+  "expectancy_ratio": 0.0775
+}
