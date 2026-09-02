@@ -311,3 +311,32 @@ and `enable_exit_signal` is **False**, so the exit guard never executes. The
 mirror is architecturally real and would need maintaining if exit signals were
 ever enabled; today, relaxing the entry guard cannot break it, and FR-024 (no
 arm alters exits) is satisfied trivially.
+
+## rvol 2.5 — REJECTED. The W1 "improvement" was window-specific.
+
+Tested the lead across all three windows at threshold 0.69:
+
+| window | rvol 3.1 (tuned) | rvol 2.5 | Δ wallet | Δ PF | Δ win |
+|---|---|---|---|---|---|
+| W1 | 49 tr, +3.45%, PF 2.17, 65.3% | 73 tr, +4.45%, PF 1.93, 68.5% | **+1.00pp** | −0.24 | +3.2pp |
+| W2 | 94 tr, +5.56%, PF 1.64, 70.2% | 141 tr, +5.19%, PF 1.36, 67.4% | −0.37pp | −0.28 | −2.8pp |
+| W3 | 13 tr, +0.96%, PF 3.30, 84.6% | 34 tr, +0.78%, PF 1.28, 70.6% | −0.18pp | **−2.03** | **−14.0pp** |
+
+**Profit factor falls in all three windows** (−0.24, −0.28, −2.03), and wallet
+return improves only in W1. The apparent free win was a W1 artifact; the sign
+flips in both other eras and the collapse is worst in the distant one.
+
+This is the day-of-week failure mode reproduced exactly, and it is why
+Constitution II exists: on W1 alone the result looked unambiguous — more trades,
+more return, higher win rate, low drawdown. One distant window killed it. Do not
+re-propose relaxing rvol below 3.1 on this evidence.
+
+`rvol = 3.1` stands. The tuned value is not over-tightened; it is trading fewer
+but materially better signals, exactly as intended.
+
+### Consequence — W3 is severely trade-starved
+
+Trade counts at the tuned config vary enormously by era: **W1 = 49, W2 = 94,
+W3 = 13**. The temporally distant window — the one Principle II makes decisive —
+has the fewest trades by a factor of four. Any Phase C verdict must clear that
+bar in W3, so the operating point has to be chosen for W3's sparsity, not W1's.
