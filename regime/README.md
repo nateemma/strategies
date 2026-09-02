@@ -205,3 +205,49 @@ declined trades were worth taking?** That is 49 observations rather than 6–26
 noisy blocks, it needs no arbitrary block length, and it matches what M3
 actually does — move the bar per bar. Proposed as a revision to R12; not yet
 adopted.
+
+## CORRECTION — the guards are the binding constraint, not the z-gate
+
+The Problem-1 explanation above ("every argmax-BUY bar is already ≥0.69
+confident") is **WRONG**. Measured by running with `entry_enable_guards` off:
+
+| guards | threshold | trades | summed profit | win rate |
+|---|---|---|---|---|
+| **on** | 0.55 | 49 | +39.59% | 65.3% |
+| **on** | 0.69 | 49 | +39.59% | 65.3% |
+| **on** | 0.80 | 29 | +29.29% | 65.5% |
+| **off** | 0.55 | 2287 | −512.42% | 57.1% |
+| **off** | 0.69 | 1917 | −449.54% | 56.8% |
+| **off** | 0.80 | 699 | −102.81% | 60.7% |
+
+Two facts follow:
+
+1. **The guard chain rejects ~97.4% of what the model would take** at the tuned
+   threshold (1917 → 49). It, not the z-gate, is the binding constraint. This
+   revises the recorded "guards barely filter, ~12%; the NN z-gate is the real
+   filter" — that was measured on a different configuration. Here the guards are
+   tuned hard (`rvol > 3.1`, `adx > 38`, `guard_metric < −0.4`).
+2. **The threshold IS live and strongly discriminating** — 2287 → 1917 → 699
+   with guards off. Its apparent inertness at 0.55↔0.69 was the guards removing
+   those bars before the threshold could act on them.
+
+Also confirmed: **`enable_exit_signal` is False**. The model is entry-only; exits
+run on ROI 3% / `cexit_take_profit` 2.4% / stoploss grace 5.6h at −27%. So every
+contrast in this study is an entry-selection contrast, which is what Phase C
+wants — but it also means trade durations are exit-rule artifacts, not model
+decisions.
+
+### The operating-point problem this creates
+
+The recorded rule is to judge interventions at a *loosened* gate, or they look
+falsely inert. But here full loosening does not merely loosen — it **destroys**
+the strategy (−449% summed at 0.69). So neither end is usable for Phase C:
+
+- **guards on**: exactly one usable contrast (0.69 vs 0.80 = 49 vs 29 trades),
+  too few for block-based statistics.
+- **guards off**: ample trades, but a strategy that loses heavily is not the one
+  the feature is meant to improve.
+
+The study needs an intermediate operating point — enough trades for statistical
+power, still profitable. That means finding which guard binds hardest and
+relaxing it partially, rather than the all-or-nothing flag. NOT yet run.

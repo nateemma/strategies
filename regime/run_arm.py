@@ -63,7 +63,8 @@ def timerange(window: str) -> str:
     return f"{start}-{end}"
 
 
-def build_scratch(strategy: str, threshold: float, tag: str, window: str) -> Path:
+def build_scratch(strategy: str, threshold: float, tag: str, window: str,
+                  guards: bool = True) -> Path:
     """Symlink the strategy group into a scratch dir and write the arm's JSON.
 
     Returns the scratch directory to pass as --strategy-path.
@@ -85,8 +86,14 @@ def build_scratch(strategy: str, threshold: float, tag: str, window: str) -> Pat
         raise SystemExit(f"expected {user_json} to exist - it carries the tuned params")
     params = json.loads(user_json.read_text())
 
-    # The ONLY change: the entry-confidence threshold.
-    params.setdefault("params", {}).setdefault("buy", {})["prediction_threshold"] = threshold
+    buy = params.setdefault("params", {}).setdefault("buy", {})
+    buy["prediction_threshold"] = threshold
+    # The guard chain is ANDed with the model condition. With it ON and tuned
+    # hard (rvol>3.1, adx>38, guard_metric<-0.4) the guards can be the binding
+    # constraint, leaving the z-gate almost no room to vary - the "judge at a
+    # powered operating point" trap. Allow measuring with it off.
+    if not guards:
+        buy["entry_enable_guards"] = False
     (dst / f"{strategy}.json").write_text(json.dumps(params, indent=2))
 
     return dst
@@ -199,6 +206,9 @@ def main() -> int:
     ap.add_argument("--threshold", type=float, required=True)
     ap.add_argument("--tag", required=True)
     ap.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
+    ap.add_argument("--guards", choices=["on", "off"], default="on",
+                    help="entry_enable_guards; 'off' loosens the gate so the "
+                         "model threshold has room to bite")
     ap.add_argument("--plan", action="store_true",
                     help="build the scratch dir and print the command without running it")
     args = ap.parse_args()
@@ -207,7 +217,8 @@ def main() -> int:
         raise SystemExit("NNNC_DDPM_ prefix activates a GAN; this feature uses the non-GAN base")
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    scratch = build_scratch(args.strategy, args.threshold, args.tag, args.window)
+    scratch = build_scratch(args.strategy, args.threshold, args.tag, args.window,
+                            guards=(args.guards == "on"))
     export_path = OUT_DIR / f"{args.tag}_{args.window}_trades.json"
     cmd = build_command(args.strategy, scratch, args.window, args.config, export_path)
 
@@ -231,6 +242,7 @@ def main() -> int:
         "timerange": timerange(args.window),
         "strategy": args.strategy,
         "prediction_threshold": args.threshold,
+        "guards": args.guards,
         "exit_config_hash": exit_config_hash(scratch, args.strategy),
         "volume_filter_active": True,
         "returncode": proc.returncode,
