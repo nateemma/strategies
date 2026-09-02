@@ -129,37 +129,64 @@ def build_command(strategy: str, scratch: Path, window: str, config: Path,
         "--timerange", timerange(window),
         "--cache", "none",
         "--export", "trades",
-        "--export-filename", str(export_path),
         "--breakdown", "month",
     ]
 
 
-def summarize(export_path: Path) -> dict:
-    """Read the exported trades and derive the arm's measured outcome.
+BT_RESULTS = ROOT / "user_data/backtest_results"
+
+
+def latest_result() -> Path | None:
+    """Path of the most recent backtest archive.
+
+    `--export-filename` is DEPRECATED and SILENTLY IGNORED when backtesting -
+    freqtrade logs "DEPRECATED: Using `--export-filename` has no impact when
+    backtesting" and writes to user_data/backtest_results/ regardless. Reading
+    the requested path instead reports every arm as zero-trade/inconclusive,
+    which is a false null of exactly the shape Principle IV forbids. This is the
+    SIXTH recorded instance of a parameter accepted, logged, and ignored.
+    """
+    marker = BT_RESULTS / ".last_result.json"
+    if not marker.is_file():
+        return None
+    name = json.loads(marker.read_text()).get("latest_backtest")
+    p = BT_RESULTS / name if name else None
+    return p if p and p.exists() else None
+
+
+def summarize(result_path: Path | None) -> dict:
+    """Derive the arm's measured outcome from the exported trades.
 
     LIVENESS (FR-031, Constitution IV): rather than instrumenting the strategy
-    to count entry-chain passes -- which would mean editing Framework/, and
-    Phases A-C touch no strategy code -- inertness is detected by hashing the
+    to count entry-chain passes - which would mean editing Framework/, and
+    Phases A-C touch no strategy code - inertness is detected by hashing the
     realized trade list. Two arms whose trade lists hash identically produced a
-    BYTE-IDENTICAL backtest, which is exactly the tell recorded for the five
-    known silently-inert parameters. This is a strictly stronger check than
-    comparing a single pass count.
+    BYTE-IDENTICAL backtest, which is exactly the tell recorded for the known
+    silently-inert parameters, and stronger than one pass count.
     """
-    meta = export_path.with_suffix(".meta.json")
-    if not export_path.exists():
-        return {"n_trades": 0, "trades_hash": None, "note": "no export produced"}
+    from freqtrade.data.btanalysis import load_backtest_data
 
-    trades = pd.read_json(export_path) if export_path.suffix == ".json" else None
+    if result_path is None:
+        return {"n_trades": 0, "trades_hash": None, "note": "NO RESULT FOUND - do not read as zero trades"}
+
+    trades = load_backtest_data(result_path)
     if trades is None or trades.empty:
         return {"n_trades": 0, "trades_hash": None, "note": "zero trades - INCONCLUSIVE"}
 
     cols = [c for c in ("pair", "open_date", "close_date", "profit_ratio") if c in trades]
     blob = trades[cols].to_csv(index=False).encode()
+    dur_h = (trades["close_date"] - trades["open_date"]).dt.total_seconds() / 3600.0
     return {
+        "result_file": result_path.name,
         "n_trades": int(len(trades)),
+        "n_pairs": int(trades["pair"].nunique()),
         "trades_hash": hashlib.sha256(blob).hexdigest()[:16],
-        "profit_pct": float(trades["profit_ratio"].sum() * 100) if "profit_ratio" in trades else None,
-        "meta": str(meta) if meta.exists() else None,
+        "profit_pct": round(float(trades["profit_ratio"].sum() * 100), 3),
+        "win_rate": round(float((trades["profit_ratio"] > 0).mean() * 100), 1),
+        "duration_h_median": round(float(dur_h.median()), 2),
+        "duration_h_p25": round(float(dur_h.quantile(0.25)), 2),
+        "duration_h_p75": round(float(dur_h.quantile(0.75)), 2),
+        "trades_per_day": round(len(trades) / max((trades["close_date"].max() - trades["open_date"].min()).days, 1), 4),
     }
 
 
@@ -196,7 +223,7 @@ def main() -> int:
         return 0
 
     proc = subprocess.run(cmd, cwd=ROOT, env=build_env(scratch))
-    result = summarize(export_path)
+    result = summarize(latest_result())
 
     record = {
         "tag": args.tag,
