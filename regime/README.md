@@ -98,3 +98,46 @@ spurious low-coverage UNKNOWN at the right-hand edge of W1. Trailing incomplete
 bars are now trimmed from the panel.
 
 Final state: **all 11 instruments emit zero UNKNOWN inside W1/W2/W3.**
+
+## Phase A gate result (T011-T012) — PASS
+
+End-to-end lookahead validation at three cut points (2023-06-30, 2024-12-31,
+2026-03-31), comparing labels computed from truncated history against
+full-history labels over the overlap:
+
+**22,481,397 label-bars compared across 213 comparisons. Zero differences.**
+All 11 instruments are causal and may proceed to Phase B.
+
+This is the measurement Principle V requires. Reasoning line-by-line about
+causality is not evidence — centred windows, `ffill` reaching backwards, and
+cross-sectional operations over a panel containing future rows all pass casual
+inspection and all leak. The market-level instruments were the highest risk
+here because breadth, dispersion and correlation each touch the whole panel;
+they pass.
+
+### KNOWN LIMITATION — the liquid universe is chosen with full-sample information
+
+`liquid_pairs()` selects the 29-pair market-level universe using volume across
+*all three* windows, so it "knows" which pairs stayed liquid. That is
+survivorship bias in the market-level instruments, and it is deliberately NOT
+what the lookahead test measures — the universe is held fixed on both sides so
+the test isolates per-bar causality.
+
+Scope of the concern:
+
+- **Asset level: unaffected.** Those instruments run on the 11 traded pairs,
+  which are fixed a priori by the strategy config, not selected by this study.
+- **Market level: affected.** Breadth, dispersion and correlation are computed
+  over a set chosen with hindsight.
+
+Why it was still the right call: the alternative — all 77 pairs — is worse,
+because 61 of them are >50% zero-volume in W1 and breadth over stale
+forward-filled prices measures listing artifacts rather than market state. A
+true point-in-time liquid universe would be better still, but a universe that
+changes membership per era would manufacture instability and corrupt the
+Principle II comparison, which is the one test the whole feature turns on.
+
+**How this could bite**: if a market-level instrument wins the Phase C verdict,
+its edge may partly reflect knowing which coins survived. Re-check any
+market-level PASS against a point-in-time universe before believing it. An
+asset-level or BTC-level PASS carries no such caveat.
