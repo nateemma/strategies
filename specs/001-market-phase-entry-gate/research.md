@@ -187,40 +187,54 @@ All three are pinned as literal date ranges. See R8.
 
 Added 2026-09-02 after cross-artifact analysis found the error metric undefined, the horizon grid unpopulated, and the baseline ambiguous. These are one decision and are resolved together.
 
-### Decision — decision blocks
+### Decision — the unit of observation is a TRADE, not a block (REVISED at T013)
 
-Each evaluation window is split into non-overlapping blocks of length `H`. For each block `b`, compute the risk-adjusted return of each arm from **its realized trades falling in that block** — `R_agg(b)` and `R_con(b)`. The block's realized winner is the argmax.
+The original block design is **withdrawn**. Measurement at T013 showed decision
+blocks of 14/30/60 days hold only 1.1–8.1 trades each, so a per-block
+risk-adjusted return is noise and `N` has no satisfiable value. That derivation
+was deferred to T013 precisely so this would surface before the harness existed.
 
-### Decision — regret, not MAE
+What T013 found instead: **the conservative trade set is a strict SUBSET of the
+aggressive one.** The higher threshold takes no trades of its own — it simply
+declines some. That gives a well-defined **marginal set** `M`: the trades the
+aggressive config takes and the conservative one refuses.
 
-For any rule `C` that picks a configuration per block:
+At the study operating point (`entry_rvol_threshold = 2.0`), `M` holds 42 / 44 /
+26 trades in W1 / W2 / W3 — 112 observations, against 6–26 noisy blocks.
+
+### Decision — the question, and the three comparators
+
+For a marginal set `M` with realized per-trade returns:
 
 ```
-regret(b) = R_winner(b) − R_C(b)          (≥ 0 by construction)
-error(C)  = mean regret over qualifying blocks
+always-aggressive  takes all of M   ->  R_agg  = sum(profit_ratio over M)
+always-conservative takes none of M ->  R_con  = 0
+phase rule         takes S subset M ->  R_phase = sum(profit_ratio over S)
 ```
 
-**Rationale**: the precedent harness used MAE because it was forecasting a *numeric parameter* (a lookback length). Here the forecast is a *binary choice*, so MAE has no meaning. Regret is in return units, so the margin reads directly as "what the switch cost us" rather than as an abstract error.
+`constant_error` in the FR-018a sense is the **better fixed choice**,
+`max(R_agg, R_con)`. The phase rule must beat that. Note R_con = 0 exactly, so
+when the marginal set is net-negative the bar is "do better than declining them
+all" — which is the real question a phase-adaptive gate has to answer.
 
-### Decision — the baseline is the BETTER FIXED CHOICE
+### Decision — the rule is FIT and EVALUATED on different windows
 
-```
-constant_error     = min( error(always-aggressive), error(always-conservative) )
-phase_choice_error = error(phase rule)
-beats_constant     = phase_choice_error < constant_error
-```
+Partition `M` by the phase state in force at each trade's ENTRY bar, then:
 
-The tuned status-quo configuration (`prediction_threshold` 0.69) is reported as a **reference column**, not as the bar.
+1. **Fit** on one window: take the states whose mean marginal return is positive.
+2. **Evaluate** that fixed mapping on a DIFFERENT, temporally distant window.
+3. Compare against `max(R_agg, R_con)` computed on the evaluation window.
 
-**Rationale — this is the correction that matters most.** Scoring the phase rule against 0.69, which is neither available choice, would let a pure threshold-tuning result masquerade as trackability: if 0.55 or 0.80 is simply better than 0.69 across the board, a phase rule picking between them beats 0.69 while carrying no information about phase at all. That is the same shape of artifact as the original BTC gate's proportional de-risking — a number that moves for a reason unrelated to the hypothesis. Requiring the rule to beat the better fixed choice makes a PASS strictly harder and is the only version of the test that isolates the phase signal.
+Fitting and evaluating on the same window is in-sample and proves nothing — it
+is the shape of the day-of-week error. A PASS requires beating the better fixed
+choice **out-of-sample** in at least two windows including one distant pair
+(W1↔W3 or W2↔W3), per FR-015 and Principle II.
 
-### Decision — horizon grid `H ∈ {14d, 30d, 60d}`
+### Decision — power bound, stated up front
 
-Long enough to accumulate a stable risk-adjusted number per block, short enough to give several decision points per window. W3 (365 days) yields 26 / 12 / 6 blocks respectively.
-
-### Decision — block qualification
-
-A block in which **either** arm produced fewer than `N` trades is excluded and reported, never scored as a tie (FR-018b, FR-032). **`N` is derived at task T013** from the host's measured trade rate, not fixed here — the same reasoning as R6: a threshold guessed ahead of the measurement is a borrowed figure.
+26 marginal trades in W3 supports detecting a LARGE effect only. Phase C can
+therefore return "no detectable effect" without that meaning "no effect", and
+the verdict MUST say which of the two it is rather than reporting a bare FAIL.
 
 ### Decision — margin floor
 
@@ -243,6 +257,6 @@ A PASS requires the margin between `phase_choice_error` and `constant_error` to 
 | R9 | Lookahead validation | Truncated-history versus full-history label identity at three cut points |
 | R10 | Prior-art reuse | exp4 taxonomy, btcdata pattern, BtcRegimeGate merge, rolling_optimal_lookback harness |
 | R11 | Environment | `.venv/bin/python`, `PYTHONPATH=.`; host `NNNC_MLX` |
-| R12 | Forecast metric, baseline, horizon | Mean regret over decision blocks; baseline = **better fixed choice** (0.69 as reference only); `H ∈ {14d, 30d, 60d}`; min trades per block `N` derived at T013 |
+| R12 | Forecast metric, baseline, unit | **Per-trade over the marginal set** (blocks withdrawn at T013 as unpowered); baseline = **better fixed choice** `max(R_agg, R_con)`; rule fit and evaluated on DIFFERENT windows; study operating point `rvol = 2.0`, marginal sets 42/44/26 |
 
 No `NEEDS CLARIFICATION` items remain.

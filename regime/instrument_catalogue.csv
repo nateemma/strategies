@@ -1,12 +1,12 @@
 name,level,states,window_bars,params,is_baseline,status,status_reason
-btc_exp4,btc,Strong Down|Weak Down|Sideways|Weak Up|Strong Up|UNKNOWN,50,"{""ema"": 50, ""slope"": 24, ""adx"": 14}",True,PENDING,
-btc_vol,btc,Low Vol|Mid Vol|High Vol|UNKNOWN,480,"{""vol_window"": 96}",False,PENDING,
-asset_vr4,asset,Reverting|Neutral|Trending|UNKNOWN,480,"{""q"": 4}",False,PENDING,
-asset_vr24,asset,Reverting|Neutral|Trending|UNKNOWN,480,"{""q"": 24}",False,PENDING,
-asset_hurst,asset,Anti-persistent|Random|Persistent|UNKNOWN,480,"{""q_grid"": [2, 4, 8, 24]}",False,PENDING,
-asset_autocorr,asset,Neg Autocorr|No Autocorr|Pos Autocorr|UNKNOWN,480,"{""lag"": 1}",False,PENDING,
-asset_adx,asset,Choppy|Transitional|Trending|UNKNOWN,14,"{""adx"": 14}",False,PENDING,
-asset_trend,asset,Below EMA|Above EMA|UNKNOWN,200,"{""ema"": 200}",False,PENDING,
-market_breadth,market,Narrow|Mixed|Broad|UNKNOWN,200,"{""ema"": 200}",False,PENDING,
-market_dispersion,market,Low Dispersion|Mid Dispersion|High Dispersion|UNKNOWN,480,{},False,PENDING,
-market_correlation,market,Decoupled|Mid Correlation|Coupled|UNKNOWN,480,"{""corr_window"": 96}",False,PENDING,
+btc_exp4,btc,Strong Down|Weak Down|Sideways|Weak Up|Strong Up|UNKNOWN,50,"{""ema"": 50, ""slope"": 24, ""adx"": 14}",True,ELIMINATED,48.9% of real trades span a phase change (>= 25%)
+btc_vol,btc,Low Vol|Mid Vol|High Vol|UNKNOWN,480,"{""vol_window"": 96}",False,SURVIVING,
+asset_vr4,asset,Reverting|Neutral|Trending|UNKNOWN,480,"{""q"": 4}",False,SURVIVING,
+asset_vr24,asset,Reverting|Neutral|Trending|UNKNOWN,480,"{""q"": 24}",False,SURVIVING,
+asset_hurst,asset,Anti-persistent|Random|Persistent|UNKNOWN,480,"{""q_grid"": [2, 4, 8, 24]}",False,SURVIVING,
+asset_autocorr,asset,Neg Autocorr|No Autocorr|Pos Autocorr|UNKNOWN,480,"{""lag"": 1}",False,SURVIVING,
+asset_adx,asset,Choppy|Transitional|Trending|UNKNOWN,14,"{""adx"": 14}",False,ELIMINATED,42.2% of real trades span a phase change (>= 25%)
+asset_trend,asset,Below EMA|Above EMA|UNKNOWN,200,"{""ema"": 200}",False,SURVIVING,
+market_breadth,market,Narrow|Mixed|Broad|UNKNOWN,200,"{""ema"": 200}",False,SURVIVING,
+market_dispersion,market,Low Dispersion|Mid Dispersion|High Dispersion|UNKNOWN,480,{},False,ELIMINATED,84.4% of real trades span a phase change (>= 25%)
+market_correlation,market,Decoupled|Mid Correlation|Coupled|UNKNOWN,480,"{""corr_window"": 96}",False,SURVIVING,

@@ -371,3 +371,59 @@ on W1 but 2.0 beats 2.5 on W2 (+9.35% vs +5.19%). The best rvol wanders by
 window with no stable ordering — the same signature that killed the dynamic
 lookback. This is a further reason to treat any rvol value as a fixed study
 choice rather than something to tune.
+
+## Phase B — actionability (T014–T015)
+
+### The dwell criterion was measured by the wrong statistic, and it mattered
+
+The spec's rationale for the dwell rule is explicit: *"if a quarter or more of
+trades would span a phase change, the phase in force at entry does not describe
+the conditions the trade actually experiences."* The first implementation used
+**median run length** as a proxy for that. It is a bad proxy, and the direct
+measurement — take the host's 49 real trades, look at each instrument's labels
+between entry and exit, count how often the phase is not constant — inverts
+several verdicts:
+
+| instrument | trades spanning a phase change | median dwell | proxy said | direct says |
+|---|---|---|---|---|
+| asset_trend | **8.9%** | 1.50h | ELIMINATED | **SURVIVING** |
+| market_breadth | 11.1% | 1.25h | ELIMINATED | **SURVIVING** |
+| btc_vol | 15.6% | 2.50h | SURVIVING | SURVIVING |
+| asset_vr24 | 15.6% | 3.75h | SURVIVING | SURVIVING |
+| asset_hurst | 15.6% | 6.06h | SURVIVING | SURVIVING |
+| asset_autocorr | 20.0% | 2.12h | SURVIVING | SURVIVING |
+| asset_vr4 | 22.2% | 1.25h | ELIMINATED | **SURVIVING** |
+| market_correlation | 24.4% | 1.25h | ELIMINATED | **SURVIVING** |
+| asset_adx | 42.2% | 3.00h | SURVIVING | **ELIMINATED** |
+| **btc_exp4** | **48.9%** | 3.00h | SURVIVING | **ELIMINATED** |
+| market_dispersion | 84.4% | 0.25h | ELIMINATED | ELIMINATED |
+
+Median run length punishes instruments that chop briefly around a boundary
+(`asset_trend` crossing its EMA) and rewards ones with rare long runs. Neither is
+the question being asked. Median dwell is retained as a reported diagnostic only.
+
+### Result: 8 of 11 SURVIVING
+
+Eliminated, all on directly measured span:
+
+- **`btc_exp4` — 48.9%.** The prior study's own taxonomy, and the designated
+  baseline instrument, is the **second-worst** on this criterion: nearly half of
+  real trades straddle a regime change. At 1h with passive exposure it was a
+  reasonable description; against 15m trades averaging 4.5 hours it is not
+  something an entry gate can act on. That is a substantive finding about the
+  prior work, not a defect in it.
+- **`asset_adx` — 42.2%.** The free trend proxy is too fast at this timeframe.
+- **`market_dispersion` — 84.4%.** Essentially a per-bar quantity.
+
+Surviving: `btc_vol`, `asset_vr4`, `asset_vr24`, `asset_hurst`,
+`asset_autocorr`, `asset_trend`, `market_breadth`, `market_correlation`.
+
+Notable: the **direct trend-vs-reversion measures all survive** (VR at both
+horizons, Hurst, autocorrelation) while both **ADX-based proxies fail** —
+`asset_adx` outright, and `btc_exp4`, which is built on ADX. The instruments
+added because they measure the property directly are the ones that turn out to
+be actionable; the proxies are not.
+
+`asset_hurst` carries one rare state (<5% share) as anticipated, so its
+"Persistent" state is excluded from verdict-driving comparisons but the
+instrument itself stands.

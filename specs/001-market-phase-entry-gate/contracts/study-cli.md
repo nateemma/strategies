@@ -90,18 +90,19 @@ The stop gate.
 
 | Option | Default | Meaning |
 |---|---|---|
-| `--horizons` | `14d,30d,60d` | Decision-block lengths (research R12) |
+| `--fit-window` | required | Window to fit the phase rule on (W1/W2/W3) |
+| `--eval-window` | required | Window to evaluate it on; MUST differ, and a PASS needs a distant pair |
 | `--arms` | required | Trade exports for the aggressive and conservative configurations |
-| `--min-trades` | required | `N` — minimum trades per arm for a block to qualify; derived at T013, no default |
+| `--min-marginal` | required | minimum marginal-set size for a window to count; measured 42/44/26 at rvol=2.0 |
 | `--status-quo` | `0.69` | The tuned configuration, reported as a **reference column only** |
 
 **Precondition**: `--arms` must reference realized trade exports. The script MUST refuse to run against passive price series — this is the specific substitution that invalidated the prior BTC gate (FR-013).
 
 **Scoring contract** (research R12, FR-018a, FR-018b)
 
-- Error is **mean regret** over qualifying blocks: `regret(b) = R_winner(b) − R_chosen(b)`.
+- The comparison is **per-trade over the marginal set** (the trades the aggressive config takes and the conservative declines), not per-block. Blocks were withdrawn at T013 as unpowered.
 - The bar is `constant_error = min(error(always-aggressive), error(always-conservative))` — **the better of the two fixed choices**. The value passed as `--status-quo` is reported alongside but is NOT the bar. Scoring against a third value that is neither available choice would let a threshold-tuning result register as trackability.
-- A block where either arm has fewer than `--min-trades` trades is excluded and reported, never scored as a tie.
+- The rule is FIT on `--fit-window` and EVALUATED on `--eval-window`; same-window fitting is in-sample and is not evidence.
 - There is deliberately **no `--constant` option**. An earlier draft had one defaulting to 0.69, which encoded the wrong baseline.
 
 **Produces**: `regime/trackability.csv` (one row per instrument × window) and `regime/VERDICT.md`.
