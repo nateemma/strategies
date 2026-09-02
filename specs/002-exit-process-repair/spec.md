@@ -148,6 +148,8 @@ As the researcher, I want candidates that pass the screen confirmed by full eval
 - **FR-024**: No candidate may alter entry behaviour. Entry parameters were validated by a separate study and are fixed for this feature.
 - **FR-025**: No candidate may require retraining.
 - **FR-026**: No candidate may introduce per-pair special-casing.
+- **FR-029**: An experimental modification made to shared strategy code in order to measure a candidate MUST NOT be left in place after the measurement. Shared code is imported by other strategies, including one currently running live, so an abandoned edit silently changes behaviour outside this feature.
+- **FR-030**: An accepted candidate MUST be verified after adoption by re-running the evaluation with no overrides applied, confirming that the configuration as committed reproduces the accepted arm's results. Adopting a change without this check has previously left a strategy running a configuration nobody had measured.
 - **FR-027**: Candidates MUST NOT adjust the settings that are known to be inert under the active stop mechanism; doing so produces a guaranteed null that is easily misread as a finding.
 - **FR-028**: The baseline for this feature MUST be the exit configuration that produced the 167 characterised trades — an early-window of 5.6 hours at a −0.27 level, a take-profit of 0.024, an ROI level of 3%, and model exit signals disabled. Characterisation therefore requires no re-run.
 - **FR-028a**: The output of the recent parameter search MUST be treated as one **candidate** among others and screened on the same footing, not adopted as the baseline. It is not privileged by being more recent.

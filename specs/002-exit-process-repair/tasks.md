@@ -113,7 +113,7 @@ description: "Task list for 002-exit-process-repair"
 - [ ] T014 [US3] ⛔ **GATE — run `replay.py --validate-only` and do not proceed until it reproduces the recorded baseline.** Exit code 2 on failure. A screen that cannot reproduce the known answer will mis-score every candidate **invisibly** — the candidates would simply rank wrongly, with nothing to signal it. Nothing may be scored before this passes (FR-014, SC-004)
 - [ ] T015 [US3] Score all live candidates, writing `screen_results.csv` with the change in total outcome versus the recorded baseline and a PASS/REJECTED verdict per candidate (FR-015)
 - [ ] T016 [US3] Reject failing candidates **without** consuming a backtest, and record at least one such rejection as evidence the screen earns its place (FR-016, SC-006)
-- [ ] T017 [US3] Record the screen's known blind spots in `regime/exit/README.md`: it models the exit stack but not position limits, one-open-trade-per-pair blocking, or capital freed by an earlier exit. Its disagreement with Phase 4 is expected and is itself a reported quantity (Assumptions, edge case)
+- [ ] T017 [US3] Record the screen's known blind spots in `regime/exit/README.md`: it models the exit stack but not position limits, one-open-trade-per-pair blocking, or capital freed by an earlier exit. Its disagreement with Phase 4 is expected and is itself a reported quantity (FR-013, SC-004, Assumptions, edge case)
 
 **Checkpoint**: the candidate set is filtered for the cost of a calculation.
 
@@ -130,9 +130,9 @@ description: "Task list for 002-exit-process-repair"
 - [ ] T018 [US4] For each survivor, run three arms via `regime/run_arm.py` with the pinned baseline args plus that candidate's override, passing args as a zsh array. Record `n_trades`, `exit_mix`, wallet return, drawdown, PF, Calmar, Sortino, `trades_hash`, `entry_config_hash` (FR-017..FR-022, data-model §5)
 - [ ] T019 [US4] Check every arm for inertness: `trades_hash` equal to the baseline's means the change **did not take effect** — report it as a defect and fix the wiring, never as a result about the intervention (FR-023, SC-008)
 - [ ] T020 [US4] Verify `entry_config_hash` matches the baseline on every arm — entry is frozen by feature 001 (FR-024, FR-026)
-- [ ] T021 [US4] For candidates requiring a `Framework/BaseStrategy.py` change (the ratchet reimplementation, the native-trailing variant), use edit → measure → `git checkout` per arm. **Never leave an experimental edit in place** — a live dry run imports that file
+- [ ] T021 [US4] For candidates requiring a `Framework/BaseStrategy.py` change (the ratchet reimplementation, the native-trailing variant), use edit → measure → `git checkout` per arm. **Never leave an experimental edit in place** — a live dry run imports that file (FR-029)
 - [ ] T022 [US4] Reject any candidate whose risk-adjusted return reverses sign in W3, regardless of its W1 result. This test has already rejected two candidates in this project (`rvol 2.5`, the hyperopt exit config) (FR-021, SC-009)
-- [ ] T023 [US4] Compare each survivor's screen prediction against its measured result and report the gap — it quantifies how far the screen can be trusted for future work (edge case, Assumptions)
+- [ ] T023 [US4] Compare each survivor's screen prediction against its measured result and report the gap — it quantifies how far the screen can be trusted for future work (SC-004, edge case, Assumptions)
 
 **Checkpoint**: an accepted candidate, or a stated finding that none improves the exit.
 
@@ -140,12 +140,12 @@ description: "Task list for 002-exit-process-repair"
 
 ## Phase 7: Polish & Close-out
 
-- [ ] T024 Consolidate `regime/exit/README.md`: the mechanism (research R1–R3), the characterisation verdict, the candidate table with screen and confirmation results, and the excluded list with reasons
-- [ ] T025 If a candidate is accepted, apply it to `Framework/BaseStrategy.py` and/or `NNNCStrategy.sell_params` and verify by re-running all three windows with **no overrides**, confirming the applied defaults reproduce the accepted arm's trade hashes — the check that caught a stale-config error in feature 001
+- [ ] T024 Consolidate `regime/exit/README.md`: the mechanism (research R1–R3), the characterisation verdict, the candidate table with screen and confirmation results, and the excluded list with reasons (FR-011, SC-001)
+- [ ] T025 If a candidate is accepted, apply it to `Framework/BaseStrategy.py` and/or `NNNCStrategy.sell_params` and verify by re-running all three windows with **no overrides**, confirming the applied defaults reproduce the accepted arm's trade hashes — the check that caught a stale-config error in feature 001 (FR-030, FR-023)
 - [ ] T026 If no candidate is accepted, record that the exit is already well-calibrated, with the evidence. This is a successful completion of the feature, not a failure to deliver (SC-010)
 - [ ] T027 Verify the whole study re-runs from a clean checkout with no manual path or parameter edits (SC-011)
 - [ ] T028 Stage only the files this feature touched (`regime/exit/`, `regime/run_arm.py`, and on acceptance the strategy file) and commit to master. **Never `git add -A`** — the user edits concurrently
-- [ ] T029 Record the outcome in project memory: the mechanism finding, which settings are inert, and the verdict — so the `return 1.0` question is not re-opened from scratch
+- [ ] T029 Record the outcome in project memory: the mechanism finding, which settings are inert, and the verdict — so the `return 1.0` question is not re-opened from scratch (SC-010)
 
 ---
 
