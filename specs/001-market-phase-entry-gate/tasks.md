@@ -100,7 +100,7 @@ Applies to T013, T018–T020 (User Story 2) and every Phase 6/7 arm. Not optiona
 
 ### Actionability characterisation
 
-- [ ] T013 [US1] Run the baseline arm to obtain the **host's own** measured distributions: `run_arm.py --strategy NNNC_MLX --window W1 --threshold 0.69 --tag baseline`. Record (a) trade-duration median and 25th percentile — the dwell kill threshold; and (b) the trade **rate**, from which derive `N`, the minimum trades per arm for a decision block to qualify in Phase C. Do **not** reuse the 1.4–31h figures from the momentum dry run — that is a different strategy family (research R6, R12)
+- [x] T013 [US1] Run the baseline arm to obtain the **host's own** measured distributions: `run_arm.py --strategy NNNC_MLX --window W1 --threshold 0.69 --tag baseline`. Record (a) trade-duration median and 25th percentile — the dwell kill threshold; and (b) the trade **rate**, from which derive `N`, the minimum trades per arm for a decision block to qualify in Phase C. Do **not** reuse the 1.4–31h figures from the momentum dry run — that is a different strategy family (research R6, R12)
 - [x] T014 [US1] Create `regime/phase_b_characterize.py` per `contracts/study-cli.md` — state distribution, median dwell, and transition matrix per instrument per era. `--dwell-source` is **required with no default**, deliberately, so a duration figure from another strategy family cannot be borrowed by accident (FR-008, FR-009)
 - [x] T015 [US1] Run T014 across W1/W2/W3 with `--dwell-source` from T013 and set every catalogue `status`. Eliminate instruments whose median dwell falls below the 25th percentile of host trade duration (`DROP_DWELL`), or which meet either instability threshold (`DROP_UNSTABLE`): largest absolute state-share change **> 15 percentage points**, or the most-likely next state differing for **≥ half the states**. States holding **< 5%** of a window's bars are reported with their sample count and excluded from verdict-driving comparisons. Every elimination must quote a measured number. **Instability may only be claimed from a W1-vs-W3 difference** — W1 and W2 are three months apart, share a regime, and cannot establish it (FR-010, FR-011, SC-002, SC-003; Constitution II)
 - [x] T016 [US1] Create `regime/phase_b_risk_normalize.py` — recompute the exp4 per-state drawdown normalized for time-in-state, writing `regime/risk_normalized.csv` (FR-012)
@@ -118,16 +118,16 @@ Applies to T013, T018–T020 (User Story 2) and every Phase 6/7 arm. Not optiona
 
 ### Bracketing arms (the three windows are independent runs)
 
-- [ ] T018 [P] [US2] Run the **aggressive** arm across W1/W2/W3: `run_arm.py --strategy NNNC_MLX --window {W1,W2,W3} --threshold 0.55 --tag thr055` → `regime/arms/thr055_*.json` (research R5)
-- [ ] T019 [P] [US2] Run the **conservative** arm across W1/W2/W3 at `--threshold 0.80 --tag thr080` → `regime/arms/thr080_*.json`
-- [ ] T020 [P] [US2] Run the **constant baseline** at `--threshold 0.69 --tag thr069` for W2 and W3 (W1 already exists from T013) → `regime/arms/thr069_*.json`
-- [ ] T021 [US2] Verify all three arms are `LIVE`, not `INERT` — the `chain_pass_count` values must differ across thresholds. If they are identical, the JSON override did not take effect and every downstream number is void. Fix `run_arm.py` before proceeding; do not interpret the results (FR-031; Constitution IV)
+- [x] T018 [P] [US2] Run the **aggressive** arm across W1/W2/W3: `run_arm.py --strategy NNNC_MLX --window {W1,W2,W3} --threshold 0.55 --tag thr055` → `regime/arms/thr055_*.json` (research R5)
+- [x] T019 [P] [US2] Run the **conservative** arm across W1/W2/W3 at `--threshold 0.80 --tag thr080` → `regime/arms/thr080_*.json`
+- [x] T020 [P] [US2] Run the **constant baseline** at `--threshold 0.69 --tag thr069` for W2 and W3 (W1 already exists from T013) → `regime/arms/thr069_*.json`
+- [x] T021 [US2] Verify all three arms are `LIVE`, not `INERT` — the `chain_pass_count` values must differ across thresholds. If they are identical, the JSON override did not take effect and every downstream number is void. Fix `run_arm.py` before proceeding; do not interpret the results (FR-031; Constitution IV)
 
 ### The verdict
 
-- [ ] T022 [US2] Create `regime/phase_c_trackability.py` per `contracts/study-cli.md`, following the harness shape of `Basket/tools/rolling_optimal_lookback.py`. Split each window into non-overlapping decision blocks of length `H ∈ {14d, 30d, 60d}`; score by **mean regret** over qualifying blocks (regret = the block winner's risk-adjusted return minus the chosen configuration's). The bar is `constant_error = min(error(always-aggressive), error(always-conservative))` — **the better of the two fixed choices**; the status-quo 0.69 is a reference column only, never the bar. Exclude and report any block where either arm has fewer than `N` trades; never score it as a tie. The script must **refuse to run against a price series**: only realized trade exports are valid input, which is the substitution that invalidated the prior BTC gate (FR-013, FR-014, FR-018, FR-018a, FR-018b, research R10, R12)
-- [ ] T023 [US2] Run T022 against the T018–T020 exports with `--min-trades N` from T013 and `--status-quo 0.69`. Block winners are decided on **risk-adjusted return**, so a configuration that raises return and drawdown proportionally does not count as a win. Write `regime/trackability.csv` and `regime/VERDICT.md`. A PASS at exactly one horizon in exactly two windows is the weakest admissible result and must be reported as such, not as a clean positive (FR-018, FR-018a, FR-018b, SC-005, research R12)
-- [ ] T024 [US2] Validate the verdict before believing it: every `trackability.csv` row's `source` points at a trade export and never a price series; no row supporting a PASS has `n_trades = 0`; a PASS rests on ≥2 windows including a temporally distant pair (W1+W2 alone is **not** a PASS); one window passing and another failing is **FAIL**, not "mixed" (FR-015, FR-016, FR-032)
+- [x] T022 [US2] Create `regime/phase_c_trackability.py` per `contracts/study-cli.md`, following the harness shape of `Basket/tools/rolling_optimal_lookback.py`. Split each window into non-overlapping decision blocks of length `H ∈ {14d, 30d, 60d}`; score by **mean regret** over qualifying blocks (regret = the block winner's risk-adjusted return minus the chosen configuration's). The bar is `constant_error = min(error(always-aggressive), error(always-conservative))` — **the better of the two fixed choices**; the status-quo 0.69 is a reference column only, never the bar. Exclude and report any block where either arm has fewer than `N` trades; never score it as a tie. The script must **refuse to run against a price series**: only realized trade exports are valid input, which is the substitution that invalidated the prior BTC gate (FR-013, FR-014, FR-018, FR-018a, FR-018b, research R10, R12)
+- [x] T023 [US2] Run T022 against the T018–T020 exports with `--min-trades N` from T013 and `--status-quo 0.69`. Block winners are decided on **risk-adjusted return**, so a configuration that raises return and drawdown proportionally does not count as a win. Write `regime/trackability.csv` and `regime/VERDICT.md`. A PASS at exactly one horizon in exactly two windows is the weakest admissible result and must be reported as such, not as a clean positive (FR-018, FR-018a, FR-018b, SC-005, research R12)
+- [x] T024 [US2] Validate the verdict before believing it: every `trackability.csv` row's `source` points at a trade export and never a price series; no row supporting a PASS has `n_trades = 0`; a PASS rests on ≥2 windows including a temporally distant pair (W1+W2 alone is **not** a PASS); one window passing and another failing is **FAIL**, not "mixed" (FR-015, FR-016, FR-032)
 
 **Checkpoint**: the verdict exists. Proceed to the stop gate.
 
@@ -137,14 +137,17 @@ Applies to T013, T018–T020 (User Story 2) and every Phase 6/7 arm. Not optiona
 
 **This is an explicit decision point, not a formality.** Exactly one of T026 or T027 executes.
 
-- [ ] T025 Read `regime/VERDICT.md` and record the outcome. On PASS, record the winning instrument, level, and horizon `H` — only that instrument proceeds. On FAIL, User Stories 3 and 4 do not happen (FR-017)
-- [ ] T026 **[FAIL BRANCH — TERMINAL]** Write the negative result to `regime/README.md`: the full `trackability.csv` comparison table, the eliminated-instrument list with quoted reasons, the T017 risk verdict, and a short statement of what was measured and why it does not support a gate. Include enough detail that the result is reproducible and nobody re-proposes the idea without re-running it — the same convention the tool that killed the dynamic lookback uses. Stage only `regime/` and `utils/custom_indicators.py`, commit, and **stop.** Then go to Phase 8 (T033). **This is a successful completion of the feature, not an abandonment** — per the constitution's experiment gate, a negative result that clears the gates is a finding of equal weight (SC-006)
+- [x] T025 Read `regime/VERDICT.md` and record the outcome. On PASS, record the winning instrument, level, and horizon `H` — only that instrument proceeds. On FAIL, User Stories 3 and 4 do not happen (FR-017)
+- [x] T026 **[FAIL BRANCH — TERMINAL]** Write the negative result to `regime/README.md`: the full `trackability.csv` comparison table, the eliminated-instrument list with quoted reasons, the T017 risk verdict, and a short statement of what was measured and why it does not support a gate. Include enough detail that the result is reproducible and nobody re-proposes the idea without re-running it — the same convention the tool that killed the dynamic lookback uses. Stage only `regime/` and `utils/custom_indicators.py`, commit, and **stop.** Then go to Phase 8 (T033). **This is a successful completion of the feature, not an abandonment** — per the constitution's experiment gate, a negative result that clears the gates is a finding of equal weight (SC-006)
 
 > **T027 onward executes only on PASS.** If T026 ran, skip to Phase 8 (T033).
 
 ---
 
-## Phase 6: User Story 3 — Phase-adaptive gate, no-retrain tier (Priority: P3) — GATED ON PASS
+## Phase 6: User Story 3 — Phase-adaptive gate, no-retrain tier (Priority: P3) — ⛔ NOT EXECUTED
+
+> **Phase C returned FAIL (T025/T026).** Per FR-017 these tasks do not run. See
+> `regime/README.md` and `regime/VERDICT.md` for the evidence.
 
 **Goal**: Modulate the existing reversion leg's entry aggressiveness by phase, using levers requiring no retraining, and learn which actually move outcomes.
 
@@ -161,7 +164,9 @@ Applies to T013, T018–T020 (User Story 2) and every Phase 6/7 arm. Not optiona
 
 ---
 
-## Phase 7: User Story 4 — Phase as a learned input (Priority: P4) — GATED ON PASS **AND** SIGNAL
+## Phase 7: User Story 4 — Phase as a learned input (Priority: P4) — ⛔ NOT EXECUTED
+
+> Unreachable: gated behind both a Phase C PASS and signal in Phase 6.
 
 **Goal**: Let the model learn when phase matters instead of imposing a hand-set rule.
 
@@ -176,10 +181,10 @@ Applies to T013, T018–T020 (User Story 2) and every Phase 6/7 arm. Not optiona
 
 Runs after either branch of the stop gate.
 
-- [ ] T033 Consolidate findings in `regime/README.md`: instrument catalogue with statuses and reasons, the T017 risk verdict, the trackability verdict, and — on PASS — the per-mechanism arm table with liveness status. On FAIL this was already written at T026
-- [ ] T034 Verify the whole study re-runs from a clean checkout with no manual path or parameter edits, per the `quickstart.md` scenarios (SC-011, FR-006)
-- [ ] T035 Stage only the files this feature touched (`regime/`, `utils/custom_indicators.py`, and on PASS `utils/PhaseGate.py` plus the `NNNC/NNNC_MLX_Phase*.py` subclasses) and commit directly to master. **Never `git add -A`** — the user edits concurrently and an unexpected staged file is their work in progress
-- [ ] T036 Record the outcome in project memory: the verdict, the surviving/eliminated instruments with reasons, and whether the exp4 risk discrimination was confirmed or refuted — so this is not re-litigated in a later session
+- [x] T033 Consolidate findings in `regime/README.md`: instrument catalogue with statuses and reasons, the T017 risk verdict, the trackability verdict, and — on PASS — the per-mechanism arm table with liveness status. On FAIL this was already written at T026
+- [x] T034 Verify the whole study re-runs from a clean checkout with no manual path or parameter edits, per the `quickstart.md` scenarios (SC-011, FR-006)
+- [x] T035 Stage only the files this feature touched (`regime/`, `utils/custom_indicators.py`, and on PASS `utils/PhaseGate.py` plus the `NNNC/NNNC_MLX_Phase*.py` subclasses) and commit directly to master. **Never `git add -A`** — the user edits concurrently and an unexpected staged file is their work in progress
+- [x] T036 Record the outcome in project memory: the verdict, the surviving/eliminated instruments with reasons, and whether the exp4 risk discrimination was confirmed or refuted — so this is not re-litigated in a later session
 
 ---
 
