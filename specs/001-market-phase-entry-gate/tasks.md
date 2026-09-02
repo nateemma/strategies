@@ -94,7 +94,7 @@ Applies to T013, T018–T020 (User Story 2) and every Phase 6/7 arm. Not optiona
 
 ### Classification and the lookahead gate
 
-- [ ] T010 [US1] Create `regime/phase_a_classify.py` per `contracts/study-cli.md` — `--level`, `--instruments`, `--timerange`, `--out`. Emits one label artifact per instrument per pair plus `regime/instrument_catalogue.csv`. The `date` column must be tz-aware UTC and align bar-for-bar with the source feather (a naive timestamp produces an all-NaN merge downstream) (FR-001, FR-002)
+- [x] T010 [US1] Create `regime/phase_a_classify.py` per `contracts/study-cli.md` — `--level`, `--instruments`, `--timerange`, `--out`. Emits one label artifact per instrument per pair plus `regime/instrument_catalogue.csv`. The `date` column must be tz-aware UTC and align bar-for-bar with the source feather (a naive timestamp produces an all-NaN merge downstream) (FR-001, FR-002)
 - [ ] T011 [US1] Create `regime/phase_a_lookahead.py` per `contracts/study-cli.md` — recompute each instrument over history truncated at three cut points and assert label identity over the overlapping region. Write `regime/lookahead_validation.csv` with `n_differing` and `first_diff_date`. Exit code 2 on any non-zero `n_differing` (FR-007, research R9)
 - [ ] T012 [US1] **GATE** — run T011 and drive `n_differing` to 0 for every instrument. Use `first_diff_date` to localise: divergence at the end of the overlap ⇒ centred window; divergence propagating backwards ⇒ `ffill`/`bfill` across the boundary; market-level only ⇒ cross-sectional operation over a panel containing future rows (the highest-risk case here). An instrument that cannot be fixed is dropped. **No instrument proceeds to Phase B with `n_differing > 0`** (SC-001)
 

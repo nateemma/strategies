@@ -31,6 +31,40 @@ MIN_HISTORY_BARS = 200
 
 UNKNOWN = "UNKNOWN"
 
+# The host's traded universe (config/config.json StaticPairList). Asset-level
+# instruments are only meaningful here: Phase C aligns phase labels to the
+# host's realized trades, which occur nowhere else.
+TRADED_PAIRS = ["ZEC", "XRP", "SOL", "LINK", "NEAR", "AAVE",
+                "SUI", "AVAX", "LTC", "BCH", "DOT"]
+
+# Market-level instruments are built from a LIQUID universe, not from every
+# feather on disk. Measured 2026-09-02: of the 77 pairs with 15m data, 61 have
+# >50% zero-volume bars in W1 and 16 exceed 90% - those carry stale
+# forward-filled prices with no real trading (OCEAN: 97.1% zero-volume, a
+# 3,078-bar flat run). Breadth computed over them measures listing artifacts
+# rather than market state, and 480 flat bars drive rolling variance to zero,
+# making the estimators genuinely undefined.
+#
+# The filter is applied over ALL THREE windows so the universe is FIXED across
+# eras. A universe that changed definition per window would manufacture
+# instability and corrupt the Principle II comparison.
+MAX_ZERO_VOLUME_SHARE = 0.80
+
+
+def liquid_pairs(tf: str = TF) -> list[str]:
+    """Pairs active enough for market-level measures in every evaluation window.
+
+    Returns 29 pairs as of 2026-09-02, a superset of TRADED_PAIRS.
+    """
+    out = []
+    for p in available_pairs(tf):
+        df = load_ohlcv(p, tf)
+        if all((window_slice(df, w)["volume"] == 0).mean() <= MAX_ZERO_VOLUME_SHARE
+               if len(window_slice(df, w)) else False
+               for w in WINDOWS):
+            out.append(p)
+    return out
+
 
 def available_pairs(tf: str = TF) -> list[str]:
     """Every pair with native feather data at the given timeframe, sorted."""
@@ -56,13 +90,34 @@ def log_returns(pair: str, tf: str = TF) -> pd.Series:
 def close_panel(pairs: list[str] | None = None, tf: str = TF) -> pd.DataFrame:
     """Wide close-price panel, one column per pair, union of all timestamps.
 
+    Defaults to the LIQUID universe, not every feather on disk - see
+    liquid_pairs(). Pass an explicit list to override.
+
     Columns are NOT forward-filled: a NaN means the pair had no bar at that
     timestamp (not yet listed, or a gap), and the coverage rule below depends on
     being able to tell those apart from real prices.
     """
-    pairs = pairs or available_pairs(tf)
+    pairs = pairs or liquid_pairs(tf)
     cols = {p: load_ohlcv(p, tf)["close"] for p in pairs}
-    return pd.DataFrame(cols).sort_index()
+    return _trim_incomplete_tail(pd.DataFrame(cols).sort_index())
+
+
+def _trim_incomplete_tail(panel: pd.DataFrame) -> pd.DataFrame:
+    """Drop trailing bars that are still being formed.
+
+    The last timestamp in the dataset is normally a PARTIAL candle: the
+    download stopped mid-bar, so only some pairs have posted. Observed
+    2026-08-31 17:00 with 17 of 29 pairs reporting where every preceding bar
+    had all 29. Classifying that bar produces a spurious low-coverage UNKNOWN
+    at the right-hand edge of W1 - which then reads as a defect.
+
+    Trailing bars reporting fewer pairs than the bar before them are dropped.
+    """
+    n = panel.notna().sum(axis=1)
+    while len(n) > 1 and n.iloc[-1] < n.iloc[-2]:
+        panel = panel.iloc[:-1]
+        n = n.iloc[:-1]
+    return panel
 
 
 def coverage(panel: pd.DataFrame) -> pd.Series:
@@ -96,10 +151,9 @@ def bars(hours: float) -> int:
 
 
 if __name__ == "__main__":
-    pairs = available_pairs()
-    print(f"pairs at {TF}: {len(pairs)}")
+    print(f"pairs at {TF}: {len(available_pairs())} total, {len(liquid_pairs())} liquid, {len(TRADED_PAIRS)} traded")
 
-    panel = close_panel(pairs)
+    panel = close_panel()
     print(f"panel: {panel.shape[0]} bars x {panel.shape[1]} pairs")
     print(f"span:  {panel.index.min()} -> {panel.index.max()}  (tz={panel.index.tz})")
 
