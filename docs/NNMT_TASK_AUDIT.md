@@ -248,3 +248,152 @@ labels — no confound from a shifting target.
 **Still expensive and kept separate:** changing which tasks DEFINE the label (the
 `>= n-1` rule in `get_trading_classes`) does alter the target and needs its own
 retrain per variant. Do not mix it with the MTL question.
+
+
+---
+
+# Task-combination study (2026-09-01/02) — NULL RESULT, with a structural cause
+
+Seven arms trained and backtested on a PINNED timerange `20250807-20260802`
+(360 days ending 30d ago), 11 pairs, 15m. One process per arm, serial.
+
+## Design: the renormalisation confound
+
+`MLXClassifierMultiTask._task_weights` renormalises weights to sum to 1.0. A
+naive leave-one-out therefore ALSO raises trading's own share (4/7 -> 4/6) and
+confounds "removed an aux task" with "gave trading 17% more weight" — a drop-arm
+could win for entirely the wrong reason.
+
+Every arm holds `trading` at 4.0 and the aux budget at 3.0, redistributing that
+budget among survivors, so trading's share is 0.5714 in all arms except
+`tronly` (1.0, deliberately off-axis). Verified in each run's log line
+`task weights (instance override, normalized, sum=1.000)`.
+
+| arm | aux heads | aux weights |
+|---|---|---|
+| `NNMT_MLX` / `_ctrl` | risk, momentum, flow | 1.0 each |
+| `_profit` | + profit | 0.75 each |
+| `_trprofit` | profit only | 3.0 |
+| `_noflow` | risk, momentum | 1.5 each |
+| `_norisk` | momentum, flow | 1.5 each |
+| `_nomom` | risk, flow | 1.5 each |
+| `_tronly` | none | — (off-axis) |
+
+Only TRAINING is affected: `apply_task_filters` defaults False, so aux heads do
+not gate entries, and `get_trading_classes` builds labels from ground truth
+regardless of weights. Labels are identical across arms — a clean ablation.
+
+## Result: no task combination is distinguishable
+
+Three operating points were measured. All seven models are the same across
+operating points (entry/exit params do not affect training), so these are pure
+gating comparisons.
+
+**Guards ON, exits OFF (as-shipped):** every arm produced NEAR-IDENTICAL trades.
+`_tronly` (no aux heads) was byte-identical to the baseline on all 11 pairs;
+`_profit` differed on only ZEC (75->74) and XRP (23->22). Spread ~1.1pp.
+
+**Guards OFF, threshold 0.5:** 2936-3023 trades, -35.6% to -38.8%. The arms DO
+differ here (~3pp spread, return and max-DD ranking identically), proving the
+models are genuinely different and that guards-on was masking them completely.
+
+**Guards ON, exits ON:**
+
+| arm | trades | return | PF | maxDD |
+|---|---|---|---|---|
+| `_noflow` | 204 | +0.19% | 1.01 | 5.22% |
+| `_tronly` | 202 | -0.26% | 0.99 | 5.22% |
+| `_norisk` | 203 | -0.40% | 0.98 | 5.25% |
+| `_trprofit` | 203 | -0.44% | 0.98 | 5.22% |
+| `_ctrl` | 202 | -0.51% | 0.97 | 5.25% |
+| `_nomom` | 202 | -0.78% | 0.96 | 5.25% |
+| `_profit` | 200 | -1.21% | 0.94 | 5.32% |
+
+**The rankings are unstable across operating points** — `_tronly` goes from
+LAST guards-off to 2nd with exits on; `_nomom` from 2nd to 6th. Essentially
+uncorrelated, so the ~1pp spread is noise. An inverted-U read off the
+guards-off ordering alone does NOT survive the second operating point.
+
+## Root cause: the model is squeezed out of both decisions
+
+- **Entries:** the guard chain rejects ~93% of candidates (202 trades with
+  guards on vs ~2990 with them off).
+- **Exits:** with `enable_exit_signal=True` the model wins only 16 of 202 exits
+  (8%, +1.44%). `trailing_stop_loss` takes 133 (66%) at -7.33%.
+
+Task configuration cannot move P&L when the network decides so little. The
+aux-head question is DOWNSTREAM of a structural one.
+
+## `profit` as an auxiliary: tested, does not transfer
+
+`profit` has by far the highest NMI with trading (0.130, ~4x any trained head),
+so it was the strongest a-priori candidate. Both arms that add it are at the
+BOTTOM of the exits-on table (`_profit` -1.21%, `_trprofit` -0.44%), and
+`_trprofit` reached a LOWER `val_trading_mcc` than baseline (0.5902 vs 0.6051).
+A harder, more-relevant auxiliary bought no transfer. High NMI does not imply
+positive transfer.
+
+## Silently-inert parameters found (4th and 5th instances)
+
+- `use_custom_stoploss = True`, so `BaseStrategy.custom_stoploss()` governs the
+  stop and **freqtrade's `trailing_*` parameters do nothing**. Setting
+  `trailing_only_offset_is_reached = True` was confirmed applied in the log and
+  produced a BYTE-IDENTICAL backtest. The real lever is `stoploss` /
+  `stoploss_grace_*` / the ATR block, not `trailing_stop_positive`.
+- `use_atr_adaptive_stoploss = False`, so the ATR block is dead code in this
+  config; `_resolve_normal_stop` returns the static `stoploss = -0.05`.
+
+## Caveats
+
+- 360-day window (not the 720d production one). Shorter data biases TOWARD
+  finding aux regularisation useful, so a null here is safe to carry to 720d; a
+  narrow aux win would not have been.
+- `NNMT_MLX_tronly`'s docstring claims it won an earlier head-weight study by
+  ~+0.2pp. That study is not recorded in `docs/`. If it was run guards-on (the
+  default) it had the same lack of discriminating power measured here, which
+  would make +0.2pp indistinguishable from noise. Treat as UNVERIFIED.
+
+## Recommendation
+
+Do not tune task weights further. The measurable levers are the guard chain and
+the stop, in that order.
+
+## Exit-side sensitivity (2026-09-02) — the stop is already calibrated
+
+Ran on `NNMT_MLX_ctrl`, guards ON, exits ON, same pinned timerange, model
+reused (no retraining — exit params do not affect training).
+
+**Two parameters are INERT** (both confirmed loaded by freqtrade in the log,
+both producing byte-identical backtests):
+
+| swept | values | result |
+|---|---|---|
+| `trailing_only_offset_is_reached` | False -> True | identical |
+| `trailing_stop_positive` | 0.01 / 0.02 / 0.03 | identical |
+| `stoploss` | -0.05 / -0.08 / -0.12 / -0.20 | identical |
+
+Cause: `use_custom_stoploss = True`, so `BaseStrategy.custom_stoploss()` owns
+the stop. With `stoploss_grace_hours = 2.6 > 0` that function ALWAYS takes the
+grace branch, and `trailing_stop_loss` exits average 2:44 duration against a
+2:36 window — they cluster at the grace boundary, so `self.stoploss` (the
+post-grace level) is rarely reached. `use_atr_adaptive_stoploss = False` makes
+the ATR block dead code too.
+
+**The one live lever is `stoploss_grace_*`, and it is already at its optimum:**
+
+| config | trades | return | PF | maxDD |
+|---|---|---|---|---|
+| **2.6h / -0.17 (current)** | 202 | **-0.51%** | **0.97** | **5.25%** |
+| 6.0h / -0.17 | 172 | -1.73% | 0.91 | 5.71% |
+| 1.0h / -0.17 | 246 | -4.99% | 0.77 | 7.30% |
+| 2.6h / -0.05 | 249 | -9.72% | 0.66 | 10.83% |
+| grace OFF | 301 | -12.10% | 0.58 | 13.29% |
+
+Turning grace off costs 11.6pp. Trade COUNT rises as grace shortens because
+faster exits free `max_open_trades` slots.
+
+**Consequence:** "loosen the stop so momentum trades can breathe" is NOT an
+available lever — the stop parameters that look tunable do nothing, and the one
+that binds is already tuned. Corroborates the earlier `stoploss_grace` recovery
+finding and "exit already well-calibrated". The remaining lever is the ENTRY
+architecture.
