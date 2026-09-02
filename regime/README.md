@@ -141,3 +141,67 @@ Principle II comparison, which is the one test the whole feature turns on.
 its edge may partly reflect knowing which coins survived. Re-check any
 market-level PASS against a point-in-time universe before believing it. An
 asset-level or BTC-level PASS carries no such caveat.
+
+## T013 — baseline measurements, and two design problems they expose
+
+`NNNC_MLX`, W1 (`20250901-20260831`), config.json (11 pairs), model reused.
+
+| threshold | trades | pairs | summed profit | win rate | median duration | trades/day |
+|---|---|---|---|---|---|---|
+| 0.55 | 49 | 10 | +39.59% | 65.3% | 4.50h | 0.186 |
+| 0.69 (tuned) | 49 | 10 | +39.59% | 65.3% | 4.50h | 0.186 |
+| 0.80 | 29 | 8 | +29.29% | 65.5% | 2.75h | 0.119 |
+
+**Dwell kill threshold for T015 = p25 of host duration = 1.75h = 7 bars** at 15m.
+Note how far that is from the 1.4–31h figure that was circulating from the
+momentum-basket dry run — a different strategy family. R6's insistence on
+measuring the host rather than borrowing was right.
+
+### Problem 1 — the R5 bracket is wrong: 0.55 is INERT
+
+`prediction_threshold` 0.55 and 0.69 produce **byte-identical backtests** — same
+49 trades, same timestamps, same profits, same hash. The parameter file is
+demonstrably being read (freqtrade logs the scratch path), so this is not a
+plumbing failure: every argmax-BUY bar is *already* ≥0.69 confident, so lowering
+the bar selects nothing new. This reproduces recorded prior art exactly — "the
+0.7–0.8 buy-prob cluster IS where the threshold bites; below it, argmax==BUY
+bars are already >0.5 confident so 0.15–0.50 are identical".
+
+**The live band is (0.69, 0.80]**, not 0.55–0.80. An "aggressive" arm below the
+tuned value does not exist for this model.
+
+### Problem 2 — trade counts cannot support block-based regret
+
+R12 sized decision blocks at H ∈ {14d, 30d, 60d}. At the measured rate:
+
+| H | blocks/window | trades/block (0.69) | trades/block (0.80) |
+|---|---|---|---|
+| 14d | 26 | 1.9 | 1.1 |
+| 30d | 12 | 4.0 | 2.4 |
+| 60d | 6 | 8.1 | 4.8 |
+
+A risk-adjusted return computed from 2–8 trades is noise, and 6–26 blocks give
+almost no power. **`N`, the minimum trades per qualifying block, cannot be set
+to any value that is both satisfiable and meaningful.** This is the T013
+derivation doing its job — it was specified precisely so this would surface
+before Phase C, not after.
+
+### What the measurement offers instead — a strictly better-posed question
+
+**The 0.80 trade set is a strict SUBSET of the 0.69 set.** The conservative
+config takes no trades of its own; it simply declines 20 of the 49.
+
+| | trades | mean profit | win rate | summed |
+|---|---|---|---|---|
+| kept by 0.80 | 29 | +1.010% | 65.5% | +29.29% |
+| **declined by 0.80** | **20** | **+0.515%** | **65.0%** | **+10.31%** |
+
+The higher bar keeps the better trades — 2× mean profit at an identical win
+rate. Model confidence tracks *magnitude*, not direction.
+
+That nesting gives Phase C a well-defined marginal set and turns it into a
+per-trade question: **does the phase state at entry predict which of the 20
+declined trades were worth taking?** That is 49 observations rather than 6–26
+noisy blocks, it needs no arbitrary block length, and it matches what M3
+actually does — move the bar per bar. Proposed as a revision to R12; not yet
+adopted.

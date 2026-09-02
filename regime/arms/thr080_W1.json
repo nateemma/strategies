@@ -1,0 +1,20 @@
+{
+  "tag": "thr080",
+  "window": "W1",
+  "timerange": "20250901-20260831",
+  "strategy": "NNNC_MLX",
+  "prediction_threshold": 0.8,
+  "exit_config_hash": "0b85d05b23ae988e",
+  "volume_filter_active": true,
+  "returncode": 0,
+  "result_file": "backtest-result-2026-09-02_11-56-00.zip",
+  "n_trades": 29,
+  "n_pairs": 8,
+  "trades_hash": "add8d9015e5fd229",
+  "profit_pct": 29.285,
+  "win_rate": 65.5,
+  "duration_h_median": 2.75,
+  "duration_h_p25": 0.5,
+  "duration_h_p75": 5.75,
+  "trades_per_day": 0.1189
+}
