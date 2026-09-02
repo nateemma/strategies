@@ -427,3 +427,48 @@ be actionable; the proxies are not.
 `asset_hurst` carries one rare state (<5% share) as anticipated, so its
 "Persistent" state is excluded from verdict-driving comparisons but the
 instrument itself stands.
+
+## LIMITATION — outcomes are truncated by the exit policy
+
+`enable_exit_signal` is **False**, so only the entry half of the model runs.
+Outcomes are decided entirely by ROI 3% / `cexit_take_profit` 2.4% / stoploss
+grace. Measured on the 49 baseline trades:
+
+| profit band | trades | share |
+|---|---|---|
+| < −5% | 2 | 4.1% |
+| −5…−1% | 12 | 24.5% |
+| −1…0% | 3 | 6.1% |
+| 0…2.4% | 5 | 10.2% |
+| **2.4…3.1% (cap band)** | **22** | **44.9%** |
+| > 3.1% | 5 | 10.2% |
+
+Exit reasons: `trailing_stop_loss` 21, `roi` 13, `take_profit` 10, `unclog_12h` 5.
+**84% of winners (27/32) sit at or above 2.4%**, pinned to the ceiling, while
+losses are uncapped and run to −9.02%.
+
+**Why Phase C is still valid.** The exit policy is identical across every arm, so
+it is a fixed transformation applied equally to both configurations. The
+marginal-set contrast — "should this entry have been taken?" — is well defined
+under a constant exit rule, and that is exactly the question. FR-024 requires
+exits unchanged regardless, so disabled exit signals make that trivially true.
+
+**What is compressed.** Upside is capped near 3% while downside runs to −9%, so
+the measurable effect is asymmetric. Phase predicting *direction* is fully
+visible; phase predicting *magnitude of gains* is largely invisible.
+
+**Why the asymmetry favours the hypothesis under test.** Phase B's premise is
+that phase discriminates *risk* better than *return* (a 4× drawdown spread
+against a 2.6pp win-rate spread). With gains capped and losses uncapped, the
+outcome variable is dominated by loss avoidance — precisely that axis. A phase
+signal that steers away from the −9% trades will show clearly.
+
+**Consequence for the T013 result.** "Kept +1.010% vs declined +0.515% at
+identical win rate" was measured under this cap, and 9 of 13 marginal-set
+winners are capped. That 2× gap is a **floor on the true effect, not an
+estimate**. The direction stands; the magnitude is understated.
+
+Also note the dwell/span timescale is an exit-rule artifact: the 4.5h median
+duration is how fast ROI/stop fires, not a model-chosen holding period. The span
+criterion is still correct — a phase must outlast the actual position, whatever
+closes it — but it is calibrated to the exit machinery, not to the model.
