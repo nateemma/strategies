@@ -251,3 +251,63 @@ the strategy (−449% summed at 0.69). So neither end is usable for Phase C:
 The study needs an intermediate operating point — enough trades for statistical
 power, still profitable. That means finding which guard binds hardest and
 relaxing it partially, rather than the all-or-nothing flag. NOT yet run.
+
+## Guard sweep — the powered operating point (W1, all at 15m)
+
+Prompted by the observation that the JSON overrides the class `buy_params` with
+a far harsher config: `entry_rvol_threshold` 3.1 vs 0.5, `entry_guard_threshold`
+−0.4 vs 0.3.
+
+| config | thr | trades | wallet % | maxDD % | PF | win % |
+|---|---|---|---|---|---|---|
+| JSON (rvol 3.1, guard −0.4) | 0.69 | 49 | +3.45 | 0.79 | 2.17 | 65.3 |
+| JSON | 0.80 | 29 | +2.00 | 0.80 | 2.12 | 65.5 |
+| guard = 0.3 | 0.69 | 51 | +3.95 | 0.79 | **2.33** | 64.7 |
+| guard = 0.3 | 0.80 | 31 | +2.50 | 0.80 | 2.39 | 64.5 |
+| **rvol = 2.5** | 0.69 | **73** | **+4.45** | **1.10** | **1.93** | **68.5** |
+| **rvol = 2.0** | 0.69 | **98** | **+2.85** | 2.26 | 1.33 | 64.3 |
+| rvol = 2.0 | 0.75 | 93 | +2.94 | 2.28 | 1.36 | 65.6 |
+| rvol = 2.0 | 0.80 | 56 | +1.19 | 2.32 | 1.20 | 66.1 |
+| rvol = 1.0 | 0.69 | 140 | −3.65 | 5.47 | 0.78 | 57.9 |
+| rvol = 0.5 | 0.69 | 160 | −4.73 | 6.55 | 0.74 | 56.9 |
+| guard 0.3 + rvol 0.5 | 0.69 | 170 | −2.94 | 5.11 | 0.84 | 58.2 |
+| adx 20 + guard 0.3 + rvol 0.5 | 0.69 | 403 | −5.45 | 10.67 | 0.87 | 60.0 |
+
+**`rvol` is the dominant guard.** It alone moves trade count 49 → 160 and is
+what separates profitable from unprofitable. `guard_metric` barely gates at all
+here (49 → 51) — relaxing it adds three trades while slightly improving every
+metric. `adx` relaxation only adds losing trades.
+
+**The profitability cliff sits between rvol 2.0 and 1.0.** Everything at or
+above 2.0 is profitable with PF > 1.3; everything at or below 1.0 loses.
+
+### Chosen operating point for Phase C: `entry_rvol_threshold = 2.0`
+
+It satisfies all three requirements simultaneously:
+
+1. **Powered** — 98 trades vs 49, double the baseline.
+2. **The threshold discriminates** — 0.69 / 0.75 / 0.80 → 98 / 93 / 56 trades,
+   monotone, with distinct trade hashes. At the JSON operating point only 0.80
+   moved at all, giving a single usable contrast.
+3. **Still the strategy** — +2.85% wallet, PF 1.33. Not the broken
+   guards-off regime (−449% summed) that the "loosen the gate" rule would
+   otherwise have pushed us into.
+
+### Side finding, NOT yet believed — rvol 3.1 may be over-tightened
+
+`rvol = 2.5` beats the tuned 3.1 on every axis at once: more trades (73 vs 49),
+higher return (+4.45% vs +3.45%), lower drawdown relative to return, higher win
+rate (68.5% vs 65.3%). That is a production-relevant result, but it is **one
+window**. Per Constitution II it means nothing until it holds in W3 — the
+day-of-week failure looked exactly this convincing on two windows before
+reversing. Recorded as a lead, not a finding.
+
+### `exit_guard_threshold` is dead code here (7th inert parameter)
+
+Entry uses `guard_metric < entry_guard_threshold`; exit mirrors it with
+`guard_metric > exit_guard_threshold` at `BaseStrategy.py:805`. But
+`populate_exit_trend` returns early on `if not self.enable_exit_signal.value`,
+and `enable_exit_signal` is **False**, so the exit guard never executes. The
+mirror is architecturally real and would need maintaining if exit signals were
+ever enabled; today, relaxing the entry guard cannot break it, and FR-024 (no
+arm alters exits) is satisfied trivially.

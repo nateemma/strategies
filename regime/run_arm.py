@@ -64,7 +64,7 @@ def timerange(window: str) -> str:
 
 
 def build_scratch(strategy: str, threshold: float, tag: str, window: str,
-                  guards: bool = True) -> Path:
+                  guards: bool = True, overrides: dict | None = None) -> Path:
     """Symlink the strategy group into a scratch dir and write the arm's JSON.
 
     Returns the scratch directory to pass as --strategy-path.
@@ -94,6 +94,9 @@ def build_scratch(strategy: str, threshold: float, tag: str, window: str,
     # powered operating point" trap. Allow measuring with it off.
     if not guards:
         buy["entry_enable_guards"] = False
+    # Arbitrary buy-space overrides, for sweeping individual guards.
+    for k, v in (overrides or {}).items():
+        buy[k] = v
     (dst / f"{strategy}.json").write_text(json.dumps(params, indent=2))
 
     return dst
@@ -171,7 +174,7 @@ def summarize(result_path: Path | None) -> dict:
     BYTE-IDENTICAL backtest, which is exactly the tell recorded for the known
     silently-inert parameters, and stronger than one pass count.
     """
-    from freqtrade.data.btanalysis import load_backtest_data
+    from freqtrade.data.btanalysis import load_backtest_data, load_backtest_stats
 
     if result_path is None:
         return {"n_trades": 0, "trades_hash": None, "note": "NO RESULT FOUND - do not read as zero trades"}
@@ -194,7 +197,23 @@ def summarize(result_path: Path | None) -> dict:
         "duration_h_p25": round(float(dur_h.quantile(0.25)), 2),
         "duration_h_p75": round(float(dur_h.quantile(0.75)), 2),
         "trades_per_day": round(len(trades) / max((trades["close_date"].max() - trades["open_date"].min()).days, 1), 4),
+        **_wallet_stats(result_path),
     }
+
+
+def _wallet_stats(result_path: Path) -> dict:
+    """Wallet-level outcome. Summed profit_ratio is NOT the portfolio return -
+    with hundreds of trades it vastly overstates it."""
+    try:
+        from freqtrade.data.btanalysis import load_backtest_stats
+        st = load_backtest_stats(result_path)
+        s = list(st["strategy"].values())[0]
+        return {"wallet_profit_pct": round(float(s.get("profit_total", 0)) * 100, 3),
+                "max_drawdown_pct": round(float(s.get("max_drawdown_account", 0)) * 100, 3),
+                "profit_factor": round(float(s.get("profit_factor", 0)), 3)}
+    except Exception as e:
+        return {"wallet_profit_pct": None, "max_drawdown_pct": None,
+                "profit_factor": None, "stats_error": str(e)[:80]}
 
 
 def main() -> int:
@@ -206,6 +225,9 @@ def main() -> int:
     ap.add_argument("--threshold", type=float, required=True)
     ap.add_argument("--tag", required=True)
     ap.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
+    ap.add_argument("--set", action="append", default=[], metavar="KEY=VALUE",
+                    help="override a buy-space parameter, repeatable "
+                         "(e.g. --set entry_rvol_threshold=0.5)")
     ap.add_argument("--guards", choices=["on", "off"], default="on",
                     help="entry_enable_guards; 'off' loosens the gate so the "
                          "model threshold has room to bite")
@@ -217,8 +239,12 @@ def main() -> int:
         raise SystemExit("NNNC_DDPM_ prefix activates a GAN; this feature uses the non-GAN base")
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+    overrides = {}
+    for kv in args.set:
+        k, _, v = kv.partition("=")
+        overrides[k] = float(v) if v.replace(".", "").replace("-", "").isdigit() else v
     scratch = build_scratch(args.strategy, args.threshold, args.tag, args.window,
-                            guards=(args.guards == "on"))
+                            guards=(args.guards == "on"), overrides=overrides)
     export_path = OUT_DIR / f"{args.tag}_{args.window}_trades.json"
     cmd = build_command(args.strategy, scratch, args.window, args.config, export_path)
 
@@ -243,6 +269,7 @@ def main() -> int:
         "strategy": args.strategy,
         "prediction_threshold": args.threshold,
         "guards": args.guards,
+        "overrides": overrides,
         "exit_config_hash": exit_config_hash(scratch, args.strategy),
         "volume_filter_active": True,
         "returncode": proc.returncode,

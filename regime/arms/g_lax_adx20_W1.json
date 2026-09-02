@@ -1,0 +1,29 @@
+{
+  "tag": "g_lax_adx20",
+  "window": "W1",
+  "timerange": "20250901-20260831",
+  "strategy": "NNNC_MLX",
+  "prediction_threshold": 0.69,
+  "guards": "on",
+  "overrides": {
+    "entry_rvol_threshold": 0.5,
+    "entry_guard_threshold": 0.3,
+    "entry_adx_threshold": 20.0
+  },
+  "exit_config_hash": "0b85d05b23ae988e",
+  "volume_filter_active": true,
+  "returncode": 0,
+  "result_file": "backtest-result-2026-09-02_12-19-40.zip",
+  "n_trades": 403,
+  "n_pairs": 11,
+  "trades_hash": "359cc5d719eeeb94",
+  "profit_pct": -21.587,
+  "win_rate": 60.0,
+  "duration_h_median": 5.75,
+  "duration_h_p25": 1.25,
+  "duration_h_p75": 8.0,
+  "trades_per_day": 1.1923,
+  "wallet_profit_pct": -5.45,
+  "max_drawdown_pct": 10.674,
+  "profit_factor": 0.874
+}

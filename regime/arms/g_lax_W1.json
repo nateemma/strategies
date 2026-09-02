@@ -1,0 +1,28 @@
+{
+  "tag": "g_lax",
+  "window": "W1",
+  "timerange": "20250901-20260831",
+  "strategy": "NNNC_MLX",
+  "prediction_threshold": 0.69,
+  "guards": "on",
+  "overrides": {
+    "entry_rvol_threshold": 0.5,
+    "entry_guard_threshold": 0.3
+  },
+  "exit_config_hash": "0b85d05b23ae988e",
+  "volume_filter_active": true,
+  "returncode": 0,
+  "result_file": "backtest-result-2026-09-02_12-18-29.zip",
+  "n_trades": 170,
+  "n_pairs": 11,
+  "trades_hash": "9b67d00ca24e93cb",
+  "profit_pct": -24.12,
+  "win_rate": 58.2,
+  "duration_h_median": 3.88,
+  "duration_h_p25": 0.75,
+  "duration_h_p75": 7.69,
+  "trades_per_day": 0.528,
+  "wallet_profit_pct": -2.942,
+  "max_drawdown_pct": 5.111,
+  "profit_factor": 0.841
+}

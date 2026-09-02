@@ -1,0 +1,17 @@
+{
+  "tag": "p_rvol20_t085",
+  "window": "W1",
+  "timerange": "20250901-20260831",
+  "strategy": "NNNC_MLX",
+  "prediction_threshold": 0.85,
+  "guards": "on",
+  "overrides": {
+    "entry_rvol_threshold": 2.0
+  },
+  "exit_config_hash": "0b85d05b23ae988e",
+  "volume_filter_active": true,
+  "returncode": 0,
+  "n_trades": 0,
+  "trades_hash": null,
+  "note": "zero trades - INCONCLUSIVE"
+}
