@@ -375,30 +375,36 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
     entry_trend_ema_period: int = 200       # ~50h on 15m — long-trend bias
     entry_trend_slope_window: int = 20      # ~5h slope check on 15m
 
+    # NOTE: every DecimalParameter `default=` below MUST match the value in
+    # `buy_params` above. They had drifted apart (guard -0.7 vs 0.3, rvol 2.0 vs
+    # 0.5, adx 50 vs 38, bb_width 0.015 vs 0.06, atr_pct 0.010 vs 0.006), which
+    # is invisible in normal use because buy_params shadows the declaration --
+    # and misleading when reading the file to find out what a parameter's
+    # default actually is. Aligned 2026-09-02. If you change one, change both.
     entry_guard_threshold = DecimalParameter(
-        -1.0, 0.5, default=-0.7, decimals=1, space="buy", load=True, optimize=opt_base_params
+        -1.0, 0.5, default=0.3, decimals=1, space="buy", load=True, optimize=opt_base_params
     )
 
     entry_close_norm_threshold = DecimalParameter(
-        -0.5, 1.0, default=0.0, decimals=1, space="buy", load=True, optimize=opt_base_params
+        -0.5, 1.0, default=-0.1, decimals=1, space="buy", load=True, optimize=opt_base_params
     )
 
     entry_adx_threshold = DecimalParameter(
-        10.0, 90.0, default=50.0, decimals=0, space="buy", load=True, optimize=opt_base_params
+        10.0, 90.0, default=38.0, decimals=0, space="buy", load=True, optimize=opt_base_params
     )
 
     entry_bb_width_threshold = DecimalParameter(
-        0.000, 0.100, default=0.015, decimals=3, space="buy", load=True, optimize=opt_base_params,
+        0.000, 0.100, default=0.06, decimals=3, space="buy", load=True, optimize=opt_base_params,
     )
 
     entry_rvol_threshold = DecimalParameter(
-        0.0, 5.0, default=2.0, decimals=1, space="buy", load=True, optimize=opt_base_params
+        0.0, 5.0, default=0.5, decimals=1, space="buy", load=True, optimize=opt_base_params
     )
 
     entry_atr_pct = DecimalParameter(
         0.000,
         0.060,
-        default=0.010,
+        default=0.006,
         decimals=3,
         space="buy",
         load=True,
