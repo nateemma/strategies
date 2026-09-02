@@ -472,3 +472,45 @@ Also note the dwell/span timescale is an exit-rule artifact: the 4.5h median
 duration is how fast ROI/stop fires, not a model-chosen holding period. The span
 criterion is still correct — a phase must outlast the actual position, whatever
 closes it — but it is calibrated to the exit machinery, not to the model.
+
+## T016–T017 — the exp4 risk discrimination is CONFIRMED, but smaller than reported
+
+| state | % time | n bars | maxDD raw | maxDD time-equalised | mean bp |
+|---|---|---|---|---|---|
+| Strong Down | 19.3 | 9530 | −117.5% | −102.2% | +0.46 |
+| Weak Down | 16.4 | 8093 | −108.1% | −111.8% | −0.64 |
+| **Sideways** | 30.4 | 14999 | **−187.8%** | **−118.1%** | **−1.00** |
+| **Weak Up** | 18.4 | 9093 | **−44.6%** | **−43.5%** | **+2.14** |
+| Strong Up | 15.6 | 7683 | −39.2% | −56.1% | +1.13 |
+
+| | worst / best |
+|---|---|
+| raw | **4.79×** |
+| time-equalised (2000 bootstrap draws, n = 7683 each) | **2.71×** |
+
+**VERDICT: CONFIRMED.** Roughly **43% of the apparent spread was a time-in-state
+artifact** — Sideways holds 1.95× the bars of Strong Up and had more opportunity
+to draw down — but a 2.7× discrimination survives equalising exposure. The
+ordering is unchanged: Sideways worst, Weak Up best.
+
+This is the first quantitative check of the prior study's headline risk claim,
+and it lands in between the two obvious answers: not the clean 4× that motivated
+this feature, but not an artifact either.
+
+**Reproduction note.** The absolute drawdowns differ from the original report
+(Sideways −187.8% here vs −118.3% there) because the 1h dataset has extended by
+roughly fourteen months since that run, and drawdown is path- and
+length-dependent. The *structure* reproduces closely, and the mean-return column
+reproduces almost exactly (Weak Up +2.14bp vs +2.21bp; Sideways −1.00bp vs
+−1.52bp), which is the part that does not depend on sample length.
+
+**What it cannot do.** `btc_exp4` was eliminated in Phase B — 48.9% of real
+trades span one of its regime changes — so this result cannot feed the gate. It
+settles a question about the prior work rather than advancing this one. The risk
+hypothesis itself survives and now has to be carried by an instrument that is
+actually actionable, from the eight that passed.
+
+**Bug caught here**: the first implementation computed the spread as
+`max/min` on a column of negative drawdowns, which inverts the ratio and turned
+4.79× into 0.21×, printing REFUTED. Worst = column minimum when the values are
+negative.

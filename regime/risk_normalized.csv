@@ -1,0 +1,6 @@
+state,pct_time,n_bars,maxdd_raw_pct,maxdd_sqrt_norm,maxdd_boot_median_pct,maxdd_boot_p10_pct,mean_bp
+Strong Down,19.3,9530,-117.5,-1.2039,-102.2,-146.6,0.46
+Weak Down,16.4,8093,-108.1,-1.2021,-111.8,-150.8,-0.64
+Sideways,30.4,14999,-187.8,-1.5332,-118.1,-170.1,-1.0
+Weak Up,18.4,9093,-44.6,-0.4672,-43.5,-61.6,2.14
+Strong Up,15.6,7683,-39.2,-0.4471,-56.1,-79.2,1.13
