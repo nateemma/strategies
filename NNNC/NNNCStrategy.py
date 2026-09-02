@@ -76,7 +76,8 @@ class NNNCStrategy(BaseNNStrategy):
     # Threshold lives in TrainingConfig too — change them together, not
     # in isolation. Don't reintroduce the override here.
 
-    buy_params = {
+    # Inherit the shared entry/exit controls; override only what differs.
+    buy_params = { **BaseNNStrategy.buy_params,
         "entry_adx_threshold": 38.0,
         "entry_atr_pct": 0.006,
         "entry_bb_width_threshold": 0.06,

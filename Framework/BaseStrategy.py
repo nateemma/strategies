@@ -270,10 +270,7 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
         "entry_enable_guards": True,  # value loaded from strategy
         "entry_guard_threshold": 0.3,  # value loaded from strategy
         "entry_rvol_threshold": 0.5,  # value loaded from strategy
-        "forward_peak_regressor_threshold": 0.5,  # value loaded from strategy
-        "min_consecutive_buys": 1,  # value loaded from strategy
         "prediction_threshold": 0.5,  # value loaded from strategy
-        "profit_prediction_threshold": 0.3,  # value loaded from strategy
     }
 
     # Sell parameters:

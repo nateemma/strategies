@@ -70,7 +70,10 @@ class NNMTStrategy(BaseNNStrategy):
     #     "profit_prediction_threshold": 0.3
     #     }
     
-    buy_params = {
+    # Inherit the shared entry controls and override only what differs.
+    # The three keys below are MULTI-TASK ONLY -- their Parameters are declared
+    # in this class, so they belong here rather than in the shared base.
+    buy_params = { **BaseNNStrategy.buy_params,
         "entry_adx_threshold": 38.0,
         "entry_atr_pct": 0.006,
         "entry_bb_width_threshold": 0.06,
@@ -79,7 +82,10 @@ class NNMTStrategy(BaseNNStrategy):
         "entry_guard_threshold": 0.3,
         "entry_rvol_threshold": 0.5,
         "prediction_threshold": 0.5,
-        "profit_prediction_threshold": 0.3
+        # multi-task only
+        "profit_prediction_threshold": 0.3,
+        "forward_peak_regressor_threshold": 0.5,
+        "min_consecutive_buys": 1,
     }
 
     profit_conflict_to_neutral = True

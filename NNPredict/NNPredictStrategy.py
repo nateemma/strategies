@@ -71,7 +71,8 @@ class NNPredictStrategy(BaseNNStrategy):
         },
     }
 
-    buy_params = {
+    # Inherit the shared entry controls; override only what differs.
+    buy_params = { **BaseNNStrategy.buy_params,
         "entry_adx_threshold": 0.02,
         "entry_atr_pct": 0.001,
         "entry_bb_width_threshold": 0.0,
@@ -82,7 +83,14 @@ class NNPredictStrategy(BaseNNStrategy):
         "prediction_threshold": 0.3,
     }
 
-    sell_params = {
+    # EXIT CONTROLS ARE COMMON -- inherit and override only what differs.
+    # This dict previously REPLACED the parent's, which silently dropped
+    # stoploss_grace_hours / stoploss_grace_level. Those fall back to a
+    # Parameter default of 0.0 hours, i.e. the stoploss-grace mechanism was
+    # DISABLED for every NNPredict strategy. That mechanism is what recovered
+    # NNMT from +16% -> -17% back to +3.4% with halved drawdown when
+    # confirm_trade_exit began honouring early stops.
+    sell_params = { **BaseNNStrategy.sell_params,
         "cexit_enable_profit_checks": True,
         "cexit_max_days": 3,
         "cexit_take_profit": 0.02,

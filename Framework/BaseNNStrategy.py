@@ -128,8 +128,7 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
     # never reached NNMT (NNMTStrategy defines a fresh buy_params rather than
     # merging) but did propagate a dead key to every other NN strategy.
     buy_params = { **BaseStrategy.buy_params,
-        "prediction_threshold": 0.6,
-        "profit_prediction_threshold": 0.3}
+        "prediction_threshold": 0.6}
 
     # ATR-adaptive initial stoploss enabled by default for every NN
     # variant — definitions of the flag and its companion attrs
