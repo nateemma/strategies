@@ -340,3 +340,34 @@ Trade counts at the tuned config vary enormously by era: **W1 = 49, W2 = 94,
 W3 = 13**. The temporally distant window — the one Principle II makes decisive —
 has the fewest trades by a factor of four. Any Phase C verdict must clear that
 bar in W3, so the operating point has to be chosen for W3's sparsity, not W1's.
+
+## Phase C arm sizing at the study operating point (rvol = 2.0)
+
+| window | thr 0.69 | thr 0.80 | **marginal set** | wallet % @0.69 | PF @0.69 |
+|---|---|---|---|---|---|
+| W1 | 98 | 56 | **42** | +2.85 | 1.33 |
+| W2 | 180 | 136 | **44** | +9.35 | 1.59 |
+| W3 | 51 | 25 | **26** | +2.09 | 1.58 |
+
+**Phase C is viable.** All three windows are profitable with PF > 1.3, the
+threshold discriminates in each, and the marginal set — the trades the
+conservative config declines, which is what the phase label must sort — holds
+26–44 observations per window, 112 in total.
+
+W3 goes from 13 trades at the production guard to 51 here, which is what makes a
+distant-era verdict possible at all. 26 marginal trades still only supports
+detecting a large effect; a subtle one will not clear the noise floor, and that
+is an honest bound on what Phase C can conclude.
+
+### rvol = 2.0 is a STUDY operating point, not a production recommendation
+
+Profit factor is *lower* than the tuned 3.1 in every window (1.33 vs 2.17,
+1.59 vs 1.64, 1.58 vs 3.30). It is selected for statistical power, not
+performance — it buys the trade volume Phase C needs while keeping the strategy
+profitable and recognisably itself. **Production stays at rvol = 3.1.**
+
+Note also that the rvol optimum is **non-monotonic across eras**: 2.5 beats 2.0
+on W1 but 2.0 beats 2.5 on W2 (+9.35% vs +5.19%). The best rvol wanders by
+window with no stable ordering — the same signature that killed the dynamic
+lookback. This is a further reason to treat any rvol value as a fixed study
+choice rather than something to tune.

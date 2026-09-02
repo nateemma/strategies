@@ -1,0 +1,27 @@
+{
+  "tag": "pc080",
+  "window": "W2",
+  "timerange": "20240601-20250531",
+  "strategy": "NNNC_MLX",
+  "prediction_threshold": 0.8,
+  "guards": "on",
+  "overrides": {
+    "entry_rvol_threshold": 2.0
+  },
+  "exit_config_hash": "0b85d05b23ae988e",
+  "volume_filter_active": true,
+  "returncode": 0,
+  "result_file": "backtest-result-2026-09-02_12-25-33.zip",
+  "n_trades": 136,
+  "n_pairs": 11,
+  "trades_hash": "00acaa6cccb75b65",
+  "profit_pct": 102.094,
+  "win_rate": 74.3,
+  "duration_h_median": 2.12,
+  "duration_h_p25": 0.75,
+  "duration_h_p75": 6.0,
+  "trades_per_day": 0.4146,
+  "wallet_profit_pct": 9.112,
+  "max_drawdown_pct": 4.455,
+  "profit_factor": 1.745
+}
