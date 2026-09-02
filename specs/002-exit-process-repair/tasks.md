@@ -55,8 +55,8 @@ description: "Task list for 002-exit-process-repair"
 
 ## Phase 1: Setup
 
-- [ ] T001 Create `regime/exit/` with `__init__.py` and a `regime/exit/README.md` stub naming the feature, the three pinned windows, and the baseline exit configuration
-- [ ] T002 Create `regime/exit/baseline.py` holding `BASELINE` as **literals** — grace 5.6h, grace_level −0.27 (marked INERT), take_profit 0.024, max_days 10, ROI 3%, stoploss −0.05, exit signals off — plus the three archive paths from `regime/arms/applied_W{1,2,3}.json`. On import it MUST assert the archives resolve and the per-window trade counts are 51 / 96 / 20, raising rather than silently characterising a different config (FR-028, FR-028b, data-model §1)
+- [X] T001 Create `regime/exit/` with `__init__.py` and a `regime/exit/README.md` stub naming the feature, the three pinned windows, and the baseline exit configuration
+- [X] T002 Create `regime/exit/baseline.py` holding `BASELINE` as **literals** — grace 5.6h, grace_level −0.27 (marked INERT), take_profit 0.024, max_days 10, ROI 3%, stoploss −0.05, exit signals off — plus the three archive paths from `regime/arms/applied_W{1,2,3}.json`. On import it MUST assert the archives resolve and the per-window trade counts are 51 / 96 / 20, raising rather than silently characterising a different config (FR-028, FR-028b, data-model §1)
 
 ---
 
@@ -64,8 +64,8 @@ description: "Task list for 002-exit-process-repair"
 
 **⚠️ CRITICAL**: no user story work begins until this completes.
 
-- [ ] T003 Create `regime/exit/candidates.py` — the `CandidateIntervention` registry per data-model §4. Each entry carries `name`, `motivating_measurement` (required, non-empty), `kind` (`adjust_existing` | `enable_dormant`), `requires_retrain` (must be False). Pre-populate the four **excluded** entries with their reasons so they are never re-tested: grace *level* (inert — enabling `_ft_stop_uses_after_fill` gives byte-identical results), `return 1.0` → `None` (refuted, −9.24pp), `trailing_*` under the current architecture (inert, byte-identical at 0.01 vs 0.03), hyperopt exit config (rejected, W3 sign reversal) (FR-009..FR-012, FR-027)
-- [ ] T004 Verify `regime/run_arm.py`'s sell-space support end to end: run the pinned baseline on all three windows and confirm it reproduces the characterised baseline with **identical trade hashes** (51 / 96 / 20 trades; +3.95 / +5.752 / +1.724%). Already demonstrated once this session — this task re-establishes it as a repeatable check (FR-028b)
+- [X] T003 Create `regime/exit/candidates.py` — the `CandidateIntervention` registry per data-model §4. Each entry carries `name`, `motivating_measurement` (required, non-empty), `kind` (`adjust_existing` | `enable_dormant`), `requires_retrain` (must be False). Pre-populate the four **excluded** entries with their reasons so they are never re-tested: grace *level* (inert — enabling `_ft_stop_uses_after_fill` gives byte-identical results), `return 1.0` → `None` (refuted, −9.24pp), `trailing_*` under the current architecture (inert, byte-identical at 0.01 vs 0.03), hyperopt exit config (rejected, W3 sign reversal) (FR-009..FR-012, FR-027)
+- [X] T004 Verify `regime/run_arm.py`'s sell-space support end to end: run the pinned baseline on all three windows and confirm it reproduces the characterised baseline with **identical trade hashes** (51 / 96 / 20 trades; +3.95 / +5.752 / +1.724%). Already demonstrated once this session — this task re-establishes it as a repeatable check (FR-028b)
 
 **Checkpoint**: baseline pinned and reproducible; candidate registry seeded.
 
@@ -79,10 +79,10 @@ description: "Task list for 002-exit-process-repair"
 
 > **Substantially pre-satisfied by research.md.** R1 established the mechanism, R2 refuted the obvious correction, R3 catalogued which settings are live. T005–T008 add only the per-trade counterfactual, which research did not do.
 
-- [ ] T005 [P] [US1] Implement exit-mix and stop-attribution reporting in `regime/exit/characterise.py`, writing `exit_mix.csv` and `stopped_trades.csv` per `contracts/study-cli.md`. Load recorded trades with `freqtrade.data.btanalysis.load_backtest_data` on the T002 archives. **Assert `initial_stop_pct` is −5.00% on every row** — any other value means the grace level became reachable and contradicts research R1; halt rather than report (FR-001, FR-005, data-model §2)
-- [ ] T006 [P] [US1] Add the counterfactual replay to `characterise.py`: for every stopped trade, measure best and worst reachable outcome over ~1/3/6/12/24h extensions from the actual exit price, and whether the take-profit or ROI level would have been reached. Write `counterfactual.csv`. Trades with insufficient subsequent history are **excluded and counted**, never treated as "did not recover" (FR-002, FR-003, FR-008, SC-002)
-- [ ] T007 [US1] Split every table by `ended_in_profit`. The 37.4% that exit in profit and the 62.6% that exit at a loss are separate populations — 50.6% of stopped trades end with the stop **above** entry, which is a different phenomenon from falling through it. The report MUST state whether one intervention can serve both (FR-004, SC-003)
-- [ ] T008 [US1] Run `characterise.py` and record the verdict — noise or losers — with the aggregate figure behind it, in `regime/exit/README.md`. Confirm no model was loaded and nothing trained (FR-006, FR-007, FR-025, SC-001, SC-007)
+- [X] T005 [P] [US1] Implement exit-mix and stop-attribution reporting in `regime/exit/characterise.py`, writing `exit_mix.csv` and `stopped_trades.csv` per `contracts/study-cli.md`. Load recorded trades with `freqtrade.data.btanalysis.load_backtest_data` on the T002 archives. **Assert `initial_stop_pct` is −5.00% on every row** — any other value means the grace level became reachable and contradicts research R1; halt rather than report (FR-001, FR-005, data-model §2)
+- [X] T006 [P] [US1] Add the counterfactual replay to `characterise.py`: for every stopped trade, measure best and worst reachable outcome over ~1/3/6/12/24h extensions from the actual exit price, and whether the take-profit or ROI level would have been reached. Write `counterfactual.csv`. Trades with insufficient subsequent history are **excluded and counted**, never treated as "did not recover" (FR-002, FR-003, FR-008, SC-002)
+- [X] T007 [US1] Split every table by `ended_in_profit`. The 37.4% that exit in profit and the 62.6% that exit at a loss are separate populations — 50.6% of stopped trades end with the stop **above** entry, which is a different phenomenon from falling through it. The report MUST state whether one intervention can serve both (FR-004, SC-003)
+- [X] T008 [US1] Run `characterise.py` and record the verdict — noise or losers — with the aggregate figure behind it, in `regime/exit/README.md`. Confirm no model was loaded and nothing trained (FR-006, FR-007, FR-025, SC-001, SC-007)
 
 **Checkpoint**: the question "is the exit broken?" is answered. If the stop is cutting genuine losers, the feature may stop here with that finding (SC-010).
 
@@ -94,9 +94,9 @@ description: "Task list for 002-exit-process-repair"
 
 **Independent Test**: Review the list; every entry cites a measurement, and every excluded candidate carries a reason.
 
-- [ ] T009 [US2] Populate the seven live candidates in `regime/exit/candidates.py`, each with its motivating measurement: **(a) reimplement the ratchet deliberately with a tunable distance** — 50% of exits, currently the constant `1.0`, and dependent on two uncontracted freqtrade behaviours; **(b) native trailing stop** via `use_custom_stoploss=False`, a second implementation of the same profit-lock with real distance and offset parameters; **(c) grace duration** — the one remaining live grace dimension; **(d) ROI ladder** — 22% of exits land at exactly +3.00%; **(e) `cexit_take_profit` upward** — downward is known harmful; **(f) re-enable model exit signals** — no retrain, `kind = enable_dormant`; **(g) time-based exits** — only 6 of 167, low ceiling (FR-009, FR-010, FR-012, SC-005)
-- [ ] T010 [US2] Cross-check each live candidate against research R3's inert list and reject any that touches `stoploss_grace_level`, `trailing_*` under the current architecture, `exit_guard_threshold` or `exit_close_norm_threshold` — four of nine exit settings do nothing, and tuning one yields a guaranteed null that reads like a finding (FR-027)
-- [ ] T011 [US2] Record in `regime/exit/README.md` which anticipated candidates were excluded and why, so none is silently omitted (FR-011, FR-028a)
+- [X] T009 [US2] Populate the seven live candidates in `regime/exit/candidates.py`, each with its motivating measurement: **(a) reimplement the ratchet deliberately with a tunable distance** — 50% of exits, currently the constant `1.0`, and dependent on two uncontracted freqtrade behaviours; **(b) native trailing stop** via `use_custom_stoploss=False`, a second implementation of the same profit-lock with real distance and offset parameters; **(c) grace duration** — the one remaining live grace dimension; **(d) ROI ladder** — 22% of exits land at exactly +3.00%; **(e) `cexit_take_profit` upward** — downward is known harmful; **(f) re-enable model exit signals** — no retrain, `kind = enable_dormant`; **(g) time-based exits** — only 6 of 167, low ceiling (FR-009, FR-010, FR-012, SC-005)
+- [X] T010 [US2] Cross-check each live candidate against research R3's inert list and reject any that touches `stoploss_grace_level`, `trailing_*` under the current architecture, `exit_guard_threshold` or `exit_close_norm_threshold` — four of nine exit settings do nothing, and tuning one yields a guaranteed null that reads like a finding (FR-027)
+- [X] T011 [US2] Record in `regime/exit/README.md` which anticipated candidates were excluded and why, so none is silently omitted (FR-011, FR-028a)
 
 **Checkpoint**: candidate list is evidence-backed and inert-free.
 

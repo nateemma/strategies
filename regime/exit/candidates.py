@@ -1,0 +1,180 @@
+"""Candidate exit interventions (T003, T009-T011).
+
+Every candidate carries the MEASUREMENT that motivates it (FR-009). A candidate
+with no supporting measurement is not a candidate - that is the rule that keeps
+this list from becoming a list of plausible ideas.
+
+Candidates research already settled are PRE-POPULATED as excluded with their
+reasons (FR-011), so none is quietly re-tested. Four of nine exit-side settings
+do nothing at all, so a candidate touching one would produce a guaranteed null
+that reads like a finding (FR-027).
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from regime.exit.baseline import BASELINE
+
+ADJUST = "adjust_existing"
+DORMANT = "enable_dormant"          # a change of kind, not degree - higher risk
+
+
+@dataclass
+class Candidate:
+    name: str
+    motivating_measurement: str      # REQUIRED, non-empty (FR-009)
+    kind: str                        # ADJUST | DORMANT (FR-012)
+    requires_retrain: bool = False   # MUST be False (FR-010, FR-025)
+    excluded_reason: str = ""        # non-empty => never tested
+    needs_framework_edit: bool = False   # edit-measure-revert only (FR-029)
+
+    def __post_init__(self):
+        if not self.motivating_measurement.strip():
+            raise ValueError(f"{self.name}: a candidate MUST cite a measurement")
+        if self.requires_retrain:
+            raise ValueError(f"{self.name}: retraining is out of scope")
+        if self.kind not in (ADJUST, DORMANT):
+            raise ValueError(f"{self.name}: bad kind {self.kind!r}")
+
+    @property
+    def excluded(self) -> bool:
+        return bool(self.excluded_reason)
+
+
+# ---------------------------------------------------------------------------
+# EXCLUDED - settled by research, never re-tested (FR-011)
+# ---------------------------------------------------------------------------
+
+EXCLUDED = [
+    Candidate(
+        "grace_level",
+        "initial_stop_loss_abs is -5.00% on all 167 baseline trades, never the "
+        "-0.27 grace level",
+        ADJUST,
+        excluded_reason=(
+            "INERT, confirmed by test rather than inference: setting "
+            "_ft_stop_uses_after_fill = True - the one-line enablement - gives "
+            "BYTE-IDENTICAL results across all three windows (51/96/20 trades, "
+            "identical hashes, initial stop still -5.00%). Inert more deeply "
+            "than the flag."),
+    ),
+    Candidate(
+        "ratchet_to_none",
+        "the grace branch always returns 1.0, which freqtrade applies as a "
+        "stoploss and ratchets upward; None is the documented sentinel",
+        ADJUST,
+        needs_framework_edit=True,
+        excluded_reason=(
+            "REFUTED at -9.24pp (summed 11.43% -> 2.19%), worse in all three "
+            "windows, W3 negative. Under the change ROI exits collapse 36 -> 1 "
+            "while take-profit rises 42 -> 97 at a LOWER mean. NOTE this refutes "
+            "DELETING the mechanism only - see ratchet_explicit below."),
+    ),
+    Candidate(
+        "trailing_params_current_arch",
+        "trailing_stop_positive 0.01 vs 0.03 gives byte-identical backtests",
+        ADJUST,
+        excluded_reason=(
+            "INERT while use_custom_stoploss = True. NOT dead as an option - see "
+            "native_trailing below, which switches the architecture instead."),
+    ),
+    Candidate(
+        "hyperopt_exit_config",
+        "a parameter search proposed grace 4.3h / take-profit 0.005",
+        ADJUST,
+        excluded_reason=(
+            "REJECTED on measurement: wallet -1.04 / -0.13 / -1.24pp and Calmar "
+            "+6.17 / +0.08 / -11.63 - the sign reverses in the distant window. "
+            "Its higher win rate comes from harvesting at +0.5%, converting "
+            "would-be losers into small winners, which is why take-profit pinned "
+            "to the floor of its range."),
+    ),
+]
+
+# ---------------------------------------------------------------------------
+# LIVE - each cites its motivating measurement (FR-009, SC-005)
+# ---------------------------------------------------------------------------
+
+LIVE = [
+    Candidate(
+        "ratchet_explicit",
+        "the ratchet produces 50% of all exits (83 of 167) and is currently the "
+        "constant 1.0 with no tunable distance; it works via two uncontracted "
+        "freqtrade behaviours (a returned float applied as a stoploss at any "
+        "magnitude, and tighten-only adjust_stop_loss)",
+        ADJUST,
+        needs_framework_edit=True,
+    ),
+    Candidate(
+        "native_trailing",
+        "the same profit-lock, obtained from freqtrade's own trailing stop with "
+        "real distance and offset parameters, by setting use_custom_stoploss = "
+        "False; never tested because trailing_* is inert while it is True",
+        ADJUST,
+        needs_framework_edit=True,
+    ),
+    Candidate(
+        "grace_duration",
+        "the one remaining live dimension of the grace mechanism; stopped trades "
+        "have a median age of 1.00h against 3.3h for the profitable exits",
+        ADJUST,
+    ),
+    Candidate(
+        "roi_ladder",
+        "22% of exits (36 of 167) land at exactly +3.00%, the flat ROI level, and "
+        "the ratchet exists to carry trades up to it",
+        ADJUST,
+    ),
+    Candidate(
+        "take_profit_upward",
+        "take-profit downward is known harmful (the hyperopt drove it to 0.005 "
+        "and lost in all three windows); upward from 0.024 is untested",
+        ADJUST,
+    ),
+    Candidate(
+        "enable_model_exits",
+        "the model already emits exit predictions that are discarded; "
+        "enable_exit_signal is False so populate_exit_trend returns early. No "
+        "retrain is needed to switch it on",
+        DORMANT,
+    ),
+    Candidate(
+        "time_based_exit",
+        "the time-based unclog path accounts for only 6 of 167 exits, so its "
+        "ceiling is low, but it is the only exit reason not yet varied",
+        ADJUST,
+    ),
+]
+
+ALL = EXCLUDED + LIVE
+
+
+def validate() -> None:
+    """Enforce the registry invariants (FR-010, FR-012, FR-027)."""
+    names = [c.name for c in ALL]
+    if len(names) != len(set(names)):
+        raise ValueError("candidate names must be unique")
+    inert = set(BASELINE.inert)
+    for c in LIVE:
+        # A live candidate must not target a setting measured as doing nothing.
+        if c.name in ("grace_level",) or any(
+            tok in c.name for tok in ("trailing_params", "exit_guard", "exit_close_norm")
+        ):
+            raise ValueError(f"{c.name}: targets an INERT setting - {sorted(inert)}")
+    if not LIVE:
+        raise ValueError("no live candidates")
+
+
+if __name__ == "__main__":
+    validate()
+    print(f"EXCLUDED ({len(EXCLUDED)}) - settled by research, never re-tested:\n")
+    for c in EXCLUDED:
+        print(f"  {c.name}")
+        print(f"     why excluded : {c.excluded_reason}")
+        print()
+    print(f"LIVE ({len(LIVE)}) - each cites its motivating measurement:\n")
+    for c in LIVE:
+        flag = "  [needs Framework edit: revert after each arm]" if c.needs_framework_edit else ""
+        print(f"  {c.name}  ({c.kind}){flag}")
+        print(f"     motivated by : {c.motivating_measurement}")
+        print()
