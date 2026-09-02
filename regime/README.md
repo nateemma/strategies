@@ -514,3 +514,80 @@ actually actionable, from the eight that passed.
 `max/min` on a column of negative drawdowns, which inverts the ratio and turned
 4.79× into 0.21×, printing REFUTED. Worst = column minimum when the values are
 negative.
+
+---
+
+# PHASE C VERDICT: FAIL — and why
+
+**No phase label produces an entry rule that beats taking every marginal trade.**
+32 fit/evaluate comparisons across 8 surviving instruments and 4 temporally
+distant window pairs. One row beat the bar (`market_breadth`, fit W3 → eval W1,
++0.81%) — 1 in 32, against roughly 1.6 expected by chance at a 5% level.
+
+Per FR-017, Phase D does not proceed. Per the constitution's experiment gate,
+this is a completed finding, not an abandoned build.
+
+## The structural reason
+
+The marginal set — the trades the conservative configuration declines — is
+**strongly profitable in every window**: +22.79% (W1), +25.62% (W2), +26.96%
+(W3) summed. So `always-aggressive` is the better fixed choice everywhere, and
+any rule that declines part of the set is removing profit. Every phase rule that
+declined anything scored negative edge, from −0.50% to −9.01%.
+
+There is nothing to filter, because **the marginal trades are profitable in
+essentially every phase state.**
+
+## What the diagnostic DID find — a real signal that is not a gate
+
+Mean marginal return by state, all three windows:
+
+| instrument | best state | W1 | W2 | W3 |
+|---|---|---|---|---|
+| asset_vr4 | **Reverting** | +0.97 | +0.70 | +1.48 |
+| | Trending | −0.73 | −0.40 | +0.45 |
+| asset_vr24 | **Reverting** | +0.86 | +0.77 | +1.22 |
+| asset_hurst | **Anti-persistent** | +0.53 | +1.04 | +2.05 |
+| | Random | +0.44 | +0.16 | +0.45 |
+| asset_autocorr | **Neg Autocorr** | +0.89 | +0.78 | +1.34 |
+
+**The reversion-flavoured state is the best state on all four direct
+trend-vs-reversion instruments, in all three windows.** That is a consistent,
+era-stable ordering — not noise. It also corroborates the Phase A measurement
+that these alts are strongly mean-reverting, and it is exactly what a dip-buying
+model should show.
+
+But it is a **ranking, not a sign change**. The non-reverting states are mostly
+profitable too, so the ordering supports *sizing* — press harder in reverting
+phases — and not *gating*, which is what this feature set out to test. A gate
+needs a state whose trades are reliably bad, and there isn't one.
+
+## Two instruments carry no information here
+
+`asset_trend` and `market_breadth` do not partition the marginal set at all:
+96%+ of marginal trades fall in a single state (Below EMA: 46/56/24; Narrow:
+44/55/26). Their apparent results are properties of one bucket. `market_breadth`'s
+lone win was fit on a window where a competing state held **n = 2**.
+
+## "No effect detected", not "no effect exists" (FR-018d)
+
+Three bounds on this verdict:
+
+1. **W3 holds 26–28 marginal trades.** Only a large effect clears that.
+2. **Outcomes are truncated near +3%** by ROI/take-profit while losses run to
+   −9%. The signal the diagnostic found is precisely a *magnitude* ordering, and
+   magnitude is the axis the exit policy compresses. A phase effect on winner
+   size is largely invisible to this measurement.
+3. **Gating was tested; sizing was not.** The design tested one mechanism —
+   decline or accept a marginal entry. The ordering above is real and stable and
+   would be expressed through position size, which this feature explicitly
+   scoped out.
+
+## What would be worth testing next, if anything
+
+The honest read is that the reverting-state ordering is the only survivor, and
+the two things that would let it be evaluated properly are both currently out of
+scope: **un-truncated outcomes** (so magnitude is measurable) and a **sizing
+mechanism** rather than a gate. Neither is a small change, and neither should be
+started on this evidence alone — a stable ranking across three windows is
+suggestive, not a validated edge.
