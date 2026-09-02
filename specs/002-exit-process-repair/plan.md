@@ -133,9 +133,16 @@ this quantifies its cost.
 Research already eliminated four of nine. The live list, each with its motivating
 measurement:
 
-1. **Make the ratchet explicit and tunable** — it produces 50% of exits and is
-   currently the constant `1.0` with no distance parameter.
-2. **Grace duration** — the one remaining live dimension of the grace mechanism.
+1. **Make the ratchet explicit and tunable** — it produces 50% of exits, is
+   currently the constant `1.0` with no distance parameter, and depends on
+   uncontracted freqtrade behaviour. Correctness and tunability both argue for
+   it independently of whether it beats the accident on P&L.
+   **1b. Native trailing stop** via `use_custom_stoploss = False` — a second,
+   simpler implementation of the same profit-lock, with freqtrade's own
+   distance and offset parameters.
+2. **Grace duration** — the one remaining live dimension. Note the grace
+   *level* is dead: enabling `_ft_stop_uses_after_fill` gives byte-identical
+   results, so it is inert more deeply than the flag.
 3. **ROI ladder instead of flat 3%** — 22% of exits land at exactly +3.00%.
 4. **`cexit_take_profit` upward** — R4 showed lowering it is harmful; upward is untested.
 5. **Re-enable model exit signals** — no retrain; a change of kind, flagged as higher risk.
@@ -174,9 +181,14 @@ Every arm checked for inertness against the baseline hash.
 1. **The strategy JSON drifts.** It changed mid-feature (15:46), replacing the
    baseline exit config with a hyperopt output. The baseline is therefore pinned
    in code. Never read it from disk.
-2. **`return 1.0` looks like a bug and is not.** Research R2 refuted the
-   correction at a cost of 9.24pp. Anyone reading `custom_stoploss` will form
-   the same hypothesis; the record exists to stop them acting on it.
+2. **`return 1.0` must not be replaced by `None`** — refuted at a cost of
+   9.24pp (R2). But that does NOT settle the ratchet: deleting the mechanism and
+   reimplementing it deliberately are different things, and only the first was
+   tested. A correct implementation with a tunable distance is the feature's
+   strongest candidate. The current behaviour also relies on two uncontracted
+   freqtrade details (a returned float applied as a stoploss at any magnitude,
+   and tighten-only `adjust_stop_loss`), so it is fragile across upgrades
+   regardless of present P&L.
 3. **Four of nine exit settings are inert.** `stoploss_grace_level`,
    `trailing_*`, `exit_guard_threshold`, `exit_close_norm_threshold`. Tuning any
    of them yields a guaranteed null that reads like a finding.

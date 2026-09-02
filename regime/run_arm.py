@@ -64,7 +64,9 @@ def timerange(window: str) -> str:
 
 
 def build_scratch(strategy: str, threshold: float, tag: str, window: str,
-                  guards: bool = True, overrides: dict | None = None) -> Path:
+                  guards: bool = True, overrides: dict | None = None,
+                  sell_overrides: dict | None = None, roi: dict | None = None,
+                  stoploss: float | None = None) -> Path:
     """Symlink the strategy group into a scratch dir and write the arm's JSON.
 
     Returns the scratch directory to pass as --strategy-path.
@@ -97,6 +99,17 @@ def build_scratch(strategy: str, threshold: float, tag: str, window: str,
     # Arbitrary buy-space overrides, for sweeping individual guards.
     for k, v in (overrides or {}).items():
         buy[k] = v
+    # Sell space, ROI table and stoploss live OUTSIDE params.buy. Pinning them
+    # explicitly matters: the user's NNNC_MLX.json has already drifted mid-study
+    # (a hyperopt overwrote the exit block), so an arm that inherits it silently
+    # measures a different baseline (FR-028b).
+    sell = params.setdefault("params", {}).setdefault("sell", {})
+    for k, v in (sell_overrides or {}).items():
+        sell[k] = v
+    if roi is not None:
+        params.setdefault("params", {})["roi"] = roi
+    if stoploss is not None:
+        params.setdefault("params", {})["stoploss"] = {"stoploss": stoploss}
     (dst / f"{strategy}.json").write_text(json.dumps(params, indent=2))
 
     return dst
@@ -229,6 +242,11 @@ def main() -> int:
     ap.add_argument("--threshold", type=float, required=True)
     ap.add_argument("--tag", required=True)
     ap.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
+    ap.add_argument("--set-sell", action="append", default=[], metavar="KEY=VALUE",
+                    help="override a sell-space parameter, repeatable")
+    ap.add_argument("--roi", default=None, metavar="PCT",
+                    help="override the flat ROI level, e.g. 0.03")
+    ap.add_argument("--stoploss", type=float, default=None)
     ap.add_argument("--set", action="append", default=[], metavar="KEY=VALUE",
                     help="override a buy-space parameter, repeatable "
                          "(e.g. --set entry_rvol_threshold=0.5)")
@@ -247,8 +265,19 @@ def main() -> int:
     for kv in args.set:
         k, _, v = kv.partition("=")
         overrides[k] = float(v) if v.replace(".", "").replace("-", "").isdigit() else v
+    sell_over = {}
+    for kv in args.set_sell:
+        k, _, v = kv.partition("=")
+        if v.lower() in ("true", "false"):
+            sell_over[k] = v.lower() == "true"
+        else:
+            try: sell_over[k] = float(v)
+            except ValueError: sell_over[k] = v
     scratch = build_scratch(args.strategy, args.threshold, args.tag, args.window,
-                            guards=(args.guards == "on"), overrides=overrides)
+                            guards=(args.guards == "on"), overrides=overrides,
+                            sell_overrides=sell_over,
+                            roi=({"0": float(args.roi)} if args.roi else None),
+                            stoploss=args.stoploss)
     export_path = OUT_DIR / f"{args.tag}_{args.window}_trades.json"
     cmd = build_command(args.strategy, scratch, args.window, args.config, export_path)
 
@@ -274,6 +303,7 @@ def main() -> int:
         "prediction_threshold": args.threshold,
         "guards": args.guards,
         "overrides": overrides,
+        "sell_overrides": sell_over,
         "exit_config_hash": exit_config_hash(scratch, args.strategy),
         "volume_filter_active": True,
         "returncode": proc.returncode,

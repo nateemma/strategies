@@ -82,7 +82,24 @@ So the ratcheting stop is not corrupting outcomes — it is a **profit-lock that
 carries trades up to the +3% ROI level**. Without it, trades are harvested
 earlier and smaller, and almost none survive to ROI.
 
-**Decision**: `return 1.0` MUST NOT be "fixed" to `None`. The mechanism stays.
+**Decision**: `return 1.0` MUST NOT be replaced by `None`. The profit-lock stays.
+
+**CORRECTION (2026-09-02, after review).** The conclusion originally drawn from
+this — that the ratchet is settled and needs no further work — was WRONG, and
+the test does not support it. `1.0` versus `None` compares *keeping the accident*
+against *deleting the mechanism entirely*. Removing a profit-lock from a strategy
+whose winners cap at +3% was always going to be bad; that says nothing about
+whether `1.0` is the right way to obtain the lock.
+
+The untested and correct comparison is `1.0` versus a **deliberately implemented
+ratchet with a tunable distance**. That remains a LIVE candidate, and is the
+strongest one in the feature.
+
+Correctness matters here independently of P&L. The behaviour depends on two
+things freqtrade does not contract: that a returned float is applied as a
+stoploss regardless of magnitude, and that `adjust_stop_loss` only ever tightens.
+A version changing either silently alters the strategy, and the symptom would be
+drifting live P&L with no code change to attribute it to.
 
 **Rationale for recording a refuted hypothesis**: it is the most attractive
 wrong move available in this feature. The code comment says one thing, the code
@@ -145,9 +162,10 @@ R1–R4 eliminate most of the anticipated candidate list before Phase 2 begins:
 
 | anticipated candidate | status after research |
 |---|---|
-| Reshape the grace **level** | **DEAD** — inert (R1) |
-| "Fix" the `return 1.0` sentinel | **DEAD** — refuted, costs 9.24pp (R2) |
-| Re-tune `trailing_*` | **DEAD** — inert (R3) |
+| Reshape the grace **level** | **DEAD — confirmed by test.** Setting `_ft_stop_uses_after_fill = True`, the one-line enablement, gives BYTE-IDENTICAL results (51/96/20 trades, identical hashes, initial stop still −5.00%). The grace level is inert more deeply than the flag. |
+| Replace `return 1.0` with `None` | **DEAD** — refuted, costs 9.24pp (R2) |
+| **Implement the ratchet DELIBERATELY, with a tunable distance** | **LIVE — strongest candidate.** R2 only tested deleting the mechanism, never replacing it with a proper one. |
+| **Native trailing stop via `use_custom_stoploss = False`** | **LIVE.** `trailing_*` is inert *under the current architecture*, not inert as an option — freqtrade's own trailing stop has a distance and an offset parameter. |
 | Adopt the hyperopt exit config | **DEAD** — rejected (R4) |
 | Reshape the grace **duration** | LIVE — the one remaining stop dimension |
 | Widen the `cexit_take_profit` range | LIVE — but R4 shows lowering it is harmful; the untested direction is *upward* |
