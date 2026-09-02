@@ -9,16 +9,27 @@
 The stop is half of all exits and the only loss-making one. Phase 0 research
 resolved *why*, and the answer reshapes the feature: the exits labelled
 `trailing_stop_loss` come from a `return 1.0` in the grace branch that freqtrade
-applies as a ratcheting profit-lock — not from the grace level (inert), and not
-from freqtrade's trailing stop (inert). That accidental ratchet is **load-bearing**:
-replacing it with the semantically correct `None` costs 9.24pp across three
-windows.
+applies as a ratcheting profit-lock. They do not come from the grace level,
+which is inert, nor from freqtrade's own trailing stop, which is inert **under
+the current architecture** — `use_custom_stoploss = True` disables it, so
+switching that off to use the native trailing stop remains an open option.
 
-So this is no longer "characterise, then tune the stop". Four of nine exit-side
-settings are inert, the two most attractive interventions are already refuted,
-and the remaining leverage is concentrated in one place: the ratchet is a
-constant that happens to work, with no tunable distance. Making it explicit is
-the main candidate.
+**What research settled, precisely.** One intervention is refuted: *deleting*
+the ratchet by returning `None` instead of `1.0` costs 9.24pp across three
+windows. One parameter is dead: `stoploss_grace_level`, confirmed by test rather
+than inference — enabling `_ft_stop_uses_after_fill` produces byte-identical
+results. One candidate is rejected on measurement: the recent hyperopt exit
+config, which reverses sign in the distant window. Four of nine exit-side
+settings do nothing at all.
+
+**What research did NOT settle.** Refuting the deletion of the ratchet says
+nothing about *reimplementing* it. The current mechanism is the constant `1.0`
+with no tunable distance, and it works by way of two freqtrade behaviours that
+are not contracted — that a returned float is applied as a stoploss at any
+magnitude, and that `adjust_stop_loss` only ever tightens. A deliberate
+implementation with a distance parameter is untested and is the **strongest
+remaining candidate**, on correctness grounds independently of whether it also
+beats the accident on P&L.
 
 Approach: finish characterisation from recorded trades (no backtests), screen
 candidates by counterfactual replay (no backtests), and spend full evaluations
