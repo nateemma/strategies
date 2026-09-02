@@ -60,8 +60,8 @@ Applies to T013, T018–T020 (User Story 2) and every Phase 6/7 arm. Not optiona
 
 **Purpose**: Create the study skeleton.
 
-- [ ] T001 Create the study directory `regime/` with an empty `__init__.py` and a `regime/README.md` stub stating the feature name, the three pinned windows from research.md R3, and a "results pending" placeholder
-- [ ] T002 [P] Create output subdirectories `regime/labels/` and `regime/arms/` with `.gitkeep` files, per the artifact paths in `contracts/artifacts.md`
+- [x] T001 Create the study directory `regime/` with an empty `__init__.py` and a `regime/README.md` stub stating the feature name, the three pinned windows from research.md R3, and a "results pending" placeholder
+- [x] T002 [P] Create output subdirectories `regime/labels/` and `regime/arms/` with `.gitkeep` files, per the artifact paths in `contracts/artifacts.md`
 
 ---
 
@@ -71,10 +71,10 @@ Applies to T013, T018–T020 (User Story 2) and every Phase 6/7 arm. Not optiona
 
 **⚠️ CRITICAL**: No user story work can begin until this phase completes.
 
-- [ ] T003 Add `variance_ratio(series, q, window)`, `hurst_from_vr(series, q_grid, window)`, and `rolling_autocorr(series, lag, window)` to `utils/custom_indicators.py` — additive only, matching the existing flat dataframe-to-series style (`zema`, `RMI`, `T3`). Lo–MacKinlay `VR(q) = Var(r_q)/(q·Var(r_1))` on log returns; Hurst from the log-regression of `VR(q)` against `q` as `H = 1 + slope/2`; fixed 480-bar window, never adaptive (research R1, R2; Constitution VII)
-- [ ] T004 Create `regime/regimedata.py` — panel loading from `user_data/data/binanceus/*-15m.feather`, universe assembly across the 78 pairs, `log_returns`, and the market-level coverage rule (≥20 pairs each with ≥200 bars of prior history, else `UNKNOWN`). Follow the `btc_corr/btcdata.py` pattern: `__file__`-relative with an absolute DATA path, re-runnable from a clean checkout (research R4, R10; FR-006)
-- [ ] T005 Create `regime/instruments.py` — the `PhaseInstrument` catalogue per `data-model.md` §1, with the schema of `contracts/artifacts.md` `instrument_catalogue.csv`. Enforce: unique names, `UNKNOWN` in every state vocabulary, exactly one `is_baseline`, `window_bars` ≥ 20× the largest estimator horizon, and no instrument definition referencing a specific trading pair (FR-025, Constitution X)
-- [ ] T006 Create `regime/run_arm.py` per `contracts/study-cli.md` — resolves `--window` to a literal pinned range passed via `-t`, routes `--threshold` through a **per-arm copy** of `NNNC/NNNC_MLX.json` (never the user's file), keeps volume/liquidity constraints active, adds `--export trades` with a per-arm path, and emits the three liveness counts plus `exit_config_hash`. Do not modify `scripts/test_strat.sh` (research R5, R7, R8; FR-028, FR-031)
+- [x] T003 Add `variance_ratio(series, q, window)`, `hurst_from_vr(series, q_grid, window)`, and `rolling_autocorr(series, lag, window)` to `utils/custom_indicators.py` — additive only, matching the existing flat dataframe-to-series style (`zema`, `RMI`, `T3`). Lo–MacKinlay `VR(q) = Var(r_q)/(q·Var(r_1))` on log returns; Hurst from the log-regression of `log VR(q)` against `log q` as `H = (slope + 1)/2`; fixed 480-bar window, never adaptive (research R1, R2; Constitution VII)
+- [x] T004 Create `regime/regimedata.py` — panel loading from `user_data/data/binanceus/*-15m.feather`, universe assembly across the 77 pairs, `log_returns`, and the market-level coverage rule (≥20 pairs each with ≥200 bars of prior history, else `UNKNOWN`). Follow the `btc_corr/btcdata.py` pattern: `__file__`-relative with an absolute DATA path, re-runnable from a clean checkout (research R4, R10; FR-006)
+- [x] T005 Create `regime/instruments.py` — the `PhaseInstrument` catalogue per `data-model.md` §1, with the schema of `contracts/artifacts.md` `instrument_catalogue.csv`. Enforce: unique names, `UNKNOWN` in every state vocabulary, exactly one `is_baseline`, `window_bars` ≥ 20× the largest estimator horizon, and no instrument definition referencing a specific trading pair (FR-025, Constitution X)
+- [x] T006 Create `regime/run_arm.py` per `contracts/study-cli.md` — resolves `--window` to a literal pinned range passed via `-t`, routes `--threshold` through a **per-arm copy** of `NNNC/NNNC_MLX.json` (never the user's file), keeps volume/liquidity constraints active, adds `--export trades` with a per-arm path, and emits the three liveness counts plus `exit_config_hash`. Do not modify `scripts/test_strat.sh` (research R5, R7, R8; FR-028, FR-031)
 
 **Checkpoint**: shared machinery ready — User Story 1 can begin.
 

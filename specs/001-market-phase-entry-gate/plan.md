@@ -18,7 +18,7 @@ Approach: a standalone study directory (`regime/`) carries Phases A–C with no 
 
 **Primary Dependencies**: pandas, numpy, talib (already used by `btc_corr/`), matplotlib (Agg backend), rapidjson. freqtrade for the backtest arms. No new third-party dependency is introduced.
 
-**Storage**: Feather OHLCV under `user_data/data/binanceus/` (78 pairs at 15m; BTC spans 2021-01-01 to 2026-08-31, 198,486 bars). Study outputs are CSV plus PNG under `regime/`, matching the `btc_corr/` convention. Backtest arms export trades to per-arm files.
+**Storage**: Feather OHLCV under `user_data/data/binanceus/` (77 pairs at 15m; BTC spans 2021-01-01 to 2026-08-31, 198,486 bars). Study outputs are CSV plus PNG under `regime/`, matching the `btc_corr/` convention. Backtest arms export trades to per-arm files.
 
 **Testing**: End-to-end lookahead validation (truncated versus full history label identity) is the primary correctness test for Phases A–B. Phase C and D are validated by measurement, not unit tests. Existing pytest suites under `Framework/tests/` are only touched if Phase D changes `Framework/`.
 
@@ -26,11 +26,11 @@ Approach: a standalone study directory (`regime/`) carries Phases A–C with no 
 
 **Project Type**: Research study plus an opt-in strategy mixin. Not a service or application.
 
-**Performance Goals**: A full classifier pass over 78 pairs × 198K bars completes in a single run without chunking. Phase A/B are re-runnable in minutes so the characterisation can be iterated; Phase C/D backtest arms are the expensive part and are budgeted per arm, not per run.
+**Performance Goals**: A full classifier pass over 77 pairs × 198K bars completes in a single run without chunking. Phase A/B are re-runnable in minutes so the characterisation can be iterated; Phase C/D backtest arms are the expensive part and are budgeted per arm, not per run.
 
 **Constraints**: Every instrument must be causal and pass end-to-end lookahead validation. Every comparison runs on pinned literal date ranges under realistic execution constraints. No modification to exit behaviour. No per-pair special-casing.
 
-**Scale/Scope**: 78 pairs, three phase levels, roughly a dozen candidate instruments, three evaluation windows, and — only on a PASS — four mechanism arms plus a baseline.
+**Scale/Scope**: 77 pairs, three phase levels, roughly a dozen candidate instruments, three evaluation windows, and — only on a PASS — four mechanism arms plus a baseline.
 
 ## Constitution Check
 

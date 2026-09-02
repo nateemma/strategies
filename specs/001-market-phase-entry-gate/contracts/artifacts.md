@@ -142,7 +142,7 @@ One per mechanism arm. Conforms to the `MechanismArm` entity.
 
 **Contract**
 
-- `liveness` is `INERT` when `chain_pass_count` equals the baseline arm's for the same window. An `INERT` arm's `profit_pct` and `risk_adjusted` are withheld from every comparison table — reporting them as a null result is the specific failure Principle IV forbids.
+- `liveness` is `INERT` when `trades_hash` equals the baseline arm's for the same window — a byte-identical backtest (mechanism revised at T006; see `study-cli.md`). An `INERT` arm's `profit_pct` and `risk_adjusted` are withheld from every comparison table — reporting them as a null result is the specific failure Principle IV forbids.
 - `exit_config_hash` must match the baseline's for the same window, proving exit invariance (SC-010).
 - `volume_filter_active` must be `true`; an arm with it `false` is void.
 - `timerange` must be a literal date range. A today-relative range makes the arm non-comparable and is void.

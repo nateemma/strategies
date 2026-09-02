@@ -128,7 +128,9 @@ Backtest runner for Phase C and D arms.
 - Leaves the user's `NNNC/NNNC_MLX.json` unmodified — it writes a per-arm copy. That file is untracked working state.
 - Runs with volume/liquidity constraints active (FR-028).
 - Exports realized trades to a per-arm path.
-- Emits the three liveness counts: model-condition pass count, full-chain pass count, trade count (R7).
+- Emits the liveness evidence: trade count and a **hash of the realized trade list** (R7, revised at T006).
+
+**Liveness mechanism — revised at T006.** The original design called for three internal counts (model-condition passes, full-chain passes, trade count). Obtaining the first two requires instrumenting `populate_entry_trend`, i.e. editing `Framework/` — which Phases A–C are specified not to touch, and which is additionally unsafe while a dry run is live. Inertness is therefore detected by hashing the exported trade list (`pair`, `open_date`, `close_date`, `profit_ratio`). Two arms hashing identically produced a byte-identical backtest, which is precisely the tell recorded for all five known silently-inert parameters — and a strictly stronger check than one pass count, since a count can coincide by chance while an identical trade list cannot.
 
 **Produces**: `regime/arms/<tag>_<window>.json` conforming to the `MechanismArm` schema in [artifacts.md](./artifacts.md).
 

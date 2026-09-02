@@ -17,7 +17,7 @@ cd /Users/philprice95/projects/freqtrade
 | Requirement | Check |
 |---|---|
 | Virtualenv interpreter | `.venv/bin/python -c "import pandas, numpy, talib"` — the system Python has no pandas |
-| 15m OHLCV present | `ls user_data/data/binanceus/*-15m.feather \| wc -l` → 78 |
+| 15m OHLCV present | `ls user_data/data/binanceus/*_USDT-15m.feather \| wc -l` → 77 |
 | BTC span | `BTC_USDT-15m.feather` covers 2021-01-01 → 2026-08-31 |
 | Host strategy | `user_data/strategies/NNNC/NNNC_MLX.py` exists; a trained model is available |
 

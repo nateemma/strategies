@@ -13,14 +13,50 @@ Every unknown in Technical Context is resolved below. Findings marked **VERIFIED
 | Measure | Estimator | Parameters |
 |---|---|---|
 | Variance ratio | Lo–MacKinlay `VR(q) = Var(r_q) / (q · Var(r_1))` on log returns | `q ∈ {2, 4, 8, 24}` bars (30m, 1h, 2h, 6h at 15m); rolling window 480 bars (5 days) |
-| Hurst | Log-regression of `VR(q)` against `q` across the same `q` grid: `H = 1 + slope/2` | Reuses the VR computation; same 480-bar window |
+| Hurst | Log-regression of `log VR(q)` against `log q` across the same `q` grid: `H = (slope + 1)/2` | Reuses the VR computation; same 480-bar window |
 | Return autocorrelation | Rolling Pearson correlation of `r_t` against `r_{t-1}` | 480-bar window |
 
 **Rationale**: `VR > 1` means trending, `VR < 1` means reverting — this is the property the switch actually needs, measured directly rather than proxied by ADX. Deriving Hurst from the VR curve rather than R/S rescaling avoids a second estimator entirely: R/S is materially biased on windows this short, and the VR grid is already computed. The 480-bar window is chosen so that window ≫ largest `q` (480/24 = 20 non-overlapping blocks at the longest horizon), which is the minimum for a stable variance estimate.
 
-**Alternatives considered**: DFA for Hurst — more robust on non-stationary series but requires a new implementation and is materially slower over 78 pairs × 198K bars, for a measure that only needs to rank-order states. R/S rescaling — rejected as biased at these window lengths. Wavelet-based Hurst — the repo already has wavelet machinery, but it estimates a different quantity and would not be comparable to the VR-derived value.
+**Alternatives considered**: DFA for Hurst — more robust on non-stationary series but requires a new implementation and is materially slower over 77 pairs × 198K bars, for a measure that only needs to rank-order states. R/S rescaling — rejected as biased at these window lengths. Wavelet-based Hurst — the repo already has wavelet machinery, but it estimates a different quantity and would not be comparable to the VR-derived value.
 
 **Open risk**: a 480-bar (5-day) window is itself a lookback choice. Principle VII forbids making it adaptive without a trackability test, so it stays constant. It is recorded as a fixed parameter, not a tuned one.
+
+### Correction and validation (2026-09-02, at task T003)
+
+The formula first written here was `H = 1 + slope/2`, which is **wrong**. Since
+`Var(r_q) = σ²q^(2H)`, we have `VR(q) = q^(2H−1)`, so `log VR = (2H−1)·log q`
+and therefore **`H = (slope + 1)/2`**. Check: a random walk has `VR ≡ 1` at
+every `q`, so slope = 0; the correct formula returns 0.5, the original returned
+1.0 — it would have labelled every random walk maximally trending.
+
+**Validated by measurement** against fractional Brownian motion of known Hurst
+(Davies–Harte circulant embedding, N=20,000):
+
+| true H | 0.30 | 0.40 | 0.50 | 0.60 | 0.70 |
+|---|---|---|---|---|---|
+| estimated | 0.295 | 0.383 | 0.496 | 0.582 | 0.665 |
+
+All within 0.035. Causality also confirmed directly: labels computed from
+history truncated at bar 5,000 are bit-identical to labels computed from the
+full series over the overlap (max abs diff 0.0).
+
+### FINDING — VR level and Hurst are NOT redundant instruments
+
+On an AR(1) mean-reverting process (φ = −0.4), `VR(4) = 0.450` and
+`VR(24) = 0.533` — clearly reverting at every horizon — yet estimated
+`H = 0.509`, i.e. indistinguishable from a random walk. This is correct
+behaviour, not a defect: AR(1) is **short-memory** and has no true Hurst
+exponent. The VR *level* measures short-horizon reversion; the VR *slope*
+(Hurst) measures **long-memory**, and AR(1) has none to find.
+
+**Consequence for instrument selection (T008)**: carry the VR levels and the
+Hurst estimate as *separate* instruments and do not treat one as a proxy for the
+other. Short-horizon reversion — precisely the effect the dip-buying models
+exploit — lives in the VR level and is invisible to Hurst. Expect their phase
+labels to disagree, and expect that disagreement to be informative rather than a
+bug. This also pre-empts a Principle IX objection: they are not correlated
+restatements of one measure.
 
 ---
 
@@ -38,7 +74,7 @@ Every unknown in Technical Context is resolved below. Findings marked **VERIFIED
 
 ## R3. The three evaluation windows
 
-**VERIFIED data coverage**: `user_data/data/binanceus/` holds 78 pairs at 15m. `BTC_USDT-15m.feather` spans 2021-01-01 to 2026-08-31 (198,486 bars). Pairs with history before a cutoff: 24 before 2022-01, 44 before 2023-01, 54 before 2024-01, 58 before 2025-01. Median pair start is 2022-07.
+**VERIFIED data coverage**: `user_data/data/binanceus/` holds 77 pairs at 15m. `BTC_USDT-15m.feather` spans 2021-01-01 to 2026-08-31 (198,486 bars). Pairs with history before a cutoff: 24 before 2022-01, 44 before 2023-01, 54 before 2024-01, 58 before 2025-01. Median pair start is 2022-06-23. (A 78th file, `BTC_USD-15m.feather`, is USD-denominated and is correctly excluded by the USDT glob — an earlier count of "78 pairs" had wrongly included it.)
 
 **Decision**:
 
@@ -60,7 +96,7 @@ All three are pinned as literal date ranges. See R8.
 
 **Decision**: at each bar, breadth measures require at least **20 pairs** each having at least **200 bars** of prior history. Below that threshold the market-level label is `UNKNOWN`, and bars labelled `UNKNOWN` are excluded from every per-state statistic rather than folded into a neighbouring state.
 
-**Rationale**: the universe ramps from 24 pairs in early 2021 to 78 by 2026. Cross-sectional dispersion and breadth computed over a handful of pairs are dominated by whichever few coins happened to be listed, which would silently make early history look like a distinct "phase" that is really a listing artifact. The 200-bar history requirement prevents a newly listed pair from entering the breadth calculation with an undefined trend state.
+**Rationale**: the universe ramps from 24 pairs in early 2021 to 77 by 2026. Cross-sectional dispersion and breadth computed over a handful of pairs are dominated by whichever few coins happened to be listed, which would silently make early history look like a distinct "phase" that is really a listing artifact. The 200-bar history requirement prevents a newly listed pair from entering the breadth calculation with an undefined trend state.
 
 **Consequence**: the rule is satisfied throughout all three evaluation windows (W3 begins 2023-01 with 44 qualifying pairs), so `UNKNOWN` should appear only in pre-2022 history. If `UNKNOWN` appears inside any evaluation window, that is a defect to investigate, not a state to interpret.
 
