@@ -96,53 +96,85 @@ EXCLUDED = [
 # ---------------------------------------------------------------------------
 
 LIVE = [
+    # -----------------------------------------------------------------------
+    # REPRIORITISED after Phase 1 (T005-T008). The attribution changed the
+    # ranking: the ratchet accounts for 72 of 83 stopped trades (87%) -- 31/31
+    # of the profitable stops and 41/52 of the losing ones were cut ABOVE the
+    # -5% static stop. Only 11 of 83 ever reached the configured stop level.
+    # Everything else on this list is marginal next to that.
+    # -----------------------------------------------------------------------
     Candidate(
         "ratchet_explicit",
-        "the ratchet produces 50% of all exits (83 of 167) and is currently the "
-        "constant 1.0 with no tunable distance; it works via two uncontracted "
-        "freqtrade behaviours (a returned float applied as a stoploss at any "
-        "magnitude, and tighten-only adjust_stop_loss)",
+        "THE dominant lever: the ratchet cut 72 of 83 stopped trades (87%) -- "
+        "100% of the profitable stops and 79% of the losing ones fired above the "
+        "-5% static stop. It has no tunable distance (the constant 1.0), and it "
+        "works via two uncontracted freqtrade behaviours. Phase 1 says both "
+        "populations want MORE ROOM, which is exactly what a distance parameter "
+        "provides",
         ADJUST,
         needs_framework_edit=True,
     ),
     Candidate(
         "native_trailing",
-        "the same profit-lock, obtained from freqtrade's own trailing stop with "
-        "real distance and offset parameters, by setting use_custom_stoploss = "
-        "False; never tested because trailing_* is inert while it is True",
+        "freqtrade's own trailing stop carries an OFFSET - do not trail until up "
+        "X% - which is precisely the missing control. The profitable stops fire "
+        "at a stop sitting +2.92% above entry after a median 0.50h; an offset "
+        "would stop the trail engaging that early. Reached by setting "
+        "use_custom_stoploss = False, untested because trailing_* is inert while "
+        "it is True",
+        ADJUST,
+        needs_framework_edit=True,
+    ),
+    Candidate(
+        "ratchet_cap",
+        "a bounded variant of the ratchet: 100% of profitable stops fire with the "
+        "stop ABOVE entry (median +2.92%), so capping how far it may rise -- or "
+        "forbidding it above entry until a profit threshold -- targets the 31 "
+        "trades that gave up a median +11.19% of further upside",
         ADJUST,
         needs_framework_edit=True,
     ),
     Candidate(
         "grace_duration",
-        "the one remaining live dimension of the grace mechanism; stopped trades "
-        "have a median age of 1.00h against 3.3h for the profitable exits",
+        "losing stops cluster JUST PAST the 5.6h boundary (p25/p50/p75 = "
+        "5.75/6.12/8.31h). Non-obvious direction: because freqtrade only "
+        "tightens, the elevated ratchet stop PERSISTS after grace expires, so a "
+        "SHORTER grace freezes the ratchet earlier and may protect, while a "
+        "longer one lets it keep climbing. Worth testing both ways",
+        ADJUST,
+    ),
+    Candidate(
+        "time_based_exit",
+        "\"more time\" is literally the Phase 1 finding -- 63.5% of losing stops "
+        "reach ROI within 24h - and the unclog path currently forces an exit at "
+        "12h. Low ceiling though: only 6 of 167 exits take this path today",
         ADJUST,
     ),
     Candidate(
         "roi_ladder",
-        "22% of exits (36 of 167) land at exactly +3.00%, the flat ROI level, and "
-        "the ratchet exists to carry trades up to it",
+        "DEMOTED by Phase 1. ROI fires 36 times at exactly +3.00%, but the "
+        "problem is trades being cut BEFORE they reach it, not ROI firing "
+        "wrongly. Fixing the ratchet is upstream of this; a ladder only matters "
+        "for trades that survive to collect it",
         ADJUST,
     ),
     Candidate(
         "take_profit_upward",
-        "take-profit downward is known harmful (the hyperopt drove it to 0.005 "
-        "and lost in all three windows); upward from 0.024 is untested",
+        "DEMOTED, and possibly harmful. Raising take-profit keeps those 42 trades "
+        "open LONGER under the ratchet that is already cutting 87% of stops, so "
+        "it may convert take-profit exits into ratchet exits. Test only after the "
+        "ratchet is fixed",
         ADJUST,
     ),
     Candidate(
         "enable_model_exits",
-        "the model already emits exit predictions that are discarded; "
-        "enable_exit_signal is False so populate_exit_trend returns early. No "
-        "retrain is needed to switch it on",
+        "COUNTER-INDICATED by Phase 1. The finding is that the strategy exits too "
+        "EAGERLY -- losing stops recover 63.5% of the time and profitable ones "
+        "give up +11.19%. Adding the model's exit signal adds MORE exit pressure, "
+        "the opposite direction. Retained only so the evidence against it is "
+        "recorded; it is also the sole enable_dormant candidate and therefore the "
+        "highest-risk one",
         DORMANT,
-    ),
-    Candidate(
-        "time_based_exit",
-        "the time-based unclog path accounts for only 6 of 167 exits, so its "
-        "ceiling is low, but it is the only exit reason not yet varied",
-        ADJUST,
     ),
 ]
 

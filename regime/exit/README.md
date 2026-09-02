@@ -96,3 +96,35 @@ answering a question they had already passed. Their honest figure is the
 headline the script prints inherits that flattery; **the 63.5% on the loss
 population is the number to trust**, because for those trades reaching ROI is a
 genuine reversal rather than a restatement.
+
+## Candidate reprioritisation (T009–T011, revised after Phase 1)
+
+Phase 1's attribution reshaped the ranking. **The ratchet cut 72 of 83 stopped
+trades (87%)** — 31/31 of the profitable stops and 41/52 of the losing ones fired
+*above* the −5% static stop. Only **11 of 83** ever reached the configured stop.
+
+| population | inside the 5.6h grace window | age p25/p50/p75 | final stop vs entry |
+|---|---|---|---|
+| profit (31) | **100%** | 0.25 / 0.50 / 0.75h | **+2.64 / +2.92 / +4.08%** |
+| loss (52) | 21.2% | 5.75 / **6.12** / 8.31h | −4.39 / **−2.59** / −1.98% |
+
+The losing stops fire against a stop at **−2.59% from entry**, roughly half the
+−5% that was configured. That is the tighten-only behaviour: the ratchet raises
+the stop during grace, freqtrade never lowers it, so the elevated level
+**persists after grace expires** and the trade dies on an ordinary pullback.
+
+### Revised ranking
+
+| # | candidate | why it moved |
+|---|---|---|
+| 1 | **ratchet_explicit** | Unchanged at the top, but now overwhelming: it owns 87% of stops and is the only lever with a distance parameter to give. |
+| 2 | **native_trailing** | Promoted. freqtrade's trailing carries an **offset** — "don't trail until up X%" — which is exactly the missing control for stops firing at +2.92% after 0.50h. |
+| 3 | **ratchet_cap** | **NEW.** 100% of profitable stops fire with the stop above entry, so bounding how far it may rise targets the 31 trades that forfeited +11.19% median. |
+| 4 | grace_duration | Demoted and reframed. It looked strong because losing stops cluster past the boundary, but the elevated stop persists regardless — so a **shorter** grace may protect by freezing the ratchet earlier. Direction is non-obvious; test both ways. |
+| 5 | time_based_exit | Unchanged. "More time" is literally the finding, but only 6 of 167 exits take this path. |
+| 6 | roi_ladder | **Demoted.** ROI is not the binding constraint — trades are cut before reaching it. Fixing the ratchet is upstream. |
+| 7 | take_profit_upward | **Demoted, possibly harmful.** Raising it keeps 42 trades open longer under the ratchet that is already cutting 87% of stops, converting take-profit exits into ratchet exits. |
+| 8 | enable_model_exits | **Counter-indicated.** The finding is that the strategy exits too eagerly; adding the model's exit signal adds more exit pressure. Retained only so the evidence against it is on record. |
+
+The top three all target the same mechanism from different angles, and all three
+require a `Framework/BaseStrategy.py` change — edit, measure, revert per arm.
