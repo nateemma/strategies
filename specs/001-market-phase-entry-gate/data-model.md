@@ -85,9 +85,9 @@ Per instrument, per era: the characterisation that drives elimination.
 
 - All three characteristics reported for all three eras; no instrument left uncharacterised (SC-002).
 - `state_share` sums to 1.0 within tolerance; each transition-matrix row sums to 1.0.
-- A state below a stated minimum share is reported with its sample count and excluded from verdict-driving comparisons (edge case: rare states).
+- A state holding less than **5%** of the window's bars is reported with its sample count and excluded from verdict-driving comparisons (edge case: rare states).
 - `DROP_DWELL` requires `median_dwell_bars` below the 25th percentile of measured host trade duration — a figure that must come from the host strategy, not a borrowed one (R6).
-- `DROP_UNSTABLE` requires a quoted difference between the W1 and W3 rows. W1-versus-W2 alone is insufficient: those windows are three months apart and share a regime (Principle II, R3).
+- `DROP_UNSTABLE` requires a quoted difference between the W1 and W3 rows, meeting either threshold in FR-011: largest absolute state-share change exceeding 15 percentage points, or the most-likely next state differing for at least half the states. W1-versus-W2 alone is insufficient: those windows are three months apart and share a regime (Principle II, R3).
 
 ---
 
@@ -110,15 +110,24 @@ The feature's single go/no-go. Exactly one instance exists.
 |---|---|---|
 | `instrument` | string | |
 | `window` | enum | `W1` \| `W2` \| `W3` |
-| `phase_choice_error` | float | Forecast error of the phase-chosen configuration |
-| `constant_error` | float | Forecast error of always using `prediction_threshold` 0.69 |
+| `horizon` | enum | Decision-block length — `14d` \| `30d` \| `60d` (research R12) |
+| `phase_choice_error` | float | Mean regret of the phase rule over qualifying blocks |
+| `error_always_aggressive` | float | Mean regret of the always-aggressive fixed choice |
+| `error_always_conservative` | float | Mean regret of the always-conservative fixed choice |
+| `constant_error` | float | `min` of the two fixed choices — **the bar** |
+| `status_quo_error` | float | Mean regret of the tuned configuration — reference only |
 | `beats_constant` | bool | `phase_choice_error < constant_error` |
+| `margin` | float | `constant_error − phase_choice_error` |
+| `n_blocks_qualifying` | int | Blocks scored |
+| `n_blocks_excluded` | int | Blocks dropped for too few trades |
 | `n_trades` | int | Realized trades backing the row |
 
 **Validation**
 
 - Every comparison derives from the host's realized trades; passive market, basket, or buy-and-hold returns are prohibited inputs (FR-013). This is the specific error that invalidated the prior BTC gate.
-- Window winners are decided on risk-adjusted return, so a configuration raising return and drawdown proportionally does not register as a win (FR-018).
+- Block winners are decided on risk-adjusted return, so a configuration raising return and drawdown proportionally does not register as a win (FR-018).
+- `constant_error` MUST be the better of the two fixed choices, never `status_quo_error` (FR-018a). A rule that beats the status quo while losing to the better fixed choice has demonstrated threshold tuning, not trackability.
+- Error is mean regret over qualifying blocks; a block where either arm has fewer than `N` trades is excluded and counted in `n_blocks_excluded`, never scored as a tie (FR-018b). `N` is derived at task T013 from the host's measured trade rate.
 - `PASS` requires `beats_constant` in at least two windows, of which at least one pair must be temporally distant — W1 plus W2 alone cannot produce a `PASS` (FR-015).
 - One window passing and another failing yields `FAIL`, never "mixed" (edge case).
 - `winning_instrument` must have `status = SURVIVING`.

@@ -90,11 +90,19 @@ The stop gate.
 
 | Option | Default | Meaning |
 |---|---|---|
-| `--horizons` | `H` grid | Forward horizons in bars |
+| `--horizons` | `14d,30d,60d` | Decision-block lengths (research R12) |
 | `--arms` | required | Trade exports for the aggressive and conservative configurations |
-| `--constant` | `0.69` | The fixed configuration to beat |
+| `--min-trades` | required | `N` — minimum trades per arm for a block to qualify; derived at T013, no default |
+| `--status-quo` | `0.69` | The tuned configuration, reported as a **reference column only** |
 
 **Precondition**: `--arms` must reference realized trade exports. The script MUST refuse to run against passive price series — this is the specific substitution that invalidated the prior BTC gate (FR-013).
+
+**Scoring contract** (research R12, FR-018a, FR-018b)
+
+- Error is **mean regret** over qualifying blocks: `regret(b) = R_winner(b) − R_chosen(b)`.
+- The bar is `constant_error = min(error(always-aggressive), error(always-conservative))` — **the better of the two fixed choices**. The value passed as `--status-quo` is reported alongside but is NOT the bar. Scoring against a third value that is neither available choice would let a threshold-tuning result register as trackability.
+- A block where either arm has fewer than `--min-trades` trades is excluded and reported, never scored as a tie.
+- There is deliberately **no `--constant` option**. An earlier draft had one defaulting to 0.69, which encoded the wrong baseline.
 
 **Produces**: `regime/trackability.csv` (one row per instrument × window) and `regime/VERDICT.md`.
 

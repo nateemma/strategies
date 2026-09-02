@@ -30,13 +30,29 @@ description: "Task list for 001-market-phase-entry-gate"
 
 ## ⚠️ Standing constraints (apply to every task)
 
-| Constraint | Detail |
-|---|---|
-| **Live dry run** | `MomentumRegimeBasket15mFast` has been running since 2026-08-23. Phases A–C touch no strategy code. Phase D must not modify shared `Framework/` files while it runs. |
-| **Pinned windows** | W1 `20250901-20260831` (headline), W2 `20240601-20250531`, W3 `20230101-20231231`. Always `test_strat.sh -t`; **never** `-n`/`-o`, which compute from today's date. |
-| **The JSON override** | `NNNC/NNNC_MLX.json` is untracked user working state and **overrides** class `buy_params`. Never modify it; write a per-arm copy. A threshold set only in Python silently does nothing — the single most likely false null in this feature. |
-| **Liveness** | Every arm reports model-condition pass count, full-chain pass count, trade count. Chain count equal to baseline ⇒ **INERT**, results discarded, never recorded as a null. |
-| **Staging** | Stage only files your change touched. Never `git add -A` — the user edits concurrently. |
+| Constraint | Detail | Req |
+|---|---|---|
+| **Live dry run** | `MomentumRegimeBasket15mFast` has been running since 2026-08-23. Phases A–C touch no strategy code. Phase D must not modify shared `Framework/` files while it runs. | — |
+| **The JSON override** | `NNNC/NNNC_MLX.json` is untracked user working state and **overrides** class `buy_params`. Never modify it; write a per-arm copy. A threshold set only in Python silently does nothing — the single most likely false null in this feature. | R5 |
+| **Single host** | Every measurement in this feature runs on `NNNC_MLX`, the non-GAN base. Never an `NNNC_DDPM_` variant — that prefix activates a GAN. No host change mid-feature. | FR-033 |
+| **Staging** | Stage only files your change touched. Never `git add -A` — the user edits concurrently. | — |
+
+### Per-arm protocol — **every backtest arm, Phases C and D alike**
+
+Applies to T013, T018–T020 (User Story 2) and every Phase 6/7 arm. Not optional, and not restated per task.
+
+| Gate | Requirement | Req |
+|---|---|---|
+| **Pinned windows** | W1 `20250901-20260831`, W2 `20240601-20250531`, W3 `20230101-20231231`. Always `test_strat.sh -t`; **never** `-n`/`-o`, which compute from today's date. | FR-026 |
+| **Three windows, one distant** | All three, every arm. W1 and W2 are three months apart and cannot establish persistence between them; W3 is the window that can. | FR-027 |
+| **Headline verdict** | W1 is the deployment regime and carries the headline result. Full-history or cross-window aggregates are context, never the headline. | FR-027a |
+| **Realistic execution** | Volume/liquidity constraints active. Fills exceeding available liquidity inflate results even when lookahead is clean. | FR-028 |
+| **Judge on P&L only** | Accept or reject on realized profit and risk-adjusted return. **No model-fit metric** — MCC, validation loss, correlation — may decide an arm, in any phase. | FR-029 |
+| **Liveness** | Report model-condition pass count, full-chain pass count, trade count. Chain count equal to baseline ⇒ **INERT**, results discarded, never recorded as a null. | FR-031 |
+| **Trade count** | Reported every arm. A zero-trade arm is inconclusive, never a zero-return result. | FR-032 |
+| **Exit invariance** | `exit_config_hash` byte-identical to the baseline for the same window. No arm alters exit behaviour. | FR-024, SC-010 |
+| **Sign holds in W3** | An improvement that reverses in the distant era is era-specific and rejected. | SC-009 |
+| **Paired seeds** | Any accepted delta under one percentage point requires paired repeated runs first. | FR-030 |
 
 ---
 
@@ -84,9 +100,9 @@ description: "Task list for 001-market-phase-entry-gate"
 
 ### Actionability characterisation
 
-- [ ] T013 [US1] Run the baseline arm to obtain the **host's own** trade-duration distribution: `run_arm.py --strategy NNNC_MLX --window W1 --threshold 0.69 --tag baseline`. Record median and the 25th percentile. Do **not** reuse the 1.4–31h figures from the momentum dry run — that is a different strategy family (research R6)
+- [ ] T013 [US1] Run the baseline arm to obtain the **host's own** measured distributions: `run_arm.py --strategy NNNC_MLX --window W1 --threshold 0.69 --tag baseline`. Record (a) trade-duration median and 25th percentile — the dwell kill threshold; and (b) the trade **rate**, from which derive `N`, the minimum trades per arm for a decision block to qualify in Phase C. Do **not** reuse the 1.4–31h figures from the momentum dry run — that is a different strategy family (research R6, R12)
 - [ ] T014 [US1] Create `regime/phase_b_characterize.py` per `contracts/study-cli.md` — state distribution, median dwell, and transition matrix per instrument per era. `--dwell-source` is **required with no default**, deliberately, so a duration figure from another strategy family cannot be borrowed by accident (FR-008, FR-009)
-- [ ] T015 [US1] Run T014 across W1/W2/W3 with `--dwell-source` from T013 and set every catalogue `status`. Eliminate instruments whose median dwell falls below the 25th percentile of host trade duration (`DROP_DWELL`) or which are materially unstable across eras (`DROP_UNSTABLE`). Every elimination must quote a measured number. **Instability may only be claimed from a W1-vs-W3 difference** — W1 and W2 are three months apart, share a regime, and cannot establish it (FR-010, FR-011, SC-002, SC-003; Constitution II)
+- [ ] T015 [US1] Run T014 across W1/W2/W3 with `--dwell-source` from T013 and set every catalogue `status`. Eliminate instruments whose median dwell falls below the 25th percentile of host trade duration (`DROP_DWELL`), or which meet either instability threshold (`DROP_UNSTABLE`): largest absolute state-share change **> 15 percentage points**, or the most-likely next state differing for **≥ half the states**. States holding **< 5%** of a window's bars are reported with their sample count and excluded from verdict-driving comparisons. Every elimination must quote a measured number. **Instability may only be claimed from a W1-vs-W3 difference** — W1 and W2 are three months apart, share a regime, and cannot establish it (FR-010, FR-011, SC-002, SC-003; Constitution II)
 - [ ] T016 [US1] Create `regime/phase_b_risk_normalize.py` — recompute the exp4 per-state drawdown normalized for time-in-state, writing `regime/risk_normalized.csv` (FR-012)
 - [ ] T017 [US1] Run T016 and record the verdict plainly as `CONFIRMED` or `REFUTED`. The original showed a ~4× spread (28.1% best state vs 118.3% worst) while the worst state held 1.55× the bars. A `REFUTED` result removes the primary motivation for treating phase as a risk-modulation signal and must be stated in `regime/README.md`, not buried in a table (SC-004)
 
@@ -109,8 +125,8 @@ description: "Task list for 001-market-phase-entry-gate"
 
 ### The verdict
 
-- [ ] T022 [US2] Create `regime/phase_c_trackability.py` per `contracts/study-cli.md`, following the harness shape of `Basket/tools/rolling_optimal_lookback.py` — rolling windows, does this window's better configuration predict the next window's, phase-chosen error vs constant error. The script must **refuse to run against a price series**: only realized trade exports are valid input, which is the substitution that invalidated the prior BTC gate (FR-013, FR-014, FR-018, research R10)
-- [ ] T023 [US2] Run T022 against the T018–T020 exports with `--constant 0.69`. Window winners are decided on **risk-adjusted return**, so a configuration that raises return and drawdown proportionally does not count as a win. Write `regime/trackability.csv` and `regime/VERDICT.md` (FR-018, SC-005)
+- [ ] T022 [US2] Create `regime/phase_c_trackability.py` per `contracts/study-cli.md`, following the harness shape of `Basket/tools/rolling_optimal_lookback.py`. Split each window into non-overlapping decision blocks of length `H ∈ {14d, 30d, 60d}`; score by **mean regret** over qualifying blocks (regret = the block winner's risk-adjusted return minus the chosen configuration's). The bar is `constant_error = min(error(always-aggressive), error(always-conservative))` — **the better of the two fixed choices**; the status-quo 0.69 is a reference column only, never the bar. Exclude and report any block where either arm has fewer than `N` trades; never score it as a tie. The script must **refuse to run against a price series**: only realized trade exports are valid input, which is the substitution that invalidated the prior BTC gate (FR-013, FR-014, FR-018, FR-018a, FR-018b, research R10, R12)
+- [ ] T023 [US2] Run T022 against the T018–T020 exports with `--min-trades N` from T013 and `--status-quo 0.69`. Block winners are decided on **risk-adjusted return**, so a configuration that raises return and drawdown proportionally does not count as a win. Write `regime/trackability.csv` and `regime/VERDICT.md`. A PASS at exactly one horizon in exactly two windows is the weakest admissible result and must be reported as such, not as a clean positive (FR-018, FR-018a, FR-018b, SC-005, research R12)
 - [ ] T024 [US2] Validate the verdict before believing it: every `trackability.csv` row's `source` points at a trade export and never a price series; no row supporting a PASS has `n_trades = 0`; a PASS rests on ≥2 windows including a temporally distant pair (W1+W2 alone is **not** a PASS); one window passing and another failing is **FAIL**, not "mixed" (FR-015, FR-016, FR-032)
 
 **Checkpoint**: the verdict exists. Proceed to the stop gate.
@@ -134,7 +150,7 @@ description: "Task list for 001-market-phase-entry-gate"
 
 **Independent Test**: Each mechanism is an independent A/B arm against the common baseline over the same pinned windows; any one can be accepted or rejected on its own.
 
-**Per-arm protocol** (every arm, every window): pinned literal `-t` range · volume constraints active · three liveness counts · `exit_config_hash` matching baseline · trade count reported · sign must hold in W3 · paired repeated runs for any accepted delta under 1pp.
+**Per-arm protocol**: as defined in Standing Constraints above — it applies here unchanged. Note especially FR-029 (no model-fit metric may decide an arm) and SC-009 (an improvement reversing sign in W3 is era-specific and rejected).
 
 - [ ] T027 [US3] Create `utils/PhaseGate.py` — an opt-in mixin defaulting **OFF** (`phase_gate_enable = False`), wrapping the `utils/BtcRegimeGate.py` merge pattern rather than rewriting it: declare in `informative_pairs()`, pull via `dp.get_pair_dataframe()` at the strategy timeframe, merge on the tz-aware `date` column, `ffill`, fail open when data is unavailable. Exposes the winning instrument's phase state to the entry chain. Must not modify shared `Framework/` files while the dry run is active (FR-023, research R10)
 - [ ] T028 [US3] **M3 (first, highest leverage)** — create `NNNC/NNNC_MLX_PhaseThr.py`, a thin subclass making `prediction_threshold` a function of phase (relax in favorable, tighten in unfavorable). Run across W1/W2/W3 via `run_arm.py`. This is the same lever T023 validated, so a PASS transfers here most directly (FR-019)

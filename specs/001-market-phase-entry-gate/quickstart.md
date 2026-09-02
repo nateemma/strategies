@@ -114,7 +114,7 @@ for T in 0.55 0.80; do
 done
 
 PYTHONPATH=. .venv/bin/python user_data/strategies/regime/phase_c_trackability.py \
-  --arms regime/arms/ --constant 0.69
+  --arms regime/arms/ --min-trades <N from T013> --status-quo 0.69
 ```
 
 **Expect**: `regime/trackability.csv`, `regime/VERDICT.md`, and exactly one stdout verdict line.
@@ -122,9 +122,12 @@ PYTHONPATH=. .venv/bin/python user_data/strategies/regime/phase_c_trackability.p
 **Check before believing either outcome**:
 
 - Every `trackability.csv` row's `source` points at a **trade export**, never a price series. This is the substitution that invalidated the prior BTC gate.
+- `beats_constant` compares against `constant_error` — the **better of the two fixed choices** — and *not* against `status_quo_error`. A rule that beats the status quo while losing to the better fixed choice has demonstrated threshold tuning, not trackability. Both columns exist so this cannot be lost.
+- `n_blocks_excluded` is small relative to `n_blocks_qualifying`. A verdict resting on a handful of blocks is weak evidence regardless of its margin.
 - No row supporting a `PASS` has `n_trades = 0`.
 - A `PASS` rests on at least two windows including a temporally distant pair. W1 + W2 alone is not a `PASS`.
 - One window passing and another failing is `FAIL`, not "mixed".
+- A `PASS` at exactly one horizon in exactly two windows is the weakest admissible result — report it as such.
 
 **On FAIL**: write the negative result to `regime/README.md` with the comparison table, commit, and **stop**. Do not build any mechanism. This is a completed finding of equal weight to a positive one, and the prior on it is real — the same test on a different parameter returned NO at every horizon.
 

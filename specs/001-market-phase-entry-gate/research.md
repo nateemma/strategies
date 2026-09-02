@@ -147,6 +147,51 @@ All three are pinned as literal date ranges. See R8.
 
 ---
 
+## R12. The forecast metric, the baseline, and the horizon grid
+
+Added 2026-09-02 after cross-artifact analysis found the error metric undefined, the horizon grid unpopulated, and the baseline ambiguous. These are one decision and are resolved together.
+
+### Decision — decision blocks
+
+Each evaluation window is split into non-overlapping blocks of length `H`. For each block `b`, compute the risk-adjusted return of each arm from **its realized trades falling in that block** — `R_agg(b)` and `R_con(b)`. The block's realized winner is the argmax.
+
+### Decision — regret, not MAE
+
+For any rule `C` that picks a configuration per block:
+
+```
+regret(b) = R_winner(b) − R_C(b)          (≥ 0 by construction)
+error(C)  = mean regret over qualifying blocks
+```
+
+**Rationale**: the precedent harness used MAE because it was forecasting a *numeric parameter* (a lookback length). Here the forecast is a *binary choice*, so MAE has no meaning. Regret is in return units, so the margin reads directly as "what the switch cost us" rather than as an abstract error.
+
+### Decision — the baseline is the BETTER FIXED CHOICE
+
+```
+constant_error     = min( error(always-aggressive), error(always-conservative) )
+phase_choice_error = error(phase rule)
+beats_constant     = phase_choice_error < constant_error
+```
+
+The tuned status-quo configuration (`prediction_threshold` 0.69) is reported as a **reference column**, not as the bar.
+
+**Rationale — this is the correction that matters most.** Scoring the phase rule against 0.69, which is neither available choice, would let a pure threshold-tuning result masquerade as trackability: if 0.55 or 0.80 is simply better than 0.69 across the board, a phase rule picking between them beats 0.69 while carrying no information about phase at all. That is the same shape of artifact as the original BTC gate's proportional de-risking — a number that moves for a reason unrelated to the hypothesis. Requiring the rule to beat the better fixed choice makes a PASS strictly harder and is the only version of the test that isolates the phase signal.
+
+### Decision — horizon grid `H ∈ {14d, 30d, 60d}`
+
+Long enough to accumulate a stable risk-adjusted number per block, short enough to give several decision points per window. W3 (365 days) yields 26 / 12 / 6 blocks respectively.
+
+### Decision — block qualification
+
+A block in which **either** arm produced fewer than `N` trades is excluded and reported, never scored as a tie (FR-018b, FR-032). **`N` is derived at task T013** from the host's measured trade rate, not fixed here — the same reasoning as R6: a threshold guessed ahead of the measurement is a borrowed figure.
+
+### Decision — margin floor
+
+A PASS requires the margin between `phase_choice_error` and `constant_error` to exceed the paired-seed noise band (FR-030). Three horizons constitute a small multiple comparison; the existing requirement for at least two temporally distant windows is what controls it. **A PASS at exactly one horizon in exactly two windows is the weakest admissible result and MUST be reported as such**, not as a clean positive.
+
+---
+
 ## Summary of resolved unknowns
 
 | # | Unknown | Resolution |
@@ -162,5 +207,6 @@ All three are pinned as literal date ranges. See R8.
 | R9 | Lookahead validation | Truncated-history versus full-history label identity at three cut points |
 | R10 | Prior-art reuse | exp4 taxonomy, btcdata pattern, BtcRegimeGate merge, rolling_optimal_lookback harness |
 | R11 | Environment | `.venv/bin/python`, `PYTHONPATH=.`; host `NNNC_MLX` |
+| R12 | Forecast metric, baseline, horizon | Mean regret over decision blocks; baseline = **better fixed choice** (0.69 as reference only); `H ∈ {14d, 30d, 60d}`; min trades per block `N` derived at T013 |
 
 No `NEEDS CLARIFICATION` items remain.

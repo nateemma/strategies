@@ -83,14 +83,25 @@ The Phase C evidence table. One row per instrument per window.
 |---|---|---|
 | `instrument` | string | Must be `SURVIVING` |
 | `window` | string | `W1` \| `W2` \| `W3` |
-| `horizon_bars` | int | Forward horizon `H` |
-| `phase_choice_error` | float | Forecast error of the phase-chosen configuration |
-| `constant_error` | float | Forecast error of always using threshold 0.69 |
-| `beats_constant` | bool | |
+| `horizon` | string | Decision-block length — `14d` \| `30d` \| `60d` |
+| `n_blocks_qualifying` | int | Blocks scored |
+| `n_blocks_excluded` | int | Blocks dropped for too few trades — reported, never scored as ties |
+| `phase_choice_error` | float | Mean regret of the phase rule |
+| `error_always_aggressive` | float | Mean regret of always choosing aggressive |
+| `error_always_conservative` | float | Mean regret of always choosing conservative |
+| `constant_error` | float | **`min` of the two above** — the bar |
+| `status_quo_error` | float | Mean regret of the tuned configuration — **reference only, not the bar** |
+| `beats_constant` | bool | `phase_choice_error < constant_error` |
+| `margin` | float | `constant_error − phase_choice_error`; must exceed the paired-seed noise band |
 | `n_trades` | int | Realized trades backing the row |
 | `source` | string | Path to the trade export — **never** a price series |
 
-**Contract**: `source` is recorded so the prohibition in FR-013 is auditable after the fact. A row with `n_trades = 0` cannot support a `PASS`.
+**Contract**
+
+- `source` is recorded so the prohibition in FR-013 is auditable after the fact.
+- A row with `n_trades = 0` cannot support a `PASS`.
+- `constant_error` is the **better fixed choice**, not `status_quo_error`. Both columns exist precisely so the distinction cannot be lost: a rule that beats the status quo while losing to the better fixed choice has demonstrated threshold tuning, not trackability, and must not be read as a PASS (research R12, FR-018a).
+- `n_blocks_excluded` is reported so that a verdict resting on a handful of qualifying blocks is visible rather than implied.
 
 ---
 
