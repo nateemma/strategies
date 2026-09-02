@@ -33,6 +33,7 @@ Run from the freqtrade root:
 import argparse
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -101,6 +102,21 @@ def exit_config_hash(scratch: Path, strategy: str) -> str:
     exit_side = {k: params.get(k) for k in ("sell", "roi", "stoploss", "trailing")}
     blob = json.dumps(exit_side, sort_keys=True)
     return hashlib.sha256(blob.encode()).hexdigest()[:16]
+
+
+def build_env(scratch: Path) -> dict:
+    """Environment for the backtest subprocess.
+
+    The strategy imports `Framework` and `utils` as top-level packages, which
+    only resolve with user_data/strategies on PYTHONPATH - test_strat.sh sets
+    exactly this (line 179) and it is easy to miss when invoking freqtrade
+    directly. Without it the strategy fails to import and freqtrade reports
+    only "This class does not exist or contains Python code errors".
+    """
+    env = os.environ.copy()
+    parts = [".", str(STRAT_DIR), str(scratch), str(STRAT_DIR / "utils")]
+    env["PYTHONPATH"] = ":".join(parts + ([env["PYTHONPATH"]] if env.get("PYTHONPATH") else []))
+    return env
 
 
 def build_command(strategy: str, scratch: Path, window: str, config: Path,
@@ -179,7 +195,7 @@ def main() -> int:
         print("\n--plan: not executed.")
         return 0
 
-    proc = subprocess.run(cmd, cwd=ROOT)
+    proc = subprocess.run(cmd, cwd=ROOT, env=build_env(scratch))
     result = summarize(export_path)
 
     record = {
