@@ -66,8 +66,16 @@ def strategy_group(strategy: str) -> str:
     for base in sorted(STRATEGY_GROUP, key=len, reverse=True):
         if strategy.startswith(base):
             return STRATEGY_GROUP[base]
+    # Family variants that do not extend a registered base's full name --
+    # e.g. NNNC_BreakoutOpen, which is an NNNC strategy but not an NNNC_MLX one.
+    # Fall back to the leading family token when it names a real directory.
+    family = strategy.split("_", 1)[0]
+    if (STRAT_DIR / family).is_dir():
+        return family
     raise SystemExit(
-        f"unknown strategy {strategy!r}; known bases: {sorted(STRATEGY_GROUP)}"
+        f"unknown strategy {strategy!r}: no registered base matches and "
+        f"{family!r} is not a strategy directory. Known bases: "
+        f"{sorted(STRATEGY_GROUP)}"
     )
 
 
