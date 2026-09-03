@@ -73,6 +73,29 @@ class NNMTStrategy(BaseNNStrategy):
     # Inherit the shared entry controls and override only what differs.
     # The three keys below are MULTI-TASK ONLY -- their Parameters are declared
     # in this class, so they belong here rather than in the shared base.
+    #
+    #   entry_rvol_threshold 0.25  Swept 2026-09-02 on the repaired exit stack
+    #       (native trailing stop off) across three windows. Was 0.5, which was
+    #       never swept -- it was a base-class hyperopt leftover mirrored in here
+    #       verbatim. Summed return by rvol:
+    #           0.0    0.25   0.5    1.0    1.5    2.0
+    #          15.60  20.20  19.48  15.79  11.73  11.85
+    #       0.25 wins W1 (headline) and W3 (persistence), summed return and
+    #       worst-window Calmar; 0.5 wins only W2. The return gain is modest
+    #       (+0.72pp) -- the case is W3, which goes 0.05% -> 1.04% and its Calmar
+    #       0.04 -> 1.11, on this family's weakest window.
+    #
+    #       rvol 0.0 (guard fully off) is WORSE than 0.25, so a light volume
+    #       filter does earn its place; the optimum is just very loose.
+    #
+    #       DO NOT copy this to another family. NNNC's optimum is 2.0, an 8x
+    #       difference -- rvol paces capital and each family has a different
+    #       trade profile. See regime/nnmt_entry_README.md.
+    #
+    #   entry_guard_threshold 0.3  Dominant in all three windows on both return
+    #       and Calmar, with 0.6 byte-identical to 0.3 by trade hash. Same
+    #       saturating plateau measured on NNNC, so this one IS structural and is
+    #       already the BaseStrategy default -- kept here only for readability.
     buy_params = { **BaseNNStrategy.buy_params,
         "entry_adx_threshold": 38.0,
         "entry_atr_pct": 0.006,
@@ -80,7 +103,7 @@ class NNMTStrategy(BaseNNStrategy):
         "entry_close_norm_threshold": -0.1,
         "entry_enable_guards": True,
         "entry_guard_threshold": 0.3,
-        "entry_rvol_threshold": 0.5,
+        "entry_rvol_threshold": 0.25,
         "prediction_threshold": 0.5,
         # multi-task only
         "profit_prediction_threshold": 0.3,
