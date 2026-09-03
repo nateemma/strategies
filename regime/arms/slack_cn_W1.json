@@ -1,0 +1,33 @@
+{
+  "tag": "slack_cn",
+  "window": "W1",
+  "timerange": "20250901-20260831",
+  "strategy": "NNNC_MLX",
+  "prediction_threshold": 0.69,
+  "guards": "on",
+  "overrides": {
+    "entry_rvol_threshold": 2.0,
+    "entry_guard_threshold": 0.3,
+    "entry_close_norm_threshold": 10.0
+  },
+  "exit_config_hash": "0b85d05b23ae988e",
+  "volume_filter_active": true,
+  "returncode": 0,
+  "result_file": "backtest-result-2026-09-02_13-51-16.zip",
+  "n_trades": 107,
+  "n_pairs": 10,
+  "trades_hash": "c3a823eeab918142",
+  "profit_pct": 48.565,
+  "win_rate": 62.6,
+  "duration_h_median": 4.5,
+  "duration_h_p25": 1.12,
+  "duration_h_p75": 8.38,
+  "trades_per_day": 0.3323,
+  "wallet_profit_pct": 2.876,
+  "max_drawdown_pct": 2.082,
+  "profit_factor": 1.299,
+  "calmar": 7.251,
+  "sortino": 0.561,
+  "sqn": 0.982,
+  "expectancy_ratio": 0.1118
+}

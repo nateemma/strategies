@@ -102,18 +102,23 @@ description: "Task list for 002-exit-process-repair"
 
 ---
 
-## Phase 5: User Story 3 — Cheap screening before expensive testing (Priority: P3)
+## Phase 5: User Story 3 — Cheap screening (Priority: P3) — DEFERRED for candidates 1-3
+
+> Marked `[~]`. The top three candidates all target the same mechanism and all need
+> a Framework change the screen cannot faithfully model; they went straight to
+> backtest arms instead. The deviation and its reasoning are recorded in
+> regime/exit/README.md. The screen still applies to candidates 4-7.
 
 **Goal**: Score candidates by re-deriving outcomes from price history, so only survivors consume a backtest.
 
 **Independent Test**: Rank two or more candidates against the recorded baseline with no backtest run.
 
-- [ ] T012 [US3] Implement `regime/exit/replay.py` — re-derive each recorded trade's outcome under a candidate exit rule from price history, modelling the full exit stack (ratchet, anchored stop, take-profit, ROI, time-based) (FR-013)
-- [ ] T013 [US3] Implement `--validate-only`, which replays the **current** rule and compares against the recorded baseline outcomes (FR-014)
-- [ ] T014 [US3] ⛔ **GATE — run `replay.py --validate-only` and do not proceed until it reproduces the recorded baseline.** Exit code 2 on failure. A screen that cannot reproduce the known answer will mis-score every candidate **invisibly** — the candidates would simply rank wrongly, with nothing to signal it. Nothing may be scored before this passes (FR-014, SC-004)
-- [ ] T015 [US3] Score all live candidates, writing `screen_results.csv` with the change in total outcome versus the recorded baseline and a PASS/REJECTED verdict per candidate (FR-015)
-- [ ] T016 [US3] Reject failing candidates **without** consuming a backtest, and record at least one such rejection as evidence the screen earns its place (FR-016, SC-006)
-- [ ] T017 [US3] Record the screen's known blind spots in `regime/exit/README.md`: it models the exit stack but not position limits, one-open-trade-per-pair blocking, or capital freed by an earlier exit. Its disagreement with Phase 4 is expected and is itself a reported quantity (FR-013, SC-004, Assumptions, edge case)
+- [~] T012 [US3] Implement `regime/exit/replay.py` — re-derive each recorded trade's outcome under a candidate exit rule from price history, modelling the full exit stack (ratchet, anchored stop, take-profit, ROI, time-based) (FR-013)
+- [~] T013 [US3] Implement `--validate-only`, which replays the **current** rule and compares against the recorded baseline outcomes (FR-014)
+- [~] T014 [US3] ⛔ **GATE — run `replay.py --validate-only` and do not proceed until it reproduces the recorded baseline.** Exit code 2 on failure. A screen that cannot reproduce the known answer will mis-score every candidate **invisibly** — the candidates would simply rank wrongly, with nothing to signal it. Nothing may be scored before this passes (FR-014, SC-004)
+- [~] T015 [US3] Score all live candidates, writing `screen_results.csv` with the change in total outcome versus the recorded baseline and a PASS/REJECTED verdict per candidate (FR-015)
+- [~] T016 [US3] Reject failing candidates **without** consuming a backtest, and record at least one such rejection as evidence the screen earns its place (FR-016, SC-006)
+- [~] T017 [US3] Record the screen's known blind spots in `regime/exit/README.md`: it models the exit stack but not position limits, one-open-trade-per-pair blocking, or capital freed by an earlier exit. Its disagreement with Phase 4 is expected and is itself a reported quantity (FR-013, SC-004, Assumptions, edge case)
 
 **Checkpoint**: the candidate set is filtered for the cost of a calculation.
 

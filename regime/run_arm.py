@@ -66,7 +66,7 @@ def timerange(window: str) -> str:
 def build_scratch(strategy: str, threshold: float, tag: str, window: str,
                   guards: bool = True, overrides: dict | None = None,
                   sell_overrides: dict | None = None, roi: dict | None = None,
-                  stoploss: float | None = None) -> Path:
+                  stoploss: float | None = None, trailing: dict | None = None) -> Path:
     """Symlink the strategy group into a scratch dir and write the arm's JSON.
 
     Returns the scratch directory to pass as --strategy-path.
@@ -110,6 +110,8 @@ def build_scratch(strategy: str, threshold: float, tag: str, window: str,
         params.setdefault("params", {})["roi"] = roi
     if stoploss is not None:
         params.setdefault("params", {})["stoploss"] = {"stoploss": stoploss}
+    if trailing:
+        params.setdefault("params", {}).setdefault("trailing", {}).update(trailing)
     (dst / f"{strategy}.json").write_text(json.dumps(params, indent=2))
 
     return dst
@@ -247,6 +249,8 @@ def main() -> int:
     ap.add_argument("--roi", default=None, metavar="PCT",
                     help="override the flat ROI level, e.g. 0.03")
     ap.add_argument("--stoploss", type=float, default=None)
+    ap.add_argument("--set-trailing", action="append", default=[], metavar="KEY=VALUE",
+                    help="override a trailing-block parameter, repeatable")
     ap.add_argument("--set", action="append", default=[], metavar="KEY=VALUE",
                     help="override a buy-space parameter, repeatable "
                          "(e.g. --set entry_rvol_threshold=0.5)")
@@ -273,11 +277,15 @@ def main() -> int:
         else:
             try: sell_over[k] = float(v)
             except ValueError: sell_over[k] = v
+    trail_over = {}
+    for kv in args.set_trailing:
+        k, _, v = kv.partition("=")
+        trail_over[k] = (v.lower() == "true") if v.lower() in ("true","false") else float(v)
     scratch = build_scratch(args.strategy, args.threshold, args.tag, args.window,
                             guards=(args.guards == "on"), overrides=overrides,
                             sell_overrides=sell_over,
                             roi=({"0": float(args.roi)} if args.roi else None),
-                            stoploss=args.stoploss)
+                            stoploss=args.stoploss, trailing=trail_over)
     export_path = OUT_DIR / f"{args.tag}_{args.window}_trades.json"
     cmd = build_command(args.strategy, scratch, args.window, args.config, export_path)
 
@@ -304,6 +312,7 @@ def main() -> int:
         "guards": args.guards,
         "overrides": overrides,
         "sell_overrides": sell_over,
+        "trailing_overrides": trail_over,
         "exit_config_hash": exit_config_hash(scratch, args.strategy),
         "volume_filter_active": True,
         "returncode": proc.returncode,

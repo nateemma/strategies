@@ -128,3 +128,116 @@ the stop during grace, freqtrade never lowers it, so the elevated level
 
 The top three all target the same mechanism from different angles, and all three
 require a `Framework/BaseStrategy.py` change — edit, measure, revert per arm.
+
+## Deviation: Phase 3 screen skipped for the top three candidates
+
+**What was specified**: score every candidate by counterfactual replay (T012–T017)
+before spending a backtest, with T014 requiring the screen to reproduce the
+recorded baseline first.
+
+**What is being done instead**: candidates 1–3 go straight to backtest arms.
+
+**Why**. The reprioritisation put all three top candidates on the *same
+mechanism* — the ratchet — and all three need a `Framework/BaseStrategy.py`
+change. A price-history replay can faithfully model rule changes like an ROI
+ladder or a time exit, but the ratchet's behaviour depends on freqtrade's
+`adjust_stop_loss` tighten-only semantics and on how a returned float is applied.
+Reproducing that well enough to pass the T014 gate approaches reimplementing the
+backtester, and a screen that *nearly* models it would mis-score every ratchet
+variant — the exact failure T014 exists to prevent.
+
+Each arm is one cheap backtest per window, and the edit-measure-revert pattern is
+already proven, so the screen would cost more than it saves here.
+
+**What is preserved**: the screen still gates candidates 4–7 (grace duration, time
+exit, ROI ladder, take-profit), which it *can* model faithfully. T014 still
+applies before it scores anything.
+
+**The risk accepted**: the top three consume 3 backtests each without a cheap
+pre-filter. Bounded and visible.
+
+---
+
+# RESULT: `trailing_stop: false` — +4.53pp across three windows
+
+## The mechanism, corrected
+
+Phase 1 attributed 87% of stops to "the ratchet". That attribution was right
+about *where* the stops fired (above the −5% level) and **wrong about what put
+them there.**
+
+`ft_stoploss_adjust` runs freqtrade's native trailing block **in addition to**
+`custom_stoploss`, not instead of it:
+
+```python
+if self.trailing_stop and dir_correct:
+    if not (self.trailing_only_offset_is_reached and bound_profit < sl_offset):
+        if self.trailing_stop_positive is not None and bound_profit > sl_offset:
+            stop_loss_value = self.trailing_stop_positive
+        trade.adjust_stop_loss(bound or current_rate, stop_loss_value)
+```
+
+With `trailing_only_offset_is_reached: false` the guard never skips, so this ran
+on **every candle of every trade**. That is what was raising the stop above the
+configured −5%.
+
+This also explains why `trailing_stop_positive` measured as inert: it applies
+only when `bound_profit > 0.03`, and ROI fires at exactly +3.00%, so a trade
+essentially never survives above the offset for the positive-trailing branch to
+engage. The block always took the fallback path.
+
+## The explicit-ratchet sweep, which pointed the way
+
+Replacing `return 1.0` with a deliberate distance was **rejected** — every value
+lost, monotonically improving toward baseline as the distance widened:
+
+| distance | summed | vs baseline |
+|---|---|---|
+| baseline (`1.0`) | 11.43% | — |
+| 0.05 | 2.50% | −8.93pp |
+| 0.08 | 4.47% | −6.95pp |
+| 0.12 | 6.25% | −5.17pp |
+| 0.20 | 7.96% | −3.47pp (W3 INERT) |
+
+The trend said the optimum is "don't let `custom_stoploss` bind at all", which
+`1.0` already achieves — so `return 1.0` is a **no-op**, not a ratchet, and the
+cutting had to be coming from somewhere else. That is what sent the search to
+the trailing block.
+
+## The result
+
+| window | trailing ON | trailing OFF | Δ wallet | Δ Calmar |
+|---|---|---|---|---|
+| W1 | +3.95%, PF 2.33, Calmar 26.4, win 64.7% | **+7.11%, PF 3.70, Calmar 48.7, win 75.5%** | **+3.16pp** | **+22.4** |
+| W2 | +5.75%, PF 1.66, Calmar 13.1, win 69.8% | **+6.84%, PF 1.81, Calmar 13.7, win 73.7%** | +1.09pp | +0.6 |
+| W3 | +1.72%, PF 3.86, Calmar 17.8, win 75.0% | **+2.01%, PF 4.57, Calmar 20.8, win 85.0%** | +0.28pp | +3.0 |
+| **summed** | **11.43%** | **15.95%** | **+4.53pp** | |
+
+Return, profit factor, Calmar and win rate all improve in **all three windows**,
+including the temporally distant one — the test that rejected both `rvol 2.5` and
+the hyperopt exit config.
+
+Exit mix, pooled:
+
+| reason | ON | OFF |
+|---|---|---|
+| stop | 83 @ −0.87% = −72.45% | **40 @ −4.23% = −169.39%** |
+| take-profit | 42 @ +2.69% = +112.98% | **73 @ +3.57% = +260.84%** |
+| ROI | 36 @ +3.00% = +107.90% | **45 @ +3.00% = +134.89%** |
+
+Exactly the Phase 1 prediction: trades formerly cut on noise now survive to reach
+their targets. Half as many stops, and the ones that remain take the full −5%
+because they are genuine losers rather than noise casualties — more than paid for
+by 31 extra take-profits at a higher mean.
+
+## Caveats
+
+- **W2 drawdown worsens** 2.299% → 2.617%. W1 and W3 are flat or better.
+- The surviving stops are **larger individual losses** (−4.23% vs −0.87% mean).
+  Total stop losses rise from −72.45% to −169.39%; the gain comes from the win
+  side, not from losing less.
+- LIVE in all three windows (trade hashes differ from baseline), so this is not
+  an inert-parameter null.
+- `native_trailing` as a *candidate* is resolved in the opposite direction from
+  the one proposed: the fix is to turn native trailing OFF and keep
+  `custom_stoploss`, not to switch to native trailing.
