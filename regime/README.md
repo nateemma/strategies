@@ -663,3 +663,78 @@ is **single-pair** entry timing at **15m** on **11 alts measured as strongly
 mean-reverting** (`asset_vr24` Reverting 56–72% of bars). The phase→momentum
 relationship does not transfer across that gap, and this gate is the cheap way
 that was established — an afternoon instead of a training cycle.
+
+## Entry gate RE-MEASURED on the repaired exit stack (2026-09-02)
+
+The 4x4 grid below was scored on P&L that included the native-trailing defect
+(see `regime/exit/README.md`). After that was fixed, both entry dimensions were
+re-swept at the new exit config (trailing off, ROI 0.05, grace 6.5h). The two
+findings did NOT fare the same way.
+
+### guard_metric 0.3 — SURVIVES, unchanged
+
+Re-measured at rvol 1.5 (the most trade-rich cell, so the best powered):
+
+| guard | W1 | W2 | W3 | summed | worst Calmar |
+|---|---|---|---|---|---|
+| −0.4 | 9.24% | 12.82% | 3.02% | 25.09% | 9.11 |
+| 0.0 | 9.31% | 13.28% | 3.68% | 26.27% | 11.50 |
+| **0.3** | **9.57%** | **13.28%** | **4.13%** | **26.98%** | **12.96** |
+| 0.6 | 9.57% | 13.28% | 4.13% | 26.98% | 12.96 |
+
+Same shape as before: monotone in guard, 0.3 ≥ 0.0 ≥ −0.4 in every window on
+both return and Calmar, and 0.6 is byte-identical to 0.3 (verified by trade
+hash) — still a saturating plateau, not a peak. A plateau does not move when
+something downstream changes, which is why this one held.
+
+### entry_rvol_threshold 3.1 — OVERTURNED
+
+| rvol | W1 | W2 | W3 | summed | worst Calmar | trades |
+|---|---|---|---|---|---|---|
+| 1.5 | 9.57% | **13.28%** | **4.13%** | **26.98%** | 12.96 | 397 |
+| **2.0** | 10.40% | 11.19% | 3.73% | 25.32% | 10.72 | 331 |
+| 2.5 | **11.91%** | 7.37% | 2.02% | 21.29% | 5.75 | 254 |
+| 3.1 | 7.44% | 8.74% | 2.11% | 18.29% | **18.09** | 163 |
+| 4.0 | 2.65% | 5.75% | 0.83% | 9.22% | 16.89 | 78 |
+
+**3.1 was an artifact of the broken exit.** It was selected on worst-window
+Calmar, and it won that criterion only because loose rvol collapsed in W1 —
+rvol 1.5 scored **+0.04%** on W1 under the old stack. That collapse *was* the
+trailing stop: the marginal trades a looser gate admits were exactly the ones
+being cut on noise. The same cell now scores **+9.57%**.
+
+Return is now monotone decreasing in rvol with no interior optimum, and 3.1 is
+the worst live setting tested except 4.0. It still wins worst-window Calmar, but
+only because it barely trades — 163 trades against 331.
+
+**Minimax regret** (pp below each window's own best cell) is the right rule here,
+because the per-window return optimum is still not identifiable (W1 wants 2.5,
+W2 and W3 want 1.5 — the same disagreement as before):
+
+| rvol | W1 | W2 | W3 | **max regret** |
+|---|---|---|---|---|
+| 1.5 | 2.34 | 0.00 | 0.00 | 2.34 |
+| **2.0** | 1.51 | 2.09 | 0.39 | **2.09** |
+| 2.5 | 0.00 | 5.91 | 2.11 | 5.91 |
+| 3.1 | 4.47 | 4.54 | 2.02 | 4.54 |
+| 4.0 | 9.26 | 7.53 | 3.30 | 9.26 |
+
+What changed is not the disagreement but its cost: choosing low rvol used to be
+catastrophic in W1 (4.96pp of regret), and now costs 2.34pp.
+
+**rvol 2.0 recommended**, on three independent grounds:
+- lowest max regret (2.09pp vs 4.54pp for 3.1);
+- it dominates 1.5 on **every** metric in W1, the deployment regime that carries
+  the headline verdict — 10.40% vs 9.57%, drawdown 1.50% vs 2.25%, Calmar 36.45
+  vs 22.30, Sortino 1.82 vs 0.97;
+- it was *also* the best summed-return cell under the OLD exit stack (16.50%),
+  so it is the one value that is good under both — 3.1 is good under neither.
+
+Drawdown stays small throughout: worst cell is rvol 1.5 on W2 at 5.18%, against
+2.54% at 3.1. This buys ~7pp of return for ~2.5pp of drawdown.
+
+**META-LESSON.** Two studies were each measured against the other's broken half.
+The entry grid scored entries on P&L that a defective exit was destroying, and
+concluded the entry gate should be tight. When a study concludes "take fewer
+trades", check whether the trades are bad or whether something downstream is
+mishandling them.
