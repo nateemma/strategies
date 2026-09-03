@@ -289,3 +289,38 @@ strategy and the +11.19% median upside the counterfactual identified.
 This also answers the trailing question that prompted the test: at ROI 5% there
 is finally a real band above the 3% offset for a positive trailing stop to work
 in — but only once take-profit stops capping at 3.55%.
+
+## Take-profit sweep — REJECTED, and it qualifies the counterfactual
+
+Control = ROI 0.05 + trailing off (17.19%).
+
+| take-profit | summed | vs control | worst-window Calmar | W2 maxDD |
+|---|---|---|---|---|
+| **0.024 (control)** | **17.19%** | — | **16.30** | 2.43% |
+| 0.030 | 14.84% | −2.35pp | 17.10 | 2.06% |
+| 0.035 | 13.19% | −4.00pp | 9.30 | 3.16% |
+| 0.040 (range max) | 14.15% | −3.04pp | 9.14 | 3.45% |
+| 0.060 (beyond range) | 13.49% | −3.70pp | 6.06 | 4.57% |
+| profit checks OFF | 12.66% | −4.53pp | 6.06 | 4.57% |
+
+At 0.060 the arm is identical to disabling profit checks — so the value took
+effect (the declared 0.005–0.04 range does not clamp a JSON override) and
+take-profit simply never fires. Disabling it outright is the **worst** arm, so
+the 2.4% ceiling is doing real work. Drawdown rises monotonically as the ceiling
+lifts (W2 2.43% → 4.57%).
+
+**`cexit_take_profit = 0.024` is already optimal.** Candidate 7 is closed.
+
+### What this says about the Phase 1 counterfactual
+
+Phase 1 measured a median **+11.19%** of further upside after profitable stops,
+and that number is real — but it is a **maximum favourable excursion**, the best
+price reachable, which you would have to time perfectly to collect. This sweep is
+the direct test of whether a simple ceiling can harvest it, and the answer is no:
+every attempt to let winners run further loses more on the trades that give back
+than it gains on the ones that continue.
+
+**Methodological note worth carrying forward: an MFE-based counterfactual
+overstates capturable upside.** It bounds what was theoretically available, not
+what any implementable rule can take. Treat it as a screen for whether to look,
+never as an estimate of the gain.

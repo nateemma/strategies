@@ -1,0 +1,39 @@
+{
+  "tag": "tp035",
+  "window": "W1",
+  "timerange": "20250901-20260831",
+  "strategy": "NNNC_MLX",
+  "prediction_threshold": 0.69,
+  "guards": "on",
+  "overrides": {},
+  "sell_overrides": {
+    "stoploss_grace_hours": 5.6,
+    "stoploss_grace_level": -0.27,
+    "cexit_max_days": 10.0,
+    "enable_exit_signal": false,
+    "cexit_take_profit": 0.035
+  },
+  "trailing_overrides": {
+    "trailing_stop": false
+  },
+  "exit_config_hash": "1e8293405ac7b5ec",
+  "volume_filter_active": true,
+  "returncode": 0,
+  "result_file": "backtest-result-2026-09-02_18-15-26.zip",
+  "n_trades": 48,
+  "n_pairs": 10,
+  "trades_hash": "ec326074434e45e6",
+  "profit_pct": 65.78,
+  "win_rate": 64.6,
+  "duration_h_median": 6.0,
+  "duration_h_p25": 3.12,
+  "duration_h_p75": 11.56,
+  "trades_per_day": 0.1825,
+  "wallet_profit_pct": 5.711,
+  "max_drawdown_pct": 1.076,
+  "profit_factor": 2.449,
+  "calmar": 27.863,
+  "sortino": 1.736,
+  "sqn": 2.342,
+  "expectancy_ratio": 0.5132
+}
