@@ -139,3 +139,71 @@ confirms guards are still on. So this arm is not a guards-off control; it is an
 compare NNNC, where the same switch was +0.03pp. Worth noting that NNMT's model
 does earn something on exits where NNNC's does not, but it is not consistent
 across windows (W1 and W3 both negative).
+
+## Seed-robustness test of `noflow` — NOT CONFIRMED
+
+Six models trained fresh (base and `noflow` at MLX_SEED 42/1/7) on the pinned
+window `20220101-20250831`, which ends the day before W1 begins. **W1 is
+therefore out-of-sample and carries the verdict; W2 and W3 are IN-SAMPLE.**
+All six model files verified distinct by SHA-256.
+
+| seed | ΔW1 (OOS) | ΔW2 (in-sample) | ΔW3 (in-sample) | Δ summed |
+|---|---|---|---|---|
+| 42 | **−0.19** | +1.00 | +0.05 | +0.86 |
+| 1 | **+0.08** | +0.01 | +0.18 | +0.27 |
+| 7 | **0.00** | +0.03 | +0.42 | +0.45 |
+| mean | **−0.04** | +0.35 | +0.22 | +0.53 |
+
+**Verdict: do not promote `noflow`.** On the only out-of-sample window the effect
+is zero with inconsistent sign. Every positive summed delta comes from in-sample
+windows — the signature of a slightly better fit, not an edge. The single-seed
++1.62pp does not reproduce (best seed +0.86pp), and base's own seed spread on W1
+(10.71 / 10.44 / 10.67) is wider than the mean treatment effect.
+
+The earlier +1.62pp was single-seed noise plus in-sample fit, on models whose
+training window is unrecoverable and probably overlapped the evaluation windows.
+
+Consistent with the validation metrics measured during training: base moved
+0.0067 on `val_trading_mcc` from seed alone (0.6057 → 0.5990) while `noflow` sat
+0.0054 BELOW base at the same seed — treatment smaller than seed noise there too.
+
+### The instrument has limited resolution here
+
+Several arms produced **byte-identical trade sets from genuinely different
+models**: base W3 is hash `840872fdb3` / 126 trades for ALL THREE seeds, and
+`noflow` s42 and s1 share hash `cfff1bb13f` on W1 — while all six weight files
+differ.
+
+So the **guard chain, not the model, selects most entries** — the recorded
+"guards bind, not the z-gate" finding showing up as measurement power. When the
+gate picks the bars, a head-weight change moves only a handful of marginal
+trades, which cannot be resolved above seed noise.
+
+This reframes the original null: it was not only the broken exit compressing
+variation, the backtest is a low-resolution instrument for head weightings in the
+first place. **Head-weight tuning is a poor lever for NNMT regardless of exit
+state.** Any future attempt needs either a much looser gate (to raise the share
+of model-determined entries) or a model-level metric that is known to track P&L —
+and this repository has repeatedly found that MCC does not.
+
+### Corrections to the earlier write-up in this file
+
+The task-ablation section above reports single-seed results on models with an
+unknown training window. Its ranking should be read as **not established**. What
+survives is the negative result: no head weighting is distinguishable once seeds
+are accounted for, which AGREES with the original study's null rather than
+overturning it. The claim that "the null does not reproduce" was wrong — it does
+reproduce, for a better-understood reason.
+
+### Apparatus notes
+
+- `train_seed` is **silently inert for multi-task models** (9th recorded
+  instance). `TrainSeedStrategyMixin` sets `clf.train_seed` and
+  `MLXClassifierNary.train()` honours it, but `MLXClassifierMultiTask` extends
+  `MLXBaseClassifier` and never reads it. Using the documented mixin route would
+  have produced identical models at every seed and reported "seed-robust". The
+  working route is the `MLX_SEED` env var, read by `MLXBasePredictor` at import.
+- **No training metadata is saved** with a model — `saved_data/<cls>/` holds only
+  the `.safetensors`, with no window, seed or config. That is why the pre-existing
+  models could not be reused as a seed arm, and why their absolute numbers are
+  not comparable to anything measured later.
