@@ -70,3 +70,53 @@ MAGNITUDE, not on direction — which is exactly what a stop controls. A breakou
 arm plausibly wants a tighter stop than a dip-buyer, since a failed breakout
 reverts hard. That has never been swept for this label. It would not have to
 recover 17pp to be interesting, only to show the payoff shape responding.
+
+## The learnability screen passed on BOTH axes — and was wrong
+
+Independent gate run (`DebugSignalLearnability`, methods 17 vs 24, H ∈ {24,36,48},
+thresholds {0.007, 0.010, 0.015}, XRP/SOL/LINK). It confirms H=48 was the right
+pin — MCC rises monotonically with H for both labels — and then says something
+much more useful.
+
+At H=48, mean over the three pairs:
+
+| label | thr | MCC | EV/signal | signals |
+|---|---|---|---|---|
+| gbb | 0.007 | **0.800** | 3.90% | 13777 |
+| gbb | 0.010 | 0.747 | 4.19% | 12618 |
+| gbb | 0.015 | 0.665 | 4.69% | 10805 |
+| breakout_gbb | 0.007 | 0.753 | **4.50%** | 13505 |
+| breakout_gbb | 0.010 | 0.699 | **4.87%** | 12334 |
+| breakout_gbb | 0.015 | 0.609 | **5.48%** | 10635 |
+
+**`breakout_gbb` has HIGHER EV per signal than gbb at every threshold**, and is
+nearly as learnable (0.753 vs 0.800; per-pair LINK 0.787 / SOL 0.790 / XRP 0.681).
+
+The screen was green on both axes. The backtest is **−17.55%** against gbb's
+**+25.32%** — a ~43pp gap in opposite directions, from the label that screened
+BETTER on expected value.
+
+### Why the screen lies, specifically
+
+`ev_per_signal` is computed from `future_gain` = the **maximum favourable
+excursion** over the horizon. It is PATH-BLIND: it asks whether price ever
+reached a good level, never whether it got there without hitting the stop first.
+
+Breakouts have excellent MFE and an adverse path — they revert hard before
+continuing, so the stop fires long before that upside is reachable. The backtest
+shape confirms it exactly: **58–60% win rate with PF below 1**, i.e. frequently
+right about direction, expensively wrong about the route.
+
+gbb does not have this problem because a dip-buy enters AFTER the adverse
+excursion has happened; the breakout enters BEFORE it.
+
+**Methodological consequence.** An MFE-based EV screen systematically flatters
+momentum labels and is fair to mean-reversion ones. It cannot rank the two
+against each other. To screen a momentum label, the EV metric needs to be
+path-aware — maximum ADVERSE excursion before the favourable one, or the
+counterfactual replay built for feature 002, which already computes exactly this
+from recorded trades.
+
+This is the SIXTH independent confirmation that learnability does not equal edge,
+and the sharpest: previous cases had the metric merely failing to predict P&L.
+Here both screening metrics pointed the WRONG WAY.
