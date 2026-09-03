@@ -132,23 +132,42 @@ class NNNCStrategy(BaseNNStrategy):
 
     # Inherit the shared entry/exit controls; override only what differs.
     #
-    # Values validated 2026-09-02 by a 4x4 rvol x guard_metric grid at
-    # thr=0.69 across three windows (W1 2025-09..2026-08, W2 2024-06..2025-05,
-    # W3 2023). See regime/README.md.
+    # Values RE-VALIDATED 2026-09-02 on the REPAIRED exit stack (native trailing
+    # stop off - see regime/exit/README.md), by a full 4x4 rvol x guard_metric
+    # grid plus a 7-point rvol curve at thr=0.69 across three windows
+    # (W1 2025-09..2026-08, W2 2024-06..2025-05, W3 2023). See regime/README.md.
     #
-    #   entry_rvol_threshold 3.1  The dominant guard: it alone moves trade count
-    #       49 -> 160 and separates profitable from unprofitable. Its optimum on
-    #       RETURN wanders by era (W1 wants 2.5, W2 and W3 want 1.5 - no two
-    #       windows agree), while its optimum on CALMAR is 3.1 in ALL THREE.
-    #       Was 0.5 here, which measured -4.73% on W1. Do not lower it on
-    #       single-window evidence: rvol 2.5 looked like a free win on W1
-    #       (+1.00pp, more trades, higher win rate) and lost on both others.
+    #   entry_rvol_threshold 2.0  WAS 3.1, and 3.1 was an ARTIFACT of the broken
+    #       exit. It had been picked on worst-window Calmar, and won that only
+    #       because loose rvol collapsed in W1 - rvol 1.5 scored +0.04% there
+    #       under the old stack and scores +9.57% now. The collapse WAS the
+    #       trailing stop: the marginal trades a looser gate admits were exactly
+    #       the ones being cut on noise.
     #
-    #   entry_guard_threshold 0.3  Uniformly dominant: 0.3 >= 0.0 >= -0.4 on
-    #       both return and Calmar in every cell of all three windows, and 0.6
-    #       is byte-identical to 0.3, so this is a saturating plateau rather
-    #       than a peak. Against the previous -0.4: return +0.50/+0.19/+0.77pp,
-    #       Calmar +3.31/+1.27/+5.56, and W3 goes 13 -> 20 trades.
+    #       The curve now has a real interior optimum, peaking at 1.5 and
+    #       falling off BOTH sides (summed return over three windows):
+    #           0.5   1.0   1.5   2.0   2.5   3.1   4.0
+    #         22.26 22.24 26.98 25.32 21.29 18.29  9.22
+    #
+    #       The per-window optimum is still not identifiable (W1 wants 2.5, W2
+    #       and W3 want 1.5), so MINIMAX REGRET decides: 2.0 has the lowest max
+    #       regret of all seven points (2.09pp, vs 2.34 at 1.5 and 4.54 at 3.1).
+    #       2.0 also dominates 1.5 on EVERY metric in W1, the deployment regime
+    #       that carries the headline verdict - 10.40% vs 9.57%, drawdown 1.50%
+    #       vs 2.25%, Calmar 36.45 vs 22.30, Sortino 1.82 vs 0.97 - and it was
+    #       the best summed-return cell under the OLD stack too, so it is the one
+    #       value that is good under both. Worth +7.03pp (18.29% -> 25.32%).
+    #
+    #       NOT promoted to the base class: rvol 2.0 costs NNMT 7.62pp
+    #       (19.48% -> 11.85%), so the optimum is family-specific. Both families
+    #       want LOOSE rvol; NNMT is already there at 0.5, NNNC was the outlier.
+    #
+    #   entry_guard_threshold 0.3  Uniformly dominant, and re-confirmed on the
+    #       repaired stack: 0.3 >= 0.0 >= -0.4 on both summed return and
+    #       worst-window Calmar in ALL 16 cells of the new grid, with 0.6 still
+    #       byte-identical to 0.3 at every rvol (verified by trade hash). A
+    #       saturating plateau, not a peak - which is precisely why it did not
+    #       move when the exit stack changed underneath it.
     #
     #   adx 38 / atr_pct 0.006 / bb_width 0.06 are LOAD-BEARING, not slack.
     #       Loosening adx to 30 costs -3.92%; atr_pct to 0.003 costs -7.10%.
@@ -161,7 +180,7 @@ class NNNCStrategy(BaseNNStrategy):
         "entry_close_norm_threshold": -0.1,
         "entry_enable_guards": True,
         "entry_guard_threshold": 0.3,
-        "entry_rvol_threshold": 3.1,
+        "entry_rvol_threshold": 2.0,
         "prediction_threshold": 0.69,
     }
     

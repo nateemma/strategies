@@ -738,3 +738,65 @@ The entry grid scored entries on P&L that a defective exit was destroying, and
 concluded the entry gate should be tight. When a study concludes "take fewer
 trades", check whether the trades are bad or whether something downstream is
 mishandling them.
+
+### Full 4x4 grid on the repaired stack — guard column confirmed
+
+Completing the grid (27 further arms). Rows = rvol, cols = `guard_metric`.
+
+**Summed return %**
+
+| rvol | −0.4 | 0.0 | **0.3** | 0.6 |
+|---|---|---|---|---|
+| 1.5 | 25.09 | 26.27 | **26.98** | 26.98 |
+| 2.0 | 22.87 | 23.67 | **25.32** | 25.32 |
+| 2.5 | 19.45 | 19.89 | **21.29** | 21.29 |
+| 3.1 | 16.50 | 16.89 | **18.29** | 18.29 |
+
+**Worst-window Calmar**
+
+| rvol | −0.4 | 0.0 | **0.3** | 0.6 |
+|---|---|---|---|---|
+| 1.5 | 9.11 | 11.50 | **12.96** | 12.96 |
+| 2.0 | 7.90 | 8.55 | **10.72** | 10.72 |
+| 2.5 | 3.18 | 3.63 | **5.75** | 5.75 |
+| 3.1 | 14.83 | 14.12 | **18.09** | 18.09 |
+
+`guard_metric = 0.3` is dominant in **all 16 cells on both metrics**, and 0.6 is
+byte-identical to 0.3 at every rvol (verified by trade hash). Identical structure
+to the pre-fix grid. The plateau did not move, which is the expected behaviour of
+a saturating threshold and the reason this finding survived the exit repair while
+the rvol finding did not.
+
+### rvol curve extended below 1.5 — a real interior optimum
+
+| rvol | 0.5 | 1.0 | **1.5** | 2.0 | 2.5 | 3.1 | 4.0 |
+|---|---|---|---|---|---|---|---|
+| trades | 523 | 466 | 397 | 331 | 254 | 163 | 78 |
+| summed % | 22.26 | 22.24 | **26.98** | 25.32 | 21.29 | 18.29 | 9.22 |
+| max regret | 4.05 | 4.07 | 2.34 | **2.09** | 5.91 | 4.54 | 9.26 |
+
+Return peaks at 1.5 and falls off **both** sides, so this is a genuine optimum
+rather than a monotone preference for more trades. **rvol 2.0 APPLIED**: lowest
+max regret of all seven points, and it dominates 1.5 on every metric in W1.
+Verified by FR-030 — the applied config reproduces the measured arm with
+identical trade hashes in all three windows (94/179/58 trades, 25.32% summed).
+
+### rvol is FAMILY-SPECIFIC — not promoted to the base class
+
+Measured on NNMT_MLX at its own defaults before touching the shared value:
+
+| NNMT | rvol 0.5 | rvol 2.0 | Δ |
+|---|---|---|---|
+| W1 | 169 tr, 9.64% | 104 tr, 6.08% | −3.56pp |
+| W2 | 340 tr, 9.79% | 208 tr, 4.85% | −4.94pp |
+| W3 | 125 tr, 0.05% | 63 tr, 0.92% | +0.87pp |
+| **sum** | **19.48%** | **11.85%** | **−7.62pp** |
+
+**`BaseStrategy.buy_params` keeps `entry_rvol_threshold: 0.5`.** The two families
+agree on the *direction* — loose rvol is better — and NNMT is already there. NNNC
+at 3.1 was the outlier. Moving the shared default to 2.0 would push every other
+family the wrong way on the only cross-family evidence available.
+
+Contrast with `trailing_stop`, which WAS promoted: that one improved both
+families in all six windows. A change earns the base class by being measured on
+more than one family, not by being large on one.
