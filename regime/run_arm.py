@@ -129,6 +129,14 @@ def exit_config_hash(scratch: Path, strategy: str) -> str:
     return hashlib.sha256(blob.encode()).hexdigest()[:16]
 
 
+def _parse_roi(v: str) -> dict:
+    """Accept either a flat level or a full ROI ladder as JSON."""
+    v = v.strip()
+    if v.startswith("{"):
+        return {str(k): float(x) for k, x in json.loads(v).items()}
+    return {"0": float(v)}
+
+
 def build_env(scratch: Path) -> dict:
     """Environment for the backtest subprocess.
 
@@ -246,8 +254,9 @@ def main() -> int:
     ap.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     ap.add_argument("--set-sell", action="append", default=[], metavar="KEY=VALUE",
                     help="override a sell-space parameter, repeatable")
-    ap.add_argument("--roi", default=None, metavar="PCT",
-                    help="override the flat ROI level, e.g. 0.03")
+    ap.add_argument("--roi", default=None, metavar="PCT|JSON",
+                    help='flat ROI level (e.g. 0.03) or a full ladder as JSON '
+                         '(e.g. \'{"0":0.06,"180":0.04}\')')
     ap.add_argument("--stoploss", type=float, default=None)
     ap.add_argument("--set-trailing", action="append", default=[], metavar="KEY=VALUE",
                     help="override a trailing-block parameter, repeatable")
@@ -284,7 +293,7 @@ def main() -> int:
     scratch = build_scratch(args.strategy, args.threshold, args.tag, args.window,
                             guards=(args.guards == "on"), overrides=overrides,
                             sell_overrides=sell_over,
-                            roi=({"0": float(args.roi)} if args.roi else None),
+                            roi=(_parse_roi(args.roi) if args.roi else None),
                             stoploss=args.stoploss, trailing=trail_over)
     export_path = OUT_DIR / f"{args.tag}_{args.window}_trades.json"
     cmd = build_command(args.strategy, scratch, args.window, args.config, export_path)

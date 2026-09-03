@@ -241,3 +241,51 @@ by 31 extra take-profits at a higher mean.
 - `native_trailing` as a *candidate* is resolved in the opposite direction from
   the one proposed: the fix is to turn native trailing OFF and keep
   `custom_stoploss`, not to switch to native trailing.
+
+## ROI ladder test — every variant beats flat 3%, but ROI is not the real ceiling
+
+Control = baseline exit params + `trailing_stop: false` (the accepted change).
+Trade counts are **identical (49/95/20) across every variant**, so this isolates
+where trades exit, not which are taken.
+
+| ROI | summed | vs control | worst-window Calmar | W1 / W2 / W3 |
+|---|---|---|---|---|
+| flat 0.03 (control) | 15.95% | — | 13.72 | 7.11 / 6.84 / 2.01 |
+| flat 0.04 | 16.86% | +0.90pp | 15.79 | 7.47 / 7.32 / 2.07 |
+| flat 0.05 | 17.19% | +1.24pp | 16.30 | 7.55 / 7.53 / 2.11 |
+| flat 0.06 | 17.28% | +1.33pp | 16.60 | 7.51 / 7.66 / 2.11 |
+| ladder 6/4/3 | 17.13% | +1.17pp | 16.67 | 7.37 / 7.66 / 2.09 |
+| ladder 8/5/3 | **17.36%** | **+1.41pp** | **16.68** | 7.44 / 7.83 / 2.09 |
+
+Improvement is consistent in **all three windows for every variant**, drawdown is
+essentially unchanged (W1 0.763–0.765%, W3 0.507–0.508%), and worst-window Calmar
+rises from 13.72 to ~16.7.
+
+**The ladder is not worth its parameters.** Flat 0.06 (+1.33pp) and ladder 8/5/3
+(+1.41pp) differ by 0.08pp, far below what this test resolves. A ladder adds two
+degrees of freedom for no measurable gain.
+
+**Recommended: flat 0.05.** W1 peaks there and W3 saturates there; only W2 gains
+from 0.06, and by 0.13pp. It captures ~93% of the available improvement with the
+smallest departure from the validated value.
+
+### Why the gain plateaus: take-profit is now the binding ceiling
+
+| exit reason | ROI 3% | ROI 5% | ROI 6% |
+|---|---|---|---|
+| roi | 45 @ +3.00% | **5** @ +5.00% | **3** @ +6.01% |
+| take_profit | 73 @ +3.57% | **111** @ +3.55% | **113** @ +3.56% |
+| stop | 40 @ −4.23% | 41 @ −4.28% | 41 @ −4.28% |
+
+Raising ROI does not let winners run — it hands control to `cexit_take_profit`,
+which caps them at a **+3.55% mean regardless**. ROI exits collapse from 45 to 5.
+The +1.3pp comes entirely from the 40 trades that used to exit at exactly 3.00%
+now exiting at ~3.55%.
+
+**So `take_profit_upward` — demoted after Phase 1 — is now the live lever.** With
+ROI out of the way at 5%, `cexit_take_profit` at 0.024 is what stands between the
+strategy and the +11.19% median upside the counterfactual identified.
+
+This also answers the trailing question that prompted the test: at ROI 5% there
+is finally a real band above the 3% offset for a positive trailing stop to work
+in — but only once take-profit stops capping at 3.55%.

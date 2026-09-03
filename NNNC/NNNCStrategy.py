@@ -76,6 +76,38 @@ class NNNCStrategy(BaseNNStrategy):
     # Threshold lives in TrainingConfig too — change them together, not
     # in isolation. Don't reintroduce the override here.
 
+    # Freqtrade's NATIVE trailing stop is disabled for this family.
+    #
+    # ft_stoploss_adjust runs the trailing block IN ADDITION to custom_stoploss,
+    # not instead of it, and `trailing_only_offset_is_reached = False` means the
+    # guard never skips - so it ran on every candle of every trade and raised the
+    # stop above the configured -5%.
+    #
+    # This completes a fix that was already half-made. BaseStrategy.custom_stoploss
+    # carries a comment recording that returning self.stoploss there "created an
+    # implicit trailing stop even with trailing_stop=False" and caught a large
+    # fraction of winners; that half was fixed with `return 1.0`. The native
+    # trailing stop was left on, doing the same thing from the other side.
+    #
+    # Measured 2026-09-02 across three pinned windows, same entry config, same
+    # model, no retrain:
+    #   W1  +3.95% PF2.33 Calmar26.4 win64.7%  ->  +7.11% PF3.70 Calmar48.7 win75.5%
+    #   W2  +5.75% PF1.66 Calmar13.1 win69.8%  ->  +6.84% PF1.81 Calmar13.7 win73.7%
+    #   W3  +1.72% PF3.86 Calmar17.8 win75.0%  ->  +2.01% PF4.57 Calmar20.8 win85.0%
+    #   summed 11.43% -> 15.95%, +4.53pp; better in ALL THREE windows on return,
+    #   PF, Calmar and win rate.
+    #
+    # Exit mix: stops 83 -> 40, take-profit 42 -> 73 at a higher mean. Trades that
+    # were being cut on noise now survive to reach their targets. The surviving
+    # stops are LARGER individual losses (-4.23% vs -0.87% mean) because they are
+    # genuine losers rather than noise casualties - the gain comes entirely from
+    # the win side, and W2 drawdown worsens slightly (2.30% -> 2.62%).
+    #
+    # trailing_stop_positive / _offset are left as-is: they are unreachable while
+    # ROI fires at +3.00% and the offset is 0.03, so a trade never survives above
+    # the offset for the positive branch to engage.
+    trailing_stop = False
+
     # Inherit the shared entry/exit controls; override only what differs.
     #
     # Values validated 2026-09-02 by a 4x4 rvol x guard_metric grid at

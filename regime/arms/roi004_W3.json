@@ -1,0 +1,39 @@
+{
+  "tag": "roi004",
+  "window": "W3",
+  "timerange": "20230101-20231231",
+  "strategy": "NNNC_MLX",
+  "prediction_threshold": 0.69,
+  "guards": "on",
+  "overrides": {},
+  "sell_overrides": {
+    "stoploss_grace_hours": 5.6,
+    "stoploss_grace_level": -0.27,
+    "cexit_take_profit": 0.024,
+    "cexit_max_days": 10.0,
+    "enable_exit_signal": false
+  },
+  "trailing_overrides": {
+    "trailing_stop": false
+  },
+  "exit_config_hash": "923c5fc65475cc91",
+  "volume_filter_active": true,
+  "returncode": 0,
+  "result_file": "backtest-result-2026-09-02_18-08-14.zip",
+  "n_trades": 20,
+  "n_pairs": 8,
+  "trades_hash": "fcc05b3341240ed0",
+  "profit_pct": 40.047,
+  "win_rate": 85.0,
+  "duration_h_median": 3.5,
+  "duration_h_p25": 1.81,
+  "duration_h_p75": 8.75,
+  "trades_per_day": 0.0581,
+  "wallet_profit_pct": 2.066,
+  "max_drawdown_pct": 0.508,
+  "profit_factor": 4.671,
+  "calmar": 21.353,
+  "sortino": 0.687,
+  "sqn": 2.697,
+  "expectancy_ratio": 0.5507
+}
