@@ -207,3 +207,60 @@ reproduce, for a better-understood reason.
   the `.safetensors`, with no window, seed or config. That is why the pre-existing
   models could not be reused as a seed arm, and why their absolute numbers are
   not comparable to anything measured later.
+
+## WHY head-weight studies cannot work here: the gate picks ~99% of entries
+
+The hash collisions above were weak evidence. Measuring the actual entry sets
+settles it. Jaccard overlap of `(pair, open_date)` sets across six models
+(base / noflow / rmp × seeds 42, 1, 7):
+
+| window | same weights, different seed | different weights, same seed |
+|---|---|---|
+| W1 | **99.2%** | **99.2%** |
+| W3 | **100.0%** | 96.9% |
+
+On W1 those are **identical**: changing the task weighting moves the entry set no
+more than changing the random seed does. On W3 same-weight models are byte
+identical, which is why base's W3 hash repeated across all three seeds — a fully
+gate-determined entry set, not a bug.
+
+Trade-level, base_s42 vs rmp_s42:
+
+| | W1 | W3 |
+|---|---|---|
+| shared entries | 175 of 176 | 124 |
+| shared trades with IDENTICAL `profit_ratio` | **100.0%** | **100.0%** |
+| entries only in base | 1 (+0.56%) | 2 (−2.06%) |
+| entries only in rmp | 1 (+0.70%) | 4 (+1.96%) |
+
+**The entire W1 difference between two arms is one trade each way.**
+
+Two consequences, both measured rather than inferred:
+
+1. **The guard chain determines ~99% of entries.** Any arm comparison is a
+   referendum on 1–6 marginal bars out of 176. No number of seeds fixes this;
+   the instrument has ~1% resolution.
+2. **The heads have ZERO influence on exits.** Every shared trade exits
+   identically — including between base (profit head untrained, MCC 0.000) and
+   rmp (profit head trained, MCC 0.182). So the trained profit head changes no
+   exit decision, despite `strategy_custom_exit` being documented as a
+   model-prediction bailout reading `%profit` and `%regime`. That path is
+   effectively dead, consistent with the exit-signal arm being the only thing
+   that ever moved exits.
+
+This explains all three prior results at once: the original null, the `noflow`
+false positive, and `rmp` landing at +0.01pp on W1 despite having the best
+training metrics of any arm (trading MCC 0.6089 vs base 0.6057, profit head
+learning at 0.182, risk and momentum both nudged up).
+
+**Prerequisite for any future head-weight work:** make entries model-determined
+first, via a materially looser guard chain, so the model chooses among candidates
+instead of ratifying the gate's choice. Until then, head-weight arms are
+unmeasurable and should not be run.
+
+**Method, to redo this:** read each arm's `result_file` from `regime/arms/*.json`
+via `freqtrade.data.btanalysis.load_backtest_data`, key trades on
+`(pair, open_date)`, and compare set overlap plus `profit_ratio` on the shared
+keys. Comparing SAME-weights/different-seed against DIFFERENT-weights/same-seed
+is the essential control — without it, a high overlap looks like determinism
+rather than gate dominance.
