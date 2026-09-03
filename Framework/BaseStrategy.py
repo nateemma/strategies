@@ -285,8 +285,38 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
         "cexit_enable_profit_checks": True,  # value loaded from strategy
     }
 
-    # Trailing stop:
-    trailing_stop = True
+    # Trailing stop: DISABLED framework-wide (2026-09-02).
+    #
+    # freqtrade's ft_stoploss_adjust runs the native trailing block IN ADDITION
+    # to custom_stoploss, not instead of it, and `trailing_only_offset_is_reached`
+    # is False by default here - so the guard never skips and the block ran on
+    # every candle of every trade, raising the stop above the configured
+    # `stoploss`. Every family in this repo sets `use_custom_stoploss = True`,
+    # so every family had the double-application.
+    #
+    # This completes a fix that was already half-made: see the comment in
+    # custom_stoploss below recording that returning self.stoploss there
+    # "created an implicit trailing stop even with trailing_stop=False" and
+    # caught a large fraction of winners. That half was fixed with `return 1.0`;
+    # the native trailing stop was left on, doing the same thing from the other
+    # side.
+    #
+    # Measured on NNNC_MLX across three pinned windows, no retrain:
+    #   summed wallet 11.43% -> 15.95% (+4.53pp), better in ALL THREE windows on
+    #   return, profit factor, Calmar and win rate. Exit mix: stops 83 -> 40,
+    #   take-profit 42 -> 73 at a higher mean - trades formerly cut on noise now
+    #   survive to reach their targets.
+    #
+    # trailing_stop_positive / _offset are left in place but are unreachable
+    # while trailing_stop is False. Note they were ALSO unreachable before, since
+    # they require profit > offset (0.03) and minimal_roi exits at 0.03 - which
+    # is why sweeping trailing_stop_positive gave byte-identical backtests.
+    #
+    # A strategy family wanting the old behaviour can set trailing_stop = True
+    # on its own class, but should measure first: this was validated on NNNC_MLX
+    # only, and the per-family check for NNMT is recorded in
+    # regime/exit/README.md.
+    trailing_stop = False
     trailing_stop_positive = 0.01
     trailing_stop_positive_offset = 0.03
 

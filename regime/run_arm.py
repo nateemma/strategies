@@ -50,7 +50,7 @@ SCRATCH = STRAT_DIR / "regime/.scratch"
 DEFAULT_CONFIG = STRAT_DIR / "config/config.json"
 
 # Which subdirectory of user_data/strategies holds the host strategy.
-STRATEGY_GROUP = {"NNNC_MLX": "NNNC"}
+STRATEGY_GROUP = {"NNNC_MLX": "NNNC", "NNMT_MLX": "NNMT"}
 
 
 def timerange(window: str) -> str:
@@ -84,12 +84,17 @@ def build_scratch(strategy: str, threshold: float, tag: str, window: str,
         (dst / f.name).symlink_to(f.resolve())
 
     user_json = src / f"{strategy}.json"
-    if not user_json.is_file():
-        raise SystemExit(f"expected {user_json} to exist - it carries the tuned params")
-    params = json.loads(user_json.read_text())
+    if user_json.is_file():
+        params = json.loads(user_json.read_text())
+    else:
+        # A strategy with no params file runs purely on its class defaults.
+        # Synthesize the minimum freqtrade needs so overrides can still apply;
+        # load_params_from_file validates strategy_name against the class.
+        params = {"strategy_name": strategy, "params": {}}
 
     buy = params.setdefault("params", {}).setdefault("buy", {})
-    buy["prediction_threshold"] = threshold
+    if threshold is not None:
+        buy["prediction_threshold"] = threshold
     # The guard chain is ANDed with the model condition. With it ON and tuned
     # hard (rvol>3.1, adx>38, guard_metric<-0.4) the guards can be the binding
     # constraint, leaving the z-gate almost no room to vary - the "judge at a
@@ -249,7 +254,8 @@ def main() -> int:
     ap.add_argument("--strategy", default="NNNC_MLX",
                     help="host strategy; never an NNNC_DDPM_ variant (FR-033)")
     ap.add_argument("--window", required=True, choices=sorted(WINDOWS))
-    ap.add_argument("--threshold", type=float, required=True)
+    ap.add_argument("--threshold", type=float, default=None,
+                    help="prediction_threshold; omit to keep the strategy's own default")
     ap.add_argument("--tag", required=True)
     ap.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     ap.add_argument("--set-sell", action="append", default=[], metavar="KEY=VALUE",
@@ -300,7 +306,7 @@ def main() -> int:
 
     print(f"arm       : {args.tag} / {args.window}")
     print(f"timerange : {timerange(args.window)}  (literal, not today-relative)")
-    print(f"threshold : {args.threshold}")
+    print(f"threshold : {args.threshold if args.threshold is not None else '(strategy default)'}")
     print(f"scratch   : {scratch}")
     print(f"exit hash : {exit_config_hash(scratch, args.strategy)}")
     print(f"command   : {' '.join(cmd)}")

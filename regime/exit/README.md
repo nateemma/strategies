@@ -383,3 +383,47 @@ having. Left off, since it adds a subsystem for no measured gain.
 
 Verified by re-running with **no overrides**: identical trade hashes in all three
 windows (49 / 94 / 20 trades, +7.44 / +8.74 / +2.11%). No retraining at any point.
+
+## Framework promotion + NNMT transfer check
+
+`trailing_stop = False` promoted to `BaseStrategy` (was `True`). Validated on a
+second family first.
+
+**NNMT_MLX** has a trained model and **no params file**, so it runs purely on
+class defaults — the cleanest possible transfer test.
+
+| window | trailing ON | trailing OFF | Δ wallet | Δ Calmar |
+|---|---|---|---|---|
+| W1 | +0.57%, PF 1.03, Calmar 0.61 | **+9.64%, PF 1.62, Calmar 23.62** | **+9.08pp** | +23.01 |
+| W2 | +7.70%, PF 1.28, Calmar 8.14 | **+9.79%, PF 1.37, Calmar 11.04** | +2.08pp | +2.91 |
+| W3 | **−0.77%**, PF 0.94, Calmar −0.63 | **+0.05%**, PF 1.00, Calmar 0.05 | +0.82pp | +0.67 |
+| **summed** | **7.50%** | **19.48%** | **+11.97pp** | |
+
+Better in all three windows, and **W3 flips from negative to positive**. NNMT
+gains nearly 3× what NNNC did (+11.97pp vs +4.53pp) — consistent with it trading
+2–4× more, so more trades were exposed to the defect.
+
+Two families, six windows, same direction. The framework-wide promotion is
+justified on evidence rather than on the mechanism argument alone.
+
+**Not promoted**: ROI 0.05 and grace 6.5h stay NNNC-only. Both were swept against
+NNNC_MLX's specific trade profile — grace especially, which has a cliff at 9h on
+this strategy's duration distribution. NNMT holds trades differently and would
+need its own sweep.
+
+## Exit signals, re-tested at the final config
+
+| window | off | ON | Δ |
+|---|---|---|---|
+| W1 | +7.439% | +7.317% | −0.12pp |
+| W2 | +8.742% | +8.899% | +0.16pp |
+| W3 | +2.109% | +2.105% | −0.00pp |
+| **summed** | **18.29%** | **18.32%** | **+0.03pp** |
+
+**Identical to the earlier result at grace 5.6h (+0.03pp).** Trade counts
+unchanged (49/94/20), deltas in both directions, LIVE but null. The exit stack
+changing by +9pp did not make the model's exit opinion matter. Consistent with
+the recorded NNMT finding that the model wins only ~8% of exits.
+
+**Answer: no, enabling exit signals still makes no difference.** Left off — it
+adds a subsystem for nothing.
