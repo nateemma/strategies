@@ -324,3 +324,62 @@ than it gains on the ones that continue.
 overstates capturable upside.** It bounds what was theoretically available, not
 what any implementable rule can take. Treat it as a screen for whether to look,
 never as an estimate of the gain.
+
+## Final three candidates — one win, one dead, one null
+
+Control = ROI 0.05 + trailing off (17.19%).
+
+### grace_duration → **6.5h, ACCEPTED (+1.10pp)**
+
+| grace | sum% | worst Calmar | W1 | W2 | W3 | ΔW3 |
+|---|---|---|---|---|---|---|
+| 2.0h | 15.67 | 17.96 | 5.99 | 7.95 | 1.74 | −0.37 |
+| 3.5h | 15.06 | 13.66 | 5.59 | 7.34 | 2.13 | +0.02 |
+| 5.6h (control) | 17.19 | 16.30 | 7.55 | 7.53 | 2.11 | — |
+| **6.5h** | **18.29** | **18.09** | 7.44 | 8.74 | **2.11** | **+0.00** |
+| 7.0h | 18.61 | 15.82 | 8.01 | 8.64 | 1.96 | −0.15 |
+| 8.0h | 18.44 | 17.42 | 7.94 | 8.49 | 2.01 | −0.10 |
+| 9.0h | 16.43 | **0.15** | 7.46 | 8.91 | **0.07** | −2.04 |
+| 12.0h | 18.11 | **0.44** | 8.82 | 9.09 | **0.20** | −1.91 |
+
+**A cliff sits between 8h and 9h**: W3 collapses from +2.01% to +0.07% and its
+Calmar from 17.42 to 0.15. 12.0h looks strong on W1/W2 (8.82 / 9.09, the best of
+any arm) and is a trap — the classic recent-window win that dies in the distant
+one.
+
+6.5h is chosen over 7.0h despite lower raw return (18.29 vs 18.61) because it has
+the better worst-window Calmar (18.09 vs 15.82), leaves W3 exactly unchanged, and
+keeps margin from the cliff.
+
+### time_based_exit → **DEAD (inert)**
+
+`cexit_max_days` at 1 and 2 both give **byte-identical** results to the control at
+10. Median trade duration is ~3.5h, so `max_hold` never fires. The real time
+thresholds — `unclog_12h` and `unclog_1d` — are **hardcoded**, not parameters, so
+there is no tunable time lever at all. Another inert parameter for the register.
+
+### enable_model_exits → **NULL (+0.03pp)**
+
+LIVE (trade hashes differ) but indistinguishable from noise: 17.19% → 17.22%,
+worst-window Calmar 16.30 → 16.29. **My "counter-indicated" prediction was wrong
+in direction** — enabling model exits does not harm, it simply does nothing worth
+having. Left off, since it adds a subsystem for no measured gain.
+
+---
+
+# FINAL CONFIGURATION — 9.02% → 18.29%
+
+| change | verdict | contribution |
+|---|---|---|
+| `trailing_stop: false` | ACCEPTED | +4.53pp |
+| ROI 0.03 → 0.05 | ACCEPTED | +1.24pp |
+| grace 5.6h → 6.5h | ACCEPTED | +1.10pp |
+| revert hyperopt exit block | — | +2.41pp |
+| take-profit raise | REJECTED | every value lost |
+| explicit ratchet | REJECTED | every distance lost |
+| `grace_level` | DEAD | inert, confirmed by test |
+| `cexit_max_days` | DEAD | inert |
+| model exits | NULL | +0.03pp |
+
+Verified by re-running with **no overrides**: identical trade hashes in all three
+windows (49 / 94 / 20 trades, +7.44 / +8.74 / +2.11%). No retraining at any point.

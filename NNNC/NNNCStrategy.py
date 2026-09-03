@@ -62,8 +62,17 @@ class NNNCStrategy(BaseNNStrategy):
     # First-hour stop-loss grace (BaseStrategy): wide stop for the first 3h,
     # then tighten to the ATR-adaptive stop. Restores the pre-confirm_trade_exit
     # "don't stop out on entry noise" behaviour, safely. See NNMT sweep (3h/-0.15).
+    # Grace window: 6.5h. Swept 2.0-12.0h on the post-fix exit stack (trailing
+    # off, ROI 0.05). 6.5h gives the best worst-window Calmar (18.09 vs 16.30 at
+    # 5.6h), +1.10pp summed, and leaves W3 EXACTLY unchanged.
+    #
+    # There is a CLIFF between 8h and 9h: W3 collapses from +2.01% to +0.07% and
+    # its Calmar from 17.42 to 0.15. 7.0h scores higher on raw summed return
+    # (18.61 vs 18.29) but on worse worst-window Calmar and a W3 decline; 6.5h
+    # keeps margin from the cliff. The upper bound is raised from 6.0 to 12.0 so
+    # the value is inside the range rather than pinned to it.
     stoploss_grace_hours = DecimalParameter(
-        0.0, 6.0, default=3.0, decimals=1, space="sell", load=True, optimize=True
+        0.0, 12.0, default=6.5, decimals=1, space="sell", load=True, optimize=True
     )
     stoploss_grace_level = DecimalParameter(
         -0.30, -0.05, default=-0.15, decimals=2, space="sell", load=True, optimize=True
@@ -107,6 +116,19 @@ class NNNCStrategy(BaseNNStrategy):
     # ROI fires at +3.00% and the offset is 0.03, so a trade never survives above
     # the offset for the positive branch to engage.
     trailing_stop = False
+
+    # ROI 0.05, up from the base 0.03. Swept 0.03-0.06 plus two ladders on the
+    # post-fix stack: every variant beat flat 0.03, consistently in all three
+    # windows, with trade counts IDENTICAL (49/95/20) so this moves only where
+    # trades exit. 0.05 is where W1 peaks and W3 saturates; 0.06 gains 0.13pp in
+    # W2 alone. Ladders were rejected - flat 0.06 and ladder 8/5/3 differ by
+    # 0.08pp, far below this test's resolution, for two extra parameters.
+    #
+    # Raising ROI does NOT let winners run: it hands control to cexit_take_profit,
+    # which caps them at a +3.55% mean. Raising THAT was swept and rejected -
+    # every value from 0.030 to 0.060 lost, and disabling profit checks entirely
+    # was worst of all, so 0.024 is doing real work.
+    minimal_roi = {"0": 0.05}
 
     # Inherit the shared entry/exit controls; override only what differs.
     #

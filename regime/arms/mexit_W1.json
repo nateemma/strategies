@@ -1,0 +1,41 @@
+{
+  "tag": "mexit",
+  "window": "W1",
+  "timerange": "20250901-20260831",
+  "strategy": "NNNC_MLX",
+  "prediction_threshold": 0.69,
+  "guards": "on",
+  "overrides": {},
+  "sell_overrides": {
+    "stoploss_grace_level": -0.27,
+    "cexit_take_profit": 0.024,
+    "stoploss_grace_hours": 5.6,
+    "cexit_max_days": 10.0,
+    "enable_exit_signal": true,
+    "exit_guard_threshold": 0.6,
+    "exit_close_norm_threshold": 0.1
+  },
+  "trailing_overrides": {
+    "trailing_stop": false
+  },
+  "exit_config_hash": "2ec2f487d6f9b90e",
+  "volume_filter_active": true,
+  "returncode": 0,
+  "result_file": "backtest-result-2026-09-02_19-26-01.zip",
+  "n_trades": 49,
+  "n_pairs": 10,
+  "trades_hash": "b793d31ecc0b0685",
+  "profit_pct": 95.476,
+  "win_rate": 75.5,
+  "duration_h_median": 3.75,
+  "duration_h_p25": 1.75,
+  "duration_h_p75": 9.0,
+  "trades_per_day": 0.1863,
+  "wallet_profit_pct": 7.427,
+  "max_drawdown_pct": 0.764,
+  "profit_factor": 3.821,
+  "calmar": 51.05,
+  "sortino": 1.974,
+  "sqn": 3.377,
+  "expectancy_ratio": 0.6909
+}
