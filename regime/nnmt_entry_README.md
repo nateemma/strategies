@@ -67,3 +67,75 @@ trained are not merely uninformative for entries — using them actively destroy
 14pp. Re-sweeping combinations OF THOSE HEADS is unlikely to find an edge. The
 question worth a retrain is the one the audit already identified: **train the
 high-NMI head that is currently excluded**, then re-test the filter.
+
+## Task-head ablation study, RE-RUN on the repaired exit stack
+
+No retraining — all eight models survive in `saved_data/` from 2026-09-01/02,
+each with a strategy class and no params file, so every arm runs on class
+defaults (rvol 0.25 / guard 0.3). 24 backtests. All arms verified LIVE: distinct
+trade hashes from base in every window.
+
+| arm | trades | W1 | W2 | W3 | summed | Δ vs base | better in all 3? |
+|---|---|---|---|---|---|---|---|
+| base (risk/mom/flow @1.5) | 654 | 10.71 | 8.45 | 1.04 | 20.20 | — | — |
+| **noflow** (−flow) | 658 | **11.30** | 9.20 | 1.31 | **21.81** | **+1.62** | **YES** |
+| **trprofit** (trading+profit) | 658 | 10.87 | 9.02 | 1.41 | 21.30 | **+1.10** | **YES** |
+| nomom (−momentum) | 658 | 10.53 | **9.53** | 1.00 | 21.06 | +0.87 | no |
+| ctrl (exit signal ON) | 654 | 10.58 | 9.07 | 0.98 | 20.63 | +0.44 | no |
+| profit (+profit, NMI .130) | 652 | 10.08 | 9.29 | 1.11 | 20.47 | +0.28 | no |
+| norisk (−risk) | 655 | 10.71 | 8.59 | 0.99 | 20.29 | +0.09 | no |
+| tronly (trading only) | 652 | 10.34 | 8.10 | **1.79** | 20.23 | +0.03 | no |
+
+### The null does NOT reproduce
+
+The original study found no combination distinguishable. On the repaired stack
+**every arm beats base**, and two of them — `noflow` and `trprofit` — beat it in
+**all three windows**, which is the acceptance rule this project uses. Under the
+old exit that ranking was invisible.
+
+This is the same mechanism as the entry-gate reversal: the defect cut ~87% of
+stopped trades above the configured stop, compressing exactly the between-arm
+variation the study was trying to detect. A null measured through a homogenising
+mechanism was uninformative.
+
+### What the ordering says
+
+**It is not aux-weight dilution.** Base is the only arm carrying the full 4.5 of
+aux loss weight and every other arm carries ≤3.0, which would explain "all arms
+beat base" — but `tronly` carries **zero** aux weight and gains only +0.03pp,
+losing in both W1 and W2. If dilution were the story, `tronly` would win.
+
+**The consistent signal is `flow`.** Both arms that improve in all three windows
+drop it, and `flow` is the weakest head at NMI 0.011. But dropping it is not
+sufficient: `tronly` also drops it and gains nothing, so `risk` and `momentum`
+are contributing real positive transfer that `tronly` throws away.
+
+Reading: **drop `flow`, keep the other aux heads.** `noflow` is exactly that
+configuration and is the best arm on summed return, on worst-window Calmar
+(1.41 vs 1.11) and in every individual window.
+
+**This reverses the recorded "tronly was the best NNMT config".** It is now
+indistinguishable from base and negative in the two nearer windows.
+
+### Caveat before adopting
+
+Each arm is a SINGLE trained model. The project rule from the COCONUT work is
+paired seed-robustness before believing small deltas, and +1.62pp on a 20.20pp
+base is not large. **Before promoting `noflow`, retrain base and `noflow` at 2–3
+seeds each and compare paired.** That is a targeted retrain of two arms, not a
+re-run of the study.
+
+### Defect found in the study apparatus
+
+`NNMT_MLX_ctrl.py` does not do what its docstring says. The docstring describes a
+guards-off control ("the only difference is that the entry guard chain is
+disabled"), but the class body only sets `enable_exit_signal: True`, and the file
+ENDS at line 31 on a dangling `# MERGE from the parent` comment with no code
+after it — the guards-off override appears to have been lost.
+
+Its 654 trades exactly match base (entries identical, only exits differ), which
+confirms guards are still on. So this arm is not a guards-off control; it is an
+**exit-signal measurement on NNMT, worth +0.44pp** with entries held identical —
+compare NNNC, where the same switch was +0.03pp. Worth noting that NNMT's model
+does earn something on exits where NNNC's does not, but it is not consistent
+across windows (W1 and W3 both negative).

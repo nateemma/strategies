@@ -53,6 +53,24 @@ DEFAULT_CONFIG = STRAT_DIR / "config/config.json"
 STRATEGY_GROUP = {"NNNC_MLX": "NNNC", "NNMT_MLX": "NNMT"}
 
 
+def strategy_group(strategy: str) -> str:
+    """Directory holding `strategy`, resolving family variants by prefix.
+
+    Ablation and variant classes (NNMT_MLX_noflow, NNMT_MLX_ctrl, ...) inherit
+    from a family base and live beside it in the same directory, so an exact
+    lookup would reject them. Longest prefix wins, so adding a more specific
+    base later cannot be shadowed by a shorter one.
+    """
+    if strategy in STRATEGY_GROUP:
+        return STRATEGY_GROUP[strategy]
+    for base in sorted(STRATEGY_GROUP, key=len, reverse=True):
+        if strategy.startswith(base):
+            return STRATEGY_GROUP[base]
+    raise SystemExit(
+        f"unknown strategy {strategy!r}; known bases: {sorted(STRATEGY_GROUP)}"
+    )
+
+
 def timerange(window: str) -> str:
     """Resolve a named window to a LITERAL freqtrade timerange.
 
@@ -71,7 +89,7 @@ def build_scratch(strategy: str, threshold: float, tag: str, window: str,
 
     Returns the scratch directory to pass as --strategy-path.
     """
-    group = STRATEGY_GROUP[strategy]
+    group = strategy_group(strategy)
     src = STRAT_DIR / group
     dst = SCRATCH / f"{tag}_{window}"
     if dst.exists():
