@@ -1,0 +1,33 @@
+{
+  "tag": "mtrv1p5",
+  "window": "W2",
+  "timerange": "20240601-20250531",
+  "strategy": "NNMT_MLX",
+  "prediction_threshold": null,
+  "guards": "on",
+  "overrides": {
+    "entry_rvol_threshold": 1.5
+  },
+  "sell_overrides": {},
+  "trailing_overrides": {},
+  "exit_config_hash": "bb3239ab7e52df1b",
+  "volume_filter_active": true,
+  "returncode": 0,
+  "result_file": "backtest-result-2026-09-02_21-48-49.zip",
+  "n_trades": 255,
+  "n_pairs": 11,
+  "trades_hash": "cb9a31332c8931d8",
+  "profit_pct": 103.982,
+  "win_rate": 59.6,
+  "duration_h_median": 3.0,
+  "duration_h_p25": 1.38,
+  "duration_h_p75": 4.75,
+  "trades_per_day": 0.7522,
+  "wallet_profit_pct": 5.55,
+  "max_drawdown_pct": 7.489,
+  "profit_factor": 1.207,
+  "calmar": 3.89,
+  "sortino": 0.985,
+  "sqn": 1.102,
+  "expectancy_ratio": 0.0837
+}

@@ -1,0 +1,33 @@
+{
+  "tag": "goffx_rmp_s42",
+  "window": "W1",
+  "timerange": "20250901-20260831",
+  "strategy": "NNMT_MLX_rmp_s42",
+  "prediction_threshold": null,
+  "guards": "off",
+  "overrides": {},
+  "sell_overrides": {
+    "enable_exit_signal": true
+  },
+  "trailing_overrides": {},
+  "exit_config_hash": "8f00c5bfae214846",
+  "volume_filter_active": true,
+  "returncode": 0,
+  "result_file": "backtest-result-2026-09-03_14-45-29.zip",
+  "n_trades": 3027,
+  "n_pairs": 11,
+  "trades_hash": "c84df3e0f21dda65",
+  "profit_pct": -252.154,
+  "win_rate": 60.8,
+  "duration_h_median": 3.5,
+  "duration_h_p25": 2.5,
+  "duration_h_p75": 7.25,
+  "trades_per_day": 8.3388,
+  "wallet_profit_pct": -15.785,
+  "max_drawdown_pct": 24.962,
+  "profit_factor": 0.9,
+  "calmar": -3.319,
+  "sortino": -5.68,
+  "sqn": -1.718,
+  "expectancy_ratio": -0.0391
+}

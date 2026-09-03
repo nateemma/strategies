@@ -1,0 +1,42 @@
+{
+  "tag": "f_r25_gm04",
+  "window": "W3",
+  "timerange": "20230101-20231231",
+  "strategy": "NNNC_MLX",
+  "prediction_threshold": 0.69,
+  "guards": "on",
+  "overrides": {
+    "entry_guard_threshold": -0.4,
+    "entry_rvol_threshold": 2.5
+  },
+  "sell_overrides": {
+    "stoploss_grace_hours": 6.5,
+    "stoploss_grace_level": -0.27,
+    "cexit_take_profit": 0.024,
+    "cexit_max_days": 10.0,
+    "enable_exit_signal": false
+  },
+  "trailing_overrides": {
+    "trailing_stop": false
+  },
+  "exit_config_hash": "d9a2525b343c9460",
+  "volume_filter_active": true,
+  "returncode": 0,
+  "result_file": "backtest-result-2026-09-02_21-27-01.zip",
+  "n_trades": 34,
+  "n_pairs": 9,
+  "trades_hash": "33a3c6df464bc85e",
+  "profit_pct": 32.913,
+  "win_rate": 73.5,
+  "duration_h_median": 6.88,
+  "duration_h_p25": 3.5,
+  "duration_h_p75": 8.69,
+  "trades_per_day": 0.1018,
+  "wallet_profit_pct": 1.064,
+  "max_drawdown_pct": 1.754,
+  "profit_factor": 1.371,
+  "calmar": 3.183,
+  "sortino": 0.194,
+  "sqn": 0.659,
+  "expectancy_ratio": 0.0982
+}
