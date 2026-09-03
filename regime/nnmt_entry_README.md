@@ -264,3 +264,47 @@ via `freqtrade.data.btanalysis.load_backtest_data`, key trades on
 keys. Comparing SAME-weights/different-seed against DIFFERENT-weights/same-seed
 is the essential control — without it, a high overlap looks like determinism
 rather than gate dominance.
+
+## Guards-off control: head weights are not a lever AT ANY operating point
+
+The gate-dominance finding above raised an obvious objection — maybe the heads
+matter but the gate hides it. Testing that directly: same four models
+(base and rmp × seeds 42, 1), W1, at three operating points. The control is
+**arm overlap vs seed overlap** — how much a head-weight change moves the entry
+set, against how much a mere reseed moves it.
+
+| config | trades | wallet | seed overlap | arm overlap | arm − seed |
+|---|---|---|---|---|---|
+| guards ON, exits OFF | 176 | +10.64% | 99.4% | 99.2% | −0.3pp |
+| guards OFF, exits OFF | 2814 | −24.27% | 80.4% | 82.4% | **+2.0pp** |
+| guards OFF, exits ON | 3013 | −13.84% | 79.6% | 81.7% | **+2.0pp** |
+
+Opening the gate does hand the decision back to the model — overlap falls from
+~99% to ~80%. But **arm overlap never falls below seed overlap.** At both open-gate
+points head weights move the entry set ~2pp LESS than re-initialising the network
+does.
+
+**So this was not a measurement-power problem after all.** The earlier
+gate-dominance result was true but not the root cause. The root cause is that
+**aux-head weighting does not meaningfully change what this model does** — two
+networks trained with different task weightings are about as similar to each
+other as two trained identically with different seeds. Adding the exit channel
+(where `profit` and `regime` are actually read) does not change that.
+
+**The head-weight line is closed.** Not "unmeasurable pending a looser gate" —
+measured at a looser gate, with the model controlling both entries and exits, and
+still null. This supersedes the "prerequisite for future head-weight work"
+recommendation in the section above: that prerequisite was met and the answer is
+still no.
+
+### Side finding: exit signals ARE worth a lot at a powered operating point
+
+Enabling `enable_exit_signal` at the open gate is worth **+10.4pp**
+(−24.27% → −13.84%). The same switch at the production gate measured +0.03pp.
+
+The exit signal is not inert — it looked inert because the tight gate leaves it
+176 already well-selected trades with little to fix. Textbook confirmation of
+"evaluate interventions at a powered operating point", now with a number. It does
+NOT argue for enabling exit signals in production, where the measurement stands
+at +0.03pp; it argues that any future gate-loosening must re-test the exit signal
+rather than inheriting the tight-gate null.
