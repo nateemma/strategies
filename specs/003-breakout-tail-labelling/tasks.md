@@ -119,13 +119,13 @@ it.
 and its verdict is one of improved / unchanged / worsened /
 inconclusive_absorbed with the trade-hash comparison recorded.
 
-- [ ] T015 [US1] Create `NNNC/NNNC_Brk_L1.py` subclassing `NNNC_BreakoutOpen` with `MIN_BUY_GAIN_THRESHOLD` and `MIN_SELL_LOSS_THRESHOLD` at the admitted no-exit-change setting and `HORIZON` unchanged, with a docstring citing its ScreeningRecord (FR-004, FR-008)
-- [ ] T016 [US1] Create `NNNC/NNNC_Brk_L1.json` as a copy of `NNNC/NNNC_BreakoutOpen.json` with `strategy_name` updated, so the arm runs the control's configuration rather than class defaults (FR-016)
-- [ ] T017 [US1] Back up `saved_data/NNNC_BreakoutOpen/` before any training in this phase — `test_strat.sh -f` deletes before retraining and this destroyed an un-backed-up model earlier in this study (hazard 1)
-- [ ] T018 [US1] Train the arm: `cd <repo root> && PATH=.venv/bin:$PATH zsh user_data/strategies/scripts/test_strat.sh -f -t 20220101-20250831 NNNC NNNC_Brk_L1`. Run SEQUENTIALLY. Record the label counts from the training log and confirm they match the candidate's screened density (FR-012)
-- [ ] T019 [US1] Evaluate on all three windows: `regime/run_arm.py --strategy NNNC_Brk_L1 --window W1|W2|W3 --tag l1`
-- [ ] T020 [US1] Compare against the control with `regime/tail/compare.py`: verify `exit_config_hash` matches, compare `trades_hash` per window, and classify. **If W1 trades are identical to the control, record `inconclusive_absorbed`** — the gate absorbed the change and the returns are not evidence either way (FR-015, SC-003)
-- [ ] T021 [US1] Record the W1 result as the verdict with trade counts, and W2/W3 as IN-SAMPLE context excluded from acceptance. State explicitly whether the W1 delta clears the R9 power threshold (FR-013, FR-017, SC-004)
+- [X] T015 [US1] Create `NNNC/NNNC_Brk_L1.py` subclassing `NNNC_BreakoutOpen` with `MIN_BUY_GAIN_THRESHOLD` and `MIN_SELL_LOSS_THRESHOLD` at the admitted no-exit-change setting and `HORIZON` unchanged, with a docstring citing its ScreeningRecord (FR-004, FR-008)
+- [X] T016 [US1] Create `NNNC/NNNC_Brk_L1.json` as a copy of `NNNC/NNNC_BreakoutOpen.json` with `strategy_name` updated, so the arm runs the control's configuration rather than class defaults (FR-016)
+- [X] T017 [US1] Back up `saved_data/NNNC_BreakoutOpen/` before any training in this phase — `test_strat.sh -f` deletes before retraining and this destroyed an un-backed-up model earlier in this study (hazard 1)
+- [X] T018 [US1] Train the arm: `cd <repo root> && PATH=.venv/bin:$PATH zsh user_data/strategies/scripts/test_strat.sh -f -t 20220101-20250831 NNNC NNNC_Brk_L1`. Run SEQUENTIALLY. Record the label counts from the training log and confirm they match the candidate's screened density (FR-012)
+- [X] T019 [US1] Evaluate on all three windows: `regime/run_arm.py --strategy NNNC_Brk_L1 --window W1|W2|W3 --tag l1`
+- [X] T020 [US1] Compare against the control with `regime/tail/compare.py`: verify `exit_config_hash` matches, compare `trades_hash` per window, and classify. **If W1 trades are identical to the control, record `inconclusive_absorbed`** — the gate absorbed the change and the returns are not evidence either way (FR-015, SC-003)
+- [X] T021 [US1] Record the W1 result as the verdict with trade counts, and W2/W3 as IN-SAMPLE context excluded from acceptance. State explicitly whether the W1 delta clears the R9 power threshold (FR-013, FR-017, SC-004)
 
 **Checkpoint**: the label effect is measured in isolation. If this is
 conclusively negative, FR-022 permits stopping here with a recorded negative
