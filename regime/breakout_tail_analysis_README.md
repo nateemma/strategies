@@ -157,3 +157,36 @@ fix added 77% more labels and produced byte-identical trades on two of three
 windows. A threshold change alters label QUALITY rather than density, so it is
 not the same intervention, but the prior is that the gate will absorb much of it.
 One retrain to find out.
+
+## thr 0.02 TESTED on NNNC — no out-of-sample effect
+
+The one untested opportunity from the gbb analysis above: raise
+`MIN_BUY_GAIN_THRESHOLD` 0.007 → 0.02 at H=48, predicted to lift
+take-profit-clearing 57.8% → 86.7% while staying above the density floor and
+inside the unclog window.
+
+Trained on `20220101-20250831` (W1 out-of-sample) with its own
+`NNNC_MLX_thr02.json` copied from production, so `exit_config_hash` matches and
+the class-defaults confound is excluded.
+
+**The label behaved exactly as predicted:** 6423 buy / 5829 sell labels (vs
+10406 / 9529 at 0.007) — a 38% reduction, no all-Hold collapse, filter a no-op.
+
+| arm | trades | W1 (OOS) | W2 | W3 | summed | PF | win% | worst DD |
+|---|---|---|---|---|---|---|---|---|
+| thr 0.007 (production) | 332 | **10.45** | 10.31 | **3.37** | 24.13 | 1.94 | 74.4 | 5.25 |
+| thr 0.02 | 332 | **10.45** | **11.35** | **3.37** | 25.16 | 1.97 | 74.8 | 4.79 |
+
+**W1 and W3 have IDENTICAL trade hashes.** The entire +1.03pp is W2, which is
+in-sample. W1 payoff is unchanged to the decimal — win 74.7% vs 74.4%, avgWin
+3.69% vs 3.73%, break-even margin +17.5pp in both.
+
+**Not adopted.** There is no out-of-sample evidence for it.
+
+Note the metric direction: `val_mcc` FELL 0.7590 → 0.6078 and precision 0.6422 →
+0.4496 (a 2% gain requirement is a harder, sparser target), while summed P&L
+nominally rose. Another decoupling, this time with the metric moving opposite to
+the return — and neither reaching the out-of-sample trades.
+
+This is the sixth model-side change in this study to leave OOS trading untouched,
+across two families. See [[feedback_gate_and_mechanism_move_pnl_not_model]].
