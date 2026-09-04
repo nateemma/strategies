@@ -74,14 +74,30 @@ class NNNC_BreakoutOpen(NNNC_MLX):
     MIN_BUY_GAIN_THRESHOLD = 0.005
     MIN_SELL_LOSS_THRESHOLD = 0.005
 
-    # --- entry: the model decides, not the guard chain ----------------------
-    # entry_enable_guards=False switches the whole chain off rather than
-    # neutralising individual thresholds. prediction_threshold is left at the
-    # NNNC value for the first run; with the gate open it is now the ONLY entry
-    # filter, so it is the parameter to sweep next.
+    # --- entry: dip guards OFF, QUALITY guards ON ---------------------------
+    # CORRECTED 2026-09-03. This first read "entry_enable_guards": False, which
+    # disables all SEVEN guards. Only two of them -- guard_metric and close_norm
+    # -- are dip-directional and genuinely incompatible with a breakout. The
+    # other five (volume, rvol, adx, atr_pct, bb_width) are NON-DIRECTIONAL
+    # quality filters, and discarding them cost the whole edge:
+    #
+    #   guards OFF (all 7)    4749 trades, summed -17.55%, avgWin 1.63%
+    #   dip guards only        291 trades, summed  +0.98%, avgWin 2.99%
+    #
+    # avgWin nearly doubled against a median labelled 12h gain of 2.87%, i.e.
+    # the quality guards select bars with ABOVE-median follow-through -- they
+    # are not merely a volume throttle. That moved the arm from 3.8pp BELOW its
+    # own break-even win rate to 1.2pp above it.
+    #
+    # The two dip guards are neutralised by threshold rather than by disabling
+    # the chain: both conditions are `x < threshold`, so a large value passes
+    # everything while leaving the other five active.
     buy_params = {
         **NNNC_MLX.buy_params,
-        "entry_enable_guards": False,
+        "entry_enable_guards": True,
+        "entry_guard_threshold": 5.0,        # neutralised (dip-directional)
+        "entry_close_norm_threshold": 5.0,   # neutralised (dip-directional)
+        "prediction_threshold": 0.50,        # best of a 0.20-0.69 sweep
     }
 
     # --- exit: the model participates ---------------------------------------
