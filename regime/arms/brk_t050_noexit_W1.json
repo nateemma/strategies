@@ -1,0 +1,33 @@
+{
+  "tag": "brk_t050_noexit",
+  "window": "W1",
+  "timerange": "20250901-20260831",
+  "strategy": "NNNC_BreakoutOpen",
+  "prediction_threshold": 0.5,
+  "guards": "on",
+  "overrides": {},
+  "sell_overrides": {
+    "enable_exit_signal": false
+  },
+  "trailing_overrides": {},
+  "exit_config_hash": "2b57370dd24dc0f4",
+  "volume_filter_active": true,
+  "returncode": 0,
+  "result_file": "backtest-result-2026-09-03_16-43-20.zip",
+  "n_trades": 1232,
+  "n_pairs": 11,
+  "trades_hash": "64214d10eb33b616",
+  "profit_pct": -234.929,
+  "win_rate": 51.6,
+  "duration_h_median": 8.75,
+  "duration_h_p25": 4.75,
+  "duration_h_p75": 12.0,
+  "trades_per_day": 3.3939,
+  "wallet_profit_pct": -5.705,
+  "max_drawdown_pct": 11.25,
+  "profit_factor": 0.909,
+  "calmar": -2.662,
+  "sortino": -3.468,
+  "sqn": -1.197,
+  "expectancy_ratio": -0.0439
+}
