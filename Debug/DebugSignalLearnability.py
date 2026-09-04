@@ -253,8 +253,15 @@ def evaluate_combo(
     horizon: int,
     side: str,
     bb_width_threshold: Optional[float] = None,
+    apply_peak_filter: bool = True,
 ) -> dict:
-    """One row of the result table: (method, side, threshold) → metrics."""
+    """One row of the result table: (method, side, threshold) → metrics.
+
+    ``apply_peak_filter`` mirrors the training pipeline's
+    ``filter_peaks_by_future_performance`` step. Default True so the screen
+    scores the labels the pipeline actually builds; pass False to score the raw
+    labeler output (the pre-2026-09-04 behaviour).
+    """
     params = _build_params(method, threshold, horizon, side, bb_width_threshold)
     base_row = {
         "method": method.name,
@@ -283,6 +290,42 @@ def evaluate_combo(
         }
 
     y = (y_raw.astype(float) > 0).astype(int)
+
+    # Mirror the training pipeline's peak filter. BaseNNStrategy does NOT feed
+    # the labeler's output straight to the classifier -- it passes every peak
+    # through filter_peaks_by_future_performance, which re-applies the forward
+    # gain/loss test over the label horizon. Without this the screen scores
+    # labels the pipeline would never build, and its ranking does not describe
+    # what actually gets trained.
+    #
+    # For the 18 labelers that already apply their own gain test this is a
+    # strict no-op. It matters for the 9 that do not (triple_barrier,
+    # multi_horizon_vote, optimal_signals, future_sharpe/sortino/expectancy,
+    # local_extrema, geometry, breakout_tb) -- measured discard rates there are
+    # 0-10% at H=48 (geometry worst).
+    #
+    # Historical note: before the 2026-09-03 peak-filter fix the pipeline
+    # filtered at PEAK_WINDOW=6 regardless of horizon, discarding ~35% of gbb's
+    # H=48 labels. The screen therefore described a label set the pipeline never
+    # produced, which is why horizon conclusions drawn from it did not transfer.
+    if apply_peak_filter:
+        close = df["close"].to_numpy(dtype=float)
+        thr = float(threshold)
+        n = len(close)
+        idx = np.flatnonzero(y.to_numpy() if hasattr(y, "to_numpy") else np.asarray(y))
+        keep = np.zeros(n, dtype=int)
+        for pk in idx:
+            end = pk + int(horizon) + 1
+            if end > n:
+                continue
+            fut = close[pk + 1:end]
+            if fut.size == 0:
+                continue
+            move = ((fut.max() - close[pk]) / close[pk] if side == "buy"
+                    else (close[pk] - fut.min()) / close[pk])
+            if move >= thr:
+                keep[pk] = 1
+        y = pd.Series(keep, index=df.index)
 
     aligned = pd.concat([features, y.rename("y")], axis=1).dropna()
     n_total = int(len(aligned))
@@ -722,6 +765,11 @@ def main() -> None:
         "--max-bars", type=int, default=0,
         help="If >0, use only the most recent N bars (speeds up sweeps).",
     )
+    ap.add_argument("--no-peak-filter", action="store_true",
+                    help="Score RAW labeler output instead of mirroring the "
+                         "pipeline's filter_peaks_by_future_performance step. "
+                         "The pipeline always applies that filter, so the "
+                         "default (apply it) is what describes real training.")
     ap.add_argument("--save-csv", default=None, help="Optional path to write results")
     ap.add_argument(
         "--list-methods", action="store_true",
@@ -918,6 +966,7 @@ def main() -> None:
                     for bb_w in bb_widths:
                         row = evaluate_combo(
                             df, features, method, thresh, args.horizon, side, bb_w,
+                            apply_peak_filter=not args.no_peak_filter,
                         )
                         rows.append(row)
                         mcc_str = (
