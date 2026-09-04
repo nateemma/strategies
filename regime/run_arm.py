@@ -289,7 +289,13 @@ def main() -> int:
     ap.add_argument("--roi", default=None, metavar="PCT|JSON",
                     help='flat ROI level (e.g. 0.03) or a full ladder as JSON '
                          '(e.g. \'{"0":0.06,"180":0.04}\')')
-    ap.add_argument("--stoploss", type=float, default=None)
+    ap.add_argument("--stoploss", type=float, default=None,
+                    help="Static stoploss. WARNING: INERT for every NN strategy. "
+                    "BaseNNStrategy sets use_atr_adaptive_stoploss=True, so "
+                    "_resolve_normal_stop() returns an ATR-derived value and ignores "
+                    "self.stoploss; this flag only changes the cosmetic "
+                    "initial_stop_loss_abs. To move the real stop, override "
+                    "atr_stoploss_multiplier/floor/cap on a subclass.")
     ap.add_argument("--set-trailing", action="append", default=[], metavar="KEY=VALUE",
                     help="override a trailing-block parameter, repeatable")
     ap.add_argument("--set", action="append", default=[], metavar="KEY=VALUE",

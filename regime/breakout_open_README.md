@@ -120,3 +120,60 @@ from recorded trades.
 This is the SIXTH independent confirmation that learnability does not equal edge,
 and the sharpest: previous cases had the metric merely failing to predict P&L.
 Here both screening metrics pointed the WRONG WAY.
+
+## Risk-side sweep: both levers exhausted, and a tooling correction
+
+### `stoploss` is INERT for every NN strategy — the real lever is the ATR band
+
+`BaseNNStrategy:139` sets `use_atr_adaptive_stoploss = True` (it is False in
+`BaseStrategy`, which is why this was missed). `_resolve_normal_stop()` therefore
+returns an ATR-derived stop and **ignores `self.stoploss`**, which only sets the
+cosmetic `initial_stop_loss_abs`.
+
+Verified: `--stoploss -0.01` vs `-0.05` gives **byte-identical** backtests on both
+NNNC_MLX and the breakout arm, while the recorded initial stop dutifully changes
+from −1.00% to −5.00%. This corrects `specs/002-exit-process-repair/research.md`,
+which recorded the ATR block as inert. No conclusion in that study depended on it
+— every arm held `--stoploss -0.05` — but it made the wrong parameter look live.
+
+The real lever is `atr_stoploss_multiplier` / `_floor` / `_cap`, swept here via
+subclasses that override `get_model_path` to reuse the trained model (no retrain).
+
+### ATR stop band — an inverted U peaking at the EXISTING value
+
+| multiplier | band | trades | W1 | PF | win% |
+|---|---|---|---|---|---|
+| 1.5 | [−2.5, −1.0] | 1348 | −6.25% | 0.88 | 43.5 |
+| 2.0 | [−3.0, −1.5] | 1342 | −5.92% | 0.89 | 50.2 |
+| 3.0 | [−4.5, −2.5] | 1339 | −5.37% | 0.91 | 56.4 |
+| **4.0** | **[−6.0, −4.0]** | 1336 | **−5.05%** | **0.92** | 58.3 |
+| 6.0 | [−9.0, −6.0] | 1334 | −7.58% | 0.88 | 60.2 |
+
+**The hypothesis is refuted.** Tightening the stop does not fix the
+loss-magnitude problem — it converts winners into losers faster than it saves
+losers, with win rate collapsing 58.3% → 43.5%. Loosening is worse still. The
+gbb-tuned band is already the optimum for the breakout arm, so the carry-over was
+never the problem.
+
+### Upside caps — flat
+
+| take_profit | roi | W1 | PF |
+|---|---|---|---|
+| 0.024 (ctl) | 0.05 | −5.05% | 0.92 |
+| 0.04 | 0.05 | −5.11% | 0.91 |
+| 0.06 | 0.05 | −4.91% | 0.92 |
+| 0.06 | 0.10 | −5.96% | 0.90 |
+
+Raising the take-profit cap is worth +0.14pp — noise. Raising ROI hurts.
+
+### Conclusion
+
+Both risk-side levers are exhausted and the existing gbb-tuned values are at or
+next to the optimum for this arm too. The −5% is structural: 557 stop exits at a
+−2.67% mean total −1485% against +1268% of wins, and no stop or target setting
+changes that balance. The breakout entry is simply wrong often enough, and
+expensively enough, that exit-side tuning cannot rescue it.
+
+Worth recording on the positive side: `model_exit` fires 416 times at **+1.79%
+mean with a worst case of 0.00%** — the exit signal is genuinely productive here.
+It is the entry that fails.

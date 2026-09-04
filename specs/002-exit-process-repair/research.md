@@ -122,7 +122,7 @@ Three mechanisms are live, and one of them is not what its name suggests:
 | `stoploss_grace_level` | **INERT** | after_fill branch unreachable |
 | `trailing_stop_positive` and the rest of `trailing_*` | **INERT** | Verified: 0.01 vs 0.03 gives byte-identical backtests |
 | `exit_guard_threshold`, `exit_close_norm_threshold` | **INERT** | Behind the `enable_exit_signal` early return |
-| `use_atr_adaptive_stoploss` block | **INERT** | Flag is False |
+| `use_atr_adaptive_stoploss` block | **~~INERT~~ LIVE** | **CORRECTED 2026-09-03.** False in `BaseStrategy` but `BaseNNStrategy:139` sets it **True**, which every NN strategy inherits. `_resolve_normal_stop()` therefore returns the ATR-derived stop and IGNORES `self.stoploss`, which only sets the cosmetic `initial_stop_loss_abs`. Verified: stoploss -0.01 vs -0.05 give byte-identical backtests while the recorded initial stop changes. The real stop lever is `atr_stoploss_multiplier/floor/cap`. No conclusion in this study depended on it (every arm held `--stoploss -0.05`). |
 
 **Four of nine exit-side settings do nothing.** Phase 2 must not propose
 interventions on any of them, and Phase 4 must treat an unchanged result as an
