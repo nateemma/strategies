@@ -82,7 +82,7 @@ harness that decides whether a comparison is even valid.
 control would invalidate every downstream number in this feature.
 
 - [ ] T006 Write `NNNC/NNNC_BreakoutOpen.json` pinning the host's CURRENT effective configuration per research.md R8 — buy space from the class (`entry_enable_guards` true, dip guards neutralised at 5.0, `prediction_threshold` 0.50) and sell space as currently inherited from `BaseStrategy` including `cexit_take_profit` **0.032**. Set `strategy_name` to `NNNC_BreakoutOpen`. Do NOT adopt NNNC's tuned 0.024 — that is an unmeasured change and is explicitly out of scope (Constitution VIII, FR-016)
-- [ ] T007 **HARD GATE** — re-baseline the control: run `regime/run_arm.py --strategy NNNC_BreakoutOpen --window W1|W2|W3 --tag ctl003` and verify the resulting `trades_hash` for EACH window is byte-identical to the corresponding `regime/arms/brkfix_W{1,2,3}.json`. Expect W1 97tr −0.74%, W2 119tr +0.34%, W3 77tr +1.71%, `exit_config_hash` `bb3239ab7e52df1b`. **If any hash differs, STOP** — the params file changed behaviour and every historical breakout comparison is invalidated; resolve before any further task (FR-016, SC-007)
+- [ ] T007 **HARD GATE** — re-baseline the control: run `regime/run_arm.py --strategy NNNC_BreakoutOpen --window W1|W2|W3 --tag ctl003` and verify the resulting `trades_hash` for EACH window is byte-identical to the corresponding `regime/arms/brkfix_W{1,2,3}.json`. Expect W1 97tr −0.74%, W2 119tr +0.34%, W3 77tr +1.71%, `exit_config_hash` `bb3239ab7e52df1b`. Confirm the arm record shows realistic execution constraints active, i.e. `volume_filter_active` true (FR-018). **If any hash differs, STOP** — the params file changed behaviour and every historical breakout comparison is invalidated; resolve before any further task (FR-016, FR-018, SC-007)
 - [ ] T008 [P] Implement the comparison harness in `regime/tail/compare.py` rendering the five-part report from `contracts/study-cli.md` §4 in order: exit-config match, per-window trade-hash comparison, W1 marked OUT-OF-SAMPLE, W2/W3 marked IN-SAMPLE and excluded from the verdict, then the verdict (FR-013, FR-015, FR-016, FR-017)
 - [ ] T009 [P] In `regime/tail/compare.py`, implement the verdict rule so that **W1 `trades_hash` identical to the control yields `inconclusive_absorbed`, which OUTRANKS every other classification** regardless of returns, and is never reported as refutation (FR-015, SC-003). Encode the R9 power threshold so a W1 delta below ~1pp on ~97 trades renders as "indistinguishable", not "improved" (FR-017)
 - [ ] T010 [P] In `regime/tail/compare.py`, assert that classifier metrics are never an input to the verdict — they may be printed as context only (FR-014). Cite R7: EV pointed the wrong way by 43pp, precision tripled while returns halved, MCC fell while returns rose
@@ -103,7 +103,7 @@ reason — with no model loaded and nothing trained.
 
 - [ ] T011 [US4] Screen the MAE-constrained candidate at tail settings using `regime/tail_path.py`'s method, recording density, median gain, stop-clearing share, reward:risk, time-to-peak and stopped-before-peak into its ScreeningRecord (FR-001, FR-006)
 - [ ] T012 [P] [US4] Screen the `bb_position`-basis candidate (method 26) at tail settings the same way, using the **[−1, 1]** scale for the position threshold (FR-001, FR-007)
-- [ ] T013 [US4] Run `regime/screen_candidates.py` over the full registry and write the consolidated screening table to `regime/tail/README.md`, confirming the two below-floor cells remain excluded and flagging which admitted candidates have `requires_hold_change` true (FR-002, SC-001)
+- [ ] T013 [US4] Run `regime/screen_candidates.py` over the full registry and write the consolidated screening table to `regime/tail/README.md`, confirming the two below-floor cells remain excluded and flagging which admitted candidates have `requires_hold_change` true. Assert explicitly that at least one ADMITTED candidate reaches reward:risk above 1.0 while staying above the density floor; if none does, the feature's premise fails at screening and that is itself the result (FR-002, SC-001, SC-002)
 - [ ] T014 [US4] Verify FR-003 held: confirm no model file was read and no training occurred during screening (check `saved_data/` mtimes are unchanged)
 
 **Checkpoint**: the admitted candidate set is fixed and justified. SC-001 met.
@@ -181,7 +181,7 @@ that label's own control, never the historical one.
 - [ ] T033 Write the consolidated findings to `regime/tail/README.md` — screening table, every arm's verdict including absorbed cases, separated contributions, and the explicit answer to whether label mis-specification was material. **A negative outcome is a valid deliverable and must be recorded as such** (FR-022, SC-008)
 - [ ] T034 [P] Delete throwaway arm classes, their `.json` files and their `saved_data/` directories. **Leave `NNNC/NNNC_BreakoutOpen.json` in place** — it pins the control (quickstart.md Cleanup)
 - [ ] T035 [P] Commit the arm records under `regime/arms/` — they are the only durable evidence once the throwaway models are deleted
-- [ ] T036 Run the `quickstart.md` validation end to end and confirm every success criterion SC-001…SC-008 is either met or explicitly recorded as not applicable
+- [ ] T036 Run the `quickstart.md` validation end to end and confirm every success criterion SC-001…SC-008 is either met or explicitly recorded as not applicable. Verify no arm introduced per-pair special-casing — every candidate is defined structurally over all traded pairs (FR-021) — and that realistic execution constraints were active in every recorded arm (FR-018)
 - [ ] T037 If any finding generalises beyond this host, record it in memory and the relevant `docs/` file — but promote NOTHING to `Framework/` defaults without measuring on a second family (FR-020)
 
 ---
@@ -253,6 +253,10 @@ run through Phase 5 is three.
 - `[P]` = different files, no dependency on incomplete work.
 - Every evaluation task applies the per-arm protocol from plan.md; the harness
   built in T008–T010 enforces it rather than relying on discipline.
-- Requirement coverage: FR-001…FR-022 and SC-001…SC-008 all map to at least one
-  task. FR-001 is partly pre-satisfied by research.md R1–R5 and completed by
-  T011–T013.
+- Requirement coverage: FR-001…FR-022 and SC-001…SC-008 each map to at least one
+  task, verified mechanically. FR-001 is partly pre-satisfied by research.md
+  R1–R5 and completed by T011–T013.
+- **US3 has no tasks of its own by design.** It is the liveness property applied
+  inside every evaluation (T020, T024, T027, T032); its enforcement lives in the
+  harness built by T008–T010. A story with no phase is unusual and is called out
+  here so it does not read as an omission.
