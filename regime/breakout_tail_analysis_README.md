@@ -83,3 +83,77 @@ differs from those in kind: it changes the label's ECONOMICS (reward:risk 0.57 �
 1.28) rather than its density or the model's fit to it, and the breakout arm's
 gate is loose enough that entries are not fully guard-determined. It is the
 best-motivated untested idea remaining on this line.
+
+---
+
+# Same analysis on gbb (method 17) — the PRODUCTION label
+
+Asked 2026-09-04: does gbb have the same issues, especially around the unclog
+threshold? Script: `regime/gbb_dist.py`.
+
+## The fat tail is generic, not a breakout quirk
+
+`guard_metric < -0.2 & bb_width > 0.035`, forward MFE, pooled XRP/SOL/LINK:
+
+| H | median | p90 | p99 | skew | excess kurt | top-10% share |
+|---|---|---|---|---|---|---|
+| 6 | 0.64 | 2.39 | 6.46 | 3.55 | 29.8 | 40.6% |
+| 12 | 0.99 | 3.51 | 9.31 | 3.76 | 30.1 | 39.0% |
+| 24 | 1.49 | 5.09 | 13.97 | 3.91 | 32.8 | 38.7% |
+| 48 | 2.13 | 7.41 | 18.45 | 3.83 | 30.1 | 37.8% |
+| 96 | 3.10 | 10.88 | 26.81 | 25.09 | 1001 ⚠ | 38.1% |
+
+⚠ H=96 skew/kurtosis are outlier-driven — treat with caution.
+
+Same shape as breakout: skew ~3.8, excess kurtosis ~30, top 10% of bars carrying
+~38% of all upside.
+
+## Production is NOT mismatched to the unclog window
+
+| H | thr | % bars | median | clears TP 2.4% | clears 5% | median peak | stopped @−4% |
+|---|---|---|---|---|---|---|---|
+| 24 | 0.007 | 7.89% | 2.18% | 44.6% | 14.6% | 4.0h | 2.6% |
+| **48** | **0.007 (prod)** | **8.75%** | **2.81%** | **57.8%** | 25.3% | **7.2h** | 5.5% |
+| 48 | 0.010 | 8.01% | 3.07% | 63.1% | 27.6% | 7.8h | 5.7% |
+| **48** | **0.020** | **5.83%** | **4.05%** | **86.7%** | 37.9% | **8.5h** | 6.4% |
+| 96 | 0.007 | 9.49% | 3.79% | 69.4% | 38.5% | 14.0h ⚠ | 11.4% |
+| 96 | 0.020 | 7.24% | 5.05% | 91.0% | 50.5% | 16.2h ⚠ | 12.3% |
+
+**Median time-to-peak at production settings is 7.2h against a 12h unclog** —
+comfortably inside. The mismatch that blocks the breakout candidate does not
+apply here. Note H=96 WOULD introduce one (14–16h peaks), so any future horizon
+increase for gbb carries the same caveat.
+
+The label is also well matched to the exit that harvests it: **57.8% of labelled
+bars clear the 2.4% take-profit**, which fires on 54 of 94 NNNC exits.
+
+## The key observation: the label was never the differentiator
+
+**gbb and breakout_gbb have essentially the SAME median forward gain** — 2.81% vs
+2.83% at H=48, with the same tail shape. So the "label targets average moves"
+critique applies equally to both, yet gbb makes +24% and breakout loses.
+
+The difference is the GATE and the resulting hit rate: NNNC gbb runs 74.5% wins
+against a 56.9% break-even (+17.5pp margin) on a tight seven-guard chain, while
+the breakout arm manages 58% against 57% (+1pp) on a looser one. Same
+distribution, same average move, opposite outcome — the day's gate-versus-model
+theme once more.
+
+Note the payoff SHAPE differs from what one might assume: NNNC's realised
+reward:risk is only 0.76 (avgWin 3.73% vs avgLoss 4.93%). It is a high-hit-rate,
+modest-payoff strategy. A mean-reversion label does not need big moves; it needs
+to be right often. Tail-targeting is therefore much less obviously right for gbb
+than for breakout.
+
+## One untested opportunity for production
+
+**`MIN_BUY_GAIN_THRESHOLD` 0.007 → 0.02 at H=48** lifts take-profit-clearing from
+57.8% to **86.7%**, keeps density at 5.83% (just above the ~5.5% collapse floor),
+and holds time-to-peak at 8.5h — still inside the unclog window. Unlike the
+breakout package it requires NO exit changes.
+
+Tempering: NNNC's gate is tight and absorbs model-side change — the peak-filter
+fix added 77% more labels and produced byte-identical trades on two of three
+windows. A threshold change alters label QUALITY rather than density, so it is
+not the same intervention, but the prior is that the gate will absorb much of it.
+One retrain to find out.
