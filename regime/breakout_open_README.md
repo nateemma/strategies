@@ -255,3 +255,40 @@ but the fix does not rescue the breakout entry.
 The sell-label sparsity concern does ease: the momentum-failure crossing label
 was 2.2% of bars and flagged HIGH collapse risk; at the true horizon it is ~86%
 denser, so that specific risk is gone.
+
+---
+
+# PARKED 2026-09-03
+
+Best achieved: **+1.31% summed** (W1 −0.74%, W2 +0.34%, W3 +1.71%), 293 trades,
+PF 1.06 — against NNNC gbb's **+25.32%**. W1, the out-of-sample deployment
+window, is negative at every configuration tested.
+
+**Seven interventions, and only gate-side ones moved it:**
+
+| intervention | Δ summed |
+|---|---|
+| restore quality guards (only dip guards neutralised) | **+18.5pp** |
+| peak-filter fix (retrain at the true horizon) | +0.33pp |
+| prediction_threshold sweep | best at 0.50; win rate FROZEN at 58.2% |
+| ATR stop band sweep | inverted U peaking at the existing value |
+| take-profit / ROI caps | flat (+0.14pp) |
+| exit signal on/off | +0.66pp |
+| exit label level → crossing | −7.35pp |
+
+The arm sits ~1pp above its own break-even win rate on W1 and cannot clear the
+2–3pp it needs. Every model-side change moves classifier metrics substantially
+and P&L negligibly; the entry is directionally right ~58% of the time and wrong
+expensively, and no exit or risk setting fixes a signal wrong that often.
+
+**Artifacts left in place** (not deleted — the model is correct and the results
+are reproducible): `NNNC/NNNC_BreakoutOpen.py` + `saved_data/NNNC_BreakoutOpen/`,
+`labels_breakout_bb` (method 26), the rewritten `labels_breakout_gbb_sell`, and
+`regime/label_path_audit.py`.
+
+**If resumed**, the untested direction is `PEAK_WINDOW` — now that `HORIZON`
+actually works, the label horizon is a real lever for the first time, and nobody
+has tried matching it to the 16-bar median holding period from the other side
+(shortening holds rather than lengthening labels). Do not re-test: the ATR band,
+the upside caps, the exit signal, the exit label form, or the prediction
+threshold.
