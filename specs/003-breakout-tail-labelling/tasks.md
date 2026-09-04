@@ -144,13 +144,20 @@ framework file is left modified.
 
 **Entry condition**: US1 not conclusively negative.
 
+**Deliberately NOT built**: an arm carrying the tail label WITHOUT the hold-window
+override. research.md R4 establishes that configuration is knowably compromised —
+its payoff peaks at 17.0h against a 12h forced exit, so it would be harvested
+early by construction and would produce a false negative rather than a test. The
+consequence is accepted and stated: if L2 improves, this feature cannot say
+whether the tail label alone would have sufficed.
+
 - [ ] T022 [US2] Implement the hold-window extension as a **per-strategy override** of the method containing the forced-exit rule, on an arm subclass in `NNNC/`. Do NOT edit `Framework/BaseStrategy.py` — a live dry run imports it, and an override needs no revert at all (research.md R4, FR-009, FR-010)
 - [ ] T023 [US2] Create `NNNC/NNNC_Brk_H1.py` + `.json` applying ONLY the hold-window override on the control's existing label, so the hold-window contribution is measurable independently of the label (FR-011)
 - [ ] T024 [US2] Evaluate the hold-window-only arm on all three windows with tag `h1` and compare. Note its `exit_config_hash` is EXPECTED to differ from the control here — this is the one permitted exception, because the hold window is the parameter under test (FR-016)
 - [ ] T025 [US2] Create `NNNC/NNNC_Brk_L2.py` + `.json` applying BOTH the tail label (H and threshold at the admitted best-economics cell) AND the hold-window override (FR-005)
 - [ ] T026 [US2] Train `NNNC_Brk_L2` sequentially on the pinned window, having backed up any model it would overwrite (hazard 1)
 - [ ] T027 [US2] Evaluate `NNNC_Brk_L2` on all three windows with tag `l2` and compare against the control, applying the full per-arm protocol including the liveness gate (FR-013, FR-015, FR-017)
-- [ ] T028 [US2] Report the separated contributions — hold window alone (T024), label alone (US1 T021), and both (T027) — stating whether the package exceeds the sum of its parts (FR-011, SC-005)
+- [ ] T028 [US2] Report the separated contributions using arms that share a label: **hold window alone = H1 − control** (T024) and **tail label given the hold window = L2 − H1** (T027 − T024). Do NOT subtract US1's T021 result here — US1's arm carries the no-exit-change label, NOT the tail label, so a three-way decomposition against it would be arithmetically invalid. US1's result stands as a separate answer about a different label (FR-011, SC-005)
 - [ ] T029 [US2] Verify no shared framework file is modified: `git status Framework/` must be clean (FR-010, SC-006)
 
 **Checkpoint**: the package is measured and its two components are attributable.
