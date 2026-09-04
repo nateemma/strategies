@@ -97,3 +97,60 @@ The open question this creates is worth measuring rather than assuming: NNNC has
 been training on 90-minute labels while its configuration said 12 hours. Whether
 the intended horizon is actually better is now testable for the first time —
 retrain NNNC_MLX and compare against the current production model.
+
+## A/B of the fix: correct, and P&L-NEUTRAL
+
+Matched pair, identical config and training window (`20220101-20250831`, W1 OOS),
+differing only in the filter window. Production `NNNC_MLX` was deliberately not
+retrained — its own training window is unrecoverable, so comparing against it
+would confound the fix with the window.
+
+The fix did what it should to the labels and the model:
+
+| | initial peaks | after filter | val_mcc | precision |
+|---|---|---|---|---|
+| pre-fix (window 6) | 11457 | 6456 (−44%) | 0.6045 | 0.4494 |
+| FIXED (window 48) | 11457 | **11457** | **0.7590** | **0.6422** |
+
+77% more training labels, `val_mcc` +0.155, precision +0.193 — a far larger
+metric shift than any other intervention in this study.
+
+And it changed the trading almost not at all:
+
+| window | pre-fix | fixed | identical trades? |
+|---|---|---|---|
+| W1 (OOS) | 99 tr, 5.84% | 99 tr, 5.84% | **YES, byte-identical** |
+| W2* | 194 tr, 6.30% | 197 tr, 5.35% | no, 95.5% overlap |
+| W3* | 61 tr, 0.50% | 61 tr, 0.50% | **YES, byte-identical** |
+
+Summed −0.95pp, entirely from W2 (in-sample, 3 trades' difference). W1 payoff
+identical to the decimal: win 56.6%, avgWin 4.48%, avgLoss 3.81%.
+
+**Keep the fix on correctness grounds** — `HORIZON` now means what it says, and
+the 9 labelers that rely on the filter get it at the intended horizon. Do NOT
+expect P&L from it.
+
+**This also retracts the "retune after retraining" warning above.** The trades
+barely move, so the existing tuning transfers.
+
+## The finding that unifies the whole study
+
+A bug fix that added 77% more labels and moved `val_mcc` by +0.155 produced
+BYTE-IDENTICAL trades on two of three windows. The reason is the one measured
+directly on NNMT: **the guard chain, not the model, selects the entries.**
+
+That is the through-line for everything tested here:
+
+| intervention | changes | P&L effect |
+|---|---|---|
+| native trailing stop off | mechanism | **+4.5pp NNNC, +12.0pp NNMT** |
+| `entry_rvol_threshold` retune | GATE | **+7.0pp** |
+| guards-off → quality guards kept | GATE | **+18.5pp** |
+| aux head weights | model | none (99% entry overlap) |
+| exit label level→crossing | model | none on economics |
+| peak-filter fix | model | none (identical trades) |
+| prediction_threshold sweep | model | win rate frozen at 58.2% |
+
+**Gate and mechanism parameters move P&L. Model parameters do not.** Every
+positive result in this study came from the first two categories, and every null
+came from the third. That is worth more than any individual number here.

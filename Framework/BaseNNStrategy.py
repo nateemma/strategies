@@ -177,6 +177,12 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
     # ``BaseStrategy.PEAK_WINDOW`` so it stays coupled with the gain/loss
     # thresholds — both are labeling-time parameters and must be retuned
     # together (see project_horizon_threshold_learnability_finding.md).
+    # Window for the peak filter. None => HORIZON, which is correct: the filter
+    # re-applies the labeler's own forward-gain test, so any other window
+    # silently overrides the label horizon. Set explicitly ONLY to reproduce the
+    # pre-2026-09-03 behaviour (PEAK_WINDOW=6) for a controlled comparison.
+    LABEL_FILTER_WINDOW = None
+
     MIN_BUY_GAIN_THRESHOLD = TrainingConfig.MIN_BUY_GAIN_THRESHOLD
     MIN_SELL_LOSS_THRESHOLD = TrainingConfig.MIN_SELL_LOSS_THRESHOLD
     TRAINING_TYPE = TrainingConfig.TRAINING_TYPE
@@ -611,7 +617,8 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
         # the intended horizon. PEAK_WINDOW is deliberately NOT changed: it is
         # aliased as lookahead_window and shifts NNMT's four aux-task labels.
         filtered_peaks = self.filter_peaks_by_future_performance(
-            future_df, peaks, "buy", window=self.HORIZON
+            future_df, peaks, "buy",
+            window=(self.LABEL_FILTER_WINDOW or self.HORIZON)
         )
 
         signals = pd.Series(np.zeros(np.shape(future_df)[0], dtype=float))
@@ -644,7 +651,8 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
         peaks = np.where(sell_labels.values > 0.5)[0]
 
         filtered_peaks = self.filter_peaks_by_future_performance(
-            future_df, peaks, "sell", window=self.HORIZON
+            future_df, peaks, "sell",
+            window=(self.LABEL_FILTER_WINDOW or self.HORIZON)
         )
 
         signals = pd.Series(np.zeros(np.shape(future_df)[0], dtype=float), dtype=float)
