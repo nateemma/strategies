@@ -240,3 +240,39 @@ against old-label models and are unaffected, exactly as on NNNC.
 (identical trades on 2 of 3 windows) this is about as clean a statement as the
 data can make: on gate-dominated strategies, model-side improvements do not reach
 the trades. See [[feedback_gate_and_mechanism_move_pnl_not_model]].
+
+## Production models retrained (hygiene)
+
+Both live models were trained under the peak-filter bug, i.e. inconsistent with
+the code that produced them. Retrained on `20220101-20250831` under the fixed
+pipeline. Old weights backed up before overwriting.
+
+| | trades | W1 (OOS) | W2 | W3 | summed |
+|---|---|---|---|---|---|
+| NNNC old model | 331 | 10.40 | 11.19 | 3.73 | **25.32** |
+| NNNC retrained | 332 | **10.45** | 10.31 | 3.37 | **24.13** |
+| NNMT old model | 654 | 10.71 | 8.45 | 1.04 | **20.20** |
+| NNMT retrained | 649 | **10.71** | 8.33 | 1.24 | **20.28** |
+
+NNNC −1.19pp (W1 marginally BETTER at 10.45 vs 10.40; the loss is all W2/W3).
+NNMT +0.08pp with **W1 byte-identical** — same 176 trades, same hash.
+
+**Both retrains are P&L-neutral. Keep them** — they are consistent with the code,
+and there is no cost to the hygiene.
+
+### A hypothesis raised and REFUTED
+
+Mid-run it looked as though the old production models might have been trained on
+data including W1, making the 25.32% headline substantially in-sample. **That is
+wrong.** A model trained only to 2025-08-31 scores 24.13%, so the old model was
+not meaningfully advantaged by its window. The 25.32% headline stands.
+
+The false alarm came from comparing against the A/B arm `NNNC_MLX_hzfix`, which
+scored 11.69%. That arm has NO params file, so `run_arm` fell back to CLASS
+defaults — notably `cexit_take_profit` 0.032 instead of the JSON's tuned 0.024.
+The A/B comparison is unaffected (both arms used class defaults), but its
+absolute level is not comparable to production's.
+
+**Reusable trap:** a strategy variant without its own `<Strategy>.json` silently
+runs on class defaults, not the tuned production config. Absolute numbers from
+such an arm are only comparable to other arms of the same kind.
