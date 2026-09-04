@@ -198,3 +198,45 @@ rather than training on mismatched conditioning. Production is unaffected —
 Given the recorded verdict that GAN augmentation does not help P&L at any
 fidelity, retraining them is not urgent — but they must not be used until it
 happens, which is now enforced rather than trusted.
+
+## Confirmed on NNMT — second family, same answer
+
+Matched pair, same protocol. Isolation is cleaner here: NNMT's four AUX labels
+shift by `lookahead_window` (still `PEAK_WINDOW = 6`, deliberately unchanged), so
+ONLY the trading head's labels move.
+
+Control verification worth noting: `NNMT_MLX_hzold` trained to
+**`e99d73df48672179`** — byte-identical to `NNMT_MLX_s42` from the seed study,
+trained on the same window *before the fix existed*. So `LABEL_FILTER_WINDOW = 6`
+reproduces the pre-fix pipeline exactly rather than approximating it, and
+training is fully deterministic given seed/window/labels.
+
+| | buy labels | sell labels | trading_mcc | trading_prec | risk | mom | flow |
+|---|---|---|---|---|---|---|---|
+| pre-fix | 6092 | 5224 | 0.6057 | 0.4497 | 0.560 | 0.632 | 0.508 |
+| FIXED | **10406** (+71%) | **9529** (+82%) | **0.7609** | **0.6458** | 0.562 | 0.632 | 0.509 |
+
+Aux heads unchanged to three decimals — the isolation worked.
+
+| arm | trades | W1 (OOS) | W2* | W3* | summed | PF | win% |
+|---|---|---|---|---|---|---|---|
+| pre-fix | 648 | **10.71** | 8.34 | 1.24 | 20.29 | 1.39 | 58.0 |
+| FIXED | 649 | **10.71** | 8.33 | 1.24 | **20.28** | 1.39 | 57.9 |
+
+**W1 byte-identical (176 trades), W1 payoff identical to the decimal, summed
+−0.01pp.** One trade differs in W2.
+
+### What this settles
+
+**Production `NNMT_MLX` does not need retraining for performance.** Its live model
+was trained under the bug, so it is inconsistent with the code that produced it —
+worth regenerating for hygiene whenever convenient, but there is no P&L in it.
+
+**The tuning transfers.** `entry_rvol_threshold 0.25` and the rest were fitted
+against old-label models and are unaffected, exactly as on NNNC.
+
+**Fifth large metric shift to convert to nothing, now across two families.**
+`val_mcc` +0.155, precision +0.196, P&L −0.01pp. Combined with the NNNC result
+(identical trades on 2 of 3 windows) this is about as clean a statement as the
+data can make: on gate-dominated strategies, model-side improvements do not reach
+the trades. See [[feedback_gate_and_mechanism_move_pnl_not_model]].
