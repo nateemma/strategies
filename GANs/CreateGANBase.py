@@ -384,6 +384,11 @@ class CreateGANBase:
             "min_sell_loss_threshold": self.MASTER_MIN_SELL_LOSS_THRESHOLD,
             "training_type": self.MASTER_TRAINING_TYPE,
             "horizon": self.MASTER_HORIZON,
+            # See TrainingEngine._gan_expected_metadata: `horizon` alone cannot
+            # detect the pre-2026-09-03 peak-filter override.
+            "label_filter_window": int(
+                getattr(self, "LABEL_FILTER_WINDOW", None) or self.MASTER_HORIZON
+            ),
         }
 
     def _ensure_dataframe(self, data: Any, reference: DataFrame) -> DataFrame:

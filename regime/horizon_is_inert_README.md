@@ -154,3 +154,47 @@ That is the through-line for everything tested here:
 **Gate and mechanism parameters move P&L. Model parameters do not.** Every
 positive result in this study came from the first two categories, and every null
 came from the third. That is worth more than any individual number here.
+
+## Consequence for the GANs (and a validation hole it exposed)
+
+GAN training labels come from the SAME filtered pipeline:
+`CreateGANBase` calls `get_training_labels`, which calls
+`get_train_buy_signals`/`get_train_sell_signals`, which apply the peak filter.
+**Every saved GAN was therefore conditioned on the 6-bar-effective label
+distribution**, and is stale against a post-fix strategy.
+
+**The metadata validator would NOT have caught it.** `_gan_expected_metadata`
+recorded `min_buy_gain_threshold`, `min_sell_loss_threshold`, `training_type` and
+`horizon`. A pre-fix GAN saved `horizon=48`; a post-fix strategy expects
+`horizon=48` — **match, validation passes** — while the label sets differ by ~77%.
+That is precisely the silent label/GAN drift the validator exists to prevent, and
+it slipped through because the effective window was never part of the config.
+
+**Fix, wired through three sites:**
+- `TrainingEngine._gan_expected_metadata` now includes `label_filter_window`
+  (`LABEL_FILTER_WINDOW or HORIZON`).
+- `CreateGANBase._master_save_kwargs` records it when a GAN is trained.
+- `GANInterface._HISTORICAL_DEFAULTS = {"label_filter_window": 6}` — because we
+  KNOW the historical value. Every NN strategy used `PEAK_WINDOW = 6` (only Debug
+  classes overrode it), so a GAN with no recorded value was trained at an
+  effective horizon of 6. Without this, the validator's missing-key leniency
+  ("assumed to match") would have grandfathered exactly the GANs that are wrong.
+
+Verified:
+
+| saved metadata | result |
+|---|---|
+| pre-fix GAN, no key | **BLOCKED** — `label_filter_window: saved=6, expected=48` |
+| pre-fix GAN, key = 6 | **BLOCKED** |
+| post-fix GAN | passes |
+
+**Practical impact.** `GANMetadataMismatchError` propagates as-is with a per-key
+diff, so affected strategies fail loudly at GAN load with an actionable message
+rather than training on mismatched conditioning. Production is unaffected —
+`NNNC_MLX` and `NNMT_MLX` both inherit `gan_type = NONE`. The GAN variants
+(`NNNC_DDPM_MLX`, `NNNC_CGP_MLX`, `NNNC_WGAN`, `NNMT_DDPM`, `NNMT_CGP_MLX`,
+`NNMT_WGAN`, ...) need their GANs retrained before use.
+
+Given the recorded verdict that GAN augmentation does not help P&L at any
+fidelity, retraining them is not urgent — but they must not be used until it
+happens, which is now enforced rather than trusted.

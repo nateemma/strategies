@@ -1026,6 +1026,15 @@ class TrainingEngine:
             "min_sell_loss_threshold": float(self.MIN_SELL_LOSS_THRESHOLD),
             "training_type": int(self.TRAINING_TYPE),
             "horizon": int(self.HORIZON),
+            # The EFFECTIVE label horizon. `horizon` alone is not sufficient:
+            # until 2026-09-03 the peak filter re-applied the labeler's gain
+            # test over PEAK_WINDOW=6, which silently overrode HORIZON for any
+            # value >= 6. A GAN trained then and a strategy running now both
+            # report horizon=48 while their label sets differ by ~77%, so
+            # without this key the validator matches and the drift is silent.
+            "label_filter_window": int(
+                getattr(self, "LABEL_FILTER_WINDOW", None) or self.HORIZON
+            ),
         }
     def _resolve_gan_passthrough_for_dispatcher(
         self,

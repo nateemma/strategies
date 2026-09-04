@@ -619,6 +619,18 @@ def _values_match(saved: Any, expected: Any) -> bool:
     return saved == expected
 
 
+# Keys added to the expected set AFTER some GANs were trained, mapped to the
+# value those GANs implicitly had. Without this the missing-key leniency below
+# would grandfather a GAN whose labels genuinely differ.
+#
+# label_filter_window: every NN strategy used BaseStrategy.PEAK_WINDOW = 6 for
+# the peak filter until 2026-09-03 (only Debug classes overrode it), so a GAN
+# with no recorded value was trained at an effective horizon of 6 bars. Treating
+# it as "assumed to match" would silently pair it with a strategy now labelling
+# at HORIZON, whose label set is ~77% larger.
+_HISTORICAL_DEFAULTS: Dict[str, Any] = {"label_filter_window": 6}
+
+
 def _validate_metadata_against_expected(
     *,
     saved: Mapping[str, Any],
@@ -643,7 +655,7 @@ def _validate_metadata_against_expected(
     mismatches: Dict[str, Any] = {}
     missing: Dict[str, Any] = {}
     for key, expected_value in expected.items():
-        saved_value = saved.get(key, _MISSING)
+        saved_value = saved.get(key, _HISTORICAL_DEFAULTS.get(key, _MISSING))
         if saved_value is _MISSING:
             missing[key] = expected_value
             continue
