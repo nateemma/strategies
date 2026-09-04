@@ -304,12 +304,20 @@ def main() -> int:
     ap.add_argument("--guards", choices=["on", "off"], default="on",
                     help="entry_enable_guards; 'off' loosens the gate so the "
                          "model threshold has room to bite")
+    ap.add_argument("--allow-gan", action="store_true",
+                    help="permit a GAN-activating strategy (NNNC_DDPM_*). The "
+                         "guard exists so the regime study cannot silently run a "
+                         "GAN variant when the non-GAN base was meant; set this "
+                         "only when comparing GAN arms deliberately.")
     ap.add_argument("--plan", action="store_true",
                     help="build the scratch dir and print the command without running it")
     args = ap.parse_args()
 
-    if args.strategy.startswith("NNNC_DDPM_"):
-        raise SystemExit("NNNC_DDPM_ prefix activates a GAN; this feature uses the non-GAN base")
+    if args.strategy.startswith("NNNC_DDPM_") and not args.allow_gan:
+        raise SystemExit(
+            "NNNC_DDPM_ prefix activates a GAN and the regime study uses the "
+            "non-GAN base. Pass --allow-gan if a GAN arm is genuinely intended."
+        )
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     overrides = {}

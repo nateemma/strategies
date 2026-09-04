@@ -912,3 +912,53 @@ once the "is post-GAN scaling worth keeping at all" question is answered.
 **Priority: LOW for P&L, MEDIUM for correctness.** No GAN is in production —
 `NNNC_MLX` and `NNMT_MLX` both run `gan_type = NONE`. This is cleanup that
 prevents a future silent mismatch, not a performance item.
+
+---
+
+## Task 19 — TAB_DDPM retrained on the FIXED label pipeline  [DONE 2026-09-04: tie]
+
+Re-tested "does GAN augmentation help?" on labels that finally match the config,
+after the peak-filter fix (`HORIZON` was inert above `PEAK_WINDOW=6`; see
+`regime/horizon_is_inert_README.md`).
+
+**Why TAB_DDPM and not MT_CTAB_GAN.** The CTAB-GAN was killed after 9.5 hours at
+epoch 150/300 — 3.8 min/epoch, quality peaked at epoch 70 and flat for 80 epochs
+after, and it does not checkpoint, so nothing was salvageable. TAB_DDPM trains at
+**7.6 s/epoch**: the full 300 epochs in **37 minutes**, ~30x faster, converging
+smoothly (loss 0.7009 → 0.4872) without plateauing.
+
+**The new GAN metadata carries `label_filter_window=48`** alongside
+`horizon=48` / `training_type=17`, so the guard added in `d170e34` works
+end-to-end: GANs trained from now on record the pipeline's effective horizon and
+future drift fails loudly.
+
+### Result: no material difference
+
+Matched exit config, same training window (`20220101-20250831`, W1 out-of-sample),
+same guards and threshold — only the augmentation differs:
+
+| arm | trades | W1 (OOS) | W2 | W3 | summed | PF | win% |
+|---|---|---|---|---|---|---|---|
+| NNNC_MLX (non-GAN) | 332 | 10.45 | 10.31 | **3.37** | 24.13 | 1.94 | 74.4 |
+| NNNC_DDPM_MLX (TAB_DDPM) | 324 | **10.64** | **10.81** | 3.06 | **24.52** | 1.94 | 74.8 |
+
+**+0.39pp for the GAN — a tie.** Single seed, and the recorded seed-robust A/B
+(task 1) had non-GAN ahead by ~1pp across three seeds, so this sits inside the
+same noise band. **"GAN augmentation does not help" stands; "GAN loses" does
+not.** Fixing the labels did not change that conclusion.
+
+### The confound that nearly produced a false result
+
+The first run of this comparison showed the GAN losing by **12pp**. That was
+entirely `cexit_take_profit`: `NNNC_DDPM_MLX` had no `<Strategy>.json`, so it ran
+CLASS defaults (0.032) while the non-GAN arm ran the tuned production config
+(0.024). `exit_config_hash` differed between the arms and caught it.
+
+**The exit-config confound was worth 12pp — an order of magnitude larger than the
+effect under test.** A strategy variant without its own params file silently runs
+class defaults; absolute numbers from such an arm are comparable only to other
+arms of the same kind. `NNNC/NNNC_DDPM_MLX.json` now exists so this arm is
+directly comparable.
+
+Also note `CreateTabDDPM` saves to `GANs_PostScale/tab_ddpm`, not `GANs/` — a
+live instance of the storage split described in task 18.
