@@ -92,18 +92,3 @@ class NNNC_BreakoutOpen(NNNC_MLX):
 
     # Dip-buyer trend filter is meaningless for a breakout arm; keep it off.
     entry_trend_filter_enable = False
-
-    def get_train_sell_signals(self, future_df):
-        """Sell labels from the MEAN-REVERSION labeler (method 17), not the
-        breakout mirror.
-
-        Swaps TRAINING_TYPE for the duration of the base call rather than
-        duplicating its peak-filtering logic, so this stays correct if the base
-        implementation changes.
-        """
-        saved = self.TRAINING_TYPE
-        self.TRAINING_TYPE = int(LabelMethod.gbb)
-        try:
-            return super().get_train_sell_signals(future_df)
-        finally:
-            self.TRAINING_TYPE = saved

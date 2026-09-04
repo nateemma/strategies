@@ -177,3 +177,48 @@ expensively enough, that exit-side tuning cannot rescue it.
 Worth recording on the positive side: `model_exit` fires 416 times at **+1.79%
 mean with a worst case of 0.00%** — the exit signal is genuinely productive here.
 It is the entry that fails.
+
+## Exit label: level vs crossing — the fix worked mechanically and lost more
+
+`labels_breakout_gbb_sell` was rewritten from the level condition to the
+transition "was above the upper Bollinger band, closed back inside" — momentum
+FAILING rather than momentum PRESENT. Motivated by a real defect: with the
+level-based sell, model exits fired at a 135-minute median for +1.67% while
+take_profit reached +3.49% at 465 minutes.
+
+Training changed in the predicted direction. Sell labels fell 5x (≈6,600 → ≈1,330,
+2.22% of bars), and although `val_mcc` dipped 0.576 → 0.546, **precision more than
+tripled (0.129 → 0.428)** and F1 on the signal class went 0.216 → 0.564.
+
+| | OLD level-sell | NEW failure-sell |
+|---|---|---|
+| trades (W1) | 1336 | 2149 |
+| model_exit hold | 135 min | **255 min** |
+| model_exit mean | +1.79% | +1.56% |
+| take_profit exits | 35 | **100** |
+| stop exits | 557 @ −2.67% | 829 @ −3.21% |
+| **W1 (OOS)** | **−5.05%** | **−12.40%** |
+| summed | −17.55% | −25.16% |
+
+**The mechanism worked and the premise was wrong.** Trades held 1.9× longer and
+take-profit exits tripled, exactly as designed. But holding longer did not convert
+losers into winners — it let them run further against, with mean stop loss
+deepening −2.67% → −3.21%. Two trades even reached the static `stop_loss` at
+−17.15%, an exit reason that had never appeared before.
+
+Two confounds worth recording, because they make this a weaker test than it looks:
+1. The sparser sell class loosened the 3-class decision boundary, so **entries
+   rose 61%** (1336 → 2149). The comparison is not exit-only.
+2. Lowering the threshold to 0.30 was worse still (−28.63% summed), so the extra
+   entries are the marginal-quality ones, consistent with everything else here.
+
+**Another precision-does-not-predict-edge instance**, and a sharper one than MCC:
+precision tripled and P&L halved.
+
+## Status: closed
+
+Five independent interventions have now been tested on this arm — prediction
+threshold, ATR stop band, take-profit/ROI caps, exit signal on/off, and
+level-vs-crossing sell label. All fail the same way: they redistribute the same
+negative expectancy. The 2026-07-08 verdict stands, now with the exit defect,
+the risk parameters and the exit label form all separately ruled out.

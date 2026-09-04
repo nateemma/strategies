@@ -2586,18 +2586,49 @@ def labels_breakout_gbb_sell(
     horizon: Optional[int] = DEFAULT_HORIZON,
     min_gain: Optional[float] = None,
 ) -> pd.Series:
-    """Inverse-gbb breakDOWN sell label: sell when guard_metric is LOW (weak /
-    breaking down) + volatile + future follow-through DOWN. Mirror of
-    labels_breakout_gbb for the sell side."""
+    """Momentum-FAILURE sell label: the correct exit for a breakout long.
+
+    REWRITTEN 2026-09-03. The previous version was the literal mirror of the buy
+    (sell when guard_metric is LOW), i.e. sell the DIP -- wrong-signed for a
+    momentum long, and refuted in the 2026-07-08 breakout work.
+
+    Swapping in `labels_gbb_sell` (method 17, sell when OVERBOUGHT) was the
+    workaround, but that is a LEVEL condition and a healthy breakout is
+    overbought for the whole winning move -- so at inference the model learns to
+    sell into strength continuously. Measured on NNNC_BreakoutOpen W1: model
+    exits fired at a 135-minute median for +1.67% median, against take_profit at
+    465 minutes for +3.49% and roi at +5.00%. It was cutting winners at roughly a
+    third of their run.
+
+    The right signal is a TRANSITION, not a level: price was extended above the
+    upper Bollinger band and has closed back inside it -- momentum FAILING rather
+    than momentum PRESENT. `min_loss` still requires genuine follow-through down,
+    so this labels a real top rather than every pullback.
+
+    `bb_width_threshold` and `guard_threshold` are accepted for dispatch
+    compatibility; the band crossing already carries the volatility context.
+    """
     close = _safe_close(df)
     n = len(close)
     labels = np.zeros(n, dtype=float)
-    guard_metric = np.nan_to_num(np.asarray(df.get("guard_metric", pd.Series(np.zeros(n))), dtype=float), nan=0.0)
-    bb_width = np.nan_to_num(np.asarray(df.get("bb_width", pd.Series(np.zeros(n))), dtype=float), nan=0.0)
+
+    upper = df.get("bb_upperband")
+    if upper is None:
+        # Without the band there is no crossing to detect. Return no labels
+        # rather than silently falling back to a differently-signed rule.
+        return pd.Series(labels, index=df.index)
+    upper = np.nan_to_num(np.asarray(upper, dtype=float), nan=np.inf)
+
+    above = close > upper
+    # Extended on the previous bar, back inside on this one.
+    failure = np.zeros(n, dtype=bool)
+    failure[1:] = above[:-1] & ~above[1:]
+
     min_future = _rolling_min_forward(close, horizon)
     future_loss = (close - min_future) / close
     ml = min_loss if min_loss is not None else 0.0
-    sell_mask = (guard_metric < -guard_threshold) & (bb_width > bb_width_threshold) & (future_loss >= ml)
+
+    sell_mask = failure & (future_loss >= ml)
     sell_mask = np.where(np.isnan(future_loss), False, sell_mask)
     labels[sell_mask] = 1.0
     return pd.Series(labels, index=df.index)
