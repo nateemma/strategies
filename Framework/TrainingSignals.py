@@ -2709,6 +2709,96 @@ def labels_breakout_consensus_sell(
     return pd.Series(labels, index=df.index)
 
 
+def labels_breakout_bb(
+    df: pd.DataFrame,
+    bb_position_threshold: float = 0.60,
+    bb_width_threshold: float = 0.035,
+    min_gain: float = 0.01,
+    horizon: Optional[int] = DEFAULT_HORIZON,
+    min_loss: Optional[float] = None,
+) -> pd.Series:
+    """Bollinger BREAKOUT buy label, built entirely on features the model SEES.
+
+    `bb_position` and `bb_width` are BOTH in the classifier's active feature set
+    (FeatureNormalizer.include_list), which is the property that makes a label
+    learnable here -- the price-based Donchian breakout (method 20) only reached
+    MCC 0.63-0.67 because the model has to infer the level indirectly, while gbb
+    and inverse-gbb reach 0.75-0.80 by keying off visible features.
+
+    Buy when price is riding the TOP of its band (`bb_position` >= threshold),
+    the band is genuinely wide rather than a flat squeeze (`bb_width`), and there
+    is forward follow-through.
+
+    NOTE the scale. `bb_position` is computed on [0, 1] but then RESCALED to
+    [-1, 1] (`2.0 * (x - 0.5)`), so +1 = at/above the upper band, 0 = the middle
+    band, -1 = at/below the lower band. Thresholds here are on that [-1, 1]
+    scale, and the sell mirror is about 0 rather than 0.5. It also saturates:
+    everything beyond the upper band clips to exactly +1.0 (~5.4% of bars), so
+    no threshold can distinguish degrees of overshoot.
+
+    Default 0.60 = the upper 20% of the band. Requiring the band itself (+1.0)
+    would be the purer "breakout" definition but leaves only ~2.2% of bars after
+    the follow-through filter, under the ~5.5% signal-frequency floor where
+    aug_risk flags all-Hold collapse. 0.60 gives 5.8% buy / 5.5% sell on SOL.
+    """
+    close = _safe_close(df)
+    n = len(close)
+    labels = np.zeros(n, dtype=float)
+    bb_position = np.nan_to_num(
+        np.asarray(df.get("bb_position", pd.Series(np.zeros(n))), dtype=float), nan=0.0
+    )
+    bb_width = np.nan_to_num(
+        np.asarray(df.get("bb_width", pd.Series(np.zeros(n))), dtype=float), nan=0.0
+    )
+    max_future = _rolling_max_forward(close, horizon)
+    future_gain = (max_future - close) / close
+    mg = min_gain if min_gain is not None else 0.0
+    buy_mask = (
+        (bb_position >= bb_position_threshold)
+        & (bb_width > bb_width_threshold)
+        & (future_gain >= mg)
+    )
+    buy_mask = np.where(np.isnan(future_gain), False, buy_mask)
+    labels[buy_mask] = 1.0
+    return pd.Series(labels, index=df.index)
+
+
+def labels_breakout_bb_sell(
+    df: pd.DataFrame,
+    bb_position_threshold: float = 0.60,
+    bb_width_threshold: float = 0.035,
+    min_loss: float = 0.01,
+    horizon: Optional[int] = DEFAULT_HORIZON,
+    min_gain: Optional[float] = None,
+) -> pd.Series:
+    """Bollinger BREAKDOWN sell label -- the mirror of labels_breakout_bb.
+
+    Sell when price is riding the BOTTOM of its band, the band is wide, and there
+    is forward follow-through DOWN. `bb_position` runs on [-1, 1], so the mirror
+    is about ZERO: `bb_position_threshold=0.80` means `bb_position <= -0.80`.
+    """
+    close = _safe_close(df)
+    n = len(close)
+    labels = np.zeros(n, dtype=float)
+    bb_position = np.nan_to_num(
+        np.asarray(df.get("bb_position", pd.Series(np.zeros(n))), dtype=float), nan=0.0
+    )
+    bb_width = np.nan_to_num(
+        np.asarray(df.get("bb_width", pd.Series(np.zeros(n))), dtype=float), nan=0.0
+    )
+    min_future = _rolling_min_forward(close, horizon)
+    future_loss = (close - min_future) / close
+    ml = min_loss if min_loss is not None else 0.0
+    sell_mask = (
+        (bb_position <= -bb_position_threshold)
+        & (bb_width > bb_width_threshold)
+        & (future_loss >= ml)
+    )
+    sell_mask = np.where(np.isnan(future_loss), False, sell_mask)
+    labels[sell_mask] = 1.0
+    return pd.Series(labels, index=df.index)
+
+
 # ------------------------------
 # Accessors
 # ------------------------------
@@ -2741,6 +2831,7 @@ class LabelMethod(IntEnum):
     breakout_squeeze = 23
     breakout_gbb = 24
     breakout_consensus = 25
+    breakout_bb = 26
 
 
 METHODS = {
@@ -2770,6 +2861,7 @@ METHODS = {
     LabelMethod.breakout_squeeze: labels_breakout_squeeze,
     LabelMethod.breakout_gbb: labels_breakout_gbb,
     LabelMethod.breakout_consensus: labels_breakout_consensus,
+    LabelMethod.breakout_bb: labels_breakout_bb,
 }
 
 
@@ -3001,6 +3093,13 @@ def get_train_sell_signals(
         allowed = {"min_loss", "horizon", "guard_threshold", "bb_width_threshold"}
         local = {k: v for k, v in local.items() if k in allowed}
         return labels_breakout_gbb_sell(df, **local).astype(float)
+
+    if method_enum == LabelMethod.breakout_bb:
+        # Bollinger breakdown sell variant
+        local = dict(params or {})
+        allowed = {"min_loss", "horizon", "bb_position_threshold", "bb_width_threshold"}
+        local = {k: v for k, v in local.items() if k in allowed}
+        return labels_breakout_bb_sell(df, **local).astype(float)
 
     if method_enum == LabelMethod.breakout_consensus:
         # Inverse-consensus breakdown sell variant

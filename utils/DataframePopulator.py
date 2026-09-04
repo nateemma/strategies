@@ -396,7 +396,10 @@ class DataframePopulator:
         dataframe["aroonosc_scaled"] = aroonosc / 100.0
 
         # Price-based features that generalize across pairs
-        # BB position (PRE-NORMALIZED, 0-1 scale)
+        # BB position. Computed on [0,1] here, then RESCALED TO [-1, 1] below
+        # (see `2.0 * (bb_position - 0.5)`): +1 = at/above the upper band,
+        # 0 = the middle band, -1 = at/below the lower band. Anything reading
+        # this column -- labelers especially -- must use the [-1, 1] scale.
         bb_range = dataframe["bb_upperband"] - dataframe["bb_lowerband"]
         dataframe["bb_position"] = (
             (dataframe["close"] - dataframe["bb_lowerband"]) / (bb_range + epsilon)
@@ -1964,7 +1967,7 @@ class DataframePopulator:
         "bb_lower",  # Bollinger Bands Lower - price-based
         "bb_middle",  # Bollinger Bands Middle - price-based
         "bb_width",  # Bollinger Bands Width - 0 to ∞
-        "bb_position",  # Bollinger Bands Position - 0 to 1 (but can be >1 or <0)
+        "bb_position",  # Bollinger Bands Position - RESCALED TO [-1, 1] (+1 = upper band, 0 = mid, -1 = lower)
         "bb_gain",  # Bollinger Bands Gain - -∞ to +∞
         "bb_loss",  # Bollinger Bands Loss - -∞ to +∞
         "bb_upperband",  # Bollinger Bands Upper (legacy) - price-based
