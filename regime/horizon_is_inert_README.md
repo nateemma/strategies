@@ -56,3 +56,44 @@ mismatch, in the opposite direction from the one suspected.
 attribute, so it cannot be swept via `run_arm --set`; use a subclass. Note it is
 also aliased as `lookahead_window` in `BaseNNStrategy`, so check what else
 consumes it before changing it globally.
+
+## FIXED 2026-09-03
+
+The filter is leftover scaffolding for label schemes that do not self-filter.
+Confirmed by inspection: **18 of 27 labelers apply their own forward-gain test at
+`horizon`** — including every one in current use (gbb, breakout_gbb,
+indicators2/3/4, bands, breakout_bb) — so for those the filter was pure
+redundancy that silently overrode the horizon. The other **9 have no gain test**
+(`triple_barrier`, `multi_horizon_vote`, `optimal_signals`, `future_sharpe`,
+`future_sortino`, `future_expectancy`, `local_extrema`, `geometry`,
+`breakout_tb`) — the older/shape-based schemes the filter was written for.
+
+**Fix:** `filter_peaks_by_future_performance` is now called with
+`window=self.HORIZON` at both call sites. Strictly more correct in both cases —
+a no-op for the 18 that self-filter, and the intended horizon for the 9 that
+don't.
+
+**`PEAK_WINDOW` is deliberately NOT changed.** It is aliased as
+`BaseNNStrategy.lookahead_window`, which NNMT uses to shift its four aux-task
+labels (`regime`, `risk`, `flow`, `momentum`) by `-lookahead_window + 1`. Setting
+`PEAK_WINDOW = 48` would have moved those by 8x as a silent side effect.
+
+Verified on breakout_gbb (min_gain 0.005): the filtered count now equals the
+labeler's at every horizon — 11205 / 14797 / 19193 / 20757 / 22830 for
+H = 3 / 6 / 16 / 24 / 48, against a flat 14797 before.
+
+### Consequence: this changes labels for every NN strategy on the NEXT retrain
+
+Existing trained models are unaffected — they are on disk and load unchanged, so
+a running dry run is not touched. But any retrain now produces a materially
+different model: at H=48 the breakout label set grows **14797 -> 22830 (+54%)**.
+
+Every currently tuned parameter — NNNC's `entry_rvol_threshold` 2.0,
+`prediction_threshold` 0.69, ROI 0.05, grace 6.5h — was fitted against models
+trained on the *effective 6-bar* labels. **Retune after retraining, do not assume
+they transfer.**
+
+The open question this creates is worth measuring rather than assuming: NNNC has
+been training on 90-minute labels while its configuration said 12 hours. Whether
+the intended horizon is actually better is now testable for the first time —
+retrain NNNC_MLX and compare against the current production model.

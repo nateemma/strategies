@@ -599,8 +599,19 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
         )
         peaks = np.where(buy_labels.values > 0.5)[0]
 
+        # Window is HORIZON, not PEAK_WINDOW. The filter re-applies the SAME
+        # forward-gain test the labeler already applied, so using a different
+        # window silently OVERRIDES the label horizon: with PEAK_WINDOW=6 and
+        # HORIZON=48, every HORIZON >= 6 produced byte-identical labels because
+        # the 6-bar test is strictly tighter and its output is a subset.
+        # 18 of 27 labelers self-filter on gain, making this a no-op for them;
+        # the other 9 (triple_barrier, local_extrema, geometry, future_*,
+        # optimal_signals, multi_horizon_vote, breakout_tb) have no gain test,
+        # which is what this filter was originally for -- and they now get it at
+        # the intended horizon. PEAK_WINDOW is deliberately NOT changed: it is
+        # aliased as lookahead_window and shifts NNMT's four aux-task labels.
         filtered_peaks = self.filter_peaks_by_future_performance(
-            future_df, peaks, "buy", window=self.PEAK_WINDOW
+            future_df, peaks, "buy", window=self.HORIZON
         )
 
         signals = pd.Series(np.zeros(np.shape(future_df)[0], dtype=float))
@@ -633,7 +644,7 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
         peaks = np.where(sell_labels.values > 0.5)[0]
 
         filtered_peaks = self.filter_peaks_by_future_performance(
-            future_df, peaks, "sell", window=self.PEAK_WINDOW
+            future_df, peaks, "sell", window=self.HORIZON
         )
 
         signals = pd.Series(np.zeros(np.shape(future_df)[0], dtype=float), dtype=float)
