@@ -222,3 +222,36 @@ threshold, ATR stop band, take-profit/ROI caps, exit signal on/off, and
 level-vs-crossing sell label. All fail the same way: they redistribute the same
 negative expectancy. The 2026-07-08 verdict stands, now with the exit defect,
 the risk parameters and the exit label form all separately ruled out.
+
+## Retrained under the peak-filter fix
+
+The breakout model had been trained under the peak-filter bug (effective 6-bar
+labels). Retrained with the fix so `HORIZON = 48` genuinely applies. Identical
+config, guards, threshold and training window — only the model differs.
+
+| | buy labels | sell labels | val_mcc | precision |
+|---|---|---|---|---|
+| pre-fix | 5940 | 1375 | 0.5456 | 0.4275 |
+| FIXED | **9951** (+68%) | **2554** (+86%) | **0.7116** | **0.6352** |
+
+| arm | trades | W1 (OOS) | W2* | W3* | summed | PF | win% |
+|---|---|---|---|---|---|---|---|
+| pre-fix (labels @6) | 291 | −1.09 | +0.12 | +1.95 | +0.98 | 1.05 | 57.4 |
+| FIXED (labels @48) | 293 | −0.74 | +0.34 | +1.71 | **+1.31** | 1.06 | 57.6 |
+
+W1 payoff: win 58.2 → 58.8%, avgWin 2.99 → 2.95%, avgLoss 3.96 → 4.03%,
+margin +1.2 → **+1.0pp**.
+
+**+0.33pp summed — directionally positive, materially nothing.** Unlike the NNNC
+pair, the trades genuinely DIFFER in all three windows, because two of seven
+guards are neutralised here so the model has room to express a change. It used
+that room to move the win rate 0.6pp when the arm needs ~4pp, and average loss
+rose enough that the break-even MARGIN actually got slightly worse.
+
+So the fourth large metric shift of the study (+0.166 MCC, +0.208 precision)
+again converted to nothing. Keep the retrained model — it is the correct one —
+but the fix does not rescue the breakout entry.
+
+The sell-label sparsity concern does ease: the momentum-failure crossing label
+was 2.2% of bars and flagged HIGH collapse risk; at the true horizon it is ~86%
+denser, so that specific risk is gone.
