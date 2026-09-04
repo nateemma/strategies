@@ -854,3 +854,61 @@ parked puzzles), 11 (G/D balance), 13 (DDPM harness). None has a specific
 untested mechanism of the kind tasks 8/14/15 had.
 
 **NEXT: task 12 — the P&L A/B.** The fidelity list is complete.
+
+---
+
+## Task 18 — consolidate GAN storage and the scaling-pipeline split  [OPEN]
+
+**Problem.** GAN artifacts are spread across three parent directories chosen by
+two flags, and the flags do not always mean what the path implies.
+
+`GANs/paths.py` selects the parent from `use_pca` / `post_gan_scaling`:
+
+| flags | parent |
+|---|---|
+| neither | `GANs/` |
+| `post_gan_scaling=True` | `GANs_PostScale/` |
+| `use_pca=True` (wins over post-scale) | `GANs_PCA/` |
+
+Current state on disk is already split, with no single type present in both:
+
+```
+saved_data/GANs/mt_ctab_gan
+saved_data/GANs_PostScale/{ctab_gan, wgan, mt_wgan}
+```
+
+**The sharp edge.** `BaseNNStrategy.use_post_gan_scaling` is documented as
+"only supported for MT_DDPM with single-task labels currently; other gan_type
+values fall back to the pre-GAN scaling pipeline regardless of this flag" — but
+the flag still changes the SAVE PATH unconditionally. So for any non-MT_DDPM
+type, setting it trains a **pre-scale GAN into the PostScale directory**: the
+path claims one pipeline, the weights are the other. Nothing detects this,
+because the pipeline choice is not recorded in the GAN metadata.
+
+Costs already paid: time lost looking for `mt_ctab_gan` under the wrong parent,
+and a real risk of loading a GAN trained under a different scaling pipeline than
+the consumer assumes — the same class of silent mismatch as the
+`label_filter_window` bug (fixed 2026-09-03), which was invisible for exactly the
+same reason: the distinguishing property was not in the metadata.
+
+**Proposal.**
+1. **One approach.** Decide whether post-GAN scaling is the pipeline or is
+   dropped. It is currently supported for one gan_type out of ~8, and the
+   recorded verdict is that GAN augmentation does not help P&L at any fidelity,
+   so "drop it" is a legitimate answer and the cheapest one.
+2. **One directory.** Collapse to a single `GANs/<gan_type>/` layout. PCA and
+   scaling variants become *metadata*, not path segments.
+3. **Record the pipeline in metadata**, alongside `training_type`, `horizon` and
+   `label_filter_window`, and add it to `_gan_expected_metadata` so a mismatch
+   fails loudly instead of resolving by directory name.
+4. **Migrate or delete** the existing `GANs_PostScale/` artifacts. Given every
+   GAN is already stale against the peak-filter fix, deleting and retraining is
+   simpler than migrating and loses nothing.
+
+**Sequencing note.** Point 3 is the durable part and is cheap. Points 1–2 touch
+`paths.py`, every `Create*` script and the loaders, so do them together and only
+once the "is post-GAN scaling worth keeping at all" question is answered.
+
+**Priority: LOW for P&L, MEDIUM for correctness.** No GAN is in production —
+`NNNC_MLX` and `NNMT_MLX` both run `gan_type = NONE`. This is cleanup that
+prevents a future silent mismatch, not a performance item.
