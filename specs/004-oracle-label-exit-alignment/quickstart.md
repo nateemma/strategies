@@ -3,6 +3,17 @@
 Validation scenarios proving the feature end to end. Run from the repository
 root `/Users/philprice95/projects/freqtrade`. Nothing here trains a model.
 
+## Window treatment (applies to every scenario)
+
+W1 `20250901-20260831` is the SOLE acceptance window. W2 `20240601-20250531` and
+W3 `20230101-20231231` fall inside the model's training window. For ORACLE arms
+no weights are fitted, so those windows may CORROBORATE a mechanism — but they
+never confer acceptance, because the label parameters were themselves chosen
+partly on data covering them (R10, FR-022; Constitution Principle II
+PASS-WITH-CAVEAT). No scenario below treats W2 or W3 as out-of-sample evidence.
+
+Arms are run SEQUENTIALLY, never concurrently (FR-025).
+
 ## Prerequisites
 
 - Existing arms: `oracle`, `oracle_nog`, `gctl`, `nomodel`, `gpool`, `gqoff` in
@@ -53,11 +64,20 @@ survive removal of fees — before any parameter is varied.
     PYTHONPATH=user_data/strategies .venv/bin/python \
       user_data/strategies/regime/tail/compare.py ora_tp040 oracle_nog
 
-**Expected**: a verdict of pass, fail or inconclusive under the R9 rule — W1
-guards-off return **> 0** AND at least **200 trades** to pass. A variant whose
-trades are identical to `oracle_nog` is inconclusive, not refuted. A variant that
-improves but stays negative is a `fail` that records progress and does not
-license training.
+**`compare.py` does NOT emit the gate verdict.** It emits its own four-way
+classification — `inconclusive_absorbed` / `improved` / `worsened` / `unchanged`
+— using `POWER_THRESHOLD_PP = 1.0`, a floor calibrated for ~97-trade arms. On a
+1760-trade guards-off arm it would report `improved` for a +2pp change that is
+still deeply negative, which is exactly the misreading to avoid. Use it here for
+its liveness comparison (trade hashes), its trade counts and its in-sample
+labelling — **not** its verdict line.
+
+**Expected**: from `compare.py`, the liveness rows and per-window figures. The
+GATE verdict is then applied by hand (or by the rule recorded in
+`regime/ORACLE_GATE.md`): PASS requires W1 guards-off return **> 0** AND at least
+**200 trades**. A variant whose trades are identical to `oracle_nog` is
+inconclusive, not refuted. A variant that improves but stays negative is a
+`fail` that records progress and does not license training.
 
 ## Scenario 4 — Separation of contributions (Phase 4)
 

@@ -8,7 +8,7 @@
 
 A perfect-prediction oracle on NNNC's own label loses money once the entry guards
 are removed (−18.89% on W1), and the whole span from no model to a perfect model
-with guards on is 1.45pp. The guards are therefore not filtering bad predictions
+with guards on is 1.45pp (11.122% vs 9.671%). The guards are therefore not filtering bad predictions
 — they are hiding a disagreement between the label and the exit stack.
 
 This feature (a) locates the exit mechanism responsible, (b) turns the oracle

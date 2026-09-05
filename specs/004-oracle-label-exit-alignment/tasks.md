@@ -168,7 +168,7 @@ rediscovered.
 - [ ] T028 [P] Verify every oracle figure in `diagnosis.md`, `screening.md`, `ORACLE_GATE.md` and `GUARD_ABLATION.md` is labelled a lookahead ceiling and that no oracle configuration has been promoted (FR-012, SC-009)
 - [ ] T029 [P] Commit the arm records under `regime/arms/` — with `regime/trade_forensics.py` and the findings documents they are the durable evidence for this feature (FR-026)
 - [ ] T030 Run the `quickstart.md` scenarios end to end and confirm every success criterion SC-001..SC-010 is satisfied, recording the verification
-- [ ] T031 [P] Record anything that generalises beyond this host in memory and the relevant `regime/` documents — in particular the R2 mechanism-mapping trap and the oracle-gate process, both of which apply to any strategy family in this repo
+- [ ] T031 [P] Record anything that generalises beyond this host in memory and the relevant `regime/` documents — in particular the R2 mechanism-mapping trap and the oracle-gate process, both of which apply to any strategy family in this repo (FR-021, SC-010)
 
 ---
 

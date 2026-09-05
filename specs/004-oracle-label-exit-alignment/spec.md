@@ -24,6 +24,8 @@ produced two results that redefine what work on this strategy can be worth.
 
 **Model headroom is 0.68pp.** The whole span from no model to a perfect model
 with guards on is 1.45pp on W1, of which the real model already captures 0.78pp.
+Exact values are 11.122% (perfect), 10.446% (real) and 9.671% (none), so the
+headroom is 0.676pp; the rounded figures do not sum to the rounded span.
 
 **A perfect model loses money without the guards** — worse than the real model
 on W1, and far worse on W3 where the real model makes +19.29%.
