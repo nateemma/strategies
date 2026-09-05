@@ -115,3 +115,85 @@ filter.** Options, cheapest first:
 3. Treat the guard chain as the strategy and tune it directly, dropping the NN
    from the entry path. This is the honest reading of the table above, but it
    discards the model rather than fixing it.
+
+---
+
+# Follow-up 1: can the model rank at all?
+
+Guard chain neutralised so the model has room to discriminate, `prediction_threshold` swept.
+
+    W1 (OUT-OF-SAMPLE)                  W3 (in-sample, distant era)
+    thresh  trades   ret%  win%   PF    thresh  trades   ret%  win%   PF
+    none      6015 -42.12  58.2  0.88   none      5745  -5.38  60.5  0.98
+    0.0       2357 -22.63  59.0  0.86   0.0       2064  10.82  62.4  1.09
+    0.5       2313 -23.56  58.7  0.85   0.5       2033  12.40  62.3  1.10
+    0.69      1970 -14.46  57.9  0.90   0.69      1712  19.29  63.9  1.20
+    0.8       1586 -12.19  58.2  0.90   0.8       1374  19.77  65.1  1.25
+
+**The model ranks IN-SAMPLE and not OUT-OF-SAMPLE.** On W3 win rate and PF rise
+monotonically with confidence (60.5 -> 65.1%, 0.98 -> 1.25) — real ranking skill.
+On W1 the win rate is FROZEN at 57.9-59.0% across the whole range while trade
+count falls 2357 -> 1586. The confidence score carries no information about win
+probability on unseen data. This is a clean generalisation failure, not an
+inability to learn.
+
+# Follow-up 2: the ceiling — what would a PERFECT model buy?
+
+`NNNC/NNNC_Oracle.py` replaces the model's entry opinion with the TRAINING LABEL
+itself (deliberate lookahead). Identical guards, stops, exits, ROI.
+
+    arm                                W1 tr  W1 ret%  W1 PF  W1 win%   W3 tr  W3 ret%
+    GUARDS ON   no model at all           99     9.67   2.13     72.7      62     3.68
+    GUARDS ON   real model (production)   95    10.45   2.34     74.7      56     3.37
+    GUARDS ON   PERFECT model             89    11.12   2.71     75.3      55     4.41
+    GUARDS OFF  no model at all          6015   -42.12   0.88    58.2    5745    -5.38
+    GUARDS OFF  real model               1970   -14.46   0.90    57.9    1712    19.29
+    GUARDS OFF  PERFECT model            1760   -18.89   0.84    59.3    1588   -11.69
+
+Two findings, both large.
+
+**1. Model improvement is capped at +0.68pp.** With guards on, the whole span
+from no model at all to a perfect lookahead model is 1.45pp on W1. The real
+model already captures 0.78pp of it. **No model, GAN, label or architecture
+change can be worth more than about seven tenths of a point at this gate.** That
+retro-explains every null in this study far better than any hypothesis about
+absorption: there was never more than a point on the table.
+
+**2. A PERFECT model LOSES MONEY once the guards are removed** — −18.89% on W1,
+*worse* than the real model's −14.46%, and −11.69% on W3 where the real model
+makes +19.29%. Perfect foreknowledge of the label, traded through this exit
+stack, is unprofitable.
+
+So the guards are not filtering bad model predictions. **They are filtering out
+bars where the LABEL ITSELF is not profitable to trade**, and they are the only
+thing standing between this strategy and a loss. The label and the exit
+machinery disagree about what a good trade is; the guard chain silently repairs
+the disagreement by admitting only the ~95 bars per window where they happen to
+coincide.
+
+The oracle validates itself on the guards-on rows: better PF (2.71 vs 2.34) and
+win rate (75.3 vs 74.7) than production, exactly as a superior signal should.
+The guards-off rows are therefore a real property of the label, not a broken arm.
+
+## What this changes
+
+Stop tuning the model, the labels-as-learning-target, and the guards. The
+binding problem is that **the training label does not describe a trade this exit
+stack can profit from.** The productive question is the one the oracle makes
+measurable for the first time: change the label or the exits until
+`oracle GUARDS OFF` is PROFITABLE. Only then is there an edge for a model to
+learn, and only then does model quality pay.
+
+That is now a cheap inner loop — the oracle needs no training, so label and exit
+variants can be evaluated in minutes each.
+
+## Note on Debug/DebugNNStrategy
+
+The perfect-prediction idea came from `Debug/DebugNNStrategy.py`, but that class
+carries its own `populate_entry_trend` whose guard block has DRIFTED from
+`BaseStrategy`: it omits the `rvol` guard entirely and applies `atr_pct` outside
+the `entry_enable_guards` block. rvol is worth -3.42pp on W1, so an oracle built
+on that path is not comparable with production. `NNNC_Oracle` subclasses
+`NNNC_MLX` instead and overrides only `get_entry_conditions`, so the entry path
+is byte-for-byte production. DebugNNStrategy's drift is worth repairing if it is
+used for anything quantitative.

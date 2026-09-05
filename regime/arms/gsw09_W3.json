@@ -1,0 +1,24 @@
+{
+  "tag": "gsw09",
+  "window": "W3",
+  "timerange": "20230101-20231231",
+  "strategy": "NNNC_MLX",
+  "prediction_threshold": 0.9,
+  "guards": "on",
+  "overrides": {
+    "entry_rvol_threshold": -1.0,
+    "entry_atr_pct": -1.0,
+    "entry_adx_threshold": -1.0,
+    "entry_bb_width_threshold": -1.0,
+    "entry_guard_threshold": 5.0,
+    "entry_close_norm_threshold": 5.0
+  },
+  "sell_overrides": {},
+  "trailing_overrides": {},
+  "exit_config_hash": "89e46624fea6bc6d",
+  "volume_filter_active": true,
+  "returncode": 0,
+  "n_trades": 0,
+  "trades_hash": null,
+  "note": "zero trades - INCONCLUSIVE"
+}
