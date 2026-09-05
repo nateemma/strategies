@@ -1,0 +1,35 @@
+{
+  "tag": "ora_dbg",
+  "window": "W1",
+  "timerange": "20250901-20260831",
+  "strategy": "NNNC_Oracle",
+  "prediction_threshold": null,
+  "guards": "on",
+  "overrides": {
+    "entry_rvol_threshold": -1.0
+  },
+  "sell_overrides": {
+    "cexit_take_profit": 0.04
+  },
+  "trailing_overrides": {},
+  "exit_config_hash": "99cd58fdb5da7128",
+  "volume_filter_active": true,
+  "returncode": 0,
+  "result_file": "backtest-result-2026-09-05_10-49-14.zip",
+  "n_trades": 133,
+  "n_pairs": 11,
+  "trades_hash": "67b4d338d90d03fc",
+  "profit_pct": 49.155,
+  "win_rate": 59.4,
+  "duration_h_median": 9.25,
+  "duration_h_p25": 6.5,
+  "duration_h_p75": 12.0,
+  "trades_per_day": 0.4006,
+  "wallet_profit_pct": 1.828,
+  "max_drawdown_pct": 5.864,
+  "profit_factor": 1.115,
+  "calmar": 1.636,
+  "sortino": 0.242,
+  "sqn": 0.359,
+  "expectancy_ratio": 0.0466
+}

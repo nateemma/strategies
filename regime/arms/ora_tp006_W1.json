@@ -1,0 +1,40 @@
+{
+  "tag": "ora_tp006",
+  "window": "W1",
+  "timerange": "20250901-20260831",
+  "strategy": "NNNC_Oracle",
+  "prediction_threshold": null,
+  "guards": "on",
+  "overrides": {
+    "entry_rvol_threshold": -1.0,
+    "entry_atr_pct": -1.0,
+    "entry_adx_threshold": -1.0,
+    "entry_bb_width_threshold": -1.0,
+    "entry_guard_threshold": 5.0,
+    "entry_close_norm_threshold": 5.0
+  },
+  "sell_overrides": {
+    "cexit_take_profit": 0.06
+  },
+  "trailing_overrides": {},
+  "exit_config_hash": "05d971ff0e501604",
+  "volume_filter_active": true,
+  "returncode": 0,
+  "result_file": "backtest-result-2026-09-05_10-50-44.zip",
+  "n_trades": 1680,
+  "n_pairs": 11,
+  "trades_hash": "7a3ec2af8a2c3d97",
+  "profit_pct": -339.089,
+  "win_rate": 54.8,
+  "duration_h_median": 12.0,
+  "duration_h_p25": 8.25,
+  "duration_h_p75": 12.0,
+  "trades_per_day": 4.6409,
+  "wallet_profit_pct": -25.759,
+  "max_drawdown_pct": 31.375,
+  "profit_factor": 0.797,
+  "calmar": -4.309,
+  "sortino": -5.732,
+  "sqn": -2.57,
+  "expectancy_ratio": -0.0916
+}
