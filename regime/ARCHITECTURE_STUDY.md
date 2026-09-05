@@ -83,3 +83,53 @@ The stock LSTM stands. Do not re-run capacity, dropout, pooling or kernel-size
 variants on this family. The next lever is the feature set, and specifically
 information not derivable from OHLCV — funding is the one candidate in this
 repo that has previously survived a temporally distant test.
+
+---
+
+# Follow-up — the conv branch is LOAD-BEARING, and kernel=2 is a local optimum
+
+Two further arms on the conv axis: remove the Conv1d + residual block entirely,
+and remove the resize projection too (a bare LSTM straight off the features).
+Same configuration, guards off, threshold 0.80.
+
+    arm                                  W1 tr  W1 ret%   W2 tr  W2 ret%   W3 tr  W3 ret%   summed
+    Raw     features->LSTM (no proj)       583    -0.28     979    12.91     442    17.86    30.48
+    NoConv  resize->LSTM                   607     0.01    1007    10.30     514    15.13    25.44
+    CONTROL resize->conv k=2->LSTM         431     6.94     763    16.91     295    10.25    34.10
+    K5      resize->conv k=5->LSTM         481     0.57     858    14.71     329     9.14    24.42
+
+    val_mcc:  Raw 0.5957   NoConv 0.6025   CONTROL 0.6078   K5 0.6075
+
+**The production stack wins on W1 and on summed return, and val_mcc orders the
+same way at the bottom end** (Raw < NoConv < control).
+
+**The conv is doing real work.** Removing it costs 8.66pp summed and 6.92pp on
+W1 — it is not the skippable, redundant branch it looked like. My reasoning that
+the residual add lets the network route around it was wrong: the network is
+using it.
+
+**Kernel 2 sits at a local optimum.** Both directions on this axis are worse —
+removing the conv (−8.66pp) and widening it to 5 (−9.67pp). That is a genuine
+inverted U, and it means the existing kernel was not an arbitrary leftover.
+
+**A second signal in the trade counts.** Every degraded variant takes MORE
+trades at the same threshold: 431 (control) → 481 (K5) → 583 (Raw) → 607
+(NoConv), and the pattern repeats on W2 and W3. The weaker the encoder, the
+flatter its confidence distribution, so more bars clear 0.80 — and the extra
+bars are bad ones. Confidence CALIBRATION, not just accuracy, is what the conv
+block is contributing.
+
+**Raw beats NoConv**, which is mildly counter-intuitive since Raw removes strictly
+more. With the resize gone the LSTM takes raw features directly at the same
+hidden width, so it loses a projection but keeps full input detail; NoConv
+projects to 32 dimensions and then discards the local-shape pathway that made
+the projection worth having. Single seed, so I would not over-read the 5pp
+between them.
+
+## Revised conclusion
+
+Six variants now, all worse than production: capacity, dropout, pooling, kernel
+size, conv removal, and full pre-LSTM removal. **The architecture is at a local
+optimum along every axis tested**, and val_mcc stays inside 0.59–0.61 throughout.
+The information ceiling conclusion stands and is strengthened — the model shape
+is not merely unhelpful to change, it is already the best of the shapes tried.

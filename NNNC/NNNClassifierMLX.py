@@ -257,10 +257,17 @@ class _LSTMModelV2(_LSTMModel):
         kernel_size: int = 2,
         pool: str = "last",
         width_mult: int = 1,
+        use_conv: bool = True,
+        use_resize: bool = True,
     ):
         nf = num_filters * width_mult
         super().__init__(seq_len, num_features, num_classes, nf)
         self.pool = pool
+        self.use_conv = use_conv and use_resize  # conv needs the projected width
+        self.use_resize = use_resize
+        if not use_resize:
+            # feed raw features straight to the LSTM
+            self.lstm = nn.LSTM(num_features, nf)
         # rebuild the conv with the requested receptive field; padding keeps the
         # sequence length so the residual add stays valid
         self.conv1 = nn.Conv1d(nf, nf, kernel_size=kernel_size,
@@ -270,11 +277,15 @@ class _LSTMModelV2(_LSTMModel):
         self.dropout_bn = nn.Dropout(dropout)
 
     def encode(self, x: mx.array) -> mx.array:
-        x_r = nn.relu(self.resize(x))
-        x_c = self.conv1(x_r)[:, : x_r.shape[1], :]
-        x_c = self.ln_conv(x_c)
-        x_c = self.dropout_conv(x_c)
-        x_res = x_r + x_c
+        x_r = nn.relu(self.resize(x)) if self.use_resize else x
+
+        if self.use_conv:
+            x_c = self.conv1(x_r)[:, : x_r.shape[1], :]
+            x_c = self.ln_conv(x_c)
+            x_c = self.dropout_conv(x_c)
+            x_res = x_r + x_c
+        else:
+            x_res = x_r
 
         lstm_out, _ = self.lstm(x_res)
         if self.pool == "mean":
@@ -299,6 +310,8 @@ class _LSTMVariantBase(MLXClassifierNary):
     v_kernel = 2
     v_pool = "last"
     v_width = 1
+    v_use_conv = True
+    v_use_resize = True
 
     def create_model(self, seq_len: int, num_features: int) -> nn.Module:
         num_filters = max(MIN_FILTER, nearest_power_of_2(num_features - 1))
@@ -306,6 +319,7 @@ class _LSTMVariantBase(MLXClassifierNary):
             seq_len, num_features, self.num_classes, num_filters,
             dropout=self.v_dropout, kernel_size=self.v_kernel,
             pool=self.v_pool, width_mult=self.v_width,
+            use_conv=self.v_use_conv, use_resize=self.v_use_resize,
         )
 
 
@@ -323,6 +337,32 @@ class NNNClassifierMLX_LSTM_D10(_LSTMVariantBase):
 class NNNClassifierMLX_LSTM_Pool(_LSTMVariantBase):
     """POOLING: mean over the sequence instead of the last timestep only."""
     v_pool = "mean"
+
+
+class NNNClassifierMLX_LSTM_NoConv(_LSTMVariantBase):
+    """STRAIGHT LSTM: drop the Conv1d + residual block entirely.
+
+    K5 tested a BIGGER conv and lost. This tests the complementary direction --
+    whether the conv branch contributes anything at all. Because the block is a
+    residual add, the network can already learn to ignore it; if it does, this
+    arm should be indistinguishable from the control, and the conv is dead
+    weight. If this arm is BETTER, the conv is actively harmful.
+
+    Keeps the resize projection, so the LSTM width is unchanged and this is a
+    clean one-thing-at-a-time comparison.
+    """
+    v_use_conv = False
+
+
+class NNNClassifierMLX_LSTM_Raw(_LSTMVariantBase):
+    """BARE LSTM: raw features straight into the LSTM. No resize, no conv.
+
+    The minimal recurrent baseline -- LSTM(num_features -> num_filters) then the
+    same decode head. If this matches the full stack, every pre-LSTM component
+    in the production model is decorative.
+    """
+    v_use_conv = False
+    v_use_resize = False
 
 
 class NNNClassifierMLX_LSTM_K5(_LSTMVariantBase):
@@ -1091,6 +1131,8 @@ class ClassifierTypeMLX(Enum):
     LSTM_D10 = NNNClassifierMLX_LSTM_D10
     LSTM_POOL = NNNClassifierMLX_LSTM_Pool
     LSTM_K5 = NNNClassifierMLX_LSTM_K5
+    LSTM_NOCONV = NNNClassifierMLX_LSTM_NoConv
+    LSTM_RAW = NNNClassifierMLX_LSTM_Raw
 
 
 def create_classifier_mlx(
