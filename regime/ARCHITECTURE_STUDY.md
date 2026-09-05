@@ -133,3 +133,55 @@ size, conv removal, and full pre-LSTM removal. **The architecture is at a local
 optimum along every axis tested**, and val_mcc stays inside 0.59–0.61 throughout.
 The information ceiling conclusion stands and is strengthened — the model shape
 is not merely unhelpful to change, it is already the best of the shapes tried.
+
+---
+
+# The pre-LSTM block: resize and conv are COMPLEMENTARY, and the residual is real
+
+Completing the 2x2 over the two pre-LSTM components, plus the residual add.
+Guards off, threshold 0.80.
+
+    arm                                    W1 tr  W1 ret%  W2 tr  W2 ret%  W3 tr  W3 ret%   summed
+    CONTROL  resize + conv + residual        431     6.94    763    16.91    295    10.25    34.10
+    NoRes    resize + conv, NO residual      358     8.57    620     5.61    245    10.60    24.78
+    NoResize conv + residual, NO resize      366    -5.05    644    12.32    256    10.79    18.05
+    NoConv   resize only                     607     0.01   1007    10.30    514    15.13    25.44
+    Raw      neither (bare LSTM)             583    -0.28    979    12.91    442    17.86    30.48
+
+    val_mcc: CONTROL 0.6078  NoRes 0.6074  NoResize 0.6038  NoConv 0.6025  Raw 0.5957
+
+## Removing the resize alone is the WORST arm
+
+`NoResize` is −16.04pp summed and −11.99pp on W1, the worst W1 of any variant
+tested. So the earlier reading — that `Raw > NoConv` meant the resize was
+costing information — was wrong.
+
+**The two components are COMPLEMENTARY.** Removing either one alone is worse
+than removing both:
+
+    both kept (CONTROL)  34.10        neither (Raw)   30.48
+    resize only (NoConv) 25.44        conv only (NoResize) 18.05
+
+That is a clear interaction, not two independent contributions. The projection
+earns its place by giving the conv a learned basis to work in; the conv earns
+its place by extracting local shape from that basis. Half the block is worse
+than none of it.
+
+## The residual is doing real work, and NoRes is a trap
+
+`NoRes` posts the BEST W1 of any arm (+8.57 vs the control's +6.94) — and then
+collapses on W2 (+5.61 vs +16.91, −11.30pp). Summed it is −9.32pp.
+
+**This is exactly the shape a session should not chase.** A single-seed +1.64pp
+on the acceptance window, alongside an 11pp collapse in another era, is not
+persistence — it is the pattern Constitution II exists to reject. Recorded as a
+NEGATIVE result. The residual add stays.
+
+## Nine variants, one conclusion
+
+capacity, dropout, pooling, kernel size, conv removal, resize removal, both
+removed, residual removal — **every one worse than production on summed return**,
+and val_mcc never leaves 0.5957–0.6078 across all of them.
+
+The production architecture is at a local optimum on every axis tested, and the
+metric refuses to move regardless. The information-ceiling conclusion stands.

@@ -259,19 +259,24 @@ class _LSTMModelV2(_LSTMModel):
         width_mult: int = 1,
         use_conv: bool = True,
         use_resize: bool = True,
+        use_residual: bool = True,
     ):
         nf = num_filters * width_mult
         super().__init__(seq_len, num_features, num_classes, nf)
         self.pool = pool
-        self.use_conv = use_conv and use_resize  # conv needs the projected width
+        self.use_conv = use_conv
         self.use_resize = use_resize
-        if not use_resize:
-            # feed raw features straight to the LSTM
-            self.lstm = nn.LSTM(num_features, nf)
-        # rebuild the conv with the requested receptive field; padding keeps the
-        # sequence length so the residual add stays valid
-        self.conv1 = nn.Conv1d(nf, nf, kernel_size=kernel_size,
+        self.use_residual = use_residual
+
+        # Width the conv and the LSTM input operate at. Without the resize the
+        # conv runs on the raw feature channels, which keeps the residual add
+        # dimensionally valid without reintroducing the projection.
+        in_dim = nf if use_resize else num_features
+        self.lstm = nn.LSTM(in_dim, nf)
+        # padding keeps the sequence length so the residual add stays valid
+        self.conv1 = nn.Conv1d(in_dim, in_dim, kernel_size=kernel_size,
                                padding=kernel_size // 2)
+        self.ln_conv = nn.LayerNorm(in_dim)
         self.dropout_conv = nn.Dropout(dropout)
         self.dropout_lstm = nn.Dropout(dropout)
         self.dropout_bn = nn.Dropout(dropout)
@@ -283,7 +288,7 @@ class _LSTMModelV2(_LSTMModel):
             x_c = self.conv1(x_r)[:, : x_r.shape[1], :]
             x_c = self.ln_conv(x_c)
             x_c = self.dropout_conv(x_c)
-            x_res = x_r + x_c
+            x_res = (x_r + x_c) if self.use_residual else x_c
         else:
             x_res = x_r
 
@@ -312,6 +317,7 @@ class _LSTMVariantBase(MLXClassifierNary):
     v_width = 1
     v_use_conv = True
     v_use_resize = True
+    v_use_residual = True
 
     def create_model(self, seq_len: int, num_features: int) -> nn.Module:
         num_filters = max(MIN_FILTER, nearest_power_of_2(num_features - 1))
@@ -320,6 +326,7 @@ class _LSTMVariantBase(MLXClassifierNary):
             dropout=self.v_dropout, kernel_size=self.v_kernel,
             pool=self.v_pool, width_mult=self.v_width,
             use_conv=self.v_use_conv, use_resize=self.v_use_resize,
+            use_residual=self.v_use_residual,
         )
 
 
@@ -363,6 +370,31 @@ class NNNClassifierMLX_LSTM_Raw(_LSTMVariantBase):
     """
     v_use_conv = False
     v_use_resize = False
+
+
+class NNNClassifierMLX_LSTM_NoResize(_LSTMVariantBase):
+    """NO RESIZE, CONV KEPT: features -> Conv1d(F->F) -> residual -> LSTM(F->nf).
+
+    The untested cell. `Raw` (no resize, no conv) beat `NoConv` (resize, no conv)
+    by 5pp summed, which suggests the resize projection is costing information
+    the conv can otherwise use. This isolates that: the conv branch -- shown to
+    be load-bearing -- is kept, and only the projection is dropped, with the conv
+    running on raw feature channels so the residual add stays valid.
+    """
+    v_use_resize = False
+    v_use_conv = True
+
+
+class NNNClassifierMLX_LSTM_NoRes(_LSTMVariantBase):
+    """NO RESIDUAL: resize -> conv -> LSTM, with the skip connection removed.
+
+    Every conv arm so far kept the residual add, so the block's value could come
+    from the conv path, from the skip preserving the unconvolved projection, or
+    from their sum. This separates them: if removing the skip is harmless, the
+    conv path carries the value; if it is costly, the skip was doing the work
+    and the conv is along for the ride.
+    """
+    v_use_residual = False
 
 
 class NNNClassifierMLX_LSTM_K5(_LSTMVariantBase):
@@ -1133,6 +1165,8 @@ class ClassifierTypeMLX(Enum):
     LSTM_K5 = NNNClassifierMLX_LSTM_K5
     LSTM_NOCONV = NNNClassifierMLX_LSTM_NoConv
     LSTM_RAW = NNNClassifierMLX_LSTM_Raw
+    LSTM_NORESIZE = NNNClassifierMLX_LSTM_NoResize
+    LSTM_NORES = NNNClassifierMLX_LSTM_NoRes
 
 
 def create_classifier_mlx(
