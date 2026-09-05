@@ -197,3 +197,64 @@ on that path is not comparable with production. `NNNC_Oracle` subclasses
 `NNNC_MLX` instead and overrides only `get_entry_conditions`, so the entry path
 is byte-for-byte production. DebugNNStrategy's drift is worth repairing if it is
 used for anything quantitative.
+
+---
+
+# Follow-up 3 (feature 004): the headroom conclusion, and what the oracle found
+
+## T025 — Model headroom, and what it forecloses
+
+**On W1, with the guard chain at its production settings, the entire span from
+no model at all to a perfect model is 1.45pp** (9.671% → 11.122%), of which the
+real model already captures 0.775pp, leaving **0.676pp** for any conceivable
+model improvement. Measured 2026-09-05 on `NNNC_MLX`, W1 `20250901-20260831`.
+
+This forecloses, at the CURRENT gate:
+
+- model architecture changes
+- GAN augmentation of any kind or fidelity
+- label changes evaluated *for learnability*
+- any intervention whose effect reaches the trades only through the model's
+  entry opinion
+
+None can be worth more than ~0.7pp, and the study's power floor at ~95 trades is
+about 1pp. **Such a change is not measurable, let alone valuable.**
+
+**The figure is specific to the gate.** A configuration admitting materially
+more trades has a different, unmeasured ceiling — and feature 004 found exactly
+such a configuration (below), so this conclusion must be re-measured if the
+label changes.
+
+## T026 — The test a future model or GAN proposal must pass
+
+Before any training budget is spent on this family, the proposal must show that
+**the oracle's guards-off return improves under the proposed configuration** —
+`regime/ORACLE_GATE.md`, PASS = W1 guards-off return > 0 with at least 200
+trades. A proposal that does not move the ceiling cannot move the realised
+return, because the ceiling is what the realised return is bounded by.
+
+This is answerable in minutes without training. A proposal that has not been
+through it should not be run.
+
+## What feature 004 then found
+
+Applying that gate to the label itself:
+
+    variant                    tr     ret%     PF   win%    vs baseline
+    BASELINE (label 0.007)   1760   -18.89   0.84   59.3          0.00
+    label threshold 0.02     1333   +26.54   1.37   70.4        +45.44
+    label threshold 0.03     1022   +46.60   1.96   80.3        +65.49
+
+**`MIN_BUY_GAIN_THRESHOLD` = 0.007 is the defect.** A 0.7% target against a
+−4%..−6% stop plus round-trip fees cannot pay however perfectly it is
+predicted. Raise it to 0.02 and the identical exit stack, on the identical
+bars, turns +45pp at the ceiling — on all three windows.
+
+The 0.68pp headroom above is therefore a statement about the CURRENT label, not
+about this strategy family for all time. It is why the guard chain has to be so
+severe: it is compensating for a label that does not describe a payable trade.
+
+**These are lookahead ceilings, not achievable returns.** The next step is to
+train `label 0.02` and find out whether a real model can realise any of it —
+which is precisely the question feature 003 could not answer for the breakout
+arm, because it never measured its ceiling.

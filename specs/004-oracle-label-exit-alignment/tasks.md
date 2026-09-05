@@ -157,18 +157,18 @@ recorded.
 **Goal**: the headroom finding governs later decisions instead of being
 rediscovered.
 
-- [ ] T025 [US5] Write the model-headroom conclusion into `regime/GUARD_ABLATION.md`: the 0.68pp figure, the windows it was measured on, its dependence on the CURRENT gate (a configuration admitting materially more trades would need it re-measured), and what it forecloses for model, GAN and architecture work on this family (FR-021, SC-010)
-- [ ] T026 [US5] State in the same conclusion the test a future model or GAN proposal on this family must pass to be worth running, so the conclusion is sufficient to accept or reject such a proposal WITHOUT new measurement (SC-010)
+- [X] T025 [US5] Write the model-headroom conclusion into `regime/GUARD_ABLATION.md`: the 0.68pp figure, the windows it was measured on, its dependence on the CURRENT gate (a configuration admitting materially more trades would need it re-measured), and what it forecloses for model, GAN and architecture work on this family (FR-021, SC-010)
+- [X] T026 [US5] State in the same conclusion the test a future model or GAN proposal on this family must pass to be worth running, so the conclusion is sufficient to accept or reject such a proposal WITHOUT new measurement (SC-010)
 
 ---
 
 ## Phase 6: Polish & Cross-Cutting
 
-- [ ] T027 Verify `git status --short Framework/` is clean — no shared framework file modified, and the live dry run that imports `BaseStrategy` is unaffected (FR-024, SC-008)
-- [ ] T028 [P] Verify every oracle figure in `diagnosis.md`, `screening.md`, `ORACLE_GATE.md` and `GUARD_ABLATION.md` is labelled a lookahead ceiling and that no oracle configuration has been promoted (FR-012, SC-009)
-- [ ] T029 [P] Commit the arm records under `regime/arms/` — with `regime/trade_forensics.py` and the findings documents they are the durable evidence for this feature (FR-026)
-- [ ] T030 Run the `quickstart.md` scenarios end to end and confirm every success criterion SC-001..SC-010 is satisfied, recording the verification
-- [ ] T031 [P] Record anything that generalises beyond this host in memory and the relevant `regime/` documents — in particular the R2 mechanism-mapping trap and the oracle-gate process, both of which apply to any strategy family in this repo (FR-021, SC-010)
+- [X] T027 Verify `git status --short Framework/` is clean — no shared framework file modified, and the live dry run that imports `BaseStrategy` is unaffected (FR-024, SC-008)
+- [X] T028 [P] Verify every oracle figure in `diagnosis.md`, `screening.md`, `ORACLE_GATE.md` and `GUARD_ABLATION.md` is labelled a lookahead ceiling and that no oracle configuration has been promoted (FR-012, SC-009)
+- [X] T029 [P] Commit the arm records under `regime/arms/` — with `regime/trade_forensics.py` and the findings documents they are the durable evidence for this feature (FR-026)
+- [X] T030 Run the `quickstart.md` scenarios end to end and confirm every success criterion SC-001..SC-010 is satisfied, recording the verification
+- [X] T031 [P] Record anything that generalises beyond this host in memory and the relevant `regime/` documents — in particular the R2 mechanism-mapping trap and the oracle-gate process, both of which apply to any strategy family in this repo (FR-021, SC-010)
 
 ---
 
