@@ -86,3 +86,62 @@ remains.
 Option 2 also explains the threshold-0.80 result cleanly: what the model is
 currently ranking well at the top of its confidence distribution IS the outcome
 signal, buried under a trigger it wastes capacity re-deriving.
+
+---
+
+# Option 2 BUILT and REFUTED — the model is not confined to the label's logic
+
+`NNNC/TriggerOnlyMixin.py`: loss masked to trigger bars in training (via the
+existing `%pnl_weight` -> `sample_weights` path, `pnl_loss_alpha = 1.0`), trigger
+applied as a rule at inference. No `Framework/` change. Two arms, so the
+inference gate and the training change separate.
+
+**The masking engaged exactly as designed** — `alpha=1.0
+w[min/mean/max]=0.000/1.000/7.825`, and 7–18% of bars carried loss per pair.
+
+    arm                                     W1 tr  W1 ret%  W2 tr  W2 ret%  W3 tr  W3 ret%   summed
+    CONTROL   no trigger anywhere             431     6.94    763    16.91    295    10.25    34.10
+    TrigGate  trigger at inference only       400     4.21    720    12.96    277     9.62    26.79
+    TrigOnly  masked training + inference     281     6.00    459    10.28    159     5.40    21.69
+
+    delta vs control                           W1       W2       W3    summed
+    TrigGate                                -2.73    -3.95    -0.62     -7.30
+    TrigOnly                                -0.93    -6.63    -4.85    -12.41
+    training change alone (TrigOnly-TrigGate) +1.79   -2.68    -4.22     -5.10
+
+## The premise was wrong
+
+**Applying the trigger at inference costs 7.30pp on its own**, before any
+training change. The control model enters on bars the trigger REJECTS, and
+those entries are profitable — 31 of its 431 W1 trades are off-trigger and
+removing them costs 2.73pp.
+
+So the model was never merely re-deriving the trigger. It had learned to enter
+on bars outside the label's own trigger condition, profitably, and confining it
+to the trigger destroys that. The reasoning behind option 2 — "capacity is
+wasted on a rule, free it for the outcome" — does not survive contact with the
+measurement.
+
+The masked training does beat its own like-for-like control on W1 (+1.79pp,
+TrigOnly vs TrigGate, same inference gate) and loses on W2 and W3. Not
+persistent; not a result.
+
+## What still stands, and what does not
+
+**STANDS**: the label decomposition. `labels_gbb` IS a conjunction, two thirds of
+it IS observable at time t, `label ⊆ trigger` so recall is 100% by construction,
+and a two-threshold rule DOES score MCC 0.695 against the network's 0.608. Those
+are facts about the label.
+
+**DOES NOT STAND**: the prescription drawn from them. "The model wastes capacity
+re-deriving the trigger, so mask the loss to trigger bars" is refuted. The
+network's value is partly in exactly the region the trigger excludes.
+
+## Note on val_mcc 0.1095
+
+TrigOnly's val_mcc collapsed from 0.6078 to 0.1095. **This is expected and is
+NOT the failure.** val_mcc is computed over ALL validation bars, including the
+82–92% the model was never trained on; scoring badly there is what the masking
+was designed to produce. The metric is measuring something the model was not
+optimising. The realised return is the acceptance basis, and that is where the
+arm actually fails.
