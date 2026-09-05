@@ -36,6 +36,7 @@ import json
 import os
 import shutil
 import subprocess
+import time
 import sys
 from pathlib import Path
 
@@ -355,8 +356,28 @@ def main() -> int:
         print("\n--plan: not executed.")
         return 0
 
+    started = time.time()
     proc = subprocess.run(cmd, cwd=ROOT, env=build_env(scratch))
-    result = summarize(latest_result())
+
+    # A FAILED backtest must never yield metrics. `latest_result()` returns the
+    # most recent archive in user_data/backtest_results/ whether or not THIS run
+    # wrote it, so on failure it silently reports the PREVIOUS arm's numbers --
+    # plausible, wrong, and indistinguishable from a real result. Observed
+    # 2026-09-05: three windows of a broken arm all reported an identical
+    # 59 trades / +3.86%, which was a stale file.
+    result: dict
+    if proc.returncode != 0:
+        result = {"error": f"backtest FAILED (returncode {proc.returncode}); "
+                           "no metrics recorded"}
+        print(f"\n*** BACKTEST FAILED (rc={proc.returncode}) -- writing no metrics")
+    else:
+        latest = latest_result()
+        if latest is not None and latest.stat().st_mtime < started:
+            result = {"error": "backtest reported success but wrote no new result "
+                               "file; refusing to report a stale one"}
+            print("\n*** STALE RESULT FILE -- writing no metrics")
+        else:
+            result = summarize(latest)
 
     record = {
         "tag": args.tag,
