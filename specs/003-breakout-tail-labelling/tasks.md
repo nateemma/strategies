@@ -166,6 +166,13 @@ whether the tail label alone would have sufficed.
 
 ## Phase 6: User Story 5 — Re-tune the risk side (Priority: P3, CONTINGENT)
 
+> **NOT RUN — the contingency did not fire.** Phase 6 re-tunes the risk side
+> *against an adopted label's control*. No label was adopted: `l1`, `h1` and
+> `l2` all returned `unchanged`, and the two best-economics candidates degraded
+> W1. Re-tuning the ATR band and `prediction_threshold` against a label that was
+> not adopted would be tuning toward a control the study rejected. T030-T032
+> stay open by design.
+
 **Goal**: re-examine settings that were fitted against the OLD label, but only if
 a new label is adopted.
 
@@ -185,11 +192,11 @@ that label's own control, never the historical one.
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T033 Write the consolidated findings to `regime/tail/README.md` — screening table, every arm's verdict including absorbed cases, separated contributions, and the explicit answer to whether label mis-specification was material. **A negative outcome is a valid deliverable and must be recorded as such** (FR-022, SC-008)
-- [ ] T034 [P] Delete throwaway arm classes, their `.json` files and their `saved_data/` directories. **Leave `NNNC/NNNC_BreakoutOpen.json` in place** — it pins the control (quickstart.md Cleanup)
-- [ ] T035 [P] Commit the arm records under `regime/arms/` — they are the only durable evidence once the throwaway models are deleted
-- [ ] T036 Run the `quickstart.md` validation end to end and confirm every success criterion SC-001…SC-008 is either met or explicitly recorded as not applicable. Verify no arm introduced per-pair special-casing — every candidate is defined structurally over all traded pairs (FR-021) — and that realistic execution constraints were active in every recorded arm (FR-018)
-- [ ] T037 If any finding generalises beyond this host, record it in memory and the relevant `docs/` file — but promote NOTHING to `Framework/` defaults without measuring on a second family (FR-020)
+- [X] T033 Write the consolidated findings to `regime/tail/README.md` — screening table, every arm's verdict including absorbed cases, separated contributions, and the explicit answer to whether label mis-specification was material. **A negative outcome is a valid deliverable and must be recorded as such** (FR-022, SC-008)
+- [X] T034 [P] Delete throwaway arm classes, their `.json` files and their `saved_data/` directories. **Leave `NNNC/NNNC_BreakoutOpen.json` in place** — it pins the control (quickstart.md Cleanup)
+- [X] T035 [P] Commit the arm records under `regime/arms/` — they are the only durable evidence once the throwaway models are deleted
+- [X] T036 Run the `quickstart.md` validation end to end and confirm every success criterion SC-001…SC-008 is either met or explicitly recorded as not applicable. Verify no arm introduced per-pair special-casing — every candidate is defined structurally over all traded pairs (FR-021) — and that realistic execution constraints were active in every recorded arm (FR-018)
+- [X] T037 If any finding generalises beyond this host, record it in memory and the relevant `docs/` file — but promote NOTHING to `Framework/` defaults without measuring on a second family (FR-020)
 
 ---
 
