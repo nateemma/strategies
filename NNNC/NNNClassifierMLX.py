@@ -223,6 +223,116 @@ class NNNClassifierMLX_LSTM(MLXClassifierNary):
 
 
 # -----------------------------------------------------------------------
+# Architecture study, 2026-09-05. ADDITIVE ONLY — `_LSTMModel` and every
+# existing classifier above are untouched, so production behaviour is
+# unchanged and these variants are opt-in via `classifier_type`.
+#
+# Motivation: at the new operating point (0.02 label, guards off, threshold
+# 0.80) there is ~25pp of model headroom, where previously there was 0.68pp.
+# Architecture has therefore NEVER been testable on realised return in this
+# repo — no architecture arm exists in 500+ records. The training curve points
+# at UNDERFITTING rather than overfitting: 12,483 parameters, 0.07 per label,
+# train loss 0.1568 against val 0.1752 (gap 0.018), plateaued by epoch 30, with
+# dropout 0.25 at three points.
+#
+# Each variant changes exactly ONE thing (Constitution VIII).
+# -----------------------------------------------------------------------
+
+
+class _LSTMModelV2(_LSTMModel):
+    """`_LSTMModel` with width, dropout, conv kernel and pooling exposed.
+
+    With the defaults (width_mult=1, dropout=DROPOUT, kernel_size=2,
+    pool="last") the forward pass is equivalent to `_LSTMModel` — that
+    equivalence is what makes it a valid control for the A/B.
+    """
+
+    def __init__(
+        self,
+        seq_len: int,
+        num_features: int,
+        num_classes: int,
+        num_filters: int,
+        dropout: float = DROPOUT,
+        kernel_size: int = 2,
+        pool: str = "last",
+        width_mult: int = 1,
+    ):
+        nf = num_filters * width_mult
+        super().__init__(seq_len, num_features, num_classes, nf)
+        self.pool = pool
+        # rebuild the conv with the requested receptive field; padding keeps the
+        # sequence length so the residual add stays valid
+        self.conv1 = nn.Conv1d(nf, nf, kernel_size=kernel_size,
+                               padding=kernel_size // 2)
+        self.dropout_conv = nn.Dropout(dropout)
+        self.dropout_lstm = nn.Dropout(dropout)
+        self.dropout_bn = nn.Dropout(dropout)
+
+    def encode(self, x: mx.array) -> mx.array:
+        x_r = nn.relu(self.resize(x))
+        x_c = self.conv1(x_r)[:, : x_r.shape[1], :]
+        x_c = self.ln_conv(x_c)
+        x_c = self.dropout_conv(x_c)
+        x_res = x_r + x_c
+
+        lstm_out, _ = self.lstm(x_res)
+        if self.pool == "mean":
+            # the last timestep discards 15 of 16 positions the LSTM already
+            # computed; mean pooling uses all of them at no extra parameters
+            h = mx.mean(lstm_out, axis=1)
+        elif self.pool == "max":
+            h = mx.max(lstm_out, axis=1)
+        else:
+            h = lstm_out[:, -1, :]
+        h = self.ln_lstm(h)
+        return self.dropout_lstm(h)
+
+
+class _LSTMVariantBase(MLXClassifierNary):
+    """Base for the architecture-study variants. One knob each."""
+
+    is_trained = False
+    clean_data_required = False
+
+    v_dropout = DROPOUT
+    v_kernel = 2
+    v_pool = "last"
+    v_width = 1
+
+    def create_model(self, seq_len: int, num_features: int) -> nn.Module:
+        num_filters = max(MIN_FILTER, nearest_power_of_2(num_features - 1))
+        return _LSTMModelV2(
+            seq_len, num_features, self.num_classes, num_filters,
+            dropout=self.v_dropout, kernel_size=self.v_kernel,
+            pool=self.v_pool, width_mult=self.v_width,
+        )
+
+
+class NNNClassifierMLX_LSTM_W64(_LSTMVariantBase):
+    """CAPACITY: 32 -> 64 filters. Tests the underfitting hypothesis directly."""
+    v_width = 2
+
+
+class NNNClassifierMLX_LSTM_D10(_LSTMVariantBase):
+    """REGULARISATION: dropout 0.25 -> 0.10. The 0.018 train/val gap does not
+    justify 0.25 at three points."""
+    v_dropout = 0.10
+
+
+class NNNClassifierMLX_LSTM_Pool(_LSTMVariantBase):
+    """POOLING: mean over the sequence instead of the last timestep only."""
+    v_pool = "mean"
+
+
+class NNNClassifierMLX_LSTM_K5(_LSTMVariantBase):
+    """RECEPTIVE FIELD: conv kernel 2 -> 5. At kernel 2 the conv sees two bars
+    against a 16-bar sequence, and the residual add lets the network route
+    around it entirely."""
+    v_kernel = 5
+
+
+# -----------------------------------------------------------------------
 # Stage-2 looped "pondering" (COCONUT) — recurrent latent refinement.
 # -----------------------------------------------------------------------
 
@@ -977,6 +1087,10 @@ class ClassifierTypeMLX(Enum):
     LSTM_INJIT = NNNClassifierMLX_LSTM_InJit
     LSTM_NOISY = NNNClassifierMLX_LSTM_Noisy
     LSTM_PONDER = NNNClassifierMLX_LSTM_Ponder
+    LSTM_W64 = NNNClassifierMLX_LSTM_W64
+    LSTM_D10 = NNNClassifierMLX_LSTM_D10
+    LSTM_POOL = NNNClassifierMLX_LSTM_Pool
+    LSTM_K5 = NNNClassifierMLX_LSTM_K5
 
 
 def create_classifier_mlx(
