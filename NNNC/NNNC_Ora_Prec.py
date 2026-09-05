@@ -40,6 +40,12 @@ class NNNC_Ora_Prec(NNNC_MLX):
     ORACLE_PRECISION = 1.0
     ORACLE_SEED = 17
 
+    # Fraction of the (possibly corrupted) BUY set to keep. Used to match a
+    # comparator to the REAL model's trade volume: headroom measured against a
+    # 1333-trade oracle when the model takes 431 trades would confound
+    # selection quality with how many slots each arm consumes.
+    ORACLE_SUBSAMPLE = 1.0
+
     def get_entry_conditions(self, dataframe: DataFrame):
         targets = np.asarray(self.get_training_labels(dataframe))
         n = len(dataframe)
@@ -62,6 +68,14 @@ class NNNC_Ora_Prec(NNNC_MLX):
             buy = np.zeros(n, dtype=bool)
             buy[keep] = True
             buy[add] = True
+
+        if float(self.ORACLE_SUBSAMPLE) < 1.0:
+            rng2 = np.random.default_rng(self.ORACLE_SEED + 1000)
+            idx = np.flatnonzero(buy)
+            keep = rng2.choice(idx, size=int(round(float(self.ORACLE_SUBSAMPLE) * len(idx))),
+                               replace=False)
+            buy = np.zeros(n, dtype=bool)
+            buy[keep] = True
 
         dataframe["predict_buy"] = buy.astype(int)
         dataframe["predict_sell"] = np.where(targets == TradingAction.SELL, 1, 0)

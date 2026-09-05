@@ -103,3 +103,81 @@ and the gap is now a matter of degree rather than direction.
    objective changes are now a refinement, not a rescue.
 4. **Do not adopt anything yet.** W1 still favours production. This is a
    candidate line, not a replacement.
+
+---
+
+# Tasks 1 and 2 — the operating point located, the headroom re-measured
+
+## Task 1 — the threshold optimum is ~0.80, and it is NOT sharply identified
+
+Real model, 0.02 label, guards off, all three windows:
+
+    thr    W1 tr  W1 ret%  W1 PF  W2 tr  W2 ret%  W2 PF  W3 tr  W3 ret%  W3 PF   summed
+    0.75    1276   -13.07   0.88   2035     2.77   1.02    994    28.04   1.49    17.74
+    0.78     773    -0.90   0.99   1285     9.76   1.10    538    13.06   1.35    21.92
+    0.80     431     6.94   1.16    763    16.91   1.31    295    10.25   1.49    34.10
+    0.82     179     9.09   1.41    235    10.04   1.57    101     7.42   2.34    26.55
+    0.85      23     5.61   6.36     18     0.68   1.38      8     1.36   0.00     7.65
+    0.88       0        —      —      0        —      —      0        —      —        —
+
+**Per-window winners are 0.82 / 0.80 / 0.75 — the optimum wanders**, exactly the
+pattern that killed dynamic lookback. It must be treated as a FIXED CHOICE, never
+tuned per era.
+
+Two candidates are positive in all three windows (0.85 is excluded: 23/18/8
+trades is not a strategy). Minimax regret decides between them:
+
+    thr 0.80: regret W1 2.15  W2 0.00  W3 0.00   MAX 2.15
+    thr 0.82: regret W1 0.00  W2 6.87  W3 2.83   MAX 6.87
+
+**0.80 is the choice** — it minimises worst-case regret and carries 1489 trades
+across the three windows against 0.82's 515, which matters directly for the
+power problem. The sweep therefore CONFIRMED the value rather than moving it,
+which is a more useful outcome than a new number.
+
+## Task 2 — headroom at the new configuration: 25pp, not 0.68pp
+
+The comparators must be volume-matched: measuring the model's 431 trades against
+a 1333-trade oracle would confound selection quality with how many concurrency
+slots each arm consumes. Both perfect and random selection are subsampled toward
+the model's volume.
+
+    selector                          W1 tr  W1 ret%   W2 tr  W2 ret%   W3 tr  W3 ret%
+    RANDOM at matched volume (s17)      853   -15.48
+    RANDOM at matched volume (s99)      847   -13.70
+    REAL model, thr 0.80                431    +6.94     763    16.91     295    10.25
+    PERFECT at matched volume           812   +31.97    1473    62.10     777    45.79
+
+    span   random -> perfect   = 47.45pp
+    model captures             = 22.42pp   (47% of the span)
+    REMAINING HEADROOM         = 25.03pp
+
+    old configuration (production gate, 0.007 label):
+    span 1.45pp, model captured 0.78pp, headroom 0.68pp on 95 trades
+
+**The headroom is now 25pp against 0.68pp — roughly 37x larger — and the model
+captures 47% of the span rather than 53% of almost nothing.**
+
+This retires the "model work cannot pay" conclusion. It was true, and it was
+true *of the production gate on the 0.007 label*. At this configuration model
+quality is the dominant lever by a wide margin.
+
+**Caveat on the volume match**: the model takes 431 trades against the
+comparators' ~830. The subsample fraction was chosen before the model's count
+was known and was not re-tuned. The direction of any resulting bias is not
+obvious, but the conclusion — tens of points of headroom rather than a fraction
+of one — is far too large to be an artefact of that mismatch.
+
+## Where this leaves the programme
+
+The bottleneck has moved twice in one session:
+
+1. "The model adds nothing" — true at the production gate on the 0.007 label,
+   where headroom was 0.68pp.
+2. "The label cannot pay" — true of 0.007, fixed by 0.02.
+3. **Now: model quality is worth ~25pp, and the model already captures 47%.**
+
+Every prior null in this programme was measured at a configuration where there
+was nothing to win. The obvious next question is the model and its training
+metrics — for the first time in this study, improving them should show up in
+realised return.
