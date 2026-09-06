@@ -1,0 +1,33 @@
+{
+  "tag": "exsig_off",
+  "window": "W2",
+  "timerange": "20240601-20250531",
+  "strategy": "NNNC_MLX_Open",
+  "prediction_threshold": null,
+  "guards": "off",
+  "overrides": {},
+  "sell_overrides": {
+    "enable_exit_signal": false
+  },
+  "trailing_overrides": {},
+  "exit_config_hash": "89e46624fea6bc6d",
+  "volume_filter_active": true,
+  "returncode": 0,
+  "result_file": "backtest-result-2026-09-06_12-15-00.zip",
+  "n_trades": 762,
+  "n_pairs": 11,
+  "trades_hash": "8558edeacb746a31",
+  "profit_pct": 296.499,
+  "win_rate": 64.8,
+  "duration_h_median": 6.5,
+  "duration_h_p25": 2.25,
+  "duration_h_p75": 9.25,
+  "trades_per_day": 2.1345,
+  "wallet_profit_pct": 16.627,
+  "max_drawdown_pct": 8.559,
+  "profit_factor": 1.302,
+  "calmar": 10.197,
+  "sortino": 3.685,
+  "sqn": 2.533,
+  "expectancy_ratio": 0.1063
+}

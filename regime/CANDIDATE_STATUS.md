@@ -155,5 +155,39 @@ signal off cost nothing measurable; that is no longer true.
 **Cost to test: three backtests, no retraining** — the sell head already exists,
 and `enable_exit_signal` is reachable via `--set-sell`.
 
-Queued behind the COCONUT ponder runs (sequential discipline; concurrent jobs
-previously produced load 60 on 14 cores).
+## ANSWERED 2026-09-06 — it should stay OFF, and now we know why
+
+**Naive test (flag on, nothing else changed): -1.08pp summed, and trade counts
+barely move** (431->431, 763->766, 295->295). That near-zero effect was
+suspicious, and it was not a fair test.
+
+**The exit path has its OWN guard chain that "guards open" did not open**
+(`Framework/BaseStrategy.py:852-857`):
+
+    if self.entry_enable_guards.value:            # the ENTRY flag gates EXIT guards
+        conditions.append(dataframe["rvol"] > 2.0)          # HARDCODED literal
+        conditions.append(dataframe["guard_metric"] > self.exit_guard_threshold.value)
+
+Two structural problems, both worth recording:
+
+  1. **`rvol > 2.0` is a hardcoded literal**, not a parameter. No setting can
+     reach it — an 8th instance of an unreachable knob in this repo.
+  2. **The ENTRY flag controls the EXIT guards.** Opening entries therefore left
+     exits gated, so the operating-point change was ASYMMETRIC without anyone
+     intending it.
+
+**Fair test** (exit-side block also open; entry thresholds already neutralised
+so both arms differ only in the exit signal):
+
+    arm                                  W1 tr  W1 ret%  W2 tr  W2 ret%  W3 tr  W3 ret%  summed
+    exit guards open, exit signal OFF      431     6.94    762    16.63    295    10.25   33.81
+    exit guards open, exit signal ON       433     3.41    770    14.93    296    10.32   28.66
+    delta (the exit signal alone)         -3.53    -1.70   +0.07                          -5.15
+
+**Enabling the exit signal costs 5.15pp summed and 3.53pp on W1.** It should
+stay disabled — now as a measured choice rather than an unexamined default.
+
+**The NNMT +10.4pp does NOT transfer.** That was a different family with a
+different label and a multi-task sell head. Cross-family transfer of a
+HOW-MUCH parameter was never justified, and this is a concrete instance of it
+failing.
