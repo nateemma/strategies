@@ -173,16 +173,60 @@ class NNNCStrategy(BaseNNStrategy):
     #       Loosening adx to 30 costs -3.92%; atr_pct to 0.003 costs -7.10%.
     #       Removing bb_width is invisible on W1 (-0.05pp) but turns W3 from
     #       +3.01% into -0.23% - it is the guard that carries the distant era.
+    # ----------------------------------------------------------------
+    # NNNC family defaults, updated 2026-09-06 to the model-driven operating
+    # point (regime/CANDIDATE_STATUS.md, LIQUIDITY_STUDY.md).
+    #
+    # WHAT CHANGED and WHY: the seven-guard chain selected ~99% of entries, so
+    # the model contributed nothing and a PERFECT model was worth only 0.68pp
+    # more than the real one -- no model, GAN or architecture work could ever
+    # pay at the old point. Opening the six QUALITY guards (keeping `volume > 0`)
+    # and raising prediction_threshold to 0.80 moves selection to the model:
+    # ~25pp of headroom, 4.5x the trades, and positive in all three windows on
+    # 3 of 3 seeds.
+    #
+    # HONESTLY: this is NOT a higher-return setting. Across seeds its summed
+    # return is +27.20 vs the old point's +24.13 with sd 6.38 -- indistinguishable
+    # -- and it LOSES the W1 acceptance window on 3 of 3 seeds. It is chosen for
+    # headroom and MEASURABILITY, not performance.
+    #
+    # The six guards are neutralised by threshold rather than by
+    # `entry_enable_guards = False`, because that flag also disables the
+    # `volume > 0` data-sanity check, which sits in the same block. Out-of-range
+    # values are honoured, not clamped (verified 2026-09-05).
+    #
+    # BLAST RADIUS: ~60 NNNC variants carry no <Strategy>.json and inherit these
+    # defaults -- including every NNNC_DDPM_*, NNNC_CGP_* and NNNC_WGAN* GAN
+    # variant. Their historical arm records were produced at the OLD defaults and
+    # will not reproduce. Variants WITH their own .json (NNNC_MLX included) are
+    # unaffected until that file is updated.
+    # ----------------------------------------------------------------
     buy_params = { **BaseNNStrategy.buy_params,
-        "entry_adx_threshold": 38.0,
-        "entry_atr_pct": 0.006,
-        "entry_bb_width_threshold": 0.06,
-        "entry_close_norm_threshold": -0.1,
+        # six quality guards OPEN; `volume > 0` stays live via enable_guards
+        "entry_adx_threshold": -1.0,
+        "entry_atr_pct": -1.0,
+        "entry_bb_width_threshold": -1.0,
+        "entry_close_norm_threshold": 5.0,
         "entry_enable_guards": True,
-        "entry_guard_threshold": 0.3,
-        "entry_rvol_threshold": 2.0,
-        "prediction_threshold": 0.69,
+        "entry_guard_threshold": 5.0,
+        "entry_rvol_threshold": -1.0,
+        "prediction_threshold": 0.8,
     }
+
+    # Label: gain threshold 0.02 rather than the framework default 0.007.
+    # A 0.7% target against a -4%..-6% ATR stop plus round-trip fees cannot pay
+    # however perfectly it is predicted -- at the ceiling, 0.02 turns W1 from
+    # -18.89% to +26.54% (regime/LABEL_TRIGGER_GATE.md).
+    #
+    # Set HERE, on the NNNC family base, and deliberately NOT in
+    # Framework/TrainingConfig: NNMT reads MIN_BUY_GAIN_THRESHOLD and does not
+    # override it, so a framework-level change would silently relabel NNMT
+    # before it has been evaluated. Families tune independently.
+    #
+    # Existing NNNC models were trained against 0.007. This affects the NEXT
+    # retrain, not inference by a model already on disk.
+    MIN_BUY_GAIN_THRESHOLD = 0.02
+    MIN_SELL_LOSS_THRESHOLD = 0.02
     
     def get_classifier_type(self):
         """Return the type of classifier used for training/predicting"""

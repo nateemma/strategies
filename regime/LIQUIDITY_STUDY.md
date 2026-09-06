@@ -74,3 +74,43 @@ backtests say it is.
 
 Neither is a reason not to promote it as the research/default configuration.
 Both are reasons not to expect more money from it.
+
+---
+
+# Appendix — is the 1/10 fill cap justified? No, it is a chosen constant
+
+`QUOTE_VOLUME_HEADROOM_MULT = 10.0` with the comment "10x ~ <=10% market impact
+target". Never derived. The only prior sweep (momentum basket, 2026-08) went
+TIGHTER and found tightening improved PF (1.64 -> 1.83) and drawdown
+(58.5% -> 36.3%). The looser direction had never been measured. It has now:
+
+    setting                        W1      W2      W3   summed  worstDD  meanPF  ret/DD
+    mult 3  (33% of candle)      8.70   25.73   16.54    50.97    10.46    1.34    4.87
+    mult 5  (20% of candle)      8.20   21.38   13.68    43.25    10.51    1.32    4.12
+    mult 10 (10%) DEFAULT        6.94   16.91   10.25    34.10     8.54    1.32    3.99
+    mult 20 (5%)                 7.22   11.63    6.48    25.33     7.46    1.32    3.39
+    mult 40 (2.5%)               7.05    9.17    3.07    19.29     5.70    1.33    3.39
+
+Loosening to 20% is +27%, to 33% is +50%. Returns scale almost linearly.
+
+**But mean profit factor is FLAT at ~1.32 across the entire range.** Trade
+quality does not change at all — only the capital deployed per trade. That is
+the signature of a pure sizing artefact, not an edge.
+
+And the backtest has **no slippage model**: `entry_pricing` uses
+`order_book_top = 1`, so fills occur at the touch regardless of order size.
+Taking 33% of a 15m alt candle at the touch is not physical. Every point of that
++50% is bought from an assumption, which makes the constant **a dial that sets
+the reported return** — a reason to keep it conservative, not to raise it.
+
+**On making it adaptive**: the cap already IS proportional to volume
+(`quote_volume / MULT`); what is fixed is the participation RATE. Raising that
+rate on evidence would require order-book DEPTH, not candle volume — candle
+volume is a poor proxy for what can be absorbed at the touch. freqtrade exposes
+`check_depth_of_market` (currently disabled) for this.
+
+**Recommendation: keep 10.** Both sweeps agree that the constant is not
+load-bearing on trade quality, and there is no slippage model to constrain a
+larger value. The evidence to justify a higher rate has to come from live or
+dry-run fill data — requested size versus realised fill price — which is the
+same dry run already required before this configuration goes live.
