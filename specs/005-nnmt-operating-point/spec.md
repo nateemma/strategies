@@ -92,20 +92,22 @@ model on the acceptance window, with trade counts.
 
 ---
 
-### User Story 2 - Resolve the inherited label inconsistency (Priority: P1)
+### User Story 2 - Resolve the two inherited changes (Priority: P1)
 
 As the researcher, I want NNMT's label configuration and its trained models to
-agree, so that the family is not sitting in a state where the next retrain
-silently changes target.
+agree, and the profit-taking level it inherited on another family's evidence
+judged on its own, so that the family is not sitting in a state where the next
+retrain silently changes target and an untested exit level stands unexamined.
 
 **Why this priority**: This is a defect, not an experiment, and it was
 introduced by work done for another family. It should not be left pending
 behind a research question. P1 alongside US1 because it is cheap and because
 every trained arm in this feature depends on which label is correct.
 
-**Independent Test**: The ceiling is measured at both label settings, one is
-chosen with a stated reason, and NNMT's configuration and models are made
-consistent with that choice.
+**Independent Test**: Each inherited change is measured ALONE against the
+pre-inheritance control on at least two seeds; one value is chosen for each with
+a stated reason; and NNMT's configuration and models are made consistent with
+both choices.
 
 **Acceptance Scenarios**:
 
@@ -118,6 +120,9 @@ consistent with that choice.
 3. **Given** that the chosen label differs from the one currently configured,
    **When** the change is made, **Then** it is scoped to NNMT and does not alter
    any other family.
+4. **Given** the inherited profit-taking level, **When** it is measured alone
+   against the control on the real model, **Then** its effect on realised return
+   is reported per window across seeds and a value is chosen for NNMT.
 
 ---
 
@@ -282,8 +287,12 @@ work on this family.
 - **FR-004**: If headroom is not materially larger than the study's resolution,
   the study MUST state that further model-side work on NNMT cannot pay at this
   gate, and MUST re-scope rather than execute the remaining work as written.
+  Re-scoping means specifically: the guard attribution and the inherited-change
+  resolution still run, because the first EXPLAINS the headroom result and the
+  second is a defect fix that stands regardless of it; the operating-point and
+  exit-side work does NOT run as written.
 
-**Label consistency (US2)**
+**Inherited changes (US2)**
 
 - **FR-005**: The study MUST measure the ceiling at both the previously
   configured and the newly inherited label setting.
@@ -293,7 +302,11 @@ work on this family.
   consistent with the chosen label, with any model trained against a superseded
   label either retrained or explicitly marked stale.
 - **FR-008**: Any label change MUST be scoped to NNMT and MUST NOT alter the
-  behaviour of another family.
+  behaviour of another family. It MUST be implemented as an NNMT-level override,
+  never by reverting the shared framework default that another family now uses.
+- **FR-030**: The inherited profit-taking level MUST be measured ALONE against
+  the pre-inheritance control, on the real model rather than at the ceiling, on
+  at least two seeds, with a value chosen for NNMT on realised return.
 
 **Guards (US3)**
 
@@ -313,6 +326,10 @@ work on this family.
   a fixed choice rather than tuned per era.
 - **FR-014**: NNNC's operating point MUST NOT be assumed to transfer; any value
   adopted for NNMT MUST rest on NNMT measurements.
+- **FR-031**: The operating point is the confidence threshold AND the guard
+  settings together. The gate at which the threshold is swept MUST itself be
+  chosen from the guard attribution by a stated rule, and reported, rather than
+  left implicit.
 
 **Exit side (US5, US6)**
 
@@ -379,8 +396,9 @@ work on this family.
   single figure with the trade counts and windows it was measured on.
 - **SC-002**: The three-way comparison — no model, real model, perfect model —
   is reported for NNMT on all three windows.
-- **SC-003**: The label inconsistency is resolved: configuration and models
-  agree, and the choice is justified on realised return.
+- **SC-003**: Both inherited changes are resolved: a value is chosen for each on
+  realised return across seeds, and NNMT's configuration and models agree with
+  those choices.
 - **SC-004**: Every one of NNMT's entry guards has its individual contribution
   reported, and any inert guard is identified as such.
 - **SC-005**: A confidence threshold is chosen for NNMT by a stated decision
@@ -406,7 +424,10 @@ work on this family.
   all defined the same way as on NNNC.
 - Seed variation is the dominant source of run-to-run noise, and two seeds are
   sufficient to detect an effect several times larger than the spread. Effects
-  comparable to the spread would need more.
+  comparable to the spread would need more. The concrete anchor: on the
+  comparable NNNC configuration a headline +9.97pp proved to be seed luck — the
+  mean across three seeds was +3.07pp against a standard deviation of 6.38pp,
+  and the arm lost the acceptance window on 3 of 3 seeds.
 - The third window's near-flat behaviour on NNMT is a property of the family
   rather than an error, so a small effect there is weaker evidence than the same
   effect on another window.

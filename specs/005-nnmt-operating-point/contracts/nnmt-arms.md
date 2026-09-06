@@ -39,7 +39,15 @@ One per screened configuration. Changes exactly one thing against the control.
 Where the changed parameter is a class attribute (label thresholds), the variant
 is a subclass; where it is a hyperopt parameter (take-profit, thresholds, guard
 values), the variant is expressed through the arm runner's flags and needs no
-new class.
+new class. **This does not weaken Common Requirement 1**: a flag-expressed arm
+runs against the CONTROL's pinned `.json` with explicit overrides on top, so
+nothing falls back to shared class defaults, which is what FR-022 exists to
+prevent. A flag-expressed arm is only admissible while the control's `.json`
+is the one in force.
+
+**A subclass that redefines `buy_params`/`sell_params` MUST merge from the
+parent** (`{**parent, **overrides}`); a fresh literal silently drops every
+inherited key.
 
 ## Reporting
 

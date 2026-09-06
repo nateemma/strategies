@@ -51,16 +51,44 @@ effect.
 ## Scenario 4 — the inherited changes (Phase 4)
 
 Label and take-profit introduced **separately**, each against the control, each
-on two seeds, each with its own re-swept operating point.
+on two seeds, each with its own re-swept operating point. The take-profit arm is
+measured on the REAL model (an oracle null is not evidence for an exit change).
 
 **Expected**: two independent verdicts. The label arm must pin the profit-head
-threshold so it stays single-variable.
+threshold so it stays single-variable. The chosen label is implemented as an
+NNMT-level override, never by reverting the shared framework default.
 
-## Scenario 5 — the exit signal (Phase 5)
+## Scenario 5a — the operating point (Phase 5, US4)
+
+FIRST choose the gate from Phase 3's attribution by a stated rule (neutralise
+the guards Phase 3 found inert or non-paying), and record it. THEN sweep
+`prediction_threshold` at that gate on all three windows.
+
+    ... run_arm.py --strategy NNMT_MLX_Base --window W1 \
+        --threshold 0.5|0.6|0.7|0.8 <chosen gate --set flags> --tag nnmt_thr<v>
+
+**Expected**: per-window optima reported EVEN WHERE THEY DISAGREE — NNNC's were
+0.82/0.80/0.75 and its value is explicitly not transferable. A value chosen by a
+stated decision rule rather than by the best single window, on two seeds, and
+treated as a fixed choice. The chosen GATE is reported alongside it: the
+operating point is the threshold and the guard settings together.
+
+## Scenario 5b — the exit-rvol gate (Phase 5, US5)
+
+    ... --set-sell exit_rvol_threshold=2.0|1.0|0.25|-1.0 --tag nnmt_xrvol<v>
+
+Run on the REAL model. It sits at 2.0 — NNNC's ENTRY value — while NNMT's own
+entry rvol is 0.25.
+
+**Expected**: effect on realised return and trade count per window. If it changes
+nothing, it is recorded as INERT, never as confirmed-correct.
+
+## Scenario 5c — the exit signal (Phase 5, US6)
 
 Measured on the REAL model, at both the chosen exit-rvol value and fully open.
 
-**Expected**: a result that cannot be an artefact of the exit gate. An oracle
+**Expected**: a result that cannot be an artefact of the exit gate, and an
+explicit statement of whether the prior +10.4pp claim reproduces. An oracle
 null is not evidence here — the gate bounds what a label can pay, not how the
 exit harvests it.
 
@@ -78,9 +106,9 @@ oracle configuration promoted.
 | SC-001, SC-002 | Scenario 2 |
 | SC-003 | Scenario 4 |
 | SC-004 | Scenario 3 |
-| SC-005 | Scenario 5 (threshold sweep) |
-| SC-006 | Scenario 5 |
-| SC-007 | Scenarios 4 and 5 (two seeds) |
+| SC-005 | Scenario 5a |
+| SC-006 | Scenarios 5b and 5c (each measurable without the other) |
+| SC-007 | Scenarios 4 and 5a (two seeds) |
 | SC-008 | Scenarios 2 and 6 |
 | SC-009 | Scenario 6 |
 | SC-010 | Phase 6 conclusion |
