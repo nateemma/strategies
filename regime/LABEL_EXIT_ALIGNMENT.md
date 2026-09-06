@@ -102,3 +102,52 @@ loss is ambiguous at two seeds per setting.
 
 **0.020 remains the framework default**, so the pending NNMT feature inherits a
 settled value rather than a contested one.
+
+---
+
+# 5. The take-profit SHOULD move — and the oracle could not tell us
+
+The alignment test at the ceiling said moving the take-profit was worth nothing
+(+0.91pp). That was the wrong instrument: a PERFECT model only enters bars that
+reach the target, so the exit level merely reshuffles which winners it banks. A
+REAL model enters bars that never get there, and an earlier exit banks them
+before they reverse. Different populations, so it needed its own measurement.
+
+Real model, label 0.020, guards open, thr 0.80, two seeds, only the take-profit
+varying (no retraining — it is a sell-space parameter):
+
+    take-profit / seed        W1 tr  W1 ret%  W2 ret%  W3 ret%   summed
+    2.0%  / 42                  440     7.40    18.43     8.78    34.61
+    2.2%  / 42                  437     8.72    17.23    10.33    36.28
+    2.4%  / 42  CONTROL         431     6.94    16.91    10.25    34.10
+    2.8%  / 42                  424     6.26    18.78    10.21    35.26
+    2.0%  /  7                  422     5.27    13.38    12.93    31.58
+    2.2%  /  7                  417     4.62    11.99    13.50    30.11
+    2.4%  /  7  CONTROL         413     2.97    11.15    11.88    26.00
+    2.8%  /  7                  407     1.97    12.90    11.81    26.68
+
+**Every alternative beats the 2.4% control on summed return at BOTH seeds — 6 of
+6 — and 2.4% ranks LAST at each.** On the acceptance window, 2.0% and 2.2% beat
+it 4 times out of 4 while 2.8% loses at both seeds, so the direction is
+specifically DOWN rather than merely away.
+
+**Chosen: 2.2%.** Between 2.0 and 2.2 the optimum wanders by seed (42 prefers
+2.2 by +1.67 summed, 7 prefers 2.0 by +1.47). Minimax regret marginally favours
+2.2, and 2.2 is the more consistent of the two on W1 (+1.78 / +1.65 against
+2.0's wider +0.46 / +2.30). Treat 2.0 and 2.2 as indistinguishable from each
+other and both as clearly better than 2.4.
+
+**Strength, stated honestly.** Individual deltas run 0.5-5.6pp against a 6.38pp
+seed spread, so no single figure here is significant alone. The signal is the
+CONSISTENCY of the ordering: 2.4 last at both seeds, 2.0/2.2 winning W1 4/4.
+
+## Consequence for NNMT — inherited untested
+
+`Framework/BaseStrategy.sell_params` now carries 0.022, down from 0.032. NNMT has
+no strategy parameter file and no explicit override, so **it moves from 0.032 to
+0.022 on evidence gathered entirely on NNNC.** That is a 31% reduction in its
+take-profit, untested on the multi-task family.
+
+This is now the THIRD thing NNMT inherits untested from NNNC work — alongside the
+label threshold and the exit-side relative-volume gate. Feature 005 must resolve
+all three, and its exit-side story (US5) now covers the take-profit as well.

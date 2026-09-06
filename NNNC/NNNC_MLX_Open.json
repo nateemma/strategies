@@ -19,7 +19,7 @@
         "sell": {
             "cexit_enable_profit_checks": true,
             "cexit_max_days": 10,
-            "cexit_take_profit": 0.024,
+            "cexit_take_profit": 0.022,
             "enable_exit_signal": false,
             "exit_close_norm_threshold": -0.6,
             "exit_guard_threshold": -0.1,

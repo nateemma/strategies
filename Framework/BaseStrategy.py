@@ -292,7 +292,24 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
     # Sell parameters:
     sell_params = {
         "cexit_max_days": 21,
-        "cexit_take_profit": 0.032,
+        # 2026-09-06: 0.032 -> 0.022. Swept on the REAL NNNC model (label 0.020,
+        # guards open, thr 0.80) at two seeds. EVERY alternative beat the 0.024
+        # NNNC setting on summed return at both seeds -- 0.024 ranked LAST of the
+        # four values tried -- and 0.020/0.022 beat it on the acceptance window
+        # 4 times out of 4, while 0.028 lost at both seeds. 0.022 minimises
+        # worst-case regret between 0.020 and 0.022 and is the more consistent of
+        # the two on W1.
+        #
+        # NOTE the oracle could NOT answer this: at the ceiling, moving the
+        # take-profit was worth +0.91pp, because a perfect model only enters bars
+        # that reach the target anyway. A real model enters bars that do not, and
+        # an earlier exit banks them before they reverse. The gate bounds what a
+        # LABEL can pay, not how the EXIT should harvest it.
+        #
+        # Effect sizes (0.5-5.6pp) sit inside the 6.38pp seed spread
+        # individually; the signal is the CONSISTENCY of the ordering, not any
+        # single figure. See regime/LABEL_EXIT_ALIGNMENT.md.
+        "cexit_take_profit": 0.022,
         "enable_exit_signal": False,
         "exit_close_norm_threshold": 0.6,
         "exit_guard_threshold": -0.2,
