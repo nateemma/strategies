@@ -112,9 +112,9 @@ is stated.
 guards are named, and the sum of individual effects is compared to the joint
 effect.
 
-- [ ] T010 [US3] Run a leave-one-out over NNMT's six quality guards at the control configuration, neutralising each in turn (`rvol`/`atr_pct`/`adx`/`bb_width` to -1.0, `guard_metric`/`close_norm` to 5.0), tags `nnmt_no_<guard>`, all three windows, keeping `entry_enable_guards` True so `volume > 0` stays live (FR-009)
-- [ ] T011 [US3] Run the joint arm with all six neutralised (`nnmt_gqoff`) on all three windows, so interaction can be separated from addition (FR-011)
-- [ ] T012 [US3] Record each guard's delta and trade count in `specs/005-nnmt-operating-point/guards.md`, naming any guard that changes NEITHER trades NOR return as INERT rather than beneficial, and stating whether the individual deltas sum to the joint effect (FR-009, FR-010, FR-011, SC-004)
+- [X] T010 [US3] Run a leave-one-out over NNMT's six quality guards at the control configuration, neutralising each in turn (`rvol`/`atr_pct`/`adx`/`bb_width` to -1.0, `guard_metric`/`close_norm` to 5.0), tags `nnmt_no_<guard>`, all three windows, keeping `entry_enable_guards` True so `volume > 0` stays live (FR-009)
+- [X] T011 [US3] Run the joint arm with all six neutralised (`nnmt_gqoff`) on all three windows, so interaction can be separated from addition (FR-011)
+- [X] T012 [US3] Record each guard's delta and trade count in `specs/005-nnmt-operating-point/guards.md`, naming any guard that changes NEITHER trades NOR return as INERT rather than beneficial, and stating whether the individual deltas sum to the joint effect (FR-009, FR-010, FR-011, SC-004)
 
 **Checkpoint**: selection is attributed between guards and model.
 
