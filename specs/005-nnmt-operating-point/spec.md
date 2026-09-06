@@ -40,17 +40,21 @@ for the multi-task family, and one is a defect introduced by the NNNC work:
    with its own swept values (relative-volume 0.25 against NNNC's 2.0) and sets
    its confidence threshold explicitly, so the guards-open change passed it by.
    Whether it should have is the open question.
-3. **Two exit parameters now default against it.** The exit-side relative-volume
-   gate was a hardcoded value equal to NNNC's entry setting; it is now a
-   parameter, still defaulting to that value, and NNMT's entry optimum is eight
-   times looser — so its exits have plausibly been over-gated for the life of
-   the family. Separately, the profit-taking level has been lowered on NNNC
-   evidence, and NNMT inherits that too: a 31% reduction, untested on the
-   multi-task family.
+3. **The profit-taking level was lowered on another family's evidence.** NNMT
+   has no parameter file and no override, so it inherits the change: a 31%
+   reduction, untested on the multi-task family.
 
-That makes three things NNMT has inherited untested from work done for another
-family — the label threshold and both exit parameters. Resolving them is part of
-this feature, not a precondition for it.
+**Exactly two things have been inherited untested** — the label threshold and
+the profit-taking level. Verified against NNMT's effective configuration rather
+than assumed: every entry guard, the confidence threshold and the exit-side
+relative-volume gate are unchanged, because NNMT overrides the guards and the
+threshold with its own swept values, and the exit-side gate's new parameter
+defaults to exactly the value that was previously hardcoded. Resolving the two
+real changes is part of this feature, not a precondition for it.
+
+A fourth item is worth noting but is not a change: NNMT's maximum hold is 21
+days against NNNC's 10, because NNMT takes the shared default while NNNC pins
+its own. That has always been so.
 
 NNMT also has a genuine multi-task sell head, and its exit signal was once
 measured as worth +10.4pp at an open gate — a result never followed up.

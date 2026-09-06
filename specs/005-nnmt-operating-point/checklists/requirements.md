@@ -63,3 +63,13 @@ inherits was contested during specification. It has since been settled at 0.020
 (`regime/LABEL_EXIT_ALIGNMENT.md` — 0.024/0.026 win the acceptance window 4 of 4
 but lose summed 3 of 4 and cost 20-45% of trade volume). NNMT therefore inherits
 a settled value, and FR-005's two-way comparison is 0.007 against 0.020.
+
+**Correction applied 2026-09-06 before planning**: the spec initially claimed
+THREE untested inherited changes. Verified against NNMT's actual effective
+configuration, there are TWO — the label threshold (0.007 → 0.020) and the
+profit-taking level (0.032 → 0.022). The exit-side relative-volume gate was
+parameterised but its default equals the value that was previously hardcoded, so
+NNMT's behaviour there is unchanged; every entry guard and the confidence
+threshold are likewise unchanged because NNMT overrides them with its own swept
+values. Recorded because the erroneous claim would have led the plan to
+construct a baseline arm for a change that never happened.
