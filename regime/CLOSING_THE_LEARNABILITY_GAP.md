@@ -181,3 +181,49 @@ Every prior null in this programme was measured at a configuration where there
 was nothing to win. The obvious next question is the model and its training
 metrics — for the first time in this study, improving them should show up in
 realised return.
+
+---
+
+# The guards-on operating point cannot be improved — the gate absorbs it
+
+Threshold swept at the PRODUCTION gate on the 0.02-label model:
+
+    thr     W1 tr  W1 ret%  W2 tr  W2 ret%  W3 tr  W3 ret%   summed
+    0.50       96    10.25    187     9.85     58     3.73    23.83
+    0.60       95    10.45    185    10.35     58     3.73    24.53
+    0.69       95    10.45    181    11.35     56     3.37    25.16
+    0.75       87     9.72    171    10.92     50     3.33    23.96
+    0.80       42     8.42     96     9.10     20     2.86    20.38
+    0.85        4     3.07      2     0.71     --       --       --
+
+    PRODUCTION (label 0.007, thr 0.69)
+               95    10.45    181    10.31     56     3.37    24.13
+
+**The threshold is inert guards-on.** W1 return is 10.25 / 10.45 / 10.45 across
+0.50–0.69 while trade count barely moves (96 / 95 / 95); above 0.69 it only cuts
+volume. This is the same absorption seen on the 0.007 label — the guard chain
+removes the bars before the model's confidence can discriminate — and it holds
+for the relaxed-gain label too.
+
+Best summed is thr 0.69 at +25.16% against production's +24.13%. **W1 and W3 are
+IDENTICAL to production (10.45 / 3.37); only in-sample W2 differs (+1.04pp).**
+There is no production improvement here.
+
+## Final position on the two configurations
+
+    configuration                              W1        W2        W3   summed   trades   W1 DD
+    PRODUCTION  label 0.007, guards on, 0.69  +10.45   +10.31    +3.37   +24.13      332    1.50%
+    CANDIDATE   label 0.02, guards OFF, 0.80   +6.94   +16.91   +10.25   +34.10     1489    7.90%
+
+The candidate wins on summed return and on two of three windows, with **4.5x the
+trade volume** and positive in every window including distant 2023. Production
+wins on W1 — the acceptance window — and on drawdown by 5x.
+
+**Neither dominates, and the choice is not a measurement question.** On the
+repo's own acceptance rule (W1 realised return) production stands. The candidate
+is the better-diversified book and the only configuration in this study whose
+edge comes from the model rather than the guard chain.
+
+Nothing here is adopted. What the candidate is genuinely worth is as the
+operating point for FUTURE model work: at 431 W1 trades a 1pp effect is
+measurable, where at production's 95 it is not.
