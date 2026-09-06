@@ -37,7 +37,9 @@ for the multi-task family, and one is a defect introduced by the NNNC work:
    so it has just inherited the change from 0.007 to 0.02 — while every NNMT
    model on disk was trained at 0.007. Its next retrain silently changes target.
 2. **NNMT did not inherit the operating point.** It overrides the entry guards
-   with its own swept values (relative-volume 0.25 against NNNC's 2.0) and sets
+   with its own swept values (relative-volume 0.25 against NNNC's 2.0 — though
+   the parameter is declared to one decimal place, so 0.25 actually executes as
+   0.2; measured 2026-09-06) and sets
    its confidence threshold explicitly, so the guards-open change passed it by.
    Whether it should have is the open question.
 3. **The profit-taking level was lowered on another family's evidence.** NNMT
