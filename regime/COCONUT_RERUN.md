@@ -44,4 +44,41 @@ N>0 arms. Two seeds (42, 7), because the seed study showed a 6.38pp standard
 deviation on summed return at this operating point and the original ponder
 effect was under 1pp.
 
-Results appended below when the runs complete.
+    arm                        W1 tr  W1 ret%  W2 tr  W2 ret%  W3 tr  W3 ret%   summed
+    seed42  N0 (control)         349     6.19    624    15.51    239    10.14    31.84
+    seed42  N2                   313     6.07    532     7.23    186     7.61    20.91
+    seed42  N4                   298     8.47    483     5.06    173     6.08    19.62
+    seed 7  N0 (control)         381     3.87    644    12.60    239    13.07    29.54
+    seed 7  N2                   345     2.21    615    11.66    223    11.21    25.07
+    seed 7  N4                   327     3.43    564    13.11    190     8.37    24.91
+
+    PAIRED deltas vs the matched N0 control at the SAME seed:
+      seed42  N2      -0.13    -8.27    -2.53   -10.93
+      seed42  N4      +2.28   -10.45    -4.06   -12.22
+      seed 7  N2      -1.66    -0.94    -1.86    -4.46
+      seed 7  N4      -0.44    +0.52    -4.70    -4.62
+
+**0 of 4 paired arms improve.** Both step counts lose on both seeds, and the
+loss is large (-4.5pp to -12.2pp summed) rather than marginal.
+
+**The retracted edge does not reappear.** Ponder's original +0.9pp on 4/4 seeds
+was an artefact of the DDPM base, and on the non-GAN base at an operating point
+with ~25pp of headroom — where a genuine +0.9pp would have been visible — it is
+consistently HARMFUL.
+
+Note seed42 N4 posts the best single W1 figure of any arm here (+8.47, +2.28
+against its control) while losing 12.22pp summed. That is the same shape as the
+`NoRes` arm in the architecture study: one flattering window inside a clearly
+negative result. Not a signal.
+
+## Verdict — the COCONUT programme is CLOSED
+
+Both halves re-measured at an operating point where they could have registered,
+and both are negative:
+
+  - training-free noise-voting: monotone harm, -3.17pp to -5.34pp
+  - stage-2 ponder: 0/4 paired arms, -4.46pp to -12.22pp
+
+Do not re-run either. The infrastructure (`PonderStrategyMixin`,
+`NoisyCoconutStrategyMixin`, the `LSTM_PONDER` / `LSTM_NOISY` / `LSTM_INJIT`
+classifier variants) is kept and works; it is the hypothesis that is spent.
