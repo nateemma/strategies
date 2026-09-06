@@ -128,3 +128,32 @@ study keeps producing could actually be detected.
 That is a legitimate basis for a research platform. It is NOT a basis for
 claiming better performance, and the earlier framing in this document has been
 corrected accordingly.
+
+---
+
+# OPEN ITEM — `enable_exit_signal` is False and was never revisited
+
+Raised 2026-09-06. The model is currently **entry-only**: it has a trained sell
+head (the gbb label has a sell side via `MIN_SELL_LOSS_THRESHOLD`, and
+`get_exit_conditions` consumes `predict_sell`), but that head is never wired
+into exits.
+
+    Framework/BaseStrategy   enable_exit_signal CategoricalParameter default = True
+    Framework/BaseStrategy   sell_params overrides it to           False
+    NNNC_MLX.json                                                  False
+    NNNC_MLX_Open.json                                             False
+
+So it is off by a `sell_params` default, **not by an NNNC decision**. It has been
+flagged as "never revisited" since 2026-09-02, and it is what makes
+`exit_guard_threshold` dead code — the 7th inert parameter recorded in this repo.
+
+**Why it matters now specifically.** On NNMT the exit signal was measured as
+worth **+10.4pp AT AN OPEN GATE**. NNNC has just been moved to an open gate. At
+the old operating point the guard chain absorbed everything, so leaving the exit
+signal off cost nothing measurable; that is no longer true.
+
+**Cost to test: three backtests, no retraining** — the sell head already exists,
+and `enable_exit_signal` is reachable via `--set-sell`.
+
+Queued behind the COCONUT ponder runs (sequential discipline; concurrent jobs
+previously produced load 60 on 14 cores).
