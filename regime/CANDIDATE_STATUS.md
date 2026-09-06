@@ -191,3 +191,34 @@ stay disabled — now as a measured choice rather than an unexamined default.
 different label and a multi-task sell head. Cross-family transfer of a
 HOW-MUCH parameter was never justified, and this is a concrete instance of it
 failing.
+
+### FIXED 2026-09-06 — `exit_rvol_threshold` is now a parameter
+
+The hardcoded `rvol > 2.0` is gone. `Framework/BaseStrategy` now declares
+
+    exit_rvol_threshold = DecimalParameter(-1.0, 5.0, default=2.0, space="sell")
+
+with `sell_params["exit_rvol_threshold"] = 2.0`, so the default reproduces the
+previous behaviour EXACTLY (verified: NNNC_MLX 95tr/+10.45% and NNNC_MLX_Open
+431tr/+6.94%, both byte-identical trade hashes). The lower bound is -1.0 so the
+guard can be neutralised the same way the entry guards are.
+
+Rationale: the rvol optimum is known to differ by family (NNNC 2.0, NNMT 0.25),
+so a shared literal was wrong regardless of its value.
+
+**Verified LIVE, not inert** — the ninth unreachable-knob check in this repo:
+
+    arm                                       W1 tr  W1 ret%  W2 ret%  W3 ret%  summed
+    exit signal OFF               (baseline)    431     6.94    16.91    10.25   34.10
+    exit signal ON, exit rvol 2.0  (default)    431     6.53    16.78     9.71   33.02
+    exit signal ON, exit rvol -1.0 (open)       433     3.41    15.21    10.32   28.94
+
+Trades differ between the two exit-rvol settings, so the parameter reaches the
+trades. It also confirms the earlier conclusion on cleaner evidence — this test
+keeps entry `volume > 0` live, where the previous one did not: **opening the
+exit rvol gate makes the exit signal WORSE** (33.02 -> 28.94), and the exit
+signal is worse than no exit signal at either setting.
+
+**STILL OPEN**: the exit block is gated on `entry_enable_guards`, so the ENTRY
+flag controls the EXIT guards. Left unchanged deliberately — fixing it alters
+behaviour for every strategy and needs its own measurement.

@@ -296,6 +296,11 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
         "enable_exit_signal": False,
         "exit_close_norm_threshold": 0.6,
         "exit_guard_threshold": -0.2,
+        # 2026-09-06: was a HARDCODED `rvol > 2.0` literal in
+        # populate_exit_trend, unreachable by any setting. Now a parameter,
+        # because the rvol optimum is known to differ by family (NNNC 2.0,
+        # NNMT 0.25). Default 2.0 preserves the previous behaviour exactly.
+        "exit_rvol_threshold": 2.0,
         "stoploss_grace_hours": 2.6,
         "stoploss_grace_level": -0.17,
         "cexit_enable_profit_checks": True,  # value loaded from strategy
@@ -463,6 +468,13 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
 
     exit_close_norm_threshold = DecimalParameter(
         -1.0, 1.0, default=0.0, decimals=1, space="sell", load=True, optimize=opt_base_params
+    )
+
+    # Exit-side relative-volume gate. Lower bound is -1.0 so the guard can be
+    # NEUTRALISED (rvol is non-negative), matching how the entry-side guards are
+    # opened. Default 2.0 = the value that was previously hardcoded.
+    exit_rvol_threshold = DecimalParameter(
+        -1.0, 5.0, default=2.0, decimals=1, space="sell", load=True, optimize=opt_base_params
     )
 
     cexit_enable_profit_checks = CategoricalParameter(
@@ -849,8 +861,12 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
 
         # Add common conditions
 
+        # NOTE: this block is gated on entry_enable_guards, so the ENTRY flag
+        # controls the EXIT guards. Left as-is deliberately -- changing it would
+        # alter behaviour for every strategy; recorded as a separate open item in
+        # regime/CANDIDATE_STATUS.md.
         if self.entry_enable_guards.value:
-            conditions.append(dataframe["rvol"] > 2.0)
+            conditions.append(dataframe["rvol"] > self.exit_rvol_threshold.value)
 
             # common guard conditions
             conditions.append(
