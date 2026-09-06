@@ -67,8 +67,18 @@ class TrainingConfig:
     # univariate sweeps (e.g. 2026-05-28 H sweep) missed the inflection
     # because at H<=24 there is no threshold that clears all three
     # viability criteria together. See project_horizon_threshold_learnability_finding.md.
-    MIN_BUY_GAIN_THRESHOLD: float = 0.007
-    MIN_SELL_LOSS_THRESHOLD: float = 0.007
+    # 2026-09-06: 0.007 -> 0.02. A 0.7% target against the -4%..-6% ATR stop
+    # plus round-trip fees cannot pay HOWEVER PERFECTLY it is predicted -- at the
+    # ceiling (perfect prediction, guards open) 0.007 returns -18.89% on W1 while
+    # 0.02 returns +26.54%, and every window flips from loss to gain.
+    # See regime/LABEL_TRIGGER_GATE.md and regime/CLOSING_THE_LEARNABILITY_GAP.md.
+    #
+    # Affects the NEXT retrain of every NN family, not inference by models
+    # already on disk. NNMT and the GAN variants have NOT yet been evaluated at
+    # this label -- that is pending work, and their existing models were trained
+    # at 0.007.
+    MIN_BUY_GAIN_THRESHOLD: float = 0.02
+    MIN_SELL_LOSS_THRESHOLD: float = 0.02
 
     # Forward window (in bars) used by the gbb labeler and other label
     # generators that look ahead from a candidate bar. Coupled with the

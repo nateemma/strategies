@@ -262,14 +262,30 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
     # to receive them. They arrived as hyperopt-dump leftovers (hence the
     # "value loaded from strategy" markers) and were actively misleading: they
     # made apply_task_filters look enabled base-wide when NNMT never read them.
+    # 2026-09-06: the six QUALITY guards now default OPEN.
+    #
+    # The guard chain selected ~99% of entries, which made the model irrelevant:
+    # a PERFECT model was worth only 0.68pp more than the real one, so no model,
+    # GAN or architecture work could ever pay. Opening them moves selection to
+    # the model -- ~25pp of headroom and 4.5x the trades.
+    #
+    # They are opened by NEUTRALISING each threshold rather than by
+    # entry_enable_guards=False, because that flag ALSO disables the
+    # `volume > 0` data-sanity check which lives in the same block. Keep
+    # entry_enable_guards True. Out-of-range values are honoured, not clamped.
+    #
+    # NOT a higher-return setting: across seeds it is indistinguishable from the
+    # old point on summed return and LOSES the W1 acceptance window 3 times out
+    # of 3. Chosen for headroom and measurability. See
+    # regime/CANDIDATE_STATUS.md and regime/GUARD_ABLATION.md.
     buy_params = {
-        "entry_adx_threshold": 38.0,  # value loaded from strategy
-        "entry_atr_pct": 0.006,  # value loaded from strategy
-        "entry_bb_width_threshold": 0.06,  # value loaded from strategy
-        "entry_close_norm_threshold": -0.1,  # value loaded from strategy
-        "entry_enable_guards": True,  # value loaded from strategy
-        "entry_guard_threshold": 0.3,  # value loaded from strategy
-        "entry_rvol_threshold": 0.5,  # value loaded from strategy
+        "entry_adx_threshold": -1.0,  # open
+        "entry_atr_pct": -1.0,  # open
+        "entry_bb_width_threshold": -1.0,  # open
+        "entry_close_norm_threshold": 5.0,  # open
+        "entry_enable_guards": True,  # keeps `volume > 0` live
+        "entry_guard_threshold": 5.0,  # open
+        "entry_rvol_threshold": -1.0,  # open
         "prediction_threshold": 0.5,  # value loaded from strategy
     }
 
@@ -412,29 +428,29 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
     # and misleading when reading the file to find out what a parameter's
     # default actually is. Aligned 2026-09-02. If you change one, change both.
     entry_guard_threshold = DecimalParameter(
-        -1.0, 0.5, default=0.3, decimals=1, space="buy", load=True, optimize=opt_base_params
+        -1.0, 5.0, default=5.0, decimals=1, space="buy", load=True, optimize=opt_base_params
     )
 
     entry_close_norm_threshold = DecimalParameter(
-        -0.5, 1.0, default=-0.1, decimals=1, space="buy", load=True, optimize=opt_base_params
+        -0.5, 5.0, default=5.0, decimals=1, space="buy", load=True, optimize=opt_base_params
     )
 
     entry_adx_threshold = DecimalParameter(
-        10.0, 90.0, default=38.0, decimals=0, space="buy", load=True, optimize=opt_base_params
+        -1.0, 90.0, default=-1.0, decimals=0, space="buy", load=True, optimize=opt_base_params
     )
 
     entry_bb_width_threshold = DecimalParameter(
-        0.000, 0.100, default=0.06, decimals=3, space="buy", load=True, optimize=opt_base_params,
+        -1.000, 0.100, default=-1.0, decimals=3, space="buy", load=True, optimize=opt_base_params,
     )
 
     entry_rvol_threshold = DecimalParameter(
-        0.0, 5.0, default=0.5, decimals=1, space="buy", load=True, optimize=opt_base_params
+        -1.0, 5.0, default=-1.0, decimals=1, space="buy", load=True, optimize=opt_base_params
     )
 
     entry_atr_pct = DecimalParameter(
-        0.000,
+        -1.000,
         0.060,
-        default=0.006,
+        default=-1.0,
         decimals=3,
         space="buy",
         load=True,

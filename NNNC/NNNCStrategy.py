@@ -218,10 +218,10 @@ class NNNCStrategy(BaseNNStrategy):
     # however perfectly it is predicted -- at the ceiling, 0.02 turns W1 from
     # -18.89% to +26.54% (regime/LABEL_TRIGGER_GATE.md).
     #
-    # Set HERE, on the NNNC family base, and deliberately NOT in
-    # Framework/TrainingConfig: NNMT reads MIN_BUY_GAIN_THRESHOLD and does not
-    # override it, so a framework-level change would silently relabel NNMT
-    # before it has been evaluated. Families tune independently.
+    # SUPERSEDED 2026-09-06: this was first set here to avoid relabelling NNMT,
+    # then promoted to Framework/TrainingConfig at the user's direction so all
+    # families share it. Kept as an explicit restatement of the NNNC value; it
+    # now matches the framework default rather than overriding it.
     #
     # Existing NNNC models were trained against 0.007. This affects the NEXT
     # retrain, not inference by a model already on disk.

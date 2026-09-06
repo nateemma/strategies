@@ -127,8 +127,14 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
     # NNMTStrategy and read nowhere else. It used to be set True here, which
     # never reached NNMT (NNMTStrategy defines a fresh buy_params rather than
     # merging) but did propagate a dead key to every other NN strategy.
+    # 2026-09-06: 0.6 -> 0.8. With the guards open the model does the selecting,
+    # and its confidence only discriminates near the top of the distribution:
+    # guards-off W1 goes -24.63% at 0.0, -12.71% at 0.69, +6.94% at 0.80.
+    # Located across three windows; per-window optima are 0.82/0.80/0.75 so the
+    # value is NOT sharply identified -- treat it as a fixed choice, never tune
+    # it per era. See regime/CLOSING_THE_LEARNABILITY_GAP.md.
     buy_params = { **BaseStrategy.buy_params,
-        "prediction_threshold": 0.6}
+        "prediction_threshold": 0.8}
 
     # ATR-adaptive initial stoploss enabled by default for every NN
     # variant — definitions of the flag and its companion attrs
