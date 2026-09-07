@@ -1079,6 +1079,147 @@ def labels_gbb_sell(
     return pd.Series(labels, index=df.index)
 
 
+def _first_touch_excursion(
+    close: np.ndarray, horizon: int, target: float, direction: str
+) -> np.ndarray:
+    """Worst opposing excursion BEFORE a target is first reached.
+
+    ``direction="buy"``:  target is a RISE of ``target``; returns the most
+    NEGATIVE excursion on the way (the drawdown the stop would have to survive).
+    ``direction="sell"``: target is a FALL of ``target``; returns the most
+    POSITIVE excursion on the way (the rise the take-profit would have caught).
+
+    NaN where the target is never reached inside the horizon — those bars are
+    not labels under the gbb family anyway, since it requires the move.
+
+    Vectorised over the horizon rather than over rows: 48 numpy passes on
+    n-length arrays instead of an n-iteration Python loop.
+    """
+    n = len(close)
+    out = np.full(n, np.nan, dtype=float)
+    touched = np.zeros(n, dtype=bool)
+    run = np.full(n, np.inf if direction == "buy" else -np.inf, dtype=float)
+
+    for h in range(1, int(horizon) + 1):
+        fut = np.full(n, np.nan, dtype=float)
+        if h < n:
+            fut[: n - h] = close[h:]
+        run = np.fmin(run, fut) if direction == "buy" else np.fmax(run, fut)
+        with np.errstate(invalid="ignore", divide="ignore"):
+            move = (fut - close) / close if direction == "buy" else (close - fut) / close
+            newly = (~touched) & np.isfinite(move) & (move >= target)
+            if newly.any():
+                out[newly] = (run[newly] - close[newly]) / close[newly]
+                touched |= newly
+    return out
+
+
+def labels_gbb_path(
+    df: pd.DataFrame,
+    guard_threshold: float = -0.2,
+    bb_width_threshold: float = 0.035,
+    min_gain: Optional[float] = 0.01,
+    min_loss: Optional[float] = None,  # Ignored for buy
+    horizon: Optional[int] = DEFAULT_HORIZON,
+    stop_frac: float = -0.05,
+) -> pd.Series:
+    """PATH-AWARE gbb buy label — a strict SUBSET of ``labels_gbb``.
+
+    ``labels_gbb`` asks only whether the MAXIMUM forward close over the horizon
+    is high enough. It is path-blind, so it will label a bar that reaches
+    +min_gain having first fallen through the stop, certifying a gain the
+    strategy could never have collected.
+
+    This adds one condition: the worst drawdown BEFORE the target is first
+    reached must not breach ``stop_frac``. Everything else is identical, so the
+    labels this produces are a subset of the incumbent's and any difference is
+    attributable to the path constraint alone.
+
+    Measured cost on 129,003 labelled bars (regime/path_label.py): a −4% stop
+    removes 4.2% of labels, −5% removes 2.5%, −6% removes 1.5%. The upside is
+    bounded there. Mirror of ``labels_gbb_path_sell``.
+    """
+    close = _safe_close(df)
+    n = len(close)
+    labels = np.zeros(n, dtype=float)
+
+    guard_metric = np.nan_to_num(
+        np.asarray(df.get("guard_metric", pd.Series(np.zeros(n))), dtype=float), nan=0.0
+    )
+    bb_width = np.nan_to_num(
+        np.asarray(df.get("bb_width", pd.Series(np.zeros(n))), dtype=float), nan=0.0
+    )
+
+    max_future = _rolling_max_forward(close, horizon)
+    future_gain = (max_future - close) / close
+    min_gain_val = min_gain if min_gain is not None else 0.0
+
+    adverse = _first_touch_excursion(close, horizon, min_gain_val, "buy")
+    survives = np.isfinite(adverse) & (adverse > float(stop_frac))
+
+    buy_mask = (
+        (guard_metric < guard_threshold)
+        & (bb_width > bb_width_threshold)
+        & (future_gain >= min_gain_val)
+        & survives
+    )
+    buy_mask = np.where(np.isnan(future_gain), False, buy_mask)
+    labels[buy_mask] = 1.0
+    return pd.Series(labels, index=df.index)
+
+
+def labels_gbb_path_sell(
+    df: pd.DataFrame,
+    guard_threshold: float = 0.2,
+    bb_width_threshold: float = 0.035,
+    min_gain: Optional[float] = None,  # Ignored for sell
+    min_loss: Optional[float] = 0.01,
+    horizon: Optional[int] = DEFAULT_HORIZON,
+    take_profit: float = 0.022,
+) -> pd.Series:
+    """PATH-AWARE gbb sell label — the exact mirror of ``labels_gbb_path``.
+
+    The sell label exits a LONG, so its path risk is NOT a stop: it is the
+    TAKE-PROFIT firing first, closing the position profitably before the
+    predicted fall arrives. Such a label is not wrong, it is MOOT — the sell
+    head could never have acted on it.
+
+    This adds one condition: the best rise BEFORE the fall is first reached must
+    stay below ``take_profit``. Mirror of the buy-side stop condition.
+
+    Measured on 126,408 labelled bars (regime/path_label_sell.py): 11.4% of sell
+    labels are pre-empted at a 2.2% take-profit, 5.7% at 3.2% — so a tighter
+    take-profit pre-empts roughly twice as many.
+    """
+    close = _safe_close(df)
+    n = len(close)
+    labels = np.zeros(n, dtype=float)
+
+    guard_metric = np.nan_to_num(
+        np.asarray(df.get("guard_metric", pd.Series(np.zeros(n))), dtype=float), nan=0.0
+    )
+    bb_width = np.nan_to_num(
+        np.asarray(df.get("bb_width", pd.Series(np.zeros(n))), dtype=float), nan=0.0
+    )
+
+    min_future = _rolling_min_forward(close, horizon)
+    future_loss = (close - min_future) / close
+    min_loss_val = min_loss if min_loss is not None else 0.0
+
+    favourable = _first_touch_excursion(close, horizon, min_loss_val, "sell")
+    not_preempted = np.isfinite(favourable) & (favourable < float(take_profit))
+
+    sell_mask = (
+        (guard_metric > guard_threshold)
+        & (bb_width > bb_width_threshold)
+        & (future_loss >= min_loss_val)
+        & not_preempted
+    )
+    sell_mask = np.where(np.isnan(future_loss), False, sell_mask)
+    labels[sell_mask] = 1.0
+    return pd.Series(labels, index=df.index)
+
+
 def labels_bands(
     df: pd.DataFrame,
     min_gain: float = 0.01,
@@ -2832,6 +2973,7 @@ class LabelMethod(IntEnum):
     breakout_gbb = 24
     breakout_consensus = 25
     breakout_bb = 26
+    gbb_path = 27
 
 
 METHODS = {
@@ -2853,6 +2995,7 @@ METHODS = {
     LabelMethod.indicators2: labels_indicators2,
     LabelMethod.indicators3: labels_indicators3,
     LabelMethod.gbb: labels_gbb,
+    LabelMethod.gbb_path: labels_gbb_path,
     LabelMethod.bands: labels_bands,
     LabelMethod.indicators4: labels_indicators4,
     LabelMethod.breakout: labels_breakout,
@@ -3059,6 +3202,16 @@ def get_train_sell_signals(
         }
         local = {k: v for k, v in local.items() if k in allowed}
         return labels_indicators4_sell(df, **local).astype(float)
+
+    if method_enum == LabelMethod.gbb_path:
+        # Dedicated PATH-AWARE sell variant — mirror of labels_gbb_path
+        local = dict(params or {})
+        allowed = {
+            "guard_threshold", "bb_width_threshold",
+            "min_gain", "min_loss", "horizon", "take_profit",
+        }
+        local = {k: v for k, v in local.items() if k in allowed}
+        return labels_gbb_path_sell(df, **local).astype(float)
 
     if method_enum == LabelMethod.gbb:
         # Use dedicated sell variant for gbb
