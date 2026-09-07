@@ -37,7 +37,10 @@ measured reasons are all on the exit side.
    trigger a profitable exit. An earlier study measured 12.6% of labelled bars
    never reaching the take-profit at all.
 3. **Path-blindness**: 6.6% of perfect entries breach the stop band on the way
-   to their target.
+   to their target. **This figure is provisional and understates the problem** —
+   it was computed with the wrong family's stop band (−4% to −6% instead of −2%
+   to −4%), so the true rate is higher. It MUST be recomputed per family before
+   being used.
 4. **Unexplained**: only **84.1%** of perfect entries meet their own label when
    reconstructed from raw candle data. The obvious cause was tested and
    rejected — measuring from the signal bar gives 81.4% and from two bars back
@@ -381,6 +384,11 @@ mechanism responsible, what transferred to the real model, and what is foreclose
 - Label fidelity. A path-aware label was built, passed the screening gate on both
   families, and produced nulls on both.
 - Model architecture, augmentation, new data sources, and per-pair special-casing.
-- Re-testing the specific exit changes already refuted: the adaptive stop
-  multiplier, and the exit parameters found inert under the current stop
-  machinery.
+- Re-testing the two exit changes already refuted at the CURRENT configuration:
+  the adaptive stop multiplier of 15 on the single-task family, measured at
+  roughly three points of loss, and the exit parameters found inert under the
+  current stop machinery.
+  **This does NOT close the stop band generally.** The earlier study's band arms
+  were all measured against a label that lost 19% at the ceiling, so they compared
+  rearrangements of a losing hand and say nothing about the band at a label that
+  pays. Re-asking that question at the current label is IN scope.
