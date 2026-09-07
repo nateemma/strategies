@@ -146,3 +146,45 @@ Two other metrics pointed the wrong way and neither was allowed a vote:
 Both inherited changes are resolved, neither was a defect, and the family is
 internally consistent. `val_profit_mcc ≈ 0.000` across all four models
 independently confirms T013's static finding that the profit head is untrained.
+
+---
+
+## Addendum (2026-09-07) — re-testing the label with the SELL HEAD LIVE
+
+**A gap in the Phase 4 reasoning, found and closed.** The label verdict above was
+measured with `enable_exit_signal = False`, so the sell head never reached a
+trade. But `MIN_SELL_LOSS_THRESHOLD` moved 0.007 → 0.02 as well, and the exit
+promotion made the sell head load-bearing for the first time on this family.
+"The label makes no difference" had therefore been established in a regime where
+half of the label structurally could not matter.
+
+Re-run: the same four models, exit signal ON at `exit_rvol_threshold` 1.0.
+
+| window | 0.007 (s42 / s7) | 0.02 (s42 / s7) | label effect | seed spread |
+|---|---|---|---|---|
+| **W1** | +11.45 / +11.52 | +11.56 / +11.58 | **+0.086pp** | 0.077pp |
+| W2 | +10.52 / +10.79 | +10.78 / +10.47 | −0.030pp | 0.302pp |
+| W3 | +1.52 / +1.59 | +1.01 / +1.19 | −0.453pp | 0.183pp |
+
+**The mechanism changed; the outcome did not.**
+
+- With the exit signal OFF, the 0.02 and 0.007 arms produced **byte-identical**
+  W1 trades — the label never reached the trades at all.
+- With it ON, the trade hashes **differ in all three windows**. The label now
+  genuinely reaches the trades, through the sell head.
+- And it still buys nothing: **+0.086pp on W1 against a 0.077pp seed spread**.
+
+So the Phase 4 verdict stands, now for a better reason. Previously the label was
+unmeasurable (identical trades, INCONCLUSIVE under the standing protocol). Now it
+is measurable and measured, and it is a null: the label reaches the trades and
+changes essentially nothing.
+
+W3's −0.453pp is the largest movement, and it is negative for the newer label.
+W3 is in-sample and near-flat (R7) so it carries no acceptance weight, but it is
+the second time in two days that W3 has disagreed with W1 on an exit-side change
+(the other being the production take-profit interaction).
+
+**Consequence for FR-007.** The eleven stale 0.007 models remain deliberately
+un-retrained. That decision was made when the label was unmeasurable; it now
+rests on a direct measurement in the regime the family actually runs in. The
+staleness stays BENIGN.
