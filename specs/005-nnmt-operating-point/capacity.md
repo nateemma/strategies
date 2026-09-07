@@ -70,3 +70,57 @@ assumption that the edge came along.
 This is the reverse of the usual concern. The normal capacity question is
 whether a candidate is an illiquidity mirage that vanishes under realistic
 sizing. This one survives realistic sizing — it just stops being worth much.
+
+---
+
+## Addendum — would MORE, SMALLER positions use the book better?
+
+The natural response to a stake cap is to split the size across more concurrent
+positions. Measured on the W1 control, the answer for NNMT is **no**, and the
+reason identifies what the real constraint is.
+
+    config           stake_amount 900   max_open_trades 10   balance 10,000
+
+    SLOTS      peak concurrent = 9 of 10     -> the slot limit NEVER binds
+               time-weighted mean concurrent = 0.090
+               histogram {0:86, 1:113, 2:49, 3:34, 4:24, 5:17, 6:9, 7:9, 8:8, 9:3}
+
+    STAKE CAP  binds on 110/176 = 62.5% of trades
+               achieved vs configured 900:  p10 16%   p25 30%   p50 57%   p75 100%
+
+    DEPLOYED   average capital in the market = 0.50% of the wallet
+               -> the strategy is ~99.5% in CASH
+
+**Raising `max_open_trades` cannot help: it never binds.** Peak concurrency is
+9 of 10 slots, so no signal was ever rejected for want of a slot. There is no
+queue of trades waiting to be admitted.
+
+**Lowering `stake_amount` would strictly hurt.** 37.5% of trades already fill at
+the full 900; capping them lower would shrink those for no gain. The cap only
+binds where candle volume is thin, and a smaller configured stake does not
+create volume.
+
+**Splitting one order across two positions does not evade the cap**, because the
+cap is per-candle-volume. Two 450 entries in the same candle face the same
+constraint as one 900. It only helps across DIFFERENT pairs simultaneously —
+which requires simultaneous signals, and mean concurrency is 0.090.
+
+### What the numbers actually say
+
+At the current book the cap costs about **10%** of potential return (realised
++10.71% against a linear-scaling estimate of +11.87% uncapped). That is the
+honest size of the liquidity drag today — smaller than the 62.5% binding rate
+suggests, because the trades that get capped hardest are not the ones carrying
+the return.
+
+The deeper point is the 0.50% deployment figure. **NNMT is not capital-limited,
+it is SIGNAL-limited.** It cannot use the book it already has: 176 trades a year
+with a 3-hour median hold leaves the wallet idle 99.5% of the time. So the route
+to a larger book is more signals — more pairs, or a gate that admits more trades
+— or a deeper venue (`regime/EXCHANGE_VENUES.md` measures Kraken at 52x
+Binance.US depth on exactly these pairs). It is not smaller stakes, and it is
+not more slots.
+
+This also reframes the capacity curve above: the decay from 100% to 85% at a 4x
+book is a stake-cap effect on a strategy that is already 99.5% in cash. Fixing
+it by sizing is not available; the levers are venue depth and signal count.

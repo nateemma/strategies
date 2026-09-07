@@ -116,6 +116,42 @@ class NNMTStrategy(BaseNNStrategy):
         "min_consecutive_buys": 1,
     }
 
+    # ------------------------------------------------------------------ #
+    # Exit-side overrides — NNMT ONLY.                                     #
+    #                                                                      #
+    # MERGED from the parent: a fresh literal silently drops every         #
+    # inherited key (recorded failure — a strategy ran with its stoploss    #
+    # grace disabled, undetected).                                         #
+    #                                                                      #
+    # Promoted 2026-09-06/07 from the feature-005 exit sweep. These two are #
+    # WORTHLESS APART and must move together:                              #
+    #   * enable_exit_signal alone, at the shipped gate of 2.0, is -0.12pp  #
+    #     on W1 — which is why it was filed as a null for the life of the   #
+    #     family.                                                          #
+    #   * exit_rvol_threshold alone is DEAD CODE: populate_exit_trend       #
+    #     returns early when the signal is off, so sweeping it gives        #
+    #     byte-identical trades at every value.                            #
+    # Together: +0.78pp on W1 (the acceptance window), positive on all      #
+    # three windows, across TWO GENUINE seed replicates agreeing to 0.08pp  #
+    # (verified: all 12 exit arms differ by trade hash between seeds,       #
+    # because exits run off the multi-task sell head).                      #
+    #                                                                      #
+    # 1.0 is an INTERIOR optimum. Matching the entry rvol (0.2) is worth    #
+    # only +0.09pp and fully open is -0.02pp; the gate needs enough volume  #
+    # confirmation to reject noise without silencing every exit.           #
+    #                                                                      #
+    # NOT resolved by the single-arm paired bootstrap (+0.78pp sits inside  #
+    # a 1.43pp W1 band); it rests on cross-seed and cross-window            #
+    # consistency. And it does NOT SCALE: the advantage decays to +0.22pp   #
+    # at a 4x book. Re-measure before any book increase — see              #
+    # regime/NNMT_OPERATING_POINT.md and specs/005-*/capacity.md.          #
+    # ------------------------------------------------------------------ #
+    sell_params = {
+        **BaseNNStrategy.sell_params,
+        "enable_exit_signal": True,
+        "exit_rvol_threshold": 1.0,
+    }
+
     profit_conflict_to_neutral = True
     # EMA span used to smooth the close before measuring forward gain. Short
     # span (≤2) preserves the moves we want the label to capture; longer
