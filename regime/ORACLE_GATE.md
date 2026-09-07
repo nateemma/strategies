@@ -53,6 +53,17 @@ this repository — EV pointed the wrong way by 43pp, precision tripled while
 returns halved, and MCC fell while returns rose. Record them as context if
 useful; they may never be an acceptance input.
 
+**0. AN ORACLE BOUNDS LABEL-FOLLOWING, NOT TRADING.** Added 2026-09-07 after
+NNMT's oracle was measured returning +6.150% against the real model's +10.708%
+on the same gate. The oracle knows every entry reaches +2%, yet it stops out
+MORE (48.4% vs 44.3%) and reaches the take-profit LESS (15.5% vs 22.2%), because
+the label is a binary FLOOR and the model learns a continuous RANKING — the real
+model's trades carry a larger average favourable excursion (4.0% vs 3.7%). So a
+ceiling BELOW the real model's return is evidence about the LABEL, not about the
+model, and "negative headroom" means the model has learned something BETTER than
+its label. See `WHY_ORACLES_UNDERPERFORM.md`. The gate below remains valid: it
+asks only whether a label can pay guards-off, where no ranking is available.
+
 **2. Every oracle figure is a LOOKAHEAD CEILING.** The oracle's entry signal is
 computed from future bars. Its numbers are a diagnostic bound, never an
 achievable return, and **no oracle configuration may be promoted toward live
