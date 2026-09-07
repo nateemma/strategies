@@ -104,3 +104,87 @@ contradiction — the configuration changed and the ceiling rose with it.
 `gbb_path` is simply not the lever: its ceiling at NNNC's gate is no better.
 Anything proposed for NNNC should be screened against that +3.488pp, which is
 what a perfect ENTRY signal is worth there.
+
+---
+
+# ADDENDUM — the open gate, and a correction to section 1
+
+Prompted by the observation that if `gbb_path` does better with the guards off,
+that is evidence about the GUARDS, not just about the label. It is — and section
+1's "do not retrain" was scoped to the closed gate and stated too broadly. The
+open-gate arms were then built and trained (`NNNC_Open_Path_s1/s7`, seeds 1 and
+7, 6-7 minutes each).
+
+## What the guards cost, and whether it is reachable
+
+| W1 | trades | return |
+|---|---|---|
+| CLOSED gate, real model (production) | 95 | **+10.446%** |
+| CLOSED gate, ceiling | 85 | +13.934% → headroom **+3.488pp** |
+| OPEN gate, real model (3 seeds: 42/1/7) | ~320-440 | **+8.72 / +5.72 / +2.97%** |
+| OPEN gate, ceiling | 1333 | +26.544% → headroom **+17.824pp** |
+
+**The guards discard roughly half the achievable CEILING and five times the
+headroom — and none of it is reachable.** At the open gate the real model
+returns +4.3% on two paired seeds (+5.8% averaged over three), against
+production's +10.4%. Opening the gate exposes 17.8pp of theoretical room and
+LOSES 5-6pp of realised return.
+
+**So the guards are not wrong. They are doing the selection the model cannot
+do.** That is the same conclusion feature 005 reached for NNMT by a different
+route, and it is now established on both families: the guard chain substitutes
+for a model that cannot discriminate, and removing it is only an improvement for
+a perfect model.
+
+## The path label at the open gate: also a NULL
+
+At the adopted threshold 0.80, identical for every configuration:
+
+| window | gbb s1/s7 | path s1/s7 | path effect | seed spread | paired 2sd |
+|---|---|---|---|---|---|
+| **W1** | +5.72 / +2.97 | +4.17 / +6.01 | **+0.747pp** | 2.747 | 8.98 |
+| W2 | +8.54 / +11.15 | +15.45 / +9.71 | +2.738pp | 5.733 | 9.95 |
+| W3 | +7.25 / +11.88 | +7.91 / +11.67 | +0.226pp | 4.623 | 4.56 |
+
+**+0.747pp on W1, inside a 2.747pp seed spread and an 8.98pp band.** The label's
++3.112pp ceiling advantage at the open gate does not convert, exactly as it did
+not on NNMT. Section 1's verdict was reached for the wrong reason and is correct
+for the right one: `gbb_path` is not a lever on NNNC at either gate.
+
+## A METHOD ERROR worth recording
+
+The first pass at this comparison chose each configuration's threshold on the
+in-sample windows (max mean of W2/W3), to keep W1 clean. That rule picked **0.75
+for three of four configurations**, and reported a path effect of **+4.961pp**.
+
+Both were artefacts. At 0.75 **W1 is negative for all four configurations**
+(−9.13, −4.61, −9.15, −7.99) while W3 reaches +23.7%. The in-sample windows
+prefer a threshold at which the acceptance window loses money, and the two path
+seeds landed on DIFFERENT thresholds (0.80 and 0.75), so the "+4.961pp" compared
+configurations that were not alike.
+
+    threshold   W1 (acceptance)      W2/W3 (in-sample)
+      0.70      -11.7 to -16.8%      strongly negative W2, +19 to +22% W3
+      0.75       -4.6 to  -9.2%      positive W2, +20 to +26% W3
+      0.80       +3.0 to  +6.0%      +8 to +15% W2, +7 to +12% W3
+      0.85       zero trades on 7 of 12 arms — INCONCLUSIVE
+
+**In-sample threshold selection is not safe on this family.** The per-window
+optima genuinely disagree — previously recorded as 0.82/0.80/0.75 — and here the
+disagreement is severe enough to flip the sign of the acceptance window. Use the
+adopted value, or select on a rule that includes W1's behaviour explicitly and
+accept the resulting selection bias, but do not assume in-sample transfers.
+
+The 0.85 zero-trade arms were correctly recorded as INCONCLUSIVE rather than as
+zero-return results (constitution experiment gate 6).
+
+## Net
+
+- `gbb_path`: rejected on NNNC at BOTH gates. Null at the open gate (+0.747pp,
+  inside noise), slightly negative at the closed one.
+- The open gate: **not a candidate on W1** — it loses 5-6pp to production across
+  three seeds, despite five times the headroom.
+- The headroom at the open gate (+17.824pp) is real and remains **unreachable by
+  any label change tested**. It is reachable only by a model that can actually
+  discriminate, which is the thing this repository has repeatedly failed to
+  build. That is the honest statement of where NNNC stands.
