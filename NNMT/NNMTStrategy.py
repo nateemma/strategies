@@ -145,6 +145,15 @@ class NNMTStrategy(BaseNNStrategy):
     # consistency. And it does NOT SCALE: the advantage decays to +0.22pp   #
     # at a 4x book. Re-measure before any book increase — see              #
     # regime/NNMT_OPERATING_POINT.md and specs/005-*/capacity.md.          #
+    #                                                                      #
+    # CAVEAT, measured on production (take-profit 0.022) rather than the    #
+    # control (0.032): W1 +1.28pp and W2 +0.60pp, but W3 flips to -0.75pp.  #
+    # W3 is in-sample, near-flat and single-seed, and acceptance is W1 only,#
+    # so the promotion stands — but there is a real, UNSWEPT interaction    #
+    # with cexit_take_profit. A tighter take-profit pre-empts more sell     #
+    # labels (11.4% at 2.2% vs 5.7% at 3.2%, regime/SELL_LABEL_PATH.md), so #
+    # the exit signal has less to add. Do NOT joint-fit the two on this     #
+    # sample (Constitution VIII); see specs/005-*/exit_side.md.             #
     # ------------------------------------------------------------------ #
     sell_params = {
         **BaseNNStrategy.sell_params,

@@ -122,3 +122,53 @@ Evidence against, stated plainly:
 **Before promotion** FR-029 requires the capacity curve, since this changes the
 exit path and therefore the holding profile. That is T026, which was recorded as
 not-applicable when no change was recommended and now becomes applicable again.
+
+---
+
+## Production verification (2026-09-07) — and a W3 sign-flip
+
+After promoting the override, `NNMT_MLX` (production: take-profit **0.022**)
+was run with and without it. Trade hashes differ in all three windows, so the
+change is live end-to-end.
+
+| window | before | after | Δ |
+|---|---|---|---|
+| **W1** (acceptance) | 180tr +10.450% | 180tr +11.731% | **+1.281pp** |
+| W2 (in-sample) | 353tr +8.833% | 353tr +9.429% | +0.596pp |
+| W3 (in-sample, near-flat) | 128tr +2.071% | 129tr +1.323% | **−0.748pp** |
+
+**The "positive on all three windows" claim holds for the CONTROL config
+(take-profit 0.032), where it was measured on two seeds. It does NOT hold on
+the PRODUCTION config**, where W3 flips negative. That must not be glossed:
+
+| config | take-profit | W1 | W2 | W3 |
+|---|---|---|---|---|
+| control (2 seeds) | 0.032 | +0.78 | +2.13 | **+0.32** |
+| production (1 seed) | 0.022 | +1.28 | +0.60 | **−0.75** |
+
+### The likely mechanism, and it is consistent with the sell-label study
+
+The two configs differ in take-profit, and `regime/SELL_LABEL_PATH.md` measured
+exactly the relevant quantity: the share of sell labels PRE-EMPTED by the
+take-profit rises as the take-profit tightens — **11.4% at 2.2% against 5.7% at
+3.2%**, twice as many. At the tighter production take-profit, more trades would
+have closed profitably on their own, so the exit signal's extra exits are more
+likely to pre-empt a move rather than save one from a stop.
+
+That is a coherent **interaction between `enable_exit_signal` and
+`cexit_take_profit`**, and it was predicted by the label study before this
+backtest was run.
+
+### Why the promotion still stands, and what is now open
+
+- **Acceptance is W1 only**, and W1 is positive on both configs — +0.78pp on the
+  control across two seeds, +1.28pp on production. W2 is positive on both.
+- **W3 is in-sample, near-flat (128 trades, ~+2%), and single-seed here.** A
+  −0.75pp move on that base is weak evidence, and the feature has flagged W3 as
+  unreliable on this family throughout (research R7).
+
+**OPEN, and recorded rather than acted on:** the exit signal × take-profit
+interaction has never been swept jointly. Constitution VIII forbids tuning two
+parameter spaces at once on a thin sample, so this is NOT the moment to joint-fit
+them. It is the strongest remaining exit-side question, and the sell-label
+pre-emption table gives a concrete prior for how it should behave.
