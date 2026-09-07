@@ -1,0 +1,33 @@
+{
+  "tag": "NNMT_Ctl_s7_tp022",
+  "window": "W3",
+  "timerange": "20230101-20231231",
+  "strategy": "NNMT_Ctl_s7",
+  "prediction_threshold": null,
+  "guards": "on",
+  "overrides": {},
+  "sell_overrides": {
+    "cexit_take_profit": 0.022
+  },
+  "trailing_overrides": {},
+  "exit_config_hash": "7dd5a8d28641328f",
+  "volume_filter_active": true,
+  "returncode": 0,
+  "result_file": "backtest-result-2026-09-06_19-57-45.zip",
+  "n_trades": 128,
+  "n_pairs": 11,
+  "trades_hash": "99fa131b2405d7e9",
+  "profit_pct": 47.921,
+  "win_rate": 67.2,
+  "duration_h_median": 4.0,
+  "duration_h_p25": 2.75,
+  "duration_h_p75": 8.56,
+  "trades_per_day": 0.3678,
+  "wallet_profit_pct": 2.072,
+  "max_drawdown_pct": 4.911,
+  "profit_factor": 1.212,
+  "calmar": 2.214,
+  "sortino": 0.341,
+  "sqn": 0.682,
+  "expectancy_ratio": 0.0695
+}
