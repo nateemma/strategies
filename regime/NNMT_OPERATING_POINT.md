@@ -101,13 +101,19 @@ without new measurement** if it relies on any of the following:
    holds for a second, structurally different model class. NNNC's nine-variant
    null was on `MLXClassifierNary`; NNMT is `MLXClassifierMultiTask` with six
    heads. The gate dominates on both.
-4. **"GAN augmentation will help."** No. Augmentation improves what the model
+4. **"A path-aware / stop-aware label will help."** No — built and tested
+   2026-09-07. `LabelMethod.gbb_path` drops buy labels the stop would pre-empt
+   and sell labels the take-profit would pre-empt. It PASSED the oracle gate
+   (+23.991% guards-off against the incumbent's +17.791%) and improved the
+   guards-on W1 ceiling by +1.971pp — and realised **−0.091pp** on W1 across two
+   seeds. See `regime/PATH_LABEL_GATE.md`.
+5. **"GAN augmentation will help."** No. Augmentation improves what the model
    learns; the model's opinion does not reach the trades. This closes the
    augmentation follow-on for NNMT specifically, at this gate.
-5. **"Tune the confidence threshold."** No. Thresholds 0.4–0.6 are
+6. **"Tune the confidence threshold."** No. Thresholds 0.4–0.6 are
    indistinguishable and largely byte-identical on W1; 0.7–0.8 only removes
    trades.
-6. **COCONUT stays closed.** It was re-openable only if NNMT's headroom proved
+7. **COCONUT stays closed.** It was re-openable only if NNMT's headroom proved
    materially LARGER than NNNC's 0.68pp. It is smaller — negative. Condition
    explicitly not met.
 

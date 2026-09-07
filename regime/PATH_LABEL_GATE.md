@@ -78,3 +78,84 @@ was measured when the model's entry opinion did not reach the trades at all
 (byte-identical trade hashes). The sell head is now live, so a label change has
 a live channel to act through — which is what made the 0.02 re-test move from
 INCONCLUSIVE to a measured null.
+
+---
+
+## THE RETRAIN RESULT (2026-09-07) — NULL on the acceptance window
+
+Two models trained (`MLX_SEED` 42/7, 49 and 53 min), compared against
+`NNMT_Lbl02_s42/s7` — identical in every respect except `TRAINING_TYPE`.
+Evaluated in both exit regimes. 12 arms, all `returncode` 0.
+
+### Exit signal ON (the promoted production regime)
+
+| window | gbb s42/s7 | path s42/s7 | **path effect** | seed spread | paired 2sd |
+|---|---|---|---|---|---|
+| **W1** (acceptance) | +11.56 / +11.58 | +11.45 / +11.51 | **−0.091pp** | 0.067 | 0.16 |
+| W2 (in-sample) | +10.78 / +10.47 | +10.92 / +10.60 | +0.138pp | 0.319 | 0.22 |
+| W3 (in-sample, near-flat) | +1.01 / +1.19 | +1.45 / +1.73 | +0.486pp | 0.280 | 1.51 |
+
+### Exit signal OFF (the control regime)
+
+| window | path effect | note |
+|---|---|---|
+| **W1** | **+0.000pp** | **BYTE-IDENTICAL trades, both seeds** |
+| W2 | +0.048pp | identical on seed 42 |
+| W3 | +0.527pp | differs |
+
+**Verdict: the path constraint is a NULL on W1.**
+
+With the exit signal OFF the label does not reach the trades at all — W1 trade
+hashes are byte-identical for both seeds, which is INCONCLUSIVE under the
+standing protocol, not refuted. With the signal ON it does reach the trades in
+every window, and the W1 effect is **−0.091pp against a 0.16pp band**: within
+noise, and pointing the wrong way.
+
+## The scoreboard this completes
+
+**A pre-registered prediction, and it held.** Before spending the retrains, the
+recorded prior was "another null", on the grounds that this family has never
+converted a ceiling gain into realised return:
+
+| change | ceiling movement (W1 guards-off) | realised W1 |
+|---|---|---|
+| label 0.007 → 0.02 | **+45.9pp** (gate FAIL → PASS) | −0.157pp |
+| label 0.007 → 0.02, sell head live | same | +0.086pp |
+| **`gbb` → `gbb_path`** | **+6.2pp** (PASS → PASS) | **−0.091pp** |
+
+Three ceiling movements totalling ~52pp have produced −0.16, +0.09 and −0.09pp
+of realised return. And `val_trading_mcc` pointed at the LOSING label both
+times it was consulted (0.76 vs 0.61 for the old threshold; 0.61 vs 0.59 for
+the incumbent labeler), so it was right about learnability and useless about
+return, exactly as FR-019 assumes.
+
+## Was the gate wrong to license this?
+
+No, and the distinction matters. `ORACLE_GATE.md` states its own scope: a PASS
+says a label **could** pay, not that a model **will** learn it. Its job is to
+refuse retrains on labels that cannot pay under any model — which it did, on
+`gbb` 0.007 (−28.1%, FAIL). It correctly declined to refuse this one.
+
+The gate is a NECESSARY-not-sufficient screen and behaved as designed. The cost
+of the licence was 100 minutes of training, against a screen that has already
+saved far more by killing 0.007 before anyone trained on it.
+
+## Where this leaves the path label
+
+`LabelMethod.gbb_path` **stays in the codebase, unused by any production
+strategy.** It is additive, `gbb` (17) is untouched, and the labeler is
+correct — verified as a strict subset, monotonic in both barriers, and matching
+the standalone excursion measurements. It is a better TARGET on the evidence of
+the ceiling. It is not a better STRATEGY.
+
+Do not re-open it on this family without new information. The one thing that
+would justify revisiting: a configuration in which the model's opinion actually
+drives entries — which this feature has established NNMT does not have, and
+cannot reach by opening its guards (−34.15pp).
+
+**Residual open item**: W3 is the only window where the path label helps
+(+0.49pp exit-on, +0.53pp exit-off, consistent across both seeds and both
+regimes). W3 is in-sample, near-flat, and inside its own 1.5pp band, so it
+carries no weight — but it is now the THIRD consecutive exit-side change where
+W3 has disagreed with W1. That pattern is worth a look on its own terms rather
+than being filed as noise a third time.
