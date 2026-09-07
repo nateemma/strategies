@@ -161,7 +161,7 @@ NNMT's own evidence.
 ## Phase 6: User Story 7 — Conclusion (Priority: P3)
 
 - [X] T025 [US7] Write the conclusion into `regime/NNMT_OPERATING_POINT.md`: NNMT's headroom, the windows it was measured on, the chosen configuration, and what the result forecloses for future model and augmentation work on this family (FR-028, SC-010)
-- [ ] T026 **RE-OPENED: a configuration change IS now recommended** (exit signal ON + exit_rvol 1.0) — [US7] If a configuration change is recommended, measure its capacity curve by raising `QUOTE_VOLUME_HEADROOM_MULT` on a subclass — the comparable NNNC configuration retained only 57% of return at a 4x book against production's 74% (FR-029)
+- [X] T026 **DONE (capacity.md)** — no cliff (81% retention at 4x vs NNNC's 57%) but the ADVANTAGE decays: +0.74pp at 1x -> +0.22pp at 4x — [US7] If a configuration change is recommended, measure its capacity curve by raising `QUOTE_VOLUME_HEADROOM_MULT` on a subclass — the comparable NNNC configuration retained only 57% of return at a 4x book against production's 74% (FR-029)
 
 ---
 
