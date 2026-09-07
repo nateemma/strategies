@@ -148,10 +148,10 @@ re-scoped, not executed.
 
 - [~] T019 **RE-SCOPED by the T009 gate, not executed** — [US4] FIRST choose the gate: pick the guard configuration for the sweep from Phase 3's attribution by a STATED rule (e.g. neutralise every guard Phase 3 found inert, and any whose removal did not cost W1 return), and record it — the operating point is the threshold AND the guard settings together, so leaving the gate implicit leaves half the operating point unchosen (FR-031). THEN sweep `prediction_threshold` across all three windows at that gate, reporting per-window optima EVEN WHERE THEY DISAGREE — NNNC's disagreed (0.82/0.80/0.75) and its value is explicitly not transferable to NNMT, which uses 0.5 today (FR-012, FR-014)
 - [~] T020 **RE-SCOPED by the T009 gate, not executed** — [US4] Choose a threshold by a STATED decision rule over the per-window results rather than by the best single window, supported by both seeds with the spread reported, and record it as a fixed choice never to be tuned per era. Report the chosen gate alongside it as the other half of the operating point (FR-013, FR-020, FR-031, SC-005, SC-007)
-- [~] T021 **RE-SCOPED by the T009 gate, not executed** — [US5] Sweep `exit_rvol_threshold` including a fully-open setting via `--set-sell`, ON THE REAL MODEL — never the oracle, which only enters bars that already reach the target and so cannot bound how the exit harvests (R9). It sits at 2.0 — NNNC's ENTRY value — while NNMT's own entry rvol is 0.25, an eight-fold asymmetry that has existed for the life of the family and only became testable on 2026-09-06 (R5, FR-015)
-- [~] T022 **RE-SCOPED by the T009 gate, not executed** — [US5] Record the exit-gate result, naming it INERT if it changes nothing rather than calling it confirmed-correct (FR-015)
-- [~] T023 **RE-SCOPED by the T009 gate, not executed** — [US6] Evaluate `enable_exit_signal` ON THE REAL MODEL (R9) at BOTH the chosen exit-gate value and with that gate fully open, so a null cannot be an artefact of the gate — on NNNC a naive test showed almost nothing purely because the exit path had its own unopened guards (FR-016)
-- [~] T024 **RE-SCOPED by the T009 gate, not executed** — [US6] State explicitly whether the prior NNMT claim of +10.4pp for the exit signal at an open gate reproduces (FR-017, SC-006)
+- [X] T021 **EXECUTED 2026-09-06, after the exit_rvol fix** (see exit_side.md) — [US5] Sweep `exit_rvol_threshold` including a fully-open setting via `--set-sell`, ON THE REAL MODEL — never the oracle, which only enters bars that already reach the target and so cannot bound how the exit harvests (R9). It sits at 2.0 — NNNC's ENTRY value — while NNMT's own entry rvol is 0.25, an eight-fold asymmetry that has existed for the life of the family and only became testable on 2026-09-06 (R5, FR-015)
+- [X] T022 **EXECUTED 2026-09-06, after the exit_rvol fix** (see exit_side.md) — [US5] Record the exit-gate result, naming it INERT if it changes nothing rather than calling it confirmed-correct (FR-015)
+- [X] T023 **EXECUTED 2026-09-06, after the exit_rvol fix** (see exit_side.md) — [US6] Evaluate `enable_exit_signal` ON THE REAL MODEL (R9) at BOTH the chosen exit-gate value and with that gate fully open, so a null cannot be an artefact of the gate — on NNNC a naive test showed almost nothing purely because the exit path had its own unopened guards (FR-016)
+- [X] T024 **EXECUTED 2026-09-06, after the exit_rvol fix** (see exit_side.md) — [US6] State explicitly whether the prior NNMT claim of +10.4pp for the exit signal at an open gate reproduces (FR-017, SC-006)
 
 **Checkpoint**: the operating point and both exit-side questions are settled on
 NNMT's own evidence.
@@ -161,7 +161,7 @@ NNMT's own evidence.
 ## Phase 6: User Story 7 — Conclusion (Priority: P3)
 
 - [X] T025 [US7] Write the conclusion into `regime/NNMT_OPERATING_POINT.md`: NNMT's headroom, the windows it was measured on, the chosen configuration, and what the result forecloses for future model and augmentation work on this family (FR-028, SC-010)
-- [~] T026 **NOT APPLICABLE — no configuration change is recommended** — [US7] If a configuration change is recommended, measure its capacity curve by raising `QUOTE_VOLUME_HEADROOM_MULT` on a subclass — the comparable NNNC configuration retained only 57% of return at a 4x book against production's 74% (FR-029)
+- [ ] T026 **RE-OPENED: a configuration change IS now recommended** (exit signal ON + exit_rvol 1.0) — [US7] If a configuration change is recommended, measure its capacity curve by raising `QUOTE_VOLUME_HEADROOM_MULT` on a subclass — the comparable NNNC configuration retained only 57% of return at a 4x book against production's 74% (FR-029)
 
 ---
 
@@ -176,6 +176,14 @@ NNMT's own evidence.
 ---
 
 ## Execution outcome
+
+**UPDATE 2026-09-06 (later the same day): T021-T024 were subsequently EXECUTED.**
+Fixing `exit_rvol_threshold`'s resolution made the parameter expressible, and a
+2-D sweep (gate value x exit-signal flag) found the feature's ONE positive
+result: `enable_exit_signal=True` with `exit_rvol_threshold=1.0` is +0.78pp on
+W1 across two genuine seed replicates. See `exit_side.md`. T019/T020 (the ENTRY
+operating point) remain correctly re-scoped -- the entry model is still inert.
+T026 is re-opened because a configuration change is now recommended.
 
 **Phase 5 (T019-T024) was RE-SCOPED, not skipped or forgotten.** The T009 hard
 gate found no model headroom (a perfect entry signal is worth −4.56pp on W1 and

@@ -4,9 +4,17 @@
 `GUARD_ABLATION.md` and `CANDIDATE_STATUS.md`, which established the same shape
 on NNNC.
 
-**One-line answer: the NNMT model does not select its trades, a perfect model
-would not do better, and no model-side work on this family can pay at its
-current gate.**
+**One-line answer: NNMT's ENTRY model does not select its trades and a perfect
+one would do worse — but its multi-task SELL head is live, and the single
+positive result on this family is on the exit side.**
+
+> **UPDATE, later on 2026-09-06.** The entry-side conclusion below stands
+> unchanged. After fixing `exit_rvol_threshold`'s resolution, a 2-D exit sweep
+> found `enable_exit_signal=True` + `exit_rvol_threshold=1.0` worth **+0.78pp on
+> W1**, positive on all three windows across two GENUINE seed replicates
+> (spread 0.08pp). See `specs/005-nnmt-operating-point/exit_side.md`. This does
+> not weaken any entry-side foreclosure — the oracle measured `predict_buy` and
+> says nothing about the exit path (R9).
 
 ## The measurement
 
@@ -103,8 +111,16 @@ without new measurement** if it relies on any of the following:
    materially LARGER than NNNC's 0.68pp. It is smaller — negative. Condition
    explicitly not met.
 
-**What is NOT foreclosed**, and is the only honest route forward: changing the
-GATE, not the model. Every result in this repository that moved P&L was a gate
+**What is NOT foreclosed — and one of the two has now paid.**
+
+**(a) The EXIT side.** Every foreclosure above concerns the ENTRY model. The
+sell head is a different object and it is demonstrably live: two seeds produce
+identical W1 entries but DIFFERENT exits in every window. `exit_signal=True` with
+`exit_rvol_threshold=1.0` is +0.78pp on W1. Note the two halves are worthless
+apart — the signal alone at the shipped gate is −0.12pp, and the gate alone is
+dead code — which is why both were previously filed as nulls.
+
+**(b) The entry GATE, not the entry model.** Every result in this repository that moved P&L was a gate
 or mechanism change. On NNMT that means the guard chain — but note guards-off at
 the current label costs −34.15pp, and the label-0.02 ceiling of +17.791% at an
 open gate is a *ceiling*, not a forecast. Any such attempt must first demonstrate
