@@ -103,7 +103,12 @@ class NNMTStrategy(BaseNNStrategy):
         "entry_close_norm_threshold": -0.1,
         "entry_enable_guards": True,
         "entry_guard_threshold": 0.3,
-        "entry_rvol_threshold": 0.25,
+        # 0.2, NOT 0.25: entry_rvol_threshold rounds to the parameter's
+        # resolution, so the 2026-09-02 sweep that recorded an optimum of
+        # "0.25" in fact evaluated 0.2 -- the arm records (regime/arms/
+        # mtrv0p25_*.json) name 0.25 but the backtests ran 0.2. This states
+        # the value that was actually measured and that actually executes.
+        "entry_rvol_threshold": 0.2,
         "prediction_threshold": 0.5,
         # multi-task only
         "profit_prediction_threshold": 0.3,
@@ -597,6 +602,18 @@ class NNMTStrategy(BaseNNStrategy):
     class_weights = {}
 
     def get_training_labels(self, dataframe: DataFrame):
+
+        # Point the debug frame at the CURRENT dataframe before computing any
+        # labels. get_trading_classes() writes its %train_buy / %train_sell
+        # columns into self.dbg_curr_df, and it runs BELOW -- so without this
+        # the attribute still holds whatever frame was processed last.
+        #
+        # At training time that was harmless: one call, one frame. Called per
+        # PAIR at inference (as an oracle arm does) it raised
+        #   ValueError: Length of values (16269) does not match length (35009)
+        # as soon as two pairs differed in length. It only ever survived where
+        # every pair happened to have identical history.
+        self.dbg_curr_df = dataframe
 
         profit_targets = self.get_profit_target(dataframe)
         regime_targets = self.get_market_target(dataframe)

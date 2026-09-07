@@ -46,20 +46,10 @@ from NNMT_MLX_Base import NNMT_MLX_Base
 class NNMT_Oracle(NNMT_MLX_Base):
 
     def get_entry_conditions(self, dataframe: DataFrame):
-        # NNMTStrategy.get_trading_classes writes its %train_buy / %train_sell
-        # debug columns into self.dbg_curr_df, but get_training_labels only
-        # ASSIGNS that attribute after get_trading_classes returns. At training
-        # time this is harmless (one call, one frame). Here we call it per pair
-        # at inference, so dbg_curr_df still holds the PREVIOUS pair's frame and
-        # the assignment raises whenever two pairs differ in length:
-        #     ValueError: Length of values (16269) does not match length (35009)
-        # W1 and W2 survive only because every pair has full history there; W3
-        # (2023) has ragged pair histories and fails on the second pair.
-        # Pointing the attribute at the current frame first is an arm-local
-        # workaround. The latent defect is in NNMTStrategy and is NOT fixed
-        # here: this feature must not modify shared family code.
-        self.dbg_curr_df = dataframe
-
+        # NOTE: this used to need `self.dbg_curr_df = dataframe` here as a
+        # workaround. The root cause was fixed in NNMTStrategy.get_training_labels
+        # on 2026-09-06 (the debug frame is now assigned before the writers that
+        # use it), so the workaround is gone and W3 exercises the real fix.
         labels = self.get_training_labels(dataframe)
         # NNMT returns a per-task dict; the entry signal is the trading head.
         targets = np.asarray(labels["trading"] if isinstance(labels, dict) else labels)

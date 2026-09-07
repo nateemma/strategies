@@ -465,8 +465,13 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
         -1.000, 0.100, default=-1.0, decimals=3, space="buy", load=True, optimize=opt_base_params,
     )
 
+    # decimals=2: at 1dp this parameter silently rounded its own configured
+    # values, so NNMT's 0.25 executed as 0.2 and a sweep "of 0.25" never tested
+    # it. Every value configured anywhere in the repo is 1dp, so widening the
+    # resolution changes NO current behaviour -- it only stops the next sweep
+    # in the 0.2-0.3 range from being quietly quantised away.
     entry_rvol_threshold = DecimalParameter(
-        -1.0, 5.0, default=-1.0, decimals=1, space="buy", load=True, optimize=opt_base_params
+        -1.0, 5.0, default=-1.0, decimals=2, space="buy", load=True, optimize=opt_base_params
     )
 
     entry_atr_pct = DecimalParameter(
@@ -490,8 +495,10 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
     # Exit-side relative-volume gate. Lower bound is -1.0 so the guard can be
     # NEUTRALISED (rvol is non-negative), matching how the entry-side guards are
     # opened. Default 2.0 = the value that was previously hardcoded.
+    # decimals=2 for the same reason as entry_rvol_threshold. Every configured
+    # value is 2.0, so this changes no current behaviour.
     exit_rvol_threshold = DecimalParameter(
-        -1.0, 5.0, default=2.0, decimals=1, space="sell", load=True, optimize=opt_base_params
+        -1.0, 5.0, default=2.0, decimals=2, space="sell", load=True, optimize=opt_base_params
     )
 
     cexit_enable_profit_checks = CategoricalParameter(
