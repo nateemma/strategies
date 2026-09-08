@@ -51,3 +51,41 @@ actually 0.022/21.
 and note that `ft_load_hyper_params()` runs inside `ft_bot_start()` — a bare
 `StrategyResolver.load_strategy()` returns raw `DecimalParameter` DEFAULTS, not
 the live merged values.
+
+---
+
+## rvol-only: REJECTED (2026-09-08)
+
+**Question**: rvol is the only guard about TRADEABILITY (you cannot fill into a
+thin candle) rather than signal quality. If the model were good enough, the other
+five — adx, atr_pct, bb_width, guard_metric, close_norm — should be unnecessary.
+
+This had never been tested. Every prior arm was leave-one-OUT (neutralise one,
+keep five); this is leave-one-IN, and it is not derivable from the leave-one-out
+results because the chain is **4.20x super-additive**.
+
+**NNNC, model and threshold held fixed:**
+
+| configuration | W1 | W2 | W3 |
+|---|---|---|---|
+| full guard chain (production) | 95tr **+10.45%** | 184tr +11.05% | 57tr +3.60% |
+| rvol ONLY (2.0) | 1440tr **−12.76%** | 2127tr −8.36% | 1141tr +13.59% |
+| all six off | 1737tr −15.99% | 2601tr −8.59% | 1450tr +19.65% |
+
+**rvol alone recovers +3.233pp of the +26.437pp the full chain is worth — 12%.**
+The other five guards do 88% of the work. Trade count explodes 95 → 1440, and the
+model at its 0.69 threshold cannot carry that volume.
+
+NNMT is worse, as expected: rvol sits at 0.2 there and barely filters, so
+rvol-only ≈ guards-off — **2791tr −24.458%** against a +10.708% control.
+
+**Verdict: the quality guards are NOT redundant with the model.** The hypothesis
+was reasonable and is refuted. Note W3 disagrees on both arms (+13.59%, +19.65%),
+which is its usual behaviour — net/gross 5.6% and no acceptance weight
+(`W3_INSTABILITY.md`).
+
+**Why this does not contradict the leave-one-out.** Removing rvol ALONE from the
+full chain is nearly free on NNMT (176 → 174 trades), yet keeping ONLY rvol
+recovers 12% on NNNC. Both are consequences of super-additivity: the chain works
+as a conjunction, so no single guard's solo contribution predicts its marginal
+one, in either direction.
