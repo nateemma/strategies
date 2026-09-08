@@ -121,11 +121,11 @@ horizon, with its return compared to the current exit and to the real model.
 > ANSWER** (FR-005). Report it and re-scope; do not execute the attribution as
 > written.
 
-- [ ] T008 [US2] Compute the reward:risk arithmetic per family from the MEASURED configuration — NNMT label 2.0% / harvest 2.2% / stop −2%..−4% (mult 2.5) → 1:1 to 1:2; NNNC label 2.0% / harvest 2.4% / stop −4%..−6% (mult 4.0) → 1:2 to 1:3. State whether a perfectly-labelled trade is a positive-expectancy bet at all, before costs and after (R3)
-- [ ] T009 [US2] Recompute the stop-breach rate PER FAMILY with the correct band. The previously reported 6.6% used NNNC's band on NNMT data and UNDERSTATES the problem; NNMT's floor is −0.04 and cap −0.02 (R3, spec Context item 3)
-- [ ] T010 [US2] Create `NNMT/NNMT_Ora_Patient.py` + `.json` — the JOINT BOUND. Subclass the oracle with `use_atr_adaptive_stoploss = False`, import `HoldWindowMixin` from `NNNC/_hold_window.py` to suppress the hardcoded 12-hour unclog (do NOT rebuild it, do NOT edit `BaseStrategy`), and override `get_model_path` to alias the production weights. **This arm is a BOUND and is NEVER promotable under any result** (R4, R5, FR-019, FR-021)
-- [ ] T011 [US2] Run the patient arm on all three windows with the remaining exits lifted clear — `--roi` disabled, `--set-sell cexit_take_profit=` above any reachable level, `--set-sell cexit_max_days=` beyond the label horizon — and confirm `returncode` 0 on each (FR-004, FR-024)
-- [ ] T012 [US2] **GATE** Write `specs/006-oracle-exit-diagnosis/bound.md`: the opportunity cost as `patient − current` on W1 with paired-by-trade resolution, alongside the real model, with every window carrying its net/gross ratio. If the cost does not exceed its own resolution, state that the exit is not the constraint and RE-SCOPE Phases 4-6 (FR-004, FR-005, SC-002, SC-006)
+- [X] T008 [US2] Compute the reward:risk arithmetic per family from the MEASURED configuration — NNMT label 2.0% / harvest 2.2% / stop −2%..−4% (mult 2.5) → 1:1 to 1:2; NNNC label 2.0% / harvest 2.4% / stop −4%..−6% (mult 4.0) → 1:2 to 1:3. State whether a perfectly-labelled trade is a positive-expectancy bet at all, before costs and after (R3)
+- [X] T009 [US2] Recompute the stop-breach rate PER FAMILY with the correct band. The previously reported 6.6% used NNNC's band on NNMT data and UNDERSTATES the problem; NNMT's floor is −0.04 and cap −0.02 (R3, spec Context item 3)
+- [X] T010 [US2] Create `NNMT/NNMT_Ora_Patient.py` + `.json` — the JOINT BOUND. Subclass the oracle with `use_atr_adaptive_stoploss = False`, import `HoldWindowMixin` from `NNNC/_hold_window.py` to suppress the hardcoded 12-hour unclog (do NOT rebuild it, do NOT edit `BaseStrategy`), and override `get_model_path` to alias the production weights. **This arm is a BOUND and is NEVER promotable under any result** (R4, R5, FR-019, FR-021)
+- [X] T011 [US2] Run the patient arm on all three windows with the remaining exits lifted clear — `--roi` disabled, `--set-sell cexit_take_profit=` above any reachable level, `--set-sell cexit_max_days=` beyond the label horizon — and confirm `returncode` 0 on each (FR-004, FR-024)
+- [X] T012 [US2] **GATE** Write `specs/006-oracle-exit-diagnosis/bound.md`: the opportunity cost as `patient − current` on W1 with paired-by-trade resolution, alongside the real model, with every window carrying its net/gross ratio. If the cost does not exceed its own resolution, state that the exit is not the constraint and RE-SCOPE Phases 4-6 (FR-004, FR-005, SC-002, SC-006)
 
 **Checkpoint**: the feature either has a gap worth attributing, or has its answer.
 
@@ -138,13 +138,13 @@ horizon, with its return compared to the current exit and to the real model.
 **Independent Test**: each mechanism's individual effect is reported alongside the
 joint effect, with inert mechanisms named.
 
-- [ ] T013 [US3] Re-enable the ATR stop ALONE against the patient arm (strictly one mechanism, Constitution VIII) and report its contribution and the exit-reason mix it moves, via `regime/trade_forensics.py --section exits` (FR-006)
-- [ ] T014 [P] [US3] Re-enable the ROI table alone (`--roi`), reporting contribution and exit-reason mix (FR-006)
-- [ ] T015 [P] [US3] Re-enable the take-profit alone (`--set-sell cexit_take_profit`), reporting contribution and exit-reason mix (FR-006)
-- [ ] T016 [P] [US3] Re-enable the 12-hour unclog alone (drop `HoldWindowMixin`), reporting contribution and exit-reason mix (FR-006)
-- [ ] T017 [P] [US3] Re-enable the maximum hold alone (`--set-sell cexit_max_days`), reporting contribution and exit-reason mix (FR-006)
-- [ ] T018 [US3] RE-RUN feature 004's existing stop-band classes at the CURRENT label — `NNNC_Ora_StopTight` / `StopMid` / `StopWide`, which scored −13.58 / −17.68 / −18.68% at label 0.007 against a −18.89% baseline. Their bands were compared against a label that lost 19%, so they say nothing about the band at a label that pays (R1)
-- [ ] T019 [US3] Record every contribution in `specs/006-oracle-exit-diagnosis/mechanisms.md`, naming any mechanism that changes NEITHER trades NOR return as INERT rather than correct, and stating whether the individual effects SUM to the joint bound — the entry-side equivalent was 4.20× super-additive, so addition must not be assumed (FR-006, FR-007, FR-008, SC-003)
+- [~] T013 **RE-SCOPED by the T012 gate, not executed** — [US3] Re-enable the ATR stop ALONE against the patient arm (strictly one mechanism, Constitution VIII) and report its contribution and the exit-reason mix it moves, via `regime/trade_forensics.py --section exits` (FR-006)
+- [~] T014 **RE-SCOPED by the T012 gate, not executed** — [P] [US3] Re-enable the ROI table alone (`--roi`), reporting contribution and exit-reason mix (FR-006)
+- [~] T015 **RE-SCOPED by the T012 gate, not executed** — [P] [US3] Re-enable the take-profit alone (`--set-sell cexit_take_profit`), reporting contribution and exit-reason mix (FR-006)
+- [~] T016 **RE-SCOPED by the T012 gate, not executed** — [P] [US3] Re-enable the 12-hour unclog alone (drop `HoldWindowMixin`), reporting contribution and exit-reason mix (FR-006)
+- [~] T017 **RE-SCOPED by the T012 gate, not executed** — [P] [US3] Re-enable the maximum hold alone (`--set-sell cexit_max_days`), reporting contribution and exit-reason mix (FR-006)
+- [~] T018 **RE-SCOPED by the T012 gate, not executed** — [US3] RE-RUN feature 004's existing stop-band classes at the CURRENT label — `NNNC_Ora_StopTight` / `StopMid` / `StopWide`, which scored −13.58 / −17.68 / −18.68% at label 0.007 against a −18.89% baseline. Their bands were compared against a label that lost 19%, so they say nothing about the band at a label that pays (R1)
+- [~] T019 **RE-SCOPED by the T012 gate, not executed** — [US3] Record every contribution in `specs/006-oracle-exit-diagnosis/mechanisms.md`, naming any mechanism that changes NEITHER trades NOR return as INERT rather than correct, and stating whether the individual effects SUM to the joint bound — the entry-side equivalent was 4.20× super-additive, so addition must not be assumed (FR-006, FR-007, FR-008, SC-003)
 
 **Checkpoint**: the gap is attributed to a mechanism, or shown to be interactive.
 
@@ -158,8 +158,8 @@ error.
 **Independent Test**: the harvest point is placed below, at, and above the target
 and the share of trades harvesting the promised move is reported for each.
 
-- [ ] T020 [US4] Run the perfect-entry arm with the harvest point BELOW, AT, and ABOVE the label's 2.0% target via `--set-sell cexit_take_profit`, all three windows (FR-009)
-- [ ] T021 [US4] Record in `specs/006-oracle-exit-diagnosis/ordering.md` whether any gain comes from harvesting MORE moves or from taking SMALLER ones, using the exit-reason mix rather than return alone. Feature 004 found raising the take-profit monotonically WORSE (−28.06 / −25.76 / −23.34% at 0.004 / 0.006 / 0.010) and R3 predicts exactly that, because the label only guarantees +2% (FR-009, FR-010, SC-004)
+- [~] T020 **RE-SCOPED by the T012 gate, not executed** — [US4] Run the perfect-entry arm with the harvest point BELOW, AT, and ABOVE the label's 2.0% target via `--set-sell cexit_take_profit`, all three windows (FR-009)
+- [~] T021 **RE-SCOPED by the T012 gate, not executed** — [US4] Record in `specs/006-oracle-exit-diagnosis/ordering.md` whether any gain comes from harvesting MORE moves or from taking SMALLER ones, using the exit-reason mix rather than return alone. Feature 004 found raising the take-profit monotonically WORSE (−28.06 / −25.76 / −23.34% at 0.004 / 0.006 / 0.010) and R3 predicts exactly that, because the label only guarantees +2% (FR-009, FR-010, SC-004)
 
 **Checkpoint**: the ordering question is settled on the instrument.
 
@@ -178,11 +178,11 @@ seeds, and its verdict rests on that measurement alone.
 > instrument-only results and record them as such** — that is a finding, not an
 > anomaly.
 
-- [ ] T022 [US5] Re-measure every candidate from Phases 4-5 on the REAL model, all three windows, using the seed pairs that ALREADY EXIST so no training is spent: NNMT `NNMT_Ctl_s42`/`_s7`, and NNNC's open gate `NNNC_MLX_Open_s1`/`_s7`. Report the spread (FR-011, FR-018)
-- [ ] T022a [US5] **NNNC's CLOSED-gate production has only ONE model** (`saved_data/NNNC_MLX/`), so it cannot be seed-paired from existing weights. Measure it single-seed and record that a PROMOTION on that configuration is not licensed until a second seed exists — which would cost the feature's only retrain (~7 min at NNNC's size). Do NOT train speculatively: spend it only if a candidate is otherwise promotable there (FR-018, R9)
-- [ ] T023 [US5] Apply the paired-by-trade resolution to each real-model comparison and record which candidates are RESOLVED versus within noise (FR-016)
-- [ ] T024 [US5] Record verdicts in `specs/006-oracle-exit-diagnosis/confirmation.md`: any candidate that helps the instrument but not the real model is INSTRUMENT-ONLY and is NOT promoted (FR-012, SC-005)
-- [ ] T025 [US5] For any candidate that survives, measure its capacity curve by raising `QUOTE_VOLUME_HEADROOM_MULT` on a subclass BEFORE promotion — MULT 20 ≈ a 2× book, 40 ≈ 4× (FR-013)
+- [~] T022 **RE-SCOPED by the T012 gate, not executed** — [US5] Re-measure every candidate from Phases 4-5 on the REAL model, all three windows, using the seed pairs that ALREADY EXIST so no training is spent: NNMT `NNMT_Ctl_s42`/`_s7`, and NNNC's open gate `NNNC_MLX_Open_s1`/`_s7`. Report the spread (FR-011, FR-018)
+- [~] T022a **RE-SCOPED by the T012 gate, not executed** — [US5] **NNNC's CLOSED-gate production has only ONE model** (`saved_data/NNNC_MLX/`), so it cannot be seed-paired from existing weights. Measure it single-seed and record that a PROMOTION on that configuration is not licensed until a second seed exists — which would cost the feature's only retrain (~7 min at NNNC's size). Do NOT train speculatively: spend it only if a candidate is otherwise promotable there (FR-018, R9)
+- [~] T023 **RE-SCOPED by the T012 gate, not executed** — [US5] Apply the paired-by-trade resolution to each real-model comparison and record which candidates are RESOLVED versus within noise (FR-016)
+- [~] T024 **RE-SCOPED by the T012 gate, not executed** — [US5] Record verdicts in `specs/006-oracle-exit-diagnosis/confirmation.md`: any candidate that helps the instrument but not the real model is INSTRUMENT-ONLY and is NOT promoted (FR-012, SC-005)
+- [~] T025 **RE-SCOPED by the T012 gate, not executed** — [US5] For any candidate that survives, measure its capacity curve by raising `QUOTE_VOLUME_HEADROOM_MULT` on a subclass BEFORE promotion — MULT 20 ≈ a 2× book, 40 ≈ 4× (FR-013)
 
 **Checkpoint**: promotion candidates are decided by the real model, or none exist.
 
