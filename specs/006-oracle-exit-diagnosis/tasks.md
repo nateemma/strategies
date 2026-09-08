@@ -5,6 +5,14 @@ description: "Task list for 006 Oracle-Instrumented Exit Diagnosis"
 
 # Tasks: Oracle-Instrumented Exit Diagnosis
 
+> **⚠️ RE-SCOPED 2026-09-07 — see `rescope.md`.** T007 found the founding paradox
+> was an INSTRUMENT DEFECT: the oracle entered two bars early on dilated training
+> labels. Corrected, the perfect-entry arm BEATS the real model (+11.809% vs
+> +10.708%), so "the exit closes trades before their edge materialises" is no
+> longer motivated by a paradox. US1 is DONE and was the feature's real
+> deliverable. US2 still runs (reduced); US3/US4 are contingent and now unlikely;
+> US5 and US6 are unchanged. Budget ~4 arms, zero retrains.
+
 **Input**: Design documents from `specs/006-oracle-exit-diagnosis/`
 
 All commands run from the repository root `/Users/philprice95/projects/freqtrade`.
