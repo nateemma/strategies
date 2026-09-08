@@ -23,6 +23,40 @@ positive result on this family is on the exit side.**
 > not weaken any entry-side foreclosure — the oracle measured `predict_buy` and
 > says nothing about the exit path (R9).
 
+> ## ⚠️ FORECLOSURE RE-DERIVED 2026-09-07 — READ THIS BEFORE THE LIST BELOW
+>
+> The oracle that produced this document's headroom figure was entering **two
+> bars early** on dilated training labels (`regime/ORACLE_CORRECTION_2026-09-07.md`).
+> Re-derived on the corrected instrument:
+>
+> | measurement | as written | corrected | status |
+> |---|---|---|---|
+> | headroom at the 0.007 CONTROL | −4.558pp | **−4.164pp** | **survives** |
+> | headroom at the label NNMT RUNS (0.02) | *never measured* | **+1.101pp** | **POSITIVE** |
+> | headroom under `gbb_path` | *never measured* | **+3.540pp** | **POSITIVE** |
+> | model contribution (real vs no-model) | +0.019pp | **+0.019pp** | unaffected |
+> | NNNC headroom at its own gate | +3.488pp | **+3.468pp** | unaffected |
+>
+> **What still holds.** Point 1's *evidence* changes but its *conclusion* does
+> not: the model's own contribution is **+0.019pp across 7 differing trades**,
+> measured against a no-model arm that never touched an oracle. NNMT's entry
+> model still does essentially nothing. Points 3-7 never depended on an oracle
+> and stand as written.
+>
+> **What does NOT hold.** The justification "a perfect model is worth −4.56pp,
+> so there is nothing above the current model to capture" is **false at the
+> configuration NNMT actually runs**. There IS room — +1.101pp at the current
+> label and +3.540pp under the path label. The correct statement is not "no room
+> exists" but **"room exists and no trained model has captured any of it"**:
+> `gbb_path` was retrained at two seeds and realised **−0.091pp** of its +3.540pp
+> ceiling gain.
+>
+> **Practical effect on a future proposal.** A proposal may no longer be rejected
+> on the grounds that headroom is negative. It must be rejected — or accepted —
+> on the stronger and still-unbroken evidence: that four label and architecture
+> changes have moved ceilings by 6-46pp while moving realised W1 return by
+> −0.16 to +0.09pp, and that the model's entry opinion moves 7 trades.
+
 ## The measurement
 
 Control = NNMT's pre-inheritance configuration (label 0.007, take-profit 0.032),
