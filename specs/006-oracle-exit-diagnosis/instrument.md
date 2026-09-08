@@ -115,3 +115,42 @@ trimmed dataframe and a full-history feather read.
 **Every figure this feature produces carries a ±9.6%-of-entries uncertainty on
 the composition of the oracle's entry set.** No conclusion in this feature may
 rest on a margin narrower than that unless T004/T005 close it further.
+
+---
+
+## T004 / T005 — the two remaining hypotheses, both REFUTED
+
+The named cause (augmentation dilation) is fixed and compliance rose 84.1% →
+90.4%. The remaining 9.6% — **13 of 136 entries** — was tested against the two
+other candidates R2 listed:
+
+**T004, window-edge truncation: REFUTED.** Bars within one label horizon of the
+window end cannot see a full forward window in the strategy's trimmed dataframe.
+But **0 of the 13** non-compliant entries fall within 12 hours of the window end,
+and their median distance from it (6964h) is no different from the compliant
+entries' (6782h). This explains **0%** of the residual.
+
+**T005, deferred limit fills: REFUTED.** `price_side: "other"` with
+`order_book_top: 1` could in principle open a trade on a later candle than the
+signal. Measured: `|open_date − nearest candle|` has **max 0.000 bars**. Entries
+land exactly on candle boundaries; there is no fill offset.
+
+T006 already eliminated the subset operations by construction —
+`_filter_trading_by_tasks` and `filter_peaks_by_future_performance` can only
+REMOVE labels, so neither can add a non-compliant entry.
+
+## Final disposition of FR-002
+
+**A named cause was found and corrected (first branch), AND a residual is carried
+as a bound (second branch).**
+
+**The bound: 9.6% of corrected oracle entries (13 of 136 on NNMT W1) do not
+satisfy the raw label at the entry bar, and the reason is unknown.** All three
+enumerated candidates are eliminated. Every conclusion in this feature carries
+that uncertainty on the composition of the oracle's entry set.
+
+It changes no conclusion here: the exit bound is −3.361pp against an 8.37pp
+resolution, and the corrected headroom figures (+1.101 to +4.644pp) all have
+margins far larger than 13 trades could move. But it is recorded rather than
+closed, and any future oracle result resting on a narrow margin must account for
+it.

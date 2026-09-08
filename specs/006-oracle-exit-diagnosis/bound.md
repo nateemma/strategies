@@ -6,6 +6,10 @@ re-scoped, not executed.**
 
 ## The measurement
 
+**Every figure in this document is a LOOKAHEAD CEILING. The perfect-entry arms
+know their own future and none of them is promotable — least of all the patient
+arm, which disables the stop entirely and could never run live.**
+
 Perfect entries (corrected instrument, label 0.02) under the current exit versus
 a patient exit held to the label's own 12-hour horizon: ATR stop off, ROI off,
 take-profit lifted clear, `unclog_12h` deferred via the existing HoldWindowMixin.

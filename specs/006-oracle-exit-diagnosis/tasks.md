@@ -99,8 +99,8 @@ attributed to a named cause with a correction or expressed as a bound.
 > closes.**
 
 - [X] T003 [US1] Recompute compliance against the STRATEGY's dataframe rather than the raw feather — run `add_indicators` on the same pairs and timerange the backtest used, including freqtrade's prepended startup candles, and compare the labelled bars with the arm's actual entries. This is R2's most likely cause (FR-001)
-- [ ] T004 [US1] Test the window-edge hypothesis: bars within `HORIZON` (48) of the window end cannot see a full forward window, so the strategy's label differs from a feather read that has data beyond the window. Report what share of the shortfall this accounts for (FR-001)
-- [ ] T005 [US1] Test fill timing: `entry_pricing` uses `price_side: "other"` with `order_book_top: 1`, so an unfilled limit could open the trade later than the signal bar. Compare each trade's `open_date` with the nearest preceding labelled bar (FR-001)
+- [X] T004 [US1] Test the window-edge hypothesis: bars within `HORIZON` (48) of the window end cannot see a full forward window, so the strategy's label differs from a feather read that has data beyond the window. Report what share of the shortfall this accounts for (FR-001)
+- [X] T005 [US1] Test fill timing: `entry_pricing` uses `price_side: "other"` with `order_book_top: 1`, so an unfilled limit could open the trade later than the signal bar. Compare each trade's `open_date` with the nearest preceding labelled bar (FR-001)
 - [X] T006 [P] [US1] ELIMINATE the subset operations by measurement, not argument alone: `_filter_trading_by_tasks` (NNMTStrategy) and `filter_peaks_by_future_performance` (BaseNNStrategy) can only REMOVE labels, so they cannot add a non-compliant entry. Confirm the label set is a subset at each stage and record the elimination (FR-001)
 - [X] T007 [US1] **GATE** Write `specs/006-oracle-exit-diagnosis/instrument.md`: the compliance rate, the cause if found with the corrected figures restated, or a quantified residual bound to be carried into EVERY number this feature produces. State explicitly which of the two outcomes applies (FR-002, FR-003, SC-001)
 
@@ -190,19 +190,19 @@ seeds, and its verdict rests on that measurement alone.
 
 ## Phase 7: User Story 6 — Conclusion (Priority: P3)
 
-- [ ] T026 [US6] Write `regime/EXIT_DIAGNOSIS.md`: the exit's opportunity cost, the responsible mechanism, what transferred to the real model, the windows measured on, and what the result FORECLOSES for both families — written so a future exit proposal can be accepted or rejected without new measurement (FR-026, SC-009)
+- [X] T026 [US6] Write `regime/EXIT_DIAGNOSIS.md`: the exit's opportunity cost, the responsible mechanism, what transferred to the real model, the windows measured on, and what the result FORECLOSES for both families — written so a future exit proposal can be accepted or rejected without new measurement (FR-026, SC-009)
 
 ---
 
 ## Phase 8: Polish & Cross-Cutting
 
-- [ ] T027 Verify `git status --short Framework/` is clean — no shared mechanism modified and the live dry run that imports `BaseStrategy` is unaffected (FR-023, SC-008)
-- [ ] T028 [P] Audit every document this feature produced: each perfect-entry figure labelled a LOOKAHEAD CEILING, no perfect-entry configuration promoted, and no verdict citing a classifier metric as an acceptance input — SC-007 has both halves and only the first is self-evident (FR-017, FR-019, SC-007)
-- [ ] T029 [P] Verify every window reported anywhere in the feature carries its net/gross ratio, not only its trade count (FR-015, SC-006)
-- [ ] T030 [P] Commit the arm records under `regime/arms/` — with the findings documents they are the durable evidence, and each carries the `returncode` that makes it admissible (FR-024)
-- [ ] T031 Verify the standing conventions were actually honoured, not merely stated: no arm was reported as a RESULT where its trades were identical to its control or where it produced zero trades (FR-020); arms were run sequentially throughout (FR-022); and the entry guards were never opened on either family (FR-025). These three bind every task and are otherwise verified nowhere
-- [ ] T032 Run the `quickstart.md` scenarios and record the verification of SC-001..SC-009
-- [ ] T033 [P] Record anything that generalises beyond these two families in memory and the relevant `regime/` documents (no FR — knowledge capture beyond the feature's own requirements)
+- [X] T027 Verify `git status --short Framework/` is clean — no shared mechanism modified and the live dry run that imports `BaseStrategy` is unaffected (FR-023, SC-008)
+- [X] T028 [P] Audit every document this feature produced: each perfect-entry figure labelled a LOOKAHEAD CEILING, no perfect-entry configuration promoted, and no verdict citing a classifier metric as an acceptance input — SC-007 has both halves and only the first is self-evident (FR-017, FR-019, SC-007)
+- [X] T029 [P] Verify every window reported anywhere in the feature carries its net/gross ratio, not only its trade count (FR-015, SC-006)
+- [X] T030 [P] Commit the arm records under `regime/arms/` — with the findings documents they are the durable evidence, and each carries the `returncode` that makes it admissible (FR-024)
+- [X] T031 Verify the standing conventions were actually honoured, not merely stated: no arm was reported as a RESULT where its trades were identical to its control or where it produced zero trades (FR-020); arms were run sequentially throughout (FR-022); and the entry guards were never opened on either family (FR-025). These three bind every task and are otherwise verified nowhere
+- [X] T032 Run the `quickstart.md` scenarios and record the verification of SC-001..SC-009
+- [X] T033 [P] Record anything that generalises beyond these two families in memory and the relevant `regime/` documents (no FR — knowledge capture beyond the feature's own requirements)
 
 ---
 
