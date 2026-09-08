@@ -9,7 +9,7 @@ its default and has never been varied in this repo.
 For `labels_gbb` those hidden arguments are the label's entire trigger:
 
     guard_threshold      default  0.3    (was -0.2 before 2026-09-08)
-    bb_width_threshold   default  0.06   (was  0.035 before 2026-09-08)
+    bb_width_threshold   default  0.035
 
 and relaxing them moves the oracle ceiling by up to +71pp (regime/LABEL_TRIGGER_GATE.md).
 

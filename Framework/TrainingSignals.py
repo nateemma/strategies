@@ -1007,17 +1007,28 @@ def labels_indicators4_sell(
 
 def labels_gbb(
     df: pd.DataFrame,
-    # MATCHED TO THE LIVE ENTRY GATE 2026-09-08. The gate filters the same
-    # two quantities in the same direction (BaseStrategy.populate_entry_trend:
-    # guard_metric < entry_guard_threshold 0.3, bb_width > entry_bb_width_threshold
-    # 0.06), so the old -0.2/0.035 made entry_guard_threshold INERT (no labelled
-    # bar could fail a looser threshold) while labelling bars bb_width rejected.
-    # Alignment change: measured UNCHANGED on W1 (+0.24pp / +0.01pp, under the
-    # 1.0pp power threshold) -- adopted for consistency, not for measured gain.
-    # See memory project-label-gate-alignment-null. Sell labelers deliberately
-    # NOT changed: they mirror exit_guard_threshold and were never measured.
+    # guard_threshold MATCHED TO THE LIVE ENTRY GATE 2026-09-08 (-0.2 -> 0.3).
+    # The gate applies the same quantity in the same direction
+    # (BaseStrategy.populate_entry_trend: guard_metric < entry_guard_threshold,
+    # 0.3), so the old -0.2 made entry_guard_threshold INERT -- no labelled bar
+    # could fail a threshold 0.5 looser than the one that produced it.
+    #
+    # bb_width_threshold DELIBERATELY LEFT AT 0.035, not raised to the gate's
+    # 0.06. Matching it too HALVES the label (129,196 -> 65,107 bars) and buys
+    # nothing: both matched settings admit the identical 1,053 gate-passing
+    # bars, so raising it only discards bars the gate rejects anyway. On SOL
+    # over 2026-08-09..09-08 it deleted the entire Aug-23 label region (all 30
+    # bars have bb_width 0.048..0.057, under 0.06) and left ONE region where
+    # 0.3/0.035 gives seven. Label frequency would also fall to 3.59%, below
+    # the ~5.5% collapse line this repo has hit before.
+    #
+    # W1 was UNCHANGED for both settings (+0.24pp / +0.01pp, under the 1.0pp
+    # power threshold on 93 control trades): adopted for alignment and label
+    # coverage, NOT for measured gain. See memory
+    # project-label-gate-alignment-null. Sell labelers deliberately NOT
+    # changed: they mirror exit_guard_threshold and were never measured.
     guard_threshold: float = 0.3,
-    bb_width_threshold: float = 0.06,
+    bb_width_threshold: float = 0.035,
     min_gain: Optional[float] = 0.01,
     min_loss: Optional[float] = None,  # Ignored for buy
     horizon: Optional[int] = DEFAULT_HORIZON,
@@ -1125,17 +1136,28 @@ def _first_touch_excursion(
 
 def labels_gbb_path(
     df: pd.DataFrame,
-    # MATCHED TO THE LIVE ENTRY GATE 2026-09-08. The gate filters the same
-    # two quantities in the same direction (BaseStrategy.populate_entry_trend:
-    # guard_metric < entry_guard_threshold 0.3, bb_width > entry_bb_width_threshold
-    # 0.06), so the old -0.2/0.035 made entry_guard_threshold INERT (no labelled
-    # bar could fail a looser threshold) while labelling bars bb_width rejected.
-    # Alignment change: measured UNCHANGED on W1 (+0.24pp / +0.01pp, under the
-    # 1.0pp power threshold) -- adopted for consistency, not for measured gain.
-    # See memory project-label-gate-alignment-null. Sell labelers deliberately
-    # NOT changed: they mirror exit_guard_threshold and were never measured.
+    # guard_threshold MATCHED TO THE LIVE ENTRY GATE 2026-09-08 (-0.2 -> 0.3).
+    # The gate applies the same quantity in the same direction
+    # (BaseStrategy.populate_entry_trend: guard_metric < entry_guard_threshold,
+    # 0.3), so the old -0.2 made entry_guard_threshold INERT -- no labelled bar
+    # could fail a threshold 0.5 looser than the one that produced it.
+    #
+    # bb_width_threshold DELIBERATELY LEFT AT 0.035, not raised to the gate's
+    # 0.06. Matching it too HALVES the label (129,196 -> 65,107 bars) and buys
+    # nothing: both matched settings admit the identical 1,053 gate-passing
+    # bars, so raising it only discards bars the gate rejects anyway. On SOL
+    # over 2026-08-09..09-08 it deleted the entire Aug-23 label region (all 30
+    # bars have bb_width 0.048..0.057, under 0.06) and left ONE region where
+    # 0.3/0.035 gives seven. Label frequency would also fall to 3.59%, below
+    # the ~5.5% collapse line this repo has hit before.
+    #
+    # W1 was UNCHANGED for both settings (+0.24pp / +0.01pp, under the 1.0pp
+    # power threshold on 93 control trades): adopted for alignment and label
+    # coverage, NOT for measured gain. See memory
+    # project-label-gate-alignment-null. Sell labelers deliberately NOT
+    # changed: they mirror exit_guard_threshold and were never measured.
     guard_threshold: float = 0.3,
-    bb_width_threshold: float = 0.06,
+    bb_width_threshold: float = 0.035,
     min_gain: Optional[float] = 0.01,
     min_loss: Optional[float] = None,  # Ignored for buy
     horizon: Optional[int] = DEFAULT_HORIZON,
