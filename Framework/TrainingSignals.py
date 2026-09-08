@@ -1007,8 +1007,17 @@ def labels_indicators4_sell(
 
 def labels_gbb(
     df: pd.DataFrame,
-    guard_threshold: float = -0.2,
-    bb_width_threshold: float = 0.035,
+    # MATCHED TO THE LIVE ENTRY GATE 2026-09-08. The gate filters the same
+    # two quantities in the same direction (BaseStrategy.populate_entry_trend:
+    # guard_metric < entry_guard_threshold 0.3, bb_width > entry_bb_width_threshold
+    # 0.06), so the old -0.2/0.035 made entry_guard_threshold INERT (no labelled
+    # bar could fail a looser threshold) while labelling bars bb_width rejected.
+    # Alignment change: measured UNCHANGED on W1 (+0.24pp / +0.01pp, under the
+    # 1.0pp power threshold) -- adopted for consistency, not for measured gain.
+    # See memory project-label-gate-alignment-null. Sell labelers deliberately
+    # NOT changed: they mirror exit_guard_threshold and were never measured.
+    guard_threshold: float = 0.3,
+    bb_width_threshold: float = 0.06,
     min_gain: Optional[float] = 0.01,
     min_loss: Optional[float] = None,  # Ignored for buy
     horizon: Optional[int] = DEFAULT_HORIZON,
@@ -1116,8 +1125,17 @@ def _first_touch_excursion(
 
 def labels_gbb_path(
     df: pd.DataFrame,
-    guard_threshold: float = -0.2,
-    bb_width_threshold: float = 0.035,
+    # MATCHED TO THE LIVE ENTRY GATE 2026-09-08. The gate filters the same
+    # two quantities in the same direction (BaseStrategy.populate_entry_trend:
+    # guard_metric < entry_guard_threshold 0.3, bb_width > entry_bb_width_threshold
+    # 0.06), so the old -0.2/0.035 made entry_guard_threshold INERT (no labelled
+    # bar could fail a looser threshold) while labelling bars bb_width rejected.
+    # Alignment change: measured UNCHANGED on W1 (+0.24pp / +0.01pp, under the
+    # 1.0pp power threshold) -- adopted for consistency, not for measured gain.
+    # See memory project-label-gate-alignment-null. Sell labelers deliberately
+    # NOT changed: they mirror exit_guard_threshold and were never measured.
+    guard_threshold: float = 0.3,
+    bb_width_threshold: float = 0.06,
     min_gain: Optional[float] = 0.01,
     min_loss: Optional[float] = None,  # Ignored for buy
     horizon: Optional[int] = DEFAULT_HORIZON,
