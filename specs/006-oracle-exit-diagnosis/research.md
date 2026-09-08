@@ -201,7 +201,16 @@ This is an exit feature. Every lever in R4 is a class attribute or a runtime
 parameter, and none of them changes the LABEL, so no model needs retraining.
 Existing weights are reused throughout via `get_model_path` aliasing.
 
-The only circumstance requiring a retrain would be a decision to change the label
+**One exception, found during analysis and recorded rather than glossed**: NNNC's
+CLOSED-gate production (`saved_data/NNNC_MLX/`) has a single model on disk and no
+seed replicate, so FR-018's two-seed rule cannot be satisfied there from existing
+weights. Every other arm can: NNMT has `Ctl_s42/s7`, `Lbl02_s42/s7` and
+`Path_s42/s7`; NNNC's OPEN gate has `MLX_Open_s1/s7`. The feature therefore
+spends zero retrains as planned, and a promotion on NNNC's closed gate
+specifically would cost one (~7 minutes at NNNC's model size). It is spent only
+if a candidate is otherwise promotable there — never speculatively (T022a).
+
+The other circumstance requiring a retrain would be a decision to change the label
 in response to R3's geometry finding — which is **out of scope** (label fidelity
 is a non-goal, and `gbb_path` was already built, gated and found null on both
 families). If the geometry points at the label, that is a FINDING to record and

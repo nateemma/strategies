@@ -47,8 +47,10 @@ NNNC's open gate carries +17.8pp of headroom and still loses 5–6pp of realised
 return.
 
 **Two seeds via `MLX_SEED` wherever a MODEL is involved (FR-018)** — Phase 6
-only. Everything else is backtests on existing weights; **this feature spends
-ZERO retrains (R9)**.
+only, and using the seed pairs that ALREADY EXIST, so **the feature as planned
+spends ZERO retrains (R9)**. The ONE exception is recorded at T022a: NNNC's
+closed-gate production has a single model and cannot be seed-paired from disk, so
+a promotion there — and only a promotion there — would cost one retrain.
 
 **Hazards**: `get_model_path` keys off `self.__class__.__name__`, so a pure
 re-parameterisation with no model of its own TRAINS INSIDE THE BACKTEST, fitting
@@ -168,7 +170,8 @@ seeds, and its verdict rests on that measurement alone.
 > instrument-only results and record them as such** — that is a finding, not an
 > anomaly.
 
-- [ ] T022 [US5] Re-measure every candidate from Phases 4-5 on the REAL model, both families, all three windows, at two seeds via `MLX_SEED`, with the spread reported (FR-011, FR-018)
+- [ ] T022 [US5] Re-measure every candidate from Phases 4-5 on the REAL model, all three windows, using the seed pairs that ALREADY EXIST so no training is spent: NNMT `NNMT_Ctl_s42`/`_s7`, and NNNC's open gate `NNNC_MLX_Open_s1`/`_s7`. Report the spread (FR-011, FR-018)
+- [ ] T022a [US5] **NNNC's CLOSED-gate production has only ONE model** (`saved_data/NNNC_MLX/`), so it cannot be seed-paired from existing weights. Measure it single-seed and record that a PROMOTION on that configuration is not licensed until a second seed exists — which would cost the feature's only retrain (~7 min at NNNC's size). Do NOT train speculatively: spend it only if a candidate is otherwise promotable there (FR-018, R9)
 - [ ] T023 [US5] Apply the paired-by-trade resolution to each real-model comparison and record which candidates are RESOLVED versus within noise (FR-016)
 - [ ] T024 [US5] Record verdicts in `specs/006-oracle-exit-diagnosis/confirmation.md`: any candidate that helps the instrument but not the real model is INSTRUMENT-ONLY and is NOT promoted (FR-012, SC-005)
 - [ ] T025 [US5] For any candidate that survives, measure its capacity curve by raising `QUOTE_VOLUME_HEADROOM_MULT` on a subclass BEFORE promotion — MULT 20 ≈ a 2× book, 40 ≈ 4× (FR-013)
@@ -250,7 +253,8 @@ because it costs almost nothing and may answer the question outright: NNMT risks
 
 **A negative bound is the ANSWER.** T012 and FR-005 both make this explicit so a
 null is reported as a finding rather than treated as a failed feature. On such a
-result Phases 4-5 are re-scoped, and Phases 6-8 still run.
+result Phases 4-6 are re-scoped — INCLUDING Phase 6, which has nothing to
+confirm once Phases 4-5 produce no candidates — and Phases 7-8 still run.
 
 **Expect instrument-only results.** R8 makes the patient exit the intervention
 most likely to flatter itself here. Phase 6 exists to catch exactly that.
