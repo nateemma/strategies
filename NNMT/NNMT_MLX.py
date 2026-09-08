@@ -60,7 +60,14 @@ class NNMT_MLX(MLXMultiTaskClassifierMixin, NNMTStrategy):
     #     calibration. Typical: {"trading": 0.1, "profit": 0.1}.
     # Default None disables. Useful values 0.01-0.5 per task.
     # _CLASSIFIER_ENTROPY_PENALTY = None
-    _CLASSIFIER_ENTROPY_PENALTY = {"trading": 0.5, "profit": 0.5, "regime": 0.5}
+    # 2026-09-08: was {"trading": 0.5, "profit": 0.5, "regime": 0.5}. `profit`
+    # and `regime` both carry task weight 0.0 in _CLASSIFIER_TASK_WEIGHTS above,
+    # so their cross-entropy contributed nothing while their entropy penalty
+    # contributed fully -- those heads were being trained on confidence alone,
+    # with no signal about correctness, through a SHARED backbone. The framework
+    # now drops entropy for zero-weight heads defensively; this states the
+    # intent at the strategy level so the two dicts cannot silently disagree.
+    _CLASSIFIER_ENTROPY_PENALTY = {"trading": 0.5}
 
     # _apply_classifier_overrides is inherited from BaseNNMTStrategy (it reads
     # the _CLASSIFIER_* attrs above, including _CLASSIFIER_ENTROPY_PENALTY).

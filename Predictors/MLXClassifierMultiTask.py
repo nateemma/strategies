@@ -433,6 +433,40 @@ class MLXClassifierMultiTask(MLXBaseClassifier):
             }
         else:
             entropy_per_task = {t: float(ew_raw) for t in TASK_NAMES}
+
+        # GUARD (2026-09-08): never apply entropy pressure to a head that
+        # carries NO loss weight.
+        #
+        # The two sums in forward_loss are independent: the CE term is scaled by
+        # task_weight and the entropy term by lambda. A task with weight 0.0 and
+        # lambda > 0 therefore receives its ENTIRE gradient from the entropy
+        # term -- it is trained to be CONFIDENT with no supervision about what to
+        # be confident about, and because the trunk is shared that pressure
+        # propagates into the representations the weighted heads depend on.
+        #
+        # Nothing opposes the collapse either: a supervised head stops sharpening
+        # when sharpening conflicts with being correct, but an unsupervised one
+        # has no such brake and goes to near-one-hot on whatever the trunk finds
+        # easiest.
+        #
+        # Magnitude on NNMT, which is how this was found: entropy was applied to
+        # `regime` and `profit`, both at weight 0.0, at lambda 0.5. Two 3-class
+        # heads x 0.5 x ln(3) = 1.0986 against supervised CE weights summing to
+        # 1.000 -- an unsupervised term the size of the entire supervised loss.
+        _dropped = {
+            t: lam for t, lam in entropy_per_task.items()
+            if lam > 0.0 and float(active_task_weights.get(t, 0.0)) <= 0.0
+        }
+        if _dropped:
+            print(
+                f"    entropy penalty DROPPED for zero-weight task(s) {_dropped} "
+                f"-- an unweighted head would be trained on confidence alone"
+            )
+            entropy_per_task = {
+                t: (0.0 if t in _dropped else lam)
+                for t, lam in entropy_per_task.items()
+            }
+
         entropy_active = any(v > 0.0 for v in entropy_per_task.values())
         if entropy_active:
             # Show only non-zero values for log compactness.
