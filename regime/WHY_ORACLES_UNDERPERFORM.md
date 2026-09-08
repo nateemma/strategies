@@ -1,107 +1,81 @@
-# Why a PERFECT model underperforms a real one
+# Why an oracle can underperform a real model
 
-Measured 2026-09-07 on NNMT W1. This corrects how every oracle figure in this
-repository should be read, including feature 005's headline result.
+**⚠️ SUBSTANTIALLY REWRITTEN 2026-09-07. The original version of this document
+was WRONG, and it was wrong because the instrument it measured was broken.**
+The retraction is at the bottom; it is kept rather than deleted because the
+reasoning failure is instructive.
 
-## The paradox
+## The corrected picture
 
-The oracle's entry signal IS the training label. It knows, with certainty, that
-every bar it enters reaches **+2% within 48 bars**. The real model only guesses.
-Yet:
+An oracle whose entry signal is the training label SHOULD beat a real model, and
+once the instrument is fixed, it does:
 
-| W1 | real model | ORACLE (perfect entry) |
-|---|---|---|
-| trades | 176 | 155 |
-| return | **+10.708%** | **+6.150%** |
-| % stopped out | 44.3% | **48.4%** |
-| % reaching take-profit | **22.2%** | 15.5% |
-| win rate | 55.7% | 51.6% |
-| avg win / avg loss | +4.2% / −3.6% | +3.9% / −3.3% |
-| **avg max favourable excursion** | **4.0%** | **3.7%** |
+| NNMT W1 | trades | return | % stopped | % take-profit | win rate | avg MFE |
+|---|---|---|---|---|---|---|
+| real model | 176 | +10.708% | 44.3% | 22.2% | 55.7% | 4.01% |
+| **oracle @ label 0.02** | 136 | **+11.809%** | **35.3%** | 22.1% | **64.7%** | **4.57%** |
+| oracle @ label 0.007 | 150 | +6.544% | — | — | — | — |
 
-**Perfect foreknowledge stops out MORE often and converts FEWER entries into
-take-profits.** Broken down by mechanism, the oracle's 21 missing trades are
-almost entirely WINNERS:
+The corrected oracle stops out LESS, wins MORE, carries LARGER favourable
+excursions, and returns MORE. Exactly what perfect foreknowledge should buy.
 
-| mechanism | real | oracle | difference |
+## So when DOES an oracle underperform? Two real cases remain
+
+**1. When the label itself is bad.** At label 0.007 the oracle earns +6.544%
+against the real model's +10.708% — a genuine −4.16pp deficit that survives the
+instrument fix. A label promising only +0.7% against a −2%..−4% stop describes
+trades that lose money even when predicted perfectly. The oracle is a faithful
+upper bound on *that label*, and the bound is below what a model trained on it
+actually achieves, because the model learns something better than its target.
+
+**2. When the payoff geometry is adverse.** NNMT promises +2.0%, harvests at
+2.2%, and risks 2–4%. Even a correct label can be a poor bet. This is measured
+per family in feature 006 and is the reason the 0.007 label fails so badly.
+
+**Both are statements about the LABEL, not about the exit.**
+
+## What an oracle bounds — unchanged, and still the important caveat
+
+An oracle bounds **what perfect LABEL-FOLLOWING is worth**, not what perfect
+trading is worth. `ORACLE_GATE.md` rule 0 stands: a ceiling below the real
+model's return is evidence about the LABEL. What has changed is that on NNMT at
+its current label, the ceiling is now correctly ABOVE the real model, so that
+caveat no longer applies there.
+
+---
+
+# RETRACTION — what this document used to claim, and why it was wrong
+
+**The original claimed**: that a perfect model underperforms a real one because
+the label is a "binary floor" while the model learns a "continuous ranking", and
+offered three measurements as proof:
+
+| original claim | original figure | corrected figure | verdict |
 |---|---|---|---|
-| ATR stop (moved) | 77 trades, −1406.8 | 75, −1337.6 | **avoids only 2 losers** |
-| ROI table | 50, +842.0 | 47, +803.0 | −3 |
-| **take-profit** | **39, +1627.5** | **24, +1088.8** | **−15 winners, −538.7** |
+| the oracle stops out MORE | 48.4% vs 44.3% | **35.3% vs 44.3%** | **REFUTED** — it stops out less |
+| the oracle reaches the take-profit LESS | 15.5% vs 22.2% | **22.1% vs 22.2%** | **REFUTED** — identical |
+| the oracle's trades have SMALLER favourable excursions | 3.72% vs 4.01% | **4.57% vs 4.01%** | **REFUTED** — larger |
 
-## The explanation: a binary FLOOR versus a continuous RANKING
+**Why it was wrong.** Every figure came from an oracle that was entering **up to
+two bars early**. `BaseNNStrategy.augment_training_signals` dilates each buy
+label onto the two preceding bars — correct for training, catastrophic for an
+instrument that reads the labels as an entry signal. Compliance with the raw
+label was only 84.1%. Entering early against a −2%..−4% stop produces precisely
+the symptoms the document then explained with a theory: more stops, fewer
+take-profits, smaller excursions.
 
-The label is `max forward close over 48 bars ≥ +2%`. Three properties make it a
-weak proxy for profit:
+**The methodological lesson, which is the reason this retraction is kept.** The
+"binary floor versus continuous ranking" story was plausible, internally
+coherent, and fitted every number — and it was an elaborate explanation of a bug.
+The measurement that would have caught it was cheap and was not run until much
+later: *does the instrument actually do what it claims?* Only 84.1% of the
+oracle's entries satisfied the label the oracle was supposedly following, and
+nobody had checked.
 
-1. **It is a FLOOR, not a target.** A bar qualifies at exactly +2.0%. The exit
-   needs +2.2% (`cexit_take_profit`). So a labelled bar can be certain to rise
-   2% and still never trigger a profitable exit — feature 004 measured 12.6% of
-   labelled bars never reaching the take-profit at all.
-2. **It is PATH-BLIND.** Reaching +2% says nothing about the −4% to −6% ATR stop
-   firing first.
-3. **It is INDIFFERENT among qualifying bars.** A bar that rises 2.01% and one
-   that rises 12% carry the identical label.
+**Before theorising about a surprising measurement, verify the instrument
+produced the measurement it claims to.** A result that contradicts something as
+basic as "foreknowledge helps" is far more likely to be an instrument defect than
+a deep truth about labels.
 
-The real model does not reproduce this binary certificate. It learns a
-**continuous score**, and thresholding that score at 0.5 selects bars where the
-score is HIGH — which correlates with the SIZE of the coming move, not merely
-with clearing 2%.
-
-**The measured consequence is the last row of the table: the real model's trades
-have a larger average maximum favourable excursion, 4.0% against the oracle's
-3.7%.** The model picks stronger moves than the label requires. The oracle, being
-indifferent, takes the marginal ones too — and marginal moves stop out.
-
-## What this means for the word "headroom"
-
-**Negative headroom does NOT mean "the model is already perfect".** It means
-**"the model has learned something BETTER than the label"** — a ranking, where
-the label offers only a threshold.
-
-Feature 005 measured NNMT's headroom as **−4.558pp** and read it as "there is no
-room above the current model". The arithmetic is right; the interpretation needs
-this correction. The honest statement is: *a model that perfectly reproduced
-NNMT's training label would trade WORSE than the model we have, because the
-label is a coarser instrument than the score the model actually learned.*
-
-It also explains, cleanly, why the label work failed:
-
-- `gbb` 0.007 → 0.02 moved the ceiling +45.9pp and realised −0.157pp.
-- `gbb` → `gbb_path` moved the ceiling +6.2pp and realised −0.091pp.
-
-**Improving the label's FIDELITY cannot help a model that is already extracting
-more information than the label contains.** Both label changes made the
-certificate more accurate; neither made the ranking better.
-
-## What the oracle gate is still good for — and its new caveat
-
-The gate is not invalidated. It answers a narrower question correctly: *with the
-guards off and no ranking available, can this label make money at all?* That is
-exactly the right screen before a retrain, and it killed `gbb` 0.007 (−28.1%
-guards-off) before anyone trained on it.
-
-**But add this caveat wherever an oracle number is used:**
-
-> An oracle bounds what PERFECT LABEL-FOLLOWING is worth, NOT what perfect
-> trading is worth. When the label is a coarse proxy — a floor rather than a
-> target, path-blind, indifferent among qualifying bars — a well-calibrated
-> model can and does BEAT its own oracle. A ceiling below the real model's
-> return is evidence about the LABEL, not about the model.
-
-## The practical inversion
-
-The programme spent this session asking "how do we help the model learn the
-label better?" The measurement says the model is already ahead of the label. So
-the productive questions are the other two:
-
-- **Make the label rank, not just certify.** The model's edge over the oracle
-  comes from ordering bars by expected move size. A regression or ordinal target
-  on forward excursion would give it that signal directly, instead of making it
-  infer ordering from a binary label. (Note: `feedback_pnl_weighted_loss_raises
-  _mcc_not_pnl` records that P&L-weighting the loss raised MCC without moving
-  P&L — so this is not a free win, and would need its own gate.)
-- **Fix the exits.** 44-48% of trades stop out in BOTH arms, and the oracle
-  avoids only 2 of 77 stops. That number is nearly independent of entry quality,
-  which makes it an exit-side problem — and the exit side is where this
-  session's only positive result came from.
+See `specs/006-oracle-exit-diagnosis/instrument.md` for the diagnosis, the fix,
+and the full blast radius across prior features.

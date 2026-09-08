@@ -1,5 +1,12 @@
 # NNMT operating point — headroom, and what it forecloses
 
+> **⚠️ FIGURES CORRECTED 2026-09-07 — see `regime/ORACLE_CORRECTION_2026-09-07.md`.**
+> Every oracle figure below was measured on an instrument that entered up to TWO
+> BARS EARLY, because `augment_training_signals` dilates buy labels backward and
+> the oracle read the labels after augmentation. All ceilings were biased LOW.
+> **Realised-return results are unaffected** (real models never read the
+> augmented labels as an entry signal) and stand as written.
+
 **Status**: settled 2026-09-06 (feature 005). Supersedes nothing; complements
 `GUARD_ABLATION.md` and `CANDIDATE_STATUS.md`, which established the same shape
 on NNNC.

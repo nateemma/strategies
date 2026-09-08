@@ -1,5 +1,12 @@
 # Path-aware gbb label — oracle gate screen
 
+> **⚠️ FIGURES CORRECTED 2026-09-07 — see `regime/ORACLE_CORRECTION_2026-09-07.md`.**
+> Every oracle figure below was measured on an instrument that entered up to TWO
+> BARS EARLY, because `augment_training_signals` dilates buy labels backward and
+> the oracle read the labels after augmentation. All ceilings were biased LOW.
+> **Realised-return results are unaffected** (real models never read the
+> augmented labels as an entry signal) and stand as written.
+
 **Status**: gate PASSED 2026-09-07. Training is licensed but NOT yet spent.
 Labeler: `LabelMethod.gbb_path` (27), added additively — `gbb` (17) is
 byte-for-byte unchanged and every prior result stays reproducible.

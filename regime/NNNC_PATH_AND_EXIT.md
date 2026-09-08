@@ -1,5 +1,12 @@
 # NNNC: path-aware label and exit signal — both REJECTED, no retrain spent
 
+> **⚠️ FIGURES CORRECTED 2026-09-07 — see `regime/ORACLE_CORRECTION_2026-09-07.md`.**
+> Every oracle figure below was measured on an instrument that entered up to TWO
+> BARS EARLY, because `augment_training_signals` dilates buy labels backward and
+> the oracle read the labels after augmentation. All ceilings were biased LOW.
+> **Realised-return results are unaffected** (real models never read the
+> augmented labels as an entry signal) and stand as written.
+
 Measured 2026-09-07 at the request to try `gbb_path` on NNNC with exit signals
 enabled. Both questions answered with backtests only. **No training was spent,
 and the screens are why.**
