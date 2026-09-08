@@ -72,8 +72,8 @@ win is not evidence for), R9 (zero retrains), R10 (one strategy per process).
 
 ## Phase 1: Setup
 
-- [ ] T001 Record the measured baselines this feature is judged against in `specs/006-oracle-exit-diagnosis/baseline.md`: NNMT real +10.708% (176tr), oracle@0.02 +8.733% (145tr), oracle@0.007 +6.150% (155tr); NNNC real +10.446% (95tr), oracle@0.02 +13.934% (85tr). Add each window's net/gross ratio (FR-014, FR-015)
-- [ ] T002 [P] Re-read `NNNC/NNNC_Ora_StopWide.py`, `NNNC_Ora_StopMid.py`, `NNNC_Ora_StopTight.py`, `NNNC_Ora_Comb.py` and the `NNNC_Ora_L*/P*` classes, and record in `baseline.md` what each already measured and at which label — feature 004's arms were ALL run at label 0.007 and are stale, not redundant (R1). Do NOT rebuild them and do NOT re-derive 004's conclusions
+- [X] T001 Record the measured baselines this feature is judged against in `specs/006-oracle-exit-diagnosis/baseline.md`: NNMT real +10.708% (176tr), oracle@0.02 +8.733% (145tr), oracle@0.007 +6.150% (155tr); NNNC real +10.446% (95tr), oracle@0.02 +13.934% (85tr). Add each window's net/gross ratio (FR-014, FR-015)
+- [X] T002 [P] Re-read `NNNC/NNNC_Ora_StopWide.py`, `NNNC_Ora_StopMid.py`, `NNNC_Ora_StopTight.py`, `NNNC_Ora_Comb.py` and the `NNNC_Ora_L*/P*` classes, and record in `baseline.md` what each already measured and at which label — feature 004's arms were ALL run at label 0.007 and are stale, not redundant (R1). Do NOT rebuild them and do NOT re-derive 004's conclusions
 
 ---
 
@@ -90,11 +90,11 @@ attributed to a named cause with a correction or expressed as a bound.
 > worse than no conclusion. **Nothing in Phases 3-7 is trustworthy until this
 > closes.**
 
-- [ ] T003 [US1] Recompute compliance against the STRATEGY's dataframe rather than the raw feather — run `add_indicators` on the same pairs and timerange the backtest used, including freqtrade's prepended startup candles, and compare the labelled bars with the arm's actual entries. This is R2's most likely cause (FR-001)
+- [X] T003 [US1] Recompute compliance against the STRATEGY's dataframe rather than the raw feather — run `add_indicators` on the same pairs and timerange the backtest used, including freqtrade's prepended startup candles, and compare the labelled bars with the arm's actual entries. This is R2's most likely cause (FR-001)
 - [ ] T004 [US1] Test the window-edge hypothesis: bars within `HORIZON` (48) of the window end cannot see a full forward window, so the strategy's label differs from a feather read that has data beyond the window. Report what share of the shortfall this accounts for (FR-001)
 - [ ] T005 [US1] Test fill timing: `entry_pricing` uses `price_side: "other"` with `order_book_top: 1`, so an unfilled limit could open the trade later than the signal bar. Compare each trade's `open_date` with the nearest preceding labelled bar (FR-001)
-- [ ] T006 [P] [US1] ELIMINATE the subset operations by measurement, not argument alone: `_filter_trading_by_tasks` (NNMTStrategy) and `filter_peaks_by_future_performance` (BaseNNStrategy) can only REMOVE labels, so they cannot add a non-compliant entry. Confirm the label set is a subset at each stage and record the elimination (FR-001)
-- [ ] T007 [US1] **GATE** Write `specs/006-oracle-exit-diagnosis/instrument.md`: the compliance rate, the cause if found with the corrected figures restated, or a quantified residual bound to be carried into EVERY number this feature produces. State explicitly which of the two outcomes applies (FR-002, FR-003, SC-001)
+- [X] T006 [P] [US1] ELIMINATE the subset operations by measurement, not argument alone: `_filter_trading_by_tasks` (NNMTStrategy) and `filter_peaks_by_future_performance` (BaseNNStrategy) can only REMOVE labels, so they cannot add a non-compliant entry. Confirm the label set is a subset at each stage and record the elimination (FR-001)
+- [X] T007 [US1] **GATE** Write `specs/006-oracle-exit-diagnosis/instrument.md`: the compliance rate, the cause if found with the corrected figures restated, or a quantified residual bound to be carried into EVERY number this feature produces. State explicitly which of the two outcomes applies (FR-002, FR-003, SC-001)
 
 **Checkpoint**: the instrument is either trustworthy or its error is bounded.
 

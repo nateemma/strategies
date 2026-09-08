@@ -46,12 +46,7 @@ from NNMT_MLX_Base import NNMT_MLX_Base
 class NNMT_Oracle(NNMT_MLX_Base):
 
     def get_entry_conditions(self, dataframe: DataFrame):
-        # NOTE: this used to need `self.dbg_curr_df = dataframe` here as a
-        # workaround. The root cause was fixed in NNMTStrategy.get_training_labels
-        # on 2026-09-06 (the debug frame is now assigned before the writers that
-        # use it), so the workaround is gone and W3 exercises the real fix.
         labels = self.get_training_labels(dataframe)
-        # NNMT returns a per-task dict; the entry signal is the trading head.
         targets = np.asarray(labels["trading"] if isinstance(labels, dict) else labels)
 
         n = len(dataframe)
@@ -60,6 +55,39 @@ class NNMT_Oracle(NNMT_MLX_Base):
             padded[n - len(targets):] = targets
             targets = padded
 
-        dataframe["predict_buy"] = np.where(targets == TradingAction.BUY, 1, 0)
+        # ------------------------------------------------------------------ #
+        # STRIP THE TRAINING AUGMENTATION (feature 006, T003).                #
+        #                                                                    #
+        # BaseNNStrategy.augment_training_signals runs inside                 #
+        # get_trading_classes and its "Trick 1" DILATES every buy label onto  #
+        # the TWO PRECEDING bars:                                            #
+        #                                                                    #
+        #     for i in range(1, 3): buys[valid_indices - i] = 1.0            #
+        #                                                                    #
+        # Those bars never satisfied the label's own condition, so reading    #
+        # the augmented labels made this arm enter up to two bars EARLY --    #
+        # measured at only 84.1% compliance with its own label, peaking at    #
+        # 88.3% one bar FORWARD of the entry, with 96.6% having a genuine     #
+        # label within the two-bar dilation window. Entering early against a  #
+        # -2%..-4% stop is materially worse than entering on the signal, so   #
+        # every figure this arm produced was biased LOW.                     #
+        #                                                                    #
+        # The augmentation is correct for TRAINING and is untouched there.    #
+        # An oracle must enter only where the label genuinely holds, so the   #
+        # augmented trading class is ANDed with the UNAUGMENTED buy signal.   #
+        # get_train_buy_signals() is the pre-augmentation source (its CALLER  #
+        # applies the augmentation), so the other label logic survives --     #
+        # sells overriding buys, and the buy-followed-by-sell override --     #
+        # while only the dilated bars are removed.                           #
+        # ------------------------------------------------------------------ #
+        raw = np.asarray(self.get_train_buy_signals(dataframe), dtype=float)
+        if len(raw) != n:
+            padded = np.zeros(n)
+            padded[n - len(raw):] = raw
+            raw = padded
+
+        dataframe["predict_buy"] = np.where(
+            (targets == TradingAction.BUY) & (raw > 0.5), 1, 0
+        )
         dataframe["predict_sell"] = np.where(targets == TradingAction.SELL, 1, 0)
         return dataframe["predict_buy"] > 0.5
