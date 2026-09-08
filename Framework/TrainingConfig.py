@@ -49,7 +49,14 @@ class TrainingConfig:
     #   16 = indicators3
     #   17 = gbb (highest MCC, tightest cross-pair variance)
     #   19 = indicators4 (highest total throughput score)
-    TRAINING_TYPE: int = 17
+    # 2026-09-08: 17 (gbb) -> 27 (gbb_path). The path-aware pair drops buy
+    # labels whose stop would fire before the target and sell labels the
+    # take-profit would pre-empt, so the label certifies a move the strategy
+    # can actually harvest. Ceilings improved on BOTH families -- guards-off
+    # +13.4pp (NNMT) and +15.6pp (NNNC), guards-on +2.4pp and +1.2pp -- while
+    # realised return was unresolved either way. Adopted as the better-specified
+    # target. See regime/PATH_LABEL_GATE.md and ORACLE_CORRECTION_2026-09-07.md.
+    TRAINING_TYPE: int = 27
 
     # Minimum forward gain (loss) magnitude required for a candidate bar to
     # be labelled as a Buy (Sell). Lower values produce more training data

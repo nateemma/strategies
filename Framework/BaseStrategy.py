@@ -820,10 +820,27 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
         if getattr(self, "entry_trend_filter_enable", False):
             conditions.append(self.is_uptrend(dataframe))
 
-        # Common guard conditions
+        # MANDATORY -- deliberately OUTSIDE the entry_enable_guards block
+        # (2026-09-08). `volume > 0` is a data-sanity check and rvol is a
+        # TRADEABILITY constraint: you cannot fill into a candle that did not
+        # trade, however confident the model is. Neither is a quality filter, so
+        # neither belongs behind a flag that exists to disable quality filters.
+        #
+        # This also fixes a long-standing trap. `--guards off` previously
+        # removed the volume sanity check along with the quality guards, which
+        # is why every guards-off arm in this repository had to be expressed by
+        # NEUTRALISING six thresholds instead. That workaround is no longer
+        # required for volume, though it remains the honest way to open the
+        # QUALITY guards.
+        #
+        # rvol stays a hyperparameter: set entry_rvol_threshold to -1.0 to make
+        # it permissive. It is no longer possible to remove it entirely by
+        # accident.
+        conditions.append(dataframe["volume"] > 0.0)
+        conditions.append(dataframe["rvol"] > self.entry_rvol_threshold.value)
+
+        # Common guard conditions -- QUALITY filters only
         if self.entry_enable_guards.value:
-            conditions.append(dataframe["volume"] > 0.0)
-            conditions.append(dataframe["rvol"] > self.entry_rvol_threshold.value)
             conditions.append(dataframe["atr_pct_roll"] > self.entry_atr_pct.value)
 
             conditions.append(

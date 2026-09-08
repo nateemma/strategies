@@ -676,25 +676,31 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
         return signals
 
     def augment_training_signals(self, buys, sells):
-        """Run data augmentation techniques"""
-        # Trick 1: artificially extend positive signals two entries earlier
-        bidx = np.where(buys > 0)[0]
-        if len(bidx) > 0:
-            start = 2 if (bidx[0] >= 2) else bidx[0]
-            if len(bidx) >= 1:
-                for i in range(1, 3):
-                    valid_indices = bidx[bidx >= i]
-                    if len(valid_indices) > 0:
-                        buys[valid_indices - i] = 1.0
+        """Resolve buy/sell label conflicts. NO LONGER DILATES.
 
-        sidx = np.where(sells > 0)[0]
-        if len(sidx) > 0:
-            start = 2 if (sidx[0] >= 2) else sidx[0]
-            if len(sidx) >= 1:
-                for i in range(1, 3):
-                    valid_indices = sidx[sidx >= i]
-                    if len(valid_indices) > 0:
-                        sells[valid_indices - i] = 1.0
+        REMOVED 2026-09-08 -- "Trick 1", which copied every buy and sell label
+        onto the TWO PRECEDING bars. Those bars do not meet the label's own
+        condition, so the dilation deliberately blurred the decision boundary.
+
+        Two measurements motivated the removal. Precision is the EXPENSIVE axis
+        on this data: buying recall by lowering the confidence threshold costs
+        -53.2pp in bad picks against +31.7pp recovered
+        (regime/RECALL_NOT_PRECISION.md). And removing the dilation measurably
+        sharpens the boundary -- precision +2.8/+4.7pp AND recall +7.1/+4.5pp
+        across two seeds (regime/DILATION_WIDTH.md).
+
+        Realised return was NOT resolved either way (-2.64pp on the mean, inside
+        10-14pp per-seed bands, seeds disagreeing in sign), so this is adopted on
+        the boundary evidence rather than on P&L.
+
+        It also removes a trap: the dilation leaked into any arm that read
+        get_training_labels() as an entry signal, which is how every oracle in
+        this repository came to be entering two bars early
+        (regime/ORACLE_CORRECTION_2026-09-07.md).
+
+        The conflict-resolution rules below are label LOGIC, not augmentation,
+        and are retained unchanged.
+        """
 
         # Trick 2: sells override buys
         buys[np.where(sells > 0)[0]] = 0.0
