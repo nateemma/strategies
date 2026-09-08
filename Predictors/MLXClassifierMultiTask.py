@@ -524,12 +524,29 @@ class MLXClassifierMultiTask(MLXBaseClassifier):
         grad_clip_norm = 0.5
         # Match ClassifierKerasMultiTask: monitor val_trading_mcc, maximise.
         monitor_mode = "max"
-        # monitor_key = "val_trading_mcc"           # empirical winner — robust to class imbalance and degenerate predictions
+        monitor_key = "val_trading_mcc"  # empirical winner — robust to class imbalance and degenerate predictions
+        # 2026-09-08: REVERTED from "val_avg_mcc_x_conf". Both halves of that
+        # composite are UNWEIGHTED means over all six heads (_flatten_metrics'
+        # val_avg_mcc, and mean_max_prob), while the loss weights them
+        # {trading .571, risk .143, momentum .143, flow .143, regime 0, profit 0}.
+        # Consequences, measured on the 2026-09-08 NNMT run
+        # (trading .620, profit -.055, regime .083, risk .561, mom .630, flow .509):
+        #   - trading is 57.1% of the objective but 26.4% of the monitor's value,
+        #     and the MOMENTUM head contributes more to it (26.8%) than trading;
+        #   - profit and regime get NO gradient (weight 0) yet hold 1/3 of the
+        #     monitor's sensitivity, every head moving it by exactly 1/6. profit
+        #     sat at MCC -0.055, worse than random;
+        #   - resolution collapsed: the composite moved inside 0.2457..0.2458
+        #     across the last 8 epochs while val_trading_mcc moved .6199..6202,
+        #     so save-best was selecting on ~1e-4 of noise.
+        # This mirrors the entropy-penalty bug fixed the same day (penalty was
+        # applied to zero-weight heads). Sharpness pressure stays in the loss via
+        # the entropy penalty below -- keeping it in the monitor too applied it
+        # twice, which the 2026-05-23 note above had already intended to undo.
+        # Also restores parity with ClassifierKerasMultiTask.
         # monitor_key = "val_trading_precision"   # 2026-05-15: drifts toward predicting class 1 (Hold/neutral) for most tasks; macro avg satisfied trivially
         # monitor_key = "val_trading_f1_class_2"  # 2026-05-15: peaks at epoch 1 (untrained, high recall); save-best traps the untrained model
-        monitor_key = "val_avg_mcc_x_conf"  # 2026-05-23: composite (avg_mcc × mean_max_prob). Picked later epochs with marginally higher conf but worse backtest — the model's epoch-to-epoch conf variation was too small (~0.585→0.622) for the multiplicative weighting to be a useful signal.
-        # Sharpness pressure now applied via entropy penalty in the loss
-        # (see below) rather than via monitor selection.
+        # monitor_key = "val_avg_mcc_x_conf"  # 2026-05-23: composite (avg_mcc × mean_max_prob). Picked later epochs with marginally higher conf but worse backtest — the model's epoch-to-epoch conf variation was too small (~0.585→0.622) for the multiplicative weighting to be a useful signal.
         # monitor_key = "val_avg_mcc"
         checkpoint_path = self.get_checkpoint_path()
 
