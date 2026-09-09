@@ -62,11 +62,23 @@ none — that absence *is* the matching config.
 INCOMPLETE, and its absence must abort pooling for that fold rather than silently yielding a fold
 with no trades.
 
-## R6 — Reuse run_arm.py per fold via --timerange. DONE.
+## R6 — Reuse run_arm.py per fold via IN-PROCESS WINDOW INJECTION. CORRECTED 2026-09-09.
 
-`run_arm.py` accepts `--timerange` in addition to `--window`, so a fold's arbitrary test range is
-expressible without touching `regimedata.py`'s WINDOWS or `run_arm.py`'s schema (FR-018). Each fold
-run produces a normal arm record carrying `result_file`, which is what makes pooling possible at all.
+**This item was WRONG as first written.** It claimed `run_arm.py` accepts `--timerange` alongside
+`--window`. It does not: `--window` is REQUIRED and its `choices` come from
+`regime.regimedata.WINDOWS`; the `--timerange` string appears only in an internal helper and in the
+command it builds for freqtrade. The error was caught when fold f00 trained successfully and then
+failed evaluation in one second with `error: the following arguments are required: --window`.
+
+Adding fold keys to `regimedata.WINDOWS` **on disk is not safe**: `regime/phase_c_trackability.py`
+does `for w in WINDOWS`, so 15 extra keys would silently change another tool's behaviour.
+
+**Corrected approach**: each fold is evaluated in its OWN subprocess which injects that fold's
+window into the in-memory `WINDOWS` dict before importing `run_arm`, then calls `ra.main()`.
+Consequences: `regimedata.py` on disk is untouched, `run_arm.py` is untouched (FR-018), the arm
+record is produced by the normal path and carries `result_file`, and one-strategy-per-process is
+preserved (research R10). The fold's window name is its `fold_id` upper-cased, so records land at
+`regime/arms/<arm_tag>_<FOLD_ID>.json`.
 
 ## R7 — Pool from archives; there is no other per-trade source. DONE.
 

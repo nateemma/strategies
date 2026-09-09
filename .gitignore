@@ -24,3 +24,11 @@ NeuralNets/
 
 # Obsidian vault config for docs/ — local editor state, not content.
 docs/.obsidian/
+
+# feature 007: generated per-fold strategy classes and params (build artefacts)
+# run_arm.py resolves a fold class to its FAMILY dir and symlinks only top-level *.py,
+# so generated fold classes must sit directly in NNNC/ — a _wf/ subdir would never be found.
+NNNC/NNNC_WF_f*.py
+NNNC/NNNC_WF_f*.json
+NNMT/NNMT_WF_f*.py
+NNMT/NNMT_WF_f*.json

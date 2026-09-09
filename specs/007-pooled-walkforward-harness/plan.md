@@ -141,7 +141,10 @@ regime/
 ├── tail/compare.py           # UNCHANGED — fed, not forked (FR-013)
 └── regimedata.py             # UNCHANGED
 
-NNNC/_wf/                     # generated per-fold classes + .json (git-ignored)
+NNNC/NNNC_WF_f*.py|.json      # generated per-fold classes + params (git-ignored)
+                              # NOTE: these sit DIRECTLY in NNNC/, not a subdir —
+                              # run_arm.py resolves a fold class to its family dir and
+                              # symlinks only top-level *.py, so a _wf/ subdir is invisible
 Framework/                    # UNTOUCHED (FR-019)
 ```
 
