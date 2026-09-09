@@ -1029,6 +1029,16 @@ def labels_gbb(
     # changed: they mirror exit_guard_threshold and were never measured.
     guard_threshold: float = 0.3,
     bb_width_threshold: float = 0.035,
+    # rvol_threshold (2026-09-08): the entry gate filters `rvol > entry_rvol_threshold`
+    # (NNNC 2.0, NNMT 0.2) but the LABEL never saw rvol, so the model was trained on
+    # bars it can never trade. -1.0 is a no-op (rvol is non-negative), preserving the
+    # pre-2026-09-08 label exactly; a family opts in via LABEL_RVOL_THRESHOLD.
+    # Population cost measured over 1,813,739 bars: no rvol 133,610 (7.37% of bars);
+    # >0.2 101,390 (5.59%); >0.5 74,433 (4.10%); >1.0 45,630 (2.52%); >2.0 19,765
+    # (1.09%). Below ~5.5% this repo has seen all-Hold collapse, so NNNC's gate value
+    # of 2.0 is NOT safely alignable -- that is a property of a gate passing 0.08% of
+    # bars, not of this parameter.
+    rvol_threshold: float = -1.0,
     min_gain: Optional[float] = 0.01,
     min_loss: Optional[float] = None,  # Ignored for buy
     horizon: Optional[int] = DEFAULT_HORIZON,
@@ -1046,6 +1056,12 @@ def labels_gbb(
 
     guard_metric = np.nan_to_num(np.asarray(guard_metric, dtype=float), nan=0.0)
     bb_width = np.nan_to_num(np.asarray(bb_width, dtype=float), nan=0.0)
+    # nan -> 0.0 makes a missing/NaN rvol fail any threshold >= 0, i.e. the bar is
+    # NOT labelled. Safe: the default -1.0 keeps every bar, so this only bites when
+    # a family has opted in.
+    rvol = np.nan_to_num(
+        np.asarray(df.get("rvol", pd.Series(np.zeros(n))), dtype=float), nan=0.0
+    )
 
     max_future = _rolling_max_forward(close, horizon)
     future_gain = (max_future - close) / close
@@ -1054,6 +1070,7 @@ def labels_gbb(
     buy_mask = (
         (guard_metric < guard_threshold)
         & (bb_width > bb_width_threshold)
+        & (rvol > rvol_threshold)
         & (future_gain >= min_gain_val)
     )
     buy_mask = np.where(np.isnan(future_gain), False, buy_mask)
@@ -1170,6 +1187,16 @@ def labels_gbb_path(
     # changed: they mirror exit_guard_threshold and were never measured.
     guard_threshold: float = 0.3,
     bb_width_threshold: float = 0.035,
+    # rvol_threshold (2026-09-08): the entry gate filters `rvol > entry_rvol_threshold`
+    # (NNNC 2.0, NNMT 0.2) but the LABEL never saw rvol, so the model was trained on
+    # bars it can never trade. -1.0 is a no-op (rvol is non-negative), preserving the
+    # pre-2026-09-08 label exactly; a family opts in via LABEL_RVOL_THRESHOLD.
+    # Population cost measured over 1,813,739 bars: no rvol 133,610 (7.37% of bars);
+    # >0.2 101,390 (5.59%); >0.5 74,433 (4.10%); >1.0 45,630 (2.52%); >2.0 19,765
+    # (1.09%). Below ~5.5% this repo has seen all-Hold collapse, so NNNC's gate value
+    # of 2.0 is NOT safely alignable -- that is a property of a gate passing 0.08% of
+    # bars, not of this parameter.
+    rvol_threshold: float = -1.0,
     min_gain: Optional[float] = 0.01,
     min_loss: Optional[float] = None,  # Ignored for buy
     horizon: Optional[int] = DEFAULT_HORIZON,
@@ -1201,6 +1228,11 @@ def labels_gbb_path(
     bb_width = np.nan_to_num(
         np.asarray(df.get("bb_width", pd.Series(np.zeros(n))), dtype=float), nan=0.0
     )
+    # nan -> 0.0 makes a missing/NaN rvol fail any threshold >= 0 (bar NOT labelled).
+    # Safe: the -1.0 default keeps every bar, so this only bites on opt-in.
+    rvol = np.nan_to_num(
+        np.asarray(df.get("rvol", pd.Series(np.zeros(n))), dtype=float), nan=0.0
+    )
 
     max_future = _rolling_max_forward(close, horizon)
     future_gain = (max_future - close) / close
@@ -1212,6 +1244,7 @@ def labels_gbb_path(
     buy_mask = (
         (guard_metric < guard_threshold)
         & (bb_width > bb_width_threshold)
+        & (rvol > rvol_threshold)
         & (future_gain >= min_gain_val)
         & survives
     )

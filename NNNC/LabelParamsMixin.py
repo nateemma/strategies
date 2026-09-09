@@ -46,6 +46,11 @@ class LabelParamsMixin:
             "min_loss": self.MIN_SELL_LOSS_THRESHOLD,
         }
         if side == "buy":
+            # Mirror BaseNNStrategy's buy path. This dict is built fresh, so any key
+            # added there MUST be added here or mixin arms silently diverge from
+            # production (the "fresh dicts drop parent keys" failure). Buy-only:
+            # the sell labelers take no rvol_threshold.
+            base["rvol_threshold"] = getattr(self, "LABEL_RVOL_THRESHOLD", -1.0)
             extra = self.LABEL_PARAMS
         else:
             extra = (self.LABEL_PARAMS if self.LABEL_PARAMS_SELL is None

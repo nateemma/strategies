@@ -192,6 +192,14 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
     MIN_BUY_GAIN_THRESHOLD = TrainingConfig.MIN_BUY_GAIN_THRESHOLD
     MIN_SELL_LOSS_THRESHOLD = TrainingConfig.MIN_SELL_LOSS_THRESHOLD
     TRAINING_TYPE = TrainingConfig.TRAINING_TYPE
+
+    # Label-side rvol floor, mirroring the ENTRY gate's `rvol > entry_rvol_threshold`.
+    # -1.0 = off (rvol is non-negative), which reproduces the pre-2026-09-08 label
+    # exactly. Families opt in by overriding; the right value is NOT automatically the
+    # family's gate value, because the label also has to stay learnable:
+    #   label + rvol>0.2 -> 5.59% of bars | >0.5 -> 4.10% | >1.0 -> 2.52% | >2.0 -> 1.09%
+    # against ~5.5% as this repo's observed all-Hold collapse line.
+    LABEL_RVOL_THRESHOLD = -1.0
     HORIZON = TrainingConfig.HORIZON
 
     # controls the profit estimation approach
@@ -607,6 +615,7 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
                 "horizon": self.HORIZON,
                 "min_gain": self.MIN_BUY_GAIN_THRESHOLD,
                 "min_loss": self.MIN_SELL_LOSS_THRESHOLD,
+                "rvol_threshold": self.LABEL_RVOL_THRESHOLD,
             },
         )
         peaks = np.where(buy_labels.values > 0.5)[0]
