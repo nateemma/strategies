@@ -8,11 +8,119 @@ This file is intended to orient an AI agent (or a new developer) on how to build
 
 - **Shell**: `zsh` (macOS default). All scripts use `zsh`, not `bash`.
 - **Python**: A virtualenv at `.venv`. Activate with `source .venv/bin/activate` before running any Python or freqtrade commands. (Not conda.)
-- **Working directory**: All scripts in `scripts/` and freqtrade commands **must** be run from the project root (`~/freqtrade/`), not from `scripts/` or any subdir. The scripts use relative paths (`strat_dir="user_data/strategies"`, config at `user_data/strategies/config/…`) and prepend `.` to `PYTHONPATH` so the in-tree `freqtrade` package resolves — both only work when the CWD is the repo root. Running from the wrong directory fails with a *misleading* `ModuleNotFoundError: No module named 'freqtrade'` + `config file not found` (see Troubleshooting).
+- **Working directory**: All scripts in `scripts/` and freqtrade commands **must** be run from the project root (`~/projects/freqtrade/`), not from `scripts/` or any subdir. The scripts use relative paths (`strat_dir="user_data/strategies"`, config at `user_data/strategies/config/…`) and prepend `.` to `PYTHONPATH` so the in-tree `freqtrade` package resolves — both only work when the CWD is the repo root. Running from the wrong directory fails with a *misleading* `ModuleNotFoundError: No module named 'freqtrade'` + `config file not found` (see Troubleshooting).
 - **PYTHONPATH**: The scripts set this automatically. If running manually, export:
   ```
-  export PYTHONPATH=~/freqtrade/user_data/strategies:$PYTHONPATH
+  export PYTHONPATH=~/projects/freqtrade/user_data/strategies:$PYTHONPATH
   ```
+
+---
+
+## Silent failure modes — read this first
+
+Every item here fails with **no error and a plausible-looking number**. They have each cost
+real time in this repo.
+
+**A re-parameterised subclass trains a fresh model inside its own backtest.**
+`BaseNNStrategy.get_model_path` keys off `self.__class__.__name__`, so `class MyArm(NNNC_MLX)`
+looks for `saved_data/MyArm/`, finds nothing, and trains one — fitting the evaluation window.
+The run succeeds and reports different numbers. If your arm changes only *exit* or *entry*
+parameters and should reuse the parent's weights, pin it:
+
+```python
+def get_model_path(self) -> str:
+    return self.get_storage_location() + "NNNC_MLX/" + "NNNC_MLX.keras"
+```
+
+Verify by checking `saved_data/<YourArm>/` is still empty after the backtest.
+
+**`<Strategy>.json` beats the class, and a *missing* json is not neutral.**
+Params load as `deep_merge_dicts(file_params, class_params)` — the file wins, the class only
+fills gaps. So:
+- An arm subclassing `NNNC_MLX` **without** its own json falls back to `NNNCStrategy`'s class
+  params, which have every entry guard **open**. Completely different strategy, no warning.
+- The json's `"strategy_name"` must match the class name, or freqtrade aborts with
+  `Invalid parameter file provided`. Copying a json between arms without updating it fails
+  this way.
+- Give every arm its own json copied from the parent's, **unless** the parent has none
+  (e.g. `NNMT_MLX`), in which case the arm should also have none — that is the matching config.
+
+**`test_strat.sh` exits 0 even when training crashed.** The only reliable check is whether the
+weights exist:
+```zsh
+ls user_data/strategies/saved_data/<CLS>/*.safetensors
+```
+
+**freqtrade `Parameter` objects are class-level singletons on `BaseStrategy`.** Loading two
+strategies in one process contaminates the second — reading NNNC then NNMT reported NNMT's
+take-profit as NNNC's. **Read configuration one strategy per process.** Values are only real
+after `ft_load_hyper_params()` (called inside `ft_bot_start()`); before that you see raw defaults.
+
+**`self.stoploss` and `trailing_*` do nothing for NN strategies.** `BaseNNStrategy` sets
+`use_atr_adaptive_stoploss = True`, so `--stoploss` only changes the cosmetic
+`initial_stop_loss_abs`. The live levers are the **class attributes**
+`atr_stoploss_multiplier` / `_floor` / `_cap` (unreachable via `--set`, hence a subclass) and
+`stoploss_grace_hours` / `stoploss_grace_level`, which set the worst-case trade size.
+
+**In backtest archives, `trailing_stop_loss` means the ATR stop *after it moved*.**
+`trailing_stop` is `False` framework-wide, so attributing those exits to native trailing
+mis-assigns a large share of trades. `stop_loss` is the initial/grace stop.
+
+---
+
+## Evaluating a change
+
+Do not judge a change from a bare `test_strat.sh` backtest on an ad-hoc timerange.
+
+**Pinned windows** (`regime/regimedata.py`), training range `20220101-20250831`:
+
+| window | range | status |
+|---|---|---|
+| **W1** | `20250901-20260831` | **the sole acceptance window** |
+| W2 | `20240601-20250531` | in-sample — report, never accept on |
+| W3 | `20230101-20231231` | in-sample, and low-information |
+
+**The harness** — `regime/run_arm.py` records one arm and refuses metrics from failed or stale
+runs. Run from the repo root:
+
+```zsh
+PYTHONPATH=user_data/strategies .venv/bin/python user_data/strategies/regime/run_arm.py \
+  --strategy NNNC_MLX --window W1 --tag baseline
+```
+Useful flags: `--set` / `--set-sell` (buy/sell params), `--roi`, `--threshold`, `--guards`,
+`--timerange`. Records land in `regime/arms/<tag>_<window>.json`.
+
+`regime/tail/compare.py <arm_tag> <control_tag>` gives the verdict.
+
+**Rules that make a result admissible:**
+- Confirm `returncode == 0`. A failed or stale record is not evidence.
+- **Identical `trades_hash` to the control ⇒ INCONCLUSIVE**, not refuted — the change never
+  reached the trades.
+- **Zero trades ⇒ inconclusive**, never a zero return.
+- Judge on **W1 realised return**. `compare.py`'s `POWER_THRESHOLD_PP = 1.0` is calibrated for
+  ~100-trade arms; a sub-1pp delta there is indistinguishable, not a win.
+- **Never accept on a classifier metric.** val_mcc and P&L move independently here — it has been
+  measured repeatedly (higher MCC with identical trades; +0.155 MCC for no P&L change).
+- Report every window with its **net/gross ratio**, not just its trade count (W1 29.8%, W2 18.7%,
+  W3 7.5% on NNMT — W3's four worst trades exceed its entire profit, so it cannot carry a
+  sub-threshold conclusion).
+- Where a model is involved, use two seeds via `MLX_SEED` (`train_seed` is inert for multi-task).
+  Note the gate is often tight enough that two seeds produce *identical* W1 trades — that is one
+  measurement, not two.
+
+---
+
+## Operational rules
+
+- **Run everything sequentially.** Two concurrent jobs put load 60 on 14 cores and finished
+  slower than serialising, and concurrent runs can cross-contaminate the arm archive.
+- **Never `pkill -9 -f freqtrade`** — that pattern matches a live `freqtrade trade` dry run.
+  Use `pkill -9 -f 'freqtrade backtesting'`, or kill by PID after checking `ps`. `TaskStop` does
+  not kill process trees.
+- **Only the nested `user_data/strategies` repo is ours**; the outer freqtrade checkout is
+  upstream. Commit directly to `master` there.
+- **Never `git add -A` / `git add .`** — files are edited concurrently outside the agent session.
+  Stage only the files your change touched, and check `git status` first.
 
 ---
 
@@ -388,7 +496,17 @@ Copy from `user_data/strategies/hyperopts/` to `user_data/hyperopts/` before usi
 ## Troubleshooting
 
 ### Changed parameters aren't taking effect
-Check the `.json` file beside the `.py` file (e.g., `NNNC_CGP.json`). Hyperopt results in this file **override** Python defaults.
+Check the `.json` file beside the `.py` file (e.g., `NNNC_CGP.json`). Hyperopt results in this
+file **override** Python defaults (`deep_merge_dicts(file_params, class_params)` — file wins).
+Three further ways a parameter silently does nothing:
+- It is a **class attribute**, not a `Parameter` (e.g. `atr_stoploss_multiplier`) — `--set` cannot
+  reach it; subclass instead.
+- It is **inert by construction** — `self.stoploss` and `trailing_*` under
+  `use_atr_adaptive_stoploss`, or a guard whose threshold is looser than the label that produced
+  the bars (`entry_guard_threshold` was inert for exactly this reason).
+- The label and the guard filter **the same quantity**, so the stricter one binds and the other
+  never fires.
+See "Silent failure modes" at the top.
 
 ### Model not retraining
 Delete the saved model directory:
@@ -402,13 +520,13 @@ First check your **working directory** — `ModuleNotFoundError: No module named
 running a `scripts/*.sh` almost always means you launched it from the wrong CWD. The scripts
 use relative paths and a `.`-prefixed `PYTHONPATH`, so they only work from the project root:
 ```zsh
-cd ~/freqtrade
+cd ~/projects/freqtrade
 zsh user_data/strategies/scripts/test_strat.sh NNNC NNNC_CGP
 ```
 If you're running Python/freqtrade manually, also make sure PYTHONPATH includes the
 strategies directory:
 ```zsh
-export PYTHONPATH=~/freqtrade/user_data/strategies:$PYTHONPATH
+export PYTHONPATH=~/projects/freqtrade/user_data/strategies:$PYTHONPATH
 ```
 
 ### Suspiciously high backtest results (100%+)
