@@ -143,14 +143,39 @@ Consequences for anything you are about to do:
 - **A W1/W2 disagreement is not evidence of regime dependence** until you have shown the effect is
   resolvable. Two noise draws disagreeing looks identical and is the simpler explanation.
 
-**PENDING — the fix is power, not a better threshold.** The intended remedy is a pooled
-walk-forward harness: repeated retrains, every window genuinely out-of-sample, trades pooled across
-folds. That would multiply the OOS trade count without touching the entry bar (~10-11x, to ~1,000
-trades, is what it takes to resolve effects of the size currently being chased) and would remove the
-W2/W3 in-sample problem entirely. **It does not exist yet.** Until it does, the rules above stand:
-prefer structural work, and treat every sweep result as unresolved. Note the ONLY legitimate way to
-add trades is at the same entry bar — more pairs, longer OOS, more folds. Loosening the gate buys
-volume by accepting worse trades and has been rejected repeatedly (guards-off: 1,737 trades, -16%).
+**THE HARNESS NOW EXISTS — feature 007, delivered 2026-09-09.** `regime/wf/` runs pooled
+walk-forward evaluation: 15 anchored folds, every test fold genuinely out-of-sample, trades pooled
+before any statistic. Measured result — **378 pooled trades and a floor of 3.350 pp/yr against the
+single-window 7.633, a 2.28x improvement.** Full write-up in `regime/WALKFORWARD_POWER.md`.
+
+```
+PYTHONPATH=user_data/strategies .venv/bin/python user_data/strategies/regime/wf/foldplan.py \
+  --family NNNC --base-strategy NNNC_MLX --out regime/wf/folds/plan_nnnc.json
+... regime/wf/run_folds.py --plan <plan> --seed 1        # ~113 min, sequential
+... regime/wf/pool.py      --plan <plan> --out <pooled>
+... regime/wf/power.py     --pooled <pooled>
+... regime/wf/compare_pooled.py --arm <pooled_arm> --control <pooled_control>
+```
+
+**The decision rule this gives you:**
+
+- Effects of **3pp/yr or larger** can now be resolved. Use the pooled harness for them.
+- Effects of **1-2pp remain unresolvable and always will be** on 5.68 yr of data at ~100 trades/yr.
+  Nothing that returned "not resolved" in the 2026-09-08 sweeps would resolve now. The harness is
+  NOT licence to resume parameter tuning.
+- A single-window comparison is still valid for a LARGE effect, but quote the 7.633pp floor with it.
+- **Annualise before comparing floors.** A pooled CI spans ~3.7 years; the baseline spans one. The
+  first version of the power report compared them directly and declared a working instrument a
+  0.62x regression.
+
+Two traps the harness had to solve, which apply to any historical backtest here:
+
+- **A pair that lists mid-history silently prevents training.** `TrainingEngine.maybe_train` fires
+  only when `pair_count == len(whitelist)`, so a window predating any whitelist listing trains
+  NOTHING and then fails at predict. SUI/USDT lists 2023-10-25; `config/config_wf.json` excludes it.
+- **`run_arm.py` has no `--timerange`** — `--window` is required, with choices from
+  `regimedata.WINDOWS`. Do NOT add keys to that dict; `phase_c_trackability.py` iterates it. Inject
+  the window into the in-memory dict in a per-fold subprocess instead.
 
 ---
 
