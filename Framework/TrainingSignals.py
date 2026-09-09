@@ -1064,7 +1064,19 @@ def labels_gbb(
 
 def labels_gbb_sell(
     df: pd.DataFrame,
-    guard_threshold: float = 0.2,
+    # 2026-09-08: 0.2 -> 0.3 so the buy and sell labels stay DISJOINT. The buy
+    # side moved to guard_metric < 0.3 to match entry_guard_threshold; leaving
+    # sell at > 0.2 opened an overlap on [0.2, 0.3) where a bar satisfied BOTH
+    # label conditions -- 3,555 bars over 1.81M. That is silently resolved by
+    # BaseNNStrategy "Trick 2: sells override buys", and Trick 3 additionally
+    # clears the 4 bars BEFORE every sell, so the collateral was 5.6x the
+    # overlap: buy labels destroyed by conflict resolution went 6,339 (4.9%)
+    # -> 19,946 (11.0%), deleting exactly the [0.2, 0.3) bars the buy-side
+    # loosening was meant to add. At 0.3 the ranges share a boundary and the
+    # loss falls to 13,926 (7.7%); sell labels cost 126,408 -> 115,593 (-8.6%).
+    # Affects NNMT only (tri-state, enable_exit_signal True); NNNC is binary
+    # with the exit signal off and never reads these.
+    guard_threshold: float = 0.3,
     bb_width_threshold: float = 0.035,
     min_gain: Optional[float] = None,  # Ignored for sell
     min_loss: Optional[float] = 0.01,
@@ -1210,7 +1222,19 @@ def labels_gbb_path(
 
 def labels_gbb_path_sell(
     df: pd.DataFrame,
-    guard_threshold: float = 0.2,
+    # 2026-09-08: 0.2 -> 0.3 so the buy and sell labels stay DISJOINT. The buy
+    # side moved to guard_metric < 0.3 to match entry_guard_threshold; leaving
+    # sell at > 0.2 opened an overlap on [0.2, 0.3) where a bar satisfied BOTH
+    # label conditions -- 3,555 bars over 1.81M. That is silently resolved by
+    # BaseNNStrategy "Trick 2: sells override buys", and Trick 3 additionally
+    # clears the 4 bars BEFORE every sell, so the collateral was 5.6x the
+    # overlap: buy labels destroyed by conflict resolution went 6,339 (4.9%)
+    # -> 19,946 (11.0%), deleting exactly the [0.2, 0.3) bars the buy-side
+    # loosening was meant to add. At 0.3 the ranges share a boundary and the
+    # loss falls to 13,926 (7.7%); sell labels cost 126,408 -> 115,593 (-8.6%).
+    # Affects NNMT only (tri-state, enable_exit_signal True); NNNC is binary
+    # with the exit signal off and never reads these.
+    guard_threshold: float = 0.3,
     bb_width_threshold: float = 0.035,
     min_gain: Optional[float] = None,  # Ignored for sell
     min_loss: Optional[float] = 0.01,

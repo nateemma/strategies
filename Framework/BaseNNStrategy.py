@@ -705,9 +705,30 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
         # Trick 2: sells override buys
         buys[np.where(sells > 0)[0]] = 0.0
 
-        # Trick 3: if a buy is followed by a sell, override the buy
+        # Trick 3: if a buy is followed closely by a sell, override the buy --
+        # the trade would reverse before its target arrived.
+        #
+        # N: 4 -> 2 on 2026-09-08. Measured how many of the buy labels this
+        # deletes actually reach the +2% target BEFORE the sell bar (path-aware;
+        # forward-gain alone is max-favourable-excursion over the whole 48-bar
+        # horizon and is path-blind, so it flatters these bars at ~5.5%):
+        #
+        #     N   window   deleted   reached +2% first   share
+        #     1      15m     2,563                 481   18.8%
+        #     2      30m     7,803               2,388   30.6%
+        #     3      45m    16,031               6,546   40.8%
+        #     4      60m    27,651              13,827   50.0%   <- was here
+        #     6      90m    61,708              39,790   64.5%
+        #
+        # At N=4 it is a coin flip: half the deletions were reachable buys, so
+        # the rule was destroying valid training examples rather than
+        # suppressing whipsaw. At N=2 ~70% of deletions are correct. The rise is
+        # monotone because bars further from the sell have more room to reach
+        # target -- consistent with the ~7-bar median time-to-target on this
+        # label. (Counts tally per sell-bar pair, so a buy near two sells counts
+        # twice; the SHARE is the meaningful column.)
         sell_positions = np.where(sells == 1)[0]
-        N = 4
+        N = 2
         valid_sell_positions = sell_positions[sell_positions >= N]
         if len(valid_sell_positions) > 0:
             indices = np.arange(N).reshape(1, -1) + (valid_sell_positions - N).reshape(
