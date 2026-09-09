@@ -97,8 +97,9 @@ Useful flags: `--set` / `--set-sell` (buy/sell params), `--roi`, `--threshold`, 
 - **Identical `trades_hash` to the control ⇒ INCONCLUSIVE**, not refuted — the change never
   reached the trades.
 - **Zero trades ⇒ inconclusive**, never a zero return.
-- Judge on **W1 realised return**. `compare.py`'s `POWER_THRESHOLD_PP = 1.0` is calibrated for
-  ~100-trade arms; a sub-1pp delta there is indistinguishable, not a win.
+- Judge on **W1 realised return** — but see the noise floor below. `compare.py`'s
+  `POWER_THRESHOLD_PP = 1.0` is a rule of thumb that was never derived, and it is roughly **7.6x too
+  lenient**. Treat its verdict as a smoke test, never as evidence.
 - **Never accept on a classifier metric.** val_mcc and P&L move independently here — it has been
   measured repeatedly (higher MCC with identical trades; +0.155 MCC for no P&L change).
 - Report every window with its **net/gross ratio**, not just its trade count (W1 29.8%, W2 18.7%,
@@ -107,6 +108,49 @@ Useful flags: `--set` / `--set-sell` (buy/sell params), `--roi`, `--threshold`, 
 - Where a model is involved, use two seeds via `MLX_SEED` (`train_seed` is inert for multi-task).
   Note the gate is often tight enough that two seeds produce *identical* W1 trades — that is one
   measurement, not two.
+
+### The noise floor — measured, and it governs everything above
+
+Bootstrapping the acceptance window's own per-trade P&L (NNNC W1, 99 trades, +9.831%):
+
+```
+95% CI on the W1 return statistic : [2.383%, 17.649%]
+half-width (the noise floor)      : 7.633pp     (6.1pp when arms are paired)
+sampling SD                       : 3.893pp
+compare.py's threshold            : 1.000pp     <- ~7.6x too lenient
+```
+
+**A whole parameter sweep fits inside that band** (the rvol sweep spans 4.93pp), so the "best" rung
+of a sweep is a ranking of noise. Confirmed independently: full sweeps of two parameters across all
+three windows disagreed on the optimum every time, with contradictory rank correlations between
+windows (rvol W1~W2 **-0.46**, grace W1~W2 **+0.71**), none significant. **The optima are not
+trackable.**
+
+Consequences for anything you are about to do:
+
+- **Do not tune parameters on ~100-trade windows.** Not on W1, not on W2, not on their average.
+  Leave `entry_rvol_threshold`, the ATR band, `stoploss_grace_level` and friends at their incumbent
+  values; they have each been swept and none is resolvable. See the memory notes
+  `project-atr-band-sweep-no-lever`, `project-grace-level-sweep`,
+  `project-rvol-sweep-and-w1-regime-warning`.
+- **Before believing any delta, bootstrap it.** Pull the arm's and control's trades from the
+  backtest archive (`user_data/backtest_results/*.zip`, `strategy.<Name>.trades[].profit_abs`), pair
+  on `(pair, open_date)`, and bootstrap the sum over the symmetric difference. Worked example: a
+  +1.86pp delta that `compare.py` called IMPROVED has a 95% CI of `[-4.29, +7.93]pp`, p=0.54.
+- **Only pursue effects large enough to see.** Structural changes (a mechanism fix, a label
+  redefinition, an execution-model correction) can clear 6pp. Parameter tweaks cannot, and are
+  economically marginal even when real.
+- **A W1/W2 disagreement is not evidence of regime dependence** until you have shown the effect is
+  resolvable. Two noise draws disagreeing looks identical and is the simpler explanation.
+
+**PENDING — the fix is power, not a better threshold.** The intended remedy is a pooled
+walk-forward harness: repeated retrains, every window genuinely out-of-sample, trades pooled across
+folds. That would multiply the OOS trade count without touching the entry bar (~10-11x, to ~1,000
+trades, is what it takes to resolve effects of the size currently being chased) and would remove the
+W2/W3 in-sample problem entirely. **It does not exist yet.** Until it does, the rules above stand:
+prefer structural work, and treat every sweep result as unresolved. Note the ONLY legitimate way to
+add trades is at the same entry bar — more pairs, longer OOS, more folds. Loosening the gate buys
+volume by accepting worse trades and has been rejected repeatedly (guards-off: 1,737 trades, -16%).
 
 ---
 

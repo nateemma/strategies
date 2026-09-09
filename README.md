@@ -1,11 +1,14 @@
 # Phil's Custom freqtrade Crypto Trading Strategies (Version 2)
 
 > [!IMPORTANT]
-> **My studies have led me to conclude that no strategy is likely to be particularly profitable on US crypto exchanges.** There are two structural reasons:
+> **My studies have led me to conclude that no strategy (that uses signal prediction) is likely to be particularly profitable on US crypto exchanges.** There are two structural reasons:
 > 1. **Not enough depth in the order books** — most of the volatility (and therefore the tradeable signal) is concentrated in altcoins with thin volume, so realistic fills erode any edge you find in a backtest.
 > 2. **Shorting is not allowed on US exchanges** — the approaches that do look promising rely on leverage/shorting, which I can't run in the USA.
 >
 > More details are in the [US spot-market study](us_spot_market_study.md).
+
+Having said that, most of the strategies here are profitable, just nowhere near market returns (buy & hold). There is one strategy that is consisently profitable over long periods (years): MomentumRegimeBasket15mFast (in the Basket directory). However, it is a wild ride, since it really only trades during bull and sideways markets and can have a month with scary losses. Over the timeframe of years it is consistently above market returns.
+
 
 _**The directory structure and code architecture have completely changed. The older code is available on branch v1, but I will not be maintaining that**_
 
@@ -165,6 +168,55 @@ I currently focus on strategies that revolve around one of several approaches:
 3. **Anomaly detection** — train on historical "normal" (hold) data, then flag anomalous points (unusually high reconstruction error) as buy/sell candidates. Variants use `NNAnomalyClassifier` (autoencoder) and `NNGANomalyClassifier` (GANomaly).
 
 4. **Simple indicator strategies** — single-indicator or small-combination strategies in `SimpleStrategies/`. Each file is self-contained. I implemented these mostly to get a baseline for expected performance, but also to be able to visualise (through plots) how the various indicators behave so that I can use them in more complex strategies
+
+
+## Why consistent gains are so hard on a US exchange
+
+Worth reading before you form expectations about any strategy in this repo. None of what follows is
+pessimism — it is the summary of a long, mostly-negative research program, written up in
+[`us_spot_market_study.md`](us_spot_market_study.md), with the venue survey in
+[`regime/EXCHANGE_VENUES.md`](regime/EXCHANGE_VENUES.md).
+
+A real edge does exist here and is deployed. But four walls cap how much of it you can keep, and
+they are made of constraints rather than randomness:
+
+**1. There is only so much signal in price data.** Hand-crafted indicators, an 85-indicator battery,
+and learned CNNs on raw OHLCV all converge on the same predictability ceiling (Spearman ρ ≈ 0.15 on
+forward returns). That is an information limit, not a modelling failure — you cannot out-model it
+using the same inputs. Moving it needs *new information*: order flow, funding, on-chain data.
+
+**2. The edge lives where you cannot cheaply trade.** The best signals fire in illiquid moments.
+Enforcing realistic fills — capping orders at ~10% of candle volume, rejecting dust — removed ~73%
+of one strategy's backtested trades and cut its return from +23.7% to +6.6%. Several apparently
+distinct edges turned out to be the same one illiquid coin (ZEC), which is ~36% of trades in the
+current acceptance window. Backtests that ignore fill realism flatter every thin-pair result.
+
+**3. No shorting.** The genuinely attractive edges are market-neutral — long/short spreads whose
+alpha is hidden behind market beta. On long-only spot you inherit the beta and the thin alpha
+drowns in it. This is the single biggest structural difference between a US spot venue and the
+offshore leverage venues most published crypto research assumes.
+
+**4. You cannot measure small improvements, so you cannot reliably accumulate them.** This is the
+subtlest wall and the one that most often fools people. Because walls 2 and 3 force tight entry
+filters, the strategy trades rarely — about 100 times in a 12-month evaluation. Bootstrapping the
+actual trade-by-trade results, a 12-month return of +9.8% carries a 95% confidence interval of
+roughly **±7.6 percentage points**. An entire parameter sweep fits inside that band. So a "2% better"
+configuration is indistinguishable from luck, and tuning toward it is fitting noise. Sweeps of two
+different parameters across three time windows disagreed about the best value every time.
+
+The practical consequence: strategies here should be judged on large, structural changes — a
+mechanism fix, a corrected execution model, a different horizon — not on parameter polishing, which
+is unfalsifiable at this sample size. Small consistent gains are not merely hard to *achieve*, they
+are hard to *verify*, and unverifiable gains have a habit of evaporating live.
+
+**Why not just switch venues?** Surveyed in `regime/EXCHANGE_VENUES.md`. The short version: the
+options are poor. Binance.US is the only Supported-tier venue that clears every requirement (order
+book, market orders, full history, all 11 pairs including ZEC) at 0.10/0.10 fees. Kraken has ~50x
+the depth but lacks OHLCV history and charges 0.25/0.40, which on ~9.7x annual turnover cuts the
+same year's return from +10.7% to +4.9–7.8%. Bitstamp, Crypto.com, Gemini, CEX.IO and Coinbase
+Advanced each fail on a capability or on ZEC coverage. Every other Supported-tier venue geoblocks
+US retail. Fees matter far more than they look at this turnover — the venue choice is worth several
+points of annual return on its own.
 
 
 ## Neural Network Strategies

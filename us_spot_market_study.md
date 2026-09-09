@@ -34,6 +34,11 @@ precise than "you can/can't beat the market":
    the drawdown is severe (52–64%). Details below.
 4. **So the frontier is structural, not algorithmic:** new *information* (order flow, funding, on-chain)
    or a venue/instrument (leverage/shorting, deeper liquidity) — not a better model.
+5. **And the instrument is at its resolution limit.** *(2026-09-09)* The acceptance window's return
+   carries a **±7.6pp** bootstrap interval on ~100 trades. Any improvement smaller than that is
+   unmeasurable, so further parameter work is unfalsifiable by construction. The next real gain has
+   to come either from an effect big enough to see, or from **building a measurement with more power**
+   (pooled walk-forward, more pairs, longer OOS) — which is now the highest-value open work.
 
 This is the textbook signature of an **"efficiently inefficient" market**: efficient enough that cheap
 edges are gone, inefficient enough that a small, hard-won edge remains for whoever pays the price in
@@ -100,6 +105,15 @@ Three walls explain nearly every negative result:
    *lost* money. Phantom fills flatter every backtest that ignores them.
 3. **No shorting.** The genuinely attractive edges are **market-neutral** — long/short spreads whose
    alpha is hidden by market beta. On long-only spot you inherit the beta and the thin alpha drowns.
+4. **The measurement floor — you cannot *see* a small improvement, even a real one.** *(measured
+   2026-09-09)* Bootstrapping the acceptance window's actual per-trade P&L (NNNC, 99 trades, +9.83%)
+   gives a 95% interval of **[2.38%, 17.65%]** — a **±7.6pp** half-width, ±6.1pp when arms are paired
+   over their symmetric difference. A whole parameter sweep spans **4.93pp inside that band**. So
+   sub-5pp effects are invisible here regardless of whether they exist, and the "optimum" of any
+   sweep is a ranking of noise. This is why the last stretch of tuning produced nothing: not because
+   the parameters don't matter, but because a 12-month window at ~100 trades cannot resolve them.
+   It compounds wall 2 — illiquidity forces tight guards, tight guards mean few trades, few trades
+   mean no statistical power.
 
 ## Methodological lessons (reusable by anyone)
 
@@ -118,6 +132,24 @@ These are worth as much as the findings:
   Don't spend a scaler+GAN+classifier retrain on a feature that fails a 5-minute signal check.
 - **Capacity ≠ signal.** More features / bigger models made OOS *worse* here. On a low-SNR target,
   flexibility buys overfitting, not edge.
+- **Derive your significance threshold; never assume one.** This program ran for months against a
+  1.0pp "power threshold" that was a rule of thumb. The measured floor is ~7.6pp — the threshold was
+  **~7.6x too lenient**, and it passed noise as signal repeatedly. Bootstrap the arm's own trade P&L
+  before believing any delta. A worked example: a +1.86pp "win" that cleared the old threshold has a
+  bootstrapped 95% CI of **[-4.29, +7.93]pp, p=0.54** — nothing was demonstrated.
+- **Test whether an optimum is *trackable* before tuning to any window.** Full sweeps of two
+  parameters across three windows: the best value disagreed in every case, and the rank correlations
+  between windows were contradictory (rvol W1~W2 **-0.46**, grace W1~W2 **+0.71**), none significant
+  at 6-7 rungs. An untrackable optimum cannot be tuned — not on the current window, not on a distant
+  one, not on their average. Leave the parameter alone.
+- **"It flipped in another era" is not automatically regime-dependence.** Two noise draws disagreeing
+  looks identical and is the simpler explanation. Establish that the effect is *resolvable* first,
+  then attribute the flip. (I got this backwards and built a rule on it.)
+- **Power comes from more trades at the SAME bar — never from a looser gate.** Widening entry
+  criteria buys volume by accepting worse trades (measured repeatedly: guards-off 1,737 trades and
+  -16%; rvol 2.0->0.2 gave +52 trades and -2.9pp). More pairs, longer OOS, or pooled walk-forward
+  across repeated retrains add samples without touching the bar. Roughly **10-11x** the trade count
+  (~1,000 vs 99) is needed to resolve effects of the size currently being chased.
 
 ## The one real new signal: funding-rate reversion
 
