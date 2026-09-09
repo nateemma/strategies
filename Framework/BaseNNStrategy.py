@@ -210,7 +210,7 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
     # Independent of GAN augmentation: strategies that GAN-augment
     # often set this to False so the classifier sees only the GAN's
     # synthetic samples on top of the original real signals.
-    augment_training_data = True
+    apply_label_conflict_resolution = True
 
     # GAN augmentation knobs — see StrategyConfig docstring.  Strategies
     # opt in by overriding ``gan_type`` and (optionally) the ratio /
@@ -960,7 +960,7 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
         dataframe["%train_buy"] = np.where(buys > 0, 1.0, 0.0)
         dataframe["%train_sell"] = np.where(sells > 0, 1.0, 0.0)
 
-        if self.augment_training_data:
+        if self.apply_label_conflict_resolution:
             buys, sells = self.augment_training_signals(buys, sells)
 
         self.dbg_curr_df = dataframe
@@ -1023,7 +1023,7 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
             self.debug_print(
                 f"        Final trading_classes counts: buys={num_buys_after}, sells={num_sells_after}"
             )
-            if not self.augment_training_data and (
+            if not self.apply_label_conflict_resolution and (
                 num_buys_before != num_buys_after or num_sells_before != num_sells_after
             ):
                 self.debug_print(

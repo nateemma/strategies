@@ -106,7 +106,7 @@ class NNPredictStrategy(BaseNNStrategy):
         seq_len=16,
     )
 
-    augment_training_data = False  # signal augmentation is binary-only — not meaningful for continuous targets
+    apply_label_conflict_resolution = False  # conflict resolution is binary buy/sell only — meaningless for a continuous target
     use_markov_smoothing = False   # Markov transition matrix is for discrete states
 
     # Regression target caps. After ATR scaling, gain is in ATR-units

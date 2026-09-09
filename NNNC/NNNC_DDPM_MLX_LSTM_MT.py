@@ -28,5 +28,5 @@ from Framework.BaseStrategy import GANType
 class NNNC_DDPM_MLX_LSTM_MT(NNNC_DDPM_MLX_LSTM):
     gan_type = GANType.MT_DDPM
     gan_target_ratio = 0.8
-    augment_training_data = True
+    apply_label_conflict_resolution = True
     use_post_gan_scaling = True

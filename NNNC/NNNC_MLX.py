@@ -23,7 +23,7 @@ class NNNC_MLX(MLXClassifierMixin, NNNCStrategy):
 
     # Use only real signals as the basis; the GAN provides synthetic
     # samples below, so layered signal augmentation would double-count.
-    augment_training_data = True
+    apply_label_conflict_resolution = True
 
     # Trend filter on entry (2026-05-30 experiment). Per
     # project_gbb_labeler_exhausted.md: the gbb labeler's signal can't

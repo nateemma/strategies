@@ -34,7 +34,7 @@ class Skl_RandomForest_WGAN(SklearnStrategy):
 
     # Use only real signals as the basis; GAN provides synthetic samples
     # so layered signal augmentation would double-count.
-    augment_training_data = False
+    apply_label_conflict_resolution = True
 
     def get_classifier_type(self):
         return SklearnClassifier.ClassifierType.RandomForest

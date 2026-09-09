@@ -337,7 +337,7 @@ class NNAnomalyStrategy(BaseNNStrategy):
             # print(f"    Recalculated class weights: {self.class_weights}")
 
         #    # HACK: (?!) Artificially skew weights for difficult tasks to penalise middle class
-        #     if self.augment_training_data:
+        #     if self.apply_label_conflict_resolution:
         #         self.debug_print("    Augmenting training data with class weights")
         #         trading_weights = self.class_weights["trading"] * np.array([2.0, 0.5, 2.0])
         #         self.class_weights["trading"] = trading_weights

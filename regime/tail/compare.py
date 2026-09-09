@@ -84,7 +84,10 @@ def _scale(rec: dict, trades: list) -> float:
     return 100.0 / 10000.0
 
 
-def bootstrap_delta(arm: dict, ctl: dict) -> dict | None:
+def bootstrap_delta(arm: dict, ctl: dict,
+                    arm_trades: list | None = None,
+                    ctl_trades: list | None = None,
+                    key_fields: tuple = ("pair", "open_date")) -> dict | None:
     """Paired bootstrap of the arm-minus-control return difference.
 
     Pairs on (pair, open_date). Trades present and IDENTICAL in both contribute
@@ -94,11 +97,16 @@ def bootstrap_delta(arm: dict, ctl: dict) -> dict | None:
     enter with their own sign (the membership/symmetric-difference case, correct
     when the entry set itself moves).
     """
-    at, ct = _trades(arm), _trades(ctl)
+    # 2026-09-09: trade lists may be supplied directly, so a POOLED walk-forward set can be
+    # compared with THIS statistic instead of a second, divergent one (FR-013 of feature 007).
+    # Pooled sets pair on (fold_id, pair, open_date) because the same pair/time can legitimately
+    # recur across folds. Records are still required, for the pp scale.
+    at = arm_trades if arm_trades is not None else _trades(arm)
+    ct = ctl_trades if ctl_trades is not None else _trades(ctl)
     if at is None or ct is None:
         return None
     scale = _scale(ctl, ct)
-    key = lambda t: (t["pair"], t["open_date"])
+    key = lambda t: tuple(t[k] for k in key_fields)
     a = {key(t): t["profit_abs"] for t in at}
     c = {key(t): t["profit_abs"] for t in ct}
     shared = set(a) & set(c)

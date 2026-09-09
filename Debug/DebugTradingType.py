@@ -47,7 +47,7 @@ class DebugTradingType(NNMTStrategy):
     MIN_SELL_LOSS_THRESHOLD = 0.008
     TRAINING_TYPE = 1
     PEAK_WINDOW = 6
-    augment_training_data = False
+    apply_label_conflict_resolution = False
     aggregate_pairs = False
 
     # --------------------------------

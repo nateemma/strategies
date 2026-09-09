@@ -146,6 +146,16 @@ def main() -> int:
         want = set(a.folds.split(","))
         folds = [f for f in folds if f["fold_id"] in want]
 
+    # SEED NAMESPACING. get_model_path keys off the class name, so running a second seed against
+    # the SAME class would silently overwrite the first seed's weights -- the same collision the
+    # plan validator forbids between folds, which it cannot see across runs. Seed 1 keeps the
+    # canonical identity; any other seed gets its own class, model dir and arm tag.
+    if a.seed != 1:
+        folds = [dict(f,
+                      strategy_class=f"{f['strategy_class']}_s{a.seed}",
+                      model_dir=f"{f['model_dir']}_s{a.seed}",
+                      arm_tag=f"{f['arm_tag']}_s{a.seed}") for f in folds]
+
     if a.dry_run:
         print(f"DRY RUN — {len(folds)} folds, family {family}, base {base}, seed {a.seed}")
         print(f"params snapshot: {plan.get('params_snapshot')} sha={plan.get('params_sha')}")

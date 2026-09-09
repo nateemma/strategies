@@ -47,7 +47,7 @@ class TrainingEngine:
 
     def get_training_class_weights(self, train_labels=None, validation_labels=None):
         """Get the class weights for the training data"""
-        if self.augment_training_data and train_labels is not None:
+        if self.apply_label_conflict_resolution and train_labels is not None:
             labels_to_use = train_labels
         else:
             labels_to_use = (

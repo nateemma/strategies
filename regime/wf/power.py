@@ -56,9 +56,15 @@ def report(pooled: dict, subset: str | None = None) -> str:
     bs = bootstrap_floor(p, scale)
     n = len(p)
 
+    # ANNUALISE BEFORE COMPARING. The bootstrap runs on the SUM over the pooled span, which is
+    # ~3.7 years; the baseline half-width is on a ONE-YEAR window. Comparing them directly makes a
+    # working harness look like a 0.62x regression -- it did, on the first run of this report.
+    years = sum(f["test_days"] for f in per_fold) / 365.0
+    hw_annual = bs["half_width_pp"] / years
+
     # sqrt(n) prediction from the measured single-window baseline (research R9: a HYPOTHESIS).
     predicted = BASELINE_HALF_WIDTH_PP * (BASELINE_N_TRADES / n) ** 0.5
-    shortfall = bs["half_width_pp"] - predicted
+    shortfall = hw_annual - predicted
 
     # Inter-fold correlation: the explanation when pooling underdelivers.
     fr = [f["return_pct"] for f in per_fold if f["return_pct"] is not None]
@@ -77,13 +83,16 @@ def report(pooled: dict, subset: str | None = None) -> str:
         "",
         f"  pooled trades                  {n:>10}      (baseline {BASELINE_N_TRADES}, "
         f"target >= {TARGET_POOLED_TRADES})",
-        f"  bootstrap 95% CI               [{bs['ci_low']:+.3f}%, {bs['ci_high']:+.3f}%]",
-        f"  ACHIEVED FLOOR (half-width)    {bs['half_width_pp']:>10.3f}pp",
-        f"  baseline floor (1 window)      {BASELINE_HALF_WIDTH_PP:>10.3f}pp"
-        f"   (paired {BASELINE_PAIRED_PP}pp)",
-        f"  improvement ratio              {BASELINE_HALF_WIDTH_PP/bs['half_width_pp']:>10.2f}x",
+        f"  pooled span                    {years:>10.2f} yr-equivalent",
+        f"  bootstrap 95% CI (whole span)  [{bs['ci_low']:+.3f}%, {bs['ci_high']:+.3f}%]",
+        f"  half-width on the whole span   {bs['half_width_pp']:>10.3f}pp",
         "",
-        f"  MINIMUM RESOLVABLE EFFECT      {bs['half_width_pp']:>10.3f}pp",
+        f"  ACHIEVED FLOOR (annualised)    {hw_annual:>10.3f}pp/yr   <- comparable to baseline",
+        f"  baseline floor (1 window)      {BASELINE_HALF_WIDTH_PP:>10.3f}pp/yr"
+        f"  (paired {BASELINE_PAIRED_PP}pp)",
+        f"  improvement ratio              {BASELINE_HALF_WIDTH_PP/hw_annual:>10.2f}x",
+        "",
+        f"  MINIMUM RESOLVABLE EFFECT      {hw_annual:>10.3f}pp/yr",
         "    Anything smaller than this cannot be distinguished from noise on this instrument,",
         "    however many times it is repeated. Parameter-scale effects (1-2pp) remain",
         "    UNRESOLVABLE — that is a data limit, not a defect of the harness.",
@@ -92,15 +101,21 @@ def report(pooled: dict, subset: str | None = None) -> str:
         f"  shortfall (achieved - pred)    {shortfall:>+10.3f}pp",
         f"  fold-return lag-1 correlation  {lag1:>10.3f}   (dispersion {disp:.3f}pp)",
     ]
+    out.append(f"  per-trade dispersion           "
+               f"{bs['half_width_pp']/n**0.5:>10.3f}   "
+               f"(baseline {BASELINE_HALF_WIDTH_PP/BASELINE_N_TRADES**0.5:.3f})")
     if shortfall > 0.25:
         out.append("    ^ POOLING UNDERDELIVERED. Fold returns are not independent; the power")
         out.append("      ceiling is lower than data volume implies. This is a FINDING (R9).")
+    elif shortfall < -0.1:
+        out.append("    ^ pooling OVER-delivered: per-trade dispersion across folds is lower than")
+        out.append("      in the single baseline window, so the floor fell faster than 1/sqrt(n).")
     out += ["", f"  {'fold':<7}{'trades':>8}{'return%':>10}{'days':>7}  status"]
     for f in per_fold:
         r = "     n/a" if f["return_pct"] is None else f"{f['return_pct']:>10.3f}"
         out.append(f"  {f['fold_id']:<7}{f['n_trades']:>8}{r}{f['test_days']:>7}  {f['status']}")
 
-    tgt = ("MET" if bs["half_width_pp"] <= TARGET_HALF_WIDTH_PP else "MISSED")
+    tgt = ("MET" if hw_annual <= TARGET_HALF_WIDTH_PP else "MISSED")
     cnt = ("MET" if n >= TARGET_POOLED_TRADES else "MISSED")
     out += ["",
             f"  SC-001  (mandatory) floor measured and reported vs baseline : SATISFIED",

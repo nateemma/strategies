@@ -32,7 +32,7 @@ class NNMT_CGP_MLX(NNMT_MLX):
     # GAN augmentation — multi-task CTAB-GAN+, applied at the 2-D
     # tabular stage via the BaseNN dispatcher.
     gan_type = GANType.MT_CTAB_GAN
-    augment_training_data = True
+    apply_label_conflict_resolution = True
 
     gan_run_diagnostics = True
     entry_trend_filter_enable = False

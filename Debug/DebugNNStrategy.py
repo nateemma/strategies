@@ -50,7 +50,7 @@ class DebugNNStrategy(BaseNNStrategy):
     # inherit from BaseNNStrategy → Framework.TrainingConfig. To override
     # for a debug experiment, set the attribute directly here.
     PEAK_WINDOW = 48
-    augment_training_data = False
+    apply_label_conflict_resolution = False
     aggregate_pairs = False
     entry_trend_filter_enable = False
 
@@ -87,10 +87,7 @@ class DebugNNStrategy(BaseNNStrategy):
     }
 
     # --------------------------------
-    buy_params = { **BaseNNStrategy.buy_params, 
-        "min_buy_gain_threshold": 0.003,
-        "min_sell_gain_threshold": 0.003,
-        "training_type": 17}
+    buy_params = { **BaseNNStrategy.buy_params}
 
     # override NNStrategy hyperopt params (mostly to disable optimization for now)
     opt_framework_params = True

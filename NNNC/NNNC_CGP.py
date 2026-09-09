@@ -33,7 +33,7 @@ class NNNC_CGP(NNNCStrategy):
 
     # Use only real signals as the basis; the GAN provides synthetic
     # samples below, so layered signal augmentation would double-count.
-    augment_training_data = True
+    apply_label_conflict_resolution = True
 
     # Don't push above ~1.0 — the model starts overfitting to synthetic.
     gan_target_ratio = 0.5

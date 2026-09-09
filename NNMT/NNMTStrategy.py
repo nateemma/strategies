@@ -310,7 +310,7 @@ class NNMTStrategy(BaseNNStrategy):
     # Class level parameters
     # -----------
 
-    augment_training_data = True  # signal augmentation; GAN augmentation gates on gan_augment
+    apply_label_conflict_resolution = True  # buy/sell label conflict resolution; GAN augmentation is separate (gan_augment)
 
     filter_signals = False  # don't double filter
 

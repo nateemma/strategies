@@ -57,7 +57,7 @@ class NNMT_DDPM(NNMTStrategy):
 
     # Use only real signals as the basis; the GAN provides synthetic
     # samples below, so layered signal augmentation would double-count.
-    augment_training_data = False
+    apply_label_conflict_resolution = True
 
     # Features the MT_DDPM systematically mis-reproduces — copy from real
     # class-matched rows during balancing instead of trusting the GAN's

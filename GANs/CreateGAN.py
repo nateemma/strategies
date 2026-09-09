@@ -85,6 +85,7 @@ class CreateGAN(CreateGANBase, BaseNNStrategy):
     gan_type: GANType = GANType.WGAN
 
     aggregate_pairs = True  # use all pairs for training
+    apply_label_conflict_resolution = True
 
     # Per-backend defaults.  The active entry is merged with any
     # caller-supplied override at construction time.

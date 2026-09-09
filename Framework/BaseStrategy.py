@@ -158,12 +158,26 @@ class StrategyConfig:
     num_epochs: int = 256
     batch_size: int = 2048
 
-    # Training-signal augmentation (peak-finding / wavelet smoothing /
-    # synthetic buy-sell pairs).  Independent of GAN augmentation —
-    # strategies that GAN-augment often set ``augment_training_data =
-    # False`` because the GAN already provides synthetic samples and
-    # they only want real signals as the basis.
-    augment_training_data: bool = True
+    # Buy/sell LABEL CONFLICT RESOLUTION. Renamed from ``apply_label_conflict_resolution``
+    # 2026-09-09: that name, and the comment that stood here, were wrong and
+    # actively caused a misconfiguration.
+    #
+    # This flag no longer gates any augmentation. "Trick 1" (2-bar dilation) was
+    # removed 2026-09-08, so ``augment_training_signals`` now performs ONLY:
+    #   Trick 2 — a sell overrides a coincident buy
+    #   Trick 3 — buys in the N bars before a sell are cleared (they cannot reach
+    #             target before the reversal; measured, 69.4% of them at N=2)
+    #
+    # It is NOT a substitute for GAN augmentation and setting it False because
+    # "the GAN already provides synthetic samples" is a CATEGORY ERROR — a GAN
+    # supplies synthetic FEATURES, not resolved LABELS. Measured cost of getting
+    # this wrong, NNNC_DDPM_MLX over 6,814 trades: buy precision 0.465 against
+    # recall 0.990 (2.13x too many signals), ATR stops outnumbering take-profits
+    # 2,955 to 2,338, and -23.97% with a 43.6% drawdown — while MCC read 0.630.
+    #
+    # Leave True unless the labels are not binary buy/sell (NNPredict) or you
+    # deliberately want raw unresolved labels (the Debug/* tools).
+    apply_label_conflict_resolution: bool = True
 
     # GAN augmentation — concrete strategies opt in by setting ``gan_type``
     # to anything other than NONE.  ``gan_target_ratio`` is intentionally
@@ -310,7 +324,7 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
         # individually; the signal is the CONSISTENCY of the ordering, not any
         # single figure. See regime/LABEL_EXIT_ALIGNMENT.md.
         "cexit_take_profit": 0.022,
-        "enable_exit_signal": False,
+        "enable_exit_signal": True,
         "exit_close_norm_threshold": 0.6,
         "exit_guard_threshold": -0.2,
         # 2026-09-06: was a HARDCODED `rvol > 2.0` literal in

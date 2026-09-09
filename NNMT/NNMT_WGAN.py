@@ -97,7 +97,7 @@ class NNMT_WGAN(NNMTStrategy):
     # Complementary to GAN augmentation, not redundant: this expands the
     # minority class label coverage on the real data the GAN is trained on,
     # while GAN augmentation produces synthetic rows after the fact.
-    augment_training_data = True
+    apply_label_conflict_resolution = True
 
     # When True, balance_multi_task emits a per-(task, class) fidelity
     # report (mean shift in σ, std ratio, mode-collapse / off-distribution

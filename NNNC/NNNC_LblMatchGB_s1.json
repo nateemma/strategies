@@ -1,5 +1,5 @@
 {
-    "strategy_name": "NNNC_DDPM_MLX",
+    "strategy_name": "NNNC_LblMatchGB_s1",
     "params": {
         "roi": {
             "0": 0.05

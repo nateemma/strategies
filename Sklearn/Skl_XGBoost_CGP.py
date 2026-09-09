@@ -31,7 +31,7 @@ class Skl_XGBoost_CGP(SklearnStrategy):
     gan_target_ratio = 0.8
 
     # Use only real signals as the basis; GAN handles synthetic samples.
-    augment_training_data = False
+    apply_label_conflict_resolution = True
 
     def get_classifier_type(self):
         return SklearnClassifier.ClassifierType.XGBoost

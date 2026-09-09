@@ -41,7 +41,7 @@ class DebugRegimeIndicator(NNMTStrategy):
     # MIN_BUY_GAIN_THRESHOLD, MIN_SELL_LOSS_THRESHOLD inherit from
     # BaseNNStrategy → Framework.TrainingConfig. Override here if needed.
     PEAK_WINDOW = 36
-    augment_training_data = False
+    apply_label_conflict_resolution = False
     aggregate_pairs = False
 
     # --------------------------------

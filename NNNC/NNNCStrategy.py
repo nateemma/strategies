@@ -36,7 +36,7 @@ class NNNCStrategy(BaseNNStrategy):
         seq_len=16,
     )
 
-    augment_training_data = True  # no GAn, so augment signals
+    apply_label_conflict_resolution = True  # resolve buy/sell label conflicts before training
 
     # Model architecture is selected declaratively: subclasses set
     # ``classifier_type`` to a ``NNNClassifier.ClassifierType`` (Keras) or a

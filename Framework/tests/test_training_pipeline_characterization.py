@@ -79,7 +79,7 @@ def _build_strategy(tensor_method: int):
     s.TRAIN_DATA_SPLIT = 0.8
     s.gan_type = GANType.NONE
     s.gan_augment = False
-    s.augment_training_data = False
+    s.apply_label_conflict_resolution = False
     s.shuffle_train_data = True
     s.use_markov_smoothing = False
     s.classifier = None

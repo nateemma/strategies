@@ -53,7 +53,7 @@ class DebugNNMTStrategy(NNMTStrategy):
     MIN_BUY_GAIN_THRESHOLD = 0.009
     MIN_SELL_LOSS_THRESHOLD = 0.01
     TRAINING_TYPE = 16
-    augment_training_data = False
+    apply_label_conflict_resolution = False
     aggregate_pairs = False
 
     # --------------------------------

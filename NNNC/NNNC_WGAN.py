@@ -26,7 +26,7 @@ class NNNC_WGAN(NNNCStrategy):
 
     # Use only real signals as the basis; the GAN provides the synthetic
     # samples below, so layered signal augmentation would double-count.
-    augment_training_data = False
+    apply_label_conflict_resolution = True
 
     # Single-task ratio: each minority class is brought up to 80% of the
     # majority class size.  See balance_single_task for semantics.

@@ -82,7 +82,7 @@ class NNNC_DDPM_MLX(NNNC_MLX):
 
     gan_run_diagnostics = True
 
-    augment_training_data = True
+    apply_label_conflict_resolution = True
 
 
 
