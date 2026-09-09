@@ -8,10 +8,10 @@ This file is intended to orient an AI agent (or a new developer) on how to build
 
 - **Shell**: `zsh` (macOS default). All scripts use `zsh`, not `bash`.
 - **Python**: A virtualenv at `.venv`. Activate with `source .venv/bin/activate` before running any Python or freqtrade commands. (Not conda.)
-- **Working directory**: All scripts in `scripts/` and freqtrade commands **must** be run from the project root (`~/projects/freqtrade/`), not from `scripts/` or any subdir. The scripts use relative paths (`strat_dir="user_data/strategies"`, config at `user_data/strategies/config/…`) and prepend `.` to `PYTHONPATH` so the in-tree `freqtrade` package resolves — both only work when the CWD is the repo root. Running from the wrong directory fails with a *misleading* `ModuleNotFoundError: No module named 'freqtrade'` + `config file not found` (see Troubleshooting).
+- **Working directory**: All scripts in `scripts/` and freqtrade commands **must** be run from the **repo root** -- the directory containing `user_data/` (its location is machine-specific; this guide never assumes one) -- not from `scripts/` or any subdir. The scripts use relative paths (`strat_dir="user_data/strategies"`, config at `user_data/strategies/config/…`) and prepend `.` to `PYTHONPATH` so the in-tree `freqtrade` package resolves — both only work when the CWD is the repo root. Running from the wrong directory fails with a *misleading* `ModuleNotFoundError: No module named 'freqtrade'` + `config file not found` (see Troubleshooting).
 - **PYTHONPATH**: The scripts set this automatically. If running manually, export:
   ```
-  export PYTHONPATH=~/projects/freqtrade/user_data/strategies:$PYTHONPATH
+  export PYTHONPATH="$PWD/user_data/strategies:$PYTHONPATH"   # from the repo root
   ```
 
 ---
@@ -520,13 +520,13 @@ First check your **working directory** — `ModuleNotFoundError: No module named
 running a `scripts/*.sh` almost always means you launched it from the wrong CWD. The scripts
 use relative paths and a `.`-prefixed `PYTHONPATH`, so they only work from the project root:
 ```zsh
-cd ~/projects/freqtrade
+cd /path/to/freqtrade        # the directory containing user_data/
 zsh user_data/strategies/scripts/test_strat.sh NNNC NNNC_CGP
 ```
 If you're running Python/freqtrade manually, also make sure PYTHONPATH includes the
 strategies directory:
 ```zsh
-export PYTHONPATH=~/projects/freqtrade/user_data/strategies:$PYTHONPATH
+export PYTHONPATH="$PWD/user_data/strategies:$PYTHONPATH"   # from the repo root
 ```
 
 ### Suspiciously high backtest results (100%+)
