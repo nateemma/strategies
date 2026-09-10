@@ -1,0 +1,17 @@
+{
+  "tag": "unguard_s7",
+  "window": "W3",
+  "timerange": "20230101-20231231",
+  "strategy": "NNNC_Unguarded_s7",
+  "prediction_threshold": null,
+  "guards": "on",
+  "overrides": {},
+  "sell_overrides": {},
+  "trailing_overrides": {},
+  "exit_config_hash": "89e46624fea6bc6d",
+  "volume_filter_active": true,
+  "returncode": 0,
+  "n_trades": 0,
+  "trades_hash": null,
+  "note": "zero trades - INCONCLUSIVE"
+}

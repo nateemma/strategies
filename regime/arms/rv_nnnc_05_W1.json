@@ -1,0 +1,33 @@
+{
+  "tag": "rv_nnnc_05",
+  "window": "W1",
+  "timerange": "20250901-20260831",
+  "strategy": "NNNC_MLX",
+  "prediction_threshold": null,
+  "guards": "on",
+  "overrides": {
+    "entry_rvol_threshold": 0.5
+  },
+  "sell_overrides": {},
+  "trailing_overrides": {},
+  "exit_config_hash": "a447f5f0bb97d247",
+  "volume_filter_active": true,
+  "returncode": 0,
+  "result_file": "backtest-result-2026-09-08_19-54-41.zip",
+  "n_trades": 147,
+  "n_pairs": 11,
+  "trades_hash": "4d22d66ea83dc597",
+  "profit_pct": 119.713,
+  "win_rate": 72.1,
+  "duration_h_median": 5.0,
+  "duration_h_p25": 2.0,
+  "duration_h_p75": 8.88,
+  "trades_per_day": 0.4565,
+  "wallet_profit_pct": 7.943,
+  "max_drawdown_pct": 2.99,
+  "profit_factor": 1.53,
+  "calmar": 13.945,
+  "sortino": 0.909,
+  "sqn": 1.487,
+  "expectancy_ratio": 0.1477
+}

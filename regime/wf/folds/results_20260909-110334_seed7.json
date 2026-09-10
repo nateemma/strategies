@@ -1,0 +1,73 @@
+{
+  "run_id": "20260909-110334",
+  "seed": 7,
+  "params_sha": "a05855490d4ecf08",
+  "elapsed_minutes": 10.4,
+  "folds_planned": 15,
+  "folds_complete": 4,
+  "status": "partial",
+  "folds": [
+    {
+      "fold_id": "f00",
+      "train_start": "2021-01-01",
+      "train_end": "2022-12-31",
+      "test_start": "2023-01-01",
+      "test_end": "2023-04-01",
+      "train_timerange": "20210101-20230101",
+      "test_timerange": "20230101-20230401",
+      "test_days": 90,
+      "strategy_class": "NNNC_WF_f00_s7",
+      "model_dir": "user_data/strategies/saved_data/NNNC_WF_f00_s7",
+      "arm_tag": "wf_nnnc_f00_s7",
+      "status": "evaluated",
+      "n_trades": 16
+    },
+    {
+      "fold_id": "f04",
+      "train_start": "2021-01-01",
+      "train_end": "2023-12-26",
+      "test_start": "2023-12-27",
+      "test_end": "2024-03-26",
+      "train_timerange": "20210101-20231227",
+      "test_timerange": "20231227-20240326",
+      "test_days": 90,
+      "strategy_class": "NNNC_WF_f04_s7",
+      "model_dir": "user_data/strategies/saved_data/NNNC_WF_f04_s7",
+      "arm_tag": "wf_nnnc_f04_s7",
+      "status": "evaluated",
+      "n_trades": 41
+    },
+    {
+      "fold_id": "f08",
+      "train_start": "2021-01-01",
+      "train_end": "2024-12-20",
+      "test_start": "2024-12-21",
+      "test_end": "2025-03-21",
+      "train_timerange": "20210101-20241221",
+      "test_timerange": "20241221-20250321",
+      "test_days": 90,
+      "strategy_class": "NNNC_WF_f08_s7",
+      "model_dir": "user_data/strategies/saved_data/NNNC_WF_f08_s7",
+      "arm_tag": "wf_nnnc_f08_s7",
+      "status": "evaluated",
+      "n_trades": 71
+    },
+    {
+      "fold_id": "f12",
+      "train_start": "2021-01-01",
+      "train_end": "2025-12-15",
+      "test_start": "2025-12-16",
+      "test_end": "2026-03-16",
+      "train_timerange": "20210101-20251216",
+      "test_timerange": "20251216-20260316",
+      "test_days": 90,
+      "strategy_class": "NNNC_WF_f12_s7",
+      "model_dir": "user_data/strategies/saved_data/NNNC_WF_f12_s7",
+      "arm_tag": "wf_nnnc_f12_s7",
+      "status": "evaluated",
+      "model_artifact_verified": true,
+      "n_trades": 24,
+      "arm_returncode": 0
+    }
+  ]
+}

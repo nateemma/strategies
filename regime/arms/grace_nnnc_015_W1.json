@@ -1,0 +1,33 @@
+{
+  "tag": "grace_nnnc_015",
+  "window": "W1",
+  "timerange": "20250901-20260831",
+  "strategy": "NNNC_MLX",
+  "prediction_threshold": null,
+  "guards": "on",
+  "overrides": {},
+  "sell_overrides": {
+    "stoploss_grace_level": -0.15
+  },
+  "trailing_overrides": {},
+  "exit_config_hash": "957a3ab7954f46c5",
+  "volume_filter_active": true,
+  "returncode": 0,
+  "result_file": "backtest-result-2026-09-08_19-21-54.zip",
+  "n_trades": 99,
+  "n_pairs": 10,
+  "trades_hash": "f2a1d04a21e09a2e",
+  "profit_pct": 78.262,
+  "win_rate": 72.7,
+  "duration_h_median": 4.5,
+  "duration_h_p25": 1.5,
+  "duration_h_p75": 8.88,
+  "trades_per_day": 0.3764,
+  "wallet_profit_pct": 6.767,
+  "max_drawdown_pct": 2.118,
+  "profit_factor": 1.611,
+  "calmar": 16.771,
+  "sortino": 0.849,
+  "sqn": 1.496,
+  "expectancy_ratio": 0.1666
+}
