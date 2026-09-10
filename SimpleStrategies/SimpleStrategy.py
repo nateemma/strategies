@@ -89,9 +89,9 @@ class SimpleStrategy(BaseStrategy):
     }
 
     # # Inherit all buy_params from BaseStrategy and only override the guards flag
-    buy_params = {**BaseStrategy.buy_params, "entry_enable_guards": False}
+    # buy_params = {**BaseStrategy.buy_params, "entry_enable_guards": False}
 
-    minimal_roi = {"0": 0.04, "30": 0.02, "60": 0.01, "120": 0.002, "240": 0.001}
+    # minimal_roi = {"0": 0.04, "30": 0.02, "60": 0.01, "120": 0.002, "240": 0.001}
 
     # Timeframe and Stoploss overrides
     timeframe = "15m"
