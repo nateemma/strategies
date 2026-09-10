@@ -156,5 +156,13 @@ class CreateMTGANBase(CreateGANBase):
             config=config,
         )
 
-        self.on_gan_training_complete()
+        # Feed the post-creation fidelity gate (CreateGANBase). Multi-task labels are a
+        # dict; the gate scores the trading head. Without these arguments the gate has
+        # nothing to compare against and skips silently.
+        self.on_gan_training_complete(
+            train_data=train_data,
+            train_labels=train_labels,
+            feature_names=None,
+            config=config,
+        )
         self._reset_state()

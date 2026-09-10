@@ -247,7 +247,16 @@ class CreateGANBase:
             pair_names=pair_names,
         )
 
-        self.on_gan_training_complete()
+        self.on_gan_training_complete(
+            train_data=train_data,
+            train_labels=train_labels,
+            # train_data = combined_minmax.to_numpy(), so ITS columns are the feature
+            # names. combined_original is the pre-normalisation frame with a different
+            # column set, and passing it made the diagnostic fall back to f0..fN.
+            feature_names=list(combined_minmax.columns)
+            if hasattr(combined_minmax, "columns") else None,
+            config=config,
+        )
         self._reset_state()
 
     def populate_indicators(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
@@ -325,11 +334,151 @@ class CreateGANBase:
         """
         raise NotImplementedError("run_gan_training must be implemented by subclasses")
 
-    def on_gan_training_complete(self) -> None:
+    def on_gan_training_complete(self, **kwargs: Any) -> None:
+        """Run the POST-CREATION FIDELITY GATE, then defer to subclasses.
+
+        Scores the GAN that was just written to disk BEFORE anyone spends a
+        classifier retrain on it. Loading from the save path (rather than reusing the
+        in-memory object) means this validates the artefact the downstream strategy
+        will actually load.
+
+        Gate only, not a verdict on utility. This repository has established that GAN
+        fidelity does NOT predict trading benefit -- the augmentation-parity work fixed
+        fidelity flags while OOS returns stayed flat. So a PASS here means "not broken",
+        never "this will help". Its job is to stop hours being spent on a GAN with
+        collapsed variance or destroyed joint structure.
+
+        Runs only when ``gan_run_diagnostics`` is True. Never raises: a diagnostic must
+        not be able to fail a training run that otherwise succeeded.
         """
-        Hook for subclasses to run additional logic once GAN training completes.
+        if getattr(self, "gan_run_diagnostics", False):
+            try:
+                self._post_creation_fidelity_gate(**kwargs)
+            except Exception as exc:
+                print(f"    [gan-gate] skipped (error: {exc})")
+
+    def _post_creation_fidelity_gate(
+        self,
+        *,
+        train_data: Any = None,
+        train_labels: Any = None,
+        feature_names: Optional[List[str]] = None,
+        config: Optional[Dict[str, Any]] = None,
+        n_per_class: int = 4000,
+    ) -> None:
+        """Sample the saved GAN per class and score it against the real training data."""
+        import numpy as _np
+        from GANs.balance import _generate_for_class
+        from GANs.diagnostics import summarize_real_vs_synthetic
+        from GANs.GANInterface import GANInterface
+
+        if train_data is None or train_labels is None:
+            print("    [gan-gate] no training data available — skipped")
+            return
+        labels = train_labels
+        if isinstance(labels, dict):        # multi-task: score the trading head
+            labels = labels.get("trading", next(iter(labels.values())))
+        labels = _np.asarray(labels)
+        if labels.ndim > 1 and labels.shape[-1] > 1:
+            labels = labels.argmax(axis=-1)
+        labels = labels.astype(int).ravel()
+
+        real = _np.asarray(train_data)
+        num_classes = int(labels.max()) + 1
+        save_path = self.get_gan_save_path()
+
+        interface = GANInterface(self.gan_type, save_path=save_path)
+        interface.load()
+
+        print("")
+        print(f"    === POST-CREATION GAN FIDELITY GATE — {self.gan_type} ===")
+        print(f"    save_path: {save_path}")
+
+        synth_batches, synth_lbls = [], []
+        for c in range(num_classes):
+            n_real = int((labels == c).sum())
+            if n_real < 50:
+                continue                    # too few real rows to compare against
+            n = min(n_per_class, max(n_real, 200))
+            out = _generate_for_class(interface=interface, n=n, class_idx=c,
+                                      num_classes=num_classes)
+            arr = _np.asarray(out.values if hasattr(out, "values") else out)
+            if arr.ndim == 3 and arr.shape[1] == 1:
+                arr = arr[:, 0, :]
+            synth_batches.append(arr)
+            synth_lbls.append(_np.full(len(arr), c, dtype=int))
+
+        if not synth_batches:
+            print("    [gan-gate] no class had enough real rows — skipped")
+            return
+
+        eye = _np.eye(num_classes, dtype=_np.float32)
+        stats = summarize_real_vs_synthetic(
+            real_data=real,
+            real_labels={"class": eye[labels]},
+            synth_data=synth_batches,
+            synth_labels={"class": eye[_np.concatenate(synth_lbls)]},
+            feature_names=feature_names,
+            log=print,
+            pair_name="POST-CREATION (all pairs pooled)",
+        )
+        self._print_gate_verdict(stats)
+
+    @staticmethod
+    def _print_gate_verdict(stats: Any) -> None:
+        """Turn the fidelity stats into an explicit use / do-not-use verdict.
+
+        Thresholds are NOT invented here -- they are the ones GANs/diagnostics.py already
+        applies in ``_flag_for_bucket`` and ``_joint_flag``, so the verdict and the table
+        above it can never disagree:
+
+            MODE_COLLAPSE  std_ratio_min < 0.3   generator collapsed on some feature
+            OFF_DIST       |dmu|max     > 2.0    class-conditional mean is off-manifold
+            JOINT_BROKEN   |drho|max    > 0.5    feature correlations destroyed
+            shifted        |dmu|max     > 1.0
+            joint_drift    |drho|max    > 0.3
+            corr_skew      |drho|mean   > 0.15
         """
-        pass
+        FATAL = ("MODE_COLLAPSE", "OFF_DIST", "JOINT_BROKEN")
+        fatal, warn = [], []
+        try:
+            for task, buckets in (stats or {}).items():
+                for cls, row in (buckets or {}).items():
+                    flag = str(row.get("flag", "")) if isinstance(row, dict) else ""
+                    if not flag or flag == "ok":
+                        continue
+                    tokens = [t.strip() for t in flag.split(",") if t.strip()]
+                    hit = [t for t in tokens if t in FATAL]
+                    (fatal if hit else warn).append(f"{task}=={cls}: {flag}")
+        except Exception as exc:
+            print(f"    [gan-gate] verdict unavailable ({exc})")
+            return
+
+        print("")
+        print("    " + "-" * 68)
+        if fatal:
+            print("    GATE VERDICT: *** DO NOT USE THIS GAN ***")
+            for f in fatal:
+                print(f"      FATAL  {f}")
+            for w in warn:
+                print(f"      warn   {w}")
+            print("    Retrain the GAN before spending a classifier run on it. Augmenting")
+            print("    with samples this far off-distribution has cost -24pp here before.")
+        elif warn:
+            print("    GATE VERDICT: USABLE, WITH DEFECTS")
+            for w in warn:
+                print(f"      warn   {w}")
+            print("    No fatal defect, but the flagged buckets are off-distribution. Worth")
+            print("    proceeding; note the defect when reading the downstream result.")
+        else:
+            print("    GATE VERDICT: OK -- no fidelity defect detected")
+        print("")
+        print("    A PASS means the GAN is not BROKEN. It does NOT predict trading benefit:")
+        print("    fidelity and utility are DECOUPLED in this repository (augmentation-parity")
+        print("    work fixed fidelity flags while OOS returns stayed flat). Use this gate to")
+        print("    avoid wasting a retrain, never as evidence the GAN will help.")
+        print("    " + "-" * 68)
+        print("")
 
     # ---------------------------------------------------------------------- #
     # Helpers                                                                #
