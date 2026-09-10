@@ -52,8 +52,10 @@ python -m research.labelfree.train --fold f07 --seed 1 --leaky   # features shif
 python -m research.labelfree.train --fold f07 --seed 1           # correct timing
 ```
 
-**Pass when** the leaky run returns ≥ 5× the control's W1 return (≈ +50%) and the clean run
-returns far below that (SC-002).
+**Pass when** the leaky run's cumulative net **log** return exceeds the clean run's by ≥ 2.0 on the
+same range and seed, and the clean run does not beat its **exposure-matched** benchmark
+(buy-and-hold scaled to the clean policy's own mean exposure) by more than the resolvable floor
+(SC-002). Report log-returns: a leaky run's linear return overflows.
 
 **On failure**: the gradient path is broken. This is a defect, not a null result — fix it before
 running the grid (Principle IV).

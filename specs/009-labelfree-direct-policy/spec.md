@@ -29,6 +29,7 @@ no policy result is admissible evidence, and no policy code may be written.
 - Q: Should the training objective include the deployment exit stack (take-profit, adaptive stop, grace) that the wrapper keeps switched on, or train on band-crossing exits only? → A: Band-crossing exits only; the resulting simulator-vs-arbiter P&L gap for the trained policy MUST be measured and reported before acceptance.
 - Q: Should the trend-rule baseline be pinned to the protocol's example parameters or searched for its strongest form? → A: Pinned to 20/60-bar EMA sign with band ±0.1, frozen and recorded before any policy configuration runs, preserving its "zero parameters learned from P&L" property.
 - Q: The market data has no bid/ask, so how is the half-spread inside the objective obtained? → A: Estimate it per bar from high/low using a published OHLCV spread estimator (Corwin-Schultz or Abdi-Ranaldo) with a conservative floor, so cost scales with the illiquidity that causes it.
+- Q: SC-002's absurdity bar compared a policy's return on its own fold range against the control's W1 figure, which is not commensurable (measured: a flat 0.28-exposure policy shows +289% from beta on f08's 4-year training range, while a good policy shows -16.9% on its 90-day test range). How should the lookahead sanity ceiling be expressed? → A: As a PAIRED comparison on identical data — leaky must exceed clean by >=2.0 log units of cumulative net return on the same range and seed, and the clean run must not exceed buy-and-hold over that range by more than the resolvable floor. Immune to horizon and regime, and it can genuinely fail.
 - Q: For the single-window runs in W1/W2/W3, should training keep the 730-day minimum even though that leaves the distant window trainable on only ~18 pairs? → A: Yes, keep the 730-day minimum; report the pair-universe size per window and run the control on the identical universe within each window, since the comparison is always within a window and never across windows.
 
 ## Terminology
@@ -91,16 +92,18 @@ learns, and it separates "the objective found nothing" from "the gradient never 
 runs immediately after the simulator and costs one short training run.
 
 **Independent Test**: Train one policy configuration with lookahead deliberately enabled and
-one without, on the same fold and seed; confirm the leaky run clears the absurdity bar and the
-clean run does not.
+one without, on the same range and seed; confirm the leaky run exceeds the clean run by at least
+2.0 log units and that the clean run does not beat buy-and-hold over that range by more than the
+resolvable floor.
 
 **Acceptance Scenarios**:
 
 1. **Given** deliberately shifted features, **When** a policy is trained on them, **Then** its
-   return clears the absurdity bar, demonstrating the learning path works.
+   cumulative net log return exceeds that of the clean policy on the same range and seed by at
+   least 2.0 log units, demonstrating the learning path works.
 2. **Given** the same configuration with correct timing, **When** it is trained, **Then** its
-   return is at most 1.5× the control's deployment-window return — far below the absurdity bar —
-   demonstrating the leak was the shift and not the simulator.
+   cumulative net return does not exceed buy-and-hold over the same range by more than the
+   resolvable floor, demonstrating the leak was the shift and not the simulator.
 3. **Given** a leaky run that fails to clear the bar, **When** that is observed, **Then** the
    learning path is treated as defective and no variant sweep is run until it is fixed.
 
@@ -206,7 +209,7 @@ compare the trade list byte-for-byte against the original.
 - **The calibration never converges.** The simulator and backtester disagree by more than the
   tolerance after the budgeted attempts. The feature stops at story 1 with a recorded
   discrepancy; no policy result exists to report.
-- **The leaky sanity run does not print absurd returns.** Treated as a broken learning path,
+- **The leaky sanity run does not separate from the clean run.** Treated as a broken learning path,
   not as evidence about the hypothesis, matching the constitution's rule that an inert
   parameter is a defect rather than a null result.
 - **The policy learns to stay flat permanently.** A zero-trade arm is inconclusive, never a
@@ -275,9 +278,10 @@ compare the trade list byte-for-byte against the original.
 - **FR-009**: No policy code MAY be written until FR-008 passes and its calibration report
   exists.
 - **FR-010**: The system MUST provide a deliberately-leaky mode that shifts features forward by
-  one bar, used solely to prove the learning path can exploit lookahead. A policy trained in this
-  mode MUST return at least 5× the production control's deployment-window return; failing that,
-  the learning path is defective and no variant sweep may run.
+  one bar, used solely to prove the learning path can exploit lookahead. On the same range and
+  seed, a policy trained in this mode MUST exceed the clean policy by at least 2.0 log units of
+  cumulative net return; failing that, the learning path is defective and no variant sweep may run.
+  Returns MUST be reported in log space, because a leaky run's linear return can overflow.
 
 **Policy and training**
 
@@ -387,11 +391,16 @@ compare the trade list byte-for-byte against the original.
   backtester on all three of: every matched trade's profit within 1 basis point, total return
   within 0.10 percentage points, and identical trade counts. Until all three hold, no policy
   result is admissible and no policy code exists.
-- **SC-002**: A deliberately-leaky training run, with features shifted forward one bar, returns
-  at least 5× the production control's return on the deployment window (approximately +50%),
-  which is comfortably above the +26.5% oracle ceiling and therefore cannot be mistaken for an
-  honest result. The same configuration with correct timing returns **at most 1.5× the control's
-  deployment-window return**, so the two outcomes cannot both be satisfied by one run.
+- **SC-002**: On the **same evaluation range and seed**, a deliberately-leaky training run (features
+  shifted forward one bar) exceeds the clean run by **at least 2.0 log units** of cumulative net
+  return — roughly 7× linear — **and** the clean run's cumulative net return does not exceed its
+  **exposure-matched** benchmark (buy-and-hold scaled to the clean policy's own mean exposure) by
+  more than the resolvable floor. The benchmark must be exposure-matched: a long-only policy that
+  is only partly invested beats a fully-invested benchmark in any falling market purely by holding
+  less, which is beta rather than leakage. The comparison is paired on
+  identical data, so it is unaffected by the horizon or market regime of the range chosen; a fixed
+  multiple of any single-window figure is not, and would be untestable across ranges whose
+  buy-and-hold outcomes differ by orders of magnitude.
 
 **Acceptance gates (protocol §5 — all six required)**
 

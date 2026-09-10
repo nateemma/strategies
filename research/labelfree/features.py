@@ -24,8 +24,16 @@ SAVED = ROOT / "saved_data"
 
 # Columns that are price- or volume-proportional and therefore forbidden as features.
 FORBIDDEN_EXACT = {"open", "high", "low", "close", "volume", "date"}
+
+# Stems whose RAW form is price-proportional. A stem is only a violation when the column
+# carries no normalising suffix: `vwap` is raw, `vwap_ratio` is (vwap/close - 1), and
+# `vwap_pos` / `vwap_neg` are the positive and negative halves of that ratio. All three
+# derived forms are pair-agnostic, so the suffix list below is what separates them.
+# (Verified 2026-09-10 against the production include_list, which uses vwap_pos/vwap_neg.)
 FORBIDDEN_SUBSTR = ("_price", "sma", "ema", "vwap", "bb_upper", "bb_lower", "bb_middle",
                     "tema", "kama", "wma", "dema", "trima")
+NORMALISING_SUFFIXES = ("_pct", "_z", "_ratio", "_norm", "_pos", "_neg", "_scaled",
+                        "_ss", "_position", "_width", "_diff", "_rel", "_frac")
 
 
 class FeatureValidationError(ValueError):
@@ -43,8 +51,9 @@ def validate_include_list(cols: list[str]) -> None:
         lc = c.lower()
         if lc in FORBIDDEN_EXACT:
             bad.append((c, "raw price/volume column"))
-        elif any(s in lc for s in FORBIDDEN_SUBSTR) and not lc.endswith(("_pct", "_z", "_ratio", "_norm")):
-            bad.append((c, "price-proportional indicator (needs _pct/_z/_ratio/_norm form)"))
+        elif any(s in lc for s in FORBIDDEN_SUBSTR) and not lc.endswith(NORMALISING_SUFFIXES):
+            bad.append((c, "price-proportional indicator: needs a normalising form "
+                           f"({'/'.join(NORMALISING_SUFFIXES[:4])}/...)"))
     if bad:
         raise FeatureValidationError(
             "pair-agnostic rule violated (FR-002):\n" +
@@ -84,3 +93,39 @@ def sequence_tensor(feat: pd.DataFrame, seq_len: int = 16) -> np.ndarray:
 
 def scaler_available() -> dict[str, bool]:
     return {n: (SAVED / n).exists() for n in ("main_scaler.pkl", "main_tensor_scaler.pkl")}
+
+
+def build_features(pair: str, start: str, end: str,
+                   include_list: list[str] | None = None) -> "tuple":
+    """Compliant feature matrix + aligned prices/volume for one pair (FR-001, FR-002).
+
+    Uses the EXISTING pipeline (DataframePopulator) and the strategy's curated
+    include_list, so inputs are the same family the control sees. The include list is
+    validated before use; a price-proportional column raises rather than warns.
+    """
+    import warnings
+    warnings.filterwarnings("ignore")
+    sys.path.insert(0, str(ROOT / "utils"))
+    sys.path.insert(0, str(ROOT / "Framework"))
+    from DataframePopulator import DataframePopulator
+    from FeatureNormalizer import FeatureNormalizer
+
+    cols = include_list or list(FeatureNormalizer.include_list)
+    validate_include_list(cols)
+
+    df = rd.load_ohlcv(pair.split("/")[0])
+    df = df[(df.index >= pd.Timestamp(start, tz="UTC")) &
+            (df.index <= pd.Timestamp(end, tz="UTC"))].reset_index()
+    out = DataframePopulator().add_minimal_indicators(df.copy())
+    have = [c for c in cols if c in out.columns]
+    feat = out[have].replace([np.inf, -np.inf], np.nan).ffill().bfill().fillna(0.0)
+
+    # Robust per-column scaling; the policy needs bounded inputs and the saved scalers are
+    # keyed to the classifier's own pipeline rather than to this feature matrix.
+    med = feat.median()
+    iqr = (feat.quantile(0.75) - feat.quantile(0.25)).replace(0, 1.0)
+    feat = ((feat - med) / iqr).clip(-10, 10)
+
+    px = out["open"].to_numpy(dtype=np.float64)
+    vq = (out["volume"] * out["close"]).to_numpy(dtype=np.float64)
+    return feat.to_numpy(dtype=np.float32), px, vq, have

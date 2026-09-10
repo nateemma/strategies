@@ -103,18 +103,18 @@ control signal over W1; per-trade profit within 1 bp, total within 0.10pp, trade
 
 ### Tests for User Story 2
 
-- [ ] T020 [P] [US2] Lookahead sanity test in `research/labelfree/tests/test_lookahead_sanity.py` asserting the leaky run clears ≥ 5× the control's W1 return and the clean run falls far below it (SC-002)
-- [ ] T021 [P] [US2] Determinism test in `research/labelfree/tests/test_determinism.py` asserting byte-identical trades from two separate processes at the same seed (SC-008)
+- [X] T020 [P] [US2] Lookahead sanity test in `research/labelfree/tests/test_lookahead_sanity.py` asserting the PAIRED criterion: leaky exceeds clean by >=2.0 log units on the same range and seed, and clean does not exceed buy-and-hold by more than the resolvable floor (SC-002)
+- [X] T021 [P] [US2] Determinism test in `research/labelfree/tests/test_determinism.py` asserting byte-identical trades from two separate processes at the same seed (SC-008)
 
 ### Implementation for User Story 2
 
 - [X] T021a [P] [US2] Add an assertion to `research/labelfree/tests/test_sim_contract.py` that the training path exposes no take-profit, adaptive-stop or grace exit — training exits are band crossings only (FR-014a)
-- [ ] T022 [P] [US2] Implement policy in `research/labelfree/policy.py` — `mlx.nn.LSTM(64)` over `seq_len=16`, sigmoid exposure head, optional band head emitting `lo_t`/`hi_t` (FR-011, FR-012, research R4)
-- [ ] T023 [P] [US2] Implement objectives in `research/labelfree/losses.py` — minibatch-unbiased mean-variance utility and robust pooled+SoftMin worst-window Sharpe (FR-014, research R5)
-- [ ] T024 [US2] Implement training loop in `research/labelfree/train.py` — one policy per fold on that fold's training range only, truncated BPTT with 96-bar burn-in, `MLX_SEED` seeding, early stopping on the training objective only (FR-015, FR-017, research R7, R9)
-- [ ] T025 [US2] Implement deliberately-leaky mode (features shifted +1 bar) in `research/labelfree/sim.py`, reachable only via an explicit flag recorded as `leaky: true` in the trial log (FR-010)
-- [ ] T026 [US2] RUN `research/labelfree/train.py` twice on fold f08 at seed 1 (with and without `--leaky`); confirm SC-002 (leaky ≥ 5× control, clean far below)
-- [ ] T027 [US2] RUN `research/labelfree/tests/test_determinism.py` across two separate processes; if trades are not byte-identical, escalate as a finding — do **not** relax SC-008 to a tolerance (research R9)
+- [X] T022 [P] [US2] Implement policy in `research/labelfree/policy.py` — `mlx.nn.LSTM(64)` over `seq_len=16`, sigmoid exposure head, optional band head emitting `lo_t`/`hi_t` (FR-011, FR-012, research R4)
+- [X] T023 [P] [US2] Implement objectives in `research/labelfree/losses.py` — minibatch-unbiased mean-variance utility and robust pooled+SoftMin worst-window Sharpe (FR-014, research R5)
+- [X] T024 [US2] Implement training loop in `research/labelfree/train.py` — one policy per fold on that fold's training range only, truncated BPTT with 96-bar burn-in, `MLX_SEED` seeding, early stopping on the training objective only (FR-015, FR-017, research R7, R9)
+- [X] T025 [US2] Implement deliberately-leaky mode (features shifted +1 bar) in `research/labelfree/sim.py`, reachable only via an explicit flag recorded as `leaky: true` in the trial log (FR-010)
+- [X] T026 [US2] RUN `research/labelfree/train.py` twice on fold f08's TEST range at seed 1 (with and without `--leaky`); confirm SC-002's paired criterion, reporting log-returns (a leaky run's linear return overflows)
+- [X] T027 [US2] RUN `research/labelfree/tests/test_determinism.py` across two separate processes; if trades are not byte-identical, escalate as a finding — do **not** relax SC-008 to a tolerance (research R9)
 
 **Checkpoint**: Learning path proven live. The variant sweep is now interpretable.
 

@@ -170,3 +170,60 @@ def max_concurrent(tr: pd.DataFrame) -> int:
         cur += d
         peak = max(peak, cur)
     return peak
+
+
+# ---------------------------------------------------------------------------
+# Differentiable rollout (T024, T025) — the training path.
+# ---------------------------------------------------------------------------
+
+def bar_returns(open_px) -> "object":
+    """Log return earned by a position filled at t+1 open and held to t+2 open.
+
+    Decide at bar t using bars <= t; fill at t+1 open (FR-003). The position established
+    at t+1 therefore earns log(open[t+2] / open[t+1]). Element i of the result aligns with
+    a decision made at bar i.
+    """
+    import mlx.core as mx
+    o = mx.array(open_px)
+    return mx.log(o[2:]) - mx.log(o[1:-1])
+
+
+def net_returns(w, open_px, cost_per_unit, *, volume_quote=None,
+                soft_cap: bool = True, tau: float = 0.05):
+    """Net-of-cost log return per bar for an exposure path (FR-004, FR-005).
+
+    w[i] is the exposure decided at bar i. Costs are charged on the executed change in
+    exposure, which the liquidity cap may limit; in training the cap is a soft-min so the
+    gradient survives where it binds, in evaluation it is hard.
+
+    Liquidity is assessed on the DECISION bar, matching BaseStrategy.custom_stake_amount.
+    """
+    import mlx.core as mx
+    r = bar_returns(open_px)
+    n = min(w.shape[-1], r.shape[-1])
+    w, r = w[..., :n], r[..., :n]
+    c = mx.array(cost_per_unit)[:n] if not isinstance(cost_per_unit, float) else cost_per_unit
+
+    prev = mx.concatenate([mx.zeros(w.shape[:-1] + (1,)), w[..., :-1]], axis=-1)
+    requested = mx.abs(w - prev)
+    if volume_quote is not None:
+        cap = LIQUIDITY_FRACTION * mx.array(volume_quote)[:n]
+        executed = (soft_liquidity_cap(cap / LIQUIDITY_FRACTION, requested, tau=tau)
+                    if soft_cap else mx.minimum(requested, cap))
+    else:
+        executed = requested
+    return w * r - c * executed
+
+
+def shift_features_leaky(x, k: int = 1):
+    """Deliberately leak the future by k bars (FR-010, T025).
+
+    Used ONLY to prove the learning path can exploit lookahead. SC-002 is a PAIRED test: on
+    the same range and seed, the leaky policy must exceed the clean one by >=2.0 log units of
+    cumulative net return. A fixed multiple of some other window's return does not work -
+    a 4-year training range and a 90-day test range differ in buy-and-hold by orders of
+    magnitude, so no single absolute bar is meaningful across both. A policy that cannot
+    separate here has a broken gradient path, and any later null result would be meaningless.
+    """
+    import mlx.core as mx
+    return mx.concatenate([x[k:], mx.repeat(x[-1:], k, axis=0)], axis=0)
