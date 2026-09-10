@@ -692,6 +692,65 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
         # ``self.first_time`` (e.g. archived strategies) sees the right state.
         self.first_time = False
 
+    def warn_if_gate_is_inert(self) -> None:
+        """Warn when entry_enable_guards is True but every guard is neutralised.
+
+        The class-level defaults in BaseStrategy (and NNNCStrategy) leave every quality guard
+        OPEN; the tuned values live in <Strategy>.json, which is a FILE and is therefore NOT
+        inherited by a subclass. So a strategy that correctly merges its parent's buy_params can
+        still run completely ungated, with `entry_enable_guards = True` making it look gated.
+
+        This is not hypothetical. NNNC_DDPM_MLX ran ungated for its entire history: neutralising
+        all six guards produced a BYTE-IDENTICAL trade set, because there was nothing to
+        neutralise. Every DDPM-vs-NNNC comparison made on that basis compared a gated strategy
+        against an ungated one.
+
+        Reports only; changes nothing.
+        """
+        try:
+            enabled = bool(getattr(self.entry_enable_guards, "value",
+                                   self.entry_enable_guards))
+        except Exception:
+            return
+        if not enabled:
+            return                      # deliberately off — the operator knows
+
+        # (parameter, comparison, sentinel meaning "wide open")
+        checks = [
+            ("entry_adx_threshold", "le", 0.0),
+            ("entry_atr_pct", "le", 0.0),
+            ("entry_bb_width_threshold", "le", 0.0),
+            ("entry_close_norm_threshold", "ge", 5.0),
+            ("entry_guard_threshold", "ge", 5.0),
+            ("entry_rvol_threshold", "le", 0.0),
+        ]
+        inert = []
+        for name, op, sentinel in checks:
+            attr = getattr(self, name, None)
+            if attr is None:
+                continue
+            try:
+                v = float(getattr(attr, "value", attr))
+            except (TypeError, ValueError):
+                continue
+            if (op == "le" and v <= sentinel) or (op == "ge" and v >= sentinel):
+                inert.append(f"{name}={v:g}")
+
+        if not inert:
+            return
+        if len(inert) == len(checks):
+            print("    " + "=" * 72)
+            print("    *** WARNING: entry_enable_guards is True but EVERY guard is neutralised.")
+            print("    *** This strategy is running COMPLETELY UNGATED.")
+            print(f"    *** {', '.join(inert)}")
+            print("    *** The tuned gate lives in <Strategy>.json, which is NOT inherited by a")
+            print(f"    *** subclass. Give {self.__class__.__name__} its own .json, or its results")
+            print("    *** are not comparable with any gated strategy.")
+            print("    " + "=" * 72)
+        else:
+            print(f"    NOTE: {len(inert)} of {len(checks)} entry guards are neutralised "
+                  f"({', '.join(inert)}) while entry_enable_guards is True.")
+
     # =========================================================================
     # Iteration Init — per-populate_indicators setup (lightweight)
     # =========================================================================
@@ -850,6 +909,14 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
         # rvol stays a hyperparameter: set entry_rvol_threshold to -1.0 to make
         # it permissive. It is no longer possible to remove it entirely by
         # accident.
+        # Checked HERE, not in bot_start: this is where the gate values are actually read, so
+        # whatever is live at this point is what filters the trades. bot_start ran too early --
+        # it reported class defaults while the file values were still being applied, which made
+        # the warning fire on a correctly-gated strategy.
+        if not getattr(self, "_gate_inertia_checked", False):
+            self._gate_inertia_checked = True
+            self.warn_if_gate_is_inert()
+
         conditions.append(dataframe["volume"] > 0.0)
         conditions.append(dataframe["rvol"] > self.entry_rvol_threshold.value)
 
