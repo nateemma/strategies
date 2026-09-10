@@ -42,40 +42,56 @@ class TrainConfig:
 
 
 def train_fold(features: np.ndarray, open_px: np.ndarray, cost_per_unit: np.ndarray,
-               volume_quote: np.ndarray, cfg: TrainConfig) -> tuple[ExposurePolicy, dict]:
+               volume_quote: np.ndarray, cfg: TrainConfig,
+               mask: np.ndarray | None = None) -> tuple[ExposurePolicy, dict]:
     """Train one policy on one fold's training range. Returns the policy and a history."""
     mx.random.seed(cfg.seed)
     x = mx.array(features.astype(np.float32))
+    # Normalise to batched (B, T, F). Slicing axis 0 on a pooled (n_pairs, T, F) panel
+    # slices the PAIR axis, not time — which silently feeds the whole sequence in and
+    # blows Metal's resource limit. Every slice below therefore indexes axis 1 explicitly.
+    batched = x.ndim == 3
+    if not batched:
+        x = x[None, ...]
     if cfg.leaky:
-        x = sim.shift_features_leaky(x)
+        x = mx.stack([sim.shift_features_leaky(x[b]) for b in range(x.shape[0])])
 
     pol = ExposurePolicy(PolicyConfig(n_features=x.shape[-1],
                                       turnover_control=cfg.turnover_control))
     opt = optim.Adam(learning_rate=cfg.lr)
     obj = L.OBJECTIVES[cfg.objective]
 
-    o = mx.array(open_px.astype(np.float32))
-    c = mx.array((cost_per_unit * cfg.gamma).astype(np.float32))
-    v = mx.array(volume_quote.astype(np.float32))
+    def _2d(a):
+        a = mx.array(a.astype(np.float32))
+        return a if a.ndim == 2 else a[None, ...]
+
+    o = _2d(open_px)
+    c = _2d(cost_per_unit * cfg.gamma)
+    v = _2d(volume_quote)
+    # Zero exposure where a pair has no data at that timestamp: a gap must earn nothing and
+    # cost nothing, rather than silently holding a stale position through it.
+    m = _2d(mask) if mask is not None else None
 
     # Truncated BPTT (R7). A single forward pass over a full fold (~139k bars) exceeds
     # Metal's resource limit, so each step takes a window of BURN_IN + chunk bars: the
     # burn-in warms the recurrent state and is dropped from the loss, the remainder carries
     # the gradient. Windows are drawn in a seeded, deterministic order so runs reproduce.
     span = BURN_IN + cfg.chunk
-    T_total = x.shape[0]
+    T_total = x.shape[1]                      # axis 1 is time; axis 0 is the pair panel
     n_windows = max(1, (T_total - 2) // cfg.chunk)
     rng = np.random.default_rng(cfg.seed)
     starts = [min(i * cfg.chunk, max(0, T_total - span - 2)) for i in range(n_windows)]
 
     def loss_fn(model, s0: int):
-        xs = x[s0:s0 + span]
-        os_ = o[s0:s0 + span + 2]
-        cs = c[s0:s0 + span]
-        vs = v[s0:s0 + span]
+        xs = x[:, s0:s0 + span]
+        os_ = o[:, s0:s0 + span + 2]
+        cs = c[:, s0:s0 + span]
+        vs = v[:, s0:s0 + span]
         w = model(xs)
+        if m is not None:
+            w = w * m[:, s0:s0 + span]
         r = sim.net_returns(w, os_, cs, volume_quote=vs, soft_cap=True)
-        r = r[BURN_IN:]
+        r = r[..., BURN_IN:]
         base = obj(r, cfg.lam_risk) if cfg.objective == "utility" else obj(r)
         if cfg.turnover_control == "penalty":
             base = base + L.turnover_penalty(w[BURN_IN:], cfg.lam_turnover)
@@ -99,23 +115,28 @@ def train_fold(features: np.ndarray, open_px: np.ndarray, cost_per_unit: np.ndar
     # Report over the whole range, chunked so the graph stays inside Metal's limit.
     ws, rs = [], []
     for s0 in range(0, T_total - 2, cfg.chunk):
-        xs = x[s0:s0 + cfg.chunk]
-        if xs.shape[0] < 4:
+        xs = x[:, s0:s0 + cfg.chunk]
+        if xs.shape[1] < 4:
             break
         w_c = pol(xs)
-        r_c = sim.net_returns(w_c, o[s0:s0 + cfg.chunk + 2], c[s0:s0 + cfg.chunk],
-                              volume_quote=v[s0:s0 + cfg.chunk], soft_cap=False)
+        if m is not None:
+            w_c = w_c * m[:, s0:s0 + cfg.chunk]
+        r_c = sim.net_returns(w_c, o[:, s0:s0 + cfg.chunk + 2], c[:, s0:s0 + cfg.chunk],
+                              volume_quote=v[:, s0:s0 + cfg.chunk], soft_cap=False)
         mx.eval(w_c, r_c)
         ws.append(np.asarray(w_c)); rs.append(np.asarray(r_c))
-    w = mx.array(np.concatenate(ws)); r = mx.array(np.concatenate(rs))
-    rn = np.asarray(r[BURN_IN:])
-    wn = np.asarray(w[BURN_IN:])
+    w = mx.array(np.concatenate(ws, axis=1)); r = mx.array(np.concatenate(rs, axis=1))
+    rn = np.asarray(r[:, BURN_IN:])
+    wn = np.asarray(w[:, BURN_IN:])
     return pol, {
         "final_loss": history[-1], "best_loss": best, "epochs": cfg.epochs,
-        "total_log_return": float(rn.sum()),
-        "total_return_pct": float((np.exp(rn.sum()) - 1) * 100),
+        # Per-pair sums averaged, so a pooled panel is not just N times a single pair's
+        # return — the figure stays comparable across different universe sizes.
+        "total_log_return": float(rn.sum(axis=1).mean()),
+        "total_return_pct": float((np.exp(rn.sum(axis=1).mean()) - 1) * 100),
+        "n_pairs": int(rn.shape[0]),
         "mean_exposure": float(wn.mean()),
         "flat_share": float((wn < 0.01).mean()),
-        "turnover": float(np.abs(np.diff(wn)).sum()),
+        "turnover": float(np.abs(np.diff(wn, axis=1)).sum(axis=1).mean()),
         "history": history,
     }

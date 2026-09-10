@@ -51,6 +51,25 @@ def test_training_path_has_no_deployment_exit_stack():
         assert forbidden not in src, f"simulator implements {forbidden} (FR-008a/FR-014a)"
 
 
+def test_bar_returns_slices_time_not_batch():
+    """Regression: a bare o[2:] on a pooled (n_pairs, T) panel slices the BATCH axis.
+
+    The result is silently near-zero rather than an error, so pooled training would
+    optimise against no returns at all. Caught 2026-09-10 by checking values, not shapes.
+    """
+    import mlx.core as mx
+    from research.labelfree import sim as S
+    o = mx.array(np.array([[1, 2, 4, 8, 16]] * 3, dtype=np.float32))
+    r = S.bar_returns(o)
+    mx.eval(r)
+    assert r.shape == (3, 3), f"expected (3,3), got {r.shape} — batch axis was sliced"
+    assert np.allclose(np.asarray(r), np.log(2)), "batched bar_returns are not log(2)"
+    o1 = mx.array(np.array([1, 2, 4, 8, 16], dtype=np.float32))
+    r1 = S.bar_returns(o1)
+    mx.eval(r1)
+    assert np.allclose(np.asarray(r1), np.log(2)), "1-D path regressed"
+
+
 def test_cost_model_spread_is_estimated_not_constant():
     """FR-004a: half-spread varies per bar and never collapses to zero."""
     n = 400

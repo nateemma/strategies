@@ -185,7 +185,10 @@ def bar_returns(open_px) -> "object":
     """
     import mlx.core as mx
     o = mx.array(open_px)
-    return mx.log(o[2:]) - mx.log(o[1:-1])
+    # Slice the TIME axis with `...`, never `o[2:]`. On a pooled (n_pairs, T) panel a bare
+    # o[2:] slices the batch dimension instead, and the result is silently near-zero rather
+    # than an error — pooled training would then optimise against no returns at all.
+    return mx.log(o[..., 2:]) - mx.log(o[..., 1:-1])
 
 
 def net_returns(w, open_px, cost_per_unit, *, volume_quote=None,
@@ -202,12 +205,15 @@ def net_returns(w, open_px, cost_per_unit, *, volume_quote=None,
     r = bar_returns(open_px)
     n = min(w.shape[-1], r.shape[-1])
     w, r = w[..., :n], r[..., :n]
-    c = mx.array(cost_per_unit)[:n] if not isinstance(cost_per_unit, float) else cost_per_unit
+    # Every slice here indexes the TIME axis with `...`; a bare [:n] slices the pair axis
+    # on a pooled (n_pairs, T) panel and silently mis-broadcasts.
+    c = (cost_per_unit if isinstance(cost_per_unit, float)
+         else mx.array(cost_per_unit)[..., :n])
 
     prev = mx.concatenate([mx.zeros(w.shape[:-1] + (1,)), w[..., :-1]], axis=-1)
     requested = mx.abs(w - prev)
     if volume_quote is not None:
-        cap = LIQUIDITY_FRACTION * mx.array(volume_quote)[:n]
+        cap = LIQUIDITY_FRACTION * mx.array(volume_quote)[..., :n]
         executed = (soft_liquidity_cap(cap / LIQUIDITY_FRACTION, requested, tau=tau)
                     if soft_cap else mx.minimum(requested, cap))
     else:
