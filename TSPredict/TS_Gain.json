@@ -1,0 +1,44 @@
+{
+  "strategy_name": "TS_Gain",
+  "params": {
+    "roi": {
+      "0": 0.03
+    },
+    "stoploss": {
+      "stoploss": -0.05
+    },
+    "trailing": {
+      "trailing_stop": true,
+      "trailing_stop_positive": 0.01,
+      "trailing_stop_positive_offset": 0.03,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 10
+    },
+    "sell": {
+      "cexit_enable_profit_checks": true,
+      "cexit_loss_nstd": 1.8,
+      "cexit_max_days": 28,
+      "cexit_min_loss_th": -0.5,
+      "cexit_take_profit": 0.04,
+      "enable_exit_signal": true,
+      "exit_close_norm_threshold": -0.9,
+      "exit_guard_threshold": 0.0
+    },
+    "buy": {
+      "cexit_min_profit_th": 1.3,
+      "cexit_profit_nstd": 0.4,
+      "entry_adx_threshold": 23.0,
+      "entry_atr_pct": 0.016,
+      "entry_bb_width_threshold": 0.024,
+      "entry_close_norm_threshold": 0.3,
+      "entry_enable_guards": true,
+      "entry_guard_threshold": 0.1,
+      "entry_rvol_threshold": 1.4,
+      "prediction_threshold": 0.5
+    }
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2026-07-05 23:58:00.295105+00:00"
+}

@@ -1,0 +1,30 @@
+{
+  "strategy_name": "InverseVolBasket",
+  "params": {
+    "roi": {
+      "0": 100.0
+    },
+    "stoploss": {
+      "stoploss": -0.99
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 5
+    },
+    "buy": {
+      "bb_period": 45,
+      "cash_target_weight": 0.37,
+      "rebalance_band": 0.15,
+      "rebalance_interval_hours": 37,
+      "use_bb_gate": false,
+      "vol_lookback": 82
+    }
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2026-07-01 14:17:13.467046+00:00"
+}

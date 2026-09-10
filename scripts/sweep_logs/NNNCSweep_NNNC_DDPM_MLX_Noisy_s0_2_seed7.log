@@ -1,0 +1,1203 @@
+
+Using config file: user_data/strategies/config/config.json and Strategy dir: user_data/strategies/NNNC
+
+Mon Jul 20 11:06:16 PDT 2026
+Testing strategy:NNNCSweep_NNNC_DDPM_MLX_Noisy_s0_2_seed7 for exchange:...
+freqtrade backtesting --cache none  --breakdown month --timerange=20240629-20260619 -c user_data/strategies/config/config.json --strategy-path user_data/strategies/NNNC --strategy-list NNNCSweep_NNNC_DDPM_MLX_Noisy_s0_2_seed7
+
+----------------------
+NNNCSweep_NNNC_DDPM_MLX_Noisy_s0_2_seed7
+----------------------
+
+
+Software Environment:
+
+    freqtrade:  2026.4-dev-63819fa7e
+    OS Type:    darwin (MacOS), Version: macOS-26.5.2-arm64-arm-64bit
+    python:     ['3.12.13 (main, Mar  3 2026, 12:39:30) [Clang 21.0.0 (clang-2100.0.123.102)]']
+    sklearn:    1.8.0
+    tensorflow: 2.17.0, devices:[PhysicalDevice(name='/physical_device:CPU:0', device_type='CPU'), PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
+    keras:      3.14.0
+    pytorch:    (not installed)
+    lightning:  (not installed)
+    darts:      (not installed)
+
+
+    Current Hyperopt Parameters:
+      Buy Parameters:
+        entry_adx_threshold: 10.0
+        entry_atr_pct: 0.013
+        entry_bb_width_threshold: 0.094
+        entry_close_norm_threshold: 0.6
+        entry_guard_threshold: 0.1
+        entry_rvol_threshold: 1.9
+        prediction_threshold: 0.6
+        entry_enable_guards: True
+        profit_prediction_threshold: 0.3
+        apply_task_filters: True
+
+      Sell Parameters:
+        cexit_max_days: 28
+        cexit_take_profit: 0.04
+        exit_close_norm_threshold: -0.9
+        exit_guard_threshold: 0.7
+        cexit_enable_profit_checks: True
+        enable_exit_signal: True
+
+Strategy Parameters/Flags
+
+    refit_model:    False
+    model_per_pair: False
+    combine_models: False
+
+    ZEC/USDT - adding indicators...
+        Buy signals: found 12547 initial peaks, filtered to 6283 peaks with >=0.7% future gain
+        Sell signals: found 12992 initial peaks, filtered to 7198 peaks with >=0.7% future loss
+        Signal counts: buys=8016, sells=10862, conflicts=0
+        Final trading_classes counts: buys=8016, sells=10862
+        Trading distribution: [10862 50307  8016] [15.7%, 72.7%, 11.6%]
+        %train_buy/%train_sell counts: buys=8016, sells=10862, holds=50307
+    XRP/USDT - adding indicators...
+        Buy signals: found 4451 initial peaks, filtered to 2694 peaks with >=0.7% future gain
+        Sell signals: found 4693 initial peaks, filtered to 2701 peaks with >=0.7% future loss
+        Signal counts: buys=3960, sells=4371, conflicts=0
+        Final trading_classes counts: buys=3960, sells=4371
+        Trading distribution: [ 4371 60854  3960] [6.3%, 88.0%, 5.7%]
+        %train_buy/%train_sell counts: buys=3960, sells=4371, holds=60854
+    SOL/USDT - adding indicators...
+        Buy signals: found 4871 initial peaks, filtered to 2696 peaks with >=0.7% future gain
+        Sell signals: found 4514 initial peaks, filtered to 2368 peaks with >=0.7% future loss
+        Signal counts: buys=4133, sells=3880, conflicts=0
+        Final trading_classes counts: buys=4133, sells=3880
+        Trading distribution: [ 3880 61172  4133] [5.6%, 88.4%, 6.0%]
+        %train_buy/%train_sell counts: buys=4133, sells=3880, holds=61172
+    LINK/USDT - adding indicators...
+        Buy signals: found 5797 initial peaks, filtered to 3312 peaks with >=0.7% future gain
+        Sell signals: found 5691 initial peaks, filtered to 3160 peaks with >=0.7% future loss
+        Signal counts: buys=4940, sells=5048, conflicts=0
+        Final trading_classes counts: buys=4940, sells=5048
+        Trading distribution: [ 5048 59197  4940] [7.3%, 85.6%, 7.1%]
+        %train_buy/%train_sell counts: buys=4940, sells=5048, holds=59197
+    NEAR/USDT - adding indicators...
+        Buy signals: found 11291 initial peaks, filtered to 6245 peaks with >=0.7% future gain
+        Sell signals: found 11404 initial peaks, filtered to 5975 peaks with >=0.7% future loss
+        Signal counts: buys=8343, sells=8992, conflicts=0
+        Final trading_classes counts: buys=8343, sells=8992
+        Trading distribution: [ 8992 51850  8343] [13.0%, 74.9%, 12.1%]
+        %train_buy/%train_sell counts: buys=8343, sells=8992, holds=51850
+    AAVE/USDT - adding indicators...
+        Buy signals: found 9260 initial peaks, filtered to 4947 peaks with >=0.7% future gain
+        Sell signals: found 9543 initial peaks, filtered to 4941 peaks with >=0.7% future loss
+        Signal counts: buys=6773, sells=7522, conflicts=0
+        Final trading_classes counts: buys=6773, sells=7522
+        Trading distribution: [ 7522 54890  6773] [10.9%, 79.3%, 9.8%]
+        %train_buy/%train_sell counts: buys=6773, sells=7522, holds=54890
+    SUI/USDT - adding indicators...
+        Buy signals: found 9350 initial peaks, filtered to 5607 peaks with >=0.7% future gain
+        Sell signals: found 9158 initial peaks, filtered to 5467 peaks with >=0.7% future loss
+        Signal counts: buys=7902, sells=8577, conflicts=0
+        Final trading_classes counts: buys=7902, sells=8577
+        Trading distribution: [ 8577 52706  7902] [12.4%, 76.2%, 11.4%]
+        %train_buy/%train_sell counts: buys=7902, sells=8577, holds=52706
+    AVAX/USDT - adding indicators...
+        Buy signals: found 6123 initial peaks, filtered to 3546 peaks with >=0.7% future gain
+        Sell signals: found 6078 initial peaks, filtered to 3206 peaks with >=0.7% future loss
+        Signal counts: buys=5257, sells=5180, conflicts=0
+        Final trading_classes counts: buys=5257, sells=5180
+        Trading distribution: [ 5180 58748  5257] [7.5%, 84.9%, 7.6%]
+        %train_buy/%train_sell counts: buys=5257, sells=5180, holds=58748
+    LTC/USDT - adding indicators...
+        Buy signals: found 4953 initial peaks, filtered to 3016 peaks with >=0.7% future gain
+        Sell signals: found 4482 initial peaks, filtered to 2656 peaks with >=0.7% future loss
+        Signal counts: buys=4397, sells=4327, conflicts=0
+        Final trading_classes counts: buys=4397, sells=4327
+        Trading distribution: [ 4327 60461  4397] [6.3%, 87.4%, 6.4%]
+        %train_buy/%train_sell counts: buys=4397, sells=4327, holds=60461
+    BCH/USDT - adding indicators...
+        Buy signals: found 6946 initial peaks, filtered to 3978 peaks with >=0.7% future gain
+        Sell signals: found 6856 initial peaks, filtered to 3688 peaks with >=0.7% future loss
+        Signal counts: buys=5371, sells=5870, conflicts=0
+        Final trading_classes counts: buys=5371, sells=5870
+        Trading distribution: [ 5870 57944  5371] [8.5%, 83.8%, 7.8%]
+        %train_buy/%train_sell counts: buys=5371, sells=5870, holds=57944
+    DOT/USDT - adding indicators...
+        Buy signals: found 6957 initial peaks, filtered to 4033 peaks with >=0.7% future gain
+        Sell signals: found 6689 initial peaks, filtered to 3505 peaks with >=0.7% future loss
+        Signal counts: buys=5775, sells=5531, conflicts=0
+        Final trading_classes counts: buys=5775, sells=5531
+        Trading distribution: [ 5531 57879  5775] [8.0%, 83.7%, 8.3%]
+        %train_buy/%train_sell counts: buys=5775, sells=5531, holds=57879
+    Main scaler loaded from /Users/philprice95/projects/freqtrade/user_data/strategies/saved_data/
+    PCA data loaded: n_components=19
+    Columns exceeding ±10 before clipping: [('bb_width', -1.0634608875857425, 20.93692215251771)]
+    Loading existing MLX model (/Users/philprice95/projects/freqtrade/user_data/strategies/saved_data/NNNC_DDPM_MLX/NNNC_DDPM_MLX.safetensors)...
+    MLX model loaded: /Users/philprice95/projects/freqtrade/user_data/strategies/saved_data/NNNC_DDPM_MLX/NNNC_DDPM_MLX.safetensors
+    Trading - Sell:
+        min: 0.000 max: 0.870, mean: 0.192
+        signals > 0.600: 11555 (16.7%)
+        counts: [45750, 2462, 1536, 1265, 1746, 4871, 7774, 3627, 154, 0, 0]
+        percentages: [0.66, 0.04, 0.02, 0.02, 0.03, 0.07, 0.11, 0.05, 0.0, 0.0, 0.0]
+        cumulative: [0.66, 0.7, 0.72, 0.74, 0.76, 0.83, 0.95, 1.0, 1.0, 1.0, 1.0]
+    Trading - Hold:
+        min: 0.117 max: 0.981, mean: 0.628
+        signals > 0.600: 32583 (47.1%)
+        counts: [0, 347, 6224, 14393, 10423, 5215, 3408, 2433, 3711, 23031, 0]
+        percentages: [0.0, 0.01, 0.09, 0.21, 0.15, 0.08, 0.05, 0.04, 0.05, 0.33, 0.0]
+        cumulative: [0.0, 0.01, 0.09, 0.3, 0.45, 0.53, 0.58, 0.61, 0.67, 1.0, 1.0]
+    Trading - Buy:
+        min: 0.000 max: 0.883, mean: 0.179
+        signals > 0.600: 8967 (13.0%)
+        counts: [45839, 2563, 1751, 1811, 3093, 5161, 6321, 2459, 187, 0, 0]
+        percentages: [0.66, 0.04, 0.03, 0.03, 0.04, 0.07, 0.09, 0.04, 0.0, 0.0, 0.0]
+        cumulative: [0.66, 0.7, 0.72, 0.75, 0.8, 0.87, 0.96, 1.0, 1.0, 1.0, 1.0]
+
+ZEC/USDT
+    Comparing actual vs predicted signals
+
+================================================================================
+CLASSIFICATION PERFORMANCE ASSESSMENT (Tri-State)
+================================================================================
+--- Detailed Classification Report ---
+              precision    recall  f1-score   support
+
+         0.0      0.651     0.693     0.671     10862
+         1.0      0.869     0.841     0.855     50307
+         2.0      0.554     0.620     0.585      8016
+
+    accuracy                          0.792     69185
+   macro avg      0.691     0.718     0.704     69185
+weighted avg      0.798     0.792     0.795     69185
+
+
+--- Confusion Matrix ---
+Rows = True, Columns = Predicted
+             Sell     Hold      Buy
+    Sell     7523     3323       16
+    Hold     4030    42294     3983
+     Buy        2     3046     4968
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Precision (Sell)          0.651   Good. Reliable performance.              Avoid false sell signals (support: 10862.0)
+Recall (Sell)             0.693   Good. Reliable performance.              Find all sell opportunities (support: 10862.0)
+F1-Score (Sell)           0.671   Good. Reliable performance.              Balanced performance on Sell signal (support: 10862.0)
+Precision (Hold)          0.869   Excellent. Very strong performance.      Correctly identify neutral periods (support: 50307.0)
+Recall (Hold)             0.841   Excellent. Very strong performance.      Find all neutral periods (support: 50307.0)
+F1-Score (Hold)           0.855   Excellent. Very strong performance.      Balanced performance on Hold signal (support: 50307.0)
+Precision (Buy)           0.554   Okay. Acceptable, but needs improvement. Avoid false buy signals (support: 8016.0)
+Recall (Buy)              0.620   Good. Reliable performance.              Find all buy opportunities (support: 8016.0)
+F1-Score (Buy)            0.585   Okay. Acceptable, but needs improvement. Balanced performance on Buy signal (support: 8016.0)
+
+--- Overall Performance Metrics ---
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Macro Avg Precision       0.691   Good. Reliable performance.              Average precision across all classes
+Macro Avg Recall          0.718   Good. Reliable performance.              Average recall across all classes
+Macro Avg F1-Score        0.704   Good. Reliable performance.              Average F1-score across all classes
+Weighted Avg Precision    0.798   Good. Reliable performance.              Support-weighted average precision
+Weighted Avg Recall       0.792   Good. Reliable performance.              Support-weighted average recall
+Weighted Avg F1-Score     0.795   Good. Reliable performance.              Support-weighted average F1-score
+MCC                       0.535   Good. Reliable positive correlation.     Correlation between prediction and reality
+Cohen's Kappa             0.535   Moderate. Meaningful agreement.          Agreement better than random chance
+
+--- Summary and Recommendation ---
+🌟 GOOD PERFORMANCE: The model shows strong balance (Macro F1-Score 0.704, Weighted F1-Score 0.795) and reliable correlation (MCC 0.535). All classes performing reasonably well.
+================================================================================
+    Columns exceeding ±10 before clipping: [('bb_width', -1.0634608875857425, 18.027734778334633)]
+    Trading - Sell:
+        min: 0.000 max: 0.872, mean: 0.086
+        signals > 0.600: 4520 (6.5%)
+        counts: [58912, 1789, 876, 666, 763, 1659, 3390, 1082, 48, 0, 0]
+        percentages: [0.85, 0.03, 0.01, 0.01, 0.01, 0.02, 0.05, 0.02, 0.0, 0.0, 0.0]
+        cumulative: [0.85, 0.88, 0.89, 0.9, 0.91, 0.93, 0.98, 1.0, 1.0, 1.0, 1.0]
+    Trading - Hold:
+        min: 0.121 max: 0.981, mean: 0.831
+        signals > 0.600: 55248 (79.9%)
+        counts: [0, 95, 2186, 6247, 3599, 1810, 1559, 1506, 3365, 48818, 0]
+        percentages: [0.0, 0.0, 0.03, 0.09, 0.05, 0.03, 0.02, 0.02, 0.05, 0.71, 0.0]
+        cumulative: [0.0, 0.0, 0.03, 0.12, 0.18, 0.2, 0.22, 0.25, 0.29, 1.0, 1.0]
+    Trading - Buy:
+        min: 0.000 max: 0.879, mean: 0.083
+        signals > 0.600: 3882 (5.6%)
+        counts: [59169, 1790, 898, 704, 892, 1850, 2776, 1059, 47, 0, 0]
+        percentages: [0.86, 0.03, 0.01, 0.01, 0.01, 0.03, 0.04, 0.02, 0.0, 0.0, 0.0]
+        cumulative: [0.86, 0.88, 0.89, 0.9, 0.92, 0.94, 0.98, 1.0, 1.0, 1.0, 1.0]
+
+XRP/USDT
+    Comparing actual vs predicted signals
+
+================================================================================
+CLASSIFICATION PERFORMANCE ASSESSMENT (Tri-State)
+================================================================================
+--- Detailed Classification Report ---
+              precision    recall  f1-score   support
+
+         0.0      0.684     0.707     0.695      4371
+         1.0      0.959     0.957     0.958     60854
+         2.0      0.701     0.687     0.694      3960
+
+    accuracy                          0.926     69185
+   macro avg      0.781     0.784     0.783     69185
+weighted avg      0.926     0.926     0.926     69185
+
+
+--- Confusion Matrix ---
+Rows = True, Columns = Predicted
+             Sell     Hold      Buy
+    Sell     3091     1279        1
+    Hold     1429    58266     1159
+     Buy        0     1238     2722
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Precision (Sell)          0.684   Good. Reliable performance.              Avoid false sell signals (support: 4371.0)
+Recall (Sell)             0.707   Good. Reliable performance.              Find all sell opportunities (support: 4371.0)
+F1-Score (Sell)           0.695   Good. Reliable performance.              Balanced performance on Sell signal (support: 4371.0)
+Precision (Hold)          0.959   Excellent. Very strong performance.      Correctly identify neutral periods (support: 60854.0)
+Recall (Hold)             0.957   Excellent. Very strong performance.      Find all neutral periods (support: 60854.0)
+F1-Score (Hold)           0.958   Excellent. Very strong performance.      Balanced performance on Hold signal (support: 60854.0)
+Precision (Buy)           0.701   Good. Reliable performance.              Avoid false buy signals (support: 3960.0)
+Recall (Buy)              0.687   Good. Reliable performance.              Find all buy opportunities (support: 3960.0)
+F1-Score (Buy)            0.694   Good. Reliable performance.              Balanced performance on Buy signal (support: 3960.0)
+
+--- Overall Performance Metrics ---
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Macro Avg Precision       0.781   Good. Reliable performance.              Average precision across all classes
+Macro Avg Recall          0.784   Good. Reliable performance.              Average recall across all classes
+Macro Avg F1-Score        0.783   Good. Reliable performance.              Average F1-score across all classes
+Weighted Avg Precision    0.926   Excellent. Very strong performance.      Support-weighted average precision
+Weighted Avg Recall       0.926   Excellent. Very strong performance.      Support-weighted average recall
+Weighted Avg F1-Score     0.926   Excellent. Very strong performance.      Support-weighted average F1-score
+MCC                       0.664   Excellent. Strong positive correlation.  Correlation between prediction and reality
+Cohen's Kappa             0.664   Substantial. Strong agreement.           Agreement better than random chance
+
+--- Summary and Recommendation ---
+🌟 GOOD PERFORMANCE: The model shows strong balance (Macro F1-Score 0.783, Weighted F1-Score 0.926) and reliable correlation (MCC 0.664). All classes performing reasonably well.
+================================================================================
+    Columns exceeding ±10 before clipping: [('bb_width', -1.0634608875857425, 14.243160430428231)]
+    Trading - Sell:
+        min: 0.000 max: 0.913, mean: 0.090
+        signals > 0.600: 4213 (6.1%)
+        counts: [57658, 2322, 1163, 890, 908, 2031, 3544, 654, 14, 1, 0]
+        percentages: [0.83, 0.03, 0.02, 0.01, 0.01, 0.03, 0.05, 0.01, 0.0, 0.0, 0.0]
+        cumulative: [0.83, 0.87, 0.88, 0.9, 0.91, 0.94, 0.99, 1.0, 1.0, 1.0, 1.0]
+    Trading - Hold:
+        min: 0.080 max: 0.982, mean: 0.816
+        signals > 0.600: 54027 (78.1%)
+        counts: [1, 36, 1575, 7027, 4391, 2128, 1914, 2075, 4429, 45609, 0]
+        percentages: [0.0, 0.0, 0.02, 0.1, 0.06, 0.03, 0.03, 0.03, 0.06, 0.66, 0.0]
+        cumulative: [0.0, 0.0, 0.02, 0.12, 0.19, 0.22, 0.25, 0.28, 0.34, 1.0, 1.0]
+    Trading - Buy:
+        min: 0.000 max: 0.851, mean: 0.093
+        signals > 0.600: 4290 (6.2%)
+        counts: [57443, 2141, 1060, 871, 1082, 2298, 3375, 895, 20, 0, 0]
+        percentages: [0.83, 0.03, 0.02, 0.01, 0.02, 0.03, 0.05, 0.01, 0.0, 0.0, 0.0]
+        cumulative: [0.83, 0.86, 0.88, 0.89, 0.9, 0.94, 0.99, 1.0, 1.0, 1.0, 1.0]
+
+SOL/USDT
+    Comparing actual vs predicted signals
+
+================================================================================
+CLASSIFICATION PERFORMANCE ASSESSMENT (Tri-State)
+================================================================================
+--- Detailed Classification Report ---
+              precision    recall  f1-score   support
+
+         0.0      0.604     0.655     0.628      3880
+         1.0      0.953     0.945     0.949     61172
+         2.0      0.610     0.633     0.622      4133
+
+    accuracy                          0.911     69185
+   macro avg      0.722     0.745     0.733     69185
+weighted avg      0.913     0.911     0.912     69185
+
+
+--- Confusion Matrix ---
+Rows = True, Columns = Predicted
+             Sell     Hold      Buy
+    Sell     2543     1335        2
+    Hold     1670    57832     1670
+     Buy        0     1515     2618
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Precision (Sell)          0.604   Good. Reliable performance.              Avoid false sell signals (support: 3880.0)
+Recall (Sell)             0.655   Good. Reliable performance.              Find all sell opportunities (support: 3880.0)
+F1-Score (Sell)           0.628   Good. Reliable performance.              Balanced performance on Sell signal (support: 3880.0)
+Precision (Hold)          0.953   Excellent. Very strong performance.      Correctly identify neutral periods (support: 61172.0)
+Recall (Hold)             0.945   Excellent. Very strong performance.      Find all neutral periods (support: 61172.0)
+F1-Score (Hold)           0.949   Excellent. Very strong performance.      Balanced performance on Hold signal (support: 61172.0)
+Precision (Buy)           0.610   Good. Reliable performance.              Avoid false buy signals (support: 4133.0)
+Recall (Buy)              0.633   Good. Reliable performance.              Find all buy opportunities (support: 4133.0)
+F1-Score (Buy)            0.622   Good. Reliable performance.              Balanced performance on Buy signal (support: 4133.0)
+
+--- Overall Performance Metrics ---
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Macro Avg Precision       0.722   Good. Reliable performance.              Average precision across all classes
+Macro Avg Recall          0.745   Good. Reliable performance.              Average recall across all classes
+Macro Avg F1-Score        0.733   Good. Reliable performance.              Average F1-score across all classes
+Weighted Avg Precision    0.913   Excellent. Very strong performance.      Support-weighted average precision
+Weighted Avg Recall       0.911   Excellent. Very strong performance.      Support-weighted average recall
+Weighted Avg F1-Score     0.912   Excellent. Very strong performance.      Support-weighted average F1-score
+MCC                       0.589   Good. Reliable positive correlation.     Correlation between prediction and reality
+Cohen's Kappa             0.588   Moderate. Meaningful agreement.          Agreement better than random chance
+
+--- Summary and Recommendation ---
+🌟 GOOD PERFORMANCE: The model shows strong balance (Macro F1-Score 0.733, Weighted F1-Score 0.912) and reliable correlation (MCC 0.589). All classes performing reasonably well.
+================================================================================
+    Columns exceeding ±10 before clipping: [('bb_width', -1.0634608875857425, 10.840548942690651)]
+    Trading - Sell:
+        min: 0.000 max: 0.835, mean: 0.107
+        signals > 0.600: 5371 (7.8%)
+        counts: [55688, 2445, 1177, 994, 1119, 2391, 4318, 1046, 7, 0, 0]
+        percentages: [0.8, 0.04, 0.02, 0.01, 0.02, 0.03, 0.06, 0.02, 0.0, 0.0, 0.0]
+        cumulative: [0.8, 0.84, 0.86, 0.87, 0.89, 0.92, 0.98, 1.0, 1.0, 1.0, 1.0]
+    Trading - Hold:
+        min: 0.125 max: 0.982, mean: 0.788
+        signals > 0.600: 50976 (73.7%)
+        counts: [0, 66, 2346, 8113, 5097, 2587, 2148, 2186, 4645, 41997, 0]
+        percentages: [0.0, 0.0, 0.03, 0.12, 0.07, 0.04, 0.03, 0.03, 0.07, 0.61, 0.0]
+        cumulative: [0.0, 0.0, 0.03, 0.15, 0.23, 0.26, 0.29, 0.33, 0.39, 1.0, 1.0]
+    Trading - Buy:
+        min: 0.000 max: 0.874, mean: 0.106
+        signals > 0.600: 4995 (7.2%)
+        counts: [55789, 2310, 1242, 1009, 1272, 2568, 3679, 1258, 58, 0, 0]
+        percentages: [0.81, 0.03, 0.02, 0.01, 0.02, 0.04, 0.05, 0.02, 0.0, 0.0, 0.0]
+        cumulative: [0.81, 0.84, 0.86, 0.87, 0.89, 0.93, 0.98, 1.0, 1.0, 1.0, 1.0]
+
+LINK/USDT
+    Comparing actual vs predicted signals
+
+================================================================================
+CLASSIFICATION PERFORMANCE ASSESSMENT (Tri-State)
+================================================================================
+--- Detailed Classification Report ---
+              precision    recall  f1-score   support
+
+         0.0      0.629     0.670     0.649      5048
+         1.0      0.942     0.936     0.939     59197
+         2.0      0.638     0.646     0.642      4940
+
+    accuracy                          0.896     69185
+   macro avg      0.737     0.750     0.743     69185
+weighted avg      0.897     0.896     0.897     69185
+
+
+--- Confusion Matrix ---
+Rows = True, Columns = Predicted
+             Sell     Hold      Buy
+    Sell     3381     1667        0
+    Hold     1990    55401     1806
+     Buy        0     1751     3189
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Precision (Sell)          0.629   Good. Reliable performance.              Avoid false sell signals (support: 5048.0)
+Recall (Sell)             0.670   Good. Reliable performance.              Find all sell opportunities (support: 5048.0)
+F1-Score (Sell)           0.649   Good. Reliable performance.              Balanced performance on Sell signal (support: 5048.0)
+Precision (Hold)          0.942   Excellent. Very strong performance.      Correctly identify neutral periods (support: 59197.0)
+Recall (Hold)             0.936   Excellent. Very strong performance.      Find all neutral periods (support: 59197.0)
+F1-Score (Hold)           0.939   Excellent. Very strong performance.      Balanced performance on Hold signal (support: 59197.0)
+Precision (Buy)           0.638   Good. Reliable performance.              Avoid false buy signals (support: 4940.0)
+Recall (Buy)              0.646   Good. Reliable performance.              Find all buy opportunities (support: 4940.0)
+F1-Score (Buy)            0.642   Good. Reliable performance.              Balanced performance on Buy signal (support: 4940.0)
+
+--- Overall Performance Metrics ---
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Macro Avg Precision       0.737   Good. Reliable performance.              Average precision across all classes
+Macro Avg Recall          0.750   Good. Reliable performance.              Average recall across all classes
+Macro Avg F1-Score        0.743   Good. Reliable performance.              Average F1-score across all classes
+Weighted Avg Precision    0.897   Excellent. Very strong performance.      Support-weighted average precision
+Weighted Avg Recall       0.896   Excellent. Very strong performance.      Support-weighted average recall
+Weighted Avg F1-Score     0.897   Excellent. Very strong performance.      Support-weighted average F1-score
+MCC                       0.602   Excellent. Strong positive correlation.  Correlation between prediction and reality
+Cohen's Kappa             0.602   Moderate. Meaningful agreement.          Agreement better than random chance
+
+--- Summary and Recommendation ---
+🌟 GOOD PERFORMANCE: The model shows strong balance (Macro F1-Score 0.743, Weighted F1-Score 0.897) and reliable correlation (MCC 0.602). All classes performing reasonably well.
+================================================================================
+    Columns exceeding ±10 before clipping: [('bb_width', -1.0634608875857425, 16.50808727046032)]
+    Trading - Sell:
+        min: 0.000 max: 0.926, mean: 0.173
+        signals > 0.600: 9144 (13.2%)
+        counts: [46741, 3069, 1771, 1506, 1977, 4977, 7241, 1882, 18, 3, 0]
+        percentages: [0.68, 0.04, 0.03, 0.02, 0.03, 0.07, 0.1, 0.03, 0.0, 0.0, 0.0]
+        cumulative: [0.68, 0.72, 0.75, 0.77, 0.8, 0.87, 0.97, 1.0, 1.0, 1.0, 1.0]
+    Trading - Hold:
+        min: 0.074 max: 0.981, mean: 0.659
+        signals > 0.600: 36197 (52.3%)
+        counts: [3, 121, 3909, 13606, 10241, 5108, 3535, 2951, 5094, 24617, 0]
+        percentages: [0.0, 0.0, 0.06, 0.2, 0.15, 0.07, 0.05, 0.04, 0.07, 0.36, 0.0]
+        cumulative: [0.0, 0.0, 0.06, 0.25, 0.4, 0.48, 0.53, 0.57, 0.64, 1.0, 1.0]
+    Trading - Buy:
+        min: 0.000 max: 0.874, mean: 0.168
+        signals > 0.600: 8109 (11.7%)
+        counts: [46796, 2950, 1941, 1806, 2645, 4938, 6095, 1915, 99, 0, 0]
+        percentages: [0.68, 0.04, 0.03, 0.03, 0.04, 0.07, 0.09, 0.03, 0.0, 0.0, 0.0]
+        cumulative: [0.68, 0.72, 0.75, 0.77, 0.81, 0.88, 0.97, 1.0, 1.0, 1.0, 1.0]
+
+NEAR/USDT
+    Comparing actual vs predicted signals
+
+================================================================================
+CLASSIFICATION PERFORMANCE ASSESSMENT (Tri-State)
+================================================================================
+--- Detailed Classification Report ---
+              precision    recall  f1-score   support
+
+         0.0      0.619     0.630     0.625      8992
+         1.0      0.870     0.871     0.870     51850
+         2.0      0.604     0.587     0.596      8343
+
+    accuracy                          0.806     69185
+   macro avg      0.698     0.696     0.697     69185
+weighted avg      0.805     0.806     0.805     69185
+
+
+--- Confusion Matrix ---
+Rows = True, Columns = Predicted
+             Sell     Hold      Buy
+    Sell     5663     3322        7
+    Hold     3479    45169     3202
+     Buy        2     3441     4900
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Precision (Sell)          0.619   Good. Reliable performance.              Avoid false sell signals (support: 8992.0)
+Recall (Sell)             0.630   Good. Reliable performance.              Find all sell opportunities (support: 8992.0)
+F1-Score (Sell)           0.625   Good. Reliable performance.              Balanced performance on Sell signal (support: 8992.0)
+Precision (Hold)          0.870   Excellent. Very strong performance.      Correctly identify neutral periods (support: 51850.0)
+Recall (Hold)             0.871   Excellent. Very strong performance.      Find all neutral periods (support: 51850.0)
+F1-Score (Hold)           0.870   Excellent. Very strong performance.      Balanced performance on Hold signal (support: 51850.0)
+Precision (Buy)           0.604   Good. Reliable performance.              Avoid false buy signals (support: 8343.0)
+Recall (Buy)              0.587   Okay. Acceptable, but needs improvement. Find all buy opportunities (support: 8343.0)
+F1-Score (Buy)            0.596   Okay. Acceptable, but needs improvement. Balanced performance on Buy signal (support: 8343.0)
+
+--- Overall Performance Metrics ---
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Macro Avg Precision       0.698   Good. Reliable performance.              Average precision across all classes
+Macro Avg Recall          0.696   Good. Reliable performance.              Average recall across all classes
+Macro Avg F1-Score        0.697   Good. Reliable performance.              Average F1-score across all classes
+Weighted Avg Precision    0.805   Excellent. Very strong performance.      Support-weighted average precision
+Weighted Avg Recall       0.806   Excellent. Very strong performance.      Support-weighted average recall
+Weighted Avg F1-Score     0.805   Excellent. Very strong performance.      Support-weighted average F1-score
+MCC                       0.521   Good. Reliable positive correlation.     Correlation between prediction and reality
+Cohen's Kappa             0.521   Moderate. Meaningful agreement.          Agreement better than random chance
+
+--- Summary and Recommendation ---
+🌟 GOOD PERFORMANCE: The model shows strong balance (Macro F1-Score 0.697, Weighted F1-Score 0.805) and reliable correlation (MCC 0.521). All classes performing reasonably well.
+================================================================================
+    Columns exceeding ±10 before clipping: [('bb_width', -1.0634608875857425, 17.040155123225887)]
+    Trading - Sell:
+        min: 0.000 max: 0.836, mean: 0.153
+        signals > 0.600: 7576 (11.0%)
+        counts: [49299, 3021, 1596, 1413, 1780, 4500, 6053, 1518, 5, 0, 0]
+        percentages: [0.71, 0.04, 0.02, 0.02, 0.03, 0.07, 0.09, 0.02, 0.0, 0.0, 0.0]
+        cumulative: [0.71, 0.76, 0.78, 0.8, 0.83, 0.89, 0.98, 1.0, 1.0, 1.0, 1.0]
+    Trading - Hold:
+        min: 0.125 max: 0.983, mean: 0.702
+        signals > 0.600: 41073 (59.4%)
+        counts: [0, 64, 3105, 11122, 9140, 4681, 3384, 2667, 5240, 29782, 0]
+        percentages: [0.0, 0.0, 0.04, 0.16, 0.13, 0.07, 0.05, 0.04, 0.08, 0.43, 0.0]
+        cumulative: [0.0, 0.0, 0.05, 0.21, 0.34, 0.41, 0.46, 0.49, 0.57, 1.0, 1.0]
+    Trading - Buy:
+        min: 0.000 max: 0.874, mean: 0.146
+        signals > 0.600: 6423 (9.3%)
+        counts: [49653, 2895, 1663, 1668, 2564, 4319, 4844, 1526, 53, 0, 0]
+        percentages: [0.72, 0.04, 0.02, 0.02, 0.04, 0.06, 0.07, 0.02, 0.0, 0.0, 0.0]
+        cumulative: [0.72, 0.76, 0.78, 0.81, 0.84, 0.91, 0.98, 1.0, 1.0, 1.0, 1.0]
+
+AAVE/USDT
+    Comparing actual vs predicted signals
+
+================================================================================
+CLASSIFICATION PERFORMANCE ASSESSMENT (Tri-State)
+================================================================================
+--- Detailed Classification Report ---
+              precision    recall  f1-score   support
+
+         0.0      0.618     0.622     0.620      7522
+         1.0      0.895     0.900     0.898     54890
+         2.0      0.597     0.567     0.582      6773
+
+    accuracy                          0.837     69185
+   macro avg      0.703     0.696     0.700     69185
+weighted avg      0.836     0.837     0.837     69185
+
+
+--- Confusion Matrix ---
+Rows = True, Columns = Predicted
+             Sell     Hold      Buy
+    Sell     4680     2838        4
+    Hold     2896    49412     2582
+     Buy        0     2936     3837
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Precision (Sell)          0.618   Good. Reliable performance.              Avoid false sell signals (support: 7522.0)
+Recall (Sell)             0.622   Good. Reliable performance.              Find all sell opportunities (support: 7522.0)
+F1-Score (Sell)           0.620   Good. Reliable performance.              Balanced performance on Sell signal (support: 7522.0)
+Precision (Hold)          0.895   Excellent. Very strong performance.      Correctly identify neutral periods (support: 54890.0)
+Recall (Hold)             0.900   Excellent. Very strong performance.      Find all neutral periods (support: 54890.0)
+F1-Score (Hold)           0.898   Excellent. Very strong performance.      Balanced performance on Hold signal (support: 54890.0)
+Precision (Buy)           0.597   Okay. Acceptable, but needs improvement. Avoid false buy signals (support: 6773.0)
+Recall (Buy)              0.567   Okay. Acceptable, but needs improvement. Find all buy opportunities (support: 6773.0)
+F1-Score (Buy)            0.582   Okay. Acceptable, but needs improvement. Balanced performance on Buy signal (support: 6773.0)
+
+--- Overall Performance Metrics ---
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Macro Avg Precision       0.703   Good. Reliable performance.              Average precision across all classes
+Macro Avg Recall          0.696   Good. Reliable performance.              Average recall across all classes
+Macro Avg F1-Score        0.700   Good. Reliable performance.              Average F1-score across all classes
+Weighted Avg Precision    0.836   Excellent. Very strong performance.      Support-weighted average precision
+Weighted Avg Recall       0.837   Excellent. Very strong performance.      Support-weighted average recall
+Weighted Avg F1-Score     0.837   Excellent. Very strong performance.      Support-weighted average F1-score
+MCC                       0.530   Good. Reliable positive correlation.     Correlation between prediction and reality
+Cohen's Kappa             0.530   Moderate. Meaningful agreement.          Agreement better than random chance
+
+--- Summary and Recommendation ---
+🌟 GOOD PERFORMANCE: The model shows strong balance (Macro F1-Score 0.700, Weighted F1-Score 0.837) and reliable correlation (MCC 0.530). All classes performing reasonably well.
+================================================================================
+    Columns exceeding ±10 before clipping: [('bb_width', -1.0634608875857425, 14.362610389066425)]
+    Trading - Sell:
+        min: 0.000 max: 0.909, mean: 0.153
+        signals > 0.600: 9009 (13.0%)
+        counts: [49758, 2995, 1593, 1348, 1384, 3098, 6634, 2348, 26, 1, 0]
+        percentages: [0.72, 0.04, 0.02, 0.02, 0.02, 0.04, 0.1, 0.03, 0.0, 0.0, 0.0]
+        cumulative: [0.72, 0.76, 0.79, 0.81, 0.83, 0.87, 0.97, 1.0, 1.0, 1.0, 1.0]
+    Trading - Hold:
+        min: 0.090 max: 0.981, mean: 0.693
+        signals > 0.600: 41000 (59.3%)
+        counts: [1, 101, 4620, 12466, 7189, 3808, 3239, 2865, 5359, 29537, 0]
+        percentages: [0.0, 0.0, 0.07, 0.18, 0.1, 0.06, 0.05, 0.04, 0.08, 0.43, 0.0]
+        cumulative: [0.0, 0.0, 0.07, 0.25, 0.35, 0.41, 0.45, 0.5, 0.57, 1.0, 1.0]
+    Trading - Buy:
+        min: 0.000 max: 0.876, mean: 0.154
+        signals > 0.600: 7911 (11.4%)
+        counts: [48892, 3149, 1794, 1614, 1968, 3857, 5668, 2173, 70, 0, 0]
+        percentages: [0.71, 0.05, 0.03, 0.02, 0.03, 0.06, 0.08, 0.03, 0.0, 0.0, 0.0]
+        cumulative: [0.71, 0.75, 0.78, 0.8, 0.83, 0.89, 0.97, 1.0, 1.0, 1.0, 1.0]
+
+SUI/USDT
+    Comparing actual vs predicted signals
+
+================================================================================
+CLASSIFICATION PERFORMANCE ASSESSMENT (Tri-State)
+================================================================================
+--- Detailed Classification Report ---
+              precision    recall  f1-score   support
+
+         0.0      0.677     0.711     0.693      8577
+         1.0      0.901     0.893     0.897     52706
+         2.0      0.655     0.656     0.656      7902
+
+    accuracy                          0.843     69185
+   macro avg      0.744     0.753     0.749     69185
+weighted avg      0.845     0.843     0.844     69185
+
+
+--- Confusion Matrix ---
+Rows = True, Columns = Predicted
+             Sell     Hold      Buy
+    Sell     6097     2475        5
+    Hold     2912    47071     2723
+     Buy        0     2719     5183
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Precision (Sell)          0.677   Good. Reliable performance.              Avoid false sell signals (support: 8577.0)
+Recall (Sell)             0.711   Good. Reliable performance.              Find all sell opportunities (support: 8577.0)
+F1-Score (Sell)           0.693   Good. Reliable performance.              Balanced performance on Sell signal (support: 8577.0)
+Precision (Hold)          0.901   Excellent. Very strong performance.      Correctly identify neutral periods (support: 52706.0)
+Recall (Hold)             0.893   Excellent. Very strong performance.      Find all neutral periods (support: 52706.0)
+F1-Score (Hold)           0.897   Excellent. Very strong performance.      Balanced performance on Hold signal (support: 52706.0)
+Precision (Buy)           0.655   Good. Reliable performance.              Avoid false buy signals (support: 7902.0)
+Recall (Buy)              0.656   Good. Reliable performance.              Find all buy opportunities (support: 7902.0)
+F1-Score (Buy)            0.656   Good. Reliable performance.              Balanced performance on Buy signal (support: 7902.0)
+
+--- Overall Performance Metrics ---
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Macro Avg Precision       0.744   Good. Reliable performance.              Average precision across all classes
+Macro Avg Recall          0.753   Good. Reliable performance.              Average recall across all classes
+Macro Avg F1-Score        0.749   Good. Reliable performance.              Average F1-score across all classes
+Weighted Avg Precision    0.845   Excellent. Very strong performance.      Support-weighted average precision
+Weighted Avg Recall       0.843   Excellent. Very strong performance.      Support-weighted average recall
+Weighted Avg F1-Score     0.844   Excellent. Very strong performance.      Support-weighted average F1-score
+MCC                       0.604   Excellent. Strong positive correlation.  Correlation between prediction and reality
+Cohen's Kappa             0.604   Moderate. Meaningful agreement.          Agreement better than random chance
+
+--- Summary and Recommendation ---
+🌟 GOOD PERFORMANCE: The model shows strong balance (Macro F1-Score 0.749, Weighted F1-Score 0.844) and reliable correlation (MCC 0.604). All classes performing reasonably well.
+================================================================================
+    Columns exceeding ±10 before clipping: [('bb_width', -1.0634608875857425, 14.782237661253935)]
+    Trading - Sell:
+        min: 0.000 max: 0.831, mean: 0.111
+        signals > 0.600: 5528 (8.0%)
+        counts: [54749, 2696, 1332, 1094, 1154, 2632, 4684, 837, 7, 0, 0]
+        percentages: [0.79, 0.04, 0.02, 0.02, 0.02, 0.04, 0.07, 0.01, 0.0, 0.0, 0.0]
+        cumulative: [0.79, 0.83, 0.85, 0.87, 0.88, 0.92, 0.99, 1.0, 1.0, 1.0, 1.0]
+    Trading - Hold:
+        min: 0.129 max: 0.982, mean: 0.776
+        signals > 0.600: 49861 (72.1%)
+        counts: [0, 53, 2143, 8664, 5577, 2887, 2498, 2503, 5160, 39700, 0]
+        percentages: [0.0, 0.0, 0.03, 0.13, 0.08, 0.04, 0.04, 0.04, 0.07, 0.57, 0.0]
+        cumulative: [0.0, 0.0, 0.03, 0.16, 0.24, 0.28, 0.32, 0.35, 0.43, 1.0, 1.0]
+    Trading - Buy:
+        min: 0.000 max: 0.869, mean: 0.113
+        signals > 0.600: 5159 (7.5%)
+        counts: [54471, 2646, 1367, 1184, 1507, 2851, 3846, 1270, 43, 0, 0]
+        percentages: [0.79, 0.04, 0.02, 0.02, 0.02, 0.04, 0.06, 0.02, 0.0, 0.0, 0.0]
+        cumulative: [0.79, 0.83, 0.85, 0.86, 0.88, 0.93, 0.98, 1.0, 1.0, 1.0, 1.0]
+
+AVAX/USDT
+    Comparing actual vs predicted signals
+
+================================================================================
+CLASSIFICATION PERFORMANCE ASSESSMENT (Tri-State)
+================================================================================
+--- Detailed Classification Report ---
+              precision    recall  f1-score   support
+
+         0.0      0.620     0.662     0.640      5180
+         1.0      0.937     0.933     0.935     58748
+         2.0      0.647     0.635     0.641      5257
+
+    accuracy                          0.890     69185
+   macro avg      0.735     0.743     0.739     69185
+weighted avg      0.891     0.890     0.891     69185
+
+
+--- Confusion Matrix ---
+Rows = True, Columns = Predicted
+             Sell     Hold      Buy
+    Sell     3429     1751        0
+    Hold     2099    54827     1822
+     Buy        0     1920     3337
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Precision (Sell)          0.620   Good. Reliable performance.              Avoid false sell signals (support: 5180.0)
+Recall (Sell)             0.662   Good. Reliable performance.              Find all sell opportunities (support: 5180.0)
+F1-Score (Sell)           0.640   Good. Reliable performance.              Balanced performance on Sell signal (support: 5180.0)
+Precision (Hold)          0.937   Excellent. Very strong performance.      Correctly identify neutral periods (support: 58748.0)
+Recall (Hold)             0.933   Excellent. Very strong performance.      Find all neutral periods (support: 58748.0)
+F1-Score (Hold)           0.935   Excellent. Very strong performance.      Balanced performance on Hold signal (support: 58748.0)
+Precision (Buy)           0.647   Good. Reliable performance.              Avoid false buy signals (support: 5257.0)
+Recall (Buy)              0.635   Good. Reliable performance.              Find all buy opportunities (support: 5257.0)
+F1-Score (Buy)            0.641   Good. Reliable performance.              Balanced performance on Buy signal (support: 5257.0)
+
+--- Overall Performance Metrics ---
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Macro Avg Precision       0.735   Good. Reliable performance.              Average precision across all classes
+Macro Avg Recall          0.743   Good. Reliable performance.              Average recall across all classes
+Macro Avg F1-Score        0.739   Good. Reliable performance.              Average F1-score across all classes
+Weighted Avg Precision    0.891   Excellent. Very strong performance.      Support-weighted average precision
+Weighted Avg Recall       0.890   Excellent. Very strong performance.      Support-weighted average recall
+Weighted Avg F1-Score     0.891   Excellent. Very strong performance.      Support-weighted average F1-score
+MCC                       0.594   Good. Reliable positive correlation.     Correlation between prediction and reality
+Cohen's Kappa             0.594   Moderate. Meaningful agreement.          Agreement better than random chance
+
+--- Summary and Recommendation ---
+🌟 GOOD PERFORMANCE: The model shows strong balance (Macro F1-Score 0.739, Weighted F1-Score 0.891) and reliable correlation (MCC 0.594). All classes performing reasonably well.
+================================================================================
+    Columns exceeding ±10 before clipping: [('bb_width', -1.0634608875857425, 20.74343033794415)]
+    Trading - Sell:
+        min: 0.000 max: 0.865, mean: 0.090
+        signals > 0.600: 4330 (6.3%)
+        counts: [57814, 2372, 1196, 899, 912, 1662, 3320, 1005, 5, 0, 0]
+        percentages: [0.84, 0.03, 0.02, 0.01, 0.01, 0.02, 0.05, 0.01, 0.0, 0.0, 0.0]
+        cumulative: [0.84, 0.87, 0.89, 0.9, 0.91, 0.94, 0.99, 1.0, 1.0, 1.0, 1.0]
+    Trading - Hold:
+        min: 0.127 max: 0.982, mean: 0.818
+        signals > 0.600: 54434 (78.7%)
+        counts: [0, 56, 2110, 6363, 3933, 2289, 2124, 2073, 4498, 45739, 0]
+        percentages: [0.0, 0.0, 0.03, 0.09, 0.06, 0.03, 0.03, 0.03, 0.07, 0.66, 0.0]
+        cumulative: [0.0, 0.0, 0.03, 0.12, 0.18, 0.21, 0.24, 0.27, 0.34, 1.0, 1.0]
+    Trading - Buy:
+        min: 0.000 max: 0.872, mean: 0.092
+        signals > 0.600: 4058 (5.9%)
+        counts: [57345, 2289, 1184, 992, 1211, 2106, 2945, 1067, 46, 0, 0]
+        percentages: [0.83, 0.03, 0.02, 0.01, 0.02, 0.03, 0.04, 0.02, 0.0, 0.0, 0.0]
+        cumulative: [0.83, 0.86, 0.88, 0.89, 0.91, 0.94, 0.98, 1.0, 1.0, 1.0, 1.0]
+
+LTC/USDT
+    Comparing actual vs predicted signals
+
+================================================================================
+CLASSIFICATION PERFORMANCE ASSESSMENT (Tri-State)
+================================================================================
+--- Detailed Classification Report ---
+              precision    recall  f1-score   support
+
+         0.0      0.675     0.676     0.676      4327
+         1.0      0.951     0.956     0.953     60461
+         2.0      0.691     0.638     0.663      4397
+
+    accuracy                          0.918     69185
+   macro avg      0.772     0.757     0.764     69185
+weighted avg      0.917     0.918     0.918     69185
+
+
+--- Confusion Matrix ---
+Rows = True, Columns = Predicted
+             Sell     Hold      Buy
+    Sell     2924     1401        2
+    Hold     1405    57804     1252
+     Buy        1     1592     2804
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Precision (Sell)          0.675   Good. Reliable performance.              Avoid false sell signals (support: 4327.0)
+Recall (Sell)             0.676   Good. Reliable performance.              Find all sell opportunities (support: 4327.0)
+F1-Score (Sell)           0.676   Good. Reliable performance.              Balanced performance on Sell signal (support: 4327.0)
+Precision (Hold)          0.951   Excellent. Very strong performance.      Correctly identify neutral periods (support: 60461.0)
+Recall (Hold)             0.956   Excellent. Very strong performance.      Find all neutral periods (support: 60461.0)
+F1-Score (Hold)           0.953   Excellent. Very strong performance.      Balanced performance on Hold signal (support: 60461.0)
+Precision (Buy)           0.691   Good. Reliable performance.              Avoid false buy signals (support: 4397.0)
+Recall (Buy)              0.638   Good. Reliable performance.              Find all buy opportunities (support: 4397.0)
+F1-Score (Buy)            0.663   Good. Reliable performance.              Balanced performance on Buy signal (support: 4397.0)
+
+--- Overall Performance Metrics ---
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Macro Avg Precision       0.772   Good. Reliable performance.              Average precision across all classes
+Macro Avg Recall          0.757   Good. Reliable performance.              Average recall across all classes
+Macro Avg F1-Score        0.764   Good. Reliable performance.              Average F1-score across all classes
+Weighted Avg Precision    0.917   Excellent. Very strong performance.      Support-weighted average precision
+Weighted Avg Recall       0.918   Excellent. Very strong performance.      Support-weighted average recall
+Weighted Avg F1-Score     0.918   Excellent. Very strong performance.      Support-weighted average F1-score
+MCC                       0.636   Excellent. Strong positive correlation.  Correlation between prediction and reality
+Cohen's Kappa             0.636   Substantial. Strong agreement.           Agreement better than random chance
+
+--- Summary and Recommendation ---
+🌟 GOOD PERFORMANCE: The model shows strong balance (Macro F1-Score 0.764, Weighted F1-Score 0.918) and reliable correlation (MCC 0.636). All classes performing reasonably well.
+================================================================================
+    Columns exceeding ±10 before clipping: [('bb_width', -1.0634608875857425, 11.359601018395429)]
+    Trading - Sell:
+        min: 0.000 max: 0.817, mean: 0.119
+        signals > 0.600: 5515 (8.0%)
+        counts: [53518, 2829, 1505, 1265, 1408, 3145, 4525, 980, 10, 0, 0]
+        percentages: [0.77, 0.04, 0.02, 0.02, 0.02, 0.05, 0.07, 0.01, 0.0, 0.0, 0.0]
+        cumulative: [0.77, 0.81, 0.84, 0.85, 0.87, 0.92, 0.99, 1.0, 1.0, 1.0, 1.0]
+    Trading - Hold:
+        min: 0.131 max: 0.982, mean: 0.765
+        signals > 0.600: 48418 (70.0%)
+        counts: [0, 57, 2030, 8511, 6702, 3467, 3040, 2581, 4776, 38021, 0]
+        percentages: [0.0, 0.0, 0.03, 0.12, 0.1, 0.05, 0.04, 0.04, 0.07, 0.55, 0.0]
+        cumulative: [0.0, 0.0, 0.03, 0.15, 0.25, 0.3, 0.34, 0.38, 0.45, 1.0, 1.0]
+    Trading - Buy:
+        min: 0.000 max: 0.868, mean: 0.116
+        signals > 0.600: 4764 (6.9%)
+        counts: [53579, 2663, 1652, 1465, 1732, 3330, 3735, 986, 43, 0, 0]
+        percentages: [0.77, 0.04, 0.02, 0.02, 0.03, 0.05, 0.05, 0.01, 0.0, 0.0, 0.0]
+        cumulative: [0.77, 0.81, 0.84, 0.86, 0.88, 0.93, 0.99, 1.0, 1.0, 1.0, 1.0]
+
+BCH/USDT
+    Comparing actual vs predicted signals
+
+================================================================================
+CLASSIFICATION PERFORMANCE ASSESSMENT (Tri-State)
+================================================================================
+--- Detailed Classification Report ---
+              precision    recall  f1-score   support
+
+         0.0      0.634     0.596     0.614      5870
+         1.0      0.919     0.934     0.926     57944
+         2.0      0.619     0.549     0.582      5371
+
+    accuracy                          0.875     69185
+   macro avg      0.724     0.693     0.708     69185
+weighted avg      0.871     0.875     0.873     69185
+
+
+--- Confusion Matrix ---
+Rows = True, Columns = Predicted
+             Sell     Hold      Buy
+    Sell     3497     2366        7
+    Hold     2016    54120     1808
+     Buy        2     2420     2949
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Precision (Sell)          0.634   Good. Reliable performance.              Avoid false sell signals (support: 5870.0)
+Recall (Sell)             0.596   Okay. Acceptable, but needs improvement. Find all sell opportunities (support: 5870.0)
+F1-Score (Sell)           0.614   Good. Reliable performance.              Balanced performance on Sell signal (support: 5870.0)
+Precision (Hold)          0.919   Excellent. Very strong performance.      Correctly identify neutral periods (support: 57944.0)
+Recall (Hold)             0.934   Excellent. Very strong performance.      Find all neutral periods (support: 57944.0)
+F1-Score (Hold)           0.926   Excellent. Very strong performance.      Balanced performance on Hold signal (support: 57944.0)
+Precision (Buy)           0.619   Good. Reliable performance.              Avoid false buy signals (support: 5371.0)
+Recall (Buy)              0.549   Okay. Acceptable, but needs improvement. Find all buy opportunities (support: 5371.0)
+F1-Score (Buy)            0.582   Okay. Acceptable, but needs improvement. Balanced performance on Buy signal (support: 5371.0)
+
+--- Overall Performance Metrics ---
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Macro Avg Precision       0.724   Good. Reliable performance.              Average precision across all classes
+Macro Avg Recall          0.693   Good. Reliable performance.              Average recall across all classes
+Macro Avg F1-Score        0.708   Good. Reliable performance.              Average F1-score across all classes
+Weighted Avg Precision    0.871   Excellent. Very strong performance.      Support-weighted average precision
+Weighted Avg Recall       0.875   Excellent. Very strong performance.      Support-weighted average recall
+Weighted Avg F1-Score     0.873   Excellent. Very strong performance.      Support-weighted average F1-score
+MCC                       0.547   Good. Reliable positive correlation.     Correlation between prediction and reality
+Cohen's Kappa             0.547   Moderate. Meaningful agreement.          Agreement better than random chance
+
+--- Summary and Recommendation ---
+🌟 GOOD PERFORMANCE: The model shows strong balance (Macro F1-Score 0.708, Weighted F1-Score 0.873) and reliable correlation (MCC 0.547). All classes performing reasonably well.
+================================================================================
+    Columns exceeding ±10 before clipping: [('bb_width', -1.0634608875857425, 14.668034006155231)]
+    Trading - Sell:
+        min: 0.000 max: 0.805, mean: 0.118
+        signals > 0.600: 5562 (8.0%)
+        counts: [53581, 3006, 1486, 1183, 1368, 2999, 4505, 1055, 2, 0, 0]
+        percentages: [0.77, 0.04, 0.02, 0.02, 0.02, 0.04, 0.07, 0.02, 0.0, 0.0, 0.0]
+        cumulative: [0.77, 0.82, 0.84, 0.86, 0.88, 0.92, 0.98, 1.0, 1.0, 1.0, 1.0]
+    Trading - Hold:
+        min: 0.116 max: 0.981, mean: 0.761
+        signals > 0.600: 48244 (69.7%)
+        counts: [0, 71, 2352, 8516, 6479, 3523, 2952, 2693, 5552, 37047, 0]
+        percentages: [0.0, 0.0, 0.03, 0.12, 0.09, 0.05, 0.04, 0.04, 0.08, 0.54, 0.0]
+        cumulative: [0.0, 0.0, 0.04, 0.16, 0.25, 0.3, 0.35, 0.38, 0.46, 1.0, 1.0]
+    Trading - Buy:
+        min: 0.000 max: 0.883, mean: 0.121
+        signals > 0.600: 5193 (7.5%)
+        counts: [52932, 2821, 1605, 1493, 1888, 3253, 3880, 1247, 66, 0, 0]
+        percentages: [0.77, 0.04, 0.02, 0.02, 0.03, 0.05, 0.06, 0.02, 0.0, 0.0, 0.0]
+        cumulative: [0.77, 0.81, 0.83, 0.85, 0.88, 0.92, 0.98, 1.0, 1.0, 1.0, 1.0]
+
+DOT/USDT
+    Comparing actual vs predicted signals
+
+================================================================================
+CLASSIFICATION PERFORMANCE ASSESSMENT (Tri-State)
+================================================================================
+--- Detailed Classification Report ---
+              precision    recall  f1-score   support
+
+         0.0      0.620     0.623     0.621      5531
+         1.0      0.923     0.931     0.927     57879
+         2.0      0.643     0.578     0.609      5775
+
+    accuracy                          0.877     69185
+   macro avg      0.728     0.711     0.719     69185
+weighted avg      0.875     0.877     0.876     69185
+
+
+--- Confusion Matrix ---
+Rows = True, Columns = Predicted
+             Sell     Hold      Buy
+    Sell     3446     2084        1
+    Hold     2116    53911     1852
+     Buy        0     2435     3340
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Precision (Sell)          0.620   Good. Reliable performance.              Avoid false sell signals (support: 5531.0)
+Recall (Sell)             0.623   Good. Reliable performance.              Find all sell opportunities (support: 5531.0)
+F1-Score (Sell)           0.621   Good. Reliable performance.              Balanced performance on Sell signal (support: 5531.0)
+Precision (Hold)          0.923   Excellent. Very strong performance.      Correctly identify neutral periods (support: 57879.0)
+Recall (Hold)             0.931   Excellent. Very strong performance.      Find all neutral periods (support: 57879.0)
+F1-Score (Hold)           0.927   Excellent. Very strong performance.      Balanced performance on Hold signal (support: 57879.0)
+Precision (Buy)           0.643   Good. Reliable performance.              Avoid false buy signals (support: 5775.0)
+Recall (Buy)              0.578   Okay. Acceptable, but needs improvement. Find all buy opportunities (support: 5775.0)
+F1-Score (Buy)            0.609   Good. Reliable performance.              Balanced performance on Buy signal (support: 5775.0)
+
+--- Overall Performance Metrics ---
+
+--- Qualitative Assessment of Key Metrics ---
+Metric                    Score   Assessment                               Trading Context
+-------------------------   -------   ----------------------------------------   ------------------------------
+Macro Avg Precision       0.728   Good. Reliable performance.              Average precision across all classes
+Macro Avg Recall          0.711   Good. Reliable performance.              Average recall across all classes
+Macro Avg F1-Score        0.719   Good. Reliable performance.              Average F1-score across all classes
+Weighted Avg Precision    0.875   Excellent. Very strong performance.      Support-weighted average precision
+Weighted Avg Recall       0.877   Excellent. Very strong performance.      Support-weighted average recall
+Weighted Avg F1-Score     0.876   Excellent. Very strong performance.      Support-weighted average F1-score
+MCC                       0.563   Good. Reliable positive correlation.     Correlation between prediction and reality
+Cohen's Kappa             0.563   Moderate. Meaningful agreement.          Agreement better than random chance
+
+--- Summary and Recommendation ---
+🌟 GOOD PERFORMANCE: The model shows strong balance (Macro F1-Score 0.719, Weighted F1-Score 0.876) and reliable correlation (MCC 0.563). All classes performing reasonably well.
+================================================================================
+Result for strategy NNNCSweep_NNNC_DDPM_MLX_Noisy_s0_2_seed7
+                                              BACKTESTING REPORT                                              
+┏━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃      Pair ┃ Trades ┃ Avg Profit % ┃ Tot Profit USDT ┃ Tot Profit % ┃ Avg Duration ┃  Win  Draw  Loss  Win% ┃
+┡━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━┩
+│  ZEC/USDT │     69 │         1.16 │         521.239 │         5.21 │      1:54:00 │   45     0    24  65.2 │
+│  XRP/USDT │     23 │          1.3 │         270.148 │          2.7 │      2:31:00 │   15     0     8  65.2 │
+│  SOL/USDT │      6 │         2.83 │         153.119 │         1.53 │      1:18:00 │    5     0     1  83.3 │
+│  SUI/USDT │      5 │         2.82 │          93.248 │         0.93 │      2:33:00 │    4     0     1  80.0 │
+│ AAVE/USDT │      5 │         1.77 │          79.947 │          0.8 │      1:30:00 │    4     0     1  80.0 │
+│  DOT/USDT │      3 │         2.87 │          68.935 │         0.69 │      1:05:00 │    3     0     0   100 │
+│  LTC/USDT │      5 │         1.81 │          60.835 │         0.61 │      1:27:00 │    4     0     1  80.0 │
+│ NEAR/USDT │     16 │         -0.2 │          32.674 │         0.33 │      2:13:00 │    7     0     9  43.8 │
+│  BCH/USDT │      4 │         0.83 │          20.432 │          0.2 │      1:41:00 │    3     0     1  75.0 │
+│ LINK/USDT │     10 │         0.15 │         -18.179 │        -0.18 │      2:34:00 │    5     0     5  50.0 │
+│ AVAX/USDT │      2 │        -0.52 │         -42.938 │        -0.43 │      1:00:00 │    1     0     1  50.0 │
+│     TOTAL │    148 │         1.14 │        1239.461 │        12.39 │      2:00:00 │   96     0    52  64.9 │
+└───────────┴────────┴──────────────┴─────────────────┴──────────────┴──────────────┴────────────────────────┘
+                                         LEFT OPEN TRADES REPORT                                          
+┏━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃  Pair ┃ Trades ┃ Avg Profit % ┃ Tot Profit USDT ┃ Tot Profit % ┃ Avg Duration ┃  Win  Draw  Loss  Win% ┃
+┡━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ TOTAL │      0 │          0.0 │           0.000 │          0.0 │         0:00 │    0     0     0     0 │
+└───────┴────────┴──────────────┴─────────────────┴──────────────┴──────────────┴────────────────────────┘
+                                                 ENTER TAG STATS                                                  
+┏━━━━━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃    Enter Tag ┃ Entries ┃ Avg Profit % ┃ Tot Profit USDT ┃ Tot Profit % ┃ Avg Duration ┃  Win  Draw  Loss  Win% ┃
+┡━━━━━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━┩
+│  model_entry │     148 │         1.14 │        1239.461 │        12.39 │      2:00:00 │   96     0    52  64.9 │
+│        TOTAL │     148 │         1.14 │        1239.461 │        12.39 │      2:00:00 │   96     0    52  64.9 │
+└──────────────┴─────────┴──────────────┴─────────────────┴──────────────┴──────────────┴────────────────────────┘
+                                                  EXIT REASON STATS                                                   
+┏━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃        Exit Reason ┃ Exits ┃ Avg Profit % ┃ Tot Profit USDT ┃ Tot Profit % ┃ Avg Duration ┃  Win  Draw  Loss  Win% ┃
+┡━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━┩
+│                roi │    65 │          3.0 │        1462.795 │        14.63 │      2:14:00 │   65     0     0   100 │
+│        take_profit │    22 │         7.33 │        1253.602 │        12.54 │      1:01:00 │   22     0     0   100 │
+│ trailing_stop_loss │    13 │         0.95 │          95.119 │         0.95 │      1:06:00 │    9     0     4  69.2 │
+│          stop_loss │    48 │        -4.17 │       -1572.055 │       -15.72 │      2:24:00 │    0     0    48     0 │
+│              TOTAL │   148 │         1.14 │        1239.461 │        12.39 │      2:00:00 │   96     0    52  64.9 │
+└────────────────────┴───────┴──────────────┴─────────────────┴──────────────┴──────────────┴────────────────────────┘
+                                                           MIXED TAG STATS                                                            
+┏━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃    Enter Tag ┃        Exit Reason ┃ Trades ┃ Avg Profit % ┃ Tot Profit USDT ┃ Tot Profit % ┃ Avg Duration ┃  Win  Draw  Loss  Win% ┃
+┡━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━┩
+│  model_entry │                roi │     65 │          3.0 │        1462.795 │        14.63 │      2:14:00 │   65     0     0   100 │
+│  model_entry │        take_profit │     22 │         7.33 │        1253.602 │        12.54 │      1:01:00 │   22     0     0   100 │
+│  model_entry │ trailing_stop_loss │     13 │         0.95 │          95.119 │         0.95 │      1:06:00 │    9     0     4  69.2 │
+│  model_entry │          stop_loss │     48 │        -4.17 │       -1572.055 │       -15.72 │      2:24:00 │    0     0    48     0 │
+│        TOTAL │                    │    148 │         1.14 │        1239.461 │        12.39 │      2:00:00 │   96     0    52  64.9 │
+└──────────────┴────────────────────┴────────┴──────────────┴─────────────────┴──────────────┴──────────────┴────────────────────────┘
+                                 MONTH BREAKDOWN                                  
+┏━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃      Month ┃ Trades ┃ Tot Profit USDT ┃ Profit Factor ┃  Win  Draw  Loss  Win% ┃
+┡━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ 31/08/2024 │     11 │         192.516 │          3.21 │    7     0     4  63.6 │
+│ 30/09/2024 │      0 │               0 │           0.0 │    0     0     0     0 │
+│ 31/10/2024 │      1 │          13.364 │           0.0 │    1     0     0   100 │
+│ 30/11/2024 │     11 │          30.896 │          1.29 │    7     0     4  63.6 │
+│ 31/12/2024 │     16 │         254.568 │          4.32 │   13     0     3  81.2 │
+│ 31/01/2025 │      3 │          51.123 │         18.44 │    2     0     1  66.7 │
+│ 28/02/2025 │     18 │         149.972 │           1.8 │   13     0     5  72.2 │
+│ 31/03/2025 │      3 │          27.519 │          2.04 │    2     0     1  66.7 │
+│ 30/04/2025 │      0 │               0 │           0.0 │    0     0     0     0 │
+│ 31/05/2025 │      0 │               0 │           0.0 │    0     0     0     0 │
+│ 30/06/2025 │      0 │               0 │           0.0 │    0     0     0     0 │
+│ 31/07/2025 │      0 │               0 │           0.0 │    0     0     0     0 │
+│ 31/08/2025 │      0 │               0 │           0.0 │    0     0     0     0 │
+│ 30/09/2025 │      0 │               0 │           0.0 │    0     0     0     0 │
+│ 31/10/2025 │     27 │         361.108 │          2.83 │   20     0     7  74.1 │
+│ 30/11/2025 │     33 │         369.003 │          2.08 │   21     0    12  63.6 │
+│ 31/12/2025 │      3 │           3.092 │          1.06 │    2     0     1  66.7 │
+│ 31/01/2026 │      0 │               0 │           0.0 │    0     0     0     0 │
+│ 28/02/2026 │      6 │          56.292 │          1.68 │    3     0     3  50.0 │
+│ 31/03/2026 │      0 │               0 │           0.0 │    0     0     0     0 │
+│ 30/04/2026 │      0 │               0 │           0.0 │    0     0     0     0 │
+│ 31/05/2026 │      1 │         -16.414 │           0.0 │    0     0     1     0 │
+│ 30/06/2026 │     15 │        -253.576 │           0.4 │    5     0    10  33.3 │
+└────────────┴────────┴─────────────────┴───────────────┴────────────────────────┘
+                                   SUMMARY METRICS                                    
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Metric                                 ┃ Value                                     ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ Backtesting from                       │ 2024-06-29 00:00:00                       │
+│ Backtesting to                         │ 2026-06-19 00:00:00                       │
+│ Trading Mode                           │ Spot                                      │
+│ Max open trades                        │ 10                                        │
+│                                        │                                           │
+│ Total/Daily Avg Trades                 │ 148 / 0.21                                │
+│ Starting balance                       │ 10000 USDT                                │
+│ Final balance                          │ 11239.461 USDT                            │
+│ Absolute profit                        │ 1239.461 USDT                             │
+│ Total profit %                         │ 12.39%                                    │
+│ CAGR %                                 │ 6.10%                                     │
+│ Sharpe (closed trades)                 │ 0.85                                      │
+│ Sortino (closed trades)                │ 1.00                                      │
+│ Calmar (closed trades)                 │ 10.01                                     │
+│ SQN                                    │ 2.64                                      │
+│ Profit factor                          │ 1.78                                      │
+│ Expectancy (Ratio)                     │ 8.37 (0.27)                               │
+│ Avg. daily profit                      │ 1.721 USDT                                │
+│ Avg. stake amount                      │ 771.71 USDT                               │
+│ Market change                          │ 166.75%                                   │
+│ Total trade volume                     │ 230125.356 USDT                           │
+│                                        │                                           │
+│ Best Pair                              │ ZEC/USDT 5.21%                            │
+│ Worst Pair                             │ AVAX/USDT -0.43%                          │
+│ Best trade                             │ ZEC/USDT 14.27%                           │
+│ Worst trade                            │ ZEC/USDT -26.57%                          │
+│ Best day                               │ 192.516 USDT                              │
+│ Worst day                              │ -159.424 USDT                             │
+│ Days win/draw/lose                     │ 42 / 611 / 21                             │
+│ Min/Max/Avg. Duration Winners          │ 0d 01:00 / 0d 08:15 / 0d 01:51            │
+│ Min/Max/Avg. Duration Losers           │ 0d 01:00 / 0d 13:00 / 0d 02:18            │
+│ Max Consecutive Wins / Loss            │ 10 / 3                                    │
+│ Rejected Entry signals                 │ 0                                         │
+│ Entry/Exit Timeouts                    │ 0 / 0                                     │
+│                                        │                                           │
+│ Min/Max balance (closed trades)        │ 9924.259 USDT / 11541.238 USDT            │
+│ Max % of account underwater            │ 3.29%                                     │
+│ Absolute drawdown                      │ 379.247 USDT (3.29%)                      │
+│ Drawdown duration                      │ 119 days 08:00:00                         │
+│ Profit at drawdown start               │ 1541.238 USDT                             │
+│ Profit at drawdown end                 │ 1161.992 USDT                             │
+│ Drawdown start                         │ 2026-02-06 01:15:00                       │
+│ Drawdown end                           │ 2026-06-05 09:15:00                       │
+│                                        │                                           │
+│ Wallet based Metrics                   │                                           │
+│ Min/Max balance (wallet balance)       │ 9891.081 USDT / 11555.879 USDT            │
+│ Min/Max balance dates (wallet balance) │ 2024-08-05 06:45:00 / 2026-02-06 23:00:00 │
+│ Max % of account underwater (balance)  │ 3.74%                                     │
+│ Absolute drawdown (wallet balance)     │ 432.31 USDT (3.74%)                       │
+│ Drawdown duration                      │ 118 days 10:00:00                         │
+│ Profit at drawdown start               │ 1555.879 USDT                             │
+│ Profit at drawdown end                 │ 1123.569 USDT                             │
+│ Drawdown start                         │ 2026-02-06 23:00:00                       │
+│ Drawdown end                           │ 2026-06-05 09:00:00                       │
+│ Sharpe (daily wallet balance)          │ 1.99                                      │
+│ Sortino (daily wallet balance)         │ 1.08                                      │
+│ Calmar (daily wallet balance)          │ 8.80                                      │
+└────────────────────────────────────────┴───────────────────────────────────────────┘
+
+Backtested 2024-06-29 00:00:00 -> 2026-06-19 00:00:00 | Max open trades : 10
+                                                                         STRATEGY SUMMARY                                                                          
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━┓
+┃                                 Strategy ┃ Trades ┃ Avg Profit % ┃ Tot Profit USDT ┃ Tot Profit % ┃ Avg Duration ┃  Win  Draw  Loss  Win% ┃            Drawdown ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━┩
+│ NNNCSweep_NNNC_DDPM_MLX_Noisy_s0_2_seed7 │    148 │         1.14 │        1239.461 │        12.39 │      2:00:00 │   96     0    52  64.9 │ 379.247 USDT  3.29% │
+└──────────────────────────────────────────┴────────┴──────────────┴─────────────────┴──────────────┴──────────────┴────────────────────────┴─────────────────────┘
+
+
+2026-07-20 11:06:15,193 - freqtrade - INFO - freqtrade 2026.4-dev-63819fa7e
+2026-07-20 11:06:15,533 - numexpr.utils - INFO - NumExpr defaulting to 14 threads.
+2026-07-20 11:06:16,353 - freqtrade - INFO - freqtrade 2026.4-dev-63819fa7e
+2026-07-20 11:06:16,508 - numexpr.utils - INFO - NumExpr defaulting to 14 threads.
+2026-07-20 11:06:17,063 - freqtrade.configuration.load_config - INFO - Using config: user_data/strategies/config/config.json ...
+2026-07-20 11:06:17,064 - freqtrade.configuration.environment_vars - INFO - Loading variable 'FREQTRADE__API_SERVER__PASSWORD'
+2026-07-20 11:06:17,064 - freqtrade.configuration.environment_vars - INFO - Key parts: ['API_SERVER', 'PASSWORD']
+2026-07-20 11:06:17,064 - freqtrade.configuration.environment_vars - INFO - Loading variable 'FREQTRADE__API_SERVER__USERNAME'
+2026-07-20 11:06:17,064 - freqtrade.configuration.environment_vars - INFO - Key parts: ['API_SERVER', 'USERNAME']
+2026-07-20 11:06:17,065 - freqtrade.loggers - INFO - Enabling colorized output.
+2026-07-20 11:06:17,065 - freqtrade.loggers - INFO - Logfile configured
+2026-07-20 11:06:17,065 - freqtrade.loggers - INFO - Verbosity set to 0
+2026-07-20 11:06:17,065 - freqtrade.configuration.configuration - INFO - Using additional Strategy lookup path: user_data/strategies/NNNC
+2026-07-20 11:06:17,065 - freqtrade.configuration.configuration - INFO - Using max_open_trades: 10 ...
+2026-07-20 11:06:17,065 - freqtrade.configuration.configuration - INFO - Parameter --timerange detected: 20240629-20260619 ...
+2026-07-20 11:06:17,066 - freqtrade.configuration.configuration - INFO - Using user-data directory: /Users/philprice95/projects/freqtrade/user_data ...
+2026-07-20 11:06:17,066 - freqtrade.configuration.configuration - INFO - Using data directory: /Users/philprice95/projects/freqtrade/user_data/data/binanceus ...
+2026-07-20 11:06:17,066 - freqtrade.configuration.configuration - INFO - Using strategy list of 1 strategies
+2026-07-20 11:06:17,066 - freqtrade.configuration.configuration - INFO - Parameter --breakdown detected ...
+2026-07-20 11:06:17,066 - freqtrade.configuration.configuration - INFO - Parameter --cache=none detected ...
+2026-07-20 11:06:17,066 - freqtrade.configuration.configuration - INFO - Filter trades by timerange: 20240629-20260619
+2026-07-20 11:06:17,066 - freqtrade.exchange.check_exchange - INFO - Checking exchange...
+2026-07-20 11:06:17,072 - freqtrade.exchange.check_exchange - INFO - Exchange "binanceus" is officially supported by the Freqtrade development team.
+2026-07-20 11:06:17,073 - freqtrade.configuration.configuration - INFO - Using pairlist from configuration.
+2026-07-20 11:06:17,073 - freqtrade.configuration.config_validation - INFO - Validating configuration ...
+2026-07-20 11:06:17,074 - freqtrade.commands.optimize_commands - INFO - Starting freqtrade in Backtesting mode
+2026-07-20 11:06:17,074 - freqtrade.exchange.exchange - INFO - Instance is running with dry_run enabled
+2026-07-20 11:06:17,074 - freqtrade.exchange.exchange - INFO - Using CCXT 4.5.50
+2026-07-20 11:06:17,083 - freqtrade.exchange.exchange - INFO - Using Exchange "Binance US"
+2026-07-20 11:06:17,446 - freqtrade.resolvers.exchange_resolver - INFO - Using resolved exchange 'Binanceus'...
+/Users/philprice95/projects/freqtrade/.venv/lib/python3.12/site-packages/_distutils_hack/__init__.py:15: UserWarning: Distutils was imported before Setuptools, but importing Setuptools also replaces the `distutils` module in `sys.modules`. This may lead to undesirable behaviors or errors. To avoid these issues, avoid using distutils directly, ensure that setuptools is installed in the traditional way (e.g. not an editable install), and/or make sure that setuptools is always imported before distutils.
+  warnings.warn(
+/Users/philprice95/projects/freqtrade/.venv/lib/python3.12/site-packages/_distutils_hack/__init__.py:30: UserWarning: Setuptools is replacing distutils. Support for replacing an already imported distutils is deprecated. In the future, this condition will fail. Register concerns at https://github.com/pypa/setuptools/issues/new?template=distutils-deprecation.yml
+  warnings.warn(
+2026-07-20 11:06:19,751 - freqtrade.resolvers.iresolver - INFO - Using resolved strategy NNNCSweep_NNNC_DDPM_MLX_Noisy_s0_2_seed7 from 
+'/Users/philprice95/projects/freqtrade/user_data/strategies/NNNC/NNNCSweep_NNNC_DDPM_MLX_Noisy_s0_2_seed7.py'...
+2026-07-20 11:06:19,752 - freqtrade.strategy.hyper - INFO - Found no parameter file.
+2026-07-20 11:06:19,752 - freqtrade.resolvers.strategy_resolver - INFO - Override strategy 'timeframe' with value from the configuration: 15m.
+2026-07-20 11:06:19,752 - freqtrade.resolvers.strategy_resolver - INFO - Override strategy 'order_types' with value from the configuration: {'entry': 'limit', 'exit': 'market', 'emergency_exit': 
+'market', 'force_exit': 'market', 'force_entry': 'market', 'stoploss': 'market', 'stoploss_on_exchange': False, 'stoploss_price_type': 'last', 'stoploss_on_exchange_interval': 60, 
+'stoploss_on_exchange_limit_ratio': 0.99}.
+2026-07-20 11:06:19,752 - freqtrade.resolvers.strategy_resolver - INFO - Override strategy 'stake_currency' with value from the configuration: USDT.
+2026-07-20 11:06:19,752 - freqtrade.resolvers.strategy_resolver - INFO - Override strategy 'stake_amount' with value from the configuration: 900.
+2026-07-20 11:06:19,752 - freqtrade.resolvers.strategy_resolver - INFO - Override strategy 'unfilledtimeout' with value from the configuration: {'entry': 10, 'exit': 10, 'exit_timeout_count': 0, 
+'unit': 'minutes'}.
+2026-07-20 11:06:19,753 - freqtrade.resolvers.strategy_resolver - INFO - Override strategy 'max_open_trades' with value from the configuration: 10.
+2026-07-20 11:06:19,753 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using minimal_roi: {'0': 0.03}
+2026-07-20 11:06:19,753 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using timeframe: 15m
+2026-07-20 11:06:19,753 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using stoploss: -0.05
+2026-07-20 11:06:19,753 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using trailing_stop: True
+2026-07-20 11:06:19,753 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using trailing_stop_positive: 0.01
+2026-07-20 11:06:19,753 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using trailing_stop_positive_offset: 0.03
+2026-07-20 11:06:19,753 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using trailing_only_offset_is_reached: False
+2026-07-20 11:06:19,753 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using use_custom_stoploss: True
+2026-07-20 11:06:19,753 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using process_only_new_candles: True
+2026-07-20 11:06:19,753 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using order_types: {'entry': 'limit', 'exit': 'market', 'emergency_exit': 'market', 'force_exit': 'market', 
+'force_entry': 'market', 'stoploss': 'market', 'stoploss_on_exchange': False, 'stoploss_price_type': 'last', 'stoploss_on_exchange_interval': 60, 'stoploss_on_exchange_limit_ratio': 0.99}
+2026-07-20 11:06:19,754 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using order_time_in_force: {'entry': 'GTC', 'exit': 'GTC'}
+2026-07-20 11:06:19,754 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using stake_currency: USDT
+2026-07-20 11:06:19,754 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using stake_amount: 900
+2026-07-20 11:06:19,754 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using startup_candle_count: 64
+2026-07-20 11:06:19,754 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using unfilledtimeout: {'entry': 10, 'exit': 10, 'exit_timeout_count': 0, 'unit': 'minutes'}
+2026-07-20 11:06:19,754 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using use_exit_signal: True
+2026-07-20 11:06:19,754 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using exit_profit_only: True
+2026-07-20 11:06:19,754 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using ignore_roi_if_entry_signal: True
+2026-07-20 11:06:19,754 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using exit_profit_offset: 0.0
+2026-07-20 11:06:19,754 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using disable_dataframe_checks: False
+2026-07-20 11:06:19,754 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using ignore_buying_expired_candle_after: 0
+2026-07-20 11:06:19,754 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using position_adjustment_enable: False
+2026-07-20 11:06:19,755 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using max_entry_position_adjustment: -1
+2026-07-20 11:06:19,755 - freqtrade.resolvers.strategy_resolver - INFO - Strategy using max_open_trades: 10
+2026-07-20 11:06:19,755 - freqtrade.configuration.config_validation - INFO - Validating configuration ...
+2026-07-20 11:06:19,757 - freqtrade.resolvers.iresolver - INFO - Using resolved pairlist StaticPairList from '/Users/philprice95/projects/freqtrade/freqtrade/plugins/pairlist/StaticPairList.py'...
+2026-07-20 11:06:19,760 - freqtrade.optimize.backtesting - INFO - Using fee 0.1000% - worst case fee from exchange (lowest tier).
+2026-07-20 11:06:19,865 - freqtrade.data.history.datahandlers.idatahandler - INFO - Price jump in ZEC/USDT, 15m, spot between two candles of 33.14% detected.
+2026-07-20 11:06:19,996 - freqtrade.optimize.backtesting - INFO - Loading data from 2024-06-28 08:00:00 up to 2026-06-19 00:00:00 (720 days).
+2026-07-20 11:06:22,131 - freqtrade.optimize.backtesting - INFO - Dataload complete. Calculating indicators
+2026-07-20 11:06:22,131 - freqtrade.optimize.backtesting - INFO - Running backtesting for Strategy NNNCSweep_NNNC_DDPM_MLX_Noisy_s0_2_seed7
+2026-07-20 11:06:22,142 - freqtrade.strategy.hyper - INFO - Strategy Parameter: cexit_enable_profit_checks = True
+2026-07-20 11:06:22,142 - freqtrade.strategy.hyper - INFO - Strategy Parameter: cexit_max_days = 28
+2026-07-20 11:06:22,142 - freqtrade.strategy.hyper - INFO - Strategy Parameter: cexit_take_profit = 0.04
+2026-07-20 11:06:22,142 - freqtrade.strategy.hyper - INFO - Strategy Parameter: enable_exit_signal = True
+2026-07-20 11:06:22,142 - freqtrade.strategy.hyper - INFO - Strategy Parameter: exit_close_norm_threshold = -0.9
+2026-07-20 11:06:22,142 - freqtrade.strategy.hyper - INFO - Strategy Parameter: exit_guard_threshold = 0.7
+2026-07-20 11:06:22,142 - freqtrade.strategy.hyper - INFO - Strategy Parameter: entry_adx_threshold = 10.0
+2026-07-20 11:06:22,142 - freqtrade.strategy.hyper - INFO - Strategy Parameter: entry_atr_pct = 0.013
+2026-07-20 11:06:22,142 - freqtrade.strategy.hyper - INFO - Strategy Parameter: entry_bb_width_threshold = 0.094
+2026-07-20 11:06:22,142 - freqtrade.strategy.hyper - INFO - Strategy Parameter: entry_close_norm_threshold = 0.6
+2026-07-20 11:06:22,143 - freqtrade.strategy.hyper - INFO - Strategy Parameter: entry_enable_guards = True
+2026-07-20 11:06:22,143 - freqtrade.strategy.hyper - INFO - Strategy Parameter: entry_guard_threshold = 0.1
+2026-07-20 11:06:22,143 - freqtrade.strategy.hyper - INFO - Strategy Parameter: entry_rvol_threshold = 1.9
+2026-07-20 11:06:22,143 - freqtrade.strategy.hyper - INFO - Strategy Parameter: prediction_threshold = 0.6
+2026-07-20 11:06:33,124 - freqtrade.optimize.backtesting - INFO - Backtesting with data from 2024-06-29 00:00:00 up to 2026-06-19 00:00:00 (720 days).
+2026-07-20 11:06:37,344 - freqtrade.misc - INFO - dumping json to "/Users/philprice95/projects/freqtrade/user_data/backtest_results/backtest-result-2026-07-20_11-06-37.meta.json"

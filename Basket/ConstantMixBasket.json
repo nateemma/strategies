@@ -1,0 +1,31 @@
+{
+  "strategy_name": "ConstantMixBasket",
+  "params": {
+    "roi": {
+      "0": 100.0
+    },
+    "stoploss": {
+      "stoploss": -0.99
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 5
+    },
+    "buy": {
+      "bb_period": 48,
+      "cash_target_weight": 0.23,
+      "hard_drift_ceiling": 0.22,
+      "rebalance_band": 0.12,
+      "rebalance_interval_hours": 48,
+      "runaway_trend_override": false,
+      "use_bb_gate": true
+    }
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2026-07-01 05:42:25.461899+00:00"
+}

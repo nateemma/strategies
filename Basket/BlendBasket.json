@@ -1,0 +1,40 @@
+{
+  "strategy_name": "BlendBasket",
+  "params": {
+    "roi": {
+      "0": 100.0
+    },
+    "stoploss": {
+      "stoploss": -0.99
+    },
+    "trailing": {
+      "trailing_stop": false,
+      "trailing_stop_positive": null,
+      "trailing_stop_positive_offset": 0.0,
+      "trailing_only_offset_is_reached": false
+    },
+    "max_open_trades": {
+      "max_open_trades": 5
+    },
+    "buy": {
+      "bb_period": 18,
+      "cov_lookback": 41,
+      "cov_shrinkage": 0.49,
+      "cppi_floor_mode": "ratchet",
+      "cppi_floor_ratio": 0.68,
+      "cppi_multiplier": 4.5,
+      "exposure_mode": "cppi",
+      "fixed_exposure": 0.74,
+      "mom_lookback": 128,
+      "mom_threshold": 0.1,
+      "rebalance_band": 0.01,
+      "rebalance_interval_hours": 161,
+      "selection_mode": "momentum",
+      "target_vol": 0.35,
+      "use_bb_gate": false,
+      "vol_lookback": 49
+    }
+  },
+  "ft_stratparam_v": 1,
+  "export_time": "2026-07-01 15:59:19.442891+00:00"
+}
