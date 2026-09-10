@@ -53,13 +53,22 @@ MECHANISM = {
     "rsi_conservative_sell": "profit check (rsi)",
     "force_exit":          "end of backtest",
     "exit_signal":         "model exit signal",
+    # BaseStrategy builds this tag with `exit_tag += "model_exit "` -- note the
+    # TRAILING SPACE, which lets several tags concatenate. `mech()` strips before
+    # lookup, so both forms map. Before 2026-09-10 every model exit fell through to
+    # UNMAPPED:"model_exit ", and a `Counter.get("model_exit")` on the raw archive
+    # returns None rather than the true count -- which is exactly how this was
+    # mis-read as "the exit signal never fires".
+    "model_exit":          "model exit signal",
 }
 # counted in coverage, excluded from mechanism attribution
 NON_MECHANISM = {"end of backtest"}
 
 
 def mech(reason: str) -> str:
-    return MECHANISM.get(reason, f"UNMAPPED:{reason}")
+    # strip: exit tags are concatenated with a trailing space (see MECHANISM above)
+    key = (reason or "").strip()
+    return MECHANISM.get(key, f"UNMAPPED:{key}")
 
 
 def load(archive: Path, strategy: str | None):

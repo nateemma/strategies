@@ -62,6 +62,12 @@ after `ft_load_hyper_params()` (called inside `ft_bot_start()`); before that you
 `atr_stoploss_multiplier` / `_floor` / `_cap` (unreachable via `--set`, hence a subclass) and
 `stoploss_grace_hours` / `stoploss_grace_level`, which set the worst-case trade size.
 
+**Exit tags carry a TRAILING SPACE.** `BaseStrategy` builds them with
+`exit_tag += "model_exit "` so several tags can concatenate, so the archive's `exit_reason` is
+`"model_exit "`, not `"model_exit"`. A `Counter(...).get("model_exit")` therefore returns `None`
+and the natural reading is "the model exit never fires". It fires 11 times in 99 trades on NNNC.
+**Always `.strip()` an `exit_reason` before comparing it.**
+
 **In backtest archives, `trailing_stop_loss` means the ATR stop *after it moved*.**
 `trailing_stop` is `False` framework-wide, so attributing those exits to native trailing
 mis-assigns a large share of trades. `stop_loss` is the initial/grace stop.
