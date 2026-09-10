@@ -137,22 +137,22 @@ fi
 
 if [ ! -f ${config_file} ]; then
     echo ""
-    echo "config file not found: ${config_file}"
-    echo "(Maybe try using the -c option?)"
+    echo "config file not found: ${config_file}" >&2
+    echo "(Maybe try using the -c option?)" >&2
     echo ""
-    exit 0
+    exit 2
 fi
 
 if [ ! -d ${group_dir} ]; then
     echo ""
-    echo "Strategy dir not found: ${group_dir}"
+    echo "Strategy dir not found: ${group_dir}" >&2
     echo ""
-    exit 0
+    exit 2
 fi
 
 if [ ! -f  ${strat_file} ]; then
-    echo "Strategy file file not found: ${strat_file}"
-    exit 0
+    echo "Strategy file not found: ${strat_file}" >&2
+    exit 2
 fi
 
 
@@ -203,8 +203,45 @@ cmd="freqtrade backtesting --cache none  --breakdown month --timerange=${timeran
 #cmd="freqtrade backtesting --breakdown month --timerange=${timerange} -c ${config_file} --strategy-path ${group_dir} --strategy-list ${strategy}"
 echo ${cmd}
 eval ${cmd}
+rc=$?
 
 echo ""
 
 # restore PYTHONPATH
 export PYTHONPATH="${oldpath}"
+
+# ---------------------------------------------------------------------------
+# EXIT STATUS
+#
+# Previously this script ended on `echo` and a PYTHONPATH restore, so the
+# freqtrade exit status was DISCARDED and the script always returned 0. Callers
+# had no way to detect a failed run except by checking for the model artefact by
+# hand, which is how several silent failures got as far as being reported as
+# results.
+#
+# Two distinct failures are now reported:
+#   rc != 0        freqtrade itself failed (bad config, import error, crash)
+#   rc == 3        freqtrade "succeeded" but a model that -f deleted was NOT
+#                  recreated, i.e. training did not actually happen. This is the
+#                  dangerous case: exit status alone would call it a success and
+#                  the next backtest would silently train inside itself.
+# ---------------------------------------------------------------------------
+if [[ ${rc} -ne 0 ]]; then
+    echo "test_strat.sh: freqtrade exited ${rc}" >&2
+    exit ${rc}
+fi
+
+if [[ $force_retrain -ne 0 ]]; then
+    model_dir="${strat_dir}/saved_data/${strategy}"
+    found=0
+    for ext in keras sav safetensors; do
+        [ -f "${model_dir}/${strategy}.${ext}" ] && found=1
+    done
+    if [[ ${found} -eq 0 ]]; then
+        echo "test_strat.sh: -f was given and no model artefact exists in ${model_dir} --" >&2
+        echo "               training did NOT complete. Do not treat this run as a success." >&2
+        exit 3
+    fi
+fi
+
+exit 0
