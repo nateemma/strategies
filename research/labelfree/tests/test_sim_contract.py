@@ -70,6 +70,21 @@ def test_bar_returns_slices_time_not_batch():
     assert np.allclose(np.asarray(r1), np.log(2)), "1-D path regressed"
 
 
+def test_turnover_penalty_is_finite_on_a_pooled_panel():
+    """Regression: the penalty term must index TIME, not the pair axis.
+
+    On a 10-pair panel a bare w[BURN_IN:] is an empty slice, its mean is NaN, and the loss
+    goes NaN while training silently continues — 26 runs were wasted this way.
+    """
+    import mlx.core as mx
+    from research.labelfree import losses as L
+    from research.labelfree.train import BURN_IN
+    w = mx.array(np.random.default_rng(0).random((10, BURN_IN + 200)).astype(np.float32))
+    val = float(L.turnover_penalty(w[..., BURN_IN:], 0.001))
+    assert np.isfinite(val), "turnover penalty is not finite on a pooled panel"
+    assert float(L.turnover_penalty(w[BURN_IN:], 0.001)) != val or w.shape[0] > BURN_IN
+
+
 def test_cost_model_spread_is_estimated_not_constant():
     """FR-004a: half-spread varies per bar and never collapses to zero."""
     n = 400

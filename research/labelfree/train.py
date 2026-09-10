@@ -94,7 +94,10 @@ def train_fold(features: np.ndarray, open_px: np.ndarray, cost_per_unit: np.ndar
         r = r[..., BURN_IN:]
         base = obj(r, cfg.lam_risk) if cfg.objective == "utility" else obj(r)
         if cfg.turnover_control == "penalty":
-            base = base + L.turnover_penalty(w[BURN_IN:], cfg.lam_turnover)
+            # `...` indexes time. A bare w[BURN_IN:] slices the PAIR axis: on a 10-pair
+            # panel w[96:] is EMPTY, mean() of it is NaN, and the whole loss goes NaN while
+            # training silently continues. That cost 26 wasted runs on 2026-09-10.
+            base = base + L.turnover_penalty(w[..., BURN_IN:], cfg.lam_turnover)
         return base
 
     grad_fn = nn.value_and_grad(pol, loss_fn)
@@ -107,7 +110,11 @@ def train_fold(features: np.ndarray, open_px: np.ndarray, cost_per_unit: np.ndar
             opt.update(pol, grads)
             # Every updated array must be evaluated each step or Metal's limit trips.
             mx.eval(pol.parameters(), opt.state, loss)
-            ep.append(float(loss))
+            lv = float(loss)
+            if not np.isfinite(lv):
+                raise FloatingPointError(
+                    f"non-finite loss at epoch {len(history)}, window {int(starts[j])}: {lv}")
+            ep.append(lv)
         v_loss = float(np.mean(ep))
         history.append(v_loss)
         best = min(best, v_loss)
