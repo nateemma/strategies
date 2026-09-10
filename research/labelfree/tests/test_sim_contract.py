@@ -1,0 +1,65 @@
+"""Simulator contract invariants (T011) + FR-014a assertion (T021a).
+
+contracts/simulator.md: each invariant maps to a requirement; a violation is a defect.
+"""
+from __future__ import annotations
+
+import pathlib
+import sys
+
+import numpy as np
+import pandas as pd
+import pytest
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3]))
+
+from research.labelfree import sim                                      # noqa: E402
+from research.labelfree.costs import CostModel                          # noqa: E402
+
+
+def test_hard_cap_never_exceeds_fraction():
+    """FR-005: executed delta <= 10% of the candle's quote volume."""
+    assert sim.liquidity_cap(1000.0, 500.0) == 100.0
+    assert sim.liquidity_cap(1000.0, 50.0) == 50.0
+
+
+def test_soft_cap_is_differentiable_and_bounded():
+    """FR-005: the training cap must not zero the gradient where it binds."""
+    v = sim.soft_liquidity_cap(1000.0, np.array([50.0, 100.0, 500.0]))
+    assert np.all(v <= 100.0 + 1e-6)
+    # strictly increasing in the requested amount -> non-zero gradient past the cap
+    assert v[2] > v[1] > v[0]
+
+
+def test_max_concurrent_respects_cap():
+    """FR-006: concurrent positions must not exceed max_open_trades."""
+    t = pd.to_datetime(["2025-01-01", "2025-01-02", "2025-01-03"], utc=True)
+    tr = pd.DataFrame({"open_date": [t[0], t[0], t[1]],
+                       "close_date": [t[2], t[1], t[2]]})
+    assert sim.max_concurrent(tr) == 2
+
+
+def test_training_path_has_no_deployment_exit_stack():
+    """FR-014a / T021a: training exits are band crossings only.
+
+    The stack reasons exist solely so the *calibration replay* can take stack-priced
+    exits as given; no stack exit may be produced by the simulator itself.
+    """
+    src = (pathlib.Path(sim.__file__)).read_text()
+    for forbidden in ("def apply_roi", "def apply_stoploss", "def stoploss_grace",
+                      "def trailing_stop"):
+        assert forbidden not in src, f"simulator implements {forbidden} (FR-008a/FR-014a)"
+
+
+def test_cost_model_spread_is_estimated_not_constant():
+    """FR-004a: half-spread varies per bar and never collapses to zero."""
+    n = 400
+    rng = np.random.default_rng(0)
+    px = 100 * np.exp(np.cumsum(rng.normal(0, 0.002, n)))
+    df = pd.DataFrame({"open": px, "close": px,
+                       "high": px * (1 + abs(rng.normal(0, .004, n))),
+                       "low": px * (1 - abs(rng.normal(0, .004, n))),
+                       "volume": rng.uniform(1e3, 1e5, n)})
+    hs = CostModel().half_spread(df)
+    assert hs.min() > 0, "half-spread collapsed to zero"
+    assert hs.nunique() > 1, "half-spread is a flat constant (forbidden by FR-004a)"
