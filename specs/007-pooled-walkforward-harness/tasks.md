@@ -189,8 +189,12 @@ P&L, and reruns reproduce it.
 
 ## Phase 6: Seed and era subsets
 
-- [ ] T027 [US1] Run seed 7 on folds `f00,f04,f08,f12` (~0.8 h); for each, report either differing
+- [X] T027 [US1] Run seed 7 on folds `f00,f04,f08,f12` (~0.8 h); for each, report either differing
       trades or **identical** trades — identical is ONE measurement, not two (FR-011; **R11**)
+      RESULT: 2/4 seed-degenerate. f08 (71tr) and f12 (24tr) byte-identical across seeds; f00
+      (11 vs 16) and f04 (41 vs 41, DIFFERENT hashes) differ. Trade COUNT is not the test — f04
+      and f12 both matched on count and disagreed on hash. Contrast the single W1 window, where
+      seeds gave identical trades: pooled folds yield ~1.5 effective measurements per fold.
 - [X] T028 [US2] Recompute the floor over a recent-era subset via `--folds-subset` and confirm era
       sensitivity is inspectable (FR-021, quickstart S7)
 
@@ -221,7 +225,7 @@ P&L, and reruns reproduce it.
       measurable, superseding the "stop tuning parameters" guidance with the new bound
 - [X] T032 Update `AGENT_GUIDE.md`'s noise-floor section: replace the "PENDING — the harness does
       not exist yet" paragraph with the achieved floor and the new decision rule
-- [ ] T033 Commit: stage only this feature's files (`regime/wf/`, the spec directory, the doc, the
+- [X] T033 Commit: stage only this feature's files (`regime/wf/`, the spec directory, the doc, the
       `.gitignore` line). **Never `git add -A`** — files are edited concurrently
 
 ---
