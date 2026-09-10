@@ -20,6 +20,10 @@
 #     >> /Users/philprice95/projects/freqtrade/user_data/logs/refresh_daily.log 2>&1
 set -euo pipefail
 cd "$(dirname "$0")/../../.."   # -> repo root
+# cron does not read .zshrc, so freqtrade would see api_server.jwt_secret_key="" and fail
+# schema validation (minLength:32, new in freqtrade 2026.9).
+[ -f "$HOME/.freqtrade_env" ] && . "$HOME/.freqtrade_env"
+
 exec .venv/bin/freqtrade download-data \
   -c user_data/strategies/config/config_mom_15m.json \
   -t 1d --days 400
