@@ -21,6 +21,11 @@ code may be written until it passes.
 - **[P]**: Can run in parallel — **file-authoring tasks only**.
 - **[Story]**: US1–US5, mapping to spec.md user stories.
 
+> **Cross-cutting constraints.** FR-030 (all runs sequential) and FR-031 (stage only files
+> this feature created) are continuous obligations, not single tasks. They are cited on
+> T037 and T051 for traceability, but apply to EVERY task in this file. Verified at close:
+> 0 staging violations across 12 commits, 0 concurrent sweep processes.
+
 > ⚠️ **Repo-specific meaning of [P].** AGENT_GUIDE's operational rules require every *job*
 > (training, backtest, fold run) to execute **sequentially** — two concurrent jobs measured slower
 > than serialising and can cross-contaminate the arm archive. So `[P]` here marks only tasks that
@@ -185,7 +190,7 @@ control signal over W1; per-trade profit within 1 bp, total within 0.10pp, trade
 
 - [ ] T045 [US5] Implement `research/labelfree/reproduce.py` — reload a saved `PolicyConfiguration` in a fresh process and re-emit its trades (FR-026, data-model §2)
 - [ ] T046 [US5] RUN `research/labelfree/reproduce.py` for the accepted configuration from a separate process; assert byte-identical trades (SC-008)
-- [ ] T047 [US5] Implement `research/labelfree/audit_trials.py` asserting every configuration is logged, each written before its result, `trial_id` unique, the DSR/PBO trial count equals the record count, and the pinned trend baseline contributes no records (SC-015, contracts/trial-log.md)
+- [ ] T047 [US5] Extend `research/labelfree/trials.py::audit` (NOT a separate `audit_trials.py`; the audit ships beside the writer it checks) asserting every configuration is logged, each written before its result, `trial_id` unique, the DSR/PBO trial count equals the record count, and the pinned trend baseline contributes no records (SC-015, contracts/trial-log.md)
 
 ---
 
@@ -194,7 +199,7 @@ control signal over W1; per-trade profit within 1 bp, total within 0.10pp, trade
 **Purpose**: Close the workflow. Per the brief, the **final substantive tasks are the protocol §6 report and the trial-log audit**.
 
 - [ ] T048 Re-run `/speckit-analyze` on the completed feature and save the report as `specs/009-labelfree-direct-policy/analyze.md`; fix every CRITICAL finding and re-run until clean (FR-032, SC-017)
-- [X] T049 RUN the trial-log audit `research/labelfree/audit_trials.py`; a failed audit invalidates the overfitting statistics and therefore the verdict (SC-015)
+- [X] T049 RUN the trial-log audit via `research/labelfree/trials.py::audit` (no separate `audit_trials.py` entry point was needed — the audit lives beside the writer it checks); a failed audit invalidates the overfitting statistics and therefore the verdict (SC-015)
 - [X] T050 Write the result report `research/label-free-study/briefs/results/01-<date>.md` per protocol §6 — hypothesis, config path and seed list, trials logged, pooled return with CI, folds positive, trades/yr, hold time, four-baseline table, cost stress, PBO/DSR, SC-018 reconciliation, per-window universe sizes, verdict, and what changes for the next brief. When the verdict is "not resolved", the report MUST also record that the calibrated simulator passes to brief 2 and that this family stops after it. **Written even when the verdict is kill or not-resolved** (FR-025, FR-033, SC-009, SC-013, data-model §6)
 - [ ] T051 Stage **only** the files this feature created and commit to `master` in `user_data/strategies`; never `git add -A`; the outer freqtrade checkout receives nothing (FR-031, constitution)
 

@@ -117,14 +117,14 @@ research/labelfree/                 # NEW — all research code for this feature
 ├── preflight.py                    # Prerequisite check: data, scalers, control record, config
 ├── folds.py                        # Windows + anchored fold plan + per-fold pair universe
 ├── archive.py                      # Reads the arbiter's realised trade series from the archive
+├── features.py                     # Feature ingestion + pair-agnostic validation (FR-001/002)
 ├── sim.py                          # Vectorised differentiable simulator (protocol §1)
 ├── costs.py                        # Fee, Abdi-Ranaldo half-spread, vol-scaled slippage
 ├── policy.py                       # LSTM(64) backbone + exposure head + no-trade band
 ├── losses.py                       # Mean-variance utility; robust worst-window Sharpe
 ├── train.py                        # Per-fold training loop, seeds, truncated BPTT
 ├── sweep.py                        # Variant-grid driver; writes trial records before each run
-├── trials.py                       # Append-only trial log writer
-├── audit_trials.py                 # Trial-log audit (final gate)
+├── trials.py                       # Append-only trial log writer + audit (final gate)
 ├── calibrate.py                    # Blocking calibration against the arbiter
 ├── reconcile.py                    # SC-018 simulator-vs-arbiter P&L and exit-source share
 ├── baselines.py                    # Buy-and-hold; pinned 20/60 EMA trend rule with band

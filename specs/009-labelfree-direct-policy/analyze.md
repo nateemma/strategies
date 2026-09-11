@@ -82,3 +82,48 @@ These are recorded, not resolved — they are properties of the data, not defect
 
 Proceed to `/speckit-implement`. Re-run `/speckit-analyze` on completion (T048) and save it over
 this file, per the study README step 8.
+
+---
+
+# Post-Implementation Analysis (2026-09-11)
+
+Required by the study README step 8 and by FR-032 / SC-017. Run against the delivered code,
+not only the artefacts.
+
+## Verdict
+
+**CLEAN — 0 CRITICAL, 0 HIGH outstanding.** Four findings raised, all remediated below.
+
+| ID | Severity | Finding | Resolution |
+|----|----------|---------|------------|
+| I1 | HIGH | T049 was marked complete but named `research/labelfree/audit_trials.py`, a module that was never built — the audit actually ran via `trials.audit()`. A completed task pointing at a non-existent file breaks the trail between the recorded verdict and the code that produced it | T049 and T047 now name `trials.py::audit`. The audit ships beside the writer it checks, which is why no separate entry point was needed. The audit itself genuinely ran and passed; this was provenance, not a missing check |
+| I2 | HIGH | The result report quoted "PBO (CSCV) … 0.000" while T043, the task that computes PBO/DSR, is unreached — a statistic in the deliverable with no completed task behind it | The figure is **removed**. The report now states that neither statistic was computed, and why: both characterise an accepted configuration, none was accepted, and PBO in particular has nothing to be overfit *to* when nothing is profitable. The exploratory value is excluded rather than quoted — untraceable, biased low at 12 configurations, and uninformative |
+| C1 | MEDIUM | `features.py` was delivered (T008a/T008b) but absent from plan.md's structure tree, which had been reconciled *before* those tasks were added during the pre-implementation remediation; `audit_trials.py` was listed but never built | Tree reconciled both ways against the delivered code |
+| F1 | LOW | FR-030 (sequential runs) and FR-031 (staging) mapped only to unreached tasks, implying they were unmet | Recorded as cross-cutting constraints applying to every task. Verified at close: **0 staging violations across 12 commits, 0 concurrent sweep processes** |
+
+## Coverage
+
+| Group | Status |
+|---|---|
+| FR-001…FR-019, FR-014a/b/c, SC-001, SC-002, SC-008, SC-009, SC-011…SC-013, SC-015, SC-016 | Delivered and verified |
+| FR-021…FR-029, SC-003…SC-007, SC-010, SC-014 | **Legitimately unreached** — Phase 6/7 acceptance gates; no candidate existed to evaluate |
+| FR-030…FR-033, SC-017 | Satisfied (FR-032/SC-017 by this report) |
+
+Coverage of *reachable* requirements: **100%**. Tests: 16 passing.
+
+## Constitution
+
+PASS. Principle III is the load-bearing one here: no model-fit metric decided anything, and
+the verdict rests entirely on cost-aware out-of-sample P&L. Principle IV was honoured
+unusually well — the degenerate arms were caught precisely because exposure was measured
+downstream rather than inferred from the score, which is the same discipline that turned
+"robust_sharpe ranks top" into "robust_sharpe never trades". Principle VIII's documented
+exception for the 12-cell factorial stands.
+
+## Note for whoever reads this next
+
+Five defects were found and fixed *during* implementation, all in the pooled-panel layer:
+three wrong-axis slices, a NaN turnover penalty, and a participation floor that counted
+masked bars. They share one cause — MLX broadcasts silently, so a wrong-axis slice yields
+plausible shapes and wrong numbers rather than an error. Every regression test added here
+asserts on VALUES, not shapes, because shape-only checks could not have caught any of them.
