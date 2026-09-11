@@ -529,7 +529,14 @@ class GANomalyDetectorMLXBase(MLXBaseAnomalyDetector):
         encoder-decoder-encoder bow-tie is trained jointly with feature-matching
         adversarial + L1 contextual + L2 encoder loss, then the trading head is
         trained on the frozen latent. Shared by all variants."""
-        print("    GANomaly joint training (adv feature-match + L1 con + L2 enc)...")
+        if self.adv_weight > 0.0:
+            print("    GANomaly joint training (adv feature-match + L1 con + L2 enc)...")
+        else:
+            # Do not advertise an adversarial term that is switched off: a reported
+            # "D 0.0000" is otherwise indistinguishable from a collapsed discriminator,
+            # which is a real failure mode in this repo.
+            print("    Bow-tie training, no-GAN ablation "
+                  "(adv_weight=0: L1 con + L2 enc only)...")
         self._train_ganomaly_joint(normal_data)
         print("    Training classifier head (all classes)...")
         self._train_classifier_phase(train_tensor, full_labels)
@@ -609,9 +616,12 @@ class GANomalyDetectorMLXBase(MLXBaseAnomalyDetector):
                 g_acc += lg.item()
 
             if epoch % 20 == 0 or epoch == self.gan_epochs - 1:
+                # D is only meaningful when it is actually updated; printing a constant
+                # 0.0000 for the ablation reads as discriminator collapse.
+                d_part = f"D {d_acc / batches:.4f}, " if use_adv else ""
                 print(
                     f"      epoch {epoch}/{self.gan_epochs} - "
-                    f"D {d_acc / batches:.4f}, G {g_acc / batches:.4f}"
+                    f"{d_part}G {g_acc / batches:.4f}"
                 )
             mx.clear_cache()
 
