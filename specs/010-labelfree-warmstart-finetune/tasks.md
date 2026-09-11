@@ -45,8 +45,8 @@ Repository root is `user_data/strategies/`. New code joins brief 01's in `resear
 
 **Purpose**: Confirm the inherited components are healthy before extending them.
 
-- [ ] T001 RUN `research/labelfree/preflight.py` and `pytest research/labelfree/tests/ -q` to confirm brief 01's 16 tests pass and the simulator's inputs are present; a failure here is a brief-01 regression and must be fixed before anything is built on it
-- [ ] T002 [P] Record brief 01's P&L control figures in `specs/010-labelfree-warmstart-finetune/research.md` — `utility-penalty-g0.5`, mean exposure 0.130, −7.06% held-out — as the pre-existing reference point for this feature's architecture re-run (FR-004b)
+- [X] T001 RUN `research/labelfree/preflight.py` and `pytest research/labelfree/tests/ -q` to confirm brief 01's 16 tests pass and the simulator's inputs are present; a failure here is a brief-01 regression and must be fixed before anything is built on it
+- [X] T002 [P] Record brief 01's P&L control figures in `specs/010-labelfree-warmstart-finetune/research.md` — `utility-penalty-g0.5`, mean exposure 0.130, −7.06% held-out — as the pre-existing reference point for this feature's architecture re-run (FR-004b)
 
 ---
 
@@ -57,11 +57,11 @@ leakage control is proven applied.
 
 **⚠️ CRITICAL**: No arm may run until T006 passes.
 
-- [ ] T003 [P] Implement label construction in `research/labelfree/labels.py` — directional labels at both `MIN_BUY_GAIN_THRESHOLD` values (0.007, 0.02) via `Framework/TrainingSignals.py`, aligned to the panel's shared date index (FR-008, data-model §3)
-- [ ] T004 [P] Implement the forward-realised-volatility target in `research/labelfree/labels.py` — a magnitude carrying no directional information, computed causally from the same OHLCV the features use (FR-011, research R5)
-- [ ] T005 Implement purge and embargo in `research/labelfree/labels.py` — purge the label horizon at each fold boundary, embargo one horizon after it, and record the values ACTUALLY applied per fold rather than the values requested (FR-013, FR-014)
-- [ ] T006 [P] Leakage test in `research/labelfree/tests/test_purge_embargo.py` asserting that for every fold no target value within one horizon of the boundary survives, and that a run with either control at zero is rejected rather than caveated (SC-012)
-- [ ] T007 RUN `pytest research/labelfree/tests/test_purge_embargo.py -q`; a failure blocks every arm
+- [X] T003 [P] Implement label construction in `research/labelfree/labels.py` — directional labels at both `MIN_BUY_GAIN_THRESHOLD` values (0.007, 0.02) via `Framework/TrainingSignals.py`, aligned to the panel's shared date index (FR-008, data-model §3)
+- [X] T004 [P] Implement the forward-realised-volatility target in `research/labelfree/labels.py` — a magnitude carrying no directional information, computed causally from the same OHLCV the features use (FR-011, research R5)
+- [X] T005 Implement purge and embargo in `research/labelfree/labels.py` — purge the label horizon at each fold boundary, embargo one horizon after it, and record the values ACTUALLY applied per fold rather than the values requested (FR-013, FR-014)
+- [X] T006 [P] Leakage test in `research/labelfree/tests/test_purge_embargo.py` asserting that for every fold no target value within one horizon of the boundary survives, and that a run with either control at zero is rejected rather than caveated (SC-012)
+- [X] T007 RUN `pytest research/labelfree/tests/test_purge_embargo.py -q`; a failure blocks every arm
 
 **Checkpoint**: 🚦 Leakage control proven. Arms may be built.
 
@@ -77,14 +77,14 @@ and mean exposure against the P&L control on the same fold and seeds.
 
 ### Tests for User Story 1
 
-- [ ] T008 [P] [US1] Warm-start transfer test in `research/labelfree/tests/test_warmstart.py` asserting inherited tensor names and shapes match the policy encoder exactly, that post-load weights DIFFER from a randomly-initialised policy of the same architecture, and that the classification head is absent from the inherited set (contracts/warm-start.md)
-- [ ] T009 [P] [US1] Learning-rate test in `research/labelfree/tests/test_warmstart.py` asserting `encoder_lr * 10 <= head_lr` is enforced rather than merely configured (FR-005)
+- [X] T008 [P] [US1] Warm-start transfer test in `research/labelfree/tests/test_warmstart.py` asserting inherited tensor names and shapes match the policy encoder exactly, that post-load weights DIFFER from a randomly-initialised policy of the same architecture, and that the classification head is absent from the inherited set (contracts/warm-start.md)
+- [X] T009 [P] [US1] Learning-rate test in `research/labelfree/tests/test_warmstart.py` asserting `encoder_lr * 10 <= head_lr` is enforced rather than merely configured (FR-005)
 
 ### Implementation for User Story 1
 
-- [ ] T010 [P] [US1] Add the classifier-encoder policy variant to `research/labelfree/policy.py` — resize → conv1 → ln_conv → residual → LSTM → ln_lstm → exposure head, matching `NNNClassifierMLX_LSTM.encode()` tensor-for-tensor so weights load without surgery (FR-004a, research R1)
+- [X] T010 [P] [US1] Add the classifier-encoder policy variant to `research/labelfree/policy.py` — resize → conv1 → ln_conv → residual → LSTM → ln_lstm → exposure head, matching `NNNClassifierMLX_LSTM.encode()` tensor-for-tensor so weights load without surgery (FR-004a, research R1)
 - [ ] T011 [US1] Implement per-fold classifier training in `research/labelfree/warmstart.py` — trained on the fold's OWN training range; the production model MUST NOT be reused, because it saw data later folds treat as held out (FR-004, research R3)
-- [ ] T012 [US1] Implement weight inheritance in `research/labelfree/warmstart.py` — transfer the encoder only, never the classification head, and record which tensors actually transferred (data-model §2)
+- [X] T012 [US1] Implement weight inheritance in `research/labelfree/warmstart.py` — transfer the encoder only, never the classification head, and record which tensors actually transferred (data-model §2)
 - [ ] T013 [US1] Implement windowed encoding in `research/labelfree/train.py` — build `(n_bars, seq_len, n_features)` windows PER CHUNK, never for the whole panel (2.14 GB vs 0.04 GB, measured) (FR-004a, research R2)
 - [ ] T014 [P] [US1] Implement arm dispatch in `research/labelfree/arms.py` — A/B/C as configurations of the existing trainer, differing only in initialisation and objective (FR-002, contracts/arms.md)
 - [ ] T015 [US1] RUN the per-fold classifier for f08, then Arm A at seeds 1-5 via `research/labelfree/arms.py --arm warm_start --fold f08`, reported as an interquartile mean with a bootstrap interval, never a best seed (FR-016)
