@@ -50,6 +50,26 @@ def robust_sharpe(r_net: mx.array, window: int = 96 * 90, tau: float = 0.1,
     return -((1 - blend) * pooled + blend * worst)
 
 
+def participation_penalty(w: mx.array, min_exposure: float, weight: float) -> mx.array:
+    """Penalise the shortfall below a minimum mean exposure.
+
+    Without this, w == 0 is a GLOBAL OPTIMUM of robust_sharpe whenever nothing is
+    profitable: Sharpe of a zero-return series is 0/(0+EPS) = 0, its worst-window term is
+    also 0, so inaction scores 0 while any real strategy that loses scores worse. Measured
+    2026-09-10 on fold f08 — all six robust_sharpe arms converged to mean exposure 0.000
+    and 100% flat, ranking top purely by never taking a position.
+
+    A flat policy is a legitimate ECONOMIC answer but a vacuous EXPERIMENTAL one: it does
+    not test whether direct policy optimisation converts signal into P&L. The floor is
+    deliberately low so it removes the trivial optimum without dictating an exposure level.
+
+    Quadratic in the shortfall, so the gradient vanishes smoothly as the floor is met
+    rather than imposing a cliff at it.
+    """
+    shortfall = mx.maximum(mx.array(min_exposure) - mx.mean(w), mx.array(0.0))
+    return weight * mx.square(shortfall)
+
+
 def turnover_penalty(w: mx.array, lam: float) -> mx.array:
     """lambda * mean|dw| — the explicit alternative to a learned no-trade band."""
     dw = mx.abs(w[..., 1:] - w[..., :-1])

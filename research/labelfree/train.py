@@ -33,12 +33,23 @@ class TrainConfig:
     seed: int = 1
     leaky: bool = False
     chunk: int = 96 * 30           # truncated BPTT window
+    # Degeneracy guard (see losses.participation_penalty). Applied to BOTH objectives so
+    # the utility-vs-robust_sharpe comparison stays like-for-like.
+    min_exposure: float = 0.05
+    # 100.0, not 10.0. Measured on f08 (3 pairs, 1 epoch): at weight 10 the robust_sharpe
+    # band arm still converged to mean exposure 0.0001 and 100% flat — the guard did not
+    # bite. At 100 it reaches the 0.05 floor and trades. The guard is inert where exposure
+    # is already above the floor (identical results at 0 and 100 for the penalty arms), so
+    # raising it does not distort the configurations that never collapsed.
+    participation_weight: float = 100.0
 
     def describe(self) -> dict:
         return {"objective": self.objective, "turnover_control": self.turnover_control,
                 "gamma": self.gamma, "lam_risk": self.lam_risk,
                 "lam_turnover": self.lam_turnover, "epochs": self.epochs,
-                "lr": self.lr, "seed": self.seed, "leaky": self.leaky}
+                "lr": self.lr, "seed": self.seed, "leaky": self.leaky,
+                "min_exposure": self.min_exposure,
+                "participation_weight": self.participation_weight}
 
 
 def train_fold(features: np.ndarray, open_px: np.ndarray, cost_per_unit: np.ndarray,
@@ -93,6 +104,9 @@ def train_fold(features: np.ndarray, open_px: np.ndarray, cost_per_unit: np.ndar
         r = sim.net_returns(w, os_, cs, volume_quote=vs, soft_cap=True)
         r = r[..., BURN_IN:]
         base = obj(r, cfg.lam_risk) if cfg.objective == "utility" else obj(r)
+        # Degeneracy guard: inaction must not be the cheapest way to score well.
+        base = base + L.participation_penalty(
+            w[..., BURN_IN:], cfg.min_exposure, cfg.participation_weight)
         if cfg.turnover_control == "penalty":
             # `...` indexes time. A bare w[BURN_IN:] slices the PAIR axis: on a 10-pair
             # panel w[96:] is EMPTY, mean() of it is NaN, and the whole loss goes NaN while

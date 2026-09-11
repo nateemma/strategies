@@ -303,6 +303,16 @@ compare the trade list byte-for-byte against the original.
   over the same range MUST both be reported, with their difference and the share of trades whose
   exit was decided by the deployment stack rather than the band. This measurement is a
   precondition of acceptance, not a diagnostic.
+- **FR-014c**: The training objective MUST include a participation floor that penalises the
+  shortfall below a minimum mean exposure. Without it, zero exposure is a global optimum of the
+  robust risk-adjusted objective whenever no configuration is profitable — a zero-return series
+  has zero risk-adjusted return and a zero worst-window term, so inaction scores better than any
+  real strategy that loses. Measured on the screening fold: all six robust-objective arms
+  converged to mean exposure 0.000 and 100% flat, ranking top purely by never taking a position.
+  A permanently flat policy is a legitimate economic answer but a vacuous experimental one, since
+  it does not test whether the objective converts signal into P&L. The floor MUST be low enough
+  not to dictate an exposure level, and MUST be applied to every objective so the comparison
+  between them stays like-for-like.
 - **FR-015**: Training MUST use anchored folds identical to the existing fold plan, with one
   policy per fold trained only on that fold's training range.
 - **FR-015a**: Single-window runs MUST use the same 730-day minimum training length as the pooled

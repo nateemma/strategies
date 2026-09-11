@@ -128,14 +128,14 @@ control signal over W1; per-trade profit within 1 bp, total within 0.10pp, trade
 
 ### Implementation for User Story 3
 
-- [ ] T028 [P] [US3] Implement both turnover controls in `research/labelfree/policy.py` — learned no-trade band via `clamp(w_{t-1}, lo_t, hi_t)`, and plain sigmoid with an explicit `λ·|Δw|` penalty (FR-013, research R6)
-- [ ] T029 [P] [US3] Wire the training cost scale γ ∈ {0.5, 1.0, 1.5} through `research/labelfree/costs.py` and the objective, with evaluation pinned to full or pessimistic cost (FR-004)
-- [ ] T030 [US3] Implement grid driver in `research/labelfree/sweep.py` — appends each configuration's trial record with `result: null` **before** starting it, then attaches the result (FR-019, SC-015)
-- [ ] T031 [US3] Implement seed aggregation in `research/labelfree/stats.py` — interquartile mean with stratified bootstrap CI; seeds producing identical trades counted once (FR-016, SC-016)
-- [ ] T031a [US3] Pre-register the carry-forward rule in `research/labelfree/sweep.py` **before** T032 runs — the deterministic rule deciding which configurations advance when the screen cannot resolve them (see T032a). Recording it after seeing results voids it (plan.md Complexity Tracking)
-- [ ] T032 [US3] RUN `research/labelfree/sweep.py` for the 12-configuration × 5-seed grid on **fold f08** (71 control trades, the most of any fold; deliberately not f07, which is the most *profitable*), sequentially (FR-019, FR-020)
-- [ ] T032a [US3] Bootstrap the between-configuration deltas from the screen in `research/labelfree/stats.py` and state explicitly whether the top-2 selection is resolvable against the ±7.6pp single-window noise floor (AGENT_GUIDE; plan.md Complexity Tracking)
-- [ ] T033 [US3] Select the configurations that advance: by rank if T032a shows the screen resolves them, otherwise by the pre-registered rule from T031a. Record which path was taken and the rationale in `research/labelfree/trials.jsonl` (FR-020)
+- [X] T028 [P] [US3] Implement both turnover controls in `research/labelfree/policy.py` — learned no-trade band via `clamp(w_{t-1}, lo_t, hi_t)`, and plain sigmoid with an explicit `λ·|Δw|` penalty (FR-013, research R6)
+- [X] T029 [P] [US3] Wire the training cost scale γ ∈ {0.5, 1.0, 1.5} through `research/labelfree/costs.py` and the objective, with evaluation pinned to full or pessimistic cost (FR-004)
+- [X] T030 [US3] Implement grid driver in `research/labelfree/sweep.py` — appends each configuration's trial record with `result: null` **before** starting it, then attaches the result (FR-019, SC-015)
+- [X] T031 [US3] Implement seed aggregation in `research/labelfree/stats.py` — interquartile mean with stratified bootstrap CI; seeds producing identical trades counted once (FR-016, SC-016)
+- [X] T031a [US3] Pre-register the carry-forward rule in `research/labelfree/sweep.py` **before** T032 runs — the deterministic rule deciding which configurations advance when the screen cannot resolve them (see T032a). Recording it after seeing results voids it (plan.md Complexity Tracking)
+- [X] T032 [US3] RUN `research/labelfree/sweep.py` for the 12-configuration × 5-seed grid on **fold f08** (71 control trades, the most of any fold; deliberately not f07, which is the most *profitable*), sequentially (FR-019, FR-020)
+- [X] T032a [US3] Bootstrap the between-configuration deltas from the screen in `research/labelfree/stats.py` and state explicitly whether the top-2 selection is resolvable against the ±7.6pp single-window noise floor (AGENT_GUIDE; plan.md Complexity Tracking)
+- [X] T033 [US3] Select the configurations that advance: by rank if T032a shows the screen resolves them, otherwise by the pre-registered rule from T031a. Record which path was taken and the rationale in `research/labelfree/trials.jsonl` (FR-020)
 
 **Checkpoint**: Two candidates chosen, every attempt logged and counted.
 
