@@ -470,11 +470,15 @@ class NNPredictStrategy(BaseNNStrategy):
         # mlx.core.array, which sklearn.utils.shuffle in BaseNNStrategy can't
         # index. Coerce to numpy here so the shuffle step works regardless of
         # backend; both regressor backends accept numpy in train().
+        # 5th value = per-sample P&L weights (base train_model unpacks 5); regression
+        # targets are continuous and this path does not use P&L-magnitude weighting,
+        # so None. Mirrors NNMT's fix in 7f16219.
         return (
             np.asarray(aggr_tsr_train),
             np.asarray(aggr_tsr_test),
             np.asarray(aggr_train_labels),
             np.asarray(aggr_test_labels),
+            None,
         )
 
     # =========================================================================

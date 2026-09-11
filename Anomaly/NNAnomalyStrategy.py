@@ -475,7 +475,11 @@ class NNAnomalyStrategy(BaseNNStrategy):
 
         self._augmented_labels = final_train_labels
 
-        return aggr_tsr_train, aggr_tsr_test, final_train_labels, final_test_labels
+        # 5th value = per-sample P&L weights (base train_model unpacks 5); the
+        # anomaly path trains a reconstruction objective and does not use
+        # P&L-magnitude weighting, so None. Mirrors NNMT's fix in 7f16219.
+        return (aggr_tsr_train, aggr_tsr_test, final_train_labels,
+                final_test_labels, None)
 
     # -----------
 
