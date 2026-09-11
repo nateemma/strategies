@@ -47,8 +47,8 @@ class NNNC_Breakout(NNNC_MLX, BtcRegimeGate):
     # (close_norm/guard_metric) stay neutralised.
     buy_params = {
         **NNNC_MLX.buy_params,
-        "entry_close_norm_threshold": 5.0,
-        "entry_guard_threshold": 5.0,
+        "entry_close_norm_threshold": 1.1,
+        "entry_guard_threshold": 1.1,
         "entry_bb_width_threshold": 0.0,     # was 0.094 (1% pass) — neutralised
         "entry_atr_pct": 0.0,                # was 0.013 (1% pass) — neutralised
         "entry_rvol_threshold": 1.0,         # was 1.9 — light volume confirmation

@@ -296,9 +296,9 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
         "entry_adx_threshold": -1.0,  # open
         "entry_atr_pct": -1.0,  # open
         "entry_bb_width_threshold": -1.0,  # open
-        "entry_close_norm_threshold": 5.0,  # open
+        "entry_close_norm_threshold": 1.1,  # open
         "entry_enable_guards": True,  # keeps `volume > 0` live
-        "entry_guard_threshold": 5.0,  # open
+        "entry_guard_threshold": 1.1,  # open
         "entry_rvol_threshold": -1.0,  # open
         "prediction_threshold": 0.5,  # value loaded from strategy
     }
@@ -463,20 +463,34 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
     # is invisible in normal use because buy_params shadows the declaration --
     # and misleading when reading the file to find out what a parameter's
     # default actually is. Aligned 2026-09-02. If you change one, change both.
+    # guard_metric = 2*(RMI-50)/100 with RMI in [0,100], so it is MATHEMATICALLY bounded
+    # to [-1, +1] (measured over 140k bars, 4 pairs, W1: min -1.000, max +1.000). The old
+    # upper bound of 5.0 made 80% of the search space a degenerate plateau — every value
+    # >= 1.0 is identically "fully open", so hyperopt spent most of its budget resampling
+    # the same behaviour. 1.1 is the in-range "off" setting.
     entry_guard_threshold = DecimalParameter(
-        -1.0, 5.0, default=5.0, decimals=1, space="buy", load=True, optimize=opt_base_params
+        -1.0, 1.1, default=1.1, decimals=2, space="buy", load=True, optimize=opt_base_params
     )
 
+    # close_norm is bounded to [-1, +1] (measured: min -0.999, max +0.999). The old lower
+    # bound of -0.5 made the entire bottom HALF of the range unreachable, so hyperopt could
+    # never test "enter only when close is deeply below its normalised mean" — exactly the
+    # selective-entry region worth exploring. Upper bound 5.0 was the same degenerate
+    # plateau as guard_metric.
     entry_close_norm_threshold = DecimalParameter(
-        -0.5, 5.0, default=5.0, decimals=1, space="buy", load=True, optimize=opt_base_params
+        -1.0, 1.1, default=1.1, decimals=2, space="buy", load=True, optimize=opt_base_params
     )
 
+    # ADX is defined on [0, 100] and reaches 100.0 in the data (measured max 100.000);
+    # the old upper bound of 90 made the strongest-trend decile unreachable.
     entry_adx_threshold = DecimalParameter(
-        -1.0, 90.0, default=-1.0, decimals=0, space="buy", load=True, optimize=opt_base_params
+        -1.0, 100.0, default=-1.0, decimals=0, space="buy", load=True, optimize=opt_base_params
     )
 
+    # Measured over W1: median 0.021, p99 0.135, max 0.529. The old upper bound of 0.100
+    # sat BELOW the 99th percentile, so no high-volatility entry filter was reachable.
     entry_bb_width_threshold = DecimalParameter(
-        -1.000, 0.100, default=-1.0, decimals=3, space="buy", load=True, optimize=opt_base_params,
+        -1.000, 0.550, default=-1.0, decimals=3, space="buy", load=True, optimize=opt_base_params,
     )
 
     # decimals=2: at 1dp this parameter silently rounded its own configured
@@ -484,13 +498,17 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
     # it. Every value configured anywhere in the repo is 1dp, so widening the
     # resolution changes NO current behaviour -- it only stops the next sweep
     # in the 0.2-0.3 range from being quietly quantised away.
+    # Measured over W1: median 0.232, p99 4.802, max 5.500 — the old 5.0 cap truncated the
+    # top of the observed range.
     entry_rvol_threshold = DecimalParameter(
-        -1.0, 5.0, default=-1.0, decimals=2, space="buy", load=True, optimize=opt_base_params
+        -1.0, 5.5, default=-1.0, decimals=2, space="buy", load=True, optimize=opt_base_params
     )
 
+    # Gates atr_pct_roll (NOT atr_pct). Measured over W1: median 0.0034, p99 0.0210,
+    # max 0.1806 — the old 0.060 cap cut off the entire high-volatility tail.
     entry_atr_pct = DecimalParameter(
         -1.000,
-        0.060,
+        0.200,
         default=-1.0,
         decimals=3,
         space="buy",

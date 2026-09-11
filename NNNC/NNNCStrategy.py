@@ -206,9 +206,9 @@ class NNNCStrategy(BaseNNStrategy):
         "entry_adx_threshold": -1.0,
         "entry_atr_pct": -1.0,
         "entry_bb_width_threshold": -1.0,
-        "entry_close_norm_threshold": 5.0,
+        "entry_close_norm_threshold": 1.1,
         "entry_enable_guards": True,
-        "entry_guard_threshold": 5.0,
+        "entry_guard_threshold": 1.1,
         "entry_rvol_threshold": -1.0,
         "prediction_threshold": 0.8,
     }

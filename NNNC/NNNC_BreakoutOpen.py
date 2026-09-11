@@ -95,8 +95,8 @@ class NNNC_BreakoutOpen(NNNC_MLX):
     buy_params = {
         **NNNC_MLX.buy_params,
         "entry_enable_guards": True,
-        "entry_guard_threshold": 5.0,        # neutralised (dip-directional)
-        "entry_close_norm_threshold": 5.0,   # neutralised (dip-directional)
+        "entry_guard_threshold": 1.1,        # neutralised (dip-directional)
+        "entry_close_norm_threshold": 1.1,   # neutralised (dip-directional)
         "prediction_threshold": 0.50,        # best of a 0.20-0.69 sweep
     }
 
