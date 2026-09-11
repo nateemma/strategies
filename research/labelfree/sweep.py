@@ -112,13 +112,15 @@ def run(fold_id: str, pairs: list[str] | None, epochs: int, seeds=SEEDS,
         log: Path = trials.LOG) -> dict:
     fold = {f.fold_id: f for f in F.folds()}[fold_id]
     pairs = pairs or list(fold.pair_universe)
-    print(f"screening fold {fold_id}: train {fold.train_start}..{fold.train_end}, "
-          f"test {fold.test_start}..{fold.test_end}, {len(pairs)} pairs", flush=True)
+    run_id = trials.new_run_id()
+    print(f"screening fold {fold_id} [run {run_id}]: train {fold.train_start}.."
+          f"{fold.train_end}, test {fold.test_start}..{fold.test_end}, "
+          f"{len(pairs)} pairs", flush=True)
 
     # Pre-register the carry-forward rule before any run (T031a).
-    trials.pre_register({"trial_id": f"RULE-carry-forward-{fold_id}",
+    trials.pre_register({"trial_id": f"RULE-carry-forward-{fold_id}@{run_id}",
                          "kind": "carry_forward_rule", "fold_id": fold_id,
-                         **CARRY_FORWARD_RULE}, log)
+                         "run_id": run_id, **CARRY_FORWARD_RULE}, log)
 
     Xtr, Ptr, Ctr, Vtr, Mtr, itr = load_fold_data(fold, pairs, train=True)
     Xte, Pte, Cte, Vte, Mte, ite = load_fold_data(fold, pairs, train=False)
@@ -131,9 +133,10 @@ def run(fold_id: str, pairs: list[str] | None, epochs: int, seeds=SEEDS,
         results[key] = []
         for seed in seeds:
             tid = trials.trial_id(cfg_d["objective"], cfg_d["turnover_control"],
-                                  cfg_d["gamma"], seed, fold_id)
+                                  cfg_d["gamma"], seed, fold_id, run=run_id)
             # ---- BEFORE the run (FR-019) ----
             trials.pre_register({"trial_id": tid, "fold_id": fold_id, "seed": seed,
+                                 "run_id": run_id,
                                  "n_pairs": len(pairs), "epochs": epochs,
                                  "screening_range": [fold.test_start, fold.test_end],
                                  **cfg_d}, log)
@@ -142,19 +145,29 @@ def run(fold_id: str, pairs: list[str] | None, epochs: int, seeds=SEEDS,
                 cfg = T.TrainConfig(objective=cfg_d["objective"],
                                     turnover_control=cfg_d["turnover_control"],
                                     gamma=cfg_d["gamma"], seed=seed, epochs=epochs)
-                _, h = T.train_fold(Xtr, Ptr, Ctr, Vtr, cfg, mask=Mtr)
-                res = {"status": "ok", "train_log_return": h["total_log_return"],
-                       "mean_exposure": h["mean_exposure"], "turnover": h["turnover"],
-                       "flat_share": h["flat_share"], "final_loss": h["final_loss"],
+                pol, h = T.train_fold(Xtr, Ptr, Ctr, Vtr, cfg, mask=Mtr)
+                # Rank on the HELD-OUT range, per the pre-registered rule. Ranking on the
+                # training range selects for overfitting and contradicts T031a.
+                ev = T.evaluate(pol, Xte, Pte, Cte, Vte, mask=Mte)
+                res = {"status": "ok",
+                       "test_log_return": ev["log_return"],
+                       "test_return_pct": ev["return_pct"],
+                       "test_mean_exposure": ev["mean_exposure"],
+                       "test_turnover": ev["turnover"],
+                       "test_flat_share": ev["flat_share"],
+                       "train_log_return": h["total_log_return"],
+                       "train_turnover": h["turnover"],
+                       "final_loss": h["final_loss"],
                        "seconds": round(time.time() - t0, 1)}
-                results[key].append(h["total_log_return"])
+                results[key].append(ev["log_return"])
             except Exception as e:                        # abandoned runs stay in the log
                 trials.abandon(tid, f"{type(e).__name__}: {str(e)[:200]}", log)
                 print(f"    {tid}: ABANDONED {type(e).__name__}", flush=True)
                 continue
             trials.complete(tid, res, log)
-            print(f"    {tid}: log_ret={res['train_log_return']:+.4f} "
-                  f"mean_w={res['mean_exposure']:.3f} ({res['seconds']}s)", flush=True)
+            print(f"    {tid}: TEST log_ret={res['test_log_return']:+.4f} "
+                  f"(train {res['train_log_return']:+.4f}) "
+                  f"mean_w={res['test_mean_exposure']:.3f} ({res['seconds']}s)", flush=True)
     return {"fold": fold_id, "pairs": pairs, "results": results}
 
 

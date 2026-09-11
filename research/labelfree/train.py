@@ -147,3 +147,47 @@ def train_fold(features: np.ndarray, open_px: np.ndarray, cost_per_unit: np.ndar
         "turnover": float(np.abs(np.diff(wn, axis=1)).sum(axis=1).mean()),
         "history": history,
     }
+
+
+def evaluate(pol: ExposurePolicy, features: np.ndarray, open_px: np.ndarray,
+             cost_per_unit: np.ndarray, volume_quote: np.ndarray,
+             mask: np.ndarray | None = None, chunk: int = 96 * 30) -> dict:
+    """Forward-only evaluation of a trained policy on a held-out range.
+
+    No gradient, no optimiser, hard liquidity cap and full cost — this is what the
+    pre-registered carry-forward rule ranks on. Selecting on the TRAINING range instead
+    selects for overfitting, which is the failure this function exists to prevent.
+    """
+    x = mx.array(features.astype(np.float32))
+    if x.ndim == 2:
+        x = x[None, ...]
+
+    def _2d(a):
+        a = mx.array(a.astype(np.float32))
+        return a if a.ndim == 2 else a[None, ...]
+
+    o, c, v = _2d(open_px), _2d(cost_per_unit), _2d(volume_quote)
+    m = _2d(mask) if mask is not None else None
+
+    ws, rs = [], []
+    for s0 in range(0, x.shape[1] - 2, chunk):
+        xs = x[:, s0:s0 + chunk]
+        if xs.shape[1] < 4:
+            break
+        w = pol(xs)
+        if m is not None:
+            w = w * m[:, s0:s0 + chunk]
+        r = sim.net_returns(w, o[:, s0:s0 + chunk + 2], c[:, s0:s0 + chunk],
+                            volume_quote=v[:, s0:s0 + chunk], soft_cap=False)
+        mx.eval(w, r)
+        ws.append(np.asarray(w)); rs.append(np.asarray(r))
+    wn = np.concatenate(ws, axis=1)[:, BURN_IN:]
+    rn = np.concatenate(rs, axis=1)[:, BURN_IN:]
+    return {
+        "log_return": float(rn.sum(axis=1).mean()),
+        "return_pct": float((np.exp(rn.sum(axis=1).mean()) - 1) * 100),
+        "mean_exposure": float(wn.mean()),
+        "flat_share": float((wn < 0.01).mean()),
+        "turnover": float(np.abs(np.diff(wn, axis=1)).sum(axis=1).mean()),
+        "n_pairs": int(rn.shape[0]),
+    }

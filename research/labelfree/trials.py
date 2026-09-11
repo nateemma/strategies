@@ -19,10 +19,23 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
+def new_run_id() -> str:
+    """A tag identifying one sweep invocation."""
+    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+
 def trial_id(objective: str, control: str, gamma: float, seed: int, fold: str,
-             *, leaky: bool = False) -> str:
+             *, leaky: bool = False, run: str | None = None) -> str:
+    """Unique per configuration AND per sweep invocation.
+
+    The run tag is not cosmetic. Without it a re-run of the same grid re-registers
+    identical ids, and the log can no longer say which pre-registration belongs to which
+    completion — which makes the DSR/PBO trial count ambiguous. The audit caught exactly
+    that on 2026-09-10: 89 pre-registered records, 61 unique ids.
+    """
     tag = "leaky-" if leaky else ""
-    return f"{tag}{objective}-{control}-g{gamma}-s{seed}-{fold}"
+    base = f"{tag}{objective}-{control}-g{gamma}-s{seed}-{fold}"
+    return f"{base}@{run}" if run else base
 
 
 def pre_register(record: dict, path: Path = LOG) -> str:
