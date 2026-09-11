@@ -106,7 +106,8 @@ def train_fold(features: np.ndarray, open_px: np.ndarray, cost_per_unit: np.ndar
         base = obj(r, cfg.lam_risk) if cfg.objective == "utility" else obj(r)
         # Degeneracy guard: inaction must not be the cheapest way to score well.
         base = base + L.participation_penalty(
-            w[..., BURN_IN:], cfg.min_exposure, cfg.participation_weight)
+            w[..., BURN_IN:], cfg.min_exposure, cfg.participation_weight,
+            mask=None if m is None else m[:, s0:s0 + span][..., BURN_IN:])
         if cfg.turnover_control == "penalty":
             # `...` indexes time. A bare w[BURN_IN:] slices the PAIR axis: on a 10-pair
             # panel w[96:] is EMPTY, mean() of it is NaN, and the whole loss goes NaN while

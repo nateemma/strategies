@@ -50,7 +50,8 @@ def robust_sharpe(r_net: mx.array, window: int = 96 * 90, tau: float = 0.1,
     return -((1 - blend) * pooled + blend * worst)
 
 
-def participation_penalty(w: mx.array, min_exposure: float, weight: float) -> mx.array:
+def participation_penalty(w: mx.array, min_exposure: float, weight: float,
+                          mask: mx.array | None = None) -> mx.array:
     """Penalise the shortfall below a minimum mean exposure.
 
     Without this, w == 0 is a GLOBAL OPTIMUM of robust_sharpe whenever nothing is
@@ -65,8 +66,22 @@ def participation_penalty(w: mx.array, min_exposure: float, weight: float) -> mx
 
     Quadratic in the shortfall, so the gradient vanishes smoothly as the floor is met
     rather than imposing a cliff at it.
+
+    `mask` is REQUIRED whenever the panel has gaps. Exposure is measured over bars the
+    policy can actually trade, i.e. mean(w*mask)/mean(mask), never mean(w) over the whole
+    window. Masked bars carry w=0 by construction, so including them understates exposure
+    by exactly the invalid fraction and penalises the policy for data gaps it does not
+    control. Measured 2026-09-11 on fold f08: the earliest training chunks are ~30% valid
+    (only 3 of 10 pairs have 2021 history), so an unnormalised mean demanded true exposure
+    of 0.05/0.30 = 0.167 on tradeable bars to clear a 0.05 floor. That distorted even the
+    utility arm, which never had the degeneracy the guard exists to prevent.
     """
-    shortfall = mx.maximum(mx.array(min_exposure) - mx.mean(w), mx.array(0.0))
+    if mask is None:
+        mean_w = mx.mean(w)
+    else:
+        denom = mx.maximum(mx.mean(mask), mx.array(1e-6))
+        mean_w = mx.mean(w * mask) / denom
+    shortfall = mx.maximum(mx.array(min_exposure) - mean_w, mx.array(0.0))
     return weight * mx.square(shortfall)
 
 

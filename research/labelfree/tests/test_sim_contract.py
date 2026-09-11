@@ -85,6 +85,28 @@ def test_turnover_penalty_is_finite_on_a_pooled_panel():
     assert float(L.turnover_penalty(w[BURN_IN:], 0.001)) != val or w.shape[0] > BURN_IN
 
 
+def test_participation_guard_normalises_by_mask():
+    """Regression: the floor must measure exposure over TRADEABLE bars only.
+
+    f08's earliest training chunks are ~30% valid (only 3 of 10 pairs have 2021 history).
+    An unnormalised mean(w) understates exposure by exactly the invalid fraction, so a
+    policy holding a compliant 0.10 reads as 0.03 and gets penalised for data gaps it does
+    not control. That distorted even the utility arm, which never had the degeneracy the
+    guard exists to prevent.
+    """
+    import mlx.core as mx
+    from research.labelfree import losses as L
+    w = mx.concatenate([mx.full((300,), 0.10), mx.zeros((700,))])   # 30% valid, w=0.10
+    m = mx.concatenate([mx.ones((300,)), mx.zeros((700,))])
+    assert float(L.participation_penalty(w, 0.05, 100.0, mask=m)) == 0.0, \
+        "compliant policy penalised because masked bars were counted"
+    assert float(L.participation_penalty(w, 0.05, 100.0)) > 0.0, \
+        "unmasked path should still show the defect this guards against"
+    flat = mx.zeros((1000,))
+    assert float(L.participation_penalty(flat, 0.05, 100.0, mask=m)) > 0.0, \
+        "a genuinely flat policy must still be caught"
+
+
 def test_cost_model_spread_is_estimated_not_constant():
     """FR-004a: half-spread varies per bar and never collapses to zero."""
     n = 400
