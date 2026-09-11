@@ -43,19 +43,60 @@ class LabelTarget:
                 "valid_share": float(self.valid_mask.mean())}
 
 
+# TradingAction, mirrored from Framework/BaseStrategy so this module does not import a
+# strategy base just for three integers.
+SELL, HOLD, BUY = 0, 1, 2
+
+
 def directional_label(df: pd.DataFrame, horizon: int = DEFAULT_HORIZON,
                       min_gain: float = PRODUCTION_THRESHOLD) -> LabelTarget:
-    """The production gbb label: 1 where forward gain clears min_gain within the horizon.
+    """The production 3-class gbb target: SELL=0, HOLD=1, BUY=2.
 
-    Delegates to the framework's own labeler so this feature trains on the SAME target the
-    classifier did, rather than a re-implementation that could drift from it.
+    Uses `labels_gbb_path` / `labels_gbb_path_sell`, NOT plain gbb. `TrainingConfig
+    .TRAINING_TYPE = 27` (gbb_path), changed from 17 (gbb) on 2026-09-08, and NNNC_MLX does
+    not override it. Warm-starting Arm A from a classifier trained on a DIFFERENT label
+    than production would make the arm measure the wrong prior entirely.
+
+    (Two commits look contradictory here: f26e45b rejected gbb_path as a strategy change,
+    then e7cf8cf adopted it as the framework LABEL default on better-specified-target
+    grounds — ceilings +15.6pp on NNNC guards-off. It is the label that matters for this
+    feature.)
+
+    The path-aware pair drops buy labels whose stop would fire before the target, and sell
+    labels the take-profit would pre-empt, so the label certifies a move the strategy can
+    actually harvest. `min_gain` is the parameter swept 0.007 -> 0.02 in commit 7ddcfb2.
+
+    REQUIRES an indicator-populated dataframe: the gbb labelers gate on guard_metric,
+    bb_width and rvol. Passing raw OHLCV silently yields an all-HOLD target.
+
+    Conflict resolution follows the framework: sells override buys. The two labelers were
+    deliberately made disjoint at guard_threshold 0.3 (2026-09-08), so overlap should be
+    rare; where it remains, matching the framework's precedence keeps this target identical
+    to the classifier's.
     """
-    from TrainingSignals import labels_forward_return_mae_cap
-    y = labels_forward_return_mae_cap(df, horizon=horizon, min_gain=min_gain).to_numpy()
+    from TrainingSignals import labels_gbb_path, labels_gbb_path_sell
+    buy = labels_gbb_path(df, min_gain=min_gain, horizon=horizon).to_numpy()
+    sell = labels_gbb_path_sell(df, horizon=horizon).to_numpy()
+
+    y = np.full(len(buy), HOLD, dtype=np.int64)
+    y[np.nan_to_num(buy, nan=0.0) > 0.5] = BUY
+    y[np.nan_to_num(sell, nan=0.0) > 0.5] = SELL      # sells override buys
+
+    required = ("guard_metric", "bb_width", "rvol")
+    missing = [c for c in required if c not in df.columns]
+    if missing:
+        raise ValueError(
+            f"labels_gbb_path gates on {required}; missing {missing}. Pass an "
+            "indicator-populated dataframe — raw OHLCV silently yields an all-HOLD target.")
+
     valid = np.ones(len(y), dtype=bool)
     valid[-horizon:] = False          # the last `horizon` bars cannot see their own future
-    return LabelTarget("directional", horizon, min_gain,
-                       np.nan_to_num(y, nan=0.0), valid)
+    return LabelTarget("directional", horizon, min_gain, y, valid)
+
+
+def one_hot(y: np.ndarray, n_classes: int = 3) -> np.ndarray:
+    """3-class one-hot, as MLXClassifierNary.train() expects for `train_results`."""
+    return np.eye(n_classes, dtype=np.float32)[y.astype(int)]
 
 
 def forward_realised_vol(df: pd.DataFrame, horizon: int = DEFAULT_HORIZON) -> LabelTarget:

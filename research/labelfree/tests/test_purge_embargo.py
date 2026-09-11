@@ -25,6 +25,12 @@ H = L.DEFAULT_HORIZON
 
 @pytest.fixture(scope="module")
 def frame():
+    """OHLCV plus the columns the gbb_path labelers gate on.
+
+    `labels_gbb_path` requires guard_metric, bb_width and rvol. Passing raw OHLCV yields an
+    all-HOLD target — silently, before the guard was added. This fixture supplies them so
+    the leakage assertions run against a target that actually varies.
+    """
     rng = np.random.default_rng(0)
     n = 2000
     px = 100 * np.exp(np.cumsum(rng.normal(0, 0.004, n)))
@@ -34,7 +40,17 @@ def frame():
         "low": px * (1 - abs(rng.normal(0, 0.003, n))),
         "volume": rng.uniform(1e3, 1e5, n),
         "date": pd.date_range("2024-01-01", periods=n, freq="15min", tz="UTC"),
+        "guard_metric": rng.uniform(-1.0, 1.0, n),
+        "bb_width": rng.uniform(0.005, 0.15, n),
+        "rvol": rng.uniform(0.0, 4.0, n),
     })
+
+
+def test_raw_ohlcv_is_rejected_rather_than_silently_all_hold(frame):
+    """The gbb_path labelers gate on indicator columns; without them every bar is HOLD."""
+    bare = frame[["open", "high", "low", "close", "volume", "date"]]
+    with pytest.raises(ValueError, match="guard_metric"):
+        L.directional_label(bare)
 
 
 def test_purge_length_is_the_label_horizon_not_the_peak_window(frame):
