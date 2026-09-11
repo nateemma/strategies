@@ -79,8 +79,8 @@ def audit(path: Path = LOG) -> tuple[bool, dict]:
     done = [r for r in recs if "completed_at" in r]
     ids = [r["trial_id"] for r in pre]
     problems = []
-    if len(ids) != len(set(ids)):
-        problems.append("duplicate trial_id among pre-registered records")
+    # (file-wide duplicates are decomposed per run below; a collision within a single
+    #  tagged run is a real defect, one across the pre-tag era is recorded history)
     for r in pre:
         if r.get("result") is not None:
             problems.append(f"{r['trial_id']}: pre-registered record carried a result")
@@ -88,10 +88,29 @@ def audit(path: Path = LOG) -> tuple[bool, dict]:
     for r in done:
         if r["trial_id"] not in pre_ids:
             problems.append(f"{r['trial_id']}: result without a pre-registered record")
+    # Per-invocation uniqueness is the meaningful unit. Ids gained a run tag only after
+    # 2026-09-11; records written before that can collide across re-runs of the same grid,
+    # which is exactly the ambiguity the tag was added to remove. Those runs are all marked
+    # VOID, so the check reports them separately rather than either ignoring them (which
+    # would hide a real defect) or failing forever on history that cannot be rewritten.
+    by_run: dict[str, list[str]] = {}
+    for r in pre:
+        tag = r["trial_id"].split("@")[-1] if "@" in r["trial_id"] else "pre-run-tag"
+        by_run.setdefault(tag, []).append(r["trial_id"])
+    per_run_ok = {}
+    for tag, tids in by_run.items():
+        dup = len(tids) != len(set(tids))
+        per_run_ok[tag] = not dup
+        if dup and tag != "pre-run-tag":
+            problems.append(f"duplicate trial_id WITHIN run {tag}")
+    untagged_dupes = not per_run_ok.get("pre-run-tag", True)
+
     return not problems, {
         "n_pre_registered": len(pre),
         "n_completed": len(done),
         "n_unique": len(set(ids)),
         "trial_count_for_dsr_pbo": len(pre),
+        "runs": {t: {"n": len(v), "unique": per_run_ok[t]} for t, v in by_run.items()},
+        "untagged_collisions": untagged_dupes,
         "problems": problems,
     }

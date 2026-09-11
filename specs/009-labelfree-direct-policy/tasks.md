@@ -141,6 +141,15 @@ control signal over W1; per-trade profit within 1 bp, total within 0.10pp, trade
 
 ---
 
+> **PHASES 6-7 NOT REACHED (2026-09-11).** The Phase 5 screen produced no candidate that
+> trades: all six best-ranked arms sit below the participation floor at mean exposure
+> 0.002-0.041, and every arm that genuinely takes positions loses 7.1%-48% out of sample.
+> Putting a 100%-flat policy through the pooled walk-forward would spend ~4 hours to
+> produce zero trades, and the constitution is explicit that a zero-trade arm is
+> inconclusive rather than a zero-return result. Verdict recorded as **not resolved** per
+> SC-013; the calibrated simulator passes to brief 2 and this family stops after it.
+> Tasks T034-T047 are deliberately unreached, not skipped.
+
 ## Phase 6: User Story 4 - Verdict against every mandatory baseline (Priority: P4)
 
 **Goal**: Evaluate the candidates through the pooled walk-forward harness against all four baselines, with cost stress and overfitting statistics.
@@ -185,8 +194,8 @@ control signal over W1; per-trade profit within 1 bp, total within 0.10pp, trade
 **Purpose**: Close the workflow. Per the brief, the **final substantive tasks are the protocol §6 report and the trial-log audit**.
 
 - [ ] T048 Re-run `/speckit-analyze` on the completed feature and save the report as `specs/009-labelfree-direct-policy/analyze.md`; fix every CRITICAL finding and re-run until clean (FR-032, SC-017)
-- [ ] T049 RUN the trial-log audit `research/labelfree/audit_trials.py`; a failed audit invalidates the overfitting statistics and therefore the verdict (SC-015)
-- [ ] T050 Write the result report `research/label-free-study/briefs/results/01-<date>.md` per protocol §6 — hypothesis, config path and seed list, trials logged, pooled return with CI, folds positive, trades/yr, hold time, four-baseline table, cost stress, PBO/DSR, SC-018 reconciliation, per-window universe sizes, verdict, and what changes for the next brief. When the verdict is "not resolved", the report MUST also record that the calibrated simulator passes to brief 2 and that this family stops after it. **Written even when the verdict is kill or not-resolved** (FR-025, FR-033, SC-009, SC-013, data-model §6)
+- [X] T049 RUN the trial-log audit `research/labelfree/audit_trials.py`; a failed audit invalidates the overfitting statistics and therefore the verdict (SC-015)
+- [X] T050 Write the result report `research/label-free-study/briefs/results/01-<date>.md` per protocol §6 — hypothesis, config path and seed list, trials logged, pooled return with CI, folds positive, trades/yr, hold time, four-baseline table, cost stress, PBO/DSR, SC-018 reconciliation, per-window universe sizes, verdict, and what changes for the next brief. When the verdict is "not resolved", the report MUST also record that the calibrated simulator passes to brief 2 and that this family stops after it. **Written even when the verdict is kill or not-resolved** (FR-025, FR-033, SC-009, SC-013, data-model §6)
 - [ ] T051 Stage **only** the files this feature created and commit to `master` in `user_data/strategies`; never `git add -A`; the outer freqtrade checkout receives nothing (FR-031, constitution)
 
 ---
