@@ -117,3 +117,78 @@ def check_learning_rates(encoder_lr: float, head_lr: float) -> None:
         raise ValueError(
             f"encoder_lr {encoder_lr} must be <= head_lr/10 ({head_lr / 10.0}); "
             "fine-tuning an inherited encoder at the head's rate destroys the prior")
+
+
+# ---------------------------------------------------------------------------
+# Per-fold classifier training (T011)
+# ---------------------------------------------------------------------------
+
+def train_fold_classifier(pairs: list[str], train_start: str, train_end: str,
+                          fold_id: str, min_gain: float, seq_len: int = 16,
+                          horizon: int | None = None, seed: int = 1,
+                          out_dir: Path | None = None) -> WarmStartSource:
+    """Train a classifier on ONE fold's training range and save its weights.
+
+    The production model is never reused: it saw data later folds treat as held out, so
+    inheriting it would leak the test range into the initialisation.
+
+    `MLXClassifierNary.train()` accepts numpy tensors directly, so no freqtrade backtest is
+    involved — the per-fold cost is a plain function call.
+    """
+    import numpy as np
+    import pandas as pd
+    sys.path.insert(0, str(ROOT / "NNNC"))
+    sys.path.insert(0, str(ROOT / "Predictors"))
+    sys.path.insert(0, str(ROOT / "utils"))
+
+    from NNNClassifierMLX import NNNClassifierMLX_LSTM
+    from DataframePopulator import DataframePopulator
+    from regime import regimedata as rd
+    from research.labelfree import features as FT
+    from research.labelfree import labels as LB
+
+    h = horizon if horizon is not None else LB.DEFAULT_HORIZON
+    X_all, Y_all = [], []
+    for p in pairs:
+        feats, _px, _vq, _cols = FT.build_features(p, train_start, train_end)
+        df = rd.load_ohlcv(p.split("/")[0])
+        df = df[(df.index >= pd.Timestamp(train_start, tz="UTC")) &
+                (df.index <= pd.Timestamp(train_end, tz="UTC"))].reset_index()
+        pop = DataframePopulator().add_minimal_indicators(df.copy())
+        tgt = LB.directional_label(pop, horizon=h, min_gain=min_gain)
+
+        n = min(len(feats), len(tgt.values))
+        win = FT.sequence_tensor(pd.DataFrame(feats[:n]), seq_len)   # (n-seq+1, seq, F)
+        # A window ending at bar i carries the label of bar i.
+        y = tgt.values[seq_len - 1: n]
+        ok = tgt.valid_mask[seq_len - 1: n]
+        m = min(len(win), len(y), len(ok))
+        X_all.append(win[:m][ok[:m]])
+        Y_all.append(y[:m][ok[:m]])
+
+    X = np.concatenate(X_all).astype(np.float32)
+    Y = np.concatenate(Y_all).astype(int)
+    rng = np.random.default_rng(seed)
+    perm = rng.permutation(len(X))
+    X, Y = X[perm], Y[perm]
+    cut = int(0.8 * len(X))
+
+    # MLXBasePredictor requires (pair, seq_len, num_features). `pair` is only an identity
+    # tag here: this classifier is trained on the POOLED fold panel, matching the
+    # production strategy's aggregate_pairs semantics, not on a single pair.
+    clf = NNNClassifierMLX_LSTM(f"pooled@{fold_id}", seq_len, X.shape[-1])
+    clf.train_seed = seed
+
+    # Pin the model path BEFORE training. train() calls save() at the end, and an unset
+    # path makes os.makedirs('') raise after the whole run has completed — AGENT_GUIDE's
+    # silent-model-path note, in its loudest form.
+    out_dir = out_dir or (ROOT / "saved_data" / "labelfree_warmstart")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    ref = out_dir / f"clf_{fold_id}_g{min_gain}_s{seed}.safetensors"
+    clf.set_model_path(str(ref))
+
+    clf.train(X[:cut], X[cut:], LB.one_hot(Y[:cut]), LB.one_hot(Y[cut:]), force_train=True)
+    flat = dict(tree_flatten(clf.model.parameters()))
+
+    enc = sorted(encoder_tensors(flat))
+    return WarmStartSource(fold_id, train_start, train_end, str(ref), min_gain, tuple(enc))

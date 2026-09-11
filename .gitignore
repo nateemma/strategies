@@ -32,3 +32,6 @@ NNNC/NNNC_WF_f*.py
 NNNC/NNNC_WF_f*.json
 NNMT/NNMT_WF_f*.py
 NNMT/NNMT_WF_f*.json
+
+# feature 010: per-fold warm-start classifiers are generated artefacts
+saved_data/labelfree_warmstart/

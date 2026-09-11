@@ -83,7 +83,7 @@ and mean exposure against the P&L control on the same fold and seeds.
 ### Implementation for User Story 1
 
 - [X] T010 [P] [US1] Add the classifier-encoder policy variant to `research/labelfree/policy.py` — resize → conv1 → ln_conv → residual → LSTM → ln_lstm → exposure head, matching `NNNClassifierMLX_LSTM.encode()` tensor-for-tensor so weights load without surgery (FR-004a, research R1)
-- [ ] T011 [US1] Implement per-fold classifier training in `research/labelfree/warmstart.py` — trained on the fold's OWN training range; the production model MUST NOT be reused, because it saw data later folds treat as held out (FR-004, research R3)
+- [X] T011 [US1] Implement per-fold classifier training in `research/labelfree/warmstart.py` — trained on the fold's OWN training range; the production model MUST NOT be reused, because it saw data later folds treat as held out (FR-004, research R3)
 - [X] T012 [US1] Implement weight inheritance in `research/labelfree/warmstart.py` — transfer the encoder only, never the classification head, and record which tensors actually transferred (data-model §2)
 - [ ] T013 [US1] Implement windowed encoding in `research/labelfree/train.py` — build `(n_bars, seq_len, n_features)` windows PER CHUNK, never for the whole panel (2.14 GB vs 0.04 GB, measured) (FR-004a, research R2)
 - [ ] T014 [P] [US1] Implement arm dispatch in `research/labelfree/arms.py` — A/B/C as configurations of the existing trainer, differing only in initialisation and objective (FR-002, contracts/arms.md)
