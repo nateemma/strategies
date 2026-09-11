@@ -75,7 +75,8 @@ class NNAnomalyStrategy(BaseNNStrategy):
         "anomaly_threshold_multiplier": 1.2,
         "entry_error_threshold": 0.051,
         "min_anomaly_duration": 2,
-        "prediction_threshold": 0.89,
+        # "prediction_threshold": 0.89,
+        "prediction_threshold": 0.5,
         # high confidence predictions are better than using gates, so disable:
         "entry_enable_guards": False,
         }
@@ -537,6 +538,21 @@ class NNAnomalyStrategy(BaseNNStrategy):
         reconstruction_predictions = np.nan_to_num(
             reconstruction_predictions, nan=0.0, posinf=0.0, neginf=0.0
         )
+        # A NaN here is a CORRUPT MODEL, not a missing signal. Silently mapping it to
+        # 0.0 produces an all-zero probability matrix, which argmax_with_threshold then
+        # turns into 100% HOLD — indistinguishable from "the model saw nothing", and
+        # immune to every threshold because max(0) never exceeds a positive threshold.
+        # Measured 2026-09-11: all six classifier_head tensors were NaN on disk while the
+        # 38 encoder/decoder tensors were finite, and the strategy reported zero signals
+        # with no error for an entire run.
+        _n_nan = int(np.isnan(trading_predictions).sum())
+        if _n_nan:
+            print(
+                f"    *** CORRUPT MODEL: {_n_nan} NaN(s) in the trading head's output "
+                f"({100.0 * _n_nan / trading_predictions.size:.1f}% of the matrix). "
+                f"The head weights are almost certainly NaN on disk — retrain. "
+                f"Signals will be 100% HOLD and no threshold will change that. ***"
+            )
         trading_predictions = np.nan_to_num(
             trading_predictions, nan=0.0, posinf=0.0, neginf=0.0
         )

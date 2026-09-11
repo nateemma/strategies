@@ -24,6 +24,7 @@ from pathlib import Path
 import mlx.core as mx
 import mlx.nn as nn
 import mlx.optimizers as optim
+from mlx.utils import tree_flatten, tree_map
 import numpy as np
 
 
@@ -46,6 +47,18 @@ def nearest_power_of_2(n: int) -> int:
 # -----------------------------------------------------------------------
 # Shared classifier head (z (B, L) -> (B, 3) softmax)
 # -----------------------------------------------------------------------
+
+
+def _clip_grads_by_global_norm(grads, max_norm: float):
+    """Scale a gradient tree so its global L2 norm is at most ``max_norm``.
+
+    Mirrors Predictors/MLXClassifierNary._clip_grads_by_global_norm; kept local so this
+    module does not import from a sibling strategy package.
+    """
+    leaves = tree_flatten(grads)
+    total = mx.sqrt(sum(mx.sum(mx.square(v)) for _, v in leaves))
+    scale = mx.minimum(mx.array(1.0), max_norm / (total + 1e-12))
+    return tree_map(lambda g: g * scale, grads)
 
 
 class ClassifierHead(nn.Module):
@@ -674,6 +687,11 @@ class GANomalyDetectorMLXBase(MLXBaseAnomalyDetector):
         bs = min(self.batch_size, len(x_tr))
         batches = max(1, len(x_tr) // bs)
         best_val = float("inf")
+        # Snapshot of the head at its best validation loss. Without this, early stopping
+        # tracks the best SCORE but persists whatever weights are live when it breaks —
+        # so a run that went NaN after its best epoch reports a healthy "early stop
+        # (val 0.11996)" and then saves NaN weights. Observed 2026-09-11.
+        best_state = None
         patience, bad = 10, 0
         encoder.eval()  # encoder frozen during phase 3
         for epoch in range(self.clf_epochs):
@@ -686,9 +704,23 @@ class GANomalyDetectorMLXBase(MLXBaseAnomalyDetector):
                 y = mx.array(y_tr[idx])
                 z = mx.stop_gradient(encoder(x))
                 loss, grads = clf_grad(head, z, y)
+                # Clip before stepping. This loop had no clipping while the repo's other
+                # MLX classifier (Predictors/MLXClassifierNary) clips at global L2 norm
+                # 1.0, and an unclipped step is the most likely way these weights reached
+                # NaN — the class weights span ~90x (Hold is ~98% of bars), so a batch
+                # carrying a rare Buy/Sell can produce a very large gradient.
+                grads = _clip_grads_by_global_norm(grads, 1.0)
                 opt.update(head, grads)
                 mx.eval(head.parameters(), opt.state, loss)
-                tr_loss += loss.item()
+                lv = loss.item()
+                # Never let a non-finite loss train on silently: the weights become NaN,
+                # get saved, and the strategy then reports 100% HOLD with no error.
+                if not np.isfinite(lv):
+                    raise FloatingPointError(
+                        f"classifier head loss went non-finite at epoch {epoch}, "
+                        f"batch {bi}: {lv}. Refusing to train NaN weights."
+                    )
+                tr_loss += lv
 
             # Weighted validation loss (same objective as training), batched
             # so the encoder forward pass doesn't run over all val samples at
@@ -714,9 +746,12 @@ class GANomalyDetectorMLXBase(MLXBaseAnomalyDetector):
             else:
                 v = tr_loss / batches
 
+            # A NaN val never satisfies `<`, so it can never be recorded as the best —
+            # which is the property that makes restoring the snapshot safe.
             if v < best_val - 1e-6:
                 best_val = v
                 bad = 0
+                best_state = tree_map(lambda a: mx.array(a), head.parameters())
             else:
                 bad += 1
 
@@ -729,6 +764,20 @@ class GANomalyDetectorMLXBase(MLXBaseAnomalyDetector):
             if bad >= patience:
                 print(f"      CLF early stop at epoch {epoch} (val {best_val:.5f})")
                 break
+
+        # Restore the best-scoring weights. The loop above may have left the head in a
+        # worse — or non-finite — state than the epoch whose score was just reported.
+        if best_state is not None:
+            head.update(best_state)
+            mx.eval(head.parameters())
+        bad_leaves = [k for k, v in tree_flatten(head.parameters())
+                      if bool(mx.isnan(v).any()) or bool(mx.isinf(v).any())]
+        if bad_leaves:
+            raise FloatingPointError(
+                "classifier head holds non-finite weights after training "
+                f"({len(bad_leaves)} tensors, e.g. {bad_leaves[:3]}). Refusing to return "
+                "a model that would save NaN and then report 100% HOLD."
+            )
 
     # ---- Inference ----------------------------------------------------
 
