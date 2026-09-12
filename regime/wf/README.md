@@ -166,6 +166,10 @@ is coupled to it in two places:
 `wf/` to a top-level shared location would mean lifting `tail/compare.py`'s statistics out too, and
 giving `run_arm.py` a real `--timerange` so the monkeypatch can go.
 
+**That promotion is a planned task**, blocked until the label-free study closes — see
+[`../../docs/WALKFORWARD_TODO.md`](../../docs/WALKFORWARD_TODO.md) item 1 for the ordered work and
+the reason for the gate.
+
 ## See also
 
 - [`../WALKFORWARD_POWER.md`](../WALKFORWARD_POWER.md) — why 15 folds and 378 trades; the power measurement
