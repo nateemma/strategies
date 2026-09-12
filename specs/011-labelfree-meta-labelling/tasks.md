@@ -40,10 +40,10 @@ corresponding defect has already occurred in this study.
 ### Gate B — re-inference reproduces the trades that actually happened
 
 - [X] T008 Implement `research/labelfree/metalabel/archive.py` — read `regime/wf/pooled_nnnc.json` into `TradeRow` records (data-model), one per archived trade (FR-001)
-- [~] T009 BLOCKED by research R11 — implement `research/labelfree/metalabel/reinfer.py` — reload each fold's saved model from `saved_data/NNNC_WF_f*`, replay its test range, and read the `%predict_prob_*` columns (FR-005a). **Refuse to run if any fold's model file is missing**; a silent skip would train on a subset without saying so
-- [ ] T010 Implement the reproduction gate in `reinfer.py`: the re-inferred `(pair, open_date)` set MUST equal the archived set exactly. On mismatch, print the symmetric difference, write no partial output, and exit non-zero (FR-005b, SC-017)
-- [ ] T011 RUN `reinfer.py` over all 15 folds and confirm `matches_exactly: true` for each (quickstart S2). **A mismatch halts the feature** — it means the models, their pinned params, or the feather data changed since 2026-09-09, which is a finding, not an inconvenience
-- [ ] T012 Handle NaN confidence in `reinfer.py`: a row whose entry bar was never scored is **excluded and counted**, never imputed (FR-006), and the count is reported (quickstart S2b)
+- [X] T009 Implement `research/labelfree/metalabel/reinfer.py` — reload each fold's saved model from `saved_data/NNNC_WF_f*`, replay its test range, and read the `%predict_prob_*` columns (FR-005a). **Refuse to run if any fold's model file is missing**; a silent skip would train on a subset without saying so
+- [X] T010 Implement the reproduction gate in `reinfer.py`: the re-inferred `(pair, open_date)` set MUST equal the archived set exactly. On mismatch, print the symmetric difference, write no partial output, and exit non-zero (FR-005b, SC-017)
+- [X] T011 RUN `reinfer.py` over all 15 folds and confirm `matches_exactly: true` for each (quickstart S2). **A mismatch halts the feature** — it means the models, their pinned params, or the feather data changed since 2026-09-09, which is a finding, not an inconvenience
+- [X] T012 Handle NaN confidence in `reinfer.py`: a row whose entry bar was never scored is **excluded and counted**, never imputed (FR-006), and the count is reported (quickstart S2b)
 
 ### Gate C — no feature reads the future, and the audit can prove it
 
