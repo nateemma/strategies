@@ -47,12 +47,12 @@ corresponding defect has already occurred in this study.
 
 ### Gate C — no feature reads the future, and the audit can prove it
 
-- [ ] T013 Implement `research/labelfree/metalabel/features.py` — assemble the entry-time vector by calling the repo's existing feature code, **never reimplementing it** (FR-005). Pair identity, pair group and pair-derived history are **excluded by construction** (FR-005c, R7)
-- [ ] T014 Implement causality-by-deletion in `research/labelfree/metalabel/audit.py`: recompute each feature with all bars strictly after `open_date` deleted and assert bit-identity (FR-002, FR-003)
-- [ ] T015 Implement the **planted-leak control** in `audit.py` — a feature equal to the trade's own `profit_abs` — which the audit is REQUIRED to flag. It cannot be disabled (FR-004, SC-011)
-- [ ] T016 [P] Test that the planted-leak control actually fails the audit. **A control that passes vacuously certifies nothing** — the first version of the analogous control in `research/labelfree/liveness.py` did exactly that by not severing anything
-- [ ] T017 Implement the permutation test in `audit.py` alongside deletion, reported separately: permutation measures *informativeness*, deletion measures *causality*, and they answer different questions
-- [ ] T018 RUN `audit.py` and confirm every feature passes causality and the planted leak is flagged (quickstart S3)
+- [X] T013 Implement `research/labelfree/metalabel/features.py` — assemble the entry-time vector by calling the repo's existing feature code, **never reimplementing it** (FR-005). Pair identity, pair group and pair-derived history are **excluded by construction** (FR-005c, R7)
+- [X] T014 Implement causality-by-deletion in `research/labelfree/metalabel/audit.py`: recompute each feature with all bars strictly after `open_date` deleted and assert bit-identity (FR-002, FR-003)
+- [X] T015 Implement the **planted-leak control** in `audit.py` — a feature equal to the trade's own `profit_abs` — which the audit is REQUIRED to flag. It cannot be disabled (FR-004, SC-011)
+- [X] T016 [P] Test that the planted-leak control actually fails the audit. **A control that passes vacuously certifies nothing** — the first version of the analogous control in `research/labelfree/liveness.py` did exactly that by not severing anything
+- [X] T017 Implement the permutation test in `audit.py` alongside deletion, reported separately: permutation measures *informativeness*, deletion measures *causality*, and they answer different questions
+- [X] T018 RUN `audit.py` and confirm every feature passes causality and the planted leak is flagged (quickstart S3)
 
 **Checkpoint**: T011 and T018 both green. Until then no model may be trained.
 

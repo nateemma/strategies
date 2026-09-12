@@ -153,3 +153,46 @@ def test_probabilities_land_in_the_right_class_columns():
     assert df["%predict_prob_sell"].iloc[0] == pytest.approx(0.1)
     assert df["%predict_prob_hold"].iloc[0] == pytest.approx(0.2)
     assert df["%predict_prob_buy"].iloc[0] == pytest.approx(0.7)
+
+
+# --- Gate C (T016): the audit must be able to fail --------------------------
+
+def _rows_fixture():
+    import json
+    p = ROOT / "research/labelfree/metalabel/rows.jsonl"
+    if not p.exists():
+        pytest.skip("rows.jsonl not built yet")
+    return [json.loads(l) for l in p.read_text().splitlines() if l.strip()]
+
+
+def test_planted_leak_is_detected():
+    """T016 / SC-011. A control the audit cannot catch certifies nothing.
+
+    The first version of the analogous control in research/labelfree/liveness.py passed
+    vacuously because it did not actually sever anything. This asserts the leak is both
+    PRESENT and DETECTED."""
+    from research.labelfree.metalabel import audit
+    assert hasattr(audit, "PLANTED_LEAK")
+    res = audit.audit_information(_rows_fixture())
+    assert audit.PLANTED_LEAK in res["per_feature"], "control was not injected at all"
+    assert res["planted_leak_detected"] is True
+    assert res["planted_leak_auc"] > 0.90
+
+
+def test_audit_information_separates_leak_from_real_features():
+    """The leak must be distinguishable from the best honest feature, not merely high."""
+    from research.labelfree.metalabel import audit
+    res = audit.audit_information(_rows_fixture())["per_feature"]
+    leak = res[audit.PLANTED_LEAK]["auc"]
+    best_real = max(v["auc"] for k, v in res.items() if k != audit.PLANTED_LEAK)
+    assert leak > best_real + 0.25, (
+        f"planted leak AUC {leak:.3f} is not clearly separated from the best honest "
+        f"feature {best_real:.3f}; the detection threshold would be arbitrary")
+
+
+def test_causality_is_bit_identical_not_merely_close():
+    """Causality means IDENTICAL. A tolerance wide enough to absorb a centred window
+    would absorb the leak the check exists to find."""
+    from research.labelfree.metalabel import audit
+    assert audit.RTOL == 0.0
+    assert audit.ATOL <= 1e-9
