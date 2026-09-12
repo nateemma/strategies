@@ -107,6 +107,22 @@ def test_participation_guard_normalises_by_mask():
         "a genuinely flat policy must still be caught"
 
 
+def test_standardisation_gradient_is_finite_at_zero_variance():
+    """Regression: EPS must go INSIDE sqrt, not after it.
+
+    `sqrt(var) + EPS` is finite in the forward pass even at var == 0, but d/dx sqrt(x) is
+    infinite at x = 0, so the backward pass returns NaN. A fully-masked pair has w
+    identically 0 and var exactly 0, so this fires whenever a chunk holds a pair with no
+    data — it killed all five Arm C seeds. A forward-only check cannot catch it.
+    """
+    import mlx.core as mx
+    from research.labelfree import losses as L
+    zero = mx.zeros((100,))
+    g = mx.grad(lambda w: L.aux_vol_loss(w, zero))(zero)
+    mx.eval(g)
+    assert np.isfinite(np.asarray(g)).all(), "aux loss gradient is NaN at zero variance"
+
+
 def test_cost_model_spread_is_estimated_not_constant():
     """FR-004a: half-spread varies per bar and never collapses to zero."""
     n = 400

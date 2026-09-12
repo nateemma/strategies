@@ -107,9 +107,9 @@ configuration is logged before running and reported as an interquartile mean.
 
 - [X] T018 [P] [US2] Implement the blended objective in `research/labelfree/losses.py` — `α·CE(label) + (1−α)·utility`, with the participation floor applied as inherited from brief 01 (FR-007)
 - [X] T019 [US2] Implement loss-term accounting in `research/labelfree/losses.py` — record each term's REALISED contribution and `alpha_realised = label_term/(label_term+profit_term)`, so a blend that has collapsed to one term is detected rather than assumed balanced (FR-009, data-model §4, Principle IV)
-- [ ] T020 [US2] RUN the sweep via `research/labelfree/arms.py --arm blended --fold f08 --alphas 0.75,0.5,0.25 --labels 0.007,0.02 --seeds 1,2,3,4,5` — 30 runs, sequential, each reported as an interquartile mean across seeds (FR-016)
-- [ ] T021 [US2] Report the two labels SEPARATELY in `research/label-free-study/briefs/results/02-<date>.md`, never pooled, and record that the repo previously measured them as identical in P&L (332 trades, 10.45% both) while 38% apart in label count — agreement here replicates a known finding rather than discovering one (FR-008, research R4)
-- [ ] T022 [US2] Record every blend weight as a trial in `research/labelfree/trials.jsonl`; the report MUST NOT identify a best α — the sweep is 6 configurations and enters the multiple-testing correction as such (FR-010, SC-010)
+- [X] T020 [US2] RUN the sweep via `research/labelfree/arms.py --arm blended --fold f08 --alphas 0.75,0.5,0.25 --labels 0.007,0.02 --seeds 1,2,3,4,5` — 30 runs, sequential, each reported as an interquartile mean across seeds (FR-016)
+- [X] T021 [US2] Report the two labels SEPARATELY in `research/label-free-study/briefs/results/02-<date>.md`, never pooled, and record that the repo previously measured them as identical in P&L (332 trades, 10.45% both) while 38% apart in label count — agreement here replicates a known finding rather than discovering one (FR-008, research R4)
+- [X] T022 [US2] Record every blend weight as a trial in `research/labelfree/trials.jsonl`; the report MUST NOT identify a best α — the sweep is 6 configurations and enters the multiple-testing correction as such (FR-010, SC-010)
 
 **Checkpoint**: The blend question is answered, with the collapse case detectable.
 
@@ -126,9 +126,9 @@ blended arm.
 ### Implementation for User Story 3
 
 - [X] T023 [P] [US3] Implement the auxiliary head and loss in `research/labelfree/losses.py` — utility plus a forward-volatility prediction from the shared latent, with NO directional label entering the objective at any point (FR-011)
-- [ ] T024 [P] [US3] Assertion in `research/labelfree/tests/test_purge_embargo.py` that Arm C's objective contains no directional term, checked structurally rather than by inspection (FR-011)
-- [ ] T025 [US3] RUN Arm C via `research/labelfree/arms.py --arm auxiliary --fold f08 --seeds 1,2,3,4,5`, confirming no directional label enters the objective (FR-011, FR-016)
-- [ ] T026 [US3] State in `research/label-free-study/briefs/results/02-<date>.md` whether directional content was necessary, by comparing Arm C against the best blended arm (FR-012)
+- [X] T024 [P] [US3] Assertion in `research/labelfree/tests/test_purge_embargo.py` that Arm C's objective contains no directional term, checked structurally rather than by inspection (FR-011)
+- [X] T025 [US3] RUN Arm C via `research/labelfree/arms.py --arm auxiliary --fold f08 --seeds 1,2,3,4,5`, confirming no directional label enters the objective (FR-011, FR-016)
+- [X] T026 [US3] State in `research/label-free-study/briefs/results/02-<date>.md` whether directional content was necessary, by comparing Arm C against the best blended arm (FR-012)
 
 ---
 

@@ -116,8 +116,15 @@ def aux_vol_loss(w: mx.array, vol_target: mx.array) -> mx.array:
     profit term merely by being large. Carries NO directional information by construction —
     the target is a magnitude, asserted non-negative and near-zero-correlated with forward
     return in test_purge_embargo.
+
+        EPS must go INSIDE the sqrt, not after it. `sqrt(var) + EPS` is finite in the FORWARD
+    pass even when var is exactly 0, but d/dx sqrt(x) is infinite at x=0, so the BACKWARD
+    pass returns NaN — which then poisons the weights and surfaces as a non-finite loss on
+    some later window. A fully-masked pair has w identically 0 and var(w) exactly 0, so
+    this fires whenever a chunk contains a pair with no data. On f08 that killed all five
+    Arm C seeds at different windows (2026-09-12).
     """
     t = vol_target
-    t = (t - mx.mean(t)) / (mx.sqrt(mx.var(t)) + EPS)
-    pred = (w - mx.mean(w)) / (mx.sqrt(mx.var(w)) + EPS)
+    t = (t - mx.mean(t)) / mx.sqrt(mx.var(t) + EPS)
+    pred = (w - mx.mean(w)) / mx.sqrt(mx.var(w) + EPS)
     return mx.mean(mx.square(pred - t))
