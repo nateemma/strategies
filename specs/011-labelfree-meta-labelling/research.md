@@ -5,33 +5,77 @@ the plan depends on. Citations to `research/label-free-study/01-literature-revie
 
 ---
 
-## R1 — The primary model's entry confidence is computed and then thrown away
+## R1 — Store the primary's probabilities as debug columns in the framework
 
-**Decision**: capture `pred_probs[:, TradingAction.BUY]` inside the prediction path rather than
-reading a dataframe column, because no column carries it.
+**Decision**: `get_predictions()` writes three `%`-prefixed debug columns —
+`%predict_prob_sell`, `%predict_prob_hold`, `%predict_prob_buy` — carrying the probabilities
+that actually drive the decision. The meta-label feature extractor reads those columns.
 
-**Finding**: `Framework/BaseNNStrategy.get_predictions()` computes a full probability array
-`pred_probs` and even prints its statistics, but `process_predictions()` stores only the
-**thresholded** result:
+**Write position**: *after* the Markov-smoothing branch, so the columns always hold whatever
+`argmax_with_threshold` consumed. **That branch is currently inert** —
+`use_markov_smoothing = False` (`BaseNNStrategy:167`), no `NNNC_WF_f*` fold class overrides it,
+and no `*_markov.npy` matrix exists for any fold model, so the smoothing cannot engage even if
+the flag were flipped without also producing the matrices. For this feature the columns
+therefore carry the raw `classifier.predict()` output. Writing after the branch rather than
+before costs nothing today and keeps the columns correct if smoothing is ever enabled — the
+alternative silently starts recording a different quantity than the one being traded on.
+
+**Superseded**: an earlier revision of this decision had `reinfer.py` call the classifier
+directly to avoid touching `Framework/`. That was the wrong trade. Calling the classifier
+directly **duplicates the prediction path**, and a duplicated path drifts from the code that
+actually runs — the exact failure this study has already recorded (`feedback_verify_training_
+steps_by_measurement.md`, and the loss-logic duplication that let a term silently not run).
+Storing what the framework already computes is strictly safer.
+
+**Why the constitution permits it**: `Framework/` must stay *strategy-agnostic*, not frozen.
+Probabilities the base class already computes for every NN strategy are agnostic by definition;
+nothing strategy-specific is added.
+
+**Finding it addresses**: `get_predictions()` computes `pred_probs`, optionally smooths it
+(lines 1160–1162, inert here), prints its per-class statistics (1183–1189) — and then returns
+only the thresholded class array. `process_predictions()` stores just:
 
 ```python
 dataframe["predict_buy"]  = np.where(predictions == TradingAction.BUY, 1, 0)
 dataframe["predict_sell"] = np.where(predictions == TradingAction.SELL, 1, 0)
 ```
 
-The raw probability is discarded. A trade that opened at confidence 0.81 and one at 0.99 are
-indistinguishable after this point, and 0.8 is the production `prediction_threshold`.
+A trade opened at confidence 0.81 and one at 0.99 are indistinguishable afterwards, and 0.8 is
+the production `prediction_threshold` — so nearly every trade sits near the boundary where the
+discarded digits matter most.
 
-**Consequence for the plan**: the re-inference module must call the classifier directly and keep
-the probability vector. It MUST NOT modify `BaseNNStrategy` — the framework is
-strategy-agnostic by constitution, and a feature-local capture keeps it that way.
+**The `%` prefix is load-bearing, not cosmetic.** `DataframeUtils.remove_debug_columns()` drops
+every column matching `^%`, and it is applied before scaling (`FeatureNormalizer:334, 512`) and
+in scaler creation (`CreateScalers:186`). That guarantees the model's own output **cannot** be
+picked up as a training feature. Without the prefix this change would create a
+predict-your-own-prediction leak. The convention already exists in the framework
+(`%train_buy`, `%train_sell`).
 
-**Alternatives considered**: adding a `predict_confidence` column to the framework (rejected:
-changes the shared prediction path for every strategy to serve one research feature);
-re-deriving confidence from the thresholded flag (rejected: it is one bit, which is precisely
-the information we need more of).
+**Alignment — the part that is easy to get wrong.** `predictions` is front-padded when the model
+emits fewer rows than the dataframe:
 
----
+```python
+offset = original_length - predicted_length
+preds = np.zeros(original_length, dtype=int); preds[offset:] = predictions
+```
+
+`pred_probs` receives no such treatment, so a raw assignment either raises on length mismatch or
+silently misaligns every row. The three columns MUST therefore be:
+
+1. **initialised to NaN at full dataframe length** — following the `%train_buy` init-then-set
+   precedent (`BaseNNStrategy:954`); and
+2. written at the **same `offset`** used for `predictions`.
+
+**NaN, never 0.0.** Zero is a legitimate probability meaning "confidently not this class". Using
+it as padding would mark every warm-up bar as a confident non-buy and quietly corrupt the
+feature rows that fall there. With NaN, a trade whose entry bar lands in the warm-up region
+yields an unbuildable row, which FR-006 already requires be **excluded and counted** rather than
+imputed — the two rules compose correctly.
+
+**Alternatives considered**: stashing `pred_probs` on `self` for `process_predictions` to write
+(rejected: hidden cross-call state, and `get_predictions` already holds the dataframe); adding a
+non-prefixed column (rejected: it would enter the feature list and leak); recomputing confidence
+from the thresholded flag (rejected: it is one bit, which is what we need more of).
 
 ## R2 — Recomputed floor for the evaluation span: **4.681 pp/yr**
 

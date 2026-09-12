@@ -31,7 +31,8 @@ existing `research/labelfree/trials.jsonl`
 seconds per configuration at n ≤ 287
 **Constraints**: all runs sequential; no feature may read data after a trade's `open_date`;
 re-inference must reproduce the archived entry set exactly; the primary model, its guards, its
-exits and its stop are untouched
+exits and its stop are untouched. The only `Framework/` change is three `%`-prefixed debug
+columns (R1), which are dropped before scaling and cannot become features
 **Scale/Scope**: 378 archived trades, 15 folds, 10 evaluation folds, ~9 features, 5 seeds per
 configuration
 
@@ -90,10 +91,16 @@ specs/011-labelfree-meta-labelling/
 ### Source Code (repository root = `user_data/strategies`)
 
 ```
+Framework/
+└── BaseNNStrategy.py # +3 debug columns in get_predictions(): %predict_prob_{sell,hold,buy}
+                      #  NaN-initialised at full length, written at the SAME offset as
+                      #  `predictions`, AFTER the (currently inert) Markov branch.
+                      #  Strategy-agnostic; dropped by remove_debug_columns(). (R1)
+
 research/labelfree/metalabel/
 ├── __init__.py
 ├── archive.py        # read the pooled WF archive -> trade rows
-├── reinfer.py        # reload saved fold models, recover entry confidence + guards (R1, R8)
+├── reinfer.py        # replay saved fold models, READ the %predict_prob_* columns (R1, R8)
 ├── features.py       # assemble the entry-time feature vector (pair features EXCLUDED, R7)
 ├── audit.py          # causality-by-deletion + planted-leak control (R5)
 ├── nested.py         # fold-k trains on trades closed before fold-k test_start (R6)
@@ -111,8 +118,10 @@ NNNC/
 
 **Structure decision**: a package under the existing `research/labelfree/`, reusing that
 module's `trials.py`, `stats.py` and `costs.py` rather than duplicating them. Duplicated
-statistics drift from the code that runs — a failure this study has already recorded. Nothing
-is added to `Framework/`.
+statistics drift from the code that runs — a failure this study has already recorded, and the
+same reasoning is why the primary's probabilities are *stored by the framework* rather than
+recomputed by this feature (R1). The `Framework/` change is three debug columns and nothing
+else.
 
 ## Phases
 
@@ -131,4 +140,4 @@ is added to `Framework/`.
 |---|---|---|
 | **W3 evaluated anti-causally** (Principle II) | W3 lies entirely inside the warm-up folds; no nested model can precede it. Without the probe the feature ships with W1 and W2 only, which are four months apart — no distant-era evidence at all, which is what Principle II exists to prevent. | Dropping W3 (leaves the non-negotiable principle unsatisfied); substituting three thirds of the evaluation span (adjacent windows share a regime — this repo's own recorded finding, so it is a weaker test that looks like a stronger one). Mitigation: the probe is labelled at every appearance, may never be quoted as an OOS return, and never counts toward SC-001. |
 | **Re-inference of 15 primary models** | The archive does not store the primary's entry confidence, and "when to trust the primary" is untestable without it. | Using OHLCV-only features (tests a weaker hypothesis than the brief states); joining features to archived trades without a reproduction check (the confidence might not be the value that triggered the entry). Mitigation: exact entry-set reproduction gate (R8, FR-005b). |
-| **Feature-local confidence capture** rather than a framework column | `Framework/` must stay strategy-agnostic; adding `predict_confidence` changes the shared prediction path for every strategy to serve one research feature. | A framework column (rejected on the constraint above). Mitigation: `reinfer.py` calls the classifier directly and keeps `pred_probs`; `Framework/` is untouched. |
+| **Three `%`-prefixed debug columns added to `Framework/BaseNNStrategy`** | The primary's probabilities are computed, smoothed, printed, and then discarded. Storing them is a two-line change at a site already handling them; the alternative duplicates the prediction path. | Calling the classifier directly from `reinfer.py` (rejected: a duplicated prediction path drifts from the code that runs — the failure this study already recorded); stashing `pred_probs` on `self` (rejected: hidden cross-call state). Mitigation: the `%` prefix routes them through `remove_debug_columns()`, so they can never enter the feature list; the change is strategy-agnostic (probabilities every NN strategy already computes) and adds nothing strategy-specific. |

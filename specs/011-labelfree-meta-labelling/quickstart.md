@@ -45,6 +45,41 @@ is a finding, not an inconvenience. Do not proceed by dropping the unmatched tra
 
 ---
 
+## S2b — The probability columns exist, align, and cannot become features (R1)
+
+```bash
+$PY -c "
+import sys; sys.path.insert(0,'user_data/strategies')
+from utils.DataframeUtils import DataframeUtils
+import pandas as pd, numpy as np
+df = pd.DataFrame({'close':[1.,2.,3.], '%predict_prob_buy':[np.nan,0.9,0.4]})
+print('dropped by remove_debug_columns:',
+      '%predict_prob_buy' not in DataframeUtils().remove_debug_columns(df).columns)"
+```
+
+**Expected**: `True`. The `%` prefix routes the columns through `remove_debug_columns()`, which
+is applied before scaling and in scaler creation — so the model's own output can never be
+picked up as a training feature. Without the prefix this would be a
+predict-your-own-prediction leak.
+
+**Also check alignment.** `predictions` is front-padded when the model emits fewer rows than the
+dataframe; the probability columns must use the **same offset** and be **NaN** outside it:
+
+```bash
+$PY -c "
+import sys, json; sys.path.insert(0,'user_data/strategies')
+rows=[json.loads(l) for l in open('research/labelfree/metalabel/rows.jsonl')]
+import math
+n_nan=sum(1 for r in rows if r.get('excluded_reason')=='nan_confidence')
+print('rows excluded for NaN confidence:', n_nan, 'of', len(rows))"
+```
+
+**Expected**: a small count, reported rather than zero-filled. NaN marks bars the model never
+scored (the warm-up region). Padding those with `0.0` would mark them "confidently not-buy" and
+silently corrupt the earliest feature rows — which is why FR-006 excludes and counts them.
+
+---
+
 ## S3 — The audit detects a leak it is required to catch (FR-004, SC-011)
 
 ```bash

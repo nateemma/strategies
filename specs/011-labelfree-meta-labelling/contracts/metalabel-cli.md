@@ -28,7 +28,10 @@ $PY $ML/reinfer.py --archive regime/wf/pooled_nnnc.json \
 **Contract**
 
 - Reloads each fold's saved primary model and re-runs inference over that fold's test range.
-- Captures `pred_probs[:, BUY]` directly — no framework file is modified (R1).
+- Reads the primary's confidence from the `%predict_prob_{sell,hold,buy}` columns the framework
+  now writes (R1) — it does **not** re-implement the prediction path.
+- Treats a NaN `%predict_prob_*` as an unbuildable row: **excluded and counted** (FR-006), never
+  imputed. NaN marks bars the model did not score (the front-padded warm-up region).
 - **Exits non-zero if the re-inferred `(pair, open_date)` entry set is not exactly the archived
   set** (FR-005b, SC-017), printing the symmetric difference. No partial output is written on
   failure.
