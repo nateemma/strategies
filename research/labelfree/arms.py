@@ -254,14 +254,30 @@ def run_screen(arm_specs: list[dict], fold_id: str = "f08",
     print(f"screen fold {fold_id} [run {run_id}] {len(pairs)} pairs, "
           f"{len(arm_specs)} arms x {len(seeds)} seeds", flush=True)
 
-    need_label = any(a.get("label_threshold") for a in arm_specs) or \
-        any(a["arm"] == "warm_start" for a in arm_specs)
-    thr = next((a.get("label_threshold") for a in arm_specs if a.get("label_threshold")),
-               LB.PRODUCTION_THRESHOLD) if need_label else None
-    tr = load_panel(fold, pairs, True, thr)
-    te = load_panel(fold, pairs, False, thr)
-    print(f"  train {tr[0].shape} ({100*tr[4].mean():.0f}% valid)  test {te[0].shape}",
-          flush=True)
+    # ONE PANEL PER DISTINCT LABEL THRESHOLD. Loading a single panel from the first
+    # spec's threshold makes `label_threshold` silently INERT: every arm then trains
+    # against the same label and the configurations come back byte-identical, which reads
+    # as "the two labels behave the same" when it is really "the parameter did nothing".
+    # Caught 2026-09-12 after 15 runs were wasted that way.
+    thresholds = sorted({a.get("label_threshold") for a in arm_specs
+                         if a.get("label_threshold")} or {LB.PRODUCTION_THRESHOLD})
+    panels = {}
+    for thr in thresholds:
+        panels[thr] = (load_panel(fold, pairs, True, thr),
+                       load_panel(fold, pairs, False, thr))
+        print(f"  panel@thr={thr}: train {panels[thr][0][0].shape} "
+              f"({100*panels[thr][0][4].mean():.0f}% valid)", flush=True)
+
+    # Liveness proof (Principle IV): the label must actually differ between thresholds.
+    if len(thresholds) > 1:
+        import numpy as _np
+        a, b = (panels[t][0][5] for t in thresholds[:2])
+        if a is not None and b is not None and _np.array_equal(a, b):
+            raise ValueError(
+                f"label_threshold is INERT: thresholds {thresholds[:2]} produced identical "
+                "labels. Every downstream comparison between them would be vacuous.")
+        diff = float((a != b).mean()) if a is not None and b is not None else 0.0
+        print(f"  label liveness: thresholds differ on {100*diff:.1f}% of bars", flush=True)
 
     results: dict[str, list[dict]] = {}
     for spec in arm_specs:
@@ -274,6 +290,7 @@ def run_screen(arm_specs: list[dict], fold_id: str = "f08",
             trials.pre_register({"trial_id": tid, "run_id": run_id, "feature": "010",
                                  "n_pairs": len(pairs), **cfg.describe()})
             t0 = time.time()
+            tr, te = panels[cfg.label_threshold or thresholds[0]]
             try:
                 r = train_arm(cfg, tr, te)
             except Exception as e:
