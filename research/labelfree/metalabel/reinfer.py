@@ -1,14 +1,25 @@
 """Recover entry-time features for every archived trade (T009-T012, FR-005a/b, R1, R8).
 
-MECHANISM. freqtrade's own `--export signals` stores, per pair, the last candle STRICTLY
-BEFORE each trade's open_date:
+MECHANISM — TWO CHANNELS, each used for what it can carry.
+
+1. MARKET STATE comes from freqtrade's own `--export signals`, which stores, per pair, the
+   last candle STRICTLY BEFORE each trade's open_date:
 
     candle_idx = pairdf["date"].searchsorted(pairresults[date_col], side="left") - 1
 
-(`optimize_reports.generate_trade_signal_candles`). Those rows carry every dataframe column,
-including the `%predict_prob_{sell,hold,buy}` columns the framework now writes. So the
-entry-time feature table is produced by freqtrade itself, keyed to the trades that actually
-happened, with causality guaranteed by construction rather than by our own bookkeeping.
+   (`optimize_reports.generate_trade_signal_candles`). Those rows carry 83 columns including
+   guard_metric, rvol, atr_pct and the liquidity proxies — keyed to the trades that actually
+   happened, with causality guaranteed by freqtrade rather than by our own bookkeeping.
+
+2. PRIMARY CONFIDENCE comes from the side-car the framework writes when
+   FT_PREDICT_PROB_SINK is set. It cannot come from channel 1: that artefact is
+   `preprocessed_tmp`, built by advise_all_indicators(), which "Does not run advise_entry or
+   advise_exit!" and copies on input and output. Predictions are model OUTPUTS and belong to
+   the entry/exit phase, which runs later against a different object — and moving prediction
+   into populate_indicators, where the model's INPUTS are built, would break the general
+   freqtrade flow. Measured 2026-09-12 (research R11).
+
+Both channels are joined on the SAME bar: `open_date - timeframe`.
 
 REPRODUCTION GATE (FR-005b, SC-017). The re-inferred (pair, open_date) set must equal the
 archived set EXACTLY. The archived trades were produced 2026-09-09; these features come from
@@ -37,6 +48,12 @@ from research.labelfree.metalabel import archive as A    # noqa: E402
 from research.labelfree import metalabel as M            # noqa: E402
 
 PROB_COLS = ("%predict_prob_sell", "%predict_prob_hold", "%predict_prob_buy")
+
+# Market state, from the signals export. Pair identity, pair group and pair history are
+# EXCLUDED by construction (FR-005c, research R7): with them the model could rank pairs and
+# SC-010's "pair selection, not meta-labelling" kill would be self-fulfilling.
+MARKET_COLS = ("guard_metric", "rvol", "atr_pct", "bb_width", "adx",
+               "volume", "close", "spread", "btc_close")
 TIMEFRAME_MIN = 15
 CONFIG = "user_data/strategies/config/config_wf.json"
 
@@ -55,7 +72,7 @@ def require_models(fold_ids) -> None:
             "model on a subset of folds without saying so.")
 
 
-def run_fold(fold_id: str, fold: dict, log_dir: Path) -> Path:
+def run_fold(fold_id: str, fold: dict, log_dir: Path, sink_root: Path) -> Path:
     """Backtest one fold over its own test range with signal export. Returns the result zip.
 
     TWO TRAPS, both measured 2026-09-12:
@@ -73,10 +90,13 @@ def run_fold(fold_id: str, fold: dict, log_dir: Path) -> Path:
     log = log_dir / f"reinfer_{fold_id}.log"
     results_dir = REPO / "user_data/backtest_results"
     started = time.time()
+    sink = sink_root / fold_id
+    sink.mkdir(parents=True, exist_ok=True)
     cmd = ("[ -f \"$HOME/.freqtrade_env\" ] && . \"$HOME/.freqtrade_env\"; "
-           f"cd {REPO} && PYTHONPATH=user_data/strategies .venv/bin/freqtrade backtesting "
-           f"--strategy NNNC_WF_{fold_id} --config {CONFIG} --timerange {tr} "
-           f"--export signals --cache none")
+           f"cd {REPO} && FT_PREDICT_PROB_SINK={sink} "
+           f"PYTHONPATH=user_data/strategies .venv/bin/freqtrade backtesting "
+           f"--strategy NNNC_WF_{fold_id} --strategy-path user_data/strategies/NNNC "
+           f"--config {CONFIG} --timerange {tr} --export signals --cache none")
     with log.open("w") as fh:
         subprocess.run(["zsh", "-c", cmd], stdout=fh, stderr=fh)
 
@@ -104,10 +124,28 @@ def read_signals(zip_path: Path) -> dict[str, pd.DataFrame]:
                 f"{zip_path.name} carries no _signals.pkl. The backtest must run with "
                 "`--export signals`; without it no entry-time features exist.")
         with zf.open(names[0]) as fh:
-            return joblib.load(fh)
+            payload = joblib.load(fh)
+    # Shape is {strategy_name: {pair: DataFrame}} — one level deeper than it looks.
+    if payload and all(isinstance(v, dict) for v in payload.values()):
+        return next(iter(payload.values()))
+    return payload
 
 
-def join_fold(rows: list[A.TradeRow], signals: dict[str, pd.DataFrame]) -> tuple[list, list]:
+def read_sink(sink_dir: Path) -> dict[str, pd.DataFrame]:
+    """Per-pair probability side-car written by the framework under FT_PREDICT_PROB_SINK."""
+    out = {}
+    for f in sorted(Path(sink_dir).glob("*.feather")):
+        pair = f.stem.replace("_", "/", 1)
+        out[pair] = pd.read_feather(f)
+    if not out:
+        raise SystemExit(
+            f"no probability side-car in {sink_dir}. The backtest must run with "
+            "FT_PREDICT_PROB_SINK set, or primary_confidence is unrecoverable.")
+    return out
+
+
+def join_fold(rows: list[A.TradeRow], signals: dict[str, pd.DataFrame],
+              sink: dict[str, pd.DataFrame]) -> tuple[list, list]:
     """Attach each trade's entry-candle features. Returns (built, excluded).
 
     Joined on the candle DATE, not on row order: `generate_trade_signal_candles` drops trades
@@ -125,12 +163,19 @@ def join_fold(rows: list[A.TradeRow], signals: dict[str, pd.DataFrame]) -> tuple
         if hit.empty:
             excluded.append((r, "no candle at open_date - timeframe")); continue
         row = hit.iloc[0]
-        if any(pd.isna(row.get(c)) for c in PROB_COLS):
+        sdf = sink.get(r.pair)
+        if sdf is None:
+            excluded.append((r, "no probability side-car for pair")); continue
+        shit = sdf[sdf["date"] == want]
+        if shit.empty:
+            excluded.append((r, "no side-car row at open_date - timeframe")); continue
+        srow = shit.iloc[0]
+        if any(pd.isna(srow.get(c)) for c in PROB_COLS):
             # NaN marks a bar the model never scored (the front-padded warm-up region).
             # Excluded and counted, never imputed (FR-006) -- and never zero-filled, since
             # 0.0 is a real probability meaning "confidently not this class".
             excluded.append((r, "nan_confidence")); continue
-        built.append((r, row))
+        built.append((r, row, srow))
     return built, excluded
 
 
@@ -149,6 +194,8 @@ def main() -> int:
     ap.add_argument("--folds", help="comma-separated subset; default all 15")
     ap.add_argument("--out", required=True)
     ap.add_argument("--log-dir", default="/tmp/lf")
+    ap.add_argument("--sink-dir", default="/tmp/lf/probsink",
+                    help="per-fold subdirectories receive the probability side-car")
     ap.add_argument("--from-zips", help="skip backtests; read these result zips (comma-sep)")
     a = ap.parse_args()
 
@@ -157,6 +204,7 @@ def main() -> int:
     fold_ids = a.folds.split(",") if a.folds else sorted(plan)
     require_models(fold_ids)
     log_dir = Path(a.log_dir); log_dir.mkdir(parents=True, exist_ok=True)
+    sink_dir = Path(a.sink_dir); sink_dir.mkdir(parents=True, exist_ok=True)
 
     by_fold = A.by_fold(rows)
     zips = a.from_zips.split(",") if a.from_zips else []
@@ -164,10 +212,11 @@ def main() -> int:
 
     for i, fid in enumerate(fold_ids):
         frows = by_fold.get(fid, [])
-        zp = Path(zips[i]) if zips else run_fold(fid, plan[fid], log_dir)
+        zp = Path(zips[i]) if zips else run_fold(fid, plan[fid], log_dir, sink_dir)
         sig = read_signals(zp)
-        built, excluded = join_fold(frows, sig)
-        gate = reproduction_gate({r.key for r in frows}, {r.key for r, _ in built})
+        snk = read_sink(sink_dir / fid)
+        built, excluded = join_fold(frows, sig, snk)
+        gate = reproduction_gate({r.key for r in frows}, {b[0].key for b in built})
         gate["fold_id"] = fid
         gate["n_excluded"] = len(excluded)
         records.append(gate)
@@ -188,9 +237,13 @@ def main() -> int:
 
     out = Path(a.out); out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w") as fh:
-        for r, row in built_all:
+        for r, row, srow in built_all:
             d = r.describe()
-            d["features"] = {c: float(row[c]) for c in PROB_COLS if c in row}
+            feats = {c: float(srow[c]) for c in PROB_COLS}
+            for c in MARKET_COLS:
+                if c in row and pd.notna(row[c]):
+                    feats[c] = float(row[c])
+            d["features"] = feats
             fh.write(json.dumps(d) + "\n")
     print(f"\n  wrote {len(built_all)} rows -> {out}")
     print(f"  excluded {len(excluded_all)} (counted, never imputed)")

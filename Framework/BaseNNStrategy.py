@@ -1210,6 +1210,36 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
                 _col[offset:offset + predicted_length] = pred_probs[:predicted_length, _cls]
             dataframe[_name] = _col
 
+        # Optional side-car, for consumers in ANOTHER PROCESS.
+        #
+        # The columns above cannot reach freqtrade's `--export signals` artefact: that
+        # artefact is `preprocessed_tmp`, built from advise_all_indicators(), whose docstring
+        # states "Does not run advise_entry or advise_exit!" and that it copies on input and
+        # output. Predictions are model OUTPUTS and belong to the entry/exit phase, which runs
+        # later against a different object — moving prediction into populate_indicators, where
+        # the model's INPUTS are built, would break the general freqtrade flow.
+        #
+        # So a backtest subprocess needs an explicit channel. This is it, and it is INERT
+        # unless FT_PREDICT_PROB_SINK names a directory: one `os.environ.get` otherwise, no
+        # I/O, no behaviour change in production. One feather per pair per run; callers
+        # running several strategies must give each its own sink directory or the later run
+        # overwrites the earlier.
+        _sink = os.environ.get("FT_PREDICT_PROB_SINK")
+        if _sink:
+            try:
+                _sdir = Path(_sink)
+                _sdir.mkdir(parents=True, exist_ok=True)
+                _pair = getattr(self, "curr_pair", "") or "UNKNOWN"
+                _out = DataFrame({
+                    "date": dataframe["date"].to_numpy(),
+                    "%predict_prob_sell": dataframe["%predict_prob_sell"].to_numpy(),
+                    "%predict_prob_hold": dataframe["%predict_prob_hold"].to_numpy(),
+                    "%predict_prob_buy": dataframe["%predict_prob_buy"].to_numpy(),
+                })
+                _out.to_feather(_sdir / f"{_pair.replace('/', '_')}.feather")
+            except Exception as _e:                       # never break a run for telemetry
+                self.debug_print(f"    prob sink write failed: {_e}")
+
         self.print_probability_stats(
             "Trading", "Sell", pred_probs[:, TradingAction.SELL], pred_threshold
         )
