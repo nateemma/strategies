@@ -85,8 +85,8 @@ and mean exposure against the P&L control on the same fold and seeds.
 - [X] T010 [P] [US1] Add the classifier-encoder policy variant to `research/labelfree/policy.py` — resize → conv1 → ln_conv → residual → LSTM → ln_lstm → exposure head, matching `NNNClassifierMLX_LSTM.encode()` tensor-for-tensor so weights load without surgery (FR-004a, research R1)
 - [X] T011 [US1] Implement per-fold classifier training in `research/labelfree/warmstart.py` — trained on the fold's OWN training range; the production model MUST NOT be reused, because it saw data later folds treat as held out (FR-004, research R3)
 - [X] T012 [US1] Implement weight inheritance in `research/labelfree/warmstart.py` — transfer the encoder only, never the classification head, and record which tensors actually transferred (data-model §2)
-- [ ] T013 [US1] Implement windowed encoding in `research/labelfree/train.py` — build `(n_bars, seq_len, n_features)` windows PER CHUNK, never for the whole panel (2.14 GB vs 0.04 GB, measured) (FR-004a, research R2)
-- [ ] T014 [P] [US1] Implement arm dispatch in `research/labelfree/arms.py` — A/B/C as configurations of the existing trainer, differing only in initialisation and objective (FR-002, contracts/arms.md)
+- [X] T013 [US1] Implement windowed encoding in `research/labelfree/train.py` — build `(n_bars, seq_len, n_features)` windows PER CHUNK, never for the whole panel (2.14 GB vs 0.04 GB, measured) (FR-004a, research R2)
+- [X] T014 [P] [US1] Implement arm dispatch in `research/labelfree/arms.py` — A/B/C as configurations of the existing trainer, differing only in initialisation and objective (FR-002, contracts/arms.md)
 - [ ] T015 [US1] RUN the per-fold classifier for f08, then Arm A at seeds 1-5 via `research/labelfree/arms.py --arm warm_start --fold f08`, reported as an interquartile mean with a bootstrap interval, never a best seed (FR-016)
 - [ ] T016 [US1] Compute the exposure/label correlation in `research/labelfree/arms.py` and report it as a DIAGNOSTIC — near 1 means the fine-tune changed nothing, near 0 means the prior was discarded; it MUST NOT enter any acceptance decision (FR-006, SC-011, Principle III)
 - [ ] T017 [US1] If Arm A underperforms the P&L control in-fold, record it in `research/labelfree/trials.jsonl` and proceed to Phase 4 — do NOT tune Arm A; a classifier tuned to the wrong label can legitimately hurt, and tuning here is fitting the screen (US1 scenario 4, Principle VI)
@@ -105,8 +105,8 @@ configuration is logged before running and reported as an interquartile mean.
 
 ### Implementation for User Story 2
 
-- [ ] T018 [P] [US2] Implement the blended objective in `research/labelfree/losses.py` — `α·CE(label) + (1−α)·utility`, with the participation floor applied as inherited from brief 01 (FR-007)
-- [ ] T019 [US2] Implement loss-term accounting in `research/labelfree/losses.py` — record each term's REALISED contribution and `alpha_realised = label_term/(label_term+profit_term)`, so a blend that has collapsed to one term is detected rather than assumed balanced (FR-009, data-model §4, Principle IV)
+- [X] T018 [P] [US2] Implement the blended objective in `research/labelfree/losses.py` — `α·CE(label) + (1−α)·utility`, with the participation floor applied as inherited from brief 01 (FR-007)
+- [X] T019 [US2] Implement loss-term accounting in `research/labelfree/losses.py` — record each term's REALISED contribution and `alpha_realised = label_term/(label_term+profit_term)`, so a blend that has collapsed to one term is detected rather than assumed balanced (FR-009, data-model §4, Principle IV)
 - [ ] T020 [US2] RUN the sweep via `research/labelfree/arms.py --arm blended --fold f08 --alphas 0.75,0.5,0.25 --labels 0.007,0.02 --seeds 1,2,3,4,5` — 30 runs, sequential, each reported as an interquartile mean across seeds (FR-016)
 - [ ] T021 [US2] Report the two labels SEPARATELY in `research/label-free-study/briefs/results/02-<date>.md`, never pooled, and record that the repo previously measured them as identical in P&L (332 trades, 10.45% both) while 38% apart in label count — agreement here replicates a known finding rather than discovering one (FR-008, research R4)
 - [ ] T022 [US2] Record every blend weight as a trial in `research/labelfree/trials.jsonl`; the report MUST NOT identify a best α — the sweep is 6 configurations and enters the multiple-testing correction as such (FR-010, SC-010)
@@ -125,7 +125,7 @@ blended arm.
 
 ### Implementation for User Story 3
 
-- [ ] T023 [P] [US3] Implement the auxiliary head and loss in `research/labelfree/losses.py` — utility plus a forward-volatility prediction from the shared latent, with NO directional label entering the objective at any point (FR-011)
+- [X] T023 [P] [US3] Implement the auxiliary head and loss in `research/labelfree/losses.py` — utility plus a forward-volatility prediction from the shared latent, with NO directional label entering the objective at any point (FR-011)
 - [ ] T024 [P] [US3] Assertion in `research/labelfree/tests/test_purge_embargo.py` that Arm C's objective contains no directional term, checked structurally rather than by inspection (FR-011)
 - [ ] T025 [US3] RUN Arm C via `research/labelfree/arms.py --arm auxiliary --fold f08 --seeds 1,2,3,4,5`, confirming no directional label enters the objective (FR-011, FR-016)
 - [ ] T026 [US3] State in `research/label-free-study/briefs/results/02-<date>.md` whether directional content was necessary, by comparing Arm C against the best blended arm (FR-012)

@@ -92,3 +92,32 @@ def turnover_penalty(w: mx.array, lam: float) -> mx.array:
 
 
 OBJECTIVES = {"utility": utility, "robust_sharpe": robust_sharpe}
+
+
+def exposure_ce(w: mx.array, y_onehot: mx.array) -> mx.array:
+    """Cross-entropy between exposure and the directional label (Arm B).
+
+    The policy emits a scalar exposure, not class probabilities, so the label term is
+    framed as: exposure should be HIGH where the label says BUY and LOW otherwise. That is
+    a binary cross-entropy against the BUY indicator, which is the only part of the
+    3-class label a long-only exposure can express — a long-only policy cannot act on SELL
+    beyond going flat, so treating SELL and HOLD alike here is the faithful mapping, not a
+    simplification.
+    """
+    buy = y_onehot[..., 2]
+    p = mx.clip(w, 1e-6, 1.0 - 1e-6)
+    return -mx.mean(buy * mx.log(p) + (1.0 - buy) * mx.log(1.0 - p))
+
+
+def aux_vol_loss(w: mx.array, vol_target: mx.array) -> mx.array:
+    """Auxiliary head loss for Arm C: predict forward realised volatility.
+
+    Scale-free (the target is standardised within the window) so it cannot dominate the
+    profit term merely by being large. Carries NO directional information by construction —
+    the target is a magnitude, asserted non-negative and near-zero-correlated with forward
+    return in test_purge_embargo.
+    """
+    t = vol_target
+    t = (t - mx.mean(t)) / (mx.sqrt(mx.var(t)) + EPS)
+    pred = (w - mx.mean(w)) / (mx.sqrt(mx.var(w)) + EPS)
+    return mx.mean(mx.square(pred - t))
