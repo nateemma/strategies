@@ -239,3 +239,55 @@ def evaluate_arm(pol, panel_te, cfg: ArmConfig) -> dict:
         out["exposure_label_corr"] = float(
             np.corrcoef(wn[:, :k].ravel(), (y[:, :k] == LB.BUY).astype(float).ravel())[0, 1])
     return out
+
+
+# ---------------------------------------------------------------------------
+# Screening runner (T015) — pre-registers every configuration before it runs.
+# ---------------------------------------------------------------------------
+
+def run_screen(arm_specs: list[dict], fold_id: str = "f08",
+               pairs: list[str] | None = None, epochs: int = 2,
+               seeds: tuple[int, ...] = (1, 2, 3, 4, 5)) -> dict:
+    fold = {f.fold_id: f for f in F.folds()}[fold_id]
+    pairs = pairs or list(fold.pair_universe)
+    run_id = trials.new_run_id()
+    print(f"screen fold {fold_id} [run {run_id}] {len(pairs)} pairs, "
+          f"{len(arm_specs)} arms x {len(seeds)} seeds", flush=True)
+
+    need_label = any(a.get("label_threshold") for a in arm_specs) or \
+        any(a["arm"] == "warm_start" for a in arm_specs)
+    thr = next((a.get("label_threshold") for a in arm_specs if a.get("label_threshold")),
+               LB.PRODUCTION_THRESHOLD) if need_label else None
+    tr = load_panel(fold, pairs, True, thr)
+    te = load_panel(fold, pairs, False, thr)
+    print(f"  train {tr[0].shape} ({100*tr[4].mean():.0f}% valid)  test {te[0].shape}",
+          flush=True)
+
+    results: dict[str, list[dict]] = {}
+    for spec in arm_specs:
+        key = spec.get("tag") or spec["arm"]
+        results[key] = []
+        for seed in seeds:
+            cfg = ArmConfig(seed=seed, fold_id=fold_id, epochs=epochs,
+                            **{k: v for k, v in spec.items() if k != "tag"})
+            tid = f"{key}-s{seed}-{fold_id}@{run_id}"
+            trials.pre_register({"trial_id": tid, "run_id": run_id, "feature": "010",
+                                 "n_pairs": len(pairs), **cfg.describe()})
+            t0 = time.time()
+            try:
+                r = train_arm(cfg, tr, te)
+            except Exception as e:
+                trials.abandon(tid, f"{type(e).__name__}: {str(e)[:200]}")
+                print(f"    {tid}: ABANDONED {type(e).__name__}: {e}", flush=True)
+                continue
+            r["seconds"] = round(time.time() - t0, 1)
+            r["status"] = "ok"
+            trials.complete(tid, r)
+            results[key].append(r)
+            corr = r.get("exposure_label_corr")
+            print(f"    {tid}: log_ret={r['test_log_return']:+.4f} "
+                  f"mean_w={r['test_mean_exposure']:.3f} flat={100*r['test_flat_share']:.0f}% "
+                  f"degen={r['degenerate']}"
+                  + (f" corr={corr:+.3f}" if corr is not None else "")
+                  + f" ({r['seconds']}s)", flush=True)
+    return {"run_id": run_id, "fold": fold_id, "pairs": pairs, "results": results}

@@ -87,9 +87,9 @@ and mean exposure against the P&L control on the same fold and seeds.
 - [X] T012 [US1] Implement weight inheritance in `research/labelfree/warmstart.py` — transfer the encoder only, never the classification head, and record which tensors actually transferred (data-model §2)
 - [X] T013 [US1] Implement windowed encoding in `research/labelfree/train.py` — build `(n_bars, seq_len, n_features)` windows PER CHUNK, never for the whole panel (2.14 GB vs 0.04 GB, measured) (FR-004a, research R2)
 - [X] T014 [P] [US1] Implement arm dispatch in `research/labelfree/arms.py` — A/B/C as configurations of the existing trainer, differing only in initialisation and objective (FR-002, contracts/arms.md)
-- [ ] T015 [US1] RUN the per-fold classifier for f08, then Arm A at seeds 1-5 via `research/labelfree/arms.py --arm warm_start --fold f08`, reported as an interquartile mean with a bootstrap interval, never a best seed (FR-016)
-- [ ] T016 [US1] Compute the exposure/label correlation in `research/labelfree/arms.py` and report it as a DIAGNOSTIC — near 1 means the fine-tune changed nothing, near 0 means the prior was discarded; it MUST NOT enter any acceptance decision (FR-006, SC-011, Principle III)
-- [ ] T017 [US1] If Arm A underperforms the P&L control in-fold, record it in `research/labelfree/trials.jsonl` and proceed to Phase 4 — do NOT tune Arm A; a classifier tuned to the wrong label can legitimately hurt, and tuning here is fitting the screen (US1 scenario 4, Principle VI)
+- [X] T015 [US1] RUN the per-fold classifier for f08, then Arm A at seeds 1-5 via `research/labelfree/arms.py --arm warm_start --fold f08`, reported as an interquartile mean with a bootstrap interval, never a best seed (FR-016)
+- [X] T016 [US1] Compute the exposure/label correlation in `research/labelfree/arms.py` and report it as a DIAGNOSTIC — near 1 means the fine-tune changed nothing, near 0 means the prior was discarded; it MUST NOT enter any acceptance decision (FR-006, SC-011, Principle III)
+- [X] T017 [US1] If Arm A underperforms the P&L control in-fold, record it in `research/labelfree/trials.jsonl` and proceed to Phase 4 — do NOT tune Arm A; a classifier tuned to the wrong label can legitimately hurt, and tuning here is fitting the screen (US1 scenario 4, Principle VI)
 
 **Checkpoint**: The initialisation question is answered independently of the other arms.
 
