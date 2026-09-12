@@ -107,7 +107,10 @@ research/labelfree/metalabel/
 ├── model.py          # LightGBM veto, capacity pinned for n=91 (R4)
 ├── evaluate.py       # veto replay, P&L consequence, activity metrics
 ├── attribution.py    # ZEC-excluded and within-pair decomposition (SC-010)
-└── report.py         # protocol section 6 assembly
+├── reproduce.py      # fresh-process reproduction; a SECOND path, not an extension of
+                      #  research/labelfree/reproduce.py, whose CONFIG_KEYS and subprocess
+                      #  are ArmConfig/train_arm specific (analyze M2)
+└── report.py         # protocol section 6 assembly, incl. the "not resolved" rendering (SC-007)
 
 research/labelfree/tests/
 └── test_metalabel.py
@@ -125,8 +128,9 @@ else.
 
 ## Phases
 
-- **Phase 0 — Research** *(complete)*: `research.md`. Nine decisions, including the recomputed
-  floor (4.681 pp/yr) and the discovery that the primary's confidence is computed and discarded.
+- **Phase 0 — Research** *(complete)*: `research.md`. Ten decisions, including the recomputed
+  floor (4.681 pp/yr), the discovery that the primary's confidence is computed and discarded
+  (R1), and the pre-registered in-sample/held-out split for SC-008 under a nested design (R10).
 - **Phase 1 — Design** *(complete)*: `data-model.md`, `contracts/metalabel-cli.md`,
   `quickstart.md`.
 - **Phase 2 — Tasks**: `/speckit-tasks`. First tasks are the leakage audit and the re-inference

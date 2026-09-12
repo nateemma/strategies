@@ -206,6 +206,31 @@ surface anyway.
 
 ---
 
+## R10 — What "in-sample" means for SC-008 under a nested design
+
+**Decision**: in-sample = each fold-*k* model's advantage **on its own training trades**;
+held-out = that same model's advantage on fold *k*. The differential is aggregated across
+evaluation folds 5–14 and compared to the recomputed 4.681 pp/yr floor.
+
+**Why this needs deciding now**: `stats.py::overfitting_differential` was written for a design
+with a *screening* fold and a *held-out* fold. This design has neither — every evaluation fold
+is held out by construction, and there is no screening pass. So SC-008 has no natural mapping,
+and whoever implements it would have to invent a split. Inventing it **after** results exist is
+exactly the post-hoc choice the gate exists to prevent, so it is fixed here, before any model
+is trained.
+
+**Why this split and not another**: it is the only pairing where both sides come from the same
+model, which is what makes the difference attributable to overfitting rather than to the model
+changing between folds. Comparing fold *k* against fold *k+1*, or warm-up against evaluation,
+would confound overfitting with regime drift.
+
+**Known limitation**: at fold 5 the in-sample side is 91 trades, so its advantage is measured on
+a small sample and will be noisy. The differential is therefore reported **per fold with its
+training count**, never as a single aggregate that hides which folds drove it — the same rule
+FR-014 applies to returns.
+
+---
+
 ## R9 — Prior evidence grade
 
 Hudson & Thames' E-mini meta-labelling study reports OOS Sharpe 0.18 → 0.40 and 0.26 → 0.32,

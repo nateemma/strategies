@@ -299,7 +299,10 @@ matches the offline veto replay.
 - **SC-007**: If no configuration clears SC-001 within the budgeted work, the verdict is
   "not resolved" and the report records it as such, never as "no effect".
 - **SC-008**: If any configuration's in-sample advantage exceeds its held-out advantage by more
-  than the recomputed floor, it is recorded as overfitting and stopped.
+  than the recomputed floor, it is recorded as overfitting and stopped. Under this feature's
+  nested design there is no screening fold, so the split is **pre-registered in research R10**:
+  in-sample is each fold-*k* model's advantage on its own training trades, held-out is that same
+  model's advantage on fold *k*. Fixed before any model is trained.
 
 ### Brief-specific gates
 

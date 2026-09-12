@@ -21,7 +21,7 @@ One archived primary trade joined to its entry-time feature vector. **The unit o
 | `scale_pp_per_abs` | conversion to percentage points | finite, positive |
 | `features` | the entry-time feature vector | every component finite; see below |
 | `target_win` | `profit_abs > 0` | boolean |
-| `target_profit` | `profit_abs` | regression target, retained but unused by the veto |
+| `target_profit` | `profit_abs` | retained for a future brief; **unused here** — sizing is an explicit Non-Goal |
 
 **Rules**
 

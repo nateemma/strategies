@@ -96,6 +96,7 @@ $PY $ML/model.py --rows <rows> --assignment <assignment> \
 | `--thresholds` | veto operating points | `0.4,0.5,0.6` |
 | `--seeds` | ≥5 required | `1,2,3,4,5` |
 | `--dry-run` | pre-register only, do not train | off |
+| `--probe {W1,W2,W3}` | run a single-window probe instead of the nested sweep | off |
 
 **Contract**
 
@@ -107,6 +108,13 @@ $PY $ML/model.py --rows <rows> --assignment <assignment> \
   majority-class model scores 73.2% and that number cannot distinguish skill.
 - Reports the interquartile mean with a bootstrap interval across seeds, never a best seed.
 - Emits `n_train` beside every per-fold figure.
+
+**`--probe` mode**: evaluates one named window instead of the nested fold sweep. For `W1` and
+`W2` the assignment is the normal causal one (train on folds preceding the window). For **`W3`**
+it is **inverted** — trained on folds *after* 2023, because W3 lies entirely inside the warm-up
+folds and no nested model can precede it. Probe output carries `anti_causal: true`, and that
+flag MUST be rendered wherever the figure appears (SC-018). A probe result is never quoted as an
+out-of-sample return and never counts toward SC-001.
 
 ---
 
@@ -127,6 +135,22 @@ $PY $ML/evaluate.py --veto <veto.json> --archive regime/wf/pooled_nnnc.json \
 - A configuration retaining too few trades to resolve is emitted as `inconclusive: true` **with
   its return withheld** (FR-015).
 - The null configuration (accept everything) always appears as the control row.
+
+---
+
+## 5b. `baselines.py --folds` — span mode
+
+```
+$PY $ML/../baselines.py --folds f05..f14 --out research/labelfree/metalabel/baselines.json
+```
+
+**Contract**
+
+- Aggregates the four mandatory baselines across a fold range on the **same annualisation the
+  floor uses** (research R2), rather than reporting one fold at a time.
+- `--fold` (single) remains available and unchanged; a one-fold span MUST reproduce it exactly.
+- Exists because SC-003 is stated over the evaluation span and the single-fold interface cannot
+  express it.
 
 ---
 
