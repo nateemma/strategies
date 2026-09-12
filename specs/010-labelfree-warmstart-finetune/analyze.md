@@ -148,3 +148,34 @@ carry-forward runs (T029, T030, T032, T033, T034) still gated on a surviving arm
 makes SC-004 unevaluable for the study. The feature's *reported verdict* (NOT RESOLVED,
 direction confounded with turnover) is unaffected by both — C1's exposure is bounded and
 C2 was already reported as unevaluated rather than passed.
+
+
+---
+
+## C1 — RESOLVED 2026-09-12 (post-analyze remediation)
+
+Fix applied: `load_panel` purges the last 48 train bars, embargoes the first 48 test bars,
+returns the values actually applied, and `run_screen` refuses to start if either is zero.
+Arms B and C re-run as `20260912T153710Z`.
+
+**The re-run is bit-identical to the voided runs on every seed.** Measured cause: the purge
+lands inside a region training never visits, and the embargo inside the evaluation burn-in.
+
+| | length | already discarded by |
+|---|---|---|
+| purge (train tail) | 48 bars | the chunk loop's 850-bar unvisited remainder |
+| embargo (test head) | 48 bars | `evaluate_arm`'s 96-bar burn-in |
+
+So no leakage occurred in the original runs — FR-013's protection was emergent from chunk
+arithmetic rather than implemented. The distinction matters: it held by accident and would
+break silently if `CHUNK`, the panel length or `BURN_IN` changed. C1 downgrades from
+"results are void" to "the guarantee was unenforced", and the arm-B/C figures are now
+admissible under FR-014.
+
+## H3 — NEW (MEDIUM), found during remediation
+
+`stats.activity` reports ~1 trade and a window-length holding time for any policy whose
+exposure never drops below `eps`. All feature-010 arms read 6.2 trades/yr and 1416h while
+their turnover spanned 15.7 to 647.9 — a 41× range. FR-019's trades-per-year is therefore
+near-vacuous for continuous-exposure policies, and turnover is the load-bearing activity
+measure. Documented in the function; both values are emitted so the discrepancy is visible.

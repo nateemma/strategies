@@ -135,6 +135,14 @@ def activity(w: np.ndarray, bars_per_year: int = BARS_PER_YEAR,
 
     Returns per-pair averages: an arm holding one pair forever and nine flat should not
     read as nine times less active than it is.
+
+    LIMITATION, measured 2026-09-12. For a CONTINUOUS-exposure policy that never drops
+    below `eps`, the whole test range is one contiguous run, so this reports ~1 trade and
+    a holding time equal to the window -- regardless of how violently the exposure moves
+    inside it. Feature 010's arms all read 6.2 trades/yr and 1416h that way while their
+    turnover spanned 15.7 to 647.9, a 41x range. For such policies TURNOVER is the
+    informative activity measure and trades/yr is near-vacuous; both are emitted so the
+    discrepancy is visible rather than hidden behind whichever one flatters the arm.
     """
     a = np.atleast_2d(np.asarray(w, dtype=float))
     n_pairs, T = a.shape
