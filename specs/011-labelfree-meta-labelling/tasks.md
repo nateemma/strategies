@@ -19,9 +19,9 @@ directory containing `user_data/`) with `PYTHONPATH=user_data/strategies`.
 
 ## Phase 1: Setup
 
-- [ ] T001 Create the package skeleton `research/labelfree/metalabel/` with `__init__.py`, and a test module `research/labelfree/tests/test_metalabel.py`
-- [ ] T002 [P] Record the pinned constants in `research/labelfree/metalabel/__init__.py`: `EVAL_FOLDS = range(5, 15)`, `WARMUP_FOLDS = range(0, 5)`, `FLOOR_PP_PER_YEAR = 4.681`, `BASE_WIN_RATE = 0.732`, `N_EVAL_TRADES = 287`, `AUC_KILL = 0.55`, with the derivation of the floor (research R2) in the docstring and a note that these are MEASURED, not chosen
-- [ ] T003 [P] Assert the archive still matches those constants in `research/labelfree/tests/test_metalabel.py` — 378 trades / 15 folds / 287 evaluation trades / 73.2% base rate. **If any has moved, the floor and base rate must be recomputed before anything else runs** (quickstart S1)
+- [X] T001 Create the package skeleton `research/labelfree/metalabel/` with `__init__.py`, and a test module `research/labelfree/tests/test_metalabel.py`
+- [X] T002 [P] Record the pinned constants in `research/labelfree/metalabel/__init__.py`: `EVAL_FOLDS = range(5, 15)`, `WARMUP_FOLDS = range(0, 5)`, `FLOOR_PP_PER_YEAR = 4.681`, `BASE_WIN_RATE = 0.732`, `N_EVAL_TRADES = 287`, `AUC_KILL = 0.55`, with the derivation of the floor (research R2) in the docstring and a note that these are MEASURED, not chosen
+- [X] T003 [P] Assert the archive still matches those constants in `research/labelfree/tests/test_metalabel.py` — 378 trades / 15 folds / 287 evaluation trades / 73.2% base rate. **If any has moved, the floor and base rate must be recomputed before anything else runs** (quickstart S1)
 
 ---
 
@@ -32,15 +32,15 @@ corresponding defect has already occurred in this study.
 
 ### Gate A — the framework can report what the primary believed
 
-- [ ] T004 Add three debug columns to `get_predictions()` in `Framework/BaseNNStrategy.py`: `%predict_prob_sell`, `%predict_prob_hold`, `%predict_prob_buy`. NaN-initialise at full dataframe length, write at the **same `offset`** used to front-pad `predictions`, and place the write **after** the Markov branch (R1)
-- [ ] T005 [P] Test in `research/labelfree/tests/test_metalabel.py` that the columns are dropped by `DataframeUtils.remove_debug_columns()` — the `%` prefix is what stops the model's own output entering the feature list, and without it this is a predict-your-own-prediction leak (R1)
-- [ ] T006 [P] Test that a short prediction array is written at the correct offset and that the padded region is **NaN, not 0.0** — 0.0 is a legitimate probability meaning "confidently not this class" and would mark every warm-up bar a confident non-buy (R1)
-- [ ] T007 Verify the change is inert for existing strategies: run `Framework/test_base_nn_strategy.py` and confirm `predict_buy`/`predict_sell` are byte-identical before and after T004
+- [X] T004 Add three debug columns to `get_predictions()` in `Framework/BaseNNStrategy.py`: `%predict_prob_sell`, `%predict_prob_hold`, `%predict_prob_buy`. NaN-initialise at full dataframe length, write at the **same `offset`** used to front-pad `predictions`, and place the write **after** the Markov branch (R1)
+- [X] T005 [P] Test in `research/labelfree/tests/test_metalabel.py` that the columns are dropped by `DataframeUtils.remove_debug_columns()` — the `%` prefix is what stops the model's own output entering the feature list, and without it this is a predict-your-own-prediction leak (R1)
+- [X] T006 [P] Test that a short prediction array is written at the correct offset and that the padded region is **NaN, not 0.0** — 0.0 is a legitimate probability meaning "confidently not this class" and would mark every warm-up bar a confident non-buy (R1)
+- [X] T007 Verify the change is inert for existing strategies: run `Framework/test_base_nn_strategy.py` and confirm `predict_buy`/`predict_sell` are byte-identical before and after T004
 
 ### Gate B — re-inference reproduces the trades that actually happened
 
-- [ ] T008 Implement `research/labelfree/metalabel/archive.py` — read `regime/wf/pooled_nnnc.json` into `TradeRow` records (data-model), one per archived trade (FR-001)
-- [ ] T009 Implement `research/labelfree/metalabel/reinfer.py` — reload each fold's saved model from `saved_data/NNNC_WF_f*`, replay its test range, and read the `%predict_prob_*` columns (FR-005a). **Refuse to run if any fold's model file is missing**; a silent skip would train on a subset without saying so
+- [X] T008 Implement `research/labelfree/metalabel/archive.py` — read `regime/wf/pooled_nnnc.json` into `TradeRow` records (data-model), one per archived trade (FR-001)
+- [~] T009 BLOCKED by research R11 — implement `research/labelfree/metalabel/reinfer.py` — reload each fold's saved model from `saved_data/NNNC_WF_f*`, replay its test range, and read the `%predict_prob_*` columns (FR-005a). **Refuse to run if any fold's model file is missing**; a silent skip would train on a subset without saying so
 - [ ] T010 Implement the reproduction gate in `reinfer.py`: the re-inferred `(pair, open_date)` set MUST equal the archived set exactly. On mismatch, print the symmetric difference, write no partial output, and exit non-zero (FR-005b, SC-017)
 - [ ] T011 RUN `reinfer.py` over all 15 folds and confirm `matches_exactly: true` for each (quickstart S2). **A mismatch halts the feature** — it means the models, their pinned params, or the feather data changed since 2026-09-09, which is a finding, not an inconvenience
 - [ ] T012 Handle NaN confidence in `reinfer.py`: a row whose entry bar was never scored is **excluded and counted**, never imputed (FR-006), and the count is reported (quickstart S2b)

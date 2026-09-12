@@ -1178,6 +1178,37 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
             preds = np.zeros(original_length, dtype=int)
             preds[offset:] = predictions
             predictions = preds
+        else:
+            offset = 0
+
+        # Debug columns carrying the per-class probabilities. get_predictions() is the only
+        # place they exist: process_predictions() stores just the THRESHOLDED predict_buy /
+        # predict_sell, so a trade opened at confidence 0.81 and one at 0.99 are otherwise
+        # indistinguishable — and 0.8 is the production prediction_threshold, so nearly every
+        # trade sits where the discarded digits matter most.
+        #
+        # The "%" prefix is load-bearing, not cosmetic: DataframeUtils.remove_debug_columns()
+        # drops every ^% column, and it runs before scaling (FeatureNormalizer) and in scaler
+        # creation (CreateScalers). Without it these columns would be picked up as training
+        # features, which is a predict-your-own-prediction leak.
+        #
+        # NaN, never 0.0, outside the predicted region: 0.0 is a legitimate probability
+        # meaning "confidently not this class", and using it as padding would mark every
+        # warm-up bar a confident non-buy. A consumer must treat NaN as "not scored".
+        #
+        # Written AFTER the Markov branch so the columns always hold what
+        # argmax_with_threshold actually consumed. That branch is inert by default
+        # (use_markov_smoothing = False) but writing before it would silently start recording
+        # a different quantity than the one traded on if it were ever enabled.
+        for _cls, _name in (
+            (TradingAction.SELL, "%predict_prob_sell"),
+            (TradingAction.HOLD, "%predict_prob_hold"),
+            (TradingAction.BUY, "%predict_prob_buy"),
+        ):
+            _col = np.full(original_length, np.nan, dtype=float)
+            if pred_probs is not None and pred_probs.ndim == 2:
+                _col[offset:offset + predicted_length] = pred_probs[:predicted_length, _cls]
+            dataframe[_name] = _col
 
         self.print_probability_stats(
             "Trading", "Sell", pred_probs[:, TradingAction.SELL], pred_threshold

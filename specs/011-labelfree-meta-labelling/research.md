@@ -239,3 +239,53 @@ boundary condition is the one that matters here: *"if the primary model is bad, 
 only reduces the downside."* The primary here is positive but concentrated, which is the regime
 where the mechanism is plausible. Grade: **medium-weak**, with trivial cost — which is why this
 brief is worth running and why its kill gates are strict.
+
+
+---
+
+## R11 — BLOCKER, found in implementation: the signals export cannot carry the prediction
+
+**Status**: unresolved; blocks T009–T013 and therefore Gate B. Decision required.
+
+**What was planned** (R1): `get_predictions()` writes `%predict_prob_*`; `reinfer.py` recovers
+them from freqtrade's `--export signals` artefact, which stores the last candle strictly before
+each trade's `open_date`. That would have given entry-time features keyed to the real trades
+with causality guaranteed by freqtrade itself.
+
+**Why it cannot work**. The exported frame is `preprocessed_tmp`, and
+
+```python
+preprocessed = self.strategy.advise_all_indicators(data)      # backtesting.py:1835
+preprocessed_tmp = trim_dataframes(preprocessed, ...)         # backtesting.py:1839
+```
+
+`advise_all_indicators` states in its own docstring: *"Does not run advise_entry or
+advise_exit!"* and *"Using .copy() to get a fresh copy of the dataframe for every strategy run.
+Also copy on output"*. So the export is **populate_indicators output, on copies**. The
+prediction path runs later, in `ft_advise_signals` → `populate_entry_trend` →
+`get_entry_conditions` → `get_predictions`, against a different object.
+
+**Measured, not inferred.** An f14 backtest with `--export signals` produced 3 trades (matching
+the archive exactly) and signal candles carrying 83 columns including `guard_metric`, `rvol`
+and `%train_buy`/`%train_sell`/`%train_labels` — but **neither `%predict_prob_*` nor even
+`predict_buy`/`predict_sell`**. The `%` prefix is not the problem; `%train_*` survive fine. The
+problem is *when* the columns are written.
+
+**What this does NOT invalidate**: the columns themselves are correct and tested (T004–T006),
+`%` still protects against feature-list contamination, and every market-state feature the brief
+lists — `guard_metric`, `rvol`, `atr_pct`, `bb_width`, liquidity, BTC context — IS present in
+the export. Only `primary_confidence` is unreachable this way.
+
+**Options** (a decision, not a default):
+
+| | approach | cost | risk |
+|---|---|---|---|
+| A | Predict in `populate_indicators` instead of `populate_entry_trend` | reorders the framework's prediction path for **every** strategy | behaviour change to production strategies; highest blast radius |
+| B | `get_predictions()` writes a side-car file (pair, date, probs) under an env flag | contained; no ordering change | adds file I/O to the prediction path; must be inert unless the flag is set |
+| C | Drop `primary_confidence`; use the 83 exported columns only | zero | reverts clarification Q1 to the option the user rejected — tests a weaker hypothesis |
+| D | `reinfer.py` loads the fold model and runs inference itself | moderate | duplicates the prediction path — the drift failure R1 was rewritten to avoid |
+
+**Recommendation: B.** It keeps the prediction path's *logic* single-sourced (the probabilities
+still come from the one real `classifier.predict` call, not a copy of it), changes no ordering,
+and is inert in production unless explicitly enabled. D is the only other option that preserves
+the hypothesis, and it reintroduces exactly the duplication this feature already rejected once.
