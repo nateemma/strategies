@@ -57,6 +57,7 @@ class ArmConfig:
     label_threshold: float | None = None  # Arm B
     min_exposure: float = 0.05
     participation_weight: float = 100.0
+    lam_turnover: float = 0.0      # explicit |dw| penalty; only read when control=="penalty"
     warm_start_ref: str | None = None
 
     def describe(self) -> dict:
@@ -65,6 +66,8 @@ class ArmConfig:
              "epochs": self.epochs, "head_lr": self.head_lr,
              "min_exposure": self.min_exposure,
              "participation_weight": self.participation_weight}
+        if self.turnover_control == "penalty":
+            d["lam_turnover"] = self.lam_turnover
         if self.arm == "warm_start":
             d.update(encoder_lr=self.encoder_lr, warm_start_ref=self.warm_start_ref)
         if self.arm == "blended":
@@ -198,6 +201,14 @@ def train_arm(cfg: ArmConfig, panel_tr, panel_te) -> dict:
             total = total + L.participation_penalty(
                 w[BURN_IN:], cfg.min_exposure, cfg.participation_weight,
                 mask=m[:k][BURN_IN:])
+            if cfg.turnover_control == "penalty":
+                # MISSING from arms.py while present in train.py:111 -- so
+                # turnover_control="penalty" gave the policy-side learned band with no
+                # penalty attached. Half-wired, and silent. `w` is 1-D here (the loop is
+                # per pair), so [BURN_IN:] is the time axis; on a pooled (n_pairs, T)
+                # array it would slice the PAIR axis and go NaN, which cost 26 runs on
+                # 2026-09-10 -- see train.py's comment.
+                total = total + L.turnover_penalty(w[BURN_IN:], cfg.lam_turnover)
             if cfg.arm == "blended" and Ytr is not None:
                 y = mx.array(np.eye(3, dtype=np.float32)[
                     Ytr[pi, s0 + SEQ_LEN - 1: s0 + CHUNK + SEQ_LEN - 1][:k]])
