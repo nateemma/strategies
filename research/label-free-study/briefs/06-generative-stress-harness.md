@@ -63,9 +63,28 @@ alone as the stress harness.
 
 **Never** promote a policy on stress-harness results alone; they are a veto, not a gate.
 
-## Starter prompt for Claude Code
+## Workflow (mandatory — see README "How to run a brief")
 
 ```
+/speckit-specify   <the starter prompt below, verbatim>      → specs/0NN-labelfree-generative-stress/spec.md
+/speckit-clarify                                              → resolve markers; stats/windows come from 00-evaluation-protocol.md
+/speckit-plan                                                 → plan.md, research.md (cite 01-literature-review.md)
+/speckit-tasks                                                → tasks.md: first tasks = calibration/leakage tests, last = §6 report + trial-log audit
+/speckit-analyze   (REQUIRED before implement; fix every CRITICAL, re-run until clean; save as analyze.md)
+/speckit-implement                                            → sequential runs only
+/speckit-converge  (if a session ends mid-feature)
+/speckit-analyze   (again on completion)
+write briefs/results/06-<date>.md linking the feature dir and both analyze reports
+```
+
+The spec's success criteria must be protocol §5 verbatim or stricter. Any brief-specific
+kill criteria above become additional SC-lines.
+
+## Starter prompt (pass to `/speckit-specify` verbatim)
+
+```
+Feature: labelfree-generative-stress. This is research/label-free-study brief 06; the feature must be
+specified, planned, task-listed, analyzed with /speckit-analyze, and only then implemented.
 Read AGENT_GUIDE.md ("Adding to / extending the GAN system"), GANs/README.md,
 docs/GAN_SCORECARD.md, research/label-free-study/README.md, 00-evaluation-protocol.md and
 briefs/06-generative-stress-harness.md. Implement research/labelfree/stress.py: (1) a
@@ -75,4 +94,7 @@ types cannot produce coherent sequences), (3) the Tail-GAN calibration of each g
 against the incumbent NNNC_MLX's pooled-WF P&L distribution, (4) a stress report for a
 candidate policy path passed on the command line. Sample offline into a bank; never sample
 inside a training loop. Write briefs/results/06-<date>.md.
+Success criteria: the acceptance and kill gates of research/label-free-study/
+00-evaluation-protocol.md §5 plus the brief's own kill criteria, stated as measurable
+SC-lines. Non-goals: the adjacent approaches listed in briefs/09-excluded-and-why.md.
 ```

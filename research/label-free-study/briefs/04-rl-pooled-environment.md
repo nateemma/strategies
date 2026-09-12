@@ -66,9 +66,28 @@ Protocol §5, plus: **must beat brief 1's best pooled result by the floor**, not
 `NNNC_MLX`. If it only matches brief 1, close the family and note that the differentiable
 estimator is preferred (lower variance, backtestable state).
 
-## Starter prompt for Claude Code
+## Workflow (mandatory — see README "How to run a brief")
 
 ```
+/speckit-specify   <the starter prompt below, verbatim>      → specs/0NN-labelfree-rl-pooled-env/spec.md
+/speckit-clarify                                              → resolve markers; stats/windows come from 00-evaluation-protocol.md
+/speckit-plan                                                 → plan.md, research.md (cite 01-literature-review.md)
+/speckit-tasks                                                → tasks.md: first tasks = calibration/leakage tests, last = §6 report + trial-log audit
+/speckit-analyze   (REQUIRED before implement; fix every CRITICAL, re-run until clean; save as analyze.md)
+/speckit-implement                                            → sequential runs only
+/speckit-converge  (if a session ends mid-feature)
+/speckit-analyze   (again on completion)
+write briefs/results/04-<date>.md linking the feature dir and both analyze reports
+```
+
+The spec's success criteria must be protocol §5 verbatim or stricter. Any brief-specific
+kill criteria above become additional SC-lines.
+
+## Starter prompt (pass to `/speckit-specify` verbatim)
+
+```
+Feature: labelfree-rl-pooled-env. This is research/label-free-study brief 04; the feature must be
+specified, planned, task-listed, analyzed with /speckit-analyze, and only then implemented.
 Read AGENT_GUIDE.md, research/label-free-study/README.md, 00-evaluation-protocol.md,
 briefs/01-direct-policy-optimisation.md (reuse its simulator as the env step function)
 and briefs/04-rl-pooled-environment.md. Implement research/labelfree/env.py as a gymnasium
@@ -77,4 +96,7 @@ the brief, and action masking for long-only. Use stable-baselines3 PPO/MaskableP
 Never select models on the test fold. Log every configuration to
 research/labelfree/trials.jsonl before running; report with IQM over ≥5 seeds; write
 briefs/results/04-<date>.md per protocol §6, including the head-to-head with brief 1.
+Success criteria: the acceptance and kill gates of research/label-free-study/
+00-evaluation-protocol.md §5 plus the brief's own kill criteria, stated as measurable
+SC-lines. Non-goals: the adjacent approaches listed in briefs/09-excluded-and-why.md.
 ```

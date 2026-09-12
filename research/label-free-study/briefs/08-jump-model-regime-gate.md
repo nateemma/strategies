@@ -41,9 +41,28 @@ Protocol §5 for return; additionally report max drawdown and time-underwater wi
 CIs. Accept as a *deployment* modification (not an alpha claim) if return is unchanged within
 the floor and drawdown falls with CI excluding zero across ≥10 of 15 folds. Kill otherwise.
 
-## Starter prompt for Claude Code
+## Workflow (mandatory — see README "How to run a brief")
 
 ```
+/speckit-specify   <the starter prompt below, verbatim>      → specs/0NN-labelfree-jump-model-gate/spec.md
+/speckit-clarify                                              → resolve markers; stats/windows come from 00-evaluation-protocol.md
+/speckit-plan                                                 → plan.md, research.md (cite 01-literature-review.md)
+/speckit-tasks                                                → tasks.md: first tasks = calibration/leakage tests, last = §6 report + trial-log audit
+/speckit-analyze   (REQUIRED before implement; fix every CRITICAL, re-run until clean; save as analyze.md)
+/speckit-implement                                            → sequential runs only
+/speckit-converge  (if a session ends mid-feature)
+/speckit-analyze   (again on completion)
+write briefs/results/08-<date>.md linking the feature dir and both analyze reports
+```
+
+The spec's success criteria must be protocol §5 verbatim or stricter. Any brief-specific
+kill criteria above become additional SC-lines.
+
+## Starter prompt (pass to `/speckit-specify` verbatim)
+
+```
+Feature: labelfree-jump-model-gate. This is research/label-free-study brief 08; the feature must be
+specified, planned, task-listed, analyzed with /speckit-analyze, and only then implemented.
 Read regime/VERDICT.md, regime/phase_c_trackability.py, AGENT_GUIDE.md,
 research/label-free-study/README.md, 00-evaluation-protocol.md and
 briefs/08-jump-model-regime-gate.md. Implement research/labelfree/jump_gate.py using an
@@ -51,4 +70,7 @@ online (filtered) sparse jump model refit every 90 days on an expanding window, 
 smoothed-state leak test run first and reported. Evaluate as a hard entry gate on the
 incumbent NNNC_MLX through the pooled walk-forward, reporting drawdown metrics with
 bootstrap CIs alongside return. Write briefs/results/08-<date>.md.
+Success criteria: the acceptance and kill gates of research/label-free-study/
+00-evaluation-protocol.md §5 plus the brief's own kill criteria, stated as measurable
+SC-lines. Non-goals: the adjacent approaches listed in briefs/09-excluded-and-why.md.
 ```

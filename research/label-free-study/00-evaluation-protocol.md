@@ -80,6 +80,11 @@ finally re-run through `regime/wf/run_folds.py` as a real strategy (a thin
   whose edge appears only with turnover far above the control's is flagged.
 - **Reproduction.** A separate process must reproduce the accepted result from the saved
   config and seed (byte-identical trades), per AGENT_GUIDE's reproducibility note.
+- **Spec-kit provenance.** Every result must come from a `specs/0NN-<slug>/` feature with
+  `spec.md`, `plan.md`, `tasks.md` and a clean `/speckit-analyze` report produced *before*
+  implementation and again *after* (README "How to run a brief"). The spec's success criteria
+  must be the gates in §5, verbatim or stricter — never looser. A result without this trail is
+  inadmissible regardless of its numbers.
 
 ## 5. Acceptance and kill gates (used verbatim by the briefs)
 

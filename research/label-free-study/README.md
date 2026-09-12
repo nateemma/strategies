@@ -126,15 +126,41 @@ supervised pipeline.
   threshold" (the operating-point fix from `CLOSING_THE_LEARNABILITY_GAP.md`).
 - Multi-seed (≥5) with interquartile mean and bootstrap CIs, never a single run.
 - No result is admissible until it is reproduced by a fresh process from a saved config.
+- Every brief runs as a spec-kit feature (`/speckit-specify` → `clarify` → `plan` → `tasks`
+  → **`analyze`** → `implement` → `analyze`); see "How to run a brief" below. No spec, no result.
 
-## How to run a brief with Claude Code
+## How to run a brief with Claude Code — spec-kit is mandatory
 
-Each brief ends with a **starter prompt**. Open a Claude Code session in the repo root, paste
-the prompt, and point it at `AGENT_GUIDE.md` and this folder. The briefs deliberately do not
-prescribe file-level implementation; they fix the *hypothesis, design constraints, acceptance
-gate and kill criteria*, which is what keeps a multi-session investigation honest. If a brief
-grows into something worth keeping, promote it to `specs/0NN-…` with `/speckit-specify` so it
-inherits the repo's spec/plan/tasks workflow.
+Every brief is executed as a spec-kit feature in `user_data/strategies/specs/0NN-<slug>/`
+(next number after the latest existing feature; 007 is the pooled walk-forward harness).
+**No code is written outside this workflow**, and no result is admissible unless the feature
+directory holds a `spec.md`, `plan.md`, `tasks.md` and a passing `/speckit-analyze` report.
+The briefs fix the *hypothesis, design constraints, acceptance gate and kill criteria*; the
+spec-kit artefacts turn those into verifiable requirements and dependency-ordered work.
+
+Required sequence, in one or more Claude Code sessions from the repo root:
+
+| Step | Command | What it must produce for this study |
+|---|---|---|
+| 1 | `/speckit-specify` with the brief's starter prompt | `spec.md` whose functional requirements restate the brief's hypothesis, design constraints and **the acceptance/kill gates from `00-evaluation-protocol.md` §5 as success criteria** (SC-lines), and whose non-goals list the excluded approaches from `briefs/09-excluded-and-why.md` that are adjacent. |
+| 2 | `/speckit-clarify` | Resolve any `[NEEDS CLARIFICATION]` markers. Questions about *statistics or windows* are answered by the protocol, not by inventing new ones. |
+| 3 | `/speckit-plan` | `plan.md` + `research.md` referencing `01-literature-review.md` for the design choices, and the constitution check against `.specify/memory/constitution.md`. |
+| 4 | `/speckit-tasks` | `tasks.md` in which the **first tasks are the calibration / leakage tests** named in the brief and the **last tasks are the protocol §6 report and the trial-log audit**. |
+| 5 | `/speckit-analyze` (**required, before any implementation**) | Cross-artefact consistency report. Every CRITICAL finding must be fixed and analyze re-run until clean. The final report is saved as `specs/0NN-<slug>/analyze.md` and linked from the brief's results file. |
+| 6 | `/speckit-implement` | Executes `tasks.md`. Run everything sequentially (AGENT_GUIDE operational rules). |
+| 7 | `/speckit-converge` (if a session ends mid-feature) | Appends the unbuilt remainder as tasks so the next session can continue rather than restart. |
+| 8 | `/speckit-analyze` again on completion | Confirms the delivered code, spec and tasks still agree before the result is written up. |
+| 9 | Write `briefs/results/<brief>-<date>.md` (protocol §6) | Must link the feature directory and the two analyze reports. |
+
+Rules:
+- A brief that reaches a kill criterion is still closed through step 8–9 — the negative result
+  is the deliverable, and the spec is what makes it citable later.
+- Do not skip `/speckit-analyze` because the feature "is small". The label-free methods
+  optimise the evaluation metric directly; the consistency check between the spec's success
+  criteria and what the tasks actually measure is the guard against a silently weakened gate.
+- `/speckit-checklist` is optional; use it for the protocol's non-negotiables when a feature
+  touches the simulator or the fold plan.
+- The starter prompts below are written to be passed to `/speckit-specify` verbatim.
 
 ## Files
 

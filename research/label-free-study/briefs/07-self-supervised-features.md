@@ -46,9 +46,28 @@ policy improves pooled-WF return by the floor.
 Protocol §5. Kill after the quick screen if no encoder's projection beats the hand-built
 feature ceiling; kill after the backtest if the random-feature control matches.
 
-## Starter prompt for Claude Code
+## Workflow (mandatory — see README "How to run a brief")
 
 ```
+/speckit-specify   <the starter prompt below, verbatim>      → specs/0NN-labelfree-ssl-features/spec.md
+/speckit-clarify                                              → resolve markers; stats/windows come from 00-evaluation-protocol.md
+/speckit-plan                                                 → plan.md, research.md (cite 01-literature-review.md)
+/speckit-tasks                                                → tasks.md: first tasks = calibration/leakage tests, last = §6 report + trial-log audit
+/speckit-analyze   (REQUIRED before implement; fix every CRITICAL, re-run until clean; save as analyze.md)
+/speckit-implement                                            → sequential runs only
+/speckit-converge  (if a session ends mid-feature)
+/speckit-analyze   (again on completion)
+write briefs/results/07-<date>.md linking the feature dir and both analyze reports
+```
+
+The spec's success criteria must be protocol §5 verbatim or stricter. Any brief-specific
+kill criteria above become additional SC-lines.
+
+## Starter prompt (pass to `/speckit-specify` verbatim)
+
+```
+Feature: labelfree-ssl-features. This is research/label-free-study brief 07; the feature must be
+specified, planned, task-listed, analyzed with /speckit-analyze, and only then implemented.
 Read AGENT_GUIDE.md ("Feature Engineering Rules"), research/label-free-study/README.md,
 00-evaluation-protocol.md and briefs/07-self-supervised-features.md. Implement
 research/labelfree/ssl/ with per-fold TS2Vec training on the pooled normalised feature
@@ -56,4 +75,7 @@ stream, Kronos-small and Chronos-Bolt zero-shot feature extraction (inference on
 random-Gaussian control block, and the walk-forward Spearman screen against forward return.
 Only if the screen beats ρ=0.15 on nested OOS, add the features to an NNNC_MLX subclass and
 run the pooled walk-forward. Write briefs/results/07-<date>.md either way.
+Success criteria: the acceptance and kill gates of research/label-free-study/
+00-evaluation-protocol.md §5 plus the brief's own kill criteria, stated as measurable
+SC-lines. Non-goals: the adjacent approaches listed in briefs/09-excluded-and-why.md.
 ```

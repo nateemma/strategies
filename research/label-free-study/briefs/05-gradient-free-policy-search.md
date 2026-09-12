@@ -54,9 +54,28 @@ Protocol §5 with **PBO ≤ 0.2 as the primary gate**. Kill immediately if the r
 control matches CMA-ES on pooled OOS, or if the found optimum sits within one sweep-noise band
 (4.93pp, `AGENT_GUIDE.md`) of the incumbent.
 
-## Starter prompt for Claude Code
+## Workflow (mandatory — see README "How to run a brief")
 
 ```
+/speckit-specify   <the starter prompt below, verbatim>      → specs/0NN-labelfree-es-policy-search/spec.md
+/speckit-clarify                                              → resolve markers; stats/windows come from 00-evaluation-protocol.md
+/speckit-plan                                                 → plan.md, research.md (cite 01-literature-review.md)
+/speckit-tasks                                                → tasks.md: first tasks = calibration/leakage tests, last = §6 report + trial-log audit
+/speckit-analyze   (REQUIRED before implement; fix every CRITICAL, re-run until clean; save as analyze.md)
+/speckit-implement                                            → sequential runs only
+/speckit-converge  (if a session ends mid-feature)
+/speckit-analyze   (again on completion)
+write briefs/results/05-<date>.md linking the feature dir and both analyze reports
+```
+
+The spec's success criteria must be protocol §5 verbatim or stricter. Any brief-specific
+kill criteria above become additional SC-lines.
+
+## Starter prompt (pass to `/speckit-specify` verbatim)
+
+```
+Feature: labelfree-es-policy-search. This is research/label-free-study brief 05; the feature must be
+specified, planned, task-listed, analyzed with /speckit-analyze, and only then implemented.
 Read AGENT_GUIDE.md ("The noise floor" and "Silent failure modes" first),
 research/label-free-study/README.md, 00-evaluation-protocol.md and
 briefs/05-gradient-free-policy-search.md. Using the vectorised simulator from brief 1,
@@ -65,4 +84,7 @@ search control with the identical budget, and CSCV/PBO over the full evaluation 
 Every evaluation must be appended to research/labelfree/trials.jsonl. Evaluate the test
 fold exactly once per fold. Write briefs/results/05-<date>.md per protocol §6 with PBO as
 the headline number.
+Success criteria: the acceptance and kill gates of research/label-free-study/
+00-evaluation-protocol.md §5 plus the brief's own kill criteria, stated as measurable
+SC-lines. Non-goals: the adjacent approaches listed in briefs/09-excluded-and-why.md.
 ```

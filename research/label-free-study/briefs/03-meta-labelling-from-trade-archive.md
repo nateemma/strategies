@@ -64,9 +64,28 @@ span). Additional:
 - If the veto's gain disappears when ZEC is excluded → record as "pair selection", not
   meta-labelling, and stop.
 
-## Starter prompt for Claude Code
+## Workflow (mandatory — see README "How to run a brief")
 
 ```
+/speckit-specify   <the starter prompt below, verbatim>      → specs/0NN-labelfree-meta-labelling/spec.md
+/speckit-clarify                                              → resolve markers; stats/windows come from 00-evaluation-protocol.md
+/speckit-plan                                                 → plan.md, research.md (cite 01-literature-review.md)
+/speckit-tasks                                                → tasks.md: first tasks = calibration/leakage tests, last = §6 report + trial-log audit
+/speckit-analyze   (REQUIRED before implement; fix every CRITICAL, re-run until clean; save as analyze.md)
+/speckit-implement                                            → sequential runs only
+/speckit-converge  (if a session ends mid-feature)
+/speckit-analyze   (again on completion)
+write briefs/results/03-<date>.md linking the feature dir and both analyze reports
+```
+
+The spec's success criteria must be protocol §5 verbatim or stricter. Any brief-specific
+kill criteria above become additional SC-lines.
+
+## Starter prompt (pass to `/speckit-specify` verbatim)
+
+```
+Feature: labelfree-meta-labelling. This is research/label-free-study brief 03; the feature must be
+specified, planned, task-listed, analyzed with /speckit-analyze, and only then implemented.
 Read AGENT_GUIDE.md, research/label-free-study/README.md, 00-evaluation-protocol.md and
 briefs/03-meta-labelling-from-trade-archive.md. Build research/labelfree/metalabel/ that
 (1) extracts entry-time features and realised outcomes for every trade in the pooled
@@ -75,4 +94,7 @@ walk-forward archive for NNNC_MLX (regime/wf/, regime/arms/), (2) runs the leaka
 NNNC_MLX subclass via confirm_trade_entry with the primary model path pinned. Never let a
 feature read data after the trade's open_date. Log trials to research/labelfree/trials.jsonl.
 Write briefs/results/03-<date>.md per protocol §6.
+Success criteria: the acceptance and kill gates of research/label-free-study/
+00-evaluation-protocol.md §5 plus the brief's own kill criteria, stated as measurable
+SC-lines. Non-goals: the adjacent approaches listed in briefs/09-excluded-and-why.md.
 ```
