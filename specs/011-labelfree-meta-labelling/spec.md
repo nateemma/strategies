@@ -42,6 +42,29 @@ Two of these are load-bearing and are why several requirements below exist at al
 The brief cites ZEC as ≈70% of P&L from an earlier study; on this archive's evaluation span it
 is 27.9%. The pair-concentration check (US4) uses the measured figure.
 
+## Clarifications
+
+### Session 2026-09-12
+
+- Q: Should the feature set include the primary model's own confidence and guard metrics at
+  entry, which requires re-running the 15 per-fold models to recover them? → A: Yes — re-infer.
+  The archive stores only pair/dates/profit/exit reason, so the primary's confidence exists
+  only by reloading `saved_data/NNNC_WF_f*/‌*.safetensors` and re-running inference. Without it
+  the model could only learn "which market conditions are bad", not "when the primary is
+  wrong", which is a weaker hypothesis than the brief states.
+- Q: W3 (2023) predates any nested training data, so it cannot be evaluated out-of-sample. How
+  should SC-002's W1/W2/W3 requirement be satisfied? → A: W1 and W2 out-of-sample as the
+  protocol requires; W3 as an explicitly **anti-causal persistence probe** (trained on later
+  folds, tested on 2023), reportable only as evidence about whether the relationship holds in a
+  distant era, never as an out-of-sample return.
+- Q: Should the feature set include the pair's recent hit rate? → A: No. Exclude pair identity,
+  pair group and pair history entirely. The feature is causal and would pass the leakage audit,
+  but it hands the model a per-pair quality score and makes SC-010 self-fulfilling. With it
+  removed the model cannot rank pairs, so any gain must be within-pair.
+- Q: What reproduction standard must re-inference meet before its features may be used? →
+  A: Exact match on the archived `(pair, open_date)` entry set. Any divergence halts the
+  feature and is diagnosed before proceeding.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Build the trade table and prove it cannot see the future (Priority: P1) 🎯 MVP
@@ -188,6 +211,14 @@ matches the offline veto replay.
   detect, and the audit fails if the control passes.
 - **FR-005**: The system MUST reuse the repo's existing entry-time feature computations rather
   than reimplementing them, so the audited features are the ones the strategy actually sees.
+- **FR-005a**: The feature vector MUST include the primary model's own confidence and its guard
+  metrics as evaluated at the trade's entry bar, recovered by re-running each fold's saved
+  primary model over that fold's test range.
+- **FR-005b**: Re-inference MUST reproduce the archived entry set exactly. Any divergence halts
+  the feature for diagnosis; no downstream figure is admissible until the sets match.
+- **FR-005c**: The feature vector MUST NOT contain pair identity, pair group, or any statistic
+  derived from that pair's own trade history. The model MUST be unable to rank pairs, so that a
+  measured gain is necessarily within-pair.
 - **FR-006**: Rows that cannot be built MUST be excluded and counted, never imputed.
 
 **Model and evaluation**
@@ -250,7 +281,11 @@ matches the offline veto replay.
 - **SC-001**: Annualised return on the evaluation span is at least the control plus the
   **recomputed floor for that span**, with a bootstrap interval excluding zero.
 - **SC-002**: The configuration is positive in at least 7 of the 10 evaluation folds, and in
-  each of W1/W2/W3 when run single-window.
+  **both W1 and W2** when run single-window. W3 (2023) lies entirely inside the warm-up folds
+  and has no nested training data preceding it, so it is evaluated instead as an **anti-causal
+  persistence probe** — trained on later folds, tested on 2023 — and reported only as evidence
+  about whether the entry-feature/outcome relationship holds in a temporally distant era. A
+  probe result is never quoted as an out-of-sample return, and never counts toward SC-001.
 - **SC-003**: The configuration beats all four mandatory baselines net of full costs.
 - **SC-004**: Backtest-overfitting probability is at most 0.2 and the deflated risk-adjusted
   return is above zero, computed over the complete trial log.
@@ -282,6 +317,10 @@ matches the offline veto replay.
 - **SC-014**: Every swept parameter is proven live before its sweep runs.
 - **SC-015**: The feature directory holds a specification, plan, task list and a clean analyze
   report produced before implementation and again after completion.
+- **SC-017**: Re-inference reproduces the archived entry set exactly; if it does not, the
+  feature halts and no result is reported as evidence.
+- **SC-018**: The W3 persistence probe is run and reported, with its anti-causal construction
+  stated wherever its figure appears.
 - **SC-016**: The strategy subclass exists only if a configuration was accepted, and its trades
   match the offline replay or the divergence is reported.
 
@@ -294,6 +333,11 @@ matches the offline veto replay.
   screening metric.
 - The secondary model is a small gradient-boosting model rather than a neural network, because
   the evaluation set is ~287 rows.
+- The 15 per-fold primary models survive on disk (`saved_data/NNNC_WF_f*`, ~51 KB each), which
+  is what makes the primary's entry-time confidence recoverable at all.
+- Excluding pair features costs the model some discrimination. That is accepted deliberately:
+  a gain that depends on ranking pairs is the finding this repo has already recorded and
+  closed, so the weaker-but-unambiguous test is the useful one.
 - The veto action is tested before the sizing action, as the brief directs, because it has
   fewer degrees of freedom.
 - The floor for the evaluation span is **not** 3.35 pp/yr — that figure was measured on the

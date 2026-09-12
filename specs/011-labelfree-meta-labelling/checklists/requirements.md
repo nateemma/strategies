@@ -61,3 +61,35 @@ a share.
 brief: FR-004 (the leakage audit must detect a planted leak — an audit that cannot fail
 certifies nothing) and FR-012/SC-014 (every swept parameter proven live before compute — four
 parameters in this study were configured, logged, believed active, and reaching nothing).
+
+
+## Re-validation after /speckit-clarify (2026-09-12)
+
+Four questions asked and integrated. Checklist re-checked: **16/16 still passing**, no
+regressions. Sections touched: Clarifications (new), Requirements (FR-005a/b/c), Success
+Criteria (SC-002 rewritten, SC-017/SC-018 added), Assumptions.
+
+Coverage summary:
+
+| Category | Status |
+|---|---|
+| Functional scope & behaviour | Resolved — feature set now pinned (re-inferred primary confidence in, pair features out) |
+| Domain & data model | Resolved — re-inference reproduction gate defined |
+| Non-functional quality | Clear — floor recomputation, seeds, trial accounting already specified |
+| Integration & dependencies | Resolved — dependency on the surviving per-fold models made explicit |
+| Edge cases & failure handling | Clear — thin folds, empty folds, unseen pairs, null configuration all covered |
+| Constraints & tradeoffs | Resolved — the W3 conflict surfaced and settled |
+| Terminology | Clear |
+| Completion signals | Clear |
+
+**The most consequential answer was Q2.** W1/W2/W3 as written was not satisfiable: W3 (2023)
+lies entirely inside the warm-up folds, so no nested model can be trained to evaluate it. Left
+unclarified, implementation would have hit this after the feature pipeline was built and either
+silently dropped the gate or quietly relaxed it. It is now an explicit anti-causal probe, which
+keeps Constitution Principle II's distant-era requirement (W3 vs W1 are ~2.5 years apart)
+satisfiable without letting a probe figure be quoted as an out-of-sample return.
+
+**Q3 removed a self-fulfilling result.** The pair-recent-hit-rate feature is causal and would
+have passed the leakage audit, but it hands the model a per-pair quality score — making
+SC-010's "pair selection, not meta-labelling" kill near-certain to fire, after the compute was
+spent. Excluding pair features makes SC-010 a genuine test.
