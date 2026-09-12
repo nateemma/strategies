@@ -341,8 +341,9 @@ matches the offline veto replay.
 - The veto action is tested before the sizing action, as the brief directs, because it has
   fewer degrees of freedom.
 - The floor for the evaluation span is **not** 3.35 pp/yr — that figure was measured on the
-  full 378-trade, 3.68-year archive. It must be recomputed for 287 trades over 2.45 years and
-  is expected to be materially larger (roughly 5–6 pp/yr); the measured value governs.
+  full 378-trade, 3.68-year archive. Recomputed for 287 trades over 2.45 years it is
+  **4.681 pp/yr** (research R2, same bootstrap the harness uses, seed 0), which is 40% higher.
+  SC-001 is measured against that figure.
 - The primary model, its guards, its exits and its stop are untouched by this feature.
 
 ## Non-Goals
