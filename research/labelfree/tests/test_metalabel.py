@@ -81,9 +81,18 @@ PROB_COLS = ("%predict_prob_sell", "%predict_prob_hold", "%predict_prob_buy")
 def test_prob_columns_are_dropped_as_debug_columns():
     """T005. The '%' prefix is what stops the model's own output entering the feature list.
     Without it this is a predict-your-own-prediction leak (research R1)."""
+    import importlib.util
     import pandas as pd
-    sys.path.insert(0, str(ROOT / "utils"))
-    from DataframeUtils import DataframeUtils
+
+    # Load DataframeUtils by FILE, not by mutating sys.path. Inserting ROOT/"utils" at the
+    # front of sys.path leaks into every later test in the same session and shadows sibling
+    # modules -- it made test_purge_embargo.py fail when run after this file, while both
+    # passed in isolation.
+    _spec = importlib.util.spec_from_file_location(
+        "_dfutils_for_test", ROOT / "utils" / "DataframeUtils.py")
+    _mod = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(_mod)
+    DataframeUtils = _mod.DataframeUtils
 
     df = pd.DataFrame({"close": [1.0, 2.0, 3.0],
                        **{c: [np.nan, 0.9, 0.4] for c in PROB_COLS}})
