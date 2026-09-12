@@ -31,6 +31,7 @@ from research.labelfree import folds as F              # noqa: E402
 from research.labelfree import labels as LB            # noqa: E402
 from research.labelfree import losses as L             # noqa: E402
 from research.labelfree import sim                     # noqa: E402
+from research.labelfree import stats as ST             # noqa: E402
 from research.labelfree import trials                  # noqa: E402
 from research.labelfree import warmstart as W          # noqa: E402
 from research.labelfree.costs import CostModel         # noqa: E402
@@ -118,8 +119,32 @@ def load_panel(fold, pairs: list[str], train: bool, label_threshold: float | Non
         v = LB.forward_realised_vol(pop)
         Vol.append(pd.Series(v.values[:n], index=own).reindex(index).fillna(0.0).to_numpy())
 
-    return (np.stack(X), np.stack(P), np.stack(C), np.stack(V), np.stack(M),
-            np.stack(Y) if Y else None, np.stack(Vol), index)
+    Mst = np.stack(M)
+
+    # C1 (analyze 2026-09-12) -- PURGE AND EMBARGO AT THE FOLD BOUNDARY (FR-013, FR-014).
+    #
+    # These were computed by labels.apply_leakage_control and never applied: every Fold
+    # carried purge_bars=0, and load_panel kept LabelTarget.values while discarding
+    # LabelTarget.valid. Both arms with a forward-looking term (B's label CE, C's forward
+    # realised vol) therefore trained on boundary bars whose target reaches past the split.
+    #
+    # Train and test panels are loaded separately, so the boundary is an EDGE of each
+    # panel, not an interior index: purge the last `horizon` bars of train, embargo the
+    # first `horizon` of test. Folding it into the validity mask M is what makes it bind --
+    # M already gates the loss everywhere downstream.
+    h = LB.DEFAULT_HORIZON
+    if train:
+        Mst[:, -h:] = 0.0          # purge: their forward window crosses into the test range
+    else:
+        Mst[:, :h] = 0.0           # embargo: they overlap the training range's own windows
+    leakage_record = {"purge_bars": h if train else 0,
+                      "embargo_bars": 0 if train else h,
+                      "side": "train" if train else "test",
+                      "n_bars": int(Mst.shape[1]),
+                      "usable_share": float(Mst.mean())}
+
+    return (np.stack(X), np.stack(P), np.stack(C), np.stack(V), Mst,
+            np.stack(Y) if Y else None, np.stack(Vol), index, leakage_record)
 
 
 def build_policy(cfg: ArmConfig, n_features: int):
@@ -143,7 +168,7 @@ def build_policy(cfg: ArmConfig, n_features: int):
 
 def train_arm(cfg: ArmConfig, panel_tr, panel_te) -> dict:
     """Train one arm on the fold's training panel, evaluate on its held-out panel."""
-    Xtr, Ptr, Ctr, Vtr, Mtr, Ytr, Voltr, _ = panel_tr
+    Xtr, Ptr, Ctr, Vtr, Mtr, Ytr, Voltr, _, _leak_tr = panel_tr
     n_pairs, T, n_feat = Xtr.shape
     pol = build_policy(cfg, n_feat)
 
@@ -208,7 +233,7 @@ def train_arm(cfg: ArmConfig, panel_tr, panel_te) -> dict:
 
 def evaluate_arm(pol, panel_te, cfg: ArmConfig) -> dict:
     """Forward-only on the held-out panel: hard cap, full cost (FR-017)."""
-    Xte, Pte, Cte, Vte, Mte, Yte, _Vol, _idx = panel_te
+    Xte, Pte, Cte, Vte, Mte, Yte, _Vol, _idx, _leak_te = panel_te
     n_pairs, T, _ = Xte.shape
     rs, ws = [], []
     for pi in range(n_pairs):
@@ -232,6 +257,12 @@ def evaluate_arm(pol, panel_te, cfg: ArmConfig) -> dict:
            "test_flat_share": float((wn < 0.01).mean()),
            "test_turnover": float(np.abs(np.diff(wn, axis=1)).sum(axis=1).mean()),
            "n_pairs": int(rn.shape[0])}
+    # Activity travels WITH the return (FR-019, SC-014): a return quoted alone cannot be
+    # told apart from an arm that scored well by declining to trade.
+    act = ST.activity(wn)
+    out.update(test_trades_per_year=act["trades_per_year"],
+               test_mean_hold_hours=act["mean_hold_hours"],
+               test_turnover_per_year=act["turnover_per_year"])
     out["degenerate"] = bool(out["test_mean_exposure"] < cfg.min_exposure)
     if cfg.arm == "warm_start" and Yte is not None:
         y = Yte[:, BURN_IN + SEQ_LEN - 1:][:, :wn.shape[1]]
@@ -265,8 +296,14 @@ def run_screen(arm_specs: list[dict], fold_id: str = "f08",
     for thr in thresholds:
         panels[thr] = (load_panel(fold, pairs, True, thr),
                        load_panel(fold, pairs, False, thr))
+        lk_tr, lk_te = panels[thr][0][8], panels[thr][1][8]
         print(f"  panel@thr={thr}: train {panels[thr][0][0].shape} "
-              f"({100*panels[thr][0][4].mean():.0f}% valid)", flush=True)
+              f"({100*panels[thr][0][4].mean():.0f}% valid)  "
+              f"purge={lk_tr['purge_bars']} embargo={lk_te['embargo_bars']}", flush=True)
+        # FR-014: a run whose purge silently fell to zero is VOID, not caveated -- so the
+        # values ACTUALLY applied are asserted here rather than assumed from the config.
+        if lk_tr["purge_bars"] <= 0 or lk_te["embargo_bars"] <= 0:
+            raise ValueError(f"leakage control not applied: {lk_tr} / {lk_te} (FR-013/FR-014)")
 
     # Liveness proof (Principle IV): the label must actually differ between thresholds.
     if len(thresholds) > 1:
@@ -303,8 +340,68 @@ def run_screen(arm_specs: list[dict], fold_id: str = "f08",
             results[key].append(r)
             corr = r.get("exposure_label_corr")
             print(f"    {tid}: log_ret={r['test_log_return']:+.4f} "
-                  f"mean_w={r['test_mean_exposure']:.3f} flat={100*r['test_flat_share']:.0f}% "
+                  f"mean_w={r['test_mean_exposure']:.3f} "
+                  f"trades/yr={r['test_trades_per_year']:.1f} "
+                  f"hold={r['test_mean_hold_hours']:.1f}h "
+                  f"flat={100*r['test_flat_share']:.0f}% "
                   f"degen={r['degenerate']}"
                   + (f" corr={corr:+.3f}" if corr is not None else "")
                   + f" ({r['seconds']}s)", flush=True)
     return {"run_id": run_id, "fold": fold_id, "pairs": pairs, "results": results}
+
+
+# ---------------------------------------------------------------------------
+# T027 / T028 — degeneracy screen, then the pre-registered carry-forward rule.
+# ---------------------------------------------------------------------------
+
+def screen_degenerate(results: dict[str, list[dict]],
+                      min_exposure: float = 0.05) -> dict:
+    """FR-020 / SC-015: an arm below the participation floor is INCONCLUSIVE.
+
+    Its return is deliberately NOT carried into the output. An arm that declines to
+    trade can post an excellent number simply by avoiding the control's losses, and
+    reporting that number invites it to be read as an edge. Judging degeneracy on the
+    IQM across seeds, not per seed, keeps one flat seed from voiding an arm that trades.
+    """
+    eligible, inconclusive = {}, {}
+    for key, runs in results.items():
+        ok = [r for r in runs if r.get("status") == "ok"]
+        if not ok:
+            inconclusive[key] = {"reason": "no completed run", "n_ok": 0}
+            continue
+        w = ST.iqm([r["test_mean_exposure"] for r in ok])
+        if w < min_exposure:
+            inconclusive[key] = {"reason": "below participation floor",
+                                 "mean_exposure": w, "floor": min_exposure,
+                                 "n_ok": len(ok), "return": "WITHHELD (SC-015)"}
+        else:
+            eligible[key] = ok
+    return {"eligible": eligible, "inconclusive": inconclusive,
+            "min_exposure": min_exposure}
+
+
+def select_arms(results: dict[str, list[dict]], min_exposure: float = 0.05) -> dict:
+    """T028: rank on the HELD-OUT range only, via sweep.py's pre-registered rule.
+
+    Ranking on the training range is the defect that voided 60 of brief 01's runs; the
+    rule is imported rather than restated so the two cannot drift apart.
+    """
+    from research.labelfree.sweep import CARRY_FORWARD_RULE, select
+
+    screened = screen_degenerate(results, min_exposure)
+    held_out = {k: [r["test_log_return"] for r in runs]      # TEST range, never train
+                for k, runs in screened["eligible"].items()}
+    out = {"rule": CARRY_FORWARD_RULE, "screen": screened}
+    if not held_out:
+        out.update(resolved=False, carried=[],
+                   reason="every arm was screened out as degenerate or incomplete")
+        return out
+    out.update(select(held_out))
+    out["activity"] = {
+        k: {"mean_exposure": ST.iqm([r["test_mean_exposure"] for r in runs]),
+            "trades_per_year": ST.iqm([r.get("test_trades_per_year", float("nan"))
+                                       for r in runs]),
+            "mean_hold_hours": ST.iqm([r.get("test_mean_hold_hours", float("nan"))
+                                       for r in runs])}
+        for k, runs in screened["eligible"].items()}
+    return out

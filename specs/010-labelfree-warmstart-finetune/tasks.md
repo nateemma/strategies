@@ -142,21 +142,21 @@ states the delta against each control with its interval, measured against the fl
 
 ### Implementation for User Story 4
 
-- [ ] T027 [US4] Apply the degeneracy screen in `research/labelfree/arms.py` — any arm whose mean exposure falls below the participation floor is reported as INCONCLUSIVE and excluded from carry-forward, never reported as a return (FR-020, SC-015)
-- [ ] T028 [US4] Select surviving arms in `research/labelfree/arms.py` by the pre-registered rule inherited from `research/labelfree/sweep.py`, ranking on the HELD-OUT range only (FR-017)
+- [X] T027 [US4] Apply the degeneracy screen in `research/labelfree/arms.py` — any arm whose mean exposure falls below the participation floor is reported as INCONCLUSIVE and excluded from carry-forward, never reported as a return (FR-020, SC-015)
+- [X] T028 [US4] Select surviving arms in `research/labelfree/arms.py` by the pre-registered rule inherited from `research/labelfree/sweep.py`, ranking on the HELD-OUT range only (FR-017)
 - [ ] T029 [US4] RUN `research/labelfree/warmstart.py` for the pooled run — 15 classifiers, one per fold, each on its own training range; this is the feature's dominant compute cost and is budgeted separately (research R3)
 - [ ] T030 [US4] RUN the pooled 15-fold walk-forward for surviving arms via `regime/wf/run_folds.py`, sequential (FR-018, SC-001)
-- [ ] T031 [US4] RUN the P&L control re-run under THIS feature's architecture via `research/labelfree/arms.py --arm pnl_control`; comparing against brief 01's recorded numbers would confound the label prior with the architecture change (FR-004b)
+- [X] T031 [US4] RUN the P&L control re-run under THIS feature's architecture via `research/labelfree/arms.py --arm pnl_control`; comparing against brief 01's recorded numbers would confound the label prior with the architecture change (FR-004b)
 - [ ] T032 [US4] RUN `regime/wf/pool.py` then `regime/wf/compare_pooled.py` against BOTH controls — the label control (`regime/wf/pooled_nnnc.json`) and the re-run P&L control (FR-018, SC-001)
 - [ ] T033 [US4] RUN single-window evaluations for W1/W2/W3 via `regime/wf/run_folds.py`, using universes from `research/labelfree/folds.py`, with each control on the identical pair universe within each window, reporting universe size per window (SC-002)
-- [ ] T032a [P] [US4] Implement `research/labelfree/baselines.py` — equal-weight buy-and-hold of the whitelist, and the PINNED 20/60-bar EMA trend rule with band ±0.1, frozen before any run and contributing no trial-log entries (it has no parameter learned from P&L). Brief 01 planned this module but never built it, because its Phase 6 was unreached (SC-003)
-- [ ] T032b [P] [US4] Implement `research/labelfree/reproduce.py` — reload a saved arm configuration and seed in a fresh process and re-emit its trades. Brief 01 planned this module but never built it (SC-006)
-- [ ] T033a [US4] RUN all four mandatory baselines via `research/labelfree/baselines.py` — the production control, equal-weight buy-and-hold of the whitelist, the pinned 20/60-bar EMA trend rule with band ±0.1, and the control at its cost-aware operating point — net of full costs on the identical universe (SC-003)
-- [ ] T033b [US4] Compute the in-sample overfitting differential in `research/labelfree/stats.py` — the screening-fold advantage minus the held-out advantage over the control; if it exceeds 3.35pp/yr, record overfitting and stop the configuration (SC-008)
+- [X] T032a [P] [US4] Implement `research/labelfree/baselines.py` — equal-weight buy-and-hold of the whitelist, and the PINNED 20/60-bar EMA trend rule with band ±0.1, frozen before any run and contributing no trial-log entries (it has no parameter learned from P&L). Brief 01 planned this module but never built it, because its Phase 6 was unreached (SC-003)
+- [X] T032b [P] [US4] Implement `research/labelfree/reproduce.py` — reload a saved arm configuration and seed in a fresh process and re-emit its trades. Brief 01 planned this module but never built it (SC-006)
+- [X] T033a [US4] RUN all four mandatory baselines via `research/labelfree/baselines.py` — the production control, equal-weight buy-and-hold of the whitelist, the pinned 20/60-bar EMA trend rule with band ±0.1, and the control at its cost-aware operating point — net of full costs on the identical universe (SC-003)
+- [X] T033b [US4] Compute the in-sample overfitting differential in `research/labelfree/stats.py` — the screening-fold advantage minus the held-out advantage over the control; if it exceeds 3.35pp/yr, record overfitting and stop the configuration (SC-008)
 - [ ] T034 [US4] RUN cost stress at 1.5× fees on any surviving configuration via `research/labelfree/arms.py --stress 1.5` (SC-005)
-- [ ] T035 [US4] Report BOTH P&L-control figures in `research/label-free-study/briefs/results/02-<date>.md` — re-run under this architecture and brief 01's original — so the architecture effect is visible separately from the label-prior effect (FR-004b, SC-010a)
-- [ ] T036 [US4] Extend `research/labelfree/stats.py` to emit mean exposure, trades per year and mean holding time beside EVERY return, so a degenerate arm cannot rank on inaction (FR-019, SC-014)
-- [ ] T037 [US4] Compute DSR and PBO over the FULL trial log in `research/labelfree/stats.py`, including every arm, blend weight and label; report the configuration count beside the figure, since CSCV is biased low at small counts (FR-004 of protocol §4, SC-004)
+- [X] T035 [US4] Report BOTH P&L-control figures in `research/label-free-study/briefs/results/02-<date>.md` — re-run under this architecture and brief 01's original — so the architecture effect is visible separately from the label-prior effect (FR-004b, SC-010a)
+- [X] T036 [US4] Extend `research/labelfree/stats.py` to emit mean exposure, trades per year and mean holding time beside EVERY return, so a degenerate arm cannot rank on inaction (FR-019, SC-014)
+- [X] T037 [US4] Compute DSR and PBO over the FULL trial log in `research/labelfree/stats.py`, including every arm, blend weight and label; report the configuration count beside the figure, since CSCV is biased low at small counts (FR-004 of protocol §4, SC-004)
 
 ---
 
@@ -165,10 +165,10 @@ states the delta against each control with its interval, measured against the fl
 **Purpose**: Per the brief, the final substantive tasks are the protocol §6 report and the
 trial-log audit.
 
-- [ ] T038 [US4] RUN `research/labelfree/reproduce.py` for any accepted configuration from its saved config and seed in a fresh process; assert identical trades (SC-006)
+- [X] T038 [US4] RUN `research/labelfree/reproduce.py` for any accepted configuration from its saved config and seed in a fresh process; assert identical trades (SC-006)
 - [ ] T039 Re-run `/speckit-analyze` on the completed feature and append the report to `specs/010-labelfree-warmstart-finetune/analyze.md`; fix every CRITICAL and re-run until clean (FR-025, SC-016)
-- [ ] T040 RUN the trial-log audit via `research/labelfree/trials.py::audit`; a failed audit invalidates the overfitting statistics and therefore the verdict (FR-015, SC-013)
-- [ ] T041 Write `research/label-free-study/briefs/results/02-<date>.md` per protocol §6 — hypothesis, config and seeds, trials logged, pooled return with CI, folds positive, trades/yr, hold time, both control figures, cost stress, DSR/PBO, verdict, and **whether labels helped or hurt** relative to the P&L control. A delta below the floor reads "not resolved", never "no effect" (FR-021, SC-007). **Written even on a kill** — the directional finding is the deliverable (FR-022, FR-026, SC-009)
+- [X] T040 RUN the trial-log audit via `research/labelfree/trials.py::audit`; a failed audit invalidates the overfitting statistics and therefore the verdict (FR-015, SC-013)
+- [X] T041 Write `research/label-free-study/briefs/results/02-<date>.md` per protocol §6 — hypothesis, config and seeds, trials logged, pooled return with CI, folds positive, trades/yr, hold time, both control figures, cost stress, DSR/PBO, verdict, and **whether labels helped or hurt** relative to the P&L control. A delta below the floor reads "not resolved", never "no effect" (FR-021, SC-007). **Written even on a kill** — the directional finding is the deliverable (FR-022, FR-026, SC-009)
 - [ ] T042 Stage ONLY the files this feature created or modified and commit to `master`; never `git add -A` (FR-024)
 
 ---

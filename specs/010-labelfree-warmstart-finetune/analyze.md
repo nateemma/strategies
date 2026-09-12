@@ -62,3 +62,89 @@ cheap and catches it.
 
 Proceed to `/speckit-implement`. Re-run `/speckit-analyze` on completion (T039) and append to
 this file, per the study README step 8.
+
+---
+
+# Post-Implementation Analysis — 2026-09-12 (T039)
+
+Read-only. Run after Phase 6's unblocked tasks and Phase 7's audit/report, with Phase 6's
+carry-forward runs (T029, T030, T032, T033, T034) still gated on a surviving arm.
+
+## Specification Analysis Report
+
+| ID | Category | Severity | Location(s) | Summary | Recommendation |
+|----|----------|----------|-------------|---------|----------------|
+| C1 | Constitution / Coverage | **CRITICAL** | `folds.py:41-42`, `arms.py:load_panel`, spec.md:233-236 | **Purge and embargo were never applied.** Every `Fold` carries `purge_bars=0, embargo_bars=0`, and `labels.apply_leakage_control` — which exists, is correct, and states FR-014's rationale in its own docstring — is **never called** by `arms.py`. `load_panel` also discards `LabelTarget.valid`, keeping the target's values but not its validity mask. FR-013 requires the purge for every arm with a forward-looking term (B: label CE; C: forward realised vol). FR-014: "a run missing either MUST be **void** rather than caveated." | Call `apply_leakage_control` in `load_panel`, record the applied values per fold, and re-run arms B and C. Under FR-014 as written the current B and C runs are void. |
+| C2 | Coverage | **CRITICAL** | `stats.py:trial_log_deflation`, spec.md:289-291 | **SC-004 cannot be evaluated.** DSR and CSCV need a time axis; the trial log stores only summary scalars, leaving 5 seeds as the only axis. Raw figures (DSR 0.902, PBO 0.000) are artefacts of that — a reliably mediocre arm scores well because its across-seed dispersion is tiny. | Extend the trial-log schema to store per-bar net returns per trial. Until then SC-004 is unevaluated for every brief in this study, not just this one. Already recorded in the report and gated in code. |
+| H1 | Inconsistency | HIGH | results report tables, spec.md:324-326 | **Returns reported as medians, not IQM with a bootstrap CI**, contrary to SC-014/FR-016. Measured difference is up to **+0.104 log** on the P&L control (median −1.0894 vs IQM −0.9855), which moves Arm C's headline advantage from +0.9811 to +0.8784. | Re-emit the report's tables through `stats.iqm` + `stats.bootstrap_ci`. No verdict changes, but the quoted numbers are not the ones the spec mandates. |
+| H2 | Coverage | HIGH | `losses.py`, spec.md:219 | **FR-009 has no implementation.** The realised contribution of each loss term is never measured, so Arm B's blend weight is unverified in exactly the way `label_threshold` was — a swept parameter whose mechanism nobody confirmed was live. That defect has already occurred once in this feature. | Log per-term loss contributions per epoch and assert the CE term is non-zero when `blend_alpha > 0`. |
+| M1 | Underspecification | MEDIUM | spec.md:228-231 | **FR-012's test is confounded.** "Whether directional label content was necessary" was to be answered by comparing the non-directional Arm C against A/B. The turnover finding (Spearman(return, turnover) = −1.000) shows that comparison measures cost, not label content. | FR-012 is not answerable by the runs performed. The turnover-matched control named in the report is the experiment that would answer it. |
+| M2 | Inconsistency | MEDIUM | report §"The architecture effect" | FR-004b/SC-010a are **satisfied** — both control figures are reported — but the −0.7707 log regression they exposed on an identical nominal configuration (turnover 194→648) is **not tracked as a defect anywhere**. It is 1.02× Arm C's entire advantage. | Open it as a defect against the shared trainer. Brief 01's and brief 02's numbers are not comparable until it is explained. |
+| L1 | Terminology | LOW | report, spec.md, tasks.md | "P&L control", `pnl_control`, and "brief 01's best config" denote three different things (010's re-run; the arm name; brief 01's `utility-penalty-g0.5`). The report's architecture table compares against `utility-band-g1.0`, a fourth. | Name them once in the report preamble. |
+
+## Coverage Summary
+
+| Requirement | Has implementation? | Evidence | Notes |
+|---|---|---|---|
+| FR-001, FR-002, FR-003 | Yes | `arms.py` reuses brief 01's sim/features/folds | |
+| FR-004, FR-004a, FR-005 | Yes | `warmstart.py`, `policy.py` | |
+| FR-004b | Yes | report §architecture effect | exposed a −0.77 regression (M2) |
+| FR-006 | Yes | `evaluate_arm` → `exposure_label_corr` | |
+| FR-007, FR-008 | Yes | `losses.exposure_ce`, liveness proof in `run_screen` | |
+| FR-009 | **No** | — | H2 |
+| FR-010 | Yes | report states no best weight | |
+| FR-011 | Yes | `losses.aux_vol_loss` | |
+| FR-012 | Partial | report §what the arms are doing | confounded (M1) |
+| FR-013, FR-014 | **No** | `purge_bars=0` everywhere | **C1** |
+| FR-015 | Yes | `trials.py`, audit passes | |
+| FR-016 | Partial | 5 seeds run; medians reported | H1 |
+| FR-017 | Yes | `arms.select_arms` ranks on held-out only | |
+| FR-018 | Partial | both controls in report; pooled compare gated | T032 |
+| FR-019 | Yes | `stats.activity` wired into `evaluate_arm` | |
+| FR-020 | Yes | `arms.screen_degenerate` | |
+| FR-021, FR-022, FR-026 | Yes | report verdict | |
+| FR-023 | Yes | runs sequential | |
+| FR-024 | Yes | staged explicitly | |
+| FR-025 | Yes | spec/plan/tasks/analyze present | |
+| SC-001, SC-002 | Gated | — | needs T029/T030 |
+| SC-003 | Yes | `baselines.py`, both folds | |
+| SC-004 | **Unevaluable** | `trial_log_deflation` | **C2** |
+| SC-005 | Gated | — | T034 |
+| SC-006 | **Yes** | `reproduce.py`, bit-exact | |
+| SC-007, SC-009, SC-010, SC-010a | Yes | report | |
+| SC-008 | Yes | `stats.overfitting_differential` | fires; caveated |
+| SC-011 | Yes | `exposure_label_corr` | |
+| SC-012 | **No** | — | **C1** |
+| SC-013 | Yes | audit passes, 318 trials | |
+| SC-014 | Partial | activity emitted; medians not IQM | H1 |
+| SC-015 | Yes | `screen_degenerate` withholds returns | |
+| SC-016 | Yes | this report | |
+
+## Metrics
+
+- Functional requirements: 26 — covered 21, partial 3, **uncovered 2**
+- Success criteria: 20 — satisfied 12, gated 3, partial 2, **unevaluable/failed 3**
+- Tasks: 46 — complete 39, gated 5, remaining 2 (T039 this report, T042 commit)
+- Critical issues: **2**
+- Trials pre-registered: 318 (audit clean)
+
+## Next Actions
+
+1. **C1 first, and it is not optional.** FR-014 is categorical: arms B and C are void as run.
+   The fix is small — call `apply_leakage_control` in `load_panel` and record the values —
+   but it requires re-running B and C. The measured exposure is bounded (the training frame
+   is truncated at `train_end`, so no data crosses the boundary; the defect is ~48
+   mislabelled bars per pair at the boundary, 0.037% of training, plus the absent mandated
+   record). That bound is context, **not** grounds to caveat instead of voiding.
+2. **C2 is a study-wide schema change**, not a feature-010 fix. Raise it against the
+   protocol.
+3. H1 is a re-emit, no re-runs.
+4. Do **not** start the gated Phase 6 runs. The turnover confound means they would measure
+   the same confounded quantity at 15× the compute.
+
+## Verdict
+
+**NOT CLEAN.** Two CRITICAL findings. C1 voids arms B and C under the spec's own rule; C2
+makes SC-004 unevaluable for the study. The feature's *reported verdict* (NOT RESOLVED,
+direction confounded with turnover) is unaffected by both — C1's exposure is bounded and
+C2 was already reported as unevaluated rather than passed.
