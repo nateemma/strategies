@@ -58,6 +58,7 @@ class ArmConfig:
     min_exposure: float = 0.05
     participation_weight: float = 100.0
     lam_turnover: float = 0.0      # explicit |dw| penalty; only read when control=="penalty"
+    band_width: float = 0.10       # no-trade half-width scale; the turnover lever for "band"
     warm_start_ref: str | None = None
 
     def describe(self) -> dict:
@@ -68,6 +69,8 @@ class ArmConfig:
              "participation_weight": self.participation_weight}
         if self.turnover_control == "penalty":
             d["lam_turnover"] = self.lam_turnover
+        else:
+            d["band_width"] = self.band_width
         if self.arm == "warm_start":
             d.update(encoder_lr=self.encoder_lr, warm_start_ref=self.warm_start_ref)
         if self.arm == "blended":
@@ -154,7 +157,8 @@ def build_policy(cfg: ArmConfig, n_features: int):
     """Arm A inherits the encoder; B and C initialise the same architecture randomly."""
     mx.random.seed(cfg.seed)
     pol = ClassifierEncoderPolicy(n_features=n_features,
-                                  turnover_control=cfg.turnover_control)
+                                  turnover_control=cfg.turnover_control,
+                                  band_width=cfg.band_width)
     if cfg.arm == "warm_start":
         if not cfg.warm_start_ref:
             raise ValueError("warm_start requires warm_start_ref")
