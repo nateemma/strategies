@@ -179,3 +179,37 @@ exposure never drops below `eps`. All feature-010 arms read 6.2 trades/yr and 14
 their turnover spanned 15.7 to 647.9 — a 41× range. FR-019's trades-per-year is therefore
 near-vacuous for continuous-exposure policies, and turnover is the load-bearing activity
 measure. Documented in the function; both values are emitted so the discrepancy is visible.
+
+
+---
+
+## M1 — RESOLVED 2026-09-12 (turnover-matched control)
+
+M1 recorded FR-012's test as confounded: "whether directional label content was necessary"
+was to be answered by comparing the non-directional Arm C against A/B, and the turnover
+finding (Spearman −1.000) showed that comparison measured cost.
+
+A turnover-matched control was pre-registered and run. `band_width` matched Arm C at IQM
+turnover 16.3 vs 16.9 and exposure 0.564 vs 0.429. Arm C retains **+0.0594 log
+(+27.2 pp/yr)**, CI excluding zero on the pre-registered IQM statistic.
+
+- **FR-012 is answered for Arm C**: the non-directional auxiliary target has value beyond
+  cost damping, 92% of its raw advantage having been turnover.
+- **FR-012 is NOT answered for Arm B**: exposure 0.125 is unmatchable against the reachable
+  band range 0.48–0.56, at any turnover. Recorded as unanswered rather than relaxing the
+  match criterion. The label-prior question carries to brief 03.
+
+## H4 — NEW (HIGH), found during the match
+
+`policy.band_hold` is **bimodal across seeds**. At a fixed `band_width` the policy lands in
+one of two attractors — moving nearly every bar, or holding the opening position for the
+whole window. The matched control's five seeds give turnover 33.3 / 545.0 / 15.4 / 0.0 / 0.3.
+
+Consequences: any turnover setting is a coin-flip between two behaviours rather than a
+level; an IQM over 5 seeds is a trimmed average across two distinct regimes, not five draws
+of one; and a single-seed bracket over `band_width` reads as a smooth transition when it is
+sampling a mixture. An interim claim in this session was wrong for exactly that reason.
+
+This is a property of the shared trainer, not of feature 010, and every remaining brief
+inherits it. It belongs with the −0.7707 architecture regression (M2) as a trainer defect to
+fix before reuse.

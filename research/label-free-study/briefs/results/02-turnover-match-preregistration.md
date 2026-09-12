@@ -128,3 +128,35 @@ Then the honest result is that **this trainer cannot produce a turnover-matched 
 and the confound is *unresolvable* with the current policy rather than resolved in either
 direction. That is reported as the finding. It is not licence to compare against an
 unmatched control.
+
+---
+
+## Outcome 2026-09-12 — lever 3 SUCCEEDED; the comparison was made
+
+`band_width` produced an admissible match. Full result in
+[`02-2026-09-12.md`](02-2026-09-12.md); recorded here so the pre-registration carries its
+own outcome.
+
+**Match found.** `band_width=0.5`, IQM over 5 seeds: turnover **16.3** against Arm C's
+**16.9** (window 7.9–31.4), exposure **0.564** against **0.429** (window 0.217–0.868). Both
+criteria satisfied on the IQM, as rule 1 specifies.
+
+**Verdict — rule 2.** Arm C vs the matched control, paired by seed: IQM delta **+0.0594**
+(**+27.2 pp/yr**, floor 3.35), CI excluding zero, 4/5 seeds. **H1: residual value.** The
+mean delta is +0.1922 with CI [+0.0198, +0.4966], but that is 3× the IQM because seed 2
+alone fell into the churn attractor; the IQM is the pre-registered statistic and is the
+figure quoted.
+
+**Matching turnover collapsed the advantage from +0.7573 to +0.0594 — 92% of it was cost.**
+
+**A retracted interim claim.** Partway through, on single-seed brackets, this experiment was
+reported as showing turnover to be bimodal with an empty gap, and the match therefore
+impossible. That was **wrong**, and stated on partial data. Turnover *is* bimodal per seed —
+the matched control's five seeds give 33.3 / 545.0 / 15.4 / 0.0 / 0.3 — but the IQM across
+seeds lands at 16.3, inside the window, even though no individual seed does. The
+pre-registered rule matches on the IQM, and it was reachable all along.
+
+**Arm B: NO MATCH POSSIBLE.** IQM exposure 0.125 against every reachable band control's
+0.48–0.56. It fails criterion 4 at any turnover. The criterion was not relaxed. The
+label-prior question is therefore **unanswered, not answered negatively**, and carries to
+brief 03.

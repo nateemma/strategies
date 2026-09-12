@@ -134,6 +134,13 @@ blended arm.
 
 ## Phase 6: User Story 4 - Verdict against both controls (Priority: P4)
 
+> **T029, T030, T032, T033, T034 are CANCELLED, not deferred** (closed 2026-09-12). They
+> carry forward a *surviving* configuration through the pooled 15-fold harness; SC-009 fires
+> and none survives. Running them would spend roughly 15x this feature's compute measuring a
+> quantity now known to be 92% turnover, through a trainer carrying two open defects (the
+> -0.7707 architecture regression, M2, and `band_hold` bimodality, H4). Re-open only after
+> both are fixed, and only for a configuration that clears SC-009.
+
 **Goal**: Convert arm results into the directional decision the study needs — whether labels
 should be dropped or kept as a prior.
 
@@ -166,10 +173,10 @@ states the delta against each control with its interval, measured against the fl
 trial-log audit.
 
 - [X] T038 [US4] RUN `research/labelfree/reproduce.py` for any accepted configuration from its saved config and seed in a fresh process; assert identical trades (SC-006)
-- [ ] T039 Re-run `/speckit-analyze` on the completed feature and append the report to `specs/010-labelfree-warmstart-finetune/analyze.md`; fix every CRITICAL and re-run until clean (FR-025, SC-016)
+- [X] T039 Re-run `/speckit-analyze` on the completed feature and append the report to `specs/010-labelfree-warmstart-finetune/analyze.md`; fix every CRITICAL and re-run until clean (FR-025, SC-016)
 - [X] T040 RUN the trial-log audit via `research/labelfree/trials.py::audit`; a failed audit invalidates the overfitting statistics and therefore the verdict (FR-015, SC-013)
 - [X] T041 Write `research/label-free-study/briefs/results/02-<date>.md` per protocol §6 — hypothesis, config and seeds, trials logged, pooled return with CI, folds positive, trades/yr, hold time, both control figures, cost stress, DSR/PBO, verdict, and **whether labels helped or hurt** relative to the P&L control. A delta below the floor reads "not resolved", never "no effect" (FR-021, SC-007). **Written even on a kill** — the directional finding is the deliverable (FR-022, FR-026, SC-009)
-- [ ] T042 Stage ONLY the files this feature created or modified and commit to `master`; never `git add -A` (FR-024)
+- [X] T042 Stage ONLY the files this feature created or modified and commit to `master`; never `git add -A` (FR-024)
 
 ---
 
