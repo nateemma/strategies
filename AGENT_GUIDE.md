@@ -152,7 +152,8 @@ Consequences for anything you are about to do:
 **THE HARNESS NOW EXISTS — feature 007, delivered 2026-09-09.** `regime/wf/` runs pooled
 walk-forward evaluation: 15 anchored folds, every test fold genuinely out-of-sample, trades pooled
 before any statistic. Measured result — **378 pooled trades and a floor of 3.350 pp/yr against the
-single-window 7.633, a 2.28x improvement.** Full write-up in `regime/WALKFORWARD_POWER.md`.
+single-window 7.633, a 2.28x improvement.** Usage guide: `regime/wf/README.md`. Power write-up:
+`regime/WALKFORWARD_POWER.md`.
 
 ```
 PYTHONPATH=user_data/strategies .venv/bin/python user_data/strategies/regime/wf/foldplan.py \
