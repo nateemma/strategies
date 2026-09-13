@@ -65,9 +65,9 @@ causality.
 
 **Independent test**: the table exists, the audit passes, and the planted leak is detected.
 
-- [ ] T019 [US1] Emit the joined trade table to `research/labelfree/metalabel/rows.jsonl` with the excluded-row count in its summary
-- [ ] T020 [P] [US1] Test that exactly one row exists per archived trade and that two trades on the same pair and bar are **one decision, not two measurements** (data-model)
-- [ ] T021 [US1] Document the table's schema in the module docstring so briefs 5 and 8 can reuse it — this table is a standalone deliverable whether or not any veto works
+- [X] T019 [US1] Emit the joined trade table to `research/labelfree/metalabel/rows.jsonl` with the excluded-row count in its summary
+- [X] T020 [P] [US1] Test that exactly one row exists per archived trade and that two trades on the same pair and bar are **one decision, not two measurements** (data-model)
+- [X] T021 [US1] Document the table's schema in the module docstring so briefs 5 and 8 can reuse it — this table is a standalone deliverable whether or not any veto works
 
 **Checkpoint**: US1 delivers value independently.
 

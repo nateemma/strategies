@@ -196,3 +196,51 @@ def test_causality_is_bit_identical_not_merely_close():
     from research.labelfree.metalabel import audit
     assert audit.RTOL == 0.0
     assert audit.ATOL <= 1e-9
+
+
+# --- US1 (T020): the trade table's integrity -------------------------------
+
+def test_exactly_one_row_per_archived_trade():
+    """FR-001. A silently dropped trade would bias the training set toward whatever
+    condition caused the drop."""
+    from research.labelfree.metalabel import archive as A
+    rows = _rows_fixture()
+    arc = A.load()
+    assert len(rows) == len(arc)
+    assert {(r["pair"], r["open_date"]) for r in rows} == A.entry_keys(arc)
+
+
+def test_same_pair_same_bar_is_one_decision():
+    """data-model: two trades on the same pair and bar are ONE decision, not two
+    measurements. Counting them twice would double-weight whatever produced them."""
+    rows = _rows_fixture()
+    keys = [(r["pair"], r["open_date"]) for r in rows]
+    assert len(keys) == len(set(keys))
+
+
+def test_no_pair_identity_reaches_the_features():
+    """FR-005c / R7. With pair identity the model could rank pairs, and SC-010's
+    'pair selection, not meta-labelling' kill would be self-fulfilling."""
+    banned = {"pair", "pair_group", "pair_recent_hitrate", "pair_hit_rate"}
+    for r in _rows_fixture():
+        assert not (banned & set(r["features"])), f"pair feature leaked: {r['features'].keys()}"
+
+
+def test_every_row_carries_target_and_features():
+    rows = _rows_fixture()
+    for r in rows:
+        assert isinstance(r["target_win"], bool)
+        assert r["features"], "empty feature vector"
+        assert all(isinstance(v, float) for v in r["features"].values())
+
+
+def test_summary_records_the_exclusion_count():
+    """T019 / FR-006. A consumer seeing only rows.jsonl cannot tell 378 rows from
+    378-of-400; the count must travel with the table."""
+    import json
+    p = ROOT / "research/labelfree/metalabel/rows_summary.json"
+    if not p.exists():
+        pytest.skip("summary not built yet")
+    s = json.loads(p.read_text())
+    assert s["n_built"] + s["n_excluded"] == s["n_archived"]
+    assert all(f["matches_exactly"] for f in s["folds"])

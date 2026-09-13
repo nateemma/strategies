@@ -37,3 +37,45 @@ N_RESAMPLES = 20000
 
 ARCHIVE_PATH = "regime/wf/pooled_nnnc.json"
 MODEL_STORE = "saved_data"    # per-fold primary models: saved_data/NNNC_WF_f{NN}/
+
+
+# ---------------------------------------------------------------------------
+# THE TRADE TABLE (T021) — `rows.jsonl`, alongside `rows_summary.json`.
+#
+# Reusable by any brief that needs entry-time state for real trades. Briefs 5 and 8 were
+# named as consumers; nothing here is specific to the veto model.
+#
+# One JSON object per line, one line per archived trade, 378 of them:
+#
+#   fold_id            f00..f14
+#   pair, open_date    the join key; unique across the table
+#   close_date
+#   profit_abs         REALISED money under real exits, fees and fills
+#   profit_ratio, exit_reason, scale_pp_per_abs
+#   target_win         profit_abs > 0
+#   features           dict, described below
+#
+# FEATURES, all valued at the ENTRY BAR (`open_date - 15min`):
+#
+#   %predict_prob_sell   the primary model's own class probabilities, recovered from the
+#   %predict_prob_hold   framework side-car (FT_PREDICT_PROB_SINK). NOT available from
+#   %predict_prob_buy    freqtrade's --export signals: that artefact is built before the
+#                        entry/exit phase runs. See research R11.
+#   guard_metric, rvol, atr_pct, bb_width, adx, volume, close
+#                        market state, from the signals export
+#
+# DELIBERATELY ABSENT: pair identity, pair group, and any statistic derived from a pair's
+# own trade history. They are causal and would pass the leakage audit, but they hand a
+# model a per-pair quality score, and the cheapest route to discrimination then becomes
+# ranking pairs — which is a finding this repo has already recorded and closed. Without
+# them, any measured gain is necessarily WITHIN-pair.
+#
+# GUARANTEES, each measured rather than asserted:
+#   - every fold's re-inferred (pair, open_date) set equals the archive's EXACTLY
+#   - no feature changes when bars after the entry are deleted (bit-identical, RTOL 0)
+#   - the leakage audit detects a planted leak it is required to catch
+#
+# CAVEAT: the probability columns are NaN wherever the model did not score a bar (the
+# front-padded warm-up region). Such rows are excluded and counted, never imputed, and
+# never zero-filled — 0.0 is a legitimate probability meaning "confidently not this class".
+# ---------------------------------------------------------------------------

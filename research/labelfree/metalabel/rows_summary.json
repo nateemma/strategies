@@ -1,0 +1,133 @@
+{
+  "n_archived": 378,
+  "n_built": 378,
+  "n_excluded": 0,
+  "excluded_by_reason": {},
+  "folds": [
+    {
+      "fold_id": "f00",
+      "n_archived": 11,
+      "n_reinferred": 11,
+      "matches_exactly": true,
+      "n_excluded": 0
+    },
+    {
+      "fold_id": "f01",
+      "n_archived": 11,
+      "n_reinferred": 11,
+      "matches_exactly": true,
+      "n_excluded": 0
+    },
+    {
+      "fold_id": "f02",
+      "n_archived": 9,
+      "n_reinferred": 9,
+      "matches_exactly": true,
+      "n_excluded": 0
+    },
+    {
+      "fold_id": "f03",
+      "n_archived": 19,
+      "n_reinferred": 19,
+      "matches_exactly": true,
+      "n_excluded": 0
+    },
+    {
+      "fold_id": "f04",
+      "n_archived": 41,
+      "n_reinferred": 41,
+      "matches_exactly": true,
+      "n_excluded": 0
+    },
+    {
+      "fold_id": "f05",
+      "n_archived": 25,
+      "n_reinferred": 25,
+      "matches_exactly": true,
+      "n_excluded": 0
+    },
+    {
+      "fold_id": "f06",
+      "n_archived": 23,
+      "n_reinferred": 23,
+      "matches_exactly": true,
+      "n_excluded": 0
+    },
+    {
+      "fold_id": "f07",
+      "n_archived": 58,
+      "n_reinferred": 58,
+      "matches_exactly": true,
+      "n_excluded": 0
+    },
+    {
+      "fold_id": "f08",
+      "n_archived": 71,
+      "n_reinferred": 71,
+      "matches_exactly": true,
+      "n_excluded": 0
+    },
+    {
+      "fold_id": "f09",
+      "n_archived": 12,
+      "n_reinferred": 12,
+      "matches_exactly": true,
+      "n_excluded": 0
+    },
+    {
+      "fold_id": "f10",
+      "n_archived": 7,
+      "n_reinferred": 7,
+      "matches_exactly": true,
+      "n_excluded": 0
+    },
+    {
+      "fold_id": "f11",
+      "n_archived": 48,
+      "n_reinferred": 48,
+      "matches_exactly": true,
+      "n_excluded": 0
+    },
+    {
+      "fold_id": "f12",
+      "n_archived": 24,
+      "n_reinferred": 24,
+      "matches_exactly": true,
+      "n_excluded": 0
+    },
+    {
+      "fold_id": "f13",
+      "n_archived": 16,
+      "n_reinferred": 16,
+      "matches_exactly": true,
+      "n_excluded": 0
+    },
+    {
+      "fold_id": "f14",
+      "n_archived": 3,
+      "n_reinferred": 3,
+      "matches_exactly": true,
+      "n_excluded": 0
+    }
+  ],
+  "feature_columns": [
+    "%predict_prob_buy",
+    "%predict_prob_hold",
+    "%predict_prob_sell",
+    "adx",
+    "atr_pct",
+    "bb_width",
+    "btc_close",
+    "close",
+    "guard_metric",
+    "rvol",
+    "spread",
+    "volume"
+  ],
+  "excluded_by_design": [
+    "pair",
+    "pair_group",
+    "pair recent hit rate"
+  ],
+  "reproduction_gate": "exact (pair, open_date) set equality per fold"
+}

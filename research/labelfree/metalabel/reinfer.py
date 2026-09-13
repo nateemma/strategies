@@ -245,8 +245,26 @@ def main() -> int:
                     feats[c] = float(row[c])
             d["features"] = feats
             fh.write(json.dumps(d) + "\n")
+    # Summary artefact (T019, FR-006). The exclusion count travels WITH the table: a
+    # consumer that sees only rows.jsonl cannot tell 378 rows from 378-of-400.
+    import collections
+    reasons = collections.Counter(reason for _, reason in excluded_all)
+    summary = {
+        "n_archived": len(rows),
+        "n_built": len(built_all),
+        "n_excluded": len(excluded_all),
+        "excluded_by_reason": dict(reasons),
+        "folds": records,
+        "feature_columns": sorted({k for _, _, srow in built_all
+                                   for k in PROB_COLS} | set(MARKET_COLS)),
+        "excluded_by_design": ["pair", "pair_group", "pair recent hit rate"],
+        "reproduction_gate": "exact (pair, open_date) set equality per fold",
+    }
+    (out.parent / (out.stem + "_summary.json")).write_text(json.dumps(summary, indent=2))
+
     print(f"\n  wrote {len(built_all)} rows -> {out}")
-    print(f"  excluded {len(excluded_all)} (counted, never imputed)")
+    print(f"  excluded {len(excluded_all)} (counted, never imputed) {dict(reasons)}")
+    print(f"  summary -> {out.parent / (out.stem + '_summary.json')}")
     return 0
 
 
