@@ -194,3 +194,32 @@ it, and cancelled downstream work with reasons rather than leaving it open.
 The durable outputs are the trade table (`rows.jsonl`, reusable by briefs 5 and 8), the
 non-stationarity finding, and the observation that `rvol` — the strategy's dominant guard —
 carries zero outcome information.
+
+---
+
+## P5 — RETRACTION (2026-09-12): the proposed remedy does not survive its own test
+
+The post-implementation report's first recommendation proposed two escapes from the
+non-stationarity finding — refit the secondary model per window, or rank relatively within the
+current window. Both were checked under Principle VII (*test trackability before building
+adaptivity*). **Both fail, and the second was not causally implementable at all.**
+
+| escape | outcome |
+|---|---|
+| per-window refit | **Not trackable.** Best-cutoff lag-1 CI [−0.892, **+0.391**] spans zero. Trailing-best beats a constant cutoff in **4 of 9** folds for +0.0146 win rate, against a per-fold AUC sd of 0.169. Reproduces `feedback_dynamic_lookback_rejected.md` exactly. |
+| relative rank in-window | **Not implementable live.** Ranking a window's trades requires the window's other trades, which have not happened yet. The 0.6231 within-fold AUC is computed over a completed fold — a diagnostic, not an achievable edge. Acting on a ranking needs a cutoff, and the cutoff is the part that drifts. |
+
+**Why this matters beyond the retraction.** The AUC also *anti*-persists (lag-1 −0.5076, CI
+just excluding zero from 9 pairs), so a refit would chase a relationship that has already
+reversed — actively harmful rather than merely inert. The obstacle is not the fitting scheme;
+it is that **the decision boundary is unstable and unpredictable across windows**, which no
+scheme built from past windows can repair.
+
+**Process note.** The original recommendation was written in the same pass as the kill, and
+stated as fact what was actually an untested intuition. It was only caught because it was
+revisited and measured. A "what to try next" line in a result report carries the same
+evidentiary burden as the result itself, and should be marked as untested when it is — this one
+was not, and should have been.
+
+Severity: HIGH as written (a wrong recommendation propagates into the next brief); resolved
+now, with the report carrying the retraction inline rather than a silent edit.
