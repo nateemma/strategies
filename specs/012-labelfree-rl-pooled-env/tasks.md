@@ -19,9 +19,9 @@ Paths relative to `user_data/strategies/`. Commands from the **repo root** with
 
 ## Phase 1: Setup
 
-- [ ] T001 Create `research/labelfree/rl/__init__.py` and `research/labelfree/tests/test_rl.py`
-- [ ] T002 [P] Pin constants in `research/labelfree/rl/__init__.py`: `SCREEN_FOLD = "f07"`, `LIQUIDITY_FRACTION` imported from `sim` (never re-declared), `EXEC_LAG_BARS = 2`, `MIN_EXPOSURE`, `N_SEEDS = 5`, `STEPS_PER_FOLD`, with each value's source in the docstring
-- [ ] T003 [P] Assert the dependency surface in `test_rl.py` — gymnasium ≥1.3, stable-baselines3 ≥2.9, sb3-contrib ≥2.9, torch ≥2.13 — so a version drift fails loudly rather than changing PPO's behaviour silently
+- [X] T001 Create `research/labelfree/rl/__init__.py` and `research/labelfree/tests/test_rl.py`
+- [X] T002 [P] Pin constants in `research/labelfree/rl/__init__.py`: `SCREEN_FOLD = "f07"`, `LIQUIDITY_FRACTION` imported from `sim` (never re-declared), `EXEC_LAG_BARS = 2`, `MIN_EXPOSURE`, `N_SEEDS = 5`, `STEPS_PER_FOLD`, with each value's source in the docstring
+- [X] T003 [P] Assert the dependency surface in `test_rl.py` — gymnasium ≥1.3, stable-baselines3 ≥2.9, sb3-contrib ≥2.9, torch ≥2.13 — so a version drift fails loudly rather than changing PPO's behaviour silently
 
 ---
 
@@ -31,15 +31,15 @@ Paths relative to `user_data/strategies/`. Commands from the **repo root** with
 
 ### Gate A — the env reproduces the simulator bit-for-bit (R1)
 
-- [ ] T004 Implement `research/labelfree/env.py` step economics in numpy, indexed by **`i`, the decision bar** (research R2 — one index symbol, feature-wide): `requested = |w_i − w_{i−1}|` with `w_{−1} = 0`, `executed = min(requested, LIQUIDITY_FRACTION × quote_volume_i)`, `reward = w_i × bar_return_i − cost_i × executed` (FR-002, FR-003)
-- [ ] T005 Implement the execution lag in `env.py`: `bar_return_t = log(open_{t+2}) − log(open_{t+1})`, matching `sim.bar_returns` (R2). An episode of *T* decisions consumes *T+2* bars
-- [ ] T006 Implement `research/labelfree/rl/equivalence.py` — step a path through `env.py` and compare accumulated rewards to `sim.net_returns` at **`rtol=0`** (FR-001, R1)
-- [ ] T007 [P] Cover the four cases a naive step gets wrong, in `test_rl.py`: the `w_{−1}=0` opening boundary, a path still in position at the end, the liquidity cap binding, and a zero-volume bar
-- [ ] T008 RUN `equivalence.py --folds f07 --n-paths 200`; require `max|diff| = 0.00e+00` (quickstart S1). **A mismatch halts the feature** — an unverified restatement is a different simulator wearing the same name
+- [X] T004 Implement `research/labelfree/env.py` step economics in numpy, indexed by **`i`, the decision bar** (research R2 — one index symbol, feature-wide): `requested = |w_i − w_{i−1}|` with `w_{−1} = 0`, `executed = min(requested, LIQUIDITY_FRACTION × quote_volume_i)`, `reward = w_i × bar_return_i − cost_i × executed` (FR-002, FR-003)
+- [X] T005 Implement the execution lag in `env.py`: `bar_return_t = log(open_{t+2}) − log(open_{t+1})`, matching `sim.bar_returns` (R2). An episode of *T* decisions consumes *T+2* bars
+- [X] T006 Implement `research/labelfree/rl/equivalence.py` — step a path through `env.py` and compare accumulated rewards to `sim.net_returns` at **`rtol=0`** (FR-001, R1)
+- [X] T007 [P] Cover the four cases a naive step gets wrong, in `test_rl.py`: the `w_{−1}=0` opening boundary, a path still in position at the end, the liquidity cap binding, and a zero-volume bar
+- [X] T008 RUN `equivalence.py --folds f07 --n-paths 200`; require `max|diff| = 0.00e+00` (quickstart S1). **A mismatch halts the feature** — an unverified restatement is a different simulator wearing the same name
 
 ### Gate B — the environment can be reward-hacked (R5, SC-011)
 
-- [ ] T009 Implement `research/labelfree/rl/rewards.py` (FR-006) with two specs: `realised` (the only one that may produce a result) and `freqai_shaped` (+25/entry, −1/idle bar, `pnl × 100` on exit) — the positive control
+- [X] T009 Implement `research/labelfree/rl/rewards.py` (FR-006) with two specs: `realised` (the only one that may produce a result) and `freqai_shaped` (+25/entry, −1/idle bar, `pnl × 100` on exit) — the positive control
 - [ ] T010 Make `freqai_shaped` structurally unable to produce a reported figure: runs using it are tagged `probe: true` and `evaluate.py` refuses them
 - [ ] T011 RUN the probe — train briefly on `freqai_shaped` and on `realised` at the same budget, and assert turnover under the shaped reward is **at least 2×** the realised run's, a multiple pinned before the probe runs. "Measurably higher" without a threshold passes on a 1% rise (analyze M1, quickstart S2)
 - [ ] T012 [P] Test in `test_rl.py` that the probe assertion can FAIL — feed it two identical turnover series and confirm it reports failure. **A control that cannot fail certifies nothing**; feature 010's liveness control severed nothing on its first version, and feature 011's planted leak needed a separation check before its threshold meant anything

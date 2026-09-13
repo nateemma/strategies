@@ -38,6 +38,48 @@ briefs 2, 5 and 6 — changing its internals to serve brief 4 risks all of them)
 
 ---
 
+## R1a — AMENDMENT (measured 2026-09-12): "bit-for-bit against MLX" was over-specified
+
+**Decision**: the equivalence gate has **two parts** — a LOGIC part that must be exact, and a
+PRECISION part that is bounded rather than zero.
+
+**What R1 got wrong**: it required the numpy step to reproduce `sim.net_returns` bit-for-bit.
+Measured, that is unachievable and tests the wrong thing. **MLX's `log()` and numpy's `log()`
+disagree by ~5 ulps at float32**, and the discrepancy is already present in `bar_returns`
+before any of the env's arithmetic runs:
+
+```
+bar_return, numpy f64 vs MLX f32 : max|d| 6.36e-07
+bar_return, numpy f32 vs MLX f32 : max|d| 6.47e-07      float32 eps = 1.19e-07
+```
+
+Neither implementation is wrong. A gate that fails on this fails on something no change to
+this feature can fix, and — worse — it would have been "resolved" by loosening the tolerance,
+which would also have absorbed a real boundary error.
+
+**The fix isolates the two**. Feeding the simulator's **own** bar returns into the env's step
+leaves only this feature's economics under test:
+
+| case | max\|diff\| |
+|---|---|
+| random | **0.00e+00** |
+| opens_long (the `w_{-1}=0` boundary) | **0.00e+00** |
+| ends_in_position | **0.00e+00** |
+| cap_binds | **0.00e+00** |
+| zero_volume | **0.00e+00** |
+
+So the economics — boundary, cap, accumulation, lag — are **identical**, and the residual is
+purely the library's `log`. Part 2 reports that residual against a ceiling of 5e-06 (a few
+float32 ulps); a value *above* the ceiling is a real defect, a value at it is two correct
+implementations disagreeing in the last bits.
+
+**Why this matters beyond the gate**: the original formulation would have produced a failing
+gate on correct code, and the tempting fix — widen the tolerance until it passes — destroys
+the gate's ability to catch the boundary errors it exists for. Splitting logic from precision
+keeps rtol=0 exactly where it is meaningful.
+
+---
+
 ## R2 — Execution lag: decide at *i*, fill at *i+1*, measure to *i+2*
 
 **Decision**: the env's reward at step *i* uses `log(open[i+2]) − log(open[i+1])`, matching
