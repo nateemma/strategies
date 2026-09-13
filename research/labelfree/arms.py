@@ -378,6 +378,8 @@ def screen_degenerate(results: dict[str, list[dict]],
     reporting that number invites it to be read as an edge. Judging degeneracy on the
     IQM across seeds, not per seed, keeps one flat seed from voiding an arm that trades.
     """
+    from research.labelfree.admissibility import Arm
+
     eligible, inconclusive = {}, {}
     for key, runs in results.items():
         ok = [r for r in runs if r.get("status") == "ok"]
@@ -385,8 +387,14 @@ def screen_degenerate(results: dict[str, list[dict]],
             inconclusive[key] = {"reason": "no completed run", "n_ok": 0}
             continue
         w = ST.iqm([r["test_mean_exposure"] for r in ok])
-        if w < min_exposure:
-            inconclusive[key] = {"reason": "below participation floor",
+        # Delegated to the SHARED gate so this site cannot drift from the others. Three
+        # separate implementations of this floor existed before it was centralised, and the
+        # comparison site that mattered checked only ONE SIDE.
+        probe = Arm(key, ST.iqm([r["test_log_return"] for r in ok]), w,
+                    ST.iqm([r.get("test_trades_per_year", float("nan")) for r in ok])
+                    if all("test_trades_per_year" in r for r in ok) else None)
+        if probe.degenerate:
+            inconclusive[key] = {"reason": probe.reason,
                                  "mean_exposure": w, "floor": min_exposure,
                                  "n_ok": len(ok), "return": "WITHHELD (SC-015)"}
         else:

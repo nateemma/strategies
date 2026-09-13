@@ -35,6 +35,7 @@ from research.labelfree.rl.rewards import SPECS               # noqa: E402
 def evaluate_on_panel(model, panel, continuous: bool, band: float) -> dict:
     """Forward-only over every pair of a panel. Used for TEST ranges."""
     rew, exps, turns, bars = [], [], [], 0
+    per_bar = []
     for pi, pair in enumerate(panel["pairs"]):
         X, P = panel["X"][pi], panel["P"][pi]
         C, V = panel["C"][pi], panel["V"][pi]
@@ -45,18 +46,25 @@ def evaluate_on_panel(model, panel, continuous: bool, band: float) -> dict:
                                reward_spec=SPECS["realised"](),
                                continuous=continuous, band=band)
         obs, _ = env.reset(seed=0)
-        tot, ws = 0.0, []
+        tot, ws, step_rewards = 0.0, [], []
         while True:
             a, _ = model.predict(obs, deterministic=True)
             obs, r, term, trunc, info = env.step(a)
-            tot += r; ws.append(info["w"])
+            tot += r; ws.append(info["w"]); step_rewards.append(r)
             if term or trunc:
                 break
         rew.append(tot); exps.append(float(np.mean(ws)))
         turns.append(env.turnover); bars += len(ws)
+        per_bar.append(np.asarray(step_rewards, dtype=float))
     years = bars / (RL.BARS_PER_DAY * 365) if bars else 0.0
     trades = sum(turns) / 2.0                      # a round trip is two units of turnover
-    return {"reward": float(np.mean(rew)) if rew else 0.0,
+    # Mean across pairs, per bar: the TIME axis DSR and CSCV are defined over. Stored
+    # compressed as 16 block returns (trials.block_returns), which is what closed the
+    # SC-004 gap that four consecutive features reported as unevaluable.
+    width = min((len(x) for x in per_bar), default=0)
+    series = (np.mean([x[:width] for x in per_bar], axis=0).tolist() if width else [])
+    return {"per_bar_returns": series,
+            "reward": float(np.mean(rew)) if rew else 0.0,
             "mean_exposure": float(np.mean(exps)) if exps else 0.0,
             "turnover": float(np.mean(turns)) if turns else 0.0,
             "trades_per_year": float(trades / years) if years else 0.0,
@@ -141,9 +149,10 @@ def main() -> int:
             model = PPO("MlpPolicy", venv, seed=seed, **PPO_PARAMS)
             model.learn(total_timesteps=a.steps, progress_bar=False)
             ev = evaluate_on_panel(model, te_panel, continuous, a.band)   # TEST range
+            series = ev.pop("per_bar_returns", None)
             ev.update(fold_id=fid, seed=seed, status="ok",
                       seconds=round(time.time() - t0, 1))
-            trials.complete(tid, ev)
+            trials.complete(tid, ev, per_bar_returns=series)
             rows.append(ev)
             print(f"  {fid} s{seed}: test reward={ev['reward']:+.4f} "
                   f"exposure={ev['mean_exposure']:.3f} "

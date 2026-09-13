@@ -55,11 +55,48 @@ def pre_register(record: dict, path: Path = LOG) -> str:
     return rec["trial_id"]
 
 
-def complete(tid: str, result: dict, path: Path = LOG) -> None:
-    """Append the outcome for a previously pre-registered trial."""
+N_BLOCKS = 16          # CSCV's split count; the minimum series length that makes PBO real
+
+
+def block_returns(per_bar, n_blocks: int = N_BLOCKS) -> list[float]:
+    """Compress a per-bar return series into `n_blocks` equal-time block returns.
+
+    WHY BLOCKS AND NOT PER-BAR. DSR deflates a Sharpe computed over a TIME axis and CSCV
+    partitions that axis into blocks; both need a series, neither needs every bar. Storing
+    per-bar returns would put ~9,000 floats per trial into an append-only log that already
+    holds 500+ trials -- millions of numbers to recover sixteen. Blocks are exactly what the
+    statistics consume.
+
+    This is the schema gap that made SC-004 unevaluable in FOUR consecutive features: the log
+    stored summary scalars, so seeds were the only available axis, and a configuration that
+    is reliably mediocre scored a high "Sharpe" purely because its across-seed dispersion was
+    tiny. Sixteen numbers per trial fixes it.
+    """
+    import numpy as np
+    a = np.asarray(per_bar, dtype=float).ravel()
+    a = a[np.isfinite(a)]
+    if a.size == 0:
+        return []
+    n = min(n_blocks, a.size)
+    return [float(b.sum()) for b in np.array_split(a, n)]
+
+
+def complete(tid: str, result: dict, path: Path = LOG,
+             per_bar_returns=None) -> None:
+    """Append the outcome for a previously pre-registered trial.
+
+    `per_bar_returns` is optional and is stored COMPRESSED as `block_returns` (see above).
+    Passing it is what allows the trial to contribute a time axis to DSR and PBO; trials
+    without it still count toward the deflation TRIAL COUNT, which is the quantity that
+    deflates the statistic.
+    """
+    payload = {"trial_id": tid, "completed_at": _now(), "result": result}
+    if per_bar_returns is not None:
+        blocks = block_returns(per_bar_returns)
+        if blocks:
+            payload["block_returns"] = blocks
     with path.open("a") as f:
-        f.write(json.dumps({"trial_id": tid, "completed_at": _now(),
-                            "result": result}, sort_keys=True) + "\n")
+        f.write(json.dumps(payload, sort_keys=True) + "\n")
 
 
 def abandon(tid: str, reason: str, path: Path = LOG) -> None:

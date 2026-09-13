@@ -198,13 +198,17 @@ def trial_log_deflation(records: list[dict] | None = None) -> dict:
         records = trials.read()
 
     pre = [r for r in records if "written_at" in r]
-    done = {}
+    done, series = {}, {}
     for r in records:
         if "completed_at" not in r:
             continue
         res = r.get("result") or {}
         if res.get("test_log_return") is not None:
             done[r["trial_id"]] = res            # last write wins: duplicates are one trial
+        # Block returns give DSR and CSCV the TIME axis they need. A trial without them
+        # still counts toward the trial COUNT, which is what deflates the statistic.
+        if r.get("block_returns"):
+            series[r["trial_id"]] = r["block_returns"]
 
     # A configuration is an arm/objective spec; its seeds are repeat observations of it.
     by_cfg: dict[str, dict[int, float]] = {}
@@ -227,8 +231,27 @@ def trial_log_deflation(records: list[dict] | None = None) -> dict:
     keep = ~np.isnan(perf).any(axis=0)
     perf, cfgs = perf[:, keep], [c for c, k in zip(cfgs, keep) if k]
 
+    # ---- Time-axis path. Preferred whenever enough trials carry block returns: it is the
+    # axis both statistics are actually defined over. Falls back to the seed axis, which is
+    # reported as uninterpretable (it always was).
+    ts_cfgs, ts_matrix = [], None
+    if series:
+        by_cfg_series: dict[str, list[list[float]]] = {}
+        for tid, blocks in series.items():
+            by_cfg_series.setdefault(tid.split("@")[0].rsplit("-s", 1)[0], []).append(blocks)
+        width = min((len(b) for v in by_cfg_series.values() for b in v), default=0)
+        if width >= 8:
+            ts_cfgs = sorted(by_cfg_series)
+            cols = []
+            for c in ts_cfgs:
+                runs = np.array([b[:width] for b in by_cfg_series[c]], dtype=float)
+                cols.append(runs.mean(axis=0))      # average seeds, keep the time axis
+            ts_matrix = np.array(cols).T            # (blocks, configurations)
+
     n_trials = len(pre)                       # deflation counts PRE-REGISTRATIONS
     out = {"n_pre_registered": n_trials,
+           "n_with_block_returns": len(series),
+           "time_axis_available": ts_matrix is not None,
            "n_completed_with_return": len(done),
            "n_configurations": len(cfgs),
            "n_seeds": len(seeds),
@@ -267,8 +290,24 @@ def trial_log_deflation(records: list[dict] | None = None) -> dict:
     # Reporting that as "SC-004 satisfied" would be the exact error the deflation exists
     # to prevent, so the flags below stay False and say why. Satisfying SC-004 as written
     # requires per-bar net returns stored per trial, which is a trial-log schema change.
+    # With a real time axis, recompute both statistics over it and report them as
+    # interpretable. This is what SC-004 asks for and what four features could not provide.
+    if ts_matrix is not None and ts_matrix.shape[1] >= 2:
+        m = ts_matrix.mean(axis=0)
+        best_ts = int(np.argmax(m))
+        col = ts_matrix[:, best_ts]
+        sd = col.std(ddof=1)
+        sr_ts = float(col.mean() / sd) if sd > 1e-12 else 0.0
+        n_splits_ts = min(16, (ts_matrix.shape[0] // 2) * 2)
+        out.update(time_axis_blocks=int(ts_matrix.shape[0]),
+                   time_axis_configurations=len(ts_cfgs),
+                   dsr_time_axis=deflated_sharpe(sr_ts, n_obs=len(col), n_trials=n_trials),
+                   pbo_time_axis=(pbo_cscv(ts_matrix, n_splits=n_splits_ts)
+                                  if n_splits_ts >= 2 else float("nan")),
+                   best_configuration_time_axis=ts_cfgs[best_ts])
+
     reasons = []
-    if len(seeds) < 30:
+    if ts_matrix is None and len(seeds) < 30:
         reasons.append(f"only {len(seeds)} observations (seeds), not a return series; "
                        "DSR and CSCV both need a time axis")
     if len(cfgs) < 50:

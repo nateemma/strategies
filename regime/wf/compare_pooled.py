@@ -44,6 +44,30 @@ def compare(arm_path: str, ctl_path: str) -> str:
         out.append(f"  VERDICT: INCONCLUSIVE_UNDERPOWERED — only {bs['n_diff']} trade(s) differ")
         return "\n".join(out)
     ann = lambda v: v / years
+
+    # ADMISSIBILITY (added 2026-09-13). The bootstrap above is untouched -- BOOTSTRAP_SEED
+    # and the statistic are pinned and must stay comparable with every earlier run. This
+    # only adds a refusal path, in the INCONCLUSIVE_* idiom this file already uses.
+    #
+    # THE TEST IS ABSOLUTE, NOT RELATIVE: if the ARM does not make money, a delta against
+    # the control measures the CONTROL. Measured instances in the label-free study:
+    #   brief 02  the P&L control lost 52% in a market that ROSE 72%, so every arm scored a
+    #             large positive delta against it and 92% of the headline advantage turned
+    #             out to be the gap to a broken comparator
+    #   brief 04  the re-trained brief-1 comparator ran at exposure 0.0004 -- it abstained --
+    #             and the raw delta read "WORSE" for an arm that actually traded
+    # Neither is caught by a trade-count check, which is why this sits beside MIN_DIFF_TRADES
+    # rather than inside it.
+    arm_total = sum(t["profit_abs"] for t in a["trades"]) * scale
+    ctl_total = sum(t["profit_abs"] for t in c["trades"]) * scale
+    out.append(f"  arm total {arm_total:+.3f}pp   control total {ctl_total:+.3f}pp")
+    if arm_total <= 0:
+        out += [f"  VERDICT: INCONCLUSIVE_ARM_LOSES — the arm returns {arm_total:+.3f}pp "
+                f"over the span, so it loses to holding cash.",
+                f"  A delta against the control ({ann(bs['observed']):+.3f}pp/yr) measures "
+                f"the control's losses, not the arm's value. Reported, not quoted."]
+        return "\n".join(out)
+
     resolved = bs["resolved"]
     out += [f"  differing trades {bs['n_diff']}  ({bs['shared']} shared, {bs['identical']} identical;"
             f" {bs['arm_only']} arm-only, {bs['ctl_only']} control-only)",

@@ -163,3 +163,118 @@ def test_only_the_production_control_is_profitable_over_the_eval_span():
     assert agg["production_control"]["pp_per_year"] > 0
     assert agg["buy_and_hold"]["pp_per_year"] < 0
     assert agg["ema_trend_20_60"]["pp_per_year"] < agg["buy_and_hold"]["pp_per_year"]
+
+
+# --- SC-004: the trial-log schema that four features reported unevaluable ---
+
+def test_block_returns_compress_a_series_preserving_total():
+    """Blocks must sum to the same total: they are a compression of the series, not a
+    resampling of it."""
+    from research.labelfree.trials import block_returns, N_BLOCKS
+    rng = np.random.default_rng(0)
+    s = rng.normal(0, 0.01, 5000)
+    b = block_returns(s)
+    assert len(b) == N_BLOCKS
+    assert sum(b) == pytest.approx(s.sum(), rel=1e-9)
+
+
+def test_block_returns_handles_short_and_empty_series():
+    from research.labelfree.trials import block_returns
+    assert block_returns([]) == []
+    assert len(block_returns([0.1, 0.2, 0.3])) == 3          # fewer bars than blocks
+    assert block_returns([np.nan, np.inf]) == []             # nothing finite
+
+
+def test_time_axis_path_makes_deflation_interpretable(tmp_path):
+    """The fix for SC-004. With block returns present the statistics are computed over a
+    TIME axis -- what DSR and CSCV are actually defined over -- instead of over 5 seeds,
+    where a reliably mediocre configuration scores a high 'Sharpe' purely because its
+    across-seed dispersion is tiny."""
+    import json
+    from research.labelfree import stats as ST
+    from research.labelfree.trials import block_returns
+
+    rng = np.random.default_rng(1)
+    recs = []
+    for cfg in ("armA", "armB", "armC"):
+        for seed in (1, 2, 3):
+            tid = f"{cfg}-s{seed}@run1"
+            recs.append({"trial_id": tid, "written_at": "t", "result": None})
+            recs.append({"trial_id": tid, "completed_at": "t",
+                         "result": {"test_log_return": float(rng.normal(-0.1, 0.05))},
+                         "block_returns": block_returns(rng.normal(0, 0.01, 2000))})
+    out = ST.trial_log_deflation(recs)
+    assert out["n_with_block_returns"] == 9
+    assert out["time_axis_available"] is True
+    assert out["time_axis_blocks"] == 16
+    assert "dsr_time_axis" in out and "pbo_time_axis" in out
+    assert np.isfinite(out["pbo_time_axis"])
+
+
+def test_trials_without_block_returns_still_count_toward_deflation():
+    """A trial that cannot contribute a time axis must still deflate the statistic: the
+    trial COUNT is what the deflation corrects for."""
+    from research.labelfree import stats as ST
+    from research.labelfree.trials import block_returns
+    rng = np.random.default_rng(2)
+    recs = []
+    for i in range(40):                                   # 40 pre-registered, no series
+        recs.append({"trial_id": f"noisy{i}-s1@r", "written_at": "t", "result": None})
+    for cfg in ("a", "b"):
+        for seed in (1, 2):
+            tid = f"{cfg}-s{seed}@r"
+            recs.append({"trial_id": tid, "written_at": "t", "result": None})
+            recs.append({"trial_id": tid, "completed_at": "t",
+                         "result": {"test_log_return": -0.1},
+                         "block_returns": block_returns(rng.normal(0, 0.01, 800))})
+    out = ST.trial_log_deflation(recs)
+    assert out["n_pre_registered"] == 44
+    assert out["n_with_block_returns"] == 4
+
+
+def test_pooled_comparator_refuses_a_losing_arm():
+    """The retro-fit to regime/wf/compare_pooled.py.
+
+    Measured 2026-09-13: an arm losing 3.78pp against a control losing 18.90pp produced
+    '+4.106 pp/yr IMPROVED' under the old code -- ABOVE the 3.35 pp/yr floor, i.e. it would
+    have cleared SC-001. That is brief 02's failure mode reaching an acceptance gate."""
+    import copy
+    import json
+    import os
+    import subprocess
+    import tempfile
+
+    src = ROOT / "regime/wf/pooled_nnnc.json"
+    if not src.exists():
+        pytest.skip("pooled control record unavailable")
+    base = json.loads(src.read_text())
+    arm, ctl = copy.deepcopy(base), copy.deepcopy(base)
+    for i, t in enumerate(arm["trades"]):
+        t["profit_abs"] = -1.0
+        t["open_date"] = f"2024-01-01 00:{i % 60:02d}:00+00:00"
+    for t in ctl["trades"]:
+        t["profit_abs"] = -5.0
+
+    d = Path(tempfile.mkdtemp())
+    (d / "arm.json").write_text(json.dumps(arm))
+    (d / "ctl.json").write_text(json.dumps(ctl))
+    r = subprocess.run([os.sys.executable, str(ROOT / "regime/wf/compare_pooled.py"),
+                        "--arm", str(d / "arm.json"), "--control", str(d / "ctl.json")],
+                       capture_output=True, text=True,
+                       env={**os.environ, "PYTHONPATH": str(ROOT)})
+    assert "INCONCLUSIVE_ARM_LOSES" in r.stdout
+    assert "IMPROVED" not in r.stdout
+
+
+def test_pooled_comparator_self_comparison_is_unchanged():
+    """The retro-fit must not disturb the existing guards or the pinned statistic."""
+    import os
+    import subprocess
+    src = ROOT / "regime/wf/pooled_nnnc.json"
+    if not src.exists():
+        pytest.skip("pooled control record unavailable")
+    r = subprocess.run([os.sys.executable, str(ROOT / "regime/wf/compare_pooled.py"),
+                        "--arm", str(src), "--control", str(src)],
+                       capture_output=True, text=True,
+                       env={**os.environ, "PYTHONPATH": str(ROOT)})
+    assert "INCONCLUSIVE_ABSORBED" in r.stdout
