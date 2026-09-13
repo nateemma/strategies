@@ -1,0 +1,77 @@
+{
+  "run_id": "20260913T173530Z",
+  "fold": "f07",
+  "comparator": {
+    "objective": "utility",
+    "turnover_control": "penalty",
+    "gamma": 0.5,
+    "epochs": 4
+  },
+  "retrained": true,
+  "rows": [
+    {
+      "seed": 1,
+      "brief1": 0.0005842789539404075,
+      "rl": -0.15102947264298036,
+      "brief1_w": 0.0006944444444444444,
+      "rl_w": 0.5498187340889581,
+      "bars_differing": 0.5500332863277639,
+      "brief1_train_seconds": 345.1,
+      "delta": -0.15161375159692078
+    },
+    {
+      "seed": 2,
+      "brief1": 0.001894676723399528,
+      "rl": -0.19445791355994535,
+      "brief1_w": 0.00019290123456790122,
+      "rl_w": 0.4536826307232642,
+      "bars_differing": 0.45361889394683363,
+      "brief1_train_seconds": 495.3,
+      "delta": -0.19635259028334487
+    },
+    {
+      "seed": 3,
+      "brief1": 0.0014249226986018373,
+      "rl": -0.26597084736477045,
+      "brief1_w": 0.0011766975308641976,
+      "rl_w": 0.6711531948682445,
+      "bars_differing": 0.6705478551944327,
+      "brief1_train_seconds": 489.8,
+      "delta": -0.2673957700633723
+    },
+    {
+      "seed": 4,
+      "brief1": 0.0,
+      "rl": -0.21888484934826888,
+      "brief1_w": 0.0,
+      "rl_w": 0.49827073121398663,
+      "bars_differing": 0.49827073121398663,
+      "brief1_train_seconds": 485.8,
+      "delta": -0.21888484934826888
+    },
+    {
+      "seed": 5,
+      "brief1": 0.0016285574056943127,
+      "rl": -0.264270536208931,
+      "brief1_w": 1.9290123456790123e-05,
+      "rl_w": 0.8269207405874499,
+      "bars_differing": 0.8268998432560392,
+      "brief1_train_seconds": 490.2,
+      "delta": -0.26589909361462527
+    }
+  ],
+  "delta_iqm": -0.22704551108207968,
+  "delta_ci": [
+    -0.25709491534085277,
+    -0.18296350662176003
+  ],
+  "verdict": "INCONCLUSIVE \u2014 DEGENERATE COMPARATOR",
+  "bars_differing": 0.5998741219878112,
+  "brief1_mean_exposure": 0.00041666666666666664,
+  "rl_mean_exposure": 0.5999692062963806,
+  "brief1_degenerate": true,
+  "rl_degenerate": false,
+  "participation_floor": 0.05,
+  "raw_delta_verdict": "WORSE",
+  "note": "comparator below the participation floor; its return is withheld (FR-017)"
+}

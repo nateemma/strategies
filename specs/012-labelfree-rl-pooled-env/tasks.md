@@ -94,7 +94,7 @@ reusable whether or not PPO works.
 - [X] T033 [US4] Attach mean exposure, trades/yr and mean holding time to **every** return, so a policy that learned not to trade cannot rank on inaction (FR-016, SC-013)
 - [X] T034 [US4] Emit `degenerate: true` with the **return withheld** when mean exposure falls below the participation floor (FR-017, R8). Brief 1's six best-ranked configurations were all below it, two flat on 100% and 99.9% of bars — and a policy-gradient method finds that optimum faster
 - [ ] T035 [P] [US4] Test that a degenerate arm's return is withheld and cannot be read from the artefact (quickstart S7)
-- [ ] T035a [US4] Implement `research/labelfree/rl/evaluate.py` — turn a trained policy into an exposure path, apply the participation floor, and emit the arm record. The plan's structure names it and T037/T038/T042–T046 use it, but no task created it (analyze M3)
+- [X] T035a [US4] Implement `research/labelfree/rl/evaluate.py` — turn a trained policy into an exposure path, apply the participation floor, and emit the arm record. The plan's structure names it and T037/T038/T042–T046 use it, but no task created it (analyze M3)
 - [X] T036 [US4] RUN the screening fold: `--fold f07`, **both** action parameterisations, 5 seeds each, sequentially — compute goes to seeds, never to algorithm comparison (FR-010, FR-011, quickstart S6)
 - [ ] T036a [US4] Pre-register the operational definition of "distinguishable" in `research/labelfree/rl/__init__.py` **before the screen runs**: the RL and brief-1 exposure paths must differ on **more than 5% of decision bars** on the screening fold, at every seed. A bar defined after seeing the screen is not a bar (analyze H1)
 - [ ] T037 [US4] Apply the SC-018 screen bar in `research/labelfree/rl/evaluate.py --screen`: **non-degenerate** (mean exposure above the participation floor) **and distinguishable** per T036a's pinned threshold. Deliberately weak — time is not the binding constraint, so a marginal screen is funded and only a degenerate or path-identical one is not. Print `FUND` or `STOP`
@@ -108,13 +108,13 @@ reusable whether or not PPO works.
 `train.py` and `arms.py` write JSON results only, never weights, so there is no artefact to
 compare against and SC-009 cannot execute without rebuilding one.
 
-- [ ] T038a [US5] Add policy persistence to `research/labelfree/rl/headtohead.py`'s dependency path: re-train brief 1's best configuration (`utility-penalty-g0.5`, its reported f08 optimum) on the screening fold at the same seeds, and **save the weights** to `research/labelfree/rl/brief1_policy.npz`. Budgeted as its own work item, not folded into T039 (analyze C1)
-- [ ] T038b [P] [US5] Test that the persisted policy reloads and reproduces its own training-range exposure path bit-for-bit — a comparator that does not reload deterministically makes the head-to-head unrepeatable
-- [ ] T038c [US5] Record in the trial log that brief 1's comparator was **re-trained for this feature**, not recovered from brief 1's own run. Its numbers are therefore a fresh draw, not brief 1's reported figures, and the report must say so
+- [X] T038a [US5] Add policy persistence to `research/labelfree/rl/headtohead.py`'s dependency path: re-train brief 1's best configuration (`utility-penalty-g0.5`, its reported f08 optimum) on the screening fold at the same seeds, and **save the weights** to `research/labelfree/rl/brief1_policy.npz`. Budgeted as its own work item, not folded into T039 (analyze C1)
+- [X] T038b [P] [US5] Test that the persisted policy reloads and reproduces its own training-range exposure path bit-for-bit — a comparator that does not reload deterministically makes the head-to-head unrepeatable
+- [X] T038c [US5] Record in the trial log that brief 1's comparator was **re-trained for this feature**, not recovered from brief 1's own run. Its numbers are therefore a fresh draw, not brief 1's reported figures, and the report must say so
 
-- [ ] T039 [US5] Implement `research/labelfree/rl/headtohead.py` — both policies evaluated **in the simulator**, identical folds, costs and liquidity caps (FR-018). Not through freqtrade; that is what keeps them comparable (R3)
-- [ ] T040 [US5] Report the paired IQM difference with its interval against the floor, and a verdict of `RL BETTER BY THE FLOOR` · `MATCHED` · `WORSE`
-- [ ] T041 [US5] Apply SC-010: `MATCHED` **closes the family** and records that the differentiable estimator is preferred for lower variance and backtestable state
+- [X] T039 [US5] Implement `research/labelfree/rl/headtohead.py` — both policies evaluated **in the simulator**, identical folds, costs and liquidity caps (FR-018). Not through freqtrade; that is what keeps them comparable (R3)
+- [X] T040 [US5] Report the paired IQM difference with its interval against the floor, and a verdict of `RL BETTER BY THE FLOOR` · `MATCHED` · `WORSE`
+- [X] T041 [US5] Apply SC-010: `MATCHED` **closes the family** and records that the differentiable estimator is preferred for lower variance and backtestable state
 
 ---
 

@@ -228,3 +228,23 @@ def test_discrete_arm_is_not_degenerate():
         pytest.skip("screen not run")
     ex = np.array([r["train_mean_exposure"] for r in json.loads(p.read_text())["runs"]])
     assert (ex >= RL.MIN_EXPOSURE).all(), f"degenerate seeds: {ex[ex < RL.MIN_EXPOSURE]}"
+
+
+def test_head_to_head_applies_the_floor_to_BOTH_sides():
+    """FR-017. A comparator below the participation floor is INCONCLUSIVE and its return is
+    withheld, so no delta against it is admissible -- a policy that ABSTAINS is not a policy
+    that PERFORMS.
+
+    Measured 2026-09-13: brief 1's re-trained comparator ran at exposure 0.0004, 125x below
+    the floor, and the raw delta read 'WORSE' -- i.e. the RL policy losing to one that does
+    nothing. Applying the floor to the arm only is how brief 02 came to measure arms against
+    a P&L control that lost 52% in a rising market."""
+    import json
+    p = ROOT / "research/labelfree/rl/headtohead.json"
+    if not p.exists():
+        pytest.skip("head-to-head not run")
+    d = json.loads(p.read_text())
+    if d["brief1_mean_exposure"] < d["participation_floor"]:
+        assert d["verdict"].startswith("INCONCLUSIVE"), \
+            "a degenerate comparator must not yield a performance verdict"
+        assert "raw_delta_verdict" in d, "the withheld raw verdict must still be recorded"
