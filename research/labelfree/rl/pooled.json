@@ -1,0 +1,952 @@
+{
+  "run_id": "20260913T184314Z",
+  "action": "discrete",
+  "seeds": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "steps": 1000000,
+  "per_fold": [
+    {
+      "fold_id": "f00",
+      "reward_iqm": 0.023153531134843405,
+      "exposure_iqm": 0.8915614465741598,
+      "positive_seeds": 3,
+      "n_seeds": 5
+    },
+    {
+      "fold_id": "f01",
+      "reward_iqm": -0.28848523294160094,
+      "exposure_iqm": 0.7991075612718004,
+      "positive_seeds": 0,
+      "n_seeds": 5
+    },
+    {
+      "fold_id": "f02",
+      "reward_iqm": -0.09104044353953104,
+      "exposure_iqm": 0.8560242080392074,
+      "positive_seeds": 0,
+      "n_seeds": 5
+    },
+    {
+      "fold_id": "f03",
+      "reward_iqm": 0.6896332777524948,
+      "exposure_iqm": 0.8781519815807002,
+      "positive_seeds": 5,
+      "n_seeds": 5
+    },
+    {
+      "fold_id": "f04",
+      "reward_iqm": -0.1685106963876013,
+      "exposure_iqm": 0.820151059030182,
+      "positive_seeds": 2,
+      "n_seeds": 5
+    },
+    {
+      "fold_id": "f05",
+      "reward_iqm": -0.3348050843100272,
+      "exposure_iqm": 0.6149351448615525,
+      "positive_seeds": 0,
+      "n_seeds": 5
+    },
+    {
+      "fold_id": "f06",
+      "reward_iqm": -0.24348718847581163,
+      "exposure_iqm": 0.7088892194868146,
+      "positive_seeds": 0,
+      "n_seeds": 5
+    },
+    {
+      "fold_id": "f07",
+      "reward_iqm": -0.038047175262611053,
+      "exposure_iqm": 0.7159671031596044,
+      "positive_seeds": 2,
+      "n_seeds": 5
+    },
+    {
+      "fold_id": "f08",
+      "reward_iqm": -0.2685143231514208,
+      "exposure_iqm": 0.47409704025873767,
+      "positive_seeds": 0,
+      "n_seeds": 5
+    },
+    {
+      "fold_id": "f09",
+      "reward_iqm": -0.16263139172721117,
+      "exposure_iqm": 0.6970700283493582,
+      "positive_seeds": 1,
+      "n_seeds": 5
+    },
+    {
+      "fold_id": "f10",
+      "reward_iqm": 0.1486345212396214,
+      "exposure_iqm": 0.6096040857156784,
+      "positive_seeds": 3,
+      "n_seeds": 5
+    },
+    {
+      "fold_id": "f11",
+      "reward_iqm": -0.30817034987729147,
+      "exposure_iqm": 0.5617366138315653,
+      "positive_seeds": 0,
+      "n_seeds": 5
+    },
+    {
+      "fold_id": "f12",
+      "reward_iqm": 0.07725666961013045,
+      "exposure_iqm": 0.5343844127624675,
+      "positive_seeds": 4,
+      "n_seeds": 5
+    },
+    {
+      "fold_id": "f13",
+      "reward_iqm": -0.1594515004521056,
+      "exposure_iqm": 0.887944850409481,
+      "positive_seeds": 0,
+      "n_seeds": 5
+    },
+    {
+      "fold_id": "f14",
+      "reward_iqm": 0.022926861783333845,
+      "exposure_iqm": 0.6099068686667061,
+      "positive_seeds": 3,
+      "n_seeds": 5
+    }
+  ],
+  "rows": [
+    {
+      "reward": -0.0675244569997753,
+      "mean_exposure": 0.8229900836848307,
+      "turnover": 78.34701333333334,
+      "trades_per_year": 190.05195320759358,
+      "n_pairs": 9,
+      "fold_id": "f00",
+      "seed": 1,
+      "status": "ok",
+      "seconds": 175.2
+    },
+    {
+      "reward": 0.07146454553416529,
+      "mean_exposure": 0.9446895097425538,
+      "turnover": 32.888888888888886,
+      "trades_per_year": 79.87554871005005,
+      "n_pairs": 9,
+      "fold_id": "f00",
+      "seed": 2,
+      "status": "ok",
+      "seconds": 171.6
+    },
+    {
+      "reward": -0.00786560537368917,
+      "mean_exposure": 0.9070047462950949,
+      "turnover": 55.22173333333333,
+      "trades_per_year": 146.6750258906763,
+      "n_pairs": 9,
+      "fold_id": "f00",
+      "seed": 3,
+      "status": "ok",
+      "seconds": 170.2
+    },
+    {
+      "reward": 0.005861653244054105,
+      "mean_exposure": 0.43232495247122443,
+      "turnover": 159.77699033333334,
+      "trades_per_year": 342.67264911739505,
+      "n_pairs": 9,
+      "fold_id": "f00",
+      "seed": 4,
+      "status": "ok",
+      "seconds": 171.0
+    },
+    {
+      "reward": 0.2580379498527778,
+      "mean_exposure": 0.9994230404361785,
+      "turnover": 1.0,
+      "trades_per_year": 2.4286484405082787,
+      "n_pairs": 9,
+      "fold_id": "f00",
+      "seed": 5,
+      "status": "ok",
+      "seconds": 170.2
+    },
+    {
+      "reward": -0.2741986559373641,
+      "mean_exposure": 0.8675768966703751,
+      "turnover": 89.85852,
+      "trades_per_year": 276.7469712410641,
+      "n_pairs": 9,
+      "fold_id": "f01",
+      "seed": 1,
+      "status": "ok",
+      "seconds": 169.8
+    },
+    {
+      "reward": -0.12649648912487355,
+      "mean_exposure": 0.994115996022275,
+      "turnover": 3.6145795555555558,
+      "trades_per_year": 9.688690448441166,
+      "n_pairs": 9,
+      "fold_id": "f01",
+      "seed": 2,
+      "status": "ok",
+      "seconds": 170.6
+    },
+    {
+      "reward": -0.281045176706362,
+      "mean_exposure": 0.814197514051697,
+      "turnover": 83.19820266666666,
+      "trades_per_year": 228.45313103371413,
+      "n_pairs": 9,
+      "fold_id": "f01",
+      "seed": 3,
+      "status": "ok",
+      "seconds": 169.0
+    },
+    {
+      "reward": -0.31021186618107666,
+      "mean_exposure": 0.715548273093329,
+      "turnover": 130.72446288888887,
+      "trades_per_year": 414.73276811975603,
+      "n_pairs": 9,
+      "fold_id": "f01",
+      "seed": 4,
+      "status": "ok",
+      "seconds": 169.0
+    },
+    {
+      "reward": -0.31988116534536715,
+      "mean_exposure": 0.15003362109726853,
+      "turnover": 153.30827333333335,
+      "trades_per_year": 463.336372054511,
+      "n_pairs": 9,
+      "fold_id": "f01",
+      "seed": 5,
+      "status": "ok",
+      "seconds": 168.6
+    },
+    {
+      "reward": -0.15313112503621074,
+      "mean_exposure": 0.6123480221050417,
+      "turnover": 118.69983599999998,
+      "trades_per_year": 378.61009690462225,
+      "n_pairs": 9,
+      "fold_id": "f02",
+      "seed": 1,
+      "status": "ok",
+      "seconds": 168.9
+    },
+    {
+      "reward": -0.04780683541711325,
+      "mean_exposure": 0.847412428023348,
+      "turnover": 61.05232377777778,
+      "trades_per_year": 165.1750182437116,
+      "n_pairs": 9,
+      "fold_id": "f02",
+      "seed": 2,
+      "status": "ok",
+      "seconds": 168.9
+    },
+    {
+      "reward": -0.13814505915736225,
+      "mean_exposure": 0.9732023634066552,
+      "turnover": 18.493423666666665,
+      "trades_per_year": 59.76355304572376,
+      "n_pairs": 9,
+      "fold_id": "f02",
+      "seed": 3,
+      "status": "ok",
+      "seconds": 168.5
+    },
+    {
+      "reward": -0.052010723898230034,
+      "mean_exposure": 0.7703401443301879,
+      "turnover": 119.89337511111113,
+      "trades_per_year": 345.9437368477685,
+      "n_pairs": 9,
+      "fold_id": "f02",
+      "seed": 4,
+      "status": "ok",
+      "seconds": 169.0
+    },
+    {
+      "reward": -0.08296554756300083,
+      "mean_exposure": 0.9503200517640864,
+      "turnover": 52.28401255555555,
+      "trades_per_year": 141.4453650126104,
+      "n_pairs": 9,
+      "fold_id": "f02",
+      "seed": 5,
+      "status": "ok",
+      "seconds": 169.3
+    },
+    {
+      "reward": 0.6151406810756181,
+      "mean_exposure": 0.810325065396497,
+      "turnover": 121.31424233333334,
+      "trades_per_year": 247.84697759937808,
+      "n_pairs": 9,
+      "fold_id": "f03",
+      "seed": 1,
+      "status": "ok",
+      "seconds": 171.1
+    },
+    {
+      "reward": 0.7891813313343424,
+      "mean_exposure": 0.8689148692621317,
+      "turnover": 37.55729344444444,
+      "trades_per_year": 76.16666062584403,
+      "n_pairs": 9,
+      "fold_id": "f03",
+      "seed": 2,
+      "status": "ok",
+      "seconds": 170.3
+    },
+    {
+      "reward": 0.7267094873362248,
+      "mean_exposure": 0.9778780980308935,
+      "turnover": 20.10664833333333,
+      "trades_per_year": 40.77653418219701,
+      "n_pairs": 9,
+      "fold_id": "f03",
+      "seed": 3,
+      "status": "ok",
+      "seconds": 170.1
+    },
+    {
+      "reward": 0.09348310714925644,
+      "mean_exposure": 0.5168159095750867,
+      "turnover": 225.0811245555556,
+      "trades_per_year": 471.53816756463743,
+      "n_pairs": 9,
+      "fold_id": "f03",
+      "seed": 4,
+      "status": "ok",
+      "seconds": 170.6
+    },
+    {
+      "reward": 0.7270496648456413,
+      "mean_exposure": 0.9552160100834717,
+      "turnover": 17.404624555555557,
+      "trades_per_year": 35.29679618165682,
+      "n_pairs": 9,
+      "fold_id": "f03",
+      "seed": 5,
+      "status": "ok",
+      "seconds": 170.0
+    },
+    {
+      "reward": -0.17343688669075796,
+      "mean_exposure": 0.8130603373425297,
+      "turnover": 63.001830777777776,
+      "trades_per_year": 224.6219119305386,
+      "n_pairs": 9,
+      "fold_id": "f04",
+      "seed": 1,
+      "status": "ok",
+      "seconds": 168.9
+    },
+    {
+      "reward": 0.03252769819045745,
+      "mean_exposure": 0.9784257141625345,
+      "turnover": 8.566443333333332,
+      "trades_per_year": 25.643223252017084,
+      "n_pairs": 9,
+      "fold_id": "f04",
+      "seed": 2,
+      "status": "ok",
+      "seconds": 168.2
+    },
+    {
+      "reward": -0.3771933830486811,
+      "mean_exposure": 0.6288581193092949,
+      "turnover": 114.65394899999998,
+      "trades_per_year": 688.473844332229,
+      "n_pairs": 9,
+      "fold_id": "f04",
+      "seed": 3,
+      "status": "ok",
+      "seconds": 167.1
+    },
+    {
+      "reward": -0.36181825397749445,
+      "mean_exposure": 0.668967125585482,
+      "turnover": 136.34727055555555,
+      "trades_per_year": 583.6157669037408,
+      "n_pairs": 9,
+      "fold_id": "f04",
+      "seed": 4,
+      "status": "ok",
+      "seconds": 167.5
+    },
+    {
+      "reward": 0.029723051505448485,
+      "mean_exposure": 0.9933261531710319,
+      "turnover": 3.0,
+      "trades_per_year": 8.96877310733178,
+      "n_pairs": 9,
+      "fold_id": "f04",
+      "seed": 5,
+      "status": "ok",
+      "seconds": 168.4
+    },
+    {
+      "reward": -0.38765448014401105,
+      "mean_exposure": 0.6640344269692102,
+      "turnover": 67.58416679999999,
+      "trades_per_year": 673.3052441351075,
+      "n_pairs": 10,
+      "fold_id": "f05",
+      "seed": 1,
+      "status": "ok",
+      "seconds": 167.3
+    },
+    {
+      "reward": -0.38502397950964884,
+      "mean_exposure": 0.44990981403034536,
+      "turnover": 92.6689709,
+      "trades_per_year": 659.5549115079623,
+      "n_pairs": 10,
+      "fold_id": "f05",
+      "seed": 2,
+      "status": "ok",
+      "seconds": 167.1
+    },
+    {
+      "reward": -0.29521206141318307,
+      "mean_exposure": 0.5609339167055922,
+      "turnover": 82.59903439999998,
+      "trades_per_year": 585.4579993073872,
+      "n_pairs": 10,
+      "fold_id": "f05",
+      "seed": 3,
+      "status": "ok",
+      "seconds": 167.3
+    },
+    {
+      "reward": -0.32417921200724964,
+      "mean_exposure": 0.9945955693883691,
+      "turnover": 2.3696743,
+      "trades_per_year": 16.741277364409854,
+      "n_pairs": 10,
+      "fold_id": "f05",
+      "seed": 4,
+      "status": "ok",
+      "seconds": 167.0
+    },
+    {
+      "reward": -0.2481917812150245,
+      "mean_exposure": 0.6198370909098552,
+      "turnover": 143.2789806,
+      "trades_per_year": 1034.5990768297409,
+      "n_pairs": 10,
+      "fold_id": "f05",
+      "seed": 5,
+      "status": "ok",
+      "seconds": 167.1
+    },
+    {
+      "reward": -0.20998407215911344,
+      "mean_exposure": 0.4388055796139204,
+      "turnover": 164.24736130000002,
+      "trades_per_year": 717.8600434006885,
+      "n_pairs": 10,
+      "fold_id": "f06",
+      "seed": 1,
+      "status": "ok",
+      "seconds": 168.5
+    },
+    {
+      "reward": -0.12489131107450664,
+      "mean_exposure": 0.9822671485988013,
+      "turnover": 5.952821,
+      "trades_per_year": 24.25541279129262,
+      "n_pairs": 10,
+      "fold_id": "f06",
+      "seed": 2,
+      "status": "ok",
+      "seconds": 168.4
+    },
+    {
+      "reward": -0.3253663469101561,
+      "mean_exposure": 0.7373691400974135,
+      "turnover": 105.4155311,
+      "trades_per_year": 604.4246972352402,
+      "n_pairs": 10,
+      "fold_id": "f06",
+      "seed": 3,
+      "status": "ok",
+      "seconds": 167.2
+    },
+    {
+      "reward": -0.1951111463581654,
+      "mean_exposure": 0.609779751413362,
+      "turnover": 127.3561439,
+      "trades_per_year": 534.7969035827622,
+      "n_pairs": 10,
+      "fold_id": "f06",
+      "seed": 4,
+      "status": "ok",
+      "seconds": 168.2
+    },
+    {
+      "reward": -0.3566042633062248,
+      "mean_exposure": 0.7795187669496682,
+      "turnover": 110.5937308,
+      "trades_per_year": 517.2318314022584,
+      "n_pairs": 10,
+      "fold_id": "f06",
+      "seed": 5,
+      "status": "ok",
+      "seconds": 168.5
+    },
+    {
+      "reward": 0.15735447530608454,
+      "mean_exposure": 0.6787401213343124,
+      "turnover": 122.9501651,
+      "trades_per_year": 265.2816370137931,
+      "n_pairs": 10,
+      "fold_id": "f07",
+      "seed": 1,
+      "status": "ok",
+      "seconds": 171.2
+    },
+    {
+      "reward": -0.08506270361354025,
+      "mean_exposure": 0.46062941704241717,
+      "turnover": 114.96638309999999,
+      "trades_per_year": 234.3768291360151,
+      "n_pairs": 10,
+      "fold_id": "f07",
+      "seed": 2,
+      "status": "ok",
+      "seconds": 171.0
+    },
+    {
+      "reward": -0.22793691606550773,
+      "mean_exposure": 0.6848288426664442,
+      "turnover": 254.05371359999998,
+      "trades_per_year": 687.7031445192589,
+      "n_pairs": 10,
+      "fold_id": "f07",
+      "seed": 3,
+      "status": "ok",
+      "seconds": 170.1
+    },
+    {
+      "reward": 0.5202172069244133,
+      "mean_exposure": 0.7843323454780571,
+      "turnover": 55.870817,
+      "trades_per_year": 114.14706180936166,
+      "n_pairs": 10,
+      "fold_id": "f07",
+      "seed": 4,
+      "status": "ok",
+      "seconds": 170.6
+    },
+    {
+      "reward": -0.18643329748037746,
+      "mean_exposure": 0.8080956230467127,
+      "turnover": 133.4191606,
+      "trades_per_year": 365.6634640143919,
+      "n_pairs": 10,
+      "fold_id": "f07",
+      "seed": 5,
+      "status": "ok",
+      "seconds": 170.7
+    },
+    {
+      "reward": -0.19185961417205316,
+      "mean_exposure": 0.9903863376412151,
+      "turnover": 3.7,
+      "trades_per_year": 17.230343947690184,
+      "n_pairs": 10,
+      "fold_id": "f08",
+      "seed": 1,
+      "status": "ok",
+      "seconds": 168.9
+    },
+    {
+      "reward": -0.2606214862947902,
+      "mean_exposure": 0.6473564239903867,
+      "turnover": 97.6416602,
+      "trades_per_year": 423.09051683130116,
+      "n_pairs": 10,
+      "fold_id": "f08",
+      "seed": 2,
+      "status": "ok",
+      "seconds": 168.4
+    },
+    {
+      "reward": -0.37263696114583716,
+      "mean_exposure": 0.12399293827996094,
+      "turnover": 93.10647080000003,
+      "trades_per_year": 313.05902744712705,
+      "n_pairs": 10,
+      "fold_id": "f08",
+      "seed": 3,
+      "status": "ok",
+      "seconds": 170.0
+    },
+    {
+      "reward": -0.24700909687485462,
+      "mean_exposure": 0.523576652153746,
+      "turnover": 164.93052880000002,
+      "trades_per_year": 770.0420691741506,
+      "n_pairs": 10,
+      "fold_id": "f08",
+      "seed": 4,
+      "status": "ok",
+      "seconds": 167.8
+    },
+    {
+      "reward": -0.2979123862846177,
+      "mean_exposure": 0.2513580446320801,
+      "turnover": 100.97158510000001,
+      "trades_per_year": 382.27637889013744,
+      "n_pairs": 10,
+      "fold_id": "f08",
+      "seed": 5,
+      "status": "ok",
+      "seconds": 168.6
+    },
+    {
+      "reward": -0.2471621433867024,
+      "mean_exposure": 0.6769826178152633,
+      "turnover": 96.4270289,
+      "trades_per_year": 354.36538707219864,
+      "n_pairs": 10,
+      "fold_id": "f09",
+      "seed": 1,
+      "status": "ok",
+      "seconds": 169.1
+    },
+    {
+      "reward": 0.17679385877885664,
+      "mean_exposure": 0.826520852855056,
+      "turnover": 31.181547799999997,
+      "trades_per_year": 93.28109236847946,
+      "n_pairs": 10,
+      "fold_id": "f09",
+      "seed": 2,
+      "status": "ok",
+      "seconds": 170.0
+    },
+    {
+      "reward": -0.06261467745336939,
+      "mean_exposure": 0.5877066143777554,
+      "turnover": 167.27959479999998,
+      "trades_per_year": 457.6490108989834,
+      "n_pairs": 10,
+      "fold_id": "f09",
+      "seed": 3,
+      "status": "ok",
+      "seconds": 169.6
+    },
+    {
+      "reward": -0.17811735434156167,
+      "mean_exposure": 0.9955882059450631,
+      "turnover": 2.1217787,
+      "trades_per_year": 9.927775564576436,
+      "n_pairs": 10,
+      "fold_id": "f09",
+      "seed": 4,
+      "status": "ok",
+      "seconds": 168.4
+    },
+    {
+      "reward": -0.32524482710084,
+      "mean_exposure": 0.544836970475586,
+      "turnover": 126.04569809999998,
+      "trades_per_year": 530.5657178203834,
+      "n_pairs": 10,
+      "fold_id": "f09",
+      "seed": 5,
+      "status": "ok",
+      "seconds": 168.6
+    },
+    {
+      "reward": 0.34198662159692245,
+      "mean_exposure": 0.8534321101979396,
+      "turnover": 54.9170292,
+      "trades_per_year": 111.37242175992593,
+      "n_pairs": 10,
+      "fold_id": "f10",
+      "seed": 1,
+      "status": "ok",
+      "seconds": 171.6
+    },
+    {
+      "reward": -0.039187645159035805,
+      "mean_exposure": 0.2962967440376728,
+      "turnover": 161.0209612,
+      "trades_per_year": 352.8961659503884,
+      "n_pairs": 10,
+      "fold_id": "f10",
+      "seed": 2,
+      "status": "ok",
+      "seconds": 171.6
+    },
+    {
+      "reward": 0.3488990140851267,
+      "mean_exposure": 0.9859474476212524,
+      "turnover": 11.142982299999998,
+      "trades_per_year": 22.59810740780183,
+      "n_pairs": 10,
+      "fold_id": "f10",
+      "seed": 3,
+      "status": "ok",
+      "seconds": 171.0
+    },
+    {
+      "reward": 0.14310458728097752,
+      "mean_exposure": 0.6149263615324604,
+      "turnover": 131.72845149999998,
+      "trades_per_year": 281.7445699489709,
+      "n_pairs": 10,
+      "fold_id": "f10",
+      "seed": 4,
+      "status": "ok",
+      "seconds": 171.2
+    },
+    {
+      "reward": -0.178336777877603,
+      "mean_exposure": 0.3604537854166351,
+      "turnover": 277.8091178000001,
+      "trades_per_year": 669.0422883965416,
+      "n_pairs": 10,
+      "fold_id": "f10",
+      "seed": 5,
+      "status": "ok",
+      "seconds": 170.3
+    },
+    {
+      "reward": -0.3339486389107915,
+      "mean_exposure": 0.4479603647557223,
+      "turnover": 86.30084210000001,
+      "trades_per_year": 438.6905221354378,
+      "n_pairs": 10,
+      "fold_id": "f11",
+      "seed": 1,
+      "status": "ok",
+      "seconds": 168.5
+    },
+    {
+      "reward": -0.31284994919687803,
+      "mean_exposure": 0.6717850010264953,
+      "turnover": 136.26261639999998,
+      "trades_per_year": 879.7291665725762,
+      "n_pairs": 10,
+      "fold_id": "f11",
+      "seed": 2,
+      "status": "ok",
+      "seconds": 167.4
+    },
+    {
+      "reward": -0.2777124615242049,
+      "mean_exposure": 0.5023342076820285,
+      "turnover": 58.8579074,
+      "trades_per_year": 266.0930863798932,
+      "n_pairs": 10,
+      "fold_id": "f11",
+      "seed": 3,
+      "status": "ok",
+      "seconds": 168.4
+    },
+    {
+      "reward": -0.25383933660688845,
+      "mean_exposure": 0.761284285622353,
+      "turnover": 73.1002762,
+      "trades_per_year": 473.8306408021014,
+      "n_pairs": 10,
+      "fold_id": "f11",
+      "seed": 4,
+      "status": "ok",
+      "seconds": 166.9
+    },
+    {
+      "reward": -0.3375162477895205,
+      "mean_exposure": 0.5110906327861721,
+      "turnover": 89.9136154,
+      "trades_per_year": 435.944801939394,
+      "n_pairs": 10,
+      "fold_id": "f11",
+      "seed": 5,
+      "status": "ok",
+      "seconds": 167.7
+    },
+    {
+      "reward": 0.14263009255646153,
+      "mean_exposure": 0.36746881246710345,
+      "turnover": 131.3253455,
+      "trades_per_year": 308.76859374630953,
+      "n_pairs": 10,
+      "fold_id": "f12",
+      "seed": 1,
+      "status": "ok",
+      "seconds": 170.7
+    },
+    {
+      "reward": 0.018053996330368256,
+      "mean_exposure": 0.43277448328064805,
+      "turnover": 188.19489649999997,
+      "trades_per_year": 504.4250878421173,
+      "n_pairs": 10,
+      "fold_id": "f12",
+      "seed": 2,
+      "status": "ok",
+      "seconds": 169.9
+    },
+    {
+      "reward": -0.119690533829961,
+      "mean_exposure": 0.657379893646864,
+      "turnover": 298.6503828,
+      "trades_per_year": 969.7806847788858,
+      "n_pairs": 10,
+      "fold_id": "f12",
+      "seed": 3,
+      "status": "ok",
+      "seconds": 169.1
+    },
+    {
+      "reward": 0.07108591994356155,
+      "mean_exposure": 0.7107699510137527,
+      "turnover": 88.43974789999999,
+      "trades_per_year": 258.1365069900874,
+      "n_pairs": 10,
+      "fold_id": "f12",
+      "seed": 4,
+      "status": "ok",
+      "seconds": 168.9
+    },
+    {
+      "reward": 0.1679078126324147,
+      "mean_exposure": 0.5129988613598905,
+      "turnover": 134.58156440000002,
+      "trades_per_year": 342.6836334459204,
+      "n_pairs": 10,
+      "fold_id": "f12",
+      "seed": 5,
+      "status": "ok",
+      "seconds": 169.6
+    },
+    {
+      "reward": -0.11718715632952122,
+      "mean_exposure": 0.536177830133372,
+      "turnover": 124.96539780000003,
+      "trades_per_year": 279.0671947199633,
+      "n_pairs": 10,
+      "fold_id": "f13",
+      "seed": 1,
+      "status": "ok",
+      "seconds": 171.1
+    },
+    {
+      "reward": -0.15301009138011895,
+      "mean_exposure": 0.9914732584937431,
+      "turnover": 4.884547499999999,
+      "trades_per_year": 10.978623484586075,
+      "n_pairs": 10,
+      "fold_id": "f13",
+      "seed": 2,
+      "status": "ok",
+      "seconds": 170.3
+    },
+    {
+      "reward": -0.2252439453306904,
+      "mean_exposure": 0.7588563082194634,
+      "turnover": 131.2436707,
+      "trades_per_year": 308.8999047078105,
+      "n_pairs": 10,
+      "fold_id": "f13",
+      "seed": 3,
+      "status": "ok",
+      "seconds": 170.3
+    },
+    {
+      "reward": -0.16273452905582064,
+      "mean_exposure": 0.9169640114158772,
+      "turnover": 49.13796010000001,
+      "trades_per_year": 112.48410020931601,
+      "n_pairs": 10,
+      "fold_id": "f13",
+      "seed": 4,
+      "status": "ok",
+      "seconds": 170.5
+    },
+    {
+      "reward": -0.16260988092037718,
+      "mean_exposure": 0.9880142315931021,
+      "turnover": 4.492875099999999,
+      "trades_per_year": 10.197850929159973,
+      "n_pairs": 10,
+      "fold_id": "f13",
+      "seed": 5,
+      "status": "ok",
+      "seconds": 170.4
+    },
+    {
+      "reward": -0.042883023183858796,
+      "mean_exposure": 0.5097426017639839,
+      "turnover": 230.88559320000005,
+      "trades_per_year": 517.132723896602,
+      "n_pairs": 10,
+      "fold_id": "f14",
+      "seed": 1,
+      "status": "ok",
+      "seconds": 171.1
+    },
+    {
+      "reward": 0.024600265048264108,
+      "mean_exposure": 0.5486990320538757,
+      "turnover": 182.04048400000002,
+      "trades_per_year": 412.58302239010635,
+      "n_pairs": 10,
+      "fold_id": "f14",
+      "seed": 2,
+      "status": "ok",
+      "seconds": 170.5
+    },
+    {
+      "reward": 0.34924012436146634,
+      "mean_exposure": 0.9877352906357286,
+      "turnover": 5.2951384,
+      "trades_per_year": 10.982695012193677,
+      "n_pairs": 10,
+      "fold_id": "f14",
+      "seed": 3,
+      "status": "ok",
+      "seconds": 171.1
+    },
+    {
+      "reward": -0.1220759974688818,
+      "mean_exposure": 0.5710182094162388,
+      "turnover": 216.80558420000003,
+      "trades_per_year": 543.6585897956147,
+      "n_pairs": 10,
+      "fold_id": "f14",
+      "seed": 4,
+      "status": "ok",
+      "seconds": 169.1
+    },
+    {
+      "reward": 0.08706334348559622,
+      "mean_exposure": 0.7100033645300033,
+      "turnover": 147.45218720000003,
+      "trades_per_year": 329.29209194717794,
+      "n_pairs": 10,
+      "fold_id": "f14",
+      "seed": 5,
+      "status": "ok",
+      "seconds": 170.8
+    }
+  ],
+  "pooled_reward_iqm": -0.1300794129936541,
+  "pooled_exposure_iqm": 0.7110693757080774,
+  "pooled_trades_per_year": 312.1317376538963,
+  "folds_positive": 5,
+  "n_folds": 15,
+  "degenerate": false
+}

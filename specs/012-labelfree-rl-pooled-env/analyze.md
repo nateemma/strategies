@@ -136,3 +136,59 @@ made unnecessary by the feature that found it being killed.** `cancelled-with-re
 distinguish *"no longer needed"* from *"still needed, just not here"*, and the latter re-homed
 rather than dropped. Worth adding to the protocol's close-out checklist so the next kill does
 not silently drop its own fixes.
+
+---
+
+# Post-Implementation Analysis — 2026-09-13 (T052)
+
+Run after the pooled walk-forward returned reward IQM −0.1301 and 5/15 folds positive.
+47 complete, 9 cancelled with reasons, 8 open (close-out).
+
+## Findings
+
+| ID | Category | Severity | Summary | Recommendation |
+|----|----------|----------|---------|----------------|
+| Q1 | Spec accuracy | **HIGH** | **SC-009 was unsatisfiable twice over.** Clarification moved it off "brief 1's best *pooled* result" (which does not exist) onto "brief 1's *policy*" — which also does not exist, since brief 1 persists no weights. Re-training produced a comparator at exposure 0.0004, so the gate is *still* unsatisfiable, now for a third reason. | A gate naming another feature's artefact must verify the artefact exists **at specification time**. Two clarification rounds and one implementation round were spent discovering it did not. |
+| Q2 | Process | **HIGH** | **Nine gated tasks cancelled** because the arm loses to cash. Correct for this feature — but feature 011's identical cancellation dropped a `baselines.py` fix the study still needed, and this feature inherited that hole. T044a/T044b are cancelled here *again*. | The span-mode fix has now been written and dropped **twice**. Re-home it to the protocol as standalone work, not as a task inside a brief that can be killed. |
+| Q3 | Coverage | MEDIUM | **SC-004 unevaluable for the fourth consecutive feature.** 505 trials, 27 configurations, 5 seeds; DSR and CSCV need a time axis, the log stores summary scalars. | Escalated four times now. The schema change is overdue. |
+| Q4 | Observation | MEDIUM | **R4 was refuted by measurement**, and the refutation corrects brief 02's diagnosis of its own defect. | Recorded in R4a and in brief 02's forward-looking notes. Worth a line in the protocol: a mechanism's failure mode belongs to the mechanism, not to how its parameters are obtained. |
+| Q5 | Observation | LOW | The predicted failure (R8, "learn not to trade") **did not occur**: 1/75 runs below any floor, exposure 0.711, 312 trades/yr. The policy participates and loses. | None. A prediction that did not come true, recorded as such. |
+
+## Gate Verification
+
+| gate | evidence | verdict |
+|---|---|---|
+| A — env ≡ simulator | 0.00e+00 on all five cases (logic); 7.2e-07 vs a 5e-06 ceiling (precision) | PASS |
+| B — the reward can be hacked | 8.46× vs the pinned ≥2.0× bar | PASS |
+| liveness — every swept parameter | 4/4 LIVE, each in its active regime | PASS |
+| screen — SC-018 | exposure 0.679 vs floor 0.05; paths differ on 60.0% vs >5% | FUND |
+| admissibility — the pooled arm | exposure 0.711, 312 trades/yr | non-degenerate |
+
+Every gate passed **before** the kill, which is what separates "this method loses" from "this
+harness is broken". Gate B in particular found two environment bugs before it could pass.
+
+## Constitution Alignment
+
+10/10 PASS. Principle VI is again load-bearing: the learning-curve diagnostic ran *before* the
+screen and changed both the budget and the seed count, and the two gates ran before any policy
+was trained. Principle II is satisfied differently than planned — W1/W2/W3 was cancelled with
+the other gated work, but the pooled run spans 15 anchored folds across 3.68 years, and no
+acceptance claim is made that would require the distant-era evidence.
+
+## Metrics
+
+- Tasks: 47 complete, 9 cancelled-with-reason, 8 close-out
+- Tests: 28 passing
+- Trials: 505 pre-registered, audit clean, 0 problems
+- Gates passed before the kill: 5 of 5
+- Critical: **0** · High: 2 (Q1, Q2 — both process, both escalated) · Medium: 2 · Low: 1
+
+## Verdict
+
+**CLEAN.** No CRITICAL findings. The feature reached a well-evidenced negative with every gate
+green beforehand, refuted one of its own predictions by measurement, and corrected a
+misdiagnosis in an earlier brief.
+
+The durable outputs outlast the verdict: a pooled trading environment proven equivalent to the
+study's simulator and proven able to exhibit reward hacking; the shared admissibility gate; and
+the finding that band-hold bimodality is mechanical rather than learned.

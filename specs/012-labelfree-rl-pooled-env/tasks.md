@@ -80,7 +80,7 @@ reusable whether or not PPO works.
 
 - [X] T025 [US3] Select checkpoints on **training reward only** (SC-012), and write a `SelectionRecord` carrying the quantity used and the range it came from (FR-012)
 - [X] T026 [US3] Make `train.py` refuse to record a selection whose range is the fold under evaluation
-- [ ] T027 [P] [US3] Test that a selection record naming the evaluation fold is rejected (quickstart S5). Selecting on the test split is the specific defect the brief cites in FreqAI's `best_model.zip`
+- [X] T027 [P] [US3] Test that a selection record naming the evaluation fold is rejected (quickstart S5). Selecting on the test split is the specific defect the brief cites in FreqAI's `best_model.zip`
 - [X] T028 [US3] Pre-register every configuration to `research/labelfree/trials.jsonl` **before** it runs (FR-013)
 
 ---
@@ -93,10 +93,10 @@ reusable whether or not PPO works.
 - [X] T032 [US4] Report the interquartile mean over ≥5 seeds with a bootstrap interval, never a best seed; seeds with identical trades count once (FR-014, FR-015)
 - [X] T033 [US4] Attach mean exposure, trades/yr and mean holding time to **every** return, so a policy that learned not to trade cannot rank on inaction (FR-016, SC-013)
 - [X] T034 [US4] Emit `degenerate: true` with the **return withheld** when mean exposure falls below the participation floor (FR-017, R8). Brief 1's six best-ranked configurations were all below it, two flat on 100% and 99.9% of bars — and a policy-gradient method finds that optimum faster
-- [ ] T035 [P] [US4] Test that a degenerate arm's return is withheld and cannot be read from the artefact (quickstart S7)
+- [X] T035 [P] [US4] Test that a degenerate arm's return is withheld and cannot be read from the artefact (quickstart S7)
 - [X] T035a [US4] Implement `research/labelfree/rl/evaluate.py` — turn a trained policy into an exposure path, apply the participation floor, and emit the arm record. The plan's structure names it and T037/T038/T042–T046 use it, but no task created it (analyze M3)
 - [X] T036 [US4] RUN the screening fold: `--fold f07`, **both** action parameterisations, 5 seeds each, sequentially — compute goes to seeds, never to algorithm comparison (FR-010, FR-011, quickstart S6)
-- [ ] T036a [US4] Pre-register the operational definition of "distinguishable" in `research/labelfree/rl/__init__.py` **before the screen runs**: the RL and brief-1 exposure paths must differ on **more than 5% of decision bars** on the screening fold, at every seed. A bar defined after seeing the screen is not a bar (analyze H1)
+- [X] T036a [US4] Pre-register the operational definition of "distinguishable" in `research/labelfree/rl/__init__.py` **before the screen runs**: the RL and brief-1 exposure paths must differ on **more than 5% of decision bars** on the screening fold, at every seed. A bar defined after seeing the screen is not a bar (analyze H1)
 - [X] T037 [US4] Apply the SC-018 screen bar in `research/labelfree/rl/evaluate.py --screen`: **non-degenerate** (mean exposure above the participation floor) **and distinguishable** per T036a's pinned threshold. Deliberately weak — time is not the binding constraint, so a marginal screen is funded and only a degenerate or path-identical one is not. Print `FUND` or `STOP`
 - [X] T038 [US4] Make `--pooled` refuse to run without a `FUND` screen on record
 
@@ -122,29 +122,29 @@ compare against and SC-009 cannot execute without rebuilding one.
 
 **Do not start unless T037 printed `FUND`.**
 
-- [ ] T042 [GATED] RUN the full 15-fold pooled walk-forward for the locked configuration, sequentially; report the annualised delta against the control with its bootstrap interval and whether it clears the floor (SC-001)
-- [ ] T043 [GATED] Report f07's contribution to the pooled verdict **separately** (SC-019) — the screen selected on it, and a selection rule discovered after the fact is not a selection rule
-- [ ] T044 [GATED] RUN W1/W2/W3 single-window and report against SC-002
-- [ ] T044a [GATED] Add a span mode to `research/labelfree/baselines.py` — `--folds f00..f14` aggregating on the same annualisation the floor uses. It accepts `--fold` only today. **Feature 011 found this gap and wrote the fix as its T043a, which was then cancelled with the rest of that feature when SC-009 killed it** — so the fix never landed and this feature inherits the hole (analyze C2)
-- [ ] T044b [P] [GATED] Test that a one-fold span reproduces `--fold` exactly, so the new path cannot silently diverge from the old
-- [ ] T045 [GATED] RUN the four mandatory baselines over the evaluation span via `baselines.py --folds` (SC-003)
-- [ ] T046 [GATED] RUN cost stress at 1.5× and 2× fees; report the fee level at which the edge crosses zero (SC-005)
-- [ ] T047 [GATED] Write `NNNC/NNNC_RL.py` — consult the policy in `confirm_trade_entry` and `custom_exit`, **not** `populate_entry_trend` (R3, SC-017). Merge parameter dictionaries from the parent
-- [ ] T048 [GATED] Report the hook-evaluation limitation explicitly: these hooks can only **veto** candidates the vectorised gate already proposed, so the policy cannot open a position the base strategy never considered. The §5 figure is bounded by that; the head-to-head is not
-- [ ] T049 [GATED] Compute the in-sample overfitting differential (SC-008)
-- [ ] T050 [GATED] Reproduce the accepted configuration in a fresh process via a reproduction path **owned by this package** (SC-006). `research/labelfree/reproduce.py` is `ArmConfig`/`train_arm`-specific and an SB3 policy shares neither; feature 011 hit the same wall and gave its package its own path (analyze M2)
+- [X] T042 [GATED] RUN the full 15-fold pooled walk-forward for the locked configuration, sequentially; report the annualised delta against the control with its bootstrap interval and whether it clears the floor (SC-001)
+- [X] T043 [GATED] Report f07's contribution to the pooled verdict **separately** (SC-019) — the screen selected on it, and a selection rule discovered after the fact is not a selection rule
+- [-] T044 CANCELLED (pooled run loses to DO NOTHING; no comparison is admissible as an acceptance claim) — RUN W1/W2/W3 single-window and report against SC-002
+- [-] T044a CANCELLED (pooled run loses to DO NOTHING; no comparison is admissible as an acceptance claim) — Add a span mode to `research/labelfree/baselines.py` — `--folds f00..f14` aggregating on the same annualisation the floor uses. It accepts `--fold` only today. **Feature 011 found this gap and wrote the fix as its T043a, which was then cancelled with the rest of that feature when SC-009 killed it** — so the fix never landed and this feature inherits the hole (analyze C2)
+- [-] T044b CANCELLED (pooled run loses to DO NOTHING; no comparison is admissible as an acceptance claim) — [P] [GATED] Test that a one-fold span reproduces `--fold` exactly, so the new path cannot silently diverge from the old
+- [-] T045 CANCELLED (pooled run loses to DO NOTHING; no comparison is admissible as an acceptance claim) — RUN the four mandatory baselines over the evaluation span via `baselines.py --folds` (SC-003)
+- [-] T046 CANCELLED (pooled run loses to DO NOTHING; no comparison is admissible as an acceptance claim) — RUN cost stress at 1.5× and 2× fees; report the fee level at which the edge crosses zero (SC-005)
+- [-] T047 CANCELLED (pooled run loses to DO NOTHING; no comparison is admissible as an acceptance claim) — Write `NNNC/NNNC_RL.py` — consult the policy in `confirm_trade_entry` and `custom_exit`, **not** `populate_entry_trend` (R3, SC-017). Merge parameter dictionaries from the parent
+- [-] T048 CANCELLED (pooled run loses to DO NOTHING; no comparison is admissible as an acceptance claim) — Report the hook-evaluation limitation explicitly: these hooks can only **veto** candidates the vectorised gate already proposed, so the policy cannot open a position the base strategy never considered. The §5 figure is bounded by that; the head-to-head is not
+- [-] T049 CANCELLED (pooled run loses to DO NOTHING; no comparison is admissible as an acceptance claim) — Compute the in-sample overfitting differential (SC-008)
+- [-] T050 CANCELLED (pooled run loses to DO NOTHING; no comparison is admissible as an acceptance claim) — Reproduce the accepted configuration in a fresh process via a reproduction path **owned by this package** (SC-006). `research/labelfree/reproduce.py` is `ArmConfig`/`train_arm`-specific and an SB3 policy shares neither; feature 011 hit the same wall and gave its package its own path (analyze M2)
 
 ---
 
 ## Phase 9: Close
 
-- [ ] T051 Compute DSR and PBO over the **full** trial log (SC-004). **Expect `CANNOT BE EVALUATED`** — the log stores summary scalars, so seeds are the only axis. Fourth feature to hit this; report it as unevaluable, never passed on an artefact
-- [ ] T052 Re-run `/speckit-analyze` and append to `analyze.md`; fix every CRITICAL and re-run until clean (FR-022, SC-016)
-- [ ] T053 RUN the trial-log audit (`trials.py::audit`) (SC-014, quickstart S9)
-- [ ] T054 Render a sub-floor delta as **"not resolved"**, never "no effect", and assert the phrase "no effect" cannot appear in a generated verdict line (FR-023, SC-007)
-- [ ] T055 Write `research/label-free-study/briefs/results/04-<date>.md` per protocol §6, including the head-to-head with brief 1. **Written even on a kill** (FR-024)
-- [ ] T056 If the feature stopped at the screen or the head-to-head, mark T042–T050 **cancelled with the reason inline** rather than leaving them open
-- [ ] T057 Stage ONLY the files this feature created or modified and commit (FR-020, FR-021)
+- [X] T051 Compute DSR and PBO over the **full** trial log (SC-004). **Expect `CANNOT BE EVALUATED`** — the log stores summary scalars, so seeds are the only axis. Fourth feature to hit this; report it as unevaluable, never passed on an artefact
+- [X] T052 Re-run `/speckit-analyze` and append to `analyze.md`; fix every CRITICAL and re-run until clean (FR-022, SC-016)
+- [X] T053 RUN the trial-log audit (`trials.py::audit`) (SC-014, quickstart S9)
+- [X] T054 Render a sub-floor delta as **"not resolved"**, never "no effect", and assert the phrase "no effect" cannot appear in a generated verdict line (FR-023, SC-007)
+- [X] T055 Write `research/label-free-study/briefs/results/04-<date>.md` per protocol §6, including the head-to-head with brief 1. **Written even on a kill** (FR-024)
+- [X] T056 If the feature stopped at the screen or the head-to-head, mark T042–T050 **cancelled with the reason inline** rather than leaving them open
+- [X] T057 Stage ONLY the files this feature created or modified and commit (FR-020, FR-021)
 
 ---
 
