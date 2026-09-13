@@ -134,3 +134,63 @@ Two things worth carrying into implementation, neither a defect:
    fix; satisfying SC-004 as written needs a study-wide trial-log schema change.
 2. **Two kill points precede the expensive work** — SC-009 at T031 and SC-010 at T040, both
    before Phase 8's gated integration. A dead configuration never reaches strategy wiring.
+
+---
+
+# Post-Implementation Analysis — 2026-09-12 (T052)
+
+Run after the SC-009 kill at T031. 36 tasks complete, 24 cancelled by the kill, 0 open besides
+this report and the final commit.
+
+## Findings
+
+| ID | Category | Severity | Location | Summary | Recommendation |
+|----|----------|----------|----------|---------|----------------|
+| P1 | Spec accuracy | **HIGH** | spec.md SC-009 | **SC-009's prescribed wording is factually wrong for this outcome.** It directs the report to record that "entry-time features carry no information about outcome beyond what the primary model already used". Measured: raw `p(buy)` ranks the same test trades at 0.6231 mean per fold, while the trained model scores 0.5101 and is worse in 6/10 folds. The information exists; it fails to transfer across folds. | The report already records the true direction and flags the divergence. Amend SC-009 for future briefs to require the *measured* direction rather than prescribing a conclusion — a gate that dictates its own finding can launder a wrong one. |
+| P2 | Process | MEDIUM | tasks.md Phase 7 | T042–T046 (W3 probe, W1/W2 single-window, baselines, cost stress, overfitting differential) were cancelled with the kill. Defensible — they price a configuration that does not discriminate — but **the W3 probe was the declared Principle II deviation**, so cancelling it means the feature ships with no distant-era evidence at all. | Correct as handled (a killed feature needs no persistence evidence), but if this line is ever revived the probe must return *before* any acceptance claim. |
+| P3 | Coverage | MEDIUM | `stats.py::trial_log_deflation` | **SC-004 unevaluable for the third consecutive feature.** 378 pre-registered trials, 27 configurations, 5 seeds; DSR/PBO need a time axis and the log stores summary scalars. | Escalate to the protocol: store per-bar net returns per trial. Three features have now hit this; it is no longer a per-feature footnote. |
+| P4 | Observation | LOW | `model.py` | The pre-registered thresholds {0.40, 0.50, 0.60} were **not** inert — they vetoed 9, 26 and 56 trades. An earlier prediction that they would veto nothing was wrong; the model's predictions spread wider than the liveness probe's means suggested. | None. Recorded because running the pre-registered values rather than substituting "better" ones is what made the check possible. |
+
+## Gate Verification
+
+| gate | evidence | verdict |
+|---|---|---|
+| A — framework reports the primary's belief | 3 columns; drop, offset, NaN-padding, class-order all tested | PASS |
+| B — re-inference reproduces the archive | 15/15 folds exact; 378/378 rows; 0 excluded | PASS |
+| C — no feature reads the future | 0 mismatches, max\|diff\| 0.00e+00; planted leak at AUC 1.0000 | PASS |
+| positive control — the model can learn | in-sample 0.9230; planted signal 1.0000 | PASS |
+
+All four passed **before** the kill, which is what separates "no signal" from "broken harness".
+
+## Constitution Alignment
+
+| principle | status |
+|---|---|
+| I deployment regime | PASS — evaluation confined to folds 5–14 |
+| II persistence (NON-NEGOTIABLE) | **N/A on a kill** — the W3 probe was cancelled with the rest of Phase 7; no acceptance claim is made, so no distant-era evidence is required |
+| III learnability is not edge | PASS — and vindicated: in-sample 0.6344 collapsed to 0.4978 nested |
+| IV parameters actually live | PASS — 5 probes, each in its active regime, run before compute |
+| V lookahead-clean is not realistic | PASS — target is realised P&L under real exits, fees and fills |
+| VI diagnose before tuning | **PASS, load-bearing** — the positive controls ran before the kill was recorded, which is what established that the features, not the code, were the problem |
+| VII validate cheaply first | PASS — US1's table stands alone and survives the kill |
+| VIII one space at a time | PASS — veto only; sizing never started |
+| IX orthogonality | PASS |
+| X no per-pair override | PASS — pair features excluded by construction, so the kill cannot be a disguised pair-selection result |
+
+## Metrics
+
+- Tasks: 36 complete, 24 cancelled-with-reason, 2 open (this report, final commit)
+- Tests: 69 passing
+- Trials: 378 pre-registered, audit clean, 0 problems
+- Gates passed before the kill: 4 of 4
+- Critical issues: **0** · High: 1 (P1, already handled in the report) · Medium: 2 · Low: 1
+
+## Verdict
+
+**CLEAN.** No CRITICAL findings. The feature reached a well-evidenced negative result with
+every gate green beforehand, recorded the direction accurately rather than as SC-009 prescribed
+it, and cancelled downstream work with reasons rather than leaving it open.
+
+The durable outputs are the trade table (`rows.jsonl`, reusable by briefs 5 and 8), the
+non-stationarity finding, and the observation that `rvol` — the strategy's dominant guard —
+carries zero outcome information.

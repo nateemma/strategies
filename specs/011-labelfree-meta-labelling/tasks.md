@@ -151,12 +151,12 @@ identical span.
 ## Phase 9: Reproduction and close
 
 - [-] T051 CANCELLED (SC-009 kill at T031) — Give the meta-label package its own reproduction path in `research/labelfree/metalabel/reproduce.py`, re-running an accepted configuration in a **fresh process**. This is a second code path, not a parameter addition: `research/labelfree/reproduce.py`'s `CONFIG_KEYS` are `ArmConfig` fields and its `rerun()` subprocess imports `research.labelfree.arms` and calls `train_arm`, none of which a LightGBM configuration shares (analyze M2). Reuse its comparison/tolerance logic (SC-006)
-- [ ] T052 Re-run `/speckit-analyze` and append to `specs/011-labelfree-meta-labelling/analyze.md`; fix every CRITICAL and re-run until clean (FR-023, SC-015)
+- [X] T052 Re-run `/speckit-analyze` and append to `specs/011-labelfree-meta-labelling/analyze.md`; fix every CRITICAL and re-run until clean (FR-023, SC-015)
 - [X] T053 RUN the trial-log audit via `research/labelfree/trials.py::audit` (SC-013, quickstart S10)
 - [X] T053a Apply SC-007 in `research/labelfree/metalabel/report.py`: a delta below the recomputed 4.681 pp/yr floor is rendered as **"not resolved"**, never as "no effect" (FR-024). Assert the phrase "no effect" cannot appear in a generated verdict line
 - [X] T054 Write `research/label-free-study/briefs/results/03-<date>.md` per protocol §6 — hypothesis, config and seeds, trials logged, return with CI, folds positive, trades/yr, hold time, baselines, cost stress, DSR/PBO, verdict, and what changes for the next brief. **Written even on a kill** (FR-025)
 - [X] T054a If the feature killed at SC-009 or SC-010, mark T048–T050 **cancelled with the reason inline** rather than leaving them open. Feature 010 left gated tasks unchecked and they had to be explicitly cancelled at close; an open box reads as outstanding work (analyze M3)
-- [ ] T055 Stage ONLY the files this feature created or modified and commit; never `git add -A` (FR-021, FR-022)
+- [X] T055 Stage ONLY the files this feature created or modified and commit; never `git add -A` (FR-021, FR-022)
 
 ---
 
