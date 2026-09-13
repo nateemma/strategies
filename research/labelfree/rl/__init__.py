@@ -27,8 +27,22 @@ from research.labelfree.sim import LIQUIDITY_FRACTION       # noqa: E402,F401
 SCREEN_FOLD = "f07"           # brief 04 experiment 2; the only fold "the screening fold" denotes
 EXEC_LAG_BARS = 2             # R2: decide at i, fill at i+1, measure to i+2
 MIN_EXPOSURE = 0.05           # participation floor, matching research/labelfree/arms.py
-N_SEEDS = 5                   # protocol section 4: >=5 seeds, IQM, never a best seed
-STEPS_PER_FOLD = 1_500_000    # brief 04 "1-2M steps per fold"
+# Both values below were set by the learning-curve diagnostic (rl/curve.py, 2026-09-13),
+# from TRAINING-RANGE behaviour only -- a budget selection, never a configuration and never a
+# test quantity (SC-012).
+#
+#   reward IQM by budget: -0.1950 (150k) / -0.0951 (500k) / -0.1919 (1M) / -0.1905 (2M)
+#                         / -0.1892 (3M)   -> flat from 1M, moving 0.0013 per doubling
+#   turnover spread across 3 seeds:        60.8-139.5 / 4.8-102.0 / 58.7-115.9
+#                                          / 39.7-150.0 / 38.6-162.5  -> never narrows
+#
+# So budget is not the binding constraint past 1M and SEEDS are: three seeds disagree by
+# 2-4x at every checkpoint and move in OPPOSITE directions (seed 1 rising, seeds 2-3 falling).
+# The protocol floor is >=5; 10 is chosen because the diagnostic showed 5 cannot resolve an
+# action-space difference against that spread.
+N_SEEDS = 10
+STEPS_PER_FOLD = 1_000_000    # the curve flattens here; more steps buy 0.0013 per doubling
+STEPS_RATIONALE = "rl/curve.py 2026-09-13: reward IQM flat from 1M; seed spread dominates"
 EPISODE_DAYS = (30, 90)       # brief 04: episodes of 30-90 days
 BARS_PER_DAY = 96             # 15-minute bars
 
