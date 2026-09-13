@@ -129,12 +129,24 @@ class PooledTradingEnv(gym.Env):
         else:
             w_i = float(int(np.asarray(action).ravel()[0]))
 
-        reward, requested, executed = step_economics(
+        realised, requested, executed = step_economics(
             w_i, w_prev, float(self.r[self.i]), float(self.cost[self.i]),
             float(self.vol[self.i]))
+        # The RL signal may be shaped; the ECONOMICS never are. Drawdown, equity and turnover
+        # all track `realised`, so termination cannot depend on reward shaping.
+        #
+        # Found by the SC-011 control (2026-09-12): with drawdown computed on the shaped
+        # reward, FreqAI's -1/idle-bar penalty breached a 0.40 limit in ONE bar. Every
+        # episode terminated after a single step, the agent never reached an entry bonus,
+        # and the probe reported zero turnover -- reading as "the reward cannot be hacked"
+        # when it had simply never been exercised. The control caught a defect in the
+        # environment, which is what a control is for.
+        # The trade's accumulated P&L, for reward specs whose exit term uses it.
+        trade_pnl = (self.equity + realised) - self.entry_ref if w_prev > 0.0 else 0.0
         reward = self.reward_spec.transform(
-            reward, w_i=w_i, w_prev=w_prev, executed=executed,
-            bar_return=float(self.r[self.i]), bars_in_trade=self.bars_in_trade)
+            realised, w_i=w_i, w_prev=w_prev, executed=executed,
+            bar_return=float(self.r[self.i]), bars_in_trade=self.bars_in_trade,
+            trade_pnl=trade_pnl)
 
         if not np.isfinite(reward):
             raise FloatingPointError(                      # FR-007
@@ -142,7 +154,7 @@ class PooledTradingEnv(gym.Env):
                 f"cost={self.cost[self.i]} executed={executed}")
 
         self.turnover += executed
-        self.equity += reward
+        self.equity += realised          # economics, never the shaped signal
         self.peak = max(self.peak, self.equity)
         if w_prev == 0.0 and w_i > 0.0:
             self.entry_ref, self.bars_in_trade = self.equity, 0

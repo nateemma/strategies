@@ -40,9 +40,9 @@ Paths relative to `user_data/strategies/`. Commands from the **repo root** with
 ### Gate B — the environment can be reward-hacked (R5, SC-011)
 
 - [X] T009 Implement `research/labelfree/rl/rewards.py` (FR-006) with two specs: `realised` (the only one that may produce a result) and `freqai_shaped` (+25/entry, −1/idle bar, `pnl × 100` on exit) — the positive control
-- [ ] T010 Make `freqai_shaped` structurally unable to produce a reported figure: runs using it are tagged `probe: true` and `evaluate.py` refuses them
-- [ ] T011 RUN the probe — train briefly on `freqai_shaped` and on `realised` at the same budget, and assert turnover under the shaped reward is **at least 2×** the realised run's, a multiple pinned before the probe runs. "Measurably higher" without a threshold passes on a 1% rise (analyze M1, quickstart S2)
-- [ ] T012 [P] Test in `test_rl.py` that the probe assertion can FAIL — feed it two identical turnover series and confirm it reports failure. **A control that cannot fail certifies nothing**; feature 010's liveness control severed nothing on its first version, and feature 011's planted leak needed a separation check before its threshold meant anything
+- [X] T010 Make `freqai_shaped` structurally unable to produce a reported figure: runs using it are tagged `probe: true` and `evaluate.py` refuses them
+- [X] T011 RUN the probe — train briefly on `freqai_shaped` and on `realised` at the same budget, and assert turnover under the shaped reward is **at least 2×** the realised run's, a multiple pinned before the probe runs. "Measurably higher" without a threshold passes on a 1% rise (analyze M1, quickstart S2)
+- [X] T012 [P] Test in `test_rl.py` that the probe assertion can FAIL — feed it two identical turnover series and confirm it reports failure. **A control that cannot fail certifies nothing**; feature 010's liveness control severed nothing on its first version, and feature 011's planted leak needed a separation check before its threshold meant anything
 
 **Checkpoint**: T008 and T011 both green. Until then no policy may be trained.
 
@@ -53,12 +53,12 @@ Paths relative to `user_data/strategies/`. Commands from the **repo root** with
 **Independent test**: the env pays realised economics, masks invalid actions, terminates on
 drawdown — and demonstrably conveys reward shape.
 
-- [ ] T013 [US1] Implement action masking in `env.py` — "sell" invalid when flat, **masked not penalised** (FR-004)
-- [ ] T014 [US1] Implement drawdown termination (FR-005), and keep `terminated` (drawdown) distinct from `truncated` (window exhausted). Conflating them corrupts PPO's bootstrap at the boundary: a truncated episode's value must be bootstrapped, a terminated one's must not (R6)
-- [ ] T015 [P] [US1] Test that `terminated` and `truncated` are never both set, and that a truncated episode carries a bootstrappable value
-- [ ] T016 [P] [US1] Test that the reward contains no entry bonus, idle penalty or take-profit multiplier — assert a flat step's reward is exactly 0.0 and an entry's reward equals `−cost × executed` (FR-003)
-- [ ] T017 [US1] Fail the run on a non-finite reward or loss rather than letting it propagate (FR-007)
-- [ ] T018 [US1] Document the env's observation/action/reward contract in the module docstring, for briefs 5 and 6
+- [X] T013 [US1] Implement action masking in `env.py` — "sell" invalid when flat, **masked not penalised** (FR-004)
+- [X] T014 [US1] Implement drawdown termination (FR-005), and keep `terminated` (drawdown) distinct from `truncated` (window exhausted). Conflating them corrupts PPO's bootstrap at the boundary: a truncated episode's value must be bootstrapped, a terminated one's must not (R6)
+- [X] T015 [P] [US1] Test that `terminated` and `truncated` are never both set, and that a truncated episode carries a bootstrappable value
+- [X] T016 [P] [US1] Test that the reward contains no entry bonus, idle penalty or take-profit multiplier — assert a flat step's reward is exactly 0.0 and an entry's reward equals `−cost × executed` (FR-003)
+- [X] T017 [US1] Fail the run on a non-finite reward or loss rather than letting it propagate (FR-007)
+- [X] T018 [US1] Document the env's observation/action/reward contract in the module docstring, for briefs 5 and 6
 
 **Checkpoint**: US1 is a standalone deliverable — an auditable pooled trading environment,
 reusable whether or not PPO works.
@@ -67,21 +67,21 @@ reusable whether or not PPO works.
 
 ## Phase 4: User Story 2 - One shared policy across all pairs (Priority: P2)
 
-- [ ] T019 [US2] Implement `research/labelfree/rl/episodes.py` — sample `(pair, start, length)` windows of 30–90 days from the fold's **training** range only (FR-009)
-- [ ] T020 [US2] Enforce the **two trailing bars** in episode validation: window + 2 bars must lie inside the training range. An episode borrowing `open[i+1]`/`open[i+2]` from the test range leaks by exactly two bars and nothing else would report it (R2)
-- [ ] T021 [P] [US2] Test with 5000 sampled episodes that no window, including its trailing bars, touches the test range (quickstart S3)
-- [ ] T022 [US2] Reject and **count** episodes containing a data gap; never interpolate
-- [ ] T023 [US2] Implement the shared-policy training loop in `research/labelfree/rl/train.py` — one parameter set for every pair, no per-pair adaptation (FR-008)
+- [X] T019 [US2] Implement `research/labelfree/rl/episodes.py` — sample `(pair, start, length)` windows of 30–90 days from the fold's **training** range only (FR-009)
+- [X] T020 [US2] Enforce the **two trailing bars** in episode validation: window + 2 bars must lie inside the training range. An episode borrowing `open[i+1]`/`open[i+2]` from the test range leaks by exactly two bars and nothing else would report it (R2)
+- [X] T021 [P] [US2] Test with 5000 sampled episodes that no window, including its trailing bars, touches the test range (quickstart S3)
+- [X] T022 [US2] Reject and **count** episodes containing a data gap; never interpolate
+- [X] T023 [US2] Implement the shared-policy training loop in `research/labelfree/rl/train.py` — one parameter set for every pair, no per-pair adaptation (FR-008)
 - [ ] T024 [P] [US2] Test that a pair absent from a fold's training range still receives an action at evaluation, and that the case is counted
 
 ---
 
 ## Phase 5: User Story 3 - Selection that never sees the test fold (Priority: P3)
 
-- [ ] T025 [US3] Select checkpoints on **training reward only** (SC-012), and write a `SelectionRecord` carrying the quantity used and the range it came from (FR-012)
-- [ ] T026 [US3] Make `train.py` refuse to record a selection whose range is the fold under evaluation
+- [X] T025 [US3] Select checkpoints on **training reward only** (SC-012), and write a `SelectionRecord` carrying the quantity used and the range it came from (FR-012)
+- [X] T026 [US3] Make `train.py` refuse to record a selection whose range is the fold under evaluation
 - [ ] T027 [P] [US3] Test that a selection record naming the evaluation fold is rejected (quickstart S5). Selecting on the test split is the specific defect the brief cites in FreqAI's `best_model.zip`
-- [ ] T028 [US3] Pre-register every configuration to `research/labelfree/trials.jsonl` **before** it runs (FR-013)
+- [X] T028 [US3] Pre-register every configuration to `research/labelfree/trials.jsonl` **before** it runs (FR-013)
 
 ---
 

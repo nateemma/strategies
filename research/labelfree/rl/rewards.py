@@ -26,15 +26,23 @@ class RewardSpec:
     exit_multiplier: float = 1.0
 
     def transform(self, base: float, *, w_i: float, w_prev: float, executed: float,
-                  bar_return: float, bars_in_trade: int) -> float:
-        """`base` is the realised economics. `realised` returns it untouched."""
+                  bar_return: float, bars_in_trade: int, trade_pnl: float = 0.0) -> float:
+        """`base` is the realised economics. `realised` returns it untouched.
+
+        The exit term pays `trade_pnl * multiplier` — the TRADE's accumulated P&L, which is
+        what FreqAI's shipped reward does. An earlier version multiplied the exit BAR's
+        reward instead; that bar is ~ -cost, so every exit became punitive and the agent
+        learned to enter once and hold forever (turnover 101 -> 3.5, mean_w 1.000). That is
+        still reward hacking, but not FreqAI's, and the control must reproduce the shape it
+        claims to be testing.
+        """
         r = base
         if self.entry_bonus and w_prev == 0.0 and w_i > 0.0:
             r += self.entry_bonus
         if self.idle_penalty and w_i == 0.0:
             r -= self.idle_penalty
         if self.exit_multiplier != 1.0 and w_prev > 0.0 and w_i == 0.0:
-            r *= self.exit_multiplier
+            r += trade_pnl * self.exit_multiplier
         return r
 
 
