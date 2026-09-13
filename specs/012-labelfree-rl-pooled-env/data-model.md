@@ -31,15 +31,16 @@ What the agent sees at a decision bar.
 
 | component | meaning |
 |---|---|
-| feature window | the normalised entry-time features, ending at bar *i* |
+| feature window | the normalised entry-time features, ending at **bar *i***, the decision bar |
 | `position` | current exposure in [0, 1] |
 | `bars_in_trade` | how long the position has been held |
 | `unrealised_pnl` | mark-to-market on the open position |
 
 **Rules**
 
-- Nothing after bar *i* may enter the observation. The reward uses `open[i+1..i+2]`; the
-  observation does not.
+- Nothing after bar *i* may enter the observation. The reward uses `open[i+1]`/`open[i+2]`;
+  the observation does not. This is the R2 invariant and it is the only indexing convention
+  used in this feature.
 - The last three components are the state the brief says FreqAI cannot backtest. They are why
   the §5 evaluation must route through per-candidate hooks (R3).
 
@@ -60,12 +61,16 @@ Both are screened; one is chosen on the screening fold and locked (FR-010, SC-01
 
 One bar of environment economics. **Must reproduce `sim.net_returns` bit-for-bit** (R1).
 
+Indexed by **`i`, the decision bar**, matching research R2. No second index symbol is used
+anywhere in this feature — feature 009 lost five bugs to axis ambiguity, each producing
+plausible shapes and wrong numbers.
+
 | field | definition |
 |---|---|
-| `requested` | `abs(w_t − w_{t−1})`, with `w_{−1} = 0` |
-| `executed` | `min(requested, 0.10 × quote_volume_t)` — the hard liquidity cap |
-| `bar_return` | `log(open_{t+2}) − log(open_{t+1})` |
-| `reward` | `w_t × bar_return − cost_t × executed` |
+| `requested` | `abs(w_i − w_{i−1})`, with `w_{−1} = 0` |
+| `executed` | `min(requested, 0.10 × quote_volume_i)` — the hard liquidity cap |
+| `bar_return` | `log(open_{i+2}) − log(open_{i+1})` |
+| `reward` | `w_i × bar_return − cost_i × executed` |
 | `terminated` | drawdown exceeded the configured maximum |
 | `truncated` | the episode window ran out |
 

@@ -121,11 +121,15 @@ best-ranked configurations were all below the floor, two flat on 100% and 99.9% 
 ## S8 — The head-to-head that decides the family (SC-009/SC-010)
 
 ```bash
-$PY $RL/headtohead.py --rl research/labelfree/rl/pooled.json --brief1 <brief 1 policy>
+$PY $RL/headtohead.py --rl research/labelfree/rl/pooled.json \
+                      --brief1 research/labelfree/rl/brief1_policy.npz
 ```
 
 **Expected**: paired IQM difference with interval, against the floor, both policies in the
 simulator.
+
+**Note**: `brief1_policy.npz` is re-trained by this feature (T038a), because brief 1 persisted
+no weights. It is a fresh draw at this feature's seeds, not brief 1's reported figures.
 
 `MATCHED` **closes the family** — the differentiable estimator wins on lower variance and
 backtestable state.

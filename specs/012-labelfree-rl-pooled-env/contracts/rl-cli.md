@@ -111,10 +111,15 @@ $PY $RL/evaluate.py --pooled --folds all --out research/labelfree/rl/pooled.json
 
 ```
 $PY $RL/headtohead.py --rl research/labelfree/rl/pooled.json \
-                      --brief1 research/labelfree/sweep_best.json
+                      --brief1 research/labelfree/rl/brief1_policy.npz
 ```
 
 **Contract**
+
+- `--brief1` is a policy **re-trained and persisted by this feature** (T038a). Brief 1 saved no
+  weights — `sweep.py`, `train.py` and `arms.py` write JSON results only — so the comparator is
+  a fresh draw at this feature's seeds, **not** brief 1's reported numbers. The report must say
+  so; quoting it as "brief 1's result" would be false.
 
 - Both policies evaluated **in the simulator**, identical folds, costs and liquidity caps. Not
   through freqtrade — that is what keeps them comparable.

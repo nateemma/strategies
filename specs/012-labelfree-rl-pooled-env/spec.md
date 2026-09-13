@@ -331,7 +331,8 @@ the difference reported against the floor.
 - Time is not a binding constraint on this feature. The staged budget exists to avoid spending
   ~10^8 steps on a configuration a cheap screen would reject (Principle VII), not to finish by
   a deadline — so the screening bar is set weak on purpose.
-- The screening fold is f07, per the brief's experiment 2.
+- **The screening fold is f07** (brief 04 experiment 2). It is referred to as "the
+  screening fold" throughout; f07 is the only fold that term ever denotes.
 
 ## Non-Goals
 

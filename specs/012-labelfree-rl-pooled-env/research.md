@@ -47,6 +47,12 @@ briefs 2, 5 and 6 — changing its internals to serve brief 4 risks all of them)
 return mx.log(o[..., 2:]) - mx.log(o[..., 1:-1])
 ```
 
+**THE INVARIANT, stated once and used everywhere** — every artefact uses the index *i* for the
+decision bar, and no artefact introduces a second symbol:
+
+> The action taken on the observation **ending at bar *i*** earns the return between
+> **`open[i+1]` and `open[i+2]`**.
+
 **Consequence for the env**: an episode of *T* decisions needs *T+2* bars of price. The last
 two bars of any window are consumable as outcome but not as decision points, and an off-by-one
 here would hand the agent a return it could not have earned. The observation window ends at bar

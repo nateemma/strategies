@@ -31,7 +31,7 @@ Paths relative to `user_data/strategies/`. Commands from the **repo root** with
 
 ### Gate A — the env reproduces the simulator bit-for-bit (R1)
 
-- [ ] T004 Implement `research/labelfree/env.py` step economics in numpy: `requested = |w_t − w_{t−1}|` with `w_{−1} = 0`, `executed = min(requested, LIQUIDITY_FRACTION × quote_volume_t)`, `reward = w_t × bar_return_t − cost_t × executed` (FR-002, FR-003)
+- [ ] T004 Implement `research/labelfree/env.py` step economics in numpy, indexed by **`i`, the decision bar** (research R2 — one index symbol, feature-wide): `requested = |w_i − w_{i−1}|` with `w_{−1} = 0`, `executed = min(requested, LIQUIDITY_FRACTION × quote_volume_i)`, `reward = w_i × bar_return_i − cost_i × executed` (FR-002, FR-003)
 - [ ] T005 Implement the execution lag in `env.py`: `bar_return_t = log(open_{t+2}) − log(open_{t+1})`, matching `sim.bar_returns` (R2). An episode of *T* decisions consumes *T+2* bars
 - [ ] T006 Implement `research/labelfree/rl/equivalence.py` — step a path through `env.py` and compare accumulated rewards to `sim.net_returns` at **`rtol=0`** (FR-001, R1)
 - [ ] T007 [P] Cover the four cases a naive step gets wrong, in `test_rl.py`: the `w_{−1}=0` opening boundary, a path still in position at the end, the liquidity cap binding, and a zero-volume bar
@@ -41,7 +41,7 @@ Paths relative to `user_data/strategies/`. Commands from the **repo root** with
 
 - [ ] T009 Implement `research/labelfree/rl/rewards.py` (FR-006) with two specs: `realised` (the only one that may produce a result) and `freqai_shaped` (+25/entry, −1/idle bar, `pnl × 100` on exit) — the positive control
 - [ ] T010 Make `freqai_shaped` structurally unable to produce a reported figure: runs using it are tagged `probe: true` and `evaluate.py` refuses them
-- [ ] T011 RUN the probe — train briefly on `freqai_shaped` and on `realised` at the same budget, and assert turnover rises measurably under the shaped reward (quickstart S2)
+- [ ] T011 RUN the probe — train briefly on `freqai_shaped` and on `realised` at the same budget, and assert turnover under the shaped reward is **at least 2×** the realised run's, a multiple pinned before the probe runs. "Measurably higher" without a threshold passes on a 1% rise (analyze M1, quickstart S2)
 - [ ] T012 [P] Test in `test_rl.py` that the probe assertion can FAIL — feed it two identical turnover series and confirm it reports failure. **A control that cannot fail certifies nothing**; feature 010's liveness control severed nothing on its first version, and feature 011's planted leak needed a separation check before its threshold meant anything
 
 **Checkpoint**: T008 and T011 both green. Until then no policy may be trained.
@@ -94,13 +94,23 @@ reusable whether or not PPO works.
 - [ ] T033 [US4] Attach mean exposure, trades/yr and mean holding time to **every** return, so a policy that learned not to trade cannot rank on inaction (FR-016, SC-013)
 - [ ] T034 [US4] Emit `degenerate: true` with the **return withheld** when mean exposure falls below the participation floor (FR-017, R8). Brief 1's six best-ranked configurations were all below it, two flat on 100% and 99.9% of bars — and a policy-gradient method finds that optimum faster
 - [ ] T035 [P] [US4] Test that a degenerate arm's return is withheld and cannot be read from the artefact (quickstart S7)
+- [ ] T035a [US4] Implement `research/labelfree/rl/evaluate.py` — turn a trained policy into an exposure path, apply the participation floor, and emit the arm record. The plan's structure names it and T037/T038/T042–T046 use it, but no task created it (analyze M3)
 - [ ] T036 [US4] RUN the screening fold: `--fold f07`, **both** action parameterisations, 5 seeds each, sequentially — compute goes to seeds, never to algorithm comparison (FR-010, FR-011, quickstart S6)
-- [ ] T037 [US4] Apply the SC-018 screen bar in `research/labelfree/rl/evaluate.py --screen`: **non-degenerate** and **distinguishable from brief 1's policy**. Deliberately weak — time is not the binding constraint, so a marginal screen is funded and only a degenerate or identical one is not. Print `FUND` or `STOP`
+- [ ] T036a [US4] Pre-register the operational definition of "distinguishable" in `research/labelfree/rl/__init__.py` **before the screen runs**: the RL and brief-1 exposure paths must differ on **more than 5% of decision bars** on the screening fold, at every seed. A bar defined after seeing the screen is not a bar (analyze H1)
+- [ ] T037 [US4] Apply the SC-018 screen bar in `research/labelfree/rl/evaluate.py --screen`: **non-degenerate** (mean exposure above the participation floor) **and distinguishable** per T036a's pinned threshold. Deliberately weak — time is not the binding constraint, so a marginal screen is funded and only a degenerate or path-identical one is not. Print `FUND` or `STOP`
 - [ ] T038 [US4] Make `--pooled` refuse to run without a `FUND` screen on record
 
 ---
 
 ## Phase 7: User Story 5 - The head-to-head (Priority: P5)
+
+**Prerequisite discovered by analyze C1**: brief 1 persists **no trained policy**. `sweep.py`,
+`train.py` and `arms.py` write JSON results only, never weights, so there is no artefact to
+compare against and SC-009 cannot execute without rebuilding one.
+
+- [ ] T038a [US5] Add policy persistence to `research/labelfree/rl/headtohead.py`'s dependency path: re-train brief 1's best configuration (`utility-penalty-g0.5`, its reported f08 optimum) on the screening fold at the same seeds, and **save the weights** to `research/labelfree/rl/brief1_policy.npz`. Budgeted as its own work item, not folded into T039 (analyze C1)
+- [ ] T038b [P] [US5] Test that the persisted policy reloads and reproduces its own training-range exposure path bit-for-bit — a comparator that does not reload deterministically makes the head-to-head unrepeatable
+- [ ] T038c [US5] Record in the trial log that brief 1's comparator was **re-trained for this feature**, not recovered from brief 1's own run. Its numbers are therefore a fresh draw, not brief 1's reported figures, and the report must say so
 
 - [ ] T039 [US5] Implement `research/labelfree/rl/headtohead.py` — both policies evaluated **in the simulator**, identical folds, costs and liquidity caps (FR-018). Not through freqtrade; that is what keeps them comparable (R3)
 - [ ] T040 [US5] Report the paired IQM difference with its interval against the floor, and a verdict of `RL BETTER BY THE FLOOR` · `MATCHED` · `WORSE`
@@ -115,12 +125,14 @@ reusable whether or not PPO works.
 - [ ] T042 [GATED] RUN the full 15-fold pooled walk-forward for the locked configuration, sequentially; report the annualised delta against the control with its bootstrap interval and whether it clears the floor (SC-001)
 - [ ] T043 [GATED] Report f07's contribution to the pooled verdict **separately** (SC-019) — the screen selected on it, and a selection rule discovered after the fact is not a selection rule
 - [ ] T044 [GATED] RUN W1/W2/W3 single-window and report against SC-002
-- [ ] T045 [GATED] RUN the four mandatory baselines on the evaluation span (SC-003)
+- [ ] T044a [GATED] Add a span mode to `research/labelfree/baselines.py` — `--folds f00..f14` aggregating on the same annualisation the floor uses. It accepts `--fold` only today. **Feature 011 found this gap and wrote the fix as its T043a, which was then cancelled with the rest of that feature when SC-009 killed it** — so the fix never landed and this feature inherits the hole (analyze C2)
+- [ ] T044b [P] [GATED] Test that a one-fold span reproduces `--fold` exactly, so the new path cannot silently diverge from the old
+- [ ] T045 [GATED] RUN the four mandatory baselines over the evaluation span via `baselines.py --folds` (SC-003)
 - [ ] T046 [GATED] RUN cost stress at 1.5× and 2× fees; report the fee level at which the edge crosses zero (SC-005)
 - [ ] T047 [GATED] Write `NNNC/NNNC_RL.py` — consult the policy in `confirm_trade_entry` and `custom_exit`, **not** `populate_entry_trend` (R3, SC-017). Merge parameter dictionaries from the parent
 - [ ] T048 [GATED] Report the hook-evaluation limitation explicitly: these hooks can only **veto** candidates the vectorised gate already proposed, so the policy cannot open a position the base strategy never considered. The §5 figure is bounded by that; the head-to-head is not
 - [ ] T049 [GATED] Compute the in-sample overfitting differential (SC-008)
-- [ ] T050 [GATED] Reproduce the accepted configuration in a fresh process (SC-006)
+- [ ] T050 [GATED] Reproduce the accepted configuration in a fresh process via a reproduction path **owned by this package** (SC-006). `research/labelfree/reproduce.py` is `ArmConfig`/`train_arm`-specific and an SB3 policy shares neither; feature 011 hit the same wall and gave its package its own path (analyze M2)
 
 ---
 
