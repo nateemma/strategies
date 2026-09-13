@@ -248,3 +248,84 @@ def test_head_to_head_applies_the_floor_to_BOTH_sides():
         assert d["verdict"].startswith("INCONCLUSIVE"), \
             "a degenerate comparator must not yield a performance verdict"
         assert "raw_delta_verdict" in d, "the withheld raw verdict must still be recorded"
+
+
+# --- the shared admissibility gate ------------------------------------------
+
+def test_admissibility_refuses_a_degenerate_control():
+    """The brief-04 case: an arm that trades vs a comparator that abstains."""
+    from research.labelfree.admissibility import Arm, compare
+    arm = Arm("rl", value=-0.2270, mean_exposure=0.600, trades_per_year=90.0)
+    ctl = Arm("brief1", value=+0.0011, mean_exposure=0.0004, trades_per_year=0.5)
+    r = compare(arm, ctl)
+    assert r["admissible"] is False
+    assert "DEGENERATE CONTROL" in r["verdict"]
+    assert r["raw_delta"] == pytest.approx(-0.2281, abs=1e-3)   # retained, not discarded
+
+
+def test_admissibility_refuses_a_degenerate_arm_too():
+    """Symmetry matters: brief 02's trap was the control, brief 1's was the arm."""
+    from research.labelfree.admissibility import Arm, compare
+    arm = Arm("flat_policy", value=0.0, mean_exposure=0.0001, trades_per_year=0.0)
+    ctl = Arm("control", value=-0.5, mean_exposure=0.44, trades_per_year=120.0)
+    r = compare(arm, ctl)
+    assert r["admissible"] is False and "DEGENERATE ARM" in r["verdict"]
+
+
+def test_trades_per_year_catches_hold_forever():
+    """Mean exposure alone misses a policy holding ONE position across the whole span:
+    exposure is high, decisions are zero, and nothing is being tested."""
+    from research.labelfree.admissibility import Arm
+    hold_forever = Arm("buy_and_hold_in_disguise", value=0.1,
+                       mean_exposure=0.98, trades_per_year=1.0)
+    assert hold_forever.degenerate
+    assert "one position is not a strategy" in hold_forever.reason
+
+
+def test_two_losers_are_directional_only_never_acceptance():
+    """Both lose to cash. As an ACCEPTANCE claim that is inadmissible -- "loses less than
+    the control" is not a strategy. As a DIRECTIONAL finding it is legitimate research
+    (brief 04 asks exactly this), but it must be stamped so it cannot be quoted as
+    performance."""
+    from research.labelfree.admissibility import Arm, compare
+    a = Arm("a", value=-0.10, mean_exposure=0.5, trades_per_year=80.0)
+    b = Arm("b", value=-0.25, mean_exposure=0.4, trades_per_year=60.0)
+    acc = compare(a, b, purpose="acceptance")
+    assert acc["admissible"] is False and "LOSES TO DO NOTHING" in acc["verdict"]
+    dr = compare(a, b, purpose="directional")
+    assert dr["admissible"] is True
+    assert dr["verdict"] == "DIRECTIONAL ONLY — BOTH SIDES LOSE"
+    assert dr["delta"] == pytest.approx(0.15)
+    assert "not_a_performance_claim" in dr
+
+
+def test_degeneracy_blocks_both_purposes():
+    """An abstaining policy answers neither question."""
+    from research.labelfree.admissibility import Arm, compare
+    flat = Arm("flat", value=0.0, mean_exposure=0.0001, trades_per_year=0.0)
+    ctl = Arm("ctl", value=-0.5, mean_exposure=0.44, trades_per_year=120.0)
+    for purpose in ("acceptance", "directional"):
+        assert compare(flat, ctl, purpose=purpose)["admissible"] is False
+
+
+def test_admissibility_refuses_an_arm_that_loses_to_doing_nothing():
+    """Brief 02's trap, which the abstention floor CANNOT catch: the P&L control ran at
+    exposure 0.441 and 1869 trades/yr -- fully participating -- while losing 52% in a market
+    that rose 72%. Arm C scored +0.8784 against it and was still a loss-maker. If the arm
+    cannot beat cash, beating the control measures the control."""
+    from research.labelfree.admissibility import Arm, compare
+    armC = Arm("armC_auxvol", value=-0.1071, mean_exposure=0.434, trades_per_year=6.2)
+    pnl = Arm("pnl_control", value=-0.9855, mean_exposure=0.441, trades_per_year=1868.9)
+    r = compare(armC, pnl, do_nothing=0.0)
+    assert r["admissible"] is False
+    assert "LOSES TO DO NOTHING" in r["verdict"]
+    assert r["delta_vs_control"] == pytest.approx(0.8784, abs=1e-3)
+    assert r["delta_vs_do_nothing"] == pytest.approx(-0.1071, abs=1e-3)
+
+
+def test_a_profitable_arm_still_passes():
+    from research.labelfree.admissibility import Arm, compare
+    good = Arm("good", value=+0.12, mean_exposure=0.5, trades_per_year=80.0)
+    ctl = Arm("ctl", value=+0.03, mean_exposure=0.4, trades_per_year=60.0)
+    r = compare(good, ctl, do_nothing=0.0)
+    assert r["admissible"] is True and r["delta"] == pytest.approx(0.09)
