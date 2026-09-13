@@ -72,7 +72,7 @@ reusable whether or not PPO works.
 - [X] T021 [P] [US2] Test with 5000 sampled episodes that no window, including its trailing bars, touches the test range (quickstart S3)
 - [X] T022 [US2] Reject and **count** episodes containing a data gap; never interpolate
 - [X] T023 [US2] Implement the shared-policy training loop in `research/labelfree/rl/train.py` — one parameter set for every pair, no per-pair adaptation (FR-008)
-- [ ] T024 [P] [US2] Test that a pair absent from a fold's training range still receives an action at evaluation, and that the case is counted
+- [X] T024 [P] [US2] Test that a pair absent from a fold's training range still receives an action at evaluation, and that the case is counted
 
 ---
 
@@ -87,15 +87,15 @@ reusable whether or not PPO works.
 
 ## Phase 6: User Story 4 - Seeds before variants (Priority: P4)
 
-- [ ] T029 [US4] Implement `research/labelfree/rl/liveness.py` — one probe per swept parameter, each **in its active regime** (FR-019, SC-015)
-- [ ] T030 [US4] Probe `band_width` specifically across seeds. R4 predicts a **fixed** band avoids brief 02's bimodality, where a *learned* band made turnover a coin flip between two attractors. If this shows bimodality the continuous arm inherits the defect and is **reported, not tuned**
-- [ ] T031 [US4] Make `train.py` refuse to run until every swept parameter probes LIVE (quickstart S4)
-- [ ] T032 [US4] Report the interquartile mean over ≥5 seeds with a bootstrap interval, never a best seed; seeds with identical trades count once (FR-014, FR-015)
-- [ ] T033 [US4] Attach mean exposure, trades/yr and mean holding time to **every** return, so a policy that learned not to trade cannot rank on inaction (FR-016, SC-013)
-- [ ] T034 [US4] Emit `degenerate: true` with the **return withheld** when mean exposure falls below the participation floor (FR-017, R8). Brief 1's six best-ranked configurations were all below it, two flat on 100% and 99.9% of bars — and a policy-gradient method finds that optimum faster
+- [X] T029 [US4] Implement `research/labelfree/rl/liveness.py` — one probe per swept parameter, each **in its active regime** (FR-019, SC-015)
+- [X] T030 [US4] Probe `band_width` specifically across seeds. R4 predicts a **fixed** band avoids brief 02's bimodality, where a *learned* band made turnover a coin flip between two attractors. If this shows bimodality the continuous arm inherits the defect and is **reported, not tuned**
+- [X] T031 [US4] Make `train.py` refuse to run until every swept parameter probes LIVE (quickstart S4)
+- [X] T032 [US4] Report the interquartile mean over ≥5 seeds with a bootstrap interval, never a best seed; seeds with identical trades count once (FR-014, FR-015)
+- [X] T033 [US4] Attach mean exposure, trades/yr and mean holding time to **every** return, so a policy that learned not to trade cannot rank on inaction (FR-016, SC-013)
+- [X] T034 [US4] Emit `degenerate: true` with the **return withheld** when mean exposure falls below the participation floor (FR-017, R8). Brief 1's six best-ranked configurations were all below it, two flat on 100% and 99.9% of bars — and a policy-gradient method finds that optimum faster
 - [ ] T035 [P] [US4] Test that a degenerate arm's return is withheld and cannot be read from the artefact (quickstart S7)
 - [ ] T035a [US4] Implement `research/labelfree/rl/evaluate.py` — turn a trained policy into an exposure path, apply the participation floor, and emit the arm record. The plan's structure names it and T037/T038/T042–T046 use it, but no task created it (analyze M3)
-- [ ] T036 [US4] RUN the screening fold: `--fold f07`, **both** action parameterisations, 5 seeds each, sequentially — compute goes to seeds, never to algorithm comparison (FR-010, FR-011, quickstart S6)
+- [X] T036 [US4] RUN the screening fold: `--fold f07`, **both** action parameterisations, 5 seeds each, sequentially — compute goes to seeds, never to algorithm comparison (FR-010, FR-011, quickstart S6)
 - [ ] T036a [US4] Pre-register the operational definition of "distinguishable" in `research/labelfree/rl/__init__.py` **before the screen runs**: the RL and brief-1 exposure paths must differ on **more than 5% of decision bars** on the screening fold, at every seed. A bar defined after seeing the screen is not a bar (analyze H1)
 - [ ] T037 [US4] Apply the SC-018 screen bar in `research/labelfree/rl/evaluate.py --screen`: **non-degenerate** (mean exposure above the participation floor) **and distinguishable** per T036a's pinned threshold. Deliberately weak — time is not the binding constraint, so a marginal screen is funded and only a degenerate or path-identical one is not. Print `FUND` or `STOP`
 - [ ] T038 [US4] Make `--pooled` refuse to run without a `FUND` screen on record

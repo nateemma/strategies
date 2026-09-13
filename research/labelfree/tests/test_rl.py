@@ -201,3 +201,30 @@ def test_realised_reward_has_no_shaping_terms():
     assert r_entry == pytest.approx(-1e-3 * info["executed"]), "no entry bonus"
     _, r_hold, _, _, _ = env.step(1)
     assert r_hold == pytest.approx(0.0), "holding executes nothing, so costs nothing"
+
+
+def test_continuous_band_is_bimodal_across_seeds():
+    """R4a. R4 predicted a FIXED band would avoid brief 02's bimodality. Refuted: the screen's
+    continuous arm splits into a churn cluster (6 seeds, turnover 108.8-165.3) and a frozen
+    one (4 seeds, 4.5-12.5) with an order-of-magnitude hole between them. The bimodality
+    belongs to the hold-inside-the-band MECHANISM, not to learning the band."""
+    import json
+    p = ROOT / "research/labelfree/rl/screen_continuous.json"
+    if not p.exists():
+        pytest.skip("screen not run")
+    tv = np.array([r["train_turnover"] for r in json.loads(p.read_text())["runs"]])
+    lo, hi = tv[tv <= 50], tv[tv > 50]
+    assert len(lo) and len(hi), "expected two clusters"
+    assert hi.min() / lo.max() > 5.0, "clusters must be separated by an order of magnitude"
+
+
+def test_discrete_arm_is_not_degenerate():
+    """The discrete arm must keep every seed above the participation floor; a degenerate
+    seed's return is withheld (FR-017), and 'learn not to trade' is this env's degenerate
+    optimum (R8)."""
+    import json
+    p = ROOT / "research/labelfree/rl/screen_discrete.json"
+    if not p.exists():
+        pytest.skip("screen not run")
+    ex = np.array([r["train_mean_exposure"] for r in json.loads(p.read_text())["runs"]])
+    assert (ex >= RL.MIN_EXPOSURE).all(), f"degenerate seeds: {ex[ex < RL.MIN_EXPOSURE]}"

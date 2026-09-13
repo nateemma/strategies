@@ -146,6 +146,45 @@ arm inherits the defect after all and must be reported as such rather than tuned
 
 ---
 
+## R4a — REFUTED (measured 2026-09-13): a fixed band is bimodal too
+
+**R4 predicted** the continuous arm would not inherit brief 02's `band_hold` bimodality,
+because that arose from a **learned** band finding one of two fixed points, and a fixed band
+"has no such interaction and no attractor to fall into". **The screen refutes it.**
+
+Ten seeds, discrete vs continuous, 1M steps on f07:
+
+| arm | turnover range | exposure range | degenerate seeds |
+|---|---|---|---|
+| discrete | 8.0–124.7, **continuous spread** | 0.453–0.974 | **0/10** |
+| continuous | **two clusters** | 0.003–0.654 | **4/10** |
+
+The continuous arm splits cleanly:
+
+```
+churn cluster    6 seeds   turnover 108.8-165.3   exposure 0.148-0.654
+frozen cluster   4 seeds   turnover   4.5- 12.5   exposure 0.003-0.012
+gap                        12.5 -> 108.8, nothing in between
+```
+
+An order-of-magnitude hole with no seeds in it, exactly as brief 02 recorded.
+
+**The correction, which matters beyond this feature**: the bimodality is a property of the
+**hold-inside-the-band mechanism**, not of whether the band is learned. A fixed band still has
+two fixed points — either the policy's target moves enough to escape the band and it churns,
+or it never does and the position freezes for the episode. Brief 02 attributed its bimodality
+to the band being learned; that diagnosis was wrong, and the mechanism is the band-hold itself.
+
+**Consequence here**: the continuous arm is not merely worse, it is **40% degenerate** — four
+seeds sit below the participation floor and their returns are withheld (FR-017). Its IQM
+exposure of 0.233 is dragged by them and should not be read as a policy that trades lightly.
+
+**Consequence for brief 02**: its `band_hold` finding stands as an observation but its
+explanation does not. Any future use of that mechanism should expect bimodality whether the
+band is learned or fixed.
+
+---
+
 ## R5 — The reward-hacking probe is a positive control, and it must be able to fail
 
 **Decision**: implement FreqAI's shipped reward shape as a selectable env reward — +25 per

@@ -1,0 +1,165 @@
+{
+  "run_id": "20260913T153342Z",
+  "fold": "f07",
+  "action": "continuous",
+  "reward": "realised",
+  "probe": false,
+  "seeds": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+  ],
+  "steps": 1000000,
+  "turnover_iqm": 85.87908350675585,
+  "exposure_iqm": 0.23298690118152388,
+  "reward_iqm": -0.19559085803290174,
+  "runs": [
+    {
+      "seconds": 155.0,
+      "train_turnover": 162.39109145604016,
+      "train_mean_exposure": 0.3805854573172381,
+      "train_reward": -0.32578329601512124,
+      "selection_record": {
+        "decision": "final checkpoint",
+        "criterion": "mean episode reward",
+        "range": "f07-train"
+      },
+      "status": "ok",
+      "seed": 1,
+      "probe": false
+    },
+    {
+      "seconds": 154.5,
+      "train_turnover": 12.486416333135367,
+      "train_mean_exposure": 0.011663963851072759,
+      "train_reward": -0.0576554898467956,
+      "selection_record": {
+        "decision": "final checkpoint",
+        "criterion": "mean episode reward",
+        "range": "f07-train"
+      },
+      "status": "ok",
+      "seed": 2,
+      "probe": false
+    },
+    {
+      "seconds": 156.7,
+      "train_turnover": 110.40724056686459,
+      "train_mean_exposure": 0.6544531416559877,
+      "train_reward": -0.26114815270049047,
+      "selection_record": {
+        "decision": "final checkpoint",
+        "criterion": "mean episode reward",
+        "range": "f07-train"
+      },
+      "status": "ok",
+      "seed": 3,
+      "probe": false
+    },
+    {
+      "seconds": 154.8,
+      "train_turnover": 108.7964381671858,
+      "train_mean_exposure": 0.40541798411432084,
+      "train_reward": -0.17556069294061713,
+      "selection_record": {
+        "decision": "final checkpoint",
+        "criterion": "mean episode reward",
+        "range": "f07-train"
+      },
+      "status": "ok",
+      "seed": 4,
+      "probe": false
+    },
+    {
+      "seconds": 153.4,
+      "train_turnover": 111.82623895983761,
+      "train_mean_exposure": 0.14769676621973793,
+      "train_reward": -0.2879990966437038,
+      "selection_record": {
+        "decision": "final checkpoint",
+        "criterion": "mean episode reward",
+        "range": "f07-train"
+      },
+      "status": "ok",
+      "seed": 5,
+      "probe": false
+    },
+    {
+      "seconds": 152.3,
+      "train_turnover": 4.541709801532109,
+      "train_mean_exposure": 0.0038194920212676234,
+      "train_reward": -0.007914695587674454,
+      "selection_record": {
+        "decision": "final checkpoint",
+        "criterion": "mean episode reward",
+        "range": "f07-train"
+      },
+      "status": "ok",
+      "seed": 6,
+      "probe": false
+    },
+    {
+      "seconds": 152.2,
+      "train_turnover": 163.2511422381507,
+      "train_mean_exposure": 0.39200141733804666,
+      "train_reward": -0.3287657321865447,
+      "selection_record": {
+        "decision": "final checkpoint",
+        "criterion": "mean episode reward",
+        "range": "f07-train"
+      },
+      "status": "ok",
+      "seed": 7,
+      "probe": false
+    },
+    {
+      "seconds": 151.9,
+      "train_turnover": 165.293694465896,
+      "train_mean_exposure": 0.5643093735522863,
+      "train_reward": -0.32207965841217706,
+      "selection_record": {
+        "decision": "final checkpoint",
+        "criterion": "mean episode reward",
+        "range": "f07-train"
+      },
+      "status": "ok",
+      "seed": 8,
+      "probe": false
+    },
+    {
+      "seconds": 151.8,
+      "train_turnover": 8.444204849483809,
+      "train_mean_exposure": 0.005103094413152208,
+      "train_reward": -0.02342459863433478,
+      "selection_record": {
+        "decision": "final checkpoint",
+        "criterion": "mean episode reward",
+        "range": "f07-train"
+      },
+      "status": "ok",
+      "seed": 9,
+      "probe": false
+    },
+    {
+      "seconds": 151.8,
+      "train_turnover": 6.965509679989734,
+      "train_mean_exposure": 0.0031274656433287573,
+      "train_reward": -0.012860791296768556,
+      "selection_record": {
+        "decision": "final checkpoint",
+        "criterion": "mean episode reward",
+        "range": "f07-train"
+      },
+      "status": "ok",
+      "seed": 10,
+      "probe": false
+    }
+  ]
+}
