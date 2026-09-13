@@ -21,6 +21,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
@@ -161,11 +162,84 @@ def _pooled_control(fold_id: str) -> dict:
                            else float(np.log1p(f["return_pct"] / 100.0)))}
 
 
+def run_span(fold_ids: list[str], pairs: list[str] | None = None) -> dict:
+    """The four baselines aggregated across a fold range (T043a/T044a).
+
+    WRITTEN AND CANCELLED TWICE before landing -- as feature 011's T043a and feature 012's
+    T044a, each time by the SC-009 kill of the brief that discovered the gap. A remediation
+    task is not made unnecessary by the feature that found it being killed, which is why this
+    now lives in the module rather than in a brief's task list.
+
+    THE NEED IS DEMONSTRATED, not speculative: brief 02's report quoted buy-and-hold computed
+    BY HAND from the fold panels, flagged in the report as "not the audited baselines.py
+    output". A second implementation of a number this module owns is exactly the drift the
+    study keeps paying for.
+
+    Aggregation matches the floor's own convention: per-fold log returns are summed across the
+    span and annualised by the span's length, so a span figure is directly comparable with a
+    recomputed floor (research R2 of feature 011).
+    """
+    from research.labelfree.rl.episodes import fold as _fold
+
+    per_fold, days = [], 0.0
+    for fid in fold_ids:
+        r = run(fid, pairs)
+        fd = _fold(fid)
+        d = (pd.Timestamp(fd.test_end) - pd.Timestamp(fd.test_start)).days
+        days += d
+        per_fold.append({"fold_id": fid, "test_days": d, **r})
+
+    years = days / 365.0
+    names = ["do_nothing", "buy_and_hold", "ema_trend_20_60", "production_control"]
+    agg = {}
+    for name in names:
+        vals = [f["baselines"][name].get("log_return") for f in per_fold
+                if f["baselines"].get(name, {}).get("log_return") is not None]
+        if not vals:
+            agg[name] = {"status": "unavailable across the span"}
+            continue
+        total = float(np.sum(vals))
+        agg[name] = {"log_return_total": total,
+                     "log_return_per_year": total / years if years else float("nan"),
+                     "pp_per_year": (float(np.exp(total / years) - 1.0) * 100.0
+                                     if years else float("nan")),
+                     "folds": len(vals)}
+    return {"folds": fold_ids, "n_folds": len(fold_ids), "test_days": days,
+            "years": years, "aggregate": agg, "per_fold": per_fold}
+
+
+def parse_span(spec: str) -> list[str]:
+    """'f05..f14' -> [f05..f14]; 'f05,f08' -> [f05, f08]; a single id -> [id]."""
+    if ".." in spec:
+        a, b = spec.split("..")
+        return [f"f{i:02d}" for i in range(int(a[1:]), int(b[1:]) + 1)]
+    return [s.strip() for s in spec.split(",") if s.strip()]
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--fold", default="f08")
+    ap.add_argument("--folds", help="span, e.g. f05..f14 or f05,f08 — aggregates")
     ap.add_argument("--out")
     a = ap.parse_args()
+
+    if a.folds:
+        ids = parse_span(a.folds)
+        r = run_span(ids)
+        print(f"BASELINES over {r['n_folds']} folds ({ids[0]}..{ids[-1]}), "
+              f"{r['test_days']:.0f} days = {r['years']:.2f} yr   (frozen {FROZEN_AT})\n")
+        print(f"  {'baseline':<22}{'total log':>12}{'log/yr':>10}{'pp/yr':>11}{'folds':>7}")
+        for name, v in r["aggregate"].items():
+            if "log_return_total" not in v:
+                print(f"  {name:<22}{v['status']:>40}"); continue
+            print(f"  {name:<22}{v['log_return_total']:>12.4f}"
+                  f"{v['log_return_per_year']:>10.4f}{v['pp_per_year']:>11.2f}"
+                  f"{v['folds']:>7}")
+        if a.out:
+            Path(a.out).write_text(json.dumps(r, indent=2))
+            print(f"\n  -> {a.out}")
+        return 0
+
     res = run(a.fold)
     print(f"BASELINES fold {res['fold']}  {res['test_start']} -> {res['test_end']}  "
           f"{res['n_pairs']} pairs   (frozen {res['frozen_at']})")

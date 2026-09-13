@@ -1,0 +1,705 @@
+{
+  "folds": [
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f09",
+    "f10",
+    "f11",
+    "f12",
+    "f13",
+    "f14"
+  ],
+  "n_folds": 10,
+  "test_days": 898.0,
+  "years": 2.4602739726027396,
+  "aggregate": {
+    "do_nothing": {
+      "log_return_total": 0.0,
+      "log_return_per_year": 0.0,
+      "pp_per_year": 0.0,
+      "folds": 10
+    },
+    "buy_and_hold": {
+      "log_return_total": -0.3883739793089105,
+      "log_return_per_year": -0.15785802054315404,
+      "pp_per_year": -14.60289802968161,
+      "folds": 10
+    },
+    "ema_trend_20_60": {
+      "log_return_total": -3.6619562804698944,
+      "log_return_per_year": -1.4884343456252913,
+      "pp_per_year": -77.42742124072394,
+      "folds": 10
+    },
+    "production_control": {
+      "log_return_total": 0.18613136628851973,
+      "log_return_per_year": 0.07565473128653642,
+      "pp_per_year": 7.8590106441853935,
+      "folds": 10
+    }
+  },
+  "per_fold": [
+    {
+      "fold_id": "f05",
+      "test_days": 90,
+      "fold": "f05",
+      "test_start": "2024-03-26",
+      "test_end": "2024-06-24",
+      "n_pairs": 10,
+      "pairs": [
+        "ZEC/USDT",
+        "XRP/USDT",
+        "SOL/USDT",
+        "LINK/USDT",
+        "NEAR/USDT",
+        "AAVE/USDT",
+        "AVAX/USDT",
+        "LTC/USDT",
+        "BCH/USDT",
+        "DOT/USDT"
+      ],
+      "frozen_at": "2026-09-12",
+      "ema": {
+        "fast": 20,
+        "slow": 60,
+        "band": 0.1
+      },
+      "baselines": {
+        "do_nothing": {
+          "log_return": 0.0,
+          "gross_log_return": 0.0,
+          "mean_exposure": 0.0,
+          "flat_share": 1.0,
+          "trades_per_year": 0.0,
+          "mean_hold_bars": NaN,
+          "mean_hold_hours": NaN,
+          "turnover_per_year": 0.0
+        },
+        "buy_and_hold": {
+          "log_return": -0.4259443680203698,
+          "gross_log_return": -0.4259443680203698,
+          "mean_exposure": 1.0,
+          "flat_share": 0.0,
+          "trades_per_year": 4.1006436512580455,
+          "mean_hold_bars": 8545.0,
+          "mean_hold_hours": 2136.25,
+          "turnover_per_year": 0.0
+        },
+        "ema_trend_20_60": {
+          "log_return": -0.6094123721122742,
+          "gross_log_return": -0.6094123721122742,
+          "mean_exposure": 0.4594031597425395,
+          "flat_share": 0.5405968402574605,
+          "trades_per_year": 305.4979520187244,
+          "mean_hold_bars": 53.51172578788645,
+          "mean_hold_hours": 13.377931446971612,
+          "turnover_per_year": 609.7657109420713
+        },
+        "production_control": {
+          "status": "ok",
+          "source": "regime/wf/pooled_nnnc.json",
+          "return_pct": 0.947,
+          "n_trades": 25,
+          "test_days": 90,
+          "log_return": 0.00942544064715527
+        }
+      }
+    },
+    {
+      "fold_id": "f06",
+      "test_days": 90,
+      "fold": "f06",
+      "test_start": "2024-06-24",
+      "test_end": "2024-09-22",
+      "n_pairs": 10,
+      "pairs": [
+        "ZEC/USDT",
+        "XRP/USDT",
+        "SOL/USDT",
+        "LINK/USDT",
+        "NEAR/USDT",
+        "AAVE/USDT",
+        "AVAX/USDT",
+        "LTC/USDT",
+        "BCH/USDT",
+        "DOT/USDT"
+      ],
+      "frozen_at": "2026-09-12",
+      "ema": {
+        "fast": 20,
+        "slow": 60,
+        "band": 0.1
+      },
+      "baselines": {
+        "do_nothing": {
+          "log_return": 0.0,
+          "gross_log_return": 0.0,
+          "mean_exposure": 0.0,
+          "flat_share": 1.0,
+          "trades_per_year": 0.0,
+          "mean_hold_bars": NaN,
+          "mean_hold_hours": NaN,
+          "turnover_per_year": 0.0
+        },
+        "buy_and_hold": {
+          "log_return": 0.0854810190380372,
+          "gross_log_return": 0.0854810190380372,
+          "mean_exposure": 1.0,
+          "flat_share": 0.0,
+          "trades_per_year": 4.1006436512580455,
+          "mean_hold_bars": 8545.0,
+          "mean_hold_hours": 2136.25,
+          "turnover_per_year": 0.0
+        },
+        "ema_trend_20_60": {
+          "log_return": -0.20132270455360413,
+          "gross_log_return": -0.20132270455360413,
+          "mean_exposure": 0.5187595084844938,
+          "flat_share": 0.48124049151550613,
+          "trades_per_year": 275.9733177296665,
+          "mean_hold_bars": 66.85302179096749,
+          "mean_hold_hours": 16.713255447741872,
+          "turnover_per_year": 545.38560561732
+        },
+        "production_control": {
+          "status": "ok",
+          "source": "regime/wf/pooled_nnnc.json",
+          "return_pct": 1.082,
+          "n_trades": 23,
+          "test_days": 90,
+          "log_return": 0.010761882644030652
+        }
+      }
+    },
+    {
+      "fold_id": "f07",
+      "test_days": 90,
+      "fold": "f07",
+      "test_start": "2024-09-22",
+      "test_end": "2024-12-21",
+      "n_pairs": 10,
+      "pairs": [
+        "ZEC/USDT",
+        "XRP/USDT",
+        "SOL/USDT",
+        "LINK/USDT",
+        "NEAR/USDT",
+        "AAVE/USDT",
+        "AVAX/USDT",
+        "LTC/USDT",
+        "BCH/USDT",
+        "DOT/USDT"
+      ],
+      "frozen_at": "2026-09-12",
+      "ema": {
+        "fast": 20,
+        "slow": 60,
+        "band": 0.1
+      },
+      "baselines": {
+        "do_nothing": {
+          "log_return": 0.0,
+          "gross_log_return": 0.0,
+          "mean_exposure": 0.0,
+          "flat_share": 1.0,
+          "trades_per_year": 0.0,
+          "mean_hold_bars": NaN,
+          "mean_hold_hours": NaN,
+          "turnover_per_year": 0.0
+        },
+        "buy_and_hold": {
+          "log_return": 0.5433373047669077,
+          "gross_log_return": 0.5433373047669077,
+          "mean_exposure": 1.0,
+          "flat_share": 0.0,
+          "trades_per_year": 4.1006436512580455,
+          "mean_hold_bars": 8545.0,
+          "mean_hold_hours": 2136.25,
+          "turnover_per_year": 0.0
+        },
+        "ema_trend_20_60": {
+          "log_return": -0.03509632498025894,
+          "gross_log_return": -0.03509632498025894,
+          "mean_exposure": 0.5074312463428906,
+          "flat_share": 0.49256875365710945,
+          "trades_per_year": 287.0450555880632,
+          "mean_hold_bars": 63.04225698006476,
+          "mean_hold_hours": 15.76056424501619,
+          "turnover_per_year": 567.9391456992392
+        },
+        "production_control": {
+          "status": "ok",
+          "source": "regime/wf/pooled_nnnc.json",
+          "return_pct": 8.08,
+          "n_trades": 58,
+          "test_days": 90,
+          "log_return": 0.07770150766385205
+        }
+      }
+    },
+    {
+      "fold_id": "f08",
+      "test_days": 90,
+      "fold": "f08",
+      "test_start": "2024-12-21",
+      "test_end": "2025-03-21",
+      "n_pairs": 10,
+      "pairs": [
+        "ZEC/USDT",
+        "XRP/USDT",
+        "SOL/USDT",
+        "LINK/USDT",
+        "NEAR/USDT",
+        "AAVE/USDT",
+        "AVAX/USDT",
+        "LTC/USDT",
+        "BCH/USDT",
+        "DOT/USDT"
+      ],
+      "frozen_at": "2026-09-12",
+      "ema": {
+        "fast": 20,
+        "slow": 60,
+        "band": 0.1
+      },
+      "baselines": {
+        "do_nothing": {
+          "log_return": 0.0,
+          "gross_log_return": 0.0,
+          "mean_exposure": 0.0,
+          "flat_share": 1.0,
+          "trades_per_year": 0.0,
+          "mean_hold_bars": NaN,
+          "mean_hold_hours": NaN,
+          "turnover_per_year": 0.0
+        },
+        "buy_and_hold": {
+          "log_return": -0.3829798865593001,
+          "gross_log_return": -0.3829798865593001,
+          "mean_exposure": 1.0,
+          "flat_share": 0.0,
+          "trades_per_year": 4.1006436512580455,
+          "mean_hold_bars": 8545.0,
+          "mean_hold_hours": 2136.25,
+          "turnover_per_year": 0.0
+        },
+        "ema_trend_20_60": {
+          "log_return": -0.5763939023017883,
+          "gross_log_return": -0.5763939023017883,
+          "mean_exposure": 0.48227033352837917,
+          "flat_share": 0.5177296664716209,
+          "trades_per_year": 286.6349912229374,
+          "mean_hold_bars": 59.507645317392395,
+          "mean_hold_hours": 14.876911329348099,
+          "turnover_per_year": 572.0397893504974
+        },
+        "production_control": {
+          "status": "ok",
+          "source": "regime/wf/pooled_nnnc.json",
+          "return_pct": -0.138,
+          "n_trades": 71,
+          "test_days": 90,
+          "log_return": -0.001380953076931687
+        }
+      }
+    },
+    {
+      "fold_id": "f09",
+      "test_days": 90,
+      "fold": "f09",
+      "test_start": "2025-03-21",
+      "test_end": "2025-06-19",
+      "n_pairs": 10,
+      "pairs": [
+        "ZEC/USDT",
+        "XRP/USDT",
+        "SOL/USDT",
+        "LINK/USDT",
+        "NEAR/USDT",
+        "AAVE/USDT",
+        "AVAX/USDT",
+        "LTC/USDT",
+        "BCH/USDT",
+        "DOT/USDT"
+      ],
+      "frozen_at": "2026-09-12",
+      "ema": {
+        "fast": 20,
+        "slow": 60,
+        "band": 0.1
+      },
+      "baselines": {
+        "do_nothing": {
+          "log_return": 0.0,
+          "gross_log_return": 0.0,
+          "mean_exposure": 0.0,
+          "flat_share": 1.0,
+          "trades_per_year": 0.0,
+          "mean_hold_bars": NaN,
+          "mean_hold_hours": NaN,
+          "turnover_per_year": 0.0
+        },
+        "buy_and_hold": {
+          "log_return": 0.044463833207142714,
+          "gross_log_return": 0.044463833207142714,
+          "mean_exposure": 1.0,
+          "flat_share": 0.0,
+          "trades_per_year": 4.1006436512580455,
+          "mean_hold_bars": 8545.0,
+          "mean_hold_hours": 2136.25,
+          "turnover_per_year": 0.0
+        },
+        "ema_trend_20_60": {
+          "log_return": -0.5026542544364929,
+          "gross_log_return": -0.5026542544364929,
+          "mean_exposure": 0.5029607957870099,
+          "flat_share": 0.49703920421299,
+          "trades_per_year": 292.3758923346987,
+          "mean_hold_bars": 60.67056761349902,
+          "mean_hold_hours": 15.167641903374754,
+          "turnover_per_year": 580.6511410181392
+        },
+        "production_control": {
+          "status": "ok",
+          "source": "regime/wf/pooled_nnnc.json",
+          "return_pct": -0.15,
+          "n_trades": 12,
+          "test_days": 90,
+          "log_return": -0.0015011261262671456
+        }
+      }
+    },
+    {
+      "fold_id": "f10",
+      "test_days": 90,
+      "fold": "f10",
+      "test_start": "2025-06-19",
+      "test_end": "2025-09-17",
+      "n_pairs": 10,
+      "pairs": [
+        "ZEC/USDT",
+        "XRP/USDT",
+        "SOL/USDT",
+        "LINK/USDT",
+        "NEAR/USDT",
+        "AAVE/USDT",
+        "AVAX/USDT",
+        "LTC/USDT",
+        "BCH/USDT",
+        "DOT/USDT"
+      ],
+      "frozen_at": "2026-09-12",
+      "ema": {
+        "fast": 20,
+        "slow": 60,
+        "band": 0.1
+      },
+      "baselines": {
+        "do_nothing": {
+          "log_return": 0.0,
+          "gross_log_return": 0.0,
+          "mean_exposure": 0.0,
+          "flat_share": 1.0,
+          "trades_per_year": 0.0,
+          "mean_hold_bars": NaN,
+          "mean_hold_hours": NaN,
+          "turnover_per_year": 0.0
+        },
+        "buy_and_hold": {
+          "log_return": 0.31901904230391664,
+          "gross_log_return": 0.31901904230391664,
+          "mean_exposure": 1.0,
+          "flat_share": 0.0,
+          "trades_per_year": 4.1006436512580455,
+          "mean_hold_bars": 8545.0,
+          "mean_hold_hours": 2136.25,
+          "turnover_per_year": 0.0
+        },
+        "ema_trend_20_60": {
+          "log_return": -0.14905492961406708,
+          "gross_log_return": -0.14905492961406708,
+          "mean_exposure": 0.5363838502047982,
+          "flat_share": 0.4636161497952019,
+          "trades_per_year": 267.36196606202463,
+          "mean_hold_bars": 71.43119253906869,
+          "mean_hold_hours": 17.857798134767172,
+          "turnover_per_year": 528.5729666471622
+        },
+        "production_control": {
+          "status": "ok",
+          "source": "regime/wf/pooled_nnnc.json",
+          "return_pct": -0.155,
+          "n_trades": 7,
+          "test_days": 90,
+          "log_return": -0.0015512024927364597
+        }
+      }
+    },
+    {
+      "fold_id": "f11",
+      "test_days": 90,
+      "fold": "f11",
+      "test_start": "2025-09-17",
+      "test_end": "2025-12-16",
+      "n_pairs": 10,
+      "pairs": [
+        "ZEC/USDT",
+        "XRP/USDT",
+        "SOL/USDT",
+        "LINK/USDT",
+        "NEAR/USDT",
+        "AAVE/USDT",
+        "AVAX/USDT",
+        "LTC/USDT",
+        "BCH/USDT",
+        "DOT/USDT"
+      ],
+      "frozen_at": "2026-09-12",
+      "ema": {
+        "fast": 20,
+        "slow": 60,
+        "band": 0.1
+      },
+      "baselines": {
+        "do_nothing": {
+          "log_return": 0.0,
+          "gross_log_return": 0.0,
+          "mean_exposure": 0.0,
+          "flat_share": 1.0,
+          "trades_per_year": 0.0,
+          "mean_hold_bars": NaN,
+          "mean_hold_hours": NaN,
+          "turnover_per_year": 0.0
+        },
+        "buy_and_hold": {
+          "log_return": -0.30442854694342447,
+          "gross_log_return": -0.30442854694342447,
+          "mean_exposure": 1.0,
+          "flat_share": 0.0,
+          "trades_per_year": 4.1006436512580455,
+          "mean_hold_bars": 8545.0,
+          "mean_hold_hours": 2136.25,
+          "turnover_per_year": 0.0
+        },
+        "ema_trend_20_60": {
+          "log_return": -0.3769928514957428,
+          "gross_log_return": -0.3769928514957428,
+          "mean_exposure": 0.47067290813341134,
+          "flat_share": 0.5293270918665887,
+          "trades_per_year": 294.83627852545357,
+          "mean_hold_bars": 56.81075054526592,
+          "mean_hold_hours": 14.20268763631648,
+          "turnover_per_year": 585.5719133996489
+        },
+        "production_control": {
+          "status": "ok",
+          "source": "regime/wf/pooled_nnnc.json",
+          "return_pct": 3.15,
+          "n_trades": 48,
+          "test_days": 90,
+          "log_return": 0.03101405352916946
+        }
+      }
+    },
+    {
+      "fold_id": "f12",
+      "test_days": 90,
+      "fold": "f12",
+      "test_start": "2025-12-16",
+      "test_end": "2026-03-16",
+      "n_pairs": 10,
+      "pairs": [
+        "ZEC/USDT",
+        "XRP/USDT",
+        "SOL/USDT",
+        "LINK/USDT",
+        "NEAR/USDT",
+        "AAVE/USDT",
+        "AVAX/USDT",
+        "LTC/USDT",
+        "BCH/USDT",
+        "DOT/USDT"
+      ],
+      "frozen_at": "2026-09-12",
+      "ema": {
+        "fast": 20,
+        "slow": 60,
+        "band": 0.1
+      },
+      "baselines": {
+        "do_nothing": {
+          "log_return": 0.0,
+          "gross_log_return": 0.0,
+          "mean_exposure": 0.0,
+          "flat_share": 1.0,
+          "trades_per_year": 0.0,
+          "mean_hold_bars": NaN,
+          "mean_hold_hours": NaN,
+          "turnover_per_year": 0.0
+        },
+        "buy_and_hold": {
+          "log_return": -0.30672365536056534,
+          "gross_log_return": -0.30672365536056534,
+          "mean_exposure": 1.0,
+          "flat_share": 0.0,
+          "trades_per_year": 4.1006436512580455,
+          "mean_hold_bars": 8545.0,
+          "mean_hold_hours": 2136.25,
+          "turnover_per_year": 0.0
+        },
+        "ema_trend_20_60": {
+          "log_return": -0.7696067094802856,
+          "gross_log_return": -0.7696067094802856,
+          "mean_exposure": 0.44849619660620244,
+          "flat_share": 0.5515038033937976,
+          "trades_per_year": 339.1232299590404,
+          "mean_hold_bars": 48.56407672188462,
+          "mean_hold_hours": 12.141019180471154,
+          "turnover_per_year": 670.4552369806904
+        },
+        "production_control": {
+          "status": "ok",
+          "source": "regime/wf/pooled_nnnc.json",
+          "return_pct": 2.009,
+          "n_trades": 24,
+          "test_days": 90,
+          "log_return": 0.019890858697792765
+        }
+      }
+    },
+    {
+      "fold_id": "f13",
+      "test_days": 90,
+      "fold": "f13",
+      "test_start": "2026-03-16",
+      "test_end": "2026-06-14",
+      "n_pairs": 10,
+      "pairs": [
+        "ZEC/USDT",
+        "XRP/USDT",
+        "SOL/USDT",
+        "LINK/USDT",
+        "NEAR/USDT",
+        "AAVE/USDT",
+        "AVAX/USDT",
+        "LTC/USDT",
+        "BCH/USDT",
+        "DOT/USDT"
+      ],
+      "frozen_at": "2026-09-12",
+      "ema": {
+        "fast": 20,
+        "slow": 60,
+        "band": 0.1
+      },
+      "baselines": {
+        "do_nothing": {
+          "log_return": 0.0,
+          "gross_log_return": 0.0,
+          "mean_exposure": 0.0,
+          "flat_share": 1.0,
+          "trades_per_year": 0.0,
+          "mean_hold_bars": NaN,
+          "mean_hold_hours": NaN,
+          "turnover_per_year": 0.0
+        },
+        "buy_and_hold": {
+          "log_return": -0.27796367217137713,
+          "gross_log_return": -0.27796367217137713,
+          "mean_exposure": 1.0,
+          "flat_share": 0.0,
+          "trades_per_year": 4.1006436512580455,
+          "mean_hold_bars": 8545.0,
+          "mean_hold_hours": 2136.25,
+          "turnover_per_year": 0.0
+        },
+        "ema_trend_20_60": {
+          "log_return": -0.42639294266700745,
+          "gross_log_return": -0.42639294266700745,
+          "mean_exposure": 0.46310122878876536,
+          "flat_share": 0.5368987712112346,
+          "trades_per_year": 301.3973083674664,
+          "mean_hold_bars": 54.25523372499887,
+          "mean_hold_hours": 13.563808431249717,
+          "turnover_per_year": 595.0033937975425
+        },
+        "production_control": {
+          "status": "ok",
+          "source": "regime/wf/pooled_nnnc.json",
+          "return_pct": 4.099,
+          "n_trades": 16,
+          "test_days": 90,
+          "log_return": 0.040172183438757815
+        }
+      }
+    },
+    {
+      "fold_id": "f14",
+      "test_days": 88,
+      "fold": "f14",
+      "test_start": "2026-06-14",
+      "test_end": "2026-09-10",
+      "n_pairs": 10,
+      "pairs": [
+        "ZEC/USDT",
+        "XRP/USDT",
+        "SOL/USDT",
+        "LINK/USDT",
+        "NEAR/USDT",
+        "AAVE/USDT",
+        "AVAX/USDT",
+        "LTC/USDT",
+        "BCH/USDT",
+        "DOT/USDT"
+      ],
+      "frozen_at": "2026-09-12",
+      "ema": {
+        "fast": 20,
+        "slow": 60,
+        "band": 0.1
+      },
+      "baselines": {
+        "do_nothing": {
+          "log_return": 0.0,
+          "gross_log_return": 0.0,
+          "mean_exposure": 0.0,
+          "flat_share": 1.0,
+          "trades_per_year": 0.0,
+          "mean_hold_bars": NaN,
+          "mean_hold_hours": NaN,
+          "turnover_per_year": 0.0
+        },
+        "buy_and_hold": {
+          "log_return": 0.31736495043012214,
+          "gross_log_return": 0.31736495043012214,
+          "mean_exposure": 1.0,
+          "flat_share": 0.0,
+          "trades_per_year": 4.19490003591524,
+          "mean_hold_bars": 8353.0,
+          "mean_hold_hours": 2088.25,
+          "turnover_per_year": 0.0
+        },
+        "ema_trend_20_60": {
+          "log_return": -0.015029288828372955,
+          "gross_log_return": -0.015029288828372955,
+          "mean_exposure": 0.5110618939303244,
+          "flat_share": 0.4889381060696756,
+          "trades_per_year": 284.8337124386448,
+          "mean_hold_bars": 63.74030902296772,
+          "mean_hold_hours": 15.93507725574193,
+          "turnover_per_year": 565.4725248413744
+        },
+        "production_control": {
+          "status": "ok",
+          "source": "regime/wf/pooled_nnnc.json",
+          "return_pct": 0.16,
+          "n_trades": 3,
+          "test_days": 85,
+          "log_return": 0.0015987213636970278
+        }
+      }
+    }
+  ]
+}

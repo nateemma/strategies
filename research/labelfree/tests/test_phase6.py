@@ -108,3 +108,58 @@ def test_deflation_refuses_to_pass_on_seed_axis_alone():
     out = ST.trial_log_deflation()
     assert out["interpretable"] is False
     assert out["sc004_verdict"].startswith("CANNOT BE EVALUATED")
+
+
+# --- baselines span mode (written and cancelled twice before landing) -------
+
+def test_span_parse():
+    from research.labelfree.baselines import parse_span
+    assert parse_span("f05..f08") == ["f05", "f06", "f07", "f08"]
+    assert parse_span("f05,f08") == ["f05", "f08"]
+    assert parse_span("f07") == ["f07"]
+
+
+def test_one_fold_span_reproduces_single_fold_exactly():
+    """The drift guard. A second code path for a number this module already owns is exactly
+    the failure that made brief 02 quote a hand-computed buy-and-hold, flagged in its own
+    report as 'not the audited baselines.py output'."""
+    import json
+    p = ROOT / "research/labelfree/baselines_f05_f14.json"
+    if not p.exists():
+        pytest.skip("span baselines not run")
+    from research.labelfree.baselines import run, run_span
+    single = run("f07")
+    span = run_span(["f07"])
+    for name in ("do_nothing", "buy_and_hold", "ema_trend_20_60"):
+        assert span["aggregate"][name]["log_return_total"] == pytest.approx(
+            single["baselines"][name]["log_return"], abs=1e-12)
+
+
+def test_span_annualisation_matches_the_floor_convention():
+    """A span figure must be comparable with a recomputed floor: sum the log returns across
+    the span, annualise once by the span's length. Scaling a percentage instead is the error
+    that once turned a working instrument into a reported 0.62x regression."""
+    import json
+    p = ROOT / "research/labelfree/baselines_f05_f14.json"
+    if not p.exists():
+        pytest.skip("span baselines not run")
+    r = json.loads(p.read_text())
+    bh = r["aggregate"]["buy_and_hold"]
+    assert bh["log_return_per_year"] == pytest.approx(
+        bh["log_return_total"] / r["years"], rel=1e-9)
+    assert bh["pp_per_year"] == pytest.approx(
+        (np.exp(bh["log_return_per_year"]) - 1) * 100, rel=1e-9)
+
+
+def test_only_the_production_control_is_profitable_over_the_eval_span():
+    """Measured 2026-09-13 over f05..f14 (2.46 yr): the production control is the ONLY
+    baseline that makes money. Buy-and-hold loses 14.6 pp/yr and the TSMOM rule loses 77.4.
+    'Beat all four baselines' therefore means beating +7.86 pp/yr, not beating zero."""
+    import json
+    p = ROOT / "research/labelfree/baselines_f05_f14.json"
+    if not p.exists():
+        pytest.skip("span baselines not run")
+    agg = json.loads(p.read_text())["aggregate"]
+    assert agg["production_control"]["pp_per_year"] > 0
+    assert agg["buy_and_hold"]["pp_per_year"] < 0
+    assert agg["ema_trend_20_60"]["pp_per_year"] < agg["buy_and_hold"]["pp_per_year"]
