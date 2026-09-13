@@ -80,16 +80,16 @@ measured against the base rate.
 
 **Independent test**: per-fold discrimination reported against 73.2%, with per-fold trade counts.
 
-- [ ] T022 [US2] Implement `research/labelfree/metalabel/nested.py` — fold *k* trains on trades whose **`close_date`** precedes fold *k*'s `test_start` (FR-007, FR-008; R6; stricter than `open_date`, since a trade opening before the boundary but closing after carries an outcome not yet knowable)
-- [ ] T023 [P] [US2] Test that no training trade closes after its evaluation fold opens, and that `f05` reports `n_train == 91` (quickstart S4)
-- [ ] T024 [US2] Implement `research/labelfree/metalabel/model.py` — LightGBM veto with capacity pinned for the **first** fold's 91 rows, not the last fold's 287 (R4): shallow trees, high min-samples-per-leaf, few estimators, all fixed before any run
-- [ ] T025 [US2] Extend `research/labelfree/liveness.py` with probes for `veto_threshold`, `n_estimators`, `max_depth`, `min_child_samples`, each in its **active regime** — a probe outside it reports DEAD on correct code, as `participation_weight` did
-- [ ] T026 [US2] Make `model.py` refuse to run until every swept parameter probes LIVE (FR-012, SC-014, quickstart S5). Four parameters in this study were configured, logged, believed active and reaching nothing; 75+ runs void between them
-- [ ] T027 [US2] Pre-register every configuration to `research/labelfree/trials.jsonl` **before** training it, carrying the pinned capacity parameters (FR-011)
-- [ ] T028 [US2] Report **AUC and precision at the operating point**; never accuracy (FR-009, R3) — a majority-class model scores 73.2%, so accuracy cannot distinguish skill from doing nothing
-- [ ] T029 [US2] Report the interquartile mean with a bootstrap interval over ≥5 seeds, never a best seed (FR-010), with `n_train` beside every per-fold figure (FR-014)
-- [ ] T030 [US2] RUN the nested veto at thresholds {0.4, 0.5, 0.6} × seeds {1..5}, sequentially (quickstart S6)
-- [ ] T031 [US2] Apply SC-009: if AUC < 0.55 for every threshold, **kill the feature** and record that entry-time features carry no information about outcome beyond what the primary already used
+- [X] T022 [US2] Implement `research/labelfree/metalabel/nested.py` — fold *k* trains on trades whose **`close_date`** precedes fold *k*'s `test_start` (FR-007, FR-008; R6; stricter than `open_date`, since a trade opening before the boundary but closing after carries an outcome not yet knowable)
+- [X] T023 [P] [US2] Test that no training trade closes after its evaluation fold opens, and that `f05` reports `n_train == 91` (quickstart S4)
+- [X] T024 [US2] Implement `research/labelfree/metalabel/model.py` — LightGBM veto with capacity pinned for the **first** fold's 91 rows, not the last fold's 287 (R4): shallow trees, high min-samples-per-leaf, few estimators, all fixed before any run
+- [X] T025 [US2] Extend `research/labelfree/liveness.py` with probes for `veto_threshold`, `n_estimators`, `max_depth`, `min_child_samples`, each in its **active regime** — a probe outside it reports DEAD on correct code, as `participation_weight` did
+- [X] T026 [US2] Make `model.py` refuse to run until every swept parameter probes LIVE (FR-012, SC-014, quickstart S5). Four parameters in this study were configured, logged, believed active and reaching nothing; 75+ runs void between them
+- [X] T027 [US2] Pre-register every configuration to `research/labelfree/trials.jsonl` **before** training it, carrying the pinned capacity parameters (FR-011)
+- [X] T028 [US2] Report **AUC and precision at the operating point**; never accuracy (FR-009, R3) — a majority-class model scores 73.2%, so accuracy cannot distinguish skill from doing nothing
+- [X] T029 [US2] Report the interquartile mean with a bootstrap interval over ≥5 seeds, never a best seed (FR-010), with `n_train` beside every per-fold figure (FR-014)
+- [X] T030 [US2] RUN the nested veto at thresholds {0.4, 0.5, 0.6} × seeds {1..5}, sequentially (quickstart S6)
+- [X] T031 [US2] Apply SC-009: if AUC < 0.55 for every threshold, **kill the feature** and record that entry-time features carry no information about outcome beyond what the primary already used
 
 ---
 
@@ -100,15 +100,15 @@ measured against the base rate.
 **Independent test**: replay the archive with vetoed trades removed and compare over the
 identical span.
 
-- [ ] T032 [US3] Implement `research/labelfree/metalabel/evaluate.py` — replay the archived trades with vetoed trades removed; the **control is the unvetoed primary**, i.e. exactly what the veto would replace
-- [ ] T033 [US3] Quote the **recomputed 4.681 pp/yr** floor, never the study-wide 3.350 (R2, FR-013). A delta between the two clears the old floor and is **not resolvable** here
-- [ ] T033a [US3] Implement `trade_activity()` in `research/labelfree/metalabel/evaluate.py` — activity computed from the **trade list**: `trades_per_year = retained / years`, `mean_hold_hours = mean(close_date - open_date)`, plus the retained count. **Do NOT reuse `stats.py::activity`**: it takes an exposure path `(n_pairs, T)` and derives trades from contiguous non-flat runs, which this feature does not have. Synthesising an exposure path to feed it would invent a quantity (analyze C1)
-- [ ] T033b [P] [US3] Test `trade_activity()` against a hand-checked three-trade fixture, including a trade that opens and closes on the same bar
-- [ ] T034 [US3] Attach retained-trade count, trades/yr and mean holding time from `trade_activity()` to **every** return (FR-014, SC-012)
-- [ ] T035 [US3] Emit `inconclusive: true` with the **return withheld** when too few trades are retained to resolve (FR-015). A veto can otherwise "win" by discarding almost everything
-- [ ] T036 [P] [US3] Test that a fold from which the veto removed every trade reports zero **by construction** and is not presented as a loss avoided (spec edge cases)
-- [ ] T037 [US3] Always include the null configuration (accept everything) as the control row; never omit it
-- [ ] T038 [US3] RUN the evaluation and report folds-positive out of 10 against SC-002's ≥7 (quickstart S7)
+- [-] T032 CANCELLED (SC-009 kill at T031) — [US3] Implement `research/labelfree/metalabel/evaluate.py` — replay the archived trades with vetoed trades removed; the **control is the unvetoed primary**, i.e. exactly what the veto would replace
+- [-] T033 CANCELLED (SC-009 kill at T031) — [US3] Quote the **recomputed 4.681 pp/yr** floor, never the study-wide 3.350 (R2, FR-013). A delta between the two clears the old floor and is **not resolvable** here
+- [-] T033a CANCELLED (SC-009 kill at T031) — [US3] Implement `trade_activity()` in `research/labelfree/metalabel/evaluate.py` — activity computed from the **trade list**: `trades_per_year = retained / years`, `mean_hold_hours = mean(close_date - open_date)`, plus the retained count. **Do NOT reuse `stats.py::activity`**: it takes an exposure path `(n_pairs, T)` and derives trades from contiguous non-flat runs, which this feature does not have. Synthesising an exposure path to feed it would invent a quantity (analyze C1)
+- [-] T033b CANCELLED (SC-009 kill at T031) — [P] [US3] Test `trade_activity()` against a hand-checked three-trade fixture, including a trade that opens and closes on the same bar
+- [-] T034 CANCELLED (SC-009 kill at T031) — [US3] Attach retained-trade count, trades/yr and mean holding time from `trade_activity()` to **every** return (FR-014, SC-012)
+- [-] T035 CANCELLED (SC-009 kill at T031) — [US3] Emit `inconclusive: true` with the **return withheld** when too few trades are retained to resolve (FR-015). A veto can otherwise "win" by discarding almost everything
+- [-] T036 CANCELLED (SC-009 kill at T031) — [P] [US3] Test that a fold from which the veto removed every trade reports zero **by construction** and is not presented as a loss avoided (spec edge cases)
+- [-] T037 CANCELLED (SC-009 kill at T031) — [US3] Always include the null configuration (accept everything) as the control row; never omit it
+- [-] T038 CANCELLED (SC-009 kill at T031) — [US3] RUN the evaluation and report folds-positive out of 10 against SC-002's ≥7 (quickstart S7)
 
 ---
 
@@ -118,23 +118,23 @@ identical span.
 
 **Independent test**: recompute the gain with ZEC excluded and within each pair.
 
-- [ ] T039 [US4] Implement `research/labelfree/metalabel/attribution.py` — gain across all pairs, with ZEC excluded, and decomposed within pairs (FR-016, FR-017)
-- [ ] T040 [US4] Print a verdict line `PAIR SELECTION` or `WITHIN-PAIR`; the former **stops the feature** (SC-010)
-- [ ] T041 [US4] RUN attribution (quickstart S8). Note that the model **cannot** rank pairs by construction (R7), so a large all-pairs/ex-ZEC gap would itself be surprising and worth diagnosing rather than reporting
+- [-] T039 CANCELLED (SC-009 kill at T031) — [US4] Implement `research/labelfree/metalabel/attribution.py` — gain across all pairs, with ZEC excluded, and decomposed within pairs (FR-016, FR-017)
+- [-] T040 CANCELLED (SC-009 kill at T031) — [US4] Print a verdict line `PAIR SELECTION` or `WITHIN-PAIR`; the former **stops the feature** (SC-010)
+- [-] T041 CANCELLED (SC-009 kill at T031) — [US4] RUN attribution (quickstart S8). Note that the model **cannot** rank pairs by construction (R7), so a large all-pairs/ex-ZEC gap would itself be surprising and worth diagnosing rather than reporting
 
 ---
 
 ## Phase 7: Persistence and cost stress
 
-- [ ] T041a Add `--probe {W1,W2,W3}` to `research/labelfree/metalabel/model.py` per the contract: it inverts the nested assignment (trains on folds *after* the window) and stamps `anti_causal: true` into its output. Without this the declared Principle II deviation has no way to execute and would silently not happen (analyze H2)
-- [ ] T042 RUN the W3 anti-causal persistence probe via `model.py --probe W3 --out research/labelfree/metalabel/probe_w3.json` — trained on **later** folds, tested on 2023 (R6). Label its construction wherever its figure appears; it may never be quoted as an out-of-sample return nor counted toward SC-001 (SC-018, quickstart S9)
-- [ ] T043 RUN W1 and W2 single-window out-of-sample and report both against SC-002
-- [ ] T043a Add a span mode to `research/labelfree/baselines.py` — `--folds f05..f14` aggregating across folds on the **same annualisation the floor uses** (research R2). Today it accepts `--fold` only (single fold, default `f08`) and cannot express the evaluation span, so SC-003 is unsatisfiable without this (analyze C2)
-- [ ] T043b [P] Test the span mode against the single-fold path: a one-fold span must reproduce `--fold` exactly
-- [ ] T044 RUN the four mandatory baselines over folds 5–14 via `research/labelfree/baselines.py --folds f05..f14` (SC-003)
-- [ ] T045 RUN cost stress at 1.5× and 2× fees and report the fee level at which the edge crosses zero (SC-005)
-- [ ] T046 Compute the in-sample overfitting differential via `research/labelfree/stats.py::overfitting_differential`, using the split **pre-registered in research.md R10**: each fold-*k* model's advantage on its own training trades (in-sample) versus its advantage on fold *k* (held-out), aggregated across evaluation folds. Exceeding the recomputed 4.681 pp/yr floor records overfitting and stops the configuration (SC-008). The split is fixed before any result exists — choosing it afterwards is the failure the gate exists to prevent (analyze H1)
-- [ ] T047 Compute DSR and PBO over the **full** trial log via `stats.py::trial_log_deflation` (SC-004). **Expect `CANNOT BE EVALUATED`** — the log stores summary scalars, so the only axis is seeds; report it as unevaluable rather than passing on an artefact
+- [-] T041a CANCELLED (SC-009 kill at T031) — Add `--probe {W1,W2,W3}` to `research/labelfree/metalabel/model.py` per the contract: it inverts the nested assignment (trains on folds *after* the window) and stamps `anti_causal: true` into its output. Without this the declared Principle II deviation has no way to execute and would silently not happen (analyze H2)
+- [-] T042 CANCELLED (SC-009 kill at T031) — RUN the W3 anti-causal persistence probe via `model.py --probe W3 --out research/labelfree/metalabel/probe_w3.json` — trained on **later** folds, tested on 2023 (R6). Label its construction wherever its figure appears; it may never be quoted as an out-of-sample return nor counted toward SC-001 (SC-018, quickstart S9)
+- [-] T043 CANCELLED (SC-009 kill at T031) — RUN W1 and W2 single-window out-of-sample and report both against SC-002
+- [-] T043a CANCELLED (SC-009 kill at T031) — Add a span mode to `research/labelfree/baselines.py` — `--folds f05..f14` aggregating across folds on the **same annualisation the floor uses** (research R2). Today it accepts `--fold` only (single fold, default `f08`) and cannot express the evaluation span, so SC-003 is unsatisfiable without this (analyze C2)
+- [-] T043b CANCELLED (SC-009 kill at T031) — [P] Test the span mode against the single-fold path: a one-fold span must reproduce `--fold` exactly
+- [-] T044 CANCELLED (SC-009 kill at T031) — RUN the four mandatory baselines over folds 5–14 via `research/labelfree/baselines.py --folds f05..f14` (SC-003)
+- [-] T045 CANCELLED (SC-009 kill at T031) — RUN cost stress at 1.5× and 2× fees and report the fee level at which the edge crosses zero (SC-005)
+- [-] T046 CANCELLED (SC-009 kill at T031) — Compute the in-sample overfitting differential via `research/labelfree/stats.py::overfitting_differential`, using the split **pre-registered in research.md R10**: each fold-*k* model's advantage on its own training trades (in-sample) versus its advantage on fold *k* (held-out), aggregated across evaluation folds. Exceeding the recomputed 4.681 pp/yr floor records overfitting and stops the configuration (SC-008). The split is fixed before any result exists — choosing it afterwards is the failure the gate exists to prevent (analyze H1)
+- [X] T047 Compute DSR and PBO over the **full** trial log via `stats.py::trial_log_deflation` (SC-004). **Expect `CANNOT BE EVALUATED`** — the log stores summary scalars, so the only axis is seeds; report it as unevaluable rather than passing on an artefact
 
 ---
 
@@ -142,20 +142,20 @@ identical span.
 
 **Do not start unless a configuration cleared SC-001 through SC-006** (FR-019).
 
-- [ ] T048 [GATED] [US5] Write `NNNC/NNNC_Meta.py` — a thin `NNNC_MLX` subclass loading the primary from a **pinned** path, not retraining it (FR-018), merging parameter dictionaries from the parent rather than redefining them (constitution)
-- [ ] T049 [GATED] [US5] Consult the secondary model in `confirm_trade_entry()` and decline below the threshold
-- [ ] T050 [GATED] [US5] RUN the subclass over the evaluation span and compare its trades to the offline replay; **report any divergence** rather than averaging it away (FR-020, SC-016)
+- [-] T048 CANCELLED (SC-009 kill at T031) — [GATED] [US5] Write `NNNC/NNNC_Meta.py` — a thin `NNNC_MLX` subclass loading the primary from a **pinned** path, not retraining it (FR-018), merging parameter dictionaries from the parent rather than redefining them (constitution)
+- [-] T049 CANCELLED (SC-009 kill at T031) — [GATED] [US5] Consult the secondary model in `confirm_trade_entry()` and decline below the threshold
+- [-] T050 CANCELLED (SC-009 kill at T031) — [GATED] [US5] RUN the subclass over the evaluation span and compare its trades to the offline replay; **report any divergence** rather than averaging it away (FR-020, SC-016)
 
 ---
 
 ## Phase 9: Reproduction and close
 
-- [ ] T051 Give the meta-label package its own reproduction path in `research/labelfree/metalabel/reproduce.py`, re-running an accepted configuration in a **fresh process**. This is a second code path, not a parameter addition: `research/labelfree/reproduce.py`'s `CONFIG_KEYS` are `ArmConfig` fields and its `rerun()` subprocess imports `research.labelfree.arms` and calls `train_arm`, none of which a LightGBM configuration shares (analyze M2). Reuse its comparison/tolerance logic (SC-006)
+- [-] T051 CANCELLED (SC-009 kill at T031) — Give the meta-label package its own reproduction path in `research/labelfree/metalabel/reproduce.py`, re-running an accepted configuration in a **fresh process**. This is a second code path, not a parameter addition: `research/labelfree/reproduce.py`'s `CONFIG_KEYS` are `ArmConfig` fields and its `rerun()` subprocess imports `research.labelfree.arms` and calls `train_arm`, none of which a LightGBM configuration shares (analyze M2). Reuse its comparison/tolerance logic (SC-006)
 - [ ] T052 Re-run `/speckit-analyze` and append to `specs/011-labelfree-meta-labelling/analyze.md`; fix every CRITICAL and re-run until clean (FR-023, SC-015)
-- [ ] T053 RUN the trial-log audit via `research/labelfree/trials.py::audit` (SC-013, quickstart S10)
-- [ ] T053a Apply SC-007 in `research/labelfree/metalabel/report.py`: a delta below the recomputed 4.681 pp/yr floor is rendered as **"not resolved"**, never as "no effect" (FR-024). Assert the phrase "no effect" cannot appear in a generated verdict line
-- [ ] T054 Write `research/label-free-study/briefs/results/03-<date>.md` per protocol §6 — hypothesis, config and seeds, trials logged, return with CI, folds positive, trades/yr, hold time, baselines, cost stress, DSR/PBO, verdict, and what changes for the next brief. **Written even on a kill** (FR-025)
-- [ ] T054a If the feature killed at SC-009 or SC-010, mark T048–T050 **cancelled with the reason inline** rather than leaving them open. Feature 010 left gated tasks unchecked and they had to be explicitly cancelled at close; an open box reads as outstanding work (analyze M3)
+- [X] T053 RUN the trial-log audit via `research/labelfree/trials.py::audit` (SC-013, quickstart S10)
+- [X] T053a Apply SC-007 in `research/labelfree/metalabel/report.py`: a delta below the recomputed 4.681 pp/yr floor is rendered as **"not resolved"**, never as "no effect" (FR-024). Assert the phrase "no effect" cannot appear in a generated verdict line
+- [X] T054 Write `research/label-free-study/briefs/results/03-<date>.md` per protocol §6 — hypothesis, config and seeds, trials logged, return with CI, folds positive, trades/yr, hold time, baselines, cost stress, DSR/PBO, verdict, and what changes for the next brief. **Written even on a kill** (FR-025)
+- [X] T054a If the feature killed at SC-009 or SC-010, mark T048–T050 **cancelled with the reason inline** rather than leaving them open. Feature 010 left gated tasks unchecked and they had to be explicitly cancelled at close; an open box reads as outstanding work (analyze M3)
 - [ ] T055 Stage ONLY the files this feature created or modified and commit; never `git add -A` (FR-021, FR-022)
 
 ---
