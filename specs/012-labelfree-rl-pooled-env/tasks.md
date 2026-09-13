@@ -97,8 +97,8 @@ reusable whether or not PPO works.
 - [X] T035a [US4] Implement `research/labelfree/rl/evaluate.py` — turn a trained policy into an exposure path, apply the participation floor, and emit the arm record. The plan's structure names it and T037/T038/T042–T046 use it, but no task created it (analyze M3)
 - [X] T036 [US4] RUN the screening fold: `--fold f07`, **both** action parameterisations, 5 seeds each, sequentially — compute goes to seeds, never to algorithm comparison (FR-010, FR-011, quickstart S6)
 - [ ] T036a [US4] Pre-register the operational definition of "distinguishable" in `research/labelfree/rl/__init__.py` **before the screen runs**: the RL and brief-1 exposure paths must differ on **more than 5% of decision bars** on the screening fold, at every seed. A bar defined after seeing the screen is not a bar (analyze H1)
-- [ ] T037 [US4] Apply the SC-018 screen bar in `research/labelfree/rl/evaluate.py --screen`: **non-degenerate** (mean exposure above the participation floor) **and distinguishable** per T036a's pinned threshold. Deliberately weak — time is not the binding constraint, so a marginal screen is funded and only a degenerate or path-identical one is not. Print `FUND` or `STOP`
-- [ ] T038 [US4] Make `--pooled` refuse to run without a `FUND` screen on record
+- [X] T037 [US4] Apply the SC-018 screen bar in `research/labelfree/rl/evaluate.py --screen`: **non-degenerate** (mean exposure above the participation floor) **and distinguishable** per T036a's pinned threshold. Deliberately weak — time is not the binding constraint, so a marginal screen is funded and only a degenerate or path-identical one is not. Print `FUND` or `STOP`
+- [X] T038 [US4] Make `--pooled` refuse to run without a `FUND` screen on record
 
 ---
 

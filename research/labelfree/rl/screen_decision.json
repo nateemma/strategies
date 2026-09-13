@@ -1,0 +1,10 @@
+{
+  "action": "discrete",
+  "exposure_iqm": 0.6794758309930278,
+  "non_degenerate": true,
+  "bars_differing": 0.5998741219878112,
+  "distinguishable": true,
+  "decision": "FUND",
+  "floor": 0.05,
+  "distinguishability_bar": 0.05
+}
