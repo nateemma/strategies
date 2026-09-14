@@ -1,0 +1,908 @@
+{
+  "passed": true,
+  "verdict": "rank agreement sufficient",
+  "spearman_rho": 0.9766,
+  "kendall_tau": 0.8952,
+  "agree_on_winner": true,
+  "winner_surrogate": 38,
+  "winner_backtest": 38,
+  "n_compared": 21,
+  "n_pair_disagreements": 11,
+  "pair_disagreements": [
+    {
+      "i": 0,
+      "j": 3,
+      "surrogate": [
+        -0.705,
+        -0.672
+      ],
+      "backtest": [
+        26.659,
+        21.296
+      ]
+    },
+    {
+      "i": 4,
+      "j": 32,
+      "surrogate": [
+        -2.874,
+        -3.015
+      ],
+      "backtest": [
+        -36.392,
+        -35.215
+      ]
+    },
+    {
+      "i": 7,
+      "j": 18,
+      "surrogate": [
+        -1.076,
+        -1.119
+      ],
+      "backtest": [
+        -0.169,
+        17.021
+      ]
+    },
+    {
+      "i": 7,
+      "j": 26,
+      "surrogate": [
+        -1.076,
+        -1.428
+      ],
+      "backtest": [
+        -0.169,
+        3.013
+      ]
+    },
+    {
+      "i": 7,
+      "j": 29,
+      "surrogate": [
+        -1.076,
+        -1.171
+      ],
+      "backtest": [
+        -0.169,
+        8.282
+      ]
+    },
+    {
+      "i": 8,
+      "j": 24,
+      "surrogate": [
+        -3.121,
+        -3.219
+      ],
+      "backtest": [
+        -44.608,
+        -37.883
+      ]
+    },
+    {
+      "i": 9,
+      "j": 26,
+      "surrogate": [
+        -1.406,
+        -1.428
+      ],
+      "backtest": [
+        -4.115,
+        3.013
+      ]
+    },
+    {
+      "i": 16,
+      "j": 28,
+      "surrogate": [
+        -1.669,
+        -1.727
+      ],
+      "backtest": [
+        -16.542,
+        -6.659
+      ]
+    },
+    {
+      "i": 18,
+      "j": 19,
+      "surrogate": [
+        -1.119,
+        -1.073
+      ],
+      "backtest": [
+        17.021,
+        11.167
+      ]
+    },
+    {
+      "i": 22,
+      "j": 32,
+      "surrogate": [
+        -2.813,
+        -3.015
+      ],
+      "backtest": [
+        -35.369,
+        -35.215
+      ]
+    },
+    {
+      "i": 23,
+      "j": 28,
+      "surrogate": [
+        -1.599,
+        -1.727
+      ],
+      "backtest": [
+        -12.205,
+        -6.659
+      ]
+    }
+  ],
+  "fold": "f07",
+  "rows": [
+    {
+      "idx": 0,
+      "params": {
+        "atr_stoploss_multiplier": 2.5,
+        "atr_stoploss_floor": -0.04,
+        "atr_stoploss_cap": -0.02,
+        "stoploss_grace_hours": 6.5,
+        "stoploss_grace_level": -0.27,
+        "cexit_take_profit": 0.024,
+        "cexit_max_days": 10,
+        "entry_rvol_threshold": 2.0,
+        "entry_guard_threshold": 0.3,
+        "hold_window_hours": 12.0
+      },
+      "surrogate": -0.7050228185175919,
+      "backtest": 26.659311887521397,
+      "surrogate_trades": 523,
+      "admissible": true
+    },
+    {
+      "idx": 1,
+      "params": {
+        "atr_stoploss_multiplier": 3.500381866418668,
+        "atr_stoploss_floor": -0.02822289592243396,
+        "atr_stoploss_cap": -0.012851000841418225,
+        "stoploss_grace_hours": 2.7024862798871023,
+        "stoploss_grace_level": -0.2949418002810711,
+        "cexit_take_profit": 0.05367767226981309,
+        "cexit_max_days": 26,
+        "entry_rvol_threshold": 3.3296065689353735,
+        "entry_guard_threshold": 0.7970694287520462,
+        "hold_window_hours": 28.84565830237395
+      },
+      "surrogate": null,
+      "backtest": -2.8467887582792395,
+      "surrogate_trades": 158,
+      "admissible": false
+    },
+    {
+      "idx": 2,
+      "params": {
+        "atr_stoploss_multiplier": 2.212129707277254,
+        "atr_stoploss_floor": -0.07772595103193813,
+        "atr_stoploss_cap": -0.03107956443210564,
+        "stoploss_grace_hours": 5.340915670591759,
+        "stoploss_grace_level": -0.22340810936471636,
+        "cexit_take_profit": 0.03767486760372462,
+        "cexit_max_days": 2,
+        "entry_rvol_threshold": 3.9831260628789726,
+        "entry_guard_threshold": 0.7926619192137531,
+        "hold_window_hours": 34.39845225988186
+      },
+      "surrogate": null,
+      "backtest": 5.409594892251013,
+      "surrogate_trades": 75,
+      "admissible": false
+    },
+    {
+      "idx": 3,
+      "params": {
+        "atr_stoploss_multiplier": 4.95584059072754,
+        "atr_stoploss_floor": -0.08277530414115208,
+        "atr_stoploss_cap": -0.03439257881497544,
+        "stoploss_grace_hours": 7.35047525127637,
+        "stoploss_grace_level": -0.3846202972135158,
+        "cexit_take_profit": 0.011784013938679807,
+        "cexit_max_days": 5,
+        "entry_rvol_threshold": 1.9982725949698341,
+        "entry_guard_threshold": 0.9171677731928523,
+        "hold_window_hours": 34.65214516167637
+      },
+      "surrogate": -0.6716393700050316,
+      "backtest": 21.296425457330237,
+      "surrogate_trades": 546,
+      "admissible": true
+    },
+    {
+      "idx": 4,
+      "params": {
+        "atr_stoploss_multiplier": 3.0564705863980555,
+        "atr_stoploss_floor": -0.060250125168519665,
+        "atr_stoploss_cap": -0.031336977729043425,
+        "stoploss_grace_hours": 0.1415283065100703,
+        "stoploss_grace_level": -0.33265924960514126,
+        "cexit_take_profit": 0.04460160604409196,
+        "cexit_max_days": 15,
+        "entry_rvol_threshold": 1.002275214951232,
+        "entry_guard_threshold": 0.3695363106022067,
+        "hold_window_hours": 12.134432713874734
+      },
+      "surrogate": -2.8741720249810925,
+      "backtest": -36.392473745386845,
+      "surrogate_trades": 1258,
+      "admissible": true
+    },
+    {
+      "idx": 5,
+      "params": {
+        "atr_stoploss_multiplier": 4.320190919206983,
+        "atr_stoploss_floor": -0.08764311351508482,
+        "atr_stoploss_cap": -0.03063402434026751,
+        "stoploss_grace_hours": 10.563985847769944,
+        "stoploss_grace_level": -0.2215732165460519,
+        "cexit_take_profit": 0.05235751231829346,
+        "cexit_max_days": 21,
+        "entry_rvol_threshold": 3.031641052606964,
+        "entry_guard_threshold": 0.09149560506304566,
+        "hold_window_hours": 31.481177569553594
+      },
+      "surrogate": null,
+      "backtest": 21.053751619970672,
+      "surrogate_trades": 198,
+      "admissible": false
+    },
+    {
+      "idx": 6,
+      "params": {
+        "atr_stoploss_multiplier": 3.0310889452014,
+        "atr_stoploss_floor": -0.03029284986456955,
+        "atr_stoploss_cap": -0.027355757934504482,
+        "stoploss_grace_hours": 7.178208806486557,
+        "stoploss_grace_level": -0.37926192517907376,
+        "cexit_take_profit": 0.029381590055536436,
+        "cexit_max_days": 19,
+        "entry_rvol_threshold": 1.461386298468275,
+        "entry_guard_threshold": 0.15019972907045187,
+        "hold_window_hours": 41.38817173748673
+      },
+      "surrogate": -1.0373518203991543,
+      "backtest": 18.821291313474674,
+      "surrogate_trades": 702,
+      "admissible": true
+    },
+    {
+      "idx": 7,
+      "params": {
+        "atr_stoploss_multiplier": 2.51778468620125,
+        "atr_stoploss_floor": -0.021700169247102274,
+        "atr_stoploss_cap": -0.01935029074462864,
+        "stoploss_grace_hours": 7.260675045958216,
+        "stoploss_grace_level": -0.17670119672408371,
+        "cexit_take_profit": 0.043822512190639415,
+        "cexit_max_days": 27,
+        "entry_rvol_threshold": 1.9011755019557033,
+        "entry_guard_threshold": 0.23956396182952333,
+        "hold_window_hours": 26.489938731743337
+      },
+      "surrogate": -1.0763123268748507,
+      "backtest": -0.1694476201970163,
+      "surrogate_trades": 535,
+      "admissible": true
+    },
+    {
+      "idx": 8,
+      "params": {
+        "atr_stoploss_multiplier": 4.779792684579919,
+        "atr_stoploss_floor": -0.027686656944325858,
+        "atr_stoploss_cap": -0.020059829824925296,
+        "stoploss_grace_hours": 1.745519445131123,
+        "stoploss_grace_level": -0.3326377767610837,
+        "cexit_take_profit": 0.056395284237226215,
+        "cexit_max_days": 8,
+        "entry_rvol_threshold": 0.9270718691834187,
+        "entry_guard_threshold": 0.8840568941964699,
+        "hold_window_hours": 35.096581388009305
+      },
+      "surrogate": -3.12138793348529,
+      "backtest": -44.607968610925276,
+      "surrogate_trades": 1137,
+      "admissible": true
+    },
+    {
+      "idx": 9,
+      "params": {
+        "atr_stoploss_multiplier": 3.2787770978952318,
+        "atr_stoploss_floor": -0.0698969731096064,
+        "atr_stoploss_cap": -0.025616565124500452,
+        "stoploss_grace_hours": 2.8738705521821384,
+        "stoploss_grace_level": -0.38667994965806635,
+        "cexit_take_profit": 0.053810940405463546,
+        "cexit_max_days": 16,
+        "entry_rvol_threshold": 2.0039883130528606,
+        "entry_guard_threshold": 0.5476351992137353,
+        "hold_window_hours": 23.597879152088105
+      },
+      "surrogate": -1.40622012614711,
+      "backtest": -4.115241717239126,
+      "surrogate_trades": 552,
+      "admissible": true
+    },
+    {
+      "idx": 10,
+      "params": {
+        "atr_stoploss_multiplier": 4.0052996794197115,
+        "atr_stoploss_floor": -0.09798425033585918,
+        "atr_stoploss_cap": -0.02697351546021786,
+        "stoploss_grace_hours": 0.3642035326093396,
+        "stoploss_grace_level": -0.35698776422824674,
+        "cexit_take_profit": 0.05835741176986838,
+        "cexit_max_days": 4,
+        "entry_rvol_threshold": 1.855825923960555,
+        "entry_guard_threshold": 0.5237401079104803,
+        "hold_window_hours": 43.42113150833188
+      },
+      "surrogate": -1.9668426662763507,
+      "backtest": -29.191666095496092,
+      "surrogate_trades": 690,
+      "admissible": true
+    },
+    {
+      "idx": 11,
+      "params": {
+        "atr_stoploss_multiplier": 2.376842667984105,
+        "atr_stoploss_floor": -0.05277672141682283,
+        "atr_stoploss_cap": -0.01607104693311597,
+        "stoploss_grace_hours": 4.264965324282144,
+        "stoploss_grace_level": -0.21831552972640347,
+        "cexit_take_profit": 0.04826236916392613,
+        "cexit_max_days": 19,
+        "entry_rvol_threshold": 3.659422427464563,
+        "entry_guard_threshold": 0.1510622780768155,
+        "hold_window_hours": 45.603098123067426
+      },
+      "surrogate": null,
+      "backtest": -0.1997159166094331,
+      "surrogate_trades": 102,
+      "admissible": false
+    },
+    {
+      "idx": 12,
+      "params": {
+        "atr_stoploss_multiplier": 1.0207154632617286,
+        "atr_stoploss_floor": -0.03976179971217969,
+        "atr_stoploss_cap": -0.011631560938896418,
+        "stoploss_grace_hours": 1.6411686185109784,
+        "stoploss_grace_level": -0.2533837221803852,
+        "cexit_take_profit": 0.050762813899752283,
+        "cexit_max_days": 28,
+        "entry_rvol_threshold": 2.6067323044985904,
+        "entry_guard_threshold": 0.7930236580980341,
+        "hold_window_hours": 30.468128981599506
+      },
+      "surrogate": null,
+      "backtest": -1.6957125521897543,
+      "surrogate_trades": 359,
+      "admissible": false
+    },
+    {
+      "idx": 13,
+      "params": {
+        "atr_stoploss_multiplier": 3.9033976822043486,
+        "atr_stoploss_floor": -0.08188612138422847,
+        "atr_stoploss_cap": -0.03305175982025645,
+        "stoploss_grace_hours": 4.357523406604219,
+        "stoploss_grace_level": -0.33720789035149873,
+        "cexit_take_profit": 0.02730307195562392,
+        "cexit_max_days": 2,
+        "entry_rvol_threshold": 3.8054652302905554,
+        "entry_guard_threshold": 0.5733327176111209,
+        "hold_window_hours": 24.242450427150235
+      },
+      "surrogate": null,
+      "backtest": 6.964570302399786,
+      "surrogate_trades": 89,
+      "admissible": false
+    },
+    {
+      "idx": 14,
+      "params": {
+        "atr_stoploss_multiplier": 4.512751437673122,
+        "atr_stoploss_floor": -0.06706830800744892,
+        "atr_stoploss_cap": -0.007703414834103639,
+        "stoploss_grace_hours": 0.8245842254623383,
+        "stoploss_grace_level": -0.24950109833459294,
+        "cexit_take_profit": 0.035975740993892946,
+        "cexit_max_days": 26,
+        "entry_rvol_threshold": 3.8160182334319366,
+        "entry_guard_threshold": 0.25099924666475815,
+        "hold_window_hours": 41.01740930143592
+      },
+      "surrogate": null,
+      "backtest": 4.023109629650379,
+      "surrogate_trades": 87,
+      "admissible": false
+    },
+    {
+      "idx": 15,
+      "params": {
+        "atr_stoploss_multiplier": 3.7058847999943736,
+        "atr_stoploss_floor": -0.04263312765751017,
+        "atr_stoploss_cap": -0.017963223600592874,
+        "stoploss_grace_hours": 11.65872850153896,
+        "stoploss_grace_level": -0.2835614892760363,
+        "cexit_take_profit": 0.029913777983968527,
+        "cexit_max_days": 21,
+        "entry_rvol_threshold": 0.44014020727101444,
+        "entry_guard_threshold": 0.2129081949753392,
+        "hold_window_hours": 44.9567182964607
+      },
+      "surrogate": -1.5055199721417836,
+      "backtest": -4.876998712342717,
+      "surrogate_trades": 972,
+      "admissible": true
+    },
+    {
+      "idx": 16,
+      "params": {
+        "atr_stoploss_multiplier": 4.360675268633559,
+        "atr_stoploss_floor": -0.09100754068059369,
+        "atr_stoploss_cap": -0.018867734113909712,
+        "stoploss_grace_hours": 5.7503579386754975,
+        "stoploss_grace_level": -0.1918602953291025,
+        "cexit_take_profit": 0.04296375033045316,
+        "cexit_max_days": 7,
+        "entry_rvol_threshold": 1.3999730908332697,
+        "entry_guard_threshold": 0.9613508447364569,
+        "hold_window_hours": 28.770241262200496
+      },
+      "surrogate": -1.6687932343902157,
+      "backtest": -16.541517933060035,
+      "surrogate_trades": 741,
+      "admissible": true
+    },
+    {
+      "idx": 17,
+      "params": {
+        "atr_stoploss_multiplier": 3.5124034194596274,
+        "atr_stoploss_floor": -0.04918190528802295,
+        "atr_stoploss_cap": -0.03356387112216081,
+        "stoploss_grace_hours": 0.7423850178764897,
+        "stoploss_grace_level": -0.2559691117757088,
+        "cexit_take_profit": 0.04820150442192343,
+        "cexit_max_days": 20,
+        "entry_rvol_threshold": 2.9874596837577436,
+        "entry_guard_threshold": 0.113204952525223,
+        "hold_window_hours": 44.880775015117635
+      },
+      "surrogate": null,
+      "backtest": 2.366709401349354,
+      "surrogate_trades": 221,
+      "admissible": false
+    },
+    {
+      "idx": 18,
+      "params": {
+        "atr_stoploss_multiplier": 4.208146311989135,
+        "atr_stoploss_floor": -0.029784690668037322,
+        "atr_stoploss_cap": -0.021684354645868795,
+        "stoploss_grace_hours": 10.98762522120879,
+        "stoploss_grace_level": -0.38367171671613953,
+        "cexit_take_profit": 0.0115144416965801,
+        "cexit_max_days": 24,
+        "entry_rvol_threshold": 0.3258084000855508,
+        "entry_guard_threshold": 0.2527686779524564,
+        "hold_window_hours": 20.948511835523384
+      },
+      "surrogate": -1.1188849454124388,
+      "backtest": 17.020675769800864,
+      "surrogate_trades": 1237,
+      "admissible": true
+    },
+    {
+      "idx": 19,
+      "params": {
+        "atr_stoploss_multiplier": 1.7500133374238662,
+        "atr_stoploss_floor": -0.054635534529168354,
+        "atr_stoploss_cap": -0.038635495563843415,
+        "stoploss_grace_hours": 7.084654414018221,
+        "stoploss_grace_level": -0.3418960964334741,
+        "cexit_take_profit": 0.04389368542836547,
+        "cexit_max_days": 4,
+        "entry_rvol_threshold": 1.4146382389494807,
+        "entry_guard_threshold": 0.9383412868646139,
+        "hold_window_hours": 31.382269675580808
+      },
+      "surrogate": -1.0731706065972488,
+      "backtest": 11.167037891180298,
+      "surrogate_trades": 713,
+      "admissible": true
+    },
+    {
+      "idx": 20,
+      "params": {
+        "atr_stoploss_multiplier": 4.246349610987004,
+        "atr_stoploss_floor": -0.04735791347106194,
+        "atr_stoploss_cap": -0.01862372250352658,
+        "stoploss_grace_hours": 2.2950321610187685,
+        "stoploss_grace_level": -0.1989618381097679,
+        "cexit_take_profit": 0.01198432092295,
+        "cexit_max_days": 2,
+        "entry_rvol_threshold": 3.256241519094525,
+        "entry_guard_threshold": 0.9600709170261761,
+        "hold_window_hours": 42.74432656830643
+      },
+      "surrogate": null,
+      "backtest": 5.982424138715969,
+      "surrogate_trades": 179,
+      "admissible": false
+    },
+    {
+      "idx": 21,
+      "params": {
+        "atr_stoploss_multiplier": 1.2028385838642448,
+        "atr_stoploss_floor": -0.07290719332958252,
+        "atr_stoploss_cap": -0.02886988807482012,
+        "stoploss_grace_hours": 1.3526039006744397,
+        "stoploss_grace_level": -0.18068586323515765,
+        "cexit_take_profit": 0.04987290876831667,
+        "cexit_max_days": 10,
+        "entry_rvol_threshold": 3.485534630945255,
+        "entry_guard_threshold": 0.7971269128461297,
+        "hold_window_hours": 16.64896589307569
+      },
+      "surrogate": null,
+      "backtest": -16.38939303010083,
+      "surrogate_trades": 131,
+      "admissible": false
+    },
+    {
+      "idx": 22,
+      "params": {
+        "atr_stoploss_multiplier": 4.295541956008057,
+        "atr_stoploss_floor": -0.035718984069573745,
+        "atr_stoploss_cap": -0.02854911272235705,
+        "stoploss_grace_hours": 8.664567995118647,
+        "stoploss_grace_level": -0.09645431434967539,
+        "cexit_take_profit": 0.05464738790953948,
+        "cexit_max_days": 5,
+        "entry_rvol_threshold": 0.35013381282356737,
+        "entry_guard_threshold": 0.6508074434222286,
+        "hold_window_hours": 19.72834581877548
+      },
+      "surrogate": -2.8128780828625914,
+      "backtest": -35.369034478856086,
+      "surrogate_trades": 1118,
+      "admissible": true
+    },
+    {
+      "idx": 23,
+      "params": {
+        "atr_stoploss_multiplier": 3.6497848864570153,
+        "atr_stoploss_floor": -0.03355579741894529,
+        "atr_stoploss_cap": -0.026810117650692612,
+        "stoploss_grace_hours": 4.460687433293019,
+        "stoploss_grace_level": -0.21116741936839792,
+        "cexit_take_profit": 0.02075288898190468,
+        "cexit_max_days": 21,
+        "entry_rvol_threshold": 1.486946062309053,
+        "entry_guard_threshold": 0.45742569813821743,
+        "hold_window_hours": 14.935132570892643
+      },
+      "surrogate": -1.599232823179927,
+      "backtest": -12.205045699478912,
+      "surrogate_trades": 762,
+      "admissible": true
+    },
+    {
+      "idx": 24,
+      "params": {
+        "atr_stoploss_multiplier": 4.010928545468023,
+        "atr_stoploss_floor": -0.05367563404565966,
+        "atr_stoploss_cap": -0.029510714448832458,
+        "stoploss_grace_hours": 0.9305588682120338,
+        "stoploss_grace_level": -0.13288666700948154,
+        "cexit_take_profit": 0.016553949414566033,
+        "cexit_max_days": 8,
+        "entry_rvol_threshold": 0.7495249088112935,
+        "entry_guard_threshold": 0.13068424580727667,
+        "hold_window_hours": 14.925443200175657
+      },
+      "surrogate": -3.2191328229665066,
+      "backtest": -37.88257301546783,
+      "surrogate_trades": 1390,
+      "admissible": true
+    },
+    {
+      "idx": 25,
+      "params": {
+        "atr_stoploss_multiplier": 4.625569461601028,
+        "atr_stoploss_floor": -0.07846045602612876,
+        "atr_stoploss_cap": -0.02927562972775989,
+        "stoploss_grace_hours": 9.993531720024812,
+        "stoploss_grace_level": -0.1830267891008695,
+        "cexit_take_profit": 0.01935716932703594,
+        "cexit_max_days": 2,
+        "entry_rvol_threshold": 3.56470924270805,
+        "entry_guard_threshold": 0.3753740170194637,
+        "hold_window_hours": 37.59173591507521
+      },
+      "surrogate": null,
+      "backtest": 0.9765755224453221,
+      "surrogate_trades": 120,
+      "admissible": false
+    },
+    {
+      "idx": 26,
+      "params": {
+        "atr_stoploss_multiplier": 1.3872308353458722,
+        "atr_stoploss_floor": -0.04181401786091649,
+        "atr_stoploss_cap": -0.01282342665771637,
+        "stoploss_grace_hours": 9.909201380425591,
+        "stoploss_grace_level": -0.16402965334767608,
+        "cexit_take_profit": 0.028536639741312625,
+        "cexit_max_days": 13,
+        "entry_rvol_threshold": 0.4907950006228886,
+        "entry_guard_threshold": 0.5187762340602949,
+        "hold_window_hours": 39.268556629759274
+      },
+      "surrogate": -1.427746868025025,
+      "backtest": 3.013014688501947,
+      "surrogate_trades": 1027,
+      "admissible": true
+    },
+    {
+      "idx": 27,
+      "params": {
+        "atr_stoploss_multiplier": 1.7633528139587087,
+        "atr_stoploss_floor": -0.07870102187096452,
+        "atr_stoploss_cap": -0.021235798516721974,
+        "stoploss_grace_hours": 8.979978754775031,
+        "stoploss_grace_level": -0.08619464423428719,
+        "cexit_take_profit": 0.016287075876708457,
+        "cexit_max_days": 25,
+        "entry_rvol_threshold": 3.2482636427055356,
+        "entry_guard_threshold": 0.6445216230234747,
+        "hold_window_hours": 37.95502050515918
+      },
+      "surrogate": null,
+      "backtest": 17.305461394416156,
+      "surrogate_trades": 176,
+      "admissible": false
+    },
+    {
+      "idx": 28,
+      "params": {
+        "atr_stoploss_multiplier": 4.987084660125255,
+        "atr_stoploss_floor": -0.02486560330472952,
+        "atr_stoploss_cap": -0.010494122660544482,
+        "stoploss_grace_hours": 9.325389708638184,
+        "stoploss_grace_level": -0.2617432746777471,
+        "cexit_take_profit": 0.04206145553049075,
+        "cexit_max_days": 6,
+        "entry_rvol_threshold": 0.9416711591746709,
+        "entry_guard_threshold": 0.7594944652808059,
+        "hold_window_hours": 39.276863922661995
+      },
+      "surrogate": -1.727096982993394,
+      "backtest": -6.658751930509121,
+      "surrogate_trades": 848,
+      "admissible": true
+    },
+    {
+      "idx": 29,
+      "params": {
+        "atr_stoploss_multiplier": 3.885180854538876,
+        "atr_stoploss_floor": -0.0644160780458577,
+        "atr_stoploss_cap": -0.02676368849232126,
+        "stoploss_grace_hours": 5.037251188439296,
+        "stoploss_grace_level": -0.3883312677110637,
+        "cexit_take_profit": 0.052216005820574646,
+        "cexit_max_days": 13,
+        "entry_rvol_threshold": 1.7031948962564925,
+        "entry_guard_threshold": 0.5480287682660389,
+        "hold_window_hours": 37.97904786670784
+      },
+      "surrogate": -1.1707887284062957,
+      "backtest": 8.281645678514993,
+      "surrogate_trades": 631,
+      "admissible": true
+    },
+    {
+      "idx": 30,
+      "params": {
+        "atr_stoploss_multiplier": 2.525843477593583,
+        "atr_stoploss_floor": -0.03354874612704066,
+        "atr_stoploss_cap": -0.007818782879311453,
+        "stoploss_grace_hours": 4.649187567727733,
+        "stoploss_grace_level": -0.35176434597752415,
+        "cexit_take_profit": 0.04801866479950911,
+        "cexit_max_days": 16,
+        "entry_rvol_threshold": 3.9735582203072726,
+        "entry_guard_threshold": 0.14798814876206468,
+        "hold_window_hours": 37.656324338212734
+      },
+      "surrogate": null,
+      "backtest": 6.695905863271978,
+      "surrogate_trades": 72,
+      "admissible": false
+    },
+    {
+      "idx": 31,
+      "params": {
+        "atr_stoploss_multiplier": 3.8789937565543022,
+        "atr_stoploss_floor": -0.06359860134780801,
+        "atr_stoploss_cap": -0.038012897316247914,
+        "stoploss_grace_hours": 11.944339913147964,
+        "stoploss_grace_level": -0.08895524265208354,
+        "cexit_take_profit": 0.05581619674867015,
+        "cexit_max_days": 19,
+        "entry_rvol_threshold": 1.72791345521863,
+        "entry_guard_threshold": 0.22717950091335337,
+        "hold_window_hours": 16.496629758395965
+      },
+      "surrogate": -1.9309190044249374,
+      "backtest": -27.629395606625206,
+      "surrogate_trades": 628,
+      "admissible": true
+    },
+    {
+      "idx": 32,
+      "params": {
+        "atr_stoploss_multiplier": 1.1320956986629427,
+        "atr_stoploss_floor": -0.05973308416108745,
+        "atr_stoploss_cap": -0.03569032203767636,
+        "stoploss_grace_hours": 2.115652456417526,
+        "stoploss_grace_level": -0.09883351183983269,
+        "cexit_take_profit": 0.034212138431696563,
+        "cexit_max_days": 8,
+        "entry_rvol_threshold": 0.938888203825935,
+        "entry_guard_threshold": 0.6698645598173122,
+        "hold_window_hours": 21.5711355970135
+      },
+      "surrogate": -3.0148964616041813,
+      "backtest": -35.214800432363944,
+      "surrogate_trades": 1130,
+      "admissible": true
+    },
+    {
+      "idx": 33,
+      "params": {
+        "atr_stoploss_multiplier": 3.1077488002002287,
+        "atr_stoploss_floor": -0.07736377057101246,
+        "atr_stoploss_cap": -0.021934358437116965,
+        "stoploss_grace_hours": 7.54240308898982,
+        "stoploss_grace_level": -0.21232717216055627,
+        "cexit_take_profit": 0.02978020536474503,
+        "cexit_max_days": 27,
+        "entry_rvol_threshold": 3.5253904342963165,
+        "entry_guard_threshold": 0.17937126368820633,
+        "hold_window_hours": 16.907114093449096
+      },
+      "surrogate": null,
+      "backtest": 1.3120122815679869,
+      "surrogate_trades": 120,
+      "admissible": false
+    },
+    {
+      "idx": 34,
+      "params": {
+        "atr_stoploss_multiplier": 1.4527665631281708,
+        "atr_stoploss_floor": -0.021632261564134614,
+        "atr_stoploss_cap": -0.007044304400042875,
+        "stoploss_grace_hours": 2.7680061876132287,
+        "stoploss_grace_level": -0.06053234924624007,
+        "cexit_take_profit": 0.0203908833561702,
+        "cexit_max_days": 23,
+        "entry_rvol_threshold": 2.1492850607054903,
+        "entry_guard_threshold": 0.49738504421951524,
+        "hold_window_hours": 44.93841249859824
+      },
+      "surrogate": null,
+      "backtest": -10.302310875609255,
+      "surrogate_trades": 527,
+      "admissible": false
+    },
+    {
+      "idx": 35,
+      "params": {
+        "atr_stoploss_multiplier": 1.162115439579106,
+        "atr_stoploss_floor": -0.0747719348452495,
+        "atr_stoploss_cap": -0.019000885553699536,
+        "stoploss_grace_hours": 0.7967786220393478,
+        "stoploss_grace_level": -0.3172072982578924,
+        "cexit_take_profit": 0.03325317270487702,
+        "cexit_max_days": 25,
+        "entry_rvol_threshold": 3.103598206216704,
+        "entry_guard_threshold": 0.8289804695617414,
+        "hold_window_hours": 39.39851181105524
+      },
+      "surrogate": null,
+      "backtest": -15.093207540704611,
+      "surrogate_trades": 209,
+      "admissible": false
+    },
+    {
+      "idx": 36,
+      "params": {
+        "atr_stoploss_multiplier": 3.830883104199132,
+        "atr_stoploss_floor": -0.03202453258828426,
+        "atr_stoploss_cap": -0.01614831582421589,
+        "stoploss_grace_hours": 8.828196711763214,
+        "stoploss_grace_level": -0.29442442403672503,
+        "cexit_take_profit": 0.01838203614493708,
+        "cexit_max_days": 25,
+        "entry_rvol_threshold": 3.0869686718342066,
+        "entry_guard_threshold": 0.16583729576866124,
+        "hold_window_hours": 45.100410654718885
+      },
+      "surrogate": null,
+      "backtest": 26.66531953796758,
+      "surrogate_trades": 196,
+      "admissible": false
+    },
+    {
+      "idx": 37,
+      "params": {
+        "atr_stoploss_multiplier": 3.3865713494244853,
+        "atr_stoploss_floor": -0.07364527097025399,
+        "atr_stoploss_cap": -0.007217489517167719,
+        "stoploss_grace_hours": 1.8615632632541375,
+        "stoploss_grace_level": -0.21993678180666376,
+        "cexit_take_profit": 0.014577703660811805,
+        "cexit_max_days": 6,
+        "entry_rvol_threshold": 2.4076602317936087,
+        "entry_guard_threshold": 0.803666597800054,
+        "hold_window_hours": 22.149207071317303
+      },
+      "surrogate": null,
+      "backtest": 0.5729623341087287,
+      "surrogate_trades": 423,
+      "admissible": false
+    },
+    {
+      "idx": 38,
+      "params": {
+        "atr_stoploss_multiplier": 4.207186506674155,
+        "atr_stoploss_floor": -0.04377264275287217,
+        "atr_stoploss_cap": -0.017471148557256014,
+        "stoploss_grace_hours": 11.406753778884383,
+        "stoploss_grace_level": -0.24827803166666496,
+        "cexit_take_profit": 0.030754421679606354,
+        "cexit_max_days": 28,
+        "entry_rvol_threshold": 2.845454232943813,
+        "entry_guard_threshold": 0.8350553061430395,
+        "hold_window_hours": 24.062736721216595
+      },
+      "surrogate": -0.27804334015497667,
+      "backtest": 37.99436215652865,
+      "surrogate_trades": 251,
+      "admissible": true
+    },
+    {
+      "idx": 39,
+      "params": {
+        "atr_stoploss_multiplier": 3.678628218782957,
+        "atr_stoploss_floor": -0.0832770073708715,
+        "atr_stoploss_cap": -0.020690500922149094,
+        "stoploss_grace_hours": 9.230060422417594,
+        "stoploss_grace_level": -0.37713976709744057,
+        "cexit_take_profit": 0.046392103272213575,
+        "cexit_max_days": 23,
+        "entry_rvol_threshold": 3.843812608732341,
+        "entry_guard_threshold": 0.4686698004984289,
+        "hold_window_hours": 26.72655082612964
+      },
+      "surrogate": null,
+      "backtest": 3.2404140960230032,
+      "surrogate_trades": 87,
+      "admissible": false
+    }
+  ]
+}
