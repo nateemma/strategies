@@ -6,7 +6,7 @@ Phase 1. Entities, their fields, and the invariants that make the gates checkabl
 
 ## 1. `Space` — the search space
 
-`research/labelfree/es/space.py`. Nine dimensions, each with bounds and the **incumbent** value
+`research/labelfree/es/space.py`. **Ten** dimensions, each with bounds and the **incumbent** value
 read from `NNNC/NNNC_MLX.json` and `Framework/BaseStrategy.py`.
 
 | # | parameter | incumbent | bounds | why it is in the space |
@@ -20,6 +20,20 @@ read from `NNNC/NNNC_MLX.json` and `Framework/BaseStrategy.py`.
 | 7 | `cexit_max_days` | 10 | [2, 28] | the holding-time bound |
 | 8 | `entry_rvol_threshold` | 2.0 | [0.25, 4.0] | the dominant entry guard |
 | 9 | `entry_guard_threshold` | 0.3 | [0.0, 1.0] | the second entry guard |
+| 10 | `hold_window_hours` | 12.0 | [12.0, 48.0] | **minimum holding time** — the spec names it a lever (spec.md:14) |
+
+**On dimension 10 (`hold_window_hours`)**: the mechanism is
+`NNNC/_hold_window.py::HoldWindowMixin`, which **defers `unclog_12h`** until N hours have
+elapsed. Three facts govern how it enters the space:
+
+- it is **not active** on `NNNC_MLX` (`HOLD_WINDOW_HOURS` defaults to `None`), so the incumbent
+  behaviour is the base rule firing at 12 h — hence an incumbent of 12.0
+- the mixin can only **widen** the window, never tighten it, so the lower bound *is* the
+  incumbent. `on_bound` will fire there by construction; the report states this as a **known
+  one-sided bound**, not as a space drawn too narrowly (FR-019)
+- its docstring says "set to the label's own horizon by the arm, **never tuned**". That is a
+  statement about how briefs 01–04 used it, not a property of the parameter. This feature tunes
+  it deliberately and records that it is doing so.
 
 **Invariants** (enforced at decode, not merely documented):
 
@@ -34,6 +48,22 @@ read from `NNNC/NNNC_MLX.json` and `Framework/BaseStrategy.py`.
 
 **Encoding**: CMA-ES operates in an unbounded z-space; `encode`/`decode` map through the bounds
 so the optimiser never sees a constrained problem. `decode(encode(x)) == x` is a unit test.
+
+---
+
+## 1a. Regularisation weights — PRE-REGISTERED
+
+FR-009 requires the objective to penalise distance from the incumbent and turnover. Both weights
+are fixed **here, before any search runs**. Choosing them after seeing the spans would be exactly
+the researcher-degrees-of-freedom this feature exists to quantify.
+
+| term | definition | weight | why this number |
+|---|---|---|---|
+| incumbent distance | `d` = mean over the 10 dimensions of `|x - incumbent| / bound_width`, in [0, 1] | **4.93 pp/yr** | a move across the whole space costs exactly **one sweep-noise band** — the same quantity SC-010 uses to kill a move, so the penalty and the gate agree |
+| turnover | `max(0, trades_per_year / incumbent_trades_per_year - 1)` | **1.00 pp/yr** | doubling the incumbent's turnover costs 1 pp/yr *on top of* modelled costs. Brief 02 measured 92% of an arm's apparent advantage to be turnover; this makes churn cost something the search must earn. |
+
+**The report states the unregularised score beside the regularised one**, so a reader can see
+what the penalty did rather than take it on trust.
 
 ---
 
@@ -121,19 +151,26 @@ failed in feature 012 on an MLX-vs-numpy `log()` difference that no change could
 
 ## 6. `LivenessReport` — Principle IV applied to the space
 
-For each of the 9 dimensions: sweep it alone across its bounds with the other 8 at the
+For each of the 10 dimensions: sweep it alone across its bounds with the other 9 at the
 incumbent, and record the **span of the objective**.
 
 ```
 parameter : str
 span_pp   : float   # max - min of the objective over the dimension
-verdict   : str     # "live" | "inert"
+verdict   : str     # "live" | "weak" | "inert"
 ```
 
-`inert` means the span is below a threshold the report states — the dimension cannot move the
-objective and is reported as such rather than searched. This is cheap (9 × ~30 evaluations) and
-runs before the search, because this study has four parameters that were configured, logged,
-believed active and reaching nothing.
+**Thresholds are PRE-REGISTERED**, for the same reason the regularisation weights are — a cut
+chosen after seeing the spans is unfalsifiable in a feature about overfitting:
+
+| verdict | span over the dimension's full range | meaning |
+|---|---|---|
+| `inert` | **< 0.10 pp/yr** | numerically indistinguishable from no effect — the wiring-failure signature, where a truly unreached parameter gives exactly 0.00 |
+| `weak` | 0.10 – 3.35 pp/yr | live, but cannot on its own clear the acceptance floor |
+| `live` | **≥ 3.35 pp/yr** | can move the objective past the floor |
+
+Cheap (10 × ~30 evaluations) and run before the search, because this study has four parameters
+that were configured, logged, believed active and reaching nothing.
 
 ---
 

@@ -12,7 +12,7 @@ before it scores (FR-013). All are run as `python -m research.labelfree.es.<modu
 python -m research.labelfree.es.space --show
 ```
 
-Prints the 9 dimensions, their bounds, the incumbent value and the incumbent's source file.
+Prints the 10 dimensions, their bounds, the incumbent value and the incumbent's source file.
 `--check` round-trips `decode(encode(x)) == x` over 10,000 random points and exits non-zero on
 any mismatch.
 
@@ -30,9 +30,14 @@ it on the **first** of: the ATR-adaptive stop (volume-confirmation tightened, gr
 
 Returns per-trade entry/exit bar, price, exit reason and net P&L after the brief-1 cost model.
 
-**Explicitly not modelled** (research.md R3): `model_exit` and `unclog_12h` are **replayed from
-the archive**, not recomputed. Together they are 19% of trades, so a parameter change that would
-have altered when the model exits is invisible to the surrogate. This is stated in the report.
+`unclog_12h`, `unclog_1d` and `max_hold` are **recomputed**, not replayed — all three are purely
+per-trade (`BaseStrategy.py:1211-1218`). This is what makes `hold_window_hours` (dimension 10,
+minimum holding time) searchable at all.
+
+**Explicitly not modelled** (research.md R3): `model_exit` is **replayed from the archive**,
+because it depends on the model's per-bar prediction, which is not a searched parameter. It is
+11.9% of trades, so a parameter change that would have altered when the model exits is invisible
+to the surrogate. This is stated in the report.
 
 ---
 
@@ -57,8 +62,9 @@ it means the entire search budget optimises a fiction.
 python -m research.labelfree.es.liveness --folds f05..f14 --out liveness.json
 ```
 
-Sweeps each dimension alone across its bounds with the other 8 at the incumbent, and reports the
-objective's span per dimension with a `live` / `inert` verdict. Runs **before** the search.
+Sweeps each dimension alone across its bounds with the other 9 at the incumbent, and reports the
+objective's span per dimension against the **pre-registered** thresholds of data-model.md §6
+(`inert` < 0.10 pp/yr, `weak` < 3.35 pp/yr, else `live`). Runs **before** the search.
 
 ---
 
@@ -85,7 +91,14 @@ python -m research.labelfree.es.report --out research/label-free-study/briefs/re
 
 Reads the **full sidecar** — every candidate, every generation, both methods — and emits:
 
+- the **protocol §5 verdict**: pooled annualised return vs the production control against the
+  3.35 pp/yr floor with a bootstrap interval (SC-001), per-fold positivity (SC-002), W1/W2/W3
+  single-window persistence (SC-002), the four mandatory baselines against the +7.86 pp/yr bar
+  (SC-003), and any configuration whose in-sample advantage exceeds its held-out advantage by
+  more than 3.35 pp/yr (SC-008)
 - **PBO as the headline number**, with `n_evaluations` beside it (FR-016)
+- the **unregularised** score beside the regularised one, so the reader can see what the
+  incumbent-distance and turnover penalties did (data-model.md §1a)
 - DSR deflated by the **total** evaluation count (FR-015)
 - every return carrying trade count, trades/yr and mean holding time (FR-017)
 - the delta against the incumbent measured against the **4.93 pp** sweep-noise band; inside it,

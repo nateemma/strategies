@@ -101,13 +101,18 @@ measure the cost of excluding it.
 | volume-confirmation tightening | **yes** | `1/sqrt(rvol)` when rvol > 1, clamped at −0.02 |
 | entry guards | **yes** | they decide which trades exist at all |
 | `model_exit` | **no — replayed** | depends on the model's per-bar prediction, which is not a searched parameter |
-| `unclog_12h` | **no — replayed** | a portfolio-level rule, not a per-trade parameter |
+| `unclog_12h` / `unclog_1d` | **yes — recomputed** | `BaseStrategy.py:1211-1215` shows both are purely per-trade (`num_hours >= 12 & profit > 0.005`; `num_days >= 1 & profit >= 0`) with no portfolio state. **Correction**: an earlier draft of this decision called `unclog_12h` portfolio-level. It is not, and that error would have made minimum holding time unsearchable. |
 | partial fills, funding, slippage beyond the cost model | **no** | inherited from brief 1's cost model unchanged |
 
-**The replayed mechanisms are the honest risk**: `model_exit` and `unclog_12h` together are 19%
-of trades. The surrogate takes them from the archive rather than recomputing them, so a
-parameter change that *would* have altered when the model exits is invisible to it. That
-limitation is stated in the report, not discovered in it.
+**The replayed mechanism is the honest risk**: `model_exit` alone is **11.9%** of trades (45 of
+378). The surrogate takes it from the archive rather than recomputing it, because it depends on
+the model's per-bar prediction, which is not a searched parameter. So a parameter change that
+*would* have altered when the model exits is invisible to the surrogate. That limitation is
+stated in the report, not discovered in it.
+
+Because `unclog_12h` is recomputed rather than replayed, **minimum holding time is searchable**
+and enters the space as dimension 10 (`hold_window_hours`, data-model.md §1). The spec names it
+as a lever at spec.md:14; under the earlier mistaken reading it would have been silently dropped.
 
 ---
 

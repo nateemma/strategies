@@ -72,7 +72,7 @@ planned default (48,000 evaluations total across both methods and all folds).
 | Principle | Status | How this plan satisfies it |
 |---|---|---|
 | **I. Evaluate in the deployment regime** | PASS | Pooled walk-forward over the 15 anchored folds is the primary verdict; single-window W1/W2/W3 is context (SC-002). |
-| **II. Persistence across distant eras** (NON-NEGOTIABLE) | PASS | SC-002 requires positive in each of W1/W2/W3 and in ≥10/15 folds. A fold-concentrated win fails. |
+| **II. Persistence across distant eras** (NON-NEGOTIABLE) | PASS | SC-002 requires positive in each of W1/W2/W3 and in ≥10/15 folds. A fold-concentrated win fails. **Implemented by T049b (per-fold positivity) and T049c (W1/W2/W3)** — the analyze pass caught this principle claimed here but absent from tasks.md. |
 | **III. Learnability is not edge** | PASS | The objective is cost-aware net return, never a fit statistic. No ML metric appears in any gate. |
 | **IV. Verify parameters are actually live** | **GATE ADDED** | The exit-reason census (research.md R2) confirms the ATR + grace stack governs 26.2% of exits and the **entire loss side**, so the space is aimed correctly — but four parameters in this study have already been configured, logged, believed active and reaching nothing. A liveness probe over every search dimension runs *before* the search, and a dimension that cannot move the objective is reported inert rather than searched. |
 | **V. Lookahead-clean is not realistic** | PASS | The surrogate inherits brief 1's cost model; SC-005 re-tests the delta at 1.5× fees; purge/embargo via `apply_leakage_control`. |
@@ -108,7 +108,8 @@ specs/013-labelfree-es-policy-search/
 research/labelfree/
 ├── es/
 │   ├── __init__.py
-│   ├── space.py          # the parameter space: bounds, encode/decode, incumbent
+│   ├── space.py          # the 10-dim space: bounds, encode/decode, incumbent
+│   ├── verdict.py        # protocol §5 gates: pooled, per-fold, W1/W2/W3, baselines
 │   ├── exits.py          # THE EXIT SURROGATE — the feature's core risk
 │   ├── calibrate.py      # the blocking gate: surrogate vs freqtrade backtests
 │   ├── liveness.py       # per-dimension liveness probe over the search space
@@ -142,10 +143,10 @@ per-dimension probe, and nothing else.
 | **1** | Design — data model, CLI contract, quickstart | this document |
 | **2** | The surrogate + its unit tests | tests green |
 | **3** | **Calibration gate** — 40 candidates scored both ways | **BLOCKING**: rank agreement measured and the win-disagreement check clean (SC-017a) |
-| **4** | **Liveness probe** over all 8 dimensions | inert dimensions identified and reported |
-| **5** | CMA-ES + random control, both at an identical budget | evaluation counts recorded and equal (SC-013 → FR-007) |
+| **4** | **Liveness probe** over all 10 dimensions | inert/weak dimensions identified and reported against pre-registered thresholds |
+| **5** | CMA-ES + random control, both at an identical budget | evaluation counts recorded and equal (FR-007) |
 | **6** | One test evaluation per fold | audit shows exactly one (SC-011) |
-| **7** | PBO/CSCV, deflation, result report | report written regardless of verdict (FR-020) |
+| **7** | Protocol §5 verdict (SC-001/002/003/008), PBO/CSCV, deflation, result report | pooled gate, per-fold and W1/W2/W3 persistence computed; report written regardless of verdict (FR-020) |
 
 Phase 3 blocks phases 4–7. If the surrogate cannot be calibrated, the feature stops there and
 reports that, rather than spending 48,000 evaluations on an unvalidated evaluator.

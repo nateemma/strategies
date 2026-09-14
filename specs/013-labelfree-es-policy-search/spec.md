@@ -283,7 +283,7 @@ against the 4.93 pp band.
 - **SC-007**: If no configuration clears SC-001 within the budgeted work, the verdict is "not
   resolved", never "no effect".
 - **SC-008**: If any configuration's in-sample advantage exceeds its held-out advantage by more
-  than the floor, it is recorded as overfitting and stopped.
+  than **3.35 pp/yr** (the acceptance floor), it is recorded as overfitting and stopped.
 
 ### Brief-specific gates
 

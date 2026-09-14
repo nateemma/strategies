@@ -17,7 +17,7 @@ python -m research.labelfree.es.space --show
 python -m research.labelfree.es.space --check
 ```
 
-**Expect**: 9 dimensions with incumbent values matching `NNNC/NNNC_MLX.json`
+**Expect**: 10 dimensions with incumbent values matching `NNNC/NNNC_MLX.json`
 (`cexit_take_profit` 0.024, `stoploss_grace_hours` 6.5, `entry_rvol_threshold` 2.0) and
 `Framework/BaseStrategy.py` (`atr_stoploss_multiplier` 2.5). `--check` exits 0.
 
@@ -50,9 +50,12 @@ entire search budget optimises a fiction.
 python -m research.labelfree.es.liveness --folds f05..f14 --out liveness.json
 ```
 
-**Expect**: a span in pp per dimension with a `live`/`inert` verdict. The census (research.md R2)
-predicts the ATR and take-profit dimensions are live; any dimension reported `inert` is carried
-into the report rather than searched.
+**Expect**: a span in pp per dimension scored against the pre-registered thresholds
+(`inert` < 0.10 pp/yr, `weak` < 3.35, else `live`). The census (research.md R2) predicts the ATR
+and take-profit dimensions are live; any dimension reported `inert` is carried into the report
+rather than searched. `hold_window_hours` sits on its lower bound by construction — the mechanism
+can only widen the window — and that is reported as a known one-sided bound, not as a space drawn
+too narrowly.
 
 ## Step 5 — search and control, identical budgets
 
@@ -82,7 +85,10 @@ shared trial log's summary row matching the sidecar's line count and sha256.
 python -m research.labelfree.es.report --out research/label-free-study/briefs/results/05-2026-09-13.md
 ```
 
-**Expect**, with PBO as the headline and the evaluation count beside it:
+**Expect** the protocol §5 verdict — pooled return vs the control against the 3.35 pp/yr floor
+with a bootstrap interval, per-fold positivity (≥10/15), W1/W2/W3 persistence, and the four
+baselines against the +7.86 pp/yr bar — and then, with PBO as the headline and the evaluation
+count beside it:
 
 - `PBO > 0.2` → **KILL**, and the measured PBO *is* the finding (clarification Q3)
 - `|delta vs incumbent| < 4.93 pp` → **NOT RESOLVED**, never "improvement"

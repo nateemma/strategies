@@ -43,13 +43,15 @@ make wiring checks insufficient on their own.
 
 **⚠️ CRITICAL**: T005 (write-before-score) is the invariant the whole leakage audit rests on.
 
-- [ ] T004 Implement the nine-dimension `Space` in `research/labelfree/es/space.py` — bounds and incumbent values per data-model.md §1, reading the incumbent from `NNNC/NNNC_MLX.json` and `Framework/BaseStrategy.py` rather than hard-coding them
+- [ ] T004 Implement the **ten-dimension** `Space` in `research/labelfree/es/space.py` — bounds and incumbent values per data-model.md §1, reading the incumbent from `NNNC/NNNC_MLX.json` and `Framework/BaseStrategy.py` rather than hard-coding them
+- [ ] T004a Add `hold_window_hours` as dimension 10 (**minimum holding time**, spec.md:14) with bounds [12.0, 48.0] and incumbent 12.0 per data-model.md §1. The mechanism (`NNNC/_hold_window.py`) can only **widen** the unclog window, so the incumbent sits on the lower bound by construction — exempt it from the FR-019 "space drawn too narrowly" finding and report it as a **known one-sided bound** instead.
 - [ ] T005 Implement `encode`/`decode` in `research/labelfree/es/space.py` mapping the unbounded z-space through the bounds, with `atr_stoploss_floor < atr_stoploss_cap < 0` enforced as **inadmissibility, not clipping** (clipping maps distinct candidates to one point and corrupts the trial count)
 - [ ] T006 Implement `candidate_id` in `research/labelfree/es/space.py` as a deterministic hash of the **decoded** values, and the `on_bound` flag listing parameters sitting on a bound (FR-019)
 - [ ] T007 [P] Write `tests/test_es_space.py`: `decode(encode(x)) == x` over 10,000 random points; the floor/cap ordering is rejected not clipped; two candidates rounding to the same `cexit_max_days` share a `candidate_id`; `on_bound` fires at each bound
 - [ ] T008 Implement the sidecar in `research/labelfree/es/history.py` — `write(evaluation) -> eval_id` appends with `score: null` **before** scoring, `complete(eval_id, result)` fills it in (FR-013), one JSON object per line in `research/labelfree/es/history.jsonl`
 - [ ] T009 [P] Write `tests/test_es_history.py`: an evaluation written then abandoned still appears with `score: null`; `complete` on an unknown `eval_id` raises; the file is append-only and survives a simulated crash between write and complete
-- [ ] T010 Implement `research/labelfree/es/objective.py` — cost-aware net return using the brief-1 cost model, plus the incumbent-distance and turnover regularisation of FR-009, with the regularisation weights and their units stated in the module docstring
+- [ ] T010 Implement `research/labelfree/es/objective.py` — cost-aware net return using the brief-1 cost model, plus the incumbent-distance and turnover regularisation of FR-009 at the **pre-registered weights of data-model.md §1a** (distance 4.93 pp/yr across the full space; turnover 1.00 pp/yr per doubling). The weights are inputs read from the design document, never tuned.
+- [ ] T010a Return the **unregularised** score alongside the regularised one from `objective.py`, and carry both into the sidecar, so `report.py` can show what the penalties did rather than assert it
 - [ ] T011 Wire `research/labelfree/admissibility.py` into `objective.py` so a candidate with no trades is **inadmissible with its score withheld** (FR-004) and a candidate losing to doing nothing is never reported as an improvement (FR-005) — reuse the shared gate unchanged, do not reimplement it
 - [ ] T012 [P] Reuse the keyed panel cache from feature 012 in `research/labelfree/es/panel.py` so each fold's prices, ATR and rvol load once per run rather than once per evaluation
 
@@ -76,9 +78,10 @@ backtests of the same candidates.
 
 ### Implementation for User Story 1
 
-- [ ] T017 [US1] Implement `simulate(exposure, prices, atr_pct, rvol, params, costs)` in `research/labelfree/es/exits.py` per contracts/es-cli.md — bar-by-bar position tracking, exiting on the **first** of the ATR-adaptive stop, `cexit_take_profit`, `cexit_max_days`, or the replayed `model_exit`/`unclog_12h`
+- [ ] T017 [US1] Implement `simulate(exposure, prices, atr_pct, rvol, params, costs)` in `research/labelfree/es/exits.py` per contracts/es-cli.md — bar-by-bar position tracking, exiting on the **first** of the ATR-adaptive stop, `cexit_take_profit`, the recomputed time exits, or the replayed `model_exit`
 - [ ] T018 [US1] Implement the ATR stop path in `exits.py` at the highest fidelity — `-atr_stoploss_multiplier * atr_pct` clamped to `[atr_stoploss_floor, atr_stoploss_cap]`, volume-confirmation tightened, grace-gated — mirroring `Framework/BaseStrategy.py:1032-1100`. Per research.md R2 this stack governs 26.2% of exits and the entire loss side; it is not a rare branch.
-- [ ] T019 [US1] Replay `model_exit` and `unclog_12h` from the archive in `exits.py` rather than recomputing them, and emit a module-level constant naming their combined 19% share so `report.py` can state the limitation rather than discover it
+- [ ] T019 [US1] Replay **`model_exit` only** from the archive in `exits.py` — it depends on the model's per-bar prediction, which is not a searched parameter — and emit a module-level constant naming its 11.9% share so `report.py` states the limitation rather than discovers it
+- [ ] T019a [US1] **Recompute** `unclog_12h`, `unclog_1d` and `max_hold` in `exits.py` from their actual conditions (`Framework/BaseStrategy.py:1211-1218`: `num_hours >= hold_window_hours & profit > 0.005`; `num_days >= 1 & profit >= 0`; `num_days >= cexit_max_days`). All three are purely per-trade with no portfolio state — this is what makes dimension 10 searchable, and an earlier draft wrongly called `unclog_12h` portfolio-level.
 - [ ] T020 [US1] Apply purge/embargo via `apply_leakage_control` in `research/labelfree/es/panel.py`, and assert it is actually called — `purge_bars=0` with the function never invoked is exactly how this study's leakage control was silently absent before
 - [ ] T021 [US1] Run `tests/test_es_exits.py` and iterate `exits.py` until green; record the achieved exit-mix agreement in the test's assertion message so a later regression names its own number
 - [ ] T022 [US1] Measure one surrogate evaluation's wall-clock on a fold's training range and record it; the plan's budget assumes ≤ 50 ms. If it is materially slower, report the measured figure and the revised budget rather than silently running longer.
@@ -96,7 +99,7 @@ than spending 48,000 evaluations on an unvalidated evaluator. Do not proceed to 
 
 ### Principle IV over the search space
 
-- [ ] T028 [US1] Implement `research/labelfree/es/liveness.py` — sweep each of the nine dimensions alone across its bounds with the other eight at the incumbent, and report the objective's span in pp per dimension with a `live`/`inert` verdict and the threshold used
+- [ ] T028 [US1] Implement `research/labelfree/es/liveness.py` — sweep each of the ten dimensions alone across its bounds with the other nine at the incumbent, and report the objective's span in pp per dimension against the **pre-registered** thresholds of data-model.md §6 (`inert` < 0.10 pp/yr, `weak` < 3.35 pp/yr, else `live`). Read the thresholds from the design document — do **not** choose a cut after seeing the spans, which is the exact researcher-degrees-of-freedom this feature measures
 - [ ] T029 [US1] **RUN** `.venv/bin/python -m research.labelfree.es.liveness --folds f05..f14 --out liveness.json` and record which dimensions are inert. Four parameters in this study were configured, logged, believed active and reaching nothing; this probe is what catches a fifth.
 
 **Checkpoint**: the evaluator is calibrated and its search space is known to be live. US2 may begin.
@@ -172,8 +175,21 @@ sweep's own noise.
 
 - [ ] T049 [US5] Compute `delta_vs_incumbent_pp` and `within_sweep_noise` in `report.py` against the **4.93 pp** band; inside it the wording is "not resolved", never "improvement" (FR-018)
 - [ ] T050 [US5] Report any parameter sitting on a bound as **a space drawn too narrowly** (FR-019), listing which and at which end
-- [ ] T051 [US5] Implement the derived `status` in `report.py` per data-model.md §7 — `KILL` on PBO > 0.2, `KILL` when the control matches the search, `KILL` on inadmissibility, `NOT RESOLVED` inside the noise band — derived, never typed by hand
+- [ ] T051 [US5] Implement the derived `status` in `report.py` per data-model.md §7, consuming `verdict.py` — `KILL` on PBO > 0.2, `KILL` when the control matches the search, `KILL` on inadmissibility, `KILL` on the SC-008 gap, `NOT RESOLVED` inside the noise band or when nothing clears SC-001 (SC-007) — derived, never typed by hand
 - [ ] T052 [US5] Handle "the search converged to the incumbent" as a legitimate informative outcome reported as **"no better operating point found"**, not as a failure to run (spec edge case)
+
+### The protocol §5 verdict
+
+> Added by the `/speckit-analyze` pass, which found the feature computed PBO and audited leakage
+> but had **no task producing the verdict the study is judged on**. Without these, 48,000
+> evaluations would run and no acceptance gate would be evaluated.
+
+- [ ] T049a [US5] Implement `research/labelfree/es/verdict.py::pooled()` — aggregate the 15 single test evaluations into a pooled annualised return, compare against the production control via `regime/wf/compare_pooled.py`, and report the delta against the **3.35 pp/yr** floor with a bootstrap interval that must exclude zero (**SC-001**)
+- [ ] T049b [US5] Implement `verdict.py::per_fold()` — count folds with a positive test return and require **≥10 of 15** (**SC-002**, Constitution Principle II)
+- [ ] T049c [US5] Implement `verdict.py::single_window()` — run the found candidate on **W1, W2 and W3** and require positive in each (**SC-002**, Principle II NON-NEGOTIABLE). This is the persistence check: without it a fold-concentrated win passes undetected, and the plan's Constitution Check claimed this principle with nothing implementing it.
+- [ ] T049d [US5] Implement `verdict.py::overfit_gap()` — for every configuration, record its in-sample advantage beside its held-out advantage and stop any whose gap exceeds **3.35 pp/yr** (**SC-008**)
+- [ ] T049e [US5] Compare the found candidate against the four mandatory baselines via `research/labelfree/baselines.py` span mode (**SC-003**). The bar is the production control at **+7.86 pp/yr** measured over f05–f14, not zero — a number easy to lose.
+- [ ] T049f [US5] Route every gate above through `research/labelfree/admissibility.py` so a candidate below the participation floor or losing to doing nothing cannot register as clearing any of them (SC-015)
 
 **Checkpoint**: the verdict is derived from the gates rather than chosen.
 
@@ -184,11 +200,12 @@ sweep's own noise.
 - [ ] T053 Attach trade count, trades per year and mean holding time to **every** reported return (FR-017) — a bare percentage is not admissible anywhere in this feature's output
 - [ ] T054 Re-test the return delta at **1.5× fees** (SC-005) and report both figures
 - [ ] T055 Implement the reproduction path (SC-006) — a separate process reproduces the accepted result from its saved configuration alone
-- [ ] T056 Write `research/label-free-study/briefs/results/05-<date>.md` per protocol §6 with **PBO as the headline number**, the evaluation count beside it, the liveness report's inert dimensions, the calibration `spearman_rho`, and the replayed-mechanism limitation from T019. Written whether the verdict is accept or kill (FR-020).
+- [ ] T056 Write `research/label-free-study/briefs/results/05-<date>.md` per protocol §6 with **PBO as the headline number**, the evaluation count beside it, the protocol §5 verdict from T049a-T049f, the liveness report's inert and weak dimensions, the calibration `spearman_rho`, the unregularised score beside the regularised one, and the replayed-mechanism limitation from T019. Written whether the verdict is accept or kill (FR-020).
 - [ ] T057 [P] Lead the result report with the exit-reason census (research.md R2) and the correction it carries — `trailing_stop_loss` is the ATR+grace stack, not the native trailing stop, which is off — since anyone reading the exit mix without that will draw the opposite conclusion
 - [ ] T058 [P] Update `research/label-free-study/README.md`'s verdict table with brief 05's outcome
 - [ ] T059 Run `quickstart.md` end to end as written and fix any step whose stated expectation does not match what actually happens
 - [ ] T060 Stage only the files this feature created or modified (FR-022); check `git status` first and leave anything unexpected alone
+- [ ] T060a Re-run `/speckit-analyze` after implementation and record the clean report in the feature directory — **FR-023 and SC-016 require one before implementation and one again after**, and a result is inadmissible without both
 
 ---
 
@@ -202,7 +219,7 @@ sweep's own noise.
 - **Phase 4 US2** → depends on T027 passing and T029 complete
 - **Phase 5 US3** → depends on Phase 4 (there is no history to audit before it)
 - **Phase 6 US4** → depends on Phase 5 (a leaked history must not be reported on)
-- **Phase 7 US5** → depends on Phase 6
+- **Phase 7 US5** → depends on Phase 6. T049a–T049f produce the protocol §5 verdict; T051 consumes them and must not run first.
 - **Phase 8 Polish** → depends on Phase 7
 
 Unusually for this template, the stories are **strictly sequential**. Each one consumes the
@@ -211,7 +228,7 @@ audit until the search has run, and nothing to report until the audit passes.
 
 ### Parallel Opportunities
 
-Within phases only: T007/T009/T012; T013–T016 (all new test functions); T030–T032; T057/T058.
+Within phases only: T007/T009/T012; T013–T016 (all new test functions); T030–T032; T049b/T049d/T049e; T057/T058.
 Everything else is sequential, both by data dependency and by FR-021.
 
 ---
@@ -228,4 +245,8 @@ beat the random control, sit more than 4.93 pp from the incumbent, and clear the
 floor — with PBO ≤ 0.2. Briefs 01–04 delivered their value as quantified negatives; this one is
 budgeted the same way.
 
-**Total**: 60 tasks — US1 17, US2 10, US3 4, US4 5, US5 4, setup/foundational 12, polish 8.
+**Total**: 70 tasks — US1 19, US2 10, US3 4, US4 5, US5 11, setup/foundational 14, polish 9.
+
+Ten tasks were added by the `/speckit-analyze` pass: the protocol §5 verdict (T049a–T049f),
+minimum holding time as dimension 10 (T004a) with its recomputed time exits (T019a), the
+unregularised score (T010a), and the post-implementation analyze re-run (T060a).
