@@ -190,7 +190,7 @@ def document(state: dict) -> str:
     A("")
     A("| gate | result | passed |")
     A("|---|---|---|")
-    for k in ("SC-001", "SC-002a", "SC-002b", "SC-003", "SC-008"):
+    for k in ("SC-001", "SC-002a", "SC-002b", "SC-003", "SC-005", "SC-006", "SC-008"):
         if k in g:
             A(f"| {k} | {_gate_line(g[k])} | {'yes' if g[k].get('passed') else 'NO'} |")
     A("")
@@ -273,7 +273,13 @@ def _gate_line(x: dict) -> str:
         return f"{x['arm_pp']:+.2f} vs bar {x['bar_pp']:+.2f} pp/yr"
     if x["gate"] == "SC-008":
         return f"{x['n_overfit']}/{x['n_configurations']} configurations overfit"
-    return json.dumps(x)
+    if x["gate"] == "SC-005":
+        return (f"delta {x['delta_at_1x_pp']:+.2f} pp/yr at 1x fees, "
+                f"{x['delta_at_1_5x_pp']:+.2f} at 1.5x")
+    if x["gate"] == "SC-006":
+        return (f"recorded {x['recorded_pp']:.4f} pp/yr, reproduced "
+                f"{x['reproduced_pp']:.4f} from the config file alone")
+    return json.dumps({k: v for k, v in x.items() if k != "per_fold"})
 
 
 def main() -> int:
@@ -291,6 +297,14 @@ def main() -> int:
     if sp.exists():
         state.update(json.loads(sp.read_text()))
         state["stats"] = st
+        # SC-002b, computed here because it needs the fold calendar (Principle II).
+        if state.get("per_fold"):
+            from research.labelfree.folds import folds as _folds
+            fd = {f.fold_id: (f.test_start, f.test_end) for f in _folds()}
+            w = VD.windows_from_folds(state["per_fold"], fd)
+            state["windows"] = w
+            state.setdefault("gates", {})["SC-002b"] = {
+                **VD.single_window(w["window_pp"]), "detail": w}
         state["verdict"] = VD.status(
             state.get("gates", {}), st["pbo"],
             state.get("delta_vs_incumbent_pp"), state.get("beats_random"))

@@ -69,6 +69,48 @@ def single_window(window_pp: dict) -> dict:
             "passed": not missing and all(window_pp[w] > 0 for w in need)}
 
 
+# W1/W2/W3 from regime.regimedata.WINDOWS — the study's three temporally distant eras.
+WINDOWS = {"W1": ("2025-09-01", "2026-08-31"),
+           "W2": ("2024-06-01", "2025-05-31"),
+           "W3": ("2023-01-01", "2023-12-31")}
+
+
+def windows_from_folds(per_fold: list[dict], fold_dates: dict) -> dict:
+    """SC-002b evaluated by mapping each fold's single test result onto its window.
+
+    WHY NOT THREE SEPARATE SINGLE-WINDOW RUNS. Each would need its OWN model, trained on the
+    730 days preceding that window, plus its own probability side-car — i.e. three new models
+    and three new backtests, none of which exist. The fold test ranges already TILE
+    2023-01..2026-09 at 90 days each, every one evaluated exactly once and every one produced
+    by a model trained strictly before it. Aggregating them by date answers the persistence
+    question Principle II asks, from data already in the record.
+
+    Each fold is assigned to the window containing its test-range MIDPOINT; folds falling in
+    no window (the gaps between the three eras) are excluded and reported.
+    """
+    import pandas as pd
+    out, assigned = {}, {}
+    for f in per_fold:
+        d = fold_dates.get(f["fold_id"])
+        if not d:
+            continue
+        mid = pd.Timestamp(d[0]) + (pd.Timestamp(d[1]) - pd.Timestamp(d[0])) / 2
+        for w, (lo, hi) in WINDOWS.items():
+            if pd.Timestamp(lo) <= mid <= pd.Timestamp(hi):
+                assigned.setdefault(w, []).append(f)
+                break
+    for w in WINDOWS:
+        fs = assigned.get(w, [])
+        out[w] = (sum(x["annualised_pp"] for x in fs) / len(fs)) if fs else float("nan")
+    unassigned = [f["fold_id"] for f in per_fold
+                  if not any(f in v for v in assigned.values())]
+    return {"window_pp": out,
+            "folds_per_window": {w: [x["fold_id"] for x in assigned.get(w, [])]
+                                 for w in WINDOWS},
+            "unassigned_folds": unassigned,
+            "method": "fold test results mapped by test-range midpoint"}
+
+
 def overfit_gap(rows: list[dict]) -> dict:
     """SC-008. Train advantage minus test advantage, per configuration."""
     bad = []
@@ -84,13 +126,20 @@ def overfit_gap(rows: list[dict]) -> dict:
 
 
 def baselines(arm_pp: float, arm_exposure: float, arm_tpy: float,
-              baseline_pp: dict | None = None) -> dict:
-    """SC-003. The bar is the PRODUCTION CONTROL at +7.86 pp/yr, not zero."""
+              baseline_pp: dict | None = None,
+              exposure_floor: float | None = None) -> dict:
+    """SC-003. The bar is the PRODUCTION CONTROL at +7.86 pp/yr, not zero.
+
+    `exposure_floor` must be passed for a discrete-trade family: the absolute MIN_EXPOSURE
+    marks PRODUCTION ITSELF degenerate on a 90-day range (measured 0.0196-0.0474 against a
+    0.05 floor), so leaving it at the default reports a miscalibrated instrument as a
+    verdict. Feature 013 passes half the incumbent's exposure on the same panel.
+    """
     b = dict(baseline_pp or {"do_nothing": 0.00, "buy_and_hold": -14.60,
                              "ema_trend_20_60": -77.43, "production_control": 7.86})
     bar = max(b.values())
     gate = AD.compare(
-        AD.Arm("candidate", arm_pp, arm_exposure, arm_tpy),
+        AD.Arm("candidate", arm_pp, arm_exposure, arm_tpy, exposure_floor=exposure_floor),
         AD.Arm("production_control", b["production_control"], 0.0611, 150.0),
         purpose="acceptance")
     return {"gate": "SC-003", "baselines_pp": b, "bar_pp": bar, "arm_pp": round(arm_pp, 4),

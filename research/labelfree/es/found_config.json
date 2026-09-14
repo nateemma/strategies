@@ -1,0 +1,22 @@
+{
+  "params": {
+    "atr_stoploss_multiplier": 2.4802969730572446,
+    "atr_stoploss_floor": -0.037968783785487265,
+    "atr_stoploss_cap": -0.019100924649751643,
+    "stoploss_grace_hours": 9.026282811170423,
+    "stoploss_grace_level": -0.3190312523856903,
+    "cexit_take_profit": 0.02322618088809456,
+    "cexit_max_days": 11,
+    "entry_rvol_threshold": 2.564939918027936,
+    "entry_guard_threshold": 0.3387919844848118,
+    "hold_window_hours": 12.842225705067111
+  },
+  "folds": [
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f09"
+  ],
+  "annualised_pp": 0.6473000000000001
+}

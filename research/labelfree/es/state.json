@@ -1,0 +1,565 @@
+{
+  "folds": [
+    "f00",
+    "f01",
+    "f02",
+    "f03",
+    "f04",
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f09",
+    "f10",
+    "f11",
+    "f12",
+    "f13",
+    "f14"
+  ],
+  "budget": 1600,
+  "seed": 7,
+  "per_fold": [
+    {
+      "fold_id": "f00",
+      "annualised_pp": 0.3457120180372132,
+      "test_days": 90,
+      "method": "cmaes",
+      "params": {
+        "atr_stoploss_multiplier": 2.5116423811462587,
+        "atr_stoploss_floor": -0.04022656965831387,
+        "atr_stoploss_cap": -0.005015173414904955,
+        "stoploss_grace_hours": 6.36480319968882,
+        "stoploss_grace_level": -0.3994279666069248,
+        "cexit_take_profit": 0.026739844760134697,
+        "cexit_max_days": 10,
+        "entry_rvol_threshold": 2.7082154620994476,
+        "entry_guard_threshold": 0.29641377183389517,
+        "hold_window_hours": 12.149346306065912
+      },
+      "n_trades": 4,
+      "trades_per_year": 16.284221525600834,
+      "mean_hold_h": 7.0,
+      "mean_exposure": 0.011610356437942644
+    },
+    {
+      "fold_id": "f01",
+      "annualised_pp": -1.1364249388236756,
+      "test_days": 90,
+      "method": "cmaes",
+      "params": {
+        "atr_stoploss_multiplier": 2.5774739227588546,
+        "atr_stoploss_floor": -0.03993496648738548,
+        "atr_stoploss_cap": -0.01997361821588377,
+        "stoploss_grace_hours": 11.229726115764516,
+        "stoploss_grace_level": -0.24504284675513643,
+        "cexit_take_profit": 0.01918127665950739,
+        "cexit_max_days": 10,
+        "entry_rvol_threshold": 2.693814489094369,
+        "entry_guard_threshold": 0.2972774961665821,
+        "hold_window_hours": 12.910707113809597
+      },
+      "n_trades": 9,
+      "trades_per_year": 36.52077305867377,
+      "mean_hold_h": 5.666666666666667,
+      "mean_exposure": 0.019673648883231108
+    },
+    {
+      "fold_id": "f02",
+      "annualised_pp": 0.15510463846552772,
+      "test_days": 90,
+      "method": "cmaes",
+      "params": {
+        "atr_stoploss_multiplier": 2.4612478909149726,
+        "atr_stoploss_floor": -0.03711534698432829,
+        "atr_stoploss_cap": -0.020186863838210146,
+        "stoploss_grace_hours": 7.107811290857078,
+        "stoploss_grace_level": -0.24874314282292664,
+        "cexit_take_profit": 0.02579828631269729,
+        "cexit_max_days": 10,
+        "entry_rvol_threshold": 2.7176576121844436,
+        "entry_guard_threshold": 0.37298638443532733,
+        "hold_window_hours": 12.099797697706437
+      },
+      "n_trades": 10,
+      "trades_per_year": 40.57863673185974,
+      "mean_hold_h": 6.45,
+      "mean_exposure": 0.02453419743085291
+    },
+    {
+      "fold_id": "f03",
+      "annualised_pp": 0.5481573311199653,
+      "test_days": 90,
+      "method": "cmaes",
+      "params": {
+        "atr_stoploss_multiplier": 2.37947442427801,
+        "atr_stoploss_floor": -0.040350322348431215,
+        "atr_stoploss_cap": -0.020991190683705335,
+        "stoploss_grace_hours": 9.515884529586769,
+        "stoploss_grace_level": -0.39992374343084586,
+        "cexit_take_profit": 0.011369933773218427,
+        "cexit_max_days": 10,
+        "entry_rvol_threshold": 2.40791860044111,
+        "entry_guard_threshold": 0.30663157379498496,
+        "hold_window_hours": 12.041876988522912
+      },
+      "n_trades": 18,
+      "trades_per_year": 73.04154611734754,
+      "mean_hold_h": 2.0972222222222223,
+      "mean_exposure": 0.013655826871889827
+    },
+    {
+      "fold_id": "f04",
+      "annualised_pp": 0.26517324757717126,
+      "test_days": 90,
+      "method": "cmaes",
+      "params": {
+        "atr_stoploss_multiplier": 2.4648707832549155,
+        "atr_stoploss_floor": -0.03992782657075635,
+        "atr_stoploss_cap": -0.019964036006897935,
+        "stoploss_grace_hours": 11.997238091999595,
+        "stoploss_grace_level": -0.39886906194078425,
+        "cexit_take_profit": 0.02206574958098783,
+        "cexit_max_days": 28,
+        "entry_rvol_threshold": 2.397630210067368,
+        "entry_guard_threshold": 0.29937898522060724,
+        "hold_window_hours": 12.006224141741232
+      },
+      "n_trades": 32,
+      "trades_per_year": 129.85163754195116,
+      "mean_hold_h": 7.0703125,
+      "mean_exposure": 0.07742159472283301
+    },
+    {
+      "fold_id": "f05",
+      "annualised_pp": -0.2520296913929025,
+      "test_days": 90,
+      "method": "cmaes",
+      "params": {
+        "atr_stoploss_multiplier": 2.502159396894711,
+        "atr_stoploss_floor": -0.026972393691938823,
+        "atr_stoploss_cap": -0.019956189969766246,
+        "stoploss_grace_hours": 6.881447887428582,
+        "stoploss_grace_level": -0.261603701507873,
+        "cexit_take_profit": 0.02387429597285337,
+        "cexit_max_days": 10,
+        "entry_rvol_threshold": 2.5588980980536498,
+        "entry_guard_threshold": 0.29980232366859305,
+        "hold_window_hours": 12.261321632946466
+      },
+      "n_trades": 18,
+      "trades_per_year": 73.04154611734754,
+      "mean_hold_h": 5.763888888888889,
+      "mean_exposure": 0.03170929290591367
+    },
+    {
+      "fold_id": "f06",
+      "annualised_pp": -0.4578342001514325,
+      "test_days": 90,
+      "method": "random",
+      "params": {
+        "atr_stoploss_multiplier": 2.2647086390068316,
+        "atr_stoploss_floor": -0.025401818302697957,
+        "atr_stoploss_cap": -0.0195749590151158,
+        "stoploss_grace_hours": 6.846187569812249,
+        "stoploss_grace_level": -0.32216684892054365,
+        "cexit_take_profit": 0.042060852178230544,
+        "cexit_max_days": 11,
+        "entry_rvol_threshold": 2.2892612273703605,
+        "entry_guard_threshold": 0.3976772306563633,
+        "hold_window_hours": 14.918106527848746
+      },
+      "n_trades": 26,
+      "trades_per_year": 105.50445550283533,
+      "mean_hold_h": 5.5673076923076925,
+      "mean_exposure": 0.031014928827681983
+    },
+    {
+      "fold_id": "f07",
+      "annualised_pp": 2.4191180711020714,
+      "test_days": 90,
+      "method": "cmaes",
+      "params": {
+        "atr_stoploss_multiplier": 2.4983205134788573,
+        "atr_stoploss_floor": -0.0399861270637867,
+        "atr_stoploss_cap": -0.019974566073294637,
+        "stoploss_grace_hours": 9.384912137973192,
+        "stoploss_grace_level": -0.3809245249392641,
+        "cexit_take_profit": 0.01983052689307792,
+        "cexit_max_days": 10,
+        "entry_rvol_threshold": 2.5885002543034314,
+        "entry_guard_threshold": 0.9963045823719187,
+        "hold_window_hours": 13.670996979171406
+      },
+      "n_trades": 50,
+      "trades_per_year": 202.8931836592987,
+      "mean_hold_h": 2.545,
+      "mean_exposure": 0.03819002430274274
+    },
+    {
+      "fold_id": "f08",
+      "annualised_pp": 0.27634975084346874,
+      "test_days": 90,
+      "method": "cmaes",
+      "params": {
+        "atr_stoploss_multiplier": 2.5010144237383605,
+        "atr_stoploss_floor": -0.039977038822468135,
+        "atr_stoploss_cap": -0.019974242778346675,
+        "stoploss_grace_hours": 9.376486379286757,
+        "stoploss_grace_level": -0.2691108782658379,
+        "cexit_take_profit": 0.01918102944064081,
+        "cexit_max_days": 10,
+        "entry_rvol_threshold": 2.589236333362851,
+        "entry_guard_threshold": 0.30000888695371286,
+        "hold_window_hours": 12.41476430961834
+      },
+      "n_trades": 64,
+      "trades_per_year": 259.7032750839023,
+      "mean_hold_h": 3.69140625,
+      "mean_exposure": 0.07117231801874783
+    },
+    {
+      "fold_id": "f09",
+      "annualised_pp": 0.8837453415440005,
+      "test_days": 90,
+      "method": "cmaes",
+      "params": {
+        "atr_stoploss_multiplier": 2.499516054020017,
+        "atr_stoploss_floor": -0.03995925400723708,
+        "atr_stoploss_cap": -0.020025775616555556,
+        "stoploss_grace_hours": 9.399727498166563,
+        "stoploss_grace_level": -0.3978864081623167,
+        "cexit_take_profit": 0.0222092423031777,
+        "cexit_max_days": 10,
+        "entry_rvol_threshold": 2.5876909412454254,
+        "entry_guard_threshold": 0.30002086562340086,
+        "hold_window_hours": 13.097846585889696
+      },
+      "n_trades": 13,
+      "trades_per_year": 52.752227751417664,
+      "mean_hold_h": 5.346153846153846,
+      "mean_exposure": 0.019905103575975004
+    },
+    {
+      "fold_id": "f10",
+      "annualised_pp": -0.018989836342079403,
+      "test_days": 90,
+      "method": "cmaes",
+      "params": {
+        "atr_stoploss_multiplier": 2.5402400538036085,
+        "atr_stoploss_floor": -0.03992812403440258,
+        "atr_stoploss_cap": -0.020883588589083197,
+        "stoploss_grace_hours": 6.8755395234760135,
+        "stoploss_grace_level": -0.26996219884803907,
+        "cexit_take_profit": 0.023146162041385532,
+        "cexit_max_days": 10,
+        "entry_rvol_threshold": 2.586550301046016,
+        "entry_guard_threshold": 0.01487673918592441,
+        "hold_window_hours": 12.31332238393144
+      },
+      "n_trades": 4,
+      "trades_per_year": 16.231454692743895,
+      "mean_hold_h": 7.5,
+      "mean_exposure": 0.013887281564633723
+    },
+    {
+      "fold_id": "f11",
+      "annualised_pp": 1.4864509812832176,
+      "test_days": 90,
+      "method": "cmaes",
+      "params": {
+        "atr_stoploss_multiplier": 2.5023774687208067,
+        "atr_stoploss_floor": -0.039940550392083815,
+        "atr_stoploss_cap": -0.019996418996097914,
+        "stoploss_grace_hours": 9.395317728964642,
+        "stoploss_grace_level": -0.38243046854945956,
+        "cexit_take_profit": 0.02325593779026405,
+        "cexit_max_days": 10,
+        "entry_rvol_threshold": 2.5871772717923247,
+        "entry_guard_threshold": 0.30074765383260543,
+        "hold_window_hours": 13.01390440950903
+      },
+      "n_trades": 31,
+      "trades_per_year": 125.79377386876519,
+      "mean_hold_h": 4.967741935483871,
+      "mean_exposure": 0.0453651197778035
+    },
+    {
+      "fold_id": "f12",
+      "annualised_pp": 0.806364564404287,
+      "test_days": 90,
+      "method": "cmaes",
+      "params": {
+        "atr_stoploss_multiplier": 2.499543381798402,
+        "atr_stoploss_floor": -0.04000294135669445,
+        "atr_stoploss_cap": -0.01998248080678917,
+        "stoploss_grace_hours": 9.382663755012993,
+        "stoploss_grace_level": -0.2700423282049514,
+        "cexit_take_profit": 0.023265085339013846,
+        "cexit_max_days": 11,
+        "entry_rvol_threshold": 2.58841891737399,
+        "entry_guard_threshold": 0.30011805985988643,
+        "hold_window_hours": 12.850422088937751
+      },
+      "n_trades": 22,
+      "trades_per_year": 89.27300081009143,
+      "mean_hold_h": 4.386363636363637,
+      "mean_exposure": 0.03541256798981599
+    },
+    {
+      "fold_id": "f13",
+      "annualised_pp": -0.02635318865814815,
+      "test_days": 90,
+      "method": "cmaes",
+      "params": {
+        "atr_stoploss_multiplier": 2.5018035688983584,
+        "atr_stoploss_floor": -0.03982259943142439,
+        "atr_stoploss_cap": -0.0200129176323076,
+        "stoploss_grace_hours": 11.998199620605,
+        "stoploss_grace_level": -0.2693407760935965,
+        "cexit_take_profit": 0.02326938604935231,
+        "cexit_max_days": 10,
+        "entry_rvol_threshold": 2.586918461659253,
+        "entry_guard_threshold": 0.29999750955591387,
+        "hold_window_hours": 14.68040840239752
+      },
+      "n_trades": 12,
+      "trades_per_year": 48.694364078231686,
+      "mean_hold_h": 5.854166666666667,
+      "mean_exposure": 0.0325193843305173
+    },
+    {
+      "fold_id": "f14",
+      "annualised_pp": 0.19233021359777472,
+      "test_days": 90,
+      "method": "cmaes",
+      "params": {
+        "atr_stoploss_multiplier": 2.500061693145705,
+        "atr_stoploss_floor": -0.039985877630359795,
+        "atr_stoploss_cap": -0.020001848109315712,
+        "stoploss_grace_hours": 9.638296838933567,
+        "stoploss_grace_level": -0.26999389073685576,
+        "cexit_take_profit": 0.02314510422687664,
+        "cexit_max_days": 10,
+        "entry_rvol_threshold": 2.586210590324997,
+        "entry_guard_threshold": 0.2996377041124608,
+        "hold_window_hours": 12.204340007910195
+      },
+      "n_trades": 3,
+      "trades_per_year": 12.503506478069655,
+      "mean_hold_h": 2.5,
+      "mean_exposure": 0.0035659099013431593
+    }
+  ],
+  "counts": {
+    "f00": {
+      "cmaes": 1600,
+      "random": 1600
+    },
+    "f01": {
+      "cmaes": 1600,
+      "random": 1600
+    },
+    "f02": {
+      "cmaes": 1600,
+      "random": 1600
+    },
+    "f03": {
+      "cmaes": 1600,
+      "random": 1600
+    },
+    "f04": {
+      "cmaes": 1600,
+      "random": 1600
+    },
+    "f05": {
+      "cmaes": 1600,
+      "random": 1600
+    },
+    "f06": {
+      "cmaes": 1600,
+      "random": 1600
+    },
+    "f07": {
+      "cmaes": 1600,
+      "random": 1600
+    },
+    "f08": {
+      "cmaes": 1600,
+      "random": 1600
+    },
+    "f09": {
+      "cmaes": 1600,
+      "random": 1600
+    },
+    "f10": {
+      "cmaes": 1600,
+      "random": 1600
+    },
+    "f11": {
+      "cmaes": 1600,
+      "random": 1600
+    },
+    "f12": {
+      "cmaes": 1600,
+      "random": 1600
+    },
+    "f13": {
+      "cmaes": 1600,
+      "random": 1600
+    },
+    "f14": {
+      "cmaes": 1600,
+      "random": 1600
+    }
+  },
+  "gates": {
+    "SC-001": {
+      "gate": "SC-001",
+      "arm_pp": 0.3658,
+      "control_pp": 0.171,
+      "delta_pp": 0.1948,
+      "floor_pp": 3.35,
+      "ci95": [
+        -0.185,
+        0.62
+      ],
+      "ci_excludes_zero": false,
+      "passed": false
+    },
+    "SC-002a": {
+      "gate": "SC-002a",
+      "positive_folds": 10,
+      "of": 15,
+      "required": 10,
+      "which": [
+        "f00",
+        "f02",
+        "f03",
+        "f04",
+        "f07",
+        "f08",
+        "f09",
+        "f11",
+        "f12",
+        "f14"
+      ],
+      "passed": true
+    },
+    "SC-008": {
+      "gate": "SC-008",
+      "floor_pp": 3.35,
+      "n_configurations": 15,
+      "n_overfit": 0,
+      "worst": [],
+      "passed": true
+    },
+    "SC-003": {
+      "gate": "SC-003",
+      "baselines_pp": {
+        "do_nothing": 0.0,
+        "buy_and_hold": -14.6,
+        "ema_trend_20_60": -77.43,
+        "production_control": 7.86
+      },
+      "bar_pp": 7.86,
+      "arm_pp": 0.3658,
+      "admissibility": {
+        "admissible": true,
+        "verdict": null,
+        "delta": -7.4942,
+        "delta_vs_do_nothing": 0.3658,
+        "arm": "candidate",
+        "control": "production_control"
+      },
+      "passed": false
+    },
+    "SC-005": {
+      "gate": "SC-005",
+      "at_1x_pp": 0.6473,
+      "at_1_5x_pp": 0.1432,
+      "delta_at_1x_pp": 0.5588,
+      "delta_at_1_5x_pp": 0.7402,
+      "passed": true
+    },
+    "SC-006": {
+      "gate": "SC-006",
+      "passed": true,
+      "recorded_pp": 0.6473000000000001,
+      "reproduced_pp": 0.6473,
+      "reason": null,
+      "per_fold": [
+        {
+          "fold_id": "f05",
+          "fee_multiplier": 1.0,
+          "annualised_pp": -0.2695,
+          "n_trades": 18,
+          "trades_per_year": 73.04,
+          "mean_hold_h": 5.99,
+          "mean_exposure": 0.03356,
+          "admissible": true
+        },
+        {
+          "fold_id": "f06",
+          "fee_multiplier": 1.0,
+          "annualised_pp": 0.0371,
+          "n_trades": 21,
+          "trades_per_year": 85.22,
+          "mean_hold_h": 6.75,
+          "mean_exposure": 0.02928,
+          "admissible": true
+        },
+        {
+          "fold_id": "f07",
+          "fee_multiplier": 1.0,
+          "annualised_pp": 2.599,
+          "n_trades": 50,
+          "trades_per_year": 202.89,
+          "mean_hold_h": 2.95,
+          "mean_exposure": 0.0412,
+          "admissible": true
+        },
+        {
+          "fold_id": "f08",
+          "fee_multiplier": 1.0,
+          "annualised_pp": 0.0926,
+          "n_trades": 63,
+          "trades_per_year": 255.65,
+          "mean_hold_h": 4.14,
+          "mean_exposure": 0.0743,
+          "admissible": true
+        },
+        {
+          "fold_id": "f09",
+          "fee_multiplier": 1.0,
+          "annualised_pp": 0.7773,
+          "n_trades": 14,
+          "trades_per_year": 56.81,
+          "mean_hold_h": 5.02,
+          "mean_exposure": 0.01991,
+          "admissible": true
+        }
+      ]
+    }
+  },
+  "incumbent_pp": 0.171,
+  "best_pp": 0.3658,
+  "beats_random": true,
+  "sweep_noise_pp": 4.93,
+  "bounds_hit": [],
+  "delta_vs_incumbent_pp": 0.1948,
+  "within_sweep_noise": true,
+  "wording": "not resolved \u2014 inside the sweep-noise band",
+  "seconds": 3971.5,
+  "found_config": {
+    "atr_stoploss_multiplier": 2.4802969730572446,
+    "atr_stoploss_floor": -0.037968783785487265,
+    "atr_stoploss_cap": -0.019100924649751643,
+    "stoploss_grace_hours": 9.026282811170423,
+    "stoploss_grace_level": -0.3190312523856903,
+    "cexit_take_profit": 0.02322618088809456,
+    "cexit_max_days": 11,
+    "entry_rvol_threshold": 2.564939918027936,
+    "entry_guard_threshold": 0.3387919844848118,
+    "hold_window_hours": 12.842225705067111
+  }
+}

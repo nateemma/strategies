@@ -96,8 +96,13 @@ def drive(fold_ids: list[str], budget: int, seed: int, allow_uncal: bool = False
              "SC-008": VD.overfit_gap(overfit_rows)}
     best = max(per_fold, key=lambda f: f["annualised_pp"], default=None)
     if best and "params" in best:
+        # Same panel, same reference: half the incumbent's exposure on the fold whose
+        # candidate is being judged. The absolute floor would mark production degenerate.
+        _p = PA.load(best["fold_id"], train=False)
+        _tpy, _ex = EV.incumbent_reference(_p)
         gates["SC-003"] = VD.baselines(best_pp, best.get("mean_exposure", 0.0),
-                                       best.get("trades_per_year", 0.0))
+                                       best.get("trades_per_year", 0.0),
+                                       exposure_floor=0.5 * _ex)
 
     state = {"folds": fold_ids, "budget": budget, "seed": seed,
              "per_fold": per_fold, "counts": counts, "gates": gates,
