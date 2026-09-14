@@ -75,7 +75,8 @@ def drive(fold_ids: list[str], budget: int, seed: int, allow_uncal: bool = False
     inc = []
     for fid in fold_ids:
         p = PA.load(fid, train=False)
-        s = EV.score(p, dict(SP.INCUMBENT), EV.incumbent_trades_per_year(p))
+        tpy, ex = EV.incumbent_reference(p)
+        s = EV.score(p, dict(SP.INCUMBENT), tpy, ex)
         inc.append(s.unregularised)
     incumbent_pp = sum(inc) / max(1, len(inc))
     best_pp = sum(f["annualised_pp"] for f in per_fold) / max(1, len(per_fold))

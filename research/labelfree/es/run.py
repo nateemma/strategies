@@ -60,7 +60,7 @@ def search_fold(fold_id: str, method: str, budget: int, seed: int,
                 path: Path = H.SIDECAR) -> dict:
     """Search one fold's TRAINING range. Returns the frozen best candidate."""
     panel = PA.load(fold_id, train=True)
-    inc_tpy = EV.incumbent_trades_per_year(panel)
+    inc_tpy, inc_exp = EV.incumbent_reference(panel)
     t0 = time.time()
 
     def evaluate(params: dict, generation: int) -> float:
@@ -69,7 +69,7 @@ def search_fold(fold_id: str, method: str, budget: int, seed: int,
         # candidate_id but get their own eval_id: one evaluation for scoring, two for the
         # trial count, because the deflation counts attempts.
         eid = H.write(cid, params, fold_id, "train", method, generation, path=path)
-        s = EV.score(panel, params, inc_tpy)
+        s = EV.score(panel, params, inc_tpy, inc_exp)
         H.complete(eid, {"score": None if s.value == float("-inf") else s.value,
                          **{k: v for k, v in s.as_row().items() if k != "value"}}, path=path)
         return s.value
@@ -90,10 +90,10 @@ def evaluate_test_once(fold_id: str, params: dict, method: str,
                        path: Path = H.SIDECAR) -> dict:
     """The single test-range evaluation (FR-010). Called after the search has concluded."""
     panel = PA.load(fold_id, train=False)
-    inc_tpy = EV.incumbent_trades_per_year(panel)
+    inc_tpy, inc_exp = EV.incumbent_reference(panel)
     cid = SP.candidate_id(params)
     eid = H.write(cid, params, fold_id, "test", method, 0, path=path)
-    s = EV.score(panel, params, inc_tpy)
+    s = EV.score(panel, params, inc_tpy, inc_exp)
     H.complete(eid, {"score": None if s.value == float("-inf") else s.value,
                      **{k: v for k, v in s.as_row().items() if k != "value"}}, path=path)
     return {"eval_id": eid, "candidate_id": cid, **s.as_row()}

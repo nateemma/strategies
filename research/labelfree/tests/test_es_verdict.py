@@ -138,3 +138,41 @@ def test_failing_sc001_is_not_resolved_never_no_effect():
     # the status and on SC-007 being cited, not on a substring of the explanation.
     assert s["status"] != "NO EFFECT"
     assert any("SC-007" in r for r in s["reasons"])
+
+
+# ------------------------------------------------- the incumbent-relative participation floor
+
+def test_relative_floor_admits_production_but_still_catches_abstention():
+    """MIN_EXPOSURE is the wrong instrument for a discrete-trade strategy.
+
+    Measured on the 90-day test ranges: the PRODUCTION strategy scores 0.0196 (f00) and
+    0.0474 (f01) exposure against an absolute floor of 0.05, and is marked degenerate. It is
+    not abstaining — it takes 13-20 trades in 90 days at ~4h each. Judging it against half the
+    incumbent's exposure on the SAME panel asks the question the floor is actually for.
+    """
+    from research.labelfree import admissibility as AD
+
+    prod = AD.Arm("incumbent", 1.0, 0.0196, 15.0)
+    assert prod.degenerate, "the absolute floor is what motivated the change"
+
+    floor = 0.5 * 0.0196
+    assert not AD.Arm("candidate", 1.0, 0.0196, 15.0, exposure_floor=floor).degenerate
+    assert not AD.Arm("candidate", 1.0, 0.0120, 15.0, exposure_floor=floor).degenerate
+
+    # Still caught: a policy that stops trading.
+    assert AD.Arm("abstainer", 9.9, 0.0001, 15.0, exposure_floor=floor).degenerate
+    # Still caught by the UNCHANGED absolute trades/yr floor: one position held forever.
+    assert AD.Arm("holder", 9.9, 0.9, 1.0, exposure_floor=floor).degenerate
+
+
+def test_default_floor_is_unchanged_for_existing_callers():
+    from research.labelfree import admissibility as AD
+    assert AD.Arm("a", 1.0, 0.04, 10.0).degenerate
+    assert not AD.Arm("a", 1.0, 0.06, 10.0).degenerate
+
+
+def test_nan_exposure_is_degenerate_not_silently_admitted():
+    """`nan < floor` is False, so a NaN would pass the floor SILENTLY."""
+    from research.labelfree import admissibility as AD
+    a = AD.Arm("a", 1.0, float("nan"), 10.0)
+    assert a.degenerate and "NaN" in (a.reason or "")

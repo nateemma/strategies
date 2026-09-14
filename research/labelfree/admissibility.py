@@ -40,10 +40,34 @@ class Arm:
     value: float                       # the return or score being compared
     mean_exposure: float
     trades_per_year: float | None = None
+    # OPTIONAL absolute exposure floor, defaulting to MIN_EXPOSURE. Added 2026-09-14 for
+    # feature 013, where MIN_EXPOSURE is the WRONG INSTRUMENT and says so loudly: on a 90-day
+    # test range the PRODUCTION strategy scores 0.0196-0.0474 exposure and is marked
+    # degenerate. It is not abstaining -- it takes 13-20 trades in 90 days at ~4h each, so
+    # ~2-5% occupancy is what a selective discrete-trade strategy LOOKS like.
+    #
+    # MIN_EXPOSURE was calibrated on continuous-exposure policies (briefs 1 and 4), where the
+    # weight is held every bar and 0.05 genuinely separates trading from flat. This module's
+    # own docstring says the two measures "fail differently"; for a discrete-trade family the
+    # exposure measure does not discriminate, and applying it anyway is a FALSE gate that
+    # would report a miscalibrated instrument as a research finding.
+    #
+    # Callers passing nothing are unaffected. A caller that passes a floor must say what it
+    # is relative to -- feature 013 uses half the incumbent's exposure on the SAME panel, so
+    # "materially less participating than production" is still caught.
+    exposure_floor: float | None = None
+
+    @property
+    def _floor(self) -> float:
+        return MIN_EXPOSURE if self.exposure_floor is None else self.exposure_floor
 
     @property
     def degenerate(self) -> bool:
-        if self.mean_exposure < MIN_EXPOSURE:
+        # NaN-safe: `nan < floor` is False, so a NaN exposure would pass SILENTLY — the exact
+        # failure this floor exists to catch.
+        if not (self.mean_exposure == self.mean_exposure):
+            return True
+        if self.mean_exposure < self._floor:
             return True
         if self.trades_per_year is not None and self.trades_per_year < MIN_TRADES_PER_YEAR:
             return True
@@ -51,8 +75,10 @@ class Arm:
 
     @property
     def reason(self) -> str | None:
-        if self.mean_exposure < MIN_EXPOSURE:
-            return (f"mean exposure {self.mean_exposure:.4f} below the {MIN_EXPOSURE} "
+        if not (self.mean_exposure == self.mean_exposure):
+            return "mean exposure is NaN — no usable panel"
+        if self.mean_exposure < self._floor:
+            return (f"mean exposure {self.mean_exposure:.4f} below the {self._floor:.4f} "
                     f"participation floor")
         if self.trades_per_year is not None and self.trades_per_year < MIN_TRADES_PER_YEAR:
             return (f"{self.trades_per_year:.1f} trades/yr below the "

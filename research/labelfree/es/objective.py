@@ -45,7 +45,16 @@ class Score:
         return asdict(self)
 
 
-def score(trades, params: dict, span_years: float, incumbent_trades_per_year: float) -> Score:
+# Fraction of the INCUMBENT's exposure on the SAME panel that a candidate must retain. The
+# absolute MIN_EXPOSURE is the wrong instrument here -- it marks production itself degenerate
+# on a 90-day range (measured: f00 0.0196, f01 0.0474 against a 0.05 floor). The question the
+# floor should ask is "is this materially less participating than production", and production
+# is the only defensible reference for that.
+INCUMBENT_EXPOSURE_FRACTION = 0.5
+
+
+def score(trades, params: dict, span_years: float, incumbent_trades_per_year: float,
+          incumbent_exposure: float | None = None) -> Score:
     """Turn a surrogate TradeSeries into the number the search ranks on.
 
     A candidate that does not trade is INADMISSIBLE with its score withheld (FR-004): it is
@@ -57,8 +66,10 @@ def score(trades, params: dict, span_years: float, incumbent_trades_per_year: fl
     exposure = trades.mean_exposure
     hold = trades.mean_hold_hours
 
+    floor = (INCUMBENT_EXPOSURE_FRACTION * incumbent_exposure
+             if incumbent_exposure else None)
     arm = AD.Arm(name="candidate", value=trades.annualised_pp,
-                 mean_exposure=exposure, trades_per_year=tpy)
+                 mean_exposure=exposure, trades_per_year=tpy, exposure_floor=floor)
     if arm.degenerate:
         return Score(value=float("-inf"), unregularised=trades.annualised_pp,
                      distance_penalty=0.0, turnover_penalty=0.0,

@@ -38,7 +38,8 @@ def run(panel: dict, params: dict) -> EX.TradeSeries:
     return pooled
 
 
-def score(panel: dict, params: dict, incumbent_tpy: float) -> OB.Score:
+def score(panel: dict, params: dict, incumbent_tpy: float,
+          incumbent_exposure: float | None = None) -> OB.Score:
     """The regularised number the search optimises. Inadmissible candidates score -inf."""
     try:
         SP.validate(params)
@@ -47,10 +48,21 @@ def score(panel: dict, params: dict, incumbent_tpy: float) -> OB.Score:
                         turnover_penalty=0.0, admissible=False, reason=str(e),
                         n_trades=0, trades_per_year=0.0, mean_hold_h=0.0, mean_exposure=0.0)
     ts = run(panel, params)
-    return OB.score(ts, params, panel["span_years"], incumbent_tpy)
+    return OB.score(ts, params, panel["span_years"], incumbent_tpy, incumbent_exposure)
+
+
+def incumbent_reference(panel: dict) -> tuple[float, float]:
+    """(trades/yr, exposure) for the incumbent ON THIS PANEL.
+
+    Both are references the candidate is judged against: turnover for the regularisation
+    (data-model §1a), exposure for the participation floor. Computing them per panel matters
+    -- a 90-day test range and a 4-year training range give very different exposures for the
+    SAME strategy, so a single absolute number cannot serve both.
+    """
+    ts = run(panel, dict(SP.INCUMBENT))
+    tpy = len(ts) / panel["span_years"] if panel["span_years"] > 0 else 0.0
+    return tpy, ts.mean_exposure
 
 
 def incumbent_trades_per_year(panel: dict) -> float:
-    """The turnover the regularisation is measured against (data-model §1a)."""
-    ts = run(panel, dict(SP.INCUMBENT))
-    return len(ts) / panel["span_years"] if panel["span_years"] > 0 else 0.0
+    return incumbent_reference(panel)[0]

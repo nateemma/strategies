@@ -32,8 +32,8 @@ def at_fee_multiple(fold_id: str, params: dict, mult: float, train: bool = False
     panel = PA.load(fold_id, train=train)
     scaled = {**panel, "pairs": {p: {**d, "cost": d["cost"] * mult}
                                  for p, d in panel["pairs"].items()}}
-    inc = EV.incumbent_trades_per_year(scaled)
-    s = EV.score(scaled, params, inc)
+    tpy, ex = EV.incumbent_reference(scaled)
+    s = EV.score(scaled, params, tpy, ex)
     return {"fold_id": fold_id, "fee_multiplier": mult,
             "annualised_pp": round(s.unregularised, 4), "n_trades": s.n_trades,
             "trades_per_year": round(s.trades_per_year, 2),

@@ -51,7 +51,7 @@ def verdict(span_pp: float) -> str:
 def sweep(fold_ids: list[str], steps: int = 25) -> dict:
     """One dimension at a time, the other nine pinned at the incumbent."""
     panels = {f: PA.load(f, train=True) for f in fold_ids}
-    inc_tpy = {f: EV.incumbent_trades_per_year(p) for f, p in panels.items()}
+    inc_ref = {f: EV.incumbent_reference(p) for f, p in panels.items()}
 
     def objective(params: dict) -> float:
         """Mean UNREGULARISED return across folds.
@@ -62,7 +62,7 @@ def sweep(fold_ids: list[str], steps: int = 25) -> dict:
         """
         vals = []
         for f, p in panels.items():
-            s = EV.score(p, params, inc_tpy[f])
+            s = EV.score(p, params, *inc_ref[f])
             vals.append(s.unregularised if s.admissible else np.nan)
         return float(np.nanmean(vals)) if np.any(~np.isnan(vals)) else float("nan")
 
