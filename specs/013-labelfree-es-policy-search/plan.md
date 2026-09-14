@@ -34,10 +34,14 @@ calibration a blocking gate rather than a validation step.
 
 **Language/Version**: Python 3.12.13
 
-**Primary Dependencies**: numpy, pandas, scipy, freqtrade 2026.9-dev (backtest arbiter). **`cma`
-is NOT installed** — a self-contained CMA-ES is implemented in-repo rather than adding a
-dependency for one feature; the update equations are ~60 lines and are unit-tested against a
-sphere function with a known optimum.
+**Primary Dependencies**: numpy, pandas, scipy, freqtrade 2026.9-dev (backtest arbiter), **`cma`
+4.5.0** — installed into `freqtrade/.venv` on 2026-09-13 and smoke-tested (converges to the
+sphere optimum at ~6e-08). The reference implementation is used rather than a hand-rolled one, so
+a negative result cannot be blamed on the optimiser.
+
+**Interpreter**: `freqtrade/.venv/bin/python`. Note `~/.pyenv/shims/python3` is a *different*
+3.12.13 with `cma` but **without pandas or scipy** — every command in this feature must use the
+venv interpreter explicitly.
 
 **Storage**:
 - `research/labelfree/es/history.jsonl` — the full evaluation history (sidecar, SC-018)
@@ -108,7 +112,7 @@ research/labelfree/
 │   ├── exits.py          # THE EXIT SURROGATE — the feature's core risk
 │   ├── calibrate.py      # the blocking gate: surrogate vs freqtrade backtests
 │   ├── liveness.py       # per-dimension liveness probe over the search space
-│   ├── cmaes.py          # self-contained CMA-ES (no `cma` dependency)
+│   ├── cmaes.py          # thin wrapper over `cma` (ask/tell, bounds, seeding)
 │   ├── random_search.py  # the identical-budget control
 │   ├── objective.py      # cost-aware score + incumbent/turnover regularisation
 │   ├── history.py        # the sidecar log; write-before-score
@@ -151,4 +155,3 @@ reports that, rather than spending 48,000 evaluations on an unvalidated evaluato
 | Deviation | Why it is needed | Why the simpler alternative is rejected |
 |---|---|---|
 | **Principle VIII — one parameter space at a time** | The feature's hypothesis *is* that these levers matter jointly and have only ever been swept one at a time. Honouring VIII here would refuse to test the brief. | The simpler alternative — sweep each lever alone — is precisely what the study has already done, and it produced the 4.93 pp span that this brief cites as its own kill criterion. Compensating controls: the random control at an identical budget separates "the optimiser found structure" from "we looked 1,600 times"; PBO over the full history quantifies the multiple-testing cost that VIII exists to avoid; the 4.93 pp band makes a move smaller than one sweep's span a non-result; and the regularisation in FR-009 makes distance from the incumbent something the search must earn. |
-| **A self-contained CMA-ES rather than the `cma` package** | `cma` is not installed, and the study's dependency surface is already large. | Adding a dependency for one feature is more risk than ~60 lines of update equations that can be unit-tested against a function with a known optimum. |
