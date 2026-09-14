@@ -60,6 +60,12 @@ SELL, HOLD, BUY = 0, 1, 2
 # searched are not confounded with the four that are not (Principle VIII, narrowed).
 FIXED_GUARDS = {"entry_atr_pct": 0.006, "entry_close_norm_threshold": -0.1,
                 "entry_adx_threshold": 38.0, "entry_bb_width_threshold": 0.06}
+# The EXIT guard chain (BaseStrategy.populate_exit_trend, 1009-1015). Not searched, but it
+# gates model_exit: without it the exit signal fires ~4x too often (measured f07 train: 143
+# surrogate exits against 36 in a real backtest). Note the chain is gated on
+# entry_enable_guards -- the ENTRY flag controls the EXIT guards, which BaseStrategy's own
+# comment flags as deliberate-but-odd.
+EXIT_GUARDS = {"exit_rvol_threshold": 2.0, "exit_guard_threshold": -0.1}
 PREDICTION_THRESHOLD = 0.69          # NNNC_MLX.json buy.prediction_threshold
 
 GUARD_COLS = ["rvol", "atr_pct_roll", "guard_metric", "close_norm", "adx", "bb_width"]
@@ -204,6 +210,21 @@ def model_signals(d: dict, threshold: float = PREDICTION_THRESHOLD):
     P = np.stack([d["p_sell"], d["p_hold"], d["p_buy"]], axis=1)
     cls = np.where(P.max(axis=1) > threshold, P.argmax(axis=1), HOLD)
     return cls == BUY, cls == SELL
+
+
+def exits(d: dict, enable_guards: bool = True) -> np.ndarray:
+    """The exit chain of BaseStrategy.populate_exit_trend (995-1017), recomputed.
+
+    `model_exit` is NOT just `predict_sell`: it is gated by the exit rvol and guard_metric
+    thresholds. Omitting them made the surrogate exit on the model far too often.
+    """
+    _buy, sell = model_signals(d)
+    cond = sell
+    if enable_guards:
+        cond &= d["rvol"] > EXIT_GUARDS["exit_rvol_threshold"]
+        # LOWER bound here, unlike the entry guard's upper bound on the same column.
+        cond &= d["guard_metric"] > EXIT_GUARDS["exit_guard_threshold"]
+    return np.nan_to_num(cond.astype(float), nan=0.0).astype(bool)
 
 
 def entries(d: dict, params: dict, enable_guards: bool = True) -> np.ndarray:

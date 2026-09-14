@@ -22,7 +22,7 @@ def run(panel: dict, params: dict) -> EX.TradeSeries:
     for pair in sorted(panel["pairs"]):
         d = panel["pairs"][pair]
         ent = PA.entries(d, params)
-        _buy, sell = PA.model_signals(d)
+        sell = PA.exits(d)
         ts = EX.simulate(
             ent, d["open"], d["high"], d["low"],
             np.nan_to_num(d["atr_pct_roll"]), np.nan_to_num(d["rvol_stop"]),

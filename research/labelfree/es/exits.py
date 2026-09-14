@@ -65,6 +65,10 @@ VOLUME_TIGHTEN_CLAMP = -0.02          # literal in BaseStrategy.py:1049, not atr
 # CONCURRENT trades across 9 pairs as sequential full-wallet bets. On f00 that turned the
 # incumbent's real +23.46 pp/yr into -19.06 -- a sign flip, not an offset.
 STAKE_PP_PER_RATIO = 900 / 10_000 * 100.0     # = 9.0 pp per unit profit_ratio
+
+# NNNC_MLX.json roi {"0": 0.05}. Not searched, but it FIRES — 2.6% of archived exits — and
+# omitting it let take-profit claim trades that ROI would have closed first and higher.
+MINIMAL_ROI = 0.05
 BARS_PER_HOUR = 4                     # 15-minute bars
 BARS_PER_DAY = 96
 
@@ -162,6 +166,7 @@ def simulate(entries, open_px, high, low, atr_pct_roll, rvol_stop, cost, params,
     max_bars = int(p["cexit_max_days"]) * BARS_PER_DAY
     hold_window_bars = int(round(float(p["hold_window_hours"]) * BARS_PER_HOUR))
     grace_bars = int(round(grace_h * BARS_PER_HOUR))
+    roi_level = float(p.get("minimal_roi", MINIMAL_ROI))
 
     occ = np.zeros(n, dtype=bool)
     i = 0
@@ -185,51 +190,70 @@ def simulate(entries, open_px, high, low, atr_pct_roll, rvol_stop, cost, params,
         for j in range(entry_i, min(n, entry_i + max_bars + 1)):
             age = j - entry_i
             hi, lo, op = high[j], low[j], open_px[j]
+            # FIDELITY (backtesting.py:992-1000, interface.py:1440-1463). freqtrade calls
+            # should_exit with rate = row[OPEN], so `current_profit` — what every custom_exit
+            # reason tests — is computed from the OPEN. `current_profit_best` comes from the
+            # HIGH and is used by ROI ONLY. The stop triggers on the LOW. Three different
+            # prices, and using the wrong one biases the two dominant mechanisms.
+            profit_open = op / entry_px - 1.0
+            profit_high = hi / entry_px - 1.0
 
-            # ---- the stop level in force on this bar -------------------------------------
+            # FIDELITY — THE SEQUENCE (interface.py:1503-1507, verbatim):
+            #     # Sequence:
+            #     # Exit-signal
+            #     # Stoploss
+            #     # ROI
+            #     # Trailing stoploss
+            # The CUSTOM EXIT is appended to `exits` BEFORE the stoploss flag, so a bar on
+            # which both fire resolves as the custom exit. Checking the stop first (as an
+            # earlier version did) systematically converts winners into stop-outs on exactly
+            # the two mechanisms that decide this strategy's P&L.
+
+            # ---- 1. custom_exit — tested on the OPEN, filled at the OPEN ------------------
+            #         (interface.py:1472-1478 passes current_rate/current_profit from `rate`,
+            #          which should_exit was called with as row[OPEN]; backtesting.py:594-595
+            #          fills every non-stoploss/non-ROI exit at row[OPEN].)
+            if profit_open > take_profit:
+                exit_i, reason, pnl = j, "take_profit", profit_open
+                break
+            if model_exit is not None and model_exit[j]:
+                exit_i, reason, pnl = j, "model_exit", profit_open
+                break
+            hours = age / BARS_PER_HOUR
+            if age >= hold_window_bars and profit_open > 0.005:
+                exit_i, reason, pnl = j, "unclog_12h", profit_open
+                break
+            if hours >= 24.0 and profit_open >= 0.0:
+                exit_i, reason, pnl = j, "unclog_1d", profit_open
+                break
+            if age >= max_bars:
+                exit_i, reason, pnl = j, "max_hold", profit_open
+                break
+
+            # ---- 2. the stoploss — triggered on the LOW ----------------------------------
             if grace_bars > 0 and age < grace_bars:
                 level = grace_lvl                       # wide, anchored to entry, no trail
+                in_grace = True
             else:
                 cand = atr_stop_level(atr_pct_roll[j], rvol_stop[j], p)
                 eff_stop = cand if eff_stop is None else max(eff_stop, cand)  # tighten only
                 level = eff_stop
+                in_grace = False
 
             stop_px = entry_px * (1.0 + level)
             if lo <= stop_px:
-                exit_i, reason = j, ("stop_loss" if (grace_bars > 0 and age < grace_bars)
-                                     else "trailing_stop_loss")
-                px = min(op, stop_px)                   # gap-through fills at the open
+                exit_i = j
+                reason = "stop_loss" if in_grace else "trailing_stop_loss"
+                # backtesting.py:614-616 — the OPEN is used ONLY when the stop sits above the
+                # candle's HIGH, i.e. the whole candle gapped past it. Otherwise the fill is
+                # AT THE STOP.
+                px = op if stop_px > hi else stop_px
                 pnl = px / entry_px - 1.0
                 break
 
-            # ---- take-profit (BaseStrategy.py:1203) --------------------------------------
-            tp_px = entry_px * (1.0 + take_profit)
-            if hi >= tp_px:
-                exit_i, reason = j, "take_profit"
-                px = max(op, tp_px)
-                pnl = px / entry_px - 1.0
-                break
-
-            # ---- model exit (recomputed in panel.py, not replayed) ------------------------
-            if model_exit is not None and model_exit[j]:
-                exit_i, reason = j, "model_exit"
-                pnl = op / entry_px - 1.0
-                break
-
-            # ---- recomputed time exits (BaseStrategy.py:1210-1219) -----------------------
-            profit = op / entry_px - 1.0
-            hours = age / BARS_PER_HOUR
-            if age >= hold_window_bars and profit > 0.005:
-                exit_i, reason = j, "unclog_12h"
-                pnl = profit
-                break
-            if hours >= 24.0 and profit >= 0.0:
-                exit_i, reason = j, "unclog_1d"
-                pnl = profit
-                break
-            if age >= max_bars:
-                exit_i, reason = j, "max_hold"
-                pnl = profit
+            # ---- 3. ROI — the ONE check tested on the HIGH (interface.py:1443-1446) -------
+            if profit_high >= roi_level:
+                exit_i, reason, pnl = j, "roi", roi_level
                 break
 
         if exit_i is None:                              # ran off the end of the range
