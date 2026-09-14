@@ -6,6 +6,28 @@ before it scores (FR-013). All are run as `python -m research.labelfree.es.<modu
 
 ---
 
+## `signals.py` — regenerate the per-bar probability side-cars
+
+```
+python -m research.labelfree.es.signals --folds f00..f14 --which both
+```
+
+**Added during implementation.** The search recomputes entries at candidate guard thresholds,
+so it needs p(buy) on *every* bar of a fold's range — the archive's 378 admitted trades give a
+looser guard nothing to admit. One freqtrade backtest per fold per range writes the side-car
+under `FT_PREDICT_PROB_SINK`.
+
+Measured: **12 minutes** for 15 folds x 2 ranges. The planning estimate of ~11 hours came from
+extrapolating a 175s figure that was a full walk-forward arm run, not a cached-data fold
+backtest.
+
+Deliberately a backtest rather than offline inference from the 15 saved `safetensors`: offline
+would be a **second inference path**, and this study has a case where predict-time scaling
+silently diverged from production (the single-task GAN scaler bug, 1.53 pp, undetected until
+hunted). The search's validity rests on its entries being the ones the strategy would take.
+
+---
+
 ## `space.py` — inspect the search space
 
 ```
@@ -80,6 +102,22 @@ on the fold's **test range exactly once** (FR-010) and stops. `--budget` is a co
 evaluations, not wall-clock (research.md R5), and is asserted identical across the two methods.
 
 Refuses to start if `calibration.json` is missing or failing.
+
+---
+
+## `drive.py` — the sequential 15-fold driver
+
+```
+python -m research.labelfree.es.drive --folds f00..f14 --budget 1600 --seed 7
+```
+
+Runs folds one at a time and the two methods one after the other. Concurrency is not an
+option: two freqtrade backtests race on `.last_result.json`, and the study's convention is
+sequential execution throughout.
+
+Asserts the two methods' evaluation counts are equal **from the sidecar**, not from a counter
+it keeps. Chooses each fold's winner from TRAINING scores alone, freezes it, then takes the
+single test evaluation. Writes `state.json` and the shared-log summary row.
 
 ---
 

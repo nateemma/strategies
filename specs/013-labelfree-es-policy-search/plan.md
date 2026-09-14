@@ -109,6 +109,9 @@ research/labelfree/
 ├── es/
 │   ├── __init__.py
 │   ├── space.py          # the 10-dim space: bounds, encode/decode, incumbent
+│   ├── signals.py        # regenerate per-bar p(buy) side-cars (one backtest per fold)
+│   ├── drive.py          # the sequential 15-fold driver
+│   ├── reproduce.py      # SC-005 fee stress, SC-006 reproduction from config
 │   ├── verdict.py        # protocol §5 gates: pooled, per-fold, W1/W2/W3, baselines
 │   ├── exits.py          # THE EXIT SURROGATE — the feature's core risk
 │   ├── calibrate.py      # the blocking gate: surrogate vs freqtrade backtests

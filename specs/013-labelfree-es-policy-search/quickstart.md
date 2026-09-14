@@ -10,6 +10,15 @@ All commands run from `user_data/strategies`, sequentially.
 - the 15-fold plan and the archived 378 trades present under `regime/wf/`
 - `research/labelfree/` importable; `admissibility.py`, `trials.py`, `sim.py`, `stats.py` unchanged
 
+## Step 0 — regenerate the per-bar probability side-cars
+
+```
+python -m research.labelfree.es.signals --folds f00..f14 --which both
+```
+
+**Expect**: 15 folds x 2 ranges, ~12 minutes, 9-10 pairs each. Without these the entry guards
+cannot be recomputed and the search space collapses to exits only.
+
 ## Step 1 — the space round-trips
 
 ```
@@ -60,10 +69,7 @@ too narrowly.
 ## Step 5 — search and control, identical budgets
 
 ```
-for f in f00 f01 f02 f03 f04 f05 f06 f07 f08 f09 f10 f11 f12 f13 f14; do
-  python -m research.labelfree.es.run --fold $f --method cmaes  --budget 1600 --seed 7
-  python -m research.labelfree.es.run --fold $f --method random --budget 1600 --seed 7
-done
+python -m research.labelfree.es.drive --folds f00..f14 --budget 1600 --seed 7
 ```
 
 **Expect**: 48,000 evaluations in the sidecar, and the two methods' counts equal per fold. Each
