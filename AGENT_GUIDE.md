@@ -117,6 +117,11 @@ Useful flags: `--set` / `--set-sell` (buy/sell params), `--roi`, `--threshold`, 
 
 ### The noise floor — measured, and it governs everything above
 
+> **Method guide:** `docs/HYPERPARAMETER_STUDY.md` — how to examine a hyperparameter
+> before searching it: measure its span against this floor, separate a mechanism from its
+> knobs, calibrate a fast evaluator against one real backtest, and run your gates on the
+> incumbent. Six of ten exit/guard parameters turn out to be inert.
+
 Bootstrapping the acceptance window's own per-trade P&L (NNNC W1, 99 trades, +9.831%):
 
 ```

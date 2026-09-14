@@ -80,6 +80,9 @@ picture:
 
 ## Results
 
+> The transferable method from these studies is written up for general strategy work in
+> [`docs/HYPERPARAMETER_STUDY.md`](../../docs/HYPERPARAMETER_STUDY.md).
+
 Five briefs executed as spec-kit features. **No brief has produced an adoptable operating
 point**; each delivered a quantified negative, which is what the protocol's kill gates are for.
 
