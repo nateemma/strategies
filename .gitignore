@@ -40,3 +40,8 @@ saved_data/labelfree_warmstart/
 # R6's design keeps the full history OUT of git; the shared trials.jsonl carries a
 # one-line summary row with this file's line count and sha256 instead.
 research/labelfree/es/history.jsonl
+
+# Feature 014 (brief 06) path banks — 1,000 resampled panels over ten folds is large, and the
+# bank is reproducible from its recorded provenance. Feature 013's 60 MB sidecar was untracked
+# but not ignored until an analyze pass caught it; this one is ignored up front.
+research/labelfree/stress/banks/

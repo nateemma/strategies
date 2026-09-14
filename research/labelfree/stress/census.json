@@ -1,0 +1,37 @@
+{
+  "rows": [
+    {
+      "gan_type": "TAB_DDPM",
+      "returns": "(n, 1, num_features) float32 numpy array",
+      "emits_sequences": false,
+      "evidence": "GANs/df_tabddpm_mlx.py:752",
+      "in_scope": false
+    },
+    {
+      "gan_type": "WGAN",
+      "returns": "Returns np.ndarray (n, 1, F) \u2014 3D with seq_len=1",
+      "emits_sequences": false,
+      "evidence": "GANs/GANInterface.py:383",
+      "in_scope": false
+    },
+    {
+      "gan_type": "CTAB_GAN",
+      "returns": "For CTAB_GAN / MT_CTAB_GAN: generate(n, class_label=<int>) or generate(n, task_labels=<dict>) Returns pd.DataFrame",
+      "emits_sequences": false,
+      "evidence": "GANs/GANInterface.py:393",
+      "in_scope": false
+    },
+    {
+      "gan_type": "CGAN",
+      "returns": "For CGAN: generate(n, one_hot=<np.ndarray (n, C)>) Returns np.ndarray (n, seq_len, F)",
+      "emits_sequences": true,
+      "evidence": "GANs/GANInterface.py:389",
+      "in_scope": false
+    }
+  ],
+  "n_sequence_capable": 1,
+  "method": "return contract read from the running code, cited by file:line; no model is instantiated and no weights are loaded",
+  "not_a_defect": "These are class-conditional ROW samplers built for class balancing, and they do that job. This is a statement about what they cannot be REUSED for, not a fault. A row sampler cannot produce a price path, and the policy under test is path-dependent: stops, grace windows, holding limits and take-profit all depend on the order bars arrive in.",
+  "scorecard_note": "FR-016: TabDDPM, WGAN and CTAB-GAN+ were rebuilt 2026-09-10 and docs/GAN_SCORECARD.md predates that. Any figure quoted from the scorecard must be re-verified against current code or labelled historical with its date. This census reads current code and quotes no scorecard figure.",
+  "consequence": "No learned generator is carried (clarification Q3). The single generator is a stationary block bootstrap over real panels."
+}
