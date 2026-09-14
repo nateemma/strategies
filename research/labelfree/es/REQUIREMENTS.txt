@@ -1,0 +1,13 @@
+# Feature 013 (brief 05) environment, recorded so a later reader can reproduce it.
+#
+# Interpreter: /Users/philprice95/projects/freqtrade/.venv/bin/python  (Python 3.12.13)
+#
+# NOT ~/.pyenv/shims/python3 — that is a different 3.12.13 which carries `cma` but neither
+# pandas nor scipy. es/__init__.py fails loudly on it rather than confusingly later.
+
+cma==4.5.0        # installed into freqtrade/.venv on 2026-09-13; smoke-tested to the sphere
+                  # optimum at ~6e-08. The reference implementation is used deliberately, so
+                  # a negative result cannot be blamed on a hand-rolled optimiser.
+
+# Already present in the venv and unpinned here because this feature does not constrain them:
+#   numpy, pandas, scipy, freqtrade 2026.9-dev

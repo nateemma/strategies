@@ -123,7 +123,7 @@ research/labelfree/
 ├── trials.py             # REUSED — one summary row per run
 └── sim.py, stats.py      # REUSED — cost model, PBO, bootstrap
 
-tests/
+research/labelfree/tests/          # the study's existing test location, not repo-root tests/
 ├── test_es_exits.py
 ├── test_es_space.py
 ├── test_es_cmaes.py

@@ -29,9 +29,9 @@ make wiring checks insufficient on their own.
 
 **Purpose**: package skeleton and the interpreter guard.
 
-- [ ] T001 Create `research/labelfree/es/__init__.py` with the package docstring naming brief 05, the nine search dimensions and the blocking calibration gate
-- [ ] T002 Add an import-time interpreter check in `research/labelfree/es/__init__.py` that raises with a clear message if `pandas`, `scipy` or `cma` is missing, naming `freqtrade/.venv/bin/python` as the interpreter to use
-- [ ] T003 [P] Record `cma==4.5.0` in `research/labelfree/es/REQUIREMENTS.txt` with the install date and the venv path, so a later reader can reproduce the environment
+- [X] T001 Create `research/labelfree/es/__init__.py` with the package docstring naming brief 05, the nine search dimensions and the blocking calibration gate
+- [X] T002 Add an import-time interpreter check in `research/labelfree/es/__init__.py` that raises with a clear message if `pandas`, `scipy` or `cma` is missing, naming `freqtrade/.venv/bin/python` as the interpreter to use
+- [X] T003 [P] Record `cma==4.5.0` in `research/labelfree/es/REQUIREMENTS.txt` with the install date and the venv path, so a later reader can reproduce the environment
 
 **Checkpoint**: `from research.labelfree.es import *` succeeds under the venv and fails loudly elsewhere.
 
@@ -43,16 +43,16 @@ make wiring checks insufficient on their own.
 
 **⚠️ CRITICAL**: T005 (write-before-score) is the invariant the whole leakage audit rests on.
 
-- [ ] T004 Implement the **ten-dimension** `Space` in `research/labelfree/es/space.py` — bounds and incumbent values per data-model.md §1, reading the incumbent from `NNNC/NNNC_MLX.json` and `Framework/BaseStrategy.py` rather than hard-coding them
-- [ ] T004a Add `hold_window_hours` as dimension 10 (**minimum holding time**, spec.md:14) with bounds [12.0, 48.0] and incumbent 12.0 per data-model.md §1. The mechanism (`NNNC/_hold_window.py`) can only **widen** the unclog window, so the incumbent sits on the lower bound by construction — exempt it from the FR-019 "space drawn too narrowly" finding and report it as a **known one-sided bound** instead.
-- [ ] T005 Implement `encode`/`decode` in `research/labelfree/es/space.py` mapping the unbounded z-space through the bounds, with `atr_stoploss_floor < atr_stoploss_cap < 0` enforced as **inadmissibility, not clipping** (clipping maps distinct candidates to one point and corrupts the trial count)
-- [ ] T006 Implement `candidate_id` in `research/labelfree/es/space.py` as a deterministic hash of the **decoded** values, and the `on_bound` flag listing parameters sitting on a bound (FR-019)
-- [ ] T007 [P] Write `tests/test_es_space.py`: `decode(encode(x)) == x` over 10,000 random points; the floor/cap ordering is rejected not clipped; two candidates rounding to the same `cexit_max_days` share a `candidate_id`; `on_bound` fires at each bound
-- [ ] T008 Implement the sidecar in `research/labelfree/es/history.py` — `write(evaluation) -> eval_id` appends with `score: null` **before** scoring, `complete(eval_id, result)` fills it in (FR-013), one JSON object per line in `research/labelfree/es/history.jsonl`
-- [ ] T009 [P] Write `tests/test_es_history.py`: an evaluation written then abandoned still appears with `score: null`; `complete` on an unknown `eval_id` raises; the file is append-only and survives a simulated crash between write and complete
-- [ ] T010 Implement `research/labelfree/es/objective.py` — cost-aware net return using the brief-1 cost model, plus the incumbent-distance and turnover regularisation of FR-009 at the **pre-registered weights of data-model.md §1a** (distance 4.93 pp/yr across the full space; turnover 1.00 pp/yr per doubling). The weights are inputs read from the design document, never tuned.
-- [ ] T010a Return the **unregularised** score alongside the regularised one from `objective.py`, and carry both into the sidecar, so `report.py` can show what the penalties did rather than assert it
-- [ ] T011 Wire `research/labelfree/admissibility.py` into `objective.py` so a candidate with no trades is **inadmissible with its score withheld** (FR-004) and a candidate losing to doing nothing is never reported as an improvement (FR-005) — reuse the shared gate unchanged, do not reimplement it
+- [X] T004 Implement the **ten-dimension** `Space` in `research/labelfree/es/space.py` — bounds and incumbent values per data-model.md §1, reading the incumbent from `NNNC/NNNC_MLX.json` and `Framework/BaseStrategy.py` rather than hard-coding them
+- [X] T004a Add `hold_window_hours` as dimension 10 (**minimum holding time**, spec.md:14) with bounds [12.0, 48.0] and incumbent 12.0 per data-model.md §1. The mechanism (`NNNC/_hold_window.py`) can only **widen** the unclog window, so the incumbent sits on the lower bound by construction — exempt it from the FR-019 "space drawn too narrowly" finding and report it as a **known one-sided bound** instead.
+- [X] T005 Implement `encode`/`decode` in `research/labelfree/es/space.py` mapping the unbounded z-space through the bounds, with `atr_stoploss_floor < atr_stoploss_cap < 0` enforced as **inadmissibility, not clipping** (clipping maps distinct candidates to one point and corrupts the trial count)
+- [X] T006 Implement `candidate_id` in `research/labelfree/es/space.py` as a deterministic hash of the **decoded** values, and the `on_bound` flag listing parameters sitting on a bound (FR-019)
+- [X] T007 [P] Write `tests/test_es_space.py`: `decode(encode(x)) == x` over 10,000 random points; the floor/cap ordering is rejected not clipped; two candidates rounding to the same `cexit_max_days` share a `candidate_id`; `on_bound` fires at each bound
+- [X] T008 Implement the sidecar in `research/labelfree/es/history.py` — `write(evaluation) -> eval_id` appends with `score: null` **before** scoring, `complete(eval_id, result)` fills it in (FR-013), one JSON object per line in `research/labelfree/es/history.jsonl`
+- [X] T009 [P] Write `tests/test_es_history.py`: an evaluation written then abandoned still appears with `score: null`; `complete` on an unknown `eval_id` raises; the file is append-only and survives a simulated crash between write and complete
+- [X] T010 Implement `research/labelfree/es/objective.py` — cost-aware net return using the brief-1 cost model, plus the incumbent-distance and turnover regularisation of FR-009 at the **pre-registered weights of data-model.md §1a** (distance 4.93 pp/yr across the full space; turnover 1.00 pp/yr per doubling). The weights are inputs read from the design document, never tuned.
+- [X] T010a Return the **unregularised** score alongside the regularised one from `objective.py`, and carry both into the sidecar, so `report.py` can show what the penalties did rather than assert it
+- [X] T011 Wire `research/labelfree/admissibility.py` into `objective.py` so a candidate with no trades is **inadmissible with its score withheld** (FR-004) and a candidate losing to doing nothing is never reported as an improvement (FR-005) — reuse the shared gate unchanged, do not reimplement it
 - [ ] T012 [P] Reuse the keyed panel cache from feature 012 in `research/labelfree/es/panel.py` so each fold's prices, ATR and rvol load once per run rather than once per evaluation
 
 **Checkpoint**: the space round-trips, the trial record is crash-honest, and the objective refuses to score an abstention.
@@ -71,19 +71,19 @@ backtests of the same candidates.
 
 > Write these FIRST and confirm they fail.
 
-- [ ] T013 [P] [US1] Write `tests/test_es_exits.py::test_incumbent_exit_mix` — replay the incumbent parameters over a fold and compare the surrogate's exit-reason mix against the archive's (`take_profit` ≈ 52%, the ATR+grace stack ≈ 26%). A surrogate that cannot reproduce the incumbent's own exit mix cannot rank anything.
-- [ ] T014 [P] [US1] Write `tests/test_es_exits.py::test_parameters_change_the_trade_series` — the same exposure path under two different parameter sets must produce **different** trades (FR-001). This is the test that would have caught brief 1's simulator being unusable here.
-- [ ] T015 [P] [US1] Write `tests/test_es_exits.py::test_grace_gates_the_stop` — inside `stoploss_grace_hours` the stop sits at `stoploss_grace_level` anchored to the entry price and does **not** trail; after it, the ATR stop applies
-- [ ] T016 [P] [US1] Write `tests/test_es_exits.py::test_volume_confirmation_tightening` — with rvol > 1 the stop tightens by `1/sqrt(rvol)`, clamped at `atr_stoploss_cap`; with rvol ≤ 1 it is untouched
+- [X] T013 [P] [US1] Write `tests/test_es_exits.py::test_incumbent_exit_mix` — replay the incumbent parameters over a fold and compare the surrogate's exit-reason mix against the archive's (`take_profit` ≈ 52%, the ATR+grace stack ≈ 26%). A surrogate that cannot reproduce the incumbent's own exit mix cannot rank anything.
+- [X] T014 [P] [US1] Write `tests/test_es_exits.py::test_parameters_change_the_trade_series` — the same exposure path under two different parameter sets must produce **different** trades (FR-001). This is the test that would have caught brief 1's simulator being unusable here.
+- [X] T015 [P] [US1] Write `tests/test_es_exits.py::test_grace_gates_the_stop` — inside `stoploss_grace_hours` the stop sits at `stoploss_grace_level` anchored to the entry price and does **not** trail; after it, the ATR stop applies
+- [X] T016 [P] [US1] Write `tests/test_es_exits.py::test_volume_confirmation_tightening` — with rvol > 1 the stop tightens by `1/sqrt(rvol)`, clamped at `atr_stoploss_cap`; with rvol ≤ 1 it is untouched
 
 ### Implementation for User Story 1
 
-- [ ] T017 [US1] Implement `simulate(exposure, prices, atr_pct, rvol, params, costs)` in `research/labelfree/es/exits.py` per contracts/es-cli.md — bar-by-bar position tracking, exiting on the **first** of the ATR-adaptive stop, `cexit_take_profit`, the recomputed time exits, or the replayed `model_exit`
-- [ ] T018 [US1] Implement the ATR stop path in `exits.py` at the highest fidelity — `-atr_stoploss_multiplier * atr_pct` clamped to `[atr_stoploss_floor, atr_stoploss_cap]`, volume-confirmation tightened, grace-gated — mirroring `Framework/BaseStrategy.py:1032-1100`. Per research.md R2 this stack governs 26.2% of exits and the entire loss side; it is not a rare branch.
-- [ ] T019 [US1] Replay **`model_exit` only** from the archive in `exits.py` — it depends on the model's per-bar prediction, which is not a searched parameter — and emit a module-level constant naming its 11.9% share so `report.py` states the limitation rather than discovers it
-- [ ] T019a [US1] **Recompute** `unclog_12h`, `unclog_1d` and `max_hold` in `exits.py` from their actual conditions (`Framework/BaseStrategy.py:1211-1218`: `num_hours >= hold_window_hours & profit > 0.005`; `num_days >= 1 & profit >= 0`; `num_days >= cexit_max_days`). All three are purely per-trade with no portfolio state — this is what makes dimension 10 searchable, and an earlier draft wrongly called `unclog_12h` portfolio-level.
+- [X] T017 [US1] Implement `simulate(exposure, prices, atr_pct, rvol, params, costs)` in `research/labelfree/es/exits.py` per contracts/es-cli.md — bar-by-bar position tracking, exiting on the **first** of the ATR-adaptive stop, `cexit_take_profit`, the recomputed time exits, or the replayed `model_exit`
+- [X] T018 [US1] Implement the ATR stop path in `exits.py` at the highest fidelity — `-atr_stoploss_multiplier * atr_pct` clamped to `[atr_stoploss_floor, atr_stoploss_cap]`, volume-confirmation tightened, grace-gated — mirroring `Framework/BaseStrategy.py:1032-1100`. Per research.md R2 this stack governs 26.2% of exits and the entire loss side; it is not a rare branch.
+- [X] T019 [US1] Replay **`model_exit` only** from the archive in `exits.py` — it depends on the model's per-bar prediction, which is not a searched parameter — and emit a module-level constant naming its 11.9% share so `report.py` states the limitation rather than discovers it
+- [X] T019a [US1] **Recompute** `unclog_12h`, `unclog_1d` and `max_hold` in `exits.py` from their actual conditions (`Framework/BaseStrategy.py:1211-1218`: `num_hours >= hold_window_hours & profit > 0.005`; `num_days >= 1 & profit >= 0`; `num_days >= cexit_max_days`). All three are purely per-trade with no portfolio state — this is what makes dimension 10 searchable, and an earlier draft wrongly called `unclog_12h` portfolio-level.
 - [ ] T020 [US1] Apply purge/embargo via `apply_leakage_control` in `research/labelfree/es/panel.py`, and assert it is actually called — `purge_bars=0` with the function never invoked is exactly how this study's leakage control was silently absent before
-- [ ] T021 [US1] Run `tests/test_es_exits.py` and iterate `exits.py` until green; record the achieved exit-mix agreement in the test's assertion message so a later regression names its own number
+- [X] T021 [US1] Run `tests/test_es_exits.py` and iterate `exits.py` until green; record the achieved exit-mix agreement in the test's assertion message so a later regression names its own number
 - [ ] T022 [US1] Measure one surrogate evaluation's wall-clock on a fold's training range and record it; the plan's budget assumes ≤ 50 ms. If it is materially slower, report the measured figure and the revised budget rather than silently running longer.
 
 ### The blocking gate
