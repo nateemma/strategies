@@ -116,6 +116,57 @@ as a lever at spec.md:14; under the earlier mistaken reading it would have been 
 
 ---
 
+## R3a — MEASURED: what the surrogate had to get right, and what it got wrong first
+
+Added during implementation. The surrogate was validated by running **one real freqtrade
+backtest of the incumbent on f07's training range** and comparing exit-by-exit. That single
+backtest found four bugs, every one of them on `take_profit` or the stop — the two mechanisms
+that decide this strategy's P&L and the two this feature searches.
+
+| # | bug | source of truth |
+|---|---|---|
+| 1 | **Exit sequence inverted.** The custom exit is appended to `exits` *before* the stoploss flag, so a bar where both fire resolves as the custom exit. The surrogate checked the stop first, converting winners into stop-outs. | `interface.py:1503-1507` |
+| 2 | **Wrong price per check.** `should_exit` is called with `rate = row[OPEN]`, so `current_profit` — what every `custom_exit` reason tests — comes from the OPEN. `current_profit_best` comes from the HIGH and is used by **ROI only**. The stop triggers on the LOW. | `backtesting.py:992-1000`, `interface.py:1440-1463` |
+| 3 | **Stop fill too punitive.** The OPEN is used only when the stop sits above the candle's HIGH. Otherwise the fill is *at the stop*. | `backtesting.py:614-616` |
+| 4 | **`model_exit` ungated.** It is not just `predict_sell`; `populate_exit_trend` gates it on `exit_rvol_threshold` and `exit_guard_threshold`. | `BaseStrategy.py:1009-1015` |
+
+ROI was missing entirely, and it is 2.6% of archived exits.
+
+Trade counts by exit reason on f07's training range:
+
+```
+                      real   before    after
+  model_exit            36      143       44
+  take_profit          211      169      232
+  trailing_stop_loss   176      139      187
+  stop_loss              2        2        2
+  unclog_12h            40       16       30
+  roi                   13        0       28
+  TOTAL                478      538      523
+```
+
+**A ~1.2 pp shortfall on winners remains and is deliberate.** freqtrade backtests flat exchange
+fees; the surrogate carries brief 1's spread and slippage model (Principle V — lookahead-clean
+is not realistic). The offset is roughly uniform across exit reasons, so it is rank-preserving,
+and rank is what R4's gate measures.
+
+**The lesson this records**: every one of the four bugs would have passed a wiring check. Only
+comparing against the real thing found them, which is the argument for calibration being a
+blocking gate rather than a validation step.
+
+Two corrections to earlier claims in this document, both made from measurement:
+
+- an earlier draft compared the surrogate's stop severity against "the archive's −1.23% per
+  trailing stop". That comparison was invalid — the archive is the 90-day **test** ranges, not
+  a 3.6-year training range. Real is **−4.29%** against the surrogate's −4.43%.
+- the position-sizing convention was wrong before it was measured: `annualised_pp` compounded
+  `prod(1 + pnl)` over the pooled trade list, treating concurrent trades across nine pairs as
+  sequential full-wallet bets. `config_wf.json` runs a **fixed stake of 900 on a 10,000
+  wallet**, so returns are additive and one unit of `profit_ratio` is worth exactly 9 pp. On
+  f00 that turned the incumbent's real +23.46 pp/yr into −19.06 — a sign flip.
+
+---
+
 ## R4 — Calibration means RANK agreement, measured on candidates scored both ways
 
 **Decision**: sample candidates, score each with the surrogate **and** with a full freqtrade
