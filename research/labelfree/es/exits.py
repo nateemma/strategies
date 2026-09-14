@@ -30,13 +30,19 @@ FIDELITY NOTES — each one read out of Framework/BaseStrategy.py, not assumed:
   5. rvol for the stop is volume / volume.rolling(20, min_periods=5).mean() — NOT the `rvol`
      column, which is an ewm(span=10). Different quantity, same name.
 
-WHAT IS REPLAYED AND WHAT IS RECOMPUTED:
-  recomputed  unclog_12h, unclog_1d, max_hold, take_profit, the stop stack, the entry guards
-              — all purely per-trade (BaseStrategy.py:1203-1219), which is what makes
-              `hold_window_hours` searchable at all
-  replayed    model_exit only (11.9% of trades). It depends on the model's per-bar
-              prediction, which is not a searched parameter. A parameter change that would
-              have altered when the model exits is invisible here, and report.py says so.
+NOTHING IS REPLAYED. Every exit is recomputed:
+  unclog_12h / unclog_1d / max_hold / take_profit / the stop stack   purely per-trade
+                                                  (BaseStrategy.py:1203-1219), which is what
+                                                  makes `hold_window_hours` searchable at all
+  model_exit                                      recomputed in panel.py from the side-car's
+                                                  three probability columns via the strategy's
+                                                  own argmax_with_threshold rule
+
+  The design originally REPLAYED model_exit from the archive and carried an 11.9%
+  "invisible to the surrogate" limitation. Regenerating the per-bar probabilities (es/
+  signals.py) removed it: the exit signal is now a function of data we hold, so a parameter
+  change that shifts when the model exits is visible. REPLAYED_EXIT_SHARE is 0.0 and kept
+  only so report.py states the fact rather than silently omitting it.
 """
 from __future__ import annotations
 
@@ -44,9 +50,10 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-# The share of archived trades whose exit this surrogate cannot move. report.py states it.
-REPLAYED_EXIT_SHARE = 0.119
-REPLAYED_EXITS = ("model_exit",)
+# The share of exits this surrogate cannot move. Zero since model_exit became recomputed;
+# report.py states the figure rather than omitting it, so a regression here is visible.
+REPLAYED_EXIT_SHARE = 0.0
+REPLAYED_EXITS: tuple[str, ...] = ()
 VOLUME_TIGHTEN_CLAMP = -0.02          # literal in BaseStrategy.py:1049, not atr_stoploss_cap
 BARS_PER_HOUR = 4                     # 15-minute bars
 BARS_PER_DAY = 96
@@ -60,12 +67,25 @@ class TradeSeries:
     reason: list[str] = field(default_factory=list)
     n_bars_total: int = 0
     bars_per_year: float = 365.25 * BARS_PER_DAY
+    # Per-bar occupancy for THIS pair. Pooling ORs these across pairs, because the
+    # participation floor asks "what fraction of the time is capital deployed" — a
+    # PORTFOLIO question. Summing held bars over a summed denominator answers a different
+    # one, and answers it ~10x too low on a 10-pair universe: measured on f00, the
+    # production incumbent reads 0.011 that way (degenerate, below the 0.05 floor) against
+    # 0.0611 as portfolio occupancy (admissible). The shared gate would have rejected
+    # PRODUCTION ITSELF.
+    occupancy: np.ndarray | None = None
 
     def __len__(self) -> int:
         return len(self.pnl)
 
     @property
     def mean_exposure(self) -> float:
+        """Fraction of bars with a position open. NaN-safe: an empty panel is 0.0, never
+        NaN — `nan < floor` is False, so a NaN exposure would pass the participation floor
+        silently, which is the exact failure mode the floor exists to catch."""
+        if self.occupancy is not None:
+            return float(self.occupancy.mean()) if self.occupancy.size else 0.0
         if not self.n_bars_total:
             return 0.0
         held = sum(x - e for e, x in zip(self.entry_bar, self.exit_bar))
@@ -129,6 +149,7 @@ def simulate(entries, open_px, high, low, atr_pct_roll, rvol_stop, cost, params,
     hold_window_bars = int(round(float(p["hold_window_hours"]) * BARS_PER_HOUR))
     grace_bars = int(round(grace_h * BARS_PER_HOUR))
 
+    occ = np.zeros(n, dtype=bool)
     i = 0
     while i < n - 1:
         if not entries[i]:
@@ -175,7 +196,7 @@ def simulate(entries, open_px, high, low, atr_pct_roll, rvol_stop, cost, params,
                 pnl = px / entry_px - 1.0
                 break
 
-            # ---- replayed model exit -----------------------------------------------------
+            # ---- model exit (recomputed in panel.py, not replayed) ------------------------
             if model_exit is not None and model_exit[j]:
                 exit_i, reason = j, "model_exit"
                 pnl = op / entry_px - 1.0
@@ -208,6 +229,8 @@ def simulate(entries, open_px, high, low, atr_pct_roll, rvol_stop, cost, params,
         ts.exit_bar.append(exit_i)
         ts.pnl.append(float(pnl))
         ts.reason.append(reason)
+        occ[entry_i:exit_i] = True
         i = exit_i + 1                                  # one position at a time, per pair
 
+    ts.occupancy = occ
     return ts
