@@ -45,12 +45,16 @@ arguments reuses it; re-running after the source panels change **refuses** rathe
 python -m research.labelfree.stress.calibrate --bank stress/banks/f05-f14_L192_s7.npz
 ```
 
+Calibration compares **surrogate-on-synthetic against surrogate-on-real-panels** — the evaluator
+is held constant so only the paths vary. The archived freqtrade trades appear as a secondary
+sanity reference, not a gate.
+
 **Expect** the three pre-registered numbers:
 
 ```
 ks_distance  <= 0.10        (n=378 -> 95% critical value 0.0700)
 es_ratio     0.7 .. 1.4
-dd_ratio     0.6 .. 1.6
+dd_ratio     0.7 .. 1.6
 ```
 
 **If this fails the feature is killed** — clarification Q3 left no second generator. Write the

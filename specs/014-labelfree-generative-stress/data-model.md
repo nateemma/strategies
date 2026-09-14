@@ -6,6 +6,9 @@ Phase 1. Entities, fields, and the invariants that make the gates checkable.
 
 ## 1. `Path` — one synthetic panel
 
+**Unit**: one path is a **complete resampled panel across every pair in the fold set**, not a
+per-pair series. A bank of 1,000 paths therefore holds 1,000 whole-universe histories.
+
 A path has the **same shape as a real fold panel**, which is what lets the existing surrogate
 score it without modification:
 
@@ -33,7 +36,8 @@ series end.
 
 | parameter | value | why |
 |---|---|---|
-| `L` (mean block length, bars) | **swept over {96, 144, 192, 240, 288}** | the brief's 1–3 days at 15-minute bars. Swept, not chosen — reporting one value as *the* answer would hide the sensitivity (Principle IV applied to the one parameter this feature has). |
+| `L` (mean block length, bars) | **swept over {96, 144, 192, 240, 288}** | the brief's 1–3 days at 15-minute bars. Swept, not chosen — reporting one value as *the* answer would hide the sensitivity (Principle IV applied to the one parameter this feature has). Required by FR-003a and SC-006a. |
+| index sharing | **one index across all pairs** | keeps the cross-section intact, so pairs that crashed together still do |
 | `n_paths` | ≥ 1,000 (FR-010) | |
 | path length | the source fold's own bar count | keeps synthetic and real comparable without a length correction |
 | wrap | yes | the stationary variant's requirement; without it, bars near the end are under-sampled |
@@ -42,10 +46,18 @@ series end.
 depends on its position modulo `L`, which makes the resampled series non-stationary. The geometric
 variant removes that artefact for one extra line.
 
-**Pairs are resampled independently.** Each pair keeps its own internal coherence; cross-pair
-correlation is **not** preserved. That is a real limitation — the universe's pairs move together
-in a crash, so an independently resampled panel **understates joint drawdown**. Recorded in the
-report, not discovered there.
+**Pairs share one block index** (revised by the pre-implementation analyze pass). The fold panels
+are date-aligned, so applying the same index sequence to every pair keeps the cross-section
+intact: when the index selects a moment, every pair contributes its own bar from that moment.
+
+The original design resampled pairs **independently**, which would have destroyed cross-pair
+co-movement and **understated joint drawdown** — and `dd_ratio` is one of the three calibration
+statistics, so the method's known bias pointed straight at a gate it had to pass. Fixing the cause
+beats widening the band to accommodate it.
+
+The cost is less path diversity, since the cross-section is tied together. That is the correct
+trade: a harness that understates joint drawdown is worse than one with fewer distinct paths,
+because joint drawdown is what a portfolio actually experiences.
 
 ---
 
@@ -75,14 +87,21 @@ warning.
 
 ## 4. `Calibration` — the Tail-GAN criterion at PRE-REGISTERED tolerances
 
-The incumbent is run on the bank; its per-trade P&L is compared with the **real** pooled
-walk-forward trades (378 trades, 15 folds).
+The incumbent is run on the bank; its per-trade P&L is compared with **the same policy scored by
+the same evaluator on the real panels**.
+
+**The evaluator is held constant, deliberately.** Comparing surrogate-on-synthetic against the
+378 archived *freqtrade* trades would conflate two differences — synthetic vs real paths, and the
+surrogate vs freqtrade. That second gap is known and measured: level offset **−5.30 ± 23.46 pp**
+over 21 candidates. A failed test could not be attributed, and with SC-001 the only gate and a
+failure a kill, the feature could have died of a confound. The archived trades are reported as a
+**secondary sanity reference**, never gating.
 
 | statistic | tolerance | direction it guards |
 |---|---|---|
 | `ks_distance` — two-sample KS on per-trade P&L | **≤ 0.10** | the body of the distribution |
 | `es_ratio` — 5% expected shortfall, synthetic ÷ real | **0.7 – 1.4** | the loss tail |
-| `dd_ratio` — median max-drawdown, synthetic ÷ real | **0.6 – 1.6** | sustained runs |
+| `dd_ratio` — median max-drawdown, synthetic ÷ real-panel | **0.7 – 1.6** | sustained runs |
 
 **Fixed in research.md R3 before any calibration run** (SC-002). The KS threshold is set from what
 the comparison can resolve: at n = 378 the 95% critical value against an identical distribution is
@@ -93,8 +112,11 @@ harness conservative and is tolerable; a synthetic tail *thinner* than real is t
 direction, because it would let a fragile policy through.
 
 ```
-passed = (ks_distance <= 0.10) and (0.7 <= es_ratio <= 1.4) and (0.6 <= dd_ratio <= 1.6)
+passed = (ks_distance <= 0.10) and (0.7 <= es_ratio <= 1.4) and (0.7 <= dd_ratio <= 1.6)
 ```
+
+The drawdown lower bound was tightened from 0.6 to 0.7 by the analyze pass, to match ES: both are
+tail statistics and "thinner than real" is the dangerous direction for both.
 
 **A failure is a KILL, not a fallback.** Clarification Q3 left no second generator.
 
@@ -119,9 +141,10 @@ VETO" means the harness found no reason to object, not that the policy is good. 
 deliberately not `passed`, so it cannot be read as a gate.
 
 **`n_inadmissible`**: a path on which the policy never trades is not a flat result, it is an
-unusable path (FR-013). If it dominates the bank the whole bank is inadmissible, and the report
-says so rather than averaging zeros into a distribution — the same failure mode the study's shared
-admissibility gate exists to prevent.
+unusable path (FR-013). The check routes through the study's shared `admissibility.compare` with
+the **incumbent-relative exposure floor** feature 013 added — the absolute `MIN_EXPOSURE` marks
+production itself degenerate on a 90-day window (measured 0.0196 on f00). Reimplementing the
+check locally is the exact habit that module was created to end.
 
 ---
 

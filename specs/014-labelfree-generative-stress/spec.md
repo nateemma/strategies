@@ -95,7 +95,8 @@ we already understand tells us nothing about a policy we do not.
 is the feature's only real acceptance condition.
 
 **Independent Test**: sample paths, run the incumbent through them, and compare the resulting
-P&L distribution, tail risk and drawdown against the real pooled walk-forward trades.
+P&L distribution, tail risk and drawdown against **the same policy scored by the same evaluator
+on the real panels** — the evaluator held constant so only the paths vary.
 
 **Acceptance Scenarios**:
 
@@ -182,16 +183,23 @@ the incumbent's figures beside them for reference.
   evaluation loop.
 - **FR-002**: A path bank MUST record its generator, parameters, source data range and feature
   set, so a stale bank is detectable.
-- **FR-003**: The block bootstrap MUST preserve within-block ordering and record its block length.
+- **FR-003**: The block bootstrap MUST preserve within-block ordering, record its block length,
+  and apply **one shared block index across all pairs** so cross-pair co-movement survives
+  resampling.
+- **FR-003a**: The block length MUST be **swept**, and calibration reported per value.
 - **FR-004**: Each in-scope generator's ability to emit coherent sequences MUST be determined
-  from its actual output, and recorded.
+  from its **implementation's return contract in the running code, cited by `file:line`**, and
+  recorded. No GAN model is instantiated or loaded, so the census cannot be broken by a missing
+  or untrained checkpoint.
 - **FR-005**: A generator that cannot emit coherent sequences MUST be excluded with its reason
   stated, and MUST NOT be adapted by shuffling or concatenating independent rows.
 
 **Calibration**
 
-- **FR-006**: Each generator MUST be calibrated by running the **incumbent** policy on its paths
-  and comparing the P&L distribution against the real pooled walk-forward trades.
+- **FR-006**: The generator MUST be calibrated by running the **incumbent** policy on its paths
+  and comparing the P&L distribution against **the same policy scored by the same evaluator on
+  the real panels**. The evaluator is held constant so the comparison varies only the paths; the
+  archived freqtrade trades are a **secondary sanity reference**, reported but never gating.
 - **FR-007**: Calibration MUST report distributional distance, a tail-risk measure and maximum
   drawdown as numbers.
 - **FR-008**: A generator failing calibration MUST be dropped from the harness, and the failure
@@ -207,7 +215,10 @@ the incumbent's figures beside them for reference.
   fraction of paths with negative net return — never a point estimate.
 - **FR-012**: The policy stressed is the **incumbent `NNNC_MLX`** (clarification Q2). Where a
   future candidate is stressed, the incumbent's figures MUST appear beside it.
-- **FR-013**: A path bank on which the policy takes no trades MUST be reported inadmissible.
+- **FR-013**: A path bank on which the policy takes no trades MUST be reported inadmissible, and
+  the check MUST route through the study's shared `admissibility` gate rather than a local
+  reimplementation — that module exists because the check kept being rewritten per site and each
+  rewrite guarded only one side.
 - **FR-014**: Stress results MUST be labelled a **veto, not a gate**; no policy may be promoted
   on them alone.
 
@@ -245,12 +256,15 @@ the incumbent's figures beside them for reference.
   the only generator (Q3), so this gate carries the feature alone.
 - **SC-002**: The calibration tolerance is fixed in the design document **before** the
   calibration is run, not chosen after seeing the distance.
-- **SC-003**: Sequence capability is reported for every in-scope generator, determined from
-  running code.
+- **SC-003**: Sequence capability is reported for every in-scope generator, each claim carrying a
+  `file:line` citation into the running code.
 - **SC-004**: Every path bank is reproducible from its recorded provenance.
 - **SC-005**: Sampling happens offline; no sampling occurs inside a training or evaluation loop.
-- **SC-006**: A stress run covers ≥1,000 paths and reports a distribution — P&L quantiles,
-  drawdown distribution, loss-path fraction — for the incumbent.
+- **SC-006**: A stress run covers **≥1,000 paths, where one path is a complete resampled panel
+  across all pairs** — not 1,000 per pair — and reports a distribution: P&L quantiles, drawdown
+  distribution, loss-path fraction.
+- **SC-006a**: Calibration is reported **per block length** across the swept range, never for a
+  single chosen value.
 
 ### Kill gates
 

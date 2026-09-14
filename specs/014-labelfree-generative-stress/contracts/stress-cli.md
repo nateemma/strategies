@@ -11,8 +11,8 @@ All commands run sequentially from `user_data/strategies` under
 python -m research.labelfree.stress.gencensus --out census.json
 ```
 
-Probes each registered `GANType`'s declared and actual output shape **from the running code**
-and records sequence capability with a `file:line` citation.
+Probes each registered `GANType`'s **return contract in the running code**
+and records sequence capability with a `file:line` citation. No model is instantiated, so the census cannot be broken by a missing or untrained checkpoint.
 
 Nothing downstream consumes it — clarification Q3 removed every learned generator from scope —
 but it ships as a durable finding about the repo's tooling, and it is the reason this feature
@@ -30,7 +30,8 @@ python -m research.labelfree.stress.bank --build \
     --folds f05..f14 --block 192 --paths 1000 --seed 7
 ```
 
-Stationary block bootstrap (Politis & Romano) over the fold panels, written to
+Stationary block bootstrap (Politis & Romano) over the fold panels, with **one block index shared
+across all pairs** so cross-pair co-movement survives. Written to
 `stress/banks/<fold-set>_L<block>_s<seed>.npz` with the provenance of data-model.md §3.
 
 **Sampling is offline and once** (FR-001/SC-005). `load()` recomputes the source hash and
@@ -46,13 +47,18 @@ Stationary block bootstrap (Politis & Romano) over the fold panels, written to
 python -m research.labelfree.stress.calibrate --bank <path> --out calibration.json
 ```
 
-Runs the **incumbent** on the bank and compares its per-trade P&L against the real pooled
-walk-forward trades, at the tolerances **pre-registered** in research.md R3:
+Runs the **incumbent** on the bank and compares its per-trade P&L against **the same policy
+scored by the same evaluator on the real panels** — the evaluator is held constant so only the
+paths vary. The 378 archived freqtrade trades are reported as a secondary sanity reference and
+never gate, because the surrogate-vs-freqtrade gap is known and measured (−5.30 ± 23.46 pp) and
+would otherwise be indistinguishable from generator error.
+
+Tolerances **pre-registered** in research.md R3:
 
 ```
 ks_distance <= 0.10        (n=378 -> 95% critical value 0.0700)
 0.7 <= es_ratio  <= 1.4    5% expected shortfall, synthetic / real
-0.6 <= dd_ratio  <= 1.6    median max drawdown, synthetic / real
+0.7 <= dd_ratio  <= 1.6    median max drawdown, synthetic / real-panel
 ```
 
 **Exit code is non-zero on failure**, and `run.py` refuses to proceed without a passing

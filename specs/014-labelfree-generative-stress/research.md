@@ -67,15 +67,38 @@ comparison is the part that can fail and therefore the part worth stating in adv
 
 ---
 
-## R3 — Calibration is three numbers, and the tail one is the one that matters
+## R3 — Calibration holds the EVALUATOR constant and varies only the paths
 
-**Decision**: compare the incumbent's synthetic and real P&L on
+**Decision (revised after the pre-implementation analyze pass)**: compare
+**surrogate-on-synthetic paths** against **surrogate-on-real panels** — not against the 378
+archived freqtrade trades.
+
+**Why the original comparison was invalid.** Synthetic P&L comes from the surrogate; the archive
+is freqtrade backtest output. Comparing them conflates two unrelated differences:
+
+1. synthetic paths vs real paths — the thing being measured, and
+2. the surrogate vs freqtrade — a *known, measured* gap: **level offset −5.30 ± 23.46 pp** over
+   21 candidates, with residual exit-mix divergence (`roi` 22 against a real 13 on f07).
+
+A failed KS test could mean either, and the design could not tell them apart. Since SC-001 is the
+feature's only gate and a failure is a kill (clarification Q3 left no fallback generator), that
+confound could kill the feature for a reason that has nothing to do with the generator.
+
+Holding the evaluator constant makes the comparison answer exactly one question: **does
+resampling change what the policy experiences?**
+
+**The freqtrade archive is retained as a secondary sanity reference** — reported beside the
+calibration, never gating it. It answers a different and still-useful question: how far the
+surrogate's real-panel P&L sits from freqtrade's, which is feature 013's measured offset and
+should reproduce.
+
+**Compare the incumbent's synthetic and real-panel P&L on**
 
 | statistic | what it catches | pre-registered tolerance |
 |---|---|---|
 | two-sample KS distance on per-trade P&L | the body of the distribution | **D ≤ 0.10** |
-| expected-shortfall ratio at 5% (synthetic ÷ real) | the loss tail | **0.7 ≤ ratio ≤ 1.4** |
-| maximum-drawdown ratio (synthetic median ÷ real) | sustained runs | **0.6 ≤ ratio ≤ 1.6** |
+| expected-shortfall ratio at 5% (synthetic ÷ real-panel) | the loss tail | **0.7 ≤ ratio ≤ 1.4** |
+| maximum-drawdown ratio (synthetic median ÷ real-panel) | sustained runs | **0.7 ≤ ratio ≤ 1.6** |
 
 **Why these numbers.** They are set from what the comparison can resolve, not from what would be
 impressive. The real reference is **378 trades**; at that size the KS statistic's own 95% critical
@@ -86,6 +109,13 @@ noisy — a tight band there would fail on noise and teach nothing. The asymmetr
 upside than the downside) is deliberate: a synthetic tail **fatter** than real is a conservative
 harness and tolerable, while a synthetic tail **thinner** than real is the dangerous direction,
 because it would let a fragile policy through.
+
+**The drawdown band was tightened from 0.6 to 0.7 by the analyze pass**, for a reason worth
+recording: the original design resampled pairs independently, which *systematically understates
+joint drawdown* — the thin direction the rationale calls dangerous. A band permitting 40% thinner
+would have been most permissive exactly where the method was known to err. R5 now fixes the cause
+(a shared block index), and the band is tightened to match ES so the two tail statistics are
+guarded alike.
 
 **Pre-registered here, before any calibration run**, per SC-002.
 
@@ -122,10 +152,20 @@ for the cost of one line. The brief asks for blocks of 1–3 days; at 15-minute 
 **96–288 bars**, and `L` is swept across that range with the result reported per `L`, since
 choosing one and reporting it as *the* answer would hide the sensitivity.
 
-**Blocks are drawn per pair and aligned by position**, not across pairs, so a synthetic panel
-keeps each pair's own internal coherence. Cross-pair correlation is *not* preserved, which matters
-for portfolio drawdown and is recorded as a limitation: the real universe's pairs move together
-in a crash, and an independently resampled panel will understate joint drawdown.
+**One block index is drawn and applied to EVERY pair** (revised by the analyze pass). The fold
+panels are date-aligned, so resampling all pairs with the same index sequence keeps the
+cross-section intact: if the index selects 2024-03-11 08:00, every pair contributes *its own*
+bar from that moment, and pairs that crashed together still crash together.
+
+The original design resampled pairs independently, which would have destroyed cross-pair
+co-movement and **understated joint drawdown** — and the drawdown ratio is one of the three
+calibration statistics, so the method's known bias pointed straight at a gate. Fixing the cause
+is better than widening the band to accommodate it.
+
+What a shared index costs: paths are less diverse than independent resampling would give, since
+the cross-section is tied together. That is the correct trade — a stress harness that understates
+joint drawdown is worse than one with fewer distinct paths, because joint drawdown is what a
+portfolio actually experiences.
 
 ---
 
