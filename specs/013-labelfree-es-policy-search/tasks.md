@@ -53,7 +53,7 @@ make wiring checks insufficient on their own.
 - [X] T010 Implement `research/labelfree/es/objective.py` — cost-aware net return using the brief-1 cost model, plus the incumbent-distance and turnover regularisation of FR-009 at the **pre-registered weights of data-model.md §1a** (distance 4.93 pp/yr across the full space; turnover 1.00 pp/yr per doubling). The weights are inputs read from the design document, never tuned.
 - [X] T010a Return the **unregularised** score alongside the regularised one from `objective.py`, and carry both into the sidecar, so `report.py` can show what the penalties did rather than assert it
 - [X] T011 Wire `research/labelfree/admissibility.py` into `objective.py` so a candidate with no trades is **inadmissible with its score withheld** (FR-004) and a candidate losing to doing nothing is never reported as an improvement (FR-005) — reuse the shared gate unchanged, do not reimplement it
-- [ ] T012 [P] Reuse the keyed panel cache from feature 012 in `research/labelfree/es/panel.py` so each fold's prices, ATR and rvol load once per run rather than once per evaluation
+- [X] T012 [P] Reuse the keyed panel cache from feature 012 in `research/labelfree/es/panel.py` so each fold's prices, ATR and rvol load once per run rather than once per evaluation
 
 **Checkpoint**: the space round-trips, the trial record is crash-honest, and the objective refuses to score an abstention.
 
@@ -82,16 +82,16 @@ backtests of the same candidates.
 - [X] T018 [US1] Implement the ATR stop path in `exits.py` at the highest fidelity — `-atr_stoploss_multiplier * atr_pct` clamped to `[atr_stoploss_floor, atr_stoploss_cap]`, volume-confirmation tightened, grace-gated — mirroring `Framework/BaseStrategy.py:1032-1100`. Per research.md R2 this stack governs 26.2% of exits and the entire loss side; it is not a rare branch.
 - [X] T019 [US1] Replay **`model_exit` only** from the archive in `exits.py` — it depends on the model's per-bar prediction, which is not a searched parameter — and emit a module-level constant naming its 11.9% share so `report.py` states the limitation rather than discovers it
 - [X] T019a [US1] **Recompute** `unclog_12h`, `unclog_1d` and `max_hold` in `exits.py` from their actual conditions (`Framework/BaseStrategy.py:1211-1218`: `num_hours >= hold_window_hours & profit > 0.005`; `num_days >= 1 & profit >= 0`; `num_days >= cexit_max_days`). All three are purely per-trade with no portfolio state — this is what makes dimension 10 searchable, and an earlier draft wrongly called `unclog_12h` portfolio-level.
-- [ ] T020 [US1] Apply purge/embargo via `apply_leakage_control` in `research/labelfree/es/panel.py`, and assert it is actually called — `purge_bars=0` with the function never invoked is exactly how this study's leakage control was silently absent before
+- [X] T020 [US1] Apply purge/embargo via `apply_leakage_control` in `research/labelfree/es/panel.py`, and assert it is actually called — `purge_bars=0` with the function never invoked is exactly how this study's leakage control was silently absent before
 - [X] T021 [US1] Run `tests/test_es_exits.py` and iterate `exits.py` until green; record the achieved exit-mix agreement in the test's assertion message so a later regression names its own number
 - [ ] T022 [US1] Measure one surrogate evaluation's wall-clock on a fold's training range and record it; the plan's budget assumes ≤ 50 ms. If it is materially slower, report the measured figure and the revised budget rather than silently running longer.
 
 ### The blocking gate
 
-- [ ] T023 [US1] Implement `research/labelfree/es/calibrate.py` per contracts/es-cli.md — select 40 candidates **spanning** the space rather than clustered near the incumbent, score each with the surrogate and with a real freqtrade backtest, write `calibration.json`
-- [ ] T024 [US1] Add the freshness gate to `calibrate.py`: freqtrade exits 0 on a fatal config error, so `rc` is not a failure signal — verify each result zip's mtime is newer than the run's start before reading it
-- [ ] T025 [US1] Compute and report `spearman_rho` and `win_disagreements` in `calibrate.py`, on **rank** agreement not level (research.md R4), and exit non-zero when the two orderings disagree on which candidate wins (SC-017a)
-- [ ] T026 [US1] Add a `require_calibration()` guard imported by `liveness.py`, `run.py` and `report.py` that refuses to run without a passing `calibration.json`
+- [X] T023 [US1] Implement `research/labelfree/es/calibrate.py` per contracts/es-cli.md — select 40 candidates **spanning** the space rather than clustered near the incumbent, score each with the surrogate and with a real freqtrade backtest, write `calibration.json`
+- [X] T024 [US1] Add the freshness gate to `calibrate.py`: freqtrade exits 0 on a fatal config error, so `rc` is not a failure signal — verify each result zip's mtime is newer than the run's start before reading it
+- [X] T025 [US1] Compute and report `spearman_rho` and `win_disagreements` in `calibrate.py`, on **rank** agreement not level (research.md R4), and exit non-zero when the two orderings disagree on which candidate wins (SC-017a)
+- [X] T026 [US1] Add a `require_calibration()` guard imported by `liveness.py`, `run.py` and `report.py` that refuses to run without a passing `calibration.json`
 - [ ] T027 [US1] **RUN THE GATE**: `zsh -c 'source ~/.freqtrade_env && .venv/bin/python -m research.labelfree.es.calibrate --n 40 --folds f05..f14 --out calibration.json'` (≈2 h, sequential). Report `spearman_rho` and any win disagreements.
 
 **⚠️ If T027 fails, the feature stops here.** Write the result report saying so (FR-020) rather
@@ -99,7 +99,7 @@ than spending 48,000 evaluations on an unvalidated evaluator. Do not proceed to 
 
 ### Principle IV over the search space
 
-- [ ] T028 [US1] Implement `research/labelfree/es/liveness.py` — sweep each of the ten dimensions alone across its bounds with the other nine at the incumbent, and report the objective's span in pp per dimension against the **pre-registered** thresholds of data-model.md §6 (`inert` < 0.10 pp/yr, `weak` < 3.35 pp/yr, else `live`). Read the thresholds from the design document — do **not** choose a cut after seeing the spans, which is the exact researcher-degrees-of-freedom this feature measures
+- [X] T028 [US1] Implement `research/labelfree/es/liveness.py` — sweep each of the ten dimensions alone across its bounds with the other nine at the incumbent, and report the objective's span in pp per dimension against the **pre-registered** thresholds of data-model.md §6 (`inert` < 0.10 pp/yr, `weak` < 3.35 pp/yr, else `live`). Read the thresholds from the design document — do **not** choose a cut after seeing the spans, which is the exact researcher-degrees-of-freedom this feature measures
 - [ ] T029 [US1] **RUN** `.venv/bin/python -m research.labelfree.es.liveness --folds f05..f14 --out liveness.json` and record which dimensions are inert. Four parameters in this study were configured, logged, believed active and reaching nothing; this probe is what catches a fifth.
 
 **Checkpoint**: the evaluator is calibrated and its search space is known to be live. US2 may begin.
@@ -115,18 +115,18 @@ budget**, so the optimiser's contribution is separable from the budget's.
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T030 [P] [US2] Write `tests/test_es_cmaes.py::test_finds_known_optimum` — the wrapper drives `cma` to the sphere function's optimum, proving the ask/tell loop, the bounds mapping and the seeding are wired
-- [ ] T031 [P] [US2] Write `tests/test_es_cmaes.py::test_identical_budgets` — both methods at budget N consume exactly N evaluations, asserted on the sidecar's line count, not on a counter the code keeps (FR-007)
-- [ ] T032 [P] [US2] Write `tests/test_es_cmaes.py::test_seeded_reproducibility` — the same seed produces the same candidate sequence for both methods
+- [X] T030 [P] [US2] Write `tests/test_es_cmaes.py::test_finds_known_optimum` — the wrapper drives `cma` to the sphere function's optimum, proving the ask/tell loop, the bounds mapping and the seeding are wired
+- [X] T031 [P] [US2] Write `tests/test_es_cmaes.py::test_identical_budgets` — both methods at budget N consume exactly N evaluations, asserted on the sidecar's line count, not on a counter the code keeps (FR-007)
+- [X] T032 [P] [US2] Write `tests/test_es_cmaes.py::test_seeded_reproducibility` — the same seed produces the same candidate sequence for both methods
 
 ### Implementation for User Story 2
 
-- [ ] T033 [US2] Implement `research/labelfree/es/cmaes.py` as a thin wrapper over `cma` 4.5.0 — ask/tell against `objective.py`, bounds via the space's encode/decode, explicit seeding. Use the reference implementation so a negative result cannot be blamed on the optimiser.
-- [ ] T034 [P] [US2] Implement `research/labelfree/es/random_search.py` — uniform draws from the **same bounded space**, so the control is a genuine null and not a differently-shaped search
-- [ ] T035 [US2] Implement the training-side driver in `research/labelfree/es/run.py` — `--fold`, `--method`, `--budget`, `--seed`; searches the fold's **training range only** (FR-002); budget is a count of evaluations, not wall-clock (research.md R5)
-- [ ] T036 [US2] Assert in `run.py` that the two methods' evaluation counts for a fold are equal, and record each count in the sidecar's per-run summary
-- [ ] T037 [US2] Count numerically identical candidates as **one evaluation for scoring, two for the trial count** (spec edge case) — the deflation counts attempts, so a cache hit must still append a row
-- [ ] T038 [US2] Run `tests/test_es_cmaes.py` and iterate until green
+- [X] T033 [US2] Implement `research/labelfree/es/cmaes.py` as a thin wrapper over `cma` 4.5.0 — ask/tell against `objective.py`, bounds via the space's encode/decode, explicit seeding. Use the reference implementation so a negative result cannot be blamed on the optimiser.
+- [X] T034 [P] [US2] Implement `research/labelfree/es/random_search.py` — uniform draws from the **same bounded space**, so the control is a genuine null and not a differently-shaped search
+- [X] T035 [US2] Implement the training-side driver in `research/labelfree/es/run.py` — `--fold`, `--method`, `--budget`, `--seed`; searches the fold's **training range only** (FR-002); budget is a count of evaluations, not wall-clock (research.md R5)
+- [X] T036 [US2] Assert in `run.py` that the two methods' evaluation counts for a fold are equal, and record each count in the sidecar's per-run summary
+- [X] T037 [US2] Count numerically identical candidates as **one evaluation for scoring, two for the trial count** (spec edge case) — the deflation counts attempts, so a cache hit must still append a row
+- [X] T038 [US2] Run `tests/test_es_cmaes.py` and iterate until green
 - [ ] T039 [US2] **RUN** the search and control across all 15 folds sequentially at budget 1600, seed 7, per quickstart.md Step 5. Report the sidecar's line count against the expected 48,000.
 
 **Checkpoint**: both methods have run at equal budgets and every evaluation is on disk.
@@ -139,9 +139,9 @@ budget**, so the optimiser's contribution is separable from the budget's.
 
 **Independent Test**: audit the record and confirm exactly one test-range evaluation per fold.
 
-- [ ] T040 [US3] Add the single test evaluation to `run.py` — after the search concludes, evaluate the best candidate on the fold's test range exactly once and stop (FR-010)
-- [ ] T041 [US3] Implement `research/labelfree/es/history.py --audit` per contracts/es-cli.md, checking all four invariants **from the sidecar alone** without trusting the search code: one test evaluation per fold; every test evaluation later than every train evaluation for that fold; every evaluation written before its score; the shared log's summary row matching the sidecar
-- [ ] T042 [US3] Assert in `run.py` that no selection decision consumes a test-range quantity (FR-012) — the best candidate is chosen from training scores only, and the test evaluation happens after that choice is frozen
+- [X] T040 [US3] Add the single test evaluation to `run.py` — after the search concludes, evaluate the best candidate on the fold's test range exactly once and stop (FR-010)
+- [X] T041 [US3] Implement `research/labelfree/es/history.py --audit` per contracts/es-cli.md, checking all four invariants **from the sidecar alone** without trusting the search code: one test evaluation per fold; every test evaluation later than every train evaluation for that fold; every evaluation written before its score; the shared log's summary row matching the sidecar
+- [X] T042 [US3] Assert in `run.py` that no selection decision consumes a test-range quantity (FR-012) — the best candidate is chosen from training scores only, and the test evaluation happens after that choice is frozen
 - [ ] T043 [US3] **RUN** `.venv/bin/python -m research.labelfree.es.history --audit` and report the result. A non-zero exit invalidates Phase 4's run and it must be repeated, not patched.
 
 **Checkpoint**: the leakage property the whole design exists to protect is proven, not asserted.
@@ -156,9 +156,9 @@ methods — as the primary reported number.
 **Independent Test**: the reported figure is computed over the full history with the evaluation
 count stated beside it.
 
-- [ ] T044 [US4] Implement the PBO path in `research/labelfree/es/report.py` using `stats.pbo_cscv` over the complete sidecar, including **abandoned and discarded** candidates (FR-014)
-- [ ] T045 [US4] Populate `block_returns` (16 blocks) on every evaluation via `trials.block_returns`, so DSR/PBO have the time axis four consecutive features reported as unevaluable. This is the first feature able to use it.
-- [ ] T046 [US4] Deflate using the **total** evaluation count, never the count of survivors (FR-015), and print the count beside every overfitting figure (FR-016) — `stats.pbo_cscv`'s own docstring records CSCV is biased low below ~50 configurations, so the count is what makes the figure interpretable
+- [X] T044 [US4] Implement the PBO path in `research/labelfree/es/report.py` using `stats.pbo_cscv` over the complete sidecar, including **abandoned and discarded** candidates (FR-014)
+- [X] T045 [US4] Populate `block_returns` (16 blocks) on every evaluation via `trials.block_returns`, so DSR/PBO have the time axis four consecutive features reported as unevaluable. This is the first feature able to use it.
+- [X] T046 [US4] Deflate using the **total** evaluation count, never the count of survivors (FR-015), and print the count beside every overfitting figure (FR-016) — `stats.pbo_cscv`'s own docstring records CSCV is biased low below ~50 configurations, so the count is what makes the figure interpretable
 - [ ] T047 [US4] Write the shared-log summary row via `research/labelfree/trials.py` — one row per search run carrying the sidecar's path, line count and sha256 (SC-018), so the shared log points at the full record rather than duplicating 20 MB into git
 - [ ] T048 [US4] Teach the existing trial-log audit about **both** files, so it cannot certify a record it never examined (SC-018)
 
@@ -175,8 +175,8 @@ sweep's own noise.
 
 - [ ] T049 [US5] Compute `delta_vs_incumbent_pp` and `within_sweep_noise` in `report.py` against the **4.93 pp** band; inside it the wording is "not resolved", never "improvement" (FR-018)
 - [ ] T050 [US5] Report any parameter sitting on a bound as **a space drawn too narrowly** (FR-019), listing which and at which end
-- [ ] T051 [US5] Implement the derived `status` in `report.py` per data-model.md §7, consuming `verdict.py` — `KILL` on PBO > 0.2, `KILL` when the control matches the search, `KILL` on inadmissibility, `KILL` on the SC-008 gap, `NOT RESOLVED` inside the noise band or when nothing clears SC-001 (SC-007) — derived, never typed by hand
-- [ ] T052 [US5] Handle "the search converged to the incumbent" as a legitimate informative outcome reported as **"no better operating point found"**, not as a failure to run (spec edge case)
+- [X] T051 [US5] Implement the derived `status` in `report.py` per data-model.md §7, consuming `verdict.py` — `KILL` on PBO > 0.2, `KILL` when the control matches the search, `KILL` on inadmissibility, `KILL` on the SC-008 gap, `NOT RESOLVED` inside the noise band or when nothing clears SC-001 (SC-007) — derived, never typed by hand
+- [X] T052 [US5] Handle "the search converged to the incumbent" as a legitimate informative outcome reported as **"no better operating point found"**, not as a failure to run (spec edge case)
 
 ### The protocol §5 verdict
 
@@ -184,12 +184,12 @@ sweep's own noise.
 > but had **no task producing the verdict the study is judged on**. Without these, 48,000
 > evaluations would run and no acceptance gate would be evaluated.
 
-- [ ] T049a [US5] Implement `research/labelfree/es/verdict.py::pooled()` — aggregate the 15 single test evaluations into a pooled annualised return, compare against the production control via `regime/wf/compare_pooled.py`, and report the delta against the **3.35 pp/yr** floor with a bootstrap interval that must exclude zero (**SC-001**)
-- [ ] T049b [US5] Implement `verdict.py::per_fold()` — count folds with a positive test return and require **≥10 of 15** (**SC-002**, Constitution Principle II)
-- [ ] T049c [US5] Implement `verdict.py::single_window()` — run the found candidate on **W1, W2 and W3** and require positive in each (**SC-002**, Principle II NON-NEGOTIABLE). This is the persistence check: without it a fold-concentrated win passes undetected, and the plan's Constitution Check claimed this principle with nothing implementing it.
-- [ ] T049d [US5] Implement `verdict.py::overfit_gap()` — for every configuration, record its in-sample advantage beside its held-out advantage and stop any whose gap exceeds **3.35 pp/yr** (**SC-008**)
-- [ ] T049e [US5] Compare the found candidate against the four mandatory baselines via `research/labelfree/baselines.py` span mode (**SC-003**). The bar is the production control at **+7.86 pp/yr** measured over f05–f14, not zero — a number easy to lose.
-- [ ] T049f [US5] Route every gate above through `research/labelfree/admissibility.py` so a candidate below the participation floor or losing to doing nothing cannot register as clearing any of them (SC-015)
+- [X] T049a [US5] Implement `research/labelfree/es/verdict.py::pooled()` — aggregate the 15 single test evaluations into a pooled annualised return, compare against the production control via `regime/wf/compare_pooled.py`, and report the delta against the **3.35 pp/yr** floor with a bootstrap interval that must exclude zero (**SC-001**)
+- [X] T049b [US5] Implement `verdict.py::per_fold()` — count folds with a positive test return and require **≥10 of 15** (**SC-002**, Constitution Principle II)
+- [X] T049c [US5] Implement `verdict.py::single_window()` — run the found candidate on **W1, W2 and W3** and require positive in each (**SC-002**, Principle II NON-NEGOTIABLE). This is the persistence check: without it a fold-concentrated win passes undetected, and the plan's Constitution Check claimed this principle with nothing implementing it.
+- [X] T049d [US5] Implement `verdict.py::overfit_gap()` — for every configuration, record its in-sample advantage beside its held-out advantage and stop any whose gap exceeds **3.35 pp/yr** (**SC-008**)
+- [X] T049e [US5] Compare the found candidate against the four mandatory baselines via `research/labelfree/baselines.py` span mode (**SC-003**). The bar is the production control at **+7.86 pp/yr** measured over f05–f14, not zero — a number easy to lose.
+- [X] T049f [US5] Route every gate above through `research/labelfree/admissibility.py` so a candidate below the participation floor or losing to doing nothing cannot register as clearing any of them (SC-015)
 
 **Checkpoint**: the verdict is derived from the gates rather than chosen.
 
@@ -197,7 +197,7 @@ sweep's own noise.
 
 ## Phase 8: Polish & Cross-Cutting
 
-- [ ] T053 Attach trade count, trades per year and mean holding time to **every** reported return (FR-017) — a bare percentage is not admissible anywhere in this feature's output
+- [X] T053 Attach trade count, trades per year and mean holding time to **every** reported return (FR-017) — a bare percentage is not admissible anywhere in this feature's output
 - [ ] T054 Re-test the return delta at **1.5× fees** (SC-005) and report both figures
 - [ ] T055 Implement the reproduction path (SC-006) — a separate process reproduces the accepted result from its saved configuration alone
 - [ ] T056 Write `research/label-free-study/briefs/results/05-<date>.md` per protocol §6 with **PBO as the headline number**, the evaluation count beside it, the protocol §5 verdict from T049a-T049f, the liveness report's inert and weak dimensions, the calibration `spearman_rho`, the unregularised score beside the regularised one, and the replayed-mechanism limitation from T019. Written whether the verdict is accept or kill (FR-020).

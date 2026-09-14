@@ -60,6 +60,28 @@ def performance_matrix(rows: list[dict], n_blocks: int = 16) -> tuple[np.ndarray
     return M, names
 
 
+def incumbent_delta(best_params: dict | None, best_pp: float | None,
+                    incumbent_pp: float | None) -> dict:
+    """T049/T050 — FR-018 and FR-019.
+
+    A difference inside ONE SWEEP-NOISE BAND is reported "not resolved", never an
+    improvement: an entire rvol parameter sweep spans 4.93 pp, so a move smaller than that is
+    indistinguishable from the sweep's own noise.
+    """
+    out = {"sweep_noise_pp": VD.SWEEP_NOISE_PP, "bounds_hit": []}
+    if best_pp is not None and incumbent_pp is not None:
+        d = best_pp - incumbent_pp
+        out["delta_vs_incumbent_pp"] = round(d, 4)
+        out["within_sweep_noise"] = bool(abs(d) < VD.SWEEP_NOISE_PP)
+        out["wording"] = ("not resolved — inside the sweep-noise band"
+                          if out["within_sweep_noise"] else "outside the sweep-noise band")
+    if best_params:
+        # `space.on_bound` already exempts hold_window_hours, whose incumbent IS its floor
+        # because the mechanism can only widen the window — a false finding every run.
+        out["bounds_hit"] = SP.on_bound(best_params)
+    return out
+
+
 def compute(rows: list[dict]) -> dict:
     total = len(rows)                      # ATTEMPTS, not successes — the deflation counts these
     scored = [r for r in rows if r.get("score") is not None]
@@ -176,6 +198,21 @@ def document(state: dict) -> str:
     A("python -m research.labelfree.es.history --audit")
     A("```")
     return "\n".join(L) + "\n"
+
+
+def write_shared_summary(run_id: str, extra: dict | None = None) -> dict:
+    """T047/SC-018: ONE summary row per search run in the shared trials.jsonl.
+
+    The row carries the sidecar's path, line count and sha256, so the shared log POINTS AT
+    the full record instead of duplicating ~20 MB of evaluations into git. The audit then
+    verifies both files — an audit that only saw the summary would certify a record it never
+    examined.
+    """
+    row = {"run_id": run_id, "feature": "013-labelfree-es-policy-search",
+           **H.summarise(), **(extra or {})}
+    with H.SHARED.open("a") as fh:
+        fh.write(json.dumps(row) + "\n")
+    return row
 
 
 def _gate_line(x: dict) -> str:
