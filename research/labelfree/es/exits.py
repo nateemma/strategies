@@ -55,6 +55,16 @@ import numpy as np
 REPLAYED_EXIT_SHARE = 0.0
 REPLAYED_EXITS: tuple[str, ...] = ()
 VOLUME_TIGHTEN_CLAMP = -0.02          # literal in BaseStrategy.py:1049, not atr_stoploss_cap
+
+# POSITION SIZING. config_wf.json runs a FIXED stake of 900 on a 10,000 wallet, so each trade
+# deploys 9% of the INITIAL wallet and returns are ADDITIVE, not compounding. The archive
+# confirms it independently: scale_pp_per_abs ~ 0.01 and profit_abs = profit_ratio * 900, so
+# one unit of profit_ratio is worth exactly 9 percentage points.
+#
+# An earlier version compounded prod(1 + pnl) over the pooled trade list, which treats 297
+# CONCURRENT trades across 9 pairs as sequential full-wallet bets. On f00 that turned the
+# incumbent's real +23.46 pp/yr into -19.06 -- a sign flip, not an offset.
+STAKE_PP_PER_RATIO = 900 / 10_000 * 100.0     # = 9.0 pp per unit profit_ratio
 BARS_PER_HOUR = 4                     # 15-minute bars
 BARS_PER_DAY = 96
 
@@ -103,14 +113,18 @@ class TradeSeries:
         return self.n_bars_total / self.bars_per_year
 
     @property
+    def total_pp(self) -> float:
+        """Wallet return in percentage points, ADDITIVE — the harness's own convention:
+        `wallet_profit_pct = sum(profit_abs) * scale_pp_per_abs` (regime/wf/compare_pooled.py
+        :29). Fixed stake means a trade's contribution does not depend on wallet history."""
+        return STAKE_PP_PER_RATIO * float(np.sum(self.pnl)) if self.pnl else 0.0
+
+    @property
     def annualised_pp(self) -> float:
-        """Compounded annualised return in percentage points."""
+        """pp per year by SIMPLE division, matching compare_pooled.py:46 (`v / years`)."""
         if not self.pnl or self.span_years <= 0:
             return 0.0
-        equity = float(np.prod([1.0 + p for p in self.pnl]))
-        if equity <= 0:
-            return -100.0
-        return (equity ** (1.0 / self.span_years) - 1.0) * 100.0
+        return self.total_pp / self.span_years
 
     def exit_mix(self) -> dict[str, float]:
         if not self.reason:
