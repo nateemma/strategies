@@ -1,7 +1,7 @@
 """Windows, anchored folds and per-fold pair universe (T005).
 
 Wraps the existing instruments rather than reimplementing them: pinned windows come
-from `regime/regimedata.py`, the anchored plan from `regime/wf/foldplan.py`.
+from `regime/regimedata.py`, the anchored plan from `evaluation/foldplan.py`.
 
 FR-015  one policy per fold, trained on that fold's training range only
 FR-015a single-window runs keep the 730-day minimum; the universe shrinks in the
@@ -22,7 +22,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from regime import regimedata as rd            # noqa: E402
-from regime.wf import foldplan                 # noqa: E402
+from evaluation import foldplan                 # noqa: E402
 
 WF_CONFIG = ROOT / "config" / "config_wf.json"
 MIN_TRAIN_DAYS = 730

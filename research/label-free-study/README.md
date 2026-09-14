@@ -147,7 +147,7 @@ supervised pipeline.
 
 - Costs, spread and the ≤10%-of-candle-volume fill cap are **inside** the training objective.
 - Act on bar *t* close, fill at *t+1*; no other lookahead anywhere in the simulator.
-- Evaluation only through the pooled walk-forward harness (`regime/wf/`), quoting the
+- Evaluation only through the pooled walk-forward harness (`evaluation/`), quoting the
   3.35pp/yr floor; W1 single-window numbers are smoke tests.
 - Every trial (seed, loss variant, γ, architecture, threshold) is logged and counted for the
   Deflated Sharpe Ratio / PBO.

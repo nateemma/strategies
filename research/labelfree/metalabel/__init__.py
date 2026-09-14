@@ -4,7 +4,7 @@ A secondary model trained on the REALISED outcomes of trades the primary strateg
 took, using only what was knowable at each trade's entry bar. The primary model, its guards,
 its exits and its stop are not touched.
 
-The constants below were MEASURED from `regime/wf/pooled_nnnc.json` on 2026-09-12. They are
+The constants below were MEASURED from `evaluation/pooled_nnnc.json` on 2026-09-12. They are
 pinned, not chosen. `tests/test_metalabel.py` asserts the archive still matches them: if any
 has moved, the floor and the base rate must be recomputed before anything else runs.
 """
@@ -32,10 +32,10 @@ BASE_WIN_RATE = 0.732
 # the old floor while being unresolvable on this span.
 FLOOR_PP_PER_YEAR = 4.681
 
-BOOTSTRAP_SEED = 0            # must match regime/wf and research/labelfree/stats.py
+BOOTSTRAP_SEED = 0            # must match evaluation/ and research/labelfree/stats.py
 N_RESAMPLES = 20000
 
-ARCHIVE_PATH = "regime/wf/pooled_nnnc.json"
+ARCHIVE_PATH = "evaluation/pooled_nnnc.json"
 MODEL_STORE = "saved_data"    # per-fold primary models: saved_data/NNNC_WF_f{NN}/
 
 

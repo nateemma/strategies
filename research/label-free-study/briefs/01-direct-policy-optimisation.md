@@ -59,7 +59,7 @@ evidence.
 - Truncated BPTT with a 96-bar (1-day) burn-in before the loss window.
 
 ### Training
-- Anchored folds exactly as `regime/wf/foldplan.py`; one policy per fold, trained on the
+- Anchored folds exactly as `evaluation/foldplan.py`; one policy per fold, trained on the
   fold's training range only.
 - ≥5 seeds per config; report IQM. Early stopping on the *training* objective only (no
   validation split from the test fold).

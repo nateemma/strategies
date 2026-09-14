@@ -60,7 +60,7 @@ class SimulatedRun:
         return float(sum(t.profit_abs for t in self.trades))
 
     def to_frame(self) -> pd.DataFrame:
-        """Backtest-archive shape, so regime/wf pooling works unchanged (FR-007)."""
+        """Backtest-archive shape, so evaluation/ pooling works unchanged (FR-007)."""
         return pd.DataFrame([{
             "pair": t.pair, "open_date": t.open_date, "close_date": t.close_date,
             "open_rate": t.open_rate, "close_rate": t.close_rate, "amount": t.amount,

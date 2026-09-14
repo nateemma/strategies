@@ -15,7 +15,7 @@ cannot resolve; trade selection and per-trade expectancy can.
 ## Technical Context
 
 **Runtime**: Python 3.12 via the repo `.venv`; zsh from the repo root.
-**Reused unchanged**: `regime/run_arm.py`, `regime/tail/compare.py`, `regime/wf/`,
+**Reused unchanged**: `regime/run_arm.py`, `regime/tail/compare.py`, `evaluation/`,
 `scripts/test_strat.sh`, `Framework/*`.
 **New**: one strategy class, one params file, one config, one analysis script.
 **Constraints**: sequential only; no Framework/harness modification; variant differs from control

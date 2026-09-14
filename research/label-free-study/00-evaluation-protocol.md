@@ -33,18 +33,18 @@ mirror is acceptable if MLX blocks something). Contract:
   matching freqtrade's backtest P&L for the same window to within fee rounding — this
   calibration step is a deliverable of brief 1 and blocks everything else.
 - **Outputs:** per-bar net log return, turnover, position, and a trade list in the same shape
-  as the backtest archive (`pair, open_date, close_date, profit_abs`) so `regime/wf/pool.py`
+  as the backtest archive (`pair, open_date, close_date, profit_abs`) so `evaluation/pool.py`
   and `compare_pooled.py` work unchanged.
 
 The freqtrade backtest is the **arbiter**; the simulator is for training. Any candidate is
-finally re-run through `regime/wf/run_folds.py` as a real strategy (a thin
+finally re-run through `evaluation/run_folds.py` as a real strategy (a thin
 `BaseNNStrategy` subclass whose `get_predictions` loads the policy).
 
 ## 2. Windows and folds
 
 - Training range and windows are those in `regime/regimedata.py`. W1 (`20250901-20260831`)
   is the sole single-window acceptance window; W2/W3 are in-sample and reported only.
-- **Primary evidence is the pooled walk-forward** (`regime/wf/`, feature 007): 15 anchored
+- **Primary evidence is the pooled walk-forward** (`evaluation/`, feature 007): 15 anchored
   folds, 730-day minimum training, 90-day test folds, trades pooled before any statistic.
   SUI/USDT excluded per `config/config_wf.json`.
 - Purge and embargo: when a method uses any forward-looking quantity in training (labels for
@@ -55,7 +55,7 @@ finally re-run through `regime/wf/run_folds.py` as a real strategy (a thin
 
 | Baseline | Why |
 |---|---|
-| `NNNC_MLX` control, production config | The thing to beat. Pooled-WF record exists (`regime/wf/pooled_nnnc.json`; fold plan via `regime/wf/foldplan.py`). |
+| `NNNC_MLX` control, production config | The thing to beat. Pooled-WF record exists (`evaluation/pooled_nnnc.json`; fold plan via `evaluation/foldplan.py`). |
 | Equal-weight buy-and-hold of the whitelist | The "did you just buy beta" check; the market fell in W1 so this also exposes short-side-free luck. |
 | TSMOM rule with a no-trade band (e.g. 20/60-bar EMA sign, band ±0.1) | A label-free rule with zero parameters learned from P&L; if the model cannot beat it, the objective is doing nothing. |
 | `NNNC_MLX` + cost-aware threshold (0.80 operating point from `CLOSING_THE_LEARNABILITY_GAP.md`) | Isolates "new objective" from "better operating point". A label-free model that only reproduces this is not new. |
@@ -63,7 +63,7 @@ finally re-run through `regime/wf/run_folds.py` as a real strategy (a thin
 ## 4. Statistics
 
 - **Effect size vs floor.** Report the pooled annualised return delta against the control with
-  its bootstrap 95% CI (`regime/wf/compare_pooled.py`), and state whether it clears 3.35pp/yr.
+  its bootstrap 95% CI (`evaluation/compare_pooled.py`), and state whether it clears 3.35pp/yr.
   Below that: "not resolved", not "no effect".
 - **Seeds.** ≥5 seeds per configuration. Report the interquartile mean and stratified-bootstrap
   CI across seeds (Agarwal et al. 2021, `rliable`), never the best seed. Two seeds giving

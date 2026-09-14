@@ -85,7 +85,7 @@ briefs/01-direct-policy-optimisation.md (whose simulator and wrapper you will re
 not fork them) and briefs/02-label-warmstart-pnl-finetune.md. Implement arms A, B and C as
 configurations of the brief-1 trainer, with per-fold purge/embargo of the label horizon.
 Log each configuration to research/labelfree/trials.jsonl before running. Report against
-brief 1's best config and NNNC_MLX using regime/wf/compare_pooled.py, and write
+brief 1's best config and NNNC_MLX using evaluation/compare_pooled.py, and write
 briefs/results/02-<date>.md using the protocol §6 template.
 Success criteria: the acceptance and kill gates of research/label-free-study/
 00-evaluation-protocol.md §5 plus the brief's own kill criteria, stated as measurable

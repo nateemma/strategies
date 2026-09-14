@@ -19,7 +19,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[4]
 import sys
 sys.path.insert(0, str(ROOT / "user_data/strategies"))
-from regime.wf import (BASELINE_HALF_WIDTH_PP, BASELINE_N_TRADES, BASELINE_PAIRED_PP,
+from evaluation import (BASELINE_HALF_WIDTH_PP, BASELINE_N_TRADES, BASELINE_PAIRED_PP,
                        BOOTSTRAP_SEED, N_RESAMPLES, TARGET_HALF_WIDTH_PP, TARGET_POOLED_TRADES)
 
 

@@ -25,6 +25,6 @@ statistic (FR-018).
 
 ## Invariants
 
-- Never modify `run_arm.py`, `compare.py`, `regimedata.py`, `regime/wf/` or `Framework/`.
+- Never modify `run_arm.py`, `compare.py`, `regimedata.py`, `evaluation/` or `Framework/`.
 - No gate, exit, label or architecture parameter differs between arms (FR-019, SC-008).
 - A run whose ungated-gate warning fired is discarded, not reported (FR-004).

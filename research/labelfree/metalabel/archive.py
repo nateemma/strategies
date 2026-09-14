@@ -73,7 +73,7 @@ def load(path: str | Path | None = None) -> list[TradeRow]:
 
 def fold_ranges(path: str | Path | None = None) -> dict[str, dict]:
     """Per-fold test window and trade count, from the archive's own plan."""
-    p = ROOT / "regime/wf/folds/plan_nnnc.json"
+    p = ROOT / "evaluation/folds/plan_nnnc.json"
     plan = json.loads(p.read_text())
     folds = plan.get("folds", plan if isinstance(plan, list) else [])
     return {f["fold_id"]: f for f in folds}

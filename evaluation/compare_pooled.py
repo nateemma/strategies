@@ -1,6 +1,6 @@
 """Arm-vs-control on POOLED walk-forward sets (FR-013).
 
-Delegates to `regime.tail.compare.bootstrap_delta` — the SAME statistic used for single-window
+Delegates to `evaluation.bootstrap.bootstrap_delta` — the SAME statistic used for single-window
 arms, not a second implementation (research R8). Pooled sets pair on (fold_id, pair, open_date):
 the same pair and timestamp can legitimately recur across folds, so the two-field key used for
 single windows would collide.
@@ -15,7 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(ROOT / "user_data/strategies"))
 
-from regime.tail.compare import MIN_DIFF_TRADES, bootstrap_delta   # noqa: E402
+from evaluation.bootstrap import MIN_DIFF_TRADES, bootstrap_delta   # noqa: E402
 
 KEY = ("fold_id", "pair", "open_date")
 

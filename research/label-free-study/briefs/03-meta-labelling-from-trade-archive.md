@@ -89,7 +89,7 @@ specified, planned, task-listed, analyzed with /speckit-analyze, and only then i
 Read AGENT_GUIDE.md, research/label-free-study/README.md, 00-evaluation-protocol.md and
 briefs/03-meta-labelling-from-trade-archive.md. Build research/labelfree/metalabel/ that
 (1) extracts entry-time features and realised outcomes for every trade in the pooled
-walk-forward archive for NNNC_MLX (regime/wf/, regime/arms/), (2) runs the leakage audit,
+walk-forward archive for NNNC_MLX (evaluation/, regime/arms/), (2) runs the leakage audit,
 (3) trains the nested walk-forward veto model, and (4) wires the accepted model into a thin
 NNNC_MLX subclass via confirm_trade_entry with the primary model path pinned. Never let a
 feature read data after the trade's open_date. Log trials to research/labelfree/trials.jsonl.

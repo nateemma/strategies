@@ -6,51 +6,39 @@ Living list for the pooled walk-forward harness (`regime/wf/`, feature 007, deli
 
 ---
 
-## 1. Promote the harness out of `regime/` — BLOCKED until the label-free study closes
+## 1. Promote the harness out of `regime/` — **DONE 2026-09-14**
 
-**Why.** `regime/wf/` is a general-purpose measurement instrument parked inside a finished
-study's scratch space. `regime/` holds ~35 one-off analysis scripts and ~30 markdown
-write-ups from the regime-switching study (`breakout_dist.py`, `GUARD_ABLATION.md`,
-`WHY_ORACLES_UNDERPERFORM.md`, …). The harness is now the standard way every arm gets
-judged — it should not live there.
+Moved to top-level **`evaluation/`**. The gate (feature 010 closed) cleared when briefs 01-05
+all closed; 011, 012 and 013 had by then leaned on the harness heavily, which is what made the
+promotion worth doing rather than merely tidy.
 
-**Not `Framework/`.** `Framework/` stays strategy-agnostic *runtime* code that strategies
-inherit from. This is offline evaluation tooling and would be the only non-runtime thing
-in it. Target is a sibling top-level directory — `evaluation/` (or top-level `wf/`).
+All five steps completed in order:
 
-**Gate: do not start until feature 010 (`labelfree-warmstart-finetune`) is closed.**
-`research/labelfree/folds.py` imports `regime.wf.foldplan`, and `research/labelfree/`
-paths are recorded in `trials.jsonl`. A mid-study path change invalidates the trials log
-and breaks reproducibility of runs already recorded.
+1. **`run_arm.py --timerange`** — `--window` and `--timerange` are now alternatives with
+   `--label` carrying the naming slot. This removed `run_folds.py`'s in-memory `rd.WINDOWS`
+   monkeypatch, which was the single largest thing welding `wf/` to `regime/`. `WINDOWS` on
+   disk was left alone, so `phase_c_trackability.py` is unaffected.
+2. **Statistics lifted, not duplicated** — the paired bootstrap moved to
+   `evaluation/bootstrap.py`, and `regime/tail/compare.py` imports it back and re-exports the
+   names its own callers use. Verified: `regime.tail.compare.bootstrap_delta is
+   evaluation.bootstrap.bootstrap_delta` → `True`. The regime-specific single-window helpers
+   (`load`, `verdict`, `report`, `ARMS`, `OOS_WINDOW`) stayed behind, which is where they
+   belong.
+3. **`wf/` moved** via `git mv` so history follows. `BOOTSTRAP_SEED = 0` and every pinned
+   baseline constant carried across unchanged.
+4. **Importers updated** — `research/labelfree/folds.py`, `AGENT_GUIDE.md`, the evaluation
+   protocol, the brief set, `regime/WALKFORWARD_POWER.md`, `docs/HYPERPARAMETER_STUDY.md`, and
+   `specs/008`'s do-not-modify list (which would otherwise have guarded a path that no longer
+   exists). **Closed feature specs `007`-`012` were deliberately left naming the old path** —
+   they are records of what was built when, and `evaluation/README.md` carries a note so a
+   stale path resolves to an explanation.
+5. **Reproduced exactly**: `evaluation/pooled_nnnc.json` still gives **15/15 folds, 378 pooled
+   trades, floor 3.350 pp/yr**. 165 labelfree tests pass; `regime/`'s own single-window callers
+   (`screen_candidates.py`, `pair_restricted.py`) import clean.
 
-**The work, in order:**
-
-1. **Prerequisite — give `run_arm.py` a real `--timerange`.** Worth doing on its own
-   merits. `run_arm.py` currently requires `--window`, with choices from
-   `regime.regimedata.WINDOWS`. `run_folds.py` therefore monkeypatches that dict in an
-   in-memory per-fold subprocess. That hack is the single largest thing welding `wf/` to
-   `regime/`. Do NOT solve it by adding fold keys to `WINDOWS` on disk —
-   `phase_c_trackability.py` iterates it.
-2. **Lift the statistics.** `compare_pooled.py` and `power.py` import
-   `regime.tail.compare` (`bootstrap_delta`, `_trades`, `_scale`, `MIN_DIFF_TRADES`).
-   This reuse is *deliberate* — one statistic for both single-window and pooled arms, not
-   two implementations — so it must move with the harness, not be duplicated. Single-window
-   callers in `regime/` then import it from the new home.
-3. **Move `wf/` itself**, keeping `BOOTSTRAP_SEED = 0` and the pinned baseline constants in
-   `__init__.py` byte-identical. They were MEASURED on 2026-09-09 and are pinned, not
-   recomputed; changing them silently rebases every past verdict.
-4. **Update importers** — `research/labelfree/folds.py`, `AGENT_GUIDE.md:152-180`,
-   `research/label-free-study/00-evaluation-protocol.md`, the brief set, and
-   `specs/008-single-pair-variant/contracts/analysis-cli.md` (which names `regime/wf/` in a
-   do-not-modify list).
-5. **Re-run one known fold plan end-to-end** and confirm `pooled_nnnc.json` reproduces 15
-   folds / 378 trades / floor 3.350 pp/yr exactly. The move is only complete when the
-   control record is bit-reproducible.
-
-`--family` / `--base-strategy` are already parameters with NNNC as a *default*, not a
-hardcode, so nothing else is family-specific.
-
----
+One thing the reproducibility check caught that a grep would not: `folds/plan_nnnc.json`
+records `params_snapshot` as an absolute repo path and `run_folds.py:143` **reads it back**, so
+the move had silently broken re-running that plan until the recorded path was updated too.
 
 ## 2. Upstreaming to freqtrade — parked, low priority
 

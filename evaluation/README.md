@@ -1,8 +1,16 @@
 # Pooled Walk-Forward Harness
 
+> **Moved 2026-09-14.** This harness was `regime/wf/` until it was promoted out of the
+> regime study's scratch space (`docs/WALKFORWARD_TODO.md` item 1). Closed feature specs
+> under `specs/007`–`specs/012` still name the old path; they are historical records of what
+> was built when, and were deliberately left unedited. `regime/tail/compare.py` now imports
+> the paired bootstrap from `evaluation/bootstrap.py` rather than owning it, so single-window
+> and pooled arms are still judged by one statistic.
+
+
 **What it is:** a measurement instrument. It answers one question — *is this arm better than that
 control, and by how much, with a confidence interval you can defend?* It does not tune anything,
-and nothing in `regime/wf/` may alter an entry gate, an exit parameter, a label, or a model
+and nothing in `evaluation/` may alter an entry gate, an exit parameter, a label, or a model
 configuration (feature 007, FR-015).
 
 **Why it exists:** a single-window backtest on this data has a 95% CI half-width of **7.633pp**.
@@ -37,14 +45,14 @@ two concurrent jobs put load 60 on 14 cores and finished slower than one.
 ```bash
 export PYTHONPATH=user_data/strategies
 PY=.venv/bin/python
-WF=user_data/strategies/regime/wf
+WF=user_data/strategies/evaluation/
 ```
 
 ### 1. Plan the folds
 
 ```bash
 $PY $WF/foldplan.py --family NNNC --base-strategy NNNC_MLX \
-                    --out regime/wf/folds/plan_nnnc.json
+                    --out evaluation/folds/plan_nnnc.json
 ```
 
 Anchored expanding windows: training always starts at `--data-start`, the test fold slides forward.
@@ -55,7 +63,7 @@ Defaults — `--min-train-days 730`, `--test-days 90`, `--data-start 2021-01-01`
 ### 2. Run the folds
 
 ```bash
-$PY $WF/run_folds.py --plan regime/wf/folds/plan_nnnc.json --seed 1
+$PY $WF/run_folds.py --plan evaluation/folds/plan_nnnc.json --seed 1
 ```
 
 **~113 minutes, sequential.** Generates one `NNNC_WF_f{NN}` strategy class per fold, trains it, and
@@ -66,7 +74,7 @@ a silently-untrained fold is caught here, not three hours later.
 ### 3. Pool
 
 ```bash
-$PY $WF/pool.py --plan regime/wf/folds/plan_nnnc.json --out regime/wf/pooled_nnnc.json
+$PY $WF/pool.py --plan evaluation/folds/plan_nnnc.json --out evaluation/pooled_nnnc.json
 ```
 
 Concatenates every fold's trades into one set **before any statistic is computed**. That ordering is
@@ -76,7 +84,7 @@ then averaging.
 ### 4. Report the power
 
 ```bash
-$PY $WF/power.py --pooled regime/wf/pooled_nnnc.json
+$PY $WF/power.py --pooled evaluation/pooled_nnnc.json
 ```
 
 Prints the minimum resolvable effect, the 1/√n prediction and the shortfall against it, the
@@ -90,8 +98,8 @@ never a reason to retune the fold geometry.
 ### 5. Compare an arm to a control
 
 ```bash
-$PY $WF/compare_pooled.py --arm regime/wf/pooled_arm.json \
-                          --control regime/wf/pooled_nnnc.json
+$PY $WF/compare_pooled.py --arm evaluation/pooled_arm.json \
+                          --control evaluation/pooled_nnnc.json
 ```
 
 Pairs trades on `(fold_id, pair, open_date)` — the same pair and timestamp can legitimately recur
@@ -114,7 +122,7 @@ Output is a delta in pp/yr, a 95% CI, a p-value, and one of:
 ## Artefacts
 
 ```
-regime/wf/
+evaluation/
   __init__.py             pinned baseline constants — measured, never recomputed
   foldplan.py             stage 1
   run_folds.py            stage 2

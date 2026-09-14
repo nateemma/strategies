@@ -119,12 +119,12 @@ early folds cheap (3.9 min) and only later ones expensive.
 ## Reproducing
 
 ```
-PYTHONPATH=user_data/strategies .venv/bin/python user_data/strategies/regime/wf/foldplan.py \
-  --family NNNC --base-strategy NNNC_MLX --out regime/wf/folds/plan_nnnc.json
-... regime/wf/run_folds.py  --plan regime/wf/folds/plan_nnnc.json --seed 1     # ~113 min
-... regime/wf/pool.py       --plan regime/wf/folds/plan_nnnc.json --out regime/wf/pooled_nnnc.json
-... regime/wf/power.py      --pooled regime/wf/pooled_nnnc.json
-... regime/wf/compare_pooled.py --arm <pooled_arm.json> --control regime/wf/pooled_nnnc.json
+PYTHONPATH=user_data/strategies .venv/bin/python user_data/strategies/evaluation/foldplan.py \
+  --family NNNC --base-strategy NNNC_MLX --out evaluation/folds/plan_nnnc.json
+... evaluation/run_folds.py  --plan evaluation/folds/plan_nnnc.json --seed 1     # ~113 min
+... evaluation/pool.py       --plan evaluation/folds/plan_nnnc.json --out evaluation/pooled_nnnc.json
+... evaluation/power.py      --pooled evaluation/pooled_nnnc.json
+... evaluation/compare_pooled.py --arm <pooled_arm.json> --control evaluation/pooled_nnnc.json
 ```
 
 Seeded (`BOOTSTRAP_SEED = 0`); reruns reproduce the floor exactly.

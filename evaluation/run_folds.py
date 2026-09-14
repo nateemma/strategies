@@ -206,7 +206,7 @@ def main() -> int:
         results.append({**f, "status": status, "model_artifact_verified": True,
                         "n_trades": n, "arm_returncode": rc})
 
-    out = STRAT_DIR / f"regime/wf/folds/results_{plan['run_id']}_seed{a.seed}.json"
+    out = STRAT_DIR / f"evaluation/folds/results_{plan['run_id']}_seed{a.seed}.json"
     elapsed = (time.time() - t0) / 60
     complete = sum(1 for r in results if r["status"] in ("evaluated", "zero_trade"))
     out.write_text(json.dumps({

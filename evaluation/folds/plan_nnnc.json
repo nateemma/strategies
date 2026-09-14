@@ -8,7 +8,7 @@
   "data_start": "2021-01-01",
   "data_end": "2026-09-07",
   "config": "user_data/strategies/config/config_wf.json",
-  "params_snapshot": "user_data/strategies/regime/wf/folds/params_20260909-110334.json",
+  "params_snapshot": "user_data/strategies/evaluation/folds/params_20260909-110334.json",
   "params_sha": "a05855490d4ecf08",
   "validated": true,
   "validation_errors": [],

@@ -20,7 +20,7 @@ prematurely in four prior features of this project.
 
 - **FR-017**: sequential only. Kill with `pkill -9 -f 'freqtrade backtesting'`, never bare
   `freqtrade` — it matches the live dry run.
-- **FR-018**: `Framework/`, `run_arm.py`, `compare.py`, `regimedata.py`, `regime/wf/` are NOT to be
+- **FR-018**: `Framework/`, `run_arm.py`, `compare.py`, `regimedata.py`, `evaluation/` are NOT to be
   modified.
 - **FR-019 / SC-008**: no gate, exit, label or architecture parameter differs between arms. The
   pair universe is the only difference.
@@ -109,7 +109,7 @@ prematurely in four prior features of this project.
 - [X] T018 **Verify the standing-conventions block, one named check each**: FR-004 (warning absent
       from every run used as evidence), FR-005 (artefact exists), FR-011 (zero-trade recorded as
       such), FR-015 (no classifier metric in any verdict), FR-017 (no overlapping runs), FR-018
-      (`git status` clean on Framework/, run_arm.py, compare.py, regimedata.py, regime/wf/),
+      (`git status` clean on Framework/, run_arm.py, compare.py, regimedata.py, evaluation/),
       FR-019/SC-008 (no parameter differs), FR-020 (if a fold set ran and was
       incomplete it was marked PARTIAL; if US4 was skipped, record N/A), FR-021 (win rate suppressed)
 - [X] T019 Write `regime/SINGLE_PAIR_LINK.md`: the selection comparison, the expectancy comparison

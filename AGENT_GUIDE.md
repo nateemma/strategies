@@ -154,19 +154,19 @@ Consequences for anything you are about to do:
 - **A W1/W2 disagreement is not evidence of regime dependence** until you have shown the effect is
   resolvable. Two noise draws disagreeing looks identical and is the simpler explanation.
 
-**THE HARNESS NOW EXISTS — feature 007, delivered 2026-09-09.** `regime/wf/` runs pooled
+**THE HARNESS NOW EXISTS — feature 007, delivered 2026-09-09.** `evaluation/` runs pooled
 walk-forward evaluation: 15 anchored folds, every test fold genuinely out-of-sample, trades pooled
 before any statistic. Measured result — **378 pooled trades and a floor of 3.350 pp/yr against the
-single-window 7.633, a 2.28x improvement.** Usage guide: `regime/wf/README.md`. Power write-up:
+single-window 7.633, a 2.28x improvement.** Usage guide: `evaluation/README.md`. Power write-up:
 `regime/WALKFORWARD_POWER.md`.
 
 ```
-PYTHONPATH=user_data/strategies .venv/bin/python user_data/strategies/regime/wf/foldplan.py \
-  --family NNNC --base-strategy NNNC_MLX --out regime/wf/folds/plan_nnnc.json
-... regime/wf/run_folds.py --plan <plan> --seed 1        # ~113 min, sequential
-... regime/wf/pool.py      --plan <plan> --out <pooled>
-... regime/wf/power.py     --pooled <pooled>
-... regime/wf/compare_pooled.py --arm <pooled_arm> --control <pooled_control>
+PYTHONPATH=user_data/strategies .venv/bin/python user_data/strategies/evaluation/foldplan.py \
+  --family NNNC --base-strategy NNNC_MLX --out evaluation/folds/plan_nnnc.json
+... evaluation/run_folds.py --plan <plan> --seed 1        # ~113 min, sequential
+... evaluation/pool.py      --plan <plan> --out <pooled>
+... evaluation/power.py     --pooled <pooled>
+... evaluation/compare_pooled.py --arm <pooled_arm> --control <pooled_control>
 ```
 
 **The decision rule this gives you:**

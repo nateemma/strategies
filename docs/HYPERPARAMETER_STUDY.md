@@ -314,6 +314,6 @@ far the whole space is from mattering.
 - `AGENT_GUIDE.md` — "Silent failure modes", "The noise floor"
 - `research/label-free-study/README.md` — the five studies and their verdicts
 - `research/label-free-study/briefs/results/05-2026-09-13.md` — the study this article generalises
-- `regime/wf/README.md` — the pooled walk-forward harness
+- `evaluation/README.md` — the pooled walk-forward harness
 - `research/labelfree/es/liveness.py` — the span probe, with its pre-registered thresholds
 - `research/labelfree/admissibility.py` — the participation gate and why it is centralised

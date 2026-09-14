@@ -233,7 +233,7 @@ def test_trials_without_block_returns_still_count_toward_deflation():
 
 
 def test_pooled_comparator_refuses_a_losing_arm():
-    """The retro-fit to regime/wf/compare_pooled.py.
+    """The retro-fit to evaluation/compare_pooled.py.
 
     Measured 2026-09-13: an arm losing 3.78pp against a control losing 18.90pp produced
     '+4.106 pp/yr IMPROVED' under the old code -- ABOVE the 3.35 pp/yr floor, i.e. it would
@@ -244,7 +244,7 @@ def test_pooled_comparator_refuses_a_losing_arm():
     import subprocess
     import tempfile
 
-    src = ROOT / "regime/wf/pooled_nnnc.json"
+    src = ROOT / "evaluation/pooled_nnnc.json"
     if not src.exists():
         pytest.skip("pooled control record unavailable")
     base = json.loads(src.read_text())
@@ -258,7 +258,7 @@ def test_pooled_comparator_refuses_a_losing_arm():
     d = Path(tempfile.mkdtemp())
     (d / "arm.json").write_text(json.dumps(arm))
     (d / "ctl.json").write_text(json.dumps(ctl))
-    r = subprocess.run([os.sys.executable, str(ROOT / "regime/wf/compare_pooled.py"),
+    r = subprocess.run([os.sys.executable, str(ROOT / "evaluation/compare_pooled.py"),
                         "--arm", str(d / "arm.json"), "--control", str(d / "ctl.json")],
                        capture_output=True, text=True,
                        env={**os.environ, "PYTHONPATH": str(ROOT)})
@@ -270,10 +270,10 @@ def test_pooled_comparator_self_comparison_is_unchanged():
     """The retro-fit must not disturb the existing guards or the pinned statistic."""
     import os
     import subprocess
-    src = ROOT / "regime/wf/pooled_nnnc.json"
+    src = ROOT / "evaluation/pooled_nnnc.json"
     if not src.exists():
         pytest.skip("pooled control record unavailable")
-    r = subprocess.run([os.sys.executable, str(ROOT / "regime/wf/compare_pooled.py"),
+    r = subprocess.run([os.sys.executable, str(ROOT / "evaluation/compare_pooled.py"),
                         "--arm", str(src), "--control", str(src)],
                        capture_output=True, text=True,
                        env={**os.environ, "PYTHONPATH": str(ROOT)})

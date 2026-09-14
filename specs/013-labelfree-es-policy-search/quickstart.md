@@ -7,7 +7,7 @@ All commands run from `user_data/strategies`, sequentially.
 
 - `~/.freqtrade_env` sourced explicitly (it is interactive-shell only):
   `zsh -c 'source ~/.freqtrade_env && <command>'`
-- the 15-fold plan and the archived 378 trades present under `regime/wf/`
+- the 15-fold plan and the archived 378 trades present under `evaluation/`
 - `research/labelfree/` importable; `admissibility.py`, `trials.py`, `sim.py`, `stats.py` unchanged
 
 ## Step 0 — regenerate the per-bar probability side-cars

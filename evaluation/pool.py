@@ -2,7 +2,7 @@
 
 Per-trade rows come from the backtest ARCHIVE each arm record names in `result_file` — freqtrade
 silently ignores --export-filename, so user_data/backtest_results/*.zip is the only per-trade
-source. The extraction is done by `regime.tail.compare._trades`, REUSED rather than reimplemented
+source. The extraction is done by `evaluation.bootstrap._trades`, REUSED rather than reimplemented
 (FR-013). That is a private symbol in a module this feature must not modify, so `smoke_test()`
 below asserts it still works; if compare.py ever changes, this fails loudly instead of silently
 pooling nothing.
@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[4]
 STRAT_DIR = ROOT / "user_data/strategies"
 sys.path.insert(0, str(STRAT_DIR))
 
-from regime.tail.compare import _trades, _scale        # noqa: E402  (deliberate reuse, FR-013)
+from evaluation.bootstrap import _trades, _scale        # noqa: E402  (deliberate reuse, FR-013)
 
 ARMS = STRAT_DIR / "regime/arms"
 

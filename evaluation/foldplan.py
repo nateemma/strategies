@@ -18,7 +18,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 
 STRAT_DIR = Path("user_data/strategies")
-FOLDS_DIR = STRAT_DIR / "regime/wf/folds"
+FOLDS_DIR = STRAT_DIR / "evaluation/folds"
 
 
 def _d(s: str) -> date:

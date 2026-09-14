@@ -139,14 +139,14 @@ def run(fold_id: str = "f08", pairs: list[str] | None = None) -> dict:
     record("ema_trend_20_60", ema_trend_exposure(P))
     # 4. Production control at its cost-aware operating point: read from the pooled
     #    walk-forward record rather than re-simulated, because that record IS the
-    #    control's audited result (regime/wf/pooled_nnnc.json).
+    #    control's audited result (evaluation/pooled_nnnc.json).
     out["baselines"]["production_control"] = _pooled_control(fold_id)
     return out
 
 
 def _pooled_control(fold_id: str) -> dict:
     """The NNNC_MLX control's own fold entry from the audited pooled record."""
-    p = ROOT / "regime/wf/pooled_nnnc.json"
+    p = ROOT / "evaluation/pooled_nnnc.json"
     if not p.exists():
         return {"status": "unavailable", "path": str(p)}
     d = json.loads(p.read_text())
@@ -155,7 +155,7 @@ def _pooled_control(fold_id: str) -> dict:
     if f is None:
         return {"status": f"fold {fold_id} not in pooled record",
                 "folds": sorted(per)}
-    return {"status": "ok", "source": "regime/wf/pooled_nnnc.json",
+    return {"status": "ok", "source": "evaluation/pooled_nnnc.json",
             "return_pct": f["return_pct"], "n_trades": f["n_trades"],
             "test_days": f["test_days"],
             "log_return": (None if f["return_pct"] is None

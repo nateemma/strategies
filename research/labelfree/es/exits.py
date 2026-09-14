@@ -119,7 +119,7 @@ class TradeSeries:
     @property
     def total_pp(self) -> float:
         """Wallet return in percentage points, ADDITIVE — the harness's own convention:
-        `wallet_profit_pct = sum(profit_abs) * scale_pp_per_abs` (regime/wf/compare_pooled.py
+        `wallet_profit_pct = sum(profit_abs) * scale_pp_per_abs` (evaluation/compare_pooled.py
         :29). Fixed stake means a trade's contribution does not depend on wallet history."""
         return STAKE_PP_PER_RATIO * float(np.sum(self.pnl)) if self.pnl else 0.0
 
