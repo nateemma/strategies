@@ -89,9 +89,16 @@ def compute(rows: list[dict]) -> dict:
 
     pbo = float(ST.pbo_cscv(M)) if M.size and M.shape[1] >= 2 else float("nan")
 
-    vals = np.array([r["score"] for r in scored], dtype=float) if scored else np.array([])
-    sr = float(vals.mean() / vals.std(ddof=1)) if vals.size > 2 and vals.std(ddof=1) > 0 else 0.0
-    dsr = ST.deflated_sharpe(sr, n_obs=max(2, M.shape[0]), n_trials=max(2, total))
+    # DSR deflates a Sharpe computed over TIME, so it must come from the selected
+    # configuration's block series -- NOT from the cross-sectional spread of candidate
+    # scores, which is a different quantity entirely and was what an earlier version used.
+    best = max(scored, key=lambda r: r["score"], default=None)
+    series = np.array((best or {}).get("block_returns") or [], dtype=float)
+    if series.size > 2 and series.std(ddof=1) > 0:
+        sr = float(series.mean() / series.std(ddof=1))
+        dsr = ST.deflated_sharpe(sr, n_obs=series.size, n_trials=max(2, total))
+    else:
+        sr, dsr = 0.0, float("nan")
 
     return {"pbo": None if np.isnan(pbo) else round(pbo, 4),
             "n_evaluations": total,           # reported BESIDE the PBO (FR-016)
@@ -102,6 +109,7 @@ def compute(rows: list[dict]) -> dict:
             "cscv_count_caveat": (
                 "stats.pbo_cscv is biased LOW below ~50 configurations; "
                 f"this run has {len(names)}"),
+            "block_sharpe": round(sr, 4),
             "deflated_sharpe": None if np.isnan(dsr) else round(float(dsr), 4),
             "deflation_used_total_attempts": total}
 

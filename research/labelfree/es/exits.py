@@ -130,6 +130,29 @@ class TradeSeries:
             return 0.0
         return self.total_pp / self.span_years
 
+    def block_returns(self, n_blocks: int = 16) -> list[float]:
+        """Trade P&L bucketed onto the TIME axis, in pp, for DSR and CSCV.
+
+        DSR deflates a Sharpe computed over time and CSCV partitions that axis into blocks;
+        both need a SERIES. Without one, every configuration's column is constant, CSCV finds
+        the in-sample and out-of-sample rankings identical in every split, and PBO comes back
+        as exactly 0.0 — which is what happened on the first full run here, and is the same
+        schema gap that made SC-004 unevaluable in four consecutive features.
+
+        Bucketed by EXIT bar against the pooled bar axis, so a trade contributes to the block
+        in which it was realised.
+        """
+        import numpy as np
+        axis = self.occupancy.size if self.occupancy is not None else self.n_bars_total
+        if not self.pnl or axis <= 0:
+            return []
+        edges = np.linspace(0, axis, n_blocks + 1)
+        out = np.zeros(n_blocks)
+        for x, q in zip(self.exit_bar, self.pnl):
+            b = min(int(np.searchsorted(edges, x, side="right") - 1), n_blocks - 1)
+            out[max(0, b)] += q
+        return [float(v * STAKE_PP_PER_RATIO) for v in out]
+
     def exit_mix(self) -> dict[str, float]:
         if not self.reason:
             return {}

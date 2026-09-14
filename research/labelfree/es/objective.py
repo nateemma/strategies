@@ -40,6 +40,7 @@ class Score:
     trades_per_year: float
     mean_hold_h: float
     mean_exposure: float
+    block_returns: list[float] | None = None
 
     def as_row(self) -> dict:
         return asdict(self)
@@ -84,7 +85,8 @@ def score(trades, params: dict, span_years: float, incumbent_trades_per_year: fl
                  unregularised=trades.annualised_pp,
                  distance_penalty=d_pen, turnover_penalty=t_pen,
                  admissible=True, reason=None, n_trades=n,
-                 trades_per_year=tpy, mean_hold_h=hold, mean_exposure=exposure)
+                 trades_per_year=tpy, mean_hold_h=hold, mean_exposure=exposure,
+                 block_returns=trades.block_returns())
 
 
 def compare_to(arm_value: float, arm_exposure: float, arm_tpy: float,
