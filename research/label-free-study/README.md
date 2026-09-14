@@ -1,6 +1,7 @@
 # Label-free study: can a model learn to trade by maximising profit directly?
 
-**Status:** research programme, 2026-09-10. No code yet. Each brief in `briefs/` is written so
+**Status:** research programme. Briefs 01-05 executed; 06-08 not started. See **Results** below.
+Each brief in `briefs/` is written so
 it can be handed to Claude Code (or turned into a `specs/0NN-*` feature via `/speckit-specify`)
 as a self-contained investigative project.
 
@@ -75,6 +76,32 @@ picture:
 8. **Meta-labelling** (a secondary model that learns when to trust the primary signal) has
    modest but real OOS support and is the cheapest semi-supervised bridge available.
 9. **LLM trading agents:** advantage disappears on long, broad, post-cutoff tests. Excluded.
+
+
+## Results
+
+Five briefs executed as spec-kit features. **No brief has produced an adoptable operating
+point**; each delivered a quantified negative, which is what the protocol's kill gates are for.
+
+| brief | feature | verdict | the number |
+|---|---|---|---|
+| 01 direct policy optimisation | [`010`](../../specs/010-labelfree-direct-policy/) | **NOT RESOLVED** | no configuration reached a pooled run |
+| 02 label warm-start | [`010`](../../specs/010-labelfree-direct-policy/) | **NOT RESOLVED** | 92% of the advantage was turnover, not signal |
+| 03 meta-labelling | [`011`](../../specs/011-labelfree-meta-labelling/) | **KILL** | nested AUC 0.4978; the confidence→outcome map is non-stationary |
+| 04 RL in a pooled env | [`012`](../../specs/012-labelfree-rl-pooled-env/) | **KILL** | pooled reward IQM −0.1301, positive in 5/15 folds |
+| 05 gradient-free policy search | [`013`](../../specs/013-labelfree-es-policy-search/) | **KILL** | [PBO **0.7128**](briefs/results/05-2026-09-13.md) over 48,015 evaluations |
+
+**What brief 05 adds that the others could not.** It is the first feature able to evaluate
+SC-004 at all — the trial log gained a time axis (`trials.block_returns`) after four consecutive
+features reported DSR/PBO as unevaluable — so 0.7128 is the study's first real overfitting
+measurement rather than a "not computable".
+
+It also answers the standing question about the entry/exit gate parameters: **keep the
+incumbent.** Six of the ten searched levers cannot move the objective at all (liveness span
+< 0.10 pp/yr, including all three ATR stop parameters), and the four that can span 0.14-1.37 pp
+beneath a 3.35 pp/yr floor. The search's best is +0.19 pp/yr from the incumbent, inside the
+4.93 pp sweep-noise band.
+
 
 ## The approaches, ranked
 

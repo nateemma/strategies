@@ -218,3 +218,55 @@ def test_one_position_at_a_time_per_pair():
     ts = EX.simulate(entries, params=_params(), **pan)
     for a, b in zip(ts.exit_bar, ts.entry_bar[1:]):
         assert b > a, "overlapping positions on one pair"
+
+
+# --------------------------------------------------- T013: the decisive fidelity regression
+
+REAL_F07_TRAIN = {          # measured 2026-09-14, one real freqtrade backtest of the
+    "take_profit": 211,     # incumbent over f07's training range (20210101-20240921).
+    "trailing_stop_loss": 176,
+    "unclog_12h": 40,
+    "model_exit": 36,
+    "roi": 13,
+    "stop_loss": 2,
+}
+
+
+@pytest.mark.skipif(not Path("/tmp/lf/es_sink/f07_train").exists(),
+                    reason="needs the f07 side-car: es.signals --folds f07 --which train")
+def test_incumbent_exit_mix_matches_a_real_backtest():
+    """The check that found every real defect in this surrogate — now a regression test.
+
+    It was run by hand during implementation and caught FOUR bugs, each on `take_profit` or
+    the stop: an inverted exit sequence, the wrong price per check, an over-punitive stop
+    fill, and an ungated model_exit. None of them would have failed any other test in this
+    file, because every other test is self-consistent with the surrogate's own logic. Only
+    comparing against the real thing discriminates.
+
+    Tolerances are generous on purpose. The point is to catch a STRUCTURAL regression — an
+    exit reason doubling or vanishing — not to pin exact counts, which legitimately drift
+    with the cost model.
+    """
+    import sys as _sys
+    _root = str(Path(__file__).resolve().parents[3])
+    if _root not in _sys.path:
+        _sys.path.insert(0, _root)
+    from research.labelfree.es import evaluate as EV
+    from research.labelfree.es import panel as PA
+
+    ts = EV.run(PA.load("f07", train=True), dict(SP.INCUMBENT))
+    got = {r: ts.reason.count(r) for r in set(ts.reason)}
+
+    assert 400 < len(ts) < 650, f"total trades {len(ts)} far from the real 478"
+    for reason, real in REAL_F07_TRAIN.items():
+        n = got.get(reason, 0)
+        lo, hi = (0, 6) if real <= 5 else (0.5 * real, 2.0 * real)
+        assert lo <= n <= hi, (
+            f"{reason}: surrogate {n} vs real backtest {real} — outside [{lo:.0f}, {hi:.0f}]. "
+            f"Full mix {got}. An exit reason doubling or vanishing means the exit SEQUENCE "
+            f"or a trigger price has regressed; see exits.py's fidelity notes.")
+
+    # The two mechanisms that decide this strategy's P&L must stay dominant.
+    share = {k: v / len(ts) for k, v in got.items()}
+    assert share.get("take_profit", 0) > 0.30, "take_profit is no longer the dominant exit"
+    assert share.get("trailing_stop_loss", 0) > 0.15, "the ATR+grace stack stopped firing"

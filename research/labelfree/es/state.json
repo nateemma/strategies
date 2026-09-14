@@ -545,7 +545,9 @@
   "best_pp": 0.3658,
   "beats_random": true,
   "sweep_noise_pp": 4.93,
-  "bounds_hit": [],
+  "bounds_hit": [
+    "cexit_max_days"
+  ],
   "delta_vs_incumbent_pp": 0.1948,
   "within_sweep_noise": true,
   "wording": "not resolved \u2014 inside the sweep-noise band",
@@ -561,5 +563,10 @@
     "entry_rvol_threshold": 2.564939918027936,
     "entry_guard_threshold": 0.3387919844848118,
     "hold_window_hours": 12.842225705067111
+  },
+  "bounds_hit_by_fold": {
+    "cexit_max_days": [
+      "f04"
+    ]
   }
 }

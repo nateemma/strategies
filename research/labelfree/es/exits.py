@@ -275,7 +275,13 @@ def simulate(entries, open_px, high, low, atr_pct_roll, rvol_stop, cost, params,
                 break
 
             # ---- 3. ROI — the ONE check tested on the HIGH (interface.py:1443-1446) -------
-            if profit_high >= roi_level:
+            # NOT on the fill bar. The trade enters at that bar's OPEN, so triggering on the
+            # SAME bar's high assumes the most favourable intrabar path on the one bar we
+            # have no path information for. freqtrade special-cases trade_dur == 0 for this
+            # reason (backtesting.py:618-621, "most pessimistic price movement"), and taking
+            # the conservative branch is the honest approximation. Measured on f07: 6 of 28
+            # ROI exits came from the fill bar against a real backtest's 13 ROI exits total.
+            if age > 0 and profit_high >= roi_level:
                 exit_i, reason, pnl = j, "roi", roi_level
                 break
 

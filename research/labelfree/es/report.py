@@ -61,7 +61,8 @@ def performance_matrix(rows: list[dict], n_blocks: int = 16) -> tuple[np.ndarray
 
 
 def incumbent_delta(best_params: dict | None, best_pp: float | None,
-                    incumbent_pp: float | None) -> dict:
+                    incumbent_pp: float | None,
+                    all_selections: list[dict] | None = None) -> dict:
     """T049/T050 — FR-018 and FR-019.
 
     A difference inside ONE SWEEP-NOISE BAND is reported "not resolved", never an
@@ -75,10 +76,21 @@ def incumbent_delta(best_params: dict | None, best_pp: float | None,
         out["within_sweep_noise"] = bool(abs(d) < VD.SWEEP_NOISE_PP)
         out["wording"] = ("not resolved — inside the sweep-noise band"
                           if out["within_sweep_noise"] else "outside the sweep-noise band")
+    # FR-019 asks about the OPTIMUM the search reached, and this design selects one candidate
+    # PER FOLD — so checking only the best fold under-reports. The analyze pass caught f04
+    # sitting on the cexit_max_days bound while `bounds_hit` read empty.
+    #
+    # `space.on_bound` already exempts hold_window_hours, whose incumbent IS its floor because
+    # the mechanism can only widen the window — a false finding on every run.
+    hits: dict[str, list[str]] = {}
+    for f in (all_selections or []):
+        for b in SP.on_bound(f.get("params", {})):
+            hits.setdefault(b, []).append(f.get("fold_id", "?"))
     if best_params:
-        # `space.on_bound` already exempts hold_window_hours, whose incumbent IS its floor
-        # because the mechanism can only widen the window — a false finding every run.
-        out["bounds_hit"] = SP.on_bound(best_params)
+        for b in SP.on_bound(best_params):
+            hits.setdefault(b, [])
+    out["bounds_hit"] = sorted(hits)
+    out["bounds_hit_by_fold"] = hits
     return out
 
 

@@ -35,3 +35,8 @@ NNMT/NNMT_WF_f*.json
 
 # feature 010: per-fold warm-start classifiers are generated artefacts
 saved_data/labelfree_warmstart/
+
+# Feature 013 (brief 05) evaluation sidecar — ~60 MB for one 48,000-evaluation run.
+# R6's design keeps the full history OUT of git; the shared trials.jsonl carries a
+# one-line summary row with this file's line count and sha256 instead.
+research/labelfree/es/history.jsonl

@@ -84,7 +84,7 @@ backtests of the same candidates.
 - [X] T019a [US1] **Recompute** `unclog_12h`, `unclog_1d` and `max_hold` in `exits.py` from their actual conditions (`Framework/BaseStrategy.py:1211-1218`: `num_hours >= hold_window_hours & profit > 0.005`; `num_days >= 1 & profit >= 0`; `num_days >= cexit_max_days`). All three are purely per-trade with no portfolio state — this is what makes dimension 10 searchable, and an earlier draft wrongly called `unclog_12h` portfolio-level.
 - [X] T020 [US1] Apply purge/embargo via `apply_leakage_control` in `research/labelfree/es/panel.py`, and assert it is actually called — `purge_bars=0` with the function never invoked is exactly how this study's leakage control was silently absent before
 - [X] T021 [US1] Run `tests/test_es_exits.py` and iterate `exits.py` until green; record the achieved exit-mix agreement in the test's assertion message so a later regression names its own number
-- [ ] T022 [US1] Measure one surrogate evaluation's wall-clock on a fold's training range and record it; the plan's budget assumes ≤ 50 ms. If it is materially slower, report the measured figure and the revised budget rather than silently running longer.
+- [X] T022 [US1] Measure one surrogate evaluation's wall-clock on a fold's training range and record it; the plan's budget assumes ≤ 50 ms. If it is materially slower, report the measured figure and the revised budget rather than silently running longer.
 
 ### The blocking gate
 
@@ -92,7 +92,7 @@ backtests of the same candidates.
 - [X] T024 [US1] Add the freshness gate to `calibrate.py`: freqtrade exits 0 on a fatal config error, so `rc` is not a failure signal — verify each result zip's mtime is newer than the run's start before reading it
 - [X] T025 [US1] Compute and report `spearman_rho` and `win_disagreements` in `calibrate.py`, on **rank** agreement not level (research.md R4), and exit non-zero when the two orderings disagree on which candidate wins (SC-017a)
 - [X] T026 [US1] Add a `require_calibration()` guard imported by `liveness.py`, `run.py` and `report.py` that refuses to run without a passing `calibration.json`
-- [ ] T027 [US1] **RUN THE GATE**: `zsh -c 'source ~/.freqtrade_env && .venv/bin/python -m research.labelfree.es.calibrate --n 40 --folds f05..f14 --out calibration.json'` (≈2 h, sequential). Report `spearman_rho` and any win disagreements.
+- [X] T027 [US1] **RUN THE GATE**: `zsh -c 'source ~/.freqtrade_env && .venv/bin/python -m research.labelfree.es.calibrate --n 40 --folds f05..f14 --out calibration.json'` (≈2 h, sequential). Report `spearman_rho` and any win disagreements.
 
 **⚠️ If T027 fails, the feature stops here.** Write the result report saying so (FR-020) rather
 than spending 48,000 evaluations on an unvalidated evaluator. Do not proceed to Phase 4.
@@ -100,7 +100,7 @@ than spending 48,000 evaluations on an unvalidated evaluator. Do not proceed to 
 ### Principle IV over the search space
 
 - [X] T028 [US1] Implement `research/labelfree/es/liveness.py` — sweep each of the ten dimensions alone across its bounds with the other nine at the incumbent, and report the objective's span in pp per dimension against the **pre-registered** thresholds of data-model.md §6 (`inert` < 0.10 pp/yr, `weak` < 3.35 pp/yr, else `live`). Read the thresholds from the design document — do **not** choose a cut after seeing the spans, which is the exact researcher-degrees-of-freedom this feature measures
-- [ ] T029 [US1] **RUN** `.venv/bin/python -m research.labelfree.es.liveness --folds f05..f14 --out liveness.json` and record which dimensions are inert. Four parameters in this study were configured, logged, believed active and reaching nothing; this probe is what catches a fifth.
+- [X] T029 [US1] **RUN** `.venv/bin/python -m research.labelfree.es.liveness --folds f05..f14 --out liveness.json` and record which dimensions are inert. Four parameters in this study were configured, logged, believed active and reaching nothing; this probe is what catches a fifth.
 
 **Checkpoint**: the evaluator is calibrated and its search space is known to be live. US2 may begin.
 
@@ -127,7 +127,7 @@ budget**, so the optimiser's contribution is separable from the budget's.
 - [X] T036 [US2] Assert in `run.py` that the two methods' evaluation counts for a fold are equal, and record each count in the sidecar's per-run summary
 - [X] T037 [US2] Count numerically identical candidates as **one evaluation for scoring, two for the trial count** (spec edge case) — the deflation counts attempts, so a cache hit must still append a row
 - [X] T038 [US2] Run `tests/test_es_cmaes.py` and iterate until green
-- [ ] T039 [US2] **RUN** the search and control across all 15 folds sequentially at budget 1600, seed 7, per quickstart.md Step 5. Report the sidecar's line count against the expected 48,000.
+- [X] T039 [US2] **RUN** the search and control across all 15 folds sequentially at budget 1600, seed 7, per quickstart.md Step 5. Report the sidecar's line count against the expected 48,000.
 
 **Checkpoint**: both methods have run at equal budgets and every evaluation is on disk.
 
@@ -142,7 +142,7 @@ budget**, so the optimiser's contribution is separable from the budget's.
 - [X] T040 [US3] Add the single test evaluation to `run.py` — after the search concludes, evaluate the best candidate on the fold's test range exactly once and stop (FR-010)
 - [X] T041 [US3] Implement `research/labelfree/es/history.py --audit` per contracts/es-cli.md, checking all four invariants **from the sidecar alone** without trusting the search code: one test evaluation per fold; every test evaluation later than every train evaluation for that fold; every evaluation written before its score; the shared log's summary row matching the sidecar
 - [X] T042 [US3] Assert in `run.py` that no selection decision consumes a test-range quantity (FR-012) — the best candidate is chosen from training scores only, and the test evaluation happens after that choice is frozen
-- [ ] T043 [US3] **RUN** `.venv/bin/python -m research.labelfree.es.history --audit` and report the result. A non-zero exit invalidates Phase 4's run and it must be repeated, not patched.
+- [X] T043 [US3] **RUN** `.venv/bin/python -m research.labelfree.es.history --audit` and report the result. A non-zero exit invalidates Phase 4's run and it must be repeated, not patched.
 
 **Checkpoint**: the leakage property the whole design exists to protect is proven, not asserted.
 
@@ -159,8 +159,8 @@ count stated beside it.
 - [X] T044 [US4] Implement the PBO path in `research/labelfree/es/report.py` using `stats.pbo_cscv` over the complete sidecar, including **abandoned and discarded** candidates (FR-014)
 - [X] T045 [US4] Populate `block_returns` (16 blocks) on every evaluation via `trials.block_returns`, so DSR/PBO have the time axis four consecutive features reported as unevaluable. This is the first feature able to use it.
 - [X] T046 [US4] Deflate using the **total** evaluation count, never the count of survivors (FR-015), and print the count beside every overfitting figure (FR-016) — `stats.pbo_cscv`'s own docstring records CSCV is biased low below ~50 configurations, so the count is what makes the figure interpretable
-- [ ] T047 [US4] Write the shared-log summary row via `research/labelfree/trials.py` — one row per search run carrying the sidecar's path, line count and sha256 (SC-018), so the shared log points at the full record rather than duplicating 20 MB into git
-- [ ] T048 [US4] Teach the existing trial-log audit about **both** files, so it cannot certify a record it never examined (SC-018)
+- [X] T047 [US4] Write the shared-log summary row via `research/labelfree/trials.py` — one row per search run carrying the sidecar's path, line count and sha256 (SC-018), so the shared log points at the full record rather than duplicating 20 MB into git
+- [X] T048 [US4] Teach the existing trial-log audit about **both** files, so it cannot certify a record it never examined (SC-018)
 
 **Checkpoint**: PBO is computed over everything and the count that makes it readable is beside it.
 
@@ -173,8 +173,8 @@ sweep's own noise.
 
 **Independent Test**: the distance from the incumbent is reported against the 4.93 pp band.
 
-- [ ] T049 [US5] Compute `delta_vs_incumbent_pp` and `within_sweep_noise` in `report.py` against the **4.93 pp** band; inside it the wording is "not resolved", never "improvement" (FR-018)
-- [ ] T050 [US5] Report any parameter sitting on a bound as **a space drawn too narrowly** (FR-019), listing which and at which end
+- [X] T049 [US5] Compute `delta_vs_incumbent_pp` and `within_sweep_noise` in `report.py` against the **4.93 pp** band; inside it the wording is "not resolved", never "improvement" (FR-018)
+- [X] T050 [US5] Report any parameter sitting on a bound as **a space drawn too narrowly** (FR-019), listing which and at which end
 - [X] T051 [US5] Implement the derived `status` in `report.py` per data-model.md §7, consuming `verdict.py` — `KILL` on PBO > 0.2, `KILL` when the control matches the search, `KILL` on inadmissibility, `KILL` on the SC-008 gap, `NOT RESOLVED` inside the noise band or when nothing clears SC-001 (SC-007) — derived, never typed by hand
 - [X] T052 [US5] Handle "the search converged to the incumbent" as a legitimate informative outcome reported as **"no better operating point found"**, not as a failure to run (spec edge case)
 
@@ -198,14 +198,14 @@ sweep's own noise.
 ## Phase 8: Polish & Cross-Cutting
 
 - [X] T053 Attach trade count, trades per year and mean holding time to **every** reported return (FR-017) — a bare percentage is not admissible anywhere in this feature's output
-- [ ] T054 Re-test the return delta at **1.5× fees** (SC-005) and report both figures
-- [ ] T055 Implement the reproduction path (SC-006) — a separate process reproduces the accepted result from its saved configuration alone
-- [ ] T056 Write `research/label-free-study/briefs/results/05-<date>.md` per protocol §6 with **PBO as the headline number**, the evaluation count beside it, the protocol §5 verdict from T049a-T049f, the liveness report's inert and weak dimensions, the calibration `spearman_rho`, the unregularised score beside the regularised one, and the replayed-mechanism limitation from T019. Written whether the verdict is accept or kill (FR-020).
-- [ ] T057 [P] Lead the result report with the exit-reason census (research.md R2) and the correction it carries — `trailing_stop_loss` is the ATR+grace stack, not the native trailing stop, which is off — since anyone reading the exit mix without that will draw the opposite conclusion
-- [ ] T058 [P] Update `research/label-free-study/README.md`'s verdict table with brief 05's outcome
-- [ ] T059 Run `quickstart.md` end to end as written and fix any step whose stated expectation does not match what actually happens
-- [ ] T060 Stage only the files this feature created or modified (FR-022); check `git status` first and leave anything unexpected alone
-- [ ] T060a Re-run `/speckit-analyze` after implementation and record the clean report in the feature directory — **FR-023 and SC-016 require one before implementation and one again after**, and a result is inadmissible without both
+- [X] T054 Re-test the return delta at **1.5× fees** (SC-005) and report both figures
+- [X] T055 Implement the reproduction path (SC-006) — a separate process reproduces the accepted result from its saved configuration alone
+- [X] T056 Write `research/label-free-study/briefs/results/05-<date>.md` per protocol §6 with **PBO as the headline number**, the evaluation count beside it, the protocol §5 verdict from T049a-T049f, the liveness report's inert and weak dimensions, the calibration `spearman_rho`, the unregularised score beside the regularised one, and the replayed-mechanism limitation from T019. Written whether the verdict is accept or kill (FR-020).
+- [X] T057 [P] Lead the result report with the exit-reason census (research.md R2) and the correction it carries — `trailing_stop_loss` is the ATR+grace stack, not the native trailing stop, which is off — since anyone reading the exit mix without that will draw the opposite conclusion
+- [X] T058 [P] Update `research/label-free-study/README.md`'s verdict table with brief 05's outcome
+- [X] T059 Run `quickstart.md` end to end as written and fix any step whose stated expectation does not match what actually happens
+- [X] T060 Stage only the files this feature created or modified (FR-022); check `git status` first and leave anything unexpected alone
+- [X] T060a Re-run `/speckit-analyze` after implementation and record the clean report in the feature directory — **FR-023 and SC-016 require one before implementation and one again after**, and a result is inadmissible without both
 
 ---
 

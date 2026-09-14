@@ -108,7 +108,8 @@ def drive(fold_ids: list[str], budget: int, seed: int, allow_uncal: bool = False
              "per_fold": per_fold, "counts": counts, "gates": gates,
              "incumbent_pp": round(incumbent_pp, 4), "best_pp": round(best_pp, 4),
              "beats_random": beats_random,
-             **RP.incumbent_delta(best.get("params") if best else None, best_pp, incumbent_pp),
+             **RP.incumbent_delta(best.get("params") if best else None, best_pp, incumbent_pp,
+                                 all_selections=per_fold),
              "seconds": round(time.time() - t0, 1)}
     STATE.write_text(json.dumps(state, indent=2))
     RP.write_shared_summary(f"es-{seed}-{budget}",

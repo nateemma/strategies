@@ -36,9 +36,14 @@ python -m research.labelfree.es.space --check
 pytest tests/test_es_exits.py -x
 ```
 
-**Expect**: green. The decisive test replays the incumbent parameters over a fold and compares
-the surrogate's exit-reason mix against the archive's — `take_profit` ≈ 52%, the ATR stop ≈ 26%.
-A surrogate that cannot reproduce the incumbent's own exit mix cannot rank anything.
+**Expect**: 12 passed. The decisive test is `test_incumbent_exit_mix_matches_a_real_backtest`,
+which replays the incumbent over f07's training range and compares the exit-reason counts
+against a **real freqtrade backtest** (take_profit 211, trailing_stop_loss 176, model_exit 36,
+stop_loss 2, total 478). It skips if the f07 side-car is absent, so run Step 0 first.
+
+This is the check that found every real defect in the surrogate — four bugs, each on
+`take_profit` or the stop. None of them failed any other test in the file, because every other
+test is self-consistent with the surrogate's own logic.
 
 ## Step 3 — THE BLOCKING GATE
 
@@ -46,8 +51,10 @@ A surrogate that cannot reproduce the incumbent's own exit mix cannot rank anyth
 zsh -c 'source ~/.freqtrade_env && python -m research.labelfree.es.calibrate --n 40 --folds f05..f14 --out calibration.json'
 ```
 
-Takes ≈2 hours (40 freqtrade backtests at ~175 s). **Expect**: a reported `spearman_rho` and an
-empty `win_disagreements`.
+Takes ~25 minutes (40 freqtrade backtests at ~35 s on cached data; the ~175 s figure in the plan was a full walk-forward arm run, not a single fold backtest). **Expect**: a reported `spearman_rho` and agreement on the winner.
+**Measured 2026-09-14**: rho **+0.9766**, tau +0.8952, agree-on-winner True, over 21 comparable
+candidates in 24 minutes. Note ~half of uniformly drawn candidates come back inadmissible
+(19 of 40) — roughly half this space describes a policy that barely trades.
 
 **If this fails, the feature stops here** and the result report says so. Everything downstream
 refuses to run without a passing `calibration.json`, because an uncalibrated surrogate means the
@@ -72,8 +79,9 @@ too narrowly.
 python -m research.labelfree.es.drive --folds f00..f14 --budget 1600 --seed 7
 ```
 
-**Expect**: 48,000 evaluations in the sidecar, and the two methods' counts equal per fold. Each
-fold's test range is opened exactly once, after that fold's search ends.
+**Expect**: 48,015 evaluations in the sidecar (48,000 search + 15 single test evaluations), the
+two methods' counts equal per fold, and each fold's test range opened exactly once.
+**Measured**: 66 minutes, 9,869 of 48,015 evaluations inadmissible (20.6%).
 
 ## Step 6 — prove the test ranges were not leaked
 
@@ -81,7 +89,8 @@ fold's test range is opened exactly once, after that fold's search ends.
 python -m research.labelfree.es.history --audit
 ```
 
-**Expect**: exit 0, with all four invariants reported — one test evaluation per fold, each later
+**Expect**: exit 0, with all four invariants reported. **Measured**: `problems: []`,
+15 folds, 15 test evaluations, 0 abandoned-unscored, shared summary row matching — one test evaluation per fold, each later
 than every train evaluation for that fold, every evaluation written before it was scored, and the
 shared trial log's summary row matching the sidecar's line count and sha256.
 
