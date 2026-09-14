@@ -34,6 +34,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import time
@@ -88,6 +89,29 @@ def timerange(window: str) -> str:
     """
     start, end = WINDOWS[window]
     return f"{start}-{end}"
+
+
+def resolve_window(window: str | None, tr: str | None,
+                   label: str | None) -> tuple[str, str]:
+    """(literal timerange, naming label) from either --window or --timerange.
+
+    `--window` names a period in `regime.regimedata.WINDOWS`; `--timerange` gives one
+    literally. The two are alternatives, and exactly one must be supplied.
+
+    WHY --timerange EXISTS. The pooled walk-forward harness runs ~15 arbitrary fold ranges
+    that are not named windows. Before this, it had to inject a fold into `rd.WINDOWS` in an
+    in-memory subprocess to get a range past `--window`'s `choices=`. That hack was the single
+    largest thing welding the harness to `regime/`, and it is why this argument was worth
+    adding on its own merits. Do NOT instead add fold keys to WINDOWS on disk --
+    `phase_c_trackability.py` iterates that dict.
+    """
+    if (window is None) == (tr is None):
+        raise SystemExit("give exactly one of --window or --timerange")
+    if window is not None:
+        return timerange(window), window
+    if not re.fullmatch(r"\d{8}-\d{8}", tr or ""):
+        raise SystemExit(f"--timerange must be YYYYMMDD-YYYYMMDD, got {tr!r}")
+    return tr, (label or tr)
 
 
 def build_scratch(strategy: str, threshold: float, tag: str, window: str,
@@ -184,14 +208,14 @@ def build_env(scratch: Path) -> dict:
     return env
 
 
-def build_command(strategy: str, scratch: Path, window: str, config: Path,
+def build_command(strategy: str, scratch: Path, tr: str, config: Path,
                   export_path: Path) -> list[str]:
     return [
         str(ROOT / ".venv/bin/freqtrade"), "backtesting",
         "--strategy", strategy,
         "--strategy-path", str(scratch),
         "-c", str(config),
-        "--timerange", timerange(window),
+        "--timerange", tr,
         "--cache", "none",
         "--export", "trades",
         "--breakdown", "month",
@@ -280,7 +304,12 @@ def main() -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--strategy", default="NNNC_MLX",
                     help="host strategy; never an NNNC_DDPM_ variant (FR-033)")
-    ap.add_argument("--window", required=True, choices=sorted(WINDOWS))
+    ap.add_argument("--window", choices=sorted(WINDOWS),
+                    help="named period from regime.regimedata.WINDOWS")
+    ap.add_argument("--timerange", default=None, metavar="YYYYMMDD-YYYYMMDD",
+                    help="literal range; alternative to --window, for arbitrary fold ranges")
+    ap.add_argument("--label", default=None,
+                    help="naming slot for --timerange runs (default: the timerange itself)")
     ap.add_argument("--threshold", type=float, default=None,
                     help="prediction_threshold; omit to keep the strategy's own default")
     ap.add_argument("--tag", required=True)
@@ -337,16 +366,17 @@ def main() -> int:
     for kv in args.set_trailing:
         k, _, v = kv.partition("=")
         trail_over[k] = (v.lower() == "true") if v.lower() in ("true","false") else float(v)
-    scratch = build_scratch(args.strategy, args.threshold, args.tag, args.window,
+    tr, label = resolve_window(args.window, args.timerange, args.label)
+    scratch = build_scratch(args.strategy, args.threshold, args.tag, label,
                             guards=(args.guards == "on"), overrides=overrides,
                             sell_overrides=sell_over,
                             roi=(_parse_roi(args.roi) if args.roi else None),
                             stoploss=args.stoploss, trailing=trail_over)
-    export_path = OUT_DIR / f"{args.tag}_{args.window}_trades.json"
-    cmd = build_command(args.strategy, scratch, args.window, args.config, export_path)
+    export_path = OUT_DIR / f"{args.tag}_{label}_trades.json"
+    cmd = build_command(args.strategy, scratch, tr, args.config, export_path)
 
-    print(f"arm       : {args.tag} / {args.window}")
-    print(f"timerange : {timerange(args.window)}  (literal, not today-relative)")
+    print(f"arm       : {args.tag} / {label}")
+    print(f"timerange : {tr}  (literal, not today-relative)")
     print(f"threshold : {args.threshold if args.threshold is not None else '(strategy default)'}")
     print(f"scratch   : {scratch}")
     print(f"exit hash : {exit_config_hash(scratch, args.strategy)}")
@@ -381,8 +411,8 @@ def main() -> int:
 
     record = {
         "tag": args.tag,
-        "window": args.window,
-        "timerange": timerange(args.window),
+        "window": label,
+        "timerange": tr,
         "strategy": args.strategy,
         "prediction_threshold": args.threshold,
         "guards": args.guards,
@@ -394,7 +424,7 @@ def main() -> int:
         "returncode": proc.returncode,
         **result,
     }
-    out = OUT_DIR / f"{args.tag}_{args.window}.json"
+    out = OUT_DIR / f"{args.tag}_{label}.json"
     out.write_text(json.dumps(record, indent=2))
     print(f"\nwrote {out}")
     print(json.dumps(record, indent=2))

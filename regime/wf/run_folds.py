@@ -93,25 +93,27 @@ def train_fold(fold: dict, family: str, seed: int, config: str) -> bool:
 def evaluate_fold(fold: dict, config: str) -> int:
     """Evaluate a fold on its own out-of-sample range via run_arm.py (FR-005).
 
-    run_arm.py has NO --timerange flag: --window is required and its choices come from
-    regime.regimedata.WINDOWS. Adding fold keys to that dict on disk is NOT safe --
-    regime/phase_c_trackability.py does `for w in WINDOWS`, so 15 extra keys would silently change
-    another tool. Instead each fold runs in its OWN subprocess that injects its window into the
-    in-memory dict before importing run_arm. regimedata.py on disk is never modified, run_arm.py is
-    never modified (FR-018), and one-strategy-per-process is preserved (research R10).
+    `run_arm.py --timerange` takes an arbitrary literal range, so a fold is passed straight
+    through with `--label` carrying the fold id into the arm record's naming slot.
+
+    HISTORY, because the old shape is the reason `--timerange` exists. run_arm.py used to
+    require `--window`, whose `choices=` came from `regime.regimedata.WINDOWS`. Adding fold
+    keys to that dict on disk was NOT safe -- `regime/phase_c_trackability.py` does
+    `for w in WINDOWS`, so 15 extra keys would silently change another tool. Each fold
+    therefore ran in its own subprocess that injected its window into the IN-MEMORY dict
+    before importing run_arm. That hack worked and was honest about itself, but it welded
+    this harness to `regime/` more tightly than anything else here, which is why the flag was
+    added before the harness was promoted out.
+
+    One strategy per process is still preserved (research R10): each fold is its own
+    subprocess.
     """
-    wname = fold["fold_id"].upper()
     start, end = fold["test_timerange"].split("-")
-    inject = (
-        "import sys; "
-        "import regime.regimedata as rd; "
-        f"rd.WINDOWS['{wname}']=('{start}','{end}'); "
-        "import regime.run_arm as ra; "
-        f"sys.argv=['run_arm.py','--strategy','{fold['strategy_class']}',"
-        f"'--window','{wname}','--tag','{fold['arm_tag']}','--config','{config}']; "
-        "raise SystemExit(ra.main())"
-    )
-    cmd = (f'cd {ROOT} && PYTHONPATH=user_data/strategies .venv/bin/python -c "{inject}" '
+    cmd = (f'cd {ROOT} && PYTHONPATH=user_data/strategies '
+           f'.venv/bin/python -m regime.run_arm '
+           f'--strategy {fold["strategy_class"]} '
+           f'--timerange {start}-{end} --label {fold["fold_id"].upper()} '
+           f'--tag {fold["arm_tag"]} --config {config} '
            f'> /tmp/wf_arm_{fold["strategy_class"]}.log 2>&1')
     return subprocess.run(["zsh", "-c", cmd], check=False).returncode
 
