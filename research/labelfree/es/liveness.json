@@ -1,0 +1,112 @@
+{
+  "folds": [
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f09",
+    "f10",
+    "f11",
+    "f12",
+    "f13",
+    "f14"
+  ],
+  "incumbent_pp": -0.5276,
+  "thresholds": {
+    "inert_pp": 0.1,
+    "weak_pp": 3.35,
+    "pre_registered": "data-model.md \u00a76"
+  },
+  "dimensions": [
+    {
+      "parameter": "atr_stoploss_multiplier",
+      "span_pp": 0.0391,
+      "verdict": "inert",
+      "points": 25,
+      "best_value": 2.0,
+      "at_incumbent_pp": -0.5276,
+      "one_sided": false
+    },
+    {
+      "parameter": "atr_stoploss_floor",
+      "span_pp": 0.0518,
+      "verdict": "inert",
+      "points": 24,
+      "best_value": -0.1,
+      "at_incumbent_pp": -0.5276,
+      "one_sided": false
+    },
+    {
+      "parameter": "atr_stoploss_cap",
+      "span_pp": 0.0592,
+      "verdict": "inert",
+      "points": 24,
+      "best_value": -0.00645833333333333,
+      "at_incumbent_pp": -0.5276,
+      "one_sided": false
+    },
+    {
+      "parameter": "stoploss_grace_hours",
+      "span_pp": 1.3704,
+      "verdict": "weak",
+      "points": 25,
+      "best_value": 11.5,
+      "at_incumbent_pp": -0.5276,
+      "one_sided": false
+    },
+    {
+      "parameter": "stoploss_grace_level",
+      "span_pp": 1.1038,
+      "verdict": "weak",
+      "points": 25,
+      "best_value": -0.26875000000000004,
+      "at_incumbent_pp": -0.5276,
+      "one_sided": false
+    },
+    {
+      "parameter": "cexit_take_profit",
+      "span_pp": 0.1403,
+      "verdict": "weak",
+      "points": 25,
+      "best_value": 0.04125,
+      "at_incumbent_pp": -0.5276,
+      "one_sided": false
+    },
+    {
+      "parameter": "cexit_max_days",
+      "span_pp": 0.0,
+      "verdict": "inert",
+      "points": 25,
+      "best_value": 2.0,
+      "at_incumbent_pp": -0.5276,
+      "one_sided": false
+    },
+    {
+      "parameter": "entry_rvol_threshold",
+      "span_pp": 1.335,
+      "verdict": "weak",
+      "points": 25,
+      "best_value": 2.59375,
+      "at_incumbent_pp": -0.5276,
+      "one_sided": false
+    },
+    {
+      "parameter": "entry_guard_threshold",
+      "span_pp": 0.0716,
+      "verdict": "inert",
+      "points": 25,
+      "best_value": 0.041666666666666664,
+      "at_incumbent_pp": -0.5276,
+      "one_sided": false
+    },
+    {
+      "parameter": "hold_window_hours",
+      "span_pp": 0.0354,
+      "verdict": "inert",
+      "points": 25,
+      "best_value": 24.0,
+      "at_incumbent_pp": -0.5276,
+      "one_sided": true
+    }
+  ]
+}
