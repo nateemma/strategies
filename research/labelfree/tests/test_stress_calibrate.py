@@ -92,3 +92,40 @@ def test_stress_routes_through_the_shared_admissibility_gate():
     assert "AD.Arm" in src and "exposure_floor" in src, \
         "stress.run does not route through admissibility.Arm with a relative floor"
     assert RUN.EXPOSURE_FRACTION == 0.5
+
+
+# ------------------------------------------------------- FR-017: the no-synthetic-training claim
+
+def test_synthetic_training_check_parses_rather_than_greps():
+    """A substring search produced false positives immediately: gencensus.py carries
+    "GANInterface" and regex patterns as STRING LITERALS in its probe table, and a grep cannot
+    tell a literal from a call. The check must parse."""
+    from research.labelfree.stress import report as R
+    chk = R.synthetic_training_check()
+    assert chk["passed"], f"unexpected training entry points: {chk['hits']}"
+    assert "AST parse" in chk["method"]
+
+
+def test_synthetic_training_check_would_catch_a_real_violation(tmp_path, monkeypatch):
+    """A check that cannot fail is not a check."""
+    from research.labelfree.stress import report as R
+    (tmp_path / "offender.py").write_text(
+        "from GANs.GANInterface import GANInterface\n"
+        "def go(x):\n"
+        "    m = GANInterface('WGAN')\n"
+        "    m.fit(x)\n")
+    monkeypatch.setattr(R, "HERE", tmp_path)
+    chk = R.synthetic_training_check()
+    assert not chk["passed"]
+    assert any("imports GANs" in h for h in chk["hits"])
+    assert any("calls fit()" in h for h in chk["hits"])
+
+
+def test_string_literals_do_not_trip_the_check(tmp_path, monkeypatch):
+    """The exact false positive that motivated parsing."""
+    from research.labelfree.stress import report as R
+    (tmp_path / "census_like.py").write_text(
+        'PROBES = [("WGAN", "GANInterface.py", r"Returns np.ndarray"), ]\n'
+        '# a comment mentioning .fit( and optimizer\n')
+    monkeypatch.setattr(R, "HERE", tmp_path)
+    assert R.synthetic_training_check()["passed"]
