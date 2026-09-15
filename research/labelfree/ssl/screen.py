@@ -39,8 +39,17 @@ if str(ROOT) not in sys.path:
 
 from research.labelfree.ssl import inputs as IN                 # noqa: E402
 
-# Pre-registered, before any screen runs (FR-007b, SC-001a).
-PRIMARY = ("engineered", 48)
+# Pre-registered before any screen runs (FR-007b, SC-001a).
+#
+# AMENDED 2026-09-15, after the bar was measured and BEFORE any encoder was trained: the primary
+# is a CONJUNCTION over both horizons. The corrected per-pair temporal bar at H=48 is 0.0499
+# median with a MINIMUM OF -0.0169 -- the hand-built features are themselves barely
+# distinguishable from noise there, so "beat the hand-built features at H=48" is close to "beat
+# zero", which a null could clear by accident. H=6 has a bar that discriminates (0.1003 median,
+# 0.0715 minimum). Requiring both keeps the declared horizon honest and removes the accidental
+# pass. It RAISES the gate; a change in the other direction would not have been made here.
+PRIMARY_INPUT = "engineered"
+PRIMARY_HORIZONS = (48, 6)
 INPUTS = ("engineered", "ohlcv")
 HORIZONS = (6, 48)
 

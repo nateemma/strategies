@@ -202,8 +202,8 @@ and evaluated on the pooled walk-forward under protocol §5.
   return by Spearman ρ, walk-forward.
 - **FR-007a**: The screen MUST run over **both input types** (engineered features, raw OHLCV) and
   **both horizons** (48 bars, 6 bars), reporting each of the four separately.
-- **FR-007b**: **Engineered features at horizon 48 is the PRIMARY screen** and the only one that
-  can trigger a backtest. The other three are secondary and exploratory; a pass on a secondary is
+- **FR-007b**: **The PRIMARY screen is engineered features passing at BOTH horizon 48 and
+  horizon 6**, and it is the only result that can trigger a backtest. The other three are secondary and exploratory; a pass on a secondary is
   recorded as a hypothesis for a follow-up, never as an acceptance. Four screens against one
   threshold would otherwise be four chances to clear a bar meant to be cleared once.
 - **FR-008**: The projection MUST be fitted and evaluated **nested out-of-sample**.
@@ -260,9 +260,24 @@ and evaluated on the pooled walk-forward under protocol §5.
 
 ### The screen (the brief's own gate)
 
-- **SC-001**: The **primary** screen — engineered features, horizon 48 — has its nested-OOS ridge
-  projection beat **the hand-built features' own ρ at the same horizon on the same data**, with an
-  interval that excludes it. The bar is **measured, never quoted**: ρ≈0.15 is a horizon-3-to-5
+- **SC-001**: The **primary** screen — engineered features — has its nested-OOS ridge projection
+  beat **the hand-built features' own ρ on the same data** at **BOTH horizon 48 and horizon 6**,
+  each with an interval that excludes its own bar.
+**AMENDED 2026-09-15, after the bar was measured and BEFORE any encoder was trained.** The
+primary is now a **conjunction**: `engineered` must beat its own bar at **horizon 48 AND at
+horizon 6**.
+
+Why, and why this is a tightening rather than a convenience. The corrected per-pair temporal bar
+at H=48 is **0.0499 median, minimum −0.0169** — the hand-built features are themselves barely
+distinguishable from noise at that horizon, so "beat the hand-built features at H=48" is close to
+"beat zero", which a null could clear by accident. H=6 has a bar that discriminates (0.1003
+median, 0.0715 minimum). Requiring both keeps the pre-declared horizon honest while removing the
+accidental-pass route.
+
+It is recorded as an amendment rather than made silently because changing a pre-registered gate
+after seeing data is exactly the move that needs to be visible. It **raises** the bar; a change
+in the other direction would not have been made at this point.
+ The bar is **measured, never quoted**: ρ≈0.15 is a horizon-3-to-5
   number (median 0.1717 at H=3, 0.0826 at H=48 across five folds), so a constant would be the
   wrong bar at every horizon but one. See research.md R1.
 - **SC-001a**: All four input × horizon combinations are reported, and the primary is **written

@@ -108,9 +108,9 @@ hand-built features.
 - [ ] T027 [US1] (FR-007) Implement `screen.py::run()` — nested ridge over the three-way split, Spearman ρ on split C, with a bootstrap interval
 - [ ] T028 [US1] (FR-008) Fit the ridge on **B only** and score on **C only**. A ridge fitted and scored on the same bars beats any bar, which is how a null becomes a false positive — the spec's own "projection overfits the screen" edge case.
 - [ ] T029 [US1] (FR-007a, SC-001a) Run all four combinations — {engineered, ohlcv} × {6, 48} — reporting `rho_embedding`, `rho_handbuilt`, `rho_control` computed **identically** for each
-- [ ] T030 [US1] (FR-007b, SC-001a) Read the primary from a module constant and **write it into `screen.json` BEFORE any combination is scored**, so the record shows it was not chosen after seeing results. Mark **`engineered` × 48 as PRIMARY**, fixed before any screen runs, and record the other three as secondary/exploratory. Four screens against one threshold is four chances to clear a bar meant to be cleared once — brief 05 measured that failure at PBO 0.7128.
+- [ ] T030 [US1] (FR-007b, SC-001a) Read the primary from a module constant and **write it into `screen.json` BEFORE any combination is scored**, so the record shows it was not chosen after seeing results. Mark the **PRIMARY as `engineered` passing at BOTH H=48 and H=6** (amended 2026-09-15 after the bar was measured, before any encoder was trained — at H=48 the bar is 0.0499 with a negative minimum, so "beat that" is nearly "beat zero"), fixed before any screen runs, and record the other three as secondary/exploratory. Four screens against one threshold is four chances to clear a bar meant to be cleared once — brief 05 measured that failure at PBO 0.7128.
 - [ ] T031 [US1] (FR-009, SC-001) Compare each screen against **its own** bar with an interval, never a bare comparison against a constant
-- [ ] T032 [US1] (FR-010, SC-004, SC-011) Exit non-zero and **forbid any backtest** when the primary does not beat its own bar
+- [ ] T032 [US1] (FR-010, SC-004, SC-011) Exit non-zero and **forbid any backtest** unless the primary beats its own bar at **both** horizons, each with an interval excluding it
 - [ ] T033 [US1] **RUN THE SCREEN** across f05..f14 and report all four combinations
 
 **⚠️ If T033's primary fails, the feature STOPS.** That is the expected path (research.md R8):

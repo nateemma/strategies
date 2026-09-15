@@ -182,7 +182,15 @@ The spec's clarifications settled this and it is restated because it governs the
 engineered features × horizon 48 is **primary**; the other three combinations are **secondary and
 exploratory**.
 
-R1 complicates it: at horizon 48 the hand-built bar is 0.0914, at horizon 6 it is 0.1594. Since
+R1 complicates it, and the complication forced an amendment. The corrected per-pair temporal bar
+is **0.0499 at H=48 (min −0.0169)** and **0.1003 at H=6 (min 0.0715)**. At H=48 the hand-built
+features are barely distinguishable from noise, so a gate defined as "beat them there" is close
+to "beat zero" — weak in the dangerous direction for a brief expecting a null.
+
+**The primary is therefore a conjunction: `engineered` must beat its own bar at H=48 AND at
+H=6.** Amended after the bar was measured and before any encoder was trained. It raises the gate;
+the record says so explicitly, because changing a pre-registered decision after seeing data must
+be visible whichever direction it moves. Since
 the bar is now measured per combination (R1), each screen is self-consistent — but the *primary*
 remains the one declared in advance, and a secondary that passes is a hypothesis for a follow-up
 brief, never an acceptance. Four chances at one threshold is the multiple-testing failure brief 05

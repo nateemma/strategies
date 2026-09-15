@@ -85,7 +85,9 @@ passed = (rho_embedding > rho_handbuilt)  and  interval excludes rho_handbuilt
          and (rho_control << rho_embedding)
 ```
 
-**The PRIMARY combination is `engineered` × horizon 48**, declared before any screen runs. The
+**The PRIMARY is `engineered` passing at BOTH horizon 48 and horizon 6** — amended after the bar
+was measured (research.md R7), because at H=48 the hand-built bar is 0.0499 with a negative
+minimum and "beat that" is nearly "beat zero". Declared before any encoder was trained. The
 other three are secondary and exploratory: a pass there is a hypothesis for a follow-up, never an
 acceptance. Four screens against one threshold is four chances to clear a bar meant to be cleared
 once — the failure brief 05 measured at PBO 0.7128.
