@@ -1,0 +1,38 @@
+{
+  "bank": "f05-f14_L96_s7.npz",
+  "block_length": 96,
+  "paths_used": 1000,
+  "n_real_trades": 332,
+  "n_synthetic_trades": 342426,
+  "ks_distance": 0.0252,
+  "es_real": -0.134024,
+  "es_synthetic": -0.124868,
+  "es_ratio": 0.9317,
+  "dd_real": 0.11886,
+  "dd_synthetic": 0.130687,
+  "dd_ratio": 1.0995,
+  "tolerances": {
+    "ks_max": 0.1,
+    "es_ratio": [
+      0.7,
+      1.4
+    ],
+    "dd_ratio": [
+      0.7,
+      1.6
+    ],
+    "pre_registered": "research.md R3, fixed before the first run"
+  },
+  "passed": true,
+  "comparison": "surrogate-on-synthetic vs surrogate-on-real-panels; the evaluator is held constant so only the paths vary",
+  "caveat": "the bootstrap resamples REAL blocks, so the body should match by construction. This is a plumbing-and-tails check, not validation of the harness's usefulness.",
+  "seconds": 184.2,
+  "selection_rule": "SHORTEST block length that passes calibration \u2014 the most resampling consistent with a faithful generator. NOT the best-calibrated value: KS falls monotonically with block length (0.0252 -> 0.0119 across 96..288), and at the limit L = series length every path IS the real series, so calibration would be perfect while the harness resampled nothing. Selecting by best calibration drives toward the degenerate case.",
+  "passing_block_lengths": [
+    96,
+    144,
+    192,
+    240,
+    288
+  ]
+}

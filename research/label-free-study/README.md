@@ -1,6 +1,6 @@
 # Label-free study: can a model learn to trade by maximising profit directly?
 
-**Status:** research programme. Briefs 01-05 executed; 06-08 not started. See **Results** below.
+**Status:** research programme. Briefs 01-06 executed; 07-08 not started. See **Results** below.
 Each brief in `briefs/` is written so
 it can be handed to Claude Code (or turned into a `specs/0NN-*` feature via `/speckit-specify`)
 as a self-contained investigative project.
@@ -83,7 +83,7 @@ picture:
 > The transferable method from these studies is written up for general strategy work in
 > [`docs/HYPERPARAMETER_STUDY.md`](../../docs/HYPERPARAMETER_STUDY.md).
 
-Five briefs executed as spec-kit features. **No brief has produced an adoptable operating
+Six briefs executed as spec-kit features. **No brief has produced an adoptable operating
 point**; each delivered a quantified negative, which is what the protocol's kill gates are for.
 
 | brief | feature | verdict | the number |
@@ -93,6 +93,13 @@ point**; each delivered a quantified negative, which is what the protocol's kill
 | 03 meta-labelling | [`011`](../../specs/011-labelfree-meta-labelling/) | **KILL** | nested AUC 0.4978; the confidence→outcome map is non-stationary |
 | 04 RL in a pooled env | [`012`](../../specs/012-labelfree-rl-pooled-env/) | **KILL** | pooled reward IQM −0.1301, positive in 5/15 folds |
 | 05 gradient-free policy search | [`013`](../../specs/013-labelfree-es-policy-search/) | **KILL** | [PBO **0.7128**](briefs/results/05-2026-09-13.md) over 48,015 evaluations |
+| 06 generative stress harness | [`014`](../../specs/014-labelfree-generative-stress/) | **harness ACCEPTED** | [38.6% of re-orderings lose](briefs/results/06-2026-09-14.md); 90% interval [−2.71, +2.75] pp/yr |
+
+**Brief 06 is the only one that shipped a tool rather than a verdict on a policy.** It is a
+*veto* instrument and it did not veto — but its distribution is the study's second independent
+measurement of the same flat region: the incumbent's median over 9,481 resampled paths is
+**+0.193 pp/yr** against feature 013's **+0.171** measured on the real folds, and 38.6% of
+plausible re-orderings of the same market conditions lose money.
 
 **What brief 05 adds that the others could not.** It is the first feature able to evaluate
 SC-004 at all — the trial log gained a time axis (`trials.block_returns`) after four consecutive

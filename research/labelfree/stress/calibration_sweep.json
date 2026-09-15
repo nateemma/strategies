@@ -1,0 +1,152 @@
+{
+  "96": {
+    "bank": "f05-f14_L96_s7.npz",
+    "block_length": 96,
+    "paths_used": 1000,
+    "n_real_trades": 332,
+    "n_synthetic_trades": 342426,
+    "ks_distance": 0.0252,
+    "es_real": -0.134024,
+    "es_synthetic": -0.124868,
+    "es_ratio": 0.9317,
+    "dd_real": 0.11886,
+    "dd_synthetic": 0.130687,
+    "dd_ratio": 1.0995,
+    "tolerances": {
+      "ks_max": 0.1,
+      "es_ratio": [
+        0.7,
+        1.4
+      ],
+      "dd_ratio": [
+        0.7,
+        1.6
+      ],
+      "pre_registered": "research.md R3, fixed before the first run"
+    },
+    "passed": true,
+    "comparison": "surrogate-on-synthetic vs surrogate-on-real-panels; the evaluator is held constant so only the paths vary",
+    "caveat": "the bootstrap resamples REAL blocks, so the body should match by construction. This is a plumbing-and-tails check, not validation of the harness's usefulness.",
+    "seconds": 184.2
+  },
+  "144": {
+    "bank": "f05-f14_L144_s7.npz",
+    "block_length": 144,
+    "paths_used": 1000,
+    "n_real_trades": 332,
+    "n_synthetic_trades": 336769,
+    "ks_distance": 0.0183,
+    "es_real": -0.134024,
+    "es_synthetic": -0.127161,
+    "es_ratio": 0.9488,
+    "dd_real": 0.11886,
+    "dd_synthetic": 0.128882,
+    "dd_ratio": 1.0843,
+    "tolerances": {
+      "ks_max": 0.1,
+      "es_ratio": [
+        0.7,
+        1.4
+      ],
+      "dd_ratio": [
+        0.7,
+        1.6
+      ],
+      "pre_registered": "research.md R3, fixed before the first run"
+    },
+    "passed": true,
+    "comparison": "surrogate-on-synthetic vs surrogate-on-real-panels; the evaluator is held constant so only the paths vary",
+    "caveat": "the bootstrap resamples REAL blocks, so the body should match by construction. This is a plumbing-and-tails check, not validation of the harness's usefulness.",
+    "seconds": 186.2
+  },
+  "192": {
+    "bank": "f05-f14_L192_s7.npz",
+    "block_length": 192,
+    "paths_used": 1000,
+    "n_real_trades": 332,
+    "n_synthetic_trades": 337408,
+    "ks_distance": 0.0149,
+    "es_real": -0.134024,
+    "es_synthetic": -0.128745,
+    "es_ratio": 0.9606,
+    "dd_real": 0.11886,
+    "dd_synthetic": 0.13033,
+    "dd_ratio": 1.0965,
+    "tolerances": {
+      "ks_max": 0.1,
+      "es_ratio": [
+        0.7,
+        1.4
+      ],
+      "dd_ratio": [
+        0.7,
+        1.6
+      ],
+      "pre_registered": "research.md R3, fixed before the first run"
+    },
+    "passed": true,
+    "comparison": "surrogate-on-synthetic vs surrogate-on-real-panels; the evaluator is held constant so only the paths vary",
+    "caveat": "the bootstrap resamples REAL blocks, so the body should match by construction. This is a plumbing-and-tails check, not validation of the harness's usefulness.",
+    "seconds": 184.6
+  },
+  "240": {
+    "bank": "f05-f14_L240_s7.npz",
+    "block_length": 240,
+    "paths_used": 1000,
+    "n_real_trades": 332,
+    "n_synthetic_trades": 333509,
+    "ks_distance": 0.0126,
+    "es_real": -0.134024,
+    "es_synthetic": -0.129816,
+    "es_ratio": 0.9686,
+    "dd_real": 0.11886,
+    "dd_synthetic": 0.128749,
+    "dd_ratio": 1.0832,
+    "tolerances": {
+      "ks_max": 0.1,
+      "es_ratio": [
+        0.7,
+        1.4
+      ],
+      "dd_ratio": [
+        0.7,
+        1.6
+      ],
+      "pre_registered": "research.md R3, fixed before the first run"
+    },
+    "passed": true,
+    "comparison": "surrogate-on-synthetic vs surrogate-on-real-panels; the evaluator is held constant so only the paths vary",
+    "caveat": "the bootstrap resamples REAL blocks, so the body should match by construction. This is a plumbing-and-tails check, not validation of the harness's usefulness.",
+    "seconds": 183.6
+  },
+  "288": {
+    "bank": "f05-f14_L288_s7.npz",
+    "block_length": 288,
+    "paths_used": 1000,
+    "n_real_trades": 332,
+    "n_synthetic_trades": 334338,
+    "ks_distance": 0.0119,
+    "es_real": -0.134024,
+    "es_synthetic": -0.130008,
+    "es_ratio": 0.97,
+    "dd_real": 0.11886,
+    "dd_synthetic": 0.127435,
+    "dd_ratio": 1.0721,
+    "tolerances": {
+      "ks_max": 0.1,
+      "es_ratio": [
+        0.7,
+        1.4
+      ],
+      "dd_ratio": [
+        0.7,
+        1.6
+      ],
+      "pre_registered": "research.md R3, fixed before the first run"
+    },
+    "passed": true,
+    "comparison": "surrogate-on-synthetic vs surrogate-on-real-panels; the evaluator is held constant so only the paths vary",
+    "caveat": "the bootstrap resamples REAL blocks, so the body should match by construction. This is a plumbing-and-tails check, not validation of the harness's usefulness.",
+    "seconds": 183.2
+  }
+}
