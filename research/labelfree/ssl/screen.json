@@ -19,5 +19,1135 @@
     "f13",
     "f14"
   ],
-  "results": {}
+  "results": {
+    "engineered@6": {
+      "rho_embedding": 0.0358,
+      "rho_handbuilt": 0.0461,
+      "rho_control": 0.0012,
+      "rho_raw_input": 0.0461,
+      "encoder_adds": -0.0089,
+      "encoder_adds_in_folds": 0,
+      "beats_bar_in_folds": 0,
+      "n_folds": 10,
+      "pair_agnostic": {
+        "threshold": 0.3,
+        "median": 0.1073,
+        "p90": 0.1839,
+        "max": 0.2608,
+        "n_dims_over": 0,
+        "n_dims": 320,
+        "passed": true,
+        "anchored_on": "production's worst dimension across f05/f07/f10/f13 is 0.2297; 0.30 leaves ~1.3x headroom"
+      },
+      "per_fold": [
+        {
+          "input": "engineered",
+          "horizon": 6,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0388,
+          "ci_embedding": [
+            0.0318,
+            0.0452
+          ],
+          "rho_control": -0.0051,
+          "ci_control": [
+            -0.0111,
+            0.001
+          ],
+          "rho_raw_input": 0.0456,
+          "encoder_adds": -0.0068,
+          "rho_handbuilt": 0.0456,
+          "ci_handbuilt": [
+            0.0395,
+            0.0514
+          ],
+          "beats_own_input": false,
+          "beats_bar": false
+        },
+        {
+          "input": "engineered",
+          "horizon": 6,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0255,
+          "ci_embedding": [
+            0.0189,
+            0.0318
+          ],
+          "rho_control": -0.0051,
+          "ci_control": [
+            -0.0118,
+            0.0015
+          ],
+          "rho_raw_input": 0.0324,
+          "encoder_adds": -0.0069,
+          "rho_handbuilt": 0.0324,
+          "ci_handbuilt": [
+            0.0253,
+            0.0386
+          ],
+          "beats_own_input": false,
+          "beats_bar": false
+        },
+        {
+          "input": "engineered",
+          "horizon": 6,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.046,
+          "ci_embedding": [
+            0.0396,
+            0.0522
+          ],
+          "rho_control": 0.0066,
+          "ci_control": [
+            0.0005,
+            0.0131
+          ],
+          "rho_raw_input": 0.0465,
+          "encoder_adds": -0.0005,
+          "rho_handbuilt": 0.0465,
+          "ci_handbuilt": [
+            0.0403,
+            0.053
+          ],
+          "beats_own_input": false,
+          "beats_bar": false
+        },
+        {
+          "input": "engineered",
+          "horizon": 6,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0118,
+          "ci_embedding": [
+            0.0053,
+            0.0177
+          ],
+          "rho_control": -0.0096,
+          "ci_control": [
+            -0.0158,
+            -0.0029
+          ],
+          "rho_raw_input": 0.0419,
+          "encoder_adds": -0.0301,
+          "rho_handbuilt": 0.0419,
+          "ci_handbuilt": [
+            0.0349,
+            0.0487
+          ],
+          "beats_own_input": false,
+          "beats_bar": false
+        },
+        {
+          "input": "engineered",
+          "horizon": 6,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0228,
+          "ci_embedding": [
+            0.0168,
+            0.0295
+          ],
+          "rho_control": -0.0017,
+          "ci_control": [
+            -0.0085,
+            0.0047
+          ],
+          "rho_raw_input": 0.0337,
+          "encoder_adds": -0.0109,
+          "rho_handbuilt": 0.0337,
+          "ci_handbuilt": [
+            0.0282,
+            0.0404
+          ],
+          "beats_own_input": false,
+          "beats_bar": false
+        },
+        {
+          "input": "engineered",
+          "horizon": 6,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0106,
+          "ci_embedding": [
+            0.0039,
+            0.0178
+          ],
+          "rho_control": 0.0064,
+          "ci_control": [
+            0.0006,
+            0.0126
+          ],
+          "rho_raw_input": 0.0475,
+          "encoder_adds": -0.0369,
+          "rho_handbuilt": 0.0475,
+          "ci_handbuilt": [
+            0.0405,
+            0.0549
+          ],
+          "beats_own_input": false,
+          "beats_bar": false
+        },
+        {
+          "input": "engineered",
+          "horizon": 6,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0328,
+          "ci_embedding": [
+            0.0265,
+            0.0397
+          ],
+          "rho_control": 0.0093,
+          "ci_control": [
+            0.003,
+            0.0168
+          ],
+          "rho_raw_input": 0.0341,
+          "encoder_adds": -0.0013,
+          "rho_handbuilt": 0.0341,
+          "ci_handbuilt": [
+            0.0275,
+            0.0404
+          ],
+          "beats_own_input": false,
+          "beats_bar": false
+        },
+        {
+          "input": "engineered",
+          "horizon": 6,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0532,
+          "ci_embedding": [
+            0.0458,
+            0.0603
+          ],
+          "rho_control": 0.0084,
+          "ci_control": [
+            0.0026,
+            0.0154
+          ],
+          "rho_raw_input": 0.0944,
+          "encoder_adds": -0.0412,
+          "rho_handbuilt": 0.0944,
+          "ci_handbuilt": [
+            0.087,
+            0.1013
+          ],
+          "beats_own_input": false,
+          "beats_bar": false
+        },
+        {
+          "input": "engineered",
+          "horizon": 6,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0469,
+          "ci_embedding": [
+            0.0409,
+            0.0532
+          ],
+          "rho_control": 0.0039,
+          "ci_control": [
+            -0.0025,
+            0.0104
+          ],
+          "rho_raw_input": 0.0734,
+          "encoder_adds": -0.0265,
+          "rho_handbuilt": 0.0734,
+          "ci_handbuilt": [
+            0.0665,
+            0.0804
+          ],
+          "beats_own_input": false,
+          "beats_bar": false
+        },
+        {
+          "input": "engineered",
+          "horizon": 6,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0521,
+          "ci_embedding": [
+            0.0458,
+            0.0586
+          ],
+          "rho_control": -0.0014,
+          "ci_control": [
+            -0.0076,
+            0.0045
+          ],
+          "rho_raw_input": 0.0561,
+          "encoder_adds": -0.004,
+          "rho_handbuilt": 0.0561,
+          "ci_handbuilt": [
+            0.05,
+            0.0626
+          ],
+          "beats_own_input": false,
+          "beats_bar": false
+        }
+      ]
+    },
+    "engineered@48": {
+      "rho_embedding": 0.0326,
+      "rho_handbuilt": 0.0238,
+      "rho_control": -0.0015,
+      "rho_raw_input": 0.0238,
+      "encoder_adds": -0.0012,
+      "encoder_adds_in_folds": 5,
+      "beats_bar_in_folds": 3,
+      "n_folds": 10,
+      "pair_agnostic": {
+        "threshold": 0.3,
+        "median": 0.1073,
+        "p90": 0.1839,
+        "max": 0.2608,
+        "n_dims_over": 0,
+        "n_dims": 320,
+        "passed": true,
+        "anchored_on": "production's worst dimension across f05/f07/f10/f13 is 0.2297; 0.30 leaves ~1.3x headroom"
+      },
+      "per_fold": [
+        {
+          "input": "engineered",
+          "horizon": 48,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0141,
+          "ci_embedding": [
+            0.0076,
+            0.0208
+          ],
+          "rho_control": -0.0053,
+          "ci_control": [
+            -0.0114,
+            0.002
+          ],
+          "rho_raw_input": 0.0378,
+          "encoder_adds": -0.0237,
+          "rho_handbuilt": 0.0378,
+          "ci_handbuilt": [
+            0.0311,
+            0.0441
+          ],
+          "beats_own_input": false,
+          "beats_bar": false
+        },
+        {
+          "input": "engineered",
+          "horizon": 48,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0341,
+          "ci_embedding": [
+            0.0278,
+            0.0399
+          ],
+          "rho_control": 0.0061,
+          "ci_control": [
+            -0.001,
+            0.0128
+          ],
+          "rho_raw_input": 0.062,
+          "encoder_adds": -0.0279,
+          "rho_handbuilt": 0.062,
+          "ci_handbuilt": [
+            0.0551,
+            0.0681
+          ],
+          "beats_own_input": false,
+          "beats_bar": false
+        },
+        {
+          "input": "engineered",
+          "horizon": 48,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0346,
+          "ci_embedding": [
+            0.0279,
+            0.0415
+          ],
+          "rho_control": -0.0055,
+          "ci_control": [
+            -0.0126,
+            0.0016
+          ],
+          "rho_raw_input": 0.0656,
+          "encoder_adds": -0.031,
+          "rho_handbuilt": 0.0656,
+          "ci_handbuilt": [
+            0.0595,
+            0.0729
+          ],
+          "beats_own_input": false,
+          "beats_bar": false
+        },
+        {
+          "input": "engineered",
+          "horizon": 48,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": -0.0047,
+          "ci_embedding": [
+            -0.0109,
+            0.0011
+          ],
+          "rho_control": 0.0076,
+          "ci_control": [
+            0.0007,
+            0.0143
+          ],
+          "rho_raw_input": -0.0109,
+          "encoder_adds": 0.0062,
+          "rho_handbuilt": -0.0109,
+          "ci_handbuilt": [
+            -0.018,
+            -0.0044
+          ],
+          "beats_own_input": true,
+          "beats_bar": false
+        },
+        {
+          "input": "engineered",
+          "horizon": 48,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0312,
+          "ci_embedding": [
+            0.0234,
+            0.0378
+          ],
+          "rho_control": -0.0072,
+          "ci_control": [
+            -0.0132,
+            -0.0006
+          ],
+          "rho_raw_input": 0.0102,
+          "encoder_adds": 0.021,
+          "rho_handbuilt": 0.0102,
+          "ci_handbuilt": [
+            0.0035,
+            0.0172
+          ],
+          "beats_own_input": true,
+          "beats_bar": true
+        },
+        {
+          "input": "engineered",
+          "horizon": 48,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": -0.0498,
+          "ci_embedding": [
+            -0.0562,
+            -0.0431
+          ],
+          "rho_control": -0.0056,
+          "ci_control": [
+            -0.0115,
+            0.0004
+          ],
+          "rho_raw_input": -0.0613,
+          "encoder_adds": 0.0115,
+          "rho_handbuilt": -0.0613,
+          "ci_handbuilt": [
+            -0.0674,
+            -0.0551
+          ],
+          "beats_own_input": true,
+          "beats_bar": true
+        },
+        {
+          "input": "engineered",
+          "horizon": 48,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0452,
+          "ci_embedding": [
+            0.038,
+            0.0514
+          ],
+          "rho_control": -0.0059,
+          "ci_control": [
+            -0.0125,
+            -0.0
+          ],
+          "rho_raw_input": 0.0194,
+          "encoder_adds": 0.0258,
+          "rho_handbuilt": 0.0194,
+          "ci_handbuilt": [
+            0.0135,
+            0.026
+          ],
+          "beats_own_input": true,
+          "beats_bar": true
+        },
+        {
+          "input": "engineered",
+          "horizon": 48,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0418,
+          "ci_embedding": [
+            0.0358,
+            0.0489
+          ],
+          "rho_control": 0.0154,
+          "ci_control": [
+            0.0086,
+            0.0235
+          ],
+          "rho_raw_input": 0.0626,
+          "encoder_adds": -0.0208,
+          "rho_handbuilt": 0.0626,
+          "ci_handbuilt": [
+            0.0561,
+            0.0699
+          ],
+          "beats_own_input": false,
+          "beats_bar": false
+        },
+        {
+          "input": "engineered",
+          "horizon": 48,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": -0.0098,
+          "ci_embedding": [
+            -0.0167,
+            -0.0032
+          ],
+          "rho_control": 0.0025,
+          "ci_control": [
+            -0.0047,
+            0.0087
+          ],
+          "rho_raw_input": -0.0015,
+          "encoder_adds": -0.0083,
+          "rho_handbuilt": -0.0015,
+          "ci_handbuilt": [
+            -0.0072,
+            0.005
+          ],
+          "beats_own_input": false,
+          "beats_bar": false
+        },
+        {
+          "input": "engineered",
+          "horizon": 48,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.034,
+          "ci_embedding": [
+            0.0272,
+            0.0391
+          ],
+          "rho_control": 0.0023,
+          "ci_control": [
+            -0.0044,
+            0.0081
+          ],
+          "rho_raw_input": 0.0281,
+          "encoder_adds": 0.0059,
+          "rho_handbuilt": 0.0281,
+          "ci_handbuilt": [
+            0.0217,
+            0.035
+          ],
+          "beats_own_input": true,
+          "beats_bar": false
+        }
+      ]
+    },
+    "ohlcv@6": {
+      "rho_embedding": 0.0194,
+      "rho_handbuilt": 0.0461,
+      "rho_control": 0.0012,
+      "rho_raw_input": 0.0209,
+      "encoder_adds": -0.0007,
+      "encoder_adds_in_folds": 4,
+      "beats_bar_in_folds": 0,
+      "n_folds": 10,
+      "pair_agnostic": {
+        "threshold": 0.3,
+        "median": 0.0965,
+        "p90": 0.1778,
+        "max": 0.2926,
+        "n_dims_over": 0,
+        "n_dims": 320,
+        "passed": true,
+        "anchored_on": "production's worst dimension across f05/f07/f10/f13 is 0.2297; 0.30 leaves ~1.3x headroom"
+      },
+      "per_fold": [
+        {
+          "input": "ohlcv",
+          "horizon": 6,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.016,
+          "ci_embedding": [
+            0.0095,
+            0.0231
+          ],
+          "rho_control": -0.0051,
+          "ci_control": [
+            -0.0111,
+            0.001
+          ],
+          "rho_raw_input": 0.0317,
+          "encoder_adds": -0.0157,
+          "rho_handbuilt": 0.0456,
+          "ci_handbuilt": [
+            0.0395,
+            0.0514
+          ],
+          "beats_own_input": false,
+          "beats_bar": false
+        },
+        {
+          "input": "ohlcv",
+          "horizon": 6,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0176,
+          "ci_embedding": [
+            0.0119,
+            0.0242
+          ],
+          "rho_control": -0.0051,
+          "ci_control": [
+            -0.0118,
+            0.0015
+          ],
+          "rho_raw_input": 0.0179,
+          "encoder_adds": -0.0003,
+          "rho_handbuilt": 0.0324,
+          "ci_handbuilt": [
+            0.0253,
+            0.0386
+          ],
+          "beats_own_input": false,
+          "beats_bar": false
+        },
+        {
+          "input": "ohlcv",
+          "horizon": 6,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0341,
+          "ci_embedding": [
+            0.0275,
+            0.0408
+          ],
+          "rho_control": 0.0066,
+          "ci_control": [
+            0.0005,
+            0.0131
+          ],
+          "rho_raw_input": 0.029,
+          "encoder_adds": 0.0051,
+          "rho_handbuilt": 0.0465,
+          "ci_handbuilt": [
+            0.0403,
+            0.053
+          ],
+          "beats_own_input": true,
+          "beats_bar": false
+        },
+        {
+          "input": "ohlcv",
+          "horizon": 6,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0106,
+          "ci_embedding": [
+            0.0044,
+            0.0177
+          ],
+          "rho_control": -0.0096,
+          "ci_control": [
+            -0.0158,
+            -0.0029
+          ],
+          "rho_raw_input": 0.0126,
+          "encoder_adds": -0.002,
+          "rho_handbuilt": 0.0419,
+          "ci_handbuilt": [
+            0.0349,
+            0.0487
+          ],
+          "beats_own_input": false,
+          "beats_bar": false
+        },
+        {
+          "input": "ohlcv",
+          "horizon": 6,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0143,
+          "ci_embedding": [
+            0.0077,
+            0.0215
+          ],
+          "rho_control": -0.0017,
+          "ci_control": [
+            -0.0085,
+            0.0047
+          ],
+          "rho_raw_input": 0.0114,
+          "encoder_adds": 0.0029,
+          "rho_handbuilt": 0.0337,
+          "ci_handbuilt": [
+            0.0282,
+            0.0404
+          ],
+          "beats_own_input": true,
+          "beats_bar": false
+        },
+        {
+          "input": "ohlcv",
+          "horizon": 6,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0186,
+          "ci_embedding": [
+            0.0115,
+            0.0258
+          ],
+          "rho_control": 0.0064,
+          "ci_control": [
+            0.0006,
+            0.0126
+          ],
+          "rho_raw_input": 0.0208,
+          "encoder_adds": -0.0022,
+          "rho_handbuilt": 0.0475,
+          "ci_handbuilt": [
+            0.0405,
+            0.0549
+          ],
+          "beats_own_input": false,
+          "beats_bar": false
+        },
+        {
+          "input": "ohlcv",
+          "horizon": 6,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0247,
+          "ci_embedding": [
+            0.0192,
+            0.0312
+          ],
+          "rho_control": 0.0093,
+          "ci_control": [
+            0.003,
+            0.0168
+          ],
+          "rho_raw_input": 0.0115,
+          "encoder_adds": 0.0132,
+          "rho_handbuilt": 0.0341,
+          "ci_handbuilt": [
+            0.0275,
+            0.0404
+          ],
+          "beats_own_input": true,
+          "beats_bar": false
+        },
+        {
+          "input": "ohlcv",
+          "horizon": 6,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0254,
+          "ci_embedding": [
+            0.0197,
+            0.032
+          ],
+          "rho_control": 0.0084,
+          "ci_control": [
+            0.0026,
+            0.0154
+          ],
+          "rho_raw_input": 0.0315,
+          "encoder_adds": -0.0061,
+          "rho_handbuilt": 0.0944,
+          "ci_handbuilt": [
+            0.087,
+            0.1013
+          ],
+          "beats_own_input": false,
+          "beats_bar": false
+        },
+        {
+          "input": "ohlcv",
+          "horizon": 6,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0203,
+          "ci_embedding": [
+            0.0143,
+            0.028
+          ],
+          "rho_control": 0.0039,
+          "ci_control": [
+            -0.0025,
+            0.0104
+          ],
+          "rho_raw_input": 0.0214,
+          "encoder_adds": -0.0011,
+          "rho_handbuilt": 0.0734,
+          "ci_handbuilt": [
+            0.0665,
+            0.0804
+          ],
+          "beats_own_input": false,
+          "beats_bar": false
+        },
+        {
+          "input": "ohlcv",
+          "horizon": 6,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0301,
+          "ci_embedding": [
+            0.0234,
+            0.0374
+          ],
+          "rho_control": -0.0014,
+          "ci_control": [
+            -0.0076,
+            0.0045
+          ],
+          "rho_raw_input": 0.0209,
+          "encoder_adds": 0.0092,
+          "rho_handbuilt": 0.0561,
+          "ci_handbuilt": [
+            0.05,
+            0.0626
+          ],
+          "beats_own_input": true,
+          "beats_bar": false
+        }
+      ]
+    },
+    "ohlcv@48": {
+      "rho_embedding": 0.018,
+      "rho_handbuilt": 0.0238,
+      "rho_control": -0.0015,
+      "rho_raw_input": 0.0121,
+      "encoder_adds": 0.0089,
+      "encoder_adds_in_folds": 7,
+      "beats_bar_in_folds": 4,
+      "n_folds": 10,
+      "pair_agnostic": {
+        "threshold": 0.3,
+        "median": 0.0965,
+        "p90": 0.1778,
+        "max": 0.2926,
+        "n_dims_over": 0,
+        "n_dims": 320,
+        "passed": true,
+        "anchored_on": "production's worst dimension across f05/f07/f10/f13 is 0.2297; 0.30 leaves ~1.3x headroom"
+      },
+      "per_fold": [
+        {
+          "input": "ohlcv",
+          "horizon": 48,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0128,
+          "ci_embedding": [
+            0.0062,
+            0.0185
+          ],
+          "rho_control": -0.0053,
+          "ci_control": [
+            -0.0114,
+            0.002
+          ],
+          "rho_raw_input": 0.0098,
+          "encoder_adds": 0.003,
+          "rho_handbuilt": 0.0378,
+          "ci_handbuilt": [
+            0.0311,
+            0.0441
+          ],
+          "beats_own_input": true,
+          "beats_bar": false
+        },
+        {
+          "input": "ohlcv",
+          "horizon": 48,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0309,
+          "ci_embedding": [
+            0.0235,
+            0.0381
+          ],
+          "rho_control": 0.0061,
+          "ci_control": [
+            -0.001,
+            0.0128
+          ],
+          "rho_raw_input": 0.0187,
+          "encoder_adds": 0.0122,
+          "rho_handbuilt": 0.062,
+          "ci_handbuilt": [
+            0.0551,
+            0.0681
+          ],
+          "beats_own_input": true,
+          "beats_bar": false
+        },
+        {
+          "input": "ohlcv",
+          "horizon": 48,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0306,
+          "ci_embedding": [
+            0.0246,
+            0.038
+          ],
+          "rho_control": -0.0055,
+          "ci_control": [
+            -0.0126,
+            0.0016
+          ],
+          "rho_raw_input": 0.0359,
+          "encoder_adds": -0.0053,
+          "rho_handbuilt": 0.0656,
+          "ci_handbuilt": [
+            0.0595,
+            0.0729
+          ],
+          "beats_own_input": false,
+          "beats_bar": false
+        },
+        {
+          "input": "ohlcv",
+          "horizon": 48,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0436,
+          "ci_embedding": [
+            0.0369,
+            0.05
+          ],
+          "rho_control": 0.0076,
+          "ci_control": [
+            0.0007,
+            0.0143
+          ],
+          "rho_raw_input": 0.0195,
+          "encoder_adds": 0.0241,
+          "rho_handbuilt": -0.0109,
+          "ci_handbuilt": [
+            -0.018,
+            -0.0044
+          ],
+          "beats_own_input": true,
+          "beats_bar": true
+        },
+        {
+          "input": "ohlcv",
+          "horizon": 48,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0118,
+          "ci_embedding": [
+            0.0045,
+            0.0193
+          ],
+          "rho_control": -0.0072,
+          "ci_control": [
+            -0.0132,
+            -0.0006
+          ],
+          "rho_raw_input": 0.0063,
+          "encoder_adds": 0.0055,
+          "rho_handbuilt": 0.0102,
+          "ci_handbuilt": [
+            0.0035,
+            0.0172
+          ],
+          "beats_own_input": true,
+          "beats_bar": false
+        },
+        {
+          "input": "ohlcv",
+          "horizon": 48,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": -0.0503,
+          "ci_embedding": [
+            -0.0563,
+            -0.0434
+          ],
+          "rho_control": -0.0056,
+          "ci_control": [
+            -0.0115,
+            0.0004
+          ],
+          "rho_raw_input": 0.0032,
+          "encoder_adds": -0.0535,
+          "rho_handbuilt": -0.0613,
+          "ci_handbuilt": [
+            -0.0674,
+            -0.0551
+          ],
+          "beats_own_input": false,
+          "beats_bar": true
+        },
+        {
+          "input": "ohlcv",
+          "horizon": 48,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0353,
+          "ci_embedding": [
+            0.0288,
+            0.0416
+          ],
+          "rho_control": -0.0059,
+          "ci_control": [
+            -0.0125,
+            -0.0
+          ],
+          "rho_raw_input": 0.0142,
+          "encoder_adds": 0.0211,
+          "rho_handbuilt": 0.0194,
+          "ci_handbuilt": [
+            0.0135,
+            0.026
+          ],
+          "beats_own_input": true,
+          "beats_bar": true
+        },
+        {
+          "input": "ohlcv",
+          "horizon": 48,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": -0.0047,
+          "ci_embedding": [
+            -0.0116,
+            0.0015
+          ],
+          "rho_control": 0.0154,
+          "ci_control": [
+            0.0086,
+            0.0235
+          ],
+          "rho_raw_input": 0.0191,
+          "encoder_adds": -0.0238,
+          "rho_handbuilt": 0.0626,
+          "ci_handbuilt": [
+            0.0561,
+            0.0699
+          ],
+          "beats_own_input": false,
+          "beats_bar": false
+        },
+        {
+          "input": "ohlcv",
+          "horizon": 48,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0106,
+          "ci_embedding": [
+            0.0046,
+            0.018
+          ],
+          "rho_control": 0.0025,
+          "ci_control": [
+            -0.0047,
+            0.0087
+          ],
+          "rho_raw_input": -0.0067,
+          "encoder_adds": 0.0173,
+          "rho_handbuilt": -0.0015,
+          "ci_handbuilt": [
+            -0.0072,
+            0.005
+          ],
+          "beats_own_input": true,
+          "beats_bar": true
+        },
+        {
+          "input": "ohlcv",
+          "horizon": 48,
+          "n_pairs_train": 10,
+          "n_pairs_test": 10,
+          "width": 320,
+          "rho_embedding": 0.0232,
+          "ci_embedding": [
+            0.0168,
+            0.03
+          ],
+          "rho_control": 0.0023,
+          "ci_control": [
+            -0.0044,
+            0.0081
+          ],
+          "rho_raw_input": 0.0099,
+          "encoder_adds": 0.0133,
+          "rho_handbuilt": 0.0281,
+          "ci_handbuilt": [
+            0.0217,
+            0.035
+          ],
+          "beats_own_input": true,
+          "beats_bar": false
+        }
+      ]
+    }
+  },
+  "primary_passed": false
 }

@@ -1,6 +1,6 @@
 # Label-free study: can a model learn to trade by maximising profit directly?
 
-**Status:** research programme. Briefs 01-06 executed; 07-08 not started. See **Results** below.
+**Status:** research programme. Briefs 01-07 executed; 08 not started. See **Results** below.
 Each brief in `briefs/` is written so
 it can be handed to Claude Code (or turned into a `specs/0NN-*` feature via `/speckit-specify`)
 as a self-contained investigative project.
@@ -83,7 +83,7 @@ picture:
 > The transferable method from these studies is written up for general strategy work in
 > [`docs/HYPERPARAMETER_STUDY.md`](../../docs/HYPERPARAMETER_STUDY.md).
 
-Six briefs executed as spec-kit features. **No brief has produced an adoptable operating
+Seven briefs executed as spec-kit features. **No brief has produced an adoptable operating
 point**; each delivered a quantified negative, which is what the protocol's kill gates are for.
 
 | brief | feature | verdict | the number |
@@ -94,6 +94,15 @@ point**; each delivered a quantified negative, which is what the protocol's kill
 | 04 RL in a pooled env | [`012`](../../specs/012-labelfree-rl-pooled-env/) | **KILL** | pooled reward IQM −0.1301, positive in 5/15 folds |
 | 05 gradient-free policy search | [`013`](../../specs/013-labelfree-es-policy-search/) | **KILL** | [PBO **0.7128**](briefs/results/05-2026-09-13.md) over 48,015 evaluations |
 | 06 generative stress harness | [`014`](../../specs/014-labelfree-generative-stress/) | **harness ACCEPTED** | [38.6% of re-orderings lose](briefs/results/06-2026-09-14.md); 90% interval [−2.71, +2.75] pp/yr |
+| 07 self-supervised features | [`015`](../../specs/015-labelfree-ssl-features/) | **KILL** | [the encoder adds nothing](briefs/results/07-2026-09-15.md) — it *loses* information in 10/10 folds on its best input |
+
+**Brief 07 also corrected a number this study had been quoting.** The OHLCV "information
+ceiling" of ρ ≈ 0.15 is not reproducible under a causally aligned target — the hand-built
+features reach **0.024–0.046**, roughly flat across horizons from 3 to 96 bars, and the familiar
+decay-with-horizon turns out to be an artefact of measuring the target from the signal bar's own
+open. Three generations of that measurement, two of them wrong in different ways, are recorded in
+[`research/labelfree/CEILING_CORRECTIONS.md`](../labelfree/CEILING_CORRECTIONS.md). **Re-derive
+ρ before building on it.**
 
 **Brief 06 is the only one that shipped a tool rather than a verdict on a policy.** It is a
 *veto* instrument and it did not veto — but its distribution is the study's second independent
