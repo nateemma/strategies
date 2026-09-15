@@ -42,3 +42,51 @@ return convention that flipped a sign, and a participation floor that rejected p
 - tasks **46** (44 + T018a, T024a)
 - unmapped tasks 0 · duplication 0 · terminology drift 0
 - Critical 0 · High 0 · Medium 0 · Low 0
+
+---
+
+## Pass 2 — post-implementation (2026-09-14)
+
+**0 CRITICAL, 0 HIGH, 2 MEDIUM, 1 LOW.** All fixed.
+
+| id | finding | fix |
+|---|---|---|
+| **P1** | **research.md R2 still asserted a prediction the implementation refuted.** R2 argued SC-001 was "expected to pass" and "biased heavily toward passing". The gate *failed* on its first run (`es_ratio` 1.8385, `dd_ratio` 1.7636) and caught a real bug. Leaving the prediction standing without its outcome misleads the next reader and understates what the gate demonstrated. | R2 annotated with the refutation, the analysis left standing as written — a prediction is only worth recording if it stays legible when it misses. |
+| **P2** | **The block-length selection rule lived only in the result, not the design.** "Shortest that passes, not best calibrated" was discovered during implementation — the sweep script had picked L=288 on precisely the wrong rule — and was recorded in `calibration.json` and the result document, but not in `data-model.md`. A re-run would have had to rediscover it. | Recorded in data-model.md §2 with the monotonicity evidence (KS 0.0252 → 0.0119) and the degenerate-limit argument. |
+| **P3** | A full five-point sweep leaves ~490 MB of banks on disk. Correctly gitignored, but undocumented. | Noted in quickstart.md Step 5. |
+
+### Verification performed
+
+- **36/36 requirements** cited by a task; all 46 tasks complete
+- every module probed against what the spec says it does: calibration holds the evaluator
+  constant, the shared block index is implemented as `idx[i] != idx[i-1] + 1`, admissibility is
+  routed rather than reimplemented, the verdict field is not named `passed`, and the
+  pre-registered tolerances are unchanged at `KS_MAX = 0.10`
+- quickstart run end to end (T040); its stated expectations replaced with measured numbers
+- **191 tests pass**
+
+### What pass 1's fixes were worth
+
+Both of pass 1's serious findings would have produced a wrong verdict rather than a broken run.
+**C1** would have had the feature's only gate comparing surrogate-on-synthetic against
+freqtrade-on-real, attributing a known −5.30 ± 23.46 pp evaluator gap to the generator — and
+since a calibration failure is a kill, the feature could have died of a confound. **H1** would
+have let independent per-pair resampling understate joint drawdown, in the direction the
+`dd_ratio` band was most permissive about.
+
+Neither was visible to a wiring check. Both are errors in *what gets compared*.
+
+### Constitution alignment (pass 2)
+
+| principle | status |
+|---|---|
+| **II. Persistence** (NON-NEGOTIABLE) | **N/A, and it held.** The feature shipped a veto instrument, not a candidate; the stress result is explicitly labelled "not an endorsement" and SC-009 was not violated. |
+| **IV. Parameters actually live** | satisfied — `L` swept across five values, all reported, with the selection rule now in the design |
+| **V. Lookahead-clean is not realistic** | satisfied — cost and slippage ride inside the resampled blocks |
+| I, III, VI, VII, VIII, IX, X | no conflicts |
+
+### Metrics (pass 2, post-fix)
+
+- requirements 36/36 · tasks 46/46 · tests 191 passing
+- unmapped tasks 0 · duplication 0 · terminology drift 0
+- Critical 0 · High 0 · Medium 0 · Low 0

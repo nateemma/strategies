@@ -37,6 +37,23 @@ side-cars for all 15 folds already exist on disk.
 
 ## R2 — The honest problem with SC-001: a gate that is expected to pass
 
+> **OUTCOME (2026-09-14): this prediction was REFUTED, in the useful direction.** The gate
+> failed on its first run — `es_ratio` 1.8385, `dd_ratio` 1.7636 against bands of (0.7, 1.4) and
+> (0.7, 1.6) — and it was right to. The cause was a real bug: the bootstrap resampled raw price
+> LEVELS, so splicing two unrelated moments fabricated bar-to-bar moves averaging 40% and peaking
+> at 169% at block joins, against a real maximum of 6.6%. Every join invented a crash the market
+> never had.
+>
+> The body of the distribution passed throughout (`ks` 0.0442), exactly as this decision
+> predicted, and the failure landed on the tails — also as predicted. What the decision got wrong
+> was the conclusion: it reasoned from "the body must match by construction" to "the gate is
+> nearly vacuous", when the tails were load-bearing enough to catch a defect that would have
+> corrupted every stress verdict.
+>
+> **No tolerance was moved.** With a single load-bearing gate the temptation is to widen whichever
+> band fails; the band was right and the generator was wrong. The analysis below is left standing
+> as written, because a prediction is only worth recording if it is left legible when it misses.
+
 **This is the most important thing in this document, and it is a weakness of the design rather
 than a result.**
 

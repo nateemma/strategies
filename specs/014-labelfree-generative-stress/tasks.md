@@ -145,8 +145,8 @@ not proceed to Phase 6.
 - [X] T038 [P] (FR-015, SC-012) Note the multi-task variants as explicitly out of scope, nowhere else in the results (SC-012)
 - [X] T039 [P] Update `research/label-free-study/README.md`'s Results table with brief 06's outcome
 - [X] T040 Run `quickstart.md` end to end as written and fix any step whose stated expectation does not match what actually happens
-- [ ] T041 Stage only the files this feature created or modified (FR-019); check `git status` first and leave anything unexpected alone
-- [ ] T042 Re-run `/speckit-analyze` after implementation and record the clean report in the feature directory — **FR-020 and SC-010 require one before implementation and one again after**
+- [X] T041 Stage only the files this feature created or modified (FR-019); check `git status` first and leave anything unexpected alone
+- [X] T042 Re-run `/speckit-analyze` after implementation and record the clean report in the feature directory — **FR-020 and SC-010 require one before implementation and one again after**
 
 ---
 

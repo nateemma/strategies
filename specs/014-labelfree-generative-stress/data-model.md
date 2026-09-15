@@ -38,6 +38,18 @@ series end.
 |---|---|---|
 | `L` (mean block length, bars) | **swept over {96, 144, 192, 240, 288}** | the brief's 1–3 days at 15-minute bars. Swept, not chosen — reporting one value as *the* answer would hide the sensitivity (Principle IV applied to the one parameter this feature has). Required by FR-003a and SC-006a. |
 | index sharing | **one index across all pairs** | keeps the cross-section intact, so pairs that crashed together still do |
+| selection among passing `L` | **the SHORTEST that passes calibration** | see below |
+
+**Selecting the block length: shortest that passes, NOT best calibrated.** The calibration
+statistic improves monotonically with block length, because longer blocks preserve more real
+structure and splice less often — measured across the sweep, KS ran 0.0252 → 0.0119 from L=96 to
+L=288. At the limit, where a block spans the whole series, every path *is* the real series:
+calibration would be perfect and the harness would resample nothing.
+
+So **selecting by best calibration drives toward the degenerate case**. The rule is the most
+resampling consistent with a faithful generator — the shortest passing `L`. This was discovered
+during implementation, when the sweep script picked L=288 on precisely the wrong rule; it is
+recorded here so a re-run does not have to rediscover it.
 | `n_paths` | ≥ 1,000 (FR-010) | |
 | path length | the source fold's own bar count | keeps synthetic and real comparable without a length correction |
 | wrap | yes | the stationary variant's requirement; without it, bars near the end are under-sampled |

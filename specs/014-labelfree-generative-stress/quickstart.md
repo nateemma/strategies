@@ -76,7 +76,8 @@ for L in 96 144 192 240 288; do
 done
 ```
 
-**Expect**: calibration reported **per block length**, ~4 min each. **Measured** — all five pass:
+**Expect**: calibration reported **per block length**, ~4 min each. Note the disk cost: each
+bank is ~88 MB, so a full five-point sweep leaves **~490 MB** under `stress/banks/` (gitignored). **Measured** — all five pass:
 
 ```
 L     ks       es_ratio  dd_ratio
