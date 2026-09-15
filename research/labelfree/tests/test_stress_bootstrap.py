@@ -80,17 +80,51 @@ def test_all_columns_resampled_together():
     instead of being recomputed (research.md R1).
     """
     p = _panel(n=500)
-    # Make every column a distinct function of the bar index so decoupling is detectable.
+    # Every NON-PRICE column is a distinct function of the bar index, so decoupling shows up.
+    # Price columns are deliberately excluded from this check: they carry a continuity factor
+    # at block joins (see `continuity_factors`), so they are intentionally NOT equal to their
+    # source value. Their invariant is tested separately below.
     for d in p["pairs"].values():
-        for k, mult in (("open", 1), ("p_buy", 2), ("cost", 3), ("adx", 4)):
+        for k, mult in (("p_buy", 2), ("cost", 3), ("adx", 4), ("rvol", 5)):
             d[k] = np.arange(500, dtype=float) * mult
     idx = BS.block_index(500, 500, 96, np.random.default_rng(5))
     out = BS.resample_panel(p, idx)
+    j = idx % 500
     for d in out["pairs"].values():
-        src = d["open"]                       # == source index
-        assert np.allclose(d["p_buy"], src * 2)
-        assert np.allclose(d["cost"], src * 3)
-        assert np.allclose(d["adx"], src * 4)
+        assert np.allclose(d["p_buy"], j * 2)
+        assert np.allclose(d["cost"], j * 3)
+        assert np.allclose(d["adx"], j * 4)
+        assert np.allclose(d["rvol"], j * 5)
+
+
+def test_price_columns_share_one_continuity_factor():
+    """open/high/low/close are scaled by the SAME factor per bar, so their exact intrabar
+    relationships survive the splice. A per-column factor would let low exceed high."""
+    p = _panel(n=2000)
+    idx = BS.block_index(2000, 2000, 96, np.random.default_rng(7))
+    out = BS.resample_panel(p, idx)
+    for pair, d in out["pairs"].items():
+        src = p["pairs"][pair]
+        j = idx % 2000
+        fac = d["close"] / src["close"][j]
+        for col in ("open", "high", "low"):
+            assert np.allclose(d[col], src[col][j] * fac), f"{col} has its own factor"
+        assert (d["low"] <= d["open"]).all() and (d["open"] <= d["high"]).all()
+
+
+def test_no_fabricated_jump_at_a_splice():
+    """The bug the calibration gate caught: resampling raw price LEVELS invents a crash at
+    every join. Measured on f07/AAVE before the fix, joins averaged 40% absolute moves and
+    peaked at 169%, against a real maximum of 6.6%."""
+    p = _panel(n=3000)
+    idx = BS.block_index(3000, 3000, 96, np.random.default_rng(13))
+    out = BS.resample_panel(p, idx)
+    for pair, d in out["pairs"].items():
+        real = np.abs(np.diff(p["pairs"][pair]["close"]) / p["pairs"][pair]["close"][:-1])
+        syn = np.abs(np.diff(d["close"]) / d["close"][:-1])
+        assert syn.max() <= real.max() * 1.6, (
+            f"{pair}: synthetic max move {syn.max():.4f} far exceeds real {real.max():.4f} — "
+            f"a splice is fabricating price action")
 
 
 # ------------------------------------------------- T018a: the cross-section must survive
