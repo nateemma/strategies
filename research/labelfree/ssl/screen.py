@@ -53,8 +53,16 @@ PRIMARY_HORIZONS = (48, 6)
 INPUTS = ("engineered", "ohlcv")
 HORIZONS = (6, 48)
 
-# research.md R1 — the measured ceiling under a PER-PAIR TEMPORAL split, for the reproduction
-# test (T009). NOT a bar; the bar is recomputed per screen.
+# The measured ceiling under a CAUSALLY ALIGNED target, for the reproduction test (T009). NOT a
+# bar -- each screen recomputes its own.
+#
+# THIS CONSTANT HAS BEEN WRONG TWICE, so treat a mismatch as a signal, not a nuisance:
+#   gen 1  {3: 0.1717 ... 48: 0.0826}  split by PAIR while claiming to split by time
+#   gen 2  {3: 0.1465 ... 48: 0.0499}  target started at open[t], including bar t's own move
+#   gen 3  below                       target open[t+1] -> open[t+1+H]
+# If the bar stops reproducing these, DO NOT adjust the constant to match -- check the target's
+# alignment first. Both earlier generations looked plausible and both were leaking.
+# Full history: research/labelfree/CEILING_CORRECTIONS.md
 #
 # R1's first numbers were higher and WRONG. That probe stacked every pair and then sliced the
 # array, so "the first 60%" was THE FIRST 6 PAIRS rather than the first 60% of time — a
@@ -62,7 +70,7 @@ HORIZONS = (6, 48)
 # it makes no difference (0.1601 vs 0.1602), but at H=48 it nearly doubles rho (0.0926 vs
 # 0.0490), because a contemporaneous split lets market-wide moves leak between the fit and score
 # sets and those dominate at longer horizons.
-MEASURED_CEILING = {3: 0.1465, 6: 0.1003, 12: 0.0684, 24: 0.0556, 48: 0.0499, 96: 0.0254}
+MEASURED_CEILING = {3: 0.0352, 6: 0.0461, 12: 0.0396, 24: 0.0328, 48: 0.0238, 96: 0.0401}
 
 RIDGE_ALPHA = 1.0
 BOOT_N = 2000
@@ -287,7 +295,11 @@ def main() -> int:
             print("  %-6d %9.4f %9.4f %9.4f %8d %10.4f"
                   % (H, v["median"], v["min"], v["max"], v["n_folds"],
                      MEASURED_CEILING.get(H, float('nan'))))
-        Path(a.out).with_name("baseline.json").write_text(json.dumps(tab, indent=2))
+        # Record WHICH folds produced this. Without it a legitimate subset run is
+        # indistinguishable from the bar drifting, and the reproduction test cannot tell them
+        # apart — it failed exactly that way on 2026-09-15.
+        Path(a.out).with_name("baseline.json").write_text(json.dumps(
+            {"folds": fids, "n_folds": len(fids), "by_horizon": tab}, indent=2))
         return 0
 
     from research.labelfree.folds import folds as _folds

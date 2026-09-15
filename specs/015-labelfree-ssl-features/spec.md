@@ -8,6 +8,26 @@
 
 **Input**: User description: "Feature: labelfree-ssl-features. This is research/label-free-study brief 07 … Implement research/labelfree/ssl/ with per-fold TS2Vec training on the pooled normalised feature stream, a random-Gaussian control block, and the walk-forward Spearman screen against forward return. Only if the screen beats rho=0.15 on nested OOS, add the features to an NNNC_MLX subclass and run the pooled walk-forward." Plus the user scope decision of 2026-09-14: **TS2Vec only**; Kronos-small and Chronos-Bolt out of scope.
 
+> ### ⚠️ CORRECTED 2026-09-15 — the numbers below are LEAK ARTEFACTS
+>
+> Every ρ figure in this document was measured with a forward-return target starting at
+> `open[t]`, which **included bar *t*'s own move** — information the inputs reveal directly.
+> The causally aligned target is `open[t+1] → open[t+1+H]`, and under it the hand-built bar is:
+>
+> ```
+> H        3        6       12       24       48       96
+> median  0.0352   0.0461   0.0396   0.0328   0.0238   0.0401
+> ```
+>
+> **Two claims stated here as findings do not survive.** "ρ ≈ 0.15 is a horizon-3-to-5 number"
+> — under causal alignment nothing reaches 0.15. And "predictability decays with horizon" — it
+> is roughly **flat** at 0.024–0.046 from H=3 to H=96; the decay was the leak's own signature,
+> since bar *t*'s move is proportionally the largest part of a short-horizon target.
+>
+> The text is left standing rather than rewritten, because a corrected document should show what
+> it corrected. Current numbers: `research/labelfree/ssl/baseline.json`. Full history of the
+> three generations: [`CEILING_CORRECTIONS.md`](../../research/labelfree/CEILING_CORRECTIONS.md).
+
 ## Context
 
 The hypothesis is narrow and stated so it can be killed: **an embedding learned without labels

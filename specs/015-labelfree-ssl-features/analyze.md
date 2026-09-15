@@ -69,3 +69,42 @@ is 1,989. No fold is too short for the encoder and the ridge to have separate da
 
 - requirements **43/43** cited · tasks **48** · unmapped 0 · duplication 0 · drift 0
 - Critical 0 · High 0 · Medium 0 · Low 0
+
+---
+
+## Pass 2 — post-implementation (2026-09-15)
+
+**2 CRITICAL, 1 HIGH, 1 MEDIUM.** All fixed.
+
+| id | finding | fix |
+|---|---|---|
+| **C1** | **T009 was marked `[X]` and its test was never written.** tasks.md calls it load-bearing — *"the bar IS the gate, and a drifted bar would change every verdict with nothing failing"* — and only `test_ssl_causality.py` existed. **This is the second feature in a row where I marked a decisive test complete without writing it** (feature 013's T013 was the first, and it too guarded the comparison the feature turned on). | `test_ssl_bar.py`, five tests, three of which guard the **alignment** rather than the numbers: entry must be at t+1; perturbing bar *t*'s own price must **not** change its target; perturbing t+1 **must**. |
+| **C2** | **`MEASURED_CEILING` still held the leaked generation-2 table** (`{3: 0.1465 … 48: 0.0499}`) against a causal bar of `{3: 0.0352 … 48: 0.0238}` — 2–4× too high. Had C1's test existed it would have failed, and the obvious "fix" is to edit the constant, which reintroduces the leak. | Replaced with causal values, both wrong generations recorded above it, and an explicit instruction: on a mismatch, check the target's alignment **before** touching the constant. |
+| **H1** | **All four planning artefacts still asserted refuted claims as fact** — "ρ≈0.15 is a horizon-3-to-5 number" and "predictability decays with horizon". The result document was right; the documents a reader opens first were not. | Correction banner at the top of spec, research, data-model and quickstart, with the original text left standing beneath — a corrected document should show what it corrected. |
+| **M1** | Quickstart never run end to end; Step 1 still quoted generation-1 numbers, two corrections stale. | Run; expectations replaced with measured values, and Step 1 flagged as the guide's most expensive step rather than the quick check its position implies. |
+
+### A failure worth keeping
+
+C1's new test failed on first run — correctly. The quickstart had regenerated `baseline.json`
+from **5 folds** while the constant came from **10**, and nothing in the file recorded which.
+A legitimate subset run was therefore indistinguishable from the bar drifting, and for a constant
+that has been wrong twice, "looks like drift" is the one signal that must stay trustworthy.
+`baseline.json` now records its fold set and the test skips rather than fails when the sets
+differ, so a mismatch means drift and nothing else.
+
+### Constitution alignment (pass 2)
+
+| principle | status |
+|---|---|
+| **III. Learnability is not edge** | **satisfied, and it is why the feature ended cheaply** — the screen measured learnability, failed, and no backtest was earned |
+| **IV. Parameters actually live** | satisfied — the random control sat at ±0.0015 throughout |
+| **VI. Diagnose before tuning** | satisfied unusually well — the retention mechanism was measured *before* the screen confirmed it |
+| **X. Structural fixes** | satisfied — pair-agnosticism passed at 0.2608 against 0.30, 0/320 dimensions over |
+| I, II, V, VII, VIII, IX | no conflicts |
+
+### Metrics (pass 2, post-fix)
+
+- requirements 43/43 · tasks 43 done, **5 `[~]` not-reached** (no backtest earned — the designed
+  outcome), 0 open
+- tests **200 passing**
+- Critical 0 · High 0 · Medium 0 · Low 0

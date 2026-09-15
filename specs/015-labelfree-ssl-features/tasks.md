@@ -143,9 +143,9 @@ battery left ρ invariant. Write the result report and do not proceed to Phase 7
 - [X] T041 [P] Record that ρ≈0.15 is horizon-dependent, with the five-fold table, so the next brief does not quote it as a constant
 - [X] T042 [P] (SC-016) Confirm and state that no package was installed and no weights downloaded
 - [X] T043 [P] Update `research/label-free-study/README.md`'s Results table with brief 07's outcome
-- [ ] T044 Run `quickstart.md` end to end and fix any step whose stated expectation does not match what happens
-- [ ] T045 (FR-020) Stage only files this feature created or modified; check `git status` first and leave anything unexpected alone
-- [ ] T046 (FR-021, SC-014) Re-run `/speckit-analyze` and record the clean report — one before implementation and one after
+- [X] T044 Run `quickstart.md` end to end and fix any step whose stated expectation does not match what happens
+- [X] T045 (FR-020) Stage only files this feature created or modified; check `git status` first and leave anything unexpected alone
+- [X] T046 (FR-021, SC-014) Re-run `/speckit-analyze` and record the clean report — one before implementation and one after
 
 ---
 
