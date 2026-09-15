@@ -8,8 +8,10 @@ Phase 0. Every decision carries the measurement or code reading behind it.
 
 **This is the most important decision in the document and it corrects the spec.**
 
-The spec sets SC-001 against **ρ = 0.15**, quoted from `us_spot_market_study.md:24`, with the
-primary screen at **horizon 48**. Measured on our own fold panels before writing this plan:
+The spec **originally set** SC-001 against **ρ = 0.15**, quoted from `us_spot_market_study.md:24`,
+with the primary screen at **horizon 48**. *(SC-001 has since been amended to the measured
+per-horizon bar described below; this paragraph records what was corrected and why.)* Measured on
+our own fold panels before writing this plan:
 
 **Measured across 5 folds × 6 horizons, 10 pairs each** (ridge over the 24-column
 `FeatureNormalizer.include_list`, fitted on the first 60% of a fold's test range and scored on
@@ -47,8 +49,8 @@ the same pipeline and the same horizon as the embedding it is compared against**
 Every screen reports `rho_embedding`, `rho_handbuilt`, `rho_control` computed identically, and
 the gate is the *difference* between the first two.
 
-The spec's SC-001 needs amending to say so; that is recorded for the analyze pass rather than
-edited silently here.
+SC-001 was amended accordingly in the same commit that added this decision, rather than left as a
+note for the analyze pass.
 
 ---
 
@@ -122,18 +124,36 @@ is broken and nothing it says is usable.
 across the fold universe, and reject the embedding if
 
 ```
-max over dimensions of  ( std across pairs of per-pair mean ) / ( mean across pairs of per-pair std )  >  0.5
+max over dimensions of  ( std across pairs of per-pair mean ) / ( mean across pairs of per-pair std )  >  0.30
 ```
 
-i.e. if between-pair variation in location exceeds half the within-pair scale for any dimension.
+**The threshold is anchored on what production actually achieves, measured across four folds:**
+
+| fold | pairs | median ratio | p90 | max |
+|---|---|---|---|---|
+| f05 | 10 | 0.0306 | 0.0563 | 0.0992 |
+| f07 | 10 | 0.0260 | 0.0732 | 0.1203 |
+| f10 | 10 | 0.0410 | 0.1425 | **0.2297** |
+| f13 | 10 | 0.0383 | 0.1580 | 0.1792 |
+
+**0.30 gives ~1.3× headroom over production's worst single dimension (0.2297).** An earlier draft
+used **0.5**, which the pre-implementation analyze pass found to be **more than 4× production's
+median-fold maximum** — a gate nothing plausible could fail, which is worse than no gate because
+it reads as corroboration. The analyze pass then proposed 0.25, and measuring a *second* and
+*third* fold refined that too: at 0.25 the headroom is only 1.1×, tight enough to reject an
+embedding no worse than production.
+
+So the rule is: **reject an embedding materially less pair-agnostic than the features it would
+sit beside.** Not an arbitrary constant, and not a number that flatters.
 
 **Why a ratio and not an absolute**: embedding dimensions have arbitrary units, so an absolute
 threshold would be meaningless. The ratio asks the question `AGENT_GUIDE.md:545` actually asks —
 does this feature mean the same thing on every pair?
 
-**Pre-registered at 0.5 before any encoder is trained**, and the reason is the same one that
-governs the liveness thresholds in feature 013: a threshold chosen after seeing the distribution
-is not a threshold.
+**Pre-registered at 0.30 before any encoder is trained.** It is anchored on the *production*
+distribution, which is legitimate to look at — production is not the thing under test — and the
+reason it is fixed now is the one that governs feature 013's liveness thresholds: a threshold
+chosen after seeing the *embedding's* distribution is not a threshold.
 
 **A rejection is a finding, not an inconvenience** (FR-012b). An embedding whose scale depends on
 the pair cannot be deployed in this repo however well it screens, and saying so is a result about

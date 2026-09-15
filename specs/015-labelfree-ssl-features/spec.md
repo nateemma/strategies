@@ -217,8 +217,11 @@ and evaluated on the pooled walk-forward under protocol §5.
 **Pair-agnosticism**
 
 - **FR-012a**: Each embedding dimension's **per-pair distribution MUST be measured**, and the
-  embedding rejected if any dimension's location or scale varies across pairs beyond a stated
-  threshold (`AGENT_GUIDE.md:545` prohibits features whose ranges differ by pair).
+  embedding rejected if any dimension's between-pair location spread exceeds **0.30×** its
+  within-pair scale (`AGENT_GUIDE.md:545` prohibits features whose ranges differ by pair). The
+  threshold is anchored on the production feature set's own measured behaviour — worst dimension
+  0.2297 across four folds — so it rejects an embedding materially less pair-agnostic than the
+  features it would sit beside, rather than being an arbitrary constant.
 - **FR-012b**: A rejection under FR-012a MUST be reported as a **finding** — an embedding that
   cannot be deployed in this repo, however well it screens — not silently normalised away.
 
@@ -262,8 +265,9 @@ and evaluated on the pooled walk-forward under protocol §5.
   interval that excludes it. The bar is **measured, never quoted**: ρ≈0.15 is a horizon-3-to-5
   number (median 0.1717 at H=3, 0.0826 at H=48 across five folds), so a constant would be the
   wrong bar at every horizon but one. See research.md R1.
-- **SC-001a**: All four input × horizon combinations are reported, with the primary identified
-  **before** any is run.
+- **SC-001a**: All four input × horizon combinations are reported, and the primary is **written
+  into the result record before any combination is scored**, so the record itself shows it was not
+  chosen afterwards.
 - **SC-002**: The random Gaussian control scores materially below the embedding on the same
   pipeline; if it matches, the result is capacity and the feature is killed.
 - **SC-003**: Causality is demonstrated by a deletion test, not asserted.

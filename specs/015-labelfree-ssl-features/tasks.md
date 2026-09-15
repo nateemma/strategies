@@ -93,7 +93,8 @@ planted leak is detected.
 
 ## Phase 5: Pair-agnosticism — the deployability gate
 
-- [ ] T024 (FR-012a, SC-003a) Implement `pairagnostic.py` at the **pre-registered** ratio of data-model.md §5: reject if any dimension's between-pair location spread exceeds **0.5×** its within-pair scale. A ratio rather than an absolute, because embedding dimensions have arbitrary units.
+- [ ] T024 (FR-012a, SC-003a) Implement `pairagnostic.py` at the **pre-registered** ratio of data-model.md §5: reject if any dimension's between-pair location spread exceeds **0.30×** its within-pair scale. A ratio rather than an absolute, because embedding dimensions have arbitrary units.
+- [ ] T024a Report the **production feature set's own ratio distribution beside the embedding's** on the same folds. 0.30 is anchored on production's worst dimension (0.2297 across f05/f07/f10/f13, ~1.3× headroom); an earlier draft used 0.5, which is over 4x production's typical maximum — a gate nothing plausible could fail, and therefore worse than no gate.
 - [ ] T025 (FR-012b) Report a rejection as a **finding** — an embedding whose scale depends on the pair cannot be deployed here however well it screens (`AGENT_GUIDE.md:545`) — never normalise it away silently
 - [ ] T026 [P] `test_ssl_pairagnostic.py::test_threshold_is_the_pre_registered_one` and `::test_a_pair_scaled_embedding_is_rejected` — a gate that cannot fail is not a gate
 
@@ -107,7 +108,7 @@ hand-built features.
 - [ ] T027 [US1] (FR-007) Implement `screen.py::run()` — nested ridge over the three-way split, Spearman ρ on split C, with a bootstrap interval
 - [ ] T028 [US1] (FR-008) Fit the ridge on **B only** and score on **C only**. A ridge fitted and scored on the same bars beats any bar, which is how a null becomes a false positive — the spec's own "projection overfits the screen" edge case.
 - [ ] T029 [US1] (FR-007a, SC-001a) Run all four combinations — {engineered, ohlcv} × {6, 48} — reporting `rho_embedding`, `rho_handbuilt`, `rho_control` computed **identically** for each
-- [ ] T030 [US1] (FR-007b) Mark **`engineered` × 48 as PRIMARY**, fixed before any screen runs, and record the other three as secondary/exploratory. Four screens against one threshold is four chances to clear a bar meant to be cleared once — brief 05 measured that failure at PBO 0.7128.
+- [ ] T030 [US1] (FR-007b, SC-001a) Read the primary from a module constant and **write it into `screen.json` BEFORE any combination is scored**, so the record shows it was not chosen after seeing results. Mark **`engineered` × 48 as PRIMARY**, fixed before any screen runs, and record the other three as secondary/exploratory. Four screens against one threshold is four chances to clear a bar meant to be cleared once — brief 05 measured that failure at PBO 0.7128.
 - [ ] T031 [US1] (FR-009, SC-001) Compare each screen against **its own** bar with an interval, never a bare comparison against a constant
 - [ ] T032 [US1] (FR-010, SC-004, SC-011) Exit non-zero and **forbid any backtest** when the primary does not beat its own bar
 - [ ] T033 [US1] **RUN THE SCREEN** across f05..f14 and report all four combinations

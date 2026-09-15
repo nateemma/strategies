@@ -98,15 +98,22 @@ For each embedding dimension `d`:
 
 ```
 ratio(d) = std_over_pairs( mean_within_pair(d) )  /  mean_over_pairs( std_within_pair(d) )
-reject if  max over d of ratio(d)  >  0.5
+reject if  max over d of ratio(d)  >  0.30
 ```
 
 Between-pair variation in *location* exceeding half the within-pair *scale* means the dimension
 does not mean the same thing on every pair, which `AGENT_GUIDE.md:545` prohibits.
 
 **A ratio rather than an absolute**, because embedding dimensions have arbitrary units.
-**Pre-registered at 0.5 before any encoder is trained**, for the same reason feature 013's
-liveness thresholds were: a threshold chosen after seeing the distribution is not a threshold.
+
+**0.30 is anchored on production, measured across four folds** — production's worst single
+dimension reaches 0.2297 (f10), so 0.30 gives ~1.3× headroom. An earlier draft said 0.5, which is
+over 4× production's typical maximum: a gate nothing plausible could fail, and therefore worse
+than no gate, since a decorative PASS reads as corroboration.
+
+**Pre-registered before any encoder is trained.** Anchoring on *production's* distribution is
+legitimate — production is not the thing under test — while a threshold chosen after seeing the
+*embedding's* distribution would not be a threshold at all.
 
 **A rejection is a finding** (FR-012b) — an embedding that cannot be deployed here, however well
 it screens — not something normalised away.

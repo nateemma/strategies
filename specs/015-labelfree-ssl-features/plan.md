@@ -110,7 +110,7 @@ research/labelfree/
 | **1** | Design — data model, CLI contract, quickstart | this document |
 | **2** | Inputs + the hand-built bar measured per (input, horizon) | the bar reproduces R1's numbers |
 | **3** | TS2Vec in MLX, with the causality deletion test and planted leak | a planted leak is detected |
-| **4** | Pair-agnosticism check at the pre-registered threshold | reported; a rejection is a finding |
+| **4** | Pair-agnosticism at the pre-registered **0.30** ratio, with production's own distribution reported beside it | reported; a rejection is a finding |
 | **5** | **The screen** — four combinations, one primary | **BLOCKING**: a primary that does not beat its own bar is a KILL |
 | **6** | Only on a pass: `NNNC_MLX` subclass + pooled walk-forward | protocol §5 |
 | **7** | Result report | written whatever the outcome (FR-016) |
