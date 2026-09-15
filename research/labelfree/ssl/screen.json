@@ -1,0 +1,23 @@
+{
+  "primary": {
+    "input": "engineered",
+    "horizons": [
+      48,
+      6
+    ],
+    "declared": "before any combination was scored"
+  },
+  "folds": [
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f09",
+    "f10",
+    "f11",
+    "f12",
+    "f13",
+    "f14"
+  ],
+  "results": {}
+}

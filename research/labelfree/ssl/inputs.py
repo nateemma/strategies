@@ -87,8 +87,28 @@ LOADERS = {"engineered": engineered, "ohlcv": ohlcv}
 
 
 def forward_return(px: np.ndarray, horizon: int) -> np.ndarray:
-    """Simple forward return over `horizon` bars, aligned to the bar it is known from."""
+    """CAUSALLY ALIGNED forward return for a signal formed at bar t.
+
+    Returns an array indexed by t, holding the return from open[t+1] to open[t+1+horizon].
+
+    WHY THE +1 MATTERS, measured rather than reasoned. Features at bar t are known only at
+    close[t], and the strategy enters at the NEXT bar's open. An earlier version returned
+    open[t+H]/open[t], which starts BEFORE bar t has finished — so the target included bar t's
+    own move, which the inputs reveal directly. The damage was not subtle:
+
+        target from open[t]   vs   from after close[t]        (H=6, ridge, nested OOS)
+        f07  ohlcv                 0.2513  ->  0.0602          -76%
+        f07  engineered            0.1566  ->  0.0861          -45%
+        f09  ohlcv                 0.1796  ->  0.0441          -75%
+
+    It also INVERTED a conclusion: raw OHLCV appeared to beat the engineered feature set by
+    ~1.95x at every horizon, 25/25 fold-horizon comparisons, purely because its log-return
+    channels expressed the overlap most directly. With the target aligned causally the
+    engineered set wins instead. A ratio that stable across horizons was the tell — mechanical
+    relationships look robust.
+    """
     n = len(px)
-    if n <= horizon:
+    if n <= horizon + 1:
         return np.zeros(0)
-    return px[horizon:] / px[:n - horizon] - 1.0
+    # entry at t+1, exit at t+1+horizon; element i corresponds to a signal at bar i.
+    return px[1 + horizon:] / px[1:n - horizon] - 1.0
