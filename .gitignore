@@ -45,3 +45,7 @@ research/labelfree/es/history.jsonl
 # bank is reproducible from its recorded provenance. Feature 013's 60 MB sidecar was untracked
 # but not ignored until an analyze pass caught it; this one is ignored up front.
 research/labelfree/stress/banks/
+
+# Feature 015 (brief 07) embeddings — width 320 over ~130K bars per fold, and reproducible from
+# the encoder under a fixed MLX_SEED.
+research/labelfree/ssl/embeddings/
