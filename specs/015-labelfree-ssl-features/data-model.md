@@ -66,18 +66,19 @@ For each of the four (input × horizon) combinations, three numbers computed **i
 | `rho_handbuilt` | **the bar** — the same ridge over the 24-column production feature set |
 | `rho_control` | the same ridge over a same-width random Gaussian block |
 
-**The bar is not a constant.** Measured before this design (research.md R1):
+**The bar is not a constant — it is a function of horizon.** Measured across 5 folds × 6
+horizons, 10 pairs each (research.md R1):
 
 ```
-full 24-feature production set      H=6  rho_oos 0.1594      H=48  rho_oos 0.0914
-the 6 panel indicator columns       H=6  0.055-0.092         H=48  0.056-0.069
+H       3        6       12       24       48       96
+median  0.1717   0.1127   0.0944   0.0720   0.0826   0.0583
 ```
 
-The quoted ρ≈0.15 reproduces at **horizon 6 on the full feature set** and nowhere else. The spec
-pre-declared a constant 0.15 at **horizon 48**, where the hand-built features themselves reach
-0.0914 — a bar the baseline cannot clear, so an embedding failing it would fail for a reason
-unrelated to the hypothesis. Every screen therefore carries its own bar, measured on the same
-data, pipeline and horizon.
+**ρ ≈ 0.15 is a horizon-3-to-5 number**, not a general ceiling; predictability decays roughly
+monotonically with horizon. The spec pre-declared a constant 0.15 at **horizon 48**, where the
+hand-built features reach **0.083** — a bar the baseline cannot clear, so an embedding failing it
+would fail for a reason unrelated to the hypothesis. Every screen therefore carries its own bar,
+measured on the same data, pipeline and horizon.
 
 ```
 passed = (rho_embedding > rho_handbuilt)  and  interval excludes rho_handbuilt

@@ -78,8 +78,15 @@ That ordering is the feature's main virtue and is preserved exactly.
   a real gate that can itself kill the embedding, and that would be a finding: a feature whose
   scale depends on the pair cannot be deployed in this repo however well it screens.
 - Q: Which forward-return horizon does the screen score against? → A: **Both, reported
-  separately** — the study's `DEFAULT_HORIZON = 48` and the ~6-bar horizon the trades actually
-  realise.
+  separately** — the study's `DEFAULT_HORIZON = 48` and a short horizon of 6 bars.
+
+  **Corrected 2026-09-15.** The 6-bar choice was originally justified by a memory saying "HORIZON
+  is inert above PEAK_WINDOW; the effective horizon is 6 bars". That described a **labelling bug
+  that was fixed on 2026-09-03** — `HORIZON` is live and 48 is the label's real forward reach.
+  The 6-bar screen is retained on different grounds: measured predictability is strongly
+  horizon-dependent (median ρ 0.17 at H=3 falling to 0.06 at H=96), so a short horizon is where
+  any signal is most likely to be visible, and screening only at 48 could miss an embedding whose
+  information is short-lived.
 
   **With four screens (2 inputs × 2 horizons) against one threshold, a "best of four" pass would
   be four chances to clear a bar that one should clear.** That is the multiple-testing failure
@@ -251,7 +258,10 @@ and evaluated on the pooled walk-forward under protocol §5.
 ### The screen (the brief's own gate)
 
 - **SC-001**: The **primary** screen — engineered features, horizon 48 — has its nested-OOS ridge
-  projection beat **ρ = 0.15** against forward return, with an interval that excludes the ceiling.
+  projection beat **the hand-built features' own ρ at the same horizon on the same data**, with an
+  interval that excludes it. The bar is **measured, never quoted**: ρ≈0.15 is a horizon-3-to-5
+  number (median 0.1717 at H=3, 0.0826 at H=48 across five folds), so a constant would be the
+  wrong bar at every horizon but one. See research.md R1.
 - **SC-001a**: All four input × horizon combinations are reported, with the primary identified
   **before** any is run.
 - **SC-002**: The random Gaussian control scores materially below the embedding on the same

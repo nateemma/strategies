@@ -18,11 +18,13 @@ python -m research.labelfree.ssl.screen --baseline-only --folds f05..f14
 **Expect**, reproducing research.md R1:
 
 ```
-full 24-feature production set   H=6  rho_oos ~0.159     H=48  rho_oos ~0.091
+H       3        6       12       24       48       96
+median  0.1717   0.1127   0.0944   0.0720   0.0826   0.0583
 ```
 
 If these do not reproduce, stop: the comparison bar is wrong and every screen below is
-meaningless. **The quoted ρ≈0.15 is a horizon-6 number on the full feature set**, not a constant.
+meaningless. **ρ≈0.15 is a horizon-3-to-5 number, not a constant** — predictability decays with
+forward horizon, so a bar quoted at one horizon is the wrong bar at another.
 
 ## Step 2 — fit an encoder
 
@@ -61,10 +63,10 @@ python -m research.labelfree.ssl.screen --folds f05..f14 --out screen.json
 
 ```
 input        H    rho_embedding   rho_handbuilt   rho_control
-engineered   48   ?               ~0.091          ?            <- PRIMARY
-engineered    6   ?               ~0.159          ?
-ohlcv        48   ?               ~0.091          ?
-ohlcv         6   ?               ~0.159          ?
+engineered   48   ?               ~0.083          ?            <- PRIMARY
+engineered    6   ?               ~0.113          ?
+ohlcv        48   ?               ~0.083          ?
+ohlcv         6   ?               ~0.113          ?
 ```
 
 **The primary is `engineered` × 48 and was fixed before any of this ran.** A secondary that passes

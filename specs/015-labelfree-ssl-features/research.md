@@ -11,22 +11,33 @@ Phase 0. Every decision carries the measurement or code reading behind it.
 The spec sets SC-001 against **ρ = 0.15**, quoted from `us_spot_market_study.md:24`, with the
 primary screen at **horizon 48**. Measured on our own fold panels before writing this plan:
 
-| feature set | H=6 ρ_oos | H=48 ρ_oos |
-|---|---|---|
-| the 6 panel indicator columns | 0.055 – 0.092 | 0.056 – 0.069 |
-| **full 24-feature production set** (`FeatureNormalizer.include_list`) | **0.1594** | **0.0914** |
+**Measured across 5 folds × 6 horizons, 10 pairs each** (ridge over the 24-column
+`FeatureNormalizer.include_list`, fitted on the first 60% of a fold's test range and scored on
+the remainder; f05, f07, f09, f11, f13):
 
-*(ridge, fitted on the first 60% of a fold's test range and scored on the remainder; f07, f10,
-f13.)*
+| H (bars) | median ρ_oos | min | max |
+|---|---|---|---|
+| 3 | **0.1717** | 0.1606 | 0.2346 |
+| 6 | 0.1127 | 0.0970 | 0.1601 |
+| 12 | 0.0944 | 0.0860 | 0.1096 |
+| 24 | 0.0720 | 0.0627 | 0.1212 |
+| 48 | **0.0826** | 0.0467 | 0.0978 |
+| 96 | 0.0583 | 0.0488 | 0.0889 |
 
-Two things follow.
+*(Raw data: `research/labelfree/ceiling_by_horizon.json`.)*
 
-**The 0.15 ceiling is real, but it is a HORIZON-6 number on the FULL feature set.** It reproduces
-almost exactly there (0.1594). It does not reproduce at horizon 48, where the same features reach
-**0.0914** — and it does not reproduce on the narrower panel columns at any horizon.
+**ρ ≈ 0.15 IS NOT A GENERAL CONSTANT. It is a horizon-3-to-5 number.** Predictability decays
+roughly monotonically with forward horizon — ~0.17 at 3 bars to ~0.06 at 96 — and 0.15 sits
+between H=3 and H=6.
+
+**A correction to this document's own first draft.** It reported 0.1594 at H=6 and called that a
+reproduction of the ceiling. That was **one fold (f07) with six pairs on a single split**, and it
+was the top of the across-fold range: the H=6 median over five folds with ten pairs is **0.1127**
+(range 0.097–0.160). The conclusion below survives — the bar must be measured, not quoted — but
+generalising a ceiling from one fold was the same error as quoting one from another study.
 
 **So the pre-declared primary screen was incoherent.** It asked the embedding to beat 0.15 at a
-horizon where the hand-built features themselves reach 0.09. That is a bar the baseline cannot
+horizon where the hand-built features themselves reach **0.083 (median, 0.047–0.098)**. That is a bar the baseline cannot
 clear, and an embedding failing it would be failing for a reason that has nothing to do with the
 hypothesis. This study has now hit that shape three times — brief 06's calibration comparing two
 different evaluators, its drawdown band pointing at the method's own bias, and now this.
