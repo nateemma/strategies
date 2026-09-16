@@ -50,3 +50,11 @@ research/labelfree/stress/banks/
 # the encoder under a fixed MLX_SEED.
 research/labelfree/ssl/embeddings/
 research/labelfree/jump/out/
+
+# T001 (feature 017): probability side-cars are preserved at user_data/sidecars/es_sink
+# (366MB), OUTSIDE this repo -- the outer freqtrade checkout ignores it via `user_data/*`.
+# Regenerating them costs ~44min of backtests. The 2.1GB panel cache is deliberately NOT
+# preserved: it rebuilds from the side-cars in 3.4s/fold. This rule is a defensive guard in
+# case a copy is ever placed inside this repo.
+sidecars/
+research/signalctx/out/

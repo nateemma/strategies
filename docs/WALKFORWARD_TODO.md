@@ -152,10 +152,28 @@ The gate works as a safety mechanism and fails as an edge: it removes the advers
 that made the unconditional form dangerous, and what remains is too small and too neutral to
 ship. Do not adopt; do not re-propose either variant.
 
-**What survives.** The masked-signal finding stands -- ~43% of entry signals are discarded --
-but they are not recoverable through a shared-stop mechanism. The one untested form is genuinely
-independent concurrent trades per pair with separate stops, which freqtrade's live engine cannot
-express; it would need a different execution model, not a strategy change.
+**THE MASKED-SIGNAL RATE IS NOW MEASURED, not inferred: 41.3%.** Feature 017 reconstructed every
+entry signal offline across all 15 folds (`research/signalctx/`, fidelity 0.999): **730 signal
+bars -> 644 distinct events, 378 admitted, 266 masked**. The earlier ~43% came from `--eps` trade
+counts on one fold; this supersedes it. Note 11.8% of signal bars are continuations of a signal
+already counted, so bars and events are not interchangeable.
+
+**A THIRD EXPLANATION CLOSED (2026-09-16): the repeat signal carries no information.**
+`research/signalctx/RESULTS.md`. Trades receiving a repeat signal do worse raw (win 0.587 vs
+0.813, Fisher p<0.0001), but conditioning on the position's unrealised P&L **removes 83% of the
+effect** and the logistic coefficient on the repeat indicator is **-0.0070 (p=0.973)**. Stratified
+CMH p=0.067; an independent 1:1 matched design reaches p<0.05 in **0 of 200** resamples. The model
+re-fires after price has fallen, so "received a repeat signal" restates "is losing". No exit-side
+rule was built: it would act on the position's own mark under another name, which
+`stoploss_grace` and the ATR stop already do.
+
+**What survives.** The masked signals are real and numerous, and **nothing yet shows they are
+worth anything**. Four routes have now been examined: position stacking (undeployable), position
+adjustment unconditional (rejected on drawdown), position adjustment profit-gated (not resolved),
+and the repeat signal as information (a proxy). Still untested: whether **first**-signal context
+predicts quality, what the 266 masked signals would actually have returned (both left open, not
+killed, in feature 017 Phases 4-5), and genuinely independent concurrent trades per pair with
+separate stops — which needs an execution-model change freqtrade's live engine cannot express.
 
 **The deployable form of the same idea** is `position_adjustment_enable` +
 `adjust_trade_position`, which scales into the *existing* trade rather than opening a second
