@@ -60,7 +60,7 @@ obviously correct, and it does not require them to adopt pooling.
 
 ---
 
-## 3. Signal masking by the one-trade-per-pair rule — **OPEN, worth a study**
+## 3. Signal masking by the one-trade-per-pair rule — **MEASURED; position-adjustment fix REJECTED**
 
 Raised 2026-09-15 while planning feature 016, which needed to know whether a hard entry gate
 could be modelled as a filter over the recorded trades. It cannot, and the reason is the
@@ -118,10 +118,33 @@ Caveat of record: this is **one fold**. Principle II is explicit that a single w
 persistence evidence. The masked-signal COUNT is a structural fact about the entry logic and
 will hold; the P&L and drawdown deltas are one observation.
 
-**Next step, now that the size is known.** The masked-signal share is large enough to justify
-the deployable experiment: enable `position_adjustment_enable` + `adjust_trade_position` on
-`NNNC_MLX` and run it through the pooled walk-forward against the 3.350 pp/yr floor, reporting
-drawdown alongside return. Expect it to capture less than the `--eps` upper bound.
+**RUN 2026-09-15 — REJECTED.** Full write-up: `research/posadj/RESULTS.md`. Repeat-signal
+adds (one fixed stake, cap 2, min 4 bars apart) on `NNNC_MLX`, 15 folds, weights reused:
+
+- **Return NOT RESOLVED** — -0.455 pp/yr, 7/13 live folds, far inside the 7.633 pp noise floor.
+- **Drawdown RELIABLY WORSE** — up in **12 of 13** live folds, sign test p = 0.0017, Wilcoxon
+  p = 0.00024, mean +1.58 pp, worst +8.77 pp.
+
+The mechanism is measured, not assumed. Grouping trades by adds received: win rate
+**0.791 -> 0.709 -> 0.286** and mean `profit_ratio` **+0.0157 -> +0.0059 -> -0.0390** for 0, 1
+and 2 adds, with the worst loss doubling. 38% of added-to trades exit by `trailing_stop_loss`
+versus 21% of the rest.
+
+**The repeat signal is adverse-selected**: a second `enter_long` while a position is open
+arrives disproportionately when the first entry is going against you. Adding there grows the
+loser AND, because the ATR stop is computed off the average entry price, moves the stop down
+with it.
+
+**So the `--eps` number never transferred, and the reason is structural.** Stacking creates N
+independent trades each with its own stop; position adjustment merges them into one trade whose
+stop drifts. Same fold f08: `--eps` +1.27pp, deployable form **-6.31pp**. An upper bound
+measured with a different mechanism is not an upper bound on the mechanism you can deploy.
+
+**What survives.** The masked-signal finding stands -- ~43% of entry signals are discarded --
+but they are not free money. Untested, each a separate parameter space: (1) add only when the
+position is in PROFIT, which is where the table above says any value would be; (2) genuinely
+independent concurrent trades per pair with separate stops, which freqtrade's live engine
+cannot express.
 
 **The deployable form of the same idea** is `position_adjustment_enable` +
 `adjust_trade_position`, which scales into the *existing* trade rather than opening a second
