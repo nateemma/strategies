@@ -60,7 +60,54 @@ obviously correct, and it does not require them to adopt pooling.
 
 ---
 
-## 3. Known limits — recorded, not defects
+## 3. Signal masking by the one-trade-per-pair rule — **OPEN, worth a study**
+
+Raised 2026-09-15 while planning feature 016, which needed to know whether a hard entry gate
+could be modelled as a filter over the recorded trades. It cannot, and the reason is the
+study item.
+
+**The mechanism.** `freqtrade/optimize/backtesting.py:1552` admits an entry only when
+`self._position_stacking or len(LocalTrade.bt_trades_open_pp[pair]) == 0`. With stacking off —
+our setting, and the dry/live default — **every entry signal on a pair that already holds an
+open position is silently dropped**. It is not counted as a rejection either:
+`_collate_rejected` is called only on the `max_open_trades` path, so masked signals leave no
+record in the backtest output at all.
+
+**Why it is worth measuring rather than assuming.** Measured on `evaluation/pooled_nnnc.json`
+(378 trades, 15 folds): peak concurrency is **9 against a cap of 10**, and **0 of 15 folds
+reach the cap**. So the global cap is *not* what is limiting this strategy — but the per-pair
+rule might be, and nothing currently reports it. Median hold is 3-10 hours, long enough for a
+second signal on the same pair to be plausible.
+
+**The cheap first step (one backtest, no retraining).** Re-run a single high-activity fold
+(f08, 71 trades, peak concurrency 9) with `--enable-position-stacking` and diff the trade
+count against the ungated baseline. The delta is an upper bound on how much signal the
+per-pair rule is masking. If it is small, the thread closes for an afternoon's work.
+
+**The trap, and it is a real one.** `--eps` is **backtesting and hyperopt only**. freqtrade's
+own help text says results "cannot be reproduced in dry/live trading", and the hyperopt docs
+say dry/live "will **NOT** use position stacking". So a `--eps` run measures an upper bound on
+masked signal; it is **not** a deployable configuration, and any P&L improvement it shows must
+never be read as an edge. That is the `feedback_volume_filter_unmasks_phantom_returns` failure
+mode in a new costume.
+
+**The deployable form of the same idea** is `position_adjustment_enable` +
+`adjust_trade_position`, which scales into the *existing* trade rather than opening a second
+one. This works in dry/live and is already used in `Basket/BasketStrategy.py`,
+`Basket/MomentumRegimeBasket15m.py` and `Reversion/OversoldReversion.py` — but **not** in
+`Framework/` or `NNNC/`. Note the payoff shape differs: averaging into one position is not the
+same trade as two independent ones, so the `--eps` upper bound flatters what position
+adjustment could actually capture.
+
+**Also raising the cap is a separate lever.** With the per-pair rule relaxed, three folds
+already sitting at concurrency 8-9 would likely hit `max_open_trades: 10` immediately, at
+which point the two constraints interact and neither can be studied alone. Existing finding to
+respect: concurrency is payoff-shape specific — momentum wanted 3 positions, reversion wanted
+12 — so the right cap is not a constant to inherit.
+
+---
+
+## 4. Known limits — recorded, not defects
 
 - **Pooling underdelivers against 1/sqrt(n).** Fold returns are not independent, so the
   power ceiling is below what trade count implies. `power.py` reports the shortfall and

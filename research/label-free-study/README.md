@@ -95,6 +95,7 @@ point**; each delivered a quantified negative, which is what the protocol's kill
 | 05 gradient-free policy search | [`013`](../../specs/013-labelfree-es-policy-search/) | **KILL** | [PBO **0.7128**](briefs/results/05-2026-09-13.md) over 48,015 evaluations |
 | 06 generative stress harness | [`014`](../../specs/014-labelfree-generative-stress/) | **harness ACCEPTED** | [38.6% of re-orderings lose](briefs/results/06-2026-09-14.md); 90% interval [−2.71, +2.75] pp/yr |
 | 07 self-supervised features | [`015`](../../specs/015-labelfree-ssl-features/) | **KILL** | [the encoder adds nothing](briefs/results/07-2026-09-15.md) — it *loses* information in 10/10 folds on its best input |
+| 08 jump-model regime gate | [`016`](../../specs/016-labelfree-jump-model-gate/) | **KILL** | [the gate never fired](briefs/results/08-2026-09-15.md) — 14/15 folds redundant with the incumbent rvol guard; seed spread 0.115 exceeds the block rate 0.104 |
 
 **Brief 07 also corrected a number this study had been quoting.** The OHLCV "information
 ceiling" of ρ ≈ 0.15 is not reproducible under a causally aligned target — the hand-built

@@ -49,3 +49,4 @@ research/labelfree/stress/banks/
 # Feature 015 (brief 07) embeddings — width 320 over ~130K bars per fold, and reproducible from
 # the encoder under a fixed MLX_SEED.
 research/labelfree/ssl/embeddings/
+research/labelfree/jump/out/
