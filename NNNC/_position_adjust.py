@@ -52,6 +52,16 @@ class RepeatSignalPositionAdjustMixin:
     # the wallet's trade capacity, not an unbounded concentration.
     max_entry_position_adjustment = 2
 
+    # PYRAMIDING GATE (2026-09-15). False reproduces the unconditional arm, which was REJECTED:
+    # return not resolved (-0.455 pp/yr) and drawdown reliably worse (12/13 folds, p=0.0017).
+    #
+    # That rejection came with a diagnosis rather than just a number. Grouping trades by adds
+    # received gave win rates 0.791 / 0.709 / 0.286 for 0 / 1 / 2 adds -- the repeat signal is
+    # ADVERSE-SELECTED, arriving disproportionately while the first entry is going against you.
+    # Setting this True adds only to positions already in profit, which is the one place that
+    # table says value could survive.
+    position_adjust_require_profit = False
+
     # Minimum bars between adds. Without it a signal persisting across consecutive candles
     # spends the whole budget in 30 minutes, which is a different intervention (faster sizing)
     # than the one being tested (acting on repeat signals).
@@ -73,6 +83,13 @@ class RepeatSignalPositionAdjustMixin:
 
         last = df.iloc[-1]
         if int(last.get("enter_long", 0) or 0) != 1:
+            return None
+
+        # `current_profit` is the ratio against the position's CURRENT average entry, so after
+        # an add the bar for the next one is measured from the averaged basis, not the original
+        # fill. That is the correct reading: it asks whether the position as it now stands is
+        # winning, which is the question the gate is meant to pose.
+        if self.position_adjust_require_profit and current_profit <= 0:
             return None
 
         n_entries = trade.nr_of_successful_entries

@@ -60,7 +60,7 @@ obviously correct, and it does not require them to adopt pooling.
 
 ---
 
-## 3. Signal masking by the one-trade-per-pair rule — **MEASURED; position-adjustment fix REJECTED**
+## 3. Signal masking by the one-trade-per-pair rule — **MEASURED; both position-adjustment forms closed**
 
 Raised 2026-09-15 while planning feature 016, which needed to know whether a hard entry gate
 could be modelled as a filter over the recorded trades. It cannot, and the reason is the
@@ -140,11 +140,22 @@ independent trades each with its own stop; position adjustment merges them into 
 stop drifts. Same fold f08: `--eps` +1.27pp, deployable form **-6.31pp**. An upper bound
 measured with a different mechanism is not an upper bound on the mechanism you can deploy.
 
+**PROFIT-GATED PYRAMIDING also run 2026-09-15 — NOT RESOLVED.** Identical but for one
+condition (`current_profit > 0`), which is where the table above said value would be:
+
+- **Return** -0.304 pp/yr on 10 live folds, CI [-2.186, +1.626], improved 5/10 — far inside the
+  7.633 pp noise floor.
+- **Drawdown** +0.336 pp, worse in 4/10, sign test p = 0.83. **The harm is gone.**
+- But only **19** trades received adds, against 81 unconditional.
+
+The gate works as a safety mechanism and fails as an edge: it removes the adverse-selected adds
+that made the unconditional form dangerous, and what remains is too small and too neutral to
+ship. Do not adopt; do not re-propose either variant.
+
 **What survives.** The masked-signal finding stands -- ~43% of entry signals are discarded --
-but they are not free money. Untested, each a separate parameter space: (1) add only when the
-position is in PROFIT, which is where the table above says any value would be; (2) genuinely
-independent concurrent trades per pair with separate stops, which freqtrade's live engine
-cannot express.
+but they are not recoverable through a shared-stop mechanism. The one untested form is genuinely
+independent concurrent trades per pair with separate stops, which freqtrade's live engine cannot
+express; it would need a different execution model, not a strategy change.
 
 **The deployable form of the same idea** is `position_adjustment_enable` +
 `adjust_trade_position`, which scales into the *existing* trade rather than opening a second

@@ -48,6 +48,8 @@ from _position_adjust import RepeatSignalPositionAdjustMixin
 
 class {cls}(RepeatSignalPositionAdjustMixin, {base}):
 
+    position_adjust_require_profit = {require_profit}
+
     def get_model_path(self) -> str:
         # The UNGATED fold's directory, never this class's own.
         return self.get_storage_location() + "{base}/" + "{base}.keras"
@@ -63,10 +65,11 @@ def assert_reuses_weights(cls: str, base: str) -> None:
         raise SystemExit(f"{own} exists: {cls} has its own model dir and would train in-backtest")
 
 
-def generate(fold_id: str, base: str) -> tuple[str, Path, Path]:
-    cls = f"{base}_PA"
+def generate(fold_id: str, base: str, require_profit: bool = False) -> tuple[str, Path, Path]:
+    cls = f"{base}_PA" + ("P" if require_profit else "")
     py = NNNC / f"{cls}.py"
-    py.write_text(TEMPLATE.format(cls=cls, base=base, fold_id=fold_id))
+    py.write_text(TEMPLATE.format(cls=cls, base=base, fold_id=fold_id,
+                                  require_profit=require_profit))
     src_json = NNNC / f"{base}.json"
     js = NNNC / f"{cls}.json"
     d = json.loads(src_json.read_text())
@@ -128,7 +131,7 @@ def liveness(after: float) -> dict:
     zs = [z for z in glob.glob(str(ROOT / "user_data/backtest_results/*.zip"))
           if os.path.getmtime(z) >= after]
     if not zs:
-        return {"adds": None, "trades_with_adds": None}
+        return {"trades_with_adds": None, "add_equivalents": None}
     z = max(zs, key=os.path.getmtime)
     with zipfile.ZipFile(z) as zf:
         name = [n for n in zf.namelist() if n.endswith(".json") and "config" not in n][0]
@@ -136,11 +139,20 @@ def liveness(after: float) -> dict:
     st = list(d["strategy"].keys())[0]
     tr = d["strategy"][st]["trades"]
     if not tr:
-        return {"adds": 0, "trades_with_adds": 0, "archive": z}
+        return {"trades_with_adds": 0, "add_equivalents": 0.0, "archive": z}
     stakes = np.array([t["stake_amount"] for t in tr], dtype=float)
-    adds = np.maximum(np.round(stakes / BASE_STAKE) - 1, 0).astype(int)
-    return {"adds": int(adds.sum()), "trades_with_adds": int((adds > 0).sum()),
-            "at_cap": int((adds >= 2).sum()), "archive": z}
+
+    # ANY excess over one base stake is an add. NOT `round(stake/base) - 1`: adds are capped by
+    # available wallet (`max_stake`), so most land on NON-INTEGER multiples -- measured
+    # 1.48, 1.69, 1.80, 1.95 among others. Rounding those to 1 reports ZERO adds for a trade
+    # that received one, and it under-reported both arms here: the pyramiding variant read
+    # 9 live folds when it had 10, which is the difference between inadmissible and admissible
+    # against the 10-fold minimum.
+    has_add = stakes > BASE_STAKE * 1.005
+    return {"trades_with_adds": int(has_add.sum()),
+            # capital deployed beyond the first fill, in base-stake units
+            "add_equivalents": float((stakes[has_add] - BASE_STAKE).sum() / BASE_STAKE),
+            "at_cap": int((stakes > BASE_STAKE * 2.5).sum()), "archive": z}
 
 
 def parse(log: Path) -> dict:
@@ -166,6 +178,9 @@ def main() -> int:
     ap.add_argument("--plan", default=str(STRAT / "evaluation/folds/plan_nnnc.json"))
     ap.add_argument("--folds", help="comma-separated fold_ids; default all")
     ap.add_argument("--control", action="store_true", help="also re-run the ungated control")
+    ap.add_argument("--require-profit", action="store_true",
+                    help="pyramiding: add only to positions already in profit")
+    ap.add_argument("--out", default="arms.json")
     a = ap.parse_args()
 
     plan = json.loads(Path(a.plan).read_text())
@@ -180,7 +195,7 @@ def main() -> int:
     for f in folds:
         base = f["strategy_class"]
         t0 = time.time()
-        cls, _, _ = generate(f["fold_id"], base)
+        cls, _, _ = generate(f["fold_id"], base, a.require_profit)
         assert_reuses_weights(cls, base)
         rec = {"fold_id": f["fold_id"], "base": base, "cls": cls,
                "timerange": f["test_timerange"]}
@@ -193,11 +208,11 @@ def main() -> int:
         results.append(rec)
         arm = rec["arm"]
         print(f"[{time.strftime('%H:%M:%S')}] {f['fold_id']}: "
-              f"n={arm['n_trades']} adds={arm['adds']} profit={arm['profit_pct']}% "
+              f"n={arm['n_trades']} adds={arm['trades_with_adds']} profit={arm['profit_pct']}% "
               f"dd_bal={arm['dd_balance']} ({time.time()-t0:.0f}s)", flush=True)
 
-    (OUT / "arms.json").write_text(json.dumps(results, indent=2))
-    print(f"WROTE {OUT/'arms.json'}")
+    (OUT / a.out).write_text(json.dumps(results, indent=2))
+    print(f"WROTE {OUT/a.out}")
     return 0
 
 
