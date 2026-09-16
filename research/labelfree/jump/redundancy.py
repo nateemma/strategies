@@ -24,12 +24,21 @@ from . import features as FE
 RVOL_GUARD = 2.0          # the incumbent's production entry gate
 
 
-def rvol_series(pair: str, lo: pd.Timestamp, hi: pd.Timestamp) -> pd.Series:
-    """volume / rolling(20).mean() -- the quantity the STOP and the entry guard use.
+def rvol_series(pair: str, lo: pd.Timestamp, hi: pd.Timestamp,
+                which: str = "entry_guard") -> pd.Series:
+    """The incumbent uses TWO different quantities both called rvol. Pick deliberately.
 
-    Deliberately not the `rvol` COLUMN, which is an ewm(span=10): same name, different
-    quantity (BaseStrategy.py:1043-1048). Getting that wrong would compare the jump gate
-    against something the incumbent does not actually do.
+      entry_guard  volume / ewm(span=10).mean()        -- the `rvol` COLUMN
+                   (utils/DataframePopulator.py:251), which is what the ENTRY guard
+                   (BaseStrategy.py:939) and the exit guard (:1009) actually test.
+      stop         volume / rolling(20, min_periods=5).mean()
+                   -- computed inline by the volume-confirmation stop (BaseStrategy.py:1046).
+
+    CORRECTED 2026-09-15. The first version of this module used the `stop` quantity and its
+    docstring claimed it was also the entry guard's. It is not. Measured on SOL over 18 months:
+    the two correlate 0.90 and disagree on 5.5% of bars at a 2.0 threshold. Since this module
+    exists to ask whether the jump gate is the ENTRY guard in disguise, `entry_guard` is the
+    default and the right comparator.
     """
     import sys
     from pathlib import Path
@@ -39,7 +48,12 @@ def rvol_series(pair: str, lo: pd.Timestamp, hi: pd.Timestamp) -> pd.Series:
     from regime import regimedata as rd
 
     v = rd.load_ohlcv(pair.split("/")[0])["volume"]
-    r = v / v.rolling(20, min_periods=5).mean()
+    if which == "entry_guard":
+        r = v / v.ewm(span=10, adjust=False).mean()
+    elif which == "stop":
+        r = v / v.rolling(20, min_periods=5).mean()
+    else:
+        raise ValueError(f"which must be entry_guard|stop, got {which!r}")
     return r.loc[(r.index >= lo) & (r.index <= hi)].fillna(0.0)
 
 
