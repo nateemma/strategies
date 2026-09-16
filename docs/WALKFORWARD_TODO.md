@@ -79,17 +79,49 @@ reach the cap**. So the global cap is *not* what is limiting this strategy — b
 rule might be, and nothing currently reports it. Median hold is 3-10 hours, long enough for a
 second signal on the same pair to be plausible.
 
-**The cheap first step (one backtest, no retraining).** Re-run a single high-activity fold
-(f08, 71 trades, peak concurrency 9) with `--enable-position-stacking` and diff the trade
-count against the ungated baseline. The delta is an upper bound on how much signal the
-per-pair rule is masking. If it is small, the thread closes for an afternoon's work.
+**MEASURED 2026-09-15 — the thread does NOT close.** Fold f08 (`NNNC_WF_f08`,
+`20241221-20250321`), control re-run first and reproducing the recorded baseline exactly
+(71 trades, -0.14%):
 
-**The trap, and it is a real one.** `--eps` is **backtesting and hyperopt only**. freqtrade's
+| | control | `--eps` | |
+|---|---|---|---|
+| trades | 71 | **102** | +31 (+44%) |
+| **Rejected Entry signals** | **0** | **23** | the cap starts binding |
+| profit | -0.14% | +1.13% | +1.27pp |
+| Sharpe / Calmar | -0.08 / -0.54 | 0.70 / 3.60 | |
+| max underwater (account) | 5.43% | 6.66% | |
+| **max underwater (balance)** | **8.48%** | **37.21%** | **4.4x** |
+
+**At least 54 entry signals were being discarded** — 31 newly taken plus 23 that the global cap
+then rejected — against a base of 71. The strategy generated roughly 125 signals and acted on
+71: **~43% masked**, and structurally, not in one name (6 of 10 pairs gained 4-6 trades; BCH
+went 2 -> 1, so it is not a pure superset — an earlier fill displaces a later one).
+
+This also **confirms the interaction predicted above**: with the per-pair rule relaxed, rejections
+by `max_open_trades: 10` go from 0 to 23 immediately. The two constraints cannot be studied
+independently, and a study of one that ignores the other will misattribute the effect.
+
+**The trap, and the measurement walked straight into it.** The `+1.27pp` above is **not an
+edge**. `--eps` is **backtesting and hyperopt only**. freqtrade's
 own help text says results "cannot be reproduced in dry/live trading", and the hyperopt docs
 say dry/live "will **NOT** use position stacking". So a `--eps` run measures an upper bound on
 masked signal; it is **not** a deployable configuration, and any P&L improvement it shows must
 never be read as an edge. That is the `feedback_volume_filter_unmasks_phantom_returns` failure
 mode in a new costume.
+
+And here the cost is visible without needing that argument: **balance drawdown went 8.48% ->
+37.21%**, a 4.4x increase, because stacking concentrates multiple simultaneous positions in one
+name. The P&L improved and the risk profile got dramatically worse. Judge any follow-up on
+drawdown-aware metrics, never on the return line.
+
+Caveat of record: this is **one fold**. Principle II is explicit that a single window is not
+persistence evidence. The masked-signal COUNT is a structural fact about the entry logic and
+will hold; the P&L and drawdown deltas are one observation.
+
+**Next step, now that the size is known.** The masked-signal share is large enough to justify
+the deployable experiment: enable `position_adjustment_enable` + `adjust_trade_position` on
+`NNNC_MLX` and run it through the pooled walk-forward against the 3.350 pp/yr floor, reporting
+drawdown alongside return. Expect it to capture less than the `--eps` upper bound.
 
 **The deployable form of the same idea** is `position_adjustment_enable` +
 `adjust_trade_position`, which scales into the *existing* trade rather than opening a second
