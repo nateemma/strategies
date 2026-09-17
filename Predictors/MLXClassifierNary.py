@@ -159,6 +159,17 @@ class MLXClassifierNary(MLXBaseClassifier):
     # a result. Default None preserves the existing module-level SEED behaviour.
     train_seed: int | None = None
 
+    # Training-loop knobs (defaults == today's hard-coded literals). Exposed as
+    # class attributes so the clfstudy harness can override them per-config
+    # without touching this file.
+    max_epochs: int = 100
+    early_patience: int = 20
+    weight_decay: float = 0.0
+
+    # Populated by train() before it returns — read by the harness.
+    epochs_run: int = 0
+    best_epoch: int = 0
+
     # P&L-magnitude loss weighting blend. None/0 ⇒ standard (unweighted) loss;
     # in (0, 1] blends the per-sample forward-excursion magnitude into the loss
     # (w = (1-alpha) + alpha * normalised_magnitude). Requires sample_weights
@@ -329,18 +340,26 @@ class MLXClassifierNary(MLXBaseClassifier):
         loss_fn = multi_class_focal_loss_mlx(gamma=gamma, alpha_vector=focal_alpha)
 
         # --- build optimizer ---
-        optimizer = optim.Adam(learning_rate=self.learning_rate)
+        optimizer = (
+            optim.AdamW(learning_rate=self.learning_rate, weight_decay=self.weight_decay)
+            if self.weight_decay > 0
+            else optim.Adam(learning_rate=self.learning_rate)
+        )
 
         # ---- define per-step loss+grad function ----
         def forward_loss(model, X, y, w):
             preds = model(X)
-            return loss_fn(y, preds, w)
+            loss = loss_fn(y, preds, w)
+            extra = getattr(model, "extra_loss", None)
+            if extra is not None:
+                loss = loss + (extra() if callable(extra) else extra)
+            return loss
 
         loss_and_grad = nn.value_and_grad(self.model, forward_loss)
 
         # ---- training hyper-params (mirrors ClassifierKerasNary) ----
-        max_epochs = 100
-        early_patience = 20
+        max_epochs = int(self.max_epochs)
+        early_patience = int(self.early_patience)
         plateau_patience = 8
         plateau_factor = 0.1
         # Gradient clipping global L2 norm.  Without it, an unlucky batch can
@@ -355,6 +374,7 @@ class MLXClassifierNary(MLXBaseClassifier):
         checkpoint_path = self.get_checkpoint_path()
 
         best_metric = -np.inf
+        best_epoch_idx = 0
         no_improve_cnt = 0
         plateau_cnt = 0
         current_lr = float(self.learning_rate)
@@ -371,6 +391,7 @@ class MLXClassifierNary(MLXBaseClassifier):
 
         consecutive_nan_batches = 0
         aborted = False
+        epoch = -1
 
         for epoch in range(max_epochs):
             # ---- training phase ----
@@ -473,6 +494,7 @@ class MLXClassifierNary(MLXBaseClassifier):
 
             if improved:
                 best_metric = current_metric
+                best_epoch_idx = epoch
                 no_improve_cnt = 0
                 plateau_cnt = 0
                 self.model.save_weights(checkpoint_path)
@@ -503,6 +525,9 @@ class MLXClassifierNary(MLXBaseClassifier):
             print(f"    Restoring best weights from {checkpoint_path}")
             self.model.load_weights(checkpoint_path)
             mx.eval(self.model.parameters())
+
+        self.epochs_run = epoch if aborted else epoch + 1
+        self.best_epoch = best_epoch_idx
 
         self.save()
         self.is_trained = True
