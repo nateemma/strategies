@@ -1,0 +1,487 @@
+phase: 4
+description: Single-family sweeps, one axis at a time around each family anchor (research
+  R7); train.stride 2 per gate-3 decision 3
+gate_from: 3
+configs:
+- arch: LSTM_FAM
+  hp:
+    hidden: 16
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - lstm
+  - size
+- arch: LSTM_FAM
+  hp:
+    hidden: 64
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - lstm
+  - size
+- arch: LSTM_FAM
+  hp:
+    hidden: 256
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - lstm
+  - size
+- arch: LSTM_FAM
+  hp:
+    hidden: 64
+    depth: 2
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - lstm
+  - depth
+- arch: LSTM_FAM
+  hp:
+    hidden: 64
+    bidirectional: true
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - lstm
+  - bidir
+- arch: GRU_FAM
+  hp:
+    hidden: 16
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - gru
+  - size
+- arch: GRU_FAM
+  hp:
+    hidden: 64
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - gru
+  - size
+- arch: GRU_FAM
+  hp:
+    hidden: 256
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - gru
+  - size
+- arch: GRU_FAM
+  hp:
+    hidden: 64
+    depth: 2
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - gru
+  - depth
+- arch: GRU_FAM
+  hp:
+    hidden: 64
+    bidirectional: true
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - gru
+  - bidir
+- arch: TCN_FAM
+  hp:
+    channels: 16
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - tcn
+  - size
+- arch: TCN_FAM
+  hp:
+    channels: 64
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - tcn
+  - size
+- arch: TCN_FAM
+  hp:
+    channels: 256
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - tcn
+  - size
+- arch: TCN_FAM
+  hp:
+    channels: 64
+    kernel: 5
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - tcn
+  - kernel
+- arch: TCN_FAM
+  hp:
+    channels: 64
+    dilation_base: 2
+    depth: 4
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - tcn
+  - dilation
+- arch: TCN_FAM
+  hp:
+    channels: 64
+    depth: 2
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - tcn
+  - depth
+- arch: TCN_FAM
+  hp:
+    channels: 64
+    depth: 6
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - tcn
+  - depth
+- arch: TRANSFORMER_FAM
+  hp:
+    d_model: 32
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - transformer
+  - size
+- arch: TRANSFORMER_FAM
+  hp:
+    d_model: 64
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - transformer
+  - size
+- arch: TRANSFORMER_FAM
+  hp:
+    d_model: 128
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - transformer
+  - size
+- arch: TRANSFORMER_FAM
+  hp:
+    d_model: 64
+    heads: 8
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - transformer
+  - heads
+- arch: TRANSFORMER_FAM
+  hp:
+    d_model: 64
+    layers: 1
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - transformer
+  - layers
+- arch: TRANSFORMER_FAM
+  hp:
+    d_model: 64
+    layers: 4
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - transformer
+  - layers
+- arch: TRANSFORMER_FAM
+  hp:
+    d_model: 64
+    ffn_mult: 4
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - transformer
+  - ffn
+- arch: TRANSFORMER_FAM
+  hp:
+    d_model: 64
+    pos: none
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - transformer
+  - pos
+- arch: TRANSFORMER_FAM
+  hp:
+    d_model: 64
+    pos: rope
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - transformer
+  - pos
+- arch: MLP_FAM
+  hp:
+    width: 64
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - mlp
+  - size
+- arch: MLP_FAM
+  hp:
+    width: 256
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - mlp
+  - size
+- arch: MLP_FAM
+  hp:
+    width: 1024
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - mlp
+  - size
+- arch: MLP_FAM
+  hp:
+    width: 256
+    depth: 1
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - mlp
+  - depth
+- arch: MLP_FAM
+  hp:
+    width: 256
+    depth: 3
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - mlp
+  - depth

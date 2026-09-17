@@ -71,9 +71,9 @@ leaderboards, plots), **[GR]** gate-reviewer (pre-gate leaderboard memo), **[MAI
 **Goal**: one-axis-at-a-time sweeps per family; gate; compositions from viable families only.
 **Independent Test**: `gates/phase_4.json` exists with `viable_set`; no phase-5 config references a non-viable family; every sweep row has `n_params` and timing.
 
-- [ ] T033 [US2] [MAIN] Evaluate gate 3: run `gate --phase 3`; record which existing types are viable (they stay in the finalist pool for phases 5–7) and the `margin_used` in `gates/phase_3.md`; phase 4 sweeps all four families unconditionally because it defines them, and gate 3 informs their anchors only
+- [X] T033 [US2] [MAIN] Evaluate gate 3: run `gate --phase 3`; record which existing types are viable (they stay in the finalist pool for phases 5–7) and the `margin_used` in `gates/phase_3.md`; phase 4 sweeps all four families unconditionally because it defines them, and gate 3 informs their anchors only
 - [X] T034 [P] [US2] [MI] Add `LSTM_FAM`, `GRU_FAM`, `TCN_FAM`, `TRANSFORMER_FAM`, `MLP_FAM` to `NNNC/NNNClassifierMLX.py` per contracts/registry.md (pure families: no conv front-end, no residual unless `hp.residual`); `TRANSFORMER_FAM.pos` supports `learned|none|rope` (`mlx.nn.RoPE`); verify with T022
-- [ ] T035 [US2] [MI] Write `research/clfstudy/configs/phase_4.yaml` from the research R7 anchors and axes (~31 configs, `seeds [0,1]`, tags naming the axis)
+- [X] T035 [US2] [MI] Write `research/clfstudy/configs/phase_4.yaml` from the research R7 anchors and axes (~31 configs, `seeds [0,1]`, tags naming the axis)
 - [ ] T036 [US2] [ER] Run `phase --phase 4`; `leaderboard --phase 4` including the MCC-vs-params scatter and per-axis line plots (`report/plots/sweep_<family>_<axis>.png`)
 - [ ] T037 [US2] [GR] Review `report/leaderboard_4.md`: per family, which axis moves MCC beyond seed noise, best size, cost/benefit; proposed viable families; write `gates/review_4.md`
 - [ ] T038 [US2] [MAIN] Evaluate gate 4: run `gate --phase 4`; decide the viable family set from the gate output and the review; record in `gates/phase_4.md`; ⏸ show leaderboard and proposed viable set; wait

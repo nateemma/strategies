@@ -95,3 +95,19 @@ pooled_seed_std_mcc = 0.003
 
 decided_at: 2026-09-17T11:20:28.904180+00:00
 decided_by: gate.py + author review at checkpoint
+
+## Author decision (checkpoint, 2026-09-17)
+
+1. **Stability clause amendment (FR-004 close-call seeds).** The 12 configs that satisfy the
+   margin on a majority of windows and have no bad status but fail the seed-std ≤ 0.03 clause
+   on one window (two for LSTM_NORESIZE) receive a THIRD seed on the failing window(s) only,
+   after which the rule is re-applied. With 2 seeds the clause was measuring early-stopping
+   noise: production LSTM failed on C (0.042) while LSTM_K5, identical in pooled MCC, passed.
+2. **Finalist set of existing types** carried into phases 5–7: Transformer, LSTM, Wavenet
+   (one per mechanism: attention, recurrence, dilated convolution; all inside the top tie).
+   GRU/LSTM2 dominated (7–11× params, 2× time); K5/KAN/W64/NORES/NOCONV/D10/NOISY
+   indistinguishable from LSTM; Attention/TSMamba/CNN/MLP/Multihead below the tie; Mamba fails
+   the margin. Phase 4 sweeps all four families unconditionally (they define the phase); gate 3
+   informs anchors only.
+3. **Budget.** Phase 3 measured 13.9 h vs 8.8 h projected. Phases 4–6 run with
+   `train.stride = 2` (every second training window); phase-7 finalists train on full data.
