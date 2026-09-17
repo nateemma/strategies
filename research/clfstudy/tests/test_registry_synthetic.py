@@ -15,6 +15,13 @@ New in feature 018 (T034): the five pure single-family types (`LSTM_FAM`,
 parameter-count-differs check and a structural-axis (bidirectional, depth,
 pool, residual, dilation_base, pos) build-and-train-1-epoch liveness check
 (research R7).
+
+New in feature 018 (T044-T048): `TSMIXER`, `ITRANSFORMER`, `XLSTM`,
+`TRANSFORMER_MODERN`, `PATCHTST` (research R13 / Part B refs 5, 6, 7, 8, 12,
+13, 20). `PATCHTST` needs `seq_len=64` (production `seq_len=16` is below its
+`4*patch_len` minimum) -- handled via `SEQ_LEN_OVERRIDE` in the main
+build/train/predict parametrisation, plus a dedicated test that it raises
+`ValueError` at `seq_len=16`.
 """
 from __future__ import annotations
 
@@ -31,10 +38,15 @@ N_CLASSES = 3
 N_ROWS = 400
 N_VAL = 100
 
+#: members that need a different `seq_len` than the rest of the parametrised
+#: build/train/predict sweep (T048: PATCHTST's `4*patch_len` minimum is above
+#: the production seq_len=16 used everywhere else).
+SEQ_LEN_OVERRIDE: dict[str, int] = {"PATCHTST": 64}
 
-def _synthetic_data(seed: int = 0):
+
+def _synthetic_data(seed: int = 0, seq_len: int = SEQ_LEN, n_rows: int = N_ROWS):
     rng = np.random.default_rng(seed)
-    X = rng.normal(size=(N_ROWS, SEQ_LEN, N_FEATURES)).astype(np.float32)
+    X = rng.normal(size=(n_rows, seq_len, N_FEATURES)).astype(np.float32)
 
     # Weak signal: label = argmax of 3 random linear projections of the last timestep.
     proj = rng.normal(size=(N_FEATURES, N_CLASSES)).astype(np.float32)
@@ -66,19 +78,20 @@ def _member_param(member: ClassifierTypeMLX):
     "member", [_member_param(m) for m in ClassifierTypeMLX], ids=[m.name for m in ClassifierTypeMLX]
 )
 def test_build_train_predict(member, tmp_path):
+    seq_len = SEQ_LEN_OVERRIDE.get(member.name, SEQ_LEN)
     cfg = ExperimentConfig(
         arch=member.name,
         hp={},
         input_set="ind24",
-        seq_len=SEQ_LEN,
+        seq_len=seq_len,
         split_set="v1",
         train={"max_epochs": 2, "patience": 5, "batch_size": 64},
     )
     cfg.validate()
 
-    clf = build(cfg, nf=N_FEATURES, seq_len=SEQ_LEN, seed=0, checkpoint_dir=tmp_path)
+    clf = build(cfg, nf=N_FEATURES, seq_len=seq_len, seed=0, checkpoint_dir=tmp_path)
 
-    X_train, X_val, y_train, y_val = _synthetic_data()
+    X_train, X_val, y_train, y_val = _synthetic_data(seq_len=seq_len)
     clf.train(X_train, X_val, y_train, y_val, class_weights=CLASS_WEIGHTS)
 
     preds = clf.predict(X_val)
@@ -90,7 +103,7 @@ def test_build_train_predict(member, tmp_path):
     assert n_params > 0
 
     if member.name == "RIDGE":
-        assert n_params == SEQ_LEN * N_FEATURES * N_CLASSES + N_CLASSES
+        assert n_params == seq_len * N_FEATURES * N_CLASSES + N_CLASSES
     elif member.name == "ROCKET":
         assert n_params == 2 * 1000 * N_CLASSES + N_CLASSES
 
@@ -235,3 +248,99 @@ def test_rope_mha_relative_position_invariance():
     sub_orig = s_orig[1:, 1:]
     sub_shifted = s_shifted[:-1, :-1]
     assert mx.allclose(sub_orig, sub_shifted, atol=1e-4).item()
+
+
+# -----------------------------------------------------------------------
+# T044-T048: phase-6 architecture-specific checks
+# -----------------------------------------------------------------------
+
+
+def test_patchtst_raises_at_seq_len_16(tmp_path):
+    """PATCHTST's default patch_len=16 needs seq_len >= 4*16=64; production
+    seq_len=16 must raise a clear ValueError rather than build a degenerate
+    model."""
+    cfg = ExperimentConfig(
+        arch="PATCHTST",
+        hp={},
+        input_set="ind24",
+        seq_len=SEQ_LEN,
+        split_set="v1",
+        train={"max_epochs": 1, "patience": 5, "batch_size": 64},
+    )
+    cfg.validate()
+    clf = build(cfg, nf=N_FEATURES, seq_len=SEQ_LEN, seed=0, checkpoint_dir=tmp_path)
+
+    with pytest.raises(ValueError, match="seq_len"):
+        clf.create_model(SEQ_LEN, N_FEATURES)
+
+
+def test_itransformer_exposes_last_attention(tmp_path):
+    """ITRANSFORMER must expose `model.last_attention` with shape (F, F) --
+    the mean-over-heads/batch attention matrix over feature tokens -- after a
+    forward pass, for use as the secondary (attention-based) importance
+    signal."""
+    seq_len = SEQ_LEN
+    cfg = ExperimentConfig(
+        arch="ITRANSFORMER",
+        hp={},
+        input_set="ind24",
+        seq_len=seq_len,
+        split_set="v1",
+        train={"max_epochs": 1, "patience": 5, "batch_size": 64},
+    )
+    cfg.validate()
+    clf = build(cfg, nf=N_FEATURES, seq_len=seq_len, seed=0, checkpoint_dir=tmp_path)
+
+    X_train, X_val, y_train, y_val = _synthetic_data(seq_len=seq_len)
+    clf.train(X_train, X_val, y_train, y_val, class_weights=CLASS_WEIGHTS)
+
+    assert clf.model.last_attention is not None
+    assert clf.model.last_attention.shape == (N_FEATURES, N_FEATURES)
+
+
+def test_xlstm_finite_on_large_magnitude_inputs(tmp_path):
+    """XLSTM's mLSTM scan (exponential gating + matrix memory) must stay
+    finite even when the input magnitude is 50x the normal synthetic scale --
+    the log-space stabiliser is the mechanism under test, not just liveness."""
+    seq_len = SEQ_LEN
+    cfg = ExperimentConfig(
+        arch="XLSTM",
+        hp={},
+        input_set="ind24",
+        seq_len=seq_len,
+        split_set="v1",
+        train={"max_epochs": 1, "patience": 5, "batch_size": 64},
+    )
+    cfg.validate()
+    clf = build(cfg, nf=N_FEATURES, seq_len=seq_len, seed=0, checkpoint_dir=tmp_path)
+
+    X_train, X_val, y_train, y_val = _synthetic_data(seq_len=seq_len)
+    clf.train(X_train, X_val, y_train, y_val, class_weights=CLASS_WEIGHTS)
+
+    X_large = (X_val * 50.0).astype(np.float32)
+    preds = clf.predict(X_large)
+    assert np.isfinite(preds).all()
+    np.testing.assert_allclose(preds.sum(axis=1), 1.0, atol=1e-3)
+
+
+def test_tsmixer_param_counts_differ_across_blocks(tmp_path):
+    """R13/T044: TSMixer's parameter count must scale with `blocks` (each
+    block adds its own time-mix + feature-mix Linear layers)."""
+    counts = []
+    for blocks in (1, 3):
+        cfg = ExperimentConfig(
+            arch="TSMIXER",
+            hp={"blocks": blocks},
+            input_set="ind24",
+            seq_len=SEQ_LEN,
+            split_set="v1",
+            train={"max_epochs": 1, "patience": 5, "batch_size": 64},
+        )
+        cfg.validate()
+        clf = build(
+            cfg, nf=N_FEATURES, seq_len=SEQ_LEN, seed=0, checkpoint_dir=tmp_path / str(blocks)
+        )
+        X_train, X_val, y_train, y_val = _synthetic_data()
+        clf.train(X_train, X_val, y_train, y_val, class_weights=CLASS_WEIGHTS)
+        counts.append(param_count(clf))
+    assert len(set(counts)) == len(counts), f"TSMIXER param counts did not differ: {counts}"

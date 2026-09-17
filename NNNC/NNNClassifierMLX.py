@@ -1850,6 +1850,586 @@ class NNNClassifierMLX_MLP_Fam(MLXClassifierNary):
 
 
 # -----------------------------------------------------------------------
+# NNNClassifierMLX_TSMixer  (TSMIXER registry type, research R13 / Part B ref [8])
+# -----------------------------------------------------------------------
+
+
+class _TSMixerBlock(nn.Module):
+    """One TSMixer block: time-mixing MLP across the time axis, then
+    feature-mixing MLP across the feature axis, each pre-LN + residual.
+
+    Time-mixing: LayerNorm(F) -> transpose (B,T,F)->(B,F,T) -> Linear(T,T) ->
+    GELU -> dropout -> transpose back -> residual.
+    Feature-mixing: LayerNorm(F) -> Linear(F, F*ff_mult) -> GELU -> dropout ->
+    Linear(F*ff_mult, F) -> residual.
+    """
+
+    def __init__(self, seq_len: int, num_features: int, ff_mult: int, dropout: float):
+        super().__init__()
+        self.ln_time = nn.LayerNorm(num_features)
+        self.time_lin = nn.Linear(seq_len, seq_len)
+        self.drop_time = nn.Dropout(dropout)
+        self.ln_feat = nn.LayerNorm(num_features)
+        self.feat_lin1 = nn.Linear(num_features, num_features * ff_mult)
+        self.feat_lin2 = nn.Linear(num_features * ff_mult, num_features)
+        self.drop_feat = nn.Dropout(dropout)
+
+    def __call__(self, x: mx.array) -> mx.array:
+        res = x
+        h = self.ln_time(x)
+        h = h.transpose(0, 2, 1)  # (B, F, T)
+        h = nn.gelu(self.time_lin(h))
+        h = self.drop_time(h)
+        h = h.transpose(0, 2, 1)  # (B, T, F)
+        x = res + h
+
+        res = x
+        h = self.ln_feat(x)
+        h = nn.gelu(self.feat_lin1(h))
+        h = self.drop_feat(h)
+        h = self.feat_lin2(h)
+        return res + h
+
+
+class _TSMixerModel(nn.Module):
+    """`blocks` `_TSMixerBlock`s, then mean-pool over time -> Linear -> softmax.
+
+    Read-out: mean-pool over time (not flatten), matching the
+    `global_avg_pool_1d` convention every other _Fam model in this file uses --
+    keeps the head's parameter count independent of `seq_len`.
+    """
+
+    def __init__(
+        self,
+        seq_len: int,
+        num_features: int,
+        num_classes: int,
+        blocks: int,
+        ff_mult: int,
+        dropout: float,
+    ):
+        super().__init__()
+        self.blocks = [
+            _TSMixerBlock(seq_len, num_features, ff_mult, dropout) for _ in range(blocks)
+        ]
+        self.out = nn.Linear(num_features, num_classes)
+
+    def __call__(self, x: mx.array) -> mx.array:
+        for block in self.blocks:
+            x = block(x)
+        h = global_avg_pool_1d(x)
+        return mx.softmax(self.out(h), axis=-1)
+
+
+class NNNClassifierMLX_TSMixer(MLXClassifierNary):
+    """TSMIXER registry type (research R13 / Part B ref [8]): interleaved
+    time-mixing / feature-mixing MLP blocks (TSMixer). `hp` keys: `blocks` (2),
+    `ff_mult` (2), `dropout` (0.25)."""
+
+    is_trained = False
+    clean_data_required = False
+    hp: dict = {}
+
+    def create_model(self, seq_len: int, num_features: int) -> nn.Module:
+        blocks = self.hp.get("blocks", 2)
+        ff_mult = self.hp.get("ff_mult", 2)
+        dropout = self.hp.get("dropout", 0.25)
+        return _TSMixerModel(
+            seq_len, num_features, self.num_classes, blocks, ff_mult, dropout
+        )
+
+
+# -----------------------------------------------------------------------
+# NNNClassifierMLX_ITransformer  (ITRANSFORMER registry type, research R13 /
+# Part B ref [7])
+# -----------------------------------------------------------------------
+
+
+class _ITransformerAttention(nn.Module):
+    """Explicit (non-hidden) multi-head self-attention over the *feature* axis.
+
+    `nn.MultiHeadAttention` hides its attention weights, and iTransformer needs
+    them for the secondary importance signal (`model.last_attention`), so this
+    mirrors `_RoPEMultiHeadAttention`'s q/k/v-projection pattern but without any
+    positional encoding (the tokens here are unordered features, not time
+    steps) and exposes the softmax weights via `last_attn`.
+    """
+
+    def __init__(self, d_model: int, heads: int):
+        super().__init__()
+        if d_model % heads != 0:
+            raise ValueError(f"d_model ({d_model}) must be divisible by heads ({heads})")
+        self.heads = heads
+        self.head_dim = d_model // heads
+        self.q_proj = nn.Linear(d_model, d_model)
+        self.k_proj = nn.Linear(d_model, d_model)
+        self.v_proj = nn.Linear(d_model, d_model)
+        self.out_proj = nn.Linear(d_model, d_model)
+        self.last_attn = None
+
+    def _split_heads(self, x: mx.array, n_tokens: int) -> mx.array:
+        B = x.shape[0]
+        return x.reshape(B, n_tokens, self.heads, self.head_dim).transpose(0, 2, 1, 3)
+
+    def __call__(self, x: mx.array) -> mx.array:
+        # x: (B, F, d_model) -- F feature-tokens
+        B, F, _ = x.shape
+        q = self._split_heads(self.q_proj(x), F)
+        k = self._split_heads(self.k_proj(x), F)
+        v = self._split_heads(self.v_proj(x), F)
+        scale = self.head_dim**-0.5
+        scores = (q @ k.transpose(0, 1, 3, 2)) * scale  # (B, heads, F, F)
+        weights = mx.softmax(scores, axis=-1)
+        # Stored as a numpy array, NOT an mx.array: an mx.array attribute set
+        # during __call__ is swept into the MLX module's trainable-parameter
+        # tree (verified empirically) and would get spurious optimizer
+        # updates every step. numpy is invisible to that tree, still gives
+        # `.shape`, and is refreshed on every forward pass anyway.
+        self.last_attn = np.array(mx.mean(weights, axis=(0, 1)))
+        out = weights @ v  # (B, heads, F, head_dim)
+        out = out.transpose(0, 2, 1, 3).reshape(B, F, self.heads * self.head_dim)
+        return self.out_proj(out)
+
+
+class _ITransformerBlock(nn.Module):
+    """Pre-LN block: LN -> feature-token attention -> residual, LN -> FFN(GELU) -> residual."""
+
+    def __init__(self, d_model: int, heads: int, dropout: float):
+        super().__init__()
+        self.ln1 = nn.LayerNorm(d_model)
+        self.attn = _ITransformerAttention(d_model, heads)
+        self.drop_a = nn.Dropout(dropout)
+        self.ln2 = nn.LayerNorm(d_model)
+        self.ff1 = nn.Linear(d_model, d_model * 2)
+        self.ff2 = nn.Linear(d_model * 2, d_model)
+        self.drop_f = nn.Dropout(dropout)
+
+    def __call__(self, x: mx.array) -> mx.array:
+        res = x
+        h = self.attn(self.ln1(x))
+        h = self.drop_a(h)
+        x = res + h
+
+        res = x
+        h = self.ln2(x)
+        h = nn.gelu(self.ff1(h))
+        h = self.drop_f(h)
+        h = self.ff2(h)
+        return res + h
+
+
+class _ITransformerModel(nn.Module):
+    """iTransformer: tokens = FEATURES (research R13 / Part B ref [7]).
+
+    Transpose (B,T,F)->(B,F,T); embed each feature's length-T series with
+    Linear(T, d_model) (no positional encoding -- the tokens are unordered
+    features); `layers` pre-LN blocks of feature-token attention; mean-pool
+    over tokens -> Linear -> softmax. `last_attention` (the final block's
+    mean-over-heads/batch attention matrix, shape (num_features,
+    num_features)) is exposed as a numpy array for the secondary
+    (attention-based) importance signal.
+    """
+
+    def __init__(
+        self,
+        seq_len: int,
+        num_features: int,
+        num_classes: int,
+        d_model: int,
+        heads: int,
+        layers: int,
+        dropout: float,
+    ):
+        super().__init__()
+        self.embed = nn.Linear(seq_len, d_model)
+        self.blocks = [_ITransformerBlock(d_model, heads, dropout) for _ in range(layers)]
+        self.out = nn.Linear(d_model, num_classes)
+        self.last_attention = None
+
+    def __call__(self, x: mx.array) -> mx.array:
+        h = x.transpose(0, 2, 1)  # (B, F, T)
+        h = self.embed(h)  # (B, F, d_model)
+        for block in self.blocks:
+            h = block(h)
+            self.last_attention = block.attn.last_attn
+        h = mx.mean(h, axis=1)  # mean-pool over feature tokens
+        return mx.softmax(self.out(h), axis=-1)
+
+
+class NNNClassifierMLX_ITransformer(MLXClassifierNary):
+    """ITRANSFORMER registry type (research R13 / Part B ref [7]): feature-as-
+    token attention. `hp` keys: `d_model` (64), `heads` (4), `layers` (2),
+    `dropout` (0.25). Exposes `model.last_attention` (numpy, shape
+    (num_features, num_features)) after a forward pass."""
+
+    is_trained = False
+    clean_data_required = False
+    hp: dict = {}
+
+    def create_model(self, seq_len: int, num_features: int) -> nn.Module:
+        d_model = self.hp.get("d_model", 64)
+        heads = self.hp.get("heads", 4)
+        layers = self.hp.get("layers", 2)
+        dropout = self.hp.get("dropout", 0.25)
+        return _ITransformerModel(
+            seq_len, num_features, self.num_classes, d_model, heads, layers, dropout
+        )
+
+
+# -----------------------------------------------------------------------
+# NNNClassifierMLX_XLSTM  (XLSTM registry type, research R13 / Part B ref [5])
+# -----------------------------------------------------------------------
+
+
+class _MLSTMBlock(nn.Module):
+    """One mLSTM block (Beck et al. 2024, xLSTM): per-head exponential
+    input/forget gating with a matrix memory, a log-space stabiliser state to
+    keep the exponentials finite, sequential scan over time (mirrors the
+    Python-loop-over-`t` + `mx.stack` pattern the existing Mamba (v1) port in
+    this file uses for its own sequential scan), residual + LayerNorm.
+
+    Per head, per time step t:
+      q_t, k_t, v_t   = per-head linear projections of the block input
+                         (k scaled by 1/sqrt(head_dim))
+      i~_t, f~_t      = scalar (per head) input/forget gate pre-activations
+      log_f_t         = log(sigmoid(f~_t))              -- bounded <= 0
+      m_t             = max(log_f_t + m_{t-1}, i~_t)     -- stabiliser (log-space max trick)
+      i_t             = exp(i~_t - m_t)
+      f_t             = exp(log_f_t + m_{t-1} - m_t)
+      C_t             = f_t * C_{t-1} + i_t * outer(v_t, k_t)
+      n_t             = f_t * n_{t-1} + i_t * k_t
+      h~_t            = (C_t @ q_t) / max(|n_t . q_t|, 1)
+      o_t             = sigmoid(Linear(x_t))
+      h_t             = o_t * h~_t
+
+    Numerical safety: `i~_t` is clipped to +/-`_CLIP` before use; the exponent
+    arguments actually passed to `exp` (`i~_t - m_t` and `log_f_t + m_{t-1} -
+    m_t`) are always <= 0 by construction of `m_t` (a running max), so `exp`
+    can never overflow regardless of input magnitude.
+    """
+
+    _CLIP = 30.0
+
+    def __init__(self, hidden: int, heads: int, dropout: float):
+        super().__init__()
+        if hidden % heads != 0:
+            raise ValueError(f"hidden ({hidden}) must be divisible by heads ({heads})")
+        self.heads = heads
+        self.head_dim = hidden // heads
+        self.q_proj = nn.Linear(hidden, hidden)
+        self.k_proj = nn.Linear(hidden, hidden)
+        self.v_proj = nn.Linear(hidden, hidden)
+        self.o_proj = nn.Linear(hidden, hidden)
+        self.i_proj = nn.Linear(hidden, heads)
+        self.f_proj = nn.Linear(hidden, heads)
+        self.out_proj = nn.Linear(hidden, hidden)
+        self.drop = nn.Dropout(dropout)
+        self.ln = nn.LayerNorm(hidden)
+
+    def __call__(self, x: mx.array) -> mx.array:
+        B, T, H = x.shape
+        heads, d = self.heads, self.head_dim
+
+        q = self.q_proj(x).reshape(B, T, heads, d).transpose(0, 2, 1, 3)
+        k = (self.k_proj(x) * (d**-0.5)).reshape(B, T, heads, d).transpose(0, 2, 1, 3)
+        v = self.v_proj(x).reshape(B, T, heads, d).transpose(0, 2, 1, 3)
+        o = mx.sigmoid(self.o_proj(x)).reshape(B, T, heads, d).transpose(0, 2, 1, 3)
+
+        i_tilde = mx.clip(self.i_proj(x), -self._CLIP, self._CLIP).transpose(0, 2, 1)
+        f_tilde = self.f_proj(x).transpose(0, 2, 1)  # (B, heads, T)
+        log_f = -nn.softplus(-f_tilde)  # log(sigmoid(f_tilde)), <= 0
+
+        C = mx.zeros((B, heads, d, d))
+        n = mx.zeros((B, heads, d))
+        m = mx.full((B, heads), -self._CLIP)
+
+        hs = []
+        for t in range(T):
+            f_t = log_f[:, :, t]
+            i_t = i_tilde[:, :, t]
+            m_new = mx.maximum(f_t + m, i_t)
+            i_gate = mx.exp(i_t - m_new)
+            f_gate = mx.exp(f_t + m - m_new)
+            m = m_new
+
+            k_t = k[:, :, t, :]
+            v_t = v[:, :, t, :]
+            q_t = q[:, :, t, :]
+
+            outer_vk = v_t[..., :, None] * k_t[..., None, :]  # (B, heads, d, d)
+            C = f_gate[..., None, None] * C + i_gate[..., None, None] * outer_vk
+            n = f_gate[..., None] * n + i_gate[..., None] * k_t
+
+            numer = mx.sum(C * q_t[..., None, :], axis=-1)  # (B, heads, d)
+            denom = mx.maximum(mx.abs(mx.sum(n * q_t, axis=-1)), 1.0)  # (B, heads)
+            h_tilde = numer / denom[..., None]
+            hs.append(o[:, :, t, :] * h_tilde)
+
+        h = mx.stack(hs, axis=2)  # (B, heads, T, d)
+        h = h.transpose(0, 2, 1, 3).reshape(B, T, H)
+        h = self.drop(self.out_proj(h))
+        return self.ln(x + h)
+
+
+class _XLSTMModel(nn.Module):
+    """Linear(F->hidden) -> `depth` `_MLSTMBlock`s -> last-timestep -> Linear -> softmax."""
+
+    def __init__(
+        self,
+        seq_len: int,
+        num_features: int,
+        num_classes: int,
+        hidden: int,
+        depth: int,
+        heads: int,
+        dropout: float,
+    ):
+        super().__init__()
+        self.input_proj = nn.Linear(num_features, hidden)
+        self.blocks = [_MLSTMBlock(hidden, heads, dropout) for _ in range(depth)]
+        self.out = nn.Linear(hidden, num_classes)
+
+    def __call__(self, x: mx.array) -> mx.array:
+        h = self.input_proj(x)
+        for block in self.blocks:
+            h = block(h)
+        h = h[:, -1, :]
+        return mx.softmax(self.out(h), axis=-1)
+
+
+class NNNClassifierMLX_XLSTM(MLXClassifierNary):
+    """XLSTM registry type (research R13 / Part B ref [5]): mLSTM block (Beck et
+    al. 2024) -- exponential gating + matrix memory. `hp` keys: `hidden` (64),
+    `depth` (1), `heads` (4), `dropout` (0.25)."""
+
+    is_trained = False
+    clean_data_required = False
+    hp: dict = {}
+
+    def create_model(self, seq_len: int, num_features: int) -> nn.Module:
+        hidden = self.hp.get("hidden", 64)
+        depth = self.hp.get("depth", 1)
+        heads = self.hp.get("heads", 4)
+        dropout = self.hp.get("dropout", 0.25)
+        return _XLSTMModel(
+            seq_len, num_features, self.num_classes, hidden, depth, heads, dropout
+        )
+
+
+# -----------------------------------------------------------------------
+# NNNClassifierMLX_TransformerModern  (TRANSFORMER_MODERN registry type,
+# research R13 / Part B refs [12] RMSNorm, [13] RoPE, [20] SwiGLU)
+# -----------------------------------------------------------------------
+
+
+class _SwiGLUFFN(nn.Module):
+    """SwiGLU feed-forward: Linear(d,ffn) elementwise-gated by SiLU(Linear(d,ffn)),
+    then Linear(ffn,d). Drop-in replacement for the plain GELU-MLP FFN used by
+    `_TransformerFamBlock` (research R13 / Part B ref [20])."""
+
+    def __init__(self, d_model: int, ffn_mult: int, dropout: float):
+        super().__init__()
+        ffn_dim = d_model * ffn_mult
+        self.w = nn.Linear(d_model, ffn_dim)
+        self.v = nn.Linear(d_model, ffn_dim)
+        self.proj = nn.Linear(ffn_dim, d_model)
+        self.drop = nn.Dropout(dropout)
+
+    def __call__(self, x: mx.array) -> mx.array:
+        h = self.w(x) * nn.silu(self.v(x))
+        h = self.drop(h)
+        return self.proj(h)
+
+
+class _TransformerModernBlock(nn.Module):
+    """Pre-norm block: RMSNorm -> RoPE multi-head attention -> residual,
+    RMSNorm -> SwiGLU FFN -> residual (research R13 / Part B refs [12,13,20])."""
+
+    def __init__(self, d_model: int, heads: int, ffn_mult: int, dropout: float):
+        super().__init__()
+        self.norm1 = nn.RMSNorm(d_model)
+        self.attn = _RoPEMultiHeadAttention(d_model, heads)
+        self.drop_a = nn.Dropout(dropout)
+        self.norm2 = nn.RMSNorm(d_model)
+        self.ffn = _SwiGLUFFN(d_model, ffn_mult, dropout)
+
+    def __call__(self, x: mx.array) -> mx.array:
+        res = x
+        h_in = self.norm1(x)
+        h = self.attn(h_in, h_in, h_in)
+        x = res + self.drop_a(h)
+
+        res = x
+        h = self.ffn(self.norm2(x))
+        return res + h
+
+
+class _TransformerModernModel(nn.Module):
+    """Linear(F->d_model) -> `layers` `_TransformerModernBlock`s -> mean pool ->
+    Linear -> softmax. No learned positional embedding -- position comes from
+    RoPE inside every block's attention."""
+
+    def __init__(
+        self,
+        seq_len: int,
+        num_features: int,
+        num_classes: int,
+        d_model: int,
+        heads: int,
+        layers: int,
+        ffn_mult: int,
+        dropout: float,
+    ):
+        super().__init__()
+        self.proj = nn.Linear(num_features, d_model)
+        self.blocks = [
+            _TransformerModernBlock(d_model, heads, ffn_mult, dropout) for _ in range(layers)
+        ]
+        self.out = nn.Linear(d_model, num_classes)
+
+    def __call__(self, x: mx.array) -> mx.array:
+        h = self.proj(x)
+        for block in self.blocks:
+            h = block(h)
+        h = global_avg_pool_1d(h)
+        return mx.softmax(self.out(h), axis=-1)
+
+
+class NNNClassifierMLX_TransformerModern(MLXClassifierNary):
+    """TRANSFORMER_MODERN registry type (research R13 / Part B refs [12,13,20]):
+    `_TransformerFamModel`-style stack with `nn.RMSNorm` pre-norm, per-head RoPE
+    attention (`_RoPEMultiHeadAttention`) and a SwiGLU FFN. `hp` keys: `d_model`
+    (64), `heads` (4), `layers` (2), `ffn_mult` (2), `dropout` (0.25)."""
+
+    is_trained = False
+    clean_data_required = False
+    hp: dict = {}
+
+    def create_model(self, seq_len: int, num_features: int) -> nn.Module:
+        d_model = self.hp.get("d_model", 64)
+        heads = self.hp.get("heads", 4)
+        layers = self.hp.get("layers", 2)
+        ffn_mult = self.hp.get("ffn_mult", 2)
+        dropout = self.hp.get("dropout", 0.25)
+        return _TransformerModernModel(
+            seq_len, num_features, self.num_classes, d_model, heads, layers, ffn_mult, dropout
+        )
+
+
+# -----------------------------------------------------------------------
+# NNNClassifierMLX_PatchTST  (PATCHTST registry type, research R13 / Part B ref [6])
+# -----------------------------------------------------------------------
+
+
+class _PatchTSTModel(nn.Module):
+    """Channel-independent patch transformer (PatchTST, research R13 / Part B
+    ref [6]). Each feature channel's length-T series is unfolded into
+    overlapping patches, patch-embedded with a shared Linear(patch_len,
+    d_model) + learned positional embedding over patch index, run through a
+    shared pre-LN transformer encoder (`_TransformerFamBlock`, reused as-is --
+    plain `nn.MultiHeadAttention`, no extra positional encoding inside the
+    block since position is already carried by the patch embedding),
+    mean-pooled over patches per channel, then channels are concatenated and
+    read out with a single Linear -> softmax.
+
+    Raises `ValueError` if `seq_len < 4 * patch_len` (too few patches for the
+    patching mechanism to mean anything -- production seq_len is 16, so this
+    member is only meaningful at larger window lengths).
+    """
+
+    def __init__(
+        self,
+        seq_len: int,
+        num_features: int,
+        num_classes: int,
+        patch_len: int,
+        stride: int,
+        d_model: int,
+        heads: int,
+        layers: int,
+        dropout: float,
+    ):
+        super().__init__()
+        if seq_len < 4 * patch_len:
+            raise ValueError(
+                f"PATCHTST requires seq_len >= 4 * patch_len ({4 * patch_len}), "
+                f"got seq_len={seq_len} (patch_len={patch_len})"
+            )
+        self.patch_len = patch_len
+        self.stride = stride
+        self.num_features = num_features
+        self.d_model = d_model
+        self.num_patches = (seq_len - patch_len) // stride + 1
+
+        self.patch_embed = nn.Linear(patch_len, d_model)
+        self.pos_emb = TransformerPositionalEmbeddingMLX(self.num_patches, d_model)
+        ffn_mult = 2
+        self.blocks = [
+            _TransformerFamBlock(
+                nn.MultiHeadAttention(dims=d_model, num_heads=heads), d_model, ffn_mult, dropout
+            )
+            for _ in range(layers)
+        ]
+        self.out = nn.Linear(d_model * num_features, num_classes)
+
+    def __call__(self, x: mx.array) -> mx.array:
+        B, T, F = x.shape
+        xt = x.transpose(0, 2, 1)  # (B, F, T)
+        patches = mx.stack(
+            [
+                xt[:, :, i * self.stride : i * self.stride + self.patch_len]
+                for i in range(self.num_patches)
+            ],
+            axis=2,
+        )  # (B, F, num_patches, patch_len)
+        patches = patches.reshape(B * F, self.num_patches, self.patch_len)
+
+        h = self.patch_embed(patches)  # (B*F, num_patches, d_model)
+        h = self.pos_emb(h)
+        for block in self.blocks:
+            h = block(h)
+        h = mx.mean(h, axis=1)  # mean-pool over patches -> (B*F, d_model)
+        h = h.reshape(B, F * self.d_model)  # concatenate channels
+        return mx.softmax(self.out(h), axis=-1)
+
+
+class NNNClassifierMLX_PatchTST(MLXClassifierNary):
+    """PATCHTST registry type (research R13 / Part B ref [6]): channel-independent
+    patching, shared transformer encoder over patch tokens. `hp` keys:
+    `patch_len` (16), `stride` (8), `d_model` (64), `heads` (4), `layers` (2),
+    `dropout` (0.25). Requires `seq_len >= 4 * patch_len` -- raises
+    `ValueError` otherwise."""
+
+    is_trained = False
+    clean_data_required = False
+    hp: dict = {}
+
+    def create_model(self, seq_len: int, num_features: int) -> nn.Module:
+        patch_len = self.hp.get("patch_len", 16)
+        stride = self.hp.get("stride", 8)
+        d_model = self.hp.get("d_model", 64)
+        heads = self.hp.get("heads", 4)
+        layers = self.hp.get("layers", 2)
+        dropout = self.hp.get("dropout", 0.25)
+        if seq_len < 4 * patch_len:
+            raise ValueError(
+                f"PATCHTST requires seq_len >= 4 * patch_len ({4 * patch_len}), "
+                f"got seq_len={seq_len} (patch_len={patch_len})"
+            )
+        return _PatchTSTModel(
+            seq_len,
+            num_features,
+            self.num_classes,
+            patch_len,
+            stride,
+            d_model,
+            heads,
+            layers,
+            dropout,
+        )
+
+
+# -----------------------------------------------------------------------
 # ClassifierTypeMLX enum + factory
 # -----------------------------------------------------------------------
 
@@ -1886,6 +2466,11 @@ class ClassifierTypeMLX(Enum):
     TCN_FAM = NNNClassifierMLX_TCN_Fam
     TRANSFORMER_FAM = NNNClassifierMLX_Transformer_Fam
     MLP_FAM = NNNClassifierMLX_MLP_Fam
+    TSMIXER = NNNClassifierMLX_TSMixer
+    ITRANSFORMER = NNNClassifierMLX_ITransformer
+    XLSTM = NNNClassifierMLX_XLSTM
+    TRANSFORMER_MODERN = NNNClassifierMLX_TransformerModern
+    PATCHTST = NNNClassifierMLX_PatchTST
 
 
 def create_classifier_mlx(

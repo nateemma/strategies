@@ -90,11 +90,11 @@ leaderboards, plots), **[GR]** gate-reviewer (pre-gate leaderboard memo), **[MAI
 **Goal**: implement and score the research Part B shortlist on the same splits and seeds.
 **Independent Test**: each shortlisted candidate has rows on all three windows; research.md Part B has a citation, applicability verdict and rank for every listed candidate.
 
-- [ ] T044 [P] [US3] [MI] Add `TSMIXER` to `NNNC/NNNClassifierMLX.py` (time-mix + feature-mix MLP blocks, LayerNorm, mean pool) per contracts/registry.md; verify with T022
-- [ ] T045 [P] [US3] [MI] Add `ITRANSFORMER` (tokens = features, each embedding its length-`seq_len` series; encoder from the existing pre-LN block; store mean attention weights on `model.last_attention` for the secondary importance signal); verify with T022
-- [ ] T046 [P] [US3] [MI] Add `XLSTM` (mLSTM block: exponential gating, matrix memory, `heads`; port pattern follows the existing Mamba2 class); verify with T022
-- [ ] T047 [P] [US3] [MI] Add `TRANSFORMER_MODERN` (existing Transformer block with `mlx.nn.RMSNorm` pre-norm, `mlx.nn.RoPE`, SwiGLU FFN); verify with T022
-- [ ] T048 [P] [US3] [MI] Add `PATCHTST` (patch embedding, refuses `seq_len < 4·patch_len` with a clear error); verify with T022 using `seq_len 64` in its parametrisation
+- [X] T044 [P] [US3] [MI] Add `TSMIXER` to `NNNC/NNNClassifierMLX.py` (time-mix + feature-mix MLP blocks, LayerNorm, mean pool) per contracts/registry.md; verify with T022
+- [X] T045 [P] [US3] [MI] Add `ITRANSFORMER` (tokens = features, each embedding its length-`seq_len` series; encoder from the existing pre-LN block; store mean attention weights on `model.last_attention` for the secondary importance signal); verify with T022
+- [X] T046 [P] [US3] [MI] Add `XLSTM` (mLSTM block: exponential gating, matrix memory, `heads`; port pattern follows the existing Mamba2 class); verify with T022
+- [X] T047 [P] [US3] [MI] Add `TRANSFORMER_MODERN` (existing Transformer block with `mlx.nn.RMSNorm` pre-norm, `mlx.nn.RoPE`, SwiGLU FFN); verify with T022
+- [X] T048 [P] [US3] [MI] Add `PATCHTST` (patch embedding, refuses `seq_len < 4·patch_len` with a clear error); verify with T022 using `seq_len 64` in its parametrisation
 - [ ] T049 [US3] [MI] Write `research/clfstudy/configs/phase_6.yaml`: TSMIXER, ITRANSFORMER, XLSTM, TRANSFORMER_MODERN at sizes matched to the best phase-4 transformer/RNN anchors, `ind24/seq_len 16/seeds [0,1]`, `gate_from: 5`; PATCHTST deferred to phase 7d
 - [ ] T050 [US3] [ER] Run `phase --phase 6`; `leaderboard --phase 6` with a bar chart against the best phase-4/5 configs
 - [ ] T051 [US3] [GR] Review `report/leaderboard_6.md`: which candidates beat their nearest incumbent beyond seed noise; write `gates/review_6.md`
