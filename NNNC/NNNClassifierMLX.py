@@ -1368,6 +1368,19 @@ class _LSTMFamModel(nn.Module):
     `bidirectional=True` runs a second LSTM stack over the time-reversed input
     and concatenates its (re-reversed) per-timestep hidden states with the
     forward stack's, before pooling.
+
+    Two `LayerNorm`s bound the two places raw magnitude can otherwise drift
+    across a long, unregularized training run (`weight_decay` defaults to 0):
+    `input_norm` on the raw per-timestep features before they reach `Wx`, and
+    `pool_norm` on the pooled hidden state before the classification head --
+    mirroring `_LSTMModel`'s `ln_conv`/`ln_lstm` pair above (its input passes
+    through `resize` + `conv1` + `ln_conv` before the LSTM, and its output
+    through `ln_lstm` before the bottleneck). Without them, `hidden=256`
+    diverges to non-finite predicted probabilities partway through a 40-epoch
+    real-data run (both seeds); `hidden=16`/`64` stay finite only because
+    their smaller recurrent weight matrices take far longer to drift that far
+    -- confirmed via the pre-fix gradient-clip rate, which grows with `hidden`
+    (near-zero at 16, ~4-10% of batches at 64, ~10-25% at 256, by epoch 20-30).
     """
 
     def __init__(
@@ -1386,6 +1399,8 @@ class _LSTMFamModel(nn.Module):
         self.pool = pool
         self.bidirectional = bidirectional
 
+        self.input_norm = nn.LayerNorm(num_features)
+
         in_dim = num_features
         fwd = []
         for _ in range(depth):
@@ -1402,10 +1417,13 @@ class _LSTMFamModel(nn.Module):
             self.bwd_layers = bwd
 
         out_dim = hidden * (2 if bidirectional else 1)
+        self.pool_norm = nn.LayerNorm(out_dim)
         self.drop = nn.Dropout(dropout)
         self.out = nn.Linear(out_dim, num_classes)
 
     def __call__(self, x: mx.array) -> mx.array:
+        x = self.input_norm(x)
+
         h = x
         for layer in self.fwd_layers:
             h, _ = layer(h)
@@ -1418,6 +1436,7 @@ class _LSTMFamModel(nn.Module):
             h = mx.concatenate([h, hb], axis=-1)
 
         pooled = mx.mean(h, axis=1) if self.pool == "mean" else h[:, -1, :]
+        pooled = self.pool_norm(pooled)
         pooled = self.drop(pooled)
         return mx.softmax(self.out(pooled), axis=-1)
 
@@ -1446,7 +1465,9 @@ class _GRUFamModel(nn.Module):
     """Identical to `_LSTMFamModel` with `nn.GRU` in place of `nn.LSTM`.
 
     `nn.GRU.__call__` returns the hidden-state sequence directly (no cell-state
-    tuple), unlike `nn.LSTM`.
+    tuple), unlike `nn.LSTM`. Carries the same `input_norm`/`pool_norm`
+    `LayerNorm` pair and for the same reason -- see `_LSTMFamModel`'s
+    docstring.
     """
 
     def __init__(
@@ -1465,6 +1486,8 @@ class _GRUFamModel(nn.Module):
         self.pool = pool
         self.bidirectional = bidirectional
 
+        self.input_norm = nn.LayerNorm(num_features)
+
         in_dim = num_features
         fwd = []
         for _ in range(depth):
@@ -1481,10 +1504,13 @@ class _GRUFamModel(nn.Module):
             self.bwd_layers = bwd
 
         out_dim = hidden * (2 if bidirectional else 1)
+        self.pool_norm = nn.LayerNorm(out_dim)
         self.drop = nn.Dropout(dropout)
         self.out = nn.Linear(out_dim, num_classes)
 
     def __call__(self, x: mx.array) -> mx.array:
+        x = self.input_norm(x)
+
         h = x
         for layer in self.fwd_layers:
             h = layer(h)
@@ -1497,6 +1523,7 @@ class _GRUFamModel(nn.Module):
             h = mx.concatenate([h, hb], axis=-1)
 
         pooled = mx.mean(h, axis=1) if self.pool == "mean" else h[:, -1, :]
+        pooled = self.pool_norm(pooled)
         pooled = self.drop(pooled)
         return mx.softmax(self.out(pooled), axis=-1)
 

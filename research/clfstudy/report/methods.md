@@ -36,3 +36,24 @@ re-run in isolated subprocesses with a single trainer. No other phase-3 run over
 Re-run result (isolated, single trainer): Multihead pooled MCC 0.515 ± 0.018 (A 0.560, B 0.478, C 0.506),
 6/6 ok. The contaminated pairs had reported 0.516/0.467/0.496/0.525 with identical metrics across
 duplicates; the clean A/1 is 0.54, so the earlier A gap was the shared-checkpoint artefact.
+
+## Early-stopping variance dominates B/C results under the study protocol (2026-09-17)
+
+Third-seed runs (seed 2 on the failing window) for the 12 stability-only failures of gate 3
+showed that runs which trained to the 40-epoch cap (best_epoch 30-39) reach MCC 0.64 on windows
+B and C with near-identical prediction counts across architectures (LSTM, LSTM_D10, NOISY,
+NORES, Mamba2, Wavenet: ~19.2k SELL / 140.5k HOLD / 31.3k BUY on C), i.e. the same ceiling
+every type reaches on window A (0.66). Seed-0/1 runs that early-stopped at epochs 12-17 with
+best_epoch 1-6 sit at 0.45-0.55. The only seed-2 run that also stalled (LSTM_NORESIZE C,
+best_epoch 6) scored 0.504. Three-seed stds are 0.07-0.12.
+
+Interpretation: with lr 1e-4, cap 40 and patience 10, whether a run converges is a coin flip
+decided during an early validation plateau, and the cap is binding for the runs that do
+converge. Between-seed and between-architecture differences on B/C in phases 3-4 are therefore
+mostly training-protocol variance. Any architecture that converges reaches the same ceiling.
+
+Phase 4 (stride 2) was paused after 51 runs: 23 of 49 scored runs stalled (best_epoch <= 6),
+all on B/C, none on A. A protocol calibration (production LSTM, window C, 3 seeds each) of
+lr 3e-4 vs patience 20 decides the protocol for phases 4-7; phase-3 rows stand as the
+"production protocol" reference. `train` settings are part of the config id, so re-runs under
+the new protocol get new ids and the old rows remain as history.

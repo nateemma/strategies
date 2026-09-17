@@ -28,9 +28,12 @@ from __future__ import annotations
 import mlx.core as mx
 import numpy as np
 import pytest
-
 from NNNC.NNNClassifierMLX import ClassifierTypeMLX, _RoPEMultiHeadAttention
 from research.clfstudy.registry import ExperimentConfig, build, param_count
+
+
+# A GPU training job may be running elsewhere; keep this suite on CPU.
+mx.set_default_device(mx.cpu)
 
 SEQ_LEN = 16
 N_FEATURES = 24
@@ -195,6 +198,50 @@ def test_family_structural_axes_build_train(arch, hp, tmp_path):
     assert preds.shape == (N_VAL, N_CLASSES)
     np.testing.assert_allclose(preds.sum(axis=1), 1.0, atol=1e-4)
     assert param_count(clf) > 0
+
+
+# -----------------------------------------------------------------------
+# Regression: hidden=256 previously diverged to non-finite predicted
+# probabilities partway through a long real-data run, for both LSTM_FAM and
+# GRU_FAM, at both train seeds. Root cause: unlike `_LSTMModel` (production),
+# which LayerNorms both the LSTM's input (via `resize`+`conv1`+`ln_conv`) and
+# its output (`ln_lstm`) before the classification head, `_LSTMFamModel`/
+# `_GRUFamModel` fed raw scaled features directly into the recurrent weight
+# matrix and pooled the raw hidden state directly into `out`, with no bound
+# on either. With `weight_decay=0` (Adam, no L2) that recurrent weight matrix
+# can drift over a long training run until a pre-activation overflows to
+# `inf`, and `mx.softmax` turns a single `inf` logit into `nan` across every
+# class in that row (verified directly against `mx.softmax`); the `nan` then
+# poisons Adam's running moments for every later step. Fixed by adding an
+# `input_norm`/`pool_norm` `LayerNorm` pair (T034 follow-up).
+# -----------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("arch", ["LSTM_FAM", "GRU_FAM"])
+@pytest.mark.parametrize("seed", [0, 1])
+def test_family_hidden256_stays_finite(arch, seed, tmp_path):
+    """hidden=256 must train 3 epochs with finite loss and finite predicted
+    probabilities, for both seeds -- the exact configuration that diverged
+    before the `input_norm`/`pool_norm` `LayerNorm` fix."""
+    cfg = ExperimentConfig(
+        arch=arch,
+        hp={"hidden": 256},
+        input_set="ind24",
+        seq_len=SEQ_LEN,
+        split_set="v1",
+        train={"max_epochs": 3, "patience": 5, "batch_size": 64},
+    )
+    cfg.validate()
+    clf = build(cfg, nf=N_FEATURES, seq_len=SEQ_LEN, seed=seed, checkpoint_dir=tmp_path)
+
+    X_train, X_val, y_train, y_val = _synthetic_data(seed=seed)
+    clf.train(X_train, X_val, y_train, y_val, class_weights=CLASS_WEIGHTS)
+
+    preds = clf.predict(X_val)
+    assert np.isfinite(preds).all(), (
+        f"{arch} hidden=256 seed={seed} produced non-finite predicted probabilities"
+    )
+    np.testing.assert_allclose(preds.sum(axis=1), 1.0, atol=1e-3)
 
 
 # -----------------------------------------------------------------------
