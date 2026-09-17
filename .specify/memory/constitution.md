@@ -1,29 +1,17 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: (unratified template) → 1.0.0
-Bump rationale: MAJOR/initial ratification. The prior file was the unmodified Spec Kit
-scaffold with zero project content, so this is the first ratified constitution rather
-than an amendment to an existing one.
+Version change: 1.0.0 → 1.1.0
+Bump rationale: MINOR. One new principle (XI) and materially expanded guidance in the
+Repository and Code Constraints section. No existing principle was removed, renamed, or
+redefined.
 
-Modified principles: none (no prior principles existed).
+Modified principles: none.
 
 Added sections:
-  - Core Principles I–X (10 principles; the resolved scaffold provides 5 slots, expanded
-    per explicit instruction)
-      I.    Evaluate in the Deployment Regime
-      II.   Persistence Across Temporally Distant Eras (NON-NEGOTIABLE)
-      III.  Learnability Is Not Edge
-      IV.   Verify Parameters Are Actually Live
-      V.    Lookahead-Clean Is Not Realistic
-      VI.   Diagnose Before Tuning
-      VII.  Validate Cheaply; Test Trackability Before Building Adaptivity
-      VIII. One Parameter Space at a Time
-      IX.   Orthogonality Earns a Factor Its Place
-      X.    Structural Fixes, Not Per-Pair Overrides
-  - Repository and Code Constraints (scaffold slot SECTION_2)
-  - Experiment Workflow and Quality Gates (scaffold slot SECTION_3)
-  - Governance
+  - Core Principles XI. No Data Leakage in Model Evaluation
+  - Repository and Code Constraints: three new constraints (custom-code location,
+    Python environment, MLX classifier extension pattern)
 
 Removed sections: none.
 
@@ -154,11 +142,40 @@ be structural and apply uniformly across the universe.
 If a change works only for one pair, it is overfit, not a fix. This applies equally to
 thresholds tuned until a single problem pair behaves.
 
+### XI. No Data Leakage in Model Evaluation
+
+Every fitted preprocessing artefact — feature scalers, class weights, and any feature
+selection or importance ranking — MUST be fitted on the training split only, and refitted
+for every evaluation fold. Splits MUST be time-ordered, and a purge/embargo gap at least as
+long as the label look-ahead horizon MUST separate the end of a training span from the
+start of its evaluation span, so that no training label draws on bars the evaluation
+window contains.
+
+A cached scaler MUST NOT be reused for a fold whose evaluation window lies inside the span
+that scaler was fitted on; per-fold refitting is mandatory in that case. Recorded exposure:
+the production feature scaler is fitted once across the full training history and cached
+by strategy class name, so any walk-forward fold cut inside that history inherits a scaler
+that has already seen the fold's test bars. Model-evaluation results produced under such
+reuse are void and MUST NOT be recorded as findings.
+
 ## Repository and Code Constraints
 
 **Repository boundary.** The outer freqtrade checkout is upstream code and MUST NOT receive
 commits. Only the nested `user_data/strategies` repository is ours, and only it is
 committed to.
+
+**Custom code location.** All custom code lives under `user_data/` (for example
+`user_data/strategies/...` and `user_data/strategies/scripts/...`). Nothing MUST ever be
+written into the upstream `freqtrade/` package.
+
+**Python environment.** The Python environment is the virtualenv at `.venv` in the repository
+root (`source .venv/bin/activate`). Conda MUST NOT be used.
+
+**MLX classifier extension.** Models run on MLX (Apple silicon). New classifier types MUST be
+added to `NNNClassifierMLX` following its existing patterns — a `ClassifierTypeMLX` enum
+member, a subclass overriding `create_model`, and registration in the factory — so that
+every type is trained and scored through the identical path. Parallel frameworks beside
+`NNNClassifierMLX` are prohibited.
 
 **Commit workflow.** Commit directly to master. This is a solo repository with no
 pull-request workflow, and branching has been explicitly waived.
@@ -221,4 +238,4 @@ wording, and non-semantic refinements.
 **Runtime guidance.** Day-to-day conventions that are not governance live in `AGENT_GUIDE.md`
 and in project memory. Those are subordinate to this document and MUST NOT contradict it.
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-02 | **Last Amended**: 2026-09-02
+**Version**: 1.1.0 | **Ratified**: 2026-09-02 | **Last Amended**: 2026-09-16
