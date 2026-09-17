@@ -1,6 +1,7 @@
 phase: 4
 description: Single-family sweeps, one axis at a time around each family anchor (research
-  R7); train.stride 2 per gate-3 decision 3
+  R7); train lr 3e-4 + stride 2 per the protocol calibration of 2026-09-17 (see research
+  R14)
 gate_from: 3
 configs:
 - arch: LSTM_FAM
@@ -10,6 +11,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -25,6 +27,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -40,6 +43,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -56,6 +60,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -72,6 +77,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -87,6 +93,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -102,6 +109,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -117,6 +125,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -133,6 +142,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -149,6 +159,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -164,6 +175,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -179,6 +191,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -194,6 +207,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -210,6 +224,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -227,6 +242,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -243,6 +259,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -259,6 +276,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -274,6 +292,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -289,6 +308,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -304,6 +324,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -320,6 +341,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -336,6 +358,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -352,6 +375,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -368,6 +392,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -384,6 +409,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -400,6 +426,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -415,6 +442,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -430,6 +458,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -445,6 +474,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -461,6 +491,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:
@@ -477,6 +508,7 @@ configs:
   seq_len: 16
   split_set: v1
   train:
+    lr: 0.0003
     stride: 2
   phase: 4
   seeds:

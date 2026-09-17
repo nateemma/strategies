@@ -69,7 +69,7 @@ task measures one run per window before any phase is launched and the phase grid
 fit; a `train.stride` knob (uniform time-stride subsampling of training windows) is the
 contingency, default 1 (off), always recorded on the row.
 
-**Constraints**: all code under `user_data/strategies/`; the study never reads
+**Constraints**: phases 4–7 train at lr 3e-4 (research R14; the study default of 1e-4 stalled on windows B/C); all code under `user_data/strategies/`; the study never reads
 `saved_data/*/main_scaler`; classifier behaviour for existing types must be byte-identical to
 today's when the new attributes are left at their defaults.
 

@@ -229,6 +229,26 @@ first, then `train.stride=2` is applied to sweep phases only, both recorded on r
   amortise), stochastic depth (stacks too shallow), InceptionTime as a phase-6 slot (covered
   by phase 5's multi-scale composition).
 
+### R14. Training protocol amendment for phases 4–7 (2026-09-17)
+
+- **Finding**: under the study default (lr 1e-4, cap 40, patience 10) convergence on windows B
+  and C is a coin flip. Third-seed runs that reached the cap (best_epoch 30–39) scored MCC
+  0.64 on B/C with near-identical prediction counts across LSTM variants, Mamba2 and Wavenet —
+  the same ceiling every type reaches on window A — while runs that early-stopped at epochs
+  12–17 (best_epoch 1–6) scored 0.45–0.55. Phase-4 stride-2 runs stalled 23 times in 49.
+- **Calibration** (production LSTM, window C, 3 seeds): lr 3e-4 / patience 10 → 0.641, 0.640,
+  0.640 (std 0.001); lr 1e-4 / patience 20 → 0.641, 0.640, 0.640; both need 31–39 epochs at
+  full data (11–13.5 min/run). lr 3e-4 at **stride 2** → 0.640 × 3 (std 0.000, best epochs
+  35–37, 5.5 min/run).
+- **Decision**: phases 4–7 run at lr 3e-4, cap 40, patience 10 (FR-037 cap and patience
+  unchanged), stride 2 for phases 4–6 and stride 1 for phase 7 finalists. Phase-3 rows stand
+  as the "production protocol" reference and are not re-run; `train` is part of the config id,
+  so the two protocols never collide. The report states the finding explicitly: architecture
+  differences on B/C under the production protocol were mostly early-stopping variance, and any
+  architecture that converges reaches the same ceiling.
+- **Consequence for the stability clause**: with the amended protocol the 2-seed std is
+  expected to be ≤ 0.01; the every-window clause is applied as written.
+
 ---
 
 ## Part B — Literature review (phase 6)
