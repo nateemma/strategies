@@ -1,0 +1,42 @@
+phase: 2
+description: >
+  Trivial baselines (research R6). MAJORITY and PERSISTENCE are training-free pseudo-archs
+  handled by run.py; RIDGE and ROCKET are the cheap real-classifier reference points (the
+  gate's ridge_reference in phase 3+ is RIDGE at this same config).
+gate_from: null
+configs:
+  - arch: MAJORITY
+    hp: {}
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {}
+    seeds: [0, 1, 2]
+    tags: [baseline, phase2]
+
+  - arch: PERSISTENCE
+    hp: {}
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {}
+    seeds: [0, 1, 2]
+    tags: [baseline, phase2, oracle-ish]
+
+  - arch: RIDGE
+    hp: {}
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {weight_decay: 0.01}
+    seeds: [0, 1, 2]
+    tags: [baseline, phase2, ridge-reference]
+
+  - arch: ROCKET
+    hp: {feature_norm: standardize}   # frozen-feature standardisation (research R6 seed-instability fix); the hp:{} rows are the pre-fix history
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {}
+    seeds: [0, 1, 2]
+    tags: [baseline, phase2]

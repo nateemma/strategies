@@ -58,3 +58,7 @@ research/labelfree/jump/out/
 # case a copy is ever placed inside this repo.
 sidecars/
 research/signalctx/out/
+
+# Feature 018 classifier study: frame cache + checkpoints (regenerable)
+research/clfstudy/.cache/
+research/clfstudy/models/

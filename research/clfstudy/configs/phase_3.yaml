@@ -1,0 +1,223 @@
+phase: 3
+description: >
+  Existing architectures (research R10): the 24 pre-study `ClassifierTypeMLX` members
+  (excludes RIDGE/ROCKET, already run in phase 2), default hyperparameters, at the
+  study's train defaults (max_epochs 40, patience 10, batch_size 256, lr 1e-4,
+  weight_decay 0.0, stride 1).
+gate_from: 2
+configs:
+  - arch: LSTM
+    hp: {}
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {}
+    seeds: [0, 1]
+    tags: [phase3, existing-type, production]
+
+  - arch: LSTM2
+    hp: {}
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {}
+    seeds: [0, 1]
+    tags: [phase3, existing-type]
+
+  - arch: GRU
+    hp: {}
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {}
+    seeds: [0, 1]
+    tags: [phase3, existing-type]
+
+  - arch: CNN
+    hp: {}
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {}
+    seeds: [0, 1]
+    tags: [phase3, existing-type]
+
+  - arch: MLP
+    hp: {}
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {}
+    seeds: [0, 1]
+    tags: [phase3, existing-type]
+
+  - arch: Attention
+    hp: {}
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {}
+    seeds: [0, 1]
+    tags: [phase3, existing-type]
+
+  - arch: Multihead
+    hp: {}
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {}
+    seeds: [0, 1]
+    tags: [phase3, existing-type]
+
+  - arch: Transformer
+    hp: {}
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {}
+    seeds: [0, 1]
+    tags: [phase3, existing-type]
+
+  - arch: Wavenet
+    hp: {}
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {}
+    seeds: [0, 1]
+    tags: [phase3, existing-type]
+
+  - arch: Mamba
+    hp: {}
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {}
+    seeds: [0, 1]
+    tags: [phase3, existing-type]
+
+  - arch: Mamba2
+    hp: {}
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {}
+    seeds: [0, 1]
+    tags: [phase3, existing-type]
+
+  - arch: TSMamba
+    hp: {}
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {}
+    seeds: [0, 1]
+    tags: [phase3, existing-type]
+
+  - arch: LSTM_KAN
+    hp: {}
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {}
+    seeds: [0, 1]
+    tags: [phase3, existing-type, lstm-ablation]
+
+  - arch: LSTM_INJIT
+    hp: {}
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {}
+    seeds: [0, 1]
+    tags: [phase3, existing-type, lstm-ablation]
+
+  - arch: LSTM_NOISY
+    hp: {}
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {}
+    seeds: [0, 1]
+    tags: [phase3, existing-type, lstm-ablation]
+
+  - arch: LSTM_PONDER
+    hp: {}
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {}
+    seeds: [0, 1]
+    tags: [phase3, existing-type, lstm-ablation]
+
+  - arch: LSTM_W64
+    hp: {}
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {}
+    seeds: [0, 1]
+    tags: [phase3, existing-type, lstm-ablation]
+
+  - arch: LSTM_D10
+    hp: {}
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {}
+    seeds: [0, 1]
+    tags: [phase3, existing-type, lstm-ablation]
+
+  - arch: LSTM_POOL
+    hp: {}
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {}
+    seeds: [0, 1]
+    tags: [phase3, existing-type, lstm-ablation]
+
+  - arch: LSTM_K5
+    hp: {}
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {}
+    seeds: [0, 1]
+    tags: [phase3, existing-type, lstm-ablation]
+
+  - arch: LSTM_NOCONV
+    hp: {}
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {}
+    seeds: [0, 1]
+    tags: [phase3, existing-type, lstm-ablation]
+
+  - arch: LSTM_RAW
+    hp: {}
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {}
+    seeds: [0, 1]
+    tags: [phase3, existing-type, lstm-ablation]
+
+  - arch: LSTM_NORESIZE
+    hp: {}
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {}
+    seeds: [0, 1]
+    tags: [phase3, existing-type, lstm-ablation]
+
+  - arch: LSTM_NORES
+    hp: {}
+    input_set: ind24
+    seq_len: 16
+    split_set: v1
+    train: {}
+    seeds: [0, 1]
+    tags: [phase3, existing-type, lstm-ablation]

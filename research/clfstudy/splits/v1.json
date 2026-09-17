@@ -1,0 +1,49 @@
+{
+  "split_set": "v1",
+  "embargo_bars": 96,
+  "val_fraction": 0.1,
+  "min_history_days": 365,
+  "timeframe": "15m",
+  "pairs": [
+    "ZEC/USDT",
+    "XRP/USDT",
+    "SOL/USDT",
+    "LINK/USDT",
+    "NEAR/USDT",
+    "AAVE/USDT",
+    "SUI/USDT",
+    "AVAX/USDT",
+    "LTC/USDT",
+    "BCH/USDT",
+    "DOT/USDT"
+  ],
+  "windows": [
+    {
+      "window_id": "A",
+      "train_start": "2022-01-01T00:00:00Z",
+      "val_start": "2023-05-06T12:00:00Z",
+      "train_end": "2023-06-30T00:00:00Z",
+      "test_start": "2023-07-01T00:00:00Z",
+      "test_end": "2023-12-31T23:45:00Z",
+      "distant": true
+    },
+    {
+      "window_id": "B",
+      "train_start": "2022-01-01T00:00:00Z",
+      "val_start": "2024-09-12T12:00:00Z",
+      "train_end": "2024-12-31T00:00:00Z",
+      "test_start": "2025-01-01T00:00:00Z",
+      "test_end": "2025-06-30T23:45:00Z",
+      "distant": false
+    },
+    {
+      "window_id": "C",
+      "train_start": "2022-01-01T00:00:00Z",
+      "val_start": "2025-08-07T00:00:00Z",
+      "train_end": "2025-12-31T00:00:00Z",
+      "test_start": "2026-01-01T00:00:00Z",
+      "test_end": "2026-06-30T23:45:00Z",
+      "distant": false
+    }
+  ]
+}
