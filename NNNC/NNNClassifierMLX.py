@@ -17,6 +17,7 @@ import sys
 from pathlib import Path
 from enum import Enum
 
+import numpy as np
 import mlx.core as mx
 import mlx.nn as nn
 
@@ -1138,6 +1139,717 @@ class NNNClassifierMLX_LSTM_Noisy(NoisyCoconutMixin, NNNClassifierMLX_LSTM):
 
 
 # -----------------------------------------------------------------------
+# NNC classifier study (feature 018) registry types — RIDGE and ROCKET.
+# ADDITIVE ONLY: every class above is untouched (contracts/registry.md, research R6).
+# -----------------------------------------------------------------------
+
+
+class _RidgeModel(nn.Module):
+    """Flatten(seq_len x num_features) -> Linear(num_classes).
+
+    The L2 penalty ("ridge") is not implemented here — it comes from the shared
+    training loop's ``weight_decay`` (``optim.AdamW``); this module is plain
+    multinomial logistic regression.
+    """
+
+    def __init__(self, seq_len: int, num_features: int, num_classes: int):
+        super().__init__()
+        self.out = nn.Linear(seq_len * num_features, num_classes)
+
+    def __call__(self, x: mx.array) -> mx.array:
+        B = x.shape[0]
+        x = x.reshape(B, -1)
+        return mx.softmax(self.out(x), axis=-1)
+
+
+class NNNClassifierMLX_Ridge(MLXClassifierNary):
+    """RIDGE registry baseline (research R6): L2-penalised multinomial logistic
+    regression under the study's shared focal loss / class weights. Takes no `hp`
+    keys — the penalty strength is `clf.weight_decay`, set by the harness from
+    `ExperimentConfig.train`."""
+
+    is_trained = False
+    clean_data_required = False
+    hp: dict = {}
+
+    def create_model(self, seq_len: int, num_features: int) -> nn.Module:
+        return _RidgeModel(seq_len, num_features, self.num_classes)
+
+
+class _RocketModel(nn.Module):
+    """MiniRocket-style frozen random-kernel features (research R6).
+
+    ``n_kernels`` kernels of length ``kernel_len``, weights in {-1, 2} (a third of the
+    taps at +2, the rest at -1, so each kernel sums to ~0). Each kernel gets a random
+    dilation (a power of two, up to ``(seq_len - 1) // (kernel_len - 1)``), a random
+    input channel, and a bias drawn ``U(-1, 1)`` — a simplification of MiniRocket's
+    quantile-fitted biases, which need a data pass this construction path doesn't have
+    (documented in contracts/registry.md). Each kernel's causal (left-zero-padded)
+    dilated convolution over its channel is pooled to PPV (fraction of outputs > 0) and
+    max over time, giving ``2 * n_kernels`` features for a trainable linear head.
+
+    Kernel weights/channels/bias are ordinary ``mx.array`` attributes (so
+    ``save_weights``/``load_weights`` round-trip them across runs) but are frozen with
+    ``self.freeze(recurse=False, keys=[...])`` at construction, so
+    ``trainable_parameters()`` contains only ``out.weight`` / ``out.bias``.
+
+    ``feature_norm`` ("standardize" | "none", research R6 seed-instability fix):
+    the MAX-pooled half of ``feats`` is unbounded and heavy-tailed (measured on real
+    LINK/USDT ind24 data: PPV features sit in ``[0, 1]`` with mean ~0.5, but MAX
+    features have mean ~1.8 and a tail out to 40-60), unlike PPV which is bounded to
+    ``[0, 1]`` by construction. Dotted with the untrained head's random
+    ``Linear(2*n_kernels, num_classes)`` weights, that scale/skew makes the *initial*
+    (pre-training) softmax collapse to a single class with near-certainty for the large
+    majority of rows — e.g. one real-data seed predicted BUY for 99,946 of 99,985 batch
+    rows before a single gradient step. Under this codebase's global-norm(1.0) gradient
+    clipping that collapse is very hard to train out of within `early_patience`, matching
+    the observed ``best_epoch=0`` / val_mcc-never-improves seed failures. When
+    ``feature_norm="standardize"`` this normalises ``feats`` (both halves, for
+    simplicity/uniformity) to ~zero-mean/unit-std using statistics computed once from the
+    first training-mode forward pass (i.e. the first training batch) and then frozen —
+    never from val/test data, since normalisation only recomputes while
+    ``self.training`` is True and only until calibrated. ``feature_norm="none"``
+    reproduces the original (pre-fix) behaviour byte-for-byte, for reproducing historical
+    `results.jsonl` rows.
+    """
+
+    def __init__(
+        self,
+        seq_len: int,
+        num_features: int,
+        num_classes: int,
+        n_kernels: int = 1000,
+        kernel_len: int = 9,
+        seed: int | None = None,
+        feature_norm: str = "standardize",
+    ):
+        super().__init__()
+        self.kernel_len = kernel_len
+        if feature_norm not in ("standardize", "none"):
+            raise ValueError(f"feature_norm must be 'standardize' or 'none', got {feature_norm!r}")
+        self.feature_norm = feature_norm
+
+        rng = np.random.default_rng(seed)
+
+        n_high = max(1, kernel_len // 3)
+        weights = np.full((n_kernels, kernel_len), -1.0, dtype=np.float32)
+        for k in range(n_kernels):
+            hi = rng.choice(kernel_len, size=n_high, replace=False)
+            weights[k, hi] = 2.0
+
+        channels = rng.integers(0, num_features, size=n_kernels).astype(np.int32)
+
+        max_dilation = max(1, (seq_len - 1) // max(1, kernel_len - 1))
+        dilation_choices = [1]
+        d = 2
+        while d <= max_dilation:
+            dilation_choices.append(d)
+            d *= 2
+        dilations = rng.choice(dilation_choices, size=n_kernels).astype(np.int64)
+
+        biases = rng.uniform(-1.0, 1.0, size=n_kernels).astype(np.float32)
+
+        self.kernel_weights = mx.array(weights)
+        self.kernel_channels = mx.array(channels)
+        self.kernel_bias = mx.array(biases)
+        self.freeze(recurse=False, keys=["kernel_weights", "kernel_channels", "kernel_bias"])
+
+        # Plain python/numpy grouping metadata (never an mx.array attribute, so it
+        # never enters the module's parameter tree): which kernel indices share a
+        # dilation, so the forward pass loops over distinct dilations (typically a
+        # handful) instead of once per kernel.
+        self._dilation_groups = [
+            (int(dval), np.where(dilations == dval)[0].tolist())
+            for dval in sorted(set(dilations.tolist()))
+        ]
+
+        self.out = nn.Linear(2 * n_kernels, num_classes)
+
+        if self.feature_norm == "standardize":
+            n_feats = 2 * n_kernels
+            # Non-trainable, save/load-round-tripping buffers (same pattern as the
+            # kernel arrays above): identity (mean 0, scale 1) until the first
+            # training-mode forward pass calibrates them once, then frozen for the
+            # rest of training and for inference.
+            self.feat_mean = mx.zeros((n_feats,))
+            self.feat_scale = mx.ones((n_feats,))
+            self.freeze(recurse=False, keys=["feat_mean", "feat_scale"])
+            # Plain python flag (not an mx.array): only gates *when* calibration is
+            # (re)computed within this in-memory instance's training run, so it is
+            # allowed to reset to False on a fresh load — at that point self.training
+            # is False (inference) and the branch below never fires, so the loaded
+            # feat_mean/feat_scale are used as-is regardless of this flag's value.
+            self._calibrated = False
+
+    def __call__(self, x: mx.array) -> mx.array:
+        # x: (batch, seq, features)
+        B, T, _ = x.shape
+        ppv_parts = []
+        max_parts = []
+        for dilation, idx in self._dilation_groups:
+            chan = self.kernel_channels[idx]
+            w = self.kernel_weights[idx]  # (Kg, kernel_len)
+            bias = self.kernel_bias[idx]  # (Kg,)
+            x_g = x[:, :, chan]  # (B, T, Kg) — gather each kernel's input channel
+
+            pad = dilation * (self.kernel_len - 1)
+            if pad > 0:
+                zeros = mx.zeros((B, pad, x_g.shape[-1]))
+                x_pad = mx.concatenate([zeros, x_g], axis=1)  # causal left pad
+            else:
+                x_pad = x_g
+
+            acc = mx.zeros((B, T, x_g.shape[-1]))
+            for i in range(self.kernel_len):
+                tap = x_pad[:, i * dilation : i * dilation + T, :]
+                acc = acc + tap * w[:, i]
+            acc = acc - bias
+
+            ppv_parts.append(mx.mean((acc > 0).astype(mx.float32), axis=1))
+            max_parts.append(mx.max(acc, axis=1))
+
+        feats = mx.concatenate(ppv_parts + max_parts, axis=-1)  # (B, 2*n_kernels)
+
+        if self.feature_norm == "standardize":
+            if self.training and not self._calibrated:
+                mean = mx.stop_gradient(mx.mean(feats, axis=0))
+                std = mx.stop_gradient(mx.std(feats, axis=0))
+                self.feat_mean = mean
+                self.feat_scale = mx.maximum(std, mx.array(1e-6))
+                self._calibrated = True
+            feats = (feats - self.feat_mean) / self.feat_scale
+
+        return mx.softmax(self.out(feats), axis=-1)
+
+
+class NNNClassifierMLX_Rocket(MLXClassifierNary):
+    """ROCKET registry baseline (research R6): frozen random-kernel features + a
+    trainable linear head, through the identical shared training loop. `hp` keys:
+    `n_kernels` (default 1000), `kernel_len` (default 9), `feature_norm`
+    ("standardize" [default, new] | "none" [old, pre-fix behaviour] — see
+    `_RocketModel`'s docstring for the seed-instability mechanism this addresses)."""
+
+    is_trained = False
+    clean_data_required = False
+    hp: dict = {}
+
+    def create_model(self, seq_len: int, num_features: int) -> nn.Module:
+        n_kernels = self.hp.get("n_kernels", 1000)
+        kernel_len = self.hp.get("kernel_len", 9)
+        feature_norm = self.hp.get("feature_norm", "standardize")
+        seed = getattr(self, "train_seed", None)
+        return _RocketModel(
+            seq_len,
+            num_features,
+            self.num_classes,
+            n_kernels=n_kernels,
+            kernel_len=kernel_len,
+            seed=seed,
+            feature_norm=feature_norm,
+        )
+
+
+# -----------------------------------------------------------------------
+# NNNClassifierMLX_LSTM_Fam / GRU_Fam / TCN_Fam / Transformer_Fam / MLP_Fam
+# -----------------------------------------------------------------------
+#
+# Pure single-family registry types (research R7, contracts/registry.md, T034):
+# no conv front-end, no residual connections unless `hp["residual"]` says so.
+# Every hyperparameter is read from `self.hp` (a dict the harness sets on the
+# instance after `create_classifier_mlx`, before `train()`); the defaults below
+# are a valid, strategy-usable configuration on their own (FR-015). These are
+# additive — no existing class above is modified.
+
+
+class _LSTMFamModel(nn.Module):
+    """Stacked (optionally bidirectional) `nn.LSTM` -> dropout -> Linear -> softmax.
+
+    Pure RNN: no conv front-end, no residual, unlike `_LSTMModel` above.
+    `bidirectional=True` runs a second LSTM stack over the time-reversed input
+    and concatenates its (re-reversed) per-timestep hidden states with the
+    forward stack's, before pooling.
+    """
+
+    def __init__(
+        self,
+        num_features: int,
+        num_classes: int,
+        hidden: int,
+        depth: int,
+        bidirectional: bool,
+        dropout: float,
+        pool: str,
+    ):
+        super().__init__()
+        if pool not in ("last", "mean"):
+            raise ValueError(f"pool must be 'last' or 'mean', got {pool!r}")
+        self.pool = pool
+        self.bidirectional = bidirectional
+
+        in_dim = num_features
+        fwd = []
+        for _ in range(depth):
+            fwd.append(nn.LSTM(in_dim, hidden))
+            in_dim = hidden
+        self.fwd_layers = fwd
+
+        if bidirectional:
+            in_dim_b = num_features
+            bwd = []
+            for _ in range(depth):
+                bwd.append(nn.LSTM(in_dim_b, hidden))
+                in_dim_b = hidden
+            self.bwd_layers = bwd
+
+        out_dim = hidden * (2 if bidirectional else 1)
+        self.drop = nn.Dropout(dropout)
+        self.out = nn.Linear(out_dim, num_classes)
+
+    def __call__(self, x: mx.array) -> mx.array:
+        h = x
+        for layer in self.fwd_layers:
+            h, _ = layer(h)
+
+        if self.bidirectional:
+            hb = mx.flip(x, axis=1)
+            for layer in self.bwd_layers:
+                hb, _ = layer(hb)
+            hb = mx.flip(hb, axis=1)
+            h = mx.concatenate([h, hb], axis=-1)
+
+        pooled = mx.mean(h, axis=1) if self.pool == "mean" else h[:, -1, :]
+        pooled = self.drop(pooled)
+        return mx.softmax(self.out(pooled), axis=-1)
+
+
+class NNNClassifierMLX_LSTM_Fam(MLXClassifierNary):
+    """LSTM_FAM registry type (research R7): pure stacked LSTM, no conv front-end,
+    no residual. `hp` keys: `hidden` (64), `depth` (1), `bidirectional` (False),
+    `dropout` (0.25), `pool` ('last' | 'mean')."""
+
+    is_trained = False
+    clean_data_required = False
+    hp: dict = {}
+
+    def create_model(self, seq_len: int, num_features: int) -> nn.Module:
+        hidden = self.hp.get("hidden", 64)
+        depth = self.hp.get("depth", 1)
+        bidirectional = self.hp.get("bidirectional", False)
+        dropout = self.hp.get("dropout", 0.25)
+        pool = self.hp.get("pool", "last")
+        return _LSTMFamModel(
+            num_features, self.num_classes, hidden, depth, bidirectional, dropout, pool
+        )
+
+
+class _GRUFamModel(nn.Module):
+    """Identical to `_LSTMFamModel` with `nn.GRU` in place of `nn.LSTM`.
+
+    `nn.GRU.__call__` returns the hidden-state sequence directly (no cell-state
+    tuple), unlike `nn.LSTM`.
+    """
+
+    def __init__(
+        self,
+        num_features: int,
+        num_classes: int,
+        hidden: int,
+        depth: int,
+        bidirectional: bool,
+        dropout: float,
+        pool: str,
+    ):
+        super().__init__()
+        if pool not in ("last", "mean"):
+            raise ValueError(f"pool must be 'last' or 'mean', got {pool!r}")
+        self.pool = pool
+        self.bidirectional = bidirectional
+
+        in_dim = num_features
+        fwd = []
+        for _ in range(depth):
+            fwd.append(nn.GRU(in_dim, hidden))
+            in_dim = hidden
+        self.fwd_layers = fwd
+
+        if bidirectional:
+            in_dim_b = num_features
+            bwd = []
+            for _ in range(depth):
+                bwd.append(nn.GRU(in_dim_b, hidden))
+                in_dim_b = hidden
+            self.bwd_layers = bwd
+
+        out_dim = hidden * (2 if bidirectional else 1)
+        self.drop = nn.Dropout(dropout)
+        self.out = nn.Linear(out_dim, num_classes)
+
+    def __call__(self, x: mx.array) -> mx.array:
+        h = x
+        for layer in self.fwd_layers:
+            h = layer(h)
+
+        if self.bidirectional:
+            hb = mx.flip(x, axis=1)
+            for layer in self.bwd_layers:
+                hb = layer(hb)
+            hb = mx.flip(hb, axis=1)
+            h = mx.concatenate([h, hb], axis=-1)
+
+        pooled = mx.mean(h, axis=1) if self.pool == "mean" else h[:, -1, :]
+        pooled = self.drop(pooled)
+        return mx.softmax(self.out(pooled), axis=-1)
+
+
+class NNNClassifierMLX_GRU_Fam(MLXClassifierNary):
+    """GRU_FAM registry type (research R7): pure stacked GRU, no conv front-end,
+    no residual. Same `hp` keys as LSTM_FAM: `hidden` (64), `depth` (1),
+    `bidirectional` (False), `dropout` (0.25), `pool` ('last' | 'mean')."""
+
+    is_trained = False
+    clean_data_required = False
+    hp: dict = {}
+
+    def create_model(self, seq_len: int, num_features: int) -> nn.Module:
+        hidden = self.hp.get("hidden", 64)
+        depth = self.hp.get("depth", 1)
+        bidirectional = self.hp.get("bidirectional", False)
+        dropout = self.hp.get("dropout", 0.25)
+        pool = self.hp.get("pool", "last")
+        return _GRUFamModel(
+            num_features, self.num_classes, hidden, depth, bidirectional, dropout, pool
+        )
+
+
+class _TCNBlock(nn.Module):
+    """One causal dilated-conv layer of the TCN stack.
+
+    Activation is ReLU, matching this file's existing causal-conv models
+    (`_WavenetModel`, `_CNNModel`'s conv path uses tanh but the wavenet/dilated
+    stack uses ReLU — that convention is followed here). `residual=True` adds a
+    1x1-projected skip connection (`nn.Linear`, since the conv operates on the
+    channel-last `(B, S, C)` layout) when the block changes channel count.
+    """
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel: int,
+        dilation: int,
+        dropout: float,
+        residual: bool,
+    ):
+        super().__init__()
+        self.residual = residual
+        self.conv = CausalConv1d(
+            in_channels, out_channels, kernel_size=kernel, dilation=dilation
+        )
+        self.drop = nn.Dropout(dropout)
+        if residual:
+            self.proj = (
+                nn.Linear(in_channels, out_channels)
+                if in_channels != out_channels
+                else None
+            )
+
+    def __call__(self, x: mx.array) -> mx.array:
+        h = nn.relu(self.conv(x))
+        h = self.drop(h)
+        if self.residual:
+            skip = self.proj(x) if self.proj is not None else x
+            h = h + skip
+        return h
+
+
+class _TCNFamModel(nn.Module):
+    """Causal dilated Conv1d stack -> global average pool -> Linear -> softmax.
+
+    Layer `i`'s dilation is `dilation_base ** i` (constant 1 at the first layer
+    regardless of base, and constant 1 throughout when `dilation_base=1`).
+    """
+
+    def __init__(
+        self,
+        num_features: int,
+        num_classes: int,
+        channels: int,
+        kernel: int,
+        depth: int,
+        dilation_base: int,
+        residual: bool,
+        dropout: float,
+    ):
+        super().__init__()
+        blocks = []
+        in_ch = num_features
+        for i in range(depth):
+            dilation = dilation_base**i
+            blocks.append(_TCNBlock(in_ch, channels, kernel, dilation, dropout, residual))
+            in_ch = channels
+        self.blocks = blocks
+        self.out = nn.Linear(channels, num_classes)
+
+    def __call__(self, x: mx.array) -> mx.array:
+        h = x
+        for block in self.blocks:
+            h = block(h)
+        h = global_avg_pool_1d(h)
+        return mx.softmax(self.out(h), axis=-1)
+
+
+class NNNClassifierMLX_TCN_Fam(MLXClassifierNary):
+    """TCN_FAM registry type (research R7): causal dilated-conv stack, global-avg-pool
+    head, no LSTM/attention. `hp` keys: `channels` (64), `kernel` (3), `depth` (3),
+    `dilation_base` (1), `residual` (False), `dropout` (0.25)."""
+
+    is_trained = False
+    clean_data_required = False
+    hp: dict = {}
+
+    def create_model(self, seq_len: int, num_features: int) -> nn.Module:
+        channels = self.hp.get("channels", 64)
+        kernel = self.hp.get("kernel", 3)
+        depth = self.hp.get("depth", 3)
+        dilation_base = self.hp.get("dilation_base", 1)
+        residual = self.hp.get("residual", False)
+        dropout = self.hp.get("dropout", 0.25)
+        return _TCNFamModel(
+            num_features,
+            self.num_classes,
+            channels,
+            kernel,
+            depth,
+            dilation_base,
+            residual,
+            dropout,
+        )
+
+
+class _RoPEMultiHeadAttention(nn.Module):
+    """Self-attention with rotary position embeddings applied to the per-head
+    query/key projections.
+
+    `nn.MultiHeadAttention` hides its internal q/k projections behind a single
+    call, so RoPE cannot be applied to them there (see `_TransformerFamBlock`,
+    which used to apply `nn.RoPE` once to the shared `d_model` sequence before
+    the first block — not a per-head rotary embedding at all). This class owns
+    separate `Linear(d_model, d_model)` projections for q/k/v and the output,
+    reshapes each to `(B, heads, T, head_dim)`, rotates q and k with
+    `nn.RoPE(head_dim, traditional=False)` (same position ids per head, offset
+    always 0 — every window is encoded from scratch, matching the model's
+    fixed-length sliding-window usage), then runs scaled dot-product attention
+    via `mx.fast.scaled_dot_product_attention` with no mask — consistent with
+    `_TransformerFamBlock`'s existing (unmasked) `nn.MultiHeadAttention` call,
+    since this is classification over the whole window, not autoregressive
+    generation.
+    """
+
+    def __init__(self, d_model: int, heads: int):
+        super().__init__()
+        if d_model % heads != 0:
+            raise ValueError(f"d_model ({d_model}) must be divisible by heads ({heads})")
+        self.heads = heads
+        self.head_dim = d_model // heads
+        self.q_proj = nn.Linear(d_model, d_model)
+        self.k_proj = nn.Linear(d_model, d_model)
+        self.v_proj = nn.Linear(d_model, d_model)
+        self.out_proj = nn.Linear(d_model, d_model)
+        self.rope = nn.RoPE(self.head_dim, traditional=False)
+
+    def _split_heads(self, x: mx.array, T: int) -> mx.array:
+        B = x.shape[0]
+        return x.reshape(B, T, self.heads, self.head_dim).transpose(0, 2, 1, 3)
+
+    def __call__(self, queries: mx.array, keys: mx.array, values: mx.array) -> mx.array:
+        Tq, Tk = queries.shape[1], keys.shape[1]
+        q = self._split_heads(self.q_proj(queries), Tq)
+        k = self._split_heads(self.k_proj(keys), Tk)
+        v = self._split_heads(self.v_proj(values), Tk)
+        q = self.rope(q)
+        k = self.rope(k)
+        scale = self.head_dim**-0.5
+        out = mx.fast.scaled_dot_product_attention(q, k, v, scale=scale)
+        out = out.transpose(0, 2, 1, 3).reshape(queries.shape[0], Tq, self.heads * self.head_dim)
+        return self.out_proj(out)
+
+
+class _TransformerFamBlock(nn.Module):
+    """Pre-LN transformer encoder block: LN -> attn -> residual, LN -> FFN(GELU) -> residual.
+
+    A plain `Linear` FFN (unlike `_TransformerEncoderBlock`'s causal-conv FFN
+    above) — kept as a separate class rather than reusing that block so its
+    FFN/dropout wiring matches the TRANSFORMER_FAM contract exactly.
+
+    Takes a pre-built `attn` module (`nn.MultiHeadAttention` or
+    `_RoPEMultiHeadAttention`) rather than building one itself, so
+    `_TransformerFamModel` can choose the attention implementation per `pos`.
+    """
+
+    def __init__(self, attn: nn.Module, d_model: int, ffn_mult: int, dropout: float):
+        super().__init__()
+        self.ln1 = nn.LayerNorm(d_model)
+        self.mha = attn
+        self.drop_a = nn.Dropout(dropout)
+        self.ln2 = nn.LayerNorm(d_model)
+        self.ff1 = nn.Linear(d_model, d_model * ffn_mult)
+        self.ff2 = nn.Linear(d_model * ffn_mult, d_model)
+        self.drop_f = nn.Dropout(dropout)
+
+    def __call__(self, x: mx.array) -> mx.array:
+        res = x
+        h = self.ln1(x)
+        h = self.mha(h, h, h)
+        h = self.drop_a(h)
+        x = res + h
+
+        res = x
+        h = self.ln2(x)
+        h = self.ff2(nn.gelu(self.ff1(h)))
+        h = self.drop_f(h)
+        return res + h
+
+
+class _TransformerFamModel(nn.Module):
+    """Linear(F->d_model) -> positional encoding (`pos`) -> `layers` pre-LN blocks ->
+    mean pool over time -> Linear -> softmax.
+
+    `pos="rope"` applies true rotary position embedding: each block's attention
+    is a `_RoPEMultiHeadAttention`, which rotates its own per-head q/k
+    projections every block (not a single shared rotation of the input
+    sequence applied once up front, as an earlier version of this model did).
+    `pos="learned"` instead adds a learned positional embedding once before the
+    first block, and every block then uses plain `nn.MultiHeadAttention`.
+    `pos="none"` uses no positional signal at all.
+    """
+
+    def __init__(
+        self,
+        seq_len: int,
+        num_features: int,
+        num_classes: int,
+        d_model: int,
+        heads: int,
+        layers: int,
+        ffn_mult: int,
+        pos: str,
+        dropout: float,
+    ):
+        super().__init__()
+        if pos not in ("learned", "none", "rope"):
+            raise ValueError(f"pos must be 'learned', 'none' or 'rope', got {pos!r}")
+        self.pos = pos
+        self.proj = nn.Linear(num_features, d_model)
+        if pos == "learned":
+            self.pos_emb = TransformerPositionalEmbeddingMLX(seq_len, d_model)
+        if pos == "rope":
+            self.blocks = [
+                _TransformerFamBlock(
+                    _RoPEMultiHeadAttention(d_model, heads), d_model, ffn_mult, dropout
+                )
+                for _ in range(layers)
+            ]
+        else:
+            self.blocks = [
+                _TransformerFamBlock(
+                    nn.MultiHeadAttention(dims=d_model, num_heads=heads),
+                    d_model,
+                    ffn_mult,
+                    dropout,
+                )
+                for _ in range(layers)
+            ]
+        self.out = nn.Linear(d_model, num_classes)
+
+    def __call__(self, x: mx.array) -> mx.array:
+        h = self.proj(x)
+        if self.pos == "learned":
+            h = self.pos_emb(h)
+        for block in self.blocks:
+            h = block(h)
+        h = global_avg_pool_1d(h)
+        return mx.softmax(self.out(h), axis=-1)
+
+
+class NNNClassifierMLX_Transformer_Fam(MLXClassifierNary):
+    """TRANSFORMER_FAM registry type (research R7): pre-LN encoder, mean pool over
+    time, no conv front-end. `hp` keys: `d_model` (64), `heads` (4), `layers` (2),
+    `ffn_mult` (2), `pos` ('learned' | 'none' | 'rope'), `dropout` (0.25)."""
+
+    is_trained = False
+    clean_data_required = False
+    hp: dict = {}
+
+    def create_model(self, seq_len: int, num_features: int) -> nn.Module:
+        d_model = self.hp.get("d_model", 64)
+        heads = self.hp.get("heads", 4)
+        layers = self.hp.get("layers", 2)
+        ffn_mult = self.hp.get("ffn_mult", 2)
+        pos = self.hp.get("pos", "learned")
+        dropout = self.hp.get("dropout", 0.25)
+        return _TransformerFamModel(
+            seq_len,
+            num_features,
+            self.num_classes,
+            d_model,
+            heads,
+            layers,
+            ffn_mult,
+            pos,
+            dropout,
+        )
+
+
+class _MLPFamModel(nn.Module):
+    """Flatten -> `depth` x (Linear(width) -> ReLU -> Dropout) -> Linear -> softmax.
+
+    Pure MLP: no BatchNorm (unlike `_MLPModel` above), no residual.
+    """
+
+    def __init__(
+        self,
+        seq_len: int,
+        num_features: int,
+        num_classes: int,
+        width: int,
+        depth: int,
+        dropout: float,
+    ):
+        super().__init__()
+        flat_dim = seq_len * num_features
+        layers = []
+        in_dim = flat_dim
+        for _ in range(depth):
+            layers.append(nn.Linear(in_dim, width))
+            in_dim = width
+        self.layers = layers
+        self.drop = nn.Dropout(dropout)
+        self.out = nn.Linear(in_dim, num_classes)
+
+    def __call__(self, x: mx.array) -> mx.array:
+        B = x.shape[0]
+        h = x.reshape(B, -1)
+        for layer in self.layers:
+            h = self.drop(nn.relu(layer(h)))
+        return mx.softmax(self.out(h), axis=-1)
+
+
+class NNNClassifierMLX_MLP_Fam(MLXClassifierNary):
+    """MLP_FAM registry type (research R7): pure Flatten -> MLP -> softmax, no
+    BatchNorm/residual. `hp` keys: `width` (256), `depth` (2), `dropout` (0.25)."""
+
+    is_trained = False
+    clean_data_required = False
+    hp: dict = {}
+
+    def create_model(self, seq_len: int, num_features: int) -> nn.Module:
+        width = self.hp.get("width", 256)
+        depth = self.hp.get("depth", 2)
+        dropout = self.hp.get("dropout", 0.25)
+        return _MLPFamModel(seq_len, num_features, self.num_classes, width, depth, dropout)
+
+
+# -----------------------------------------------------------------------
 # ClassifierTypeMLX enum + factory
 # -----------------------------------------------------------------------
 
@@ -1167,6 +1879,13 @@ class ClassifierTypeMLX(Enum):
     LSTM_RAW = NNNClassifierMLX_LSTM_Raw
     LSTM_NORESIZE = NNNClassifierMLX_LSTM_NoResize
     LSTM_NORES = NNNClassifierMLX_LSTM_NoRes
+    RIDGE = NNNClassifierMLX_Ridge
+    ROCKET = NNNClassifierMLX_Rocket
+    LSTM_FAM = NNNClassifierMLX_LSTM_Fam
+    GRU_FAM = NNNClassifierMLX_GRU_Fam
+    TCN_FAM = NNNClassifierMLX_TCN_Fam
+    TRANSFORMER_FAM = NNNClassifierMLX_Transformer_Fam
+    MLP_FAM = NNNClassifierMLX_MLP_Fam
 
 
 def create_classifier_mlx(
