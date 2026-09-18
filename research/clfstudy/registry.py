@@ -182,12 +182,25 @@ def load_phase(path: str | Path) -> Tuple[Dict[str, Any], List[ExperimentConfig]
     return header, configs
 
 
-def build(cfg: ExperimentConfig, nf: int, seq_len: int, seed: int, checkpoint_dir: str | Path):
+def build(
+    cfg: ExperimentConfig,
+    nf: int,
+    seq_len: int,
+    seed: int,
+    checkpoint_dir: str | Path,
+    *,
+    window_id: str,
+):
     """Construct a fully-configured (untrained) classifier for `cfg` at seed `seed`.
 
     Sets hyperparameters (`clf.hp`), the training seed, the optimizer knobs from
     `cfg.train`, and routes the checkpoint to `checkpoint_dir` (see the note below on why
     that needs more than setting `clf.checkpoint_path`).
+
+    `window_id` is required (keyword-only) and is part of the checkpoint filename: a bare
+    `<config_id>_<seed>.safetensors` collides across windows A/B/C of the same
+    (config, seed) within a phase run, so window B would `train()`-resume from window A's
+    saved weights instead of starting from scratch (and C from B's).
     """
     clf, _ = create_classifier_mlx(resolve(cfg.arch), "POOLED", nf, seq_len, NUM_CLASSES)
 
@@ -201,7 +214,9 @@ def build(cfg: ExperimentConfig, nf: int, seq_len: int, seed: int, checkpoint_di
 
     checkpoint_dir = str(checkpoint_dir)
     os.makedirs(checkpoint_dir, exist_ok=True)
-    ckpt_path = os.path.join(checkpoint_dir, f"{config_id(cfg)}_{seed}.safetensors")
+    ckpt_path = os.path.join(
+        checkpoint_dir, f"{config_id(cfg)}_{window_id}_{seed}.safetensors"
+    )
 
     # `MLXBasePredictor.set_model_path()` also sets `self.name`/`self.root_dir`, which
     # `save()` (called unconditionally at the end of `train()`) needs to be non-empty.

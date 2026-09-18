@@ -50,6 +50,7 @@ _ROW_FIELDS = [
     "n_params", "train_seconds", "epochs_run", "best_epoch",
     "infer_ms_per_window_b256", "infer_ms_per_window_b1", "mlx_peak_mb",
     "harness_version", "git_sha", "started_at", "finished_at", "weights_path",
+    "ckpt_name",
 ]
 
 
@@ -186,7 +187,7 @@ def test_run_one_dry_run_returns_empty_and_appends_nothing(_patch_run_module):
 
 def test_run_one_removes_stale_model_file(_patch_run_module):
     """A leftover weight file at the exact path `registry.build()` would route this
-    (config, seed) to (e.g. from a killed-mid-run resume, or a retry) must be deleted
+    (config, window, seed) to (e.g. from a killed-mid-run resume, or a retry) must be deleted
     before `train()` runs -- otherwise `MLXClassifierNary.train()`'s unconditional
     `self.model = self.load()` silently warm-starts from it. Regression test for the
     bug where `force_train=True` did not prevent this."""
@@ -203,7 +204,7 @@ def test_run_one_removes_stale_model_file(_patch_run_module):
     cid = registry_mod.config_id(cfg)
     # `CACHE_DIR` is the real, shared checkpoint cache (also used by concurrent study
     # runs), not a tmp_path -- clean up our probe file in `finally` regardless of outcome.
-    ckpt_path = CACHE_DIR / "ckpt" / f"{cid}_0.safetensors"
+    ckpt_path = CACHE_DIR / "ckpt" / f"{cid}_A_0.safetensors"
     ckpt_path.parent.mkdir(parents=True, exist_ok=True)
     ckpt_path.write_bytes(b"not a real checkpoint")
     dummy_mtime = ckpt_path.stat().st_mtime

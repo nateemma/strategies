@@ -92,7 +92,7 @@ def test_build_train_predict(member, tmp_path):
     )
     cfg.validate()
 
-    clf = build(cfg, nf=N_FEATURES, seq_len=seq_len, seed=0, checkpoint_dir=tmp_path)
+    clf = build(cfg, nf=N_FEATURES, seq_len=seq_len, seed=0, checkpoint_dir=tmp_path, window_id="A")
 
     X_train, X_val, y_train, y_val = _synthetic_data(seq_len=seq_len)
     clf.train(X_train, X_val, y_train, y_val, class_weights=CLASS_WEIGHTS)
@@ -143,7 +143,8 @@ def test_family_size_axis_param_counts_differ(arch, tmp_path):
         )
         cfg.validate()
         clf = build(
-            cfg, nf=N_FEATURES, seq_len=SEQ_LEN, seed=0, checkpoint_dir=tmp_path / str(v)
+            cfg, nf=N_FEATURES, seq_len=SEQ_LEN, seed=0, checkpoint_dir=tmp_path / str(v),
+            window_id="A",
         )
 
         X_train, X_val, y_train, y_val = _synthetic_data()
@@ -198,7 +199,7 @@ def test_family_structural_axes_build_train(arch, hp, tmp_path):
         train={"max_epochs": 1, "patience": 5, "batch_size": 64},
     )
     cfg.validate()
-    clf = build(cfg, nf=N_FEATURES, seq_len=SEQ_LEN, seed=0, checkpoint_dir=tmp_path)
+    clf = build(cfg, nf=N_FEATURES, seq_len=SEQ_LEN, seed=0, checkpoint_dir=tmp_path, window_id="A")
 
     X_train, X_val, y_train, y_val = _synthetic_data()
     clf.train(X_train, X_val, y_train, y_val, class_weights=CLASS_WEIGHTS)
@@ -221,7 +222,8 @@ def test_family_structural_axes_build_train(arch, hp, tmp_path):
         )
         default_cfg.validate()
         default_clf = build(
-            default_cfg, nf=N_FEATURES, seq_len=SEQ_LEN, seed=0, checkpoint_dir=tmp_path / "default"
+            default_cfg, nf=N_FEATURES, seq_len=SEQ_LEN, seed=0, checkpoint_dir=tmp_path / "default",
+            window_id="A",
         )
         X_train_d, X_val_d, y_train_d, y_val_d = _synthetic_data()
         default_clf.train(X_train_d, X_val_d, y_train_d, y_val_d, class_weights=CLASS_WEIGHTS)
@@ -243,7 +245,7 @@ def test_tcn_fam_dilations_overrides_depth_param_count(tmp_path):
             train={"max_epochs": 1, "patience": 5, "batch_size": 64},
         )
         cfg.validate()
-        clf = build(cfg, nf=N_FEATURES, seq_len=SEQ_LEN, seed=0, checkpoint_dir=tmp_path / subdir)
+        clf = build(cfg, nf=N_FEATURES, seq_len=SEQ_LEN, seed=0, checkpoint_dir=tmp_path / subdir, window_id="A")
         X_train, X_val, y_train, y_val = _synthetic_data()
         clf.train(X_train, X_val, y_train, y_val, class_weights=CLASS_WEIGHTS)
         return param_count(clf)
@@ -289,7 +291,7 @@ def test_family_input_proj_head_add_params(arch, hp, tmp_path):
             train={"max_epochs": 1, "patience": 5, "batch_size": 64},
         )
         cfg.validate()
-        clf = build(cfg, nf=N_FEATURES, seq_len=SEQ_LEN, seed=0, checkpoint_dir=tmp_path / sub)
+        clf = build(cfg, nf=N_FEATURES, seq_len=SEQ_LEN, seed=0, checkpoint_dir=tmp_path / sub, window_id="A")
         X_train, X_val, y_train, y_val = _synthetic_data()
         clf.train(X_train, X_val, y_train, y_val, class_weights=CLASS_WEIGHTS)
         preds = clf.predict(X_val)
@@ -337,7 +339,7 @@ def test_family_hidden256_stays_finite(arch, seed, tmp_path):
         train={"max_epochs": 3, "patience": 5, "batch_size": 64},
     )
     cfg.validate()
-    clf = build(cfg, nf=N_FEATURES, seq_len=SEQ_LEN, seed=seed, checkpoint_dir=tmp_path)
+    clf = build(cfg, nf=N_FEATURES, seq_len=SEQ_LEN, seed=seed, checkpoint_dir=tmp_path, window_id="A")
 
     X_train, X_val, y_train, y_val = _synthetic_data(seed=seed)
     clf.train(X_train, X_val, y_train, y_val, class_weights=CLASS_WEIGHTS)
@@ -393,7 +395,7 @@ def test_family_norm_toggles_build_train_and_drop_params(arch, hp, tmp_path):
             train={"max_epochs": 1, "patience": 5, "batch_size": 64},
         )
         cfg.validate()
-        clf = build(cfg, nf=N_FEATURES, seq_len=SEQ_LEN, seed=0, checkpoint_dir=tmp_path / sub)
+        clf = build(cfg, nf=N_FEATURES, seq_len=SEQ_LEN, seed=0, checkpoint_dir=tmp_path / sub, window_id="A")
         X_train, X_val, y_train, y_val = _synthetic_data()
         clf.train(X_train, X_val, y_train, y_val, class_weights=CLASS_WEIGHTS)
         preds = clf.predict(X_val)
@@ -482,7 +484,7 @@ def test_patchtst_raises_at_seq_len_16(tmp_path):
         train={"max_epochs": 1, "patience": 5, "batch_size": 64},
     )
     cfg.validate()
-    clf = build(cfg, nf=N_FEATURES, seq_len=SEQ_LEN, seed=0, checkpoint_dir=tmp_path)
+    clf = build(cfg, nf=N_FEATURES, seq_len=SEQ_LEN, seed=0, checkpoint_dir=tmp_path, window_id="A")
 
     with pytest.raises(ValueError, match="seq_len"):
         clf.create_model(SEQ_LEN, N_FEATURES)
@@ -503,7 +505,7 @@ def test_itransformer_exposes_last_attention(tmp_path):
         train={"max_epochs": 1, "patience": 5, "batch_size": 64},
     )
     cfg.validate()
-    clf = build(cfg, nf=N_FEATURES, seq_len=seq_len, seed=0, checkpoint_dir=tmp_path)
+    clf = build(cfg, nf=N_FEATURES, seq_len=seq_len, seed=0, checkpoint_dir=tmp_path, window_id="A")
 
     X_train, X_val, y_train, y_val = _synthetic_data(seq_len=seq_len)
     clf.train(X_train, X_val, y_train, y_val, class_weights=CLASS_WEIGHTS)
@@ -526,7 +528,7 @@ def test_xlstm_finite_on_large_magnitude_inputs(tmp_path):
         train={"max_epochs": 1, "patience": 5, "batch_size": 64},
     )
     cfg.validate()
-    clf = build(cfg, nf=N_FEATURES, seq_len=seq_len, seed=0, checkpoint_dir=tmp_path)
+    clf = build(cfg, nf=N_FEATURES, seq_len=seq_len, seed=0, checkpoint_dir=tmp_path, window_id="A")
 
     X_train, X_val, y_train, y_val = _synthetic_data(seq_len=seq_len)
     clf.train(X_train, X_val, y_train, y_val, class_weights=CLASS_WEIGHTS)
@@ -552,7 +554,8 @@ def test_tsmixer_param_counts_differ_across_blocks(tmp_path):
         )
         cfg.validate()
         clf = build(
-            cfg, nf=N_FEATURES, seq_len=SEQ_LEN, seed=0, checkpoint_dir=tmp_path / str(blocks)
+            cfg, nf=N_FEATURES, seq_len=SEQ_LEN, seed=0, checkpoint_dir=tmp_path / str(blocks),
+            window_id="A",
         )
         X_train, X_val, y_train, y_val = _synthetic_data()
         clf.train(X_train, X_val, y_train, y_val, class_weights=CLASS_WEIGHTS)

@@ -207,7 +207,7 @@ def _print_summary(row: Dict[str, Any]) -> None:
         f"window={row['window_id']} seed={row['seed']} status={row['status']} "
         f"mcc={row['mcc']:.4f} macro_f1={row['macro_f1']:.4f} bal_acc={row['bal_acc']:.4f} "
         f"epochs_run={row['epochs_run']} train_seconds={row['train_seconds']:.1f} "
-        f"n_params={row['n_params']}"
+        f"n_params={row['n_params']} ckpt={row['ckpt_name']}"
     )
 
 
@@ -346,6 +346,7 @@ def run_one(
     epochs_run = 0
     best_epoch = 0
     weights_path: Optional[str] = None
+    ckpt_name: Optional[str] = None
     stale_files_removed = 0
     timing_stats = {
         "infer_ms_per_window_b256": float("nan"),
@@ -375,8 +376,9 @@ def run_one(
         else:
             clf = registry.build(
                 cfg, nf=len(cols), seq_len=cfg.seq_len, seed=seed,
-                checkpoint_dir=CACHE_DIR / "ckpt",
+                checkpoint_dir=CACHE_DIR / "ckpt", window_id=window_id,
             )
+            ckpt_name = Path(clf.model_path).name
             stale_files_removed = _clear_stale_model_files(clf)
             t0 = time.perf_counter()
             clf.train(
@@ -470,6 +472,7 @@ def run_one(
         "started_at": started_at.isoformat(),
         "finished_at": finished_at.isoformat(),
         "weights_path": weights_path,
+        "ckpt_name": ckpt_name,
     }
 
     _append_result(row)

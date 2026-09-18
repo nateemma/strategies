@@ -122,3 +122,27 @@ dilations [1, 2, 4, 8, 1, 2, 4, 8] (receptive field 31 bars, kernel 2, ~32 chann
 TCN_FAM depth 8 / dilation base 2 grows dilations to 128 on a 16-bar window, so its deep layers
 see mostly padding: a pathological grid point, not a family result. A TCN_FAM with an explicit
 Wavenet dilation schedule is queued (3 seeds) as the fair conv-family test.
+
+## ROOT CAUSE of the window-B/C "stalls": cross-window checkpoint reuse (found 2026-09-18 02:30)
+
+The harness named each run's model/checkpoint file `<config_id>_<seed>.safetensors` — without
+the window — and `MLXClassifierNary.train()` loads an existing file at that path before
+training. Within every phase the runner trains windows A, B, C in turn for each config and
+seed, so the window-B run loaded the window-A model and trained from it, and window C loaded
+B's (logs: "MLX model not found" for every A run, "MLX model loaded: ..._<seed>.safetensors"
+for every B and C run). A warm-started model sits at a foreign optimum, its validation MCC is
+flat from epoch 1, and patience 10 ends the run after ~11-17 epochs with best_epoch <= 6 — the
+exact signature previously read as "the pure families don't learn on B/C" and "lr 1e-4 stalls".
+
+Proof: the first post-fix runs covering all three windows (run.py removes the stale file
+before each window) — TCN_FAM channels 32: 0.639 / 0.627 / 0.633 (A/B/C); MLP_FAM width 128:
+0.649 / 0.633 / 0.635 — versus 0.42-0.53 on B/C for every pre-fix sweep row. All C-only
+diagnostics (calibration, ablations, third seeds with a fresh seed-2 key) were clean and all
+converged, which is why they contradicted the sweeps.
+
+Status of rows: window-A rows and all seed-2 / phase-0 rows are clean; every window-B and
+window-C row of phases 2-4 (seeds 0-1) written before the fix is contaminated and is re-run
+from scratch. The protocol amendment (lr 3e-4) was decided on contaminated evidence; the clean
+calibration shows lr 1e-4 also converges, so phase 3 is re-run at the production protocol for
+comparability with its A rows, and phases 4-7 keep lr 3e-4 / stride 2 (calibrated to converge
+at half the cost). The checkpoint path now includes the window id.
