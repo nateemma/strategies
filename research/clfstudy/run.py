@@ -27,6 +27,7 @@ import sys
 import time
 import traceback
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import mlx.core as mx
@@ -276,6 +277,33 @@ def _build_tensors(cfg: ExperimentConfig, window_id: str) -> Dict[str, Any]:
     }
 
 
+def _clear_stale_model_files(clf) -> int:
+    """Remove any pre-existing weight/checkpoint files at `clf.model_path` and
+    `clf.get_checkpoint_path()` (plus sibling `<stem>.*` files in the same directory,
+    e.g. metadata written alongside the weights by `save()`), so `train()` always starts
+    from a freshly-initialised model.
+
+    `MLXClassifierNary.train()` calls `self.model = self.load()` whenever `self.model` is
+    `None`, regardless of `force_train` -- so a leftover file from an earlier run of the
+    same `(config_id, seed)` (a retry, a resume after the phase runner was killed, or a
+    config whose id didn't change although its architecture did) silently warm-starts
+    training, or fails to load if the architecture changed. Every study run must train
+    from scratch, so this is called right after `registry.build()` and before
+    `clf.train()`. Returns the number of files removed.
+    """
+    stale_paths = {Path(clf.model_path), Path(clf.get_checkpoint_path())}
+    for stale in list(stale_paths):
+        stale_paths.update(stale.parent.glob(f"{stale.stem}.*"))
+
+    removed = 0
+    for stale in sorted(stale_paths):
+        if stale.exists():
+            stale.unlink()
+            removed += 1
+            print(f"fresh-start: removed stale {stale}")
+    return removed
+
+
 def run_one(
     cfg: ExperimentConfig,
     window_id: str,
@@ -318,6 +346,7 @@ def run_one(
     epochs_run = 0
     best_epoch = 0
     weights_path: Optional[str] = None
+    stale_files_removed = 0
     timing_stats = {
         "infer_ms_per_window_b256": float("nan"),
         "infer_ms_per_window_b1": float("nan"),
@@ -348,6 +377,7 @@ def run_one(
                 cfg, nf=len(cols), seq_len=cfg.seq_len, seed=seed,
                 checkpoint_dir=CACHE_DIR / "ckpt",
             )
+            stale_files_removed = _clear_stale_model_files(clf)
             t0 = time.perf_counter()
             clf.train(
                 X_train, X_val, y_train_1h, y_val_1h,
@@ -357,6 +387,9 @@ def run_one(
             n_params = registry.param_count(clf)
             epochs_run = clf.epochs_run
             best_epoch = clf.best_epoch
+
+            if epochs_run < 1:
+                raise RuntimeError("no epochs run")
 
             proba = clf.predict(X_test)
             timing_stats = metrics.timing(clf.predict, X_test)
@@ -431,6 +464,7 @@ def run_one(
         "infer_ms_per_window_b256": timing_stats["infer_ms_per_window_b256"],
         "infer_ms_per_window_b1": timing_stats["infer_ms_per_window_b1"],
         "mlx_peak_mb": mlx_peak_mb,
+        "stale_files_removed": stale_files_removed,
         "harness_version": HARNESS_VERSION,
         "git_sha": _git_sha(),
         "started_at": started_at.isoformat(),

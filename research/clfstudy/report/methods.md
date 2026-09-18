@@ -71,3 +71,18 @@ after c2c54ca); phase-4 RNN entries carry `input_norm: false` explicitly, so the
 differ from the 30 earlier rows, which remain as history. LSTM_FAM hidden 256 still diverged on
 window A under the earlier default; it is re-run under the new default and reported as
 "diverged under the shared protocol" if it fails again.
+
+## Warm-start defect in re-runs (found 2026-09-17 23:40, fixed in run.py)
+
+`MLXClassifierNary.train()` loads an existing model file at `model_path` before training and
+continues from those weights even with `force_train=True`. The harness stores the model and the
+best-epoch checkpoint at the same per-(config_id, seed) path, so any re-run of an existing key
+warm-started from stale weights: (a) the Multihead re-run (6 keys) started from the
+contaminated concurrent-run checkpoints; (b) five phase-3 runs killed mid-training by trainer
+restarts were resumed from their partial checkpoints (LSTM2 A/0, CNN A/1, Multihead A/0 and
+B/1, Mamba2 B/1); (c) the RNN-ablation `default` arm failed to load a checkpoint from the
+input-norm era of the same config id. Fix: run.py now deletes any file at the key's model and
+checkpoint paths before training (`stale_files_removed` recorded on the row) and fails a row
+whose training ran zero epochs. The keys in (a) and (b) are re-run cleanly (rows replaced;
+backup `report/logs/results_before_clean_rerun.jsonl`); everything else trained from scratch
+because its key had no prior file.

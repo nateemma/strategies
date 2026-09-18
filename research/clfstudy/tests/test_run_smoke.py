@@ -184,6 +184,42 @@ def test_run_one_dry_run_returns_empty_and_appends_nothing(_patch_run_module):
     assert not _patch_run_module.exists()
 
 
+def test_run_one_removes_stale_model_file(_patch_run_module):
+    """A leftover weight file at the exact path `registry.build()` would route this
+    (config, seed) to (e.g. from a killed-mid-run resume, or a retry) must be deleted
+    before `train()` runs -- otherwise `MLXClassifierNary.train()`'s unconditional
+    `self.model = self.load()` silently warm-starts from it. Regression test for the
+    bug where `force_train=True` did not prevent this."""
+    cfg = ExperimentConfig(
+        arch="MLP", hp={}, input_set="ind24", seq_len=16, split_set="v1",
+        train={"max_epochs": 1, "patience": 1, "batch_size": 64},
+        phase=0, seeds=[0], tags=["smoke"],
+    )
+    cfg.validate()
+
+    from research.clfstudy import registry as registry_mod
+    from research.clfstudy import CACHE_DIR
+
+    cid = registry_mod.config_id(cfg)
+    # `CACHE_DIR` is the real, shared checkpoint cache (also used by concurrent study
+    # runs), not a tmp_path -- clean up our probe file in `finally` regardless of outcome.
+    ckpt_path = CACHE_DIR / "ckpt" / f"{cid}_0.safetensors"
+    ckpt_path.parent.mkdir(parents=True, exist_ok=True)
+    ckpt_path.write_bytes(b"not a real checkpoint")
+    dummy_mtime = ckpt_path.stat().st_mtime
+
+    try:
+        row = run_mod.run_one(cfg, "A", seed=0)
+
+        assert row["status"] != "failed", row.get("error")
+        assert row["stale_files_removed"] >= 1
+        assert ckpt_path.exists()
+        assert ckpt_path.stat().st_mtime >= dummy_mtime
+        assert ckpt_path.read_bytes() != b"not a real checkpoint"
+    finally:
+        ckpt_path.unlink(missing_ok=True)
+
+
 def test_phase_skip_logic_skips_existing_key(monkeypatch, tmp_path):
     results_path = tmp_path / "phase_results.jsonl"
     done_row = {
