@@ -86,3 +86,26 @@ checkpoint paths before training (`stale_files_removed` recorded on the row) and
 whose training ran zero epochs. The keys in (a) and (b) are re-run cleanly (rows replaced;
 backup `report/logs/results_before_clean_rerun.jsonl`); everything else trained from scratch
 because its key had no prior file.
+
+## RNN ablation (window C, 3 seeds, lr 3e-4, stride 2; 2026-09-18 01:20)
+
+| arm | seeds | mean MCC | converged |
+|---|---|---|---|
+| LSTM_FAM h64 default | 0.635, 0.632 (seed 0 failed on a stale file, re-run queued) | 0.633 | 2/2 |
+| no pool norm | 0.630, 0.632, 0.633 | 0.632 | 3/3 |
+| input projection | 0.638, 0.638, 0.639 | 0.638 | 3/3 |
+| bottleneck head | 0.637, 0.639, 0.639 | 0.638 | 3/3 |
+| projection + bottleneck | 0.638, 0.639, 0.639 | 0.639 | 3/3 |
+| batch 1024 | 0.631, 0.631, 0.632 | 0.631 | 3/3 |
+| lr 1e-4, patience 20 | 0.629, 0.628, 0.630 | 0.629 | 3/3 |
+| weight decay 1e-4 | 0.633, 0.635, 0.632 | 0.633 | 3/3 |
+| LSTM_RAW control | 0.638, 0.639, 0.638 | 0.638 | 3/3 |
+
+Every arm converges; none of the structural or optimiser changes is needed. The phase-4 RNN
+rows that stalled (e.g. LSTM_FAM h64, C, seed 1: 0.505, val flat at 0.45 from epoch 1 versus
+0.635 / val 0.61 from epoch 1 for the identical architecture, seed and data in the ablation)
+all predate the fresh-start fix; the ablation rows all follow it. The RNN family sweep is
+therefore discarded and re-run from scratch under the current harness (rows backed up in
+report/logs/results_before_rnn_sweep_rerun.jsonl). If the re-run converges, the earlier stalls
+were a harness artefact; if it stalls again, the difference is real and will be diagnosed
+against these ablation rows (identical config ids).
