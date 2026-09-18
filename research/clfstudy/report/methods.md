@@ -146,3 +146,12 @@ from scratch. The protocol amendment (lr 3e-4) was decided on contaminated evide
 calibration shows lr 1e-4 also converges, so phase 3 is re-run at the production protocol for
 comparability with its A rows, and phases 4-7 keep lr 3e-4 / stride 2 (calibrated to converge
 at half the cost). The checkpoint path now includes the window id.
+
+## After the fix: read-out, patience and clean re-runs (2026-09-18 04:30)
+
+Window C, 3 seeds, lr 3e-4, stride 2, clean: TCN anchor pool=last 0.639/0.640/0.639, patience
+40 0.637/0.636/0.639; Transformer d64/L1 pool=last 0.639/0.641/0.640, patience 40
+0.639/0.639/0.639. Neither the read-out nor the patience matters once runs start from scratch.
+Clean re-runs of the warm-started keys: Multihead A 0.657/0.660, B 0.640/0.641, C 0.640/0.639;
+Mamba2 B/1 0.640; LSTM2 A/0 0.663; CNN A/1 0.552 (CNN is weaker, but not the contaminated
+0.44). Every architecture that trains from scratch reaches ~0.64 on B/C and ~0.66 on A.

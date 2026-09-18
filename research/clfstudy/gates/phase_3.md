@@ -29,7 +29,7 @@ pooled_seed_std_mcc = 0.003
 | 098ca2f95a2e | LSTM2 | PASS | PASS | PASS | True |
 | 0b31c7bb9404 | Multihead | PASS | PASS | PASS | True |
 | 12c3636e7110 | ROCKET | fail | PASS | PASS | False |
-| 225a954527c8 | LSTM_NORESIZE | PASS | fail | fail | False |
+| 225a954527c8 | LSTM_NORESIZE | PASS | fail | PASS | False |
 | 3a4ddb6c4092 | LSTM_NOISY | PASS | PASS | fail | False |
 | 3cd40f90604c | LSTM_KAN | PASS | PASS | PASS | True |
 | 3d09879bf74b | LSTM_D10 | PASS | PASS | fail | False |
@@ -73,7 +73,7 @@ pooled_seed_std_mcc = 0.003
 | config_id | arch | failing windows |
 |---|---|---|
 | 0875fd5bd454 | LSTM_INJIT | C |
-| 225a954527c8 | LSTM_NORESIZE | B, C |
+| 225a954527c8 | LSTM_NORESIZE | B |
 | 3a4ddb6c4092 | LSTM_NOISY | C |
 | 3d09879bf74b | LSTM_D10 | C |
 | 470786990c9e | LSTM_NOCONV | C |
@@ -93,21 +93,13 @@ pooled_seed_std_mcc = 0.003
 - std_mode=every: 'every' (spec FR-028(ii)) requires std_ok on EVERY window independent of the margin-majority vote; 'majority' folds std_ok into window_pass so instability can be outvoted (pre-fix behaviour, kept for comparison only).
 - stability_only_failures lists configs that clear the margin on a majority of windows and have no bad status, but fail the stability bound on at least one window -- FR-004 allows these to receive a third seed before a final fail decision.
 
-decided_at: 2026-09-17T11:20:28.904180+00:00
+decided_at: 2026-09-17T17:16:32.081887+00:00
 decided_by: gate.py + author review at checkpoint
 
-## Author decision (checkpoint, 2026-09-17)
+## SUPERSEDED (2026-09-18)
 
-1. **Stability clause amendment (FR-004 close-call seeds).** The 12 configs that satisfy the
-   margin on a majority of windows and have no bad status but fail the seed-std ≤ 0.03 clause
-   on one window (two for LSTM_NORESIZE) receive a THIRD seed on the failing window(s) only,
-   after which the rule is re-applied. With 2 seeds the clause was measuring early-stopping
-   noise: production LSTM failed on C (0.042) while LSTM_K5, identical in pooled MCC, passed.
-2. **Finalist set of existing types** carried into phases 5–7: Transformer, LSTM, Wavenet
-   (one per mechanism: attention, recurrence, dilated convolution; all inside the top tie).
-   GRU/LSTM2 dominated (7–11× params, 2× time); K5/KAN/W64/NORES/NOCONV/D10/NOISY
-   indistinguishable from LSTM; Attention/TSMamba/CNN/MLP/Multihead below the tie; Mamba fails
-   the margin. Phase 4 sweeps all four families unconditionally (they define the phase); gate 3
-   informs anchors only.
-3. **Budget.** Phase 3 measured 13.9 h vs 8.8 h projected. Phases 4–6 run with
-   `train.stride = 2` (every second training window); phase-7 finalists train on full data.
+The per-window figures for B and C above, the stability-only failure list and the third-seed
+amendment were computed on rows contaminated by cross-window checkpoint reuse (see
+report/methods.md, "ROOT CAUSE"). Window-A figures stand. Gate 3 is re-evaluated after the
+clean B/C re-run; the finalist choice (Transformer, LSTM, Wavenet) is retained provisionally
+because it rests on window A and on clean window-C diagnostics.
