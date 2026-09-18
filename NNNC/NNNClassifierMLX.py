@@ -1369,18 +1369,35 @@ class _LSTMFamModel(nn.Module):
     and concatenates its (re-reversed) per-timestep hidden states with the
     forward stack's, before pooling.
 
-    Two `LayerNorm`s bound the two places raw magnitude can otherwise drift
-    across a long, unregularized training run (`weight_decay` defaults to 0):
-    `input_norm` on the raw per-timestep features before they reach `Wx`, and
-    `pool_norm` on the pooled hidden state before the classification head --
-    mirroring `_LSTMModel`'s `ln_conv`/`ln_lstm` pair above (its input passes
-    through `resize` + `conv1` + `ln_conv` before the LSTM, and its output
-    through `ln_lstm` before the bottleneck). Without them, `hidden=256`
-    diverges to non-finite predicted probabilities partway through a 40-epoch
-    real-data run (both seeds); `hidden=16`/`64` stay finite only because
-    their smaller recurrent weight matrices take far longer to drift that far
-    -- confirmed via the pre-fix gradient-clip rate, which grows with `hidden`
-    (near-zero at 16, ~4-10% of batches at 64, ~10-25% at 256, by epoch 20-30).
+    Two optional `LayerNorm`s bound the two places raw magnitude can otherwise
+    drift across a long, unregularized training run (`weight_decay` defaults
+    to 0): `input_norm` on the raw per-timestep features before they reach
+    `Wx`, and `pool_norm` on the pooled hidden state before the classification
+    head -- mirroring `_LSTMModel`'s `ln_conv`/`ln_lstm` pair above (its input
+    passes through `resize` + `conv1` + `ln_conv` before the LSTM, and its
+    output through `ln_lstm` before the bottleneck). With both enabled
+    (the default), `hidden=256` stays finite where it otherwise diverges to
+    non-finite predicted probabilities partway through a 40-epoch real-data
+    run (both seeds); `hidden=16`/`64` stay finite either way because their
+    smaller recurrent weight matrices take far longer to drift that far --
+    confirmed via the pre-fix gradient-clip rate, which grows with `hidden`
+    (near-zero at 16, ~4-10% of batches at 64, ~10-25% at 256, by epoch
+    20-30).
+
+    Both norms are gated by boolean constructor args so they can be disabled
+    per hp (research suspicion: `input_norm` applied across the raw 24
+    indicator features per bar removes each bar's absolute feature levels --
+    e.g. the label-trigger inputs' thresholds -- which is plausibly
+    destructive for tabular-like indicator features, and is suspected of
+    flattening validation MCC on the harder real-data windows). When
+    `input_norm=False` no replacement normalisation is substituted -- the
+    features are already RobustScaled and clipped to +-10 upstream of this
+    model, so no per-bar, cross-feature renormalisation is needed to keep
+    `Wx` inputs bounded; this keeps each bar's absolute feature levels intact.
+    When `pool_norm=False` the pooled hidden state is fed to the head as-is.
+    Disabling either drops that `LayerNorm`'s parameters entirely (the module
+    is omitted, not bypassed), so `hidden=256` runs with both disabled lose
+    the divergence guard described above.
     """
 
     def __init__(
@@ -1392,14 +1409,19 @@ class _LSTMFamModel(nn.Module):
         bidirectional: bool,
         dropout: float,
         pool: str,
+        input_norm: bool = True,
+        pool_norm: bool = True,
     ):
         super().__init__()
         if pool not in ("last", "mean"):
             raise ValueError(f"pool must be 'last' or 'mean', got {pool!r}")
         self.pool = pool
         self.bidirectional = bidirectional
+        self.use_input_norm = input_norm
+        self.use_pool_norm = pool_norm
 
-        self.input_norm = nn.LayerNorm(num_features)
+        if input_norm:
+            self.input_norm = nn.LayerNorm(num_features)
 
         in_dim = num_features
         fwd = []
@@ -1417,12 +1439,14 @@ class _LSTMFamModel(nn.Module):
             self.bwd_layers = bwd
 
         out_dim = hidden * (2 if bidirectional else 1)
-        self.pool_norm = nn.LayerNorm(out_dim)
+        if pool_norm:
+            self.pool_norm = nn.LayerNorm(out_dim)
         self.drop = nn.Dropout(dropout)
         self.out = nn.Linear(out_dim, num_classes)
 
     def __call__(self, x: mx.array) -> mx.array:
-        x = self.input_norm(x)
+        if self.use_input_norm:
+            x = self.input_norm(x)
 
         h = x
         for layer in self.fwd_layers:
@@ -1436,7 +1460,8 @@ class _LSTMFamModel(nn.Module):
             h = mx.concatenate([h, hb], axis=-1)
 
         pooled = mx.mean(h, axis=1) if self.pool == "mean" else h[:, -1, :]
-        pooled = self.pool_norm(pooled)
+        if self.use_pool_norm:
+            pooled = self.pool_norm(pooled)
         pooled = self.drop(pooled)
         return mx.softmax(self.out(pooled), axis=-1)
 
@@ -1444,7 +1469,8 @@ class _LSTMFamModel(nn.Module):
 class NNNClassifierMLX_LSTM_Fam(MLXClassifierNary):
     """LSTM_FAM registry type (research R7): pure stacked LSTM, no conv front-end,
     no residual. `hp` keys: `hidden` (64), `depth` (1), `bidirectional` (False),
-    `dropout` (0.25), `pool` ('last' | 'mean')."""
+    `dropout` (0.25), `pool` ('last' | 'mean'), `input_norm` (True), `pool_norm`
+    (True) -- see `_LSTMFamModel`'s docstring for what disabling either one does."""
 
     is_trained = False
     clean_data_required = False
@@ -1456,8 +1482,11 @@ class NNNClassifierMLX_LSTM_Fam(MLXClassifierNary):
         bidirectional = self.hp.get("bidirectional", False)
         dropout = self.hp.get("dropout", 0.25)
         pool = self.hp.get("pool", "last")
+        input_norm = self.hp.get("input_norm", True)
+        pool_norm = self.hp.get("pool_norm", True)
         return _LSTMFamModel(
-            num_features, self.num_classes, hidden, depth, bidirectional, dropout, pool
+            num_features, self.num_classes, hidden, depth, bidirectional, dropout, pool,
+            input_norm=input_norm, pool_norm=pool_norm,
         )
 
 
@@ -1465,9 +1494,9 @@ class _GRUFamModel(nn.Module):
     """Identical to `_LSTMFamModel` with `nn.GRU` in place of `nn.LSTM`.
 
     `nn.GRU.__call__` returns the hidden-state sequence directly (no cell-state
-    tuple), unlike `nn.LSTM`. Carries the same `input_norm`/`pool_norm`
+    tuple), unlike `nn.LSTM`. Carries the same optional `input_norm`/`pool_norm`
     `LayerNorm` pair and for the same reason -- see `_LSTMFamModel`'s
-    docstring.
+    docstring for the full rationale, including what disabling either one does.
     """
 
     def __init__(
@@ -1479,14 +1508,19 @@ class _GRUFamModel(nn.Module):
         bidirectional: bool,
         dropout: float,
         pool: str,
+        input_norm: bool = True,
+        pool_norm: bool = True,
     ):
         super().__init__()
         if pool not in ("last", "mean"):
             raise ValueError(f"pool must be 'last' or 'mean', got {pool!r}")
         self.pool = pool
         self.bidirectional = bidirectional
+        self.use_input_norm = input_norm
+        self.use_pool_norm = pool_norm
 
-        self.input_norm = nn.LayerNorm(num_features)
+        if input_norm:
+            self.input_norm = nn.LayerNorm(num_features)
 
         in_dim = num_features
         fwd = []
@@ -1504,12 +1538,14 @@ class _GRUFamModel(nn.Module):
             self.bwd_layers = bwd
 
         out_dim = hidden * (2 if bidirectional else 1)
-        self.pool_norm = nn.LayerNorm(out_dim)
+        if pool_norm:
+            self.pool_norm = nn.LayerNorm(out_dim)
         self.drop = nn.Dropout(dropout)
         self.out = nn.Linear(out_dim, num_classes)
 
     def __call__(self, x: mx.array) -> mx.array:
-        x = self.input_norm(x)
+        if self.use_input_norm:
+            x = self.input_norm(x)
 
         h = x
         for layer in self.fwd_layers:
@@ -1523,7 +1559,8 @@ class _GRUFamModel(nn.Module):
             h = mx.concatenate([h, hb], axis=-1)
 
         pooled = mx.mean(h, axis=1) if self.pool == "mean" else h[:, -1, :]
-        pooled = self.pool_norm(pooled)
+        if self.use_pool_norm:
+            pooled = self.pool_norm(pooled)
         pooled = self.drop(pooled)
         return mx.softmax(self.out(pooled), axis=-1)
 
@@ -1531,7 +1568,9 @@ class _GRUFamModel(nn.Module):
 class NNNClassifierMLX_GRU_Fam(MLXClassifierNary):
     """GRU_FAM registry type (research R7): pure stacked GRU, no conv front-end,
     no residual. Same `hp` keys as LSTM_FAM: `hidden` (64), `depth` (1),
-    `bidirectional` (False), `dropout` (0.25), `pool` ('last' | 'mean')."""
+    `bidirectional` (False), `dropout` (0.25), `pool` ('last' | 'mean'),
+    `input_norm` (True), `pool_norm` (True) -- see `_LSTMFamModel`'s docstring
+    for what disabling either one does."""
 
     is_trained = False
     clean_data_required = False
@@ -1543,8 +1582,11 @@ class NNNClassifierMLX_GRU_Fam(MLXClassifierNary):
         bidirectional = self.hp.get("bidirectional", False)
         dropout = self.hp.get("dropout", 0.25)
         pool = self.hp.get("pool", "last")
+        input_norm = self.hp.get("input_norm", True)
+        pool_norm = self.hp.get("pool_norm", True)
         return _GRUFamModel(
-            num_features, self.num_classes, hidden, depth, bidirectional, dropout, pool
+            num_features, self.num_classes, hidden, depth, bidirectional, dropout, pool,
+            input_norm=input_norm, pool_norm=pool_norm,
         )
 
 

@@ -250,6 +250,66 @@ def test_family_hidden256_stays_finite(arch, seed, tmp_path):
 # -----------------------------------------------------------------------
 
 
+# -----------------------------------------------------------------------
+# input_norm / pool_norm hp toggles (LSTM_FAM, GRU_FAM) -- both default True
+# (byte-identical to pre-toggle behaviour); disabling either must build/train
+# 1 epoch and drop exactly that LayerNorm's parameters (2*num_features for
+# `input_norm`, 2*hidden for `pool_norm`, hidden=64 default -> 128).
+# -----------------------------------------------------------------------
+
+NORM_TOGGLE_CASES: list[tuple[str, dict]] = [
+    ("LSTM_FAM", {"input_norm": False}),
+    ("LSTM_FAM", {"pool_norm": False}),
+    ("LSTM_FAM", {"input_norm": False, "pool_norm": False}),
+    ("GRU_FAM", {"input_norm": False}),
+    ("GRU_FAM", {"pool_norm": False}),
+    ("GRU_FAM", {"input_norm": False, "pool_norm": False}),
+]
+
+
+@pytest.mark.parametrize(
+    "arch,hp",
+    NORM_TOGGLE_CASES,
+    ids=[f"{a}-{'+'.join(sorted(hp))}" for a, hp in NORM_TOGGLE_CASES],
+)
+def test_family_norm_toggles_build_train_and_drop_params(arch, hp, tmp_path):
+    """LSTM_FAM/GRU_FAM `input_norm=False`/`pool_norm=False` build, train 1 epoch,
+    and drop exactly that LayerNorm's parameters vs. the (both-True) default."""
+
+    def _build_and_train(hp_dict, sub):
+        cfg = ExperimentConfig(
+            arch=arch,
+            hp=hp_dict,
+            input_set="ind24",
+            seq_len=SEQ_LEN,
+            split_set="v1",
+            train={"max_epochs": 1, "patience": 5, "batch_size": 64},
+        )
+        cfg.validate()
+        clf = build(cfg, nf=N_FEATURES, seq_len=SEQ_LEN, seed=0, checkpoint_dir=tmp_path / sub)
+        X_train, X_val, y_train, y_val = _synthetic_data()
+        clf.train(X_train, X_val, y_train, y_val, class_weights=CLASS_WEIGHTS)
+        preds = clf.predict(X_val)
+        assert preds.shape == (N_VAL, N_CLASSES)
+        np.testing.assert_allclose(preds.sum(axis=1), 1.0, atol=1e-4)
+        return param_count(clf)
+
+    n_default = _build_and_train({}, "default")
+    n_toggled = _build_and_train(hp, "toggled")
+
+    hidden = 64  # LSTM_FAM/GRU_FAM default `hidden`
+    expected_drop = 0
+    if hp.get("input_norm") is False:
+        expected_drop += 2 * N_FEATURES
+    if hp.get("pool_norm") is False:
+        expected_drop += 2 * hidden
+
+    assert n_default - n_toggled == expected_drop, (
+        f"{arch} {hp}: expected param drop {expected_drop}, got {n_default - n_toggled} "
+        f"(default={n_default}, toggled={n_toggled})"
+    )
+
+
 def test_rope_mha_output_shape():
     B, T, d_model, heads = 3, 10, 32, 4
     attn = _RoPEMultiHeadAttention(d_model, heads)
