@@ -103,3 +103,11 @@ amendment were computed on rows contaminated by cross-window checkpoint reuse (s
 report/methods.md, "ROOT CAUSE"). Window-A figures stand. Gate 3 is re-evaluated after the
 clean B/C re-run; the finalist choice (Transformer, LSTM, Wavenet) is retained provisionally
 because it rests on window A and on clean window-C diagnostics.
+
+## Author decision (2026-09-18): re-run all phase-3 window-B/C rows (option A)
+
+All 96 contaminated B/C rows (24 types × 2 windows × 2 seeds) are re-run from scratch at the
+production protocol, gated on a passing real-data smoke test of the harness
+(`python -m research.clfstudy.smoke`) that verifies one fresh model per window. The phase-3
+leaderboard and gate are regenerated afterwards; the earlier gate-3 decisions are re-presented
+on clean data.
