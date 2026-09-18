@@ -171,9 +171,11 @@ STRUCTURAL_AXES: list[tuple[str, dict]] = [
     ("TCN_FAM", {"depth": 2}),
     ("TCN_FAM", {"residual": True}),
     ("TCN_FAM", {"dilation_base": 2}),
+    ("TCN_FAM", {"pool": "last"}),
     ("TRANSFORMER_FAM", {"pos": "learned"}),
     ("TRANSFORMER_FAM", {"pos": "none"}),
     ("TRANSFORMER_FAM", {"pos": "rope"}),
+    ("TRANSFORMER_FAM", {"pool": "last"}),
     ("MLP_FAM", {"depth": 2}),
 ]
 
@@ -204,6 +206,25 @@ def test_family_structural_axes_build_train(arch, hp, tmp_path):
     assert preds.shape == (N_VAL, N_CLASSES)
     np.testing.assert_allclose(preds.sum(axis=1), 1.0, atol=1e-4)
     assert param_count(clf) > 0
+
+    if hp.get("pool") == "last":
+        # Pooling choice ("mean" vs "last") adds no parameters -- must match
+        # the default's (pool="mean") param count exactly.
+        default_cfg = ExperimentConfig(
+            arch=arch,
+            hp={},
+            input_set="ind24",
+            seq_len=SEQ_LEN,
+            split_set="v1",
+            train={"max_epochs": 1, "patience": 5, "batch_size": 64},
+        )
+        default_cfg.validate()
+        default_clf = build(
+            default_cfg, nf=N_FEATURES, seq_len=SEQ_LEN, seed=0, checkpoint_dir=tmp_path / "default"
+        )
+        X_train_d, X_val_d, y_train_d, y_val_d = _synthetic_data()
+        default_clf.train(X_train_d, X_val_d, y_train_d, y_val_d, class_weights=CLASS_WEIGHTS)
+        assert param_count(clf) == param_count(default_clf)
 
 
 # -----------------------------------------------------------------------

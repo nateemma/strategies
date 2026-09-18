@@ -1723,10 +1723,15 @@ class _TCNBlock(nn.Module):
 
 
 class _TCNFamModel(nn.Module):
-    """Causal dilated Conv1d stack -> global average pool -> Linear -> softmax.
+    """Causal dilated Conv1d stack -> pool over time -> Linear -> softmax.
 
     Layer `i`'s dilation is `dilation_base ** i` (constant 1 at the first layer
     regardless of base, and constant 1 throughout when `dilation_base=1`).
+
+    `pool="mean"` (default) global-average-pools over time. `pool="last"`
+    instead takes the final time-step's vector — the window's most recent
+    bar, where the label trigger sits — before the head. Pooling adds no
+    parameters either way.
     """
 
     def __init__(
@@ -1739,8 +1744,12 @@ class _TCNFamModel(nn.Module):
         dilation_base: int,
         residual: bool,
         dropout: float,
+        pool: str = "mean",
     ):
         super().__init__()
+        if pool not in ("last", "mean"):
+            raise ValueError(f"pool must be 'last' or 'mean', got {pool!r}")
+        self.pool = pool
         blocks = []
         in_ch = num_features
         for i in range(depth):
@@ -1754,14 +1763,15 @@ class _TCNFamModel(nn.Module):
         h = x
         for block in self.blocks:
             h = block(h)
-        h = global_avg_pool_1d(h)
+        h = global_avg_pool_1d(h) if self.pool == "mean" else h[:, -1, :]
         return mx.softmax(self.out(h), axis=-1)
 
 
 class NNNClassifierMLX_TCN_Fam(MLXClassifierNary):
-    """TCN_FAM registry type (research R7): causal dilated-conv stack, global-avg-pool
+    """TCN_FAM registry type (research R7): causal dilated-conv stack, pooled
     head, no LSTM/attention. `hp` keys: `channels` (64), `kernel` (3), `depth` (3),
-    `dilation_base` (1), `residual` (False), `dropout` (0.25)."""
+    `dilation_base` (1), `residual` (False), `dropout` (0.25), `pool`
+    ('mean' (default) | 'last')."""
 
     is_trained = False
     clean_data_required = False
@@ -1774,6 +1784,7 @@ class NNNClassifierMLX_TCN_Fam(MLXClassifierNary):
         dilation_base = self.hp.get("dilation_base", 1)
         residual = self.hp.get("residual", False)
         dropout = self.hp.get("dropout", 0.25)
+        pool = self.hp.get("pool", "mean")
         return _TCNFamModel(
             num_features,
             self.num_classes,
@@ -1783,6 +1794,7 @@ class NNNClassifierMLX_TCN_Fam(MLXClassifierNary):
             dilation_base,
             residual,
             dropout,
+            pool,
         )
 
 
@@ -1872,7 +1884,7 @@ class _TransformerFamBlock(nn.Module):
 
 class _TransformerFamModel(nn.Module):
     """Linear(F->d_model) -> positional encoding (`pos`) -> `layers` pre-LN blocks ->
-    mean pool over time -> Linear -> softmax.
+    pool over time -> Linear -> softmax.
 
     `pos="rope"` applies true rotary position embedding: each block's attention
     is a `_RoPEMultiHeadAttention`, which rotates its own per-head q/k
@@ -1881,6 +1893,11 @@ class _TransformerFamModel(nn.Module):
     `pos="learned"` instead adds a learned positional embedding once before the
     first block, and every block then uses plain `nn.MultiHeadAttention`.
     `pos="none"` uses no positional signal at all.
+
+    `pool="mean"` (default) global-average-pools over time. `pool="last"`
+    instead takes the final time-step's vector — the window's most recent
+    bar, where the label trigger sits — before the head. Pooling adds no
+    parameters either way.
     """
 
     def __init__(
@@ -1894,11 +1911,15 @@ class _TransformerFamModel(nn.Module):
         ffn_mult: int,
         pos: str,
         dropout: float,
+        pool: str = "mean",
     ):
         super().__init__()
         if pos not in ("learned", "none", "rope"):
             raise ValueError(f"pos must be 'learned', 'none' or 'rope', got {pos!r}")
+        if pool not in ("last", "mean"):
+            raise ValueError(f"pool must be 'last' or 'mean', got {pool!r}")
         self.pos = pos
+        self.pool = pool
         self.proj = nn.Linear(num_features, d_model)
         if pos == "learned":
             self.pos_emb = TransformerPositionalEmbeddingMLX(seq_len, d_model)
@@ -1927,14 +1948,15 @@ class _TransformerFamModel(nn.Module):
             h = self.pos_emb(h)
         for block in self.blocks:
             h = block(h)
-        h = global_avg_pool_1d(h)
+        h = global_avg_pool_1d(h) if self.pool == "mean" else h[:, -1, :]
         return mx.softmax(self.out(h), axis=-1)
 
 
 class NNNClassifierMLX_Transformer_Fam(MLXClassifierNary):
-    """TRANSFORMER_FAM registry type (research R7): pre-LN encoder, mean pool over
+    """TRANSFORMER_FAM registry type (research R7): pre-LN encoder, pooled over
     time, no conv front-end. `hp` keys: `d_model` (64), `heads` (4), `layers` (2),
-    `ffn_mult` (2), `pos` ('learned' | 'none' | 'rope'), `dropout` (0.25)."""
+    `ffn_mult` (2), `pos` ('learned' | 'none' | 'rope'), `dropout` (0.25), `pool`
+    ('mean' (default) | 'last')."""
 
     is_trained = False
     clean_data_required = False
@@ -1947,6 +1969,7 @@ class NNNClassifierMLX_Transformer_Fam(MLXClassifierNary):
         ffn_mult = self.hp.get("ffn_mult", 2)
         pos = self.hp.get("pos", "learned")
         dropout = self.hp.get("dropout", 0.25)
+        pool = self.hp.get("pool", "mean")
         return _TransformerFamModel(
             seq_len,
             num_features,
@@ -1957,6 +1980,7 @@ class NNNClassifierMLX_Transformer_Fam(MLXClassifierNary):
             ffn_mult,
             pos,
             dropout,
+            pool,
         )
 
 
