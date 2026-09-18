@@ -251,10 +251,12 @@ def test_family_hidden256_stays_finite(arch, seed, tmp_path):
 
 
 # -----------------------------------------------------------------------
-# input_norm / pool_norm hp toggles (LSTM_FAM, GRU_FAM) -- both default True
-# (byte-identical to pre-toggle behaviour); disabling either must build/train
-# 1 epoch and drop exactly that LayerNorm's parameters (2*num_features for
-# `input_norm`, 2*hidden for `pool_norm`, hidden=64 default -> 128).
+# input_norm / pool_norm hp toggles (LSTM_FAM, GRU_FAM). Defaults are
+# input_norm=False (the per-bar feature LayerNorm blocked learning on the harder
+# windows, see report/methods.md) and pool_norm=True. The baseline here is an
+# explicit both-True build; disabling either must build/train 1 epoch and drop
+# exactly that LayerNorm's parameters (2*num_features for `input_norm`,
+# 2*hidden for `pool_norm`, hidden=64 default -> 128).
 # -----------------------------------------------------------------------
 
 NORM_TOGGLE_CASES: list[tuple[str, dict]] = [
@@ -294,7 +296,7 @@ def test_family_norm_toggles_build_train_and_drop_params(arch, hp, tmp_path):
         np.testing.assert_allclose(preds.sum(axis=1), 1.0, atol=1e-4)
         return param_count(clf)
 
-    n_default = _build_and_train({}, "default")
+    n_default = _build_and_train({"input_norm": True, "pool_norm": True}, "default")
     n_toggled = _build_and_train(hp, "toggled")
 
     hidden = 64  # LSTM_FAM/GRU_FAM default `hidden`
