@@ -1398,6 +1398,28 @@ class _LSTMFamModel(nn.Module):
     Disabling either drops that `LayerNorm`'s parameters entirely (the module
     is omitted, not bypassed), so `hidden=256` runs with both disabled lose
     the divergence guard described above.
+
+    Two further structural options, both default-off, isolate what makes the
+    production `_LSTMModel`'s optimisation robust for a GPU ablation:
+
+    `input_proj` (default False): when True, applies `nn.Linear(num_features,
+    hidden)` followed by `nn.relu` per time-step, before the recurrent stack
+    -- mirroring production's `resize` (`nn.relu(self.resize(x))`), minus the
+    Conv1d/residual/LayerNorm that accompany it there. Applied after
+    `input_norm` (if enabled) and shared by both directions when
+    `bidirectional=True` (the backward branch flips the same projected `x`).
+    The recurrent input size becomes `hidden` instead of `num_features`.
+
+    `head` (default "plain"): "plain" is the behaviour above (pooled ->
+    optional `pool_norm` -> dropout -> `Linear(out_dim, num_classes)`).
+    "bottleneck" mirrors production's `bottleneck`/`out` pair structurally:
+    pooled -> optional `pool_norm` -> `Linear(out_dim, bottleneck_dim)` ->
+    `nn.elu` (production's bottleneck activation) -> `Dropout(dropout)` ->
+    `Linear(bottleneck_dim, num_classes)` -> softmax. Production's own
+    `bottleneck` is `nn.Linear(num_filters, num_filters)` (no dimensionality
+    reduction), so there is no production sizing rule to mirror exactly;
+    `bottleneck_dim = max(8, hidden // 2)` is this module's own choice to give
+    "bottleneck" a real bottleneck.
     """
 
     def __init__(
@@ -1411,19 +1433,31 @@ class _LSTMFamModel(nn.Module):
         pool: str,
         input_norm: bool = False,
         pool_norm: bool = True,
+        input_proj: bool = False,
+        head: str = "plain",
     ):
         super().__init__()
         if pool not in ("last", "mean"):
             raise ValueError(f"pool must be 'last' or 'mean', got {pool!r}")
+        if head not in ("plain", "bottleneck"):
+            raise ValueError(f"head must be 'plain' or 'bottleneck', got {head!r}")
         self.pool = pool
         self.bidirectional = bidirectional
         self.use_input_norm = input_norm
         self.use_pool_norm = pool_norm
+        self.use_input_proj = input_proj
+        self.head_type = head
 
         if input_norm:
             self.input_norm = nn.LayerNorm(num_features)
 
-        in_dim = num_features
+        if input_proj:
+            self.input_proj = nn.Linear(num_features, hidden)
+            rec_in_dim = hidden
+        else:
+            rec_in_dim = num_features
+
+        in_dim = rec_in_dim
         fwd = []
         for _ in range(depth):
             fwd.append(nn.LSTM(in_dim, hidden))
@@ -1431,7 +1465,7 @@ class _LSTMFamModel(nn.Module):
         self.fwd_layers = fwd
 
         if bidirectional:
-            in_dim_b = num_features
+            in_dim_b = rec_in_dim
             bwd = []
             for _ in range(depth):
                 bwd.append(nn.LSTM(in_dim_b, hidden))
@@ -1442,11 +1476,18 @@ class _LSTMFamModel(nn.Module):
         if pool_norm:
             self.pool_norm = nn.LayerNorm(out_dim)
         self.drop = nn.Dropout(dropout)
-        self.out = nn.Linear(out_dim, num_classes)
+        if head == "bottleneck":
+            self.bottleneck_dim = max(8, hidden // 2)
+            self.bottleneck = nn.Linear(out_dim, self.bottleneck_dim)
+            self.out = nn.Linear(self.bottleneck_dim, num_classes)
+        else:
+            self.out = nn.Linear(out_dim, num_classes)
 
     def __call__(self, x: mx.array) -> mx.array:
         if self.use_input_norm:
             x = self.input_norm(x)
+        if self.use_input_proj:
+            x = nn.relu(self.input_proj(x))
 
         h = x
         for layer in self.fwd_layers:
@@ -1462,6 +1503,12 @@ class _LSTMFamModel(nn.Module):
         pooled = mx.mean(h, axis=1) if self.pool == "mean" else h[:, -1, :]
         if self.use_pool_norm:
             pooled = self.pool_norm(pooled)
+
+        if self.head_type == "bottleneck":
+            h2 = nn.elu(self.bottleneck(pooled))
+            h2 = self.drop(h2)
+            return mx.softmax(self.out(h2), axis=-1)
+
         pooled = self.drop(pooled)
         return mx.softmax(self.out(pooled), axis=-1)
 
@@ -1470,7 +1517,10 @@ class NNNClassifierMLX_LSTM_Fam(MLXClassifierNary):
     """LSTM_FAM registry type (research R7): pure stacked LSTM, no conv front-end,
     no residual. `hp` keys: `hidden` (64), `depth` (1), `bidirectional` (False),
     `dropout` (0.25), `pool` ('last' | 'mean'), `input_norm` (True), `pool_norm`
-    (True) -- see `_LSTMFamModel`'s docstring for what disabling either one does."""
+    (True) -- see `_LSTMFamModel`'s docstring for what disabling either one does.
+    `input_proj` (False), `head` ('plain' | 'bottleneck', default 'plain') --
+    default-off structural options for the production-robustness ablation, see
+    `_LSTMFamModel`'s docstring."""
 
     is_trained = False
     clean_data_required = False
@@ -1484,9 +1534,12 @@ class NNNClassifierMLX_LSTM_Fam(MLXClassifierNary):
         pool = self.hp.get("pool", "last")
         input_norm = self.hp.get("input_norm", False)
         pool_norm = self.hp.get("pool_norm", True)
+        input_proj = self.hp.get("input_proj", False)
+        head = self.hp.get("head", "plain")
         return _LSTMFamModel(
             num_features, self.num_classes, hidden, depth, bidirectional, dropout, pool,
             input_norm=input_norm, pool_norm=pool_norm,
+            input_proj=input_proj, head=head,
         )
 
 
@@ -1497,6 +1550,13 @@ class _GRUFamModel(nn.Module):
     tuple), unlike `nn.LSTM`. Carries the same optional `input_norm`/`pool_norm`
     `LayerNorm` pair and for the same reason -- see `_LSTMFamModel`'s
     docstring for the full rationale, including what disabling either one does.
+
+    Also carries the same optional `input_proj` (`nn.Linear(num_features,
+    hidden)` + `nn.relu` per time-step before the recurrent stack, mirroring
+    production's `resize`) and `head` ('plain' | 'bottleneck', where
+    'bottleneck' mirrors production's `bottleneck`/`out` pair with
+    `bottleneck_dim = max(8, hidden // 2)`) -- see `_LSTMFamModel`'s docstring
+    for the full rationale.
     """
 
     def __init__(
@@ -1510,19 +1570,31 @@ class _GRUFamModel(nn.Module):
         pool: str,
         input_norm: bool = False,
         pool_norm: bool = True,
+        input_proj: bool = False,
+        head: str = "plain",
     ):
         super().__init__()
         if pool not in ("last", "mean"):
             raise ValueError(f"pool must be 'last' or 'mean', got {pool!r}")
+        if head not in ("plain", "bottleneck"):
+            raise ValueError(f"head must be 'plain' or 'bottleneck', got {head!r}")
         self.pool = pool
         self.bidirectional = bidirectional
         self.use_input_norm = input_norm
         self.use_pool_norm = pool_norm
+        self.use_input_proj = input_proj
+        self.head_type = head
 
         if input_norm:
             self.input_norm = nn.LayerNorm(num_features)
 
-        in_dim = num_features
+        if input_proj:
+            self.input_proj = nn.Linear(num_features, hidden)
+            rec_in_dim = hidden
+        else:
+            rec_in_dim = num_features
+
+        in_dim = rec_in_dim
         fwd = []
         for _ in range(depth):
             fwd.append(nn.GRU(in_dim, hidden))
@@ -1530,7 +1602,7 @@ class _GRUFamModel(nn.Module):
         self.fwd_layers = fwd
 
         if bidirectional:
-            in_dim_b = num_features
+            in_dim_b = rec_in_dim
             bwd = []
             for _ in range(depth):
                 bwd.append(nn.GRU(in_dim_b, hidden))
@@ -1541,11 +1613,18 @@ class _GRUFamModel(nn.Module):
         if pool_norm:
             self.pool_norm = nn.LayerNorm(out_dim)
         self.drop = nn.Dropout(dropout)
-        self.out = nn.Linear(out_dim, num_classes)
+        if head == "bottleneck":
+            self.bottleneck_dim = max(8, hidden // 2)
+            self.bottleneck = nn.Linear(out_dim, self.bottleneck_dim)
+            self.out = nn.Linear(self.bottleneck_dim, num_classes)
+        else:
+            self.out = nn.Linear(out_dim, num_classes)
 
     def __call__(self, x: mx.array) -> mx.array:
         if self.use_input_norm:
             x = self.input_norm(x)
+        if self.use_input_proj:
+            x = nn.relu(self.input_proj(x))
 
         h = x
         for layer in self.fwd_layers:
@@ -1561,6 +1640,12 @@ class _GRUFamModel(nn.Module):
         pooled = mx.mean(h, axis=1) if self.pool == "mean" else h[:, -1, :]
         if self.use_pool_norm:
             pooled = self.pool_norm(pooled)
+
+        if self.head_type == "bottleneck":
+            h2 = nn.elu(self.bottleneck(pooled))
+            h2 = self.drop(h2)
+            return mx.softmax(self.out(h2), axis=-1)
+
         pooled = self.drop(pooled)
         return mx.softmax(self.out(pooled), axis=-1)
 
@@ -1570,7 +1655,10 @@ class NNNClassifierMLX_GRU_Fam(MLXClassifierNary):
     no residual. Same `hp` keys as LSTM_FAM: `hidden` (64), `depth` (1),
     `bidirectional` (False), `dropout` (0.25), `pool` ('last' | 'mean'),
     `input_norm` (True), `pool_norm` (True) -- see `_LSTMFamModel`'s docstring
-    for what disabling either one does."""
+    for what disabling either one does. `input_proj` (False), `head`
+    ('plain' | 'bottleneck', default 'plain') -- default-off structural
+    options for the production-robustness ablation, see `_LSTMFamModel`'s
+    docstring."""
 
     is_trained = False
     clean_data_required = False
@@ -1584,9 +1672,12 @@ class NNNClassifierMLX_GRU_Fam(MLXClassifierNary):
         pool = self.hp.get("pool", "last")
         input_norm = self.hp.get("input_norm", False)
         pool_norm = self.hp.get("pool_norm", True)
+        input_proj = self.hp.get("input_proj", False)
+        head = self.hp.get("head", "plain")
         return _GRUFamModel(
             num_features, self.num_classes, hidden, depth, bidirectional, dropout, pool,
             input_norm=input_norm, pool_norm=pool_norm,
+            input_proj=input_proj, head=head,
         )
 
 

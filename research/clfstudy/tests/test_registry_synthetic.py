@@ -159,9 +159,15 @@ STRUCTURAL_AXES: list[tuple[str, dict]] = [
     ("LSTM_FAM", {"bidirectional": True}),
     ("LSTM_FAM", {"depth": 2}),
     ("LSTM_FAM", {"pool": "mean"}),
+    ("LSTM_FAM", {"input_proj": True}),
+    ("LSTM_FAM", {"head": "bottleneck"}),
+    ("LSTM_FAM", {"input_proj": True, "head": "bottleneck"}),
     ("GRU_FAM", {"bidirectional": True}),
     ("GRU_FAM", {"depth": 2}),
     ("GRU_FAM", {"pool": "mean"}),
+    ("GRU_FAM", {"input_proj": True}),
+    ("GRU_FAM", {"head": "bottleneck"}),
+    ("GRU_FAM", {"input_proj": True, "head": "bottleneck"}),
     ("TCN_FAM", {"depth": 2}),
     ("TCN_FAM", {"residual": True}),
     ("TCN_FAM", {"dilation_base": 2}),
@@ -198,6 +204,56 @@ def test_family_structural_axes_build_train(arch, hp, tmp_path):
     assert preds.shape == (N_VAL, N_CLASSES)
     np.testing.assert_allclose(preds.sum(axis=1), 1.0, atol=1e-4)
     assert param_count(clf) > 0
+
+
+# -----------------------------------------------------------------------
+#: (arch, hp) pairs for the `input_proj`/`head` structural options added for
+#: the GPU production-robustness ablation (default-off; must build, train 1
+#: epoch, predict a valid softmax, and add parameters vs. the default).
+INPUT_PROJ_HEAD_CASES: list[tuple[str, dict]] = [
+    ("LSTM_FAM", {"input_proj": True}),
+    ("LSTM_FAM", {"head": "bottleneck"}),
+    ("LSTM_FAM", {"input_proj": True, "head": "bottleneck"}),
+    ("GRU_FAM", {"input_proj": True}),
+    ("GRU_FAM", {"head": "bottleneck"}),
+    ("GRU_FAM", {"input_proj": True, "head": "bottleneck"}),
+]
+
+
+@pytest.mark.parametrize(
+    "arch,hp",
+    INPUT_PROJ_HEAD_CASES,
+    ids=[f"{a}-{'+'.join(sorted(hp))}" for a, hp in INPUT_PROJ_HEAD_CASES],
+)
+def test_family_input_proj_head_add_params(arch, hp, tmp_path):
+    """`input_proj=True`/`head='bottleneck'` build, train 1 epoch, predict a
+    valid softmax, and strictly increase the trainable parameter count vs.
+    the (default-off) baseline."""
+
+    def _build_and_train(hp_dict, sub):
+        cfg = ExperimentConfig(
+            arch=arch,
+            hp=hp_dict,
+            input_set="ind24",
+            seq_len=SEQ_LEN,
+            split_set="v1",
+            train={"max_epochs": 1, "patience": 5, "batch_size": 64},
+        )
+        cfg.validate()
+        clf = build(cfg, nf=N_FEATURES, seq_len=SEQ_LEN, seed=0, checkpoint_dir=tmp_path / sub)
+        X_train, X_val, y_train, y_val = _synthetic_data()
+        clf.train(X_train, X_val, y_train, y_val, class_weights=CLASS_WEIGHTS)
+        preds = clf.predict(X_val)
+        assert preds.shape == (N_VAL, N_CLASSES)
+        np.testing.assert_allclose(preds.sum(axis=1), 1.0, atol=1e-4)
+        return param_count(clf)
+
+    n_default = _build_and_train({}, "default")
+    n_toggled = _build_and_train(hp, "toggled")
+
+    assert n_toggled > n_default, (
+        f"{arch} {hp}: expected param count > default ({n_default}), got {n_toggled}"
+    )
 
 
 # -----------------------------------------------------------------------
