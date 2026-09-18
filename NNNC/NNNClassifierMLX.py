@@ -1409,7 +1409,7 @@ class _LSTMFamModel(nn.Module):
         bidirectional: bool,
         dropout: float,
         pool: str,
-        input_norm: bool = True,
+        input_norm: bool = False,
         pool_norm: bool = True,
     ):
         super().__init__()
@@ -1482,7 +1482,7 @@ class NNNClassifierMLX_LSTM_Fam(MLXClassifierNary):
         bidirectional = self.hp.get("bidirectional", False)
         dropout = self.hp.get("dropout", 0.25)
         pool = self.hp.get("pool", "last")
-        input_norm = self.hp.get("input_norm", True)
+        input_norm = self.hp.get("input_norm", False)
         pool_norm = self.hp.get("pool_norm", True)
         return _LSTMFamModel(
             num_features, self.num_classes, hidden, depth, bidirectional, dropout, pool,
@@ -1508,7 +1508,7 @@ class _GRUFamModel(nn.Module):
         bidirectional: bool,
         dropout: float,
         pool: str,
-        input_norm: bool = True,
+        input_norm: bool = False,
         pool_norm: bool = True,
     ):
         super().__init__()
@@ -1582,7 +1582,7 @@ class NNNClassifierMLX_GRU_Fam(MLXClassifierNary):
         bidirectional = self.hp.get("bidirectional", False)
         dropout = self.hp.get("dropout", 0.25)
         pool = self.hp.get("pool", "last")
-        input_norm = self.hp.get("input_norm", True)
+        input_norm = self.hp.get("input_norm", False)
         pool_norm = self.hp.get("pool_norm", True)
         return _GRUFamModel(
             num_features, self.num_classes, hidden, depth, bidirectional, dropout, pool,

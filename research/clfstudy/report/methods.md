@@ -57,3 +57,17 @@ all on B/C, none on A. A protocol calibration (production LSTM, window C, 3 seed
 lr 3e-4 vs patience 20 decides the protocol for phases 4-7; phase-3 rows stand as the
 "production protocol" reference. `train` settings are part of the config id, so re-runs under
 the new protocol get new ids and the old rows remain as history.
+
+## Pure recurrent family types: per-bar input LayerNorm blocked learning on B/C (2026-09-17)
+
+Under the amended protocol (lr 3e-4, stride 2) LSTM_FAM/GRU_FAM reached the window-A ceiling
+(0.64-0.65) but stayed flat at 0.44-0.53 validation MCC on B/C for 40 epochs, for every size,
+depth and direction. Discriminating runs on window C, seed 0: LSTM_RAW 0.638, LSTM_NOCONV
+0.640, production GRU 0.637 (no input LayerNorm), LSTM_FAM hidden 64 with `input_norm: false`
+0.633 and with both norms off 0.630, versus 0.504 with the per-bar feature LayerNorm. The
+LayerNorm across the 24 features of each bar erases absolute feature levels (the label-trigger
+inputs guard_metric and bb_width among them). Fix: `input_norm` default is now False (commit
+after c2c54ca); phase-4 RNN entries carry `input_norm: false` explicitly, so their config ids
+differ from the 30 earlier rows, which remain as history. LSTM_FAM hidden 256 still diverged on
+window A under the earlier default; it is re-run under the new default and reported as
+"diverged under the shared protocol" if it fails again.
