@@ -301,7 +301,7 @@ def test_family_norm_toggles_build_train_and_drop_params(arch, hp, tmp_path):
 
     hidden = 64  # LSTM_FAM/GRU_FAM default `hidden`
     expected_drop = 0
-    if hp.get("input_norm") is False:
+    if hp.get("input_norm", False) is False:  # default is False, so omission drops it too
         expected_drop += 2 * N_FEATURES
     if hp.get("pool_norm") is False:
         expected_drop += 2 * hidden
