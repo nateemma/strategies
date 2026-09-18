@@ -1728,6 +1728,12 @@ class _TCNFamModel(nn.Module):
     Layer `i`'s dilation is `dilation_base ** i` (constant 1 at the first layer
     regardless of base, and constant 1 throughout when `dilation_base=1`).
 
+    `dilations` (list[int], default None) overrides `depth`/`dilation_base`
+    entirely when given: the stack has `len(dilations)` blocks, using these
+    dilations in order (e.g. Wavenet's `[1, 2, 4, 8, 1, 2, 4, 8]`). Must be a
+    non-empty list of positive ints. When `None`, the `depth`/`dilation_base`
+    behaviour above is unchanged.
+
     `pool="mean"` (default) global-average-pools over time. `pool="last"`
     instead takes the final time-step's vector — the window's most recent
     bar, where the label trigger sits — before the head. Pooling adds no
@@ -1745,15 +1751,23 @@ class _TCNFamModel(nn.Module):
         residual: bool,
         dropout: float,
         pool: str = "mean",
+        dilations: list | None = None,
     ):
         super().__init__()
         if pool not in ("last", "mean"):
             raise ValueError(f"pool must be 'last' or 'mean', got {pool!r}")
         self.pool = pool
+        if dilations is not None:
+            if not dilations or any(not isinstance(d, int) or d <= 0 for d in dilations):
+                raise ValueError(
+                    f"dilations must be a non-empty list of positive ints, got {dilations!r}"
+                )
+            layer_dilations = list(dilations)
+        else:
+            layer_dilations = [dilation_base**i for i in range(depth)]
         blocks = []
         in_ch = num_features
-        for i in range(depth):
-            dilation = dilation_base**i
+        for dilation in layer_dilations:
             blocks.append(_TCNBlock(in_ch, channels, kernel, dilation, dropout, residual))
             in_ch = channels
         self.blocks = blocks
@@ -1771,7 +1785,24 @@ class NNNClassifierMLX_TCN_Fam(MLXClassifierNary):
     """TCN_FAM registry type (research R7): causal dilated-conv stack, pooled
     head, no LSTM/attention. `hp` keys: `channels` (64), `kernel` (3), `depth` (3),
     `dilation_base` (1), `residual` (False), `dropout` (0.25), `pool`
-    ('mean' (default) | 'last')."""
+    ('mean' (default) | 'last'), `dilations` (list[int], default None — when
+    given, overrides `depth`/`dilation_base`: the stack has `len(dilations)`
+    blocks with these dilations in order, e.g. Wavenet's
+    `[1, 2, 4, 8, 1, 2, 4, 8]`; must be a non-empty list of positive ints).
+
+    Wavenet equivalence: `{"channels": 32, "kernel": 2, "dilations":
+    [1, 2, 4, 8, 1, 2, 4, 8]}` (32 = `_WavenetModel`'s channel count for 24
+    features, via the same `max(MIN_FILTER, nearest_power_of_2(num_features -
+    1))` rule) reproduces `_WavenetModel`'s dilated-conv stack as closely as
+    this family's code allows: same `CausalConv1d` padding, same per-layer
+    ReLU activation placement, same `channels`/`kernel`/dilation schedule, and
+    (at `pool='mean'`, the default) the same pool-then-`Linear` head.
+    Remaining differences from `_WavenetModel`: (1) dropout is applied once
+    per block here (`_TCNBlock`, `dropout=0.25` default) vs. Wavenet, which has
+    no per-layer dropout and instead drops once after pooling; (2) `residual`
+    defaults to `False` here (matching Wavenet, which has no skip
+    connections), but this family additionally supports `residual=True`,
+    which Wavenet does not have."""
 
     is_trained = False
     clean_data_required = False
@@ -1785,6 +1816,7 @@ class NNNClassifierMLX_TCN_Fam(MLXClassifierNary):
         residual = self.hp.get("residual", False)
         dropout = self.hp.get("dropout", 0.25)
         pool = self.hp.get("pool", "mean")
+        dilations = self.hp.get("dilations", None)
         return _TCNFamModel(
             num_features,
             self.num_classes,
@@ -1795,6 +1827,7 @@ class NNNClassifierMLX_TCN_Fam(MLXClassifierNary):
             residual,
             dropout,
             pool,
+            dilations=dilations,
         )
 
 

@@ -109,3 +109,16 @@ therefore discarded and re-run from scratch under the current harness (rows back
 report/logs/results_before_rnn_sweep_rerun.jsonl). If the re-run converges, the earlier stalls
 were a harness artefact; if it stalls again, the difference is real and will be diagnosed
 against these ablation rows (identical config ids).
+
+## Conv ablation (window C, 3 seeds, lr 3e-4, stride 2, clean runs; 2026-09-18 02:00)
+
+Production Wavenet: 0.637, 0.637, 0.639 (3/3 converge, best epochs 32-39). Pure TCN_FAM with
+the same receptive field (channels 64, depth 8, dilation base 2, no residual): 0.351 (40
+epochs, never learned), 0.504 (stalled), 0.447 (stalled). All six rows post-date the
+fresh-start fix, so the pure conv family's failure on the hard windows is real, not a harness
+artefact, and the phase-4 TCN/Transformer/MLP sweep rows (all first-ever runs of their keys)
+stand. Correction: Wavenet has no residual path either — it is eight plain causal convs with
+dilations [1, 2, 4, 8, 1, 2, 4, 8] (receptive field 31 bars, kernel 2, ~32 channels), whereas
+TCN_FAM depth 8 / dilation base 2 grows dilations to 128 on a 16-bar window, so its deep layers
+see mostly padding: a pathological grid point, not a family result. A TCN_FAM with an explicit
+Wavenet dilation schedule is queued (3 seeds) as the fair conv-family test.

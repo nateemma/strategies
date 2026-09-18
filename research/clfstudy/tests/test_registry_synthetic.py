@@ -172,6 +172,7 @@ STRUCTURAL_AXES: list[tuple[str, dict]] = [
     ("TCN_FAM", {"residual": True}),
     ("TCN_FAM", {"dilation_base": 2}),
     ("TCN_FAM", {"pool": "last"}),
+    ("TCN_FAM", {"kernel": 2, "dilations": [1, 2, 4, 8, 1, 2, 4, 8]}),
     ("TRANSFORMER_FAM", {"pos": "learned"}),
     ("TRANSFORMER_FAM", {"pos": "none"}),
     ("TRANSFORMER_FAM", {"pos": "rope"}),
@@ -225,6 +226,33 @@ def test_family_structural_axes_build_train(arch, hp, tmp_path):
         X_train_d, X_val_d, y_train_d, y_val_d = _synthetic_data()
         default_clf.train(X_train_d, X_val_d, y_train_d, y_val_d, class_weights=CLASS_WEIGHTS)
         assert param_count(clf) == param_count(default_clf)
+
+
+def test_tcn_fam_dilations_overrides_depth_param_count(tmp_path):
+    """TCN_FAM's `dilations` hp overrides `depth`/`dilation_base`: an 8-long
+    dilation schedule (Wavenet's) must build a different-sized stack than the
+    default 3-block stack."""
+
+    def _train_and_count(hp, subdir):
+        cfg = ExperimentConfig(
+            arch="TCN_FAM",
+            hp=hp,
+            input_set="ind24",
+            seq_len=SEQ_LEN,
+            split_set="v1",
+            train={"max_epochs": 1, "patience": 5, "batch_size": 64},
+        )
+        cfg.validate()
+        clf = build(cfg, nf=N_FEATURES, seq_len=SEQ_LEN, seed=0, checkpoint_dir=tmp_path / subdir)
+        X_train, X_val, y_train, y_val = _synthetic_data()
+        clf.train(X_train, X_val, y_train, y_val, class_weights=CLASS_WEIGHTS)
+        return param_count(clf)
+
+    default_count = _train_and_count({}, "default")
+    dilations_count = _train_and_count(
+        {"channels": 32, "kernel": 2, "dilations": [1, 2, 4, 8, 1, 2, 4, 8]}, "dilations"
+    )
+    assert default_count != dilations_count
 
 
 # -----------------------------------------------------------------------
