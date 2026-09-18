@@ -527,3 +527,69 @@ configs:
   tags:
   - mlp
   - depth
+- arch: LSTM_FAM
+  hp:
+    hidden: 32
+    input_norm: false
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - lstm
+  - size
+- arch: GRU_FAM
+  hp:
+    hidden: 32
+    input_norm: false
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - gru
+  - size
+- arch: TCN_FAM
+  hp:
+    channels: 32
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - tcn
+  - size
+- arch: MLP_FAM
+  hp:
+    width: 128
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  phase: 4
+  seeds:
+  - 0
+  - 1
+  tags:
+  - mlp
+  - size
