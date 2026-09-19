@@ -116,6 +116,9 @@ def _isolated_cmd(
         "phase": cfg.phase,
         "seeds": cfg.seeds,
         "tags": cfg.tags,
+        # The label MUST travel with the config: without it the child trains on the
+        # default (gbb) label under a triple-barrier config id (found 2026-09-19).
+        "label": cfg.label,
     }
     cmd = [
         sys.executable, "-m", "research.clfstudy.run",

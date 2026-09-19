@@ -367,3 +367,21 @@ def test_run_isolated_builds_matching_config_id(monkeypatch, tmp_path):
     assert captured["cmd"][:3] == [sys.executable, "-m", "research.clfstudy.run"]
     assert returncode == 0
     assert status == "ok"
+
+
+def test_isolated_cmd_carries_the_label():
+    """Regression: phase.py's child argv must include cfg.label (a triple_barrier config ran
+    on the gbb label when it did not, 2026-09-19)."""
+    from research.clfstudy import phase as phase_mod, registry
+    from research.clfstudy.run import _load_config
+    import json as _json
+    cfg = registry.ExperimentConfig(arch="MLP", hp={}, input_set="ind24", seq_len=16, split_set="v1",
+                                    train={}, phase=19, seeds=[0],
+                                    label={"name": "triple_barrier", "horizon": 48, "up": 0.02, "down": 0.02})
+    cfg.validate()
+    cmd = phase_mod._isolated_cmd(cfg, "A", 0)
+    payload = _json.loads(cmd[cmd.index("--config") + 1])
+    assert payload["label"]["name"] == "triple_barrier"
+    child = _load_config(cmd[cmd.index("--config") + 1])
+    assert child.label == cfg.label
+    assert registry.config_id(child) == registry.config_id(cfg)
