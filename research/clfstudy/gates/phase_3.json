@@ -13,14 +13,14 @@
       "macro_f1": 0.6563451404194257
     },
     "B": {
-      "mcc": 0.30679461262137897,
-      "macro_f1": 0.5165988385088616
+      "mcc": 0.5351276001013862,
+      "macro_f1": 0.6517165682620183
     },
     "C": {
-      "mcc": 0.299372924522616,
-      "macro_f1": 0.5077226163657279
+      "mcc": 0.5469194675154303,
+      "macro_f1": 0.6656807872653235
     },
-    "pooled_seed_std_mcc": 0.0033169188212998323
+    "pooled_seed_std_mcc": 0.002139542046498907
   },
   "per_config": {
     "076666f04306": {
@@ -38,30 +38,30 @@
         "notes": []
       },
       "B": {
-        "mcc_ok": true,
-        "f1_ok": true,
+        "mcc_ok": false,
+        "f1_ok": false,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.38137797587236943,
-        "macro_f1_mean": 0.584917923560101,
-        "std_mcc": 0.015171139742466385,
+        "mcc_mean": 0.536957916262033,
+        "macro_f1_mean": 0.6528213774820327,
+        "std_mcc": 0.0039409252681149335,
         "n_seeds": 2,
-        "window_pass": true,
+        "window_pass": false,
         "notes": []
       },
       "C": {
-        "mcc_ok": true,
-        "f1_ok": true,
+        "mcc_ok": false,
+        "f1_ok": false,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.38553587042665216,
-        "macro_f1_mean": 0.5862720891201993,
-        "std_mcc": 0.002385660718729985,
+        "mcc_mean": 0.5554437978036281,
+        "macro_f1_mean": 0.6689406083549783,
+        "std_mcc": 0.0026207165485177585,
         "n_seeds": 2,
-        "window_pass": true,
+        "window_pass": false,
         "notes": []
       },
-      "viable": true
+      "viable": false
     },
     "0875fd5bd454": {
       "arch": "LSTM_INJIT",
@@ -78,28 +78,27 @@
         "notes": []
       },
       "B": {
-        "mcc_ok": true,
-        "f1_ok": true,
-        "std_ok": true,
-        "status_ok": true,
-        "mcc_mean": 0.46104837616697725,
-        "macro_f1_mean": 0.6374324749882678,
-        "std_mcc": 0.018530824238333483,
-        "n_seeds": 2,
-        "window_pass": true,
-        "notes": []
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": false,
+        "status_ok": false,
+        "notes": [
+          "missing_window"
+        ]
       },
       "C": {
         "mcc_ok": true,
         "f1_ok": true,
         "std_ok": false,
         "status_ok": true,
-        "mcc_mean": 0.48226010331297786,
-        "macro_f1_mean": 0.6491950717060788,
-        "std_mcc": 0.04099869000007153,
-        "n_seeds": 2,
+        "mcc_mean": 0.6222819160206786,
+        "macro_f1_mean": 0.7231265556492952,
+        "std_mcc": NaN,
+        "n_seeds": 1,
         "window_pass": false,
-        "notes": []
+        "notes": [
+          "insufficient_seeds"
+        ]
       },
       "viable": false
     },
@@ -122,9 +121,9 @@
         "f1_ok": true,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.45975015450255763,
-        "macro_f1_mean": 0.6490894652100444,
-        "std_mcc": 0.0030745012142752814,
+        "mcc_mean": 0.6426271339039928,
+        "macro_f1_mean": 0.7297218514231503,
+        "std_mcc": 0.0003700378646595857,
         "n_seeds": 2,
         "window_pass": true,
         "notes": []
@@ -134,9 +133,9 @@
         "f1_ok": true,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.4847547376611522,
-        "macro_f1_mean": 0.6631246804935429,
-        "std_mcc": 0.008758461012493461,
+        "mcc_mean": 0.639916166444733,
+        "macro_f1_mean": 0.7304695918782036,
+        "std_mcc": 7.05781477727807e-05,
         "n_seeds": 2,
         "window_pass": true,
         "notes": []
@@ -150,9 +149,9 @@
         "f1_ok": true,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.5598529045886347,
-        "macro_f1_mean": 0.7043232439959799,
-        "std_mcc": 0.022031004651585938,
+        "mcc_mean": 0.6585342072395015,
+        "macro_f1_mean": 0.7405338090382426,
+        "std_mcc": 0.002412186452410091,
         "n_seeds": 2,
         "window_pass": true,
         "notes": []
@@ -162,9 +161,9 @@
         "f1_ok": true,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.47822509932760415,
-        "macro_f1_mean": 0.6603901947642595,
-        "std_mcc": 0.003752768396188072,
+        "mcc_mean": 0.640661111096488,
+        "macro_f1_mean": 0.7294035976025619,
+        "std_mcc": 0.000679875294445176,
         "n_seeds": 2,
         "window_pass": true,
         "notes": []
@@ -174,9 +173,9 @@
         "f1_ok": true,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.5064828822033203,
-        "macro_f1_mean": 0.6774261351997228,
-        "std_mcc": 0.028523247743396273,
+        "mcc_mean": 0.6394379179355119,
+        "macro_f1_mean": 0.7307690815365901,
+        "std_mcc": 0.00041572656492618303,
         "n_seeds": 2,
         "window_pass": true,
         "notes": []
@@ -198,27 +197,27 @@
         "notes": []
       },
       "B": {
-        "mcc_ok": true,
-        "f1_ok": true,
+        "mcc_ok": false,
+        "f1_ok": false,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.3797299143270167,
-        "macro_f1_mean": 0.5839198334914019,
-        "std_mcc": 0.006903202465063015,
-        "n_seeds": 3,
-        "window_pass": true,
+        "mcc_mean": 0.5155808986418665,
+        "macro_f1_mean": 0.6379539040706428,
+        "std_mcc": 0.0031714971372875547,
+        "n_seeds": 2,
+        "window_pass": false,
         "notes": []
       },
       "C": {
-        "mcc_ok": true,
-        "f1_ok": true,
+        "mcc_ok": false,
+        "f1_ok": false,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.37117683367767706,
-        "macro_f1_mean": 0.5770413982389196,
-        "std_mcc": 0.0003785713734889061,
-        "n_seeds": 3,
-        "window_pass": true,
+        "mcc_mean": 0.5264257083628961,
+        "macro_f1_mean": 0.6495035516002732,
+        "std_mcc": 0.002592416043945542,
+        "n_seeds": 2,
+        "window_pass": false,
         "notes": []
       },
       "viable": false,
@@ -245,24 +244,28 @@
         "f1_ok": true,
         "std_ok": false,
         "status_ok": true,
-        "mcc_mean": 0.49311536110537857,
-        "macro_f1_mean": 0.6638274067021023,
-        "std_mcc": 0.03828615152149765,
-        "n_seeds": 2,
+        "mcc_mean": 0.6410037094122579,
+        "macro_f1_mean": 0.7279577823751299,
+        "std_mcc": NaN,
+        "n_seeds": 1,
         "window_pass": false,
-        "notes": []
+        "notes": [
+          "insufficient_seeds"
+        ]
       },
       "C": {
-        "mcc_ok": true,
-        "f1_ok": true,
+        "mcc_ok": false,
+        "f1_ok": false,
         "std_ok": false,
         "status_ok": true,
-        "mcc_mean": 0.5170239564240321,
-        "macro_f1_mean": 0.6787598160905202,
-        "std_mcc": 0.0318381862046892,
-        "n_seeds": 2,
+        "mcc_mean": 0.5037355497235558,
+        "macro_f1_mean": 0.673301605789178,
+        "std_mcc": NaN,
+        "n_seeds": 1,
         "window_pass": false,
-        "notes": []
+        "notes": [
+          "insufficient_seeds"
+        ]
       },
       "viable": false
     },
@@ -281,28 +284,27 @@
         "notes": []
       },
       "B": {
-        "mcc_ok": true,
-        "f1_ok": true,
-        "std_ok": true,
-        "status_ok": true,
-        "mcc_mean": 0.49126626397805917,
-        "macro_f1_mean": 0.6620550696660668,
-        "std_mcc": 0.023621247622959283,
-        "n_seeds": 2,
-        "window_pass": true,
-        "notes": []
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": false,
+        "status_ok": false,
+        "notes": [
+          "missing_window"
+        ]
       },
       "C": {
         "mcc_ok": true,
         "f1_ok": true,
         "std_ok": false,
         "status_ok": true,
-        "mcc_mean": 0.5162384857963094,
-        "macro_f1_mean": 0.6749169822220688,
-        "std_mcc": 0.042954220314030345,
-        "n_seeds": 2,
+        "mcc_mean": 0.6399883837381476,
+        "macro_f1_mean": 0.730343844898322,
+        "std_mcc": NaN,
+        "n_seeds": 1,
         "window_pass": false,
-        "notes": []
+        "notes": [
+          "insufficient_seeds"
+        ]
       },
       "viable": false
     },
@@ -323,28 +325,27 @@
       "B": {
         "mcc_ok": true,
         "f1_ok": true,
-        "std_ok": true,
+        "std_ok": false,
         "status_ok": true,
-        "mcc_mean": 0.48884317771561747,
-        "macro_f1_mean": 0.660916608165995,
-        "std_mcc": 0.01828438238573311,
-        "n_seeds": 2,
-        "window_pass": true,
-        "notes": []
+        "mcc_mean": 0.6427348566740594,
+        "macro_f1_mean": 0.7295879846936999,
+        "std_mcc": NaN,
+        "n_seeds": 1,
+        "window_pass": false,
+        "notes": [
+          "insufficient_seeds"
+        ]
       },
       "C": {
-        "mcc_ok": true,
-        "f1_ok": true,
-        "std_ok": true,
-        "status_ok": true,
-        "mcc_mean": 0.5119169003956051,
-        "macro_f1_mean": 0.6833543449875945,
-        "std_mcc": 0.00959810717162864,
-        "n_seeds": 2,
-        "window_pass": true,
-        "notes": []
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": false,
+        "status_ok": false,
+        "notes": [
+          "missing_window"
+        ]
       },
-      "viable": true
+      "viable": false
     },
     "3d09879bf74b": {
       "arch": "LSTM_D10",
@@ -361,28 +362,27 @@
         "notes": []
       },
       "B": {
-        "mcc_ok": true,
-        "f1_ok": true,
-        "std_ok": true,
-        "status_ok": true,
-        "mcc_mean": 0.4864099602118972,
-        "macro_f1_mean": 0.6602287657708173,
-        "std_mcc": 0.029720109341274784,
-        "n_seeds": 2,
-        "window_pass": true,
-        "notes": []
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": false,
+        "status_ok": false,
+        "notes": [
+          "missing_window"
+        ]
       },
       "C": {
         "mcc_ok": true,
         "f1_ok": true,
         "std_ok": false,
         "status_ok": true,
-        "mcc_mean": 0.5236429422342489,
-        "macro_f1_mean": 0.6903222798767654,
-        "std_mcc": 0.03742881173417005,
-        "n_seeds": 2,
+        "mcc_mean": 0.6400490377859669,
+        "macro_f1_mean": 0.7305399697422997,
+        "std_mcc": NaN,
+        "n_seeds": 1,
         "window_pass": false,
-        "notes": []
+        "notes": [
+          "insufficient_seeds"
+        ]
       },
       "viable": false
     },
@@ -401,28 +401,27 @@
         "notes": []
       },
       "B": {
-        "mcc_ok": true,
-        "f1_ok": true,
-        "std_ok": true,
-        "status_ok": true,
-        "mcc_mean": 0.48787839123725996,
-        "macro_f1_mean": 0.6591910227347659,
-        "std_mcc": 0.011117077529198634,
-        "n_seeds": 2,
-        "window_pass": true,
-        "notes": []
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": false,
+        "status_ok": false,
+        "notes": [
+          "missing_window"
+        ]
       },
       "C": {
         "mcc_ok": true,
         "f1_ok": true,
         "std_ok": false,
         "status_ok": true,
-        "mcc_mean": 0.5277999335030465,
-        "macro_f1_mean": 0.688776227960632,
-        "std_mcc": 0.03727655580745209,
-        "n_seeds": 2,
+        "mcc_mean": 0.6395356006392009,
+        "macro_f1_mean": 0.7296850080639077,
+        "std_mcc": NaN,
+        "n_seeds": 1,
         "window_pass": false,
-        "notes": []
+        "notes": [
+          "insufficient_seeds"
+        ]
       },
       "viable": false
     },
@@ -441,30 +440,24 @@
         "notes": []
       },
       "B": {
-        "mcc_ok": true,
-        "f1_ok": true,
-        "std_ok": true,
-        "status_ok": true,
-        "mcc_mean": 0.48904942302325227,
-        "macro_f1_mean": 0.6621961562490735,
-        "std_mcc": 0.017774869178626397,
-        "n_seeds": 2,
-        "window_pass": true,
-        "notes": []
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": false,
+        "status_ok": false,
+        "notes": [
+          "missing_window"
+        ]
       },
       "C": {
-        "mcc_ok": true,
-        "f1_ok": true,
-        "std_ok": true,
-        "status_ok": true,
-        "mcc_mean": 0.5216836666680593,
-        "macro_f1_mean": 0.6902753927441934,
-        "std_mcc": 0.02606927079463801,
-        "n_seeds": 2,
-        "window_pass": true,
-        "notes": []
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": false,
+        "status_ok": false,
+        "notes": [
+          "missing_window"
+        ]
       },
-      "viable": true
+      "viable": false
     },
     "52292292ef8b": {
       "arch": "Wavenet",
@@ -485,9 +478,9 @@
         "f1_ok": true,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.4972100571323971,
-        "macro_f1_mean": 0.6640013215784578,
-        "std_mcc": 0.006892721840529408,
+        "mcc_mean": 0.6398101117901658,
+        "macro_f1_mean": 0.7275678579304505,
+        "std_mcc": 0.0010157769156660616,
         "n_seeds": 2,
         "window_pass": true,
         "notes": []
@@ -495,16 +488,16 @@
       "C": {
         "mcc_ok": true,
         "f1_ok": true,
-        "std_ok": false,
+        "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.5253249927415236,
-        "macro_f1_mean": 0.6834244031052632,
-        "std_mcc": 0.03355641579906238,
-        "n_seeds": 2,
-        "window_pass": false,
+        "mcc_mean": 0.6380152831600219,
+        "macro_f1_mean": 0.7289573390335838,
+        "std_mcc": 0.0006487487198715096,
+        "n_seeds": 3,
+        "window_pass": true,
         "notes": []
       },
-      "viable": false
+      "viable": true
     },
     "558e2f29084d": {
       "arch": "LSTM_NORES",
@@ -521,28 +514,27 @@
         "notes": []
       },
       "B": {
-        "mcc_ok": true,
-        "f1_ok": true,
-        "std_ok": true,
-        "status_ok": true,
-        "mcc_mean": 0.49454547028078033,
-        "macro_f1_mean": 0.6649309805679715,
-        "std_mcc": 0.028356106321779248,
-        "n_seeds": 2,
-        "window_pass": true,
-        "notes": []
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": false,
+        "status_ok": false,
+        "notes": [
+          "missing_window"
+        ]
       },
       "C": {
         "mcc_ok": true,
         "f1_ok": true,
         "std_ok": false,
         "status_ok": true,
-        "mcc_mean": 0.5326031141409472,
-        "macro_f1_mean": 0.6865162418452582,
-        "std_mcc": 0.03331479774927111,
-        "n_seeds": 2,
+        "mcc_mean": 0.6397055326647663,
+        "macro_f1_mean": 0.7298839443558695,
+        "std_mcc": NaN,
+        "n_seeds": 1,
         "window_pass": false,
-        "notes": []
+        "notes": [
+          "insufficient_seeds"
+        ]
       },
       "viable": false
     },
@@ -565,24 +557,23 @@
         "f1_ok": true,
         "std_ok": false,
         "status_ok": true,
-        "mcc_mean": 0.44149931563957745,
-        "macro_f1_mean": 0.6112224484731884,
-        "std_mcc": 0.03930635945471876,
-        "n_seeds": 2,
+        "mcc_mean": 0.6407745067140983,
+        "macro_f1_mean": 0.727681755358176,
+        "std_mcc": NaN,
+        "n_seeds": 1,
         "window_pass": false,
-        "notes": []
+        "notes": [
+          "insufficient_seeds"
+        ]
       },
       "C": {
-        "mcc_ok": true,
-        "f1_ok": true,
-        "std_ok": true,
-        "status_ok": true,
-        "mcc_mean": 0.4824485848806549,
-        "macro_f1_mean": 0.6502811818415245,
-        "std_mcc": 0.02932465620961925,
-        "n_seeds": 2,
-        "window_pass": true,
-        "notes": []
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": false,
+        "status_ok": false,
+        "notes": [
+          "missing_window"
+        ]
       },
       "viable": false
     },
@@ -605,9 +596,9 @@
         "f1_ok": true,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.44794606538179593,
-        "macro_f1_mean": 0.6276215426076457,
-        "std_mcc": 0.0015735889503538478,
+        "mcc_mean": 0.6339264621516771,
+        "macro_f1_mean": 0.7213202534673424,
+        "std_mcc": 0.0020740381946844767,
         "n_seeds": 2,
         "window_pass": true,
         "notes": []
@@ -617,9 +608,9 @@
         "f1_ok": true,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.48186821393107837,
-        "macro_f1_mean": 0.6541967247186384,
-        "std_mcc": 0.0024458020579835728,
+        "mcc_mean": 0.6328411497901518,
+        "macro_f1_mean": 0.7235738973742323,
+        "std_mcc": 0.0019839897151415938,
         "n_seeds": 2,
         "window_pass": true,
         "notes": []
@@ -645,9 +636,9 @@
         "f1_ok": true,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.47440107409059623,
-        "macro_f1_mean": 0.6514464294551016,
-        "std_mcc": 0.00679372146643169,
+        "mcc_mean": 0.6389228716665118,
+        "macro_f1_mean": 0.7279963333919168,
+        "std_mcc": 0.0012233603433958434,
         "n_seeds": 2,
         "window_pass": true,
         "notes": []
@@ -655,16 +646,16 @@
       "C": {
         "mcc_ok": true,
         "f1_ok": true,
-        "std_ok": false,
+        "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.5056975639596143,
-        "macro_f1_mean": 0.6777746439049529,
-        "std_mcc": 0.0388150098510328,
-        "n_seeds": 2,
-        "window_pass": false,
+        "mcc_mean": 0.6387087220722228,
+        "macro_f1_mean": 0.7297832206340238,
+        "std_mcc": 0.0011757691562185985,
+        "n_seeds": 3,
+        "window_pass": true,
         "notes": []
       },
-      "viable": false
+      "viable": true
     },
     "6f0c110ce13c": {
       "arch": "MAJORITY",
@@ -724,28 +715,27 @@
         "notes": []
       },
       "B": {
-        "mcc_ok": true,
-        "f1_ok": true,
-        "std_ok": true,
-        "status_ok": true,
-        "mcc_mean": 0.4695418617177588,
-        "macro_f1_mean": 0.6358108177443051,
-        "std_mcc": 0.014093455317324916,
-        "n_seeds": 2,
-        "window_pass": true,
-        "notes": []
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": false,
+        "status_ok": false,
+        "notes": [
+          "missing_window"
+        ]
       },
       "C": {
         "mcc_ok": true,
         "f1_ok": true,
         "std_ok": false,
         "status_ok": true,
-        "mcc_mean": 0.47491790876555773,
-        "macro_f1_mean": 0.6459846167820656,
-        "std_mcc": 0.0764842219302833,
-        "n_seeds": 2,
+        "mcc_mean": 0.6382444622482141,
+        "macro_f1_mean": 0.7281884187829419,
+        "std_mcc": NaN,
+        "n_seeds": 1,
         "window_pass": false,
-        "notes": []
+        "notes": [
+          "insufficient_seeds"
+        ]
       },
       "viable": false
     },
@@ -764,13 +754,13 @@
         "notes": []
       },
       "B": {
-        "mcc_ok": true,
-        "f1_ok": true,
-        "std_ok": false,
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.37629428470544773,
-        "macro_f1_mean": 0.5651691658853992,
-        "std_mcc": 0.12483024291419695,
+        "mcc_mean": 0.4701415700392655,
+        "macro_f1_mean": 0.5806424643087067,
+        "std_mcc": 0.01916088796941707,
         "n_seeds": 2,
         "window_pass": false,
         "notes": []
@@ -779,13 +769,10 @@
         "mcc_ok": false,
         "f1_ok": false,
         "std_ok": false,
-        "status_ok": true,
-        "mcc_mean": 0.30413988458911356,
-        "macro_f1_mean": 0.5057584854809984,
-        "std_mcc": 0.09845746988196895,
-        "n_seeds": 2,
-        "window_pass": false,
-        "notes": []
+        "status_ok": false,
+        "notes": [
+          "missing_window"
+        ]
       },
       "viable": false
     },
@@ -808,10 +795,10 @@
         "f1_ok": false,
         "std_ok": false,
         "status_ok": false,
-        "mcc_mean": 0.1436262568668901,
-        "macro_f1_mean": 0.40677889923620286,
-        "std_mcc": 0.2471373062287953,
-        "n_seeds": 3,
+        "mcc_mean": 0.21449688108926013,
+        "macro_f1_mean": 0.4588259580049022,
+        "std_mcc": 0.30334439832316074,
+        "n_seeds": 2,
         "window_pass": false,
         "notes": []
       },
@@ -820,10 +807,10 @@
         "f1_ok": false,
         "std_ok": false,
         "status_ok": true,
-        "mcc_mean": 0.1146762571092395,
-        "macro_f1_mean": 0.3287819168962613,
-        "std_mcc": 0.21922469620997864,
-        "n_seeds": 3,
+        "mcc_mean": 0.18585946517046797,
+        "macro_f1_mean": 0.4458406834462506,
+        "std_mcc": 0.2563525701009958,
+        "n_seeds": 2,
         "window_pass": false,
         "notes": []
       },
@@ -851,9 +838,9 @@
         "f1_ok": true,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.5027120625394185,
-        "macro_f1_mean": 0.663627776341905,
-        "std_mcc": 0.0025340834862766126,
+        "mcc_mean": 0.6420351741371808,
+        "macro_f1_mean": 0.7286903181010351,
+        "std_mcc": 0.000285450366234981,
         "n_seeds": 2,
         "window_pass": true,
         "notes": []
@@ -863,9 +850,9 @@
         "f1_ok": true,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.5264153881094668,
-        "macro_f1_mean": 0.6942010313489796,
-        "std_mcc": 0.021675355245218002,
+        "mcc_mean": 0.6402920532368065,
+        "macro_f1_mean": 0.7305870695464771,
+        "std_mcc": 0.0003688224993074107,
         "n_seeds": 2,
         "window_pass": true,
         "notes": []
@@ -891,10 +878,10 @@
         "f1_ok": false,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.30679461262137897,
-        "macro_f1_mean": 0.5165988385088616,
-        "std_mcc": 0.0035557632629779163,
-        "n_seeds": 3,
+        "mcc_mean": 0.5351276001013862,
+        "macro_f1_mean": 0.6517165682620183,
+        "std_mcc": 0.000450950894045738,
+        "n_seeds": 2,
         "window_pass": false,
         "notes": []
       },
@@ -903,10 +890,10 @@
         "f1_ok": false,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.299372924522616,
-        "macro_f1_mean": 0.5077226163657279,
-        "std_mcc": 0.003244901786992319,
-        "n_seeds": 3,
+        "mcc_mean": 0.5469194675154303,
+        "macro_f1_mean": 0.6656807872653235,
+        "std_mcc": 0.0028175838315217224,
+        "n_seeds": 2,
         "window_pass": false,
         "notes": []
       },
@@ -934,9 +921,9 @@
         "f1_ok": true,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.4929309961825351,
-        "macro_f1_mean": 0.6631134235782044,
-        "std_mcc": 0.025838603066167982,
+        "mcc_mean": 0.6418982924324929,
+        "macro_f1_mean": 0.7288930973305028,
+        "std_mcc": 6.6830077232079106e-06,
         "n_seeds": 2,
         "window_pass": true,
         "notes": []
@@ -944,16 +931,16 @@
       "C": {
         "mcc_ok": true,
         "f1_ok": true,
-        "std_ok": false,
+        "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.5174266114997037,
-        "macro_f1_mean": 0.6758545863321539,
-        "std_mcc": 0.04249573835081478,
-        "n_seeds": 2,
-        "window_pass": false,
+        "mcc_mean": 0.6404672914379262,
+        "macro_f1_mean": 0.7307328683064158,
+        "std_mcc": 0.00043551188819221235,
+        "n_seeds": 3,
+        "window_pass": true,
         "notes": []
       },
-      "viable": false
+      "viable": true
     },
     "d7fcd89ef3d6": {
       "arch": "LSTM_POOL",
@@ -974,24 +961,23 @@
         "f1_ok": true,
         "std_ok": false,
         "status_ok": true,
-        "mcc_mean": 0.4937399929411964,
-        "macro_f1_mean": 0.6563764317230804,
-        "std_mcc": 0.03292533594906263,
-        "n_seeds": 2,
+        "mcc_mean": 0.6374165814699623,
+        "macro_f1_mean": 0.7250783929445367,
+        "std_mcc": NaN,
+        "n_seeds": 1,
         "window_pass": false,
-        "notes": []
+        "notes": [
+          "insufficient_seeds"
+        ]
       },
       "C": {
-        "mcc_ok": true,
-        "f1_ok": true,
-        "std_ok": true,
-        "status_ok": true,
-        "mcc_mean": 0.5163100300628097,
-        "macro_f1_mean": 0.6831789831303756,
-        "std_mcc": 0.002112758206404479,
-        "n_seeds": 2,
-        "window_pass": true,
-        "notes": []
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": false,
+        "status_ok": false,
+        "notes": [
+          "missing_window"
+        ]
       },
       "viable": false
     },
@@ -1010,30 +996,24 @@
         "notes": []
       },
       "B": {
-        "mcc_ok": true,
-        "f1_ok": true,
-        "std_ok": true,
-        "status_ok": true,
-        "mcc_mean": 0.4766670060786767,
-        "macro_f1_mean": 0.6572240595584049,
-        "std_mcc": 0.005542232981659667,
-        "n_seeds": 2,
-        "window_pass": true,
-        "notes": []
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": false,
+        "status_ok": false,
+        "notes": [
+          "missing_window"
+        ]
       },
       "C": {
-        "mcc_ok": true,
-        "f1_ok": true,
-        "std_ok": true,
-        "status_ok": true,
-        "mcc_mean": 0.5078937103810892,
-        "macro_f1_mean": 0.676326270795891,
-        "std_mcc": 0.02209486331049249,
-        "n_seeds": 2,
-        "window_pass": true,
-        "notes": []
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": false,
+        "status_ok": false,
+        "notes": [
+          "missing_window"
+        ]
       },
-      "viable": true
+      "viable": false
     },
     "ea8d90054291": {
       "arch": "Attention",
@@ -1054,9 +1034,9 @@
         "f1_ok": true,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.41690001218064143,
-        "macro_f1_mean": 0.5933356169409115,
-        "std_mcc": 0.014709854935707955,
+        "mcc_mean": 0.601091839906328,
+        "macro_f1_mean": 0.6958873058653199,
+        "std_mcc": 0.0014157491009513415,
         "n_seeds": 2,
         "window_pass": true,
         "notes": []
@@ -1066,9 +1046,9 @@
         "f1_ok": true,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.4795589287676314,
-        "macro_f1_mean": 0.6533795261888873,
-        "std_mcc": 0.019094505215901496,
+        "mcc_mean": 0.6181918638118722,
+        "macro_f1_mean": 0.7130722236163833,
+        "std_mcc": 0.0007307208177409661,
         "n_seeds": 2,
         "window_pass": true,
         "notes": []
@@ -1094,9 +1074,9 @@
         "f1_ok": true,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.46052416032440346,
-        "macro_f1_mean": 0.634256875400317,
-        "std_mcc": 0.00035456681132745385,
+        "mcc_mean": 0.6375423510389725,
+        "macro_f1_mean": 0.7278116864402568,
+        "std_mcc": 0.0021728614537680217,
         "n_seeds": 2,
         "window_pass": true,
         "notes": []
@@ -1106,9 +1086,9 @@
         "f1_ok": true,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.47443943304405845,
-        "macro_f1_mean": 0.6528279628588902,
-        "std_mcc": 0.021374443580523938,
+        "mcc_mean": 0.6359871540640176,
+        "macro_f1_mean": 0.7280978735525807,
+        "std_mcc": 0.0018692624197136037,
         "n_seeds": 2,
         "window_pass": true,
         "notes": []
@@ -1134,9 +1114,9 @@
         "f1_ok": true,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.463147288577309,
-        "macro_f1_mean": 0.6432673921799361,
-        "std_mcc": 0.009016978902048719,
+        "mcc_mean": 0.6386649610294,
+        "macro_f1_mean": 0.726535461971588,
+        "std_mcc": 0.00025206198900893024,
         "n_seeds": 2,
         "window_pass": true,
         "notes": []
@@ -1146,9 +1126,9 @@
         "f1_ok": true,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.4956839536001888,
-        "macro_f1_mean": 0.6641638557524787,
-        "std_mcc": 0.007683611842235564,
+        "mcc_mean": 0.6386741129508282,
+        "macro_f1_mean": 0.7296710796531323,
+        "std_mcc": 0.00022883366317877875,
         "n_seeds": 2,
         "window_pass": true,
         "notes": []
@@ -1200,26 +1180,18 @@
     }
   },
   "viable_set": [
-    "076666f04306",
     "098ca2f95a2e",
     "0b31c7bb9404",
-    "3cd40f90604c",
-    "48b806ceba9b",
+    "52292292ef8b",
     "60f40876941b",
+    "666675f56e77",
     "cf6b6ccb530a",
-    "e645063be7bc",
+    "d2bbc0d7fb15",
     "ea8d90054291",
     "f1f70fadabbb",
     "f37089f602fe"
   ],
   "stability_only_failures": [
-    {
-      "config_id": "0875fd5bd454",
-      "arch": "LSTM_INJIT",
-      "windows": [
-        "C"
-      ]
-    },
     {
       "config_id": "225a954527c8",
       "arch": "LSTM_NORESIZE",
@@ -1227,79 +1199,9 @@
         "B",
         "C"
       ]
-    },
-    {
-      "config_id": "3a4ddb6c4092",
-      "arch": "LSTM_NOISY",
-      "windows": [
-        "C"
-      ]
-    },
-    {
-      "config_id": "3d09879bf74b",
-      "arch": "LSTM_D10",
-      "windows": [
-        "C"
-      ]
-    },
-    {
-      "config_id": "470786990c9e",
-      "arch": "LSTM_NOCONV",
-      "windows": [
-        "C"
-      ]
-    },
-    {
-      "config_id": "52292292ef8b",
-      "arch": "Wavenet",
-      "windows": [
-        "C"
-      ]
-    },
-    {
-      "config_id": "558e2f29084d",
-      "arch": "LSTM_NORES",
-      "windows": [
-        "C"
-      ]
-    },
-    {
-      "config_id": "59d72ed6d750",
-      "arch": "LSTM_PONDER",
-      "windows": [
-        "B"
-      ]
-    },
-    {
-      "config_id": "666675f56e77",
-      "arch": "Mamba2",
-      "windows": [
-        "C"
-      ]
-    },
-    {
-      "config_id": "8d1446f2a484",
-      "arch": "LSTM_RAW",
-      "windows": [
-        "C"
-      ]
-    },
-    {
-      "config_id": "d2bbc0d7fb15",
-      "arch": "LSTM",
-      "windows": [
-        "C"
-      ]
-    },
-    {
-      "config_id": "d7fcd89ef3d6",
-      "arch": "LSTM_POOL",
-      "windows": [
-        "B"
-      ]
     }
   ],
-  "decided_at": "2026-09-17T11:20:28.904180+00:00",
+  "decided_at": "2026-09-19T14:30:44.891920+00:00",
   "decided_by": "gate.py + author review at checkpoint",
   "notes": [
     "RIDGE/MAJORITY/PERSISTENCE/ROCKET are baselines: shown for reference, never in viable_set.",
