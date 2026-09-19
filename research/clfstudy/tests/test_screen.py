@@ -142,7 +142,7 @@ def _all_rows():
     rows += _ridge_rows("variant2cfg", LABEL_2, {"A": 0.21, "B": 0.21, "C": 0.21})
     rows += _mlp_rows("variant2cfg", LABEL_2, {"A": 0.215, "B": 0.215, "C": 0.215})
 
-    # Variant 3: RIDGE itself moves -0.06 vs baseline -> PROMOTE (ridge_shift), "label harder".
+    # Variant 3: RIDGE itself moves -0.06 vs baseline -> NO (a drop is noted as "label harder", not promoted).
     rows += _ridge_rows("variant3cfg", LABEL_3, {"A": 0.14, "B": 0.14, "C": 0.14})
     rows += _mlp_rows("variant3cfg", LABEL_3, {"A": 0.14, "B": 0.14, "C": 0.14})
 
@@ -197,7 +197,7 @@ def test_promote_by_ridge_shift_label_harder():
     assert v3["ridge"]["pooled"] == pytest.approx(0.14)
     assert v3["ridge_shift"] == pytest.approx(-0.06)
     assert v3["windows_passing_delta"] == 0
-    assert v3["verdict"] == "PROMOTE"
+    assert v3["verdict"] == "NO"
     assert any("label harder" in n for n in v3["notes"])
 
 

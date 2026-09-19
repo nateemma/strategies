@@ -11,7 +11,7 @@ A "variant" is a distinct `label` dict (and/or `input_set` / `seq_len`) run, wit
 reads `results.jsonl` (via `leaderboard.load_results`, never `run.py`/`phase.py`/`registry.py`)
 and applies the author's promotion rule verbatim:
 
-    PROMOTE if MLP - RIDGE >= 0.02 MCC on >= 2 of 3 windows, OR |ridge_shift| >= 0.05
+    PROMOTE if MLP - RIDGE >= 0.02 MCC on >= 2 of 3 windows, OR ridge_shift >= +0.05 (a rise)
     (ridge_shift = variant RIDGE pooled MCC - baseline-phase RIDGE pooled MCC); else NO.
 
 A variant missing RIDGE or MLP_FAM rows entirely is INCOMPLETE (not scored either way).
@@ -157,9 +157,12 @@ def _summarise_variant(g: pd.DataFrame, baseline_pooled: float) -> Dict[str, Any
         notes.append(f"missing {' and '.join(missing)} rows")
     else:
         promote_by_delta = pass_count >= MIN_WINDOWS_FOR_DELTA
-        promote_by_shift = bool(np.isfinite(ridge_shift) and abs(ridge_shift) >= RIDGE_SHIFT_THRESHOLD)
-        if promote_by_shift and ridge_shift < 0:
-            notes.append("label harder: large negative ridge_shift")
+        # Author's rule as amended after review_19 (corrected): the shift clause promotes only
+        # a RISE of the RIDGE ceiling; a large DROP means "label harder" and is recorded, not
+        # promoted (the ATR-1 label dropped RIDGE by ~0.09 while removing HOLD to 14%).
+        promote_by_shift = bool(np.isfinite(ridge_shift) and ridge_shift >= RIDGE_SHIFT_THRESHOLD)
+        if np.isfinite(ridge_shift) and ridge_shift <= -RIDGE_SHIFT_THRESHOLD:
+            notes.append("label harder: large negative ridge_shift (not promoted)")
         verdict = "PROMOTE" if (promote_by_delta or promote_by_shift) else "NO"
 
     label = first.get("label")
@@ -244,7 +247,7 @@ def render_markdown(result: Dict[str, Any]) -> str:
         "edge (Constitution III).",
         "",
         f"Rule: PROMOTE if MLP - RIDGE >= {MCC_DELTA_THRESHOLD} on >= {MIN_WINDOWS_FOR_DELTA} of 3 "
-        f"windows, OR |ridge_shift| >= {RIDGE_SHIFT_THRESHOLD}; else NO. A variant missing RIDGE "
+        f"windows, OR ridge_shift >= +{RIDGE_SHIFT_THRESHOLD} (a rise; a drop is noted, not promoted); else NO. A variant missing RIDGE "
         "or MLP_FAM rows entirely is INCOMPLETE.",
         "",
     ]
