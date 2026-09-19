@@ -194,3 +194,14 @@ rows were purged, the payload now carries `label` (regression test in test_run_s
 the relaunched rows show the strict triple-barrier balance (window A test: 29% SELL / 55% HOLD
 / 17% BUY; B: 42 / 35 / 22). Lesson: every config field that changes the data must be asserted
 on the written row, not assumed from the launcher.
+
+## Triple-barrier widths were floored at +3% / −2% (found 2026-09-19 09:50)
+
+`labels_triple_barrier` defaults `pt=0.03, sl=0.02` and applies `pt = max(pt, min_gain)`; the
+sell labeler applies `sl = max(sl, min_loss)` with `pt` at its default. The study shim passed
+only `min_gain`/`min_loss` (= up/down), so every triple-barrier row before the fix — phase 19
+and the first phase-20 rows — used buy PT +3% / SL −2% and sell SL −2% / PT +3%, not the
+configured ±2%, and the ATR-scaled floor of 0.5% could never apply (ATR-1 labels differed
+from the "±2%" labels by ~5 bars per window). Fix: the shim now passes `pt=up, sl=down`
+explicitly. Phase 19 is re-run at a true ±2% (the +3%/−2% rows are purged; backup in
+report/logs) and the screening campaign restarts afterwards.

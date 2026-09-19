@@ -117,6 +117,18 @@ class _TripleBarrierShim:
     call goes directly to `TrainingSignals.get_train_buy_signals` (not
     `BaseNNStrategy.get_train_buy_signals`), which forwards every param -- so, unlike
     `rvol_threshold` above, there is no landmine to route around for `atr_scale`.
+
+    `pt`/`sl` are passed EXPLICITLY (not only via `min_gain`/`min_loss`): both
+    `labels_triple_barrier` and `labels_triple_barrier_sell` default `pt=0.03, sl=0.02`
+    and only ever raise a barrier via `pt = max(pt, min_gain)` / `sl = max(sl, min_loss)`
+    -- so relying on `min_gain`/`min_loss` alone made those defaults a FLOOR a narrower
+    `up`/`down` could never go below (and `labels_triple_barrier` ignores `min_loss`
+    entirely, `labels_triple_barrier_sell` ignores `min_gain` entirely, per their own
+    docstrings). Passing `pt=up, sl=down` directly sets the actual barrier; `min_gain`/
+    `min_loss` are still passed too (so the `max()` each function applies is a no-op),
+    which is also what makes `atr_scale`'s `max(pt, atr_scale_width)` /
+    `max(sl, atr_scale_width)` compare against the CONFIGURED width rather than the
+    0.03/0.02 defaults.
     """
 
     dbg_verbose: bool = False
@@ -147,6 +159,8 @@ class _TripleBarrierShim:
     def get_train_buy_signals(self, future_df: pd.DataFrame) -> pd.Series:
         params = {
             "horizon": self.HORIZON,
+            "pt": self.MIN_BUY_GAIN_THRESHOLD,
+            "sl": self.MIN_SELL_LOSS_THRESHOLD,
             "min_gain": self.MIN_BUY_GAIN_THRESHOLD,
             "min_loss": self.MIN_SELL_LOSS_THRESHOLD,
         }
@@ -166,6 +180,8 @@ class _TripleBarrierShim:
     def get_train_sell_signals(self, future_df: pd.DataFrame) -> pd.Series:
         params = {
             "horizon": self.HORIZON,
+            "pt": self.MIN_BUY_GAIN_THRESHOLD,
+            "sl": self.MIN_SELL_LOSS_THRESHOLD,
             "min_loss": self.MIN_SELL_LOSS_THRESHOLD,
             "min_gain": self.MIN_BUY_GAIN_THRESHOLD,
         }

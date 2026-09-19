@@ -217,6 +217,100 @@ def test_ternary_labels_triple_barrier_atr_scale_omitted_equals_none():
 
 
 # ---------------------------------------------------------------------------
+# triple_barrier label — `up`/`down` set the ACTUAL barrier (not a floor under
+# `labels_triple_barrier`'s pt=0.03/sl=0.02 defaults)
+# ---------------------------------------------------------------------------
+
+
+def _rise_df(n: int = 100, t: int = 29, rise_pct: float = 0.025,
+             rise_bars: int = 10) -> pd.DataFrame:
+    """Deterministic path: flat at 100 through bar `t`, then a straight-line rise
+    over `rise_bars` bars reaching exactly `+rise_pct` at `t + rise_bars`, then flat
+    forever after (never retraces). `high == low == close` so the labeler's
+    close-based touch test is unambiguous."""
+    close = np.full(n, 100.0)
+    for i in range(t + 1, t + 1 + rise_bars):
+        frac = (i - t) / rise_bars
+        close[i] = 100.0 * (1 + rise_pct * frac)
+    close[t + 1 + rise_bars:] = close[t + rise_bars]
+    dates = pd.date_range("2022-01-01", periods=n, freq="15min", tz="UTC")
+    return pd.DataFrame(
+        {"date": dates, "open": close, "high": close, "low": close,
+         "close": close, "volume": np.ones(n)}
+    )
+
+
+def _fall_df(n: int = 100, t: int = 29, fall_pct: float = 0.025,
+             fall_bars: int = 10) -> pd.DataFrame:
+    """Mirror of `_rise_df`: a straight-line fall reaching exactly `-fall_pct`,
+    then flat forever after (never retraces)."""
+    close = np.full(n, 100.0)
+    for i in range(t + 1, t + 1 + fall_bars):
+        frac = (i - t) / fall_bars
+        close[i] = 100.0 * (1 - fall_pct * frac)
+    close[t + 1 + fall_bars:] = close[t + fall_bars]
+    dates = pd.date_range("2022-01-01", periods=n, freq="15min", tz="UTC")
+    return pd.DataFrame(
+        {"date": dates, "open": close, "high": close, "low": close,
+         "close": close, "volume": np.ones(n)}
+    )
+
+
+def test_triple_barrier_up_down_set_the_actual_buy_barrier():
+    # From bar t, close rises to exactly +2.5% within 48 bars and never falls.
+    # up=down=0.02 clears a 2% profit-take before any (never-happening) 2% stop
+    # -> BUY. up=0.03 is never reached (rise tops out at 2.5%) -> HOLD. Before the
+    # fix, `pt = max(pt, min_gain)` meant `up=0.02` couldn't lower `pt` below the
+    # default 0.03, so BOTH cases produced HOLD.
+    t = 29
+    df = _rise_df(t=t)
+
+    buy_labels = ternary_labels(
+        df, label={"name": "triple_barrier", "horizon": 48, "up": 0.02, "down": 0.02}
+    )
+    hold_labels = ternary_labels(
+        df, label={"name": "triple_barrier", "horizon": 48, "up": 0.03, "down": 0.02}
+    )
+    assert buy_labels[t] == 2
+    assert hold_labels[t] == 1
+
+
+def test_triple_barrier_up_down_set_the_actual_sell_barrier():
+    # Mirror: close drops to exactly -2.5% within 48 bars and never rises.
+    # down=0.02 clears a 2% stop-loss before any (never-happening) 2% profit-take
+    # -> SELL. down=0.03 is never reached -> HOLD. Before the fix,
+    # `sl = max(sl, min_loss)` meant `down=0.02` couldn't lower `sl` below the
+    # default 0.02 -- but `pt` (the mirror barrier) stayed pinned at the default
+    # 0.03 regardless of `up`, since `labels_triple_barrier_sell` ignores `min_gain`
+    # entirely; this test only exercises the `down`/`sl` side.
+    t = 29
+    df = _fall_df(t=t)
+
+    sell_labels = ternary_labels(
+        df, label={"name": "triple_barrier", "horizon": 48, "up": 0.02, "down": 0.02}
+    )
+    hold_labels = ternary_labels(
+        df, label={"name": "triple_barrier", "horizon": 48, "up": 0.02, "down": 0.03}
+    )
+    assert sell_labels[t] == 0
+    assert hold_labels[t] == 1
+
+
+def test_triple_barrier_width_below_default_floor():
+    # up=down=0.01 is BELOW `labels_triple_barrier`'s pt=0.03/sl=0.02 defaults --
+    # before the fix this was structurally impossible to trade on (the max() floor
+    # always won), so a +1.5% rise (well below the 3% default, but above the
+    # requested 1%) was labeled HOLD. After the fix it must be BUY.
+    t = 29
+    df = _rise_df(t=t, rise_pct=0.015)
+
+    labels = ternary_labels(
+        df, label={"name": "triple_barrier", "horizon": 48, "up": 0.01, "down": 0.01}
+    )
+    assert labels[t] == 2
+
+
+# ---------------------------------------------------------------------------
 # label_key
 # ---------------------------------------------------------------------------
 
