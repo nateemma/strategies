@@ -159,3 +159,15 @@ Mamba2 B/1 0.640; LSTM2 A/0 0.663; CNN A/1 0.552 (CNN is weaker, but not the con
 Wavenet-clone TCN_FAM (channels 32, kernel 2, dilations [1,2,4,8,1,2,4,8], 16,227 params =
 Wavenet's count), window C, clean: 0.638 / 0.640 / 0.640 versus Wavenet 0.637 / 0.637 / 0.639.
 The conv family code reproduces Wavenet; the depth-8 / dilation-base-2 point was a grid error.
+
+## The ceiling is the label's trigger rule (2026-09-18 20:10)
+
+A learning-free rule — BUY if guard_metric < 0.3 and bb_width > 0.035, SELL if guard_metric >
+0.3 and bb_width > 0.035, else HOLD — scored against the labels on each window's test rows:
+A 0.673 (BUY precision 0.52, recall 1.00), B 0.644 (0.51, 1.00), C 0.642 (0.45, 1.00). Every
+trained architecture converges to 0.66 / 0.64 / 0.64: the models learn the trigger and nothing
+about the future-gain condition. RIDGE (0.53-0.55) is the linear approximation of the same AND
+of two thresholds. Conclusion for the architecture question: no architecture, size or
+composition extracts information beyond the trigger from 24 indicators over 16 bars; the
+remaining question is conditional on the trigger — whether any INPUT set predicts which
+triggered bars pay off better than the ~0.5 base rate.
