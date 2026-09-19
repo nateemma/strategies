@@ -62,6 +62,20 @@ TRAIN_DEFAULTS: Dict[str, Any] = {
     "stride": 1,
 }
 
+#: `label` dict default -- means "exactly the production gbb label, unchanged" (research T018+).
+#: Kept OUT of `config_id` when a config's `label` equals this exactly (byte-for-byte, including
+#: no extra keys), so every config written before `label` existed keeps its id.
+DEFAULT_LABEL: Dict[str, Any] = {"name": "gbb"}
+
+#: `label` dict defaults for `name == "triple_barrier"`; user-supplied keys override these
+#: (mirrors `TRAIN_DEFAULTS`'s merge-over-defaults pattern).
+_LABEL_TRIPLE_BARRIER_DEFAULTS: Dict[str, Any] = {
+    "conflict_resolution": True,
+    "peak_filter": False,
+}
+
+_VALID_LABEL_NAMES = ("gbb", "triple_barrier")
+
 
 def resolve(arch: str) -> ClassifierTypeMLX:
     """`arch` name -> `ClassifierTypeMLX` member. Raises `KeyError` with the valid names."""
@@ -115,6 +129,7 @@ class ExperimentConfig:
     phase: int = 0
     seeds: List[int] = field(default_factory=lambda: [0])
     tags: List[str] = field(default_factory=list)
+    label: Dict[str, Any] = field(default_factory=lambda: dict(DEFAULT_LABEL))
 
     def __post_init__(self) -> None:
         # Merge user-supplied `train` keys over the defaults so every config carries the
@@ -122,6 +137,15 @@ class ExperimentConfig:
         merged = dict(TRAIN_DEFAULTS)
         merged.update(self.train or {})
         self.train = merged
+
+        # Same merge-over-defaults pattern for `label`, but only for `triple_barrier` --
+        # `gbb` must stay exactly `DEFAULT_LABEL` (no extra keys) so `config_id` can omit
+        # it by equality (research: config_id byte-identical for every pre-existing config).
+        self.label = dict(self.label) if self.label else dict(DEFAULT_LABEL)
+        if self.label.get("name") == "triple_barrier":
+            merged_label = dict(_LABEL_TRIPLE_BARRIER_DEFAULTS)
+            merged_label.update(self.label)
+            self.label = merged_label
 
     def validate(self) -> None:
         """Raise `ValueError` on the first violated rule (data-model.md §ExperimentConfig)."""
@@ -135,10 +159,61 @@ class ExperimentConfig:
             raise ValueError(f"train.max_epochs must be >= 1, got {self.train['max_epochs']}")
         if self.train["stride"] < 1:
             raise ValueError(f"train.stride must be >= 1, got {self.train['stride']}")
+        self._validate_label()
+
+    def _validate_label(self) -> None:
+        name = self.label.get("name")
+        if name not in _VALID_LABEL_NAMES:
+            raise ValueError(
+                f"unknown label {name!r}; valid label names: {', '.join(_VALID_LABEL_NAMES)}"
+            )
+        if name == "gbb":
+            extra = sorted(set(self.label) - {"name"})
+            if extra:
+                raise ValueError(f"label 'gbb' accepts no extra keys, got {extra}")
+            return
+
+        # triple_barrier
+        for key in ("horizon", "up", "down"):
+            if key not in self.label:
+                raise ValueError(f"label 'triple_barrier' missing required key {key!r}")
+
+        horizon = self.label["horizon"]
+        if not isinstance(horizon, int) or isinstance(horizon, bool) or horizon < 1:
+            raise ValueError(
+                f"label 'triple_barrier' key 'horizon' must be an int >= 1, got {horizon!r}"
+            )
+        for key in ("up", "down"):
+            value = self.label[key]
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
+                raise ValueError(
+                    f"label 'triple_barrier' key {key!r} must be a float > 0, got {value!r}"
+                )
+        conflict_resolution = self.label.get("conflict_resolution")
+        if not isinstance(conflict_resolution, bool):
+            raise ValueError(
+                "label 'triple_barrier' key 'conflict_resolution' must be bool, got "
+                f"{conflict_resolution!r}"
+            )
+        peak_filter = self.label.get("peak_filter")
+        if not isinstance(peak_filter, bool):
+            raise ValueError(
+                f"label 'triple_barrier' key 'peak_filter' must be bool, got {peak_filter!r}"
+            )
+        extra = sorted(
+            set(self.label) - {"name", "horizon", "up", "down", "conflict_resolution", "peak_filter"}
+        )
+        if extra:
+            raise ValueError(f"label 'triple_barrier' has unknown keys {extra}")
 
 
 def config_id(cfg: ExperimentConfig) -> str:
-    """First 12 hex chars of the SHA-1 over the canonical id-field JSON (research R9)."""
+    """First 12 hex chars of the SHA-1 over the canonical id-field JSON (research R9).
+
+    `label` is included only when it differs from `DEFAULT_LABEL` (`{"name": "gbb"}`), so
+    every config written before `label` existed -- and every config that still means "the
+    production gbb label" -- hashes to exactly the id it always had.
+    """
     payload = {
         "arch": cfg.arch,
         "hp": cfg.hp,
@@ -147,6 +222,8 @@ def config_id(cfg: ExperimentConfig) -> str:
         "split_set": cfg.split_set,
         "train": cfg.train,
     }
+    if cfg.label != DEFAULT_LABEL:
+        payload["label"] = cfg.label
     blob = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha1(blob.encode("utf-8")).hexdigest()[:12]
 
@@ -175,6 +252,7 @@ def load_phase(path: str | Path) -> Tuple[Dict[str, Any], List[ExperimentConfig]
             phase=entry.get("phase", header.get("phase", 0)),
             seeds=entry.get("seeds", [0]),
             tags=entry.get("tags", []),
+            label=entry.get("label", dict(DEFAULT_LABEL)),
         )
         cfg.validate()
         configs.append(cfg)

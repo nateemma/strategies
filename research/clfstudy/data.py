@@ -7,6 +7,7 @@ look-ahead stay correct at every window boundary.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any, Dict, Optional
 
 import numpy as np
 import pandas as pd
@@ -67,29 +68,38 @@ def raw8(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def _cache_path(pair: str) -> Path:
+def _cache_path(pair: str, label_key: str) -> Path:
     base = pair.split("/")[0]
-    return CACHE_DIR / "frames" / f"{base}_{HARNESS_VERSION}.feather"
+    return CACHE_DIR / "frames" / f"{base}_{HARNESS_VERSION}_{label_key}.feather"
 
 
-def load_all(pairs: tuple[str, ...] = PAIRS) -> dict[str, pd.DataFrame]:
+def load_all(
+    pairs: tuple[str, ...] = PAIRS, label: Optional[Dict[str, Any]] = None
+) -> dict[str, pd.DataFrame]:
     """Load, populate, raw8 and label every pair, caching the result per pair.
 
-    Cache key is `(pair, HARNESS_VERSION)`: bumping `HARNESS_VERSION` invalidates every
-    pair's cache. The cached frame carries an int8 `label` column (SELL=0/HOLD=1/BUY=2).
+    Cache key is `(pair, HARNESS_VERSION, label_key)`: bumping `HARNESS_VERSION`, or
+    passing a different `label` (see `labels.label_key`), invalidates that combination's
+    cache without touching any other pair/label's cached frame -- different labels never
+    share a cache file. The cached frame carries an int8 `label` column
+    (SELL=0/HOLD=1/BUY=2) computed for the requested `label`.
+
+    `label=None` (default) reproduces the exact gbb-label behaviour this function has
+    always had; the cache filename gains a `_gbb` suffix, a one-time cache miss.
     """
+    lkey = labels_mod.label_key(label)
     frames: dict[str, pd.DataFrame] = {}
     cache_dir = CACHE_DIR / "frames"
     cache_dir.mkdir(parents=True, exist_ok=True)
 
     for pair in pairs:
-        cpath = _cache_path(pair)
+        cpath = _cache_path(pair, lkey)
         if cpath.exists():
             frames[pair] = pd.read_feather(cpath)
             continue
 
         df = raw8(populate(load_pair(pair)))
-        df["label"] = labels_mod.ternary_labels(df).astype(np.int8)
+        df["label"] = labels_mod.ternary_labels(df, label=label).astype(np.int8)
         df.to_feather(cpath)
         frames[pair] = df
 

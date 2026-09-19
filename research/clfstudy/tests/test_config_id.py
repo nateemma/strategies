@@ -7,14 +7,58 @@
 Covers: determinism of `config_id` across key order; `seeds`/`phase`/`tags` excluded from
 the id; every id field changes the id; `ExperimentConfig.validate()` rejects an unknown
 arch, an unknown input_set, `seq_len=1` and `train.stride=0`; `load_phase` on a tmp YAML.
+
+Also covers the `label` field (research: let an experiment select the label): every
+config_id computed by `configs/phase_{2,3,4}.yaml` BEFORE `label` existed is unchanged;
+`label` is omitted from the canonical JSON (and so from the id) when it equals the
+default `{"name": "gbb"}`; a `triple_barrier` label changes the id; label validation.
 """
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
-from research.clfstudy.registry import ExperimentConfig, config_id, load_phase
+from research.clfstudy.registry import DEFAULT_LABEL, ExperimentConfig, config_id, load_phase
+
+_CONFIGS_DIR = Path(__file__).resolve().parents[1] / "configs"
+
+#: `config_id` for every entry in configs/phase_{2,3,4}.yaml, computed BEFORE the `label`
+#: field was added to `ExperimentConfig`/`config_id` -- frozen here so a regression in the
+#: "omit `label` when it's the default" rule is caught even though these particular YAML
+#: files never set `label` explicitly.
+_BASELINE_IDS = {
+    "phase_2.yaml": [
+        "6f0c110ce13c", "ffb5c40e8d6b", "d1dc0339b10b", "12c3636e7110",
+    ],
+    "phase_3.yaml": [
+        "d2bbc0d7fb15", "098ca2f95a2e", "f37089f602fe", "076666f04306",
+        "60f40876941b", "ea8d90054291", "0b31c7bb9404", "cf6b6ccb530a",
+        "52292292ef8b", "9c5b1e952784", "666675f56e77", "f1f70fadabbb",
+        "3cd40f90604c", "0875fd5bd454", "3a4ddb6c4092", "59d72ed6d750",
+        "e645063be7bc", "3d09879bf74b", "d7fcd89ef3d6", "48b806ceba9b",
+        "470786990c9e", "8d1446f2a484", "225a954527c8", "558e2f29084d",
+    ],
+    "phase_4.yaml": [
+        "5616ab5d0bd0", "7b50342154ef", "b5b58a6c2cc5", "b690297cbbf5",
+        "f5be6cc3a0df", "702b00fcb20c", "70eb48f9acfb", "68c1f710246f",
+        "cef2eef58d6b", "3c120e544d4e", "dbd824e7736c", "a09a0b24d6fe",
+        "b85e94f80dc6", "12af479dfaa3", "f7d18cb3a30f", "fa4e5ad070f7",
+        "318ea175aa05", "486f44b1f862", "67ffa1f12fbd", "d5a1481bd4c0",
+        "9278e1441b47", "821f46c115ab", "bbbed50c3b5c", "6fe7246246f5",
+        "a4fb5eb48337", "3413d77700b0", "e5974774aa5f", "8e1f1550ad56",
+        "9c94bdef2a2d", "1260944a8d42", "4a28d1ce4ebd", "4c265676afae",
+        "551b8bb6dcf2", "8a9bbc798cf3", "b8285305a779",
+    ],
+}
+
+
+@pytest.mark.parametrize("phase_file", sorted(_BASELINE_IDS))
+def test_phase_file_config_ids_unchanged_by_label_field(phase_file):
+    _, configs = load_phase(_CONFIGS_DIR / phase_file)
+    ids = [config_id(cfg) for cfg in configs]
+    assert ids == _BASELINE_IDS[phase_file]
 
 
 def _cfg(**overrides) -> ExperimentConfig:
@@ -166,3 +210,105 @@ def test_load_phase(tmp_path):
     assert ridge_cfg.train["max_epochs"] == 40
     assert ridge_cfg.phase == 99
     assert ridge_cfg.seeds == [0]
+
+
+# ---------------------------------------------------------------------------
+# `label` field
+# ---------------------------------------------------------------------------
+
+
+def test_label_defaults_to_gbb():
+    cfg = _cfg()
+    assert cfg.label == {"name": "gbb"}
+    assert cfg.label == DEFAULT_LABEL
+
+
+def test_label_omitted_equals_label_gbb_explicit():
+    # {"name": "gbb"} is exactly the default -> same id as omitting `label` entirely.
+    implicit = _cfg()
+    explicit = _cfg(label={"name": "gbb"})
+    assert config_id(implicit) == config_id(explicit)
+
+
+def test_label_omitted_from_canonical_json_when_default():
+    import hashlib
+
+    cfg = _cfg()
+    payload_without_label = {
+        "arch": cfg.arch, "hp": cfg.hp, "input_set": cfg.input_set,
+        "seq_len": cfg.seq_len, "split_set": cfg.split_set, "train": cfg.train,
+    }
+    blob = json.dumps(payload_without_label, sort_keys=True, separators=(",", ":"))
+    expected = hashlib.sha1(blob.encode("utf-8")).hexdigest()[:12]
+    assert config_id(cfg) == expected
+
+
+def test_triple_barrier_label_changes_the_id():
+    base = _cfg()
+    tb = _cfg(label={"name": "triple_barrier", "horizon": 24, "up": 0.01, "down": 0.01})
+    assert config_id(base) != config_id(tb)
+
+
+def test_triple_barrier_label_defaults_filled_in():
+    cfg = _cfg(label={"name": "triple_barrier", "horizon": 24, "up": 0.01, "down": 0.01})
+    assert cfg.label["conflict_resolution"] is True
+    assert cfg.label["peak_filter"] is False
+
+
+def test_triple_barrier_label_explicit_values_kept():
+    cfg = _cfg(
+        label={
+            "name": "triple_barrier", "horizon": 48, "up": 0.02, "down": 0.02,
+            "conflict_resolution": False, "peak_filter": True,
+        }
+    )
+    assert cfg.label["conflict_resolution"] is False
+    assert cfg.label["peak_filter"] is True
+
+
+def test_triple_barrier_different_params_change_the_id():
+    a = _cfg(label={"name": "triple_barrier", "horizon": 24, "up": 0.01, "down": 0.01})
+    b = _cfg(label={"name": "triple_barrier", "horizon": 48, "up": 0.01, "down": 0.01})
+    assert config_id(a) != config_id(b)
+
+
+def test_label_unknown_name_rejected():
+    with pytest.raises(ValueError):
+        _cfg(label={"name": "not_a_real_label"}).validate()
+
+
+def test_label_gbb_extra_keys_rejected():
+    with pytest.raises(ValueError):
+        _cfg(label={"name": "gbb", "horizon": 24}).validate()
+
+
+@pytest.mark.parametrize("missing", ["horizon", "up", "down"])
+def test_triple_barrier_missing_required_key_rejected(missing):
+    label = {"name": "triple_barrier", "horizon": 24, "up": 0.01, "down": 0.01}
+    del label[missing]
+    with pytest.raises(ValueError):
+        _cfg(label=label).validate()
+
+
+@pytest.mark.parametrize("horizon", [0, -1, 1.5, "24"])
+def test_triple_barrier_invalid_horizon_rejected(horizon):
+    label = {"name": "triple_barrier", "horizon": horizon, "up": 0.01, "down": 0.01}
+    with pytest.raises(ValueError):
+        _cfg(label=label).validate()
+
+
+@pytest.mark.parametrize("key", ["up", "down"])
+@pytest.mark.parametrize("value", [0, -0.01, "0.01"])
+def test_triple_barrier_invalid_up_down_rejected(key, value):
+    label = {"name": "triple_barrier", "horizon": 24, "up": 0.01, "down": 0.01, key: value}
+    with pytest.raises(ValueError):
+        _cfg(label=label).validate()
+
+
+def test_triple_barrier_unknown_key_rejected():
+    label = {
+        "name": "triple_barrier", "horizon": 24, "up": 0.01, "down": 0.01,
+        "not_a_real_key": True,
+    }
+    with pytest.raises(ValueError):
+        _cfg(label=label).validate()

@@ -48,14 +48,22 @@ from research.clfstudy import (
     SPLITS_DIR,
     assert_interpreter,
 )
-from research.clfstudy import baselines, data, features, metrics, registry, splits, windows
+from research.clfstudy import baselines, data, features, labels, metrics, registry, splits, windows
 from research.clfstudy.registry import ExperimentConfig
 
 # ---------------------------------------------------------------------------
 # Process-level caches
 # ---------------------------------------------------------------------------
 
+#: `Optional[Dict[str, pd.DataFrame]]` (pair -> frame), exactly as before `label` existed --
+#: kept a flat dict, not nested by label, so `smoke.py`'s `run_mod._FRAMES_CACHE = data
+#: .load_all(pairs=...)` (a direct assignment, bypassing `_load_frames`) and the study's
+#: tests' `monkeypatch.setattr(run_mod, "_FRAMES_CACHE", None)` both keep working
+#: unchanged. `_FRAMES_CACHE_LABEL_KEY` records which label the cache holds -- defaults to
+#: `"gbb"` (`labels.label_key(None)`) so a directly-assigned `_FRAMES_CACHE` (always built
+#: for the default label today) is trusted until a DIFFERENT label is actually requested.
 _FRAMES_CACHE: Optional[Dict[str, pd.DataFrame]] = None
+_FRAMES_CACHE_LABEL_KEY: str = "gbb"
 _SPLITSET_CACHE: Dict[str, splits.SplitSet] = {}
 
 #: `--save-probs` output directory (scratch/debug, gitignore this); a fresh dir per repo
@@ -93,11 +101,17 @@ _METRIC_DEFAULTS: Dict[str, Any] = {
 }
 
 
-def _load_frames() -> Dict[str, pd.DataFrame]:
-    """`data.load_all()`, cached at module level for the life of this process."""
-    global _FRAMES_CACHE
-    if _FRAMES_CACHE is None:
-        _FRAMES_CACHE = data.load_all()
+def _load_frames(label: Optional[Dict[str, Any]] = None) -> Dict[str, pd.DataFrame]:
+    """`data.load_all(label=label)`, cached at module level for the life of this
+    process. Reloads whenever the cache is unset (`None`) OR was built for a different
+    label (`_FRAMES_CACHE_LABEL_KEY`) -- so switching `cfg.label` between runs in the
+    same process (e.g. a phase mixing gbb and triple_barrier configs) never serves one
+    label's frames to the other."""
+    global _FRAMES_CACHE, _FRAMES_CACHE_LABEL_KEY
+    lkey = labels.label_key(label)
+    if _FRAMES_CACHE is None or _FRAMES_CACHE_LABEL_KEY != lkey:
+        _FRAMES_CACHE = data.load_all(label=label)
+        _FRAMES_CACHE_LABEL_KEY = lkey
     return _FRAMES_CACHE
 
 
@@ -236,7 +250,7 @@ def _build_tensors(cfg: ExperimentConfig, window_id: str) -> Dict[str, Any]:
     train/val/test tensors (research R4). Raises on any structural problem (unknown
     window, no training rows, ...); the caller decides whether that becomes a `failed`
     row (real runs) or an uncaught traceback (`--dry-run`, a debugging tool)."""
-    frames = _load_frames()
+    frames = _load_frames(cfg.label)
     ss = load_or_build_splitset(cfg.split_set)
     w = next((win for win in ss.windows if win.window_id == window_id), None)
     if w is None:
@@ -542,6 +556,7 @@ def run_one(
         "input_set": cfg.input_set,
         "seq_len": cfg.seq_len,
         "train": cfg.train,
+        "label": cfg.label,
         "tags": cfg.tags,
         "status": status,
         "error": error,
@@ -598,6 +613,7 @@ def _load_config(arg: str) -> ExperimentConfig:
         phase=payload.get("phase", 0),
         seeds=payload.get("seeds", [0]),
         tags=payload.get("tags", []),
+        label=payload.get("label", dict(registry.DEFAULT_LABEL)),
     )
     cfg.validate()
     return cfg
