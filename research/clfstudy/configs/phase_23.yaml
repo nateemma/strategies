@@ -1,0 +1,493 @@
+phase: 23
+description: '019 stage 4: balance-matched horizon ladder on RAW OHLCV (raw8). Cells
+  chosen by the training-free balance scan: HOLD in 50-65%, i.e. width/sqrt(H) ~ 0.35-0.44,
+  one cell per horizon (8/1%, 12/1.5%, 16/1.5%, 24/2%, 32/2.5%, 48/3%). RIDGE x3 +
+  MLP-64 x2 + tripwires.'
+gate_from: 21
+configs:
+- arch: MAJORITY
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 8
+    up: 0.01
+    down: 0.01
+  phase: 23
+  seeds:
+  - 0
+  tags:
+  - tripwire
+  - h8_w1
+- arch: PERSISTENCE
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 8
+    up: 0.01
+    down: 0.01
+  phase: 23
+  seeds:
+  - 0
+  tags:
+  - tripwire
+  - h8_w1
+- arch: RIDGE
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+    weight_decay: 0.01
+  label:
+    name: triple_barrier
+    horizon: 8
+    up: 0.01
+    down: 0.01
+  phase: 23
+  seeds:
+  - 0
+  - 1
+  - 2
+  tags:
+  - screen
+  - h8_w1
+- arch: MLP_FAM
+  hp:
+    width: 64
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 8
+    up: 0.01
+    down: 0.01
+  phase: 23
+  seeds:
+  - 0
+  - 1
+  tags:
+  - screen
+  - h8_w1
+- arch: MAJORITY
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 12
+    up: 0.015
+    down: 0.015
+  phase: 23
+  seeds:
+  - 0
+  tags:
+  - tripwire
+  - h12_w1.5
+- arch: PERSISTENCE
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 12
+    up: 0.015
+    down: 0.015
+  phase: 23
+  seeds:
+  - 0
+  tags:
+  - tripwire
+  - h12_w1.5
+- arch: RIDGE
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+    weight_decay: 0.01
+  label:
+    name: triple_barrier
+    horizon: 12
+    up: 0.015
+    down: 0.015
+  phase: 23
+  seeds:
+  - 0
+  - 1
+  - 2
+  tags:
+  - screen
+  - h12_w1.5
+- arch: MLP_FAM
+  hp:
+    width: 64
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 12
+    up: 0.015
+    down: 0.015
+  phase: 23
+  seeds:
+  - 0
+  - 1
+  tags:
+  - screen
+  - h12_w1.5
+- arch: MAJORITY
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 16
+    up: 0.015
+    down: 0.015
+  phase: 23
+  seeds:
+  - 0
+  tags:
+  - tripwire
+  - h16_w1.5
+- arch: PERSISTENCE
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 16
+    up: 0.015
+    down: 0.015
+  phase: 23
+  seeds:
+  - 0
+  tags:
+  - tripwire
+  - h16_w1.5
+- arch: RIDGE
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+    weight_decay: 0.01
+  label:
+    name: triple_barrier
+    horizon: 16
+    up: 0.015
+    down: 0.015
+  phase: 23
+  seeds:
+  - 0
+  - 1
+  - 2
+  tags:
+  - screen
+  - h16_w1.5
+- arch: MLP_FAM
+  hp:
+    width: 64
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 16
+    up: 0.015
+    down: 0.015
+  phase: 23
+  seeds:
+  - 0
+  - 1
+  tags:
+  - screen
+  - h16_w1.5
+- arch: MAJORITY
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 24
+    up: 0.02
+    down: 0.02
+  phase: 23
+  seeds:
+  - 0
+  tags:
+  - tripwire
+  - h24_w2
+- arch: PERSISTENCE
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 24
+    up: 0.02
+    down: 0.02
+  phase: 23
+  seeds:
+  - 0
+  tags:
+  - tripwire
+  - h24_w2
+- arch: RIDGE
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+    weight_decay: 0.01
+  label:
+    name: triple_barrier
+    horizon: 24
+    up: 0.02
+    down: 0.02
+  phase: 23
+  seeds:
+  - 0
+  - 1
+  - 2
+  tags:
+  - screen
+  - h24_w2
+- arch: MLP_FAM
+  hp:
+    width: 64
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 24
+    up: 0.02
+    down: 0.02
+  phase: 23
+  seeds:
+  - 0
+  - 1
+  tags:
+  - screen
+  - h24_w2
+- arch: MAJORITY
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 32
+    up: 0.025
+    down: 0.025
+  phase: 23
+  seeds:
+  - 0
+  tags:
+  - tripwire
+  - h32_w2.5
+- arch: PERSISTENCE
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 32
+    up: 0.025
+    down: 0.025
+  phase: 23
+  seeds:
+  - 0
+  tags:
+  - tripwire
+  - h32_w2.5
+- arch: RIDGE
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+    weight_decay: 0.01
+  label:
+    name: triple_barrier
+    horizon: 32
+    up: 0.025
+    down: 0.025
+  phase: 23
+  seeds:
+  - 0
+  - 1
+  - 2
+  tags:
+  - screen
+  - h32_w2.5
+- arch: MLP_FAM
+  hp:
+    width: 64
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 32
+    up: 0.025
+    down: 0.025
+  phase: 23
+  seeds:
+  - 0
+  - 1
+  tags:
+  - screen
+  - h32_w2.5
+- arch: MAJORITY
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 48
+    up: 0.03
+    down: 0.03
+  phase: 23
+  seeds:
+  - 0
+  tags:
+  - tripwire
+  - h48_w3
+- arch: PERSISTENCE
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 48
+    up: 0.03
+    down: 0.03
+  phase: 23
+  seeds:
+  - 0
+  tags:
+  - tripwire
+  - h48_w3
+- arch: RIDGE
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+    weight_decay: 0.01
+  label:
+    name: triple_barrier
+    horizon: 48
+    up: 0.03
+    down: 0.03
+  phase: 23
+  seeds:
+  - 0
+  - 1
+  - 2
+  tags:
+  - screen
+  - h48_w3
+- arch: MLP_FAM
+  hp:
+    width: 64
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 48
+    up: 0.03
+    down: 0.03
+  phase: 23
+  seeds:
+  - 0
+  - 1
+  tags:
+  - screen
+  - h48_w3
