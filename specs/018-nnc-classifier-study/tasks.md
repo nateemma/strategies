@@ -75,7 +75,7 @@ leaderboards, plots), **[GR]** gate-reviewer (pre-gate leaderboard memo), **[MAI
 - [X] T034 [P] [US2] [MI] Add `LSTM_FAM`, `GRU_FAM`, `TCN_FAM`, `TRANSFORMER_FAM`, `MLP_FAM` to `NNNC/NNNClassifierMLX.py` per contracts/registry.md (pure families: no conv front-end, no residual unless `hp.residual`); `TRANSFORMER_FAM.pos` supports `learned|none|rope` (`mlx.nn.RoPE`); verify with T022
 - [X] T035 [US2] [MI] Write `research/clfstudy/configs/phase_4.yaml` from the research R7 anchors and axes (~31 configs, `seeds [0,1]`, tags naming the axis)
 - [X] T036 [US2] [ER] Run `phase --phase 4`; `leaderboard --phase 4` including the MCC-vs-params scatter and per-axis line plots (`report/plots/sweep_<family>_<axis>.png`)
-- [ ] T037 [US2] [GR] Review `report/leaderboard_4.md`: per family, which axis moves MCC beyond seed noise, best size, cost/benefit; proposed viable families; write `gates/review_4.md`
+- [X] T037 [US2] [GR] Review `report/leaderboard_4.md`: per family, which axis moves MCC beyond seed noise, best size, cost/benefit; proposed viable families; write `gates/review_4.md`
 - [ ] T038 [US2] [MAIN] Evaluate gate 4: run `gate --phase 4`; decide the viable family set from the gate output and the review; record in `gates/phase_4.md`; ⏸ show leaderboard and proposed viable set; wait
 - [ ] T039 [US2] [MI] Add `CNN_LSTM`, `CNN_TRANSFORMER`, `TCN_RES`, `RNN_ATTNPOOL`, `INCEPTION_MS` to `NNNC/NNNClassifierMLX.py` per contracts/registry.md (only those whose component families were viable in T038; the others are still added with defaults for FR-015 but not run); verify with T022
 - [ ] T040 [US2] [MI] Write `research/clfstudy/configs/phase_5.yaml`: compositions built only from viable families at their best phase-4 sizes, `seeds [0,1]`, `gate_from: 4`
@@ -123,8 +123,8 @@ leaderboards, plots), **[GR]** gate-reviewer (pre-gate leaderboard memo), **[MAI
 **Goal**: `research/clfstudy/report/report.md` with every section of data-model.md §Report.
 **Independent Test**: every leaderboard number in the report traces to `results.jsonl` by `(config_id, window_id, seed)`; SC-009 text search passes.
 
-- [ ] T061 [US5] [MI] Implement `research/clfstudy/report.py`: assemble `report/report.md` from `methods.md`, `calibration.md`, `leaderboard_*.md`, `gates/phase_*.md`, `gates/review_*.md`, importance CSVs and plots; include the Principle III header note, the label-concern paragraph (research R11) and a reproduction-commands appendix
-- [ ] T062 [US5] [ER] Run `python -m research.clfstudy.report`; run `grep -rniE "backtest|p&l|pnl|drawdown|trade" research/clfstudy/report/ research/clfstudy/*.py` and confirm hits are only the scope statement and label-concern notes (SC-009)
+- [X] T061 [US5] [MI] Implement `research/clfstudy/report.py`: assemble `report/report.md` from `methods.md`, `calibration.md`, `leaderboard_*.md`, `gates/phase_*.md`, `gates/review_*.md`, importance CSVs and plots; include the Principle III header note, the label-concern paragraph (research R11) and a reproduction-commands appendix
+- [X] T062 [US5] [ER] Run `python -m research.clfstudy.report`; run `grep -rniE "backtest|p&l|pnl|drawdown|trade" research/clfstudy/report/ research/clfstudy/*.py` and confirm hits are only the scope statement and label-concern notes (SC-009)
 - [ ] T063 [US5] [MAIN] Write the narrative sections of `report/report.md`: per-phase findings, recommendation (as candidates for a later P&L evaluation), label concerns, open questions; cross-check three leaderboard numbers by hand against `results.jsonl`
 
 ---

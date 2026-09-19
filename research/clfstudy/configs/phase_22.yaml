@@ -1,0 +1,73 @@
+phase: 22
+description: '019 stage 3: window length 32/64 on the selected label variant'
+gate_from: 21
+configs:
+- arch: RIDGE
+  hp: {}
+  input_set: ind24
+  seq_len: 32
+  split_set: v1
+  train: &id002
+    lr: 0.0003
+    stride: 2
+    weight_decay: 0.01
+  label: &id001
+    name: triple_barrier
+    horizon: 48
+    up: 0.02
+    down: 0.02
+  phase: 22
+  seeds:
+  - 0
+  - 1
+  - 2
+  tags:
+  - screen
+  - seq32
+- arch: MLP_FAM
+  hp:
+    width: 64
+  input_set: ind24
+  seq_len: 32
+  split_set: v1
+  train: &id003
+    lr: 0.0003
+    stride: 2
+  label: *id001
+  phase: 22
+  seeds:
+  - 0
+  - 1
+  tags:
+  - screen
+  - seq32
+- arch: RIDGE
+  hp: {}
+  input_set: ind24
+  seq_len: 64
+  split_set: v1
+  train: *id002
+  label: *id001
+  phase: 22
+  seeds:
+  - 0
+  - 1
+  - 2
+  tags:
+  - screen
+  - seq64
+- arch: MLP_FAM
+  hp:
+    width: 64
+  input_set: ind24
+  seq_len: 64
+  split_set: v1
+  train: *id003
+  label: *id001
+  phase: 22
+  seeds:
+  - 0
+  - 1
+  tags:
+  - screen
+  - seq64

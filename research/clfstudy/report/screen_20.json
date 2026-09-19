@@ -1,0 +1,188 @@
+{
+  "phase": 20,
+  "baseline_phase": 19,
+  "baseline_ridge_pooled": 0.16104173568677052,
+  "variants": [
+    {
+      "label": {
+        "conflict_resolution": true,
+        "peak_filter": false,
+        "down": 0.02,
+        "horizon": 48,
+        "name": "triple_barrier",
+        "up": 0.02
+      },
+      "variant_display": "tb_h48_u0.02_d0.02_cr1_pf0",
+      "input_set": "raw8",
+      "seq_len": 16,
+      "ridge": {
+        "by_window": {
+          "A": 0.18804063348909694,
+          "B": 0.0671828942022802,
+          "C": 0.10324055609753358
+        },
+        "pooled": 0.1194880279296369
+      },
+      "mlp": {
+        "by_window": {
+          "A": 0.2133594423827826,
+          "B": 0.10403371655632049,
+          "C": 0.1725244027995819
+        },
+        "pooled": 0.16330585391289498
+      },
+      "delta": {
+        "A": 0.02531880889368565,
+        "B": 0.03685082235404029,
+        "C": 0.06928384670204832
+      },
+      "windows_passing_delta": 3,
+      "ridge_shift": -0.041553707757133615,
+      "balance": [
+        0.3392218491919354,
+        0.3633040151933028,
+        0.2974741356147618
+      ],
+      "verdict": "PROMOTE",
+      "notes": []
+    },
+    {
+      "label": {
+        "conflict_resolution": true,
+        "peak_filter": false,
+        "atr_scale": 1.0,
+        "down": 0.005,
+        "horizon": 48,
+        "name": "triple_barrier",
+        "up": 0.005
+      },
+      "variant_display": "tb_h48_u0.005_d0.005_cr1_pf0_atr1",
+      "input_set": "ind24",
+      "seq_len": 16,
+      "ridge": {
+        "by_window": {
+          "A": 0.07531645721837382,
+          "B": 0.06074890882149291,
+          "C": 0.10090467406060433
+        },
+        "pooled": 0.0789900133668237
+      },
+      "mlp": {
+        "by_window": {
+          "A": 0.07378204923189347,
+          "B": 0.06976113568213814,
+          "C": 0.10466127065270403
+        },
+        "pooled": 0.08273481852224522
+      },
+      "delta": {
+        "A": -0.0015344079864803573,
+        "B": 0.009012226860645227,
+        "C": 0.0037565965920997035
+      },
+      "windows_passing_delta": 0,
+      "ridge_shift": -0.08205172231994683,
+      "balance": [
+        0.5020469313500933,
+        0.14239101516236644,
+        0.3555620534875404
+      ],
+      "verdict": "NO",
+      "notes": [
+        "label harder: large negative ridge_shift (not promoted)"
+      ]
+    },
+    {
+      "label": {
+        "conflict_resolution": true,
+        "peak_filter": false,
+        "atr_scale": 2.0,
+        "down": 0.005,
+        "horizon": 48,
+        "name": "triple_barrier",
+        "up": 0.005
+      },
+      "variant_display": "tb_h48_u0.005_d0.005_cr1_pf0_atr2",
+      "input_set": "ind24",
+      "seq_len": 16,
+      "ridge": {
+        "by_window": {
+          "A": 0.05921100408171024,
+          "B": 0.05019747513159587,
+          "C": 0.09622594142670661
+        },
+        "pooled": 0.06854480688000424
+      },
+      "mlp": {
+        "by_window": {
+          "A": 0.055626666093017516,
+          "B": 0.04640203496055202,
+          "C": 0.09481640735441918
+        },
+        "pooled": 0.06561503613599624
+      },
+      "delta": {
+        "A": -0.003584337988692725,
+        "B": -0.00379544017104385,
+        "C": -0.00140953407228743
+      },
+      "windows_passing_delta": 0,
+      "ridge_shift": -0.09249692880676628,
+      "balance": [
+        0.49508853944669967,
+        0.12747614955032485,
+        0.37743531100297545
+      ],
+      "verdict": "NO",
+      "notes": [
+        "label harder: large negative ridge_shift (not promoted)"
+      ]
+    },
+    {
+      "label": {
+        "conflict_resolution": true,
+        "peak_filter": false,
+        "atr_scale": 3.0,
+        "down": 0.005,
+        "horizon": 48,
+        "name": "triple_barrier",
+        "up": 0.005
+      },
+      "variant_display": "tb_h48_u0.005_d0.005_cr1_pf0_atr3",
+      "input_set": "ind24",
+      "seq_len": 16,
+      "ridge": {
+        "by_window": {
+          "A": 0.0837927062584806,
+          "B": 0.05724028047822016,
+          "C": 0.10334116114719594
+        },
+        "pooled": 0.08145804929463224
+      },
+      "mlp": {
+        "by_window": {
+          "A": 0.08444779003109795,
+          "B": 0.06962088397210973,
+          "C": 0.11103734478856558
+        },
+        "pooled": 0.08836867293059109
+      },
+      "delta": {
+        "A": 0.0006550837726173458,
+        "B": 0.012380603493889572,
+        "C": 0.007696183641369647
+      },
+      "windows_passing_delta": 0,
+      "ridge_shift": -0.07958368639213828,
+      "balance": [
+        0.47259304138820596,
+        0.144573543742062,
+        0.3828334148697318
+      ],
+      "verdict": "NO",
+      "notes": [
+        "label harder: large negative ridge_shift (not promoted)"
+      ]
+    }
+  ]
+}
