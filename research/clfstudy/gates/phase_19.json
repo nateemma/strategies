@@ -1,0 +1,368 @@
+{
+  "phase": 19,
+  "rule": {
+    "margin_floor": 0.02,
+    "margin_used": 0.02,
+    "std_bound": 0.03,
+    "majority_of": 3,
+    "std_mode": "every",
+    "ridge_phase": 19
+  },
+  "ridge_reference": {
+    "A": {
+      "mcc": 0.21223966539572436,
+      "macro_f1": 0.44010348121884424
+    },
+    "B": {
+      "mcc": 0.11745413509572684,
+      "macro_f1": 0.402345032731378
+    },
+    "C": {
+      "mcc": 0.18523727610475668,
+      "macro_f1": 0.4323351855915023
+    },
+    "pooled_seed_std_mcc": 0.0030053930188847205
+  },
+  "per_config": {
+    "01596109699e": {
+      "arch": "LSTM_FAM",
+      "A": {
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": true,
+        "status_ok": true,
+        "mcc_mean": 0.22408743591807403,
+        "macro_f1_mean": 0.4434250469061142,
+        "std_mcc": 0.0033375153030817607,
+        "n_seeds": 2,
+        "window_pass": false,
+        "notes": []
+      },
+      "B": {
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": true,
+        "status_ok": true,
+        "mcc_mean": 0.11123953625496033,
+        "macro_f1_mean": 0.39219686300599066,
+        "std_mcc": 0.0027519301192521473,
+        "n_seeds": 2,
+        "window_pass": false,
+        "notes": []
+      },
+      "C": {
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": true,
+        "status_ok": true,
+        "mcc_mean": 0.19717262203706534,
+        "macro_f1_mean": 0.4401916982959365,
+        "std_mcc": 0.0014690337810953974,
+        "n_seeds": 2,
+        "window_pass": false,
+        "notes": []
+      },
+      "viable": false
+    },
+    "1e9e0b212d86": {
+      "arch": "TRANSFORMER_FAM",
+      "A": {
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": true,
+        "status_ok": true,
+        "mcc_mean": 0.21862545117349225,
+        "macro_f1_mean": 0.44362650713066853,
+        "std_mcc": 0.004544916395318406,
+        "n_seeds": 2,
+        "window_pass": false,
+        "notes": []
+      },
+      "B": {
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": true,
+        "status_ok": true,
+        "mcc_mean": 0.1012937996279642,
+        "macro_f1_mean": 0.3699834929855049,
+        "std_mcc": 0.001236869203048356,
+        "n_seeds": 2,
+        "window_pass": false,
+        "notes": []
+      },
+      "C": {
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": true,
+        "status_ok": true,
+        "mcc_mean": 0.18121812793980552,
+        "macro_f1_mean": 0.43032190142419696,
+        "std_mcc": 0.005911549427357059,
+        "n_seeds": 2,
+        "window_pass": false,
+        "notes": []
+      },
+      "viable": false
+    },
+    "467d23581f7b": {
+      "arch": "Wavenet",
+      "A": {
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": true,
+        "status_ok": true,
+        "mcc_mean": 0.21416475159883686,
+        "macro_f1_mean": 0.37386307814200337,
+        "std_mcc": 0.0012211823650480679,
+        "n_seeds": 2,
+        "window_pass": false,
+        "notes": []
+      },
+      "B": {
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": true,
+        "status_ok": true,
+        "mcc_mean": 0.10919119258600649,
+        "macro_f1_mean": 0.3009492229090983,
+        "std_mcc": 0.0032570045988982938,
+        "n_seeds": 2,
+        "window_pass": false,
+        "notes": []
+      },
+      "C": {
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": true,
+        "status_ok": true,
+        "mcc_mean": 0.1583070277006498,
+        "macro_f1_mean": 0.32993963484619127,
+        "std_mcc": 0.001088504319820534,
+        "n_seeds": 2,
+        "window_pass": false,
+        "notes": []
+      },
+      "viable": false
+    },
+    "5a7196f85699": {
+      "arch": "PERSISTENCE",
+      "A": {
+        "mcc_ok": true,
+        "f1_ok": true,
+        "std_ok": true,
+        "status_ok": true,
+        "mcc_mean": 0.8724476692503919,
+        "macro_f1_mean": 0.9194235768511007,
+        "std_mcc": 1.3597399555105182e-16,
+        "n_seeds": 3,
+        "window_pass": true,
+        "notes": []
+      },
+      "B": {
+        "mcc_ok": true,
+        "f1_ok": true,
+        "std_ok": true,
+        "status_ok": true,
+        "mcc_mean": 0.8477301853379458,
+        "macro_f1_mean": 0.9006007180090538,
+        "std_mcc": 0.0,
+        "n_seeds": 3,
+        "window_pass": true,
+        "notes": []
+      },
+      "C": {
+        "mcc_ok": true,
+        "f1_ok": true,
+        "std_ok": true,
+        "status_ok": true,
+        "mcc_mean": 0.8748597487042243,
+        "macro_f1_mean": 0.9201461150617124,
+        "std_mcc": 0.0,
+        "n_seeds": 3,
+        "window_pass": true,
+        "notes": []
+      },
+      "viable": false,
+      "notes": [
+        "baseline: never a viable candidate (data-model.md \u00a7GateDecision)"
+      ]
+    },
+    "ae29f8c1fcd8": {
+      "arch": "TCN_FAM",
+      "A": {
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": true,
+        "status_ok": true,
+        "mcc_mean": 0.2161666802295057,
+        "macro_f1_mean": 0.4384295560919842,
+        "std_mcc": 9.323114622820596e-06,
+        "n_seeds": 2,
+        "window_pass": false,
+        "notes": []
+      },
+      "B": {
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": true,
+        "status_ok": true,
+        "mcc_mean": 0.10012125856033324,
+        "macro_f1_mean": 0.3677508418575395,
+        "std_mcc": 0.0016719333322026205,
+        "n_seeds": 2,
+        "window_pass": false,
+        "notes": []
+      },
+      "C": {
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": true,
+        "status_ok": true,
+        "mcc_mean": 0.16693344836055357,
+        "macro_f1_mean": 0.4133674904764733,
+        "std_mcc": 0.0020105529770199173,
+        "n_seeds": 2,
+        "window_pass": false,
+        "notes": []
+      },
+      "viable": false
+    },
+    "bbae4b588c23": {
+      "arch": "MAJORITY",
+      "A": {
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": true,
+        "status_ok": false,
+        "mcc_mean": 0.0,
+        "macro_f1_mean": 0.14925003946304224,
+        "std_mcc": 0.0,
+        "n_seeds": 3,
+        "window_pass": false,
+        "notes": []
+      },
+      "B": {
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": true,
+        "status_ok": false,
+        "mcc_mean": 0.0,
+        "macro_f1_mean": 0.17378922227706203,
+        "std_mcc": 0.0,
+        "n_seeds": 3,
+        "window_pass": false,
+        "notes": []
+      },
+      "C": {
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": true,
+        "status_ok": false,
+        "mcc_mean": 0.0,
+        "macro_f1_mean": 0.2146995256539402,
+        "std_mcc": 0.0,
+        "n_seeds": 3,
+        "window_pass": false,
+        "notes": []
+      },
+      "viable": false,
+      "notes": [
+        "baseline: never a viable candidate (data-model.md \u00a7GateDecision)"
+      ]
+    },
+    "c1aa32b8dcea": {
+      "arch": "MLP_FAM",
+      "A": {
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": true,
+        "status_ok": true,
+        "mcc_mean": 0.22487866898599257,
+        "macro_f1_mean": 0.4404492987279167,
+        "std_mcc": 0.002108462944356715,
+        "n_seeds": 2,
+        "window_pass": false,
+        "notes": []
+      },
+      "B": {
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": true,
+        "status_ok": true,
+        "mcc_mean": 0.11159564709188581,
+        "macro_f1_mean": 0.38583043861897404,
+        "std_mcc": 0.0011669997121046554,
+        "n_seeds": 2,
+        "window_pass": false,
+        "notes": []
+      },
+      "C": {
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": true,
+        "status_ok": true,
+        "mcc_mean": 0.19151204868461102,
+        "macro_f1_mean": 0.43335678158283875,
+        "std_mcc": 0.00132808108115163,
+        "n_seeds": 2,
+        "window_pass": false,
+        "notes": []
+      },
+      "viable": false
+    },
+    "e700753b5111": {
+      "arch": "RIDGE",
+      "A": {
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": true,
+        "status_ok": true,
+        "mcc_mean": 0.21223966539572436,
+        "macro_f1_mean": 0.44010348121884424,
+        "std_mcc": 0.0037151876518949378,
+        "n_seeds": 3,
+        "window_pass": false,
+        "notes": []
+      },
+      "B": {
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": true,
+        "status_ok": true,
+        "mcc_mean": 0.11745413509572684,
+        "macro_f1_mean": 0.402345032731378,
+        "std_mcc": 0.002508190165171005,
+        "n_seeds": 3,
+        "window_pass": false,
+        "notes": []
+      },
+      "C": {
+        "mcc_ok": false,
+        "f1_ok": false,
+        "std_ok": true,
+        "status_ok": true,
+        "mcc_mean": 0.18523727610475668,
+        "macro_f1_mean": 0.4323351855915023,
+        "std_mcc": 0.0027928012395882188,
+        "n_seeds": 3,
+        "window_pass": false,
+        "notes": []
+      },
+      "viable": false,
+      "notes": [
+        "baseline: never a viable candidate (data-model.md \u00a7GateDecision)"
+      ]
+    }
+  },
+  "viable_set": [],
+  "stability_only_failures": [],
+  "decided_at": "2026-09-19T16:29:00.248671+00:00",
+  "decided_by": "gate.py + author review at checkpoint",
+  "notes": [
+    "RIDGE/MAJORITY/PERSISTENCE/ROCKET are baselines: shown for reference, never in viable_set.",
+    "margin_used = max(margin_floor, 2 x RIDGE's pooled across-seed MCC std); windows where RIDGE itself had <2 seeds are excluded from that pooled std (research R8/FR-028).",
+    "A config with a missing, collapsed or failed window is never viable, regardless of its metrics on the other windows.",
+    "std_mode=every: 'every' (spec FR-028(ii)) requires std_ok on EVERY window independent of the margin-majority vote; 'majority' folds std_ok into window_pass so instability can be outvoted (pre-fix behaviour, kept for comparison only).",
+    "stability_only_failures lists configs that clear the margin on a majority of windows and have no bad status, but fail the stability bound on at least one window -- FR-004 allows these to receive a third seed before a final fail decision."
+  ]
+}
