@@ -94,14 +94,20 @@ def decide(
     majority_of: Optional[int] = None,
     results_path: "str | Path" = RESULTS_PATH,
     std_mode: str = "every",
+    ridge_phase: "int | None" = None,
 ) -> dict:
     """Compute the FR-028 `GateDecision` for `phase` (does not write anything).
 
     `margin_used = max(margin_floor, 2 * ridge_pooled_seed_std_mcc)`, where
     `ridge_pooled_seed_std_mcc` is the mean (skipping windows with <2 seeds, hence an
-    undefined std) over windows of RIDGE's per-window across-seed MCC std (ddof=1). The
-    RIDGE reference is taken from every `arch == "RIDGE"` row regardless of its own echoed
-    `phase` (RIDGE is only ever run once, in phase 2, per research R6/T023).
+    undefined std) over windows of RIDGE's per-window across-seed MCC std (ddof=1). By
+    default (`ridge_phase=None`) the RIDGE reference is taken from every `arch == "RIDGE"`
+    row regardless of its own echoed `phase` (RIDGE is only ever run once, in phase 2, per
+    research R6/T023). When `ridge_phase` is given, only RIDGE rows with that echoed `phase`
+    feed the reference -- needed when a later phase (e.g. feature 019's phase 19) reruns
+    RIDGE against a different label so its gate must not mix in the phase-2 RIDGE rows. The
+    same restriction is applied to the baseline rows (`BASELINE_ARCHS`) shown alongside the
+    candidates, so a `ridge_phase` gate never mixes in another phase's baselines either.
 
     `majority_of` defaults to the number of windows RIDGE itself has rows in (normally 3,
     A/B/C) -- documented judgment call, since data-model.md doesn't pin this down explicitly.
@@ -122,6 +128,8 @@ def decide(
         raise ValueError(f"no results found at {results_path}")
 
     ridge_df = df[(df["arch"] == "RIDGE") & (df["status"] != "failed")]
+    if ridge_phase is not None:
+        ridge_df = ridge_df[ridge_df["phase"] == ridge_phase]
     if ridge_df.empty:
         raise ValueError("no RIDGE baseline rows found in results; run phase 2 first")
 
@@ -148,7 +156,10 @@ def decide(
         majority_of = len(window_ids)
 
     candidate_ids = set(df.loc[df["phase"] == phase, "config_id"].dropna().unique())
-    baseline_ids = set(df.loc[df["arch"].isin(BASELINE_ARCHS), "config_id"].dropna().unique())
+    baseline_mask = df["arch"].isin(BASELINE_ARCHS)
+    if ridge_phase is not None:
+        baseline_mask = baseline_mask & (df["phase"] == ridge_phase)
+    baseline_ids = set(df.loc[baseline_mask, "config_id"].dropna().unique())
     all_ids = candidate_ids | baseline_ids
 
     per_config: "dict[str, dict]" = {}
@@ -230,6 +241,7 @@ def decide(
             "std_bound": std_bound,
             "majority_of": majority_of,
             "std_mode": std_mode,
+            "ridge_phase": ridge_phase,
         },
         "ridge_reference": {
             **{w: {"mcc": v["mcc"], "macro_f1": v["macro_f1"]} for w, v in ridge_windows.items()},
@@ -268,6 +280,7 @@ def _render_markdown(decision: dict) -> str:
         f"- std_bound = {decision['rule']['std_bound']}",
         f"- majority_of = {decision['rule']['majority_of']}",
         f"- std_mode = {decision['rule']['std_mode']}",
+        f"- ridge_phase = {decision['rule']['ridge_phase']}",
         "",
         "## RIDGE reference",
         "",
@@ -327,6 +340,7 @@ def write_decision(
     results_path: "str | Path" = RESULTS_PATH,
     out_dir: "str | Path" = GATES_DIR,
     std_mode: str = "every",
+    ridge_phase: "int | None" = None,
 ) -> dict:
     """`decide()` + write `gates/phase_N.{json,md}`; returns the decision dict."""
     decision = decide(
@@ -336,6 +350,7 @@ def write_decision(
         majority_of=majority_of,
         results_path=results_path,
         std_mode=std_mode,
+        ridge_phase=ridge_phase,
     )
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -357,12 +372,21 @@ def main() -> None:
         "'majority' reproduces the pre-fix behaviour of folding std_ok into the per-window "
         "majority vote.",
     )
+    parser.add_argument(
+        "--ridge-phase",
+        type=int,
+        default=None,
+        help="restrict the RIDGE reference (and the baseline rows shown) to this echoed "
+        "phase, e.g. a gate for a phase that reran RIDGE against a different label "
+        "(feature 019). Default keeps today's behaviour: every RIDGE row, any phase.",
+    )
     args = parser.parse_args()
     decision = write_decision(
         args.phase,
         margin_floor=args.margin_floor,
         std_bound=args.std_bound,
         std_mode=args.std_mode,
+        ridge_phase=args.ridge_phase,
     )
     print(f"margin_used: {decision['rule']['margin_used']:.4f}")
     print("viable_set:")

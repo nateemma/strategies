@@ -271,6 +271,53 @@ def test_ridge_itself_is_never_viable(tmp_path):
     assert RIDGE_ID not in decision["viable_set"]
 
 
+RIDGE_P2_ID = "ridgep2aaaa"
+RIDGE_P19_ID = "ridgep19bbb"
+
+
+def test_ridge_phase_restricts_reference_and_baseline_rows(tmp_path):
+    """Feature 019: RIDGE reruns against a different (strict triple-barrier) label as its own
+    phase 19. Without `ridge_phase`, `decide()` pools every `arch == "RIDGE"` row regardless
+    of phase (today's default behaviour) -- so a phase-19 gate would silently mix in the
+    phase-2 RIDGE numbers, which were computed against a different label. `ridge_phase=19`
+    must restrict both the RIDGE reference and the baseline rows shown to phase 19 only.
+    """
+    rows = []
+    for w in ("A", "B", "C"):
+        for seed in (0, 1):
+            rows.append(
+                make_row(RIDGE_P2_ID, w, seed, arch="RIDGE", phase=2, mcc=0.53, macro_f1=0.50)
+            )
+            rows.append(
+                make_row(RIDGE_P19_ID, w, seed, arch="RIDGE", phase=19, mcc=0.10, macro_f1=0.20)
+            )
+
+    path = tmp_path / "results.jsonl"
+    write_jsonl(path, rows)
+
+    # ridge_phase=19: reference comes ONLY from the phase-19 RIDGE rows (mcc=0.10, std=0).
+    decision_p19 = gate.decide(phase=19, results_path=path, ridge_phase=19)
+    assert decision_p19["rule"]["ridge_phase"] == 19
+    for w in ("A", "B", "C"):
+        assert decision_p19["ridge_reference"][w]["mcc"] == pytest.approx(0.10)
+        assert decision_p19["ridge_reference"][w]["macro_f1"] == pytest.approx(0.20)
+    assert decision_p19["ridge_reference"]["pooled_seed_std_mcc"] == pytest.approx(0.0)
+    assert decision_p19["rule"]["margin_used"] == pytest.approx(0.02)
+    # Baseline rows shown are restricted to phase 19 too: the phase-2 RIDGE config never
+    # appears in a phase-19 gate.
+    assert RIDGE_P19_ID in decision_p19["per_config"]
+    assert RIDGE_P2_ID not in decision_p19["per_config"]
+
+    # No ridge_phase given: pooled reference mixes BOTH phases' RIDGE rows together
+    # (today's unrestricted behaviour), mean = (0.53, 0.53, 0.10, 0.10) -> 0.315.
+    decision_pooled = gate.decide(phase=19, results_path=path)
+    assert decision_pooled["rule"]["ridge_phase"] is None
+    for w in ("A", "B", "C"):
+        assert decision_pooled["ridge_reference"][w]["mcc"] == pytest.approx(0.315)
+    assert RIDGE_P2_ID in decision_pooled["per_config"]
+    assert RIDGE_P19_ID in decision_pooled["per_config"]
+
+
 def test_write_decision_produces_json_and_md(tmp_path):
     rows = []
     for seed in (0, 1):
