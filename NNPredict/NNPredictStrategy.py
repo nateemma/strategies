@@ -36,6 +36,8 @@ import numpy as np
 import pandas as pd
 from pandas import DataFrame
 
+from freqtrade.exchange import timeframe_to_minutes
+
 group_dir = str(Path(__file__).parent)
 sys.path.append(group_dir)
 sys.path.append(str(Path(__file__).parent.parent))
@@ -183,6 +185,13 @@ class NNPredictStrategy(BaseNNStrategy):
     # Validated on the wavelet-coeff family (NNPredict_Coeff_Exc): "excursion" was
     # the one change where ρ AND OOS P&L moved together. Feature-agnostic, so any
     # NNPredict strategy can opt in. Judge on walk-forward P&L, not ρ/R².
+    #   "stop_aware" — same H-bar-forward window as "point", but path-aware: if
+    #                 the exit stack's stop (same arithmetic as
+    #                 BaseStrategy.custom_stoploss, including stoploss-grace)
+    #                 would have fired at any bar before the endpoint, the raw
+    #                 target is the realised stop fraction instead of the
+    #                 endpoint gain. See _stop_aware_labels for full rationale.
+    #                 Not yet validated on walk-forward P&L.
     target_mode: str = "point"
 
     # =========================================================================
@@ -312,6 +321,8 @@ class NNPredictStrategy(BaseNNStrategy):
         """
         if self.target_mode == "excursion":
             return self._excursion_labels(dataframe)
+        if self.target_mode == "stop_aware":
+            return self._stop_aware_labels(dataframe)
 
         self.dbg_curr_df = dataframe
 
@@ -374,6 +385,147 @@ class NNPredictStrategy(BaseNNStrategy):
         labels = np.nan_to_num(np.clip(gain_atr, -cap, cap) / cap).astype(np.float32)
 
         self.dbg_curr_df["%train_gain"] = labels
+        return labels
+
+    def _stop_aware_labels(self, dataframe: DataFrame):
+        """Stop-aware forward target: replaces the naive H-bar-forward point
+        return with the PATH-AWARE outcome a real trade would realise.
+
+        Rationale: the "point" target scores every bar on the endpoint gain
+        close[i+H] vs close[i], even when the intervening path breaches the
+        exit stack's stop-loss well before the horizon completes. A bar whose
+        low touches the stop is realised AS the stop-loss, not the (possibly
+        much larger, or oppositely-signed) endpoint gain the point target
+        would score it on — training on the endpoint return silently rewards
+        the model for entries a live trade would never survive to collect.
+
+        For each bar t, walks forward over bars t+1 .. t+H IN ORDER and asks,
+        at each bar k, "would the exit stack's stop have fired by now for a
+        trade entered at close[t]?", using the SAME stop arithmetic and
+        parameter names as Framework.BaseStrategy.custom_stoploss /
+        _resolve_normal_stop:
+
+            stop = -atr_stoploss_multiplier * atr_pct
+            stop = max(min(stop, atr_stoploss_cap), atr_stoploss_floor)   (ATR-adaptive)
+            stop = self.stoploss                                          (static fallback)
+
+        and, if stoploss-grace is enabled (stoploss_grace_hours > 0), uses the
+        wide, unclipped `stoploss_grace_level` for bars inside the grace
+        window — converted from hours to bars via `self.timeframe` — instead
+        of the tighter ATR/static stop, mirroring the live custom_stoploss
+        grace branch (a stop-level breach inside the grace window does NOT
+        count unless it also breaches the wider grace level).
+
+        Two documented simplifications vs. the live exit stack:
+          * The ATR-adaptive / static stop level for the POST-GRACE portion of
+            the window is resolved ONCE, from atr_pct sampled at the ENTRY bar
+            t (mirroring the after_fill call, which fires at entry). Live
+            custom_stoploss re-samples ATR a second time, at whatever bar is
+            "current" the moment grace expires (_resolve_normal_stop) — that
+            second sampling point is a live wall-clock detail with no
+            faithful offline equivalent, so this label keeps a single,
+            purely-a-function-of-t stop level for the whole window.
+          * use_volume_confirmation_stoploss tightening is NOT reproduced
+            (out of scope here). It only ever tightens the stop, so this
+            label is, if anything, slightly more permissive than live on
+            high-rvol entries.
+
+        If the stop fires at bar k — low[k] <= close[t] * (1 + stop_frac_k),
+        first such k in increasing order wins — the raw target is the
+        realised stop fraction stop_frac_k itself (already signed negative,
+        e.g. -0.03). Otherwise the raw target is the point-ahead return
+        (close[t+H] - close[t]) / close[t], identical to "point" mode.
+
+        ATR normalisation: divided by atr_pct sampled at the WINDOW ENDPOINT
+        t+H (not at t), matching the "point" mode convention documented in
+        get_training_labels above, so both target_modes are numerically
+        directly comparable regardless of which arm (stop-out vs endpoint)
+        produced the raw value. Clipped to +-max(target_max_gain,
+        target_max_loss) and scaled to [-1, 1], exactly as "point"/"excursion".
+
+        Caveat: this label is structurally BIMODAL (a spike at the stop level
+        plus a continuous point-return distribution), so a plain MSE
+        regression loss is a poor fit — it will pull predictions toward the
+        mean of the two modes. A Huber/quantile loss, or a two-head
+        formulation (P(stop-out) + E[gain | no stop-out]), would likely fit
+        better; neither is implemented here. P&L validation via the pooled
+        walk-forward harness is PENDING — this label has only been checked
+        for being a structurally correct path-aware target, not for OOS P&L.
+        """
+        self.dbg_curr_df = dataframe
+
+        close = dataframe["close"].astype(float).to_numpy(dtype=np.float64)
+        low = dataframe["low"].astype(float).to_numpy(dtype=np.float64)
+        n = len(close)
+        horizon = int(self.HORIZON)
+
+        atr_pct_raw = (
+            pd.Series(dataframe.get("atr_pct", pd.Series(np.zeros(n))))
+            .fillna(0.0)
+            .to_numpy(dtype=np.float64)
+        )
+        atr_pct_entry = np.maximum(atr_pct_raw, self.atr_floor)
+        atr_pct_endpoint = (
+            pd.Series(atr_pct_entry).shift(-horizon).to_numpy(dtype=np.float64)
+        )
+
+        # Normal (post-grace, or whole-window if grace disabled) stop
+        # fraction, resolved once from atr_pct at the entry bar t.
+        if getattr(self, "use_atr_adaptive_stoploss", False):
+            normal_stop = -float(self.atr_stoploss_multiplier) * atr_pct_entry
+            normal_stop = np.maximum(
+                np.minimum(normal_stop, float(self.atr_stoploss_cap)),
+                float(self.atr_stoploss_floor),
+            )
+        else:
+            normal_stop = np.full(n, float(self.stoploss))
+
+        _gh = getattr(self, "stoploss_grace_hours", 0.0)
+        grace_hours = float(getattr(_gh, "value", _gh) or 0.0)  # Parameter or float
+        _gl = getattr(self, "stoploss_grace_level", -0.15)
+        grace_level = float(getattr(_gl, "value", _gl))
+
+        if grace_hours > 0.0:
+            tf_minutes = timeframe_to_minutes(self.timeframe)
+            grace_bar_threshold = grace_hours * 60.0 / tf_minutes
+        else:
+            grace_bar_threshold = 0.0
+
+        stop_out = np.zeros(n, dtype=bool)
+        stop_frac_realised = np.full(n, np.nan)
+
+        for offset in range(1, horizon + 1):
+            low_k = pd.Series(low).shift(-offset).to_numpy(dtype=np.float64)
+            valid = ~np.isnan(low_k)
+            if grace_hours > 0.0 and offset < grace_bar_threshold:
+                s_eff = np.full(n, grace_level)
+            else:
+                s_eff = normal_stop
+            with np.errstate(invalid="ignore"):
+                breach = (low_k <= close * (1.0 + s_eff)) & valid
+            breach = breach & (~stop_out)
+            stop_frac_realised = np.where(breach, s_eff, stop_frac_realised)
+            stop_out = stop_out | breach
+
+        close_end = pd.Series(close).shift(-horizon).to_numpy(dtype=np.float64)
+        point_return = (close_end - close) / close
+
+        raw_target = np.where(stop_out, stop_frac_realised, point_return)
+
+        gain_atr = raw_target / atr_pct_endpoint
+        gain_atr = np.nan_to_num(gain_atr, nan=0.0, posinf=0.0, neginf=0.0)
+        cap = float(max(self.target_max_gain, self.target_max_loss))
+        labels = (np.clip(gain_atr, -cap, cap) / cap).astype(np.float32)
+
+        self.dbg_curr_df["%train_gain"] = labels
+
+        if getattr(self, "dbg_verbose", False):
+            self.debug_print(
+                f"        stop_aware target: mean={labels.mean():.4f} "
+                f"std={labels.std():.4f} min={labels.min():.4f} "
+                f"max={labels.max():.4f} stop_out_frac={stop_out.mean():.3f}"
+            )
+
         return labels
 
     # =========================================================================
