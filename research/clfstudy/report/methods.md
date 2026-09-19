@@ -171,3 +171,9 @@ of two thresholds. Conclusion for the architecture question: no architecture, si
 composition extracts information beyond the trigger from 24 indicators over 16 bars; the
 remaining question is conditional on the trigger — whether any INPUT set predicts which
 triggered bars pay off better than the ~0.5 base rate.
+
+Addendum (2026-09-18 21:40): in phase 2 (three seeds) the seed-2 window-B/C rows were ALSO
+warm-started (A2 preceded B2), so "seed-2 rows are clean" holds only for the phase-3 third
+seeds, which ran on a single window with no prior file. The contaminated RIDGE/ROCKET B/C
+seed-2 rows are quarantined (backup report/logs/results_before_seed2_baseline_quarantine.jsonl)
+and re-run at the end of the queue; gate 4 was recomputed on the two clean RIDGE seeds.
