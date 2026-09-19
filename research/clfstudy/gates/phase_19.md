@@ -15,11 +15,11 @@ Classification metrics against fixed gbb labels; NOT evidence of trading edge (C
 
 | window | MCC (seed-mean) | macro-F1 (seed-mean) |
 |---|---|---|
-| A | 0.212 | 0.440 |
-| B | 0.117 | 0.402 |
-| C | 0.185 | 0.432 |
+| A | 0.202 | 0.437 |
+| B | 0.102 | 0.397 |
+| C | 0.179 | 0.433 |
 
-pooled_seed_std_mcc = 0.003
+pooled_seed_std_mcc = 0.001
 
 ## Per-config
 
@@ -50,5 +50,5 @@ _none_
 - std_mode=every: 'every' (spec FR-028(ii)) requires std_ok on EVERY window independent of the margin-majority vote; 'majority' folds std_ok into window_pass so instability can be outvoted (pre-fix behaviour, kept for comparison only).
 - stability_only_failures lists configs that clear the margin on a majority of windows and have no bad status, but fail the stability bound on at least one window -- FR-004 allows these to receive a third seed before a final fail decision.
 
-decided_at: 2026-09-19T16:29:00.248671+00:00
+decided_at: 2026-09-19T17:46:44.047027+00:00
 decided_by: gate.py + author review at checkpoint
