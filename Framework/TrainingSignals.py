@@ -173,7 +173,17 @@ def labels_triple_barrier(
     min_loss: Optional[float] = None,  # Ignored for buy functions
 ) -> pd.Series:
     """
-    Triple-barrier (profit-take, stop-loss, time) with buy=1 if PT hits first.
+    Strict triple-barrier (profit-take, stop-loss, time) buy labeler.
+
+    For each t, looks at future = close[t+1 : t+horizon+1]. Label 1 only if the
+    upper (profit-take) barrier is touched strictly before the lower
+    (stop-loss) barrier. If neither barrier is touched within ``horizon`` bars,
+    the time barrier expires with NO signal (label 0) -- there is no
+    directional fallback based on the sign of the final return. If both
+    barriers are touched for the first time on the same future bar (a tie),
+    that is treated as NOT a buy (label 0): a same-bar tie means the bar's
+    range spans both barriers and we cannot tell which was actually touched
+    first intrabar, so we conservatively decline to label it a win.
     """
     close = _safe_close(df)
     # Allow overriding minimum profit-take via min_gain
@@ -200,11 +210,12 @@ def labels_triple_barrier(
         hit_upper = np.where(future >= upper)[0]
         hit_lower = np.where(future <= lower)[0]
         if hit_upper.size == 0 and hit_lower.size == 0:
-            # time barrier: optionally require positive return
-            out[t] = 1 if (future[-1] - entry) / entry > 0 else 0
+            # Time barrier expired with no touch: no signal (strict form).
+            out[t] = 0
         else:
             first_upper = hit_upper[0] if hit_upper.size else np.inf
             first_lower = hit_lower[0] if hit_lower.size else np.inf
+            # Same-bar tie (first_upper == first_lower) falls through to 0.
             out[t] = 1 if first_upper < first_lower else 0
     return pd.Series(out.astype(float), index=df.index)
 
@@ -219,7 +230,17 @@ def labels_triple_barrier_sell(
     min_gain: Optional[float] = None,  # Ignored for sell functions
 ) -> pd.Series:
     """
-    Triple-barrier variant for sell labeling: label 1 if SL (down move) hits first.
+    Strict triple-barrier variant for sell labeling: exact mirror of
+    ``labels_triple_barrier``.
+
+    For each t, looks at future = close[t+1 : t+horizon+1]. Label 1 only if
+    the lower (stop-loss / down-move) barrier is touched strictly before the
+    upper (profit-take / up-move) barrier. If neither barrier is touched
+    within ``horizon`` bars, the time barrier expires with NO signal (label
+    0) -- there is no directional fallback based on the sign of the final
+    return. If both barriers are touched for the first time on the same
+    future bar (a tie), that is treated as NOT a sell (label 0), mirroring
+    the buy labeler's tie rule.
     """
     close = _safe_close(df)
     # Allow overriding minimum stop-loss (down move) via min_loss
@@ -246,11 +267,12 @@ def labels_triple_barrier_sell(
         hit_upper = np.where(future >= upper)[0]
         hit_lower = np.where(future <= lower)[0]
         if hit_upper.size == 0 and hit_lower.size == 0:
-            # time barrier: label as sell if return negative
-            out[t] = 1 if (future[-1] - entry) / entry < 0 else 0
+            # Time barrier expired with no touch: no signal (strict form).
+            out[t] = 0
         else:
             first_upper = hit_upper[0] if hit_upper.size else np.inf
             first_lower = hit_lower[0] if hit_lower.size else np.inf
+            # Same-bar tie (first_upper == first_lower) falls through to 0.
             out[t] = 1 if first_lower < first_upper else 0
     return pd.Series(out.astype(float), index=df.index)
 
