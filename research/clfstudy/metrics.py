@@ -316,10 +316,17 @@ def summarise_seeds(rows: list) -> dict:
     if not rows:
         raise ValueError("rows must contain at least one row")
 
+    def _is_num(v):
+        return isinstance(v, (int, float, np.integer, np.floating)) and not isinstance(v, bool)
+
+    # A key is aggregated only if it is numeric (or missing/None) in EVERY row: a DataFrame
+    # union fills a string column such as ckpt_name with NaN on older rows, so checking
+    # rows[0] alone would admit it and then fail on the string values of newer rows.
     numeric_keys = [
         k
         for k, v in rows[0].items()
-        if isinstance(v, (int, float, np.integer, np.floating)) and not isinstance(v, bool)
+        if _is_num(v)
+        and all(_is_num(r.get(k)) or r.get(k) is None for r in rows)
     ]
 
     out: dict = {"n_seeds": len(rows)}

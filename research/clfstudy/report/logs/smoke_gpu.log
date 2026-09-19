@@ -1,0 +1,65 @@
+/Users/philprice95/projects/freqtrade/user_data/strategies/utils/DataframePopulator.py:31: FutureWarning: 'freqtrade.vendor.qtpylib.indicators' is deprecated and will be removed in a future release. Import from technical instead - either the module (`from technical import qtpylib`) or a single function (`from technical.qtpylib import crossed_above`).
+  import freqtrade.vendor.qtpylib.indicators as qtpylib
+smoke: arch=LSTM config_id=af3e1641e2dd stride=16 epochs=3 pairs=['LINK/USDT']
+    MLX model not found (/Users/philprice95/projects/freqtrade/user_data/strategies/research/clfstudy/.cache/ckpt/af3e1641e2dd_A_0.safetensors)...
+    MLX model created.  Parameters: 12,483
+
+    Training MLX model: af3e1641e2dd_A_0
+    train: (2857, 16, 24)  test: (5232, 16, 24)
+    batch_size: 256  max_epochs: 3
+    grad clip (global L2 norm): 1.0
+    Epoch   1/3 — loss: 0.4980  val_loss: 0.1890  val_precision: 0.0270  val_f1_class_2: 0.0523  val_mcc: 0.1532  val_conf: 0.4590  val_conf_x_mcc: 0.0703  clips:8
+    ✓ Best model saved  (val_mcc: 0.1532)
+    Epoch   2/3 — loss: 0.3605  val_loss: 0.1411  val_precision: 0.0375  val_f1_class_2: 0.0716  val_mcc: 0.1778  val_conf: 0.5366  val_conf_x_mcc: 0.0954  clips:4
+    ✓ Best model saved  (val_mcc: 0.1778)
+    Epoch   3/3 — loss: 0.2924  val_loss: 0.1010  val_precision: 0.0485  val_f1_class_2: 0.0916  val_mcc: 0.2165  val_conf: 0.5553  val_conf_x_mcc: 0.1202  clips:4
+    ✓ Best model saved  (val_mcc: 0.2165)
+    Restoring best weights from /Users/philprice95/projects/freqtrade/user_data/strategies/research/clfstudy/.cache/ckpt/af3e1641e2dd_A_0.safetensors
+    Saving MLX model to: /Users/philprice95/projects/freqtrade/user_data/strategies/research/clfstudy/.cache/ckpt/af3e1641e2dd_A_0.safetensors
+mem: active=0.0MB peak=606.2MB cache=0.0MB
+window=A seed=0 status=ok mcc=0.3559 macro_f1=0.4933 bal_acc=0.7985 epochs_run=3 train_seconds=0.2 n_params=12483 ckpt=af3e1641e2dd_A_0.safetensors
+    MLX model not found (/Users/philprice95/projects/freqtrade/user_data/strategies/research/clfstudy/.cache/ckpt/af3e1641e2dd_B_0.safetensors)...
+    MLX model created.  Parameters: 12,483
+
+    Training MLX model: af3e1641e2dd_B_0
+    train: (5827, 16, 24)  test: (10512, 16, 24)
+    batch_size: 256  max_epochs: 3
+    grad clip (global L2 norm): 1.0
+    Epoch   1/3 — loss: 0.3489  val_loss: 0.2827  val_precision: 0.2964  val_f1_class_2: 0.4210  val_mcc: 0.3731  val_conf: 0.5553  val_conf_x_mcc: 0.2072  clips:5
+    ✓ Best model saved  (val_mcc: 0.3731)
+    Epoch   2/3 — loss: 0.2151  val_loss: 0.2164  val_precision: 0.3400  val_f1_class_2: 0.4848  val_mcc: 0.4620  val_conf: 0.6164  val_conf_x_mcc: 0.2848  clips:4
+    ✓ Best model saved  (val_mcc: 0.4620)
+    Epoch   3/3 — loss: 0.1727  val_loss: 0.1920  val_precision: 0.3866  val_f1_class_2: 0.5360  val_mcc: 0.4987  val_conf: 0.6647  val_conf_x_mcc: 0.3315  clips:5
+    ✓ Best model saved  (val_mcc: 0.4987)
+    Restoring best weights from /Users/philprice95/projects/freqtrade/user_data/strategies/research/clfstudy/.cache/ckpt/af3e1641e2dd_B_0.safetensors
+    Saving MLX model to: /Users/philprice95/projects/freqtrade/user_data/strategies/research/clfstudy/.cache/ckpt/af3e1641e2dd_B_0.safetensors
+mem: active=0.0MB peak=596.6MB cache=0.0MB
+window=B seed=0 status=ok mcc=0.4676 macro_f1=0.5808 bal_acc=0.8222 epochs_run=3 train_seconds=0.3 n_params=12483 ckpt=af3e1641e2dd_B_0.safetensors
+    MLX model not found (/Users/philprice95/projects/freqtrade/user_data/strategies/research/clfstudy/.cache/ckpt/af3e1641e2dd_C_0.safetensors)...
+    MLX model created.  Parameters: 12,483
+
+    Training MLX model: af3e1641e2dd_C_0
+    train: (7798, 16, 24)  test: (14016, 16, 24)
+    batch_size: 256  max_epochs: 3
+    grad clip (global L2 norm): 1.0
+    Epoch   1/3 — loss: 0.3579  val_loss: 0.1987  val_precision: 0.2078  val_f1_class_2: 0.3318  val_mcc: 0.3606  val_conf: 0.5770  val_conf_x_mcc: 0.2080  clips:7
+    ✓ Best model saved  (val_mcc: 0.3606)
+    Epoch   2/3 — loss: 0.2107  val_loss: 0.1488  val_precision: 0.2970  val_f1_class_2: 0.4401  val_mcc: 0.4614  val_conf: 0.6464  val_conf_x_mcc: 0.2983  clips:3
+    ✓ Best model saved  (val_mcc: 0.4614)
+    Epoch   3/3 — loss: 0.1882  val_loss: 0.1367  val_precision: 0.3179  val_f1_class_2: 0.4661  val_mcc: 0.4911  val_conf: 0.6761  val_conf_x_mcc: 0.3321  clips:8
+    ✓ Best model saved  (val_mcc: 0.4911)
+    Restoring best weights from /Users/philprice95/projects/freqtrade/user_data/strategies/research/clfstudy/.cache/ckpt/af3e1641e2dd_C_0.safetensors
+    Saving MLX model to: /Users/philprice95/projects/freqtrade/user_data/strategies/research/clfstudy/.cache/ckpt/af3e1641e2dd_C_0.safetensors
+mem: active=0.0MB peak=596.6MB cache=0.0MB
+window=C seed=0 status=ok mcc=0.4491 macro_f1=0.5707 bal_acc=0.8728 epochs_run=3 train_seconds=0.4 n_params=12483 ckpt=af3e1641e2dd_C_0.safetensors
+
+smoke verdict:
+window  ckpt_name                               epochs_run  best_epoch  mcc       stale_files_removed 
+A       af3e1641e2dd_A_0.safetensors            3           2           0.3559    0                   
+B       af3e1641e2dd_B_0.safetensors            3           2           0.4676    0                   
+C       af3e1641e2dd_C_0.safetensors            3           2           0.4491    0                   
+
+  [PASS] distinct ckpt names containing the window id
+  [PASS] no "MLX model loaded" in captured output
+  [PASS] no run failed
+  [PASS] mcc > majority baseline (0.0) on every window
