@@ -177,3 +177,10 @@ warm-started (A2 preceded B2), so "seed-2 rows are clean" holds only for the pha
 seeds, which ran on a single window with no prior file. The contaminated RIDGE/ROCKET B/C
 seed-2 rows are quarantined (backup report/logs/results_before_seed2_baseline_quarantine.jsonl)
 and re-run at the end of the queue; gate 4 was recomputed on the two clean RIDGE seeds.
+
+## Mamba excluded on window C (2026-09-19 05:15)
+
+Clean Mamba runs peak at ~48 GB of Metal memory (Wavenet: 3.5 GB) and take 68 min each on
+window B (4062 s), driving swap to 15.5 of 16 GB. With A 0.513 (phase 3) and B 0.484 / 0.457
+(clean), far below every other type, its two window-C runs were not worth 2.5 h and an
+out-of-memory risk to the census; Mamba's pooled figure is over A and B only and is flagged.
