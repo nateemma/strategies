@@ -184,3 +184,13 @@ Clean Mamba runs peak at ~48 GB of Metal memory (Wavenet: 3.5 GB) and take 68 mi
 window B (4062 s), driving swap to 15.5 of 16 GB. With A 0.513 (phase 3) and B 0.484 / 0.457
 (clean), far below every other type, its two window-C runs were not worth 2.5 h and an
 out-of-memory risk to the census; Mamba's pooled figure is over A and B only and is flagged.
+
+## 019 start: label not carried into isolated children (found and fixed 2026-09-19 08:35)
+
+The first phase-19 launch produced RIDGE/PERSISTENCE rows identical to the gbb ones and gbb
+class counts: `phase.py`'s isolated child command serialised every config field except
+`label`, so the children trained on the default label under triple-barrier config ids. The 26
+rows were purged, the payload now carries `label` (regression test in test_run_smoke.py), and
+the relaunched rows show the strict triple-barrier balance (window A test: 29% SELL / 55% HOLD
+/ 17% BUY; B: 42 / 35 / 22). Lesson: every config field that changes the data must be asserted
+on the written row, not assumed from the launcher.
