@@ -5,7 +5,8 @@
     "margin_used": 0.02,
     "std_bound": 0.03,
     "majority_of": 3,
-    "std_mode": "every"
+    "std_mode": "every",
+    "ridge_phase": 2
   },
   "ridge_reference": {
     "A": {
@@ -13,14 +14,14 @@
       "macro_f1": 0.6563451404194257
     },
     "B": {
-      "mcc": 0.5351276001013862,
-      "macro_f1": 0.6517165682620183
+      "mcc": 0.5366340531952597,
+      "macro_f1": 0.6536850707614678
     },
     "C": {
-      "mcc": 0.5469194675154303,
-      "macro_f1": 0.6656807872653235
+      "mcc": 0.5471564344106676,
+      "macro_f1": 0.6656464170382583
     },
-    "pooled_seed_std_mcc": 0.002139542046498907
+    "pooled_seed_std_mcc": 0.0026043090324932004
   },
   "per_config": {
     "053da6234557": {
@@ -242,10 +243,10 @@
         "f1_ok": false,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.5155808986418665,
-        "macro_f1_mean": 0.6379539040706428,
-        "std_mcc": 0.0031714971372875547,
-        "n_seeds": 2,
+        "mcc_mean": 0.5161420923446229,
+        "macro_f1_mean": 0.6384402843026261,
+        "std_mcc": 0.00244417924096249,
+        "n_seeds": 3,
         "window_pass": false,
         "notes": []
       },
@@ -254,10 +255,10 @@
         "f1_ok": false,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.5264257083628961,
-        "macro_f1_mean": 0.6495035516002732,
-        "std_mcc": 0.002592416043945542,
-        "n_seeds": 2,
+        "mcc_mean": 0.5257780845681905,
+        "macro_f1_mean": 0.6493415171050146,
+        "std_mcc": 0.0021490835746568134,
+        "n_seeds": 3,
         "window_pass": false,
         "notes": []
       },
@@ -1976,10 +1977,10 @@
         "f1_ok": false,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.5351276001013862,
-        "macro_f1_mean": 0.6517165682620183,
-        "std_mcc": 0.000450950894045738,
-        "n_seeds": 2,
+        "mcc_mean": 0.5366340531952597,
+        "macro_f1_mean": 0.6536850707614678,
+        "std_mcc": 0.0026286652747247595,
+        "n_seeds": 3,
         "window_pass": false,
         "notes": []
       },
@@ -1988,10 +1989,10 @@
         "f1_ok": false,
         "std_ok": true,
         "status_ok": true,
-        "mcc_mean": 0.5469194675154303,
-        "macro_f1_mean": 0.6656807872653235,
-        "std_mcc": 0.0028175838315217224,
-        "n_seeds": 2,
+        "mcc_mean": 0.5471564344106676,
+        "macro_f1_mean": 0.6656464170382583,
+        "std_mcc": 0.002034170408825581,
+        "n_seeds": 3,
         "window_pass": false,
         "notes": []
       },
@@ -2442,7 +2443,7 @@
     "fa4e5ad070f7"
   ],
   "stability_only_failures": [],
-  "decided_at": "2026-09-19T04:18:14.524043+00:00",
+  "decided_at": "2026-09-19T15:28:18.544913+00:00",
   "decided_by": "gate.py + author review at checkpoint",
   "notes": [
     "RIDGE/MAJORITY/PERSISTENCE/ROCKET are baselines: shown for reference, never in viable_set.",
