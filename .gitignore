@@ -62,3 +62,4 @@ research/signalctx/out/
 # Feature 018 classifier study: frame cache + checkpoints (regenerable)
 research/clfstudy/.cache/
 research/clfstudy/models/
+research/clfstudy/probs/

@@ -95,7 +95,9 @@ def expand_runs(
     return runs, skipped
 
 
-def _isolated_cmd(cfg: ExperimentConfig, window_id: str, seed: int) -> List[str]:
+def _isolated_cmd(
+    cfg: ExperimentConfig, window_id: str, seed: int, save_probs: bool = False,
+) -> List[str]:
     """`run.py`'s CLI command for one (config, window, seed), as a fresh subprocess.
 
     The inline `--config` JSON carries every `ExperimentConfig` field (not just the
@@ -115,20 +117,25 @@ def _isolated_cmd(cfg: ExperimentConfig, window_id: str, seed: int) -> List[str]
         "seeds": cfg.seeds,
         "tags": cfg.tags,
     }
-    return [
+    cmd = [
         sys.executable, "-m", "research.clfstudy.run",
         "--config", json.dumps(payload, sort_keys=True),
         "--window", window_id,
         "--seed", str(seed),
     ]
+    if save_probs:
+        cmd.append("--save-probs")
+    return cmd
 
 
-def _run_isolated(cfg: ExperimentConfig, window_id: str, seed: int) -> Tuple[int, Optional[str]]:
+def _run_isolated(
+    cfg: ExperimentConfig, window_id: str, seed: int, save_probs: bool = False,
+) -> Tuple[int, Optional[str]]:
     """Run one (config, window, seed) in a fresh subprocess (streaming its stdout/stderr
     through unchanged) and return `(returncode, status)`, where `status` is read back from
     `results/results.jsonl` afterwards (`None` if the child never appended a row, e.g. it
     was killed mid-run)."""
-    cmd = _isolated_cmd(cfg, window_id, seed)
+    cmd = _isolated_cmd(cfg, window_id, seed, save_probs=save_probs)
     result = subprocess.run(cmd, check=False)
     key: RunKey = (registry.config_id(cfg), cfg.split_set, window_id, seed)
     status = _load_existing_statuses().get(key)
@@ -147,6 +154,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--only", default=None, help="comma-separated arch names or config_ids")
     parser.add_argument("--retry-failed", action="store_true")
     parser.add_argument("--max-runs", type=int, default=None)
+    parser.add_argument(
+        "--save-probs", action="store_true",
+        help="forward --save-probs to every run.py invocation (isolated or in-process)",
+    )
     parser.add_argument(
         "--isolate", action=argparse.BooleanOptionalAction, default=True,
         help="run each (config, window, seed) in a fresh subprocess so MLX/Metal memory "
@@ -178,14 +189,14 @@ def main(argv: Optional[List[str]] = None) -> int:
             f"window={window_id} seed={seed}"
         )
         if args.isolate:
-            returncode, status = _run_isolated(cfg, window_id, seed)
+            returncode, status = _run_isolated(cfg, window_id, seed, save_probs=args.save_probs)
             ran += 1
             if returncode not in (0, 1):
                 print(f"  child exited with unexpected code {returncode}", file=sys.stderr)
             if returncode != 0 or status not in _SKIP_STATUSES:
                 failed += 1
         else:
-            row = run_one(cfg, window_id, seed)
+            row = run_one(cfg, window_id, seed, save_probs=args.save_probs)
             ran += 1
             if row.get("status") == "failed":
                 failed += 1

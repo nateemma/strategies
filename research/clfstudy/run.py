@@ -14,6 +14,10 @@ CLI below for one-off / `--dry-run` invocations.
 Leakage boundary: `scaler`/`class_weights` are fit only on the concatenated `train`-role
 rows of the *included* pairs for this window (features.fit_scaler/class_weights);
 role-selection and windowing are otherwise entirely owned by splits.py/windows.py.
+
+Opt-in `--save-probs` writes the test-row predictions (one row per `X_test`/`proba` row) to
+`PROBS_DIR/<config_id>_<window_id>_<seed>.parquet` via pyarrow, after scoring. `probs/` is
+scratch/debug output, not part of the tracked study artifacts -- it should be gitignored.
 """
 from __future__ import annotations
 
@@ -53,6 +57,10 @@ from research.clfstudy.registry import ExperimentConfig
 
 _FRAMES_CACHE: Optional[Dict[str, pd.DataFrame]] = None
 _SPLITSET_CACHE: Dict[str, splits.SplitSet] = {}
+
+#: `--save-probs` output directory (scratch/debug, gitignore this); a fresh dir per repo
+#: checkout since nothing under it is a tracked study artifact.
+PROBS_DIR = PKG / "probs"
 
 _METRIC_KEYS = (
     "bal_acc", "macro_f1", "mcc",
@@ -336,15 +344,59 @@ def _clear_stale_model_files(clf) -> int:
     return removed
 
 
+def _write_probs(
+    cid: str,
+    window_id: str,
+    seed: int,
+    test_dates: np.ndarray,
+    test_pairs: np.ndarray,
+    y_test_int: np.ndarray,
+    proba: np.ndarray,
+    test_guard_metric: np.ndarray,
+    test_bb_width: np.ndarray,
+    buy_mask: np.ndarray,
+    sell_mask: np.ndarray,
+) -> str:
+    """Write one row per test example (same row order as `X_test`/`proba`, both built from
+    the same per-pair concatenation in `windows.make_tensors`) to
+    `PROBS_DIR/<cid>_<window_id>_<seed>.parquet` via pyarrow, atomically (write to a `.tmp`
+    sibling then `rename`, so a killed-mid-write process never leaves a corrupt parquet at
+    the real path). Returns the destination path relative to `PKG`.
+    """
+    PROBS_DIR.mkdir(parents=True, exist_ok=True)
+    df = pd.DataFrame({
+        "date": pd.to_datetime(np.asarray(test_dates), utc=True),
+        "pair": np.asarray(test_pairs, dtype=object),
+        "label": np.asarray(y_test_int).astype(int),
+        "p_sell": proba[:, 0].astype(np.float32),
+        "p_hold": proba[:, 1].astype(np.float32),
+        "p_buy": proba[:, 2].astype(np.float32),
+        "guard_metric": np.asarray(test_guard_metric, dtype=float),
+        "bb_width": np.asarray(test_bb_width, dtype=float),
+        "buy_trigger": np.asarray(buy_mask, dtype=bool),
+        "sell_trigger": np.asarray(sell_mask, dtype=bool),
+    })
+    dest = PROBS_DIR / f"{cid}_{window_id}_{seed}.parquet"
+    tmp = dest.with_suffix(".parquet.tmp")
+    df.to_parquet(tmp, index=False, engine="pyarrow")
+    tmp.replace(dest)
+    return str(dest.relative_to(PKG))
+
+
 def run_one(
     cfg: ExperimentConfig,
     window_id: str,
     seed: int,
     save_weights: bool = False,
+    save_probs: bool = False,
     dry_run: bool = False,
 ) -> Dict[str, Any]:
     """Run one (config, window, seed) experiment; append one `RunResult` row unless
-    `dry_run`. Returns the row dict (empty dict for a dry run)."""
+    `dry_run`. Returns the row dict (empty dict for a dry run).
+
+    `save_probs`: after scoring, additionally write the test-row predictions to
+    `PROBS_DIR/<config_id>_<window_id>_<seed>.parquet` (see `_write_probs`); the row's
+    `probs_path` field records the (relative) path, or stays `None` if not saved."""
     started_at = datetime.now(timezone.utc)
     cid = registry.config_id(cfg)
 
@@ -378,6 +430,7 @@ def run_one(
     epochs_run = 0
     best_epoch = 0
     weights_path: Optional[str] = None
+    probs_path: Optional[str] = None
     ckpt_name: Optional[str] = None
     stale_files_removed = 0
     timing_stats = {
@@ -393,6 +446,7 @@ def run_one(
         X_train, y_train_1h, y_train_int = prep["X_train"], prep["y_train_1h"], prep["y_train_int"]
         X_val, y_val_1h = prep["X_val"], prep["y_val_1h"]
         X_test, y_test_int = prep["X_test"], prep["y_test_int"]
+        test_dates, test_pairs = prep["test_dates"], prep["test_pairs"]
         test_guard_metric, test_bb_width = prep["test_guard_metric"], prep["test_bb_width"]
 
         n_train, n_val, n_test = len(X_train), len(X_val), len(X_test)
@@ -445,6 +499,12 @@ def run_one(
         pred_counts = m["pred_counts"]
         class_counts_test = m["class_counts"]
         status = "collapsed" if m["collapsed"] else ("class_absent" if m["class_absent"] else "ok")
+
+        if save_probs:
+            probs_path = _write_probs(
+                cid, window_id, seed, test_dates, test_pairs, y_test_int, proba,
+                test_guard_metric, test_bb_width, buy_mask, sell_mask,
+            )
     except Exception:
         status = "failed"
         error = traceback.format_exc()
@@ -456,6 +516,7 @@ def run_one(
         # `prep`, or a baseline arch never bound `clf`).
         try:
             del prep, X_train, y_train_1h, y_train_int, X_val, y_val_1h, X_test, y_test_int
+            del test_dates, test_pairs
         except NameError:
             pass
         try:
@@ -506,6 +567,7 @@ def run_one(
         "started_at": started_at.isoformat(),
         "finished_at": finished_at.isoformat(),
         "weights_path": weights_path,
+        "probs_path": probs_path,
         "ckpt_name": ckpt_name,
     }
 
@@ -553,6 +615,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--window", required=True, choices=["A", "B", "C", "all"])
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument("--save-weights", action="store_true")
+    parser.add_argument("--save-probs", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
 
@@ -574,7 +637,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     for window_id in window_ids:
         row = run_one(
             cfg, window_id, args.seed,
-            save_weights=args.save_weights, dry_run=args.dry_run,
+            save_weights=args.save_weights, save_probs=args.save_probs, dry_run=args.dry_run,
         )
         if row.get("status") == "failed":
             any_failed = True

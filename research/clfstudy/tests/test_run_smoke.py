@@ -55,7 +55,12 @@ _ROW_FIELDS = [
     "n_params", "train_seconds", "epochs_run", "best_epoch",
     "infer_ms_per_window_b256", "infer_ms_per_window_b1", "mlx_peak_mb",
     "harness_version", "git_sha", "started_at", "finished_at", "weights_path",
-    "ckpt_name",
+    "probs_path", "ckpt_name",
+]
+
+_PROBS_COLUMNS = [
+    "date", "pair", "label", "p_sell", "p_hold", "p_buy",
+    "guard_metric", "bb_width", "buy_trigger", "sell_trigger",
 ]
 
 
@@ -139,6 +144,8 @@ def test_run_one_majority_baseline(_patch_run_module):
     # BUY-trigger conditional fields are actually populated (not just present-but-empty).
     assert row["trig_buy_n"] > 0
     assert row["trig_sell_n"] > 0
+    # default (no --save-probs): nothing written, field stays None.
+    assert row["probs_path"] is None
 
     on_disk = _last_row(_patch_run_module)
     assert set(_ROW_FIELDS) <= set(on_disk.keys())
@@ -163,12 +170,65 @@ def test_run_one_mlp_one_epoch(_patch_run_module):
     assert row["n_params"] > 0
     assert row["epochs_run"] == 1
     assert row["train_seconds"] > 0.0
+    # default (no --save-probs): nothing written, field stays None.
+    assert row["probs_path"] is None
 
     on_disk = _last_row(_patch_run_module)
     assert set(_ROW_FIELDS) <= set(on_disk.keys())
     assert on_disk["config_id"] == row["config_id"]
     assert on_disk["status"] == row["status"]
     assert on_disk["epochs_run"] == row["epochs_run"]
+
+
+def test_run_one_mlp_save_probs_writes_parquet(_patch_run_module):
+    """`--save-probs`/`save_probs=True` writes one row per test example to
+    `PROBS_DIR/<config_id>_<window_id>_<seed>.parquet` with the documented columns, and
+    the on-disk `RunResult` row records the (relative) path."""
+    cfg = ExperimentConfig(
+        arch="MLP", hp={}, input_set="ind24", seq_len=16, split_set="v1",
+        train={"max_epochs": 1, "patience": 1, "batch_size": 64},
+        phase=0, seeds=[0], tags=["smoke"],
+    )
+    cfg.validate()
+
+    from research.clfstudy import PKG
+    from research.clfstudy.run import PROBS_DIR
+
+    cid = registry.config_id(cfg)
+    dest = PROBS_DIR / f"{cid}_A_0.parquet"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.unlink(missing_ok=True)
+
+    try:
+        row = run_mod.run_one(cfg, "A", seed=0, save_probs=True)
+
+        assert row["status"] != "failed", row.get("error")
+        assert row["probs_path"] == str(dest.relative_to(PKG))
+        assert dest.exists()
+
+        df = pd.read_parquet(dest)
+        assert list(df.columns) == _PROBS_COLUMNS
+        assert len(df) == row["n_test"]
+        assert df["label"].between(0, 2).all()
+        assert df["p_sell"].dtype == np.float32
+        assert df["p_hold"].dtype == np.float32
+        assert df["p_buy"].dtype == np.float32
+        np.testing.assert_allclose(
+            df[["p_sell", "p_hold", "p_buy"]].sum(axis=1).to_numpy(), 1.0, atol=1e-3
+        )
+        # pyarrow round-trips tz-aware UTC timestamps at either ns or us precision
+        # depending on build; only the "tz-aware UTC" part is contractual here.
+        assert str(df["date"].dtype).startswith("datetime64[") and str(df["date"].dtype).endswith(", UTC]")
+        assert set(df["pair"].unique()) <= set(PAIRS)
+        assert df["buy_trigger"].dtype == bool
+        assert df["sell_trigger"].dtype == bool
+        # mutually exclusive by construction (metrics.trigger_masks).
+        assert not (df["buy_trigger"] & df["sell_trigger"]).any()
+
+        on_disk = _last_row(_patch_run_module)
+        assert on_disk["probs_path"] == row["probs_path"]
+    finally:
+        dest.unlink(missing_ok=True)
 
 
 def test_run_one_releases_mlx_memory(_patch_run_module, monkeypatch):
