@@ -249,6 +249,101 @@ def test_triple_barrier_label_changes_the_id():
     assert config_id(base) != config_id(tb)
 
 
+# ---------------------------------------------------------------------------
+# `label.atr_scale` (ATR-scaled triple-barrier width)
+# ---------------------------------------------------------------------------
+
+
+def test_triple_barrier_atr_scale_absent_by_default():
+    cfg = _cfg(label={"name": "triple_barrier", "horizon": 24, "up": 0.01, "down": 0.01})
+    assert "atr_scale" not in cfg.label
+
+
+def test_triple_barrier_atr_scale_changes_the_id():
+    without = _cfg(label={"name": "triple_barrier", "horizon": 24, "up": 0.01, "down": 0.01})
+    with_atr = _cfg(
+        label={
+            "name": "triple_barrier", "horizon": 24, "up": 0.01, "down": 0.01, "atr_scale": 2.0,
+        }
+    )
+    assert config_id(without) != config_id(with_atr)
+
+
+def test_triple_barrier_atr_scale_different_values_change_the_id():
+    a = _cfg(
+        label={
+            "name": "triple_barrier", "horizon": 24, "up": 0.01, "down": 0.01, "atr_scale": 2.0,
+        }
+    )
+    b = _cfg(
+        label={
+            "name": "triple_barrier", "horizon": 24, "up": 0.01, "down": 0.01, "atr_scale": 3.0,
+        }
+    )
+    assert config_id(a) != config_id(b)
+
+
+def test_existing_configs_unaffected_by_atr_scale_field():
+    # every pre-existing config (no `atr_scale` key at all) hashes exactly as before --
+    # the frozen ids in _BASELINE_IDS above already cover the `gbb`-label case; this
+    # covers the triple_barrier case explicitly.
+    tb = _cfg(label={"name": "triple_barrier", "horizon": 24, "up": 0.01, "down": 0.01})
+    assert config_id(tb) == config_id(_cfg(
+        label={"name": "triple_barrier", "horizon": 24, "up": 0.01, "down": 0.01}
+    ))
+
+
+@pytest.mark.parametrize("atr_scale", [0, -1.0, -0.5])
+def test_triple_barrier_atr_scale_non_positive_rejected(atr_scale):
+    cfg = _cfg(
+        label={
+            "name": "triple_barrier", "horizon": 24, "up": 0.01, "down": 0.01,
+            "atr_scale": atr_scale,
+        }
+    )
+    with pytest.raises(ValueError):
+        cfg.validate()
+
+
+def test_triple_barrier_atr_scale_bool_rejected():
+    cfg = _cfg(
+        label={
+            "name": "triple_barrier", "horizon": 24, "up": 0.01, "down": 0.01,
+            "atr_scale": True,
+        }
+    )
+    with pytest.raises(ValueError):
+        cfg.validate()
+
+
+def test_triple_barrier_atr_scale_non_numeric_rejected():
+    cfg = _cfg(
+        label={
+            "name": "triple_barrier", "horizon": 24, "up": 0.01, "down": 0.01,
+            "atr_scale": "2.0",
+        }
+    )
+    with pytest.raises(ValueError):
+        cfg.validate()
+
+
+def test_triple_barrier_atr_scale_valid_accepted():
+    cfg = _cfg(
+        label={
+            "name": "triple_barrier", "horizon": 24, "up": 0.01, "down": 0.01,
+            "atr_scale": 2.0,
+        }
+    )
+    cfg.validate()  # no raise
+    cfg2 = _cfg(
+        label={
+            "name": "triple_barrier", "horizon": 24, "up": 0.01, "down": 0.01,
+            "atr_scale": 2,
+        }
+    )
+    cfg2.validate()  # int is also accepted
+
+
 def test_triple_barrier_label_defaults_filled_in():
     cfg = _cfg(label={"name": "triple_barrier", "horizon": 24, "up": 0.01, "down": 0.01})
     assert cfg.label["conflict_resolution"] is True

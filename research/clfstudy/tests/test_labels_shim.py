@@ -144,6 +144,79 @@ def test_ternary_labels_triple_barrier_unknown_name_rejected():
 
 
 # ---------------------------------------------------------------------------
+# triple_barrier label — `atr_scale` (ATR-scaled barriers)
+# ---------------------------------------------------------------------------
+
+
+def _synthetic_ohlcv_high_vol(seed: int = 2, n: int = 600) -> pd.DataFrame:
+    """Same shape as `_synthetic_ohlcv`, but with a wider high/low range (+-4% instead
+    of +-1%) during the dip/rally window, so ATR/close there clears the default
+    (fixed) 3%/2% triple-barrier width at a modest `atr_scale` -- otherwise the fixed-
+    barrier and ATR-scaled barrier labels are identical on this fixture at
+    `atr_scale=2.0` (the synthetic volatility is too low relative to the defaults)."""
+    rng = np.random.default_rng(seed)
+    close = np.full(n, 100.0)
+    for i in range(1, 280):
+        close[i] = close[i - 1] + rng.normal(0, 0.02)
+
+    fall_start, fall_len = 280, 10
+    fall = np.linspace(0, -0.05, fall_len)
+    close[fall_start : fall_start + fall_len] = close[fall_start - 1] * (1 + fall)
+
+    rally_start, rally_len = fall_start + fall_len, 20
+    rally = np.linspace(0, 0.12, rally_len)
+    close[rally_start : rally_start + rally_len] = close[rally_start - 1] * (1 + rally)
+
+    for i in range(rally_start + rally_len, n):
+        close[i] = close[i - 1] + rng.normal(0, 0.02)
+
+    high = close * (1 + np.abs(rng.normal(0, 0.002, n)))
+    low = close * (1 - np.abs(rng.normal(0, 0.002, n)))
+    volatile = slice(fall_start, rally_start + rally_len)
+    high[volatile] = close[volatile] * 1.04
+    low[volatile] = close[volatile] * 0.96
+    openp = close + rng.normal(0, 0.005, n)
+    volume = np.abs(rng.normal(100, 20, n))
+
+    dates = pd.date_range("2022-01-01", periods=n, freq="15min", tz="UTC")
+    return pd.DataFrame(
+        {"date": dates, "open": openp, "high": high, "low": low, "close": close, "volume": volume}
+    )
+
+
+def test_ternary_labels_triple_barrier_atr_scale_in_range():
+    df = data.populate(_synthetic_ohlcv_high_vol())
+    label = {"name": "triple_barrier", "horizon": 24, "up": 0.005, "down": 0.005, "atr_scale": 2.0}
+    labels = ternary_labels(df, label=label)
+
+    assert len(labels) == len(df)
+    assert set(np.unique(labels).tolist()) <= {0, 1, 2}
+
+
+def test_ternary_labels_triple_barrier_atr_scale_differs_from_fixed():
+    df = data.populate(_synthetic_ohlcv_high_vol())
+    fixed = {"name": "triple_barrier", "horizon": 24, "up": 0.005, "down": 0.005}
+    scaled = dict(fixed, atr_scale=2.0)
+
+    fixed_labels = ternary_labels(df, label=fixed)
+    scaled_labels = ternary_labels(df, label=scaled)
+
+    assert not np.array_equal(fixed_labels, scaled_labels)
+
+
+def test_ternary_labels_triple_barrier_atr_scale_omitted_equals_none():
+    # atr_scale omitted entirely produces the same labels as atr_scale=None explicit
+    # (both resolve to `label.get("atr_scale")` -> `None` -> fixed barriers).
+    df = data.populate(_synthetic_ohlcv())
+    omitted = {"name": "triple_barrier", "horizon": 24, "up": 0.01, "down": 0.01}
+    explicit_none = dict(omitted, atr_scale=None)
+    np.testing.assert_array_equal(
+        ternary_labels(df, label=omitted),
+        ternary_labels(df, label=explicit_none),
+    )
+
+
+# ---------------------------------------------------------------------------
 # label_key
 # ---------------------------------------------------------------------------
 
@@ -156,6 +229,13 @@ def test_label_key_gbb():
 def test_label_key_triple_barrier_defaults():
     label = {"name": "triple_barrier", "horizon": 48, "up": 0.02, "down": 0.02}
     assert label_key(label) == "tb_h48_u0.02_d0.02_cr1_pf0"
+
+
+def test_label_key_triple_barrier_atr_scale():
+    label = {
+        "name": "triple_barrier", "horizon": 48, "up": 0.005, "down": 0.005, "atr_scale": 2.0,
+    }
+    assert label_key(label) == "tb_h48_u0.005_d0.005_cr1_pf0_atr2"
 
 
 def test_label_key_triple_barrier_explicit_flags():

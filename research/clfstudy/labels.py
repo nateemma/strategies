@@ -110,18 +110,27 @@ class _TripleBarrierShim:
     `peak_filter=False` (the label default) bypasses `filter_peaks_by_future_performance`
     entirely (peaks pass through unchanged) -- the gbb path above keeps that filter,
     bound unchanged from NNNC_MLX, exactly as production runs it today.
+
+    `atr_scale` (optional) is passed straight through in both params dicts when set: the
+    sell-side whitelist above (`TrainingSignals.get_train_sell_signals`'s
+    `LabelMethod.triple_barrier` branch) already includes `"atr_scale"`, and the buy-side
+    call goes directly to `TrainingSignals.get_train_buy_signals` (not
+    `BaseNNStrategy.get_train_buy_signals`), which forwards every param -- so, unlike
+    `rvol_threshold` above, there is no landmine to route around for `atr_scale`.
     """
 
     dbg_verbose: bool = False
 
     def __init__(self, horizon: int, up: float, down: float,
-                 conflict_resolution: bool, peak_filter: bool) -> None:
+                 conflict_resolution: bool, peak_filter: bool,
+                 atr_scale: Optional[float] = None) -> None:
         self.TRAINING_TYPE = TrainingSignals.LabelMethod.triple_barrier
         self.HORIZON = horizon
         self.MIN_BUY_GAIN_THRESHOLD = up
         self.MIN_SELL_LOSS_THRESHOLD = down
         self.LABEL_FILTER_WINDOW = horizon
         self.apply_label_conflict_resolution = conflict_resolution
+        self.ATR_SCALE = atr_scale
         self.dbg_curr_df = None
         for name in _SHARED_METHODS:
             setattr(self, name, getattr(NNNC_MLX, name).__get__(self))
@@ -136,13 +145,15 @@ class _TripleBarrierShim:
         return None
 
     def get_train_buy_signals(self, future_df: pd.DataFrame) -> pd.Series:
+        params = {
+            "horizon": self.HORIZON,
+            "min_gain": self.MIN_BUY_GAIN_THRESHOLD,
+            "min_loss": self.MIN_SELL_LOSS_THRESHOLD,
+        }
+        if self.ATR_SCALE is not None:
+            params["atr_scale"] = self.ATR_SCALE
         labels = TrainingSignals.get_train_buy_signals(
-            future_df, method=self.TRAINING_TYPE,
-            params={
-                "horizon": self.HORIZON,
-                "min_gain": self.MIN_BUY_GAIN_THRESHOLD,
-                "min_loss": self.MIN_SELL_LOSS_THRESHOLD,
-            },
+            future_df, method=self.TRAINING_TYPE, params=params,
         )
         peaks = np.where(labels.values > 0.5)[0]
         filtered_peaks = self.filter_peaks_by_future_performance(
@@ -153,13 +164,15 @@ class _TripleBarrierShim:
         return signals
 
     def get_train_sell_signals(self, future_df: pd.DataFrame) -> pd.Series:
+        params = {
+            "horizon": self.HORIZON,
+            "min_loss": self.MIN_SELL_LOSS_THRESHOLD,
+            "min_gain": self.MIN_BUY_GAIN_THRESHOLD,
+        }
+        if self.ATR_SCALE is not None:
+            params["atr_scale"] = self.ATR_SCALE
         labels = TrainingSignals.get_train_sell_signals(
-            future_df, method=self.TRAINING_TYPE,
-            params={
-                "horizon": self.HORIZON,
-                "min_loss": self.MIN_SELL_LOSS_THRESHOLD,
-                "min_gain": self.MIN_BUY_GAIN_THRESHOLD,
-            },
+            future_df, method=self.TRAINING_TYPE, params=params,
         )
         peaks = np.where(labels.values > 0.5)[0]
         filtered_peaks = self.filter_peaks_by_future_performance(
@@ -188,7 +201,9 @@ def label_key(label: Optional[Dict[str, Any]] = None) -> str:
 
     `None` or `{"name": "gbb"}` -> `"gbb"`. `{"name": "triple_barrier", "horizon": 48,
     "up": 0.02, "down": 0.02}` -> `"tb_h48_u0.02_d0.02_cr1_pf0"` (conflict_resolution and
-    peak_filter default True/False per `registry._LABEL_TRIPLE_BARRIER_DEFAULTS`).
+    peak_filter default True/False per `registry._LABEL_TRIPLE_BARRIER_DEFAULTS`). When
+    `atr_scale` is present, `"_atr{atr_scale:g}"` is appended, e.g.
+    `"tb_h48_u0.005_d0.005_cr1_pf0_atr2"`.
     """
     label = label or _DEFAULT_LABEL
     name = label.get("name", "gbb")
@@ -199,7 +214,11 @@ def label_key(label: Optional[Dict[str, Any]] = None) -> str:
     down = label["down"]
     cr = int(bool(label.get("conflict_resolution", True)))
     pf = int(bool(label.get("peak_filter", False)))
-    return f"tb_h{horizon}_u{up:g}_d{down:g}_cr{cr}_pf{pf}"
+    key = f"tb_h{horizon}_u{up:g}_d{down:g}_cr{cr}_pf{pf}"
+    atr_scale = label.get("atr_scale")
+    if atr_scale is not None:
+        key += f"_atr{atr_scale:g}"
+    return key
 
 
 def ternary_labels(df: pd.DataFrame, label: Optional[Dict[str, Any]] = None) -> np.ndarray:
@@ -228,6 +247,7 @@ def ternary_labels(df: pd.DataFrame, label: Optional[Dict[str, Any]] = None) -> 
             down=label["down"],
             conflict_resolution=label.get("conflict_resolution", True),
             peak_filter=label.get("peak_filter", False),
+            atr_scale=label.get("atr_scale"),
         )
     else:
         raise ValueError(f"unknown label {name!r}; valid: gbb, triple_barrier")

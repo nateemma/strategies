@@ -200,8 +200,15 @@ class ExperimentConfig:
             raise ValueError(
                 f"label 'triple_barrier' key 'peak_filter' must be bool, got {peak_filter!r}"
             )
+        if "atr_scale" in self.label:
+            atr_scale = self.label["atr_scale"]
+            if isinstance(atr_scale, bool) or not isinstance(atr_scale, (int, float)) or atr_scale <= 0:
+                raise ValueError(
+                    f"label 'triple_barrier' key 'atr_scale' must be a float > 0, got {atr_scale!r}"
+                )
         extra = sorted(
-            set(self.label) - {"name", "horizon", "up", "down", "conflict_resolution", "peak_filter"}
+            set(self.label)
+            - {"name", "horizon", "up", "down", "conflict_resolution", "peak_filter", "atr_scale"}
         )
         if extra:
             raise ValueError(f"label 'triple_barrier' has unknown keys {extra}")
