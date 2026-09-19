@@ -1,0 +1,167 @@
+phase: 19
+description: '019: strict triple-barrier label (h48, +/-2%), six representatives +
+  baselines'
+gate_from: null
+configs:
+- arch: MAJORITY
+  hp: {}
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 48
+    up: 0.02
+    down: 0.02
+  phase: 19
+  seeds:
+  - 0
+  - 1
+  - 2
+  tags:
+  - baseline
+- arch: PERSISTENCE
+  hp: {}
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 48
+    up: 0.02
+    down: 0.02
+  phase: 19
+  seeds:
+  - 0
+  - 1
+  - 2
+  tags:
+  - baseline
+- arch: RIDGE
+  hp: {}
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+    weight_decay: 0.01
+  label:
+    name: triple_barrier
+    horizon: 48
+    up: 0.02
+    down: 0.02
+  phase: 19
+  seeds:
+  - 0
+  - 1
+  - 2
+  tags:
+  - baseline
+- arch: MLP_FAM
+  hp:
+    width: 64
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 48
+    up: 0.02
+    down: 0.02
+  phase: 19
+  seeds:
+  - 0
+  - 1
+  tags:
+  - rep
+- arch: LSTM_FAM
+  hp:
+    hidden: 32
+    depth: 2
+    input_norm: false
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 48
+    up: 0.02
+    down: 0.02
+  phase: 19
+  seeds:
+  - 0
+  - 1
+  tags:
+  - rep
+- arch: TRANSFORMER_FAM
+  hp:
+    d_model: 32
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 48
+    up: 0.02
+    down: 0.02
+  phase: 19
+  seeds:
+  - 0
+  - 1
+  tags:
+  - rep
+- arch: TCN_FAM
+  hp:
+    channels: 64
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 48
+    up: 0.02
+    down: 0.02
+  phase: 19
+  seeds:
+  - 0
+  - 1
+  tags:
+  - rep
+- arch: Wavenet
+  hp: {}
+  input_set: ind24
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 48
+    up: 0.02
+    down: 0.02
+  phase: 19
+  seeds:
+  - 0
+  - 1
+  tags:
+  - rep
