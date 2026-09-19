@@ -47,6 +47,11 @@ _ROW_FIELDS = [
     "logloss", "auroc_sell", "auroc_hold", "auroc_buy", "auroc_macro", "ece",
     "reliability_bins", "confusion",
     "buy_prec_at_08", "buy_cov_at_08",
+    "trig_buy_n", "trig_buy_base_rate", "trig_buy_prec_argmax", "trig_buy_auroc",
+    "trig_buy_mcc",
+    "trig_sell_n", "trig_sell_base_rate", "trig_sell_prec_argmax", "trig_sell_auroc",
+    "trig_sell_mcc",
+    "trig_rule_mcc",
     "n_params", "train_seconds", "epochs_run", "best_epoch",
     "infer_ms_per_window_b256", "infer_ms_per_window_b1", "mlx_peak_mb",
     "harness_version", "git_sha", "started_at", "finished_at", "weights_path",
@@ -60,6 +65,15 @@ def _make_frame(seed: int) -> pd.DataFrame:
     data = {c: rng.normal(size=N_ROWS) for c in F.IND24}
     data["date"] = dates
     data["label"] = rng.integers(0, 3, N_ROWS).astype(np.int8)
+    # RAW guard_metric/bb_width (`_build_tensors` reads these directly off the frame
+    # `data.load_all()` would otherwise provide, to feed `metrics.trigger_masks`): natural
+    # ranges ([-1, 1] and a small positive ratio) straddling the default thresholds (0.3,
+    # 0.035) so BUY-trigger, SELL-trigger and non-trigger rows all occur -> trig_buy_n > 0.
+    # `bb_width` here overwrites the unrelated scaled-feature-space value the IND24 loop
+    # above already produced (bb_width is itself part of IND24) since only this raw one is
+    # ever read for the trigger rule.
+    data["guard_metric"] = rng.uniform(-1.0, 1.0, size=N_ROWS)
+    data["bb_width"] = rng.uniform(0.0, 0.08, size=N_ROWS)
     return pd.DataFrame(data)
 
 
@@ -121,6 +135,10 @@ def test_run_one_majority_baseline(_patch_run_module):
     assert row["train_seconds"] == 0.0
     assert row["epochs_run"] == 0
     assert row["pairs_included"] == PAIRS
+    # the synthetic guard_metric/bb_width columns straddle both trigger thresholds, so the
+    # BUY-trigger conditional fields are actually populated (not just present-but-empty).
+    assert row["trig_buy_n"] > 0
+    assert row["trig_sell_n"] > 0
 
     on_disk = _last_row(_patch_run_module)
     assert set(_ROW_FIELDS) <= set(on_disk.keys())

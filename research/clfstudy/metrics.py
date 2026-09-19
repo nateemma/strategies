@@ -56,12 +56,80 @@ def _auroc_one_vs_rest(y_true: np.ndarray, class_score: np.ndarray, class_idx: i
         return float(roc_auc_score(y_bin, class_score))
 
 
+def trigger_masks(
+    guard_metric: np.ndarray,
+    bb_width: np.ndarray,
+    guard_threshold: float = 0.3,
+    bb_width_threshold: float = 0.035,
+) -> tuple:
+    """Boolean (buy_mask, sell_mask) for the gbb label's learning-free trigger rule
+    (`Framework/TrainingSignals.py::labels_gbb`/`labels_gbb_sell`, guard_metric/bb_width
+    only, no future-gain condition -- that condition is what makes a triggered bar an
+    actual BUY/SELL label rather than just a trigger candidate).
+
+    BUY triggers where `guard_metric < guard_threshold` and `bb_width > bb_width_threshold`;
+    SELL triggers where `guard_metric > guard_threshold` and `bb_width > bb_width_threshold`.
+    The two masks are mutually exclusive by construction (same threshold, opposite
+    inequality on the same quantity).
+    """
+    guard_metric = np.asarray(guard_metric, dtype=float)
+    bb_width = np.asarray(bb_width, dtype=float)
+    wide = bb_width > bb_width_threshold
+    buy_mask = (guard_metric < guard_threshold) & wide
+    sell_mask = (guard_metric > guard_threshold) & wide
+    return buy_mask, sell_mask
+
+
+def _trigger_side_metrics(
+    y_true: np.ndarray, y_pred: np.ndarray, proba: np.ndarray, mask: np.ndarray, class_idx: int
+) -> dict:
+    """`trig_{side}_n/base_rate/prec_argmax/auroc/mcc` for one side (BUY or SELL), computed
+    only over rows where `mask` is True (research finding: conditional-on-trigger metrics
+    are the ones that separate a trained model from the deterministic trigger rule itself).
+    """
+    n = int(mask.sum())
+    if n == 0:
+        return {
+            "n": 0,
+            "base_rate": float("nan"),
+            "prec_argmax": float("nan"),
+            "auroc": float("nan"),
+            "mcc": float("nan"),
+        }
+    sub_true = y_true[mask]
+    sub_pred = y_pred[mask]
+    sub_score = proba[mask, class_idx]
+
+    base_rate = float((sub_true == class_idx).mean())
+
+    pred_pos = sub_pred == class_idx
+    prec_argmax = float((sub_true[pred_pos] == class_idx).mean()) if pred_pos.any() else float("nan")
+
+    auroc = _auroc_one_vs_rest(sub_true, sub_score, class_idx)
+
+    true_bin = (sub_true == class_idx).astype(int)
+    pred_bin = pred_pos.astype(int)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        mcc = float(matthews_corrcoef(true_bin, pred_bin))
+
+    return {
+        "n": n,
+        "base_rate": base_rate,
+        "prec_argmax": prec_argmax,
+        "auroc": auroc,
+        "mcc": mcc,
+    }
+
+
 def score(
     y_true: np.ndarray,
     proba: np.ndarray,
     buy_threshold: float = 0.8,
     n_bins: int = 15,
     collapse_frac: float = 0.995,
+    buy_mask: np.ndarray | None = None,
+    sell_mask: np.ndarray | None = None,
 ) -> dict:
     """Score one test-set prediction against the ternary labels (spec FR-016..FR-025).
 
@@ -73,18 +141,37 @@ def score(
         n_bins: number of equal-width confidence bins for ECE (FR-022).
         collapse_frac: fraction of predicted rows in a single class above which a run is
             flagged `collapsed`.
+        buy_mask/sell_mask: optional (N,) bool arrays (from `trigger_masks`) marking which
+            test rows the gbb label's deterministic BUY/SELL trigger fires on. When given,
+            `score()` additionally reports metrics CONDITIONAL on the trigger -- among
+            trigger-fired bars, how well the model's prediction separates the ones the label
+            actually confirms (BUY/SELL) from the ones it doesn't (HOLD) -- since the trigger
+            rule alone already scores as well as a trained model unconditionally (research
+            finding motivating this module). When either is `None` (default, matches every
+            existing caller), no `trig_*` keys are added.
 
     Returns:
         dict with keys: bal_acc, macro_f1, mcc, prec_sell, prec_hold, prec_buy, rec_sell,
         rec_hold, rec_buy, logloss, auroc_sell, auroc_hold, auroc_buy, auroc_macro, ece,
         reliability_bins, confusion, buy_prec_at_08, buy_cov_at_08, pred_counts, class_counts,
-        collapsed, class_absent.
+        collapsed, class_absent, and -- only when `buy_mask`/`sell_mask` are given --
+        trig_buy_n, trig_buy_base_rate, trig_buy_prec_argmax, trig_buy_auroc, trig_buy_mcc,
+        trig_sell_n, trig_sell_base_rate, trig_sell_prec_argmax, trig_sell_auroc,
+        trig_sell_mcc, trig_rule_mcc.
     """
     y_true = np.asarray(y_true, dtype=int)
     proba = np.asarray(proba, dtype=float)
     n = y_true.shape[0]
     if proba.shape != (n, _N_CLASSES):
         raise ValueError(f"proba must have shape ({n}, {_N_CLASSES}), got {proba.shape}")
+    if buy_mask is not None:
+        buy_mask = np.asarray(buy_mask, dtype=bool)
+        if buy_mask.shape != (n,):
+            raise ValueError(f"buy_mask must have shape ({n},), got {buy_mask.shape}")
+    if sell_mask is not None:
+        sell_mask = np.asarray(sell_mask, dtype=bool)
+        if sell_mask.shape != (n,):
+            raise ValueError(f"sell_mask must have shape ({n},), got {sell_mask.shape}")
 
     y_pred = np.argmax(proba, axis=1)
 
@@ -145,11 +232,13 @@ def score(
 
     out["confusion"] = confusion_matrix(y_true, y_pred, labels=_CLASS_LABELS).tolist()
 
-    buy_mask = proba[:, 2] >= buy_threshold
+    # local name distinct from the `buy_mask` parameter (the gbb trigger-rule mask below) --
+    # this is an unrelated secondary view thresholding the model's own BUY probability.
+    buy_at_threshold_mask = proba[:, 2] >= buy_threshold
     out["buy_prec_at_08"] = (
-        float((y_true[buy_mask] == 2).mean()) if buy_mask.any() else float("nan")
+        float((y_true[buy_at_threshold_mask] == 2).mean()) if buy_at_threshold_mask.any() else float("nan")
     )
-    out["buy_cov_at_08"] = float(buy_mask.mean()) if n > 0 else float("nan")
+    out["buy_cov_at_08"] = float(buy_at_threshold_mask.mean()) if n > 0 else float("nan")
 
     pred_counts = np.bincount(y_pred, minlength=_N_CLASSES)[:_N_CLASSES]
     class_counts = np.bincount(y_true, minlength=_N_CLASSES)[:_N_CLASSES]
@@ -157,6 +246,20 @@ def score(
     out["class_counts"] = class_counts.tolist()
     out["collapsed"] = bool(n > 0 and pred_counts.max() / n >= collapse_frac)
     out["class_absent"] = bool((class_counts == 0).any())
+
+    if buy_mask is not None:
+        for key, val in _trigger_side_metrics(y_true, y_pred, proba, buy_mask, 2).items():
+            out[f"trig_buy_{key}"] = val
+    if sell_mask is not None:
+        for key, val in _trigger_side_metrics(y_true, y_pred, proba, sell_mask, 0).items():
+            out[f"trig_sell_{key}"] = val
+    if buy_mask is not None and sell_mask is not None:
+        rule_pred = np.full(n, 1, dtype=int)  # HOLD everywhere the trigger doesn't fire
+        rule_pred[sell_mask] = 0
+        rule_pred[buy_mask] = 2
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            out["trig_rule_mcc"] = float(matthews_corrcoef(y_true, rule_pred))
 
     return out
 

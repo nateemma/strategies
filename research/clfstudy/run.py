@@ -59,6 +59,11 @@ _METRIC_KEYS = (
     "prec_sell", "prec_hold", "prec_buy", "rec_sell", "rec_hold", "rec_buy",
     "logloss", "auroc_sell", "auroc_hold", "auroc_buy", "auroc_macro", "ece",
     "reliability_bins", "confusion", "buy_prec_at_08", "buy_cov_at_08",
+    "trig_buy_n", "trig_buy_base_rate", "trig_buy_prec_argmax", "trig_buy_auroc",
+    "trig_buy_mcc",
+    "trig_sell_n", "trig_sell_base_rate", "trig_sell_prec_argmax", "trig_sell_auroc",
+    "trig_sell_mcc",
+    "trig_rule_mcc",
 )
 
 _METRIC_DEFAULTS: Dict[str, Any] = {
@@ -70,6 +75,13 @@ _METRIC_DEFAULTS: Dict[str, Any] = {
     "auroc_macro": float("nan"), "ece": float("nan"), "reliability_bins": [],
     "confusion": [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
     "buy_prec_at_08": float("nan"), "buy_cov_at_08": float("nan"),
+    "trig_buy_n": float("nan"), "trig_buy_base_rate": float("nan"),
+    "trig_buy_prec_argmax": float("nan"), "trig_buy_auroc": float("nan"),
+    "trig_buy_mcc": float("nan"),
+    "trig_sell_n": float("nan"), "trig_sell_base_rate": float("nan"),
+    "trig_sell_prec_argmax": float("nan"), "trig_sell_auroc": float("nan"),
+    "trig_sell_mcc": float("nan"),
+    "trig_rule_mcc": float("nan"),
 }
 
 
@@ -253,16 +265,35 @@ def _build_tensors(cfg: ExperimentConfig, window_id: str) -> Dict[str, Any]:
         scaled = features.apply_scaler(frame, scaler, cols)
         scaled["date"] = frame["date"].to_numpy()
         scaled["label"] = frame["label"].to_numpy()
+        # RAW (pre-scaling) guard_metric/bb_width, under names distinct from any (possibly
+        # scaled) same-named column already in `scaled` (e.g. `bb_width` is itself in IND24
+        # and gets RobustScaler-transformed above) -- only used downstream to reconstruct the
+        # gbb label's deterministic trigger rule (metrics.trigger_masks/score), never fed to
+        # a model. `data.load_all()` frames always carry both (DataframePopulator's MINIMAL
+        # indicator set); a caller-supplied frame that doesn't (e.g. a synthetic test frame
+        # built without them) falls back to NaN, which trivially fails every trigger
+        # comparison -- trig_* metrics become "no trigger rows", never a crash.
+        n_rows = len(frame)
+        scaled["_guard_metric_raw"] = (
+            frame["guard_metric"].to_numpy() if "guard_metric" in frame.columns
+            else np.full(n_rows, np.nan)
+        )
+        scaled["_bb_width_raw"] = (
+            frame["bb_width"].to_numpy() if "bb_width" in frame.columns
+            else np.full(n_rows, np.nan)
+        )
         scaled_frames[pair] = scaled
 
     tensors = windows.make_tensors(
-        scaled_frames, roles, cols, cfg.seq_len, stride=cfg.train["stride"], label_col="label"
+        scaled_frames, roles, cols, cfg.seq_len, stride=cfg.train["stride"], label_col="label",
+        guard_metric_col="_guard_metric_raw", bb_width_col="_bb_width_raw",
     )
     del scaled_frames
 
     X_train, y_train_1h, y_train_int = tensors["train"]
     X_val, y_val_1h, y_val_int = tensors["val"]
     X_test, y_test_int, test_dates, test_pairs = tensors["test"]
+    test_guard_metric, test_bb_width = tensors["test_trigger"]
     del tensors
 
     return {
@@ -274,6 +305,7 @@ def _build_tensors(cfg: ExperimentConfig, window_id: str) -> Dict[str, Any]:
         "X_val": X_val, "y_val_1h": y_val_1h, "y_val_int": y_val_int,
         "X_test": X_test, "y_test_int": y_test_int,
         "test_dates": test_dates, "test_pairs": test_pairs,
+        "test_guard_metric": test_guard_metric, "test_bb_width": test_bb_width,
     }
 
 
@@ -361,6 +393,7 @@ def run_one(
         X_train, y_train_1h, y_train_int = prep["X_train"], prep["y_train_1h"], prep["y_train_int"]
         X_val, y_val_1h = prep["X_val"], prep["y_val_1h"]
         X_test, y_test_int = prep["X_test"], prep["y_test_int"]
+        test_guard_metric, test_bb_width = prep["test_guard_metric"], prep["test_bb_width"]
 
         n_train, n_val, n_test = len(X_train), len(X_val), len(X_test)
         class_counts_train = np.bincount(y_train_int, minlength=3)[:3].tolist()
@@ -406,7 +439,8 @@ def run_one(
         if not np.isfinite(proba).all():
             raise ValueError("non-finite values in predicted probabilities")
 
-        m = metrics.score(y_test_int, proba)
+        buy_mask, sell_mask = metrics.trigger_masks(test_guard_metric, test_bb_width)
+        m = metrics.score(y_test_int, proba, buy_mask=buy_mask, sell_mask=sell_mask)
         metric_fields = {k: m[k] for k in _METRIC_KEYS}
         pred_counts = m["pred_counts"]
         class_counts_test = m["class_counts"]

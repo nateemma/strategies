@@ -220,6 +220,127 @@ def test_buy_precision_nan_when_none_above_threshold():
 
 
 # ---------------------------------------------------------------------------
+# trigger_masks / trig_* conditional-on-trigger metrics (research finding: the gbb label
+# is half a deterministic guard_metric/bb_width threshold rule -- these metrics measure
+# what a trained model adds ON TOP of that rule, among the bars the rule fires on).
+# ---------------------------------------------------------------------------
+# 10-row fixture: rows 0-5 are BUY-trigger bars (guard_metric < 0.3, bb_width > 0.035),
+# rows 6-9 are SELL-trigger bars (guard_metric > 0.3, bb_width > 0.035); no row is outside
+# both triggers, so `trig_rule_mcc`'s rule_pred is BUY for 0-5 and SELL for 6-9 with no
+# HOLD fallback needed. y_pred below is `np.argmax(proba, axis=1)`.
+_TRIG_GUARD = np.array([-0.5, -0.4, -0.3, -0.2, -0.1, 0.0, 0.5, 0.6, 0.4, 0.35])
+_TRIG_BBW = np.array([0.05, 0.06, 0.04, 0.045, 0.05, 0.06, 0.05, 0.06, 0.04, 0.045])
+_TRIG_Y_TRUE = np.array([2, 2, 1, 1, 2, 1, 0, 1, 0, 1])
+_TRIG_PROBA = np.array(
+    [
+        [0.10, 0.10, 0.80],  # r0 BUY-trigger, true BUY, pred BUY
+        [0.10, 0.20, 0.70],  # r1 BUY-trigger, true BUY, pred BUY
+        [0.20, 0.70, 0.10],  # r2 BUY-trigger, true HOLD, pred HOLD
+        [0.10, 0.30, 0.60],  # r3 BUY-trigger, true HOLD, pred BUY (false positive)
+        [0.35, 0.40, 0.25],  # r4 BUY-trigger, true BUY, pred HOLD (missed)
+        [0.20, 0.60, 0.20],  # r5 BUY-trigger, true HOLD, pred HOLD
+        [0.70, 0.20, 0.10],  # r6 SELL-trigger, true SELL, pred SELL
+        [0.30, 0.60, 0.10],  # r7 SELL-trigger, true HOLD, pred HOLD
+        [0.20, 0.50, 0.30],  # r8 SELL-trigger, true SELL, pred HOLD (missed)
+        [0.60, 0.30, 0.10],  # r9 SELL-trigger, true HOLD, pred SELL (false positive)
+    ]
+)
+
+
+def test_trigger_masks_disjoint_and_correct():
+    buy_mask, sell_mask = metrics.trigger_masks(_TRIG_GUARD, _TRIG_BBW)
+    assert buy_mask.tolist() == [True] * 6 + [False] * 4
+    assert sell_mask.tolist() == [False] * 6 + [True] * 4
+    assert not np.any(buy_mask & sell_mask)
+
+
+def test_trig_buy_conditional_metrics():
+    # buy-trigger rows 0-5: sub_true=[2,2,1,1,2,1], sub_pred (argmax)=[2,2,1,2,1,1].
+    # base_rate = P(true==BUY | trigger) = 3/6 = 0.5 (rows 0,1,4 are true BUY).
+    # predicted-BUY rows among the trigger = {0,1,3}; of those, true BUY = {0,1} -> 2/3.
+    # binary confusion (true_bin vs pred_bin over the 6 rows): TP=2 (r0,r1), FN=1 (r4),
+    # FP=1 (r3), TN=2 (r2,r5) -> MCC = (TP*TN-FP*FN)/sqrt(prod of margins)
+    #   = (2*2 - 1*1) / sqrt(3*3*3*3) = 3/9 = 1/3.
+    # AUROC on proba[:,2] restricted to the trigger rows, positives={r0:.8,r1:.7,r4:.25},
+    # negatives={r2:.1,r3:.6,r5:.2} -> 8 of 9 positive/negative pairs rank correctly
+    # (only pos=.25 vs neg=.6 is a loss) -> 8/9.
+    buy_mask, sell_mask = metrics.trigger_masks(_TRIG_GUARD, _TRIG_BBW)
+    out = metrics.score(_TRIG_Y_TRUE, _TRIG_PROBA, buy_mask=buy_mask, sell_mask=sell_mask)
+
+    assert out["trig_buy_n"] == 6
+    assert out["trig_buy_base_rate"] == pytest.approx(0.5)
+    assert out["trig_buy_prec_argmax"] == pytest.approx(2.0 / 3.0)
+    assert out["trig_buy_mcc"] == pytest.approx(1.0 / 3.0)
+    assert out["trig_buy_auroc"] == pytest.approx(8.0 / 9.0)
+
+
+def test_trig_sell_conditional_metrics():
+    # sell-trigger rows 6-9: sub_true=[0,1,0,1], sub_pred=[0,1,1,0].
+    # base_rate = P(true==SELL | trigger) = 2/4 = 0.5.
+    # predicted-SELL rows = {r6,r9}; of those, true SELL = {r6} -> 1/2.
+    # binary confusion: TP=1 (r6), FN=1 (r8), FP=1 (r9), TN=1 (r7)
+    #   -> MCC = (1*1 - 1*1) / sqrt(2*2*2*2) = 0/4 = 0.
+    # AUROC on proba[:,0], positives={r6:.7,r8:.2}, negatives={r7:.3,r9:.6}: pos=.7 beats
+    # both negatives, pos=.2 beats neither -> 2 of 4 pairs -> 0.5.
+    buy_mask, sell_mask = metrics.trigger_masks(_TRIG_GUARD, _TRIG_BBW)
+    out = metrics.score(_TRIG_Y_TRUE, _TRIG_PROBA, buy_mask=buy_mask, sell_mask=sell_mask)
+
+    assert out["trig_sell_n"] == 4
+    assert out["trig_sell_base_rate"] == pytest.approx(0.5)
+    assert out["trig_sell_prec_argmax"] == pytest.approx(0.5)
+    assert out["trig_sell_mcc"] == pytest.approx(0.0)
+    assert out["trig_sell_auroc"] == pytest.approx(0.5)
+
+
+def test_trig_rule_mcc_is_3class_mcc_of_the_deterministic_rule():
+    # rule_pred = BUY (2) on every buy-trigger row, SELL (0) on every sell-trigger row (no
+    # row here is outside both triggers). Confusion matrix (rows=true 0/1/2, cols=pred
+    # 0/1/2), from y_true vs rule_pred=[2,2,2,2,2,2,0,0,0,0]:
+    #   true=0 (r6,r8): both pred=0            -> row [2,0,0]
+    #   true=1 (r2,r3,r5,r7,r9): pred={2,2,2,0,0} -> row [2,0,3]
+    #   true=2 (r0,r1,r4): all pred=2          -> row [0,0,3]
+    # Gorodkin multiclass MCC: c=trace=2+0+3=5, s=N=10,
+    # p_k (pred col sums)=[4,0,6], t_k (true row sums)=[2,5,3].
+    # MCC = (c*s - sum(p_k*t_k)) / sqrt((s^2-sum(p_k^2))*(s^2-sum(t_k^2)))
+    #     = (50 - (4*2+0*5+6*3)) / sqrt((100-52)*(100-38))
+    #     = (50-26) / sqrt(48*62) = 24/sqrt(2976)
+    buy_mask, sell_mask = metrics.trigger_masks(_TRIG_GUARD, _TRIG_BBW)
+    out = metrics.score(_TRIG_Y_TRUE, _TRIG_PROBA, buy_mask=buy_mask, sell_mask=sell_mask)
+    assert out["trig_rule_mcc"] == pytest.approx(24.0 / np.sqrt(48.0 * 62.0))
+
+
+def test_trig_fields_absent_when_masks_not_given():
+    out = metrics.score(_TRIG_Y_TRUE, _TRIG_PROBA)
+    assert not any(k.startswith("trig_") for k in out)
+
+
+def test_trig_buy_auroc_nan_when_all_hold_within_trigger():
+    # every BUY-trigger row is labelled HOLD -> the one-vs-rest AUROC for BUY is undefined
+    # (only one unique value in the true/false-BUY indicator) inside the trigger subset,
+    # even though BUY exists elsewhere in y_true.
+    y_true = np.array([1, 1, 1, 2])
+    proba = np.array(
+        [
+            [0.10, 0.30, 0.60],  # BUY-trigger, true HOLD, pred BUY (false positive)
+            [0.20, 0.70, 0.10],  # BUY-trigger, true HOLD, pred HOLD
+            [0.30, 0.60, 0.10],  # BUY-trigger, true HOLD, pred HOLD
+            [0.10, 0.10, 0.80],  # not a trigger row (guard/bbw below), true BUY, pred BUY
+        ]
+    )
+    guard = np.array([-0.5, -0.4, -0.3, 0.9])
+    bbw = np.array([0.05, 0.06, 0.04, 0.01])  # last row: bb_width under threshold
+    buy_mask, sell_mask = metrics.trigger_masks(guard, bbw)
+    assert buy_mask.tolist() == [True, True, True, False]
+
+    out = metrics.score(y_true, proba, buy_mask=buy_mask, sell_mask=sell_mask)
+    assert out["trig_buy_n"] == 3
+    assert out["trig_buy_base_rate"] == 0.0
+    assert out["trig_buy_prec_argmax"] == pytest.approx(0.0)
+    assert np.isnan(out["trig_buy_auroc"])
+    assert out["trig_buy_mcc"] == pytest.approx(0.0)
+
+
+# ---------------------------------------------------------------------------
 # Baselines
 # ---------------------------------------------------------------------------
 def test_majority_baseline_proba_valid_and_argmax_is_majority_class():

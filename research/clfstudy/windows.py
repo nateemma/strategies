@@ -18,7 +18,7 @@ Memory: at production sizes (~1.5M rows x seq_len=16 x nf=24, float32) the train
 
 from __future__ import annotations
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -53,6 +53,8 @@ def make_tensors(
     seq_len: int,
     stride: int = 1,
     label_col: str = "label",
+    guard_metric_col: Optional[str] = None,
+    bb_width_col: Optional[str] = None,
 ) -> dict:
     """Build train/val/test tensors from per-pair, already-scaled, labelled frames.
 
@@ -64,19 +66,36 @@ def make_tensors(
         seq_len: window length.
         stride: keep every `stride`-th row among the train-role rows (val/test unaffected).
         label_col: integer class-label column name.
+        guard_metric_col: optional column name (in `frames[pair]`) holding the RAW, unscaled
+            `guard_metric` value for each row -- used downstream by
+            `metrics.trigger_masks`/`score` to condition metrics on the gbb label's
+            deterministic trigger rule (research finding: the label is half a threshold
+            rule on guard_metric/bb_width). When `None` (default, matches every existing
+            caller), the `"test_trigger"` key below is omitted entirely.
+        bb_width_col: optional column name (in `frames[pair]`) holding the RAW, unscaled
+            `bb_width` value for each row. Same default/omission behaviour as
+            `guard_metric_col`; both must be given together to get `"test_trigger"`.
 
     Returns:
         {"train": (X, y1h, y_int), "val": (X, y1h, y_int), "test": (X, y_int, dates, pair_ids)}
         — float32 numpy arrays (dates as datetime64[ns, UTC], pair_ids as an object array).
+        When both `guard_metric_col` and `bb_width_col` are given, an additional
+        `"test_trigger": (guard_metric, bb_width)` key is present -- two float64 arrays,
+        row-aligned with `"test"`'s arrays (same per-pair concatenation order), carrying the
+        RAW (pre-scaling) values needed to reconstruct the gbb label's trigger rule. This is
+        a new, additive dict key (never a change to the existing tuple positions), so no
+        existing caller that unpacks `tensors["test"]` as a 4-tuple is affected.
     """
     if stride < 1:
         raise ValueError(f"stride must be >= 1, got {stride}")
 
     du = DataframeUtils()
+    want_trigger = guard_metric_col is not None and bb_width_col is not None
 
     train_X, train_y = [], []
     val_X, val_y = [], []
     test_X, test_y, test_dates, test_pairs = [], [], [], []
+    test_guard, test_bbw = [], []
 
     for pair, frame in frames.items():
         role = np.asarray(roles[pair])
@@ -102,6 +121,9 @@ def make_tensors(
             test_y.append(labels_all[test_idx])
             test_dates.append(dates_all[test_idx])
             test_pairs.append(np.full(len(test_idx), pair, dtype=object))
+            if want_trigger:
+                test_guard.append(frame[guard_metric_col].to_numpy(dtype=np.float64)[test_idx])
+                test_bbw.append(frame[bb_width_col].to_numpy(dtype=np.float64)[test_idx])
 
     def _cat(parts, empty_shape):
         return np.concatenate(parts, axis=0) if parts else np.empty(empty_shape, dtype=np.float32)
@@ -125,8 +147,14 @@ def make_tensors(
     train_y1h = np.asarray(du.one_hot_encode(train_y_arr, 3), dtype=np.float32)
     val_y1h = np.asarray(du.one_hot_encode(val_y_arr, 3), dtype=np.float32)
 
-    return {
+    out = {
         "train": (train_X_arr, train_y1h, train_y_arr),
         "val": (val_X_arr, val_y1h, val_y_arr),
         "test": (test_X_arr, test_y_arr, test_dates_arr, test_pairs_arr),
     }
+    if want_trigger:
+        out["test_trigger"] = (
+            np.concatenate(test_guard, axis=0) if test_guard else np.empty((0,), dtype=np.float64),
+            np.concatenate(test_bbw, axis=0) if test_bbw else np.empty((0,), dtype=np.float64),
+        )
+    return out
