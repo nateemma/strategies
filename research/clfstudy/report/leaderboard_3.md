@@ -1,5 +1,7 @@
 # Leaderboard: phase 3
 
+labels: gbb
+
 Classification metrics against fixed gbb labels; NOT evidence of trading edge (Constitution III).
 
 ## Table 1: pooled leaderboard (seed counts per config: PERSISTENCE=3, LSTM_K5=2, LSTM_W64=2, LSTM_KAN=2, LSTM_PONDER=2, LSTM_NOISY=2, LSTM_D10=2, LSTM_NORES=2, LSTM_NOCONV=2, LSTM_RAW=2, Transformer=2, LSTM=3, LSTM2=2, Multihead=2, GRU=2, Wavenet=3, Mamba2=3, LSTM_POOL=2, MLP=2, LSTM_INJIT=2, Attention=2, LSTM_NORESIZE=2, TSMamba=2, CNN=2, RIDGE=3, ROCKET=3, Mamba=2, ROCKET=3, MAJORITY=3)
@@ -30,8 +32,8 @@ Classification metrics against fixed gbb labels; NOT evidence of trading edge (C
 | 22 | LSTM_NORESIZE | 225a954527c8 | {} | ind24 | 16 | 2 | 0.603 ± 0.000 | 0.715 ± 0.000 | 0.854 ± 0.001 | 0.219 | 0.047 | 0.956 | 0.717 | 0.001 | 10539 | 5.210 | 0.003 | 32.3 | - |
 | 23 | TSMamba | f1f70fadabbb | {} | ind24 | 16 | 2 | 0.592 ± 0.003 | 0.707 ± 0.004 | 0.838 ± 0.009 | 0.231 | 0.057 | 0.954 | 0.598 | 0.023 | 37435 | 15.282 | 0.010 | 23.2 | - |
 | 24 | CNN | 076666f04306 | {} | ind24 | 16 | 2 | 0.549 ± 0.003 | 0.663 ± 0.004 | 0.870 ± 0.003 | 0.458 | 0.052 | 0.941 | 0.619 | 0.034 | 2211 | 2.633 | 0.001 | 40.0 | - |
-| 25 | RIDGE | d1dc0339b10b | {} | ind24 | 16 | 3 | 0.538 ± 0.002 | 0.658 ± 0.002 | 0.864 ± 0.002 | 0.556 | 0.153 | 0.937 | 0.588 | 0.036 | 1155 | 1.155 | 0.001 | 30.6 | baseline |
-| 26 | ROCKET | 12c3636e7110 | {"feature_norm": "standardize"} | ind24 | 16 | 3 | 0.497 ± 0.029 | 0.633 ± 0.017 | 0.805 ± 0.061 | 0.465 | 0.053 | 0.929 | 0.592 | 0.040 | 6003 | 17.109 | 0.021 | 35.9 | baseline |
+| 25 | RIDGE | d1dc0339b10b | {} | ind24 | 16 | 3 | 0.539 ± 0.003 | 0.659 ± 0.003 | 0.864 ± 0.002 | 0.555 | 0.154 | 0.937 | 0.588 | 0.036 | 1155 | 1.245 | 0.001 | 32.1 | baseline |
+| 26 | ROCKET | 12c3636e7110 | {"feature_norm": "standardize"} | ind24 | 16 | 3 | 0.497 ± 0.029 | 0.633 ± 0.017 | 0.805 ± 0.061 | 0.466 | 0.054 | 0.929 | 0.591 | 0.040 | 6003 | 15.791 | 0.022 | 34.6 | baseline |
 | 27 | Mamba | 9c5b1e952784 | {} | ind24 | 16 | 2 | 0.492 ± 0.049 | 0.601 ± 0.039 | 0.855 ± 0.010 | 0.807 | 0.160 | 0.889 | 0.368 | 0.089 | 21315 | 49.660 | 0.012 | 40.0 | - |
 | 28 | ROCKET | c43f5e55fe61 | {} | ind24 | 16 | 3 | 0.313 ± 0.189 | 0.525 ± 0.132 | 0.575 ± 0.116 | 0.463 | 0.098 | 0.816 | 0.620 | 0.015 | 6003 | 5.326 | 0.023 | 14.8 | collapsed,baseline |
 | 29 | MAJORITY | 6f0c110ce13c | {} | ind24 | 16 | 3 | 0.000 ± 0.000 | 0.310 ± 0.000 | 0.333 ± 0.000 | 0.482 | 0.037 | 0.500 | NaN | 0.000 | 0 | 0.000 | NaN | 0.0 | collapsed,baseline |
@@ -64,8 +66,8 @@ Classification metrics against fixed gbb labels; NOT evidence of trading edge (C
 | LSTM_NORESIZE | 225a954527c8 | 0.663 ± 0.000 | 0.641 ± NaN | 0.504 ± NaN | 0.743 ± 0.000 | 0.728 ± NaN | 0.673 ± NaN |
 | TSMamba | f1f70fadabbb | 0.502 ± 0.004 | 0.638 ± 0.002 | 0.636 ± 0.002 | 0.664 ± 0.009 | 0.728 ± 0.001 | 0.728 ± 0.002 |
 | CNN | 076666f04306 | 0.555 ± 0.004 | 0.537 ± 0.004 | 0.555 ± 0.003 | 0.668 ± 0.006 | 0.653 ± 0.002 | 0.669 ± 0.002 |
-| RIDGE | d1dc0339b10b | 0.533 ± 0.003 | 0.535 ± 0.000 | 0.547 ± 0.003 | 0.656 ± 0.003 | 0.652 ± 0.000 | 0.666 ± 0.002 |
-| ROCKET | 12c3636e7110 | 0.450 ± 0.082 | 0.516 ± 0.003 | 0.526 ± 0.003 | 0.611 ± 0.048 | 0.638 ± 0.002 | 0.650 ± 0.002 |
+| RIDGE | d1dc0339b10b | 0.533 ± 0.003 | 0.537 ± 0.003 | 0.547 ± 0.002 | 0.656 ± 0.003 | 0.654 ± 0.003 | 0.666 ± 0.001 |
+| ROCKET | 12c3636e7110 | 0.450 ± 0.082 | 0.516 ± 0.002 | 0.526 ± 0.002 | 0.611 ± 0.048 | 0.638 ± 0.002 | 0.649 ± 0.001 |
 | Mamba | 9c5b1e952784 | 0.513 ± 0.079 | 0.470 ± 0.019 | NaN ± NaN | 0.621 ± 0.064 | 0.581 ± 0.014 | NaN ± NaN |
 | ROCKET | c43f5e55fe61 | 0.539 ± 0.006 | 0.214 ± 0.303 | 0.186 ± 0.256 | 0.671 ± 0.004 | 0.459 ± 0.221 | 0.446 ± 0.172 |
 | MAJORITY | 6f0c110ce13c | 0.000 ± 0.000 | 0.000 ± 0.000 | 0.000 ± 0.000 | 0.315 ± 0.000 | 0.303 ± 0.000 | 0.311 ± 0.000 |
@@ -78,7 +80,7 @@ Classification metrics against fixed gbb labels; NOT evidence of trading edge (C
 | 0875fd5bd454 | LSTM_INJIT | 0.089 | 0.782 | 0.130 |
 | 098ca2f95a2e | LSTM2 | 0.108 | 0.726 | 0.165 |
 | 0b31c7bb9404 | Multihead | 0.108 | 0.728 | 0.164 |
-| 12c3636e7110 | ROCKET | 0.113 | 0.733 | 0.154 |
+| 12c3636e7110 | ROCKET | 0.119 | 0.717 | 0.164 |
 | 225a954527c8 | LSTM_NORESIZE | 0.088 | 0.777 | 0.135 |
 | 3a4ddb6c4092 | LSTM_NOISY | 0.092 | 0.770 | 0.138 |
 | 3cd40f90604c | LSTM_KAN | 0.105 | 0.742 | 0.153 |
@@ -95,7 +97,7 @@ Classification metrics against fixed gbb labels; NOT evidence of trading edge (C
 | 9c5b1e952784 | Mamba | 0.173 | 0.600 | 0.226 |
 | c43f5e55fe61 | ROCKET | 0.042 | 0.866 | 0.092 |
 | cf6b6ccb530a | Transformer | 0.109 | 0.725 | 0.166 |
-| d1dc0339b10b | RIDGE | 0.129 | 0.712 | 0.159 |
+| d1dc0339b10b | RIDGE | 0.130 | 0.704 | 0.165 |
 | d2bbc0d7fb15 | LSTM | 0.107 | 0.728 | 0.165 |
 | d7fcd89ef3d6 | LSTM_POOL | 0.107 | 0.737 | 0.156 |
 | e645063be7bc | LSTM_W64 | 0.087 | 0.789 | 0.124 |

@@ -1,8 +1,10 @@
 # Leaderboard: phase 4
 
+labels: gbb
+
 Classification metrics against fixed gbb labels; NOT evidence of trading edge (Constitution III).
 
-## Table 1: pooled leaderboard (seed counts per config: PERSISTENCE=3, TRANSFORMER_FAM=2, TRANSFORMER_FAM=2, TRANSFORMER_FAM=2, TRANSFORMER_FAM=2, TRANSFORMER_FAM=2, TRANSFORMER_FAM=2, TRANSFORMER_FAM=2, TRANSFORMER_FAM=2, GRU_FAM=2, LSTM_FAM=2, TCN_FAM=2, TCN_FAM=2, TCN_FAM=2, LSTM_FAM=2, LSTM_FAM=2, MLP_FAM=2, MLP_FAM=2, GRU_FAM=2, LSTM_FAM=2, GRU_FAM=2, LSTM_FAM=2, GRU_FAM=2, MLP_FAM=2, MLP_FAM=2, TCN_FAM=2, GRU_FAM=2, MLP_FAM=2, TCN_FAM=2, GRU_FAM=2, TCN_FAM=2, LSTM_FAM=2, MLP_FAM=2, TRANSFORMER_FAM=2, TCN_FAM=2, TCN_FAM=2, GRU_FAM=2, LSTM_FAM=2, GRU_FAM=2, GRU_FAM=2, GRU_FAM=2, LSTM_FAM=2, LSTM_FAM=2, LSTM_FAM=2, RIDGE=3, GRU_FAM=2, GRU_FAM=2, LSTM_FAM=2, GRU_FAM=2, LSTM_FAM=2, LSTM_FAM=2, GRU_FAM=2, LSTM_FAM=2, GRU_FAM=2, ROCKET=3, LSTM_FAM=2, LSTM_FAM=2, ROCKET=3, MAJORITY=3, MAJORITY=3)
+## Table 1: pooled leaderboard (seed counts per config: PERSISTENCE=3, TRANSFORMER_FAM=2, TRANSFORMER_FAM=2, TRANSFORMER_FAM=2, TRANSFORMER_FAM=2, TRANSFORMER_FAM=2, TRANSFORMER_FAM=2, TRANSFORMER_FAM=2, TRANSFORMER_FAM=2, GRU_FAM=2, LSTM_FAM=2, TCN_FAM=2, TCN_FAM=2, TCN_FAM=2, LSTM_FAM=2, LSTM_FAM=2, MLP_FAM=2, MLP_FAM=2, GRU_FAM=2, LSTM_FAM=2, GRU_FAM=2, LSTM_FAM=2, GRU_FAM=2, MLP_FAM=2, MLP_FAM=2, TCN_FAM=2, GRU_FAM=2, MLP_FAM=2, TCN_FAM=2, GRU_FAM=2, TCN_FAM=2, LSTM_FAM=2, MLP_FAM=2, TRANSFORMER_FAM=2, TCN_FAM=2, TCN_FAM=2, GRU_FAM=2, LSTM_FAM=2, GRU_FAM=2, GRU_FAM=2, GRU_FAM=2, LSTM_FAM=2, LSTM_FAM=2, LSTM_FAM=2, RIDGE=3, GRU_FAM=2, GRU_FAM=2, LSTM_FAM=2, GRU_FAM=2, LSTM_FAM=2, LSTM_FAM=2, GRU_FAM=2, LSTM_FAM=2, GRU_FAM=2, ROCKET=3, LSTM_FAM=2, LSTM_FAM=2, ROCKET=3, MAJORITY=3)
 
 | rank | arch | config_id | hp | input_set | seq_len | n_seeds | MCC | macro-F1 | bal-acc | logloss | ECE | AUROC macro | buy_prec@0.8 | buy_cov@0.8 | n_params | train (min) | infer ms (b256) | epochs_run | flags |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -65,7 +67,6 @@ Classification metrics against fixed gbb labels; NOT evidence of trading edge (C
 | 57 | LSTM_FAM | 51b427ea03a3 | {"hidden": 256} | ind24 | 16 | 2 | 0.486 ± 0.014 | 0.659 ± 0.008 | 0.661 ± 0.017 | 0.224 | 0.015 | 0.949 | 0.661 | 0.004 | 288515 | 7.914 | 0.005 | 17.2 | - |
 | 58 | ROCKET | c43f5e55fe61 | {} | ind24 | 16 | 3 | 0.313 ± 0.189 | 0.525 ± 0.132 | 0.575 ± 0.116 | 0.463 | 0.098 | 0.816 | 0.620 | 0.015 | 6003 | 5.326 | 0.023 | 14.8 | collapsed,baseline |
 | 59 | MAJORITY | 6f0c110ce13c | {} | ind24 | 16 | 3 | 0.000 ± 0.000 | 0.310 ± 0.000 | 0.333 ± 0.000 | 0.482 | 0.037 | 0.500 | NaN | 0.000 | 0 | 0.000 | NaN | 0.0 | collapsed,baseline |
-| 60 | MAJORITY | 0fff74e44056 | {} | ind24 | 16 | 3 | 0.000 ± 0.000 | 0.310 ± 0.000 | 0.333 ± 0.000 | 0.482 | 0.037 | 0.500 | NaN | 0.000 | 0 | 0.000 | NaN | 0.0 | collapsed,baseline |
 
 ## Table 2: per-window MCC and macro-F1 (mean ± seed-std)
 
@@ -130,7 +131,6 @@ Classification metrics against fixed gbb labels; NOT evidence of trading edge (C
 | LSTM_FAM | 51b427ea03a3 | NaN ± NaN | 0.476 ± 0.021 | 0.496 ± 0.006 | NaN ± NaN | 0.650 ± 0.009 | 0.669 ± 0.008 |
 | ROCKET | c43f5e55fe61 | 0.539 ± 0.006 | 0.214 ± 0.303 | 0.186 ± 0.256 | 0.671 ± 0.004 | 0.459 ± 0.221 | 0.446 ± 0.172 |
 | MAJORITY | 6f0c110ce13c | 0.000 ± 0.000 | 0.000 ± 0.000 | 0.000 ± 0.000 | 0.315 ± 0.000 | 0.303 ± 0.000 | 0.311 ± 0.000 |
-| MAJORITY | 0fff74e44056 | 0.000 ± 0.000 | 0.000 ± 0.000 | 0.000 ± NaN | 0.315 ± 0.000 | 0.303 ± 0.000 | 0.311 ± NaN |
 
 ## Table 3: predicted-class share (pooled pred_counts / n_test)
 
@@ -138,7 +138,6 @@ Classification metrics against fixed gbb labels; NOT evidence of trading edge (C
 |---|---|---|---|---|
 | 053da6234557 | GRU_FAM | 0.057 | 0.837 | 0.106 |
 | 0727d8e81d1b | LSTM_FAM | 0.056 | 0.841 | 0.103 |
-| 0fff74e44056 | MAJORITY | 0.000 | 1.000 | 0.000 |
 | 1260944a8d42 | MLP_FAM | 0.107 | 0.731 | 0.162 |
 | 128c3f1c31d8 | LSTM_FAM | 0.063 | 0.831 | 0.106 |
 | 12af479dfaa3 | TCN_FAM | 0.111 | 0.723 | 0.165 |

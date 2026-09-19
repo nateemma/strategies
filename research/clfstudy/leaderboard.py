@@ -33,6 +33,7 @@ import numpy as np
 import pandas as pd
 
 from research.clfstudy import RESULTS_PATH, REPORT_DIR
+from research.clfstudy import labels as labels_mod
 from research.clfstudy.metrics import summarise_seeds
 
 PRINCIPLE_III_NOTE = (
@@ -96,6 +97,55 @@ NUMERIC_COLUMNS = (
 BASELINE_ARCHS = ("MAJORITY", "PERSISTENCE", "RIDGE", "ROCKET")
 
 
+def _label_ident(label) -> str:
+    """Stable identity string for a row's `label` field, for grouping/filtering by label.
+
+    Delegates to `labels.label_key` (already the canonical short/stable string for a `label`
+    dict, used for cache/artifact naming) so `{"name": "gbb"}` and `None` both normalise to
+    `"gbb"`. A missing/non-dict `label` (older rows predate the `label` field -- data-model.md
+    §RunResult) is treated as `None` i.e. gbb. A dict `label_key` can't parse (e.g. a
+    partially-specified triple_barrier dict) falls back to the bare `name`.
+    """
+    label = label if isinstance(label, dict) and label else None
+    try:
+        return labels_mod.label_key(label)
+    except Exception:
+        return str(label.get("name", "gbb")) if isinstance(label, dict) else "gbb"
+
+
+def _phase_filter(work: pd.DataFrame, phase: int) -> pd.DataFrame:
+    """`work` (already `status != "failed"`) restricted to `phase`, plus baseline-arch rows
+    (`BASELINE_ARCHS`) from ANY phase whose `label` matches the label(s) actually used by
+    `phase`'s own rows.
+
+    Baselines are only ever run once (in phase 2, against the gbb label), so a gbb-labelled
+    phase keeps pulling them in for reference as before; a phase using a different `label`
+    (e.g. triple_barrier) must NOT show the phase-2 gbb baselines next to its own rows.
+    """
+    if "label" in work.columns:
+        row_label = work["label"].map(_label_ident)
+    else:
+        row_label = pd.Series(_label_ident(None), index=work.index)
+    phase_mask = work["phase"] == phase
+    phase_labels = set(row_label[phase_mask])
+    baseline_mask = work["arch"].isin(BASELINE_ARCHS) & row_label.isin(phase_labels)
+    return work[phase_mask | baseline_mask]
+
+
+def _phase_label_desc(work: pd.DataFrame, phase: Optional[int]) -> str:
+    """Comma-joined `_label_ident` of `phase`'s OWN rows (baselines pulled in from another
+    phase don't count), for the leaderboard header. `"gbb"` if there are none / no `label`
+    column at all (older rows predate the `label` field -- data-model.md §RunResult).
+    """
+    if work.empty:
+        return "gbb"
+    own = work[work["phase"] == phase] if phase is not None and "phase" in work.columns else work
+    if own.empty or "label" not in own.columns:
+        return "gbb"
+    idents = sorted({_label_ident(v) for v in own["label"]})
+    return ", ".join(idents) if idents else "gbb"
+
+
 def load_results(path: str | Path = RESULTS_PATH) -> pd.DataFrame:
     """Read `results.jsonl` into a flat `DataFrame` (data-model.md §RunResult).
 
@@ -155,16 +205,18 @@ def aggregate(df: pd.DataFrame, phase: Optional[int] = None) -> pd.DataFrame:
     says "mean over windows"). `n_windows` counts the windows a config actually has rows in.
 
     If `phase` is given, only rows with that `phase` are kept EXCEPT the baseline archs
-    (`BASELINE_ARCHS`), which are always included regardless of their own echoed phase (they
-    are only ever run once, in phase 2, and are shown for reference in every later phase's
-    leaderboard).
+    (`BASELINE_ARCHS`), which are always included regardless of their own echoed phase, AS
+    LONG AS their `label` matches the label(s) `phase`'s own rows use (see `_phase_filter`) --
+    baselines are only ever run once, in phase 2 against the gbb label, and are shown for
+    reference in every later gbb-labelled phase's leaderboard, but not in a phase using a
+    different label (e.g. triple_barrier).
     """
     if df is None or df.empty or "status" not in df.columns:
         return pd.DataFrame()
 
     work = df[df["status"] != "failed"].copy()
     if phase is not None:
-        work = work[(work["phase"] == phase) | (work["arch"].isin(BASELINE_ARCHS))]
+        work = _phase_filter(work, phase)
     if work.empty:
         return pd.DataFrame()
 
@@ -277,7 +329,12 @@ def _fmt_pm(mean, std, nd: int = 3) -> str:
 
 
 def _render_markdown(agg: pd.DataFrame, work: pd.DataFrame, phase: int) -> str:
-    lines = [f"# Leaderboard: phase {phase}", "", PRINCIPLE_III_NOTE, ""]
+    label_desc = _phase_label_desc(work, phase)
+    note = (
+        f"Classification metrics against fixed {label_desc} labels; NOT evidence of trading "
+        "edge (Constitution III)."
+    )
+    lines = [f"# Leaderboard: phase {phase}", "", f"labels: {label_desc}", "", note, ""]
 
     if agg.empty:
         lines.append("_No rows for this phase._")
@@ -534,7 +591,7 @@ def write_outputs(
     if not work.empty:
         work = work[work["status"] != "failed"]
         if phase is not None:
-            work = work[(work["phase"] == phase) | (work["arch"].isin(BASELINE_ARCHS))]
+            work = _phase_filter(work, phase)
 
     agg = aggregate(df, phase=phase)
 

@@ -200,6 +200,61 @@ def test_aggregate_sorted_by_pooled_mcc_desc(tmp_path):
     assert agg.iloc[0]["config_id"] == CFG
 
 
+TB_LABEL = {"name": "triple_barrier", "horizon": 48, "up": 0.02, "down": 0.02}
+TB_LABEL_KEY = LB.labels_mod.label_key(TB_LABEL)
+
+
+def test_baseline_included_only_when_label_matches_phase(tmp_path):
+    """A phase-2 gbb baseline (rows predate the `label` field, so it's missing -> normalises
+    to gbb) must still show up in a gbb phase's leaderboard (phase 4, `_base_rows`'s CFG rows
+    also lack `label`), but NOT in a phase using a different label (phase 19, triple_barrier).
+    """
+    rows = _base_rows()  # phase=4, no `label` field -> gbb
+    rows += [
+        make_row("ridgeconfigid", w, s, arch="RIDGE", phase=2, mcc=0.1)
+        for w in ("A", "B", "C")
+        for s in (0, 1)
+    ]  # phase-2 gbb baseline, no `label` field -> gbb
+    rows += [
+        make_row("tbcfgid000001", w, s, arch="LSTM", phase=19, mcc=0.7, label=TB_LABEL)
+        for w in ("A", "B", "C")
+        for s in (0, 1)
+    ]  # phase-19 candidate, triple_barrier label
+    df = pd.DataFrame(rows)
+
+    agg4 = LB.aggregate(df, phase=4)
+    assert {CFG, "ridgeconfigid"} <= set(agg4["config_id"])
+
+    agg19 = LB.aggregate(df, phase=19)
+    assert "tbcfgid000001" in set(agg19["config_id"])
+    assert "ridgeconfigid" not in set(agg19["config_id"])
+    assert CFG not in set(agg19["config_id"])
+
+
+def test_render_markdown_header_reports_phase_label_key(tmp_path):
+    rows = [
+        make_row("tbcfgid000001", w, s, arch="LSTM", phase=19, mcc=0.7, label=TB_LABEL)
+        for w in ("A", "B", "C")
+        for s in (0, 1)
+    ]
+    rows += [
+        make_row("ridgeconfigid", w, s, arch="RIDGE", phase=2, mcc=0.1)
+        for w in ("A", "B", "C")
+        for s in (0, 1)
+    ]
+    df = pd.DataFrame(rows)
+
+    agg = LB.aggregate(df, phase=19)
+    work = LB._phase_filter(df[df["status"] != "failed"], 19)
+    md = LB._render_markdown(agg, work, 19)
+
+    assert TB_LABEL_KEY in md
+    assert "ridgeconfigid" not in md
+    # the header must not misreport a triple_barrier phase's labels as "gbb"
+    header = md.splitlines()[:6]
+    assert not any("gbb" in line for line in header)
+
+
 def test_write_outputs_produces_files_without_error(tmp_path):
     results_path = tmp_path / "results" / "results.jsonl"
     results_path.parent.mkdir(parents=True)
