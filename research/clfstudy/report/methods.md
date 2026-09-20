@@ -218,3 +218,42 @@ at q = 0.75 / 0.80 / 0.85 / 0.90). This is the fourth instance in this study of 
 ineffective parameter; caller-supplied label keys now raise if the labeler cannot accept them,
 but a key the labeler DOES accept and then overrides with a default is still only detectable
 by a balance scan. Scan every new label config before trusting a run.
+
+## Scaling review, and a much larger data finding (2026-09-20)
+
+Question raised: can one pooled scaler serve both BTC and ZEC?
+
+**Indicator features.** Only 6 of the 24 ind24 columns are scaled at all (the rest are
+pre-bounded). Five of those six are effectively pair-invariant (medians within 0.01-0.09 and
+IQRs within ~15% across BTC/ZEC/LINK/SOL). `bb_width` is the exception: median 0.0108 (BTC) vs
+0.0317 (ZEC), IQR 0.0111 vs 0.0323 -- a 3x difference. Under the pooled scaler BTC's median
+bb_width lands at -0.43 and ZEC's at +0.48, so the pair's volatility regime is directly legible
+to the model. Clipping at +/-10 is negligible (<= 0.07% of rows). Whether that is a defect
+depends on the label: gbb's trigger is an ABSOLUTE bb_width > 0.035 and the triple-barrier
+labels use ABSOLUTE +/-x% barriers, so a pair's volatility level genuinely predicts its labels
+and pooled scaling preserves real information; per-pair scaling would erase it. For a
+relative label (ATR-scaled barriers) per-pair scaling would be the better match. Pooled is
+defensible for the current labels but remains an untested assumption.
+
+**BUG: `log_oc` is never scaled.** Its pooled IQR is exactly 0, and sklearn's RobustScaler sets
+`scale_ = 1.0` for a zero-IQR feature, so the column passes through at its native magnitude
+(std 0.005) beside neighbours at std 1.3-5.9 -- a ~1000x mismatch that makes it a dead input.
+Every raw8 result in the study (phases 20, 23-28) was produced with one of the eight features
+effectively disabled.
+
+**ROOT CAUSE, and the larger finding: most bars are gap-fill.** freqtrade fills missing candles
+with open=high=low=close(prev) and volume=0. Zero-volume share of the 15m binanceus data:
+ZEC 54.1%, AAVE 55.0%, BCH 53.7%, NEAR 47.6%, DOT 39.4%, SUI 39.4%, LINK 25.3%, LTC 23.0%,
+AVAX 22.2%, XRP 6.7%, SOL 3.8%. For ZEC, 100% of zero-volume bars have OHLC all equal, and the
+share by year is 65 / 55 / 64 / 63% for 2022-2025, falling to 10% in 2026. So for six of the
+eleven production pairs, roughly half of every training window is synthetic: no trades
+occurred. Labels computed across those stretches measure the absence of trading, not market
+behaviour, and long runs of identical filled bars are the obvious source of the very high
+PERSISTENCE scores (0.76-0.87) seen on every forward-looking label.
+
+Consequences to work through: (a) fix or drop `log_oc` and guard every feature against a
+degenerate pooled IQR; (b) decide how filled bars are handled -- excluding them outright breaks
+the contiguity that windowing and forward-looking labels need, so the likely answer is to
+refuse to emit a SAMPLE whose window or forward horizon is mostly filled; (c) re-examine
+whether 15m on binanceus is the right timeframe/venue for this universe at all, and whether
+earlier pair-level conclusions (e.g. that the edge is structurally ZEC) survive.
