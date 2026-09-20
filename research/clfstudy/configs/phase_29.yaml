@@ -1,0 +1,361 @@
+phase: 29
+description: '019 stage 8: exact mirror of phase 25 (architecture x window length
+  on raw8) with the label swapped to forward_mae H12 gain/loss 1.5% cap 10% (the phase-26
+  ladder top). Settles whether LSTM''s win on strict triple barrier transfers to forward_mae,
+  which so far has only ever been trained with MLP/RIDGE.'
+gate_from: 26
+configs:
+- arch: MLP_FAM
+  hp:
+    width: 64
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.1
+  phase: 29
+  seeds:
+  - 0
+  - 1
+  tags:
+  - control
+  - mlp
+  - sl16
+  - fwdmae_dd10
+- arch: TCN_FAM
+  hp:
+    channels: 64
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.1
+  phase: 29
+  seeds:
+  - 0
+  - 1
+  tags:
+  - conv
+  - tcn_rf7
+  - sl16
+  - fwdmae_dd10
+- arch: LSTM_FAM
+  hp:
+    hidden: 32
+    depth: 2
+    input_norm: false
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.1
+  phase: 29
+  seeds:
+  - 0
+  - 1
+  tags:
+  - recurrent
+  - lstm
+  - sl16
+  - fwdmae_dd10
+- arch: TRANSFORMER_FAM
+  hp:
+    d_model: 32
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.1
+  phase: 29
+  seeds:
+  - 0
+  - 1
+  tags:
+  - attention
+  - transformer
+  - sl16
+  - fwdmae_dd10
+- arch: MLP_FAM
+  hp:
+    width: 64
+  input_set: raw8
+  seq_len: 32
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.1
+  phase: 29
+  seeds:
+  - 0
+  - 1
+  tags:
+  - control
+  - mlp
+  - sl32
+  - fwdmae_dd10
+- arch: TCN_FAM
+  hp:
+    channels: 64
+  input_set: raw8
+  seq_len: 32
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.1
+  phase: 29
+  seeds:
+  - 0
+  - 1
+  tags:
+  - conv
+  - tcn_rf7
+  - sl32
+  - fwdmae_dd10
+- arch: LSTM_FAM
+  hp:
+    hidden: 32
+    depth: 2
+    input_norm: false
+  input_set: raw8
+  seq_len: 32
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.1
+  phase: 29
+  seeds:
+  - 0
+  - 1
+  tags:
+  - recurrent
+  - lstm
+  - sl32
+  - fwdmae_dd10
+- arch: TRANSFORMER_FAM
+  hp:
+    d_model: 32
+  input_set: raw8
+  seq_len: 32
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.1
+  phase: 29
+  seeds:
+  - 0
+  - 1
+  tags:
+  - attention
+  - transformer
+  - sl32
+  - fwdmae_dd10
+- arch: TCN_FAM
+  hp:
+    channels: 64
+    kernel: 2
+    dilations:
+    - 1
+    - 2
+    - 4
+    - 8
+  input_set: raw8
+  seq_len: 32
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.1
+  phase: 29
+  seeds:
+  - 0
+  - 1
+  tags:
+  - conv
+  - tcn_rf31
+  - sl32
+  - fwdmae_dd10
+- arch: MLP_FAM
+  hp:
+    width: 64
+  input_set: raw8
+  seq_len: 64
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.1
+  phase: 29
+  seeds:
+  - 0
+  - 1
+  tags:
+  - control
+  - mlp
+  - sl64
+  - fwdmae_dd10
+- arch: TCN_FAM
+  hp:
+    channels: 64
+  input_set: raw8
+  seq_len: 64
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.1
+  phase: 29
+  seeds:
+  - 0
+  - 1
+  tags:
+  - conv
+  - tcn_rf7
+  - sl64
+  - fwdmae_dd10
+- arch: LSTM_FAM
+  hp:
+    hidden: 32
+    depth: 2
+    input_norm: false
+  input_set: raw8
+  seq_len: 64
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.1
+  phase: 29
+  seeds:
+  - 0
+  - 1
+  tags:
+  - recurrent
+  - lstm
+  - sl64
+  - fwdmae_dd10
+- arch: TRANSFORMER_FAM
+  hp:
+    d_model: 32
+  input_set: raw8
+  seq_len: 64
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.1
+  phase: 29
+  seeds:
+  - 0
+  - 1
+  tags:
+  - attention
+  - transformer
+  - sl64
+  - fwdmae_dd10
+- arch: TCN_FAM
+  hp:
+    channels: 64
+    kernel: 2
+    dilations:
+    - 1
+    - 2
+    - 4
+    - 8
+  input_set: raw8
+  seq_len: 64
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.1
+  phase: 29
+  seeds:
+  - 0
+  - 1
+  tags:
+  - conv
+  - tcn_rf31
+  - sl64
+  - fwdmae_dd10
