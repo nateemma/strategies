@@ -1,0 +1,516 @@
+phase: 24
+description: '019 stage 6: candidate price-only labels from the triage (forward_mae
+  = stop-aware forward return; quantile_future) on RAW OHLCV, balance-matched to the
+  phase-23 incumbent (tb H12 +/-1.5%, HOLD 64%). RIDGE x3 + MLP-64 x2 + tripwires.'
+gate_from: 23
+configs:
+- arch: MAJORITY
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.03
+  phase: 24
+  seeds:
+  - 0
+  tags:
+  - fmae_h12_g015_dd03
+  - tripwire
+- arch: PERSISTENCE
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.03
+  phase: 24
+  seeds:
+  - 0
+  tags:
+  - fmae_h12_g015_dd03
+  - tripwire
+- arch: RIDGE
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+    weight_decay: 0.01
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.03
+  phase: 24
+  seeds:
+  - 0
+  - 1
+  - 2
+  tags:
+  - fmae_h12_g015_dd03
+  - screen
+- arch: MLP_FAM
+  hp:
+    width: 64
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.03
+  phase: 24
+  seeds:
+  - 0
+  - 1
+  tags:
+  - fmae_h12_g015_dd03
+  - screen
+- arch: MAJORITY
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.05
+  phase: 24
+  seeds:
+  - 0
+  tags:
+  - fmae_h12_g015_dd05
+  - tripwire
+- arch: PERSISTENCE
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.05
+  phase: 24
+  seeds:
+  - 0
+  tags:
+  - fmae_h12_g015_dd05
+  - tripwire
+- arch: RIDGE
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+    weight_decay: 0.01
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.05
+  phase: 24
+  seeds:
+  - 0
+  - 1
+  - 2
+  tags:
+  - fmae_h12_g015_dd05
+  - screen
+- arch: MLP_FAM
+  hp:
+    width: 64
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.05
+  phase: 24
+  seeds:
+  - 0
+  - 1
+  tags:
+  - fmae_h12_g015_dd05
+  - screen
+- arch: MAJORITY
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.0125
+    min_loss: 0.0125
+    max_drawdown: 0.03
+  phase: 24
+  seeds:
+  - 0
+  tags:
+  - fmae_h12_g0125_dd03
+  - tripwire
+- arch: PERSISTENCE
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.0125
+    min_loss: 0.0125
+    max_drawdown: 0.03
+  phase: 24
+  seeds:
+  - 0
+  tags:
+  - fmae_h12_g0125_dd03
+  - tripwire
+- arch: RIDGE
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+    weight_decay: 0.01
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.0125
+    min_loss: 0.0125
+    max_drawdown: 0.03
+  phase: 24
+  seeds:
+  - 0
+  - 1
+  - 2
+  tags:
+  - fmae_h12_g0125_dd03
+  - screen
+- arch: MLP_FAM
+  hp:
+    width: 64
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.0125
+    min_loss: 0.0125
+    max_drawdown: 0.03
+  phase: 24
+  seeds:
+  - 0
+  - 1
+  tags:
+  - fmae_h12_g0125_dd03
+  - screen
+- arch: MAJORITY
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 16
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.03
+  phase: 24
+  seeds:
+  - 0
+  tags:
+  - fmae_h16_g015_dd03
+  - tripwire
+- arch: PERSISTENCE
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 16
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.03
+  phase: 24
+  seeds:
+  - 0
+  tags:
+  - fmae_h16_g015_dd03
+  - tripwire
+- arch: RIDGE
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+    weight_decay: 0.01
+  label:
+    name: forward_mae
+    horizon: 16
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.03
+  phase: 24
+  seeds:
+  - 0
+  - 1
+  - 2
+  tags:
+  - fmae_h16_g015_dd03
+  - screen
+- arch: MLP_FAM
+  hp:
+    width: 64
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 16
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.03
+  phase: 24
+  seeds:
+  - 0
+  - 1
+  tags:
+  - fmae_h16_g015_dd03
+  - screen
+- arch: MAJORITY
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: quantile_future
+    horizon: 12
+    top_quantile: 0.8
+    min_gain: 0.001
+    min_loss: 0.001
+  phase: 24
+  seeds:
+  - 0
+  tags:
+  - qfut_h12_q80
+  - tripwire
+- arch: PERSISTENCE
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: quantile_future
+    horizon: 12
+    top_quantile: 0.8
+    min_gain: 0.001
+    min_loss: 0.001
+  phase: 24
+  seeds:
+  - 0
+  tags:
+  - qfut_h12_q80
+  - tripwire
+- arch: RIDGE
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+    weight_decay: 0.01
+  label:
+    name: quantile_future
+    horizon: 12
+    top_quantile: 0.8
+    min_gain: 0.001
+    min_loss: 0.001
+  phase: 24
+  seeds:
+  - 0
+  - 1
+  - 2
+  tags:
+  - qfut_h12_q80
+  - screen
+- arch: MLP_FAM
+  hp:
+    width: 64
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: quantile_future
+    horizon: 12
+    top_quantile: 0.8
+    min_gain: 0.001
+    min_loss: 0.001
+  phase: 24
+  seeds:
+  - 0
+  - 1
+  tags:
+  - qfut_h12_q80
+  - screen
+- arch: MAJORITY
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: quantile_future
+    horizon: 12
+    top_quantile: 0.75
+    min_gain: 0.001
+    min_loss: 0.001
+  phase: 24
+  seeds:
+  - 0
+  tags:
+  - qfut_h12_q75
+  - tripwire
+- arch: PERSISTENCE
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: quantile_future
+    horizon: 12
+    top_quantile: 0.75
+    min_gain: 0.001
+    min_loss: 0.001
+  phase: 24
+  seeds:
+  - 0
+  tags:
+  - qfut_h12_q75
+  - tripwire
+- arch: RIDGE
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+    weight_decay: 0.01
+  label:
+    name: quantile_future
+    horizon: 12
+    top_quantile: 0.75
+    min_gain: 0.001
+    min_loss: 0.001
+  phase: 24
+  seeds:
+  - 0
+  - 1
+  - 2
+  tags:
+  - qfut_h12_q75
+  - screen
+- arch: MLP_FAM
+  hp:
+    width: 64
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: quantile_future
+    horizon: 12
+    top_quantile: 0.75
+    min_gain: 0.001
+    min_loss: 0.001
+  phase: 24
+  seeds:
+  - 0
+  - 1
+  tags:
+  - qfut_h12_q75
+  - screen

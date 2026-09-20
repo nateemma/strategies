@@ -205,3 +205,16 @@ configured ±2%, and the ATR-scaled floor of 0.5% could never apply (ATR-1 label
 from the "±2%" labels by ~5 bars per window). Fix: the shim now passes `pt=up, sl=down`
 explicitly. Phase 19 is re-run at a true ±2% (the +3%/−2% rows are purged; backup in
 report/logs) and the screening campaign restarts afterwards.
+
+## quantile_future's threshold was inert behind the min_gain default (found 2026-09-19 18:20)
+
+A free balance scan of `quantile_future` at `top_quantile` 0.65 / 0.70 / 0.75 returned
+byte-identical class shares (HOLD 74.2% at every setting), which is the signature of a
+parameter that never reaches the labeler's decision. Cause: the generic shim supplies
+`min_gain = min_loss = 0.02` as a default, and `labels_quantile_future_return` applies that
+absolute floor on top of the quantile, so the floor bound and the quantile did nothing. With
+`min_gain = min_loss = 0.001` the quantile binds as intended (HOLD 56.9 / 65.3 / 74.0 / 83.0%
+at q = 0.75 / 0.80 / 0.85 / 0.90). This is the fourth instance in this study of a silently
+ineffective parameter; caller-supplied label keys now raise if the labeler cannot accept them,
+but a key the labeler DOES accept and then overrides with a default is still only detectable
+by a balance scan. Scan every new label config before trusting a run.
