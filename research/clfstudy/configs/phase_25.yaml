@@ -1,0 +1,332 @@
+phase: 25
+description: '019 stage 5: architecture x window length on RAW OHLCV at the phase-23
+  winning label (strict triple barrier H12 +/-1.5%). MLP control vs TCN (RF 7 and
+  dilated RF 31), LSTM, Transformer at seq_len 16/32/64.'
+gate_from: 23
+configs:
+- arch: MLP_FAM
+  hp:
+    width: 64
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 12
+    up: 0.015
+    down: 0.015
+  phase: 25
+  seeds:
+  - 0
+  - 1
+  tags:
+  - control
+  - mlp
+  - sl16
+- arch: TCN_FAM
+  hp:
+    channels: 64
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 12
+    up: 0.015
+    down: 0.015
+  phase: 25
+  seeds:
+  - 0
+  - 1
+  tags:
+  - conv
+  - tcn_rf7
+  - sl16
+- arch: LSTM_FAM
+  hp:
+    hidden: 32
+    depth: 2
+    input_norm: false
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 12
+    up: 0.015
+    down: 0.015
+  phase: 25
+  seeds:
+  - 0
+  - 1
+  tags:
+  - recurrent
+  - lstm
+  - sl16
+- arch: TRANSFORMER_FAM
+  hp:
+    d_model: 32
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 12
+    up: 0.015
+    down: 0.015
+  phase: 25
+  seeds:
+  - 0
+  - 1
+  tags:
+  - attention
+  - transformer
+  - sl16
+- arch: MLP_FAM
+  hp:
+    width: 64
+  input_set: raw8
+  seq_len: 32
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 12
+    up: 0.015
+    down: 0.015
+  phase: 25
+  seeds:
+  - 0
+  - 1
+  tags:
+  - control
+  - mlp
+  - sl32
+- arch: TCN_FAM
+  hp:
+    channels: 64
+  input_set: raw8
+  seq_len: 32
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 12
+    up: 0.015
+    down: 0.015
+  phase: 25
+  seeds:
+  - 0
+  - 1
+  tags:
+  - conv
+  - tcn_rf7
+  - sl32
+- arch: LSTM_FAM
+  hp:
+    hidden: 32
+    depth: 2
+    input_norm: false
+  input_set: raw8
+  seq_len: 32
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 12
+    up: 0.015
+    down: 0.015
+  phase: 25
+  seeds:
+  - 0
+  - 1
+  tags:
+  - recurrent
+  - lstm
+  - sl32
+- arch: TRANSFORMER_FAM
+  hp:
+    d_model: 32
+  input_set: raw8
+  seq_len: 32
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 12
+    up: 0.015
+    down: 0.015
+  phase: 25
+  seeds:
+  - 0
+  - 1
+  tags:
+  - attention
+  - transformer
+  - sl32
+- arch: TCN_FAM
+  hp:
+    channels: 64
+    kernel: 2
+    dilations:
+    - 1
+    - 2
+    - 4
+    - 8
+  input_set: raw8
+  seq_len: 32
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 12
+    up: 0.015
+    down: 0.015
+  phase: 25
+  seeds:
+  - 0
+  - 1
+  tags:
+  - conv
+  - tcn_rf31
+  - sl32
+- arch: MLP_FAM
+  hp:
+    width: 64
+  input_set: raw8
+  seq_len: 64
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 12
+    up: 0.015
+    down: 0.015
+  phase: 25
+  seeds:
+  - 0
+  - 1
+  tags:
+  - control
+  - mlp
+  - sl64
+- arch: TCN_FAM
+  hp:
+    channels: 64
+  input_set: raw8
+  seq_len: 64
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 12
+    up: 0.015
+    down: 0.015
+  phase: 25
+  seeds:
+  - 0
+  - 1
+  tags:
+  - conv
+  - tcn_rf7
+  - sl64
+- arch: LSTM_FAM
+  hp:
+    hidden: 32
+    depth: 2
+    input_norm: false
+  input_set: raw8
+  seq_len: 64
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 12
+    up: 0.015
+    down: 0.015
+  phase: 25
+  seeds:
+  - 0
+  - 1
+  tags:
+  - recurrent
+  - lstm
+  - sl64
+- arch: TRANSFORMER_FAM
+  hp:
+    d_model: 32
+  input_set: raw8
+  seq_len: 64
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 12
+    up: 0.015
+    down: 0.015
+  phase: 25
+  seeds:
+  - 0
+  - 1
+  tags:
+  - attention
+  - transformer
+  - sl64
+- arch: TCN_FAM
+  hp:
+    channels: 64
+    kernel: 2
+    dilations:
+    - 1
+    - 2
+    - 4
+    - 8
+  input_set: raw8
+  seq_len: 64
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 12
+    up: 0.015
+    down: 0.015
+  phase: 25
+  seeds:
+  - 0
+  - 1
+  tags:
+  - conv
+  - tcn_rf31
+  - sl64
