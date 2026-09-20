@@ -245,9 +245,25 @@ def _generic_passthrough_filter(future_df: pd.DataFrame, peaks, signal_type: str
     return list(np.asarray(peaks, dtype=int))
 
 
-def _filter_kwargs(fn, params: Dict[str, Any]) -> Dict[str, Any]:
-    """Keep only the keys of `params` that `fn`'s signature actually accepts (excluding `df`)."""
+def _filter_kwargs(fn, params: Dict[str, Any], strict_keys: "set[str] | None" = None) -> Dict[str, Any]:
+    """Keep only the keys of `params` that `fn`'s signature actually accepts (excluding `df`).
+
+    `strict_keys` are caller-supplied label-config keys that MUST be accepted: if the labeler
+    does not take one, raise instead of dropping it. Silently ignoring a misspelt or
+    inapplicable key is how three earlier defects in this study went unnoticed for a full run
+    (the rvol_threshold landmine, the pt/sl barrier floors, and a label that never reached the
+    isolated child), so a config asking for something the labeler cannot honour is an error.
+    Keys the harness itself supplies (horizon/min_gain/min_loss and the per-method extras) are
+    still filtered silently, since they are defaults rather than requests.
+    """
     accepted = set(inspect.signature(fn).parameters) - {"df"}
+    if strict_keys:
+        unusable = sorted(k for k in strict_keys if k not in accepted)
+        if unusable:
+            raise ValueError(
+                f"{fn.__name__} does not accept label key(s) {unusable}; "
+                f"it accepts {sorted(accepted)}"
+            )
     return {k: v for k, v in params.items() if k in accepted}
 
 
@@ -289,6 +305,7 @@ class _GenericLabelShim:
         extra_params: Optional[Dict[str, Any]] = None,
         conflict_resolution: bool = True,
         peak_filter: bool = False,
+        strict_keys: Optional[Any] = None,
     ) -> None:
         self.TRAINING_TYPE = method
         self.HORIZON = horizon
@@ -297,6 +314,9 @@ class _GenericLabelShim:
         self.LABEL_FILTER_WINDOW = horizon
         self.apply_label_conflict_resolution = conflict_resolution
         self.extra_params = dict(extra_params or {})
+        #: keys the CALLER asked for (as opposed to harness defaults); a labeler that cannot
+        #: accept one of these is a config error, not something to drop silently.
+        self.strict_keys = set(strict_keys or ())
         self.dbg_curr_df = None
         for name in _SHARED_METHODS:
             setattr(self, name, getattr(NNNC_MLX, name).__get__(self))
@@ -317,7 +337,7 @@ class _GenericLabelShim:
 
     def _filtered_params(self) -> Dict[str, Any]:
         buy_fn = TrainingSignals.METHODS[self.TRAINING_TYPE]
-        return _filter_kwargs(buy_fn, self._base_params())
+        return _filter_kwargs(buy_fn, self._base_params(), strict_keys=self.strict_keys)
 
     def get_train_buy_signals(self, future_df: pd.DataFrame) -> pd.Series:
         params = self._filtered_params()
@@ -354,6 +374,7 @@ def ternary_labels_generic(
     min_gain: float = _GENERIC_DEFAULT_MIN_GAIN,
     min_loss: float = _GENERIC_DEFAULT_MIN_LOSS,
     extra_params: Optional[Dict[str, Any]] = None,
+    strict_keys: Optional[Any] = None,
 ) -> np.ndarray:
     """SELL=0/HOLD=1/BUY=2 labels for `df` under `method`, conflict resolution ON, peak
     filter OFF (matching this study's triple-barrier setting). Raises whatever the
@@ -365,6 +386,7 @@ def ternary_labels_generic(
     shim = _GenericLabelShim(
         method=method, horizon=horizon, min_gain=min_gain, min_loss=min_loss,
         extra_params=extra_params, conflict_resolution=True, peak_filter=False,
+        strict_keys=strict_keys,
     )
     working = df.copy()
     trading_classes = shim.get_training_labels(working)
@@ -509,6 +531,9 @@ def ternary_labels(df: pd.DataFrame, label: Optional[Dict[str, Any]] = None) -> 
             min_gain=label.get("min_gain", _GENERIC_DEFAULT_MIN_GAIN),
             min_loss=label.get("min_loss", _GENERIC_DEFAULT_MIN_LOSS),
             extra_params=extra_params,
+            # every key the CONFIG asked for must be honoured by the labeler; a key it cannot
+            # accept raises rather than being silently dropped.
+            strict_keys=set(extra_params) | {k for k in ("min_gain", "min_loss") if k in label},
         )
     else:
         raise ValueError(

@@ -390,3 +390,27 @@ def test_label_key_forward_mae():
 def test_label_key_quantile_future():
     label = {"name": "quantile_future", "horizon": 12, "top_quantile": 0.8}
     assert label_key(label) == "qfut_h12_q0.8"
+
+
+def test_generic_label_rejects_a_key_the_labeler_cannot_accept():
+    """A config key the labeler does not take is an error, not a silent no-op.
+
+    Three defects in this study (rvol_threshold, the pt/sl barrier floors, and a label that
+    never reached the isolated child) all presented as a silently ignored parameter, so the
+    generic path refuses any caller-supplied key the labeler cannot honour.
+    """
+    import pytest
+    from research.clfstudy import labels as labels_mod
+    df = labels_mod_test_frame() if "labels_mod_test_frame" in globals() else None
+    if df is None:
+        from research.clfstudy import data as data_mod
+        df = data_mod.populate(_synthetic_ohlcv())
+    with pytest.raises(ValueError, match="does not accept label key"):
+        labels_mod.ternary_labels(
+            df, label={"name": "forward_mae", "horizon": 12, "top_quantile": 0.8}
+        )
+    # a key the labeler DOES accept still works
+    out = labels_mod.ternary_labels(
+        df, label={"name": "forward_mae", "horizon": 12, "min_gain": 0.015, "max_drawdown": 0.05}
+    )
+    assert set(np.unique(out)) <= {0, 1, 2}
