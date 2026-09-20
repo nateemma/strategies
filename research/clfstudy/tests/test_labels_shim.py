@@ -344,3 +344,49 @@ def test_label_key_differs_by_params():
     a = label_key({"name": "triple_barrier", "horizon": 24, "up": 0.01, "down": 0.01})
     b = label_key({"name": "triple_barrier", "horizon": 48, "up": 0.01, "down": 0.01})
     assert a != b
+
+
+# ---------------------------------------------------------------------------
+# generic PRICE-ONLY labels (research: let an experiment select ANY price-only labeler,
+# not just gbb/triple_barrier)
+# ---------------------------------------------------------------------------
+
+
+def test_ternary_labels_forward_mae_on_synthetic_frame():
+    df = data.populate(_synthetic_ohlcv())
+    label = {"name": "forward_mae", "horizon": 12, "min_gain": 0.015, "max_drawdown": 0.05}
+    labels = ternary_labels(df, label=label)
+
+    assert len(labels) == len(df)
+    assert set(np.unique(labels).tolist()) <= {0, 1, 2}
+    counts = np.bincount(labels, minlength=3)
+    assert counts[0] > 0, "expected at least one SELL label"
+    assert counts[2] > 0, "expected at least one BUY label"
+
+
+def test_ternary_labels_quantile_future_on_synthetic_frame():
+    df = data.populate(_synthetic_ohlcv())
+    label = {"name": "quantile_future", "horizon": 12, "top_quantile": 0.8}
+    labels = ternary_labels(df, label=label)
+
+    assert len(labels) == len(df)
+    assert set(np.unique(labels).tolist()) <= {0, 1, 2}
+    counts = np.bincount(labels, minlength=3)
+    assert counts[0] > 0, "expected at least one SELL label"
+    assert counts[2] > 0, "expected at least one BUY label"
+
+
+def test_ternary_labels_generic_label_unknown_name_rejected():
+    df = data.populate(_synthetic_ohlcv())
+    with pytest.raises(ValueError):
+        ternary_labels(df, label={"name": "not_a_real_generic_label", "horizon": 12})
+
+
+def test_label_key_forward_mae():
+    label = {"name": "forward_mae", "horizon": 12, "min_gain": 0.015, "max_drawdown": 0.05}
+    assert label_key(label) == "fmae_h12_g0.015_dd0.05"
+
+
+def test_label_key_quantile_future():
+    label = {"name": "quantile_future", "horizon": 12, "top_quantile": 0.8}
+    assert label_key(label) == "qfut_h12_q0.8"

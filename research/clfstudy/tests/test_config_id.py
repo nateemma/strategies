@@ -407,3 +407,60 @@ def test_triple_barrier_unknown_key_rejected():
     }
     with pytest.raises(ValueError):
         _cfg(label=label).validate()
+
+
+# ---------------------------------------------------------------------------
+# generic PRICE-ONLY labels (research: let an experiment select ANY price-only labeler)
+# ---------------------------------------------------------------------------
+
+
+def test_forward_mae_label_validates_and_changes_id():
+    base = _cfg()
+    fmae = _cfg(
+        label={"name": "forward_mae", "horizon": 12, "min_gain": 0.015, "max_drawdown": 0.05}
+    )
+    fmae.validate()  # no raise
+    assert config_id(base) != config_id(fmae)
+
+
+def test_quantile_future_label_validates_and_changes_id():
+    base = _cfg()
+    qfut = _cfg(label={"name": "quantile_future", "horizon": 12, "top_quantile": 0.8})
+    qfut.validate()  # no raise
+    assert config_id(base) != config_id(qfut)
+
+
+def test_generic_label_different_params_change_the_id():
+    a = _cfg(label={"name": "forward_mae", "horizon": 12, "min_gain": 0.015})
+    b = _cfg(label={"name": "forward_mae", "horizon": 24, "min_gain": 0.015})
+    assert config_id(a) != config_id(b)
+
+
+def test_generic_label_unknown_name_rejected():
+    with pytest.raises(ValueError):
+        _cfg(label={"name": "not_a_real_generic_label", "horizon": 12}).validate()
+
+
+def test_generic_label_missing_horizon_rejected():
+    with pytest.raises(ValueError):
+        _cfg(label={"name": "forward_mae", "min_gain": 0.015}).validate()
+
+
+@pytest.mark.parametrize("horizon", [0, -1, 1.5, "12"])
+def test_generic_label_invalid_horizon_rejected(horizon):
+    label = {"name": "forward_mae", "horizon": horizon, "min_gain": 0.015}
+    with pytest.raises(ValueError):
+        _cfg(label=label).validate()
+
+
+@pytest.mark.parametrize("value", [0, -0.01, "0.5"])
+def test_generic_label_non_numeric_extra_key_rejected(value):
+    label = {"name": "forward_mae", "horizon": 12, "min_gain": value}
+    with pytest.raises(ValueError):
+        _cfg(label=label).validate()
+
+
+def test_generic_label_extra_key_bool_rejected():
+    label = {"name": "forward_mae", "horizon": 12, "min_gain": True}
+    with pytest.raises(ValueError):
+        _cfg(label=label).validate()

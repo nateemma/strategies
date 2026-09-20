@@ -30,6 +30,7 @@ from typing import Any, Dict, List, Tuple
 import yaml
 
 from research.clfstudy import NUM_CLASSES
+from research.clfstudy.labels import GENERIC_LABEL_NAMES
 from NNNC.NNNClassifierMLX import ClassifierTypeMLX, create_classifier_mlx
 
 # -----------------------------------------------------------------------
@@ -74,7 +75,7 @@ _LABEL_TRIPLE_BARRIER_DEFAULTS: Dict[str, Any] = {
     "peak_filter": False,
 }
 
-_VALID_LABEL_NAMES = ("gbb", "triple_barrier")
+_VALID_LABEL_NAMES = ("gbb", "triple_barrier") + GENERIC_LABEL_NAMES
 
 
 def resolve(arch: str) -> ClassifierTypeMLX:
@@ -173,6 +174,10 @@ class ExperimentConfig:
                 raise ValueError(f"label 'gbb' accepts no extra keys, got {extra}")
             return
 
+        if name in GENERIC_LABEL_NAMES:
+            self._validate_generic_label(name)
+            return
+
         # triple_barrier
         for key in ("horizon", "up", "down"):
             if key not in self.label:
@@ -212,6 +217,29 @@ class ExperimentConfig:
         )
         if extra:
             raise ValueError(f"label 'triple_barrier' has unknown keys {extra}")
+
+    def _validate_generic_label(self, name: str) -> None:
+        """Validate any `GENERIC_LABEL_NAMES` entry: `horizon` (int >= 1) is required;
+        every other key (e.g. `min_gain`, `min_loss`, `max_drawdown`, `top_quantile`,
+        `min_ratio`, `min_sharpe`, `atr_scale`) must be a float/int > 0 -- which key names a
+        given labeler actually accepts is enforced later, at label-generation time, by
+        `labels.ternary_labels_generic`'s signature filtering (research: config-time
+        validation only needs to reject non-numeric junk, not know every labeler's
+        signature)."""
+        if "horizon" not in self.label:
+            raise ValueError(f"label {name!r} missing required key 'horizon'")
+        horizon = self.label["horizon"]
+        if not isinstance(horizon, int) or isinstance(horizon, bool) or horizon < 1:
+            raise ValueError(
+                f"label {name!r} key 'horizon' must be an int >= 1, got {horizon!r}"
+            )
+        for key, value in self.label.items():
+            if key in ("name", "horizon"):
+                continue
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
+                raise ValueError(
+                    f"label {name!r} key {key!r} must be a float > 0, got {value!r}"
+                )
 
 
 def config_id(cfg: ExperimentConfig) -> str:
