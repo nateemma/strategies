@@ -84,11 +84,69 @@ def needs_norm(cols: List[str]) -> List[str]:
     return [c for c in cols if c not in _PRE_NORMALIZED]
 
 
-def fit_scaler(train_df: pd.DataFrame, cols: List[str]) -> RobustScaler:
-    """Fit a RobustScaler on `train_df[needs_norm(cols)]` only (train-span rows, R4 #2)."""
+#: numerical threshold below which a fitted RobustScaler IQR (or a substitute std) is
+#: treated as degenerate/zero (research: measured `log_oc` pooled IQR is exactly 0.0).
+_DEGENERATE_EPS = 1e-12
+
+_VALID_SCALER_MODES = ("robust", "robust_std")
+
+
+def fit_scaler(
+    train_df: pd.DataFrame, cols: List[str], mode: str = "robust"
+) -> RobustScaler:
+    """Fit a RobustScaler on `train_df[needs_norm(cols)]` only (train-span rows, R4 #2).
+
+    `mode="robust"` (default) is byte-identical to the original behaviour: sklearn's
+    `RobustScaler` silently sets `scale_ = 1.0` for any column whose fitted IQR
+    (25th-75th percentile spread over the train rows) is numerically zero -- most bars in
+    e.g. `raw8`'s `log_oc` are gap-fill bars where open==close, so its pooled IQR is
+    exactly 0 and it passes through at its raw (much smaller) std instead of a comparable
+    scale to its neighbours. `mode="robust_std"` detects those columns and substitutes
+    the column's train-rows standard deviation for `scale_`; a column whose std is ALSO
+    ~0 (truly constant over the train span) is left at `scale_ = 1.0` -- a constant
+    feature carries no information either way -- but is still recorded so it stays
+    visible.
+
+    Either way, the returned scaler carries a `clfstudy_diag` attribute --
+    `{"degenerate_iqr_cols": [...], "constant_cols": [...], "mode": mode}` -- identifying
+    every degenerate-IQR / constant column *regardless of `mode`* (so the defect is
+    visible even under `mode="robust"`, which doesn't act on it). This is purely an
+    additive attribute on the returned object; every existing caller that only calls
+    `.transform()` on the result is unaffected.
+    """
+    if mode not in _VALID_SCALER_MODES:
+        raise ValueError(
+            f"unknown scaler mode {mode!r}; expected one of {_VALID_SCALER_MODES}"
+        )
+
     norm_cols = needs_norm(cols)
     scaler = RobustScaler()
     scaler.fit(train_df[norm_cols].to_numpy(dtype=np.float64))
+
+    degenerate_iqr_cols: List[str] = []
+    constant_cols: List[str] = []
+
+    if norm_cols:
+        data = train_df[norm_cols].to_numpy(dtype=np.float64)
+        q_lo, q_hi = scaler.quantile_range
+        q = np.percentile(data, [q_lo, q_hi], axis=0)
+        iqr = q[1] - q[0]
+
+        for i, col in enumerate(norm_cols):
+            if iqr[i] > _DEGENERATE_EPS:
+                continue
+            degenerate_iqr_cols.append(col)
+            std = float(np.std(data[:, i]))
+            if std <= _DEGENERATE_EPS:
+                constant_cols.append(col)
+            elif mode == "robust_std":
+                scaler.scale_[i] = std
+
+    scaler.clfstudy_diag = {
+        "degenerate_iqr_cols": degenerate_iqr_cols,
+        "constant_cols": constant_cols,
+        "mode": mode,
+    }
     return scaler
 
 

@@ -464,3 +464,46 @@ def test_generic_label_extra_key_bool_rejected():
     label = {"name": "forward_mae", "horizon": 12, "min_gain": True}
     with pytest.raises(ValueError):
         _cfg(label=label).validate()
+
+
+# ---------------------------------------------------------------------------
+# `scaler_mode` (research: FIX for the zero-IQR "dead feature" defect)
+# ---------------------------------------------------------------------------
+
+
+def test_scaler_mode_defaults_to_robust():
+    cfg = _cfg()
+    assert cfg.scaler_mode == "robust"
+
+
+def test_scaler_mode_omitted_equals_explicit_default_robust():
+    implicit = _cfg()
+    explicit = _cfg(scaler_mode="robust")
+    assert config_id(implicit) == config_id(explicit)
+
+
+def test_scaler_mode_default_leaves_frozen_ids_unchanged():
+    # every pre-existing config in configs/phase_{2,3,4}.yaml omits `scaler_mode` entirely
+    # -> it defaults to "robust" -> must be omitted from the canonical JSON exactly like
+    # `label`, so `test_phase_file_config_ids_unchanged_by_label_field` above already
+    # covers this; this test names the invariant explicitly for `scaler_mode`.
+    _, configs = load_phase(_CONFIGS_DIR / "phase_3.yaml")
+    ids = [config_id(cfg) for cfg in configs]
+    assert ids == _BASELINE_IDS["phase_3.yaml"]
+    assert all(cfg.scaler_mode == "robust" for cfg in configs)
+
+
+def test_scaler_mode_non_default_changes_the_id():
+    base = _cfg()
+    changed = _cfg(scaler_mode="robust_std")
+    assert config_id(base) != config_id(changed)
+
+
+def test_scaler_mode_valid_values_accepted():
+    _cfg(scaler_mode="robust").validate()
+    _cfg(scaler_mode="robust_std").validate()
+
+
+def test_scaler_mode_invalid_rejected():
+    with pytest.raises(ValueError):
+        _cfg(scaler_mode="not_a_real_mode").validate()

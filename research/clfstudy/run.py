@@ -278,8 +278,34 @@ def _build_tensors(cfg: ExperimentConfig, window_id: str) -> Dict[str, Any]:
             f"(included={included})"
         )
 
-    scaler = features.fit_scaler(train_df, cols)
+    scaler = features.fit_scaler(train_df, cols, mode=cfg.scaler_mode)
+    diag = getattr(
+        scaler, "clfstudy_diag",
+        {"degenerate_iqr_cols": [], "constant_cols": [], "mode": cfg.scaler_mode},
+    )
     cw = features.class_weights(train_df["label"].to_numpy())
+
+    # Zero-volume contamination (research: FIX for "contamination must be visible"):
+    # freqtrade fills a missing candle with volume=0, OHLC=prev close. Read the RAW
+    # `volume` column (present on every `data.load_all()` frame) BEFORE any
+    # scaling/column selection would drop it; a caller-supplied frame without it (e.g. a
+    # synthetic test frame) falls back to NaN, same pattern as guard_metric/bb_width above
+    # -- `zero_volume_share` excludes NaN rows from its ratio, reporting NaN (not a
+    # misleading 0.0) when no real volume data is present at all.
+    train_vol_parts, test_vol_parts = [], []
+    for pair in included:
+        frame = frames[pair]
+        role = roles[pair]
+        vol = (
+            frame["volume"].to_numpy(dtype=np.float64) if "volume" in frame.columns
+            else np.full(len(frame), np.nan)
+        )
+        train_vol_parts.append(vol[role == "train"])
+        test_vol_parts.append(vol[role == "test"])
+    train_vol = np.concatenate(train_vol_parts) if train_vol_parts else np.empty(0)
+    test_vol = np.concatenate(test_vol_parts) if test_vol_parts else np.empty(0)
+    zero_vol_share_train = data.zero_volume_share(pd.DataFrame({"volume": train_vol}))
+    zero_vol_share_test = data.zero_volume_share(pd.DataFrame({"volume": test_vol}))
 
     scaled_frames: Dict[str, pd.DataFrame] = {}
     for pair in included:
@@ -323,6 +349,10 @@ def _build_tensors(cfg: ExperimentConfig, window_id: str) -> Dict[str, Any]:
         "excluded": excluded,
         "cols": cols,
         "cw": cw,
+        "degenerate_iqr_cols": diag["degenerate_iqr_cols"],
+        "constant_cols": diag["constant_cols"],
+        "zero_vol_share_train": zero_vol_share_train,
+        "zero_vol_share_test": zero_vol_share_test,
         "X_train": X_train, "y_train_1h": y_train_1h, "y_train_int": y_train_int,
         "X_val": X_val, "y_val_1h": y_val_1h, "y_val_int": y_val_int,
         "X_test": X_test, "y_test_int": y_test_int,
@@ -447,6 +477,10 @@ def run_one(
     probs_path: Optional[str] = None
     ckpt_name: Optional[str] = None
     stale_files_removed = 0
+    degenerate_iqr_cols: List[str] = []
+    constant_cols: List[str] = []
+    zero_vol_share_train = float("nan")
+    zero_vol_share_test = float("nan")
     timing_stats = {
         "infer_ms_per_window_b256": float("nan"),
         "infer_ms_per_window_b1": float("nan"),
@@ -457,6 +491,10 @@ def run_one(
     try:
         prep = _build_tensors(cfg, window_id)
         included, excluded, cols, cw = prep["included"], prep["excluded"], prep["cols"], prep["cw"]
+        degenerate_iqr_cols = prep["degenerate_iqr_cols"]
+        constant_cols = prep["constant_cols"]
+        zero_vol_share_train = prep["zero_vol_share_train"]
+        zero_vol_share_test = prep["zero_vol_share_test"]
         X_train, y_train_1h, y_train_int = prep["X_train"], prep["y_train_1h"], prep["y_train_int"]
         X_val, y_val_1h = prep["X_val"], prep["y_val_1h"]
         X_test, y_test_int = prep["X_test"], prep["y_test_int"]
@@ -558,6 +596,7 @@ def run_one(
         "train": cfg.train,
         "label": cfg.label,
         "tags": cfg.tags,
+        "scaler_mode": cfg.scaler_mode,
         "status": status,
         "error": error,
         "pairs_included": included,
@@ -568,6 +607,10 @@ def run_one(
         "class_counts_train": class_counts_train,
         "class_counts_test": class_counts_test,
         "pred_counts": pred_counts,
+        "degenerate_iqr_cols": degenerate_iqr_cols,
+        "constant_cols": constant_cols,
+        "zero_vol_share_train": zero_vol_share_train,
+        "zero_vol_share_test": zero_vol_share_test,
         **{k: metric_fields[k] for k in _METRIC_KEYS},
         "n_params": n_params,
         "train_seconds": train_seconds,
@@ -614,6 +657,7 @@ def _load_config(arg: str) -> ExperimentConfig:
         seeds=payload.get("seeds", [0]),
         tags=payload.get("tags", []),
         label=payload.get("label", dict(registry.DEFAULT_LABEL)),
+        scaler_mode=payload.get("scaler_mode", registry.DEFAULT_SCALER_MODE),
     )
     cfg.validate()
     return cfg

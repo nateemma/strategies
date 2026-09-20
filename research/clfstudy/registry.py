@@ -77,6 +77,12 @@ _LABEL_TRIPLE_BARRIER_DEFAULTS: Dict[str, Any] = {
 
 _VALID_LABEL_NAMES = ("gbb", "triple_barrier") + GENERIC_LABEL_NAMES
 
+#: `scaler_mode` default (research: FIX for the zero-IQR "dead feature" defect) -- means
+#: "exactly today's RobustScaler behaviour", so every config written before `scaler_mode`
+#: existed keeps its id (kept OUT of `config_id` when equal to this, same pattern as `label`).
+DEFAULT_SCALER_MODE = "robust"
+_VALID_SCALER_MODES = ("robust", "robust_std")
+
 
 def resolve(arch: str) -> ClassifierTypeMLX:
     """`arch` name -> `ClassifierTypeMLX` member. Raises `KeyError` with the valid names."""
@@ -131,6 +137,7 @@ class ExperimentConfig:
     seeds: List[int] = field(default_factory=lambda: [0])
     tags: List[str] = field(default_factory=list)
     label: Dict[str, Any] = field(default_factory=lambda: dict(DEFAULT_LABEL))
+    scaler_mode: str = DEFAULT_SCALER_MODE
 
     def __post_init__(self) -> None:
         # Merge user-supplied `train` keys over the defaults so every config carries the
@@ -154,6 +161,10 @@ class ExperimentConfig:
             valid = ", ".join(list(BASELINE_ARCHS) + [m.name for m in ClassifierTypeMLX])
             raise ValueError(f"unknown arch {self.arch!r}; valid: {valid}")
         _parse_input_set(self.input_set)
+        if self.scaler_mode not in _VALID_SCALER_MODES:
+            raise ValueError(
+                f"unknown scaler_mode {self.scaler_mode!r}; valid: {', '.join(_VALID_SCALER_MODES)}"
+            )
         if self.seq_len < 2:
             raise ValueError(f"seq_len must be >= 2, got {self.seq_len}")
         if self.train["max_epochs"] < 1:
@@ -247,7 +258,8 @@ def config_id(cfg: ExperimentConfig) -> str:
 
     `label` is included only when it differs from `DEFAULT_LABEL` (`{"name": "gbb"}`), so
     every config written before `label` existed -- and every config that still means "the
-    production gbb label" -- hashes to exactly the id it always had.
+    production gbb label" -- hashes to exactly the id it always had. `scaler_mode` follows
+    the identical pattern against `DEFAULT_SCALER_MODE` ("robust").
     """
     payload = {
         "arch": cfg.arch,
@@ -259,6 +271,8 @@ def config_id(cfg: ExperimentConfig) -> str:
     }
     if cfg.label != DEFAULT_LABEL:
         payload["label"] = cfg.label
+    if cfg.scaler_mode != DEFAULT_SCALER_MODE:
+        payload["scaler_mode"] = cfg.scaler_mode
     blob = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha1(blob.encode("utf-8")).hexdigest()[:12]
 
@@ -288,6 +302,7 @@ def load_phase(path: str | Path) -> Tuple[Dict[str, Any], List[ExperimentConfig]
             seeds=entry.get("seeds", [0]),
             tags=entry.get("tags", []),
             label=entry.get("label", dict(DEFAULT_LABEL)),
+            scaler_mode=entry.get("scaler_mode", DEFAULT_SCALER_MODE),
         )
         cfg.validate()
         configs.append(cfg)

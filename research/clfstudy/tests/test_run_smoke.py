@@ -39,9 +39,12 @@ ALLOWED_STATUSES = {"ok", "failed", "collapsed", "class_absent"}
 _ROW_FIELDS = [
     "config_id", "split_set", "window_id", "seed",
     "phase", "arch", "hp", "input_set", "seq_len", "train", "tags",
+    "scaler_mode",
     "status", "error",
     "pairs_included", "pairs_excluded", "n_train", "n_val", "n_test",
     "class_counts_train", "class_counts_test", "pred_counts",
+    "degenerate_iqr_cols", "constant_cols",
+    "zero_vol_share_train", "zero_vol_share_test",
     "bal_acc", "macro_f1", "mcc",
     "prec_sell", "prec_hold", "prec_buy", "rec_sell", "rec_hold", "rec_buy",
     "logloss", "auroc_sell", "auroc_hold", "auroc_buy", "auroc_macro", "ece",
@@ -79,6 +82,14 @@ def _make_frame(seed: int) -> pd.DataFrame:
     # ever read for the trigger rule.
     data["guard_metric"] = rng.uniform(-1.0, 1.0, size=N_ROWS)
     data["bb_width"] = rng.uniform(0.0, 0.08, size=N_ROWS)
+    # A known, deterministic zero-volume pattern (freqtrade's gap-fill contamination,
+    # research FIX 2): exactly every 4th bar is zero-volume, spread evenly across the
+    # whole span so both the train and test role slices contain a mix of zero/nonzero
+    # rows -- `test_run_one_records_zero_volume_shares` below checks the row's
+    # `zero_vol_share_{train,test}` against this pattern directly.
+    volume = rng.uniform(1.0, 100.0, size=N_ROWS)
+    volume[np.arange(N_ROWS) % 4 == 0] = 0.0
+    data["volume"] = volume
     return pd.DataFrame(data)
 
 
@@ -178,6 +189,61 @@ def test_run_one_mlp_one_epoch(_patch_run_module):
     assert on_disk["config_id"] == row["config_id"]
     assert on_disk["status"] == row["status"]
     assert on_disk["epochs_run"] == row["epochs_run"]
+
+
+def test_run_one_records_zero_volume_shares(_patch_run_module, synthetic_frames, toy_splitset):
+    """`zero_vol_share_{train,test}` (research FIX 2) must equal the true zero-volume
+    fraction of exactly the train-role / test-role rows of the *included* pairs -- computed
+    here independently via `splits.assign_roles` against the same synthetic `volume`
+    column, never by re-deriving it from `run_one` internals."""
+    cfg = ExperimentConfig(
+        arch="MAJORITY", hp={}, input_set="ind24", seq_len=16, split_set="v1",
+        train={}, phase=0, seeds=[0], tags=["smoke"],
+    )
+    cfg.validate()
+
+    row = run_mod.run_one(cfg, "A", seed=0)
+    assert row["status"] != "failed", row.get("error")
+
+    w = toy_splitset.windows[0]
+    train_vol_parts, test_vol_parts = [], []
+    for frame in synthetic_frames.values():
+        role = S.assign_roles(frame["date"], w)
+        train_vol_parts.append(frame.loc[role == "train", "volume"].to_numpy())
+        test_vol_parts.append(frame.loc[role == "test", "volume"].to_numpy())
+    train_vol = np.concatenate(train_vol_parts)
+    test_vol = np.concatenate(test_vol_parts)
+
+    # sanity: the 1-in-4 zero-volume pattern lands inside both roles for this toy window.
+    assert 0.0 < float((train_vol == 0).mean()) < 1.0
+    assert 0.0 < float((test_vol == 0).mean()) < 1.0
+
+    assert row["zero_vol_share_train"] == pytest.approx(float((train_vol == 0).mean()))
+    assert row["zero_vol_share_test"] == pytest.approx(float((test_vol == 0).mean()))
+
+
+def test_run_one_reports_degenerate_scaler_columns(_patch_run_module, synthetic_frames):
+    """`fit_scaler`'s per-window diagnostic (FIX 1) must thread through `run_one` into the
+    row: a column made zero-IQR-but-nonzero-std across the whole (train-role) span is
+    named in `degenerate_iqr_cols`, and `scaler_mode` on the row matches the config."""
+    degenerate_col = "di_diff_scaled"  # IND24 member that needs_norm() actually scales
+    for frame in synthetic_frames.values():
+        vals = np.zeros(len(frame))
+        vals[:20] = np.random.default_rng(1).normal(loc=10.0, scale=1.0, size=20)
+        frame[degenerate_col] = vals
+
+    cfg = ExperimentConfig(
+        arch="MAJORITY", hp={}, input_set="ind24", seq_len=16, split_set="v1",
+        train={}, phase=0, seeds=[0], tags=["smoke"], scaler_mode="robust_std",
+    )
+    cfg.validate()
+
+    row = run_mod.run_one(cfg, "A", seed=0)
+
+    assert row["status"] != "failed", row.get("error")
+    assert row["scaler_mode"] == "robust_std"
+    assert degenerate_col in row["degenerate_iqr_cols"]
+    assert row["constant_cols"] == []
 
 
 def test_run_one_mlp_save_probs_writes_parquet(_patch_run_module):

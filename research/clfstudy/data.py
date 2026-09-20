@@ -6,8 +6,10 @@ look-ahead stay correct at every window boundary.
 """
 from __future__ import annotations
 
+import argparse
+import sys
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Sequence
 
 import numpy as np
 import pandas as pd
@@ -68,6 +70,37 @@ def raw8(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def zero_volume_share(df: pd.DataFrame) -> float:
+    """Fraction of `df`'s volume-known rows whose `volume` is exactly 0.0.
+
+    freqtrade fills a missing candle with open=high=low=close(prev) and volume=0 --
+    this is the resulting contamination measure (research: FIX for "contamination must be
+    visible"). Rows with a NaN `volume` (e.g. a caller-supplied frame with no real volume
+    data) are excluded from both the numerator and denominator, so NaN input never gets
+    silently counted as "not zero"; NaN is returned if every row (or the frame itself) is
+    empty of volume information.
+    """
+    if len(df) == 0:
+        return float("nan")
+    vol = df["volume"].to_numpy(dtype=np.float64)
+    known = ~np.isnan(vol)
+    if not known.any():
+        return float("nan")
+    return float((vol[known] == 0.0).mean())
+
+
+def ohlc_equal_share(df: pd.DataFrame) -> float:
+    """Fraction of `df`'s rows where open==high==low==close (a strict superset of the
+    gap-fill rows `zero_volume_share` measures -- a real bar can also happen to be flat).
+    NaN for an empty frame."""
+    if len(df) == 0:
+        return float("nan")
+    equal = (
+        (df["open"] == df["high"]) & (df["high"] == df["low"]) & (df["low"] == df["close"])
+    )
+    return float(equal.to_numpy().mean())
+
+
 def _cache_path(pair: str, label_key: str) -> Path:
     base = pair.split("/")[0]
     return CACHE_DIR / "frames" / f"{base}_{HARNESS_VERSION}_{label_key}.feather"
@@ -104,3 +137,57 @@ def load_all(
         frames[pair] = df
 
     return frames
+
+
+# ---------------------------------------------------------------------------
+# `--inventory` CLI (research: FIX for "contamination must be visible ... in the
+# inventory"). Reads raw feathers only (`load_pair`), never `populate`/`raw8`/labels, so
+# it stays light and never touches the indicator/label caches.
+# ---------------------------------------------------------------------------
+
+
+def _inventory_row(pair: str) -> Dict[str, Any]:
+    df = load_pair(pair)
+    return {
+        "pair": pair,
+        "rows": len(df),
+        "first_date": df["date"].min(),
+        "last_date": df["date"].max(),
+        "zero_vol_share": zero_volume_share(df),
+        "ohlc_equal_share": ohlc_equal_share(df),
+    }
+
+
+def _print_inventory_markdown(rows: Sequence[Dict[str, Any]]) -> None:
+    header = ["pair", "rows", "first_date", "last_date", "zero_vol_share", "ohlc_equal_share"]
+    print("| " + " | ".join(header) + " |")
+    print("|" + "|".join(["---"] * len(header)) + "|")
+    for row in rows:
+        first_date = pd.Timestamp(row["first_date"]).strftime("%Y-%m-%d")
+        last_date = pd.Timestamp(row["last_date"]).strftime("%Y-%m-%d")
+        print(
+            f"| {row['pair']} | {row['rows']} | {first_date} | {last_date} | "
+            f"{row['zero_vol_share']:.1%} | {row['ohlc_equal_share']:.1%} |"
+        )
+
+
+def main(argv: Optional[Sequence[str]] = None) -> None:
+    parser = argparse.ArgumentParser(prog="python -m research.clfstudy.data")
+    parser.add_argument(
+        "--inventory", action="store_true", help="print a per-pair contamination inventory"
+    )
+    parser.add_argument(
+        "--pairs", nargs="+", default=None, help="pairs to inventory (default: PAIRS)"
+    )
+    args = parser.parse_args(argv)
+
+    if not args.inventory:
+        parser.error("no command given; use --inventory")
+
+    pairs = tuple(args.pairs) if args.pairs else PAIRS
+    rows = [_inventory_row(pair) for pair in pairs]
+    _print_inventory_markdown(rows)
+
+
+if __name__ == "__main__":
+    main()
