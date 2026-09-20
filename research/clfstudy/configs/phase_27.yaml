@@ -1,0 +1,28 @@
+phase: 27
+description: '019 stage 8: LSTM h32 d2 at window 128 on the incumbent label (raw OHLCV,
+  strict TB H12 +/-1.5%). LSTM rose monotonically 0.225/0.229/0.233 at windows 16/32/64.'
+gate_from: 25
+configs:
+- arch: LSTM_FAM
+  hp:
+    hidden: 32
+    depth: 2
+    input_norm: false
+  input_set: raw8
+  seq_len: 128
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 12
+    up: 0.015
+    down: 0.015
+  phase: 27
+  seeds:
+  - 0
+  - 1
+  tags:
+  - lstm
+  - sl128

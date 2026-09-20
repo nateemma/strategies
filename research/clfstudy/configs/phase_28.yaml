@@ -1,0 +1,122 @@
+phase: 28
+description: '019 stage 9: LSTM size/depth/direction sweep at window 32 on the incumbent
+  label (raw OHLCV). Anchor h32 d2 already measured in phase 25 (0.229). One axis
+  at a time.'
+gate_from: 25
+configs:
+- arch: LSTM_FAM
+  hp:
+    hidden: 16
+    depth: 2
+    input_norm: false
+  input_set: raw8
+  seq_len: 32
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 12
+    up: 0.015
+    down: 0.015
+  phase: 28
+  seeds:
+  - 0
+  - 1
+  tags:
+  - lstm_sweep
+  - h16
+- arch: LSTM_FAM
+  hp:
+    hidden: 64
+    depth: 2
+    input_norm: false
+  input_set: raw8
+  seq_len: 32
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 12
+    up: 0.015
+    down: 0.015
+  phase: 28
+  seeds:
+  - 0
+  - 1
+  tags:
+  - lstm_sweep
+  - h64
+- arch: LSTM_FAM
+  hp:
+    hidden: 32
+    depth: 1
+    input_norm: false
+  input_set: raw8
+  seq_len: 32
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 12
+    up: 0.015
+    down: 0.015
+  phase: 28
+  seeds:
+  - 0
+  - 1
+  tags:
+  - lstm_sweep
+  - d1
+- arch: LSTM_FAM
+  hp:
+    hidden: 32
+    depth: 3
+    input_norm: false
+  input_set: raw8
+  seq_len: 32
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 12
+    up: 0.015
+    down: 0.015
+  phase: 28
+  seeds:
+  - 0
+  - 1
+  tags:
+  - lstm_sweep
+  - d3
+- arch: LSTM_FAM
+  hp:
+    hidden: 32
+    depth: 2
+    bidirectional: true
+    input_norm: false
+  input_set: raw8
+  seq_len: 32
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: triple_barrier
+    horizon: 12
+    up: 0.015
+    down: 0.015
+  phase: 28
+  seeds:
+  - 0
+  - 1
+  tags:
+  - lstm_sweep
+  - bidir

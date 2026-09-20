@@ -1,0 +1,91 @@
+phase: 26
+description: '019 stage 7: drawdown-cap ladder on forward_mae H12 gain 1.5% -- cap
+  10% (saturated: identical balance at 10/20/100%, so this is the no-cap point). 3%
+  and 5% are in phase 24.'
+gate_from: 24
+configs:
+- arch: MAJORITY
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.1
+  phase: 26
+  seeds:
+  - 0
+  tags:
+  - tripwire
+  - dd10
+- arch: PERSISTENCE
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.1
+  phase: 26
+  seeds:
+  - 0
+  tags:
+  - tripwire
+  - dd10
+- arch: RIDGE
+  hp: {}
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+    weight_decay: 0.01
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.1
+  phase: 26
+  seeds:
+  - 0
+  - 1
+  - 2
+  tags:
+  - screen
+  - dd10
+- arch: MLP_FAM
+  hp:
+    width: 64
+  input_set: raw8
+  seq_len: 16
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.1
+  phase: 26
+  seeds:
+  - 0
+  - 1
+  tags:
+  - screen
+  - dd10
