@@ -39,6 +39,20 @@ watchdog() {
 # --- wait for any earlier chain to finish ------------------------------------
 while pgrep -f "chain_p3[0-9]?.sh|clfstudy.phase" >/dev/null; do sleep 120; done
 
+# --- wait for campaign.py, then prove it loads before committing days to it ---
+# This script is launched before campaign.py is finished writing, deliberately: it means
+# the campaign starts on its own and does not depend on anyone being around to press go.
+for i in $(seq 1 720); do [ -f research/clfstudy/campaign.py ] && break; sleep 60; done
+if [ ! -f research/clfstudy/campaign.py ]; then
+  echo "campaign.py never appeared" | tee $LOG/CAMPAIGN_FAIL; exit 1
+fi
+# A dry run of every stage is cheap and catches an import error, a bad arch name or a
+# malformed hp block BEFORE the campaign spends days acting on it.
+if ! python -m research.clfstudy.campaign --dry-run --stage A >> $LOG/campaign.log 2>&1; then
+  echo "campaign --dry-run failed; refusing to start" | tee $LOG/CAMPAIGN_FAIL
+  exit 1
+fi
+
 watchdog &
 WD=$!
 trap "kill $WD 2>/dev/null" EXIT
