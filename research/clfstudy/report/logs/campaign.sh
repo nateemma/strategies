@@ -21,6 +21,21 @@ STALL_MIN=${STALL_MIN:-90}
 
 mkdir -p $LOG
 
+# --- single-instance guard ---------------------------------------------------
+# Added 2026-09-21 after a restart left TWO drivers running: `pkill -f campaign.sh`
+# kills this script but NOT the `python -m research.clfstudy.campaign` it spawned, so
+# relaunching produced two drivers and two concurrent trainers -- exactly the condition
+# that caused the 2026-09-16 out-of-memory. Refuse to start instead, and say how to stop
+# the old one. $$ and the watchdog subshell are excluded so we never match ourselves.
+OTHERS=$(pgrep -f "research.clfstudy.campaign --run-all" | grep -v "^$$\$" || true)
+if [ -n "$OTHERS" ]; then
+  echo "campaign driver already running (pids: $(echo $OTHERS | tr '\n' ' '))." | tee -a $LOG/campaign.log
+  echo "refusing to start a second one. To restart cleanly:" | tee -a $LOG/campaign.log
+  echo "  pkill -f 'research.clfstudy.campaign --run-all'; pkill -f 'research.clfstudy.run'" | tee -a $LOG/campaign.log
+  echo "  then wait 5s and relaunch this script." | tee -a $LOG/campaign.log
+  exit 3
+fi
+
 # --- watchdog: kill a trainer that has gone quiet -----------------------------
 watchdog() {
   while true; do

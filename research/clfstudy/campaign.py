@@ -117,8 +117,13 @@ STAGE_PHASE_NUM: Dict[str, int] = {"A": 33, "B": 34, "C": 35, "D": 36}
 #: (17.3-19.9 GB) and are NOT excluded. Peak memory is roughly flat in seq_len (LSTM_FAM
 #: measured 19.9 GB @ sl16, 17.3 GB @ sl64, 32.8 GB @ sl256), so the sl16/sl64
 #: measurements above are a fair guide at this campaign's seq_len 64.
-EXCLUDED_ARCHS: Tuple[str, ...] = ("Mamba", "ROCKET")
+EXCLUDED_ARCHS: Tuple[str, ...] = ("Mamba", "ROCKET", "TSMamba")
 
+# TSMamba added 2026-09-21 from a stage-A measurement: peak memory is NOT flat in
+# seq_len for the Mamba family, which is what the original include-decision assumed.
+# Mamba2 measured 13,299 MB at seq_len 16 but 46,653 MB at seq_len 64 (3.5x). TSMamba
+# is bidirectional Mamba2 and ran 1.34x Mamba2 at seq_len 16, which projects to ~62 GB
+# at seq_len 64 on a 64 GB machine. Excluded before it ran rather than after.
 #: `patch_len` for every PATCHTST hp variant below is capped so `4 * patch_len <=
 #: seq_len` holds at BOTH stage-C seq_len values (32 and 64) -- `_PatchTSTModel.__init__`
 #: raises `ValueError` otherwise (verified against the code 2026-09-21). The type's own

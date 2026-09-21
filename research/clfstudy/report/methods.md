@@ -257,3 +257,28 @@ the contiguity that windowing and forward-looking labels need, so the likely ans
 refuse to emit a SAMPLE whose window or forward horizon is mostly filled; (c) re-examine
 whether 15m on binanceus is the right timeframe/venue for this universe at all, and whether
 earlier pair-level conclusions (e.g. that the edge is structurally ZEC) survive.
+
+## 2026-09-21 — TSMamba excluded, and a restart that briefly doubled the driver
+
+**TSMamba excluded from the campaign census.** The original include/exclude decision
+assumed peak Metal memory is roughly flat in `seq_len`, which is what `LSTM_FAM` shows
+(19.9 GB at 16, 17.3 GB at 64, 32.8 GB at 256). That does not hold for the Mamba family:
+`Mamba2` measured **13,299 MB at seq_len 16 but 46,653 MB at seq_len 64**, a 3.5x rise.
+`TSMamba` is bidirectional Mamba2 and ran 1.34x `Mamba2` at seq_len 16, which projects to
+**~62 GB at seq_len 64 on a 64 GB machine**. It was excluded before it ran. `Mamba2`
+itself is kept — it completed in 149 s with `status=ok` — but it is now the single
+largest memory consumer in the census and is worth watching.
+
+**Instrument defect found while doing that.** Restarting the campaign with
+`pkill -f campaign.sh` does NOT stop the driver: `campaign.sh` spawns
+`python -m research.clfstudy.campaign --run-all`, which survives the pkill and keeps
+launching trainers. Relaunching the script therefore produced two drivers and, for about
+40 seconds, two concurrent trainers on the same config — precisely the condition behind
+the 2026-09-16 out-of-memory. No data was lost (`results.jsonl` parsed clean, 0 corrupt
+lines, no partial TSMamba row; duplicate run keys are deduplicated by
+`leaderboard.load_results`, which keeps the last row per key), but the machine was
+briefly at risk.
+
+Fixed with a single-instance guard at the top of `campaign.sh`: it refuses to start when
+another `research.clfstudy.campaign --run-all` is alive and prints the correct two-step
+stop command. Verified by launching it a second time and getting exit 3.
