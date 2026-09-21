@@ -282,3 +282,36 @@ briefly at risk.
 Fixed with a single-instance guard at the top of `campaign.sh`: it refuses to start when
 another `research.clfstudy.campaign --run-all` is alive and prints the correct two-step
 stop command. Verified by launching it a second time and getting exit 3.
+
+## 2026-09-21 — LSTM_FAM at its DEFAULT hp diverges to NaN at seq_len 64
+
+Stage A of the campaign runs every type at its library defaults. `LSTM_FAM` failed all
+4 runs with `ValueError: non-finite values in predicted probabilities` (raised by
+`run.py`'s own guard, so this is a detected divergence, not a silent bad number), and was
+therefore dropped from the stage-A top 8.
+
+It is a real numerical property, not a harness fault. Tabulating every `LSTM_FAM` row
+ever run by `(hp, seq_len, status)`:
+
+* `hp={}` (hidden 64, depth 1) at **seq_len 16**: ok 24/24.
+* `hp={}` at **seq_len 64**: failed 4/4.
+* `{"depth": 1, "hidden": 32, "input_norm": false}` at seq_len 64: ok.
+* `{"depth": 2, "hidden": 32, "input_norm": false}`: ok at 16/32/64/128/256 (58 rows).
+* `{"hidden": 256}` at seq_len 16: failed 4, ok 8 — i.e. seed-dependent divergence.
+
+So the instability is driven by **hidden size together with sequence length**: hidden 64
+is fine at seq_len 16 and diverges at 64; hidden 32 is fine everywhere tested up to 256;
+hidden 256 is marginal even at 16. This extends the earlier hidden-256 NaN finding rather
+than contradicting it.
+
+**Consequence, and why the campaign was left alone.** The campaign's top 8 still contains
+eight recurrent types, led by `LSTM_RAW` (0.2860), which is a plain LSTM over raw features
+and is functionally close to what `LSTM_FAM` is, plus `GRU_FAM` (0.2849), its direct
+sibling. The census is therefore not blind to this family, so per the unattended operating
+rules this was recorded rather than patched mid-run.
+
+**What it costs.** `LSTM_FAM` at the study's own working setting (hidden 32, depth 2)
+scored 0.2812 on window A and is the best cell in the study pooled (0.2343). That specific
+type will not be carried into stages B-D, because stage B rebuilds configs from arch names
+at default hp and would simply fail again. Revisiting it needs a per-arch default override,
+which is a code change and a decision for the user, not an unattended fix.
