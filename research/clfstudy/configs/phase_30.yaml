@@ -3,7 +3,9 @@ description: '019 stage 9: LSTM h32 d2 at window 256 on the incumbent label (raw
   strict TB H12 +/-1.5%). The window ladder is LINEAR in log-window through 128 (0.2251/0.2288/0.2329/0.2362,
   +0.0035 per doubling) with no sign of saturation; phase 28 showed capacity is inert,
   so sequence length is the only live lever. This rung looks for where it stops. Parity
-  with the ladder is deliberate: hidden 32 / depth 2, not phase 28 best cell.'
+  with the ladder is deliberate: hidden 32 / depth 2, not phase 28 best cell. Run
+  as a WINDOW A ONLY probe first (2 runs) to get the direction cheaply; B and C resume
+  later by config_id if A justifies them.'
 gate_from: 27
 configs:
 - arch: LSTM_FAM
