@@ -1,0 +1,33 @@
+phase: 31
+description: '019 stage 10: LSTM h32 d2 at window 128 on forward_mae H12 +/-1.5% cap
+  10% -- the best-known label (phase 29: fwd_mae beat strict TB at 11/11 matched cells).
+  Completes the best cell: LSTM sl64 fwd_mae = 0.2343. Window A probe first (2 runs);
+  the TB ladder peaked at sl128 and declined at 256, so 128 is expected to be the
+  top rung here too.'
+gate_from: 29
+configs:
+- arch: LSTM_FAM
+  hp:
+    hidden: 32
+    depth: 2
+    input_norm: false
+  input_set: raw8
+  seq_len: 128
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.1
+  phase: 31
+  seeds:
+  - 0
+  - 1
+  tags:
+  - lstm
+  - sl128
+  - fwdmae_dd10

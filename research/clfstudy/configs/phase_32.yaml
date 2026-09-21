@@ -1,0 +1,123 @@
+phase: 32
+description: '019 CURIOSITY probe (NOT a gate, NOT a decision input -- phase 5 covers
+  combinations properly). Production LSTM is Dense->Conv1d(k2)->LN->residual->LSTM->LN->bottleneck->softmax;
+  the study LSTM_FAM is a pure stacked LSTM with none of that. Scores production and
+  its existing LSTM_NOCONV / LSTM_NORES ablations against LSTM_FAM at seq_len 64 on
+  forward_mae, window A only. Width parity is incidental but real: production is max(MIN_FILTER=32,
+  npo2(8-1)) = 32 filters, the same as LSTM_FAM hidden 32. Depth is NOT matched --
+  production has ONE LSTM layer, so depth-1 LSTM_FAM is included as the like-for-like
+  plain comparator and depth-2 (already run in phase 29) as the ladder reference.'
+gate_from: 29
+configs:
+- arch: LSTM
+  hp: {}
+  input_set: raw8
+  seq_len: 64
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.1
+  phase: 32
+  seeds:
+  - 0
+  - 1
+  tags:
+  - production
+  - conv+res
+- arch: LSTM_NOCONV
+  hp: {}
+  input_set: raw8
+  seq_len: 64
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.1
+  phase: 32
+  seeds:
+  - 0
+  - 1
+  tags:
+  - ablation
+  - no_conv
+- arch: LSTM_NORES
+  hp: {}
+  input_set: raw8
+  seq_len: 64
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.1
+  phase: 32
+  seeds:
+  - 0
+  - 1
+  tags:
+  - ablation
+  - no_residual
+- arch: LSTM_FAM
+  hp:
+    hidden: 32
+    depth: 1
+    input_norm: false
+  input_set: raw8
+  seq_len: 64
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.1
+  phase: 32
+  seeds:
+  - 0
+  - 1
+  tags:
+  - plain
+  - depth1
+- arch: LSTM_FAM
+  hp:
+    hidden: 32
+    depth: 2
+    input_norm: false
+  input_set: raw8
+  seq_len: 64
+  split_set: v1
+  train:
+    lr: 0.0003
+    stride: 2
+  label:
+    name: forward_mae
+    horizon: 12
+    min_gain: 0.015
+    min_loss: 0.015
+    max_drawdown: 0.1
+  phase: 32
+  seeds:
+  - 0
+  - 1
+  tags:
+  - plain
+  - depth2
+  - reused
