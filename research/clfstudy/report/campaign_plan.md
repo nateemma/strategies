@@ -61,10 +61,27 @@ literature types added in phase 6.
   the queue moves on. One hung MLX process must not block weeks of work.
 * **Resumable**: rows key on `config_id`, so re-running any stage skips
   completed work. The campaign can be killed and restarted at any point.
-* **Exclusions**: Mamba is excluded — ~48 GB Metal peak and ~68 min/run, and an
-  unattended OOM would put the machine at risk. Any other arch flagged as
-  pathologically expensive at seq_len 64 is excluded on the same grounds and
-  named in the report.
+* **Exclusions** (measured from `results.jsonl`, not assumed — this machine has
+  **64 GB** of physical RAM):
+
+  | arch | peak Metal | max s/run | verdict |
+  |---|---|---|---|
+  | ROCKET | **71,842 MB** | 1,883 | excluded — exceeds physical RAM; already has a `failed` and a `collapsed` row |
+  | Mamba | 48,467 MB | 4,062 | excluded — 76% of RAM, and by far the slowest |
+  | TSMamba | 17,826 MB | 1,586 | kept |
+  | Mamba2 | 13,299 MB | 1,130 | kept |
+  | LSTM_FAM (reference) | 17–20 GB | — | — |
+
+  Peak memory is roughly flat in `seq_len` (LSTM_FAM: 19.9 GB at 16, 17.3 GB at
+  64, 32.8 GB at 256), so the seq_len-16 measurements above are a fair guide at
+  64. Mamba2 and TSMamba sit in the same band as the models already running
+  nightly and are NOT excluded.
+
+* **Never run before, on any label**: XLSTM, PATCHTST, ITRANSFORMER, TSMIXER,
+  TRANSFORMER_MODERN. Expect first-contact failures; stage A is where they
+  surface, and one arch failing must not abort a stage. PATCHTST additionally
+  raises unless `seq_len >= 4 * patch_len`, so it runs with `patch_len` 8 rather
+  than its default 16 to stay valid at seq_len 32.
 
 ## Known caveats to carry into the report
 
