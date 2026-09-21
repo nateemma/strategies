@@ -78,3 +78,39 @@ literature types added in phase 6.
   D exists because window-A rank order is not trusted as final.
 * `scaler_mode` stays at the `robust` default for comparability. Flipping it to
   `robust_std` is deliberate future work, bundled with feature 020 Strand A.
+
+## Running it / checking on it
+
+Start or restart (safe at any time — every stage is idempotent and rows key on
+`config_id`, so a restart resumes rather than repeats):
+
+```
+cd ~/projects/freqtrade/user_data/strategies
+nohup research/clfstudy/report/logs/campaign.sh &
+```
+
+Check progress:
+
+```
+source ../../.venv/bin/activate && export PYTHONPATH=.
+python -m research.clfstudy.campaign --status          # stage state + completion counts
+python -m research.clfstudy.leaderboard                # current full leaderboard
+tail -40 research/clfstudy/report/logs/campaign.log
+cat research/clfstudy/report/logs/campaign_watchdog.log # empty is good
+```
+
+`research/clfstudy/report/logs/CAMPAIGN_DONE` appears when every stage has
+finished. Stage decisions are written as JSON under `research/clfstudy/results/`
+so the selection at each gate is auditable after the fact.
+
+### Known limitations of the unattended setup
+
+* **A reboot stops the campaign.** The driver is a plain background process with
+  no launchd agent, so a macOS update or a power cut ends it. `autorestart` is on
+  so the Mac comes back, but the campaign needs the one command above to resume.
+  It loses no completed work.
+* `caffeinate -i` holds off idle sleep for the campaign's lifetime. AC power is
+  currently set to `sleep 0` anyway; this covers a settings change or a switch to
+  battery mid-run.
+* The watchdog only kills stalled *trainers*. If the driver process itself hangs,
+  nothing recovers it automatically.

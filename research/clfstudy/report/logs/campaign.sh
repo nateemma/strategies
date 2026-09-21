@@ -44,7 +44,10 @@ WD=$!
 trap "kill $WD 2>/dev/null" EXIT
 
 echo "campaign: START $(date)" | tee -a $LOG/campaign.log
-python -m research.clfstudy.campaign --run-all >> $LOG/campaign.log 2>&1
+# caffeinate -i holds an idle-sleep assertion for the campaign's lifetime. AC power is
+# currently configured with sleep=0 so this is belt-and-braces, but the campaign runs for
+# days and a power-setting change or a switch to battery mid-run would otherwise stop it.
+caffeinate -i python -m research.clfstudy.campaign --run-all >> $LOG/campaign.log 2>&1
 RC=$?
 echo "campaign: END rc=$RC $(date)" | tee -a $LOG/campaign.log
 echo "rc=$RC $(date)" > $LOG/CAMPAIGN_DONE
