@@ -131,3 +131,53 @@ so the selection at each gate is auditable after the fact.
   battery mid-run.
 * The watchdog only kills stalled *trainers*. If the driver process itself hangs,
   nothing recovers it automatically.
+
+## RESULT — campaign complete 2026-09-21 19:53 PDT (rc=0)
+
+All four stages finished with no watchdog interventions. Stage D, all three windows,
+3 seeds, ranked by pooled MCC:
+
+| arch | seq_len | A | B | C | pooled | macro-F1 | bal-acc | params | s/run |
+|---|---|---|---|---|---|---|---|---|---|
+| PERSISTENCE | — | 0.7677 | 0.7517 | 0.7806 | **0.7667** | 0.8494 | 0.8494 | — | 0 |
+| LSTM_W64 | 64 | 0.2842±0.0026 | 0.1803±0.0025 | 0.2430±0.0014 | **0.2358** | 0.4642 | 0.4784 | 46,467 | 624 |
+| LSTM_RAW | 64 | 0.2857±0.0016 | 0.1798±0.0024 | 0.2404±0.0011 | **0.2353** | 0.4658 | 0.4777 | 6,907 | 457 |
+| GRU_FAM | 64 | 0.2829±0.0029 | 0.1775±0.0033 | 0.2437±0.0016 | **0.2347** | 0.4626 | 0.4759 | 14,403 | 569 |
+| LSTM_RAW | 32 | 0.2839±0.0025 | 0.1818±0.0046 | 0.2373±0.0006 | **0.2343** | 0.4660 | 0.4760 | 6,907 | 200 |
+| RIDGE | 64 | 0.2249±0.0042 | 0.1366±0.0015 | 0.1645±0.0014 | 0.1754 | 0.4217 | 0.4212 | 1,539 | 35 |
+| RIDGE | 32 | 0.2269±0.0004 | 0.1335±0.0007 | 0.1580±0.0027 | 0.1728 | 0.4202 | 0.4197 | 771 | 31 |
+
+`MAJORITY` collapsed to all-Hold on every window, as designed (MCC 0).
+
+### Findings
+
+1. **Recommended: `LSTM_RAW` at seq_len 32, input set `raw8`.** The top four cells are a
+   statistical tie — 0.2358 to 0.2343, a 0.0015 spread against per-window seed standard
+   deviations of 0.0006-0.0046. Within a tie, choose the cheapest: `LSTM_RAW` at 32 uses
+   **6,907 parameters and 200 s/run against `LSTM_W64`'s 46,467 and 624 s** — 6.7x fewer
+   weights and 3x faster for the same score. It also has the best macro-F1 of the four.
+
+2. **The architecture family is the only lever that moved anything.** All four finalists
+   are recurrent; every one clears RIDGE by ~0.060, far above the 0.02 viability margin.
+   Within the family nothing separates: width (6.9K vs 46K parameters), gating (LSTM vs
+   GRU) and window length (32 vs 64) are all inside noise. This is the fourth independent
+   confirmation that capacity is inert on this task.
+
+3. **The campaign did not beat what we already had.** The pre-campaign best,
+   `LSTM_FAM` hidden 32 / depth 2 at seq_len 64, scored 0.2343 pooled. The campaign's
+   winner scores 0.2358. A 36-architecture census, the literature types included, bought
+   +0.0015 — i.e. nothing. The value delivered was **negative information**: it closed off
+   attention, convolutional, state-space, mixer and patching families, all of which lost by
+   0.02-0.05, and it found a model 6.7x smaller at the same score.
+
+4. **`PERSISTENCE` still scores 0.7667 against a best model of 0.2358.** Every number above
+   is a contest for a small share of the signal; the bulk of what is predictable in this
+   label is its own autocorrelation, much of it gap-fill artefact. See feature 020.
+
+### Open
+
+* `LSTM_FAM` never reached stages B-D: its default hp (hidden 64, depth 1) diverges to NaN
+  at seq_len 64, so it failed the census. Its working setting (hidden 32, depth 2) matches
+  the campaign winner. Carrying it forward needs a per-arch default override.
+* Everything here is window-A-screened before stage D. Window B remains far harder than A
+  and C for every model (0.18 against 0.28/0.24), and no architecture changed that.
