@@ -14,7 +14,11 @@ import json
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[4]
+# parents: [0]=evaluation [1]=strategies [2]=user_data [3]=repo root (contains user_data/).
+# Was parents[4] when this lived at regime/wf/; the 2026-09-14 promotion to evaluation/
+# (a3c75bc) moved it one level shallower and the index was not decremented, so every
+# path resolved one directory ABOVE the repo. Fixed 2026-10-07.
+ROOT = Path(__file__).resolve().parents[3]
 STRAT_DIR = ROOT / "user_data/strategies"
 sys.path.insert(0, str(STRAT_DIR))
 
