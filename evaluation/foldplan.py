@@ -112,7 +112,12 @@ def snapshot_params(src: Path, run_id: str) -> tuple[Path, str] | tuple[None, No
         return None, None            # e.g. NNMT_MLX, which legitimately has no params file
     blob = src.read_bytes()
     sha = hashlib.sha256(blob).hexdigest()[:16]
-    dst = FOLDS_DIR / f"params_{run_id}.json"
+    # Keyed by the SOURCE FILE STEM as well as run_id. run_id is a timestamp to the
+    # second, so two plans built in the same second (a for-loop over two arms) wrote to
+    # the SAME path: the second overwrote the first, and the first plan then pointed at
+    # the other arm's entry gate while still recording its own sha. Found 2026-10-07
+    # after an arm silently ran the control's guards.
+    dst = FOLDS_DIR / f"params_{run_id}_{src.stem}.json"
     dst.write_bytes(blob)
     return dst, sha
 

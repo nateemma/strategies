@@ -16,11 +16,20 @@ Three hazards this module exists to make impossible:
 
 Generated classes are written DIRECTLY into the family directory: run_arm.py resolves a fold class
 to its family dir and symlinks only top-level *.py, so a subdirectory would never be found.
+
+OPTIONAL plan key `thresholds`: `{fold_id: prediction_threshold}`. Absent -> unchanged
+behaviour (every fold's .json carries the snapshot's own threshold, as before). Present ->
+each fold's GENERATED .json carries the given value instead, so an arm whose model's
+confidence distribution doesn't match the control's borrowed constant can be measured at a
+matched entry rate rather than at zero trades. See evaluation/pick_threshold.py, which
+measures the value that belongs here; this file only applies it.
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import sys
 import subprocess
 import time
 from datetime import datetime
@@ -64,8 +73,17 @@ def _log(msg: str) -> None:
     print(f"[{datetime.now():%H:%M:%S}] {msg}", flush=True)
 
 
-def generate_fold(fold: dict, base: str, family: str, params: dict | None) -> tuple[Path, Path | None]:
-    """Write the fold's class and its params file (FR-003; T006/T006a)."""
+def generate_fold(fold: dict, base: str, family: str, params: dict | None,
+                  threshold: float | None = None) -> tuple[Path, Path | None]:
+    """Write the fold's class and its params file (FR-003; T006/T006a).
+
+    `threshold`, when given, overrides `params["buy"]["prediction_threshold"]` on the
+    in-memory deep copy only -- it is never written back to the params SNAPSHOT file, so the
+    invariant that every fold's .json traces to the plan's recorded `params_sha` still holds;
+    only the threshold figure (feature pick_threshold.py exists to choose, per fold, in
+    place of one constant borrowed from a differently-calibrated model) differs from the
+    snapshot. Requires `params` -- a fold with no params file has nowhere to put a threshold.
+    """
     cls = fold["strategy_class"]
     py = STRAT_DIR / family / f"{cls}.py"
     py.write_text(TEMPLATE.format(cls=cls, base=base, family=family, **fold))
@@ -74,6 +92,8 @@ def generate_fold(fold: dict, base: str, family: str, params: dict | None) -> tu
         js = STRAT_DIR / family / f"{cls}.json"
         d = json.loads(json.dumps(params))
         d["strategy_name"] = cls              # MUST match the class or freqtrade aborts
+        if threshold is not None:
+            d.setdefault("params", {}).setdefault("buy", {})["prediction_threshold"] = threshold
         js.write_text(json.dumps(d, indent=4) + "\n")
     return py, js
 
@@ -144,13 +164,34 @@ def main() -> int:
     if not plan.get("validated"):
         print("REFUSED: plan is not validated"); return 1
     family, base = plan["family"], plan["base_strategy"]
-    params = (json.loads(Path(plan["params_snapshot"]).read_text())
-              if plan.get("params_snapshot") else None)
+    params = None
+    if plan.get("params_snapshot"):
+        snap = Path(plan["params_snapshot"])
+        # BLOCKING. The plan records the sha of the params it was built from; if the file
+        # on disk no longer hashes to it, something overwrote the snapshot and this run
+        # would evaluate a different entry gate than the plan describes. That happened
+        # on 2026-10-07 (two plans, same run_id, shared snapshot path) and cost a full
+        # 15-fold run, because nothing checked.
+        blob = snap.read_bytes()
+        actual = hashlib.sha256(blob).hexdigest()[:16]
+        expected = plan.get("params_sha")
+        if expected and actual != expected:
+            print(f"ABORT: params snapshot {snap.name} hashes to {actual}, but the plan\n"
+                  f"       was built from {expected}. The snapshot was overwritten.\n"
+                  f"       Rebuild the plan with foldplan.py before running.", file=sys.stderr)
+            return 2
+        params = json.loads(blob)
 
     folds = plan["folds"]
     if a.folds:
         want = set(a.folds.split(","))
         folds = [f for f in folds if f["fold_id"] in want]
+
+    # OPTIONAL per-fold threshold override: {fold_id: prediction_threshold}. Absent (the
+    # default) -> behaviour is byte-identical to before this key existed. Keyed by fold_id,
+    # so it survives the seed-namespacing rewrite below unchanged. See pick_threshold.py,
+    # which measures the value that belongs here; this file only applies it.
+    thresholds = plan.get("thresholds", {})
 
     # SEED NAMESPACING. get_model_path keys off the class name, so running a second seed against
     # the SAME class would silently overwrite the first seed's weights -- the same collision the
@@ -187,7 +228,7 @@ def main() -> int:
             results.append({**f, "status": "evaluated", "n_trades": rec.get("n_trades")})
             continue
         _log(f"{f['fold_id']}: generating {f['strategy_class']}")
-        generate_fold(f, base, family, params)
+        generate_fold(f, base, family, params, threshold=thresholds.get(f["fold_id"]))
         if model_exists(f["strategy_class"]):
             # Resume at a finer grain: a trained artefact from an earlier attempt is reused rather
             # than retrained. Saves ~12 min per fold when only the evaluation needs re-running.

@@ -183,3 +183,33 @@ the reason for the gate.
 - [`../WALKFORWARD_POWER.md`](../WALKFORWARD_POWER.md) — why 15 folds and 378 trades; the power measurement
 - [`../../specs/007-pooled-walkforward-harness/`](../../specs/007-pooled-walkforward-harness/) — spec, plan, tasks, and `quickstart.md` (end-to-end validation scenarios)
 - [`../../AGENT_GUIDE.md`](../../AGENT_GUIDE.md) — the resolvability rules this harness exists to serve
+
+## Exception to FR-015: the `thresholds` plan key
+
+FR-015 says nothing in `evaluation/` may alter an entry gate. The optional
+`thresholds: {fold_id: value}` key in a plan file is a deliberate, narrow
+exception, added 2026-10-07.
+
+**Why it exists.** `prediction_threshold` is not a portable setting: it is a cut
+on a model's predicted-probability distribution, and that distribution depends on
+the architecture and the label. Measured mean BUY-argmax probability on the same
+fold's train window: production's full `LSTM` stack reaches the tuned 0.80, a bare
+`LSTM_RAW` on gbb reaches 0.69, and `LSTM_RAW` on forward_mae reaches 0.37. Running
+the latter two at 0.80 produced ZERO trades across every fold while their models
+were demonstrably healthy (`val_mcc` 0.62 and 0.20 respectively). Holding the
+threshold constant across such arms does not hold the gate constant -- it silently
+varies selectivity from "the incumbent's operating point" to "never trades".
+
+**What it does instead.** `pick_threshold.py` measures the incumbent's
+predicted-positive rate at its own tuned threshold (1.4735% of bars), then for each
+arm and each fold selects the threshold that reproduces that rate **on that fold's
+own TRAIN window**. The test window never informs the threshold; the guard is
+structural (`TrainWindow`) and tested. Arms are then volume-matched to the incumbent
+and to each other, so a pooled delta reflects per-trade quality rather than one arm
+being more selective than another.
+
+**Scope of the exception.** It changes `prediction_threshold` only, only when a
+human adds the key to a plan file, and only on an in-memory copy of the params --
+the snapshot file is never rewritten, so every fold `.json` still traces to
+`params_sha`. With no `thresholds` key the generated output is byte-identical to
+before (tested).

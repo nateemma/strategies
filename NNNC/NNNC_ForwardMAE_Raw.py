@@ -11,10 +11,11 @@ from pandas import DataFrame
 from NNNC_MLX_Lbl02 import NNNC_MLX_Lbl02
 from NNNClassifierMLX import ClassifierTypeMLX
 from Framework.TrainingSignals import LabelMethod
+from _ablation_config import SkipColumnCheck
 from _raw8_features import add_raw8_features, RAW8_COLUMNS
 
 
-class NNNC_ForwardMAE_Raw(NNNC_MLX_Lbl02):
+class NNNC_ForwardMAE_Raw(SkipColumnCheck, NNNC_MLX_Lbl02):
     """forward_mae label on the raw8 feature set (research/clfstudy raw8),
     seq_len 32, horizon 12 (3h at 15m).
 
@@ -70,15 +71,23 @@ class NNNC_ForwardMAE_Raw(NNNC_MLX_Lbl02):
     main_scaler_name = "main_scaler_fwdmae_raw8"
 
     def add_additional_indicators(self, dataframe: DataFrame) -> DataFrame:
-        """Add the raw8 features instead of BaseNNStrategy's default
-        regime/risk/flow/momentum set.
+        """Add raw8 ON TOP OF BaseNNStrategy's regime/risk/flow/momentum set.
 
-        Those four defaults read atr_norm / di_diff_scaled / aroonosc_scaled
-        via check_columns_included, none of which are in this arm's
-        raw8-only include_list, so calling super() here would raise.
-        Skipping them is safe: entry/exit guards (rvol, guard_metric,
-        close_norm) read columns from DataframePopulator's MINIMAL set,
-        added to the dataframe *before* this hook runs, and are therefore
-        unaffected by include_list or by this override.
+        `get_predictions` hard-requires `regime` and `flow` (BaseNNStrategy
+        ~line 1109) and raises if either is absent, so this arm CANNOT skip
+        the default set -- an earlier version of this override did, and every
+        walk-forward fold trained fine and then failed at evaluation with
+        "Missing required columns for prediction: ['regime', 'flow']".
+        Training never calls get_predictions; the backtest does.
+
+        `get_risk_level`/`get_flow`/`get_momentum` assert their source column
+        (atr_norm / di_diff_scaled / aroonosc_scaled) is in `include_list`,
+        which this arm restricts to raw8. That assertion is spurious here --
+        they read the column from the DATAFRAME, which keeps every populated
+        column, and `include_list` only governs MODEL INPUT. `SkipColumnCheck`
+        (NNNC/_ablation_config.py) exists for exactly this case and is mixed
+        in above, so the four columns are computed while the model still sees
+        only the 8 raw features.
         """
+        dataframe = super().add_additional_indicators(dataframe)
         return add_raw8_features(dataframe)
