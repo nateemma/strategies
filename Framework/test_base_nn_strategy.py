@@ -1137,3 +1137,108 @@ class TestPrintDataframeRanges:
         strat.print_dataframe_ranges("Test Ranges", indicator_df)
         out = capsys.readouterr().out
         assert "Test Ranges" in out
+
+
+# ---------------------------------------------------------------------------
+# LABEL_MAX_DRAWDOWN plumbing (NNNC_ForwardMAE_Raw prerequisite)
+#
+# get_train_buy_signals/get_train_sell_signals build the params dict passed
+# to TrainingSignals.get_train_buy_signals/get_train_sell_signals. Before
+# this attribute existed, "max_drawdown" was never in that dict at all --
+# labelers that accept it (e.g. forward_mae) silently fell back to their own
+# module-level default (0.02) regardless of what a strategy intended. These
+# tests pin: (a) the default (LABEL_MAX_DRAWDOWN=None) path is byte-identical
+# to before -- no "max_drawdown" key is ever injected -- and (b) an opt-in
+# value is passed through verbatim to the labeler.
+# ---------------------------------------------------------------------------
+
+class TestLabelMaxDrawdownPlumbing:
+    def test_default_is_none(self, strat):
+        assert strat.LABEL_MAX_DRAWDOWN is None
+
+    def test_default_path_omits_max_drawdown_key_buy(self, strat, indicator_df):
+        import Framework.TrainingSignals as TS
+
+        captured = {}
+        original = TS.get_train_buy_signals
+
+        def spy(df, method, params=None):
+            captured.update(params or {})
+            return original(df, method=method, params=params)
+
+        with patch.object(TS, "get_train_buy_signals", side_effect=spy):
+            strat.get_train_buy_signals(indicator_df)
+
+        assert "max_drawdown" not in captured
+        # Sanity: the other keys that have always been there are still there.
+        assert "rvol_threshold" in captured
+
+    def test_default_path_omits_max_drawdown_key_sell(self, strat, indicator_df):
+        import Framework.TrainingSignals as TS
+
+        captured = {}
+        original = TS.get_train_sell_signals
+
+        def spy(df, method, params=None):
+            captured.update(params or {})
+            return original(df, method=method, params=params)
+
+        with patch.object(TS, "get_train_sell_signals", side_effect=spy):
+            strat.get_train_sell_signals(indicator_df)
+
+        assert "max_drawdown" not in captured
+
+    def test_opt_in_value_reaches_buy_labeler(self, strat, indicator_df):
+        import Framework.TrainingSignals as TS
+
+        strat.TRAINING_TYPE = TS.LabelMethod.forward_mae
+        strat.LABEL_MAX_DRAWDOWN = 0.10
+
+        captured = {}
+        original = TS.labels_forward_return_mae_cap
+
+        def spy(df, **kwargs):
+            captured.update(kwargs)
+            return original(df, **kwargs)
+
+        with patch.dict(TS.METHODS, {TS.LabelMethod.forward_mae: spy}):
+            strat.get_train_buy_signals(indicator_df)
+
+        assert captured.get("max_drawdown") == 0.10
+
+    def test_opt_in_value_reaches_sell_params(self, strat, indicator_df):
+        import Framework.TrainingSignals as TS
+
+        strat.TRAINING_TYPE = TS.LabelMethod.forward_mae
+        strat.LABEL_MAX_DRAWDOWN = 0.10
+
+        captured = {}
+        original = TS.get_train_sell_signals
+
+        def spy(df, method, params=None):
+            captured.update(params or {})
+            return original(df, method=method, params=params)
+
+        with patch.object(TS, "get_train_sell_signals", side_effect=spy):
+            strat.get_train_sell_signals(indicator_df)
+
+        assert captured.get("max_drawdown") == 0.10
+
+    def test_forward_mae_accepts_rvol_threshold_without_raising(self, indicator_df):
+        """get_train_buy_signals() always includes rvol_threshold in its
+        params dict; labels_forward_return_mae_cap must accept (and ignore)
+        it rather than raising TypeError, or TRAINING_TYPE=forward_mae is
+        unusable through the standard strategy path."""
+        import Framework.TrainingSignals as TS
+
+        TS.get_train_buy_signals(
+            indicator_df,
+            method=TS.LabelMethod.forward_mae,
+            params={
+                "horizon": 12,
+                "min_gain": 0.015,
+                "min_loss": 0.015,
+                "rvol_threshold": -1.0,
+                "max_drawdown": 0.10,
+            },
+        )  # must not raise

@@ -202,6 +202,14 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
     LABEL_RVOL_THRESHOLD = -1.0
     HORIZON = TrainingConfig.HORIZON
 
+    # Label-side MFE/MAE cap, consumed by labelers that accept a
+    # ``max_drawdown`` kwarg (e.g. forward_mae). None = omit the key from the
+    # params dict entirely, so the labeler's own module-level default applies
+    # exactly as it always has -- every existing strategy leaves this None and
+    # is therefore byte-identical to before this attribute was added. Set
+    # explicitly only on a subclass whose TRAINING_TYPE's labeler supports it.
+    LABEL_MAX_DRAWDOWN = None
+
     # controls the profit estimation approach
     use_forward_peak_profit_label = True
 
@@ -608,15 +616,26 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
         """Generate buy signals based on peak detection"""
         signals = None
 
+        buy_params = {
+            "horizon": self.HORIZON,
+            "min_gain": self.MIN_BUY_GAIN_THRESHOLD,
+            "min_loss": self.MIN_SELL_LOSS_THRESHOLD,
+            "rvol_threshold": self.LABEL_RVOL_THRESHOLD,
+        }
+        # Omitted unless a subclass opts in (see LABEL_MAX_DRAWDOWN) so every
+        # existing strategy's params dict, and therefore its labels, are
+        # byte-identical to before this key existed. getattr (not self.
+        # LABEL_MAX_DRAWDOWN) because research/clfstudy's _LabelShim binds this
+        # method onto a lightweight stand-in that only copies a fixed
+        # attribute whitelist, not every BaseNNStrategy class attribute.
+        label_max_drawdown = getattr(self, "LABEL_MAX_DRAWDOWN", None)
+        if label_max_drawdown is not None:
+            buy_params["max_drawdown"] = label_max_drawdown
+
         buy_labels = TrainingSignals.get_train_buy_signals(
             future_df,
             method=self.TRAINING_TYPE,
-            params={
-                "horizon": self.HORIZON,
-                "min_gain": self.MIN_BUY_GAIN_THRESHOLD,
-                "min_loss": self.MIN_SELL_LOSS_THRESHOLD,
-                "rvol_threshold": self.LABEL_RVOL_THRESHOLD,
-            },
+            params=buy_params,
         )
         peaks = np.where(buy_labels.values > 0.5)[0]
 
@@ -653,14 +672,22 @@ class BaseNNStrategy(TrainingEngine, FeatureNormalizer, BaseStrategy):
         """Generate sell signals based on peak detection"""
         signals = None
 
+        sell_params = {
+            "horizon": self.HORIZON,
+            "min_loss": self.MIN_SELL_LOSS_THRESHOLD,
+            "min_gain": self.MIN_BUY_GAIN_THRESHOLD,
+        }
+        # See the matching comment in get_train_buy_signals: omitted unless a
+        # subclass opts in, so every existing strategy's sell labels are
+        # byte-identical to before this key existed.
+        label_max_drawdown = getattr(self, "LABEL_MAX_DRAWDOWN", None)
+        if label_max_drawdown is not None:
+            sell_params["max_drawdown"] = label_max_drawdown
+
         sell_labels = TrainingSignals.get_train_sell_signals(
             future_df,
             method=self.TRAINING_TYPE,
-            params={
-                "horizon": self.HORIZON,
-                "min_loss": self.MIN_SELL_LOSS_THRESHOLD,
-                "min_gain": self.MIN_BUY_GAIN_THRESHOLD,
-            },
+            params=sell_params,
         )
 
         peaks = np.where(sell_labels.values > 0.5)[0]

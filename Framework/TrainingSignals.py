@@ -110,6 +110,12 @@ def labels_forward_return_mae_cap(
     max_drawdown: float = DEFAULT_MAX_DRAWDOWN,
     atr_scale: Optional[float] = None,
     min_loss: Optional[float] = DEFAULT_MIN_LOSS,  # Used for conflict checking
+    # Unused here. get_train_buy_signals() always includes rvol_threshold in
+    # its params dict (it is only meaningful for labels_gbb/labels_gbb_path),
+    # and get_train_buy_signals() dispatches via fn(df, **params) with no
+    # filtering, so without this catch-all any strategy selecting forward_mae
+    # raises TypeError before producing a single label.
+    rvol_threshold: Optional[float] = None,
 ) -> pd.Series:
     """
     Label 1 if max future gain >= min_gain and MAE <= max_drawdown.
