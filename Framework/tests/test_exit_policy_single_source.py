@@ -144,7 +144,68 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
                                                                # bar; builds strategy instances
                                                                # with these as attributes,
                                                                # computes no stop level itself.
+    "Framework/tests/test_exit_policy_simulate_forward.py",  # T009: names
+                                                               # use_atr_adaptive_stoploss via
+                                                               # ExitParams kwargs to pin the
+                                                               # close-reason state machine;
+                                                               # delegates all arithmetic to
+                                                               # simulate_forward.
+    "Framework/tests/test_exit_policy_grace.py",  # T010: names the grace parameters as
+                                                    # ExitParams kwargs / stub-strategy
+                                                    # overrides to pin the grace asymmetry;
+                                                    # computes no stop level itself.
+    "Framework/tests/test_exit_policy_fixed_params.py",  # T011/FR-019: names the parameters
+                                                           # as literal expected values read
+                                                           # off BaseStrategy / the Open JSON;
+                                                           # computes no stop level itself.
 })
+
+
+def test_duplication_guard_can_fail():
+    """T008: prove the guard above is not a tautology.
+
+    A test that cannot fail is worthless -- and this repository has already lost a
+    result to a wiring check that passed while the logic it guarded never ran (see
+    MEMORY.md "Verify training steps by measurement"). So this plants a real file
+    under `user_data/strategies/` that names `atr_stoploss_multiplier` and
+    re-implements the clamp, calls `scan_exit_parameter_references` directly (the
+    same function `test_exit_parameter_references_match_allowlist` uses), and
+    asserts the planted file is flagged -- i.e. that it would fail the allowlist
+    equality check above. The file is removed in a `finally` block so a crashed run
+    cannot leave it behind; the final assertion re-scans and confirms it is gone.
+
+    Observed failure message when this was run manually (T008), for the record:
+
+        AssertionError: Files reference an exit-arithmetic parameter name
+        (atr_stoploss_multiplier, ...) but are NOT on the allowlist in
+        Framework/tests/test_exit_policy_single_source.py:
+          - Framework/_planted_duplicate_exit_arithmetic.py
+            Decide which this is, then act on it -- ...
+    """
+    planted = Path(__file__).parent / "_planted_duplicate_exit_arithmetic.py"
+    planted.write_text(
+        '"""T008 self-test plant -- re-implements the clamp. Must not survive the test."""\n'
+        "atr_stoploss_multiplier = 2.5\n\n\n"
+        "def clamp(x):\n"
+        "    return max(min(x, -0.02), -0.04)\n"
+    )
+    try:
+        found = scan_exit_parameter_references()
+        relative = planted.relative_to(STRATEGIES_ROOT).as_posix()
+        assert relative in found, (
+            f"planted duplicate file {relative} was NOT flagged by the scan -- the "
+            "duplication guard cannot detect a real duplicate and is worthless"
+        )
+        assert relative not in ALLOWED_REFERENCES, (
+            "planted file name collided with an existing allowlist entry; rename it"
+        )
+    finally:
+        planted.unlink(missing_ok=True)
+
+    # Cleanup verified: the file is gone and no longer flagged.
+    assert planted.exists() is False
+    found_after = scan_exit_parameter_references()
+    assert planted.relative_to(STRATEGIES_ROOT).as_posix() not in found_after
 
 
 def test_exit_parameter_references_match_allowlist():

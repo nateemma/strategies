@@ -55,8 +55,18 @@ class ExitParams:
     static_stoploss: float = -0.05
     use_atr_adaptive_stoploss: bool = False
     use_volume_confirmation_stoploss: bool = True
-    stoploss_grace_hours: float = 0.0
-    stoploss_grace_level: float = -0.15
+    #: NO DEFAULT, deliberately. Three different grace configurations exist in this
+    #: repository -- BaseStrategy.sell_params says 2.6h/-0.17, NNNC_MLX_Open.json (the
+    #: production operating point) says 6.5h/-0.27, and a dataclass default of "no grace"
+    #: would be a third. An offline caller that forgot to supply these would silently
+    #: simulate a stop firing inside a window where production has effectively none
+    #: (-27% for 6.5 hours), and every outcome would describe an exit the strategy does
+    #: not run. `effective_stop_fraction` raises rather than guessing.
+    #:
+    #: The LIVE path never reads these: `custom_stoploss` handles grace itself and returns
+    #: before consulting ExitParams, and `_resolve_normal_stop` is only reached post-grace.
+    stoploss_grace_hours: float | None = None
+    stoploss_grace_level: float | None = None
     #: Forward-simulation fields. Unused by the live stop path (freqtrade owns the
     #: take-profit and the hold cap); required by `simulate_forward`, which has to close
     #: a position the way the strategy actually would.
@@ -143,6 +153,14 @@ def effective_stop_fraction(
     against -0.02..-0.04), so a label horizon shorter than the window sees effectively
     no stop at all -- which is a real and easily-missed property of this policy.
     """
+    if params.stoploss_grace_hours is None or params.stoploss_grace_level is None:
+        raise ValueError(
+            "stoploss_grace_hours and stoploss_grace_level must be supplied explicitly "
+            "before the grace window can be evaluated. They have no default because this "
+            "repository holds three different values (BaseStrategy.sell_params 2.6h/-0.17, "
+            "NNNC_MLX_Open.json 6.5h/-0.27), and guessing would silently simulate an exit "
+            "the strategy does not run."
+        )
     if params.stoploss_grace_hours > 0.0 and age_hours < params.stoploss_grace_hours:
         return params.stoploss_grace_level
     return atr_stop_fraction(atr_pct, rvol, params)

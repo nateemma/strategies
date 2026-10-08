@@ -67,28 +67,37 @@ Everything in US2–US4 calls this. Nothing else may start until T007 passes.
 - [X] T007 @main Run T004's characterisation test against the refactored code (SC-001, FR-005, FR-021) and confirm
   100% of bars match (SC-001). If any bar differs, the extraction is wrong — fix it, do not
   regenerate the fixture.
-- [ ] T008 @model-implementer **Prove the duplication test can fail.** Plant a file naming
+- [X] T008 @model-implementer **Prove the duplication test can fail.** Plant a file naming
   `atr_stoploss_multiplier` and re-implementing the clamp, confirm T005's test fails and
   names it, then remove the file. A guard that cannot fail is worthless, and this repository
   has already lost a result to a wiring check that passed while the logic never ran.
-- [ ] T009 [P] @model-implementer Unit-test `simulate_forward`'s **same-bar rule precedence**:
+- [X] T009 [P] @model-implementer Unit-test `simulate_forward`'s **same-bar rule precedence**:
   on a bar whose `low` breaches the stop AND whose `high` reaches the take-profit, the result
   MUST be `stop`. OHLC cannot order intra-bar events, and the other choice would let the
   table claim profits the live path would not collect (Principle V).
-- [ ] T010 [P] @model-implementer Unit-test the grace asymmetry: inside the grace window the
+- [X] T010 [P] @model-implementer Unit-test the grace asymmetry: inside the grace window the
   non-`after_fill` call returns `1.0` and the `after_fill` call returns
   `stoploss_grace_level`. Losing that asymmetry would silently widen every live stop.
 
-- [ ] T011 [P] @model-implementer Test that the exit is actually held FIXED (FR-019): assert
+- [X] T011 [P] @model-implementer Test that the exit is actually held FIXED (FR-019): assert
   every `ExitConfig` field used by the table equals the live value on `BaseStrategy` /
   `BaseNNStrategy` (`atr_stoploss_multiplier` 2.5, `atr_stoploss_cap` -0.02,
   `atr_stoploss_floor` -0.04, and the grace / take-profit / hold-cap values from the Open
   operating point). FR-019 is otherwise a prose header that nothing checks, so a drift would
   pass silently and every outcome would describe an exit the strategy does not run.
 
-**Checkpoint**: `utils/ExitPolicy.py` is the only implementation of the exit arithmetic, live
-behaviour is provably unchanged, and the guard protecting both facts has been shown to fail
-when violated.
+**Checkpoint — REACHED**. `utils/ExitPolicy.py` is the only implementation of the exit
+arithmetic; live behaviour is provably unchanged across 1,440 cases; and the guard has been
+shown to fail on a planted duplicate (now a permanent self-test, not a one-off).
+
+Two findings the plan did not anticipate:
+* The duplication was **four-way**. `research/labelfree/es/exits.py::atr_stop_level` was a
+  fourth copy, surfaced by T005's own test on first run and refactored into a caller per
+  FR-002. Its 233 tests passed unchanged.
+* `ExitParams`' grace fields now have **no default and raise if absent**, because three
+  different grace configurations exist and a convenient default would have silently
+  simulated an exit the strategy does not run. The guard immediately caught T009's own
+  tests relying on that default, which is the behaviour one wants from it.
 
 ---
 
@@ -106,6 +115,13 @@ without running a backtest.
   canonical JSON of every field. **`fee_per_side` MUST be in the hash** — a positive outcome
   is net of fees (FR-006a), so a fee change changes every outcome, and omitting it is exactly
   the silent-staleness bug FR-007 exists to prevent.
+  **HAZARD FOUND IN PHASE 2, read before implementing**: this repository holds THREE
+  different grace configurations -- `BaseStrategy.sell_params` 2.6h/-0.17, and
+  `NNNC_MLX_Open.json` (the production operating point) 6.5h/-0.27. `ExitParams` therefore
+  gives the two grace fields NO default and `effective_stop_fraction` RAISES if they are
+  absent, because a default of "no grace" would silently simulate a stop firing inside a
+  window where production has effectively none (-27% for 6.5 hours). `ExitConfig` MUST
+  source grace from the operating point being modelled, never from a default.
 - [ ] T013 [US2] @model-implementer Write the two-layer leakage guard and its tests FIRST (FR-009,
   before the builder that produces the columns): every outcome column named `__outcome_*`,
   and a **raising** assertion in the label builder that no column it passes onward carries the
