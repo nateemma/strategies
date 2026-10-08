@@ -110,6 +110,26 @@ def test_config_hash_changes_when_timeframe_minutes_changes():
     assert a.config_hash != b.config_hash
 
 
+def test_config_hash_changes_when_simulation_logic_version_changes(monkeypatch):
+    """FR-007's cache guard only covers CONFIGURATION drift (an `ExitParams` field
+    changing); the 2026-10-08 fee double-count fix was pure CODE -- no `ExitParams`
+    field changed, yet `simulate_forward`'s behaviour did. `ExitConfig.config_hash`
+    folds in `utils.ExitPolicy.SIMULATION_LOGIC_VERSION` precisely so a future
+    behavioural change, once its author bumps the constant, still invalidates every
+    cached table -- the exact silent-staleness bug run 2 vs run 3 hit (same
+    `config_hash`, `431d3c532fa09815`, across a real code change) when that constant
+    did not yet exist."""
+    import research.outcomes.table as table_module
+
+    a = ExitConfig.from_operating_point()
+    before = a.config_hash
+    monkeypatch.setattr(
+        table_module, "SIMULATION_LOGIC_VERSION", table_module.SIMULATION_LOGIC_VERSION + 1
+    )
+    after = a.config_hash
+    assert before != after
+
+
 def test_from_operating_point_reads_the_open_json():
     cfg = ExitConfig.from_operating_point()
     assert cfg.stoploss_grace_hours == 6.5

@@ -66,11 +66,54 @@ They stay in `BaseStrategy`.
 Guarded by two tests: `test_exit_policy_characterisation.py` proves the live decision is
 unchanged bar-by-bar, and `test_exit_policy_single_source.py` fails if the arithmetic
 reappears anywhere else.
+
+AMENDED 2026-10-08 (fee double-count fix). The reconciliation table's realised
+`profit_ratio` (itself NET of fees -- freqtrade's `Trade.calc_profit_ratio` docstring:
+"Calculates the profit as ratio (including fee)"; `calculate_profit`: "All calculations
+include fees") landed almost exactly ON the ROI threshold (+0.050008 vs 0.0500) and BELOW
+the stop threshold by one fee (-0.271446 vs -0.2700). That is because freqtrade's
+`should_exit` (`freqtrade/strategy/interface.py`) computes
+`current_profit = trade.calc_profit_ratio(current_rate)` -- NET -- and passes it straight
+into `custom_exit` (feeding this module's `custom_exit_decision`); separately
+`current_profit_best = trade.calc_profit_ratio(current_rate_best)` (HIGH-based, also NET)
+is what `min_roi_reached` compares against `self.minimal_roi` (`current_profit > roi`,
+interface.py's `min_roi_reached`). Both `cexit_take_profit`/`unclog_12h`/`unclog_1d`
+thresholds and the native `minimal_roi` level are therefore NET targets by construction:
+there is no separate fee subtraction anywhere on freqtrade's side for these checks. The
+native stop is different -- it is a PRICE level (`current_rate <= stop_price`), with no
+fee netting in the comparison at all, so a fee properly applies on top of it once a trade
+actually fills there.
+
+Pre-fix, `simulate_forward` got both halves wrong for the custom-exit/ROI group: it
+compared a GROSS, not-yet-fee-adjusted profit against these NET thresholds (over-reporting
+how far a bar was from the fee-adjusted target), and then subtracted `round_trip_fee` a
+SECOND time from the returned value. The fix (below) converts to net ONCE, before the
+comparison, for exactly these checks, and returns that same net figure with no further
+subtraction -- matching the live contract, where `custom_exit_decision`'s `current_profit`
+argument has always been documented (and, live, always been) a NET figure. The stop,
+`hold_cap` and `end_of_data` branches are UNCHANGED: they close at a traded PRICE, so the
+fee is realised on top, exactly once, same as before.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Optional
+
+#: Bump whenever `simulate_forward`'s or `custom_exit_decision`'s BEHAVIOUR changes --
+#: i.e. the same inputs now produce a different `profit_fraction`/`close_reason`, not just
+#: a different *parameter value* (parameter changes are already covered by `ExitConfig`'s
+#: hash over `ExitParams`' fields). `research/outcomes/table.py`'s `ExitConfig.config_hash`
+#: folds this constant into its hash specifically so a behavioural change that is pure CODE
+#: (no `ExitParams` field changed) still invalidates the cache. Forgetting to bump this is a
+#: silent-staleness bug of exactly the kind FR-007 (specs/021-label-exit-coordination) exists
+#: to prevent: run 3's fill-price fix landed with the SAME `config_hash` as run 2 because
+#: nothing forced the hash to notice the code had changed underneath it.
+#:
+#: Introduced at 1 (the implicit, never-versioned behaviour every prior run silently
+#: depended on) and bumped to 2 as part of THIS change (the fee double-count fix above) --
+#: both steps happen in the same commit so the version this module ships with is never
+#: itself stale.
+SIMULATION_LOGIC_VERSION = 2
 
 #: Hard floor applied AFTER volume confirmation tightens the stop.
 #:
@@ -292,6 +335,13 @@ def custom_exit_decision(
     trade's age at that same instant -- see this module's docstring for why (freqtrade calls
     `custom_exit` with `rate = row[OPEN_IDX]`). Passing a high- or low-based profit here would
     silently reproduce the exact bias this amendment exists to remove.
+
+    `current_profit` MUST be NET of round-trip fees, matching the live contract exactly:
+    `should_exit` (interface.py) computes it via `trade.calc_profit_ratio`, which is already
+    fee-inclusive ("Calculates the profit as ratio (including fee)"), and passes that straight
+    into `custom_exit` with no further adjustment. This function performs NO fee arithmetic
+    itself -- an offline caller (`simulate_forward`) that has only a raw price ratio must net
+    the fee out BEFORE calling this, not after reading the decision back.
     """
     if params.cexit_enable_profit_checks and current_profit > 0.0:
         if guard_metric is not None and guard_metric > params.metric_overbought_threshold:
@@ -317,7 +367,22 @@ def simulate_forward(
     """Replay the exit policy forward from a hypothetical long entry at `start_index`.
 
     Returns `(profit_fraction, hold_bars, close_reason)` where `profit_fraction` is NET of
-    `fee_per_side` on BOTH sides (feature 021 FR-006a).
+    `fee_per_side` on BOTH sides (feature 021 FR-006a) -- HOW it gets there differs by exit
+    type, fixed 2026-10-08 (see this module's docstring, "AMENDED ... fee double-count
+    fix"):
+
+      * `stop` / `hold_cap` / `end_of_data` close at a traded PRICE (the stop level, or the
+        bar's open/close); `round_trip_fee` is subtracted from that price-based fraction
+        exactly once, same as always.
+      * `metric_overbought` / `take_profit` / `unclog_12h` / `unclog_1d` (the `open_`-based
+        `custom_exit_decision` branches) and `roi` compare and RETURN a NET figure --
+        `(price/entry - 1) - round_trip_fee` -- because freqtrade's own thresholds for these
+        (`cexit_take_profit`, `unclog_12h_min_profit`, `unclog_1d`'s zero-profit floor, and
+        `minimal_roi`) are themselves compared against a NET `current_profit`
+        (`trade.calc_profit_ratio`, fee-inclusive by construction). Computing a GROSS profit,
+        comparing it against these NET thresholds, and then subtracting the fee a second time
+        from the return value double-counts the fee and is WRONG at both ends; this function
+        nets the fee out ONCE, before the comparison.
 
     `open_` and `guard_metric` are per-bar arrays, both OPTIONAL (feature 021's FR-001
     amendment). `None` means exactly what it means for `rvol` elsewhere in this module: "do
@@ -389,14 +454,18 @@ def simulate_forward(
         age_hours = (k - start_index) / bars_per_hour
 
         # ---- 0. custom_exit's own decision, OPEN-based (feature 021 FR-001 amendment) ----
+        # NET, not gross (fee double-count fix, 2026-10-08): custom_exit_decision's
+        # thresholds (cexit_take_profit / unclog_12h_min_profit / unclog_1d's zero floor)
+        # are themselves NET targets live (see custom_exit_decision's and this function's
+        # docstrings), so the comparison -- not just the return value -- must be net too.
         if open_ is not None:
-            profit_open = (float(open_[k]) / entry) - 1.0
+            profit_open_net = (float(open_[k]) / entry) - 1.0 - round_trip_fee
             gm = None if guard_metric is None else float(guard_metric[k])
-            decision = custom_exit_decision(profit_open, age_hours, gm, params)
+            decision = custom_exit_decision(profit_open_net, age_hours, gm, params)
             if decision in (
                 CLOSE_METRIC_OVERBOUGHT, CLOSE_TAKE_PROFIT, CLOSE_UNCLOG_12H, CLOSE_UNCLOG_1D,
             ):
-                return profit_open - round_trip_fee, k - start_index, decision
+                return profit_open_net, k - start_index, decision
 
         # ---- 1. the native stop, on the LOW ------------------------------------------
         stop_frac = effective_stop_fraction(age_hours, atr_entry, rvol_entry, params)
@@ -456,10 +525,14 @@ def simulate_forward(
             return params.take_profit - round_trip_fee, k - start_index, CLOSE_TAKE_PROFIT
 
         # ---- 3. the native ROI exit, on the HIGH (feature 021 FR-001 amendment) ------
+        # NET, not gross (fee double-count fix, 2026-10-08): `minimal_roi` is compared
+        # live against `trade.calc_profit_ratio` (NET, interface.py's `min_roi_reached`),
+        # so this must compare and return the same NET figure, not the fixed threshold
+        # minus a fee.
         if params.roi is not None:
-            profit_high = (float(high[k]) / entry) - 1.0
-            if profit_high >= params.roi:
-                return params.roi - round_trip_fee, k - start_index, CLOSE_ROI
+            profit_high_net = (float(high[k]) / entry) - 1.0 - round_trip_fee
+            if profit_high_net >= params.roi:
+                return profit_high_net, k - start_index, CLOSE_ROI
 
     if start_index + max_bars <= n - 1:                      # 4. hold cap
         exit_px = float(close[last])

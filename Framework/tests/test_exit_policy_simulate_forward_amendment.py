@@ -4,6 +4,15 @@
 `test_exit_policy_simulate_forward.py`, which pins the pre-amendment stop/take-profit/
 hold-cap state machine and is left untouched by this file's cases (none of them supply
 `open_`/`guard_metric`/`roi`, so that file's geometry is undisturbed).
+
+AMENDED 2026-10-08 (fee double-count fix, `utils/ExitPolicy.py`'s module docstring has the
+freqtrade source citations). The `unclog_12h` / `unclog_1d` / `roi` cases below were updated
+to compare and assert against NET profit (gross minus `round_trip_fee`), not gross -- the
+pre-fix values they used to pin were the double-counted bug this fix removes, not a
+behaviour worth preserving. `take_profit` and `metric_overbought` happen to need no case
+changes: their trigger margins are wide enough that netting the fee out before the
+comparison does not change which bar fires or the arithmetic identity of the returned
+value.
 """
 from __future__ import annotations
 
@@ -81,13 +90,17 @@ def test_metric_overbought_fires_via_open_and_guard_metric():
 
 
 def test_unclog_12h_fires_via_open_before_stop_and_take_profit():
-    """One bar == one hour; bar 13 is the first past the 12h boundary."""
+    """One bar == one hour; bar 13 is the first past the 12h boundary. The comparison is
+    NET (fee double-count fix): `unclog_12h_min_profit` (0.005) is compared against GROSS
+    profit minus `round_trip_fee` (0.002), so the open must clear 0.7%, not 0.5%, to fire --
+    0.6% gross (net 0.4%) would NOT fire, unlike the pre-fix (gross-compared) code."""
     n = 15
     close = _flat(n)
     high = _flat(n)
     low = _flat(n)   # never breaches any stop
     open_ = list(_flat(n))
-    open_[13] = 100.6   # 0.6% profit -- above unclog_12h's 0.5%, below take_profit's 2.2%
+    open_[13] = 100.8   # 0.8% gross -> 0.6% net -- above unclog_12h's 0.5% net threshold,
+                        # below take_profit's 2.2% net threshold
 
     profit, hold_bars, reason = simulate_forward(
         high, low, close, atr_pct=[0.0] * n, rvol=None, start_index=0, params=PARAMS,
@@ -95,16 +108,21 @@ def test_unclog_12h_fires_via_open_before_stop_and_take_profit():
     )
     assert reason == CLOSE_UNCLOG_12H
     assert hold_bars == 13
+    expected = (100.8 / ENTRY - 1.0) - ROUND_TRIP_FEE
+    assert abs(profit - expected) < 1e-12
 
 
 def test_unclog_1d_fires_via_open_on_zero_profit():
     """One bar == one hour; bar 24 is the first bar whose age (24h) reaches the unclog_1d
-    boundary, and `open_` is flat throughout (profit exactly 0, satisfying `>= 0.0`)."""
+    boundary. The comparison is NET (fee double-count fix): `open_` is flat at a GROSS
+    profit exactly equal to `round_trip_fee` (0.2%), so NET profit is exactly 0.0,
+    satisfying `>= 0.0` -- the pre-fix code would have required gross to be used directly
+    and fired on a literally-flat open instead."""
     n = 26
     close = _flat(n)
     high = _flat(n)
     low = _flat(n)
-    open_ = _flat(n)   # flat profit (0.0) at every bar
+    open_ = _flat(n, price=ENTRY * (1.0 + ROUND_TRIP_FEE))   # net profit exactly 0.0
 
     profit, hold_bars, reason = simulate_forward(
         high, low, close, atr_pct=[0.0] * n, rvol=None, start_index=0, params=PARAMS,
@@ -112,13 +130,19 @@ def test_unclog_1d_fires_via_open_on_zero_profit():
     )
     assert reason == CLOSE_UNCLOG_1D
     assert hold_bars == 24
+    assert abs(profit - 0.0) < 1e-12
 
 
 def test_native_roi_fires_on_high_after_stop_and_legacy_take_profit_checked():
     """ROI is the LOWEST-precedence of the amended exits: this bar's low does not breach
     the stop, and `open_` is NOT supplied (so the legacy high-based take_profit path IS
     active) -- but take_profit (2.2%) and ROI (5%) are set far enough apart that only ROI's
-    own threshold is crossed."""
+    own threshold is crossed.
+
+    The comparison and the return are NET (fee double-count fix): bar 2's high clears 6%
+    gross, 5.8% net -- past the 5% ROI threshold -- and the returned profit is that same
+    5.8% net figure, NOT the threshold minus a fee (the pre-fix bug returned a fixed
+    `roi - round_trip_fee` regardless of how far the high actually moved)."""
     params = ExitParams(
         static_stoploss=-0.05, use_atr_adaptive_stoploss=False, take_profit=0.30,
         max_hold_days=10, timeframe_minutes=60, fee_per_side=0.001,
@@ -134,7 +158,8 @@ def test_native_roi_fires_on_high_after_stop_and_legacy_take_profit_checked():
     )
     assert reason == CLOSE_ROI
     assert hold_bars == 2
-    assert abs(profit - (0.05 - ROUND_TRIP_FEE)) < 1e-12
+    expected = (106.0 / ENTRY - 1.0) - ROUND_TRIP_FEE
+    assert abs(profit - expected) < 1e-12
 
 
 def test_roi_none_means_not_modelled():

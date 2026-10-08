@@ -237,6 +237,10 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
     "Framework/tests/test_custom_exit_characterisation.py",
     "Framework/tests/test_exit_policy_custom_exit_decision.py",
     "Framework/tests/test_exit_policy_simulate_forward_amendment.py",
+    # 2026-10-08 fee double-count fix: names the grace/stop parameters as ExitParams
+    # kwargs only to build fixtures for `simulate_forward`/`custom_exit_decision`;
+    # delegates every comparison to those functions, computes no stop level itself.
+    "Framework/tests/test_exit_policy_fee_netting.py",
 })
 
 

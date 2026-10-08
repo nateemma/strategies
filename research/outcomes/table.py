@@ -42,7 +42,7 @@ from research.outcomes.leakage import (
     OUTCOME_COLUMN_POSITIVE,
     OUTCOME_COLUMN_PROFIT,
 )
-from utils.ExitPolicy import ExitParams, simulate_forward
+from utils.ExitPolicy import SIMULATION_LOGIC_VERSION, ExitParams, simulate_forward
 
 #: `atr_stoploss_multiplier` / `atr_stoploss_cap` / `atr_stoploss_floor` /
 #: `use_volume_confirmation_stoploss` are plain class attributes (not freqtrade
@@ -180,8 +180,21 @@ class ExitConfig:
         `simulate_forward` reads -- `fee_per_side` included (contracts/outcome-table.md):
         a positive outcome is net of fees (FR-006a), so a fee change changes every
         outcome, and omitting it would be exactly the silent-staleness bug FR-007
-        exists to prevent."""
-        canonical = json.dumps(asdict(self.params), sort_keys=True)
+        exists to prevent.
+
+        Also folds in `utils.ExitPolicy.SIMULATION_LOGIC_VERSION`. FR-007 guards
+        CONFIGURATION drift (an `ExitParams` field changing); it does nothing for CODE
+        drift -- `simulate_forward`'s or `custom_exit_decision`'s BEHAVIOUR changing with
+        every `ExitParams` field held fixed, which is exactly what the 2026-10-08 fee
+        double-count fix was (and exactly how run 3 silently got the SAME `config_hash`
+        as run 2's pre-fix-price code). Hashing the version constant alongside the
+        params means a behavioural change with no parameter change still changes the
+        hash -- PROVIDED the constant is bumped; see its docstring in `utils.ExitPolicy`.
+        """
+        canonical = json.dumps(
+            {**asdict(self.params), "simulation_logic_version": SIMULATION_LOGIC_VERSION},
+            sort_keys=True,
+        )
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16]
 
     @classmethod
