@@ -238,3 +238,47 @@ bias only cancels out of a trigger COMPARISON if it is uniform across triggers. 
 selecting longer-held or choppier trades would be mismodelled more, and the verdict rule
 (FR-014b) compares triggers against each other. An unquantified, possibly trigger-dependent
 10% bias in the ranking quantity is not acceptable, so this blocks US3/US4 until fixed.
+
+## R11 — Reconciliation converged on the aggregate; two subset biases remain (2026-10-08)
+
+Four reconciliation runs against the control arm's 1,410 trades (100% matched on
+`(pair, open_date)` every time):
+
+| run | all trades | stop subset | profit subset | win rate |
+|---|---|---|---|---|
+| 1 incomplete exit model | +10.7% | — | — | +2.70pp |
+| 2 exit model completed | +72.1% | +0.0176 | — | +0.64pp |
+| 3 stop fill price fixed | −35% | +0.0116 | −0.0082 | +0.64pp |
+| **4 fee netting fixed** | **−4.7%** | **+0.0107** | **−0.0056** | **−0.71pp** |
+
+Run 4: table +0.004459 against the arm's +0.004679, delta −0.00022, inside ±0.0022.
+Win rate −0.71pp, inside ±2.45pp.
+
+**The aggregate agreement is arithmetic cancellation, not fidelity.** The control's exit
+mix is 33% stop / 67% profit, and `0.33 × 0.0107 − 0.67 × 0.0056 = −0.0002` — which is the
+aggregate delta exactly. A trigger whose exit mix differs carries a bias of up to ±0.01 per
+trade against a mean of 0.0047, so a stop-heavy trigger is flattered and a
+profit-exit-heavy one penalised.
+
+### The one-bar-offset hypothesis is REFUTED
+
+It was attractive because a single cause would explain both residuals' opposite signs: if
+the table exited a bar early, it would be too shallow on stops in a falling move and too
+early on take-profits in a rising one. Measuring the arm's hold duration against the
+table's kills it:
+
+- all trades: **median difference 0** bars; 500 of 1,410 differ by exactly 0
+- **profit exits: mean +0.197, median 0** — timing essentially matches, so there is no
+  offset to explain this residual
+- **stop exits: mean +5.465, median +1** — the arm holds substantially LONGER, with a long
+  right tail
+
+So the two residuals have DIFFERENT causes, and only the stop one is a timing problem. The
+table exits stops too early (which is why it is optimistic there: an earlier exit in a
+falling move is a smaller loss), but not by a fixed offset — the median is one bar while the
+mean is five and a half, so it is a tail effect on a minority of trades rather than a
+systematic shift.
+
+**Why this is worth recording rather than fixing blind**: a plausible single-cause theory
+was disposed of by one measurement that needed no code change. The profit-exit residual is
+NOT a timing artefact and still has no diagnosis.
