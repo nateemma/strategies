@@ -28,6 +28,15 @@ Every patchable surface has been eliminated in turn. What remains is not a compo
 a missing abstraction: labels and the exit stack are specified independently, and none of
 the 28 label methods consults the exit at all.
 
+## Clarifications
+
+### Session 2026-10-08
+
+- Q: Should a bar's outcome be excluded or flagged when that bar could not actually have been filled at production stake size? → A: Record a fillable flag and fillable fraction per bar; report economic value both unfiltered and filtered (Option B)
+- Q: Should a "positive outcome" in the table mean profit after trading fees, or before them? → A: Net of the same fees freqtrade applies in the backtest; no extra slippage model (Option A)
+- Q: What should decide whether a trigger is called "selection value" rather than "decoration"? → A: Compare each trigger's no-model economic value against the EMPTY trigger; selection value means beating it, decoration means matching it while its label is markedly more learnable (Option B). Extended during integration: a third verdict, "indeterminate", covers the case where neither condition holds, and both boundaries are set by the measurement uncertainty on the difference rather than an invented threshold.
+- Q: How should the learnability of each trigger's label be measured for the second column? → A: One fixed cheap probe — same model, same features, same protocol — for every trigger, reported as MCC (Option A)
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - One exit model, provably unchanged (Priority: P1)
@@ -153,6 +162,9 @@ expected quadrant.
 - Gap-fill bars (volume zero, OHLC equal), which are 22–55% of 15m bars for six of eleven
   production pairs: outcomes computed across them describe the absence of trading and must
   be flagged so conclusions can be checked against them.
+- A bar whose quote volume cannot support the production stake: the outcome is still recorded
+  but marked unfillable, so a trigger cannot earn its value from bars that could not have been
+  traded.
 - A trigger that fires on almost no bars, or on almost every bar: the leaderboard must
   report base rate alongside value so a trigger cannot look good by trading nothing.
 - Two triggers that fire on overlapping bars: the comparison must not assume independence.
@@ -180,6 +192,16 @@ expected quadrant.
 - **FR-009**: The outcome table MUST be structurally prevented from reaching a model as an
   input feature. Its lookahead is legitimate for label construction and disqualifying as a
   feature.
+- **FR-006a**: A "positive outcome" MUST mean profit NET of the same trading fees freqtrade
+  applies in a backtest, so the table and the walk-forward harness measure the same quantity.
+  No slippage model beyond those fees is introduced, because the harness does not model one
+  and a table that did would disagree with the instrument that has to confirm its winners.
+- **FR-009a**: Each outcome record MUST carry whether that bar was fillable at production
+  stake size, and the fillable fraction of the intended stake, derived from the same
+  quote-volume cap the live path applies.
+- **FR-009b**: Every economic value MUST be reported twice — over all triggered bars, and
+  over fillable triggered bars only. A trigger whose value survives only unfiltered is
+  reporting phantom return.
 - **FR-010**: A trigger MUST be expressible as a boolean condition over bars, independent of
   any outcome test.
 - **FR-011**: A label MUST be formed as the conjunction of a trigger and a positive outcome
@@ -190,8 +212,24 @@ expected quadrant.
   and the smoothed zero-lag geometric valley condition.
 - **FR-014**: For each trigger, the system MUST report an economic value computed from the
   outcome table alone, with no model: base rate, mean realised outcome, and distribution.
+- **FR-014a**: The EMPTY trigger (every bar) MUST serve as the null against which every other
+  trigger is judged. It is already a required member of the trigger set, so no threshold has
+  to be agreed in advance.
+- **FR-014b**: Each trigger MUST be assigned exactly one verdict, by this rule:
+  - **selection value** — its no-model economic value exceeds the empty trigger's by more
+    than the measurement uncertainty on that difference;
+  - **decoration** — its economic value does NOT exceed the empty trigger's once uncertainty
+    is accounted for, while its label's learnability DOES exceed that of the empty trigger's
+    label by more than the uncertainty on that difference;
+  - **indeterminate** — neither condition holds, which MUST be reported as such rather than
+    resolved by judgement.
+  The uncertainty on each difference MUST be stated alongside the verdict.
 - **FR-015**: For each trigger, the system MUST separately report the learnability of the
-  corresponding label.
+  corresponding label, measured by ONE fixed cheap probe — the same model, the same features
+  and the same protocol for every trigger — reported as MCC. Varying the model between
+  triggers would make the column incomparable and the decoration verdict unreliable.
+- **FR-015a**: The learnability column is DIAGNOSTIC. It feeds the verdict rule in FR-014b
+  and nothing else. It MUST NOT license promotion of any trigger, consistent with FR-018.
 - **FR-016**: Economic value and learnability MUST be reported as separate columns and MUST
   NOT be combined into a single score.
 - **FR-017**: Any claim about profit-and-loss MUST come from the pooled walk-forward
@@ -210,7 +248,8 @@ expected quadrant.
 - **Exit policy**: the single definition of how an open position is closed — adaptive stop
   with cap and floor, static fallback, grace window, take-profit, hold cap.
 - **Outcome record**: for one bar, the result of a hypothetical entry closed by the exit
-  policy — profit fraction, hold duration, closing rule.
+  policy — profit fraction net of fees, hold duration, closing rule, whether the bar was
+  fillable at production stake, and the fillable fraction of that stake.
 - **Outcome table**: the full set of outcome records for a dataset under one exit
   configuration, with the identity of that configuration attached.
 - **Trigger**: a boolean condition over bars saying when an entry may be considered,
@@ -230,24 +269,30 @@ expected quadrant.
 - **SC-003**: Building the outcome table twice from the same dataset and exit configuration
   produces identical results.
 - **SC-004**: Changing any exit parameter causes the table to be rebuilt rather than reused.
-- **SC-005**: Evaluating a candidate trigger against the table takes seconds rather than the
-  roughly 1.5 hours a trained comparison currently costs.
+- **SC-005**: Evaluating a candidate trigger against the table — both columns, economic value
+  and probe learnability — takes seconds rather than the roughly 1.5 hours a trained
+  comparison currently costs.
 - **SC-006**: Every trigger in the leaderboard carries both an economic-value column and a
-  learnability column, and neither is derivable from the other.
-- **SC-007**: The leaderboard assigns each trigger to one of the two competing explanations
-  — selection value, or decoration — or states that the evidence does not separate them.
+  learnability column, neither derivable from the other, with the learnability figure produced
+  by the same probe for every trigger.
+- **SC-007**: The leaderboard assigns every trigger exactly one of three verdicts — selection
+  value, decoration, or indeterminate — by comparison against the empty trigger, with the
+  measurement uncertainty on each difference reported beside it.
 - **SC-008**: At least the three named triggers are scored: gbb's two-threshold condition,
   the empty trigger, and the geometric valley condition.
 - **SC-009**: The share of each trigger's outcomes computed across gap-fill bars is reported
   alongside its value.
+- **SC-010**: Every trigger's economic value is reported both over all triggered bars and over
+  fillable triggered bars only, and the two figures are distinguishable in the leaderboard.
 
 ## Assumptions
 
 - The exit policy is calibrated and is held fixed. This rests on today's take-profit ladder
   (control UNCHANGED from 2.2% to 4.0%, CI spanning zero) and prior grace-level and ATR-band
   sweeps, which found no resolvable lever.
-- Costs and slippage are modelled as the existing harness models them; this feature does not
-  revisit them.
+- Costs are the exchange fees freqtrade applies in a backtest, matching the harness exactly.
+  No slippage is modelled, because the harness models none; revisiting that is out of scope
+  and would have to change both together.
 - The production pair list and the 15m timeframe are unchanged, and no new data is
   downloaded.
 - A single position per bar is simulated. Position sizing, concurrency limits and

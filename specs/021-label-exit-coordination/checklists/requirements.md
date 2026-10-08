@@ -50,9 +50,20 @@ Both are recorded here so a reviewer can object to them explicitly.
 The spec deliberately does NOT prescribe how the outcome table is stored, how triggers are
 registered, or how economic value is computed — those are planning decisions.
 
-One thing a reviewer should push on during `/speckit-clarify`: SC-007 asks the leaderboard
-to assign each trigger to one of two competing explanations. The decision rule for that
-assignment is not specified, and reasonable people could draw the boundary differently.
-It is left open on purpose, because fixing a threshold before seeing the distribution of
-economic values would be arbitrary — but it should be settled before implementation rather
-than at report-writing time.
+Resolved by `/speckit-clarify` (session 2026-10-08), four questions:
+
+1. **Liquidity** — outcome records carry a fillable flag and fillable fraction, and every
+   economic value is reported both unfiltered and fillable-only (FR-009a/b, SC-010). This
+   closes the risk that a trigger earns its value from bars that could not have been traded,
+   which this repository has already been bitten by once.
+2. **Costs** — a positive outcome is net of the same fees freqtrade applies in a backtest,
+   with no slippage model, so the table and the walk-forward harness measure the same
+   quantity (FR-006a).
+3. **The verdict rule** — SC-007 was the item flagged here as open. Each trigger is now judged
+   against the EMPTY trigger, with three total verdicts (selection value / decoration /
+   indeterminate) and both boundaries set by the measurement uncertainty on the difference
+   rather than a threshold invented in advance (FR-014a/b).
+4. **Learnability** — one fixed cheap probe for every trigger, so the column is comparable,
+   and explicitly diagnostic rather than a promotion criterion (FR-015, FR-015a).
+
+Nothing remains open that would change the design. Ready for `/speckit-plan`.
