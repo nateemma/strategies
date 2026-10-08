@@ -7,6 +7,8 @@ Returns pandas Series of 0/1 labels aligned to the input dataframe length.
 
 from __future__ import annotations
 
+import inspect
+
 import numpy as np
 import pandas as pd
 from typing import Dict, Any, Tuple, List, Optional
@@ -1343,6 +1345,128 @@ def labels_gbb_path_sell(
     sell_mask = np.where(np.isnan(future_loss), False, sell_mask)
     labels[sell_mask] = 1.0
     return pd.Series(labels, index=df.index)
+
+
+def labels_gbb_fwdmae(
+    df: pd.DataFrame,
+    guard_threshold: float = 0.3,
+    bb_width_threshold: float = 0.035,
+    rvol_threshold: float = -1.0,
+    min_gain: float = DEFAULT_MIN_GAIN,
+    min_loss: Optional[float] = DEFAULT_MIN_LOSS,
+    horizon: int = DEFAULT_HORIZON,
+    max_drawdown: float = DEFAULT_MAX_DRAWDOWN,
+    atr_scale: Optional[float] = None,
+) -> pd.Series:
+    """HYBRID buy label: gbb's regime TRIGGER AND forward_mae's drawdown-capped
+    forward-return TEST.
+
+    Motivation (2026-10-07 label screening): gbb's incumbent label returns
+    +40pp pooled walk-forward while forward_mae returns ~0 and never trades,
+    even though swapping the feature set and the exit were both nulls -- so
+    the difference is the LABEL. The leading hypothesis is that gbb's edge is
+    its regime TRIGGER (``guard_metric < guard_threshold`` and
+    ``bb_width > bb_width_threshold``, optionally ``rvol > rvol_threshold``),
+    not its return definition (a bare forward-gain floor with no drawdown
+    cap) -- while forward_mae's problem is the opposite: its MAE-capped return
+    test is more careful, but it fires with NO regime condition at all. This
+    label composes the two: gbb's trigger decides WHEN to look, forward_mae's
+    MAE cap decides whether the resulting move was tradeable.
+
+    Composed by calling both labelers UNCHANGED and ANDing their outputs,
+    rather than re-deriving either condition:
+
+        buy = (labels_gbb(...) > 0.5) & (labels_forward_return_mae_cap(...) > 0.5)
+
+    This is provably a SUBSET of both inputs by construction (AND of two
+    boolean masks is a subset of each), which is also the stated test
+    requirement: the hybrid's buy set is a subset of forward_mae's at the same
+    horizon, and (since ``labels_gbb``'s own output is itself a subset of its
+    trigger mask, which it narrows further with its own bare gain test) a
+    subset of gbb's trigger bars too.
+
+    It is also algebraically exactly "trigger AND forward_mae's test", not
+    merely "gbb's full label AND forward_mae's full label": gbb's own gain
+    test (``future_gain >= min_gain``) and forward_mae's MFE test
+    (``mfe >= min_gain``) are the SAME quantity -- both are
+    ``(_rolling_max_forward(close, horizon) - close) / close`` thresholded at
+    ``min_gain`` -- so passing the identical ``min_gain``/``horizon`` to both
+    calls (the default here) makes gbb's gain test redundant with (not
+    additive to) forward_mae's, collapsing the AND to
+    ``trigger & (mae <= max_drawdown) & ~sell_optimal``, i.e. gbb's trigger
+    composed with forward_mae's drawdown-capped return test, exactly as
+    specified.
+
+    Mirror: ``labels_gbb_fwdmae_sell``.
+    """
+    gbb_label = labels_gbb(
+        df,
+        guard_threshold=guard_threshold,
+        bb_width_threshold=bb_width_threshold,
+        rvol_threshold=rvol_threshold,
+        min_gain=min_gain,
+        min_loss=min_loss,
+        horizon=horizon,
+    )
+    fwdmae_label = labels_forward_return_mae_cap(
+        df,
+        horizon=horizon,
+        min_gain=min_gain,
+        max_drawdown=max_drawdown,
+        atr_scale=atr_scale,
+        min_loss=min_loss,
+    )
+    buy = (gbb_label.to_numpy() > 0.5) & (fwdmae_label.to_numpy() > 0.5)
+    return pd.Series(buy.astype(float), index=df.index)
+
+
+def labels_gbb_fwdmae_sell(
+    df: pd.DataFrame,
+    guard_threshold: float = 0.3,
+    bb_width_threshold: float = 0.035,
+    min_gain: Optional[float] = None,  # Ignored for sell (mirrors labels_gbb_sell)
+    min_loss: float = DEFAULT_MIN_LOSS,
+    horizon: int = DEFAULT_HORIZON,
+    max_drawdown: float = DEFAULT_MAX_DRAWDOWN,
+    atr_scale: Optional[float] = None,
+) -> pd.Series:
+    """Sell mirror of ``labels_gbb_fwdmae``: gbb's (overbought) regime trigger
+    AND a downside drawdown-capped forward-LOSS test.
+
+    ``labels_forward_return_mae_cap`` has no standalone sell counterpart to
+    call -- that labeler's sell side has always been expressed inline inside
+    ``get_train_sell_signals`` (the ``LabelMethod.forward_mae`` branch below),
+    never as its own top-level function -- so this repeats that SAME formula
+    rather than inventing a new one, exactly mirroring how ``labels_gbb_sell``
+    mirrors ``labels_gbb``.
+    """
+    gbb_sell = labels_gbb_sell(
+        df,
+        guard_threshold=guard_threshold,
+        bb_width_threshold=bb_width_threshold,
+        min_gain=min_gain,
+        min_loss=min_loss,
+        horizon=horizon,
+    )
+    close = _safe_close(df)
+    min_future = _rolling_min_forward(close, horizon)
+    mfe = (close - min_future) / close  # favourable move for sell (down)
+    mae = _max_adverse_excursion(close[::-1], horizon)[::-1]  # adverse move upward
+
+    if atr_scale is not None:
+        atr = _atr(df)
+        scale = (atr / close) * atr_scale
+        min_loss_arr = np.maximum(min_loss, scale)
+        max_dd_arr = np.maximum(max_drawdown, scale)
+    else:
+        min_loss_arr = np.full_like(mfe, min_loss)
+        max_dd_arr = np.full_like(mae, max_drawdown)
+
+    fwdmae_sell = (mfe >= min_loss_arr) & (mae <= max_dd_arr)
+    fwdmae_sell = np.where(np.isnan(mfe) | np.isnan(mae), False, fwdmae_sell)
+
+    sell = (gbb_sell.to_numpy() > 0.5) & fwdmae_sell
+    return pd.Series(sell.astype(float), index=df.index)
 
 
 def labels_bands(
@@ -3099,6 +3223,7 @@ class LabelMethod(IntEnum):
     breakout_consensus = 25
     breakout_bb = 26
     gbb_path = 27
+    gbb_fwdmae = 28
 
 
 METHODS = {
@@ -3121,6 +3246,7 @@ METHODS = {
     LabelMethod.indicators3: labels_indicators3,
     LabelMethod.gbb: labels_gbb,
     LabelMethod.gbb_path: labels_gbb_path,
+    LabelMethod.gbb_fwdmae: labels_gbb_fwdmae,
     LabelMethod.bands: labels_bands,
     LabelMethod.indicators4: labels_indicators4,
     LabelMethod.breakout: labels_breakout,
@@ -3162,13 +3288,78 @@ def _resolve_method_id(method: Any) -> LabelMethod:
     raise ValueError(f"Unsupported method type: {type(method)}")
 
 
+def _filter_label_kwargs(
+    fn: Any, params: Dict[str, Any], strict_keys: Optional[Any] = None
+) -> Dict[str, Any]:
+    """Keep only the keys of ``params`` that ``fn``'s signature actually accepts
+    (excluding ``df``), rather than calling ``fn(df, **params)`` unfiltered.
+
+    This dispatcher is a single choke point reached by every caller (the
+    standard ``BaseNNStrategy`` path, ``NNNC.LabelParamsMixin``, the oracle
+    subclasses, and the research label shims), each of which may add keys the
+    chosen labeler doesn't accept -- e.g. ``BaseNNStrategy.get_train_buy_signals``
+    always adds ``rvol_threshold`` (only meaningful for ``gbb``/``gbb_path``),
+    and without filtering any OTHER method raised ``TypeError`` before producing
+    a single label.
+
+    Two kinds of key reach this function, and they are handled differently:
+
+      * GENERIC keys the framework adds to every call regardless of which
+        label method is selected (``horizon``, ``min_gain``, ``min_loss``,
+        ``rvol_threshold``, ``max_drawdown``, ...) -- i.e. every key in
+        ``params`` that is NOT also named in ``strict_keys``. These were
+        never a request for that specific labeler, just a default the
+        dispatcher always supplies, so an unsupported one is silently
+        dropped.
+      * EXPLICIT keys named in ``strict_keys`` -- a caller asking BY NAME for
+        a specific labeler argument to be honoured (e.g. ``{"pt": 0.015, "sl":
+        0.015}`` for ``triple_barrier``, since that labeler only ever RAISES
+        its barriers via ``max(pt, min_gain)`` and can't be lowered through
+        ``min_gain``/``min_loss`` alone). If the target labeler cannot accept
+        one of these, that is a configuration error, not a default that
+        happens not to apply -- silently dropping it is exactly how this
+        study trained a whole phase on the wrong label (the ``rvol_threshold``
+        landmine), so it RAISES instead of vanishing.
+
+    ``strict_keys=None`` (the default) treats every key as generic, which is
+    the pre-existing, byte-identical behaviour for every caller that doesn't
+    pass it.
+
+    A ``fn`` that itself declares ``**kwargs`` (VAR_KEYWORD) -- e.g. a test
+    spy swapped into ``METHODS`` to observe exactly what was sent -- accepts
+    every key by definition, so no filtering is applied: ``inspect.signature``
+    would otherwise report only the literal parameter name (``"kwargs"``),
+    which is not itself one of the real label-argument names and would make
+    this filter drop everything.
+    """
+    sig_params = inspect.signature(fn).parameters
+    if any(p.kind is p.VAR_KEYWORD for p in sig_params.values()):
+        return dict(params)
+    accepted = set(sig_params) - {"df"}
+    if strict_keys:
+        unusable = sorted(k for k in strict_keys if k in params and k not in accepted)
+        if unusable:
+            raise ValueError(
+                f"{getattr(fn, '__name__', fn)} does not accept label key(s) "
+                f"{unusable}; it accepts {sorted(accepted)}"
+            )
+    return {k: v for k, v in params.items() if k in accepted}
+
+
 def get_train_buy_signals(
     df: pd.DataFrame,
     method: Any = LabelMethod.forward_mae,
     params: Optional[Dict[str, Any]] = None,
+    strict_keys: Optional[Any] = None,
 ) -> pd.Series:
     """
     Accessor for buy labels using selected method (int enum id or LabelMethod).
+
+    ``params`` keys not accepted by the resolved labeler's signature are
+    dropped before the call (see ``_filter_label_kwargs``), UNLESS named in
+    ``strict_keys``, in which case an unsupported key raises ``ValueError``
+    instead of being dropped or reaching the labeler as an unexpected
+    keyword argument.
     """
 
     # print(f"get_train_buy_signals: method={method}, params={params}")
@@ -3177,17 +3368,25 @@ def get_train_buy_signals(
     fn = METHODS.get(method_enum)
     if fn is None:
         raise ValueError(f"Unknown method '{method}'. Available: {available_methods()}")
-    return fn(df, **(params or {})).astype(float)
+    filtered = _filter_label_kwargs(fn, params or {}, strict_keys=strict_keys)
+    return fn(df, **filtered).astype(float)
 
 
 def get_train_sell_signals(
     df: pd.DataFrame,
     method: Any = LabelMethod.forward_mae,
     params: Optional[Dict[str, Any]] = None,
+    strict_keys: Optional[Any] = None,
 ) -> pd.Series:
     """
     Accessor for sell labels. For simplicity, invert buy logic via future MIN move:
     Reuse same methods but on inverted return perspective where applicable.
+
+    ``strict_keys`` is honoured only where this function ultimately calls
+    through to ``get_train_buy_signals`` (the fallback at the bottom, used by
+    methods with no dedicated sell variant). Every explicit branch above that
+    already filters ``params`` to its own hand-written ``allowed`` set, a
+    pre-existing mechanism this change does not touch.
     """
 
     # print(f"get_train_sell_signals: method={method}, params={params}")
@@ -3351,6 +3550,22 @@ def get_train_sell_signals(
         local = {k: v for k, v in local.items() if k in allowed}
         return labels_gbb_sell(df, **local).astype(float)
 
+    if method_enum == LabelMethod.gbb_fwdmae:
+        # Dedicated sell variant -- mirror of labels_gbb_fwdmae (gbb's
+        # overbought trigger AND a downside drawdown-capped forward-loss test)
+        local = dict(params or {})
+        allowed = {
+            "guard_threshold",
+            "bb_width_threshold",
+            "min_gain",
+            "min_loss",
+            "horizon",
+            "max_drawdown",
+            "atr_scale",
+        }
+        local = {k: v for k, v in local.items() if k in allowed}
+        return labels_gbb_fwdmae_sell(df, **local).astype(float)
+
     if method_enum == LabelMethod.bands:
         # Use dedicated sell variant for bands
         local = dict(params or {})
@@ -3416,4 +3631,6 @@ def get_train_sell_signals(
         return labels_local_min_followthrough_sell(df, **local).astype(float)
 
     # Fallback: reuse buy accessor and allow user to specify separate params per method
-    return get_train_buy_signals(df, method=method_enum, params=params).astype(float)
+    return get_train_buy_signals(
+        df, method=method_enum, params=params, strict_keys=strict_keys
+    ).astype(float)

@@ -74,11 +74,19 @@ class LabelParamsMixin:
         return signals
 
     def get_train_buy_signals(self, future_df):
+        # strict_keys=LABEL_PARAMS: these are keys THIS arm asked for by name
+        # (as opposed to horizon/min_gain/min_loss/rvol_threshold, which
+        # _label_params() adds to every call regardless of labeler), so an
+        # unsupported one must raise rather than silently vanish -- see
+        # Framework.TrainingSignals._filter_label_kwargs.
         labels = TrainingSignals.get_train_buy_signals(
-            future_df, method=self.TRAINING_TYPE, params=self._label_params("buy"))
+            future_df, method=self.TRAINING_TYPE, params=self._label_params("buy"),
+            strict_keys=self.LABEL_PARAMS.keys())
         return self._filtered(future_df, labels, "buy")
 
     def get_train_sell_signals(self, future_df):
+        extra = self.LABEL_PARAMS if self.LABEL_PARAMS_SELL is None else self.LABEL_PARAMS_SELL
         labels = TrainingSignals.get_train_sell_signals(
-            future_df, method=self.TRAINING_TYPE, params=self._label_params("sell"))
+            future_df, method=self.TRAINING_TYPE, params=self._label_params("sell"),
+            strict_keys=(extra or {}).keys())
         return self._filtered(future_df, labels, "sell")
