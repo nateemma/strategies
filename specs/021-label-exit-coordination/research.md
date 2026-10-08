@@ -282,3 +282,36 @@ systematic shift.
 **Why this is worth recording rather than fixing blind**: a plausible single-cause theory
 was disposed of by one measurement that needed no code change. The profit-exit residual is
 NOT a timing artefact and still has no diagnosis.
+
+## R12 — the entry convention was the dominant cause; my own estimate of its size was wrong
+
+Run 5, after entering at `open[start_index]` instead of `close[start_index]`:
+
+| | run 4 | run 5 |
+|---|---|---|
+| entry-bar slope | −1.072 | **−0.028** |
+| correlation | −0.495 | **−0.022** |
+| all trades | −0.000220 | **+0.000187** (inside ±0.002199) |
+| stop-exit subset | +0.010740 | **+0.004304** (−60%) |
+| profit-exit subset | −0.005610 | **−0.001838** (−67%) |
+| win rate | −0.71pp | −0.50pp (inside ±2.45pp) |
+
+The slope and correlation collapsed to ~0, confirming the mechanism was correctly
+identified and fully removed.
+
+**I predicted this would close only 25–30% of the subset bias. It closed 60–67%, and the
+reason I was wrong is worth recording.** The 25–30% figure came from linearly de-trending
+the divergence against the entry-bar move — which removes only the *additive* component of
+the entry-price effect. The real effect is path-dependent: the entry price sets the stop
+level itself (`entry × (1 + stop_frac)`) and the take-profit level, so it changes *which*
+exits fire and *when*, not merely the arithmetic of a fixed outcome. A linear adjustment
+cannot capture that, so it understated the true contribution by a factor of two.
+
+The general lesson: de-trending estimates the share of variance a cause explains, not the
+share of BIAS removing it will fix, whenever the cause feeds back into the mechanism.
+
+**Where this leaves the table.** The aggregate is inside its interval and the entry effect
+is gone. Both subsets remain outside, but at 1.4× and 1.8× their intervals rather than 3.6×
+and 5.6×. Residual bias is +0.0043 on stop exits and −0.0018 on profit exits, so a trigger
+with an extreme exit mix is exposed to at most ~0.004 per trade against a population mean
+of 0.0047 — down from ~0.011. The control's own 33/67 mix nets to +0.0002.
