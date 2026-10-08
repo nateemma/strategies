@@ -30,6 +30,9 @@ The parameters the exit policy reads. Immutable; its hash keys the outcome table
 | `take_profit` | float | `cexit_take_profit` (0.022 at the Open operating point) |
 | `max_hold_days` | int | `cexit_max_days` (10 at the Open operating point) |
 | `fee_per_side` | float | the fee freqtrade applies in a backtest (FR-006a) |
+| `timeframe_minutes` | int | 15. ADDED IN PHASE 2, after this table was first written: `simulate_forward` needs it to convert bar counts to trade age for the grace window. It is in `config_hash` because the contract's rule is "every parameter `simulate_forward` reads", which governs over this table's original field count. |
+
+**Twelve fields, not eleven** — see `timeframe_minutes` above.
 
 **Validation**: `atr_stoploss_floor <= atr_stoploss_cap < 0`; `take_profit > 0`;
 `max_hold_days >= 1`; `fee_per_side >= 0`. `config_hash` is the first 16 hex characters of a
@@ -48,7 +51,7 @@ One row per bar. The result of a hypothetical long entry at that bar's close, cl
 | `__outcome_hold_bars` | int | bars from entry to close |
 | `__outcome_close_reason` | enum | `stop` / `take_profit` / `hold_cap` / `end_of_data` |
 | `__outcome_positive` | bool | `__outcome_profit > 0`; the shared positive-outcome condition |
-| `__outcome_fillable` | bool | quote volume supports the production stake (FR-009a) |
+| `__outcome_fillable` | bool | quote volume supports the production stake (FR-009a). **KNOWN SIMPLIFICATION**: models only `custom_stake_amount`'s headroom reduction gate (`QUOTE_VOLUME_HEADROOM_MULT`), NOT `confirm_trade_entry`'s separate absolute `MIN_QUOTE_VOLUME` floor. So a bar can be marked fillable that the live path would reject outright, which OVERSTATES a trigger's fillable economic value — the optimistic direction Principle V warns about. Revisit if a trigger's verdict turns on thin-volume bars. |
 | `__outcome_fillable_fraction` | float | fraction of the intended stake that could fill |
 | `__outcome_gapfill_share` | float | share of the hold window that is gap-fill bars (FR-020) |
 

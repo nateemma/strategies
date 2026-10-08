@@ -130,6 +130,13 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
     # strategy's own hyperopt JSON) to build search-space bounds. Reads and bounds a
     # configured value; does not compute a stop level.
     "research/labelfree/es/space.py",
+    # T012 (specs/021-label-exit-coordination): `ExitConfig.from_operating_point`
+    # reads atr_stoploss_multiplier/_cap/_floor and use_volume_confirmation_stoploss
+    # off the live `BaseStrategy` class attributes, and stoploss_grace_hours/_level
+    # off NNNC_MLX_Open.json's pinned sell params, then forwards them into
+    # `ExitParams` by keyword. Configures a value for the outcome table's exit
+    # model; computes no stop level itself (`simulate_forward` does).
+    "research/outcomes/table.py",
 
     # --- tests -------------------------------------------------------------------------------
     "NNPredict/tests/test_stop_aware_target.py",
@@ -158,6 +165,11 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
                                                            # as literal expected values read
                                                            # off BaseStrategy / the Open JSON;
                                                            # computes no stop level itself.
+    "research/outcomes/tests/test_table.py",  # T012/T014-T019: names the parameters as
+                                                # ExitConfig/ExitParams kwargs and as literal
+                                                # expected values (the Open operating point's
+                                                # grace hours/level) to pin ExitConfig's
+                                                # sourcing; computes no stop level itself.
 })
 
 

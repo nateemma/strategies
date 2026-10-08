@@ -108,7 +108,7 @@ Two findings the plan did not anticipate:
 **Independent test**: build the table, then reproduce a known arm's trade outcomes from it
 without running a backtest.
 
-- [ ] T012 [US2] @model-implementer Implement `ExitConfig` in `research/outcomes/table.py` per
+- [X] T012 [US2] @model-implementer Implement `ExitConfig` in `research/outcomes/table.py` per
   `data-model.md`: the eleven fields, the validation rules verbatim
   (`atr_stoploss_floor <= atr_stoploss_cap < 0`, `take_profit > 0`, `max_hold_days >= 1`,
   `fee_per_side >= 0`), and `config_hash` as the first 16 hex characters of SHA-256 over the
@@ -122,29 +122,29 @@ without running a backtest.
   absent, because a default of "no grace" would silently simulate a stop firing inside a
   window where production has effectively none (-27% for 6.5 hours). `ExitConfig` MUST
   source grace from the operating point being modelled, never from a default.
-- [ ] T013 [US2] @model-implementer Write the two-layer leakage guard and its tests FIRST (FR-009,
+- [X] T013 [US2] @model-implementer Write the two-layer leakage guard and its tests FIRST (FR-009,
   before the builder that produces the columns): every outcome column named `__outcome_*`,
   and a **raising** assertion in the label builder that no column it passes onward carries the
   prefix. Test that feeding an outcome-bearing frame into the label path raises. A convention
   alone is not "structurally prevented".
-- [ ] T014 [US2] @model-implementer Implement the table builder in `research/outcomes/table.py`:
+- [X] T014 [US2] @model-implementer Implement the table builder in `research/outcomes/table.py`:
   one `OutcomeRecord` per bar per `data-model.md` — `__outcome_profit` net of
   `2 x fee_per_side`, `__outcome_hold_bars`, `__outcome_close_reason` in
   `{stop, take_profit, hold_cap, end_of_data}`, `__outcome_positive`, `__outcome_fillable`,
   `__outcome_fillable_fraction`, `__outcome_gapfill_share`. Calls `simulate_forward`; contains
   no exit arithmetic of its own.
-- [ ] T015 [US2] @model-implementer Implement fillability (FR-009a) using the same quote-volume cap
+- [X] T015 [US2] @model-implementer Implement fillability (FR-009a) using the same quote-volume cap
   the live path applies (`QUOTE_VOLUME_HEADROOM_MULT` in `BaseStrategy.custom_stake_amount`)
   — do not re-derive it.
-- [ ] T016 [P] [US2] @model-implementer Implement `__outcome_gapfill_share` (FR-020, SC-009): the
+- [X] T016 [P] [US2] @model-implementer Implement `__outcome_gapfill_share` (FR-020, SC-009): the
   share of each hold window that is gap-fill (volume 0, OHLC equal). 22–55% of 15m bars on six
   of eleven production pairs are gap-fill, so outcomes computed across them describe the
   absence of trading.
-- [ ] T017 [US2] @model-implementer Implement the feather cache and JSON sidecar per
+- [X] T017 [US2] @model-implementer Implement the feather cache and JSON sidecar per
   `contracts/outcome-table.md`. Requesting a table whose stored hash differs from the
   requested config's is an **error**, never a silent reuse (FR-007, SC-004).
-- [ ] T018 [P] [US2] @model-implementer Add the `--build`, `--status`, `--verify` CLI.
-- [ ] T019 [P] [US2] @model-implementer Test reproducibility (SC-003, FR-008): two builds from the same
+- [X] T018 [P] [US2] @model-implementer Add the `--build`, `--status`, `--verify` CLI.
+- [X] T019 [P] [US2] @model-implementer Test reproducibility (SC-003, FR-008): two builds from the same
   inputs are byte-identical.
 - [ ] T020 [US2] @experiment-runner Build the table for the 11 production pairs at 15m and report
   per-pair record counts, close-reason distribution and gap-fill share.
