@@ -30,7 +30,7 @@ Everything in US2–US4 calls this. Nothing else may start until T007 passes.
 
 ### The ordering that matters
 
-- [ ] T004 @main **Generate the SC-001 characterisation fixture FROM THE CURRENT,
+- [ ] T004 @main **Generate the SC-001 characterisation fixture (SC-001, FR-005, FR-021) FROM THE CURRENT,
   PRE-REFACTOR CODE** and see it pass, into
   `Framework/tests/fixtures/exit_policy_characterisation.json`. Record the stop decision for
   every bar of a real multi-pair, multi-year dataset, covering BOTH the grace and non-grace
@@ -47,7 +47,7 @@ Everything in US2–US4 calls this. Nothing else may start until T007 passes.
   organised by role (canonical primitive / thin caller / strategy that *configures* a value /
   test). The failure message must say whether the flagged reference is configuration or
   implementation, and point at `utils.ExitPolicy`.
-- [ ] T006 @main Create `utils/ExitPolicy.py` and extract the arithmetic per
+- [ ] T006 @main Create `utils/ExitPolicy.py` and extract the arithmetic (FR-001, FR-002, FR-004) per
   `contracts/exit-policy.md`: `atr_stop_fraction`, `effective_stop_fraction`,
   `simulate_forward`. Pure functions — MUST NOT import freqtrade, take a `Trade`, or read a
   dataprovider. Then make all **three** duplicates thin callers:
@@ -56,7 +56,7 @@ Everything in US2–US4 calls this. Nothing else may start until T007 passes.
   `NNPredictStrategy._stop_aware_labels`, deleting their arithmetic. Keep freqtrade's return
   convention (`1.0` = no change, and the `(open_rate * (1+normal) / current_rate) - 1` rescale
   after grace) in `BaseStrategy` — it is glue, not arithmetic.
-- [ ] T007 @main Run T004's characterisation test against the refactored code and confirm
+- [ ] T007 @main Run T004's characterisation test against the refactored code (SC-001, FR-005, FR-021) and confirm
   100% of bars match (SC-001). If any bar differs, the extraction is wrong — fix it, do not
   regenerate the fixture.
 - [ ] T008 @model-implementer **Prove the duplication test can fail.** Plant a file naming
@@ -71,6 +71,13 @@ Everything in US2–US4 calls this. Nothing else may start until T007 passes.
   non-`after_fill` call returns `1.0` and the `after_fill` call returns
   `stoploss_grace_level`. Losing that asymmetry would silently widen every live stop.
 
+- [ ] T011 [P] @model-implementer Test that the exit is actually held FIXED (FR-019): assert
+  every `ExitConfig` field used by the table equals the live value on `BaseStrategy` /
+  `BaseNNStrategy` (`atr_stoploss_multiplier` 2.5, `atr_stoploss_cap` -0.02,
+  `atr_stoploss_floor` -0.04, and the grace / take-profit / hold-cap values from the Open
+  operating point). FR-019 is otherwise a prose header that nothing checks, so a drift would
+  pass silently and every outcome would describe an exit the strategy does not run.
+
 **Checkpoint**: `utils/ExitPolicy.py` is the only implementation of the exit arithmetic, live
 behaviour is provably unchanged, and the guard protecting both facts has been shown to fail
 when violated.
@@ -84,40 +91,40 @@ when violated.
 **Independent test**: build the table, then reproduce a known arm's trade outcomes from it
 without running a backtest.
 
-- [ ] T011 [US2] @model-implementer Implement `ExitConfig` in `research/outcomes/table.py` per
+- [ ] T012 [US2] @model-implementer Implement `ExitConfig` in `research/outcomes/table.py` per
   `data-model.md`: the eleven fields, the validation rules verbatim
   (`atr_stoploss_floor <= atr_stoploss_cap < 0`, `take_profit > 0`, `max_hold_days >= 1`,
   `fee_per_side >= 0`), and `config_hash` as the first 16 hex characters of SHA-256 over the
   canonical JSON of every field. **`fee_per_side` MUST be in the hash** — a positive outcome
   is net of fees (FR-006a), so a fee change changes every outcome, and omitting it is exactly
   the silent-staleness bug FR-007 exists to prevent.
-- [ ] T012 [US2] @model-implementer Write the two-layer leakage guard and its tests FIRST (FR-009,
+- [ ] T013 [US2] @model-implementer Write the two-layer leakage guard and its tests FIRST (FR-009,
   before the builder that produces the columns): every outcome column named `__outcome_*`,
   and a **raising** assertion in the label builder that no column it passes onward carries the
   prefix. Test that feeding an outcome-bearing frame into the label path raises. A convention
   alone is not "structurally prevented".
-- [ ] T013 [US2] @model-implementer Implement the table builder in `research/outcomes/table.py`:
+- [ ] T014 [US2] @model-implementer Implement the table builder in `research/outcomes/table.py`:
   one `OutcomeRecord` per bar per `data-model.md` — `__outcome_profit` net of
   `2 x fee_per_side`, `__outcome_hold_bars`, `__outcome_close_reason` in
   `{stop, take_profit, hold_cap, end_of_data}`, `__outcome_positive`, `__outcome_fillable`,
   `__outcome_fillable_fraction`, `__outcome_gapfill_share`. Calls `simulate_forward`; contains
   no exit arithmetic of its own.
-- [ ] T014 [US2] @model-implementer Implement fillability (FR-009a) using the same quote-volume cap
+- [ ] T015 [US2] @model-implementer Implement fillability (FR-009a) using the same quote-volume cap
   the live path applies (`QUOTE_VOLUME_HEADROOM_MULT` in `BaseStrategy.custom_stake_amount`)
   — do not re-derive it.
-- [ ] T015 [P] [US2] @model-implementer Implement `__outcome_gapfill_share` (FR-020, SC-009): the
+- [ ] T016 [P] [US2] @model-implementer Implement `__outcome_gapfill_share` (FR-020, SC-009): the
   share of each hold window that is gap-fill (volume 0, OHLC equal). 22–55% of 15m bars on six
   of eleven production pairs are gap-fill, so outcomes computed across them describe the
   absence of trading.
-- [ ] T016 [US2] @model-implementer Implement the feather cache and JSON sidecar per
+- [ ] T017 [US2] @model-implementer Implement the feather cache and JSON sidecar per
   `contracts/outcome-table.md`. Requesting a table whose stored hash differs from the
   requested config's is an **error**, never a silent reuse (FR-007, SC-004).
-- [ ] T017 [P] [US2] @model-implementer Add the `--build`, `--status`, `--verify` CLI.
-- [ ] T018 [P] [US2] @model-implementer Test reproducibility (SC-003): two builds from the same
+- [ ] T018 [P] [US2] @model-implementer Add the `--build`, `--status`, `--verify` CLI.
+- [ ] T019 [P] [US2] @model-implementer Test reproducibility (SC-003, FR-008): two builds from the same
   inputs are byte-identical.
-- [ ] T019 [US2] @experiment-runner Build the table for the 11 production pairs at 15m and report
+- [ ] T020 [US2] @experiment-runner Build the table for the 11 production pairs at 15m and report
   per-pair record counts, close-reason distribution and gap-fill share.
-- [ ] T020 [US2] @experiment-runner Validate against reality: reproduce a known arm's trade outcomes
+- [ ] T021 [US2] @experiment-runner Validate against reality: reproduce a known arm's trade outcomes
   from the table and reconcile against `evaluation/pooled_NNNC_A_Raw_Open.json`. Report any
   systematic divergence — a table that disagrees with the harness is wrong, and better found
   here than in a verdict.
@@ -134,24 +141,24 @@ into a model, and agrees with the harness.
 **Independent test**: express several existing labels as triggers, recombine with the shared
 outcome, confirm the label sets differ only where the triggers do.
 
-- [ ] T021 [US3] @model-implementer Implement the trigger registry in
+- [ ] T022 [US3] @model-implementer Implement the trigger registry in (FR-010)
   `research/outcomes/triggers.py` per `contracts/trigger-cli.md`: `name`, `evaluate`,
   `required_columns`, `source`. Assert `required_columns` present before evaluation. Reject
   any trigger referencing a `__outcome_` column, and any pair-specific trigger
   (Constitution X).
-- [ ] T022 [P] [US3] @model-implementer Register the three required triggers (FR-013): `gbb`
+- [ ] T023 [P] [US3] @model-implementer Register the three required triggers (FR-013) (FR-014a): `gbb`
   (`guard_metric < 0.3 AND bb_width > 0.035`), `empty` (every bar — the forward_mae case and
   the verdict null), `geometry` (the DWT-smoothed zero-lag valley already in
   `labels_geometry`, never tested).
-- [ ] T023 [US3] @model-implementer Implement label formation as `trigger AND __outcome_positive`
+- [ ] T024 [US3] @model-implementer Implement label formation as `trigger AND __outcome_positive`
   (FR-011), with no label-specific outcome test anywhere.
-- [ ] T024 [US3] @model-implementer Audit the 28 `LabelMethod` members (FR-012): express as triggers
+- [ ] T025 [US3] @model-implementer Audit the 28 `LabelMethod` members (FR-012): express as triggers
   those that reduce, and list those that do not with the reason. Per research R7, expect
   `mfe_mae_ratio`, `future_sharpe`, `future_sortino`, `future_expectancy` and
   `risk_adj_future` NOT to reduce — their conditions are purely forward-path properties, so
   they are competing *outcome* definitions that this design supersedes rather than ports.
   Report the actual finding; do not assume research R7 was right.
-- [ ] T025 [P] [US3] @model-implementer Test that two triggers combined with the shared outcome
+- [ ] T026 [P] [US3] @model-implementer Test that two triggers combined with the shared outcome
   produce label sets differing only where the triggers differ.
 
 **Checkpoint**: any trigger can be defined and turned into a label without writing an outcome
@@ -167,33 +174,39 @@ handing the model an easy target. This is why the feature exists.
 **Independent test**: a deliberately constructed trigger with known high selection value and
 known low learnability lands in the expected quadrant.
 
-- [ ] T026 [US4] @model-implementer Implement economic value in `research/outcomes/leaderboard.py`
+- [ ] T027 [US4] @model-implementer Implement economic value in `research/outcomes/leaderboard.py`
   from the table alone, NO model (FR-014): base rate, mean realised outcome, distribution —
   reported both over all triggered bars and over fillable triggered bars only (FR-009b).
-- [ ] T027 [US4] @model-implementer Implement the **block** bootstrap for the economic-value
+- [ ] T028 [US4] @model-implementer Implement the **block** bootstrap for the economic-value
   interval (research R9). Resample in contiguous blocks: adjacent bars' forward windows
   overlap heavily, so an i.i.d. bootstrap would understate the interval badly and could turn
   an indeterminate result into a false `selection_value`. Test that the block version gives a
   wider interval than i.i.d. on autocorrelated synthetic data.
-- [ ] T028 [US4] @model-implementer Implement the fixed probe in `research/outcomes/probe.py`
+- [ ] T029 [US4] @model-implementer Implement the fixed probe in `research/outcomes/probe.py`
   (FR-015): `research/clfstudy`'s `RIDGE` type with its split set `v1`, its scaler discipline
   and its MCC computation. The SAME model, features and protocol for every trigger — varying
   it would make the column incomparable and the verdict unreliable. Report the seed/window
   spread as the standard error the verdict rule needs.
-- [ ] T029 [US4] @model-implementer Implement the verdict rule (FR-014b) against the `empty`
+- [ ] T030 [US4] @model-implementer Implement the verdict rule (FR-014b) against the `empty`
   trigger, **total** over three outcomes: `selection_value` (economic value exceeds empty's by
   more than the CI on the difference), `decoration` (it does not, while learnability exceeds
   empty's by more than the SE on that difference), `indeterminate` (neither). Error if `empty`
   is absent from the run — without the null no verdict can be assigned.
-- [ ] T030 [P] [US4] @model-implementer Test the verdict rule with synthetic triggers constructed to
+- [ ] T031 [P] [US4] @model-implementer Test the verdict rule with synthetic triggers constructed to
   land in each of the three quadrants, including the `empty`-vs-itself case which MUST come
   out `indeterminate`.
-- [ ] T031 [US4] @model-implementer Assemble the leaderboard per `TriggerScore` in `data-model.md`,
+- [ ] T032 [US4] @model-implementer Assemble the leaderboard per `TriggerScore` in `data-model.md`,
   with economic value and learnability as SEPARATE columns that are never combined into a
   single score (FR-016).
-- [ ] T032 [US4] @experiment-runner Run the leaderboard over every registered trigger and produce
+- [ ] T033 [US4] @experiment-runner Measure SC-005: time one trigger's FULL two-column
+  evaluation (economic value with its block-bootstrap interval, plus the probe) and report the
+  wall-clock. SC-005 claims seconds against the ~1.5 hours a trained comparison costs, and that
+  claim is the whole justification for building the table -- yet no task measured it until this
+  one. If it is not seconds, the design has not delivered its premise and that must be reported
+  rather than explained away.
+- [ ] T034 [US4] @experiment-runner Run the leaderboard over every registered trigger and produce
   the report.
-- [ ] T033 [US4] @gate-reviewer Review the leaderboard BEFORE any verdict is accepted: check base
+- [ ] T035 [US4] @gate-reviewer Review the leaderboard BEFORE any verdict is accepted: check base
   rates are plausible, that no trigger earns its value from unfillable or gap-fill-heavy bars,
   that intervals are block-bootstrapped, and that the `empty`-vs-itself control came out
   `indeterminate`. Produce a short memo; do not edit results.
@@ -204,22 +217,22 @@ known low learnability lands in the expected quadrant.
 
 ## Phase 6: Polish
 
-- [ ] T034 @main Write the report narrative: the verdict for each trigger, and what it implies.
+- [ ] T036 @main Write the report narrative: the verdict for each trigger, and what it implies.
   If `gbb` is `selection_value`, trigger discovery becomes the next line of work; if
   `decoration`, the apparent edge is the entry rule and the model is ornamental, which
   contradicts nothing measured so far but changes everything downstream.
-- [ ] T035 @main **State the probe's bias in the report** (research R8): ridge cannot express
+- [ ] T037 @main **State the probe's bias in the report** (research R8) (FR-015a): ridge cannot express
   a logical AND — it scored 0.533 against the gbb trigger rule's 0.673 — so it UNDERSTATES
   learnability for trigger-defined labels. The verdict rule is unaffected because both sides
   of every comparison use the same probe, but the absolute numbers are not ceilings and a
   reader could otherwise take them as such.
-- [ ] T036 [P] @main Record in the report that the table's economic value is a LOOKAHEAD
+- [ ] T038 [P] @main Record in the report that the table's economic value is a LOOKAHEAD
   BOUND, never a realisable return, and that any P&L claim must come from `evaluation/` and
   its ~3–4pp/yr floor (FR-017). Classifier metrics are context, never an acceptance input
   (FR-018).
-- [ ] T037 [P] @model-implementer Run the full suite; report the count and confirm no
+- [ ] T039 [P] @model-implementer Run the full suite; report the count and confirm no
   pre-existing failures were introduced.
-- [ ] T038 [P] @main Update `research/clfstudy/report/methods.md` with the three-way
+- [ ] T040 [P] @main Update `research/clfstudy/report/methods.md` with the three-way
   duplication finding (research R1), so the next person does not rediscover it.
 
 ---
@@ -246,10 +259,10 @@ outcomes, and a verdict cannot be reached without both columns.
 - T001–T003 together
 - T005 alongside T004 (different files; T005 does not touch the live path)
 - T009, T010 together once T006 lands
-- T015, T017, T018 together once T013 lands
-- T022, T025 together once T021 lands
-- T030 alongside T031
-- T036, T037, T038 together
+- T016, T018, T019 together once T014 lands
+- T023, T026 together once T022 lands
+- T031 alongside T032
+- T038, T039, T040 together
 
 ## MVP
 

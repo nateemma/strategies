@@ -180,8 +180,12 @@ expected quadrant.
   implementation. No other code may re-implement any part of it.
 - **FR-003**: A test MUST fail if the exit arithmetic appears in more than one place. This
   constraint is enforced mechanically, not by convention.
-- **FR-004**: `_stop_aware_labels` in the NNPredict family MUST become a caller of the
-  shared exit model, and its duplicated arithmetic MUST be removed.
+- **FR-004**: BOTH existing duplicates MUST become callers of the shared exit model, with
+  their arithmetic removed: `_stop_aware_labels` in the NNPredict family, AND
+  `BaseStrategy._resolve_normal_stop`, which duplicates `custom_stoploss`'s ATR block
+  inside the same class and says so in its own docstring. The duplication is three-way,
+  not two-way; an earlier draft of this requirement named only the first, which would have
+  left FR-003's test failing on an uncited copy.
 - **FR-005**: Live stop behaviour MUST be unchanged by the extraction, demonstrated by a
   bar-by-bar comparison over real multi-pair, multi-year data.
 - **FR-006**: The system MUST produce a per-bar outcome table recording, for a hypothetical

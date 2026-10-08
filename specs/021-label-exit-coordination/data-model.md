@@ -1,5 +1,18 @@
 # Data Model: Label-Exit Coordination (Phase 1)
 
+## Glossary — spec prose to field names
+
+The spec speaks in prose; this document names fields. They are the same concepts.
+
+| spec.md says | here it is |
+|---|---|
+| "a positive outcome" | `OutcomeRecord.__outcome_positive` |
+| "economic value" | `TriggerScore.economic_value` (and `economic_value_fillable`) |
+| "the outcome table" | `OutcomeTable` |
+| "realised outcome" | `OutcomeRecord.__outcome_profit`, net of fees |
+| "learnability" | `TriggerScore.learnability_mcc` |
+| "the empty trigger" | `Trigger` with `name="empty"` |
+
 ## ExitConfig
 
 The parameters the exit policy reads. Immutable; its hash keys the outcome table.
