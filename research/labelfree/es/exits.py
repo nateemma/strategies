@@ -54,6 +54,8 @@ import numpy as np
 # report.py states the figure rather than omitting it, so a regression here is visible.
 REPLAYED_EXIT_SHARE = 0.0
 REPLAYED_EXITS: tuple[str, ...] = ()
+
+from utils.ExitPolicy import ExitParams, atr_stop_fraction
 VOLUME_TIGHTEN_CLAMP = -0.02          # literal in BaseStrategy.py:1049, not atr_stoploss_cap
 
 # POSITION SIZING. config_wf.json runs a FIXED stake of 900 on a 10,000 wallet, so each trade
@@ -161,15 +163,31 @@ class TradeSeries:
 
 
 def atr_stop_level(atr_pct_roll: float, rvol_stop: float, p: dict) -> float:
-    """The entry-relative ATR stop, mirroring BaseStrategy._resolve_normal_stop exactly."""
-    if not (atr_pct_roll > 0):
-        return float(p.get("static_stoploss", -0.05))
-    stop = -p["atr_stoploss_multiplier"] * atr_pct_roll
-    stop = max(min(stop, p["atr_stoploss_cap"]), p["atr_stoploss_floor"])
-    if rvol_stop > 1.0:
-        # Fidelity note 4: the clamp is a literal -0.02, NOT atr_stoploss_cap.
-        stop = min(stop / (rvol_stop ** 0.5), VOLUME_TIGHTEN_CLAMP)
-    return stop
+    """The entry-relative ATR stop. Delegates to `utils.ExitPolicy` (feature 021 FR-002).
+
+    This function used to re-implement the clamp -- a FOURTH copy of the arithmetic,
+    beyond the three feature 021's research R1 catalogued. Its own fidelity notes had
+    independently rediscovered that the volume-tighten clamp is a literal -0.02 rather
+    than `atr_stoploss_cap`, which is a good illustration of why one copy is better than
+    four: two authors each had to find that trap separately.
+
+    Behaviour is unchanged -- `utils.ExitPolicy.atr_stop_fraction` is the same expression
+    with the same literal, and the fidelity notes above this function still describe what
+    is mirrored. `VOLUME_TIGHTEN_CLAMP` is retained as a module constant because the
+    fidelity notes reference it by name.
+    """
+    return atr_stop_fraction(
+        atr_pct_roll,
+        rvol_stop,
+        ExitParams(
+            atr_stoploss_multiplier=p["atr_stoploss_multiplier"],
+            atr_stoploss_cap=p["atr_stoploss_cap"],
+            atr_stoploss_floor=p["atr_stoploss_floor"],
+            static_stoploss=float(p.get("static_stoploss", -0.05)),
+            use_atr_adaptive_stoploss=True,
+            use_volume_confirmation_stoploss=True,
+        ),
+    )
 
 
 def simulate(entries, open_px, high, low, atr_pct_roll, rvol_stop, cost, params,

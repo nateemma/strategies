@@ -14,12 +14,12 @@ change an exit parameter. A task that appears to need one is a spec violation, n
 
 ## Phase 1: Setup
 
-- [ ] T001 [P] @model-implementer Create `research/outcomes/__init__.py` with a package
+- [X] T001 [P] @model-implementer Create `research/outcomes/__init__.py` with a package
   version constant, the `.cache/` path, and the `sys.prefix` interpreter guard copied from
   `research/clfstudy/__init__.py` (the venv at `.venv`, never conda).
-- [ ] T002 [P] @model-implementer Create `research/outcomes/tests/__init__.py` and confirm
+- [X] T002 [P] @model-implementer Create `research/outcomes/tests/__init__.py` and confirm
   pytest collects the new package.
-- [ ] T003 [P] @model-implementer Add `research/outcomes/.cache/` to the nested repo's
+- [X] T003 [P] @model-implementer Add `research/outcomes/.cache/` to the nested repo's
   `.gitignore`; cached feathers are derived artefacts and must not be committed.
 
 ---
@@ -30,7 +30,7 @@ Everything in US2–US4 calls this. Nothing else may start until T007 passes.
 
 ### The ordering that matters
 
-- [ ] T004 @main **Generate the SC-001 characterisation fixture (SC-001, FR-005, FR-021) FROM THE CURRENT,
+- [X] T004 @main **Generate the SC-001 characterisation fixture (SC-001, FR-005, FR-021) FROM THE CURRENT,
   PRE-REFACTOR CODE** and see it pass, into
   `Framework/tests/fixtures/exit_policy_characterisation.json`. Record the stop decision for
   every bar of a real multi-pair, multi-year dataset, covering BOTH the grace and non-grace
@@ -39,7 +39,7 @@ Everything in US2–US4 calls this. Nothing else may start until T007 passes.
   it. This task must complete, and its test must be seen green against unmodified code,
   before T006 begins. Owner is `@main` because it touches the live-inherited
   `Framework/BaseStrategy.py` path while a 26-day dry-run is running.
-- [ ] T005 [P] @model-implementer Write the allowlist duplication test (SC-002, FR-003) in
+- [X] T005 [P] @model-implementer Write the allowlist duplication test (SC-002, FR-003) in
   `Framework/tests/test_exit_policy_single_source.py`: walk every `.py` under
   `user_data/strategies/`, collect files referencing `atr_stoploss_multiplier`,
   `atr_stoploss_cap`, `atr_stoploss_floor`, `stoploss_grace_level`, `stoploss_grace_hours`,
@@ -47,7 +47,7 @@ Everything in US2–US4 calls this. Nothing else may start until T007 passes.
   organised by role (canonical primitive / thin caller / strategy that *configures* a value /
   test). The failure message must say whether the flagged reference is configuration or
   implementation, and point at `utils.ExitPolicy`.
-- [ ] T006 @main Create `utils/ExitPolicy.py` and extract the arithmetic (FR-001, FR-002, FR-004) per
+- [X] T006 @main Create `utils/ExitPolicy.py` and extract the arithmetic (FR-001, FR-002, FR-004) per
   `contracts/exit-policy.md`: `atr_stop_fraction`, `effective_stop_fraction`,
   `simulate_forward`. Pure functions — MUST NOT import freqtrade, take a `Trade`, or read a
   dataprovider. Then make all **three** duplicates thin callers:
@@ -56,7 +56,15 @@ Everything in US2–US4 calls this. Nothing else may start until T007 passes.
   `NNPredictStrategy._stop_aware_labels`, deleting their arithmetic. Keep freqtrade's return
   convention (`1.0` = no change, and the `(open_rate * (1+normal) / current_rate) - 1` rescale
   after grace) in `BaseStrategy` — it is glue, not arithmetic.
-- [ ] T007 @main Run T004's characterisation test against the refactored code (SC-001, FR-005, FR-021) and confirm
+  **FOUND DURING IMPLEMENTATION**: the duplication is **four-way**, not three.
+  `research/labelfree/es/exits.py::atr_stop_level` was a fourth copy, outside research
+  R1's catalogue, surfaced by T005's own test on first run. Refactored into a caller per
+  FR-002 ("no other code may re-implement any part of it") rather than allowlisted as an
+  exception; its 233 labelfree tests passed unchanged, which is what licensed touching
+  closed work. Its fidelity notes had independently rediscovered that the volume-tighten
+  clamp is a literal −0.02 and not `atr_stoploss_cap` — two authors finding the same trap
+  separately is the argument for one copy.
+- [X] T007 @main Run T004's characterisation test against the refactored code (SC-001, FR-005, FR-021) and confirm
   100% of bars match (SC-001). If any bar differs, the extraction is wrong — fix it, do not
   regenerate the fixture.
 - [ ] T008 @model-implementer **Prove the duplication test can fail.** Plant a file naming

@@ -63,3 +63,7 @@ research/signalctx/out/
 research/clfstudy/.cache/
 research/clfstudy/models/
 research/clfstudy/probs/
+
+# Feature 021 label-exit coordination: cached per-pair outcome-table feathers
+# (regenerable from utils.ExitPolicy + an ExitConfig hash; not tracked).
+research/outcomes/.cache/

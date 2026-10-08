@@ -77,6 +77,7 @@ sys.path.append(group_dir)
 
 
 # =========================================================================
+from utils.ExitPolicy import ExitParams, atr_stop_fraction, rolling_rvol
 # Enums
 # =========================================================================
 
@@ -1025,28 +1026,49 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
     # Custom Stoploss
     # =========================================================================
 
+    def _exit_params(self) -> "ExitParams":
+        """Read the live attributes into the shared `utils.ExitPolicy` parameter object.
+
+        One place where this class's attribute names meet the primitive's field names,
+        so the mapping cannot drift between the two stop call sites.
+        """
+        return ExitParams(
+            atr_stoploss_multiplier=self.atr_stoploss_multiplier,
+            atr_stoploss_cap=self.atr_stoploss_cap,
+            atr_stoploss_floor=self.atr_stoploss_floor,
+            static_stoploss=self.stoploss,
+            use_atr_adaptive_stoploss=self.use_atr_adaptive_stoploss,
+            use_volume_confirmation_stoploss=self.use_volume_confirmation_stoploss,
+        )
+
+    def _atr_bar_inputs(self, pair: str):
+        """`(atr_pct, rvol)` from the latest analysed bar, or None if unavailable.
+
+        Sourcing the inputs is strategy-side work (it needs the dataprovider); turning
+        them into a stop level is the primitive's.
+        """
+        dataframe, _ = self.dp.get_analyzed_dataframe(pair, self.timeframe)
+        if dataframe.empty:
+            return None
+        atr_pct = float(dataframe.iloc[-1].get("atr_pct_roll", 0.0))
+        rvol = rolling_rvol(dataframe["volume"]) if self.use_volume_confirmation_stoploss else 0.0
+        return atr_pct, rvol
+
     def _resolve_normal_stop(self, pair: str) -> float:
-        """Normal (post-grace) stop level relative to entry: ATR-adaptive if
-        enabled, else the static ``self.stoploss``. Mirrors the after_fill ATR
-        logic in ``custom_stoploss``."""
+        """Normal (post-grace) stop level relative to entry.
+
+        Delegates the arithmetic to `utils.ExitPolicy.atr_stop_fraction` -- this method
+        used to duplicate `custom_stoploss`'s ATR block and said so in its own docstring
+        (feature 021 FR-004).
+        """
+        params = self._exit_params()
         if self.use_atr_adaptive_stoploss:
             try:
-                dataframe, _ = self.dp.get_analyzed_dataframe(pair, self.timeframe)
-                if not dataframe.empty:
-                    atr_pct = float(dataframe.iloc[-1].get("atr_pct_roll", 0.0))
+                bar = self._atr_bar_inputs(pair)
+                if bar is not None:
+                    atr_pct, rvol = bar
                     if atr_pct > 0:
-                        stop = -self.atr_stoploss_multiplier * atr_pct
-                        stop = max(min(stop, self.atr_stoploss_cap), self.atr_stoploss_floor)
-                        if self.use_volume_confirmation_stoploss:
-                            vol_mean = float(
-                                dataframe["volume"].rolling(20, min_periods=5).mean().iloc[-1]
-                            )
-                            cur_vol = float(dataframe.iloc[-1].get("volume", 0.0))
-                            if vol_mean > 0:
-                                rvol = cur_vol / vol_mean
-                                if rvol > 1.0:
-                                    stop = min(stop / (rvol ** 0.5), -0.02)
-                        return stop
+                        return atr_stop_fraction(atr_pct, rvol, params)
             except Exception:
                 pass
         return self.stoploss
@@ -1091,22 +1113,11 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
         # for the rest of the trade — no trailing semantics.
         if self.use_atr_adaptive_stoploss and after_fill:
             try:
-                dataframe, _ = self.dp.get_analyzed_dataframe(pair, self.timeframe)
-                if not dataframe.empty:
-                    atr_pct = float(dataframe.iloc[-1].get("atr_pct_roll", 0.0))
+                bar = self._atr_bar_inputs(pair)
+                if bar is not None:
+                    atr_pct, rvol = bar
                     if atr_pct > 0:
-                        stop = -self.atr_stoploss_multiplier * atr_pct
-                        stop = max(min(stop, self.atr_stoploss_cap), self.atr_stoploss_floor)
-                        if self.use_volume_confirmation_stoploss:
-                            vol_mean = float(
-                                dataframe["volume"].rolling(20, min_periods=5).mean().iloc[-1]
-                            )
-                            cur_vol = float(dataframe.iloc[-1].get("volume", 0.0))
-                            if vol_mean > 0:
-                                rvol = cur_vol / vol_mean
-                                if rvol > 1.0:
-                                    stop = min(stop / (rvol ** 0.5), -0.02)
-                        return stop
+                        return atr_stop_fraction(atr_pct, rvol, self._exit_params())
             except Exception:
                 pass
 

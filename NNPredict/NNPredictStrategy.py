@@ -50,6 +50,7 @@ from Framework.BaseStrategy import (
 )
 
 import NNPredictRegressor
+from utils.ExitPolicy import ExitParams, atr_stop_fraction_array
 
 
 class NNPredictStrategy(BaseNNStrategy):
@@ -471,14 +472,29 @@ class NNPredictStrategy(BaseNNStrategy):
 
         # Normal (post-grace, or whole-window if grace disabled) stop
         # fraction, resolved once from atr_pct at the entry bar t.
-        if getattr(self, "use_atr_adaptive_stoploss", False):
-            normal_stop = -float(self.atr_stoploss_multiplier) * atr_pct_entry
-            normal_stop = np.maximum(
-                np.minimum(normal_stop, float(self.atr_stoploss_cap)),
-                float(self.atr_stoploss_floor),
-            )
-        else:
-            normal_stop = np.full(n, float(self.stoploss))
+        # Delegates to utils.ExitPolicy -- this block used to re-implement the clamp
+        # and said so in this method's own docstring (feature 021 FR-004).
+        #
+        # rvol=None preserves this method's DOCUMENTED approximation: it does not
+        # reproduce the volume-confirmation tightening (see the Divergences note above).
+        # Passing None makes that omission an explicit argument rather than a silently
+        # missing line. Volume confirmation only ever tightens, so the labels stay
+        # conservative relative to the live stop.
+        normal_stop = atr_stop_fraction_array(
+            atr_pct_entry,
+            None,
+            ExitParams(
+                atr_stoploss_multiplier=float(self.atr_stoploss_multiplier),
+                atr_stoploss_cap=float(self.atr_stoploss_cap),
+                atr_stoploss_floor=float(self.atr_stoploss_floor),
+                static_stoploss=float(self.stoploss),
+                use_atr_adaptive_stoploss=bool(
+                    getattr(self, "use_atr_adaptive_stoploss", False)
+                ),
+                use_volume_confirmation_stoploss=False,
+            ),
+        )
+        normal_stop = np.broadcast_to(normal_stop, (n,)).copy()
 
         _gh = getattr(self, "stoploss_grace_hours", 0.0)
         grace_hours = float(getattr(_gh, "value", _gh) or 0.0)  # Parameter or float
