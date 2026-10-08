@@ -357,6 +357,17 @@ def simulate_forward(
     The stop level is re-evaluated per bar via `effective_stop_fraction`, so the grace
     window is honoured. Note the grace level can be far wider than the normal stop, so a
     hold shorter than the window sees effectively no stop at all.
+
+    STOP FILL PRICE ("the grace cliff" fix, T021 reconciliation follow-up). A stop exit's
+    realised fraction is NOT always `stop_frac` -- that assumes a fill AT the stop level,
+    which freqtrade's `Backtesting._get_close_rate_for_stoploss` only does when the stop
+    price is within the bar's range. When the grace window expires and the stop snaps in
+    from `stoploss_grace_level` to the normal ATR level, a bar can open already through the
+    (tighter) stop; freqtrade fills that at the bar's OPEN, not the stop. IF `open_` is
+    supplied, this function matches that: `open[k] >= stop_price` fills at `stop_frac`
+    (unchanged); otherwise it fills at `open[k]/entry - 1.0` (worse). IF `open_` is NOT
+    supplied there is no per-bar signal to detect the gap, so the fill stays `stop_frac` --
+    optimistic, and only acceptable for pre-amendment callers that cannot provide `open_`.
     """
     import numpy as np
 
@@ -391,7 +402,53 @@ def simulate_forward(
         stop_frac = effective_stop_fraction(age_hours, atr_entry, rvol_entry, params)
         stop_price = entry * (1.0 + stop_frac)
         if float(low[k]) <= stop_price:
-            return stop_frac - round_trip_fee, k - start_index, CLOSE_STOP
+            # FILL PRICE, not just the decision (T021 reconciliation follow-up, the
+            # "grace cliff" fix). freqtrade's own
+            # `Backtesting._get_close_rate_for_stoploss` (optimize/backtesting.py) does
+            # NOT always fill a stop exit at the stop level: for a long,
+            #   if stoploss_value > row[HIGH_IDX]: return row[OPEN_IDX]   # gapped past it
+            #   ...
+            #   return stoploss_value                                     # normal case
+            # i.e. when the whole candle is already below the stop (a gap), the fill is
+            # the candle's OPEN, not the stop price -- the stop price was never available
+            # to trade at. During `stoploss_grace_level`'s wide window a trade can drift
+            # far underwater; when grace expires and the stop snaps back to the normal
+            # ATR level, `low[k] <= stop_price` can already be true at the bar's OPEN,
+            # not just intra-bar. Modelling every such exit as a fill AT the stop
+            # (the pre-fix code, unconditionally `stop_frac - round_trip_fee`) is the
+            # optimistic direction Constitution Principle V exists to catch: real stop
+            # exits were found up to -0.2714 (== stoploss_grace_level) against a
+            # stop-clamped floor of about -0.042 net of fees.
+            #
+            # `open[k] >= stop_price` is this function's bar-local proxy for "no gap":
+            # freqtrade's rule, verbatim from Backtesting._get_close_rate_for_stoploss
+            # (optimize/backtesting.py): for a long it fills at the OPEN only when
+            # `stoploss_value > row[HIGH_IDX]` -- the WHOLE candle gapped past the stop,
+            # so the stop price was never tradeable. Otherwise the stop sits within the
+            # candle's range and fills AT the stop.
+            #
+            # Keyed on HIGH, not on open. An earlier version of this branch used
+            # `open[k] < stop_price`, which differs on the narrow case
+            # `open <= stop <= high` -- a candle that opens through the stop but trades
+            # back above it. freqtrade fills that at the stop; the open-based rule filled
+            # it at the open. That error was PESSIMISTIC rather than optimistic, so it
+            # would not have inflated a trigger's value -- but it would have understated
+            # one, and fidelity to the live policy is the point, not conservatism.
+            if open_ is not None:
+                if stop_price > float(high[k]):
+                    realised = (float(open_[k]) / entry) - 1.0
+                else:
+                    realised = stop_frac
+            else:
+                # No open price supplied: this is the pre-amendment fallback, and it is
+                # deliberately optimistic (fill AT the stop), because without `open_`
+                # there is no per-bar signal to detect a gap at all. Callers that care
+                # about the gap-down fill (every real outcome-table builder) must supply
+                # `open_`; this branch exists only so pre-amendment callers
+                # (`test_exit_policy_simulate_forward.py` / `test_exit_policy_grace.py`)
+                # keep their bit-for-bit pinned behaviour.
+                realised = stop_frac
+            return realised - round_trip_fee, k - start_index, CLOSE_STOP
 
         # ---- 2. the legacy take-profit fallback, HIGH-based -- ONLY when the caller has
         #         not supplied an open price (pre-amendment behaviour, pinned by T009/T010)

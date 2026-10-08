@@ -242,20 +242,31 @@ def test_build_outcome_table_calls_simulate_forward_not_its_own_arithmetic(monke
 
 def test_build_outcome_table_net_of_fees_matches_simulate_forward_directly(smoke_df, smoke_config):
     """Cross-check one bar against calling `simulate_forward` by hand -- the table
-    must reproduce it exactly, not approximate it."""
+    must reproduce it exactly, not approximate it.
+
+    `open_`/`guard_metric` are passed here too (feature 021 FR-001 amendment), matching
+    `build_outcome_table`'s own call exactly: since the "grace cliff" stop-fill fix
+    (T021 reconciliation follow-up) `open_` can change a stop exit's realised fraction,
+    not only which exit fires, so omitting it here would compare the table's real,
+    open-aware fill against a fallback the table never actually uses."""
     from utils.ExitPolicy import simulate_forward
 
     table = build_outcome_table(smoke_df, "ZEC/USDT", smoke_config)
     i = 10
+    open_ = smoke_df["open"].to_numpy(dtype=float)
     high = smoke_df["high"].to_numpy(dtype=float)
     low = smoke_df["low"].to_numpy(dtype=float)
     close = smoke_df["close"].to_numpy(dtype=float)
     atr_pct = smoke_df["atr_pct_roll"].to_numpy(dtype=float)
+    guard_metric = (
+        smoke_df["guard_metric"].to_numpy(dtype=float) if "guard_metric" in smoke_df.columns else None
+    )
     from research.outcomes.table import _rolling_rvol_series
     rvol = _rolling_rvol_series(smoke_df["volume"])
 
     profit, bars, reason = simulate_forward(
-        high, low, close, atr_pct, rvol, start_index=i, params=smoke_config.params
+        high, low, close, atr_pct, rvol, start_index=i, params=smoke_config.params,
+        open_=open_, guard_metric=guard_metric,
     )
     row = table.records.iloc[i]
     assert row["__outcome_profit"] == pytest.approx(profit)

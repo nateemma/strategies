@@ -172,3 +172,71 @@ def test_stop_still_wins_when_open_is_supplied_but_no_custom_exit_condition_fire
     )
     assert reason == CLOSE_STOP
     assert hold_bars == 1
+
+
+def test_stop_fills_at_the_stop_level_when_the_open_is_above_it():
+    """The ORDINARY stop-fill case (T021 reconciliation follow-up, "grace cliff" fix):
+    the stop price (95.0) sits strictly between this bar's open (100.0) and low (94.0),
+    i.e. reachable from the open -- matching freqtrade's `_get_close_rate_for_stoploss`
+    "stop within candle range" branch. The fill must still be AT the stop level, not the
+    open, so this fix does not silently change the pre-existing (correct) case."""
+    n = 3
+    close = [ENTRY, 99.0, 99.0]
+    high = [ENTRY, 100.0, 100.0]
+    low = [ENTRY, 94.0, 94.0]       # breaches the -5% static stop (95.0)
+    open_ = [ENTRY, 100.0, 100.0]   # ABOVE the stop price -- no gap
+
+    profit, hold_bars, reason = simulate_forward(
+        high, low, close, atr_pct=[0.0] * n, rvol=None, start_index=0, params=PARAMS,
+        open_=open_,
+    )
+    assert reason == CLOSE_STOP
+    assert hold_bars == 1
+    assert abs(profit - (PARAMS.static_stoploss - ROUND_TRIP_FEE)) < 1e-12
+
+
+def test_stop_fills_at_the_open_when_the_open_has_already_gapped_below_the_stop():
+    """THE BUG this fix closes. The "grace cliff": during
+    `stoploss_grace_hours` the stop is held at the wide `stoploss_grace_level`
+    (-0.15 here); once grace expires (bar 1, age 1h >= `stoploss_grace_hours=0.0`) the
+    stop snaps to the normal -5% static level (95.0) -- but the bar's OPEN (80.0) is
+    already below that level. freqtrade's `_get_close_rate_for_stoploss` fills this at
+    the bar's OPEN (`stoploss_value > row[HIGH_IDX] -> return row[OPEN_IDX]`), not the
+    stop price: the stop price was never actually tradeable. The realised loss must
+    equal the open-based fill (80/100 - 1 = -0.20) net of fees, NOT the shallower
+    stop-level loss (-0.05) the pre-fix code would have returned."""
+    n = 3
+    close = [ENTRY, 80.0, 80.0]
+    high = [ENTRY, 82.0, 82.0]
+    low = [ENTRY, 78.0, 78.0]      # breaches the -5% static stop (95.0)
+    open_ = [ENTRY, 80.0, 80.0]    # already BELOW the stop price -- a gap
+
+    profit, hold_bars, reason = simulate_forward(
+        high, low, close, atr_pct=[0.0] * n, rvol=None, start_index=0, params=PARAMS,
+        open_=open_,
+    )
+    assert reason == CLOSE_STOP
+    assert hold_bars == 1
+    expected = (80.0 / ENTRY - 1.0) - ROUND_TRIP_FEE
+    assert abs(profit - expected) < 1e-12
+    # The regression this guards: a fill AT the stop level would be far shallower.
+    assert profit < PARAMS.static_stoploss - ROUND_TRIP_FEE
+
+
+def test_stop_fallback_without_open_still_fills_at_the_stop_level():
+    """Pre-amendment callers that cannot supply `open_` get the old, optimistic
+    behaviour verbatim (documented in `simulate_forward`'s docstring): without a
+    per-bar open there is no signal to detect the gap, so the fallback still fills at
+    `stop_frac`, even on a bar whose low plunges far past the stop (mirroring the
+    gap scenario above, minus the open array)."""
+    n = 3
+    close = [ENTRY, 80.0, 80.0]
+    high = [ENTRY, 82.0, 82.0]
+    low = [ENTRY, 78.0, 78.0]      # breaches the -5% static stop (95.0)
+
+    profit, hold_bars, reason = simulate_forward(
+        high, low, close, atr_pct=[0.0] * n, rvol=None, start_index=0, params=PARAMS,
+    )
+    assert reason == CLOSE_STOP
+    assert hold_bars == 1
+    assert abs(profit - (PARAMS.static_stoploss - ROUND_TRIP_FEE)) < 1e-12
