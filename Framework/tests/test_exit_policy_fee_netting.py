@@ -17,6 +17,13 @@ source citations live there, not repeated here):
     and the RETURN must be net, computed once -- not gross-compared-then-fee-subtracted
     (double-counts) and not gross-compared-then-returned-raw (under-counts on the other
     side).
+
+CHECKED, NOT CHANGED, 2026-10-08 (entry-price convention fix, `utils/ExitPolicy.py`'s
+module docstring): every case that supplies `open_` here already has `open_[0] == ENTRY ==
+close[0]`, so entering at `open_[0]` instead of `close[0]` is a no-op, and bar 0 joining the
+replay loop is a provable no-op too (same reasoning as
+`test_exit_policy_simulate_forward_amendment.py`'s module docstring). No setup or assertion
+needed changing in this file.
 """
 from __future__ import annotations
 

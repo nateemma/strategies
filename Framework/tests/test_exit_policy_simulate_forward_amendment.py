@@ -13,6 +13,17 @@ behaviour worth preserving. `take_profit` and `metric_overbought` happen to need
 changes: their trigger margins are wide enough that netting the fee out before the
 comparison does not change which bar fires or the arithmetic identity of the returned
 value.
+
+UPDATED 2026-10-08 (entry-price convention fix, `utils/ExitPolicy.py`'s module docstring).
+Every case in this file supplies `open_`, so every case now enters at `open_[0]` instead of
+`close[0]` and replays from bar 0 itself instead of bar 1 (`simulate_forward`'s docstring).
+In every case except one, `open_[0]` already equalled `close[0]` (== `ENTRY`) by
+construction, and bar 0 is a provable no-op for the open-based custom_exit_decision check
+(entry == open_[0] by definition, so its own profit is exactly `-round_trip_fee` and its age
+is 0), so no assertion values changed. The one exception --
+`test_unclog_1d_fires_via_open_on_zero_profit`, whose `open_` array was flat at a
+NON-`ENTRY` value at EVERY index including 0 -- needed a one-line setup fix (`open_[0] =
+ENTRY`); see that test for why.
 """
 from __future__ import annotations
 
@@ -117,12 +128,20 @@ def test_unclog_1d_fires_via_open_on_zero_profit():
     boundary. The comparison is NET (fee double-count fix): `open_` is flat at a GROSS
     profit exactly equal to `round_trip_fee` (0.2%), so NET profit is exactly 0.0,
     satisfying `>= 0.0` -- the pre-fix code would have required gross to be used directly
-    and fired on a literally-flat open instead."""
+    and fired on a literally-flat open instead.
+
+    UPDATED 2026-10-08 (entry-price convention fix, `utils/ExitPolicy.py`'s module
+    docstring): entry is now `open_[0]`, not `close[0]`, so `open_[0]` must stay at
+    `ENTRY` -- SETUP ONLY, no assertion value changed. Before this fix `open_` was flat
+    at `ENTRY * (1 + ROUND_TRIP_FEE)` at EVERY index including 0, which was harmless when
+    entry came from `close[0]`; now that same flat value at index 0 would silently become
+    the entry price itself, changing what "zero net profit" even means at bar 24."""
     n = 26
     close = _flat(n)
     high = _flat(n)
     low = _flat(n)
     open_ = _flat(n, price=ENTRY * (1.0 + ROUND_TRIP_FEE))   # net profit exactly 0.0
+    open_[0] = ENTRY  # entry-price convention fix: open_[start_index] IS entry now.
 
     profit, hold_bars, reason = simulate_forward(
         high, low, close, atr_pct=[0.0] * n, rvol=None, start_index=0, params=PARAMS,

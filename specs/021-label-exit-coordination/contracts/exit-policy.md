@@ -122,3 +122,23 @@ T021 reconciled the original two-exit model).
 - Grace and non-grace branches, and both `after_fill` values, are covered. The grace branch
   returns `1.0` on the non-`after_fill` call, and losing that asymmetry would widen every
   live stop silently.
+
+## AMENDED 2026-10-08 — entry convention, and a consequence for the same-bar tie rule
+
+`simulate_forward` now enters at **`open_[start_index]`**, not `close[start_index]`, and the
+replay includes the entry bar (its own high and low come after the fill). The live strategy
+enters at the open of the bar stamped `trade.open_date`; the table had been entering at the
+same bar's close.
+
+Evidence, from the control arm's 1,410 matched trades: divergence against the entry bar's
+move correlated −0.495 with a perfectly monotonic quintile pattern, and regressed with slope
+**−1.072** against the −1.0 a pure entry-price mismatch predicts, intercept −0.00001.
+
+**Consequence for the same-bar precedence rule above.** That rule — "the stop wins a
+stop/take-profit tie" — only has meaning on the legacy HIGH-based take-profit path. With
+`open_` supplied (which the real caller always does), take-profit is decided by the
+OPEN-based `custom_exit_decision`, which resolves before the stop is checked, so no
+same-bar ambiguity arises. The rule is therefore **inert for the production path** and
+survives only for callers that omit `open_`. It is retained rather than deleted because
+those callers still exist in tests, but it should not be read as governing the outcome
+table.

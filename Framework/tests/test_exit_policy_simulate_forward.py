@@ -20,6 +20,15 @@ All cases share one hand-built two-bar world: `close[0] = 100` is the entry, and
 every array trivial to read by eye while still exercising the real loop (as opposed
 to a 1-bar market that never enters the loop at all -- reserved for the
 `end_of_data` case below).
+
+NOTE 2026-10-08 (entry-price convention fix, `utils/ExitPolicy.py`'s module
+docstring). None of these cases supply `open_`, so they exercise the function's
+LEGACY path -- entry at `close[start_index]`, replay starting at `start_index + 1`,
+the HIGH-based `take_profit` fallback -- UNCHANGED and bit-for-bit pinned by this
+file, exactly as before this fix. The fix only changes behaviour for callers that DO
+supply `open_` (the real caller, `research/outcomes/table.py`, always does); see
+`test_exit_policy_simulate_forward_amendment.py` for cases covering that path. This
+file needed NO changes for this fix.
 """
 from __future__ import annotations
 

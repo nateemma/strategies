@@ -93,6 +93,43 @@ subtraction -- matching the live contract, where `custom_exit_decision`'s `curre
 argument has always been documented (and, live, always been) a NET figure. The stop,
 `hold_cap` and `end_of_data` branches are UNCHANGED: they close at a traded PRICE, so the
 fee is realised on top, exactly once, same as before.
+
+AMENDED 2026-10-08 (entry-price convention fix). `simulate_forward` entered at
+`close[start_index]`; the live strategy enters at the OPEN of the bar whose timestamp is
+`trade.open_date` -- the SAME bar, opposite end. Reconciliation against 1,410 matched
+control-arm trades found `divergence = table_profit - arm_profit` correlated -0.495 with
+`entry_bar_move = close[t]/open[t] - 1`, with a monotonic quintile pattern (fell-most
++0.0160 to rose-most -0.0190) and a regression slope of -1.072 (intercept ~0) -- a pure
+entry-price convention mismatch predicts exactly -1.0, so this was conclusive on the
+mechanism, not a coincidental correlation.
+
+The fix, gated on `open_` being supplied (same flag that already gates every other
+open-based branch in this function -- see FR-001's amendment above): `entry =
+open_[start_index]`, not `close[start_index]`. Because entry now happens at the bar's open,
+that SAME bar's own high/low are reachable immediately after entry, so the replay loop
+starts at `start_index` (age 0 hours there) instead of `start_index + 1`.
+
+`open_=None` DELIBERATELY KEEPS the function's pre-fix convention bit-for-bit: entry at
+`close[start_index]`, replay starting at `start_index + 1`, the legacy HIGH-based
+`take_profit` fallback, the no-gap-detection stop fill. This is the documented-non-faithful
+option (as opposed to raising) -- chosen because the alternative, forcing `open_` to be
+mandatory, would delete the ONLY code path `test_exit_policy_simulate_forward.py` pins:
+once `open_` is supplied, `take_profit` is resolved exclusively via the OPEN-based
+`custom_exit_decision` check, which this module's docstring already establishes fires
+BEFORE the native stop -- i.e. the HIGH-based "same-bar tie, stop wins" rule that file pins
+has no code path left to exercise once `open_` is mandatory. Making `open_=None` raise
+would therefore not just need new test SETUP, it would retire that file's entire reason
+to exist. Every REAL caller (`research/outcomes/table.py`) already always supplies
+`open_`, so this fallback is reachable only from the handful of pre-FR-001-amendment tests
+that predate `open_` support; it is not a trap a new caller can stumble into unknowingly,
+because every other branch this flag already gates (the amendment's own module docstring,
+above) has carried the exact same "`None` means do not model this, clearly documented"
+contract since that amendment landed.
+
+Expected effect, for callers that DO supply `open_`: the divergence/entry-bar-move
+correlation and regression slope should collapse toward zero, and the subset biases (stop
+exits optimistic, profit exits pessimistic) should shrink by roughly 25-30% -- NOT to
+zero, since this mismatch is only part of a larger, still-undiagnosed residual.
 """
 from __future__ import annotations
 
@@ -110,10 +147,16 @@ from typing import Optional
 #: nothing forced the hash to notice the code had changed underneath it.
 #:
 #: Introduced at 1 (the implicit, never-versioned behaviour every prior run silently
-#: depended on) and bumped to 2 as part of THIS change (the fee double-count fix above) --
-#: both steps happen in the same commit so the version this module ships with is never
-#: itself stale.
-SIMULATION_LOGIC_VERSION = 2
+#: depended on), bumped to 2 for the fee double-count fix, and bumped to 3 for the
+#: entry-price convention fix (module docstring, "AMENDED 2026-10-08 (entry-price
+#: convention fix)"): when `open_` is supplied, `simulate_forward` now enters at
+#: `open_[start_index]` instead of `close[start_index]` and replays from `start_index`
+#: instead of `start_index + 1`, so the same inputs can produce a different
+#: `profit_fraction`/`close_reason`/`hold_bars` than version 2 did. (Callers that omit
+#: `open_` are unaffected -- see the module docstring for why that path is deliberately
+#: left as the pre-fix convention.) Every version bump happens in the same commit as the
+#: behaviour change it covers, so the version this module ships with is never itself stale.
+SIMULATION_LOGIC_VERSION = 3
 
 #: Hard floor applied AFTER volume confirmation tightens the stop.
 #:
@@ -391,6 +434,14 @@ def simulate_forward(
     this). `research/outcomes/table.py` -- the real caller -- supplies both, because both
     columns already exist on every bar it builds from.
 
+    ENTRY PRICE, gated on the SAME `open_ is not None` flag (entry-price convention fix,
+    module docstring, "AMENDED 2026-10-08 (entry-price convention fix)"): `open_[start_index]`
+    when supplied, `close[start_index]` -- the pre-fix, non-faithful convention -- when not.
+    Because entry then happens at the bar's open, that SAME bar's own high/low are reachable
+    immediately after entry, so the replay loop starts AT `start_index` (age 0 hours) rather
+    than `start_index + 1` -- again, only when `open_` is supplied; the legacy path still
+    enters at `close` and so still starts replaying the bar after.
+
     PRECEDENCE, in the order below, per bar (this module's docstring has the full citation
     trail against freqtrade's source):
 
@@ -437,7 +488,10 @@ def simulate_forward(
     import numpy as np
 
     n = len(close)
-    entry = float(close[start_index])
+    # ENTRY PRICE (entry-price convention fix): open-based once `open_` is supplied,
+    # close-based (the pre-fix, non-faithful convention) otherwise -- see this function's
+    # docstring for why the fallback stays close-based rather than raising.
+    entry = float(open_[start_index]) if open_ is not None else float(close[start_index])
     if not entry > 0:
         return 0.0, 0, CLOSE_END_OF_DATA
 
@@ -450,7 +504,13 @@ def simulate_forward(
     round_trip_fee = 2.0 * params.fee_per_side
 
     last = min(start_index + max_bars, n - 1)
-    for k in range(start_index + 1, last + 1):
+    # LOOP START (entry-price convention fix): once entry happens at the bar's OPEN, that
+    # same bar's own high/low are reachable immediately after entry, so the replay must
+    # start AT start_index (age 0 hours), not start_index + 1 -- but only when `open_` is
+    # supplied; the legacy (no `open_`) path still enters at `close`, so it still starts
+    # replaying the bar after, exactly as before this fix.
+    loop_start = start_index if open_ is not None else start_index + 1
+    for k in range(loop_start, last + 1):
         age_hours = (k - start_index) / bars_per_hour
 
         # ---- 0. custom_exit's own decision, OPEN-based (feature 021 FR-001 amendment) ----
@@ -458,6 +518,9 @@ def simulate_forward(
         # thresholds (cexit_take_profit / unclog_12h_min_profit / unclog_1d's zero floor)
         # are themselves NET targets live (see custom_exit_decision's and this function's
         # docstrings), so the comparison -- not just the return value -- must be net too.
+        # At k == start_index (when `open_` is supplied, so this is reachable) this is
+        # always a no-op: open_[start_index] == entry by definition, so profit_open_net ==
+        # -round_trip_fee <= 0, and age_hours == 0 fails every time-based threshold too.
         if open_ is not None:
             profit_open_net = (float(open_[k]) / entry) - 1.0 - round_trip_fee
             gm = None if guard_metric is None else float(guard_metric[k])
