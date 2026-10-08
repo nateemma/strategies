@@ -174,7 +174,7 @@ handing the model an easy target. This is why the feature exists.
 **Independent test**: a deliberately constructed trigger with known high selection value and
 known low learnability lands in the expected quadrant.
 
-- [ ] T027 [US4] @model-implementer Implement economic value in `research/outcomes/leaderboard.py`
+- [ ] T027 [US4] @model-implementer Implement economic value in `research/outcomes/leaderboard.py` (SC-010)
   from the table alone, NO model (FR-014): base rate, mean realised outcome, distribution —
   reported both over all triggered bars and over fillable triggered bars only (FR-009b).
 - [ ] T028 [US4] @model-implementer Implement the **block** bootstrap for the economic-value
@@ -187,7 +187,7 @@ known low learnability lands in the expected quadrant.
   and its MCC computation. The SAME model, features and protocol for every trigger — varying
   it would make the column incomparable and the verdict unreliable. Report the seed/window
   spread as the standard error the verdict rule needs.
-- [ ] T030 [US4] @model-implementer Implement the verdict rule (FR-014b) against the `empty`
+- [ ] T030 [US4] @model-implementer Implement the verdict rule (FR-014b) against the `empty` (SC-007)
   trigger, **total** over three outcomes: `selection_value` (economic value exceeds empty's by
   more than the CI on the difference), `decoration` (it does not, while learnability exceeds
   empty's by more than the SE on that difference), `indeterminate` (neither). Error if `empty`
@@ -195,7 +195,7 @@ known low learnability lands in the expected quadrant.
 - [ ] T031 [P] [US4] @model-implementer Test the verdict rule with synthetic triggers constructed to
   land in each of the three quadrants, including the `empty`-vs-itself case which MUST come
   out `indeterminate`.
-- [ ] T032 [US4] @model-implementer Assemble the leaderboard per `TriggerScore` in `data-model.md`,
+- [ ] T032 [US4] @model-implementer Assemble the leaderboard per `TriggerScore` in `data-model.md` (SC-006),
   with economic value and learnability as SEPARATE columns that are never combined into a
   single score (FR-016).
 - [ ] T033 [US4] @experiment-runner Measure SC-005: time one trigger's FULL two-column
@@ -204,7 +204,7 @@ known low learnability lands in the expected quadrant.
   claim is the whole justification for building the table -- yet no task measured it until this
   one. If it is not seconds, the design has not delivered its premise and that must be reported
   rather than explained away.
-- [ ] T034 [US4] @experiment-runner Run the leaderboard over every registered trigger and produce
+- [ ] T034 [US4] @experiment-runner Run the leaderboard over every registered trigger (SC-007, SC-008) and produce
   the report.
 - [ ] T035 [US4] @gate-reviewer Review the leaderboard BEFORE any verdict is accepted: check base
   rates are plausible, that no trigger earns its value from unfillable or gap-fill-heavy bars,
