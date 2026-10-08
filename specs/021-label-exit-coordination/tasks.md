@@ -146,9 +146,9 @@ without running a backtest.
 - [X] T018 [P] [US2] @model-implementer Add the `--build`, `--status`, `--verify` CLI.
 - [X] T019 [P] [US2] @model-implementer Test reproducibility (SC-003, FR-008): two builds from the same
   inputs are byte-identical.
-- [ ] T020 [US2] @experiment-runner Build the table for the 11 production pairs at 15m and report
+- [X] T020 [US2] @experiment-runner Build the table for the 11 production pairs at 15m and report
   per-pair record counts, close-reason distribution and gap-fill share.
-- [ ] T021 [US2] @experiment-runner Validate against reality: reproduce a known arm's trade outcomes
+- [X] T021 [US2] @experiment-runner Validate against reality: reproduce a known arm's trade outcomes
   from the table and reconcile against `evaluation/pooled_NNNC_A_Raw_Open.json`. Report any
   systematic divergence — a table that disagrees with the harness is wrong, and better found
   here than in a verdict.

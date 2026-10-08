@@ -31,6 +31,13 @@ PARAMETER_NAMES: tuple[str, ...] = (
     "stoploss_grace_level",
     "stoploss_grace_hours",
     "use_volume_confirmation_stoploss",
+    # Added for feature 021's FR-001 amendment (T021 follow-up): custom_exit_decision's
+    # take_profit/max_hold thresholds are now shared-primitive arithmetic too, not just the
+    # stop's. metric_overbought/unclog_12h/unclog_1d's thresholds are NOT added here -- they
+    # are fixed literals with exactly one occurrence repo-wide (verified by grep), not
+    # freqtrade `Parameter`s anyone could plausibly re-declare or override.
+    "cexit_take_profit",
+    "cexit_max_days",
 )
 
 _PATTERN = re.compile(r"\b(?:" + "|".join(PARAMETER_NAMES) + r")\b")
@@ -138,6 +145,59 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
     # model; computes no stop level itself (`simulate_forward` does).
     "research/outcomes/table.py",
 
+    # --- configures a value: cexit_take_profit/cexit_max_days only (feature 021's FR-001
+    # amendment added these two tokens; see PARAMETER_NAMES's comment for why
+    # metric_overbought/unclog's literals were NOT added). Every entry below either
+    # declares/overrides the freqtrade Parameter, forwards it by name/dict, reads its live
+    # value for a derived bound, or mentions the pinned value in a comment/docstring --
+    # none compute the take_profit/max_hold comparison itself (that is
+    # `utils.ExitPolicy.custom_exit_decision`'s job as of this amendment).
+    "Anomaly/NNAnomalyStrategy.py",            # toggles .optimize on the live BaseStrategy
+                                                 # Parameter by name; sets no value, computes
+                                                 # nothing.
+    "Debug/DebugNNMTStrategy.py",              # DecimalParameter/IntParameter declarations
+    "Debug/DebugNNStrategy.py",                # (and a pinned sell_params dict), same
+    "Debug/DebugRegimeIndicator.py",           # pattern as NNMTStrategy/NNNCStrategy above --
+    "Debug/DebugTradingType.py",               # configuration, never arithmetic.
+    "NNMT/NNMT_Ctl_s42.py",                    # docstrings documenting a pinned JSON value
+    "NNMT/NNMT_Ctl_s7.py",                     # ("Its .json pins the control configuration,
+    "NNMT/NNMT_Lbl02_s42.py",                  # including cexit_take_profit 0.032") -- prose,
+    "NNMT/NNMT_Lbl02_s7.py",                   # not code that computes anything.
+    "NNMT/NNMT_MLX_Base.py",
+    "NNNC/NNNC_MLX_thr02.py",                  # docstring: "notably cexit_take_profit 0.032
+                                                 # instead of the tuned 0.024" -- documents a
+                                                 # deviation, computes nothing.
+    "NNNC/NNNC_Ora_L024.py",                   # docstrings: "ALIGNMENT test -- label target
+    "NNNC/NNNC_Ora_L026.py",                   # X% against cexit_take_profit 2.4%" -- prose
+    "NNNC/NNNC_Ora_L032.py",                   # comparing a label threshold to the pinned
+                                                 # live value, computes nothing.
+    "NNNC/_hold_window.py",                    # module docstring + a code comment name
+                                                 # cexit_max_days only to explain which exits
+                                                 # the mixin does NOT defer (it defers
+                                                 # unclog_12h, whose 12h/0.5% literals are not
+                                                 # scanned tokens -- see PARAMETER_NAMES);
+                                                 # computes no take_profit/max_hold decision.
+    "SimpleStrategies/Ehlers_Ichimoku.py",     # a pinned sell_params dict (class attribute),
+                                                 # same pattern as the Debug/* files above.
+    "regime/gbb_dist.py",                      # a print() string reporting the live
+                                                 # cexit_take_profit value; computes nothing.
+    "regime/path_label_sell.py",               # a literal preempt-level list with a comment
+                                                 # naming cexit_take_profit as its source;
+                                                 # computes a PRE-EMPTION DIAGNOSTIC (how often
+                                                 # a forward move would have crossed each
+                                                 # literal level), not the exit decision.
+    "regime/trade_forensics.py",               # a dict mapping close-reason labels to the
+                                                 # Parameter name they came from, plus a CLI
+                                                 # help string -- forensic reporting, computes
+                                                 # no exit decision.
+    "research/labelfree/es/__init__.py",       # a planning-notes comment naming the token.
+    "research/labelfree/es/panel.py",          # reads cexit_max_days's search-space UPPER
+                                                 # BOUND (off space.py's DIMS) to size a
+                                                 # leak-purge window; reads and bounds a
+                                                 # configured value, computes no exit decision.
+    "research/labelfree/es/report.py",         # report-text generation naming the token in a
+                                                 # literal string; computes nothing.
+
     # --- tests -------------------------------------------------------------------------------
     "NNPredict/tests/test_stop_aware_target.py",
     "research/labelfree/tests/test_es_exits.py",
@@ -170,6 +230,13 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
                                                 # expected values (the Open operating point's
                                                 # grace hours/level) to pin ExitConfig's
                                                 # sourcing; computes no stop level itself.
+    # FR-001's 2026-10-08 amendment (T021 follow-up): characterises/pins custom_exit's
+    # decision and simulate_forward's new branches via ExitParams/_StubStrategy kwargs;
+    # delegates every comparison to BaseStrategy.custom_exit / custom_exit_decision /
+    # simulate_forward, computes none of it itself.
+    "Framework/tests/test_custom_exit_characterisation.py",
+    "Framework/tests/test_exit_policy_custom_exit_decision.py",
+    "Framework/tests/test_exit_policy_simulate_forward_amendment.py",
 })
 
 

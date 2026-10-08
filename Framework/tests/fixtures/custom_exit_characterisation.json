@@ -1,0 +1,7682 @@
+[
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": "max_hold"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": "max_hold"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": "max_hold"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": -0.01,
+  "reason": "max_hold"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "SOL_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": "max_hold"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": "max_hold"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": "max_hold"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": -0.01,
+  "reason": "max_hold"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "XRP_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": "max_hold"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": "max_hold"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 2000,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": "max_hold"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": "unclog_12h"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.5,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "take_profit"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 0.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 6.0,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 11.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 12.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": null
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 23.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 24.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": null
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 239.9,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": -0.01,
+  "reason": "max_hold"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.0,
+  "reason": "unclog_1d"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.003,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.005,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.006,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.02,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.022,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.023,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.05,
+  "reason": "metric_overbought"
+ },
+ {
+  "age_h": 240.1,
+  "bar": 11973,
+  "guard_metric": 0.99,
+  "pair": "ZEC_USDT",
+  "profit": 0.06,
+  "reason": "metric_overbought"
+ }
+]

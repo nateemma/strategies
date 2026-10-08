@@ -173,9 +173,25 @@ expected quadrant.
 
 ### Functional Requirements
 
-- **FR-001**: The exit policy MUST exist in exactly one place, covering the ATR-adaptive
-  stop with its cap and floor, the static fallback, the stop-loss grace window, the
-  take-profit and the hold cap.
+- **FR-001**: The exit policy MUST exist in exactly one place. **AMENDED 2026-10-08 after
+  T021** — the original enumeration was incomplete, which made the first outcome table
+  optimistic by 10.7% on mean profit per trade. The policy comprises:
+  - the ATR-adaptive stop with its cap and floor, and the static fallback
+  - the stop-loss grace window
+  - `metric_overbought` — `guard_metric > 0.98` while in profit (fires on 0.3% of SOL bars
+    and 2.6% of ZEC bars, so it is rare but NOT inert)
+  - the take-profit (`cexit_take_profit`)
+  - `unclog_12h` — 12 hours held with profit > 0.5%
+  - `unclog_1d` — 1 day held with profit >= 0
+  - `max_hold` — `cexit_max_days`
+  - the native ROI exit (`minimal_roi`, 5% at the Open operating point)
+  Two exits are **inert at this operating point and MUST be documented rather than
+  modelled**: the three `rsi_*` exits require an `rsi` column that the MINIMAL populator
+  does not produce, and `strategy_custom_exit` is not overridden anywhere in the NNNC
+  chain. `enable_exit_signal` is also false. Together these mean the Open arm's exit is
+  **model-independent**, which is what makes a model-free outcome table possible at all; if
+  a future arm overrides `strategy_custom_exit` or enables the exit signal, that premise
+  fails and this feature's approach does not apply to it.
 - **FR-002**: Every consumer of exit behaviour, live or offline, MUST call that one
   implementation. No other code may re-implement any part of it.
 - **FR-003**: A test MUST fail if the exit arithmetic appears in more than one place. This
@@ -246,6 +262,12 @@ expected quadrant.
   be checked against that contamination.
 - **FR-021**: No change may alter the behaviour of shared runtime code that the live
   dry-run depends on.
+- **FR-022**: The outcome table MUST be reconciled against a known arm's realised trades
+  before any trigger verdict is accepted, and the divergence MUST be quantified. **Added
+  after T021**, which found a 2.70pp win-rate and 10.7% mean-profit overstatement that no
+  other check would have caught. A table that disagrees with the pooled harness is wrong,
+  and the bias only cancels out of a trigger comparison if it is uniform across triggers —
+  which cannot be assumed.
 
 ### Key Entities
 

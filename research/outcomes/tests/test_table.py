@@ -141,6 +141,23 @@ def test_open_operating_point_json_is_the_pinned_file():
     assert OPEN_OPERATING_POINT_JSON.exists()
 
 
+def test_from_operating_point_sources_roi_from_nnnc_strategy_not_base_strategy():
+    """feature 021 FR-001 amendment: `BaseStrategy.minimal_roi` is {"0": 0.03}; the Open
+    operating point's family overrides it to 0.05 in `NNNCStrategy`, in Python, not in the
+    hyperopt JSON. Using the base default here would silently under-model the ROI exit."""
+    from NNNC.NNNCStrategy import NNNCStrategy
+
+    assert BaseStrategy.minimal_roi == {"0": 0.03}
+    assert NNNCStrategy.minimal_roi == {"0": 0.05}
+    cfg = ExitConfig.from_operating_point()
+    assert cfg.roi == 0.05
+
+
+def test_from_operating_point_sources_cexit_enable_profit_checks_from_the_open_json():
+    cfg = ExitConfig.from_operating_point()
+    assert cfg.cexit_enable_profit_checks is True
+
+
 # =============================================================================================
 # Shared fixture: a small, hand-built pair frame with REAL indicator columns
 # (`research.clfstudy.data.populate`), sliced to a short, deterministic window.
@@ -186,10 +203,13 @@ def test_build_outcome_table_columns_match_the_leakage_guard_s_registry(smoke_df
     assert produced == OUTCOME_COLUMN_NAMES
 
 
-def test_build_outcome_table_close_reason_is_one_of_four(smoke_df, smoke_config):
+def test_build_outcome_table_close_reason_is_one_of_eight(smoke_df, smoke_config):
+    """FR-001's amendment (T021 follow-up) added four close reasons --
+    metric_overbought/unclog_12h/unclog_1d/roi -- to the original four."""
     table = build_outcome_table(smoke_df, "ZEC/USDT", smoke_config)
     assert set(table.records["__outcome_close_reason"].unique()) <= {
         "stop", "take_profit", "hold_cap", "end_of_data",
+        "metric_overbought", "unclog_12h", "unclog_1d", "roi",
     }
 
 
@@ -207,7 +227,7 @@ def test_build_outcome_table_calls_simulate_forward_not_its_own_arithmetic(monke
 
     calls = []
 
-    def _stub(high, low, close, atr_pct, rvol, start_index, params):
+    def _stub(high, low, close, atr_pct, rvol, start_index, params, *, open_=None, guard_metric=None):
         calls.append(start_index)
         return 0.0123, 3, "take_profit"
 

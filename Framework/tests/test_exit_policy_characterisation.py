@@ -55,6 +55,13 @@ BAR_STRIDE = 9_973          # prime, so it does not alias with any periodicity
 BARS_PER_PAIR = 12
 
 
+class _P:
+    """Shim for a freqtrade `Parameter` -- `_exit_params` reads `.value`."""
+
+    def __init__(self, value):
+        self.value = value
+
+
 class _StubTrade:
     def __init__(self, open_date_utc: datetime, open_rate: float):
         self.open_date_utc = open_date_utc
@@ -90,6 +97,13 @@ class _StubStrategy:
         self.use_volume_confirmation_stoploss = True
         self.stoploss_grace_hours = 0.0
         self.stoploss_grace_level = -0.15
+        # `_exit_params` now ALSO sources these (feature 021 FR-001's amendment, so the
+        # same method backs custom_exit's decision, not just the stop). Irrelevant to the
+        # stop decision this fixture characterises -- `atr_stop_fraction` never reads
+        # them -- but `_exit_params`/`ExitParams.__post_init__` require them to exist.
+        self.cexit_enable_profit_checks = _P(True)
+        self.cexit_take_profit = _P(0.022)
+        self.cexit_max_days = _P(10)
         for k, v in overrides.items():
             setattr(self, k, v)
         # Bind the real methods the live stop path uses. The refactor added

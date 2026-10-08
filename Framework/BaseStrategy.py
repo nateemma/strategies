@@ -77,7 +77,7 @@ sys.path.append(group_dir)
 
 
 # =========================================================================
-from utils.ExitPolicy import ExitParams, atr_stop_fraction, rolling_rvol
+from utils.ExitPolicy import ExitParams, atr_stop_fraction, custom_exit_decision, rolling_rvol
 # Enums
 # =========================================================================
 
@@ -1039,6 +1039,14 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
             static_stoploss=self.stoploss,
             use_atr_adaptive_stoploss=self.use_atr_adaptive_stoploss,
             use_volume_confirmation_stoploss=self.use_volume_confirmation_stoploss,
+            # feature 021 FR-001 amendment: custom_exit's own decision (metric_overbought /
+            # take_profit / unclog_12h / unclog_1d / max_hold) reads these too, via
+            # custom_exit_decision. `roi` is deliberately left at its None default -- that
+            # exit is evaluated by freqtrade's own ROI engine, never by strategy code, so
+            # there is nothing live for this method to source it from.
+            cexit_enable_profit_checks=bool(self.cexit_enable_profit_checks.value),
+            take_profit=float(self.cexit_take_profit.value),
+            max_hold_days=int(self.cexit_max_days.value),
         )
 
     def _atr_bar_inputs(self, pair: str):
@@ -1176,7 +1184,11 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
             # Currently in profit - check for exit conditions
             if current_profit > 0.0:
 
-                # Enhanced RSI conditions
+                # Enhanced RSI conditions -- INERT at the MINIMAL populator (no "rsi"
+                # column). Not extracted into utils.ExitPolicy (feature 021 FR-001's
+                # amendment documents this rather than modelling it): there is no live
+                # behaviour here to protect, and an offline simulator cannot usefully
+                # replay a branch that never fires.
                 if "rsi" in last_candle:
                     current_rsi = last_candle["rsi"]
 
@@ -1206,28 +1218,22 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
                         if prev_rsi > current_rsi:
                             return "rsi_conservative_sell"
 
-                # strong sell signal, in profit
-                if "guard_metric" in last_candle:
-                    if last_candle["guard_metric"] > 0.98:
-                        return "metric_overbought"
-
-                if current_profit > self.cexit_take_profit.value:
-                    return "take_profit"
-
-        # Time-based exits (apply to both profitable and losing trades)
-        time_delta = current_time - trade.open_date_utc
-        num_hours = time_delta.total_seconds() / 3600
-        num_days = time_delta.days
-
-        # Exit if trade has been open too long
-        if (num_hours >= 12) & (current_profit > 0.005):  # 12 hours with some profit
-            return "unclog_12h"
-
-        if (num_days >= 1) & (current_profit >= 0):  # 1 day with any profit
-            return "unclog_1d"
-
-        if num_days >= self.cexit_max_days.value:  # max hold
-            return "max_hold"
+        # metric_overbought / take_profit / unclog_12h / unclog_1d / max_hold -- the single
+        # source of truth is utils.ExitPolicy.custom_exit_decision (feature 021 FR-001/
+        # FR-002's amendment). This method now supplies only the glue: reading
+        # `guard_metric` off the analysed dataframe and the trade's age.
+        guard_metric = (
+            float(last_candle["guard_metric"]) if "guard_metric" in last_candle else None
+        )
+        age_hours = (current_time - trade.open_date_utc).total_seconds() / 3600.0
+        decision = custom_exit_decision(
+            current_profit=current_profit,
+            age_hours=age_hours,
+            guard_metric=guard_metric,
+            params=self._exit_params(),
+        )
+        if decision is not None:
+            return decision
 
         # Strategy-specific exit hook — last chance to exit before
         # falling through to None (which delegates to the static stoploss

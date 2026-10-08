@@ -49,7 +49,7 @@ One row per bar. The result of a hypothetical long entry at that bar's close, cl
 | `pair` | str | |
 | `__outcome_profit` | float | realised fraction, NET of `fee_per_side` on both sides (FR-006a) |
 | `__outcome_hold_bars` | int | bars from entry to close |
-| `__outcome_close_reason` | enum | `stop` / `take_profit` / `hold_cap` / `end_of_data` |
+| `__outcome_close_reason` | enum | `stop` / `take_profit` / `hold_cap` / `end_of_data` / `metric_overbought` / `unclog_12h` / `unclog_1d` / `roi` (the last four added by FR-001's 2026-10-08 amendment after T021; see `contracts/exit-policy.md`) |
 | `__outcome_positive` | bool | `__outcome_profit > 0`; the shared positive-outcome condition |
 | `__outcome_fillable` | bool | quote volume supports the production stake (FR-009a). **KNOWN SIMPLIFICATION**: models only `custom_stake_amount`'s headroom reduction gate (`QUOTE_VOLUME_HEADROOM_MULT`), NOT `confirm_trade_entry`'s separate absolute `MIN_QUOTE_VOLUME` floor. So a bar can be marked fillable that the live path would reject outright, which OVERSTATES a trigger's fillable economic value — the optimistic direction Principle V warns about. Revisit if a trigger's verdict turns on thin-volume bars. |
 | `__outcome_fillable_fraction` | float | fraction of the intended stake that could fill |

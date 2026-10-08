@@ -56,6 +56,13 @@ from utils.ExitPolicy import ExitParams, simulate_forward
 from Framework.BaseStrategy import BaseStrategy  # noqa: E402
 from Framework.BaseNNStrategy import BaseNNStrategy  # noqa: E402
 
+#: The ONLY live source of the Open operating point's `minimal_roi` (feature 021's FR-001
+#: amendment). `BaseStrategy.minimal_roi` is {"0": 0.03} -- the 0.05 the amendment's research
+#: cites is NNNCStrategy's override, not a freqtrade Parameter, so there is no `.value` to
+#: read off the JSON the way take_profit/max_hold_days are; the class attribute is the only
+#: place it lives.
+from NNNC.NNNCStrategy import NNNCStrategy  # noqa: E402
+
 from research.clfstudy.data import load_pair, populate, zero_volume_share  # noqa: E402
 
 #: The pinned production operating point (feature 021's FR-019 anchor). `ExitConfig`
@@ -158,6 +165,15 @@ class ExitConfig:
     def fee_per_side(self) -> float:
         return self.params.fee_per_side
 
+    # -- feature 021 FR-001 amendment fields, delegated to `params` (no restatement) -------
+    @property
+    def roi(self) -> Optional[float]:
+        return self.params.roi
+
+    @property
+    def cexit_enable_profit_checks(self) -> bool:
+        return self.params.cexit_enable_profit_checks
+
     @property
     def config_hash(self) -> str:
         """First 16 hex chars of SHA-256 over the canonical JSON of every field
@@ -190,9 +206,23 @@ class ExitConfig:
         exchange's fee tier at runtime, not from strategy code -- see
         `test_exit_policy_fixed_params.py`'s equivalent note) so it is the one field
         callers may still override explicitly.
+
+        Feature 021's FR-001 amendment adds `cexit_enable_profit_checks` (read off the
+        same JSON `sell` block as take_profit/max_hold_days -- it IS a freqtrade
+        Parameter) and `roi` (read off `NNNCStrategy.minimal_roi`, a plain class
+        attribute, NOT a Parameter and NOT in the JSON -- `BaseStrategy.minimal_roi`
+        is {"0": 0.03}; the Open operating point's family overrides it to 0.05 in
+        Python, not in the hyperopt JSON, so this is the only live source).
         """
         payload = json.loads(Path(json_path).read_text())
         sell = payload["params"]["sell"]
+        roi_table = NNNCStrategy.minimal_roi
+        if set(roi_table.keys()) != {"0"}:
+            raise ValueError(
+                f"NNNCStrategy.minimal_roi is no longer a flat table ({roi_table!r}) -- "
+                "ExitConfig.from_operating_point assumes a single '0' entry (feature 021 "
+                "FR-001 amendment); update this constructor before trusting the result."
+            )
         params = ExitParams(
             atr_stoploss_multiplier=BaseStrategy.atr_stoploss_multiplier,
             atr_stoploss_cap=BaseStrategy.atr_stoploss_cap,
@@ -205,6 +235,8 @@ class ExitConfig:
             take_profit=float(sell["cexit_take_profit"]),
             max_hold_days=int(sell["cexit_max_days"]),
             fee_per_side=fee_per_side,
+            cexit_enable_profit_checks=bool(sell["cexit_enable_profit_checks"]),
+            roi=float(roi_table["0"]),
         )
         return cls(params)
 
@@ -262,11 +294,19 @@ def build_outcome_table(
     `df` must carry `date`, `open`, `high`, `low`, `close`, `volume` and
     `atr_pct_roll` (the production ATR input -- `research.clfstudy.data.populate`
     adds it via `DataframePopulator`'s MINIMAL set, matching
-    `BaseStrategy._atr_bar_inputs`'s live source exactly).
+    `BaseStrategy._atr_bar_inputs`'s live source exactly). `guard_metric` is read if
+    present but not required -- `DataframePopulator` already produces it
+    unconditionally alongside `atr_pct_roll` (feature 021 FR-001 amendment;
+    `metric_overbought` cannot be modelled without it, degrading gracefully to "not
+    modelled" per `simulate_forward`'s `guard_metric=None` convention if it is ever
+    absent from an older/different populator run).
 
-    Every exit decision is delegated to `simulate_forward`; this function supplies
-    its inputs (atr_pct, rvol, start_index) and turns its `(profit, hold_bars,
-    close_reason)` into the record's columns -- it contains no exit arithmetic.
+    Every exit decision is delegated to `simulate_forward` (via `open_`/`guard_metric`,
+    feature 021's FR-001 amendment, for `metric_overbought`/`take_profit`/`unclog_12h`/
+    `unclog_1d`, and via `exit_config.params.roi` for the native ROI exit); this function
+    supplies its inputs (atr_pct, rvol, open/high/low/close, guard_metric, start_index)
+    and turns the `(profit, hold_bars, close_reason)` result into the record's columns --
+    it contains no exit arithmetic or exit decision logic of its own.
     """
     required = {"date", "open", "high", "low", "close", "volume", "atr_pct_roll"}
     missing = required - set(df.columns)
@@ -275,10 +315,12 @@ def build_outcome_table(
 
     df = df.reset_index(drop=True)
     n = len(df)
+    open_ = df["open"].to_numpy(dtype=float)
     high = df["high"].to_numpy(dtype=float)
     low = df["low"].to_numpy(dtype=float)
     close = df["close"].to_numpy(dtype=float)
     atr_pct = df["atr_pct_roll"].to_numpy(dtype=float)
+    guard_metric = df["guard_metric"].to_numpy(dtype=float) if "guard_metric" in df.columns else None
     rvol = (
         _rolling_rvol_series(df["volume"])
         if exit_config.use_volume_confirmation_stoploss
@@ -296,7 +338,8 @@ def build_outcome_table(
 
     for i in range(n):
         profit, bars, reason = simulate_forward(
-            high, low, close, atr_pct, rvol, start_index=i, params=exit_config.params
+            high, low, close, atr_pct, rvol, start_index=i, params=exit_config.params,
+            open_=open_, guard_metric=guard_metric,
         )
         profits[i] = profit
         hold_bars[i] = bars

@@ -187,3 +187,54 @@ each side needs an interval, and the two are not the same kind of quantity.
 governs P&L claims (FR-017). The table's economic value is a different quantity measured a
 different way, and conflating the two would be the error of treating a lookahead bound as a
 realisable return.
+
+## R10 — T021 FOUND THE SPEC'S EXIT POLICY IS INCOMPLETE (2026-10-08)
+
+The reconciliation did its job. Matching all 1,410 control-arm trades to table entries by
+`(pair, open_date)` — 100% matched — gives:
+
+| metric | arm (realised) | table | divergence |
+|---|---|---|---|
+| win rate | 0.6702 | 0.6972 | **+2.70pp** |
+| mean profit/trade | 0.004679 | 0.005182 | **+10.7% relative** |
+
+The table is **optimistic**, which is the dangerous direction (Principle V).
+
+**Root cause: FR-001 enumerates the exit policy incompletely.** It lists the ATR-adaptive
+stop with cap/floor, the static fallback, the grace window, the take-profit and the hold cap.
+The live Open operating point ALSO has:
+
+* `roi = {"0": 0.05}` — a 5% ROI exit. 37 of the arm's 1,410 trades exited this way.
+* `unclog_12h` — hardcoded in `BaseStrategy.custom_exit`, deferred by `NNNC/_hold_window.py`.
+  86 trades.
+* `unclog_1d` — 1 trade.
+* `force_exit` — 2 trades.
+
+`simulate_forward` models stop / take-profit / hold-cap only, so it is faithful to the
+contract and the contract was wrong. This is a specification defect, not an implementation
+bug, and the fix is to amend FR-001 and the exit-policy contract before changing code.
+
+**One misread in the original report, corrected.** It treated the arm's 462
+`trailing_stop_loss` exits as a fifth missing mechanism. They are not: `trailing_stop` is
+`false` at this operating point, and `trailing_stop_loss` is simply how freqtrade LABELS an
+exit taken via `custom_stoploss`. Reconciling the mix accordingly:
+
+* table `stop` 427  vs  arm `trailing_stop_loss` 462 + `stop_loss` 3 = **465** (table under
+  by 38)
+* table `take_profit` 983  vs  arm `take_profit` 819 + `roi` 37 + `unclog_12h` 86 +
+  `unclog_1d` 1 + `force_exit` 2 = **945** (table over by 38)
+
+The two offsets match, which is consistent with the single cause: the missing exits fire
+EARLIER than the stop would have, so the table credits a later take-profit where the arm
+had already left, and misses stops the arm avoided by leaving first.
+
+**What this does NOT justify.** The report's verdict of "TABLE IS INVALID — DO NOT USE" is
+stronger than the evidence. Mean profit per trade diverges 10.7% relative, not
+catastrophically, and the win-rate error is largely offsetting (false winners and false
+losers of similar magnitude). The table is *biased*, not garbage.
+
+**But it cannot be used for verdicts as-is**, for a reason the magnitudes do not show: the
+bias only cancels out of a trigger COMPARISON if it is uniform across triggers. Triggers
+selecting longer-held or choppier trades would be mismodelled more, and the verdict rule
+(FR-014b) compares triggers against each other. An unquantified, possibly trigger-dependent
+10% bias in the ranking quantity is not acceptable, so this blocks US3/US4 until fixed.
