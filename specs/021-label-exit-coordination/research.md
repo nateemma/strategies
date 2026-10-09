@@ -264,6 +264,26 @@ delta it is not. It is kept because a block shorter than one trade is an artefac
 the interval by destroying the pairing rather than by capturing dependence. The short-block
 widths above should be read as spurious, not cautious.
 
+**The definitive comparison, at a true L=1** (the paired i.i.d. case itself, rather than the
+L=2 approximation above — it needed ~11 minutes because a resample matrix at L=1 is
+4000 x 1.69M):
+
+| trigger | L=1 (i.i.d.) width | L=48 width | ratio | L=1 spans 0? | L=48 spans 0? |
+|---|---|---|---|---|---|
+| `adx` | 0.000580 | 0.000355 | 0.61 | yes | yes |
+| `breakout` | 0.000833 | 0.000629 | 0.76 | **no** | **no** |
+| `breakout_gbb` | 0.000893 | 0.000694 | 0.78 | **no** | **no** |
+| `gbb` | 0.000971 | 0.000688 | 0.71 | yes | yes |
+| `geometry` | 0.000901 | 0.000663 | 0.74 | yes | yes |
+
+**NO VERDICT CHANGES between the two.** The `spans 0?` columns are identical for all five
+triggers, so on this data the block-versus-i.i.d. choice is immaterial to every conclusion
+the verdict rule will draw. R9's concern was that an i.i.d. interval could "turn an
+indeterminate result into a false `selection_value`"; measured, it does not do that here for
+any trigger. The block bootstrap is kept because it is the correct estimator and because
+that guarantee is data-dependent — a future trigger with different clustering could sit near
+the boundary — not because it rescued a verdict.
+
 `iid_bootstrap_mean` is retained in the module deliberately, so this comparison stays
 reproducible rather than becoming a claim in a commit message.
 
