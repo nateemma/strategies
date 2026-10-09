@@ -1282,3 +1282,59 @@ conc/ALL +0.001508 (positive). Same `BreakoutVolOpen` scaffold with `TRIGGER_NAM
 no model, guards open. Positive return vindicates `conc/ALL`; negative vindicates the board
 and the stake-weighted column. Either way one of the three columns is eliminated on evidence
 rather than on argument.
+
+---
+
+## THE ADJUDICATION ARM: `GbbOpen`, 15 folds (2026-10-09)
+
+`gbb` traded alone — no model, guards open, `exit_config_hash 5a18305d1fafa83e`, **identical
+to `BreakoutVolOpen`'s**, so the two arms differ in the trigger and nothing else.
+
+| arm | folds | trades | wallet | pos | per-trade EV |
+|---|---|---|---|---|---|
+| `breakout_vol` | 15 | 8,290 | **−63.19pp** | 6/15 | −0.001512 |
+| `gbb` | 15 | 8,150 | **+2.64pp** | 7/15 | +0.000155 |
+
+### The columns, scored BEFORE either arm ran
+
+| column | breakout_vol | gbb | signs correct | ranked the two arms |
+|---|---|---|---|---|
+| board (fillable, per-pair non-overlap) | +0.000582 ✗ | −0.002009 ✗ | **0/2** | **WRONG** |
+| concurrency-aware, UNFILTERED, equal-weighted | −0.001548 ✓ | +0.001508 ✓ | **2/2** | **CORRECT** |
+| stake-weighted by `__outcome_fillable_fraction` | +0.000279 ✗ | −0.000921 ✗ | **0/2** | **WRONG** |
+| *realised* | *−0.001512* | *+0.000155* | | |
+
+### RETRACTION OF MY OWN RETRACTION
+
+I retracted "the board's column is anti-predictive" on the grounds that stake-weighting
+restored agreement with the board (ρ = +0.890), so the unfiltered column's inversion looked
+like a weighting artefact. **That inference was wrong.** Agreement between the board and the
+stake-weighted column is not validation — the two share one defect, both up-weighting liquid
+bars, so they agree *with each other* and are **both wrong against live arms, 0/2 on sign and
+wrong on the ordering**. The column that disagreed with both is the one that is 2/2.
+
+What DOES stand from that retraction: using `gbb`'s +39.98pp / 15-of-15 **model** arm as an
+anchor was illegitimate (volume-matched to 1.4735% of bars vs this trigger's 14.19%). That
+is exactly why this arm had to be built — and being trigger-only, it IS a valid anchor.
+
+### What the board's column did, stated plainly
+
+Used as intended — read the top row and trade it — the board selected `breakout_vol`, which
+**lost 63.19pp**, over `gbb`, which was **flat**. On the two triggers ever tested alone, the
+board's ranking is inverted.
+
+### Two limits on this, both load-bearing
+
+1. **`gbb`'s own sign is not resolved.** +2.64pp over 3.68 yr-equivalent is ~+0.7pp/yr,
+   **below the harness's 3–4pp/yr floor**, and 7/15 folds positive. `gbb` trigger-only is a
+   NULL, not a winner. The ORDERING is robust only because `breakout_vol`'s −63.19pp sits far
+   outside the floor; the gap is +0.001667 per trade, not the +0.000155 level.
+2. **`conc/ALL` is well-ordered but badly calibrated.** It nailed `breakout_vol`
+   (−0.001548 vs −0.001512) and overshot `gbb` ~10× (+0.001508 vs +0.000155). `gbb` fires on
+   14.19% of bars against `breakout_vol`'s 2.89%, so this is where concurrency binds hardest —
+   and `profit_pct` vs `wallet_profit_pct` diverge enormously here (+1,035 vs +2.64pp),
+   which is the capital constraint, not the signal.
+
+**This also bounds my earlier "concurrency is immaterial" finding** (ρ = +0.912 on the board's
+fillable population). It is immaterial for a SPARSE trigger and decisive for a DENSE one;
+`breakout_vol` happened to be sparse. Generalising from it was premature.
