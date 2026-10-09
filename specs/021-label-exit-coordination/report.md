@@ -177,3 +177,79 @@ Recorded because it is the second mechanism found by which this column ranks som
 than selection value, the first being the fillable-population error above. Both point the same
 way: the column is sensitive to execution properties of a trigger's bars, and a leaderboard
 built on it ranks those properties alongside — or instead of — the thing it names.
+
+---
+
+# SIX trigger-only arms (2026-10-09) — the decisive section
+
+Every trigger that mattered has now been traded alone: all four `selection_value` rows, plus
+`geometry` (which the spec named as never tested) and `gbb`. One base class, one exit
+(`exit_config_hash 5a18305d1fafa83e`), guards open, no model, same fold plan — so the arms
+differ from each other in the trigger and nothing else.
+
+| trigger | board | conc/ALL | stake-wt | **REALISED** | **wallet** | pos | trades |
+|---|---|---|---|---|---|---|---|
+| `breakout_bb` | +0.001546 | −0.001710 | +0.001266 | **−0.000628** | **−21.29pp** | 4/15 | 7,007 |
+| `breakout` | +0.000807 | −0.001196 | +0.000623 | **−0.001608** | **−70.55pp** | 4/15 | 9,354 |
+| `breakout_gbb` | +0.000692 | −0.001497 | +0.000488 | **−0.000607** | **−25.68pp** | 5/15 | 8,106 |
+| `breakout_vol` | +0.000582 | −0.001548 | +0.000279 | **−0.001512** | **−63.19pp** | 6/15 | 8,290 |
+| `geometry` | −0.001526 | −0.001380 | −0.001558 | **−0.001118** | **−32.90pp** | 4/15 | 4,781 |
+| `gbb` | −0.002009 | +0.001508 | −0.000921 | **+0.000155** | **+2.64pp** | 7/15 | 8,150 |
+
+## Finding 1 — NO trigger is tradeable alone
+
+Five of six lost **21 to 71 percentage points**. The sixth, `gbb`, returned +2.64pp over 3.68
+yr-equivalent — ~+0.7pp/yr, **below the harness's 3–4pp/yr floor**, 7/15 folds — so it is a
+null, not a winner. **There is no trigger here that trades.**
+
+This closes Deliverable 3's open item: `geometry`, the DWT-smoothed zero-lag valley condition
+implemented but never tested, **loses 32.90pp**. It is tested now.
+
+## Finding 2 — the board's economic-value column has no predictive validity
+
+**All four `selection_value` rows lost money**, between −21.29pp and −70.55pp. The column is
+**1 of 6 on sign** — and the one it got right was `geometry`, which it had scored
+`indeterminate`. Rank correlation with realised per-trade EV is **−0.371 (p = 0.47)**:
+negative in point estimate, not significant at n = 6, and certainly not positive.
+
+The stake-weighted variant is **also 1 of 6** (ρ = −0.200, p = 0.70), confirming that its
+earlier agreement with the board (ρ = +0.890) was two columns sharing one defect rather than
+two columns being right.
+
+## Finding 3 — the column that is 6/6 on sign still cannot RANK
+
+`conc/ALL` called every sign correctly, including uniquely identifying `gbb` as the only
+positive trigger — a column that simply said "all negative" would have scored 5/6, so this is
+a real hit, not an artefact of the base rate. **But it does not order them: ρ = +0.143
+(p = 0.79).** It ranks `breakout` second-best; `breakout` is in fact the worst. So the honest
+summary is that it separates sign and nothing finer, and no column on this board ranks
+triggers by realised return.
+
+## Finding 4 — the conjunction composes
+
+`breakout_gbb` (−0.000607) sits between its components, `breakout` (−0.001608) and `gbb`
+(+0.000155). Adding the gbb condition to a breakout moves the result toward gbb rather than
+producing anything the parts do not have.
+
+## THE CAVEAT THAT BOUNDS ALL OF THIS — guards were OPEN
+
+Every arm above ran `entry_enable_guards: False`. The incumbent's +39.98pp / 15-of-15 runs
+**with** the guard chain and a per-fold model threshold at **1.4735% of bars**; these arms
+trade 2.3–17.9% of bars with no guards and no model. **So these results do not refute the
+incumbent** — they show that the *trigger alone, unguarded* is not tradeable, which is a
+different and narrower claim.
+
+It also sharpens where the incumbent's return must come from. The trigger alone is flat
+(`gbb`, +2.64pp). Within the trigger almost nothing is linearly learnable (conditional MCC
++0.0489, LSTM −0.0044). Yet `gbb` + guards + a thresholded model earns +39.98pp. By
+elimination the mechanism is **selectivity — the guards and the threshold cutting 14.19% of
+bars down to 1.47%** — not the trigger and not general learnability. That is consistent with
+the standing findings *guards bind, not the z-gate* (the guard chain rejects ~97%) and
+*gate/mechanism move P&L, not model*.
+
+**The missing arm, and the obvious next experiment**: trigger + guards, NO model. Same
+scaffold, `entry_enable_guards: True`. If that recovers a large share of +39.98pp, the model
+is ornamental and the guards are the strategy. If it does not, the model's threshold is doing
+real work that conditional MCC over the whole trigger population fails to see — which is
+plausible, because precision in the extreme tail is not MCC, and this repository has already
+measured that break-even precision is only ~0.25.
