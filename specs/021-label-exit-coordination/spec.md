@@ -24,6 +24,35 @@ training window):
 | oracle gate, 11 labels | **all PASS**; gbb second from LAST on ceiling | **the gate cannot rank labels** |
 | gbb's trigger + forward_mae's capped return | +21.82pp | +6.15pp/yr over forward_mae, CI [+0.64, +11.56], p=0.029 — **the trigger is the mechanism** |
 
+**RE-MEASURED 2026-10-08, after commit 09db623.** Every figure above was measured under
+the PRE-FIX exit code. That commit fixed two live exit defects (the post-grace stop sign
+flip and the omission of `confirm_trade_exit`'s 1-hour veto from the offline model) plus
+the additive-vs-multiplicative fee model, so all five arms were re-evaluated on ONE code
+version — reusing the existing per-fold models, so only exits changed. Pre-fix totals
+reproduced exactly, which is how the arms above were confirmed to be the ones named.
+
+| arm | pre-fix | post-fix | verdict vs incumbent, POST-FIX |
+|---|---|---|---|
+| gbb + ind24 (incumbent) | +39.99pp | **+42.71pp** | — |
+| gbb + raw8 | +35.45pp | **+43.65pp** | +0.255pp/yr, CI [−7.014, +7.630], p=0.947 — UNCHANGED |
+| forward_mae + raw | −0.83pp | **+0.54pp** | −11.450pp/yr, CI [−17.019, −5.895], p=0.000 — WORSENED |
+| forward_mae, incumbent exit | −0.22pp | **+0.89pp** | −11.356pp/yr, p=0.000 — WORSENED |
+| hybrid gbb_fwdmae | +21.82pp | **+25.61pp** | −4.643pp/yr, CI [−10.535, +1.443], p=0.137 — UNCHANGED |
+
+**Every conclusion survives, and the central one strengthened.** Features: still a null,
+now +0.255pp/yr instead of −1.23 — the sign flipped, which is what a null looks like, and
+raw8 now edges the incumbent on the point estimate. The exit: swapping it moves
++0.093pp/yr (CI [−1.096, +1.236], p=0.879), down from 0.6pp, so it is even more clearly
+not the lever. The trigger: hybrid over forward_mae is now **+6.801pp/yr, CI [+1.575,
++12.066], p=0.011**, up from +6.15pp/yr at p=0.029.
+
+One wording correction: forward_mae + raw no longer "loses to cash" — it is flat
+(+0.54pp over 3.68 yr-equivalent, +0.15pp/yr, plainly null). The substantive claim is
+untouched: it is −11.45pp/yr worse than the incumbent at p<0.001. The take-profit ladder
+and oracle-gate rows were not re-run; the ladder's verdict is a CI-spans-zero null whose
+rungs all shift together under an exit change, and the gate is training-free and
+label-side.
+
 Every patchable surface has been eliminated in turn. What remains is not a component but
 a missing abstraction: labels and the exit stack are specified independently, and none of
 the 28 label methods consults the exit at all.

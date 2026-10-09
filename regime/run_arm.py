@@ -44,6 +44,7 @@ from pathlib import Path
 import pandas as pd
 
 from regime.regimedata import WINDOWS
+from utils.ExitPolicy import SIMULATION_LOGIC_VERSION
 
 ROOT = Path("/Users/philprice95/projects/freqtrade")
 STRAT_DIR = ROOT / "user_data/strategies"
@@ -181,7 +182,17 @@ def exit_config_hash(scratch: Path, strategy: str) -> str:
     """
     params = json.loads((scratch / f"{strategy}.json").read_text()).get("params", {})
     exit_side = {k: params.get(k) for k in ("sell", "roi", "stoploss", "trailing")}
-    blob = json.dumps(exit_side, sort_keys=True)
+    # SIMULATION_LOGIC_VERSION folded in 2026-10-08, mirroring
+    # `research.outcomes.table.ExitConfig.config_hash`. Hashing the params ALONE made this
+    # blind to a change in the exit CODE: the post-grace stop sign fix altered realised
+    # exits on 191 of 1420 trades and every arm record still read the same
+    # c8f80f6af046d088, so "no arm altered exit behaviour" could be satisfied by two runs
+    # whose exits genuinely differed. The invariant this hash exists to prove is unchanged
+    # and now strictly stronger: all arms in one run still share a version, so a mismatch
+    # between arms still means a PARAMS divergence, while a mismatch against an older
+    # record now correctly flags that the arithmetic moved underneath it.
+    blob = json.dumps({**exit_side, "simulation_logic_version": SIMULATION_LOGIC_VERSION},
+                      sort_keys=True)
     return hashlib.sha256(blob.encode()).hexdigest()[:16]
 
 
