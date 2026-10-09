@@ -160,3 +160,94 @@ does FR-014b's rule apply.
 seen in this repository. Its probe row may come back collapse-limited rather than
 information-limited, which would be a property of the label's sparsity and not of the
 trigger's quality. `labels.label_rate` exists so that is checkable before a training run.
+
+---
+
+# T027 — economic value measured, and the prediction resolved
+
+Pooled over 11 pairs, 1,692,615 bars, outcome table `247a8700f0b08f07`.
+
+## The prediction fired, and it found a real defect — but not the one it named
+
+I recorded, before running: *"if T027's economic value ranks `breakout` top, the
+economic-value column is not measuring what it claims to."* `breakout` did rank top. The
+prediction earned its keep, but its stated conclusion is **not** established. What it
+actually surfaced:
+
+**Defect found: the all-bars mean is not comparable across triggers.** FR-014 asks for "the
+economic value of trading every triggered bar", and that quantity is weighted by how often a
+trigger REPEATS ITSELF. Triggered bars arrive in clusters, so one favourable episode gets
+re-sampled many times. Measured clustering (distinct non-overlapping opportunities per
+triggered bar):
+
+| trigger | triggered | non-overlapping | ratio | EV all bars | EV non-overlapping |
+|---|---|---|---|---|---|
+| `breakout` | 109,200 | 27,102 | 0.248 | +0.002296 | **+0.003316** |
+| `breakout_gbb` | 211,423 | 21,145 | 0.100 | −0.001024 | +0.000251 |
+| `empty` | 1,692,097 | 45,103 | 0.027 | −0.001130 | −0.000993 |
+| `geometry` | 48,528 | 24,709 | 0.509 | −0.000562 | −0.000706 |
+| `adx` | 1,036,117 | 38,873 | 0.038 | −0.000818 | −0.000847 |
+| `gbb` | 302,445 | 22,420 | 0.074 | +0.000822 | **−0.001262** |
+
+`gbb` clusters 13.5-to-1 and **flips from positive to negative** under the correction, from
+second place to last. So the non-overlapping figure is now computed as a first-class
+statistic, per pair (the scan is only meaningful within one contiguous series) and then
+pooled. Greedy EARLIEST-first, not best-first: choosing the best subset would be a lookahead
+selection of its own.
+
+Correcting it did **not** dethrone `breakout`, so the prediction's conclusion fails.
+
+## The real limitation, and the measurement that found it
+
+Ranked on the comparable figure, the column **inverts the harness**. `gbb` — the incumbent
+returning **+42.71pp** over 15 pooled folds — ranks LAST, below the `empty` null.
+`breakout`, which loses money, ranks first.
+
+The resolving measurement: the arm's own 1,420 entries, looked up in the table.
+
+| | value |
+|---|---|
+| arm entries that are `gbb`-triggered | 1,390 / 1,420 = **97.9%** |
+| table EV over the ARM's entry bars | **+0.005204** |
+| table EV over ALL `gbb` bars | **+0.000769** |
+| arm bars as a share of `gbb` bars | **0.514%** |
+| win rate, arm vs all `gbb` | 65.92% vs 59.45% |
+| median, arm vs all `gbb` | +0.023308 vs +0.009600 |
+
+**A selector picks 0.514% of `gbb`'s bars and gets 6.8× the economic value.** The trigger is
+the gate — 97.9% of entries are inside it — but the trigger does not pick WHICH of its bars
+to trade, and that choice is where the value is.
+
+So the column is not broken: it measures exactly what it claims, the EV of trading every
+triggered bar. It is INCOMPLETE as a way to rank triggers for use in a model-based strategy,
+because a trigger's no-model EV is a LOWER bound on what a selector can extract from it, and
+the gap here is 6.8×. A leaderboard row cannot be read as "this trigger would earn this".
+
+## This bears directly on the feature's central question
+
+The spec frames two rival explanations: **(a)** the trigger selects collectable moments, or
+**(b)** the trigger hands the model an easy target and the model is decoration.
+
+The measurement fits NEITHER. Against (a): `gbb`'s trigger has essentially no economic value
+on its own (−0.001262, below the null). Against (b): the model is emphatically not
+decoration — it finds a 0.5% subset worth 6.8× the average. What the evidence supports is a
+third reading the spec did not enumerate:
+
+> **The trigger defines a population; a selector discriminates within it; the value is in the
+> discrimination.** The trigger's job is not to be collectable on average but to be a
+> population a selector can work in.
+
+That is consistent with the earlier guard-ablation finding rather than contradicting it. At
+the GUARDED operating point the guards reject ~97% and the model adds nothing on top; at this
+guards-OPEN point the model's per-fold threshold is the only selector there is. Either way
+something downstream of the trigger does the choosing — which is why no trigger-only column
+can reproduce the harness ranking.
+
+## Do not interpret the ranking yet
+
+Every gap in the table above is between 1e-4 and 4e-3, with **no confidence intervals**. The
+clustering ratios (0.027 to 0.509) and mean holds (32–42 bars) mean an i.i.d. bootstrap would
+understate the intervals badly — which is now an empirical justification for T028's block
+bootstrap rather than an a-priori one, and sets its block length at ≥ the mean hold. Until
+T028 supplies intervals, the only safe reading of the ranking is that `breakout` and `gbb`
+sit at opposite ends of it, in the opposite order to the harness.

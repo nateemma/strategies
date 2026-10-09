@@ -207,7 +207,7 @@ handing the model an easy target. This is why the feature exists.
 **Independent test**: a deliberately constructed trigger with known high selection value and
 known low learnability lands in the expected quadrant.
 
-- [ ] T027 [US4] @model-implementer Implement economic value in `research/outcomes/leaderboard.py` (SC-010)
+- [X] T027 [US4] @model-implementer Implement economic value in `research/outcomes/leaderboard.py` (SC-010)
   from the table alone, NO model (FR-014): base rate, mean realised outcome, distribution —
   reported both over all triggered bars and over fillable triggered bars only (FR-009b).
 - [ ] T028 [US4] @model-implementer Implement the **block** bootstrap for the economic-value
