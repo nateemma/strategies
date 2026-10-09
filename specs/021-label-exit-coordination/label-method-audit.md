@@ -672,3 +672,71 @@ measures a strategy (trigger + model + exit + guards), this measures a trigger a
 T027 located the difference precisely. The actionable reading is narrow and specific: **the
 value attributed to `gbb` lives in its threshold margin and in what selects within it, not
 in the binary condition the label encodes.**
+
+---
+
+# CORRECTION (2026-10-09) — the leaderboard covered 4 of 14 distinct factors, not all of them
+
+T025's audit found 19 members reduce to a trigger, carrying **14 distinct** backward factors.
+The first pass registered **4** and justified stopping there as "not one per labeler, which
+would pad the leaderboard with duplicate rows". That justification covers only **5** members —
+`future_sortino` and `future_expectancy` (share `adx`), `breakout_tb` (shares `breakout`),
+`gbb_path` and `gbb_fwdmae` (share `gbb`). The remaining **10 were genuinely different
+conditions and were simply missing**. Registered now in `research/outcomes/audit_triggers.py`,
+each verified by containment against its labeler on real data (SOL/USDT, 8 of 10 scoreable,
+zero violations).
+
+**Two of the ten are UNSCOREABLE, which is a finding in itself.** `trends` needs
+`flow`/`regime`/`risk`/`momentum`; `bands` needs eight band columns. The populator the outcome
+table is built from supplies NONE of the first four and only two of the eight. Both now declare
+their real requirements so the registry REFUSES them, rather than scoring a degraded version
+under the labeler's name — a third category FR-012 did not anticipate: *reduces to a genuine
+backward factor that is not computable on the available feature set*. `trends` is the dangerous
+one: its NaN fill of 0.0 reads as DECREASE/BEAR/NEGATIVE and VOTES YES, so a silent evaluation
+would have fired on nearly every bar and looked like a wildly permissive trigger rather than a
+missing input. My first draft of `bands` silently skipped its six absent columns and would have
+scored a Bollinger-only subset under the labeler's name — caught before it reached the board.
+
+## 15 scoreable triggers, economic value vs the `empty` null (FILLABLE, paired block bootstrap)
+
+| trigger | base rate | n non-ovl | EV delta | 95% CI | beats null |
+|---|---|---|---|---|---|
+| `gbb_tight` | 0.070% | 206 | **+0.017120** | [+0.003899, +0.029222] | **yes** |
+| `breakout_vol` | 2.862% | 20,739 | **+0.010527** | [+0.009846, +0.011209] | **yes** |
+| `breakout` | 6.453% | 27,102 | **+0.010348** | [+0.009705, +0.010988] | **yes** |
+| `breakout_squeeze` | 2.269% | 15,510 | **+0.009069** | [+0.007945, +0.010131] | **yes** |
+| `breakout_bb` | 6.076% | 19,147 | **+0.009059** | [+0.008340, +0.009784] | **yes** |
+| `breakout_gbb` | 12.491% | 21,145 | **+0.004643** | [+0.004030, +0.005311] | **yes** |
+| `geometry` | 2.868% | 24,709 | **+0.002482** | [+0.001377, +0.003591] | **yes** |
+| `adx` | 61.233% | 38,873 | +0.000146 | [−0.000173, +0.000464] | no |
+| `votes_consensus` | 23.561% | 32,733 | −0.001324 | [−0.001841, −0.000814] | no (neg) |
+| `gbb` | 17.871% | 22,420 | **−0.004102** | [−0.004793, −0.003402] | no (neg) |
+| `votes_ind3` | 33.856% | 30,784 | −0.004418 | [−0.005014, −0.003867] | no (neg) |
+| `votes_ind4` | 51.434% | 34,775 | −0.004581 | [−0.005067, −0.004112] | no (neg) |
+| `votes_tech` | 32.400% | 29,756 | −0.005192 | [−0.005748, −0.004646] | no (neg) |
+| `votes_ind2` | 19.907% | 27,068 | −0.005491 | [−0.006007, −0.004988] | no (neg) |
+
+## The finding the 7-row board could not show
+
+The result is **family-level, and the families split cleanly**:
+
+- **Every breakout-family trigger has selection value.** All five, +0.0046 to +0.0105, none
+  spanning zero. These are momentum conditions: price exceeding a prior high, optionally
+  confirmed by volume, by a volatility squeeze, or by band position.
+- **Every vote-family trigger is significantly WORSE than trading every bar.** All five,
+  −0.0013 to −0.0055. These are indicator-consensus conditions — "at least N of these
+  oversold/overbought indicators agree" — over four different indicator sets plus a flipped
+  variant, and they select moments that are *worse than random*.
+- **`gbb` sits with the VOTE family, not the breakout family** (−0.004102, squarely inside
+  their −0.0013..−0.0055 band). Structurally that is exactly what it is: a threshold
+  conjunction on two indicator columns. Its `decoration` verdict is not an isolated oddity
+  about one trigger; it is the behaviour of its whole class.
+
+That is a far stronger statement than the 7-row board supported, and it only became visible
+once the audit's full set was registered. It also reframes the `gbb_tight` result: tightening
+an indicator-threshold trigger moves it from the negative family to the top of the board, which
+is the margin finding restated across families.
+
+Verdicts for the seven EV-positive rows are `selection_value` already, since FR-014b's first
+branch is independent of learnability. The eight remaining rows need conditional learnability to
+separate `decoration` from `indeterminate`; that campaign is running (72 fits).

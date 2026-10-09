@@ -171,12 +171,18 @@ def ensure_builtins() -> None:
     required = {"empty", "gbb", "geometry"}
     audited = {"adx", "breakout", "breakout_gbb"}
     margin = {"gbb_tight"}
+    remaining = {"breakout_vol", "breakout_squeeze", "breakout_bb", "votes_tech",
+                 "votes_ind2", "votes_ind3", "votes_ind4", "votes_consensus",
+                 "trends", "bands"}
     if not required <= set(_REGISTRY):
         register_builtins(replace=True)
     if not audited <= set(_REGISTRY):
         register_audit_triggers(replace=True)
     if not margin <= set(_REGISTRY):
         register_margin_triggers(replace=True)
+    if not remaining <= set(_REGISTRY):
+        from research.outcomes.audit_triggers import register_remaining_audit_triggers
+        register_remaining_audit_triggers(replace=True)
 
 
 def _visible_frame(df: pd.DataFrame) -> pd.DataFrame:
