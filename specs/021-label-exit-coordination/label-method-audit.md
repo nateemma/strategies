@@ -1160,3 +1160,58 @@ about which trigger to build on.
 > Economic value ranks triggers by the outcome of a hypothetical unit trade at every
 > fillable, non-overlapping triggered bar. It does not rank them by what a capital-
 > constrained strategy taking their signals would earn, and the two can differ in SIGN.
+
+---
+
+## The board–harness gap, fully accounted for (2026-10-09)
+
+`breakout_vol` scored the board's strongest row (+0.00185 vs `empty`, CI [+0.00093, +0.00278])
+and then **lost −63.19pp (−17.17pp/yr, 6/15 folds positive, 8,290 trades)** in the pooled
+harness against the model-based control's +42.71pp/14-of-15. Two hypotheses were tested and
+one was refuted outright.
+
+### REFUTED: "the volume filter was off in my run"
+
+`regime/arms/wf_bvo_f00_F00.json` records `volume_filter_active: True` — for the BVO arm **and**
+the control. The filter was on. This hypothesis is dead.
+
+### REFUTED: "`guards: on` means the quality guards were live, so the arm didn't test the trigger alone"
+
+`guards` in the arm record is the CLI default, not an observation. `regime/run_arm.py:172` only
+injects `entry_enable_guards = False` when `--guards off`; it never injects `True`. BVO has no
+params file, so `run_arm` synthesises `{"params": {}}`, and freqtrade merges it as
+`deep_merge_dicts(file_params, class_params)` (`freqtrade/strategy/hyper.py:97`) — an empty file
+dict leaves the class values intact. So the strategy's own `entry_enable_guards: False` held and
+**the arm did test the trigger alone.** The record's `guards: on` is a misleading label, nothing more.
+
+### CONFIRMED: the gap is FILLABILITY, and it is a cap, not a filter
+
+The board scores only bars where `__outcome_fillable` is true, defined in `table.py:369` as
+`fillable_fraction >= 1.0` where `fillable_fraction = (quote_volume / QUOTE_VOLUME_HEADROOM_MULT) / stake`.
+The live path uses **the same constant** in `BaseStrategy.custom_stake_amount`, which returns
+`min(proposed_stake, fillable_stake)` — it **CAPS the stake and keeps the trade**. Only the
+`min_stake` / `MIN_QUOTE_VOLUME` floors in `confirm_trade_entry` cancel outright.
+
+So the table's *unfillable* set is **exactly** the set the live path *caps*, by shared constant and
+not by inference — and the live arm enters it. `profit_ratio` is stake-independent, so it tracks the
+whole population regardless of the reduced size:
+
+| selection | n taken | take rate | EV |
+|---|---|---|---|
+| board: per-pair non-overlap, fillable | 3,850 | — | **+0.000582** |
+| concurrency-aware, max_open=10, fillable | 6,118 | 99.7% | +0.000545 |
+| concurrency-aware, max_open=10, **unfiltered** | 29,597 | 61.1% | **−0.001548** |
+| live arm (harness, 15 folds) | 8,290 | — | **−0.001512** |
+
+The concurrency model reproduces the live arm to **3.6e-5** — but only on the unfiltered population.
+
+### What this means for the instrument
+
+**Concurrency is not the gap.** Among fillable bars the `max_open=10` cap barely binds (99.7% take
+rate) and moves EV by 3.7e-5. The gap is the population: unfillable bars average far worse than
+fillable ones, and the board never scored them. A concurrency column would therefore have been a
+precise answer to the wrong question — that is the measured limit of the instrument, which is the
+thing item 2 was built to find out.
+
+`report()` now states which population its EV describes and that it can differ in sign from the one
+a strategy enters.

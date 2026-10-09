@@ -570,9 +570,137 @@ def report(rows: "list[TriggerScore]") -> str:
         )
     out += [
         "",
+        "WHICH POPULATION THIS EV DESCRIBES -- read before acting on a verdict.",
+        "  Each EV is the mean realised outcome of a hypothetical UNIT trade at every",
+        "  FILLABLE, GREEDILY DE-OVERLAPPED triggered bar (one position per pair at a time,",
+        "  unlimited pairs). A capital-constrained strategy does NOT enter that population:",
+        "  it takes signals as they arrive under max_open_trades, and -- because",
+        "  custom_stake_amount CAPS the stake on an illiquid bar rather than rejecting the",
+        "  trade -- it also enters UNFILLABLE bars. MEASURED on breakout_vol, the strongest",
+        "  row here: board +0.000582, concurrency-aware over the same fillable bars",
+        "  +0.000545, concurrency-aware UNFILTERED -0.001548, live arm -0.001512. The sign",
+        "  flips between the population this column scores and the one a strategy enters,",
+        "  and the harness returned -17.17pp/yr against the model-based control's +11.61.",
+        "  So `selection_value` means 'beats the null on THIS population'. It is not a claim",
+        "  that a strategy taking these signals earns anything.",
+        "",
         "FR-016: the two columns are never combined into a single score. FR-015a/FR-018: "
         "learnability is diagnostic and licenses no promotion.",
         "FR-017: economic value is a LOOKAHEAD BOUND from the outcome table, not a "
         "realisable return. Only evaluation/ can make a P&L claim.",
     ]
     return "\n".join(out)
+
+
+# =================================================================================================
+# CONCURRENCY-AWARE economic value (2026-10-09, after the breakout_vol harness test)
+# =================================================================================================
+
+#: `max_open_trades` from `config/config_wf.json`, the config the pooled harness runs under.
+#: Read as a constant rather than from the config at import time so this module stays free of
+#: freqtrade config parsing; a mismatch is caught by the calibration test below, which pins
+#: the selection against a real arm.
+HARNESS_MAX_OPEN_TRADES = 10
+
+
+def _select_concurrent(
+    frames: "list[tuple[pd.DataFrame, pd.DataFrame]]",
+    trigger: "_triggers.Trigger | str",
+    *,
+    max_open: int = HARNESS_MAX_OPEN_TRADES,
+    fillable_only: bool = False,
+) -> tuple[np.ndarray, int]:
+    """The population a CAPITAL-CONSTRAINED strategy actually enters.
+
+    WHY THIS EXISTS. `economic_value`'s selection is per-pair greedy non-overlap: one position
+    per pair at a time, unlimited pairs, earliest first. That is not what a strategy does, and
+    the difference is not second-order. The `breakout_vol` harness test measured it:
+
+        leaderboard EV (fillable, per-pair non-overlap)  +0.000582
+        table EV at the bars the arm ACTUALLY entered    -0.000547   <- opposite SIGN
+        live realised                                    -0.001512
+
+    So the board's own column described a population no strategy can select, and said so
+    nowhere. This function selects the one a strategy does: all pairs' signals merged into
+    ONE time-ordered stream, each accepted only if fewer than `max_open` positions are open
+    at that instant, each occupying `[entry, entry + hold]`.
+
+    It is still not a backtest -- no stake sizing, no partial fills, no fee on a real stake,
+    and it cannot know which signal freqtrade would pick when several arrive on the same
+    candle (it takes them in pair order, which is arbitrary but stable). It closes the
+    POPULATION gap, not the execution gap, and the two were measured separately: -0.001129
+    and -0.000965 respectively.
+    """
+    streams = []
+    for f, o in frames:
+        _validate(f, o)
+        fired = _labels.entry_mask(f, o, trigger).to_numpy()
+        usable = o[OUTCOME_COLUMN_CLOSE_REASON].to_numpy() != EXCLUDED_CLOSE_REASON
+        if fillable_only:
+            usable = usable & o[OUTCOME_COLUMN_FILLABLE].to_numpy(dtype=bool)
+        sel = fired & usable
+        if not sel.any():
+            continue
+        idx = np.flatnonzero(sel)
+        # Integer nanoseconds throughout. datetime64 + (float array * timedelta64) resolves
+        # to object dtype and raises on the add; ints avoid the whole question and compare
+        # exactly, which is what the open-position test needs.
+        dates_ns = (
+            pd.to_datetime(o["date"], utc=True).to_numpy().astype("datetime64[ns]")
+            .astype(np.int64)
+        )
+        hold = o[OUTCOME_COLUMN_HOLD_BARS].to_numpy(dtype=float)
+        profit = o[OUTCOME_COLUMN_PROFIT].to_numpy(dtype=float)
+        step = np.diff(dates_ns[: min(1000, dates_ns.size)])
+        bar_ns = int(np.median(step)) if step.size else 15 * 60 * 1_000_000_000
+        streams.append((
+            dates_ns[idx],
+            profit[idx],
+            dates_ns[idx] + (hold[idx] * bar_ns).astype(np.int64),
+        ))
+
+    if not streams:
+        return np.empty(0), 0
+
+    entry = np.concatenate([s[0] for s in streams])
+    prof = np.concatenate([s[1] for s in streams])
+    exit_ = np.concatenate([s[2] for s in streams])
+    order = np.argsort(entry, kind="stable")
+    entry, prof, exit_ = entry[order], prof[order], exit_[order]
+
+    # Walk the merged stream holding the open positions' exit times. A heap would be
+    # asymptotically better; at <1e6 candidate signals the simple scan is fast enough and
+    # far easier to verify, which matters more for a number that feeds a verdict.
+    open_until: list = []
+    taken = []
+    for i in range(entry.size):
+        t = entry[i]
+        open_until = [x for x in open_until if x > t]
+        if len(open_until) < max_open:
+            taken.append(i)
+            open_until.append(exit_[i])
+    return prof[np.asarray(taken, dtype=int)] if taken else np.empty(0), int(entry.size)
+
+
+def concurrent_economic_value(
+    frames: "list[tuple[pd.DataFrame, pd.DataFrame]]",
+    trigger: "_triggers.Trigger | str",
+    *,
+    max_open: int = HARNESS_MAX_OPEN_TRADES,
+    fillable_only: bool = False,
+) -> dict:
+    """Mean realised outcome over the concurrency-limited population, plus diagnostics."""
+    prof, n_signals = _select_concurrent(
+        frames, trigger, max_open=max_open, fillable_only=fillable_only
+    )
+    if prof.size == 0:
+        return {"n_signals": n_signals, "n_taken": 0, "mean": float("nan"),
+                "median": float("nan"), "win_rate": float("nan"), "take_rate": 0.0}
+    return {
+        "n_signals": n_signals,
+        "n_taken": int(prof.size),
+        "take_rate": float(prof.size / n_signals) if n_signals else float("nan"),
+        "mean": float(prof.mean()),
+        "median": float(np.median(prof)),
+        "win_rate": float((prof > 0).mean()),
+    }

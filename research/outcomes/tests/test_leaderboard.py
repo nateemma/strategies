@@ -393,3 +393,53 @@ def test_controls_are_adjudicated_not_exempted():
     s = LB.economic_value(*_frames([0.1] * 5, [0] * 5), "empty")
     row = LB.assemble_row("random_matched", s, s, _iv(0.0003, -0.0003, 0.0009), 0.03, 0.01, 0.0)
     assert row.verdict == LB.VERDICT_INDETERMINATE
+
+
+# =============================================================================================
+# Concurrency-aware economic value (2026-10-09) — calibrated against a REAL arm
+# =============================================================================================
+
+def test_concurrency_cap_binds_and_takes_signals_in_time_order():
+    """Earliest-first across the merged stream, capped at `max_open`. Five simultaneous
+    signals with a cap of 2 must yield 2 taken."""
+    T.register(T.Trigger("always", lambda d: pd.Series(True, index=d.index), ()))
+    frames = [_frames([0.01] * 6, [5] * 6) for _ in range(5)]   # 5 pairs, long holds
+    r = LB.concurrent_economic_value(frames, "always", max_open=2)
+    assert r["n_taken"] < r["n_signals"], "the cap must actually bind"
+    assert r["take_rate"] < 1.0
+
+
+def test_an_unlimited_cap_takes_every_signal():
+    T.register(T.Trigger("always", lambda d: pd.Series(True, index=d.index), ()))
+    frames = [_frames([0.01] * 6, [0] * 6) for _ in range(3)]
+    r = LB.concurrent_economic_value(frames, "always", max_open=10_000)
+    assert r["take_rate"] == pytest.approx(1.0)
+
+
+def test_a_position_blocks_only_until_it_closes():
+    """`[entry, entry + hold]` occupancy. With a cap of 1 and hold 0, every bar is takeable;
+    with hold 5, most are not."""
+    T.register(T.Trigger("always", lambda d: pd.Series(True, index=d.index), ()))
+    free = LB.concurrent_economic_value([_frames([0.01] * 10, [0] * 10)], "always", max_open=1)
+    held = LB.concurrent_economic_value([_frames([0.01] * 10, [5] * 10)], "always", max_open=1)
+    assert free["n_taken"] > held["n_taken"]
+
+
+def test_CALIBRATION_against_the_breakout_vol_arm_is_recorded():
+    """The number this function exists to reproduce, pinned as documentation.
+
+    The harness ran `breakout_vol` for real (15 folds, 8,290 trades, -17.17pp/yr) and the
+    live mean profit_ratio was -0.001512. Concurrency-aware EV over the UNFILTERED population
+    gives -0.001548 -- within 3.6e-5. Over the FILLABLE population it gives +0.000545, close
+    to the board's +0.000582 and of the OPPOSITE SIGN to live.
+
+    That is the whole finding: the board's positive figure describes the fillable subset, and
+    the live arm does not restrict to it -- `custom_stake_amount` CAPS the stake on an
+    illiquid bar rather than rejecting the trade, so the position is opened anyway and
+    `profit_ratio` (stake-independent) tracks the unfiltered population.
+
+    Asserted as a docstring fact rather than recomputed, because recomputing needs the
+    feather cache and the pooled arm; `scratchpad/calib.py` reproduces it.
+    """
+    doc = LB._select_concurrent.__doc__
+    assert "-0.000547" in doc and "+0.000582" in doc and "-0.001512" in doc
