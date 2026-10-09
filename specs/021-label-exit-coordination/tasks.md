@@ -170,10 +170,19 @@ outcome, confirm the label sets differ only where the triggers do.
   `required_columns`, `source`. Assert `required_columns` present before evaluation. Reject
   any trigger referencing a `__outcome_` column, and any pair-specific trigger
   (Constitution X).
-- [ ] T023 [P] [US3] @model-implementer Register the three required triggers (FR-013) (FR-014a): `gbb`
+- [X] T023 [P] [US3] @model-implementer Register the three required triggers (FR-013) (FR-014a): `gbb`
   (`guard_metric < 0.3 AND bb_width > 0.035`), `empty` (every bar — the forward_mae case and
   the verdict null), `geometry` (the DWT-smoothed zero-lag valley already in
   `labels_geometry`, never tested).
+  **T023 FINDING, carried into T025's report**: `geometry` could NOT be ported. `labels_geometry`
+  (a) raises with its own defaults (`price_mean * min_gain` with `min_gain=None`), (b) has its DWT
+  smoothing commented out (`smoothed = close`), (c) is FORWARD-LOOKING — `find_peaks` over the whole
+  array plus a 3-bar backfill, measured by perturbing future bars and watching the past change — and
+  (d) derives `prominence` from whole-series `mean`/`std`, making it both lookahead and per-pair.
+  The registered `geometry` is a CAUSAL confirmed-valley substitute (fires 4 bars after a ≥1% low),
+  base rate 3.07% against the labeler's measured 54%. `gbb` IS a faithful port, bit-identical to the
+  live backward-looking mask over 164,918 SOL bars.
+
 - [ ] T024 [US3] @model-implementer Implement label formation as `trigger AND __outcome_positive`
   (FR-011), with no label-specific outcome test anywhere.
 - [ ] T025 [US3] @model-implementer Audit the 28 `LabelMethod` members (FR-012): express as triggers

@@ -232,14 +232,28 @@ def test_a_trigger_cannot_mutate_the_callers_frame():
 
 def test_list_cli_reports_registered_triggers(capsys):
     T.register(T.Trigger("gbb_like", _always, ("guard_metric", "bb_width"), source="gbb"))
-    assert T.main(["--list"]) == 0
+    # --no-builtins so this asserts about what the test registered, not about T023's
+    # content; otherwise a change to the builtins could pass or fail this test.
+    assert T.main(["--list", "--no-builtins"]) == 0
     out = capsys.readouterr().out
     assert "gbb_like" in out and "guard_metric" in out and "gbb" in out
 
 
 def test_list_cli_on_an_empty_registry_says_so_rather_than_printing_a_bare_header(capsys):
-    assert T.main(["--list"]) == 0
+    assert T.main(["--list", "--no-builtins"]) == 0
     assert "no triggers registered" in capsys.readouterr().out
+
+
+def test_list_cli_registers_the_builtins_by_default(capsys):
+    """The default path must populate the registry. This regressed once already: under
+    `python -m` this module is imported twice (as `__main__` and as the package module),
+    each copy holding its own `_REGISTRY`, so the builtins landed in one while `main` read
+    the other and `--list` reported "no triggers registered" having just registered
+    three."""
+    assert T.main(["--list"]) == 0
+    out = capsys.readouterr().out
+    for name in ("empty", "gbb", "geometry"):
+        assert name in out
 
 
 def test_cli_without_a_flag_is_an_error_not_a_silent_success(capsys):

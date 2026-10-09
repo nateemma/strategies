@@ -154,6 +154,20 @@ def clear_registry() -> None:
     _REGISTRY.clear()
 
 
+def ensure_builtins() -> None:
+    """Register the FR-013 members if they are not already present.
+
+    Imported lazily, inside the function, so `builtin_triggers` can import this module at
+    its top level without a cycle -- the registry must not depend on its own content.
+    Idempotent, so a caller that has already registered them (or deliberately replaced
+    one) is left alone.
+    """
+    from research.outcomes.builtin_triggers import register_builtins
+
+    if not {"empty", "gbb", "geometry"} <= set(_REGISTRY):
+        register_builtins(replace=True)
+
+
 def _visible_frame(df: pd.DataFrame) -> pd.DataFrame:
     """The frame a trigger is actually allowed to see.
 
@@ -255,11 +269,15 @@ def main(argv: Iterable[str] | None = None) -> int:
     """`python -m research.outcomes.triggers --list` (contracts/trigger-cli.md)."""
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--list", action="store_true", help="list registered triggers")
+    ap.add_argument("--no-builtins", action="store_true",
+                    help="list only what the caller registered (used by the tests)")
     a = ap.parse_args(list(argv) if argv is not None else None)
 
     if not a.list:
         ap.print_help()
         return 1
+    if not a.no_builtins:
+        ensure_builtins()
 
     registered = all_triggers()
     if not registered:
@@ -276,4 +294,13 @@ def main(argv: Iterable[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    # DELEGATE to the package module rather than run this copy. Under `python -m
+    # research.outcomes.triggers` this file is imported TWICE: once as `__main__`, and
+    # again as `research.outcomes.triggers` when `builtin_triggers` imports it to reach
+    # `register`. Each copy gets its own `_REGISTRY`, so the builtins land in one and
+    # `main` reads the other -- which showed up as `--list` reporting "no triggers
+    # registered" immediately after registering three. Importing the canonical module
+    # here collapses the two into one.
+    from research.outcomes.triggers import main as _main
+
+    raise SystemExit(_main())
