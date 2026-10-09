@@ -370,3 +370,122 @@ def format_row(r: ProbeResult) -> str:
 
 def header() -> str:
     return f"{'trigger':<14}{'mean MCC':>10}{'SE':>10}{'n fits':>7}{'collapsed':>11}"
+
+
+# =================================================================================================
+# CONDITIONAL learnability (FR-015b, amended 2026-10-09 after T029 measured FR-015)
+# =================================================================================================
+
+#: Encoding that lets the trigger mask survive `make_tensors` without plumbing an index
+#: through it. `make_tensors` returns tensors with no map back to source bars (only the test
+#: split carries dates), so the trigger membership is carried in the LABEL channel — which
+#: this module already owns — and the untriggered rows are dropped afterwards.
+#:
+#:   0 -> not triggered      (dropped before fitting)
+#:   1 -> triggered, outcome NEGATIVE  (HOLD)
+#:   2 -> triggered, outcome POSITIVE  (BUY)
+#:
+#: Using the study's SELL slot (0) as the "not triggered" marker is safe precisely because a
+#: trigger label never emits SELL (see CLASS_HOLD/CLASS_BUY), so the slot is free.
+CLASS_UNTRIGGERED = 0
+
+
+def _conditional_label(fired: np.ndarray, positive: np.ndarray) -> np.ndarray:
+    f = np.asarray(fired, bool)
+    p = np.asarray(positive, bool)
+    return np.where(~f, CLASS_UNTRIGGERED, np.where(p, CLASS_BUY, CLASS_HOLD)).astype(int)
+
+
+def probe_conditional(
+    wf: WindowFeatures,
+    fired_by_pair: dict[str, np.ndarray],
+    positive_by_pair: dict[str, np.ndarray],
+    *,
+    trigger_name: str,
+    seed: int,
+    seq_len: int = SEQ_LEN,
+    stride: int = STRIDE,
+) -> ProbeFit:
+    """Can a model tell profitable from unprofitable AMONG the bars this trigger fires on?
+
+    The question FR-015b asks, and the one FR-015's unconditional column cannot answer. The
+    probe is trained and scored ONLY on triggered bars, with the label being the outcome
+    alone — so the trigger is no longer IN the label and cannot be recovered from the
+    features. What is left to learn is exactly the thing that matters: within this
+    population, is the profitable/unprofitable distinction predictable?
+
+    Trained on triggered bars rather than trained on everything and merely SCORED on
+    triggered bars (which is what `clfstudy.metrics.score`'s `buy_mask` does). Both are
+    defensible; this one is the direct operationalisation of "does the trigger define a
+    population a selector can work in", because a selector built for that population would
+    be fitted on it.
+
+    `empty` needs no special case: conditioning on a trigger that fires everywhere is the
+    unconditional problem, so `empty`'s conditional MCC IS the baseline predictability of the
+    outcome, and that is precisely the null FR-014b should compare against.
+    """
+    import time
+
+    from research.clfstudy import registry as _cls_registry
+    from research.clfstudy.registry import ExperimentConfig
+    from research.clfstudy.run import _clear_stale_model_files
+
+    frames = {}
+    for p, f in wf.scaled.items():
+        g = f.copy()
+        g["label"] = _conditional_label(fired_by_pair[p], positive_by_pair[p])
+        frames[p] = g
+
+    tensors = _cls_windows.make_tensors(
+        frames, wf.roles, wf.cols, seq_len, stride=stride, label_col="label",
+    )
+    X_train, y_train_1h, y_train_int = tensors["train"]
+    X_val, y_val_1h, y_val_int = tensors["val"]
+    X_test, y_test_int = tensors["test"][0], tensors["test"][1]
+    del tensors, frames
+
+    def _keep(X, *ys):
+        m = np.asarray(ys[-1]) != CLASS_UNTRIGGERED
+        return (np.asarray(X)[m],) + tuple(np.asarray(y)[m] for y in ys)
+
+    X_train, y_train_1h, y_train_int = _keep(X_train, y_train_1h, y_train_int)
+    X_val, y_val_1h, y_val_int = _keep(X_val, y_val_1h, y_val_int)
+    m_test = np.asarray(y_test_int) != CLASS_UNTRIGGERED
+    X_test, y_test_int = np.asarray(X_test)[m_test], np.asarray(y_test_int)[m_test]
+
+    if len(y_train_int) == 0 or len(y_test_int) == 0:
+        return ProbeFit(
+            window_id=wf.window_id, seed=seed, mcc=float("nan"),
+            n_train=int(len(y_train_int)), n_test=int(len(y_test_int)),
+            label_rate_train=float("nan"), label_rate_test=float("nan"),
+            collapsed=False,
+        )
+
+    cw = _cls_features.class_weights(y_train_int, n_classes=_cls_registry.NUM_CLASSES)
+    cfg = ExperimentConfig(arch="RIDGE", input_set=INPUT_SET, seq_len=seq_len,
+                           split_set=SPLIT_SET)
+    clf = _cls_registry.build(
+        cfg, nf=len(wf.cols), seq_len=seq_len, seed=seed,
+        checkpoint_dir=CKPT_DIR,
+        window_id=f"{wf.window_id}_cond_{trigger_name}",
+    )
+    _clear_stale_model_files(clf)
+
+    t0 = time.perf_counter()
+    clf.train(X_train, X_val, y_train_1h, y_val_1h, force_train=True, class_weights=cw)
+    secs = time.perf_counter() - t0
+
+    proba = np.asarray(clf.predict(X_test))
+    y_pred = proba.argmax(axis=1) if proba.ndim == 2 else np.asarray(proba, int)
+    frac = float(np.bincount(y_pred, minlength=3).max() / max(len(y_pred), 1))
+    mcc = (
+        float(matthews_corrcoef(y_test_int, y_pred))
+        if len(set(y_test_int.tolist())) > 1 else float("nan")
+    )
+    return ProbeFit(
+        window_id=wf.window_id, seed=seed, mcc=mcc,
+        n_train=int(len(y_train_int)), n_test=int(len(y_test_int)),
+        label_rate_train=float((y_train_int == CLASS_BUY).mean()),
+        label_rate_test=float((y_test_int == CLASS_BUY).mean()),
+        collapsed=frac >= COLLAPSE_FRAC, train_seconds=secs,
+    )

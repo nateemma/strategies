@@ -378,3 +378,87 @@ label's learnability and that is what was built.
 (probe restricted to triggered bars), and either demote the unconditional column to a
 diagnostic or drop it. This changes what FR-015/FR-014b measure, so it is a spec decision
 rather than an implementation one.
+
+---
+
+# FR-015b — conditional learnability, the amended column
+
+54 fits, same grid (6 triggers x 3 windows x 3 seeds), same RIDGE / v1 / ind24 / seq_len 16.
+0 failures, 0 collapsed. The probe is trained AND scored only on the bars the trigger fires
+on, with the label being `__outcome_positive` alone — so the trigger is no longer in the
+label and cannot be recovered from the features.
+
+| trigger | uncond MCC | **cond MCC** | cond SE | cond − empty | > SE? |
+|---|---|---|---|---|---|
+| `breakout` | +0.5440 | **+0.0546** | 0.0072 | +0.0204 | yes |
+| `breakout_gbb` | +0.5622 | +0.0528 | 0.0025 | +0.0186 | yes |
+| `gbb` | +0.5927 | +0.0518 | 0.0092 | +0.0175 | yes |
+| `adx` | +0.3883 | +0.0349 | 0.0084 | +0.0007 | no |
+| `empty` | +0.0342 | +0.0342 | 0.0059 | 0 | — |
+| `geometry` | +0.3286 | **+0.0200** | 0.0044 | **−0.0142** | yes, NEGATIVE |
+
+## What the amendment bought
+
+**1. It confirms the unconditional column was measuring trigger recovery.** Every figure
+drops by an order of magnitude — 0.33–0.59 becomes 0.02–0.05 — once the trigger is taken out
+of the label. Nothing else changed.
+
+**2. The null now works without special-casing.** `empty`'s conditional and unconditional
+MCCs are identical at +0.0342, because conditioning on a trigger that fires everywhere IS
+the unconditional problem. That identity is a check on the implementation as much as a
+property of the design.
+
+**3. The column finally discriminates, and in a DIFFERENT order.** `breakout`,
+`breakout_gbb` and `gbb` sit significantly above the null; `adx` is indistinguishable from
+it; and `geometry` is significantly BELOW — conditioning on `geometry` makes the outcome
+*less* predictable than it is at large. Under FR-015 every trigger beat the null by 50–100
+standard errors and the ranking was uninformative; here the spread is 1–3 standard errors
+and the ordering means something.
+
+**4. It is not an artefact of class imbalance.** The conditional label is 56.7%–62.8%
+positive in every population, better balanced than the conjunction label was. A near-zero
+MCC on balanced classes is genuine unpredictability, not a degenerate majority.
+
+## What it says, and the tension it leaves
+
+**Conditional learnability is near zero for every trigger** (0.020–0.055 against a null of
+0.034). Within the moments any of these triggers selects, a linear probe on 24 indicators
+barely separates the profitable from the unprofitable. The ridge-cannot-express-AND caveat no
+longer applies — the label is the outcome alone, with no conjunction — so this is a clean
+measurement of a genuinely hard problem rather than a handicapped one.
+
+The standing caveat is narrower but real: RIDGE is still LINEAR. And that matters here,
+because it collides with T027:
+
+> The arm's model-selected 0.514% subset of `gbb` bars realised **+0.005204** against
+> **+0.000769** over all `gbb` bars — 6.8×. Something in production IS selecting well.
+
+Both cannot be dismissed. Either the production model finds non-linear structure a linear
+probe cannot (which would be the first evidence in this repository that the MODEL, not the
+gate, does real work — against the standing "guard ablation: model adds NOTHING" finding),
+or the arm's 0.514% subset is favourable for a reason other than predictive skill (its
+threshold correlates with something the table already prices, or the subset is small enough
+to be a selection artefact).
+
+That is a well-posed question with a cheap answer available: re-run the conditional probe
+with a NON-LINEAR architecture from the study's registry, on `gbb` only, and see whether
+conditional MCC rises from 0.05 toward something that could support a 6.8× selection. It is
+out of FR-015b's scope — the probe is fixed by design, and swapping its model is exactly
+what FR-015 forbids — so it belongs as a separate, clearly-labelled diagnostic, not as a
+second leaderboard column.
+
+## Both columns now agree on the shape of the result
+
+| trigger | EV vs null (fillable) | cond learnability vs null |
+|---|---|---|
+| `breakout` | +0.010348 (sig) | +0.0204 (sig) |
+| `breakout_gbb` | +0.004643 (sig) | +0.0186 (sig) |
+| `geometry` | +0.002482 (sig) | −0.0142 (sig, negative) |
+| `adx` | +0.000146 (ns) | +0.0007 (ns) |
+| `gbb` | −0.004102 (sig, negative) | +0.0175 (sig) |
+
+They agree that `breakout` leads both and that `adx` is inert on both. They DISAGREE on the
+two ends: `gbb` has the worst economic value and the third-best conditional learnability,
+and `geometry` the reverse. Those two rows are where FR-014b's verdict rule has actual work
+to do, and they are exactly the `selection value` / `decoration` distinction the feature was
+built to draw.

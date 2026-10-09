@@ -268,8 +268,8 @@ expected quadrant.
   - **selection value** — its no-model economic value exceeds the empty trigger's by more
     than the measurement uncertainty on that difference;
   - **decoration** — its economic value does NOT exceed the empty trigger's once uncertainty
-    is accounted for, while its label's learnability DOES exceed that of the empty trigger's
-    label by more than the uncertainty on that difference;
+    is accounted for, while its CONDITIONAL learnability (FR-015b, amended 2026-10-09) DOES
+    exceed the empty trigger's by more than the uncertainty on that difference;
   - **indeterminate** — neither condition holds, which MUST be reported as such rather than
     resolved by judgement.
   The uncertainty on each difference MUST be stated alongside the verdict.
@@ -279,6 +279,42 @@ expected quadrant.
   triggers would make the column incomparable and the decoration verdict unreliable.
 - **FR-015a**: The learnability column is DIAGNOSTIC. It feeds the verdict rule in FR-014b
   and nothing else. It MUST NOT license promotion of any trigger, consistent with FR-018.
+
+- **FR-015b** (AMENDED 2026-10-09, after T029 measured FR-015 and found it uninformative):
+  The learnability reported for the verdict rule MUST be **CONDITIONAL** learnability — the
+  probe restricted to the bars the trigger fires on, predicting `__outcome_positive` within
+  that population. The unconditional figure FR-015 describes MUST still be reported, but as
+  context only, and MUST NOT feed FR-014b.
+
+  **Why FR-015 as written cannot do its job.** T029 measured it. A trigger-defined label is
+  `trigger AND positive outcome`, and the trigger is a deterministic function of the very
+  feature columns the probe is handed, so the probe recovers the trigger and learns nothing
+  about the outcome. Same window, same seed:
+
+  | label | MCC |
+  |---|---|
+  | `gbb` trigger ALONE, no outcome | +0.7582 |
+  | `gbb` AND positive outcome | +0.5906 |
+  | positive outcome ALONE (the `empty` label) | **+0.0115** |
+
+  The conjunction scores BELOW the trigger alone, because the outcome adds a component the
+  probe cannot predict. So the unconditional column ranks triggers by how easily a linear
+  model recovers a threshold rule — which is not a fact about trading, and is true of every
+  trigger by construction. Every trigger exceeded `empty`'s unconditional learnability by
+  50–100 standard errors, so FR-014b's `decoration` branch would have fired on any trigger
+  failing the economic-value test, for a reason unrelated to its quality.
+
+  **What conditional learnability asks instead**: among the moments this trigger selects, can
+  a model tell the profitable from the unprofitable? That is a fact about whether the trigger
+  defines a population a selector can work in — which is what T027's measurement pointed at,
+  where the arm's model-selected 0.514% subset of `gbb` bars realised 6.8× the average
+  economic value of all `gbb` bars.
+
+  Under this amendment the `empty` trigger remains the correct null without special-casing:
+  conditioning on a trigger that fires everywhere is the unconditional problem, so `empty`'s
+  conditional learnability IS the baseline predictability of the outcome, and a trigger earns
+  a `decoration` verdict only if restricting to its population makes the outcome genuinely
+  more predictable than it is at large.
 - **FR-016**: Economic value and learnability MUST be reported as separate columns and MUST
   NOT be combined into a single score.
 - **FR-017**: Any claim about profit-and-loss MUST come from the pooled walk-forward

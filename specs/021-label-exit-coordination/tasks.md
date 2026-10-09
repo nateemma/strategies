@@ -220,6 +220,11 @@ known low learnability lands in the expected quadrant.
   and its MCC computation. The SAME model, features and protocol for every trigger — varying
   it would make the column incomparable and the verdict unreliable. Report the seed/window
   spread as the standard error the verdict rule needs.
+  **FR-015b AMENDMENT (2026-10-09, approved by the user after T029)**: the verdict rule consumes
+  CONDITIONAL learnability — the probe restricted to triggered bars, predicting the outcome alone.
+  Implemented as `probe.probe_conditional`; results in `research/outcomes/probe_conditional_results.json`.
+  The unconditional column is retained as context and MUST NOT feed FR-014b.
+
 - [ ] T030 [US4] @model-implementer Implement the verdict rule (FR-014b) against the `empty` (SC-007)
   trigger, **total** over three outcomes: `selection_value` (economic value exceeds empty's by
   more than the CI on the difference), `decoration` (it does not, while learnability exceeds
