@@ -223,7 +223,13 @@ def main() -> int:
     for f in folds:
         cls = f["fold_id"], f["strategy_class"]
         rec = arm_record(f)
-        if rec and rec.get("returncode") == 0 and model_exists(f["strategy_class"]):
+        # `not rec.get("error")` is load-bearing: run_arm.py writes a record with
+        # returncode 0 AND an `error` when the backtest exits clean but produces no
+        # new result file (its stale-result guard). Resuming on returncode alone
+        # treated such a fold as evaluated and skipped it permanently -- exactly the
+        # failure mode FR-012 exists to prevent, one layer up.
+        if (rec and rec.get("returncode") == 0 and not rec.get("error")
+                and model_exists(f["strategy_class"])):
             _log(f"{f['fold_id']}: already evaluated — skipping (resumable)")
             results.append({**f, "status": "evaluated", "n_trades": rec.get("n_trades")})
             continue

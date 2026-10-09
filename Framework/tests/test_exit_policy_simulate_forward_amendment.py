@@ -24,7 +24,20 @@ is 0), so no assertion values changed. The one exception --
 `test_unclog_1d_fires_via_open_on_zero_profit`, whose `open_` array was flat at a
 NON-`ENTRY` value at EVERY index including 0 -- needed a one-line setup fix (`open_[0] =
 ENTRY`); see that test for why.
-"""
+
+AMENDED 2026-10-08 (ROI fill-price fix + exit-sequence audit, `utils/ExitPolicy.py`'s
+module docstring, "AMENDED 2026-10-08 (ROI realises its TARGET, not the triggering
+spike)"). `test_native_roi_fires_on_high_after_stop_and_legacy_take_profit_checked`'s
+expected value changed from the measured high-based net profit to `params.roi` itself --
+the pre-fix value it pinned was the +0.012649-mean-biased behaviour T021's reconciliation
+found, not a behaviour worth preserving; see that test's updated docstring. Two cases were
+added: `test_roi_realises_the_target_not_an_extreme_spike` (an 11x-magnitude spike, pinning
+that the fill stays at the target regardless of overshoot) and
+`test_custom_exit_beats_both_stop_and_roi_on_a_simultaneously_satisfiable_bar` (a single
+bar where open-based take_profit, low-based stop, AND high-based roi are all individually
+satisfiable, pinning that `custom_exit_decision` -- not the stop, not roi -- wins; this is
+the audit FIX 2 asked for, and found the pre-existing order already correct, so this test
+exists to pin it rather than to fix anything)."""
 from __future__ import annotations
 
 import sys
@@ -40,6 +53,8 @@ from utils.ExitPolicy import (  # noqa: E402
     CLOSE_UNCLOG_12H,
     CLOSE_UNCLOG_1D,
     ExitParams,
+    STOP_AT_MARKET_RATIO,
+    price_ratio_for_net,
     simulate_forward,
 )
 
@@ -56,6 +71,31 @@ PARAMS = ExitParams(
     stoploss_grace_level=-0.15,
 )
 ROUND_TRIP_FEE = 2.0 * PARAMS.fee_per_side
+
+def _ft_net(gross_fraction: float, fee_per_side: float = 0.001) -> float:
+    """freqtrade's own fee-inclusive profit ratio for a SPOT long, from a GROSS fraction.
+
+    Written out from `freqtrade/persistence/trade_model.py`'s formulas DELIBERATELY, rather
+    than by calling `utils.ExitPolicy.net_from_price_ratio`, so these tests stay an
+    INDEPENDENT check of that helper's arithmetic instead of a restatement of it. If both
+    were the same expression, a wrong fee model would satisfy every assertion here.
+
+        open_trade_value  = amount * open_rate * (1 + fee_open)     # _calc_open_trade_value
+        close_trade_value = amount * rate      * (1 - fee_close)    # _calc_base_close, SPOT
+        profit_ratio      = close_trade_value / open_trade_value - 1   # calc_profit_ratio
+
+    Replaced `gross - ROUND_TRIP_FEE` across this file on 2026-10-08: that additive form was
+    only the first-order expansion of this one, and differed by about `-2 * fee * r` -- see
+    `utils/ExitPolicy.py`'s module docstring, "AMENDED 2026-10-08 (freqtrade's fee model is
+    MULTIPLICATIVE, not additive)". `test_exit_policy_fee_netting.py` pins this helper
+    against a REAL freqtrade `Trade` object, so the restatement cannot drift silently.
+    """
+    amount, open_rate = 1.0, 100.0
+    close_rate = open_rate * (1.0 + gross_fraction)
+    open_trade_value = amount * open_rate * (1.0 + fee_per_side)
+    close_trade_value = amount * close_rate * (1.0 - fee_per_side)
+    return close_trade_value / open_trade_value - 1.0
+
 
 
 def _flat(n: int, price: float = ENTRY):
@@ -79,7 +119,7 @@ def test_open_based_take_profit_fires_before_stop_and_before_the_legacy_high_che
     )
     assert reason == CLOSE_TAKE_PROFIT
     assert hold_bars == 1
-    assert abs(profit - (0.03 - ROUND_TRIP_FEE)) < 1e-12
+    assert abs(profit - _ft_net(0.03)) < 1e-12
 
 
 def test_metric_overbought_fires_via_open_and_guard_metric():
@@ -96,7 +136,7 @@ def test_metric_overbought_fires_via_open_and_guard_metric():
     )
     assert reason == CLOSE_METRIC_OVERBOUGHT
     assert hold_bars == 1
-    expected = (100.5 / ENTRY - 1.0) - ROUND_TRIP_FEE
+    expected = _ft_net(100.5 / ENTRY - 1.0)
     assert abs(profit - expected) < 1e-12
 
 
@@ -119,7 +159,7 @@ def test_unclog_12h_fires_via_open_before_stop_and_take_profit():
     )
     assert reason == CLOSE_UNCLOG_12H
     assert hold_bars == 13
-    expected = (100.8 / ENTRY - 1.0) - ROUND_TRIP_FEE
+    expected = _ft_net(100.8 / ENTRY - 1.0)
     assert abs(profit - expected) < 1e-12
 
 
@@ -140,7 +180,11 @@ def test_unclog_1d_fires_via_open_on_zero_profit():
     close = _flat(n)
     high = _flat(n)
     low = _flat(n)
-    open_ = _flat(n, price=ENTRY * (1.0 + ROUND_TRIP_FEE))   # net profit exactly 0.0
+    # The price that nets EXACTLY 0.0 is the inverse of a 0.0 net target through
+    # freqtrade's fee model, NOT `1 + 2 * fee`: under the exact multiplicative model
+    # `ENTRY * (1 + 2 * fee)` nets -2e-6, which FAILS unclog_1d's `>= 0.0` and let the
+    # trade run to end_of_data. This setup was calibrated to the additive model.
+    open_ = _flat(n, price=ENTRY * price_ratio_for_net(0.0, PARAMS.fee_per_side))
     open_[0] = ENTRY  # entry-price convention fix: open_[start_index] IS entry now.
 
     profit, hold_bars, reason = simulate_forward(
@@ -158,10 +202,16 @@ def test_native_roi_fires_on_high_after_stop_and_legacy_take_profit_checked():
     active) -- but take_profit (2.2%) and ROI (5%) are set far enough apart that only ROI's
     own threshold is crossed.
 
-    The comparison and the return are NET (fee double-count fix): bar 2's high clears 6%
-    gross, 5.8% net -- past the 5% ROI threshold -- and the returned profit is that same
-    5.8% net figure, NOT the threshold minus a fee (the pre-fix bug returned a fixed
-    `roi - round_trip_fee` regardless of how far the high actually moved)."""
+    AMENDED 2026-10-08 (ROI fill-price fix, `utils/ExitPolicy.py`'s module docstring,
+    "AMENDED 2026-10-08 (ROI realises its TARGET, not the triggering spike)"). DETECTION
+    stays NET-high-based and unchanged -- bar 2's high still clears 6% gross / 5.8% net,
+    past the 5% ROI threshold, so ROI still fires on the same bar. But the RETURNED value
+    changes: freqtrade's own `_get_close_rate_for_roi` fills a ROI exit at the price that
+    realises the ROI target (`trade.calc_close_rate_for_roi(roi)`), not at the bar's high,
+    so the pre-fix expectation here (the measured 5.8% net figure) was pinning the bug
+    T021's reconciliation found (mean +0.012649 on 31 real `roi` trades, max divergence
+    +11.36913 on one). The correct, now-asserted value is `params.roi` itself (0.05) --
+    already a NET figure by construction, so no further fee subtraction applies."""
     params = ExitParams(
         static_stoploss=-0.05, use_atr_adaptive_stoploss=False, take_profit=0.30,
         max_hold_days=10, timeframe_minutes=60, fee_per_side=0.001,
@@ -177,8 +227,36 @@ def test_native_roi_fires_on_high_after_stop_and_legacy_take_profit_checked():
     )
     assert reason == CLOSE_ROI
     assert hold_bars == 2
-    expected = (106.0 / ENTRY - 1.0) - ROUND_TRIP_FEE
-    assert abs(profit - expected) < 1e-12
+    assert abs(profit - params.roi) < 1e-12
+
+
+def test_roi_realises_the_target_not_an_extreme_spike():
+    """The exact failure mode T021's reconciliation measured: a real `roi` trade whose
+    high-based excursion reached +11.36913 against a 0.05 target. Deliberately reproduce
+    that magnitude here -- the realised profit must stay pinned at the ROI target
+    regardless of how far past it the high overshoots."""
+    params = ExitParams(
+        static_stoploss=-0.5, use_atr_adaptive_stoploss=False, take_profit=0.5,
+        max_hold_days=10, timeframe_minutes=60, fee_per_side=0.001,
+        stoploss_grace_hours=0.0, stoploss_grace_level=-0.5, roi=0.05,
+    )
+    n = 3
+    close = [ENTRY, ENTRY, ENTRY]
+    low = [ENTRY, ENTRY, ENTRY]            # never breaches the -50% static stop
+    high = [ENTRY, ENTRY, ENTRY * 12.5]    # a +1150% high -- far past the 5% roi level
+    # `open_` supplied and flat at ENTRY: disables the legacy HIGH-based take_profit
+    # fallback (step 2, only active when `open_` is None) so this bar's huge high can
+    # only be reached by the ROI branch (step 3) -- the real caller (table.py) always
+    # supplies `open_`, so this is the realistic configuration.
+    open_ = [ENTRY, ENTRY, ENTRY]
+
+    profit, hold_bars, reason = simulate_forward(
+        high, low, close, atr_pct=[0.0] * n, rvol=None, start_index=0, params=params,
+        open_=open_,
+    )
+    assert reason == CLOSE_ROI
+    assert hold_bars == 2
+    assert abs(profit - params.roi) < 1e-12
 
 
 def test_roi_none_means_not_modelled():
@@ -236,7 +314,7 @@ def test_stop_fills_at_the_stop_level_when_the_open_is_above_it():
     )
     assert reason == CLOSE_STOP
     assert hold_bars == 1
-    assert abs(profit - (PARAMS.static_stoploss - ROUND_TRIP_FEE)) < 1e-12
+    assert abs(profit - _ft_net(PARAMS.static_stoploss)) < 1e-12
 
 
 def test_stop_fills_at_the_open_when_the_open_has_already_gapped_below_the_stop():
@@ -261,10 +339,40 @@ def test_stop_fills_at_the_open_when_the_open_has_already_gapped_below_the_stop(
     )
     assert reason == CLOSE_STOP
     assert hold_bars == 1
-    expected = (80.0 / ENTRY - 1.0) - ROUND_TRIP_FEE
+    expected = _ft_net(80.0 / ENTRY - 1.0)
     assert abs(profit - expected) < 1e-12
     # The regression this guards: a fill AT the stop level would be far shallower.
-    assert profit < PARAMS.static_stoploss - ROUND_TRIP_FEE
+    assert profit < _ft_net(PARAMS.static_stoploss)
+
+
+def test_custom_exit_beats_both_stop_and_roi_on_a_simultaneously_satisfiable_bar():
+    """FIX 2's exit-sequence audit (T021 follow-up): pin the full precedence order --
+    custom_exit's own decision, THEN the native stop, THEN the native ROI -- on a SINGLE
+    bar where all three are independently satisfiable: the open clears take_profit (2.2%),
+    the low breaches the static stop (-5%), AND the high clears the roi level (5%). Per
+    `should_exit`'s own `exits` list order (`interface.py:1504-1520`: custom_exit appended
+    before the stoploss, the stoploss before ROI) and `_check_trade_exit`'s
+    first-fill-wins iteration (`backtesting.py:1001-1004`), `custom_exit`'s `take_profit`
+    must win."""
+    params = ExitParams(
+        static_stoploss=-0.05, use_atr_adaptive_stoploss=False, take_profit=0.022,
+        max_hold_days=10, timeframe_minutes=60, fee_per_side=0.001,
+        stoploss_grace_hours=0.0, stoploss_grace_level=-0.15, roi=0.05,
+    )
+    n = 2
+    close = [ENTRY, 103.0]
+    high = [ENTRY, 200.0]   # clears the 5% roi level by a wide margin
+    low = [ENTRY, 80.0]     # breaches the -5% static stop
+    open_ = [ENTRY, 103.0]  # clears the 2.2% take_profit level
+
+    profit, hold_bars, reason = simulate_forward(
+        high, low, close, atr_pct=[0.0] * n, rvol=None, start_index=0, params=params,
+        open_=open_,
+    )
+    assert reason == CLOSE_TAKE_PROFIT
+    assert hold_bars == 1
+    expected = _ft_net(103.0 / ENTRY - 1.0)
+    assert abs(profit - expected) < 1e-12
 
 
 def test_stop_fallback_without_open_still_fills_at_the_stop_level():
@@ -283,4 +391,165 @@ def test_stop_fallback_without_open_still_fills_at_the_stop_level():
     )
     assert reason == CLOSE_STOP
     assert hold_bars == 1
-    assert abs(profit - (PARAMS.static_stoploss - ROUND_TRIP_FEE)) < 1e-12
+    assert abs(profit - _ft_net(PARAMS.static_stoploss)) < 1e-12
+
+
+# =============================================================================================
+# `confirm_trade_exit`'s 1-hour discretionary veto, inside simulate_forward (2026-10-08).
+#
+# The live rule is characterised in `test_confirm_trade_exit_characterisation.py`; these pin
+# that `simulate_forward` APPLIES it, on a 15m grid where it actually bites. Note the tests
+# above run a 60-MINUTE bar, where bar 1 is already 1.0h old and the veto is a no-op -- which
+# is exactly why it went unnoticed and needs its own coverage here.
+# =============================================================================================
+
+_P15 = ExitParams(
+    atr_stoploss_multiplier=2.5, atr_stoploss_cap=-0.02, atr_stoploss_floor=-0.04,
+    static_stoploss=-0.05, use_atr_adaptive_stoploss=False,
+    use_volume_confirmation_stoploss=False,
+    stoploss_grace_hours=6.5, stoploss_grace_level=-0.27,
+    take_profit=0.022, max_hold_days=10, fee_per_side=0.001, timeframe_minutes=15,
+    roi=0.05,
+)
+
+
+def test_take_profit_is_vetoed_below_one_hour_and_taken_at_the_first_allowed_bar():
+    """A 15m bar 1 is 0.25h old, so an open-based take-profit there is VETOED; the same
+    condition at bar 4 (exactly 1.0h) is taken. This is the mechanism behind
+    reconciliation #6's 37-trade `take_profit`->`roi` class."""
+    n = 12
+    # Flat and comfortably profitable from bar 1 onward: eligible every bar, so the ONLY
+    # thing that can delay the exit is the veto.
+    px = ENTRY * (1.0 + 0.03)
+    open_ = [ENTRY] + [px] * (n - 1)
+    high = [ENTRY] * n          # never reaches roi (0.05), so roi cannot pre-empt
+    low = [ENTRY] * n           # never reaches the stop
+    close = [ENTRY] * n
+
+    profit, hold_bars, reason = simulate_forward(
+        high, low, close, atr_pct=[0.0] * n, rvol=None, start_index=0, params=_P15,
+        open_=open_,
+    )
+    assert reason == CLOSE_TAKE_PROFIT
+    assert hold_bars == 4, "0.25h/0.50h/0.75h must be vetoed; 1.00h is the first allowed bar"
+
+
+def test_roi_is_vetoed_below_one_hour():
+    """Same veto, native-ROI branch. `roi` is NOT in `EXITS_EXEMPT_FROM_MIN_HOLD`."""
+    n = 12
+    high = [ENTRY] + [ENTRY * 1.10] * (n - 1)   # roi reachable from bar 1
+    open_ = [ENTRY] * n                          # no open-based exit
+    low = [ENTRY] * n
+    close = [ENTRY] * n
+
+    profit, hold_bars, reason = simulate_forward(
+        high, low, close, atr_pct=[0.0] * n, rvol=None, start_index=0, params=_P15,
+        open_=open_,
+    )
+    assert reason == CLOSE_ROI
+    assert hold_bars == 4
+
+
+def test_the_stop_is_NOT_vetoed_below_one_hour():
+    """The exemption that matters: "never hold a position past its stop just because the
+    trade is young". A stop reachable at bar 1 must fire at bar 1."""
+    n = 12
+    low = [ENTRY] + [ENTRY * (1.0 + _P15.stoploss_grace_level - 0.01)] + [ENTRY] * (n - 2)
+    open_ = [ENTRY] * n
+    high = [ENTRY] * n
+    close = [ENTRY] * n
+
+    profit, hold_bars, reason = simulate_forward(
+        high, low, close, atr_pct=[0.0] * n, rvol=None, start_index=0, params=_P15,
+        open_=open_,
+    )
+    assert reason == CLOSE_STOP
+    assert hold_bars == 1
+
+
+def test_a_vetoed_take_profit_is_LOST_not_deferred():
+    """The second-order effect, and why reconciliation #6's disagreements ran in BOTH
+    directions: the veto does not queue the exit. A take-profit that is eligible only at
+    bar 1 (vetoed) and never again does not fire at bar 4 -- the trade runs on and stops
+    out instead. Without this, a vetoed exit would merely be late; with it, the arm can
+    end up taking a LOSS where the table booked a profit."""
+    n = 12
+    spike = ENTRY * (1.0 + 0.03)
+    open_ = [ENTRY, spike] + [ENTRY] * (n - 2)      # profitable ONLY at bar 1
+    high = [ENTRY] * n
+    low = [ENTRY] * 5 + [ENTRY * (1.0 + _P15.stoploss_grace_level - 0.01)] + [ENTRY] * (n - 6)
+    close = [ENTRY] * n
+
+    profit, hold_bars, reason = simulate_forward(
+        high, low, close, atr_pct=[0.0] * n, rvol=None, start_index=0, params=_P15,
+        open_=open_,
+    )
+    assert reason == CLOSE_STOP, "the vetoed take-profit must NOT be deferred to bar 4"
+    assert hold_bars == 5
+    assert profit < 0.0
+
+
+def test_post_grace_stop_is_clamped_to_the_market_not_filled_at_the_open():
+    """The table side of the live post-grace sign fix (`STOP_AT_MARKET_RATIO`).
+
+    Grace is ENABLED (6.5h) and the trade is deeply underwater when it expires, so the
+    entry-anchored -5% stop (95.0) sits above the bar entirely. Live, freqtrade cannot
+    place a stop above the market, so it is held AT the market (the bar's high, which is
+    what the backtester passes as `current_rate`) and fires there. The table must model
+    that fill, NOT the open-based gap fill -- the gap fill applies only to a genuine gap
+    through the GRACE stop, which IS expressible live.
+
+    Contrast `test_stop_fills_at_the_open_when_the_open_has_already_gapped_below_the_stop`
+    above, which runs grace DISABLED: there the stop really is fixed at entry and a gap
+    through it really does fill at the open."""
+    n = 40
+    # Bars 0..25 (0-6.25h) sit inside grace, above the -27% grace stop so nothing fires.
+    # Bar 26 is 6.5h -- grace expires, and the whole bar is far below the -5% stop.
+    open_ = [ENTRY] * 26 + [80.0] * (n - 26)
+    high = [ENTRY] * 26 + [82.0] * (n - 26)
+    low = [ENTRY] * 26 + [78.0] * (n - 26)
+    close = [ENTRY] * 26 + [80.0] * (n - 26)
+
+    params = ExitParams(
+        static_stoploss=-0.05, use_atr_adaptive_stoploss=False,
+        use_volume_confirmation_stoploss=False,
+        take_profit=0.022, max_hold_days=10, timeframe_minutes=15, fee_per_side=0.001,
+        stoploss_grace_hours=6.5, stoploss_grace_level=-0.27,
+    )
+    profit, hold_bars, reason = simulate_forward(
+        high, low, close, atr_pct=[0.0] * n, rvol=None, start_index=0, params=params,
+        open_=open_,
+    )
+    assert reason == CLOSE_STOP
+    assert hold_bars == 26, "the stop must fire on the first post-grace bar"
+    clamped = 82.0 * (1.0 + STOP_AT_MARKET_RATIO)
+    assert abs(profit - _ft_net(clamped / ENTRY - 1.0)) < 1e-9
+    # Not the open-based gap fill, and not the un-clamped -5% level either.
+    assert abs(profit - _ft_net(80.0 / ENTRY - 1.0)) > 1e-3
+    assert profit < _ft_net(params.static_stoploss)
+
+
+def test_inside_grace_a_gap_through_the_grace_stop_still_fills_at_the_open():
+    """The clamp must not reach into the grace window. The grace stop is set ONCE, at
+    after_fill, with `allow_refresh=True`, so it is NOT re-derived from `current_rate`
+    and CAN sit above a later bar -- making freqtrade's gap rule genuinely reachable
+    there."""
+    n = 10
+    open_ = [ENTRY, 60.0] + [60.0] * (n - 2)   # gaps through the -27% grace stop (73.0)
+    high = [ENTRY, 62.0] + [62.0] * (n - 2)
+    low = [ENTRY, 58.0] + [58.0] * (n - 2)
+    close = [ENTRY, 60.0] + [60.0] * (n - 2)
+
+    params = ExitParams(
+        static_stoploss=-0.05, use_atr_adaptive_stoploss=False,
+        use_volume_confirmation_stoploss=False,
+        take_profit=0.022, max_hold_days=10, timeframe_minutes=15, fee_per_side=0.001,
+        stoploss_grace_hours=6.5, stoploss_grace_level=-0.27,
+    )
+    profit, hold_bars, reason = simulate_forward(
+        high, low, close, atr_pct=[0.0] * n, rvol=None, start_index=0, params=params,
+        open_=open_,
+    )
+    assert reason == CLOSE_STOP
+    assert hold_bars == 1
+    assert abs(profit - _ft_net(60.0 / ENTRY - 1.0)) < 1e-12, "open fill, not the clamp"

@@ -76,8 +76,16 @@ sys.path.append(strat_dir)
 sys.path.append(group_dir)
 
 
+from utils.ExitPolicy import (
+    ExitParams,
+    atr_stop_fraction,
+    custom_exit_decision,
+    discretionary_exit_allowed,
+    rolling_rvol,
+    STOP_AT_MARKET_RATIO,
+)
+
 # =========================================================================
-from utils.ExitPolicy import ExitParams, atr_stop_fraction, custom_exit_decision, rolling_rvol
 # Enums
 # =========================================================================
 
@@ -1112,7 +1120,17 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
             # winners). freqtrade only tightens, so this applies once.
             normal = self._resolve_normal_stop(pair)
             if trade.open_rate and current_rate and current_rate > 0:
-                return (trade.open_rate * (1.0 + normal) / current_rate) - 1.0
+                ratio = (trade.open_rate * (1.0 + normal) / current_rate) - 1.0
+                if ratio >= 0.0:
+                    # FIXED 2026-10-08. The trade is ALREADY at or below the post-grace
+                    # stop, so the intended stop price sits at/above the market, which
+                    # freqtrade cannot represent -- `adjust_stop_loss`'s `abs()` turns a
+                    # positive ratio into a LOOSER stop, not a tighter one. See
+                    # `utils.ExitPolicy.STOP_AT_MARKET_RATIO` for the measurements and how
+                    # the defect was found. Clamp to the tightest stop freqtrade CAN
+                    # represent so the stop fires now instead of being loosened.
+                    return STOP_AT_MARKET_RATIO
+                return ratio
             return normal
 
         # ATR-adaptive initial stop (opt-in via use_atr_adaptive_stoploss).
@@ -1387,27 +1405,25 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
         # only DISCRETIONARY exits (exit_signal / roi). Risk-management and
         # forced exits must always be honoured — never hold a position past
         # its stop just because the trade is young.
-        if exit_reason not in [
-            "force_exit",
-            "emergency_exit",
-            "stop_loss",
-            "trailing_stop_loss",
-            "stoploss_on_exchange",
-            "liquidation",
-        ]:
-            # Ensure timezone awareness for comparison
-            from datetime import timezone
-            t_current = current_time
-            if t_current.tzinfo is None:
-                 t_current = t_current.replace(tzinfo=timezone.utc)
-            
-            t_open = trade.open_date_utc
-            if t_open.tzinfo is None:
-                 t_open = t_open.replace(tzinfo=timezone.utc)
+        # Ensure timezone awareness for comparison
+        from datetime import timezone
+        t_current = current_time
+        if t_current.tzinfo is None:
+            t_current = t_current.replace(tzinfo=timezone.utc)
 
-            duration_hours = (t_current - t_open).total_seconds() / 3600.0
-            if duration_hours < 1.0:
-                return False
+        t_open = trade.open_date_utc
+        if t_open.tzinfo is None:
+            t_open = t_open.replace(tzinfo=timezone.utc)
+
+        duration_hours = (t_current - t_open).total_seconds() / 3600.0
+
+        # SINGLE SOURCE OF TRUTH (feature 021): the exempt-reason list and the 1-hour
+        # threshold live in `utils.ExitPolicy`, because `simulate_forward` must apply the
+        # SAME veto to stay faithful to this path -- it was the omission of this rule from
+        # the offline model that produced reconciliation #6's residual. Behaviour here is
+        # unchanged; `test_confirm_trade_exit_characterisation.py` pins that.
+        if not discretionary_exit_allowed(exit_reason, duration_hours):
+            return False
 
         # remaining logic for live logging
         if self.dp.runmode.value in ("backtest", "plot", "hyperopt", "other"):

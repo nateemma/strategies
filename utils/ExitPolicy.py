@@ -130,6 +130,92 @@ Expected effect, for callers that DO supply `open_`: the divergence/entry-bar-mo
 correlation and regression slope should collapse toward zero, and the subset biases (stop
 exits optimistic, profit exits pessimistic) should shrink by roughly 25-30% -- NOT to
 zero, since this mismatch is only part of a larger, still-undiagnosed residual.
+
+AMENDED 2026-10-08 (ROI realises its TARGET, not the triggering spike). T021's second
+reconciliation pass found the 31 trades where both the table and the control arm agreed
+the exit was `roi` biased +0.012649 on average, with the table's own ROI-exit distribution
+showing mean +0.07705, max +11.36913 across 10,022 distinct values against a single
+`cfg.roi` target of 0.05 -- i.e. the table was crediting the bar's entire high-based
+excursion, not the ROI level that excursion merely crossed.
+
+freqtrade's own fill-price logic draws this distinction explicitly.
+`Backtesting._get_close_rate_for_roi` (`freqtrade/optimize/backtesting.py:651-716`) uses
+the bar's high/low only to DETECT that a ROI level was reached (via
+`strategy.min_roi_reached_entry`, called from `should_exit`'s `roi_reached` check,
+`interface.py:1462-1464`, itself fed `current_profit_best` -- the HIGH-based profit,
+`interface.py:1442-1446`); the FILL price it returns is
+`trade.calc_close_rate_for_roi(roi)` (`backtesting.py:672`), clamped to the candle's own
+range (`min(max(close_rate, row[LOW_IDX]), row[HIGH_IDX])`, `backtesting.py:712`) -- i.e.
+the price that realises the ROI *target*, not the high itself. A trade that spikes 11x
+through its 5% ROI level is filled at (approximately) the 5% level, not the spike.
+
+The fix: `simulate_forward`'s ROI branch keeps detecting on the HIGH exactly as before
+(`profit_high_net >= params.roi`, itself unchanged -- the DETECTION side of this was
+already correct, and T021's reconciliation found no timing defect in it), but now RETURNS
+`params.roi` itself rather than the measured `profit_high_net`. No further fee subtraction
+is applied to that returned value: per this module's existing fee-netting amendment
+(above), `cfg.roi` is already a NET target by construction (`minimal_roi` is compared live
+against `trade.calc_profit_ratio`, itself fee-inclusive, in `min_roi_reached`), so
+`params.roi` already IS the net figure a real ROI fill realises -- subtracting
+`round_trip_fee` from it again would reintroduce exactly the kind of double-count the fee
+amendment above removed, this time in the other direction.
+
+This changes `profit_fraction` for `roi` exits only; `close_reason` and `hold_bars` (which
+bar the exit fires on) are UNCHANGED, because the detection condition did not change --
+only the fill-price arithmetic did.
+
+AMENDED 2026-10-08 (freqtrade's fee model is MULTIPLICATIVE, not additive). Every
+realised figure in `simulate_forward` was computed as `(price / entry - 1) - 2 * fee`.
+freqtrade computes `(price / entry) * (1 - fee) / (1 + fee) - 1`
+(`Trade.calc_profit_ratio` over `_calc_open_trade_value` / `_calc_base_close`,
+`persistence/trade_model.py`). The additive form is that expression's first-order
+expansion; the two differ by about `-2 * fee * r`, i.e. -1.0e-4 at r = +0.05 and +5.4e-4
+at r = -0.27. Every realised figure now goes through `net_from_price_ratio`, and every
+NET threshold that has to become a price goes through its inverse `price_ratio_for_net`.
+
+Two reasons this is worth a version bump rather than being filed as rounding:
+
+  1. It is a BIAS, not noise, and its sign flips with the sign of the trade -- optimistic
+     on winners, pessimistic on losers -- so it does not cancel across a mixed book. It
+     pushes in exactly the direction Constitution Principle V exists to catch.
+  2. It mattered at a HARD THRESHOLD, which is how it was found. The native ROI check
+     compares a net figure against `params.roi`; the additive form reaches a given net
+     level at a LOWER price than freqtrade does (gross +0.05200 vs +0.05210 for a 0.05 net
+     target), so the table was detecting ROI crossings the live arm did not see. That is
+     the mechanism behind T021's largest remaining reason-disagreement class (37 trades,
+     table `roi` at a mean 2.8 bars against the arm's `take_profit` at 6.9) -- NOT an
+     ordering defect, which the audit below rules out independently.
+
+It also fixed a second, separate defect in the same arithmetic: `tp_price` was
+`entry * (1 + params.take_profit)`, treating `take_profit` as a GROSS price move when it
+is a NET target (it is compared live against `trade.calc_profit_ratio`). The legacy
+high-based take-profit path therefore triggered about `2 * fee` too early, and returned
+`take_profit - 2 * fee` rather than the target it had supposedly realised. `tp_price` is
+now `entry * price_ratio_for_net(take_profit, fee)` and the branch returns
+`params.take_profit`, for the same reason the ROI branch returns `params.roi`.
+
+SCOPE: `simulate_forward` ONLY, which is offline. The live path (`custom_stoploss`,
+`custom_exit` via `custom_exit_decision`) is handed freqtrade's own already-net
+`current_profit` and never computes a fee, so no live behaviour changes -- the
+characterisation fixtures pin this.
+
+EXIT-SEQUENCE AUDIT (same follow-up). The largest disagreement class in that reconciliation
+pass was 37 trades where the control arm's `custom_exit` took `take_profit` but the table
+said `roi`, firing on average at bar 2.8 against the arm's 6.9. This is NOT an ordering
+defect: `simulate_forward`'s per-bar loop already checks `custom_exit_decision` (step 0,
+OPEN-based) before the native stop (step 1, LOW-based) before the native ROI (step 3,
+HIGH-based), matching `should_exit`'s own `exits` list order verbatim
+(`interface.py:1504-1520`: custom_exit/exit-signal appended first, then stoploss, then ROI,
+then trailing stoploss; `backtesting.py::_check_trade_exit`, `:1001-1004`, iterates that
+list and returns on the first fill). The pattern is instead the predictable consequence of
+`custom_exit`'s own OPEN-only visibility: live, `custom_exit`'s `take_profit` branch is
+only ever evaluated once per bar, at that bar's OPEN (`interface.py` calls `custom_exit`
+with `rate = row[OPEN_IDX]`), so a bar whose HIGH spikes straight past the (higher) ROI
+level inside a single bar -- without any bar's OPEN ever having crossed the (lower)
+take-profit level first -- genuinely fires ROI before take_profit ever gets the chance,
+exactly as freqtrade itself would. Confirming this needed no code change; see the handback
+report for what, if anything, the remaining 37-trade gap implies once this amendment's
+realised values are back in the picture.
 """
 from __future__ import annotations
 
@@ -147,16 +233,27 @@ from typing import Optional
 #: nothing forced the hash to notice the code had changed underneath it.
 #:
 #: Introduced at 1 (the implicit, never-versioned behaviour every prior run silently
-#: depended on), bumped to 2 for the fee double-count fix, and bumped to 3 for the
+#: depended on), bumped to 2 for the fee double-count fix, bumped to 3 for the
 #: entry-price convention fix (module docstring, "AMENDED 2026-10-08 (entry-price
 #: convention fix)"): when `open_` is supplied, `simulate_forward` now enters at
 #: `open_[start_index]` instead of `close[start_index]` and replays from `start_index`
 #: instead of `start_index + 1`, so the same inputs can produce a different
 #: `profit_fraction`/`close_reason`/`hold_bars` than version 2 did. (Callers that omit
 #: `open_` are unaffected -- see the module docstring for why that path is deliberately
-#: left as the pre-fix convention.) Every version bump happens in the same commit as the
-#: behaviour change it covers, so the version this module ships with is never itself stale.
-SIMULATION_LOGIC_VERSION = 3
+#: left as the pre-fix convention.) Bumped to 4 for the ROI fill-price fix (module
+#: docstring, "AMENDED 2026-10-08 (ROI realises its TARGET, not the triggering spike)"):
+#: a `roi` exit's `profit_fraction` is now `params.roi` itself, not the measured
+#: HIGH-based net profit, so the same inputs can produce a different `profit_fraction`
+#: for ROI exits than version 3 did (`close_reason`/`hold_bars` are unchanged). Bumped to
+#: 5 for the EXACT fee model (module docstring, "AMENDED 2026-10-08 (freqtrade's fee model
+#: is multiplicative, not additive)"): every realised figure now goes through
+#: `net_from_price_ratio` instead of subtracting `2 * fee_per_side`, which changes
+#: `profit_fraction` for EVERY exit reason by roughly `-2 * fee * r`, and -- because the
+#: native ROI and legacy take-profit checks compare against a threshold -- can also change
+#: `close_reason` and `hold_bars` on bars that sat within ~1e-4 of a target. Every
+#: version bump happens in the same commit as the behaviour change it covers, so the
+#: version this module ships with is never itself stale.
+SIMULATION_LOGIC_VERSION = 7
 
 #: Hard floor applied AFTER volume confirmation tightens the stop.
 #:
@@ -166,6 +263,86 @@ SIMULATION_LOGIC_VERSION = 3
 #: Verified against the characterisation fixture.
 VOLUME_CONFIRMED_STOP_FLOOR = -0.02
 
+
+#: How far below the market to place a stop that the exit policy wants placed AT or ABOVE
+#: the market -- i.e. "stop out now".
+#:
+#: freqtrade cannot represent a stop above the market. `Trade.adjust_stop_loss` computes
+#: `new_loss = current_price * (1 - abs(stoploss / leverage))` (`trade_model.py:862`), and
+#: that `abs()` means `new_loss <= current_price` ALWAYS. A caller that asks for a higher
+#: stop by returning a POSITIVE ratio does not get a tighter stop -- it gets
+#: `current_price * (1 - ratio)`, i.e. a LOOSER one, scaled by how far it overshot.
+#:
+#: That was a live defect in `BaseStrategy.custom_stoploss`'s post-grace branch, fixed
+#: 2026-10-08. Measured against a -4% intended stop: a trade 5% underwater got -6%, 10%
+#: underwater got -16%, and 25% underwater got -46%. The post-grace tightening therefore
+#: did the OPPOSITE of risk management for precisely the trades it exists to cut -- the
+#: ones that survived the -27% grace window still underwater. Found via feature 021's
+#: reconciliation, as 28 of the 42 remaining table/arm reason disagreements: the offline
+#: table applied the -4% stop as specified and exited, the live arm loosened and ran on.
+#:
+#: Clamping to just under the market makes the stop FIRE on this bar instead. Chosen
+#: small enough to mean "at market" and large enough to survive `price_to_precision`
+#: rounding; if rounding does push the level above the bar's high, freqtrade's own gap
+#: rule fills at the bar's OPEN instead (`Backtesting._get_close_rate_for_stoploss`),
+#: which is the conservative direction, so either outcome is acceptable.
+STOP_AT_MARKET_RATIO = -1e-6
+
+#: `confirm_trade_exit`'s veto: how long a trade must be open before a DISCRETIONARY exit
+#: is permitted. Live value, from `BaseStrategy.confirm_trade_exit`, which now calls
+#: `discretionary_exit_allowed` below rather than re-implementing this.
+#:
+#: Feature 021's FR-001 exit-surface enumeration MISSED this rule, and it turned out to be
+#: the single largest cause of the outcome table diverging from the walk-forward arm --
+#: reconciliation #6 localised the whole remaining residual to 91 trades (6.5%) where the
+#: two picked different exit rules, and in every class the table fired the earliest
+#: eligible rule while the arm fired later. See `simulate_forward`'s step 0/3 gating.
+DISCRETIONARY_EXIT_MIN_HOLD_HOURS = 1.0
+
+#: Exit reasons ALWAYS honoured, however young the trade: risk management and forced
+#: exits. The live comment's reasoning -- "never hold a position past its stop just
+#: because the trade is young" -- is the whole point, so this set must never acquire a
+#: discretionary member.
+#:
+#: Carries BOTH vocabularies deliberately. Live freqtrade names the native stop
+#: `stop_loss` / `trailing_stop_loss` (the latter is freqtrade's LABEL for a
+#: `custom_stoploss` exit in this strategy -- `trailing_stop` is False -- NOT a trailing
+#: stop); `simulate_forward` names the same rule `CLOSE_STOP` ("stop"). Both must be
+#: exempt, and holding both here keeps the rule in ONE place instead of adding a
+#: vocabulary bridge at each call site. Offline "hold_cap" / live "max_hold" is absent
+#: from both, i.e. discretionary -- consistent either way, since a max-hold exit cannot
+#: occur inside the first hour.
+EXITS_EXEMPT_FROM_MIN_HOLD = frozenset({
+    "force_exit", "emergency_exit", "stop_loss", "trailing_stop_loss",
+    "stoploss_on_exchange", "liquidation",
+    "stop",   # == CLOSE_STOP, simulate_forward's name for the same native stop
+})
+
+
+def discretionary_exit_allowed(
+    exit_reason: "str | None",
+    age_hours: float,
+    min_hold_hours: float = DISCRETIONARY_EXIT_MIN_HOLD_HOURS,
+) -> bool:
+    """THE implementation of `confirm_trade_exit`'s 1-hour veto. Both paths call this.
+
+    Returns True if an exit with this reason may be taken at this age. Risk-management
+    exits are always allowed; everything else requires `age_hours >= min_hold_hours`.
+
+    The boundary is INCLUSIVE at `min_hold_hours` (the live test was `duration_hours <
+    1.0`), and it is expressed in HOURS, not bars, so it converts correctly on any
+    timeframe -- pinned by `test_confirm_trade_exit_characterisation.py`.
+
+    NOTE for callers modelling freqtrade's backtest: a vetoed exit is SKIPPED, and
+    freqtrade falls through to the next exit candidate on the SAME bar
+    (`Backtesting._get_exit_for_signal` returns None, `:911-924`; `_check_trade_exit`'s
+    `for exit_ in exits` loop continues, `:1001-1004`). So a veto does not merely DELAY an
+    exit -- if the condition stops holding before the trade turns `min_hold_hours` old,
+    that exit is LOST and the trade runs on to whatever fires later, very often the stop.
+    """
+    if exit_reason in EXITS_EXEMPT_FROM_MIN_HOLD:
+        return True
+    return age_hours >= min_hold_hours
 
 @dataclass(frozen=True)
 class ExitParams:
@@ -200,6 +377,10 @@ class ExitParams:
     take_profit: float = 0.022
     max_hold_days: int = 10
     fee_per_side: float = 0.001
+    #: `confirm_trade_exit`'s discretionary-exit veto, in hours. Defaults to the LIVE
+    #: value; it is a faithful model of a hardcoded live rule, not a tunable, so unlike
+    #: the grace fields it may safely carry a default.
+    min_discretionary_hold_hours: float = DISCRETIONARY_EXIT_MIN_HOLD_HOURS
     timeframe_minutes: int = 15
 
     #: FR-001's amendment -- the rest of `BaseStrategy.custom_exit`'s decision, plus the
@@ -355,6 +536,55 @@ CLOSE_ROI = "roi"
 CLOSE_MAX_HOLD = "max_hold"
 
 
+def net_from_price_ratio(price_ratio: float, fee_per_side: float) -> float:
+    """freqtrade's EXACT fee-inclusive profit ratio for a SPOT long, from a price ratio.
+
+    `price_ratio` is `exit_price / entry_price`. Returns what
+    `Trade.calc_profit_ratio(exit_price)` would return for that trade.
+
+    freqtrade's fee model is MULTIPLICATIVE, not additive
+    (`freqtrade/persistence/trade_model.py`):
+
+        open_trade_value  = amount * open_rate * (1 + fee_open)    # _calc_open_trade_value
+        close_trade_value = amount * rate      * (1 - fee_close)   # _calc_base_close, SPOT
+        profit_ratio      = close_trade_value / open_trade_value - 1    # calc_profit_ratio
+
+    so, for leverage 1 and `fee_open == fee_close == fee_per_side`,
+
+        profit_ratio = (rate / open_rate) * (1 - fee) / (1 + fee) - 1
+
+    This module previously approximated that as `(rate / entry - 1) - 2 * fee`, which is
+    the first-order expansion. The two differ by
+
+        exact - linear  ~=  2 * fee ** 2 - 2 * fee * r        (r = rate / entry - 1)
+
+    -- about -1.0e-4 at r = +0.05 and +5.4e-4 at r = -0.27 (the `stoploss_grace_level`
+    floor). Small, but it is a BIAS with a sign that flips on the sign of the trade, so it
+    does not average out across a mixed book: the linear form is optimistic on winners and
+    pessimistic on losers.
+
+    It also mattered at a HARD THRESHOLD, which is how it was found. T021's reconciliation
+    turned up 37 trades where the outcome table exited `roi` at a mean 2.8 bars while the
+    live arm exited `take_profit` at 6.9. The native ROI check compares a net profit against
+    `params.roi`; the linear form reaches a given net figure at a LOWER price than freqtrade
+    does (gross +0.05200 against freqtrade's +0.05210 for a 0.05 net target), so the table
+    detected ROI crossings on bars whose high the live arm did not consider a crossing at
+    all, and the trade then ran on in the arm to a later take-profit. A ~1e-4 bias is
+    invisible in a mean and decisive at a threshold.
+    """
+    return price_ratio * (1.0 - fee_per_side) / (1.0 + fee_per_side) - 1.0
+
+
+def price_ratio_for_net(target: float, fee_per_side: float) -> float:
+    """Inverse of `net_from_price_ratio`: the price ratio that REALISES a net `target`.
+
+    Mirrors `Trade.calc_close_rate_for_roi` (`trade_model.py`), which freqtrade uses to
+    price a ROI fill once the level is detected. Use this wherever a NET threshold
+    (`take_profit`, `roi`) has to be turned back into a price to compare against a candle.
+    """
+    return (1.0 + target) * (1.0 + fee_per_side) / (1.0 - fee_per_side)
+
+
 def custom_exit_decision(
     current_profit: float,
     age_hours: float,
@@ -415,17 +645,22 @@ def simulate_forward(
     fix"):
 
       * `stop` / `hold_cap` / `end_of_data` close at a traded PRICE (the stop level, or the
-        bar's open/close); `round_trip_fee` is subtracted from that price-based fraction
-        exactly once, same as always.
+        bar's open/close); that price goes through `net_from_price_ratio`, freqtrade's exact
+        multiplicative fee model, exactly once.
       * `metric_overbought` / `take_profit` / `unclog_12h` / `unclog_1d` (the `open_`-based
-        `custom_exit_decision` branches) and `roi` compare and RETURN a NET figure --
-        `(price/entry - 1) - round_trip_fee` -- because freqtrade's own thresholds for these
-        (`cexit_take_profit`, `unclog_12h_min_profit`, `unclog_1d`'s zero-profit floor, and
-        `minimal_roi`) are themselves compared against a NET `current_profit`
-        (`trade.calc_profit_ratio`, fee-inclusive by construction). Computing a GROSS profit,
-        comparing it against these NET thresholds, and then subtracting the fee a second time
-        from the return value double-counts the fee and is WRONG at both ends; this function
-        nets the fee out ONCE, before the comparison.
+        `custom_exit_decision` branches) compare and RETURN a NET figure --
+        `net_from_price_ratio(price / entry, fee)` -- because freqtrade's own thresholds for these
+        (`cexit_take_profit`, `unclog_12h_min_profit`, `unclog_1d`'s zero-profit floor) are
+        themselves compared against a NET `current_profit` (`trade.calc_profit_ratio`,
+        fee-inclusive by construction). Computing a GROSS profit, comparing it against these
+        NET thresholds, and then subtracting the fee a second time from the return value
+        double-counts the fee and is WRONG at both ends; this function nets the fee out
+        ONCE, before the comparison.
+      * `roi` DETECTS on that same NET-of-fee HIGH-based figure (`profit_high_net >=
+        params.roi`) but RETURNS `params.roi` itself, not the measured figure -- see this
+        module's docstring, "AMENDED 2026-10-08 (ROI realises its TARGET, not the
+        triggering spike)". `params.roi` is already a NET target by construction (same
+        reasoning as the bullet above), so no further fee subtraction applies to it.
 
     `open_` and `guard_metric` are per-bar arrays, both OPTIONAL (feature 021's FR-001
     amendment). `None` means exactly what it means for `rvol` elsewhere in this module: "do
@@ -452,7 +687,11 @@ def simulate_forward(
       3. IF `open_` is NOT supplied: the legacy high-based `take_profit` check (unchanged;
          this is the ONLY place this amendment preserves a pre-existing approximation rather
          than replacing it, and only for callers that cannot supply an open price).
-      4. IF `params.roi` is supplied: the native ROI exit, on the bar's HIGH.
+      4. IF `params.roi` is supplied: the native ROI exit, DETECTED on the bar's HIGH but
+         FILLED at the ROI target itself (module docstring, "AMENDED 2026-10-08 (ROI
+         realises its TARGET, not the triggering spike)") -- matching freqtrade's own
+         `_get_close_rate_for_roi`, which uses the high/low only to detect the level was
+         reached, then fills at `trade.calc_close_rate_for_roi(roi)`.
 
     SAME-BAR RULE PRECEDENCE WHEN `open_` IS NOT SUPPLIED, fixed and deliberate
     (contracts/exit-policy.md), UNCHANGED by this amendment: if a bar's low breaches the stop
@@ -500,8 +739,13 @@ def simulate_forward(
 
     bars_per_hour = 60.0 / params.timeframe_minutes
     max_bars = int(params.max_hold_days * 24 * bars_per_hour)
-    tp_price = entry * (1.0 + params.take_profit)
-    round_trip_fee = 2.0 * params.fee_per_side
+    # `take_profit` is a NET target (see this function's docstring), so the price that
+    # realises it is its inverse through freqtrade's fee model, NOT `entry * (1 + tp)`.
+    tp_price = entry * price_ratio_for_net(params.take_profit, params.fee_per_side)
+
+    # The grace boundary, resolved once: `effective_stop_fraction` applies the grace
+    # level while `age_hours < grace_hours`, so this is the post-grace test too.
+    grace_hours = float(params.stoploss_grace_hours or 0.0)
 
     last = min(start_index + max_bars, n - 1)
     # LOOP START (entry-price convention fix): once entry happens at the bar's OPEN, that
@@ -520,19 +764,57 @@ def simulate_forward(
         # docstrings), so the comparison -- not just the return value -- must be net too.
         # At k == start_index (when `open_` is supplied, so this is reachable) this is
         # always a no-op: open_[start_index] == entry by definition, so profit_open_net ==
-        # -round_trip_fee <= 0, and age_hours == 0 fails every time-based threshold too.
+        # net_from_price_ratio(1.0, fee) == -2f/(1+f) < 0, and age_hours == 0 fails every
+        # time-based threshold too.
         if open_ is not None:
-            profit_open_net = (float(open_[k]) / entry) - 1.0 - round_trip_fee
+            profit_open_net = net_from_price_ratio(
+                float(open_[k]) / entry, params.fee_per_side
+            )
             gm = None if guard_metric is None else float(guard_metric[k])
             decision = custom_exit_decision(profit_open_net, age_hours, gm, params)
             if decision in (
                 CLOSE_METRIC_OVERBOUGHT, CLOSE_TAKE_PROFIT, CLOSE_UNCLOG_12H, CLOSE_UNCLOG_1D,
+            ) and discretionary_exit_allowed(
+                decision, age_hours, params.min_discretionary_hold_hours
             ):
+                # The veto FALLS THROUGH rather than ending the trade, matching
+                # `_check_trade_exit`'s `for exit_ in exits` loop: a vetoed custom_exit
+                # lets the native stop (and then ROI) be tried on this SAME bar, and if
+                # none fire the trade simply continues. Crucially the decision is NOT
+                # remembered -- if it stops holding before the trade turns
+                # `min_discretionary_hold_hours` old, that exit is LOST, which is why the
+                # arm so often ends up stopping out where the table took profit.
                 return profit_open_net, k - start_index, decision
 
         # ---- 1. the native stop, on the LOW ------------------------------------------
         stop_frac = effective_stop_fraction(age_hours, atr_entry, rvol_entry, params)
         stop_price = entry * (1.0 + stop_frac)
+        # POST-GRACE AT-MARKET CLAMP (2026-10-08, mirrors the live sign fix in
+        # `BaseStrategy.custom_stoploss`; see `STOP_AT_MARKET_RATIO`). Once grace has
+        # expired the live stop is re-derived every bar from `current_rate`, which
+        # freqtrade's backtester supplies as the bar's HIGH -- and it cannot be placed
+        # above that. So an entry-anchored stop that sits above this bar's high is held
+        # AT the market instead, and fires here. Gated on `open_` for the same reason the
+        # gap-fill and entry-price conventions are: callers that omit it are pinned to
+        # pre-amendment behaviour.
+        #
+        # This also removes the post-grace gap case below: with the stop clamped to at or
+        # below the high, `stop_price > high[k]` can no longer be true after grace, so
+        # the open-fill branch now applies only to a genuine gap through the GRACE stop
+        # -- which is expressible live (it is set once, at after_fill, with
+        # `allow_refresh=True`) and so is a real freqtrade gap fill, not a modelling
+        # artefact.
+        #
+        # `grace_hours > 0.0` is LOAD-BEARING, not defensive. The live rescale -- and so
+        # the sign defect this models -- exists ONLY inside `custom_stoploss`'s
+        # `if grace_hours > 0.0:` block. With grace disabled the stop is simply
+        # `self.stoploss` anchored at entry by `adjust_stop_loss(..., initial=True)` and
+        # never re-derived from `current_rate`, so it CAN sit above the bar and a gap
+        # through it really does fill at the open. Omitting this test made
+        # `test_stop_fills_at_the_open_when_the_open_has_already_gapped_below_the_stop`
+        # (which runs `stoploss_grace_hours=0.0`) clamp and fill at the high instead.
+        if open_ is not None and grace_hours > 0.0 and age_hours >= grace_hours:
+            stop_price = min(stop_price, float(high[k]) * (1.0 + STOP_AT_MARKET_RATIO))
         if float(low[k]) <= stop_price:
             # FILL PRICE, not just the decision (T021 reconciliation follow-up, the
             # "grace cliff" fix). freqtrade's own
@@ -570,7 +852,12 @@ def simulate_forward(
                 if stop_price > float(high[k]):
                     realised = (float(open_[k]) / entry) - 1.0
                 else:
-                    realised = stop_frac
+                    # Derived from `stop_price`, NOT from `stop_frac`: the post-grace
+                    # at-market clamp above can have moved the stop below the
+                    # entry-anchored level, and returning `stop_frac` here would report
+                    # the level the policy ASKED for rather than the one it got.
+                    # Identical to `stop_frac` whenever the clamp did not bite.
+                    realised = (stop_price / entry) - 1.0
             else:
                 # No open price supplied: this is the pre-amendment fallback, and it is
                 # deliberately optimistic (fill AT the stop), because without `open_`
@@ -580,25 +867,47 @@ def simulate_forward(
                 # (`test_exit_policy_simulate_forward.py` / `test_exit_policy_grace.py`)
                 # keep their bit-for-bit pinned behaviour.
                 realised = stop_frac
-            return realised - round_trip_fee, k - start_index, CLOSE_STOP
+            return (
+                net_from_price_ratio(1.0 + realised, params.fee_per_side),
+                k - start_index,
+                CLOSE_STOP,
+            )
 
         # ---- 2. the legacy take-profit fallback, HIGH-based -- ONLY when the caller has
         #         not supplied an open price (pre-amendment behaviour, pinned by T009/T010)
         if open_ is None and float(high[k]) >= tp_price:
-            return params.take_profit - round_trip_fee, k - start_index, CLOSE_TAKE_PROFIT
+            # Realises the NET target exactly, for the same reason `roi` does: `tp_price`
+            # is now that target's own inverse, so crossing it realises the target.
+            return params.take_profit, k - start_index, CLOSE_TAKE_PROFIT
 
-        # ---- 3. the native ROI exit, on the HIGH (feature 021 FR-001 amendment) ------
-        # NET, not gross (fee double-count fix, 2026-10-08): `minimal_roi` is compared
-        # live against `trade.calc_profit_ratio` (NET, interface.py's `min_roi_reached`),
-        # so this must compare and return the same NET figure, not the fixed threshold
-        # minus a fee.
+        # ---- 3. the native ROI exit, DETECTED on the HIGH, FILLED at the TARGET --------
+        # (feature 021 FR-001 amendment; ROI fill-price fix, 2026-10-08, this module's
+        # docstring "AMENDED 2026-10-08 (ROI realises its TARGET, not the triggering
+        # spike)"). DETECTION stays NET, not gross (fee double-count fix): `minimal_roi`
+        # is compared live against `trade.calc_profit_ratio` (NET, interface.py's
+        # `min_roi_reached`), so the comparison must be against the same NET figure.
+        # But the FILL does not realise that measured figure -- freqtrade's own
+        # `_get_close_rate_for_roi` (optimize/backtesting.py) uses the high only to
+        # detect the level was crossed, then fills at `trade.calc_close_rate_for_roi(roi)`,
+        # clamped to the candle's range -- i.e. the price that realises the ROI level
+        # itself, not whatever the high happened to reach. `params.roi` is already a NET
+        # target (same construction as `minimal_roi` vs `calc_profit_ratio`), so it is
+        # returned as-is, with no further fee subtraction.
         if params.roi is not None:
-            profit_high_net = (float(high[k]) / entry) - 1.0 - round_trip_fee
-            if profit_high_net >= params.roi:
-                return profit_high_net, k - start_index, CLOSE_ROI
+            profit_high_net = net_from_price_ratio(
+                float(high[k]) / entry, params.fee_per_side
+            )
+            if profit_high_net >= params.roi and discretionary_exit_allowed(
+                CLOSE_ROI, age_hours, params.min_discretionary_hold_hours
+            ):
+                return float(params.roi), k - start_index, CLOSE_ROI
 
     if start_index + max_bars <= n - 1:                      # 4. hold cap
         exit_px = float(close[last])
-        return (exit_px / entry) - 1.0 - round_trip_fee, last - start_index, CLOSE_HOLD_CAP
+        return (
+            net_from_price_ratio(exit_px / entry, params.fee_per_side),
+            last - start_index,
+            CLOSE_HOLD_CAP,
+        )
 
     return 0.0, last - start_index, CLOSE_END_OF_DATA        # 5. ran out of data

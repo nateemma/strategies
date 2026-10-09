@@ -68,6 +68,31 @@ STOP_PRICE = ENTRY * (1.0 + PARAMS.static_stoploss)   # 95.0
 TP_PRICE = ENTRY * (1.0 + PARAMS.take_profit)          # 105.0
 ROUND_TRIP_FEE = 2.0 * PARAMS.fee_per_side             # 0.002
 
+def _ft_net(gross_fraction: float, fee_per_side: float = 0.001) -> float:
+    """freqtrade's own fee-inclusive profit ratio for a SPOT long, from a GROSS fraction.
+
+    Written out from `freqtrade/persistence/trade_model.py`'s formulas DELIBERATELY, rather
+    than by calling `utils.ExitPolicy.net_from_price_ratio`, so these tests stay an
+    INDEPENDENT check of that helper's arithmetic instead of a restatement of it. If both
+    were the same expression, a wrong fee model would satisfy every assertion here.
+
+        open_trade_value  = amount * open_rate * (1 + fee_open)     # _calc_open_trade_value
+        close_trade_value = amount * rate      * (1 - fee_close)    # _calc_base_close, SPOT
+        profit_ratio      = close_trade_value / open_trade_value - 1   # calc_profit_ratio
+
+    Replaced `gross - ROUND_TRIP_FEE` across this file on 2026-10-08: that additive form was
+    only the first-order expansion of this one, and differed by about `-2 * fee * r` -- see
+    `utils/ExitPolicy.py`'s module docstring, "AMENDED 2026-10-08 (freqtrade's fee model is
+    MULTIPLICATIVE, not additive)". `test_exit_policy_fee_netting.py` pins this helper
+    against a REAL freqtrade `Trade` object, so the restatement cannot drift silently.
+    """
+    amount, open_rate = 1.0, 100.0
+    close_rate = open_rate * (1.0 + gross_fraction)
+    open_trade_value = amount * open_rate * (1.0 + fee_per_side)
+    close_trade_value = amount * close_rate * (1.0 - fee_per_side)
+    return close_trade_value / open_trade_value - 1.0
+
+
 
 def _run(high, low, close):
     atr_pct = [0.0] * len(close)
@@ -87,8 +112,8 @@ def test_same_bar_tie_stop_wins_over_take_profit():
 
     assert reason == CLOSE_STOP
     assert hold_bars == 1
-    assert profit == PARAMS.static_stoploss - ROUND_TRIP_FEE
-    assert abs(profit - (-0.052)) < 1e-12
+    assert abs(profit - _ft_net(PARAMS.static_stoploss)) < 1e-12
+    assert abs(profit - (-0.0518981018981018)) < 1e-12   # was -0.052 under the additive fee model
 
 
 def test_stop_in_isolation():
@@ -100,7 +125,7 @@ def test_stop_in_isolation():
 
     assert reason == CLOSE_STOP
     assert hold_bars == 1
-    assert profit == PARAMS.static_stoploss - ROUND_TRIP_FEE
+    assert abs(profit - _ft_net(PARAMS.static_stoploss)) < 1e-12
 
 
 def test_take_profit_in_isolation():
@@ -112,7 +137,7 @@ def test_take_profit_in_isolation():
 
     assert reason == CLOSE_TAKE_PROFIT
     assert hold_bars == 1
-    assert profit == PARAMS.take_profit - ROUND_TRIP_FEE
+    assert abs(profit - PARAMS.take_profit) < 1e-12
 
 
 def test_hold_cap_in_isolation():
@@ -127,9 +152,9 @@ def test_hold_cap_in_isolation():
 
     assert reason == CLOSE_HOLD_CAP
     assert hold_bars == 1
-    expected = (close[1] / ENTRY) - 1.0 - ROUND_TRIP_FEE
+    expected = _ft_net(close[1] / ENTRY - 1.0)
     assert abs(profit - expected) < 1e-12
-    assert abs(profit - 0.018) < 1e-12
+    assert abs(profit - 0.0179620379620380) < 1e-12       # was 0.018 under the additive fee model
 
 
 def test_end_of_data_in_isolation():

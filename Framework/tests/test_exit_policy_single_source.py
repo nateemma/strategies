@@ -179,6 +179,20 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
                                                  # computes no take_profit/max_hold decision.
     "SimpleStrategies/Ehlers_Ichimoku.py",     # a pinned sell_params dict (class attribute),
                                                  # same pattern as the Debug/* files above.
+    "Framework/tests/test_post_grace_stop_signfix.py",
+                                                 # CONFIGURING: sets grace hours/level on a
+                                                 # stub to drive the live post-grace branch.
+                                                 # Its `_freqtrade_stop_price` helper restates
+                                                 # FREQTRADE's own `adjust_stop_loss`
+                                                 # arithmetic (`current_price * (1 -
+                                                 # abs(ratio))`), deliberately, as an
+                                                 # INDEPENDENT oracle -- the defect it pins was
+                                                 # invisible in the returned ratio and only
+                                                 # shows in the stop PRICE that ratio causes.
+                                                 # It computes no stop LEVEL of ours: it never
+                                                 # touches the ATR clamp, the grace branch or
+                                                 # the volume tighten, all of which it reaches
+                                                 # only through BaseStrategy.custom_stoploss.
     "regime/gbb_dist.py",                      # a print() string reporting the live
                                                  # cexit_take_profit value; computes nothing.
     "regime/path_label_sell.py",               # a literal preempt-level list with a comment

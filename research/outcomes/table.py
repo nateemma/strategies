@@ -410,6 +410,13 @@ def _sidecar_payload(table: OutcomeTable) -> dict:
         "config_hash": table.config_hash,
         "dataset_id": table.dataset_id,
         "built_at": table.built_at.isoformat(),
+        # Recorded for OBSERVABILITY, not for the hash (which already folds it in, see
+        # `config_hash`). Without it a cached feather on disk gives no way to tell WHICH
+        # `simulate_forward` logic produced it -- which is precisely the blind spot that
+        # let runs 2 and 3 silently share hash 431d3c532fa09815 across a behaviour change.
+        # `_hash_from_sidecar` reads only the `ExitParams` fields, so this extra key
+        # cannot affect hash verification.
+        "simulation_logic_version": SIMULATION_LOGIC_VERSION,
         **asdict(table.exit_config.params),
     }
 

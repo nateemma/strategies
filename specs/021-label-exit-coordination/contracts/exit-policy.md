@@ -142,3 +142,46 @@ same-bar ambiguity arises. The rule is therefore **inert for the production path
 survives only for callers that omit `open_`. It is retained rather than deleted because
 those callers still exist in tests, but it should not be read as governing the outcome
 table.
+
+## VERIFIED PREMISE 2026-10-08 — order types, and why the table may model exits as market fills
+
+`simulate_forward` realises every exit at a price derived from the candle (the stop level,
+or the bar's open when the stop gapped past it; the take-profit threshold; the close for a
+signal or hold-cap exit). That is a **market-fill model**. It is only sound if the live and
+backtest paths actually exit at market, so this was checked rather than assumed.
+
+`config/config_wf.json` — the config the walk-forward arm runs under:
+
+| setting | value |
+|---|---|
+| `order_types.entry` | `limit` |
+| `order_types.exit` | `market` |
+| `order_types.stoploss` | `market` |
+| `order_types.emergency_exit` / `force_exit` / `force_entry` | `market` |
+| `stoploss_on_exchange` | `false` |
+| `stoploss_price_type` | `last` |
+| `unfilledtimeout.entry` / `.exit` | 10 minutes each |
+
+Verified identical in `config_mom_dryrun_15m.json` (the live dry-run) and in every `config_mom*`,
+`config_basket`, `config_sol`, `config_link`, `config_1h` and `config_reversion_1h`. The
+`config_binanceus_*` family sets `exit: limit`, but no harness or live path uses those.
+
+**Three consequences.**
+
+1. **Exits and stops are market.** No limit-exit non-fill or price improvement can hide in the
+   reconciliation residual. The table's exit-price model matches the arm's by construction, so
+   divergence at an exit must come from *which rule fired* or *when*, not from the fill price
+   of an agreed exit.
+
+2. **Entries are limit, and the table models them as a market fill at the bar open.** This is a
+   real asymmetry, but an empirically inert one: the entry-bar regression slope collapsed from
+   −1.072 to **−0.028** once the table entered at `open_[start_index]`, which is what freqtrade's
+   backtester fills a limit entry at. The 10-minute `unfilledtimeout.entry` is shorter than one
+   15m candle, so a late fill cannot drift into the next bar and reappear as a hold-duration
+   mismatch.
+
+3. **`exit_pricing.use_order_book: true` with `order_book_top: 1` is inert in backtesting** —
+   there is no order book to read, so freqtrade falls back to the candle price. It is a
+   live/backtest divergence *in the arm itself*, not something the outcome table introduces, and
+   therefore out of scope for reconciliation. It is recorded here so it is not re-discovered as
+   a suspect later.

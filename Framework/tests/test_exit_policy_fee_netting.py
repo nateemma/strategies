@@ -12,11 +12,19 @@ source citations live there, not repeated here):
     no fee in it (a price level, or a bar's open/close); the fee is realised exactly once,
     subtracted from the price-based fraction AFTER the fill is decided.
   * `metric_overbought` / `take_profit` / `unclog_12h` / `unclog_1d` (the `open_`-based
-    `custom_exit_decision` branches) and `roi` compare against thresholds that are
-    themselves NET live (`trade.calc_profit_ratio`, fee-inclusive). So both the COMPARISON
-    and the RETURN must be net, computed once -- not gross-compared-then-fee-subtracted
-    (double-counts) and not gross-compared-then-returned-raw (under-counts on the other
-    side).
+    `custom_exit_decision` branches) compare against thresholds that are themselves NET
+    live (`trade.calc_profit_ratio`, fee-inclusive). So both the COMPARISON and the RETURN
+    must be net, computed once -- not gross-compared-then-fee-subtracted (double-counts)
+    and not gross-compared-then-returned-raw (under-counts on the other side).
+  * `roi`'s COMPARISON follows the same rule (NET-high-based, computed once). Its RETURN
+    does not, as of the 2026-10-08 ROI fill-price fix (`utils/ExitPolicy.py`'s module
+    docstring, "AMENDED 2026-10-08 (ROI realises its TARGET, not the triggering spike)"):
+    it returns the fixed `params.roi` target, not the measured net figure, because
+    freqtrade's own ROI fill price realises the target, not the high. See
+    `test_roi_detects_net_but_returns_the_fixed_target_not_the_measured_high`, updated in
+    that same change (this file previously pinned the pre-fix "returns the measured net
+    figure" behaviour under a different name/docstring -- see that test for why the new
+    value is correct).
 
 CHECKED, NOT CHANGED, 2026-10-08 (entry-price convention fix, `utils/ExitPolicy.py`'s
 module docstring): every case that supplies `open_` here already has `open_[0] == ENTRY ==
@@ -48,6 +56,31 @@ ENTRY = 100.0
 FEE_PER_SIDE = 0.001
 ROUND_TRIP_FEE = 2.0 * FEE_PER_SIDE  # 0.002
 
+def _ft_net(gross_fraction: float, fee_per_side: float = 0.001) -> float:
+    """freqtrade's own fee-inclusive profit ratio for a SPOT long, from a GROSS fraction.
+
+    Written out from `freqtrade/persistence/trade_model.py`'s formulas DELIBERATELY, rather
+    than by calling `utils.ExitPolicy.net_from_price_ratio`, so these tests stay an
+    INDEPENDENT check of that helper's arithmetic instead of a restatement of it. If both
+    were the same expression, a wrong fee model would satisfy every assertion here.
+
+        open_trade_value  = amount * open_rate * (1 + fee_open)     # _calc_open_trade_value
+        close_trade_value = amount * rate      * (1 - fee_close)    # _calc_base_close, SPOT
+        profit_ratio      = close_trade_value / open_trade_value - 1   # calc_profit_ratio
+
+    Replaced `gross - ROUND_TRIP_FEE` across this file on 2026-10-08: that additive form was
+    only the first-order expansion of this one, and differed by about `-2 * fee * r` -- see
+    `utils/ExitPolicy.py`'s module docstring, "AMENDED 2026-10-08 (freqtrade's fee model is
+    MULTIPLICATIVE, not additive)". `test_exit_policy_fee_netting.py` pins this helper
+    against a REAL freqtrade `Trade` object, so the restatement cannot drift silently.
+    """
+    amount, open_rate = 1.0, 100.0
+    close_rate = open_rate * (1.0 + gross_fraction)
+    open_trade_value = amount * open_rate * (1.0 + fee_per_side)
+    close_trade_value = amount * close_rate * (1.0 - fee_per_side)
+    return close_trade_value / open_trade_value - 1.0
+
+
 BASE = dict(
     static_stoploss=-0.05,
     use_atr_adaptive_stoploss=False,
@@ -78,7 +111,7 @@ def test_custom_exit_decision_take_profit_boundary_is_evaluated_on_whatever_it_i
     threshold is not this function's problem to detect."""
     params = ExitParams(**BASE)
     gross = 0.023  # clears 0.022 if compared as-is
-    net = gross - ROUND_TRIP_FEE  # 0.021 -- does NOT clear 0.022
+    net = _ft_net(gross)  # ~0.0210 -- does NOT clear 0.022
     assert custom_exit_decision(gross, age_hours=1.0, guard_metric=None, params=params) == (
         CLOSE_TAKE_PROFIT
     )
@@ -107,7 +140,7 @@ def test_stop_fee_is_subtracted_once_from_the_price_based_fill():
         open_=open_,
     )
     assert reason == CLOSE_STOP
-    assert abs(profit - (params.static_stoploss - ROUND_TRIP_FEE)) < 1e-12
+    assert abs(profit - _ft_net(params.static_stoploss)) < 1e-12
 
 
 def test_hold_cap_fee_is_subtracted_once_from_the_close_based_fill():
@@ -128,7 +161,7 @@ def test_hold_cap_fee_is_subtracted_once_from_the_close_based_fill():
         high, low, close, atr_pct=[0.0] * n, rvol=None, start_index=0, params=params,
     )
     assert reason == CLOSE_HOLD_CAP
-    expected = (101.0 / ENTRY - 1.0) - ROUND_TRIP_FEE
+    expected = _ft_net(101.0 / ENTRY - 1.0)
     assert abs(profit - expected) < 1e-12
 
 
@@ -188,7 +221,7 @@ def test_take_profit_open_based_fires_and_returns_the_net_figure_once_net_clears
         open_=open_,
     )
     assert reason == CLOSE_TAKE_PROFIT
-    expected_net = gross - ROUND_TRIP_FEE
+    expected_net = _ft_net(gross)
     assert abs(profit - expected_net) < 1e-12
 
 
@@ -210,10 +243,18 @@ def test_unclog_12h_requires_net_not_gross_to_clear_its_threshold():
     assert reason != CLOSE_UNCLOG_12H
 
 
-def test_roi_compares_net_and_returns_the_net_high_not_the_fixed_threshold_minus_fee():
+def test_roi_detects_net_but_returns_the_fixed_target_not_the_measured_high():
     """A high that clears the ROI threshold GROSS but not NET must not fire (same
-    double-count direction); one that clears NET fires and returns that measured net
-    figure, not a fixed `roi - round_trip_fee` regardless of how far price moved."""
+    double-count direction on the DETECTION side, unchanged by the 2026-10-08 ROI
+    fill-price fix). One that clears NET fires -- but, as of that fix, returns the fixed
+    `params.roi` target, NOT the measured net high-based figure: this test previously
+    pinned the opposite (`expected_net = (1.06 - 1.0) - ROUND_TRIP_FEE`, i.e. the measured
+    5.8% figure) under the name
+    `test_roi_compares_net_and_returns_the_net_high_not_the_fixed_threshold_minus_fee` --
+    that was the exact bug T021's reconciliation found biasing real `roi` trades by a mean
+    of +0.012649 (max +11.36913 on one), because freqtrade's own `_get_close_rate_for_roi`
+    fills at the price that realises the ROI target, not at the high. The new expected
+    value (`params.roi`, 0.05) is correct, not a weakened assertion."""
     params = ExitParams(
         static_stoploss=-0.5, use_atr_adaptive_stoploss=False, take_profit=0.5,
         max_hold_days=10, timeframe_minutes=60, fee_per_side=FEE_PER_SIDE,
@@ -230,11 +271,68 @@ def test_roi_compares_net_and_returns_the_net_high_not_the_fixed_threshold_minus
     )
     assert reason != CLOSE_ROI
 
-    # Bar 2 (fresh replay): 6% gross, 5.8% net -- clears the 5% ROI level net.
+    # Bar 2 (fresh replay): 6% gross, 5.8% net -- clears the 5% ROI level net, but fills
+    # at the TARGET (0.05), not the measured 5.8%.
     high_clear = [ENTRY, ENTRY * 0.98, ENTRY * 1.06]
     profit, hold_bars, reason = simulate_forward(
         high_clear, low, close, atr_pct=[0.0] * n, rvol=None, start_index=0, params=params,
     )
     assert reason == CLOSE_ROI
-    expected_net = (1.06 - 1.0) - ROUND_TRIP_FEE
-    assert abs(profit - expected_net) < 1e-12
+    assert abs(profit - params.roi) < 1e-12
+
+
+# =============================================================================================
+# The fee model itself, pinned against a REAL freqtrade Trade (2026-10-08).
+#
+# `net_from_price_ratio` claims to reproduce `Trade.calc_profit_ratio`. Every other test in
+# this file checks it against `_ft_net`, a hand-restatement of the same formulas -- which
+# would agree with a WRONG model if both restated it wrongly. These two tests close that
+# hole by asking freqtrade itself, so the model cannot drift if upstream changes it.
+# =============================================================================================
+
+def _real_freqtrade_trade(entry: float = 100.0, fee_per_side: float = 0.001):
+    """A real in-memory `LocalTrade` -- no DB session, no backtest, just the arithmetic."""
+    from datetime import datetime, timezone
+
+    from freqtrade.persistence.trade_model import LocalTrade
+
+    return LocalTrade(
+        pair="SOL/USDT", stake_amount=entry, amount=1.0, open_rate=entry,
+        open_date=datetime.now(timezone.utc), fee_open=fee_per_side,
+        fee_close=fee_per_side, is_short=False, leverage=1.0,
+    )
+
+
+def test_net_from_price_ratio_equals_freqtrades_own_calc_profit_ratio():
+    """The whole point of the multiplicative fee model: it is not an approximation of
+    freqtrade's, it IS freqtrade's. Spans the real operating range -- the ROI target
+    (+0.05), the take-profit (+0.022), the ATR stop band (-0.02/-0.04) and the
+    `stoploss_grace_level` floor (-0.2714), where the old additive form was most wrong
+    (+5.4e-4).
+
+    freqtrade rounds `calc_profit_ratio` to 8 decimals (`trade_model.py`), so the
+    tolerance is 1e-8 rather than exact equality -- that rounding is the ONLY permitted
+    difference."""
+    from utils.ExitPolicy import net_from_price_ratio
+
+    entry, fee = 100.0, 0.001
+    trade = _real_freqtrade_trade(entry, fee)
+    for gross in (0.05, 0.022, 0.0, -0.02, -0.04, -0.2714, 1.0, 11.5):
+        ours = net_from_price_ratio(1.0 + gross, fee)
+        theirs = trade.calc_profit_ratio(entry * (1.0 + gross))
+        assert abs(ours - theirs) < 1e-8, f"gross={gross}: ours={ours}, freqtrade={theirs}"
+
+
+def test_price_ratio_for_net_equals_freqtrades_own_calc_close_rate_for_roi():
+    """The inverse, pinned against the function freqtrade actually prices a ROI fill with
+    (`Trade.calc_close_rate_for_roi`, used by `Backtesting._get_close_rate_for_roi`). This
+    is what makes `simulate_forward`'s ROI and legacy take-profit branches able to RETURN
+    their target: the price they trigger at is that target's own inverse."""
+    from utils.ExitPolicy import price_ratio_for_net
+
+    entry, fee = 100.0, 0.001
+    trade = _real_freqtrade_trade(entry, fee)
+    for target in (0.05, 0.022, 0.03, 0.0):
+        ours = entry * price_ratio_for_net(target, fee)
+        theirs = trade.calc_close_rate_for_roi(target)
+        assert abs(ours - theirs) < 1e-8, f"target={target}: ours={ours}, freqtrade={theirs}"
