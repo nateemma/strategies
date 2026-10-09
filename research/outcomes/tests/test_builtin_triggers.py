@@ -263,3 +263,139 @@ def test_the_module_entrypoint_lists_the_builtins_as_a_SUBPROCESS():
     assert "no triggers registered" not in r.stdout
     for name in ("empty", "gbb", "geometry"):
         assert name in r.stdout, f"{name} missing from --list output:\n{r.stdout}"
+
+
+# =============================================================================================
+# T025's audit triggers (FR-012)
+# =============================================================================================
+
+def test_audit_triggers_register():
+    B.register_audit_triggers()
+    assert {"adx", "breakout", "breakout_gbb"} <= set(T.names())
+
+
+def test_adx_matches_the_live_filter_in_the_three_future_labelers():
+    """Reproduces `np.where(adx_scaled > -0.2, labels, 0)` exactly. The clause is BINDING --
+    38.35% of bars pooled -- so it is a real trigger, not an inert one like gbb's rvol."""
+    B.register_audit_triggers()
+    df = pd.DataFrame({"adx_scaled": [-1.0, -0.2, -0.19, 0.0, 1.0, np.nan]})
+    assert T.evaluate("adx", df).tolist() == [False, False, True, True, True, True]
+
+
+def test_adx_treats_a_missing_value_the_way_the_live_code_does():
+    """`df.get("adx_scaled", zeros)` plus `0.0 > -0.2` means a missing/NaN value PASSES the
+    live filter. Reproduced rather than tidied: tightening it here would make the trigger
+    stricter than the labelers it was extracted from."""
+    B.register_audit_triggers()
+    assert T.evaluate("adx", pd.DataFrame({"adx_scaled": [np.nan]})).iloc[0]
+
+
+def test_breakout_is_CAUSAL():
+    """`rolling(lookback).max().shift(1)` reads only closed bars, so unlike `geometry` this
+    one ports exactly -- and that is worth proving, not assuming."""
+    B.register_audit_triggers()
+    rng = np.random.default_rng(5)
+    df = pd.DataFrame({"close": 100 + rng.normal(0, 1, 300).cumsum()})
+    df["high"] = df["close"] + 0.5
+    cut = 200
+    before = T.evaluate("breakout", df).iloc[: cut + 1]
+    pert = df.copy()
+    pert.loc[cut + 1:, ["close", "high"]] = 500.0
+    pd.testing.assert_series_equal(before, T.evaluate("breakout", pert).iloc[: cut + 1])
+
+
+def test_breakout_fires_only_above_the_prior_window_high():
+    B.register_audit_triggers()
+    n = B.BREAKOUT_LOOKBACK + 5
+    df = pd.DataFrame({"high": [10.0] * n, "close": [9.0] * n})
+    df.loc[n - 1, "close"] = 10.5                       # exceeds the prior 20-bar high
+    out = T.evaluate("breakout", df)
+    assert out.iloc[-1]
+    assert not out.iloc[:-1].any()
+
+
+def test_breakout_warmup_is_False_not_missing():
+    B.register_audit_triggers()
+    n = B.BREAKOUT_LOOKBACK - 1
+    df = pd.DataFrame({"high": np.arange(n, dtype=float), "close": np.arange(n, dtype=float)})
+    out = T.evaluate("breakout", df)
+    assert out.dtype == bool and not out.any()
+
+
+def test_breakout_gbbs_guard_direction_is_OPPOSITE_to_gbbs():
+    """Not a variant of one condition: `breakout_gbb` wants guard_metric ABOVE 0.2 while
+    `gbb` wants it BELOW 0.3. Worth a test because the shared name invites the assumption
+    that they select the same regime, and any leaderboard row mentioning gbb is misread if
+    so."""
+    B.register_audit_triggers()
+    df = pd.DataFrame({"guard_metric": [0.1, 0.25, 0.5], "bb_width": [0.05] * 3,
+                       "rvol": [1.0] * 3})
+    assert T.evaluate("gbb", df).tolist() == [True, True, False]
+    assert T.evaluate("breakout_gbb", df).tolist() == [False, True, True]
+
+
+@pytest.mark.parametrize("labeler,trigger,kwargs", [
+    ("labels_gbb", "gbb", {"min_gain": 0.01}),
+    ("labels_gbb_path", "gbb", {"min_gain": 0.01}),
+    ("labels_future_sharpe", "adx", {}),
+    ("labels_future_sortino", "adx", {}),
+    ("labels_future_expectancy", "adx", {}),
+    ("labels_breakout", "breakout", {"min_gain": 0.01}),
+    ("labels_breakout_tb", "breakout", {"min_gain": 0.01}),
+    ("labels_breakout_vol", "breakout", {"min_gain": 0.01}),
+    ("labels_breakout_squeeze", "breakout", {"min_gain": 0.01}),
+    ("labels_breakout_gbb", "breakout_gbb", {"min_gain": 0.01}),
+])
+def test_every_claimed_reduction_CONTAINS_its_labelers_output(labeler, trigger, kwargs):
+    """THE proof of the audit. If a label ever fires where its candidate trigger does not,
+    the claimed factorisation `mask = trigger AND forward_test` is simply wrong. Verified on
+    real data in the audit (SOL/USDT, 164,918 bars, zero violations); pinned here on
+    synthetic data so it runs without the feather cache.
+    """
+    import Framework.TrainingSignals as TS
+
+    B.register_audit_triggers()
+    rng = np.random.default_rng(17)
+    n = 1200
+    close = 100 + rng.normal(0, 1, n).cumsum()
+    df = pd.DataFrame({
+        "close": close,
+        "open": close,
+        "high": close + np.abs(rng.normal(0, 0.6, n)),
+        "low": close - np.abs(rng.normal(0, 0.6, n)),
+        "volume": rng.uniform(1e4, 1e6, n),
+        "guard_metric": rng.uniform(-1.0, 1.0, n),
+        "bb_width": rng.uniform(0.0, 0.08, n),
+        "rvol": rng.uniform(0.0, 3.0, n),
+        "adx_scaled": rng.uniform(-1.0, 1.0, n),
+    })
+    fn = getattr(TS, labeler)
+    label = fn(df, **kwargs).to_numpy() > 0.5
+    fired = T.evaluate(trigger, df).to_numpy()
+    outside = int((label & ~fired).sum())
+    assert outside == 0, (
+        f"{labeler} fired on {outside} bars outside its claimed trigger {trigger!r}; "
+        f"the factorisation in label-method-audit.md is wrong"
+    )
+    assert label.sum() > 0, "fixture produced no labels; containment is vacuous"
+
+
+def test_local_min_followthroughs_condition_is_NOT_causal():
+    """The second non-reducible member, and the same failure as geometry: `is_local_min`
+    uses a CENTRED window `close[t-k : t+k+1]`, so a bar's eligibility depends on the k bars
+    after it. Measured the same way -- perturb the future, watch the past move."""
+    from Framework.TrainingSignals import labels_local_min_followthrough
+
+    rng = np.random.default_rng(23)
+    n = 300
+    close = 100 + rng.normal(0, 1, n).cumsum()
+    df = pd.DataFrame({"close": close, "high": close + 0.5, "low": close - 0.5})
+    cut = 200
+    before = labels_local_min_followthrough(df, min_gain=0.01).iloc[: cut + 1]
+    pert = df.copy()
+    pert.loc[cut + 1:, ["close", "high", "low"]] = 50.0
+    after = labels_local_min_followthrough(pert, min_gain=0.01).iloc[: cut + 1]
+    assert not before.equals(after), (
+        "local_min_followthrough now looks causal; if so, re-examine the audit -- a "
+        "faithful port may have become possible"
+    )

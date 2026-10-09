@@ -147,6 +147,38 @@ that reason, satisfying FR-012. This is a genuine finding rather than bookkeepin
 roughly a third of the label family was never a labelling idea at all, but a competing
 opinion about what "good" means — and this feature replaces all of them with one answer.
 
+### CORRECTED 2026-10-08 by T025's audit — R7 was wrong on 3 of its 5 predictions
+
+See [label-method-audit.md](./label-method-audit.md) for the full table. R7 was written from
+reading; the audit verified every claimed reduction by CONTAINMENT on real data (SOL/USDT,
+164,918 bars, 11 labeler/trigger pairs, zero violations). Four corrections:
+
+1. **`future_sharpe` / `future_sortino` / `future_expectancy` DO reduce.** All three end with
+   `labels = np.where(adx_scaled > -0.2, labels, 0)`, a pure function of the current bar.
+   R7 called their conditions "purely a property of the forward path with no present-time
+   component"; that clause is present-time and **binding**, blocking 38.35% of bars pooled
+   over five pairs. Registered as the `adx` trigger. Only `mfe_mae_ratio` and
+   `risk_adj_future` were correctly classified.
+
+2. **`labels_geometry` is NOT "a trigger plus guard filters".** It raises with its own
+   defaults, its DWT smoothing is commented out, `find_peaks` plus a 3-bar backfill makes it
+   forward-looking (measured by perturbing the future and watching the past move), and its
+   `prominence` is a whole-series per-pair statistic. It applies no guard filter at all,
+   despite its docstring claiming one. The registered `geometry` is a causal substitute.
+
+3. **A third category exists that R7 did not anticipate**: a member with a genuine entry
+   condition that is nonetheless NOT causal. `geometry` and `local_min_followthrough` (a
+   CENTRED `close[t-k : t+k+1]` window) both land here. They are not competing outcome
+   definitions; they are triggers computed with information from after the bar, which is a
+   different defect with a different fix — confirm the extremum k bars later.
+
+4. **29 members, not 28.** `gbb_fwdmae` was added during this feature's own work.
+
+Final counts: **8** reduce to `empty`, **19** reduce with a real backward factor, **2** do not
+reduce. R7's headline — that a third of the family is a competing outcome definition rather
+than a labelling idea — SURVIVES: 8 of 29 have no entry condition at all. The specific
+attribution was wrong, not the shape of the conclusion.
+
 ## R8 — The fixed learnability probe
 
 **Decision**: ridge-regularised logistic regression on the flattened window, reusing

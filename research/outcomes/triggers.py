@@ -162,10 +162,17 @@ def ensure_builtins() -> None:
     Idempotent, so a caller that has already registered them (or deliberately replaced
     one) is left alone.
     """
-    from research.outcomes.builtin_triggers import register_builtins
+    from research.outcomes.builtin_triggers import (
+        register_audit_triggers,
+        register_builtins,
+    )
 
-    if not {"empty", "gbb", "geometry"} <= set(_REGISTRY):
+    required = {"empty", "gbb", "geometry"}
+    audited = {"adx", "breakout", "breakout_gbb"}
+    if not required <= set(_REGISTRY):
         register_builtins(replace=True)
+    if not audited <= set(_REGISTRY):
+        register_audit_triggers(replace=True)
 
 
 def _visible_frame(df: pd.DataFrame) -> pd.DataFrame:

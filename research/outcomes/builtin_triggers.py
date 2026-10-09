@@ -222,3 +222,111 @@ def register_builtins(*, replace: bool = False) -> list[Trigger]:
             ),
         ), replace=replace),
     ]
+
+
+# =================================================================================================
+# Derived from T025's audit. Each is the separable BACKWARD factor of one or more LabelMethods,
+# verified by containment on real data: every label those methods produce falls inside its
+# trigger (SOL/USDT, 164,918 bars, 11 labeler/trigger pairs, zero violations).
+# =================================================================================================
+
+#: `labels_future_sharpe` / `_sortino` / `_expectancy` all end with
+#:     labels = np.where(adx_scaled > -0.2, labels, 0)
+#: described in the live code as filtering out sideways markets. Research R7 predicted these
+#: three were purely forward-path and so NOT reducible; they are, and the clause is BINDING,
+#: not decorative -- it blocks 38.35% of bars pooled over five pairs (28.5% on AAVE to 48.8%
+#: on XRP), so it cannot be dismissed as inert the way `gbb`'s rvol clause can.
+#:
+#: Why it is a trigger and not a labeler detail: it is a pure function of the current bar's
+#: `adx_scaled`. Under this design that makes it exactly the kind of condition the leaderboard
+#: should PRICE rather than leave buried in three label functions -- its economic value and
+#: learnability are measurable, so whether it earns its keep stops being a judgement call.
+ADX_THRESHOLD = -0.2
+
+
+def _adx(df: pd.DataFrame) -> pd.Series:
+    return pd.Series(
+        np.nan_to_num(np.asarray(df["adx_scaled"], dtype=float), nan=0.0) > ADX_THRESHOLD,
+        index=df.index,
+    )
+
+
+#: `labels_breakout`'s entry condition, shared verbatim by `_tb`, `_vol` and `_squeeze`:
+#:     prior_high = high.rolling(lookback).max().shift(1);  close > prior_high
+#: Cleanly causal -- `rolling` plus `shift(1)` reads only closed bars -- so unlike `geometry`
+#: this one ports exactly. `lookback` is `labels_breakout`'s own default.
+#:
+#: Carries this repository's loudest standing warning: the breakout label is LEARNABLE but
+#: NOT TRADEABLE (MCC 0.77 while losing money on every timeframe and exit tested), and a
+#: re-test after the exit defect was fixed still returned -17.55%. That makes it the single
+#: most valuable row on the leaderboard: a trigger already known to lose money is the
+#: sharpest available test of whether the economic-value column can tell the difference.
+BREAKOUT_LOOKBACK = 20
+
+
+def _breakout(df: pd.DataFrame) -> pd.Series:
+    high = pd.to_numeric(df["high"], errors="coerce")
+    prior_high = high.rolling(BREAKOUT_LOOKBACK).max().shift(1)
+    out = pd.to_numeric(df["close"], errors="coerce") > prior_high
+    # Warm-up (first `lookback` bars) has no prior high; filled explicitly by this trigger,
+    # because `triggers.evaluate` refuses a mask that still carries missingness.
+    return out.fillna(False).astype(bool)
+
+
+#: `labels_breakout_gbb`'s factor. Note the DIRECTION: `guard_metric > 0.2`, the OPPOSITE of
+#: `gbb`'s `guard_metric < 0.3`. The two families named "gbb" therefore select opposite
+#: guard_metric regimes while sharing the `bb_width` floor, which is worth knowing before
+#: reading any leaderboard row that mentions gbb -- they are not variants of one condition.
+BREAKOUT_GBB_GUARD_THRESHOLD = 0.2
+BREAKOUT_GBB_BB_WIDTH_THRESHOLD = 0.035
+
+
+def _breakout_gbb(df: pd.DataFrame) -> pd.Series:
+    guard = np.nan_to_num(np.asarray(df["guard_metric"], dtype=float), nan=0.0)
+    bb_width = np.nan_to_num(np.asarray(df["bb_width"], dtype=float), nan=0.0)
+    mask = (guard > BREAKOUT_GBB_GUARD_THRESHOLD) & (
+        bb_width > BREAKOUT_GBB_BB_WIDTH_THRESHOLD
+    )
+    return pd.Series(mask, index=df.index)
+
+
+def register_audit_triggers(*, replace: bool = False) -> list[Trigger]:
+    """The distinct backward factors T025's audit found (FR-012).
+
+    Registered as DISTINCT CONDITIONS, not one per labeler: `gbb` already covers
+    `labels_gbb`/`_path`/`_fwdmae`, and `breakout` covers four breakout labelers, so one
+    trigger per labeler would pad the leaderboard with duplicate rows and make the verdict
+    column harder to read, not easier.
+    """
+    return [
+        register(Trigger(
+            name="adx",
+            evaluate=_adx,
+            required_columns=("adx_scaled",),
+            source="labels_future_sharpe/_sortino/_expectancy",
+            description=(
+                f"adx_scaled > {ADX_THRESHOLD} — binding, blocks 38.35% of bars; "
+                f"refutes research R7's 'not reducible' prediction for these three"
+            ),
+        ), replace=replace),
+        register(Trigger(
+            name="breakout",
+            evaluate=_breakout,
+            required_columns=("high", "close"),
+            source="labels_breakout/_tb/_vol/_squeeze",
+            description=(
+                f"close > prior {BREAKOUT_LOOKBACK}-bar high (causal); known LEARNABLE but "
+                f"NOT TRADEABLE, so the sharpest test of the economic-value column"
+            ),
+        ), replace=replace),
+        register(Trigger(
+            name="breakout_gbb",
+            evaluate=_breakout_gbb,
+            required_columns=("guard_metric", "bb_width"),
+            source="labels_breakout_gbb",
+            description=(
+                f"guard_metric > {BREAKOUT_GBB_GUARD_THRESHOLD} AND bb_width > "
+                f"{BREAKOUT_GBB_BB_WIDTH_THRESHOLD} — guard direction is OPPOSITE to gbb's"
+            ),
+        ), replace=replace),
+    ]

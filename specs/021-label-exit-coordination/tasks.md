@@ -185,7 +185,7 @@ outcome, confirm the label sets differ only where the triggers do.
 
 - [X] T024 [US3] @model-implementer Implement label formation as `trigger AND __outcome_positive`
   (FR-011), with no label-specific outcome test anywhere.
-- [ ] T025 [US3] @model-implementer Audit the 28 `LabelMethod` members (FR-012): express as triggers
+- [X] T025 [US3] @model-implementer Audit the 28 `LabelMethod` members (FR-012): express as triggers
   those that reduce, and list those that do not with the reason. Per research R7, expect
   `mfe_mae_ratio`, `future_sharpe`, `future_sortino`, `future_expectancy` and
   `risk_adj_future` NOT to reduce — their conditions are purely forward-path properties, so
