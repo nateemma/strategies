@@ -253,3 +253,87 @@ is ornamental and the guards are the strategy. If it does not, the model's thres
 real work that conditional MCC over the whole trigger population fails to see — which is
 plausible, because precision in the extreme tail is not MCC, and this repository has already
 measured that break-even precision is only ~0.25.
+
+---
+
+# T035 gate review — accepted, with four fixes applied (2026-10-09)
+
+The review was delegated rather than self-performed, because the point of an independent
+gate is independence from whoever built the board. Its four checks: base rates **PASS**;
+gap-fill **FAIL on the fillable half as vacuous** and unverifiable at trade level; block
+bootstrap **PASS** with a provenance gap; controls **informative**, with `gbb_stale` doing
+the real work. Four defects it found are now fixed.
+
+## FIX 1 — `selection_value` is withdrawn as a verdict label
+
+Renamed to **`beats_null_fillable`**. The statistic is sound — it survives the signal-bar-leak
+fix, calendar blocks and block length 960 — but the *word* implied tradeability, and all four
+rows carrying it lost 21–71pp. The label now says exactly what the test establishes: this
+trigger beats the `empty` null over fillable, non-overlapping bars at unit stake with
+unlimited pairs. The same table scores all four of those rows **negative over all bars**, so
+the result rests on one filter choice.
+
+## FIX 2 — FR-014b AMENDED: the learnability bar, and whose SE it uses
+
+Two defects in one branch:
+
+* the SE was the **trigger's own** fold SE, never combined with the reference's — so it was
+  not "the SE on that difference" the contract names, understating it by up to √2. Now
+  combined in quadrature (independent probe fits).
+* the bar was **one SE** — a ~68% test against the economic-value column's 95%, making
+  `decoration` strictly easier to earn. Now **1.96 SE**, matched.
+
+**This changes a published verdict.** `votes_consensus` clears the old bar at z = 1.35 as one
+of 13 tests, where ~2 false positives are expected, while the whole conditional-MCC column
+spans 0.03–0.05. It moves from `decoration` to `indeterminate`. **So the board's one example
+of explanation (b) by verdict is withdrawn** — the evidence for decoration now rests entirely
+on the conditional-MCC collapse (+0.5927 → +0.0489), which is much stronger than any single
+row's verdict and is unaffected by this amendment.
+
+## FIX 3 — a new `worse_than_null` verdict
+
+`indeterminate` was absorbing rows whose interval lies **wholly below zero** —
+`votes_tech`/`ind2`/`ind3`/`ind4` — filing them with the controls. "Not shown to beat the
+null" and "shown to be worse than the null" are different findings. The branch sits *after*
+the learnability test, so a trigger that is unprofitable but genuinely learnable still reads
+`decoration`, which is the more informative statement about it.
+
+## FIX 4 — two provenance fields that asserted what they never measured
+
+`regime/run_arm.py` recorded `"guards": args.guards`, the **CLI flag**, default `"on"`. So all
+90 trigger-only arm records read `guards: on` while `TriggerOnly.py` hardcodes
+`entry_enable_guards: False`. **The effective setting was OFF and the record said ON** — an
+auditor reading records alone would conclude the arms tested the trigger *plus* the guard
+chain, the exact opposite of what they tested. Replaced by `guards_requested` (the flag) and
+`entry_enable_guards_written` (what was written, or `None` meaning the class default applies,
+which this script deliberately does not import rather than guess).
+
+Worse, and found in the same pass: **`"volume_filter_active": True` was a literal.** Nothing
+checked it and it could not be false — and **I cited it as evidence** earlier in this feature
+when refuting the "the volume filter was off" hypothesis. That conclusion survives, because it
+was independently established from `custom_stake_amount`'s own code, but the evidence I quoted
+for it was worthless. Replaced by a prose provenance string that says where the check lives
+and that this script does not measure it.
+
+Also removed: `research/outcomes/verdicts.json`, a pre-leak-fix artefact still on disk
+contradicting the current board (it had `geometry` and `breakout_squeeze` as selection_value
+with ~5× larger deltas). Recoverable from commit b648536.
+
+## STILL OUTSTANDING — the 90 existing arm records
+
+The generator is fixed; **the 90 already-written records still carry the false
+`guards: on`**. They have not been rewritten, because they are a faithful record of what that
+run emitted and silently editing committed result files is its own provenance problem. Anyone
+reading `regime/arms/wf_*_f*.json` from before 2026-10-09 must treat the `guards` field as
+meaningless and consult the strategy class.
+
+## WHERE THE REVIEW SAYS I OVERREACHED, and I accept it
+
+Finding 2's "the EV column has **no predictive validity**" is over-claimed at n = 6. The four
+rows are not independent conditions — `breakout` is `breakout_vol`'s base, and `breakout_bb`
+and `breakout_gbb` share `bb_width > 0.035` — so 4/4 wrong is roughly **two** effective
+failures, and a Spearman at n = 6 resolves nothing in either direction. The defensible claim
+is the **population** one, which needs no significance test: the verdict population is not
+enterable by a capital-constrained strategy, and the population that is loses. I was not too
+harsh on the column as a trading screen — FR-017 already forbade that use — but I was too
+harsh on it as a measurement.

@@ -264,13 +264,16 @@ def _iv(point, lo, hi):
 
 
 @pytest.mark.parametrize("ev_lo,learn_delta,learn_se,expected", [
-    # economic value clears its bar -> selection_value, regardless of learnability
-    (+0.001, +0.50, 0.01, LB.VERDICT_SELECTION_VALUE),
-    (+0.001, +0.00, 0.01, LB.VERDICT_SELECTION_VALUE),
-    (+0.001, -0.50, 0.01, LB.VERDICT_SELECTION_VALUE),
-    # it does not, but learnability does -> decoration
+    # economic value clears its bar -> beats_null_fillable, regardless of learnability
+    (+0.001, +0.50, 0.01, LB.VERDICT_BEATS_NULL_FILLABLE),
+    (+0.001, +0.00, 0.01, LB.VERDICT_BEATS_NULL_FILLABLE),
+    (+0.001, -0.50, 0.01, LB.VERDICT_BEATS_NULL_FILLABLE),
+    # it does not, but learnability clears 1.96 SE -> decoration
     (-0.001, +0.50, 0.01, LB.VERDICT_DECORATION),
-    (-0.001, +0.011, 0.01, LB.VERDICT_DECORATION),
+    (-0.001, +0.0197, 0.01, LB.VERDICT_DECORATION),
+    # learnability falls just SHORT of the 1.96 bar it used to clear at 1.0 -- this is the
+    # amended bar, and it is the case that moved votes_consensus off `decoration`
+    (-0.001, +0.011, 0.01, LB.VERDICT_INDETERMINATE),
     # neither -> indeterminate
     (-0.001, +0.009, 0.01, LB.VERDICT_INDETERMINATE),
     (-0.001, -0.50, 0.01, LB.VERDICT_INDETERMINATE),
@@ -279,6 +282,31 @@ def _iv(point, lo, hi):
 def test_verdict_rule_branches(ev_lo, learn_delta, learn_se, expected):
     v = LB.assign_verdict("t", _iv(0.002, ev_lo, 0.01), learn_delta, learn_se)
     assert v.verdict == expected
+
+
+def test_the_learnability_bar_uses_the_SE_OF_THE_DIFFERENCE():
+    """FR-014b asks for "the SE on that difference". The old code used the trigger's own
+    fold SE and never combined the reference's, understating the difference's SE by up to
+    sqrt(2) and making `decoration` easier to earn than specified."""
+    v = LB.assign_verdict("t", _iv(0.0, -0.001, 0.002), 0.0166, 0.0081, reference_se=0.0092)
+    assert v.learn_se == pytest.approx((0.0081**2 + 0.0092**2) ** 0.5, rel=1e-9)
+    # votes_consensus's real numbers: clears 1.0x its OWN SE, fails 1.96x the DIFFERENCE's
+    assert 0.0166 > 0.0081
+    assert v.verdict == LB.VERDICT_INDETERMINATE
+
+
+def test_a_wholly_negative_interval_is_WORSE_THAN_NULL_not_indeterminate():
+    """`indeterminate` was absorbing rows measured to be worse than the null, filing them
+    with the controls. "Not shown to beat" and "shown to be worse" are different findings."""
+    v = LB.assign_verdict("t", _iv(-0.0023, -0.0029, -0.0018), -0.001, 0.01, reference_se=0.01)
+    assert v.verdict == LB.VERDICT_WORSE_THAN_NULL
+
+
+def test_learnable_but_unprofitable_stays_DECORATION_even_when_negative():
+    """Branch order matters: a trigger worse than the null on EV but genuinely learnable is
+    still explanation (b), which is the more informative statement about it."""
+    v = LB.assign_verdict("t", _iv(-0.0023, -0.0029, -0.0018), +0.50, 0.01, reference_se=0.01)
+    assert v.verdict == LB.VERDICT_DECORATION
 
 
 def test_the_rule_is_TOTAL_every_input_gets_exactly_one_verdict():
@@ -291,11 +319,11 @@ def test_the_rule_is_TOTAL_every_input_gets_exactly_one_verdict():
             for se in (1e-6, 0.01, 1.0):
                 v = LB.assign_verdict("t", _iv(0.0, lo, 0.02), ld, se)
                 assert v.verdict in {
-                    LB.VERDICT_SELECTION_VALUE, LB.VERDICT_DECORATION,
-                    LB.VERDICT_INDETERMINATE,
+                    LB.VERDICT_BEATS_NULL_FILLABLE, LB.VERDICT_DECORATION,
+                    LB.VERDICT_INDETERMINATE, LB.VERDICT_WORSE_THAN_NULL,
                 }
                 seen.add(v.verdict)
-    assert len(seen) == 3, f"grid never produced all three verdicts: {seen}"
+    assert len(seen) == 3, f"grid never produced three verdicts: {seen}"
 
 
 def test_an_interval_touching_zero_does_NOT_count_as_beating_the_null():
@@ -304,24 +332,32 @@ def test_an_interval_touching_zero_does_NOT_count_as_beating_the_null():
     assert not LB.assign_verdict("t", _iv(0.001, 0.0, 0.01), 0.0, 1.0).ev_beats_null
 
 
-def test_a_SIGNIFICANTLY_NEGATIVE_economic_value_is_not_selection_value():
+def test_a_SIGNIFICANTLY_NEGATIVE_economic_value_never_beats_the_null():
     """gbb's real case on the fillable population: -0.004102 [-0.004793, -0.003402]. An
     interval wholly BELOW zero must never read as beating the null -- which a
-    `not spans_zero` test would have got wrong."""
+    `not spans_zero` test would have got wrong.
+
+    The VERDICT on this row changed with the 2026-10-09 amendment: at the old 1-SE bar its
+    learnability (+0.0175 +/- 0.0109) cleared `decoration`; at 1.96 SE it does not
+    (0.0175 < 0.0214), so it now files as `worse_than_null`. The invariant this test exists
+    for -- never `beats_null_fillable` -- is unaffected either way."""
     v = LB.assign_verdict("gbb", _iv(-0.004102, -0.004793, -0.003402), +0.0175, 0.0109)
     assert not v.ev_beats_null
-    assert v.verdict == LB.VERDICT_DECORATION
+    assert v.verdict == LB.VERDICT_WORSE_THAN_NULL
 
 
-def test_learnability_bar_is_ONE_SE_as_the_spec_words_it():
-    """Implemented as written, not silently tightened to 95%. The asymmetry (95% interval
-    for EV, 1 SE for learnability) makes `decoration` easier to earn than
-    `selection_value`; that is disclosed rather than corrected, and this test pins which
-    reading is in force so a future change is deliberate."""
-    assert LB.assign_verdict("t", _iv(0, -0.1, 0.1), 0.011, 0.010).learn_beats_null
-    assert not LB.assign_verdict("t", _iv(0, -0.1, 0.1), 0.009, 0.010).learn_beats_null
-    # the asymmetry is disclosed in the function's own docstring, not only in a spec file
-    assert "ASYMMETRY" in LB.assign_verdict.__doc__
+def test_learnability_bar_is_1_96_SE_MATCHING_the_economic_value_column():
+    """AMENDED 2026-10-09 (T035). Was one SE, as the contract words it; that made
+    `decoration` a ~68% bar against the economic-value column's 95%, so it was strictly
+    easier to earn. This test pins the amended reading so a future change is deliberate,
+    which is the same job the previous version of it did for the literal reading."""
+    assert LB.LEARNABILITY_BAR_SE == 1.96
+    assert LB.assign_verdict("t", _iv(0, -0.1, 0.1), 0.0197, 0.010).learn_beats_null
+    assert not LB.assign_verdict("t", _iv(0, -0.1, 0.1), 0.0190, 0.010).learn_beats_null
+    # the case that used to clear it and no longer does -- votes_consensus's shape
+    assert not LB.assign_verdict("t", _iv(0, -0.1, 0.1), 0.011, 0.010).learn_beats_null
+    # the amendment is disclosed in the function's own docstring, not only in a spec file
+    assert "AMENDED" in LB.assign_verdict.__doc__
 
 
 def test_verdict_carries_everything_the_rule_consumed():
@@ -360,13 +396,15 @@ def test_empty_vs_itself_stays_indeterminate_even_with_a_degenerate_zero_width_i
 
 @pytest.mark.parametrize("name,ev,learn,expected", [
     # a trigger with real selection value: EV clearly above the null
-    ("selective", (+0.010, +0.009, +0.011), (+0.05, 0.005), LB.VERDICT_SELECTION_VALUE),
+    ("selective", (+0.010, +0.009, +0.011), (+0.05, 0.005), LB.VERDICT_BEATS_NULL_FILLABLE),
     # one that only looks good to a model: no EV, strong learnability
     ("decorative", (-0.004, -0.005, -0.003), (+0.05, 0.005), LB.VERDICT_DECORATION),
     # one that is simply inert on both axes
     ("inert", (+0.0001, -0.0003, +0.0005), (+0.0007, 0.010), LB.VERDICT_INDETERMINATE),
     # negative on BOTH -- still indeterminate, never "selection value" by sign confusion
-    ("harmful", (-0.010, -0.011, -0.009), (-0.05, 0.005), LB.VERDICT_INDETERMINATE),
+    # `worse_than_null` since the 2026-10-09 amendment: measured below the null AND not
+    # learnable, which `indeterminate` used to file alongside the controls
+    ("harmful", (-0.010, -0.011, -0.009), (-0.05, 0.005), LB.VERDICT_WORSE_THAN_NULL),
 ])
 def test_synthetic_triggers_land_in_their_intended_quadrant(name, ev, learn, expected):
     """Constructed so each quadrant is exercised by a trigger whose intended verdict is

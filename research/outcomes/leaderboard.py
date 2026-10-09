@@ -382,9 +382,33 @@ DIAGNOSTIC_ONLY = frozenset({"gbb_tight"})
 CONTROL_TRIGGERS = frozenset({"random_matched", "gbb_stale"})
 
 VERDICT_DIAGNOSTIC = "(diagnostic)"
-VERDICT_SELECTION_VALUE = "selection_value"
+
+#: RENAMED 2026-10-09 from `selection_value`, on the T035 gate review's recommendation.
+#: The statistic is sound -- it survives the signal-bar-leak fix, calendar blocks and block
+#: length 960 -- but the WORD implied tradeability, and six trigger-only arms showed every
+#: row carrying it lost 21-71pp in the pooled harness. What the test actually establishes is
+#: narrower and is now what the label says: this trigger beats the `empty` null over
+#: FILLABLE, non-overlapping bars at unit stake with unlimited pairs. The same table scores
+#: all four of those rows NEGATIVE over all bars, so the result rests on one filter choice
+#: and must not be read as "worth trading".
+VERDICT_BEATS_NULL_FILLABLE = "beats_null_fillable"
 VERDICT_DECORATION = "decoration"
+
+#: NEW 2026-10-09 (T035 defect): `indeterminate` was absorbing rows whose interval lies
+#: wholly BELOW zero -- votes_tech/ind2/ind3/ind4 -- putting them in the same bucket as the
+#: controls, which is the opposite of what their measurement says. "Not shown to beat the
+#: null" and "shown to be worse than the null" are different findings.
+VERDICT_WORSE_THAN_NULL = "worse_than_null"
 VERDICT_INDETERMINATE = "indeterminate"
+
+#: The learnability bar, in standard errors of the DIFFERENCE. FR-014b's contract says "by
+#: more than the SE on that difference", which read literally is 1.0 -- roughly a 68% bar
+#: against the economic-value column's 95%, so `decoration` was strictly easier to earn than
+#: the other verdict. AMENDED to a matched two-sided 95% bar on the T035 review's
+#: recommendation: `votes_consensus` cleared the old bar at z=1.35 on one of 13 tests, where
+#: ~2 false positives are expected, and the entire conditional-MCC column spans 0.03-0.05.
+#: Recorded here rather than silently, because it CHANGES a published verdict.
+LEARNABILITY_BAR_SE = 1.96
 
 #: The null. Not a parameter: FR-014a makes `empty` the reference precisely so no threshold
 #: has to be agreed in advance, and allowing a different reference would reintroduce one.
@@ -420,6 +444,7 @@ def assign_verdict(
     ev_delta: "_bootstrap.Interval",
     learn_delta: float,
     learn_se: float,
+    reference_se: float = 0.0,
 ) -> Verdict:
     """FR-014b, applied. TOTAL by construction: three branches, the third unconditional.
 
@@ -429,20 +454,42 @@ def assign_verdict(
     and its standard error (FR-015b) -- never the unconditional figure, which T029 showed
     measures trigger recovery and would make this branch fire on every trigger.
 
-    A NOTE ON AN ASYMMETRY IN THE SPEC, implemented as written rather than silently
-    "corrected": the economic-value bar is a 95% interval while the learnability bar is ONE
-    standard error (contracts/trigger-cli.md: "by more than the SE on that difference"). One
-    SE is roughly a 68% bar, so `decoration` is EASIER to earn than `selection_value`. That
-    is a deliberate reading of the spec's own words; it is reported alongside each verdict so
-    a reader can see which bar a row cleared rather than inferring it.
+    THE ASYMMETRY IS NOW RESOLVED -- AMENDED 2026-10-09, and this changed a published
+    verdict. The spec's contract says the learnability bar is "more than the SE on that
+    difference" (contracts/trigger-cli.md), and the original implementation read that
+    literally: ONE standard error, roughly a 68% bar, against the economic-value column's
+    95%. Two defects followed, both found by the T035 gate review:
+
+      * the SE used was the TRIGGER'S OWN fold SE, never combined with the reference's, so
+        it was not the SE of the difference the contract names -- understating it by up to
+        sqrt(2);
+      * at one SE, `decoration` was strictly easier to earn than the other verdict.
+        `votes_consensus` cleared it at z=1.35 as one of 13 tests, where ~2 false positives
+        are expected, while the entire conditional-MCC column spans only 0.03-0.05.
+
+    So the SEs are now combined in quadrature (independent probe fits) and the bar is
+    `LEARNABILITY_BAR_SE` = 1.96, matching the economic-value column. `votes_consensus`
+    moves from `decoration` to `indeterminate` as a result.
     """
     ev_beats = bool(ev_delta.lo > 0.0)
-    learn_beats = bool(learn_delta > learn_se)
+    ev_worse = bool(ev_delta.hi < 0.0)
+
+    # FR-014b asks for the uncertainty on the DIFFERENCE. The old code used the trigger's
+    # OWN fold SE and never combined the reference's, which understates the difference's SE
+    # by up to sqrt(2) and made `decoration` easier to earn than the spec specifies. The
+    # two probe runs are independent fits, so the SEs add in quadrature.
+    se_diff = float(np.hypot(learn_se, reference_se))
+    learn_beats = bool(learn_delta > LEARNABILITY_BAR_SE * se_diff)
 
     if ev_beats:
-        verdict = VERDICT_SELECTION_VALUE
+        verdict = VERDICT_BEATS_NULL_FILLABLE
     elif learn_beats:
         verdict = VERDICT_DECORATION
+    elif ev_worse:
+        # Only AFTER the learnability branch: a trigger that is worse than the null on
+        # economic value but genuinely learnable is still explanation (b), and that is the
+        # more informative statement about it.
+        verdict = VERDICT_WORSE_THAN_NULL
     else:
         verdict = VERDICT_INDETERMINATE
 
@@ -450,7 +497,7 @@ def assign_verdict(
         trigger=trigger, verdict=verdict,
         ev_delta=ev_delta.point, ev_lo=ev_delta.lo, ev_hi=ev_delta.hi,
         ev_beats_null=ev_beats,
-        learn_delta=learn_delta, learn_se=learn_se, learn_beats_null=learn_beats,
+        learn_delta=learn_delta, learn_se=se_diff, learn_beats_null=learn_beats,
     )
 
 
@@ -506,6 +553,7 @@ def assemble_row(
     learn_delta: Optional[float],
     *,
     unconditional_mcc: Optional[float] = None,
+    reference_se: float = 0.0,
 ) -> TriggerScore:
     """Build one row and adjudicate it. The reference row (`empty`) gets no verdict of its
     own -- it IS the null, and judging it against itself is the T031 control, not a row."""
@@ -514,14 +562,18 @@ def assemble_row(
     elif trigger in DIAGNOSTIC_ONLY:
         verdict = VERDICT_DIAGNOSTIC
     elif learn_delta is None or learn_se is None:
-        # No probe: the EV branch can still decide `selection_value`, but `decoration`
-        # cannot be ruled in OR out, so anything else is honestly indeterminate rather
-        # than silently assumed.
+        # No probe: the economic-value branches can still decide, but `decoration` cannot be
+        # ruled in OR out, so the middle is honestly indeterminate rather than assumed. Note
+        # `worse_than_null` is withheld here even when the interval is below zero, because
+        # without a probe a learnable-but-unprofitable trigger would be misfiled as merely
+        # bad -- the controls (`random_matched`, `gbb_stale`) have no probe by design.
         verdict = (
-            VERDICT_SELECTION_VALUE if ev_delta.lo > 0.0 else VERDICT_INDETERMINATE
+            VERDICT_BEATS_NULL_FILLABLE if ev_delta.lo > 0.0 else VERDICT_INDETERMINATE
         )
     else:
-        verdict = assign_verdict(trigger, ev_delta, learn_delta, learn_se).verdict
+        verdict = assign_verdict(
+            trigger, ev_delta, learn_delta, learn_se, reference_se=reference_se
+        ).verdict
 
     return TriggerScore(
         trigger=trigger,
@@ -547,8 +599,8 @@ def report(rows: "list[TriggerScore]") -> str:
     triggers have selection value -- not which has the biggest number, which would invite
     exactly the single-ranking reading FR-016 forbids.
     """
-    order = {VERDICT_SELECTION_VALUE: 0, VERDICT_DECORATION: 1, VERDICT_INDETERMINATE: 2,
-             VERDICT_DIAGNOSTIC: 4}
+    order = {VERDICT_BEATS_NULL_FILLABLE: 0, VERDICT_DECORATION: 1,
+             VERDICT_INDETERMINATE: 2, VERDICT_WORSE_THAN_NULL: 3, VERDICT_DIAGNOSTIC: 5}
     rows = sorted(rows, key=lambda r: (order.get(r.verdict, 3), -(r.economic_value or 0)))
     out = [
         "LEADERBOARD — economic value (no model) and conditional learnability, "

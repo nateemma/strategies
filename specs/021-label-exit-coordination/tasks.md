@@ -244,7 +244,7 @@ known low learnability lands in the expected quadrant.
   rather than explained away.
 - [X] T034 [US4] @experiment-runner Run the leaderboard over every registered trigger (SC-007, SC-008) and produce
   the report.
-- [ ] T035 [US4] @gate-reviewer Review the leaderboard BEFORE any verdict is accepted: check base
+- [X] T035 [US4] @gate-reviewer Review the leaderboard BEFORE any verdict is accepted: check base
   rates are plausible, that no trigger earns its value from unfillable or gap-fill-heavy bars,
   that intervals are block-bootstrapped, and that the `empty`-vs-itself control came out
   `indeterminate`. Produce a short memo; do not edit results.

@@ -192,6 +192,22 @@ def build_scratch(strategy: str, threshold: float, tag: str, window: str,
     return dst
 
 
+def guards_written(scratch: Path, strategy: str) -> "bool | None":
+    """The `entry_enable_guards` value this run actually WROTE, or None if it wrote none.
+
+    Reads the params file on disk rather than trusting the in-memory dict, for the same
+    reason `exit_config_hash` does: what the backtest saw is what was written. None means
+    this run did not override the setting, so the effective value is the strategy class's
+    own `buy_params` -- which this script deliberately does not import, so it reports the
+    absence instead of guessing.
+    """
+    try:
+        params = json.loads((scratch / f"{strategy}.json").read_text()).get("params", {})
+        return params.get("buy", {}).get("entry_enable_guards")
+    except (OSError, ValueError):
+        return None
+
+
 def exit_config_hash(scratch: Path, strategy: str) -> str:
     """Hash of the arm's exit-side configuration.
 
@@ -444,12 +460,36 @@ def main() -> int:
         "timerange": tr,
         "strategy": args.strategy,
         "prediction_threshold": args.threshold,
-        "guards": args.guards,
+        # PROVENANCE, FIXED 2026-10-09 (feature 021 T035 gate review). The old field was
+        # `"guards": args.guards`, i.e. the CLI FLAG, whose default is "on". It was recorded
+        # on every arm regardless of what the strategy actually did, so all 90 trigger-only
+        # arm records read `guards: on` while `SimpleStrategies/TriggerOnly.py` hardcodes
+        # `entry_enable_guards: False` -- the effective setting was OFF and the record said
+        # ON. Anyone auditing from the records alone would have concluded the arms tested
+        # the trigger PLUS the guard chain, which is the opposite of what they tested.
+        #
+        # Two honest fields replace it, and neither claims more than it knows:
+        "guards_requested": args.guards,
+        #: the value this run WROTE into the params file, or None when it wrote none -- in
+        #: which case the effective setting is the strategy class's own `buy_params`, which
+        #: this script cannot see (it never imports the class; see exit_config_hash, which
+        #: reads the params JSON for the same reason).
+        "entry_enable_guards_written": guards_written(scratch, args.strategy),
         "overrides": overrides,
         "sell_overrides": sell_over,
         "trailing_overrides": trail_over,
         "exit_config_hash": exit_config_hash(scratch, args.strategy),
-        "volume_filter_active": True,
+        # ALSO FIXED 2026-10-09: this was the literal `True`, an assertion dressed as a
+        # measurement. Nothing in this script checks it, and it was cited as evidence in
+        # feature 021 before anyone noticed it could not be false. The underlying claim is
+        # structurally true but belongs in prose, not a boolean: the quote-volume headroom
+        # check lives in `BaseStrategy.confirm_trade_entry` and runs unconditionally
+        # outside plot/other runmodes, with `custom_stake_amount` CAPPING an oversized
+        # stake rather than rejecting the trade.
+        "volume_headroom_check": (
+            "BaseStrategy.confirm_trade_entry, unconditional outside plot/other runmode; "
+            "custom_stake_amount caps rather than rejects. NOT measured by this script."
+        ),
         "returncode": proc.returncode,
         **result,
     }
