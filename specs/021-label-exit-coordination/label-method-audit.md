@@ -954,3 +954,83 @@ selection value; its conditional learnability is weakly positive in all three wi
    "bit-identical port" is not established for those two.
 7. No committed script produces `leaderboard.txt`; `quickstart.md` cites a `--build` CLI that
    does not exist.
+
+---
+
+# RE-ADJUDICATED BOARD (2026-10-09) — corrected pairing, 126-fit probe rebuild, real controls
+
+Economic value and conditional learnability both rebuilt on `labels.entry_mask` (trigger on
+bar `i` → outcome of entering at `open[i+1]`). 126 conditional fits, 0 failures. Controls
+included and adjudicated. `gbb_tight` withdrawn to `(diagnostic)`.
+
+| trigger | verdict | EV fill | 95% CI vs null | cond MCC | SE |
+|---|---|---|---|---|---|
+| `breakout_gbb` | **selection_value** | +0.000692 | [+0.001284, +0.002675] | +0.0468 | 0.0080 |
+| `breakout_bb` | **selection_value** | +0.001546 | [+0.002032, +0.003650] | +0.0526 | 0.0074 |
+| `breakout_vol` | **selection_value** | +0.000582 | [+0.000930, +0.002783] | +0.0400 | 0.0086 |
+| `breakout` | **selection_value** | +0.000807 | [+0.001361, +0.002802] | +0.0384 | 0.0069 |
+| `votes_consensus` | **decoration** | −0.001183 | [−0.000453, +0.000633] | +0.0516 | 0.0081 |
+| **`gbb`** | **indeterminate** | −0.002009 | [−0.001468, **+0.000004**] | +0.0489 | 0.0143 |
+| `votes_tech` | indeterminate | −0.003605 | [−0.002910, −0.001763] | +0.0445 | 0.0155 |
+| `votes_ind3` | indeterminate | −0.003453 | [−0.002779, −0.001600] | +0.0405 | 0.0172 |
+| `votes_ind2` | indeterminate | −0.003604 | [−0.002971, −0.001739] | +0.0383 | 0.0174 |
+| `votes_ind4` | indeterminate | −0.003131 | [−0.002319, −0.001405] | +0.0342 | 0.0146 |
+| `gbb_stale` **(CONTROL)** | indeterminate | −0.001406 | [−0.000949, +0.000715] | n/a | |
+| `adx` | indeterminate | −0.001149 | [−0.000222, +0.000461] | +0.0380 | 0.0112 |
+| `random_matched` **(CONTROL)** | indeterminate | −0.000947 | [−0.000275, +0.000895] | n/a | |
+| `geometry` | indeterminate | −0.001526 | [−0.001425, +0.000922] | +0.0370 | 0.0073 |
+| `breakout_squeeze` | indeterminate | −0.000514 | [−0.000566, +0.002049] | +0.0294 | 0.0094 |
+| `empty` | (null) | −0.001272 | — | +0.0350 | 0.0092 |
+| `gbb_tight` | (diagnostic) | +0.030219 | [+0.019277, +0.044113] | withdrawn | |
+
+**4 selection_value · 1 decoration · 10 indeterminate · 1 diagnostic · 1 null · 2 unscoreable.**
+
+## The further retraction this forces
+
+**`gbb` is `indeterminate`, not `decoration`.** Both halves of that verdict dissolved on the
+corrected pairing: its economic-value interval now reaches +0.000004 (spans zero), and its
+conditional learnability advantage (+0.0139) no longer clears even one standard error
+(0.0170). The earlier claim — *"the production incumbent is adjudicated decoration"* — is
+**withdrawn**. The defensible statement is narrower:
+
+> `gbb` has **no measurable selection value**. Its economic value is indistinguishable from
+> the `empty` null AND from `random_matched`, a market-independent trigger at its own base
+> rate. Whether its label is more learnable than the null's is not resolvable at this
+> sample size.
+
+That is weaker than what I published, and it is what the measurements support.
+
+## What survives, cleanly
+
+**Only the breakout family has selection value, and 4 of its 5 members do.** Nothing else on
+the board clears the economic-value bar — not `gbb`, not any vote-family trigger, not
+`geometry`, not `adx`. The "momentum selects, indicator-consensus does not" finding survives
+the correction in a *sharper* form than before: the positive side is now exclusively one
+family, rather than a family plus two strays.
+
+**The vote family's economic value is significantly NEGATIVE** (four of five, CIs wholly below
+zero) but their conditional learnability does not clear one SE, so they land `indeterminate`
+rather than `decoration`. They select moments worse than random, and we cannot establish they
+are model-friendly either.
+
+**The controls behave.** `random_matched` and `gbb_stale` both come out `indeterminate` with
+intervals spanning zero, and `gbb` sits inside their band. That is the validation the
+`empty`-vs-itself control could never provide.
+
+## A caveat on the breakout family's rows
+
+Their `EV` (all bars) is NEGATIVE (−0.0015 to −0.0016) while their `EV fill` is positive. Their
+selection value therefore rests entirely on the FILLABLE population. That is the right
+population — FR-009b exists because it is the one that could actually have been traded, and
+`empty` moves the other way (−0.000975 all bars vs −0.001272 fillable) — so this strengthens
+rather than weakens the rows. But it must be stated: on the unfiltered population no trigger
+on this board beats the null.
+
+## Still outstanding from T035
+
+Calendar blocks spanning all pairs (pairs are currently resampled independently though
+same-time crypto bars are correlated); `L=48` is shorter than `max_hold`'s 960 bars; and
+`breakout_gbb`/`breakout_bb` contain no breakout condition despite their names, with
+containment only able to catch a too-TIGHT factor. These are instrument-quality items, and
+the first two would widen the breakout family's intervals — the direction that could cost
+those four verdicts.
