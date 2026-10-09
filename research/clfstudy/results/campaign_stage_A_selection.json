@@ -1,0 +1,15 @@
+{
+  "created_at": "2026-09-21T19:18:29.501503+00:00",
+  "rule": "top 8 archs by mean MCC (status=ok rows, window A, baselines skipped); ties: macro-F1 desc, then n_params asc",
+  "selected": [
+    "LSTM_RAW",
+    "LSTM_W64",
+    "GRU_FAM",
+    "LSTM_PONDER",
+    "LSTM_NOCONV",
+    "LSTM_KAN",
+    "LSTM_D10",
+    "LSTM_NORESIZE"
+  ],
+  "stage": "A"
+}

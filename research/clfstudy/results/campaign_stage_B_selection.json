@@ -1,0 +1,31 @@
+{
+  "created_at": "2026-09-21T21:15:17.849578+00:00",
+  "rule": "top 6 (arch, input_set) cells by mean MCC (status=ok rows, window A, baselines skipped); ties: macro-F1 desc, then n_params asc",
+  "selected": [
+    {
+      "arch": "LSTM_RAW",
+      "input_set": "raw8"
+    },
+    {
+      "arch": "LSTM_W64",
+      "input_set": "raw8"
+    },
+    {
+      "arch": "GRU_FAM",
+      "input_set": "raw8"
+    },
+    {
+      "arch": "LSTM_PONDER",
+      "input_set": "raw8"
+    },
+    {
+      "arch": "LSTM_NOCONV",
+      "input_set": "raw8"
+    },
+    {
+      "arch": "LSTM_NORESIZE",
+      "input_set": "both32"
+    }
+  ],
+  "stage": "B"
+}
