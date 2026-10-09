@@ -1215,3 +1215,70 @@ thing item 2 was built to find out.
 
 `report()` now states which population its EV describes and that it can differ in sign from the one
 a strategy enters.
+
+### Does the board's RANKING survive the population change? Weighting decides, and n=1 cannot.
+
+Scored all 15 scoreable triggers plus 2 controls three ways. `conc/ALL` is the
+concurrency-aware EV over the unfiltered population; `STAKE-WTD` is the same selection
+weighted by `__outcome_fillable_fraction`, i.e. by the capital actually deployable.
+
+| trigger | board | conc/ALL | STAKE-WTD | mean wt |
+|---|---|---|---|---|
+| gbb_tight *(diagnostic)* | +0.030219 | +0.037918 | +0.030346 | 0.338 |
+| breakout_bb | +0.001546 | −0.001710 | +0.001266 | 0.280 |
+| breakout | +0.000807 | −0.001196 | +0.000623 | 0.263 |
+| breakout_gbb | +0.000692 | −0.001497 | +0.000488 | 0.250 |
+| breakout_vol | +0.000582 | −0.001548 | +0.000279 | 0.253 |
+| breakout_squeeze | −0.000514 | −0.001841 | −0.000180 | 0.181 |
+| gbb_stale *(control)* | −0.001406 | +0.000059 | −0.000555 | 0.177 |
+| gbb | −0.002009 | **+0.001508** | −0.000921 | 0.196 |
+| votes_consensus | −0.001183 | −0.000314 | −0.001280 | 0.227 |
+| random_matched *(control)* | −0.000947 | −0.000940 | −0.001300 | 0.243 |
+| geometry | −0.001526 | −0.001380 | −0.001558 | 0.198 |
+| adx | −0.001149 | −0.000835 | −0.001714 | 0.246 |
+| empty | −0.001272 | −0.000896 | −0.001752 | 0.250 |
+| votes_tech | −0.003605 | +0.000621 | −0.003868 | 0.215 |
+| votes_ind3 | −0.003453 | +0.000598 | −0.003884 | 0.204 |
+| votes_ind4 | −0.003131 | −0.000351 | −0.003928 | 0.217 |
+| votes_ind2 | −0.003604 | −0.000469 | −0.004023 | 0.274 |
+
+    Spearman, board vs conc/fillable   : +0.912     concurrency is immaterial
+    Spearman, board vs conc/ALL        : -0.485     8/17 sign flips
+    Spearman, board vs STAKE-WEIGHTED  : +0.890     the inversion DISAPPEARS
+    Spearman, conc/ALL vs STAKE-WEIGHTED: -0.316
+
+**`conc/ALL`'s inversion is a weighting artefact.** It gives a trade capped to a quarter of
+its intended stake the same weight as a full one. Weight by deployable capital and the
+board's ordering comes back at ρ = +0.890 — the board's fillable-only restriction and
+stake-weighting turn out to be nearly the same operation, since both up-weight liquid bars.
+
+**RETRACTION.** I claimed two independent harness anchors showed the board inverted —
+`breakout_vol` (board best, live −17.17pp/yr) and `gbb` (board 2nd-last, live +39.98pp,
+15/15). **The `gbb` anchor is invalid.** That +39.98pp arm is a MODEL arm: gbb label + 24
+indicators + a per-fold threshold, volume-matched to **1.4735% of bars** (spec.md:14). The
+trigger-only column describes trading all 40,212 gbb bars (13.3% take). Different
+populations by an order of magnitude; the comparison was never licensed. There is **one**
+genuine trigger-only anchor, `BreakoutVolOpen`, and on it:
+
+| column | says | live |
+|---|---|---|
+| board | +0.000582 | **wrong sign** |
+| conc/ALL | −0.001548 | right, to 3.6e-5 |
+| stake-weighted | +0.000279 | **wrong sign** |
+
+So the only correctly-weighted column gets the only real anchor's sign wrong, and the column
+that nails the anchor is mis-weighted. **n=1 cannot adjudicate three columns**, and I am not
+rewriting the board's column on one arm.
+
+**A SEPARATE FINDING worth its own line.** Mean fillable fraction is **0.18–0.34 for every
+trigger** — across the whole universe only a fifth to a third of the harness's intended stake
+is fillable at a typical bar. That is a fact about the harness's stake sizing versus this
+universe's depth, not about any trigger, and it is why the fillable/unfillable split moves EV
+so much in the first place.
+
+**THE DECISIVE TEST, cheap and bounded.** Run a second trigger-only arm where the columns
+disagree most: `gbb`, board −0.002009 and stake-weighted −0.000921 (both negative) against
+conc/ALL +0.001508 (positive). Same `BreakoutVolOpen` scaffold with `TRIGGER_NAME = "gbb"`,
+no model, guards open. Positive return vindicates `conc/ALL`; negative vindicates the board
+and the stake-weighted column. Either way one of the three columns is eliminated on evidence
+rather than on argument.
