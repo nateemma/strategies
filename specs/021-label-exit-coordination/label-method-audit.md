@@ -543,3 +543,56 @@ So this is **not** a promotion candidate and must not be read as one. It is an e
 where the economic value sits. The only way to know whether a tightened trigger trades is the
 pooled harness in `evaluation/`, and that is a separate experiment with a real risk of
 reproducing the "ceiling rises, return doesn't" result for the fourth time.
+
+---
+
+# `gbb_tight` registered (2026-10-09)
+
+The margin finding as a leaderboard row: `guard_metric < -0.8 AND bb_width > 0.18`.
+
+**Chosen on selectivity, NOT on EV.** The rung ladder was explored by economic value, so
+picking its best rung would make this row self-fulfilling — selection on the very outcome
+being measured. The thresholds are instead the rung whose selectivity most nearly matches the
+ARM's (0.389% of `gbb` bars against the arm's 0.470%), because the question this trigger
+exists to ask is "can a plain threshold, at the model's own selectivity, do what the model
+does". Selectivity-matching removes the worst of the selection effect, not all of it: the
+ladder's shape was known before the values were picked, so the row is honest as a comparison
+against the arm at equal selectivity and is not an unbiased estimate of an independently
+chosen tight threshold.
+
+| trigger | base rate | n scored | n non-ovl | EV all | EV n-ovl | EV fill n-ovl | win rate |
+|---|---|---|---|---|---|---|---|
+| `empty` | 100.000% | 1,692,097 | 45,103 | −0.001130 | −0.000993 | −0.001272 | 57.96% |
+| `gbb` | 17.871% | 302,445 | 22,420 | +0.000822 | −0.001262 | −0.005374 | 59.36% |
+| `breakout` | 6.453% | 109,200 | 27,102 | +0.002296 | +0.003316 | +0.009076 | 63.35% |
+| **`gbb_tight`** | **0.070%** | **1,178** | **206** | **+0.029014** | **+0.019509** | **+0.015848** | **81.75%** |
+
+Paired block bootstrap vs the `empty` null, non-overlapping, 0 degenerate resamples:
+
+| trigger | all | fillable |
+|---|---|---|
+| `gbb` | −0.000269 [−0.000610, +0.000078] | −0.004102 [−0.004793, −0.003402] |
+| `breakout` | +0.004309 [+0.004003, +0.004632] | +0.010348 [+0.009705, +0.010988] |
+| **`gbb_tight`** | **+0.020502 [+0.011468, +0.029286]** | **+0.017120 [+0.003899, +0.029222]** |
+
+Significant on both populations, and by far the largest effect on the board — an 81.75% win
+rate against the null's 57.96%. Its interval is ~30× wider than `breakout`'s, correctly: 206
+non-overlapping opportunities against 27,102. The bootstrap drew no degenerate resamples, so
+the interval is meaningful rather than an artefact of sparsity.
+
+**It also inverts `gbb` on the same column.** `gbb` is significantly WORSE than the null on
+the fillable population (−0.004102) while `gbb_tight` is significantly better (+0.017120) —
+the same two feature columns, the same exit, the same table, differing only in threshold
+depth. That is the margin finding stated as a single comparison.
+
+## The caveat travels with the row, and it is not decoration
+
+206 non-overlapping opportunities across 11 pairs over the pooled span is roughly 45 a year.
+Table EV is a lookahead bound, not a return (FR-017), and this repository has now twice
+measured the specific failure this invites — *"trigger relaxation: return FALLS; ceiling
+rises monotonically, return doesn't"* and *"feature 003 tail labelling REJECTED; r:r moved W1
+non-monotonically"*. A third instance would not be surprising.
+
+So `gbb_tight` enters the leaderboard as evidence about WHERE the economic value sits, with
+`not a promotion candidate` written into its own registry description and asserted by a test.
+The only thing that can promote it is the pooled harness in `evaluation/`.

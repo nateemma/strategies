@@ -330,3 +330,76 @@ def register_audit_triggers(*, replace: bool = False) -> list[Trigger]:
             ),
         ), replace=replace),
     ]
+
+
+# =================================================================================================
+# gbb_tight — the margin finding as a trigger (2026-10-09)
+# =================================================================================================
+
+#: `gbb`'s own condition with both thresholds tightened. Registered because the 2026-10-09
+#: diagnostic found the economic value sits in the trigger's MARGIN rather than its binary
+#: firing: EV over gbb bars rises monotonically with threshold depth, from +0.000822 at
+#: 100% of gbb bars to +0.050938 at 0.068%, and at matched selectivity a bare threshold beat
+#: the production model's own selection 5.6x (+0.029014 against +0.005204).
+#:
+#: HOW THESE NUMBERS WERE CHOSEN, and why not the best ones. The rung ladder was explored BY
+#: EV, so picking the rung with the highest EV would make this row's own leaderboard entry
+#: self-fulfilling -- selection on the outcome being measured. The thresholds below are
+#: instead chosen on a criterion INDEPENDENT of EV: they are the rung whose selectivity most
+#: nearly MATCHES THE ARM'S (0.389% of gbb bars against the arm's 0.470%), because the
+#: question this trigger exists to ask is "can a plain threshold, at the model's own
+#: selectivity, do what the model does".
+#:
+#: READ ITS EV WITH THAT IN MIND ANYWAY. Selectivity-matching removes the worst of the
+#: selection effect, not all of it: the ladder's shape was known before these values were
+#: picked. The row is honest as a comparison against the ARM at equal selectivity; it is not
+#: an unbiased estimate of what an independently-chosen tight threshold would score.
+#:
+#: AND IT IS NOT A PROMOTION CANDIDATE. Table EV is a lookahead bound, not a return
+#: (FR-017), and this repository has twice measured "ceiling rises monotonically, return
+#: doesn't" -- once for trigger relaxation, once for breakout tail labelling. At 0.389% of
+#: gbb bars the trade count also falls below what the pooled harness resolves at ~3-4pp/yr.
+#: Only `evaluation/` can say whether this trades.
+GBB_TIGHT_GUARD_THRESHOLD = -0.8
+GBB_TIGHT_BB_WIDTH_THRESHOLD = 0.18
+
+
+def _gbb_tight(df: pd.DataFrame) -> pd.Series:
+    """`_gbb`'s arithmetic with the tightened thresholds, NaN convention included.
+
+    Deliberately not implemented as `_gbb(df) & extra_condition`: the thresholds are what
+    differ, so expressing it as a conjunction with gbb's own would apply gbb's looser
+    thresholds first and then a second pair, which is the same mask by luck rather than by
+    construction. Sharing the NaN handling matters more -- a NaN `guard_metric` becomes 0.0
+    and so FAILS this trigger's `< -0.8` while it PASSES gbb's `< 0.3`, and that asymmetry
+    should come from one place.
+    """
+    n = len(df)
+    guard = np.nan_to_num(np.asarray(df["guard_metric"], dtype=float), nan=0.0)
+    bb_width = np.nan_to_num(np.asarray(df["bb_width"], dtype=float), nan=0.0)
+    rvol = np.nan_to_num(
+        np.asarray(df.get("rvol", pd.Series(np.zeros(n), index=df.index)), dtype=float),
+        nan=0.0,
+    )
+    mask = (
+        (guard < GBB_TIGHT_GUARD_THRESHOLD)
+        & (bb_width > GBB_TIGHT_BB_WIDTH_THRESHOLD)
+        & (rvol > GBB_RVOL_THRESHOLD)
+    )
+    return pd.Series(mask, index=df.index)
+
+
+def register_margin_triggers(*, replace: bool = False) -> list[Trigger]:
+    return [
+        register(Trigger(
+            name="gbb_tight",
+            evaluate=_gbb_tight,
+            required_columns=("guard_metric", "bb_width"),
+            source="labels_gbb (thresholds tightened)",
+            description=(
+                f"guard_metric < {GBB_TIGHT_GUARD_THRESHOLD} AND bb_width > "
+                f"{GBB_TIGHT_BB_WIDTH_THRESHOLD} — selectivity matched to the arm's 0.470% "
+                f"of gbb bars, NOT chosen for best EV; not a promotion candidate"
+            ),
+        ), replace=replace),
+    ]

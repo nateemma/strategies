@@ -165,14 +165,18 @@ def ensure_builtins() -> None:
     from research.outcomes.builtin_triggers import (
         register_audit_triggers,
         register_builtins,
+        register_margin_triggers,
     )
 
     required = {"empty", "gbb", "geometry"}
     audited = {"adx", "breakout", "breakout_gbb"}
+    margin = {"gbb_tight"}
     if not required <= set(_REGISTRY):
         register_builtins(replace=True)
     if not audited <= set(_REGISTRY):
         register_audit_triggers(replace=True)
+    if not margin <= set(_REGISTRY):
+        register_margin_triggers(replace=True)
 
 
 def _visible_frame(df: pd.DataFrame) -> pd.DataFrame:

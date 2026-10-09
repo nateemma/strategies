@@ -399,3 +399,57 @@ def test_local_min_followthroughs_condition_is_NOT_causal():
         "local_min_followthrough now looks causal; if so, re-examine the audit -- a "
         "faithful port may have become possible"
     )
+
+
+# =============================================================================================
+# gbb_tight (2026-10-09) — the margin finding as a trigger
+# =============================================================================================
+
+def test_gbb_tight_registers_and_is_strictly_inside_gbb():
+    """A tightening must be a SUBSET of what it tightens. If `gbb_tight` ever fired where
+    `gbb` did not, it would be a different condition wearing the name."""
+    B.register_margin_triggers()
+    df = _frame(n=2000, seed=9)
+    # ANTI-correlated deliberately: gbb_tight needs a LOW guard_metric and a HIGH bb_width
+    # at the same bar, so two co-varying linspaces make the condition unsatisfiable and the
+    # test vacuous. (It was, on the first run.)
+    df["guard_metric"] = np.linspace(1.0, -1.0, 2000)
+    df["bb_width"] = np.linspace(0.0, 0.25, 2000)
+    tight = T.evaluate("gbb_tight", df).to_numpy()
+    loose = T.evaluate("gbb", df).to_numpy()
+    assert tight.any(), "fixture produced no tight bars"
+    assert not (tight & ~loose).any(), "gbb_tight fired outside gbb"
+    assert tight.sum() < loose.sum(), "tightening must actually narrow"
+
+
+def test_gbb_tight_uses_the_declared_thresholds():
+    B.register_margin_triggers()
+    g, b = B.GBB_TIGHT_GUARD_THRESHOLD, B.GBB_TIGHT_BB_WIDTH_THRESHOLD
+    df = pd.DataFrame({
+        "guard_metric": [g - 0.01, g, g - 0.01, g - 0.01],
+        "bb_width":     [b + 0.01, b + 0.01, b, b + 0.01],
+        "rvol":         [1.0, 1.0, 1.0, 0.0],
+    })
+    # row 0 passes; row 1 fails guard (not strictly <); row 2 fails bb (not strictly >);
+    # row 3 passes because the rvol clause is inert at -1.0.
+    assert T.evaluate("gbb_tight", df).tolist() == [True, False, False, True]
+
+
+def test_gbb_tight_inherits_gbbs_NaN_CONVENTION_and_so_a_NaN_guard_FAILS_it():
+    """The asymmetry is shared but its CONSEQUENCE flips. `nan_to_num(nan=0.0)` makes a NaN
+    guard_metric 0.0, which PASSES gbb's `< 0.3` and FAILS gbb_tight's `< -0.8`. Worth
+    pinning because it is the one place the two triggers disagree for a reason that has
+    nothing to do with the market."""
+    B.register_margin_triggers()
+    df = pd.DataFrame({"guard_metric": [np.nan], "bb_width": [0.25], "rvol": [1.0]})
+    assert T.evaluate("gbb", df).iloc[0]
+    assert not T.evaluate("gbb_tight", df).iloc[0]
+
+
+def test_gbb_tight_declares_it_is_not_a_promotion_candidate():
+    """Table EV is a lookahead bound (FR-017), and this repository has twice measured
+    "ceiling rises monotonically, return doesn't". The caveat has to travel with the row."""
+    B.register_margin_triggers()
+    d = T.get("gbb_tight").description
+    assert "not a promotion candidate" in d
+    assert "NOT chosen for best EV" in d
