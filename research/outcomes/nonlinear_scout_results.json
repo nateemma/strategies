@@ -1,0 +1,87 @@
+{
+  "kind": "conditional_nonlinear_DIAGNOSTIC",
+  "arch": "LSTM",
+  "window": "A",
+  "input_set": "ind24",
+  "seq_len": 16,
+  "fits": [
+    {
+      "window_id": "A",
+      "seed": 0,
+      "mcc": -0.0036979756666504237,
+      "n_train": 82594,
+      "n_test": 19470,
+      "label_rate_train": 0.5801995302322203,
+      "label_rate_test": 0.6250128402670776,
+      "collapsed": false,
+      "train_seconds": 14.564703457988799,
+      "trigger": "gbb",
+      "arch": "LSTM"
+    },
+    {
+      "window_id": "A",
+      "seed": 1,
+      "mcc": -0.003965869065184455,
+      "n_train": 82594,
+      "n_test": 19470,
+      "label_rate_train": 0.5801995302322203,
+      "label_rate_test": 0.6250128402670776,
+      "collapsed": false,
+      "train_seconds": 13.375066332984716,
+      "trigger": "gbb",
+      "arch": "LSTM"
+    },
+    {
+      "window_id": "A",
+      "seed": 2,
+      "mcc": -0.010268573216587008,
+      "n_train": 82594,
+      "n_test": 19470,
+      "label_rate_train": 0.5801995302322203,
+      "label_rate_test": 0.6250128402670776,
+      "collapsed": false,
+      "train_seconds": 13.42778137512505,
+      "trigger": "gbb",
+      "arch": "LSTM"
+    },
+    {
+      "window_id": "A",
+      "seed": 0,
+      "mcc": 0.0008628703501721869,
+      "n_train": 418430,
+      "n_test": 158976,
+      "label_rate_train": 0.5656143201969266,
+      "label_rate_test": 0.6075508252818036,
+      "collapsed": false,
+      "train_seconds": 146.88287812517956,
+      "trigger": "empty",
+      "arch": "LSTM"
+    },
+    {
+      "window_id": "A",
+      "seed": 1,
+      "mcc": -0.0037893033333767337,
+      "n_train": 418430,
+      "n_test": 158976,
+      "label_rate_train": 0.5656143201969266,
+      "label_rate_test": 0.6075508252818036,
+      "collapsed": false,
+      "train_seconds": 67.94960170891136,
+      "trigger": "empty",
+      "arch": "LSTM"
+    },
+    {
+      "window_id": "A",
+      "seed": 2,
+      "mcc": -0.005769898926772865,
+      "n_train": 418430,
+      "n_test": 158976,
+      "label_rate_train": 0.5656143201969266,
+      "label_rate_test": 0.6075508252818036,
+      "collapsed": false,
+      "train_seconds": 66.96052895812318,
+      "trigger": "empty",
+      "arch": "LSTM"
+    }
+  ]
+}

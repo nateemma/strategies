@@ -462,3 +462,84 @@ two ends: `gbb` has the worst economic value and the third-best conditional lear
 and `geometry` the reverse. Those two rows are where FR-014b's verdict rule has actual work
 to do, and they are exactly the `selection value` / `decoration` distinction the feature was
 built to draw.
+
+---
+
+# DIAGNOSTIC (2026-10-09) — the model's selection is reproducible WITHOUT a model, and beaten by it
+
+Two measurements, run to resolve the tension T027 left: the arm's model-selected 0.470% of
+`gbb` bars realised 6.8× the EV of all `gbb` bars, while a linear probe found almost no
+conditional structure. Either production finds non-linear structure, or the subset is
+favourable for another reason.
+
+## 1. A non-linear model finds NOTHING either
+
+Conditional probe, `arch=LSTM`, window A, 3 seeds, features and seq_len held fixed at the
+probe's own (ind24 / 16) so ONLY the architecture differs. Labelled a diagnostic: FR-015
+forbids varying the model between leaderboard rows, and `empty` is fitted under the same
+arch so the number has a baseline.
+
+| arch | `gbb` cond MCC | `empty` cond MCC (null) |
+|---|---|---|
+| RIDGE | +0.0518 | +0.0342 |
+| **LSTM** | **−0.0060** | −0.0029 |
+
+Not a broken probe — 12 epochs, loss falling 0.8882 → 0.8359, `val_mcc` ~0.02 and never
+improving, early-stopped on no improvement. A genuine run that found nothing. (Checked
+deliberately: a probe that trains for one epoch reports ~0 exactly like a real null, and
+"a broken probe reports 0, same as a real null" is a recorded lesson here.)
+
+So the non-linear hypothesis is **refuted**. This CONFIRMS the standing "guard ablation:
+model adds NOTHING" finding rather than overturning it.
+
+## 2. Tightening the trigger reproduces the selection — and beats it 5.6×
+
+If the probe learns essentially the trigger (T029), then high model confidence should mean
+"deep inside the trigger's region", not "likely to profit". Testable with no model and no
+GPU: tighten `gbb`'s own thresholds and read the EV off the table. All-bars basis, matching
+T027's arm comparison exactly.
+
+| selection | n | % of gbb bars | EV | vs gbb |
+|---|---|---|---|---|
+| `gbb` as shipped (`guard<0.3`, `bb>0.035`) | 302,445 | 100.000% | +0.000822 | — |
+| **the arm's model-selected subset** | **1,420** | **0.470%** | **+0.005204** | +0.004382 |
+| `guard<−0.2`, `bb>0.08` | 33,665 | 11.131% | +0.005035 | +0.004213 |
+| `guard<−0.4`, `bb>0.10` | 15,491 | 5.122% | +0.008333 | +0.007511 |
+| `guard<−0.6`, `bb>0.12` | 7,132 | 2.358% | +0.012108 | +0.011286 |
+| `guard<−0.7`, `bb>0.15` | 2,872 | 0.950% | +0.020680 | +0.019858 |
+| **`guard<−0.8`, `bb>0.18`** | **1,178** | **0.389%** | **+0.029014** | +0.028192 |
+| `guard<−0.9`, `bb>0.25` | 206 | 0.068% | +0.050938 | +0.050116 |
+
+Two readings, both striking:
+
+- At **23× less selective** than the arm (11.1% vs 0.470%), a bare threshold already matches
+  the model's EV (+0.005035 vs +0.005204).
+- At **matched selectivity** (0.389% vs 0.470%), the threshold gets **+0.029014** against the
+  model's +0.005204 — **5.6× better, with no model at all.**
+
+The selection is CAUSAL: `guard_metric` and `bb_width` are backward-looking columns, so a
+tighter threshold is a legitimate trigger, not lookahead.
+
+## What this says, and the limit on it
+
+**The economic value is in the trigger's MARGIN, not its binary firing.** EV rises
+monotonically across four orders of magnitude of selectivity, from +0.0008 at 100% to +0.051
+at 0.068%. A binary trigger discards that information, and the model recovers only part of it
+— worse than reading it off the thresholds directly.
+
+That is a third answer the spec did not enumerate, and it sharpens T027's reading: the
+trigger does not merely define a population a selector works in; **the trigger's own margin
+IS the selector**, and the model is a lossy approximation to it.
+
+**THE LIMIT, and it is a hard one.** This is table EV — a lookahead bound, not a realisable
+return (FR-017). This repository has already measured the specific trap: *"Trigger
+relaxation: return FALLS — ceiling rises monotonically, return doesn't"*, and *"Learnability
+vs tradeability OPPOSED"*. Tightening is the opposite direction to that experiment, but the
+lesson is the same shape: a rising table ceiling has repeatedly failed to become harness
+return. At 0.389% of `gbb` bars the trade count would also collapse far below what the
+pooled harness can resolve at ~3–4pp/yr.
+
+So this is **not** a promotion candidate and must not be read as one. It is an explanation of
+where the economic value sits. The only way to know whether a tightened trigger trades is the
+pooled harness in `evaluation/`, and that is a separate experiment with a real risk of
+reproducing the "ceiling rises, return doesn't" result for the fourth time.

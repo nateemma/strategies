@@ -405,6 +405,7 @@ def probe_conditional(
     seed: int,
     seq_len: int = SEQ_LEN,
     stride: int = STRIDE,
+    arch: str = "RIDGE",
 ) -> ProbeFit:
     """Can a model tell profitable from unprofitable AMONG the bars this trigger fires on?
 
@@ -423,6 +424,15 @@ def probe_conditional(
     `empty` needs no special case: conditioning on a trigger that fires everywhere is the
     unconditional problem, so `empty`'s conditional MCC IS the baseline predictability of the
     outcome, and that is precisely the null FR-014b should compare against.
+
+    `arch` IS NOT A KNOB FOR THE LEADERBOARD. It defaults to RIDGE and every leaderboard row
+    MUST use that default: FR-015's "one fixed probe" forbids varying the model BETWEEN
+    triggers, because a column whose model changes per row is incomparable and would make the
+    `decoration` verdict unreliable. The parameter exists only so a separately-labelled
+    DIAGNOSTIC can ask whether a non-linear model finds structure a linear one cannot -- and
+    such a diagnostic must fit the `empty` null under the SAME arch, or its number has no
+    baseline to be read against. Results from a non-default `arch` must never be written into
+    a `TriggerScore` or compared with a RIDGE row.
     """
     import time
 
@@ -462,12 +472,15 @@ def probe_conditional(
         )
 
     cw = _cls_features.class_weights(y_train_int, n_classes=_cls_registry.NUM_CLASSES)
-    cfg = ExperimentConfig(arch="RIDGE", input_set=INPUT_SET, seq_len=seq_len,
+    cfg = ExperimentConfig(arch=arch, input_set=INPUT_SET, seq_len=seq_len,
                            split_set=SPLIT_SET)
     clf = _cls_registry.build(
         cfg, nf=len(wf.cols), seq_len=seq_len, seed=seed,
         checkpoint_dir=CKPT_DIR,
-        window_id=f"{wf.window_id}_cond_{trigger_name}",
+        # `arch` is in the checkpoint name for the same reason the trigger is: a RIDGE and an
+        # LSTM fit of the same trigger/window/seed would otherwise share a file and the
+        # second would resume from the first.
+        window_id=f"{wf.window_id}_cond_{arch}_{trigger_name}",
     )
     _clear_stale_model_files(clf)
 
