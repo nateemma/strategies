@@ -1089,3 +1089,74 @@ is not vacuous in the direction it was added for.
 The names come from the labelers and are kept so the audit maps 1:1, with the discrepancy
 stated in each trigger's registry description. The implementations are exact; only the names
 mislead.
+
+---
+
+# HARNESS TEST (2026-10-09) — `breakout_vol` traded. It LOSES, and the gap decomposes cleanly.
+
+`SimpleStrategies/BreakoutVolOpen.py`: the `breakout_vol` trigger, no model, Open exit,
+guards open. Entry is the REGISTERED trigger by import (`triggers.evaluate("breakout_vol")`),
+not a reimplementation — and it refuses to trade if that import fails, rather than falling
+back to a copy that could drift from the row under test. Same 15 fold test-ranges as the
+control.
+
+| arm | pooled | per year | trades | folds positive |
+|---|---|---|---|---|
+| **BreakoutVolOpen** (trigger only) | **−63.19pp** | **−17.17pp/yr** | 8,290 | **6/15** |
+| control (gbb + model) | +42.71pp | +11.61pp/yr | 1,420 | 14/15 |
+
+Harness verdict `INCONCLUSIVE_ARM_LOSES`: it loses to cash, so a delta against the control
+would measure the control rather than the arm.
+
+**This is the third time this repository has measured "the table ceiling rises, the return
+does not"** — after trigger relaxation and feature 003's tail labelling. It was the outcome
+I called most likely, and it is a real result rather than a disappointment.
+
+## Where the +0.000582 became −0.001512, per trade
+
+| stage | EV per trade | step |
+|---|---|---|
+| leaderboard figure (fillable, NON-OVERLAPPING) | +0.000582 | — |
+| table EV at the bars the arm ACTUALLY entered | **−0.000547** | **−0.001129** |
+| live realised | **−0.001512** | **−0.000965** |
+
+Two distinct losses, and the first is the important one:
+
+**1. The population the leaderboard scores is not the population a strategy enters
+(−0.001129).** The board's figure is computed over *fillable* bars, *greedily de-overlapped*.
+A live strategy cannot select that subset: it takes signals as they arrive, subject to
+`max_open_trades`, including unfillable ones and clustered ones. On the 8,290 bars this arm
+actually entered, **the table's own outcome is NEGATIVE**. So the row was never a claim about
+a tradeable population — and nothing in the leaderboard said which population it described.
+
+**2. Live execution costs a further −0.000965** on those same bars: concurrency (553
+trades/fold against the control's 95, into 9 slots), fills, and fees on real stake amounts
+rather than a notional unit.
+
+The live arm WINS MORE OFTEN than the table says (72.99% vs 57.35%) while losing more money —
+more frequent small wins, fatter left tail (live p05 −0.0519). The same asymmetry the table's
+own mean/median split showed, amplified.
+
+## What this changes
+
+**The `selection_value` verdict stands as defined, and is now known not to transfer.** The
+four breakout-family rows are correctly adjudicated under FR-014b — their table economic
+value does exceed the null on the fillable non-overlapping population, robustly, across every
+block length. That measurement was not wrong. It simply does not license a strategy, and the
+harness is the only thing that could have revealed by how much.
+
+**The "implement the triggers and guards, drop the model" hypothesis is REFUTED for
+`breakout_vol`** — the strongest-interval row on the board, deliberately chosen as the best
+case. −17.17pp/yr against the model-based control's +11.61pp/yr is not a near miss.
+
+**It also retroactively justifies `gbb`.** `gbb` scores at the null on the table and
+indistinguishably from a random trigger at its base rate, yet `gbb` + model returns
++42.71pp in 14/15 folds. Whatever the model-and-gate stack is doing with `gbb`'s population,
+the table cannot see it — and the table's ranking is, on this evidence, close to uninformative
+about which trigger to build on.
+
+**The honest statement of the leaderboard's scope**, which belongs in the report and did not:
+
+> Economic value ranks triggers by the outcome of a hypothetical unit trade at every
+> fillable, non-overlapping triggered bar. It does not rank them by what a capital-
+> constrained strategy taking their signals would earn, and the two can differ in SIGN.

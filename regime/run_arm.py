@@ -75,6 +75,24 @@ def strategy_group(strategy: str) -> str:
     family = strategy.split("_", 1)[0]
     if (STRAT_DIR / family).is_dir():
         return family
+    # Last resort, added 2026-10-09: find the file. A strategy whose name carries no family
+    # token -- a plain `SimpleStrategies/` strategy such as `BreakoutVolOpen`, with no
+    # underscore to split on -- reaches here even though its file is sitting in a strategy
+    # directory. This branch is ADDITIVE: it runs only where the code above would already
+    # have raised, so it cannot change how any existing arm resolves. Deliberately exact on
+    # the filename, and ambiguity is an error rather than a guess.
+    matches = sorted(
+        d.name for d in STRAT_DIR.iterdir()
+        if d.is_dir() and (d / f"{strategy}.py").is_file()
+    )
+    if len(matches) == 1:
+        return matches[0]
+    if len(matches) > 1:
+        raise SystemExit(
+            f"ambiguous strategy {strategy!r}: {strategy}.py exists in {matches}. "
+            f"Rename one, or pass the family explicitly -- guessing would silently run the "
+            f"wrong file."
+        )
     raise SystemExit(
         f"unknown strategy {strategy!r}: no registered base matches and "
         f"{family!r} is not a strategy directory. Known bases: "
