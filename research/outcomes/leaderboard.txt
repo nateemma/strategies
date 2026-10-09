@@ -1,0 +1,23 @@
+LEADERBOARD — economic value (no model) and conditional learnability, SEPARATE columns (FR-016)
+
+trigger          verdict           base rate  n n-ovl          EV     EV fill            95% CI vs null  cond MCC      SE     win  gapfill
+gbb_tight        selection_value      0.070%      206   +0.019509   +0.015848  [ +0.003899, +0.029222]   +0.1490  0.0549  81.75%  23.877%
+breakout_vol     selection_value      2.862%    20739   +0.004641   +0.009254  [ +0.009846, +0.011209]   +0.0632  0.0079  66.07%  30.409%
+breakout         selection_value      6.453%    27102   +0.003316   +0.009076  [ +0.009705, +0.010988]   +0.0546  0.0093  63.35%  28.379%
+breakout_bb      selection_value      6.076%    19147   +0.002338   +0.007787  [ +0.008340, +0.009784]   +0.0786  0.0075  58.48%  26.642%
+breakout_squeeze selection_value      2.269%    15510   +0.002059   +0.007796  [ +0.007945, +0.010131]   +0.0423  0.0114  61.99%  30.772%
+breakout_gbb     selection_value     12.491%    21145   +0.000251   +0.003371  [ +0.004030, +0.005311]   +0.0528  0.0064  56.30%  29.368%
+geometry         selection_value      2.868%    24709   -0.000706   +0.001210  [ +0.001377, +0.003591]   +0.0200  0.0074  57.12%  25.506%
+gbb              decoration          17.871%    22420   -0.001262   -0.005374  [ -0.004793, -0.003402]   +0.0518  0.0109  59.36%  31.086%
+votes_consensus  decoration          23.561%    32733   -0.001523   -0.002597  [ -0.001841, -0.000814]   +0.0527  0.0080  57.90%  36.168%
+adx              indeterminate       61.233%    38873   -0.000847   -0.001127  [ -0.000173, +0.000464]   +0.0349  0.0102  58.75%  37.656%
+votes_ind3       indeterminate       33.856%    30784   -0.001316   -0.005690  [ -0.005014, -0.003867]   +0.0405  0.0163  59.40%  36.481%
+votes_tech       indeterminate       32.400%    29756   -0.001574   -0.006464  [ -0.005748, -0.004646]   +0.0486  0.0150  58.68%  35.012%
+votes_ind4       indeterminate       51.434%    34775   -0.001801   -0.005854  [ -0.005067, -0.004112]   +0.0298  0.0127  58.37%  35.478%
+votes_ind2       indeterminate       19.907%    27068   -0.002845   -0.006763  [ -0.006007, -0.004988]   +0.0433  0.0158  58.21%  30.980%
+empty            (null)             100.000%    45103   -0.000993   -0.001272  [ +0.000000, +0.000000]   +0.0342  0.0083  57.96%  34.037%
+
+FR-016: the two columns are never combined into a single score. FR-015a/FR-018: learnability is diagnostic and licenses no promotion.
+FR-017: economic value is a LOOKAHEAD BOUND from the outcome table, not a realisable return. Only evaluation/ can make a P&L claim.
+
+UNSCOREABLE (required columns absent from the populator, FR-012's third category): bands, trends

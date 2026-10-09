@@ -813,3 +813,40 @@ answer is structural rather than incidental:
 Nothing here is a P&L claim (FR-017). The only instrument that can promote anything is the
 pooled harness in `evaluation/`, and this repository has twice measured a rising table ceiling
 failing to become harness return.
+
+---
+
+# T033 — SC-005 measured. The premise holds.
+
+SC-005 claims evaluating one trigger takes **seconds**, against the ~1.5 hours a trained
+comparison costs, and that claim is the entire justification for building the outcome table.
+No task had measured it until now.
+
+**Amortised setup** (once per session, any number of triggers):
+
+| step | time |
+|---|---|
+| load + populate 11 pairs, load cached tables | 10.50s |
+| build window A features for the probe | 2.14s |
+
+**Per-trigger evaluation** (`breakout`, the full two-column assessment):
+
+| step | time |
+|---|---|
+| economic value, all bars | 3.37s |
+| economic value, fillable | 3.32s |
+| block-bootstrap interval, 4,000 resamples | 4.13s |
+| conditional probe, one window+seed | 2.67s |
+| **total, one probe fit** | **13.49s** |
+| total, full 3×3 probe grid (extrapolated) | 34.83s |
+
+**Verdict: SC-005 is MET.** 13.5s, or 34.8s with the complete probe grid, against ~1.5–3h
+to train 15 folds (or ~2.5 min to re-evaluate with models already trained, measured during
+this feature's own arm re-run). A 150–800× reduction depending on which baseline is used.
+
+**The honest caveat, which SC-005's wording does not carry.** The two numbers are not
+substitutes. 13.5s buys a LOOKAHEAD BOUND on a trigger; 1.5h buys a realisable return for a
+STRATEGY. The design delivered what it promised — trigger evaluation became cheap enough to
+do exhaustively, which is why 15 triggers could be scored at all and why the family-level
+split became visible. It did not make harness validation cheaper, and nothing here replaces
+it (FR-017).

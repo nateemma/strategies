@@ -1,0 +1,272 @@
+[
+  {
+    "trigger": "adx",
+    "base_rate": 0.6123270796962097,
+    "economic_value": -0.0008471293613478071,
+    "economic_value_ci": [
+      -0.0001730855738473353,
+      0.00046438792156285486
+    ],
+    "economic_value_fillable": -0.0011266754541747305,
+    "learnability_mcc": 0.03491669584058946,
+    "learnability_se": 0.0102365842546049,
+    "gapfill_share": 0.3765574030410253,
+    "verdict": "indeterminate",
+    "n_scored": 1036117,
+    "n_non_overlapping": 38873,
+    "win_rate": 0.5875321030346959,
+    "unconditional_learnability": 0.3882827099995255
+  },
+  {
+    "trigger": "breakout",
+    "base_rate": 0.06452678252290095,
+    "economic_value": 0.0033158107359799287,
+    "economic_value_ci": [
+      0.00970546179605079,
+      0.010988093257195042
+    ],
+    "economic_value_fillable": 0.009075744408630449,
+    "learnability_mcc": 0.05460994645538951,
+    "learnability_se": 0.009317379017272967,
+    "gapfill_share": 0.2837873532562595,
+    "verdict": "selection_value",
+    "n_scored": 109200,
+    "n_non_overlapping": 27102,
+    "win_rate": 0.6334706959706959,
+    "unconditional_learnability": 0.5440396619084942
+  },
+  {
+    "trigger": "breakout_bb",
+    "base_rate": 0.060758057798140745,
+    "economic_value": 0.002337845363936942,
+    "economic_value_ci": [
+      0.008339520494688306,
+      0.009784137206122891
+    ],
+    "economic_value_fillable": 0.007786837950471447,
+    "learnability_mcc": 0.07861252120027368,
+    "learnability_se": 0.007498568529657442,
+    "gapfill_share": 0.26641728415567906,
+    "verdict": "selection_value",
+    "n_scored": 102840,
+    "n_non_overlapping": 19147,
+    "win_rate": 0.5847821859198755,
+    "unconditional_learnability": null
+  },
+  {
+    "trigger": "breakout_gbb",
+    "base_rate": 0.12491086277741838,
+    "economic_value": 0.00025101133804530034,
+    "economic_value_ci": [
+      0.004029624988255272,
+      0.005310713266939296
+    ],
+    "economic_value_fillable": 0.0033709366091107663,
+    "learnability_mcc": 0.052847642740928666,
+    "learnability_se": 0.006385517180255614,
+    "gapfill_share": 0.29368015826732247,
+    "verdict": "selection_value",
+    "n_scored": 211423,
+    "n_non_overlapping": 21145,
+    "win_rate": 0.563046593795377,
+    "unconditional_learnability": 0.562216364508408
+  },
+  {
+    "trigger": "breakout_squeeze",
+    "base_rate": 0.0226891525834286,
+    "economic_value": 0.0020592277385360234,
+    "economic_value_ci": [
+      0.007945118974475893,
+      0.010130749157627765
+    ],
+    "economic_value_fillable": 0.007796316955667043,
+    "learnability_mcc": 0.04226631675095253,
+    "learnability_se": 0.011412815843090349,
+    "gapfill_share": 0.30772103414592955,
+    "verdict": "selection_value",
+    "n_scored": 38391,
+    "n_non_overlapping": 15510,
+    "win_rate": 0.6199109166210831,
+    "unconditional_learnability": null
+  },
+  {
+    "trigger": "breakout_vol",
+    "base_rate": 0.028624347533254758,
+    "economic_value": 0.0046410931816804135,
+    "economic_value_ci": [
+      0.009846408919957625,
+      0.011208670232146927
+    ],
+    "economic_value_fillable": 0.009254178407523482,
+    "learnability_mcc": 0.0631608065088669,
+    "learnability_se": 0.007853548707915504,
+    "gapfill_share": 0.30408999924867564,
+    "verdict": "selection_value",
+    "n_scored": 48440,
+    "n_non_overlapping": 20739,
+    "win_rate": 0.6607349298100743,
+    "unconditional_learnability": null
+  },
+  {
+    "trigger": "empty",
+    "base_rate": 1.0,
+    "economic_value": -0.0009925208067735449,
+    "economic_value_ci": [
+      0.0,
+      0.0
+    ],
+    "economic_value_fillable": -0.0012724223093164217,
+    "learnability_mcc": 0.0342449521595526,
+    "learnability_se": 0.008311530661552427,
+    "gapfill_share": 0.3403660769115185,
+    "verdict": "(null)",
+    "n_scored": 1692097,
+    "n_non_overlapping": 45103,
+    "win_rate": 0.5795920683034128,
+    "unconditional_learnability": 0.0342449521595526
+  },
+  {
+    "trigger": "gbb",
+    "base_rate": 0.1787145925092239,
+    "economic_value": -0.0012618896131998843,
+    "economic_value_ci": [
+      -0.004793319332771811,
+      -0.0034020784424436375
+    ],
+    "economic_value_fillable": -0.005374332685086892,
+    "learnability_mcc": 0.0517570783220024,
+    "learnability_se": 0.010948101371036401,
+    "gapfill_share": 0.31086424907059923,
+    "verdict": "decoration",
+    "n_scored": 302445,
+    "n_non_overlapping": 22420,
+    "win_rate": 0.5936153680834532,
+    "unconditional_learnability": 0.5927484601147052
+  },
+  {
+    "trigger": "gbb_tight",
+    "base_rate": 0.0006959645282595275,
+    "economic_value": 0.019509294689821852,
+    "economic_value_ci": [
+      0.0038987675958431184,
+      0.029221971246354703
+    ],
+    "economic_value_fillable": 0.015847541592941532,
+    "learnability_mcc": 0.14903044343059613,
+    "learnability_se": 0.05492481250018253,
+    "gapfill_share": 0.23876618673588265,
+    "verdict": "selection_value",
+    "n_scored": 1178,
+    "n_non_overlapping": 206,
+    "win_rate": 0.8174872665534805,
+    "unconditional_learnability": null
+  },
+  {
+    "trigger": "geometry",
+    "base_rate": 0.02867515648862854,
+    "economic_value": -0.0007059312114789568,
+    "economic_value_ci": [
+      0.0013768727139326577,
+      0.003591198395981156
+    ],
+    "economic_value_fillable": 0.0012100129126001943,
+    "learnability_mcc": 0.02003881709096459,
+    "learnability_se": 0.00736230256536139,
+    "gapfill_share": 0.25506455742529993,
+    "verdict": "selection_value",
+    "n_scored": 48528,
+    "n_non_overlapping": 24709,
+    "win_rate": 0.5711547972304649,
+    "unconditional_learnability": 0.3286465147461606
+  },
+  {
+    "trigger": "votes_consensus",
+    "base_rate": 0.23560644328450356,
+    "economic_value": -0.0015225223128420477,
+    "economic_value_ci": [
+      -0.0018413352617862504,
+      -0.0008141416891565587
+    ],
+    "economic_value_fillable": -0.002596613165534708,
+    "learnability_mcc": 0.05270693088142283,
+    "learnability_se": 0.008031423238246543,
+    "gapfill_share": 0.36168381350981954,
+    "verdict": "decoration",
+    "n_scored": 398737,
+    "n_non_overlapping": 32733,
+    "win_rate": 0.5789705996684531,
+    "unconditional_learnability": null
+  },
+  {
+    "trigger": "votes_ind2",
+    "base_rate": 0.19906653314545836,
+    "economic_value": -0.002845030727386242,
+    "economic_value_ci": [
+      -0.006006619757469971,
+      -0.004987507865498864
+    ],
+    "economic_value_fillable": -0.006763307109090108,
+    "learnability_mcc": 0.04329881407171335,
+    "learnability_se": 0.015774413255760945,
+    "gapfill_share": 0.3097955381797446,
+    "verdict": "indeterminate",
+    "n_scored": 336734,
+    "n_non_overlapping": 27068,
+    "win_rate": 0.5821122904132044,
+    "unconditional_learnability": null
+  },
+  {
+    "trigger": "votes_ind3",
+    "base_rate": 0.33855779370973316,
+    "economic_value": -0.0013155422884123824,
+    "economic_value_ci": [
+      -0.005014398757058984,
+      -0.0038667813802829415
+    ],
+    "economic_value_fillable": -0.005690279289858321,
+    "learnability_mcc": 0.04052849142380804,
+    "learnability_se": 0.01627059883534845,
+    "gapfill_share": 0.36481097068196217,
+    "verdict": "indeterminate",
+    "n_scored": 572730,
+    "n_non_overlapping": 30784,
+    "win_rate": 0.5940425680512632,
+    "unconditional_learnability": null
+  },
+  {
+    "trigger": "votes_ind4",
+    "base_rate": 0.514335510437991,
+    "economic_value": -0.001800580255024365,
+    "economic_value_ci": [
+      -0.005067280651141069,
+      -0.004112003450721902
+    ],
+    "economic_value_fillable": -0.005853521699903817,
+    "learnability_mcc": 0.02979940642601496,
+    "learnability_se": 0.01272533645203465,
+    "gapfill_share": 0.3547801329737774,
+    "verdict": "indeterminate",
+    "n_scored": 870159,
+    "n_non_overlapping": 34775,
+    "win_rate": 0.5836588485552641,
+    "unconditional_learnability": null
+  },
+  {
+    "trigger": "votes_tech",
+    "base_rate": 0.32399866478791695,
+    "economic_value": -0.0015735462400668808,
+    "economic_value_ci": [
+      -0.005748118218256648,
+      -0.004645533564932027
+    ],
+    "economic_value_fillable": -0.006464004232582533,
+    "learnability_mcc": 0.0486367052021311,
+    "learnability_se": 0.014975178837441663,
+    "gapfill_share": 0.3501154423299637,
+    "verdict": "indeterminate",
+    "n_scored": 548111,
+    "n_non_overlapping": 29756,
+    "win_rate": 0.5868227421088065,
+    "unconditional_learnability": null
+  }
+]

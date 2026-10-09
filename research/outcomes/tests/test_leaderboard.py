@@ -316,3 +316,45 @@ def test_verdict_carries_everything_the_rule_consumed():
     for field in ("ev_delta", "ev_lo", "ev_hi", "learn_delta", "learn_se"):
         assert getattr(v, field) is not None
     assert "0.005" in str(v) or "+0.005" in str(v)
+
+
+# =============================================================================================
+# T031 — synthetic triggers in each quadrant, and the empty-vs-itself control
+# =============================================================================================
+
+def test_empty_versus_ITSELF_is_indeterminate():
+    """THE control T035 checks for, and the one case where the right answer is known a
+    priori. A trigger compared with itself has an economic-value difference of exactly zero
+    and a learnability difference of exactly zero, so it can clear NEITHER bar and must come
+    out `indeterminate`. Any other result means the rule is reading something other than the
+    difference -- a sign error, a reference mix-up, or an interval that excludes zero when
+    the point estimate IS zero."""
+    v = LB.assign_verdict("empty", _iv(0.0, 0.0, 0.0), 0.0, 0.0)
+    assert v.verdict == LB.VERDICT_INDETERMINATE
+    assert not v.ev_beats_null and not v.learn_beats_null
+
+
+def test_empty_vs_itself_stays_indeterminate_even_with_a_degenerate_zero_width_interval():
+    """A self-comparison's bootstrap interval collapses to [0, 0] (every resample gives the
+    same two means). `lo > 0` must be False there -- a `>=` would turn the control into a
+    false `selection_value`, which is exactly the failure the control exists to catch."""
+    for se in (0.0, 1e-12, 0.01):
+        v = LB.assign_verdict("empty", _iv(0.0, 0.0, 0.0), 0.0, se)
+        assert v.verdict == LB.VERDICT_INDETERMINATE, f"se={se}"
+
+
+@pytest.mark.parametrize("name,ev,learn,expected", [
+    # a trigger with real selection value: EV clearly above the null
+    ("selective", (+0.010, +0.009, +0.011), (+0.05, 0.005), LB.VERDICT_SELECTION_VALUE),
+    # one that only looks good to a model: no EV, strong learnability
+    ("decorative", (-0.004, -0.005, -0.003), (+0.05, 0.005), LB.VERDICT_DECORATION),
+    # one that is simply inert on both axes
+    ("inert", (+0.0001, -0.0003, +0.0005), (+0.0007, 0.010), LB.VERDICT_INDETERMINATE),
+    # negative on BOTH -- still indeterminate, never "selection value" by sign confusion
+    ("harmful", (-0.010, -0.011, -0.009), (-0.05, 0.005), LB.VERDICT_INDETERMINATE),
+])
+def test_synthetic_triggers_land_in_their_intended_quadrant(name, ev, learn, expected):
+    """Constructed so each quadrant is exercised by a trigger whose intended verdict is
+    known from how it was built, not from what the rule returns."""
+    v = LB.assign_verdict(name, _iv(*ev), learn[0], learn[1])
+    assert v.verdict == expected

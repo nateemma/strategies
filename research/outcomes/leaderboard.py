@@ -421,3 +421,117 @@ def verdict_header() -> str:
         f"{'trigger':<14}{'verdict':<18}{'economic value vs null (95% CI)':<48}"
         f"{'conditional MCC vs null (+/-1 SE)'}"
     )
+
+
+# =================================================================================================
+# TriggerScore and the assembled leaderboard (T032, SC-006, FR-016)
+# =================================================================================================
+
+@dataclass(frozen=True)
+class TriggerScore:
+    """One leaderboard row, per data-model.md's `TriggerScore`.
+
+    THE TWO COLUMNS ARE SEPARATE FIELDS AND THERE IS NO COMBINED SCORE (FR-016). That is
+    enforced by what this dataclass does NOT have: no `total`, no `rank`, no weighted
+    blend. A single number would have to decide how many MCC points an outcome fraction is
+    worth, and the entire feature exists because those two quantities came apart -- the
+    four arms whose learnability tracked return perfectly while one of them lost money.
+    Anything that recombines them re-creates the confusion this was built to remove.
+    """
+
+    trigger: str
+    base_rate: float
+    #: economic value: mean realised outcome over NON-OVERLAPPING triggered bars (T027's
+    #: correction -- the all-bars mean is weighted by how often a trigger repeats itself)
+    economic_value: float
+    economic_value_ci: tuple[float, float]
+    economic_value_fillable: float
+    #: CONDITIONAL learnability (FR-015b). `None` when the trigger has no probe run.
+    learnability_mcc: Optional[float]
+    learnability_se: Optional[float]
+    gapfill_share: float
+    verdict: str
+    #: diagnostics a reviewer needs to judge the row (T035)
+    n_scored: int = 0
+    n_non_overlapping: int = 0
+    win_rate: float = float("nan")
+    unconditional_learnability: Optional[float] = None
+
+
+def assemble_row(
+    trigger: str,
+    unfiltered: OutcomeStats,
+    fillable: OutcomeStats,
+    ev_delta: "_bootstrap.Interval",
+    learn_mcc: Optional[float],
+    learn_se: Optional[float],
+    learn_delta: Optional[float],
+    *,
+    unconditional_mcc: Optional[float] = None,
+) -> TriggerScore:
+    """Build one row and adjudicate it. The reference row (`empty`) gets no verdict of its
+    own -- it IS the null, and judging it against itself is the T031 control, not a row."""
+    if trigger == REFERENCE_TRIGGER:
+        verdict = "(null)"
+    elif learn_delta is None or learn_se is None:
+        # No probe: the EV branch can still decide `selection_value`, but `decoration`
+        # cannot be ruled in OR out, so anything else is honestly indeterminate rather
+        # than silently assumed.
+        verdict = (
+            VERDICT_SELECTION_VALUE if ev_delta.lo > 0.0 else VERDICT_INDETERMINATE
+        )
+    else:
+        verdict = assign_verdict(trigger, ev_delta, learn_delta, learn_se).verdict
+
+    return TriggerScore(
+        trigger=trigger,
+        base_rate=unfiltered.base_rate,
+        economic_value=unfiltered.mean_non_overlapping,
+        economic_value_ci=(ev_delta.lo, ev_delta.hi),
+        economic_value_fillable=fillable.mean_non_overlapping,
+        learnability_mcc=learn_mcc,
+        learnability_se=learn_se,
+        gapfill_share=unfiltered.gapfill_share,
+        verdict=verdict,
+        n_scored=unfiltered.n_scored,
+        n_non_overlapping=unfiltered.n_non_overlapping,
+        win_rate=unfiltered.win_rate,
+        unconditional_learnability=unconditional_mcc,
+    )
+
+
+def report(rows: "list[TriggerScore]") -> str:
+    """The leaderboard as text (SC-006/SC-008), two columns kept apart.
+
+    Ordered by verdict then by economic value, because a reader's first question is which
+    triggers have selection value -- not which has the biggest number, which would invite
+    exactly the single-ranking reading FR-016 forbids.
+    """
+    order = {VERDICT_SELECTION_VALUE: 0, VERDICT_DECORATION: 1, VERDICT_INDETERMINATE: 2}
+    rows = sorted(rows, key=lambda r: (order.get(r.verdict, 3), -(r.economic_value or 0)))
+    out = [
+        "LEADERBOARD — economic value (no model) and conditional learnability, "
+        "SEPARATE columns (FR-016)",
+        "",
+        f"{'trigger':<17}{'verdict':<17}{'base rate':>10}{'n n-ovl':>9}"
+        f"{'EV':>12}{'EV fill':>12}{'95% CI vs null':>26}"
+        f"{'cond MCC':>10}{'SE':>8}{'win':>8}{'gapfill':>9}",
+    ]
+    for r in rows:
+        mcc = "    n/a" if r.learnability_mcc is None else f"{r.learnability_mcc:>+8.4f}"
+        se = "     --" if r.learnability_se is None else f"{r.learnability_se:>7.4f}"
+        out.append(
+            f"{r.trigger:<17}{r.verdict:<17}{r.base_rate * 100:>9.3f}%"
+            f"{r.n_non_overlapping:>9}{r.economic_value:>+12.6f}"
+            f"{r.economic_value_fillable:>+12.6f}"
+            f"  [{r.economic_value_ci[0]:>+10.6f},{r.economic_value_ci[1]:>+10.6f}]"
+            f"{mcc:>10}{se:>8}{r.win_rate * 100:>7.2f}%{r.gapfill_share * 100:>8.3f}%"
+        )
+    out += [
+        "",
+        "FR-016: the two columns are never combined into a single score. FR-015a/FR-018: "
+        "learnability is diagnostic and licenses no promotion.",
+        "FR-017: economic value is a LOOKAHEAD BOUND from the outcome table, not a "
+        "realisable return. Only evaluation/ can make a P&L claim.",
+    ]
+    return "\n".join(out)
