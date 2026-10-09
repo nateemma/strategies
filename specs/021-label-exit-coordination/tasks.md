@@ -210,7 +210,7 @@ known low learnability lands in the expected quadrant.
 - [X] T027 [US4] @model-implementer Implement economic value in `research/outcomes/leaderboard.py` (SC-010)
   from the table alone, NO model (FR-014): base rate, mean realised outcome, distribution —
   reported both over all triggered bars and over fillable triggered bars only (FR-009b).
-- [ ] T028 [US4] @model-implementer Implement the **block** bootstrap for the economic-value
+- [X] T028 [US4] @model-implementer Implement the **block** bootstrap for the economic-value
   interval (research R9). Resample in contiguous blocks: adjacent bars' forward windows
   overlap heavily, so an i.i.d. bootstrap would understate the interval badly and could turn
   an indeterminate result into a false `selection_value`. Test that the block version gives a

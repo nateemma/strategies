@@ -31,6 +31,7 @@ from typing import Iterable
 import numpy as np
 import pandas as pd
 
+from research.outcomes import bootstrap as _bootstrap
 from research.outcomes import labels as _labels
 from research.outcomes import triggers as _triggers
 from research.outcomes.leakage import (
@@ -269,4 +270,71 @@ def header() -> str:
         f"{'trigger':<14}{'base rate':>10}{'n scored':>10}{'n n-ovl':>9}{'ratio':>7}"
         f"{'EV all':>12}{'EV n-ovl':>12}{'EV fill n-ovl':>13}{'win rate':>10}"
         f"{'gapfill':>10}"
+    )
+
+
+# =================================================================================================
+# Intervals (T028). The gate on interpreting any ranking above.
+# =================================================================================================
+
+def _delta_groups(
+    frames: Iterable[tuple[pd.DataFrame, pd.DataFrame]],
+    trigger: "_triggers.Trigger | str",
+    reference: "_triggers.Trigger | str",
+    *,
+    fillable_only: bool,
+    non_overlapping: bool,
+) -> list[tuple[np.ndarray, np.ndarray, np.ndarray]]:
+    """Per-pair `(profit, mask_trigger, mask_reference)` for the paired block bootstrap.
+
+    Both masks are built over the SAME bars of the same pair, which is what makes the
+    bootstrap paired and lets the shared market component cancel out of the difference.
+    """
+    groups = []
+    for f, o in frames:
+        _validate(f, o)
+        profit = o[OUTCOME_COLUMN_PROFIT].to_numpy(dtype=float)
+        usable = o[OUTCOME_COLUMN_CLOSE_REASON].to_numpy() != EXCLUDED_CLOSE_REASON
+        if fillable_only:
+            usable = usable & o[OUTCOME_COLUMN_FILLABLE].to_numpy(dtype=bool)
+        hold = o[OUTCOME_COLUMN_HOLD_BARS].to_numpy(dtype=float)
+        masks = []
+        for t in (trigger, reference):
+            m = _triggers.evaluate(t, f).to_numpy() & usable
+            if non_overlapping:
+                keep = np.zeros_like(m)
+                free = -1
+                for i in np.flatnonzero(m):
+                    if i > free:
+                        keep[i] = True
+                        free = int(i) + max(int(hold[i]), 0)
+                m = keep
+            masks.append(m)
+        groups.append((profit, masks[0], masks[1]))
+    return groups
+
+
+def economic_value_delta(
+    frames: Iterable[tuple[pd.DataFrame, pd.DataFrame]],
+    trigger: "_triggers.Trigger | str",
+    reference: "_triggers.Trigger | str" = "empty",
+    *,
+    fillable_only: bool = False,
+    non_overlapping: bool = True,
+    block_length: int = _bootstrap.DEFAULT_BLOCK_LENGTH,
+    n_resamples: int = _bootstrap.DEFAULT_N_RESAMPLES,
+    seed: int = 0,
+) -> "_bootstrap.Interval":
+    """The quantity FR-014b's verdict rule turns on: `EV(trigger) - EV(reference)`, with a
+    block-bootstrap interval.
+
+    `non_overlapping=True` by default, because T027 established that the all-bars mean is
+    not comparable across triggers -- it is weighted by how often a trigger repeats itself,
+    and correcting for that flipped `gbb` from positive to negative. The verdict rule must
+    run on the comparable figure, so that is the default rather than an option.
+    """
+    return _bootstrap.paired_block_bootstrap_delta(
+        _delta_groups(frames, trigger, reference,
+                      fillable_only=fillable_only, non_overlapping=non_overlapping),
+        block_length=block_length, n_resamples=n_resamples, seed=seed,
     )

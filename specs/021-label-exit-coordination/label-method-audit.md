@@ -251,3 +251,45 @@ understate the intervals badly — which is now an empirical justification for T
 bootstrap rather than an a-priori one, and sets its block length at ≥ the mean hold. Until
 T028 supplies intervals, the only safe reading of the ranking is that `breakout` and `gbb`
 sit at opposite ends of it, in the opposite order to the harness.
+
+---
+
+# T028 — intervals, and what they permit
+
+Paired block bootstrap, `L=48` bars, non-overlapping selection, vs the `empty` null. Pooled
+11 pairs. See research.md's R9 correction for why `L=48` and why these intervals behave the
+opposite way to R9's prediction.
+
+| trigger | delta | 95% CI | spans 0? |
+|---|---|---|---|
+| `breakout` | +0.004309 | [+0.004003, +0.004632] | **no** |
+| `breakout_gbb` | +0.001244 | [+0.000902, +0.001596] | **no** |
+| `geometry` | +0.000287 | [−0.000050, +0.000613] | yes |
+| `adx` | +0.000146 | [−0.000029, +0.000326] | yes |
+| `gbb` | −0.000269 | [−0.000610, +0.000078] | yes |
+
+Fillable-only (FR-009b), the population that could actually have been traded:
+
+| trigger | delta | 95% CI | spans 0? |
+|---|---|---|---|
+| `breakout` | +0.010348 | [+0.009705, +0.010988] | **no** |
+| `breakout_gbb` | +0.004643 | [+0.004030, +0.005311] | **no** |
+| `geometry` | +0.002482 | [+0.001377, +0.003591] | **no** |
+| `adx` | +0.000146 | [−0.000173, +0.000464] | yes |
+| `gbb` | **−0.004102** | **[−0.004793, −0.003402]** | **no (negative)** |
+
+## What this does and does not license
+
+It is now resolved that the ranking is not noise. `breakout` beats the null and `gbb` does
+not, and on the fillable population `gbb` is **significantly WORSE** than trading every bar.
+
+It is NOT resolved that `breakout` is a better trigger to build a strategy on. T027's
+measurement stands: the arm's model-selected 0.514% subset of `gbb` bars realises +0.005204
+against +0.000769 over all `gbb` bars, a factor of 6.8. A trigger's no-model economic value
+is a LOWER bound on what a selector extracts from it, and nothing here measures the upper
+bound. `gbb` returning +42.71pp in the harness while scoring below the null on this column is
+not a contradiction — the two measure different things, and T027 named which.
+
+The verdict rule (T030) therefore has a real decision to make rather than a formality: it
+must assign a verdict on a column that is significant, comparable, and known to be an
+incomplete predictor of strategy value.

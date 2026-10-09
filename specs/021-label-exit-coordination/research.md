@@ -220,6 +220,53 @@ governs P&L claims (FR-017). The table's economic value is a different quantity 
 different way, and conflating the two would be the error of treating a lookahead bound as a
 realisable return.
 
+### CORRECTED 2026-10-08 by T028 — the premise is real but small, and REVERSES when paired
+
+R9 said an i.i.d. bootstrap "would understate the interval badly". Measured, that is only
+partly right, and the part that is wrong matters for the verdict rule.
+
+**Unpaired mean EV, real data, pooled 11 pairs** (width of the 95% interval):
+
+| trigger | L=2 | L=8 | L=48 | L=192 |
+|---|---|---|---|---|
+| `empty` | 0.000498 | 0.000514 | 0.000558 | 0.000534 |
+| `breakout` | 0.000601 | 0.000626 | 0.000670 | 0.000703 |
+| `gbb` | 0.000785 | 0.000869 | 0.000854 | 0.000808 |
+
+The mechanism is real — width grows with block length — but by **12–17%**, not "badly". My
+own pre-estimate, that an i.i.d. interval would be ~6x too narrow (from the 0.027 clustering
+ratio), was WRONG by a large factor.
+
+**Why**: T027's non-overlapping selection has ALREADY removed the dependence R9 was worried
+about. The forward windows that "overlap heavily" are precisely what the non-overlapping scan
+discards, so by the time the bootstrap sees the data each observation is one distinct trade.
+What remains is ordinary market autocorrelation between consecutive trades, which is modest.
+T027 and T028 turn out to address the SAME dependence, so the second has little left to do.
+That is a design redundancy worth knowing rather than a defect in either.
+
+**And for the PAIRED DELTA — the quantity FR-014b actually uses — the effect REVERSES:**
+
+| trigger | L=2 | L=8 | L=48 | L=192 |
+|---|---|---|---|---|
+| `breakout` | 0.000778 | 0.000764 | 0.000633 | 0.000549 |
+| `gbb` | 0.000771 | 0.000891 | 0.000705 | 0.000607 |
+
+Longer blocks give NARROWER delta intervals. This is not the dependence being ignored; it is
+the pairing working. A short block BREAKS the pairing: `breakout`'s non-overlapping mask has a
+density of about 1.6% of bars, so a 2-bar block almost never contains both a `breakout` bar
+and an `empty` bar, and the two means end up estimated from largely disjoint block sets with
+no shared component to cancel. With L=192 nearly every block contains both and the common
+market move cancels out of the difference.
+
+**Decision stands, with the reasoning corrected.** `DEFAULT_BLOCK_LENGTH = 48` (12h, above the
+measured 32–42 bar mean hold) is kept, but NOT because it is the conservative end — for the
+delta it is not. It is kept because a block shorter than one trade is an artefact: it inflates
+the interval by destroying the pairing rather than by capturing dependence. The short-block
+widths above should be read as spurious, not cautious.
+
+`iid_bootstrap_mean` is retained in the module deliberately, so this comparison stays
+reproducible rather than becoming a claim in a commit message.
+
 ## R10 — T021 FOUND THE SPEC'S EXIT POLICY IS INCOMPLETE (2026-10-08)
 
 The reconciliation did its job. Matching all 1,410 control-arm trades to table entries by
