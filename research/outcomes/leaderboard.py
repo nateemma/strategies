@@ -300,6 +300,7 @@ def _delta_groups(
     groups = []
     for f, o in frames:
         _validate(f, o)
+        dates = pd.to_datetime(o["date"], utc=True).to_numpy()
         profit = o[OUTCOME_COLUMN_PROFIT].to_numpy(dtype=float)
         usable = o[OUTCOME_COLUMN_CLOSE_REASON].to_numpy() != EXCLUDED_CLOSE_REASON
         if fillable_only:
@@ -317,7 +318,7 @@ def _delta_groups(
                         free = int(i) + max(int(hold[i]), 0)
                 m = keep
             masks.append(m)
-        groups.append((profit, masks[0], masks[1]))
+        groups.append((profit, masks[0], masks[1], dates))
     return groups
 
 
@@ -331,6 +332,7 @@ def economic_value_delta(
     block_length: int = _bootstrap.DEFAULT_BLOCK_LENGTH,
     n_resamples: int = _bootstrap.DEFAULT_N_RESAMPLES,
     seed: int = 0,
+    calendar_blocks: bool = False,
 ) -> "_bootstrap.Interval":
     """The quantity FR-014b's verdict rule turns on: `EV(trigger) - EV(reference)`, with a
     block-bootstrap interval.
@@ -340,9 +342,14 @@ def economic_value_delta(
     and correcting for that flipped `gbb` from positive to negative. The verdict rule must
     run on the comparable figure, so that is the default rather than an option.
     """
+    groups = _delta_groups(frames, trigger, reference,
+                           fillable_only=fillable_only, non_overlapping=non_overlapping)
+    if calendar_blocks:
+        return _bootstrap.paired_calendar_block_delta(
+            groups, block_length=block_length, n_resamples=n_resamples, seed=seed,
+        )
     return _bootstrap.paired_block_bootstrap_delta(
-        _delta_groups(frames, trigger, reference,
-                      fillable_only=fillable_only, non_overlapping=non_overlapping),
+        [(v, a, b) for v, a, b, _ in groups],
         block_length=block_length, n_resamples=n_resamples, seed=seed,
     )
 

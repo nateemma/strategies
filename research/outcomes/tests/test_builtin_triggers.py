@@ -453,3 +453,120 @@ def test_gbb_tight_declares_it_is_not_a_promotion_candidate():
     d = T.get("gbb_tight").description
     assert "not a promotion candidate" in d
     assert "NOT chosen for best EV" in d
+
+
+# =============================================================================================
+# EXACTNESS of the ports (2026-10-09, T035 item 6)
+# =============================================================================================
+#
+# Containment (`label ⊆ trigger`) catches a port that is too TIGHT -- it fires on fewer bars
+# than the labeler's factor -- but NEVER one that is too LOOSE. A trigger firing on bars the
+# factor would reject passes containment while scoring a different, broader condition under
+# the labeler's name. The gate review flagged this for `breakout_gbb` and `breakout_bb`,
+# which despite their names contain no breakout condition at all.
+#
+# The fix is EQUALITY against factors reconstructed here from the live source, independently
+# of the implementation under test. That closes the loose direction too.
+
+def _factor_frame(n: int = 1500, seed: int = 31) -> pd.DataFrame:
+    rng = np.random.default_rng(seed)
+    close = 100 + rng.normal(0, 1, n).cumsum()
+    return pd.DataFrame({
+        "close": close, "open": close,
+        "high": close + np.abs(rng.normal(0, 0.6, n)),
+        "low": close - np.abs(rng.normal(0, 0.6, n)),
+        "guard_metric": rng.uniform(-1.0, 1.0, n),
+        "bb_width": rng.uniform(0.0, 0.25, n),
+        "bb_position": rng.uniform(0.0, 1.0, n),
+        "rvol": rng.uniform(0.0, 3.0, n),
+        "adx_scaled": rng.uniform(-1.0, 1.0, n),
+        "aroonosc_scaled": rng.uniform(-1.0, 1.0, n),
+        "sar_ratio": rng.uniform(-1.0, 1.0, n),
+        "vwap_ratio": rng.uniform(-1.0, 1.0, n),
+        "atr_norm": rng.uniform(-1.0, 1.0, n),
+        "gain_norm": rng.uniform(-1.0, 1.0, n),
+        "rsi_scaled": rng.uniform(-1.0, 1.0, n),
+        "mfi_scaled": rng.uniform(-1.0, 1.0, n),
+        "log_volume_norm": rng.uniform(-1.0, 1.0, n),
+        "close_norm": rng.uniform(-1.0, 1.0, n),
+        "trend_mode": rng.integers(0, 2, n).astype(float),
+        "ema_fast_norm": rng.uniform(-1.0, 1.0, n),
+        "fastk_scaled": rng.uniform(-1.0, 1.0, n),
+        "di_diff_scaled": rng.uniform(-1.0, 1.0, n),
+    })
+
+
+def _nz(df, c, fill=0.0):
+    return np.nan_to_num(np.asarray(df[c], dtype=float), nan=fill)
+
+
+def _expected_factors(df: pd.DataFrame) -> dict:
+    """Each labeler's BACKWARD factor, written out from the live source here."""
+    import pandas as _pd
+    n = len(df)
+    prior_high = _pd.Series(_nz(df, "high")).rolling(20).max().shift(1).to_numpy()
+    breakout = np.where(np.isnan(prior_high), False, _nz(df, "close") > prior_high)
+    bbw = _pd.Series(_nz(df, "bb_width"))
+    squeeze = (bbw.shift(1) <= bbw.rolling(100).quantile(0.3)).fillna(False).to_numpy()
+
+    def votes(conds, k):
+        return np.sum([c.astype(int) for c in conds], axis=0) >= k
+
+    return {
+        "breakout": breakout,
+        "breakout_vol": breakout & (_nz(df, "rvol", 1.0) > 1.5),
+        "breakout_squeeze": breakout & squeeze,
+        "breakout_bb": (_nz(df, "bb_position") >= 0.6) & (_nz(df, "bb_width") > 0.035),
+        "breakout_gbb": (_nz(df, "guard_metric") > 0.2) & (_nz(df, "bb_width") > 0.035),
+        "adx": _nz(df, "adx_scaled") > -0.2,
+        "votes_tech": votes([
+            _nz(df, "adx_scaled") >= 0.1, _nz(df, "aroonosc_scaled") <= -0.2,
+            _nz(df, "guard_metric") <= -0.2, _nz(df, "sar_ratio") >= 0.2,
+            _nz(df, "bb_width") >= 0.017, _nz(df, "vwap_ratio") >= 0.2], 4),
+        "votes_consensus": votes([
+            _nz(df, "adx_scaled") >= 0.1, _nz(df, "aroonosc_scaled") >= 0.2,
+            _nz(df, "guard_metric") >= 0.2, _nz(df, "sar_ratio") >= 0.2,
+            _nz(df, "bb_width") >= 0.017, _nz(df, "vwap_ratio") >= 0.2], 4),
+        "votes_ind2": votes([
+            _nz(df, "atr_norm") >= 0.5, _nz(df, "gain_norm") <= -0.5,
+            _nz(df, "rsi_scaled") <= -0.0, _nz(df, "mfi_scaled") <= -0.0,
+            _nz(df, "bb_width") <= 0.011, _nz(df, "log_volume_norm") >= 0.2,
+            _nz(df, "close_norm") <= -0.2], 4),
+        "votes_ind3": votes([
+            _nz(df, "close_norm") < -0.0, _nz(df, "adx_scaled") > -0.2,
+            _nz(df, "trend_mode") > 0, _nz(df, "guard_metric") < -0.0], 3),
+        "votes_ind4": votes([
+            _nz(df, "rsi_scaled") < 0.0, _nz(df, "mfi_scaled") < 0.0,
+            _nz(df, "ema_fast_norm") < 0.0, _nz(df, "fastk_scaled") < 0.0,
+            _nz(df, "di_diff_scaled") > 0.0], 3),
+    }
+
+
+@pytest.mark.parametrize("name", sorted(_expected_factors(_factor_frame()).keys()))
+def test_each_port_EQUALS_its_labelers_backward_factor(name):
+    """EQUALITY, not containment. A too-loose port passes containment while scoring a
+    broader condition under the labeler's name -- the failure mode containment structurally
+    cannot see."""
+    from research.outcomes.audit_triggers import register_remaining_audit_triggers
+    B.register_audit_triggers()
+    register_remaining_audit_triggers()
+    df = _factor_frame()
+    expected = _expected_factors(df)[name]
+    actual = T.evaluate(name, df).to_numpy()
+    assert expected.any(), f"{name}: fixture produced no firing bars; test is vacuous"
+    too_tight = int((expected & ~actual).sum())
+    too_loose = int((actual & ~expected).sum())
+    assert too_tight == 0 and too_loose == 0, (
+        f"{name}: {too_tight} bars the factor fires on that the port misses, "
+        f"{too_loose} bars the port fires on that the factor rejects"
+    )
+
+
+def test_the_equality_check_CAN_detect_a_too_loose_port():
+    """Proof the test above is not vacuous in the loose direction -- the one containment
+    misses. A deliberately broadened `breakout_gbb` must be caught."""
+    df = _factor_frame()
+    expected = _expected_factors(df)["breakout_gbb"]
+    loose = (_nz(df, "guard_metric") > 0.0) & (_nz(df, "bb_width") > 0.035)   # 0.0, not 0.2
+    assert int((loose & ~expected).sum()) > 0, "fixture cannot demonstrate looseness"
+    assert int((expected & ~loose).sum()) == 0, "a looser mask must contain the factor"

@@ -1034,3 +1034,58 @@ same-time crypto bars are correlated); `L=48` is shorter than `max_hold`'s 960 b
 containment only able to catch a too-TIGHT factor. These are instrument-quality items, and
 the first two would widen the breakout family's intervals — the direction that could cost
 those four verdicts.
+
+---
+
+# T035's remaining three items, fixed (2026-10-09)
+
+## 1+2. Calendar blocks spanning all pairs, and L up to the full hold
+
+**The defect.** Blocks were formed WITHIN each pair, so a resample could draw pair A's
+May-2022 block alongside pair B's March-2024 block — implicitly treating the 11-pair
+cross-section as independent when same-time crypto bars are highly correlated. And `L=48`
+was chosen against the MEAN hold (32–42 bars), which is the wrong statistic: a block must
+contain the LONGEST dependence it absorbs, and `max_hold_days` is 10 days = **960 bars**.
+
+**The fix.** `paired_calendar_block_delta` keys blocks on calendar time, so one draw moves
+every pair's bars in that window together. Sensitivity reported rather than one value
+asserted:
+
+| trigger | per-pair L=48 | cal L=48 | cal L=192 | cal L=960 |
+|---|---|---|---|---|
+| `breakout` | +0.00208 **[Y]** w=0.00144 | **[Y]** w=0.00174 | **[Y]** w=0.00171 | **[Y]** w=0.00151 |
+| `breakout_bb` | +0.00282 **[Y]** w=0.00162 | **[Y]** w=0.00210 | **[Y]** w=0.00215 | **[Y]** w=0.00204 |
+| `breakout_vol` | +0.00185 **[Y]** w=0.00185 | **[Y]** w=0.00226 | **[Y]** w=0.00223 | **[Y]** w=0.00207 |
+| `breakout_gbb` | +0.00196 **[Y]** w=0.00139 | **[Y]** w=0.00190 | **[Y]** w=0.00181 | **[Y]** w=0.00174 |
+| `gbb` | −0.00074 [n] w=0.00147 | [n] w=0.00195 | [n] w=0.00186 | [n] w=0.00153 |
+| `random_matched` | +0.00033 [n] w=0.00117 | [n] w=0.00126 | [n] w=0.00120 | [n] w=0.00110 |
+| `gbb_stale` | −0.00013 [n] w=0.00166 | [n] w=0.00210 | [n] w=0.00218 | [n] w=0.00249 |
+| `votes_tech` | −0.00233 [n] w=0.00115 | [n] w=0.00148 | [n] w=0.00139 | [n] w=0.00133 |
+
+Calendar blocks widen every interval by **10–37%**, which is the point — they stop crediting
+the cross-section with independence it does not have. **No verdict changes, at any block
+length, including L=960.** The four breakout-family `selection_value` verdicts survive the
+more conservative treatment, which is the outcome that was genuinely in doubt.
+
+Width does not grow monotonically in L (breakout: 0.00174 → 0.00171 → 0.00151), because two
+effects offset — longer blocks capture more dependence but also improve the paired
+cancellation (T028's finding). `gbb_stale` is the exception, widening throughout
+(0.00210 → 0.00249), exactly as a trigger with intact clustering and no information should.
+
+## 3. Port exactness — equality, not containment
+
+**The defect.** Containment (`label ⊆ trigger`) catches a port that is too TIGHT but never
+one that is too LOOSE: a trigger firing on bars the factor would reject passes containment
+while scoring a broader condition under the labeler's name. The review raised this for
+`breakout_gbb` and `breakout_bb`, which contain no breakout condition despite their names.
+
+**The fix.** 11 EQUALITY tests, each against a factor reconstructed from the live source
+independently of the implementation under test, asserting zero bars in BOTH directions. All
+pass — every port is exact. Plus a test proving the check can detect a too-loose port (a
+deliberately broadened `breakout_gbb` at `guard > 0.0` instead of `0.2`), so the new check
+is not vacuous in the direction it was added for.
+
+**On the names**: `breakout_gbb` and `breakout_bb` genuinely contain no breakout condition.
+The names come from the labelers and are kept so the audit maps 1:1, with the discrepancy
+stated in each trigger's registry description. The implementations are exact; only the names
+mislead.

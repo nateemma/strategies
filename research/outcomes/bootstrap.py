@@ -220,3 +220,91 @@ def iid_bootstrap_mean(
         draws, float(x.mean()), alpha, n_blocks=int(x.size), block_length=1,
         n_resamples=n_resamples, n_degenerate=0,
     )
+
+
+# =================================================================================================
+# CALENDAR blocks (2026-10-09, T035 items 1 and 2)
+# =================================================================================================
+
+#: A block length that contains the FULL hold, not just the typical one. `max_hold_days` is
+#: 10 days = 960 bars at 15m, so a 48-bar block leaves a trade's dependence straddling 20
+#: blocks. `DEFAULT_BLOCK_LENGTH` (48) was chosen against the MEAN hold (32-42 bars), which
+#: is the wrong statistic: the block has to contain the longest dependence it is meant to
+#: absorb, not the average one.
+#:
+#: Sensitivity across L is reported rather than one value asserted, because the right answer
+#: is a judgement and the honest output is how much the verdict moves.
+FULL_HOLD_BLOCK_LENGTH = 960
+
+
+def _calendar_block_ids(dates: np.ndarray, block_length: int, bar_ns: int) -> np.ndarray:
+    """Map timestamps to a GLOBAL block id shared by every pair.
+
+    This is the fix for resampling pairs independently. Same-time crypto bars are highly
+    correlated -- an 11-pair cross-section during one market event is close to ONE
+    observation -- yet per-pair blocks let a resample draw pair A's May-2022 block alongside
+    pair B's March-2024 block, implicitly treating the cross-section as independent. A
+    calendar block draws a TIME WINDOW and takes every pair's bars inside it together, so
+    the cross-sectional correlation is carried rather than averaged away.
+    """
+    return (dates.astype("datetime64[ns]").astype(np.int64) // (bar_ns * block_length))
+
+
+def paired_calendar_block_delta(
+    groups: "Sequence[tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]]",
+    *,
+    block_length: int = FULL_HOLD_BLOCK_LENGTH,
+    n_resamples: int = DEFAULT_N_RESAMPLES,
+    alpha: float = DEFAULT_ALPHA,
+    seed: int = 0,
+    bar_minutes: int = 15,
+) -> Interval:
+    """`paired_block_bootstrap_delta` with blocks keyed on CALENDAR TIME across all pairs.
+
+    `groups` is one `(values, mask_a, mask_b, dates)` per pair. Blocks are global time
+    windows, so one draw moves every pair's bars in that window together.
+
+    Expect WIDER intervals than the per-pair version: it stops crediting the cross-section
+    with independence it does not have. If a verdict survives this and the per-pair version
+    disagrees, the per-pair one was overconfident.
+    """
+    bar_ns = int(bar_minutes) * 60 * 1_000_000_000
+    acc: dict[int, list[float]] = {}
+    for values, mask_a, mask_b, dates in groups:
+        v = np.asarray(values, float)
+        d = np.asarray(dates)
+        ids = _calendar_block_ids(d, block_length, bar_ns)
+        for mask, slot in ((np.asarray(mask_a, bool), 0), (np.asarray(mask_b, bool), 2)):
+            if not mask.any():
+                continue
+            bid = ids[mask]
+            vals = v[mask]
+            for b, x in zip(bid, vals):
+                row = acc.setdefault(int(b), [0.0, 0.0, 0.0, 0.0])
+                row[slot] += float(x)
+                row[slot + 1] += 1.0
+
+    if not acc:
+        return Interval(float("nan"), float("nan"), float("nan"), alpha, 0,
+                        block_length, n_resamples)
+
+    arr = np.array([acc[k] for k in sorted(acc)], dtype=float)
+    BSA, BCA, BSB, BCB = arr[:, 0], arr[:, 1], arr[:, 2], arr[:, 3]
+    n_blocks = int(arr.shape[0])
+    if BCA.sum() == 0 or BCB.sum() == 0:
+        return Interval(float("nan"), float("nan"), float("nan"), alpha, n_blocks,
+                        block_length, n_resamples)
+
+    point = float(BSA.sum() / BCA.sum() - BSB.sum() / BCB.sum())
+    rng = np.random.default_rng(seed)
+    idx = rng.integers(0, n_blocks, size=(n_resamples, n_blocks))
+    ca, cb = BCA[idx].sum(axis=1), BCB[idx].sum(axis=1)
+    ok = (ca > 0) & (cb > 0)
+    a = np.full(n_resamples, np.nan); b = np.full(n_resamples, np.nan)
+    np.divide(BSA[idx].sum(axis=1), ca, out=a, where=ok)
+    np.divide(BSB[idx].sum(axis=1), cb, out=b, where=ok)
+    delta = a - b
+    return _percentile_interval(
+        delta[ok], point, alpha, n_blocks=n_blocks, block_length=block_length,
+        n_resamples=n_resamples, n_degenerate=int((~ok).sum()),
+    )
