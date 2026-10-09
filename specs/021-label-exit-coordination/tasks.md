@@ -165,7 +165,7 @@ into a model, and agrees with the harness.
 **Independent test**: express several existing labels as triggers, recombine with the shared
 outcome, confirm the label sets differ only where the triggers do.
 
-- [ ] T022 [US3] @model-implementer Implement the trigger registry in (FR-010)
+- [X] T022 [US3] @model-implementer Implement the trigger registry in (FR-010)
   `research/outcomes/triggers.py` per `contracts/trigger-cli.md`: `name`, `evaluate`,
   `required_columns`, `source`. Assert `required_columns` present before evaluation. Reject
   any trigger referencing a `__outcome_` column, and any pair-specific trigger
