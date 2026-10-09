@@ -183,7 +183,7 @@ outcome, confirm the label sets differ only where the triggers do.
   base rate 3.07% against the labeler's measured 54%. `gbb` IS a faithful port, bit-identical to the
   live backward-looking mask over 164,918 SOL bars.
 
-- [ ] T024 [US3] @model-implementer Implement label formation as `trigger AND __outcome_positive`
+- [X] T024 [US3] @model-implementer Implement label formation as `trigger AND __outcome_positive`
   (FR-011), with no label-specific outcome test anywhere.
 - [ ] T025 [US3] @model-implementer Audit the 28 `LabelMethod` members (FR-012): express as triggers
   those that reduce, and list those that do not with the reason. Per research R7, expect
@@ -191,7 +191,7 @@ outcome, confirm the label sets differ only where the triggers do.
   `risk_adj_future` NOT to reduce — their conditions are purely forward-path properties, so
   they are competing *outcome* definitions that this design supersedes rather than ports.
   Report the actual finding; do not assume research R7 was right.
-- [ ] T026 [P] [US3] @model-implementer Test that two triggers combined with the shared outcome
+- [X] T026 [P] [US3] @model-implementer Test that two triggers combined with the shared outcome
   produce label sets differing only where the triggers differ.
 
 **Checkpoint**: any trigger can be defined and turned into a label without writing an outcome
