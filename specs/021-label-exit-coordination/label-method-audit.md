@@ -740,3 +740,76 @@ is the margin finding restated across families.
 Verdicts for the seven EV-positive rows are `selection_value` already, since FR-014b's first
 branch is independent of learnability. The eight remaining rows need conditional learnability to
 separate `decoration` from `indeterminate`; that campaign is running (72 fits).
+
+---
+
+# THE FINAL BOARD (2026-10-09) — 14 scoreable triggers adjudicated
+
+72 conditional fits added (8 triggers × 3 windows × 3 seeds), 0 failures. FR-014b as amended
+by FR-015b; economic value on the fillable population, paired block bootstrap vs the `empty`
+null.
+
+| trigger | verdict | EV delta | 95% CI | cond MCC Δ | SE |
+|---|---|---|---|---|---|
+| `gbb_tight` | **selection_value** | +0.017120 | [+0.003899, +0.029222] | +0.1148 | 0.0549 |
+| `breakout_vol` | **selection_value** | +0.010527 | [+0.009846, +0.011209] | +0.0289 | 0.0079 |
+| `breakout` | **selection_value** | +0.010348 | [+0.009705, +0.010988] | +0.0204 | 0.0093 |
+| `breakout_squeeze` | **selection_value** | +0.009069 | [+0.007945, +0.010131] | +0.0080 | 0.0114 |
+| `breakout_bb` | **selection_value** | +0.009059 | [+0.008340, +0.009784] | +0.0444 | 0.0075 |
+| `breakout_gbb` | **selection_value** | +0.004643 | [+0.004030, +0.005311] | +0.0186 | 0.0064 |
+| `geometry` | **selection_value** | +0.002482 | [+0.001377, +0.003591] | −0.0142 | 0.0074 |
+| `votes_consensus` | **decoration** | −0.001324 | [−0.001841, −0.000814] | +0.0185 | 0.0080 |
+| **`gbb`** | **decoration** | −0.004102 | [−0.004793, −0.003402] | +0.0175 | 0.0109 |
+| `adx` | indeterminate | +0.000146 | [−0.000173, +0.000464] | +0.0007 | 0.0102 |
+| `votes_ind3` | indeterminate | −0.004418 | [−0.005014, −0.003867] | +0.0063 | 0.0163 |
+| `votes_ind4` | indeterminate | −0.004581 | [−0.005067, −0.004112] | −0.0044 | 0.0127 |
+| `votes_tech` | indeterminate | −0.005192 | [−0.005748, −0.004646] | +0.0144 | 0.0150 |
+| `votes_ind2` | indeterminate | −0.005491 | [−0.006007, −0.004988] | +0.0091 | 0.0158 |
+
+**7 selection_value · 2 decoration · 5 indeterminate · 2 unscoreable** (`bands`, `trends`).
+
+## Reading the board
+
+**The vote family mostly lands `indeterminate`, not `decoration`** — and that is the rule
+working rather than failing. Four of the five have significantly NEGATIVE economic value but
+conditional learnability that does not clear even one standard error (their SEs are
+0.0127–0.0163, two to three times the breakout family's). So the honest verdict is: they
+select moments worse than random, and we cannot establish they are model-friendly either.
+`indeterminate` "MUST be reported as such rather than resolved by judgement" (FR-014b), and
+five rows exercise that branch.
+
+**`geometry` is the cleanest single result on the board.** Positive economic value
+(+0.002482, CI clear of zero) with significantly NEGATIVE conditional learnability
+(−0.0142 ± 0.0074). It selects collectable moments within which the outcome is LESS
+predictable than at large — genuinely selective, and actively model-hostile. Under the
+pre-amendment unconditional column it scored +0.3286, nine SEs above the null, and would have
+been read as a textbook `decoration` candidate. The amendment reversed that row completely.
+
+**`breakout_bb` is the strongest agreement between the two columns**: +0.009059 EV and the
+highest conditional learnability on the board (+0.0444 ± 0.0075). Both columns say the same
+thing about it, which no other row manages.
+
+**`gbb`'s `decoration` verdict survives, but on the 1-SE bar.** +0.0175 against 0.0109 clears
+one SE; at 1.96 SE (0.0214) it would be `indeterminate`. The *direction* is unaffected — its
+negative economic value is significant at 95% either way — but the specific verdict word is
+bar-sensitive, and it is the headline row. Flagged here rather than left for a reader to
+discover.
+
+## What the whole exercise answered
+
+The spec's question was whether a trigger earns its keep by **(a)** selecting collectable
+moments or **(b)** handing the model an easy target. The board answers it per-trigger, and the
+answer is structural rather than incidental:
+
+- **Momentum conditions have selection value.** All five breakout-family triggers, plus the
+  causal valley condition, plus a tightened indicator threshold.
+- **Indicator-consensus conditions do not.** All five vote-family triggers have significantly
+  negative economic value, and `gbb` — a threshold conjunction on two indicator columns —
+  behaves like them, not like the breakout family.
+- **The production incumbent is in the losing class**, and the value attributed to it lives in
+  its threshold MARGIN and in whatever selects within it, not in the binary condition its
+  label encodes.
+
+Nothing here is a P&L claim (FR-017). The only instrument that can promote anything is the
+pooled harness in `evaluation/`, and this repository has twice measured a rising table ceiling
+failing to become harness return.
