@@ -41,6 +41,16 @@ def _registry():
 N = 300
 
 
+# Since 2026-10-09 a trigger on bar i pairs with outcome row i+1 (`labels.entry_mask`), so
+# bar 0 is never an entry. Tests that compare a label against a raw trigger mask must
+# compare against the SHIFTED mask; `_shift` is that, written out here rather than imported
+# so these tests do not verify the helper against itself.
+def _shift(mask: np.ndarray) -> np.ndarray:
+    out = np.zeros_like(np.asarray(mask, dtype=bool))
+    out[1:] = np.asarray(mask, dtype=bool)[:-1]
+    return out
+
+
 def _features(n: int = N, seed: int = 11) -> pd.DataFrame:
     rng = np.random.default_rng(seed)
     return pd.DataFrame({
@@ -70,7 +80,7 @@ def test_label_is_the_conjunction_of_trigger_and_positive_outcome():
     f, o = _features(), None
     o = _outcomes(f)
     mask = L.trigger_label_mask(f, o, "gbb")
-    expected = T.evaluate("gbb", f).to_numpy() & o[OUTCOME_COLUMN_POSITIVE].to_numpy()
+    expected = _shift(T.evaluate("gbb", f).to_numpy()) & o[OUTCOME_COLUMN_POSITIVE].to_numpy()
     np.testing.assert_array_equal(mask.to_numpy(), expected)
 
 
@@ -79,10 +89,9 @@ def test_the_empty_trigger_reduces_the_label_to_the_outcome_alone():
     it the verdict rule's null: the forward_mae case is the no-trigger case."""
     f = _features()
     o = _outcomes(f)
-    np.testing.assert_array_equal(
-        L.trigger_label_mask(f, o, "empty").to_numpy(),
-        o[OUTCOME_COLUMN_POSITIVE].to_numpy(),
-    )
+    # `empty` fires everywhere, so its ENTRY mask is every bar except the first.
+    expected = _shift(T.evaluate("empty", f).to_numpy()) & o[OUTCOME_COLUMN_POSITIVE].to_numpy()
+    np.testing.assert_array_equal(L.trigger_label_mask(f, o, "empty").to_numpy(), expected)
 
 
 def test_a_label_never_exceeds_its_trigger():
@@ -91,7 +100,7 @@ def test_a_label_never_exceeds_its_trigger():
     f = _features()
     o = _outcomes(f)
     for name in T.names():
-        fired = T.evaluate(name, f).to_numpy()
+        fired = _shift(T.evaluate(name, f).to_numpy())
         labelled = L.trigger_label_mask(f, o, name).to_numpy()
         assert not (labelled & ~fired).any(), name
 
@@ -117,7 +126,7 @@ def test_two_labels_differ_ONLY_where_their_triggers_differ():
     f = _features()
     o = _outcomes(f)
     for a, b in (("gbb", "empty"), ("gbb", "geometry"), ("geometry", "empty")):
-        ta, tb = T.evaluate(a, f).to_numpy(), T.evaluate(b, f).to_numpy()
+        ta, tb = _shift(T.evaluate(a, f).to_numpy()), _shift(T.evaluate(b, f).to_numpy())
         la = L.trigger_label_mask(f, o, a).to_numpy()
         lb = L.trigger_label_mask(f, o, b).to_numpy()
         agree = ta == tb
@@ -137,7 +146,7 @@ def test_the_invariant_FAILS_if_a_second_outcome_definition_is_introduced():
     alt = o.copy()
     alt[OUTCOME_COLUMN_POSITIVE] = o[OUTCOME_COLUMN_PROFIT] > 0.0   # a rival definition
 
-    ta = T.evaluate("gbb", f).to_numpy()
+    ta = _shift(T.evaluate("gbb", f).to_numpy())
     la = L.trigger_label_mask(f, o, "gbb").to_numpy()
     lb = L.trigger_label_mask(f, alt, "gbb").to_numpy()
     agree = np.ones_like(ta, dtype=bool)        # same trigger, so they agree everywhere
@@ -236,4 +245,70 @@ def test_label_rate_matches_the_mask_mean_and_is_bounded_by_the_base_rate():
     for name in T.names():
         rate = L.label_rate(f, o, name)
         assert rate == pytest.approx(L.trigger_label_mask(f, o, name).mean())
-        assert rate <= T.evaluate(name, f).mean() + 1e-12, name
+        assert rate <= _shift(T.evaluate(name, f).to_numpy()).mean() + 1e-12, name
+
+
+# =============================================================================================
+# THE PAIRING (2026-10-09) — the defect a gate review caught
+# =============================================================================================
+
+def test_entry_mask_lags_the_trigger_by_exactly_one_bar():
+    """A trigger reads its bar's CLOSE, so the earliest price it can transact at is the NEXT
+    bar's open — which is the outcome table's row i+1. Pairing directly booked the signal
+    bar's own open-to-close move as profit: 91-94% of the breakout family's apparent
+    economic value, and a sign flip for geometry."""
+    f = _features(n=10)
+    o = _outcomes(f)
+    T.register(T.Trigger("bar3", lambda d: pd.Series(
+        np.arange(len(d)) == 3, index=d.index), ()))
+    m = L.entry_mask(f, o, "bar3").to_numpy()
+    assert m.sum() == 1
+    assert m[4], "a signal on bar 3 must enter on bar 4"
+    assert not m[3], "entering on the signal bar is the leak"
+
+
+def test_the_first_bar_is_never_an_entry():
+    """Nothing fired before it, so there is no signal it could be acting on."""
+    f = _features(n=50)
+    o = _outcomes(f)
+    for name in T.names():
+        assert not L.entry_mask(f, o, name).to_numpy()[0], name
+
+
+def test_a_signal_on_the_last_bar_is_dropped_rather_than_wrapped():
+    """There is no next bar to enter on. Wrapping to index 0 would pair a late signal with
+    the start of the series — the same class of error as `labels_bands`' np.roll."""
+    f = _features(n=10)
+    o = _outcomes(f)
+    T.register(T.Trigger("last", lambda d: pd.Series(
+        np.arange(len(d)) == len(d) - 1, index=d.index), ()))
+    assert L.entry_mask(f, o, "last").to_numpy().sum() == 0
+
+
+def test_a_signal_before_a_DATA_GAP_is_dropped():
+    """A signal on bar i is only actionable at open[i+1] if bar i+1 is the next bar in time.
+    Across a gap it is not, and pairing anyway would book an entry at a price hours or days
+    later as though it were the next bar."""
+    f = _features(n=10)
+    dates = list(f["date"])
+    dates[5:] = [d + pd.Timedelta(hours=6) for d in dates[5:]]   # gap after bar 4
+    f = f.assign(date=dates)
+    o = _outcomes(f)
+    T.register(T.Trigger("bar4", lambda d: pd.Series(
+        np.arange(len(d)) == 4, index=d.index), ()))
+    assert L.entry_mask(f, o, "bar4").to_numpy().sum() == 0, (
+        "a signal immediately before a data gap must be dropped"
+    )
+
+
+def test_empty_is_the_CONTROL_for_the_shift():
+    """`empty` fires on every bar, so shifting it changes only the first bar. On real data
+    its economic value was unchanged to 2e-6 by the fix, which is what proved the shift
+    itself introduces nothing and the effect it removed was real."""
+    f = _features(n=100)
+    o = _outcomes(f)
+    fired = T.evaluate("empty", f).to_numpy()
+    entry = L.entry_mask(f, o, "empty").to_numpy()
+    assert fired.all()
+    assert entry.sum() == len(f) - 1
+    np.testing.assert_array_equal(entry[1:], fired[1:])

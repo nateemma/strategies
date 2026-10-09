@@ -23,6 +23,7 @@ and not inferred from row counts.
 """
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 
 from research.outcomes import triggers as _triggers
@@ -81,6 +82,72 @@ def assert_aligned(features: pd.DataFrame, outcomes: pd.DataFrame) -> None:
         )
 
 
+#: One bar. A trigger's decision uses the CLOSE of its bar, so the earliest price it can
+#: transact at is the NEXT bar's open — which is what the outcome table's row `i+1`
+#: simulates (`simulate_forward` enters at `open_[start_index]`).
+ENTRY_LAG_BARS = 1
+
+
+def entry_mask(
+    features: pd.DataFrame,
+    outcomes: pd.DataFrame,
+    trigger: "_triggers.Trigger | str",
+) -> pd.Series:
+    """The bars at which a trade actually STARTS, given this trigger. THE pairing.
+
+    A trigger is evaluated on bar `i` and reads bar `i`'s close — `breakout` is literally
+    `close[i] > prior_high`. The outcome table's row `i` simulates entering at `open[i]`.
+    Pairing them directly therefore books bar `i`'s own open-to-close move as profit the
+    trigger could never have captured: at `open[i]` the close that caused the signal has not
+    happened yet. The signal bar is free money, and momentum triggers fire on up-bars, so
+    they collect it.
+
+    MEASURED, 2026-10-09, after a gate review caught this. Fillable, non-overlapping, pooled
+    11 pairs:
+
+        trigger        sig-bar o->c   paired at i   paired at i+1
+        breakout             +0.456%    +0.009076       +0.000807
+        breakout_vol         +0.614%    +0.009254       +0.000582
+        geometry             +0.086%    +0.001210       -0.001526   (sign flip)
+        gbb                  -0.047%    -0.005374       -0.002009
+        empty                -0.000%    -0.001272       -0.001275   (control: unchanged)
+
+    91-94% of the breakout family's apparent economic value was its own signal bar. `empty`
+    is unchanged to 2e-6 because it fires on every bar, which is the control proving the
+    shift itself introduces nothing.
+
+    WHY T021'S RECONCILIATION DID NOT CATCH IT. That work matched the ARM's trades at
+    `trade.open_date` and looked up the row at that date — and the arm genuinely enters at
+    that bar's open, so row `i` was validated correctly AS A TRADE STARTING AT BAR i. The
+    arm's SIGNAL was the bar before. The table was never wrong; the leaderboard's pairing
+    was, and `assert_aligned` enforced the wrong one by construction.
+
+    CONTIGUITY. A signal on bar `i` is only actionable at `open[i+1]` if bar `i+1` is the
+    next bar in time. Across a data gap it is not, so those signals are dropped rather than
+    paired with whatever row happens to sit at `i+1`.
+    """
+    assert_aligned(features, outcomes)
+    fired = _triggers.evaluate(trigger, features).to_numpy()
+
+    shifted = np.zeros_like(fired)
+    if len(fired) > ENTRY_LAG_BARS:
+        shifted[ENTRY_LAG_BARS:] = fired[:-ENTRY_LAG_BARS]
+
+    if DATE_COLUMN in features.columns and len(features) > ENTRY_LAG_BARS:
+        d = pd.to_datetime(features[DATE_COLUMN], utc=True)
+        step = d.diff().shift(-ENTRY_LAG_BARS)
+        modal = step.mode()
+        if len(modal):
+            contiguous = (step == modal.iloc[0]).to_numpy()
+            # a signal is actionable only if ITS next bar is contiguous; the guard is
+            # indexed on the signal bar, then shifted with it
+            ok = np.zeros_like(shifted)
+            ok[ENTRY_LAG_BARS:] = contiguous[:-ENTRY_LAG_BARS]
+            shifted = shifted & ok
+
+    return pd.Series(shifted, index=features.index)
+
+
 def trigger_label_mask(
     features: pd.DataFrame,
     outcomes: pd.DataFrame,
@@ -106,9 +173,9 @@ def trigger_label_mask(
             f"(research.outcomes.table)."
         )
 
-    fired = _triggers.evaluate(trigger, features)
+    fired = entry_mask(features, outcomes, trigger).to_numpy()
     positive = outcomes[OUTCOME_COLUMN_POSITIVE].to_numpy(dtype=bool)
-    return pd.Series(fired.to_numpy() & positive, index=features.index)
+    return pd.Series(fired & positive, index=features.index)
 
 
 def build_trigger_label(

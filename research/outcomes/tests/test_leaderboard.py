@@ -43,7 +43,22 @@ def _registry():
 
 
 def _frames(profit, hold, *, reason=None, fillable=None, n=None):
+    """Builds n+1 bars with a PREPENDED signal-only bar.
+
+    Since 2026-10-09 a trigger on bar i is paired with outcome row i+1 (`labels.entry_mask`):
+    a trigger reads its bar's close, so the earliest it can transact is the next bar's open.
+    So bar 0 is never an entry. Prepending one bar keeps the SCORED population exactly the
+    `profit`/`hold` arrays each test specifies, instead of every expectation needing a
+    manual -1. The prepended row's own outcome is unreachable by construction.
+    """
     n = n or len(profit)
+    profit = [0.0] + list(profit)
+    hold = [0] + list(hold)
+    if reason is not None:
+        reason = ["stop"] + list(reason)
+    if fillable is not None:
+        fillable = [True] + list(fillable)
+    n = n + 1
     dates = pd.date_range("2024-01-01", periods=n, freq="15min", tz="UTC")
     feat = pd.DataFrame({"date": dates, "close": np.arange(n, dtype=float) + 100.0})
     out = pd.DataFrame({

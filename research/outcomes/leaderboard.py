@@ -115,13 +115,20 @@ def _select(
     scanning the result would let one pair's last trade suppress the next pair's first.
     """
     _validate(features, outcomes)
-    fired = _triggers.evaluate(trigger, features).to_numpy()
+    # THE PAIRING (2026-10-09). `entry_mask`, not `triggers.evaluate`: a trigger reads its
+    # bar's CLOSE, so the earliest price it can transact at is the NEXT bar's open, which is
+    # the outcome table's row i+1. Pairing directly booked the signal bar's own open-to-close
+    # move as profit -- 91-94% of the breakout family's apparent value. See
+    # `labels.entry_mask`.
+    fired = _labels.entry_mask(features, outcomes, trigger).to_numpy()
     n_bars = int(fired.size)
-    # Counted BEFORE the fillable filter: `base_rate` describes the TRIGGER, not the
-    # fillable subset. Conflating them would make a trigger look rarer than it is on an
-    # illiquid pair, and the base rate is how a reader judges whether a trigger is
-    # selective at all.
-    n_fired_all = int(fired.sum())
+    # `base_rate` is computed from the UNSHIFTED trigger, not the entry mask. It describes
+    # how selective the TRIGGER is -- the question a reader is actually asking -- and the
+    # one-bar entry lag is a property of the pairing, not of the condition. Taking it from
+    # the entry mask made `empty` read 99.99...% instead of 100%, which is both wrong and
+    # confusing. Also counted BEFORE the fillable filter, for the same reason: conflating
+    # them would make a trigger look rarer than it is on an illiquid pair.
+    n_fired_all = int(_triggers.evaluate(trigger, features).to_numpy().sum())
     if fillable_only:
         if OUTCOME_COLUMN_FILLABLE not in outcomes.columns:
             raise KeyError(
@@ -300,7 +307,7 @@ def _delta_groups(
         hold = o[OUTCOME_COLUMN_HOLD_BARS].to_numpy(dtype=float)
         masks = []
         for t in (trigger, reference):
-            m = _triggers.evaluate(t, f).to_numpy() & usable
+            m = _labels.entry_mask(f, o, t).to_numpy() & usable
             if non_overlapping:
                 keep = np.zeros_like(m)
                 free = -1

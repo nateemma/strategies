@@ -850,3 +850,107 @@ STRATEGY. The design delivered what it promised — trigger evaluation became ch
 do exhaustively, which is why 15 triggers could be scored at all and why the family-level
 split became visible. It did not make harness validation cheaper, and nothing here replaces
 it (FR-017).
+
+---
+
+# RETRACTION (2026-10-09) — the board paired each trigger with its OWN signal bar
+
+T035's independent gate review **REJECTED** the board, and it was right. The defect was not
+on the list of things I asked it to check.
+
+## The defect
+
+A trigger is evaluated on bar `i` and reads bar `i`'s **close** — `breakout` is literally
+`close[i] > prior_high`. The outcome table's row `i` simulates entering at **`open[i]`**
+(`ExitPolicy.py:733`, since the 2026-10-08 entry-convention fix). The leaderboard paired them
+directly, so every row booked **its own signal bar's open-to-close move** as profit the
+trigger could never have captured: at `open[i]` the close that produced the signal has not
+happened yet. Momentum triggers fire on up-bars, so they collected it.
+
+`labels.assert_aligned` enforced same-date pairing — i.e. it enforced the **wrong** pairing,
+rigorously.
+
+**Why T021's reconciliation did not catch it.** That work matched the ARM's trades at
+`trade.open_date` and looked up the row at that date. The arm genuinely enters at that bar's
+open, so row `i` was validated correctly *as a trade starting at bar i*. The arm's SIGNAL was
+the bar before. The table was never wrong; my pairing was.
+
+Verified independently before accepting the review (fillable, non-overlapping, pooled 11
+pairs):
+
+| trigger | sig-bar o→c | paired at `i` | paired at `i+1` | share that was leak |
+|---|---|---|---|---|
+| `breakout` | +0.456% | +0.009076 | +0.000807 | **91%** |
+| `breakout_vol` | +0.614% | +0.009254 | +0.000582 | **94%** |
+| `geometry` | +0.086% | +0.001210 | −0.001526 | **sign flip** |
+| `gbb` | −0.047% | −0.005374 | −0.002009 | 63% |
+| `votes_tech` | −0.067% | −0.006464 | −0.003605 | 44% |
+| `empty` | −0.000% | −0.001272 | −0.001275 | **0 — the control** |
+
+`empty` is unchanged to 2e-6 because it fires on every bar. That control is what proves the
+shift itself introduces nothing and the effect it removed was real.
+
+## The corrected board (economic value only; the probe still needs rebuilding)
+
+Fixed in ONE place — `labels.entry_mask` — which `trigger_label_mask`, `_select` and
+`_delta_groups` all now route through. Paired block bootstrap vs the `empty` null, fillable:
+
+| trigger | EV delta | 95% CI | beats null | was |
+|---|---|---|---|---|
+| `gbb_tight` | +0.031491 | [+0.019277, +0.044113] | yes | +0.017120 |
+| `breakout_bb` | +0.002818 | [+0.002032, +0.003650] | yes | +0.009059 |
+| `breakout` | +0.002079 | [+0.001361, +0.002802] | yes | +0.010348 |
+| `breakout_gbb` | +0.001964 | [+0.001284, +0.002675] | yes | +0.004643 |
+| `breakout_vol` | +0.001854 | [+0.000930, +0.002783] | yes | +0.010527 |
+| `breakout_squeeze` | +0.000758 | [−0.000566, +0.002049] | **no (was yes)** | +0.009069 |
+| `adx` | +0.000123 | [−0.000222, +0.000461] | no | +0.000146 |
+| `votes_consensus` | +0.000089 | [−0.000453, +0.000633] | **no longer negative** | −0.001324 |
+| `geometry` | −0.000254 | [−0.001425, +0.000922] | **no (was yes)** | +0.002482 |
+| `gbb` | −0.000737 | [−0.001468, **+0.000004**] | no — but now barely spans zero | −0.004102 |
+| `votes_ind4` | −0.001859 | [−0.002319, −0.001405] | no (neg) | −0.004581 |
+| `votes_ind3` | −0.002179 | [−0.002779, −0.001600] | no (neg) | −0.004418 |
+| `votes_ind2` | −0.002332 | [−0.002971, −0.001739] | no (neg) | −0.005491 |
+| `votes_tech` | −0.002334 | [−0.002910, −0.001763] | no (neg) | −0.005192 |
+
+Reproduces the review's shifted figures to 6 decimals from an independently written script —
+mutual validation, not agreement by construction.
+
+## What survives, and what I retract
+
+**RETRACTED**: the magnitudes. Every effect shrinks ~5×. `geometry`'s and
+`breakout_squeeze`'s `selection_value` verdicts are withdrawn. `votes_consensus` is no longer
+significantly negative. **`gbb` is no longer significantly negative** — its interval now
+reaches +0.000004, so "the production incumbent has significantly negative economic value"
+must be downgraded to "indistinguishable from the null, point estimate slightly negative".
+
+**SURVIVES, weakened**: the family direction. Four of five breakout-family triggers still beat
+the null (+0.0019 to +0.0028); four of five vote-family triggers are still significantly
+negative (−0.0019 to −0.0023). So "momentum selects, indicator-consensus does not" holds in
+sign, at roughly a fifth of the claimed size, and no longer cleanly — one row crosses from
+each family.
+
+**UNCHANGED**: `gbb` has no selection value. That was the headline conclusion and it does not
+depend on the magnitude — at +0.0019 or −0.0007 it is not a trigger that selects collectable
+moments. The gate review's own proposed wording is better than mine was: *"`gbb` has no
+selection value; its conditional learnability is weakly positive in all three windows."*
+
+## Still outstanding from the review
+
+1. **The conditional probe has the same leak** and must be re-run: my campaign scripts built
+   labels from the raw trigger mask, not `entry_mask`. 126 fits, ~1h. Until then no verdict is
+   re-adjudicated.
+2. `gbb_tight`: review says **WITHDRAW** from the adjudicated table — fillable non-overlapping
+   n = 98, and one week (2022-05-09, the LUNA collapse) supplies 69% of summed profit, top 3
+   weeks 101%, mean ex-top-3-weeks ≈ −0.0003. That is concentration I did not test for and it
+   is decisive. Keep as a diagnostic annotation, not a row.
+3. The `empty`-vs-itself control is **vacuous**: identical masks give identical block sums, so
+   [0,0] is guaranteed and cannot detect a mis-wired reference. Needs a random trigger at
+   matched base rate, and a shifted trigger at k ≫ hold, as real controls.
+4. Pairs are block-resampled independently although same-time crypto bars are highly
+   correlated; blocks should be CALENDAR blocks spanning all pairs.
+5. `L=48` is shorter than many holds (`max_hold` 10d = 960 bars).
+6. `breakout_gbb` and `breakout_bb` contain **no breakout condition** despite their names, and
+   T025's containment check only catches a too-TIGHT factor, never a too-loose one — so
+   "bit-identical port" is not established for those two.
+7. No committed script produces `leaderboard.txt`; `quickstart.md` cites a `--build` CLI that
+   does not exist.
