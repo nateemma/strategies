@@ -152,6 +152,16 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
     # value for a derived bound, or mentions the pinned value in a comment/docstring --
     # none compute the take_profit/max_hold comparison itself (that is
     # `utils.ExitPolicy.custom_exit_decision`'s job as of this amendment).
+    "SimpleStrategies/TriggerOnly.py",     # feature 021's trigger-only arms: pins the
+                                             # Open operating point as class attributes
+                                             # (minimal_roi/stoploss/atr_*/sell_params) so
+                                             # every arm closes the way the outcome table
+                                             # simulated it. Sets values ONLY -- the stop
+                                             # level, the grace branch and the
+                                             # take-profit comparison all come from
+                                             # BaseStrategy -> utils.ExitPolicy. Its six
+                                             # subclasses set TRIGGER_NAME and nothing
+                                             # else, which is why they are NOT here.
     "Anomaly/NNAnomalyStrategy.py",            # toggles .optimize on the live BaseStrategy
                                                  # Parameter by name; sets no value, computes
                                                  # nothing.

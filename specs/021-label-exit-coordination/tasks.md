@@ -255,22 +255,22 @@ known low learnability lands in the expected quadrant.
 
 ## Phase 6: Polish
 
-- [ ] T036 @main Write the report narrative: the verdict for each trigger, and what it implies.
+- [X] T036 @main Write the report narrative: the verdict for each trigger, and what it implies.
   If `gbb` is `selection_value`, trigger discovery becomes the next line of work; if
   `decoration`, the apparent edge is the entry rule and the model is ornamental, which
   contradicts nothing measured so far but changes everything downstream.
-- [ ] T037 @main **State the probe's bias in the report** (research R8) (FR-015a): ridge cannot express
+- [X] T037 @main **State the probe's bias in the report** (research R8) (FR-015a): ridge cannot express
   a logical AND — it scored 0.533 against the gbb trigger rule's 0.673 — so it UNDERSTATES
   learnability for trigger-defined labels. The verdict rule is unaffected because both sides
   of every comparison use the same probe, but the absolute numbers are not ceilings and a
   reader could otherwise take them as such.
-- [ ] T038 [P] @main Record in the report that the table's economic value is a LOOKAHEAD
+- [X] T038 [P] @main Record in the report that the table's economic value is a LOOKAHEAD
   BOUND, never a realisable return, and that any P&L claim must come from `evaluation/` and
   its ~3–4pp/yr floor (FR-017). Classifier metrics are context, never an acceptance input
   (FR-018).
-- [ ] T039 [P] @model-implementer Run the full suite; report the count and confirm no
+- [X] T039 [P] @model-implementer Run the full suite; report the count and confirm no
   pre-existing failures were introduced.
-- [ ] T040 [P] @main Update `research/clfstudy/report/methods.md` with the three-way
+- [X] T040 [P] @main Update `research/clfstudy/report/methods.md` with the three-way
   duplication finding (research R1), so the next person does not rediscover it.
 
 ---

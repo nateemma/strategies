@@ -315,3 +315,50 @@ scored 0.2812 on window A and is the best cell in the study pooled (0.2343). Tha
 type will not be carried into stages B-D, because stage B rebuilds configs from arch names
 at default hp and would simply fail again. Revisiting it needs a per-arch default override,
 which is a code change and a decision for the user, not an unattended fix.
+
+---
+
+## The stop arithmetic was duplicated THREE ways, not two (feature 021, 2026-10-09)
+
+Recorded here because this study's labels are stop-aware: `NNPredictStrategy._stop_aware_labels`
+decides a label by simulating the stop, so a label built here inherited whichever copy of the
+stop arithmetic that function happened to hold. Anyone re-running these labels needs to know
+there were three copies and which one is now authoritative.
+
+The ATR stop arithmetic — `-multiplier * atr_pct`, clamped to `[floor, cap]`, then optionally
+divided by `sqrt(rvol)` and re-floored at −0.02 — existed in **three** places:
+
+1. `Framework/BaseStrategy.custom_stoploss`, in the `use_atr_adaptive_stoploss and after_fill`
+   branch — the live path.
+2. `Framework/BaseStrategy._resolve_normal_stop`, whose own docstring said it *"Mirrors the
+   after_fill ATR logic in `custom_stoploss`"* — **a documented duplicate inside the same
+   class**, and the one that was easy to miss.
+3. `NNPredict/NNPredictStrategy._stop_aware_labels`, whose docstring said it used *"the SAME
+   stop arithmetic and parameter names"* as the two above.
+
+**Now**: all three are callers of `utils/ExitPolicy.py`, which is the single source. A test
+fails if the arithmetic reappears, and it was proven to fail on a planted duplicate — a guard
+that cannot fail is worthless.
+
+**Why it matters to this study specifically.** Only copy 3 ran during label construction, so
+a drift between it and the live path would have produced labels describing an exit the live
+strategy does not use, with nothing in the metrics to reveal it. Two defects found during the
+extraction were real and both lived in the offline copy's lineage:
+
+* **the fee model was additive, not multiplicative** — freqtrade's
+  `Trade.calc_profit_ratio` applies fees multiplicatively, so break-even thresholds were
+  slightly wrong at every operating point. Now `net_from_price_ratio` / `price_ratio_for_net`,
+  pinned against a real `LocalTrade`.
+* **a missing 1-hour minimum-hold veto** — `confirm_trade_exit` refuses discretionary exits
+  inside the first hour, and the offline simulation did not, so simulated trades could close
+  on bars the live strategy would have held. Now `discretionary_exit_allowed`, shared.
+
+This repository has been burned by this class of bug before (*verify training steps by
+measurement*: loss logic duplicated across base/Enhanced/MT copies, wiring checks passing
+while the term never ran). The lesson transfers: a docstring asserting that two code paths
+agree is not evidence that they do.
+
+**If you re-run these labels**, confirm `_stop_aware_labels` is still delegating and check the
+`exit_config_hash` — a changed exit must invalidate the cached outcome table rather than
+silently reuse it. Full detail in `specs/021-label-exit-coordination/research.md` R1 and
+`report.md`.
