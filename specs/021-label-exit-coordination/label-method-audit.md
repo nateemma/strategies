@@ -293,3 +293,88 @@ not a contradiction — the two measure different things, and T027 named which.
 The verdict rule (T030) therefore has a real decision to make rather than a formality: it
 must assign a verdict on a column that is significant, comparable, and known to be an
 incomplete predictor of strategy value.
+
+---
+
+# T029 — the learnability column, and why it cannot do its job as specified
+
+54 fits (6 triggers x 3 windows x 3 seeds), RIDGE, split set v1, ind24, seq_len 16.
+**0 failures, 0 collapsed.** Spread across both windows and seeds, per R9.
+
+| trigger | mean MCC | SE | vs `empty` |
+|---|---|---|---|
+| `gbb` | +0.5927 | 0.0036 | +0.5585 |
+| `breakout_gbb` | +0.5622 | 0.0074 | +0.5280 |
+| `breakout` | +0.5440 | 0.0052 | +0.5098 |
+| `adx` | +0.3883 | 0.0022 | +0.3540 |
+| `geometry` | +0.3286 | 0.0035 | +0.2944 |
+| `empty` | **+0.0342** | 0.0059 | — |
+
+The `geometry` collapse risk flagged in T024 did NOT materialise: 9/9 fits trained, none
+collapsed, despite a 1.76% label rate. Worth recording as a prediction that failed.
+
+## The column measures TRIGGER RECOVERY, not outcome prediction
+
+`empty`'s label is purely `__outcome_positive` — "will a trade opened here be profitable" —
+and it scores **+0.0342**, indistinguishable from nothing. That is the clue, and one fit per
+trigger settles it. Same window, same seed, three different labels:
+
+| label | MCC |
+|---|---|
+| `gbb` trigger ALONE (no outcome) | **+0.7582** |
+| `gbb` AND positive outcome | +0.5906 |
+| `breakout` trigger ALONE | **+0.6801** |
+| `breakout` AND positive outcome | +0.5463 |
+| `geometry` trigger ALONE | **+0.4189** |
+| `geometry` AND positive outcome | +0.3224 |
+| positive outcome ALONE | **+0.0115** |
+
+Three facts, and together they are decisive:
+
+1. **A trigger alone is highly learnable** (0.42–0.76) — necessarily, since a trigger is a
+   deterministic function of the very feature columns the probe is given. `gbb` is
+   `guard_metric < 0.3 AND bb_width > 0.035`, and both columns are in `ind24`.
+2. **The outcome alone is unlearnable** (+0.0115). A linear probe on 24 indicators cannot
+   predict whether a trade opened at a bar will profit under the production exit.
+3. **The conjunction scores BELOW the trigger alone**, by 0.10 to 0.17. Adding the outcome
+   makes the label HARDER, because it adds a component the probe cannot predict.
+
+So a trigger-defined label's MCC is essentially its trigger's own learnability, discounted
+slightly by the unlearnable outcome noise. The column is dominated by a tautology.
+
+## Consequence for FR-015a and the verdict rule
+
+The spec's explanation **(b)** is "a trigger hands the model an easy target it can partly
+read off the trigger's own input columns, so the apparent edge is the entry rule and the
+model is decoration". Measured: that is **true of every trigger, by construction**, and the
+magnitude is just how learnable the trigger is. The learnability column therefore cannot
+DISCRIMINATE between triggers on explanation (b) — it ranks them by how easily a linear
+model recovers a threshold rule, which is not a fact about trading.
+
+This is the same thing feature 018 recorded as "the gbb label is half a threshold rule —
+trigger-only beats the model with 100% recall by construction", arriving here from the
+other direction and quantified.
+
+FR-014b's rule says `decoration` when economic value does not exceed `empty`'s while
+learnability does. Under this measurement **every** trigger's learnability exceeds `empty`'s
+by 50–100 standard errors, so the rule's `decoration` branch will fire on any trigger that
+fails the economic-value test, for a reason that has nothing to do with the trigger's
+quality. The rule remains total, but its second branch carries no information.
+
+## The informative quantity, and what it would take
+
+What the column should ask is **conditional** learnability: among the bars the trigger
+fires on, can a model separate the profitable from the unprofitable? That is a fact about
+whether the trigger defines a population a selector can work in — which is exactly the
+third explanation T027's measurement pointed at, where the arm's model-selected 0.514%
+subset of `gbb` bars realised 6.8x the average.
+
+`research/clfstudy/metrics.py` already has this machinery: `trigger_masks` and `score`'s
+`buy_mask`/`sell_mask` compute metrics CONDITIONAL on the gbb trigger firing, added for
+precisely this reason. The probe does not currently use it, because FR-015 specifies the
+label's learnability and that is what was built.
+
+**Recommended amendment**, not taken unilaterally: add a conditional-learnability column
+(probe restricted to triggered bars), and either demote the unconditional column to a
+diagnostic or drop it. This changes what FR-015/FR-014b measure, so it is a spec decision
+rather than an implementation one.

@@ -215,7 +215,7 @@ known low learnability lands in the expected quadrant.
   overlap heavily, so an i.i.d. bootstrap would understate the interval badly and could turn
   an indeterminate result into a false `selection_value`. Test that the block version gives a
   wider interval than i.i.d. on autocorrelated synthetic data.
-- [ ] T029 [US4] @model-implementer Implement the fixed probe in `research/outcomes/probe.py`
+- [X] T029 [US4] @model-implementer Implement the fixed probe in `research/outcomes/probe.py`
   (FR-015): `research/clfstudy`'s `RIDGE` type with its split set `v1`, its scaler discipline
   and its MCC computation. The SAME model, features and protocol for every trigger — varying
   it would make the column incomparable and the verdict unreliable. Report the seed/window
