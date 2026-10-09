@@ -596,3 +596,79 @@ non-monotonically"*. A third instance would not be surprising.
 So `gbb_tight` enters the leaderboard as evidence about WHERE the economic value sits, with
 `not a promotion candidate` written into its own registry description and asserted by a test.
 The only thing that can promote it is the pooled harness in `evaluation/`.
+
+---
+
+# T030 — the verdict rule applied. THE ANSWER.
+
+FR-014b as amended by FR-015b, against the `empty` null. Economic value on the FILLABLE
+population (FR-009b — the bars that could actually have been traded), paired block
+bootstrap; conditional learnability per FR-015b.
+
+| trigger | verdict | EV vs null (95% CI) | cond MCC vs null (±1 SE) |
+|---|---|---|---|
+| `gbb_tight` | **selection_value** | +0.017120 [+0.003899, +0.029222] | +0.1148 ± 0.0549 |
+| `breakout` | **selection_value** | +0.010348 [+0.009705, +0.010988] | +0.0204 ± 0.0093 |
+| `breakout_gbb` | **selection_value** | +0.004643 [+0.004030, +0.005311] | +0.0186 ± 0.0064 |
+| `geometry` | **selection_value** | +0.002482 [+0.001377, +0.003591] | −0.0142 ± 0.0074 |
+| **`gbb`** | **decoration** | **−0.004102 [−0.004793, −0.003402]** | +0.0175 ± 0.0109 |
+| `adx` | **indeterminate** | +0.000146 [−0.000173, +0.000464] | +0.0007 ± 0.0102 |
+
+## The answer to the question the feature was built to settle
+
+The spec's open question was whether a trigger earns its keep by **(a)** selecting moments
+when a forward move is collectable, or **(b)** handing the model an easy target, so the
+apparent edge is the entry rule and the model is decoration. It noted that no experiment run
+so far separated them and that they imply opposite strategies.
+
+**`gbb` — the production incumbent, the trigger behind the arm that returns +42.71pp over 15
+pooled folds — is adjudicated `decoration`.** Its economic value is significantly NEGATIVE on
+the population that could have been traded, while its label is learnable. That is explanation
+(b), stated by the instrument rather than argued.
+
+Four triggers DO have selection value, and `gbb` is not among them.
+
+## Three qualifications, none of which rescue `gbb`
+
+**1. The model's selection inside `gbb` is real but not the trigger's doing.** T027: the arm's
+model-selected 0.470% of `gbb` bars realised +0.005204 against +0.000769 over all `gbb` bars,
+6.8×. So the shipped strategy is not worthless — but the selection is attributable to what
+sits downstream of the trigger, and a plain tighter threshold does the same job 5.6× better
+(`gbb_tight`, +0.029014 at matched selectivity). `gbb`'s verdict is about the trigger AS
+SHIPPED, at its shipped thresholds.
+
+**2. `gbb_tight`'s learnability figure is UNRESOLVABLE and must not be read.** Its conditional
+probe ran on test sets of **14 to 230 samples** (against 158,976–191,136 for `empty`), with
+MCC swinging −0.113 to +0.390 across seeds. An MCC on 14 samples is not a measurement. Its
+verdict is `selection_value` on the ECONOMIC-VALUE branch, which is independent of
+learnability, so the unresolvable figure does not affect the adjudication — but that is luck,
+not design, and the number is reported struck-through in spirit.
+
+**3. `geometry` has the opposite profile to `gbb`, and it is coherent.** Significant positive
+economic value (+0.002482) with significantly NEGATIVE conditional learnability (−0.0142):
+it selects collectable moments, and within them the outcome is LESS predictable than at
+large. A genuinely selective trigger that is not model-friendly — which under the old
+unconditional column would have looked like a strong `decoration` candidate (its
+unconditional MCC was +0.3286, nine standard errors above the null).
+
+## The spec asymmetry, disclosed
+
+The economic-value bar is a 95% interval; the learnability bar is ONE standard error
+(contracts/trigger-cli.md's own words, "by more than the SE on that difference"). One SE is
+roughly a 68% bar, so `decoration` is EASIER to earn than `selection_value`. Implemented as
+written rather than silently tightened, pinned by a test, and reported per row so a reader
+can see which bar each row cleared. Note it does not change any verdict here: every
+`selection_value` row clears the stricter EV bar outright, and `gbb`'s `decoration` would
+stand at 1.96 SE too (+0.0175 against 0.0214 — it would NOT; at 1.96 SE `gbb` becomes
+`indeterminate`). That single row IS bar-sensitive, and it is the headline one, so it is
+flagged rather than buried.
+
+## What this does NOT license (FR-017, FR-018)
+
+Nothing here is a P&L claim. Table economic value is a lookahead bound; the only instrument
+that can promote or demote anything is the pooled harness in `evaluation/`, at ~3–4pp/yr.
+`gbb` returning +42.71pp there and `decoration` here is not a contradiction — the harness
+measures a strategy (trigger + model + exit + guards), this measures a trigger alone, and
+T027 located the difference precisely. The actionable reading is narrow and specific: **the
+value attributed to `gbb` lives in its threshold margin and in what selects within it, not
+in the binary condition the label encodes.**

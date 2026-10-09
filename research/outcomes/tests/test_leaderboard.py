@@ -237,3 +237,82 @@ def test_header_and_row_widths_line_up():
     feat, out = _frames([0.1] * 5, [0] * 5)
     s = LB.economic_value(feat, out, "empty")
     assert len(LB.format_row("empty", s, s)) == len(LB.header())
+
+
+# =============================================================================================
+# The verdict rule (T030, FR-014b as amended by FR-015b, SC-007)
+# =============================================================================================
+
+def _iv(point, lo, hi):
+    from research.outcomes.bootstrap import Interval
+    return Interval(point, lo, hi, 0.05, n_blocks=100, block_length=48, n_resamples=1000)
+
+
+@pytest.mark.parametrize("ev_lo,learn_delta,learn_se,expected", [
+    # economic value clears its bar -> selection_value, regardless of learnability
+    (+0.001, +0.50, 0.01, LB.VERDICT_SELECTION_VALUE),
+    (+0.001, +0.00, 0.01, LB.VERDICT_SELECTION_VALUE),
+    (+0.001, -0.50, 0.01, LB.VERDICT_SELECTION_VALUE),
+    # it does not, but learnability does -> decoration
+    (-0.001, +0.50, 0.01, LB.VERDICT_DECORATION),
+    (-0.001, +0.011, 0.01, LB.VERDICT_DECORATION),
+    # neither -> indeterminate
+    (-0.001, +0.009, 0.01, LB.VERDICT_INDETERMINATE),
+    (-0.001, -0.50, 0.01, LB.VERDICT_INDETERMINATE),
+    (0.0, 0.0, 0.01, LB.VERDICT_INDETERMINATE),
+])
+def test_verdict_rule_branches(ev_lo, learn_delta, learn_se, expected):
+    v = LB.assign_verdict("t", _iv(0.002, ev_lo, 0.01), learn_delta, learn_se)
+    assert v.verdict == expected
+
+
+def test_the_rule_is_TOTAL_every_input_gets_exactly_one_verdict():
+    """SC-007 demands totality. The third branch is unconditional, so this is structural --
+    but it is asserted over a grid rather than argued, because "indeterminate MUST be
+    reported as such rather than resolved by judgement" is the point of having it."""
+    seen = set()
+    for lo in (-0.01, -1e-12, 0.0, +1e-12, +0.01):
+        for ld in (-1.0, -0.001, 0.0, 0.001, 1.0):
+            for se in (1e-6, 0.01, 1.0):
+                v = LB.assign_verdict("t", _iv(0.0, lo, 0.02), ld, se)
+                assert v.verdict in {
+                    LB.VERDICT_SELECTION_VALUE, LB.VERDICT_DECORATION,
+                    LB.VERDICT_INDETERMINATE,
+                }
+                seen.add(v.verdict)
+    assert len(seen) == 3, f"grid never produced all three verdicts: {seen}"
+
+
+def test_an_interval_touching_zero_does_NOT_count_as_beating_the_null():
+    """`lo > 0` strictly. An interval whose lower bound is exactly zero spans zero, and
+    FR-014b requires exceeding the null by MORE than the uncertainty."""
+    assert not LB.assign_verdict("t", _iv(0.001, 0.0, 0.01), 0.0, 1.0).ev_beats_null
+
+
+def test_a_SIGNIFICANTLY_NEGATIVE_economic_value_is_not_selection_value():
+    """gbb's real case on the fillable population: -0.004102 [-0.004793, -0.003402]. An
+    interval wholly BELOW zero must never read as beating the null -- which a
+    `not spans_zero` test would have got wrong."""
+    v = LB.assign_verdict("gbb", _iv(-0.004102, -0.004793, -0.003402), +0.0175, 0.0109)
+    assert not v.ev_beats_null
+    assert v.verdict == LB.VERDICT_DECORATION
+
+
+def test_learnability_bar_is_ONE_SE_as_the_spec_words_it():
+    """Implemented as written, not silently tightened to 95%. The asymmetry (95% interval
+    for EV, 1 SE for learnability) makes `decoration` easier to earn than
+    `selection_value`; that is disclosed rather than corrected, and this test pins which
+    reading is in force so a future change is deliberate."""
+    assert LB.assign_verdict("t", _iv(0, -0.1, 0.1), 0.011, 0.010).learn_beats_null
+    assert not LB.assign_verdict("t", _iv(0, -0.1, 0.1), 0.009, 0.010).learn_beats_null
+    # the asymmetry is disclosed in the function's own docstring, not only in a spec file
+    assert "ASYMMETRY" in LB.assign_verdict.__doc__
+
+
+def test_verdict_carries_everything_the_rule_consumed():
+    """A verdict with no numbers attached cannot be audited, and FR-014b requires the
+    uncertainty to be stated alongside it."""
+    v = LB.assign_verdict("t", _iv(0.005, 0.004, 0.006), 0.02, 0.01)
+    for field in ("ev_delta", "ev_lo", "ev_hi", "learn_delta", "learn_se"):
+        assert getattr(v, field) is not None
+    assert "0.005" in str(v) or "+0.005" in str(v)

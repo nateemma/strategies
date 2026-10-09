@@ -338,3 +338,86 @@ def economic_value_delta(
                       fillable_only=fillable_only, non_overlapping=non_overlapping),
         block_length=block_length, n_resamples=n_resamples, seed=seed,
     )
+
+
+# =================================================================================================
+# The verdict rule (T030, FR-014b as amended by FR-015b, SC-007)
+# =================================================================================================
+
+VERDICT_SELECTION_VALUE = "selection_value"
+VERDICT_DECORATION = "decoration"
+VERDICT_INDETERMINATE = "indeterminate"
+
+#: The null. Not a parameter: FR-014a makes `empty` the reference precisely so no threshold
+#: has to be agreed in advance, and allowing a different reference would reintroduce one.
+REFERENCE_TRIGGER = "empty"
+
+
+@dataclass(frozen=True)
+class Verdict:
+    """One trigger's adjudication, with everything the rule consumed (FR-014b)."""
+
+    trigger: str
+    verdict: str
+    ev_delta: float
+    ev_lo: float
+    ev_hi: float
+    ev_beats_null: bool
+    learn_delta: float
+    learn_se: float
+    learn_beats_null: bool
+
+    def __str__(self) -> str:
+        return (
+            f"{self.trigger:<14}{self.verdict:<18}"
+            f"EV {self.ev_delta:+.6f} [{self.ev_lo:+.6f},{self.ev_hi:+.6f}]"
+            f"{'  BEATS' if self.ev_beats_null else '      --'}   "
+            f"cond-MCC {self.learn_delta:+.4f} +/-{self.learn_se:.4f}"
+            f"{'  BEATS' if self.learn_beats_null else '      --'}"
+        )
+
+
+def assign_verdict(
+    trigger: str,
+    ev_delta: "_bootstrap.Interval",
+    learn_delta: float,
+    learn_se: float,
+) -> Verdict:
+    """FR-014b, applied. TOTAL by construction: three branches, the third unconditional.
+
+    `ev_delta` is the paired block-bootstrap interval on `EV(trigger) - EV(empty)`;
+    "exceeds by more than the measurement uncertainty" is read as its 95% interval lying
+    wholly above zero. `learn_delta`/`learn_se` are the CONDITIONAL learnability difference
+    and its standard error (FR-015b) -- never the unconditional figure, which T029 showed
+    measures trigger recovery and would make this branch fire on every trigger.
+
+    A NOTE ON AN ASYMMETRY IN THE SPEC, implemented as written rather than silently
+    "corrected": the economic-value bar is a 95% interval while the learnability bar is ONE
+    standard error (contracts/trigger-cli.md: "by more than the SE on that difference"). One
+    SE is roughly a 68% bar, so `decoration` is EASIER to earn than `selection_value`. That
+    is a deliberate reading of the spec's own words; it is reported alongside each verdict so
+    a reader can see which bar a row cleared rather than inferring it.
+    """
+    ev_beats = bool(ev_delta.lo > 0.0)
+    learn_beats = bool(learn_delta > learn_se)
+
+    if ev_beats:
+        verdict = VERDICT_SELECTION_VALUE
+    elif learn_beats:
+        verdict = VERDICT_DECORATION
+    else:
+        verdict = VERDICT_INDETERMINATE
+
+    return Verdict(
+        trigger=trigger, verdict=verdict,
+        ev_delta=ev_delta.point, ev_lo=ev_delta.lo, ev_hi=ev_delta.hi,
+        ev_beats_null=ev_beats,
+        learn_delta=learn_delta, learn_se=learn_se, learn_beats_null=learn_beats,
+    )
+
+
+def verdict_header() -> str:
+    return (
+        f"{'trigger':<14}{'verdict':<18}{'economic value vs null (95% CI)':<48}"
+        f"{'conditional MCC vs null (+/-1 SE)'}"
+    )

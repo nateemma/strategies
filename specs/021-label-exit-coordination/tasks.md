@@ -225,7 +225,7 @@ known low learnability lands in the expected quadrant.
   Implemented as `probe.probe_conditional`; results in `research/outcomes/probe_conditional_results.json`.
   The unconditional column is retained as context and MUST NOT feed FR-014b.
 
-- [ ] T030 [US4] @model-implementer Implement the verdict rule (FR-014b) against the `empty` (SC-007)
+- [X] T030 [US4] @model-implementer Implement the verdict rule (FR-014b) against the `empty` (SC-007)
   trigger, **total** over three outcomes: `selection_value` (economic value exceeds empty's by
   more than the CI on the difference), `decoration` (it does not, while learnability exceeds
   empty's by more than the SE on that difference), `indeterminate` (neither). Error if `empty`
