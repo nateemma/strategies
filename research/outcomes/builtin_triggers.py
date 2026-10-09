@@ -403,3 +403,80 @@ def register_margin_triggers(*, replace: bool = False) -> list[Trigger]:
             ),
         ), replace=replace),
     ]
+
+
+# =================================================================================================
+# CONTROLS (2026-10-09, after T035 found the empty-vs-itself control vacuous)
+# =================================================================================================
+
+#: `empty` vs ITSELF was the board's only control and it cannot fail. Identical masks give
+#: identical per-block sums, so the paired bootstrap returns [0, 0] by construction — it
+#: proves the subtraction works, not that the reference is wired to the right trigger or that
+#: the pipeline has no bias. A control that cannot fail is worthless, which is the same
+#: standard this feature applied to its duplication guard (T005 plants a duplicate to prove
+#: the detector fires).
+#:
+#: `random_matched` is a real control: a pseudo-random mask at a base rate matched to `gbb`,
+#: carrying NO information about the market at all. It MUST come out indeterminate, and its
+#: economic value MUST sit at the `empty` null within the interval. If it does not, the
+#: pipeline is manufacturing an effect from the act of selecting a subset — exactly the kind
+#: of defect the signal-bar leak was, and exactly what no self-comparison could have caught.
+RANDOM_CONTROL_BASE_RATE = 0.17871        # gbb's pooled base rate
+RANDOM_CONTROL_SEED = 20261009
+
+
+def _random_matched(df: pd.DataFrame) -> pd.Series:
+    """A market-independent mask at `gbb`'s base rate.
+
+    Seeded from the BAR COUNT only, never from prices, so it is deterministic and
+    reproducible per pair while carrying no market information. Deliberately not seeded from
+    the date index either: a date-derived mask could correlate with time-of-day effects,
+    which would make the control itself informative and defeat its purpose.
+    """
+    rng = np.random.default_rng(RANDOM_CONTROL_SEED + len(df))
+    return pd.Series(rng.random(len(df)) < RANDOM_CONTROL_BASE_RATE, index=df.index)
+
+
+#: A trigger whose signal is shifted far beyond any hold, so whatever it knew about the
+#: market is stale by the time it is paired with an outcome. `max_hold_days` is 10 days =
+#: 960 bars at 15m, so 1,500 bars is comfortably past it. Should behave like
+#: `random_matched`: present at gbb's base rate, carrying nothing usable.
+STALE_CONTROL_LAG_BARS = 1500
+
+
+def _gbb_stale(df: pd.DataFrame) -> pd.Series:
+    """`gbb`, lagged 1,500 bars. A second, independent control.
+
+    `random_matched` tests "does selecting a subset at all create an effect"; this tests
+    "does selecting a subset WITH GBB'S OWN CLUSTERING STRUCTURE create one". The two fail
+    differently: a bias from the sampling machinery shows in the first, a bias from
+    autocorrelated clustering shows in the second. The block bootstrap's whole purpose is to
+    price the second, so it needs a case where the right answer is known to be zero.
+    """
+    fired = _gbb(df).to_numpy()
+    out = np.zeros_like(fired)
+    if len(fired) > STALE_CONTROL_LAG_BARS:
+        out[STALE_CONTROL_LAG_BARS:] = fired[:-STALE_CONTROL_LAG_BARS]
+    return pd.Series(out, index=df.index)
+
+
+def register_controls(*, replace: bool = False) -> list[Trigger]:
+    """Two controls whose correct verdict is known in advance to be `indeterminate`."""
+    return [
+        register(Trigger(
+            name="random_matched", evaluate=_random_matched, required_columns=(),
+            source="CONTROL",
+            description=(
+                f"pseudo-random at gbb's {RANDOM_CONTROL_BASE_RATE:.3%} base rate; carries "
+                f"no market information. MUST be indeterminate and sit at the null."
+            ),
+        ), replace=replace),
+        register(Trigger(
+            name="gbb_stale", evaluate=_gbb_stale, required_columns=("guard_metric", "bb_width"),
+            source="CONTROL",
+            description=(
+                f"gbb lagged {STALE_CONTROL_LAG_BARS} bars (> max_hold's 960), so its "
+                f"information is stale but its clustering is intact. MUST be indeterminate."
+            ),
+        ), replace=replace),
+    ]

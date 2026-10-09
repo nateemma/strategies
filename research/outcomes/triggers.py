@@ -180,6 +180,9 @@ def ensure_builtins() -> None:
         register_audit_triggers(replace=True)
     if not margin <= set(_REGISTRY):
         register_margin_triggers(replace=True)
+    if not {"random_matched", "gbb_stale"} <= set(_REGISTRY):
+        from research.outcomes.builtin_triggers import register_controls
+        register_controls(replace=True)
     if not remaining <= set(_REGISTRY):
         from research.outcomes.audit_triggers import register_remaining_audit_triggers
         register_remaining_audit_triggers(replace=True)

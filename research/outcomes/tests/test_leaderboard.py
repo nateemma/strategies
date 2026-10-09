@@ -373,3 +373,23 @@ def test_synthetic_triggers_land_in_their_intended_quadrant(name, ev, learn, exp
     known from how it was built, not from what the rule returns."""
     v = LB.assign_verdict(name, _iv(*ev), learn[0], learn[1])
     assert v.verdict == expected
+
+
+def test_gbb_tight_is_withdrawn_from_adjudication():
+    """Withdrawn 2026-10-09 (T035, user-approved): n=94 fillable non-overlapping trades, one
+    LUNA-collapse week supplying 56.5% of summed profit from 22 of them, and the bootstrap
+    resampling those 22 same-time cross-pair trades as independent blocks. A verdict asserts
+    the interval is trustworthy; here it is not, so the row reports numbers and a reason."""
+    assert "gbb_tight" in LB.DIAGNOSTIC_ONLY
+    s = LB.economic_value(*_frames([0.1] * 5, [0] * 5), "empty")
+    row = LB.assemble_row("gbb_tight", s, s, _iv(0.03, 0.02, 0.04), 0.1, 0.01, 0.1)
+    assert row.verdict == LB.VERDICT_DIAGNOSTIC, "an EV-beating interval must not adjudicate it"
+
+
+def test_controls_are_adjudicated_not_exempted():
+    """A control that is not checked is not a control. `random_matched` and `gbb_stale` get
+    real verdicts, and the expected one is `indeterminate`."""
+    assert not (LB.CONTROL_TRIGGERS & LB.DIAGNOSTIC_ONLY)
+    s = LB.economic_value(*_frames([0.1] * 5, [0] * 5), "empty")
+    row = LB.assemble_row("random_matched", s, s, _iv(0.0003, -0.0003, 0.0009), 0.03, 0.01, 0.0)
+    assert row.verdict == LB.VERDICT_INDETERMINATE

@@ -79,6 +79,7 @@ from research.clfstudy import splits as _cls_splits  # noqa: E402
 from research.clfstudy import windows as _cls_windows  # noqa: E402
 from research.outcomes import labels as _labels  # noqa: E402
 from research.outcomes import triggers as _triggers  # noqa: E402
+from research.outcomes.leakage import OUTCOME_COLUMN_POSITIVE as _OUTCOME_POSITIVE  # noqa: E402
 
 #: The study's split set. Fixed, not a parameter: FR-015's "one fixed probe" is meaningless
 #: if the splits can move between triggers.
@@ -502,3 +503,32 @@ def probe_conditional(
         label_rate_test=float((y_test_int == CLASS_BUY).mean()),
         collapsed=frac >= COLLAPSE_FRAC, train_seconds=secs,
     )
+
+
+def probe_conditional_for_trigger(
+    wf: WindowFeatures,
+    raw_frames: dict[str, pd.DataFrame],
+    outcomes_by_pair: dict[str, pd.DataFrame],
+    trigger: "_triggers.Trigger | str",
+    *,
+    seed: int,
+    arch: str = "RIDGE",
+) -> ProbeFit:
+    """`probe_conditional` with the ENTRY MASK derived internally. Prefer this.
+
+    `probe_conditional` takes a raw mask, and that is exactly how the 2026-10-09 signal-bar
+    leak got into the conditional campaign: the campaign scripts passed
+    `triggers.evaluate(...)` output, pairing a trigger with the outcome of entering at its
+    OWN signal bar's open. The economic-value path was fixed by routing through
+    `labels.entry_mask`; this closes the same hole on the probe path, so a caller cannot
+    reintroduce it by passing the convenient thing.
+    """
+    fired = {
+        p: _labels.entry_mask(raw_frames[p], outcomes_by_pair[p], trigger).to_numpy()
+        for p in wf.scaled
+    }
+    positive = {
+        p: outcomes_by_pair[p][_OUTCOME_POSITIVE].to_numpy(bool) for p in wf.scaled
+    }
+    name = trigger if isinstance(trigger, str) else trigger.name
+    return probe_conditional(wf, fired, positive, trigger_name=name, seed=seed, arch=arch)

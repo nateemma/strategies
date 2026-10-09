@@ -351,6 +351,30 @@ def economic_value_delta(
 # The verdict rule (T030, FR-014b as amended by FR-015b, SC-007)
 # =================================================================================================
 
+#: Rows reported but NOT adjudicated. A verdict asserts that a trigger's economic value is
+#: or is not distinguishable from the null, and that assertion is only meaningful when the
+#: interval behind it is trustworthy. Where it is not, the honest output is the numbers plus
+#: the reason, never a verdict word.
+#:
+#: `gbb_tight` (withdrawn 2026-10-09 on T035's recommendation, user-approved):
+#:   * n = 94 fillable non-overlapping trades across 27 weeks -- two orders of magnitude
+#:     fewer than every other row;
+#:   * ONE week (2022-05-09, the LUNA collapse) supplies 56.5% of summed profit from 22 of
+#:     those 94 trades, and the top three weeks supply 74.7%;
+#:   * those 22 trades are spread across 11 pairs at the same TIME, and the block bootstrap
+#:     resamples pairs independently, so it treats them as 22 independent blocks when they
+#:     are closer to one event;
+#:   * its thresholds came off a rung ladder that had already been explored BY economic
+#:     value, and selectivity-matching removes only part of that.
+#: Its edge does survive excluding the top three weeks (+0.013326, n=54), so this is a
+#: withdrawal for untrustworthy UNCERTAINTY, not a claim that the effect is absent.
+DIAGNOSTIC_ONLY = frozenset({"gbb_tight"})
+
+#: Controls whose correct verdict is known in advance (`indeterminate`, EV at the null).
+#: Reported with their verdicts, because a control that is not checked is not a control.
+CONTROL_TRIGGERS = frozenset({"random_matched", "gbb_stale"})
+
+VERDICT_DIAGNOSTIC = "(diagnostic)"
 VERDICT_SELECTION_VALUE = "selection_value"
 VERDICT_DECORATION = "decoration"
 VERDICT_INDETERMINATE = "indeterminate"
@@ -480,6 +504,8 @@ def assemble_row(
     own -- it IS the null, and judging it against itself is the T031 control, not a row."""
     if trigger == REFERENCE_TRIGGER:
         verdict = "(null)"
+    elif trigger in DIAGNOSTIC_ONLY:
+        verdict = VERDICT_DIAGNOSTIC
     elif learn_delta is None or learn_se is None:
         # No probe: the EV branch can still decide `selection_value`, but `decoration`
         # cannot be ruled in OR out, so anything else is honestly indeterminate rather
@@ -514,7 +540,8 @@ def report(rows: "list[TriggerScore]") -> str:
     triggers have selection value -- not which has the biggest number, which would invite
     exactly the single-ranking reading FR-016 forbids.
     """
-    order = {VERDICT_SELECTION_VALUE: 0, VERDICT_DECORATION: 1, VERDICT_INDETERMINATE: 2}
+    order = {VERDICT_SELECTION_VALUE: 0, VERDICT_DECORATION: 1, VERDICT_INDETERMINATE: 2,
+             VERDICT_DIAGNOSTIC: 4}
     rows = sorted(rows, key=lambda r: (order.get(r.verdict, 3), -(r.economic_value or 0)))
     out = [
         "LEADERBOARD — economic value (no model) and conditional learnability, "
