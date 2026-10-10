@@ -62,11 +62,19 @@ def _is_skipped_dir(name: str) -> bool:
     return name in _SKIP_DIR_NAMES or name.startswith(".")
 
 
+#: GENERATED, gitignored build artefacts (feature 023): per-component attribution arms written
+#: by `evaluation/attribution.py` as `SimpleTrigger/<Base>__C_<component>.py`. Each is a
+#: one-class subclass carrying a MERGED override dict (configuration, never arithmetic), and
+#: they exist only after an attribution run -- allowlisting them would make this equality check
+#: depend on whether that run has happened on this machine.
+_GENERATED = re.compile(r"__C_[a-z_]+\.py$")
+
+
 def _iter_py_files(root: Path):
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = [d for d in dirnames if not _is_skipped_dir(d)]
         for filename in filenames:
-            if filename.endswith(".py"):
+            if filename.endswith(".py") and not _GENERATED.search(filename):
                 yield Path(dirpath) / filename
 
 
@@ -189,6 +197,23 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
                                                  # computes no take_profit/max_hold decision.
     "SimpleStrategies/Ehlers_Ichimoku.py",     # a pinned sell_params dict (class attribute),
                                                  # same pattern as the Debug/* files above.
+    # --- feature 023 (SimpleTrigger) -- all CONFIGURING; none computes a stop level ---------
+    "SimpleTrigger/presets.py",                # literal preset dicts copied from the resolved
+                                                 # reference classes (values, not arithmetic).
+    "SimpleTrigger/components.py",             # neutral override values per component.
+    "SimpleTrigger/coupling.py",               # maps label targets to cexit_take_profit /
+                                                 # cexit_max_days VALUES via ExitPolicy's own
+                                                 # net_from_price_ratio; no stop arithmetic.
+    "SimpleTrigger/tests/test_coupling.py",    # asserts those mapped values.
+    "SimpleTrigger/tests/test_presets.py",     # asserts preset attribute values.
+    "evaluation/fingerprint.py",               # lists the attribute NAMES it hashes; reads
+                                                 # values, computes nothing from them.
+    "evaluation/tests/test_fingerprint.py",    # tweaks one attribute to prove the hash moves.
+    "utils/StopInvariants.py",                 # READS atr_stoploss_floor/stoploss_grace_hours
+                                                 # to CHECK the stop the parent returned
+                                                 # (bound = open*(1+floor)); returns that value
+                                                 # unchanged and never computes a stop itself.
+    "utils/tests/test_stop_invariants.py",     # sets those attributes on a stub.
     "Framework/tests/test_post_grace_stop_signfix.py",
                                                  # CONFIGURING: sets grace hours/level on a
                                                  # stub to drive the live post-grace branch.

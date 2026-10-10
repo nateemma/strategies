@@ -1,0 +1,352 @@
+{
+  "label": "PROVISIONAL -- not a finding under quality gate 2 (no distant era)",
+  "preset": "LEGACY_TRIGGERONLY",
+  "full": {
+    "trades": 8150,
+    "sum_pp": 2.6430000000000002,
+    "power": {
+      "n_trades": 8150,
+      "half_width_pp_yr": 9.994837196523404,
+      "sqrt_n_predicted_pp_yr": 0.8412673911638219
+    }
+  },
+  "rows": [
+    {
+      "component": "stop_atr_band",
+      "overrides": {
+        "attributes": {
+          "use_atr_adaptive_stoploss": false
+        }
+      },
+      "status": "ALREADY_NEUTRAL"
+    },
+    {
+      "component": "stop_grace",
+      "overrides": {
+        "sell": {
+          "stoploss_grace_hours": 0.0
+        }
+      },
+      "arm_tag": "stl_gbbo__stop_grace",
+      "fold_detail": [
+        {
+          "fold": "f00",
+          "n_trades": 582,
+          "return_pct": 1.096
+        },
+        {
+          "fold": "f01",
+          "n_trades": 323,
+          "return_pct": -0.1
+        },
+        {
+          "fold": "f02",
+          "n_trades": 291,
+          "return_pct": 3.597
+        },
+        {
+          "fold": "f03",
+          "n_trades": 660,
+          "return_pct": 8.234
+        },
+        {
+          "fold": "f04",
+          "n_trades": 931,
+          "return_pct": 9.965
+        },
+        {
+          "fold": "f05",
+          "n_trades": 671,
+          "return_pct": -8.641
+        },
+        {
+          "fold": "f06",
+          "n_trades": 550,
+          "return_pct": -6.353
+        },
+        {
+          "fold": "f07",
+          "n_trades": 1076,
+          "return_pct": 4.458
+        },
+        {
+          "fold": "f08",
+          "n_trades": 1011,
+          "return_pct": -11.949
+        },
+        {
+          "fold": "f09",
+          "n_trades": 470,
+          "return_pct": -4.081
+        },
+        {
+          "fold": "f10",
+          "n_trades": 444,
+          "return_pct": -1.513
+        },
+        {
+          "fold": "f11",
+          "n_trades": 933,
+          "return_pct": -13.261
+        },
+        {
+          "fold": "f12",
+          "n_trades": 506,
+          "return_pct": -0.687
+        },
+        {
+          "fold": "f13",
+          "n_trades": 456,
+          "return_pct": 0.877
+        },
+        {
+          "fold": "f14",
+          "n_trades": 314,
+          "return_pct": 7.893
+        }
+      ],
+      "liveness_evidence": {
+        "metric": "trades_hash",
+        "before": [
+          "2d59b026e4cb9797",
+          "35363757f67031b0",
+          "98a7d6ba96dbbad6",
+          "0cf827e8c6c6231c",
+          "d0088531a3a3f93e",
+          "a6a1707d81b52b76",
+          "528d743393d7cb96",
+          "0bd39b94c348b708",
+          "bdf8dd626f1672d3",
+          "ecaabf55bf429ff8",
+          "0d1df339dbba5b20",
+          "52676012962ecc8d",
+          "d1347d6a00b229a2",
+          "c61de2359a6284d6",
+          "2252619b78c754b0"
+        ],
+        "after": [
+          "297d557e61832d38",
+          "abc235a5f2693a39",
+          "a454a2ae58ff2f9a",
+          "35f3be861baa131b",
+          "07120eacecbf4262",
+          "3cb0dc3f1c1626cd",
+          "5405bbb6545b5db4",
+          "60a443bfa9964d55",
+          "b4a63679ee431f53",
+          "e658de7b705190dd",
+          "ad938df8a1305594",
+          "b16b5b60262fc0d1",
+          "a1582e07b52451ec",
+          "17a71e0f8c55d4c7",
+          "9470016523b652ac"
+        ],
+        "moved": true
+      },
+      "status": "LIVE",
+      "verdict": "INCONCLUSIVE_ARM_LOSES",
+      "delta_pp": -13.112168973214768,
+      "ci_pp_yr": [
+        -11.643894562493522,
+        4.501413169876983
+      ],
+      "p": 0.3831,
+      "component_contribution_pp": 13.112168973214768,
+      "halves": {
+        "split_after": "f07",
+        "label": "PROVISIONAL -- not a finding under quality gate 2 (no distant era)",
+        "early": {
+          "fold_ids": [
+            "f00",
+            "f01",
+            "f02",
+            "f03",
+            "f04",
+            "f05",
+            "f06",
+            "f07"
+          ],
+          "arm": {
+            "folds": 8,
+            "trades": 5084,
+            "sum_pp": 12.256,
+            "positive_folds": 5
+          },
+          "ctl": {
+            "folds": 8,
+            "trades": 4513,
+            "sum_pp": 20.426,
+            "positive_folds": 5
+          },
+          "verdict": "UNCHANGED",
+          "delta_pp": -8.172559681594594,
+          "ci_pp_yr": [
+            -14.091139736838926,
+            5.672271955601982
+          ],
+          "p": 0.4122
+        },
+        "late": {
+          "fold_ids": [
+            "f08",
+            "f09",
+            "f10",
+            "f11",
+            "f12",
+            "f13",
+            "f14"
+          ],
+          "arm": {
+            "folds": 7,
+            "trades": 4134,
+            "sum_pp": -22.721,
+            "positive_folds": 2
+          },
+          "ctl": {
+            "folds": 7,
+            "trades": 3637,
+            "sum_pp": -17.783,
+            "positive_folds": 2
+          },
+          "verdict": "INCONCLUSIVE_ARM_LOSES",
+          "delta_pp": -4.938539516924099,
+          "ci_pp_yr": [
+            -15.621205908958716,
+            10.020313543174876
+          ],
+          "p": 0.6665
+        }
+      },
+      "power": {
+        "n_trades": 9218,
+        "half_width_pp_yr": 10.716926946742364,
+        "sqrt_n_predicted_pp_yr": 0.7910328291254267
+      }
+    },
+    {
+      "component": "stop_volume_confirm",
+      "overrides": {
+        "attributes": {
+          "use_volume_confirmation_stoploss": false
+        }
+      },
+      "arm_tag": "stl_gbbo__stop_volume_confirm",
+      "fold_detail": [
+        {
+          "fold": "f00",
+          "n_trades": 544,
+          "return_pct": 0.833
+        },
+        {
+          "fold": "f01",
+          "n_trades": 291,
+          "return_pct": -2.943
+        },
+        {
+          "fold": "f02",
+          "n_trades": 272,
+          "return_pct": 2.918
+        },
+        {
+          "fold": "f03",
+          "n_trades": 604,
+          "return_pct": 14.469
+        },
+        {
+          "fold": "f04",
+          "n_trades": 837,
+          "return_pct": 10.063
+        },
+        {
+          "fold": "f05",
+          "n_trades": 581,
+          "return_pct": -6.145
+        },
+        {
+          "fold": "f06",
+          "n_trades": 502,
+          "return_pct": -5.408
+        },
+        {
+          "fold": "f07",
+          "n_trades": 882,
+          "return_pct": 6.639
+        },
+        {
+          "fold": "f08",
+          "n_trades": 874,
+          "return_pct": -9.687
+        },
+        {
+          "fold": "f09",
+          "n_trades": 437,
+          "return_pct": -3.055
+        },
+        {
+          "fold": "f10",
+          "n_trades": 434,
+          "return_pct": -0.568
+        },
+        {
+          "fold": "f11",
+          "n_trades": 747,
+          "return_pct": -10.605
+        },
+        {
+          "fold": "f12",
+          "n_trades": 443,
+          "return_pct": 0.799
+        },
+        {
+          "fold": "f13",
+          "n_trades": 403,
+          "return_pct": -2.312
+        },
+        {
+          "fold": "f14",
+          "n_trades": 299,
+          "return_pct": 7.645
+        }
+      ],
+      "liveness_evidence": {
+        "metric": "trades_hash",
+        "before": [
+          "2d59b026e4cb9797",
+          "35363757f67031b0",
+          "98a7d6ba96dbbad6",
+          "0cf827e8c6c6231c",
+          "d0088531a3a3f93e",
+          "a6a1707d81b52b76",
+          "528d743393d7cb96",
+          "0bd39b94c348b708",
+          "bdf8dd626f1672d3",
+          "ecaabf55bf429ff8",
+          "0d1df339dbba5b20",
+          "52676012962ecc8d",
+          "d1347d6a00b229a2",
+          "c61de2359a6284d6",
+          "2252619b78c754b0"
+        ],
+        "after": [
+          "2d59b026e4cb9797",
+          "35363757f67031b0",
+          "98a7d6ba96dbbad6",
+          "0cf827e8c6c6231c",
+          "d0088531a3a3f93e",
+          "a6a1707d81b52b76",
+          "528d743393d7cb96",
+          "0bd39b94c348b708",
+          "bdf8dd626f1672d3",
+          "ecaabf55bf429ff8",
+          "0d1df339dbba5b20",
+          "52676012962ecc8d",
+          "d1347d6a00b229a2",
+          "c61de2359a6284d6",
+          "2252619b78c754b0"
+        ],
+        "moved": false
+      },
+      "status": "INERT"
+    }
+  ]
+}

@@ -69,7 +69,16 @@ class TriggerOnlyStrategy(BaseStrategy):
     use_custom_stoploss = True
     use_exit_signal = True
 
-    # ---- EXIT: the Open operating point, verbatim ------------------------------------------
+    # ---- EXIT: the Open operating point's EXITS -- but NOT its stop ------------------------
+    # CORRECTED 2026-10-10 (feature 023 research R1). This block was labelled "the Open
+    # operating point, verbatim". The take-profit / max-hold / grace values are; the STOP is
+    # not. Arm D (NNNC_A_Raw_Open) runs the ATR-adaptive stop (BaseNNStrategy sets
+    # use_atr_adaptive_stoploss=True; mult/floor/cap 4.0/-0.06/-0.04), while this class runs a
+    # STATIC -5% (use_atr_adaptive_stoploss=False below), which also makes the volume-
+    # confirmation stop inert (utils/ExitPolicy.py returns the static stop when adaptive is
+    # off). Measured: `gbb` makes +2.64pp here and +11.04pp under arm D's framework
+    # (SimpleTrigger_Gbb). Values left UNCHANGED -- the recorded 021/022 hashes depend on them;
+    # new no-model work uses SimpleTrigger/ (ARM_D_OPEN preset).
     # These are the values `ExitConfig.from_operating_point()` reads, so a trade opened here
     # closes the way the outcome table simulated it. Changing any of them breaks the
     # correspondence between these arms and the rows they test, and breaks comparability

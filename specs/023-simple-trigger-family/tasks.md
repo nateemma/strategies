@@ -471,9 +471,9 @@ defect.
     `halves.split`, and `evaluation/power.py:report` (~L39) plus the noise half-width constants
     in `evaluation/__init__.py`, so every row states its power or noise floor (FR-012).
   - Make T045 pass.
-- [ ] T047 [US2] Run attribution for `SimpleTrigger_Gbb` under `ARM_D_OPEN`, with the sink
+- [X] T047 [US2] Run attribution for `SimpleTrigger_Gbb` under `ARM_D_OPEN`, with the sink
   enabled, for all non-ALREADY_NEUTRAL components (sequentially). Commit the report.
-- [ ] T048 [US2] Run attribution for `SimpleTrigger_Legacy_Gbb` under `LEGACY_TRIGGERONLY`, stop
+- [X] T048 [US2] Run attribution for `SimpleTrigger_Legacy_Gbb` under `LEGACY_TRIGGERONLY`, stop
   components only. Expected: `stop_atr_band` and `stop_volume_confirm` INERT. If either is LIVE,
   research R1 is wrong; report it.
 
@@ -517,14 +517,14 @@ itself is follow-up work.
 
 ## Phase 7: Polish & cross-cutting
 
-- [ ] T053 [P] Correct the false comment at `SimpleStrategies/TriggerOnly.py:72-75` ("the Open
+- [X] T053 [P] Correct the false comment at `SimpleStrategies/TriggerOnly.py:72-75` ("the Open
   operating point, verbatim"). State that its STOP is static −0.05 with ATR-adaptive off, unlike
   arm D, and cite 023 research R1. Comment only; no value changes, since the legacy hashes depend
   on it.
 - [X] T054 [P] Run `ruff check` and `ruff format --check` on every new or edited Python file
   (ruff is the formatter of record per `AGENT_GUIDE.md`).
-- [ ] T055 Run the full unit gate (quickstart §0) and confirm it passes.
-- [ ] T056 Write `specs/023-simple-trigger-family/report.md`. Start with a SUMMARY covering:
+- [X] T055 Run the full unit gate (quickstart §0) and confirm it passes.
+- [X] T056 Write `specs/023-simple-trigger-family/report.md`. Start with a SUMMARY covering:
   - SC-001 to SC-008 status with evidence paths;
   - the US3 model-contribution result, quoted with its verdict, CI, halves, shared fraction and
     matched-count z, and labelled **PROVISIONAL, not a finding under quality gate 2** (no distant
@@ -536,7 +536,7 @@ itself is follow-up work.
     FR-008 has passed or failed;
   - filed notes: `evaluation/pick_guards.floor_for_window` has zero callers (L177 still uses the
     absolute 25), and `guard_trackability.py` is referenced by `run_folds.py` but missing.
-- [ ] T057 Update project memory: a new `project_023_simple_trigger.md` with the presets, how to
+- [X] T057 Update project memory: a new `project_023_simple_trigger.md` with the presets, how to
   run a SimpleTrigger arm, and the arm D twin result, recorded as **PROVISIONAL (gate 2: no
   distant era)**, never as a finding. Add a one-line index entry in `MEMORY.md` carrying the same
   label, and update `project_status_2026_10_10.md`'s live thread.
