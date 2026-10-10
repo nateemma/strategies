@@ -1,11 +1,17 @@
 {
   "verdict": "indeterminate",
-  "reason": "Spec Branch 0 (POWER): only 3 of 15 folds are powered under FR-017 -- the per-fold selected configuration admits fewer than 25 trades on its own test window in the other 12. A paired regret comparison on 3 folds, two of whose adaptive regrets are structurally zero, cannot license arm C.",
-  "n_powered_folds": 3,
+  "reason": "Spec Branch 0 (POWER): 9 of 15 folds are powered, below the pre-registered threshold of 10. The verdict is indeterminate and FR-019 forbids relaxing the threshold after the fact to obtain one.",
+  "n_powered_folds": 9,
   "powered": [
+    "f01",
     "f03",
     "f04",
-    "f11"
+    "f05",
+    "f06",
+    "f07",
+    "f08",
+    "f11",
+    "f13"
   ],
   "retracted_first_pass": "An initial implementation reported 'trackable' by applying the power test to candidate availability on the TRAIN window instead of to the selected configuration on TEST. Corrected; the verdict is indeterminate.",
   "best_constant": "atr0p02_adxm1_rvolm1",
@@ -27,5 +33,14 @@
     "f12": "atr0p02_adxm1_rvol3",
     "f13": "atr0p02_adxm1_rvol3",
     "f14": "atr0p02_adxm1_rvol1p9"
-  }
+  },
+  "floor_defect_corrected": "The first run reported 3/15 powered and, worse, a FALSE 'trackable' on n=3. Two separate defects, both mine: (1) the power test was applied to candidate availability on TRAIN instead of the selected config on TEST; (2) FR-012's floor was applied as an ABSOLUTE 25 to both windows, but train windows are anchored and 8.1x-23.4x longer, so it admitted configurations trading ~1.7 per 90 days. Rate-matching the floor took powered folds from 3 to 9. The adaptation was never the problem -- it was unconstrained.",
+  "adaptive_choice_concentration": {
+    "atr0p013_adx20_rvol1p9": 8,
+    "atr0p02_adxm1_rvol1": 3,
+    "atr0p013_adx20_rvol1": 1,
+    "atr0p013_adx10_rvol3": 2,
+    "_note": "8 of 15 folds select the IDENTICAL configuration, and all 15 pick one of four. A per-fold optimum that is this concentrated is close to a constant, which is evidence for a fixed safe setting rather than for adaptivity."
+  },
+  "early_late_drift": "f00-f09 concentrate on atr 0.013 / adx 20 / rvol 1.9; f12-f14 shift to atr 0.02 / adx open / rvol 1.0. A real early/late difference (Principle II), but across only two regimes of the optimum, not fifteen."
 }

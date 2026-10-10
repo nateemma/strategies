@@ -104,3 +104,56 @@ window, verified as 15 distinct values. That is now the only live thread from fe
 T024–T035 (arm C, arm E) are unreachable by FR-006. T037–T040 (polish) remain: the Principle
 VIII deviation note, the full-suite run, and propagating this outcome into feature 021's
 follow-up section.
+
+---
+
+# CORRECTION (2026-10-10) — the floor was mis-scaled, and it was my defect not the adaptation's
+
+The user asked what was stopping the adaptive scheme from firing, and whether that meant the
+adaptation was wrong. It did not. **Two defects, both in my implementation.**
+
+1. **The power test checked the wrong thing** — candidate *availability on train* rather than
+   the *selected configuration on test*. This is what produced the first run's false
+   `trackable` on n=3.
+2. **FR-012's floor was applied as an absolute count to both windows.** This harness's train
+   windows are **anchored and growing** — 730 days at f00 to 1990 at f14 — against 90-day test
+   windows: **8.1× to 23.4× longer, 15.2× on average**. A flat 25 on a train window therefore
+   admits configurations trading **~1.7 trades per 90 days**, which can never clear 25 on test.
+   **The adaptive scheme was selecting unmeasurable configurations because nothing stopped it.**
+
+Rate-matching the floor to 25 trades per 90-day-equivalent (203 at f00, 378 at f07, 553 at f14)
+took powered folds from **3 to 9**. FR-012 is amended and `floor_for_window()` now implements
+the rate in code.
+
+## The verdict stands, and deliberately
+
+**9 of 15 powered, against a pre-registered threshold of 10 ⇒ `indeterminate`.** FR-019 forbids
+relaxing the threshold after seeing the result, and 9 is exactly the case the rule exists to
+govern. I have not moved it.
+
+## But the corrected run answers the real question
+
+**The per-fold optimum is strongly concentrated**, which is the trackability question answered
+descriptively even though the gate is formally indeterminate:
+
+| configuration | folds selecting it |
+|---|---|
+| `atr 0.013 / adx 20 / rvol 1.9` | **8 of 15** |
+| `atr 0.02 / adx open / rvol 1.0` | 3 |
+| `atr 0.013 / adx 10 / rvol 3.0` | 2 |
+| `atr 0.013 / adx 20 / rvol 1.0` | 1 |
+
+Eight of fifteen folds pick the **identical** configuration and all fifteen pick one of **four**.
+A per-fold optimum that concentrated is close to a constant — **there is very little to adapt
+to**, which supports a fixed safe setting over a dynamic scheme and is consistent with the
+robust/maximin result above.
+
+**There is a real early/late shift** (Principle II): f00–f09 concentrate on
+`atr 0.013 / adx 20 / rvol 1.9`, while f12–f14 move to `atr 0.02 / adx open / rvol 1.0`. So the
+optimum has roughly **two regimes across 15 folds**, not fifteen — which is the shape under
+which a two-state scheme might work and a per-fold scheme is overkill.
+
+Note the selected `atr 0.013` is the **historical hyperopt value**, recovered independently here
+from training windows that in six folds do not overlap the 2024-05-11…2026-05-01 tuning window.
+That is mild out-of-sample support for the *level* of `atr_pct`, which is a different and much
+weaker claim than arm B's +18.76pp return.

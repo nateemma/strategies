@@ -45,10 +45,30 @@ import pandas as pd
 
 GRID_FILE = Path(__file__).resolve().parent / "folds" / "guard_grid_022.json"
 
-#: FR-012, verbatim: a configuration admitting fewer than this many trades in the fold being
-#: tuned is rejected. Derived from the harness's own power record -- 378 pooled trades give the
-#: 3.350 pp/yr floor, and 378/15 ~ 25.
+#: FR-012: a configuration admitting fewer than this many trades PER 90-DAY-EQUIVALENT is
+#: rejected. Derived from the harness's own power record -- 378 pooled trades give the
+#: 3.350 pp/yr floor, and 378/15 ~ 25 on a 90-day test window.
 MIN_TRADES_PER_FOLD = 25
+
+#: The window the floor above was derived for. Everything else scales against it.
+FLOOR_REFERENCE_DAYS = 90
+
+
+def floor_for_window(window_days: float) -> int:
+    """The trade floor for a window of this length, RATE-MATCHED to the 90-day reference.
+
+    DEFECT THIS FIXES, found 2026-10-10 by the user asking why the adaptive scheme never fired.
+    The floor was applied as an ABSOLUTE count to both windows, but this harness's train
+    windows are ANCHORED and grow: 730 days at f00 to 1990 at f14, against 90-day test
+    windows -- 8.1x to 23.4x longer, 15.2x on average. So a flat 25 on the train window
+    admitted configurations trading ~1.7 trades per 90 days, which could never clear 25 on
+    test. The adaptive scheme was selecting unmeasurable configurations because nothing
+    stopped it: the constraint was wrong, not the adaptation.
+
+    Because the ratio VARIES across folds (8.1x to 23.4x), no single absolute number works for
+    both windows -- it has to be a rate.
+    """
+    return int(round(MIN_TRADES_PER_FOLD * float(window_days) / FLOOR_REFERENCE_DAYS))
 
 #: Open values for the quality thresholds this feature does NOT tune, taken from
 #: BaseStrategy.buy_params so a scored configuration differs from arm A in the three axes only.

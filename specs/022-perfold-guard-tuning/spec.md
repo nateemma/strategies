@@ -237,9 +237,15 @@ work, but meaningless if C fails.
   `entry_guard_threshold` MUST be excluded: it is recorded as completely inert (byte-identical
   trades across three windows). `entry_bb_width_threshold` and `entry_close_norm_threshold` are
   excluded as the two lightest contributors (−0.17pp and −1.01pp).
-- **FR-012**: The search MUST reject any configuration admitting fewer than **25 trades in the
-  fold being tuned**, derived from the harness's own power record: 378 pooled trades give the
-  3.350 pp/yr floor, and 378/15 ≈ 25.
+- **FR-012**: The search MUST reject any configuration admitting fewer than **25 trades per
+  90-day-equivalent** in the window being scored, derived from the harness's own power record:
+  378 pooled trades give the 3.350 pp/yr floor, and 378/15 ≈ 25 on a 90-day test window.
+  **AMENDED 2026-10-10**: originally worded as an absolute "25 trades in the fold being
+  tuned". That is wrong here, because the train windows are ANCHORED and grow — 730 to 1990
+  days against 90-day test windows, 8.1× to 23.4× longer. A flat 25 on a train window admits
+  configurations trading ~1.7 per 90 days, which can never clear 25 on test, so the adaptive
+  scheme wasselecting unmeasurable configurations. Since the ratio varies by fold, no single
+  absolute count works for both windows — it must be a rate.
 - **FR-013**: Every tuned parameter MUST be proven to have changed the trade list, measured
   from the hyperopt record and a per-fold trade-list hash — not from console output. A
   parameter that changes nothing MUST be reported as a defect.

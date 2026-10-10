@@ -293,9 +293,22 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
     # the model -- ~25pp of headroom and 4.5x the trades.
     #
     # They are opened by NEUTRALISING each threshold rather than by
-    # entry_enable_guards=False, because that flag ALSO disables the
-    # `volume > 0` data-sanity check which lives in the same block. Keep
-    # entry_enable_guards True. Out-of-range values are honoured, not clamped.
+    # entry_enable_guards=False, because that flag is what APPLIES the five
+    # quality thresholds at all. Keep entry_enable_guards True. Out-of-range
+    # values are honoured, not clamped.
+    #
+    # CORRECTED 2026-10-10. This comment used to say the flag "ALSO disables
+    # the `volume > 0` data-sanity check which lives in the same block". That
+    # STOPPED BEING TRUE at commit e7cf8cf (2026-09-08, "volume+rvol
+    # mandatory"), which moved `volume > 0` AND `rvol` out of the guarded block
+    # in populate_entry_trend -- see the MANDATORY comment there. Only the five
+    # quality thresholds remain behind the flag.
+    #
+    # The stale version was read as current fact during feature 022 and
+    # produced a wrong explanation that reached three other artefacts before
+    # anyone checked the executable path. Left as a correction rather than a
+    # deletion so the next reader knows the old claim was retired, not merely
+    # dropped.
     #
     # NOT a higher-return setting: across seeds it is indistinguishable from the
     # old point on summed return and LOSES the W1 acceptance window 3 times out
