@@ -1,0 +1,200 @@
+{
+  "generated": "2026-10-10T16:31:36+00:00",
+  "code_sha": "3f7b3ab5ec4ce2e6",
+  "pairs": [
+    "SOL",
+    "LTC",
+    "AAVE"
+  ],
+  "eras": [
+    "2021-10-01",
+    "2023-10-01",
+    "2025-07-01"
+  ],
+  "cut_points": 16,
+  "warmup_bars": 200,
+  "history_bars": 1000,
+  "era_bars": 6000,
+  "slices_checked": [
+    "SOL@2021-10-01",
+    "SOL@2023-10-01",
+    "SOL@2025-07-01",
+    "LTC@2021-10-01",
+    "LTC@2023-10-01",
+    "LTC@2025-07-01",
+    "AAVE@2021-10-01",
+    "AAVE@2023-10-01",
+    "AAVE@2025-07-01"
+  ],
+  "slices_skipped": [],
+  "checker_control": {
+    "trigger": "local_min_followthrough",
+    "verdict": "FAIL",
+    "first_mismatch": {
+      "pair": "SOL",
+      "era": "2021-10-01",
+      "cut_bar": 250,
+      "bar": 250,
+      "bars_before_cut": 0,
+      "date": "2021-09-23 04:30:00+00:00",
+      "full": false,
+      "truncated": true
+    }
+  },
+  "triggers": {
+    "adx": {
+      "trigger": "adx",
+      "verdict": "PASS",
+      "first_mismatch": null,
+      "comparisons": 144,
+      "missing_columns": null
+    },
+    "bands": {
+      "trigger": "bands",
+      "verdict": "UNSCOREABLE",
+      "first_mismatch": null,
+      "comparisons": 0,
+      "missing_columns": [
+        "dc_lowerband",
+        "dc_upperband",
+        "kc_lowerband",
+        "kc_upperband",
+        "lw_lowerband",
+        "lw_upperband"
+      ]
+    },
+    "breakout": {
+      "trigger": "breakout",
+      "verdict": "PASS",
+      "first_mismatch": null,
+      "comparisons": 144,
+      "missing_columns": null
+    },
+    "breakout_bb": {
+      "trigger": "breakout_bb",
+      "verdict": "PASS",
+      "first_mismatch": null,
+      "comparisons": 144,
+      "missing_columns": null
+    },
+    "breakout_gbb": {
+      "trigger": "breakout_gbb",
+      "verdict": "PASS",
+      "first_mismatch": null,
+      "comparisons": 144,
+      "missing_columns": null
+    },
+    "breakout_squeeze": {
+      "trigger": "breakout_squeeze",
+      "verdict": "PASS",
+      "first_mismatch": null,
+      "comparisons": 144,
+      "missing_columns": null
+    },
+    "breakout_vol": {
+      "trigger": "breakout_vol",
+      "verdict": "PASS",
+      "first_mismatch": null,
+      "comparisons": 144,
+      "missing_columns": null
+    },
+    "empty": {
+      "trigger": "empty",
+      "verdict": "PASS",
+      "first_mismatch": null,
+      "comparisons": 144,
+      "missing_columns": null
+    },
+    "gbb": {
+      "trigger": "gbb",
+      "verdict": "PASS",
+      "first_mismatch": null,
+      "comparisons": 144,
+      "missing_columns": null
+    },
+    "gbb_stale": {
+      "trigger": "gbb_stale",
+      "verdict": "PASS",
+      "first_mismatch": null,
+      "comparisons": 144,
+      "missing_columns": null
+    },
+    "gbb_tight": {
+      "trigger": "gbb_tight",
+      "verdict": "PASS",
+      "first_mismatch": null,
+      "comparisons": 144,
+      "missing_columns": null
+    },
+    "geometry": {
+      "trigger": "geometry",
+      "verdict": "PASS",
+      "first_mismatch": null,
+      "comparisons": 144,
+      "missing_columns": null
+    },
+    "random_matched": {
+      "trigger": "random_matched",
+      "verdict": "FAIL",
+      "first_mismatch": {
+        "pair": "SOL",
+        "era": "2021-10-01",
+        "cut_bar": 250,
+        "bar": 200,
+        "bars_before_cut": 50,
+        "date": "2021-09-22 16:00:00+00:00",
+        "full": false,
+        "truncated": true
+      },
+      "comparisons": 1,
+      "missing_columns": null
+    },
+    "trends": {
+      "trigger": "trends",
+      "verdict": "UNSCOREABLE",
+      "first_mismatch": null,
+      "comparisons": 0,
+      "missing_columns": [
+        "flow",
+        "regime",
+        "risk",
+        "momentum"
+      ]
+    },
+    "votes_consensus": {
+      "trigger": "votes_consensus",
+      "verdict": "PASS",
+      "first_mismatch": null,
+      "comparisons": 144,
+      "missing_columns": null
+    },
+    "votes_ind2": {
+      "trigger": "votes_ind2",
+      "verdict": "PASS",
+      "first_mismatch": null,
+      "comparisons": 144,
+      "missing_columns": null
+    },
+    "votes_ind3": {
+      "trigger": "votes_ind3",
+      "verdict": "PASS",
+      "first_mismatch": null,
+      "comparisons": 144,
+      "missing_columns": null
+    },
+    "votes_ind4": {
+      "trigger": "votes_ind4",
+      "verdict": "PASS",
+      "first_mismatch": null,
+      "comparisons": 144,
+      "missing_columns": null
+    },
+    "votes_tech": {
+      "trigger": "votes_tech",
+      "verdict": "PASS",
+      "first_mismatch": null,
+      "comparisons": 144,
+      "missing_columns": null
+    }
+  }
+}

@@ -201,13 +201,13 @@ exactly under the legacy preset.
 
 ### Causality (SC-006)
 
-- [ ] T018 [P] [US1] Write `research/outcomes/tests/test_causality.py`.
+- [X] T018 [P] [US1] Write `research/outcomes/tests/test_causality.py`.
   - On a short real-feather slice (one pair, ~5k bars), assert that `check_trigger("gbb", ...)`
     returns PASS, and `check_trigger` on a planted forward-reading trigger (registered in-test
     with `replace=True`, reading `close.shift(-3)`) returns FAIL with `first_mismatch` set.
   - Assert the CLI exits 1 when the control does not FAIL. Simulate this by monkeypatching the
     control to a causal trigger.
-- [ ] T019 [US1] Implement `research/outcomes/causality.py` (research R11), modelled on
+- [X] T019 [US1] Implement `research/outcomes/causality.py` (research R11), modelled on
   `research/labelfree/metalabel/audit.py:50-102`.
   - For each trigger, pair and era, compute populator features + trigger on the full history and
     on prefixes cut at K points (default K=8).
@@ -222,12 +222,12 @@ exactly under the legacy preset.
     2021–2026.
   - Use the same feature-population call the strategies use (find it via `BaseStrategy` /
     `DataframePopulator`).
-- [ ] T020 [US1] Run `python -m research.outcomes.causality --write` and commit
+- [X] T020 [US1] Run `python -m research.outcomes.causality --write` and commit
   `research/outcomes/trigger_causality.json`.
   - Expected: control `local_min_followthrough` FAIL; `trends` and `bands` UNSCOREABLE.
   - Report every other non-PASS trigger to the user. Do not "fix" a trigger to make it pass
     without asking.
-- [ ] T021 [US1] Resolve the `future_*` record conflict (research R10).
+- [X] T021 [US1] Resolve the `future_*` record conflict (research R10).
   - Read `labels_future_sharpe`, `labels_future_sortino` and `labels_future_expectancy` in
     `Framework/TrainingSignals.py` to decide whether each one's entry condition reduces to the
     `adx` trigger.

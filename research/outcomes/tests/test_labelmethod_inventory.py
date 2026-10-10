@@ -12,9 +12,9 @@ the way a prose table in a spec would -- the same reasoning as
 
 THE LOAD-BEARING CONCLUSION, which belongs in the code and not only in the write-up:
 **this instrument can only distinguish labels that differ in their ENTRY condition.**
-Eleven of the 29 buy-side labelers differ from one another ONLY in their outcome definition,
+Eight of the 29 buy-side labelers differ from one another ONLY in their outcome definition,
 and the design replaces every outcome with one shared definition derived from the real exit.
-So those eleven are not merely unscored -- under this design they are THE SAME LABEL, the
+So those eight are not merely unscored -- under this design they are THE SAME LABEL, the
 no-trigger case, and no amount of further work on this instrument will separate them.
 """
 import io
@@ -44,6 +44,15 @@ TRIGGER_SCORED = {
     "labels_indicators4": "votes_ind4",
     "labels_trends": "trends (UNSCOREABLE: 4 regime-state columns absent)",
     "labels_bands": "bands (UNSCOREABLE: 6 of 8 band columns absent)",
+    # CORRECTED 2026-10-10 (feature 023 T021). These three were filed under class C ("no entry
+    # condition") while `label-method-audit.md` and the registry's `adx.source` said they reduce
+    # to `adx`. Reading the code settles it for the audit: each body ENDS with
+    #     labels = np.where(adx_scaled > -0.2, labels, 0)
+    # (Framework/TrainingSignals.py, labels_future_sharpe/_sortino/_expectancy) -- an entry
+    # condition on a causal column. Class C was the stale record.
+    "labels_future_sharpe": "adx",
+    "labels_future_sortino": "adx",
+    "labels_future_expectancy": "adx",
 }
 
 # --- B. same trigger, different OUTCOME test -> collapses onto an existing row -------------
@@ -58,7 +67,7 @@ SAME_TRIGGER_DIFFERENT_OUTCOME = {
 
 # --- C. NO entry condition at all: a pure forward/outcome test -> all become `empty` -------
 # THE CLASS THAT MATTERS. Each of these is a different answer to "what counts as a good
-# outcome" -- forward MAE cap, triple barrier, forward Sharpe, Sortino, expectancy, a return
+# outcome" -- forward MAE cap, triple barrier, a return
 # quantile, an MFE/MAE ratio, a vote across horizons, the oracle, a forward-window local
 # minimum. None carries an entry condition, so under one shared outcome they are all the
 # SAME label: the no-trigger case. `labels_forward_return_mae_cap` is `forward_mae`, half of
@@ -71,9 +80,6 @@ OUTCOME_ONLY = {
     "labels_quantile_future_return": "future-return quantile",
     "labels_mfe_mae_ratio": "MFE/MAE ratio",
     "labels_risk_adjusted_future_return": "risk-adjusted future return",
-    "labels_future_sharpe": "forward Sharpe",
-    "labels_future_sortino": "forward Sortino",
-    "labels_future_expectancy": "forward expectancy",
     "labels_multi_horizon_vote": "vote over forward_return_mae_cap at 3 horizons",
     "labels_optimal_signals": "oracle over the forward window",
     "labels_local_extrema": "minimum of a FORWARD window (close[t:t+h])",
@@ -147,10 +153,10 @@ def test_the_scoreable_classes_point_at_REGISTERED_triggers():
 
 
 def test_class_C_is_the_studys_blind_spot_and_says_so():
-    """The point of the inventory. Eleven labelers differ ONLY in their outcome definition,
+    """The point of the inventory. Eight labelers differ ONLY in their outcome definition,
     so this design -- one shared outcome, trigger as the only variable -- maps them all to
     the same label. That is not an omission to be fixed later; it is the instrument's reach.
     Asserted so the count cannot drift without someone re-reading the reasoning."""
-    assert len(OUTCOME_ONLY) == 11
+    assert len(OUTCOME_ONLY) == 8
     assert "forward_mae" in OUTCOME_ONLY["labels_forward_return_mae_cap"]
     assert "ENTRY condition" in __doc__

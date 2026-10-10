@@ -191,7 +191,29 @@ three `future_*` labels reduce to `adx`. The inventory test (`:74-76`, asserting
 `:154`) puts them in `OUTCOME_ONLY`.
 
 **Decision.** Mark the three as `unsupported (record conflict)` until a task reads the labelers and
-fixes whichever record is stale. Mark `trends` and `bands` as unsupported (unscoreable).
+fixes whichever record is stale.
+
+**Addendum (T021, 2026-10-10): resolved, they map to `adx`.** Each of
+`labels_future_sharpe`, `_sortino` and `_expectancy` (`Framework/TrainingSignals.py`) ends with
+`labels = np.where(adx_scaled > -0.2, labels, 0)`, an entry condition on a causal column. The
+audit document and the registry's `adx.source` were right. The inventory test's class C was
+stale; it is now corrected (the three move to class A as `adx`, and class C has 8 members, not
+11). `adx` PASSES the causality check.
+
+**Addendum (T020, 2026-10-10): causality verdicts.** 9 contiguous slices (SOL, LTC, AAVE × 2021-10,
+2023-10, 2025-07), 16 cuts each:
+- 16 triggers PASS.
+- `trends` and `bands` are UNSCOREABLE (columns absent).
+- The planted centred-min control FAILS, as it must.
+- **`random_matched` FAILS.** It is seeded from `len(df)`, so its value at any bar depends on how
+  many bars follow; live, its mask would reshuffle every candle. That's fine for its leaderboard
+  role, but SimpleTrigger refuses it.
+
+Two checker defects were found and fixed on the way:
+- XRP's 15m history has a 2.5-year delisting gap, so a "2021" XRP slice silently spanned
+  2021–2023. Slices with a gap over one day are now rejected, and the pairs are ones that are
+  contiguous in all eras.
+- A 3-cut test slice let the k=3 control pass by chance; it now uses 16 cuts. Mark `trends` and `bands` as unsupported (unscoreable).
 Unsupported entries are listed, never silently mapped to `empty` (FR-004).
 
 ### R11. Causality must be measured, not argued
