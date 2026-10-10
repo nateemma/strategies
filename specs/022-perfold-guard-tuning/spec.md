@@ -27,6 +27,50 @@ being exploited. They reconcile only if the signal is real but **regime-dependen
 available only to a mechanism that **re-tunes**. This feature tests that — and tests it in the
 order the constitution requires, which is not the order the outline proposed.
 
+## Clarifications
+
+### Session 2026-10-09
+
+**Asked:**
+
+- Q: Given the guards are strongly super-additive, how should the reduced guard space be
+  searched? → **A: a joint coarse grid over the three heaviest guards** — `atr_pct` × `adx` ×
+  `rvol`, 4 levels each, 64 configurations. Bends Principle VIII's letter (a joint search) to
+  keep its spirit: three dimensions and coarse levels are not the "many degrees of freedom" the
+  principle warns about, and a sequential search is ruled out by super-additivity, which means
+  individually-tuned values are not expected to compose. It also makes FR-005's "best of the
+  actual candidates" a well-defined finite set — the 64 grid points.
+- Q: Does the existing ablation finding that every live guard's effect flips sign across eras
+  already discharge Principle VII's trackability gate? → **A: no, still run the gate.**
+  Principle VII explicitly distinguishes an optimum that VARIES from one that is
+  UNPREDICTABLE and says variation is "necessary but nowhere near sufficient". The ablation
+  establishes variation; the gate tests predictability.
+
+**Resolved from repository evidence, without asking:**
+
+- Q: What is the minimum-trades-per-fold floor? → **A: 25 trades per fold (≥375 pooled).**
+  `evaluation/README.md:18` records that pooling 15 folds into **378 trades** gives the
+  **3.350 pp/yr** floor, and that 1–2pp/yr is unresolvable at any trade count. 378/15 ≈ 25.
+  Arm B's 198 trades across 15 folds (one fold trading zero times) was roughly half the trade
+  count the floor requires, which is why its +18.76pp cannot be read as resolved.
+- Q: Which thresholds form the reduced search space? → **A: `atr_pct`, `adx`, `rvol`, and
+  `guard_metric` is EXCLUDED as proven inert.** From `regime/GUARD_ABLATION.md`'s per-guard
+  ablation: `atr_pct` −7.33pp, `adx` −5.95pp, `rvol` −3.42pp, `close_norm` −1.01pp,
+  `bb_width` −0.17pp. **This corrects the premise this feature was proposed with** — the
+  outline assumed `rvol` was dominant, which is true of its share of gate rejections but not
+  of its return contribution; `atr_pct` and `adx` are "the heaviest lifters". And
+  `guard_metric` is recorded as **completely inert**: byte-identical trades and returns on all
+  three windows, zero extra trades, "the eighth recorded parameter that is accepted, applied
+  and does nothing". Searching it would burn a dimension and trip FR-013 by construction.
+- Q: What does "arm C comparable to arm D" mean numerically? → **A: the annualised difference
+  is within the harness floor**, |C − D| < 3.35 pp/yr with a paired interval spanning zero.
+  "Comparable" is a statement about non-resolvability, not about closeness.
+- Q: Does arm E require retraining 15 models? → **A: no — it reuses the incumbent's existing
+  per-fold artefacts.** All 15 are present on disk as
+  `user_data/strategies/saved_data/NNNC_ARO_f{00..14}/NNNC_ARO_f{00..14}.safetensors`, named by
+  the fold plan's `model_dir`. So the "one trainer at a time" constraint does not bind on arm
+  E, and no model is fitted anywhere in this feature.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 — Can the motivating number be trusted? (Priority: P1)
@@ -146,6 +190,10 @@ work, but meaningless if C fails.
   inert, and the search is exploring a dimension that does not exist.
 - **Provenance unrecoverable in US1** — arm B is then marked *untrustworthy* permanently rather
   than assumed clean, and C vs B loses its interpretation while C vs A keeps its own.
+- **A grid corner wins because the guards are super-additive.** Individual removals cost −0.17
+  to −7.33pp but removing all six costs −24.91pp, so the three searched guards interact. A
+  configuration that wins jointly may be worse than either guard alone at its own best value;
+  the per-guard marginal effect MUST NOT be inferred from the joint grid's winner.
 - **The search space cannot be reduced defensibly** — if no 2–3 guards can be justified as the
   binding ones, per-fold tuning may not be estimable on a ~90-day window at all. Discovering
   this during planning is a legitimate outcome and terminates the feature early.
@@ -177,10 +225,14 @@ work, but meaningless if C fails.
   `exit_config_hash` equality. No task may change an exit parameter.
 - **FR-010**: Only the guard space may be tuned. No model parameter, no exit parameter, no
   entry-timing parameter may enter the search.
-- **FR-011**: The guard search space MUST be reduced to the thresholds with existing evidence
-  of binding, and the reduction MUST be justified in writing before the search runs.
-- **FR-012**: The search MUST reject any configuration admitting fewer than a pre-registered
-  minimum number of trades per fold.
+- **FR-011**: The guard search space MUST be exactly `entry_atr_pct`, `entry_adx_threshold` and
+  `entry_rvol_threshold`, searched as a joint coarse grid of 4 levels each (64 configurations).
+  `entry_guard_threshold` MUST be excluded: it is recorded as completely inert (byte-identical
+  trades across three windows). `entry_bb_width_threshold` and `entry_close_norm_threshold` are
+  excluded as the two lightest contributors (−0.17pp and −1.01pp).
+- **FR-012**: The search MUST reject any configuration admitting fewer than **25 trades in the
+  fold being tuned**, derived from the harness's own power record: 378 pooled trades give the
+  3.350 pp/yr floor, and 378/15 ≈ 25.
 - **FR-013**: Every tuned parameter MUST be proven to have changed the trade list, measured
   from the hyperopt record and a per-fold trade-list hash — not from console output. A
   parameter that changes nothing MUST be reported as a defect.
@@ -189,13 +241,15 @@ work, but meaningless if C fails.
   their trades.
 - **FR-016**: Results MUST be reported per fold and additionally split into early and late
   halves of the 15, with an effect required to appear in both.
-- **FR-017**: Any fold below the trades floor MUST be reported as unpowered and excluded from
-  the pooled figure rather than contributing zero.
+- **FR-017**: Any fold whose selected configuration admits fewer than 25 trades MUST be reported
+  as unpowered and excluded from the pooled figure rather than contributing a 0.0pp observation.
 - **FR-018**: Every P&L claim MUST come from the pooled harness in `evaluation/`. Classifier
   metrics may be reported as context and MUST NOT be an acceptance input.
 - **FR-019**: The decision rule in Success Criteria MUST be recorded in this specification
   before arm C runs and MUST NOT be altered afterwards.
-- **FR-020**: Arm E MUST NOT run unless arm C clears its decision rule.
+- **FR-020**: Arm E MUST NOT run unless arm C clears its decision rule, and MUST reuse the
+  incumbent's existing per-fold model artefacts rather than retraining. No model is fitted
+  anywhere in this feature.
 
 ### Key Entities
 
@@ -235,7 +289,8 @@ work, but meaningless if C fails.
   chain is a genuine model-free lever and per-fold tuning is the mechanism.
 - **Arm C within the floor of arm A** → arm B's +18.76pp was the tuning window leaking or a
   three-fold accident; the guard chain is not a lever. A clean negative, and a complete result.
-- **Arm C comparable to arm D** → the model is ornamental; effort moves to gate and mechanism
+- **Arm C comparable to arm D** — annualised difference within the 3.35 pp/yr floor with a
+  paired interval spanning zero → the model is ornamental; effort moves to gate and mechanism
   work.
 - **Arm E materially exceeds arm C** → the model adds value on top of tuned guards, and
   model-side work is reopened.
@@ -246,8 +301,9 @@ work, but meaningless if C fails.
   from `evaluation/` unchanged, so arms remain comparable fold-for-fold with existing records.
 - `gbb` is the trigger under test, because it is the incumbent's label and the only trigger with
   both a guards-open and a globally-guarded arm already measured.
-- The minimum trades floor and the reduced guard space are set during planning, from existing
-  ablation evidence, and recorded before the search runs.
+- The minimum trades floor (25/fold) and the reduced guard space (`atr_pct`, `adx`, `rvol`) are
+  fixed in this specification from existing power and ablation evidence, not deferred to
+  planning.
 - Arm B's result stands as measured; this feature does not re-run it, only qualifies it with the
   provenance verdict.
 - The live dry-run (`MomentumRegimeBasket15mFast`) must observe no behaviour change; shared

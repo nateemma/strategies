@@ -68,3 +68,25 @@
 A **Pre-registered decision rule** subsection was added under Success Criteria, and an
 **Out of Scope** section with the evidence for each exclusion. Both exist because this is a
 measurement feature whose chief risk is re-reading the result after seeing it (FR-019).
+
+### Re-validated after /speckit-clarify (2026-10-09)
+
+Two clarifications were asked and four resolved from repository evidence. All checklist items
+remain passing, and three became *more* strongly satisfied rather than newly so:
+
+- **Requirements are testable and unambiguous** — FR-011 and FR-012 were previously deferred to
+  planning ("the thresholds with existing evidence of binding", "a pre-registered minimum").
+  Both now carry concrete values fixed in the spec: the grid is `atr_pct` x `adx` x `rvol` at
+  4 levels, and the floor is 25 trades/fold derived from the harness's own 378-trade /
+  3.350 pp/yr power record.
+- **Dependencies and assumptions identified** — arm E's dependency is now resolved as a fact
+  rather than an assumption: all 15 incumbent model artefacts exist on disk, so no training
+  occurs in this feature and the one-trainer-at-a-time constraint does not bind.
+- **VIII. One parameter space at a time** — now a *documented deviation* rather than a silent
+  one. A joint 3-D coarse grid bends the letter of the principle; the reason is recorded
+  (super-additivity makes sequential tuning non-composing) and the mitigation is coarseness.
+
+One premise of the source outline was **corrected** by this pass: it assumed `rvol` was the
+dominant guard. The ablation shows `atr_pct` (-7.33pp) and `adx` (-5.95pp) are the heaviest
+lifters and `rvol` (-3.42pp) is third; `rvol`'s dominance is of gate *rejections*, not of
+return. `guard_metric` is excluded entirely as proven inert.
