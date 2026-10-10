@@ -374,3 +374,51 @@ a matched selectivity (or running arm F with loosened thresholds to a matched tr
 make the paired instrument work as designed, because the entry sets would then overlap. Until
 then the honest statement is that the tightened guard constant **looks better on every measure
 and is not demonstrably better on any of them.**
+
+### MATCHED OPERATING POINT — the guards' selection carries real information (p < 1e-5)
+
+The guards *are* the selector, so selectivity cannot be held fixed while the guards change. The
+matched test is therefore the `random_matched` control pattern feature 021 already used: hold
+trade COUNT fixed and vary only WHICH trades.
+
+```
+arm A          8,150 trades   mean profit_ratio +0.000155
+arm F            458 trades   mean profit_ratio +0.008961
+
+458 drawn at random from arm A, 20,000 times:
+  mean +0.000164   95% range [-0.003266, +0.003480]
+  arm F: +5.2 SD above that distribution   one-sided p = 0.00000
+```
+
+**Decomposition**: F's 458 trades at A's per-trade quality would be worth **+0.15pp**; they are
+actually worth **+25.34pp**. The advantage is **quality, not trade count.**
+
+Caveat: random subsampling does not model concurrency — a genuinely 458-trade version of arm A
+would free slots and could admit different bars. The null tested is "a random 458 of the trades
+arm A actually took", which is the right null for *is F's subset better than an arbitrary
+subset*, and is not a simulation of a sparser arm A.
+
+## REVISED FINAL ANSWER on the defaults — and I have moved twice, so here is the ledger
+
+| claim | status |
+|---|---|
+| Tightened guards select better bars than random at matched count | **ESTABLISHED** — +5.2 SD, p < 1e-5 |
+| The config was chosen leakage-free | **ESTABLISHED** — f00 train only (ends 2023-01-01), ranked 1 of 52 |
+| Arm F's wallet, folds-positive and worst fold all beat arm A | **ESTABLISHED as point estimates** — +25.34 vs +2.64pp, 13/15 vs 7/15, −2.00 vs −10.61pp |
+| The wallet DIFFERENCE is statistically resolved | **NOT ESTABLISHED** — p = 0.2706, the arms share 111 of ~8,500 trades |
+
+**My position changed twice and both changes were forced by evidence, not preference.** First
+"no", on a proxy prediction of a 10× worse worst fold — that prediction was wrong by a factor of
+50 (−2.00pp actual against a predicted ~−22pp). Then "not resolved, favourable". Now: **the
+mechanism is demonstrated and the magnitude is not.**
+
+So the honest recommendation is no longer "no". It is: **this is a legitimate promotion
+candidate, and the decision is a deliberate one rather than an inference from this feature.**
+What argues for it — a selection mechanism proven at p < 1e-5, a leakage-free selection, better
+performance on every point estimate including drawdown. What argues for caution — the wallet
+delta is formally unresolved, `atr 0.013` originated in a contaminated hyperopt even though
+clean data independently ranks it first, three of five quality thresholds were never varied, and
+`BaseStrategy.buy_params` is inherited by a live 28-day dry-run.
+
+**What would close it**: arm F re-run on a second, temporally distant universe or era — the
+persistence requirement (Principle II) that no single 15-fold result satisfies on its own.
