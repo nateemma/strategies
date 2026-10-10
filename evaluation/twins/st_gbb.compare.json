@@ -1,0 +1,174 @@
+{
+  "label": "PROVISIONAL -- not a finding under quality gate 2 (no distant era)",
+  "arm": "NNNC (model)",
+  "control": "SimpleTrigger twin (no model)",
+  "nnnc": {
+    "trades": 1420,
+    "status": "complete",
+    "sum_pp": 42.71,
+    "positive_folds": 14
+  },
+  "twin": {
+    "trades": 9056,
+    "status": "complete",
+    "sum_pp": 11.043999999999999,
+    "positive_folds": 7
+  },
+  "verdict": "UNCHANGED",
+  "directional_verdict": "UNCHANGED",
+  "delta_pp": 31.67009202398738,
+  "delta_pp_yr": 8.594485939595089,
+  "ci_pp_yr": [
+    -1.0859473621124422,
+    18.302600799843788
+  ],
+  "p": 0.0832,
+  "shared_trades": 617,
+  "shared_fraction_of_nnnc": 0.4345070422535211,
+  "shared_fraction_of_twin": 0.06813162544169611,
+  "halves": {
+    "split_after": "f07",
+    "label": "PROVISIONAL -- not a finding under quality gate 2 (no distant era)",
+    "early": {
+      "fold_ids": [
+        "f00",
+        "f01",
+        "f02",
+        "f03",
+        "f04",
+        "f05",
+        "f06",
+        "f07"
+      ],
+      "arm": {
+        "folds": 8,
+        "trades": 725,
+        "sum_pp": 29.72,
+        "positive_folds": 8
+      },
+      "ctl": {
+        "folds": 8,
+        "trades": 5027,
+        "sum_pp": 30.326,
+        "positive_folds": 4
+      },
+      "verdict": "UNCHANGED",
+      "delta_pp": -0.6066515454723459,
+      "ci_pp_yr": [
+        -12.685349684917147,
+        12.274977206329329
+      ],
+      "p": 0.9627
+    },
+    "late": {
+      "fold_ids": [
+        "f08",
+        "f09",
+        "f10",
+        "f11",
+        "f12",
+        "f13",
+        "f14"
+      ],
+      "arm": {
+        "folds": 7,
+        "trades": 695,
+        "sum_pp": 12.99,
+        "positive_folds": 6
+      },
+      "ctl": {
+        "folds": 7,
+        "trades": 4029,
+        "sum_pp": -19.282,
+        "positive_folds": 3
+      },
+      "verdict": "IMPROVED",
+      "delta_pp": 32.27209542067344,
+      "ci_pp_yr": [
+        3.8788577213451174,
+        33.89021618845886
+      ],
+      "p": 0.0123
+    }
+  },
+  "matched_count": {
+    "pooled": {
+      "n_selected": 1420,
+      "n_population": 9056,
+      "folds": [
+        "f00",
+        "f01",
+        "f02",
+        "f03",
+        "f04",
+        "f05",
+        "f06",
+        "f07",
+        "f08",
+        "f09",
+        "f10",
+        "f11",
+        "f12",
+        "f13",
+        "f14"
+      ],
+      "observed_pp": 42.71,
+      "null_mean_pp": 0.034623784512627015,
+      "null_sd_pp": 6.516405753076654,
+      "z": 6.548913286337124,
+      "p_one_sided": 4.999750012499375e-05,
+      "overlap": 617,
+      "overlap_fraction": 0.4345070422535211,
+      "n_draws": 20000,
+      "seed": 0,
+      "label": "PROVISIONAL -- not a finding under quality gate 2 (no distant era)"
+    },
+    "early": {
+      "n_selected": 725,
+      "n_population": 9056,
+      "folds": [
+        "f00",
+        "f01",
+        "f02",
+        "f03",
+        "f04",
+        "f05",
+        "f06",
+        "f07"
+      ],
+      "observed_pp": 29.720000000000002,
+      "null_mean_pp": 5.5843521208314995,
+      "null_sd_pp": 4.26909473318339,
+      "z": 5.653575145935205,
+      "p_one_sided": 4.999750012499375e-05,
+      "overlap": 617,
+      "overlap_fraction": 0.8510344827586207,
+      "n_draws": 20000,
+      "seed": 0,
+      "label": "PROVISIONAL -- not a finding under quality gate 2 (no distant era)"
+    },
+    "late": {
+      "n_selected": 695,
+      "n_population": 9056,
+      "folds": [
+        "f08",
+        "f09",
+        "f10",
+        "f11",
+        "f12",
+        "f13",
+        "f14"
+      ],
+      "observed_pp": 12.990000000000002,
+      "null_mean_pp": -5.5782265562529325,
+      "null_sd_pp": 4.901392531255826,
+      "z": 3.788357377591102,
+      "p_one_sided": 4.999750012499375e-05,
+      "overlap": 617,
+      "overlap_fraction": 0.8877697841726618,
+      "n_draws": 20000,
+      "seed": 0,
+      "label": "PROVISIONAL -- not a finding under quality gate 2 (no distant era)"
+    }
+  }
+}

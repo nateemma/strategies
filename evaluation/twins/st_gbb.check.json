@@ -1,0 +1,282 @@
+{
+  "verdict": "PASS",
+  "passed": true,
+  "nnnc_tag": "wf_aro",
+  "simple_tag": "st_gbb",
+  "equivalence_tag": "wf_trgate",
+  "fingerprint_mismatch_folds": [],
+  "equivalence_mismatch_folds": [],
+  "missing": [],
+  "folds": [
+    {
+      "fold": "f00",
+      "framework_sha": {
+        "nnnc": "303456c1fa322b4c",
+        "simple": "303456c1fa322b4c",
+        "equivalence": "303456c1fa322b4c"
+      },
+      "trades_hash": {
+        "nnnc": "5c53c833e423eae4",
+        "simple": "aa058ba815f48627",
+        "equivalence": "aa058ba815f48627"
+      },
+      "n_trades": {
+        "nnnc": 52,
+        "simple": 626,
+        "equivalence": 626
+      }
+    },
+    {
+      "fold": "f01",
+      "framework_sha": {
+        "nnnc": "303456c1fa322b4c",
+        "simple": "303456c1fa322b4c",
+        "equivalence": "303456c1fa322b4c"
+      },
+      "trades_hash": {
+        "nnnc": "ba30d7ee37144509",
+        "simple": "55166215f9ac31aa",
+        "equivalence": "55166215f9ac31aa"
+      },
+      "n_trades": {
+        "nnnc": 22,
+        "simple": 309,
+        "equivalence": 309
+      }
+    },
+    {
+      "fold": "f02",
+      "framework_sha": {
+        "nnnc": "303456c1fa322b4c",
+        "simple": "303456c1fa322b4c",
+        "equivalence": "303456c1fa322b4c"
+      },
+      "trades_hash": {
+        "nnnc": "d30b4c4d8424b9bb",
+        "simple": "1f690367a7690e40",
+        "equivalence": "1f690367a7690e40"
+      },
+      "n_trades": {
+        "nnnc": 21,
+        "simple": 299,
+        "equivalence": 299
+      }
+    },
+    {
+      "fold": "f03",
+      "framework_sha": {
+        "nnnc": "303456c1fa322b4c",
+        "simple": "303456c1fa322b4c",
+        "equivalence": "303456c1fa322b4c"
+      },
+      "trades_hash": {
+        "nnnc": "0fd8e37cf8cb2608",
+        "simple": "b4d7d37b1d204f1a",
+        "equivalence": "b4d7d37b1d204f1a"
+      },
+      "n_trades": {
+        "nnnc": 104,
+        "simple": 671,
+        "equivalence": 671
+      }
+    },
+    {
+      "fold": "f04",
+      "framework_sha": {
+        "nnnc": "303456c1fa322b4c",
+        "simple": "303456c1fa322b4c",
+        "equivalence": "303456c1fa322b4c"
+      },
+      "trades_hash": {
+        "nnnc": "589a8a98faef6389",
+        "simple": "b16ebf1dd6505067",
+        "equivalence": "b16ebf1dd6505067"
+      },
+      "n_trades": {
+        "nnnc": 130,
+        "simple": 924,
+        "equivalence": 924
+      }
+    },
+    {
+      "fold": "f05",
+      "framework_sha": {
+        "nnnc": "303456c1fa322b4c",
+        "simple": "303456c1fa322b4c",
+        "equivalence": "303456c1fa322b4c"
+      },
+      "trades_hash": {
+        "nnnc": "d35467f2f7f51e94",
+        "simple": "9419a8736467df24",
+        "equivalence": "9419a8736467df24"
+      },
+      "n_trades": {
+        "nnnc": 93,
+        "simple": 644,
+        "equivalence": 644
+      }
+    },
+    {
+      "fold": "f06",
+      "framework_sha": {
+        "nnnc": "303456c1fa322b4c",
+        "simple": "303456c1fa322b4c",
+        "equivalence": "303456c1fa322b4c"
+      },
+      "trades_hash": {
+        "nnnc": "d41b99b494482847",
+        "simple": "28254aea3c90a257",
+        "equivalence": "28254aea3c90a257"
+      },
+      "n_trades": {
+        "nnnc": 54,
+        "simple": 556,
+        "equivalence": 556
+      }
+    },
+    {
+      "fold": "f07",
+      "framework_sha": {
+        "nnnc": "303456c1fa322b4c",
+        "simple": "303456c1fa322b4c",
+        "equivalence": "303456c1fa322b4c"
+      },
+      "trades_hash": {
+        "nnnc": "13d84f2c7a3be2b9",
+        "simple": "6b1a542b6682bf2f",
+        "equivalence": "6b1a542b6682bf2f"
+      },
+      "n_trades": {
+        "nnnc": 249,
+        "simple": 998,
+        "equivalence": 998
+      }
+    },
+    {
+      "fold": "f08",
+      "framework_sha": {
+        "nnnc": "303456c1fa322b4c",
+        "simple": "303456c1fa322b4c",
+        "equivalence": "303456c1fa322b4c"
+      },
+      "trades_hash": {
+        "nnnc": "aae5a44310f5e173",
+        "simple": "758b4d2cc4e314cf",
+        "equivalence": "758b4d2cc4e314cf"
+      },
+      "n_trades": {
+        "nnnc": 218,
+        "simple": 969,
+        "equivalence": 969
+      }
+    },
+    {
+      "fold": "f09",
+      "framework_sha": {
+        "nnnc": "303456c1fa322b4c",
+        "simple": "303456c1fa322b4c",
+        "equivalence": "303456c1fa322b4c"
+      },
+      "trades_hash": {
+        "nnnc": "6e8b99b5da07525d",
+        "simple": "09e8027c786ba9d5",
+        "equivalence": "09e8027c786ba9d5"
+      },
+      "n_trades": {
+        "nnnc": 46,
+        "simple": 489,
+        "equivalence": 489
+      }
+    },
+    {
+      "fold": "f10",
+      "framework_sha": {
+        "nnnc": "303456c1fa322b4c",
+        "simple": "303456c1fa322b4c",
+        "equivalence": "303456c1fa322b4c"
+      },
+      "trades_hash": {
+        "nnnc": "5d4ac5826f7f800a",
+        "simple": "7c2d55c184801fcc",
+        "equivalence": "7c2d55c184801fcc"
+      },
+      "n_trades": {
+        "nnnc": 22,
+        "simple": 479,
+        "equivalence": 479
+      }
+    },
+    {
+      "fold": "f11",
+      "framework_sha": {
+        "nnnc": "303456c1fa322b4c",
+        "simple": "303456c1fa322b4c",
+        "equivalence": "303456c1fa322b4c"
+      },
+      "trades_hash": {
+        "nnnc": "54d3293558d51208",
+        "simple": "e3053d309ffa5bc5",
+        "equivalence": "e3053d309ffa5bc5"
+      },
+      "n_trades": {
+        "nnnc": 226,
+        "simple": 830,
+        "equivalence": 830
+      }
+    },
+    {
+      "fold": "f12",
+      "framework_sha": {
+        "nnnc": "303456c1fa322b4c",
+        "simple": "303456c1fa322b4c",
+        "equivalence": "303456c1fa322b4c"
+      },
+      "trades_hash": {
+        "nnnc": "6918556795bf97fe",
+        "simple": "3dc89f0a8724f854",
+        "equivalence": "3dc89f0a8724f854"
+      },
+      "n_trades": {
+        "nnnc": 59,
+        "simple": 494,
+        "equivalence": 494
+      }
+    },
+    {
+      "fold": "f13",
+      "framework_sha": {
+        "nnnc": "303456c1fa322b4c",
+        "simple": "303456c1fa322b4c",
+        "equivalence": "303456c1fa322b4c"
+      },
+      "trades_hash": {
+        "nnnc": "4ef2a6e041ab2d96",
+        "simple": "e9d0bf579c58755f",
+        "equivalence": "e9d0bf579c58755f"
+      },
+      "n_trades": {
+        "nnnc": 87,
+        "simple": 439,
+        "equivalence": 439
+      }
+    },
+    {
+      "fold": "f14",
+      "framework_sha": {
+        "nnnc": "303456c1fa322b4c",
+        "simple": "303456c1fa322b4c",
+        "equivalence": "303456c1fa322b4c"
+      },
+      "trades_hash": {
+        "nnnc": "c3a819f6b1316ba5",
+        "simple": "8b4d0c18696801fc",
+        "equivalence": "8b4d0c18696801fc"
+      },
+      "n_trades": {
+        "nnnc": 37,
+        "simple": 329,
+        "equivalence": 329
+      }
+    }
+  ]
+}
