@@ -45,3 +45,11 @@ bootstrap is not reproducible across processes — `bootstrap_delta` builds its 
 iterating Python sets, whose order follows hash randomisation. On `rung_aro_tp0.022` vs arm D
 the CI bounds move ±0.02pp/yr and p ±0.01 between processes. Decision for the user (the file
 forbids retuning; a fix — sorting the keys — shifts every recorded value slightly).
+
+## T032 — live dry-run isolation (SC-008)
+
+`python evaluation/dump_strategy.py --strategy MomentumRegimeBasket15mFast` (every public class
+attribute across the MRO + merged params JSON; the strategy has no JSON) run in a `git worktree`
+at `9e82a45` (pre-implementation) and in the current tree: **identical** (63 lines). The dry-run
+chain is `MomentumRegimeBasket15mFast -> MomentumRegimeBasket15m -> IStrategy`; it never imports
+BaseStrategy, SimpleTrigger or the harness.

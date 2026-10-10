@@ -319,7 +319,7 @@ exactly under the legacy preset.
   applicable; that arm is not reproduced here. Also assert `stl_gbbr` totals 458 trades.
   - **On a mismatch, STOP**: localise it by diffing `framework_resolved` and then the first
     divergent trade, and report before changing anything.
-- [ ] T032 [US1] Quickstart §3 (SC-008): prove the live dry-run strategy is unchanged.
+- [X] T032 [US1] Quickstart §3 (SC-008): prove the live dry-run strategy is unchanged.
   - Write `evaluation/dump_strategy.py`, which imports a strategy class without instantiating it
     and prints a canonical JSON of (a) every public, non-callable class attribute across the MRO
     (`repr` for non-JSON values) and (b) its strategy JSON file merged the way freqtrade merges it.
@@ -343,15 +343,15 @@ post-fix arm D (1420 trades, +42.71pp, 14/15, research R2).
 
 **Independent Test**: quickstart §5–§6.
 
-- [ ] T033 [P] [US3] Create `SimpleTrigger/SimpleTrigger_Gbb.py` (`TRIGGER_NAME = "gbb"`, default
+- [X] T033 [P] [US3] Create `SimpleTrigger/SimpleTrigger_Gbb.py` (`TRIGGER_NAME = "gbb"`, default
   `ARM_D_OPEN`). Add to `SimpleTrigger/tests/test_presets.py` an assertion that its
   `framework_sha` equals `NNNC_A_Raw_Open`'s (FR-013, TwinPair rule).
-- [ ] T034 [P] [US3] Write `NNNC/tests/test_trigger_gate.py` (create `NNNC/tests/__init__.py` if
+- [X] T034 [P] [US3] Write `NNNC/tests/test_trigger_gate.py` (create `NNNC/tests/__init__.py` if
   absent). For `NNNC_TGT_f03` (generated in T036), assert that `get_model_path()` points at
   `saved_data/NNNC_ARO_f03/NNNC_ARO_f03.keras`, that the model-existence check is True without
   creating `saved_data/NNNC_TGT_f03/`, and that any training entry point raises
   `RuntimeError("NNNC_TriggerGate must never train")`.
-- [ ] T035 [US3] Implement `NNNC/NNNC_TriggerGate.py` (research R12), subclassing
+- [X] T035 [US3] Implement `NNNC/NNNC_TriggerGate.py` (research R12), subclassing
   `NNNC_A_Raw_Open`:
   - `get_entry_conditions` calls `super().get_entry_conditions(dataframe)`, which keeps
     `predict_*` columns and diagnostics, and returns
@@ -379,7 +379,7 @@ post-fix arm D (1420 trades, +42.71pp, 14/15, research R2).
     on `NNNC_ARO_fNN`). The derived plan's `params_snapshot` must be the snapshot of
     `NNNC/NNNC_TriggerGate.json`, and each generated fold JSON must match it apart from
     `strategy_name` and the per-fold threshold. Confirm in the run log that no training occurred.
-- [ ] T037 [P] [US3] Write `evaluation/tests/test_twins.py` on fixture records, covering contract C5:
+- [X] T037 [P] [US3] Write `evaluation/tests/test_twins.py` on fixture records, covering contract C5:
   - `check` exits 2 on a `framework_sha` mismatch, 3 on any per-fold `trades_hash` mismatch between
     the equivalence and simple tags, and 0 otherwise;
   - `compare` refuses with no passing `check` artefact;
@@ -387,21 +387,21 @@ post-fix arm D (1420 trades, +42.71pp, 14/15, research R2).
     from `bootstrap_delta` over total trades);
   - an `INCONCLUSIVE_*` or underpowered verdict from `compare_pooled.compare` gives no directional
     verdict (FR-014).
-- [ ] T038 [US3] Implement `evaluation/twins.py`:
+- [X] T038 [US3] Implement `evaluation/twins.py`:
   - `check` writes `evaluation/twins/<simple_tag>.check.json`.
   - `compare` uses `evaluation/compare_pooled.py:compare` on pooled files (build them with
     `evaluation/pool.py` for `st_gbb` and `wf_aro` if absent), plus `evaluation.halves.split`.
     It writes `evaluation/twins/<simple_tag>.compare.json` and `.md`, and includes the
     matched-count section from `evaluation/matched_count.py` (T040).
   - Make T037 pass.
-- [ ] T039 [P] [US3] Write `evaluation/tests/test_matched_count.py` on fixture pooled trades:
+- [X] T039 [P] [US3] Write `evaluation/tests/test_matched_count.py` on fixture pooled trades:
   - `matched_count(selected, population, n_draws=20000, seed=0)` draws `len(selected)` trades
     without replacement from `population` per draw, and returns `observed_mean`, `null_mean`,
     `null_sd`, `z`, `p_one_sided` and `n_selected`;
   - a planted selection made of the population's top-k trades gives z > 3;
   - a random subset gives |z| < 2 on most seeds;
   - `n_selected > len(population)` raises.
-- [ ] T040 [US3] Implement `evaluation/matched_count.py`. This is the 022 matched-count selection
+- [X] T040 [US3] Implement `evaluation/matched_count.py`. This is the 022 matched-count selection
   test that research R13 found missing: the model's selected trades (`wf_aro`) are compared with
   random same-count draws from the twin's trades (`st_gbb`), per fold and pooled, plus the
   early/late halves. It is independent of shared trades, so it answers FR-014 when the paired
@@ -455,13 +455,13 @@ defect.
   exits → `exit_reason_counts.<reason>`; stops → `trades_hash` plus the `stop_loss` /
   `trailing_stop_loss` counts. **Verify each override key name against `BaseStrategy`** before
   committing, because a misspelt key is silently inert. Make T043 pass.
-- [ ] T045 [P] [US2] Write `evaluation/tests/test_attribution.py` on fixture records. Assert that:
+- [X] T045 [P] [US2] Write `evaluation/tests/test_attribution.py` on fixture records. Assert that:
   - a component whose arm has an identical `trades_hash` in every fold is `INERT`;
   - one listed in `neutral_is_identity_under` for the preset is `ALREADY_NEUTRAL` and has no arm;
   - a zero-trade arm is `ZERO_TRADES`;
   - every `LIVE` row carries `liveness_evidence` with its before/after values;
   - rows carry `halves`, `fold_detail` and a `power` block (noise half-width, trade count).
-- [ ] T046 [US2] Implement `evaluation/attribution.py` (contract C5):
+- [X] T046 [US2] Implement `evaluation/attribution.py` (contract C5):
   - `--full-tag T --base-class C --components all|a,b --preset P` writes one generated subclass
     per component, `SimpleTrigger/SimpleTrigger_<C>__C_<component>.py` (gitignored, T001), with
     overrides merged.
