@@ -42,5 +42,27 @@
     "atr0p013_adx10_rvol3": 2,
     "_note": "8 of 15 folds select the IDENTICAL configuration, and all 15 pick one of four. A per-fold optimum that is this concentrated is close to a constant, which is evidence for a fixed safe setting rather than for adaptivity."
   },
-  "early_late_drift": "f00-f09 concentrate on atr 0.013 / adx 20 / rvol 1.9; f12-f14 shift to atr 0.02 / adx open / rvol 1.0. A real early/late difference (Principle II), but across only two regimes of the optimum, not fifteen."
+  "early_late_drift": "f00-f09 concentrate on atr 0.013 / adx 20 / rvol 1.9; f12-f14 shift to atr 0.02 / adx open / rvol 1.0. A real early/late difference (Principle II), but across only two regimes of the optimum, not fifteen.",
+  "two_state_test": {
+    "indicator": "mean atr_pct_roll over the fold's own TRAIN window, pooled across 11 pairs",
+    "pre_registered": true,
+    "split": "median across folds",
+    "selection": "leave-one-out within regime",
+    "regime_HI_config": "atr0p013_adx20_rvol1p9",
+    "regime_LO_config": "atr0p013_adx20_rvol1p9",
+    "degenerate": true,
+    "degenerate_note": "Both regimes select the IDENTICAL config, so the two-state scheme IS a constant. The indicator carries no config-selection information; HI/LO labels interleave rather than forming the early/late blocks the hindsight optimum suggested.",
+    "mean_regret": {
+      "two_state": 0.017752,
+      "best_constant_hindsight": 0.006765,
+      "robust_maximin": 0.017952
+    },
+    "paired_two_state_minus_constant": 0.010987,
+    "paired_ci": [
+      0.000199,
+      0.021735
+    ],
+    "verdict": "two_state_loses_to_a_constant",
+    "conclusion": "Adaptivity fails at BOTH granularities on this grid: per-fold is indeterminate (9/15 powered vs a pre-registered 10) and two-state degenerates to a beaten constant. Fifth adaptive scheme to lose to a static value in this project."
+  }
 }

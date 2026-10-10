@@ -266,7 +266,7 @@ arm A.
   statement that per-fold guard tuning is **not a candidate for adaptivity** and that the feature
   is **complete**. State it as the fifth adaptive scheme to lose to a static value in this
   project, and that the gate cost one session rather than fifteen hyperopts.
-- [ ] T037 [P] @main Record in the report that the grid's joint 3-D search is a documented
+- [X] T037 [P] @main Record in the report that the grid's joint 3-D search is a documented
   deviation from Principle VIII, with super-additivity as the reason, and that the joint winner's
   per-guard marginal effect MUST NOT be read off the grid.
 - [ ] T038 [P] @model-implementer Run the full suite and report the count, confirming no

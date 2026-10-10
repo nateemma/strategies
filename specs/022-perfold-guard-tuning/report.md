@@ -157,3 +157,68 @@ Note the selected `atr 0.013` is the **historical hyperopt value**, recovered in
 from training windows that in six folds do not overlap the 2024-05-11…2026-05-01 tuning window.
 That is mild out-of-sample support for the *level* of `atr_pct`, which is a different and much
 weaker claim than arm B's +18.76pp return.
+
+---
+
+# Two-state scheme — it degenerates to a constant, and that constant loses
+
+Run as Principle VII's trackability test applied to a **coarser** scheme, not as a bypass of the
+per-fold gate. Pre-registered before looking at any result: **one** indicator (mean
+`atr_pct_roll` over the fold's own TRAIN window, pooled across pairs — computable at decision
+time, already a column the guards read), split at its **median across folds**, each regime's
+config chosen **leave-one-out** so the fold under test never contributes to choosing its own
+config, rate-matched floor throughout.
+
+**The hindsight split was deliberately NOT used.** The corrected gate run showed f00–f09
+favouring one config and f12–f14 another; splitting at f10 *because of that* and scoring on the
+same folds fits the boundary on the outcome, which is what Principle VII forbids on a handful of
+windows.
+
+## Finding 1 — there is no second state
+
+| regime | config selected (leave-one-out) |
+|---|---|
+| HI volatility | `atr 0.013 / adx 20 / rvol 1.9` |
+| LO volatility | **`atr 0.013 / adx 20 / rvol 1.9`** |
+
+**Both regimes pick the identical configuration.** The two-state scheme *is* a constant. The
+volatility indicator carries no information about which guard setting to use, so there is no
+second state to switch to — which is a cleaner negative than a close-run comparison would have
+been.
+
+Why: the pre-registered indicator does not reproduce the drift I saw in the hindsight optimum.
+The HI/LO labels **interleave** (HI HI HI LO LO HI LO LO HI HI HI LO HI LO LO) rather than
+forming the early/late blocks the hindsight optimum suggested. An indicator chosen *because* it
+reproduced that pattern would be the fitted mapping the constitution prohibits, so this limit is
+accepted rather than searched around.
+
+## Finding 2 — as a constant, it loses
+
+Over the 9 powered folds (n = 8 usable in the paired comparison):
+
+| strategy | mean regret |
+|---|---|
+| **best constant** (hindsight) `atr 0.02 / adx open / rvol open` | **+0.006765** |
+| two-state (= `atr 0.013 / adx 20 / rvol 1.9`) | +0.017752 |
+| robust / maximin `atr 0.006 / adx open / rvol 1.0` | +0.017952 |
+
+**Paired two-state − constant = +0.010987, 95% CI [+0.000199, +0.021735] — excludes zero.** The
+two-state scheme is significantly *worse* than a single fixed value.
+
+Note the best constant is chosen in **hindsight** and is therefore not implementable; the honest
+deployment comparison is two-state against robust, and those are **indistinguishable on mean
+regret (+0.0178 vs +0.0180)** while robust has the better worst fold. So nothing is gained by
+switching.
+
+## What this closes
+
+Adaptivity has now failed at **both** granularities on the same grid: per-fold is
+`indeterminate` (9/15 powered, below the pre-registered 10), and two-state degenerates to a
+constant that is beaten. The constitution records four adaptive schemes having lost to static
+values in this project; **this is the fifth**, and the only honest remaining question about guard
+values is *which constant*, not *whether to switch*.
+
+On that question the evidence points one way: the robust/maximin setting —
+**`atr_pct` open-to-near-open, `adx` open, `rvol` mildly positive (~1.0)** — is the only
+configuration measurable in all 15 folds, with a worst fold 5× milder than the
+mean-maximising constant.
