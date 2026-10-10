@@ -6,7 +6,7 @@ same figures, and so arm B never travels without its provenance status (FR-002).
 | arm | tag | guards | model | pooled wallet | folds + | per-trade EV | status |
 |---|---|---|---|---|---|---|---|
 | **A** | `wf_gbbo` | open | none | **+2.64pp** | 7/15 | +0.000155 | measured, 15 folds |
-| **B** | `wf_gbbg` | globally tuned | none | **+18.76pp** | 12/15 | +0.014671 | measured — **provenance pending US1** |
+| **B** | `wf_gbbg` | globally tuned | none | **+18.76pp** | 12/15 | +0.014671 | **`in_sample` — 97.8% of it from folds inside its own tuning window. Out of sample: +0.42pp/6 folds.** See provenance.md |
 | **C** | `wf_gbbgrid` | **tuned per fold** | none | — | — | — | **this feature, gated on US2** |
 | **D** | `wf_aro` | open | per-fold threshold | **+39.98pp** | 15/15 | — | measured, the incumbent |
 | **E** | — | tuned per fold | per-fold threshold | — | — | — | contingent on C (FR-020) |

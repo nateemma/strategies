@@ -100,20 +100,20 @@ no-model strategy exists.
 **Independent test**: a written provenance verdict with evidence and an overlap answer, produced
 without running any arm.
 
-- [ ] T011 [US1] @main Trace the origin of the pre-2026-09-06 tuned guard values
+- [X] T011 [US1] @main Trace the origin of the pre-2026-09-06 tuned guard values
   (`entry_atr_pct` 0.013, `entry_adx_threshold` 10.0, `entry_bb_width_threshold` 0.094,
   `entry_close_norm_threshold` 0.6, `entry_guard_threshold` 0.1, `entry_rvol_threshold` 1.9)
   through `git log -S` on `Framework/BaseStrategy.py` and any `.fthypt` records. Record commit
   ids and dates.
-- [ ] T012 [US1] @main Compare the recovered tuning window to the 15 fold **test** ranges from
+- [X] T012 [US1] @main Compare the recovered tuning window to the 15 fold **test** ranges from
   `evaluation/folds/plan_NNNC_A_Raw_Open.json` and record `overlaps_folds` as `yes`/`no`/`unknown`
   per data-model.md's `ProvenanceVerdict`.
-- [ ] T013 [US1] @main Verify the incumbent arm D's configuration from the strategy class and its
+- [X] T013 [US1] @main Verify the incumbent arm D's configuration from the strategy class and its
   params file — **not** from prose and **not** from any recorded provenance field. Feature 021
   twice trusted a field that asserted rather than measured (`volume_filter_active` was a
   hardcoded literal; `guards` recorded a CLI flag). Confirm guards-open and a per-fold model
   threshold, or report that the premise is contradicted.
-- [ ] T014 [US1] @main Write `specs/022-perfold-guard-tuning/provenance.md` with the verdict and
+- [X] T014 [US1] @main Write `specs/022-perfold-guard-tuning/provenance.md` with the verdict and
   set `arm_b_status` to `trustworthy`, `in_sample` or `untrustworthy`. Per data-model.md, an
   unrecoverable window ⇒ `unknown` ⇒ `untrustworthy`. **This file must exist before any arm runs**
   (FR-001) and arm B's figure must carry this status wherever it is quoted (FR-002).
