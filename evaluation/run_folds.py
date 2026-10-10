@@ -170,6 +170,36 @@ def model_exists(cls: str) -> bool:
     return d.is_dir() and any(d.glob("*.safetensors"))
 
 
+def model_key(fold: dict) -> str:
+    """The saved_data/ directory a fold's model lives in.
+
+    Normally the fold's own class (build() sets model_dir to saved_data/<class>). A derived plan
+    may borrow another arm's trained weights (feature 023: NNNC_TriggerGate folds run on
+    NNNC_ARO_fNN's models), so the check must follow `model_dir`, not the class -- checking the
+    class would find nothing and TRAIN a new model inside the twin experiment.
+    """
+    md = fold.get("model_dir")
+    return Path(md).name if md else fold["strategy_class"]
+
+
+def _load_strategy_class(name: str):
+    from evaluation.fingerprint import load_strategy_class
+
+    return load_strategy_class(name)
+
+
+def _trigger_runnable(name: str | None) -> tuple[bool, str]:
+    """Causality preflight (feature 023): a no-model arm may run only a measured-causal trigger.
+
+    FAILS CLOSED: no checker, no verdict file, or a non-PASS/stale row all refuse.
+    """
+    try:
+        from research.outcomes.causality import check_runnable
+    except Exception as exc:  # noqa: BLE001
+        return False, f"causality checker unavailable ({type(exc).__name__}: {exc})"
+    return check_runnable(name)
+
+
 def train_fold(fold: dict, family: str, seed: int, config: str) -> bool:
     cls = fold["strategy_class"]
     log = Path(f"/tmp/wf_train_{cls}.log")
@@ -204,7 +234,7 @@ def evaluate_fold(fold: dict, config: str) -> int:
            f'--strategy {fold["strategy_class"]} '
            f'--timerange {start}-{end} --label {fold["fold_id"].upper()} '
            f'--tag {fold["arm_tag"]} --config {config} '
-           f'> /tmp/wf_arm_{fold["strategy_class"]}.log 2>&1')
+           f'> /tmp/wf_arm_{fold["arm_tag"]}.log 2>&1')
     return subprocess.run(["zsh", "-c", cmd], check=False).returncode
 
 
@@ -233,6 +263,25 @@ def main() -> int:
     if not plan.get("validated"):
         print("REFUSED: plan is not validated"); return 1
     family, base = plan["family"], plan["base_strategy"]
+    no_model = bool(plan.get("no_model"))
+    if no_model:
+        # Feature 023. Re-validate (a hand-edited plan could add thresholds), then two
+        # BLOCKING preflights before anything runs: the class must be model-free, and its
+        # trigger must be measured causal. Both are refusals of the whole plan, never per fold.
+        from evaluation.foldplan import validate_plan
+
+        errors = validate_plan(plan)
+        if errors:
+            print("REFUSED: " + "; ".join(errors)); return 1
+        cls_obj = _load_strategy_class(base)
+        cfg = getattr(cls_obj, "strategy_config", None)
+        if cfg is None or getattr(cfg, "needs_training", True):
+            print(f"REFUSED: {base} is not model-free (strategy_config.needs_training is not "
+                  f"False) -- a no_model plan would train inside its own backtest"); return 1
+        ok, why = _trigger_runnable(getattr(cls_obj, "TRIGGER_NAME", None))
+        if not ok:
+            print(f"REFUSED: {base} trigger {getattr(cls_obj, 'TRIGGER_NAME', None)!r} is not "
+                  f"runnable: {why}"); return 1
     params = None
     if plan.get("params_snapshot"):
         snap = Path(plan["params_snapshot"])
@@ -268,7 +317,10 @@ def main() -> int:
     # the SAME class would silently overwrite the first seed's weights -- the same collision the
     # plan validator forbids between folds, which it cannot see across runs. Seed 1 keeps the
     # canonical identity; any other seed gets its own class, model dir and arm tag.
-    if a.seed != 1:
+    if a.seed != 1 and no_model:
+        # Nothing is trained, so only the record needs its own name.
+        folds = [dict(f, arm_tag=f"{f['arm_tag']}_s{a.seed}") for f in folds]
+    elif a.seed != 1:
         folds = [dict(f,
                       strategy_class=f"{f['strategy_class']}_s{a.seed}",
                       model_dir=f"{f['model_dir']}_s{a.seed}",
@@ -280,13 +332,16 @@ def main() -> int:
         seen_c, seen_d = set(), set()
         for f in folds:
             c, d = f["strategy_class"], f["model_dir"]
-            dup = "  *** COLLISION" if (c in seen_c or d in seen_d) else ""
+            dup = ("  *** COLLISION" if not no_model and (c in seen_c or d in seen_d)
+                   else "")
             seen_c.add(c); seen_d.add(d)
             print(f"  {f['fold_id']}  train {f['train_timerange']}  test {f['test_timerange']}"
                   f"  -> {STRAT_DIR/family/(c+'.py')}{dup}")
         print(f"\nunique classes {len(seen_c)}/{len(folds)}, unique model dirs {len(seen_d)}/{len(folds)}")
         print("params keys that would be written to every fold .json:",
               sorted((params or {}).get("params", {}).get("buy", {})) or "(none — base has no .json)")
+        if no_model:
+            return 0
         return 0 if (len(seen_c) == len(folds) and len(seen_d) == len(folds)) else 1
 
     t0 = time.time()
@@ -300,14 +355,35 @@ def main() -> int:
         # treated such a fold as evaluated and skipped it permanently -- exactly the
         # failure mode FR-012 exists to prevent, one layer up.
         if (rec and rec.get("returncode") == 0 and not rec.get("error")
-                and model_exists(f["strategy_class"])):
+                and (no_model or model_exists(model_key(f)))):
             _log(f"{f['fold_id']}: already evaluated — skipping (resumable)")
             results.append({**f, "status": "evaluated", "n_trades": rec.get("n_trades")})
+            continue
+        if no_model:
+            _log(f"{f['fold_id']}: no model -- evaluating {f['strategy_class']} on "
+                 f"{f['test_timerange']}")
+            rc = evaluate_fold(f, plan["config"])
+            rec = arm_record(f)
+            n = rec.get("n_trades") if rec else None
+            status = ("evaluated" if rc == 0 and rec and rec.get("returncode") == 0
+                      and not rec.get("error") else "failed")
+            if status == "evaluated" and not n:
+                status = "zero_trade"
+            _log(f"{f['fold_id']}: {status}  n_trades={n}")
+            results.append({**f, "status": status, "model_artifact_verified": None,
+                            "n_trades": n, "arm_returncode": rc})
             continue
         _log(f"{f['fold_id']}: generating {f['strategy_class']}")
         generate_fold(f, base, family, params, threshold=thresholds.get(f["fold_id"]),
                       guards=guards_map.get(f["fold_id"]))
-        if model_exists(f["strategy_class"]):
+        if not model_exists(model_key(f)) and plan.get("model_source"):
+            # Borrowed weights (feature 023) must already exist. Training here would fit a NEW
+            # model under this class's name -- a different experiment -- so fail the fold.
+            _log(f"{f['fold_id']}: *** borrowed model {model_key(f)} is missing -- refusing to "
+                 f"train a replacement")
+            results.append({**f, "status": "failed", "model_artifact_verified": False})
+            continue
+        if model_exists(model_key(f)):
             # Resume at a finer grain: a trained artefact from an earlier attempt is reused rather
             # than retrained. Saves ~12 min per fold when only the evaluation needs re-running.
             _log(f"{f['fold_id']}: model already present — skipping training")

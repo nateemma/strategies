@@ -114,7 +114,7 @@ recorded arms byte-identical (T017 gate).
   collision check (`:95-97`). Store `params_snapshot`/`params_sha` as null for no-model plans.
   For an NNNC derive, snapshot `NNNC/<base>.json` with `snapshot_params()` (`:104`), as `build`
   does, and fail if that JSON is absent. Make T009 pass.
-- [ ] T011 [P] Write `evaluation/tests/test_run_folds_nomodel.py` using `--dry-run` and
+- [X] T011 [P] Write `evaluation/tests/test_run_folds_nomodel.py` using `--dry-run` and
   monkeypatched `evaluate_fold`/`train_fold`/`generate_fold`. For a no-model plan, assert that
   `generate_fold`, `train_fold` and `model_exists` are never called, `evaluate_fold` is called 15
   times with the base class, and a class whose StrategyConfig has `needs_training=True` aborts
@@ -123,14 +123,14 @@ recorded arms byte-identical (T017 gate).
   whose class's `TRIGGER_NAME` is not `PASS` (with a matching `code_sha`) in
   `research/outcomes/trigger_causality.json`, assert the plan aborts before ANY evaluation, with
   exit code non-zero (the spec edge case: rejected before the run starts).
-- [ ] T012 Implement the no-model path in `evaluation/run_folds.py` `main()` (~L220): skip
+- [X] T012 Implement the no-model path in `evaluation/run_folds.py` `main()` (~L220): skip
   generate, train and model check when `plan["no_model"]`, and assert `needs_training` is False
   via `evaluation.fingerprint.load_strategy_class`. Add the causality preflight: read the class's
   `TRIGGER_NAME` and abort the whole plan unless `trigger_causality.json` has it as `PASS` with a
   matching `code_sha`. Until T020 writes that file, the preflight aborts every no-model plan,
   which is the intended order. Change `model_exists` to take the fold's `model_dir` when present,
   defaulting to the class. Make T011 pass.
-- [ ] T013 Extend `regime/run_arm.py` record (contract C3):
+- [X] T013 Extend `regime/run_arm.py` record (contract C3):
   - add `framework_sha` and `framework_resolved` (via `evaluation.fingerprint.resolve` on the
     strategy class, the scratch params JSON and the config);
   - add `exit_reason_counts` (count `exit_reason` over the archive's trades in `summarize`, ~L291);
@@ -145,20 +145,25 @@ recorded arms byte-identical (T017 gate).
 
   Do not change how `trades_hash` or `exit_config_hash` are computed. Add
   `evaluation/tests/test_run_arm_record.py` covering `exit_reason_counts` on a fixture trade list.
-- [ ] T014 [P] Implement `evaluation/halves.py`:
+- [X] T014 [P] Implement `evaluation/halves.py`:
   - `split(arm_tag, ctl_tag, split_after="f07")` returns `{early, late}`, each with per-half summed
     pp, positive folds, and the trades-only paired `bootstrap_delta` from `evaluation/bootstrap.py`
     (~L82) on that half's trades.
   - Add a CLI (C5).
   - Add `evaluation/tests/test_halves.py` on fixture records, asserting f00–f07 / f08–f14
     membership and the sums.
-- [ ] T015 [P] Write `utils/tests/test_stop_invariants.py` (create `utils/tests/__init__.py` and
+- [X] T015 [P] Write `utils/tests/test_stop_invariants.py` (create `utils/tests/__init__.py` and
   a conftest if absent). Use a minimal `StopInvariantMixin` + stub-parent class whose
   `custom_stoploss` returns a configured value:
   (a) a positive ratio (planted post-grace sign flip, cf.
       `Framework/tests/test_post_grace_stop_signfix.py`) must raise `StopInvariantError`;
   (b) a ratio whose implied stop price `current_rate * (1 - abs(ratio))` exceeds `current_rate`
-      must raise;
+      must raise; **[implementation note 2026-10-10: that price cannot exceed `current_rate` for
+      any ratio, because of the `abs()`. The defect it describes, the positive-ratio sign flip,
+      is caught by (a). (b) was implemented as the realisable form: |ratio| > 1, a negative stop
+      price. The bound in (c) uses min(atr_stoploss_floor, stoploss) when adaptive, because
+      `_resolve_normal_stop` falls back to `stoploss` without ATR. The `1.0` no-change sentinel
+      and `STOP_AT_MARKET_RATIO` are exempt.]**
   (c) after grace, an implied stop PRICE below `open_rate * (1 + atr_stoploss_floor)` (adaptive)
       or `open_rate * (1 + stoploss)` (static) must raise. The check is in PRICE space, never on
       the ratio: freqtrade's ratio is relative to `current_rate`, so a correct entry-anchored stop
@@ -168,13 +173,13 @@ recorded arms byte-identical (T017 gate).
       first post-grace call that is LOWER than the last in-grace stop price must raise (FR-017
       "rescale preserving direction");
   (e) valid values pass through unchanged, `is` the same object.
-- [ ] T016 Implement `utils/StopInvariants.py` with `StopInvariantError(RuntimeError)` and
+- [X] T016 Implement `utils/StopInvariants.py` with `StopInvariantError(RuntimeError)` and
   `StopInvariantMixin.custom_stoploss`, which calls `super().custom_stoploss(...)`, checks (a)–(d)
   (tracking the last stop price per trade id, for (d)) and returns the value unchanged
   (research R9). It must be strategy-agnostic: no family names. Make T015 pass. Neutrality on
   real runs is proven later by US1's legacy reproduction (the mixin is present in every
   SimpleTrigger run) and by US3's twin check.
-- [ ] T017 **Gate: shared edits are neutral.**
+- [X] T017 **Gate: shared edits are neutral.**
   - Re-run the two T002 folds on the edited code through `run_arm`, once by default (sink on)
     and once with `--no-sink`.
   - All four `trades_hash` values must equal the T002 baselines, and the `run_arm` records must

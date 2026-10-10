@@ -238,7 +238,7 @@ def _parse_roi(v: str) -> dict:
     return {"0": float(v)}
 
 
-def build_env(scratch: Path) -> dict:
+def build_env(scratch: Path, sink: Path | None = None) -> dict:
     """Environment for the backtest subprocess.
 
     The strategy imports `Framework` and `utils` as top-level packages, which
@@ -250,7 +250,61 @@ def build_env(scratch: Path) -> dict:
     env = os.environ.copy()
     parts = [".", str(STRAT_DIR), str(scratch), str(STRAT_DIR / "utils")]
     env["PYTHONPATH"] = ":".join(parts + ([env["PYTHONPATH"]] if env.get("PYTHONPATH") else []))
+    # Feature 023 C3/C4: every arm records per-condition entry pass counts. `sink` None means
+    # the --no-sink neutrality gate, so an inherited value must not leak in either.
+    env.pop("FT_ENTRY_CONDITION_SINK", None)
+    if sink is not None:
+        env["FT_ENTRY_CONDITION_SINK"] = str(sink)
     return env
+
+
+def aggregate_sink(sink: Path | None) -> dict | None:
+    """Sum the per-pair entry-condition counts the strategy wrote (BaseStrategy C4 sink)."""
+    if sink is None or not sink.is_dir():
+        return None
+    total: dict = {}
+    for f in sorted(sink.glob("*.json")):
+        try:
+            counts = json.loads(f.read_text()).get("counts", {})
+        except ValueError:
+            continue
+        for name, c in counts.items():
+            t = total.setdefault(name, {"pass": 0, "total": 0})
+            t["pass"] += int(c.get("pass", 0))
+            t["total"] += int(c.get("total", 0))
+    return total or None
+
+
+def framework_fields(strategy: str, scratch: Path, config: Path) -> dict:
+    """Feature 023 C3: the resolved-framework fingerprint plus the class's 023 declarations.
+
+    Imports the strategy CLASS (never instantiates it -- that would load or train a model).
+    Uses the scratch params JSON, i.e. exactly what this run's freqtrade will read. A failure is
+    recorded, not raised: a missing fingerprint must block a twin comparison, not a backtest.
+    """
+    try:
+        from evaluation.fingerprint import load_config, load_strategy_class, resolve
+
+        cls = load_strategy_class(strategy)
+        js = scratch / f"{strategy}.json"
+        params = json.loads(js.read_text()) if js.is_file() else None
+        cfg_path = config if Path(config).is_absolute() else ROOT / config
+        sha, resolved = resolve(cls, params, load_config(cfg_path))
+        sc = getattr(cls, "strategy_config", None)
+        model_type = getattr(getattr(sc, "model_type", None), "name", None)
+        label_method = getattr(cls, "LABEL_METHOD", None)
+        return {
+            "framework_sha": sha,
+            "framework_resolved": resolved,
+            "no_model": model_type == "NONE",
+            "preset": getattr(cls, "PRESET", None),
+            "exit_mode": getattr(cls, "EXIT_MODE", None),
+            "trigger": getattr(cls, "TRIGGER_NAME", None),
+            "label_method": getattr(label_method, "name", label_method),
+            "coupled_resolution": getattr(cls, "COUPLED_RESOLUTION", None),
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {"framework_sha": None, "framework_error": f"{type(exc).__name__}: {exc}"[:300]}
 
 
 def build_command(strategy: str, scratch: Path, tr: str, config: Path,
@@ -321,8 +375,16 @@ def summarize(result_path: Path | None) -> dict:
         "duration_h_p25": round(float(dur_h.quantile(0.25)), 2),
         "duration_h_p75": round(float(dur_h.quantile(0.75)), 2),
         "trades_per_day": round(len(trades) / max((trades["close_date"].max() - trades["open_date"].min()).days, 1), 4),
+        "exit_reason_counts": exit_reason_counts(trades),
         **_wallet_stats(result_path),
     }
+
+
+def exit_reason_counts(trades) -> dict:
+    """{exit_reason: count} -- exit-side liveness evidence (feature 023 C3)."""
+    if trades is None or "exit_reason" not in trades:
+        return {}
+    return {str(k): int(v) for k, v in trades["exit_reason"].value_counts().sort_index().items()}
 
 
 def _wallet_stats(result_path: Path) -> dict:
@@ -386,6 +448,9 @@ def main() -> int:
                          "only when comparing GAN arms deliberately.")
     ap.add_argument("--plan", action="store_true",
                     help="build the scratch dir and print the command without running it")
+    ap.add_argument("--no-sink", action="store_true",
+                    help="do NOT record entry-condition counts. Exists only for feature 023's "
+                         "neutrality gate (T017), which proves the sink changes no trade.")
     args = ap.parse_args()
 
     if args.strategy.startswith("NNNC_DDPM_") and not args.allow_gan:
@@ -431,8 +496,14 @@ def main() -> int:
         print("\n--plan: not executed.")
         return 0
 
+    sink = None if args.no_sink else scratch / "sink"
+    if sink is not None:
+        sink.mkdir(parents=True, exist_ok=True)
+    framework = framework_fields(args.strategy, scratch, args.config)
+    print(f"framework : {framework.get('framework_sha') or framework.get('framework_error')}")
+
     started = time.time()
-    proc = subprocess.run(cmd, cwd=ROOT, env=build_env(scratch))
+    proc = subprocess.run(cmd, cwd=ROOT, env=build_env(scratch, sink))
 
     # A FAILED backtest must never yield metrics. `latest_result()` returns the
     # most recent archive in user_data/backtest_results/ whether or not THIS run
@@ -491,6 +562,8 @@ def main() -> int:
             "custom_stake_amount caps rather than rejects. NOT measured by this script."
         ),
         "returncode": proc.returncode,
+        **framework,
+        "entry_condition_counts": aggregate_sink(sink),
         **result,
     }
     out = OUT_DIR / f"{args.tag}_{label}.json"

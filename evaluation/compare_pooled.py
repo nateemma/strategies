@@ -24,30 +24,30 @@ from evaluation.bootstrap import MIN_DIFF_TRADES, bootstrap_delta   # noqa: E402
 KEY = ("fold_id", "pair", "open_date")
 
 
-def compare(arm_path: str, ctl_path: str) -> str:
-    a = json.loads(Path(arm_path).read_text())
-    c = json.loads(Path(ctl_path).read_text())
+def compare_data(a: dict, c: dict) -> dict:
+    """The comparison as data. `compare()` formats this; feature 023's twin and attribution
+    tools consume it directly, so there is ONE verdict implementation, not two.
+
+    `verdict` is one of: UNRESOLVABLE, INCONCLUSIVE_ABSORBED, INCONCLUSIVE_UNDERPOWERED,
+    INCONCLUSIVE_ARM_LOSES, IMPROVED, WORSENED, UNCHANGED.
+    """
     years = sum(f["test_days"] for f in c["per_fold"]) / 365.0
+    out = {"arm_trades": a["n_trades_pooled"], "arm_folds": a["folds_complete"],
+           "ctl_trades": c["n_trades_pooled"], "ctl_folds": c["folds_complete"],
+           "years": years,
+           "partial": a["status"] != "complete" or c["status"] != "complete"}
     # bootstrap_delta needs a record only for the pp scale; synthesise it from the pooled set.
     scale = c["trades"][0]["scale_pp_per_abs"]
     rec = {"wallet_profit_pct": sum(t["profit_abs"] for t in c["trades"]) * scale,
            "strategy": c["family"], "result_file": None}
     bs = bootstrap_delta(rec, rec, arm_trades=a["trades"], ctl_trades=c["trades"], key_fields=KEY)
-    out = [f"POOLED ARM {Path(arm_path).name}  vs  CONTROL {Path(ctl_path).name}",
-           f"  arm {a['n_trades_pooled']} trades / {a['folds_complete']} folds   "
-           f"control {c['n_trades_pooled']} trades / {c['folds_complete']} folds",
-           f"  pooled span {years:.2f} yr-equivalent"]
-    if a["status"] != "complete" or c["status"] != "complete":
-        out.append("  *** PARTIAL fold set — this is not the full plan's result (FR-020)")
+    out["bootstrap"] = bs
     if bs is None:
-        out.append("  UNRESOLVABLE — trades unavailable"); return "\n".join(out)
+        out["verdict"] = "UNRESOLVABLE"; return out
     if bs["n_diff"] == 0:
-        out.append("  VERDICT: INCONCLUSIVE_ABSORBED — every trade is identical; nothing differs")
-        return "\n".join(out)
+        out["verdict"] = "INCONCLUSIVE_ABSORBED"; return out
     if bs["n_diff"] < MIN_DIFF_TRADES:
-        out.append(f"  VERDICT: INCONCLUSIVE_UNDERPOWERED — only {bs['n_diff']} trade(s) differ")
-        return "\n".join(out)
-    ann = lambda v: v / years
+        out["verdict"] = "INCONCLUSIVE_UNDERPOWERED"; return out
 
     # ADMISSIBILITY (added 2026-09-13). The bootstrap above is untouched -- BOOTSTRAP_SEED
     # and the statistic are pinned and must stay comparable with every earlier run. This
@@ -62,10 +62,43 @@ def compare(arm_path: str, ctl_path: str) -> str:
     #             and the raw delta read "WORSE" for an arm that actually traded
     # Neither is caught by a trade-count check, which is why this sits beside MIN_DIFF_TRADES
     # rather than inside it.
-    arm_total = sum(t["profit_abs"] for t in a["trades"]) * scale
-    ctl_total = sum(t["profit_abs"] for t in c["trades"]) * scale
+    out["arm_total_pp"] = sum(t["profit_abs"] for t in a["trades"]) * scale
+    out["ctl_total_pp"] = sum(t["profit_abs"] for t in c["trades"]) * scale
+    out["delta_pp"] = bs["observed"]
+    out["delta_pp_yr"] = bs["observed"] / years
+    out["ci_pp_yr"] = [bs["lo"] / years, bs["hi"] / years]
+    if out["arm_total_pp"] <= 0:
+        out["verdict"] = "INCONCLUSIVE_ARM_LOSES"; return out
+    resolved = bs["resolved"]
+    out["verdict"] = ("IMPROVED" if resolved and bs["observed"] > 0
+                      else "WORSENED" if resolved else "UNCHANGED")
+    return out
+
+
+def compare(arm_path: str, ctl_path: str) -> str:
+    a = json.loads(Path(arm_path).read_text())
+    c = json.loads(Path(ctl_path).read_text())
+    d = compare_data(a, c)
+    years, bs = d["years"], d["bootstrap"]
+    out = [f"POOLED ARM {Path(arm_path).name}  vs  CONTROL {Path(ctl_path).name}",
+           f"  arm {a['n_trades_pooled']} trades / {a['folds_complete']} folds   "
+           f"control {c['n_trades_pooled']} trades / {c['folds_complete']} folds",
+           f"  pooled span {years:.2f} yr-equivalent"]
+    if d["partial"]:
+        out.append("  *** PARTIAL fold set — this is not the full plan's result (FR-020)")
+    v = d["verdict"]
+    if v == "UNRESOLVABLE":
+        out.append("  UNRESOLVABLE — trades unavailable"); return "\n".join(out)
+    if v == "INCONCLUSIVE_ABSORBED":
+        out.append("  VERDICT: INCONCLUSIVE_ABSORBED — every trade is identical; nothing differs")
+        return "\n".join(out)
+    if v == "INCONCLUSIVE_UNDERPOWERED":
+        out.append(f"  VERDICT: INCONCLUSIVE_UNDERPOWERED — only {bs['n_diff']} trade(s) differ")
+        return "\n".join(out)
+    ann = lambda v: v / years
+    arm_total, ctl_total = d["arm_total_pp"], d["ctl_total_pp"]
     out.append(f"  arm total {arm_total:+.3f}pp   control total {ctl_total:+.3f}pp")
-    if arm_total <= 0:
+    if v == "INCONCLUSIVE_ARM_LOSES":
         out += [f"  VERDICT: INCONCLUSIVE_ARM_LOSES — the arm returns {arm_total:+.3f}pp "
                 f"over the span, so it loses to holding cash.",
                 f"  A delta against the control ({ann(bs['observed']):+.3f}pp/yr) measures "
