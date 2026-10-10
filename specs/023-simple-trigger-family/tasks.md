@@ -237,12 +237,12 @@ exactly under the legacy preset.
 
 ### Mapping, presets, family
 
-- [ ] T022 [P] [US1] Write `SimpleTrigger/tests/test_label_map.py`. Assert that
+- [X] T022 [P] [US1] Write `SimpleTrigger/tests/test_label_map.py`. Assert that
   `SimpleTrigger.label_map.MAPPING` has exactly one row per `LabelMethod` member (iterate the
   enum), that every `status: "unsupported"` row has a non-empty `reason` and a null `trigger`,
   that every non-null `trigger` is a registered trigger name, and that the `empty` rows are
   exactly the 8 of research R10.
-- [ ] T023 [P] [US1] Implement `SimpleTrigger/label_map.py`. The data-model `LabelTriggerMapping`
+- [X] T023 [P] [US1] Implement `SimpleTrigger/label_map.py`. The data-model `LabelTriggerMapping`
   rows come from research R10, as amended by T021:
   - `local_min_followthrough` is unsupported, reason "centred window reads 3 bars ahead";
   - `trends` and `bands` are unsupported, reason "unscoreable: required columns absent from
@@ -250,7 +250,7 @@ exactly under the legacy preset.
   - the 3 `future_*` rows follow T021's outcome.
 
   Make T022 pass.
-- [ ] T024 [P] [US1] Write `SimpleTrigger/tests/test_presets.py`. Assert that:
+- [X] T024 [P] [US1] Write `SimpleTrigger/tests/test_presets.py`. Assert that:
   (a) every preset contains every FrameworkPreset member, and a missing key raises on load (data
       model: "a preset is total");
   (b) `ARM_D_OPEN` resolves, via `evaluation.fingerprint.resolve` on a bare preset-carrying
@@ -259,11 +259,11 @@ exactly under the legacy preset.
   (c) `LEGACY_TRIGGERONLY` resolves to the same sha as `SimpleStrategies.TriggerOnly.TriggerOnlyStrategy`;
   (d) the two presets differ in `use_atr_adaptive_stoploss`, `atr_stoploss_{multiplier,floor,cap}`
       and `startup_candle_count` (research R1 table), which pins the finding.
-- [ ] T025 [P] [US1] Implement `SimpleTrigger/presets.py` with `ARM_D_OPEN` and
+- [X] T025 [P] [US1] Implement `SimpleTrigger/presets.py` with `ARM_D_OPEN` and
   `LEGACY_TRIGGERONLY`. Take the literal values by reading the resolved attributes (run
   `python -m evaluation.fingerprint` on both reference classes and copy them). Add
   `get(name) -> dict` and `validate(preset)`. Make T024 pass.
-- [ ] T026 [P] [US1] Write `SimpleTrigger/tests/test_simple_trigger_strategy.py`. Assert that:
+- [X] T026 [P] [US1] Write `SimpleTrigger/tests/test_simple_trigger_strategy.py`. Assert that:
   (a) the StrategyConfig has `needs_training is False` and model_type NONE (G1);
   (b) `get_entry_conditions` returns `triggers.evaluate("gbb", df)` for `TRIGGER_NAME="gbb"`;
   (c) an unset, unregistered, non-PASS or stale-`code_sha` trigger returns an all-False mask and
@@ -272,10 +272,14 @@ exactly under the legacy preset.
       and none are dropped (FR-019);
   (e) the class has no pair-name references (grep the source for `/USD` and `pair ==`) (G6);
   (f) under both presets `entry_bear_filter_enable` and `entry_trend_filter_enable` are False,
-      `exit_profit_only` is False or unset, and the class has no `market_regime` column or
+      `exit_profit_only` is False or unset **[implementation note: NOT applied. Arm D inherits
+      `exit_profit_only = True` from BaseStrategy, and FR-007 parity wins, so the presets carry
+      True. The assertion is instead "no regime logic and no SimpleStrategies import". Also,
+      `enter_tag` stays BaseStrategy's "model_entry " because changing it would mean overriding
+      `populate_entry_trend`; the trigger name is in the arm record.]**, and the class has no `market_regime` column or
       `SimpleStrategies` import (FR-005);
   (g) the class carries `StopInvariantMixin` ahead of `BaseStrategy` in its MRO (FR-017).
-- [ ] T027 [US1] Implement `SimpleTrigger/SimpleTriggerStrategy.py` per contract C1, G1–G4 and G6
+- [X] T027 [US1] Implement `SimpleTrigger/SimpleTriggerStrategy.py` per contract C1, G1–G4 and G6
   (G5 comes in US4).
   - It is `class SimpleTriggerStrategy(StopInvariantMixin, BaseStrategy)` (the mixin comes from
     Phase 2's `utils/StopInvariants.py`). At class-definition time it applies
@@ -287,7 +291,7 @@ exactly under the legacy preset.
     PASS with a matching `code_sha`.
   - Set `enter_tag` to the trigger name.
   - Make T026 pass.
-- [ ] T028 [US1] Create the 7 legacy configs in `SimpleTrigger/`, each `PRESET =
+- [X] T028 [US1] Create the 7 legacy configs in `SimpleTrigger/`, each `PRESET =
   "LEGACY_TRIGGERONLY"`:
   - `SimpleTrigger_Legacy_Breakout` (`breakout`)
   - `SimpleTrigger_Legacy_BreakoutVol` (`breakout_vol`)
@@ -302,7 +306,7 @@ exactly under the legacy preset.
   Copy each original's class-level overrides from its `SimpleStrategies/*Open.py` file, and
   confirm with `python -m evaluation.fingerprint` that each legacy config's `framework_sha` equals
   its original's.
-- [ ] T029 [US1] Derive the 7 no-model plans with
+- [X] T029 [US1] Derive the 7 no-model plans with
   `python -m evaluation.foldplan derive --from evaluation/folds/plan_NNNC_A_Raw_Open.json
   --family SimpleTrigger --base <cls> --tag <tag> --out evaluation/folds/plan_<tag>.json`. Tags:
   `stl_bo`, `stl_bvo`, `stl_bbo`, `stl_bgo`, `stl_geo`, `stl_gbbo`, `stl_gbbr`. Then confirm the
