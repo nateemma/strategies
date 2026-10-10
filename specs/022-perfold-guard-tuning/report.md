@@ -329,3 +329,48 @@ current default and 13/15 folds positive, against a paired interval that spans z
 The next step is the FR-015 trade-level paired test, not a defaults change. And even if that
 resolves, `BaseStrategy.buy_params` is inherited by the live dry-run, so the change belongs to a
 deliberate promotion decision rather than to this feature.
+
+### FR-015 trade-level paired test — NOT RESOLVED, p = 0.27
+
+Run with `evaluation/bootstrap.py::bootstrap_delta` on the symmetric difference of trades, the
+instrument FR-015 specifies, from the repo root (its `BT_RESULTS` path is relative — my first
+invocation reported every archive as "pruned" when the real issue was my working directory).
+
+```
+observed  +22.70pp      95% CI [-16.34, +62.45]      p = 0.2706      resolved: False
+shared 111   arm_F_only 347   arm_A_only 8039   identical 108
+annualised +6.17 pp/yr  CI [-4.44, +16.97]
+```
+
+**The paired instrument cannot help here, and the reason is structural.** `bootstrap_delta` is
+tight when two arms *share* their entries — its own docstring: "for an exit-side change sharing
+every entry, only the handful of genuinely differing trades carry variance". Arm F and arm A
+**share 111 trades out of ~8,500**. Arm A contributes 8,039 unique trades, including the fold
+that lost 10.61pp. So the comparison is effectively unpaired and the interval is dominated by
+arm A's own variance.
+
+This is also the *"judge at a powered operating point"* trap in its original form: arm A trades
+**8,150** and arm F **458**, an 18× difference in selectivity. Two arms that far apart in trade
+count are not resolvable against each other by this harness, whatever their point estimates.
+
+## FINAL ANSWER on changing the base-class defaults: NO, on the evidence available
+
+Arm F is better on **every point estimate** — wallet +25.34pp vs +2.64pp, 13/15 folds positive
+vs 7/15, worst fold −2.00pp vs −10.61pp — and the configuration was selected leakage-free from
+data ending 2023-01-01 and ranked 1 of 52 there. That is genuinely encouraging.
+
+But **p = 0.2706 and the interval spans zero by a wide margin.** This repository's standing rule
+is that a P&L claim comes from the pooled harness and that sub-floor differences are not
+resolvable; here the difference is *above* the floor on the point estimate and still
+unresolvable, because the two arms barely share trades.
+
+So: **no defaults change.** `BaseStrategy.buy_params` is inherited by a live dry-run, and
+changing it on an unresolved comparison would be exactly the kind of promotion this project has
+repeatedly recorded as premature.
+
+**What would resolve it** — and this is a separate study, not an extension of 022: compare at a
+*matched operating point*. Arm A at open guards trades 18× more than arm F; restricting arm A to
+a matched selectivity (or running arm F with loosened thresholds to a matched trade count) would
+make the paired instrument work as designed, because the entry sets would then overlap. Until
+then the honest statement is that the tightened guard constant **looks better on every measure
+and is not demonstrably better on any of them.**
