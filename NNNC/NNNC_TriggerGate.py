@@ -21,17 +21,20 @@ missing model is a loud failure, never a silent retrain. The main feature scaler
 
 STOP INVARIANTS (FR-017) wrap the stop here too: the mixin returns the parent's value unchanged.
 """
+
 import re
 import sys
 from pathlib import Path
 
 import pandas as pd
 
+
 sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent.parent))
 
 from NNNC_A_Raw_Open import NNNC_A_Raw_Open
 from utils.StopInvariants import StopInvariantMixin
+
 
 _FOLD = re.compile(r"_(f\d{2})$")
 
@@ -43,8 +46,10 @@ class NNNC_TriggerGate(StopInvariantMixin, NNNC_A_Raw_Open):
     def get_model_path(self) -> str:
         m = _FOLD.search(self.__class__.__name__)
         if not m:
-            raise ValueError(f"{self.__class__.__name__}: NNNC_TriggerGate runs only as a per-fold "
-                             f"class (`*_fNN`) that borrows {self.MODEL_SOURCE}_fNN's weights")
+            raise ValueError(
+                f"{self.__class__.__name__}: NNNC_TriggerGate runs only as a per-fold "
+                f"class (`*_fNN`) that borrows {self.MODEL_SOURCE}_fNN's weights"
+            )
         src = f"{self.MODEL_SOURCE}_{m.group(1)}"
         d = Path(self.get_storage_location()) / src
         if not d.is_dir():
@@ -61,5 +66,6 @@ class NNNC_TriggerGate(StopInvariantMixin, NNNC_A_Raw_Open):
         from research.outcomes import triggers as _triggers
 
         _triggers.ensure_builtins()
-        return pd.Series(_triggers.evaluate(self.TRIGGER_NAME, dataframe).to_numpy(),
-                         index=dataframe.index)
+        return pd.Series(
+            _triggers.evaluate(self.TRIGGER_NAME, dataframe).to_numpy(), index=dataframe.index
+        )

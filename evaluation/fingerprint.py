@@ -20,6 +20,7 @@ NEVER INSTANTIATES. Instantiating an NNNC strategy loads a model or, with none o
 one inside the backtest (`get_model_path` keys off the class name). Everything here reads class
 objects only.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -30,6 +31,7 @@ import json
 import sys
 from pathlib import Path
 
+
 STRAT_DIR = Path(__file__).resolve().parents[1]
 ROOT = STRAT_DIR.parents[1]
 
@@ -37,20 +39,37 @@ ROOT = STRAT_DIR.parents[1]
 #: freqtrade-level exit switches). data-model `FrameworkPreset`.
 ATTRIBUTE_MEMBERS = (
     # run shape
-    "timeframe", "startup_candle_count", "process_only_new_candles", "can_short",
+    "timeframe",
+    "startup_candle_count",
+    "process_only_new_candles",
+    "can_short",
     # exits
-    "minimal_roi", "use_exit_signal", "exit_profit_only", "ignore_roi_if_entry_signal",
+    "minimal_roi",
+    "use_exit_signal",
+    "exit_profit_only",
+    "ignore_roi_if_entry_signal",
     "position_adjustment_enable",
     # stop
-    "stoploss", "use_custom_stoploss", "trailing_stop", "trailing_stop_positive",
-    "trailing_stop_positive_offset", "trailing_only_offset_is_reached",
-    "use_atr_adaptive_stoploss", "atr_stoploss_multiplier", "atr_stoploss_floor",
-    "atr_stoploss_cap", "use_volume_confirmation_stoploss",
+    "stoploss",
+    "use_custom_stoploss",
+    "trailing_stop",
+    "trailing_stop_positive",
+    "trailing_stop_positive_offset",
+    "trailing_only_offset_is_reached",
+    "use_atr_adaptive_stoploss",
+    "atr_stoploss_multiplier",
+    "atr_stoploss_floor",
+    "atr_stoploss_cap",
+    "use_volume_confirmation_stoploss",
     # entry gates outside the guard thresholds
-    "entry_bear_filter_enable", "entry_bear_ema_period", "entry_bear_deadband",
-    "entry_trend_filter_enable", "entry_trend_ema_period",
+    "entry_bear_filter_enable",
+    "entry_bear_ema_period",
+    "entry_bear_deadband",
+    "entry_trend_filter_enable",
+    "entry_trend_ema_period",
     # sizing / liquidity
-    "MIN_QUOTE_VOLUME", "QUOTE_VOLUME_HEADROOM_MULT",
+    "MIN_QUOTE_VOLUME",
+    "QUOTE_VOLUME_HEADROOM_MULT",
 )
 
 #: Hyperopt parameters excluded from the hash: they shape the entry SIGNAL, which a twin may
@@ -59,8 +78,12 @@ EXCLUDED_PARAMS = frozenset({"prediction_threshold"})
 
 #: JSON sections that REPLACE an attribute outright (hyper.py `load_params_from_file` /
 #: `ft_bot_start` special parameters).
-_TRAILING_KEYS = ("trailing_stop", "trailing_stop_positive", "trailing_stop_positive_offset",
-                  "trailing_only_offset_is_reached")
+_TRAILING_KEYS = (
+    "trailing_stop",
+    "trailing_stop_positive",
+    "trailing_stop_positive_offset",
+    "trailing_only_offset_is_reached",
+)
 
 RUN_CONFIG_KEYS = ("stake_amount", "dry_run_wallet", "fee")
 
@@ -150,54 +173,57 @@ def _jsonable(v):
     return repr(v)
 
 
-def resolve(strategy_cls, params_json: dict | None, config: dict) -> tuple[str, dict]:
-    """(framework_sha, resolved_dict) for a strategy class + its params JSON + run config."""
-    file_params = (params_json or {}).get("params", {}) or {}
-
-    attributes = {}
-    for key in ATTRIBUTE_MEMBERS:
-        attributes[key] = _jsonable(getattr(strategy_cls, key, None))
+def _resolve_attributes(strategy_cls, file_params: dict) -> dict:
+    attributes = {key: _jsonable(getattr(strategy_cls, key, None)) for key in ATTRIBUTE_MEMBERS}
     # JSON special sections replace the attribute (hyper.py ft_bot_start / load_params)
     if "roi" in file_params:
         attributes["minimal_roi"] = _jsonable(file_params["roi"])
     sl = file_params.get("stoploss")
     if isinstance(sl, dict) and "stoploss" in sl:
         attributes["stoploss"] = sl["stoploss"]
+    trailing = file_params.get("trailing", {})
     for k in _TRAILING_KEYS:
-        if k in file_params.get("trailing", {}):
-            attributes[k] = file_params["trailing"][k]
+        if k in trailing:
+            attributes[k] = trailing[k]
+    return attributes
 
-    spaces = {}
+
+def _resolve_space(strategy_cls, params: dict, file_params: dict, space: str) -> dict:
+    merged = _deep_merge(
+        file_params.get(space, {}) or {}, getattr(strategy_cls, f"{space}_params", {}) or {}
+    )
+    out = {}
+    for name, param in params[space].items():
+        if name in EXCLUDED_PARAMS:
+            continue
+        if name in merged and getattr(param, "load", True):
+            out[name] = merged[name]
+        else:
+            # .value is class-shared and may have been mutated by an earlier instance in
+            # this process; the default is what a fresh backtest starts from.
+            out[name] = getattr(param, "default", param.value)
+    # keys present in the dict without a Parameter object are still read by code
+    for name, v in merged.items():
+        if name not in out and name not in EXCLUDED_PARAMS:
+            out[name] = v
+    return {k: _jsonable(v) for k, v in sorted(out.items())}
+
+
+def resolve(strategy_cls, params_json: dict | None, config: dict) -> tuple[str, dict]:
+    """(framework_sha, resolved_dict) for a strategy class + its params JSON + run config."""
+    file_params = (params_json or {}).get("params", {}) or {}
     params = _parameters(strategy_cls)
-    for space in ("buy", "sell"):
-        merged = _deep_merge(file_params.get(space, {}) or {},
-                             getattr(strategy_cls, f"{space}_params", {}) or {})
-        resolved_space = {}
-        for name, param in params[space].items():
-            if name in EXCLUDED_PARAMS:
-                continue
-            if name in merged and getattr(param, "load", True):
-                resolved_space[name] = merged[name]
-            else:
-                # .value is class-shared and may have been mutated by an earlier instance in
-                # this process; the default is what a fresh backtest starts from.
-                resolved_space[name] = getattr(param, "default", param.value)
-        # keys present in the dict without a Parameter object are still read by code
-        for name, v in merged.items():
-            if name not in resolved_space and name not in EXCLUDED_PARAMS:
-                resolved_space[name] = v
-        spaces[space] = {k: _jsonable(v) for k, v in sorted(resolved_space.items())}
-
     mot = file_params.get("max_open_trades", {})
     max_open = mot.get("max_open_trades") if isinstance(mot, dict) else None
     if max_open is None:
         max_open = config.get("max_open_trades", getattr(strategy_cls, "max_open_trades", None))
-    run = {"max_open_trades": max_open}
-    for k in RUN_CONFIG_KEYS:
-        run[k] = _jsonable(config.get(k))
-
-    resolved = {"attributes": attributes, "buy": spaces["buy"], "sell": spaces["sell"],
-                "run": run}
+    run = {"max_open_trades": max_open, **{k: _jsonable(config.get(k)) for k in RUN_CONFIG_KEYS}}
+    resolved = {
+        "attributes": _resolve_attributes(strategy_cls, file_params),
+        "buy": _resolve_space(strategy_cls, params, file_params, "buy"),
+        "sell": _resolve_space(strategy_cls, params, file_params, "sell"),
+        "run": run,
+    }
     canonical = json.dumps(resolved, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode()).hexdigest()[:16], resolved
 

@@ -21,6 +21,7 @@ PROVISIONAL under quality gate 2 (no distant era).
   python -m evaluation.attribution --full-tag st_gbb --base-class SimpleTrigger_Gbb \
       --components all [--generate] [--run]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -31,11 +32,13 @@ from pathlib import Path
 
 import numpy as np
 
+
 ROOT = Path(__file__).resolve().parents[3]
 STRAT = ROOT / "user_data/strategies"
 sys.path.insert(0, str(STRAT))
 
 from evaluation import bootstrap  # noqa: E402
+
 
 bootstrap.BT_RESULTS = ROOT / "user_data/backtest_results"
 
@@ -44,6 +47,7 @@ from evaluation.compare_pooled import compare_data  # noqa: E402
 from evaluation.halves import PROVISIONAL, split  # noqa: E402
 from evaluation.pool import pool  # noqa: E402
 from evaluation.power import bootstrap_floor  # noqa: E402
+
 
 ARMS = STRAT / "regime/arms"
 FOLDS = STRAT / "evaluation/folds"
@@ -81,8 +85,11 @@ def generate(base_cls, comp) -> Path:
     lines = []
     if "trigger" in ov:
         lines.append(f"    TRIGGER_NAME = {ov['trigger']!r}")
-    for section, attr in (("buy", "BUY_OVERRIDES"), ("sell", "SELL_OVERRIDES"),
-                          ("attributes", "ATTR_OVERRIDES")):
+    for section, attr in (
+        ("buy", "BUY_OVERRIDES"),
+        ("sell", "SELL_OVERRIDES"),
+        ("attributes", "ATTR_OVERRIDES"),
+    ):
         if ov.get(section):
             merged = {**getattr(base_cls, attr), **ov[section]}
             lines.append(f"    {attr} = {merged!r}")
@@ -119,11 +126,15 @@ def _power(pooled: dict) -> dict:
     if not trades:
         return {"n_trades": 0}
     years = sum(f["test_days"] for f in pooled["per_fold"]) / 365.0
-    bs = bootstrap_floor(np.array([t["profit_abs"] for t in trades], dtype=float),
-                         trades[0]["scale_pp_per_abs"])
+    bs = bootstrap_floor(
+        np.array([t["profit_abs"] for t in trades], dtype=float), trades[0]["scale_pp_per_abs"]
+    )
     n = len(trades)
-    return {"n_trades": n, "half_width_pp_yr": bs["half_width_pp"] / years,
-            "sqrt_n_predicted_pp_yr": BASELINE_HALF_WIDTH_PP * (BASELINE_N_TRADES / n) ** 0.5}
+    return {
+        "n_trades": n,
+        "half_width_pp_yr": bs["half_width_pp"] / years,
+        "sqrt_n_predicted_pp_yr": BASELINE_HALF_WIDTH_PP * (BASELINE_N_TRADES / n) ** 0.5,
+    }
 
 
 def _liveness(comp, full_recs, arm_recs) -> dict:
@@ -158,45 +169,72 @@ def build_report(full_plan: dict, comp_plans: dict, components, preset: str) -> 
         recs = _records(plan)
         arm = pool(plan)
         row["arm_tag"] = plan["folds"][0]["arm_tag"].rsplit("_", 1)[0]
-        row["fold_detail"] = [{"fold": p["fold_id"], "n_trades": p["n_trades"],
-                               "return_pct": p["return_pct"]} for p in arm["per_fold"]]
+        row["fold_detail"] = [
+            {"fold": p["fold_id"], "n_trades": p["n_trades"], "return_pct": p["return_pct"]}
+            for p in arm["per_fold"]
+        ]
         row["liveness_evidence"] = _liveness(comp, full_recs, recs)
         if arm["n_trades_pooled"] == 0:
             rows.append({**row, "status": "ZERO_TRADES"})
             continue
-        if all(a.get("trades_hash") and a.get("trades_hash") == b.get("trades_hash")
-               for a, b in zip(recs, full_recs)):
+        if all(
+            a.get("trades_hash") and a.get("trades_hash") == b.get("trades_hash")
+            for a, b in zip(recs, full_recs, strict=True)
+        ):
             rows.append({**row, "status": "INERT"})
             continue
         d = compare_data(arm, full_pooled)
-        rows.append({**row, "status": "LIVE", "verdict": d["verdict"],
-                     "delta_pp": d.get("delta_pp"), "ci_pp_yr": d.get("ci_pp_yr"),
-                     "p": (d.get("bootstrap") or {}).get("p"),
-                     "component_contribution_pp": (-d["delta_pp"]
-                                                   if d.get("delta_pp") is not None else None),
-                     "halves": split(arm, full_pooled), "power": _power(arm)})
-    return {"label": PROVISIONAL, "preset": preset,
-            "full": {"trades": full_pooled["n_trades_pooled"],
-                     "sum_pp": sum(f["return_pct"] or 0 for f in full_pooled["per_fold"]),
-                     "power": _power(full_pooled)},
-            "rows": rows}
+        rows.append(
+            {
+                **row,
+                "status": "LIVE",
+                "verdict": d["verdict"],
+                "delta_pp": d.get("delta_pp"),
+                "ci_pp_yr": d.get("ci_pp_yr"),
+                "p": (d.get("bootstrap") or {}).get("p"),
+                "component_contribution_pp": (
+                    -d["delta_pp"] if d.get("delta_pp") is not None else None
+                ),
+                "halves": split(arm, full_pooled),
+                "power": _power(arm),
+            }
+        )
+    return {
+        "label": PROVISIONAL,
+        "preset": preset,
+        "full": {
+            "trades": full_pooled["n_trades_pooled"],
+            "sum_pp": sum(f["return_pct"] or 0 for f in full_pooled["per_fold"]),
+            "power": _power(full_pooled),
+        },
+        "rows": rows,
+    }
 
 
 def _md(rep: dict, full_tag: str) -> str:
-    lines = [f"# Component attribution: `{full_tag}` (preset {rep['preset']})", "",
-             f"**{rep['label']}**", "",
-             f"Full configuration: {rep['full']['trades']} trades, {rep['full']['sum_pp']:+.2f}pp "
-             f"per-fold sum.", "",
-             "| component | status | contribution pp | paired verdict | early / late | liveness |",
-             "|---|---|---|---|---|---|"]
+    lines = [
+        f"# Component attribution: `{full_tag}` (preset {rep['preset']})",
+        "",
+        f"**{rep['label']}**",
+        "",
+        (
+            f"Full configuration: {rep['full']['trades']} trades, "
+            f"{rep['full']['sum_pp']:+.2f}pp per-fold sum."
+        ),
+        "",
+        "| component | status | contribution pp | paired verdict | early / late | liveness |",
+        "|---|---|---|---|---|---|",
+    ]
     for r in rep["rows"]:
         live = r.get("liveness_evidence", {})
         h = r.get("halves")
-        hl = (f"{h['early']['verdict']} / {h['late']['verdict']}" if h else "")
+        hl = f"{h['early']['verdict']} / {h['late']['verdict']}" if h else ""
         c = r.get("component_contribution_pp")
-        lines.append(f"| {r['component']} | {r['status']} | {'' if c is None else f'{c:+.2f}'} | "
-                     f"{r.get('verdict', '')} | {hl} | "
-                     f"{live.get('metric', '')}{' moved' if live.get('moved') else ''} |")
+        lines.append(
+            f"| {r['component']} | {r['status']} | {'' if c is None else f'{c:+.2f}'} | "
+            f"{r.get('verdict', '')} | {hl} | "
+            f"{live.get('metric', '')}{' moved' if live.get('moved') else ''} |"
+        )
     return "\n".join(lines) + "\n"
 
 
@@ -225,13 +263,17 @@ def main(argv=None) -> int:
         pp = FOLDS / f"plan_{arm_tag(a.full_tag, c.name)}.json"
         if a.generate:
             generate(base_cls, c)
-            plan = derive(src, "SimpleTrigger", arm_class(a.base_class, c.name),
-                          arm_tag(a.full_tag, c.name))
+            plan = derive(
+                src, "SimpleTrigger", arm_class(a.base_class, c.name), arm_tag(a.full_tag, c.name)
+            )
             pp.write_text(json.dumps(plan, indent=2) + "\n")
         if a.run and pp.is_file():
             print(f"=== running {c.name}", flush=True)
-            rc = subprocess.run([sys.executable, str(STRAT / "evaluation/run_folds.py"),
-                                 "--plan", str(pp)], cwd=ROOT).returncode
+            rc = subprocess.run(
+                [sys.executable, str(STRAT / "evaluation/run_folds.py"), "--plan", str(pp)],
+                cwd=ROOT,
+                check=False,
+            ).returncode
             if rc:
                 print(f"*** {c.name}: run_folds exited {rc}")
         if pp.is_file():

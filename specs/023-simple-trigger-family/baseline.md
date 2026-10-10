@@ -53,3 +53,12 @@ attribute across the MRO + merged params JSON; the strategy has no JSON) run in 
 at `9e82a45` (pre-implementation) and in the current tree: **identical** (63 lines). The dry-run
 chain is `MomentumRegimeBasket15mFast -> MomentumRegimeBasket15m -> IStrategy`; it never imports
 BaseStrategy, SimpleTrigger or the harness.
+
+## T030/T031 — SC-001: legacy reproduction (2026-10-10)
+
+7 plans × 15 folds = 105 backtests, `LEGACY_TRIGGERONLY` preset, run sequentially (~4.5 min/plan).
+`SimpleTrigger/tests/test_legacy_reproduction.py`: **every fold's `trades_hash` identical** to the
+recorded arm for `wf_bo`, `wf_bvo`, `wf_bbo`, `wf_bgo`, `wf_geo`, `wf_gbbo`, `wf_gbbr` (15/15
+each); `stl_gbbr` totals 458 trades; no `saved_data/SimpleTrigger*` created. Each record carries
+`no_model: true`, `preset: LEGACY_TRIGGERONLY`, a `framework_sha`, entry-condition and
+exit-reason counts.

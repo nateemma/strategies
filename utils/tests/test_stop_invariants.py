@@ -6,24 +6,26 @@ documented bound. The bound is checked in PRICE space -- freqtrade's ratio is re
 `current_rate`, so a correct entry-anchored stop on a winning trade has a ratio MORE negative
 than the floor.
 """
+
 from __future__ import annotations
 
 import types
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
-
 from utils.ExitPolicy import STOP_AT_MARKET_RATIO
 from utils.StopInvariants import StopInvariantError, StopInvariantMixin
 
-T0 = datetime(2024, 1, 1, tzinfo=timezone.utc)
+
+T0 = datetime(2024, 1, 1, tzinfo=UTC)
 
 
 class _Parent:
     VALUE = None
 
-    def custom_stoploss(self, pair, trade, current_time, current_rate, current_profit,
-                        after_fill, **kwargs):
+    def custom_stoploss(
+        self, pair, trade, current_time, current_rate, current_profit, after_fill, **kwargs
+    ):
         return self.VALUE
 
 
@@ -41,8 +43,9 @@ def _trade(open_rate=100.0, tid=1):
 
 def _call(s, value, current_rate, hours, after_fill=False, trade=None):
     s.VALUE = value
-    return s.custom_stoploss("X/USDT", trade or _trade(), T0 + timedelta(hours=hours),
-                             current_rate, 0.0, after_fill)
+    return s.custom_stoploss(
+        "X/USDT", trade or _trade(), T0 + timedelta(hours=hours), current_rate, 0.0, after_fill
+    )
 
 
 def test_a_positive_ratio_raises():
@@ -69,14 +72,14 @@ def test_c_post_grace_bound_in_price_space():
         _call(s, -0.20, 110.0, hours=7, trade=_trade(tid=2))
     # MUST NOT raise: winning trade, correct entry-anchored stop at 96, ratio 96/110-1 = -0.1273
     ratio = 96.0 / 110.0 - 1.0
-    assert ratio < s.atr_stoploss_floor            # the ratio LOOKS looser than the floor
+    assert ratio < s.atr_stoploss_floor  # the ratio LOOKS looser than the floor
     assert _call(s, ratio, 110.0, hours=7, trade=_trade(tid=3)) == ratio
 
 
 def test_c_static_bound_when_not_adaptive():
     s = _Strat()
     s.use_atr_adaptive_stoploss = False
-    _call(s, -0.05, 100.0, hours=7, trade=_trade(tid=4))           # exactly at bound: ok
+    _call(s, -0.05, 100.0, hours=7, trade=_trade(tid=4))  # exactly at bound: ok
     with pytest.raises(StopInvariantError, match="bound"):
         _call(s, -0.08, 100.0, hours=7, trade=_trade(tid=5))
 
@@ -95,7 +98,7 @@ def test_stop_at_market_clamp_is_exempt():
 def test_d_direction_across_grace_boundary():
     s = _Strat()
     t = _trade(tid=9)
-    _call(s, -0.03, 100.0, hours=0, after_fill=True, trade=t)      # in-grace stop at 97
+    _call(s, -0.03, 100.0, hours=0, after_fill=True, trade=t)  # in-grace stop at 97
     # first post-grace stop at 105*(1-0.08)=96.6 < 97 while price 105 is above it -> raise
     with pytest.raises(StopInvariantError, match="direction"):
         _call(s, -0.08, 105.0, hours=7, trade=t)
@@ -109,7 +112,7 @@ def test_e_valid_value_returned_unchanged():
 
 def test_no_grace_configured_checks_from_the_start():
     s = _Strat()
-    s.stoploss_grace_hours = types.SimpleNamespace(value=0.0)      # a Parameter-like object
+    s.stoploss_grace_hours = types.SimpleNamespace(value=0.0)  # a Parameter-like object
     with pytest.raises(StopInvariantError, match="bound"):
         _call(s, -0.10, 100.0, hours=0, after_fill=True)
 

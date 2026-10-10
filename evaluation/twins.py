@@ -17,6 +17,7 @@ until both have passed:
 shared-trade fraction that limits the paired test, and the matched-count selection test, which
 does not need shared trades. Every number is PROVISIONAL under quality gate 2.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -24,18 +25,21 @@ import json
 import sys
 from pathlib import Path
 
+
 ROOT = Path(__file__).resolve().parents[3]
 STRAT = ROOT / "user_data/strategies"
 sys.path.insert(0, str(STRAT))
 
 from evaluation import bootstrap  # noqa: E402
 
-bootstrap.BT_RESULTS = ROOT / "user_data/backtest_results"     # cwd-independent archive path
+
+bootstrap.BT_RESULTS = ROOT / "user_data/backtest_results"  # cwd-independent archive path
 
 from evaluation.compare_pooled import compare_data  # noqa: E402
 from evaluation.halves import PROVISIONAL, split  # noqa: E402
 from evaluation.matched_count import matched_count_pooled  # noqa: E402
 from evaluation.pool import pool  # noqa: E402
+
 
 ARMS = STRAT / "regime/arms"
 OUT = STRAT / "evaluation/twins"
@@ -59,16 +63,26 @@ def check(plan: dict, nnnc_tag: str, simple_tag: str, equivalence_tag: str) -> t
     folds = [f["fold_id"] for f in plan["folds"]]
     rows, sha_bad, eq_bad, missing = [], [], [], []
     for fid in folds:
-        recs = {k: _record(t, fid) for k, t in
-                (("nnnc", nnnc_tag), ("simple", simple_tag), ("equivalence", equivalence_tag))}
+        recs = {
+            k: _record(t, fid)
+            for k, t in (
+                ("nnnc", nnnc_tag),
+                ("simple", simple_tag),
+                ("equivalence", equivalence_tag),
+            )
+        }
         absent = [k for k, r in recs.items() if not r or r.get("returncode") != 0 or r.get("error")]
         if absent:
             missing.append({"fold": fid, "absent_or_failed": absent})
             continue
         shas = {k: _sha(r, plan["config"]) for k, r in recs.items()}
         hashes = {k: r.get("trades_hash") for k, r in recs.items()}
-        row = {"fold": fid, "framework_sha": shas, "trades_hash": hashes,
-               "n_trades": {k: r.get("n_trades") for k, r in recs.items()}}
+        row = {
+            "fold": fid,
+            "framework_sha": shas,
+            "trades_hash": hashes,
+            "n_trades": {k: r.get("n_trades") for k, r in recs.items()},
+        }
         if len(set(shas.values())) != 1:
             sha_bad.append(fid)
         if hashes["equivalence"] != hashes["simple"]:
@@ -82,67 +96,110 @@ def check(plan: dict, nnnc_tag: str, simple_tag: str, equivalence_tag: str) -> t
         code, verdict = 3, "EQUIVALENCE_FAILED"
     else:
         code, verdict = 0, "PASS"
-    return code, {"verdict": verdict, "passed": code == 0, "nnnc_tag": nnnc_tag,
-                  "simple_tag": simple_tag, "equivalence_tag": equivalence_tag,
-                  "fingerprint_mismatch_folds": sha_bad, "equivalence_mismatch_folds": eq_bad,
-                  "missing": missing, "folds": rows}
+    return code, {
+        "verdict": verdict,
+        "passed": code == 0,
+        "nnnc_tag": nnnc_tag,
+        "simple_tag": simple_tag,
+        "equivalence_tag": equivalence_tag,
+        "fingerprint_mismatch_folds": sha_bad,
+        "equivalence_mismatch_folds": eq_bad,
+        "missing": missing,
+        "folds": rows,
+    }
 
 
 def compare(nnnc_plan: dict, simple_plan: dict, check_artifact: dict | None) -> dict:
     if not check_artifact or not check_artifact.get("passed"):
-        raise PermissionError("twin compare refused: no passing `twins check` artefact -- the "
-                              "frameworks are not proven identical, so a delta would mix model "
-                              "and framework effects")
+        raise PermissionError(
+            "twin compare refused: no passing `twins check` artefact -- the "
+            "frameworks are not proven identical, so a delta would mix model "
+            "and framework effects"
+        )
     nn, st = pool(nnnc_plan), pool(simple_plan)
     d = compare_data(nn, st)
     bs = d.get("bootstrap") or {}
     shared = bs.get("shared", 0)
     out = {
         "label": PROVISIONAL,
-        "arm": "NNNC (model)", "control": "SimpleTrigger twin (no model)",
-        "nnnc": {"trades": nn["n_trades_pooled"], "status": nn["status"],
-                 "sum_pp": sum(f["return_pct"] or 0 for f in nn["per_fold"]),
-                 "positive_folds": sum(1 for f in nn["per_fold"] if (f["return_pct"] or 0) > 0)},
-        "twin": {"trades": st["n_trades_pooled"], "status": st["status"],
-                 "sum_pp": sum(f["return_pct"] or 0 for f in st["per_fold"]),
-                 "positive_folds": sum(1 for f in st["per_fold"] if (f["return_pct"] or 0) > 0)},
+        "arm": "NNNC (model)",
+        "control": "SimpleTrigger twin (no model)",
+        "nnnc": {
+            "trades": nn["n_trades_pooled"],
+            "status": nn["status"],
+            "sum_pp": sum(f["return_pct"] or 0 for f in nn["per_fold"]),
+            "positive_folds": sum(1 for f in nn["per_fold"] if (f["return_pct"] or 0) > 0),
+        },
+        "twin": {
+            "trades": st["n_trades_pooled"],
+            "status": st["status"],
+            "sum_pp": sum(f["return_pct"] or 0 for f in st["per_fold"]),
+            "positive_folds": sum(1 for f in st["per_fold"] if (f["return_pct"] or 0) > 0),
+        },
         "verdict": d["verdict"],
         "directional_verdict": d["verdict"] if d["verdict"] in DIRECTIONAL else None,
-        "delta_pp": d.get("delta_pp"), "delta_pp_yr": d.get("delta_pp_yr"),
-        "ci_pp_yr": d.get("ci_pp_yr"), "p": bs.get("p"),
+        "delta_pp": d.get("delta_pp"),
+        "delta_pp_yr": d.get("delta_pp_yr"),
+        "ci_pp_yr": d.get("ci_pp_yr"),
+        "p": bs.get("p"),
         "shared_trades": shared,
-        "shared_fraction_of_nnnc": shared / nn["n_trades_pooled"] if nn["n_trades_pooled"] else None,
-        "shared_fraction_of_twin": shared / st["n_trades_pooled"] if st["n_trades_pooled"] else None,
+        "shared_fraction_of_nnnc": shared / nn["n_trades_pooled"]
+        if nn["n_trades_pooled"]
+        else None,
+        "shared_fraction_of_twin": shared / st["n_trades_pooled"]
+        if st["n_trades_pooled"]
+        else None,
         "halves": split(nn, st),
         "matched_count": matched_count_pooled(nn, st),
     }
     return out
 
 
+def _side_line(label: str, side: dict) -> str:
+    return (
+        f"- {label}: {side['trades']} trades, {side['sum_pp']:+.2f}pp per-fold sum, "
+        f"{side['positive_folds']} positive folds"
+    )
+
+
 def _md(res: dict) -> str:
-    mc = res["matched_count"]
-    lines = [f"# Model contribution: {res['arm']} vs {res['control']}", "",
-             f"**{res['label']}**", "",
-             f"- NNNC: {res['nnnc']['trades']} trades, {res['nnnc']['sum_pp']:+.2f}pp per-fold sum, "
-             f"{res['nnnc']['positive_folds']} positive folds",
-             f"- Twin: {res['twin']['trades']} trades, {res['twin']['sum_pp']:+.2f}pp per-fold sum, "
-             f"{res['twin']['positive_folds']} positive folds",
-             f"- Paired verdict: **{res['verdict']}**"
-             + (f" (delta {res['delta_pp']:+.2f}pp, CI {res['ci_pp_yr'][0]:+.2f}..{res['ci_pp_yr'][1]:+.2f}pp/yr, p={res['p']:.3f})"
-                if res.get("ci_pp_yr") else ""),
-             f"- Shared trades: {res['shared_trades']} "
-             f"({(res['shared_fraction_of_nnnc'] or 0):.1%} of NNNC, {(res['shared_fraction_of_twin'] or 0):.1%} of twin)",
-             "", "| matched count | n | observed pp | null pp | z | p |", "|---|---|---|---|---|---|"]
+    verdict = f"- Paired verdict: **{res['verdict']}**"
+    if res.get("ci_pp_yr"):
+        lo, hi = res["ci_pp_yr"]
+        verdict += (
+            f" (delta {res['delta_pp']:+.2f}pp, CI {lo:+.2f}..{hi:+.2f}pp/yr, p={res['p']:.3f})"
+        )
+    fn = res["shared_fraction_of_nnnc"] or 0
+    ft = res["shared_fraction_of_twin"] or 0
+    lines = [
+        f"# Model contribution: {res['arm']} vs {res['control']}",
+        "",
+        f"**{res['label']}**",
+        "",
+        _side_line("NNNC", res["nnnc"]),
+        _side_line("Twin", res["twin"]),
+        verdict,
+        f"- Shared trades: {res['shared_trades']} ({fn:.1%} of NNNC, {ft:.1%} of twin)",
+        "",
+        "| matched count | n | observed pp | null pp | z | p |",
+        "|---|---|---|---|---|---|",
+    ]
     for name in ("pooled", "early", "late"):
-        r = mc.get(name)
+        r = res["matched_count"].get(name)
         if r:
-            lines.append(f"| {name} | {r['n_selected']} | {r['observed_pp']:+.2f} | "
-                         f"{r['null_mean_pp']:+.2f} ± {r['null_sd_pp']:.2f} | {r['z']:+.2f} | {r['p_one_sided']:.5f} |")
+            null = f"{r['null_mean_pp']:+.2f} ± {r['null_sd_pp']:.2f}"
+            lines.append(
+                f"| {name} | {r['n_selected']} | {r['observed_pp']:+.2f} | {null} | "
+                f"{r['z']:+.2f} | {r['p_one_sided']:.5f} |"
+            )
     h = res["halves"]
     lines += ["", "| half | NNNC pp | twin pp | paired verdict |", "|---|---|---|---|"]
     for name in ("early", "late"):
-        lines.append(f"| {name} | {h[name]['arm']['sum_pp']:+.2f} ({h[name]['arm']['positive_folds']}/{h[name]['arm']['folds']}) | "
-                     f"{h[name]['ctl']['sum_pp']:+.2f} ({h[name]['ctl']['positive_folds']}/{h[name]['ctl']['folds']}) | {h[name]['verdict']} |")
+        a, c = h[name]["arm"], h[name]["ctl"]
+        lines.append(
+            f"| {name} | {a['sum_pp']:+.2f} ({a['positive_folds']}/{a['folds']}) | "
+            f"{c['sum_pp']:+.2f} ({c['positive_folds']}/{c['folds']}) | {h[name]['verdict']} |"
+        )
     return "\n".join(lines) + "\n"
 
 

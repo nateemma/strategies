@@ -1,11 +1,12 @@
 """T034 — NNNC_TriggerGate borrows arm D's fold models and can never train (023 research R12)."""
+
 from __future__ import annotations
 
 from pathlib import Path
 
 import pytest
-
 from evaluation import fingerprint as fp
+
 
 STRAT = Path(__file__).resolve().parents[2]
 
@@ -39,6 +40,7 @@ def test_training_entry_point_raises():
 def test_framework_equals_arm_d():
     cfg = fp.load_config(fp.STRAT_DIR / "config" / "config_wf.json")
     g = fp.resolve(_gate(), fp.load_params_json("NNNC_TriggerGate"), cfg)[0]
-    d = fp.resolve(fp.load_strategy_class("NNNC_A_Raw_Open"),
-                   fp.load_params_json("NNNC_A_Raw_Open"), cfg)[0]
+    d = fp.resolve(
+        fp.load_strategy_class("NNNC_A_Raw_Open"), fp.load_params_json("NNNC_A_Raw_Open"), cfg
+    )[0]
     assert g == d

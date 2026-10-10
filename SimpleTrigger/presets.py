@@ -22,9 +22,11 @@ deliberately; it never follows silently.
 `None` means "leave the attribute unset" unless the base class defines it, in which case it is
 written as None (freqtrade treats an absent attribute and a None one differently).
 """
+
 from __future__ import annotations
 
 import copy
+
 
 ARM_D_OPEN = {
     "attributes": {
@@ -151,8 +153,9 @@ def validate(preset: dict) -> None:
     for section, keys in want.items():
         have = set(preset[section])
         if have != keys:
-            raise PresetError(f"preset[{section!r}] missing {sorted(keys - have)}, "
-                              f"unknown {sorted(have - keys)}")
+            raise PresetError(
+                f"preset[{section!r}] missing {sorted(keys - have)}, unknown {sorted(have - keys)}"
+            )
 
 
 def get(name: str) -> dict:

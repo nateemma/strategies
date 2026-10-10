@@ -1,25 +1,34 @@
 """T039 — the matched-count selection test (023 research R13, FR-014)."""
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
-
 from evaluation.matched_count import matched_count
 
 
 def _pop(n_per_fold=200, folds=4, seed=0):
     rng = np.random.default_rng(seed)
-    return [{"fold_id": f"f{f:02d}", "pair": f"P{i}", "open_date": f"d{f}-{i}",
-             "profit_abs": float(rng.normal(0, 10)), "scale_pp_per_abs": 0.01}
-            for f in range(folds) for i in range(n_per_fold)]
+    return [
+        {
+            "fold_id": f"f{f:02d}",
+            "pair": f"P{i}",
+            "open_date": f"d{f}-{i}",
+            "profit_abs": float(rng.normal(0, 10)),
+            "scale_pp_per_abs": 0.01,
+        }
+        for f in range(folds)
+        for i in range(n_per_fold)
+    ]
 
 
 def test_top_k_selection_is_detected():
     pop = _pop()
     sel = []
     for f in range(4):
-        fold = sorted((t for t in pop if t["fold_id"] == f"f{f:02d}"),
-                      key=lambda t: -t["profit_abs"])
+        fold = sorted(
+            (t for t in pop if t["fold_id"] == f"f{f:02d}"), key=lambda t: -t["profit_abs"]
+        )
         sel += fold[:20]
     r = matched_count(sel, pop, n_draws=4000)
     assert r["z"] > 3 and r["p_one_sided"] < 0.001
@@ -51,4 +60,4 @@ def test_stratified_draw_respects_fold_counts():
             t["profit_abs"] = 1000.0
     sel = [t for t in pop if t["fold_id"] == "f00"][:10]
     r = matched_count(sel, pop, n_draws=500)
-    assert r["null_mean_pp"] < 50          # never drew from the +1000 fold
+    assert r["null_mean_pp"] < 50  # never drew from the +1000 fold

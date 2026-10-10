@@ -3,6 +3,7 @@
 The real loop runs with every side-effecting step monkeypatched, so these tests observe exactly
 which steps a plan triggers without generating, training or backtesting anything.
 """
+
 from __future__ import annotations
 
 import json
@@ -10,8 +11,8 @@ import sys
 import types
 
 import pytest
-
 from evaluation import foldplan, run_folds
+
 
 SRC = foldplan.ROOT_ABS / "user_data/strategies/evaluation/folds/plan_NNNC_A_Raw_Open.json"
 
@@ -44,7 +45,8 @@ def harness(tmp_path, monkeypatch):
         calls.evaluate.append((f["fold_id"], f["strategy_class"]))
         rec = {"returncode": 0, "n_trades": 5}
         (tmp_path / "regime/arms" / f"{f['arm_tag']}_{f['fold_id'].upper()}.json").write_text(
-            json.dumps(rec))
+            json.dumps(rec)
+        )
         return 0
 
     monkeypatch.setattr(run_folds, "generate_fold", fake_generate)
@@ -62,8 +64,8 @@ def _write_plan(tmp_path, plan):
 
 def _fake_class(monkeypatch, needs_training=False, trigger="gbb"):
     cls = types.SimpleNamespace(
-        strategy_config=types.SimpleNamespace(needs_training=needs_training),
-        TRIGGER_NAME=trigger)
+        strategy_config=types.SimpleNamespace(needs_training=needs_training), TRIGGER_NAME=trigger
+    )
     monkeypatch.setattr(run_folds, "_load_strategy_class", lambda name: cls)
     return cls
 
@@ -96,8 +98,9 @@ def test_no_model_plan_aborts_if_class_would_train(harness, monkeypatch):
 def test_no_model_plan_aborts_on_non_pass_trigger_before_any_evaluation(harness, monkeypatch):
     calls, tmp = harness
     _fake_class(monkeypatch, trigger="local_min_followthrough")
-    monkeypatch.setattr(run_folds, "_trigger_runnable",
-                        lambda name: (False, "FAIL in trigger_causality.json"))
+    monkeypatch.setattr(
+        run_folds, "_trigger_runnable", lambda name: (False, "FAIL in trigger_causality.json")
+    )
     plan = foldplan.derive(json.loads(SRC.read_text()), "SimpleTrigger", "X", "st_x")
     assert _run(monkeypatch, _write_plan(tmp, plan)) != 0
     assert calls.evaluate == []
@@ -107,9 +110,16 @@ def test_nnnc_plan_checks_model_dir_not_class(harness, monkeypatch, tmp_path):
     calls, tmp = harness
     params = tmp_path / "NNNC_TriggerGate.json"
     params.write_text(json.dumps({"strategy_name": "NNNC_TriggerGate", "params": {}}))
-    plan = foldplan.derive(json.loads(SRC.read_text()), "NNNC", "NNNC_TriggerGate", "wf_tg",
-                           model_source="NNNC_ARO", class_prefix="NNNC_TGT",
-                           params_file=params, snapshot_dir=tmp_path)
+    plan = foldplan.derive(
+        json.loads(SRC.read_text()),
+        "NNNC",
+        "NNNC_TriggerGate",
+        "wf_tg",
+        model_source="NNNC_ARO",
+        class_prefix="NNNC_TGT",
+        params_file=params,
+        snapshot_dir=tmp_path,
+    )
     plan["params_snapshot"] = str(tmp_path / next(p.name for p in tmp_path.glob("params_*")))
     assert _run(monkeypatch, _write_plan(tmp, plan)) == 0
     checked = set(calls.model_exists)
@@ -122,7 +132,9 @@ def test_model_exists_uses_model_dir_basename(tmp_path, monkeypatch):
     monkeypatch.setattr(run_folds, "SAVED", tmp_path)
     (tmp_path / "NNNC_ARO_f03").mkdir()
     (tmp_path / "NNNC_ARO_f03" / "NNNC_ARO_f03.safetensors").write_text("x")
-    fold = {"strategy_class": "NNNC_TGT_f03",
-            "model_dir": "user_data/strategies/saved_data/NNNC_ARO_f03"}
+    fold = {
+        "strategy_class": "NNNC_TGT_f03",
+        "model_dir": "user_data/strategies/saved_data/NNNC_ARO_f03",
+    }
     assert run_folds.model_exists(run_folds.model_key(fold)) is True
     assert run_folds.model_key({"strategy_class": "C", "model_dir": None}) == "C"

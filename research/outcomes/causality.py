@@ -21,17 +21,19 @@ produced it. `check_runnable()` -- used by SimpleTrigger strategies and by `run_
 preflight -- accepts a trigger only when its row is PASS AND that code is unchanged; a stale row
 counts as not PASS.
 """
+
 from __future__ import annotations
 
 import argparse
 import json
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
 
 STRAT_DIR = Path(__file__).resolve().parents[2]
 VERDICT_FILE = Path(__file__).resolve().parent / "trigger_causality.json"
@@ -49,14 +51,14 @@ CODE_FILES = (
 DEFAULT_PAIRS = ("SOL", "LTC", "AAVE")
 #: three non-adjacent eras (era start, UTC)
 DEFAULT_ERAS = ("2021-10-01", "2023-10-01", "2025-07-01")
-HISTORY_BARS = 1000        # history before the era start, so long indicators are warm
-MAX_GAP = pd.Timedelta("1D")   # a slice with a larger hole is not an era
-ERA_BARS = 6000            # ~62 days of 15m bars per era
+HISTORY_BARS = 1000  # history before the era start, so long indicators are warm
+MAX_GAP = pd.Timedelta("1D")  # a slice with a larger hole is not an era
+ERA_BARS = 6000  # ~62 days of 15m bars per era
 #: Detection is per cut: a trigger reading k bars ahead is caught when its output near a cut
 #: depends on the bars beyond it. Measured 2026-10-10: the planted k=3 control FAILS on 9/9
 #: full slices at 8 cuts; 16 is the default for margin.
 DEFAULT_CUTS = 16
-DEFAULT_WARMUP = 200       # = SimpleTrigger startup_candle_count; excluded from comparison
+DEFAULT_WARMUP = 200  # = SimpleTrigger startup_candle_count; excluded from comparison
 
 CONTROL_NAME = "local_min_followthrough"
 CONTROL_K = 3
@@ -72,8 +74,9 @@ def code_sha() -> str:
     """git blob shas of every file that can change a verdict, hashed together."""
     shas = []
     for rel in CODE_FILES:
-        out = subprocess.run(["git", "hash-object", rel], cwd=STRAT_DIR, capture_output=True,
-                             text=True, check=True)
+        out = subprocess.run(
+            ["git", "hash-object", rel], cwd=STRAT_DIR, capture_output=True, text=True, check=True
+        )
         shas.append(out.stdout.strip())
     import hashlib
 
@@ -90,8 +93,13 @@ def control_trigger():
         m = close.rolling(2 * CONTROL_K + 1, center=True, min_periods=1).min()
         return (close <= m).fillna(False).astype(bool)
 
-    return Trigger(name=CONTROL_NAME, evaluate=_centred_min, required_columns=("close",),
-                   source="CONTROL", description="centred local minimum -- reads k bars ahead")
+    return Trigger(
+        name=CONTROL_NAME,
+        evaluate=_centred_min,
+        required_columns=("close",),
+        source="CONTROL",
+        description="centred local minimum -- reads k bars ahead",
+    )
 
 
 def _populate(ohlcv: pd.DataFrame) -> pd.DataFrame:
@@ -130,13 +138,26 @@ def _evaluate(trigger, frame: pd.DataFrame) -> np.ndarray | None:
     return T.evaluate(trigger, frame).to_numpy(dtype=bool)
 
 
-def check_triggers(trigger_list, pairs=DEFAULT_PAIRS, eras=DEFAULT_ERAS,
-                   cuts: int = DEFAULT_CUTS, warmup: int = DEFAULT_WARMUP,
-                   slice_loader=None) -> dict[str, dict]:
+def check_triggers(
+    trigger_list,
+    pairs=DEFAULT_PAIRS,
+    eras=DEFAULT_ERAS,
+    cuts: int = DEFAULT_CUTS,
+    warmup: int = DEFAULT_WARMUP,
+    slice_loader=None,
+) -> dict[str, dict]:
     """Truncation test for every trigger in `trigger_list`. Feature frames are shared."""
     load = slice_loader or _load_slice
-    res = {t.name: {"trigger": t.name, "verdict": "PASS", "first_mismatch": None,
-                    "comparisons": 0, "missing_columns": None} for t in trigger_list}
+    res = {
+        t.name: {
+            "trigger": t.name,
+            "verdict": "PASS",
+            "first_mismatch": None,
+            "comparisons": 0,
+            "missing_columns": None,
+        }
+        for t in trigger_list
+    }
     slices = {"checked": [], "skipped": []}
     for pair in pairs:
         for era in eras:
@@ -155,26 +176,31 @@ def check_triggers(trigger_list, pairs=DEFAULT_PAIRS, eras=DEFAULT_ERAS,
                     r = res[t.name]
                     if full_out[t.name] is None:
                         r["verdict"] = "UNSCOREABLE"
-                        r["missing_columns"] = [c for c in t.required_columns
-                                                if c not in full.columns]
+                        r["missing_columns"] = [
+                            c for c in t.required_columns if c not in full.columns
+                        ]
                         continue
                     if r["verdict"] != "PASS":
                         continue
-                    a = full_out[t.name][warmup: cut + 1]
-                    b = _evaluate(t, prefix)[warmup: cut + 1]
+                    a = full_out[t.name][warmup : cut + 1]
+                    b = _evaluate(t, prefix)[warmup : cut + 1]
                     r["comparisons"] += 1
                     if not np.array_equal(a, b):
                         j = int(np.flatnonzero(a != b)[0]) + warmup
                         r["verdict"] = "FAIL"
                         r["first_mismatch"] = {
-                            "pair": pair, "era": era, "cut_bar": int(cut), "bar": j,
+                            "pair": pair,
+                            "era": era,
+                            "cut_bar": int(cut),
+                            "bar": j,
                             "bars_before_cut": int(cut - j),
                             "date": str(ohlcv.index[j]),
                             "full": bool(full_out[t.name][j]),
-                            "truncated": bool(_evaluate(t, prefix)[j])}
+                            "truncated": bool(_evaluate(t, prefix)[j]),
+                        }
     for r in res.values():
         if r["verdict"] == "PASS" and r["comparisons"] == 0:
-            r["verdict"] = "UNSCOREABLE"           # nothing was compared: never a PASS
+            r["verdict"] = "UNSCOREABLE"  # nothing was compared: never a PASS
     res["__slices__"] = slices
     return res
 
@@ -190,13 +216,21 @@ def run(pairs=DEFAULT_PAIRS, eras=DEFAULT_ERAS, cuts=DEFAULT_CUTS, names=None) -
     ctl = results.pop(CONTROL_NAME)
     slices = results.pop("__slices__")
     return {
-        "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generated": datetime.now(UTC).isoformat(timespec="seconds"),
         "code_sha": code_sha(),
-        "pairs": list(pairs), "eras": list(eras), "cut_points": cuts,
-        "warmup_bars": DEFAULT_WARMUP, "history_bars": HISTORY_BARS, "era_bars": ERA_BARS,
-        "slices_checked": slices["checked"], "slices_skipped": slices["skipped"],
-        "checker_control": {"trigger": CONTROL_NAME, "verdict": ctl["verdict"],
-                            "first_mismatch": ctl["first_mismatch"]},
+        "pairs": list(pairs),
+        "eras": list(eras),
+        "cut_points": cuts,
+        "warmup_bars": DEFAULT_WARMUP,
+        "history_bars": HISTORY_BARS,
+        "era_bars": ERA_BARS,
+        "slices_checked": slices["checked"],
+        "slices_skipped": slices["skipped"],
+        "checker_control": {
+            "trigger": CONTROL_NAME,
+            "verdict": ctl["verdict"],
+            "first_mismatch": ctl["first_mismatch"],
+        },
         "triggers": results,
     }
 
@@ -207,7 +241,10 @@ def check_runnable(name: str | None, verdict_file: Path | None = None) -> tuple[
         return False, "no TRIGGER_NAME"
     vf = verdict_file or VERDICT_FILE
     if not vf.is_file():
-        return False, f"no causality verdicts at {vf} -- run `python -m research.outcomes.causality --write`"
+        return (
+            False,
+            f"no causality verdicts at {vf} -- run `python -m research.outcomes.causality --write`",
+        )
     try:
         data = json.loads(vf.read_text())
     except ValueError as exc:
@@ -220,8 +257,10 @@ def check_runnable(name: str | None, verdict_file: Path | None = None) -> tuple[
     if row.get("verdict") != "PASS":
         return False, f"{name!r} causality verdict is {row.get('verdict')}"
     if data.get("code_sha") != code_sha():
-        return False, ("causality verdicts are STALE: populator/trigger/checker code changed "
-                       "since they were measured -- re-run the checker")
+        return False, (
+            "causality verdicts are STALE: populator/trigger/checker code changed "
+            "since they were measured -- re-run the checker"
+        )
     return True, "PASS"
 
 
@@ -236,13 +275,18 @@ def main(argv=None) -> int:
     ctl = out["checker_control"]
     print(f"slices checked {len(out['slices_checked'])}: {', '.join(out['slices_checked'])}")
     if out["slices_skipped"]:
-        print(f"*** slices SKIPPED (not contiguous / too short): {', '.join(out['slices_skipped'])}")
+        print(
+            f"*** slices SKIPPED (not contiguous / too short): {', '.join(out['slices_skipped'])}"
+        )
     print(f"control {ctl['trigger']}: {ctl['verdict']}  (must be FAIL)")
     for name, r in sorted(out["triggers"].items()):
         extra = ""
         if r["verdict"] == "FAIL":
             fm = r["first_mismatch"]
-            extra = f"  first mismatch {fm['pair']} {fm['date']} ({fm['bars_before_cut']} bars before cut)"
+            extra = (
+                f"  first mismatch {fm['pair']} {fm['date']} "
+                f"({fm['bars_before_cut']} bars before cut)"
+            )
         elif r["verdict"] == "UNSCOREABLE" and r["missing_columns"]:
             extra = f"  missing {r['missing_columns']}"
         print(f"  {name:<20} {r['verdict']:<12} comparisons={r['comparisons']}{extra}")

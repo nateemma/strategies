@@ -5,11 +5,11 @@
 framework instead: class attributes across the MRO, hyperopt parameter defaults, the JSON merged
 the way freqtrade merges it, and the run config. These tests pin each of those layers.
 """
+
 from __future__ import annotations
 
-import pytest
-
 from evaluation import fingerprint as fp
+
 
 CONFIG = fp.STRAT_DIR / "config" / "config_wf.json"
 
@@ -32,12 +32,24 @@ def test_resolved_dict_covers_every_preset_member():
     _, resolved = _resolve("NNNC_A_Raw_Open")
     for key in fp.ATTRIBUTE_MEMBERS:
         assert key in resolved["attributes"], key
-    for key in ("entry_adx_threshold", "entry_atr_pct", "entry_bb_width_threshold",
-                "entry_close_norm_threshold", "entry_guard_threshold", "entry_rvol_threshold",
-                "entry_enable_guards"):
+    for key in (
+        "entry_adx_threshold",
+        "entry_atr_pct",
+        "entry_bb_width_threshold",
+        "entry_close_norm_threshold",
+        "entry_guard_threshold",
+        "entry_rvol_threshold",
+        "entry_enable_guards",
+    ):
         assert key in resolved["buy"], key
-    for key in ("cexit_take_profit", "cexit_max_days", "cexit_enable_profit_checks",
-                "enable_exit_signal", "stoploss_grace_hours", "stoploss_grace_level"):
+    for key in (
+        "cexit_take_profit",
+        "cexit_max_days",
+        "cexit_enable_profit_checks",
+        "enable_exit_signal",
+        "stoploss_grace_hours",
+        "stoploss_grace_level",
+    ):
         assert key in resolved["sell"], key
     for key in ("max_open_trades", "stake_amount", "dry_run_wallet", "fee"):
         assert key in resolved["run"], key

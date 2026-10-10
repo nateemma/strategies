@@ -3,6 +3,7 @@
 Both lookups used to glob `{tag}_*.json`, so tag `wf_x_f00` also matched the seed-7 record
 `wf_x_f00_s7_F00.json`, and which one came back depended on directory order.
 """
+
 from __future__ import annotations
 
 import json

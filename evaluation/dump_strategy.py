@@ -9,6 +9,7 @@ for the "before" side), and diff the outputs.
 
 Never instantiates the strategy.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -33,7 +34,7 @@ def _jsonable(v):
         return [_jsonable(x) for x in v]
     if isinstance(v, (str, int, float, bool)) or v is None:
         return v
-    val = getattr(v, "value", None)               # hyperopt Parameter -> its default value
+    val = getattr(v, "value", None)  # hyperopt Parameter -> its default value
     if val is not None and hasattr(v, "space"):
         return {"parameter": type(v).__name__, "default": _jsonable(getattr(v, "default", val))}
     return repr(v)
@@ -53,12 +54,18 @@ def dump(strat_dir: Path, name: str) -> dict:
         if k.startswith("_"):
             continue
         v = inspect.getattr_static(cls, k)
-        if callable(v) and not hasattr(v, "space") or isinstance(v, (staticmethod, classmethod, property)):
+        if (callable(v) and not hasattr(v, "space")) or isinstance(
+            v, (staticmethod, classmethod, property)
+        ):
             continue
         attrs[k] = _jsonable(getattr(cls, k))
     js = path.with_suffix(".json")
-    return {"strategy": name, "mro": [c.__name__ for c in cls.__mro__], "attributes": attrs,
-            "params_json": json.loads(js.read_text()) if js.is_file() else None}
+    return {
+        "strategy": name,
+        "mro": [c.__name__ for c in cls.__mro__],
+        "attributes": attrs,
+        "params_json": json.loads(js.read_text()) if js.is_file() else None,
+    }
 
 
 def main(argv=None) -> int:

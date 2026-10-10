@@ -1,10 +1,10 @@
 """T022 — every LabelMethod is mapped exactly once (023 FR-004, data-model LabelTriggerMapping)."""
+
 from __future__ import annotations
 
 import json
 
 import pytest
-
 from Framework.TrainingSignals import LabelMethod
 from research.outcomes import triggers as T
 from research.outcomes.causality import VERDICT_FILE
@@ -38,6 +38,14 @@ def test_triggers_are_registered_and_causal():
 
 def test_empty_rows_are_the_eight_pure_outcome_labels():
     empty = {m.name for m, r in LM.MAPPING.items() if r.status == LM.EMPTY}
-    assert empty == {"forward_mae", "triple_barrier", "quantile_future", "mfe_mae_ratio",
-                     "risk_adj_future", "multi_horizon_vote", "optimal_signals", "local_extrema"}
+    assert empty == {
+        "forward_mae",
+        "triple_barrier",
+        "quantile_future",
+        "mfe_mae_ratio",
+        "risk_adj_future",
+        "multi_horizon_vote",
+        "optimal_signals",
+        "local_extrema",
+    }
     assert all(LM.MAPPING[LabelMethod[n]].trigger == "empty" for n in empty)

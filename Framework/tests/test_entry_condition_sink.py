@@ -3,6 +3,7 @@
 `populate_entry_trend` ANDs a list of masks. The sink names each mask and writes its pass count
 when FT_ENTRY_CONDITION_SINK is set. It must never change `enter_long`.
 """
+
 from __future__ import annotations
 
 import json
@@ -14,12 +15,14 @@ import numpy as np
 import pandas as pd
 import pytest
 
+
 ROOT = Path(__file__).resolve().parents[2]
 for p in (str(ROOT), str(ROOT / "utils"), str(ROOT / "NNNC")):
     if p not in sys.path:
         sys.path.insert(0, p)
 
 from Framework.BaseStrategy import BaseStrategy  # noqa: E402
+
 
 N = 400
 
@@ -33,15 +36,17 @@ class _Stub(BaseStrategy):
 
 def _frame(seed=0):
     rng = np.random.default_rng(seed)
-    return pd.DataFrame({
-        "volume": np.where(rng.random(N) < 0.3, 0.0, rng.random(N) * 100),
-        "rvol": rng.random(N) * 3,
-        "atr_pct_roll": rng.random(N) * 0.05,
-        "guard_metric": rng.uniform(-1, 1, N),
-        "close_norm": rng.uniform(-1, 1, N),
-        "adx": rng.random(N) * 60,
-        "bb_width": rng.random(N) * 0.2,
-    })
+    return pd.DataFrame(
+        {
+            "volume": np.where(rng.random(N) < 0.3, 0.0, rng.random(N) * 100),
+            "rvol": rng.random(N) * 3,
+            "atr_pct_roll": rng.random(N) * 0.05,
+            "guard_metric": rng.uniform(-1, 1, N),
+            "close_norm": rng.uniform(-1, 1, N),
+            "adx": rng.random(N) * 60,
+            "bb_width": rng.random(N) * 0.2,
+        }
+    )
 
 
 def _strategy(mask, guards: bool, thresholds: dict):
@@ -56,9 +61,14 @@ def _strategy(mask, guards: bool, thresholds: dict):
     return s
 
 
-THRESH = {"entry_rvol_threshold": 1.0, "entry_atr_pct": 0.01, "entry_guard_threshold": 0.3,
-          "entry_close_norm_threshold": 0.5, "entry_adx_threshold": 20.0,
-          "entry_bb_width_threshold": 0.05}
+THRESH = {
+    "entry_rvol_threshold": 1.0,
+    "entry_atr_pct": 0.01,
+    "entry_guard_threshold": 0.3,
+    "entry_close_norm_threshold": 0.5,
+    "entry_adx_threshold": 20.0,
+    "entry_bb_width_threshold": 0.05,
+}
 
 
 @pytest.mark.parametrize("guards", [True, False])

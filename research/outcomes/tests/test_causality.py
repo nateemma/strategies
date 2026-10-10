@@ -3,6 +3,7 @@
 A checker that cannot fail reports the same "PASS" as a real pass (constitution IV), so the
 planted forward-reading triggers here MUST fail, on real data, through the real feature frame.
 """
+
 from __future__ import annotations
 
 import json
@@ -10,7 +11,7 @@ import sys
 from pathlib import Path
 
 import pandas as pd
-import pytest
+
 
 ROOT = Path(__file__).resolve().parents[3]
 for p in (str(ROOT), str(ROOT / "utils")):
@@ -27,15 +28,19 @@ def _small_loader(pair, era):
 
     o = load_ohlcv(pair)
     i0 = o.index.searchsorted(pd.Timestamp(era, tz="UTC"))
-    return o.iloc[i0 - 600: i0 + 900]
+    return o.iloc[i0 - 600 : i0 + 900]
 
 
-KW = dict(pairs=("SOL",), eras=("2023-10-01",), cuts=16, slice_loader=_small_loader)
+KW = {"pairs": ("SOL",), "eras": ("2023-10-01",), "cuts": 16, "slice_loader": _small_loader}
 
 
 def _shift_trigger():
-    return T.Trigger(name="planted_shift", evaluate=lambda df: (df["close"].shift(-3) > df["close"])
-                     .fillna(False).astype(bool), required_columns=("close",), source="CONTROL")
+    return T.Trigger(
+        name="planted_shift",
+        evaluate=lambda df: (df["close"].shift(-3) > df["close"]).fillna(False).astype(bool),
+        required_columns=("close",),
+        source="CONTROL",
+    )
 
 
 def test_gbb_passes_on_real_data():
@@ -54,26 +59,41 @@ def test_planted_forward_reads_fail():
 
 
 def test_missing_columns_are_unscoreable_not_pass():
-    t = T.Trigger(name="needs_ghost", evaluate=lambda df: df["ghost_col"] > 0,
-                  required_columns=("ghost_col",), source="CONTROL")
+    t = T.Trigger(
+        name="needs_ghost",
+        evaluate=lambda df: df["ghost_col"] > 0,
+        required_columns=("ghost_col",),
+        source="CONTROL",
+    )
     res = C.check_triggers([t], **KW)["needs_ghost"]
     assert res["verdict"] == "UNSCOREABLE" and res["missing_columns"] == ["ghost_col"]
 
 
 def test_cli_exits_1_when_control_does_not_fail(monkeypatch):
     def fake_run(**kw):
-        return {"checker_control": {"trigger": C.CONTROL_NAME, "verdict": "PASS",
-                                    "first_mismatch": None}, "triggers": {},
-                "slices_checked": [], "slices_skipped": []}
+        return {
+            "checker_control": {
+                "trigger": C.CONTROL_NAME,
+                "verdict": "PASS",
+                "first_mismatch": None,
+            },
+            "triggers": {},
+            "slices_checked": [],
+            "slices_skipped": [],
+        }
+
     monkeypatch.setattr(C, "run", fake_run)
     assert C.main([]) == 1
 
 
 def test_check_runnable_fails_closed(tmp_path):
     vf = tmp_path / "v.json"
-    assert C.check_runnable("gbb", vf)[0] is False                     # no file
-    good = {"code_sha": C.code_sha(), "checker_control": {"verdict": "FAIL"},
-            "triggers": {"gbb": {"verdict": "PASS"}, "bad": {"verdict": "FAIL"}}}
+    assert C.check_runnable("gbb", vf)[0] is False  # no file
+    good = {
+        "code_sha": C.code_sha(),
+        "checker_control": {"verdict": "FAIL"},
+        "triggers": {"gbb": {"verdict": "PASS"}, "bad": {"verdict": "FAIL"}},
+    }
     vf.write_text(json.dumps(good))
     assert C.check_runnable("gbb", vf) == (True, "PASS")
     assert C.check_runnable("bad", vf)[0] is False

@@ -31,9 +31,11 @@ post-grace stop -- its implied price is the market, which is below the bound by 
 Strategy-agnostic: no family names. Per-trade state (the last stop price) is kept on the
 instance, keyed by trade id.
 """
+
 from __future__ import annotations
 
 from utils.ExitPolicy import STOP_AT_MARKET_RATIO
+
 
 _TOL = 1e-9
 
@@ -43,15 +45,17 @@ class StopInvariantError(RuntimeError):
 
 
 def _num(v, default=0.0) -> float:
-    v = getattr(v, "value", v)                      # hyperopt Parameter or plain float
+    v = getattr(v, "value", v)  # hyperopt Parameter or plain float
     return float(default if v is None else v)
 
 
 class StopInvariantMixin:
-    def custom_stoploss(self, pair, trade, current_time, current_rate, current_profit,
-                        after_fill, **kwargs):
-        value = super().custom_stoploss(pair, trade, current_time, current_rate,
-                                        current_profit, after_fill, **kwargs)
+    def custom_stoploss(
+        self, pair, trade, current_time, current_rate, current_profit, after_fill, **kwargs
+    ):
+        value = super().custom_stoploss(
+            pair, trade, current_time, current_rate, current_profit, after_fill, **kwargs
+        )
         self._check_stop(pair, trade, current_time, current_rate, value)
         return value
 
@@ -63,10 +67,12 @@ class StopInvariantMixin:
         if value > 0.0:
             raise StopInvariantError(
                 f"stop sign: custom_stoploss returned {value!r} > 0 for {where}. freqtrade "
-                f"applies abs(), so this LOOSENS the stop (the 09db623 defect class).")
+                f"applies abs(), so this LOOSENS the stop (the 09db623 defect class)."
+            )
         if abs(value) > 1.0 + _TOL:
             raise StopInvariantError(
-                f"stop price: |{value!r}| > 1 implies a negative stop price for {where}.")
+                f"stop price: |{value!r}| > 1 implies a negative stop price for {where}."
+            )
         stop_price = current_rate * (1.0 - abs(value))
 
         grace_hours = _num(getattr(self, "stoploss_grace_hours", 0.0))
@@ -83,19 +89,28 @@ class StopInvariantMixin:
             # Adaptive: the ATR stop is clamped to [floor, cap], but `_resolve_normal_stop`
             # FALLS BACK to the static stoploss when ATR is unavailable -- so the documented
             # bound is the looser of the two, not the floor alone.
-            floor = (min(_num(getattr(self, "atr_stoploss_floor", static), default=static), static)
-                     if adaptive else static)
+            floor = (
+                min(_num(getattr(self, "atr_stoploss_floor", static), default=static), static)
+                if adaptive
+                else static
+            )
             bound = trade.open_rate * (1.0 + floor)
             if stop_price < bound * (1.0 - _TOL):
                 raise StopInvariantError(
                     f"stop bound: implied stop price {stop_price:.8g} is below "
                     f"open_rate*(1+{floor}) = {bound:.8g} for {where} (ratio {value!r}, "
-                    f"current {current_rate}).")
+                    f"current {current_rate})."
+                )
             prev = last.get(tid)
-            if (prev is not None and prev[1] and current_rate > prev[0]
-                    and stop_price < prev[0] * (1.0 - _TOL)):
+            if (
+                prev is not None
+                and prev[1]
+                and current_rate > prev[0]
+                and stop_price < prev[0] * (1.0 - _TOL)
+            ):
                 raise StopInvariantError(
                     f"stop direction: first post-grace stop {stop_price:.8g} is below the "
                     f"in-grace stop {prev[0]:.8g} while price {current_rate} is above it, "
-                    f"for {where}.")
+                    f"for {where}."
+                )
         last[tid] = (stop_price, in_grace)

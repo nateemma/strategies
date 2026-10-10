@@ -311,9 +311,9 @@ exactly under the legacy preset.
   --family SimpleTrigger --base <cls> --tag <tag> --out evaluation/folds/plan_<tag>.json`. Tags:
   `stl_bo`, `stl_bvo`, `stl_bbo`, `stl_bgo`, `stl_geo`, `stl_gbbo`, `stl_gbbr`. Then confirm the
   fold windows equal those of each original 021 plan (`evaluation/folds/plan_{BreakoutOpen,...,GbbOpen}.json`).
-- [ ] T030 [US1] Run the 7 plans **sequentially** (`python -m evaluation.run_folds --plan ...`,
+- [X] T030 [US1] Run the 7 plans **sequentially** (`python -m evaluation.run_folds --plan ...`,
   105 backtests total). Afterwards assert that no `saved_data/SimpleTrigger_*` directory exists.
-- [ ] T031 [US1] Write `SimpleTrigger/tests/test_legacy_reproduction.py`, a data test over
+- [X] T031 [US1] Write `SimpleTrigger/tests/test_legacy_reproduction.py`, a data test over
   `regime/arms/`. For each of the 7 pairs (`stl_X` vs the recorded `wf_X`), assert that
   `trades_hash` is equal in every fold. Treat `wf_gbbg` f10 (0 trades, no hash) as not
   applicable; that arm is not reproduced here. Also assert `stl_gbbr` totals 458 trades.
@@ -429,13 +429,13 @@ defect.
 **Independent Test**: quickstart §7. Every component has a row. Under `LEGACY_TRIGGERONLY`,
 `stop_atr_band` and `stop_volume_confirm` come out INERT (the R1 finding, measured).
 
-- [ ] T043 [P] [US2] Write `SimpleTrigger/tests/test_components.py`. Assert that:
+- [X] T043 [P] [US2] Write `SimpleTrigger/tests/test_components.py`. Assert that:
   - every component in `SimpleTrigger.components.COMPONENTS` has non-empty `overrides` and a
     `liveness_metric`;
   - for each component, the fingerprint diff between the full `SimpleTrigger_Gbb` and its
     neutralised variant touches ONLY keys in that component's `overrides`;
   - under `ARM_D_OPEN` every `guard_*` component is listed in `neutral_is_identity_under`.
-- [ ] T044 [P] [US2] Implement `SimpleTrigger/components.py`, the data-model `Component` table.
+- [X] T044 [P] [US2] Implement `SimpleTrigger/components.py`, the data-model `Component` table.
   Components and their neutral overrides:
   - `guard_adx` → `entry_adx_threshold: -1.0`
   - `guard_atr_pct` → `entry_atr_pct: -1.0`
@@ -488,7 +488,7 @@ defect.
 **Independent Test**: quickstart §8. Coupled with matched targets is hash-identical to decoupled
 in 15/15 folds, and there are zero `StopInvariantError`s.
 
-- [ ] T049 [P] [US4] Write `SimpleTrigger/tests/test_coupling.py`. Assert that:
+- [X] T049 [P] [US4] Write `SimpleTrigger/tests/test_coupling.py`. Assert that:
   - `coupling.resolve(LabelMethod.gbb, min_gain=g, horizon=h, fee_per_side=f, timeframe="15m")`
     returns `take_profit_net == utils.ExitPolicy.net_from_price_ratio(1 + g, f)`,
     `max_days == h * 15 / 1440`, and `coupled_stop == "none-in-label"` with the stop fields
@@ -498,11 +498,11 @@ in 15/15 folds, and there are zero `StopInvariantError`s.
   - `resolve` on an unsupported `LabelMethod` (per `label_map`) raises;
   - the round trip holds: choosing `g` from `utils.ExitPolicy.price_ratio_for_net(tp, f) - 1`
     gives back `tp` to 1e-12.
-- [ ] T050 [US4] Implement `SimpleTrigger/coupling.py` (research R8). It produces parameter values
+- [X] T050 [US4] Implement `SimpleTrigger/coupling.py` (research R8). It produces parameter values
   only (G5). Wire it in `SimpleTriggerStrategy.__init_subclass__`: when `EXIT_MODE == "coupled"`,
   merge `resolve(...)` into `sell_params` and the stop attributes, and store the resolution on a
   class attribute `COUPLED_RESOLUTION`, which `run_arm` records (T013). Make T049 pass.
-- [ ] T051 [US4] Create `SimpleTrigger/SimpleTrigger_GbbCoupled.py` (`EXIT_MODE = "coupled"`,
+- [X] T051 [US4] Create `SimpleTrigger/SimpleTrigger_GbbCoupled.py` (`EXIT_MODE = "coupled"`,
   `LABEL_METHOD = gbb`). Choose `min_gain` via `price_ratio_for_net(ARM_D_OPEN cexit_take_profit,
   fee) - 1` and `horizon` so that `max_days` equals the preset's `cexit_max_days`. Assert its
   `framework_sha` equals `SimpleTrigger_Gbb`'s.
@@ -521,7 +521,7 @@ itself is follow-up work.
   operating point, verbatim"). State that its STOP is static −0.05 with ATR-adaptive off, unlike
   arm D, and cite 023 research R1. Comment only; no value changes, since the legacy hashes depend
   on it.
-- [ ] T054 [P] Run `ruff check` and `ruff format --check` on every new or edited Python file
+- [X] T054 [P] Run `ruff check` and `ruff format --check` on every new or edited Python file
   (ruff is the formatter of record per `AGENT_GUIDE.md`).
 - [ ] T055 Run the full unit gate (quickstart §0) and confirm it passes.
 - [ ] T056 Write `specs/023-simple-trigger-family/report.md`. Start with a SUMMARY covering:
