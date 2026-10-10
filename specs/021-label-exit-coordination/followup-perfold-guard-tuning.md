@@ -20,7 +20,7 @@ inverts between windows, rank correlation −0.648). Yet `gbb` + model + a **per
 earns +39.98pp in 15/15 folds. The two facts are reconcilable only if the signal is real but
 **regime-dependent and therefore only exploitable by something that re-tunes** — which is what
 per-fold selection is and what a fixed-split probe cannot be. Separately, a one-off arm with
-**globally** tuned guards and no model returned **+18.76pp, 12/15 folds, ~+5.1pp/yr** at a
+**globally** tuned guards and no model returned **+18.76pp (in-sample — 97.8% from folds inside its own tuning window; see 022/provenance.md), 12/15 folds, ~+5.1pp/yr** at a
 per-trade EV of +0.0147 (95× the unguarded arm). That number is the reason to run this study
 and is simultaneously untrustworthy — see Phase 0.
 
@@ -31,7 +31,7 @@ The single most important task, and cheap.
 1. **Where did the pre-2026-09-06 tuned guard values come from?** (`entry_adx_threshold` 10.0,
    `entry_atr_pct` 0.013, `entry_bb_width_threshold` 0.094, `entry_close_norm_threshold` 0.6,
    `entry_guard_threshold` 0.1, `entry_rvol_threshold` 1.9.) Git archaeology plus any `.fthypt`
-   logs. **If their hyperopt window overlaps the 15 evaluation folds, the +18.76pp is
+   logs. **If their hyperopt window overlaps the 15 evaluation folds, the +18.76pp (in-sample — 97.8% from folds inside its own tuning window; see 022/provenance.md) is
    in-sample and this study's motivating number evaporates.** Establish this first; it changes
    whether Phase 2's arm B means anything.
 2. **Confirm the incumbent's configuration from artefacts, not prose.** Feature 021 twice
@@ -39,7 +39,7 @@ The single most important task, and cheap.
    literal; `guards` recorded the CLI flag, not the effective value). Read the strategy class
    and the params file.
 3. **Re-state the baselines** that already exist, so nothing is re-run needlessly:
-   `GbbOpen` +2.64pp (7/15), `GbbGuardedOpen` +18.76pp (12/15), incumbent +39.98pp (15/15).
+   `GbbOpen` +2.64pp (7/15), `GbbGuardedOpen` +18.76pp (in-sample — 97.8% from folds inside its own tuning window; see 022/provenance.md) (12/15), incumbent +39.98pp (15/15).
 
 ## Phase 1 — the per-fold tuning instrument
 
@@ -70,7 +70,7 @@ One exit, one fold plan, 15 folds each, so arms are comparable fold-for-fold.
 | arm | guards | model | status |
 |---|---|---|---|
 | **A** control | open | none | **done** — +2.64pp, 7/15 |
-| **B** global tuning | historical tuned values | none | **done** — +18.76pp, 12/15 *(suspect; Phase 0)* |
+| **B** global tuning | historical tuned values | none | **done** — +18.76pp (in-sample — 97.8% from folds inside its own tuning window; see 022/provenance.md), 12/15 *(suspect; Phase 0)* |
 | **C** per-fold tuning | tuned on each fold's train window | none | **THE NEW ARM** |
 | **D** incumbent | open | per-fold threshold | **done** — +39.98pp, 15/15 |
 | **E** both | tuned per fold | per-fold threshold | optional, run only if C succeeds |
@@ -79,7 +79,7 @@ One exit, one fold plan, 15 folds each, so arms are comparable fold-for-fold.
 
 * **C vs A** — do per-fold-tuned guards beat guards-open with no model at all? *Is the guard
   chain a strategy?*
-* **C vs B** — if C ≪ B, then B's +18.76pp was the tuning window leaking, and that is the
+* **C vs B** — if C ≪ B, then B's +18.76pp (in-sample — 97.8% from folds inside its own tuning window; see 022/provenance.md) was the tuning window leaking, and that is the
   study's finding. **This is the falsification test and it must be stated before the run.**
 * **C vs D** — does a model-free guard strategy match the incumbent? If yes, the model is
   ornamental and this repository's *"guard ablation: model adds NOTHING"* generalises from
@@ -110,7 +110,7 @@ State before running, so the result cannot be re-read afterwards:
 
 * **C beats A by more than the harness floor (>3–4pp/yr) with a paired CI excluding zero** →
   the guard chain is a genuine model-free lever, and per-fold tuning is the mechanism.
-* **C ≈ A (within the floor)** → B's +18.76pp was contamination or a 3-fold accident, and the
+* **C ≈ A (within the floor)** → B's +18.76pp (in-sample — 97.8% from folds inside its own tuning window; see 022/provenance.md) was contamination or a 3-fold accident, and the
   guard chain is not a lever either. A clean negative.
 * **C ≈ D** → the model is ornamental; move all effort to gate/mechanism work.
 * **E ≫ C** → the model adds real value *on top of* tuned guards, which would be the first

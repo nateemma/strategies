@@ -1,15 +1,15 @@
 {
-  "run_id": "20261007-080945",
+  "run_id": "20261007-085458",
   "family": "NNNC",
-  "base_strategy": "NNNC_A_Raw",
+  "base_strategy": "NNNC_ForwardMAE_Raw",
   "anchored": true,
   "min_train_days": 730,
   "test_days": 90,
   "data_start": "2021-01-01",
   "data_end": "2026-09-07",
   "config": "user_data/strategies/config/config_wf.json",
-  "params_snapshot": "user_data/strategies/evaluation/folds/params_20261007-080945.json",
-  "params_sha": "dc07cd1967414b47",
+  "params_snapshot": "user_data/strategies/evaluation/folds/params_rung_fmr_tp0.015.json",
+  "params_sha": "c9158878d9b58570",
   "validated": true,
   "validation_errors": [],
   "folds": [
@@ -22,9 +22,9 @@
       "train_timerange": "20210101-20230101",
       "test_timerange": "20230101-20230401",
       "test_days": 90,
-      "strategy_class": "NNNC_ARW_f00",
-      "model_dir": "user_data/strategies/saved_data/NNNC_ARW_f00",
-      "arm_tag": "wf_arw_f00",
+      "strategy_class": "NNNC_FMR_f00",
+      "model_dir": "user_data/strategies/saved_data/NNNC_FMR_f00",
+      "arm_tag": "rung_fmr_tp0.015_f00",
       "status": "planned"
     },
     {
@@ -36,9 +36,9 @@
       "train_timerange": "20210101-20230401",
       "test_timerange": "20230401-20230630",
       "test_days": 90,
-      "strategy_class": "NNNC_ARW_f01",
-      "model_dir": "user_data/strategies/saved_data/NNNC_ARW_f01",
-      "arm_tag": "wf_arw_f01",
+      "strategy_class": "NNNC_FMR_f01",
+      "model_dir": "user_data/strategies/saved_data/NNNC_FMR_f01",
+      "arm_tag": "rung_fmr_tp0.015_f01",
       "status": "planned"
     },
     {
@@ -50,9 +50,9 @@
       "train_timerange": "20210101-20230630",
       "test_timerange": "20230630-20230928",
       "test_days": 90,
-      "strategy_class": "NNNC_ARW_f02",
-      "model_dir": "user_data/strategies/saved_data/NNNC_ARW_f02",
-      "arm_tag": "wf_arw_f02",
+      "strategy_class": "NNNC_FMR_f02",
+      "model_dir": "user_data/strategies/saved_data/NNNC_FMR_f02",
+      "arm_tag": "rung_fmr_tp0.015_f02",
       "status": "planned"
     },
     {
@@ -64,9 +64,9 @@
       "train_timerange": "20210101-20230928",
       "test_timerange": "20230928-20231227",
       "test_days": 90,
-      "strategy_class": "NNNC_ARW_f03",
-      "model_dir": "user_data/strategies/saved_data/NNNC_ARW_f03",
-      "arm_tag": "wf_arw_f03",
+      "strategy_class": "NNNC_FMR_f03",
+      "model_dir": "user_data/strategies/saved_data/NNNC_FMR_f03",
+      "arm_tag": "rung_fmr_tp0.015_f03",
       "status": "planned"
     },
     {
@@ -78,9 +78,9 @@
       "train_timerange": "20210101-20231227",
       "test_timerange": "20231227-20240326",
       "test_days": 90,
-      "strategy_class": "NNNC_ARW_f04",
-      "model_dir": "user_data/strategies/saved_data/NNNC_ARW_f04",
-      "arm_tag": "wf_arw_f04",
+      "strategy_class": "NNNC_FMR_f04",
+      "model_dir": "user_data/strategies/saved_data/NNNC_FMR_f04",
+      "arm_tag": "rung_fmr_tp0.015_f04",
       "status": "planned"
     },
     {
@@ -92,9 +92,9 @@
       "train_timerange": "20210101-20240326",
       "test_timerange": "20240326-20240624",
       "test_days": 90,
-      "strategy_class": "NNNC_ARW_f05",
-      "model_dir": "user_data/strategies/saved_data/NNNC_ARW_f05",
-      "arm_tag": "wf_arw_f05",
+      "strategy_class": "NNNC_FMR_f05",
+      "model_dir": "user_data/strategies/saved_data/NNNC_FMR_f05",
+      "arm_tag": "rung_fmr_tp0.015_f05",
       "status": "planned"
     },
     {
@@ -106,9 +106,9 @@
       "train_timerange": "20210101-20240624",
       "test_timerange": "20240624-20240922",
       "test_days": 90,
-      "strategy_class": "NNNC_ARW_f06",
-      "model_dir": "user_data/strategies/saved_data/NNNC_ARW_f06",
-      "arm_tag": "wf_arw_f06",
+      "strategy_class": "NNNC_FMR_f06",
+      "model_dir": "user_data/strategies/saved_data/NNNC_FMR_f06",
+      "arm_tag": "rung_fmr_tp0.015_f06",
       "status": "planned"
     },
     {
@@ -120,9 +120,9 @@
       "train_timerange": "20210101-20240922",
       "test_timerange": "20240922-20241221",
       "test_days": 90,
-      "strategy_class": "NNNC_ARW_f07",
-      "model_dir": "user_data/strategies/saved_data/NNNC_ARW_f07",
-      "arm_tag": "wf_arw_f07",
+      "strategy_class": "NNNC_FMR_f07",
+      "model_dir": "user_data/strategies/saved_data/NNNC_FMR_f07",
+      "arm_tag": "rung_fmr_tp0.015_f07",
       "status": "planned"
     },
     {
@@ -134,9 +134,9 @@
       "train_timerange": "20210101-20241221",
       "test_timerange": "20241221-20250321",
       "test_days": 90,
-      "strategy_class": "NNNC_ARW_f08",
-      "model_dir": "user_data/strategies/saved_data/NNNC_ARW_f08",
-      "arm_tag": "wf_arw_f08",
+      "strategy_class": "NNNC_FMR_f08",
+      "model_dir": "user_data/strategies/saved_data/NNNC_FMR_f08",
+      "arm_tag": "rung_fmr_tp0.015_f08",
       "status": "planned"
     },
     {
@@ -148,9 +148,9 @@
       "train_timerange": "20210101-20250321",
       "test_timerange": "20250321-20250619",
       "test_days": 90,
-      "strategy_class": "NNNC_ARW_f09",
-      "model_dir": "user_data/strategies/saved_data/NNNC_ARW_f09",
-      "arm_tag": "wf_arw_f09",
+      "strategy_class": "NNNC_FMR_f09",
+      "model_dir": "user_data/strategies/saved_data/NNNC_FMR_f09",
+      "arm_tag": "rung_fmr_tp0.015_f09",
       "status": "planned"
     },
     {
@@ -162,9 +162,9 @@
       "train_timerange": "20210101-20250619",
       "test_timerange": "20250619-20250917",
       "test_days": 90,
-      "strategy_class": "NNNC_ARW_f10",
-      "model_dir": "user_data/strategies/saved_data/NNNC_ARW_f10",
-      "arm_tag": "wf_arw_f10",
+      "strategy_class": "NNNC_FMR_f10",
+      "model_dir": "user_data/strategies/saved_data/NNNC_FMR_f10",
+      "arm_tag": "rung_fmr_tp0.015_f10",
       "status": "planned"
     },
     {
@@ -176,9 +176,9 @@
       "train_timerange": "20210101-20250917",
       "test_timerange": "20250917-20251216",
       "test_days": 90,
-      "strategy_class": "NNNC_ARW_f11",
-      "model_dir": "user_data/strategies/saved_data/NNNC_ARW_f11",
-      "arm_tag": "wf_arw_f11",
+      "strategy_class": "NNNC_FMR_f11",
+      "model_dir": "user_data/strategies/saved_data/NNNC_FMR_f11",
+      "arm_tag": "rung_fmr_tp0.015_f11",
       "status": "planned"
     },
     {
@@ -190,9 +190,9 @@
       "train_timerange": "20210101-20251216",
       "test_timerange": "20251216-20260316",
       "test_days": 90,
-      "strategy_class": "NNNC_ARW_f12",
-      "model_dir": "user_data/strategies/saved_data/NNNC_ARW_f12",
-      "arm_tag": "wf_arw_f12",
+      "strategy_class": "NNNC_FMR_f12",
+      "model_dir": "user_data/strategies/saved_data/NNNC_FMR_f12",
+      "arm_tag": "rung_fmr_tp0.015_f12",
       "status": "planned"
     },
     {
@@ -204,9 +204,9 @@
       "train_timerange": "20210101-20260316",
       "test_timerange": "20260316-20260614",
       "test_days": 90,
-      "strategy_class": "NNNC_ARW_f13",
-      "model_dir": "user_data/strategies/saved_data/NNNC_ARW_f13",
-      "arm_tag": "wf_arw_f13",
+      "strategy_class": "NNNC_FMR_f13",
+      "model_dir": "user_data/strategies/saved_data/NNNC_FMR_f13",
+      "arm_tag": "rung_fmr_tp0.015_f13",
       "status": "planned"
     },
     {
@@ -218,11 +218,28 @@
       "train_timerange": "20210101-20260614",
       "test_timerange": "20260614-20260907",
       "test_days": 85,
-      "strategy_class": "NNNC_ARW_f14",
-      "model_dir": "user_data/strategies/saved_data/NNNC_ARW_f14",
-      "arm_tag": "wf_arw_f14",
+      "strategy_class": "NNNC_FMR_f14",
+      "model_dir": "user_data/strategies/saved_data/NNNC_FMR_f14",
+      "arm_tag": "rung_fmr_tp0.015_f14",
       "status": "planned"
     }
   ],
-  "namespacing_note": "strategy_class/model_dir/arm_tag renamed off the default NNNC_WF_* 2026-10-07. run_folds namespaces by SEED only, and get_model_path keys off the class name, so any plan using NNNC_WF_* at seed 1 would have found the September NNNC_MLX models already on disk, logged \"model already present - skipping training\", and evaluated this arm with another strategy's weights."
+  "namespacing_note": "renamed off the default NNNC_WF_* so this plan cannot inherit another strategy's models: run_folds namespaces by seed only and get_model_path keys off the class name.",
+  "thresholds": {
+    "f00": 0.3981893402917683,
+    "f01": 0.405841988222152,
+    "f02": 0.4090222250908613,
+    "f03": 0.4349156062841415,
+    "f04": 0.44836978061199184,
+    "f05": 0.4504295532226562,
+    "f06": 0.4482937337875366,
+    "f07": 0.4599938189983365,
+    "f08": 0.46382591741085055,
+    "f09": 0.45722753953933715,
+    "f10": 0.45878393874168394,
+    "f11": 0.4615685014247893,
+    "f12": 0.47508636844158125,
+    "f13": 0.475943616437912,
+    "f14": 0.4741580147981643
+  }
 }

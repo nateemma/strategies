@@ -222,3 +222,52 @@ On that question the evidence points one way: the robust/maximin setting —
 **`atr_pct` open-to-near-open, `adx` open, `rvol` mildly positive (~1.0)** — is the only
 configuration measurable in all 15 folds, with a worst fold 5× milder than the
 mean-maximising constant.
+
+---
+
+# WHICH CONSTANT? — and a correction to the "safe middle range" above
+
+Asked whether `BaseStrategy`'s guard defaults should change. **On this evidence, no — and the
+analysis argues for keeping them.**
+
+## The robust config I reported was a HINDSIGHT selection
+
+The maximin ("safe middle range") above was computed over **TEST**-window scores. That is a
+selection made with knowledge of the outcome — the same flaw that makes arm B's +18.76pp 97.8%
+in-sample. Re-selected over **TRAIN** windows only, maximin and max-mean both pick a *different*
+configuration, and it is materially worse out of sample:
+
+| selection | config | folds measurable | mean | **worst fold** |
+|---|---|---|---|---|
+| maximin on **TEST** *(hindsight — what was first reported)* | atr 0.006 / adx open / rvol 1.0 | 15/15 | +0.00196 | −0.00121 |
+| maximin on **TRAIN** *(leakage-free)* | **atr 0.013 / adx 20 / rvol 1.9** | **10/15** | +0.00467 | **−0.02457** |
+| max-mean on TRAIN *(leakage-free)* | same | 10/15 | +0.00467 | −0.02457 |
+| **CURRENT DEFAULT** (all open) | atr −1 / adx −1 / rvol −1 | **15/15** | +0.00046 | **−0.00225** |
+
+Honestly selected, the "robust" constant has a worst fold **~10× worse** than the current
+default and trades in a third fewer folds. On the properties that matter for a *default* — never
+being disastrous, and continuing to trade — **the existing all-open setting is the better of the
+two legitimate candidates.** That independently supports the deliberate 2026-09-06 choice to
+open the guards "for headroom and measurability".
+
+## Why no default is changing on this evidence regardless
+
+- **These are `proxy_score` figures, not returns** (FR-018). The arm below is what converts one
+  into a return.
+- **The grid held 3 of 5 quality thresholds fixed**, so "which constant" is answered only within
+  that slice.
+- **`BaseStrategy.buy_params` is inherited by the live dry-run.** Changing it is a behaviour
+  change to a running 28-day dry-run.
+
+## Arm F — `GbbRobustOpen`, the static TRAIN-selected constant
+
+Static, therefore **not** gated by Principle VII: the gate blocks adaptivity, and a fixed
+configuration is an ordinary arm. The values sit in the strategy class rather than in
+`run_folds.py`'s `guards` plan key, which is why `_require_trackable_verdict` is not involved —
+a useful demonstration that the gate discriminates correctly rather than blocking everything
+guard-shaped.
+
+**Pre-registered expectation**: higher mean than the default, ~10× worse worst fold, trading in
+10 of 15 folds. **Grounds to change a default** would be beating arm A (+2.64pp, 7/15) by more
+than the 3–4pp/yr floor with a paired interval excluding zero — and a higher mean bought with a
+10× worse worst fold is not grounds.

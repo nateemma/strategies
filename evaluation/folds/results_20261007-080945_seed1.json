@@ -1,0 +1,28 @@
+{
+  "run_id": "20261007-080945",
+  "seed": 1,
+  "params_sha": "4a30f8b3d466811c",
+  "elapsed_minutes": 0.2,
+  "folds_planned": 15,
+  "folds_complete": 1,
+  "status": "partial",
+  "folds": [
+    {
+      "fold_id": "f00",
+      "train_start": "2021-01-01",
+      "train_end": "2022-12-31",
+      "test_start": "2023-01-01",
+      "test_end": "2023-04-01",
+      "train_timerange": "20210101-20230101",
+      "test_timerange": "20230101-20230401",
+      "test_days": 90,
+      "strategy_class": "NNNC_FMR_f00",
+      "model_dir": "user_data/strategies/saved_data/NNNC_FMR_f00",
+      "arm_tag": "wf_fmr_f00",
+      "status": "zero_trade",
+      "model_artifact_verified": true,
+      "n_trades": 0,
+      "arm_returncode": 0
+    }
+  ]
+}

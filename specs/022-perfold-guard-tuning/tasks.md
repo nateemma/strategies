@@ -269,13 +269,13 @@ arm A.
 - [X] T037 [P] @main Record in the report that the grid's joint 3-D search is a documented
   deviation from Principle VIII, with super-additivity as the reason, and that the joint winner's
   per-guard marginal effect MUST NOT be read off the grid.
-- [ ] T038 [P] @model-implementer Run the full suite and report the count, confirming no
+- [X] T038 [P] @model-implementer Run the full suite and report the count, confirming no
   pre-existing failure was introduced. Attribute any failure against a pristine pre-022 worktree
   rather than asserting it is pre-existing.
-- [ ] T039 [P] @main Update `specs/021-label-exit-coordination/report.md`'s follow-up section with
+- [X] T039 [P] @main Update `specs/021-label-exit-coordination/report.md`'s follow-up section with
   this feature's outcome, so 021's open puzzle (+39.98pp explained by nothing measured) carries
   the answer or the remaining gap.
-- [ ] T040 [P] @main If `arm_b_status` came out `untrustworthy`, add a one-line caveat beside
+- [X] T040 [P] @main If `arm_b_status` came out `untrustworthy`, add a one-line caveat beside
   every existing quotation of arm B's +18.76pp in feature 021's artefacts, so the figure never
   travels without its status (FR-002).
 

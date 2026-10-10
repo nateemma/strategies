@@ -69,7 +69,7 @@ study cannot test: the signal is real but only exploitable **adaptively**. See
 | "The inversion is a weighting artefact; the board is not anti-predictive" | six arms later: **1/6 on sign**. Stake-weighting agreed with the board because both up-weight liquid bars — a **shared defect, not corroboration** |
 | "The EV column has *no predictive validity*" | over-claimed at n=6; the four rows are ~2 independent conditions. The defensible claim is the **population** one |
 | "The mechanism is selectivity — guards and threshold cutting 14.19% of bars to 1.47%" | the incumbent ran **guards-OPEN** (`spec.md:13`); the 1.4735% is the **model threshold alone** |
-| "The guarded no-model arm will be unpowered noise" | wrong: **+18.76pp, 12/15 folds**, ~+5.1pp/yr, above the floor |
+| "The guarded no-model arm will be unpowered noise" | wrong: **+18.76pp (in-sample — 97.8% from folds inside its own tuning window; see 022/provenance.md), 12/15 folds**, ~+5.1pp/yr, above the floor |
 | "The breakout family carries tail signal; `breakout_gbb` clears both bars" | **regime ghost** — −0.088 at z = −4.90 in window B |
 | "Break-even precision is ~0.25" | **~0.58** here; average loss is ~1.4× average win. Cited from memory before being computed |
 | "`volume_filter_active: True` shows the filter was on" | that field was a **hardcoded literal**; the conclusion survived on other grounds, the evidence did not |
@@ -629,3 +629,52 @@ identical `trades_hash` is now *better* explained — the condition was present 
 **What changes is the reasoning**: the "defect" was a convention mismatch, not a lost
 tradeability check, and the 34.26% zero-volume figure, while true of the dataset, had no
 bearing on the flag.
+
+---
+
+# FOLLOW-UP OUTCOME (T039): feature 022 ran, and it closed the guard thread
+
+`followup-perfold-guard-tuning.md` proposed per-fold guard tuning as the explanation for a
+model-free guard arm earning ~+5.1pp/yr. **Feature 022 ran it and the thread is closed.**
+
+## The premise it was built on was an artefact
+
+The +18.76pp that motivated the follow-up is **97.8% in-sample**. Its guard values were
+hyperopted on `20240511-20260501` (`strategy_NNNC_CGP_MLX_2026-05-31_15-03-45.fthypt`, 6-of-6
+exact match), a window covering 9 of the 15 folds and 53.5% of all test-window days. Inside that
+window: +18.34pp over 8 folds. Outside it: **+0.42pp over 6 folds** — +0.07pp/fold against
+arm A's +0.18pp, i.e. **tuned guards are not better than open guards out of sample.**
+
+So the figure quoted in this report as "+18.76pp (in-sample — 97.8% from folds inside its own tuning window; see 022/provenance.md), 12/15 folds, ~+5.1pp/yr, above the floor"
+must be read with that status attached. It was never a resolved result: 198 trades over 15 folds
+is roughly half the 378 the harness needs, and it cleared the 25-trade floor in only 5 of 15.
+
+## Adaptivity failed at both granularities
+
+| scheme | result |
+|---|---|
+| per-fold tuning | **`indeterminate`** — 9/15 folds powered, below the pre-registered 10 |
+| two-state (volatility regime, pre-registered, leave-one-out) | **degenerates to a constant**, and that constant loses to a fixed value (paired +0.0110, CI [+0.0002, +0.0217]) |
+
+The fifth adaptive scheme to lose to a static value in this project. The remaining guard
+question is *which constant*, not whether to switch — and the robust/maximin setting
+(`atr_pct` open-to-near-open, `adx` open, `rvol` ~1.0) is the only configuration measurable in
+all 15 folds, with a worst fold 5× milder than the mean-maximising one.
+
+## What this does to feature 021's open puzzle
+
+021 ended with: *`gbb` + model + per-fold threshold earns +39.98pp in 15/15 folds and nothing
+measured explains it.* The hypothesis offered was that the signal is real but regime-dependent
+and so only exploitable adaptively.
+
+**022 removes that hypothesis.** Adaptivity on the guard space is not available — not merely
+unprofitable, but not even trackable or differentiable. And the incumbent's +39.98pp is **not**
+in-sample contaminated: its per-fold thresholds were verified as 15 distinct values selected on
+each fold's own training window.
+
+So the puzzle survives both features and has narrowed: it is **model-side, not guard-side**.
+What remains unexplained is specifically how a thresholded classifier selecting ~1.47% of bars
+earns +39.98pp at 15/15 when (i) the trigger alone is flat, (ii) conditional learnability within
+the trigger collapses ~90% for 13 of 13 triggers, (iii) tail precision inverts between windows,
+and (iv) the guard chain offers no tunable or adaptive edge. That is the one live thread out of
+both features.
