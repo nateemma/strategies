@@ -429,3 +429,100 @@ their entry condition*, none is differentially learnable once you condition on t
 thing and one thing only — they are the no-trigger case — and anyone wanting them separated
 needs a different instrument, one that varies the outcome definition and holds the trigger
 fixed. That is the exact mirror of this feature, and it is not what was built.
+
+---
+
+# The tail-precision test: does selectivity rescue these labels? NO
+
+Conditional MCC is a population average, and a model's threshold trades the extreme tail. A
+little signal concentrated in the top 1% can pay while leaving MCC at zero, so the collapse
+finding alone does not establish that these labels are useless. This is that test, run over
+all three windows because a single window cannot distinguish an edge from a regime.
+
+Method: fit the conditional probe (triggered bars only, outcome as the label, so the trigger
+is not in the label), rank its test-set scores, measure precision in the top 10/5/1%.
+3 seeds x 3 windows per trigger.
+
+## Two corrections to things stated earlier in this feature
+
+**Break-even precision here is ~0.58, NOT the ~0.25 carried in repo memory.** Computed per
+trigger from its own payoff: `p* = -E[loss] / (E[win] - E[loss])`. Average loss is ~1.4x
+average win (take-profit 2.2% against stops of -4%/-5%), so a ~58% hit rate is required. The
+~0.25 figure belongs to a different label/exit configuration and does not transfer. It was
+cited from memory before being computed, which is the error.
+
+**The probe's tail is not a neutral instrument, and its bias is REGIME-DEPENDENT.** The
+`empty` control — no trigger at all — has raw tail lift:
+
+    window A  -0.040      window B  +0.112      window C  +0.117
+
+So in A the probe's top-scored bars are *worse* than average (z = -5.60), and in B and C they
+are substantially *better* (z ~ +10). Every trigger's lift must therefore be read against its
+own window's control, and raw lifts are meaningless.
+
+## The result: control-adjusted lift at top 1%
+
+| trigger | A | B | C | |
+|---|---|---|---|---|
+| `breakout_gbb` | **+0.119** | **−0.088** | +0.034 | mixed |
+| `geometry` | +0.109 | +0.077 | +0.022 | +++ |
+| `breakout` | +0.088 | +0.040 | +0.005 | +++ |
+| `breakout_bb` | +0.070 | +0.017 | +0.084 | +++ |
+| `breakout_squeeze` | +0.064 | −0.060 | −0.086 | mixed |
+| `votes_consensus` | +0.047 | −0.026 | −0.018 | mixed |
+| `breakout_vol` | +0.039 | +0.044 | −0.058 | mixed |
+| `votes_ind4` | −0.004 | +0.139 | +0.018 | mixed |
+| `gbb` | −0.018 | **+0.172** | +0.068 | mixed |
+| `adx` | −0.025 | +0.010 | +0.009 | mixed |
+| `votes_tech` | −0.031 | **+0.220** | +0.041 | mixed |
+| `votes_ind3` | −0.038 | **+0.215** | +0.071 | mixed |
+| `votes_ind2` | −0.060 | +0.108 | −0.002 | mixed |
+
+    rank correlation, control-adjusted lift:
+        A vs B   rho -0.648   (p = 0.017)   <- SIGNIFICANTLY ANTI-correlated
+        A vs C   rho -0.071   (p = 0.817)
+        B vs C   rho +0.445   (p = 0.128)
+
+    sign-unstable across the three windows: 10 / 13
+    positive in all three: breakout, breakout_bb, geometry
+        -> but 13 triggers x (1/8) = 1.6 expected by chance; 3 observed; P(>=3) = 0.216.
+           NOT significant. Three-of-thirteen is what chance predicts.
+
+**No window pair shows a significantly positive rank correlation, and A vs B is significantly
+NEGATIVE.** A trigger's tail behaviour in one window actively mispredicts it in a temporally
+distant one.
+
+## RETRACTION
+
+On window A alone I reported that the breakout family carried tail signal and that
+`breakout_gbb` was the one trigger clearing both the raw and control-adjusted bar (+0.119,
+z +3.40). **In window B it is −0.088 at z = −4.90.** That reading was a regime ghost and is
+withdrawn. It is precisely the failure mode this repository's persistence rule exists to
+catch, and I reported the single-window result before running the check.
+
+## So: are they all bad labels?
+
+**As labels, they are equivalent, and none carries stable individually-exploitable signal
+under this exit.** Three independent measurements agree:
+
+1. conditional learnability collapses ~90% for 13 of 13 (the ~9.6% retained is trigger
+   recovery, with the `empty` control at 101%);
+2. no trigger trades alone — six harness arms, −70.55pp to +2.64pp;
+3. tail precision does not persist — no positive rank correlation between any window pair,
+   10/13 sign-unstable, and the 3 stable ones are chance.
+
+"Bad" should be read as **indistinguishable and not individually exploitable**, not as
+worthless — two things cut against the stronger reading:
+
+* **`gbb` + model + threshold earns +39.98pp in 15/15 folds.** 15-of-15 is not
+  regime-dependent, so something real is there that none of these measurements captures.
+* **The `empty` control itself lifts +0.112 / +0.117 in B and C at z ~ +10.** A model fitted
+  with NO trigger can rank outcomes in the tail in two of three windows. So outcome
+  predictability exists — it simply is not trigger-specific, which is why no label is better
+  than another.
+
+Those two together suggest a hypothesis this study cannot test: **the incumbent re-selects its
+threshold per fold, on each fold's own training window.** A model that re-tunes every fold can
+ride a signal whose sign flips between regimes; a probe with one fixed split cannot see it.
+If that is right, the instability measured above is not evidence against the incumbent — it is
+the reason the incumbent needs per-fold selection to work, and it is the thing to test next.
