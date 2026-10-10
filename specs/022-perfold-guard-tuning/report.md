@@ -271,3 +271,61 @@ guard-shaped.
 10 of 15 folds. **Grounds to change a default** would be beating arm A (+2.64pp, 7/15) by more
 than the 3–4pp/yr floor with a paired interval excluding zero — and a higher mean bought with a
 10× worse worst fold is not grounds.
+
+## Arm F result — promising, NOT resolved, and my prediction was wrong in both directions
+
+| arm | wallet | pp/yr | folds + | trades | worst fold |
+|---|---|---|---|---|---|
+| **A** guards open, no model | +2.64 | +0.72 | 7/15 | 8,150 | **−10.61** |
+| **F** static clean-selected constant | **+25.34** | **+6.89** | **13/15** | 458 | **−2.00** |
+
+### The selection is clean, and that was checked rather than assumed
+
+A constant selected from the train scores of **all** folds would be contaminated: **14 of 15
+test windows lie inside f14's train window** (anchored design), so such a selection has seen
+almost every fold's test data — arm B's error one level up. The only fully leakage-free static
+selection uses **f00's train window alone** (`20210101-20230101`), which precedes every test
+window. **It picks the identical configuration, ranked 1 of 52.** So arm F's config is
+recoverable from data ending 2023-01-01 and evaluated from 2023-01-01 onward.
+
+Residual caveat: the `atr 0.013` *level* originated in the contaminated 2024–2026 hyperopt, so
+the grid's candidate set was informed by it even though the choice among candidates was clean.
+The pre-2023 data independently ranking it first is reassuring but not the same as having
+proposed it from clean data.
+
+### My pre-registered prediction was wrong, and in the opposite direction
+
+I recorded, before the run: *"higher mean, ~10× worse worst fold, 10/15 folds powered."*
+
+- worst fold: **−2.00pp against arm A's −10.61pp — 5× BETTER, not 10× worse** (ratio 0.2×)
+- powered folds: **6/15**, not 10
+- wallet: +25.34pp, far above what the proxy's mean implied
+
+The proxy got the *direction* of the mean right and the *worst-fold* prediction badly wrong.
+That is a second measured limit on the instrument, alongside feature 021's sign error.
+
+### Why this is not yet grounds to change a default
+
+**Paired per-fold delta F−A = +6.17 pp/yr, 95% CI [−8.19, +20.65] — the interval SPANS ZERO.**
+Arm F beats arm A in 10 of 15 folds and clears the floor on the point estimate, but the
+fold-level bootstrap does not resolve it, largely because arm A carries a −10.61pp fold.
+
+**The instrument used here is not the one FR-015 specifies.** FR-015 requires
+`bootstrap_delta` on the **symmetric difference of trades**, which is far tighter than a
+bootstrap over 15 fold-level observations — "shared-trade arms are PAIRED; a flat 1pp floor
+overstated an oracle arm's resolution 4.7×". Running it needs the trade lists from the backtest
+artefacts and has not been done.
+
+**Pooled power is adequate** — 458 trades against the 378 the 3.350 pp/yr floor was derived
+from — even though only 6 of 15 folds individually clear the 25-trade per-fold floor.
+
+### Revised answer on the defaults question
+
+Earlier in this report I answered **no** on the basis of a proxy prediction of a 10× worse worst
+fold. **That prediction was wrong**, so the basis for the "no" is gone. The honest position now
+is **not resolved, and favourable in direction**: +6.89pp/yr with a *better* worst fold than the
+current default and 13/15 folds positive, against a paired interval that spans zero.
+
+The next step is the FR-015 trade-level paired test, not a defaults change. And even if that
+resolves, `BaseStrategy.buy_params` is inherited by the live dry-run, so the change belongs to a
+deliberate promotion decision rather than to this feature.
