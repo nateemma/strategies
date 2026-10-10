@@ -1,0 +1,31 @@
+{
+  "verdict": "indeterminate",
+  "reason": "Spec Branch 0 (POWER): only 3 of 15 folds are powered under FR-017 -- the per-fold selected configuration admits fewer than 25 trades on its own test window in the other 12. A paired regret comparison on 3 folds, two of whose adaptive regrets are structurally zero, cannot license arm C.",
+  "n_powered_folds": 3,
+  "powered": [
+    "f03",
+    "f04",
+    "f11"
+  ],
+  "retracted_first_pass": "An initial implementation reported 'trackable' by applying the power test to candidate availability on the TRAIN window instead of to the selected configuration on TEST. Corrected; the verdict is indeterminate.",
+  "best_constant": "atr0p02_adxm1_rvolm1",
+  "robust_maximin": "atr0p006_adxm1_rvol1",
+  "n_distinct_choices": 4,
+  "chosen_by_fold": {
+    "f00": "atr0p013_adx20_rvol3",
+    "f01": "atr0p013_adx20_rvol3",
+    "f02": "atr0p02_adxm1_rvol1p9",
+    "f03": "atr0p013_adx20_rvol3",
+    "f04": "atr0p013_adx20_rvol3",
+    "f05": "atr0p013_adx20_rvol3",
+    "f06": "atr0p02_adxm1_rvol1p9",
+    "f07": "atr0p02_adxm1_rvol1p9",
+    "f08": "atr0p02_adx20_rvol3",
+    "f09": "atr0p02_adxm1_rvol3",
+    "f10": "atr0p02_adxm1_rvol3",
+    "f11": "atr0p02_adxm1_rvol3",
+    "f12": "atr0p02_adxm1_rvol3",
+    "f13": "atr0p02_adxm1_rvol3",
+    "f14": "atr0p02_adxm1_rvol1p9"
+  }
+}

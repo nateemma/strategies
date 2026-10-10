@@ -609,3 +609,23 @@ threshold per fold, on each fold's own training window.** A model that re-tunes 
 ride a signal whose sign flips between regimes; a probe with one fixed split cannot see it.
 If that is right, the instability measured above is not evidence against the incumbent — it is
 the reason the incumbent needs per-fold selection to work, and it is the thing to test next.
+
+---
+
+## CORRECTION (2026-10-10, found while implementing feature 022)
+
+This report states in two places that `entry_enable_guards: False` disabled the `volume > 0`
+data-sanity check, and explains the identical `trades_hash` by `confirm_trade_entry`'s own
+headroom check acting as "a complete backstop".
+
+**Both claims are wrong.** `volume > 0` was never disabled. Commit `e7cf8cf` (2026-09-08,
+"volume+rvol mandatory") moved `volume > 0` and `rvol` OUTSIDE the `entry_enable_guards`
+block in `populate_entry_trend`; only the five quality thresholds sit behind the flag.
+BaseStrategy's `buy_params` comment still asserts the old behaviour and is stale — I read the
+comment rather than the executable path, and cited it as current fact.
+
+**What changes**: nothing measured. The six trigger-only arms are unaffected, and the
+identical `trades_hash` is now *better* explained — the condition was present in both runs.
+**What changes is the reasoning**: the "defect" was a convention mismatch, not a lost
+tradeability check, and the 34.26% zero-volume figure, while true of the dataset, had no
+bearing on the flag.

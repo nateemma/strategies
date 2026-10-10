@@ -104,16 +104,22 @@ class TriggerOnlyStrategy(BaseStrategy):
     # as well would filter those triggers twice and the arm would no longer correspond to the
     # scored row. `volume > 0` stays live -- it is a tradeability constraint, not a quality
     # filter.
-    # DEFECT FIXED 2026-10-09, and it invalidated the first run of these arms.
-    # This block previously set `entry_enable_guards: False`. BaseStrategy.py:295-299 says
-    # explicitly NOT to do that: the six quality guards are opened by NEUTRALISING each
-    # threshold, "because that flag ALSO disables the `volume > 0` data-sanity check which
-    # lives in the same block. Keep entry_enable_guards True."
+    # 2026-10-09: this block previously set `entry_enable_guards: False`; it is now True, which
+    # matches BaseStrategy's own default and is the repo's convention for "guards open".
     #
-    # MEASURED exposure: 34.26% of bars in this dataset have volume <= 0 or non-finite, and
-    # 21.6-29.3% of every trigger's ENTRY bars are zero-volume. So the flag was switching off
-    # a check that would bind on roughly a quarter of entries, while this module's own
-    # docstring claimed `volume > 0` stayed live. It did not.
+    # CORRECTED 2026-10-10 -- the ORIGINAL REASON GIVEN HERE WAS WRONG. It cited
+    # BaseStrategy.py's `buy_params` comment, which claims the flag "ALSO disables the
+    # `volume > 0` data-sanity check". That comment is STALE: commit e7cf8cf (2026-09-08,
+    # "volume+rvol mandatory") moved `volume > 0` AND `rvol` outside the flag in
+    # `populate_entry_trend`, where only the five QUALITY thresholds remain behind it.
+    #
+    # So the earlier arms never lost the volume check, and the identical `trades_hash`
+    # measured when the flag was flipped is explained by that -- NOT, as first claimed, by
+    # `confirm_trade_entry`'s headroom check acting as a backstop. The measurement was right;
+    # the explanation attached to it was not. (34.26% of bars here do have volume <= 0; that
+    # figure is true and was simply irrelevant to this flag.)
+    #
+    # The flag stays True because it is what APPLIES the quality thresholds at all.
     #
     # The correct "open" configuration is the flag TRUE with every quality threshold
     # neutralised, which is exactly BaseStrategy's own default (adx -1.0, atr_pct -1.0,

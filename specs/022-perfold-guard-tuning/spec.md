@@ -218,9 +218,16 @@ work, but meaningless if C fails.
   to complete.
 - **FR-007**: Guard tuning MUST use only the fold's training window; each fold's test window
   MUST be evaluated exactly once.
-- **FR-008**: `entry_enable_guards` MUST remain `True` in every arm. It also gates the
-  `volume > 0` data-sanity check, and 34.26% of bars in this dataset have `volume <= 0`. Guards
-  are opened by neutralising thresholds, never by this flag.
+- **FR-008**: `entry_enable_guards` MUST remain `True` in every arm, because it is the flag that
+  APPLIES the five quality thresholds at all — with it `False` the grid's `atr_pct` and `adx`
+  axes would be silently inert and the search would measure nothing.
+  **CORRECTED 2026-10-10**: an earlier version of this requirement justified itself by
+  claiming the flag also gates the `volume > 0` data-sanity check. **It does not.** Commit
+  `e7cf8cf` (2026-09-08, "volume+rvol mandatory") moved `volume > 0` and `rvol` OUTSIDE the
+  flag in `populate_entry_trend`; BaseStrategy's `buy_params` comment still says otherwise and
+  is stale. The requirement stands; its stated reason was wrong. Note `entry_rvol_threshold`
+  is therefore a MANDATORY tradeability constraint rather than a quality guard, even though
+  it is one of the three tuned axes.
 - **FR-009**: The exit policy MUST be held fixed and identical across all arms, proven by
   `exit_config_hash` equality. No task may change an exit parameter.
 - **FR-010**: Only the guard space may be tuned. No model parameter, no exit parameter, no

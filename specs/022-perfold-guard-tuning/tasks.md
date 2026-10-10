@@ -131,25 +131,25 @@ costs C-vs-B its interpretation but leaves C-vs-A intact.
 to 3.6e-5 on one population and had the **wrong sign** on another. Its fidelity is a measured
 property, not an assumption, and the gate cannot be trusted on an unaudited proxy.
 
-- [ ] T015 @model-implementer Write `evaluation/pick_guards.py`'s scoring core: given a
+- [X] T015 @model-implementer Write `evaluation/pick_guards.py`'s scoring core: given a
   `GuardConfig` and a window, produce a `GridScore` per data-model.md — admitted-bar mask →
   concurrency selection (`research/outcomes/leaderboard.py::_select_concurrent`, `max_open` 10) →
   pooled mean, carrying `n_admitted`, `n_taken`, `exit_config_hash` and
   `below_floor = n_taken < 25` (FR-012, verbatim threshold).
-- [ ] T016 @model-implementer **Write the leakage test BEFORE the loading path** in
+- [X] T016 @model-implementer **Write the leakage test BEFORE the loading path** in
   `evaluation/tests/test_pick_guards.py`: assert `pick_guards` loads fold data only through
   `pick_threshold.TrainWindow.from_fold`, and that requesting a **test**-window score without the
   explicit opt-in flag **raises** (FR-007). A test-window score must not be able to leak into
   selection.
-- [ ] T017 @experiment-runner Run `pick_guards.py --audit-proxy --against wf_gbbo,wf_gbbg`:
+- [X] T017 @experiment-runner Run `pick_guards.py --audit-proxy --against wf_gbbo,wf_gbbg`:
   score arm A's open configuration and arm B's tuned configuration with the proxy and compare to
   their measured harness results (+2.64pp, +18.76pp).
-- [ ] T018 @gate-reviewer Review T017. **PASS** requires the proxy to separate A from B in the
+- [X] T018 @gate-reviewer Review T017. **PASS** requires the proxy to separate A from B in the
   right direction. On **FAIL**, apply research.md's recorded fallback — reduce to two axes
   (`atr_pct` × `adx`, 16 points) scored by real backtests on training windows — and record that
   the 64-point grid was not licensed. Do not proceed on an unaudited proxy.
 
-- [ ] T019 @model-implementer **Rename the scoring output `proxy_score` throughout** — in
+- [X] T019 @model-implementer **Rename the scoring output `proxy_score` throughout** — in
   `evaluation/pick_guards.py`, `data-model.md`'s `GridScore` and `contracts/guard-cli.md` — and
   add a test asserting no reporting path emits a `proxy_score` under a key or label containing
   "return". **FR-018 restricts every P&L claim to `evaluation/` arm records, and the field was
@@ -174,19 +174,19 @@ working session (SC-008).
 live guard's effect flipping sign across all three eras and four adaptive schemes have already
 lost to static values in this project. FR-006 makes that a complete finding.
 
-- [ ] T020 [US2] @model-implementer **Write the exit-code test FIRST** in
+- [X] T020 [US2] @model-implementer **Write the exit-code test FIRST** in
   `evaluation/tests/test_guard_trackability.py`: assert `guard_trackability.py` exits **0** when
   the verdict is `not_trackable`. That verdict is a complete finding under FR-006 and must not
   read as a failed run — an exit code of 1 would make the expected outcome look like breakage.
-- [ ] T021 [US2] @model-implementer Add a test asserting `n_distinct_choices` is reported
+- [X] T021 [US2] @model-implementer Add a test asserting `n_distinct_choices` is reported
   **separately** from the verdict, so a merely-varying optimum can never be rendered as
   trackable. Principle VII: variation is "necessary but nowhere near sufficient".
-- [ ] T022 [US2] @model-implementer Implement `evaluation/guard_trackability.py` per research.md
+- [X] T022 [US2] @model-implementer Implement `evaluation/guard_trackability.py` per research.md
   R4, verbatim: `c_i = argmax_c` train score; `c* = argmax_c Σ_i S_i(c)` chosen **in hindsight**;
   `regret_i(adaptive) = max_c S_i(c) − S_i(c_i)`; `regret_i(constant) = max_c S_i(c) − S_i(c*)`.
   Regret is against `max_c` over **the enumerated candidates that actually existed** (FR-005) —
   never a value outside the grid.
-- [ ] T023 [US2] @model-implementer Compute the paired interval on the per-fold regret difference
+- [X] T023 [US2] @model-implementer Compute the paired interval on the per-fold regret difference
   by reusing `evaluation/bootstrap.py::bootstrap_delta` (FR-015). Do not write a second paired
   bootstrap.
 - [ ] T024 [US2] @experiment-runner Score the 64 configurations on all 15 **training** windows via
@@ -260,7 +260,7 @@ arm A.
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T036 @main **The terminal write-up, and it is a DELIVERABLE not an abandonment.** Write
+- [X] T036 @main **The terminal write-up, and it is a DELIVERABLE not an abandonment.** Write
   `specs/022-perfold-guard-tuning/report.md` recording: the provenance verdict; the proxy audit;
   the trackability verdict with its regret figures; and, if the gate failed, the explicit
   statement that per-fold guard tuning is **not a candidate for adaptivity** and that the feature
