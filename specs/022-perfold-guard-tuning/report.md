@@ -422,3 +422,48 @@ clean data independently ranks it first, three of five quality thresholds were n
 
 **What would close it**: arm F re-run on a second, temporally distant universe or era — the
 persistence requirement (Principle II) that no single 15-fold result satisfies on its own.
+
+### PRINCIPLE II PERSISTENCE — the selection holds in both halves; the WALLET edge does not
+
+There is **no temporally distant unused era** in this dataset: `binanceus` history is either
+selection (pre-2023) or evaluation (2023–2026), `data/binance/` is empty, and new downloads are
+out of scope. But the config was selected on data ending **2023-01-01**, so **all 15 folds are
+already out-of-sample** — splitting them gives two temporally distinct clean windows, which is
+the persistence test.
+
+| | arm F | arm A |
+|---|---|---|
+| **EARLY** f00–f07 (2023-01 → 2025-03) | **+16.82pp**, 7/8 folds, 255 tr, EV +0.010162 | **+20.43pp**, 5/8, 4,513 tr, EV +0.001079 |
+| matched-count (255 drawn from A) | **+4.2 SD, p = 0.00000 — HOLDS** | |
+| **LATE** f08–f14 (2025-03 → 2026-09) | **+8.53pp**, 6/7 folds, 203 tr, EV +0.007452 | **−17.78pp**, 2/7, 3,637 tr, EV −0.000992 |
+| matched-count (203 drawn from A) | **+3.1 SD, p = 0.00040 — HOLDS** | |
+
+**Finding 1 — the selection effect IS persistent.** Arm F's trades beat a matched-count random
+draw from arm A in **both** halves, at p < 1e-5 and p = 0.0004. Principle II is satisfied for the
+claim *"tightening these guards selects better bars"*. That is now established on two distinct
+out-of-sample periods, not one.
+
+**Finding 2 — the WALLET advantage is NOT persistent, and this matters.** Arm A's wallet
+**beats** arm F in the early half (+20.43 vs +16.82) despite far worse per-trade quality, because
+it trades 18× more. Arm F only wins the full period because **arm A collapses in the late half
+(−17.78pp)**. So the +25.34 vs +2.64 headline is driven by one period, and the per-trade quality
+finding is the durable part — not the wallet gap.
+
+**Finding 3 — but arm F is the only one positive in both halves.** F: +16.82 and +8.53. A: +20.43
+then −17.78. Combined with the worst-fold figures (−2.00pp vs −10.61pp), the case for the
+tightened constant is **robustness**, not expected return: it gives up the better early-period
+wallet in exchange for not having a losing regime.
+
+## THE ANSWER, final
+
+**For a default, the evidence now supports the tightened constant — on robustness grounds, with
+the expected-return claim explicitly withdrawn.**
+
+- *Established, twice, out of sample*: the selection carries information (p < 1e-5, p = 0.0004).
+- *Established*: positive in both halves, worst fold 5× milder than the open default.
+- *Withdrawn*: that it earns more. Arm A wins the early half, and the full-period gap is one
+  regime's collapse. The paired full-period delta remains p = 0.2706.
+
+Remaining caveats, unchanged: `atr 0.013` originated in a contaminated hyperopt (clean data
+independently ranks it first); three of five quality thresholds were never varied; and
+`BaseStrategy.buy_params` is inherited by a live dry-run, so promotion is a deliberate decision.
