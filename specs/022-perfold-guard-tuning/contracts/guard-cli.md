@@ -27,6 +27,8 @@ PYTHONPATH=user_data/strategies .venv/bin/python user_data/strategies/evaluation
 - Refuses to emit a configuration whose `n_taken < 25` (FR-012); if a fold has no admissible
   configuration it is written as `unpowered` rather than filled with a default.
 - Records `exit_config_hash` on every score and aborts if it differs from the arms' hash.
+- Emits the scoring field as **`proxy_score`**, never `score` or anything containing "return".
+  It selects configurations; it does not measure a return (FR-018).
 - `--window test` exists **only** for `guard_trackability.py` and is refused unless that flag
   is passed, so a test-window score cannot leak into selection.
 

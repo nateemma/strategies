@@ -285,15 +285,35 @@ work, but meaningless if C fails.
 
 ### Pre-registered decision rule *(FR-019 — fixed before arm C runs)*
 
-- **Arm C beats arm A by more than 3–4pp/yr with a paired interval excluding zero** → the guard
-  chain is a genuine model-free lever and per-fold tuning is the mechanism.
-- **Arm C within the floor of arm A** → arm B's +18.76pp was the tuning window leaking or a
-  three-fold accident; the guard chain is not a lever. A clean negative, and a complete result.
-- **Arm C comparable to arm D** — annualised difference within the 3.35 pp/yr floor with a
-  paired interval spanning zero → the model is ornamental; effort moves to gate and mechanism
-  work.
-- **Arm E materially exceeds arm C** → the model adds value on top of tuned guards, and
-  model-side work is reopened.
+Evaluated in the order below. **The first branch whose condition holds is the verdict**, so the
+branches are total and mutually exclusive by construction — an earlier draft allowed two to hold
+at once (a C that beats A *and* is comparable to D) and had no branch for a C that is worse than
+A, nor for too few powered folds to decide.
+
+**Branch 0 — POWER (evaluated first, before any comparison).** If fewer than **10 of the 15
+folds are powered** (FR-017: ≥25 trades at the selected configuration), the verdict is
+**`indeterminate`**. No return claim is made and no other branch is evaluated. A pooled figure
+assembled from a third of the folds is not a result, and per-fold tuning that cannot reach the
+trades floor in most folds has already answered the operating-point question.
+
+**Branch 1 — HARM.** Arm C **below** arm A by more than the floor (annualised delta < −3.35
+pp/yr) with a paired interval excluding zero → per-fold tuning is **actively harmful**, a
+stronger negative than the null. It means the training window's optimum systematically
+anti-predicts the test window, and it should not be reported as the same finding as Branch 3.
+
+**Branch 2 — LEVER.** Arm C **above** arm A by more than the floor (> +3.35 pp/yr) with a
+paired interval excluding zero → the guard chain is a genuine model-free lever and per-fold
+tuning is the mechanism. The C-vs-D comparison is then reported as a *secondary* figure and
+does not change this verdict: if C also lands within D's floor, the additional finding is that
+the model is ornamental, but the primary verdict remains LEVER.
+
+**Branch 3 — NULL.** Arm C within the floor of arm A (|delta| ≤ 3.35 pp/yr, or a paired
+interval spanning zero) → arm B's +18.76pp was the tuning window leaking or a three-fold
+accident; the guard chain is not a lever. A clean negative, and a complete result.
+
+**Then, and only if Branch 2 held, arm E runs (FR-020).** Arm E above arm C by more than the
+floor with a paired interval excluding zero → the model adds value on top of tuned guards and
+model-side work is reopened. Otherwise the model is ornamental at this operating point.
 
 ## Assumptions
 

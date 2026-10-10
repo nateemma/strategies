@@ -30,7 +30,7 @@ One `(fold, config, window)` scoring. Produced by `pick_guards.py`.
 | `fold_id` | str | `f00`..`f14` |
 | `config_id` | str | → GuardConfig |
 | `window` | enum | `train` \| `test` — `train` drives selection; `test` is for the gate only |
-| `score` | float | proxy pooled mean outcome over admitted, concurrency-selected bars |
+| `proxy_score` | float | **A PROXY, NEVER A RETURN.** Pooled mean outcome over admitted, concurrency-selected bars, from the outcome table. Used to SELECT configurations and nothing else; FR-018 restricts every P&L claim to `evaluation/` arm records. Named `proxy_score` rather than `score` because feature 021's central error was a table-derived figure being read as a realisable return |
 | `n_admitted` | int | bars the configuration admits |
 | `n_taken` | int | after concurrency selection |
 | `exit_config_hash` | str | must equal the arms' hash, else the score describes a different exit |

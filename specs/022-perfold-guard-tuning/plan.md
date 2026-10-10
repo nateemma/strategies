@@ -113,7 +113,9 @@ SimpleStrategies/
 
 regime/run_arm.py           # UNCHANGED (already records trades_hash and
                             # entry_enable_guards_written as of feature 021)
-Framework/                  # UNTOUCHED. Nothing here is runtime a strategy inherits.
+Framework/                  # NO RUNTIME CHANGE -- precisely BECAUSE this is runtime code
+                            # a live dry-run inherits. A test-allowlist entry may be added
+                            # (T008); nothing a strategy executes is modified.
 ```
 
 **Why `evaluation/` and not `regime/` or `Framework/`**: `evaluation/` already owns the fold

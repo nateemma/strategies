@@ -75,6 +75,19 @@ affects features other than this one.
   TriggerOnly subclass that names no exit parameter is not flagged, so this task may legitimately
   be a no-op — verify rather than assume.
 
+- [ ] T009 @model-implementer **Write the gate-refusal test FIRST** in
+  `evaluation/tests/test_gate_is_enforced.py`: assert that `run_folds.py` **REFUSES** a plan whose
+  `base_strategy` is `GbbGuardGridOpen` when the trackability verdict file is absent, or present
+  with `verdict != "trackable"`, exiting non-zero and printing the verdict it found. Cover all
+  three cases: file missing, `not_trackable`, `trackable`.
+- [ ] T010 @main Implement that refusal in `evaluation/run_folds.py`: before generating folds for
+  a plan carrying a `guards` key, require `evaluation/folds/trackability_<run_id>.json` to exist
+  with `verdict: "trackable"`. **FR-006 was previously enforced only by a prose note in this task
+  list, which nothing prevents an operator or agent from reading past.** Principle VII is
+  non-negotiable and this feature's own T032 exists because "a check that cannot fail is
+  worthless" — the same standard applies to its headline gate. Plans without a `guards` key are
+  unaffected, which T005's byte-identical fixture continues to prove.
+
 **Checkpoint**: shared harness code is extended with a proven-inert-when-absent plan key, and the
 no-model strategy exists.
 
@@ -87,20 +100,20 @@ no-model strategy exists.
 **Independent test**: a written provenance verdict with evidence and an overlap answer, produced
 without running any arm.
 
-- [ ] T009 [US1] @main Trace the origin of the pre-2026-09-06 tuned guard values
+- [ ] T011 [US1] @main Trace the origin of the pre-2026-09-06 tuned guard values
   (`entry_atr_pct` 0.013, `entry_adx_threshold` 10.0, `entry_bb_width_threshold` 0.094,
   `entry_close_norm_threshold` 0.6, `entry_guard_threshold` 0.1, `entry_rvol_threshold` 1.9)
   through `git log -S` on `Framework/BaseStrategy.py` and any `.fthypt` records. Record commit
   ids and dates.
-- [ ] T010 [US1] @main Compare the recovered tuning window to the 15 fold **test** ranges from
+- [ ] T012 [US1] @main Compare the recovered tuning window to the 15 fold **test** ranges from
   `evaluation/folds/plan_NNNC_A_Raw_Open.json` and record `overlaps_folds` as `yes`/`no`/`unknown`
   per data-model.md's `ProvenanceVerdict`.
-- [ ] T011 [US1] @main Verify the incumbent arm D's configuration from the strategy class and its
+- [ ] T013 [US1] @main Verify the incumbent arm D's configuration from the strategy class and its
   params file — **not** from prose and **not** from any recorded provenance field. Feature 021
   twice trusted a field that asserted rather than measured (`volume_filter_active` was a
   hardcoded literal; `guards` recorded a CLI flag). Confirm guards-open and a per-fold model
   threshold, or report that the premise is contradicted.
-- [ ] T012 [US1] @main Write `specs/022-perfold-guard-tuning/provenance.md` with the verdict and
+- [ ] T014 [US1] @main Write `specs/022-perfold-guard-tuning/provenance.md` with the verdict and
   set `arm_b_status` to `trustworthy`, `in_sample` or `untrustworthy`. Per data-model.md, an
   unrecoverable window ⇒ `unknown` ⇒ `untrustworthy`. **This file must exist before any arm runs**
   (FR-001) and arm B's figure must carry this status wherever it is quoted (FR-002).
@@ -118,23 +131,32 @@ costs C-vs-B its interpretation but leaves C-vs-A intact.
 to 3.6e-5 on one population and had the **wrong sign** on another. Its fidelity is a measured
 property, not an assumption, and the gate cannot be trusted on an unaudited proxy.
 
-- [ ] T013 @model-implementer Write `evaluation/pick_guards.py`'s scoring core: given a
+- [ ] T015 @model-implementer Write `evaluation/pick_guards.py`'s scoring core: given a
   `GuardConfig` and a window, produce a `GridScore` per data-model.md — admitted-bar mask →
   concurrency selection (`research/outcomes/leaderboard.py::_select_concurrent`, `max_open` 10) →
   pooled mean, carrying `n_admitted`, `n_taken`, `exit_config_hash` and
   `below_floor = n_taken < 25` (FR-012, verbatim threshold).
-- [ ] T014 @model-implementer **Write the leakage test BEFORE the loading path** in
+- [ ] T016 @model-implementer **Write the leakage test BEFORE the loading path** in
   `evaluation/tests/test_pick_guards.py`: assert `pick_guards` loads fold data only through
   `pick_threshold.TrainWindow.from_fold`, and that requesting a **test**-window score without the
   explicit opt-in flag **raises** (FR-007). A test-window score must not be able to leak into
   selection.
-- [ ] T015 @experiment-runner Run `pick_guards.py --audit-proxy --against wf_gbbo,wf_gbbg`:
+- [ ] T017 @experiment-runner Run `pick_guards.py --audit-proxy --against wf_gbbo,wf_gbbg`:
   score arm A's open configuration and arm B's tuned configuration with the proxy and compare to
   their measured harness results (+2.64pp, +18.76pp).
-- [ ] T016 @gate-reviewer Review T015. **PASS** requires the proxy to separate A from B in the
+- [ ] T018 @gate-reviewer Review T017. **PASS** requires the proxy to separate A from B in the
   right direction. On **FAIL**, apply research.md's recorded fallback — reduce to two axes
   (`atr_pct` × `adx`, 16 points) scored by real backtests on training windows — and record that
   the 64-point grid was not licensed. Do not proceed on an unaudited proxy.
+
+- [ ] T019 @model-implementer **Rename the scoring output `proxy_score` throughout** — in
+  `evaluation/pick_guards.py`, `data-model.md`'s `GridScore` and `contracts/guard-cli.md` — and
+  add a test asserting no reporting path emits a `proxy_score` under a key or label containing
+  "return". **FR-018 restricts every P&L claim to `evaluation/` arm records, and the field was
+  called `score` while the instrument was called a proxy.** Feature 021's central error was
+  exactly this conflation: a table-derived figure read as a realisable return, which produced a
+  verdict column that was 1 of 6 on sign against live arms. The proxy here selects
+  configurations and never measures a return.
 
 **Checkpoint**: the scoring instrument is either trusted with evidence, or replaced by the
 pre-recorded fallback. Either way the next phase is licensed.
@@ -152,66 +174,71 @@ working session (SC-008).
 live guard's effect flipping sign across all three eras and four adaptive schemes have already
 lost to static values in this project. FR-006 makes that a complete finding.
 
-- [ ] T017 [US2] @model-implementer **Write the exit-code test FIRST** in
+- [ ] T020 [US2] @model-implementer **Write the exit-code test FIRST** in
   `evaluation/tests/test_guard_trackability.py`: assert `guard_trackability.py` exits **0** when
   the verdict is `not_trackable`. That verdict is a complete finding under FR-006 and must not
   read as a failed run — an exit code of 1 would make the expected outcome look like breakage.
-- [ ] T018 [US2] @model-implementer Add a test asserting `n_distinct_choices` is reported
+- [ ] T021 [US2] @model-implementer Add a test asserting `n_distinct_choices` is reported
   **separately** from the verdict, so a merely-varying optimum can never be rendered as
   trackable. Principle VII: variation is "necessary but nowhere near sufficient".
-- [ ] T019 [US2] @model-implementer Implement `evaluation/guard_trackability.py` per research.md
+- [ ] T022 [US2] @model-implementer Implement `evaluation/guard_trackability.py` per research.md
   R4, verbatim: `c_i = argmax_c` train score; `c* = argmax_c Σ_i S_i(c)` chosen **in hindsight**;
   `regret_i(adaptive) = max_c S_i(c) − S_i(c_i)`; `regret_i(constant) = max_c S_i(c) − S_i(c*)`.
   Regret is against `max_c` over **the enumerated candidates that actually existed** (FR-005) —
   never a value outside the grid.
-- [ ] T020 [US2] @model-implementer Compute the paired interval on the per-fold regret difference
+- [ ] T023 [US2] @model-implementer Compute the paired interval on the per-fold regret difference
   by reusing `evaluation/bootstrap.py::bootstrap_delta` (FR-015). Do not write a second paired
   bootstrap.
-- [ ] T021 [US2] @experiment-runner Score the 64 configurations on all 15 **training** windows via
+- [ ] T024 [US2] @experiment-runner Score the 64 configurations on all 15 **training** windows via
   `pick_guards.py` and write `evaluation/folds/guards_gbbgrid.json`. Sequential, one at a time.
   Confirm every `GridScore` carries `exit_config_hash == 5a18305d1fafa83e`.
-- [ ] T022 [US2] @experiment-runner Run `guard_trackability.py` and write
+- [ ] T025 [US2] @experiment-runner Run `guard_trackability.py` and write
   `evaluation/folds/trackability_gbbgrid.json`.
-- [ ] T023 [US2] @gate-reviewer Review the verdict before it is accepted: check that regret is
+- [ ] T026 [US2] @gate-reviewer Review the verdict before it is accepted: check that regret is
   measured against real candidates, that the constant was chosen in hindsight, that
   `n_distinct_choices` is reported apart from the verdict, and that the paired interval is on the
   per-fold difference. Produce a short memo; do not edit results.
 
-**🚦 GATE — FR-006**: if the verdict is `not_trackable`, **Phase 6 and Phase 7 MUST NOT run.**
-Proceed directly to T033 (the write-up). Phase 7 is likewise unreachable. This is the expected branch.
+**🚦 GATE — FR-006, ENFORCED IN CODE BY T010.** If the verdict is `not_trackable`, Phase 6 and
+Phase 7 cannot run: `run_folds.py` refuses any plan carrying a `guards` key unless
+`trackability_<run_id>.json` reads `verdict: "trackable"`, exiting non-zero with the verdict it
+found. Proceed directly to T036 (the write-up). **This was previously a prose note only, which
+nothing prevented an operator or agent from reading past** — the same "a guard that cannot fail
+is worthless" standard this feature applies to T029's negative control. This is the expected
+branch.
 
 ---
 
 ## Phase 6: User Story 3 — Does per-fold guard tuning trade? (Priority: P2)
 
-**Runs only if T023 accepted a `trackable` verdict.**
+**Runs only if T026 accepted a `trackable` verdict.**
 
 **Goal**: arm C — per-fold tuned guards, no model, 15 folds.
 
 **Independent test**: a pooled wallet return, folds-positive count, and a paired interval against
 arm A.
 
-- [ ] T024 [US3] @model-implementer **Write the inertness test FIRST** in
+- [ ] T027 [US3] @model-implementer **Write the inertness test FIRST** in
   `evaluation/tests/test_guard_axes_bite.py`: given two arm records differing in exactly one grid
   axis, assert their `trades_hash` values differ; and given two records differing only in
   `entry_guard_threshold`, assert the hashes are **IDENTICAL**.
-- [ ] T025 [US3] @experiment-runner Run the FR-013 proof on one fold: vary each of the three axes
+- [ ] T028 [US3] @experiment-runner Run the FR-013 proof on one fold: vary each of the three axes
   across its levels and collect `trades_hash` from each `regime/arms/` record.
-- [ ] T026 [US3] @experiment-runner **Run the negative control**: two runs on the same fold
+- [ ] T029 [US3] @experiment-runner **Run the negative control**: two runs on the same fold
   varying **only** the known-inert `entry_guard_threshold`, and confirm `trades_hash` is
   UNCHANGED. `GUARD_ABLATION.md` records this parameter as producing byte-identical trades on all
   three windows, so it is a free proof that the inertness check can actually detect inertness. A
   check that cannot fail is worthless — feature 021 established this by planting a duplicate. **If
-  the hash CHANGES here, the check itself is broken and T025's result means nothing.**
-- [ ] T027 [US3] @gate-reviewer Review T025/T026. Any axis whose hash did not change is INERT and
+  the hash CHANGES here, the check itself is broken and T028's result means nothing.**
+- [ ] T030 [US3] @gate-reviewer Review T028/T029. Any axis whose hash did not change is INERT and
   MUST be reported as a defect (FR-013): the grid was searching a dimension that does not exist.
-- [ ] T028 [US3] @experiment-runner Build `evaluation/folds/plan_GbbGuardGrid.json` from the
-  control's fold plan with `base_strategy: GbbGuardGridOpen` and the `guards` map from T021, then
+- [ ] T031 [US3] @experiment-runner Build `evaluation/folds/plan_GbbGuardGrid.json` from the
+  control's fold plan with `base_strategy: GbbGuardGridOpen` and the `guards` map from T024, then
   run all 15 folds sequentially via `run_folds.py`. One backtest at a time.
-- [ ] T029 [US3] @main **Verify `exit_config_hash` equality across arms A, B, C and D** as its own
+- [ ] T032 [US3] @main **Verify `exit_config_hash` equality across arms A, B, C and D** as its own
   task (SC-004). A mismatch voids every comparison in this feature and is a hard failure, not a
   warning.
-- [ ] T030 [US3] @experiment-runner Pool arm C (`evaluation/pool.py`), compare to arm A paired via
+- [ ] T033 [US3] @experiment-runner Pool arm C (`evaluation/pool.py`), compare to arm A paired via
   `compare_pooled.py`/`bootstrap_delta` (FR-015), report power (`power.py`), and report every
   effect with its **early-half and late-half** values (FR-016, SC-007). Exclude any fold whose
   selected configuration admitted fewer than 25 trades, reporting it as **unpowered** rather than
@@ -223,32 +250,32 @@ arm A.
 
 **Runs only if arm C cleared the pre-registered decision rule (FR-020).**
 
-- [ ] T031 [US4] @experiment-runner Build arm E reusing the incumbent's existing per-fold
+- [ ] T034 [US4] @experiment-runner Build arm E reusing the incumbent's existing per-fold
   artefacts at `saved_data/NNNC_ARO_f{00..14}/*.safetensors`. **No model is fitted** (FR-020);
   confirm no training is triggered before running.
-- [ ] T032 [US4] @experiment-runner Run arm E over the 15 folds and compare to arm C paired on the
+- [ ] T035 [US4] @experiment-runner Run arm E over the 15 folds and compare to arm C paired on the
   symmetric difference, with early/late halves.
 
 ---
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T033 @main **The terminal write-up, and it is a DELIVERABLE not an abandonment.** Write
+- [ ] T036 @main **The terminal write-up, and it is a DELIVERABLE not an abandonment.** Write
   `specs/022-perfold-guard-tuning/report.md` recording: the provenance verdict; the proxy audit;
   the trackability verdict with its regret figures; and, if the gate failed, the explicit
   statement that per-fold guard tuning is **not a candidate for adaptivity** and that the feature
   is **complete**. State it as the fifth adaptive scheme to lose to a static value in this
   project, and that the gate cost one session rather than fifteen hyperopts.
-- [ ] T034 [P] @main Record in the report that the grid's joint 3-D search is a documented
+- [ ] T037 [P] @main Record in the report that the grid's joint 3-D search is a documented
   deviation from Principle VIII, with super-additivity as the reason, and that the joint winner's
   per-guard marginal effect MUST NOT be read off the grid.
-- [ ] T035 [P] @model-implementer Run the full suite and report the count, confirming no
+- [ ] T038 [P] @model-implementer Run the full suite and report the count, confirming no
   pre-existing failure was introduced. Attribute any failure against a pristine pre-022 worktree
   rather than asserting it is pre-existing.
-- [ ] T036 [P] @main Update `specs/021-label-exit-coordination/report.md`'s follow-up section with
+- [ ] T039 [P] @main Update `specs/021-label-exit-coordination/report.md`'s follow-up section with
   this feature's outcome, so 021's open puzzle (+39.98pp explained by nothing measured) carries
   the answer or the remaining gap.
-- [ ] T037 [P] @main If `arm_b_status` came out `untrustworthy`, add a one-line caveat beside
+- [ ] T040 [P] @main If `arm_b_status` came out `untrustworthy`, add a one-line caveat beside
   every existing quotation of arm B's +18.76pp in feature 021's artefacts, so the figure never
   travels without its status (FR-002).
 
@@ -262,10 +289,11 @@ arm A.
 Phase 1 (setup)
     └─> Phase 2 (shared harness) ── BLOCKING, strictly ordered:
             T004 (fixture from PRE-change code) ─> T005 (add key) ─> T006 (prove unchanged)
+            T009 (gate-refusal test)            ─> T010 (ENFORCE the gate in run_folds.py)
     ├─> Phase 3 (US1 provenance) ── independent, no compute, always completes
     └─> Phase 4 (proxy audit) ── licenses Phase 5
             └─> Phase 5 (US2 GATE) ── 🚦 FR-006 decides what follows
-                    ├── not_trackable ─> T033 (write up, STOP)
+                    ├── not_trackable ─> T036 (write up, STOP)   [run_folds REFUSES, T010]
                     └── trackable ────> Phase 6 (US3 arm C)
                                             └─> Phase 7 (US4 arm E), only if C clears its rule
 ```
@@ -274,7 +302,8 @@ Phase 1 (setup)
 
 - **US1** is fully independent — it can run in parallel with Phases 2 and 4 and always completes.
 - **US2** depends on Phase 4 (an audited proxy) and on Phase 2 only for `GridScore` plumbing.
-- **US3** depends on US2's verdict being `trackable`. **It is expected not to run.**
+- **US3** depends on US2's verdict being `trackable`, and that dependency is MECHANICAL as of
+  T010, not advisory. **It is expected not to run.**
 - **US4** depends on US3 clearing the decision rule.
 
 ### Parallel Opportunities
@@ -283,20 +312,20 @@ Phase 1 (setup)
 - **Phase 3 (US1) runs in parallel with Phases 2 and 4** — it needs no code and no compute, so the
   provenance verdict can be ready before the gate reports.
 - T007 and T008 together.
-- T034–T037 together once T033 exists.
+- T037–T040 together once T036 exists.
 
 ## Parallel Example: Phase 3 alongside Phase 4
 
 ```
-@main            T009 → T010 → T011 → T012      (provenance, no compute)
-@model-implementer   T013, T014                 (proxy scoring core + leakage test)
-@experiment-runner        T015                  (needs T013)
+@main            T011 → T012 → T013 → T014      (provenance, no compute)
+@model-implementer   T015, T016                 (proxy scoring core + leakage test)
+@experiment-runner        T017                  (needs T015)
 ```
 
 ## Implementation Strategy
 
 **MVP is Phases 1–5**, and the MVP may be the whole feature. The gate is expected to return
-`not_trackable`, in which case T033 is the deliverable and Phases 6–7 never run. That is a
+`not_trackable`, in which case T036 is the deliverable and Phases 6–7 never run. That is a
 complete result costing one session, which is precisely what Principle VII's "kill or confirm in
 an afternoon" buys.
 

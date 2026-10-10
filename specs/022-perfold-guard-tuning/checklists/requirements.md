@@ -90,3 +90,49 @@ One premise of the source outline was **corrected** by this pass: it assumed `rv
 dominant guard. The ablation shows `atr_pct` (-7.33pp) and `adx` (-5.95pp) are the heaviest
 lifters and `rvol` (-3.42pp) is third; `rvol`'s dominance is of gate *rejections*, not of
 return. `guard_metric` is excluded entirely as proven inert.
+
+### Re-validated after /speckit-analyze (2026-10-10)
+
+The analysis found **1 CRITICAL, 4 HIGH, 5 MEDIUM, 1 LOW**. Six were fixed; the rest are
+recorded below as outstanding with their rationale.
+
+**Fixed**
+
+- **D1 (CRITICAL) — the blocking gate was not enforceable.** FR-006 says arm C must not run on a
+  failed gate, but enforcement was a prose note in tasks.md that nothing prevented an operator or
+  agent from reading past. Now T009/T010: `run_folds.py` refuses any plan carrying a `guards` key
+  unless the trackability verdict reads `trackable`, with a test covering all three states
+  (missing, `not_trackable`, `trackable`). This feature already applied the
+  "a guard that cannot fail is worthless" standard to its own negative control; it now applies it
+  to its headline gate.
+- **C1 (HIGH) — FR-018 had zero task coverage**, and **F1 (HIGH) — the scoring field was named
+  `score` while the instrument was a proxy.** Both fixed by T019: the field is `proxy_score`
+  everywhere, with a test that no reporting path labels it as a return. Feature 021's central
+  error was exactly this conflation.
+- **A1/A2/A3 (HIGH) — the pre-registered decision rule was not total.** It had no branch for an
+  arm C *worse* than A, allowed two branches to hold simultaneously, and did not gate on the
+  powered-fold count. Now four ordered, mutually exclusive branches with Branch 0 (POWER,
+  `indeterminate` below 10 powered folds) evaluated first. **This mattered to fix now**: FR-019
+  freezes the rule once arm C runs, so an incomplete rule would have hardened into an unfixable
+  one.
+- **F2/F3 (MEDIUM, fixed opportunistically)** — plan.md's `Framework/` comment stated the
+  *opposite* of its reason ("Nothing here is runtime a strategy inherits") and conflicted with
+  T008's test-allowlist edit. Now "NO RUNTIME CHANGE — precisely BECAUSE this is runtime code a
+  live dry-run inherits".
+
+**Outstanding, accepted**
+
+- **C2 (MEDIUM)** FR-010 has no task asserting the search never widens beyond the three axes.
+  Mitigated in practice by T002's committed grid and T019's field test; worth folding into T016's
+  test file during implementation.
+- **C3 (MEDIUM)** FR-020's "no model is fitted" rests on T038's instruction rather than a check.
+  An artefact-mtime assertion would close it; low risk because arm E only runs in the contingent
+  branch.
+- **F4 (MEDIUM)** five names persist for one entity (guard configuration / `GuardConfig` / grid
+  point / candidate / `config_id`). Harmless to execution, worth canonicalising if the artefacts
+  are revised.
+- **L1 (LOW)** "super-additive" vs "super-additivity" wording. Cosmetic.
+
+**Coverage after fixes**: 28/28 requirements have at least one task (was 26/28). 40 tasks, IDs
+sequential, all 29 prose cross-references verified to resolve to their intended targets after
+renumbering.
