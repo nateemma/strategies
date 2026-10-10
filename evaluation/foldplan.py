@@ -19,6 +19,10 @@ from pathlib import Path
 
 STRAT_DIR = Path("user_data/strategies")
 FOLDS_DIR = STRAT_DIR / "evaluation/folds"
+# Absolute anchors for `derive` (feature 023), which must work from any cwd -- tests run from
+# user_data/strategies, the harness from the repo root. Plans keep storing ROOT-relative paths.
+ROOT_ABS = Path(__file__).resolve().parents[3]
+FOLDS_DIR_ABS = ROOT_ABS / "user_data/strategies/evaluation/folds"
 
 
 def _d(s: str) -> date:
@@ -66,11 +70,21 @@ def build(family: str, data_start: str, data_end: str,
     return folds
 
 
-def validate(folds: list[dict]) -> list[str]:
-    """Return a list of blocking errors. Empty means the plan may execute (FR-002, SC-003)."""
+def validate(folds: list[dict], no_model: bool = False) -> list[str]:
+    """Return a list of blocking errors. Empty means the plan may execute (FR-002, SC-003).
+
+    `no_model` (feature 023): a model-free arm legitimately runs the SAME class with NO model
+    dir in every fold, so the two identity-collision checks -- which exist to stop folds
+    overwriting each other's weights -- do not apply. The exemption holds only when every fold
+    really has no model dir; a no-model plan that names one is still an error.
+    """
     errors: list[str] = []
     if not folds:
         return ["plan is empty"]
+    if no_model:
+        for f in folds:
+            if f.get("model_dir") is not None:
+                errors.append(f"{f['fold_id']}: no_model plan has model_dir {f['model_dir']!r}")
     seen_cls: dict[str, str] = {}
     seen_dir: dict[str, str] = {}
     prev_test_start = None
@@ -88,11 +102,11 @@ def validate(folds: list[dict]) -> list[str]:
         if tr_e <= tr_s:
             errors.append(f"{fid}: train_end {tr_e} is not after train_start {tr_s}")
         # Identity collisions would make folds overwrite each other's weights (research R4).
-        if f["strategy_class"] in seen_cls:
+        if not no_model and f["strategy_class"] in seen_cls:
             errors.append(f"{fid}: strategy_class {f['strategy_class']} already used by "
                           f"{seen_cls[f['strategy_class']]}")
         seen_cls[f["strategy_class"]] = fid
-        if f["model_dir"] in seen_dir:
+        if not no_model and f["model_dir"] in seen_dir:
             errors.append(f"{fid}: model_dir collides with {seen_dir[f['model_dir']]}")
         seen_dir[f["model_dir"]] = fid
         if prev_test_start is not None and te_s <= prev_test_start:
@@ -101,7 +115,114 @@ def validate(folds: list[dict]) -> list[str]:
     return errors
 
 
-def snapshot_params(src: Path, run_id: str) -> tuple[Path, str] | tuple[None, None]:
+def validate_plan(plan: dict) -> list[str]:
+    """Plan-level validation: the fold rules plus the no-model rules (feature 023 C2)."""
+    no_model = bool(plan.get("no_model"))
+    errors = validate(plan.get("folds", []), no_model=no_model)
+    if no_model and plan.get("thresholds"):
+        errors.append("no_model plan carries `thresholds`: a model-free arm has no prediction "
+                      "threshold, so they would be silently dropped")
+    return errors
+
+
+def derive(src_plan: dict, family: str, base: str, tag: str, *,
+           model_source: str | None = None, class_prefix: str | None = None,
+           params_file: Path | None = None, snapshot_dir: Path | None = None,
+           run_id: str | None = None) -> dict:
+    """A new plan whose fold WINDOWS are copied verbatim from `src_plan` (feature 023 C2).
+
+    Rebuilding from dates would need `--data-end` and friends matched by hand; copying makes the
+    windows identical by construction, which is what makes the new arm comparable fold-for-fold.
+
+    Two shapes:
+      * no model (`model_source` None): every fold runs `base` itself, `model_dir` null,
+        `no_model: true`, no params snapshot, no thresholds.
+      * NNNC on borrowed models (`model_source` e.g. "NNNC_ARO"): per-fold classes
+        `{class_prefix}_fNN` whose model dir is `{model_source}_fNN` -- the source arm's trained
+        weights, so nothing is trained. The base's params JSON is snapshotted as `build` does.
+    """
+    run_id = run_id or datetime.now().strftime("%Y%m%d-%H%M%S")
+    no_model = model_source is None
+    keep = ("fold_id", "train_start", "train_end", "test_start", "test_end",
+            "train_timerange", "test_timerange", "test_days")
+    folds = []
+    for f in src_plan["folds"]:
+        g = {k: f[k] for k in keep}
+        fid = f["fold_id"]
+        if no_model:
+            g["strategy_class"] = base
+            g["model_dir"] = None
+        else:
+            if not class_prefix:
+                raise ValueError("class_prefix is required when model_source is given")
+            g["strategy_class"] = f"{class_prefix}_{fid}"
+            g["model_dir"] = f"user_data/strategies/saved_data/{model_source}_{fid}"
+        g["arm_tag"] = f"{tag}_{fid}"
+        g["status"] = "planned"
+        folds.append(g)
+
+    snap = sha = None
+    if not no_model:
+        src = params_file or (ROOT_ABS / "user_data/strategies" / family / f"{base}.json")
+        if not Path(src).is_file():
+            raise FileNotFoundError(f"{src}: an NNNC derive needs the base's params JSON -- "
+                                    f"without it freqtrade runs the class defaults")
+        snap, sha = snapshot_params(Path(src), run_id, out_dir=snapshot_dir or FOLDS_DIR_ABS)
+        try:
+            snap = Path(snap).resolve().relative_to(ROOT_ABS)
+        except ValueError:
+            pass
+
+    plan = {
+        "run_id": run_id,
+        "family": family,
+        "base_strategy": base,
+        "derived_from": src_plan.get("run_id"),
+        "no_model": no_model,
+        "model_source": model_source,
+        "anchored": src_plan.get("anchored", True),
+        "min_train_days": src_plan.get("min_train_days"),
+        "test_days": src_plan.get("test_days"),
+        "data_start": src_plan.get("data_start"),
+        "data_end": src_plan.get("data_end"),
+        "config": src_plan["config"],
+        "params_snapshot": str(snap) if snap else None,
+        "params_sha": sha,
+        "folds": folds,
+    }
+    errors = validate_plan(plan)
+    plan["validated"] = not errors
+    plan["validation_errors"] = errors
+    return plan
+
+
+def derive_main(argv: list[str]) -> int:
+    ap = argparse.ArgumentParser(prog="foldplan derive", description=derive.__doc__)
+    ap.add_argument("--from", dest="src", required=True)
+    ap.add_argument("--family", required=True)
+    ap.add_argument("--base", required=True)
+    ap.add_argument("--tag", required=True)
+    ap.add_argument("--model-source")
+    ap.add_argument("--class-prefix")
+    ap.add_argument("--out", required=True)
+    a = ap.parse_args(argv)
+    src_plan = json.loads(Path(a.src).read_text())
+    plan = derive(src_plan, a.family, a.base, a.tag, model_source=a.model_source,
+                  class_prefix=a.class_prefix)
+    if plan["validation_errors"]:
+        print(f"REFUSED: {len(plan['validation_errors'])} blocking error(s)")
+        for e in plan["validation_errors"]:
+            print(f"  {e}")
+        return 1
+    Path(a.out).write_text(json.dumps(plan, indent=2) + "\n")
+    print(f"VALIDATED: {len(plan['folds'])} folds derived from run {plan['derived_from']} "
+          f"({'no model' if plan['no_model'] else 'models from ' + plan['model_source']})")
+    print(f"written: {a.out}")
+    return 0
+
+
+def snapshot_params(src: Path, run_id: str,
+                    out_dir: Path | None = None) -> tuple[Path, str] | tuple[None, None]:
     """Snapshot the strategy params file ONCE, at plan time (T006a).
 
     NNNC/NNNC_MLX.json is UNTRACKED working state that the user edits. Re-reading it per fold would
@@ -117,7 +238,7 @@ def snapshot_params(src: Path, run_id: str) -> tuple[Path, str] | tuple[None, No
     # the SAME path: the second overwrote the first, and the first plan then pointed at
     # the other arm's entry gate while still recording its own sha. Found 2026-10-07
     # after an arm silently ran the control's guards.
-    dst = FOLDS_DIR / f"params_{run_id}_{src.stem}.json"
+    dst = (out_dir or FOLDS_DIR) / f"params_{run_id}_{src.stem}.json"
     dst.write_bytes(blob)
     return dst, sha
 
@@ -189,4 +310,8 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    import sys as _sys
+
+    if len(_sys.argv) > 1 and _sys.argv[1] == "derive":
+        raise SystemExit(derive_main(_sys.argv[2:]))
     raise SystemExit(main())

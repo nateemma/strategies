@@ -29,13 +29,13 @@ and quickstart §0 names the unit gate.
 
 ## Phase 1: Setup
 
-- [ ] T001 Create `SimpleTrigger/__init__.py`, `SimpleTrigger/tests/__init__.py` and
+- [X] T001 Create `SimpleTrigger/__init__.py`, `SimpleTrigger/tests/__init__.py` and
   `evaluation/tests/__init__.py`. Add `SimpleTrigger/tests/conftest.py` and
   `evaluation/tests/conftest.py`, each inserting the repo root (`user_data/strategies`) on
   `sys.path` the same way `Framework/tests/` does (read one of its test files for the pattern).
   Add to `.gitignore`: `SimpleTrigger/SimpleTrigger_*__C_*.py` (generated component arms, T046)
   and `evaluation/.scratch/`.
-- [ ] T002 **Baseline reproducibility, before any edit.**
+- [X] T002 **Baseline reproducibility, before any edit.**
   - Re-run two recorded folds on HEAD, one at a time:
     - arm D fold f00: `python -m regime.run_arm --strategy NNNC_ARO_f00 --timerange <f00
       test_timerange from evaluation/folds/plan_NNNC_A_Raw_Open.json> --label F00 --tag
@@ -57,7 +57,7 @@ and quickstart §0 names the unit gate.
 **Purpose**: The measurements every story depends on. Every shared-file edit here must leave
 recorded arms byte-identical (T017 gate).
 
-- [ ] T003 [P] Write `evaluation/tests/test_fingerprint.py`. Assert that:
+- [X] T003 [P] Write `evaluation/tests/test_fingerprint.py`. Assert that:
   (a) `resolve(NNNC_A_Raw_Open)` and `resolve(NNNC_ARO_f00)` give the same `framework_sha`;
   (b) the resolved dict contains every member listed under data-model `FrameworkPreset`;
   (c) `prediction_threshold`, the classifier and label params are EXCLUDED;
@@ -66,7 +66,7 @@ recorded arms byte-identical (T017 gate).
       (`freqtrade/strategy/hyper.py:86-100`, nested dict update);
   (f) resolving `NNNC_A_Raw_Open` does NOT instantiate the strategy and does NOT touch
       `saved_data/` (patch `BaseNNStrategy.__init__` to raise).
-- [ ] T004 Implement `evaluation/fingerprint.py`:
+- [X] T004 Implement `evaluation/fingerprint.py`:
   - `resolve(strategy_cls, params_json: dict | None, config: dict) -> (sha16, resolved_dict)`
     reads MRO class attributes for the FrameworkPreset members, applies the JSON merge, and adds
     `max_open_trades`, `stake_amount` and `fee` from config. `max_open_trades` comes from
@@ -76,14 +76,14 @@ recorded arms byte-identical (T017 gate).
     without instantiating.
   - Add a CLI `python -m evaluation.fingerprint --strategy CLS [--config PATH]` (C5).
   - Make T003 pass.
-- [ ] T005 [P] Write `evaluation/tests/test_tag_match.py`. Create temp records
+- [X] T005 [P] Write `evaluation/tests/test_tag_match.py`. Create temp records
   `wf_x_f00_F00.json` and `wf_x_f00_s7_F00.json`, then assert that `pool.arm_record` and
   `run_folds.arm_record` return exactly `wf_x_f00_F00.json` for tag `wf_x_f00`, label `F00`
   (research R6).
-- [ ] T006 Fix the tag glob in `evaluation/pool.py` (`arm_record`, ~L47) and
+- [X] T006 Fix the tag glob in `evaluation/pool.py` (`arm_record`, ~L47) and
   `evaluation/run_folds.py` (`arm_record`, ~L211) to open `{tag}_{label}.json` by exact name. Make
   T005 pass.
-- [ ] T007 [P] Write `Framework/tests/test_entry_condition_sink.py`.
+- [X] T007 [P] Write `Framework/tests/test_entry_condition_sink.py`.
   - Build a small synthetic dataframe with the indicator columns `populate_entry_trend` reads (see
     `Framework/BaseStrategy.py:903-975`), and a minimal BaseStrategy subclass whose
     `get_entry_conditions` returns a fixed mask.
@@ -91,12 +91,12 @@ recorded arms byte-identical (T017 gate).
   - With it set, assert the JSON written to the sink dir has per-condition
     `{"pass": int, "total": int}` for `signal`, `volume` and `rvol`, plus the quality guards when
     `entry_enable_guards` is True, and that the counts are correct.
-- [ ] T008 Add the generic condition sink to `Framework/BaseStrategy.populate_entry_trend` (C4):
+- [X] T008 Add the generic condition sink to `Framework/BaseStrategy.populate_entry_trend` (C4):
   - Name each mask as it is ANDed, then at the end, if `os.environ.get("FT_ENTRY_CONDITION_SINK")`
     is set, write `<dir>/<ClassName>_<pair with / replaced by _>.json`.
   - Make no other change. The masks and their combination order stay byte-identical.
   - Make T007 pass.
-- [ ] T009 [P] Write `evaluation/tests/test_foldplan_nomodel.py`. Assert that:
+- [X] T009 [P] Write `evaluation/tests/test_foldplan_nomodel.py`. Assert that:
   (a) `derive(src_plan, family="SimpleTrigger", base="X", tag="st_x")` copies every fold's
       `train_*`, `test_*` and `*_timerange` fields verbatim from
       `evaluation/folds/plan_NNNC_A_Raw_Open.json`, and copies `config`;
@@ -109,7 +109,7 @@ recorded arms byte-identical (T017 gate).
   (e) `derive(..., family="NNNC", base="NNNC_TriggerGate", tag="wf_trgate",
       model_source="NNNC_ARO")` emits per-fold `strategy_class` `NNNC_TGT_fNN` and
       `model_dir` `NNNC_ARO_fNN`.
-- [ ] T010 Implement the `derive` subcommand and the validate rule in `evaluation/foldplan.py`
+- [X] T010 Implement the `derive` subcommand and the validate rule in `evaluation/foldplan.py`
   (contract C2). Exempt no-model plans from BOTH the duplicate-class check and the `model_dir`
   collision check (`:95-97`). Store `params_snapshot`/`params_sha` as null for no-model plans.
   For an NNNC derive, snapshot `NNNC/<base>.json` with `snapshot_params()` (`:104`), as `build`

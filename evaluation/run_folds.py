@@ -209,12 +209,15 @@ def evaluate_fold(fold: dict, config: str) -> int:
 
 
 def arm_record(fold: dict) -> dict | None:
-    for p in (STRAT_DIR / "regime/arms").glob(f"{fold['arm_tag']}_*.json"):
-        try:
-            return json.loads(p.read_text())
-        except Exception:
-            return None
-    return None
+    """`{arm_tag}_{FOLD}.json` by EXACT name -- the label `evaluate_fold` passes to run_arm.
+    A `{tag}_*.json` glob also matched seed-suffixed siblings in directory order (023 R6)."""
+    p = STRAT_DIR / "regime/arms" / f"{fold['arm_tag']}_{fold['fold_id'].upper()}.json"
+    if not p.is_file():
+        return None
+    try:
+        return json.loads(p.read_text())
+    except Exception:
+        return None
 
 
 def main() -> int:

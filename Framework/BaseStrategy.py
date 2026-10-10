@@ -900,9 +900,43 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
         ema = close.ewm(span=self.entry_trend_ema_period, adjust=False).mean()
         return close > ema
 
+    def _sink_entry_conditions(self, pair: str, conditions: list, names: list) -> None:
+        """Write per-condition pass counts when FT_ENTRY_CONDITION_SINK names a directory.
+
+        Liveness evidence (constitution IV; feature 023 C4): a guard that never rejects a bar is
+        inert, and that is only visible if each mask is counted on its own. Off unless the env
+        var is set, and read-only on the masks, so trades are byte-identical either way.
+        Strategy-agnostic: it names conditions, never strategies.
+        """
+        sink = os.environ.get("FT_ENTRY_CONDITION_SINK")
+        if not sink:
+            return
+        import json
+
+        counts = {}
+        combined = None
+        for name, cond in zip(names, conditions):
+            if cond is None:
+                continue
+            mask = np.asarray(cond, dtype=bool)
+            counts[name] = {"pass": int(mask.sum()), "total": int(mask.size)}
+            combined = mask if combined is None else (combined & mask)
+        if combined is not None:
+            counts["all"] = {"pass": int(combined.sum()), "total": int(combined.size)}
+        out = Path(sink)
+        out.mkdir(parents=True, exist_ok=True)
+        safe_pair = pair.replace("/", "_").replace(":", "_")
+        (out / f"{self.__class__.__name__}_{safe_pair}.json").write_text(
+            json.dumps({"strategy": self.__class__.__name__, "pair": pair, "counts": counts},
+                       indent=1)
+        )
+
     def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
         """Common entry trend population - calls strategy-specific method for custom conditions"""
         conditions = []
+        # Parallel to `conditions`: one name per mask, for the entry-condition sink only
+        # (feature 023 C4). It never changes which masks are ANDed or in what order.
+        condition_names = []
         dataframe.loc[:, "enter_tag"] = ""
         curr_pair = metadata["pair"]
 
@@ -914,6 +948,7 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
         # Call strategy-specific method to add custom conditions
         model_conditions = self.get_entry_conditions(dataframe)
         conditions.append(model_conditions)
+        condition_names.append("signal")
         # Set entry tags
         dataframe.loc[model_conditions, "enter_tag"] += "model_entry "
 
@@ -926,12 +961,14 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
         # volume guards. Blocks new longs while close is below the long EMA.
         if getattr(self, "entry_bear_filter_enable", False):
             conditions.append(~self.is_bear_market(dataframe))
+            condition_names.append("bear_filter")
 
         # Uptrend-only gate — stricter than the bear filter. Requires close
         # above a long EMA AND that EMA rising. Trips before stop_loss can
         # eat the model's directional signal in range-bound regimes.
         if getattr(self, "entry_trend_filter_enable", False):
             conditions.append(self.is_uptrend(dataframe))
+            condition_names.append("trend_filter")
 
         # MANDATORY -- deliberately OUTSIDE the entry_enable_guards block
         # (2026-09-08). `volume > 0` is a data-sanity check and rvol is a
@@ -958,22 +995,31 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
             self.warn_if_gate_is_inert()
 
         conditions.append(dataframe["volume"] > 0.0)
+        condition_names.append("volume")
         conditions.append(dataframe["rvol"] > self.entry_rvol_threshold.value)
+        condition_names.append("rvol")
 
         # Common guard conditions -- QUALITY filters only
         if self.entry_enable_guards.value:
             conditions.append(dataframe["atr_pct_roll"] > self.entry_atr_pct.value)
+            condition_names.append("atr_pct")
 
             conditions.append(
                 dataframe["guard_metric"] < self.entry_guard_threshold.value
             )
+            condition_names.append("guard")
             conditions.append(
                 dataframe["close_norm"] < self.entry_close_norm_threshold.value
             )
+            condition_names.append("close_norm")
             conditions.append(dataframe["adx"] > self.entry_adx_threshold.value)
+            condition_names.append("adx")
             conditions.append(
                 dataframe["bb_width"] > self.entry_bb_width_threshold.value
             )
+            condition_names.append("bb_width")
+
+        self._sink_entry_conditions(curr_pair, conditions, condition_names)
 
         # Apply conditions
         if conditions:

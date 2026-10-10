@@ -44,19 +44,22 @@ def smoke_test() -> bool:
     return False
 
 
-def arm_record(tag: str) -> dict | None:
-    for p in ARMS.glob(f"{tag}_*.json"):
-        try:
-            return json.loads(p.read_text())
-        except Exception:
-            return None
-    return None
+def arm_record(tag: str, label: str) -> dict | None:
+    """`{tag}_{label}.json` by EXACT name. A `{tag}_*.json` glob also matched seed-suffixed
+    siblings (`wf_x_f00_s7_F00.json` for tag `wf_x_f00`) in directory order (023 R6)."""
+    p = ARMS / f"{tag}_{label}.json"
+    if not p.is_file():
+        return None
+    try:
+        return json.loads(p.read_text())
+    except Exception:
+        return None
 
 
 def pool(plan: dict) -> dict:
     pooled, per_fold, missing = [], [], []
     for f in plan["folds"]:
-        rec = arm_record(f["arm_tag"])
+        rec = arm_record(f["arm_tag"], f["fold_id"].upper())
         if not rec or rec.get("returncode") != 0:
             missing.append(f["fold_id"]); continue
         n = rec.get("n_trades") or 0
