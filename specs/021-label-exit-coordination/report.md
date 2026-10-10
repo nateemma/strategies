@@ -1,5 +1,88 @@
 # Feature 021 — Label/exit coordination: verdicts and what they imply
 
+**Status**: all 40 tasks closed. **Exit held fixed throughout** (FR-019);
+`exit_config_hash 5a18305d1fafa83e` for every number in this document. Every P&L figure comes
+from the pooled walk-forward harness in `evaluation/` (FR-017), which resolves ~3–4pp/yr.
+
+---
+
+## SUMMARY — read this and stop, unless you need the evidence
+
+### What was built, and it works
+
+Evaluating a candidate label is now a **query taking seconds instead of a 1.5-hour training
+run**. Three durable artefacts:
+
+* **`utils/ExitPolicy.py`** — one exit model. The arithmetic was duplicated **four** ways, not
+  the two the spec named; all four are callers; live behaviour provably unchanged over 1,440
+  cases. Two real bugs fell out of the offline copy: an **additive fee model** where
+  freqtrade's is multiplicative, and a **missing 1-hour minimum-hold veto**. Both were
+  silently wrong in every stop-aware label this repository has built.
+* **The per-bar outcome table** — what a trade opened at any bar actually returned under that
+  one exit. Cached, keyed by an exit-config hash so a changed exit invalidates it, and
+  structurally barred from reaching a model as a feature.
+* **The trigger registry + enforced inventory** — 29 buy-side `LabelMethod`s classified, with
+  a test that fails if a new one appears unclassified.
+
+### The four conclusions
+
+1. **The open question is answered: explanation (b), decoration.** ~90% of every
+   trigger-defined label's learnability is the model recovering the trigger from its own input
+   columns — **13 of 13 triggers**, mean 9.6% retained (range 6.2–15.1%), with the `empty`
+   control at 101.1% and an LSTM at −0.0044 ruling out a linearity artefact.
+2. **No trigger is tradeable alone.** Six trigger-only harness arms: five lost **21–71pp**,
+   `gbb` was flat (+2.64pp ≈ +0.7pp/yr, below the floor). Includes `geometry`, which the spec
+   named as never tested.
+3. **Selectivity does not rescue them.** Tail precision at the top 1% **inverts between
+   windows** (A vs B rank correlation **−0.648, p = 0.017**); 10 of 13 are sign-unstable and
+   the 3 stable ones are exactly what chance predicts (P = 0.216).
+4. **So as labels they are equivalent, and none carries stable individually-exploitable
+   signal under this exit.** Not "worthless" — *indistinguishable*.
+
+### What was NOT achieved
+
+* **The economic-value column does not work as a label screen.** Sound as a statistic,
+  **1 of 6 on sign** against live arms, and its verdict population (fillable bars only) is not
+  one a capital-constrained strategy enters. `selection_value` is withdrawn as a verdict word.
+* **The instrument was never validated against the expensive ground truth.** We never showed
+  that probe ranking predicts trained-model harness ranking. The one column that *was* checked
+  against reality failed.
+* **The study is blind to outcome-definition differences by design** — 11 of 29 labelers
+  differ only in their outcome test, so under one shared outcome they are the same label.
+
+### The unresolved puzzle, and it is the important one
+
+`gbb` + model + per-fold threshold earns **+39.98pp in 15 of 15 folds**. Nothing measured here
+explains it: not the trigger (flat alone), not average learnability (collapses), not tail
+ranking (unstable). Two clues point the same way — the `empty` control's tail lift is
+**+0.112/+0.117 in windows B and C at z ≈ +10**, so outcome predictability exists but is *not
+trigger-specific*; and the incumbent **re-selects its threshold per fold on that fold's own
+training window**, which is exactly what a fixed-split probe cannot do. The hypothesis this
+study cannot test: the signal is real but only exploitable **adaptively**. See
+`followup-perfold-guard-tuning.md`.
+
+### Retractions — claims made during this feature and later withdrawn
+
+| claim | why withdrawn |
+|---|---|
+| "Two independent arms show the board's EV column inverted" | the `gbb` +39.98pp arm is a **model** arm at 1.4735% of bars vs the trigger's 14.19% — never a valid anchor |
+| "The inversion is a weighting artefact; the board is not anti-predictive" | six arms later: **1/6 on sign**. Stake-weighting agreed with the board because both up-weight liquid bars — a **shared defect, not corroboration** |
+| "The EV column has *no predictive validity*" | over-claimed at n=6; the four rows are ~2 independent conditions. The defensible claim is the **population** one |
+| "The mechanism is selectivity — guards and threshold cutting 14.19% of bars to 1.47%" | the incumbent ran **guards-OPEN** (`spec.md:13`); the 1.4735% is the **model threshold alone** |
+| "The guarded no-model arm will be unpowered noise" | wrong: **+18.76pp, 12/15 folds**, ~+5.1pp/yr, above the floor |
+| "The breakout family carries tail signal; `breakout_gbb` clears both bars" | **regime ghost** — −0.088 at z = −4.90 in window B |
+| "Break-even precision is ~0.25" | **~0.58** here; average loss is ~1.4× average win. Cited from memory before being computed |
+| "`volume_filter_active: True` shows the filter was on" | that field was a **hardcoded literal**; the conclusion survived on other grounds, the evidence did not |
+| "Concurrency is immaterial" | true only for a **sparse** trigger; decisive for a dense one |
+
+### Reading guide
+
+The sections below are **in the order the findings arrived**, not in order of importance, and
+several contain reasoning later corrected by a section further down. The table above is
+authoritative where they conflict.
+
+---
+
 **Status**: complete. **Date**: 2026-10-09. **Exit held fixed throughout** (FR-019);
 `exit_config_hash 5a18305d1fafa83e` for every number below.
 
