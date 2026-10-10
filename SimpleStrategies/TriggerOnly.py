@@ -104,10 +104,28 @@ class TriggerOnlyStrategy(BaseStrategy):
     # as well would filter those triggers twice and the arm would no longer correspond to the
     # scored row. `volume > 0` stays live -- it is a tradeability constraint, not a quality
     # filter.
+    # DEFECT FIXED 2026-10-09, and it invalidated the first run of these arms.
+    # This block previously set `entry_enable_guards: False`. BaseStrategy.py:295-299 says
+    # explicitly NOT to do that: the six quality guards are opened by NEUTRALISING each
+    # threshold, "because that flag ALSO disables the `volume > 0` data-sanity check which
+    # lives in the same block. Keep entry_enable_guards True."
+    #
+    # MEASURED exposure: 34.26% of bars in this dataset have volume <= 0 or non-finite, and
+    # 21.6-29.3% of every trigger's ENTRY bars are zero-volume. So the flag was switching off
+    # a check that would bind on roughly a quarter of entries, while this module's own
+    # docstring claimed `volume > 0` stayed live. It did not.
+    #
+    # The correct "open" configuration is the flag TRUE with every quality threshold
+    # neutralised, which is exactly BaseStrategy's own default (adx -1.0, atr_pct -1.0,
+    # bb_width -1.0, close_norm 1.1, guard 1.1, rvol -1.0). Inheriting it unchanged is
+    # therefore both the right setting and the one least able to drift from the repo's
+    # definition of "guards open".
     buy_params = {
         **getattr(BaseStrategy, "buy_params", {}),
-        "entry_enable_guards": False,
-        "entry_rvol_threshold": -1.0,
+        # left explicit because it is the whole point of this block, and because the
+        # previous value here was the defect
+        "entry_enable_guards": True,   # thresholds below are open; this keeps volume > 0 live
+        "entry_rvol_threshold": -1.0,  # several triggers carry their own rvol condition
     }
     entry_bear_filter_enable = False
     entry_trend_filter_enable = False

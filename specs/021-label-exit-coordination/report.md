@@ -21,17 +21,38 @@ One number separates them. The probe was fitted twice on identical features, spl
 and protocol — once on the label `trigger AND positive outcome`, once **conditionally**, on
 `positive outcome` among the bars where the trigger already fired.
 
-| trigger | unconditional MCC | **conditional** MCC | drop |
-|---|---|---|---|
-| `gbb` | +0.5927 | **+0.0489** | −0.5438 |
-| `breakout_gbb` | +0.5622 | +0.0468 | −0.5154 |
-| `breakout` | +0.5440 | +0.0384 | −0.5056 |
-| `adx` | +0.3883 | +0.0380 | −0.3503 |
-| `geometry` | +0.3286 | +0.0370 | −0.2917 |
-| `empty` *(control: no trigger)* | +0.0342 | +0.0350 | **−0.0008** |
+**EVERY scoreable trigger, 3 windows x 3 seeds each** (9 unconditional / 18 conditional fits
+per row; the unconditional column was backfilled 2026-10-09 after it was found to be stale —
+the original campaign ran when only 6 triggers were registered):
 
-**~92% of `gbb`'s apparent learnability is the model recovering the trigger from its own
-inputs.** Tell the model the trigger already fired and essentially nothing predictable remains
+| trigger | unconditional MCC | **conditional** MCC | drop | learnability retained |
+|---|---|---|---|---|
+| `gbb` | +0.5927 | +0.0504 | −0.5424 | 8.5% |
+| `votes_tech` | +0.5906 | +0.0466 | −0.5440 | 7.9% |
+| `breakout_gbb` | +0.5622 | +0.0498 | −0.5124 | 8.9% |
+| `breakout` | +0.5440 | +0.0465 | −0.4975 | 8.6% |
+| `votes_ind3` | +0.5387 | +0.0405 | −0.4981 | 7.5% |
+| `votes_ind4` | +0.5142 | +0.0320 | −0.4823 | 6.2% |
+| `votes_consensus` | +0.4600 | +0.0521 | −0.4079 | 11.3% |
+| `breakout_bb` | +0.4358 | +0.0656 | −0.3702 | 15.1% |
+| `votes_ind2` | +0.4206 | +0.0408 | −0.3797 | 9.7% |
+| `adx` | +0.3883 | +0.0364 | −0.3518 | 9.4% |
+| `breakout_squeeze` | +0.3798 | +0.0358 | −0.3439 | 9.4% |
+| `breakout_vol` | +0.3738 | +0.0516 | −0.3222 | 13.8% |
+| `geometry` | +0.3286 | +0.0285 | −0.3001 | 8.7% |
+| **`empty`** *(control: no trigger)* | +0.0342 | +0.0346 | **+0.0004** | **101.1%** |
+
+**13 of 13 triggers collapse, with no exception. A mean of 9.6% of apparent learnability
+survives conditioning on the trigger (range 6.2–15.1%), while the control retains 101.1%.**
+
+So roughly **90% of every trigger-defined label's learnability is the model recovering the
+trigger from its own input columns** — and the consistency is the striking part: the same
+~90% holds across mechanisms as different as momentum breakouts, a Bollinger condition,
+four indicator-vote schemes, an ADX filter and a DWT-smoothed geometric valley.
+
+`votes_tech` is the purest case in the study: the **second-highest unconditional learnability
+of any trigger (+0.5906)** and the **worst economic value on the board** (−0.003605, now
+`worse_than_null`). A label that trains beautifully and selects nothing. Tell the model the trigger already fired and essentially nothing predictable remains
 — +0.0489, against +0.0342 for predicting the outcome at a *random* bar. The `empty` control
 is what licenses the reading: with no trigger to recover, conditioning changes nothing
 (−0.0008), so the drop is not an artefact of the smaller conditional sample or of the
@@ -287,7 +308,7 @@ Two defects in one branch:
 of 13 tests, where ~2 false positives are expected, while the whole conditional-MCC column
 spans 0.03–0.05. It moves from `decoration` to `indeterminate`. **So the board's one example
 of explanation (b) by verdict is withdrawn** — the evidence for decoration now rests entirely
-on the conditional-MCC collapse (+0.5927 → +0.0489), which is much stronger than any single
+on the conditional-MCC collapse (13 of 13 triggers, ~90% of learnability lost), which is much stronger than any single
 row's verdict and is unaffected by this amendment.
 
 ## FIX 3 — a new `worse_than_null` verdict
@@ -337,3 +358,74 @@ is the **population** one, which needs no significance test: the verdict populat
 enterable by a capital-constrained strategy, and the population that is loses. I was not too
 harsh on the column as a trading screen — FR-017 already forbade that use — but I was too
 harsh on it as a measurement.
+
+---
+
+# Deliverable 3's missing half: what happened to the other label types
+
+Deliverable 3 asked to express the `LabelMethod` family's conditions as triggers "**and report
+which do not and why**". The first half was done — 15 triggers registered, 2 declared
+unscoreable. The second half was not, which is why it looked as though two thirds of the
+label family had silently dropped out of the study.
+
+`Framework/TrainingSignals.py` holds **51 `labels_*` functions, 29 of them buy-side.** All 29
+are accounted for below, and the accounting is enforced by
+`research/outcomes/tests/test_labelmethod_inventory.py`, which fails if a new labeler appears
+unclassified (proven to fail on a planted one, then restored).
+
+## A — expressed as a trigger and scored: 14
+
+`gbb`, `geometry`, `breakout`, `breakout_vol`, `breakout_squeeze`, `breakout_bb`,
+`breakout_gbb`, `breakout_consensus`, `technical_indicators`, `indicators2/3/4`, plus
+`trends` and `bands`, both **UNSCOREABLE** — the columns their conditions need are absent
+from the feature frame, and declaring that beats porting at reduced fidelity (an earlier
+`bands` port silently dropped 6 of 8 columns and produced a number that looked comparable
+and was not).
+
+## B — same trigger, different outcome test: 3
+
+`gbb_path` → `gbb`, `gbb_fwdmae` → `gbb`, `breakout_tb` → `breakout`. Not missing: their
+entry condition is already on the board and the only thing that differs is the forward test
+this design replaces. `labels_gbb_fwdmae` is the clearest case — its body is literally
+`labels_gbb(...) & labels_forward_return_mae_cap(...)`.
+
+## C — no entry condition at all, pure forward/outcome tests: 11 → ALL become `empty`
+
+`forward_return_mae_cap`, `triple_barrier`, `quantile_future_return`, `mfe_mae_ratio`,
+`risk_adjusted_future_return`, `future_sharpe`, `future_sortino`, `future_expectancy`,
+`multi_horizon_vote`, `optimal_signals`, `local_extrema`.
+
+**This is the study's blind spot, and it is structural rather than an omission.** Each of
+these is a different answer to *"what counts as a good outcome"* — a forward MAE cap, a
+triple barrier, a forward Sharpe, Sortino, expectancy, a return quantile, an MFE/MAE ratio, a
+vote across horizons, the oracle, a forward-window minimum. **None carries an entry
+condition.** The design replaces every outcome with one shared definition derived from the
+real exit, so under it these eleven are not merely unscored — **they are the same label**: the
+no-trigger case. No further work on this instrument will separate them, because the thing
+that distinguished them is exactly what the design removed.
+
+Note the awkwardness this creates for the feature's own premise.
+`labels_forward_return_mae_cap` **is** `forward_mae`, half of the motivating comparison
+(`gbb` +39.98pp against `forward_mae` −0.83pp). Under this design that comparison becomes
+"a trigger versus no trigger", which the board does reproduce — `empty` scores the worst
+economic value on it, −0.001272 — but **by construction rather than by measurement.**
+
+## D — a condition that reads forward, so not a trigger: 1
+
+`local_min_followthrough`: `close[t] == min(close[t−3 : t+4])` is **centred**, so it peeks
+3 bars ahead. A trigger must be computable at bar `t` from bar `t`'s information. This is
+perfectly legitimate in a *label* — labels may look ahead — it simply is not expressible as
+the entry rule this design varies.
+
+## What this means for the instrument's reach, stated plainly
+
+**This study assesses ENTRY conditions cheaply, and is blind to outcome-definition
+differences by design.**
+
+So the honest scope of every conclusion in this report is: *of the labels that differ in
+their entry condition*, none is differentially learnable once you condition on the trigger
+(13 of 13 triggers, ~90% of learnability lost), and none trades on its own (six arms, −70.55pp to
++2.64pp). About the eleven labels that differ only in their outcome test, this study says one
+thing and one thing only — they are the no-trigger case — and anyone wanting them separated
+needs a different instrument, one that varies the outcome definition and holds the trigger
+fixed. That is the exact mirror of this feature, and it is not what was built.
