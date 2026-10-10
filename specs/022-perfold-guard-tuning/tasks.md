@@ -31,17 +31,17 @@ convenience.
 
 ## Phase 1: Setup
 
-- [ ] T001 @main Create `evaluation/tests/__init__.py` if absent and confirm pytest collects
+- [X] T001 @main Create `evaluation/tests/__init__.py` if absent and confirm pytest collects
   `evaluation/tests/`, so the new test files in later phases are actually run rather than
   silently skipped.
-- [ ] T002 [P] @model-implementer **Pin the grid in a committed artefact BEFORE anything is
+- [X] T002 [P] @model-implementer **Pin the grid in a committed artefact BEFORE anything is
   scored**: write `evaluation/folds/guard_grid_022.json` enumerating the 4 levels for each of
   `entry_atr_pct`, `entry_adx_threshold`, `entry_rvol_threshold` (64 configurations), each with
   a stable `config_id`, and `entry_enable_guards: true` on every one. FR-005 requires the
   candidate set to be finite and inspectable and FR-019 requires pre-registration to be
   auditable; a grid chosen during the search satisfies neither. Levels bracket the historical
   tuned values (atr_pct 0.013, adx 10.0, rvol 1.9) and the open values.
-- [ ] T003 [P] @main Record the four reused arm tags and their measured results in
+- [X] T003 [P] @main Record the four reused arm tags and their measured results in
   `specs/022-perfold-guard-tuning/arms.md`: A `wf_gbbo` +2.64pp 7/15, B `wf_gbbg` +18.76pp 12/15,
   D `wf_aro` +39.98pp 15/15, and C `wf_gbbgrid` (pending). FR-014 forbids re-running A, B and D.
 
@@ -52,35 +52,35 @@ convenience.
 Shared harness code. Nothing in Phases 3+ may start until T006 passes, because a regression here
 affects features other than this one.
 
-- [ ] T004 @model-implementer **Write the regression test FIRST** in
+- [X] T004 @model-implementer **Write the regression test FIRST** in
   `evaluation/tests/test_guards_plan_key.py`: assert that for a plan with **no** `guards` key,
   `run_folds.generate_fold` produces output **byte-identical** to current behaviour. Generate the
   expected fixture from the CURRENT code before T005 modifies it — a fixture generated afterwards
   would record whatever the new code does and assert the new code does it.
-- [ ] T005 @main Add the optional `guards` plan key to `evaluation/run_folds.py`, mirroring the
+- [X] T005 @main Add the optional `guards` plan key to `evaluation/run_folds.py`, mirroring the
   existing `thresholds` key exactly (read at `:194`, passed to `generate_fold` at `:237`). Values
   are written into the fold's **generated** `.json` derived from the frozen params snapshot,
   never into a live params file. `entry_enable_guards` is forced `True` on write regardless of
   input (FR-008). Owner is `@main` because other features' plans read this file.
-- [ ] T006 @model-implementer Run T004 against the modified `run_folds.py` and confirm plans
+- [X] T006 @model-implementer Run T004 against the modified `run_folds.py` and confirm plans
   without a `guards` key are byte-identical. If any differ, fix `run_folds.py` — do not
   regenerate the fixture.
-- [ ] T007 [P] @model-implementer Create `SimpleStrategies/GbbGuardGridOpen.py` as a thin
+- [X] T007 [P] @model-implementer Create `SimpleStrategies/GbbGuardGridOpen.py` as a thin
   `TriggerOnly` subclass with `TRIGGER_NAME = "gbb"`, whose guard values come from the generated
   per-fold params file. It must set no exit field of its own (FR-009) and must not override
   `entry_enable_guards` to anything but `True` (FR-008).
-- [ ] T008 [P] @model-implementer Add `SimpleStrategies/GbbGuardGridOpen.py` to the allowlist in
+- [X] T008 [P] @model-implementer Add `SimpleStrategies/GbbGuardGridOpen.py` to the allowlist in
   `Framework/tests/test_exit_policy_single_source.py` **only if** the duplication test flags it,
   and classify it as *configuring* with a one-line reason. Feature 021's experience: a new
   TriggerOnly subclass that names no exit parameter is not flagged, so this task may legitimately
   be a no-op — verify rather than assume.
 
-- [ ] T009 @model-implementer **Write the gate-refusal test FIRST** in
+- [X] T009 @model-implementer **Write the gate-refusal test FIRST** in
   `evaluation/tests/test_gate_is_enforced.py`: assert that `run_folds.py` **REFUSES** a plan whose
   `base_strategy` is `GbbGuardGridOpen` when the trackability verdict file is absent, or present
   with `verdict != "trackable"`, exiting non-zero and printing the verdict it found. Cover all
   three cases: file missing, `not_trackable`, `trackable`.
-- [ ] T010 @main Implement that refusal in `evaluation/run_folds.py`: before generating folds for
+- [X] T010 @main Implement that refusal in `evaluation/run_folds.py`: before generating folds for
   a plan carrying a `guards` key, require `evaluation/folds/trackability_<run_id>.json` to exist
   with `verdict: "trackable"`. **FR-006 was previously enforced only by a prose note in this task
   list, which nothing prevents an operator or agent from reading past.** Principle VII is

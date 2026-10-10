@@ -1,0 +1,6 @@
+{
+  "generated_from": "run_folds.py PRE-guards-key (feature 022 T004)",
+  "py_sha256": "f36a9f2c9b7bfea4a1a2f56ba47894c9825d3741531f59654a350337762b10a4",
+  "json_sha256": "98897589ea08df5e5e69f464df0e2b68f8abe499b0498ebb2b83455f6defb77e",
+  "json_text": "{\n    \"strategy_name\": \"TESTCLS_f00\",\n    \"params\": {\n        \"buy\": {\n            \"prediction_threshold\": 0.8,\n            \"entry_rvol_threshold\": -1.0\n        }\n    }\n}\n"
+}

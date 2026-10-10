@@ -18,6 +18,8 @@ Generated classes are written DIRECTLY into the family directory: run_arm.py res
 to its family dir and symlinks only top-level *.py, so a subdirectory would never be found.
 
 OPTIONAL plan key `thresholds`: `{fold_id: prediction_threshold}`. Absent -> unchanged
+OPTIONAL plan key `guards` (feature 022): `{fold_id: {guard threshold: value}}`. Absent ->
+unchanged. Requires a `trackable` trackability verdict -- see `_require_trackable_verdict`.
 behaviour (every fold's .json carries the snapshot's own threshold, as before). Present ->
 each fold's GENERATED .json carries the given value instead, so an arm whose model's
 confidence distribution doesn't match the control's borrowed constant can be measured at a
@@ -73,8 +75,57 @@ def _log(msg: str) -> None:
     print(f"[{datetime.now():%H:%M:%S}] {msg}", flush=True)
 
 
+FOLDS_DIR = Path(__file__).resolve().parent / "folds"
+
+
+def _require_trackable_verdict(plan: dict) -> None:
+    """Feature 022 FR-006: refuse a per-fold-guard run unless trackability was DEMONSTRATED.
+
+    Constitution Principle VII is non-negotiable: "for any proposed adaptive or regime-
+    conditional parameter this gate is specific and mandatory: build the rolling-optimum series
+    and test whether a trailing-best forecast beats a CONSTANT. A parameter whose optimum merely
+    VARIES is not a candidate for adaptivity." Per-fold guard tuning is exactly such a scheme.
+
+    Until this function existed the gate was a prose note in the feature's task list, which
+    nothing prevented an operator or an agent from reading past -- and feature 022's own
+    inertness check exists because "a guard that cannot fail is worthless". So the gate is code.
+
+    BINDS ONLY ON A PLAN CARRYING A `guards` KEY. Every pre-existing plan has none and is
+    returned untouched, which is what keeps this change inert for other features.
+
+    FAILS CLOSED. A missing, unparseable or non-`trackable` verdict all refuse; only an
+    explicit `"verdict": "trackable"` proceeds. Failing open on a truncated write would make
+    the gate worthless precisely when it matters.
+    """
+    if not plan.get("guards"):
+        return
+    run_id = plan.get("run_id", "unknown")
+    vf = FOLDS_DIR / f"trackability_{run_id}.json"
+    if not vf.is_file():
+        print(f"*** REFUSING to run: plan carries a `guards` key but no trackability verdict "
+              f"at {vf}.\n    Feature 022 FR-006 and Constitution Principle VII require the "
+              f"gate to PASS before per-fold guard tuning is evaluated. Run "
+              f"evaluation/guard_trackability.py first.", flush=True)
+        raise SystemExit(2)
+    try:
+        verdict = json.loads(vf.read_text()).get("verdict")
+    except ValueError as exc:
+        print(f"*** REFUSING to run: trackability verdict at {vf} is unparseable ({exc}). "
+              f"Failing closed -- a per-fold guard run is not licensed by a broken verdict.",
+              flush=True)
+        raise SystemExit(2) from exc
+    if verdict != "trackable":
+        print(f"*** REFUSING to run: trackability verdict is {verdict!r}, not 'trackable'.\n"
+              f"    FR-006: arm C MUST NOT run on a failed gate, and that is a COMPLETE "
+              f"finding, not a blocked task -- per-fold guard tuning is not a candidate for "
+              f"adaptivity. Write it up (feature 022 T036) rather than working around this.",
+              flush=True)
+        raise SystemExit(2)
+
+
 def generate_fold(fold: dict, base: str, family: str, params: dict | None,
-                  threshold: float | None = None) -> tuple[Path, Path | None]:
+                  threshold: float | None = None,
+                  guards: dict | None = None) -> tuple[Path, Path | None]:
     """Write the fold's class and its params file (FR-003; T006/T006a).
 
     `threshold`, when given, overrides `params["buy"]["prediction_threshold"]` on the
@@ -83,6 +134,17 @@ def generate_fold(fold: dict, base: str, family: str, params: dict | None,
     only the threshold figure (feature pick_threshold.py exists to choose, per fold, in
     place of one constant borrowed from a differently-calibrated model) differs from the
     snapshot. Requires `params` -- a fold with no params file has nowhere to put a threshold.
+
+    `guards` (feature 022) behaves identically and for the same reason: a per-fold guard
+    configuration chosen on that fold's OWN training window by `pick_guards.py` is merged into
+    the in-memory copy only, never into the snapshot. `entry_enable_guards` is forced True
+    regardless of what is passed, because that flag ALSO gates the `volume > 0` data-sanity
+    check (`Framework/BaseStrategy.py:295`) and 34.26% of bars in this dataset have
+    `volume <= 0`; guards are opened by neutralising thresholds, never by this flag.
+
+    Absent, both arguments leave the output byte-identical -- pinned by
+    `test_generate_fold_without_guards_matches_the_PRE_CHANGE_fixture`, whose fixture was
+    captured before this argument existed.
     """
     cls = fold["strategy_class"]
     py = STRAT_DIR / family / f"{cls}.py"
@@ -94,6 +156,10 @@ def generate_fold(fold: dict, base: str, family: str, params: dict | None,
         d["strategy_name"] = cls              # MUST match the class or freqtrade aborts
         if threshold is not None:
             d.setdefault("params", {}).setdefault("buy", {})["prediction_threshold"] = threshold
+        if guards:
+            buy = d.setdefault("params", {}).setdefault("buy", {})
+            buy.update(guards)
+            buy["entry_enable_guards"] = True       # FR-008 -- forced, never taken from input
         js.write_text(json.dumps(d, indent=4) + "\n")
     return py, js
 
@@ -191,7 +257,9 @@ def main() -> int:
     # default) -> behaviour is byte-identical to before this key existed. Keyed by fold_id,
     # so it survives the seed-namespacing rewrite below unchanged. See pick_threshold.py,
     # which measures the value that belongs here; this file only applies it.
+    _require_trackable_verdict(plan)        # FR-006 -- before anything is generated or run
     thresholds = plan.get("thresholds", {})
+    guards_map = plan.get("guards", {})
 
     # SEED NAMESPACING. get_model_path keys off the class name, so running a second seed against
     # the SAME class would silently overwrite the first seed's weights -- the same collision the
@@ -234,7 +302,8 @@ def main() -> int:
             results.append({**f, "status": "evaluated", "n_trades": rec.get("n_trades")})
             continue
         _log(f"{f['fold_id']}: generating {f['strategy_class']}")
-        generate_fold(f, base, family, params, threshold=thresholds.get(f["fold_id"]))
+        generate_fold(f, base, family, params, threshold=thresholds.get(f["fold_id"]),
+                      guards=guards_map.get(f["fold_id"]))
         if model_exists(f["strategy_class"]):
             # Resume at a finer grain: a trained artefact from an earlier attempt is reused rather
             # than retrained. Saves ~12 min per fold when only the evaluation needs re-running.

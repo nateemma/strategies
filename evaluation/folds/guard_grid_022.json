@@ -1,0 +1,489 @@
+{
+  "feature": "022-perfold-guard-tuning",
+  "task": "T002",
+  "pinned": "2026-10-10",
+  "why": "FR-005 requires the candidate set to be FINITE and INSPECTABLE and FR-019 requires pre-registration to be auditable. A grid chosen during the search satisfies neither. Pinned before any scoring runs.",
+  "axes_rationale": {
+    "included": "entry_atr_pct (-7.33pp), entry_adx_threshold (-5.95pp), entry_rvol_threshold (-3.42pp) -- the three heaviest lifters in regime/GUARD_ABLATION.md",
+    "excluded_inert": "entry_guard_threshold -- recorded as COMPLETELY INERT (byte-identical trades and returns on all three windows). Used only as T029's negative control, never searched.",
+    "excluded_light": "entry_bb_width_threshold (-0.17pp) and entry_close_norm_threshold (-1.01pp) -- the two lightest contributors.",
+    "correction": "The feature was proposed assuming rvol dominant. That holds for its share of gate REJECTIONS, not for return; atr_pct and adx are the heaviest lifters."
+  },
+  "joint_not_sequential": "Searched as a JOINT grid, a documented deviation from Constitution Principle VIII, because GUARD_ABLATION records the guards as strongly super-additive: individual removals sum to ~-17.9pp while all six cost -24.91pp, so sequential tune-and-lock assumes a composition that provably does not hold. The joint winner's per-guard marginal effect MUST NOT be read off this grid.",
+  "levels": {
+    "entry_atr_pct": [
+      -1.0,
+      0.006,
+      0.013,
+      0.02
+    ],
+    "entry_adx_threshold": [
+      -1.0,
+      5.0,
+      10.0,
+      20.0
+    ],
+    "entry_rvol_threshold": [
+      -1.0,
+      1.0,
+      1.9,
+      3.0
+    ]
+  },
+  "n_configs": 64,
+  "contains_reference_arms": {
+    "arm_A_guards_open": "atrm1_adxm1_rvolm1",
+    "arm_B_tuned_three_axes": "atr0p013_adx10_rvol1p9",
+    "_note": "Ids COMPUTED from the grid, not hand-written -- the first attempt asserted 'atrm1p0_...' because -1.0 formats as '-1' under %g, which would have put a false claim in the artefact that pins the candidate set."
+  },
+  "configs": [
+    {
+      "config_id": "atrm1_adxm1_rvolm1",
+      "entry_atr_pct": -1.0,
+      "entry_adx_threshold": -1.0,
+      "entry_rvol_threshold": -1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atrm1_adxm1_rvol1",
+      "entry_atr_pct": -1.0,
+      "entry_adx_threshold": -1.0,
+      "entry_rvol_threshold": 1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atrm1_adxm1_rvol1p9",
+      "entry_atr_pct": -1.0,
+      "entry_adx_threshold": -1.0,
+      "entry_rvol_threshold": 1.9,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atrm1_adxm1_rvol3",
+      "entry_atr_pct": -1.0,
+      "entry_adx_threshold": -1.0,
+      "entry_rvol_threshold": 3.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atrm1_adx5_rvolm1",
+      "entry_atr_pct": -1.0,
+      "entry_adx_threshold": 5.0,
+      "entry_rvol_threshold": -1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atrm1_adx5_rvol1",
+      "entry_atr_pct": -1.0,
+      "entry_adx_threshold": 5.0,
+      "entry_rvol_threshold": 1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atrm1_adx5_rvol1p9",
+      "entry_atr_pct": -1.0,
+      "entry_adx_threshold": 5.0,
+      "entry_rvol_threshold": 1.9,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atrm1_adx5_rvol3",
+      "entry_atr_pct": -1.0,
+      "entry_adx_threshold": 5.0,
+      "entry_rvol_threshold": 3.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atrm1_adx10_rvolm1",
+      "entry_atr_pct": -1.0,
+      "entry_adx_threshold": 10.0,
+      "entry_rvol_threshold": -1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atrm1_adx10_rvol1",
+      "entry_atr_pct": -1.0,
+      "entry_adx_threshold": 10.0,
+      "entry_rvol_threshold": 1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atrm1_adx10_rvol1p9",
+      "entry_atr_pct": -1.0,
+      "entry_adx_threshold": 10.0,
+      "entry_rvol_threshold": 1.9,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atrm1_adx10_rvol3",
+      "entry_atr_pct": -1.0,
+      "entry_adx_threshold": 10.0,
+      "entry_rvol_threshold": 3.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atrm1_adx20_rvolm1",
+      "entry_atr_pct": -1.0,
+      "entry_adx_threshold": 20.0,
+      "entry_rvol_threshold": -1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atrm1_adx20_rvol1",
+      "entry_atr_pct": -1.0,
+      "entry_adx_threshold": 20.0,
+      "entry_rvol_threshold": 1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atrm1_adx20_rvol1p9",
+      "entry_atr_pct": -1.0,
+      "entry_adx_threshold": 20.0,
+      "entry_rvol_threshold": 1.9,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atrm1_adx20_rvol3",
+      "entry_atr_pct": -1.0,
+      "entry_adx_threshold": 20.0,
+      "entry_rvol_threshold": 3.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p006_adxm1_rvolm1",
+      "entry_atr_pct": 0.006,
+      "entry_adx_threshold": -1.0,
+      "entry_rvol_threshold": -1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p006_adxm1_rvol1",
+      "entry_atr_pct": 0.006,
+      "entry_adx_threshold": -1.0,
+      "entry_rvol_threshold": 1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p006_adxm1_rvol1p9",
+      "entry_atr_pct": 0.006,
+      "entry_adx_threshold": -1.0,
+      "entry_rvol_threshold": 1.9,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p006_adxm1_rvol3",
+      "entry_atr_pct": 0.006,
+      "entry_adx_threshold": -1.0,
+      "entry_rvol_threshold": 3.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p006_adx5_rvolm1",
+      "entry_atr_pct": 0.006,
+      "entry_adx_threshold": 5.0,
+      "entry_rvol_threshold": -1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p006_adx5_rvol1",
+      "entry_atr_pct": 0.006,
+      "entry_adx_threshold": 5.0,
+      "entry_rvol_threshold": 1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p006_adx5_rvol1p9",
+      "entry_atr_pct": 0.006,
+      "entry_adx_threshold": 5.0,
+      "entry_rvol_threshold": 1.9,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p006_adx5_rvol3",
+      "entry_atr_pct": 0.006,
+      "entry_adx_threshold": 5.0,
+      "entry_rvol_threshold": 3.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p006_adx10_rvolm1",
+      "entry_atr_pct": 0.006,
+      "entry_adx_threshold": 10.0,
+      "entry_rvol_threshold": -1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p006_adx10_rvol1",
+      "entry_atr_pct": 0.006,
+      "entry_adx_threshold": 10.0,
+      "entry_rvol_threshold": 1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p006_adx10_rvol1p9",
+      "entry_atr_pct": 0.006,
+      "entry_adx_threshold": 10.0,
+      "entry_rvol_threshold": 1.9,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p006_adx10_rvol3",
+      "entry_atr_pct": 0.006,
+      "entry_adx_threshold": 10.0,
+      "entry_rvol_threshold": 3.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p006_adx20_rvolm1",
+      "entry_atr_pct": 0.006,
+      "entry_adx_threshold": 20.0,
+      "entry_rvol_threshold": -1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p006_adx20_rvol1",
+      "entry_atr_pct": 0.006,
+      "entry_adx_threshold": 20.0,
+      "entry_rvol_threshold": 1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p006_adx20_rvol1p9",
+      "entry_atr_pct": 0.006,
+      "entry_adx_threshold": 20.0,
+      "entry_rvol_threshold": 1.9,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p006_adx20_rvol3",
+      "entry_atr_pct": 0.006,
+      "entry_adx_threshold": 20.0,
+      "entry_rvol_threshold": 3.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p013_adxm1_rvolm1",
+      "entry_atr_pct": 0.013,
+      "entry_adx_threshold": -1.0,
+      "entry_rvol_threshold": -1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p013_adxm1_rvol1",
+      "entry_atr_pct": 0.013,
+      "entry_adx_threshold": -1.0,
+      "entry_rvol_threshold": 1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p013_adxm1_rvol1p9",
+      "entry_atr_pct": 0.013,
+      "entry_adx_threshold": -1.0,
+      "entry_rvol_threshold": 1.9,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p013_adxm1_rvol3",
+      "entry_atr_pct": 0.013,
+      "entry_adx_threshold": -1.0,
+      "entry_rvol_threshold": 3.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p013_adx5_rvolm1",
+      "entry_atr_pct": 0.013,
+      "entry_adx_threshold": 5.0,
+      "entry_rvol_threshold": -1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p013_adx5_rvol1",
+      "entry_atr_pct": 0.013,
+      "entry_adx_threshold": 5.0,
+      "entry_rvol_threshold": 1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p013_adx5_rvol1p9",
+      "entry_atr_pct": 0.013,
+      "entry_adx_threshold": 5.0,
+      "entry_rvol_threshold": 1.9,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p013_adx5_rvol3",
+      "entry_atr_pct": 0.013,
+      "entry_adx_threshold": 5.0,
+      "entry_rvol_threshold": 3.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p013_adx10_rvolm1",
+      "entry_atr_pct": 0.013,
+      "entry_adx_threshold": 10.0,
+      "entry_rvol_threshold": -1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p013_adx10_rvol1",
+      "entry_atr_pct": 0.013,
+      "entry_adx_threshold": 10.0,
+      "entry_rvol_threshold": 1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p013_adx10_rvol1p9",
+      "entry_atr_pct": 0.013,
+      "entry_adx_threshold": 10.0,
+      "entry_rvol_threshold": 1.9,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p013_adx10_rvol3",
+      "entry_atr_pct": 0.013,
+      "entry_adx_threshold": 10.0,
+      "entry_rvol_threshold": 3.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p013_adx20_rvolm1",
+      "entry_atr_pct": 0.013,
+      "entry_adx_threshold": 20.0,
+      "entry_rvol_threshold": -1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p013_adx20_rvol1",
+      "entry_atr_pct": 0.013,
+      "entry_adx_threshold": 20.0,
+      "entry_rvol_threshold": 1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p013_adx20_rvol1p9",
+      "entry_atr_pct": 0.013,
+      "entry_adx_threshold": 20.0,
+      "entry_rvol_threshold": 1.9,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p013_adx20_rvol3",
+      "entry_atr_pct": 0.013,
+      "entry_adx_threshold": 20.0,
+      "entry_rvol_threshold": 3.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p02_adxm1_rvolm1",
+      "entry_atr_pct": 0.02,
+      "entry_adx_threshold": -1.0,
+      "entry_rvol_threshold": -1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p02_adxm1_rvol1",
+      "entry_atr_pct": 0.02,
+      "entry_adx_threshold": -1.0,
+      "entry_rvol_threshold": 1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p02_adxm1_rvol1p9",
+      "entry_atr_pct": 0.02,
+      "entry_adx_threshold": -1.0,
+      "entry_rvol_threshold": 1.9,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p02_adxm1_rvol3",
+      "entry_atr_pct": 0.02,
+      "entry_adx_threshold": -1.0,
+      "entry_rvol_threshold": 3.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p02_adx5_rvolm1",
+      "entry_atr_pct": 0.02,
+      "entry_adx_threshold": 5.0,
+      "entry_rvol_threshold": -1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p02_adx5_rvol1",
+      "entry_atr_pct": 0.02,
+      "entry_adx_threshold": 5.0,
+      "entry_rvol_threshold": 1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p02_adx5_rvol1p9",
+      "entry_atr_pct": 0.02,
+      "entry_adx_threshold": 5.0,
+      "entry_rvol_threshold": 1.9,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p02_adx5_rvol3",
+      "entry_atr_pct": 0.02,
+      "entry_adx_threshold": 5.0,
+      "entry_rvol_threshold": 3.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p02_adx10_rvolm1",
+      "entry_atr_pct": 0.02,
+      "entry_adx_threshold": 10.0,
+      "entry_rvol_threshold": -1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p02_adx10_rvol1",
+      "entry_atr_pct": 0.02,
+      "entry_adx_threshold": 10.0,
+      "entry_rvol_threshold": 1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p02_adx10_rvol1p9",
+      "entry_atr_pct": 0.02,
+      "entry_adx_threshold": 10.0,
+      "entry_rvol_threshold": 1.9,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p02_adx10_rvol3",
+      "entry_atr_pct": 0.02,
+      "entry_adx_threshold": 10.0,
+      "entry_rvol_threshold": 3.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p02_adx20_rvolm1",
+      "entry_atr_pct": 0.02,
+      "entry_adx_threshold": 20.0,
+      "entry_rvol_threshold": -1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p02_adx20_rvol1",
+      "entry_atr_pct": 0.02,
+      "entry_adx_threshold": 20.0,
+      "entry_rvol_threshold": 1.0,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p02_adx20_rvol1p9",
+      "entry_atr_pct": 0.02,
+      "entry_adx_threshold": 20.0,
+      "entry_rvol_threshold": 1.9,
+      "entry_enable_guards": true
+    },
+    {
+      "config_id": "atr0p02_adx20_rvol3",
+      "entry_atr_pct": 0.02,
+      "entry_adx_threshold": 20.0,
+      "entry_rvol_threshold": 3.0,
+      "entry_enable_guards": true
+    }
+  ]
+}
