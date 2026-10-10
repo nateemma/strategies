@@ -467,3 +467,41 @@ the expected-return claim explicitly withdrawn.**
 Remaining caveats, unchanged: `atr 0.013` originated in a contaminated hyperopt (clean data
 independently ranks it first); three of five quality thresholds were never varied; and
 `BaseStrategy.buy_params` is inherited by a live dry-run, so promotion is a deliberate decision.
+
+---
+
+# STATUS AT HANDOFF (2026-10-10)
+
+**Features 021 and 022 are both complete.** 022 finished at 28/40 tasks, with T024–T035 (arms C
+and E) permanently unreachable by FR-006 — the gate blocked them, which was the designed outcome.
+
+## Settled
+
+| | |
+|---|---|
+| labels in this family | **equivalent, none individually exploitable** — ~90% of learnability is trigger recovery, 13/13 triggers, `empty` control 101% |
+| triggers traded alone | **none trades** — 6 arms, −70.55pp to +2.64pp |
+| offline EV leaderboard | **do not use it to rank** — 1 of 6 on sign against live arms |
+| guard adaptivity | **dead at both granularities** — per-fold `indeterminate`, two-state degenerate. Fifth adaptive scheme to lose to a static value here |
+| tightened static guard constant | **robustness candidate, NOT promoted** — selection persists in both halves; expected-return claim withdrawn |
+
+## The one live thread
+
+**Arm D: `gbb` + 24 indicators + a per-fold model threshold, guards open, +39.98pp at 15/15.**
+Not in-sample contaminated (15 distinct per-fold thresholds, verified from the artefacts).
+Explained by nothing in either feature — the trigger alone is flat, conditional learnability
+collapses, tail precision inverts, the guard chain has no adaptive edge. 15-of-15 is not
+regime-dependent, so something real is there. **It is a model-side question now.**
+
+## Open, smaller
+
+- A **5-axis guard grid**: three of five quality thresholds were never varied, so
+  `atr 0.013 / adx 20 / rvol 1.9` is the best of a slice, not demonstrably the right corner.
+- Promotion of `GbbRobustOpen`'s constant is a deliberate decision, not an inference from 022.
+
+## Reusable infrastructure this work leaves behind
+
+`utils/ExitPolicy.py` · `research/outcomes/` (outcome table, trigger registry, enforced
+LabelMethod inventory) · `evaluation/pick_guards.py` + `guard_trackability.py` ·
+`run_folds.py`'s `guards` plan key with a **mechanically enforced** gate ·
+`SimpleStrategies/TriggerOnly.py` and its six subclasses.
