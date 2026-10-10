@@ -7,7 +7,7 @@ OOM and Metal faults). Interfaces: [contracts/interfaces.md](contracts/interface
 ## 0. Unit gate (minutes)
 
 ```bash
-../../.venv/bin/python -m pytest SimpleTrigger/tests research/outcomes/tests evaluation/tests -q
+../../.venv/bin/python -m pytest SimpleTrigger/tests research/outcomes/tests evaluation/tests utils/tests Framework/tests/test_entry_condition_sink.py -q
 ```
 
 Expected: everything passes. That includes:
@@ -15,7 +15,8 @@ Expected: everything passes. That includes:
 - param dicts drop no keys;
 - the label map covers all 29 `LabelMethod` members;
 - coupled mode with matched targets resolves to the decoupled values exactly;
-- the stop invariant raises on a planted sign flip.
+- the stop invariant raises on a planted sign flip, an over-loose post-grace stop and a
+  wrong-direction grace boundary.
 
 ## 1. Causality (US1, SC-006)
 
@@ -49,13 +50,14 @@ value, in 15 of 15 folds for every arm (`wf_gbbo`, `wf_bo`, `wf_bvo`, `wf_bbo`, 
 
 ## 3. Dry-run isolation (SC-008)
 
-Diff the resolved parameters of `Basket/MomentumRegimeBasket15mFast` before and after the change.
-Expected: an empty diff.
+Run `python -m evaluation.dump_strategy --strategy MomentumRegimeBasket15mFast --config
+config/config_mom_dryrun_15m.json` in a `git worktree` at `9e82a45` and in the current tree.
+Expected: identical output.
 
 ## 4. Condition sink is neutral (C4)
 
-Run `wf_gbbo` f00 with `FT_ENTRY_CONDITION_SINK` unset and set. Expected: identical `trades_hash`,
-with the sink files present only in the second run.
+Run `wf_gbbo` f00 through `run_arm` by default (sink on) and with `--no-sink`. Expected: identical `trades_hash`, with `entry_condition_counts` in the `run_arm`
+record.
 
 ## 5. Twin equivalence (US3, SC-003)
 
@@ -80,8 +82,10 @@ Expected:
 ```
 
 Expected: a paired delta with its CI, early (f00–f07) and late (f08–f14) halves, and the
-shared-trade fraction, or an explicit `INCONCLUSIVE_*` / underpowered verdict. The reference is the
-post-fix arm D: 1420 trades, +42.71pp, 14/15 (research R2).
+shared-trade fraction, or an explicit `INCONCLUSIVE_*` / underpowered verdict. The matched-count
+section is always present: the model's selection against same-count random draws from the twin
+(z, p), pooled and per half. The reference is the post-fix arm D: 1420 trades, +42.71pp, 14/15
+(research R2). Every number is labelled PROVISIONAL (gate 2).
 
 ## 7. Component attribution (US2, SC-005)
 

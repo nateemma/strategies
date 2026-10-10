@@ -34,14 +34,17 @@ The evidence that this matters (all from the 15-fold pooled walk-forward harness
 |---|---|---|
 | `gbb` trigger alone, guards open (021) | no | +2.64pp, 7/15 folds |
 | tightened static guard constant, `wf_gbbr` (022) | no | +25.34pp, 13/15 folds |
-| arm D: `gbb` + 24 indicators + per-fold threshold, guards open (incumbent) | yes | +39.98pp, 15/15 folds |
+| arm D: `gbb` + 24 indicators + per-fold threshold, guards open (incumbent) | yes | +42.71pp, 14/15 folds, 1,420 trades (post-fix `wf_aro`; the often-quoted +39.98pp / 15/15 predates the 2026-10-08 post-grace stop fix) |
 
 The open question the project now faces is model-side: how much of arm D comes from the model?
 That question can only be answered against a no-model arm built from **exactly the same
 framework**. Three partial no-model mechanisms exist, and none of them is that arm:
 
 - **`TriggerOnly` (021)**: has one trigger and one fixed exit, and its guards are always open.
-  It can't vary the framework, which by design was the point for 021.
+  It can't vary the framework, which by design was the point for 021. Its **stop is not arm D's**:
+  a static −5% with the ATR-adaptive stop off (which also makes its volume-confirmation stop
+  inert), against arm D's ATR-adaptive stop. So the 021/022 no-model numbers above differ from
+  arm D in the stop as well as the model, and no existing number isolates the model.
 - **`NNNC_NoModel`**: still loads a model, applies no trigger, and accepts every bar. It measures
   the guard chain on its own, not trigger plus framework.
 - **`SimpleStrategies`**: indicator strategies with a built-in bear/bull/sideways regime filter,
@@ -140,7 +143,7 @@ For any NNNC arm, the researcher can build its **SimpleTrigger twin**. The twin 
 trigger the NNNC label is built from, the same guards, targets, exits, stop, sizing and
 execution constraints. The only difference is that no model gives an entry opinion. A paired
 comparison of the two on the same folds isolates the model's entire contribution. The first
-use is arm D's +39.98pp.
+use is arm D's +42.71pp (post-fix).
 
 **Why this priority**: It is the project's one live thread. It turns "something real is there"
 into a measured split between model and framework, and it gives NNNC work a fixed framework to
@@ -265,7 +268,9 @@ the label targets match the independent values, the two modes must produce ident
   verify that the twin's framework settings are identical before a comparison is reported.
 - **FR-014**: The model-contribution report MUST give a paired delta with a CI, the early/late
   split, and the shared-trade fraction. When too few trades are shared for the paired test to
-  have power, the report MUST say so and MUST NOT report a verdict.
+  have power, the report MUST say so and MUST NOT report a verdict from it. The report MUST also
+  give a matched-count selection test (the model's chosen trades against random draws of the same
+  count from the twin's trades), which does not depend on shared trades.
 
 **Coupled targets**
 
@@ -274,9 +279,11 @@ the label targets match the independent values, the two modes must produce ident
   gain/loss targets through one documented mapping).
 - **FR-016**: Both modes MUST go through the single shared exit definition, so that no exit logic
   is duplicated per mode or per family.
-- **FR-017**: The system MUST enforce stop invariants on every trade: the correct sign, never
-  looser than the documented bound, and the grace-period rescale preserving direction. A
-  violation MUST stop the run.
+- **FR-017**: The system MUST enforce stop invariants on every trade of every SimpleTrigger run
+  and of the twin's equivalence arm: the correct sign, never looser than the documented bound, and
+  the grace-period rescale preserving direction (the stop price never moves down across the grace
+  boundary for a trade still above its stop). A violation MUST stop the run. Other NNNC arms gain
+  the check through the FR-007a merge, not in this feature.
 
 **Harness and hygiene**
 
@@ -305,6 +312,9 @@ the label targets match the independent values, the two modes must produce ident
   per-fold P&L, trades and liveness records.
 - **Twin pair**: an NNNC arm and its SimpleTrigger twin with a matching configuration fingerprint.
 - **Exit mode**: coupled or decoupled, with the resolved take-profit and stop values.
+- **Framework preset**: a complete, named framework configuration. Two exist: the default, which
+  mirrors arm D (FR-009), and a legacy preset that mirrors `TriggerOnly` exactly. The legacy preset
+  exists only so SC-001 can reproduce the recorded 021/022 arms, which ran `TriggerOnly`'s stop.
 
 ## Success Criteria *(mandatory)*
 
@@ -315,7 +325,8 @@ the label targets match the independent values, the two modes must produce ident
 - **SC-002**: A new trigger-plus-framework arm can be defined by naming a trigger and overriding
   settings alone, with no new entry or exit logic, and run over 15 folds with no training step.
 - **SC-003**: The model-free equivalence check (FR-008) produces identical trade sets for arm D's
-  framework in 15 of 15 folds.
+  framework in 15 of 15 folds. Parity is proven by trades for the twin's trigger (`gbb`); for other
+  triggers it rests on the shared framework fingerprint.
 - **SC-004**: Arm D's model contribution is reported as a paired delta with a CI and an early/late
   split, or explicitly as "not resolvable at this power".
 - **SC-005**: Every framework component has an attribution row, and no component is reported as
@@ -323,7 +334,7 @@ the label targets match the independent values, the two modes must produce ident
 - **SC-006**: Every causal trigger offered to the family has a recorded end-to-end lookahead result,
   and zero triggers that fail it are runnable.
 - **SC-007**: Coupled mode with matched targets reproduces decoupled mode's trade set in 15 of 15
-  folds, and the stop invariants report zero violations across all runs.
+  folds, and the stop invariants report zero violations across all runs they cover (FR-017).
 - **SC-008**: No parameter inherited by the live dry-run changes as a result of this feature (a
   before/after diff of the dry-run's resolved parameters is empty).
 
@@ -344,5 +355,9 @@ the label targets match the independent values, the two modes must produce ident
 - The existing walk-forward harness, fold plans, outcome table and shared exit definition are
   reused. Their noise floor (~3–4pp/yr, with sub-1pp deltas unresolvable) applies to every
   comparison here.
+- **No distant era exists** (binanceus history from 2021 is all selection or evaluation, and
+  `data/binance/` is empty). Under quality gate 2, every delta this feature measures (US2, US3) is
+  therefore **provisional, not a finding**. Persistence is tested by the early/late halves split
+  only, and every report and memory entry must carry that label.
 - Every result is conditional on the known binanceus 15m gap-fill (~half the bars for some pairs
   are zero-volume fills). The volume guard remains mandatory.

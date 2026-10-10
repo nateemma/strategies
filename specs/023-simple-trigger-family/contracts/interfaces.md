@@ -30,8 +30,11 @@ Guarantees:
   condition.
 - **G3**: the framework attributes resolve to the named preset exactly. `buy_params`/`sell_params`
   are `{**parent, **preset, **overrides}`.
-- **G4**: `custom_stoploss` returns `super()`'s value after the invariant check (research R9). A
-  violation raises `StopInvariantError`.
+- **G4**: the class is `SimpleTriggerStrategy(StopInvariantMixin, BaseStrategy)`. The mixin
+  (`utils/StopInvariants.py`) returns `super()`'s `custom_stoploss` value unchanged after checking
+  sign, the price-space bound (stop price ≥ `open_rate × (1 + floor)`) and grace-boundary
+  direction (research R9). A violation raises `StopInvariantError`.
+  `NNNC_TriggerGate` carries the same mixin.
 - **G5**: `EXIT_MODE="coupled"` only changes parameter *values*, through
   `SimpleTrigger.coupling.resolve()`. There is no other code path.
 - **G6**: no pair-specific behaviour.
@@ -53,11 +56,13 @@ Guarantees:
   so they are identical by construction, and emits the above. Rebuilding from dates is not offered
   for no-model plans, because `build()`'s `--data-end` default (2026-09-07) would have to be
   matched by hand.
-- `foldplan.validate()`: duplicate `strategy_class` is allowed **iff** `no_model` is true and every
-  `model_dir` is null.
+- `foldplan.validate()`: duplicate `strategy_class` and the repeated null `model_dir` (the
+  `seen_dir` collision check) are allowed **iff** `no_model` is true and every `model_dir` is null.
 - `run_folds.py`, when `no_model` is set:
   - skips `generate_fold`, `model_exists` and `train_fold`;
   - asserts G1 before the first evaluation;
+  - runs a causality preflight: it aborts the whole plan, before any evaluation, unless the
+    class's `TRIGGER_NAME` is `PASS` with a matching `code_sha` in `trigger_causality.json`;
   - ignores `thresholds` and refuses a plan whose `thresholds` is non-empty, rather than silently
     dropping it;
   - keeps everything else unchanged.
@@ -69,7 +74,9 @@ These are written for **every** arm, NNNC included:
 - `framework_sha`, `framework_resolved` (from `evaluation.fingerprint.resolve(strategy_cls,
   params_json, config)`);
 - `exit_reason_counts`;
-- `entry_condition_counts` when `FT_ENTRY_CONDITION_SINK` is set;
+- `entry_condition_counts`: `run_arm` always sets `FT_ENTRY_CONDITION_SINK` to a fresh per-run
+  dir for its freqtrade subprocess, so every harness run records it. `--no-sink` (neutrality gate
+  only) leaves it unset and records null;
 - `no_model`, `preset`, `exit_mode`, `trigger`, `label_method`, `coupled_resolution`.
 
 Existing fields, including `exit_config_hash` and `trades_hash`, are unchanged and computed the same
@@ -94,7 +101,14 @@ python -m evaluation.fingerprint --strategy CLS [--config PATH]
 python -m evaluation.twins check  --nnnc-tag T --simple-tag S --equivalence-tag E
     -> exit 2 on fingerprint mismatch, 3 on any per-fold trades_hash mismatch (E vs S)
 python -m evaluation.twins compare --nnnc-tag T --simple-tag S
-    -> paired delta, CI, halves, shared-trade fraction; refuses unless `check` passed
+    -> paired delta, CI, halves, shared-trade fraction and the matched-count section;
+       refuses unless `check` passed
+
+python -m evaluation.matched_count --selected-tag T --population-tag S
+    -> observed vs same-count random-draw null (z, p), per fold, pooled and per half
+
+python -m evaluation.dump_strategy --strategy CLS [--config PATH]
+    -> canonical JSON of public class attributes across the MRO + merged strategy JSON
 
 python -m evaluation.attribution --full-tag T --components all|NAME,... [--preset P]
     -> attribution_<T>.json/.md; INERT rows flagged

@@ -106,8 +106,10 @@ rows (`evaluation/pool.py:73-79`), but not in arm records.
 - **Entry liveness**: add a generic, strategy-agnostic condition recorder to
   `BaseStrategy.populate_entry_trend`. Each named mask (`signal`, `volume`, `rvol`, `adx`,
   `atr_pct`, `bb_width`, `close_norm`, `guard`) is counted per pair. The counts go to a JSON sidecar
-  **only when** env `FT_ENTRY_CONDITION_SINK` is set. Off by default, so behaviour is unchanged,
-  which is proven by an identical `trades_hash` on `wf_gbbo` f00 with the flag on and off.
+  **only when** env `FT_ENTRY_CONDITION_SINK` is set. `run_arm` always sets it, per run, so every
+  harness run records liveness (FR-011). Outside `run_arm` it is off by default. The recorder
+  doesn't change behaviour, which is proven by an identical `trades_hash` with the flag on and
+  off.
 - **Exit liveness**: `run_arm.summarize` adds `exit_reason_counts` from the archive.
 
 This keeps Framework/ strategy-agnostic (constitution): the recorder names conditions, not
@@ -151,13 +153,21 @@ asserts an identical `trades_hash`.
   not a stop floor. `floor_for_window()` (`:57`) has **zero callers**, and line 177 still applies
   the absolute 25. That is out of 023's scope; it is noted for 022's owner.
 
-**Decision.** SimpleTrigger's `custom_stoploss` calls `super()` and then checks, per call:
-(a) ratio ≤ 0; (b) the implied stop price ≤ `current_rate`; (c) after grace, the ratio is no looser
-than `atr_stoploss_floor` (adaptive) or `stoploss` (static). A violation raises
-`StopInvariantError` (FR-017: it halts the run).
+**Decision.** A strategy-agnostic `StopInvariantMixin` in `utils/StopInvariants.py`. Its
+`custom_stoploss` calls `super()` and then checks, per call:
+(a) ratio ≤ 0;
+(b) the implied stop price ≤ `current_rate`;
+(c) after grace, the implied stop **price** is no lower than `open_rate × (1 + atr_stoploss_floor)`
+    (adaptive) or `open_rate × (1 + stoploss)` (static). This is checked in price space, because
+    freqtrade's ratio is relative to `current_rate`, so a correct entry-anchored stop on a winning
+    trade has a ratio more negative than the floor;
+(d) direction: for a trade still above its stop, the first post-grace stop price is not lower than
+    the last in-grace one.
 
-It is family-local, so NNNC is untouched (sibling decision, Q1). The merge follow-up moves it into
-the shared base.
+A violation raises `StopInvariantError` (FR-017: it halts the run). It is mixed into
+`SimpleTriggerStrategy` and `NNNC_TriggerGate` only, so the NNNC base classes are untouched
+(sibling decision, Q1). The FR-007a merge moves it into the shared base. It is built in the
+foundational phase so it is active in every SimpleTrigger and twin run from the start.
 
 ### R10. Label to trigger mapping, and one stale record
 
@@ -208,7 +218,10 @@ An NNNC subclass that overrides only `get_entry_conditions` still needs a loaded
 (`BaseNNStrategy.populate_indicators` raises without the main scaler). Under a new class name it
 would also self-train (`get_model_path`, `:341-346`).
 
-**Decision.** `NNNC/NNNC_TriggerGate.py` subclasses `NNNC_A_Raw_Open`:
+**Decision.** `NNNC/NNNC_TriggerGate.py` subclasses `NNNC_A_Raw_Open`, with
+`NNNC/NNNC_TriggerGate.json` a copy of `NNNC_A_Raw_Open.json` (only `strategy_name` changed). Without
+that JSON, freqtrade would resolve `NNNCStrategy`'s class defaults instead of the Open values, and the
+fingerprint check would fail by construction. The class:
 - `get_entry_conditions` calls `super()` (which keeps `predict_*` columns) and then returns the
   registry trigger;
 - `get_model_path` is redirected to the arm D fold model `saved_data/NNNC_ARO_fNN/`, which exists
@@ -239,6 +252,13 @@ which `run_folds.py` refers to but which doesn't exist.
 
 **Decision.** Add `evaluation/halves.py`: f00–f07 / f08–f14, the same cut as 022, configurable,
 reusing `bootstrap_delta` per half. `guard_trackability.py` is out of scope; a note is filed.
+
+**Decision: add `evaluation/matched_count.py`.** The twin and arm D share few trades by design
+(arm D enters on the model's opinion, the twin on the trigger), which is exactly what made 022's
+paired test fail (111 of about 8,500 shared, p = 0.27). 022 resolved its case with a matched-count
+random-draw test (+5.2 SD), but no tool for it exists in `evaluation/`. The new module draws
+`len(selected)` trades from the twin's population many times and reports where the model's
+selection sits. It doesn't depend on shared trades. `twins compare` includes it.
 
 ## Settled without research
 

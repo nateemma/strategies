@@ -105,7 +105,8 @@ the strategy.
 
 ## ArmRecord (existing, extended)
 
-`regime/arms/{tag}_{label}.json`, written by `regime/run_arm.py`. New fields:
+`regime/arms/{tag}_{label}.json`, written by `regime/run_arm.py`. Any delta derived from these
+records is PROVISIONAL under quality gate 2 (no distant era). New fields:
 
 | field | type |
 |---|---|
@@ -113,7 +114,7 @@ the strategy.
 | preset, exit_mode, trigger, label_method | str \| null |
 | coupled_resolution | {take_profit_net, max_days, stop, coupled_stop: `label` \| `none-in-label`} \| null |
 | exit_reason_counts | {reason: int} |
-| entry_condition_counts | {condition: {pass: int, total: int}}, present when the sink is enabled |
+| entry_condition_counts | {condition: {pass: int, total: int}}; always present for runs launched through `run_arm` |
 | no_model | bool |
 
 ## FoldPlan (existing, extended)

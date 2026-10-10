@@ -33,14 +33,17 @@ and quickstart §0 names the unit gate.
   `evaluation/tests/__init__.py`. Add `SimpleTrigger/tests/conftest.py` and
   `evaluation/tests/conftest.py`, each inserting the repo root (`user_data/strategies`) on
   `sys.path` the same way `Framework/tests/` does (read one of its test files for the pattern).
-  Add to `.gitignore`: `SimpleTrigger/SimpleTrigger_*__C_*.py` (generated component arms, T042)
+  Add to `.gitignore`: `SimpleTrigger/SimpleTrigger_*__C_*.py` (generated component arms, T046)
   and `evaluation/.scratch/`.
 - [ ] T002 **Baseline reproducibility, before any edit.**
   - Re-run two recorded folds on HEAD, one at a time:
     - arm D fold f00: `python -m regime.run_arm --strategy NNNC_ARO_f00 --timerange <f00
       test_timerange from evaluation/folds/plan_NNNC_A_Raw_Open.json> --label F00 --tag
-      base023_aro`
-    - `wf_gbbo` fold f00: strategy `GbbOpen`, same timerange, tag `base023_gbbo`.
+      base023_aro --config user_data/strategies/config/config_wf.json`
+    - `wf_gbbo` fold f00: strategy `GbbOpen`, same timerange and config, tag `base023_gbbo`.
+  - Build each command exactly as `evaluation/run_folds.py:evaluate_fold` (~L183) builds it,
+    including the plan's `config` key (`config/config_wf.json`) and the working directory. Read
+    that function first. A config mismatch would look like a reproduction failure.
   - Assert each new `trades_hash` equals the recorded one in
     `regime/arms/wf_aro_f00_F00.json` / `regime/arms/wf_gbbo_f00_F00.json`.
   - Write `specs/023-simple-trigger-family/baseline.md` with both hashes and the commands.
@@ -52,7 +55,7 @@ and quickstart §0 names the unit gate.
 ## Phase 2: Foundational (instrumentation; blocks all stories)
 
 **Purpose**: The measurements every story depends on. Every shared-file edit here must leave
-recorded arms byte-identical (T014 gate).
+recorded arms byte-identical (T017 gate).
 
 - [ ] T003 [P] Write `evaluation/tests/test_fingerprint.py`. Assert that:
   (a) `resolve(NNNC_A_Raw_Open)` and `resolve(NNNC_ARO_f00)` give the same `framework_sha`;
@@ -99,30 +102,44 @@ recorded arms byte-identical (T014 gate).
       `evaluation/folds/plan_NNNC_A_Raw_Open.json`, and copies `config`;
   (b) the derived plan has `no_model: true`, `model_dir: null`, `strategy_class: "X"` for every
       fold, and `arm_tag` `st_x_fNN`;
-  (c) `validate()` accepts the duplicate class only when `no_model` is true and every `model_dir`
-      is null, and still rejects it otherwise;
+  (c) `validate()` accepts the duplicate class AND the repeated null `model_dir` (the
+      `seen_dir` collision check, `evaluation/foldplan.py:95-97`) only when `no_model` is true and
+      every `model_dir` is null, and still rejects both otherwise;
   (d) a no-model plan with a non-empty `thresholds` key is rejected;
   (e) `derive(..., family="NNNC", base="NNNC_TriggerGate", tag="wf_trgate",
       model_source="NNNC_ARO")` emits per-fold `strategy_class` `NNNC_TGT_fNN` and
       `model_dir` `NNNC_ARO_fNN`.
 - [ ] T010 Implement the `derive` subcommand and the validate rule in `evaluation/foldplan.py`
-  (contract C2). Store `params_snapshot`/`params_sha` as null for no-model plans. Make T009 pass.
+  (contract C2). Exempt no-model plans from BOTH the duplicate-class check and the `model_dir`
+  collision check (`:95-97`). Store `params_snapshot`/`params_sha` as null for no-model plans.
+  For an NNNC derive, snapshot `NNNC/<base>.json` with `snapshot_params()` (`:104`), as `build`
+  does, and fail if that JSON is absent. Make T009 pass.
 - [ ] T011 [P] Write `evaluation/tests/test_run_folds_nomodel.py` using `--dry-run` and
   monkeypatched `evaluate_fold`/`train_fold`/`generate_fold`. For a no-model plan, assert that
   `generate_fold`, `train_fold` and `model_exists` are never called, `evaluate_fold` is called 15
   times with the base class, and a class whose StrategyConfig has `needs_training=True` aborts
   before the first evaluation. For an NNNC plan with `model_dir`, assert that `model_exists`
-  checks `saved_data/<model_dir>` and not `saved_data/<strategy_class>`.
+  checks `saved_data/<model_dir>` and not `saved_data/<strategy_class>`. For a no-model plan
+  whose class's `TRIGGER_NAME` is not `PASS` (with a matching `code_sha`) in
+  `research/outcomes/trigger_causality.json`, assert the plan aborts before ANY evaluation, with
+  exit code non-zero (the spec edge case: rejected before the run starts).
 - [ ] T012 Implement the no-model path in `evaluation/run_folds.py` `main()` (~L220): skip
   generate, train and model check when `plan["no_model"]`, and assert `needs_training` is False
-  via `evaluation.fingerprint.load_strategy_class`. Change `model_exists` to take the fold's
-  `model_dir` when present, defaulting to the class. Make T011 pass.
+  via `evaluation.fingerprint.load_strategy_class`. Add the causality preflight: read the class's
+  `TRIGGER_NAME` and abort the whole plan unless `trigger_causality.json` has it as `PASS` with a
+  matching `code_sha`. Until T020 writes that file, the preflight aborts every no-model plan,
+  which is the intended order. Change `model_exists` to take the fold's `model_dir` when present,
+  defaulting to the class. Make T011 pass.
 - [ ] T013 Extend `regime/run_arm.py` record (contract C3):
   - add `framework_sha` and `framework_resolved` (via `evaluation.fingerprint.resolve` on the
     strategy class, the scratch params JSON and the config);
   - add `exit_reason_counts` (count `exit_reason` over the archive's trades in `summarize`, ~L291);
-  - add `entry_condition_counts` (aggregate sink files when `FT_ENTRY_CONDITION_SINK` is set, with
-    the sink dir set per run under `regime/.scratch/<tag>_<label>/sink`);
+  - add `entry_condition_counts`: `run_arm` ALWAYS sets `FT_ENTRY_CONDITION_SINK` for the
+    freqtrade subprocess it launches, to a fresh per-run dir `regime/.scratch/<tag>_<label>/sink`,
+    and aggregates the files into the record (FR-011: every run records liveness). The recorder
+    in `BaseStrategy` stays off by default only outside `run_arm`. Add a `--no-sink` flag that
+    leaves the variable unset, for the T017 neutrality gate only; a record made with it has
+    `entry_condition_counts: null`;
   - add `no_model`, `preset`, `exit_mode`, `trigger`, `label_method` and `coupled_resolution`,
     read from class attributes when present, else null.
 
@@ -135,9 +152,32 @@ recorded arms byte-identical (T014 gate).
   - Add a CLI (C5).
   - Add `evaluation/tests/test_halves.py` on fixture records, asserting f00–f07 / f08–f14
     membership and the sums.
-- [ ] T015 **Gate: shared edits are neutral.**
-  - Re-run the two T002 folds on the edited code, both with the sink unset and with the sink set.
-  - All four `trades_hash` values must equal the T002 baselines, and the sink run's record must
+- [ ] T015 [P] Write `utils/tests/test_stop_invariants.py` (create `utils/tests/__init__.py` and
+  a conftest if absent). Use a minimal `StopInvariantMixin` + stub-parent class whose
+  `custom_stoploss` returns a configured value:
+  (a) a positive ratio (planted post-grace sign flip, cf.
+      `Framework/tests/test_post_grace_stop_signfix.py`) must raise `StopInvariantError`;
+  (b) a ratio whose implied stop price `current_rate * (1 - abs(ratio))` exceeds `current_rate`
+      must raise;
+  (c) after grace, an implied stop PRICE below `open_rate * (1 + atr_stoploss_floor)` (adaptive)
+      or `open_rate * (1 + stoploss)` (static) must raise. The check is in PRICE space, never on
+      the ratio: freqtrade's ratio is relative to `current_rate`, so a correct entry-anchored stop
+      on a winning trade has a ratio more negative than the floor. Include that case as a
+      must-NOT-raise fixture (`open_rate` 100, `current_rate` 110, stop price 96, floor −0.04);
+  (d) direction across the grace boundary: for a trade still above its stop, a stop price at the
+      first post-grace call that is LOWER than the last in-grace stop price must raise (FR-017
+      "rescale preserving direction");
+  (e) valid values pass through unchanged, `is` the same object.
+- [ ] T016 Implement `utils/StopInvariants.py` with `StopInvariantError(RuntimeError)` and
+  `StopInvariantMixin.custom_stoploss`, which calls `super().custom_stoploss(...)`, checks (a)–(d)
+  (tracking the last stop price per trade id, for (d)) and returns the value unchanged
+  (research R9). It must be strategy-agnostic: no family names. Make T015 pass. Neutrality on
+  real runs is proven later by US1's legacy reproduction (the mixin is present in every
+  SimpleTrigger run) and by US3's twin check.
+- [ ] T017 **Gate: shared edits are neutral.**
+  - Re-run the two T002 folds on the edited code through `run_arm`, once by default (sink on)
+    and once with `--no-sink`.
+  - All four `trades_hash` values must equal the T002 baselines, and the `run_arm` records must
     hold `entry_condition_counts`.
   - Record the results in `baseline.md`.
   - **If any differ, STOP**: a shared edit changed behaviour.
@@ -156,13 +196,13 @@ exactly under the legacy preset.
 
 ### Causality (SC-006)
 
-- [ ] T016 [P] [US1] Write `research/outcomes/tests/test_causality.py`.
+- [ ] T018 [P] [US1] Write `research/outcomes/tests/test_causality.py`.
   - On a short real-feather slice (one pair, ~5k bars), assert that `check_trigger("gbb", ...)`
     returns PASS, and `check_trigger` on a planted forward-reading trigger (registered in-test
     with `replace=True`, reading `close.shift(-3)`) returns FAIL with `first_mismatch` set.
   - Assert the CLI exits 1 when the control does not FAIL. Simulate this by monkeypatching the
     control to a causal trigger.
-- [ ] T017 [US1] Implement `research/outcomes/causality.py` (research R11), modelled on
+- [ ] T019 [US1] Implement `research/outcomes/causality.py` (research R11), modelled on
   `research/labelfree/metalabel/audit.py:50-102`.
   - For each trigger, pair and era, compute populator features + trigger on the full history and
     on prefixes cut at K points (default K=8).
@@ -177,12 +217,12 @@ exactly under the legacy preset.
     2021–2026.
   - Use the same feature-population call the strategies use (find it via `BaseStrategy` /
     `DataframePopulator`).
-- [ ] T018 [US1] Run `python -m research.outcomes.causality --write` and commit
+- [ ] T020 [US1] Run `python -m research.outcomes.causality --write` and commit
   `research/outcomes/trigger_causality.json`.
   - Expected: control `local_min_followthrough` FAIL; `trends` and `bands` UNSCOREABLE.
   - Report every other non-PASS trigger to the user. Do not "fix" a trigger to make it pass
     without asking.
-- [ ] T019 [US1] Resolve the `future_*` record conflict (research R10).
+- [ ] T021 [US1] Resolve the `future_*` record conflict (research R10).
   - Read `labels_future_sharpe`, `labels_future_sortino` and `labels_future_expectancy` in
     `Framework/TrainingSignals.py` to decide whether each one's entry condition reduces to the
     `adx` trigger.
@@ -192,20 +232,20 @@ exactly under the legacy preset.
 
 ### Mapping, presets, family
 
-- [ ] T020 [P] [US1] Write `SimpleTrigger/tests/test_label_map.py`. Assert that
+- [ ] T022 [P] [US1] Write `SimpleTrigger/tests/test_label_map.py`. Assert that
   `SimpleTrigger.label_map.MAPPING` has exactly one row per `LabelMethod` member (iterate the
   enum), that every `status: "unsupported"` row has a non-empty `reason` and a null `trigger`,
   that every non-null `trigger` is a registered trigger name, and that the `empty` rows are
   exactly the 8 of research R10.
-- [ ] T021 [P] [US1] Implement `SimpleTrigger/label_map.py`. The data-model `LabelTriggerMapping`
-  rows come from research R10, as amended by T019:
+- [ ] T023 [P] [US1] Implement `SimpleTrigger/label_map.py`. The data-model `LabelTriggerMapping`
+  rows come from research R10, as amended by T021:
   - `local_min_followthrough` is unsupported, reason "centred window reads 3 bars ahead";
   - `trends` and `bands` are unsupported, reason "unscoreable: required columns absent from
     populator";
-  - the 3 `future_*` rows follow T019's outcome.
+  - the 3 `future_*` rows follow T021's outcome.
 
-  Make T020 pass.
-- [ ] T022 [P] [US1] Write `SimpleTrigger/tests/test_presets.py`. Assert that:
+  Make T022 pass.
+- [ ] T024 [P] [US1] Write `SimpleTrigger/tests/test_presets.py`. Assert that:
   (a) every preset contains every FrameworkPreset member, and a missing key raises on load (data
       model: "a preset is total");
   (b) `ARM_D_OPEN` resolves, via `evaluation.fingerprint.resolve` on a bare preset-carrying
@@ -214,21 +254,26 @@ exactly under the legacy preset.
   (c) `LEGACY_TRIGGERONLY` resolves to the same sha as `SimpleStrategies.TriggerOnly.TriggerOnlyStrategy`;
   (d) the two presets differ in `use_atr_adaptive_stoploss`, `atr_stoploss_{multiplier,floor,cap}`
       and `startup_candle_count` (research R1 table), which pins the finding.
-- [ ] T023 [P] [US1] Implement `SimpleTrigger/presets.py` with `ARM_D_OPEN` and
+- [ ] T025 [P] [US1] Implement `SimpleTrigger/presets.py` with `ARM_D_OPEN` and
   `LEGACY_TRIGGERONLY`. Take the literal values by reading the resolved attributes (run
   `python -m evaluation.fingerprint` on both reference classes and copy them). Add
-  `get(name) -> dict` and `validate(preset)`. Make T022 pass.
-- [ ] T024 [P] [US1] Write `SimpleTrigger/tests/test_simple_trigger_strategy.py`. Assert that:
+  `get(name) -> dict` and `validate(preset)`. Make T024 pass.
+- [ ] T026 [P] [US1] Write `SimpleTrigger/tests/test_simple_trigger_strategy.py`. Assert that:
   (a) the StrategyConfig has `needs_training is False` and model_type NONE (G1);
   (b) `get_entry_conditions` returns `triggers.evaluate("gbb", df)` for `TRIGGER_NAME="gbb"`;
   (c) an unset, unregistered, non-PASS or stale-`code_sha` trigger returns an all-False mask and
       prints a line starting `*** SimpleTrigger:` (G2);
   (d) `buy_params`/`sell_params` contain every key of `BaseStrategy`'s dicts plus the preset's,
       and none are dropped (FR-019);
-  (e) the class has no pair-name references (grep the source for `/USD` and `pair ==`) (G6).
-- [ ] T025 [US1] Implement `SimpleTrigger/SimpleTriggerStrategy.py` per contract C1, G1–G3 and G6
-  (G4/G5 come in US4).
-  - It subclasses `Framework.BaseStrategy.BaseStrategy`. At class-definition time it applies
+  (e) the class has no pair-name references (grep the source for `/USD` and `pair ==`) (G6);
+  (f) under both presets `entry_bear_filter_enable` and `entry_trend_filter_enable` are False,
+      `exit_profit_only` is False or unset, and the class has no `market_regime` column or
+      `SimpleStrategies` import (FR-005);
+  (g) the class carries `StopInvariantMixin` ahead of `BaseStrategy` in its MRO (FR-017).
+- [ ] T027 [US1] Implement `SimpleTrigger/SimpleTriggerStrategy.py` per contract C1, G1–G4 and G6
+  (G5 comes in US4).
+  - It is `class SimpleTriggerStrategy(StopInvariantMixin, BaseStrategy)` (the mixin comes from
+    Phase 2's `utils/StopInvariants.py`). At class-definition time it applies
     `presets.get(PRESET)` to class attributes and merges the dicts as
     `{**BaseStrategy.buy_params, **preset_buy, **getattr(cls, "BUY_OVERRIDES", {})}` (same for
     sell) in `__init_subclass__`.
@@ -236,8 +281,8 @@ exactly under the legacy preset.
     plus the causality gate: it reads `research/outcomes/trigger_causality.json` and requires
     PASS with a matching `code_sha`.
   - Set `enter_tag` to the trigger name.
-  - Make T024 pass.
-- [ ] T026 [US1] Create the 7 legacy configs in `SimpleTrigger/`, each `PRESET =
+  - Make T026 pass.
+- [ ] T028 [US1] Create the 7 legacy configs in `SimpleTrigger/`, each `PRESET =
   "LEGACY_TRIGGERONLY"`:
   - `SimpleTrigger_Legacy_Breakout` (`breakout`)
   - `SimpleTrigger_Legacy_BreakoutVol` (`breakout_vol`)
@@ -252,23 +297,27 @@ exactly under the legacy preset.
   Copy each original's class-level overrides from its `SimpleStrategies/*Open.py` file, and
   confirm with `python -m evaluation.fingerprint` that each legacy config's `framework_sha` equals
   its original's.
-- [ ] T027 [US1] Derive the 7 no-model plans with
+- [ ] T029 [US1] Derive the 7 no-model plans with
   `python -m evaluation.foldplan derive --from evaluation/folds/plan_NNNC_A_Raw_Open.json
   --family SimpleTrigger --base <cls> --tag <tag> --out evaluation/folds/plan_<tag>.json`. Tags:
   `stl_bo`, `stl_bvo`, `stl_bbo`, `stl_bgo`, `stl_geo`, `stl_gbbo`, `stl_gbbr`. Then confirm the
   fold windows equal those of each original 021 plan (`evaluation/folds/plan_{BreakoutOpen,...,GbbOpen}.json`).
-- [ ] T028 [US1] Run the 7 plans **sequentially** (`python -m evaluation.run_folds --plan ...`,
+- [ ] T030 [US1] Run the 7 plans **sequentially** (`python -m evaluation.run_folds --plan ...`,
   105 backtests total). Afterwards assert that no `saved_data/SimpleTrigger_*` directory exists.
-- [ ] T029 [US1] Write `SimpleTrigger/tests/test_legacy_reproduction.py`, a data test over
+- [ ] T031 [US1] Write `SimpleTrigger/tests/test_legacy_reproduction.py`, a data test over
   `regime/arms/`. For each of the 7 pairs (`stl_X` vs the recorded `wf_X`), assert that
   `trades_hash` is equal in every fold. Treat `wf_gbbg` f10 (0 trades, no hash) as not
   applicable; that arm is not reproduced here. Also assert `stl_gbbr` totals 458 trades.
   - **On a mismatch, STOP**: localise it by diffing `framework_resolved` and then the first
     divergent trade, and report before changing anything.
-- [ ] T030 [US1] Quickstart §3 (SC-008): diff the resolved parameters of
-  `Basket/MomentumRegimeBasket15mFast` (via `evaluation.fingerprint.resolve`, or a class attribute
-  dump if it falls outside the preset members) between `git stash`-free HEAD~N (pre-023) and now,
-  using `git worktree` for the old revision. Expected: empty. Record the result in `baseline.md`.
+- [ ] T032 [US1] Quickstart §3 (SC-008): prove the live dry-run strategy is unchanged.
+  - Write `evaluation/dump_strategy.py`, which imports a strategy class without instantiating it
+    and prints a canonical JSON of (a) every public, non-callable class attribute across the MRO
+    (`repr` for non-JSON values) and (b) its strategy JSON file merged the way freqtrade merges it.
+  - Run it for `MomentumRegimeBasket15mFast` (config
+    `config/config_mom_dryrun_15m.json`) in a `git worktree` at commit `9e82a45`
+    (pre-implementation) and in the current tree.
+  - Expected: an identical dump. Record the diff (empty) in `baseline.md`.
 
 **Checkpoint**: US1 is complete, so the family is validated against every recorded no-model
 result.
@@ -285,15 +334,15 @@ post-fix arm D (1420 trades, +42.71pp, 14/15, research R2).
 
 **Independent Test**: quickstart §5–§6.
 
-- [ ] T031 [P] [US3] Create `SimpleTrigger/SimpleTrigger_Gbb.py` (`TRIGGER_NAME = "gbb"`, default
+- [ ] T033 [P] [US3] Create `SimpleTrigger/SimpleTrigger_Gbb.py` (`TRIGGER_NAME = "gbb"`, default
   `ARM_D_OPEN`). Add to `SimpleTrigger/tests/test_presets.py` an assertion that its
   `framework_sha` equals `NNNC_A_Raw_Open`'s (FR-013, TwinPair rule).
-- [ ] T032 [P] [US3] Write `NNNC/tests/test_trigger_gate.py` (create `NNNC/tests/__init__.py` if
-  absent). For `NNNC_TGT_f03` (generated in T034), assert that `get_model_path()` points at
+- [ ] T034 [P] [US3] Write `NNNC/tests/test_trigger_gate.py` (create `NNNC/tests/__init__.py` if
+  absent). For `NNNC_TGT_f03` (generated in T036), assert that `get_model_path()` points at
   `saved_data/NNNC_ARO_f03/NNNC_ARO_f03.keras`, that the model-existence check is True without
   creating `saved_data/NNNC_TGT_f03/`, and that any training entry point raises
   `RuntimeError("NNNC_TriggerGate must never train")`.
-- [ ] T033 [US3] Implement `NNNC/NNNC_TriggerGate.py` (research R12), subclassing
+- [ ] T035 [US3] Implement `NNNC/NNNC_TriggerGate.py` (research R12), subclassing
   `NNNC_A_Raw_Open`:
   - `get_entry_conditions` calls `super().get_entry_conditions(dataframe)`, which keeps
     `predict_*` columns and diagnostics, and returns
@@ -306,13 +355,22 @@ post-fix arm D (1420 trades, +42.71pp, 14/15, research R2).
     calls when `training_needed`, ~L1374-1380) to raise.
   - The main scaler is shared at `get_storage_location()`, the same one arm D used. Note this in
     the docstring.
-  - Make T032 pass after T034.
-- [ ] T034 [US3] Derive and run the twin plans sequentially:
+  - Declare it as `class NNNC_TriggerGate(StopInvariantMixin, NNNC_A_Raw_Open)` (FR-017 covers
+    the equivalence arm).
+  - Create `NNNC/NNNC_TriggerGate.json` as a copy of `NNNC/NNNC_A_Raw_Open.json` with only
+    `strategy_name` changed. Without it freqtrade falls back to `NNNCStrategy`'s class defaults,
+    not the Open values, and the fingerprint check fails by construction. Assert with
+    `python -m evaluation.fingerprint` that `NNNC_TriggerGate` and `NNNC_A_Raw_Open` share a
+    `framework_sha`.
+  - Make T034 pass after T036.
+- [ ] T036 [US3] Derive and run the twin plans sequentially:
   - `SimpleTrigger_Gbb` uses a no-model plan with tag `st_gbb`.
   - `NNNC_TriggerGate` uses `derive --family NNNC --base NNNC_TriggerGate --tag wf_trgate
     --model-source NNNC_ARO` (fold classes `NNNC_TGT_fNN`, generated by `run_folds`, model check
-    on `NNNC_ARO_fNN`). Confirm in the run log that no training occurred.
-- [ ] T035 [P] [US3] Write `evaluation/tests/test_twins.py` on fixture records, covering contract C5:
+    on `NNNC_ARO_fNN`). The derived plan's `params_snapshot` must be the snapshot of
+    `NNNC/NNNC_TriggerGate.json`, and each generated fold JSON must match it apart from
+    `strategy_name` and the per-fold threshold. Confirm in the run log that no training occurred.
+- [ ] T037 [P] [US3] Write `evaluation/tests/test_twins.py` on fixture records, covering contract C5:
   - `check` exits 2 on a `framework_sha` mismatch, 3 on any per-fold `trades_hash` mismatch between
     the equivalence and simple tags, and 0 otherwise;
   - `compare` refuses with no passing `check` artefact;
@@ -320,19 +378,33 @@ post-fix arm D (1420 trades, +42.71pp, 14/15, research R2).
     from `bootstrap_delta` over total trades);
   - an `INCONCLUSIVE_*` or underpowered verdict from `compare_pooled.compare` gives no directional
     verdict (FR-014).
-- [ ] T036 [US3] Implement `evaluation/twins.py`:
+- [ ] T038 [US3] Implement `evaluation/twins.py`:
   - `check` writes `evaluation/twins/<simple_tag>.check.json`.
   - `compare` uses `evaluation/compare_pooled.py:compare` on pooled files (build them with
     `evaluation/pool.py` for `st_gbb` and `wf_aro` if absent), plus `evaluation.halves.split`.
-    It writes `evaluation/twins/<simple_tag>.compare.json` and `.md`.
-  - Make T035 pass.
-- [ ] T037 [US3] Run `python -m evaluation.twins check --nnnc-tag wf_aro --simple-tag st_gbb
+    It writes `evaluation/twins/<simple_tag>.compare.json` and `.md`, and includes the
+    matched-count section from `evaluation/matched_count.py` (T040).
+  - Make T037 pass.
+- [ ] T039 [P] [US3] Write `evaluation/tests/test_matched_count.py` on fixture pooled trades:
+  - `matched_count(selected, population, n_draws=20000, seed=0)` draws `len(selected)` trades
+    without replacement from `population` per draw, and returns `observed_mean`, `null_mean`,
+    `null_sd`, `z`, `p_one_sided` and `n_selected`;
+  - a planted selection made of the population's top-k trades gives z > 3;
+  - a random subset gives |z| < 2 on most seeds;
+  - `n_selected > len(population)` raises.
+- [ ] T040 [US3] Implement `evaluation/matched_count.py`. This is the 022 matched-count selection
+  test that research R13 found missing: the model's selected trades (`wf_aro`) are compared with
+  random same-count draws from the twin's trades (`st_gbb`), per fold and pooled, plus the
+  early/late halves. It is independent of shared trades, so it answers FR-014 when the paired
+  test is underpowered. Add a CLI (`python -m evaluation.matched_count --selected-tag T
+  --population-tag S`). Make T039 pass.
+- [ ] T041 [US3] Run `python -m evaluation.twins check --nnnc-tag wf_aro --simple-tag st_gbb
   --equivalence-tag wf_trgate`.
   - **On exit 3, STOP**: localise with the `framework_resolved` diff, the `entry_condition_counts`
     diff (does `BaseNNStrategy.add_additional_indicators` change a guard column?) and the first
     divergent trade. Report the parity defect to the user before fixing anything, because fixing
     it may touch NNNC.
-- [ ] T038 [US3] Run `python -m evaluation.twins compare --nnnc-tag wf_aro --simple-tag st_gbb` and
+- [ ] T042 [US3] Run `python -m evaluation.twins compare --nnnc-tag wf_aro --simple-tag st_gbb` and
   commit the compare artefacts. The reference must be post-fix `wf_aro`; assert its pooled
   `n_trades_pooled == 1420`.
 
@@ -348,13 +420,13 @@ defect.
 **Independent Test**: quickstart §7. Every component has a row. Under `LEGACY_TRIGGERONLY`,
 `stop_atr_band` and `stop_volume_confirm` come out INERT (the R1 finding, measured).
 
-- [ ] T039 [P] [US2] Write `SimpleTrigger/tests/test_components.py`. Assert that:
+- [ ] T043 [P] [US2] Write `SimpleTrigger/tests/test_components.py`. Assert that:
   - every component in `SimpleTrigger.components.COMPONENTS` has non-empty `overrides` and a
     `liveness_metric`;
   - for each component, the fingerprint diff between the full `SimpleTrigger_Gbb` and its
     neutralised variant touches ONLY keys in that component's `overrides`;
   - under `ARM_D_OPEN` every `guard_*` component is listed in `neutral_is_identity_under`.
-- [ ] T040 [P] [US2] Implement `SimpleTrigger/components.py`, the data-model `Component` table.
+- [ ] T044 [P] [US2] Implement `SimpleTrigger/components.py`, the data-model `Component` table.
   Components and their neutral overrides:
   - `guard_adx` → `entry_adx_threshold: -1.0`
   - `guard_atr_pct` → `entry_atr_pct: -1.0`
@@ -373,25 +445,26 @@ defect.
   `trigger` → the `empty` trigger. Liveness metrics: guards → `entry_condition_counts.<guard>`;
   exits → `exit_reason_counts.<reason>`; stops → `trades_hash` plus the `stop_loss` /
   `trailing_stop_loss` counts. **Verify each override key name against `BaseStrategy`** before
-  committing, because a misspelt key is silently inert. Make T039 pass.
-- [ ] T041 [P] [US2] Write `evaluation/tests/test_attribution.py` on fixture records. Assert that:
+  committing, because a misspelt key is silently inert. Make T043 pass.
+- [ ] T045 [P] [US2] Write `evaluation/tests/test_attribution.py` on fixture records. Assert that:
   - a component whose arm has an identical `trades_hash` in every fold is `INERT`;
   - one listed in `neutral_is_identity_under` for the preset is `ALREADY_NEUTRAL` and has no arm;
   - a zero-trade arm is `ZERO_TRADES`;
   - every `LIVE` row carries `liveness_evidence` with its before/after values;
-  - rows carry `halves` and `fold_detail`.
-- [ ] T042 [US2] Implement `evaluation/attribution.py` (contract C5):
+  - rows carry `halves`, `fold_detail` and a `power` block (noise half-width, trade count).
+- [ ] T046 [US2] Implement `evaluation/attribution.py` (contract C5):
   - `--full-tag T --base-class C --components all|a,b --preset P` writes one generated subclass
     per component, `SimpleTrigger/SimpleTrigger_<C>__C_<component>.py` (gitignored, T001), with
     overrides merged.
   - It derives no-model plans (tag `<T>__<component>`) and, with `--run`, runs them
     sequentially.
-  - It then builds `evaluation/attribution_<T>.json` and `.md` using `compare_pooled.compare`
-    and `halves.split`.
-  - Make T041 pass.
-- [ ] T043 [US2] Run attribution for `SimpleTrigger_Gbb` under `ARM_D_OPEN`, with the sink
+  - It then builds `evaluation/attribution_<T>.json` and `.md` using `compare_pooled.compare`,
+    `halves.split`, and `evaluation/power.py:report` (~L39) plus the noise half-width constants
+    in `evaluation/__init__.py`, so every row states its power or noise floor (FR-012).
+  - Make T045 pass.
+- [ ] T047 [US2] Run attribution for `SimpleTrigger_Gbb` under `ARM_D_OPEN`, with the sink
   enabled, for all non-ALREADY_NEUTRAL components (sequentially). Commit the report.
-- [ ] T044 [US2] Run attribution for `SimpleTrigger_Legacy_Gbb` under `LEGACY_TRIGGERONLY`, stop
+- [ ] T048 [US2] Run attribution for `SimpleTrigger_Legacy_Gbb` under `LEGACY_TRIGGERONLY`, stop
   components only. Expected: `stop_atr_band` and `stop_volume_confirm` INERT. If either is LIVE,
   research R1 is wrong; report it.
 
@@ -401,12 +474,12 @@ defect.
 
 ## Phase 6: User Story 4 — Coupled vs decoupled stop and targets (P3)
 
-**Goal**: Coupled mode as a pure parameter mapping, plus runtime stop invariants.
+**Goal**: Coupled mode as a pure parameter mapping. The runtime stop invariants (FR-017) are built in Phase 2 (T015/T016) and are already active in every SimpleTrigger and twin run.
 
 **Independent Test**: quickstart §8. Coupled with matched targets is hash-identical to decoupled
 in 15/15 folds, and there are zero `StopInvariantError`s.
 
-- [ ] T045 [P] [US4] Write `SimpleTrigger/tests/test_coupling.py`. Assert that:
+- [ ] T049 [P] [US4] Write `SimpleTrigger/tests/test_coupling.py`. Assert that:
   - `coupling.resolve(LabelMethod.gbb, min_gain=g, horizon=h, fee_per_side=f, timeframe="15m")`
     returns `take_profit_net == utils.ExitPolicy.net_from_price_ratio(1 + g, f)`,
     `max_days == h * 15 / 1440`, and `coupled_stop == "none-in-label"` with the stop fields
@@ -416,29 +489,17 @@ in 15/15 folds, and there are zero `StopInvariantError`s.
   - `resolve` on an unsupported `LabelMethod` (per `label_map`) raises;
   - the round trip holds: choosing `g` from `utils.ExitPolicy.price_ratio_for_net(tp, f) - 1`
     gives back `tp` to 1e-12.
-- [ ] T046 [US4] Implement `SimpleTrigger/coupling.py` (research R8). It produces parameter values
+- [ ] T050 [US4] Implement `SimpleTrigger/coupling.py` (research R8). It produces parameter values
   only (G5). Wire it in `SimpleTriggerStrategy.__init_subclass__`: when `EXIT_MODE == "coupled"`,
   merge `resolve(...)` into `sell_params` and the stop attributes, and store the resolution on a
-  class attribute `COUPLED_RESOLUTION`, which `run_arm` records (T013). Make T045 pass.
-- [ ] T047 [P] [US4] Write `SimpleTrigger/tests/test_stop_invariants.py`. Drive
-  `SimpleTriggerStrategy.custom_stoploss` with a stubbed `super()` returning:
-  (a) a positive ratio (planted post-grace sign flip, cf.
-      `Framework/tests/test_post_grace_stop_signfix.py`), which must raise `StopInvariantError`;
-  (b) a ratio whose implied stop price exceeds `current_rate`, which must raise;
-  (c) after grace, a ratio looser than `atr_stoploss_floor` (adaptive) or `stoploss` (static),
-      which must raise;
-  (d) valid values, which must pass through unchanged.
-- [ ] T048 [US4] Implement `StopInvariantError` and the `custom_stoploss` wrapper in
-  `SimpleTrigger/SimpleTriggerStrategy.py` (research R9, G4). It must return `super()`'s value
-  unchanged when valid. Make T047 pass. Then re-run T029's `stl_gbbo` fold f00 to confirm the
-  wrapper is behaviour-neutral (identical hash).
-- [ ] T049 [US4] Create `SimpleTrigger/SimpleTrigger_GbbCoupled.py` (`EXIT_MODE = "coupled"`,
+  class attribute `COUPLED_RESOLUTION`, which `run_arm` records (T013). Make T049 pass.
+- [ ] T051 [US4] Create `SimpleTrigger/SimpleTrigger_GbbCoupled.py` (`EXIT_MODE = "coupled"`,
   `LABEL_METHOD = gbb`). Choose `min_gain` via `price_ratio_for_net(ARM_D_OPEN cexit_take_profit,
   fee) - 1` and `horizon` so that `max_days` equals the preset's `cexit_max_days`. Assert its
   `framework_sha` equals `SimpleTrigger_Gbb`'s.
-- [ ] T050 [US4] Run `SimpleTrigger_GbbCoupled` (no-model plan, tag `st_gbbc`). Assert per-fold
+- [ ] T052 [US4] Run `SimpleTrigger_GbbCoupled` (no-model plan, tag `st_gbbc`). Assert per-fold
   `trades_hash` equals `st_gbb` in 15/15, `coupled_resolution.coupled_stop == "none-in-label"`, and
-  that no run log in T028/T034/T043/T044/T050 contains `StopInvariantError`.
+  that no run log in T030/T036/T047/T048/T052 contains `StopInvariantError`.
 
 **Checkpoint**: Coupling is possible and proven equivalent where it should be. The investigation
 itself is follow-up work.
@@ -447,39 +508,45 @@ itself is follow-up work.
 
 ## Phase 7: Polish & cross-cutting
 
-- [ ] T051 [P] Correct the false comment at `SimpleStrategies/TriggerOnly.py:72-75` ("the Open
+- [ ] T053 [P] Correct the false comment at `SimpleStrategies/TriggerOnly.py:72-75` ("the Open
   operating point, verbatim"). State that its STOP is static −0.05 with ATR-adaptive off, unlike
   arm D, and cite 023 research R1. Comment only; no value changes, since the legacy hashes depend
   on it.
-- [ ] T052 [P] Run `ruff check` and `ruff format --check` on every new or edited Python file
+- [ ] T054 [P] Run `ruff check` and `ruff format --check` on every new or edited Python file
   (ruff is the formatter of record per `AGENT_GUIDE.md`).
-- [ ] T053 Run the full unit gate (quickstart §0) and confirm it passes.
-- [ ] T054 Write `specs/023-simple-trigger-family/report.md`. Start with a SUMMARY covering:
+- [ ] T055 Run the full unit gate (quickstart §0) and confirm it passes.
+- [ ] T056 Write `specs/023-simple-trigger-family/report.md`. Start with a SUMMARY covering:
   - SC-001 to SC-008 status with evidence paths;
-  - the US3 model-contribution result, quoted with its verdict, CI, halves and shared fraction,
-    and the Principle II caveat (no distant era; halves split used);
+  - the US3 model-contribution result, quoted with its verdict, CI, halves, shared fraction and
+    matched-count z, and labelled **PROVISIONAL, not a finding under quality gate 2** (no distant
+    era exists; persistence tested by the early/late halves only). The same label goes on every
+    US2 attribution delta;
   - the attribution table;
   - research corrections R1 and R2;
   - the **FR-007a follow-up**: restructure NNNC as SimpleTrigger plus a model gate, now that
     FR-008 has passed or failed;
   - filed notes: `evaluation/pick_guards.floor_for_window` has zero callers (L177 still uses the
     absolute 25), and `guard_trackability.py` is referenced by `run_folds.py` but missing.
-- [ ] T055 Update project memory: a new `project_023_simple_trigger.md` with the verdict, the
-  presets, the arm D twin result and how to run a SimpleTrigger arm. Add a one-line index entry
-  in `MEMORY.md`, and update `project_status_2026_10_10.md`'s live thread with the US3 result.
+- [ ] T057 Update project memory: a new `project_023_simple_trigger.md` with the presets, how to
+  run a SimpleTrigger arm, and the arm D twin result, recorded as **PROVISIONAL (gate 2: no
+  distant era)**, never as a finding. Add a one-line index entry in `MEMORY.md` carrying the same
+  label, and update `project_status_2026_10_10.md`'s live thread.
 
 ---
 
 ## Dependencies & Execution Order
 
 - **Setup (T001–T002)**: T002 must pass before anything else.
-- **Foundational (T003–T015)**: blocks every story. T015 is the gate.
-- **US1 (T016–T030)**: needs Phase 2. Causality (T016–T019) precedes T025 (the strategy's
-  causality gate reads the JSON).
-- **US3 (T031–T038)**: needs US1's T023/T025 (presets, base class). T037 gates T038.
-- **US2 (T039–T044)**: needs US1's base class and T031 (`SimpleTrigger_Gbb`). Independent of US3's
+- **Foundational (T003–T017)**: blocks every story. T017 is the gate.
+- **US1 (T018–T032)**: needs Phase 2, including T016 (`StopInvariantMixin`, used by T027).
+  Causality (T018–T021) precedes T027 (the strategy's causality gate reads the JSON) and every
+  no-model run (the T012 preflight aborts until T020 has written it).
+- **US3 (T033–T042)**: needs US1's T025/T027 (presets, base class) and T016 (the mixin on
+  `NNNC_TriggerGate`). T041 gates T042. T039–T040 (matched count) can be written any time after
+  Phase 2.
+- **US2 (T043–T048)**: needs US1's base class and T033 (`SimpleTrigger_Gbb`). Independent of US3's
   results.
-- **US4 (T045–T050)**: needs US1's base class. T050 compares against `st_gbb` (T034).
+- **US4 (T049–T052)**: needs US1's base class. T052 compares against `st_gbb` (T036).
 - **Polish**: after the stories it reports on.
 
 Story order: US1 → US3 → US2 → US4. US2 and US4 could run before US3 in code, but backtest runs
@@ -488,17 +555,17 @@ are sequential overall, so run order follows priority.
 ## Parallel Opportunities
 
 Code tasks marked [P] touch different files and can be written in parallel. **Backtest runs
-(T002, T015, T028, T034, T043, T044, T050) are never parallel.**
+(T002, T017, T030, T036, T047, T048, T052) are never parallel.**
 
 ```text
 # Phase 2: these tests can be written together
-T003 test_fingerprint · T005 test_tag_match · T007 test_entry_condition_sink · T009 test_foldplan_nomodel · T011 test_run_folds_nomodel · T014 halves
+T003 test_fingerprint · T005 test_tag_match · T007 test_entry_condition_sink · T009 test_foldplan_nomodel · T011 test_run_folds_nomodel · T014 halves · T015 test_stop_invariants
 
-# US1: these can be written together once T017 exists
-T020 test_label_map · T021 label_map · T022 test_presets · T023 presets · T024 test_simple_trigger_strategy
+# US1: these can be written together once T019 exists
+T022 test_label_map · T023 label_map · T024 test_presets · T025 presets · T026 test_simple_trigger_strategy
 
 # US3 / US2 / US4 test files are independent of each other
-T032 · T035 · T039 · T041 · T045 · T047
+T034 · T037 · T039 · T043 · T045 · T049
 ```
 
 ## Implementation Strategy

@@ -19,7 +19,13 @@ Around the family, the plan adds four pieces of instrumentation:
   split.
 
 Coupled exits are a pure parameter mapping into the existing single exit definition. A
-family-local stop-invariant check halts any run that produces a wrong-sign or over-loose stop.
+strategy-agnostic stop-invariant mixin (`utils/StopInvariants.py`), applied to SimpleTrigger and
+the twin's equivalence arm, halts any run that produces a wrong-sign, over-loose or
+wrong-direction stop. A matched-count selection test answers the twin question even when the
+paired test lacks shared trades.
+
+Every delta this feature measures is **provisional, not a finding**, under quality gate 2:
+there's no distant era. Reports and memory carry that label.
 
 Research changed the brief in two places, and the user should know about both before tasks are
 generated:
@@ -69,7 +75,7 @@ time. One chain at a time (project rule).
 | Principle | Status | How |
 |---|---|---|
 | I. Deployment regime | PASS | Results are reported per fold, plus the halves split. No full-history headline. |
-| II. Distant era (NON-NEG.) | **JUSTIFIED EXCEPTION** | See Complexity Tracking. The early/late split (f00–f07 / f08–f14) is the persistence test, as in 022. |
+| II. Distant era (NON-NEG.) | **JUSTIFIED EXCEPTION** | See Complexity Tracking. The early/late split (f00–f07 / f08–f14) is the persistence test, as in 022. Per gate 2, no US2/US3 delta is recorded as a finding; the report (T056) and memory (T057) label them PROVISIONAL. |
 | III. Learnability ≠ edge | PASS | Every verdict is on walk-forward P&L. No model metrics are used. |
 | IV. Liveness | PASS, strengthened | Every component arm carries a moved metric, and INERT is a defect. The causality checker has a planted FAIL control. The condition sink is proven neutral. |
 | V. Lookahead-clean ≠ realistic | PASS | Trigger causality is measured end-to-end by truncation (R11). Volume and liquidity constraints stay on, and the `volume>0` and `rvol` gates are mandatory. |
@@ -83,7 +89,7 @@ time. One chain at a time (project rule).
 | Framework strategy-agnostic | PASS | The only Framework/ edit is the generic condition sink (C4). |
 | Params merge from parent | PASS | Presets merge as `{**parent, **preset, **overrides}`, with a test asserting no key is dropped. |
 | Staging / commits | PASS | Named-file staging, committed to master. |
-| Quality gates 1–7 | 1 ✓ pinned fold windows (derived plans). 2 see II. 3 ✓. 4 ✓ liveness records. 5: no-model arms are deterministic; `NNNC_TriggerGate` uses frozen models. Any sub-1pp delta is still reported as unresolved (noise floor). 6 ✓ zero-trade folds are reported as such. 7 N/A, since the feature lists are unchanged. |
+| Quality gates 1–7 | 1 ✓ pinned fold windows (derived plans). 2 see II: results are PROVISIONAL, not findings. 3 ✓. 4 ✓ liveness records. 5: no-model arms are deterministic; `NNNC_TriggerGate` uses frozen models. Any sub-1pp delta is still reported as unresolved (noise floor). 6 ✓ zero-trade folds are reported as such. 7 N/A, since the feature lists are unchanged. |
 
 **Post-design re-check (after Phase 1):** there are no new violations.
 - The design adds three shared-file edits: `BaseStrategy` (sink), `run_arm.py` (record fields) and
@@ -121,6 +127,10 @@ SimpleTrigger/                      # NEW family (sibling of NNNC; no SimpleStra
 └── tests/
 
 NNNC/NNNC_TriggerGate.py            # NEW: equivalence arm. Trigger entry on arm D's real NNNC path
+NNNC/NNNC_TriggerGate.json          # NEW: copy of NNNC_A_Raw_Open.json (strategy_name changed)
+
+utils/StopInvariants.py             # NEW: StopInvariantMixin + StopInvariantError (FR-017)
+utils/tests/test_stop_invariants.py
 
 research/outcomes/
 ├── causality.py                    # NEW: truncation causality checker (R11)
@@ -132,6 +142,8 @@ evaluation/
 ├── twins.py                        # NEW: check / compare (US3)
 ├── attribution.py                  # NEW: per-component report (US2)
 ├── halves.py                       # NEW: early/late split (R13)
+├── matched_count.py                # NEW: same-count random-draw selection test (R13)
+├── dump_strategy.py                # NEW: class-attribute + JSON dump for the SC-008 dry-run diff
 ├── foldplan.py                     # EDIT: `derive` subcommand; no_model validate rule
 ├── run_folds.py                    # EDIT: no_model path; exact tag match
 ├── pool.py                         # EDIT: exact tag match
@@ -151,7 +163,7 @@ Each phase gates the next one.
 
 1. **Instrument before using it.**
    - Build the fingerprint, record fields, exact tag match, condition sink, no-model plan path
-     and halves.
+     (with a causality preflight), halves and the stop-invariant mixin.
    - Gate: byte-identity on `wf_aro` f00 and `wf_gbbo` f00.
 2. **Causality.**
    - Build the checker and the planted control, then produce `trigger_causality.json`.
@@ -163,10 +175,10 @@ Each phase gates the next one.
    - Build `SimpleTrigger_Gbb` on `ARM_D_OPEN` and `NNNC_TriggerGate`.
    - Gate: fingerprint equality and SC-003. On failure, localise and fix the parity defect before
      going on.
-   - Then `twins compare` against post-fix arm D.
+   - Then `twins compare` against post-fix arm D, including the matched-count test.
 5. **Attribution (US2).** Build the components table, the arms and the report. Expected: the
    R1-measured INERT stop components under the legacy preset.
-6. **Coupled mode (US4).** Build the mapping and the stop invariant. Gate: SC-007 identity.
+6. **Coupled mode (US4).** Build the mapping. Gate: SC-007 identity.
 7. **Report + memory.**
    - `report.md`, including the FR-007a merge follow-up.
    - Correct the arm D figure in project memory (R2).
