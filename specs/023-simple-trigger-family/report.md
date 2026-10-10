@@ -150,3 +150,45 @@ Further investigations this enables:
   they carry the edge?
 - **Coupled-mode experiments with real label targets.**
 - **A 5-axis guard grid** run directly on SimpleTrigger arms.
+
+## Addendum (2026-10-10): every causal trigger under ARM_D_OPEN
+
+All 16 causality-PASS triggers through arm D's framework, no model, same 15 folds. Every
+fold of every arm has `framework_sha 303456c1fa322b4c`, the same as arm D, so the trigger is the
+only thing that differs between rows. Per-fold sum of wallet %; early = f00–f07, late = f08–f14.
+**PROVISIONAL (quality gate 2).**
+
+| trigger | arm | trades | per-fold sum | positive folds | early | late |
+|---|---|---|---|---|---|---|
+| `gbb_tight` | `st_gbbt` | **89** | +13.84pp | 7/15 | +7.01 | +6.83 |
+| `gbb` | `st_gbb` | 9,056 | +11.04pp | 7/15 | +30.33 | −19.28 |
+| `breakout_bb` | `st_bbo` | 7,351 | −1.09pp | 6/15 | +4.18 | −5.27 |
+| `breakout_gbb` | `st_bgo` | 8,563 | −5.86pp | 6/15 | +4.99 | −10.85 |
+| `votes_consensus` | `st_vcon` | 13,704 | −14.99pp | 8/15 | +2.96 | −17.95 |
+| `geometry` | `st_geo` | 5,400 | −17.09pp | 6/15 | +2.28 | −19.37 |
+| `gbb_stale` | `st_gbbst` | 5,895 | −27.58pp | 4/15 | −13.07 | −14.51 |
+| `breakout_squeeze` | `st_bsq` | 4,824 | −42.97pp | 2/15 | −28.37 | −14.60 |
+| `votes_ind3` | `st_vi3` | 13,116 | −43.80pp | 5/15 | +4.41 | −48.20 |
+| `breakout_vol` | `st_bvo` | 9,544 | −43.85pp | 7/15 | −30.54 | −13.31 |
+| `votes_tech` | `st_vtech` | 13,276 | −53.51pp | 4/15 | −4.15 | −49.36 |
+| `breakout` | `st_bo` | 10,869 | −54.26pp | 3/15 | −31.76 | −22.50 |
+| `adx` (also `future_*`) | `st_adx` | 19,035 | −57.01pp | 6/15 | −4.33 | −52.69 |
+| `votes_ind2` | `st_vi2` | 13,822 | −60.32pp | 5/15 | −7.59 | −52.73 |
+| `votes_ind4` | `st_vi4` | 15,690 | −72.85pp | 3/15 | −13.06 | −59.79 |
+| `empty` (no trigger) | `st_empty` | 23,226 | −91.35pp | 6/15 | −18.74 | −72.61 |
+
+Reading:
+- Every trigger beats `empty`, so each one adds selection over "enter on every bar". Only `gbb`
+  and `gbb_tight` are net positive.
+- **`gbb_tight` is the only trigger positive in both halves, but at 89 trades it is
+  unresolvable.** Four folds have zero trades, and the result rests on 5 folds (f04, f05, f07,
+  f08, f11) with 76–100% win rates. This is consistent with the threshold finding (the ceiling
+  rises with gbb strictness while trade count collapses). It is a candidate to examine, not a
+  result.
+- `gbb`'s early-half edge (+30.33) is the largest of any trigger. Every trigger except
+  `gbb_tight` is negative in the late half, so the late-half collapse is not specific to `gbb`.
+  It is market-wide under this exit stack.
+- The `votes_*` triggers all hold up early (−13 to +4) and collapse late (−18 to −60), the
+  same shape as `adx`.
+- Consistency check: `st_empty` reproduces `st_gbb__trigger` (the attribution arm) with
+  identical `trades_hash`.
