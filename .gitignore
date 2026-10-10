@@ -67,3 +67,16 @@ research/clfstudy/probs/
 # Feature 021 label-exit coordination: cached per-pair outcome-table feathers
 # (regenerable from utils.ExitPolicy + an ExitConfig hash; not tracked).
 research/outcomes/.cache/
+
+# Generated per-fold strategy classes for any arm prefix (NNNC_ARO_f00, NNNC_GFM_f14, ...).
+# Same reasoning as the feature-007 NNNC_WF_f* rule above.
+NNNC/NNNC_*_f[0-9][0-9].py
+NNNC/NNNC_*_f[0-9][0-9].json
+
+# clfstudy run residue: logs, *_DONE markers, pre-rerun snapshots. Driver scripts stay tracked.
+research/clfstudy/report/logs/*
+!research/clfstudy/report/logs/*.sh
+!research/clfstudy/report/logs/*.py
+# results.jsonl is the tracked source of truth; these are derived exports.
+research/clfstudy/results/results.csv
+research/clfstudy/results/results.parquet
