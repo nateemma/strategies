@@ -99,3 +99,20 @@ def test_resolve_never_instantiates(monkeypatch):
 
     monkeypatch.setattr(bnn.BaseNNStrategy, "__init__", boom)
     _resolve("NNNC_A_Raw_Open")
+
+
+def test_hold_window_changes_the_sha_and_unset_leaves_shas_alone():
+    # C9: the hold-window mixin changes exits, so it must change the sha; strategies without it
+    # must keep their recorded sha (arm D's 303456c1fa322b4c), so the key is optional.
+    from NNNC._hold_window import HoldWindowMixin
+
+    base = fp.load_strategy_class("SimpleTrigger_Gbb")
+    held = type("HeldGbb", (HoldWindowMixin, base), {"HOLD_WINDOW_HOURS": 24.0})
+    cfg = fp.load_config(CONFIG)
+    sha_base, resolved_base = fp.resolve(base, None, cfg)
+    sha_held, resolved_held = fp.resolve(held, None, cfg)
+    assert resolved_held["attributes"]["HOLD_WINDOW_HOURS"] == 24.0
+    assert "HOLD_WINDOW_HOURS" not in resolved_base["attributes"]
+    assert sha_held != sha_base
+    assert sha_base == "303456c1fa322b4c"
+    assert _resolve("NNNC_A_Raw_Open")[0] == "303456c1fa322b4c"

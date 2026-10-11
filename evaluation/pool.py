@@ -22,7 +22,13 @@ ROOT = Path(__file__).resolve().parents[3]
 STRAT_DIR = ROOT / "user_data/strategies"
 sys.path.insert(0, str(STRAT_DIR))
 
+from evaluation import bootstrap                         # noqa: E402
 from evaluation.bootstrap import _trades, _scale        # noqa: E402  (deliberate reuse, FR-013)
+
+# bootstrap.BT_RESULTS is RELATIVE ("user_data/backtest_results"), so _trades() found nothing --
+# and smoke_test() failed -- unless run from the repo root. bootstrap.py must not be modified;
+# pin it here, as twins.py and attribution.py do. _trades reads the module global at call time.
+bootstrap.BT_RESULTS = ROOT / "user_data/backtest_results"
 
 ARMS = STRAT_DIR / "regime/arms"
 

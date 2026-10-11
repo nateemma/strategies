@@ -72,6 +72,12 @@ ATTRIBUTE_MEMBERS = (
     "QUOTE_VOLUME_HEADROOM_MULT",
 )
 
+#: Attributes hashed ONLY when set (not None). Mixin knobs that change exits but are absent from
+#: most strategies: listing them in ATTRIBUTE_MEMBERS would add a `None` key to every resolved
+#: dict and change every recorded framework_sha. HOLD_WINDOW_HOURS (NNNC/_hold_window.py) defers
+#: unclog_12h; before this, an arm with it hashed identically to the same arm without it.
+OPTIONAL_ATTRIBUTE_MEMBERS = ("HOLD_WINDOW_HOURS",)
+
 #: Hyperopt parameters excluded from the hash: they shape the entry SIGNAL, which a twin may
 #: change, not the framework around it.
 EXCLUDED_PARAMS = frozenset({"prediction_threshold"})
@@ -175,6 +181,10 @@ def _jsonable(v):
 
 def _resolve_attributes(strategy_cls, file_params: dict) -> dict:
     attributes = {key: _jsonable(getattr(strategy_cls, key, None)) for key in ATTRIBUTE_MEMBERS}
+    for key in OPTIONAL_ATTRIBUTE_MEMBERS:
+        value = getattr(strategy_cls, key, None)
+        if value is not None:
+            attributes[key] = _jsonable(value)
     # JSON special sections replace the attribute (hyper.py ft_bot_start / load_params)
     if "roi" in file_params:
         attributes["minimal_roi"] = _jsonable(file_params["roi"])
