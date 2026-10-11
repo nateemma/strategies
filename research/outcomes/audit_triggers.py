@@ -314,3 +314,47 @@ def register_remaining_audit_triggers(*, replace: bool = False) -> list[Trigger]
                  replace=replace)
         for n, f, c, s, d in specs
     ]
+
+
+# -------------------------------------------------------------------------------------------------
+# Momentum-guarded breakouts (feature 023, Addendum 4, 2026-10-11)
+# -------------------------------------------------------------------------------------------------
+
+#: `breakout_gbb`'s guard direction. `breakout_gbb` trades on this condition and the true price
+#: breakouts do not, so these test whether that guard is what the breakouts are missing.
+MOMENTUM_GUARD_MIN = 0.2
+
+
+def _momentum_guard(df: pd.DataFrame) -> np.ndarray:
+    # NaN fills to 0.0, which FAILS `> 0.2` -- the same convention as `breakout_gbb`.
+    return _col(df, "guard_metric") > MOMENTUM_GUARD_MIN
+
+
+def _breakout_gm(df: pd.DataFrame) -> pd.Series:
+    return pd.Series(_prior_high_breakout(df, BREAKOUT_LOOKBACK) & _momentum_guard(df),
+                     index=df.index)
+
+
+def _breakout_vol_gm(df: pd.DataFrame) -> pd.Series:
+    return pd.Series(_breakout_vol_mask(df) & _momentum_guard(df), index=df.index)
+
+
+def _breakout_squeeze_gm(df: pd.DataFrame) -> pd.Series:
+    return pd.Series(_breakout_squeeze(df).to_numpy() & _momentum_guard(df), index=df.index)
+
+
+def register_momentum_guard_triggers(*, replace: bool = False) -> list[Trigger]:
+    """The three price breakouts, each AND `guard_metric > 0.2`. Composites, not labelers."""
+    g = f"AND guard_metric > {MOMENTUM_GUARD_MIN} (breakout_gbb's guard direction)"
+    specs = [
+        ("breakout_gm", _breakout_gm, ("high", "close", "guard_metric"), f"breakout {g}"),
+        ("breakout_vol_gm", _breakout_vol_gm, ("high", "close", "rvol", "guard_metric"),
+         f"breakout_vol {g}"),
+        ("breakout_squeeze_gm", _breakout_squeeze_gm,
+         ("high", "close", "bb_width", "guard_metric"), f"breakout_squeeze {g}"),
+    ]
+    return [
+        register(Trigger(name=n, evaluate=f, required_columns=c,
+                         source="composite (023 Addendum 4)", description=d), replace=replace)
+        for n, f, c, d in specs
+    ]

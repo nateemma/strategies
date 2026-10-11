@@ -282,3 +282,75 @@ Reading:
 `_mx` and `__take_profit` arms hash identically despite different trades. Liveness was proven
 from exit counts instead. The fingerprint needs the mixin's attribute before a family-preset feature
 relies on it.
+
+## Addendum 4 (2026-10-11): momentum guard on the true breakouts
+
+New triggers `breakout_gm`, `breakout_vol_gm`, `breakout_squeeze_gm` (each breakout AND
+`guard_metric > 0.2`, `research/outcomes/audit_triggers.py`; causality PASS, every earlier verdict
+unchanged). Run on the momentum exits (no TP, 24h hold):
+
+| trigger | no guard | + guard | early / late | signal bars kept |
+|---|---|---|---|---|
+| `breakout` | −52.84 | −44.48 | −32.93 / −11.54 | 92% |
+| `breakout_vol` | −46.27 | −43.26 | −29.35 / −13.91 | 90% |
+| `breakout_squeeze` | −38.06 | −34.15 | −23.28 / −10.88 | 86% |
+
+**The guard is not what the breakouts are missing.** It rarely binds, because a close above the
+20-bar high is almost always high in the band. Guards under ARM_D_OPEN are 100% pass for every
+trigger (entry-condition sink), so they were never in the way either.
+
+## Addendum 5 (2026-10-11): pricing `gbb` / `breakout_gbb` overlap entries both ways
+
+New arm: `st_gbb_mx` (`gbb` on the momentum exits), completing the trigger × exit-set grid. Overlap
+= entries opened by both `st_gbb` and `st_bgo`, the same bar under the same exits. There are 206
+such entries, **2.3% of either trigger's trades** (1 of 206 differs in profit between the two
+arms, a fill artefact). Matched per-trade return, momentum minus reversion exits, fold-blocked
+bootstrap (`scripts/overlap.py`):
+
+| set | n | reversion exits | momentum exits | diff/trade | 95% CI | p |
+|---|---|---|---|---|---|---|
+| overlap (via gbb arms) | 120 | +0.546% | +0.565% | +0.02pp | [−0.37, +0.38] | 0.86 |
+| overlap (via bgo arms) | 182 | +0.373% | +0.510% | +0.14pp | [−0.23, +0.55] | 0.49 |
+| all `gbb` entries | 7,125 | −0.004% | −0.040% | −0.04pp | [−0.10, +0.02] | 0.26 |
+| all `breakout_gbb` entries | 5,422 | −0.011% | +0.036% | +0.05pp | [−0.03, +0.11] | 0.22 |
+
+- **The overlap priority rule does not matter.** The overlap is small and indifferent to the
+  exit set. Use **gbb priority**: the reversion side then reproduces `st_gbb` exactly, which is a
+  mechanical correctness check for the combined arm.
+- **The overlap entries are unusually good** (+0.4–0.55% per trade against ~0 for each trigger
+  overall), almost all of it in the late half. `0.2 < guard_metric < 0.3` with a wide band may
+  deserve its own look.
+- Per-trade direction agrees with the family-exit hypothesis: `gbb` is worse on momentum exits
+  (late −0.10pp/trade) and `breakout_gbb` is better (+0.05). Neither is resolved per trade.
+
+## Addendum 6 (2026-10-11): breakout timing screen. Breakouts FADE on these pairs.
+
+Path-blind, pre-fee, close-to-close screen (`scripts/breakout_timing.py`): forward return from
+each bar's close, minus the pair's unconditional mean in the same half. It is conditioned on k,
+the number of bars since the most recent 20-bar breakout, and on whether every close since has
+held above the broken level. 10 pairs, 2023-01 to 2026-09. **A screen only. An earlier offline
+leaderboard got the sign right 1 time in 6 against live arms.**
+
+| bucket | 12h excess, early | 12h excess, late | pairs positive (12h) e/l |
+|---|---|---|---|
+| k = 0, break bar | −0.081% | −0.065% | 4/2 |
+| k = 0, first break of an episode | −0.183% | −0.137% | 1/2 |
+| k = 2, held | −0.221% | −0.191% | 0/0 |
+| k = 4, held | −0.264% | −0.229% | 1/1 |
+| k = 8, held | −0.383% | −0.234% | 0/3 |
+| k = 16, held | −0.329% | −0.352% | 2/3 |
+| k = 2, failed (back below level) | +0.069% | +0.163% | 9/10 |
+| k = 4, failed | +0.040% | +0.117% | 8/9 |
+| no break in the last 24h | +0.183% | +0.257% | 8/7 |
+
+- **The confirmed-breakout idea is refuted by the screen.** A breakout that HOLDS gets worse
+  with every bar it holds, in both halves and on nearly every pair. A breakout that FAILS
+  (closes back below the level) is followed by above-average returns, on 8–10 of 10 pairs in
+  both halves. At 15m these alts mean-revert through breakouts. That explains why every true
+  breakout trigger loses, and why no exit or guard rescued them.
+- **Cross-check on real trades** (`scripts/bgo_by_k.py`): 45% of `st_bgo_mx`'s entries are
+  break bars (mean +0.002%/trade; late −0.07%), and 16% are held breakouts (late −0.23%). The
+  failed-breakout entries (+0.11%, both halves) and the no-break entries (+0.06%) carry it. So
+  **excluding fresh/held breakouts from `breakout_gbb`** is the screen's prediction to test.
+- A "failed breakout" is itself a reversion entry condition, positive in both halves on 8–10/10
+  pairs. It is a candidate reversion trigger for the reversion exit set.
