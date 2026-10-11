@@ -239,3 +239,8 @@ verdict against the previous step. Every arm passes a liveness check.
 - Offline screens and per-bucket trade splits are not used to choose parameters. Only
   walk-forward arms decide (023 Addendum 7; memory `feedback_bucket_filters_get_substituted`).
 - Regime-specific parameters remain out of scope, as in 023.
+- **Correction found in planning (research R9):** the live dry-run strategy
+  (`MomentumRegimeBasket15mFast`) derives from freqtrade's `IStrategy` and imports nothing from
+  `Framework/`, so `BaseStrategy` edits cannot reach it. FR-006 and SC-004 stand as cheap
+  safeguards. The binding neutrality evidence is the hash-identical reproduction of recorded arms
+  that do use `BaseStrategy`.
