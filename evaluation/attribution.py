@@ -270,8 +270,8 @@ def main(argv=None) -> int:
         if a.run and pp.is_file():
             print(f"=== running {c.name}", flush=True)
             rc = subprocess.run(
-                [sys.executable, str(STRAT / "evaluation/run_folds.py"), "--plan", str(pp)],
-                cwd=ROOT,
+                [sys.executable, "-m", "evaluation.run_folds", "--plan", str(pp)],
+                cwd=STRAT,
                 check=False,
             ).returncode
             if rc:

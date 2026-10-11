@@ -1,0 +1,968 @@
+{
+  "label": "PROVISIONAL -- not a finding under quality gate 2 (no distant era)",
+  "preset": "ARM_D_OPEN",
+  "full": {
+    "trades": 5400,
+    "sum_pp": -17.094,
+    "power": {
+      "n_trades": 5400,
+      "half_width_pp_yr": 6.9421492235757665,
+      "sqrt_n_predicted_pp_yr": 1.0335130857097714
+    }
+  },
+  "rows": [
+    {
+      "component": "take_profit",
+      "overrides": {
+        "sell": {
+          "cexit_take_profit": 10.0
+        }
+      },
+      "arm_tag": "st_geo__take_profit",
+      "fold_detail": [
+        {
+          "fold": "f00",
+          "n_trades": 433,
+          "return_pct": -1.856
+        },
+        {
+          "fold": "f01",
+          "n_trades": 171,
+          "return_pct": -2.864
+        },
+        {
+          "fold": "f02",
+          "n_trades": 178,
+          "return_pct": -2.62
+        },
+        {
+          "fold": "f03",
+          "n_trades": 417,
+          "return_pct": 5.163
+        },
+        {
+          "fold": "f04",
+          "n_trades": 573,
+          "return_pct": 4.265
+        },
+        {
+          "fold": "f05",
+          "n_trades": 378,
+          "return_pct": -1.86
+        },
+        {
+          "fold": "f06",
+          "n_trades": 246,
+          "return_pct": 2.381
+        },
+        {
+          "fold": "f07",
+          "n_trades": 538,
+          "return_pct": 4.408
+        },
+        {
+          "fold": "f08",
+          "n_trades": 494,
+          "return_pct": -7.886
+        },
+        {
+          "fold": "f09",
+          "n_trades": 218,
+          "return_pct": -5.443
+        },
+        {
+          "fold": "f10",
+          "n_trades": 278,
+          "return_pct": 1.228
+        },
+        {
+          "fold": "f11",
+          "n_trades": 429,
+          "return_pct": -5.73
+        },
+        {
+          "fold": "f12",
+          "n_trades": 234,
+          "return_pct": -3.867
+        },
+        {
+          "fold": "f13",
+          "n_trades": 230,
+          "return_pct": -4.287
+        },
+        {
+          "fold": "f14",
+          "n_trades": 237,
+          "return_pct": 1.855
+        }
+      ],
+      "liveness_evidence": {
+        "metric": "exit_reason_counts.take_profit",
+        "before": 2053,
+        "after": 0,
+        "moved": true
+      },
+      "status": "LIVE",
+      "verdict": "INCONCLUSIVE_ARM_LOSES",
+      "delta_pp": -0.01764778605345303,
+      "ci_pp_yr": [
+        -4.4929098390372255,
+        4.404112349454886
+      ],
+      "p": 0.9958,
+      "component_contribution_pp": 0.01764778605345303,
+      "halves": {
+        "split_after": "f07",
+        "label": "PROVISIONAL -- not a finding under quality gate 2 (no distant era)",
+        "early": {
+          "fold_ids": [
+            "f00",
+            "f01",
+            "f02",
+            "f03",
+            "f04",
+            "f05",
+            "f06",
+            "f07"
+          ],
+          "arm": {
+            "folds": 8,
+            "trades": 2934,
+            "sum_pp": 7.017,
+            "positive_folds": 4
+          },
+          "ctl": {
+            "folds": 8,
+            "trades": 3142,
+            "sum_pp": 2.276,
+            "positive_folds": 4
+          },
+          "verdict": "UNCHANGED",
+          "delta_pp": 4.742412108309321,
+          "ci_pp_yr": [
+            -3.8534217510141384,
+            8.708346165768523
+          ],
+          "p": 0.4477
+        },
+        "late": {
+          "fold_ids": [
+            "f08",
+            "f09",
+            "f10",
+            "f11",
+            "f12",
+            "f13",
+            "f14"
+          ],
+          "arm": {
+            "folds": 7,
+            "trades": 2120,
+            "sum_pp": -24.13,
+            "positive_folds": 2
+          },
+          "ctl": {
+            "folds": 7,
+            "trades": 2258,
+            "sum_pp": -19.37,
+            "positive_folds": 2
+          },
+          "verdict": "INCONCLUSIVE_ARM_LOSES",
+          "delta_pp": -4.760113630118914,
+          "ci_pp_yr": [
+            -9.111659140373495,
+            3.4925818283446333
+          ],
+          "p": 0.3968
+        }
+      },
+      "power": {
+        "n_trades": 5054,
+        "half_width_pp_yr": 7.501810708579491,
+        "sqrt_n_predicted_pp_yr": 1.068304950449416
+      }
+    },
+    {
+      "component": "roi",
+      "overrides": {
+        "attributes": {
+          "minimal_roi": {
+            "0": 10.0
+          }
+        }
+      },
+      "arm_tag": "st_geo__roi",
+      "fold_detail": [
+        {
+          "fold": "f00",
+          "n_trades": 456,
+          "return_pct": -3.177
+        },
+        {
+          "fold": "f01",
+          "n_trades": 179,
+          "return_pct": -2.013
+        },
+        {
+          "fold": "f02",
+          "n_trades": 182,
+          "return_pct": -2.259
+        },
+        {
+          "fold": "f03",
+          "n_trades": 453,
+          "return_pct": 1.556
+        },
+        {
+          "fold": "f04",
+          "n_trades": 622,
+          "return_pct": 3.894
+        },
+        {
+          "fold": "f05",
+          "n_trades": 402,
+          "return_pct": -6.357
+        },
+        {
+          "fold": "f06",
+          "n_trades": 256,
+          "return_pct": 5.116
+        },
+        {
+          "fold": "f07",
+          "n_trades": 586,
+          "return_pct": 3.429
+        },
+        {
+          "fold": "f08",
+          "n_trades": 529,
+          "return_pct": -5.935
+        },
+        {
+          "fold": "f09",
+          "n_trades": 226,
+          "return_pct": -5.153
+        },
+        {
+          "fold": "f10",
+          "n_trades": 290,
+          "return_pct": 0.864
+        },
+        {
+          "fold": "f11",
+          "n_trades": 459,
+          "return_pct": -4.584
+        },
+        {
+          "fold": "f12",
+          "n_trades": 246,
+          "return_pct": -4.188
+        },
+        {
+          "fold": "f13",
+          "n_trades": 245,
+          "return_pct": -5.566
+        },
+        {
+          "fold": "f14",
+          "n_trades": 255,
+          "return_pct": 0.527
+        }
+      ],
+      "liveness_evidence": {
+        "metric": "exit_reason_counts.roi",
+        "before": 89,
+        "after": 0,
+        "moved": true
+      },
+      "status": "LIVE",
+      "verdict": "INCONCLUSIVE_ARM_LOSES",
+      "delta_pp": -6.75316941490789,
+      "ci_pp_yr": [
+        -3.1116356917019266,
+        -0.5974056169472638
+      ],
+      "p": 0.0035,
+      "component_contribution_pp": 6.75316941490789,
+      "halves": {
+        "split_after": "f07",
+        "label": "PROVISIONAL -- not a finding under quality gate 2 (no distant era)",
+        "early": {
+          "fold_ids": [
+            "f00",
+            "f01",
+            "f02",
+            "f03",
+            "f04",
+            "f05",
+            "f06",
+            "f07"
+          ],
+          "arm": {
+            "folds": 8,
+            "trades": 3136,
+            "sum_pp": 0.189,
+            "positive_folds": 4
+          },
+          "ctl": {
+            "folds": 8,
+            "trades": 3142,
+            "sum_pp": 2.276,
+            "positive_folds": 4
+          },
+          "verdict": "UNCHANGED",
+          "delta_pp": -2.0870860954694694,
+          "ci_pp_yr": [
+            -2.188076833213206,
+            0.046129801221718
+          ],
+          "p": 0.0615
+        },
+        "late": {
+          "fold_ids": [
+            "f08",
+            "f09",
+            "f10",
+            "f11",
+            "f12",
+            "f13",
+            "f14"
+          ],
+          "arm": {
+            "folds": 7,
+            "trades": 2250,
+            "sum_pp": -24.035,
+            "positive_folds": 2
+          },
+          "ctl": {
+            "folds": 7,
+            "trades": 2258,
+            "sum_pp": -19.37,
+            "positive_folds": 2
+          },
+          "verdict": "INCONCLUSIVE_ARM_LOSES",
+          "delta_pp": -4.666135994304061,
+          "ci_pp_yr": [
+            -5.158971588671269,
+            -0.4194958546575796
+          ],
+          "p": 0.0183
+        }
+      },
+      "power": {
+        "n_trades": 5386,
+        "half_width_pp_yr": 7.014652206023562,
+        "sqrt_n_predicted_pp_yr": 1.034855435584355
+      }
+    },
+    {
+      "component": "stop_atr_band",
+      "overrides": {
+        "attributes": {
+          "use_atr_adaptive_stoploss": false
+        }
+      },
+      "arm_tag": "st_geo__stop_atr_band",
+      "fold_detail": [
+        {
+          "fold": "f00",
+          "n_trades": 375,
+          "return_pct": -3.045
+        },
+        {
+          "fold": "f01",
+          "n_trades": 162,
+          "return_pct": -2.5
+        },
+        {
+          "fold": "f02",
+          "n_trades": 166,
+          "return_pct": -3.407
+        },
+        {
+          "fold": "f03",
+          "n_trades": 405,
+          "return_pct": 4.06
+        },
+        {
+          "fold": "f04",
+          "n_trades": 573,
+          "return_pct": 1.742
+        },
+        {
+          "fold": "f05",
+          "n_trades": 350,
+          "return_pct": -6.704
+        },
+        {
+          "fold": "f06",
+          "n_trades": 227,
+          "return_pct": 6.187
+        },
+        {
+          "fold": "f07",
+          "n_trades": 527,
+          "return_pct": -0.02
+        },
+        {
+          "fold": "f08",
+          "n_trades": 473,
+          "return_pct": -4.407
+        },
+        {
+          "fold": "f09",
+          "n_trades": 194,
+          "return_pct": -5.675
+        },
+        {
+          "fold": "f10",
+          "n_trades": 253,
+          "return_pct": -1.396
+        },
+        {
+          "fold": "f11",
+          "n_trades": 424,
+          "return_pct": -8.015
+        },
+        {
+          "fold": "f12",
+          "n_trades": 219,
+          "return_pct": -5.452
+        },
+        {
+          "fold": "f13",
+          "n_trades": 222,
+          "return_pct": -5.127
+        },
+        {
+          "fold": "f14",
+          "n_trades": 213,
+          "return_pct": 1.009
+        }
+      ],
+      "liveness_evidence": {
+        "metric": "trades_hash",
+        "before": [
+          "4c15e395bd0a3198",
+          "d3fdfb5f3b0a08a9",
+          "cfdc38c28edc871a",
+          "056942e9c05f11b5",
+          "662d7b4e15769b26",
+          "3e87e2012581b251",
+          "f9973574c3c6c324",
+          "3dfdc0f047102437",
+          "c8d28cfdd948fd7d",
+          "e15b3ed4ed663df8",
+          "aa66179f38e1338c",
+          "fed798f8b203d9d0",
+          "d57c1e8d37714090",
+          "8380135feadb1b4a",
+          "3837bffef2f14ae5"
+        ],
+        "after": [
+          "1d584eb2ef0b02c1",
+          "703f4994785276b3",
+          "3630dba62fd00354",
+          "60bf71f840cacc93",
+          "5ee195ceb89dce40",
+          "3b3a4dd5b76ce8d5",
+          "7abdbd033cdd89b2",
+          "72f65f97ce666ead",
+          "5a13a7a405c2379c",
+          "d625254945078a65",
+          "dd1085d6f04b16e8",
+          "bc135851670fe670",
+          "42743b7033fa0eb9",
+          "f0f8ad9ccf3db736",
+          "edd3f157757794d6"
+        ],
+        "moved": true
+      },
+      "status": "LIVE",
+      "verdict": "INCONCLUSIVE_ARM_LOSES",
+      "delta_pp": -15.655726068151855,
+      "ci_pp_yr": [
+        -8.721077142982235,
+        0.15213489042748113
+      ],
+      "p": 0.0583,
+      "component_contribution_pp": 15.655726068151855,
+      "halves": {
+        "split_after": "f07",
+        "label": "PROVISIONAL -- not a finding under quality gate 2 (no distant era)",
+        "early": {
+          "fold_ids": [
+            "f00",
+            "f01",
+            "f02",
+            "f03",
+            "f04",
+            "f05",
+            "f06",
+            "f07"
+          ],
+          "arm": {
+            "folds": 8,
+            "trades": 2785,
+            "sum_pp": -3.687,
+            "positive_folds": 3
+          },
+          "ctl": {
+            "folds": 8,
+            "trades": 3142,
+            "sum_pp": 2.276,
+            "positive_folds": 4
+          },
+          "verdict": "INCONCLUSIVE_ARM_LOSES",
+          "delta_pp": -5.962228957665042,
+          "ci_pp_yr": [
+            -9.163759995067183,
+            3.045032326511799
+          ],
+          "p": 0.3347
+        },
+        "late": {
+          "fold_ids": [
+            "f08",
+            "f09",
+            "f10",
+            "f11",
+            "f12",
+            "f13",
+            "f14"
+          ],
+          "arm": {
+            "folds": 7,
+            "trades": 1998,
+            "sum_pp": -29.063,
+            "positive_folds": 1
+          },
+          "ctl": {
+            "folds": 7,
+            "trades": 2258,
+            "sum_pp": -19.37,
+            "positive_folds": 2
+          },
+          "verdict": "INCONCLUSIVE_ARM_LOSES",
+          "delta_pp": -9.693606539235283,
+          "ci_pp_yr": [
+            -12.078897634381285,
+            0.8206776739575031
+          ],
+          "p": 0.0882
+        }
+      },
+      "power": {
+        "n_trades": 4783,
+        "half_width_pp_yr": 7.727144109336292,
+        "sqrt_n_predicted_pp_yr": 1.0981525370202816
+      }
+    },
+    {
+      "component": "stop_grace",
+      "overrides": {
+        "sell": {
+          "stoploss_grace_hours": 0.0
+        }
+      },
+      "arm_tag": "st_geo__stop_grace",
+      "fold_detail": [
+        {
+          "fold": "f00",
+          "n_trades": 441,
+          "return_pct": -2.036
+        },
+        {
+          "fold": "f01",
+          "n_trades": 179,
+          "return_pct": -1.364
+        },
+        {
+          "fold": "f02",
+          "n_trades": 189,
+          "return_pct": -1.597
+        },
+        {
+          "fold": "f03",
+          "n_trades": 476,
+          "return_pct": -0.479
+        },
+        {
+          "fold": "f04",
+          "n_trades": 663,
+          "return_pct": -0.481
+        },
+        {
+          "fold": "f05",
+          "n_trades": 406,
+          "return_pct": -6.109
+        },
+        {
+          "fold": "f06",
+          "n_trades": 254,
+          "return_pct": 4.45
+        },
+        {
+          "fold": "f07",
+          "n_trades": 633,
+          "return_pct": -9.304
+        },
+        {
+          "fold": "f08",
+          "n_trades": 560,
+          "return_pct": -7.598
+        },
+        {
+          "fold": "f09",
+          "n_trades": 227,
+          "return_pct": -4.926
+        },
+        {
+          "fold": "f10",
+          "n_trades": 287,
+          "return_pct": -1.907
+        },
+        {
+          "fold": "f11",
+          "n_trades": 502,
+          "return_pct": -10.348
+        },
+        {
+          "fold": "f12",
+          "n_trades": 254,
+          "return_pct": -5.032
+        },
+        {
+          "fold": "f13",
+          "n_trades": 250,
+          "return_pct": -4.224
+        },
+        {
+          "fold": "f14",
+          "n_trades": 247,
+          "return_pct": 0.048
+        }
+      ],
+      "liveness_evidence": {
+        "metric": "trades_hash",
+        "before": [
+          "4c15e395bd0a3198",
+          "d3fdfb5f3b0a08a9",
+          "cfdc38c28edc871a",
+          "056942e9c05f11b5",
+          "662d7b4e15769b26",
+          "3e87e2012581b251",
+          "f9973574c3c6c324",
+          "3dfdc0f047102437",
+          "c8d28cfdd948fd7d",
+          "e15b3ed4ed663df8",
+          "aa66179f38e1338c",
+          "fed798f8b203d9d0",
+          "d57c1e8d37714090",
+          "8380135feadb1b4a",
+          "3837bffef2f14ae5"
+        ],
+        "after": [
+          "1d9096ff56b3c7eb",
+          "5ce1a48d5bbc5907",
+          "32463b02e84e1ee5",
+          "00bd71f4a6d0266d",
+          "642db76d56e227ee",
+          "3310559fd96b286c",
+          "09973609a0559104",
+          "9a8211ba4b9f50dd",
+          "361219140206ef5c",
+          "78e3f7fe6fd474bd",
+          "c026d0212f04ba0b",
+          "4629f902b60e54c0",
+          "e8de07f7f777e7b8",
+          "df98bd06850f8d1c",
+          "43715625b6e1c11a"
+        ],
+        "moved": true
+      },
+      "status": "LIVE",
+      "verdict": "INCONCLUSIVE_ARM_LOSES",
+      "delta_pp": -33.8132562563896,
+      "ci_pp_yr": [
+        -14.712601506858329,
+        -3.4687251395113963
+      ],
+      "p": 0.0014,
+      "component_contribution_pp": 33.8132562563896,
+      "halves": {
+        "split_after": "f07",
+        "label": "PROVISIONAL -- not a finding under quality gate 2 (no distant era)",
+        "early": {
+          "fold_ids": [
+            "f00",
+            "f01",
+            "f02",
+            "f03",
+            "f04",
+            "f05",
+            "f06",
+            "f07"
+          ],
+          "arm": {
+            "folds": 8,
+            "trades": 3241,
+            "sum_pp": -16.92,
+            "positive_folds": 1
+          },
+          "ctl": {
+            "folds": 8,
+            "trades": 3142,
+            "sum_pp": 2.276,
+            "positive_folds": 4
+          },
+          "verdict": "INCONCLUSIVE_ARM_LOSES",
+          "delta_pp": -19.195189094127645,
+          "ci_pp_yr": [
+            -17.390770140072053,
+            -2.1092061488232656
+          ],
+          "p": 0.0118
+        },
+        "late": {
+          "fold_ids": [
+            "f08",
+            "f09",
+            "f10",
+            "f11",
+            "f12",
+            "f13",
+            "f14"
+          ],
+          "arm": {
+            "folds": 7,
+            "trades": 2327,
+            "sum_pp": -33.987,
+            "positive_folds": 1
+          },
+          "ctl": {
+            "folds": 7,
+            "trades": 2258,
+            "sum_pp": -19.37,
+            "positive_folds": 2
+          },
+          "verdict": "INCONCLUSIVE_ARM_LOSES",
+          "delta_pp": -14.618232183902368,
+          "ci_pp_yr": [
+            -16.501731192382884,
+            -0.4630517840722962
+          ],
+          "p": 0.0387
+        }
+      },
+      "power": {
+        "n_trades": 5568,
+        "half_width_pp_yr": 6.655802662597072,
+        "sqrt_n_predicted_pp_yr": 1.017801874487961
+      }
+    },
+    {
+      "component": "stop_volume_confirm",
+      "overrides": {
+        "attributes": {
+          "use_volume_confirmation_stoploss": false
+        }
+      },
+      "arm_tag": "st_geo__stop_volume_confirm",
+      "fold_detail": [
+        {
+          "fold": "f00",
+          "n_trades": 404,
+          "return_pct": -2.649
+        },
+        {
+          "fold": "f01",
+          "n_trades": 164,
+          "return_pct": -1.508
+        },
+        {
+          "fold": "f02",
+          "n_trades": 176,
+          "return_pct": -3.572
+        },
+        {
+          "fold": "f03",
+          "n_trades": 424,
+          "return_pct": 3.526
+        },
+        {
+          "fold": "f04",
+          "n_trades": 592,
+          "return_pct": 3.964
+        },
+        {
+          "fold": "f05",
+          "n_trades": 368,
+          "return_pct": -5.82
+        },
+        {
+          "fold": "f06",
+          "n_trades": 236,
+          "return_pct": 5.045
+        },
+        {
+          "fold": "f07",
+          "n_trades": 545,
+          "return_pct": -0.154
+        },
+        {
+          "fold": "f08",
+          "n_trades": 492,
+          "return_pct": -2.217
+        },
+        {
+          "fold": "f09",
+          "n_trades": 210,
+          "return_pct": -5.143
+        },
+        {
+          "fold": "f10",
+          "n_trades": 275,
+          "return_pct": -0.107
+        },
+        {
+          "fold": "f11",
+          "n_trades": 432,
+          "return_pct": -5.601
+        },
+        {
+          "fold": "f12",
+          "n_trades": 228,
+          "return_pct": -4.139
+        },
+        {
+          "fold": "f13",
+          "n_trades": 229,
+          "return_pct": -5.801
+        },
+        {
+          "fold": "f14",
+          "n_trades": 231,
+          "return_pct": 0.658
+        }
+      ],
+      "liveness_evidence": {
+        "metric": "trades_hash",
+        "before": [
+          "4c15e395bd0a3198",
+          "d3fdfb5f3b0a08a9",
+          "cfdc38c28edc871a",
+          "056942e9c05f11b5",
+          "662d7b4e15769b26",
+          "3e87e2012581b251",
+          "f9973574c3c6c324",
+          "3dfdc0f047102437",
+          "c8d28cfdd948fd7d",
+          "e15b3ed4ed663df8",
+          "aa66179f38e1338c",
+          "fed798f8b203d9d0",
+          "d57c1e8d37714090",
+          "8380135feadb1b4a",
+          "3837bffef2f14ae5"
+        ],
+        "after": [
+          "5fc1a1b5da6b7553",
+          "70f2ed1e43f3df69",
+          "14440f7ed6c0119b",
+          "845ecc0fce0afa5a",
+          "8111f23ac20dcadc",
+          "f3b6334cb59f716d",
+          "cf3e43ca329ea3af",
+          "f03e15137972e788",
+          "113bc678209e117e",
+          "7c47461228a5fc4f",
+          "18b9f130d0c466c8",
+          "2860c71c440a48cf",
+          "94049c5ef185718c",
+          "7110f9c00ba3cef1",
+          "81914a0020698bfe"
+        ],
+        "moved": true
+      },
+      "status": "LIVE",
+      "verdict": "INCONCLUSIVE_ARM_LOSES",
+      "delta_pp": -6.425767867904505,
+      "ci_pp_yr": [
+        -5.177874588672354,
+        1.762769878155282
+      ],
+      "p": 0.329,
+      "component_contribution_pp": 6.425767867904505,
+      "halves": {
+        "split_after": "f07",
+        "label": "PROVISIONAL -- not a finding under quality gate 2 (no distant era)",
+        "early": {
+          "fold_ids": [
+            "f00",
+            "f01",
+            "f02",
+            "f03",
+            "f04",
+            "f05",
+            "f06",
+            "f07"
+          ],
+          "arm": {
+            "folds": 8,
+            "trades": 2909,
+            "sum_pp": -1.168,
+            "positive_folds": 3
+          },
+          "ctl": {
+            "folds": 8,
+            "trades": 3142,
+            "sum_pp": 2.276,
+            "positive_folds": 4
+          },
+          "verdict": "INCONCLUSIVE_ARM_LOSES",
+          "delta_pp": -3.443619377316809,
+          "ci_pp_yr": [
+            -6.815205936572064,
+            3.4052937013403226
+          ],
+          "p": 0.4993
+        },
+        "late": {
+          "fold_ids": [
+            "f08",
+            "f09",
+            "f10",
+            "f11",
+            "f12",
+            "f13",
+            "f14"
+          ],
+          "arm": {
+            "folds": 7,
+            "trades": 2097,
+            "sum_pp": -22.35,
+            "positive_folds": 1
+          },
+          "ctl": {
+            "folds": 7,
+            "trades": 2258,
+            "sum_pp": -19.37,
+            "positive_folds": 2
+          },
+          "verdict": "INCONCLUSIVE_ARM_LOSES",
+          "delta_pp": -2.9821821557111656,
+          "ci_pp_yr": [
+            -6.377248901149287,
+            2.960539136905479
+          ],
+          "p": 0.4683
+        }
+      },
+      "power": {
+        "n_trades": 5006,
+        "half_width_pp_yr": 7.392657050492806,
+        "sqrt_n_predicted_pp_yr": 1.0734144492711633
+      }
+    }
+  ]
+}

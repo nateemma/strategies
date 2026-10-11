@@ -192,3 +192,56 @@ Reading:
   same shape as `adx`.
 - Consistency check: `st_empty` reproduces `st_gbb__trigger` (the attribution arm) with
   identical `trades_hash`.
+
+## Addendum 2 (2026-10-10): component attribution for every trigger
+
+Same method as US2, applied to all 15 non-empty triggers under ARM_D_OPEN. 70 new arms × 15 folds.
+"Contribution" = full minus neutralised (positive = the component helps). In brackets: the
+early/late split of that contribution. ✓ means both halves have the same sign. The `trigger`
+column is full minus `st_empty` (−91.35pp), which is the same neutralised arm for every trigger.
+`max_hold` is not run: it had **0 exits in every fold of every trigger**, so it is INERT
+everywhere. **PROVISIONAL (gate 2), and this is 75 cells read post hoc. Treat single cells as
+leads, not findings.**
+
+| trigger | full | trigger | grace | TP | atr | roi | volc |
+|---|---|---|---|---|---|---|---|
+| `gbbt` | +13.84 | +105.2 | +6.3 (+2/+4)✓ | -1.1 (-2/+0)✗ | -0.2 (-1/+0)✗ | +1.8 (+1/+1)✓ | -0.7 (-1/+1)✗ |
+| `gbb` | +11.04 | +102.4 | +48.0 (+29/+19)✓ | +12.9 (-1/+14)✗ | +8.2 (+10/-1)✗ | +1.5 (+1/+1)✓ | -0.2 (+3/-3)✗ |
+| `bbo` | -1.09 | +90.3 | +59.4 (+40/+20)✓ | -20.9 (-14/-7)✓ | +20.0 (+12/+8)✓ | +2.7 (-1/+4)✗ | +11.8 (+10/+2)✓ |
+| `bgo` | -5.86 | +85.5 | +71.2 (+54/+17)✓ | -30.2 (-22/-9)✓ | +19.6 (+13/+7)✓ | +4.3 (-0/+4)✗ | +9.2 (+9/+0)✓ |
+| `vcon` | -14.99 | +76.4 | +60.6 (+44/+17)✓ | +5.9 (-3/+9)✗ | +12.1 (+8/+4)✓ | +12.4 (+4/+9)✓ | +2.3 (+6/-4)✗ |
+| `geo` | -17.09 | +74.3 | +33.8 (+19/+15)✓ | +0.0 (-5/+5)✗ | +15.7 (+6/+10)✓ | +6.8 (+2/+5)✓ | +6.4 (+3/+3)✓ |
+| `gbbst` | -27.58 | +63.8 | +14.3 (+17/-3)✗ | +2.1 (-4/+7)✗ | +2.0 (-2/+4)✗ | +4.0 (+1/+3)✓ | -1.4 (-4/+3)✗ |
+| `bsq` | -42.97 | +48.4 | +11.7 (+9/+2)✓ | -0.2 (-1/+1)✗ | +14.1 (+4/+10)✓ | -0.3 (-1/+1)✗ | +13.7 (+7/+7)✓ |
+| `vi3` | -43.80 | +47.6 | +35.4 (+34/+1)✓ | +0.6 (+3/-2)✗ | -15.9 (-3/-12)✓ | +2.2 (+2/+0)✓ | -3.8 (+5/-9)✗ |
+| `bvo` | -43.85 | +47.5 | +52.2 (+33/+19)✓ | +4.9 (-5/+10)✗ | +19.4 (+19/+1)✓ | +6.1 (+0/+6)✓ | +14.6 (+14/+1)✓ |
+| `vtech` | -53.51 | +37.8 | +37.3 (+31/+6)✓ | -1.4 (-2/+1)✗ | -14.5 (-6/-9)✓ | +3.9 (+2/+2)✓ | -2.7 (-0/-3)✓ |
+| `bo` | -54.26 | +37.1 | +51.1 (+31/+20)✓ | -2.8 (-3/-0)✓ | +16.1 (+13/+3)✓ | +8.6 (+1/+7)✓ | +3.9 (+3/+1)✓ |
+| `adx` | -57.01 | +34.3 | +81.1 (+57/+24)✓ | -14.7 (-7/-8)✓ | -30.6 (-7/-24)✓ | +4.6 (+2/+3)✓ | -18.3 (-1/-18)✓ |
+| `vi2` | -60.32 | +31.0 | +65.4 (+46/+19)✓ | +6.9 (+3/+4)✓ | -9.7 (-4/-6)✓ | +6.5 (+3/+3)✓ | -5.9 (+3/-9)✗ |
+| `vi4` | -72.85 | +18.5 | +61.1 (+49/+12)✓ | +0.7 (+1/-0)✗ | -27.1 (-11/-16)✓ | +2.7 (+1/+2)✓ | -4.8 (+2/-7)✗ |
+
+| component | helps in | same sign both halves | median |
+|---|---|---|---|
+| `stop_grace` | **15/15** | 14/15 | **+51.1pp** |
+| `roi` | 14/15 | 12/15 | +4.0pp |
+| `stop_atr_band` | 9/15 | 7/15 positive in both | +8.2pp |
+| `take_profit` | 8/15 | 1/15 positive in both | +0.0pp |
+| `stop_volume_confirm` | 7/15 | 6/15 positive in both | −0.2pp |
+
+Reading:
+- **The grace stop is general, not specific to `gbb`.** It helps under every trigger, is
+  positive in both halves for 14 of 15, and is worth +6 to +81pp. It is the framework's one
+  robust lever.
+- **The ATR stop band splits by trigger family.** It helps the breakout/geometry triggers in both
+  halves (+14 to +20pp) and hurts `adx`/`votes_*` in both halves (−10 to −31pp). So one band
+  is not right for all entries.
+- **The take-profit is right for `gbb` and wrong for the breakout triggers.** With it removed,
+  `breakout_bb` goes from −1.09 to +19.87pp (early +18.01 / late +1.86) and `breakout_gbb`
+  goes from −5.86 to +24.38pp (+26.72 / −2.34). Neither paired verdict resolves (p 0.16 and
+  0.07). For `gbb`, the take-profit is worth +12.9pp, all of it in the late half.
+- The volume-confirmation stop helps the breakout family (+9 to +15pp) and hurts `adx`
+  (−18pp). Its median is about 0.
+- **Coupling implication.** The exit components that matter interact with the trigger (ATR
+  band, take-profit, volume-confirm), so a single global exit stack is a compromise across
+  triggers. This argues for per-trigger exit parameters, which is coupled mode's purpose.
