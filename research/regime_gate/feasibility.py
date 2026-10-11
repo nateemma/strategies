@@ -22,6 +22,10 @@ testing as a walk-forward arm. PROVISIONAL under quality gate 2.
     python -m research.regime_gate.feasibility --primary st_fam_combo --cross st_gbb \\
         --out specs/026-reversion-regime-gate/feasibility.md
 
+Stacking (026 addendum): `--on-gate INSTRUMENT:OFF_WHEN:THRESHOLD` keeps only trades (and bars)
+where an existing gate is "on", so a second instrument is chosen and scored on what the first gate
+lets through. Bar statistics then count only bars where the first gate is on.
+
 Exit: 0 at least one PASS, 3 none (STOP), 2 missing input.
 """
 
@@ -183,7 +187,14 @@ def _reversion_trades(tag: str, series: dict, family_filter: bool) -> dict[str, 
 # ---------------------------------------------------------------------------------------- run
 
 
-def run(primary: str, cross: str, out: Path) -> dict:
+def parse_gate(spec: str) -> tuple[str, dict]:
+    inst, off_when, thr = spec.split(":")
+    if off_when not in DIRECTIONS:
+        raise ValueError(f"off_when must be one of {DIRECTIONS}")
+    return inst, {"off_when": off_when, "threshold": float(thr)}
+
+
+def run(primary: str, cross: str, out: Path, on_gate: str | None = None) -> dict:
     from research.clfstudy.data import load_pair
     from utils import RegimeState as RS
 
@@ -193,6 +204,17 @@ def run(primary: str, cross: str, out: Path) -> dict:
     halves = _halves()
     prim = _reversion_trades(primary, series, family_filter=True)
     crs = _reversion_trades(cross, series, family_filter=False)
+    prefilter = None
+    if on_gate:
+        g_inst, g_rule = parse_gate(on_gate)
+        g_on = ~off_mask(series[g_inst], g_rule)
+        keep = lambda d: {k: v[~off_mask(d[g_inst]["value"], g_rule).to_numpy()]  # noqa: E731
+                          .reset_index(drop=True) for k, v in d.items()}
+        n0 = {"primary": len(prim[g_inst]), "cross": len(crs[g_inst])}
+        prim, crs = keep(prim), keep(crs)
+        prefilter = {"gate": on_gate, "kept": {"primary": len(prim[g_inst]),
+                                               "cross": len(crs[g_inst])}, "of": n0}
+        series = {k: v.where(g_on.reindex(v.index, fill_value=True)) for k, v in series.items()}
     res = {}
     for inst, s in series.items():
         rule = choose_rule(prim[inst])
@@ -214,13 +236,14 @@ def run(primary: str, cross: str, out: Path) -> dict:
             }
         )
         res[inst] = rec
-    _write(res, out, primary, cross)
+    _write(res, out, primary, cross, prefilter)
     return res
 
 
-def _write(res: dict, out: Path, primary: str, cross: str) -> None:
+def _write(res: dict, out: Path, primary: str, cross: str, prefilter: dict | None = None) -> None:
     out = Path(out)
-    out.with_suffix(".json").write_text(json.dumps(res, indent=2, default=str) + "\n")
+    dump = {**res, "_prefilter": prefilter} if prefilter else res
+    out.with_suffix(".json").write_text(json.dumps(dump, indent=2, default=str) + "\n")
     L = [
         "# Feasibility: regime gate on the reversion family (026 US1)",
         "",
@@ -228,6 +251,15 @@ def _write(res: dict, out: Path, primary: str, cross: str) -> None:
         "",
         f"Primary (decides PASS): `{primary}` reversion trades. Cross-check: `{cross}`.",
         "",
+    ]
+    if prefilter:
+        L += [
+            f"Stacked on `{prefilter['gate']}`: only trades and bars where that gate is ON. "
+            f"Kept {prefilter['kept']['primary']}/{prefilter['of']['primary']} primary and "
+            f"{prefilter['kept']['cross']}/{prefilter['of']['cross']} cross-check trades.",
+            "",
+        ]
+    L += [
         (
             "| instrument | rule (early-chosen) | on-share early | off pnl early / late "
             "| on pnl early / late | off trades e/l | off bars e/l | late longest off run "
@@ -265,13 +297,14 @@ def main(argv=None) -> int:
     ap.add_argument("--primary", required=True)
     ap.add_argument("--cross", required=True)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--on-gate", default=None, help="INSTRUMENT:OFF_WHEN:THRESHOLD")
     a = ap.parse_args(argv)
     try:
         _check_inputs(a.primary, a.cross)
     except FileNotFoundError as exc:
         print(f"*** {exc}")
         return 2
-    res = run(a.primary, a.cross, Path(a.out))
+    res = run(a.primary, a.cross, Path(a.out), a.on_gate)
     return 0 if any(r.get("verdict") == "PASS" for r in res.values()) else 3
 
 

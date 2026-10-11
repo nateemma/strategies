@@ -96,3 +96,11 @@ def test_exit_codes(tmp_path, monkeypatch):
     assert F.main(["--primary", "x", "--cross", "y", "--out", str(tmp_path / "f.md")]) == 3
     monkeypatch.setattr(F, "run", lambda *a, **k: {"inst": {"verdict": "PASS"}})
     assert F.main(["--primary", "x", "--cross", "y", "--out", str(tmp_path / "f.md")]) == 0
+
+
+def test_parse_gate_round_trips_and_rejects_bad_direction():
+    inst, rule = F.parse_gate("volreg:lt:1.0332")
+    assert inst == "volreg" and rule == {"off_when": "lt", "threshold": 1.0332}
+    assert F.off_mask(pd.Series([1.0, 1.1, np.nan]), rule).tolist() == [True, False, False]
+    with pytest.raises(ValueError):
+        F.parse_gate("volreg:gt:1.0")
