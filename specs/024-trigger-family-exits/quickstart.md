@@ -13,8 +13,7 @@ Then re-run `st_gbb` f00 and arm D's `wf_aro` f00 through `run_arm`, and check t
 arms `st_bbo` f00 and `stl_bo` f00.
 
 **Expected:** each `trades_hash` equals its recorded `regime/arms/*_F00.json` value. Also run
-`python -m evaluation.dump_strategy --strategy MomentumRegimeBasket15mFast --config
-config/config_mom_dryrun_15m.json` before and after the edit; the output must be identical (SC-004).
+`python evaluation/dump_strategy.py --strategy MomentumRegimeBasket15mFast` (it takes no `--config`) before and after the edit; the output must be identical (SC-004).
 
 ## 1. Family classification (SC-006)
 

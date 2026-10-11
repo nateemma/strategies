@@ -206,6 +206,21 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
                                                  # net_from_price_ratio; no stop arithmetic.
     "SimpleTrigger/tests/test_coupling.py",    # asserts those mapped values.
     "SimpleTrigger/tests/test_presets.py",     # asserts preset attribute values.
+    # 023 Addenda 3-7 momentum-exit arms: each sets SELL_OVERRIDES cexit_take_profit=10.0 (a
+    # VALUE, "take-profit off") plus HoldWindowMixin's hour count; no stop arithmetic.
+    "SimpleTrigger/SimpleTrigger_Breakout_MomExit.py",
+    "SimpleTrigger/SimpleTrigger_BreakoutVol_MomExit.py",
+    "SimpleTrigger/SimpleTrigger_BreakoutSqueeze_MomExit.py",
+    "SimpleTrigger/SimpleTrigger_BreakoutBb_MomExit.py",
+    "SimpleTrigger/SimpleTrigger_BreakoutGbb_MomExit.py",
+    "SimpleTrigger/SimpleTrigger_Gbb_MomExit.py",
+    "SimpleTrigger/SimpleTrigger_BreakoutGm_MomExit.py",
+    "SimpleTrigger/SimpleTrigger_BreakoutVolGm_MomExit.py",
+    "SimpleTrigger/SimpleTrigger_BreakoutSqueezeGm_MomExit.py",
+    "SimpleTrigger/SimpleTrigger_BreakoutGbbNoFresh_MomExit.py",
+    # feature 024 C1: builds stub attributes (incl. use_volume_confirmation_stoploss) to prove
+    # the trade hook is neutral; the stop it asserts is computed by ExitPolicy.atr_stop_fraction.
+    "Framework/tests/test_exit_params_trade_hook.py",
     "evaluation/fingerprint.py",               # lists the attribute NAMES it hashes; reads
                                                  # values, computes nothing from them.
     "evaluation/tests/test_fingerprint.py",    # tweaks one attribute to prove the hash moves.

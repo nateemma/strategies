@@ -186,6 +186,28 @@ def _geometry(df: pd.DataFrame) -> pd.Series:
     return mask.fillna(False).astype(bool)
 
 
+
+# =================================================================================================
+# Trigger families (feature 024 FR-001) -- what each condition TESTS, not what it is called
+# =================================================================================================
+
+_FAMILY = {
+    "empty": ("unassigned", "fires on every bar: no direction (the null every trigger is scored against)"),
+    "gbb": ("reversion", "guard_metric < 0.3 with a wide band: buys LOW band position (weakness)"),
+    "geometry": ("reversion", "a confirmed valley after a >=1% local low: buys a dip"),
+    "adx": ("unassigned", "adx_scaled > -0.2 passes ~62% of bars: a trend-strength filter with no direction"),
+    "breakout": ("momentum", "close above the prior 20-bar high: buys a new high (strength)"),
+    "breakout_gbb": ("momentum", "guard_metric > 0.2 with a wide band: buys HIGH band position (strength)"),
+    "gbb_tight": ("reversion", "gbb's weakness condition with tightened thresholds"),
+    "random_matched": ("unassigned", "pseudo-random control: carries no market information"),
+    "gbb_stale": ("reversion", "gbb lagged 1500 bars: the same weakness condition, information stale (control)"),
+}
+
+
+def _fam(name: str) -> dict:
+    family, reason = _FAMILY[name]
+    return {"family": family, "family_reason": reason}
+
 # =================================================================================================
 # Registration
 # =================================================================================================
@@ -195,6 +217,7 @@ def register_builtins(*, replace: bool = False) -> list[Trigger]:
     return [
         register(Trigger(
             name="empty",
+            **_fam("empty"),
             evaluate=_empty,
             required_columns=(),
             source="labels_forward_return_mae_cap",
@@ -202,6 +225,7 @@ def register_builtins(*, replace: bool = False) -> list[Trigger]:
         ), replace=replace),
         register(Trigger(
             name="gbb",
+            **_fam("gbb"),
             evaluate=_gbb,
             required_columns=("guard_metric", "bb_width"),
             source="labels_gbb",
@@ -212,6 +236,7 @@ def register_builtins(*, replace: bool = False) -> list[Trigger]:
         ), replace=replace),
         register(Trigger(
             name="geometry",
+            **_fam("geometry"),
             evaluate=_geometry,
             required_columns=("close",),
             source=SOURCE_NATIVE,
@@ -301,6 +326,7 @@ def register_audit_triggers(*, replace: bool = False) -> list[Trigger]:
     return [
         register(Trigger(
             name="adx",
+            **_fam("adx"),
             evaluate=_adx,
             required_columns=("adx_scaled",),
             source="labels_future_sharpe/_sortino/_expectancy",
@@ -311,6 +337,7 @@ def register_audit_triggers(*, replace: bool = False) -> list[Trigger]:
         ), replace=replace),
         register(Trigger(
             name="breakout",
+            **_fam("breakout"),
             evaluate=_breakout,
             required_columns=("high", "close"),
             source="labels_breakout/_tb/_vol/_squeeze",
@@ -321,6 +348,7 @@ def register_audit_triggers(*, replace: bool = False) -> list[Trigger]:
         ), replace=replace),
         register(Trigger(
             name="breakout_gbb",
+            **_fam("breakout_gbb"),
             evaluate=_breakout_gbb,
             required_columns=("guard_metric", "bb_width"),
             source="labels_breakout_gbb",
@@ -393,6 +421,7 @@ def register_margin_triggers(*, replace: bool = False) -> list[Trigger]:
     return [
         register(Trigger(
             name="gbb_tight",
+            **_fam("gbb_tight"),
             evaluate=_gbb_tight,
             required_columns=("guard_metric", "bb_width"),
             source="labels_gbb (thresholds tightened)",
@@ -464,7 +493,7 @@ def register_controls(*, replace: bool = False) -> list[Trigger]:
     """Two controls whose correct verdict is known in advance to be `indeterminate`."""
     return [
         register(Trigger(
-            name="random_matched", evaluate=_random_matched, required_columns=(),
+            name="random_matched", **_fam("random_matched"), evaluate=_random_matched, required_columns=(),
             source="CONTROL",
             description=(
                 f"pseudo-random at gbb's {RANDOM_CONTROL_BASE_RATE:.3%} base rate; carries "
@@ -472,7 +501,7 @@ def register_controls(*, replace: bool = False) -> list[Trigger]:
             ),
         ), replace=replace),
         register(Trigger(
-            name="gbb_stale", evaluate=_gbb_stale, required_columns=("guard_metric", "bb_width"),
+            name="gbb_stale", **_fam("gbb_stale"), evaluate=_gbb_stale, required_columns=("guard_metric", "bb_width"),
             source="CONTROL",
             description=(
                 f"gbb lagged {STALE_CONTROL_LAG_BARS} bars (> max_hold's 960), so its "

@@ -51,7 +51,7 @@ class _Stub:
         self.stoploss_grace_level = GRACE_LEVEL
         self.stoploss = NORMAL
         self.use_atr_adaptive_stoploss = False
-        self._resolve_normal_stop = types.MethodType(lambda self, pair: NORMAL, self)
+        self._resolve_normal_stop = types.MethodType(lambda self, pair, trade=None: NORMAL, self)
 
 
 class _Trade:

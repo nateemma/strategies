@@ -45,6 +45,34 @@ from research.outcomes.triggers import Trigger, register
 # helpers, mirroring the labelers' own column access and NaN handling
 # -------------------------------------------------------------------------------------------------
 
+# -------------------------------------------------------------------------------------------------
+# Trigger families (feature 024 FR-001) -- what each condition TESTS, not what it is called
+# -------------------------------------------------------------------------------------------------
+
+_FAMILY = {
+    "breakout_vol": ("momentum", "a new 20-bar high on relative volume > 1.5: strength"),
+    "breakout_squeeze": ("momentum", "a new 20-bar high out of a volatility squeeze: strength"),
+    "breakout_bb": ("momentum", "bb_position >= 0.6 with a wide band: buys HIGH band position (not a breakout)"),
+    "votes_tech": ("reversion", "4 of 6 OVERSOLD conditions: buys weakness"),
+    "votes_ind2": ("unassigned", "4-of-7 indicator vote firing on ~10 trades/day: a broad filter with no consistent direction"),
+    "votes_ind3": ("unassigned", "3-of-4 indicator vote firing on ~10 trades/day: a broad filter with no consistent direction"),
+    "votes_ind4": ("unassigned", "3-of-5 indicator vote firing on ~12 trades/day: a broad filter with no consistent direction"),
+    "votes_consensus": ("unassigned", "4-of-6 vote with three comparisons flipped vs votes_tech, ~10 trades/day: no consistent direction"),
+    "trends": ("unassigned", "UNSCOREABLE (columns absent): cannot be classified"),
+    "bands": ("unassigned", "UNSCOREABLE (columns absent): cannot be classified"),
+    "breakout_gm": ("momentum", "a new 20-bar high AND guard_metric > 0.2: strength"),
+    "breakout_vol_gm": ("momentum", "breakout_vol AND guard_metric > 0.2: strength"),
+    "breakout_squeeze_gm": ("momentum", "breakout_squeeze AND guard_metric > 0.2: strength"),
+    "breakout_gbb_nofresh": ("momentum", "breakout_gbb minus fresh/held breaks: still buys high band position"),
+    "failed_breakout": ("reversion", "price back below a broken 20-bar high: fades a failed move"),
+}
+
+
+def _fam(name: str) -> dict:
+    family, reason = _FAMILY[name]
+    return {"family": family, "family_reason": reason}
+
+
 def _col(df: pd.DataFrame, name: str, *, fill: float = 0.0) -> np.ndarray:
     """`df.get(name, zeros)` then `nan_to_num`, exactly as the labelers do it.
 
@@ -310,8 +338,8 @@ def register_remaining_audit_triggers(*, replace: bool = False) -> list[Trigger]
          "columns absent from the populator"),
     ]
     return [
-        register(Trigger(name=n, evaluate=f, required_columns=c, source=s, description=d),
-                 replace=replace)
+        register(Trigger(name=n, evaluate=f, required_columns=c, source=s, description=d,
+                         **_fam(n)), replace=replace)
         for n, f, c, s, d in specs
     ]
 
@@ -355,7 +383,8 @@ def register_momentum_guard_triggers(*, replace: bool = False) -> list[Trigger]:
     ]
     return [
         register(Trigger(name=n, evaluate=f, required_columns=c,
-                         source="composite (023 Addendum 4)", description=d), replace=replace)
+                         source="composite (023 Addendum 4)", description=d, **_fam(n)),
+                 replace=replace)
         for n, f, c, d in specs
     ]
 
@@ -414,6 +443,7 @@ def register_break_recency_triggers(*, replace: bool = False) -> list[Trigger]:
     ]
     return [
         register(Trigger(name=n, evaluate=f, required_columns=c,
-                         source="composite (023 Addendum 7)", description=d), replace=replace)
+                         source="composite (023 Addendum 7)", description=d, **_fam(n)),
+                 replace=replace)
         for n, f, c, d in specs
     ]

@@ -1093,11 +1093,15 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
     # Custom Stoploss
     # =========================================================================
 
-    def _exit_params(self) -> "ExitParams":
+    def _exit_params(self, trade: Optional[Trade] = None) -> "ExitParams":
         """Read the live attributes into the shared `utils.ExitPolicy` parameter object.
 
         One place where this class's attribute names meet the primitive's field names,
         so the mapping cannot drift between the two stop call sites.
+
+        `trade` is a hook (feature 024 C1): every exit and stop decision passes the trade it
+        is deciding for, so a strategy may override this to choose parameters per trade
+        (e.g. by `trade.enter_tag`). This base implementation ignores it.
         """
         return ExitParams(
             atr_stoploss_multiplier=self.atr_stoploss_multiplier,
@@ -1116,37 +1120,41 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
             max_hold_days=int(self.cexit_max_days.value),
         )
 
-    def _atr_bar_inputs(self, pair: str):
+    def _atr_bar_inputs(self, pair: str, params: Optional["ExitParams"] = None):
         """`(atr_pct, rvol)` from the latest analysed bar, or None if unavailable.
 
         Sourcing the inputs is strategy-side work (it needs the dataprovider); turning
-        them into a stop level is the primitive's.
+        them into a stop level is the primitive's. Volume confirmation is read from
+        `params` (024 R2) so a per-trade parameter set cannot be silently ignored here.
         """
+        params = params if params is not None else self._exit_params()
         dataframe, _ = self.dp.get_analyzed_dataframe(pair, self.timeframe)
         if dataframe.empty:
             return None
         atr_pct = float(dataframe.iloc[-1].get("atr_pct_roll", 0.0))
-        rvol = rolling_rvol(dataframe["volume"]) if self.use_volume_confirmation_stoploss else 0.0
+        rvol = (
+            rolling_rvol(dataframe["volume"]) if params.use_volume_confirmation_stoploss else 0.0
+        )
         return atr_pct, rvol
 
-    def _resolve_normal_stop(self, pair: str) -> float:
+    def _resolve_normal_stop(self, pair: str, trade: Optional[Trade] = None) -> float:
         """Normal (post-grace) stop level relative to entry.
 
         Delegates the arithmetic to `utils.ExitPolicy.atr_stop_fraction` -- this method
         used to duplicate `custom_stoploss`'s ATR block and said so in its own docstring
         (feature 021 FR-004).
         """
-        params = self._exit_params()
-        if self.use_atr_adaptive_stoploss:
+        params = self._exit_params(trade)
+        if params.use_atr_adaptive_stoploss:
             try:
-                bar = self._atr_bar_inputs(pair)
+                bar = self._atr_bar_inputs(pair, params)
                 if bar is not None:
                     atr_pct, rvol = bar
                     if atr_pct > 0:
                         return atr_stop_fraction(atr_pct, rvol, params)
             except Exception:
                 pass
-        return self.stoploss
+        return params.static_stoploss
 
     def custom_stoploss(
         self,
@@ -1177,7 +1185,7 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
             # Window expired -> tighten to the normal stop, anchored to the
             # entry price so the tightened stop is fixed (no trailing on
             # winners). freqtrade only tightens, so this applies once.
-            normal = self._resolve_normal_stop(pair)
+            normal = self._resolve_normal_stop(pair, trade)
             if trade.open_rate and current_rate and current_rate > 0:
                 ratio = (trade.open_rate * (1.0 + normal) / current_rate) - 1.0
                 if ratio >= 0.0:
@@ -1196,13 +1204,15 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
         # Only the after_fill call returns a non-1.0 value, so freqtrade
         # locks the volatility-adjusted stop at entry and leaves it static
         # for the rest of the trade — no trailing semantics.
-        if self.use_atr_adaptive_stoploss and after_fill:
+        if after_fill:
             try:
-                bar = self._atr_bar_inputs(pair)
-                if bar is not None:
-                    atr_pct, rvol = bar
-                    if atr_pct > 0:
-                        return atr_stop_fraction(atr_pct, rvol, self._exit_params())
+                params = self._exit_params(trade)
+                if params.use_atr_adaptive_stoploss:
+                    bar = self._atr_bar_inputs(pair, params)
+                    if bar is not None:
+                        atr_pct, rvol = bar
+                        if atr_pct > 0:
+                            return atr_stop_fraction(atr_pct, rvol, params)
             except Exception:
                 pass
 
@@ -1307,7 +1317,7 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
             current_profit=current_profit,
             age_hours=age_hours,
             guard_metric=guard_metric,
-            params=self._exit_params(),
+            params=self._exit_params(trade),
         )
         if decision is not None:
             return decision

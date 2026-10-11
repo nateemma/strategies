@@ -26,12 +26,11 @@ and the acceptance tests are walk-forward reproductions by `trades_hash`.
 
 ## Phase 1: Setup
 
-- [ ] T001 Record the pre-change baseline in `specs/024-trigger-family-exits/baseline.md`:
+- [X] T001 Record the pre-change baseline in `specs/024-trigger-family-exits/baseline.md`:
   - the recorded `trades_hash` of `st_gbb` f00, `regime/arms/wf_aro_f00_F00.json`, `st_bbo` f00,
     `stl_bo` f00, and all 15 folds of `st_gbb` and `st_bgo_mx`;
   - the `exit_reason_counts` totals of `st_bgo_mx`;
-  - the output of `python -m evaluation.dump_strategy --strategy MomentumRegimeBasket15mFast
-    --config config/config_mom_dryrun_15m.json`, saved to the scratchpad;
+  - the output of `python evaluation/dump_strategy.py --strategy MomentumRegimeBasket15mFast`, saved to the scratchpad;
   - the commit sha.
 
 ---
@@ -40,7 +39,7 @@ and the acceptance tests are walk-forward reproductions by `trades_hash`.
 
 **Purpose**: the C1 hook, R2 routing and C5 families. Every recorded arm must stay hash-identical.
 
-- [ ] T002 [P] Write `Framework/tests/test_exit_params_trade_hook.py`:
+- [X] T002 [P] Write `Framework/tests/test_exit_params_trade_hook.py`:
   - (a) `_exit_params(trade)` equals `_exit_params()` for a stub trade, on `SimpleTrigger_Gbb`,
     `NNNC_A_Raw_Open` and `SimpleStrategies/TriggerOnly`;
   - (b) with params mirroring attributes, the stop path gives the same `atr_stop_fraction` inputs
@@ -48,7 +47,7 @@ and the acceptance tests are walk-forward reproductions by `trades_hash`.
     and `volume`, then call `_resolve_normal_stop(pair, trade)` and the after-fill branch of
     `custom_stoploss`.
   - It should FAIL until T003.
-- [ ] T003 Edit `Framework/BaseStrategy.py` (contract C1):
+- [X] T003 Edit `Framework/BaseStrategy.py` (contract C1):
   - give `_exit_params` an optional `trade: Trade | None = None`, with the body unchanged;
   - pass `trade` from `custom_exit` and from the after-fill branch of `custom_stoploss`;
   - change `_resolve_normal_stop(pair)` to `_resolve_normal_stop(pair, trade=None)`, and update
@@ -59,30 +58,30 @@ and the acceptance tests are walk-forward reproductions by `trades_hash`.
   - Add no family, tag or trigger logic (FR-014).
   - Keep the diff surgical: no reformatting of untouched lines.
   - T002 must then pass.
-- [ ] T004 Edit `utils/StopInvariants.py` (contract C3):
+- [X] T004 Edit `utils/StopInvariants.py` (contract C3):
   - `_check_stop` reads `use_atr_adaptive_stoploss`, `static_stoploss` and `atr_stoploss_floor`
     from `self._exit_params(trade)` when the method exists, and falls back to the current
     attribute reads otherwise;
   - extend `utils/tests/test_stop_invariants.py`, using a strategy whose
     params mirror its attributes, to show the bound computed is unchanged.
-- [ ] T005 Neutrality gate (research R9, quickstart 0):
+- [X] T005 Neutrality gate (research R9, quickstart 0):
   - run `run_arm` on `st_gbb` f00, `wf_aro` f00, `st_bbo` f00 and `stl_bo` f00 with the plans'
     exact fold settings;
   - each `trades_hash` MUST equal T001's value;
   - re-run the dry-run dump and diff it against T001;
   - record the results in `baseline.md`.
   - **STOP the feature if any hash differs.**
-- [ ] T006 [P] Write `research/outcomes/tests/test_trigger_families.py`:
+- [X] T006 [P] Write `research/outcomes/tests/test_trigger_families.py`:
   - (a) every trigger registered by `ensure_builtins()` has `family` in
     {reversion, momentum, unassigned} and a non-empty `family_reason`;
   - (b) the classification equals spec FR-001's table exactly;
   - (c) registering a trigger through a builtin register function without a family fails the
     check (a planted test trigger in the test).
-- [ ] T007 Edit `research/outcomes/triggers.py` (contract C5):
+- [X] T007 Edit `research/outcomes/triggers.py` (contract C5):
   - add `family: str | None = None` and `family_reason: str = ""` to `Trigger`, and validate
     `family` in `__post_init__` when it is set;
   - `--list` prints the family column.
-- [ ] T008 Edit `research/outcomes/builtin_triggers.py` and `research/outcomes/audit_triggers.py`:
+- [X] T008 Edit `research/outcomes/builtin_triggers.py` and `research/outcomes/audit_triggers.py`:
   - pass `family=` and `family_reason=` for every registered trigger, per spec FR-001;
   - `empty` and `random_matched` → `unassigned`; `gbb_stale` → `reversion`, as in FR-001;
   - unscoreable triggers (`trends`, `bands`) → `unassigned`.
@@ -101,7 +100,7 @@ and the acceptance tests are walk-forward reproductions by `trades_hash`.
 **Independent Test**: `st_fam_gbb` equals `st_gbb`, and `st_fam_bgo` equals `st_bgo_mx`,
 trade-for-trade in 15/15 folds.
 
-- [ ] T009 [P] [US1] Write `utils/tests/test_family_exits.py` (contract C2):
+- [X] T009 [P] [US1] Write `utils/tests/test_family_exits.py` (contract C2):
   - `family_of("momentum:breakout_gbb") == "momentum"`;
   - `family_of("model_entry ")` and `family_of(None)` return None;
   - `_exit_params(trade)` applies `FAMILY_EXITS[family]` via `dataclasses.replace`;
@@ -114,7 +113,7 @@ trade-for-trade in 15/15 folds.
   - (F5) `unclog_12h_hours` above `max_hold_days*24` is refused; above `unclog_1d_hours` it
     warns; 24/24 is accepted;
   - `family_of("reversion:gbb+ov") == "reversion"`.
-- [ ] T010 [US1] Create `utils/FamilyExits.py` with `FamilyExitMixin`, per contract C2 and the
+- [X] T010 [US1] Create `utils/FamilyExits.py` with `FamilyExitMixin`, per contract C2 and the
   data model's allowed and forbidden keys:
   - strategy-agnostic, with no SimpleTrigger or registry import;
   - `untagged_exits` counter as an instance attribute.

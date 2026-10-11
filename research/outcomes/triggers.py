@@ -60,6 +60,10 @@ PAIR_COLUMN = "pair"
 SOURCE_NATIVE = "native"
 
 
+#: Feature 024 trigger families (contract C5).
+TRIGGER_FAMILIES = ("reversion", "momentum", "unassigned")
+
+
 class TriggerError(ValueError):
     """Raised when a trigger violates a registry constraint.
 
@@ -84,10 +88,25 @@ class Trigger:
     required_columns: tuple[str, ...]
     source: str = SOURCE_NATIVE
     description: str = ""
+    #: What the condition TESTS (feature 024 FR-001): buying weakness ("reversion"), buying
+    #: strength ("momentum"), or neither ("unassigned": broad filters, the null, controls,
+    #: unscoreable labelers). Decided from the condition, never the name. None only for ad-hoc
+    #: triggers built in tests; every builtin carries one (test_trigger_families.py).
+    family: str | None = None
+    family_reason: str = ""
 
     def __post_init__(self) -> None:
         if not self.name or not self.name.strip():
             raise TriggerError("a trigger needs a name")
+        if self.family is not None:
+            if self.family not in TRIGGER_FAMILIES:
+                raise TriggerError(
+                    f"{self.name}: family {self.family!r} is not one of {TRIGGER_FAMILIES}"
+                )
+            if not self.family_reason.strip():
+                raise TriggerError(
+                    f"{self.name}: a family needs a family_reason (what the condition tests)"
+                )
         if not callable(self.evaluate):
             raise TriggerError(f"{self.name}: evaluate must be callable")
 
@@ -310,12 +329,12 @@ def main(argv: Iterable[str] | None = None) -> int:
         print("no triggers registered")
         return 0
     width = max(len(t.name) for t in registered)
-    print(f"{'name'.ljust(width)}  {'source':<22}  required columns")
+    print(f"{'name'.ljust(width)}  {'family':<10}  {'source':<22}  required columns")
     for t in registered:
         cols = ", ".join(t.required_columns) or "(none)"
-        print(f"{t.name.ljust(width)}  {t.source:<22}  {cols}")
+        print(f"{t.name.ljust(width)}  {t.family or '-':<10}  {t.source:<22}  {cols}")
         if t.description:
-            print(f"{' ' * width}  {'':<22}  {t.description}")
+            print(f"{' ' * width}  {'':<10}  {'':<22}  {t.description}")
     return 0
 
 

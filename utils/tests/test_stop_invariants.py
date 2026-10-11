@@ -124,3 +124,39 @@ def test_c_adaptive_fallback_to_static_stoploss_is_within_bound():
     assert _call(s, -0.05, 100.0, hours=7, trade=_trade(tid=21)) == -0.05
     with pytest.raises(StopInvariantError, match="bound"):
         _call(s, -0.051, 100.0, hours=7, trade=_trade(tid=22))
+
+
+# --- 024 C3: the bound is read from `_exit_params(trade)` when the strategy has the hook -------
+
+
+class _HookedStrat(_Strat):
+    """`_exit_params(trade)` mirrors the attributes, except for trades tagged `wide`."""
+
+    def _exit_params(self, trade=None):
+        wide = getattr(trade, "enter_tag", None) == "wide"
+        return types.SimpleNamespace(
+            use_atr_adaptive_stoploss=self.use_atr_adaptive_stoploss,
+            static_stoploss=self.stoploss,
+            atr_stoploss_floor=-0.10 if wide else self.atr_stoploss_floor,
+        )
+
+
+def _tagged(tag, tid):
+    t = _trade(tid=tid)
+    t.enter_tag = tag
+    return t
+
+
+def test_c_hook_mirroring_attributes_gives_the_same_bound():
+    s = _HookedStrat()
+    assert _call(s, -0.05, 100.0, hours=7, trade=_tagged(None, 31)) == -0.05
+    with pytest.raises(StopInvariantError, match="bound"):
+        _call(s, -0.051, 100.0, hours=7, trade=_tagged(None, 32))
+
+
+def test_c_per_trade_params_set_the_bound_for_that_trade():
+    s = _HookedStrat()
+    # floor -0.10 for this trade only: -0.08 is within ITS bound
+    assert _call(s, -0.08, 100.0, hours=7, trade=_tagged("wide", 33)) == -0.08
+    with pytest.raises(StopInvariantError, match="bound"):
+        _call(s, -0.08, 100.0, hours=7, trade=_tagged(None, 34))

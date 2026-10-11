@@ -59,6 +59,27 @@ class StopInvariantMixin:
         self._check_stop(pair, trade, current_time, current_rate, value)
         return value
 
+    def _stop_bound_inputs(self, trade):
+        """(adaptive, static stoploss, ATR floor) for THIS trade.
+
+        Read from `_exit_params(trade)` when the strategy has it (024 C3), so a per-trade
+        parameter set (trigger families) is checked against its own bound, not the class's.
+        Falls back to the attributes for strategies without the hook.
+        """
+        exit_params = getattr(self, "_exit_params", None)
+        if callable(exit_params):
+            try:
+                p = exit_params(trade)
+                return bool(p.use_atr_adaptive_stoploss), float(p.static_stoploss), float(
+                    p.atr_stoploss_floor
+                )
+            except Exception:
+                pass
+        adaptive = bool(getattr(self, "use_atr_adaptive_stoploss", False))
+        static = _num(getattr(self, "stoploss", -1.0), default=-1.0)
+        atr_floor = _num(getattr(self, "atr_stoploss_floor", static), default=static)
+        return adaptive, static, atr_floor
+
     def _check_stop(self, pair, trade, current_time, current_rate, value) -> None:
         if value is None or value >= 1.0 or value == STOP_AT_MARKET_RATIO:
             return
@@ -84,16 +105,11 @@ class StopInvariantMixin:
             last = self._si_last_stop = {}
 
         if not in_grace:
-            adaptive = bool(getattr(self, "use_atr_adaptive_stoploss", False))
-            static = _num(getattr(self, "stoploss", -1.0), default=-1.0)
+            adaptive, static, atr_floor = self._stop_bound_inputs(trade)
             # Adaptive: the ATR stop is clamped to [floor, cap], but `_resolve_normal_stop`
             # FALLS BACK to the static stoploss when ATR is unavailable -- so the documented
             # bound is the looser of the two, not the floor alone.
-            floor = (
-                min(_num(getattr(self, "atr_stoploss_floor", static), default=static), static)
-                if adaptive
-                else static
-            )
+            floor = min(atr_floor, static) if adaptive else static
             bound = trade.open_rate * (1.0 + floor)
             if stop_price < bound * (1.0 - _TOL):
                 raise StopInvariantError(
