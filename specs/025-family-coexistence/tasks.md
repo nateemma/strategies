@@ -28,7 +28,7 @@ enforced by a test (C5). The acceptance tests are walk-forward reproductions by 
 
 ## Phase 1: Setup
 
-- [ ] T001 Create `specs/025-family-coexistence/baseline.md`. Record:
+- [X] T001 Create `specs/025-family-coexistence/baseline.md`. Record:
   - the commit sha;
   - `st_fam_combo`'s 15 per-fold `trades_hash` values and its per-family exit and trade counts
     (from `regime/arms/st_fam_combo_f*_F*.json`);
@@ -43,7 +43,7 @@ enforced by a test (C5). The acceptance tests are walk-forward reproductions by 
 **Purpose**: rule A and rule B mechanisms, counters, fingerprint and the stage runner. At neutral
 settings nothing may change.
 
-- [ ] T002 [P] Write `utils/tests/test_family_coexistence.py` (contract C1). Use a stub parent whose
+- [X] T002 [P] Write `utils/tests/test_family_coexistence.py` (contract C1). Use a stub parent whose
   `confirm_trade_entry` returns a settable bool, and monkeypatch `Trade.get_trades_proxy`. Cases:
   - (a) cap None → the parent's result is returned unchanged, and the proxy is never called;
   - (b) the parent returns False → False, and the proxy is never called (the volume check runs
@@ -56,13 +56,13 @@ settings nothing may change.
   - (f) an untagged entry → the parent's result;
   - (g) a cap outside 1..9 is refused at class creation;
   - (h) no sink env var → no file written.
-- [ ] T003 Create `utils/FamilyCoexistence.py` with `FamilyCoexistenceMixin`, per contract C1:
+- [X] T003 Create `utils/FamilyCoexistence.py` with `FamilyCoexistenceMixin`, per contract C1:
   - strategy-agnostic (imports only `utils.FamilyExits.family_of` and freqtrade's `Trade`);
   - `FAMILY_PAIR_CAP = None`;
   - `__init_subclass__` validation.
 
   T002 must then pass.
-- [ ] T004 [P] Write `SimpleTrigger/tests/test_coexistence_recency.py` (contract C2). Use a
+- [X] T004 [P] Write `SimpleTrigger/tests/test_coexistence_recency.py` (contract C2). Use a
   synthetic frame where `gbb` fires on rows 3, 6 and 9 and `breakout_gbb` on row 2 (set columns to
   get these). With `TRIGGERS=("gbb","breakout_gbb")`:
   - (a) `MOMENTUM_RECENCY_BARS=0` → identical to 024 tags and mask;
@@ -80,7 +80,7 @@ settings nothing may change.
     {"unclog_12h_hours": 6}}` under a child that sets `{"reversion": {"take_profit": 0.03}}`
     resolves `FAMILY_EXITS["reversion"] == {"take_profit": 0.03, "unclog_12h_hours": 6}`. The
     momentum set is unchanged.
-- [ ] T005 Edit `SimpleTrigger/SimpleTriggerStrategy.py` (contract C2):
+- [X] T005 Edit `SimpleTrigger/SimpleTriggerStrategy.py` (contract C2):
   - add `MOMENTUM_RECENCY_BARS = 0`;
   - the class MRO becomes `(FamilyCoexistenceMixin, FamilyExitMixin, StopInvariantMixin,
     BaseStrategy)`;
@@ -94,15 +94,15 @@ settings nothing may change.
     family, per key).
 
   T004 must then pass, and so must every existing SimpleTrigger test.
-- [ ] T006 [P] Write `evaluation/tests/test_run_arm_coexistence.py`:
+- [X] T006 [P] Write `evaluation/tests/test_run_arm_coexistence.py`:
   - `aggregate_coexistence(tmp_sink)` sums JSONL lines into `{"pair_cap": {"reversion": 2,
     "momentum": 1}}`;
   - it returns `{}` for a missing or empty sink;
   - malformed lines are skipped.
-- [ ] T007 Edit `regime/run_arm.py` (contract C3): add `aggregate_coexistence(sink)` and record
+- [X] T007 Edit `regime/run_arm.py` (contract C3): add `aggregate_coexistence(sink)` and record
   `coexistence_refusals`, omitted when empty, next to `entry_condition_counts`. `aggregate_sink`
   stays unchanged; rule B's per-pair file merges through it. T006 must then pass.
-- [ ] T008 Edit `evaluation/fingerprint.py` (contract C4):
+- [X] T008 Edit `evaluation/fingerprint.py` (contract C4):
   - `FAMILY_PAIR_CAP` (when not None) and `MOMENTUM_RECENCY_BARS` (when > 0) join the 024 family
     members;
   - both also trigger family mode, so an arm using only a coexistence rule still hashes its
@@ -111,7 +111,7 @@ settings nothing may change.
     - arm D and `SimpleTrigger_Gbb` stay `303456c1fa322b4c`;
     - `SimpleTrigger_FamCombined` stays `27617f430beca1cd`;
     - each of cap 3/5/7 and window 4/16/48 gives a distinct sha.
-- [ ] T009 [P] Write `evaluation/tests/test_stage.py` (contract C5), with synthetic arm records and
+- [X] T009 [P] Write `evaluation/tests/test_stage.py` (contract C5), with synthetic arm records and
   pooled sets in `tmp_path`:
   - (a) the selection ignores f08–f14: a candidate that is best late and worst early is not
     chosen;
@@ -124,7 +124,7 @@ settings nothing may change.
   - (e) exit 2 on a missing input;
   - (f) `decisions.md` gets one appended block per call, with the early table, the chosen arm,
     the late verdict and the liveness rows.
-- [ ] T010 Create `evaluation/stage.py` (contract C5, data model `StageDecision`):
+- [X] T010 Create `evaluation/stage.py` (contract C5, data model `StageDecision`):
   - it reuses `evaluation.pool`, `evaluation.contention` and `evaluation.halves` (import, don't
     copy);
   - it reads wallet sums from the arm records;
@@ -132,13 +132,13 @@ settings nothing may change.
     tie-breaks are stage-specific, G4).
 
   T009 must then pass.
-- [ ] T011 Create the neutral configs:
+- [X] T011 Create the neutral configs:
   - `SimpleTrigger/SimpleTrigger_CoexCapOff.py` (`FAMILY_PAIR_CAP = None`, stated explicitly);
   - `SimpleTrigger/SimpleTrigger_CoexWinOff.py` (`MOMENTUM_RECENCY_BARS = 0`);
   - both subclass `SimpleTrigger_FamCombined`.
 
   Derive plans `st_coex_capoff` and `st_coex_winoff`.
-- [ ] T012 Run `st_coex_capoff`, then `st_coex_winoff`. SC-001: the per-fold `trades_hash` equals
+- [X] T012 Run `st_coex_capoff`, then `st_coex_winoff`. SC-001: the per-fold `trades_hash` equals
   `st_fam_combo`'s in 15/15 folds for both. Record in `baseline.md`. **STOP on any divergence**:
   it means the MRO or rule plumbing changed behaviour.
 

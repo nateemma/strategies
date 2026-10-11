@@ -161,3 +161,18 @@ def test_each_family_dimension_moves_the_sha(monkeypatch):
     moved = dataclasses.replace(t, family="unassigned")
     monkeypatch.setitem(registry._REGISTRY, "breakout_gbb", moved)
     assert _sha_of(base) != sha0
+
+
+# --- feature 025 T008 (contract C4): coexistence rules hashed only when non-neutral ----------
+
+
+def test_coexistence_settings_are_hashed_and_neutral_ones_are_not():
+    base = fp.load_strategy_class("SimpleTrigger_FamCombined")
+    assert _sha_of(base) == "27617f430beca1cd"
+    neutral = type("N", (base,), {"FAMILY_PAIR_CAP": None, "MOMENTUM_RECENCY_BARS": 0})
+    assert _sha_of(neutral) == "27617f430beca1cd"
+    shas = {_sha_of(type(f"Cap{k}", (base,), {"FAMILY_PAIR_CAP": k})) for k in (3, 5, 7)}
+    shas |= {_sha_of(type(f"Win{w}", (base,), {"MOMENTUM_RECENCY_BARS": w})) for w in (4, 16, 48)}
+    assert len(shas) == 6 and "27617f430beca1cd" not in shas
+    for name in ("NNNC_A_Raw_Open", "SimpleTrigger_Gbb"):
+        assert _resolve(name)[0] == "303456c1fa322b4c"

@@ -192,7 +192,13 @@ def _family_members(strategy_cls, sell_values: dict) -> dict:
     if not triggers and getattr(strategy_cls, "TRIGGER_NAME", None):
         triggers = (strategy_cls.TRIGGER_NAME,)
     disabled = tuple(getattr(strategy_cls, "DISABLED_TRIGGERS", None) or ())
-    if not (any(sets.values()) or len(triggers) > 1 or disabled):
+    # 025 C4: coexistence rules, hashed only when non-neutral (so 024 shas are unchanged)
+    coexist = {}
+    if getattr(strategy_cls, "FAMILY_PAIR_CAP", None) is not None:
+        coexist["FAMILY_PAIR_CAP"] = strategy_cls.FAMILY_PAIR_CAP
+    if (getattr(strategy_cls, "MOMENTUM_RECENCY_BARS", 0) or 0) > 0:
+        coexist["MOMENTUM_RECENCY_BARS"] = strategy_cls.MOMENTUM_RECENCY_BARS
+    if not (any(sets.values()) or len(triggers) > 1 or disabled or coexist):
         return {}
     import dataclasses
 
@@ -213,6 +219,7 @@ def _family_members(strategy_cls, sell_values: dict) -> dict:
             for family, overrides in sorted(sets.items())
         },
         "TRIGGER_FAMILIES": {t: registry.get(t).family for t in triggers},
+        **coexist,
     }
 
 

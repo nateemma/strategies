@@ -44,10 +44,13 @@ every family resolves to the shared exits, so 023's configs are unchanged. Nothi
 tag except the exit hook, and `trades_hash` does not include it.
 """
 
+import json
+import os
 import sys
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 from pandas import DataFrame
 
 
@@ -55,6 +58,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from Framework.BaseStrategy import BaseStrategy, StrategyConfig
 from SimpleTrigger import presets as _presets
+from utils.FamilyCoexistence import FamilyCoexistenceMixin
 from utils.FamilyExits import FamilyExitMixin, validate_family_exits
 from utils.StopInvariants import StopInvariantMixin
 
@@ -103,13 +107,19 @@ def _apply_preset(cls) -> None:
     cls.sell_params = {**BaseStrategy.sell_params, **sell}
 
     # 024: per-family exit sets = preset's, merged PER FAMILY with FAMILY_EXIT_OVERRIDES.
+    # 025 G1: overrides MERGE along the MRO (ancestors first, per family, per key), so a subclass
+    # adds to its parent's overrides instead of silently replacing them.
     families = _presets.family_exits(preset)
-    unknown = sorted(set(cls.FAMILY_EXIT_OVERRIDES) - set(families))
+    merged: dict = {}
+    for klass in reversed(cls.__mro__):
+        for family, overrides in (klass.__dict__.get("FAMILY_EXIT_OVERRIDES") or {}).items():
+            merged.setdefault(family, {}).update(overrides)
+    unknown = sorted(set(merged) - set(families))
     if unknown:
         raise _presets.PresetError(
             f"{cls.__name__}: FAMILY_EXIT_OVERRIDES unknown family {unknown}"
         )
-    for family, overrides in cls.FAMILY_EXIT_OVERRIDES.items():
+    for family, overrides in merged.items():
         families[family] = {**families[family], **overrides}
     cls.FAMILY_EXITS = families
     _validate_triggers(cls)
@@ -132,10 +142,32 @@ def _validate_triggers(cls) -> None:
             f"{cls.__name__}: FAMILY_PRIORITY {cls.FAMILY_PRIORITY} is not a permutation of "
             f"{_presets.FAMILIES}"
         )
+    window = cls.MOMENTUM_RECENCY_BARS
+    if type(window) is not int or window < 0:
+        raise _presets.PresetError(
+            f"{cls.__name__}: MOMENTUM_RECENCY_BARS must be an int >= 0, got {window!r}"
+        )
+    if window > 0:
+        from research.outcomes import triggers as _triggers
+
+        _triggers.ensure_builtins()
+        enabled = [t for t in names if t not in cls.DISABLED_TRIGGERS]
+        if not any(_triggers.get(t).family == "momentum" for t in enabled):
+            raise _presets.PresetError(
+                f"{cls.__name__}: MOMENTUM_RECENCY_BARS={window} needs an enabled momentum "
+                f"trigger; without one the rule is INERT by construction"
+            )
 
 
-class SimpleTriggerStrategy(FamilyExitMixin, StopInvariantMixin, BaseStrategy):
+class SimpleTriggerStrategy(
+    FamilyCoexistenceMixin, FamilyExitMixin, StopInvariantMixin, BaseStrategy
+):
     """Trigger + framework preset, no model. Subclass and set TRIGGER_NAME."""
+
+    #: 025 rule B: drop a reversion-only entry if a momentum-family trigger fired on the pair
+    #: within the last N bars (current included); while active, overlap bars go to momentum.
+    #: 0 = off (024 behaviour). Rule A (FAMILY_PAIR_CAP) comes from FamilyCoexistenceMixin.
+    MOMENTUM_RECENCY_BARS: int = 0
 
     #: Combined arm (024 C4): several triggers OR'ed. Exactly one of TRIGGER_NAME / TRIGGERS.
     TRIGGERS: tuple | None = None
@@ -212,13 +244,30 @@ class SimpleTriggerStrategy(FamilyExitMixin, StopInvariantMixin, BaseStrategy):
                 f"{exc}); no fallback definition is used",
                 n,
             )
-        self._st_tags = self._tags(names, masks, families, n)
-        return np.logical_or.reduce(masks)
+        window = self.MOMENTUM_RECENCY_BARS
+        priority = self.FAMILY_PRIORITY
+        if window > 0:  # 025 G2: rule B hands overlap bars to momentum
+            priority = ("momentum",) + tuple(f for f in priority if f != "momentum")
+        tags = self._tags(names, masks, families, n, priority)
+        mask = np.logical_or.reduce(masks)
+        self._st_coexist_refused = 0
+        if window > 0:
+            mom = np.logical_or.reduce(
+                [m for m, f in zip(masks, families, strict=True) if f == "momentum"]
+            )
+            recent = pd.Series(mom).rolling(window, min_periods=1).max().to_numpy() > 0
+            winner = np.array([t.split(":", 1)[0] for t in tags], dtype=object)
+            drop = (winner == "reversion") & recent
+            tags[drop] = ""
+            mask = mask & ~drop
+            self._st_coexist_refused = int(drop.sum())
+        self._st_tags = tags
+        return mask
 
-    def _tags(self, names, masks, families, n) -> np.ndarray:
-        """`<family>:<trigger>` per signal row, by FAMILY_PRIORITY then trigger order; `+ov` when
+    def _tags(self, names, masks, families, n, priority=None) -> np.ndarray:
+        """`<family>:<trigger>` per signal row, by family priority then trigger order; `+ov` when
         a trigger of ANOTHER family also fired on that row (024 C4, F4)."""
-        rank = {f: i for i, f in enumerate(self.FAMILY_PRIORITY)}
+        rank = {f: i for i, f in enumerate(priority or self.FAMILY_PRIORITY)}
         order = sorted(range(len(names)), key=lambda i: (rank.get(families[i], len(rank)), i))
         tags = np.full(n, "", dtype=object)
         winner = np.full(n, "", dtype=object)
@@ -242,7 +291,23 @@ class SimpleTriggerStrategy(FamilyExitMixin, StopInvariantMixin, BaseStrategy):
         if tags is not None and len(tags) == len(dataframe):
             signal = tags != ""
             dataframe.loc[signal, "enter_tag"] = tags[signal]
+        self._sink_coexistence(metadata.get("pair", "?"), len(dataframe))
         return dataframe
+
+    def _sink_coexistence(self, pair: str, rows: int) -> None:
+        """025 C3: rule B's dropped-row count, in the entry-condition sink format (merged by
+        run_arm.aggregate_sink). Written only when the sink is set AND rule B is active."""
+        sink = os.environ.get("FT_ENTRY_CONDITION_SINK")
+        if not sink or self.MOMENTUM_RECENCY_BARS <= 0:
+            return
+        refused = int(getattr(self, "_st_coexist_refused", 0))
+        out = Path(sink)
+        out.mkdir(parents=True, exist_ok=True)
+        safe = pair.replace("/", "_").replace(":", "_")
+        (out / f"{self.__class__.__name__}_{safe}_coexist.json").write_text(
+            json.dumps({"pair": pair, "counts": {
+                "coexist_recency_refused": {"pass": refused, "total": int(rows)}}})
+        )
 
 
 _apply_preset(SimpleTriggerStrategy)

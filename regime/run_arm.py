@@ -258,6 +258,30 @@ def build_env(scratch: Path, sink: Path | None = None) -> dict:
     return env
 
 
+def aggregate_coexistence(sink: Path | None) -> dict:
+    """025 C3: sum rule A's `coexist_events.jsonl` lines into {rule: {family: n}}.
+
+    Rule B's per-pair `*_coexist.json` files use the entry-condition format and are merged by
+    `aggregate_sink` instead.
+    """
+    if sink is None or not Path(sink).is_dir():
+        return {}
+    path = Path(sink) / "coexist_events.jsonl"
+    if not path.is_file():
+        return {}
+    out: dict = {}
+    for line in path.read_text().splitlines():
+        try:
+            ev = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(ev, dict) or "rule" not in ev or "family" not in ev:
+            continue
+        fam = out.setdefault(str(ev["rule"]), {})
+        fam[str(ev["family"])] = fam.get(str(ev["family"]), 0) + 1
+    return {r: dict(sorted(f.items())) for r, f in sorted(out.items())}
+
+
 def aggregate_sink(sink: Path | None) -> dict | None:
     """Sum the per-pair entry-condition counts the strategy wrote (BaseStrategy C4 sink)."""
     if sink is None or not sink.is_dir():
@@ -599,6 +623,8 @@ def main() -> int:
         "returncode": proc.returncode,
         **framework,
         "entry_condition_counts": aggregate_sink(sink),
+        # 025 C3: rule A pair-cap refusals (omitted when none were logged)
+        **({"coexistence_refusals": c} if (c := aggregate_coexistence(sink)) else {}),
         **result,
     }
     out = OUT_DIR / f"{args.tag}_{label}.json"
