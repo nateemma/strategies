@@ -20,7 +20,13 @@
   - with no trade, or no family on it, returns `base`;
   - otherwise returns `dataclasses.replace(base, **self.FAMILY_EXITS[family])`.
 - `family_of(tag) -> str | None` parses the `"<family>:<trigger>"` tag.
-- It counts trades that fall back to the shared exits (`untagged_exits`).
+- It keeps an in-process `untagged_exits` counter for tests and logs only. The run record's
+  `untagged_trades` comes from the archive (C8, F2).
+- Tag grammar: `"<family>:<trigger>[+ov]"`. `family_of` ignores the suffix.
+- Class-creation validation:
+  - refuses a key set both in a family set and via `SELL_OVERRIDES`/`ATTR_OVERRIDES` (F3);
+  - refuses `unclog_12h_hours > max_hold_days*24`, and warns when it exceeds `unclog_1d_hours`
+    (F5).
 - It does not know about SimpleTrigger or the registry. It reads `FAMILY_EXITS` and the tag only.
   It is usable by a future NNNC feature.
 
@@ -36,7 +42,8 @@ behaviour is unchanged for a strategy whose params mirror its attributes.
 - `get_entry_conditions`:
   - runs `check_runnable` per enabled trigger, refusing as today;
   - returns the OR of the masks;
-  - stores the per-row winning tag.
+  - stores the per-row winning tag, with `+ov` appended when a trigger of another family also
+    fired on that row (F4).
 - `populate_entry_trend`: `super()`, then overwrite `enter_tag` on signal rows with the stored
   tags.
 - MRO: `SimpleTriggerStrategy(FamilyExitMixin, StopInvariantMixin, BaseStrategy)`.
@@ -66,5 +73,17 @@ python -m evaluation.contention --combined <pooled.json> \
 
 ## C7 — Fingerprint (`evaluation/fingerprint.py`)
 
-Optional members, per data model. Test: arm D's sha is unchanged; flipping one family value, the
-priority, or a `DISABLED_TRIGGERS` entry changes the sha.
+Optional members, per data model. They are included only in family mode, multi-trigger mode
+or disabled-side mode (F1).
+
+Tests:
+- arm D and `SimpleTrigger_Gbb` both stay `303456c1fa322b4c`;
+- each of these changes the sha: one family value, the priority order, a `DISABLED_TRIGGERS`
+  entry, or a trigger's family in `TRIGGER_FAMILIES` (F6).
+
+## C8 — `regime/run_arm.py` tag accounting (F2)
+
+The record gains `untagged_trades` (trades whose `enter_tag` has no recognised family prefix),
+`family_trade_counts`, `overlap_entries` (tags with `+ov`) and per-family `exit_reason_counts`.
+All are computed from the backtest archive's trades, and are absent when no trade carries a
+family tag.

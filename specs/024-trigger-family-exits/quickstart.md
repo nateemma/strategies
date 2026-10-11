@@ -38,7 +38,7 @@ Two configs on `PRESET = "ARM_D_FAMILY"`: `SimpleTrigger_FamGbb` (`gbb`) and
 
 **Expected:**
 - `st_fam_gbb` equals `st_gbb`, and `st_fam_bgo` equals `st_bgo_mx`, by `trades_hash` in 15/15 folds.
-- `untagged_exits` = 0.
+- `untagged_trades` = 0 in each run record (from the archive, C8).
 - The `unclog_12h` exit count of `st_fam_bgo` equals `st_bgo_mx`'s, which proves the momentum
   unclog setting is live.
 

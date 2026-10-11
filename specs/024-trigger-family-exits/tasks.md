@@ -5,7 +5,7 @@ description: "Task list for 024 trigger-family exit presets"
 # Tasks: Trigger-Family Exit Presets
 
 **Input**: Design documents from `specs/024-trigger-family-exits/`. These are plan.md,
-spec.md, research.md (R1–R10), data-model.md, contracts/interfaces.md (C1–C7) and
+spec.md, research.md (R1–R10), data-model.md, contracts/interfaces.md (C1–C8) and
 quickstart.md.
 
 **Tests**: Included. The spec requires test enforcement (SC-006 and the C1 neutrality tests),
@@ -108,7 +108,12 @@ trade-for-trade in 15/15 folds.
   - an unknown or missing tag returns the base params and increments `untagged_exits`;
   - a forbidden key (`stoploss_grace_hours`, ROI) or a non-`ExitParams` key in a family set
     raises at class creation;
-  - `ExitParams.__post_init__` invariants are enforced after replacement (floor ≤ cap < 0).
+  - `ExitParams.__post_init__` invariants are enforced after replacement (floor ≤ cap < 0);
+  - (F3) a class setting `take_profit` in a family set AND `cexit_take_profit` in
+    `SELL_OVERRIDES` is refused;
+  - (F5) `unclog_12h_hours` above `max_hold_days*24` is refused; above `unclog_1d_hours` it
+    warns; 24/24 is accepted;
+  - `family_of("reversion:gbb+ov") == "reversion"`.
 - [ ] T010 [US1] Create `utils/FamilyExits.py` with `FamilyExitMixin`, per contract C2 and the
   data model's allowed and forbidden keys:
   - strategy-agnostic, with no SimpleTrigger or registry import;
@@ -135,28 +140,41 @@ trade-for-trade in 15/15 folds.
   - on a synthetic populated frame, `SimpleTrigger_FamGbb`'s signal rows carry `reversion:gbb`,
     and non-signal rows carry "";
   - an `ARM_D_OPEN` config's `_exit_params(trade)` with a `momentum:` tag equals its base params
-    (shared mode).
+    (shared mode);
+  - (F8, FR-004) on an `ARM_D_FAMILY` config, a trade tagged `momentum:breakout_gbb` gets the
+    momentum params even when the strategy's latest frame fires only `gbb`: exits read the stored
+    tag, never the current bar.
 - [ ] T015 [US1] Edit `evaluation/fingerprint.py` (contract C7):
   - extend `OPTIONAL_ATTRIBUTE_MEMBERS` handling with `TRIGGERS`, `DISABLED_TRIGGERS` and
     `FAMILY_PRIORITY`;
   - add `FAMILY_EXITS_RESOLVED` (the full `ExitParams` dict per family, computed from the
     class's default params plus overrides, without instantiating);
   - add `TRIGGER_FAMILIES` (the registry family of each of the arm's triggers);
-  - all of these only when the class sets non-empty family sets.
+  - (F1) all of these only in family mode (some family set non-empty), multi-trigger mode
+    (more than one trigger) or disabled-side mode (non-empty `DISABLED_TRIGGERS`). A
+    single-trigger, shared-mode class hashes exactly as in 023.
   - Tests in `evaluation/tests/test_fingerprint.py`:
     - arm D is still `303456c1fa322b4c`;
-    - `SimpleTrigger_Gbb` is unchanged;
-    - changing one momentum value changes the sha.
+    - `SimpleTrigger_Gbb` is still `303456c1fa322b4c`, and that check is re-run after T020 adds
+      the `TRIGGERS` mapping;
+    - (F6) each of these changes the sha: one momentum value, a `FAMILY_PRIORITY` flip, and a
+      monkeypatched trigger family in `TRIGGER_FAMILIES`.
 - [ ] T016 [US1] Create `SimpleTrigger/SimpleTrigger_FamGbb.py` (`TRIGGER_NAME="gbb"`,
   `PRESET="ARM_D_FAMILY"`) and `SimpleTrigger/SimpleTrigger_FamBgo.py`
   (`TRIGGER_NAME="breakout_gbb"`, `PRESET="ARM_D_FAMILY"`). Derive plans `st_fam_gbb` and
   `st_fam_bgo` with `foldplan derive --from evaluation/folds/plan_NNNC_A_Raw_Open.json`.
-- [ ] T017 [US1] Edit `regime/run_arm.py` to record `untagged_exits` (when the strategy exposes
-  it) and the `enter_tag` family counts from the backtest trades. Optional in the record:
-  absent for strategies without tags.
+- [ ] T017 [US1] Edit `regime/run_arm.py` (contract C8, F2). From the backtest archive's trades
+  (the same source `trades_hash` uses), compute:
+  - `untagged_trades`: `enter_tag` without a recognised family prefix;
+  - `family_trade_counts`;
+  - `overlap_entries`: the `+ov` suffix;
+  - per-family `exit_reason_counts`.
+
+  All are omitted when no trade carries a family tag. Add a unit test on a synthetic trades frame
+  in `evaluation/tests/test_run_arm_tags.py`.
 - [ ] T018 [US1] Run `st_fam_gbb`, then `st_fam_bgo` (sequentially). SC-001:
   - their per-fold `trades_hash` equals `st_gbb` and `st_bgo_mx` in 15/15 folds;
-  - `untagged_exits` = 0;
+  - `untagged_trades` = 0 (SC-007);
   - `st_fam_bgo`'s `unclog_12h` / `unclog_1d` totals equal `st_bgo_mx`'s (liveness, research R5).
   - Record in `baseline.md`.
   - **If `st_fam_bgo` diverges, STOP and diagnose before US2.**
@@ -176,8 +194,8 @@ full arm is reported against both.
 - [ ] T019 [P] [US2] Write `SimpleTrigger/tests/test_combined_entry.py`:
   - on a synthetic frame where `gbb` and `breakout_gbb` both fire on some rows, the entry mask is
     the OR of the two;
-  - overlap rows are tagged `reversion:gbb` under the default priority and `momentum:breakout_gbb`
-    under the reversed priority;
+  - overlap rows are tagged `reversion:gbb+ov` under the default priority and
+    `momentum:breakout_gbb+ov` under the reversed priority, and non-overlap rows carry no `+ov`;
   - `DISABLED_TRIGGERS=("breakout_gbb",)` gives exactly the `gbb` mask and tags;
   - setting both `TRIGGER_NAME` and `TRIGGERS`, disabling every trigger, or naming an
     unregistered or non-runnable trigger each raises or refuses with a `*** SimpleTrigger:`
@@ -185,7 +203,8 @@ full arm is reported against both.
 - [ ] T020 [US2] Edit `SimpleTrigger/SimpleTriggerStrategy.py` (contract C4, multi-trigger path):
   - `TRIGGERS`, `DISABLED_TRIGGERS` and `FAMILY_PRIORITY`;
   - `get_entry_conditions` runs the `check_runnable` gate per enabled trigger, evaluates each mask
-    once, ORs them, and stores the per-row winning tag (by family priority, then trigger order);
+    once, ORs them, and stores the per-row winning tag (by family priority, then trigger order),
+    with `+ov` when another family's trigger also fired (F4);
   - `TRIGGER_NAME` maps to `TRIGGERS=(name,)`.
   - T019 must then pass, and so must every earlier SimpleTrigger test.
 - [ ] T021 [US2] Create the combined configs:
@@ -206,7 +225,8 @@ full arm is reported against both.
   - the halves split is f00–f07 / f08–f14;
   - exit 2 on a missing input.
 - [ ] T024 [US2] Create `evaluation/contention.py` (contract C6, data model `ContentionRecord`):
-  - the family is read from each trade's `enter_tag` in the combined set;
+  - the family is read from each trade's `enter_tag` in the combined set, and `+ov` entries are
+    counted per family and half (FR-010);
   - `max_open_trades` comes from `--config`;
   - output is JSON plus a markdown summary.
   - T023 must then pass. If pooled trades lack `enter_tag`, extend `evaluation/pool.py` to carry
@@ -218,7 +238,8 @@ full arm is reported against both.
     against `st_bgo_mx`;
   - the sum-of-singles per-fold reference;
   - the per-fold correlation between `st_gbb` and `st_bgo_mx`;
-  - per-family P&L inside the combined arm, by half, from `enter_tag`.
+  - per-family P&L inside the combined arm, by half, from `enter_tag`;
+  - overlap entries resolved by priority (`+ov`) and their P&L, by half.
   - Write `specs/024-trigger-family-exits/report.md`, every figure labelled PROVISIONAL.
 
 **Checkpoint**: the combined arm is measured, and contention is quantified. That scopes the

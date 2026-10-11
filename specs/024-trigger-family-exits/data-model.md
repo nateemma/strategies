@@ -23,7 +23,7 @@ A dict of `ExitParams` field overrides, keyed by family, held per preset in
 | Allowed keys | `take_profit`, `unclog_12h_hours`, `unclog_12h_min_profit`, `unclog_1d_hours`, `max_hold_days`, `atr_stoploss_multiplier`, `atr_stoploss_cap`, `atr_stoploss_floor`, `use_atr_adaptive_stoploss`, `use_volume_confirmation_stoploss`, `static_stoploss` |
 | Forbidden keys | grace (`stoploss_grace_*`), ROI, every entry-side setting. Shared by definition (FR-002). Validation refuses them. |
 | Resolution | `dataclasses.replace(base_params, **set[family])`. `base_params` is the strategy's default `_exit_params()`, so the preset and any `SELL_OVERRIDES` still apply underneath. |
-| Validation | Every key must be an `ExitParams` field. `ExitParams.__post_init__` invariants hold after replacement (for example floor ≤ cap < 0). Unknown family → error at class creation. |
+| Validation | Every key must be an `ExitParams` field. `ExitParams.__post_init__` invariants hold after replacement (for example floor ≤ cap < 0). Unknown family → error at class creation. **Ambiguity refusal (F3):** a key that a family set overrides must not also be set through `SELL_OVERRIDES` or `ATTR_OVERRIDES` (mapped to its `ExitParams` field), or class creation is refused. **Hold-window sanity (F5):** `unclog_12h_hours > max_hold_days*24` is refused as INERT by construction; `unclog_12h_hours > unclog_1d_hours` emits a warning naming the family, because `unclog_1d` will usually fire first. |
 
 Initial values under the new preset `ARM_D_FAMILY` (= ARM_D_OPEN + these sets; FR-003):
 
@@ -35,9 +35,18 @@ Initial values under the new preset `ARM_D_FAMILY` (= ARM_D_OPEN + these sets; F
 
 ## TradeFamilyTag
 
-`enter_tag` string `"<family>:<trigger>"`, set on the signal row and copied by freqtrade onto
-the trade. The family is parsed from the prefix. A missing or unknown prefix uses the shared
-exits and increments a per-run counter, `untagged_exits`, which goes into the run record (FR-005).
+`enter_tag` string `"<family>:<trigger>[+ov]"`, set on the signal row and copied by freqtrade
+onto the trade.
+- The family is parsed from the prefix before `:`.
+- The `+ov` suffix marks an entry bar where a trigger of another family also fired, resolved by
+  `FAMILY_PRIORITY` (FR-010).
+- A missing or unknown prefix uses the shared exits.
+
+Counting fallbacks (F2):
+- **Source of record:** the run record's `untagged_trades`, computed by `run_arm.py` from the
+  backtest archive's trade `enter_tag`s. The strategy instance lives in freqtrade's process, so a
+  counter on it cannot reach the record.
+- The mixin also keeps an in-process `untagged_exits` counter, for unit tests and logs only.
 
 ## CombinedArmConfig (class attributes on a SimpleTrigger subclass)
 
@@ -51,7 +60,10 @@ exits and increments a per-run counter, `untagged_exits`, which goes into the ru
 
 ## Fingerprint additions (optional members, research R8)
 
-Present only when the strategy opts in:
+Present only when the strategy is in **family mode** (some family set non-empty) **or** has
+more than one trigger **or** has a non-empty `DISABLED_TRIGGERS` (F1). A single-trigger,
+shared-mode class, which covers every 023 config, hashes exactly as in 023, so
+`SimpleTrigger_Gbb` stays `303456c1fa322b4c`. The opted-in members are:
 - `TRIGGERS`;
 - `DISABLED_TRIGGERS`;
 - `FAMILY_PRIORITY`;

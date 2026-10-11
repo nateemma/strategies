@@ -64,7 +64,7 @@ unchanged.*
 | I. Deployment regime | PASS | Same 2023-01 → 2026-09 walk-forward span as 023. Halves are reported. |
 | II. Distant-era persistence (NON-NEGOTIABLE) | PASS, with every result labelled PROVISIONAL | No distant era exists. Every verdict carries the gate-2 label, and nothing is promoted. |
 | III. Learnability ≠ edge | N/A | No model. Judged on walk-forward P&L only. |
-| IV. Parameters proven live | PASS | SC-001 reproduction plus exit-reason counts (momentum `unclog_12h` matches `st_bgo_mx`'s). `untagged_exits` = 0. Stop-path reads are routed through params so stop overrides cannot be silently inert (R2). |
+| IV. Parameters proven live | PASS | SC-001 reproduction plus exit-reason counts (momentum `unclog_12h` matches `st_bgo_mx`'s). `untagged_trades` (from the archive) = 0. Stop-path reads are routed through params so stop overrides cannot be silently inert (R2). |
 | V. Realistic execution | PASS | The harness is unchanged (volume headroom, stake capping). |
 | VI. Diagnose before tuning | PASS | Tuning is deferred. The contention report is the diagnostic that will scope it. |
 | VII. Validate cheaply first | PASS | 023 Addendum 3 was the cheap check (`st_bgo_mx`). |
@@ -87,7 +87,7 @@ specs/024-trigger-family-exits/
 ├── data-model.md        # families, exit sets, tags, combined-arm config, contention record
 ├── quickstart.md        # validation runs 0–5
 ├── contracts/
-│   └── interfaces.md    # C1–C7
+│   └── interfaces.md    # C1–C8
 ├── checklists/
 │   └── requirements.md
 └── tasks.md             # /speckit-tasks
@@ -108,8 +108,8 @@ SimpleTrigger/presets.py             # EDIT: ARM_D_FAMILY preset + family exit s
 SimpleTrigger/SimpleTrigger_Fam*.py  # NEW: FamGbb, FamBgo, FamCombined (+ 2 disabled-side variants)
 evaluation/fingerprint.py            # EDIT C7: optional family members
 evaluation/contention.py             # NEW C6
-regime/run_arm.py                    # EDIT: record untagged_exits and per-family exit counts
-*/tests/                             # NEW tests for C1–C7 (listed in tasks)
+regime/run_arm.py                    # EDIT C8: untagged_trades, family/overlap counts, per-family exit counts (from the archive)
+*/tests/                             # NEW tests for C1–C8 (listed in tasks)
 ```
 
 **Structure Decision**: same layout as 023. Families are a SimpleTrigger capability built on a
@@ -140,7 +140,7 @@ touching `Framework/` again.
 |---|---|
 | The `_exit_params` edit changes a recorded arm | Hash-checked reproduction of `st_gbb` f00, `wf_aro` f00, `st_bbo` f00 and `stl_bo` f00 before any family work |
 | The momentum params path diverges from `HoldWindowMixin` | Case analysis (R5) plus SC-001 exact reproduction of `st_bgo_mx`. Any divergence blocks US2. |
-| The tag is lost or rewritten by freqtrade | `untagged_exits` counter; SC-007 requires 0 |
+| The tag is lost or rewritten by freqtrade | `untagged_trades` computed from the archive (C8); SC-007 requires 0 |
 | Combined-arm overlap order is non-deterministic | Fixed `FAMILY_PRIORITY` and fixed trigger order, and a unit test on a synthetic frame |
 | The bootstrap's set-iteration nondeterminism | `PYTHONHASHSEED=0` on every comparison (the open user decision from 023 is unchanged) |
 

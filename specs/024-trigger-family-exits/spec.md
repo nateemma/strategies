@@ -45,8 +45,10 @@ them with 023's recorded arms. `gbb` on the reversion set must reproduce `st_gbb
    runs the momentum exit set, and for `breakout_gbb` its trades equal `st_bgo_mx`'s in every fold.
 3. **Given** two arms that differ only in one family's exit set, **When** both are fingerprinted,
    **Then** their fingerprints differ.
-4. **Given** an arm declared with an explicit exit override, **When** it runs, **Then** the
-   override takes precedence over the family default, and the fingerprint records it.
+4. **Given** an arm that overrides one family's exit value (merged into that family's set),
+   **When** it runs, **Then** the override takes precedence over the family default, and the
+   fingerprint records it. An arm that sets the same exit key both as a general override and in
+   a family set is refused at declaration, because the precedence would be ambiguous.
 
 ---
 
@@ -119,7 +121,8 @@ verdict against the previous step. Every arm passes a liveness check.
   byte-identical before and after this feature, as 023's SC-008 proved for 023.
 - **The hold window conflicting with a hard time cap** (a momentum hold longer than the 1-day
   unclog or the maximum hold): the order of time-based exits is defined and documented. A hold
-  window that cannot take effect is reported INERT, not assumed live.
+  window that cannot take effect is refused when it exceeds the maximum hold, and flagged when it
+  exceeds the 1-day unclog. It is never assumed live.
 - **Overlap priority**: with `gbb` priority the momentum side never takes a bar where both fire.
   The momentum side's single-family reproduction (Story 2, scenario 2) is therefore run with the
   reversion side fully disabled, not merely deprioritised.
@@ -143,7 +146,8 @@ verdict against the previous step. Every arm passes a liveness check.
   `votes_tech`, `failed_breakout`; momentum = `breakout_bb`, `breakout_gbb`,
   `breakout_gbb_nofresh`, `breakout`, `breakout_vol`, `breakout_squeeze` and their `_gm`
   variants; unassigned = `adx`, `votes_ind2`, `votes_ind3`, `votes_ind4`, `votes_consensus`,
-  `empty`, and controls. The classification MUST be checked by a test, so a newly registered
+  `empty`, the unscoreable `trends`/`bands`, and the controls, except `gbb_stale`. `gbb_stale`
+  is a lagged `gbb`, so its condition tests weakness and it is reversion. The classification MUST be checked by a test, so a newly registered
   trigger cannot be left without a family.
 - **FR-002**: Each family MUST have one named exit parameter set layered on top of the
   ARM_D_OPEN preset. A set may override the take-profit, the hold window before the 12h unclog,
