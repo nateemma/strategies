@@ -153,12 +153,12 @@ settings nothing may change.
 **Independent Test**: six active arms each show non-zero liveness, and the stage decision is
 recorded.
 
-- [ ] T013 [US1] Create six active configs subclassing `SimpleTrigger_FamCombined`:
+- [X] T013 [US1] Create six active configs subclassing `SimpleTrigger_FamCombined`:
   - `SimpleTrigger_CoexCap3/5/7` (`FAMILY_PAIR_CAP = 3/5/7`);
   - `SimpleTrigger_CoexWin4/16/48` (`MOMENTUM_RECENCY_BARS = 4/16/48`).
 
   Derive plans `st_coex_cap3/5/7` and `st_coex_win4/16/48`.
-- [ ] T014 [US1] Run the six arms as one sequential chain. Check liveness:
+- [X] T014 [US1] Run the six arms as one sequential chain. Check liveness:
   - each cap arm has non-zero `coexistence_refusals.pair_cap`;
   - each window arm has non-zero `entry_condition_counts.coexist_recency_refused.pass`;
   - otherwise mark the arm INERT in `baseline.md`.
@@ -168,9 +168,9 @@ recorded.
     not a measurement). So it means the hook is not reached in backtests (no `entry_tag`, or
     `Trade.get_trades_proxy` not seeing open backtest trades). **STOP and diagnose before T016**;
     do not record INERT.
-- [ ] T015 [US1] For each of the six arms, pool it and run `evaluation.contention` against
+- [X] T015 [US1] For each of the six arms, pool it and run `evaluation.contention` against
   `st_gbb` / `st_bgo_mx`. Write `evaluation/contention_st_coex_*.md`.
-- [ ] T016 [US1] Run `python -m evaluation.stage --stage coexistence --previous st_fam_combo
+- [X] T016 [US1] Run `python -m evaluation.stage --stage coexistence --previous st_fam_combo
   --candidates st_coex_cap3,st_coex_cap5,st_coex_cap7,st_coex_win4,st_coex_win16,st_coex_win48
   --singles reversion=st_gbb,momentum=st_bgo_mx --out specs/025-family-coexistence/decisions.md`.
   Record the adopted arm, or "none adopted, US2 runs on `st_fam_combo`", as `BASE_ARM` in
@@ -194,23 +194,23 @@ class). They set ONLY their new parameter: `FAMILY_EXIT_OVERRIDES = {"reversion"
 Before running each step, assert that the candidate's resolved `FAMILY_EXITS["reversion"]` contains
 every previously adopted key, and record it in `baseline.md`.
 
-- [ ] T017 [US2] Step 1, `take_profit`:
+- [X] T017 [US2] Step 1, `take_profit`:
   - configs `SimpleTrigger_Tune1Tp015/Tp030/TpOff` (0.015 / 0.030 / 10.0);
   - plans `st_tune1_tp015/tp030/tpoff`;
   - run the chain, then `evaluation.stage --stage tune1 --previous <BASE_ARM>`;
   - liveness = the change in the reversion `take_profit` exit count.
-- [ ] T018 [US2] Step 2, `unclog_12h_hours`:
+- [X] T018 [US2] Step 2, `unclog_12h_hours`:
   - configs `SimpleTrigger_Tune2U6/U24` (6 / 24) on top of step 1's adopted arm (or `BASE_ARM`);
   - plans `st_tune2_u6/u24`;
   - run, then `stage --stage tune2`;
   - liveness = the change in the reversion `unclog_12h` and `unclog_1d` counts.
-- [ ] T019 [US2] Step 3, `atr_stoploss_floor`:
+- [X] T019 [US2] Step 3, `atr_stoploss_floor`:
   - configs `SimpleTrigger_Tune3F05/F08` (−0.05 / −0.08) on top of step 2's adopted arm;
   - plans `st_tune3_f05/f08`;
   - run, then `stage --stage tune3`;
   - liveness = a change in reversion stop-exit counts or in `trades_hash` (an INERT arm is
     reported, research R5).
-- [ ] T020 [US2] Step 4, `use_volume_confirmation_stoploss`:
+- [X] T020 [US2] Step 4, `use_volume_confirmation_stoploss`:
   - config `SimpleTrigger_Tune4VcOff` (False) on top of step 3's adopted arm;
   - plan `st_tune4_vcoff`;
   - run, then `stage --stage tune4`.
@@ -224,13 +224,13 @@ every previously adopted key, and record it in `baseline.md`.
 
 ## Phase 5: User Story 3 — final report (Priority: P3)
 
-- [ ] T021 [US3] Pool `FINAL_ARM` and compare it (`compare_pooled` + `halves`, `PYTHONHASHSEED=0`)
+- [X] T021 [US3] Pool `FINAL_ARM` and compare it (`compare_pooled` + `halves`, `PYTHONHASHSEED=0`)
   with `st_bgo_mx`, `st_gbb` and `st_fam_combo`. Add:
   - the sum-of-singles per-fold reference;
   - the per-fold correlation between families;
   - per-family contributions by half (from `enter_tag`);
   - contention against 024.
-- [ ] T022 [US3] Write `specs/025-family-coexistence/report.md`:
+- [X] T022 [US3] Write `specs/025-family-coexistence/report.md`:
   - SUMMARY;
   - SC-001…SC-005 table;
   - the stage-by-stage decisions (linking `decisions.md`);
@@ -244,11 +244,11 @@ every previously adopted key, and record it in `baseline.md`.
 
 ## Phase 6: Polish
 
-- [ ] T023 Run the full test gate: `pytest -q Framework/tests evaluation/tests SimpleTrigger/tests
+- [X] T023 Run the full test gate: `pytest -q Framework/tests evaluation/tests SimpleTrigger/tests
   research/outcomes/tests utils/tests NNNC/tests`. Only the 3 known pre-existing training-pipeline
   failures may remain. Then ruff on the lines this feature added (024's added-lines method). Run
   the exit single-source test and classify the new files there if it asks (CONFIGURING).
-- [ ] T024 Check that the 023/024 fingerprints are unchanged (T001 values, including
+- [X] T024 Check that the 023/024 fingerprints are unchanged (T001 values, including
   `SimpleTrigger_Gbb` = `303456c1fa322b4c`). Re-run via `run_arm` under fresh `t024_*` tags (G3):
   - `st_fam_combo` f00 (024);
   - `st_gbb` f00, the 023 twin, `aa058ba815f48627`;
@@ -256,7 +256,7 @@ every previously adopted key, and record it in `baseline.md`.
 
   Each `trades_hash` must match. Record in `baseline.md`. This covers the T005 MRO change for every
   SimpleTrigger arm, not only the combined one.
-- [ ] T025 Update memory:
+- [X] T025 Update memory:
   - `project_025_family_coexistence.md` (results);
   - the `MEMORY.md` "Current state" hook;
   - an `index_*` hub line if a reusable finding results.

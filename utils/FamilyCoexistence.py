@@ -48,7 +48,7 @@ def _log_refusal(rule: str, family: str) -> None:
 class FamilyCoexistenceMixin:
     """Refuse a family's new entry while it already holds `FAMILY_PAIR_CAP` pairs."""
 
-    #: None = no cap (neutral). An int in 1..9: max open pairs per family, the same for every family.
+    #: None = no cap (neutral). An int in 1..9: max open pairs per family, same for every family.
     FAMILY_PAIR_CAP: int | None = None
 
     def __init_subclass__(cls, **kwargs):

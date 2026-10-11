@@ -1,0 +1,68 @@
+{
+  "label": "PROVISIONAL -- not a finding under quality gate 2 (no distant era)",
+  "max_open_trades": 10,
+  "reversion": {
+    "early": {
+      "single_trades": 5027,
+      "combined_trades": 2948,
+      "lost": 2868,
+      "lost_by_cause": {
+        "pair_held_by_other_family": 2005,
+        "pair_held_same_family": 330,
+        "slots_full": 0,
+        "divergence": 533
+      },
+      "gained": 789,
+      "lost_pnl_pct": 376.4506,
+      "gained_pnl_pct": 154.5783,
+      "overlap_entries": 0
+    },
+    "late": {
+      "single_trades": 4029,
+      "combined_trades": 2454,
+      "lost": 2184,
+      "lost_by_cause": {
+        "pair_held_by_other_family": 1374,
+        "pair_held_same_family": 253,
+        "slots_full": 0,
+        "divergence": 557
+      },
+      "gained": 609,
+      "lost_pnl_pct": 43.5038,
+      "gained_pnl_pct": 23.4625,
+      "overlap_entries": 0
+    }
+  },
+  "momentum": {
+    "early": {
+      "single_trades": 3411,
+      "combined_trades": 3126,
+      "lost": 815,
+      "lost_by_cause": {
+        "pair_held_by_other_family": 564,
+        "pair_held_same_family": 122,
+        "slots_full": 0,
+        "divergence": 129
+      },
+      "gained": 530,
+      "lost_pnl_pct": 261.3988,
+      "gained_pnl_pct": 125.4294,
+      "overlap_entries": 195
+    },
+    "late": {
+      "single_trades": 2745,
+      "combined_trades": 2518,
+      "lost": 594,
+      "lost_by_cause": {
+        "pair_held_by_other_family": 417,
+        "pair_held_same_family": 75,
+        "slots_full": 0,
+        "divergence": 102
+      },
+      "gained": 367,
+      "lost_pnl_pct": 102.3559,
+      "gained_pnl_pct": 34.6551,
+      "overlap_entries": 143
+    }
+  }
+}

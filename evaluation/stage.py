@@ -2,13 +2,13 @@
 
 One stage = one decision: which of several pre-declared candidate arms (already run) replaces the
 previous arm. The CHOICE uses folds f00-f07 only; the JUDGEMENT is the late-half (f08-f14) paired
-verdict of the chosen arm against the previous one, and the candidate is adopted ONLY when that
-verdict is IMPROVED (constitution VIII; 024 FR-012). Every call appends a block to the decisions
-file. PROVISIONAL under quality gate 2.
+verdict of the chosen arm against the previous one, and the candidate is adopted ONLY
+when that verdict is IMPROVED (constitution VIII; 024 FR-012). Every call appends a block
+to the decisions file. PROVISIONAL under quality gate 2.
 
 Selection (research R4/R5, analyze G4):
-  - degenerate candidates are excluded: a family's combined-arm trades below 25% of its single-family
-    arm's in either half (the rule reduced the arm to one family);
+  - degenerate candidates are excluded: a family's combined-arm trades below 25% of its
+    single-family arm's in either half (the rule reduced the arm to one family);
   - primary key: whole-arm f00-f07 per-fold wallet sum (higher wins);
   - tie-break: `coexistence` -> fewer early entries lost to the other family's pair;
                `tuneN`       -> higher reversion-side early contribution (pp).
@@ -126,7 +126,8 @@ def liveness(tag: str, previous: str, stage: str) -> str:
         win = sum(((r.get("entry_condition_counts") or {}).get("coexist_recency_refused") or {})
                   .get("pass", 0) for r in recs)
         live = cap + win > 0
-        return f"pair_cap refusals {cap}; recency-dropped rows {win} -> {'LIVE' if live else 'INERT'}"
+        state = "LIVE" if live else "INERT"
+        return f"pair_cap refusals {cap}; recency-dropped rows {win} -> {state}"
 
     def rev(rs):
         out: dict = {}
@@ -148,21 +149,27 @@ def liveness(tag: str, previous: str, stage: str) -> str:
 
 def write_block(out: Path, stage: str, previous: str, rows: list[dict], decision: dict,
                 live: dict) -> None:
+    header = (
+        "| candidate | early sum (f00-f07) | lost to other family (early) "
+        "| reversion early pp | degenerate | liveness |"
+    )
     lines = [f"## Stage: {stage}", "", f"*{LABEL}*", "", f"previous arm: `{previous}`", "",
-             "| candidate | early sum (f00-f07) | lost to other family (early) "
-             "| reversion early pp | degenerate | liveness |",
-             "|---|---|---|---|---|---|"]
+             header, "|---|---|---|---|---|---|"]
     for r in rows:
-        lines.append(f"| {r['tag']} | {r['early_sum']:+.2f} | {r['lost_other_early']} | "
-                     f"{r['reversion_early_pp']:+.2f} | {r['degenerate']} | {live.get(r['tag'], '')} |")
+        lines.append(
+            f"| {r['tag']} | {r['early_sum']:+.2f} | {r['lost_other_early']} | "
+            f"{r['reversion_early_pp']:+.2f} | {r['degenerate']} | {live.get(r['tag'], '')} |"
+        )
     lines.append("")
     if decision["chosen"] is None:
         lines.append("chosen: none (no eligible candidate)")
     else:
         late = decision["late"]
-        lines += [f"chosen: `{decision['chosen']}` (best early sum)", "",
-                  f"late (f08-f14) vs `{previous}`: **{late['verdict']}**, delta "
-                  f"{late.get('delta_pp')} pp, CI {late.get('ci_pp_yr')} pp/yr, p {late.get('p')}"]
+        verdict = (
+            f"late (f08-f14) vs `{previous}`: **{late['verdict']}**, delta "
+            f"{late.get('delta_pp')} pp, CI {late.get('ci_pp_yr')} pp/yr, p {late.get('p')}"
+        )
+        lines += [f"chosen: `{decision['chosen']}` (best early sum)", "", verdict]
     lines += ["", f"adopted: **{'yes' if decision['adopted'] else 'no'}**", "", ""]
     with Path(out).open("a") as fh:
         fh.write("\n".join(lines))
@@ -192,7 +199,9 @@ def main(argv=None) -> int:
         return 2
     if os.environ.get("PYTHONHASHSEED") != "0":  # reproducible paired bootstrap
         os.environ["PYTHONHASHSEED"] = "0"
-        os.execv(sys.executable, [sys.executable, "-m", "evaluation.stage", *(argv or sys.argv[1:])])
+        # deliberate: re-exec so the bootstrap's set iteration is reproducible
+        argv_ = [sys.executable, "-m", "evaluation.stage", *(argv or sys.argv[1:])]
+        os.execv(sys.executable, argv_)  # noqa: S606
 
     from evaluation.fingerprint import load_config
     from evaluation.halves import split

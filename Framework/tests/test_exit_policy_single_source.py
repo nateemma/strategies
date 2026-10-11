@@ -225,6 +225,11 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
                                                  # and dataclasses.replace()s VALUES per trade;
                                                  # the stop/exit arithmetic stays in ExitPolicy.
     "utils/tests/test_family_exits.py",        # builds ExitParams fixtures, asserts the swap.
+    # 025 US2 tuning configs: each sets ONE reversion FAMILY_EXIT_OVERRIDES value (atr floor /
+    # volume-confirm flag); no stop arithmetic.
+    "SimpleTrigger/SimpleTrigger_Tune3F05.py",
+    "SimpleTrigger/SimpleTrigger_Tune3F08.py",
+    "SimpleTrigger/SimpleTrigger_Tune4VcOff.py",
     "evaluation/fingerprint.py",               # lists the attribute NAMES it hashes; reads
                                                  # values, computes nothing from them.
     "evaluation/tests/test_fingerprint.py",    # tweaks one attribute to prove the hash moves.

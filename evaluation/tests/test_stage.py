@@ -28,7 +28,10 @@ def test_degenerate_candidates_are_excluded():
 
 
 def test_tie_breaks_are_stage_specific():
-    rows = [_row("x", 3.0, lost_other=100, rev_early=9.0), _row("y", 3.0, lost_other=50, rev_early=1.0)]
+    rows = [
+        _row("x", 3.0, lost_other=100, rev_early=9.0),
+        _row("y", 3.0, lost_other=50, rev_early=1.0),
+    ]
     assert St.select(rows, "coexistence")["tag"] == "y"      # fewer lost to the other family
     assert St.select(rows, "tune2")["tag"] == "x"            # higher reversion early contribution
 
@@ -44,10 +47,13 @@ def test_select_reads_no_late_field():
     assert St.select(rows, "tune1")["tag"] == "b"
 
 
-@pytest.mark.parametrize("verdict, adopted, code", [("IMPROVED", True, 0), ("UNCHANGED", False, 3),
-                                                     ("INCONCLUSIVE_ARM_LOSES", False, 3)])
+@pytest.mark.parametrize(
+    "verdict, adopted, code",
+    [("IMPROVED", True, 0), ("UNCHANGED", False, 3), ("INCONCLUSIVE_ARM_LOSES", False, 3)],
+)
 def test_adoption_requires_late_improved(verdict, adopted, code):
-    d = St.decide(_row("a", 1.0), {"verdict": verdict, "delta_pp": 1.0, "ci_pp_yr": [0, 1], "p": 0.5})
+    late = {"verdict": verdict, "delta_pp": 1.0, "ci_pp_yr": [0, 1], "p": 0.5}
+    d = St.decide(_row("a", 1.0), late)
     assert d["adopted"] is adopted and St.exit_code(d) == code
 
 
