@@ -90,3 +90,31 @@ def test_legacy_configs_match_their_originals(legacy, original):
     a, b = fp.load_strategy_class(legacy), fp.load_strategy_class(original)
     assert _sha(a) == _sha(b), legacy
     assert a.TRIGGER_NAME == b.TRIGGER_NAME
+
+
+# --- feature 024 (T011): ARM_D_FAMILY = ARM_D_OPEN + per-family exit sets ---------------------
+
+
+def test_arm_d_family_is_arm_d_open_plus_family_sets():
+    fam, arm_d = P.get("ARM_D_FAMILY"), P.get("ARM_D_OPEN")
+    for section in ("attributes", "buy", "sell"):
+        assert fam[section] == arm_d[section], section
+    assert fam["family_exits"] == {
+        "reversion": {},
+        "momentum": {"take_profit": 10.0, "unclog_12h_hours": 24.0},
+        "unassigned": {},
+    }
+
+
+def test_shared_presets_resolve_every_family_to_no_overrides():
+    for name in ("ARM_D_OPEN", "LEGACY_TRIGGERONLY"):
+        assert P.family_exits(P.get(name)) == {
+            "reversion": {}, "momentum": {}, "unassigned": {}
+        }, name
+
+
+def test_family_exits_with_an_unknown_family_is_refused():
+    bad = P.get("ARM_D_FAMILY")
+    bad["family_exits"]["sideways"] = {}
+    with pytest.raises(P.PresetError, match="family"):
+        P.validate(bad)

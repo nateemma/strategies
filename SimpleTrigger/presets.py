@@ -132,7 +132,29 @@ LEGACY_TRIGGERONLY = {
     },
 }
 
-PRESETS = {"ARM_D_OPEN": ARM_D_OPEN, "LEGACY_TRIGGERONLY": LEGACY_TRIGGERONLY}
+#: Feature 024: arm D's framework with per-family exit sets (spec FR-002/FR-003, data-model). The
+#: shared sections are ARM_D_OPEN's own dicts (deep-copied by `get`), never a second copy that
+#: could drift. Starting values are 023's measured ones: reversion = ARM_D_OPEN exactly (reproduces
+#: `st_gbb`); momentum = no take-profit + unclog_12h deferred to 24h (reproduces `st_bgo_mx`).
+ARM_D_FAMILY = {
+    "attributes": ARM_D_OPEN["attributes"],
+    "buy": ARM_D_OPEN["buy"],
+    "sell": ARM_D_OPEN["sell"],
+    "family_exits": {
+        "reversion": {},
+        "momentum": {"take_profit": 10.0, "unclog_12h_hours": 24.0},
+        "unassigned": {},
+    },
+}
+
+PRESETS = {
+    "ARM_D_OPEN": ARM_D_OPEN,
+    "LEGACY_TRIGGERONLY": LEGACY_TRIGGERONLY,
+    "ARM_D_FAMILY": ARM_D_FAMILY,
+}
+
+#: Trigger families (feature 024; mirrors utils.FamilyExits.FAMILIES).
+FAMILIES = ("reversion", "momentum", "unassigned")
 
 #: The buy/sell keys every preset must carry (the framework's hyperopt parameters, less the
 #: excluded `prediction_threshold`).
@@ -148,8 +170,11 @@ def validate(preset: dict) -> None:
     from evaluation.fingerprint import ATTRIBUTE_MEMBERS
 
     want = {"attributes": frozenset(ATTRIBUTE_MEMBERS), "buy": BUY_KEYS, "sell": SELL_KEYS}
-    if set(preset) != set(want):
-        raise PresetError(f"preset sections {sorted(preset)} != {sorted(want)}")
+    if set(preset) - {"family_exits"} != set(want):
+        raise PresetError(f"preset sections {sorted(preset)} != {sorted(want)} (+ family_exits)")
+    unknown = sorted(set(preset.get("family_exits", {})) - set(FAMILIES))
+    if unknown:
+        raise PresetError(f"family_exits names unknown family {unknown}; one of {FAMILIES}")
     for section, keys in want.items():
         have = set(preset[section])
         if have != keys:
@@ -165,3 +190,13 @@ def get(name: str) -> dict:
     p = copy.deepcopy(PRESETS[name])
     validate(p)
     return p
+
+
+def family_exits(preset: dict) -> dict:
+    """{family: overrides} for every family; empty for a shared-exit preset (024 C4).
+
+    Key-level validation (ExitParams fields, forbidden shared keys, F3/F5) lives in
+    `utils.FamilyExits`, the single place that applies the sets.
+    """
+    sets = preset.get("family_exits", {})
+    return {f: dict(sets.get(f, {})) for f in FAMILIES}

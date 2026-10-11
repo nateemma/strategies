@@ -376,7 +376,36 @@ def summarize(result_path: Path | None) -> dict:
         "duration_h_p75": round(float(dur_h.quantile(0.75)), 2),
         "trades_per_day": round(len(trades) / max((trades["close_date"].max() - trades["open_date"].min()).days, 1), 4),
         "exit_reason_counts": exit_reason_counts(trades),
+        **tag_accounting(trades),
         **_wallet_stats(result_path),
+    }
+
+
+def tag_accounting(trades) -> dict:
+    """Feature 024 C8: per-family accounting from the trades' `enter_tag` ("<family>:<trigger>[+ov]").
+
+    Computed from the archive, because the strategy's own counters live in freqtrade's process.
+    Empty (fields omitted) when no trade carries a family tag, so pre-024 records are unchanged.
+    """
+    if trades is None or "enter_tag" not in trades:
+        return {}
+    from utils.FamilyExits import family_of
+
+    tags = trades["enter_tag"].astype(object).where(trades["enter_tag"].notna(), None)
+    fam = tags.map(family_of)
+    if fam.notna().sum() == 0:
+        return {}
+    tagged = trades[fam.notna()].assign(_family=fam[fam.notna()])
+    ov = tagged[tags[fam.notna()].str.endswith("+ov")]
+    reasons = {}
+    if "exit_reason" in tagged:
+        for f, grp in tagged.groupby("_family"):
+            reasons[str(f)] = exit_reason_counts(grp)
+    return {
+        "family_trade_counts": {str(k): int(v) for k, v in tagged["_family"].value_counts().sort_index().items()},
+        "overlap_entries": {str(k): int(v) for k, v in ov["_family"].value_counts().sort_index().items()},
+        "untagged_trades": int(fam.isna().sum()),
+        "family_exit_reason_counts": reasons,
     }
 
 

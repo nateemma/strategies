@@ -118,24 +118,24 @@ trade-for-trade in 15/15 folds.
   - strategy-agnostic, with no SimpleTrigger or registry import;
   - `untagged_exits` counter as an instance attribute.
   - T009 must then pass.
-- [ ] T011 [P] [US1] Extend `SimpleTrigger/tests/test_presets.py`:
+- [X] T011 [P] [US1] Extend `SimpleTrigger/tests/test_presets.py`:
   - `ARM_D_FAMILY` has the same attributes, buy and sell as `ARM_D_OPEN`, plus the
     `FAMILY_EXITS` = {reversion: {}, momentum: {take_profit: 10.0, unclog_12h_hours: 24.0},
     unassigned: {}} from data-model.md;
   - `ARM_D_OPEN` and `LEGACY_TRIGGERONLY` resolve every family to `{}`.
-- [ ] T012 [US1] Edit `SimpleTrigger/presets.py`:
+- [X] T012 [US1] Edit `SimpleTrigger/presets.py`:
   - add the `ARM_D_FAMILY` preset (it reuses `ARM_D_OPEN`'s dicts by reference/merge, not by
     copy-paste) with its `family_exits` block;
   - `validate()` checks the family-set keys.
   - T011 must then pass.
-- [ ] T013 [US1] Edit `SimpleTrigger/SimpleTriggerStrategy.py` (contract C4, single-trigger path):
+- [X] T013 [US1] Edit `SimpleTrigger/SimpleTriggerStrategy.py` (contract C4, single-trigger path):
   - the MRO becomes `(FamilyExitMixin, StopInvariantMixin, BaseStrategy)`;
   - `_apply_preset` resolves `FAMILY_EXITS`, with a subclass override merged per family;
   - after `super().populate_entry_trend()`, `populate_entry_trend` sets `enter_tag` to
     `f"{family}:{trigger}"` on signal rows, using the registry family;
   - update the class docstring, which still says `enter_tag` stays "model_entry ".
   - Every existing SimpleTrigger test must still pass, including `test_legacy_reproduction.py`.
-- [ ] T014 [P] [US1] Write a unit test in `SimpleTrigger/tests/test_family_tagging.py`:
+- [X] T014 [P] [US1] Write a unit test in `SimpleTrigger/tests/test_family_tagging.py`:
   - on a synthetic populated frame, `SimpleTrigger_FamGbb`'s signal rows carry `reversion:gbb`,
     and non-signal rows carry "";
   - an `ARM_D_OPEN` config's `_exit_params(trade)` with a `momentum:` tag equals its base params
@@ -143,7 +143,7 @@ trade-for-trade in 15/15 folds.
   - (F8, FR-004) on an `ARM_D_FAMILY` config, a trade tagged `momentum:breakout_gbb` gets the
     momentum params even when the strategy's latest frame fires only `gbb`: exits read the stored
     tag, never the current bar.
-- [ ] T015 [US1] Edit `evaluation/fingerprint.py` (contract C7):
+- [X] T015 [US1] Edit `evaluation/fingerprint.py` (contract C7):
   - extend `OPTIONAL_ATTRIBUTE_MEMBERS` handling with `TRIGGERS`, `DISABLED_TRIGGERS` and
     `FAMILY_PRIORITY`;
   - add `FAMILY_EXITS_RESOLVED` (the full `ExitParams` dict per family, computed from the
@@ -158,11 +158,11 @@ trade-for-trade in 15/15 folds.
       the `TRIGGERS` mapping;
     - (F6) each of these changes the sha: one momentum value, a `FAMILY_PRIORITY` flip, and a
       monkeypatched trigger family in `TRIGGER_FAMILIES`.
-- [ ] T016 [US1] Create `SimpleTrigger/SimpleTrigger_FamGbb.py` (`TRIGGER_NAME="gbb"`,
+- [X] T016 [US1] Create `SimpleTrigger/SimpleTrigger_FamGbb.py` (`TRIGGER_NAME="gbb"`,
   `PRESET="ARM_D_FAMILY"`) and `SimpleTrigger/SimpleTrigger_FamBgo.py`
   (`TRIGGER_NAME="breakout_gbb"`, `PRESET="ARM_D_FAMILY"`). Derive plans `st_fam_gbb` and
   `st_fam_bgo` with `foldplan derive --from evaluation/folds/plan_NNNC_A_Raw_Open.json`.
-- [ ] T017 [US1] Edit `regime/run_arm.py` (contract C8, F2). From the backtest archive's trades
+- [X] T017 [US1] Edit `regime/run_arm.py` (contract C8, F2). From the backtest archive's trades
   (the same source `trades_hash` uses), compute:
   - `untagged_trades`: `enter_tag` without a recognised family prefix;
   - `family_trade_counts`;
@@ -171,7 +171,7 @@ trade-for-trade in 15/15 folds.
 
   All are omitted when no trade carries a family tag. Add a unit test on a synthetic trades frame
   in `evaluation/tests/test_run_arm_tags.py`.
-- [ ] T018 [US1] Run `st_fam_gbb`, then `st_fam_bgo` (sequentially). SC-001:
+- [X] T018 [US1] Run `st_fam_gbb`, then `st_fam_bgo` (sequentially). SC-001:
   - their per-fold `trades_hash` equals `st_gbb` and `st_bgo_mx` in 15/15 folds;
   - `untagged_trades` = 0 (SC-007);
   - `st_fam_bgo`'s `unclog_12h` / `unclog_1d` totals equal `st_bgo_mx`'s (liveness, research R5).

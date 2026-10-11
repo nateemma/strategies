@@ -179,12 +179,50 @@ def _jsonable(v):
     return repr(v)
 
 
+def _family_members(strategy_cls, sell_values: dict) -> dict:
+    """Feature 024 C7 / F1: trigger-family members, ONLY for an arm that uses them.
+
+    Included when the class is in family mode (some family exit set non-empty), multi-trigger
+    mode (more than one trigger) or disabled-side mode (non-empty DISABLED_TRIGGERS). A
+    single-trigger, shared-exit class -- every 023 config -- hashes exactly as before, so
+    SimpleTrigger_Gbb stays arm D's twin (303456c1fa322b4c).
+    """
+    sets = getattr(strategy_cls, "FAMILY_EXITS", None) or {}
+    triggers = tuple(getattr(strategy_cls, "TRIGGERS", None) or ())
+    if not triggers and getattr(strategy_cls, "TRIGGER_NAME", None):
+        triggers = (strategy_cls.TRIGGER_NAME,)
+    disabled = tuple(getattr(strategy_cls, "DISABLED_TRIGGERS", None) or ())
+    if not (any(sets.values()) or len(triggers) > 1 or disabled):
+        return {}
+    import dataclasses
+
+    from research.outcomes import triggers as registry
+    from utils.FamilyExits import FamilyExitMixin, class_level_exit_params
+
+    registry.ensure_builtins()
+    if not issubclass(strategy_cls, FamilyExitMixin):
+        raise TypeError(f"{strategy_cls.__name__}: family members without FamilyExitMixin")
+    # The resolved sell space (JSON merged), not the Parameters' class-level defaults.
+    base = class_level_exit_params(strategy_cls, sell_values)
+    return {
+        "TRIGGERS": list(triggers),
+        "DISABLED_TRIGGERS": list(disabled),
+        "FAMILY_PRIORITY": list(getattr(strategy_cls, "FAMILY_PRIORITY", None) or ()),
+        "FAMILY_EXITS_RESOLVED": {
+            family: _jsonable(dataclasses.asdict(dataclasses.replace(base, **(overrides or {}))))
+            for family, overrides in sorted(sets.items())
+        },
+        "TRIGGER_FAMILIES": {t: registry.get(t).family for t in triggers},
+    }
+
+
 def _resolve_attributes(strategy_cls, file_params: dict) -> dict:
     attributes = {key: _jsonable(getattr(strategy_cls, key, None)) for key in ATTRIBUTE_MEMBERS}
     for key in OPTIONAL_ATTRIBUTE_MEMBERS:
         value = getattr(strategy_cls, key, None)
         if value is not None:
             attributes[key] = _jsonable(value)
+
     # JSON special sections replace the attribute (hyper.py ft_bot_start / load_params)
     if "roi" in file_params:
         attributes["minimal_roi"] = _jsonable(file_params["roi"])
@@ -234,6 +272,7 @@ def resolve(strategy_cls, params_json: dict | None, config: dict) -> tuple[str, 
         "sell": _resolve_space(strategy_cls, params, file_params, "sell"),
         "run": run,
     }
+    resolved["attributes"].update(_family_members(strategy_cls, resolved["sell"]))
     canonical = json.dumps(resolved, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode()).hexdigest()[:16], resolved
 

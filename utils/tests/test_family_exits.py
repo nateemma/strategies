@@ -109,3 +109,14 @@ def test_f5_hold_window_sanity(recwarn):
 def test_empty_family_exits_is_a_no_op():
     s = _strategy({})()
     assert s._exit_params(_trade("momentum:breakout_gbb")) == _base_params()
+
+
+def test_class_level_params_overlay_sell_params_values():
+    # Parameter class-level .value is the declared default; sell_params is what freqtrade loads.
+    from utils.FamilyExits import class_level_exit_params
+
+    cls = type("CL", (FamilyExitMixin, _Base), {"FAMILY_EXITS": {}, "sell_params": {
+        "cexit_take_profit": 0.031, "cexit_max_days": 4}})
+    p = class_level_exit_params(cls)
+    assert p.take_profit == 0.031 and p.max_hold_days == 4
+    assert class_level_exit_params(cls, {"cexit_take_profit": 0.05}).take_profit == 0.05

@@ -56,3 +56,19 @@ Unit tests:
 - `test_exit_policy_single_source`: needed allowlist entries for the 10 committed 023 `_MomExit`
   configs (a 023 oversight: they set `cexit_take_profit`) and the new T002 test. All of them are
   CONFIGURING, none IMPLEMENTING.
+
+## T018 — SC-001: PASS (US1 MVP)
+
+| family arm | reference | identical folds | untagged_trades | family_trade_counts | exit counts equal |
+|---|---|---|---|---|---|
+| `st_fam_gbb` (gbb, ARM_D_FAMILY) | `st_gbb` | **15/15** | 0 | reversion 9,056 | yes: take_profit 3839, unclog_12h 1442, unclog_1d 64 |
+| `st_fam_bgo` (breakout_gbb, ARM_D_FAMILY) | `st_bgo_mx` | **15/15** | 0 | momentum 6,156 | yes: take_profit 0, unclog_12h 737, unclog_1d 257 |
+
+The momentum set (`take_profit=10.0`, `unclog_12h_hours=24.0` through `ExitParams`) is LIVE and
+byte-equivalent to 023's `HoldWindowMixin` arm. That confirms the research R5 case analysis.
+
+**Defect found and fixed during T015.** Calling `_exit_params` with the class as `self` reads hyperopt
+Parameters' class-level `.value`, which is the declared default (`cexit_take_profit` 0.008).
+freqtrade applies `sell_params` (0.022) only on the instance. The fingerprint's resolved family sets
+and the mixin's class-creation checks now overlay the resolved sell values
+(`utils.FamilyExits.class_level_exit_params`). Live instances were never affected.

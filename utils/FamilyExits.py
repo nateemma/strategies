@@ -64,6 +64,43 @@ def family_of(tag) -> str | None:
     return family if family in FAMILIES else None
 
 
+def _parent_exit_params(obj, trade=None):
+    """The `_exit_params` defined AFTER FamilyExitMixin in the MRO, called on `obj`.
+
+    `obj` may be an instance or a class: the fingerprint and the tests call `cls._exit_params(cls)`
+    without instantiating (an NNNC instance loads or trains a model), and a zero-argument
+    `super()` does not bind when `self` is a class.
+    """
+    klass = obj if isinstance(obj, type) else type(obj)
+    mro = klass.__mro__
+    for k in mro[mro.index(FamilyExitMixin) + 1 :]:
+        fn = k.__dict__.get("_exit_params")
+        if fn is not None:
+            return fn(obj, trade)
+    raise AttributeError(f"{klass.__name__}: no _exit_params after FamilyExitMixin in the MRO")
+
+
+def class_level_exit_params(cls, sell_values: dict | None = None):
+    """The `ExitParams` an instance of `cls` will run, computed WITHOUT instantiating.
+
+    Calling `_exit_params` with the class as `self` reads hyperopt Parameters' class-level
+    `.value` (their declared default, e.g. cexit_take_profit 0.008); freqtrade applies
+    `sell_params` / the params JSON only when it builds the instance (0.022 for arm D). Overlay
+    the resolved sell values so class-level checks see what the instance will run.
+    `sell_values` defaults to `cls.sell_params`; the fingerprint passes its JSON-merged values.
+    """
+    base = _parent_exit_params(cls)
+    sell = getattr(cls, "sell_params", {}) if sell_values is None else sell_values
+    over = {field: sell[name] for name, field in _SELL_TO_FIELD.items() if name in sell}
+    if "take_profit" in over:
+        over["take_profit"] = float(over["take_profit"])
+    if "max_hold_days" in over:
+        over["max_hold_days"] = int(over["max_hold_days"])
+    if "cexit_enable_profit_checks" in over:
+        over["cexit_enable_profit_checks"] = bool(over["cexit_enable_profit_checks"])
+    return dataclasses.replace(base, **over)
+
+
 def _validate(cls) -> None:
     sets = getattr(cls, "FAMILY_EXITS", None) or {}
     unknown = sorted(set(sets) - set(FAMILIES))
@@ -71,7 +108,7 @@ def _validate(cls) -> None:
         raise FamilyExitError(f"{cls.__name__}: unknown family {unknown}; one of {FAMILIES}")
     if not any(sets.values()):
         return
-    base = cls._exit_params(cls)  # class attributes + Parameter defaults; never instantiates
+    base = class_level_exit_params(cls)  # what an instance will run; never instantiates
     explicit = {_SELL_TO_FIELD[k] for k in getattr(cls, "SELL_OVERRIDES", {}) if k in _SELL_TO_FIELD}
     explicit |= {_ATTR_TO_FIELD[k] for k in getattr(cls, "ATTR_OVERRIDES", {}) if k in _ATTR_TO_FIELD}
     for family, overrides in sets.items():
@@ -107,27 +144,38 @@ def _validate(cls) -> None:
             )
 
 
+def validate_family_exits(cls) -> None:
+    """Public entry point for subclasses that resolve FAMILY_EXITS after class creation."""
+    _validate(cls)
+
+
 class FamilyExitMixin:
     """Choose `_exit_params` by the trade's entry family. Mix in AHEAD of the strategy base."""
 
     #: {family: {ExitParams field: value}}. Empty / all-empty = shared exits for every trade.
     FAMILY_EXITS: dict = {}
 
+    #: A subclass that resolves FAMILY_EXITS itself (e.g. from a preset) sets this False and
+    #: calls `validate_family_exits(cls)` once its attributes are final.
+    _FAMILY_VALIDATE_ON_SUBCLASS = True
+
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        _validate(cls)
+        if cls._FAMILY_VALIDATE_ON_SUBCLASS:
+            _validate(cls)
 
     @property
     def untagged_exits(self) -> int:
         return getattr(self, "_untagged_exits", 0)
 
     def _exit_params(self, trade=None):
-        base = super()._exit_params(trade)
+        base = _parent_exit_params(self, trade)
         if trade is None:
             return base
         family = family_of(getattr(trade, "enter_tag", None))
         if family is None:
-            self._untagged_exits = self.untagged_exits + 1
+            if not isinstance(self, type):  # class-as-self (fingerprint/tests): nothing to count
+                self._untagged_exits = getattr(self, "_untagged_exits", 0) + 1
             return base
         overrides = (self.FAMILY_EXITS or {}).get(family) or {}
         return dataclasses.replace(base, **overrides) if overrides else base

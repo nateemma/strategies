@@ -35,8 +35,13 @@ inherits `exit_profit_only = True` from BaseStrategy, so ARM_D_OPEN carries it t
 ENTRY LAG. A signal on the last closed candle fills at the next candle's open -- the same pairing
 the outcome table uses (`labels.entry_mask`). No manual shift; adding one would double-lag.
 
-`enter_tag` stays BaseStrategy's "model_entry " (set in `populate_entry_trend`, which this
-family deliberately does not override); the trigger name is in the arm record instead.
+ENTRY TAG AND FAMILIES (feature 024, contract C4). Every signal row is tagged
+`"<family>:<trigger>"` (family from the trigger registry), replacing BaseStrategy's
+"model_entry ". freqtrade copies the tag onto the trade, and `FamilyExitMixin` chooses that
+trade's exit parameters from it for the trade's whole life. Exits are per-family only under a
+preset that carries family sets (`ARM_D_FAMILY`); under `ARM_D_OPEN` / `LEGACY_TRIGGERONLY`
+every family resolves to the shared exits, so 023's configs are unchanged. Nothing reads the
+tag except the exit hook, and `trades_hash` does not include it.
 """
 
 import sys
@@ -50,6 +55,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from Framework.BaseStrategy import BaseStrategy, StrategyConfig
 from SimpleTrigger import presets as _presets
+from utils.FamilyExits import FamilyExitMixin, validate_family_exits
 from utils.StopInvariants import StopInvariantMixin
 
 
@@ -58,11 +64,12 @@ EXIT_MODES = ("decoupled", "coupled")
 
 def _apply_preset(cls) -> None:
     """Write the preset (+ overrides) onto `cls`. Called for the base and every subclass."""
-    for forbidden in ("buy_params", "sell_params"):
+    for forbidden in ("buy_params", "sell_params", "FAMILY_EXITS"):
         if forbidden in cls.__dict__ and cls is not SimpleTriggerStrategy:
             raise _presets.PresetError(
                 f"{cls.__name__} declares its own `{forbidden}`. Use BUY_OVERRIDES / "
-                f"SELL_OVERRIDES: a fresh dict silently drops inherited keys (constitution)."
+                f"SELL_OVERRIDES / FAMILY_EXIT_OVERRIDES: a fresh dict silently drops "
+                f"inherited keys (constitution)."
             )
     if cls.EXIT_MODE not in EXIT_MODES:
         raise _presets.PresetError(
@@ -95,9 +102,23 @@ def _apply_preset(cls) -> None:
     cls.buy_params = {**BaseStrategy.buy_params, **buy}
     cls.sell_params = {**BaseStrategy.sell_params, **sell}
 
+    # 024: per-family exit sets = preset's, merged PER FAMILY with FAMILY_EXIT_OVERRIDES.
+    families = _presets.family_exits(preset)
+    unknown = sorted(set(cls.FAMILY_EXIT_OVERRIDES) - set(families))
+    if unknown:
+        raise _presets.PresetError(f"{cls.__name__}: FAMILY_EXIT_OVERRIDES unknown family {unknown}")
+    for family, overrides in cls.FAMILY_EXIT_OVERRIDES.items():
+        families[family] = {**families[family], **overrides}
+    cls.FAMILY_EXITS = families
 
-class SimpleTriggerStrategy(StopInvariantMixin, BaseStrategy):
+
+class SimpleTriggerStrategy(FamilyExitMixin, StopInvariantMixin, BaseStrategy):
     """Trigger + framework preset, no model. Subclass and set TRIGGER_NAME."""
+
+    # FAMILY_EXITS is resolved by `_apply_preset`, so validate after it, not on class creation.
+    _FAMILY_VALIDATE_ON_SUBCLASS = False
+    #: {family: {ExitParams field: value}} merged over the preset's family set (024).
+    FAMILY_EXIT_OVERRIDES: dict = {}
 
     TRIGGER_NAME: str | None = None
     PRESET: str = "ARM_D_OPEN"
@@ -112,8 +133,9 @@ class SimpleTriggerStrategy(StopInvariantMixin, BaseStrategy):
     strategy_config = StrategyConfig()
 
     def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
         _apply_preset(cls)
+        super().__init_subclass__(**kwargs)
+        validate_family_exits(cls)
 
     def _refuse(self, reason: str, n: int) -> np.ndarray:
         if not getattr(self, "_st_refusal_reported", False):
@@ -149,7 +171,10 @@ class SimpleTriggerStrategy(StopInvariantMixin, BaseStrategy):
             from research.outcomes import triggers as _triggers
 
             _triggers.ensure_builtins()
-            return _triggers.evaluate(name, dataframe).to_numpy()
+            mask = _triggers.evaluate(name, dataframe).to_numpy()
+            family = _triggers.get(name).family
+            self._st_tags = np.where(mask, f"{family}:{name}" if family else "", "")
+            return mask
         except Exception as exc:
             return self._refuse(
                 f"could not evaluate trigger {name!r} ({type(exc).__name__}: "
@@ -158,4 +183,16 @@ class SimpleTriggerStrategy(StopInvariantMixin, BaseStrategy):
             )
 
 
+    def populate_entry_trend(self, dataframe: DataFrame, metadata: dict) -> DataFrame:
+        """BaseStrategy's entry, then the family tag on every signal row (024 C4)."""
+        self._st_tags = None
+        dataframe = super().populate_entry_trend(dataframe, metadata)
+        tags = self._st_tags
+        if tags is not None and len(tags) == len(dataframe):
+            signal = tags != ""
+            dataframe.loc[signal, "enter_tag"] = tags[signal]
+        return dataframe
+
+
 _apply_preset(SimpleTriggerStrategy)
+validate_family_exits(SimpleTriggerStrategy)

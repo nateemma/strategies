@@ -116,3 +116,47 @@ def test_hold_window_changes_the_sha_and_unset_leaves_shas_alone():
     assert sha_held != sha_base
     assert sha_base == "303456c1fa322b4c"
     assert _resolve("NNNC_A_Raw_Open")[0] == "303456c1fa322b4c"
+
+
+# --- feature 024 T015 (contract C7, F1, F6): family members hashed only when used ------------
+
+
+def test_shared_single_trigger_classes_keep_their_023_sha():
+    for name in ("NNNC_A_Raw_Open", "SimpleTrigger_Gbb"):
+        sha, resolved = _resolve(name)
+        assert sha == "303456c1fa322b4c", name
+        assert "FAMILY_EXITS_RESOLVED" not in resolved["attributes"], name
+
+
+def test_family_mode_arm_hashes_its_family_sets():
+    sha, resolved = _resolve("SimpleTrigger_FamBgo", params_json=None)
+    attrs = resolved["attributes"]
+    assert attrs["FAMILY_EXITS_RESOLVED"]["momentum"]["take_profit"] == 10.0
+    assert attrs["FAMILY_EXITS_RESOLVED"]["momentum"]["unclog_12h_hours"] == 24.0
+    assert attrs["FAMILY_EXITS_RESOLVED"]["reversion"]["take_profit"] == 0.022
+    assert attrs["TRIGGER_FAMILIES"] == {"breakout_gbb": "momentum"}
+    assert sha != "303456c1fa322b4c"
+
+
+def _sha_of(cls):
+    return fp.resolve(cls, None, fp.load_config(CONFIG))[0]
+
+
+def test_each_family_dimension_moves_the_sha(monkeypatch):
+    base = fp.load_strategy_class("SimpleTrigger_FamBgo")
+    sha0 = _sha_of(base)
+    # one momentum value
+    tp = type("TP", (base,), {"FAMILY_EXIT_OVERRIDES": {"momentum": {"unclog_12h_hours": 20.0}}})
+    assert _sha_of(tp) != sha0
+    # the priority order (F6)
+    pr = type("PR", (base,), {"FAMILY_PRIORITY": ("momentum", "reversion", "unassigned")})
+    assert _sha_of(pr) != sha0
+    # a trigger's family in the mapping (F6)
+    from research.outcomes import triggers as registry
+
+    registry.ensure_builtins()
+    t = registry.get("breakout_gbb")
+    import dataclasses
+
+    monkeypatch.setitem(registry._REGISTRY, "breakout_gbb", dataclasses.replace(t, family="unassigned"))
+    assert _sha_of(base) != sha0

@@ -221,6 +221,10 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
     # feature 024 C1: builds stub attributes (incl. use_volume_confirmation_stoploss) to prove
     # the trade hook is neutral; the stop it asserts is computed by ExitPolicy.atr_stop_fraction.
     "Framework/tests/test_exit_params_trade_hook.py",
+    "utils/FamilyExits.py",                    # 024 C2: maps override NAMES to ExitParams fields
+                                                 # and dataclasses.replace()s VALUES per trade;
+                                                 # the stop/exit arithmetic stays in ExitPolicy.
+    "utils/tests/test_family_exits.py",        # builds ExitParams fixtures, asserts the swap.
     "evaluation/fingerprint.py",               # lists the attribute NAMES it hashes; reads
                                                  # values, computes nothing from them.
     "evaluation/tests/test_fingerprint.py",    # tweaks one attribute to prove the hash moves.
