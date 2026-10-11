@@ -245,3 +245,40 @@ Reading:
 - **Coupling implication.** The exit components that matter interact with the trigger (ATR
   band, take-profit, volume-confirm), so a single global exit stack is a compromise across
   triggers. This argues for per-trigger exit parameters, which is coupled mode's purpose.
+
+## Addendum 3 (2026-10-11): momentum-exit cheap check
+
+Question: do momentum triggers want a different exit cycle from arm D's shared stack? For each of the
+5 momentum triggers, three arms were compared: full; no take-profit (`__take_profit` from Addendum 2);
+and `_mx`, which is no take-profit plus `unclog_12h` deferred to 24h via `NNNC/_hold_window.HoldWindowMixin`.
+The hold window is LIVE in every arm: `unclog_12h` exits fall by about two thirds and `unclog_1d`
+exits rise about 3–5×. **PROVISIONAL (gate 2).**
+
+| trigger | full | no TP | no TP + 24h hold | `_mx` early / late |
+|---|---|---|---|---|
+| `breakout` | −54.26 | −51.43 | −52.84 | −35.15 / −17.69 |
+| `breakout_vol` | −43.85 | −48.78 | −46.27 | −32.33 / −13.95 |
+| `breakout_squeeze` | −42.97 | −42.79 | −38.06 | −26.38 / −11.68 |
+| `breakout_bb` | −1.09 | +19.87 | **+20.89** | **+16.22 / +4.67** |
+| `breakout_gbb` | −5.86 | +24.37 | **+25.19** | **+22.68 / +2.50** |
+
+Paired (`PYTHONHASHSEED=0`):
+- `st_bbo_mx` vs `st_bbo`: +5.96pp/yr, CI [−2.84, +14.96], p 0.18. UNCHANGED.
+- `st_bgo_mx` vs `st_bgo`: +8.42pp/yr, CI [−1.08, +18.06], p 0.08. UNCHANGED.
+- Against `st_gbb`, both are UNCHANGED (p 0.68 / 0.57). They share only ~190 trades with `gbb`,
+  so the entry sets are almost disjoint.
+- Per-fold correlation with `st_gbb` is 0.54 (`bgo_mx`) and 0.39 (`bbo_mx`): moderate, not orthogonal.
+
+Reading:
+- **The split is not "breakout vs reversion".** The true price breakouts (`breakout`, `_vol`,
+  `_squeeze`) are not rescued by a longer cycle. They stay at −38 to −53pp, negative in both halves.
+- **The band-position momentum triggers (`breakout_bb`, `breakout_gbb`) are rescued by removing the
+  take-profit.** The 24h hold adds about 1pp in total but moves late-half gains to the positive
+  side. Both `_mx` arms are the only no-model arms besides `gbb_tight` that are positive in both
+  halves, and they beat `gbb` in the late half (+4.7 / +2.5 vs −19.3).
+- None of these deltas resolves (p ≥ 0.08). Direction is consistent in both halves for both triggers.
+
+**Instrument gap found:** `evaluation/fingerprint.py` does not capture `HOLD_WINDOW_HOURS`, so
+`_mx` and `__take_profit` arms hash identically despite different trades. Liveness was proven
+from exit counts instead. The fingerprint needs the mixin's attribute before a family-preset feature
+relies on it.
