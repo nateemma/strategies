@@ -146,15 +146,22 @@ momentum alone as the reference.
   pre-declared rule (e.g. the early-period median, or the threshold maximising early reversion P&L
   separation over a small fixed grid).
 - **FR-004**: The feasibility gate (US1) MUST use only existing trades and price data, with no new
-  backtests. It MUST score each instrument on the reversion family's trades from the always-on combined
-  arm and from reversion alone. PASS requires all of:
+  backtests. PASS is decided on the reversion trades of the always-on combined arm
+  (`st_fam_combo`). Reversion alone (`st_gbb`) is scored and reported as a cross-check, and its
+  disagreement is flagged, never used as a veto (analyze M2). PASS requires all of:
   - the "off" state's reversion P&L is negative in BOTH halves;
   - the "on" state's reversion P&L is positive in the early half;
-  - the "on" state keeps ≥ 50% of early reversion trades.
+  - the "on" state keeps ≥ 50% of early reversion trades;
+  - (analyze M1) the gate is not a calendar switch: its late-half "off" state is not one contiguous
+    run covering > 80% of late bars.
   If no instrument passes, the feature MUST stop after the report.
 - **FR-005**: The gate MUST affect only reversion-family entries. Momentum-family entries, all exits
   and all other framework settings MUST be unchanged. Entries are refused, never closed.
 - **FR-006**: A gated arm with the gate disabled MUST reproduce `st_fam_combo` trade-for-trade.
+  Gated arms need a long warm-up so the instruments are defined from the first bar of each fold
+  (analyze H1). An "always-on" control with the same longer warm-up and no gate MUST also be run.
+  If it differs from `st_fam_combo`, that control, not `st_fam_combo`, is the always-on comparison
+  for the gated arms.
 - **FR-007**: Every gated arm MUST report the number of reversion entries the gate refused, per half
   (liveness, constitution IV), and the share of bars in the "off" state per half.
 - **FR-008**: Among passing instruments, the gated arm MUST be chosen on f00–f07 and judged on f08–f14

@@ -42,8 +42,8 @@ choice. The acceptance tests for US2 are walk-forward reproductions.
 
 - [ ] T002 [P] Write `utils/tests/test_regime_state.py` (contract C1, research R5). Cases:
   - (a) each of `breadth`, `volreg`, `persist` and `btctrend`, computed on real 15m data (SOL,
-    LTC, AAVE, XRP, ZEC + BTC, a slice of 2023-10-01 ± 40 days), is causal under truncation at 16
-    cut points: values at or before each cut are identical between the full and truncated
+    LTC, AAVE, XRP, ZEC + BTC, a slice of 2023-10-01 ± 120 days, so every instrument is defined at
+    every cut; analyze L1), is causal under truncation at 16 cut points: values at or before each cut are identical between the full and truncated
     computations (NaN==NaN);
   - (b) a planted control (a centred rolling mean of close) FAILS the same check;
   - (c) `breadth` is NaN where fewer than 6 pairs have data, and lies in [0, 1] elsewhere;
@@ -80,6 +80,8 @@ both halves.
     with each condition failed once in a fixture;
   - (e) NaN instrument values count as "on";
   - (f) off-bar share and off-run counts on a known series;
+  - (f2) (M1) an instrument whose late "off" is one contiguous run over > 80% of late bars is a
+    STOP even when its P&L split passes;
   - (g) exit 3 when no instrument passes, exit 0 when one passes, exit 2 on a missing input.
 - [ ] T005 [US1] Create `research/regime_gate/feasibility.py` (contract C2):
   - load the 10 whitelist pairs and BTC (`research.clfstudy.data.load_pair`);
@@ -96,9 +98,8 @@ both halves.
 - [ ] T007 [US1] Run `python -m research.regime_gate.feasibility --primary st_fam_combo --cross
   st_gbb --out specs/026-reversion-regime-gate/feasibility.md`.
 - [ ] T008 [US1] **STOP gate.** Record the per-instrument verdicts in `baseline.md`, along with
-  off-bar shares and off-run counts (calendar-switch check: a PASS whose late "off" is one
-  contiguous run covering > 80% of late bars is flagged as a calendar switch and treated as
-  STOP for that instrument).
+  off-bar shares and off-run counts. The calendar-switch rule is applied by the script itself
+  (FR-004, R3), not decided here.
   - If no instrument passes, mark T009–T017 `[-]` with the reason and go to Phase 5.
   - Otherwise, list the passing instruments and their rules (from `feasibility.json`) for Phase 4.
 
@@ -116,7 +117,8 @@ both halves.
   - momentum rows are never dropped;
   - NaN state counts as "on";
   - sink `regime_gate_refused` / `regime_gate_off_bars` counts;
-  - validation refuses an unknown instrument, a bad `off_when`, or no enabled reversion trigger.
+  - validation refuses an unknown instrument, a bad `off_when`, no enabled reversion trigger, or
+    (H1) `startup_candle_count < 3600` with a gate set.
 - [ ] T010 [US2] Edit `SimpleTrigger/SimpleTriggerStrategy.py` (contract C3):
   - `REVERSION_REGIME_GATE`;
   - `informative_pairs()` (BTC when needed);
@@ -130,20 +132,36 @@ both halves.
 - [ ] T011 [P] [US2] Edit `evaluation/fingerprint.py` (contract C4): `REVERSION_REGIME_GATE` joins
   the optional family members when non-None. Test that existing shas are unchanged and that gated
   configs are distinct.
-- [ ] T012 [P] [US2] Edit `evaluation/stage.py` (contract C5): add `--bar <tag>` (default
-  `--previous`). The late judgement is chosen vs the bar, and the block records both the bar
-  verdict and the vs-previous verdict. Extend `evaluation/tests/test_stage.py`: adoption follows
-  the `--bar` verdict only.
-- [ ] T013 [US2] Create `SimpleTrigger/SimpleTrigger_RegGateOff.py` (`REVERSION_REGIME_GATE = None`,
-  subclass of `SimpleTrigger_FamCombined`) and derive plan `st_reg_off`. Run it. It must reproduce
-  `st_fam_combo` in 15/15 folds by `trades_hash` (FR-006). **STOP on divergence.**
+- [ ] T012 [P] [US2] Edit `evaluation/stage.py` (contract C5):
+  - add `--bar <tag>` (default `--previous`). The late judgement is chosen vs the bar, and the block
+    records both the bar verdict and the vs-previous verdict;
+  - (H2) for `--stage regime`, the degeneracy rule checks only the momentum family (both halves)
+    and reversion's early half.
+
+  Extend `evaluation/tests/test_stage.py`:
+  - adoption follows the `--bar` verdict only;
+  - a regime candidate whose reversion keeps 10% of its late trades is NOT degenerate, while a
+    coexistence candidate with the same counts still is.
+- [ ] T013 [US2] Create two controls, subclasses of `SimpleTrigger_FamCombined`:
+  - (a) `SimpleTrigger_RegGateOff.py` (`REVERSION_REGIME_GATE = None`, default startup), plan
+    `st_reg_off`. It must reproduce `st_fam_combo` in 15/15 folds by `trades_hash` (FR-006).
+    **STOP on divergence.**
+  - (b) (H1) `SimpleTrigger_RegOn3600.py` (gate None, `startup_candle_count = 3600`), plan
+    `st_reg_on3600`. If it reproduces `st_fam_combo` 15/15, record "startup neutral". Otherwise
+    record the difference and use `st_reg_on3600` as `--previous` and as the always-on comparison
+    in T016/T017.
+
+  Also run the US1-parity check from research R4: instrument values at fold starts, 3600-bar
+  truncation against full history.
 - [ ] T014 [US2] For each PASSING instrument, create `SimpleTrigger/SimpleTrigger_RegGate<Inst>.py`
-  with the rule from `feasibility.json`, and derive plan `st_reg_<inst>`. Run the chain.
+  with the rule from `feasibility.json` and `startup_candle_count = 3600` (H1). Derive plan
+  `st_reg_<inst>`. Run the chain.
   Liveness: non-zero `regime_gate_refused` in each arm, plus the momentum family's trade count.
   Record both in `baseline.md`.
 - [ ] T015 [US2] Pool the gated arms. Run `evaluation.contention` against `st_gbb` / `st_bgo_mx`
   for each.
-- [ ] T016 [US2] Run `python -m evaluation.stage --stage regime --previous st_fam_combo --bar
+- [ ] T016 [US2] Run `python -m evaluation.stage --stage regime --previous <always-on comparison
+  from T013: st_fam_combo or st_reg_on3600> --bar
   st_bgo_mx --candidates <st_reg_* tags> --singles reversion=st_gbb,momentum=st_bgo_mx --out
   specs/026-reversion-regime-gate/decisions.md`. Record the adopted arm, or none.
 - [ ] T017 [US2] Compare the stage winner against `st_bgo_mx`, `st_fam_combo` and `st_gbb`

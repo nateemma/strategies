@@ -35,6 +35,10 @@ NaN → "on" (reversion allowed).
 
 `REVERSION_REGIME_GATE = None | {"instrument": id, "threshold": float, "off_when": "ge"|"lt"}`.
 
+Gated arms and the always-on control set `startup_candle_count = 3600` (analyze H1). Validation
+refuses a gate with `startup_candle_count < 3600`: the instrument would be undefined for part of
+each fold, and so partly INERT.
+
 - `None` reproduces `st_fam_combo`.
 - Validation: a known id, a finite threshold, `off_when` in the allowed set, and an enabled
   reversion trigger present (otherwise the gate is INERT by construction).

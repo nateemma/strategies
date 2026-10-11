@@ -39,6 +39,9 @@ python -m research.regime_gate.feasibility --primary st_fam_combo --cross st_gbb
   4. overlap rows in `off` are tagged momentum.
 - Sink: `regime_gate_refused` and `regime_gate_off_bars` (025 C3 format).
 - `None`: byte-identical to 025.
+- **Warm-up (H1):** a gate requires `startup_candle_count >= 3600`, or class creation is refused.
+  The control `SimpleTrigger_RegOn3600` (gate None, startup 3600) establishes whether the longer
+  startup is itself neutral.
 
 ## C4 — Fingerprint
 
@@ -51,5 +54,7 @@ python -m research.regime_gate.feasibility --primary st_fam_combo --cross st_gbb
 `st_bgo_mx` (FR-008).
 - Adoption requires late IMPROVED against the better constant. The arm compared against is the one
   with the higher late-half sum (here `st_bgo_mx`).
-- **Required change to `stage.py`:** a `--bar` option naming the arm to judge against, defaulting
-  to `--previous`.
+- **Required changes to `stage.py`:**
+  - a `--bar` option naming the arm to judge against, defaulting to `--previous`;
+  - **(H2)** for `--stage regime`, the degeneracy rule checks only the momentum family (both
+    halves) and reversion's early half; other stages are unchanged.
