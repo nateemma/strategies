@@ -5,7 +5,8 @@
 | attribute | neutral | allowed | rule |
 |---|---|---|---|
 | `FAMILY_PAIR_CAP` | `None` | int 1..9 | Rule A. Max open pairs per family, the same for every family. Enforced at entry confirmation; never closes a trade. |
-| `MOMENTUM_RECENCY_BARS` | `0` | int ≥ 1 | Rule B. Drop a reversion-tagged signal row if a momentum-family trigger fired on that pair within the last N bars (current included) and not on this row. |
+| `MOMENTUM_RECENCY_BARS` | `0` | int ≥ 1 | Rule B. Drop a reversion-only signal row if a momentum-family trigger fired on that pair within the last N bars (current included). While active, an overlap row (both families fire) is tagged momentum (`+ov`), not reversion (G2). |
+| `FAMILY_EXIT_OVERRIDES` (024) | `{}` | per family, `ExitParams` fields | MERGED along the MRO (ancestors first, per family, per key; G1), so a subclass adds to its parent's overrides instead of replacing them. |
 
 - At neutral, both are no-ops, so the arm must reproduce `st_fam_combo` exactly (SC-001).
 - Validation at class creation: `FAMILY_PAIR_CAP` must be an int in 1..9 or None.

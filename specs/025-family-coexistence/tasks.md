@@ -73,7 +73,13 @@ settings nothing may change.
   - (f) `MOMENTUM_RECENCY_BARS>0` with no momentum trigger in `TRIGGERS` is refused at class
     creation;
   - (g) with the sink env set, `<pair>_coexist.json` holds `coexist_recency_refused.pass` = the
-    number of dropped rows.
+    number of dropped rows;
+  - (h) (G2) with `MOMENTUM_RECENCY_BARS>0`, an overlap row is tagged `momentum:breakout_gbb+ov`,
+    and with it at 0 the same row stays `reversion:gbb+ov` (024 behaviour);
+  - (i) (G1) a grandchild config that sets `FAMILY_EXIT_OVERRIDES = {"reversion":
+    {"unclog_12h_hours": 6}}` under a child that sets `{"reversion": {"take_profit": 0.03}}`
+    resolves `FAMILY_EXITS["reversion"] == {"take_profit": 0.03, "unclog_12h_hours": 6}`. The
+    momentum set is unchanged.
 - [ ] T005 Edit `SimpleTrigger/SimpleTriggerStrategy.py` (contract C2):
   - add `MOMENTUM_RECENCY_BARS = 0`;
   - the class MRO becomes `(FamilyCoexistenceMixin, FamilyExitMixin, StopInvariantMixin,
@@ -82,7 +88,10 @@ settings nothing may change.
     rows of the momentum-family masks;
   - write the sink file in `populate_entry_trend` when the env var is set, using the pair from
     `metadata`;
-  - validation in `_validate_triggers`.
+  - validation in `_validate_triggers`;
+  - (G2) under rule B, overlap rows are tagged momentum;
+  - (G1) `_apply_preset` merges `FAMILY_EXIT_OVERRIDES` along the MRO (reversed `__mro__`, per
+    family, per key).
 
   T004 must then pass, and so must every existing SimpleTrigger test.
 - [ ] T006 [P] Write `evaluation/tests/test_run_arm_coexistence.py`:
@@ -108,7 +117,9 @@ settings nothing may change.
     chosen;
   - (b) a degenerate candidate (a family below 25% of its single-family trades in a half) is
     excluded;
-  - (c) a tie on the early sum goes to fewer entries lost to the other family;
+  - (c) a tie on the early sum goes to fewer entries lost to the other family for
+    `--stage coexistence`, and to the higher reversion-side early contribution for
+    `--stage tuneN` (G4);
   - (d) exit 3 and `adopted: false` when the late verdict is not IMPROVED (stub `halves` result);
   - (e) exit 2 on a missing input;
   - (f) `decisions.md` gets one appended block per call, with the early table, the chosen arm,
@@ -117,7 +128,8 @@ settings nothing may change.
   - it reuses `evaluation.pool`, `evaluation.contention` and `evaluation.halves` (import, don't
     copy);
   - it reads wallet sums from the arm records;
-  - selection per research R4 and R5 (the primary key is the whole-arm f00–f07 sum).
+  - selection per research R4 and R5 (the primary key is the whole-arm f00–f07 sum; the
+    tie-breaks are stage-specific, G4).
 
   T009 must then pass.
 - [ ] T011 Create the neutral configs:
@@ -150,6 +162,12 @@ recorded.
   - each cap arm has non-zero `coexistence_refusals.pair_cap`;
   - each window arm has non-zero `entry_condition_counts.coexist_recency_refused.pass`;
   - otherwise mark the arm INERT in `baseline.md`.
+  - **(G5) Exception:** zero `pair_cap` refusals on `st_coex_cap3` cannot be a true null. It binds whenever a
+    family tries a 4th concurrent pair. With 5,000–9,000 trades per family over 10 pairs, that is
+    expected to happen often (024 did not measure peak concurrency, so this is an expectation,
+    not a measurement). So it means the hook is not reached in backtests (no `entry_tag`, or
+    `Trade.get_trades_proxy` not seeing open backtest trades). **STOP and diagnose before T016**;
+    do not record INERT.
 - [ ] T015 [US1] For each of the six arms, pool it and run `evaluation.contention` against
   `st_gbb` / `st_bgo_mx`. Write `evaluation/contention_st_coex_*.md`.
 - [ ] T016 [US1] Run `python -m evaluation.stage --stage coexistence --previous st_fam_combo
@@ -170,8 +188,11 @@ judging on late folds.
 **Independent Test**: each step's decision block in `decisions.md`, with liveness.
 
 Every step's candidate configs subclass the PREVIOUS step's adopted arm (step 1: `BASE_ARM`'s
-class). They set `FAMILY_EXIT_OVERRIDES = {"reversion": {<param>: <value>}}`, which merges per
-family.
+class). They set ONLY their new parameter: `FAMILY_EXIT_OVERRIDES = {"reversion": {<param>:
+<value>}}`. Earlier adopted values are inherited through the MRO merge (G1).
+
+Before running each step, assert that the candidate's resolved `FAMILY_EXITS["reversion"]` contains
+every previously adopted key, and record it in `baseline.md`.
 
 - [ ] T017 [US2] Step 1, `take_profit`:
   - configs `SimpleTrigger_Tune1Tp015/Tp030/TpOff` (0.015 / 0.030 / 10.0);
@@ -227,8 +248,14 @@ family.
   research/outcomes/tests utils/tests NNNC/tests`. Only the 3 known pre-existing training-pipeline
   failures may remain. Then ruff on the lines this feature added (024's added-lines method). Run
   the exit single-source test and classify the new files there if it asks (CONFIGURING).
-- [ ] T024 Check that the 023/024 fingerprints are unchanged (T001 values) and re-check
-  `st_fam_combo` f00 reproduction via `run_arm` under a fresh tag. Record in `baseline.md`.
+- [ ] T024 Check that the 023/024 fingerprints are unchanged (T001 values, including
+  `SimpleTrigger_Gbb` = `303456c1fa322b4c`). Re-run via `run_arm` under fresh `t024_*` tags (G3):
+  - `st_fam_combo` f00 (024);
+  - `st_gbb` f00, the 023 twin, `aa058ba815f48627`;
+  - `stl_bo` f00, the 023 legacy preset, `61bfaa185be5164a`.
+
+  Each `trades_hash` must match. Record in `baseline.md`. This covers the T005 MRO change for every
+  SimpleTrigger arm, not only the combined one.
 - [ ] T025 Update memory:
   - `project_025_family_coexistence.md` (results);
   - the `MEMORY.md` "Current state" hook;

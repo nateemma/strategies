@@ -44,9 +44,13 @@ family tags of open trades, and trigger history. Two rule shapes are tested (spe
   (reads tags, `FamilyExits.family_of`), and NNNC can adopt it later.
 - **Rule B** lives in `SimpleTriggerStrategy._tags`. A per-row mask is computed: "a momentum-family
   trigger fired within the last `W` bars", a causal rolling max over past rows of the momentum
-  masks. Rows whose winning family is reversion, and that carry no momentum signal themselves, are
-  dropped when the mask is true. Bars where momentum itself fires are unaffected. It is
-  vectorised, needs no runtime state, and is reproducible offline.
+  masks, current row included.
+  - A reversion-only row is dropped when the mask is true.
+  - **An overlap row** (both families fire on this bar) **is tagged momentum**
+    (`momentum:<trigger>+ov`) while rule B is active (analyze G2). Otherwise reversion would still
+    take the pair on exactly the bars where momentum wants it, by `FAMILY_PRIORITY`.
+  - Rows where only momentum fires are unaffected.
+  - It is vectorised, needs no runtime state, and is reproducible offline.
 
 **Rationale.** No `Framework/` change is needed, so 024's neutrality proof stands. Rule A needs
 runtime position state, so it must live in the entry-confirmation hook. Rule B is a pure function
@@ -112,6 +116,17 @@ True.
   reversion family's governed reasons counts.
 - The tuned values are applied through `FAMILY_EXIT_OVERRIDES["reversion"]` (024). The momentum set
   is untouched (FR-010).
+- **Cumulative overrides (analyze G1).** 024's `_apply_preset` reads only the class's OWN
+  `FAMILY_EXIT_OVERRIDES`, and plain attribute inheritance REPLACES the parent's dict. A step-2
+  config subclassing step 1's adopted arm would silently drop step 1's value. That is the
+  parameter-merge failure the constitution forbids.
+  - **Fix:** `_apply_preset` merges `FAMILY_EXIT_OVERRIDES` along the MRO (ancestors first, per
+    family, per key), so each step's config states only its new parameter.
+  - **Test:** a grandchild that sets `take_profit` with a child that sets `unclog_12h_hours`
+    resolves to both.
+- **Tie-breaks (analyze G4).** The primary key for every stage is the whole-arm f00–f07 wallet sum.
+  Ties go, for coexistence, to fewer entries lost to the other family, and for tuning, to the
+  higher reversion-side f00–f07 contribution.
 
 ## R6 — Fingerprint (FR-012)
 

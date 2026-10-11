@@ -143,7 +143,8 @@ and the PROVISIONAL label.
   reproduces 024's `st_fam_combo` exactly:
   - (a) a per-family cap on how many pairs a family may hold at once;
   - (b) an entry rule that refuses a reversion entry on a pair where the momentum trigger fired
-    within a recent window.
+    within a recent window. While it is active, a bar where both families fire goes to momentum,
+    because the rule exists to keep momentum's pairs free (analyze G2).
 - **FR-003**: Each candidate rule MUST be proven live. The run counts entries the rule refused or
   allowed, per family, and a rule whose counts are zero is reported INERT.
 - **FR-004**: The coexistence rule and its setting MUST be chosen on folds f00–f07 only and judged on
