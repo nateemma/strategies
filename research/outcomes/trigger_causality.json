@@ -1,6 +1,6 @@
 {
-  "generated": "2026-10-11T13:59:21+00:00",
-  "code_sha": "55ca6f601da7d567",
+  "generated": "2026-10-11T14:25:22+00:00",
+  "code_sha": "c6c355dbb0e1be7d",
   "pairs": [
     "SOL",
     "LTC",
@@ -84,6 +84,13 @@
       "comparisons": 144,
       "missing_columns": null
     },
+    "breakout_gbb_nofresh": {
+      "trigger": "breakout_gbb_nofresh",
+      "verdict": "PASS",
+      "first_mismatch": null,
+      "comparisons": 144,
+      "missing_columns": null
+    },
     "breakout_gm": {
       "trigger": "breakout_gm",
       "verdict": "PASS",
@@ -121,6 +128,13 @@
     },
     "empty": {
       "trigger": "empty",
+      "verdict": "PASS",
+      "first_mismatch": null,
+      "comparisons": 144,
+      "missing_columns": null
+    },
+    "failed_breakout": {
+      "trigger": "failed_breakout",
       "verdict": "PASS",
       "first_mismatch": null,
       "comparisons": 144,

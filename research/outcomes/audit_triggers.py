@@ -358,3 +358,62 @@ def register_momentum_guard_triggers(*, replace: bool = False) -> list[Trigger]:
                          source="composite (023 Addendum 4)", description=d), replace=replace)
         for n, f, c, d in specs
     ]
+
+
+# -------------------------------------------------------------------------------------------------
+# Breakout recency (feature 023, Addendum 7, 2026-10-11) -- from the Addendum 6 timing screen
+# -------------------------------------------------------------------------------------------------
+
+#: How many bars after a break still count as "recent". Matches the screen's k <= 8 window.
+RECENT_BREAK_BARS = 8
+
+
+def _break_recency(df: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
+    """(k, held) per bar: bars since the most recent 20-bar breakout (large if none yet), and
+    whether every close since that break stayed above the broken level. Causal: only bars up to
+    and including t are read."""
+    close = _col(df, "close")
+    prior_high = pd.Series(_col(df, "high")).rolling(BREAKOUT_LOOKBACK).max().shift(1).to_numpy()
+    brk = _prior_high_breakout(df, BREAKOUT_LOOKBACK)
+    n = len(close)
+    k = np.full(n, 10**6, dtype=np.int64)
+    held = np.zeros(n, dtype=bool)
+    last, level, min_close = -1, np.nan, np.inf
+    for t in range(n):
+        if brk[t]:
+            last, level, min_close = t, prior_high[t], close[t]
+        if last >= 0:
+            min_close = min(min_close, close[t])
+            k[t] = t - last
+            held[t] = min_close > level
+    return k, held
+
+
+def _breakout_gbb_nofresh(df: pd.DataFrame) -> pd.Series:
+    from research.outcomes.builtin_triggers import _breakout_gbb
+    k, held = _break_recency(df)
+    fresh = (k == 0) | ((k <= RECENT_BREAK_BARS) & held)
+    return pd.Series(_breakout_gbb(df).to_numpy() & ~fresh, index=df.index)
+
+
+def _failed_breakout(df: pd.DataFrame) -> pd.Series:
+    k, held = _break_recency(df)
+    return pd.Series((k >= 1) & (k <= RECENT_BREAK_BARS) & ~held, index=df.index)
+
+
+def register_break_recency_triggers(*, replace: bool = False) -> list[Trigger]:
+    """Addendum 6's screen as triggers: drop fresh/held breaks from breakout_gbb; fade failures."""
+    specs = [
+        ("breakout_gbb_nofresh", _breakout_gbb_nofresh,
+         ("high", "close", "guard_metric", "bb_width"),
+         f"breakout_gbb AND NOT (break bar, or a break <= {RECENT_BREAK_BARS} bars ago that "
+         f"has held above its level)"),
+        ("failed_breakout", _failed_breakout, ("high", "close"),
+         f"a 20-bar breakout 1..{RECENT_BREAK_BARS} bars ago with a close since back at or "
+         f"below the broken level -- a REVERSION entry"),
+    ]
+    return [
+        register(Trigger(name=n, evaluate=f, required_columns=c,
+                         source="composite (023 Addendum 7)", description=d), replace=replace)
+        for n, f, c, d in specs
+    ]

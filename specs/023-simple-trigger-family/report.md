@@ -354,3 +354,29 @@ leaderboard got the sign right 1 time in 6 against live arms.**
   **excluding fresh/held breakouts from `breakout_gbb`** is the screen's prediction to test.
 - A "failed breakout" is itself a reversion entry condition, positive in both halves on 8–10/10
   pairs. It is a candidate reversion trigger for the reversion exit set.
+
+## Addendum 7 (2026-10-11): the timing screen's two predictions, tested. Both FAIL.
+
+New triggers `breakout_gbb_nofresh` and `failed_breakout` (`audit_triggers.py`, causality PASS).
+**PROVISIONAL (gate 2).**
+
+| arm | trades | per-fold sum | positive folds | early | late | against |
+|---|---|---|---|---|---|---|
+| `st_bgo_mx` (`breakout_gbb`, momentum exits) | 6,156 | +25.19 | 9/15 | +22.68 | +2.50 | (reference) |
+| `st_bgonf` (`breakout_gbb_nofresh`, momentum exits) | 5,145 | **+13.11** | 9/15 | +15.61 | **−2.50** | `st_bgo_mx`: −3.28pp/yr, CI [−14.2, +7.4], p 0.55, UNCHANGED |
+| `st_fbo` (`failed_breakout`, ARM_D exits) | 10,974 | **−18.46** | 3/15 | +1.30 | −19.76 | loses to cash. It beats `empty` (−91.35) but not `gbb` (+11.04) |
+
+Why the screen was wrong:
+- **Removed entries get SUBSTITUTED, not deleted.** In `st_bgo_mx`, the 1,130 failed-breakout
+  entries averaged +0.113%/trade. Dropping the break bars freed each pair earlier, so `st_bgonf`
+  took 3,652 failed-breakout entries, and those averaged **+0.009%** (late −0.098%). The bucket
+  only looked good in `st_bgo_mx` because of which failed-breakout bars a pair happened to be free
+  for. A per-bucket average of an arm's trades does not predict what removing a bucket does.
+- The break-bar entries were doing useful work. Their `metric_overbought` exits (10.4% of
+  `st_bgo_mx` exits, 3.7% of `st_bgonf`'s) are quick high-band exits.
+- `failed_breakout`'s screen edge (+0.04–0.16% excess, 12h, pre-fee) is below the ~0.2%
+  round-trip fee, and path-blind. Under stops and fees it loses −0.086%/trade in both halves.
+
+**Second offline screen in this project to mis-sign against walk-forward arms** (after the
+EV leaderboard's 1/6). Screens can choose what to test. Only arms decide. The true breakouts
+remain unrescued. Neither confirmation nor fading them works under this framework.
