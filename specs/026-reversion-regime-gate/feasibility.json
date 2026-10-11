@@ -1,0 +1,290 @@
+{
+  "breadth": {
+    "rule": {
+      "percentile": 50,
+      "threshold": 0.3,
+      "off_when": "lt",
+      "on_share_early": 0.5191
+    },
+    "pnl": {
+      "on": {
+        "early": 22.1895,
+        "late": -19.3561
+      },
+      "off": {
+        "early": 1.2566,
+        "late": -5.3431
+      }
+    },
+    "trades": {
+      "on": {
+        "early": 1797,
+        "late": 1043
+      },
+      "off": {
+        "early": 1665,
+        "late": 1895
+      }
+    },
+    "verdict": "STOP",
+    "fails": [
+      "off.early >= 0"
+    ],
+    "bars": {
+      "early": {
+        "off_share": 0.3443,
+        "runs": 633,
+        "longest_run_share": 0.0177,
+        "undefined": 0
+      },
+      "late": {
+        "off_share": 0.4085,
+        "runs": 658,
+        "longest_run_share": 0.025,
+        "undefined": 0
+      }
+    },
+    "cross": {
+      "pnl": {
+        "on": {
+          "early": 32.8183,
+          "late": -24.4479
+        },
+        "off": {
+          "early": -2.4923,
+          "late": 5.1659
+        }
+      },
+      "trades": {
+        "on": {
+          "early": 3094,
+          "late": 1741
+        },
+        "off": {
+          "early": 1933,
+          "late": 2288
+        }
+      },
+      "verdict": "STOP",
+      "fails": [
+        "off.late >= 0"
+      ]
+    },
+    "cross_check_agrees": true
+  },
+  "volreg": {
+    "rule": {
+      "percentile": 33,
+      "threshold": 1.033196702052918,
+      "off_when": "lt",
+      "on_share_early": 0.6698
+    },
+    "pnl": {
+      "on": {
+        "early": 38.0962,
+        "late": -12.9098
+      },
+      "off": {
+        "early": -14.6502,
+        "late": -11.7895
+      }
+    },
+    "trades": {
+      "on": {
+        "early": 2319,
+        "late": 1824
+      },
+      "off": {
+        "early": 1143,
+        "late": 1114
+      }
+    },
+    "verdict": "PASS",
+    "fails": [],
+    "bars": {
+      "early": {
+        "off_share": 0.548,
+        "runs": 359,
+        "longest_run_share": 0.0269,
+        "undefined": 0
+      },
+      "late": {
+        "off_share": 0.5933,
+        "runs": 381,
+        "longest_run_share": 0.0284,
+        "undefined": 0
+      }
+    },
+    "cross": {
+      "pnl": {
+        "on": {
+          "early": 45.787,
+          "late": -3.7895
+        },
+        "off": {
+          "early": -15.461,
+          "late": -15.4925
+        }
+      },
+      "trades": {
+        "on": {
+          "early": 3414,
+          "late": 2528
+        },
+        "off": {
+          "early": 1613,
+          "late": 1501
+        }
+      },
+      "verdict": "PASS",
+      "fails": []
+    },
+    "cross_check_agrees": true
+  },
+  "persist": {
+    "rule": {
+      "percentile": 67,
+      "threshold": 0.8396404686844001,
+      "off_when": "ge",
+      "on_share_early": 0.6698
+    },
+    "pnl": {
+      "on": {
+        "early": 22.3735,
+        "late": -16.2907
+      },
+      "off": {
+        "early": 1.0725,
+        "late": -8.4085
+      }
+    },
+    "trades": {
+      "on": {
+        "early": 2319,
+        "late": 2075
+      },
+      "off": {
+        "early": 1143,
+        "late": 863
+      }
+    },
+    "verdict": "STOP",
+    "fails": [
+      "off.early >= 0"
+    ],
+    "bars": {
+      "early": {
+        "off_share": 0.3847,
+        "runs": 91,
+        "longest_run_share": 0.0848,
+        "undefined": 0
+      },
+      "late": {
+        "off_share": 0.2894,
+        "runs": 105,
+        "longest_run_share": 0.0322,
+        "undefined": 0
+      }
+    },
+    "cross": {
+      "pnl": {
+        "on": {
+          "early": 29.0425,
+          "late": -14.4101
+        },
+        "off": {
+          "early": 1.2835,
+          "late": -4.8719
+        }
+      },
+      "trades": {
+        "on": {
+          "early": 3423,
+          "late": 2743
+        },
+        "off": {
+          "early": 1604,
+          "late": 1286
+        }
+      },
+      "verdict": "STOP",
+      "fails": [
+        "off.early >= 0"
+      ]
+    },
+    "cross_check_agrees": true
+  },
+  "btctrend": {
+    "rule": {
+      "percentile": 50,
+      "threshold": -0.004034969262703136,
+      "off_when": "lt",
+      "on_share_early": 0.5
+    },
+    "pnl": {
+      "on": {
+        "early": 15.4619,
+        "late": -11.721
+      },
+      "off": {
+        "early": 7.9842,
+        "late": -12.9782
+      }
+    },
+    "trades": {
+      "on": {
+        "early": 1731,
+        "late": 991
+      },
+      "off": {
+        "early": 1731,
+        "late": 1947
+      }
+    },
+    "verdict": "STOP",
+    "fails": [
+      "off.early >= 0"
+    ],
+    "bars": {
+      "early": {
+        "off_share": 0.3628,
+        "runs": 645,
+        "longest_run_share": 0.0192,
+        "undefined": 0
+      },
+      "late": {
+        "off_share": 0.4389,
+        "runs": 577,
+        "longest_run_share": 0.0258,
+        "undefined": 0
+      }
+    },
+    "cross": {
+      "pnl": {
+        "on": {
+          "early": 23.5233,
+          "late": -9.4502
+        },
+        "off": {
+          "early": 6.8027,
+          "late": -9.8318
+        }
+      },
+      "trades": {
+        "on": {
+          "early": 2935,
+          "late": 1619
+        },
+        "off": {
+          "early": 2092,
+          "late": 2410
+        }
+      },
+      "verdict": "STOP",
+      "fails": [
+        "off.early >= 0"
+      ]
+    },
+    "cross_check_agrees": true
+  }
+}

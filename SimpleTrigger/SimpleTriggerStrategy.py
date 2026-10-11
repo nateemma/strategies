@@ -125,6 +125,46 @@ def _apply_preset(cls) -> None:
     _validate_triggers(cls)
 
 
+#: 026: a market-wide regime instrument needs ~2,900 bars of history to be defined from a fold's
+#: first bar (research R4/H1); a power of 2 per the BaseStrategy startup comment.
+REGIME_GATE_MIN_STARTUP = 4096
+
+
+def _validate_regime_gate(cls, names) -> None:
+    gate = cls.REVERSION_REGIME_GATE
+    if gate is None:
+        return
+    from utils import RegimeState as _rs
+
+    if not isinstance(gate, dict) or gate.get("instrument") not in _rs.INSTRUMENTS:
+        raise _presets.PresetError(
+            f"{cls.__name__}: REVERSION_REGIME_GATE instrument must be one of "
+            f"{sorted(_rs.INSTRUMENTS)}, got {gate!r}"
+        )
+    if gate.get("off_when") not in ("ge", "lt"):
+        raise _presets.PresetError(f"{cls.__name__}: REVERSION_REGIME_GATE off_when must be ge/lt")
+    thr = gate.get("threshold")
+    if not isinstance(thr, (int, float)) or not np.isfinite(thr):
+        raise _presets.PresetError(
+            f"{cls.__name__}: REVERSION_REGIME_GATE threshold must be finite"
+        )
+    if int(cls.startup_candle_count) < REGIME_GATE_MIN_STARTUP:
+        raise _presets.PresetError(
+            f"{cls.__name__}: REVERSION_REGIME_GATE needs startup_candle_count >= "
+            f"{REGIME_GATE_MIN_STARTUP} (got {cls.startup_candle_count}); a shorter warm-up leaves "
+            f"the instrument undefined for part of each fold (026 H1)"
+        )
+    from research.outcomes import triggers as _triggers
+
+    _triggers.ensure_builtins()
+    enabled = [t for t in names if t not in cls.DISABLED_TRIGGERS]
+    if not any(_triggers.get(t).family == "reversion" for t in enabled):
+        raise _presets.PresetError(
+            f"{cls.__name__}: REVERSION_REGIME_GATE needs an enabled reversion trigger; "
+            f"without one it is INERT by construction"
+        )
+
+
 def _validate_triggers(cls) -> None:
     """024 C4: the trigger declaration is unambiguous and the priority is a full order."""
     if cls.TRIGGER_NAME and cls.TRIGGERS:
@@ -142,6 +182,7 @@ def _validate_triggers(cls) -> None:
             f"{cls.__name__}: FAMILY_PRIORITY {cls.FAMILY_PRIORITY} is not a permutation of "
             f"{_presets.FAMILIES}"
         )
+    _validate_regime_gate(cls, names)
     window = cls.MOMENTUM_RECENCY_BARS
     if type(window) is not int or window < 0:
         raise _presets.PresetError(
@@ -168,6 +209,10 @@ class SimpleTriggerStrategy(
     #: within the last N bars (current included); while active, overlap bars go to momentum.
     #: 0 = off (024 behaviour). Rule A (FAMILY_PAIR_CAP) comes from FamilyCoexistenceMixin.
     MOMENTUM_RECENCY_BARS: int = 0
+    #: 026: None, or {"instrument": <utils.RegimeState id>, "threshold": float,
+    #: "off_when": "ge"|"lt"}. In the "off" state reversion-only entries are dropped and overlap
+    #: entries go to momentum; NaN state = "on". Requires a >= 4096-bar startup.
+    REVERSION_REGIME_GATE: dict | None = None
 
     #: Combined arm (024 C4): several triggers OR'ed. Exactly one of TRIGGER_NAME / TRIGGERS.
     TRIGGERS: tuple | None = None
@@ -261,8 +306,62 @@ class SimpleTriggerStrategy(
             tags[drop] = ""
             mask = mask & ~drop
             self._st_coexist_refused = int(drop.sum())
+        if self.REVERSION_REGIME_GATE is not None:
+            tags, mask = self._apply_regime_gate(dataframe, names, masks, families, tags, mask)
         self._st_tags = tags
         return mask
+
+    # ------------------------------------------------------------------ 026 regime gate
+
+    def informative_pairs(self):
+        gate = self.REVERSION_REGIME_GATE
+        if gate is not None and gate["instrument"] == "btctrend":
+            return [(_presets.REGIME_CONTEXT_PAIR, self.timeframe)]
+        return []
+
+    def _regime_state(self) -> pd.Series:
+        """The gate's instrument over the whitelist (and BTC), cached per latest bar."""
+        from utils import RegimeState as _rs
+
+        gate = self.REVERSION_REGIME_GATE
+        frames = {p: self.dp.get_pair_dataframe(p, self.timeframe)
+                  for p in self.dp.current_whitelist()}
+        btc = (self.dp.get_pair_dataframe(_presets.REGIME_CONTEXT_PAIR, self.timeframe)
+               if gate["instrument"] == "btctrend" else None)
+        last = max((f["date"].iloc[-1] for f in frames.values() if len(f)), default=None)
+        key = (gate["instrument"], last, len(frames))
+        cache = getattr(self, "_st_regime_cache", None)
+        if cache is None or cache[0] != key:
+            cache = (key, _rs.compute(gate["instrument"], frames, btc).sort_index())
+            self._st_regime_cache = cache
+        return cache[1]
+
+    def _apply_regime_gate(self, dataframe, names, masks, families, tags, mask):
+        gate = self.REVERSION_REGIME_GATE
+        n = len(dataframe)
+        state = self._regime_state().reindex(pd.DatetimeIndex(dataframe["date"]), method="ffill")
+        vals = state.to_numpy(dtype=float)
+        thr = gate["threshold"]
+        off = (vals >= thr) if gate["off_when"] == "ge" else (vals < thr)
+        off = off & ~np.isnan(vals)
+        winner = np.array([t.split(":", 1)[0] if t else "" for t in tags], dtype=object)
+        mom = [i for i, f in enumerate(families) if f == "momentum"]
+        mom_any = np.logical_or.reduce([masks[i] for i in mom]) if mom else np.zeros(n, bool)
+        hit = (winner == "reversion") & off
+        retag = hit & mom_any
+        drop = hit & ~mom_any
+        if retag.any():
+            first = np.full(n, "", dtype=object)
+            for i in reversed(mom):
+                first[masks[i]] = names[i]
+            tags[retag] = np.array([f"momentum:{t}+ov" for t in first[retag]], dtype=object)
+        tags[drop] = ""
+        self._st_regime_counts = {
+            "regime_gate_refused": int(drop.sum()),
+            "regime_gate_retagged": int(retag.sum()),
+            "regime_gate_off_bars": int(off.sum()),
+        }
+        return tags, mask & ~drop
 
     def _tags(self, names, masks, families, n, priority=None) -> np.ndarray:
         """`<family>:<trigger>` per signal row, by family priority then trigger order; `+ov` when
@@ -298,15 +397,22 @@ class SimpleTriggerStrategy(
         """025 C3: rule B's dropped-row count, in the entry-condition sink format (merged by
         run_arm.aggregate_sink). Written only when the sink is set AND rule B is active."""
         sink = os.environ.get("FT_ENTRY_CONDITION_SINK")
-        if not sink or self.MOMENTUM_RECENCY_BARS <= 0:
+        if not sink:
             return
-        refused = int(getattr(self, "_st_coexist_refused", 0))
+        counts = {}
+        if self.MOMENTUM_RECENCY_BARS > 0:
+            counts["coexist_recency_refused"] = {
+                "pass": int(getattr(self, "_st_coexist_refused", 0)), "total": int(rows)}
+        if self.REVERSION_REGIME_GATE is not None:  # 026: gate liveness
+            for k, v in (getattr(self, "_st_regime_counts", None) or {}).items():
+                counts[k] = {"pass": int(v), "total": int(rows)}
+        if not counts:
+            return
         out = Path(sink)
         out.mkdir(parents=True, exist_ok=True)
         safe = pair.replace("/", "_").replace(":", "_")
         (out / f"{self.__class__.__name__}_{safe}_coexist.json").write_text(
-            json.dumps({"pair": pair, "counts": {
-                "coexist_recency_refused": {"pass": refused, "total": int(rows)}}})
+            json.dumps({"pair": pair, "counts": counts})
         )
 
 

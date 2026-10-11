@@ -92,7 +92,19 @@ def _wallet(recs, early: bool) -> float:
     return sum(r.get("wallet_profit_pct", 0.0) for r in recs if (_fold(r) in EARLY) == early)
 
 
-def row(tag: str, pooled: dict, singles: dict, max_open: int) -> dict:
+def _degenerate(con: dict, singles, stage: str) -> bool:
+    """025 rule: any family below 25% of its single-family trades in either half. 026 R7/H2: for
+    `regime`, reversion's LATE count is unconstrained (cutting it is the point of the gate)."""
+    for f in singles:
+        for h in ("early", "late"):
+            if stage == "regime" and f == "reversion" and h == "late":
+                continue
+            if con[f][h]["combined_trades"] < DEGENERATE_SHARE * con[f][h]["single_trades"]:
+                return True
+    return False
+
+
+def row(tag: str, pooled: dict, singles: dict, max_open: int, stage: str = "") -> dict:
     from evaluation.contention import contention
     from utils.FamilyExits import family_of
 
@@ -103,10 +115,7 @@ def row(tag: str, pooled: dict, singles: dict, max_open: int) -> dict:
         for t in pooled["trades"]
         if t["fold_id"] in EARLY and family_of(t.get("enter_tag")) == "reversion"
     )
-    degenerate = any(
-        con[f][h]["combined_trades"] < DEGENERATE_SHARE * con[f][h]["single_trades"]
-        for f in singles for h in ("early", "late")
-    )
+    degenerate = _degenerate(con, singles, stage)
     return {
         "tag": tag,
         "early_sum": round(_wallet(recs, True), 4),
@@ -170,6 +179,13 @@ def write_block(out: Path, stage: str, previous: str, rows: list[dict], decision
             f"{late.get('delta_pp')} pp, CI {late.get('ci_pp_yr')} pp/yr, p {late.get('p')}"
         )
         lines += [f"chosen: `{decision['chosen']}` (best early sum)", "", verdict]
+    if decision.get("late_vs_previous"):
+        lp = decision["late_vs_previous"]
+        prev_line = (
+            f"(reported only) late vs the previous arm: **{lp['verdict']}**, delta "
+            f"{lp.get('delta_pp')} pp, CI {lp.get('ci_pp_yr')} pp/yr, p {lp.get('p')}"
+        )
+        lines += ["", prev_line]
     lines += ["", f"adopted: **{'yes' if decision['adopted'] else 'no'}**", "", ""]
     with Path(out).open("a") as fh:
         fh.write("\n".join(lines))
@@ -182,6 +198,7 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--stage", required=True)
     ap.add_argument("--previous", required=True)
+    ap.add_argument("--bar", help="arm the late judgement must beat (default: --previous)")
     ap.add_argument("--candidates", required=True)
     ap.add_argument("--singles", required=True, help="family=tag,family=tag")
     ap.add_argument("--config", default=str(STRAT / "config" / "config_wf.json"))
@@ -190,7 +207,8 @@ def main(argv=None) -> int:
     cands = [c for c in a.candidates.split(",") if c]
     singles_tags = dict(x.split("=", 1) for x in a.singles.split(","))
     try:
-        for t in [a.previous, *cands, *singles_tags.values()]:
+        bar = a.bar or a.previous
+        for t in [a.previous, bar, *cands, *singles_tags.values()]:
             _records(t)
             if not (FOLDS / f"plan_{t}.json").is_file():
                 raise FileNotFoundError(f"missing plan for {t}")
@@ -209,12 +227,15 @@ def main(argv=None) -> int:
     max_open = int(load_config(a.config)["max_open_trades"])
     singles = {f: _pooled(t) for f, t in singles_tags.items()}
     pooled = {t: _pooled(t) for t in cands}
-    rows = [row(t, pooled[t], singles, max_open) for t in cands]
+    rows = [row(t, pooled[t], singles, max_open, a.stage) for t in cands]
     chosen = select(rows, a.stage)
-    late = split(pooled[chosen["tag"]], _pooled(a.previous))["late"] if chosen else None
+    late = split(pooled[chosen["tag"]], _pooled(bar))["late"] if chosen else None
     decision = decide(chosen, late)
+    if chosen and bar != a.previous:  # reported, not used for adoption
+        decision["late_vs_previous"] = split(pooled[chosen["tag"]], _pooled(a.previous))["late"]
+        decision["bar"] = bar
     live = {t: liveness(t, a.previous, a.stage) for t in cands}
-    write_block(Path(a.out), a.stage, a.previous, rows, decision, live)
+    write_block(Path(a.out), a.stage, bar, rows, decision, live)
     print(Path(a.out).read_text().split("## Stage: ")[-1])
     return exit_code(decision)
 

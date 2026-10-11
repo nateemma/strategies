@@ -46,7 +46,7 @@ reproduction
 **Project Type**: research codebase
 
 **Performance Goals**: US1 under 10 minutes of compute. US2 ≤ 6 arms (≤ 4 gated, a neutral
-reproduction, and a 3600-bar startup control, analyze H1), about 35 minutes.
+reproduction, and a 4096-bar startup control, analyze H1), about 35 minutes.
 
 **Constraints**:
 - causal and market-wide only;
@@ -120,8 +120,8 @@ US2 edits are deferred until US1 passes, so a STOP leaves no strategy code chang
    - fingerprint;
    - `stage --bar`;
    - a neutral reproduction;
-   - a startup control (gate None, 3600-bar startup; H1);
-   - gated arms with a 3600-bar startup;
+   - a startup control (gate None, 4096-bar startup; H1);
+   - gated arms with a 4096-bar startup;
    - the stage decision.
 4. **US3:** report, memory, test gate.
 
@@ -130,7 +130,7 @@ US2 edits are deferred until US1 passes, so a STOP leaves no strategy code chang
 | risk | mitigation |
 |---|---|
 | An instrument is "causal" in code but leaks through `dp.get_pair_dataframe` full history | Instrument functions use backward windows only; truncation test on real data (R5) |
-| The gate is undefined for the first ~30 days of each fold at the default 64-bar startup (H1) | Gated arms use a 3600-bar startup, enforced by validation; a startup control shows whether that change alone moves trades |
+| The gate is undefined for the first ~30 days of each fold at the default 64-bar startup (H1) | Gated arms use a 4096-bar startup, enforced by validation; a startup control shows whether that change alone moves trades |
 | The stage runner's degeneracy rule excludes a working gate (H2) | The regime stage checks momentum (both halves) and reversion's early half only (R7) |
 | A gate that is a calendar switch (one flip, stays off late) | Off-bar share and off-run counts are reported per half (R3) |
 | The bucket split overstates the gain (substitution) | US1 only selects; US2 arms decide; the caveat is stated in the report |

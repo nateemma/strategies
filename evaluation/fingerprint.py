@@ -198,6 +198,8 @@ def _family_members(strategy_cls, sell_values: dict) -> dict:
         coexist["FAMILY_PAIR_CAP"] = strategy_cls.FAMILY_PAIR_CAP
     if (getattr(strategy_cls, "MOMENTUM_RECENCY_BARS", 0) or 0) > 0:
         coexist["MOMENTUM_RECENCY_BARS"] = strategy_cls.MOMENTUM_RECENCY_BARS
+    if getattr(strategy_cls, "REVERSION_REGIME_GATE", None) is not None:  # 026 C4
+        coexist["REVERSION_REGIME_GATE"] = _jsonable(strategy_cls.REVERSION_REGIME_GATE)
     if not (any(sets.values()) or len(triggers) > 1 or disabled or coexist):
         return {}
     import dataclasses

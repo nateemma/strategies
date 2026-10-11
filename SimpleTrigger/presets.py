@@ -153,6 +153,10 @@ PRESETS = {
     "ARM_D_FAMILY": ARM_D_FAMILY,
 }
 
+#: Feature 026: market-CONTEXT series for the `btctrend` regime instrument. Not a traded pair and
+#: never a per-pair rule; kept here (configuration) so strategy code carries no pair literal (G6).
+REGIME_CONTEXT_PAIR = "BTC/USDT"
+
 #: Trigger families (feature 024; mirrors utils.FamilyExits.FAMILIES).
 FAMILIES = ("reversion", "momentum", "unassigned")
 

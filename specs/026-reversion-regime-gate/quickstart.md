@@ -24,10 +24,10 @@ shares, run counts, and PASS/STOP. **Exit 3 means STOP:** write report.md and en
 
 1. `SimpleTrigger_RegGateOff` (`REVERSION_REGIME_GATE = None`, subclass of
    `SimpleTrigger_FamCombined`) must reproduce `st_fam_combo` 15/15.
-2. `SimpleTrigger_RegOn3600` (gate None, `startup_candle_count = 3600`). If it differs from
+2. `SimpleTrigger_RegOn4096` (gate None, `startup_candle_count = 4096`). If it differs from
    `st_fam_combo`, it becomes the always-on comparison (`--previous`).
 3. One `SimpleTrigger_RegGate<Inst>` per passing instrument, with the rule from `feasibility.json`
-   and a 3600-bar startup.
+   and a 4096-bar startup.
 3. Run, then:
 
 ```bash

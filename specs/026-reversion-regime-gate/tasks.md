@@ -26,7 +26,7 @@ choice. The acceptance tests for US2 are walk-forward reproductions.
 
 ## Phase 1: Setup
 
-- [ ] T001 Create `specs/026-reversion-regime-gate/baseline.md`. Record:
+- [X] T001 Create `specs/026-reversion-regime-gate/baseline.md`. Record:
   - the commit sha;
   - fingerprints for arm D, `SimpleTrigger_Gbb` (`303456c1fa322b4c`) and
     `SimpleTrigger_FamCombined` (`27617f430beca1cd`);
@@ -40,7 +40,7 @@ choice. The acceptance tests for US2 are walk-forward reproductions.
 
 ## Phase 2: Foundational — instruments (blocking)
 
-- [ ] T002 [P] Write `utils/tests/test_regime_state.py` (contract C1, research R5). Cases:
+- [X] T002 [P] Write `utils/tests/test_regime_state.py` (contract C1, research R5). Cases:
   - (a) each of `breadth`, `volreg`, `persist` and `btctrend`, computed on real 15m data (SOL,
     LTC, AAVE, XRP, ZEC + BTC, a slice of 2023-10-01 ± 120 days, so every instrument is defined at
     every cut; analyze L1), is causal under truncation at 16 cut points: values at or before each cut are identical between the full and truncated
@@ -52,7 +52,7 @@ choice. The acceptance tests for US2 are walk-forward reproductions.
   - (e) the output is indexed by UTC 15m dates;
   - (f) no instrument function reads a pair name except as a dict key (inspect source for
     literal pair strings).
-- [ ] T003 Create `utils/RegimeState.py` (contract C1, data-model RegimeInstrument, the research R1
+- [X] T003 Create `utils/RegimeState.py` (contract C1, data-model RegimeInstrument, the research R1
   constructions):
   - `breadth`, `volreg`, `persist`, `btctrend`;
   - `INSTRUMENTS`;
@@ -69,7 +69,7 @@ both halves.
 
 **Independent Test**: `feasibility.md` with a PASS/STOP per instrument and overall.
 
-- [ ] T004 [P] [US1] Write `research/regime_gate/tests/test_feasibility.py` (contract C2, research
+- [X] T004 [P] [US1] Write `research/regime_gate/tests/test_feasibility.py` (contract C2, research
   R2/R3), using synthetic trades and instrument series. Cases:
   - (a) the rule choice (3 percentiles × 2 directions) reads only f00–f07 trades: an instrument
     whose values perfectly separate ONLY late losers is not chosen to separate them (its early
@@ -83,7 +83,7 @@ both halves.
   - (f2) (M1) an instrument whose late "off" is one contiguous run over > 80% of late bars is a
     STOP even when its P&L split passes;
   - (g) exit 3 when no instrument passes, exit 0 when one passes, exit 2 on a missing input.
-- [ ] T005 [US1] Create `research/regime_gate/feasibility.py` (contract C2):
+- [X] T005 [US1] Create `research/regime_gate/feasibility.py` (contract C2):
   - load the 10 whitelist pairs and BTC (`research.clfstudy.data.load_pair`);
   - compute the instruments (`utils.RegimeState`);
   - pool `st_fam_combo` and `st_gbb` (`evaluation.pool`);
@@ -92,12 +92,12 @@ both halves.
   - choose rules (R2), score (R3), and write `feasibility.md` and `feasibility.json`.
 
   The P&L unit is `profit_abs × scale_pp_per_abs`. T004 must then pass.
-- [ ] T006 [US1] Causality spot-check on the live data path: compute every instrument once on the
+- [X] T006 [US1] Causality spot-check on the live data path: compute every instrument once on the
   full data and once truncated at the last f07 date. Assert equality up to that date. Record in
   `baseline.md`.
-- [ ] T007 [US1] Run `python -m research.regime_gate.feasibility --primary st_fam_combo --cross
+- [X] T007 [US1] Run `python -m research.regime_gate.feasibility --primary st_fam_combo --cross
   st_gbb --out specs/026-reversion-regime-gate/feasibility.md`.
-- [ ] T008 [US1] **STOP gate.** Record the per-instrument verdicts in `baseline.md`, along with
+- [X] T008 [US1] **STOP gate.** Record the per-instrument verdicts in `baseline.md`, along with
   off-bar shares and off-run counts. The calendar-switch rule is applied by the script itself
   (FR-004, R3), not decided here.
   - If no instrument passes, mark T009–T017 `[-]` with the reason and go to Phase 5.
@@ -109,7 +109,7 @@ both halves.
 
 ## Phase 4: User Story 2 — gated combined arm (Priority: P2) — ONLY if T008 passed
 
-- [ ] T009 [P] [US2] Write `SimpleTrigger/tests/test_regime_gate.py` (contract C3), using a
+- [X] T009 [P] [US2] Write `SimpleTrigger/tests/test_regime_gate.py` (contract C3), using a
   synthetic frame plus a stubbed `dp` (whitelist frames and BTC):
   - `REVERSION_REGIME_GATE=None` gives tags and mask identical to 025;
   - a gate with `off_when="ge"` drops reversion-only rows where the state ≥ threshold;
@@ -118,8 +118,8 @@ both halves.
   - NaN state counts as "on";
   - sink `regime_gate_refused` / `regime_gate_off_bars` counts;
   - validation refuses an unknown instrument, a bad `off_when`, no enabled reversion trigger, or
-    (H1) `startup_candle_count < 3600` with a gate set.
-- [ ] T010 [US2] Edit `SimpleTrigger/SimpleTriggerStrategy.py` (contract C3):
+    (H1) `startup_candle_count < 4096` with a gate set.
+- [X] T010 [US2] Edit `SimpleTrigger/SimpleTriggerStrategy.py` (contract C3):
   - `REVERSION_REGIME_GATE`;
   - `informative_pairs()` (BTC when needed);
   - the state is computed via `utils.RegimeState` over `dp.current_whitelist()` frames, cached per
@@ -129,10 +129,10 @@ both halves.
   - validation.
 
   T009 and every existing SimpleTrigger test must then pass. Do NOT edit while a backtest runs.
-- [ ] T011 [P] [US2] Edit `evaluation/fingerprint.py` (contract C4): `REVERSION_REGIME_GATE` joins
+- [X] T011 [P] [US2] Edit `evaluation/fingerprint.py` (contract C4): `REVERSION_REGIME_GATE` joins
   the optional family members when non-None. Test that existing shas are unchanged and that gated
   configs are distinct.
-- [ ] T012 [P] [US2] Edit `evaluation/stage.py` (contract C5):
+- [X] T012 [P] [US2] Edit `evaluation/stage.py` (contract C5):
   - add `--bar <tag>` (default `--previous`). The late judgement is chosen vs the bar, and the block
     records both the bar verdict and the vs-previous verdict;
   - (H2) for `--stage regime`, the degeneracy rule checks only the momentum family (both halves)
@@ -142,29 +142,29 @@ both halves.
   - adoption follows the `--bar` verdict only;
   - a regime candidate whose reversion keeps 10% of its late trades is NOT degenerate, while a
     coexistence candidate with the same counts still is.
-- [ ] T013 [US2] Create two controls, subclasses of `SimpleTrigger_FamCombined`:
+- [X] T013 [US2] Create two controls, subclasses of `SimpleTrigger_FamCombined`:
   - (a) `SimpleTrigger_RegGateOff.py` (`REVERSION_REGIME_GATE = None`, default startup), plan
     `st_reg_off`. It must reproduce `st_fam_combo` in 15/15 folds by `trades_hash` (FR-006).
     **STOP on divergence.**
-  - (b) (H1) `SimpleTrigger_RegOn3600.py` (gate None, `startup_candle_count = 3600`), plan
-    `st_reg_on3600`. If it reproduces `st_fam_combo` 15/15, record "startup neutral". Otherwise
-    record the difference and use `st_reg_on3600` as `--previous` and as the always-on comparison
+  - (b) (H1) `SimpleTrigger_RegOn4096.py` (gate None, `startup_candle_count = 4096`), plan
+    `st_reg_on4096`. If it reproduces `st_fam_combo` 15/15, record "startup neutral". Otherwise
+    record the difference and use `st_reg_on4096` as `--previous` and as the always-on comparison
     in T016/T017.
 
-  Also run the US1-parity check from research R4: instrument values at fold starts, 3600-bar
+  Also run the US1-parity check from research R4: instrument values at fold starts, 4096-bar
   truncation against full history.
-- [ ] T014 [US2] For each PASSING instrument, create `SimpleTrigger/SimpleTrigger_RegGate<Inst>.py`
-  with the rule from `feasibility.json` and `startup_candle_count = 3600` (H1). Derive plan
+- [X] T014 [US2] For each PASSING instrument, create `SimpleTrigger/SimpleTrigger_RegGate<Inst>.py`
+  with the rule from `feasibility.json` and `startup_candle_count = 4096` (H1). Derive plan
   `st_reg_<inst>`. Run the chain.
   Liveness: non-zero `regime_gate_refused` in each arm, plus the momentum family's trade count.
   Record both in `baseline.md`.
-- [ ] T015 [US2] Pool the gated arms. Run `evaluation.contention` against `st_gbb` / `st_bgo_mx`
+- [X] T015 [US2] Pool the gated arms. Run `evaluation.contention` against `st_gbb` / `st_bgo_mx`
   for each.
-- [ ] T016 [US2] Run `python -m evaluation.stage --stage regime --previous <always-on comparison
-  from T013: st_fam_combo or st_reg_on3600> --bar
+- [X] T016 [US2] Run `python -m evaluation.stage --stage regime --previous <always-on comparison
+  from T013: st_fam_combo or st_reg_on4096> --bar
   st_bgo_mx --candidates <st_reg_* tags> --singles reversion=st_gbb,momentum=st_bgo_mx --out
   specs/026-reversion-regime-gate/decisions.md`. Record the adopted arm, or none.
-- [ ] T017 [US2] Compare the stage winner against `st_bgo_mx`, `st_fam_combo` and `st_gbb`
+- [X] T017 [US2] Compare the stage winner against `st_bgo_mx`, `st_fam_combo` and `st_gbb`
   (`compare_pooled` + `halves`, `PYTHONHASHSEED=0`). Add per-family contributions by half and
   regime refusal counts by half.
 
@@ -172,7 +172,7 @@ both halves.
 
 ## Phase 5: User Story 3 — report & polish (Priority: P3)
 
-- [ ] T018 [US3] Write `specs/026-reversion-regime-gate/report.md`:
+- [X] T018 [US3] Write `specs/026-reversion-regime-gate/report.md`:
   - SUMMARY;
   - the feasibility table (every instrument: rule, per-state per-half P&L, off-bar shares,
     verdict);
@@ -181,14 +181,14 @@ both halves.
   - an explicit SC-004 answer;
   - every figure labelled PROVISIONAL;
   - the substitution caveat on bucket splits.
-- [ ] T019 Run the test gate: `pytest -q Framework/tests evaluation/tests SimpleTrigger/tests
+- [X] T019 Run the test gate: `pytest -q Framework/tests evaluation/tests SimpleTrigger/tests
   research/outcomes/tests research/regime_gate/tests utils/tests NNNC/tests`. Only the 3 known
   pre-existing training-pipeline failures may remain. Then ruff on the added lines (024 method),
   and the exit single-source test, classifying any new files.
-- [ ] T020 If US2 ran: run a fresh `run_arm` f00 re-check of `st_fam_combo` (`f9e7a4531e21cce3`)
+- [X] T020 If US2 ran: run a fresh `run_arm` f00 re-check of `st_fam_combo` (`f9e7a4531e21cce3`)
   and `st_gbb` (`aa058ba815f48627`) under `t026_*` tags, and check fingerprints unchanged
   (SC-005). If US1 stopped, only the fingerprint check is needed (no strategy code changed).
-- [ ] T021 Update memory (`project_026_reversion_regime_gate.md` plus the MEMORY.md hook; an
+- [X] T021 Update memory (`project_026_reversion_regime_gate.md` plus the MEMORY.md hook; an
   `index_*` hub line for a reusable regime finding). Mark the tasks. Commit, staging named files
   only.
 

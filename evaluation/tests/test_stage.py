@@ -81,3 +81,18 @@ def test_decision_block_is_appended(tmp_path):
     for needle in ("| a |", "| b |", "chosen: `b`", "UNCHANGED", "adopted: **no**", "refusals 20",
                    "PROVISIONAL"):
         assert needle in text, needle
+
+
+def _con(rev_late_combined):
+    full = {"single_trades": 100, "combined_trades": 100}
+    return {"reversion": {"early": dict(full), "late": {"single_trades": 100,
+                                                        "combined_trades": rev_late_combined}},
+            "momentum": {"early": dict(full), "late": dict(full)}}
+
+
+def test_regime_stage_does_not_count_reversion_late_cut_as_degenerate():
+    # 026 H2: a gate that cuts reversion's late trades to 10% is the intended outcome
+    singles = ("reversion", "momentum")
+    assert St._degenerate(_con(10), singles, "regime") is False
+    assert St._degenerate(_con(10), singles, "coexistence") is True
+    assert St._degenerate(_con(10), singles, "tune1") is True

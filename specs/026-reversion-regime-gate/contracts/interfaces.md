@@ -39,8 +39,8 @@ python -m research.regime_gate.feasibility --primary st_fam_combo --cross st_gbb
   4. overlap rows in `off` are tagged momentum.
 - Sink: `regime_gate_refused` and `regime_gate_off_bars` (025 C3 format).
 - `None`: byte-identical to 025.
-- **Warm-up (H1):** a gate requires `startup_candle_count >= 3600`, or class creation is refused.
-  The control `SimpleTrigger_RegOn3600` (gate None, startup 3600) establishes whether the longer
+- **Warm-up (H1):** a gate requires `startup_candle_count >= 4096`, or class creation is refused.
+  The control `SimpleTrigger_RegOn4096` (gate None, startup 4096) establishes whether the longer
   startup is itself neutral.
 
 ## C4 — Fingerprint

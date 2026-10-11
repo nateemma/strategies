@@ -176,3 +176,14 @@ def test_coexistence_settings_are_hashed_and_neutral_ones_are_not():
     assert len(shas) == 6 and "27617f430beca1cd" not in shas
     for name in ("NNNC_A_Raw_Open", "SimpleTrigger_Gbb"):
         assert _resolve(name)[0] == "303456c1fa322b4c"
+
+
+def test_regime_gate_is_hashed_only_when_set():
+    base = fp.load_strategy_class("SimpleTrigger_FamCombined")
+    gate = {"instrument": "volreg", "threshold": 1.0, "off_when": "lt"}
+    gated = type("G", (base,), {"REVERSION_REGIME_GATE": gate,
+                                "ATTR_OVERRIDES": {"startup_candle_count": 4096}})
+    other = type("G2", (base,), {"REVERSION_REGIME_GATE": {**gate, "threshold": 1.1},
+                                 "ATTR_OVERRIDES": {"startup_candle_count": 4096}})
+    assert _sha_of(base) == "27617f430beca1cd"
+    assert len({_sha_of(gated), _sha_of(other), _sha_of(base)}) == 3
