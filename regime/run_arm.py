@@ -381,8 +381,14 @@ def summarize(result_path: Path | None) -> dict:
     }
 
 
+def _counts(series) -> dict:
+    return {str(k): int(v) for k, v in series.value_counts().sort_index().items()}
+
+
 def tag_accounting(trades) -> dict:
-    """Feature 024 C8: per-family accounting from the trades' `enter_tag` ("<family>:<trigger>[+ov]").
+    """Feature 024 C8: per-family accounting from the trades' `enter_tag`.
+
+    Tags are `"<family>:<trigger>[+ov]"`.
 
     Computed from the archive, because the strategy's own counters live in freqtrade's process.
     Empty (fields omitted) when no trade carries a family tag, so pre-024 records are unchanged.
@@ -402,8 +408,8 @@ def tag_accounting(trades) -> dict:
         for f, grp in tagged.groupby("_family"):
             reasons[str(f)] = exit_reason_counts(grp)
     return {
-        "family_trade_counts": {str(k): int(v) for k, v in tagged["_family"].value_counts().sort_index().items()},
-        "overlap_entries": {str(k): int(v) for k, v in ov["_family"].value_counts().sort_index().items()},
+        "family_trade_counts": _counts(tagged["_family"]),
+        "overlap_entries": _counts(ov["_family"]),
         "untagged_trades": int(fam.isna().sum()),
         "family_exit_reason_counts": reasons,
     }

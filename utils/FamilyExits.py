@@ -109,8 +109,12 @@ def _validate(cls) -> None:
     if not any(sets.values()):
         return
     base = class_level_exit_params(cls)  # what an instance will run; never instantiates
-    explicit = {_SELL_TO_FIELD[k] for k in getattr(cls, "SELL_OVERRIDES", {}) if k in _SELL_TO_FIELD}
-    explicit |= {_ATTR_TO_FIELD[k] for k in getattr(cls, "ATTR_OVERRIDES", {}) if k in _ATTR_TO_FIELD}
+    explicit = {
+        _SELL_TO_FIELD[k] for k in getattr(cls, "SELL_OVERRIDES", {}) if k in _SELL_TO_FIELD
+    }
+    explicit |= {
+        _ATTR_TO_FIELD[k] for k in getattr(cls, "ATTR_OVERRIDES", {}) if k in _ATTR_TO_FIELD
+    }
     for family, overrides in sets.items():
         for key in overrides:
             if key in FORBIDDEN_KEYS:

@@ -42,14 +42,14 @@ def _trade(tag):
 
 
 def test_shared_preset_ignores_the_family_tag():
-    cls, s = _bare("SimpleTrigger_Gbb")  # ARM_D_OPEN: every family resolves to shared exits
+    _, s = _bare("SimpleTrigger_Gbb")  # ARM_D_OPEN: every family resolves to shared exits
     assert s._exit_params(_trade("momentum:breakout_gbb")) == s._exit_params()
 
 
 def test_exits_follow_the_stored_tag_not_the_current_bar():
     # FR-004 / F8: FamGbb's own trigger is gbb (reversion), and its latest frame fires only gbb.
     # A trade tagged momentum at entry still gets the momentum set.
-    cls, s = _bare("SimpleTrigger_FamGbb")
+    _, s = _bare("SimpleTrigger_FamGbb")
     s._st_tags = np.array(["reversion:gbb"])  # what the current bar would say
     p_mom = s._exit_params(_trade("momentum:breakout_gbb"))
     p_rev = s._exit_params(_trade("reversion:gbb"))
@@ -59,8 +59,10 @@ def test_exits_follow_the_stored_tag_not_the_current_bar():
 
 
 def test_family_exits_resolved_from_the_preset():
-    for name, momentum in (("SimpleTrigger_FamBgo", {"take_profit": 10.0, "unclog_12h_hours": 24.0}),
-                           ("SimpleTrigger_Gbb", {})):
+    for name, momentum in (
+        ("SimpleTrigger_FamBgo", {"take_profit": 10.0, "unclog_12h_hours": 24.0}),
+        ("SimpleTrigger_Gbb", {}),
+    ):
         cls = load_strategy_class(name)
         assert cls.FAMILY_EXITS["momentum"] == momentum, name
         assert cls.FAMILY_EXITS["reversion"] == {} and cls.FAMILY_EXITS["unassigned"] == {}

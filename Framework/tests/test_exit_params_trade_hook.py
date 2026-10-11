@@ -1,4 +1,4 @@
-"""024 T002: `BaseStrategy._exit_params(trade=None)` is a NEUTRAL hook (contract C1, research R1/R2).
+"""024 T002: `BaseStrategy._exit_params(trade=None)` is a NEUTRAL hook (contract C1, R1/R2).
 
 The hook lets a strategy choose exit parameters per trade (024's trigger families). For every
 strategy that does not override it, it must be invisible:
@@ -6,15 +6,17 @@ strategy that does not override it, it must be invisible:
   (b) the stop path, now reading `use_atr_adaptive_stoploss` / `use_volume_confirmation_stoploss`
       / `stoploss` through the params object instead of the attributes, computes the same stop.
 """
+
 from __future__ import annotations
 
 import sys
 import types
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
 import pytest
+
 
 ROOT = Path(__file__).resolve().parents[2]
 for p in (str(ROOT), str(ROOT / "utils"), str(ROOT / "NNNC")):
@@ -26,7 +28,7 @@ from Framework.BaseStrategy import BaseStrategy  # noqa: E402
 from utils.ExitPolicy import atr_stop_fraction, rolling_rvol  # noqa: E402
 
 
-NOW = datetime(2026, 1, 1, tzinfo=timezone.utc)
+NOW = datetime(2026, 1, 1, tzinfo=UTC)
 
 
 class _Trade:
@@ -58,10 +60,13 @@ def _stub(adaptive: bool, volume_confirm: bool):
     s.atr_stoploss_floor = -0.12
     s.stoploss_grace_hours = 0.0
     s.timeframe = "15m"
-    for attr, val in (("cexit_enable_profit_checks", True), ("cexit_take_profit", 0.022),
-                      ("cexit_max_days", 10)):
+    for attr, val in (
+        ("cexit_enable_profit_checks", True),
+        ("cexit_take_profit", 0.022),
+        ("cexit_max_days", 10),
+    ):
         setattr(s, attr, types.SimpleNamespace(value=val))
-    vol = [100.0] * 30 + [400.0]          # last bar rvol > 1, so volume confirmation bites
+    vol = [100.0] * 30 + [400.0]  # last bar rvol > 1, so volume confirmation bites
     frame = pd.DataFrame({"atr_pct_roll": [0.01] * 31, "volume": vol})
     s.dp = types.SimpleNamespace(get_analyzed_dataframe=lambda pair, tf: (frame, None))
     for name in ("_exit_params", "_atr_bar_inputs", "_resolve_normal_stop", "custom_stoploss"):
@@ -79,7 +84,5 @@ def test_stop_path_unchanged_when_params_mirror_attributes(adaptive, volume_conf
 
     assert s._resolve_normal_stop("SOL/USDT", _Trade()) == pytest.approx(expected_normal)
 
-    after_fill = s.custom_stoploss(
-        "SOL/USDT", _Trade(), NOW, 100.0, 0.0, after_fill=True
-    )
+    after_fill = s.custom_stoploss("SOL/USDT", _Trade(), NOW, 100.0, 0.0, after_fill=True)
     assert after_fill == (pytest.approx(expected_normal) if adaptive else 1.0)

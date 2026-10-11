@@ -190,7 +190,7 @@ contention reported.
 **Independent Test**: each side with the other disabled reproduces its single-family arm. The
 full arm is reported against both.
 
-- [ ] T019 [P] [US2] Write `SimpleTrigger/tests/test_combined_entry.py`:
+- [X] T019 [P] [US2] Write `SimpleTrigger/tests/test_combined_entry.py`:
   - on a synthetic frame where `gbb` and `breakout_gbb` both fire on some rows, the entry mask is
     the OR of the two;
   - overlap rows are tagged `reversion:gbb+ov` under the default priority and
@@ -199,23 +199,23 @@ full arm is reported against both.
   - setting both `TRIGGER_NAME` and `TRIGGERS`, disabling every trigger, or naming an
     unregistered or non-runnable trigger each raises or refuses with a `*** SimpleTrigger:`
     message.
-- [ ] T020 [US2] Edit `SimpleTrigger/SimpleTriggerStrategy.py` (contract C4, multi-trigger path):
+- [X] T020 [US2] Edit `SimpleTrigger/SimpleTriggerStrategy.py` (contract C4, multi-trigger path):
   - `TRIGGERS`, `DISABLED_TRIGGERS` and `FAMILY_PRIORITY`;
   - `get_entry_conditions` runs the `check_runnable` gate per enabled trigger, evaluates each mask
     once, ORs them, and stores the per-row winning tag (by family priority, then trigger order),
     with `+ov` when another family's trigger also fired (F4);
   - `TRIGGER_NAME` maps to `TRIGGERS=(name,)`.
   - T019 must then pass, and so must every earlier SimpleTrigger test.
-- [ ] T021 [US2] Create the combined configs:
+- [X] T021 [US2] Create the combined configs:
   - `SimpleTrigger/SimpleTrigger_FamCombined.py` (`TRIGGERS=("gbb","breakout_gbb")`,
     `PRESET="ARM_D_FAMILY"`);
   - `SimpleTrigger_FamCombinedRevOnly.py` (`DISABLED_TRIGGERS=("breakout_gbb",)`);
   - `SimpleTrigger_FamCombinedMomOnly.py` (`DISABLED_TRIGGERS=("gbb",)`).
   - Derive plans `st_fam_combo`, `st_fam_combo_rev` and `st_fam_combo_mom`.
   - The fingerprint test confirms that the three hash differently.
-- [ ] T022 [US2] Run `st_fam_combo_rev`, then `st_fam_combo_mom`. SC-002: they reproduce `st_gbb`
+- [X] T022 [US2] Run `st_fam_combo_rev`, then `st_fam_combo_mom`. SC-002: they reproduce `st_gbb`
   and `st_bgo_mx` in 15/15 folds by `trades_hash`. Record in `baseline.md`. **STOP on divergence.**
-- [ ] T023 [P] [US2] Write `evaluation/tests/test_contention.py` with synthetic pooled sets:
+- [X] T023 [P] [US2] Write `evaluation/tests/test_contention.py` with synthetic pooled sets:
   - a lost entry whose pair is held by the other family's open trade → `pair_held_by_other_family`;
   - 10 concurrent open trades → `slots_full`;
   - a same-family hold → `pair_held_same_family`;
@@ -223,16 +223,16 @@ full arm is reported against both.
   - gained entries are counted;
   - the halves split is f00–f07 / f08–f14;
   - exit 2 on a missing input.
-- [ ] T024 [US2] Create `evaluation/contention.py` (contract C6, data model `ContentionRecord`):
+- [X] T024 [US2] Create `evaluation/contention.py` (contract C6, data model `ContentionRecord`):
   - the family is read from each trade's `enter_tag` in the combined set, and `+ov` entries are
     counted per family and half (FR-010);
   - `max_open_trades` comes from `--config`;
   - output is JSON plus a markdown summary.
   - T023 must then pass. If pooled trades lack `enter_tag`, extend `evaluation/pool.py` to carry
     it from the archive (an additive field).
-- [ ] T025 [US2] Run `st_fam_combo` (15 folds), then pool `st_fam_combo`, `st_gbb` and
+- [X] T025 [US2] Run `st_fam_combo` (15 folds), then pool `st_fam_combo`, `st_gbb` and
   `st_bgo_mx`, and run `evaluation.contention`. Write `evaluation/contention_st_fam_combo.{json,md}`.
-- [ ] T026 [US2] Compare and report (SC-005, FR-011):
+- [X] T026 [US2] Compare and report (SC-005, FR-011):
   - `PYTHONHASHSEED=0` `compare_pooled` plus `halves` of `st_fam_combo` against `st_gbb` and
     against `st_bgo_mx`;
   - the sum-of-singles per-fold reference;
@@ -248,21 +248,21 @@ deferred tuning feature.
 
 ## Phase 5: Polish & cross-cutting
 
-- [ ] T027 Run the full unit gate:
+- [X] T027 Run the full unit gate:
   `../../.venv/bin/python -m pytest -q Framework/tests evaluation/tests SimpleTrigger/tests
   research/outcomes/tests utils/tests NNNC/tests`.
   The 3 known pre-existing training-pipeline failures are acceptable only if they are unchanged
   from 023. Also run `ruff check` and `ruff format --check` on the touched files.
-- [ ] T028 Run the existing exit single-source test
+- [X] T028 Run the existing exit single-source test
   (`Framework/tests/test_exit_policy_single_source.py`): `utils/FamilyExits.py` must not
   duplicate exit arithmetic. If the allowlist needs it, classify the new files there, as 023 did.
-- [ ] T029 Finish `report.md`:
+- [X] T029 Finish `report.md`:
   - the SUMMARY;
   - the SC-001…SC-007 table with evidence paths;
   - the R9 correction (the dry-run never imported `BaseStrategy`);
   - the recommended scope for the deferred tuning feature, from the contention results.
   - Mark every task `[X]` in this file.
-- [ ] T030 Update memory:
+- [X] T030 Update memory:
   - `project_024_trigger_family_exits.md` (results and status), with its hook in `MEMORY.md`
     "Current state";
   - an `index_exits.md` hub line if a new exit finding results.

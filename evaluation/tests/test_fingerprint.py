@@ -158,5 +158,6 @@ def test_each_family_dimension_moves_the_sha(monkeypatch):
     t = registry.get("breakout_gbb")
     import dataclasses
 
-    monkeypatch.setitem(registry._REGISTRY, "breakout_gbb", dataclasses.replace(t, family="unassigned"))
+    moved = dataclasses.replace(t, family="unassigned")
+    monkeypatch.setitem(registry._REGISTRY, "breakout_gbb", moved)
     assert _sha_of(base) != sha0

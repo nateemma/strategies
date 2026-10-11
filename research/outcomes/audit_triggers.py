@@ -52,18 +52,24 @@ from research.outcomes.triggers import Trigger, register
 _FAMILY = {
     "breakout_vol": ("momentum", "a new 20-bar high on relative volume > 1.5: strength"),
     "breakout_squeeze": ("momentum", "a new 20-bar high out of a volatility squeeze: strength"),
-    "breakout_bb": ("momentum", "bb_position >= 0.6 with a wide band: buys HIGH band position (not a breakout)"),
+    "breakout_bb": (
+        "momentum",
+        "bb_position >= 0.6 with a wide band: buys HIGH band position (not a breakout)",
+    ),
     "votes_tech": ("reversion", "4 of 6 OVERSOLD conditions: buys weakness"),
-    "votes_ind2": ("unassigned", "4-of-7 indicator vote firing on ~10 trades/day: a broad filter with no consistent direction"),
-    "votes_ind3": ("unassigned", "3-of-4 indicator vote firing on ~10 trades/day: a broad filter with no consistent direction"),
-    "votes_ind4": ("unassigned", "3-of-5 indicator vote firing on ~12 trades/day: a broad filter with no consistent direction"),
-    "votes_consensus": ("unassigned", "4-of-6 vote with three comparisons flipped vs votes_tech, ~10 trades/day: no consistent direction"),
+    "votes_ind2": ("unassigned", "4-of-7 vote, ~10 trades/day: broad filter, no direction"),
+    "votes_ind3": ("unassigned", "3-of-4 vote, ~10 trades/day: broad filter, no direction"),
+    "votes_ind4": ("unassigned", "3-of-5 vote, ~12 trades/day: broad filter, no direction"),
+    "votes_consensus": ("unassigned", "votes_tech with 3 comparisons flipped: no direction"),
     "trends": ("unassigned", "UNSCOREABLE (columns absent): cannot be classified"),
     "bands": ("unassigned", "UNSCOREABLE (columns absent): cannot be classified"),
     "breakout_gm": ("momentum", "a new 20-bar high AND guard_metric > 0.2: strength"),
     "breakout_vol_gm": ("momentum", "breakout_vol AND guard_metric > 0.2: strength"),
     "breakout_squeeze_gm": ("momentum", "breakout_squeeze AND guard_metric > 0.2: strength"),
-    "breakout_gbb_nofresh": ("momentum", "breakout_gbb minus fresh/held breaks: still buys high band position"),
+    "breakout_gbb_nofresh": (
+        "momentum",
+        "breakout_gbb minus fresh/held breaks: still buys high band position",
+    ),
     "failed_breakout": ("reversion", "price back below a broken 20-bar high: fades a failed move"),
 }
 

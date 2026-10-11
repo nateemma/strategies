@@ -192,15 +192,27 @@ def _geometry(df: pd.DataFrame) -> pd.Series:
 # =================================================================================================
 
 _FAMILY = {
-    "empty": ("unassigned", "fires on every bar: no direction (the null every trigger is scored against)"),
+    "empty": (
+        "unassigned",
+        "fires on every bar: no direction (the null every trigger is scored against)",
+    ),
     "gbb": ("reversion", "guard_metric < 0.3 with a wide band: buys LOW band position (weakness)"),
     "geometry": ("reversion", "a confirmed valley after a >=1% local low: buys a dip"),
-    "adx": ("unassigned", "adx_scaled > -0.2 passes ~62% of bars: a trend-strength filter with no direction"),
+    "adx": (
+        "unassigned",
+        "adx_scaled > -0.2 passes ~62% of bars: a trend-strength filter with no direction",
+    ),
     "breakout": ("momentum", "close above the prior 20-bar high: buys a new high (strength)"),
-    "breakout_gbb": ("momentum", "guard_metric > 0.2 with a wide band: buys HIGH band position (strength)"),
+    "breakout_gbb": (
+        "momentum",
+        "guard_metric > 0.2 with a wide band: buys HIGH band position (strength)",
+    ),
     "gbb_tight": ("reversion", "gbb's weakness condition with tightened thresholds"),
     "random_matched": ("unassigned", "pseudo-random control: carries no market information"),
-    "gbb_stale": ("reversion", "gbb lagged 1500 bars: the same weakness condition, information stale (control)"),
+    "gbb_stale": (
+        "reversion",
+        "gbb lagged 1500 bars: the same weakness condition, information stale (control)",
+    ),
 }
 
 
@@ -493,7 +505,8 @@ def register_controls(*, replace: bool = False) -> list[Trigger]:
     """Two controls whose correct verdict is known in advance to be `indeterminate`."""
     return [
         register(Trigger(
-            name="random_matched", **_fam("random_matched"), evaluate=_random_matched, required_columns=(),
+            name="random_matched", evaluate=_random_matched, required_columns=(),
+            **_fam("random_matched"),
             source="CONTROL",
             description=(
                 f"pseudo-random at gbb's {RANDOM_CONTROL_BASE_RATE:.3%} base rate; carries "
@@ -501,7 +514,8 @@ def register_controls(*, replace: bool = False) -> list[Trigger]:
             ),
         ), replace=replace),
         register(Trigger(
-            name="gbb_stale", **_fam("gbb_stale"), evaluate=_gbb_stale, required_columns=("guard_metric", "bb_width"),
+            name="gbb_stale", evaluate=_gbb_stale, required_columns=("guard_metric", "bb_width"),
+            **_fam("gbb_stale"),
             source="CONTROL",
             description=(
                 f"gbb lagged {STALE_CONTROL_LAG_BARS} bars (> max_hold's 960), so its "

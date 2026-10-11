@@ -278,10 +278,17 @@ def main() -> int:
         if cfg is None or getattr(cfg, "needs_training", True):
             print(f"REFUSED: {base} is not model-free (strategy_config.needs_training is not "
                   f"False) -- a no_model plan would train inside its own backtest"); return 1
-        ok, why = _trigger_runnable(getattr(cls_obj, "TRIGGER_NAME", None))
-        if not ok:
-            print(f"REFUSED: {base} trigger {getattr(cls_obj, 'TRIGGER_NAME', None)!r} is not "
-                  f"runnable: {why}"); return 1
+        # 024: a combined arm declares TRIGGERS; every ENABLED one must pass (the strategy
+        # refuses the whole arm on any failure, so the preflight must agree with it).
+        names = tuple(
+            getattr(cls_obj, "TRIGGERS", None) or (getattr(cls_obj, "TRIGGER_NAME", None),)
+        )
+        disabled = tuple(getattr(cls_obj, "DISABLED_TRIGGERS", ()) or ())
+        names = tuple(t for t in names if t not in disabled)
+        for name in names or (None,):
+            ok, why = _trigger_runnable(name)
+            if not ok:
+                print(f"REFUSED: {base} trigger {name!r} is not runnable: {why}"); return 1
     params = None
     if plan.get("params_snapshot"):
         snap = Path(plan["params_snapshot"])

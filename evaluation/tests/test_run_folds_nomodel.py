@@ -138,3 +138,26 @@ def test_model_exists_uses_model_dir_basename(tmp_path, monkeypatch):
     }
     assert run_folds.model_exists(run_folds.model_key(fold)) is True
     assert run_folds.model_key({"strategy_class": "C", "model_dir": None}) == "C"
+
+
+def test_combined_arm_preflight_checks_every_enabled_trigger(harness, monkeypatch):
+    # 024: TRIGGERS replaces TRIGGER_NAME on a combined arm. Every ENABLED trigger must pass;
+    # a disabled one is not checked (it is never evaluated).
+    calls, tmp = harness
+    cls = _fake_class(monkeypatch, trigger=None)
+    cls.TRIGGERS = ("gbb", "breakout_gbb")
+    checked = []
+
+    def runnable(name):
+        checked.append(name)
+        return (name != "breakout_gbb", "FAIL" if name == "breakout_gbb" else "PASS")
+
+    monkeypatch.setattr(run_folds, "_trigger_runnable", runnable)
+    plan = foldplan.derive(json.loads(SRC.read_text()), "SimpleTrigger", "X", "st_x")
+    assert _run(monkeypatch, _write_plan(tmp, plan)) != 0
+    assert calls.evaluate == [] and checked == ["gbb", "breakout_gbb"]
+
+    checked.clear()
+    cls.DISABLED_TRIGGERS = ("breakout_gbb",)
+    assert _run(monkeypatch, _write_plan(tmp, plan)) == 0
+    assert checked == ["gbb"]

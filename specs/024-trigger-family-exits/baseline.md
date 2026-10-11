@@ -72,3 +72,15 @@ Parameters' class-level `.value`, which is the declared default (`cexit_take_pro
 freqtrade applies `sell_params` (0.022) only on the instance. The fingerprint's resolved family sets
 and the mixin's class-creation checks now overlay the resolved sell values
 (`utils.FamilyExits.class_level_exit_params`). Live instances were never affected.
+
+## T022 — SC-002: PASS
+
+| combined arm, one side disabled | reference | identical folds | untagged | families | overlap |
+|---|---|---|---|---|---|
+| `st_fam_combo_rev` (breakout_gbb disabled) | `st_gbb` | **15/15** | 0 | reversion 9,056 | none |
+| `st_fam_combo_mom` (gbb disabled) | `st_bgo_mx` | **15/15** | 0 | momentum 6,156 | none |
+
+The first launch was REFUSED before any backtest. `run_folds`'s causality preflight read only
+`TRIGGER_NAME`, so a `TRIGGERS` arm showed as `trigger None`. Fixed: it now checks every enabled
+trigger, matching the strategy's own refuse-all rule. A regression test was added in
+`test_run_folds_nomodel.py`.

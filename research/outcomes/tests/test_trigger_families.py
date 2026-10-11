@@ -22,15 +22,29 @@ EXPECTED = {
     ),
     **dict.fromkeys(
         [
-            "breakout_bb", "breakout_gbb", "breakout_gbb_nofresh", "breakout", "breakout_vol",
-            "breakout_squeeze", "breakout_gm", "breakout_vol_gm", "breakout_squeeze_gm",
+            "breakout_bb",
+            "breakout_gbb",
+            "breakout_gbb_nofresh",
+            "breakout",
+            "breakout_vol",
+            "breakout_squeeze",
+            "breakout_gm",
+            "breakout_vol_gm",
+            "breakout_squeeze_gm",
         ],
         "momentum",
     ),
     **dict.fromkeys(
         [
-            "adx", "votes_ind2", "votes_ind3", "votes_ind4", "votes_consensus", "empty",
-            "random_matched", "trends", "bands",
+            "adx",
+            "votes_ind2",
+            "votes_ind3",
+            "votes_ind4",
+            "votes_consensus",
+            "empty",
+            "random_matched",
+            "trends",
+            "bands",
         ],
         "unassigned",
     ),
@@ -56,7 +70,10 @@ def test_classification_matches_spec_fr001():
 def test_invalid_family_is_refused():
     with pytest.raises(T.TriggerError, match="family"):
         T.Trigger(
-            name="planted", evaluate=lambda df: df, required_columns=(), family="sideways",
+            name="planted",
+            evaluate=lambda df: df,
+            required_columns=(),
+            family="sideways",
             family_reason="x",
         )
 
