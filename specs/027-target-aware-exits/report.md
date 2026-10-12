@@ -114,3 +114,34 @@ late verdict would be contaminated: it would no longer be a clean early-choose /
 - T001–T007 done.
 - T008–T021 not applicable (STOP), per tasks.md.
 - T022–T024 done.
+
+## Addendum 1: exploratory arms (option 1, 2026-10-12)
+
+**EXPLORATORY, not out-of-sample.** These couplings were chosen after their late-half replay results
+were seen. Nothing is adopted. The arms are implemented as subclasses of `st_book_rev2`, with no
+framework change:
+- `SimpleTrigger_RevOnlyVolreg2_XC4`: grace window extended via the existing sell parameter;
+- `SimpleTrigger_RevOnlyVolreg2_XC1`: overrides `_resolve_normal_stop`;
+- `SimpleTrigger_RevOnlyVolreg2_XC2`: overrides `_exit_params`.
+
+Full output is in [exploratory.md](exploratory.md).
+
+| reversion arm vs `st_book_rev2` (early +50.23 / late +4.20) | early / late pp | arm gain early / late | replay predicted | late paired | late Sharpe | late max DD |
+|---|---|---|---|---|---|---|
+| C4 grace 6.5 → 12 h | +58.67 / +10.46 | +8.44 / +6.27 | +19.05 / +12.76 | UNCHANGED, p 0.32 | 0.90 vs 0.31, UNCHANGED (p 0.18) | 7.46 vs 9.19, UNCHANGED |
+| C2 TP = 2.90 × ATR | +54.70 / +8.37 | +4.46 / +4.17 | +8.21 / +8.31 | UNCHANGED, p 0.56 | 0.71, UNCHANGED (p 0.24) | 6.31, UNCHANGED |
+| C1 stop ≥ −3.71% | +53.52 / +6.07 | +3.29 / +1.88 | +4.86 / +3.23 | UNCHANGED, p 0.50 | 0.46, UNCHANGED (p 0.46) | 9.05, UNCHANGED |
+
+All three change trades in 15/15 folds.
+
+**Reading:**
+- **The direction holds.** All three are positive in BOTH halves, as the replay predicted.
+- **The arms realise about half the replay gain:** 44–68%, versus an early/late replay of
+  +19/+13 for C4. Holding a trade longer occupies the pair and changes later entries, which the
+  replay ignores (023 Addendum 7). That is a useful calibration for future replays: discount
+  about 2×.
+- **C4 is the largest effect:** late +10.46 vs +4.20, the highest late Sharpe, and a lower
+  drawdown.
+- **Nothing is resolved,** and these arms are not out-of-sample. Adoption is the job of option 2:
+  a follow-up feature whose pre-declared condition targets recovery within the max hold, judged
+  on a fresh window.
