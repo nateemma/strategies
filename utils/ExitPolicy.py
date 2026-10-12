@@ -406,6 +406,11 @@ class ExitParams:
     #: engine, not strategy code, owns this check, so there is nothing for `custom_exit` to
     #: delegate to and this field exists only for `simulate_forward`).
     roi: Optional[float] = None
+    #: Feature 028 (C2, adopted on the 2022 window): take-profit = this x the signal bar's
+    #: `atr_pct_roll`, clamped by `atr_take_profit`. `None` = off, the fixed `take_profit`
+    #: applies. Resolved per trade by `BaseStrategy._apply_atr_take_profit` (it needs the
+    #: trade's signal bar), which replaces `take_profit`; nothing else reads this field.
+    take_profit_atr_mult: Optional[float] = None
 
     def __post_init__(self) -> None:
         if not self.atr_stoploss_floor <= self.atr_stoploss_cap < 0:
@@ -421,6 +426,19 @@ class ExitParams:
             raise ValueError(f"require fee_per_side >= 0, got {self.fee_per_side}")
         if self.roi is not None and not self.roi > 0:
             raise ValueError(f"require roi > 0 when set, got {self.roi}")
+        if self.take_profit_atr_mult is not None and not self.take_profit_atr_mult > 0:
+            raise ValueError(
+                f"require take_profit_atr_mult > 0 when set, got {self.take_profit_atr_mult}")
+
+
+#: Bounds of the ATR-scaled take-profit (feature 028 C2; 027 research R3), net of fees.
+ATR_TAKE_PROFIT_MIN, ATR_TAKE_PROFIT_MAX = 0.01, 0.05
+
+
+def atr_take_profit(k: float, atr_signal: float) -> float:
+    """Take-profit = k x the signal bar's `atr_pct_roll`, clamped -- the one copy of this
+    arithmetic (the 027 replay's `paths.c2_take_profit` delegates here)."""
+    return float(min(max(k * atr_signal, ATR_TAKE_PROFIT_MIN), ATR_TAKE_PROFIT_MAX))
 
 
 def atr_stop_fraction_array(atr_pct, rvol, params: ExitParams):

@@ -1,0 +1,34 @@
+{
+  "run_id": "st_rev2_recheck",
+  "family": "SimpleTrigger",
+  "base_strategy": "SimpleTrigger_RevOnlyVolreg2",
+  "derived_from": "20261007-085500",
+  "no_model": true,
+  "model_source": null,
+  "anchored": true,
+  "min_train_days": 730,
+  "test_days": 90,
+  "data_start": "2021-01-01",
+  "data_end": "2026-09-07",
+  "config": "user_data/strategies/config/config_wf.json",
+  "params_snapshot": null,
+  "params_sha": null,
+  "folds": [
+    {
+      "fold_id": "f00",
+      "train_start": "2021-01-01",
+      "train_end": "2022-12-31",
+      "test_start": "2023-01-01",
+      "test_end": "2023-04-01",
+      "train_timerange": "20210101-20230101",
+      "test_timerange": "20230101-20230401",
+      "test_days": 90,
+      "strategy_class": "SimpleTrigger_RevOnlyVolreg2",
+      "model_dir": null,
+      "arm_tag": "st_rev2_recheck_f00",
+      "status": "planned"
+    }
+  ],
+  "validated": true,
+  "validation_errors": []
+}

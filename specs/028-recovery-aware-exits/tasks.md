@@ -35,7 +35,7 @@ contracts/interfaces.md I1–I3, quickstart.md)
 
 ## Phase 1: Setup (2023–26 only; nothing touches 2022)
 
-- [ ] T001 Create `specs/028-recovery-aware-exits/baseline.md`. Record:
+- [X] T001 Create `specs/028-recovery-aware-exits/baseline.md`. Record:
   - the commit sha;
   - framework fingerprints for `NNNC_MLX_Open` (arm D), `SimpleTrigger_BreakoutGbb_MomExit`
     (`st_bgo_mx`), `SimpleTrigger_RevOnlyVolreg2` (`st_book_rev2`) and the three XC classes, via
@@ -45,18 +45,18 @@ contracts/interfaces.md I1–I3, quickstart.md)
   - the R2 audit: count the `regime/arms/*.json` records whose `timerange` starts with `2022`, and
     the `backtest_results/*.meta.json` SimpleTrigger runs whose span overlaps 2022-03-07…2023-01-01.
     Both must be 0; otherwise stop and report (spec edge case "fresh window already seen").
-- [ ] T002 [P] Create `SimpleTrigger/SimpleTrigger_RevOnlyVolreg2_XC42.py` per R5:
+- [X] T002 [P] Create `SimpleTrigger/SimpleTrigger_RevOnlyVolreg2_XC42.py` per R5:
   - subclass `SimpleTrigger_RevOnlyVolreg2_XC2`;
   - `SELL_OVERRIDES = {**SimpleTrigger_RevOnlyVolreg2_XC2.SELL_OVERRIDES, "stoploss_grace_hours": 12.0}`;
   - a docstring marking it EXPLORATORY.
 
   Check that its resolved fingerprint equals XC4's (the fingerprint can't see XC2's
   `_exit_params` override).
-- [ ] T003 Create `evaluation/folds/plan_st_xpl_rev_c42.json` by copying
+- [X] T003 Create `evaluation/folds/plan_st_xpl_rev_c42.json` by copying
   `plan_st_xpl_rev_c4.json`. Set `base_strategy`, `run_id`, every fold's `strategy_class`
   (`SimpleTrigger_RevOnlyVolreg2_XC42`) and `arm_tag` (`st_xpl_rev_c42_fNN`), and `status`
   "planned". Validate with `foldplan.validate_plan` and run `run_folds --dry-run`.
-- [ ] T004 Run C4+C2 on f00–f14:
+- [X] T004 Run C4+C2 on f00–f14:
   `python -m evaluation.run_folds --plan user_data/strategies/evaluation/folds/plan_st_xpl_rev_c42.json`
   (repo root, about 3 min). Check:
   - 15/15 records, returncode 0;
@@ -74,7 +74,7 @@ contracts/interfaces.md I1–I3, quickstart.md)
 
 ## Phase 2: Foundational (blocks every story)
 
-- [ ] T005 [P] Write `research/exit_coupling/tests/test_confirm.py`. The tests must FAIL first.
+- [X] T005 [P] Write `research/exit_coupling/tests/test_confirm.py`. The tests must FAIL first.
   - `recovery_share` on a hand-built frame (stop exits with and without a later touch; non-stop
     exits ignored).
   - `candidate_passes`:
@@ -103,7 +103,7 @@ contracts/interfaces.md I1–I3, quickstart.md)
 
   Each must give exit 2. Use temporary files and inject the commit time; no git calls in the
   unit tests.
-- [ ] T006 Implement `research/exit_coupling/confirm.py` per contract I1, with pure functions
+- [X] T006 Implement `research/exit_coupling/confirm.py` per contract I1, with pure functions
   `recovery_share`, `candidate_passes`, `decide`, plus the refusal helpers. Reuse:
   - `feasibility.trade_rows` and `feasibility.fidelity` (fold ids are free strings;
     `half_of` labels e-folds "late", which confirm.py ignores);
@@ -117,7 +117,7 @@ contracts/interfaces.md I1–I3, quickstart.md)
   Add `judge --rerun-check`, which compares an `_rr` record's `trades_hash` with the original (I1).
 
   Values are read from `preregistration.json`, never hard-coded. T005 must pass.
-- [ ] T007 [P] Create the five 2022 plans `evaluation/folds/plan_st_e22_{rev2,c4,c2,c1,c42}.json`
+- [X] T007 [P] Create the five 2022 plans `evaluation/folds/plan_st_e22_{rev2,c4,c2,c1,c42}.json`
   per I3 and R1:
   - `no_model: true`;
   - folds e00 2022-03-07→2022-06-15, e01 →2022-09-23, e02 →2023-01-01;
@@ -128,7 +128,7 @@ contracts/interfaces.md I1–I3, quickstart.md)
 
   Validate each with `foldplan.validate_plan`, run `run_folds --dry-run` on each, and check that
   no two plans share a class.
-- [ ] T008 Write a warm-up probe and record its output in `baseline.md`. It runs no backtest; it
+- [X] T008 Write a warm-up probe and record its output in `baseline.md`. It runs no backtest; it
   reads only the bars before 2022-03-07, from the feathers.
   - For each of the 10 pairs, check that 15m data exists from at least 2022-03-07 minus 4096 bars
     (2022-01-23 18:00 UTC).
@@ -138,7 +138,7 @@ contracts/interfaces.md I1–I3, quickstart.md)
 
   If either fails, move e00's start to the first date where both pass and record the change
   BEFORE T009.
-- [ ] T009 Write and commit the pre-registration: `specs/028-recovery-aware-exits/preregistration.json`
+- [X] T009 Write and commit the pre-registration: `specs/028-recovery-aware-exits/preregistration.json`
   (data-model fields) and `preregistration.md` (readable copy).
   - The candidates' frozen values come from the class constants:
     - XC2 `TP_ATR_MULT` 2.8970711921574543;
@@ -170,12 +170,12 @@ fidelity gate.
 **Independent Test**: `feasibility.md`/`.json` with fidelity, the recovery share and a PASS/FAIL
 per candidate; exit code 0, 2 or 3.
 
-- [ ] T010 [US1] Run the control on 2022:
+- [X] T010 [US1] Run the control on 2022:
   `python -m evaluation.run_folds --plan user_data/strategies/evaluation/folds/plan_st_e22_rev2.json`.
   Check 3/3 records with returncode 0 and trade counts per fold. Record the total control trades.
-- [ ] T011 [US1] Check that every 2022 record's mtime is newer than the pre-registration commit
+- [X] T011 [US1] Check that every 2022 record's mtime is newer than the pre-registration commit
   time; this is `confirm.py`'s refusal (ii) run once by hand.
-- [ ] T012 [US1] Run
+- [X] T012 [US1] Run
   `python -m research.exit_coupling.confirm feasibility --prereg specs/028-recovery-aware-exits/preregistration.json --out specs/028-recovery-aware-exits/feasibility.md`.
   Act on the exit code:
   - Exit 2 on fidelity: diagnose the replay against 2022 (a new mechanic?), fix it in
@@ -193,16 +193,16 @@ per candidate; exit code 0, 2 or 3.
 
 **Independent Test**: `verdicts.md`/`.json` with every field in the data model.
 
-- [ ] T013 [US2] Run the 2022 plan of each PASSING candidate, one at a time, in order C4, C2,
+- [X] T013 [US2] Run the 2022 plan of each PASSING candidate, one at a time, in order C4, C2,
   C1, C42 (skip those that failed T012, marking them STOPPED_AT_FEASIBILITY). Check 3/3 records
   per arm with returncode 0.
-- [ ] T014 [US2] Run
+- [X] T014 [US2] Run
   `python -m research.exit_coupling.confirm judge --prereg ... --feasibility specs/028-recovery-aware-exits/feasibility.json --out specs/028-recovery-aware-exits/verdicts.md`.
   Check that:
   - each candidate has exactly one verdict;
   - each cites the rule letters that failed;
   - the CI half-width is reported (SC-002).
-- [ ] T014a [US2] Gate-5 re-run (constitution quality gate 5), for each ADOPTED candidate whose
+- [-] T014a [US2] *(N/A: the only ADOPTED candidate, C2, gained +4.95 pp ≥ 1 pp.)* Gate-5 re-run (constitution quality gate 5), for each ADOPTED candidate whose
   gain is under 1 pp:
   - create `evaluation/folds/plan_st_e22_<id>_rr.json`, holding only the fold with the largest
     absolute per-fold gain, with `arm_tag` `st_e22_<id>_rr_eNN`;
@@ -211,7 +211,7 @@ per candidate; exit code 0, 2 or 3.
 
   A hash mismatch turns the verdict to INCONCLUSIVE. If there is no such candidate, mark this
   task `[-]`.
-- [ ] T015 [US2] Add a short reading to `verdicts.md`:
+- [X] T015 [US2] Add a short reading to `verdicts.md`:
   - the replay-to-arm realisation ratio on 2022 vs 027's 44–68%;
   - exit-reason shifts;
   - the recommendation among the adopted per R4: the largest 2022 gain; the combination only if
@@ -231,7 +231,7 @@ the shared exit, so NNNC inherits it.
 - switched on: trades match the XC class on f00–f14 and e00–e02;
 - the invariants hold.
 
-- [ ] T016 [P] [US3] Tests first (they must FAIL), only for the adopted candidates:
+- [X] T016 [P] [US3] Tests first (they must FAIL), only for the adopted candidates:
   - `utils/tests/test_exit_switches.py`:
     - `apply_stop_min_depth` (None leaves the stop unchanged; a set depth deepens only stops
       tighter than it);
@@ -242,35 +242,35 @@ the shared exit, so NNNC inherits it.
     recorded in T001 is unchanged (arm D, `st_bgo_mx`, `st_book_rev2`, XC4/XC2/XC1, and XC42 from
     T002).
   - A C4 test: a strategy declaring `stoploss_grace_hours` 12.0 resolves to XC4's fingerprint.
-- [ ] T017 [US3] C1, if adopted:
+- [-] T017 [US3] *(N/A: C1 stopped at feasibility; `stop_min_depth` not built.)* C1, if adopted:
   - add `ExitParams.stop_min_depth: float | None = None` and `ExitPolicy.apply_stop_min_depth` in
     `utils/ExitPolicy.py`;
   - call it in `Framework/BaseStrategy._resolve_normal_stop`, on the post-grace path only;
   - extend the bound in `utils/StopInvariants.py` to min(floor, stop_min_depth);
   - make `research/exit_coupling/paths._normal` call the same `ExitPolicy` function (one source).
-- [ ] T018 [US3] C2, if adopted (C2 or C42):
+- [X] T018 [US3] C2, if adopted (C2 or C42):
   - add `ExitParams.take_profit_atr_mult: float | None = None` and `ExitPolicy.atr_take_profit`;
   - move the clamp constants out of `paths.py` into `ExitPolicy`;
   - resolve it per trade in `Framework/BaseStrategy`, after family overrides (signal-bar
     `atr_pct_roll` at open_date − 1 timeframe, cached per trade, as XC2 does);
   - update the allowlist in `Framework/tests/test_exit_policy_single_source.py` for the new clamp
     site.
-- [ ] T019 [US3] In `evaluation/fingerprint.py`, omit `ExitParams` fields whose value is None
+- [X] T019 [US3] In `evaluation/fingerprint.py`, omit `ExitParams` fields whose value is None
   from `FAMILY_EXITS_RESOLVED` and any other `asdict` hash (R7). T016's fingerprint test must
   pass.
-- [ ] T020 [US3] Add the promoted classes, one per adopted candidate. Each switches the coupling
+- [X] T020 [US3] Add the promoted classes, one per adopted candidate. Each switches the coupling
   on through the shared exit and replaces nothing by override:
   - `SimpleTrigger/SimpleTrigger_RevOnlyVolreg2_P<id>.py`;
   - its plans `plan_st_prom_<id>.json` (f00–f14) and `plan_st_e22_prom_<id>.json` (e00–e02);
   - once, `evaluation/folds/plan_st_rev2_recheck.json`: f00 only, class
     `SimpleTrigger_RevOnlyVolreg2`, `arm_tag` `st_rev2_recheck_f00`, for T021's switch-off
     check.
-- [ ] T021 [US3] Run each promoted class on f00–f14 and e00–e02. Its `trades_hash` must equal the
+- [X] T021 [US3] Run each promoted class on f00–f14 and e00–e02. Its `trades_hash` must equal the
   XC class's in 18/18 folds (FR-011). Then check switch-off:
   - re-resolve the fingerprints from T001 (must be unchanged);
   - run `plan_st_rev2_recheck.json`; its trades_hash must equal `st_book_rev2` f00's recorded
     one.
-- [ ] T022 [US3] Run `pytest utils/tests Framework/tests research/exit_coupling/tests evaluation`.
+- [X] T022 [US3] Run `pytest utils/tests Framework/tests research/exit_coupling/tests evaluation`.
   Everything must pass, with no stop-invariant violation in any T021 run log. Write
   `specs/028-recovery-aware-exits/promotion.md`: the switches, how to declare each, and the
   equivalence and fingerprint results.
@@ -281,7 +281,7 @@ the shared exit, so NNNC inherits it.
 
 ## Phase 6: User Story 4 — Report and hand-over (P4)
 
-- [ ] T023 [US4] Write `specs/028-recovery-aware-exits/report.md`:
+- [X] T023 [US4] Write `specs/028-recovery-aware-exits/report.md`:
   - **SUMMARY**: per candidate, the verdict and which reversion exit NNNC should inherit.
   - The pre-registration, any deviations, and the R2 freshness caveat (the base exit settled in the
     NN era included 2022).
@@ -292,13 +292,13 @@ the shared exit, so NNNC inherits it.
   - The promotion summary, if any.
 
   Label every 2022 figure PROVISIONAL (gate 2: 2022 adjoins f00).
-- [ ] T024 [US4] Update memory:
+- [X] T024 [US4] Update memory:
   - `project_028_recovery_aware_exits.md` with the outcome;
   - the MEMORY.md line;
   - `index_exits.md` if a switch was promoted.
 
   If a new freqtrade mechanic was found, add it to `docs/EXIT_AND_BACKTEST_MECHANICS.md`.
-- [ ] T025 Mark tasks done in this file. Commit the report, outputs, code and plans (named files
+- [X] T025 Mark tasks done in this file. Commit the report, outputs, code and plans (named files
   only).
 
 ---

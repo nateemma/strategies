@@ -40,7 +40,8 @@ import numpy as np
 from utils.ExitPolicy import (
     STOP_AT_MARKET_RATIO,
     ExitParams,
-    atr_stop_fraction,
+    atr_take_profit,
+    effective_stop_fraction,
     custom_exit_decision,
     discretionary_exit_allowed,
     net_from_price_ratio,
@@ -48,8 +49,6 @@ from utils.ExitPolicy import (
 )
 
 
-#: C2 take-profit clamp (net), part of the C2 definition (research R3).
-C2_TP_MIN, C2_TP_MAX = 0.01, 0.05
 
 CLOSE_STOP, CLOSE_ROI, CLOSE_FORCE, CLOSE_HORIZON = "stop", "roi", "force_exit", "horizon_close"
 
@@ -98,7 +97,7 @@ class Exit:
 
 
 def c2_take_profit(k: float, atr_signal: float) -> float:
-    return float(min(max(k * atr_signal, C2_TP_MIN), C2_TP_MAX))
+    return atr_take_profit(k, atr_signal)
 
 
 def _grace(params: ExitParams, rules: Rules) -> tuple[float, float]:
@@ -107,9 +106,18 @@ def _grace(params: ExitParams, rules: Rules) -> tuple[float, float]:
     return float(hours or 0.0), float(level if level is not None else 0.0)
 
 
-def _normal(b: Bars, i: int, params: ExitParams, rules: Rules) -> float:
+def _fraction(b: Bars, i: int, age_h: float, params: ExitParams, rules: Rules) -> float:
+    """The stop fraction the strategy wants at `age_h`, from bar i's inputs: the grace level
+    inside the window, else the ATR stop -- `ExitPolicy.effective_stop_fraction`, the one copy
+    of that choice -- with C4's grace overrides and C1's depth floor applied. C1's `min` cannot
+    touch the grace level (always deeper than any C1 depth)."""
+    grace_h, grace_lvl = _grace(params, rules)
+    if (grace_h, grace_lvl) != (params.stoploss_grace_hours, params.stoploss_grace_level):
+        params = dataclasses.replace(params, stoploss_grace_hours=grace_h,
+                                     stoploss_grace_level=grace_lvl)
     rv = b.rvol[i] if params.use_volume_confirmation_stoploss else None
-    stop = atr_stop_fraction(float(b.atr[i]), None if rv is None else float(rv), params)
+    stop = effective_stop_fraction(age_h, float(b.atr[i]), None if rv is None else float(rv),
+                                   params)
     if rules.stop_min_depth is not None:
         stop = min(stop, rules.stop_min_depth)
     return stop
@@ -158,19 +166,17 @@ def _lock(k, e, open_rate, rules: Rules, ft) -> float | None:
 
 def _stop_update(b, e, k, open_rate, params, rules, stop, ft=None, tick=None):
     """Stop price in force on bar k (before the bar's low is checked)."""
-    grace_h, grace_lvl = _grace(params, rules)
     age_h = (k - e) * params.timeframe_minutes / 60.0
-    if k == e:  # after_fill
-        if grace_h > 0.0:
-            stop = open_rate * (1.0 + grace_lvl)
-        else:
-            stop = open_rate * (1.0 + _normal(b, k - 1, params, rules))
-        return round_up(stop, tick)
+    if k == e:  # after_fill: the grace level if a window is set, else the ATR stop
+        return round_up(open_rate * (1.0 + _fraction(b, k - 1, 0.0, params, rules)), tick)
     if _at_or_below(float(b.low[k]), stop):  # dir_correct: already breached; no adjustment
         return stop
     rate = float(b.high[k])
+    # freqtrade CALL SCHEDULE (BaseStrategy.custom_stoploss), not stop arithmetic: without a
+    # grace window the stop is fixed at fill; with one, it ratchets to the normal stop after it.
+    grace_h, _ = _grace(params, rules)
     if grace_h > 0.0 and age_h >= grace_h:
-        wanted = open_rate * (1.0 + _normal(b, k - 1, params, rules))
+        wanted = open_rate * (1.0 + _fraction(b, k - 1, age_h, params, rules))
         stop = max(stop, _place(wanted, rate, tick))
     lock = _lock(k, e, open_rate, rules, ft)
     if lock is not None:

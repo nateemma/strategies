@@ -34,7 +34,13 @@ python -m research.exit_coupling.confirm judge --prereg ... --feasibility .../fe
 ```python
 ExitParams(..., stop_min_depth: float | None = None, take_profit_atr_mult: float | None = None)
 ExitPolicy.apply_stop_min_depth(stop: float, params) -> float        # min(stop, depth) when set
-ExitPolicy.atr_take_profit(params, atr_signal: float) -> float        # clamp(k*atr, 0.01, 0.05)
+ExitPolicy.atr_take_profit(k: float, atr_signal: float) -> float     # clamp(k*atr, 0.01, 0.05)
+BaseStrategy._apply_atr_take_profit(params, trade) -> ExitParams     # per-trade resolution
+
+# As built (2026-10-12): only C2 was ADOPTED, so only take_profit_atr_mult exists;
+# stop_min_depth / apply_stop_min_depth were not built (C1 stopped at feasibility).
+# The take-profit can be declared strategy-wide (`take_profit_atr_mult = k`) or per family
+# (FAMILY_EXITS / FAMILY_EXIT_OVERRIDES {"<family>": {"take_profit_atr_mult": k}}), not both.
 ```
 
 **Declared via:**

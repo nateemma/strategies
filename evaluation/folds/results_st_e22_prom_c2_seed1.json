@@ -1,0 +1,62 @@
+{
+  "run_id": "st_e22_prom_c2",
+  "seed": 1,
+  "params_sha": null,
+  "elapsed_minutes": 0.7,
+  "folds_planned": 3,
+  "folds_complete": 3,
+  "status": "complete",
+  "folds": [
+    {
+      "fold_id": "e00",
+      "train_start": "2021-01-01",
+      "train_end": "2022-03-06",
+      "test_start": "2022-03-07",
+      "test_end": "2022-06-15",
+      "train_timerange": "20210101-20220307",
+      "test_timerange": "20220307-20220615",
+      "test_days": 100,
+      "strategy_class": "SimpleTrigger_RevOnlyVolreg2_P2",
+      "model_dir": null,
+      "arm_tag": "st_e22_prom_c2_e00",
+      "status": "evaluated",
+      "model_artifact_verified": null,
+      "n_trades": 432,
+      "arm_returncode": 0
+    },
+    {
+      "fold_id": "e01",
+      "train_start": "2021-01-01",
+      "train_end": "2022-06-14",
+      "test_start": "2022-06-15",
+      "test_end": "2022-09-23",
+      "train_timerange": "20210101-20220615",
+      "test_timerange": "20220615-20220923",
+      "test_days": 100,
+      "strategy_class": "SimpleTrigger_RevOnlyVolreg2_P2",
+      "model_dir": null,
+      "arm_tag": "st_e22_prom_c2_e01",
+      "status": "evaluated",
+      "model_artifact_verified": null,
+      "n_trades": 218,
+      "arm_returncode": 0
+    },
+    {
+      "fold_id": "e02",
+      "train_start": "2021-01-01",
+      "train_end": "2022-09-22",
+      "test_start": "2022-09-23",
+      "test_end": "2023-01-01",
+      "train_timerange": "20210101-20220923",
+      "test_timerange": "20220923-20230101",
+      "test_days": 100,
+      "strategy_class": "SimpleTrigger_RevOnlyVolreg2_P2",
+      "model_dir": null,
+      "arm_tag": "st_e22_prom_c2_e02",
+      "status": "evaluated",
+      "model_artifact_verified": null,
+      "n_trades": 269,
+      "arm_returncode": 0
+    }
+  ]
+}

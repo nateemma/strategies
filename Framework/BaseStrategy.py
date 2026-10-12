@@ -79,6 +79,7 @@ sys.path.append(group_dir)
 from utils.ExitPolicy import (
     ExitParams,
     atr_stop_fraction,
+    atr_take_profit,
     custom_exit_decision,
     discretionary_exit_allowed,
     rolling_rvol,
@@ -423,6 +424,12 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
     # is no-op for strategies that don't enable ATR-adaptive stops, and on
     # NNNC it produced +0.28pp profit / -1.17pp DD / +65% Calmar vs ATR-only.
     use_volume_confirmation_stoploss = True
+
+    # ATR-scaled TAKE-PROFIT (feature 028 C2; None = off, the fixed cexit_take_profit
+    # applies). When set, a trade's take-profit is this multiple of its signal bar's
+    # atr_pct_roll, clamped to [1%, 5%] net (utils.ExitPolicy.atr_take_profit). May also be
+    # set per entry family via FAMILY_EXITS {"<family>": {"take_profit_atr_mult": k}}.
+    take_profit_atr_mult: Optional[float] = None
 
     # Stop-loss GRACE window. For the first ``stoploss_grace_hours`` of a trade
     # the stop is held wide (``stoploss_grace_level``) so entry-noise doesn't
@@ -1103,7 +1110,7 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
         is deciding for, so a strategy may override this to choose parameters per trade
         (e.g. by `trade.enter_tag`). This base implementation ignores it.
         """
-        return ExitParams(
+        params = ExitParams(
             atr_stoploss_multiplier=self.atr_stoploss_multiplier,
             atr_stoploss_cap=self.atr_stoploss_cap,
             atr_stoploss_floor=self.atr_stoploss_floor,
@@ -1118,7 +1125,42 @@ class BaseStrategy(StrategyDiagnostics, IStrategy):
             cexit_enable_profit_checks=bool(self.cexit_enable_profit_checks.value),
             take_profit=float(self.cexit_take_profit.value),
             max_hold_days=int(self.cexit_max_days.value),
+            take_profit_atr_mult=getattr(self, "take_profit_atr_mult", None),
         )
+        # Off (the default) touches nothing new. A class standing in for an instance
+        # (fingerprint/tests) has no trade to resolve against.
+        if params.take_profit_atr_mult is None or isinstance(self, type):
+            return params
+        return self._apply_atr_take_profit(params, trade)
+
+    def _apply_atr_take_profit(self, params: "ExitParams", trade: Optional[Trade]) -> "ExitParams":
+        """Resolve `params.take_profit_atr_mult` into `take_profit` for `trade` (feature 028 C2).
+
+        Idempotent, so `FamilyExitMixin` can re-apply it after a family override sets the field.
+        Off, no trade, a class standing in for an instance (fingerprint/tests), or no
+        dataprovider: `params` unchanged. The signal bar is the candle before the entry candle
+        (open_date - 1 timeframe) in the analysed dataframe; if it is not visible the preset
+        take-profit stays. The value is cached per trade, so it never drifts as bars arrive.
+        """
+        k = params.take_profit_atr_mult
+        if k is None or trade is None or getattr(self, "dp", None) is None:
+            return params
+        cache = self.__dict__.setdefault("_atr_tp_cache", {})
+        key = (getattr(trade, "id", None) or (trade.pair, trade.open_date_utc), k)
+        if key not in cache:
+            from datetime import timedelta
+
+            from freqtrade.exchange import timeframe_to_minutes
+
+            df, _ = self.dp.get_analyzed_dataframe(trade.pair, self.timeframe)
+            signal = trade.open_date_utc - timedelta(minutes=timeframe_to_minutes(self.timeframe))
+            row = df.loc[df["date"] == signal, "atr_pct_roll"]
+            if row.empty:
+                return params
+            cache[key] = atr_take_profit(k, float(row.iloc[-1]))
+        from dataclasses import replace
+
+        return replace(params, take_profit=cache[key])
 
     def _atr_bar_inputs(self, pair: str, params: Optional["ExitParams"] = None):
         """`(atr_pct, rvol)` from the latest analysed bar, or None if unavailable.

@@ -47,7 +47,12 @@ _ATTR_TO_FIELD = {
     "use_atr_adaptive_stoploss": "use_atr_adaptive_stoploss",
     "use_volume_confirmation_stoploss": "use_volume_confirmation_stoploss",
     "stoploss": "static_stoploss",
+    "take_profit_atr_mult": "take_profit_atr_mult",
 }
+
+#: Plain class attributes that ARE ExitParams fields (feature 028 C2). Set on the class (not
+#: None) AND in a family set is the same ambiguity as an ATTR_OVERRIDES/family clash (F3).
+_CLASS_FIELDS = ("take_profit_atr_mult",)
 
 _FIELDS = frozenset(f.name for f in dataclasses.fields(ExitParams))
 
@@ -115,6 +120,7 @@ def _validate(cls) -> None:
     explicit |= {
         _ATTR_TO_FIELD[k] for k in getattr(cls, "ATTR_OVERRIDES", {}) if k in _ATTR_TO_FIELD
     }
+    explicit |= {f for f in _CLASS_FIELDS if getattr(cls, f, None) is not None}
     for family, overrides in sets.items():
         for key in overrides:
             if key in FORBIDDEN_KEYS:
@@ -182,4 +188,12 @@ class FamilyExitMixin:
                 self._untagged_exits = getattr(self, "_untagged_exits", 0) + 1
             return base
         overrides = (self.FAMILY_EXITS or {}).get(family) or {}
-        return dataclasses.replace(base, **overrides) if overrides else base
+        if not overrides:
+            return base
+        params = dataclasses.replace(base, **overrides)
+        # 028 C2: a family may switch the ATR take-profit on (or off), and a family's fixed
+        # take_profit must not displace a resolved ATR one -- resolve again after the swap.
+        # Idempotent; a class standing in for an instance has nothing to resolve.
+        if params.take_profit_atr_mult is None or isinstance(self, type):
+            return params
+        return self._apply_atr_take_profit(params, trade)

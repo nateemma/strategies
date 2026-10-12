@@ -76,7 +76,12 @@ ATTRIBUTE_MEMBERS = (
 #: most strategies: listing them in ATTRIBUTE_MEMBERS would add a `None` key to every resolved
 #: dict and change every recorded framework_sha. HOLD_WINDOW_HOURS (NNNC/_hold_window.py) defers
 #: unclog_12h; before this, an arm with it hashed identically to the same arm without it.
-OPTIONAL_ATTRIBUTE_MEMBERS = ("HOLD_WINDOW_HOURS",)
+OPTIONAL_ATTRIBUTE_MEMBERS = ("HOLD_WINDOW_HOURS", "take_profit_atr_mult")
+
+#: Default-off ExitParams switches added after recorded arms were hashed (028 C2). Omitted from
+#: the resolved family sets while None, so every recorded `framework_sha` is unchanged (FR-010);
+#: switched on, they are hashed like any other field.
+SWITCH_FIELDS_OMITTED_WHEN_OFF = frozenset({"take_profit_atr_mult"})
 
 #: Hyperopt parameters excluded from the hash: they shape the entry SIGNAL, which a twin may
 #: change, not the framework around it.
@@ -219,12 +224,18 @@ def _family_members(strategy_cls, sell_values: dict) -> dict:
         "DISABLED_TRIGGERS": list(disabled),
         "FAMILY_PRIORITY": list(getattr(strategy_cls, "FAMILY_PRIORITY", None) or ()),
         "FAMILY_EXITS_RESOLVED": {
-            family: _jsonable(dataclasses.asdict(dataclasses.replace(base, **(overrides or {}))))
+            family: _jsonable(_without_off_switches(
+                dataclasses.asdict(dataclasses.replace(base, **(overrides or {})))))
             for family, overrides in sorted(sets.items())
         },
         "TRIGGER_FAMILIES": {t: registry.get(t).family for t in triggers},
         **coexist,
     }
+
+
+def _without_off_switches(fields: dict) -> dict:
+    return {k: v for k, v in fields.items()
+            if not (k in SWITCH_FIELDS_OMITTED_WHEN_OFF and v is None)}
 
 
 def _resolve_attributes(strategy_cls, file_params: dict) -> dict:

@@ -38,6 +38,9 @@ PARAMETER_NAMES: tuple[str, ...] = (
     # freqtrade `Parameter`s anyone could plausibly re-declare or override.
     "cexit_take_profit",
     "cexit_max_days",
+    # Feature 028 C2: the ATR-scaled take-profit's multiplier. Its clamp lives once, in
+    # utils.ExitPolicy.atr_take_profit; naming it elsewhere must be configuration only.
+    "take_profit_atr_mult",
 )
 
 _PATTERN = re.compile(r"\b(?:" + "|".join(PARAMETER_NAMES) + r")\b")
@@ -314,6 +317,29 @@ ALLOWED_REFERENCES: frozenset[str] = frozenset({
     # kwargs only to build fixtures for `simulate_forward`/`custom_exit_decision`;
     # delegates every comparison to those functions, computes no stop level itself.
     "Framework/tests/test_exit_policy_fee_netting.py",
+
+    # --- features 027-028 (target-aware / recovery-aware exits) --------------------------------
+    # The exit REPLAY: simulates freqtrade's stop PLACEMENT around our levels (custom_stoploss
+    # called with the candle high, dir_correct, round-up to the tick, ROI suppression; see
+    # docs/EXIT_AND_BACKTEST_MECHANICS.md). Every stop LEVEL comes from ExitPolicy
+    # (effective_stop_fraction, atr_take_profit); what stays local is freqtrade's CALL
+    # SCHEDULE (fixed at fill, ratchet after grace) and the 027 coupling hooks (Rules) that
+    # override grace hours/level by name. 99.6-99.7% of recorded exits reproduced.
+    "research/exit_coupling/paths.py",
+    "research/exit_coupling/feasibility.py",   # reads the resolved grace hours/level off a
+                                                 # class's sell_params into ExitParams; computes
+                                                 # nothing.
+    "research/exit_coupling/tests/test_paths.py",  # builds ExitParams fixtures (grace, ATR
+                                                     # band) for the replay; asserts its exits.
+    # 027/028 exploratory arms: SELL_OVERRIDES stoploss_grace_hours=12.0 (C4) -- a VALUE.
+    "SimpleTrigger/SimpleTrigger_RevOnlyVolreg2_XC4.py",
+    "SimpleTrigger/SimpleTrigger_RevOnlyVolreg2_XC42.py",
+    # 028 promoted C2: FAMILY_EXIT_OVERRIDES take_profit_atr_mult=k -- a VALUE.
+    "SimpleTrigger/SimpleTrigger_RevOnlyVolreg2_P2.py",
+    "utils/tests/test_exit_switches.py",       # sets the switch on stubs; asserts the
+                                                 # resolved take-profit, computes none of it.
+    "evaluation/tests/test_fingerprint_switches.py",  # declares grace 12.0 on a subclass to
+                                                        # assert its hash; computes nothing.
 })
 
 

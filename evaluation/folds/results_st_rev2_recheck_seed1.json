@@ -1,0 +1,28 @@
+{
+  "run_id": "st_rev2_recheck",
+  "seed": 1,
+  "params_sha": null,
+  "elapsed_minutes": 0.2,
+  "folds_planned": 1,
+  "folds_complete": 1,
+  "status": "complete",
+  "folds": [
+    {
+      "fold_id": "f00",
+      "train_start": "2021-01-01",
+      "train_end": "2022-12-31",
+      "test_start": "2023-01-01",
+      "test_end": "2023-04-01",
+      "train_timerange": "20210101-20230101",
+      "test_timerange": "20230101-20230401",
+      "test_days": 90,
+      "strategy_class": "SimpleTrigger_RevOnlyVolreg2",
+      "model_dir": null,
+      "arm_tag": "st_rev2_recheck_f00",
+      "status": "evaluated",
+      "model_artifact_verified": null,
+      "n_trades": 232,
+      "arm_returncode": 0
+    }
+  ]
+}
