@@ -1,0 +1,557 @@
+{
+ "label": "PROVISIONAL -- not a finding under quality gate 2 (no distant era)",
+ "families": {
+  "momentum": {
+   "tag": "st_bgo_mx",
+   "class": "SimpleTrigger_BreakoutGbb_MomExit",
+   "setup": {
+    "class": "SimpleTrigger_BreakoutGbb_MomExit",
+    "params": {
+     "atr_stoploss_multiplier": 4.0,
+     "atr_stoploss_cap": -0.04,
+     "atr_stoploss_floor": -0.06,
+     "static_stoploss": -0.05,
+     "use_atr_adaptive_stoploss": true,
+     "use_volume_confirmation_stoploss": true,
+     "stoploss_grace_hours": 6.5,
+     "stoploss_grace_level": -0.27,
+     "take_profit": 10.0,
+     "max_hold_days": 10,
+     "fee_per_side": 0.001,
+     "min_discretionary_hold_hours": 1.0,
+     "timeframe_minutes": 15,
+     "metric_overbought_threshold": 0.98,
+     "unclog_12h_hours": 24.0,
+     "unclog_12h_min_profit": 0.005,
+     "unclog_1d_hours": 24.0,
+     "cexit_enable_profit_checks": true,
+     "roi": null
+    },
+    "roi": 0.05
+   },
+   "fidelity": {
+    "null_replay_agreement": 0.9962638076673165,
+    "by_recorded_reason": {
+     "force_exit": {
+      "count": 46,
+      "mean": 1.0
+     },
+     "metric_overbought": {
+      "count": 641,
+      "mean": 0.9969
+     },
+     "roi": {
+      "count": 1122,
+      "mean": 0.9991
+     },
+     "stop": {
+      "count": 3353,
+      "mean": 0.994
+     },
+     "unclog_12h": {
+      "count": 737,
+      "mean": 1.0
+     },
+     "unclog_1d": {
+      "count": 257,
+      "mean": 1.0
+     }
+    },
+    "stop_model_agreement": 0.9964211154190278,
+    "stop_model_median_gap_pp": 8.658548251338782e-11
+   },
+   "fidelity_ok": true,
+   "summary": {
+    "early": {
+     "trades": 3411,
+     "ambiguous": 9,
+     "label_positive": 1864,
+     "a_stop_exits": 1836,
+     "a_touch_after_stop_h": 0.0196078431372549,
+     "a_touch_after_stop_maxhold": 0.46459694989106753,
+     "b_killed_share": 0.019313304721030045,
+     "b_killed_after_grace_share_of_killed": 1.0,
+     "b_killed_after_grace_share_of_lp": 0.019313304721030045,
+     "b_mae_depth_p50_p80_p90_p95": [
+      0.0067159015664940425,
+      0.01995817875256361,
+      0.028643604825290183,
+      0.03936405829703809
+     ],
+     "b_stop_at_touch_median": -0.2699196736216147,
+     "c_bars_to_touch_p25_p50_p75": [
+      3.0,
+      9.0,
+      21.0
+     ],
+     "c_open_past_horizon_no_touch": 609,
+     "c_open_past_horizon_pp": -12.57612173422994,
+     "d_touched_exited_below": 908,
+     "d_giveback_mean": 0.033382365730344525,
+     "pp_recorded": 22.683000000000003
+    },
+    "late": {
+     "trades": 2745,
+     "ambiguous": 2,
+     "label_positive": 1421,
+     "a_stop_exits": 1507,
+     "a_touch_after_stop_h": 0.015262110152621102,
+     "a_touch_after_stop_maxhold": 0.45122760451227606,
+     "b_killed_share": 0.01688951442646024,
+     "b_killed_after_grace_share_of_killed": 1.0,
+     "b_killed_after_grace_share_of_lp": 0.01688951442646024,
+     "b_mae_depth_p50_p80_p90_p95": [
+      0.006934085869784501,
+      0.019106333112549057,
+      0.02906059923406179,
+      0.03966942148760333
+     ],
+     "b_stop_at_touch_median": -0.2699266503667481,
+     "c_bars_to_touch_p25_p50_p75": [
+      3.0,
+      10.0,
+      22.0
+     ],
+     "c_open_past_horizon_no_touch": 509,
+     "c_open_past_horizon_pp": -8.167503911529927,
+     "d_touched_exited_below": 675,
+     "d_giveback_mean": 0.03314571059596902,
+     "pp_recorded": 2.504999999999999
+    }
+   },
+   "profile": {
+    "C1": {
+     "80": -0.01995817875256361,
+     "90": -0.028643604825290183
+    },
+    "C4": {
+     "base": null,
+     "p95": -0.03936405829703809
+    },
+    "C2": null,
+    "atr_tercile_cuts": [
+     0.003954361686451423,
+     0.006806091956952173
+    ]
+   },
+   "verdicts": {
+    "C1": {
+     "value": {
+      "percentile": 80,
+      "depth": -0.01995817875256361
+     },
+     "gain_pp": {
+      "early": 0.0,
+      "late": 0.0
+     },
+     "conditions": {
+      "early": [
+       false,
+       false
+      ],
+      "late": [
+       false,
+       false
+      ]
+     },
+     "verdict": "NOT SUPPORTED",
+     "all_gains_pp": {
+      "80": {
+       "early": 0.0,
+       "late": 0.0
+      },
+      "90": {
+       "early": -0.11741727849570838,
+       "late": 1.212144147329191
+      }
+     }
+    },
+    "C2": {
+     "verdict": "N/A",
+     "reason": "no take-profit in this family"
+    },
+    "C3": {
+     "value": {
+      "action": "breakeven"
+     },
+     "gain_pp": {
+      "early": 0.6444582878623073,
+      "late": -0.6257186983691041
+     },
+     "conditions": {
+      "early": [
+       true
+      ],
+      "late": [
+       false
+      ]
+     },
+     "verdict": "NOT SUPPORTED",
+     "all_gains_pp": {
+      "breakeven": {
+       "early": 0.6444582878623073,
+       "late": -0.6257186983691041
+      },
+      "close": {
+       "early": -0.31198054164709466,
+       "late": -2.222832255218643
+      }
+     }
+    },
+    "C4": {
+     "value": {
+      "depth_choice": "base",
+      "grace_level": null
+     },
+     "gain_pp": {
+      "early": 16.94099151279506,
+      "late": -2.4442636174568717
+     },
+     "conditions": {
+      "early": [
+       true,
+       false,
+       true
+      ],
+      "late": [
+       true,
+       false,
+       false
+      ]
+     },
+     "verdict": "NOT SUPPORTED",
+     "all_gains_pp": {
+      "base": {
+       "early": 16.94099151279506,
+       "late": -2.4442636174568717
+      },
+      "p95": {
+       "early": -25.13921503909581,
+       "late": -10.343379916321572
+      }
+     }
+    },
+    "C5": {
+     "value": {
+      "lambda": 0.5
+     },
+     "gain_pp": {
+      "early": -0.5034863874222413,
+      "late": -4.64106168104408
+     },
+     "conditions": {
+      "early": [
+       false
+      ],
+      "late": [
+       false
+      ]
+     },
+     "verdict": "NOT SUPPORTED",
+     "all_gains_pp": {
+      "0.0": {
+       "early": -8.070984956967632,
+       "late": -6.585179064695809
+      },
+      "0.5": {
+       "early": -0.5034863874222413,
+       "late": -4.64106168104408
+      }
+     }
+    }
+   }
+  },
+  "reversion": {
+   "tag": "st_book_rev2",
+   "class": "SimpleTrigger_RevOnlyVolreg2",
+   "setup": {
+    "class": "SimpleTrigger_RevOnlyVolreg2",
+    "params": {
+     "atr_stoploss_multiplier": 4.0,
+     "atr_stoploss_cap": -0.04,
+     "atr_stoploss_floor": -0.06,
+     "static_stoploss": -0.05,
+     "use_atr_adaptive_stoploss": true,
+     "use_volume_confirmation_stoploss": true,
+     "stoploss_grace_hours": 6.5,
+     "stoploss_grace_level": -0.27,
+     "take_profit": 0.022,
+     "max_hold_days": 10,
+     "fee_per_side": 0.001,
+     "min_discretionary_hold_hours": 1.0,
+     "timeframe_minutes": 15,
+     "metric_overbought_threshold": 0.98,
+     "unclog_12h_hours": 12.0,
+     "unclog_12h_min_profit": 0.005,
+     "unclog_1d_hours": 24.0,
+     "cexit_enable_profit_checks": true,
+     "roi": null
+    },
+    "roi": 0.05
+   },
+   "fidelity": {
+    "null_replay_agreement": 0.9964539007092199,
+    "by_recorded_reason": {
+     "force_exit": {
+      "count": 7,
+      "mean": 1.0
+     },
+     "metric_overbought": {
+      "count": 3,
+      "mean": 0.6667
+     },
+     "roi": {
+      "count": 29,
+      "mean": 1.0
+     },
+     "stop": {
+      "count": 1173,
+      "mean": 0.9949
+     },
+     "take_profit": {
+      "count": 1715,
+      "mean": 1.0
+     },
+     "unclog_12h": {
+      "count": 444,
+      "mean": 0.9887
+     },
+     "unclog_1d": {
+      "count": 13,
+      "mean": 1.0
+     }
+    },
+    "stop_model_agreement": 0.9940323955669225,
+    "stop_model_median_gap_pp": 8.421535852140782e-11
+   },
+   "fidelity_ok": true,
+   "summary": {
+    "early": {
+     "trades": 2092,
+     "ambiguous": 5,
+     "label_positive": 1384,
+     "a_stop_exits": 699,
+     "a_touch_after_stop_h": 0.06723891273247497,
+     "a_touch_after_stop_maxhold": 0.6337625178826896,
+     "b_killed_share": 0.03395953757225433,
+     "b_killed_after_grace_share_of_killed": 1.0,
+     "b_killed_after_grace_share_of_lp": 0.03395953757225433,
+     "b_mae_depth_p50_p80_p90_p95": [
+      0.008549829294031419,
+      0.025117666361461222,
+      0.03710764139923586,
+      0.04805647959302588
+     ],
+     "b_stop_at_touch_median": -0.2699164974052065,
+     "c_bars_to_touch_p25_p50_p75": [
+      3.0,
+      9.0,
+      21.0
+     ],
+     "c_open_past_horizon_no_touch": 287,
+     "c_open_past_horizon_pp": -2.1841139838768546,
+     "d_touched_exited_below": 264,
+     "d_giveback_mean": 0.03242486356677465,
+     "pp_recorded": 50.235
+    },
+    "late": {
+     "trades": 1292,
+     "ambiguous": 3,
+     "label_positive": 832,
+     "a_stop_exits": 466,
+     "a_touch_after_stop_h": 0.045064377682403435,
+     "a_touch_after_stop_maxhold": 0.575107296137339,
+     "b_killed_share": 0.02403846153846154,
+     "b_killed_after_grace_share_of_killed": 0.9,
+     "b_killed_after_grace_share_of_lp": 0.021634615384615384,
+     "b_mae_depth_p50_p80_p90_p95": [
+      0.007061271796878543,
+      0.02190405616801355,
+      0.0341799068694251,
+      0.048732926101928364
+     ],
+     "b_stop_at_touch_median": -0.26992191645852487,
+     "c_bars_to_touch_p25_p50_p75": [
+      3.0,
+      8.0,
+      19.0
+     ],
+     "c_open_past_horizon_no_touch": 134,
+     "c_open_past_horizon_pp": -1.6805869565420841,
+     "d_touched_exited_below": 142,
+     "d_giveback_mean": 0.037989606476224694,
+     "pp_recorded": 4.195999999999999
+    }
+   },
+   "profile": {
+    "C1": {
+     "80": -0.025117666361461222,
+     "90": -0.03710764139923586
+    },
+    "C4": {
+     "base": null,
+     "p95": -0.04805647959302588
+    },
+    "C2": 2.8970711921574543,
+    "atr_tercile_cuts": [
+     0.006024964811309819,
+     0.009591800279015874
+    ]
+   },
+   "verdicts": {
+    "C1": {
+     "value": {
+      "percentile": 90,
+      "depth": -0.03710764139923586
+     },
+     "gain_pp": {
+      "early": 4.859952485810297,
+      "late": 3.225505060655604
+     },
+     "conditions": {
+      "early": [
+       false,
+       true
+      ],
+      "late": [
+       false,
+       true
+      ]
+     },
+     "verdict": "NOT SUPPORTED",
+     "all_gains_pp": {
+      "80": {
+       "early": 2.034353516913579,
+       "late": 0.06073884567350535
+      },
+      "90": {
+       "early": 4.859952485810297,
+       "late": 3.225505060655604
+      }
+     }
+    },
+    "C2": {
+     "value": {
+      "k": 2.8970711921574543
+     },
+     "gain_pp": {
+      "early": 8.213749742124389,
+      "late": 8.313178761662236
+     },
+     "tercile_hit_ratio": {
+      "early": 0.7156711483359048,
+      "late": 0.7112785437898522
+     },
+     "conditions": {
+      "early": [
+       false,
+       true
+      ],
+      "late": [
+       false,
+       true
+      ]
+     },
+     "verdict": "NOT SUPPORTED",
+     "all_gains_pp": {
+      "k": {
+       "early": 8.213749742124389,
+       "late": 8.313178761662236
+      }
+     }
+    },
+    "C3": {
+     "value": {
+      "action": "breakeven"
+     },
+     "gain_pp": {
+      "early": -0.8229453733673665,
+      "late": 0.26353401283193867
+     },
+     "conditions": {
+      "early": [
+       false
+      ],
+      "late": [
+       true
+      ]
+     },
+     "verdict": "NOT SUPPORTED",
+     "all_gains_pp": {
+      "breakeven": {
+       "early": -0.8229453733673665,
+       "late": 0.26353401283193867
+      },
+      "close": {
+       "early": -1.2076478073982548,
+       "late": 0.23191894709945082
+      }
+     }
+    },
+    "C4": {
+     "value": {
+      "depth_choice": "base",
+      "grace_level": null
+     },
+     "gain_pp": {
+      "early": 19.052168763079273,
+      "late": 12.75752273069843
+     },
+     "conditions": {
+      "early": [
+       true,
+       false,
+       true
+      ],
+      "late": [
+       true,
+       false,
+       true
+      ]
+     },
+     "verdict": "NOT SUPPORTED",
+     "all_gains_pp": {
+      "base": {
+       "early": 19.052168763079273,
+       "late": 12.75752273069843
+      },
+      "p95": {
+       "early": -12.176326758716861,
+       "late": 6.848309032710324
+      }
+     }
+    },
+    "C5": {
+     "value": {
+      "lambda": 0.0
+     },
+     "gain_pp": {
+      "early": -4.3197303717226605,
+      "late": -2.7658946212855984
+     },
+     "conditions": {
+      "early": [
+       false
+      ],
+      "late": [
+       false
+      ]
+     },
+     "verdict": "NOT SUPPORTED",
+     "all_gains_pp": {
+      "0.0": {
+       "early": -4.3197303717226605,
+       "late": -2.7658946212855984
+      },
+      "0.5": {
+       "early": -4.7078170444799206,
+       "late": -2.6428584473367875
+      }
+     }
+    }
+   }
+  }
+ },
+ "exit": 3,
+ "overall": "STOP (none supported)"
+}

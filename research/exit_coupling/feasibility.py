@@ -376,6 +376,9 @@ def verdicts(df: pd.DataFrame, prof: dict, summaries: dict) -> dict:
     for k, v in out.items():
         if "conditions" in v:
             v["verdict"] = "SUPPORTED" if supported(v["conditions"]) else "NOT SUPPORTED"
+            cols = sorted(c for c in df.columns if c.startswith(f"d_{k}_"))
+            v["all_gains_pp"] = {c[len(f"d_{k}_"):]: gains_by_half(df, k, c[len(f"d_{k}_"):])
+                                 for c in cols}
     return out
 
 
@@ -410,6 +413,13 @@ def render(result: dict) -> str:
             g = f"{gain['early']:+.2f} / {gain['late']:+.2f}" if gain else "—"
             lines.append(f"| {c} | {json.dumps(v.get('value'))} | {g} | "
                          f"**{v.get('verdict')}** |")
+        lines += ["", "all grid values, replay gain pp (early / late; reported, not used to choose):", ""]
+        for c, v in r.get("verdicts", {}).items():
+            for val, g in (v.get("all_gains_pp") or {}).items():
+                lines.append(f"- {c} `{val}`: {g['early']:+.2f} / {g['late']:+.2f}")
+            if v.get("conditions"):
+                lines.append(f"- {c} conditions (early / late): "
+                             f"{v['conditions']['early']} / {v['conditions']['late']}")
         lines += ["", f"null-replay agreement by recorded reason: "
                       f"`{json.dumps(fid['by_recorded_reason'])}`", ""]
     lines += [f"overall: **{result['overall']}** (exit {result['exit']})", ""]

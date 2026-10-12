@@ -21,6 +21,16 @@ This file is intended to orient an AI agent (or a new developer) on how to build
 Every item here fails with **no error and a plausible-looking number**. They have each cost
 real time in this repo.
 
+> **Exits, stops, entries and freqtrade's backtest mechanics:** read
+> `docs/EXIT_AND_BACKTEST_MECHANICS.md` before changing exit/stop/entry logic or writing any
+> offline model of a backtest. It covers:
+> - the per-candle exit order;
+> - `custom_stoploss` being called at the candle HIGH;
+> - stop rounding to the price tick;
+> - per-candle ROI suppression by entry signals;
+> - stake caps from liquidity;
+> - what the trigger families have shown.
+
 **A re-parameterised subclass trains a fresh model inside its own backtest.**
 `BaseNNStrategy.get_model_path` keys off `self.__class__.__name__`, so `class MyArm(NNNC_MLX)`
 looks for `saved_data/MyArm/`, finds nothing, and trains one — fitting the evaluation window.
