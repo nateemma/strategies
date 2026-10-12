@@ -1,0 +1,62 @@
+{
+  "run_id": "st_e22_c4",
+  "family": "SimpleTrigger",
+  "base_strategy": "SimpleTrigger_RevOnlyVolreg2_XC4",
+  "derived_from": "028 R1 (2022 judging window)",
+  "no_model": true,
+  "model_source": null,
+  "anchored": true,
+  "min_train_days": 730,
+  "test_days": 100,
+  "data_start": "2021-01-01",
+  "data_end": "2023-01-01",
+  "config": "user_data/strategies/config/config_wf.json",
+  "params_snapshot": null,
+  "params_sha": null,
+  "validated": true,
+  "validation_errors": [],
+  "folds": [
+    {
+      "fold_id": "e00",
+      "train_start": "2021-01-01",
+      "train_end": "2022-03-06",
+      "test_start": "2022-03-07",
+      "test_end": "2022-06-15",
+      "train_timerange": "20210101-20220307",
+      "test_timerange": "20220307-20220615",
+      "test_days": 100,
+      "strategy_class": "SimpleTrigger_RevOnlyVolreg2_XC4",
+      "model_dir": null,
+      "arm_tag": "st_e22_c4_e00",
+      "status": "planned"
+    },
+    {
+      "fold_id": "e01",
+      "train_start": "2021-01-01",
+      "train_end": "2022-06-14",
+      "test_start": "2022-06-15",
+      "test_end": "2022-09-23",
+      "train_timerange": "20210101-20220615",
+      "test_timerange": "20220615-20220923",
+      "test_days": 100,
+      "strategy_class": "SimpleTrigger_RevOnlyVolreg2_XC4",
+      "model_dir": null,
+      "arm_tag": "st_e22_c4_e01",
+      "status": "planned"
+    },
+    {
+      "fold_id": "e02",
+      "train_start": "2021-01-01",
+      "train_end": "2022-09-22",
+      "test_start": "2022-09-23",
+      "test_end": "2023-01-01",
+      "train_timerange": "20210101-20220923",
+      "test_timerange": "20220923-20230101",
+      "test_days": 100,
+      "strategy_class": "SimpleTrigger_RevOnlyVolreg2_XC4",
+      "model_dir": null,
+      "arm_tag": "st_e22_c4_e02",
+      "status": "planned"
+    }
+  ]
+}

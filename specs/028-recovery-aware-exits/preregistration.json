@@ -1,0 +1,137 @@
+{
+ "feature": "028-recovery-aware-exits",
+ "created": "2026-10-12",
+ "control": {
+  "class": "SimpleTrigger_RevOnlyVolreg2",
+  "plan_tag": "st_e22_rev2"
+ },
+ "candidates": [
+  {
+   "id": "C4",
+   "class": "SimpleTrigger_RevOnlyVolreg2_XC4",
+   "plan_tag": "st_e22_c4",
+   "description": "grace window 6.5 h -> 12 h, same -27% depth",
+   "values": {
+    "SELL_OVERRIDES.stoploss_grace_hours": 12.0
+   },
+   "replay_rules": {
+    "grace_hours": 12.0
+   },
+   "applies_recovery_floor": true,
+   "early_gain_pp": 8.439,
+   "late_gain_pp": 6.267
+  },
+  {
+   "id": "C2",
+   "class": "SimpleTrigger_RevOnlyVolreg2_XC2",
+   "plan_tag": "st_e22_c2",
+   "description": "take-profit = k x signal-bar atr_pct_roll, clamped [1%, 5%]",
+   "values": {
+    "TP_ATR_MULT": 2.8970711921574543,
+    "TP_MIN": 0.01,
+    "TP_MAX": 0.05
+   },
+   "replay_rules": {
+    "take_profit_atr_mult": 2.8970711921574543
+   },
+   "applies_recovery_floor": false,
+   "early_gain_pp": 4.461,
+   "late_gain_pp": 4.172
+  },
+  {
+   "id": "C1",
+   "class": "SimpleTrigger_RevOnlyVolreg2_XC1",
+   "plan_tag": "st_e22_c1",
+   "description": "post-grace stop never tighter than the winners' early p90 drawdown",
+   "values": {
+    "STOP_MIN_DEPTH": -0.03710764139923586
+   },
+   "replay_rules": {
+    "stop_min_depth": -0.03710764139923586
+   },
+   "applies_recovery_floor": true,
+   "early_gain_pp": 3.285,
+   "late_gain_pp": 1.878
+  },
+  {
+   "id": "C42",
+   "class": "SimpleTrigger_RevOnlyVolreg2_XC42",
+   "plan_tag": "st_e22_c42",
+   "description": "C4 and C2 together",
+   "values": {
+    "SELL_OVERRIDES.stoploss_grace_hours": 12.0,
+    "TP_ATR_MULT": 2.8970711921574543,
+    "TP_MIN": 0.01,
+    "TP_MAX": 0.05
+   },
+   "replay_rules": {
+    "grace_hours": 12.0,
+    "take_profit_atr_mult": 2.8970711921574543
+   },
+   "applies_recovery_floor": true,
+   "early_gain_pp": 4.226,
+   "late_gain_pp": 4.081
+  }
+ ],
+ "folds": [
+  {
+   "fold_id": "e00",
+   "test_start": "2022-03-07",
+   "test_end": "2022-06-15"
+  },
+  {
+   "fold_id": "e01",
+   "test_start": "2022-06-15",
+   "test_end": "2022-09-23"
+  },
+  {
+   "fold_id": "e02",
+   "test_start": "2022-09-23",
+   "test_end": "2023-01-01"
+  }
+ ],
+ "universe": [
+  "ZEC/USDT",
+  "XRP/USDT",
+  "SOL/USDT",
+  "LINK/USDT",
+  "NEAR/USDT",
+  "AAVE/USDT",
+  "AVAX/USDT",
+  "LTC/USDT",
+  "BCH/USDT",
+  "DOT/USDT"
+ ],
+ "universe_note": "config/config_wf.json whitelist; XRP has no binance.us data in 2022 (9 pairs trade, as in f00-f02)",
+ "fidelity_min": 0.9,
+ "recovery_floor": 0.5,
+ "min_control_trades": 200,
+ "rule": {
+  "gain": "summed per-fold return_pct, arm minus control, over e00-e02; compare_data delta_pp reported only",
+  "a": "gain > 0",
+  "b": "paired P&L verdict (compare_pooled.compare_data on e00-e02) maps to pass",
+  "c": "risk.compare on e00-e02: verdict_sharpe and verdict_maxdd both map to pass",
+  "d": "early_gain_pp > 0 and late_gain_pp > 0 (2023-26 halves)",
+  "inconclusive": "control trades < min_control_trades, or folds_changed == 0, or any mapped verdict is inconclusive",
+  "paired_mapping": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "INCONCLUSIVE_UNDERPOWERED": "pass (flagged)",
+   "INCONCLUSIVE_ARM_LOSES": "pass (flagged)",
+   "INCONCLUSIVE_ABSORBED": "inconclusive",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "risk_mapping": {
+   "IMPROVED": "pass",
+   "UNCHANGED": "pass",
+   "WORSENED": "fail",
+   "UNRESOLVABLE": "inconclusive"
+  },
+  "feasibility": "null-replay fidelity >= fidelity_min; candidate passes iff replay gain > 0 and (not applies_recovery_floor or recovery_share >= recovery_floor)",
+  "gate5": "ADOPT with gain < 1 pp: re-run its largest-|per-fold gain| fold under a fresh tag; trades_hash must match, else INCONCLUSIVE",
+  "power": "ci_half_width_pp = (hi - lo)/2 x years from ci_pp_yr",
+  "recommendation": "largest 2022 gain among ADOPTED; the combination only if C42 itself is ADOPTED"
+ },
+ "deviations": []
+}
