@@ -24,7 +24,7 @@ contracts/interfaces.md I1–I5, quickstart.md)
   baseline).** T002 (report-only invariants in `utils/StopInvariants.py`) is the one exception;
   T003 proves it inert.
 - **STOP gate at T008:** any stop-invariant violation in arm D's probe stops the feature before the
-  refactor. Mark T010–T040 `[-]` with the reason, and write the report as the defect write-up.
+  refactor. Mark T010–T030 `[-]` with the reason, then do T031–T034 with the report as the defect write-up.
 - **No model is trained.** Every model plan borrows arm D's per-fold weights; a missing model
   fails loudly.
 
