@@ -1,6 +1,6 @@
 # Baseline: 029 NNNC / SimpleTrigger merge (T004–T008)
 
-Code at baseline: `928168d` (before any NNNC, SimpleTrigger or shared-mixin change; T002's report-only stop-check mode is the only edit, proven inert by T003). Baseline commit: *(T009)*.
+Code at baseline: `928168d` (before any NNNC, SimpleTrigger or shared-mixin change; T002's report-only stop-check mode is the only edit, proven inert by T003). Baseline commit: `6c978e8`.
 
 ## Stop gate (T008)
 
