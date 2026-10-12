@@ -155,6 +155,8 @@ off.
     characterisation fixture;
   - C2 `take_profit_override` used and clamped to [0.01, 0.05];
   - C3 returns `horizon_close` only at `bars_open >= horizon` and not touched;
+  - C3 order: a take-profit, unclog_12h or unclog_1d decision on the same bar wins over C3, and C3
+    wins over max_hold (research R4); the same cases give the same answer through the T003 hook;
   - `simulate_forward` raises if any coupling field is set.
 - [ ] T009 [US2] Edit `utils/ExitPolicy.py` (contract C2):
   - add the optional fields, `CLOSE_HORIZON`, the keyword-only decision inputs,
