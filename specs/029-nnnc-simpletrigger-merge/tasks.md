@@ -281,7 +281,10 @@ fingerprints are unchanged.
   - liveness;
   - "how to declare each switch on an NNNC arm";
   - follow-ups: C2 for NNNC, trigger-and-model for arm D, a per-bar family for arm D's
-    out-of-trigger entries, and the dead `use_forward_peak_profit_label` flag.
+    out-of-trigger entries, and the dead `use_forward_peak_profit_label` flag;
+  - **the next feature (agreed 2026-10-12): model naming by a resolved model fingerprint** (type,
+    label params, gain/loss targets, features, training window, seed) with a manifest, replacing
+    class-name model paths. That removes the self-training hazard and `BorrowedModelMixin`.
 - [ ] T032 Update `AGENT_GUIDE.md` (if it describes the NNNC/SimpleTrigger structure) and the
   `SimpleTrigger/` / `NNNC/` module docstrings that call them "siblings".
 - [ ] T033 Update memory: `project_029_nnnc_merge.md`, the MEMORY.md current-state line, and
