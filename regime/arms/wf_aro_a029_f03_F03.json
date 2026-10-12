@@ -1,0 +1,157 @@
+{
+  "tag": "wf_aro_a029_f03",
+  "window": "F03",
+  "timerange": "20230928-20231227",
+  "strategy": "NNNC_ARO_f03",
+  "prediction_threshold": null,
+  "guards_requested": "on",
+  "entry_enable_guards_written": true,
+  "overrides": {},
+  "sell_overrides": {},
+  "trailing_overrides": {},
+  "exit_config_hash": "5828946b58ec7971",
+  "volume_headroom_check": "BaseStrategy.confirm_trade_entry, unconditional outside plot/other runmode; custom_stake_amount caps rather than rejects. NOT measured by this script.",
+  "returncode": 0,
+  "framework_sha": "303456c1fa322b4c",
+  "framework_resolved": {
+    "attributes": {
+      "timeframe": "15m",
+      "startup_candle_count": 64,
+      "process_only_new_candles": true,
+      "can_short": false,
+      "minimal_roi": {
+        "0": 0.05
+      },
+      "use_exit_signal": null,
+      "exit_profit_only": true,
+      "ignore_roi_if_entry_signal": true,
+      "position_adjustment_enable": false,
+      "stoploss": -0.05,
+      "use_custom_stoploss": true,
+      "trailing_stop": false,
+      "trailing_stop_positive": 0.01,
+      "trailing_stop_positive_offset": 0.03,
+      "trailing_only_offset_is_reached": false,
+      "use_atr_adaptive_stoploss": true,
+      "atr_stoploss_multiplier": 4.0,
+      "atr_stoploss_floor": -0.06,
+      "atr_stoploss_cap": -0.04,
+      "use_volume_confirmation_stoploss": true,
+      "entry_bear_filter_enable": false,
+      "entry_bear_ema_period": 200,
+      "entry_bear_deadband": 0.02,
+      "entry_trend_filter_enable": false,
+      "entry_trend_ema_period": 100,
+      "MIN_QUOTE_VOLUME": 1000,
+      "QUOTE_VOLUME_HEADROOM_MULT": 10.0
+    },
+    "buy": {
+      "entry_adx_threshold": -1.0,
+      "entry_atr_pct": -1.0,
+      "entry_bb_width_threshold": -1.0,
+      "entry_close_norm_threshold": 5.0,
+      "entry_enable_guards": true,
+      "entry_guard_threshold": 5.0,
+      "entry_rvol_threshold": -1.0
+    },
+    "sell": {
+      "cexit_enable_profit_checks": true,
+      "cexit_max_days": 10,
+      "cexit_take_profit": 0.022,
+      "enable_exit_signal": false,
+      "exit_close_norm_threshold": -0.6,
+      "exit_guard_threshold": -0.1,
+      "exit_rvol_threshold": 2.0,
+      "stoploss_grace_hours": 6.5,
+      "stoploss_grace_level": -0.27
+    },
+    "run": {
+      "max_open_trades": 10,
+      "stake_amount": 900,
+      "dry_run_wallet": 10000,
+      "fee": null
+    }
+  },
+  "no_model": false,
+  "preset": null,
+  "exit_mode": null,
+  "trigger": null,
+  "label_method": null,
+  "coupled_resolution": null,
+  "entry_condition_counts": {
+    "signal": {
+      "pass": 876,
+      "total": 87050
+    },
+    "volume": {
+      "pass": 62255,
+      "total": 87050
+    },
+    "rvol": {
+      "pass": 87050,
+      "total": 87050
+    },
+    "atr_pct": {
+      "pass": 87050,
+      "total": 87050
+    },
+    "guard": {
+      "pass": 87050,
+      "total": 87050
+    },
+    "close_norm": {
+      "pass": 87050,
+      "total": 87050
+    },
+    "adx": {
+      "pass": 87050,
+      "total": 87050
+    },
+    "bb_width": {
+      "pass": 87050,
+      "total": 87050
+    },
+    "all": {
+      "pass": 759,
+      "total": 87050
+    }
+  },
+  "result_file": "backtest-result-2026-10-12_19-10-59.zip",
+  "n_trades": 104,
+  "n_pairs": 8,
+  "trades_hash": "0fd8e37cf8cb2608",
+  "profit_pct": 35.467,
+  "win_rate": 61.5,
+  "duration_h_median": 7.0,
+  "duration_h_p25": 3.94,
+  "duration_h_p75": 9.25,
+  "trades_per_day": 1.3,
+  "exit_reason_counts": {
+    "force_exit": 2,
+    "roi": 3,
+    "take_profit": 52,
+    "trailing_stop_loss": 40,
+    "unclog_12h": 7
+  },
+  "family_trade_counts": {
+    "reversion": 104
+  },
+  "overlap_entries": {},
+  "untagged_trades": 0,
+  "family_exit_reason_counts": {
+    "reversion": {
+      "force_exit": 2,
+      "roi": 3,
+      "take_profit": 52,
+      "trailing_stop_loss": 40,
+      "unclog_12h": 7
+    }
+  },
+  "wallet_profit_pct": 3.235,
+  "max_drawdown_pct": 1.311,
+  "profit_factor": 1.526,
+  "calmar": 52.382,
+  "sortino": 5.055,
+  "sqn": 1.693,
+  "expectancy_ratio": 0.2022
+}
