@@ -36,7 +36,7 @@ The work proceeds in four phases:
 2. **Refactor.**
 3. **Verify:**
    - arm D and the twin match the baseline in 15/15 folds;
-   - the twin still equals `st_gbb`;
+   - the twin still equals `st_gbb` (the after-change run, and the same-day baseline);
    - 8 SimpleTrigger reference arms match their pre-change baseline;
    - every NNNC fingerprint is unchanged.
 4. **Liveness** of each declared switch on an NNNC test arm.
