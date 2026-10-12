@@ -9,6 +9,10 @@ python -m research.exit_coupling.feasibility --momentum st_bgo_mx --reversion st
 
 - Reads the arm archives (via `evaluation.pool` helpers) and price data
   (`research.clfstudy.data.load_pair`, then the strategy's own populator for `atr_pct_roll`).
+- Reads each reference arm's exit values from `utils.FamilyExits.class_level_exit_params` (as the
+  fingerprint does; no strategy instance), plus `HOLD_WINDOW_HOURS` and `minimal_roi`.
+- Runs the null-replay fidelity gate first (research R2). With < 90% of trades reproduced in either
+  family it exits 2 and reports the disagreement table; no verdict is given.
 - Writes `feasibility.md` (tables, per family × half) and `feasibility.json` (FeasibilityRecord +
   WinnersPathProfile).
 - Grid values are chosen from f00–f07 rows only. A test plants a late-only effect and checks that it
@@ -17,7 +21,11 @@ python -m research.exit_coupling.feasibility --momentum st_bgo_mx --reversion st
 - Pure functions in `research/exit_coupling/paths.py` (unit-tested on synthetic paths):
   - `path_metrics(ohlc, entry_idx, open_rate, stop_fn, target, horizon, max_bars)` returns touch
     bar, MAE before touch, ambiguous flag, stop-breach bar;
-  - `replay(trade, path, rule)` returns the counterfactual exit price, bar and reason.
+  - `replay(trade, path, rule)` returns the counterfactual exit price, bar and reason. Per bar, in
+    freqtrade's order: `ExitPolicy.custom_exit_decision` on the OPEN (with the discretionary veto
+    and the class's effective unclog_12h), the stop on the LOW, then ROI (detected on the HIGH,
+    filled at the target; off for a trade whose ROI was suppressed, research R2). No exit rule is
+    re-implemented here.
 
 ## C2 — `utils/ExitPolicy.py` (EDIT)
 
@@ -27,7 +35,8 @@ python -m research.exit_coupling.feasibility --momentum st_bgo_mx --reversion st
   - new keyword-only inputs, default `None`, giving today's behaviour exactly;
   - C2 uses `take_profit_override` in place of `params.take_profit`;
   - C3 "close" returns `CLOSE_HORIZON = "horizon_close"` when
-    `bars_open >= target_horizon_bars and not target_touched`.
+    `bars_open >= target_horizon_bars and not target_touched`, checked AFTER take-profit,
+    unclog_12h and unclog_1d and BEFORE max_hold (research R4).
 - `coupled_stop_floor(params) -> float | None` returns the C1 bound.
 - `lock_price_ratio(params) -> float | None` returns the C5 lock as a multiple of entry
   (`1 + λ·target_gain`).
@@ -42,7 +51,8 @@ python -m research.exit_coupling.feasibility --momentum st_bgo_mx --reversion st
   ≥ open_rate·(1 + target_gain). It reads the analysed dataframe, never `trade.max_rate` (research
   R4).
 - `custom_stoploss`:
-  - C4: the grace length comes from `grace_hours_override` when set;
+  - C4: the grace length and depth come from `grace_hours_override` / `grace_level_override`
+    when set;
   - C1: the normal stop is `min(atr_stop, stop_min_depth)`;
   - C3 "breakeven" and C5 lock: once their condition holds, the returned stop is at least the lock
     price. If the price is already at or below the lock, it returns `STOP_AT_MARKET_RATIO`, never a
@@ -62,10 +72,12 @@ python -m research.exit_coupling.feasibility --momentum st_bgo_mx --reversion st
 - In `_family_members`, the ExitParams dict drops the new fields while they are `None`.
 - Test: the shas of all 023–026 arm classes and of `NNNC_MLX_Open` are unchanged.
 
-## C6 — `regime/run_arm.py` (EDIT)
+## C6 — `regime/run_arm.py` (EDIT) and `evaluation/coupling_liveness.py` (NEW)
 
-- The record gains `exit_coupling` (the resolved values, or `None`) and `coupling_liveness`
-  (counted from the archive's exit reasons and stop levels, per data-model).
+- `run_arm`: the record gains `exit_coupling` (the resolved values, or `None`).
+- `coupling_liveness.liveness(arm_pooled, ref_pooled) -> {half: counts}`: per half, the
+  research R5b counts, from pooled sets only. CLI:
+  `python -m evaluation.coupling_liveness --arm TAG --ref TAG`.
 
 ## C7 — Arm classes (US3, only for SUPPORTED couplings)
 

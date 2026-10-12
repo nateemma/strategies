@@ -22,20 +22,24 @@ Per-family switch values, merged into `ExitParams`. All `None` = off, today's ex
 | `take_profit_atr_mult` | same | float > 0; resolved TP clamped to [0.01, 0.05] net | C2 (reversion only) |
 | `horizon_action` | same | "close" \| "breakeven" | C3 |
 | `grace_hours_override` | same | float > 0 (arm-wide: grace is shared) | C4 |
+| `grace_level_override` | same | float in [−0.27, 0) (arm-wide) | C4 depth |
 | `lock_after_target` | same | λ in [0, 1] | C5 |
 
 Plus `target_gain` and `target_horizon_bars`, copied from DeclaredTargets when any switch is on.
 
 Validation (in `ExitParams.__post_init__`): domains as above; `stop_min_depth`
-≥ the documented hard bound −0.10. Every switch needs `target_gain`/`target_horizon_bars` except
-C1 and C4.
+≥ the documented hard bound −0.10. Only C3 and C5 need `target_gain` / `target_horizon_bars`; a
+C3 or C5 switch without them is refused.
 
 ## WinnersPathProfile (US1 output; early-fixed)
 
 Per family, from f00–f07 entries only:
 - MAE-before-target percentiles p50/p80/p90/p95;
 - time-to-target percentiles;
-- the chosen grid values (p for C1, action for C3, λ for C5) and `k` for C2.
+- the chosen grid values (p for C1, action for C3, depth for C4, λ for C5) and `k` for C2
+  (rule: the early median).
+- the null-replay fidelity per family (research R2): the share of trades whose recorded exit
+  reason and bar the replay reproduces.
 
 Stored in `feasibility.json`. The arm classes copy the chosen values as literals, with a comment
 citing the file.
@@ -48,7 +52,7 @@ Per family × half:
 - (b) the killed-winner share and the MAE distribution vs the stop;
 - (c) time-to-target; past-horizon trades' eventual vs close-at-horizon P&L;
 - (d) touched-but-not-exited give-back;
-- replay deltas for C1/C3/C4/C5 at each grid value.
+- replay deltas for C1–C5 at each grid value (C2 at its rule value).
 
 Per coupling × family: support rule text, values, SUPPORTED / NOT SUPPORTED / N/A.
 
@@ -56,11 +60,12 @@ Per coupling × family: support rule text, values, SUPPORTED / NOT SUPPORTED / N
 
 `SimpleTrigger_<Ref>_C<n>` classes, tag `st_cpl_<ref>_c<n>`, a plan copied from the reference arm.
 
-Run record additions:
-- `exit_coupling`: the resolved values;
-- `coupling_liveness`: counts per half of trades whose exit the coupling changed:
-  - C1 stop exits at a level deeper than the ATR stop would have been;
-  - C2 take-profit exits at a level ≠ 2.2%;
-  - C3 `horizon_close` exits or break-even stop exits;
-  - C4 stop exits inside the extended window;
-  - C5 lock exits.
+Run record addition: `exit_coupling` (the resolved values).
+
+Liveness (research R5b), from pooled sets against the reference arm, per half:
+- trades paired on (fold, pair, open_date) with a different exit (date, rate or reason);
+- trades unique to either side;
+- folds with a different `trades_hash`;
+- `horizon_close` exits (C3).
+
+Zero changed trades in a half means INERT.

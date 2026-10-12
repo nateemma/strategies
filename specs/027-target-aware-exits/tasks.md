@@ -36,7 +36,7 @@ contracts/interfaces.md C1–C7, quickstart.md)
   - framework fingerprints for `NNNC_MLX_Open` (arm D), `SimpleTrigger_Gbb`,
     `SimpleTrigger_BreakoutGbb_MomExit` (`st_bgo_mx`), `SimpleTrigger_RevOnlyVolreg2`
     (`st_book_rev2`), `SimpleTrigger_FamCombined` and `SimpleTrigger_RegGateVolreg2`;
-  - f00 `trades_hash` of `st_bgo_mx` and `st_book_rev2`;
+  - the per-fold `trades_hash` (all 15) of `st_bgo_mx` and `st_book_rev2`;
   - the reference arms' exit values (research R1 table), read from the resolved classes, not
     copied from the docs.
 
@@ -63,11 +63,25 @@ contracts/interfaces.md C1–C7, quickstart.md)
     - C3 "breakeven" stop at entry from bar 49;
     - C5 lock activates only from the bar AFTER a closed-candle touch, never the touch bar itself
       (research R4);
-    - C4 extends the grace window to 48 bars;
-  - (h) replay P&L is net of fees through `ExitPolicy.net_from_price_ratio`.
+    - C4 extends the grace window to 48 bars at the given depth;
+    - C2 takes profit at `k × atr_pct` of the signal bar, clamped to [1%, 5%] net;
+  - (h) replay P&L is net of fees through `ExitPolicy.net_from_price_ratio`;
+  - (i) replay order per bar, as freqtrade runs it (research R2):
+    - `custom_exit_decision` on the OPEN, with the 1-hour discretionary veto and the effective
+      unclog_12h (24 h when a hold window is given);
+    - then the stop on the LOW;
+    - then ROI 5%, detected on the HIGH and filled at the target, and off when the trade is flagged
+      ROI-suppressed;
+  - (j) the replay calls `ExitPolicy` for every exit rule: no exit threshold literal appears in
+    `paths.py` (source inspection).
 - [ ] T003 Create `research/exit_coupling/paths.py`:
   - `path_metrics(...)` and `replay(...)` (contract C1), pure numpy;
-  - stop arithmetic only via `utils.ExitPolicy` (`atr_stop_fraction`, `ExitParams`), no copy;
+  - every exit rule via `utils.ExitPolicy` (`custom_exit_decision`, `discretionary_exit_allowed`,
+    `atr_stop_fraction`, `price_ratio_for_net`, `ExitParams`), no copy;
+  - the C2–C5 rule hooks are inputs to `replay`, not changes to `ExitPolicy` (Phase 3 must not edit
+    the framework). The C3 hook keeps the live order (research R4): a take-profit, unclog_12h or
+    unclog_1d decision wins; C3 "close" applies only when `custom_exit_decision` returned None or
+    max_hold. T008 later pins the live implementation to the same order;
   - make T002 pass.
 
 **Checkpoint**: path machinery tested on synthetic data.
@@ -88,24 +102,31 @@ the exit code reflects the verdict.
   - (b) a rule holding in one half only is NOT SUPPORTED;
   - (c) C2 is N/A for a family without a take-profit;
   - (d) ambiguous trades are excluded from (a)/(b) and counted;
-  - (e) exit codes 0 / 3 / 2.
+  - (e) exit codes 0 / 3 / 2;
+  - (f) a null-replay fidelity below 90% in either family exits 2 with no verdict;
+  - (g) C2 and C4 need a positive replay gain as well as their descriptive condition (research R3);
+  - (h) the C4 depth is chosen from {−27%, early p95 MAE capped at −27%} on early rows only.
 - [ ] T005 [US1] Create `research/exit_coupling/feasibility.py` (contract C1, research R2/R3).
   Inputs:
   - trades from the archives of `st_bgo_mx` and `st_book_rev2`: open_rate, close_rate, dates,
     exit_reason, fold (via `evaluation.pool` helpers);
   - prices from `research.clfstudy.data.load_pair`, with `atr_pct_roll` and rvol from the same
     populator and `ExitPolicy.rolling_rvol` logic the strategy uses;
-  - exit values from each reference class's resolved `_exit_params`.
+  - exit values from `utils.FamilyExits.class_level_exit_params` for each reference class (no
+    instance), plus its `HOLD_WINDOW_HOURS` and `minimal_roi`;
+  - per trade, the ROI-suppressed flag (research R2).
 
-  It computes (a)–(d) and the C1/C3/C4/C5 replays at each grid value, chooses values on f00–f07,
+  It computes (a)–(d) and the C1–C5 replays at each grid value (C2 at its rule value), chooses values on f00–f07,
   applies the R3 rules in both halves, and writes `feasibility.md` + `feasibility.json`. Make T004
   pass.
-- [ ] T006 [US1] Fidelity check, inside `feasibility.py` and reported:
-  - for archive stop-loss exits, the recomputed stop in force vs the recorded exit price;
-  - the agreement share, and the median absolute gap in pp.
+- [ ] T006 [US1] Fidelity gates, inside `feasibility.py` and reported, BEFORE any verdict:
+  - **null replay** (research R2): with no coupling, the share of trades whose recorded exit reason
+    AND exit bar the replay reproduces, per family, with a disagreement table by exit reason;
+  - **stop model**: for archive stop-loss exits, the recomputed stop in force vs the recorded exit
+    price (agreement share, median absolute gap in pp).
 
-  If agreement is < 90%, STOP and diagnose the stop model before T007 (constitution "audit the
-  instrument").
+  Either below 90% in either family: exit 2, STOP, and diagnose the replay before T007 (constitution
+  "audit the instrument").
 - [ ] T007 [US1] Run:
   ```
   python -m research.exit_coupling.feasibility --momentum st_bgo_mx --reversion st_book_rev2 \
@@ -164,13 +185,19 @@ off.
 
   Write `evaluation/tests/test_fingerprint_027.py`: every class listed in T001 hashes to its
   baseline sha.
-- [ ] T014 [P] [US2] Edit `regime/run_arm.py` (contract C6): record `exit_coupling` and
-  `coupling_liveness` per half, computed from the archive (exit reasons, and exit price vs the
-  recomputed decoupled stop).
-- [ ] T015 [US2] Switch-off reproduction:
+- [ ] T014 [P] [US2] Edit `regime/run_arm.py` (contract C6) to record `exit_coupling`. Create
+  `evaluation/coupling_liveness.py` (research R5b):
+  - inputs are pooled sets only;
+  - per half: paired trades with a different exit, trades unique to either side, folds with a
+    different `trades_hash`, `horizon_close` count;
+  - a test in `evaluation/tests/test_coupling_liveness.py`: identical sets count 0; one moved exit
+    counts 1 in its half.
+- [ ] T015 [US2] Switch-off reproduction (SC-002):
   - plans `plan_st_cpl_off_mom.json` / `plan_st_cpl_off_rev.json` run the unchanged reference
-    classes under fresh tags on f00 only;
-  - `trades_hash` must equal the T001 baseline;
+    classes under fresh tags, all 15 folds;
+  - every fold's `trades_hash` must equal the recorded reference arm's;
+  - `coupling_liveness` against the reference must be 0 everywhere;
+  - arm D is covered by T013's unchanged sha;
   - run the full related test suites (`utils/tests`, `evaluation/tests`, `SimpleTrigger`,
     `research/exit_coupling`).
 
@@ -191,10 +218,11 @@ are in `decisions.md`.
   one per SUPPORTED coupling × applicable family:
   - each sets `EXIT_TARGETS = {"gain": 0.02, "horizon_bars": 48}` and ONE coupling, with the value
     copied from `feasibility.json` (comment citing it);
-  - C4 is arm-wide;
+  - C4 is arm-wide (grace length and depth);
   - `--dry-run` the plans `plan_st_cpl_<ref>_c<n>.json` to confirm the classes.
-- [ ] T017 [US3] Run the arms sequentially (one chain), 15 folds each. Check the
-  `coupling_liveness` of each: zero in a half → INERT, reported and not judged.
+- [ ] T017 [US3] Run the arms sequentially (one chain), 15 folds each. Run
+  `evaluation.coupling_liveness` for each against its reference: zero changed trades in a half →
+  INERT, reported and not judged.
 - [ ] T018 [US3] Judge each arm with `halves.split` (`PYTHONHASHSEED=0`) against its reference arm:
   - late P&L verdict (adoption = IMPROVED);
   - late risk line;

@@ -49,10 +49,30 @@ Measurements, per family × half:
 - **(d) after the target:** for trades that touched the target but did not exit at or above it, the
   realised P&L vs the target, and the give-back.
 
-**Counterfactual replays** (C3, C5) use the same path machinery: re-exit each trade under the
-changed rule and compare its pp with the recorded pp. They ignore re-sequencing: an earlier exit
-frees the pair for a later entry the archive does not hold (023 Addendum 7). That is why they only
+**Counterfactual replays** (C1–C5) re-exit each trade under the changed rule on its own price
+path, and compare its pp with the recorded pp. They ignore re-sequencing: an earlier exit frees
+the pair for a later entry the archive does not hold (023 Addendum 7). That is why they only
 choose; walk-forward arms judge.
+
+**The replay must model the exit that actually runs** (the 021 lesson: an offline exit model that
+is not the live one). Per bar, in freqtrade's order:
+1. `ExitPolicy.custom_exit_decision` on the bar's OPEN (take-profit, unclog_12h, unclog_1d,
+   max_hold, and C3 once built), with the reference class's effective unclog_12h (momentum:
+   `HOLD_WINDOW_HOURS` = 24) and the 1-hour discretionary veto
+   (`ExitPolicy.discretionary_exit_allowed`);
+2. the stop on the LOW;
+3. the native ROI (`minimal_roi` 5%), detected on the HIGH and filled at the target, the same way
+   `simulate_forward` does.
+
+`ignore_roi_if_entry_signal` cannot be reproduced offline, because it needs that pair's entry
+signal on each bar. The replay therefore takes a per-trade flag: was ROI suppressed? A trade that
+reached 5% net on a bar's high without an ROI exit was suppressed, and ROI stays off for its
+replay.
+
+**Null-replay fidelity gate (before any verdict).** With no coupling, the replay must reproduce each
+recorded trade's exit reason AND exit bar for ≥ 90% of trades, per family. Below that, US1 stops
+and the replay is diagnosed (constitution: audit the instrument). The report also gives the
+agreement table by exit reason.
 
 ## R3 — Candidate couplings: the mechanism, the early-fixed value, and the support rule
 
@@ -62,9 +82,9 @@ f00–f07 only, from the grid shown (FR-004).
 | | mechanism (when switched on) | early-fixed value (grid) | SUPPORTED iff, in both halves |
 |---|---|---|---|
 | **C1 stop depth** | post-grace stop no tighter than `-q`, where `q` = the early p-th percentile of label-positive entries' MAE before target; hard bound −10% | p ∈ {80, 90} — the one maximising early replay pp | (b) killed-winner share ≥ 15% **and** the C1 replay gain at the chosen p is > 0 |
-| **C2 volatility units** (reversion only — momentum has no take-profit) | take-profit = `k × atr_pct_roll` at entry, clamped to [1%, 5%] net | `k` = median of `0.022 / atr_pct` over early reversion entries (scale-neutral on average) | target hit-rate within 48 bars in the lowest entry-ATR tercile < 0.5 × that of the highest tercile |
+| **C2 volatility units** (reversion only — momentum has no take-profit) | take-profit = `k × atr_pct_roll` at entry, clamped to [1%, 5%] net | `k` = median of `0.022 / atr_pct` over early reversion entries (a pre-declared rule, scale-neutral on average) | target hit-rate within 48 bars in the lowest entry-ATR tercile < 0.5 × that of the highest tercile **and** the replay gain at `k` is > 0 |
 | **C3 horizon rule** | at bar 48 without a target touch: close at the next open, or move the stop to entry (break-even) | action ∈ {close, breakeven} — the one maximising early replay pp | the replay gain of the chosen action is > 0 |
-| **C4 grace to horizon** | grace window length = horizon (12 h) instead of 6.5 h, same −27% depth | none (one setting) | share of killed winners (b) whose breach bar falls between grace expiry and bar 48 ≥ 50% **and** ≥ 10% of all label-positive entries |
+| **C4 grace tied to the target** | grace window length = horizon (12 h) instead of 6.5 h; depth from the grid | depth ∈ {−27% (today), −(early p95 of label-positive MAE before target), never deeper than −27%} — the one maximising early replay pp | share of killed winners (b) whose breach bar falls between grace expiry and bar 48 ≥ 50% **and** ≥ 10% of all label-positive entries **and** the replay gain at the chosen depth is > 0 |
 | **C5 post-target lock** | after a target touch on a CLOSED candle, stop no lower than entry × (1 + λ × 0.02) | λ ∈ {0, 0.5} — the one maximising early replay pp | the replay gain of the chosen λ is > 0 |
 
 Replays for C1 and C4 re-run the path with the changed stop. Liveness (C1–C5) is counted per arm
@@ -87,8 +107,12 @@ clamp), `horizon_action` ("close" | "breakeven") (C3), `grace_hours_override` (C
   it from the entry candle's `atr_pct_roll`, read from the analysed dataframe at
   `trade.open_date − 1 bar` (the signal bar, causal).
 - **C3:** `custom_exit_decision` takes `bars_open` and `target_touched`; it returns
-  "horizon_close", or the stop path applies break-even.
-- **C4:** `custom_stoploss` reads the grace length from `ExitParams` when set. Grace is shared
+  "horizon_close", or the stop path applies break-even. **Order (spec edge case):** C3 "close" is
+  checked AFTER take-profit, unclog_12h and unclog_1d, and BEFORE max_hold. A trade an unclog rule
+  would close on that bar exits through the unclog rule, as today. The replay calls the same
+  function, so the order is identical offline and live. C3 "breakeven" is a stop and needs no
+  ordering.
+- **C4:** `custom_stoploss` reads the grace length and depth from `ExitParams` when set. Grace is shared
   (forbidden per family), so C4 is arm-wide.
 - **C5:** in `custom_stoploss`, a stop at entry × (1 + λ·target), returned as a ratio relative to
   the current rate, only when a PREVIOUS closed candle's high touched the target.
@@ -113,8 +137,22 @@ arms (`st_bgo_mx`, arm D), the coupling values are hashed through new optional c
 
 Checks:
 - every recorded arm's sha is unchanged (a test over the 023–026 classes);
-- with every switch off, the two reference arms reproduce f00 trade-for-trade (`trades_hash`);
+- with every switch off, the two reference arms reproduce all 15 folds trade-for-trade
+  (`trades_hash`); arm D is covered by its unchanged sha (it needs the model to run);
 - arm D (`NNNC_MLX_Open`) sha is unchanged.
+
+## R5b — Liveness (FR-010)
+
+freqtrade labels every `custom_stoploss` exit `trailing_stop_loss`, so C1, C4 and C5 cannot be told
+apart by exit reason. Liveness therefore uses the 024–026 method, with no price data in `run_arm`:
+- pair each coupling-arm trade with the reference arm's trade on (fold, pair, open_date);
+- count, per half: trades with a different exit (date, rate or reason), trades unique to either
+  side, folds with a different `trades_hash`, and the coupling's own reason where it exists
+  (`horizon_close`).
+
+Zero changed trades in a half means INERT, reported and not judged. This lives in a small
+`evaluation/coupling_liveness.py` (pooled sets in, counts out), not in `run_arm`; the run record
+stores only `exit_coupling`.
 
 ## R6 — Stop invariants (FR-009)
 
@@ -130,7 +168,7 @@ in-grace stop) stays as is, and C4 only moves when grace ends. New tests:
 
 The feasibility tool has no backtests (minutes). Walk-forward arms: one per SUPPORTED coupling per
 family that it applies to (≤ 9), plus one combination per family if ≥ 2 are adopted, plus 2
-switch-off reproductions (f00 only). Arms run one at a time (memory). Each 15-fold SimpleTrigger
+switch-off reproductions (15 folds each). Arms run one at a time (memory). Each 15-fold SimpleTrigger
 arm takes ~6–8 min, so ≤ ~1.5 h total.
 
 ## R8 — Judging (FR-011/012)

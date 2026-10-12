@@ -124,7 +124,8 @@ utils/StopInvariants.py                       # EDIT C4 (US2 only)
 utils/tests/test_stop_invariants.py           # EDIT (US2)
 evaluation/fingerprint.py                     # EDIT C5 (US2 only)
 evaluation/tests/test_fingerprint_027.py      # NEW (US2): recorded shas unchanged
-regime/run_arm.py                             # EDIT C6 (US2 only)
+regime/run_arm.py                             # EDIT C6 (US2 only): exit_coupling in the record
+evaluation/coupling_liveness.py               # NEW C6 (US2): liveness by pairing vs the reference
 SimpleTrigger/SimpleTrigger_*_C<n>.py         # NEW C7 (US3, supported couplings only)
 ```
 
@@ -145,7 +146,8 @@ SimpleTrigger/SimpleTrigger_*_C<n>.py         # NEW C7 (US3, supported couplings
    - invariants;
    - fingerprint;
    - run_arm record;
-   - switch-off reproduction (fingerprints + f00 trades).
+   - liveness (pairing against the reference arm, research R5b);
+   - switch-off reproduction (all fingerprints; both reference arms over 15 folds).
 4. **US3:** one arm per supported coupling per family, judged late; then the combination per
    family if ≥ 2 are adopted.
 5. **US4:** report, memory, full test gate.

@@ -203,13 +203,15 @@ should inherit.
   fixed before they are computed, and MUST be SUPPORTED only if the rule holds in both halves. A
   coupling that is NOT SUPPORTED MUST NOT be built.
 - **FR-004**: Any value a coupling derives from data (a percentile level, a time cut-off, a lock
-  share) MUST be fixed on f00–f07 only, from a small pre-declared grid, and MUST be the same for
-  every pair (constitution X). A per-family value is allowed.
+  share) MUST be fixed on f00–f07 only, from a small pre-declared grid or by a pre-declared rule
+  (for example an early median), and MUST be the same for every pair (constitution X). A
+  per-family value is allowed.
 - **FR-005**: Every built coupling MUST live in the single shared exit definition used by both
   SimpleTrigger and NNNC, as a switch that is off by default. No exit logic may be duplicated per
   coupling, family or strategy.
 - **FR-006**: With every new switch off, every recorded arm (023–026, arm D) MUST keep its framework
-  fingerprint and reproduce its trades.
+  fingerprint, and both reference arms MUST reproduce their recorded trades in every fold. Arm D,
+  which needs the model to run, is covered by its unchanged fingerprint.
 - **FR-007**: The declared targets a coupling uses (gain target, horizon in bars) MUST be stated by
   the strategy, not read implicitly from a labeler's defaults, and MUST appear in the run record
   with the derived exit values.
@@ -246,8 +248,8 @@ should inherit.
 - **SC-001**: The feasibility report gives measurements (a)–(d) for both families in both halves, and
   a SUPPORTED/NOT SUPPORTED verdict for each of the five candidate couplings against its
   pre-declared rule.
-- **SC-002**: With all new switches off, the reference arms and arm D reproduce their recorded
-  trades in 15 of 15 folds with unchanged fingerprints.
+- **SC-002**: With all new switches off, every recorded arm's fingerprint is unchanged (arm D
+  included), and both reference arms reproduce their recorded trades in 15 of 15 folds.
 - **SC-003**: Every built coupling, switched on, changes the exit of a non-zero number of trades in
   each half, and no stop-invariant violation occurs in any run.
 - **SC-004**: For every built coupling and each reference arm, the report states the late-half

@@ -20,11 +20,14 @@ Expected:
 ```
 python -m pytest -q utils/tests evaluation/tests SimpleTrigger
 python -m evaluation.fingerprint --strategy SimpleTrigger_RevOnlyVolreg2   # sha unchanged
-python -m evaluation.run_folds --plan evaluation/folds/plan_st_cpl_off_rev.json --folds f00
+python -m evaluation.run_folds --plan evaluation/folds/plan_st_cpl_off_rev.json   # and _off_mom
+python -m evaluation.coupling_liveness --arm st_cpl_off_rev --ref st_book_rev2
 ```
 
-Expected: unchanged shas; f00 `trades_hash` equal to `st_book_rev2_f00` (and the momentum
-equivalent).
+Expected: unchanged shas; every fold's `trades_hash` equal to the reference arm's; liveness 0.
+
+US1 must first pass its null-replay fidelity gate (≥ 90% of recorded exits reproduced per
+family), or it exits 2 with no verdict.
 
 ## 3. Coupling arms (US3)
 
@@ -33,8 +36,8 @@ python -m evaluation.run_folds --plan evaluation/folds/plan_st_cpl_<ref>_c<n>.js
 PYTHONHASHSEED=0 python -m evaluation.halves --arm <pooled arm> --control <pooled ref>
 ```
 
-Expected: non-zero `coupling_liveness` in each half; late P&L verdict and risk line, recorded in
-`decisions.md`.
+Expected: non-zero `evaluation.coupling_liveness` counts in each half; late P&L verdict and risk
+line, recorded in `decisions.md`.
 
 ## 4. Report (US4)
 
