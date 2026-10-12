@@ -259,3 +259,61 @@ late-half loser into a small out-of-sample winner on its own.
    threshold, into a finding.
 3. **Build a deployment path for two books:** two dry-run bots or sub-accounts, momentum
    (`st_bgo_mx`) and gated reversion, before any capital decision.
+
+## Addendum 3: risk-weighted books (2026-10-11)
+
+**Rule, pre-declared before scoring:** `evaluation.books --weights risk`.
+
+- Each book's weight is proportional to 1/sd of its daily realised P&L (pp, by close date,
+  zero-filled), measured on **f00–f07 only**.
+- Weights are normalised to sum to 1, so total capital matches a single-book arm.
+- Correlation is ignored.
+- The late half (f08–f14) judges.
+
+**Capacity** is now measured in capital, not slots. Peak committed stake is 8,259 (cut 1.3658)
+and 8,584 (cut 1.0332), both within the bar's 9,000 (10 × 900). The `over_max_open` slot count
+in [books_risk.md](books_risk.md) assumes full-size stakes and does not apply to weighted books.
+
+**Weights chosen on the early folds:**
+- cut 1.3658: momentum 0.412 / reversion 0.588 (early daily sd 0.776 vs 0.543);
+- cut 1.0332: momentum 0.463 / reversion 0.537.
+
+| books, same capital | total | positive folds | early | late | late vs `st_bgo_mx` | whole span |
+|---|---|---|---|---|---|---|
+| **risk 41/59, cut 1.3658** | **+42.39** | 9/15 | +38.89 | **+3.50** | UNCHANGED, p 0.997 | UNCHANGED, p 0.26 |
+| 50/50, cut 1.3658 (addendum 2) | +39.81 | 9/15 | +36.46 | +3.35 | UNCHANGED, p 0.96 | UNCHANGED, p 0.30 |
+| risk 46/54, cut 1.0332 | +32.16 | 9/15 | +32.97 | −0.80 | INCONCLUSIVE_ARM_LOSES, p 0.55 | UNCHANGED, p 0.72 |
+| momentum alone `st_bgo_mx` | +25.19 | 9/15 | +22.68 | +2.50 | — | — |
+
+**Return: no resolved change, and none is possible.** With fixed stakes, the books' P&L is the
+weighted average of the two singles, late +2.50 (momentum) and +4.20 (gated reversion). So no
+weighting can exceed the better single book, and that book is itself unresolved against momentum
+alone (p 0.89, addendum 2).
+
+**Risk is where combining pays** (cut 1.3658; descriptive, no significance test):
+
+| late half (out-of-sample) | sum pp | daily sd | annualised Sharpe | max drawdown |
+|---|---|---|---|---|
+| momentum alone | +2.50 | 0.663 | +0.12 | 18.15 |
+| gated reversion alone | +4.20 | 0.411 | +0.31 | 9.19 |
+| 50/50 books | +3.35 | 0.413 | +0.25 | 9.54 |
+| **risk 41/59 books** | +3.50 | **0.388** | +0.27 | **8.60** |
+
+- The two books' daily P&L correlation is +0.32 early and **+0.14 late**.
+- The risk-weighted books have the lowest late volatility of any construction, and under half of
+  momentum alone's late drawdown, for slightly more return.
+- Gated reversion alone has the highest late Sharpe, but its gate threshold is fitted on the
+  early half (two passes), so it carries more selection risk than the books.
+- PROVISIONAL (quality gate 2).
+
+**Reading.** Weighting by risk rather than 50/50 changes little: +0.15pp late, slightly lower
+risk. The books construction is the useful step. Two nearly uncorrelated books (momentum, and
+volatility-gated reversion) roughly halve momentum alone's drawdown at the same capital, with
+similar or better return.
+
+**Next (fix-oriented):**
+1. **Make risk a first-class verdict.** The harness judges P&L only. A paired bootstrap on daily
+   Sharpe or drawdown would say whether the halved drawdown is resolved.
+2. **Get a distant era**, still the only way to confirm the gate's fitted early half.
+3. **Run two dry-run bots** (momentum `st_bgo_mx`, gated reversion `st_book_rev2`) at 41/59
+   stake, to check fills and same-pair holding live.
