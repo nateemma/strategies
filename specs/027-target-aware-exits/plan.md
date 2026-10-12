@@ -114,7 +114,9 @@ specs/027-target-aware-exits/
 ```text
 research/exit_coupling/__init__.py            # NEW
 research/exit_coupling/feasibility.py         # NEW C1: US1 measurements + replays (no backtests)
-research/exit_coupling/tests/test_feasibility.py  # NEW: synthetic paths, early-only choice
+research/exit_coupling/paths.py               # NEW: path metrics + replays (pure)
+research/exit_coupling/tests/test_paths.py    # NEW: synthetic paths
+research/exit_coupling/tests/test_feasibility.py  # NEW: early-only choice, rules
 utils/ExitPolicy.py                           # EDIT C2 (US2 only): optional coupling fields
 utils/tests/test_exit_policy_coupling.py      # NEW (US2)
 Framework/BaseStrategy.py                     # EDIT C3 (US2 only)

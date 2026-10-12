@@ -14,7 +14,7 @@ python -m research.exit_coupling.feasibility --momentum st_bgo_mx --reversion st
 - Grid values are chosen from f00–f07 rows only. A test plants a late-only effect and checks that it
   cannot change the choice.
 - Exit codes: 0 if ≥ 1 coupling is SUPPORTED, 3 if none is (STOP), 2 if an input is missing.
-- Pure functions (unit-tested on synthetic paths):
+- Pure functions in `research/exit_coupling/paths.py` (unit-tested on synthetic paths):
   - `path_metrics(ohlc, entry_idx, open_rate, stop_fn, target, horizon, max_bars)` returns touch
     bar, MAE before touch, ambiguous flag, stop-breach bar;
   - `replay(trade, path, rule)` returns the counterfactual exit price, bar and reason.
