@@ -2,7 +2,7 @@
 
 **Committed before any 2022 backtest or replay.** The machine-readable copy is
 [preregistration.json](preregistration.json); `confirm.py` reads only that file and refuses to run if
-it has uncommitted changes. Commit: *(filled in by the follow-up commit)*.
+it has uncommitted changes. Commit: `e645016` (2026-10-12).
 
 ## What is judged
 
