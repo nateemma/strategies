@@ -1,0 +1,50 @@
+{
+  "run_id": "nnnc_live_c2",
+  "family": "NNNC",
+  "base_strategy": "NNNC_Live_C2",
+  "anchored": true,
+  "min_train_days": 730,
+  "test_days": 90,
+  "data_start": "2021-01-01",
+  "data_end": "2026-09-07",
+  "config": "user_data/strategies/config/config_wf.json",
+  "params_snapshot": "user_data/strategies/evaluation/folds/params_20261007-085500_NNNC_A_Raw_Open.json",
+  "params_sha": "8d97d0f22402eb48",
+  "validated": true,
+  "validation_errors": [],
+  "folds": [
+    {
+      "fold_id": "f00",
+      "train_start": "2021-01-01",
+      "train_end": "2022-12-31",
+      "test_start": "2023-01-01",
+      "test_end": "2023-04-01",
+      "train_timerange": "20210101-20230101",
+      "test_timerange": "20230101-20230401",
+      "test_days": 90,
+      "strategy_class": "NNNC_Live_C2_f00",
+      "model_dir": "user_data/strategies/saved_data/NNNC_ARO_f00",
+      "arm_tag": "nnnc_live_c2_f00",
+      "status": "planned"
+    }
+  ],
+  "namespacing_note": "renamed off the default NNNC_WF_* so this plan cannot inherit another strategy's models: run_folds namespaces by seed only and get_model_path keys off the class name.",
+  "thresholds": {
+    "f00": 0.7336807381367683,
+    "f01": 0.7422233717149496,
+    "f02": 0.7535704225683212,
+    "f03": 0.7734522019863127,
+    "f04": 0.7659768636226654,
+    "f05": 0.7832459589958191,
+    "f06": 0.780843776512146,
+    "f07": 0.7806009162425993,
+    "f08": 0.7819486217021943,
+    "f09": 0.7821030111789703,
+    "f10": 0.7802942624568938,
+    "f11": 0.7771881595611572,
+    "f12": 0.7800141516685486,
+    "f13": 0.7746041331768035,
+    "f14": 0.7731902599334717
+  },
+  "model_source": "NNNC_ARO"
+}

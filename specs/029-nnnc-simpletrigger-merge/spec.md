@@ -29,7 +29,8 @@ SimpleTrigger derive from one framework definition, and the model is one entry s
 - **The researcher chose a pure restructure** (2026-10-12, decision A). Nothing any existing
   strategy does may change.
 - **Arm D enters on the model alone.** 56.5% of its trades fall outside the gbb trigger, and they
-  must stay.
+  must stay. *(Corrected 2026-10-12 by liveness.md: the 56.5% was a trade-set overlap with the
+  twin, not an entry measure. Only 2 of 13,608 arm D model-signal rows are off-trigger.)*
 - **Trigger AND model** (enter only on trigger bars the model accepts) becomes a switch, off by
   default. Evaluating it is a later feature.
 
@@ -225,9 +226,9 @@ stop-check result, the liveness of each switch, and how a later feature declares
     For example, `forward_mae` asks only whether the price rises, so a bounce and a breakout both
     qualify.
 
-  Arm D (`gbb_path`) is therefore reversion for all its entries, including the 56.5% that fall
-  outside the gbb trigger. Whether those entries behave like reversion trades is left to a later
-  feature.
+  Arm D (`gbb_path`) is therefore reversion for all its entries. *(The "56.5% outside the gbb
+  trigger" this paragraph assumed was a misreading. Arm D's model signals sit on gbb bars in
+  99.985% of cases; see liveness.md.)*
 - **FR-008**: A later NNNC feature MUST be able to switch on, by declaration alone:
   - each per-family exit, including the ATR take-profit;
   - the regime gate;

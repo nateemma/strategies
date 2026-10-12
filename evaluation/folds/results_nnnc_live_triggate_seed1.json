@@ -1,0 +1,28 @@
+{
+  "run_id": "nnnc_live_triggate",
+  "seed": 1,
+  "params_sha": "8d97d0f22402eb48",
+  "elapsed_minutes": 0.2,
+  "folds_planned": 1,
+  "folds_complete": 1,
+  "status": "complete",
+  "folds": [
+    {
+      "fold_id": "f00",
+      "train_start": "2021-01-01",
+      "train_end": "2022-12-31",
+      "test_start": "2023-01-01",
+      "test_end": "2023-04-01",
+      "train_timerange": "20210101-20230101",
+      "test_timerange": "20230101-20230401",
+      "test_days": 90,
+      "strategy_class": "NNNC_Live_TrigGate_f00",
+      "model_dir": "user_data/strategies/saved_data/NNNC_ARO_f00",
+      "arm_tag": "nnnc_live_triggate_f00",
+      "status": "evaluated",
+      "model_artifact_verified": true,
+      "n_trades": 52,
+      "arm_returncode": 0
+    }
+  ]
+}
