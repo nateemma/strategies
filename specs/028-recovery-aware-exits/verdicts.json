@@ -1,0 +1,133 @@
+{
+ "label": "CONFIRMATORY (pre-registered) -- PROVISIONAL under quality gate 2 (2022 adjoins f00; not a distant era)",
+ "years": 0.821917808219178,
+ "folds": [
+  "e00",
+  "e01",
+  "e02"
+ ],
+ "control": {
+  "class": "SimpleTrigger_RevOnlyVolreg2",
+  "plan_tag": "st_e22_rev2"
+ },
+ "ctl_sum_pp": -5.422,
+ "ctl_trades": 969,
+ "candidates": [
+  {
+   "id": "C4",
+   "class": "SimpleTrigger_RevOnlyVolreg2_XC4",
+   "plan_tag": "st_e22_c4",
+   "early_gain_pp": 8.439,
+   "late_gain_pp": 6.267,
+   "replay_gain_pp": -0.040849218362022245,
+   "verdict": "STOPPED_AT_FEASIBILITY",
+   "failed": [],
+   "flags": []
+  },
+  {
+   "id": "C2",
+   "class": "SimpleTrigger_RevOnlyVolreg2_XC2",
+   "plan_tag": "st_e22_c2",
+   "early_gain_pp": 4.461,
+   "late_gain_pp": 4.172,
+   "replay_gain_pp": 0.9650096529240648,
+   "sum_pp_arm": -0.47,
+   "sum_pp_ctl": -5.422,
+   "gain_pp": 4.952,
+   "per_fold_gain_pp": {
+    "e00": 2.0229999999999997,
+    "e01": 1.146,
+    "e02": 1.783
+   },
+   "paired": {
+    "verdict": "INCONCLUSIVE_ARM_LOSES",
+    "delta_pp": 4.95243133098625,
+    "ci_pp_yr": [
+     -13.756685908954656,
+     25.78852532556938
+    ],
+    "p": 0.5499,
+    "flag": "INCONCLUSIVE_ARM_LOSES"
+   },
+   "risk": {
+    "days": 272,
+    "arm": {
+     "sharpe": -0.02593510996739573,
+     "maxdd": 15.664114736679135,
+     "daily_sd": 1.2728795006136333
+    },
+    "ctl": {
+     "sharpe": -0.32225679295660686,
+     "maxdd": 17.594753412470606,
+     "daily_sd": 1.1817754415707935
+    },
+    "sharpe_delta": 0.29632168298921113,
+    "sharpe_ci": [
+     -0.1593791753546524,
+     0.6916582188944994
+    ],
+    "sharpe_p": 0.166,
+    "verdict_sharpe": "UNCHANGED",
+    "maxdd_delta": -1.9306386757914709,
+    "maxdd_ci": [
+     -7.9580437757594895,
+     1.4672860690854497
+    ],
+    "maxdd_p": 0.57,
+    "verdict_maxdd": "UNCHANGED"
+   },
+   "ctl_trades": 969,
+   "arm_trades": 919,
+   "folds_changed": 3,
+   "exit_reasons_arm": {
+    "force_exit": 7,
+    "roi": 66,
+    "stop_loss": 4,
+    "take_profit": 419,
+    "trailing_stop_loss": 350,
+    "unclog_12h": 70,
+    "unclog_1d": 3
+   },
+   "exit_reasons_ctl": {
+    "force_exit": 3,
+    "roi": 11,
+    "stop_loss": 4,
+    "take_profit": 534,
+    "trailing_stop_loss": 339,
+    "unclog_12h": 74,
+    "metric_overbought": 1,
+    "unclog_1d": 3
+   },
+   "ci_half_width_pp": 16.251456671722206,
+   "verdict": "ADOPT",
+   "failed": [],
+   "flags": [
+    "INCONCLUSIVE_ARM_LOSES"
+   ],
+   "needs_rerun": false,
+   "rerun_hash_match": null
+  },
+  {
+   "id": "C1",
+   "class": "SimpleTrigger_RevOnlyVolreg2_XC1",
+   "plan_tag": "st_e22_c1",
+   "early_gain_pp": 3.285,
+   "late_gain_pp": 1.878,
+   "replay_gain_pp": -1.291161255835928,
+   "verdict": "STOPPED_AT_FEASIBILITY",
+   "failed": [],
+   "flags": []
+  },
+  {
+   "id": "C42",
+   "class": "SimpleTrigger_RevOnlyVolreg2_XC42",
+   "plan_tag": "st_e22_c42",
+   "early_gain_pp": 4.226,
+   "late_gain_pp": 4.081,
+   "replay_gain_pp": -2.9280302262691635,
+   "verdict": "STOPPED_AT_FEASIBILITY",
+   "failed": [],
+   "flags": []
+  }
+ ]
+}

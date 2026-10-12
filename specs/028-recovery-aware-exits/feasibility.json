@@ -1,0 +1,77 @@
+{
+ "label": "CONFIRMATORY (pre-registered) -- PROVISIONAL under quality gate 2 (2022 adjoins f00; not a distant era)",
+ "control": {
+  "class": "SimpleTrigger_RevOnlyVolreg2",
+  "plan_tag": "st_e22_rev2"
+ },
+ "trades": 969,
+ "ctl_pp": -5.422,
+ "fidelity": {
+  "null_replay_agreement": 0.9969040247678018,
+  "by_recorded_reason": {
+   "force_exit": {
+    "count": 3,
+    "mean": 1.0
+   },
+   "metric_overbought": {
+    "count": 1,
+    "mean": 1.0
+   },
+   "roi": {
+    "count": 11,
+    "mean": 1.0
+   },
+   "stop": {
+    "count": 343,
+    "mean": 1.0
+   },
+   "take_profit": {
+    "count": 534,
+    "mean": 0.9944
+   },
+   "unclog_12h": {
+    "count": 74,
+    "mean": 1.0
+   },
+   "unclog_1d": {
+    "count": 3,
+    "mean": 1.0
+   }
+  },
+  "stop_model_agreement": 1.0,
+  "stop_model_median_gap_pp": 8.538849869434691e-11
+ },
+ "fidelity_ok": true,
+ "stop_exits": 343,
+ "recovered_maxhold": 161,
+ "recovery_share": 0.46938775510204084,
+ "recovery_floor": 0.5,
+ "forgone_pp": 52.92405839337472,
+ "candidates": {
+  "C4": {
+   "replay_gain_pp": -0.040849218362022245,
+   "expected_arm_gain_pp": -0.020424609181011123,
+   "floor_applies": true,
+   "pass": false
+  },
+  "C2": {
+   "replay_gain_pp": 0.9650096529240648,
+   "expected_arm_gain_pp": 0.4825048264620324,
+   "floor_applies": false,
+   "pass": true
+  },
+  "C1": {
+   "replay_gain_pp": -1.291161255835928,
+   "expected_arm_gain_pp": -0.645580627917964,
+   "floor_applies": true,
+   "pass": false
+  },
+  "C42": {
+   "replay_gain_pp": -2.9280302262691635,
+   "expected_arm_gain_pp": -1.4640151131345818,
+   "floor_applies": true,
+   "pass": false
+  }
+ },
+ "exit": 0
+}
