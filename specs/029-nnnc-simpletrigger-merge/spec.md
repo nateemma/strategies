@@ -44,8 +44,14 @@ share this framework.
 ### Session 2026-10-12
 
 - Q: Which family do NNNC's model entries belong to? → A: Label-driven (A′). Each label declares
-  the family it implies, and a model's entries take it. Labels that imply no entry state, such as
-  arm D's forward-peak label, leave entries untagged, on the shared exit.
+  the family it implies, and a model's entries take it. Labels that imply no entry state leave
+  entries untagged, on the shared exit.
+- Correction (plan, 2026-10-12): arm D's model is trained on `gbb_path` (path-aware gbb: guard_metric
+  < 0.3, ≥ 2% within 48 bars without breaching −5% first), not a forward-peak label. That label
+  encodes a weak band position, so under A′ **arm D's entries are tagged reversion**. The
+  `use_forward_peak_profit_label` flag is declared but read nowhere. The decision (label-driven)
+  is unchanged; only its consequence for arm D is. It changes no trade, because no NNNC class
+  declares a family exit.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -154,13 +160,13 @@ stop-check result, the liveness of each switch, and how a later feature declares
   pre-existing failures and excluded from the comparison; they are not counted as merge
   regressions.
 - **Model entries have no family tag today.** Per-family exits apply only to tagged trades; an
-  untagged trade uses the strategy's shared exit. Under FR-007, arm D's entries stay untagged (its
-  label implies no family), and no NNNC class declares a family exit today. The tags change no
-  existing exit either way.
+  untagged trade uses the strategy's shared exit. Under FR-007, arm D's entries are tagged reversion
+  (its `gbb_path` label), but no NNNC class declares a family exit today, so the tags change no
+  existing exit.
 - **A trigger and the model fire on the same bar.** Under the default (model-only), the entry is
   the model's, exactly as today. Its tag is the label's family (FR-007), not the trigger's.
-- **A model trained on a label without a declared family** (most legacy NNNC variants) is
-  untagged, the same as arm D.
+- **A model trained on a label without a declared family** (for example
+  `forward_mae`, `triple_barrier`) is untagged.
 - **NNNC's own entry guards and threshold** (the per-fold prediction thresholds, the guard chain)
   must keep their current order and effect. The shared framework must not apply a second guard
   pass.
@@ -198,6 +204,9 @@ stop-check result, the liveness of each switch, and how a later feature declares
   - the twin MUST still equal SimpleTrigger's gbb arm;
   - every loadable NNNC class MUST keep its baseline fingerprint, unless the fingerprint gains
     only the default-off switch fields, which are omitted while off as in 028.
+- **FR-005a**: The SimpleTrigger reference arms MUST also reproduce their recorded trades after
+  the change, because the refactor moves SimpleTrigger's framework code. The arms are `st_gbb`,
+  `st_bgo_mx`, `st_book_rev2`, a regime-gated arm, a coexistence-rule arm and a pre-emption arm.
 - **FR-006**: Every NNNC run MUST carry the stop invariants of 023 FR-017, and a violation MUST
   halt the run. If the baseline (FR-004) finds violations in arm D, the feature MUST stop before
   merging and report them.
@@ -208,10 +217,11 @@ stop-check result, the liveness of each switch, and how a later feature declares
     momentum: strong band positions);
   - a model's entries take its training label's family;
   - a label that implies no entry state leaves its entries untagged, so they keep the shared exit.
-    This includes the forward-peak label arm D is trained on (≥ 2% within 48 bars: a bounce and a
-    breakout both qualify).
+    For example, `forward_mae` asks only whether the price rises, so a bounce and a breakout both
+    qualify.
 
-  Which family arm D's entries belong to, for example per bar by market state, is left to a later
+  Arm D (`gbb_path`) is therefore reversion for all its entries, including the 56.5% that fall
+  outside the gbb trigger. Whether those entries behave like reversion trades is left to a later
   feature.
 - **FR-008**: A later NNNC feature MUST be able to switch on, by declaration alone:
   - each per-family exit, including the ATR take-profit;
@@ -249,7 +259,8 @@ stop-check result, the liveness of each switch, and how a later feature declares
 ### Measurable Outcomes
 
 - **SC-001**: Arm D reproduces its pre-change trades in 15 of 15 folds. The twin does too, and it
-  still equals the no-model gbb arm in 15 of 15 folds.
+  still equals the no-model gbb arm in 15 of 15 folds. The SimpleTrigger reference arms (FR-005a)
+  reproduce their records in every fold.
 - **SC-002**: 100% of loadable NNNC classes keep their pre-change fingerprint. Classes that fail to
   load are listed, and fail identically before the change.
 - **SC-003**: Every NNNC run carries the stop check. Arm D's baseline violation count is recorded,
